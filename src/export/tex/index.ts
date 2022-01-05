@@ -7,6 +7,7 @@ import os from 'os';
 import path from 'path';
 import { Article } from '@curvenote/blocks/dist/blocks/article';
 import { sync as which } from 'which';
+import yaml from 'js-yaml';
 import { Block, ExportTemplate, Version } from '../../models';
 import { Session } from '../../session';
 import { getChildren } from '../../actions/getChildren';
@@ -36,12 +37,6 @@ function throwIfTemplateButNoJtex(opts: Options) {
   }
 }
 
-function throwIfTemplatesOptionsFileNotFound(opts: Options) {
-  if (opts.options && !fs.existsSync(opts.options)) {
-    throw new Error(`The template options file specified was not found: ${opts.options}`);
-  }
-}
-
 async function fetchTemplate(session: Session, opts: Options): Promise<{ tagged: string[] }> {
   let tagged: string[] = [];
   if (opts.template) {
@@ -53,6 +48,17 @@ async function fetchTemplate(session: Session, opts: Options): Promise<{ tagged:
     );
   }
   return { tagged };
+}
+
+function loadTemplateOptions(opts: Options): Record<string, any> {
+  if (opts.options) {
+    if (!fs.existsSync(opts.options)) {
+      throw new Error(`The template options file specified was not found: ${opts.options}`);
+    }
+    // TODO validate against the options schema here
+    return yaml.load(fs.readFileSync(opts.options as string, 'utf8')) as Record<string, any>;
+  }
+  return {};
 }
 
 type Options = {
@@ -88,8 +94,8 @@ function writeLocalizedContentToFile(
 
 export async function articleToTex(session: Session, versionId: VersionId, opts: Options) {
   throwIfTemplateButNoJtex(opts);
-  throwIfTemplatesOptionsFileNotFound(opts);
   const { tagged } = await fetchTemplate(session, opts);
+  const optionData = loadTemplateOptions(opts);
 
   const [block, version] = await Promise.all([
     new Block(session, convertToBlockId(versionId)).get(),
@@ -130,6 +136,7 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
     block,
     version as Version<Article>,
     taggedFilenames,
+    optionData,
   );
   writeDocumentToFile(model);
 

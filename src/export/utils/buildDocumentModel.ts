@@ -60,7 +60,7 @@ export interface ExportDocumentModel {
     tags: string[];
     oxalink: string | null;
   };
-  tagged: Record<string, any>;
+  tagged: Record<string, string>;
   options: Record<string, any>;
 }
 
@@ -69,6 +69,7 @@ export async function buildDocumentModel(
   block: Block,
   version: Version<Blocks.Article>,
   tagged: Record<string, string>,
+  options: Record<string, any>,
 ): Promise<ExportDocumentModel> {
   const authors = await Promise.all(block.data.authors.map((a) => toAuthorFields(session, a)));
   const data = {
@@ -83,7 +84,7 @@ export async function buildDocumentModel(
       oxalink: oxaLink(session.SITE_URL, version.id),
     },
     tagged,
-    options: {},
+    options,
   };
 
   return data;
