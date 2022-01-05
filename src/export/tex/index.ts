@@ -17,7 +17,6 @@ import {
   walkArticle,
   writeDocumentToFile,
   writeImagesToFiles,
-  writeBibFile,
 } from '../utils';
 
 const exec = util.promisify(child_process.exec);
