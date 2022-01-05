@@ -17,6 +17,7 @@ import {
   walkArticle,
   writeDocumentToFile,
   writeImagesToFiles,
+  writeBibFile,
 } from '../utils';
 
 const exec = util.promisify(child_process.exec);
@@ -40,9 +41,10 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
   if (data.kind !== KINDS.Article) throw new Error('Not an article');
   const article = await walkArticle(session, data);
 
+  const imageFilenames = await writeImagesToFiles(article.images, opts?.images ?? 'images');
+
   const model = await buildDocumentModel(session, block, version as Version<Article>);
   writeDocumentToFile(model);
-  const imageFilenames = await writeImagesToFiles(article.images, opts?.images ?? 'images');
 
   const localization = localizationOptions(session, imageFilenames, article);
   const content = article.children.map((child) => {
