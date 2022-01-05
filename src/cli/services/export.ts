@@ -9,6 +9,10 @@ function makeImageOption() {
   );
 }
 
+function makeTemplateOption() {
+  return new Option('-t, --template <name>', 'Specify a template to apply during export');
+}
+
 function makeWordExportCLI(program: Command) {
   const command = new Command('docx')
     .alias('word')
@@ -37,6 +41,7 @@ function makeTexExportCLI(program: Command) {
     .argument('<article>', 'A link to the Curvenote article (e.g. oxaLink or api link)')
     .argument('[output]', 'The document filename to export to', 'main.tex')
     .addOption(makeImageOption())
+    .addOption(makeTemplateOption())
     .action(clirun(oxaLinkToTex, { program }));
   return command;
 }

@@ -6,6 +6,7 @@ import { toTex } from '@curvenote/schema';
 import os from 'os';
 import path from 'path';
 import { Article } from '@curvenote/blocks/dist/blocks/article';
+import { sync as which } from 'which';
 import { Block, Version } from '../../models';
 import { Session } from '../../session';
 import { getChildren } from '../../actions/getChildren';
@@ -25,17 +26,29 @@ export function createTempFolder() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'curvenote'));
 }
 
+function throwIfTemplateButNoJtex(session: Session, opts: Options) {
+  if (opts.template && !which('jtex', { nothrow: true })) {
+    throw new Error(
+      'A template option was specified but the `jtex` command was not found on the path.',
+    );
+  }
+}
+
 type Options = {
   filename: string;
   images?: string;
+  template?: string;
 };
 
 export async function articleToTex(session: Session, versionId: VersionId, opts: Options) {
+  throwIfTemplateButNoJtex(session, opts);
+
   const [block, version] = await Promise.all([
     new Block(session, convertToBlockId(versionId)).get(),
     new Version(session, versionId).get(),
     getChildren(session, versionId),
   ]);
+
   const { data } = version;
   if (data.kind !== KINDS.Article) throw new Error('Not an article');
   const article = await walkArticle(session, data);
