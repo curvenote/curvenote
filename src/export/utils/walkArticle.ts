@@ -16,10 +16,23 @@ import { Block, Version } from '../../models';
 import { getLatestVersion } from '../../actions/getLatest';
 import { getImageSrc } from './getImageSrc';
 
+export interface ArticleStateChild {
+  state?: ReturnType<typeof getEditorState>;
+  version?: Version;
+  templateTags?: string[];
+}
+
+export interface ArticleStateReference {
+  label: string;
+  bibtex: string;
+  version: Version<Blocks.Reference>;
+}
+
 export type ArticleState = {
-  children: { state?: ReturnType<typeof getEditorState>; version?: Version }[];
+  children: ArticleStateChild[];
   images: Record<string, Version<Blocks.Image | Blocks.Output>>;
-  references: Record<string, { label: string; bibtex: string; version: Version<Blocks.Reference> }>;
+  references: Record<string, ArticleStateReference>;
+  tagged: Record<string, ArticleStateChild[]>;
 };
 
 function getFigureHTML(
@@ -42,11 +55,16 @@ function outputHasImage(version: Version<Blocks.Output>) {
   }, false);
 }
 
-export async function walkArticle(session: Session, data: Blocks.Article): Promise<ArticleState> {
+export async function walkArticle(
+  session: Session,
+  data: Blocks.Article,
+  templateTags: string[] = [],
+): Promise<ArticleState> {
   const images: ArticleState['images'] = {};
   const referenceKeys: Set<string> = new Set();
   const references: ArticleState['references'] = {};
 
+  const templateTagSet = new Set(templateTags); // ensure dedupe
   const children: ArticleState['children'] = await Promise.all(
     data.order.map(async (k) => {
       const articleChild = data.children[k];
@@ -62,7 +80,12 @@ export async function walkArticle(session: Session, data: Blocks.Article): Promi
       switch (childVersion.data.kind) {
         case KINDS.Content: {
           const state = getEditorState(childVersion.data.content);
-          return { state, version: childVersion };
+          const matchingTags = childBlock.data.tags.filter((t) => templateTagSet.has(t));
+          return {
+            state,
+            version: childVersion,
+            templateTags: matchingTags.length > 0 ? matchingTags : undefined,
+          };
         }
         case KINDS.Output:
         case KINDS.Image: {
@@ -145,10 +168,21 @@ export async function walkArticle(session: Session, data: Blocks.Article): Promi
     }),
   );
 
+  const contentChildren = children.filter((c) => !c.templateTags);
+  const taggedChildren = children.filter((c) => c.templateTags);
+
+  const tagged = Array.from(templateTagSet).reduce<Record<string, ArticleStateChild[]>>(
+    (obj, tag) => {
+      return { ...obj, [tag]: taggedChildren.filter((c) => c.templateTags?.indexOf(tag) !== -1) };
+    },
+    {},
+  );
+
   return {
-    children,
+    children: contentChildren,
     images,
     references,
+    tagged,
   };
 }
 

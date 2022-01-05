@@ -13,6 +13,13 @@ function makeTemplateOption() {
   return new Option('-t, --template <name>', 'Specify a template to apply during export');
 }
 
+function makeTemplateOptionsOption() {
+  return new Option(
+    '-o, --options <name>',
+    'Specify a `yaml` file containing optional data for the template',
+  );
+}
+
 function makeWordExportCLI(program: Command) {
   const command = new Command('docx')
     .alias('word')
@@ -42,6 +49,7 @@ function makeTexExportCLI(program: Command) {
     .argument('[output]', 'The document filename to export to', 'main.tex')
     .addOption(makeImageOption())
     .addOption(makeTemplateOption())
+    .addOption(makeTemplateOptionsOption())
     .action(clirun(oxaLinkToTex, { program }));
   return command;
 }
