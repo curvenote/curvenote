@@ -103,9 +103,6 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
 
   const imageFilenames = await writeImagesToFiles(article.images, opts?.images ?? 'images');
 
-  const model = await buildDocumentModel(session, block, version as Version<Article>);
-  writeDocumentToFile(model);
-
   session.$logger.debug(`Writing main body of content to ${opts.filename}`);
   writeLocalizedContentToFile(
     article.children,
@@ -113,15 +110,28 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
     opts.filename,
   );
 
-  Object.entries(article.tagged).forEach(([tag, children]) => {
-    const filename = path.join('.', `${tag}.tex`);
-    session.$logger.debug(`Writing tagged content from ${children.length} block(s) to ${filename}`);
-    writeLocalizedContentToFile(
-      children,
-      (child) => convertAndLocalizeChild(session, child, imageFilenames, article.references),
-      filename,
-    );
-  });
+  const taggedFilenames: Record<string, string> = Object.entries(article.tagged)
+    .map(([tag, children]) => {
+      const filename = `${tag}.tex`;
+      session.$logger.debug(
+        `Writing tagged content from ${children.length} block(s) to ${filename}`,
+      );
+      writeLocalizedContentToFile(
+        children,
+        (child) => convertAndLocalizeChild(session, child, imageFilenames, article.references),
+        filename,
+      );
+      return { tag, filename };
+    })
+    .reduce((obj, { tag, filename }) => ({ ...obj, [tag]: filename }), {});
+
+  const model = await buildDocumentModel(
+    session,
+    block,
+    version as Version<Article>,
+    taggedFilenames,
+  );
+  writeDocumentToFile(model);
 
   // Write out the references
   await writeBibtex(article.references);

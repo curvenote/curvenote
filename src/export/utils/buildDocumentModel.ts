@@ -68,6 +68,7 @@ export async function buildDocumentModel(
   session: Session,
   block: Block,
   version: Version<Blocks.Article>,
+  tagged: Record<string, string>,
 ): Promise<ExportDocumentModel> {
   const authors = await Promise.all(block.data.authors.map((a) => toAuthorFields(session, a)));
   const data = {
@@ -81,7 +82,7 @@ export async function buildDocumentModel(
       tags: block.data.tags.map((t) => escapeLatex(t)),
       oxalink: oxaLink(session.SITE_URL, version.id),
     },
-    tagged: {},
+    tagged,
     options: {},
   };
 
