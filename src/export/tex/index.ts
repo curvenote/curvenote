@@ -1,16 +1,23 @@
 import fs from 'fs';
 import util from 'util';
 import child_process from 'child_process';
-import { VersionId, KINDS, oxaLink } from '@curvenote/blocks';
+import { VersionId, KINDS, oxaLink, oxaLinkToId, convertToBlockId } from '@curvenote/blocks';
 import { toTex } from '@curvenote/schema';
 import os from 'os';
 import path from 'path';
-import { Version } from '../../models';
+import { Article } from '@curvenote/blocks/dist/blocks/article';
+import { Block, Version } from '../../models';
 import { Session } from '../../session';
 import { getChildren } from '../../actions/getChildren';
-import { exportFromOxaLink, walkArticle, writeImagesToFiles } from '../utils';
 import { localizationOptions } from '../utils/localizationOptions';
 import { writeBibtex } from '../utils/writeBibtex';
+import {
+  buildDocumentModel,
+  exportFromOxaLink,
+  walkArticle,
+  writeDocumentToFile,
+  writeImagesToFiles,
+} from '../utils';
 
 const exec = util.promisify(child_process.exec);
 
@@ -24,7 +31,8 @@ type Options = {
 };
 
 export async function articleToTex(session: Session, versionId: VersionId, opts: Options) {
-  const [version] = await Promise.all([
+  const [block, version] = await Promise.all([
+    new Block(session, convertToBlockId(versionId)).get(),
     new Version(session, versionId).get(),
     getChildren(session, versionId),
   ]);
@@ -32,6 +40,8 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
   if (data.kind !== KINDS.Article) throw new Error('Not an article');
   const article = await walkArticle(session, data);
 
+  const model = await buildDocumentModel(session, block, version as Version<Article>);
+  writeDocumentToFile(model);
   const imageFilenames = await writeImagesToFiles(article.images, opts?.images ?? 'images');
 
   const localization = localizationOptions(session, imageFilenames, article);
