@@ -112,7 +112,7 @@ export class Version<T extends ALL_BLOCKS = ALL_BLOCKS> extends BaseTransfer<
   $selector = selectVersion;
 }
 
-export class ExportTemplate extends BaseTransfer<string, TemplateSpec & { id: string }> {
+export class Template extends BaseTransfer<string, TemplateSpec & { id: string }> {
   modelKind = 'Template';
 
   // TODO better unpacking and defaults on the dto contents

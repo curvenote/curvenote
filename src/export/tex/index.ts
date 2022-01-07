@@ -5,9 +5,7 @@ import { Blocks, VersionId, KINDS, oxaLink, convertToBlockId } from '@curvenote/
 import { toTex } from '@curvenote/schema';
 import os from 'os';
 import path from 'path';
-import { sync as which } from 'which';
-import YAML from 'yaml';
-import { Block, ExportTemplate, Version } from '../../models';
+import { Block, Version } from '../../models';
 import { Session } from '../../session';
 import { getChildren } from '../../actions/getChildren';
 import { localizationOptions } from '../utils/localizationOptions';
@@ -21,51 +19,18 @@ import {
   writeDocumentToFile,
   writeImagesToFiles,
 } from '../utils';
+import { TexExportOptions } from './types';
+import {
+  fetchTemplateTaggedBlocks,
+  loadTemplateOptions,
+  throwIfTemplateButNoJtex,
+} from './template';
 
 const exec = util.promisify(child_process.exec);
 
 export function createTempFolder() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'curvenote'));
 }
-
-function throwIfTemplateButNoJtex(opts: Options) {
-  if (opts.template && !which('jtex', { nothrow: true })) {
-    throw new Error(
-      'A template option was specified but the `jtex` command was not found on the path.\nTry `pip install jtex`!',
-    );
-  }
-}
-
-async function fetchTemplate(session: Session, opts: Options): Promise<{ tagged: string[] }> {
-  let tagged: string[] = [];
-  if (opts.template) {
-    session.$logger.debug(`Fetching template spec for "${opts.template}"`);
-    const template = await new ExportTemplate(session, opts.template).get();
-    tagged = template.data.config.tagged.map((t) => t.id);
-    session.$logger.debug(
-      `Template '${opts.template}' supports following tagged content: ${tagged.join(', ')}`,
-    );
-  }
-  return { tagged };
-}
-
-function loadTemplateOptions(opts: Options): Record<string, any> {
-  if (opts.options) {
-    if (!fs.existsSync(opts.options)) {
-      throw new Error(`The template options file specified was not found: ${opts.options}`);
-    }
-    // TODO validate against the options schema here
-    return YAML.parse(fs.readFileSync(opts.options as string, 'utf8')) as Record<string, any>;
-  }
-  return {};
-}
-
-type Options = {
-  filename: string;
-  images?: string;
-  template?: string;
-  options?: string;
-};
 
 function convertAndLocalizeChild(
   session: Session,
@@ -81,7 +46,7 @@ function convertAndLocalizeChild(
   return `%% ${sep}\n\n${tex}`;
 }
 
-function writeLocalizedContentToFile(
+function writeBlocksToFile(
   children: ArticleStateChild[],
   mapperFn: (child: ArticleStateChild) => string,
   filename: string,
@@ -91,10 +56,10 @@ function writeLocalizedContentToFile(
   fs.writeFileSync(filename, `${file}\n`);
 }
 
-export async function articleToTex(session: Session, versionId: VersionId, opts: Options) {
+export async function articleToTex(session: Session, versionId: VersionId, opts: TexExportOptions) {
   throwIfTemplateButNoJtex(opts);
-  const { tagged } = await fetchTemplate(session, opts);
-  const optionData = loadTemplateOptions(opts);
+  const { tagged } = await fetchTemplateTaggedBlocks(session, opts);
+  const templateOptions = loadTemplateOptions(opts);
 
   const [block, version] = await Promise.all([
     new Block(session, convertToBlockId(versionId)).get(),
@@ -109,7 +74,7 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
   const imageFilenames = await writeImagesToFiles(article.images, opts?.images ?? 'images');
 
   session.$logger.debug(`Writing main body of content to ${opts.filename}`);
-  writeLocalizedContentToFile(
+  writeBlocksToFile(
     article.children,
     (child) => convertAndLocalizeChild(session, child, imageFilenames, article.references),
     opts.filename,
@@ -125,10 +90,8 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
     })
     .map(([tag, children]) => {
       const filename = `${tag}.tex`;
-      session.$logger.debug(
-        `Writing tagged content from ${children.length} block(s) to ${filename}`,
-      );
-      writeLocalizedContentToFile(
+      session.$logger.debug(`Writing ${children.length} tagged block(s) to ${filename}`);
+      writeBlocksToFile(
         children,
         (child) => convertAndLocalizeChild(session, child, imageFilenames, article.references),
         filename,
@@ -142,7 +105,7 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
     block,
     version as Version<Blocks.Article>,
     taggedFilenames,
-    optionData,
+    templateOptions,
   );
   writeDocumentToFile(model);
 
