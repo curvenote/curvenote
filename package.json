@@ -42,7 +42,6 @@
     "commander": "^8.3.0",
     "date-fns": "^2.25.0",
     "docx": "^7.3.0",
-    "js-yaml": "^4.1.0",
     "jsdom": "^18.0.0",
     "jsonwebtoken": "^8.5.1",
     "node-fetch": "^2.6.5",
@@ -56,7 +55,6 @@
   "devDependencies": {
     "@babel/plugin-proposal-optional-chaining": "^7.14.5",
     "@types/jest": "^26.0.24",
-    "@types/js-yaml": "^4.0.5",
     "@types/jsdom": "^16.2.13",
     "@types/jsonwebtoken": "^8.5.5",
     "@types/markdown-it": "^12.2.3",

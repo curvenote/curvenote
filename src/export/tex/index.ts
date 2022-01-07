@@ -1,13 +1,13 @@
 import fs from 'fs';
 import util from 'util';
 import child_process from 'child_process';
-import { VersionId, KINDS, oxaLink, oxaLinkToId, convertToBlockId } from '@curvenote/blocks';
+import { VersionId, KINDS, oxaLink, convertToBlockId } from '@curvenote/blocks';
 import { toTex } from '@curvenote/schema';
 import os from 'os';
 import path from 'path';
 import { Article } from '@curvenote/blocks/dist/blocks/article';
 import { sync as which } from 'which';
-import yaml from 'js-yaml';
+import YAML from 'yaml';
 import { Block, ExportTemplate, Version } from '../../models';
 import { Session } from '../../session';
 import { getChildren } from '../../actions/getChildren';
@@ -56,7 +56,7 @@ function loadTemplateOptions(opts: Options): Record<string, any> {
       throw new Error(`The template options file specified was not found: ${opts.options}`);
     }
     // TODO validate against the options schema here
-    return yaml.load(fs.readFileSync(opts.options as string, 'utf8')) as Record<string, any>;
+    return YAML.parse(fs.readFileSync(opts.options as string, 'utf8')) as Record<string, any>;
   }
   return {};
 }

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import yaml from 'js-yaml';
+import YAML from 'yaml';
 import { Author, Blocks, oxaLink } from '@curvenote/blocks';
 import { Session } from 'session';
 import { toTex } from '@curvenote/schema';
@@ -93,5 +93,5 @@ export async function buildDocumentModel(
 export function writeDocumentToFile(document: Record<string, any>, basePath?: string) {
   const filename = path.join(basePath ?? '.', 'jtex.yml');
   if (!fs.existsSync(filename)) fs.mkdirSync(path.dirname(filename), { recursive: true });
-  fs.writeFileSync(filename, yaml.dump(document));
+  fs.writeFileSync(filename, YAML.stringify(document));
 }
