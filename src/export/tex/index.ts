@@ -1,11 +1,10 @@
 import fs from 'fs';
 import util from 'util';
 import child_process from 'child_process';
-import { VersionId, KINDS, oxaLink, convertToBlockId } from '@curvenote/blocks';
+import { Blocks, VersionId, KINDS, oxaLink, convertToBlockId } from '@curvenote/blocks';
 import { toTex } from '@curvenote/schema';
 import os from 'os';
 import path from 'path';
-import { Article } from '@curvenote/blocks/dist/blocks/article';
 import { sync as which } from 'which';
 import YAML from 'yaml';
 import { Block, ExportTemplate, Version } from '../../models';
@@ -134,7 +133,7 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
   const model = await buildDocumentModel(
     session,
     block,
-    version as Version<Article>,
+    version as Version<Blocks.Article>,
     taggedFilenames,
     optionData,
   );
