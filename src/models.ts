@@ -113,7 +113,7 @@ export class Version<T extends ALL_BLOCKS = ALL_BLOCKS> extends BaseTransfer<
 }
 
 export class ExportTemplate extends BaseTransfer<string, TemplateSpec & { id: string }> {
-  kind = 'Template';
+  modelKind = 'Template';
 
   // TODO better unpacking and defaults on the dto contents
   $fromDTO = (id: string, json: JsonObject) => ({ id, ...json } as TemplateSpec & { id: string });
