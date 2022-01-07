@@ -31,7 +31,7 @@ async function toAuthorFields(session: Session, author: Author): Promise<ExportA
     name: user.data.display_name,
     affiliation: user.data.affiliation,
     location: user.data.location,
-    curvenote: `${session.SITE_URL}/@user.data.username`,
+    curvenote: `${session.SITE_URL}/@${user.data.username}`,
     is_corresponding: false,
   };
 }
