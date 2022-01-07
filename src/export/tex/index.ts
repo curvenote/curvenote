@@ -88,7 +88,7 @@ function writeLocalizedContentToFile(
 ) {
   const content = children.map(mapperFn);
   const file = content.join('\n\n');
-  fs.writeFileSync(filename, file);
+  fs.writeFileSync(filename, `${file}\n`);
 }
 
 export async function articleToTex(session: Session, versionId: VersionId, opts: Options) {
