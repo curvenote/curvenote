@@ -74,7 +74,7 @@ export async function buildDocumentModel(
   const authors = await Promise.all(block.data.authors.map((a) => toAuthorFields(session, a)));
   const data = {
     doc: {
-      // TODO BUG? we can't get the version title or description because it's not on the DTO
+      // Note: the title & description is on the block
       title: escapeLatex(block.data.title ?? ''),
       description: escapeLatex(block.data.description ?? ''),
       short_title: escapeLatex(toShortTitle(block.data.title ?? '')),
