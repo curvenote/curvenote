@@ -31,7 +31,7 @@ export function createTempFolder() {
 function throwIfTemplateButNoJtex(opts: Options) {
   if (opts.template && !which('jtex', { nothrow: true })) {
     throw new Error(
-      'A template option was specified but the `jtex` command was not found on the path.',
+      'A template option was specified but the `jtex` command was not found on the path.\nTry `pip install jtex`!',
     );
   }
 }
@@ -39,7 +39,7 @@ function throwIfTemplateButNoJtex(opts: Options) {
 async function fetchTemplate(session: Session, opts: Options): Promise<{ tagged: string[] }> {
   let tagged: string[] = [];
   if (opts.template) {
-    session.$logger.debug(`Fetching Template Spec for ${opts.template}`);
+    session.$logger.debug(`Fetching template spec for "${opts.template}"`);
     const template = await new ExportTemplate(session, opts.template).get();
     tagged = template.data.config.tagged.map((t) => t.id);
     session.$logger.debug(
@@ -116,6 +116,13 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
   );
 
   const taggedFilenames: Record<string, string> = Object.entries(article.tagged)
+    .filter(([tag, children]) => {
+      if (children.length === 0) {
+        session.$logger.debug(`No tagged content found for "${tag}".`);
+        return false;
+      }
+      return true;
+    })
     .map(([tag, children]) => {
       const filename = `${tag}.tex`;
       session.$logger.debug(
