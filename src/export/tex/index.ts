@@ -10,13 +10,12 @@ import { Session } from '../../session';
 import { getChildren } from '../../actions/getChildren';
 import { localizationOptions } from '../utils/localizationOptions';
 import { writeBibtex } from '../utils/writeBibtex';
+import { buildFrontMatter, stringifyFrontMatter } from './frontMatter';
 import {
   ArticleStateChild,
   ArticleStateReference,
-  buildDocumentModel,
   exportFromOxaLink,
   walkArticle,
-  writeDocumentToFile,
   writeImagesToFiles,
 } from '../utils';
 import { TexExportOptions } from './types';
@@ -50,9 +49,10 @@ function writeBlocksToFile(
   children: ArticleStateChild[],
   mapperFn: (child: ArticleStateChild) => string,
   filename: string,
+  header?: string,
 ) {
   const content = children.map(mapperFn);
-  const file = content.join('\n\n');
+  const file = header ? `${header}\n${content.join('\n\n')}` : content.join('\n\n');
   fs.writeFileSync(filename, `${file}\n`);
 }
 
@@ -60,6 +60,12 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
   throwIfTemplateButNoJtex(opts);
   const { tagged } = await fetchTemplateTaggedBlocks(session, opts);
   const templateOptions = loadTemplateOptions(opts);
+
+  // Only use a build path if no template && no pdf target requested
+  const useBuildFolder = !!opts.template;
+  const buildPath = useBuildFolder ? '_build' : '.';
+  if (useBuildFolder && !fs.existsSync(buildPath))
+    fs.mkdirSync(path.dirname(buildPath), { recursive: true });
 
   const [block, version] = await Promise.all([
     new Block(session, convertToBlockId(versionId)).get(),
@@ -71,13 +77,9 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
 
   const article = await walkArticle(session, data, tagged);
 
-  const imageFilenames = await writeImagesToFiles(article.images, opts?.images ?? 'images');
-
-  session.$logger.debug(`Writing main body of content to ${opts.filename}`);
-  writeBlocksToFile(
-    article.children,
-    (child) => convertAndLocalizeChild(session, child, imageFilenames, article.references),
-    opts.filename,
+  const imageFilenames = await writeImagesToFiles(
+    article.images,
+    path.join(buildPath, opts?.images ?? 'images'),
   );
 
   const taggedFilenames: Record<string, string> = Object.entries(article.tagged)
@@ -89,28 +91,44 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
       return true;
     })
     .map(([tag, children]) => {
-      const filename = `${tag}.tex`;
+      const filename = `${tag}.tex`; // keep filenames relative to buildPath
       session.$logger.debug(`Writing ${children.length} tagged block(s) to ${filename}`);
       writeBlocksToFile(
         children,
         (child) => convertAndLocalizeChild(session, child, imageFilenames, article.references),
-        filename,
+        path.join(buildPath, filename),
       );
       return { tag, filename };
     })
     .reduce((obj, { tag, filename }) => ({ ...obj, [tag]: filename }), {});
 
-  const model = await buildDocumentModel(
-    session,
-    block,
-    version as Version<Blocks.Article>,
-    taggedFilenames,
-    templateOptions,
+  const frontMatter = stringifyFrontMatter(
+    await buildFrontMatter(
+      session,
+      block,
+      version as Version<Blocks.Article>,
+      opts.template ?? null,
+      taggedFilenames,
+      templateOptions,
+      {
+        path: '_build',
+        filename: opts.filename,
+        copy_images: true,
+        single_file: false,
+      },
+    ),
   );
-  writeDocumentToFile(model);
+
+  session.$logger.debug(`Writing main body of content to ${opts.filename}`);
+  writeBlocksToFile(
+    article.children,
+    (child) => convertAndLocalizeChild(session, child, imageFilenames, article.references),
+    path.join(buildPath, 'content.tex'),
+    frontMatter,
+  );
 
   // Write out the references
-  await writeBibtex(article.references);
+  await writeBibtex(article.references, path.join(buildPath, 'main.bib'));
 
   return article;
 }

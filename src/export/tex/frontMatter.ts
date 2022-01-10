@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import YAML from 'yaml';
-import { Author, Blocks, oxaLink } from '@curvenote/blocks';
+import { Author, Blocks, ManifestId, oxaLink } from '@curvenote/blocks';
 import { Session } from 'session';
 import { toTex } from '@curvenote/schema';
 import { Block, User, Version } from '../../models';
@@ -50,48 +50,72 @@ export interface ExportAuthorModel {
   is_corresponding: boolean;
 }
 
-export interface ExportDocumentModel {
-  doc: {
-    title: string;
-    description: string;
-    short_title: string;
-    authors: ExportAuthorModel[];
-    date: ExportDateModel;
-    tags: string[];
-    oxalink: string | null;
-  };
-  tagged: Record<string, string>;
-  options: Record<string, any>;
+export interface JtexOutputConfig {
+  path: string;
+  filename: string;
+  copy_images: boolean;
+  single_file: boolean;
 }
 
-export async function buildDocumentModel(
+export interface LatexFrontMatter {
+  title: string;
+  description: string;
+  short_title: string;
+  authors: ExportAuthorModel[];
+  date: ExportDateModel;
+  tags: string[];
+  oxalink: string | null;
+  jtex: {
+    version: number;
+    template: string | null;
+    input: {
+      references: string;
+      tagged: Record<string, string>;
+    };
+    output: JtexOutputConfig;
+    options: Record<string, any>;
+  };
+}
+
+export async function buildFrontMatter(
   session: Session,
   block: Block,
   version: Version<Blocks.Article>,
+  template: string | null,
   tagged: Record<string, string>,
   options: Record<string, any>,
-): Promise<ExportDocumentModel> {
+  output: JtexOutputConfig,
+): Promise<LatexFrontMatter> {
   const authors = await Promise.all(block.data.authors.map((a) => toAuthorFields(session, a)));
   const data = {
-    doc: {
-      // Note: the title & description is on the block
-      title: escapeLatex(block.data.title ?? ''),
-      description: escapeLatex(block.data.description ?? ''),
-      short_title: escapeLatex(toShortTitle(block.data.title ?? '')),
-      authors,
-      date: toDateFields(version.data.date),
-      tags: block.data.tags.map((t) => escapeLatex(t)),
-      oxalink: oxaLink(session.SITE_URL, version.id),
+    title: escapeLatex(block.data.title ?? ''),
+    description: escapeLatex(block.data.description ?? ''),
+    short_title: escapeLatex(toShortTitle(block.data.title ?? '')),
+    authors,
+    date: toDateFields(version.data.date),
+    tags: block.data.tags.map((t) => escapeLatex(t)),
+    oxalink: oxaLink(session.SITE_URL, version.id),
+    jtex: {
+      version: 1,
+      template,
+      input: {
+        references: 'main.bib',
+        tagged,
+      },
+      output,
+      options,
     },
-    tagged,
-    options,
   };
-
   return data;
 }
 
-export function writeDocumentToFile(document: Record<string, any>, basePath?: string) {
-  const filename = path.join(basePath ?? '.', 'jtex.yml');
-  if (!fs.existsSync(filename)) fs.mkdirSync(path.dirname(filename), { recursive: true });
-  fs.writeFileSync(filename, YAML.stringify(document));
+const FM_DELIM = '% ---';
+const FM_LINE = '% ';
+
+export function stringifyFrontMatter(data: LatexFrontMatter) {
+  const lines = YAML.stringify(data)
+    .split('\n')
+    .filter((line) => line.length > 0);
+  const fm = lines.map((line) => `${FM_LINE}${line}`);
+  return `${FM_DELIM}\n${fm.join('\n')}\n${FM_DELIM}\n`;
 }
