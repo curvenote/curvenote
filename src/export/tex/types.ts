@@ -3,4 +3,6 @@ export interface TexExportOptions {
   images?: string;
   template?: string;
   options?: string;
+  useBuildFolder?: boolean;
+  texIsIntermediate?: boolean;
 }

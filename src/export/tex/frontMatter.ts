@@ -1,7 +1,5 @@
-import fs from 'fs';
-import path from 'path';
 import YAML from 'yaml';
-import { Author, Blocks, ManifestId, oxaLink } from '@curvenote/blocks';
+import { Author, Blocks, oxaLink } from '@curvenote/blocks';
 import { Session } from 'session';
 import { toTex } from '@curvenote/schema';
 import { Block, User, Version } from '../../models';
