@@ -2,6 +2,7 @@ import YAML from 'yaml';
 import { Author, Blocks, oxaLink } from '@curvenote/blocks';
 import { Session } from 'session';
 import { toTex } from '@curvenote/schema';
+import { strOptions } from 'yaml/types';
 import { Block, User, Version } from '../../models';
 import { getEditorState } from '../../actions/utils';
 
@@ -18,19 +19,6 @@ function toDateFields(d: Date): ExportDateModel {
     year: d.getFullYear(),
     month: d.getMonth(), // will be zero indexed, check this is what jtex expects
     day: d.getDate(),
-  };
-}
-
-async function toAuthorFields(session: Session, author: Author): Promise<ExportAuthorModel> {
-  if (author.plain) return { name: author.plain, is_corresponding: false };
-
-  const user = await new User(session, author.user as string).get();
-  return {
-    name: user.data.display_name,
-    affiliation: user.data.affiliation,
-    location: user.data.location,
-    curvenote: `${session.SITE_URL}/@${user.data.username}`,
-    is_corresponding: false,
   };
 }
 
@@ -76,6 +64,32 @@ export interface LatexFrontMatter {
   };
 }
 
+function getCorresponsingAuthorNames(options: {
+  corresponding_author?: { name: string; email: string }[];
+}) {
+  if (!options.corresponding_author || options.corresponding_author.length === 0)
+    return new Set([]);
+  return new Set(options.corresponding_author.map(({ name }) => name));
+}
+
+async function toAuthorFields(
+  session: Session,
+  author: Author,
+  corresponding: Set<string>,
+): Promise<ExportAuthorModel> {
+  if (author.plain)
+    return { name: author.plain, is_corresponding: corresponding.has(author.plain) };
+
+  const user = await new User(session, author.user as string).get();
+  return {
+    name: user.data.display_name,
+    affiliation: user.data.affiliation,
+    location: user.data.location,
+    curvenote: `${session.SITE_URL}/@${user.data.username}`,
+    is_corresponding: corresponding.has(user.data.display_name),
+  };
+}
+
 export async function buildFrontMatter(
   session: Session,
   block: Block,
@@ -86,7 +100,10 @@ export async function buildFrontMatter(
   template: string | null,
   references = 'main.bib',
 ): Promise<LatexFrontMatter> {
-  const authors = await Promise.all(block.data.authors.map((a) => toAuthorFields(session, a)));
+  const corresponding = getCorresponsingAuthorNames(options);
+  const authors = await Promise.all(
+    block.data.authors.map((a) => toAuthorFields(session, a, corresponding)),
+  );
   const data = {
     title: escapeLatex(block.data.title ?? ''),
     description: escapeLatex(block.data.description ?? ''),
