@@ -5,6 +5,7 @@ import { Blocks, VersionId, KINDS, oxaLink, convertToBlockId } from '@curvenote/
 import { toTex } from '@curvenote/schema';
 import os from 'os';
 import path from 'path';
+import produce from 'immer';
 import { Block, Version } from '../../models';
 import { Session } from '../../session';
 import { getChildren } from '../../actions/getChildren';
@@ -25,7 +26,18 @@ import {
   throwIfTemplateButNoJtex,
 } from './template';
 
-const exec = util.promisify(child_process.exec);
+function execWrapper(
+  command: string,
+  callback?: (error: child_process.ExecException | null, stdout: string, stderr: string) => void,
+) {
+  const childProcess = child_process.exec(command, callback);
+  childProcess.stdout?.pipe(process.stdout);
+  childProcess.stderr?.pipe(process.stderr);
+  return childProcess;
+}
+
+const exec = util.promisify(execWrapper);
+// const spawn = util.promisify(child_process.spawn);
 
 export function createTempFolder() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'curvenote'));
@@ -63,7 +75,7 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
 
   // Only use a build path if no template && no pdf target requested
   const useBuildFolder = !!opts.template;
-  const buildPath = useBuildFolder ? '_build' : '.';
+  const buildPath = useBuildFolder ? '_build' : '.'; // TODO make not relative to CWD
   if (useBuildFolder && !fs.existsSync(buildPath))
     fs.mkdirSync(path.dirname(buildPath), { recursive: true });
 
@@ -79,7 +91,8 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
 
   const imageFilenames = await writeImagesToFiles(
     article.images,
-    path.join(buildPath, opts?.images ?? 'images'),
+    opts?.images ?? 'images',
+    buildPath,
   );
 
   const taggedFilenames: Record<string, string> = Object.entries(article.tagged)
@@ -107,28 +120,43 @@ export async function articleToTex(session: Session, versionId: VersionId, opts:
       session,
       block,
       version as Version<Blocks.Article>,
-      opts.template ?? null,
       taggedFilenames,
       templateOptions,
       {
-        path: '_build',
+        path: useBuildFolder ? '..' : '.', // TODO make not relative to CWD
         filename: opts.filename,
         copy_images: true,
         single_file: false,
       },
+      opts.template ?? null,
+      'main.bib',
     ),
   );
 
-  session.$logger.debug(`Writing main body of content to ${opts.filename}`);
+  session.$logger.debug('Writing main body of content to content.tex');
+  const content_tex = path.join(buildPath, 'content.tex');
   writeBlocksToFile(
     article.children,
     (child) => convertAndLocalizeChild(session, child, imageFilenames, article.references),
-    path.join(buildPath, 'content.tex'),
+    content_tex,
     frontMatter,
   );
 
+  session.$logger.debug('Writing bib file');
   // Write out the references
   await writeBibtex(article.references, path.join(buildPath, 'main.bib'));
+
+  // run templating
+  if (opts.template) {
+    session.$logger.debug('Running jtex');
+    const CMD = `jtex render ${content_tex}`;
+    try {
+      await exec(CMD);
+    } catch (err) {
+      session.$logger.error(`Error while invoking jtex: ${err}`);
+    }
+    session.$logger.debug('jtex finished');
+  }
 
   return article;
 }

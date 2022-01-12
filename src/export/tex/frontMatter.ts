@@ -68,6 +68,7 @@ export interface LatexFrontMatter {
   jtex: {
     version: number;
     template: string | null;
+    strict: boolean;
     input: {
       references: string;
       tagged: Record<string, string>;
@@ -81,10 +82,11 @@ export async function buildFrontMatter(
   session: Session,
   block: Block,
   version: Version<Blocks.Article>,
-  template: string | null,
   tagged: Record<string, string>,
   options: Record<string, any>,
   output: JtexOutputConfig,
+  template: string | null,
+  references = 'main.bib',
 ): Promise<LatexFrontMatter> {
   const authors = await Promise.all(block.data.authors.map((a) => toAuthorFields(session, a)));
   const data = {
@@ -98,8 +100,9 @@ export async function buildFrontMatter(
     jtex: {
       version: 1,
       template,
+      strict: false,
       input: {
-        references: 'main.bib',
+        references,
         tagged,
       },
       output,

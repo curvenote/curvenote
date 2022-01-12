@@ -47,7 +47,11 @@ function makeUniqueFilename(
   return filenames[0];
 }
 
-export async function writeImagesToFiles(images: ArticleState['images'], basePath: string) {
+export async function writeImagesToFiles(
+  images: ArticleState['images'],
+  basePath: string,
+  buildPath?: string,
+) {
   const takenFilenames: Set<string> = new Set();
   const filenames: Record<string, string> = {};
   await Promise.all(
@@ -57,11 +61,18 @@ export async function writeImagesToFiles(images: ArticleState['images'], basePat
       if (!src || !content_type) return;
       const response = await fetch(src);
       const buffer = await response.buffer();
-      const filename = makeUniqueFilename(basePath, block, content_type, image, takenFilenames);
+      const referencableFilename = makeUniqueFilename(
+        basePath,
+        block,
+        content_type,
+        image,
+        takenFilenames,
+      );
+      const filename = path.join(buildPath ?? '', referencableFilename);
       if (!fs.existsSync(filename)) fs.mkdirSync(path.dirname(filename), { recursive: true });
       fs.writeFileSync(filename, buffer);
-      filenames[key] = filename;
-      takenFilenames.add(filename);
+      filenames[key] = referencableFilename;
+      takenFilenames.add(referencableFilename);
     }),
   );
   return filenames;
