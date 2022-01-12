@@ -15,6 +15,7 @@ import { getEditorState } from '../../actions/utils';
 import { Block, Version } from '../../models';
 import { getLatestVersion } from '../../actions/getLatest';
 import { getImageSrc } from './getImageSrc';
+import { basekey } from './basekey';
 
 export interface ArticleStateChild {
   state?: ReturnType<typeof getEditorState>;
@@ -160,7 +161,7 @@ export async function walkArticle(
       const { content } = version.data;
       // Extract the label: '@article{SimPEG2015,\n...' ➡️ 'SimPEG2015'
       const label = content.slice(content.indexOf('{') + 1, content.indexOf(','));
-      references[key] = {
+      references[basekey(key)] = {
         label,
         bibtex: content,
         version,
