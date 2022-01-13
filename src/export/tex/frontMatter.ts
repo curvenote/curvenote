@@ -17,7 +17,7 @@ function toShortTitle(title: string): string {
 function toDateFields(d: Date): ExportDateModel {
   return {
     year: d.getFullYear(),
-    month: d.getMonth(), // will be zero indexed, check this is what jtex expects
+    month: d.getMonth() + 1, // latex expects 1-indexed month
     day: d.getDate(),
   };
 }
