@@ -87,11 +87,21 @@ export class Block extends BaseTransfer<BlockId, BlockDTO> {
 
   $fromDTO = blockFromDTO;
 
+  // TODO this isn't really the create url, its a get?
   $createUrl = () => `/blocks/${this.id.project}/${this.id.block}`;
 
   $recieve = blocks.actions.recieve;
 
   $selector = selectBlock;
+
+  static makeCreateUrl = (projectId: string) => `/blocks/${projectId}`;
+
+  static async create(session: ISession, projectId: string, data: JsonObject): Promise<BlockId> {
+    const { status, json } = await session.post(Block.makeCreateUrl(projectId), data);
+    if (status > 400) throw Error(`Could not create block, status: ${status}`);
+    if (!('id' in json)) throw Error(`Could not create block, invalid response: ${json}`);
+    return json.id as BlockId;
+  }
 }
 
 export type VersionQueryOpts = { format?: FormatTypes };
@@ -110,6 +120,15 @@ export class Version<T extends ALL_BLOCKS = ALL_BLOCKS> extends BaseTransfer<
   $recieve = versions.actions.recieve;
 
   $selector = selectVersion;
+
+  static makeCreateUrl = (id: BlockId) => `/blocks/${id.project}/${id.block}/versions`;
+
+  static async create(session: ISession, id: BlockId, data: JsonObject): Promise<VersionId> {
+    const { status, json } = await session.post(Version.makeCreateUrl(id), data);
+    if (status > 400) throw Error(`Could not create version, status: ${status}`);
+    if (!('id' in json)) throw Error(`Could not create version, invalid response: ${json}`);
+    return json.id as VersionId;
+  }
 }
 
 export class Template extends BaseTransfer<string, TemplateSpec & { id: string }> {
