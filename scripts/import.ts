@@ -6,13 +6,13 @@ import { Block, Version } from '../src';
 import { BlockChildDict, ContentFormatTypes, KINDS } from '@curvenote/blocks';
 import { nanoid } from 'nanoid';
 
-// const IMPORT_PATH = '../../ejssoil';
-// const MD_FILE = '../../ejssoil/main.md';
-// const BIBTEX_FILE = '../../ejssoil/main.bib';
-
-const IMPORT_PATH = '../../jscli_test/geo';
-const MD_FILE = 'article.md';
+const IMPORT_PATH = '../../../curvenote_other/ejssoil/wp4';
+const MD_FILE = 'wp4.md';
 const BIBTEX_FILE = 'main.bib';
+
+// const IMPORT_PATH = '../../jscli_test/geo';
+// const MD_FILE = 'article.md';
+// const BIBTEX_FILE = 'main.bib';
 
 const PROJECT_ID = 'ein6KOb0JUzJzDSPW63b';
 
@@ -24,10 +24,10 @@ async function main() {
   console.log('Loading:', md_file);
   const md = fs.readFileSync(md_file, { encoding: 'utf-8' });
 
-  const [_, frontMatter, content] = md.split('---');
+  const [_, frontMatter, ...content] = md.split('---');
 
   // upload content blocks
-  const contentBlocks = content.split('+++');
+  const contentBlocks = content.join('\n').split('+++');
   console.log(`Found ${contentBlocks.length} content blocks`);
 
   const order: string[] = [];
@@ -59,29 +59,31 @@ async function main() {
     }
   }
 
+  console.log('Content upload complete, creating article...');
   // create article blocks
+
   const fm = YAML.parse(frontMatter);
 
   let authors;
   if (fm.authors) {
     // TODO if author name starts with @ do a username lookup
-    authors = fm.authors.map((author: string) => {
-      plain: author;
-    });
+    authors = fm.authors.map((author: string) => ({
+      plain: author,
+    }));
   }
 
   const articleBlockData = {
     kind: KINDS.Article,
     title: fm.title ?? undefined,
     description: fm.description ?? undefined,
-    authors,
   };
 
   const articleBlockId = await Block.create(session, PROJECT_ID, articleBlockData);
   console.log('created Article block', articleBlockId.block);
 
-  const articleVersionData = { order, children };
+  // TODO patch block with authors info
 
+  const articleVersionData = { order, children };
   const articleVersionId = await Version.create(session, articleBlockId, articleVersionData);
   console.log('created Article version', articleVersionId.block);
 }

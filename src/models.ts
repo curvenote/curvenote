@@ -99,7 +99,8 @@ export class Block extends BaseTransfer<BlockId, BlockDTO> {
   static async create(session: ISession, projectId: string, data: JsonObject): Promise<BlockId> {
     const { status, json } = await session.post(Block.makeCreateUrl(projectId), data);
     if (status > 400) throw Error(`Could not create block, status: ${status}`);
-    if (!('id' in json)) throw Error(`Could not create block, invalid response: ${json}`);
+    if (!('id' in json))
+      throw Error(`Could not create block, invalid response: ${JSON.stringify(json)}`);
     return json.id as BlockId;
   }
 }
