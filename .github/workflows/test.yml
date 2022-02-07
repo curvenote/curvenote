@@ -26,5 +26,7 @@ jobs:
           key: ${{ runner.os }}-node${{ matrix.node }}-modules-${{ hashFiles('yarn.lock') }}
       - run: yarn install
       - run: yarn run lint
+        if: ${{ matrix.platform }} == 'ubuntu-latest'
       - run: yarn run lint:format
+        if: ${{ matrix.platform }} == 'ubuntu-latest'
       - run: yarn run test
