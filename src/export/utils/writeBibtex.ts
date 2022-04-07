@@ -32,6 +32,7 @@ export async function writeBibtex(
   }
   const pathname = path.join(opts.path || '.', filename);
   session.log.debug(`Exporting references to ${pathname}.`);
-  const bibWithNewLine = `${bibliography.join('\n\n')}\n`;
-  writeFileToFolder(pathname, bibWithNewLine);
+  // escape all ampersands
+  const bibWithNewLine = `${bibliography.join('\n\n')}\n`.replace(/&/g, '\\&');
+  writeFileToFolder(pathname, bibWithNewLine, { encoding: 'utf8' });
 }
