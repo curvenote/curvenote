@@ -50,7 +50,7 @@ export type ProjectFrontmatter = SiteFrontmatter & {
   oxa?: string;
   numbering?: boolean | Numbering;
   /** Math macros to be passed to KaTeX or LaTeX */
-  math?: Record<string, string>;
+  math?: Record<string, string | { title?: string; textcolor?: string; macro: string }>;
 };
 
 export type PageFrontmatter = ProjectFrontmatter & {
