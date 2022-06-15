@@ -229,7 +229,7 @@ export async function transformMdast(
       }),
     );
   }
-  const data: RendererData = { sha256, frontmatter, mdast, references, kind };
+  const data: RendererData = { kind, sha256, frontmatter, mdast, references };
   cache.$mdast[file].post = data;
   if (!watchMode) log.info(toc(`📖 Built ${file} in %s.`));
 }
