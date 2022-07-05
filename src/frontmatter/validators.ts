@@ -181,8 +181,17 @@ export function validateAuthor(input: any, opts: Options) {
   if (defined(value.affiliations)) {
     const affiliationsOpts = incrementOptions('affiliations', opts);
     output.affiliations = validateList(value.affiliations, affiliationsOpts, (aff) => {
-      return validateString(aff, affiliationsOpts);
-    });
+      if (typeof aff === 'string') {
+        return {
+          name: validateString(aff, affiliationsOpts),
+        };
+      }
+      return {
+        name: validateString(aff.name, affiliationsOpts),
+        ror: validateString(aff.ror, affiliationsOpts),
+      };
+    })?.filter(({ name }) => name) as any[];
+    // TODO: The types are broken here
   }
   return output;
 }
