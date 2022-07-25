@@ -5,6 +5,8 @@ import { selectAll } from 'mystjs';
 import { ProjectFrontmatter } from '../frontmatter/types';
 import { Logger } from '../logging';
 import { Root } from '../myst';
+import type { ISession } from '../session/types';
+import { addWarningForFile } from '../store/build';
 
 const replacements = {
   ' ': ' ',
@@ -101,11 +103,12 @@ function tryRender(
 }
 
 export function renderEquation(
-  log: Logger,
+  session: ISession,
+  file: string,
   node: Math | InlineMath,
   frontmatter: Pick<ProjectFrontmatter, 'math'>,
-  file: string,
 ) {
+  const { log } = session;
   let value = knownReplacements(log, node, file);
   if (!value) return;
   value = replaceEqnarray(log, value, file);
@@ -117,13 +120,18 @@ export function renderEquation(
     (node as any).html = result.html;
   }
   if (result.warnings) {
-    log.warn(
-      `Math Warning [${label}] in ${file}:\n${result.warnings.join('\n')}\n\n${node.value}\n`,
+    addWarningForFile(
+      session,
+      file,
+      `Math Warning [${label}]:\n${result.warnings.join('\n')}\n\n${node.value}\n`,
     );
   }
   if (result.error) {
-    log.error(
-      `Math Error [${label}] in ${file}:\n${chalk.dim(`${result.error}\n\n${node.value}\n`)}`,
+    addWarningForFile(
+      session,
+      file,
+      `Math Error [${label}]:\n${chalk.dim(`${result.error}\n\n${node.value}\n`)}`,
+      'error',
     );
     (node as any).error = true;
     (node as any).message = result.error;
@@ -131,13 +139,13 @@ export function renderEquation(
 }
 
 export function transformMath(
-  log: Logger,
+  session: ISession,
+  file: string,
   mdast: Root,
   frontmatter: Pick<ProjectFrontmatter, 'math'>,
-  file: string,
 ) {
   const nodes = selectAll('math,inlineMath', mdast) as (Math | InlineMath)[];
   nodes.forEach((node) => {
-    renderEquation(log, node, frontmatter, file);
+    renderEquation(session, file, node, frontmatter);
   });
 }

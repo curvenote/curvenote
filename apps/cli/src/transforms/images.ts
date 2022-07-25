@@ -13,6 +13,7 @@ import { PageFrontmatter } from '../frontmatter/types';
 import { convertImageToWebp } from '../export/utils/imagemagick';
 import type { PhrasingContent } from 'mdast';
 import type { Image } from 'myst-spec';
+import { addWarningForFile } from '../store/build';
 
 function isUrl(url: string) {
   return url.toLowerCase().startsWith('http:') || url.toLowerCase().startsWith('https:');
@@ -89,7 +90,12 @@ export async function saveImageInStaticFolder(
     const { ok, json } = await session.get(url);
     const downloadUrl = json.links?.download;
     if (!ok || !downloadUrl) {
-      session.log.error(`Error fetching image version: ${url}`);
+      const message = `Error fetching image version: ${url}`;
+      if (opts?.sourceFile) {
+        addWarningForFile(session, opts.sourceFile, message, 'error');
+      } else {
+        session.log.error(message);
+      }
       return null;
     }
     file = await downloadAndSaveImage(
@@ -111,7 +117,12 @@ export async function saveImageInStaticFolder(
     await fileObject.writeBase64(urlSource);
     file = fileObject.id;
   } else {
-    session.log.error(`⚠️  Cannot find image "${urlSource}" in ${opts?.sourceFile || filePath}`);
+    const message = `Cannot find image "${urlSource}" in ${opts?.sourceFile || filePath}`;
+    if (opts?.sourceFile) {
+      addWarningForFile(session, opts.sourceFile, message, 'error');
+    } else {
+      session.log.error(`⚠️  ${message}`);
+    }
     return null;
   }
   let webp: string | undefined;
@@ -121,7 +132,12 @@ export async function saveImageInStaticFolder(
       if (result) webp = `/_static/${result}`;
     } catch (error) {
       session.log.debug(`\n\n${(error as Error)?.stack}\n\n`);
-      session.log.warn(`⚠️  Large image ${imageLocalFile} (${(error as any).message})`);
+      const message = `Large image ${imageLocalFile} (${(error as any).message})`;
+      if (opts?.sourceFile) {
+        addWarningForFile(session, opts.sourceFile, message, 'warn');
+      } else {
+        session.log.warn(`⚠️  ${message}`);
+      }
     }
   }
   // Update mdast with new file name
@@ -142,7 +158,7 @@ export function transformImageAltText(tree: Root) {
   });
 }
 
-export async function transformImages(session: ISession, mdast: Root, file: string) {
+export async function transformImages(session: ISession, file: string, mdast: Root) {
   const images = selectAll('image', mdast) as GenericNode[];
   return Promise.all(
     images.map(async (image) => {

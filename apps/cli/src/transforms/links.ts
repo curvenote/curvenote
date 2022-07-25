@@ -6,7 +6,9 @@ import { OxaLink, oxaLink, oxaLinkToId } from '@curvenote/blocks';
 import { ISession } from '../session/types';
 import { selectors } from '../store';
 import { Root } from '../myst';
-import { hashAndCopyStaticFile } from '../utils';
+import { hashAndCopyStaticFile, tic } from '../utils';
+import { addWarningForFile, checkLink } from '../store/build';
+import pLimit from 'p-limit';
 
 type LinkInfo = {
   url: string;
@@ -56,10 +58,13 @@ export function fileFromRelativePath(
 /**
  * Populate link node with rich oxa info
  */
-function mutateOxaLink(session: ISession, link: GenericNode, oxa: OxaLink) {
+function mutateOxaLink(session: ISession, file: string, link: GenericNode, oxa: OxaLink) {
   link.oxa = oxa;
   const key = oxaLink(oxa, false) as string;
   const info = selectors.selectOxaLinkInformation(session.store.getState(), key);
+  if (!info) {
+    addWarningForFile(session, file, `Information for oxa.link not found: ${key}`);
+  }
   const url = info?.url;
   if (url && url !== link.url) {
     // the `internal` flag is picked up in the link renderer (prefetch!)
@@ -96,13 +101,20 @@ function mutateStaticLink(session: ISession, link: GenericNode, linkFile: string
   link.static = true;
 }
 
-export function transformLinks(session: ISession, mdast: Root, file: string) {
+const limitOutgoingConnections = pLimit(25);
+
+export async function transformLinks(
+  session: ISession,
+  file: string,
+  mdast: Root,
+  opts?: { checkLinks?: boolean },
+): Promise<string[]> {
   const links = selectAll('link,linkBlock', mdast) as GenericNode[];
-  links.forEach((link) => {
+  links.map((link) => {
     const urlSource = link.urlSource || link.url;
     const oxa = link.oxa || oxaLinkToId(urlSource);
     if (oxa) {
-      mutateOxaLink(session, link, oxa);
+      mutateOxaLink(session, file, link, oxa);
       return;
     }
     if (link.url === '' || link.url.startsWith('#')) {
@@ -118,6 +130,27 @@ export function transformLinks(session: ISession, mdast: Root, file: string) {
       } else {
         mutateStaticLink(session, link, linkFile);
       }
+      return;
     }
   });
+  const linkUrls = links
+    .filter((link) => !(link.internal || link.static))
+    .map((link) => link.url as string);
+  if (!opts?.checkLinks || linkUrls.length === 0) return linkUrls;
+  const toc = tic();
+  const plural = linkUrls.length > 1 ? 's' : '';
+  session.log.info(`🔗 Checking ${linkUrls.length} link${plural} in ${file}`);
+  const linkResults = await Promise.all(
+    linkUrls.map(async (url) =>
+      limitOutgoingConnections(async () => {
+        const check = await checkLink(session, url);
+        if (check.ok || check.skipped) return url as string;
+        const status = check.status ? ` (${check.status}, ${check.statusText})` : '';
+        addWarningForFile(session, file, `Link for "${url}" did not resolve.${status}`, 'error');
+        return url as string;
+      }),
+    ),
+  );
+  session.log.info(toc(`🔗 Checked ${linkUrls.length} link${plural} in ${file} in %s`));
+  return linkResults;
 }
