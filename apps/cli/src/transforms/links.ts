@@ -2,13 +2,53 @@ import fs from 'fs';
 import path from 'path';
 import type { GenericNode } from 'mystjs';
 import { selectAll } from 'mystjs';
+import pLimit from 'p-limit';
+import fetch from 'node-fetch';
 import { OxaLink, oxaLink, oxaLinkToId } from '@curvenote/blocks';
 import { ISession } from '../session/types';
 import { selectors } from '../store';
 import { Root } from '../myst';
-import { hashAndCopyStaticFile, tic } from '../utils';
-import { addWarningForFile, checkLink } from '../store/build';
-import pLimit from 'p-limit';
+import { addWarningForFile, hashAndCopyStaticFile, tic } from '../utils';
+import { links } from '../store/build';
+import { selectLinkStatus } from '../store/build/selectors';
+import type { ExternalLinkResult } from '../store/build';
+
+// These limit access from command line tools by default
+const skippedDomains = ['www.linkedin.com', 'linkedin.com', 'medium.com', 'twitter.com'];
+
+async function checkLink(session: ISession, url: string): Promise<ExternalLinkResult> {
+  const cached = selectLinkStatus(session.store.getState(), url);
+  if (cached) return cached;
+  const link: ExternalLinkResult = {
+    url,
+  };
+  if (url.startsWith('mailto:')) {
+    link.skipped = true;
+    session.log.debug(`Skipping: ${url}`);
+    session.store.dispatch(links.actions.updateLink(link));
+    return link;
+  }
+  try {
+    const parsedUrl = new URL(url);
+    if (skippedDomains.includes(parsedUrl.hostname)) {
+      link.skipped = true;
+      session.log.debug(`Skipping: ${url}`);
+      session.store.dispatch(links.actions.updateLink(link));
+      return link;
+    }
+    session.log.debug(`Checking that "${url}" exists`);
+    const resp = await fetch(url);
+    link.ok = resp.ok;
+    link.status = resp.status;
+    link.statusText = resp.statusText;
+  } catch (error) {
+    session.log.debug(`\n\n${(error as Error)?.stack}\n\n`);
+    session.log.debug(`Error fetching ${url} ${(error as Error).message}`);
+    link.ok = false;
+  }
+  session.store.dispatch(links.actions.updateLink(link));
+  return link;
+}
 
 type LinkInfo = {
   url: string;
@@ -109,8 +149,8 @@ export async function transformLinks(
   mdast: Root,
   opts?: { checkLinks?: boolean },
 ): Promise<string[]> {
-  const links = selectAll('link,linkBlock', mdast) as GenericNode[];
-  links.map((link) => {
+  const linkNodes = selectAll('link,linkBlock', mdast) as GenericNode[];
+  linkNodes.forEach((link) => {
     const urlSource = link.urlSource || link.url;
     const oxa = link.oxa || oxaLinkToId(urlSource);
     if (oxa) {
@@ -133,7 +173,7 @@ export async function transformLinks(
       return;
     }
   });
-  const linkUrls = links
+  const linkUrls = linkNodes
     .filter((link) => !(link.internal || link.static))
     .map((link) => link.url as string);
   if (!opts?.checkLinks || linkUrls.length === 0) return linkUrls;

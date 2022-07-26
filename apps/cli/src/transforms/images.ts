@@ -7,13 +7,19 @@ import { dirname, join, parse } from 'path';
 import { oxaLinkToId, VersionId } from '@curvenote/blocks';
 import { Root } from '../myst';
 import { WebFileObject } from '../web/files';
-import { computeHash, hashAndCopyStaticFile, staticPath, toText, versionIdToURL } from '../utils';
+import {
+  addWarningForFile,
+  computeHash,
+  hashAndCopyStaticFile,
+  staticPath,
+  toText,
+  versionIdToURL,
+} from '../utils';
 import { ISession } from '../session/types';
 import { PageFrontmatter } from '../frontmatter/types';
 import { convertImageToWebp } from '../export/utils/imagemagick';
 import type { PhrasingContent } from 'mdast';
 import type { Image } from 'myst-spec';
-import { addWarningForFile } from '../store/build';
 
 function isUrl(url: string) {
   return url.toLowerCase().startsWith('http:') || url.toLowerCase().startsWith('https:');
@@ -91,11 +97,7 @@ export async function saveImageInStaticFolder(
     const downloadUrl = json.links?.download;
     if (!ok || !downloadUrl) {
       const message = `Error fetching image version: ${url}`;
-      if (opts?.sourceFile) {
-        addWarningForFile(session, opts.sourceFile, message, 'error');
-      } else {
-        session.log.error(message);
-      }
+      addWarningForFile(session, opts?.sourceFile, message, 'error');
       return null;
     }
     file = await downloadAndSaveImage(
@@ -118,11 +120,7 @@ export async function saveImageInStaticFolder(
     file = fileObject.id;
   } else {
     const message = `Cannot find image "${urlSource}" in ${opts?.sourceFile || filePath}`;
-    if (opts?.sourceFile) {
-      addWarningForFile(session, opts.sourceFile, message, 'error');
-    } else {
-      session.log.error(`⚠️  ${message}`);
-    }
+    addWarningForFile(session, opts?.sourceFile, message, 'error');
     return null;
   }
   let webp: string | undefined;
@@ -133,11 +131,7 @@ export async function saveImageInStaticFolder(
     } catch (error) {
       session.log.debug(`\n\n${(error as Error)?.stack}\n\n`);
       const message = `Large image ${imageLocalFile} (${(error as any).message})`;
-      if (opts?.sourceFile) {
-        addWarningForFile(session, opts.sourceFile, message, 'warn');
-      } else {
-        session.log.warn(`⚠️  ${message}`);
-      }
+      addWarningForFile(session, opts?.sourceFile, message, 'warn');
     }
   }
   // Update mdast with new file name

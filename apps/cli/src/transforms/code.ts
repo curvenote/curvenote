@@ -3,7 +3,7 @@ import { Code } from 'myst-spec';
 import { PageFrontmatter } from '../frontmatter/types';
 import { Root } from '../myst';
 import type { ISession } from '../session/types';
-import { addWarningForFile } from '../store/build';
+import { addWarningForFile } from '../utils';
 
 export function transformCode(
   session: ISession,

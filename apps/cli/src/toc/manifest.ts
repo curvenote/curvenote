@@ -4,8 +4,7 @@ import { CURVENOTE_YML, SiteProject, SiteAction, SiteAnalytics } from '../config
 import { PROJECT_FRONTMATTER_KEYS, SITE_FRONTMATTER_KEYS } from '../frontmatter/validators';
 import { ISession } from '../session/types';
 import { RootState, selectors } from '../store';
-import { addWarningForFile } from '../store/build';
-import { publicPath, warnOnUnrecognizedKeys } from '../utils';
+import { addWarningForFile, publicPath, warnOnUnrecognizedKeys } from '../utils';
 import { filterKeys } from '../utils/validators';
 import { SiteManifest, ManifestProject, ManifestProjectPage, ManifestProjectFolder } from './types';
 

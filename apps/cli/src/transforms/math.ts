@@ -6,7 +6,7 @@ import { ProjectFrontmatter } from '../frontmatter/types';
 import { Logger } from '../logging';
 import { Root } from '../myst';
 import type { ISession } from '../session/types';
-import { addWarningForFile } from '../store/build';
+import { addWarningForFile } from '../utils';
 
 const replacements = {
   ' ': ' ',

@@ -406,7 +406,7 @@ export async function processSite(session: ISession, opts?: ProcessOptions): Pro
       const pluralE = hasWarnings[0] > 1 ? 's' : '';
       const pluralW = hasWarnings[1] > 1 ? 's' : '';
       throw new Error(
-        `Site has ${hasWarnings[0]} error${pluralE} and  ${hasWarnings[1]} warning${pluralW}, stopping build.`,
+        `Site has ${hasWarnings[0]} error${pluralE} and ${hasWarnings[1]} warning${pluralW}, stopping build.`,
       );
     }
   }
@@ -414,7 +414,9 @@ export async function processSite(session: ISession, opts?: ProcessOptions): Pro
     await writeSiteManifest(session);
     // Copy all assets
     copyLogo(session, siteConfig.logo);
-    siteConfig.actions.forEach((action) => copyActionResource(session, action));
+    siteConfig.actions.forEach((action) => {
+      copyActionResource(session, action);
+    });
   }
   return true;
 }
