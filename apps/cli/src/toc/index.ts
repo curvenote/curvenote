@@ -42,7 +42,9 @@ export function loadProjectFromDisk(
   }
   if (writeToc) {
     try {
-      session.log.info(`📓 Writing '_toc.yml' file to ${path}`);
+      session.log.info(
+        `📓 Writing '_toc.yml' file to ${path === '.' ? 'the current directory' : path}`,
+      );
       writeTocFromProject(newProject, path);
       // Re-load from TOC just in case there are subtle differences with resulting project
       newProject = projectFromToc(session, path);
