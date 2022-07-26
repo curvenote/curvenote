@@ -106,7 +106,7 @@ export function renderEquation(
   session: ISession,
   file: string,
   node: Math | InlineMath,
-  frontmatter: Pick<ProjectFrontmatter, 'math'>,
+  frontmatter?: Pick<ProjectFrontmatter, 'math'>,
 ) {
   const { log } = session;
   let value = knownReplacements(log, node, file);
@@ -114,7 +114,7 @@ export function renderEquation(
   value = replaceEqnarray(log, value, file);
   const displayMode = node.type === 'math';
   const label = 'label' in node ? `${node.type}.${node.label}` : node.type;
-  const macros = frontmatter.math ?? {};
+  const macros = frontmatter?.math ?? {};
   const result = tryRender(log, value, macros, displayMode, file);
   if (result.html) {
     (node as any).html = result.html;
@@ -142,7 +142,7 @@ export function transformMath(
   session: ISession,
   file: string,
   mdast: Root,
-  frontmatter: Pick<ProjectFrontmatter, 'math'>,
+  frontmatter?: Pick<ProjectFrontmatter, 'math'>,
 ) {
   const nodes = selectAll('math,inlineMath', mdast) as (Math | InlineMath)[];
   nodes.forEach((node) => {
