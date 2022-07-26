@@ -69,7 +69,7 @@ function chaptersFromPages(pages: (LocalProjectFolder | LocalProjectPage)[], pat
  * associated with a `file` (results in clickable in page)
  * or just a `title` (results in unclickable in heading)
  */
-export function tocFromProject(project: LocalProject, path: string) {
+export function tocFromProject(project: LocalProject, path = '.') {
   const toc: TOC = {
     format: 'jb-book',
     root: getRelativeDocumentLink(project.file, path),

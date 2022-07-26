@@ -12,7 +12,7 @@ import { LocalProject } from './types';
  *
  * @param session
  * @param path - root directory of project, relative to current directory; default is '.'
- * @param index - index file, including path relative to current directory; default is 'index.md'
+ * @param opts - `index`, including path relative to current directory; default is 'index.md'
  *     or 'readme.md' in 'path' directory
  *
  * If jupyterbook '_toc.yml' exists in path, project structure will be derived from that.
