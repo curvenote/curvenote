@@ -11,8 +11,9 @@ import { selectors } from '../store';
 import { config } from '../store/local';
 import { isDirectory } from '../toc/utils';
 import { confirmOrExit, tic } from '../utils';
-import { projectLogString } from './utils';
+import { processOption, projectLogString } from './utils';
 import { getRawFrontmatterFromFile } from '../store/local/actions';
+import { SyncCiHelperOptions } from './types';
 
 /**
  * Pull content for a project on a path
@@ -85,10 +86,6 @@ export async function pullDocument(session: ISession, file: string) {
   }
 }
 
-type Options = {
-  yes?: boolean;
-};
-
 /**
  * Pull new project content from curvenote.com
  *
@@ -99,15 +96,16 @@ type Options = {
  * Errors if site config has no projects or if project does not exist
  * on specified path.
  */
-export async function pull(session: ISession, path?: string, opts?: Options) {
+export async function pull(session: ISession, path?: string, opts?: SyncCiHelperOptions) {
   path = path || '.';
+  const processedOpts = processOption(opts);
   if (!fs.existsSync(path)) {
     throw new Error(
       `Invalid path: "${path}", it must be a folder or file accessible from the local directory`,
     );
   }
   if (!isDirectory(path)) {
-    await confirmOrExit(`Pulling will overwrite the file "${path}". Are you sure?`, opts);
+    await confirmOrExit(`Pulling will overwrite the file "${path}". Are you sure?`, processedOpts);
     await pullDocument(session, path);
     return;
   }
@@ -119,7 +117,7 @@ export async function pull(session: ISession, path?: string, opts?: Options) {
     const plural = numProjects > 1 ? 's' : '';
     await confirmOrExit(
       `Pulling will overwrite all content in ${numProjects} project${plural}. Are you sure?`,
-      opts,
+      processedOpts,
     );
     await pullProjects(session, { level: LogLevel.info });
   } else {
@@ -128,7 +126,7 @@ export async function pull(session: ISession, path?: string, opts?: Options) {
       `Pulling will overwrite all content in ${
         path === '.' ? 'current directory' : path
       }. Are you sure?`,
-      opts,
+      processedOpts,
     );
     await pullProject(session, path, { level: LogLevel.info });
   }

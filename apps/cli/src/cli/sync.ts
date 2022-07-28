@@ -30,6 +30,7 @@ function makePullCLI(program: Command) {
       'The location of the project or file to update, defaults to the current directory',
     )
     .addOption(makeYesOption())
+    .addOption(makeCIOption())
     .action(clirun(sync.pull, { program }));
   return command;
 }
