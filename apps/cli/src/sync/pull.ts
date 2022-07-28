@@ -19,7 +19,11 @@ import { getRawFrontmatterFromFile } from '../store/local/actions';
  *
  * Errors if project config does not exist or no remote project url is specified.
  */
-export async function pullProject(session: ISession, path: string, opts?: { level?: LogLevel }) {
+export async function pullProject(
+  session: ISession,
+  path: string,
+  opts?: { level?: LogLevel; ci?: boolean },
+) {
   const state = session.store.getState();
   const projectConfig = selectors.selectLocalProjectConfig(state, path);
   if (!projectConfig) throw Error(`Cannot pull project from ${path}: no project config`);
@@ -35,6 +39,7 @@ export async function pullProject(session: ISession, path: string, opts?: { leve
   const toc = tic();
   log(`📥 Pulling ${projectLogString(project)} into ${path}`);
   await projectToJupyterBook(session, project.id, {
+    ci: opts?.ci,
     path,
     writeConfig: false,
     createNotebookFrontmatter: true,

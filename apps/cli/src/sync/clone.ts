@@ -21,6 +21,7 @@ type Options = {
   remote?: string;
   path?: string;
   yes?: boolean;
+  ci?: boolean;
 };
 
 export async function interactiveCloneQuestions(
@@ -78,8 +79,9 @@ export async function clone(
   session: ISession,
   remote?: string,
   path?: string,
-  opts?: Pick<Options, 'yes'>,
+  opts?: Pick<Options, 'yes' | 'ci'>,
 ) {
+  const yes = opts?.ci ?? opts?.yes; // ci is supersede of yes
   // Site config is loaded on session init
   const siteConfig = selectors.selectLocalSiteConfig(session.store.getState());
   if (!siteConfig) {
@@ -87,6 +89,7 @@ export async function clone(
   }
   const { siteProject, projectConfig } = await interactiveCloneQuestions(session, {
     ...opts,
+    yes,
     remote,
     path,
   });
@@ -107,5 +110,5 @@ export async function clone(
     };
     writeConfigs(session, '.', { siteConfig: newSiteConfig });
   }
-  await pullProject(session, siteProject.path, { level: LogLevel.info });
+  await pullProject(session, siteProject.path, { level: LogLevel.info, ci: opts?.ci });
 }
