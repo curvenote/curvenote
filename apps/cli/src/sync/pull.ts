@@ -23,7 +23,7 @@ import { SyncCiHelperOptions } from './types';
 export async function pullProject(
   session: ISession,
   path: string,
-  opts?: { level?: LogLevel; ci?: boolean },
+  opts?: { level?: LogLevel; ci?: boolean; yes?: boolean },
 ) {
   const state = session.store.getState();
   const projectConfig = selectors.selectLocalProjectConfig(state, path);
@@ -57,7 +57,10 @@ export async function pullProject(
  *
  * Errors if no site config is loaded in the state.
  */
-export async function pullProjects(session: ISession, opts: { level?: LogLevel }) {
+export async function pullProjects(
+  session: ISession,
+  opts: { level?: LogLevel; yes?: boolean; ci?: boolean },
+) {
   const state = session.store.getState();
   const siteConfig = selectors.selectLocalSiteConfig(state);
   if (!siteConfig) throw Error('Cannot pull projects: no site config');
@@ -119,7 +122,7 @@ export async function pull(session: ISession, path?: string, opts?: SyncCiHelper
       `Pulling will overwrite all content in ${numProjects} project${plural}. Are you sure?`,
       processedOpts,
     );
-    await pullProjects(session, { level: LogLevel.info });
+    await pullProjects(session, { level: LogLevel.info, ...opts });
   } else {
     loadConfigOrThrow(session, path);
     await confirmOrExit(
@@ -128,6 +131,6 @@ export async function pull(session: ISession, path?: string, opts?: SyncCiHelper
       }. Are you sure?`,
       processedOpts,
     );
-    await pullProject(session, path, { level: LogLevel.info });
+    await pullProject(session, path, { level: LogLevel.info, ...opts });
   }
 }

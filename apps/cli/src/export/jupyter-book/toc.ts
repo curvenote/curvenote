@@ -127,7 +127,7 @@ export async function writeTOC(session: ISession, nav: Version<Blocks.Navigation
   const totalDocuments = loadedBlocks.length - groupNavItems.length;
 
   if (totalDocuments === 0) {
-    handleErrorMessage(session, opts?.ci ?? false, 'The project has no documents.');
+    handleErrorMessage(session, opts?.ci ?? false, 'The table of contents has no documents.');
     return;
   }
 
@@ -158,7 +158,11 @@ export async function writeTOC(session: ISession, nav: Version<Blocks.Navigation
   const header = '# Table of contents\n# Learn more at https://jupyterbook.org/customize/toc.html';
 
   if (skipCounter === totalDocuments) {
-    handleErrorMessage(session, opts?.ci ?? false, 'All blocks are hidden');
+    handleErrorMessage(
+      session,
+      opts?.ci ?? false,
+      'All documents in the table of contents are hidden.',
+    );
     return;
   }
   if (!hasParts) {

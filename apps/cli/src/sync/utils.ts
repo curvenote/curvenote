@@ -72,11 +72,9 @@ export async function validateLinkIsAProject(
 }
 
 export function processOption(opts: SyncCiHelperOptions | undefined) {
-  if (!opts) {
-    return opts;
-  }
+  if (!opts) return undefined;
   return {
     ...opts,
-    yes: opts.ci ?? opts.yes,
+    yes: opts.ci || opts.yes,
   };
 }
