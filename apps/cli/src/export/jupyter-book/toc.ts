@@ -126,7 +126,7 @@ export async function writeTOC(session: ISession, nav: Version<Blocks.Navigation
       return;
     }
     const { parentId, block } = data;
-    if (!block) return;
+    if (!block || block.$data?.hidden) return;
     if (parentId) {
       const folder = nest[parentId];
       folder.push({ id, kind, block, children });
