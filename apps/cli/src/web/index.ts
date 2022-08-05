@@ -3,7 +3,7 @@ import path from 'path';
 import { makeExecutable } from '../export/utils';
 import { getGitLogger, getNpmLogger, getServerLogger } from '../logging/custom';
 import { MyUser } from '../models';
-import { ISession } from '../session/types';
+import type { ISession } from '../session/types';
 import { selectors } from '../store';
 import {
   confirmOrExit,
@@ -14,7 +14,8 @@ import {
   serverPath,
 } from '../utils';
 import { deployContentToCdn, promoteContent } from './deploy';
-import { buildSite, cleanBuiltFiles, Options } from './prepare';
+import type { Options } from './prepare';
+import { buildSite, cleanBuiltFiles } from './prepare';
 import { watchContent } from './watch';
 
 export { buildSite, deployContentToCdn };
