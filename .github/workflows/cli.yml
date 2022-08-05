@@ -1,0 +1,34 @@
+name: CLI
+
+on:
+  push:
+    branches: [main, ci-*]
+  pull_request:
+    branches: [main]
+
+jobs:
+  cli:
+    strategy:
+      matrix:
+        version: ['14.x', '16.x', '18.x']
+        os: ['ubuntu-latest', 'windows-latest', 'macos-12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Use Node.js ${{ matrix.version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.version }}
+      - name: Update npm
+        run: npm -g install npm@latest
+      - name: Install curvenote globally
+        run: npm -g install curvenote
+      - name: Checkout an example repo
+        run: git clone --depth 1 https://github.com/curvenote/docs-blog-template.git
+      - name: Initialize a site
+        run: |
+          cd docs-blog-template
+          curvenote init -y
+      - name: Build the site
+        run: |
+          cd docs-blog-template
+          curvenote build
