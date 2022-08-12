@@ -3,11 +3,17 @@ import path from 'path';
 import util from 'util';
 import type { Logger } from '../../logging';
 import { BUILD_FOLDER } from '../../utils';
+import type { PdfBuildCommand } from '../tex/types';
 import { exec } from '../utils';
 
 const copyFile = util.promisify(fs.copyFile);
 
-export async function createPdfGivenTexFile(log: Logger, filename: string, useBuildFolder = true) {
+export async function createPdfGivenTexFile(
+  log: Logger,
+  filename: string,
+  command: PdfBuildCommand = 'xelatex',
+  useBuildFolder = true,
+) {
   const basename = path.basename(filename, path.extname(filename));
   const tex_filename = `${basename}.tex`;
   const pdf_filename = `${basename}.pdf`;
@@ -18,7 +24,9 @@ export async function createPdfGivenTexFile(log: Logger, filename: string, useBu
   const outputLogFile = path.join(outputPath, log_filename);
 
   const buildPath = path.resolve(useBuildFolder ? path.join(outputPath, BUILD_FOLDER) : outputPath);
-  const CMD = `latexmk -f -xelatex -synctex=1 -interaction=batchmode -file-line-error -latexoption="-shell-escape" ${tex_filename} &> ${tex_log_filename}`;
+  const CMD = `latexmk -f ${
+    command === 'pdflatex' ? '-pdf -bibtex' : '-xelatex'
+  } -synctex=1 -interaction=batchmode -file-line-error -latexoption="-shell-escape" ${tex_filename} &> ${tex_log_filename}`;
   try {
     log.debug(`Building LaTeX: logging output to ${tex_log_filename}`);
     await exec(CMD, { cwd: buildPath });

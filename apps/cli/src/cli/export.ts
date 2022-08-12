@@ -21,6 +21,13 @@ function makeTemplateOption() {
   return new Option('-t, --template <name>', 'Specify a template to apply during export');
 }
 
+function makePdfCommandOption() {
+  return new Option(
+    '-c, --command <name>',
+    'Specify a TeX build command to use during pdf creation (xelatex|pdflatex)',
+  ).default('xelatex');
+}
+
 function makeTemplateOptionsOption() {
   return new Option(
     '-o, --options <name>',
@@ -86,6 +93,7 @@ function makePdfBuildCLI(program: Command) {
   const command = new Command('pdf:build')
     .description('Build a pdf given a tex file')
     .argument('[output]', 'A path to the tex file to build')
+    .addOption(makePdfCommandOption())
     .action(clirun(buildPdfOnly, { program }));
   return command;
 }

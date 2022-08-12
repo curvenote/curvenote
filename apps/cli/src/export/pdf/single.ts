@@ -23,7 +23,10 @@ export async function singleArticleToPdf(
     texIsIntermediate: true,
   });
 
-  await createPdfGivenTexFile(session.log, targetTexFilename);
+  // TODO: jtex currently downloads the template for use, but we pre-load the template configuration file/spec in
+  // ifTemplateFetchTaggedBlocks() called in singleArticleToTex. If we can do that prefetch earlier, then we could
+  // test for a flag in the template.yml schema, and set the opts.command here to xelatex or pdflatex appropriately
+  await createPdfGivenTexFile(session.log, targetTexFilename, opts.command);
 
   return article;
 }
