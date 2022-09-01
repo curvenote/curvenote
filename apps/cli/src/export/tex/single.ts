@@ -163,9 +163,6 @@ export async function localArticleToTexTemplated(
   tagDefinitions.forEach((def) => {
     tagged[def.id] = extractTaggedContent(mdast, def, taggedValidationOpts);
   });
-  if (taggedValidationOpts.messages.errors?.length) {
-    throw new Error(`Unable to render with template ${jtex.getTemplateYmlPath()}`);
-  }
 
   // prune mdast based on tags, if required by template, eg abstract, acknowledgements
   // Need to load up template yaml - returned from jtex, with 'tagged' dict
