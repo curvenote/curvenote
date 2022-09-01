@@ -1,10 +1,15 @@
-import type { PhrasingContent } from 'mdast';
+// import type { PhrasingContent } from 'mdast';
 
-export function toText(content: PhrasingContent[]): string {
+type ValueAndChildren = {
+  value?: string;
+  children?: ValueAndChildren[];
+};
+
+export function toText(content: ValueAndChildren[]): string {
   return content
     .map((n) => {
       if ('value' in n) return n.value;
-      if ('children' in n) return toText(n.children);
+      if ('children' in n && n.children) return toText(n.children);
       return '';
     })
     .join('');
