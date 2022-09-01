@@ -7,21 +7,14 @@ export interface ISession {
   log: Logger;
 }
 
-export type ExpandedImports = { imports: string[]; commands: string[] };
-
-type MinMax = {
-  min: number;
-  max: number;
-};
-
 export type TemplateTagDefinition = {
   id: string;
   // tag: string;
   description?: string;
   required?: boolean;
   plain?: boolean;
-  chars?: MinMax;
-  words?: MinMax;
+  max_chars?: number;
+  max_words?: number;
   // condition
 };
 
@@ -40,6 +33,8 @@ export type TemplateOptionDefinition = {
   required?: boolean;
   multiple?: boolean;
   choices?: string[];
+  regex?: string;
+  max_length?: number;
   // condition
 };
 
