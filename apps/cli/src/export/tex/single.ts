@@ -80,38 +80,9 @@ export function taggedBlocksFromMdast(mdast: Root, tag: string) {
   return taggedBlocks as GenericNode[];
 }
 
-export function extractTaggedContent(
-  mdast: Root,
-  tagDefinition: TemplateTagDefinition,
-  opts: ValidationOptions,
-  frontmatter: PageFrontmatter,
-): LatexResult {
+export function extractTaggedContent(mdast: Root, tagDefinition: TemplateTagDefinition) {
   const taggedBlocks = taggedBlocksFromMdast(mdast, tagDefinition.id);
-  if (!taggedBlocks) {
-    if (tagDefinition.required) {
-      validationError(
-        `required tag not found: ${tagDefinition.id}\n${tagDefinition.description}`,
-        opts,
-      );
-    }
-    return { value: '' };
-  }
-  const { max_chars, max_words } = tagDefinition;
-  if (defined(max_chars) || defined(max_words)) {
-    const taggedText = toText(taggedBlocks);
-    if (max_chars != null && taggedText.length > max_chars) {
-      validationError(
-        `tagged block "${tagDefinition.id}" must be less than or equal to ${max_chars} characters`,
-        opts,
-      );
-    }
-    if (max_words != null && taggedText.split(' ').length > max_words) {
-      validationError(
-        `tagged block "${tagDefinition.id}" must be less than or equal to ${max_words} words`,
-        opts,
-      );
-    }
-  }
+  if (!taggedBlocks) return undefined;
   const taggedMdast = { type: 'root', children: taggedBlocks } as Root;
   const taggedContent = mdastToTex(taggedMdast, frontmatter);
   taggedBlocks.forEach((block) => {
@@ -153,23 +124,12 @@ export async function localArticleToTexTemplated(
   const jtex = new JTex(session, { template, path: templatePath });
   await jtex.ensureTemplateExistsOnPath();
   const templateYml = jtex.getValidatedTemplateYml();
-  const validatedTemplateOptions = jtex.validateOptions(templateOptions || {}, file);
 
   const tagDefinitions = templateYml?.config?.tagged || [];
   const tagged: Record<string, string> = {};
-  const taggedValidationOpts: ValidationOptions = {
-    file,
-    property: 'template_tags',
-    messages: {},
-    errorLogFn: (message) => session.log.error(message),
-    warningLogFn: (message) => session.log.warn(message),
-  };
-
-  let collectedImports: ExpandedImports = { imports: [], commands: [] };
   tagDefinitions.forEach((def) => {
-    const result = extractTaggedContent(mdast, def, taggedValidationOpts, frontmatter);
-    collectedImports = mergeExpandedImports(collectedImports, result);
-    tagged[def.id] = result?.value ?? '';
+    const content = extractTaggedContent(mdast, def);
+    if (content != null) tagged[def.id] = content;
   });
 
   // prune mdast based on tags, if required by template, eg abstract, acknowledgements
@@ -184,8 +144,8 @@ export async function localArticleToTexTemplated(
     outputPath: filename,
     frontmatter,
     tagged,
-    options: validatedTemplateOptions,
-    imports: mergeExpandedImports(collectedImports, result),
+    options: templateOptions || {},
+    sourceFile: file,
   });
 }
 

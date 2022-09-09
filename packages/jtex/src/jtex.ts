@@ -7,11 +7,14 @@ import type { ValidationOptions } from '@curvenote/validators';
 import { curvenoteDef } from './definitions';
 import { downloadAndUnzipTemplate, resolveInputs, TEMPLATE_FILENAME } from './download';
 import { extendJtexFrontmatter } from './frontmatter';
-import type { ExpandedImports, ISession, Renderer } from './types';
-import { ensureDirectoryExists } from './utils';
-import { errorLogger, validateTemplateOptions, validateTemplateYml } from './validators';
-import { renderImports } from './imports';
-import version from './version';
+import type { ISession, Renderer } from './types';
+import { ensureDirectoryExists, errorLogger, warningLogger } from './utils';
+import {
+  validateFrontmatterTemplateOptions,
+  validateTemplateOptions,
+  validateTemplateTagged,
+  validateTemplateYml,
+} from './validators';
 
 const DO_NOT_COPY = [TEMPLATE_FILENAME, 'thumbnail.png'];
 const DO_NOT_COPY_EXTS = ['.md', '.yml', '.zip'];
@@ -81,27 +84,82 @@ class JTex {
     return templateYml;
   }
 
-  validateOptions(templateOptions: any, file: string) {
+  validateOptions(options: any, frontmatter: PageFrontmatter, file?: string) {
     const templateYml = this.getValidatedTemplateYml();
-    if (!templateYml?.config?.options) return {};
     const opts: ValidationOptions = {
       file,
-      property: 'template_options',
+      property: 'options',
       messages: {},
       errorLogFn: errorLogger(this.session),
+      warningLogFn: warningLogger(this.session),
     };
-    const validatedTemplateOptions = validateTemplateOptions(
-      templateOptions,
-      templateYml.config.options,
+    const validatedOptions = validateTemplateOptions(
+      options,
+      templateYml?.config?.options || [],
+      frontmatter,
       opts,
     );
-    if (validatedTemplateOptions === undefined) {
+    if (validatedOptions === undefined) {
       // Pass even if there are some validation errors; only error on total failure
       throw new Error(
-        `Unable to parse options for template ${this.getTemplateYmlPath()} from ${file}`,
+        `Unable to parse options for template ${this.getTemplateYmlPath()}${
+          file ? ' from ' : ''
+        }${file}`,
       );
     }
-    return validatedTemplateOptions;
+    return validatedOptions;
+  }
+
+  validateTagged(
+    tagged: any,
+    options: Record<string, any>,
+    frontmatter: PageFrontmatter,
+    file?: string,
+  ) {
+    const templateYml = this.getValidatedTemplateYml();
+    const opts: ValidationOptions = {
+      file,
+      property: 'tagged',
+      messages: {},
+      errorLogFn: errorLogger(this.session),
+      warningLogFn: warningLogger(this.session),
+    };
+    const validatedTagged = validateTemplateTagged(
+      tagged,
+      templateYml?.config?.tagged || [],
+      options,
+      frontmatter,
+      opts,
+    );
+    if (validatedTagged === undefined) {
+      // Pass even if there are some validation errors; only error on total failure
+      throw new Error(
+        `Unable to parse tagged values for template ${this.getTemplateYmlPath()}${
+          file ? ' from ' : ''
+        }${file}`,
+      );
+    }
+    return validatedTagged;
+  }
+
+  validateFrontmatter(frontmatter: any, file?: string) {
+    const templateYml = this.getValidatedTemplateYml();
+    const opts: ValidationOptions = {
+      file,
+      property: 'frontmatter',
+      messages: {},
+      errorLogFn: errorLogger(this.session),
+      warningLogFn: warningLogger(this.session),
+    };
+    const validatedFrontmatter = validateFrontmatterTemplateOptions(
+      frontmatter,
+      templateYml?.config?.options || [],
+      opts,
+    );
+    if (validatedFrontmatter === undefined) {
+      throw new Error(`Unable to read frontmatter${file ? ' from ' : ''}${file}`);
+    }
+    return validatedFrontmatter;
   }
 
   async ensureTemplateExistsOnPath(force?: boolean) {
@@ -122,10 +180,10 @@ class JTex {
   render(opts: {
     contentOrPath: string;
     outputPath: string;
-    frontmatter: PageFrontmatter;
-    tagged: Record<string, string>;
-    options: Record<string, any>;
-    imports?: string | ExpandedImports;
+    frontmatter: any;
+    tagged: any;
+    options: any;
+    sourceFile?: string;
   }) {
     if (!fs.existsSync(join(this.templatePath, TEMPLATE_FILENAME))) {
       throw new Error(
@@ -142,13 +200,15 @@ class JTex {
     } else {
       content = opts.contentOrPath;
     }
-    const doc = extendJtexFrontmatter(this.session, opts.frontmatter);
+    const frontmatter = this.validateFrontmatter(opts.frontmatter, opts.sourceFile);
+    const options = this.validateOptions(opts.options, frontmatter, opts.sourceFile);
+    const tagged = this.validateTagged(opts.tagged, options, frontmatter, opts.sourceFile);
+    const doc = extendJtexFrontmatter(frontmatter);
     const renderer: Renderer = {
       CONTENT: content,
       doc,
-      tagged: opts.tagged,
-      options: opts.options,
-      IMPORTS: renderImports(opts.imports),
+      tagged,
+      options,
     };
     const rendered = this.env.render(TEMPLATE_FILENAME, renderer);
     const outputDirectory = dirname(opts.outputPath);
