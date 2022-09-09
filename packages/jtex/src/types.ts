@@ -7,6 +7,8 @@ export interface ISession {
   log: Logger;
 }
 
+export type ExpandedImports = { imports: string[]; commands: string[] };
+
 export type TemplateTagDefinition = {
   id: string;
   // tag: string;
@@ -85,6 +87,7 @@ export type RendererDoc = {
   };
   authors: RendererAuthor[];
   affiliations: ValueAndIndex[];
+  bibliography?: string[];
   keywords?: string[];
 };
 
@@ -93,4 +96,5 @@ export type Renderer = {
   doc: RendererDoc;
   options: Record<string, any>;
   tagged: Record<string, string>;
+  IMPORTS?: string;
 };

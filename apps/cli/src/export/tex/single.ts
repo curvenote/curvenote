@@ -1,10 +1,12 @@
-import type { TemplateTagDefinition } from 'jtex';
-import JTex from 'jtex';
+import type { TemplateTagDefinition, ExpandedImports } from 'jtex';
+import JTex, { mergeExpandedImports } from 'jtex';
 import type { Root } from 'mdast';
 import type { GenericNode } from 'mystjs';
 import { selectAll, unified } from 'mystjs';
 import mystToTex from 'myst-to-tex';
+import type { LatexResult } from 'myst-to-tex';
 import type { VersionId } from '@curvenote/blocks';
+import type { PageFrontmatter } from '@curvenote/frontmatter';
 import { ExportFormats } from '@curvenote/frontmatter';
 import type { ValidationOptions } from '@curvenote/validators';
 import { defined, validationError } from '@curvenote/validators';
@@ -56,11 +58,11 @@ export async function singleArticleToTex(
   return article;
 }
 
-export function mdastToTex(mdast: Root) {
-  const pipe = unified().use(mystToTex);
+export function mdastToTex(mdast: Root, frontmatter: PageFrontmatter) {
+  const pipe = unified().use(mystToTex, { math: frontmatter?.math });
   const result = pipe.runSync(mdast as any);
   const tex = pipe.stringify(result);
-  return tex.result as string;
+  return tex.result as LatexResult;
 }
 
 export function taggedBlocksFromMdast(mdast: Root, tag: string) {
@@ -78,11 +80,15 @@ export function taggedBlocksFromMdast(mdast: Root, tag: string) {
   return taggedBlocks as GenericNode[];
 }
 
-export function extractTaggedContent(mdast: Root, tagDefinition: TemplateTagDefinition) {
+export function extractTaggedContent(
+  mdast: Root,
+  tagDefinition: TemplateTagDefinition,
+  frontmatter: PageFrontmatter,
+): LatexResult | undefined {
   const taggedBlocks = taggedBlocksFromMdast(mdast, tagDefinition.id);
   if (!taggedBlocks) return undefined;
   const taggedMdast = { type: 'root', children: taggedBlocks } as Root;
-  const taggedContent = mdastToTex(taggedMdast);
+  const taggedContent = mdastToTex(taggedMdast, frontmatter);
   taggedBlocks.forEach((block) => {
     block.children = [];
   });
@@ -102,10 +108,11 @@ export async function localArticleToTexRaw(
   opts: Pick<TexExportOptions, 'filename'>,
 ) {
   const { filename } = opts;
-  const { mdast } = await getFileContent(session, file);
-  const tex = mdastToTex(mdast);
+  const { mdast, frontmatter } = await getFileContent(session, file);
+  const result = mdastToTex(mdast, frontmatter);
   session.log.info(`🖋  Writing tex to ${filename}`);
-  writeFileToFolder(filename, tex);
+  // TODO: add imports and macros?
+  writeFileToFolder(filename, result.value);
 }
 
 export async function localArticleToTexTemplated(
@@ -124,26 +131,30 @@ export async function localArticleToTexTemplated(
 
   const tagDefinitions = templateYml?.config?.tagged || [];
   const tagged: Record<string, string> = {};
+  let collectedImports: ExpandedImports = { imports: [], commands: [] };
   tagDefinitions.forEach((def) => {
-    const content = extractTaggedContent(mdast, def);
-    if (content != null) tagged[def.id] = content;
+    const result = extractTaggedContent(mdast, def, frontmatter);
+    if (result != null) {
+      collectedImports = mergeExpandedImports(collectedImports, result);
+      tagged[def.id] = result?.value ?? '';
+    }
   });
 
   // prune mdast based on tags, if required by template, eg abstract, acknowledgements
   // Need to load up template yaml - returned from jtex, with 'tagged' dict
   // This probably means we need to store tags alongside oxa link for blocks
-  // console.log(mdast);
   // This will need opts eventually --v
-  const tex = mdastToTex(mdast);
+  const result = mdastToTex(mdast, frontmatter);
   // Fill in template
   session.log.info(`🖋  Writing templated tex to ${filename}`);
   jtex.render({
-    contentOrPath: tex,
+    contentOrPath: result.value,
     outputPath: filename,
     frontmatter,
     tagged,
     options: templateOptions || {},
     sourceFile: file,
+    imports: mergeExpandedImports(collectedImports, result),
   });
 }
 

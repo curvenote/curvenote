@@ -8,6 +8,11 @@ function indexAndLetter(index: number) {
   const multiplier = Math.ceil((index + 1) / ALPHA.length);
   return { index: index + 1, letter: value.repeat(multiplier) };
 }
+function undefinedIfEmpty<T>(array?: T[]): T[] | undefined {
+  // Explicitly return undefined
+  if (!array || array.length === 0) return undefined;
+  return array;
+}
 
 function addIndicesToAuthors(
   authors: Author[],
@@ -68,6 +73,7 @@ export function extendJtexFrontmatter(frontmatter: PageFrontmatter): RendererDoc
     },
     authors: addIndicesToAuthors(frontmatter.authors || [], affiliations),
     affiliations,
+    bibliography: undefinedIfEmpty(frontmatter.bibliography),
     keywords: frontmatter.keywords,
   };
   return doc;

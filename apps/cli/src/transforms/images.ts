@@ -1,5 +1,6 @@
 import fs from 'fs';
 import os from 'os';
+import type { Root } from 'mdast';
 import mime from 'mime-types';
 import type { GenericNode } from 'mystjs';
 import { selectAll } from 'mystjs';
@@ -8,8 +9,9 @@ import { dirname, join, parse } from 'path';
 import type { VersionId } from '@curvenote/blocks';
 import { oxaLinkToId } from '@curvenote/blocks';
 import type { PageFrontmatter } from '@curvenote/frontmatter';
-import type { Root } from '../myst';
 import { WebFileObject } from '../web/files';
+import { convertImageToWebp } from '../export/utils/imagemagick';
+import type { ISession } from '../session/types';
 import {
   addWarningForFile,
   computeHash,
@@ -18,8 +20,6 @@ import {
   staticPath,
   versionIdToURL,
 } from '../utils';
-import type { ISession } from '../session/types';
-import { convertImageToWebp } from '../export/utils/imagemagick';
 
 function isBase64(data: string) {
   return data.split(';base64,').length === 2;
