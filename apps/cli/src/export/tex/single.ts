@@ -8,8 +8,6 @@ import type { LatexResult } from 'myst-to-tex';
 import type { VersionId } from '@curvenote/blocks';
 import type { PageFrontmatter } from '@curvenote/frontmatter';
 import { ExportFormats } from '@curvenote/frontmatter';
-import type { ValidationOptions } from '@curvenote/validators';
-import { validationError } from '@curvenote/validators';
 import type { ISession } from '../../session/types';
 import { loadFile, selectFile, transformMdast } from '../../store/local/actions';
 import { writeFileToFolder } from '../../utils';
@@ -83,19 +81,10 @@ export function taggedBlocksFromMdast(mdast: Root, tag: string) {
 export function extractTaggedContent(
   mdast: Root,
   tagDefinition: TemplateTagDefinition,
-  opts: ValidationOptions,
   frontmatter: PageFrontmatter,
-): LatexResult {
+): LatexResult | undefined {
   const taggedBlocks = taggedBlocksFromMdast(mdast, tagDefinition.id);
-  if (!taggedBlocks) {
-    if (tagDefinition.required) {
-      validationError(
-        `required tag not found: ${tagDefinition.id}\n${tagDefinition.description}`,
-        opts,
-      );
-    }
-    return { value: '' };
-  }
+  if (!taggedBlocks) return undefined;
   const taggedMdast = { type: 'root', children: taggedBlocks } as Root;
   const taggedContent = mdastToTex(taggedMdast, frontmatter);
   taggedBlocks.forEach((block) => {
@@ -137,27 +126,17 @@ export async function localArticleToTexTemplated(
   const jtex = new JTex(session, { template, path: templatePath });
   await jtex.ensureTemplateExistsOnPath();
   const templateYml = jtex.getValidatedTemplateYml();
-  const validatedTemplateOptions = jtex.validateOptions(templateOptions || {}, file);
 
   const tagDefinitions = templateYml?.config?.tagged || [];
   const tagged: Record<string, string> = {};
-  const taggedValidationOpts: ValidationOptions = {
-    file,
-    property: 'template_tags',
-    messages: {},
-    errorLogFn: (message) => session.log.error(message),
-    warningLogFn: (message) => session.log.warn(message),
-  };
-
   let collectedImports: ExpandedImports = { imports: [], commands: [] };
   tagDefinitions.forEach((def) => {
-    const result = extractTaggedContent(mdast, def, taggedValidationOpts, frontmatter);
-    collectedImports = mergeExpandedImports(collectedImports, result);
-    tagged[def.id] = result?.value ?? '';
+    const result = extractTaggedContent(mdast, def, frontmatter);
+    if (result != null) {
+      collectedImports = mergeExpandedImports(collectedImports, result);
+      tagged[def.id] = result?.value ?? '';
+    }
   });
-  if (taggedValidationOpts.messages.errors?.length) {
-    throw new Error(`Unable to render with template ${jtex.getTemplateYmlPath()}`);
-  }
 
   // prune mdast based on tags, if required by template, eg abstract, acknowledgements
   // Need to load up template yaml - returned from jtex, with 'tagged' dict
@@ -171,7 +150,8 @@ export async function localArticleToTexTemplated(
     outputPath: filename,
     frontmatter,
     tagged,
-    options: validatedTemplateOptions,
+    options: templateOptions || {},
+    sourceFile: file,
     imports: mergeExpandedImports(collectedImports, result),
   });
 }
