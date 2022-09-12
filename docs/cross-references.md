@@ -124,7 +124,7 @@ These will show up, for example, as `Section 1` and `Section 2.1`.
 
 (heading-numbering)=
 
-## Heading Numbering
+## Header Numbering
 
 By default section numbering for headers is turned off with numbering for figure and table numbering enabled.
 To turn on `numbering` for headers, you can can change the frontmatter in the document or project.
