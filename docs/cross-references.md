@@ -109,7 +109,7 @@ Use `(label)=` before the element that you want to target, then reference conten
 :class: dropdown
 # How to turn on heading `numbering`
 
-By default headings are not numbered, see {ref}`heading-numbering` for more information. To turn on numbered headers you need to turn numbering on in the document or project using `numbering` in the frontmatter. You can control this for each heading level:
+By default headings are not numbered, see [](#header-numbering) for more information. To turn on numbered headers you need to turn numbering on in the document or project using `numbering` in the frontmatter. You can control this for each heading level:
 
 ```yaml
 numbering:
@@ -122,7 +122,7 @@ These will show up, for example, as `Section 1` and `Section 2.1`.
 
 % TODO: We should support pandoc style unnumbered {-} and {.class, #id} syntax
 
-(heading-numbering)=
+(header-numbering)=
 
 ## Header Numbering
 
