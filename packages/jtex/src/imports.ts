@@ -1,4 +1,4 @@
-import type { ExpandedImports } from './types';
+import type { TemplateImports } from './types';
 
 const commentLenth = 50;
 
@@ -28,30 +28,23 @@ export function createMathCommands(plugins: Record<string, string>): string[] {
 }
 
 export function renderImports(
-  expandedImports?: string | ExpandedImports,
+  templateImports?: string | TemplateImports,
   existingPackages?: string[],
 ): string {
-  if (!expandedImports || typeof expandedImports === 'string') return expandedImports || '';
-  const packages = new Set(expandedImports.imports);
-  const math = Object.fromEntries(
-    Object.entries(expandedImports.commands).sort(([[a], [b]]) => {
-      if (a < b) return -1;
-      if (a > b) return 1;
-      return 0;
-    }),
-  );
+  if (!templateImports || typeof templateImports === 'string') return templateImports || '';
+  const packages = new Set(templateImports.imports);
   const imports = label('imports', createImportCommands(packages, existingPackages));
-  const commands = label('math commands', createMathCommands(math));
+  const commands = label('math commands', createMathCommands(templateImports.commands));
   const block = `${imports}${commands}`;
   if (!block) return '';
   const percents = ''.padEnd(commentLenth, '%');
   return `${percents}\n${block}${percents}`;
 }
 
-export function mergeExpandedImports(
-  current?: Partial<ExpandedImports>,
-  next?: Partial<ExpandedImports>,
-): ExpandedImports {
+export function mergeTemplateImports(
+  current?: Partial<TemplateImports>,
+  next?: Partial<TemplateImports>,
+): TemplateImports {
   return {
     commands: { ...current?.commands, ...next?.commands },
     imports: [...new Set([...(current?.imports ?? []), ...(next?.imports ?? [])])],

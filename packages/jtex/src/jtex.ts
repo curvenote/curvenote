@@ -8,7 +8,7 @@ import { downloadAndUnzipTemplate, resolveInputs, TEMPLATE_FILENAME } from './do
 import { pdfExportCommand } from './export';
 import { extendJtexFrontmatter } from './frontmatter';
 import { renderImports } from './imports';
-import type { ExpandedImports, ISession, Renderer, TemplateYml } from './types';
+import type { TemplateImports, ISession, Renderer, TemplateYml } from './types';
 import { ensureDirectoryExists, errorLogger, warningLogger } from './utils';
 import {
   validateTemplateDoc,
@@ -184,7 +184,7 @@ class JTex {
     options: any;
     bibliography?: string[];
     sourceFile?: string;
-    imports?: string | ExpandedImports;
+    imports?: string | TemplateImports;
     force?: boolean;
     packages?: string[];
   }) {

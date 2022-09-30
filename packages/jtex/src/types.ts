@@ -6,7 +6,7 @@ export interface ISession extends BaseISession {
   API_URL: string;
 }
 
-export type ExpandedImports = {
+export type TemplateImports = {
   imports: string[];
   commands: Record<string, string>;
 };
