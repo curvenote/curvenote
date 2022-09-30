@@ -178,7 +178,7 @@ export async function localArticleToTexTemplated(
 
   const partDefinitions = templateYml?.parts || [];
   const parts: Record<string, string> = {};
-  let collectedImports: ExpandedImports = { imports: [], commands: [] };
+  let collectedImports: ExpandedImports = { imports: [], commands: {} };
   partDefinitions.forEach((def) => {
     const result = extractPart(mdast, def, frontmatter, templateYml);
     if (result != null) {
@@ -204,6 +204,7 @@ export async function localArticleToTexTemplated(
     sourceFile: file,
     imports: mergeExpandedImports(collectedImports, result),
     force,
+    packages: templateYml.packages,
   });
 }
 

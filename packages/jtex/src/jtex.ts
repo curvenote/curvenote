@@ -186,6 +186,7 @@ class JTex {
     sourceFile?: string;
     imports?: string | ExpandedImports;
     force?: boolean;
+    packages?: string[];
   }) {
     if (!fs.existsSync(join(this.templatePath, TEMPLATE_FILENAME))) {
       throw new Error(
@@ -216,7 +217,7 @@ class JTex {
       doc,
       parts,
       options,
-      IMPORTS: renderImports(opts.imports),
+      IMPORTS: renderImports(opts.imports, opts?.packages),
     };
     const rendered = this.env.render(TEMPLATE_FILENAME, renderer);
     const outputDirectory = dirname(opts.outputPath);
