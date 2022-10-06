@@ -65,5 +65,10 @@ export type Mutable<T> = {
   -readonly [k in keyof T]: T[k];
 };
 
-export type IFootnotes = Mutable<Required<IPropertiesOptions>['footnotes']>;
+export type IFootnotes = Record<
+  string,
+  {
+    children: Paragraph[];
+  }
+>;
 export type INumbering = INumberingOptions['config'][0];

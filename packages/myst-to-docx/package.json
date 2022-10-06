@@ -4,6 +4,7 @@
   "description": "Export from a MyST Markdown document to Microsoft Word (*.docx)",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "license": "MIT",
+  "type": "module",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/types/index.d.ts",
@@ -38,7 +39,7 @@
   },
   "dependencies": {
     "buffer-image-size": "^0.6.4",
-    "docx": "^7.3.0",
+    "docx": "^7.5.0",
     "myst-common": "*",
     "myst-frontmatter": "*"
   },

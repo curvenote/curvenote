@@ -12,6 +12,10 @@
     "lint": "eslint src/**/*.ts*",
     "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\""
   },
+  "dependencies": {
+    "myst-frontmatter": "*",
+    "myst-spec": "^0.0.4"
+  },
   "peerDependencies": {
     "@curvenote/blocks": "*"
   },
