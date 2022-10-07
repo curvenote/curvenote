@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import type { TemplatePartDefinition, TemplateImports, TemplateYml } from 'jtex';
+import type { TemplateImports } from 'jtex';
 import JTex, { mergeTemplateImports } from 'jtex';
 import type { Root } from 'mdast';
+import type { TemplatePartDefinition, TemplateYml } from 'myst-templates';
 import { selectAll, unified } from 'mystjs';
 import mystToTex from 'myst-to-tex';
 import type { LatexResult } from 'myst-to-tex';
