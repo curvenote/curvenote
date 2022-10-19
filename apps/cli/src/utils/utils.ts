@@ -29,6 +29,14 @@ export function resolvePath(optionalPath: string | undefined, filename: string) 
   return path.join('.', filename);
 }
 
+export function sitePath(): string {
+  return path.resolve(path.join('.', BUILD_FOLDER, 'site'));
+}
+
+export function contentPath(): string {
+  return path.join(sitePath(), 'content');
+}
+
 export function repoPath(): string {
   return path.resolve(path.join('.', BUILD_FOLDER, 'curvenote'));
 }
@@ -37,12 +45,8 @@ export function webPackageJsonPath(session: ISession): string {
   return path.join(repoPath(), 'apps', 'web', 'package.json');
 }
 
-export function serverPath(session: ISession): string {
-  return path.join(repoPath(), 'apps', 'web');
-}
-
 export function publicPath(session: ISession): string {
-  return path.join(serverPath(session), 'public');
+  return path.join(sitePath(), 'public');
 }
 
 export function staticPath(session: ISession): string {

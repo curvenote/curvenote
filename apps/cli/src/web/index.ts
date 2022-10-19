@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { join } from 'path';
 import { createGitLogger, createNpmLogger, makeExecutable, tic } from 'myst-cli-utils';
 import { createServerLogger } from '../logging';
 import { MyUser } from '../models';
@@ -9,13 +10,21 @@ import {
   ensureBuildFolderExists,
   buildPathExists,
   repoPath,
-  serverPath,
   warnOnHostEnvironmentVariable,
+  publicPath,
+  sitePath,
+  contentPath,
 } from '../utils';
 import { deployContentToCdn, promoteContent } from './deploy';
 import type { Options } from './prepare';
-import { buildSite, cleanBuiltFiles } from './prepare';
+import { buildSite, cleanBuiltContent } from './prepare';
 import { watchContent } from './watch';
+import express from 'express';
+import cors from 'cors';
+import type WebSocket from 'ws';
+import { WebSocketServer } from 'ws';
+import getPort from 'get-port';
+import { nanoid } from 'nanoid';
 
 export { buildSite, deployContentToCdn };
 
@@ -31,18 +40,18 @@ export async function clean(session: ISession): Promise<void> {
 }
 
 export async function clone(session: ISession, opts: Options): Promise<void> {
-  session.log.info('🌎 Cloning Curvenote');
+  session.log.info('🌎 Cloning Curvenote Book Theme');
   const branch = opts.branch || 'main';
   if (branch !== 'main') {
     session.log.warn(`👷 Warning, using a branch: ${branch}`);
   }
   const repo = repoPath();
   await makeExecutable(
-    `git clone --recursive --depth 1 --branch ${branch} https://github.com/curvenote/curvenote.git ${repo}`,
+    `git clone --recursive --depth 1 --branch ${branch} https://github.com/curvenote/book-theme.git ${repo}`,
     createGitLogger(session),
   )();
   session.log.debug('Cleaning out any git information from build folder.');
-  cleanBuiltFiles(session, false);
+  cleanBuiltContent(session, false);
 }
 
 export async function install(session: ISession): Promise<void> {
@@ -54,8 +63,8 @@ export async function install(session: ISession): Promise<void> {
   }
   await makeExecutable('npm install', createNpmLogger(session), { cwd: repoPath() })();
   session.log.info(toc('📦 Installed web libraries in %s'));
-  await makeExecutable('npm run build:web', createNpmLogger(session), { cwd: repoPath() })();
-  session.log.info(toc('🛠  Built dependencies in %s'));
+  // await makeExecutable('npm run build:web', createNpmLogger(session), { cwd: repoPath() })();
+  // session.log.info(toc('🛠  Built dependencies in %s'));
 }
 
 export async function cloneCurvenote(session: ISession, opts: Options): Promise<void> {
@@ -91,13 +100,64 @@ export async function build(
   return buildSite(session, opts);
 }
 
+/**
+ * Creates a content server and a websocket that can reload and log messages to the client.
+ */
+export async function startContentServer(session: ISession) {
+  const app = express();
+  app.use(cors());
+  app.use('/config.json', express.static(join(sitePath(), 'config.json')));
+  app.use('/content', express.static(contentPath()));
+  app.use('/', express.static(publicPath(session)));
+  const port = await getPort({ port: getPort.makeRange(3100, 3200) });
+  const server = app.listen(port, () => {
+    session.log.debug(`Content server listening on port ${port}`);
+  });
+  const wss = new WebSocketServer({
+    noServer: true,
+    path: '/socket',
+  });
+  const connections: Record<string, WebSocket.WebSocket> = {};
+
+  wss.on('connection', function connection(ws) {
+    const id = nanoid();
+    session.log.debug(`Content server websocket connected ${id}`);
+    connections[id] = ws;
+    ws.on('close', () => {
+      session.log.debug(`Content server websocket disconnected ${id}`);
+      delete connections[id];
+    });
+  });
+
+  /**
+   * Send a message to all connections.
+   */
+  const sendJson = (data: { type: 'LOG' | 'RELOAD'; message?: string }) => {
+    Object.entries(connections).forEach(([, ws]) => {
+      ws.send(JSON.stringify(data));
+    });
+  };
+  // Create log and reload functions for later
+  const log = (message: string) => sendJson({ type: 'LOG', message });
+  const reload = () => sendJson({ type: 'RELOAD' });
+
+  server.on('upgrade', (request, socket, head) => {
+    wss.handleUpgrade(request, socket, head, (websocket) => {
+      wss.emit('connection', websocket, request);
+    });
+  });
+  return { port, reload, log };
+}
+
 export async function startServer(session: ISession, opts: Options): Promise<void> {
   warnOnHostEnvironmentVariable(session, opts);
   await build(session, opts, false);
   sparkles(session, 'Starting Curvenote');
-  watchContent(session);
-  await makeExecutable('npm run serve', createServerLogger(session), {
-    cwd: serverPath(session),
+  const server = await startContentServer(session);
+  watchContent(session, server.reload);
+  await makeExecutable('npm run start', createServerLogger(session), {
+    cwd: repoPath(),
+    env: { ...process.env, CONTENT_CDN_PORT: String(server.port) },
   })();
 }
 

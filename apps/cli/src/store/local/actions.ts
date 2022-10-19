@@ -56,11 +56,12 @@ import { copyActionResource, copyLogo, getSiteManifest } from '../../toc/manifes
 import type { LocalProject, LocalProjectPage } from '../../toc/types';
 import { writeFileToFolder, tic } from 'myst-cli-utils';
 import {
-  serverPath,
   staticPath,
   addWarningForFile,
   isUrl,
   logMessagesFromVFile,
+  contentPath,
+  sitePath,
 } from '../../utils';
 import { selectors } from '..';
 import { processNotebook } from './notebook';
@@ -449,13 +450,13 @@ export function writeFile(
 ) {
   const toc = tic();
   const mdastPost = selectFile(session, file);
-  const jsonFilename = join(serverPath(session), 'app', 'content', projectSlug, `${pageSlug}.json`);
+  const jsonFilename = join(contentPath(), projectSlug, `${pageSlug}.json`);
   writeFileToFolder(jsonFilename, JSON.stringify(mdastPost));
   session.log.debug(toc(`Wrote "${file}" in %s`));
 }
 
 export async function writeSiteManifest(session: ISession) {
-  const configPath = join(serverPath(session), 'app', 'config.json');
+  const configPath = join(sitePath(), 'config.json');
   session.log.info('⚙️  Writing site config.json');
   const siteManifest = getSiteManifest(session);
   writeFileToFolder(configPath, JSON.stringify(siteManifest));
