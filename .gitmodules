@@ -1,0 +1,3 @@
+[submodule "mystjs"]
+	path = mystjs
+	url = https://github.com/executablebooks/mystjs
