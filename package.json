@@ -11,7 +11,7 @@
     "clean": "turbo run clean --parallel && find . -name '.turbo' -type d -prune -exec rm -rf '{}' +",
     "lint": "turbo run lint",
     "lint:format": "turbo run lint:format",
-    "test": "turbo run test",
+    "test": "turbo run test --filter=!myst-cli",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "prepublishOnly": "npm run build",
     "changeset": "changeset",
