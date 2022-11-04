@@ -182,7 +182,13 @@ export function ensureConsistentChildren(oldOrder: string[], oldChildren: BlockC
 }
 
 export function splitScopedTemplateId(scopedId: string) {
-  const [owner, templateId] = scopedId.split('/');
+  // Account for public/default and tex/myst/curvenote id
+  const parts = scopedId.split('/');
+  let [owner, templateId] = parts.slice(1);
+  if (!templateId) {
+    [owner, templateId] = parts;
+  }
   if (!templateId) throw Error(`Malformed scopedId: ${scopedId}`);
-  return { owner, templateId, isPrivate: owner !== 'public' };
+  const publicOwners = ['public', 'myst'];
+  return { owner, templateId, isPrivate: !publicOwners.includes(owner) };
 }
