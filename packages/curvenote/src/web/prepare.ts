@@ -19,8 +19,11 @@ export type Options = {
 export function cleanBuiltContent(session: ISession, info = true): void {
   const toc = tic();
   fs.rmSync(session.sitePath(), { recursive: true, force: true });
-  const log = info ? session.log.info : session.log.debug;
-  log(toc('🧹 Clean build content in %s.'));
+  if (info) {
+    session.log.info(toc('🧹 Clean build content in %s.'));
+  } else {
+    session.log.debug(toc('🧹 Clean build content in %s.'));
+  }
 }
 
 export function ensureBuildFoldersExist(session: ISession): void {
