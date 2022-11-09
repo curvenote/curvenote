@@ -101,8 +101,13 @@ export async function convertImageToWebp(
   const toc = tic();
   session.log.debug(`Optimizing image for web: ${webp}`);
   const debugLogger = {
-    debug: session.log.debug,
-    error: session.log.debug,
+    // We cannot destructure the logger here, bunyan complains
+    debug(...args: any[]) {
+      session.log.debug(...args);
+    },
+    error(...args: any[]) {
+      session.log.debug(...args);
+    },
   };
   const convertImg = makeExecutable(`cwebp -q ${quality} "${image}" -o "${webp}"`, debugLogger);
   const convertGif = makeExecutable(`gif2webp -q ${quality} "${image}" -o "${webp}"`, debugLogger);
