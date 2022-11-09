@@ -67,6 +67,12 @@ export class Session implements ISession {
     });
   }
 
+  reload() {
+    findCurrentProjectAndLoad(this, '.');
+    findCurrentSiteAndLoad(this, '.');
+    return this;
+  }
+
   setToken(token?: string) {
     const { tokens, url } = setSessionOrUserToken(this.log, token);
     this.$tokens = tokens;
