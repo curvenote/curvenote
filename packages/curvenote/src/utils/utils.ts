@@ -71,8 +71,11 @@ export function versionIdToURL(versionId: VersionId) {
 }
 
 export function checkForClientVersionRejection(log: Logger, status: number, body: JsonObject) {
-  if (status === 400 && body.errors[0].code === 'outdated_client') {
-    log.error('Please run `npm i curvenote@latest` to update your client.');
+  if (status === 400) {
+    log.debug(`Request failed: ${JSON.stringify(body)}`);
+    if (body?.errors?.[0].code === 'outdated_client') {
+      log.error('Please run `npm i curvenote@latest` to update your client.');
+    }
   }
 }
 
