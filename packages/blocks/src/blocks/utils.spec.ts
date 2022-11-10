@@ -43,6 +43,7 @@ describe('extractBlockFrontMatter', () => {
       open_access: false,
       venue: {},
       biblio: {},
+      keywords: [],
     };
 
     expect(extractBlockFrontMatter(frontmatter)).toEqual(frontmatter);
