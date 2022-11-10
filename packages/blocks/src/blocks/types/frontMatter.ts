@@ -12,6 +12,7 @@ export type FrontMatterProps = {
   github: string | null;
   binder: string | null;
   subject: string | null;
+  keywords: string[] | null;
   subtitle: string | null;
   short_title: string | null;
   venue: { title?: string; url?: string } | null;
@@ -37,6 +38,7 @@ export const PROJECT_FRONT_MATTER_KEYS = [
   'github',
   'binder',
   'subject',
+  'keywords',
   'short_title',
 ] as (keyof ProjectFrontMatterProps)[];
 
