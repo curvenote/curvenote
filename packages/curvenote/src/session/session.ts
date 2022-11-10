@@ -13,6 +13,8 @@ import type { ISession, Response, Tokens } from './types';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
+const LOCAL_API_URL = 'http://localhost:8083';
+const LOCAL_SITE_URL = 'http://localhost:3000';
 const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 
 export type SessionOptions = {
@@ -50,9 +52,13 @@ export class Session implements ISession {
     this.$logger = opts.logger ?? basicLogger(LogLevel.info);
     const url = this.setToken(token);
     this.API_URL = opts.apiUrl ?? url ?? DEFAULT_API_URL;
-    this.SITE_URL = opts.siteUrl ?? DEFAULT_SITE_URL;
+    this.SITE_URL =
+      opts.siteUrl ?? (this.API_URL === LOCAL_API_URL ? LOCAL_SITE_URL : DEFAULT_SITE_URL);
     if (this.API_URL !== DEFAULT_API_URL) {
       this.log.warn(`Connecting to API at: "${this.API_URL}".`);
+    }
+    if (this.SITE_URL !== DEFAULT_SITE_URL) {
+      this.log.warn(`Connecting to Site at: "${this.SITE_URL}".`);
     }
     this.store = createStore(rootReducer);
     findCurrentProjectAndLoad(this, '.');
