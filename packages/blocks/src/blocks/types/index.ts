@@ -47,7 +47,7 @@ export interface PartialBlock extends BlockFrontMatterProps {
   caption: string | null;
   name: string | null;
   tags: string[];
-  parts: string[];
+  part: string | null;
   default_draft: string | null;
   pending: string | null;
 }
