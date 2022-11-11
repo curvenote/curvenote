@@ -20,17 +20,21 @@ export enum XClientName {
 
 export const TAG_ABSTRACT = 'abstract';
 
-export enum WellKnownBlockTags {
+export enum WellKnownBlockParts {
   abstract = 'abstract',
   appendix = 'appendix',
   acknowledgments = 'acknowledgments',
   chapter = 'chapter',
   dedication = 'dedication',
   preface = 'preface',
-  no_export = 'no-export',
+  methods = 'methods',
+  discussion = 'discussion',
+  introduction = 'introduction',
+  availability = 'availability',
+  summary = 'summary',
 }
 
-export const DEFAULT_BLOCK_TAGS = Object.values(WellKnownBlockTags);
+export const DEFAULT_BLOCK_PARTS = Object.values(WellKnownBlockParts);
 
 export enum ProjectTemplates {
   Blank = 'blank',

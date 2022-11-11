@@ -16,7 +16,8 @@ export function getTags(tags?: string | string[], defaultTags?: string[]): strin
   return tags.split(',');
 }
 
-export function formatTags(tags: string[]) {
+export function formatTags(tags?: string[]) {
+  if (!tags) return [];
   return [...tags];
 }
 
