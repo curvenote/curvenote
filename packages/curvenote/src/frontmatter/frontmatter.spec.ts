@@ -236,6 +236,7 @@ describe('pageFrontmatterFromDTO', () => {
     date_modified: date,
     pending: '',
     tags: ['a-tag'],
+    parts: ['a-part'],
     default_draft: '',
     links: {
       project: '',

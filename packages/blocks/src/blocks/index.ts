@@ -107,6 +107,7 @@ export function blockFromDTO(blockId: BlockId, json: JsonObject): Block {
     published: (json.published_versions ?? []).length > 0,
     published_versions: json.published_versions ?? [],
     tags: getTags(json.tags),
+    parts: getTags(json.parts),
     latest_version: json.latest_version ?? null,
     default_draft: json.default_draft ?? null,
     num_versions: json.num_versions ?? 0,
