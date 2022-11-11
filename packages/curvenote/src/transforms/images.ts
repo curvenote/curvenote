@@ -1,7 +1,7 @@
 import fs from 'fs';
 import type { Root } from 'mdast';
 import type { GenericNode } from 'mystjs';
-import { selectAll } from 'mystjs';
+import { selectAll } from 'unist-util-select';
 import path from 'path';
 import type { PageFrontmatter } from 'myst-frontmatter';
 import type { ISession } from '../session/types';
