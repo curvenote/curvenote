@@ -85,7 +85,7 @@ export async function articleToMarkdown(
       const blockData = {
         oxa: oxaLink('', child.version.id),
         tags: child.block?.data.tags || [],
-        part: child.block?.data.part || null,
+        part: child.block?.data.part || undefined,
       };
       let md = '';
       let mdastSnippets: Record<string, GenericNode<Record<string, any>>> = {};
