@@ -97,6 +97,12 @@ export const convertToSrcId = (id: VersionId | DraftId | null): SrcId | null => 
 
 function input2name(input: string, allowed: RegExp, join: string) {
   let name = `¶${input}`
+    .replace(/æ/g, 'ae')
+    .replace(/œ/g, 'oe')
+    .replace(/ł/g, 'l')
+    // See https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript
+    .normalize('NFKD') // also catches things like ﬁ --> fi
+    .replace(/\p{Diacritic}/gu, '') // alternative: .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .split('')
     .map((char) => (allowed.test(char) ? char : '¶'))
