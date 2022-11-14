@@ -4,7 +4,7 @@ import inquirer from 'inquirer';
 import { basename, join, resolve } from 'path';
 import { config, findProjectsOnPath, loadProjectFromDisk, selectors, writeConfigs } from 'myst-cli';
 import { LogLevel, writeFileToFolder } from 'myst-cli-utils';
-import type { SiteNavPage, ProjectConfig } from 'myst-config';
+import type { ProjectConfig } from 'myst-config';
 import { docLinks, LOGO } from '../docs';
 import { MyUser } from '../models';
 import type { ISession } from '../session/types';
@@ -150,27 +150,11 @@ export async function init(session: ISession, opts: Options) {
   }
   // If there is a new project config, save to the state and write to disk
   if (projectConfig) writeConfigs(session, path, { projectConfig });
-  const state = session.store.getState();
   // Personalize the config
   session.log.info(`📓 Creating site config`);
   me = await me;
   siteConfig.title = title;
   siteConfig.logo_text = title;
-  siteConfig.nav = (siteConfig.projects || [])
-    .map((proj) => {
-      if (proj.path) {
-        const projConf = selectors.selectLocalProjectConfig(state, proj.path);
-        return {
-          title: projConf?.title || proj.slug,
-          url: `/${proj.slug}`,
-        };
-      } else if (proj.remote) {
-        return { title: proj.slug, url: proj.remote };
-      } else {
-        return undefined;
-      }
-    })
-    .filter((proj): proj is SiteNavPage => Boolean(proj));
   if (me) {
     const { username, twitter } = me.data;
     siteConfig.domains = opts.domain
