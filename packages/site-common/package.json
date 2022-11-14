@@ -13,15 +13,15 @@
     "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\""
   },
   "peerDependencies": {
-    "mdast": "*",
-    "myst-config": "^0.0.2",
-    "myst-frontmatter": "*",
-    "myst-spec": "*"
+    "mdast": "^3.0.0",
+    "myst-config": "^0.0.3",
+    "myst-frontmatter": "^0.0.3",
+    "myst-spec": "^0.0.4"
   },
   "devDependencies": {
     "eslint": "^8.21.0",
     "eslint-config-curvenote": "*",
-    "mystjs": "^0.0.13",
+    "mystjs": "^0.0.14",
     "tsconfig": "*",
     "typescript": "latest"
   }
