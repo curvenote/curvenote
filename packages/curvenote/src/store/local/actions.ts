@@ -27,6 +27,8 @@ import { copyActionResource, copyLogo, getSiteManifest } from '../../site/manife
 import { oxalink } from '../../store/oxa';
 import { OxaTransformer, transformWebp } from '../../transforms';
 
+const WEB_IMAGE_EXTENSIONS = ['.webp', '.svg', '.gif', '.png', '.jpg', '.jpeg'];
+
 type ProcessOptions = {
   watchMode?: boolean;
   writeToc?: boolean;
@@ -172,6 +174,7 @@ export async function fastProcessFile(
     file,
     imageWriteFolder: session.staticPath(),
     imageAltOutputFolder: '/_static/',
+    imageExtensions: WEB_IMAGE_EXTENSIONS,
     projectPath,
     projectSlug,
     pageSlug,
@@ -222,6 +225,7 @@ export async function processProject(
         file: page.file,
         imageWriteFolder: session.staticPath(),
         imageAltOutputFolder: '/_static/',
+        imageExtensions: WEB_IMAGE_EXTENSIONS,
         projectPath: project.path,
         projectSlug: siteProject.slug,
         pageSlug: page.slug,
