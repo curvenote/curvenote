@@ -1,5 +1,12 @@
 # @curvenote/blocks
 
+## 1.5.17
+
+### Patch Changes
+
+- 2d4bfbf: Catch unicode accents in title creation
+- b8a97ee: Add part to block export
+
 ## 1.5.16
 
 ### Patch Changes

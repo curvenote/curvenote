@@ -1,5 +1,16 @@
 # curvenote
 
+## 0.8.3
+
+### Patch Changes
+
+- b8a97ee: Add part to block export
+- fea62f2: Fix oxa exports so artifacts are correctly built by mystjs
+  Provide function to reload the session object
+- Updated dependencies [2d4bfbf]
+- Updated dependencies [b8a97ee]
+  - @curvenote/blocks@1.5.17
+
 ## 0.8.2
 
 ### Patch Changes
