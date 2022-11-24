@@ -67,7 +67,7 @@
     "inquirer": "^8.2.2",
     "intersphinx": "*",
     "js-yaml": "^4.1.0",
-    "jsdom": "^18.0.0",
+    "jsdom": "^19.0.0",
     "jsonwebtoken": "^8.5.1",
     "jtex": "^0.0.7",
     "mime-types": "^2.1.35",
