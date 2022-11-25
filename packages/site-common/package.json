@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "eslint": "^8.21.0",
-    "eslint-config-curvenote": "*",
+    "eslint-config-curvenote": "latest",
     "mystjs": "^0.0.15",
     "tsconfig": "*",
     "typescript": "latest"
