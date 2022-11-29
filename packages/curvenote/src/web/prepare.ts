@@ -1,6 +1,6 @@
 import fs from 'fs';
-import type { ISession } from '../session/types';
 import { tic } from 'myst-cli-utils';
+import type { ISession } from '../session/types';
 import { processSite } from '../store/local/actions';
 
 export type Options = {
@@ -14,6 +14,7 @@ export type Options = {
   yes?: boolean;
   writeToc?: boolean;
   keepHost?: boolean;
+  template?: string;
 };
 
 export function cleanBuiltContent(session: ISession, info = true): void {

@@ -14,27 +14,20 @@ import {
   makeHeadlessOption,
 } from './options';
 
-function makeCurvenoteCleanCLI(program: Command) {
-  const command = new Command('clean')
-    .description('Install dependencies for serving')
-    .action(clirun(web.clean, { program, requireSiteConfig: true }));
-  return command;
-}
+// function makeCurvenoteCloneCLI(program: Command) {
+//   const command = new Command('clone')
+//     .description('Clone curvenote into the build directory')
+//     .addOption(makeBranchOption())
+//     .action(clirun(web.clone, { program, requireSiteConfig: true }));
+//   return command;
+// }
 
-function makeCurvenoteCloneCLI(program: Command) {
-  const command = new Command('clone')
-    .description('Clone curvenote into the build directory')
-    .addOption(makeBranchOption())
-    .action(clirun(web.clone, { program, requireSiteConfig: true }));
-  return command;
-}
-
-function makeCurvenoteInstallCLI(program: Command) {
-  const command = new Command('install')
-    .description('Install dependencies for serving')
-    .action(clirun(web.install, { program, requireSiteConfig: true }));
-  return command;
-}
+// function makeCurvenoteInstallCLI(program: Command) {
+//   const command = new Command('install')
+//     .description('Install dependencies for serving')
+//     .action(clirun(web.install, { program, requireSiteConfig: true }));
+//   return command;
+// }
 
 function makeCurvenoteStartCLI(program: Command) {
   const command = new Command('start')
@@ -78,9 +71,8 @@ export function addWebCLI(program: Command): void {
   const command = new Command('web').description(
     'Commands to clone, install, or clean the webserver',
   );
-  command.addCommand(makeCurvenoteCleanCLI(program));
-  command.addCommand(makeCurvenoteCloneCLI(program));
-  command.addCommand(makeCurvenoteInstallCLI(program));
+  // command.addCommand(makeCurvenoteCloneCLI(program));
+  // command.addCommand(makeCurvenoteInstallCLI(program));
   program.addCommand(command);
   // Top level are `start`, `deploy`, and `build`
   program.addCommand(makeCurvenoteStartCLI(program));
