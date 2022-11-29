@@ -2,7 +2,7 @@ import yaml from 'js-yaml';
 import { join } from 'path';
 import chalk from 'chalk';
 import { Inventory, Domains } from 'intersphinx';
-import type { LocalProject, LocalProjectPage, PageReferenceStates } from 'myst-cli';
+import type { LocalProject, PageReferenceStates } from 'myst-cli';
 import {
   castSession,
   combineProjectCitationRenderers,

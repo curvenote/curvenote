@@ -1,4 +1,4 @@
-import type { SiteAnalytics, SiteAction, SiteNavPage, SiteNavFolder } from 'myst-config';
+import type { SiteAction, SiteNavPage, SiteNavFolder } from 'myst-config';
 import type { ProjectFrontmatter } from 'myst-frontmatter';
 import type { Root } from 'mdast';
 import type { FootnoteDefinition } from 'myst-spec';
@@ -42,6 +42,11 @@ export type ManifestProject = {
   thumbnailOptimized?: string;
   tags?: string[];
 } & ProjectFrontmatter;
+
+export type SiteAnalytics = {
+  google?: string;
+  plausible?: string;
+};
 
 export type SiteManifest = {
   id?: string;
