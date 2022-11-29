@@ -14,7 +14,6 @@ export type Options = {
   yes?: boolean;
   writeToc?: boolean;
   keepHost?: boolean;
-  template?: string;
 };
 
 export function cleanBuiltContent(session: ISession, info = true): void {

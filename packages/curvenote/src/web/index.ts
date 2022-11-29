@@ -22,10 +22,15 @@ import JTex, { TemplateKinds } from 'jtex';
 
 export { buildSite, deployContentToCdn };
 
-async function getJtex(session: ISession, opts: Options) {
+const DEFAULT_SITE_TEMPLATE = 'https://github.com/curvenote/book-theme.git';
+const DEFAULT_INSTALL_COMMAND = 'npm install';
+const DEFAULT_START_COMMAND = 'npm run start';
+
+async function getJtex(session: ISession) {
+  const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState());
   const jtex = new JTex(session, {
     kind: TemplateKinds.site,
-    template: 'https://github.com/curvenote/book-theme.git', //opts.template,
+    template: siteConfig?.template ?? DEFAULT_SITE_TEMPLATE,
     buildDir: session.buildPath(),
   });
   return jtex;
@@ -33,7 +38,7 @@ async function getJtex(session: ISession, opts: Options) {
 
 export async function cloneCurvenote(session: ISession, opts: Options): Promise<void> {
   if (opts.ci) return;
-  const jtex = await getJtex(session, opts);
+  const jtex = await getJtex(session);
   if (opts.force) {
     fs.rmSync(jtex.templatePath, { recursive: true, force: true });
   } else if (opts.branch && opts.branch !== 'main') {
@@ -45,11 +50,16 @@ export async function cloneCurvenote(session: ISession, opts: Options): Promise<
   await jtex.ensureTemplateExistsOnPath();
   const toc = tic();
   session.log.info('⤵️  Installing web libraries (can take up to 60 s)');
-  await makeExecutable('npm install', createNpmLogger(session), { cwd: jtex.templatePath })();
+  await makeExecutable(
+    jtex.getValidatedTemplateYml().build?.install ?? DEFAULT_INSTALL_COMMAND,
+    createNpmLogger(session),
+    {
+      cwd: jtex.templatePath,
+    },
+  )();
   // await makeExecutable('npm run build:web', createNpmLogger(session), {
   //   cwd: session.repoPath(),
   // })();
-  // session.log.info(toc('🛠  Built dependencies in %s'));
   session.log.info(toc('📦 Installed web libraries in %s'));
 }
 
@@ -138,11 +148,15 @@ export async function startServer(session: ISession, opts: Options): Promise<voi
       `\n🔌 Content server started on port ${server.port}!🥳 🎉\n\n\n\t👉  ${local}  👈\n\n`,
     );
   } else {
-    const jtex = await getJtex(session, opts);
-    await makeExecutable('npm run start', createServerLogger(session), {
-      cwd: jtex.templatePath,
-      env: { ...process.env, CONTENT_CDN_PORT: String(server.port) },
-    })();
+    const jtex = await getJtex(session);
+    await makeExecutable(
+      jtex.getValidatedTemplateYml().build?.start ?? DEFAULT_START_COMMAND,
+      createServerLogger(session),
+      {
+        cwd: jtex.templatePath,
+        env: { ...process.env, CONTENT_CDN_PORT: String(server.port) },
+      },
+    )();
   }
 }
 
