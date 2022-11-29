@@ -163,19 +163,21 @@ export function getSiteManifest(session: ISession): SiteManifest {
     if (!proj) return;
     siteProjects.push(proj);
   });
-  const { title, twitter, logo, logo_text, nav } = siteConfig;
+  const { title, nav } = siteConfig;
   const actions = siteConfig.actions?.map((action) => getSiteManifestAction(session, action));
   const siteFrontmatter = filterKeys(siteConfig as Record<string, any>, SITE_FRONTMATTER_KEYS);
+  const siteTemplateOptions = selectors.selectCurrentSiteTemplateOptions(state) || {};
+  const { twitter, logo, logo_text, analytics } = siteTemplateOptions;
   const manifest: SiteManifest = {
     ...siteFrontmatter,
     title: title || '',
-    twitter,
-    logo: getLogoPaths(session, logo, { silent: true })?.url,
-    logo_text,
     nav: nav || [],
     actions: actions || [],
     projects: siteProjects,
-    analytics: getSiteManifestAnalytics(siteConfig.analytics),
+    twitter,
+    logo: getLogoPaths(session, logo, { silent: true })?.url,
+    logo_text,
+    analytics: getSiteManifestAnalytics(analytics),
   };
   return manifest;
 }
