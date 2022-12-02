@@ -1,8 +1,9 @@
-import fs from 'fs';
 import chalk from 'chalk';
+import fs from 'fs';
+import path from 'path';
 import type check from 'check-node-version';
 import type { Command } from 'commander';
-import { getNodeVersion, selectors, version as mystCliVersion } from 'myst-cli';
+import { getNodeVersion, isDirectory, selectors, version as mystCliVersion } from 'myst-cli';
 import { chalkLogger, LogLevel } from 'myst-cli-utils';
 import { Session, getToken } from '../session';
 import type { ISession } from '../session/types';
@@ -25,6 +26,11 @@ ${chalk.bold.blue(docLinks.installNode)}
 
 type VersionResults = Parameters<Parameters<typeof check>[1]>[1];
 
+function packageJsonInFolder(folder: string) {
+  const packageJson = path.join(folder, 'package.json');
+  if (fs.existsSync(packageJson)) return packageJson;
+}
+
 function logVersions(session: ISession, result: VersionResults | null, debug = true) {
   const versions: string[][] = [];
   Object.entries(result?.versions ?? {}).forEach(([name, p]) => {
@@ -37,18 +43,39 @@ function logVersions(session: ISession, result: VersionResults | null, debug = t
   });
   versions.push(['myst-cli', mystCliVersion]);
   versions.push(['curvenote', CurvenoteVersion]);
-  try {
-    // TODO: Improve this to tell you more about themes
-    const packageJson = JSON.parse(fs.readFileSync(session.webPackageJsonPath()).toString()) as {
-      name: string;
-      version: string;
-    };
-    if (packageJson.name && packageJson.version) {
-      versions.push([packageJson.name, packageJson.version]);
-    }
-  } catch (error) {
-    // pass
+
+  const siteTemplatePackageJsons: (string | undefined)[] = [];
+  const siteTemplateFolder = path.join(session.buildPath(), 'templates', 'site');
+  if (fs.existsSync(siteTemplateFolder)) {
+    fs.readdirSync(siteTemplateFolder)
+      .map((folder) => path.join(siteTemplateFolder, folder))
+      .filter((folder) => isDirectory(folder))
+      .forEach((folder) => {
+        siteTemplatePackageJsons.push(packageJsonInFolder(folder));
+        fs.readdirSync(folder)
+          .map((subfolder) => path.join(folder, subfolder))
+          .filter((subfolder) => isDirectory(subfolder))
+          .forEach((subfolder) => {
+            siteTemplatePackageJsons.push(packageJsonInFolder(subfolder));
+          });
+      });
   }
+  siteTemplatePackageJsons
+    .filter((file): file is string => !!file)
+    .forEach((file) => {
+      try {
+        // TODO: Improve this to tell you more about themes
+        const packageJson = JSON.parse(fs.readFileSync(file).toString()) as {
+          name: string;
+          version: string;
+        };
+        if (packageJson.name && packageJson.version) {
+          versions.push([packageJson.name, packageJson.version]);
+        }
+      } catch (error) {
+        // pass
+      }
+    });
   const versionString = versions
     .map(
       ([n, v, r, c]) =>
