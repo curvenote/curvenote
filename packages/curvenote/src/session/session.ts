@@ -150,14 +150,6 @@ export class Session implements ISession {
     return path.resolve(path.join(root, '_build'));
   }
 
-  repoPath(): string {
-    return path.join(this.buildPath(), 'theme');
-  }
-
-  webPackageJsonPath(): string {
-    return path.join(this.repoPath(), 'package.json');
-  }
-
   sitePath(): string {
     return path.join(this.buildPath(), 'site');
   }

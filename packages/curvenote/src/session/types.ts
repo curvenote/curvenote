@@ -24,13 +24,5 @@ export type ISession = IMystSession & {
 
   patch<T extends Record<string, any> = any>(url: string, data: unknown): Response<T>;
 
-  repoPath(): string;
-
   reload(): ISession;
-
-  sitePath(): string;
-
-  contentPath(): string;
-
-  webPackageJsonPath(): string;
 };
