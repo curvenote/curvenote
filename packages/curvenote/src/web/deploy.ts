@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import cliProgress from 'cli-progress';
 import fs from 'fs';
 import mime from 'mime-types';
-import { selectors } from 'myst-cli';
+import { selectors, cloneSiteTemplate, buildSite } from 'myst-cli';
 import { tic } from 'myst-cli-utils';
 import type { Logger } from 'myst-cli-utils';
 import fetch from 'node-fetch';
@@ -14,7 +14,9 @@ import type {
   SiteUploadRequest,
   SiteUploadResponse,
 } from '@curvenote/blocks';
+import { MyUser } from '../models';
 import type { ISession } from '../session/types';
+import { confirmOrExit } from '../utils';
 
 type FromTo = {
   from: string;
@@ -154,9 +156,9 @@ export async function deployContentToCdn(session: ISession, opts?: { ci?: boolea
     id: cdnKey,
     files: files.map(({ to }) => ({ path: to })),
   };
-  const deploy = await session.post('/sites/deploy', deployRequest);
+  const deployResp = await session.post('/sites/deploy', deployRequest);
 
-  if (deploy.ok) {
+  if (deployResp.ok) {
     session.log.info(toc(`🚀 Deployed ${files.length} files in %s.`));
     session.log.debug(`CDN key: ${cdnKey}`);
   } else {
@@ -206,4 +208,37 @@ export async function promoteContent(session: ISession, cdnKey: string) {
       )}. Please ensure you have permission or contact support@curvenote.com`,
     );
   }
+}
+
+export async function deploy(
+  session: ISession,
+  opts: Parameters<typeof buildSite>[1],
+): Promise<void> {
+  if (session.isAnon) {
+    throw new Error(
+      '⚠️ You must be authenticated for this call. Use `curvenote token set [token]`',
+    );
+  }
+  const me = await new MyUser(session).get();
+  // Do a bit of prework to ensure that the domains exists in the config file
+  const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState());
+  if (!siteConfig) {
+    throw new Error('🧐 No site config found.');
+  }
+  const domains = siteConfig?.domains;
+  if (!domains || domains.length === 0) {
+    throw new Error(
+      `🧐 No domains specified, use config.site.domains: - ${me.data.username}.curve.space`,
+    );
+  }
+  await confirmOrExit(
+    `Deploy local content to "${domains.map((d) => `https://${d}`).join('", "')}"?`,
+    opts,
+  );
+  await cloneSiteTemplate(session, opts);
+  session.log.info('\n\n\t✨✨✨  Deploying Curvenote  ✨✨✨\n\n');
+  // Build the files in the content folder and process them
+  await buildSite(session, { ...opts, clean: true });
+  const cdnKey = await deployContentToCdn(session, opts);
+  await promoteContent(session, cdnKey);
 }

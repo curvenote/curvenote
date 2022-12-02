@@ -1,10 +1,12 @@
-import type { LinkTransformer, Link } from 'myst-transforms';
+import { castSession } from 'myst-cli';
 import { fileWarn } from 'myst-common';
+import type { LinkTransformer, Link } from 'myst-transforms';
 import type { VFile } from 'vfile';
 import { oxaLink, oxaLinkToId } from '@curvenote/blocks';
 import type { ISession } from '../session/types';
 import type { RootState } from '../store';
 import { selectors } from '../store';
+import { oxalink } from '../store/oxa';
 
 /**
  * Populate link node with rich oxa info
@@ -53,5 +55,23 @@ export class OxaTransformer implements LinkTransformer {
       fileWarn(file, `Information for link not found: ${key}`, { node: link });
     }
     return true;
+  }
+}
+
+export async function transformOxalinkStore(
+  session: ISession,
+  opts: { file: string; projectSlug: string },
+) {
+  const cache = castSession(session);
+  const mdastPost = cache.$mdast[opts.file].post;
+  const oxa = mdastPost?.frontmatter.oxa;
+  if (oxa) {
+    session.store.dispatch(
+      oxalink.actions.updateLinkInfo({
+        path: opts.file,
+        oxa: oxa,
+        url: `/${opts.projectSlug}/${mdastPost.slug}`,
+      }),
+    );
   }
 }

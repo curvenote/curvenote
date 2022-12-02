@@ -2,6 +2,7 @@ import type { GenericNode } from 'mystjs';
 import path from 'path';
 import YAML from 'js-yaml';
 import { prepareToWrite } from 'myst-cli';
+import { writeFileToFolder } from 'myst-cli-utils';
 import fetch from 'node-fetch';
 import type { VersionId, Blocks } from '@curvenote/blocks';
 import { KINDS, oxaLink } from '@curvenote/blocks';
@@ -14,7 +15,7 @@ import {
 } from '../../frontmatter/api';
 import { Block, Project, Version } from '../../models';
 import type { ISession } from '../../session/types';
-import { resolvePath, writeFileToFolder } from '../../utils';
+import { resolvePath } from '../../utils';
 import { remoteExportWrapper } from '../utils/remoteExportWrapper';
 import { getChildren } from '../utils/getChildren';
 import { localizationOptions } from '../utils/localizationOptions';
@@ -134,13 +135,13 @@ export async function articleToMarkdown(
     file += '\n\n### References\n\n```{bibliography}\n:filter: docname in docnames\n```';
   }
   file += '\n\n';
-  writeFileToFolder(opts, file);
+  writeFileToFolder(resolvePath(opts.path, opts.filename), file);
   if (Object.keys(articleMdastSnippets).length) {
     const normalizedSnippets = Object.fromEntries(
       Object.entries(articleMdastSnippets).map(([k, v]) => [k.split('#')[1], v]),
     );
     writeFileToFolder(
-      { ...opts, filename: mdastName },
+      resolvePath(opts.path, mdastName),
       JSON.stringify(normalizedSnippets, null, 2),
     );
   }
