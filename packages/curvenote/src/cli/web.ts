@@ -3,11 +3,9 @@ import { buildSite, startServer } from 'myst-cli';
 import { web } from '../index';
 import { clirun } from './utils';
 import {
-  makeBranchOption,
   makeCIOption,
   makeForceOption,
   makeYesOption,
-  makeWriteTocOption,
   makeStrictOption,
   makeCheckLinksOption,
   makeKeepHostOption,
@@ -17,8 +15,6 @@ import {
 function makeCurvenoteStartCLI(program: Command) {
   const command = new Command('start')
     .description('Start a local project as a web server')
-    .addOption(makeForceOption())
-    .addOption(makeBranchOption())
     .addOption(makeKeepHostOption())
     .addOption(makeHeadlessOption())
     .action(clirun(startServer, { program, requireSiteConfig: true }));
@@ -29,11 +25,8 @@ function makeBuildCLI(program: Command) {
   const command = new Command('build')
     .description('Build Curvenote site content')
     .addOption(makeForceOption())
-    .addOption(makeBranchOption())
-    .addOption(makeWriteTocOption())
-    .addOption(makeCIOption())
-    .addOption(makeStrictOption())
     .addOption(makeCheckLinksOption())
+    .addOption(makeStrictOption())
     .action(clirun(buildSite, { program, requireSiteConfig: true }));
   return command;
 }
