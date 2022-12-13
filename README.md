@@ -116,7 +116,6 @@ All dependencies for `curvenote` are included in this repository (a monorepo!).
 - `ui-providers`: React providers for references and site configuration
 - `myst-to-react`: expose MyST content as an article, built with React
 - `site`: components and utilities for building React and Remix sites
-- `site-common`: utilities and types that are used in the CLI, APIs and sites, does not include React
 - `icons`: icons used throughout our projects, built for React
 - `citation-js-utils`: utilities for using the citation-js library
 - `eslint-config-custom`: `eslint` configurations

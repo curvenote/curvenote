@@ -48,7 +48,6 @@
   "dependencies": {
     "@curvenote/blocks": "^1.5.17",
     "@curvenote/schema": "0.12.18",
-    "@curvenote/site-common": "^0.0.18",
     "@google-cloud/storage": "^5.18.2",
     "@reduxjs/toolkit": "^1.7.2",
     "bottleneck": "^2.19.5",
