@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import cliProgress from 'cli-progress';
 import fs from 'fs';
 import mime from 'mime-types';
-import { selectors, cloneSiteTemplate, buildSite } from 'myst-cli';
+import { selectors, buildSite } from 'myst-cli';
 import { tic } from 'myst-cli-utils';
 import type { Logger } from 'myst-cli-utils';
 import fetch from 'node-fetch';
@@ -212,7 +212,7 @@ export async function promoteContent(session: ISession, cdnKey: string) {
 
 export async function deploy(
   session: ISession,
-  opts: Parameters<typeof buildSite>[1],
+  opts: Parameters<typeof buildSite>[1] & { ci?: boolean },
 ): Promise<void> {
   if (session.isAnon) {
     throw new Error(
@@ -235,10 +235,9 @@ export async function deploy(
     `Deploy local content to "${domains.map((d) => `https://${d}`).join('", "')}"?`,
     opts,
   );
-  await cloneSiteTemplate(session, opts);
   session.log.info('\n\n\t✨✨✨  Deploying Curvenote  ✨✨✨\n\n');
   // Build the files in the content folder and process them
-  await buildSite(session, { ...opts, clean: true });
+  await buildSite(session, opts);
   const cdnKey = await deployContentToCdn(session, opts);
   await promoteContent(session, cdnKey);
 }

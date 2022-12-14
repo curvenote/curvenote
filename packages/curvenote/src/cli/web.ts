@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { buildSite, startServer } from 'myst-cli';
 import { web } from '../index';
 import { clirun } from './utils';
 import {
@@ -17,7 +16,7 @@ function makeCurvenoteStartCLI(program: Command) {
     .description('Start a local project as a web server')
     .addOption(makeKeepHostOption())
     .addOption(makeHeadlessOption())
-    .action(clirun(startServer, { program, requireSiteConfig: true }));
+    .action(clirun(web.startCurvenoteServer, { program, requireSiteConfig: true }));
   return command;
 }
 
@@ -27,7 +26,7 @@ function makeBuildCLI(program: Command) {
     .addOption(makeForceOption())
     .addOption(makeCheckLinksOption())
     .addOption(makeStrictOption())
-    .action(clirun(buildSite, { program, requireSiteConfig: true }));
+    .action(clirun(web.buildCurvenoteSite, { program, requireSiteConfig: true }));
   return command;
 }
 
