@@ -9,6 +9,10 @@ import {
   makeCheckLinksOption,
   makeKeepHostOption,
   makeHeadlessOption,
+  makePdfOption,
+  makeTexOption,
+  makeDocxOption,
+  makeSiteOption,
 } from './options';
 
 function makeCurvenoteStartCLI(program: Command) {
@@ -22,7 +26,14 @@ function makeCurvenoteStartCLI(program: Command) {
 
 function makeBuildCLI(program: Command) {
   const command = new Command('build')
-    .description('Build Curvenote site content')
+    .description(
+      'Build pdf, tex, and word exports from MyST files as well as build MyST site content',
+    )
+    .argument('[files...]', 'list of files to export')
+    .addOption(makePdfOption('Build'))
+    .addOption(makeTexOption('Build'))
+    .addOption(makeDocxOption('Build'))
+    .addOption(makeSiteOption('Build'))
     .addOption(makeForceOption())
     .addOption(makeCheckLinksOption())
     .addOption(makeStrictOption())
