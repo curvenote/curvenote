@@ -15,3 +15,4 @@ site:
   actions:
     - title: Learn More
       url: https://curvenote.com/docs/web
+  template: https://api.myst.tools/templates/site/myst/book-theme
