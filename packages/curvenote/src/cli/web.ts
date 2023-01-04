@@ -2,63 +2,42 @@ import { Command } from 'commander';
 import { web } from '../index';
 import { clirun } from './utils';
 import {
-  makeBranchOption,
   makeCIOption,
-  makeCleanOption,
   makeForceOption,
   makeYesOption,
-  makeWriteTocOption,
   makeStrictOption,
   makeCheckLinksOption,
   makeKeepHostOption,
   makeHeadlessOption,
+  makePdfOption,
+  makeTexOption,
+  makeDocxOption,
+  makeSiteOption,
 } from './options';
-
-function makeCurvenoteCleanCLI(program: Command) {
-  const command = new Command('clean')
-    .description('Install dependencies for serving')
-    .action(clirun(web.clean, { program, requireSiteConfig: true }));
-  return command;
-}
-
-function makeCurvenoteCloneCLI(program: Command) {
-  const command = new Command('clone')
-    .description('Clone curvenote into the build directory')
-    .addOption(makeBranchOption())
-    .action(clirun(web.clone, { program, requireSiteConfig: true }));
-  return command;
-}
-
-function makeCurvenoteInstallCLI(program: Command) {
-  const command = new Command('install')
-    .description('Install dependencies for serving')
-    .action(clirun(web.install, { program, requireSiteConfig: true }));
-  return command;
-}
 
 function makeCurvenoteStartCLI(program: Command) {
   const command = new Command('start')
     .description('Start a local project as a web server')
-    .addOption(makeCleanOption())
-    .addOption(makeForceOption())
-    .addOption(makeBranchOption())
     .addOption(makeKeepHostOption())
     .addOption(makeHeadlessOption())
-    .action(clirun(web.startServer, { program, requireSiteConfig: true }));
+    .action(clirun(web.startCurvenoteServer, { program, requireSiteConfig: true }));
   return command;
 }
 
 function makeBuildCLI(program: Command) {
   const command = new Command('build')
-    .description('Deploy content to https://*.curve.space or your own domain')
-    .addOption(makeCleanOption())
+    .description(
+      'Build pdf, tex, and word exports from MyST files as well as build MyST site content',
+    )
+    .argument('[files...]', 'list of files to export')
+    .addOption(makePdfOption('Build'))
+    .addOption(makeTexOption('Build'))
+    .addOption(makeDocxOption('Build'))
+    .addOption(makeSiteOption('Build'))
     .addOption(makeForceOption())
-    .addOption(makeBranchOption())
-    .addOption(makeWriteTocOption())
-    .addOption(makeCIOption())
-    .addOption(makeStrictOption())
     .addOption(makeCheckLinksOption())
-    .action(clirun(web.build, { program, requireSiteConfig: true }));
+    .addOption(makeStrictOption())
+    .action(clirun(web.buildCurvenoteSite, { program, requireSiteConfig: true }));
   return command;
 }
 
@@ -75,15 +54,8 @@ function makeDeployCLI(program: Command) {
 }
 
 export function addWebCLI(program: Command): void {
-  const command = new Command('web').description(
-    'Commands to clone, install, or clean the webserver',
-  );
-  command.addCommand(makeCurvenoteCleanCLI(program));
-  command.addCommand(makeCurvenoteCloneCLI(program));
-  command.addCommand(makeCurvenoteInstallCLI(program));
-  program.addCommand(command);
   // Top level are `start`, `deploy`, and `build`
   program.addCommand(makeCurvenoteStartCLI(program));
-  program.addCommand(makeDeployCLI(program));
   program.addCommand(makeBuildCLI(program));
+  program.addCommand(makeDeployCLI(program));
 }

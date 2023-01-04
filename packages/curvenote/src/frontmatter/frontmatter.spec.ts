@@ -57,14 +57,14 @@ describe('projectFrontmatterFromDTO', () => {
       ...frontmatter,
       license: {
         content: {
-          title: 'Creative Commons Attribution Share Alike 4.0 International',
+          name: 'Creative Commons Attribution Share Alike 4.0 International',
           id: 'CC-BY-SA-4.0',
           CC: true,
           free: true,
           url: 'https://creativecommons.org/licenses/by-sa/4.0/',
         },
         code: {
-          title: 'MIT License',
+          name: 'MIT License',
           id: 'MIT',
           free: true,
           osi: true,
@@ -263,14 +263,14 @@ describe('pageFrontmatterFromDTO', () => {
       ...frontmatter,
       license: {
         content: {
-          title: 'Creative Commons Attribution Share Alike 4.0 International',
+          name: 'Creative Commons Attribution Share Alike 4.0 International',
           id: 'CC-BY-SA-4.0',
           CC: true,
           free: true,
           url: 'https://creativecommons.org/licenses/by-sa/4.0/',
         },
         code: {
-          title: 'MIT License',
+          name: 'MIT License',
           id: 'MIT',
           free: true,
           osi: true,
@@ -363,7 +363,7 @@ describe('prepareToWrite', () => {
       prepareToWrite({
         license: {
           content: {
-            title: 'Creative Commons Attribution 4.0 International',
+            name: 'Creative Commons Attribution 4.0 International',
             id: 'CC-BY-4.0',
             CC: true,
             free: true,

@@ -61,3 +61,19 @@ export function makeWriteTocOption() {
     'Generate editable _toc.yml file for project if it does not exist',
   ).default(false);
 }
+
+export function makePdfOption(verb: string) {
+  return new Option('--pdf', `${verb} PDF output`).default(false);
+}
+
+export function makeTexOption(verb: string) {
+  return new Option('--tex', `${verb} Tex outputs`).default(false);
+}
+
+export function makeDocxOption(verb: string) {
+  return new Option('--word, --docx', `${verb} Docx output`).default(false);
+}
+
+export function makeSiteOption(verb: string) {
+  return new Option('--site', `${verb} MyST site content`).default(false);
+}

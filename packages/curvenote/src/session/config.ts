@@ -55,7 +55,7 @@ export async function setToken(log: Logger, token?: string) {
   session.log.info(chalk.green(`Token set for ${me.data.display_name} <${me.data.email}>.`));
 }
 
-export function deleteToken(logger: Logger = chalkLogger(LogLevel.info)) {
+export function deleteToken(logger: Logger = chalkLogger(LogLevel.info, process.cwd())) {
   const configPath = getConfigPath();
   const env = process.env.CURVENOTE_TOKEN;
   if (env) {
@@ -71,7 +71,9 @@ export function deleteToken(logger: Logger = chalkLogger(LogLevel.info)) {
   logger.info(chalk.green('Token has been deleted.'));
 }
 
-export function getToken(logger: Logger = chalkLogger(LogLevel.info)): string | undefined {
+export function getToken(
+  logger: Logger = chalkLogger(LogLevel.info, process.cwd()),
+): string | undefined {
   const env = process.env.CURVENOTE_TOKEN;
   if (env) {
     logger.warn('Using the CURVENOTE_TOKEN env variable.');

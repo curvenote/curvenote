@@ -2,13 +2,19 @@ import chalk from 'chalk';
 import fs from 'fs';
 import inquirer from 'inquirer';
 import { basename, join, resolve } from 'path';
-import { config, findProjectsOnPath, loadProjectFromDisk, selectors, writeConfigs } from 'myst-cli';
+import {
+  config,
+  findProjectsOnPath,
+  loadProjectFromDisk,
+  selectors,
+  writeConfigs,
+  startServer,
+} from 'myst-cli';
 import { LogLevel, writeFileToFolder } from 'myst-cli-utils';
 import type { ProjectConfig } from 'myst-config';
 import { docLinks, LOGO } from '../docs';
 import { MyUser } from '../models';
 import type { ISession } from '../session/types';
-import { startServer } from '../web';
 import { interactiveCloneQuestions } from './clone';
 import { pullProjects } from './pull';
 import questions from './questions';
