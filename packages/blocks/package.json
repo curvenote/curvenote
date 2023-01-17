@@ -40,6 +40,7 @@
     "myst-config": "^0.0.6",
     "myst-frontmatter": "^0.0.5",
     "myst-templates": "^0.1.2",
+    "nbtx": "^0.2.1",
     "simple-validators": "^0.0.3"
   },
   "devDependencies": {
