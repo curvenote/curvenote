@@ -2,7 +2,13 @@ import path from 'path';
 import fetch from 'node-fetch';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
-import { findCurrentProjectAndLoad, findCurrentSiteAndLoad, selectors } from 'myst-cli';
+import {
+  config,
+  findCurrentProjectAndLoad,
+  findCurrentSiteAndLoad,
+  reloadAllConfigsForCurrentSite,
+  selectors,
+} from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger } from 'myst-cli-utils';
 import type { RootState } from '../store';
@@ -74,8 +80,12 @@ export class Session implements ISession {
   }
 
   reload() {
+    this.store.dispatch(config.actions.reload());
     findCurrentProjectAndLoad(this, '.');
     findCurrentSiteAndLoad(this, '.');
+    if (selectors.selectCurrentSitePath(this.store.getState())) {
+      reloadAllConfigsForCurrentSite(this);
+    }
     return this;
   }
 
