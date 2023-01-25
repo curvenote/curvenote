@@ -1,5 +1,15 @@
 # curvenote
 
+## 0.8.4
+
+### Patch Changes
+
+- b10b327: Updates to SVG in PDF and Word documents.
+- Upgrade to myst 0.1.8
+- 6041700: Consume myst-cli for site build, clean commands
+- Updated dependencies [6041700]
+  - @curvenote/blocks@1.5.18
+
 ## 0.8.3
 
 ### Patch Changes

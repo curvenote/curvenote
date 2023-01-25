@@ -1,5 +1,11 @@
 # @curvenote/blocks
 
+## 1.5.18
+
+### Patch Changes
+
+- 6041700: Bump dependency versions
+
 ## 1.5.17
 
 ### Patch Changes
