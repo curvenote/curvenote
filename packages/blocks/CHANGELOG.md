@@ -1,5 +1,11 @@
 # @curvenote/blocks
 
+## 1.5.19
+
+### Patch Changes
+
+- 5339cb0: Upgrade to mystjs 0.1.15
+
 ## 1.5.18
 
 ### Patch Changes
