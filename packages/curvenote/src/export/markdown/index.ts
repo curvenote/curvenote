@@ -1,4 +1,4 @@
-import type { GenericNode } from 'mystjs';
+import type { GenericNode } from 'myst-common';
 import path from 'path';
 import YAML from 'js-yaml';
 import { prepareToWrite } from 'myst-cli';

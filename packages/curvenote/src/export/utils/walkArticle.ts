@@ -1,7 +1,7 @@
 import fs from 'fs';
 import Bottleneck from 'bottleneck';
 import { encode } from 'html-entities';
-import type { GenericNode } from 'mystjs';
+import type { GenericNode } from 'myst-common';
 import fetch from 'node-fetch';
 import type { VersionId, Blocks, FigureStyles } from '@curvenote/blocks';
 import {
