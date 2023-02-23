@@ -1,5 +1,13 @@
 # @curvenote/nbtx
 
+## 0.1.14
+
+### Patch Changes
+
+- b2480fd: Upgrade to myst 0.1.17
+- Updated dependencies [b2480fd]
+  - @curvenote/blocks@1.5.20
+
 ## 0.1.13
 
 ### Patch Changes

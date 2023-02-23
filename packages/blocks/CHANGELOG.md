@@ -1,5 +1,11 @@
 # @curvenote/blocks
 
+## 1.5.20
+
+### Patch Changes
+
+- b2480fd: Upgrade to myst 0.1.17
+
 ## 1.5.19
 
 ### Patch Changes

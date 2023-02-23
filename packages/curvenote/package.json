@@ -1,6 +1,6 @@
 {
   "name": "curvenote",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "Command line tools for Curvenote",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "license": "MIT",
@@ -46,7 +46,7 @@
     "build:watch": "npm run copy:version; tsc -w --preserveWatchOutput -p ."
   },
   "dependencies": {
-    "@curvenote/blocks": "^1.5.19",
+    "@curvenote/blocks": "^1.5.20",
     "@curvenote/schema": "0.12.18",
     "@google-cloud/storage": "^5.18.2",
     "@reduxjs/toolkit": "^1.7.2",
