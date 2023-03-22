@@ -1,5 +1,11 @@
 # @curvenote/blocks
 
+## 1.5.21
+
+### Patch Changes
+
+- 2646bf7: Upgrade to myst 0.1.19
+
 ## 1.5.20
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # curvenote
 
+## 0.8.7
+
+### Patch Changes
+
+- 2646bf7: Upgrade to myst 0.1.19
+- Updated dependencies [2646bf7]
+  - @curvenote/blocks@1.5.21
+
 ## 0.8.6
 
 ### Patch Changes
