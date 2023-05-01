@@ -5,9 +5,10 @@ export function makeYesOption() {
 }
 
 export function makeDomainOption() {
-  return new Option('--domain <string>', 'Specify a custom domain during initializaton').default(
-    undefined,
-  );
+  return new Option(
+    '--domain <string>',
+    'Specify a custom domain for curve.space deployment',
+  ).default(undefined);
 }
 
 export function makeBranchOption() {

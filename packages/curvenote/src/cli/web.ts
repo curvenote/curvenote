@@ -13,6 +13,7 @@ import {
   makeTexOption,
   makeDocxOption,
   makeSiteOption,
+  makeDomainOption,
 } from './options';
 
 function makeCurvenoteStartCLI(program: Command) {
@@ -48,6 +49,7 @@ function makeDeployCLI(program: Command) {
     .addOption(makeForceOption())
     .addOption(makeCIOption())
     .addOption(makeStrictOption())
+    .addOption(makeDomainOption())
     .addOption(makeCheckLinksOption())
     .action(clirun(web.deploy, { program, requireSiteConfig: true }));
   return command;
