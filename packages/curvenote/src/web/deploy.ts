@@ -167,15 +167,16 @@ export async function deployContentToCdn(session: ISession, opts?: { ci?: boolea
   return cdnKey;
 }
 
-export async function promoteContent(session: ISession, cdnKey: string) {
+export async function promoteContent(session: ISession, cdnKey: string, domains?: string[]) {
   const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState());
   if (!siteConfig) throw new Error('🧐 No site config found.');
   const toc = tic();
   const errorDomains: string[] = [];
-  const sites = siteConfig.domains
+  const useDomains = domains ?? siteConfig.domains;
+  const sites = useDomains
     ? (
         await Promise.all(
-          siteConfig.domains.map(async (domain) => {
+          useDomains.map(async (domain) => {
             const resp = await session.post<DnsRouter>('/routers', {
               cdn: cdnKey,
               domain,
@@ -212,7 +213,7 @@ export async function promoteContent(session: ISession, cdnKey: string) {
 
 export async function deploy(
   session: ISession,
-  opts: Parameters<typeof buildSite>[1] & { ci?: boolean },
+  opts: Parameters<typeof buildSite>[1] & { ci?: boolean; domain?: string },
 ): Promise<void> {
   if (session.isAnon) {
     throw new Error(
@@ -225,7 +226,7 @@ export async function deploy(
   if (!siteConfig) {
     throw new Error('🧐 No site config found.');
   }
-  const domains = siteConfig?.domains;
+  const domains = opts.domain ? [opts.domain] : siteConfig?.domains;
   if (!domains || domains.length === 0) {
     throw new Error(
       `🧐 No domains specified, use config.site.domains: - ${me.data.username}.curve.space`,
@@ -239,5 +240,5 @@ export async function deploy(
   // Build the files in the content folder and process them
   await buildSite(session, opts);
   const cdnKey = await deployContentToCdn(session, opts);
-  await promoteContent(session, cdnKey);
+  await promoteContent(session, cdnKey, domains);
 }
