@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.8
+
+### Patch Changes
+
+- 75601d2: Add --domain option to deploy for alternative domain
+
 ## 0.8.7
 
 ### Patch Changes
