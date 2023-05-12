@@ -1,5 +1,11 @@
 # @curvenote/blocks
 
+## 1.5.22
+
+### Patch Changes
+
+- 5ca33fd: Updates to myst
+
 ## 1.5.21
 
 ### Patch Changes
