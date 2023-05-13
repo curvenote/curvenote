@@ -1,5 +1,13 @@
 # @curvenote/nbtx
 
+## 0.1.15
+
+### Patch Changes
+
+- 2090f1e: Update myst to 0.1.28
+- Updated dependencies [2090f1e]
+  - @curvenote/blocks@1.5.23
+
 ## 0.1.14
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @curvenote/blocks
 
+## 1.5.23
+
+### Patch Changes
+
+- 2090f1e: Update myst to 0.1.28
+
 ## 1.5.22
 
 ### Patch Changes
