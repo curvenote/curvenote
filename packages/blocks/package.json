@@ -39,7 +39,7 @@
   "dependencies": {
     "myst-config": "^0.0.15",
     "myst-frontmatter": "^0.0.13",
-    "myst-templates": "^0.1.16",
+    "myst-templates": "^0.1.17",
     "nbtx": "^0.2.1",
     "simple-validators": "^0.0.3"
   },
