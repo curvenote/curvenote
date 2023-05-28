@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.12
+
+### Patch Changes
+
+- 9c0ddd6: Update to myst 0.1.30
+
 ## 0.8.11
 
 ### Patch Changes
