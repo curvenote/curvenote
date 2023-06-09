@@ -1,10 +1,10 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { sync as which } from 'which';
 import YAML from 'js-yaml';
-import { Template } from '../../models';
-import type { ISession } from '../../session/types';
-import type { TexExportOptionsExpanded } from './types';
+import { Template } from '../../models.js';
+import type { ISession } from '../../session/types.js';
+import type { TexExportOptionsExpanded } from './types.js';
 
 export function throwIfTemplateButNoJtex(opts: TexExportOptionsExpanded) {
   if ((opts.template || opts.templatePath) && !which('jtex', { nothrow: true })) {

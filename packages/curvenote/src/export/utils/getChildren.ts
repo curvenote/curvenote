@@ -1,7 +1,7 @@
 import type { VersionId } from '@curvenote/blocks';
-import { Block, Version } from '../../models';
-import type { ISession } from '../../session/types';
-import { versionIdToURL } from '../../utils';
+import { Block, Version } from '../../models.js';
+import type { ISession } from '../../session/types.js';
+import { versionIdToURL } from '../../utils/index.js';
 
 export async function getChildren(session: ISession, versionId: VersionId) {
   const url = `${versionIdToURL(versionId)}/children`;

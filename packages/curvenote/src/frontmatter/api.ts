@@ -10,9 +10,9 @@ import {
 } from 'myst-frontmatter';
 import type { ValidationOptions } from 'simple-validators';
 import { filterKeys } from 'simple-validators';
-import { dirname, join } from 'path';
-import type { ISession } from '../session';
-import { THUMBNAILS_FOLDER } from '../utils';
+import { dirname, join } from 'node:path';
+import type { ISession } from '../session/index.js';
+import { THUMBNAILS_FOLDER } from '../utils/index.js';
 
 export function saveAffiliations(session: ISession, project: Project) {
   session.store.dispatch(

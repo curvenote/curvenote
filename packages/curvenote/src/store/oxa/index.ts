@@ -1,4 +1,4 @@
-import * as selectors from './selectors';
+import * as selectors from './selectors.js';
 
-export { oxalink } from './reducers';
+export { oxalink } from './reducers.js';
 export { selectors };

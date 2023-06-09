@@ -1,13 +1,13 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { Logger } from 'myst-cli-utils';
 import { makeExecutable } from 'myst-cli-utils';
 import { oxaLink } from '@curvenote/blocks';
 import { toTex } from '@curvenote/schema';
-import type { ISession } from '../../session/types';
-import { localizationOptions } from '../utils/localizationOptions';
-import type { ArticleState, ArticleStateChild } from '../utils/walkArticle';
-import type { TexExportOptionsExpanded } from './types';
+import type { ISession } from '../../session/types.js';
+import { localizationOptions } from '../utils/localizationOptions.js';
+import type { ArticleState, ArticleStateChild } from '../utils/walkArticle.js';
+import type { TexExportOptionsExpanded } from './types.js';
 
 export function convertAndLocalizeChild(
   session: ISession,

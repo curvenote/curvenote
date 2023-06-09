@@ -1,5 +1,5 @@
 import { sync as which } from 'which';
-import path from 'path';
+import path from 'node:path';
 import type { Logger } from 'myst-cli-utils';
 import { makeExecutable } from 'myst-cli-utils';
 

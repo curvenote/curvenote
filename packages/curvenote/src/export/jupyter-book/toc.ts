@@ -1,13 +1,13 @@
-import { join } from 'path';
+import { join } from 'node:path';
 import YAML from 'js-yaml';
 import { TOC_FORMAT } from 'myst-cli';
 import type { JupyterBookChapter, JupyterBookPart, TOC, TocOptions } from 'myst-cli';
 import { writeFileToFolder } from 'myst-cli-utils';
 import type { Blocks } from '@curvenote/blocks';
 import { NavListItemKindEnum } from '@curvenote/blocks';
-import type { Version } from '../../models';
-import { Block } from '../../models';
-import type { ISession } from '../../session/types';
+import type { Version } from '../../models.js';
+import { Block } from '../../models.js';
+import type { ISession } from '../../session/types.js';
 
 type FolderItem = {
   id: string;

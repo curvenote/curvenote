@@ -1,6 +1,6 @@
 import type { Blocks } from '@curvenote/blocks';
 import { KINDS, OutputSummaryKind } from '@curvenote/blocks';
-import type { Version } from '../../models';
+import type { Version } from '../../models.js';
 
 type ImageSrc = { src?: string; content_type?: string };
 

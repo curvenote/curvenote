@@ -22,11 +22,19 @@ import {
   teamFromDTO,
   siteConfigFromDTO,
 } from '@curvenote/blocks';
-import type { ISession } from './session/types';
-import type { RootState } from './store';
-import { selectors } from './store';
-import { users, teams, blocks, projects, siteconfigs, versions, templates } from './store/api';
-import { versionIdToURL } from './utils';
+import type { ISession } from './session/types.js';
+import type { RootState } from './store/index.js';
+import { selectors } from './store/index.js';
+import {
+  users,
+  teams,
+  blocks,
+  projects,
+  siteconfigs,
+  versions,
+  templates,
+} from './store/api/index.js';
+import { versionIdToURL } from './utils/index.js';
 
 /** Base class for API models */
 class BaseTransfer<

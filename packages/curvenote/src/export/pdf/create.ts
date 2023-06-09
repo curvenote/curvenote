@@ -1,9 +1,9 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import util from 'util';
 import type { Logger } from 'myst-cli-utils';
 import { exec } from 'myst-cli-utils';
-import { BUILD_FOLDER } from '../../utils';
+import { BUILD_FOLDER } from '../../utils/index.js';
 
 const copyFile = util.promisify(fs.copyFile);
 

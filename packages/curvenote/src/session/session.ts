@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import fetch from 'node-fetch';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
@@ -11,11 +11,11 @@ import {
 } from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger } from 'myst-cli-utils';
-import type { RootState } from '../store';
-import { rootReducer } from '../store';
-import { checkForClientVersionRejection } from '../utils';
-import { getHeaders, setSessionOrUserToken } from './tokens';
-import type { ISession, Response, Tokens } from './types';
+import type { RootState } from '../store/index.js';
+import { rootReducer } from '../store/index.js';
+import { checkForClientVersionRejection } from '../utils/index.js';
+import { getHeaders, setSessionOrUserToken } from './tokens.js';
+import type { ISession, Response, Tokens } from './types.js';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
@@ -110,7 +110,7 @@ export class Session implements ISession {
         ...headers,
       },
     });
-    const json = await response.json();
+    const json = (await response.json()) as any;
     checkForClientVersionRejection(this.log, response.status, json);
     return {
       ok: response.ok,
@@ -139,7 +139,7 @@ export class Session implements ISession {
       },
       body: JSON.stringify(data),
     });
-    const json = await response.json();
+    const json = (await response.json()) as any;
     if (!response.ok) {
       const dataString = JSON.stringify(json, null, 2);
       this.log.debug(`${method.toUpperCase()} FAILED ${url}: ${response.status}\n\n${dataString}`);

@@ -1,3 +1,3 @@
-export { init } from './init';
-export { pull } from './pull';
-export { clone } from './clone';
+export { init } from './init.js';
+export { pull } from './pull.js';
+export { clone } from './clone.js';

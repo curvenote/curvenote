@@ -1,14 +1,14 @@
 import type { Blocks } from '@curvenote/blocks';
 import { KINDS, NavListItemKindEnum } from '@curvenote/blocks';
-import type { Version } from '../../models';
-import type { ISession } from '../../session/types';
-import type { MarkdownExportOptions } from '../markdown';
-import { articleToMarkdown } from '../markdown';
-import type { NotebookExportOptions } from '../notebook';
-import { notebookToIpynb } from '../notebook';
-import { getBlockAndLatestVersion } from '../utils/getLatest';
-import type { ArticleState } from '../utils/walkArticle';
-import { writeBibtex } from '../utils/writeBibtex';
+import type { Version } from '../../models.js';
+import type { ISession } from '../../session/types.js';
+import type { MarkdownExportOptions } from '../markdown/index.js';
+import { articleToMarkdown } from '../markdown/index.js';
+import type { NotebookExportOptions } from '../notebook/index.js';
+import { notebookToIpynb } from '../notebook/index.js';
+import { getBlockAndLatestVersion } from '../utils/getLatest.js';
+import type { ArticleState } from '../utils/walkArticle.js';
+import { writeBibtex } from '../utils/writeBibtex.js';
 
 export type ExportAllOptions = Omit<MarkdownExportOptions, 'filename' | 'writeBibtex'> &
   Omit<NotebookExportOptions, 'filename'>;

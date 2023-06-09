@@ -1,8 +1,8 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import pLimit from 'p-limit';
-import { join, dirname, basename, extname } from 'path';
+import { join, dirname, basename, extname } from 'node:path';
 import { LogLevel, tic } from 'myst-cli-utils';
-import { projectFrontmatterFromDTO, saveAffiliations } from '../frontmatter/api';
+import { projectFrontmatterFromDTO, saveAffiliations } from '../frontmatter/api.js';
 import {
   config,
   getRawFrontmatterFromFile,
@@ -11,12 +11,12 @@ import {
   selectors,
   writeConfigs,
 } from 'myst-cli';
-import { oxaLinkToMarkdown, oxaLinkToNotebook, projectToJupyterBook } from '../export';
-import { Project } from '../models';
-import type { ISession } from '../session/types';
-import { confirmOrExit } from '../utils';
-import { processOption, projectLogString } from './utils';
-import type { SyncCiHelperOptions } from './types';
+import { oxaLinkToMarkdown, oxaLinkToNotebook, projectToJupyterBook } from '../export/index.js';
+import { Project } from '../models.js';
+import type { ISession } from '../session/types.js';
+import { confirmOrExit } from '../utils/index.js';
+import { processOption, projectLogString } from './utils.js';
+import type { SyncCiHelperOptions } from './types.js';
 
 function logWithLevel(session: ISession, msg: string, level?: LogLevel) {
   if (level === LogLevel.info) {

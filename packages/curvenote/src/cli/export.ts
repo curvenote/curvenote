@@ -8,9 +8,9 @@ import {
   oxaLinkToNotebook,
   oxaLinkToPdf,
   oxaLinkToWord,
-} from '../export';
-import { makeCleanOption, makeZipOption } from './options';
-import { clirun } from './utils';
+} from '../export/index.js';
+import { makeCleanOption, makeZipOption } from './options.js';
+import { clirun } from './utils.js';
 
 function makeImageOption() {
   return new Option('-i, --images <images>', 'Change the path to save the images to').default(

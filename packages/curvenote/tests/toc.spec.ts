@@ -1,6 +1,7 @@
+import { describe, expect, test } from 'vitest';
 import { NavListItemKindEnum } from '@curvenote/blocks';
 import { unflattenNavBlocks } from '../src/export/jupyter-book/toc';
-import { Block } from '../src/models';
+import type { Block } from '../src/models';
 
 describe('Writing JB TOC', () => {
   test('empty', () => {

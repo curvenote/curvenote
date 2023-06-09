@@ -1,6 +1,6 @@
-export * from './session';
-export * from './models';
-export * from './export';
-export * as web from './web';
-export * as sync from './sync';
-export { default as version } from './version';
+export * from './session/index.js';
+export * from './models.js';
+export * from './export/index.js';
+export * as web from './web/index.js';
+export * as sync from './sync/index.js';
+export { default as version } from './version.js';

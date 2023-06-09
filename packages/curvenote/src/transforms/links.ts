@@ -3,10 +3,10 @@ import { fileWarn } from 'myst-common';
 import type { LinkTransformer, Link } from 'myst-transforms';
 import type { VFile } from 'vfile';
 import { oxaLink, oxaLinkToId } from '@curvenote/blocks';
-import type { ISession } from '../session/types';
-import type { RootState } from '../store';
-import { selectors } from '../store';
-import { oxalink } from '../store/oxa';
+import type { ISession } from '../session/types.js';
+import type { RootState } from '../store/index.js';
+import { selectors } from '../store/index.js';
+import { oxalink } from '../store/oxa/index.js';
 
 /**
  * Populate link node with rich oxa info

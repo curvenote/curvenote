@@ -1,26 +1,26 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { VersionId } from '@curvenote/blocks';
 import { oxaLinkToId } from '@curvenote/blocks';
-import { projectFrontmatterFromDTO } from '../../frontmatter/api';
-import type { Project } from '../../models';
-import { Block } from '../../models';
-import type { ISession } from '../../session/types';
-import type { ExportConfig } from '../types';
-import { makeBuildPaths } from '../utils/makeBuildPaths';
-import type { ArticleState, ArticleStateReference } from '../utils/walkArticle';
-import { writeBibtex } from '../utils/writeBibtex';
-import { validateExportConfigKeys, validateJtexFrontmatterKeys } from '../validators';
-import type { TexExportOptionsExpanded } from './types';
-import type { LatexFrontmatter } from './frontmatter';
-import { stringifyFrontmatter, buildJtexSection, escapeLatex } from './frontmatter';
-import { gatherAndWriteArticleContent } from './gather';
+import { projectFrontmatterFromDTO } from '../../frontmatter/api.js';
+import type { Project } from '../../models.js';
+import { Block } from '../../models.js';
+import type { ISession } from '../../session/types.js';
+import type { ExportConfig } from '../types.js';
+import { makeBuildPaths } from '../utils/makeBuildPaths.js';
+import type { ArticleState, ArticleStateReference } from '../utils/walkArticle.js';
+import { writeBibtex } from '../utils/writeBibtex.js';
+import { validateExportConfigKeys, validateJtexFrontmatterKeys } from '../validators.js';
+import type { TexExportOptionsExpanded } from './types.js';
+import type { LatexFrontmatter } from './frontmatter.js';
+import { stringifyFrontmatter, buildJtexSection, escapeLatex } from './frontmatter.js';
+import { gatherAndWriteArticleContent } from './gather.js';
 import {
   ifTemplateFetchTaggedBlocks,
   ifTemplateLoadOptions,
   throwIfTemplateButNoJtex,
-} from './template';
-import { ifTemplateRunJtex } from './utils';
+} from './template.js';
+import { ifTemplateRunJtex } from './utils.js';
 
 /**
  * Create a tex output based on an export configuration

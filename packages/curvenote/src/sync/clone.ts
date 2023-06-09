@@ -1,22 +1,22 @@
 import chalk from 'chalk';
-import fs from 'fs';
+import fs from 'node:fs';
 import inquirer from 'inquirer';
-import { join } from 'path';
+import { join } from 'node:path';
 import { loadConfigAndValidateOrThrow, selectors, writeConfigs } from 'myst-cli';
 import { LogLevel } from 'myst-cli-utils';
 import type { ProjectConfig, SiteConfig } from 'myst-config';
-import { projectIdFromLink } from '../export';
-import type { Project } from '../models';
-import type { ISession } from '../session/types';
-import { pullProject } from './pull';
-import questions from './questions';
-import type { SyncCiHelperOptions } from './types';
+import { projectIdFromLink } from '../export/index.js';
+import type { Project } from '../models.js';
+import type { ISession } from '../session/types.js';
+import { pullProject } from './pull.js';
+import questions from './questions.js';
+import type { SyncCiHelperOptions } from './types.js';
 import {
   getDefaultProjectConfig,
   getDefaultSiteConfigFromRemote,
   processOption,
   validateLinkIsAProject,
-} from './utils';
+} from './utils.js';
 
 type Options = {
   remote?: string;

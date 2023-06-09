@@ -1,9 +1,9 @@
 import type { ProjectId, VersionId } from '@curvenote/blocks';
 import { oxaLinkToId } from '@curvenote/blocks';
-import { Block } from '../../models';
-import type { ISession } from '../../session/types';
-import { getBlockAndLatestVersion } from './getLatest';
-import type { ArticleState } from './walkArticle';
+import { Block } from '../../models.js';
+import type { ISession } from '../../session/types.js';
+import { getBlockAndLatestVersion } from './getLatest.js';
+import type { ArticleState } from './walkArticle.js';
 
 export const remoteExportWrapper =
   (

@@ -1,4 +1,4 @@
-import * as selectors from './selectors';
+import * as selectors from './selectors.js';
 
-export { users, teams, projects, siteconfigs, blocks, versions, templates } from './reducers';
+export { users, teams, projects, siteconfigs, blocks, versions, templates } from './reducers.js';
 export { selectors };

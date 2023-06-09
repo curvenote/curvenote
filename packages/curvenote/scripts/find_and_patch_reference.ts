@@ -1,8 +1,9 @@
 import { getSession } from '../src/cli/services/utils';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { Version } from '../src';
-import { Block, BlockChildDict, Blocks, ContentFormatTypes, KINDS } from '@curvenote/blocks';
+import type { Block, Blocks } from '@curvenote/blocks';
+import { BlockChildDict, ContentFormatTypes, KINDS } from '@curvenote/blocks';
 import { nanoid } from 'nanoid';
 import fetch from 'node-fetch';
 import Bottleneck from 'bottleneck';

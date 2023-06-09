@@ -1,6 +1,6 @@
 import type { ISession as IMystSession } from 'myst-cli';
 import type { Store } from 'redux';
-import type { RootState } from '../store';
+import type { RootState } from '../store/index.js';
 
 export type Tokens = Partial<Record<'user' | 'session', string>>;
 

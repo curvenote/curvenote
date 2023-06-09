@@ -1,14 +1,14 @@
 import chalk from 'chalk';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import type check from 'check-node-version';
 import type { Command } from 'commander';
 import { getNodeVersion, isDirectory, selectors, version as mystCliVersion } from 'myst-cli';
 import { chalkLogger, LogLevel } from 'myst-cli-utils';
-import { Session, getToken } from '../session';
-import type { ISession } from '../session/types';
-import CurvenoteVersion from '../version';
-import { docLinks } from '../docs';
+import { Session, getToken } from '../session/index.js';
+import type { ISession } from '../session/types.js';
+import CurvenoteVersion from '../version.js';
+import { docLinks } from '../docs.js';
 
 const INSTALL_NODE_MESSAGE = `
 You can download Node here:

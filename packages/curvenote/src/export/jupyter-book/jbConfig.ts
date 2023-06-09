@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import type { ISession } from '../../session/types';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { ISession } from '../../session/types.js';
 import { writeFileToFolder } from 'myst-cli-utils';
 
 export interface Options {

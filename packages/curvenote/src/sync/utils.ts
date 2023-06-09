@@ -1,11 +1,11 @@
 import chalk from 'chalk';
-import path from 'path';
+import path from 'node:path';
 import type { ProjectConfig, SiteConfig, SiteProject } from 'myst-config';
-import { docLinks } from '../docs';
-import { projectIdFromLink } from '../export';
-import { Project, RemoteSiteConfig } from '../models';
-import type { ISession } from '../session/types';
-import type { SyncCiHelperOptions } from './types';
+import { docLinks } from '../docs.js';
+import { projectIdFromLink } from '../export/index.js';
+import { Project, RemoteSiteConfig } from '../models.js';
+import type { ISession } from '../session/types.js';
+import type { SyncCiHelperOptions } from './types.js';
 
 export function projectLogString(project: Project) {
   return `"${project.data.title}" (@${project.data.team}/${project.data.name})`;

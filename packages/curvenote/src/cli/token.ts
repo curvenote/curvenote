@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { deleteToken, setToken } from '../session';
-import { clirun } from './utils';
+import { deleteToken, setToken } from '../session/index.js';
+import { clirun } from './utils.js';
 
 export function addTokenCLI(program: Command) {
   const command = new Command('token').description(

@@ -1,5 +1,5 @@
 import inquirer from 'inquirer';
-import path from 'path';
+import path from 'node:path';
 import type { Logger } from 'myst-cli-utils';
 import type { JsonObject, VersionId } from '@curvenote/blocks';
 

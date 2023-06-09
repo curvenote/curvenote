@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import type { Block, Project } from '@curvenote/blocks';
 import { CitationStyles, KINDS, ProjectVisibility } from '@curvenote/blocks';
 import { prepareToWrite } from 'myst-cli';

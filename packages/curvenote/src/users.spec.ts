@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { User, Session, Team } from '.';
 
 describe('Models', () => {

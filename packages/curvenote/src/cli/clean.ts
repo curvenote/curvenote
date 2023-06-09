@@ -6,8 +6,8 @@ import {
   makeSiteOption,
   makeTexOption,
   makeYesOption,
-} from './options';
-import { clirun } from './utils';
+} from './options.js';
+import { clirun } from './utils.js';
 
 export function makeTempOption() {
   return new Option(
