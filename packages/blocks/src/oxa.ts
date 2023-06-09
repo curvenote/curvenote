@@ -1,4 +1,4 @@
-import type { BlockId, VersionId } from './blocks/types';
+import type { BlockId, VersionId } from './blocks/types/index.js';
 
 const legacyMatch = /^block:([a-zA-Z0-9-]{2,})\/([a-zA-Z0-9-]{2,})(?:\/([\d]+))?$/;
 const blockMatch =

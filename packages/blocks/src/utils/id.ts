@@ -1,9 +1,9 @@
-import type { VersionId, BlockId, DraftId, SrcId, BlockChildDict } from '../blocks/types';
-import { NAV_ID } from '../blocks/types';
-import type { ProjectId } from '../projects';
-import type { CommentId } from '../comments';
-import type { StepId } from '../drafts';
-import type { Manifest, AccessId } from '../access';
+import type { VersionId, BlockId, DraftId, SrcId, BlockChildDict } from '../blocks/types/index.js';
+import { NAV_ID } from '../blocks/types/index.js';
+import type { ProjectId } from '../projects.js';
+import type { CommentId } from '../comments.js';
+import type { StepId } from '../drafts.js';
+import type { Manifest, AccessId } from '../access.js';
 
 export const projectIdToString = (id: ProjectId): string => `${id}`;
 export const blockListToString = (id: ProjectId): string => `${id}/blocks`;

@@ -1,4 +1,4 @@
-import type { ArticleFormatTypes } from './blocks/types';
+import type { ArticleFormatTypes } from './blocks/types/index.js';
 
 export interface Template {
   id: string;

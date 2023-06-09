@@ -5,14 +5,10 @@
   "description": "Schemas for the Curvenote API and data structures",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote#readme",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "directories": {
-    "src": "src",
-    "test": "__tests__"
-  },
+  "type": "module",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
-    "src",
     "dist"
   ],
   "publishConfig": {
@@ -23,38 +19,30 @@
     "url": "git+https://github.com/curvenote/curvenote.git"
   },
   "scripts": {
-    "build": "npm run clean && tsc",
-    "compile": "npm run clean && tsc -p .",
-    "dev": "tsc -w --preserveWatchOutput -p .",
     "clean": "rimraf dist",
-    "lint": "eslint \"src/**/!(*.spec).ts\" -c ./.eslintrc.js",
-    "lint:format": "npx prettier --check \"src/**/*.ts\"",
-    "test": "jest",
-    "test:watch": "jest --watchAll",
-    "test:clear": "jest --clearCache"
+    "lint": "eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
+    "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\"",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "build:esm": "tsc --project ./tsconfig.json --module es2015   --outDir dist --declaration",
+    "build": "npm-run-all -l clean -p build:esm"
   },
   "bugs": {
     "url": "https://github.com/curvenote/curvenote/issues"
   },
   "dependencies": {
-    "myst-config": "^0.0.16",
-    "myst-frontmatter": "^0.0.14",
-    "myst-templates": "^0.1.18",
+    "myst-config": "^1.0.0",
+    "myst-frontmatter": "^1.0.0",
+    "myst-templates": "^1.0.0",
     "nbtx": "^0.2.1",
-    "simple-validators": "^0.0.3"
+    "simple-validators": "^1.0.0"
   },
   "devDependencies": {
-    "@types/jest": "^28.1.6",
     "eslint": "^8.21.0",
     "eslint-config-curvenote": "latest",
-    "jest": "28.1.3",
-    "jest-extended": "^3.0.1",
-    "jest-fixtures": "^0.6.0",
-    "jest-to-match-shape-of": "^1.3.2",
     "moment": "^2.29.4",
     "prettier": "latest",
     "rimraf": "^3.0.2",
-    "ts-jest": "^28.0.7",
     "typescript": "latest"
   }
 }

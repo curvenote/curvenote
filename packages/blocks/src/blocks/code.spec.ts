@@ -1,5 +1,6 @@
+import { describe, expect, beforeAll, it } from 'vitest';
 import { fromDTO } from './code';
-import { VersionId } from './types';
+import type { VersionId } from './types';
 
 describe('Code Blocks', () => {
   let outputBlockId: VersionId;

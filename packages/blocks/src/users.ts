@@ -1,5 +1,5 @@
 import { getDate } from 'simple-validators';
-import type { JsonObject, BaseLinks } from './types';
+import type { JsonObject, BaseLinks } from './types.js';
 
 export enum UserKINDS {
   User = 'User',

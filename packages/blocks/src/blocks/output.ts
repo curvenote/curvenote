@@ -1,6 +1,12 @@
-import type { KINDS, BaseVersion, TARGET, FileMetadata, OutputSummaryEntry } from './types';
-import { OutputFormatTypes } from './types';
-import type { JsonObject } from '../types';
+import type {
+  KINDS,
+  BaseVersion,
+  TARGET,
+  FileMetadata,
+  OutputSummaryEntry,
+} from './types/index.js';
+import { OutputFormatTypes } from './types/index.js';
+import type { JsonObject } from '../types.js';
 
 export function outputSummaryFromDTO(json: JsonObject): OutputSummaryEntry {
   return {

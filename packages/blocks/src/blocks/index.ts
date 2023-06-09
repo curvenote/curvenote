@@ -1,24 +1,24 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 import { getDate } from 'simple-validators';
-import type { JsonObject } from '../types';
-import type { VersionId, BlockId, Block, BasePartialVersion, FormatTypes } from './types';
-import { KINDS, ContentFormatTypes } from './types';
-import * as article from './article';
-import * as content from './content';
-import * as code from './code';
-import * as notebook from './notebook';
-import * as output from './output';
-import * as image from './image';
-import * as reference from './reference';
-import * as navigation from './navigation';
-import { getTags } from '../helpers';
-import { extractBlockFrontMatter } from './utils';
+import type { JsonObject } from '../types.js';
+import type { VersionId, BlockId, Block, BasePartialVersion, FormatTypes } from './types/index.js';
+import { KINDS, ContentFormatTypes } from './types/index.js';
+import * as article from './article.js';
+import * as content from './content.js';
+import * as code from './code.js';
+import * as notebook from './notebook.js';
+import * as output from './output.js';
+import * as image from './image.js';
+import * as reference from './reference.js';
+import * as navigation from './navigation.js';
+import { getTags } from '../helpers.js';
+import { extractBlockFrontMatter } from './utils.js';
 
-export * from './types';
-export { NotebookBlockMetadata } from './notebook';
-export { srcIdToJson, extractBlockFrontMatter, extractProjectFrontMatter } from './utils';
-export { createAuthor } from './author';
-export { RIS } from './reference';
+export * from './types/index.js';
+export type { NotebookBlockMetadata } from './notebook.js';
+export { srcIdToJson, extractBlockFrontMatter, extractProjectFrontMatter } from './utils.js';
+export { createAuthor } from './author.js';
+export type { RIS } from './reference.js';
 
 export const blocks: Record<
   KINDS,

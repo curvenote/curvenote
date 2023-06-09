@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { fromDTO } from './navigation';
 import { NavListItemKindEnum } from './types';
 

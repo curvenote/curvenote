@@ -10,8 +10,8 @@ import {
   validateList,
   validationError,
 } from 'simple-validators';
-import type { ProjectId } from './projects';
-import type { BaseLinks, JsonObject } from './types';
+import type { ProjectId } from './projects.js';
+import type { BaseLinks, JsonObject } from './types.js';
 
 export interface UploadFileInfo {
   path: string;

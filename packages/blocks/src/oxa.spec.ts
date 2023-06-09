@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { oxaLinkToId, oxaLink } from './oxa';
 
 describe('Oxa Link', () => {

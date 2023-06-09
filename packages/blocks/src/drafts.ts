@@ -1,7 +1,12 @@
 import { getDate } from 'simple-validators';
-import type { JsonObject, BaseLinks } from './types';
-import type { KINDS, ALL_PARTIAL_BLOCKS_INTERNAL, DraftId, BasePartialVersion } from './blocks';
-import { blocks, partialVersionFromDTO } from './blocks';
+import type { JsonObject, BaseLinks } from './types.js';
+import type {
+  KINDS,
+  ALL_PARTIAL_BLOCKS_INTERNAL,
+  DraftId,
+  BasePartialVersion,
+} from './blocks/index.js';
+import { blocks, partialVersionFromDTO } from './blocks/index.js';
 
 export interface DraftLinks extends BaseLinks {
   block: string;

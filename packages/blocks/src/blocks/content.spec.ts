@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { fromDTO } from './content';
 import { TARGET } from './types';
 

@@ -1,4 +1,4 @@
-import { ROLES } from './roles';
+import { ROLES } from './roles.js';
 
 export const NO_SCOPE = undefined;
 
