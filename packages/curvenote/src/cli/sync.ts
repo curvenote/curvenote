@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { sync } from '../index';
-import { clirun } from './utils';
+import { sync } from '../index.js';
+import { clirun } from './utils.js';
 import {
   makeBranchOption,
   makeDomainOption,
@@ -8,7 +8,7 @@ import {
   makeYesOption,
   makeWriteTocOption,
   makeCIOption,
-} from './options';
+} from './options.js';
 
 function makeInitCLI(program: Command) {
   const command = new Command('init')

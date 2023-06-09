@@ -1,12 +1,12 @@
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 import cliProgress from 'cli-progress';
-import fs from 'fs';
+import fs from 'node:fs';
 import mime from 'mime-types';
 import { selectors, buildSite } from 'myst-cli';
 import { tic } from 'myst-cli-utils';
 import type { Logger } from 'myst-cli-utils';
 import fetch from 'node-fetch';
-import path from 'path';
+import path from 'node:path';
 import pLimit from 'p-limit';
 import type {
   DnsRouter,
@@ -14,9 +14,9 @@ import type {
   SiteUploadRequest,
   SiteUploadResponse,
 } from '@curvenote/blocks';
-import { MyUser } from '../models';
-import type { ISession } from '../session/types';
-import { confirmOrExit } from '../utils';
+import { MyUser } from '../models.js';
+import type { ISession } from '../session/types.js';
+import { confirmOrExit } from '../utils/index.js';
 
 type FromTo = {
   from: string;

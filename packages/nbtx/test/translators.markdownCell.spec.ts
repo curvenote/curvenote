@@ -1,11 +1,6 @@
-import {
-  MarkdownCell,
-  CELL_TYPE,
-  KINDS,
-  TARGET,
-  ContentFormatTypes,
-  Blocks,
-} from '@curvenote/blocks';
+import { describe, expect, beforeEach, it } from 'vitest';
+import type { MarkdownCell, Blocks } from '@curvenote/blocks';
+import { CELL_TYPE, KINDS, TARGET, ContentFormatTypes } from '@curvenote/blocks';
 import { fromJupyter, toJupyter } from '../src/translators/markdownCell';
 
 describe('translators.markdownCell', () => {

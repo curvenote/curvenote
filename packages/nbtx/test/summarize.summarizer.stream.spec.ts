@@ -1,13 +1,9 @@
-import {
-  CellOutput,
-  KnownCellOutputMimeTypes,
-  CellOutputType,
-  DisplayData,
-  OutputSummaryKind,
-} from '@curvenote/blocks';
+import { describe, expect, beforeEach, test } from 'vitest';
+import type { CellOutput, KnownCellOutputMimeTypes, DisplayData } from '@curvenote/blocks';
+import { CellOutputType, OutputSummaryKind } from '@curvenote/blocks';
 import { StubFileObject } from '../src';
 import { Summarizer } from '../src/summarize/summarizers';
-import StreamSummarizer from '../src/summarize/summarizers/stream';
+import type StreamSummarizer from '../src/summarize/summarizers/stream';
 import { makeCellOutput } from './helpers';
 
 describe('database.versions.output.summarize.stream', () => {

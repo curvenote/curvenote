@@ -1,4 +1,6 @@
-import { CELL_TYPE, RawCell, KINDS, TARGET, Blocks, ContentFormatTypes } from '@curvenote/blocks';
+import { describe, expect, beforeEach, it } from 'vitest';
+import type { RawCell, Blocks } from '@curvenote/blocks';
+import { CELL_TYPE, KINDS, TARGET, ContentFormatTypes } from '@curvenote/blocks';
 import { fromJupyter, toJupyter } from '../src/translators/rawCell';
 
 describe('translators.rawCell', () => {

@@ -1,3 +1,4 @@
+import { describe, expect, test, it } from 'vitest';
 import { tokeniseContent, ensureString } from './helpers';
 
 describe('Helpers', () => {

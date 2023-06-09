@@ -1,4 +1,5 @@
-import * as selectors from './selectors';
+import * as selectors from './selectors.js';
 
-export { rootReducer, RootState } from './reducers';
+export type { RootState } from './reducers.js';
+export { rootReducer } from './reducers.js';
 export { selectors };

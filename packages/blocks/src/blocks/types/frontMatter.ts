@@ -1,4 +1,4 @@
-import type { Author } from './author';
+import type { Author } from './author.js';
 
 // All frontmatter props are optional in order to save storage and transfer payload size
 // When the values are null indicates it has been explicitly set to null.

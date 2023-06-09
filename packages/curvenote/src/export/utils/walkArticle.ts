@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import Bottleneck from 'bottleneck';
 import { encode } from 'html-entities';
 import type { GenericNode } from 'myst-common';
@@ -13,12 +13,12 @@ import {
 } from '@curvenote/blocks';
 import type { Nodes } from '@curvenote/schema';
 import { DEFAULT_IMAGE_WIDTH, nodeNames, ReferenceKind } from '@curvenote/schema';
-import { Block, Version } from '../../models';
-import type { ISession } from '../../session/types';
-import { basekey } from './basekey';
-import { getEditorState, getEditorStateFromHTML } from './getEditorState';
-import { getImageSrc } from './getImageSrc';
-import { getBlockAndLatestVersion } from './getLatest';
+import { Block, Version } from '../../models.js';
+import type { ISession } from '../../session/types.js';
+import { basekey } from './basekey.js';
+import { getEditorState, getEditorStateFromHTML } from './getEditorState.js';
+import { getImageSrc } from './getImageSrc.js';
+import { getBlockAndLatestVersion } from './getLatest.js';
 
 export interface ArticleStateChild {
   state: ReturnType<typeof getEditorState>;

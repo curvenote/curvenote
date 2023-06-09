@@ -1,4 +1,6 @@
-import { JupyterNotebook, KINDS } from '@curvenote/blocks';
+import { describe, expect, test } from 'vitest';
+import type { JupyterNotebook } from '@curvenote/blocks';
+import { KINDS } from '@curvenote/blocks';
 import exampleNotebookAsJson from './example_lab.ipynb.json';
 import { parseNotebook } from '../src';
 

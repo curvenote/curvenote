@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { fromDTO, outputSummaryFromDTO } from './output';
 import { KnownCellOutputMimeTypes, OutputSummaryKind, TARGET } from './types';
 
@@ -29,7 +30,7 @@ describe('blocks.output', () => {
     };
     const summary = outputSummaryFromDTO(json);
     expect(summary).toEqual(expect.objectContaining(json));
-    expect(summary.alternate).toBeEmpty();
+    expect(summary.alternate).toEqual({});
   });
   test('fromDTO', () => {
     const json = {

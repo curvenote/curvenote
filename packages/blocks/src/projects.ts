@@ -1,9 +1,9 @@
 import { getDate } from 'simple-validators';
-import type { JsonObject, BaseLinks } from './types';
-import type { Affiliation } from './blocks/types';
-import { CitationStyles, CustomizableReferenceKind } from './blocks/types';
-import type { ProjectFrontMatterProps } from './blocks/types/frontMatter';
-import { extractProjectFrontMatter } from './blocks/utils';
+import type { JsonObject, BaseLinks } from './types.js';
+import type { Affiliation } from './blocks/types/index.js';
+import { CitationStyles, CustomizableReferenceKind } from './blocks/types/index.js';
+import type { ProjectFrontMatterProps } from './blocks/types/frontMatter.js';
+import { extractProjectFrontMatter } from './blocks/utils.js';
 
 export interface ProjectLinks extends BaseLinks {
   thumbnail?: string;

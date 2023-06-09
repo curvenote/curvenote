@@ -1,8 +1,8 @@
 import type { ALL_BLOCKS, BlockId } from '@curvenote/blocks';
 import { versionIdToString } from '@curvenote/blocks';
-import type { VersionQueryOpts } from '../../models';
-import { Block, Version } from '../../models';
-import type { ISession } from '../../session/types';
+import type { VersionQueryOpts } from '../../models.js';
+import { Block, Version } from '../../models.js';
+import type { ISession } from '../../session/types.js';
 
 export async function getBlockAndLatestVersion<T extends ALL_BLOCKS>(
   session: ISession,

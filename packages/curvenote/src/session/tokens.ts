@@ -2,8 +2,8 @@ import jwt from 'jsonwebtoken';
 import fetch from 'node-fetch';
 import { XClientName } from '@curvenote/blocks';
 import type { Logger } from 'myst-cli-utils';
-import CLIENT_VERSION from '../version';
-import type { Tokens } from './types';
+import CLIENT_VERSION from '../version.js';
+import type { Tokens } from './types.js';
 
 function decodeAndValidateToken(
   log: Logger,
@@ -62,7 +62,7 @@ export async function getSessionToken(log: Logger, tokens: Tokens): Promise<stri
     },
   });
   if (!response.ok) throw new Error('SessionToken: The user token is not valid.');
-  const json = await response.json();
+  const json = (await response.json()) as any;
   if (!json.session)
     throw new Error(
       "SessionToken: There was an error in the response, expected a 'session' in the JSON object.",

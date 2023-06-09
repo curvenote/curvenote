@@ -1,17 +1,17 @@
-import type { BaseLinks } from '../../types';
-import type { FormatTypes } from './format';
-import type { BlockFrontMatterProps } from './frontMatter';
-import type { BlockId, ChildId, VersionId } from './id';
-import type { KINDS } from './kind';
+import type { BaseLinks } from '../../types.js';
+import type { FormatTypes } from './format.js';
+import type { BlockFrontMatterProps } from './frontMatter.js';
+import type { BlockId, ChildId, VersionId } from './id.js';
+import type { KINDS } from './kind.js';
 
-export * from './id';
-export * from './kind';
-export * from './format';
-export * from './author';
-export * from './misc';
-export * from './jupyter';
-export * from './messages';
-export * from './frontMatter';
+export * from './id.js';
+export * from './kind.js';
+export * from './format.js';
+export * from './author.js';
+export * from './misc.js';
+export * from './jupyter.js';
+export * from './messages.js';
+export * from './frontMatter.js';
 
 export interface BlockLinks extends BaseLinks {
   project: string;

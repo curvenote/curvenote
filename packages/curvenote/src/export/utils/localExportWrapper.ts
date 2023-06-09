@@ -1,10 +1,10 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import { createTempFolder } from 'myst-cli';
 import type { LinkTransformer } from 'myst-transforms';
-import { join } from 'path';
-import { OxaTransformer } from '../../transforms';
-import type { ISession } from '../../session/types';
-import { oxaLinkToMarkdown } from '../markdown';
+import { join } from 'node:path';
+import { OxaTransformer } from '../../transforms/index.js';
+import type { ISession } from '../../session/types.js';
+import { oxaLinkToMarkdown } from '../markdown/index.js';
 
 export const localExportWrapper =
   (

@@ -1,2 +1,2 @@
-export * from './api/selectors';
-export * from './oxa/selectors';
+export * from './api/selectors.js';
+export * from './oxa/selectors.js';

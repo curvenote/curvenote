@@ -1,4 +1,4 @@
-import type { RootState } from '../reducers';
+import type { RootState } from '../reducers.js';
 
 export function selectOxaLinkInformation(state: RootState, oxa: string) {
   const info = state.oxalink.lookup[oxa];

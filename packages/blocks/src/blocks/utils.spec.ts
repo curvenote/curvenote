@@ -1,4 +1,5 @@
-import { BlockFrontMatterProps, FrontMatterProps, ProjectFrontMatterProps } from './types';
+import { describe, expect, test } from 'vitest';
+import type { BlockFrontMatterProps, FrontMatterProps, ProjectFrontMatterProps } from './types';
 import { extractBlockFrontMatter, extractProjectFrontMatter } from './utils';
 
 export const TEST_PROJECT_FRONT_MATTER: ProjectFrontMatterProps = {

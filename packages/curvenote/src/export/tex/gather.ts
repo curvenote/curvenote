@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import type { VersionId } from '@curvenote/blocks';
 import { KINDS, convertToBlockId } from '@curvenote/blocks';
 import { fillPageFrontmatter } from 'myst-frontmatter';
@@ -6,18 +6,18 @@ import {
   saveAffiliations,
   pageFrontmatterFromDTO,
   projectFrontmatterFromDTO,
-} from '../../frontmatter/api';
-import { Block, Project, Version } from '../../models';
-import type { ISession } from '../../session/types';
-import { getChildren } from '../utils/getChildren';
-import type { ArticleState } from '../utils/walkArticle';
-import { walkArticle } from '../utils/walkArticle';
-import { validateJtexFrontmatterKeys } from '../validators';
-import type { LatexFrontmatter } from './frontmatter';
-import { buildJtexSection, escapeLatex, stringifyFrontmatter } from './frontmatter';
-import { localizeAndProcessImages } from './images';
-import type { TexExportOptionsExpanded } from './types';
-import { convertAndLocalizeChild, writeBlocksToFile, writeTaggedContent } from './utils';
+} from '../../frontmatter/api.js';
+import { Block, Project, Version } from '../../models.js';
+import type { ISession } from '../../session/types.js';
+import { getChildren } from '../utils/getChildren.js';
+import type { ArticleState } from '../utils/walkArticle.js';
+import { walkArticle } from '../utils/walkArticle.js';
+import { validateJtexFrontmatterKeys } from '../validators.js';
+import type { LatexFrontmatter } from './frontmatter.js';
+import { buildJtexSection, escapeLatex, stringifyFrontmatter } from './frontmatter.js';
+import { localizeAndProcessImages } from './images.js';
+import type { TexExportOptionsExpanded } from './types.js';
+import { convertAndLocalizeChild, writeBlocksToFile, writeTaggedContent } from './utils.js';
 
 export async function gatherAndWriteArticleContent(
   session: ISession,

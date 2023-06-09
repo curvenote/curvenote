@@ -1,7 +1,7 @@
 import { Command } from 'commander';
-import { MyUser } from '../models';
-import type { ISession } from '../session/types';
-import { clirun } from './utils';
+import { MyUser } from '../models.js';
+import type { ISession } from '../session/types.js';
+import { clirun } from './utils.js';
 
 async function checkAuth(session: ISession) {
   if (session.isAnon) {

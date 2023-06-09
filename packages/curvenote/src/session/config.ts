@@ -1,12 +1,12 @@
 import chalk from 'chalk';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import inquirer from 'inquirer';
-import path from 'path';
+import path from 'node:path';
 import type { Logger } from 'myst-cli-utils';
 import { chalkLogger, LogLevel } from 'myst-cli-utils';
-import { MyUser } from '../models';
-import { actionLinks } from '../docs';
-import { Session } from './session';
+import { MyUser } from '../models.js';
+import { actionLinks } from '../docs.js';
+import { Session } from './session.js';
 
 function getConfigPath() {
   const pathArr: string[] = [];

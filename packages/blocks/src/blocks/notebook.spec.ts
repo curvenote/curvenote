@@ -1,5 +1,6 @@
+import { describe, expect, beforeAll, it } from 'vitest';
 import { fromDTO } from './notebook';
-import { JsonObject } from '../types';
+import type { JsonObject } from '../types';
 
 describe('Notebook Blocks', () => {
   let notebookJson: JsonObject;

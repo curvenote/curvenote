@@ -1,6 +1,6 @@
-import type { JsonObject } from '../types';
-import type { KINDS, BaseVersion } from './types';
-import { ReferenceFormatTypes } from './types';
+import type { JsonObject } from '../types.js';
+import type { KINDS, BaseVersion } from './types/index.js';
+import { ReferenceFormatTypes } from './types/index.js';
 
 interface RisFull {
   AB: string;

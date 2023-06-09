@@ -8,13 +8,13 @@ import {
   pageFrontmatterFromDTOAndThumbnail,
   projectFrontmatterFromDTO,
   saveAffiliations,
-} from '../../frontmatter/api';
-import { Block, Project, Version } from '../../models';
-import type { ISession } from '../../session/types';
-import { resolvePath } from '../../utils';
-import { assertEndsInExtension } from '../utils/assertions';
-import { remoteExportWrapper } from '../utils/remoteExportWrapper';
-import { getChildren } from '../utils/getChildren';
+} from '../../frontmatter/api.js';
+import { Block, Project, Version } from '../../models.js';
+import type { ISession } from '../../session/types.js';
+import { resolvePath } from '../../utils/index.js';
+import { assertEndsInExtension } from '../utils/assertions.js';
+import { remoteExportWrapper } from '../utils/remoteExportWrapper.js';
+import { getChildren } from '../utils/getChildren.js';
 
 export type NotebookExportOptions = {
   path?: string;

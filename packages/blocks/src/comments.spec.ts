@@ -1,5 +1,7 @@
+import { describe, expect, beforeEach, it } from 'vitest';
 import moment from 'moment';
-import { commentFromDTO, CommentId } from './comments';
+import type { CommentId } from './comments';
+import { commentFromDTO } from './comments';
 
 describe('Comment Blocks', () => {
   let some_comment_id: CommentId;
@@ -18,13 +20,13 @@ describe('Comment Blocks', () => {
         commentFromDTO(some_comment_id, {});
 
       expect(id).toEqual(some_comment_id);
-      expect(created_by).toBeEmpty();
-      expect(content).toBeEmpty();
-      expect(resolved).toBeFalse();
-      expect(edited).toBeFalse();
-      expect(date_created).toBeValidDate();
-      expect(date_modified).toBeValidDate();
-      expect(links).toBeEmpty();
+      expect(created_by).toBe('');
+      expect(content).toBe('');
+      expect(resolved).toBe(false);
+      expect(edited).toBe(false);
+      expect(date_created).instanceOf(Date);
+      expect(date_modified).instanceOf(Date);
+      expect(links).toEqual({});
     });
 
     it('given a json object, should be populated with values', () => {
@@ -49,11 +51,12 @@ describe('Comment Blocks', () => {
       expect(content).toBe(jsonComment.content);
       expect(resolved).toBe(jsonComment.resolved);
       expect(edited).toBe(jsonComment.edited);
-      expect(date_created).toBeValidDate();
+      expect(date_created).instanceOf(Date);
       expect(date_created).toEqual(moment.utc('2019-10-15 12:09:01').toDate());
-      expect(date_modified).toBeValidDate();
+      expect(date_modified).instanceOf(Date);
       expect(date_modified).toEqual(moment.utc('2019-10-25 12:10:01').toDate());
-      expect(links).toContainKeys(['self', 'block']);
+      expect(links['self']).toBeTruthy();
+      expect(links['block']).toBeTruthy();
     });
   });
 
@@ -68,13 +71,13 @@ describe('Comment Blocks', () => {
       const jsonObject = commentFromDTO(some_comment_id, minimalComment);
 
       expect(jsonObject.id).toEqual(some_comment_id);
-      expect(jsonObject.created_by).toBeEmpty();
-      expect(jsonObject.content).toBeEmpty();
-      expect(jsonObject.resolved).toBeFalse();
-      expect(jsonObject.edited).toBeFalse();
-      expect(jsonObject.date_created).toBeValidDate();
-      expect(jsonObject.date_modified).toBeValidDate();
-      expect(jsonObject.links).toBeEmpty();
+      expect(jsonObject.created_by).toBe('');
+      expect(jsonObject.content).toBe('');
+      expect(jsonObject.resolved).toBe(false);
+      expect(jsonObject.edited).toBe(false);
+      expect(jsonObject.date_created).instanceOf(Date);
+      expect(jsonObject.date_modified).instanceOf(Date);
+      expect(jsonObject.links).toEqual({});
     });
   });
 });

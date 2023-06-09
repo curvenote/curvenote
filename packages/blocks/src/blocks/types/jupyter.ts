@@ -1,6 +1,6 @@
 import { KnownCellOutputMimeTypes } from 'nbtx';
-import type { JsonObject } from '../../types';
-import type { VersionId } from './id';
+import type { JsonObject } from '../../types.js';
+import type { VersionId } from './id.js';
 
 export { KnownCellOutputMimeTypes };
 

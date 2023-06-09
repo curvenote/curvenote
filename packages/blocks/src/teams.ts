@@ -1,6 +1,6 @@
 import { getDate } from 'simple-validators';
-import type { ROLES } from './roles';
-import type { BaseLinks, JsonObject } from './types';
+import type { ROLES } from './roles.js';
+import type { BaseLinks, JsonObject } from './types.js';
 
 export interface TeamLinks extends BaseLinks {
   access?: string;

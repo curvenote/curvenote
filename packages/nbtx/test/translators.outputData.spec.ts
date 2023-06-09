@@ -1,4 +1,6 @@
-import { KINDS, TARGET, OutputFormatTypes, Blocks, CellOutput } from '@curvenote/blocks';
+import { describe, expect, beforeAll, it } from 'vitest';
+import type { Blocks, CellOutput } from '@curvenote/blocks';
+import { KINDS, TARGET, OutputFormatTypes } from '@curvenote/blocks';
 import { fromJupyter } from '../src/translators/outputData';
 
 describe('translators.outputData', () => {

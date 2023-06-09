@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-import commander from 'commander';
-import version from '../version';
-import { addAuthCLI } from './auth';
-import { addCleanCLI } from './clean';
-import { addExportCLI } from './export';
-import { addSyncCLI } from './sync';
-import { addTokenCLI } from './token';
-import { addWebCLI } from './web';
+import { Command } from 'commander';
+import version from '../version.js';
+import { addAuthCLI } from './auth.js';
+import { addCleanCLI } from './clean.js';
+import { addExportCLI } from './export.js';
+import { addSyncCLI } from './sync.js';
+import { addTokenCLI } from './token.js';
+import { addWebCLI } from './web.js';
 
-const program = new commander.Command();
+const program = new Command();
 addSyncCLI(program);
 addWebCLI(program);
 addTokenCLI(program);

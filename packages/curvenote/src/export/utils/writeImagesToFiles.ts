@@ -1,12 +1,12 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import fetch from 'node-fetch';
 import type { Logger } from 'myst-cli-utils';
 import type { Blocks } from '@curvenote/blocks';
-import type { Version } from '../../models';
-import { Block } from '../../models';
-import { getImageSrc } from './getImageSrc';
-import type { ArticleState } from './walkArticle';
+import type { Version } from '../../models.js';
+import { Block } from '../../models.js';
+import { getImageSrc } from './getImageSrc.js';
+import type { ArticleState } from './walkArticle.js';
 
 // TODO: use mime-types package!
 // https://www.npmjs.com/package/mime-types

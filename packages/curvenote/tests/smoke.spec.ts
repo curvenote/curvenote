@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { exec as execWithCb } from 'child_process';
 import util from 'util';
 

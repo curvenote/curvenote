@@ -1,6 +1,6 @@
 import { getDate } from 'simple-validators';
-import type { JsonObject, BaseLinks } from './types';
-import type { BlockId } from './blocks/types';
+import type { JsonObject, BaseLinks } from './types.js';
+import type { BlockId } from './blocks/types/index.js';
 
 export interface CommentId {
   project: string;

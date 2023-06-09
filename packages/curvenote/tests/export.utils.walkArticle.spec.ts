@@ -1,6 +1,8 @@
-import { Blocks, OutputSummaryKind } from '@curvenote/blocks';
+import { describe, expect, test } from 'vitest';
+import type { Blocks } from '@curvenote/blocks';
+import { OutputSummaryKind } from '@curvenote/blocks';
 import { outputHasHtml, outputHasImage } from '../src/export/utils';
-import { Version } from '../src/models';
+import type { Version } from '../src/models';
 
 function makeFakeOutputVersion(
   kind: OutputSummaryKind,

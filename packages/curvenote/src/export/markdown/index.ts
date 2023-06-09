@@ -1,5 +1,5 @@
 import type { GenericNode } from 'myst-common';
-import path from 'path';
+import path from 'node:path';
 import YAML from 'js-yaml';
 import { prepareToWrite } from 'myst-cli';
 import { writeFileToFolder } from 'myst-cli-utils';
@@ -12,16 +12,16 @@ import {
   pageFrontmatterFromDTOAndThumbnail,
   projectFrontmatterFromDTO,
   saveAffiliations,
-} from '../../frontmatter/api';
-import { Block, Project, Version } from '../../models';
-import type { ISession } from '../../session/types';
-import { resolvePath } from '../../utils';
-import { remoteExportWrapper } from '../utils/remoteExportWrapper';
-import { getChildren } from '../utils/getChildren';
-import { localizationOptions } from '../utils/localizationOptions';
-import { walkArticle } from '../utils/walkArticle';
-import { writeBibtex } from '../utils/writeBibtex';
-import { writeImagesToFiles } from '../utils/writeImagesToFiles';
+} from '../../frontmatter/api.js';
+import { Block, Project, Version } from '../../models.js';
+import type { ISession } from '../../session/types.js';
+import { resolvePath } from '../../utils/index.js';
+import { remoteExportWrapper } from '../utils/remoteExportWrapper.js';
+import { getChildren } from '../utils/getChildren.js';
+import { localizationOptions } from '../utils/localizationOptions.js';
+import { walkArticle } from '../utils/walkArticle.js';
+import { writeBibtex } from '../utils/writeBibtex.js';
+import { writeImagesToFiles } from '../utils/writeImagesToFiles.js';
 
 export type MarkdownExportOptions = {
   path?: string;

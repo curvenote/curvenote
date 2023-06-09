@@ -1,2 +1,2 @@
-export * from './id';
-export * from './git';
+export * from './id.js';
+export * from './git.js';

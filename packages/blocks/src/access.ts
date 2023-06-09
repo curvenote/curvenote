@@ -1,6 +1,6 @@
 import { getDate } from 'simple-validators';
-import type { JsonObject, BaseLinks } from './types';
-import type { ROLES } from './roles';
+import type { JsonObject, BaseLinks } from './types.js';
+import type { ROLES } from './roles.js';
 
 export enum ACLType {
   'Project' = 'Project',

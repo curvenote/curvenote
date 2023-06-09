@@ -1,7 +1,7 @@
 import chalk from 'chalk';
-import fs from 'fs';
+import fs from 'node:fs';
 import inquirer from 'inquirer';
-import { basename, join, resolve } from 'path';
+import { basename, join, resolve } from 'node:path';
 import {
   config,
   findProjectsOnPath,
@@ -12,13 +12,13 @@ import {
 } from 'myst-cli';
 import { LogLevel, writeFileToFolder } from 'myst-cli-utils';
 import type { ProjectConfig } from 'myst-config';
-import { docLinks, LOGO } from '../docs';
-import { MyUser } from '../models';
-import type { ISession } from '../session/types';
-import { interactiveCloneQuestions } from './clone';
-import { pullProjects } from './pull';
-import questions from './questions';
-import { getDefaultProjectConfig, getDefaultSiteConfig, INIT_LOGO_PATH } from './utils';
+import { docLinks, LOGO } from '../docs.js';
+import { MyUser } from '../models.js';
+import type { ISession } from '../session/types.js';
+import { interactiveCloneQuestions } from './clone.js';
+import { pullProjects } from './pull.js';
+import questions from './questions.js';
+import { getDefaultProjectConfig, getDefaultSiteConfig, INIT_LOGO_PATH } from './utils.js';
 
 // TODO
 const CURVENOTE_YML = 'curvenote.yml';

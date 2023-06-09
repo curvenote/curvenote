@@ -1,6 +1,6 @@
 import { getDate } from 'simple-validators';
-import type { LaunchpadStatus, PubsubMessageAttributes } from './launchpad';
-import type { BaseLinks, JsonObject } from './types';
+import type { LaunchpadStatus, PubsubMessageAttributes } from './launchpad.js';
+import type { BaseLinks, JsonObject } from './types.js';
 
 export interface SitePublishLinks extends BaseLinks {
   site: string;

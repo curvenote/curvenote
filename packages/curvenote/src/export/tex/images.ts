@@ -1,10 +1,10 @@
-import type { ISession } from '../../session/types';
-import * as imagemagick from '../utils/imagemagick';
-import * as inkscape from '../utils/inkscape';
-import type { ArticleState } from '../utils/walkArticle';
-import { writeImagesToFiles } from '../utils/writeImagesToFiles';
-import type { TexExportOptionsExpanded } from './types';
-import { filterFilenamesByExtension, processImages } from './utils';
+import type { ISession } from '../../session/types.js';
+import * as imagemagick from '../utils/imagemagick.js';
+import * as inkscape from '../utils/inkscape.js';
+import type { ArticleState } from '../utils/walkArticle.js';
+import { writeImagesToFiles } from '../utils/writeImagesToFiles.js';
+import type { TexExportOptionsExpanded } from './types.js';
+import { filterFilenamesByExtension, processImages } from './utils.js';
 
 export async function localizeAndProcessImages(
   session: ISession,

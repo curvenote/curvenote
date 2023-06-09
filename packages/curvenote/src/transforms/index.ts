@@ -1,1 +1,1 @@
-export * from './links';
+export * from './links.js';

@@ -1,4 +1,4 @@
-import type { Author } from './types';
+import type { Author } from './types/index.js';
 
 export function createAuthor(initialState: { id: string } & Partial<Author>): Author {
   const affiliations = initialState.affiliations ? [...initialState.affiliations] : [];

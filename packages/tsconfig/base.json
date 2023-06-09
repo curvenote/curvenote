@@ -3,18 +3,28 @@
   "display": "Default",
   "compilerOptions": {
     "composite": false,
-    "declaration": true,
-    "declarationMap": true,
+    "declaration": false,
+    "declarationMap": false,
+    "target": "ES2019",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSources": false,
     "isolatedModules": true,
-    "moduleResolution": "node",
+    "module": "node16",
+    "moduleResolution": "node16",
+    "allowSyntheticDefaultImports": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "preserveWatchOutput": true,
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    "lib": ["es2021", "DOM"],
+    "typeRoots": [
+      "./types",
+      "./node_modules/@types",
+      "../../node_modules/@types",
+      "../../../node_modules/@types"
+    ]
   },
   "exclude": ["node_modules"]
 }

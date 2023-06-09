@@ -1,6 +1,13 @@
-import type { JsonObject } from '../types';
-import type { KINDS, Language, BaseVersion, VersionId, TARGET, JupyterCellMetadata } from './types';
-import { CodeFormatTypes } from './types';
+import type { JsonObject } from '../types.js';
+import type {
+  KINDS,
+  Language,
+  BaseVersion,
+  VersionId,
+  TARGET,
+  JupyterCellMetadata,
+} from './types/index.js';
+import { CodeFormatTypes } from './types/index.js';
 
 // Code that has not yet been saved / versioned
 export interface PartialCode {

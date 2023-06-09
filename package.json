@@ -22,8 +22,8 @@
     "esbuild": "^0.15.12",
     "eslint-config-curvenote": "latest",
     "prettier": "latest",
-    "ts-jest": "^28.0.7",
-    "turbo": "latest"
+    "turbo": "latest",
+    "vitest": "^0.32.0"
   },
   "engines": {
     "npm": ">=7.0.0",

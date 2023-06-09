@@ -1,7 +1,7 @@
 import { getDate } from 'simple-validators';
-import type { JsonObject } from '../types';
-import type { KINDS, ChildId, BlockChildDict, BaseVersion } from './types';
-import { ArticleFormatTypes } from './types';
+import type { JsonObject } from '../types.js';
+import type { KINDS, ChildId, BlockChildDict, BaseVersion } from './types/index.js';
+import { ArticleFormatTypes } from './types/index.js';
 
 export interface PartialArticle {
   date: Date;

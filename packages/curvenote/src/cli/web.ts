@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { web } from '../index';
-import { clirun } from './utils';
+import { web } from '../index.js';
+import { clirun } from './utils.js';
 import {
   makeCIOption,
   makeForceOption,
@@ -14,7 +14,7 @@ import {
   makeDocxOption,
   makeSiteOption,
   makeDomainOption,
-} from './options';
+} from './options.js';
 
 function makeCurvenoteStartCLI(program: Command) {
   const command = new Command('start')
