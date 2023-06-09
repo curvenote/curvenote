@@ -1,5 +1,12 @@
 # @curvenote/blocks
 
+## 1.5.24
+
+### Patch Changes
+
+- b122528: Update to esm modules
+- 9548cdf: Updates to myst 0.1.31
+
 ## 1.5.23
 
 ### Patch Changes
