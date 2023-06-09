@@ -1,4 +1,5 @@
-import { JsonObject } from '@curvenote/blocks';
+import { describe, expect, it } from 'vitest';
+import type { JsonObject } from '@curvenote/blocks';
 import { notebookFromJupyter } from '../src';
 
 describe('translators.notebook', () => {

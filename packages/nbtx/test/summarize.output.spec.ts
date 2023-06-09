@@ -1,10 +1,6 @@
-import {
-  KnownCellOutputMimeTypes,
-  CellOutputType,
-  DisplayData,
-  OutputSummaryKind,
-  Traceback,
-} from '@curvenote/blocks';
+import { describe, expect, beforeAll, test } from 'vitest';
+import type { DisplayData, Traceback } from '@curvenote/blocks';
+import { KnownCellOutputMimeTypes, CellOutputType, OutputSummaryKind } from '@curvenote/blocks';
 import { makeCellOutput } from './helpers';
 import { StubFileObject, summarizeOutput } from '../src';
 

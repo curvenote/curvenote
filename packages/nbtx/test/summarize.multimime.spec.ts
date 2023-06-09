@@ -1,10 +1,7 @@
 /* eslint-disable quotes */
-import {
-  KnownCellOutputMimeTypes,
-  CellOutputType,
-  DisplayData,
-  ensureString,
-} from '@curvenote/blocks';
+import { describe, expect, test } from 'vitest';
+import type { DisplayData } from '@curvenote/blocks';
+import { KnownCellOutputMimeTypes, CellOutputType, ensureString } from '@curvenote/blocks';
 import { makeCellOutput } from './helpers';
 import { processMultiMimeOutputs } from '../src/summarize/multimime';
 import { StubFileObject } from '../src/files';

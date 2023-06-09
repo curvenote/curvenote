@@ -1,13 +1,6 @@
-import {
-  JsonObject,
-  KINDS,
-  Blocks,
-  TARGET,
-  ContentFormatTypes,
-  NotebookCell,
-  CELL_TYPE,
-  CellOutput,
-} from '@curvenote/blocks';
+import { describe, expect, it } from 'vitest';
+import type { JsonObject, Blocks, NotebookCell, CellOutput } from '@curvenote/blocks';
+import { KINDS, TARGET, ContentFormatTypes, CELL_TYPE } from '@curvenote/blocks';
 import { translateToJupyter } from '../src';
 
 describe('High level translator functions', () => {

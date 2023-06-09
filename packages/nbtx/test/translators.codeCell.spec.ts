@@ -1,13 +1,6 @@
-import {
-  VersionId,
-  KINDS,
-  TARGET,
-  CodeFormatTypes,
-  Blocks,
-  CellOutput,
-  CELL_TYPE,
-  CodeCell,
-} from '@curvenote/blocks';
+import { describe, expect, beforeEach, it } from 'vitest';
+import type { VersionId, Blocks, CellOutput, CodeCell } from '@curvenote/blocks';
+import { KINDS, TARGET, CodeFormatTypes, CELL_TYPE } from '@curvenote/blocks';
 import { toJupyter, fromJupyter } from '../src/translators/codeCell';
 
 describe('translators.codeCell', () => {
