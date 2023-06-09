@@ -1,4 +1,4 @@
-import { sync as which } from 'which';
+import which from 'which';
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeExecutable, tic } from 'myst-cli-utils';
@@ -6,15 +6,15 @@ import type { Logger } from 'myst-cli-utils';
 import type { ISession } from '../../session/types.js';
 
 export function isWebpAvailable() {
-  return which('cwebp', { nothrow: true });
+  return which.sync('cwebp', { nothrow: true });
 }
 
 export function isGif2webpAvailable() {
-  return which('gif2webp', { nothrow: true });
+  return which.sync('gif2webp', { nothrow: true });
 }
 
 export function isImageMagickAvailable() {
-  return which('convert', { nothrow: true });
+  return which.sync('convert', { nothrow: true });
 }
 
 export async function extractFirstFrameOfGif(

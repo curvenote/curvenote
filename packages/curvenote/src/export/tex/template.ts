@@ -1,13 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { sync as which } from 'which';
+import which from 'which';
 import YAML from 'js-yaml';
 import { Template } from '../../models.js';
 import type { ISession } from '../../session/types.js';
 import type { TexExportOptionsExpanded } from './types.js';
 
 export function throwIfTemplateButNoJtex(opts: TexExportOptionsExpanded) {
-  if ((opts.template || opts.templatePath) && !which('jtex', { nothrow: true })) {
+  if ((opts.template || opts.templatePath) && !which.sync('jtex', { nothrow: true })) {
     throw new Error(
       'A template option was specified but the `jtex` command was not found on the path.\nTry `pip install jtex`!',
     );

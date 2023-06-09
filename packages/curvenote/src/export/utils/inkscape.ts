@@ -1,10 +1,10 @@
-import { sync as which } from 'which';
+import which from 'which';
 import path from 'node:path';
 import type { Logger } from 'myst-cli-utils';
 import { makeExecutable } from 'myst-cli-utils';
 
 export function isInkscapeAvailable() {
-  return which('inkscape', { nothrow: true });
+  return which.sync('inkscape', { nothrow: true });
 }
 
 export async function convertSVGToPDF(
