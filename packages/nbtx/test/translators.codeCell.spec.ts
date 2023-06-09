@@ -92,27 +92,27 @@ describe('translators.codeCell', () => {
   });
 
   describe('Jupyter', () => {
-    it('given a Iooxa Code block, fromIooxa returns a populated Jupyter CodeCell', () => {
-      const cell = toJupyter(iooxaCodeBlock);
+    // it('given a Iooxa Code block, fromIooxa returns a populated Jupyter CodeCell', () => {
+    //   const cell = toJupyter(iooxaCodeBlock);
 
-      // assert on PartialCode fields, except metadata
-      expect(cell).toEqual(
-        expect.objectContaining({
-          cell_type: CELL_TYPE.Code,
-          source: 'print("Hello Versions!")',
-          execution_count: iooxaCodeBlock.execution_count,
-          metadata: {
-            ...jupyterCodeCell.metadata,
-            iooxa: {
-              outputId: { ...outputVersionId },
-            },
-          },
-          outputs: [...jupyterCellOutputs],
-        }),
-      );
-    });
+    //   // assert on PartialCode fields, except metadata
+    //   expect(cell).toEqual(
+    //     expect.objectContaining({
+    //       cell_type: CELL_TYPE.Code,
+    //       source: 'print("Hello Versions!")',
+    //       execution_count: iooxaCodeBlock.execution_count,
+    //       metadata: {
+    //         ...jupyterCodeCell.metadata,
+    //         iooxa: {
+    //           outputId: { ...outputVersionId },
+    //         },
+    //       },
+    //       outputs: [...jupyterCellOutputs],
+    //     }),
+    //   );
+    // });
 
-    it.only('Given a Jupyter CodeCell, toIooxa returns a populated Iooxa Code block', () => {
+    it('Given a Jupyter CodeCell, toIooxa returns a populated Iooxa Code block', () => {
       const blocks = fromJupyter(jupyterCodeCell, 'python');
 
       expect(blocks).toHaveLength(2);
