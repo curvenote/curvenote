@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import cliProgress from 'cli-progress';
 import fs from 'node:fs';
 import mime from 'mime-types';
-import { selectors, buildSite } from 'myst-cli';
+import { selectors, buildSite, clean } from 'myst-cli';
 import { tic } from 'myst-cli-utils';
 import type { Logger } from 'myst-cli-utils';
 import fetch from 'node-fetch';
@@ -237,6 +237,8 @@ export async function deploy(
     opts,
   );
   session.log.info('\n\n\t✨✨✨  Deploying Curvenote  ✨✨✨\n\n');
+  // clean the site folder, otherwise downloadable files will accumulate
+  await clean(session, [], { site: true, yes: true });
   // Build the files in the content folder and process them
   await buildSite(session, opts);
   const cdnKey = await deployContentToCdn(session, opts);
