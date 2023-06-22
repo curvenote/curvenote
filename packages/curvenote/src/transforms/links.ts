@@ -60,17 +60,18 @@ export class OxaTransformer implements LinkTransformer {
 
 export async function transformOxalinkStore(
   session: ISession,
-  opts: { file: string; projectSlug: string },
+  opts: { file: string; projectSlug?: string },
 ) {
   const cache = castSession(session);
   const mdastPost = cache.$mdast[opts.file].post;
   const oxa = mdastPost?.frontmatter.oxa;
   if (oxa) {
+    const url = opts.projectSlug ? `/${opts.projectSlug}/${mdastPost.slug}` : `/${mdastPost.slug}`;
     session.store.dispatch(
       oxalink.actions.updateLinkInfo({
         path: opts.file,
         oxa: oxa,
-        url: `/${opts.projectSlug}/${mdastPost.slug}`,
+        url,
       }),
     );
   }
