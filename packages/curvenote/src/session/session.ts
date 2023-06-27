@@ -171,8 +171,4 @@ export class Session implements ISession {
   publicPath(): string {
     return path.join(this.sitePath(), 'public');
   }
-
-  staticPath(): string {
-    return path.join(this.publicPath(), '_static');
-  }
 }

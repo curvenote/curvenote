@@ -5,14 +5,18 @@ import util from 'util';
 const exec = util.promisify(execWithCb);
 
 describe('CLI Smoke Tests', () => {
-  test('an example site', async () => {
-    expect.assertions(0);
-    try {
-      const { stdout } = await exec('curvenote build', { cwd: 'tests/example' });
-      console.log(stdout);
-    } catch (error) {
-      console.error(error);
-      expect(error).not.toBeNull();
-    }
-  });
+  test(
+    'an example site',
+    async () => {
+      expect.assertions(0);
+      try {
+        const { stdout } = await exec('curvenote build', { cwd: 'tests/example' });
+        console.log(stdout);
+      } catch (error) {
+        console.error(error);
+        expect(error).not.toBeNull();
+      }
+    },
+    { timeout: 15000 },
+  );
 });

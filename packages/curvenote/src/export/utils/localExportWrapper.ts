@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import type { ExportResults } from 'myst-cli';
 import { createTempFolder } from 'myst-cli';
 import type { LinkTransformer } from 'myst-transforms';
 import { join } from 'node:path';
@@ -14,7 +15,7 @@ export const localExportWrapper =
       opts: { filename: string } & Record<string, any>,
       templateOptions?: Record<string, any>,
       extraLinkTransformers?: LinkTransformer[],
-    ) => Promise<void>,
+    ) => Promise<ExportResults>,
     defaultOptions: Record<string, any>,
   ) =>
   async (
@@ -24,6 +25,7 @@ export const localExportWrapper =
     opts: Record<string, any>,
     templateOptions?: Record<string, any>,
   ) => {
+    let localFolder: string | undefined;
     let localPath: string;
     if (fs.existsSync(path)) {
       session.log.info(`🔍 Found local file to export: ${path}`);
@@ -31,15 +33,19 @@ export const localExportWrapper =
     } else {
       session.log.info(`🌍 Downloading: ${path}`);
       const localFilename = 'output.md';
-      const localFolder = createTempFolder(session);
+      localFolder = createTempFolder(session);
       localPath = join(localFolder, localFilename);
       await oxaLinkToMarkdown(session, path, localFilename, { path: localFolder });
     }
-    await exportLocalArticle(
+    const results = await exportLocalArticle(
       session,
       localPath,
-      { ...defaultOptions, filename, ...opts },
+      { ...defaultOptions, filename, projectPath: localFolder, ...opts },
       templateOptions,
       [new OxaTransformer(session)],
     );
+    if (localFolder) {
+      results.tempFolders.push(localFolder);
+    }
+    return results;
   };
