@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import type { ExportResults } from 'myst-cli';
 import { createTempFolder } from 'myst-cli';
 import type { LinkTransformer } from 'myst-transforms';
 import { join } from 'node:path';
@@ -14,7 +15,7 @@ export const localExportWrapper =
       opts: { filename: string } & Record<string, any>,
       templateOptions?: Record<string, any>,
       extraLinkTransformers?: LinkTransformer[],
-    ) => Promise<void>,
+    ) => Promise<ExportResults>,
     defaultOptions: Record<string, any>,
   ) =>
   async (
@@ -36,11 +37,15 @@ export const localExportWrapper =
       localPath = join(localFolder, localFilename);
       await oxaLinkToMarkdown(session, path, localFilename, { path: localFolder });
     }
-    await exportLocalArticle(
+    const results = await exportLocalArticle(
       session,
       localPath,
       { ...defaultOptions, filename, projectPath: localFolder, ...opts },
       templateOptions,
       [new OxaTransformer(session)],
     );
+    if (localFolder) {
+      results.tempFolders.push(localFolder);
+    }
+    return results;
   };
