@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.14
+
+### Patch Changes
+
+- 450c9ab: Fix project path when exporting from a curvenote url
+- 450c9ab: Return all temp folders and log files from export functions
+
 ## 0.8.13
 
 ### Patch Changes
