@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.15
+
+### Patch Changes
+
+- 9f3f15d: Update myst-cli
+
 ## 0.8.14
 
 ### Patch Changes
