@@ -37,10 +37,10 @@
     "uuid": "^8.3.2"
   },
   "peerDependencies": {
-    "@curvenote/blocks": "^1.5.23"
+    "@curvenote/blocks": "^1.5.24"
   },
   "devDependencies": {
-    "@curvenote/blocks": "^1.5.23",
+    "@curvenote/blocks": "^1.5.24",
     "@types/uuid": "^8.3.4"
   }
 }
