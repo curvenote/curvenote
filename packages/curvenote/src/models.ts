@@ -199,7 +199,7 @@ export class Template extends BaseTransfer<string, TemplateSpec & { id: string }
 
   // TODO better unpacking and defaults on the dto contents
   $fromDTO = (id: string, json: Record<string, any>) =>
-    ({ id, ...json } as TemplateSpec & { id: string });
+    ({ id, ...json }) as TemplateSpec & { id: string };
 
   $createUrl = () => `/templates/${this.id}`;
 
