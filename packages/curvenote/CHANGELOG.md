@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.16
+
+### Patch Changes
+
+- Updates to mystmd
+
 ## 0.8.15
 
 ### Patch Changes
