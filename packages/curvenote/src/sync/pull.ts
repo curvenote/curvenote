@@ -1,12 +1,11 @@
 import fs from 'node:fs';
 import pLimit from 'p-limit';
 import { join, dirname, basename, extname } from 'node:path';
-import { LogLevel, tic } from 'myst-cli-utils';
+import { LogLevel, tic, isDirectory } from 'myst-cli-utils';
 import { projectFrontmatterFromDTO, saveAffiliations } from '../frontmatter/api.js';
 import {
   config,
   getRawFrontmatterFromFile,
-  isDirectory,
   loadConfigAndValidateOrThrow,
   selectors,
   writeConfigs,
