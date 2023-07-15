@@ -6,6 +6,7 @@ import {
   config,
   findCurrentProjectAndLoad,
   findCurrentSiteAndLoad,
+  logUpdateAvailable,
   reloadAllConfigsForCurrentSite,
   selectors,
 } from 'myst-cli';
@@ -16,6 +17,7 @@ import { rootReducer } from '../store/index.js';
 import { checkForClientVersionRejection } from '../utils/index.js';
 import { getHeaders, setSessionOrUserToken } from './tokens.js';
 import type { ISession, Response, Tokens } from './types.js';
+import version from '../version.js';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
@@ -69,6 +71,22 @@ export class Session implements ISession {
     this.store = createStore(rootReducer);
     findCurrentProjectAndLoad(this, '.');
     findCurrentSiteAndLoad(this, '.');
+  }
+
+  _shownUpgrade = false;
+  _latestVersion?: string;
+
+  showUpgradeNotice() {
+    if (this._shownUpgrade || !this._latestVersion || version === this._latestVersion) return;
+    this.log.info(
+      logUpdateAvailable({
+        current: version,
+        latest: this._latestVersion,
+        upgradeCommand: 'npm i -g curvenote@latest',
+        twitter: 'curvenote',
+      }),
+    );
+    this._shownUpgrade = true;
   }
 
   clone() {
