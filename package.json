@@ -20,7 +20,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.23.2",
     "esbuild": "^0.15.12",
-    "eslint-config-curvenote": "^0.0.2",
+    "eslint-config-curvenote": "^0.0.3",
     "prettier": "latest",
     "turbo": "latest",
     "vitest": "^0.32.0"
