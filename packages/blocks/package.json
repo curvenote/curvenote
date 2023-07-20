@@ -31,9 +31,9 @@
     "url": "https://github.com/curvenote/curvenote/issues"
   },
   "dependencies": {
-    "myst-config": "^1.0.1",
-    "myst-frontmatter": "^1.0.2",
-    "myst-templates": "^1.0.2",
+    "myst-config": "^1.1.0",
+    "myst-frontmatter": "^1.1.0",
+    "myst-templates": "^1.0.5",
     "nbtx": "^0.2.1",
     "simple-validators": "^1.0.1"
   },
