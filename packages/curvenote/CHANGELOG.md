@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.17
+
+### Patch Changes
+
+- 006be64: Update to v1.1.6
+
 ## 0.8.16
 
 ### Patch Changes
