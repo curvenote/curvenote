@@ -14,7 +14,8 @@ export function validateExportConfigKeys(value: Record<string, any>, opts: Valid
       value.data.authors,
       incrementOptions('authors', opts),
       (author, index) => {
-        return validateAuthor(author, incrementOptions(`authors.${index}`, opts));
+        // NOTE: this will drop the affiliations
+        return validateAuthor(author, {}, incrementOptions(`authors.${index}`, opts));
       },
     );
   }

@@ -2,4 +2,4 @@
 'curvenote': patch
 ---
 
-Update to myst 1.1.8
+Update to myst 1.1.10

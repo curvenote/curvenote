@@ -119,9 +119,20 @@ export async function articleToMarkdown(
     block.data,
     version.data.date,
   );
+  const validationOpts = {
+    property: 'frontmatter',
+    file: opts.filename,
+    messages: {},
+    errorLogFn: (message: string) => {
+      session.log.error(`Validation error: ${message}`);
+    },
+    warningLogFn: (message: string) => {
+      session.log.warn(`Validation: ${message}`);
+    },
+  };
   if (!opts.ignoreProjectFrontmatter) {
     const projectFrontmatter = projectFrontmatterFromDTO(session, project.data);
-    frontmatter = fillPageFrontmatter(frontmatter, projectFrontmatter);
+    frontmatter = fillPageFrontmatter(frontmatter, projectFrontmatter, validationOpts);
   }
   const metadata = YAML.dump(prepareToWrite(frontmatter));
   let titleString = `---\n${metadata}---\n\n`;
