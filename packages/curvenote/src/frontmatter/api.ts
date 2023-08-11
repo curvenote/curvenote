@@ -39,21 +39,25 @@ export function projectFrontmatterFromDTO(
 ): ProjectFrontmatter {
   const apiFrontmatter = filterKeys(project, PROJECT_FRONTMATTER_KEYS) as ProjectFrontmatter;
   if (apiFrontmatter.authors) {
-    apiFrontmatter.authors = apiFrontmatter.authors.map((author: Author) =>
-      resolveAffiliations(session, author),
-    );
+    apiFrontmatter.authors = apiFrontmatter.authors.map((author: Author) => {
+      const resolvedAuthor = resolveAffiliations(session, author);
+      delete resolvedAuthor.id;
+      return resolvedAuthor;
+    });
   }
   if (project.licenses) {
     // This will get validated below
     apiFrontmatter.license = project.licenses as any;
   }
-  return validateProjectFrontmatterKeys(apiFrontmatter, {
+  const frontmatter = validateProjectFrontmatterKeys(apiFrontmatter, {
     property: 'project',
     suppressErrors: true,
     suppressWarnings: true,
     messages: {},
     ...opts,
   });
+  delete frontmatter.affiliations;
+  return frontmatter;
 }
 
 export async function pageFrontmatterFromDTOAndThumbnail(
@@ -86,9 +90,11 @@ export function pageFrontmatterFromDTO(
 ): PageFrontmatter {
   const apiFrontmatter = filterKeys(block, PAGE_FRONTMATTER_KEYS) as PageFrontmatter;
   if (apiFrontmatter.authors) {
-    apiFrontmatter.authors = apiFrontmatter.authors.map((author: Author) =>
-      resolveAffiliations(session, author),
-    ) as any;
+    apiFrontmatter.authors = apiFrontmatter.authors.map((author: Author) => {
+      const resolvedAuthor = resolveAffiliations(session, author);
+      delete resolvedAuthor.id;
+      return resolvedAuthor;
+    }) as any;
   }
   if (block.licenses) {
     apiFrontmatter.license = block.licenses as any;
@@ -98,11 +104,13 @@ export function pageFrontmatterFromDTO(
     apiFrontmatter.date = (date || block.date_modified) as any;
   }
   apiFrontmatter.oxa = oxaLink('', block.id) as any;
-  return validatePageFrontmatterKeys(apiFrontmatter, {
+  const frontmatter = validatePageFrontmatterKeys(apiFrontmatter, {
     property: 'page',
     suppressErrors: true,
     suppressWarnings: true,
     messages: {},
     ...opts,
   });
+  delete frontmatter.affiliations;
+  return frontmatter;
 }
