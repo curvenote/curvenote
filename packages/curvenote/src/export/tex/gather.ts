@@ -61,7 +61,18 @@ export async function gatherAndWriteArticleContent(
   saveAffiliations(session, project.data);
   const projectFrontmatter = projectFrontmatterFromDTO(session, project.data, frontmatterOpts);
   let pageFrontmatter = pageFrontmatterFromDTO(session, block.data, data.date, frontmatterOpts);
-  pageFrontmatter = fillPageFrontmatter(pageFrontmatter, projectFrontmatter);
+  const validationOpts = {
+    property: 'frontmatter',
+    file: opts.filename,
+    messages: {},
+    errorLogFn: (message: string) => {
+      session.log.error(`Validation error: ${message}`);
+    },
+    warningLogFn: (message: string) => {
+      session.log.warn(`Validation: ${message}`);
+    },
+  };
+  pageFrontmatter = fillPageFrontmatter(pageFrontmatter, projectFrontmatter, validationOpts);
   const frontmatter: LatexFrontmatter = {
     ...pageFrontmatter,
     jtex: buildJtexSection(

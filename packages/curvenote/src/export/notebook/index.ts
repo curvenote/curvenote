@@ -32,9 +32,20 @@ async function createFrontmatterCell(
   const project = await new Project(session, block.id.project).get();
   saveAffiliations(session, project.data);
   let frontmatter = await pageFrontmatterFromDTOAndThumbnail(session, filename, block.data);
+  const validationOpts = {
+    property: 'frontmatter',
+    file: opts.filename,
+    messages: {},
+    errorLogFn: (message: string) => {
+      session.log.error(`Validation error: ${message}`);
+    },
+    warningLogFn: (message: string) => {
+      session.log.warn(`Validation: ${message}`);
+    },
+  };
   if (!opts.ignoreProjectFrontmatter) {
     const projectFrontmatter = projectFrontmatterFromDTO(session, project.data);
-    frontmatter = fillPageFrontmatter(frontmatter, projectFrontmatter);
+    frontmatter = fillPageFrontmatter(frontmatter, projectFrontmatter, validationOpts);
   }
   return {
     cell_type: 'markdown',
