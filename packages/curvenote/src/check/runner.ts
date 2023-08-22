@@ -71,40 +71,52 @@ export async function runChecks(
 }
 
 export function logCheckReport(session: ISession, report: CheckReport) {
-  const checkFail = (msg: string, prefix?: string) => chalk.red(`${prefix ?? ''}❌ ${msg}`);
-  const checkError = (msg: string, prefix?: string) => chalk.yellow(`${prefix ?? ''}⚠️  ${msg}`);
-  const checkPass = (msg: string, prefix?: string) => chalk.green(`${prefix ?? ''}✅ ${msg}`);
+  const checkFail = (msg: string, icon?: boolean, prefix?: string) => {
+    return chalk.red(`${prefix ?? ''}${icon ? '❌' : ''} ${msg}`);
+  };
+  const checkError = (msg: string, icon?: boolean, prefix?: string) => {
+    return chalk.yellow(`${prefix ?? ''}${icon ? '⚠️' : ''}  ${msg}`);
+  };
+  const checkPass = (msg: string, icon?: boolean, prefix?: string) => {
+    return chalk.green(`${prefix ?? ''}${icon ? '✅' : ''} ${msg}`);
+  };
   if (report.status === CheckStatus.pass) {
-    session.log.info(checkPass('All checks passed!'));
+    session.log.info(chalk.bold(checkPass('All checks passed:')));
   } else {
-    session.log.error(checkFail('Checks did not all pass'));
+    session.log.error(chalk.bold(checkFail('Checks did not all pass:')));
   }
   report.results.forEach((result) => {
     const { status, category, checks } = result;
     if (status === CheckStatus.pass) {
       session.log.info(
-        checkPass(`${category} (${checks.length}/${checks.length} tests passed)`, '  '),
+        checkPass(
+          `${chalk.bold(category)} (${checks.length}/${checks.length} tests passed)`,
+          true,
+          '  ',
+        ),
       );
     } else {
       session.log.error(
         checkFail(
-          `${category} (${checks.filter((c) => c.status === CheckStatus.pass).length}/${
+          `${chalk.bold(category)} (${checks.filter((c) => c.status === CheckStatus.pass).length}/${
             checks.length
           } tests passed)`,
-          '  ',
+          false,
+          '    ',
         ),
       );
     }
     checks.forEach((check) => {
       const { message } = check;
+      const messageWithTitle = `${chalk.bold(check.title)}: ${message}`;
       if (status === CheckStatus.pass) {
-        session.log.debug(checkPass(message, '    '));
+        session.log.debug(checkPass(messageWithTitle, true, '        '));
       } else if (check.status === CheckStatus.pass) {
-        session.log.info(checkPass(message, '    '));
+        session.log.info(checkPass(messageWithTitle, true, '        '));
       } else if (check.status === CheckStatus.error) {
-        session.log.error(checkError(message, '    '));
+        session.log.error(checkError(messageWithTitle, true, '        '));
       } else {
-        session.log.error(checkFail(message, '    '));
+        session.log.error(checkFail(messageWithTitle, true, '        '));
       }
     });
   });
