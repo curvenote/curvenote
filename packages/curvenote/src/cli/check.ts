@@ -3,9 +3,20 @@ import { logCheckReport, runChecks } from '../check/runner.js';
 import type { ISession } from '../session/types.js';
 import { clirun } from './utils.js';
 import { abstractExists } from '../check/examples/abstractExists.js';
+import { abstractLength } from '../check/examples/abstractLength.js';
+import { availabilityExists } from '../check/examples/availabilityExists.js';
 
 async function exampleChecks(session: ISession, file: string) {
-  const report = await runChecks(session, file, [{ id: 'abstract-exists' }], [abstractExists]);
+  const report = await runChecks(
+    session,
+    file,
+    [
+      { id: 'abstract-exists' },
+      { id: 'abstract-length', max: '400' },
+      { id: 'availability-exists' },
+    ],
+    [abstractExists, abstractLength, availabilityExists],
+  );
   logCheckReport(session, report);
 }
 
