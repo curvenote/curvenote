@@ -6,7 +6,6 @@ import {
 import type { ValidationOptions } from 'simple-validators';
 import {
   defined,
-  filterKeys,
   incrementOptions,
   validateKeys,
   validateList,

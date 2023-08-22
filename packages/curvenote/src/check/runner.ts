@@ -1,9 +1,17 @@
+import path from 'node:path';
+import chalk from 'chalk';
+import {
+  KNOWN_IMAGE_EXTENSIONS,
+  createTempFolder,
+  findCurrentProjectAndLoad,
+  getFileContent,
+  loadProjectFromDisk,
+} from 'myst-cli';
 import { incrementOptions } from 'simple-validators';
 import type { ISession } from '../session/types.js';
 import { CheckStatus } from './types.js';
 import type { Check, CheckDefinition, CheckInterface, CheckReport, CheckResult } from './types.js';
 import { validateCheck } from './validators.js';
-import chalk from 'chalk';
 
 export async function runChecks(
   session: ISession,
@@ -12,6 +20,19 @@ export async function runChecks(
   checkDefinitions: CheckInterface[],
 ): Promise<CheckReport> {
   const opts = { property: 'checks', messages: {} };
+  if (!['.ipynb', '.md', '.tex'].includes(path.extname(file))) {
+    throw new Error('Currently checks are only supported on .md, .ipynb, and .tex files');
+  }
+  const projectPath = await findCurrentProjectAndLoad(session, path.dirname(file));
+  if (projectPath) {
+    await loadProjectFromDisk(session, projectPath);
+  }
+  await getFileContent(session, [file], createTempFolder(session), {
+    projectPath,
+    useExistingImages: true,
+    imageExtensions: KNOWN_IMAGE_EXTENSIONS,
+    simplifyFigures: false,
+  });
   const completedChecks = (
     await Promise.all(
       checks.map(async (check, index) => {
