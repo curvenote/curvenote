@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import version from '../version.js';
 import { addAuthCLI } from './auth.js';
+import { addCheckCLI } from './check.js';
 import { addCleanCLI } from './clean.js';
 import { addExportCLI } from './export.js';
 import { addSyncCLI } from './sync.js';
@@ -14,6 +15,7 @@ addWebCLI(program);
 addTokenCLI(program);
 addAuthCLI(program);
 addExportCLI(program);
+addCheckCLI(program);
 addCleanCLI(program);
 
 program.version(`v${version}`, '-v, --version', 'Print the current version of curvenote');
