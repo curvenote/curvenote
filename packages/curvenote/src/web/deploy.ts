@@ -16,7 +16,7 @@ import type {
 } from '@curvenote/blocks';
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
-import { confirmOrExit } from '../utils/index.js';
+import { addOxaTransformersToOpts, confirmOrExit } from '../utils/index.js';
 
 type FromTo = {
   from: string;
@@ -240,7 +240,7 @@ export async function deploy(
   // clean the site folder, otherwise downloadable files will accumulate
   await clean(session, [], { site: true, yes: true });
   // Build the files in the content folder and process them
-  await buildSite(session, opts);
+  await buildSite(session, addOxaTransformersToOpts(session, opts));
   const cdnKey = await deployContentToCdn(session, opts);
   await promoteContent(session, cdnKey, domains);
 }

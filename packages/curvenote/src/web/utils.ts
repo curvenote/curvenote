@@ -1,4 +1,5 @@
 import type { ISession } from '../session/types.js';
+import { addOxaTransformersToOpts } from '../utils/utils.js';
 
 export const siteCommandWrapper =
   (
@@ -6,5 +7,5 @@ export const siteCommandWrapper =
     defaultOptions: Record<string, any>,
   ) =>
   async (session: ISession, opts: Record<string, any>) => {
-    await siteCommand(session, { ...defaultOptions, ...opts });
+    await siteCommand(session, addOxaTransformersToOpts(session, { ...defaultOptions, ...opts }));
   };
