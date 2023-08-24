@@ -12,12 +12,17 @@ export const abstractExists: CheckInterface = {
   validate: async (session: ISession, file: string) => {
     const { mdast } = selectFile(session, path.resolve(file)) ?? {};
     if (!mdast) {
-      return { status: CheckStatus.error, message: `Error loading content from ${file}` };
+      return { status: CheckStatus.error, message: `Error loading content from ${file}`, file };
     }
     const abstract = extractPart(copyNode(mdast), 'abstract');
     if (!abstract) {
-      return { status: CheckStatus.fail, message: `No abstract found in ${file}` };
+      return { status: CheckStatus.fail, message: `No abstract found in ${file}`, file };
     }
-    return { status: CheckStatus.pass, message: `Abstract exists!` };
+    return {
+      status: CheckStatus.pass,
+      message: `Abstract exists!`,
+      file,
+      position: abstract.position,
+    };
   },
 };

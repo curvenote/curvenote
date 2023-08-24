@@ -12,12 +12,21 @@ export const availabilityExists: CheckInterface = {
   validate: async (session: ISession, file: string) => {
     const { mdast } = selectFile(session, path.resolve(file)) ?? {};
     if (!mdast) {
-      return { status: CheckStatus.error, message: `Error loading content from ${file}` };
+      return { status: CheckStatus.error, message: `Error loading content`, file };
     }
     const availability = extractPart(copyNode(mdast), 'availability');
     if (!availability) {
-      return { status: CheckStatus.fail, message: `No availability statement found in ${file}` };
+      return {
+        status: CheckStatus.fail,
+        message: `No availability statement found`,
+        file,
+      };
     }
-    return { status: CheckStatus.pass, message: `Availability statement exists!` };
+    return {
+      status: CheckStatus.pass,
+      message: `Availability statement exists!`,
+      file,
+      position: availability.position,
+    };
   },
 };

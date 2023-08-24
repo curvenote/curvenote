@@ -10,7 +10,14 @@ import {
 import { incrementOptions } from 'simple-validators';
 import type { ISession } from '../session/types.js';
 import { CheckStatus } from './types.js';
-import type { Check, CheckDefinition, CheckInterface, CheckReport, CheckResult } from './types.js';
+import type {
+  Check,
+  CheckDefinition,
+  CheckInterface,
+  CheckReport,
+  CheckResult,
+  CompiledCheckResults,
+} from './types.js';
 import { validateCheck } from './validators.js';
 
 export async function runChecks(
@@ -18,7 +25,7 @@ export async function runChecks(
   file: string,
   checks: Check[],
   checkDefinitions: CheckInterface[],
-): Promise<CheckReport> {
+): Promise<CompiledCheckResults> {
   const opts = { property: 'checks', messages: {} };
   if (!['.ipynb', '.md', '.tex'].includes(path.extname(file))) {
     throw new Error('Currently checks are only supported on .md, .ipynb, and .tex files');
@@ -33,22 +40,28 @@ export async function runChecks(
     imageExtensions: KNOWN_IMAGE_EXTENSIONS,
     simplifyFigures: false,
   });
-  const completedChecks = (
-    await Promise.all(
-      checks.map(async (check, index) => {
-        const validCheck = validateCheck(
-          session,
-          check,
-          checkDefinitions,
-          incrementOptions(`${index}`, opts),
-        );
-        if (!validCheck) return undefined;
-        const checkDefinition = checkDefinitions.find((def) => check.id === def.id);
-        const result = await checkDefinition?.validate(session, file, validCheck);
-        return result ? { ...checkDefinition, ...result } : undefined;
-      }),
-    )
-  ).filter((check): check is CheckDefinition & CheckResult => !!check);
+  const completedChecks = await Promise.all(
+    checks.map(async (check, index) => {
+      const validCheck = validateCheck(
+        session,
+        check,
+        checkDefinitions,
+        incrementOptions(`${index}`, opts),
+      );
+      if (!validCheck) return undefined;
+      const checkDefinition = checkDefinitions.find((def) => check.id === def.id);
+      let result = await checkDefinition?.validate(session, file, validCheck);
+      if (!result) return;
+      if (!Array.isArray(result)) result = [result];
+      return result.map((res) => {
+        return { ...checkDefinition, ...res };
+      });
+    }),
+  );
+  return completedChecks.flat().filter((check): check is CheckDefinition & CheckResult => !!check);
+}
+
+export function sortCheckResults(completedChecks: CompiledCheckResults) {
   let finalStatus = CheckStatus.pass;
   const checkCategories: Record<string, CheckReport['results'][0]> = {};
   completedChecks.forEach((check) => {
@@ -70,7 +83,8 @@ export async function runChecks(
   return { status: finalStatus, results: Object.values(checkCategories) };
 }
 
-export function logCheckReport(session: ISession, report: CheckReport) {
+export function logCheckReport(session: ISession, completedChecks: CompiledCheckResults) {
+  const report = sortCheckResults(completedChecks);
   const checkFail = (msg: string, icon?: boolean, prefix?: string) => {
     return chalk.red(`${prefix ?? ''}${icon ? '❌' : ''} ${msg}`);
   };
@@ -83,7 +97,7 @@ export function logCheckReport(session: ISession, report: CheckReport) {
   if (report.status === CheckStatus.pass) {
     session.log.info(chalk.bold(checkPass('All checks passed:')));
   } else {
-    session.log.error(chalk.bold(checkFail('Checks did not all pass:')));
+    session.log.error(chalk.bold(checkFail('Failed checks:')));
   }
   report.results.forEach((result) => {
     const { status, category, checks } = result;
@@ -107,12 +121,12 @@ export function logCheckReport(session: ISession, report: CheckReport) {
       );
     }
     checks.forEach((check) => {
-      const { message } = check;
-      const messageWithTitle = `${chalk.bold(check.title)}: ${message}`;
-      if (status === CheckStatus.pass) {
+      const { message, file, position } = check;
+      const fileSuffix = file ? ` - ${file}` : '';
+      const posSuffix = file && position ? `:${position.start}` : '';
+      const messageWithTitle = `${chalk.bold(check.title)}: ${message}${fileSuffix}${posSuffix}`;
+      if (check.status === CheckStatus.pass) {
         session.log.debug(checkPass(messageWithTitle, true, '        '));
-      } else if (check.status === CheckStatus.pass) {
-        session.log.info(checkPass(messageWithTitle, true, '        '));
       } else if (check.status === CheckStatus.error) {
         session.log.error(checkError(messageWithTitle, true, '        '));
       } else {

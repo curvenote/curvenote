@@ -1,5 +1,6 @@
 import type { TemplateOptionDefinition } from 'myst-templates';
 import type { ISession } from '../session/types.js';
+import type { Position } from 'unist';
 
 export type CheckOptionDefinition = TemplateOptionDefinition;
 
@@ -21,10 +22,16 @@ export enum CheckStatus {
 export type CheckResult = {
   status: CheckStatus;
   message: string;
+  file?: string;
+  position?: Position;
 };
 
 export type CheckInterface = CheckDefinition & {
-  validate: (session: ISession, file: string, options: Check) => Promise<CheckResult>;
+  validate: (
+    session: ISession,
+    file: string,
+    options: Check,
+  ) => Promise<CheckResult | CheckResult[]>;
 };
 
 export type Check = {
@@ -32,11 +39,13 @@ export type Check = {
   // optional: boolean;
 } & Record<string, any>;
 
+export type CompiledCheckResults = (CheckDefinition & CheckResult)[];
+
 export type CheckReport = {
   status: CheckStatus;
   results: {
     category: string;
     status: CheckStatus;
-    checks: (CheckDefinition & CheckResult)[];
+    checks: CompiledCheckResults;
   }[];
 };

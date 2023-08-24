@@ -21,22 +21,26 @@ export const abstractLength: CheckInterface = {
   validate: async (session: ISession, file: string, options: Check) => {
     const { mdast } = selectFile(session, path.resolve(file)) ?? {};
     if (!mdast) {
-      return { status: CheckStatus.error, message: `Error loading content from ${file}` };
+      return { status: CheckStatus.error, message: `Error loading content`, file };
     }
     const abstract = extractPart(copyNode(mdast), 'abstract');
     if (!abstract) {
-      return { status: CheckStatus.error, message: `No abstract found in ${file}` };
+      return { status: CheckStatus.error, message: `No abstract found`, file };
     }
     const splitAbstract = toText(abstract).split(/\s+/);
     if (splitAbstract.length > +options.max) {
       return {
         status: CheckStatus.fail,
         message: `Abstract is too long: ${splitAbstract.length}/${options.max} words`,
+        file,
+        position: abstract.position,
       };
     }
     return {
       status: CheckStatus.pass,
       message: `Abstract is correct length: ${splitAbstract.length}/${options.max} words`,
+      file,
+      position: abstract.position,
     };
   },
 };
