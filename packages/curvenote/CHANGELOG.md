@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.19
+
+### Patch Changes
+
+- 9b59c23f: Fix oxa links in site build
+
 ## 0.8.18
 
 ### Patch Changes
