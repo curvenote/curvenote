@@ -5,6 +5,7 @@ import { validateCheckDefinition } from '..';
 import { abstractExists } from './abstractExists.js';
 import { abstractLength } from './abstractLength.js';
 import { availabilityExists } from './availabilityExists.js';
+import { linksResolve } from './linksResolve.js';
 
 let opts: ValidationOptions;
 let session: Session;
@@ -33,6 +34,14 @@ describe('abstractLength', () => {
 describe('availabilityExists', () => {
   it('availabilityExists is valid check', async () => {
     expect(validateCheckDefinition(session, availabilityExists, opts)).toBeTruthy();
+    expect(opts.messages?.warnings?.length).toBeFalsy();
+    expect(opts.messages?.errors?.length).toBeFalsy();
+  });
+});
+
+describe('linksResolve', () => {
+  it('linksResolve is valid check', async () => {
+    expect(validateCheckDefinition(session, linksResolve, opts)).toBeTruthy();
     expect(opts.messages?.warnings?.length).toBeFalsy();
     expect(opts.messages?.errors?.length).toBeFalsy();
   });

@@ -5,6 +5,7 @@ import { clirun } from './utils.js';
 import { abstractExists } from '../check/examples/abstractExists.js';
 import { abstractLength } from '../check/examples/abstractLength.js';
 import { availabilityExists } from '../check/examples/availabilityExists.js';
+import { linksResolve } from '../check/examples/linksResolve.js';
 
 async function exampleChecks(session: ISession, file: string) {
   const report = await runChecks(
@@ -14,8 +15,9 @@ async function exampleChecks(session: ISession, file: string) {
       { id: 'abstract-exists' },
       { id: 'abstract-length', max: '400' },
       { id: 'availability-exists' },
+      { id: 'links-resolve' },
     ],
-    [abstractExists, abstractLength, availabilityExists],
+    [abstractExists, abstractLength, availabilityExists, linksResolve],
   );
   logCheckReport(session, report);
 }
