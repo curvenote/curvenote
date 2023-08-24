@@ -2,6 +2,8 @@ import inquirer from 'inquirer';
 import path from 'node:path';
 import type { Logger } from 'myst-cli-utils';
 import type { JsonObject, VersionId } from '@curvenote/blocks';
+import type { ISession } from '../session/types.js';
+import { OxaTransformer, transformOxalinkStore } from '../transforms/links.js';
 
 export const BUILD_FOLDER = '_build';
 export const THUMBNAILS_FOLDER = 'thumbnails';
@@ -38,4 +40,13 @@ export async function confirmOrExit(message: string, opts?: { yes?: boolean }) {
   if (!question.confirm) {
     throw new Error('Exiting');
   }
+}
+
+/** Add oxa link transformers to options */
+export function addOxaTransformersToOpts(session: ISession, opts: Record<string, any>) {
+  return {
+    ...opts,
+    extraLinkTransformers: [...(opts.extraLinkTransformers ?? []), new OxaTransformer(session)],
+    extraTransforms: [...(opts.extraTransforms ?? []), transformOxalinkStore as any],
+  };
 }

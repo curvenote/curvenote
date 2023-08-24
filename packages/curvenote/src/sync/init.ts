@@ -19,6 +19,7 @@ import { interactiveCloneQuestions } from './clone.js';
 import { pullProjects } from './pull.js';
 import questions from './questions.js';
 import { getDefaultProjectConfig, getDefaultSiteConfig, INIT_LOGO_PATH } from './utils.js';
+import { addOxaTransformersToOpts } from '../utils/utils.js';
 
 // TODO
 const CURVENOTE_YML = 'curvenote.yml';
@@ -205,7 +206,7 @@ export async function init(session: ISession, opts: Options) {
   if (start) {
     await pullProcess;
     session.log.info(chalk.dim('\nStarting local server with: '), chalk.bold('curvenote start'));
-    await startServer(session, opts);
+    await startServer(session, addOxaTransformersToOpts(session, opts));
   }
   await pullProcess;
 }
