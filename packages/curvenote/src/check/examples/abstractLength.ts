@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { selectFile } from 'myst-cli';
 import { TemplateOptionType, copyNode, extractPart, toText } from 'myst-common';
+import { count } from '@wordpress/wordcount';
 import type { ISession } from '../../session/types.js';
 import { CheckStatus } from '../types.js';
 import type { Check, CheckInterface } from '../types.js';
@@ -27,18 +28,18 @@ export const abstractLength: CheckInterface = {
     if (!abstract) {
       return { status: CheckStatus.error, message: `No abstract found`, file };
     }
-    const splitAbstract = toText(abstract).split(/\s+/);
-    if (splitAbstract.length > +options.max) {
+    const length = count(toText(abstract), 'words', {});
+    if (length > +options.max) {
       return {
         status: CheckStatus.fail,
-        message: `Abstract is too long: ${splitAbstract.length}/${options.max} words`,
+        message: `Abstract is too long: ${length}/${options.max} words`,
         file,
         position: abstract.position,
       };
     }
     return {
       status: CheckStatus.pass,
-      message: `Abstract is correct length: ${splitAbstract.length}/${options.max} words`,
+      message: `Abstract is correct length: ${length}/${options.max} words`,
       file,
       position: abstract.position,
     };
