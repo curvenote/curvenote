@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.20
+
+### Patch Changes
+
+- f418c3f9: Add check functionality to cli for manuscript validation
+
 ## 0.8.19
 
 ### Patch Changes
