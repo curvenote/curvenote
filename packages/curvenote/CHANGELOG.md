@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.21
+
+### Patch Changes
+
+- d0a4fb74: Update curvenote exports for check functions
+
 ## 0.8.20
 
 ### Patch Changes
