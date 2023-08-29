@@ -133,7 +133,7 @@ function makeJupyterBookExportCLI(program: Command) {
 // TODO naming
 function makeMultiExportCLI(program: Command) {
   const command = new Command('multi')
-    .description('Export multiple targets from Curvenote via local configuraton file')
+    .description('Export multiple targets from Curvenote via local configuration file')
     .action(clirun(exportContent, { program }));
   return command;
 }
