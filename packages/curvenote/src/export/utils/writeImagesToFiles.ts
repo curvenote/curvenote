@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import fetch from 'node-fetch';
+import mime from 'mime-types';
 import type { Logger } from 'myst-cli-utils';
 import type { Blocks } from '@curvenote/blocks';
 import type { Version } from '../../models.js';
@@ -8,23 +9,15 @@ import { Block } from '../../models.js';
 import { getImageSrc } from './getImageSrc.js';
 import type { ArticleState } from './walkArticle.js';
 
-// TODO: use mime-types package!
-// https://www.npmjs.com/package/mime-types
 function contentTypeToExt(contentType: string): string {
   switch (contentType) {
-    case 'image/gif':
-      return 'gif';
-    case 'image/png':
-      return 'png';
-    case 'image/jpg':
-    case 'image/jpeg':
+    case 'image/jpg': // non-standard
       return 'jpg';
-    case 'image/svg+xml':
-      return 'svg';
-    case 'application/json':
-      return 'json';
-    default:
+    default: {
+      const ext = mime.extension(contentType);
+      if (ext) return ext;
       throw new Error(`ContentType: "${contentType}" is not recognized as an extension.`);
+    }
   }
 }
 
