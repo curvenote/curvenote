@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.22
+
+### Patch Changes
+
+- e210119c: Extending mimetype support for file writing via the mime-types package.
+
 ## 0.8.21
 
 ### Patch Changes
