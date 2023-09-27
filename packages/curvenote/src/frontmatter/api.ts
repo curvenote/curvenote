@@ -1,7 +1,7 @@
 import type { Block, Project } from '@curvenote/blocks';
 import { oxaLink } from '@curvenote/blocks';
 import { affiliations, downloadAndSaveImage, selectors } from 'myst-cli';
-import type { Author, PageFrontmatter, ProjectFrontmatter } from 'myst-frontmatter';
+import type { Contributor, PageFrontmatter, ProjectFrontmatter } from 'myst-frontmatter';
 import {
   PAGE_FRONTMATTER_KEYS,
   PROJECT_FRONTMATTER_KEYS,
@@ -22,7 +22,7 @@ export function saveAffiliations(session: ISession, project: Project) {
   );
 }
 
-function resolveAffiliations(session: ISession, author: Author): Author {
+function resolveAffiliations(session: ISession, author: Contributor): Contributor {
   const { affiliations: authorAffiliations, ...rest } = author;
   if (!authorAffiliations) return { ...rest };
   const state = session.store.getState();
@@ -39,7 +39,7 @@ export function projectFrontmatterFromDTO(
 ): ProjectFrontmatter {
   const apiFrontmatter = filterKeys(project, PROJECT_FRONTMATTER_KEYS) as ProjectFrontmatter;
   if (apiFrontmatter.authors) {
-    apiFrontmatter.authors = apiFrontmatter.authors.map((author: Author) => {
+    apiFrontmatter.authors = apiFrontmatter.authors.map((author: Contributor) => {
       const resolvedAuthor = resolveAffiliations(session, author);
       delete resolvedAuthor.id;
       return resolvedAuthor;
@@ -90,7 +90,7 @@ export function pageFrontmatterFromDTO(
 ): PageFrontmatter {
   const apiFrontmatter = filterKeys(block, PAGE_FRONTMATTER_KEYS) as PageFrontmatter;
   if (apiFrontmatter.authors) {
-    apiFrontmatter.authors = apiFrontmatter.authors.map((author: Author) => {
+    apiFrontmatter.authors = apiFrontmatter.authors.map((author: Contributor) => {
       const resolvedAuthor = resolveAffiliations(session, author);
       delete resolvedAuthor.id;
       return resolvedAuthor;

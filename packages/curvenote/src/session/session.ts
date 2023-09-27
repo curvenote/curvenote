@@ -12,6 +12,7 @@ import {
 } from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger } from 'myst-cli-utils';
+import type { MystPlugin } from 'myst-common';
 import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
 import { checkForClientVersionRejection } from '../utils/index.js';
@@ -46,6 +47,7 @@ export class Session implements ISession {
   $tokens: Tokens = {};
   store: Store<RootState>;
   $logger: Logger;
+  plugins: MystPlugin | undefined;
 
   get log(): Logger {
     return this.$logger;
@@ -105,6 +107,13 @@ export class Session implements ISession {
       reloadAllConfigsForCurrentSite(this);
     }
     return this;
+  }
+
+  _pluginPromise: Promise<MystPlugin> | undefined;
+
+  async loadPlugins() {
+    // Todo: Copy MyST when loadPlugins is exported
+    return { directives: [], roles: [] };
   }
 
   setToken(token?: string) {
