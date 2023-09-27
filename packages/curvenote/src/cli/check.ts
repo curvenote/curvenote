@@ -7,10 +7,9 @@ import { abstractLength } from '../check/examples/abstractLength.js';
 import { availabilityExists } from '../check/examples/availabilityExists.js';
 import { linksResolve } from '../check/examples/linksResolve.js';
 
-async function exampleChecks(session: ISession, file: string) {
+async function exampleChecks(session: ISession) {
   const report = await runChecks(
     session,
-    file,
     [
       { id: 'abstract-exists' },
       { id: 'abstract-length', max: '400' },
@@ -25,7 +24,6 @@ async function exampleChecks(session: ISession, file: string) {
 export function makeCheckCLI(program: Command) {
   const command = new Command('check')
     .description('Run some example checks on your MyST project')
-    .argument('<file>', 'File to run checks on')
     .action(clirun(exampleChecks, { program }));
   return command;
 }
