@@ -1,5 +1,5 @@
 import pLimit from 'p-limit';
-import { checkLink, selectFile } from 'myst-cli';
+import { checkLink, loadProjectFromDisk, selectFile } from 'myst-cli';
 import type { GenericNode } from 'myst-common';
 import { selectAll } from 'unist-util-select';
 import type { ISession } from '../../session/types.js';
@@ -13,7 +13,8 @@ export const linksResolve: CheckInterface = {
   title: 'Links Resolve',
   description: 'Ensure all external URLs resolve',
   category: 'content',
-  validate: async (session: ISession, file: string) => {
+  validate: async (session: ISession) => {
+    const { file } = await loadProjectFromDisk(session);
     const { mdast } = selectFile(session, file) ?? {};
     if (!mdast) {
       return { status: CheckStatus.error, message: `Error loading content from ${file}` };

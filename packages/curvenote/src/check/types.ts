@@ -11,6 +11,7 @@ export type CheckDefinition = {
   category: string;
   options?: CheckOptionDefinition[];
   url?: string;
+  example?: string;
 };
 
 export enum CheckStatus {
@@ -27,11 +28,7 @@ export type CheckResult = {
 };
 
 export type CheckInterface = CheckDefinition & {
-  validate: (
-    session: ISession,
-    file: string,
-    options: Check,
-  ) => Promise<CheckResult | CheckResult[]>;
+  validate: (session: ISession, options: Check) => Promise<CheckResult | CheckResult[]>;
 };
 
 export type Check = {

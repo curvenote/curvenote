@@ -1,4 +1,4 @@
-import { validateAuthor } from 'myst-frontmatter';
+import { validateContributor } from 'myst-frontmatter';
 import type { ValidationOptions } from 'simple-validators';
 import { defined, incrementOptions, validateDate, validateList } from 'simple-validators';
 
@@ -15,7 +15,7 @@ export function validateExportConfigKeys(value: Record<string, any>, opts: Valid
       incrementOptions('authors', opts),
       (author, index) => {
         // NOTE: this will drop the affiliations
-        return validateAuthor(author, {}, incrementOptions(`authors.${index}`, opts));
+        return validateContributor(author, {}, incrementOptions(`authors.${index}`, opts));
       },
     );
   }

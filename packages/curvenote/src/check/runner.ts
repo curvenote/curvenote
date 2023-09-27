@@ -1,12 +1,5 @@
-import path from 'node:path';
 import chalk from 'chalk';
-import {
-  KNOWN_IMAGE_EXTENSIONS,
-  createTempFolder,
-  findCurrentProjectAndLoad,
-  getFileContent,
-  loadProjectFromDisk,
-} from 'myst-cli';
+import { build } from 'myst-cli';
 import { incrementOptions } from 'simple-validators';
 import type { ISession } from '../session/types.js';
 import { CheckStatus } from './types.js';
@@ -22,24 +15,11 @@ import { validateCheck } from './validators.js';
 
 export async function runChecks(
   session: ISession,
-  file: string,
   checks: Check[],
   checkDefinitions: CheckInterface[],
 ): Promise<CompiledCheckResults> {
   const opts = { property: 'checks', messages: {} };
-  if (!['.ipynb', '.md', '.tex'].includes(path.extname(file))) {
-    throw new Error('Currently checks are only supported on .md, .ipynb, and .tex files');
-  }
-  const projectPath = await findCurrentProjectAndLoad(session, path.dirname(file));
-  if (projectPath) {
-    await loadProjectFromDisk(session, projectPath);
-  }
-  await getFileContent(session, [file], createTempFolder(session), {
-    projectPath,
-    useExistingImages: true,
-    imageExtensions: KNOWN_IMAGE_EXTENSIONS,
-    simplifyFigures: false,
-  });
+  await build(session, [], { all: true, checkLinks: true });
   const completedChecks = await Promise.all(
     checks.map(async (check, index) => {
       const validCheck = validateCheck(
@@ -50,7 +30,7 @@ export async function runChecks(
       );
       if (!validCheck) return undefined;
       const checkDefinition = checkDefinitions.find((def) => check.id === def.id);
-      let result = await checkDefinition?.validate(session, file, validCheck);
+      let result = await checkDefinition?.validate(session, validCheck);
       if (!result) return;
       if (!Array.isArray(result)) result = [result];
       return result.map((res) => {
@@ -123,8 +103,14 @@ export function logCheckReport(session: ISession, completedChecks: CompiledCheck
     checks.forEach((check) => {
       const { message, file, position } = check;
       const fileSuffix = file ? ` - ${file}` : '';
-      const posSuffix = file && position ? `:${position.start}` : '';
-      const messageWithTitle = `${chalk.bold(check.title)}: ${message}${fileSuffix}${posSuffix}`;
+      const line = file && position?.start.line ? `:${position.start.line}` : '';
+      const column =
+        file && line && position?.start.column && position?.start.column > 1
+          ? `:${position.start.column}`
+          : '';
+      const messageWithTitle = `${chalk.bold(
+        check.title,
+      )}: ${message}${fileSuffix}${line}${column}`;
       if (check.status === CheckStatus.pass) {
         session.log.debug(checkPass(messageWithTitle, true, '        '));
       } else if (check.status === CheckStatus.error) {

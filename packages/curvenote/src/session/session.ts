@@ -6,12 +6,14 @@ import {
   config,
   findCurrentProjectAndLoad,
   findCurrentSiteAndLoad,
+  loadPlugins,
   logUpdateAvailable,
   reloadAllConfigsForCurrentSite,
   selectors,
 } from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger } from 'myst-cli-utils';
+import type { MystPlugin } from 'myst-common';
 import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
 import { checkForClientVersionRejection } from '../utils/index.js';
@@ -46,6 +48,7 @@ export class Session implements ISession {
   $tokens: Tokens = {};
   store: Store<RootState>;
   $logger: Logger;
+  plugins: MystPlugin | undefined;
 
   get log(): Logger {
     return this.$logger;
@@ -105,6 +108,16 @@ export class Session implements ISession {
       reloadAllConfigsForCurrentSite(this);
     }
     return this;
+  }
+
+  _pluginPromise: Promise<MystPlugin> | undefined;
+
+  async loadPlugins() {
+    // Early return if a promise has already been initiated
+    if (this._pluginPromise) return this._pluginPromise;
+    this._pluginPromise = loadPlugins(this);
+    this.plugins = await this._pluginPromise;
+    return this.plugins;
   }
 
   setToken(token?: string) {

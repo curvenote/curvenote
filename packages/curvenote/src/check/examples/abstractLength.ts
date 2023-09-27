@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { selectFile } from 'myst-cli';
+import { loadProjectFromDisk, selectFile } from 'myst-cli';
 import { TemplateOptionType, copyNode, extractPart, toText } from 'myst-common';
 import { count } from '@wordpress/wordcount';
 import type { ISession } from '../../session/types.js';
@@ -19,7 +19,8 @@ export const abstractLength: CheckInterface = {
       type: TemplateOptionType.string,
     },
   ],
-  validate: async (session: ISession, file: string, options: Check) => {
+  validate: async (session: ISession, options: Check) => {
+    const { file } = await loadProjectFromDisk(session);
     const { mdast } = selectFile(session, path.resolve(file)) ?? {};
     if (!mdast) {
       return { status: CheckStatus.error, message: `Error loading content`, file };
