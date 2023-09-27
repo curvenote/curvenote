@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.23
+
+### Patch Changes
+
+- 11bd87bd: Modify checks so they run on a MyST project, not a single file
+
 ## 0.8.22
 
 ### Patch Changes
