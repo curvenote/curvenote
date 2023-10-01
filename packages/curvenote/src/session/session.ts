@@ -2,6 +2,7 @@ import path from 'node:path';
 import fetch from 'node-fetch';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
+import type { BuildWarning } from 'myst-cli';
 import {
   config,
   findCurrentProjectAndLoad,
@@ -13,7 +14,7 @@ import {
 } from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger } from 'myst-cli-utils';
-import type { MystPlugin } from 'myst-common';
+import type { MystPlugin, RuleId } from 'myst-common';
 import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
 import { checkForClientVersionRejection } from '../utils/index.js';
@@ -92,12 +93,32 @@ export class Session implements ISession {
     this._shownUpgrade = true;
   }
 
+  _clones: ISession[] = [];
+
   clone() {
-    return new Session(this.$tokens?.session ?? this.$tokens?.user, {
+    const cloneSession = new Session(this.$tokens?.session ?? this.$tokens?.user, {
       logger: this.log,
       apiUrl: this.API_URL,
       siteUrl: this.SITE_URL,
     });
+    this._clones.push(cloneSession);
+    return cloneSession;
+  }
+
+  getAllWarnings(ruleId: RuleId) {
+    const stringWarnings: string[] = [];
+    const warnings: (BuildWarning & { file: string })[] = [];
+    [this, ...this._clones].forEach((session: ISession) => {
+      const sessionWarnings = selectors.selectFileWarningsByRule(session.store.getState(), ruleId);
+      sessionWarnings.forEach((warning) => {
+        const stringWarning = JSON.stringify(Object.entries(warning).sort());
+        if (!stringWarnings.includes(stringWarning)) {
+          stringWarnings.push(stringWarning);
+          warnings.push(warning);
+        }
+      });
+    });
+    return warnings;
   }
 
   reload() {
