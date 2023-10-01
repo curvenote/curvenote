@@ -129,12 +129,32 @@ export class Session implements ISession {
     this._shownUpgrade = true;
   }
 
+  _clones: ISession[] = [];
+
   clone() {
-    return new Session(this.$tokens?.session ?? this.$tokens?.user, {
+    const cloneSession = new Session(this.$tokens?.session ?? this.$tokens?.user, {
       logger: this.log,
       apiUrl: this.API_URL,
       siteUrl: this.SITE_URL,
     });
+    this._clones.push(cloneSession);
+    return cloneSession;
+  }
+
+  getAllWarnings(ruleId: RuleId) {
+    const stringWarnings: string[] = [];
+    const warnings: (BuildWarning & { file: string })[] = [];
+    [this, ...this._clones].forEach((session: ISession) => {
+      const sessionWarnings = selectors.selectFileWarningsByRule(session.store.getState(), ruleId);
+      sessionWarnings.forEach((warning) => {
+        const stringWarning = JSON.stringify(Object.entries(warning).sort());
+        if (!stringWarnings.includes(stringWarning)) {
+          stringWarnings.push(stringWarning);
+          warnings.push(warning);
+        }
+      });
+    });
+    return warnings;
   }
 
   reload() {
