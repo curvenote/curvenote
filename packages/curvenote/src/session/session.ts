@@ -3,6 +3,7 @@ import fetch from 'node-fetch';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
 import {
+  BuildWarning,
   config,
   findCurrentProjectAndLoad,
   findCurrentSiteAndLoad,
@@ -13,7 +14,7 @@ import {
 } from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger } from 'myst-cli-utils';
-import type { MystPlugin } from 'myst-common';
+import type { MystPlugin, RuleId } from 'myst-common';
 import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
 import { checkForClientVersionRejection } from '../utils/index.js';
@@ -63,6 +64,7 @@ export class Session implements ISession {
     this.$logger = opts.logger ?? basicLogger(LogLevel.info);
     const url = this.setToken(token);
     this.API_URL = opts.apiUrl ?? url ?? DEFAULT_API_URL;
+    this.log.debug(`Connecting to API at: "${this.API_URL}".`);
     this.SITE_URL =
       opts.siteUrl ?? (this.API_URL === LOCAL_API_URL ? LOCAL_SITE_URL : DEFAULT_SITE_URL);
     if (this.API_URL !== DEFAULT_API_URL) {
@@ -78,6 +80,13 @@ export class Session implements ISession {
 
   _shownUpgrade = false;
   _latestVersion?: string;
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getAllWarnings(ruleId: RuleId): (BuildWarning & {
+    file: string;
+  })[] {
+    return [];
+  }
 
   showUpgradeNotice() {
     if (this._shownUpgrade || !this._latestVersion || version === this._latestVersion) return;

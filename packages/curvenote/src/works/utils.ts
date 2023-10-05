@@ -4,6 +4,7 @@ import type { CreateSubmissionBody, UpdateSubmissionBody, WorkBody } from '../ut
 import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
 
+// export const JOURNALS_API_URL = 'https://journals.curvenote.com/v1/';
 // export const JOURNALS_API_URL = 'https://journals.curvenote.dev/v1/';
 export const JOURNALS_API_URL = 'http://localhost:3031/v1/';
 
