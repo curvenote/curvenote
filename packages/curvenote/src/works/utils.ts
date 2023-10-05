@@ -72,9 +72,13 @@ export async function postNewWork(session: ISession, cdnKey: string, cdn: string
     session.log.debug(`Work Id: ${resp.json.id}`);
     session.log.debug(`Work Version Id: ${resp.json.version_id}`);
     return {
-      cdnKey,
-      workId: resp.json.id,
-      workVersionId: resp.json.version_id,
+      ok: resp.ok,
+      status: resp.status,
+      json: {
+        cdnKey,
+        workId: resp.json.id,
+        workVersionId: resp.json.version_id,
+      },
     };
   } else {
     throw new Error('Posting new work failed: Please contact support@curvenote.com');
@@ -89,7 +93,7 @@ export async function postNewWorkVersion(
 ) {
   const toc = tic();
 
-  const resp = await postToJournals(session, `works/${workId}`, { id: cdnKey, cdn });
+  const resp = await postToJournals(session, `works/${workId}/versions`, { id: cdnKey, cdn });
 
   if (resp.ok) {
     session.log.info(toc(`🚀 Submitted a new work version in %s.`));
@@ -97,9 +101,13 @@ export async function postNewWorkVersion(
     session.log.debug(`Work Id: ${resp.json.id}`);
     session.log.debug(`Work Version Id: ${resp.json.version_id}`);
     return {
-      cdnKey,
-      workId: resp.json.id,
-      workVersionId: resp.json.version_id,
+      ok: resp.ok,
+      status: resp.status,
+      json: {
+        cdnKey,
+        workId: resp.json.id,
+        workVersionId: resp.json.version_id,
+      },
     };
   } else {
     throw new Error('Posting new version of the work failed: Please contact support@curvenote.com');
@@ -119,9 +127,7 @@ export async function submitToVenue(
     session.log.info(toc(`🚀 Submitted to venue "${venue}" in %s.`));
     session.log.debug(`Submission id: ${resp.json.id}`);
     session.log.debug(`Submitted by: ${resp.json.submitted_by.name ?? resp.json.submitted_by.id}`);
-    return {
-      submissionId: resp.json.id,
-    };
+    return resp;
   } else {
     throw new Error('Submission failed: Please contact support@curvenote.com');
   }

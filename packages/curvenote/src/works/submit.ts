@@ -3,7 +3,7 @@ import type { ISession } from '../session/types.js';
 import { confirmOrExit } from '../utils/index.js';
 import chalk from 'chalk';
 import { getFromJournals, submitToVenue } from './utils.js';
-import { loadTransferFile } from './transfer.js';
+import { loadTransferFile, upwriteTransferFile } from './transfer.js';
 import inquirer from 'inquirer';
 
 function kindQuestions(kinds: { name: string }[]) {
@@ -45,7 +45,7 @@ export async function submit(
   const site = await getFromJournals(session, `sites/${venue}`);
   if (!site.ok) {
     session.log.info(`${chalk.red(`👩🏻‍🔬 venue ${venue} not found, please check the venue name`)}`);
-    throw new Error('Exiting');
+    process.exit(1);
   }
   session.log.info(`${chalk.green(`👩🏻‍🔬 venue ${venue} is accepting submissions`)}`);
 
@@ -55,33 +55,35 @@ export async function submit(
         `🧐 It looks like your "transfer.yml" might be invalid, cannot complete your submission.`,
       )}`,
     );
-    throw new Error('Exiting');
+    process.exit(1);
   }
 
   const kinds = await getFromJournals(session, `sites/${venue}/kinds`);
   if (!kinds.ok) {
-    session.log.info(`${chalk.red(`🚨 could not get submission kinds from venue ${venue}`)}`);
-    throw new Error('Exiting');
+    session.log.info(
+      `${chalk.red(`🚨 could not get submission kinds listing from venue ${venue}`)}`,
+    );
+    process.exit(1);
   }
 
   let kind;
   if (opts?.kind) {
     if (
-      !kinds.json
+      !kinds.json.items
         .map(({ name }: { name: string }) => name.toLowerCase())
         .includes(opts.kind.toLowerCase())
     ) {
       session.log.info(
         `${chalk.red(`🚨 submission kind "${opts.kind}" is not accepted at venue ${venue}`)}`,
       );
-      throw new Error('Exiting');
+      process.exit(1);
     }
     kind = opts?.kind;
   } else if (kinds.json.length === 1) {
     kind = kinds.json[0].name;
   } else {
-    const response = await inquirer.prompt([kindQuestions(kinds.json)]);
-    kind = response.content;
+    const response = await inquirer.prompt([kindQuestions(kinds.json.items)]);
+    kind = response.kinds;
   }
 
   session.log.info(
@@ -92,7 +94,9 @@ export async function submit(
   await confirmOrExit(`Submit your work to "${venue}" with this metadata?`, opts);
 
   try {
-    await submitToVenue(session, venue, transferData.work_version_id, kind);
+    const resp = await submitToVenue(session, venue, transferData.work_version_id, kind);
+    const submission_id = resp.json.id;
+    await upwriteTransferFile({ submission_id });
     session.log.info(
       `\n\n🚀 ${chalk.bold.green(`Your work was successfully submitted to ${venue}`)}.`,
     );
@@ -100,7 +104,7 @@ export async function submit(
       `The "./transfer.yml" file has been updated with the new work version's id, please commit this change.`,
     );
   } catch (err: any) {
-    session.log.info(`\n\n🚀 ${chalk.bold.red('Could not submit your work')}.`);
-    session.log.info(`\n\n🚀 ${chalk.bold(err.message)}.`);
+    session.log.info(`\n\n🚨 ${chalk.bold.red('Could not submit your work')}.`);
+    session.log.info(`\n\n📣 ${chalk.bold(err.message)}.`);
   }
 }

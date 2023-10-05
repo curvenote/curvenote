@@ -38,7 +38,7 @@ export async function confirmOrExit(message: string, opts?: { yes?: boolean }) {
     },
   ]);
   if (!question.confirm) {
-    throw new Error('Exiting');
+    process.exit();
   }
 }
 

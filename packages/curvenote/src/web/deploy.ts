@@ -184,11 +184,15 @@ Otherwise, private hosting on Curvenote is in beta, contact support@curvenote.co
       // TODO switch to private cdn once journals API can access it
       // const cdn = `https://prv.curvenote.com`;
       const cdn = `https://cdn.curvenote.com`;
-      const { workId, workVersionId } = await postNewWork(session, cdnKey, cdn);
+      const {
+        json: { workId, workVersionId },
+      } = await postNewWork(session, cdnKey, cdn);
       // TODO check for venue (site)
       // TODO ask for kinds that the venue accepts
       const kind = 'project'; // TODO only woorks for tellus!!
-      const { submissionId } = await submitToVenue(session, opts.venue, workVersionId, kind);
+      const {
+        json: { submissionId },
+      } = await submitToVenue(session, opts.venue, workVersionId, kind);
       session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed')}.`);
       session.log.info(
         `\nYour content remains private, and has been submitted to "${opts.venue}".`,
