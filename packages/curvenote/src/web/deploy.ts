@@ -18,7 +18,7 @@ import type {
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
 import { addOxaTransformersToOpts, confirmOrExit } from '../utils/index.js';
-import { SiteConfig } from 'myst-config';
+import type { SiteConfig } from 'myst-config';
 
 type FromTo = {
   from: string;
@@ -161,40 +161,82 @@ export async function processUpload(
   return { cdnKey };
 }
 
-export async function uploadContentAndDeployToPrivateCdn(
-  session: ISession,
-  opts?: { ci?: boolean },
-) {
-  return '12345-qwert-09876-asdfg';
-}
-
-export async function uploadContentAndDeployToPublicCdn(
-  session: ISession,
-  opts?: { ci?: boolean },
-) {
+/**
+ * Upload content to the (private) staging bucket
+ *
+ * @param session
+ * @param opts
+ * @returns cdnkey and filepaths for deployment
+ */
+async function uploadContent(session: ISession, opts?: { ci?: boolean }) {
   const { files, uploadRequest } = await prepareUploadRequest(session);
-
   const { json: uploadTargets } = await session.post<SiteUploadResponse>('/sites/upload', {
     ...uploadRequest,
-    private: false,
   });
-
   const { cdnKey } = await processUpload(session, files, uploadTargets, opts);
+  return { cdnKey, filepaths: files.map(({ to }) => ({ path: to })) };
+}
 
+/**
+ * Deploy content to the public/private CDN based on the usePublicCdn argument
+ *
+ * @param session
+ * @param usePublicCdn whether to deploy to the public CDN or default private CDN
+ * @param cdnKey
+ * @param filepaths
+ * @returns cdnkey
+ */
+async function deployContent(
+  session: ISession,
+  privacy: { public: boolean },
+  cdnKey: string,
+  filepaths: { path: string }[],
+) {
   const toc = tic();
   const deployRequest: SiteDeployRequest = {
+    public: privacy.public,
     id: cdnKey,
-    files: files.map(({ to }) => ({ path: to })),
+    files: filepaths,
   };
   const deployResp = await session.post('/sites/deploy', deployRequest);
 
   if (deployResp.ok) {
-    session.log.info(toc(`🚀 Deployed ${files.length} files in %s.`));
+    session.log.info(toc(`🚀 Deployed ${filepaths.length} files in %s.`));
     session.log.debug(`CDN key: ${cdnKey}`);
   } else {
     throw new Error('Deployment failed: Please contact support@curvenote.com!');
   }
   return cdnKey;
+}
+
+/**
+ * Perform PRIVATE CDN upload and deployment
+ *
+ * @param session
+ * @param opts
+ * @returns cdnkey
+ */
+export async function uploadContentAndDeployToPrivateCdn(
+  session: ISession,
+  opts?: { ci?: boolean },
+) {
+  const { cdnKey, filepaths } = await uploadContent(session, opts);
+  return await deployContent(session, { public: false }, cdnKey, filepaths);
+}
+
+/**
+ * Perform PUBLIC CDN upload and deployment
+ *
+ * @param session
+ * @param opts
+ * @returns cdnkey
+ */
+export async function uploadContentAndDeployToPublicCdn(
+  session: ISession,
+  opts?: { ci?: boolean },
+) {
+  const { cdnKey, filepaths } = await uploadContent(session, opts);
+  return await deployContent(session, { public: true }, cdnKey, filepaths);
 }
 
 export async function preflightPromotePublicContent(session: ISession, domains?: string[]) {
@@ -205,9 +247,34 @@ export async function preflightPromoteToVenue(
   session: ISession,
   cdnKey: string,
   domains?: string[],
-) {}
+) {
+  // TODO throw on no permission to submit to venue
+}
 
-export async function promoteToVenue(session: ISession, cdnKey: string, venue: string) {}
+interface VenueSubmitRequest {
+  id: string;
+  username: string;
+}
+
+export async function promoteToVenue(
+  session: ISession,
+  cdnKey: string,
+  venue: string,
+  username: string,
+) {
+  const toc = tic();
+  const sumbissionRequest: VenueSubmitRequest = {
+    id: cdnKey,
+    username,
+  };
+  const deployResp = { ok: true }; //await session.post(`/venues/${venue}/submit`, deployRequest);
+  if (deployResp.ok) {
+    session.log.info(toc(`🚀 Submitted to venue "${venue}" in %s.`));
+    session.log.debug(`CDN key: ${cdnKey}`);
+  } else {
+    throw new Error('Submission failed: Please contact support@curvenote.com');
+  }
+}
 
 export async function promotePublicContent(session: ISession, cdnKey: string, domains?: string[]) {
   const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState());
@@ -231,20 +298,24 @@ export async function promotePublicContent(session: ISession, cdnKey: string, do
       ).filter((s): s is DnsRouter => !!s)
     : [];
 
+  if (errorDomains.length === 0)
+    session.log.info(`\n\n${chalk.bold.green('🚀 Website successfully deployed')}`);
+
   const allSites = sites.map((s) => `https://${s.id}`).join('\n  - ');
   if (allSites.length > 0) {
     session.log.info(
       toc(
         `🌍 Site promoted to ${sites.length} domain${
           sites.length > 1 ? 's' : ''
-        } in %s:\n\n  - ${allSites}`,
+        } in %s:\n  - ${allSites}`,
       ),
     );
   }
   session.log.info(
-    '\n\n⚠️  https://curve.space is in beta. Please ensure you have a copy of your content locally.',
+    '\n⚠️  https://curve.space is in beta. Please ensure you have a copy of your content locally.',
   );
   if (errorDomains.length > 0) {
+    session.log.info(`\n\n${chalk.bold.red('⚠️ Could not deploy to some domains!')}`);
     throw Error(
       `Error promoting site(s): ${errorDomains.join(
         ', ',
@@ -350,26 +421,22 @@ export async function deploy(
     }
     case 'private-venue': {
       const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
-      await promoteToVenue(session, cdnKey, opts.venue!);
-      session.log.info(`\n\n\t ${chalk.bold.green('Content successfully deployed')} 🚀
-
-        Your content remains private, and has been submitted to ${opts.venue} with your username ${
-          me.data.username
-        }.
-      
-        The private CDN Key is ${chalk.bold(cdnKey)}
-        `);
+      await promoteToVenue(session, cdnKey, opts.venue!, me.data.username);
+      session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed')}`);
+      session.log.info(`\nYour content remains private, and has been submitted to "${opts.venue}"`);
+      session.log.info(
+        `\nYour private CDN Key for this content is ${chalk.bold.yellow(cdnKey)}\n\n`,
+      );
       break;
     }
     default: {
       const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
-      session.log.info(`\n\n\t ${chalk.bold.green('Content successfully deployed')} 🚀
-
-        Your private CDN Key is ${chalk.bold(cdnKey)}
-
-        Private hosting on Curvenote is in beta, contact support@curvenote.com for access.
-
-        `);
+      session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed')}`);
+      session.log.info(`\nYour content remains private.`);
+      session.log.info(`\nYour private CDN Keyfor this content is ${chalk.bold.yellow(cdnKey)}`);
+      session.log.info(
+        `\nPrivate hosting on Curvenote is in beta, contact support@curvenote.com for an invite\n\n`,
+      );
       // TODO run `curvenote works list` to show all private works
     }
   }

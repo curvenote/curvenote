@@ -36,6 +36,7 @@ export interface SiteUploadResponse {
 }
 
 export interface SiteDeployRequest {
+  public: boolean;
   id: string;
   files: { path: string }[];
 }
