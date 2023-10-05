@@ -31,7 +31,7 @@ export async function submit(
     throw new Error('🧐 No site config found.');
   }
 
-  const transferData = await loadTransferFile();
+  const transferData = await loadTransferFile(session);
   // TODO force / ci - just create the work anyways
   if (!transferData) {
     session.log.info(
@@ -96,7 +96,7 @@ export async function submit(
   try {
     const resp = await submitToVenue(session, venue, transferData.work_version_id, kind);
     const submission_id = resp.json.id;
-    await upwriteTransferFile({ submission_id });
+    await upwriteTransferFile(session, { submission_id });
     session.log.info(
       `\n\n🚀 ${chalk.bold.green(`Your work was successfully submitted to ${venue}`)}.`,
     );

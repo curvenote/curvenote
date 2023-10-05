@@ -17,7 +17,7 @@ export async function create(session: ISession, opts?: { ci?: boolean; yes?: boo
     throw new Error('🧐 No site config found.');
   }
 
-  const transferData = await loadTransferFile();
+  const transferData = await loadTransferFile(session);
   if (!transferData?.work_id) {
     await confirmOrExit(`Upload a new work based on contents of your local folder?`, opts);
   } else {
@@ -44,13 +44,13 @@ export async function create(session: ISession, opts?: { ci?: boolean; yes?: boo
     session.log.info(
       `Your work id has been added to the "./transfer.yml" file, please commit this to your repository to enable version and submission tracking.`,
     );
-    await upwriteTransferFile({ work_id: workId, work_version_id: workVersionId });
+    await upwriteTransferFile(session, { work_id: workId, work_version_id: workVersionId });
   } else {
     const { work_id } = transferData;
     const {
       json: { workVersionId },
     } = await postNewWorkVersion(session, work_id, cdnKey, cdn);
-    await upwriteTransferFile({ work_id, work_version_id: workVersionId });
+    await upwriteTransferFile(session, { work_id, work_version_id: workVersionId });
     session.log.info(`\n\n🚀 ${chalk.bold.green('Your work was successfully posted')}.`);
     session.log.info(
       `The "./transfer.yml" file has been updated with the new work version's id, please commit this change.`,

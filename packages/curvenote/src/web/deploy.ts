@@ -7,11 +7,9 @@ import type { ISession } from '../session/types.js';
 import {
   addOxaTransformersToOpts,
   confirmOrExit,
-  uploadContentAndDeployToPrivateCdn,
   uploadContentAndDeployToPublicCdn,
 } from '../utils/index.js';
 import type { SiteConfig } from 'myst-config';
-import { postNewWork, submitToVenue } from '../works/utils.js';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function preflightPromotePublicContent(session: ISession, domains?: string[]) {
