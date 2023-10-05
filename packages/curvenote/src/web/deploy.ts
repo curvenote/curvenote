@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import chalk from 'chalk';
 import cliProgress from 'cli-progress';
 import fs from 'node:fs';
 import mime from 'mime-types';
@@ -17,6 +18,7 @@ import type {
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
 import { addOxaTransformersToOpts, confirmOrExit } from '../utils/index.js';
+import { SiteConfig } from 'myst-config';
 
 type FromTo = {
   from: string;
@@ -96,7 +98,7 @@ async function uploadFile(log: Logger, upload: FileUpload) {
   log.debug(toc(`Finished upload of ${upload.from} in %s.`));
 }
 
-export async function deployContentToCdn(session: ISession, opts?: { ci?: boolean }) {
+export async function prepareUploadRequest(session: ISession) {
   const filesToUpload = listFolderContents(session, session.sitePath());
   session.log.info(`🔬 Preparing to upload ${filesToUpload.length} files`);
 
@@ -112,11 +114,16 @@ export async function deployContentToCdn(session: ISession, opts?: { ci?: boolea
       size,
     })),
   };
-  const { json: uploadTargets } = await session.post<SiteUploadResponse>(
-    '/sites/upload',
-    uploadRequest,
-  );
 
+  return { files, uploadRequest };
+}
+
+export async function processUpload(
+  session: ISession,
+  files: FileInfo[],
+  uploadTargets: SiteUploadResponse,
+  opts?: { ci?: boolean },
+) {
   // Only upload N files at a time
   const limit = pLimit(10);
   const bar1 = opts?.ci
@@ -124,8 +131,8 @@ export async function deployContentToCdn(session: ISession, opts?: { ci?: boolea
     : new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
   session.log.info(`☁️  Uploading ${files.length} files`);
   bar1?.start(files.length, 0);
-  let current = 0;
   const toc = tic();
+  let current = 0;
   await Promise.all(
     files.map((file) =>
       limit(async () => {
@@ -151,7 +158,30 @@ export async function deployContentToCdn(session: ISession, opts?: { ci?: boolea
   session.log.info(toc(`☁️  Uploaded ${files.length} files in %s.`));
 
   const cdnKey = uploadTargets.id;
+  return { cdnKey };
+}
 
+export async function uploadContentAndDeployToPrivateCdn(
+  session: ISession,
+  opts?: { ci?: boolean },
+) {
+  return '12345-qwert-09876-asdfg';
+}
+
+export async function uploadContentAndDeployToPublicCdn(
+  session: ISession,
+  opts?: { ci?: boolean },
+) {
+  const { files, uploadRequest } = await prepareUploadRequest(session);
+
+  const { json: uploadTargets } = await session.post<SiteUploadResponse>('/sites/upload', {
+    ...uploadRequest,
+    private: false,
+  });
+
+  const { cdnKey } = await processUpload(session, files, uploadTargets, opts);
+
+  const toc = tic();
   const deployRequest: SiteDeployRequest = {
     id: cdnKey,
     files: files.map(({ to }) => ({ path: to })),
@@ -167,7 +197,19 @@ export async function deployContentToCdn(session: ISession, opts?: { ci?: boolea
   return cdnKey;
 }
 
-export async function promoteContent(session: ISession, cdnKey: string, domains?: string[]) {
+export async function preflightPromotePublicContent(session: ISession, domains?: string[]) {
+  // TODO throw on no permission to promote to any domain
+}
+
+export async function preflightPromoteToVenue(
+  session: ISession,
+  cdnKey: string,
+  domains?: string[],
+) {}
+
+export async function promoteToVenue(session: ISession, cdnKey: string, venue: string) {}
+
+export async function promotePublicContent(session: ISession, cdnKey: string, domains?: string[]) {
   const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState());
   if (!siteConfig) throw new Error('🧐 No site config found.');
   const toc = tic();
@@ -211,9 +253,43 @@ export async function promoteContent(session: ISession, cdnKey: string, domains?
   }
 }
 
+type DeploymentStrategy =
+  | 'public'
+  | 'private'
+  | 'public-venue'
+  | 'private-venue'
+  | 'default-private';
+
+/**
+ * Determine how deployment should be done based on the options and site config
+ *
+ * @returns 'public' | 'private' | 'private-venue'
+ */
+export function resolveDeploymentStrategy(
+  siteConfig: SiteConfig,
+  opts: { domain?: string; private?: boolean; venue?: string },
+): DeploymentStrategy {
+  // private means private
+  if (opts.private) return 'private';
+
+  // if a venue is specified, then it is private and takes precedence over domain
+  if (opts.venue) return 'private-venue';
+
+  const hasDomain = opts.domain ?? siteConfig.domains;
+  if (hasDomain) return 'public';
+
+  // default to private
+  return 'default-private';
+}
+
 export async function deploy(
   session: ISession,
-  opts: Parameters<typeof buildSite>[1] & { ci?: boolean; domain?: string },
+  opts: Parameters<typeof buildSite>[1] & {
+    ci?: boolean;
+    domain?: string;
+    private?: boolean;
+    venue?: string;
+  },
 ): Promise<void> {
   if (session.isAnon) {
     throw new Error(
@@ -221,26 +297,91 @@ export async function deploy(
     );
   }
   const me = await new MyUser(session).get();
-  // Do a bit of prework to ensure that the domains exists in the config file
+  // determine how to deploy based on config and options
   const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState());
   if (!siteConfig) {
     throw new Error('🧐 No site config found.');
   }
+
+  const strategy = resolveDeploymentStrategy(siteConfig, opts);
   const domains = opts.domain ? [opts.domain] : siteConfig?.domains;
-  if (!domains || domains.length === 0) {
-    throw new Error(
-      `🧐 No domains specified, use config.site.domains: - ${me.data.username}.curve.space`,
-    );
+
+  // do confirmation for all strategies up-front
+  // TODO check upload and promotion authorisations up front
+  switch (strategy) {
+    case 'private':
+      await confirmOrExit(`🔓 Deploy local content privately.`, opts);
+      break;
+    // TODO public-venue?
+    case 'public': {
+      if (!domains || domains.length === 0) {
+        throw new Error(`🚨 Internal Error: No domains specified during public deployment`);
+      }
+      await confirmOrExit(
+        `Deploy local content to "${domains.map((d) => `https://${d}`).join('", "')}"?`,
+        opts,
+      );
+      break;
+    }
+    case 'public-venue': {
+      throw new Error('Not implemented');
+      break;
+    }
+    case 'private-venue': {
+      if (!opts.venue)
+        throw new Error(`🚨 Internal Error: No value specified during venue deployment`);
+      await confirmOrExit(`Deploy local content privately and submit to "${opts.venue}"?`, opts);
+      break;
+    }
+    default:
+      await confirmOrExit(
+        `🧐 No domains or venues are specified, local content will be deployed privately.
+
+        To deploy a public website, add config.site.domains: - ${me.data.username}.curve.space to your config file 
+        or use the --domain flag.
+
+        To deploy privately and submit to a venue, use the --venue flag.
+
+        Otherwise, private hosting on Curvenote is in beta, contact support@curvenote.com for access.
+        `,
+        opts,
+      );
   }
-  await confirmOrExit(
-    `Deploy local content to "${domains.map((d) => `https://${d}`).join('", "')}"?`,
-    opts,
-  );
-  session.log.info('\n\n\t✨✨✨  Deploying Curvenote  ✨✨✨\n\n');
+
+  // carry out common cleaning and building
+  session.log.info('\n\n\t✨✨✨  Deploying Content to Curvenote  ✨✨✨\n\n');
   // clean the site folder, otherwise downloadable files will accumulate
   await clean(session, [], { site: true, yes: true });
   // Build the files in the content folder and process them
   await buildSite(session, addOxaTransformersToOpts(session, opts));
-  const cdnKey = await deployContentToCdn(session, opts);
-  await promoteContent(session, cdnKey, domains);
+
+  switch (strategy) {
+    case 'public': {
+      await preflightPromotePublicContent(session, domains);
+      const cdnKey = await uploadContentAndDeployToPublicCdn(session, opts);
+      await promotePublicContent(session, cdnKey, domains);
+      break;
+    }
+    case 'public-venue': {
+      throw new Error('Not implemented');
+      break;
+    }
+    case 'private-venue': {
+      await preflightPromoteToVenue(session, opts.venue!);
+      const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
+      await promoteToVenue(session, cdnKey, opts.venue!);
+      break;
+    }
+    default: {
+      const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
+      session.log.info(`\n\n\t ${chalk.bold.green('Content successfully deployed')} 🚀
+
+        Your private CDN Key is ${chalk.bold(cdnKey)}
+
+        Private hosting on Curvenote is in beta, contact support@curvenote.com for access.
+
+        `);
+      // TODO run `curvenote works list` to show all private works
+    }
+  }
 }

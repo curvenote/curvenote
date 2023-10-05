@@ -23,7 +23,7 @@
     "eslint-config-curvenote": "^0.0.3",
     "prettier": "latest",
     "turbo": "latest",
-    "vitest": "^0.32.0"
+    "vitest": "^0.32.4"
   },
   "engines": {
     "npm": ">=7.0.0",

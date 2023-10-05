@@ -11,6 +11,20 @@ export function makeDomainOption() {
   ).default(undefined);
 }
 
+export function makePrivateOption() {
+  return new Option(
+    '--private',
+    'Specify that the deployment should be private, overriding any domain setting in the configuration file.',
+  ).default(false);
+}
+
+export function makeVenueOption() {
+  return new Option(
+    '--venue <string>',
+    'Specify a venue to deploy to. A private deployment will be made and submitted to the venue.',
+  ).default(undefined);
+}
+
 export function makeBranchOption() {
   return new Option(
     '--branch <branch>',
