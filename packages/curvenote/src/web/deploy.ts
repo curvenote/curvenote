@@ -505,8 +505,8 @@ Otherwise, private hosting on Curvenote is in beta, contact support@curvenote.co
         `\nYour content remains private, and has been submitted to "${opts.venue}".`,
       );
       session.log.info(`\nYour private CDN Key for this content is ${chalk.bold.yellow(cdnKey)}`);
-      session.log.info(`The submitted Work Id is ${chalk.bold.yellow(workId)}`);
-      session.log.info(`The submition Id is ${chalk.bold.yellow(submissionId)}\n\n`);
+      session.log.info(`The Work Id is ${chalk.bold.yellow(workId)}`);
+      session.log.info(`The Submission Id is ${chalk.bold.yellow(submissionId)}\n\n`);
       break;
     }
     default: {
