@@ -2,13 +2,23 @@ import { selectors } from 'myst-cli';
 import type { ISession } from '../session/types.js';
 import { confirmOrExit } from '../utils/index.js';
 import chalk from 'chalk';
-import { submitToVenue } from './utils.js';
+import { getFromJournals, submitToVenue } from './utils.js';
 import { loadTransferFile } from './transfer.js';
+import inquirer from 'inquirer';
+
+function kindQuestions(kinds: { name: string }[]) {
+  return {
+    name: 'kinds',
+    type: 'list',
+    message: 'What kind of submission are you making?',
+    choices: kinds.map(({ name }) => ({ name, value: name })),
+  };
+}
 
 export async function submit(
   session: ISession,
   venue: string,
-  opts?: { ci?: boolean; yes?: boolean },
+  opts?: { ci?: boolean; yes?: boolean; kind?: string },
 ) {
   if (session.isAnon) {
     throw new Error(
@@ -31,10 +41,13 @@ export async function submit(
     );
   }
 
-  // TODO check venue exists
-  session.log.info(
-    `${chalk.green(`👩🏻‍🔬 venue ${venue} is accepting submissions (TODO: check for real)`)}`,
-  );
+  // check venue exists
+  const site = await getFromJournals(session, `sites/${venue}`);
+  if (!site.ok) {
+    session.log.info(`${chalk.red(`👩🏻‍🔬 venue ${venue} not found, please check the venue name`)}`);
+    throw new Error('Exiting');
+  }
+  session.log.info(`${chalk.green(`👩🏻‍🔬 venue ${venue} is accepting submissions`)}`);
 
   if (!transferData?.work_id || !transferData?.work_version_id) {
     session.log.info(
@@ -45,21 +58,49 @@ export async function submit(
     throw new Error('Exiting');
   }
 
-  session.log.info(`🧾 Choose submission kind (TODO)`);
-  const kind = 'project';
+  const kinds = await getFromJournals(session, `sites/${venue}/kinds`);
+  if (!kinds.ok) {
+    session.log.info(`${chalk.red(`🚨 could not get submission kinds from venue ${venue}`)}`);
+    throw new Error('Exiting');
+  }
+
+  let kind;
+  if (opts?.kind) {
+    if (
+      !kinds.json
+        .map(({ name }: { name: string }) => name.toLowerCase())
+        .includes(opts.kind.toLowerCase())
+    ) {
+      session.log.info(
+        `${chalk.red(`🚨 submission kind "${opts.kind}" is not accepted at venue ${venue}`)}`,
+      );
+      throw new Error('Exiting');
+    }
+    kind = opts?.kind;
+  } else if (kinds.json.length === 1) {
+    kind = kinds.json[0].name;
+  } else {
+    const response = await inquirer.prompt([kindQuestions(kinds.json)]);
+    kind = response.content;
+  }
 
   session.log.info(
     `📖 work exists, let's confirm some details (title, desc, date, etc...) before submission (TODO)`,
   );
+  session.log.info(`🧾 Submission kind: ${kind}`);
 
   await confirmOrExit(`Submit your work to "${venue}" with this metadata?`, opts);
 
-  await submitToVenue(session, venue, transferData.work_version_id, kind);
-
-  session.log.info(
-    `\n\n🚀 ${chalk.bold.green(`Your work was successfully submitted to ${venue}`)}.`,
-  );
-  session.log.info(
-    `The "./transfer.yml" file has been updated with the new work version's id, please commit this change.`,
-  );
+  try {
+    await submitToVenue(session, venue, transferData.work_version_id, kind);
+    session.log.info(
+      `\n\n🚀 ${chalk.bold.green(`Your work was successfully submitted to ${venue}`)}.`,
+    );
+    session.log.info(
+      `The "./transfer.yml" file has been updated with the new work version's id, please commit this change.`,
+    );
+  } catch (err: any) {
+    session.log.info(`\n\n🚀 ${chalk.bold.red('Could not submit your work')}.`);
+    session.log.info(`\n\n🚀 ${chalk.bold(err.message)}.`);
+  }
 }

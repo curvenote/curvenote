@@ -7,6 +7,30 @@ import { tic } from 'myst-cli-utils';
 // export const JOURNALS_API_URL = 'https://journals.curvenote.dev/v1/';
 export const JOURNALS_API_URL = 'http://localhost:3031/v1/';
 
+export async function getFromJournals(session: ISession, pathname: string) {
+  const url = `${JOURNALS_API_URL}${pathname}`;
+  console.debug('Getting from', url);
+  const headers = await getHeaders(session.log, (session as any).$tokens);
+
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+  });
+
+  const json = (await response.json()) as any;
+  if (!response.ok) {
+    const dataString = JSON.stringify(json, null, 2);
+    session.log.debug(`GET FAILED ${url}: ${response.status}\n\n${dataString}`);
+  }
+  return {
+    ok: response.ok,
+    status: response.status,
+    json,
+  };
+}
+
 export async function postToJournals(
   session: ISession,
   pathname: string,

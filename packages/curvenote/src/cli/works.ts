@@ -12,6 +12,10 @@ function makeUpdateOption() {
   return new Option('--update <string>', 'Add a new version to an existing Work');
 }
 
+function makeKindOption() {
+  return new Option('--kind <string>', 'Submit to the venue using this submission kind');
+}
+
 function makeWorksCreateCLI(program: Command) {
   const command = new Command('create')
     .description('Create a new Work')
@@ -33,6 +37,8 @@ function makeWorkSubmitCLI(program: Command) {
   const command = new Command('submit')
     .description('Submit a Work to a Venue')
     .argument('<venue>', 'Venue to submit the work to')
+    .addOption(makeKindOption())
+    .addOption(makeYesOption())
     .action(clirun(works.submit, { program, requireSiteConfig: true }));
   return command;
 }
