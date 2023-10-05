@@ -112,57 +112,25 @@ export async function deploy(
       '⚠️ You must be authenticated for this call. Use `curvenote token set [token]`',
     );
   }
-  const me = await new MyUser(session).get();
-  // determine how to deploy based on config and options
+
   const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState());
   if (!siteConfig) {
     throw new Error('🧐 No site config found.');
   }
 
-  const strategy = opts.forcePublic ? 'public' : resolveDeploymentStrategy(siteConfig, opts);
+  const me = await new MyUser(session).get();
+
   const domains = opts.domain ? [opts.domain] : siteConfig?.domains;
-
-  // do confirmation for all strategies up-front
-  // TODO check upload and promotion authorisations up front
-  switch (strategy) {
-    // TODO public-venue?
-    case 'public': {
-      if (!domains || domains.length === 0) {
-        throw new Error(`🚨 Internal Error: No domains specified during public deployment`);
-      }
-      await confirmOrExit(
-        `Deploy local content to "${domains.map((d) => `https://${d}`).join('", "')}"?`,
-        opts,
-      );
-      await preflightPromotePublicContent(session, domains); // TODO check domains exist, and user can promote to them
-      break;
-    }
-    case 'private-venue': {
-      if (!opts.venue)
-        throw new Error(`🚨 Internal Error: No value specified during venue deployment`);
-      await confirmOrExit(`Deploy local content privately and submit to "${opts.venue}"?`, opts);
-      // TODO check for venue (site)
-      await preflightPromoteToVenue(session, opts.venue); // TODO check venue exists, and user can submit to it
-      break;
-    }
-    default: {
-      session.log.info(
-        `${chalk.bold(
-          '🧐 No domains or venues are specified, local content will be deployed privately.',
-        )}`,
-      );
-      session.log.info(`
-To deploy a public website, add config.site.domains: - ${
-        me.data.username
-      }.curve.space to your config file or use the --domain flag.
-
-To deploy privately ${chalk.bold('and')} submit to a venue, use the ${chalk.bold('--venue')} flag.
-        
-Otherwise, private hosting on Curvenote is in beta, contact support@curvenote.com for an invite!
-        `);
-      await confirmOrExit(`Continue with private deployment?`, opts);
-    }
+  if (!domains || domains.length === 0) {
+    throw new Error(
+      `🧐 No domains specified, use config.site.domains: - ${me.data.username}.curve.space`,
+    );
   }
+  await preflightPromotePublicContent(session, domains); // TODO check domains exist, and user can promote to them
+  await confirmOrExit(
+    `Deploy local content to "${domains.map((d) => `https://${d}`).join('", "')}"?`,
+    opts,
+  );
 
   // carry out common cleaning and building
   session.log.info('\n\n\t✨✨✨  Deploying Content to Curvenote  ✨✨✨\n\n');
@@ -171,49 +139,6 @@ Otherwise, private hosting on Curvenote is in beta, contact support@curvenote.co
   // Build the files in the content folder and process them
   await buildSite(session, addOxaTransformersToOpts(session, opts));
 
-  switch (strategy) {
-    case 'public': {
-      const cdnKey = await uploadContentAndDeployToPublicCdn(session, opts);
-      await promotePublicContent(session, cdnKey, domains);
-      break;
-    }
-    case 'private-venue': {
-      if (!opts.venue)
-        throw new Error(`🚨 Internal Error: No venue specified in 'private-venue' deployment`);
-      const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
-      // TODO switch to private cdn once journals API can access it
-      // const cdn = `https://prv.curvenote.com`;
-      const cdn = `https://cdn.curvenote.com`;
-      const {
-        json: { workId, workVersionId },
-      } = await postNewWork(session, cdnKey, cdn);
-      // TODO check for venue (site)
-      // TODO ask for kinds that the venue accepts
-      const kind = 'project'; // TODO only woorks for tellus!!
-      const {
-        json: { submissionId },
-      } = await submitToVenue(session, opts.venue, workVersionId, kind);
-      session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed')}.`);
-      session.log.info(
-        `\nYour content remains private, and has been submitted to "${opts.venue}".`,
-      );
-      session.log.info(`\nYour private CDN Key for this content is ${chalk.bold.yellow(cdnKey)}`);
-      session.log.info(`The Work Id is ${chalk.bold.yellow(workId)}`);
-      session.log.info(`The Submission Id is ${chalk.bold.yellow(submissionId)}\n\n`);
-      break;
-    }
-    default: {
-      const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
-      session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed.')}`);
-      session.log.info(`\nYour content remains private.`);
-      session.log.info(
-        `\nYour private CDN Keyfor this content is ${chalk.bold.yellow(cdnKey)}\n\n`,
-      );
-
-      session.log.info(
-        `\nPrivate hosting on Curvenote is in beta, contact support@curvenote.com for an invite!\n`,
-      );
-      // TODO run `curvenote works list` to show all private works
-    }
-  }
+  const cdnKey = await uploadContentAndDeployToPublicCdn(session, opts);
+  await promotePublicContent(session, cdnKey, domains);
 }
