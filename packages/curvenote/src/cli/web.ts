@@ -14,7 +14,6 @@ import {
   makeDocxOption,
   makeSiteOption,
   makeDomainOption,
-  makePrivateOption,
   makeVenueOption,
 } from './options.js';
 
@@ -52,7 +51,6 @@ function makeDeployCLI(program: Command) {
     .addOption(makeCIOption())
     .addOption(makeStrictOption())
     .addOption(makeDomainOption())
-    .addOption(makePrivateOption())
     .addOption(makeVenueOption())
     .addOption(makeCheckLinksOption())
     .action(clirun(web.deploy, { program, requireSiteConfig: true }));

@@ -11,13 +11,6 @@ export function makeDomainOption() {
   ).default(undefined);
 }
 
-export function makePrivateOption() {
-  return new Option(
-    '--private',
-    'Specify that the deployment should be private, overriding any domain setting in the configuration file.',
-  ).default(false);
-}
-
 export function makeVenueOption() {
   return new Option(
     '--venue <string>',

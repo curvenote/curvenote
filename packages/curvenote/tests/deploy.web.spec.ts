@@ -3,17 +3,6 @@ import * as web from '../src/web/index.js';
 
 describe('deploy.web', () => {
   describe('deployment strategy', () => {
-    test('private option overrides all others', () => {
-      const config = { domains: ['test2.curve.space', 'myblog.com'] };
-
-      const strategy = web.resolveDeploymentStrategy(config, {
-        private: true,
-        domain: 'test.curve.space',
-        venue: 'myjournal',
-      });
-
-      expect(strategy).toEqual('private');
-    });
     test('venue overrides domains', () => {
       const config = { domains: ['test2.curve.space', 'myblog.com'] };
 

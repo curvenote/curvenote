@@ -253,25 +253,17 @@ export async function promotePublicContent(session: ISession, cdnKey: string, do
   }
 }
 
-type DeploymentStrategy =
-  | 'public'
-  | 'private'
-  | 'public-venue'
-  | 'private-venue'
-  | 'default-private';
+type DeploymentStrategy = 'public' | 'private-venue' | 'default-private';
 
 /**
  * Determine how deployment should be done based on the options and site config
  *
- * @returns 'public' | 'private' | 'private-venue'
+ * @returns DeploymentStrategy
  */
 export function resolveDeploymentStrategy(
   siteConfig: SiteConfig,
-  opts: { domain?: string; private?: boolean; venue?: string },
+  opts: { domain?: string; venue?: string },
 ): DeploymentStrategy {
-  // private means private
-  if (opts.private) return 'private';
-
   // if a venue is specified, then it is private and takes precedence over domain
   if (opts.venue) return 'private-venue';
 
@@ -309,9 +301,6 @@ export async function deploy(
   // do confirmation for all strategies up-front
   // TODO check upload and promotion authorisations up front
   switch (strategy) {
-    case 'private':
-      await confirmOrExit(`🔓 Deploy local content privately.`, opts);
-      break;
     // TODO public-venue?
     case 'public': {
       if (!domains || domains.length === 0) {
@@ -321,10 +310,6 @@ export async function deploy(
         `Deploy local content to "${domains.map((d) => `https://${d}`).join('", "')}"?`,
         opts,
       );
-      break;
-    }
-    case 'public-venue': {
-      throw new Error('Not implemented');
       break;
     }
     case 'private-venue': {
@@ -360,10 +345,6 @@ export async function deploy(
       await preflightPromotePublicContent(session, domains);
       const cdnKey = await uploadContentAndDeployToPublicCdn(session, opts);
       await promotePublicContent(session, cdnKey, domains);
-      break;
-    }
-    case 'public-venue': {
-      throw new Error('Not implemented');
       break;
     }
     case 'private-venue': {
