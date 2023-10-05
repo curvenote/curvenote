@@ -310,12 +310,14 @@ export async function deploy(
         `Deploy local content to "${domains.map((d) => `https://${d}`).join('", "')}"?`,
         opts,
       );
+      await preflightPromotePublicContent(session, domains); // TODO check domains exist, and user can promote to them
       break;
     }
     case 'private-venue': {
       if (!opts.venue)
         throw new Error(`🚨 Internal Error: No value specified during venue deployment`);
       await confirmOrExit(`Deploy local content privately and submit to "${opts.venue}"?`, opts);
+      await preflightPromoteToVenue(session, opts.venue!); // TODO check venue exists, and user can submit to it
       break;
     }
     default:
@@ -342,15 +344,21 @@ export async function deploy(
 
   switch (strategy) {
     case 'public': {
-      await preflightPromotePublicContent(session, domains);
       const cdnKey = await uploadContentAndDeployToPublicCdn(session, opts);
       await promotePublicContent(session, cdnKey, domains);
       break;
     }
     case 'private-venue': {
-      await preflightPromoteToVenue(session, opts.venue!);
       const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
       await promoteToVenue(session, cdnKey, opts.venue!);
+      session.log.info(`\n\n\t ${chalk.bold.green('Content successfully deployed')} 🚀
+
+        Your content remains private, and has been submitted to ${opts.venue} with your username ${
+          me.data.username
+        }.
+      
+        The private CDN Key is ${chalk.bold(cdnKey)}
+        `);
       break;
     }
     default: {
