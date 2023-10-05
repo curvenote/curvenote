@@ -21,7 +21,11 @@ export interface WorkBody {
   cdn: string;
 }
 
-export interface SubmissionBody {
+export interface CreateSubmissionBody {
   work_version_id: string;
   kind: string;
+}
+
+export interface UpdateSubmissionBody {
+  work_version_id: string;
 }

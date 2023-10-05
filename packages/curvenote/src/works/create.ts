@@ -22,7 +22,9 @@ export async function create(session: ISession, opts?: { ci?: boolean; yes?: boo
     await confirmOrExit(`Upload a new work based on contents of your local folder?`, opts);
   } else {
     session.log.info(
-      `${chalk.bold(`🧐 Found existing work in this folder with id ${transferData.work_id}.`)}`,
+      `${chalk.bold(
+        `🧐 Found a "transfer.yml" in this folder with an existing work id ${transferData.work_id}.`,
+      )}`,
     );
     await confirmOrExit(
       `Upload a version of this work based on contents of your local folder?`,
@@ -37,9 +39,7 @@ export async function create(session: ISession, opts?: { ci?: boolean; yes?: boo
   const cdn = `https://cdn.curvenote.com`;
 
   if (!transferData?.work_id) {
-    const {
-      json: { workId, workVersionId },
-    } = await postNewWork(session, cdnKey, cdn);
+    const { workId, workVersionId } = await postNewWork(session, cdnKey, cdn);
     session.log.info(`\n\n🚀 ${chalk.bold.green('Your work was successfully created')}.`);
     session.log.info(
       `Your work id has been added to the "./transfer.yml" file, please commit this to your repository to enable version and submission tracking.`,
@@ -47,9 +47,7 @@ export async function create(session: ISession, opts?: { ci?: boolean; yes?: boo
     await upwriteTransferFile(session, { work_id: workId, work_version_id: workVersionId });
   } else {
     const { work_id } = transferData;
-    const {
-      json: { workVersionId },
-    } = await postNewWorkVersion(session, work_id, cdnKey, cdn);
+    const { workVersionId } = await postNewWorkVersion(session, work_id, cdnKey, cdn);
     await upwriteTransferFile(session, { work_id, work_version_id: workVersionId });
     session.log.info(`\n\n🚀 ${chalk.bold.green('Your work was successfully posted')}.`);
     session.log.info(
