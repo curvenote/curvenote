@@ -355,6 +355,7 @@ export async function deploy(
     ci?: boolean;
     domain?: string;
     venue?: string;
+    forcePublic?: boolean; // not used in CLI, programmatic only
   },
 ): Promise<void> {
   if (session.isAnon) {
@@ -369,7 +370,7 @@ export async function deploy(
     throw new Error('🧐 No site config found.');
   }
 
-  const strategy = resolveDeploymentStrategy(siteConfig, opts);
+  const strategy = opts.forcePublic ? 'public' : resolveDeploymentStrategy(siteConfig, opts);
   const domains = opts.domain ? [opts.domain] : siteConfig?.domains;
 
   // do confirmation for all strategies up-front
