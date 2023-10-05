@@ -3,7 +3,7 @@ import * as works from '../works/index.js';
 import { clirun } from './utils.js';
 import { makeCIOption, makeYesOption } from './options.js';
 
-function makeWorksCLI(program: Command) {
+function makeWorksCLI() {
   const command = new Command('works').description('Create and manage your Works');
   return command;
 }
@@ -44,7 +44,7 @@ function makeWorkSubmitCLI(program: Command) {
 }
 
 export function addWorksCLI(program: Command): void {
-  const worksProgram = makeWorksCLI(program);
+  const worksProgram = makeWorksCLI();
   worksProgram.addCommand(makeWorksCreateCLI(program));
   worksProgram.addCommand(makeWorksListCLI(program));
   worksProgram.addCommand(makeWorkSubmitCLI(program));

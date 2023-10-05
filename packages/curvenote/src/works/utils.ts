@@ -4,12 +4,8 @@ import type { CreateSubmissionBody, UpdateSubmissionBody, WorkBody } from '../ut
 import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
 
-// export const JOURNALS_API_URL = 'https://journals.curvenote.com/v1/';
-// export const JOURNALS_API_URL = 'https://journals.curvenote.dev/v1/';
-export const JOURNALS_API_URL = 'http://localhost:3031/v1/';
-
 export async function getFromJournals(session: ISession, pathname: string) {
-  const url = `${JOURNALS_API_URL}${pathname}`;
+  const url = `${session.JOURNALS_URL}${pathname}`;
   session.log.debug('Getting from', url);
   const headers = await getHeaders(session.log, (session as any).$tokens);
 
@@ -36,7 +32,7 @@ async function postToJournals(
   pathname: string,
   body: WorkBody | CreateSubmissionBody | UpdateSubmissionBody,
 ) {
-  const url = `${JOURNALS_API_URL}${pathname}`;
+  const url = `${session.JOURNALS_URL}${pathname}`;
   session.log.debug('Posting to', url);
 
   const method = 'POST';

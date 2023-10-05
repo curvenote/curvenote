@@ -2,8 +2,8 @@ import path from 'node:path';
 import fetch from 'node-fetch';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
+import type { BuildWarning } from 'myst-cli';
 import {
-  BuildWarning,
   config,
   findCurrentProjectAndLoad,
   findCurrentSiteAndLoad,
