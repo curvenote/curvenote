@@ -239,13 +239,17 @@ export async function uploadContentAndDeployToPublicCdn(
   return await deployContent(session, { public: true }, cdnKey, filepaths);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function preflightPromotePublicContent(session: ISession, domains?: string[]) {
   // TODO throw on no permission to promote to any domain
 }
 
 export async function preflightPromoteToVenue(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   session: ISession,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cdnKey: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   domains?: string[],
 ) {
   // TODO throw on no permission to submit to venue
@@ -263,11 +267,11 @@ export async function promoteToVenue(
   username: string,
 ) {
   const toc = tic();
-  const sumbissionRequest: VenueSubmitRequest = {
+  const submissionRequest: VenueSubmitRequest = {
     id: cdnKey,
     username,
   };
-  const deployResp = { ok: true }; //await session.post(`/venues/${venue}/submit`, deployRequest);
+  const deployResp = { ok: true, submissionRequest }; //await session.post(`/venues/${venue}/submit`, deployRequest);
   if (deployResp.ok) {
     session.log.info(toc(`🚀 Submitted to venue "${venue}" in %s.`));
     session.log.debug(`CDN key: ${cdnKey}`);

@@ -48,6 +48,7 @@ describe('extractBlockFrontMatter', () => {
     };
 
     expect(extractBlockFrontMatter(frontmatter)).toEqual(frontmatter);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { venue, biblio, subtitle, ...projectExtractionResult } = frontmatter;
     expect(extractProjectFrontMatter(frontmatter)).toEqual(projectExtractionResult);
   });
