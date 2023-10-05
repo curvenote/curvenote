@@ -19,6 +19,7 @@ import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
 import { addOxaTransformersToOpts, confirmOrExit } from '../utils/index.js';
 import type { SiteConfig } from 'myst-config';
+import { getHeaders } from '../session/tokens.js';
 
 type FromTo = {
   from: string;
@@ -255,26 +256,85 @@ export async function preflightPromoteToVenue(
   // TODO throw on no permission to submit to venue
 }
 
-interface VenueSubmitRequest {
+interface WorkBody {
   id: string;
-  username: string;
+  cdn: string;
 }
 
-export async function promoteToVenue(
+interface SubmissionBody {
+  work_version_id: string;
+  kind: string;
+}
+
+async function postToJournals(
   session: ISession,
-  cdnKey: string,
+  pathname: string,
+  body: WorkBody | SubmissionBody,
+) {
+  // const apiUrl = `https://journals.curvenote.dev/v1/`;
+  const apiUrl = `http://localhost:3031/v1/`;
+
+  const url = `${apiUrl}${pathname}`;
+  console.debug('Posting to', url);
+
+  const method = 'POST';
+  const headers = await getHeaders(session.log, (session as any).$tokens);
+  const response = await fetch(url, {
+    method,
+    body: JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+  });
+  const json = (await response.json()) as any;
+  if (!response.ok) {
+    const dataString = JSON.stringify(json, null, 2);
+    session.log.debug(`${method.toUpperCase()} FAILED ${url}: ${response.status}\n\n${dataString}`);
+  }
+  return {
+    ok: response.ok,
+    status: response.status,
+    json,
+  };
+}
+
+export async function postNewWork(session: ISession, cdnKey: string, cdn: string) {
+  const toc = tic();
+
+  const resp = await postToJournals(session, 'works', { id: cdnKey, cdn });
+
+  if (resp.ok) {
+    session.log.info(toc(`🚀 Submitted a new work in %s.`));
+    session.log.debug(`CDN key: ${cdnKey}`);
+    session.log.debug(`Work Id: ${resp.json.id}`);
+    session.log.debug(`Work Version Id: ${resp.json.version_id}`);
+    return {
+      cdnKey,
+      workId: resp.json.id,
+      workVersionId: resp.json.version_id,
+    };
+  } else {
+    throw new Error('Posting new work failed: Please contact support@curvenote.com');
+  }
+}
+
+export async function submitToVenue(
+  session: ISession,
   venue: string,
-  username: string,
+  work_version_id: string,
+  kind: string,
 ) {
   const toc = tic();
-  const submissionRequest: VenueSubmitRequest = {
-    id: cdnKey,
-    username,
-  };
-  const deployResp = { ok: true, submissionRequest }; //await session.post(`/venues/${venue}/submit`, deployRequest);
-  if (deployResp.ok) {
+  const submissionRequest: SubmissionBody = { work_version_id, kind };
+  const resp = await postToJournals(session, `sites/${venue}/submissions`, submissionRequest);
+  if (resp.ok) {
     session.log.info(toc(`🚀 Submitted to venue "${venue}" in %s.`));
-    session.log.debug(`CDN key: ${cdnKey}`);
+    session.log.debug(`Submission id: ${resp.json.id}`);
+    session.log.debug(`Submitted by: ${resp.json.submitted_by.name ?? resp.json.submitted_by.id}`);
+    return {
+      submissionId: resp.json.id,
+    };
   } else {
     throw new Error('Submission failed: Please contact support@curvenote.com');
   }
@@ -392,7 +452,8 @@ export async function deploy(
       if (!opts.venue)
         throw new Error(`🚨 Internal Error: No value specified during venue deployment`);
       await confirmOrExit(`Deploy local content privately and submit to "${opts.venue}"?`, opts);
-      await preflightPromoteToVenue(session, opts.venue!); // TODO check venue exists, and user can submit to it
+      // TODO check for venue (site)
+      await preflightPromoteToVenue(session, opts.venue); // TODO check venue exists, and user can submit to it
       break;
     }
     default: {
@@ -428,22 +489,34 @@ Otherwise, private hosting on Curvenote is in beta, contact support@curvenote.co
       break;
     }
     case 'private-venue': {
+      if (!opts.venue)
+        throw new Error(`🚨 Internal Error: No venue specified in 'private-venue' deployment`);
       const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
-      await promoteToVenue(session, cdnKey, opts.venue!, me.data.username);
+      // TODO switch to private cdn once journals API can access it
+      // const cdn = `https://prv.curvenote.com`;
+      const cdn = `https://cdn.curvenote.com`;
+      const { workId, workVersionId } = await postNewWork(session, cdnKey, cdn);
+      // TODO check for venue (site)
+      // TODO ask for kinds that the venue accepts
+      const kind = 'project'; // TODO only woorks for tellus!!
+      const { submissionId } = await submitToVenue(session, opts.venue, workVersionId, kind);
       session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed')}.`);
       session.log.info(
         `\nYour content remains private, and has been submitted to "${opts.venue}".`,
       );
-      session.log.info(
-        `\nYour private CDN Key for this content is ${chalk.bold.yellow(cdnKey)}\n\n`,
-      );
+      session.log.info(`\nYour private CDN Key for this content is ${chalk.bold.yellow(cdnKey)}`);
+      session.log.info(`The submitted Work Id is ${chalk.bold.yellow(workId)}`);
+      session.log.info(`The submition Id is ${chalk.bold.yellow(submissionId)}\n\n`);
       break;
     }
     default: {
       const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
       session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed.')}`);
       session.log.info(`\nYour content remains private.`);
-      session.log.info(`\nYour private CDN Keyfor this content is ${chalk.bold.yellow(cdnKey)}`);
+      session.log.info(
+        `\nYour private CDN Keyfor this content is ${chalk.bold.yellow(cdnKey)}\n\n`,
+      );
+
       session.log.info(
         `\nPrivate hosting on Curvenote is in beta, contact support@curvenote.com for an invite!\n`,
       );
