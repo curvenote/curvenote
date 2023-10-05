@@ -395,19 +395,23 @@ export async function deploy(
       await preflightPromoteToVenue(session, opts.venue!); // TODO check venue exists, and user can submit to it
       break;
     }
-    default:
-      await confirmOrExit(
-        `🧐 No domains or venues are specified, local content will be deployed privately.
-
-        To deploy a public website, add config.site.domains: - ${me.data.username}.curve.space to your config file 
-        or use the --domain flag.
-
-        To deploy privately and submit to a venue, use the --venue flag.
-
-        Otherwise, private hosting on Curvenote is in beta, contact support@curvenote.com for access.
-        `,
-        opts,
+    default: {
+      session.log.info(
+        `${chalk.bold(
+          '🧐 No domains or venues are specified, local content will be deployed privately.',
+        )}`,
       );
+      session.log.info(`
+To deploy a public website, add config.site.domains: - ${
+        me.data.username
+      }.curve.space to your config file or use the --domain flag.
+
+To deploy privately ${chalk.bold('and')} submit to a venue, use the ${chalk.bold('--venue')} flag.
+        
+Otherwise, private hosting on Curvenote is in beta, contact support@curvenote.com for an invite!
+        `);
+      await confirmOrExit(`Continue with private deployment?`, opts);
+    }
   }
 
   // carry out common cleaning and building
@@ -426,8 +430,10 @@ export async function deploy(
     case 'private-venue': {
       const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
       await promoteToVenue(session, cdnKey, opts.venue!, me.data.username);
-      session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed')}`);
-      session.log.info(`\nYour content remains private, and has been submitted to "${opts.venue}"`);
+      session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed')}.`);
+      session.log.info(
+        `\nYour content remains private, and has been submitted to "${opts.venue}".`,
+      );
       session.log.info(
         `\nYour private CDN Key for this content is ${chalk.bold.yellow(cdnKey)}\n\n`,
       );
@@ -435,11 +441,11 @@ export async function deploy(
     }
     default: {
       const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
-      session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed')}`);
+      session.log.info(`\n\n🚀 ${chalk.bold.green('Content successfully deployed.')}`);
       session.log.info(`\nYour content remains private.`);
       session.log.info(`\nYour private CDN Keyfor this content is ${chalk.bold.yellow(cdnKey)}`);
       session.log.info(
-        `\nPrivate hosting on Curvenote is in beta, contact support@curvenote.com for an invite\n\n`,
+        `\nPrivate hosting on Curvenote is in beta, contact support@curvenote.com for an invite!\n`,
       );
       // TODO run `curvenote works list` to show all private works
     }
