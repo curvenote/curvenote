@@ -354,7 +354,6 @@ export async function deploy(
   opts: Parameters<typeof buildSite>[1] & {
     ci?: boolean;
     domain?: string;
-    private?: boolean;
     venue?: string;
   },
 ): Promise<void> {
