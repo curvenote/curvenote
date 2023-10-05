@@ -36,5 +36,10 @@ describe('deploy.web', () => {
       const strategy = web.resolveDeploymentStrategy(config, {});
       expect(strategy).toEqual('default-private');
     });
+    test('empty domains list is private', () => {
+      const config = { domains: [] };
+      const strategy = web.resolveDeploymentStrategy(config, {});
+      expect(strategy).toEqual('default-private');
+    });
   });
 });

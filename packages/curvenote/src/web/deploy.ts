@@ -342,7 +342,7 @@ export function resolveDeploymentStrategy(
   // if a venue is specified, then it is private and takes precedence over domain
   if (opts.venue) return 'private-venue';
 
-  const hasDomain = opts.domain ?? siteConfig.domains;
+  const hasDomain = opts.domain !== undefined || (siteConfig.domains ?? []).length > 0;
   if (hasDomain) return 'public';
 
   // default to private
