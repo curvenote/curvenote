@@ -271,8 +271,8 @@ async function postToJournals(
   pathname: string,
   body: WorkBody | SubmissionBody,
 ) {
-  // const apiUrl = `https://journals.curvenote.dev/v1/`;
-  const apiUrl = `http://localhost:3031/v1/`;
+  const apiUrl = `https://journals.curvenote.dev/v1/`;
+  // const apiUrl = `http://localhost:3031/v1/`;
 
   const url = `${apiUrl}${pathname}`;
   console.debug('Posting to', url);
