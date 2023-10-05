@@ -24,8 +24,12 @@ import version from '../version.js';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
+// const DEFAULT_JOURNALS_API_URL = 'https://journals.curvenote.com/v1/';
+const STAGING_JOURNALS_API_URL = 'https://journals.curvenote.dev/v1/';
 const LOCAL_API_URL = 'http://localhost:8083';
 const LOCAL_SITE_URL = 'http://localhost:3000';
+// const LOCAL_JOURNALS_API_URL = 'http://localhost:3031/v1/';
+
 const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 
 export type SessionOptions = {
@@ -45,6 +49,7 @@ function withQuery(url: string, query: Record<string, string> = {}) {
 export class Session implements ISession {
   API_URL: string;
   SITE_URL: string;
+  JOURNALS_URL: string;
   configFiles: string[];
   $tokens: Tokens = {};
   store: Store<RootState>;
@@ -73,6 +78,7 @@ export class Session implements ISession {
     if (this.SITE_URL !== DEFAULT_SITE_URL) {
       this.log.warn(`Connecting to Site at: "${this.SITE_URL}".`);
     }
+    this.JOURNALS_URL = STAGING_JOURNALS_API_URL;
     this.store = createStore(rootReducer);
     findCurrentProjectAndLoad(this, '.');
     findCurrentSiteAndLoad(this, '.');
