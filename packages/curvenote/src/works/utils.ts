@@ -58,10 +58,17 @@ export async function postNewWork(session: ISession, cdnKey: string, cdn: string
     session.log.debug(`CDN key: ${cdnKey}`);
     session.log.debug(`Work Id: ${json.id}`);
     session.log.debug(`Work Version Id: ${json.version_id}`);
+    console.log(json);
     return {
       cdnKey,
-      workId: json.id,
-      workVersionId: json.version_id,
+      work: {
+        id: json.id,
+        date_created: json.date_created,
+      },
+      workVersion: {
+        id: json.version_id,
+        date_created: json.date_created,
+      },
     };
   } else {
     throw new Error('Posting new work failed: Please contact support@curvenote.com');
@@ -86,8 +93,14 @@ export async function postNewWorkVersion(
     session.log.debug(`Work Version Id: ${json.version_id}`);
     return {
       cdnKey,
-      workId: json.id,
-      workVersionId: json.version_id,
+      work: {
+        id: json.id,
+        date_created: json.date_created,
+      },
+      workVersion: {
+        id: json.version_id,
+        date_created: json.date_created,
+      },
     };
   } else {
     throw new Error('Posting new version of the work failed: Please contact support@curvenote.com');
@@ -108,7 +121,16 @@ export async function postNewSubmission(
     session.log.info(toc(`🚀 Submitted to venue "${venue}" in %s.`));
     session.log.debug(`Submission id: ${json.id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
-    return json;
+    return {
+      submission: {
+        id: json.id,
+        date_created: json.date_created,
+      },
+      submissionVersion: {
+        id: json.versions[0].id,
+        date_created: json.versions[0].date_created,
+      },
+    };
   } else {
     throw new Error('Submission failed: Please contact support@curvenote.com');
   }
@@ -132,7 +154,17 @@ export async function postUpdateSubmissionWorkVersion(
     session.log.info(toc(`🚀 Updated submission accepted by "${venue}" in %s.`));
     session.log.debug(`Submission id: ${json.id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
-    return json;
+    console.log(json);
+    return {
+      submission: {
+        id: json.id,
+        date_created: json.date_created,
+      },
+      submissionVersion: {
+        id: json.versions[json.versions.length - 1].id,
+        date_created: json.versions[json.versions.length - 1].date_created,
+      },
+    };
   } else {
     throw new Error('Submission failed: Please contact support@curvenote.com');
   }

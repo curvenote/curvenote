@@ -6,9 +6,22 @@ import { selectors } from 'myst-cli';
 import path from 'node:path';
 
 export type TransferData = {
-  work_id: string;
-  work_version_id: string;
-  submission_id: string;
+  work?: {
+    id: string;
+    date_created: string;
+  };
+  work_version?: {
+    id: string;
+    date_created: string;
+  };
+  submission?: {
+    id: string;
+    date_created: string;
+  };
+  submission_version?: {
+    id: string;
+    date_created: string;
+  };
 };
 
 function getTransferYmlPath(session: ISession) {

@@ -74,7 +74,7 @@ export async function submit(
     );
   }
 
-  if (!transferData?.work_id || !transferData?.work_version_id) {
+  if (!transferData?.work?.id || !transferData?.work_version?.id) {
     session.log.info(
       `${chalk.bold(
         `🧐 It looks like your "transfer.yml" might be invalid, cannot complete your submission.`,
@@ -83,13 +83,13 @@ export async function submit(
     process.exit(1);
   }
 
-  let kind, submission_id;
-  if (transferData?.submission_id) {
+  let kind, submission, submission_version;
+  if (transferData?.submission?.id) {
     // update existing submission
     // TODO do more checking here? was the current work version already submitted?
     session.log.info(
       `${chalk.bold(
-        `🧐 Found a "transfer.yml" with an existing submission id: ${transferData.submission_id}.`,
+        `🧐 Found a "transfer.yml" with an existing submission id: ${transferData.submission.id}.`,
       )}`,
     );
 
@@ -99,7 +99,7 @@ export async function submit(
 
     let existing;
     try {
-      existing = await getFromJournals(session, `my/submissions/${transferData.submission_id}`);
+      existing = await getFromJournals(session, `my/submissions/${transferData.submission.id}`);
       // check submission exists
       // check user has permission to update it - currently owns it?
       // TODO check the venue allows for updates to the submission
@@ -127,12 +127,14 @@ export async function submit(
     );
 
     try {
-      await postUpdateSubmissionWorkVersion(
+      const data = await postUpdateSubmissionWorkVersion(
         session,
         existing.site_name,
         existing.id,
-        transferData.work_version_id,
+        transferData.work_version.id,
       );
+      submission = data.submission;
+      submission_version = data.submissionVersion;
       session.log.info(
         `\n\n🚀 ${chalk.bold.green(`Your work was successfully submitted to ${venue}`)}.`,
       );
@@ -164,25 +166,20 @@ export async function submit(
     await confirmOrExit(`Submit your work to "${venue}" based on your local folder?`, opts);
 
     try {
-      const submission = await postNewSubmission(
-        session,
-        venue,
-        kind,
-        transferData.work_version_id,
-      );
-      submission_id = submission.id;
+      const data = await postNewSubmission(session, venue, kind, transferData.work_version.id);
+      submission = data.submission;
+      submission_version = data.submissionVersion;
     } catch (err: any) {
       session.log.info(`\n\n🚨 ${chalk.bold.red('Could not submit your work')}.`);
       session.log.info(`\n\n📣 ${chalk.bold(err.message)}.`);
       process.exit(1);
     }
-
-    await upwriteTransferFile(session, { submission_id });
-    session.log.info(
-      `\n\n🚀 ${chalk.bold.green(`Your work was successfully submitted to ${venue}`)}.`,
-    );
-    session.log.info(
-      `The "./transfer.yml" file has been updated with the new work version's id, please commit this change.`,
-    );
   }
+  await upwriteTransferFile(session, { submission, submission_version });
+  session.log.info(
+    `\n\n🚀 ${chalk.bold.green(`Your work was successfully submitted to ${venue}`)}.`,
+  );
+  session.log.info(
+    `The "./transfer.yml" file has been updated with the new work version's id, please commit this change.`,
+  );
 }
