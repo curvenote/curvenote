@@ -58,7 +58,6 @@ export async function postNewWork(session: ISession, cdnKey: string, cdn: string
     session.log.debug(`CDN key: ${cdnKey}`);
     session.log.debug(`Work Id: ${json.id}`);
     session.log.debug(`Work Version Id: ${json.version_id}`);
-    console.log(json);
     return {
       cdnKey,
       work: {
@@ -154,7 +153,6 @@ export async function postUpdateSubmissionWorkVersion(
     session.log.info(toc(`🚀 Updated submission accepted by "${venue}" in %s.`));
     session.log.debug(`Submission id: ${json.id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
-    console.log(json);
     return {
       submission: {
         id: json.id,
