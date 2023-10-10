@@ -135,9 +135,6 @@ export async function submit(
       );
       submission = data.submission;
       submission_version = data.submissionVersion;
-      session.log.info(
-        `\n\n🚀 ${chalk.bold.green(`Your work was successfully submitted to ${venue}`)}.`,
-      );
     } catch (err: any) {
       session.log.info(`\n\n🚨 ${chalk.bold.red('Could not update your submission')}.`);
       session.log.info(`📣 ${chalk.red(err.message)}.`);
