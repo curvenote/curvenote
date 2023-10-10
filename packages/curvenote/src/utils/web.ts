@@ -101,7 +101,7 @@ export async function prepareUploadRequest(session: ISession) {
   return { files, uploadRequest };
 }
 
-export async function processUpload(
+export async function performFileUploads(
   session: ISession,
   files: FileInfo[],
   uploadTargets: SiteUploadResponse,
@@ -156,7 +156,7 @@ export async function uploadContent(session: ISession, opts?: { ci?: boolean }) 
   const { json: uploadTargets } = await session.post<SiteUploadResponse>('/sites/upload', {
     ...uploadRequest,
   });
-  const { cdnKey } = await processUpload(session, files, uploadTargets, opts);
+  const { cdnKey } = await performFileUploads(session, files, uploadTargets, opts);
   return { cdnKey, filepaths: files.map(({ to }) => ({ path: to })) };
 }
 
