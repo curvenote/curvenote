@@ -28,7 +28,7 @@ const DEFAULT_SITE_URL = 'https://curvenote.com';
 const STAGING_JOURNALS_API_URL = 'https://journals.curvenote.dev/v1/';
 const LOCAL_API_URL = 'http://localhost:8083';
 const LOCAL_SITE_URL = 'http://localhost:3000';
-// const LOCAL_JOURNALS_API_URL = 'http://localhost:3031/v1/';
+const LOCAL_JOURNALS_API_URL = 'http://localhost:3031/v1/';
 
 const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 
@@ -78,7 +78,8 @@ export class Session implements ISession {
     if (this.SITE_URL !== DEFAULT_SITE_URL) {
       this.log.warn(`Connecting to Site at: "${this.SITE_URL}".`);
     }
-    this.JOURNALS_URL = STAGING_JOURNALS_API_URL;
+    this.JOURNALS_URL = url === LOCAL_API_URL ? LOCAL_JOURNALS_API_URL : STAGING_JOURNALS_API_URL;
+    this.log.debug(`Connecting to Journals API at: "${this.JOURNALS_URL}".`);
     this.store = createStore(rootReducer);
     findCurrentProjectAndLoad(this, '.');
     findCurrentSiteAndLoad(this, '.');
