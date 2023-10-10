@@ -8,6 +8,7 @@ import { addExportCLI } from './export.js';
 import { addSyncCLI } from './sync.js';
 import { addTokenCLI } from './token.js';
 import { addWebCLI } from './web.js';
+import { addWorksCLI } from './works.js';
 
 const program = new Command();
 addSyncCLI(program);
@@ -17,6 +18,7 @@ addAuthCLI(program);
 addExportCLI(program);
 addCheckCLI(program);
 addCleanCLI(program);
+addWorksCLI(program);
 
 program.version(`v${version}`, '-v, --version', 'Print the current version of curvenote');
 program.option('-d, --debug', 'Log out any errors to the console.');

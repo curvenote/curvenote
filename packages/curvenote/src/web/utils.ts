@@ -1,5 +1,5 @@
 import type { ISession } from '../session/types.js';
-import { addOxaTransformersToOpts } from '../utils/utils.js';
+import { addOxaTransformersToOpts } from '../utils/index.js';
 
 export const siteCommandWrapper =
   (

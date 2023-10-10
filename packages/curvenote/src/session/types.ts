@@ -11,7 +11,9 @@ export type Response<T extends Record<string, any> = any> = Promise<{
 }>;
 
 export type ISession = IMystSession & {
+  API_URL: string;
   SITE_URL: string;
+  JOURNALS_URL: string;
   store: Store<RootState>;
   isAnon: boolean;
 

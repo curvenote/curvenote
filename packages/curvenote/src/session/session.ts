@@ -2,6 +2,7 @@ import path from 'node:path';
 import fetch from 'node-fetch';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
+import type { BuildWarning } from 'myst-cli';
 import {
   config,
   findCurrentProjectAndLoad,
@@ -13,7 +14,7 @@ import {
 } from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger } from 'myst-cli-utils';
-import type { MystPlugin } from 'myst-common';
+import type { MystPlugin, RuleId } from 'myst-common';
 import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
 import { checkForClientVersionRejection } from '../utils/index.js';
@@ -23,8 +24,12 @@ import version from '../version.js';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
+// const DEFAULT_JOURNALS_API_URL = 'https://journals.curvenote.com/v1/';
+const STAGING_JOURNALS_API_URL = 'https://journals.curvenote.dev/v1/';
 const LOCAL_API_URL = 'http://localhost:8083';
 const LOCAL_SITE_URL = 'http://localhost:3000';
+const LOCAL_JOURNALS_API_URL = 'http://localhost:3031/v1/';
+
 const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 
 export type SessionOptions = {
@@ -44,6 +49,7 @@ function withQuery(url: string, query: Record<string, string> = {}) {
 export class Session implements ISession {
   API_URL: string;
   SITE_URL: string;
+  JOURNALS_URL: string;
   configFiles: string[];
   $tokens: Tokens = {};
   store: Store<RootState>;
@@ -63,6 +69,7 @@ export class Session implements ISession {
     this.$logger = opts.logger ?? basicLogger(LogLevel.info);
     const url = this.setToken(token);
     this.API_URL = opts.apiUrl ?? url ?? DEFAULT_API_URL;
+    this.log.debug(`Connecting to API at: "${this.API_URL}".`);
     this.SITE_URL =
       opts.siteUrl ?? (this.API_URL === LOCAL_API_URL ? LOCAL_SITE_URL : DEFAULT_SITE_URL);
     if (this.API_URL !== DEFAULT_API_URL) {
@@ -71,6 +78,8 @@ export class Session implements ISession {
     if (this.SITE_URL !== DEFAULT_SITE_URL) {
       this.log.warn(`Connecting to Site at: "${this.SITE_URL}".`);
     }
+    this.JOURNALS_URL = url === LOCAL_API_URL ? LOCAL_JOURNALS_API_URL : STAGING_JOURNALS_API_URL;
+    this.log.debug(`Connecting to Journals API at: "${this.JOURNALS_URL}".`);
     this.store = createStore(rootReducer);
     findCurrentProjectAndLoad(this, '.');
     findCurrentSiteAndLoad(this, '.');
@@ -78,6 +87,13 @@ export class Session implements ISession {
 
   _shownUpgrade = false;
   _latestVersion?: string;
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getAllWarnings(ruleId: RuleId): (BuildWarning & {
+    file: string;
+  })[] {
+    return [];
+  }
 
   showUpgradeNotice() {
     if (this._shownUpgrade || !this._latestVersion || version === this._latestVersion) return;
