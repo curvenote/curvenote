@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.24
+
+### Patch Changes
+
+- 6733e6b0: Enabled local and staging environments via token api claim.
+- 9d022d0e: Added `works` command and enabled work creation and venue (journal) submission to curvenote's staging journal deployment.
+
 ## 0.8.23
 
 ### Patch Changes
