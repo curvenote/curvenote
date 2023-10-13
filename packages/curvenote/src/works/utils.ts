@@ -70,6 +70,7 @@ export async function postNewWork(session: ISession, cdnKey: string, cdn: string
       },
     };
   } else {
+    session.log.debug(`${resp.status} ${resp.statusText}`);
     throw new Error('Posting new work failed: Please contact support@curvenote.com');
   }
 }

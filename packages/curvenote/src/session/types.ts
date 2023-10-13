@@ -14,6 +14,8 @@ export type ISession = IMystSession & {
   API_URL: string;
   SITE_URL: string;
   JOURNALS_URL: string;
+  PUBLIC_CDN: string;
+  PRIVATE_CDN: string;
   store: Store<RootState>;
   isAnon: boolean;
 
