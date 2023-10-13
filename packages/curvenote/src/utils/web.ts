@@ -204,7 +204,8 @@ export async function uploadContentAndDeployToPrivateCdn(
   opts?: { ci?: boolean },
 ) {
   const { cdnKey, filepaths } = await uploadContent(session, opts);
-  return await deployContent(session, { public: false }, cdnKey, filepaths);
+  // TODO PRIVATE CDN { public: false }
+  return await deployContent(session, { public: true }, cdnKey, filepaths);
 }
 
 /**

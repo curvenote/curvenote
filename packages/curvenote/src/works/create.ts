@@ -5,10 +5,6 @@ import chalk from 'chalk';
 import { postNewWork, postNewWorkVersion } from './utils.js';
 import { loadTransferFile, upwriteTransferFile } from './transfer.js';
 
-// TODO switch to private cdn once journals API can access it
-// const TARGET_CDN = `https://prv.curvenote.com`;
-const TARGET_CDN = `https://cdn.curvenote.com`;
-
 export async function create(session: ISession, opts?: { ci?: boolean; yes?: boolean }) {
   if (session.isAnon) {
     throw new Error(
@@ -37,9 +33,11 @@ export async function create(session: ISession, opts?: { ci?: boolean; yes?: boo
   }
 
   const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
+  session.log.info(`\n\n🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
 
+  // TODO PRIVATE CDN
   if (!transferData?.work?.id) {
-    const { work, workVersion } = await postNewWork(session, cdnKey, TARGET_CDN);
+    const { work, workVersion } = await postNewWork(session, cdnKey, session.PUBLIC_CDN);
     session.log.info(`\n\n🚀 ${chalk.bold.green('Your work was successfully created')}.`);
     session.log.info(
       `Your work id has been added to the "./transfer.yml" file, please commit this to your repository to enable version and submission tracking.`,
@@ -47,7 +45,7 @@ export async function create(session: ISession, opts?: { ci?: boolean; yes?: boo
     await upwriteTransferFile(session, { work, work_version: workVersion });
   } else {
     const { work } = transferData;
-    const { workVersion } = await postNewWorkVersion(session, work.id, cdnKey, TARGET_CDN);
+    const { workVersion } = await postNewWorkVersion(session, work.id, cdnKey, session.PUBLIC_CDN);
     await upwriteTransferFile(session, { work: work, work_version: workVersion });
     session.log.info(`\n\n🚀 ${chalk.bold.green('Your work was successfully posted')}.`);
     session.log.info(
