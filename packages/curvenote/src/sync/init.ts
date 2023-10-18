@@ -9,6 +9,9 @@ import {
   selectors,
   writeConfigs,
   startServer,
+  writeTocFromProject,
+  validateTOC,
+  projectFromPath,
 } from 'myst-cli';
 import { LogLevel, writeFileToFolder } from 'myst-cli-utils';
 import type { ProjectConfig } from 'myst-config';
@@ -83,26 +86,26 @@ ${docLinks.overview}
 export async function init(session: ISession, opts: Options) {
   if (!opts.yes) session.log.info(await WELCOME(session));
   if (opts.domain) session.log.info(`Using custom domain ${opts.domain}`);
-  let path = resolve('.');
+  let currentPath = resolve('.');
   // Initialize config - error if it exists
-  if (selectors.selectLocalSiteConfig(session.store.getState(), path)) {
+  if (selectors.selectLocalSiteConfig(session.store.getState(), currentPath) && !opts.writeToc) {
     throw Error(
       `Site config in ${CURVENOTE_YML} config already exists, did you mean to ${chalk.bold(
         'curvenote clone',
       )} or ${chalk.bold('curvenote start')}?`,
     );
   }
-  const folderName = basename(path);
+  const folderName = basename(currentPath);
   const siteConfig = getDefaultSiteConfig(folderName);
 
   // Load the user now, and wait for it below!
   let me: MyUser | Promise<MyUser> | undefined;
   if (!session.isAnon) me = new MyUser(session).get();
 
-  const folderIsEmpty = fs.readdirSync(path).length === 0;
+  const folderIsEmpty = fs.readdirSync(currentPath).length === 0;
   if (folderIsEmpty && opts.yes) throw Error('Cannot initialize an empty folder');
   let content;
-  const projectConfigPaths = findProjectsOnPath(session, path);
+  const projectConfigPaths = findProjectsOnPath(session, currentPath);
   if ((!folderIsEmpty && opts.yes) || projectConfigPaths.length) {
     content = 'folder';
   } else {
@@ -115,31 +118,49 @@ export async function init(session: ISession, opts: Options) {
   let pullComplete = false;
   let title = projectConfig?.title || siteConfig.title || undefined;
   if (content === 'folder') {
-    if (projectConfigPaths.length) {
+    if (projectConfigPaths.length > 0) {
       const pathListString = projectConfigPaths
         .map((p) => `  - ${join(p, CURVENOTE_YML)}`)
         .join('\n');
+
       session.log.info(
         `👀 ${chalk.bold(
           'Found existing project config files on your path:',
         )}\n${pathListString}\n`,
       );
     }
-    if (!opts.yes) {
-      const promptTitle = await inquirer.prompt([questions.title({ title: title || '' })]);
-      title = promptTitle.title;
-    }
-    if (!projectConfig) {
-      try {
-        loadProjectFromDisk(session, path);
-        session.log.info(`📓 Creating project config`);
-        projectConfig = getDefaultProjectConfig(title);
-        projectConfigPaths.unshift(path);
-      } catch {
-        if (!projectConfigPaths.length) {
-          throw Error(`No markdown or notebook files found`);
+    if (opts.writeToc && projectConfigPaths.length > 0) {
+      if (validateTOC(session, currentPath)) {
+        session.log.warn('Not writing the table of contents, it already exists!');
+        return;
+      } else {
+        const project = projectFromPath(session, currentPath);
+        session.log.info(
+          `📓 Writing '_toc.yml' file to ${
+            currentPath === '.' ? 'the current directory' : currentPath
+          }`,
+        );
+        if (!project) throw Error(`Could not load project from ${currentPath}`);
+        writeTocFromProject(project, currentPath);
+        return;
+      }
+    } else {
+      if (!opts.yes) {
+        const promptTitle = await inquirer.prompt([questions.title({ title: title || '' })]);
+        title = promptTitle.title;
+      }
+      if (!projectConfig) {
+        try {
+          loadProjectFromDisk(session, currentPath, opts);
+          session.log.info(`📓 Creating project config`);
+          projectConfig = getDefaultProjectConfig(title);
+          projectConfigPaths.unshift(currentPath);
+        } catch {
+          if (!projectConfigPaths.length) {
+            throw Error(`No markdown or notebook files found`);
+          }
+          session.log.info(`🧹 No additional markdown or notebook files found`);
         }
-        session.log.info(`🧹 No additional markdown or notebook files found`);
       }
     }
     siteConfig.projects = undefined;
@@ -149,14 +170,14 @@ export async function init(session: ISession, opts: Options) {
     const { siteProject } = results;
     projectConfig = results.projectConfig;
     title = projectConfig.title;
-    path = siteProject.path;
+    currentPath = siteProject.path;
     siteConfig.projects = [siteProject];
     session.log.info(`Add other projects using: ${chalk.bold('curvenote clone')}\n`);
   } else {
     throw Error(`Invalid init content: ${content}`);
   }
   // If there is a new project config, save to the state and write to disk
-  if (projectConfig) writeConfigs(session, path, { projectConfig });
+  if (projectConfig) writeConfigs(session, currentPath, { projectConfig });
   // Personalize the config
   session.log.info(`📓 Creating site config`);
   me = await me;
