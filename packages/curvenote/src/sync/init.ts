@@ -142,7 +142,7 @@ export async function init(session: ISession, opts: Options) {
         session.log.info(`🧹 No additional markdown or notebook files found`);
       }
     }
-    siteConfig.projects = projectConfigPaths.map((p) => ({ path: p, slug: basename(resolve(p)) }));
+    siteConfig.projects = undefined;
     pullComplete = true;
   } else if (content === 'curvenote') {
     const results = await interactiveCloneQuestions(session);
