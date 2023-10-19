@@ -163,7 +163,6 @@ export async function init(session: ISession, opts: Options) {
         }
       }
     }
-    siteConfig.projects = undefined;
     pullComplete = true;
   } else if (content === 'curvenote') {
     const results = await interactiveCloneQuestions(session);
