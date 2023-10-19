@@ -1,6 +1,17 @@
-import { selectors } from 'myst-cli';
+import {
+  buildSite,
+  clean,
+  collectAllBuildExportOptions,
+  localArticleExport,
+  selectors,
+} from 'myst-cli';
+import path from 'node:path';
 import type { ISession } from '../session/types.js';
-import { confirmOrExit, uploadContentAndDeployToPrivateCdn } from '../utils/index.js';
+import {
+  addOxaTransformersToOpts,
+  confirmOrExit,
+  uploadContentAndDeployToPrivateCdn,
+} from '../utils/index.js';
 import chalk from 'chalk';
 import { postNewWork, postNewWorkVersion } from './utils.js';
 import { loadTransferFile, upwriteTransferFile } from './transfer.js';
@@ -31,6 +42,21 @@ export async function create(session: ISession, opts?: { ci?: boolean; yes?: boo
       opts,
     );
   }
+
+  session.log.info('\n\n\t✨✨✨  performing a clean re-build of your work  ✨✨✨\n\n');
+  // clean the site folder, otherwise downloadable files will accumulate
+  await clean(session, [], { site: true, html: true, temp: true, exports: true, yes: true });
+  const exportOptionsList = await collectAllBuildExportOptions(session, [], { all: true });
+  const exportLogList = exportOptionsList.map((exportOptions) => {
+    return `${path.relative('.', exportOptions.$file)} -> ${exportOptions.output}`;
+  });
+  session.log.info(`📬 Performing exports:\n   ${exportLogList.join('\n   ')}`);
+  await localArticleExport(session, exportOptionsList, {});
+  session.log.info(`⛴ Exports complete`);
+  // Build the files in the content folder and process them
+  await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
+
+  session.log.info(`✅ Work rebuild complete`);
 
   const cdnKey = await uploadContentAndDeployToPrivateCdn(session, opts);
   session.log.info(`\n\n🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
