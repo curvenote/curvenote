@@ -21,7 +21,6 @@ export function getDefaultSiteConfig(title?: string): SiteConfig {
     logo_text: title || 'My Curve Space',
     nav: [],
     actions: [{ title: 'Learn More', url: docLinks.web }],
-    projects: [],
   };
 }
 
