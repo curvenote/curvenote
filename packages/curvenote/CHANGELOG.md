@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.25
+
+### Patch Changes
+
+- f450ec90: `works create` now triggers a clean rebuild of the exports and site
+- 78647fb7: Aligned `init --write-toc` behaviour with mystmd
+
 ## 0.8.24
 
 ### Patch Changes
