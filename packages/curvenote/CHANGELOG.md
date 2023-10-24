@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.26
+
+### Patch Changes
+
+- b9ad6717: Save clones on session
+
 ## 0.8.25
 
 ### Patch Changes
