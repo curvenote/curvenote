@@ -109,13 +109,6 @@ export class Session implements ISession {
   _shownUpgrade = false;
   _latestVersion?: string;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getAllWarnings(ruleId: RuleId): (BuildWarning & {
-    file: string;
-  })[] {
-    return [];
-  }
-
   showUpgradeNotice() {
     if (this._shownUpgrade || !this._latestVersion || version === this._latestVersion) return;
     this.log.info(
