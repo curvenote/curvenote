@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import fs from 'node:fs';
 import inquirer from 'inquirer';
 import { join } from 'node:path';
-import { loadConfigAndValidateOrThrow, selectors, writeConfigs } from 'myst-cli';
+import { loadConfig, selectors, writeConfigs } from 'myst-cli';
 import { LogLevel } from 'myst-cli-utils';
 import type { ProjectConfig, SiteConfig } from 'myst-config';
 import { projectIdFromLink } from '../export/index.js';
@@ -51,7 +51,7 @@ export async function interactiveCloneQuestions(
   }
   try {
     // Throw if project doesn't exist - that's what we want!
-    loadConfigAndValidateOrThrow(session, path);
+    loadConfig(session, path);
     if (!selectors.selectLocalProjectConfig(session.store.getState(), path)) throw Error();
   } catch {
     // Project config does not exist; good!
