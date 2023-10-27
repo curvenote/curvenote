@@ -1,5 +1,13 @@
 # curvenote
 
+## 0.8.27
+
+### Patch Changes
+
+- 18bc3bd5: Consume MyST config loading changes
+- 3d74ae41: Now using `cdn` and `key` when handling works and submissions
+- 18bc3bd5: Export some deploy / publish utils
+
 ## 0.8.26
 
 ### Patch Changes
