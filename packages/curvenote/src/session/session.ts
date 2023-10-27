@@ -4,7 +4,6 @@ import type { Store } from 'redux';
 import { createStore } from 'redux';
 import type { BuildWarning } from 'myst-cli';
 import {
-  config,
   findCurrentProjectAndLoad,
   findCurrentSiteAndLoad,
   loadPlugins,
