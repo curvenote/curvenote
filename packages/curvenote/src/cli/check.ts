@@ -10,11 +10,9 @@ async function exampleChecks(session: ISession) {
   const report = await runChecks(
     session,
     [
-      // { id: 'abstract-exists' },
-      // { id: 'abstract-length', max: '400' },
-      // { id: 'availability-exists' },
-      // { id: 'links-resolve' },
-      ...submissionRuleChecks,
+      ...submissionRuleChecks.map(({ id }) => {
+        return { id };
+      }),
     ],
     [...submissionRuleChecks],
   );
