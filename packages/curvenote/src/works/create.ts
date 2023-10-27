@@ -63,7 +63,7 @@ export async function create(session: ISession, opts?: { ci?: boolean; yes?: boo
 
   // TODO PRIVATE CDN
   if (!transferData?.work?.id) {
-    const { work, workVersion } = await postNewWork(session, cdnKey, session.PUBLIC_CDN);
+    const { work, workVersion } = await postNewWork(session, cdnKey, session.PRIVATE_CDN);
     session.log.info(`\n\n🚀 ${chalk.bold.green('Your work was successfully created')}.`);
     session.log.info(
       `Your work id has been added to the "./transfer.yml" file, please commit this to your repository to enable version and submission tracking.`,
@@ -71,7 +71,7 @@ export async function create(session: ISession, opts?: { ci?: boolean; yes?: boo
     await upwriteTransferFile(session, { work, work_version: workVersion });
   } else {
     const { work } = transferData;
-    const { workVersion } = await postNewWorkVersion(session, work.id, cdnKey, session.PUBLIC_CDN);
+    const { workVersion } = await postNewWorkVersion(session, work.id, cdnKey, session.PRIVATE_CDN);
     await upwriteTransferFile(session, { work: work, work_version: workVersion });
     session.log.info(`\n\n🚀 ${chalk.bold.green('Your work was successfully posted')}.`);
     session.log.info(
