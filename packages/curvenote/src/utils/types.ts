@@ -17,7 +17,7 @@ export type FileUpload = FileInfo & {
 };
 
 export interface WorkBody {
-  id: string;
+  key: string;
   cdn: string;
 }
 

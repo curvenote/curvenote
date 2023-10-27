@@ -50,7 +50,7 @@ async function postToJournals(
 export async function postNewWork(session: ISession, cdnKey: string, cdn: string) {
   const toc = tic();
 
-  const resp = await postToJournals(session, 'works', { id: cdnKey, cdn });
+  const resp = await postToJournals(session, 'works', { key: cdnKey, cdn });
 
   if (resp.ok) {
     const json = (await resp.json()) as any;
@@ -83,7 +83,7 @@ export async function postNewWorkVersion(
 ) {
   const toc = tic();
 
-  const resp = await postToJournals(session, `works/${workId}/versions`, { id: cdnKey, cdn });
+  const resp = await postToJournals(session, `works/${workId}/versions`, { key: cdnKey, cdn });
 
   if (resp.ok) {
     const json = (await resp.json()) as any;
