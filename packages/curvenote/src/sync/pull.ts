@@ -3,13 +3,7 @@ import pLimit from 'p-limit';
 import { join, dirname, basename, extname } from 'node:path';
 import { LogLevel, tic, isDirectory } from 'myst-cli-utils';
 import { projectFrontmatterFromDTO, saveAffiliations } from '../frontmatter/api.js';
-import {
-  config,
-  getRawFrontmatterFromFile,
-  loadConfigAndValidateOrThrow,
-  selectors,
-  writeConfigs,
-} from 'myst-cli';
+import { config, getRawFrontmatterFromFile, loadConfig, selectors, writeConfigs } from 'myst-cli';
 import { oxaLinkToMarkdown, oxaLinkToNotebook, projectToJupyterBook } from '../export/index.js';
 import { Project } from '../models.js';
 import type { ISession } from '../session/types.js';
@@ -140,7 +134,7 @@ export async function pull(session: ISession, path?: string, opts?: SyncCiHelper
     );
     await pullProjects(session, { level: LogLevel.info, ...opts });
   } else {
-    loadConfigAndValidateOrThrow(session, path);
+    loadConfig(session, path);
     await confirmOrExit(
       `Pulling will overwrite all content in ${
         path === '.' ? 'current directory' : path

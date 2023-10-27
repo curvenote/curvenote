@@ -4,7 +4,6 @@ import type { Store } from 'redux';
 import { createStore } from 'redux';
 import type { BuildWarning } from 'myst-cli';
 import {
-  config,
   findCurrentProjectAndLoad,
   findCurrentSiteAndLoad,
   loadPlugins,
@@ -151,7 +150,6 @@ export class Session implements ISession {
   }
 
   reload() {
-    this.store.dispatch(config.actions.reload());
     findCurrentProjectAndLoad(this, '.');
     findCurrentSiteAndLoad(this, '.');
     if (selectors.selectCurrentSitePath(this.store.getState())) {
