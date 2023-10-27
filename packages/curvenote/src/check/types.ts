@@ -1,40 +1,5 @@
-import type { TemplateOptionDefinition } from 'myst-templates';
-import type { ISession } from '../session/types.js';
-import type { Position } from 'unist';
-
-export type CheckOptionDefinition = TemplateOptionDefinition;
-
-export type CheckDefinition = {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  options?: CheckOptionDefinition[];
-  url?: string;
-  example?: string;
-};
-
-export enum CheckStatus {
-  'pass' = 'pass',
-  'fail' = 'fail',
-  'error' = 'error',
-}
-
-export type CheckResult = {
-  status: CheckStatus;
-  message: string;
-  file?: string;
-  position?: Position;
-};
-
-export type CheckInterface = CheckDefinition & {
-  validate: (session: ISession, options: Check) => Promise<CheckResult | CheckResult[]>;
-};
-
-export type Check = {
-  id: string;
-  // optional: boolean;
-} & Record<string, any>;
+import type { CheckDefinition } from '@curvenote/check-definitions';
+import type { CheckResult, CheckStatus } from '@curvenote/check-implementations';
 
 export type CompiledCheckResults = (CheckDefinition & CheckResult)[];
 
