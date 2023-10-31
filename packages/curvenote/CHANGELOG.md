@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.28
+
+### Patch Changes
+
+- b0fb12ae: Added `curvenote submissions list`
+- b0fb12ae: Added `curvenote submit` in place of `curvenote works create` & `curvenote works submit`
+
 ## 0.8.27
 
 ### Patch Changes
