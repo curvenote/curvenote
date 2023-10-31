@@ -31,7 +31,7 @@
   },
   "packageManager": "npm@8.10.0",
   "dependencies": {
-    "@curvenote/common": "^0.1.2",
+    "@curvenote/common": "^0.1.3",
     "cli-table3": "^0.6.3",
     "mimetypes": "^0.1.1"
   }

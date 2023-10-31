@@ -64,7 +64,7 @@ function logSubmissionItem(session: ISession, submission: SubmissionsListItemDTO
   session.log.info(table.toString());
 }
 
-export async function list(session: ISession, opts?: { venue?: string }) {
+export async function list(session: ISession, opts: { venue?: string }) {
   if (session.isAnon) {
     throw new Error(
       '⚠️ You must be authenticated for this command. Use `curvenote token set [token]`',
