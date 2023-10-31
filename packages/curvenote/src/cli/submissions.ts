@@ -7,8 +7,8 @@ function makeKindOption() {
   return new Option('--kind <string>', 'Submit to the venue using this submission kind');
 }
 
-function makeInfoOption() {
-  return new Option('--info', 'Display submission information for the venue');
+function makeVenueOption() {
+  return new Option('--venue <string>', 'Filter list of submissions by venue');
 }
 
 function makeSubmitCLI(program: Command) {
@@ -17,7 +17,6 @@ function makeSubmitCLI(program: Command) {
     .argument('[venue]', 'Venue to submit the work to')
     .addOption(makeKindOption())
     .addOption(makeYesOption())
-    .addOption(makeInfoOption())
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }
@@ -27,13 +26,14 @@ export function addSubmitCLI(program: Command): void {
 }
 
 function makeSubmissionsCLI() {
-  const command = new Command('submit').description('Create and manage submissions to venues');
+  const command = new Command('submissions').description('Manage your submissions');
   return command;
 }
 
 function makeSubmissionsListCLI(program: Command) {
   const command = new Command('list')
     .description('List your Submissions')
+    .addOption(makeVenueOption())
     .action(clirun(submissions.list, { program, requireSiteConfig: true }));
   return command;
 }

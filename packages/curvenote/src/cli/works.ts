@@ -1,7 +1,6 @@
 import { Command, Option } from 'commander';
 import * as works from '../works/index.js';
 import { clirun } from './utils.js';
-import { makeCIOption, makeYesOption } from './options.js';
 
 function makeWorksCLI() {
   const command = new Command('works').description('Create and manage your Works');

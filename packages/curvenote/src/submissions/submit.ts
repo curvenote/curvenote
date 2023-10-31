@@ -126,7 +126,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
 
   // check site exists and can make a submission
   try {
-    getFromJournals(session, `sites/${venue}`);
+    await getFromJournals(session, `sites/${venue}`);
     // TODO check if submissions are allowed from this user
     session.log.info(`${chalk.green(`👩🏻‍🔬 venue "${venue}" is accepting submissions.`)}`);
   } catch (err) {
