@@ -55,8 +55,11 @@ async function postToJournals(
 export async function postNewWork(session: ISession, cdnKey: string, cdn: string) {
   const toc = tic();
 
+  session.log.debug(
+    `POST to ${session.JOURNALS_URL}works with cdnKey: ${cdnKey} and cdn: ${cdn}...`,
+  );
   const resp = await postToJournals(session, 'works', { key: cdnKey, cdn });
-
+  session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as any;
     session.log.info(toc(`🚀 Submitted a new work in %s.`));
@@ -88,7 +91,11 @@ export async function postNewWorkVersion(
 ) {
   const toc = tic();
 
+  session.log.debug(
+    `POST to ${session.JOURNALS_URL}works/${workId}/versions with cdnKey: ${cdnKey} and cdn: ${cdn}...`,
+  );
   const resp = await postToJournals(session, `works/${workId}/versions`, { key: cdnKey, cdn });
+  session.log.debug(`${resp.status} ${resp.statusText}`);
 
   if (resp.ok) {
     const json = (await resp.json()) as any;
@@ -120,7 +127,9 @@ export async function postNewSubmission(
 ) {
   const toc = tic();
   const submissionRequest: CreateSubmissionBody = { work_version_id, kind };
+  session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions...`);
   const resp = await postToJournals(session, `sites/${venue}/submissions`, submissionRequest);
+  session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as any;
     session.log.info(toc(`🚀 Submitted to venue "${venue}" in %s.`));
@@ -149,11 +158,13 @@ export async function postUpdateSubmissionWorkVersion(
 ) {
   const toc = tic();
   const submissionRequest: UpdateSubmissionBody = { work_version_id };
+  session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions/${submissionId}...`);
   const resp = await postToJournals(
     session,
     `sites/${venue}/submissions/${submissionId}`,
     submissionRequest,
   );
+  session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as any;
     session.log.info(toc(`🚀 Updated submission accepted by "${venue}" in %s.`));

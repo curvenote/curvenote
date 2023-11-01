@@ -114,22 +114,27 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     throw new Error('🧐 No site config found.');
   }
 
+  session.log.debug('Checking for a "transfer.yml" file...');
   const transferData = await loadTransferFile(session);
   if (transferData) {
     session.log.info(`${chalk.bold(`🧐 Found a "transfer.yml" in this folder.`)}`);
   }
 
   if (!venue) {
+    session.log.debug('No venue provided, prompting user...');
     const answer = await inquirer.prompt([venueQuestion(session)]);
     venue = answer.venue;
+    session.log.debug(`user answered: "${venue}"`);
   }
 
   // check site exists and can make a submission
   try {
+    session.log.debug(`GET from journals API sites/${venue}`);
     await getFromJournals(session, `sites/${venue}`);
     // TODO check if submissions are allowed from this user
     session.log.info(`${chalk.green(`👩🏻‍🔬 venue "${venue}" is accepting submissions.`)}`);
   } catch (err) {
+    session.log.debug(err);
     session.log.error(`${chalk.red(`👩🏻‍🔬 venue "${venue}" not found.`)}`);
     process.exit(1);
   }
@@ -139,6 +144,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   //
   let kind: string | undefined;
   if (transferData?.[venue]) {
+    session.log.debug('found venue in transfer.yml, existing submission');
     const lastSubDate = transferData[venue].submissionVersion?.date_created;
     session.log.info(
       chalk.bold(
@@ -152,6 +158,9 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
 
     let existingSubmission;
     try {
+      session.log.debug(
+        `GET from journals API my/submissions/${transferData[venue].submission?.id}`,
+      );
       existingSubmission = await getFromJournals(
         session,
         `my/submissions/${transferData[venue].submission?.id}`,
@@ -159,6 +168,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       // check user has permission to update it - currently user has to own it
       // TODO check the venue allows for updates to the submission
     } catch (err: any) {
+      session.log.debug(err);
       session.log.info(
         `${chalk.red(`🚨 submission not found, or you do not have permission to update it`)}`,
       );
@@ -171,9 +181,10 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     );
 
     try {
+      session.log.debug(`GET from journals API my/works/${transferData[venue].work?.id}`);
       await getFromJournals(session, `my/works/${transferData[venue].work?.id}`);
     } catch (err) {
-      console.log(err);
+      session.log.debug(err);
       session.log.info(
         `${chalk.red(
           `🚨 the work related to your submission was not found, or you do not have permission to update it`,
@@ -188,6 +199,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       );
     }
     kind = existingSubmission?.kind;
+    session.log.debug(`resolved kind to ${kind}`);
 
     await confirmOrExit(
       `Update your submission to "${venue}" based on the contents of your local folder?`,
@@ -197,7 +209,9 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     //
     // NEW SUBMISSIONS
     //
+    session.log.debug('new submission');
     kind = await determineSubmissionKind(session, venue, opts);
+    session.log.debug(`resolved kind to ${kind}`);
 
     await confirmOrExit(
       `Start a new submission to "${venue}" based on the contents of your local folder?`,
@@ -219,6 +233,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // Create work and submission
   //
   if (transferData?.[venue]) {
+    session.log.debug(`existing submission - upload & post`);
     const workId = transferData[venue].work?.id;
     const submissionId = transferData[venue].submission?.id;
     if (!workId) {
@@ -231,18 +246,23 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     }
 
     try {
+      session.log.debug(`posting new work version...`);
       const { workVersion } = await postNewWorkVersion(
         session,
         workId,
         cdnKey,
         session.PRIVATE_CDN,
       );
+      session.log.debug(`work version posted with id ${workVersion.id}`);
+
+      session.log.debug(`posting new submission version...`);
       const { submissionVersion } = await postUpdateSubmissionWorkVersion(
         session,
         venue,
         submissionId,
         workVersion.id,
       );
+      session.log.debug(`submission version posted with id ${submissionVersion.id}`);
 
       session.log.info(
         `🚀 ${chalk.bold.green(`Your submission was successfully updated at "${venue}"`)}.`,
@@ -259,24 +279,31 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       process.exit(1);
     }
   } else {
+    session.log.debug(`new submission - upload & post`);
     try {
       if (!kind) {
         session.log.error('🚨 No submission kind found.');
         process.exit(1);
       }
 
+      session.log.debug(`posting new work...`);
       const { work, workVersion } = await postNewWork(session, cdnKey, session.PRIVATE_CDN);
+      session.log.debug(`work posted with id ${work.id}`);
+
+      session.log.debug(`posting new submission...`);
       const { submission, submissionVersion } = await postNewSubmission(
         session,
         venue,
         kind,
         workVersion.id,
       );
+      session.log.debug(`new submission posted with id ${submission.id}`);
 
       session.log.info(
         `🚀 ${chalk.bold.green(`Your work was successfully submitted to "${venue}"`)}.`,
       );
 
+      session.log.debug(`writing to transfer.yml...`);
       await upwriteTransferFile(session, venue, {
         work,
         workVersion,
