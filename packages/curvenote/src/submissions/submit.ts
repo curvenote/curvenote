@@ -131,11 +131,18 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   try {
     session.log.debug(`GET from journals API sites/${venue}`);
     await getFromJournals(session, `sites/${venue}`);
-    // TODO check if submissions are allowed from this user
-    session.log.info(`${chalk.green(`👩🏻‍🔬 venue "${venue}" is accepting submissions.`)}`);
+    session.log.debug(`found venue "${venue}"`);
   } catch (err) {
     session.log.debug(err);
     session.log.error(`${chalk.red(`👩🏻‍🔬 venue "${venue}" not found.`)}`);
+    process.exit(1);
+  }
+
+  try {
+    await getFromJournals(session, `sites/${venue}/access`);
+    session.log.info(`${chalk.green(`👩🏻‍🔬 venue "${venue}" is accepting submissions.`)}`);
+  } catch (err) {
+    session.log.info(`${chalk.green(`🚦 venue "${venue}" not accepting submissions.`)}`);
     process.exit(1);
   }
 
