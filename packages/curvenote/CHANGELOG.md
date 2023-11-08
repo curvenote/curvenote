@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.29
+
+### Patch Changes
+
+- 5a4b4d54: `curvenote submit` now makes an explicit check for a user's access rights, prior to starting the build and submission process.
+
 ## 0.8.28
 
 ### Patch Changes
