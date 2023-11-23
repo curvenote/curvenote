@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.30
+
+### Patch Changes
+
+- 61f1f7a: Move to myst 1.1.27
+- 8cb1507: Update to myst v1.1.31
+
 ## 0.8.29
 
 ### Patch Changes
