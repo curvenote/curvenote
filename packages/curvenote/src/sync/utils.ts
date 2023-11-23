@@ -17,8 +17,7 @@ export function getDefaultSiteConfig(title?: string): SiteConfig {
   return {
     title: title || 'My Curve Space',
     domains: [],
-    logo: INIT_LOGO_PATH,
-    logo_text: title || 'My Curve Space',
+    options: { logo: INIT_LOGO_PATH, logo_text: title || 'My Curve Space' },
     nav: [],
     actions: [{ title: 'Learn More', url: docLinks.web }],
   };
@@ -33,7 +32,7 @@ export async function getDefaultSiteConfigFromRemote(
   const remoteSiteConfig = await new RemoteSiteConfig(session, project.id).get();
   const siteConfig = getDefaultSiteConfig();
   siteConfig.title = project.data.title;
-  siteConfig.logo_text = project.data.title;
+  siteConfig.options = { logo_text: project.data.title };
   if (remoteSiteConfig.data.domains) siteConfig.domains = remoteSiteConfig.data.domains;
   // Add an entry to the nav if it doesn't exist (i.e. empty list is fine)
   if (!remoteSiteConfig.data.nav) {

@@ -181,13 +181,13 @@ export async function init(session: ISession, opts: Options) {
   session.log.info(`📓 Creating site config`);
   me = await me;
   siteConfig.title = title;
-  siteConfig.logo_text = title;
+  siteConfig.options = { logo_text: title };
   if (me) {
     const { username, twitter } = me.data;
     siteConfig.domains = opts.domain
       ? [opts.domain.replace(/^http[s]*:\/\//, '')]
       : [`${username}.curve.space`];
-    if (twitter) siteConfig.twitter = twitter;
+    if (twitter) siteConfig.options.twitter = twitter;
   }
   // Save site config to state and write to disk
   writeConfigs(session, '.', { siteConfig });
@@ -201,7 +201,7 @@ export async function init(session: ISession, opts: Options) {
     });
   }
 
-  if (siteConfig.logo === INIT_LOGO_PATH) {
+  if (siteConfig.options?.logo === INIT_LOGO_PATH) {
     writeFileToFolder(INIT_LOGO_PATH, LOGO);
   }
 
