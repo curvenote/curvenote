@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.31
+
+### Patch Changes
+
+- 16ddad2f: Move common into curvenote deps
+- a2a30dd1: Move to myst 1.1.33
+
 ## 0.8.30
 
 ### Patch Changes
