@@ -239,6 +239,7 @@ describe('pageFrontmatterFromDTO', () => {
     name: 'name',
     date: date.toISOString(),
     oxa: 'oxa:proj/block',
+    keywords: ['a-tag'],
     tags: ['a-tag'],
   };
   const block: Block = {
