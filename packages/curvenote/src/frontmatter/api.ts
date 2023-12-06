@@ -111,6 +111,9 @@ export function pageFrontmatterFromDTO(
     messages: {},
     ...opts,
   });
+
+  // in curvenote the article block tags are currently used to store the keywords
+  frontmatter.keywords = frontmatter.tags?.map((t) => t) || [];
   delete frontmatter.affiliations;
   return frontmatter;
 }
