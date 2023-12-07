@@ -63,7 +63,7 @@ export async function transformOxalinkStore(
   opts: { file: string; projectSlug?: string },
 ) {
   const cache = castSession(session);
-  const mdastPost = cache.$mdast[opts.file].post;
+  const mdastPost = cache.$getMdast(opts.file)?.post;
   const oxa = mdastPost?.frontmatter.oxa;
   if (oxa) {
     const url = opts.projectSlug ? `/${opts.projectSlug}/${mdastPost.slug}` : `/${mdastPost.slug}`;
