@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.33
+
+### Patch Changes
+
+- 49e8ccf4: Consume myst v1.1.34
+
 ## 0.8.32
 
 ### Patch Changes
