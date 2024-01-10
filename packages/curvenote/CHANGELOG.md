@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.34
+
+### Patch Changes
+
+- ffd5cbe: `curvenote init` now creates a flat project/site when initializing from curvenote. This brings behaviour into line with initializing from a local folder.
+
 ## 0.8.33
 
 ### Patch Changes
