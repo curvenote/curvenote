@@ -1,7 +1,6 @@
 import chalk from 'chalk';
 import fs from 'node:fs';
 import inquirer from 'inquirer';
-import { join } from 'node:path';
 import { loadConfig, selectors, writeConfigs } from 'myst-cli';
 import { LogLevel } from 'myst-cli-utils';
 import type { ProjectConfig, SiteConfig } from 'myst-config';
@@ -39,15 +38,14 @@ export async function interactiveCloneQuestions(
     }
   }
   let path: string;
-  const defaultPath = join('content', project.data.name);
+  const defaultPath = '.';
   if (opts?.path || opts?.yes) {
     path = opts?.path ?? defaultPath;
     if (path !== '.' && fs.existsSync(path)) {
       throw new Error(`Invalid path for clone: "${path}", it must not exist.`);
     }
   } else {
-    const { projectPath } = await inquirer.prompt([questions.projectPath(defaultPath)]);
-    path = projectPath;
+    path = defaultPath;
   }
   try {
     // Throw if project doesn't exist - that's what we want!
@@ -55,10 +53,14 @@ export async function interactiveCloneQuestions(
     if (!selectors.selectLocalProjectConfig(session.store.getState(), path)) throw Error();
   } catch {
     // Project config does not exist; good!
-    // TODO: Add all sorts of other stuff for the project data that we know!!
-    const projectConfig = getDefaultProjectConfig(project.data.title);
-    projectConfig.remote = project.data.id;
-    projectConfig.description = project.data.description;
+    const nonNullProjectData = Object.fromEntries(
+      Object.entries(project.data).map(([key, item]) => [key, item === null ? undefined : item]),
+    );
+    const projectConfig = {
+      ...getDefaultProjectConfig(project.data.title),
+      ...nonNullProjectData,
+      remote: nonNullProjectData.id,
+    };
     return {
       siteProject: { path, slug: project.data.name },
       projectConfig,
