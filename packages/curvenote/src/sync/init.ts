@@ -170,7 +170,6 @@ export async function init(session: ISession, opts: Options) {
     projectConfig = results.projectConfig;
     title = projectConfig.title;
     currentPath = siteProject.path;
-    siteConfig.projects = [siteProject];
     session.log.info(`Add other projects using: ${chalk.bold('curvenote clone')}\n`);
   } else {
     throw Error(`Invalid init content: ${content}`);
