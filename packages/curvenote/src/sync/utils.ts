@@ -38,7 +38,6 @@ export async function getDefaultSiteConfigFromRemote(
   if (!remoteSiteConfig.data.nav) {
     siteConfig.nav = [{ title: project.data.title || '', url: `/${siteProject.slug}` }];
   }
-  siteConfig.projects = [...(siteConfig.projects || []), siteProject];
   return siteConfig;
 }
 
