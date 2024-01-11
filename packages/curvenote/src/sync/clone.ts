@@ -45,6 +45,8 @@ export async function interactiveCloneQuestions(
       throw new Error(`Invalid path for clone: "${path}", it must not exist.`);
     }
   } else {
+    const promptConfirmPath = await inquirer.prompt([questions.projectPath(defaultPath)]);
+    if (!promptConfirmPath.projectPath) throw new Error('Aborted');
     path = defaultPath;
   }
   try {

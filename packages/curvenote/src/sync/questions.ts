@@ -43,9 +43,9 @@ function projectLink(opts?: { projectLink?: string }) {
 function projectPath(path?: string) {
   return {
     name: 'projectPath',
-    message: 'Name of local folder to clone this project to?',
-    type: 'input',
-    default: path || '.',
+    message: `Project will be cloned into "${path}" and existing files overwritten. Are you sure?`,
+    type: 'confirm',
+    default: true,
   };
 }
 
