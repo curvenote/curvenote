@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
 import { clirun } from './utils.js';
+import { getTokens } from '../index.js';
 
 async function checkAuth(session: ISession) {
   if (session.isAnon) {
@@ -9,7 +10,20 @@ async function checkAuth(session: ISession) {
     return;
   }
   const me = await new MyUser(session).get();
-  session.log.info(`Logged in as @${me.data.username} <${me.data.email}>`);
+  session.log.info(`Authenticating at ${session.API_URL}`);
+  session.log.info(`Logged in as @${me.data.username} <${me.data.email}> at ${session.API_URL}`);
+
+  const data = getTokens();
+  if (data.environment && !data.current) return;
+  session.log.info(`Available tokens:`);
+  for (const t of data.saved ?? []) {
+    session.log.info(
+      `${t.token === data.current ? '* ' : '  '}@${t.username} <${t.email}> at ${t.api}`,
+    );
+  }
+  if (data.environment) {
+    session.log.info(`➕ Plus an additional token is set in your environment.`);
+  }
 }
 
 export function addAuthCLI(program: Command) {
