@@ -24,6 +24,11 @@ function getConfigPath() {
   return path.join(...pathArr, ...local);
 }
 
+interface TokenData {
+  tokens?: { api: string; email: string; username: string; token: string }[];
+  token: string;
+}
+
 export async function setToken(log: Logger, token?: string) {
   if (!token) {
     log.info(`Create an API token here:\n\n${actionLinks.apiToken}\n`);
@@ -45,14 +50,85 @@ export async function setToken(log: Logger, token?: string) {
   }
   if (!me.data.email_verified) throw new Error('Your account is not activated');
   const configPath = getConfigPath();
+  if (!fs.existsSync(configPath)) {
+    fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  }
+
+  const existing = fs.existsSync(configPath)
+    ? JSON.parse(fs.readFileSync(configPath).toString())
+    : {};
+
   const data = {
+    tokens: [
+      ...(existing.tokens ?? []),
+      { api: session.API_URL, email: me.data.email, username: me.data.username, token },
+    ],
     token,
   };
+
   if (!fs.existsSync(configPath)) {
     fs.mkdirSync(path.dirname(configPath), { recursive: true });
   }
   fs.writeFileSync(configPath, JSON.stringify(data));
-  session.log.info(chalk.green(`Token set for ${me.data.display_name} <${me.data.email}>.`));
+  session.log.info(
+    chalk.green(`Token set for @${me.data.username} <${me.data.email}> at ${session.API_URL}.`),
+  );
+}
+
+export async function selectToken(log: Logger) {
+  const configPath = getConfigPath();
+  if (!fs.existsSync(configPath)) {
+    log.error(`🫙 No tokens found. Try running ${chalk.bold('curvenote token set')} first.`);
+    return;
+  }
+
+  const config = JSON.parse(fs.readFileSync(configPath).toString()) as TokenData;
+  if ((config.tokens && config.tokens.length === 0) || !config.token) {
+    log.error(`🫙 No tokens found. Try running ${chalk.bold('curvenote token set')} first.`);
+    return;
+  }
+
+  if (config.tokens && config.tokens.length === 1) {
+    log.info(
+      chalk.green(
+        `1️⃣ Using token for @${config.tokens[0].username} <${config.tokens[0].email}> at ${config.tokens[0].api}. This is the only token currently set.`,
+      ),
+    );
+    return;
+  }
+
+  if (config.token && !config.tokens) {
+    log.info(
+      chalk.green(`1️⃣ Only one token is set, run 'curvenote auth list' to see the token details.`),
+    );
+    return;
+  }
+
+  const resp = await inquirer.prompt([
+    {
+      name: 'selected',
+      type: 'list',
+      message: 'Which token would you like to use?',
+      choices: (config.tokens ?? []).map(
+        (t: { api: string; username: string; email: string; token: string }) => ({
+          name: `@${t.username} <${t.email}> at ${t.api}`,
+          value: t,
+        }),
+      ),
+    },
+  ]);
+
+  const updated = {
+    ...config,
+    token: resp.selected.token,
+  };
+
+  fs.writeFileSync(configPath, JSON.stringify(updated));
+  log.info(
+    chalk.green(
+      `Token set for @${resp.selected.username} <${resp.selected.email}> at ${resp.selected.api}.`,
+    ),
+  );
 }
 
 export function deleteToken(logger: Logger = chalkLogger(LogLevel.info, process.cwd())) {
@@ -68,7 +144,7 @@ export function deleteToken(logger: Logger = chalkLogger(LogLevel.info, process.
     return;
   }
   fs.unlinkSync(configPath);
-  logger.info(chalk.green('Token has been deleted.'));
+  logger.info(chalk.green('All tokens have been deleted.'));
 }
 
 export function getToken(
@@ -84,6 +160,29 @@ export function getToken(
   try {
     const data = JSON.parse(fs.readFileSync(configPath).toString());
     return data.token;
+  } catch (error) {
+    logger.debug(`\n\n${(error as Error)?.stack}\n\n`);
+    throw new Error('Could not read settings');
+  }
+}
+
+export function getTokens(logger: Logger = chalkLogger(LogLevel.info, process.cwd())) {
+  const env = process.env.CURVENOTE_TOKEN;
+  if (env) {
+    logger.warn('Using the CURVENOTE_TOKEN env variable.');
+    return {
+      environment: process.env.CURVENOTE_TOKEN,
+    };
+  }
+  const configPath = getConfigPath();
+  if (!fs.existsSync(configPath)) return {};
+  try {
+    const data = JSON.parse(fs.readFileSync(configPath).toString()) as TokenData;
+    return {
+      saved: data.tokens,
+      current: data.token,
+      environment: process.env.CURVENOTE_TOKEN,
+    };
   } catch (error) {
     logger.debug(`\n\n${(error as Error)?.stack}\n\n`);
     throw new Error('Could not read settings');

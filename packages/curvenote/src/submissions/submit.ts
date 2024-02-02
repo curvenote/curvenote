@@ -262,7 +262,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       );
       session.log.debug(`work version posted with id ${workVersion.id}`);
 
-      session.log.debug(`posting new submission version...`);
+      session.log.debug(`posting new version to existing submission...`);
       const { submissionVersion } = await postUpdateSubmissionWorkVersion(
         session,
         venue,

@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { deleteToken, setToken } from '../session/index.js';
+import { deleteToken, setToken, selectToken } from '../session/index.js';
 import { clirun } from './utils.js';
 
 export function addTokenCLI(program: Command) {
@@ -11,6 +11,15 @@ export function addTokenCLI(program: Command) {
     .description('Set a token and save to a config directory')
     .action(
       clirun(async (session, token?: string) => setToken(session.log, token), {
+        program,
+        anonymous: true,
+      }),
+    );
+  command
+    .command('select')
+    .description('Set a token and save to a config directory')
+    .action(
+      clirun(async (session) => selectToken(session.log), {
         program,
         anonymous: true,
       }),
