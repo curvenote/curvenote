@@ -111,7 +111,9 @@ export async function selectToken(log: Logger) {
       message: 'Which token would you like to use?',
       choices: (config.tokens ?? []).map(
         (t: { api: string; username: string; email: string; token: string }) => ({
-          name: `@${t.username} <${t.email}> at ${t.api}`,
+          name: `@${t.username} <${t.email}> at ${t.api} ${
+            t.token === config.token ? '(active)' : ''
+          }`,
           value: t,
         }),
       ),
