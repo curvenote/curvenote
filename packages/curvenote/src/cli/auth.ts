@@ -18,7 +18,7 @@ async function checkAuth(session: ISession) {
   session.log.info(`Available tokens:`);
   for (const t of data.saved ?? []) {
     session.log.info(
-      `${t.token === data.current ? '* ' : '  '}@${t.username} <${t.email}> at ${t.api}`,
+      `@${t.username} <${t.email}> at ${t.api} ${t.token === data.current ? '(active)' : ''}`,
     );
   }
   if (data.environment) {

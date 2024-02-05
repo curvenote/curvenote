@@ -108,6 +108,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   }
 
   // TODO upload preflight checks
+  // TODO check the venue allows for submissions & updates to the submission
+  // TODO check user has permission to submit /  update a submission
 
   const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState());
   if (!siteConfig) {
@@ -138,11 +140,12 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     process.exit(1);
   }
 
+  // PREFLIGHT CHECK
   try {
     await getFromJournals(session, `sites/${venue}/access`);
     session.log.info(`${chalk.green(`👩🏻‍🔬 venue "${venue}" is accepting submissions.`)}`);
   } catch (err) {
-    session.log.info(`${chalk.green(`🚦 venue "${venue}" not accepting submissions.`)}`);
+    session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
     process.exit(1);
   }
 
@@ -166,14 +169,12 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     let existingSubmission;
     try {
       session.log.debug(
-        `GET from journals API my/submissions/${transferData[venue].submission?.id}`,
+        `GET from journals API sites/${venue}/submissions/${transferData[venue].submission?.id}`,
       );
       existingSubmission = await getFromJournals(
         session,
-        `my/submissions/${transferData[venue].submission?.id}`,
+        `sites/${venue}/submissions/${transferData[venue].submission?.id}`,
       );
-      // check user has permission to update it - currently user has to own it
-      // TODO check the venue allows for updates to the submission
     } catch (err: any) {
       session.log.debug(err);
       session.log.info(
