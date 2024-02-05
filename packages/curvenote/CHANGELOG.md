@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.8.35
+
+### Patch Changes
+
+- 7bfeb75: Enable users to update another's submission if they are in the same curvenote team
+- fb07682: Additional change to ensure flat projects when `sync.clone` is used from the client library.
+- ee2db32: Improves auth & token cli to handle mulitple tokens
+- 1c720b9: Adding prompt to protect against unintended overwrite of local files during `curvenote clone`
+
 ## 0.8.34
 
 ### Patch Changes
