@@ -145,7 +145,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     await getFromJournals(session, `sites/${venue}/access`);
     session.log.info(`${chalk.green(`👩🏻‍🔬 venue "${venue}" is accepting submissions.`)}`);
   } catch (err) {
-    session.log.info(`${chalk.green(`🚦 venue "${venue}" will not accept your submissions.`)}`);
+    session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
     process.exit(1);
   }
 
