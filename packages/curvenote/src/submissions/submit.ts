@@ -146,10 +146,10 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
           {
             journal: venue,
             source: {
-              repo: 'my-cli-repo',
-              branch: 'my-cli-branch',
-              path: 'my-cli-path',
-              commit: 'q1w2e3r4t5',
+              repo: opts.repo,
+              branch: opts.branch,
+              path: opts.path,
+              commit: opts.commit,
             },
           },
           {

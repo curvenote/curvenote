@@ -22,6 +22,10 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeKindOption())
     .addOption(makeDraftOption())
     .addOption(makeYesOption())
+    .addOption(new Option('--repo <string>', 'Source repo for the submission'))
+    .addOption(new Option('--branch <string>', 'Source branch for the submission'))
+    .addOption(new Option('--path <string>', 'Source path for the submission'))
+    .addOption(new Option('--commit <string>', 'Source commit hash for the submission'))
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }

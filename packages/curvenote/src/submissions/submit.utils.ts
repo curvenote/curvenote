@@ -27,7 +27,16 @@ import {
 import inquirer from 'inquirer';
 import { uploadContentAndDeployToPrivateCdn } from '../utils/web.js';
 
-export type SubmitOpts = { kind?: string; yes?: boolean; info: boolean; draft?: boolean };
+export type SubmitOpts = {
+  kind?: string;
+  yes?: boolean;
+  info: boolean;
+  draft?: boolean;
+  repo?: string;
+  branch?: string;
+  path?: string;
+  commit?: string;
+};
 
 export function kindQuestions(kinds: { name: string }[]) {
   return {
