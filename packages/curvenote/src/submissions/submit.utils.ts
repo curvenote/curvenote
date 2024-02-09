@@ -7,25 +7,13 @@ import {
 } from 'myst-cli';
 import path from 'node:path';
 import type { ISession } from '../session/types.js';
-import {
-  TransferData,
-  TransferDataItem,
-  loadTransferFile,
-  upwriteTransferFile,
-} from './utils.transfer.js';
+import type { TransferDataItem } from './utils.transfer.js';
+import { loadTransferFile, upwriteTransferFile } from './utils.transfer.js';
 import { addOxaTransformersToOpts, confirmOrExit } from '../utils/utils.js';
 import chalk from 'chalk';
 import { format } from 'date-fns';
-import {
-  getFromJournals,
-  postNewCliCheckJob,
-  postNewSubmission,
-  postNewWork,
-  postNewWorkVersion,
-  postUpdateSubmissionWorkVersion,
-} from './utils.js';
+import { getFromJournals, postNewWorkVersion, postUpdateSubmissionWorkVersion } from './utils.js';
 import inquirer from 'inquirer';
-import { uploadContentAndDeployToPrivateCdn } from '../utils/web.js';
 
 export type SubmitOpts = {
   kind?: string;
@@ -198,7 +186,6 @@ export async function confirmUpdateToExistingSubmission(
   session.log.info(`📡 Checking submission status...`);
 
   let existingSubmission;
-  let kind;
   try {
     session.log.debug(
       `GET from journals API sites/${venue}/submissions/${venueTransferData.submission?.id}`,
@@ -238,7 +225,7 @@ export async function confirmUpdateToExistingSubmission(
       `🪧  NOTE: the --kind option was provided, but will be ignored as you are updating an existing submission`,
     );
   }
-  kind = existingSubmission?.kind;
+  const kind = existingSubmission?.kind;
   session.log.debug(`resolved kind to ${kind}`);
 
   await confirmOrExit(

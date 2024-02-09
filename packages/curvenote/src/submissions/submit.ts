@@ -1,25 +1,8 @@
-import {
-  buildSite,
-  clean,
-  collectAllBuildExportOptions,
-  localArticleExport,
-  selectors,
-} from 'myst-cli';
-import path from 'node:path';
 import type { ISession } from '../session/types.js';
-import { loadTransferFile, upwriteTransferFile } from './utils.transfer.js';
-import { addOxaTransformersToOpts, confirmOrExit } from '../utils/utils.js';
+import { upwriteTransferFile } from './utils.transfer.js';
+import { confirmOrExit } from '../utils/utils.js';
 import chalk from 'chalk';
-import { format } from 'date-fns';
-import {
-  getFromJournals,
-  postNewCliCheckJob,
-  postNewSubmission,
-  postNewWork,
-  postNewWorkVersion,
-  postUpdateSubmissionWorkVersion,
-} from './utils.js';
-import inquirer from 'inquirer';
+import { postNewCliCheckJob, postNewSubmission, postNewWork } from './utils.js';
 import { uploadContentAndDeployToPrivateCdn } from '../utils/web.js';
 import {
   ensureVenue,
@@ -29,11 +12,11 @@ import {
   determineSubmissionKind,
   performCleanRebuild,
   celebrate,
-  SubmitOpts,
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
   getTransferData,
 } from './submit.utils.js';
+import type { SubmitOpts } from './submit.utils.js';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   if (session.isAnon) {
@@ -47,7 +30,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // TODO check user has permission to submit /  update a submission
 
   const siteConfig = getSiteConfig(session);
-  let transferData = await getTransferData(session, opts);
+  const transferData = await getTransferData(session, opts);
   venue = await ensureVenue(session, venue);
   await checkVenueExists(session, venue);
   await checkVenueAccess(session, venue);

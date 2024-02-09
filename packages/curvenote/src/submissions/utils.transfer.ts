@@ -5,7 +5,6 @@ import type { ISession } from '../index.js';
 import { selectors } from 'myst-cli';
 import path from 'node:path';
 import chalk from 'chalk';
-import { SubmitOpts } from './submit.utils.js';
 
 export type TransferDataItemData = {
   id: string;
