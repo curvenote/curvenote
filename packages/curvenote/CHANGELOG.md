@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.36
+
+### Patch Changes
+
+- 84752f6: Added `--draft` option to submit workflow, along with more options to include GitHub oriented source information
+
 ## 0.8.35
 
 ### Patch Changes
