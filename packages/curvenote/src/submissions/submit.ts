@@ -85,11 +85,11 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   //
   await performCleanRebuild(session, opts);
   celebrate(session, 'Successfully built your work!');
-  const cdnKey = '96b95ed0-d19d-4c54-b5d9-d10fb7b3d9da';
-  // const cdnKey = await uploadContentAndDeployToPrivateCdn(session, {
-  //   ...opts,
-  //   ci: opts?.yes,
-  // });
+  // const cdnKey = '96b95ed0-d19d-4c54-b5d9-d10fb7b3d9da'; // dev debug
+  const cdnKey = await uploadContentAndDeployToPrivateCdn(session, {
+    ...opts,
+    ci: opts?.yes,
+  });
   session.log.info(`🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
 
   //
