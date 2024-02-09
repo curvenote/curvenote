@@ -51,7 +51,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     if (opts?.draft)
       session.log.info(
         `📝 ${chalk.bold.yellow(
-          `Making a draft submission, this is just for you and will not be processed as a submission by "${venue}".`,
+          `Making a draft submission, this is just for you and will not be processed by "${venue}".`,
         )}`,
       );
 
@@ -85,8 +85,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
 
     if (opts?.draft) {
       session.log.info(
-        `📝 ${chalk.bold.yellow(
-          `🖐 Making a draft submission - any existing transfer.yml will be ignored, a submission preview link will be generated.`,
+        `📝 ${chalk.bold(
+          `🖐 Making a draft submission, existing transfer.yml files will be ignored.`,
         )}`,
       );
     }
