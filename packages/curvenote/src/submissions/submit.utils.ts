@@ -164,7 +164,7 @@ export async function checkVenueAccess(session: ISession, venue: string) {
 }
 
 export function celebrate(session: ISession, message: string) {
-  session.log.info(`\n\n\t${chalk.green(`🎉 ${message} 🎉`)}\n\n`);
+  session.log.info(`\n\n\t${chalk.bold.green(`🎉 ${message} 🎉`)}\n\n`);
 }
 
 export async function confirmUpdateToExistingSubmission(

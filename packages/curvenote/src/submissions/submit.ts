@@ -51,7 +51,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     if (opts?.draft)
       session.log.info(
         `📝 ${chalk.bold.yellow(
-          `Making a draft submission, this is just for you and will not be processed by "${venue}".`,
+          `Making a draft submission, this will not be processed by "${venue}".`,
         )}`,
       );
 
@@ -113,11 +113,11 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
 
       if (opts?.draft) {
         session.log.info(
-          `✍️ ${chalk.bold.green(`🚀 Your draft was successfully submitted to "${venue}".`)}.`,
+          `🚀 ${chalk.green(`Your draft was successfully submitted to "${venue}"`)}.`,
         );
       } else {
         session.log.info(
-          `🚀 ${chalk.bold.green(`Your work was successfully submitted to "${venue}"`)}.`,
+          `🚀 ${chalk.green(`Your work was successfully submitted to "${venue}"`)}.`,
         );
       }
 
@@ -142,8 +142,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         );
 
         const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
-        session.log.info(chalk.bold.green(`🔗 access the build report and draft submission here:`));
-        celebrate(session, buildUrl);
+        session.log.info(chalk.bold.green(`📒 access the build report and draft submission here:`));
+        session.log.info(`\n\n\t${chalk.bold.green(`🔗 ${buildUrl} 🔗`)}\n\n`);
       } else {
         session.log.debug(`writing to transfer.yml...`);
         await upwriteTransferFile(session, venue, {
