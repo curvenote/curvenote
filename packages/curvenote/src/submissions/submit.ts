@@ -13,6 +13,7 @@ import chalk from 'chalk';
 import { format } from 'date-fns';
 import {
   getFromJournals,
+  postNewCliCheckJob,
   postNewSubmission,
   postNewWork,
   postNewWorkVersion,
@@ -21,7 +22,7 @@ import {
 import inquirer from 'inquirer';
 import { uploadContentAndDeployToPrivateCdn } from '../utils/web.js';
 
-type SubmitOpts = { kind?: string; yes?: boolean; info: boolean };
+type SubmitOpts = { kind?: string; yes?: boolean; info: boolean; draft?: boolean };
 
 function kindQuestions(kinds: { name: string }[]) {
   return {
@@ -240,7 +241,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   //
   // Create work and submission
   //
-  if (transferData?.[venue]) {
+  if (transferData?.[venue] && !opts?.draft) {
     session.log.debug(`existing submission - upload & post`);
     const workId = transferData[venue].work?.id;
     const submissionId = transferData[venue].submission?.id;
@@ -288,6 +289,15 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     }
   } else {
     session.log.debug(`new submission - upload & post`);
+
+    if (opts?.draft) {
+      session.log.info(
+        `📝 ${chalk.bold.yellow(
+          `🖐 Making a draft submission - any existing transfer.yml will be ignored, a submission preview link will be generated.`,
+        )}`,
+      );
+    }
+    session.log.debug(`posting new work...`);
     try {
       if (!kind) {
         session.log.error('🚨 No submission kind found.');
@@ -304,23 +314,55 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         venue,
         kind,
         workVersion.id,
+        opts?.draft ?? false,
       );
       session.log.debug(`new submission posted with id ${submission.id}`);
 
       session.log.info(
         `🚀 ${chalk.bold.green(`Your work was successfully submitted to "${venue}"`)}.`,
       );
+      if (opts?.draft)
+        session.log.info(
+          `✍️ ${chalk.bold.yellow(
+            `As your work is marked as draft, "${venue}" will not process it as a submission.`,
+          )}.`,
+        );
 
-      session.log.debug(`writing to transfer.yml...`);
-      await upwriteTransferFile(session, venue, {
-        work,
-        workVersion,
-        submission,
-        submissionVersion,
-      });
-      session.log.info(
-        `The "./transfer.yml" file has been updated your submission information, please keep this file or commit this change.`,
-      );
+      if (opts?.draft) {
+        session.log.debug(`generating link for draft submision...`);
+
+        const job = await postNewCliCheckJob(
+          session,
+          {
+            journal: venue,
+            source: {
+              repo: 'my-cli-repo',
+              branch: 'my-cli-branch',
+              path: 'my-cli-path',
+              commit: 'q1w2e3r4t5',
+            },
+          },
+          {
+            submissionId: submission.id,
+            submissionVersionId: submissionVersion.id,
+          },
+        );
+
+        const buildUrl = `${session.JOURNALS_URL}build/${job.id}`;
+
+        session.log.info(chalk.bold(`🔗 access your submission here: ${buildUrl}`));
+      } else {
+        session.log.debug(`writing to transfer.yml...`);
+        await upwriteTransferFile(session, venue, {
+          work,
+          workVersion,
+          submission,
+          submissionVersion,
+        });
+        session.log.info(
+          `The "./transfer.yml" file has been updated your submission information, please keep this file or commit this change.`,
+        );
+      }
     } catch (err: any) {
       session.log.info(`\n\n🚨 ${chalk.bold.red('Could not submit your work')}.`);
       session.log.info(`📣 ${chalk.bold(err.message)}.`);

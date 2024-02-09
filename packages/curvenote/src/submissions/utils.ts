@@ -1,6 +1,11 @@
 import fetch from 'node-fetch';
 import type { ISession } from '../session/types.js';
-import type { CreateSubmissionBody, UpdateSubmissionBody, WorkBody } from '../utils/index.js';
+import type {
+  CreateCliCheckJobPostBody,
+  CreateSubmissionBody,
+  UpdateSubmissionBody,
+  WorkBody,
+} from '../utils/index.js';
 import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
 import format from 'date-fns/format';
@@ -35,7 +40,7 @@ export async function getFromJournals(session: ISession, pathname: string) {
 async function postToJournals(
   session: ISession,
   pathname: string,
-  body: WorkBody | CreateSubmissionBody | UpdateSubmissionBody,
+  body: WorkBody | CreateSubmissionBody | UpdateSubmissionBody | CreateCliCheckJobPostBody,
 ) {
   const url = `${session.JOURNALS_URL}${pathname}`;
   session.log.debug('Posting to', url);
@@ -119,14 +124,40 @@ export async function postNewWorkVersion(
   }
 }
 
+export async function postNewCliCheckJob(
+  session: ISession,
+  payload: Record<string, any>,
+  results: Record<string, any>,
+) {
+  const toc = tic();
+  const body: CreateCliCheckJobPostBody = {
+    job_type: 'CLI_CHECK',
+    payload,
+    results,
+  };
+  session.log.debug(`POST to ${session.JOURNALS_URL}jobs...`);
+  const resp = await postToJournals(session, `jobs`, body);
+  session.log.debug(`${resp.status} ${resp.statusText}`);
+  if (resp.ok) {
+    const json = (await resp.json()) as any;
+    session.log.info(toc(`📑 Posted a build report in %s.`));
+    session.log.debug(`Job id: ${json.id}`);
+    session.log.debug(`Job status: ${json.status}`);
+    return json;
+  } else {
+    throw new Error('Job creation failed: Please contact support@curvenote.com');
+  }
+}
+
 export async function postNewSubmission(
   session: ISession,
   venue: string,
   kind: string,
   work_version_id: string,
+  draft: boolean,
 ) {
   const toc = tic();
-  const submissionRequest: CreateSubmissionBody = { work_version_id, kind };
+  const submissionRequest: CreateSubmissionBody = { work_version_id, kind, draft: draft };
   session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions...`);
   const resp = await postToJournals(session, `sites/${venue}/submissions`, submissionRequest);
   session.log.debug(`${resp.status} ${resp.statusText}`);

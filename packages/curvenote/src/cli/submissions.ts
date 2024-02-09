@@ -11,11 +11,16 @@ function makeVenueOption() {
   return new Option('--venue <string>', 'Filter list of submissions by venue');
 }
 
+function makeDraftOption() {
+  return new Option('--draft', 'Make an draft submission');
+}
+
 function makeSubmitCLI(program: Command) {
   const command = new Command('submit')
     .description('Submit your work to a Venue')
     .argument('[venue]', 'Venue to submit the work to')
     .addOption(makeKindOption())
+    .addOption(makeDraftOption())
     .addOption(makeYesOption())
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
