@@ -11,12 +11,21 @@ function makeVenueOption() {
   return new Option('--venue <string>', 'Filter list of submissions by venue');
 }
 
+function makeDraftOption() {
+  return new Option('--draft', 'Make an draft submission');
+}
+
 function makeSubmitCLI(program: Command) {
   const command = new Command('submit')
     .description('Submit your work to a Venue')
     .argument('[venue]', 'Venue to submit the work to')
     .addOption(makeKindOption())
+    .addOption(makeDraftOption())
     .addOption(makeYesOption())
+    .addOption(new Option('--repo <string>', 'Source repo for the submission'))
+    .addOption(new Option('--branch <string>', 'Source branch for the submission'))
+    .addOption(new Option('--path <string>', 'Source path for the submission'))
+    .addOption(new Option('--commit <string>', 'Source commit hash for the submission'))
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }

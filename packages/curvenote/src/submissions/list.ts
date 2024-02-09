@@ -55,10 +55,10 @@ function logSubmissionItem(session: ISession, submission: SubmissionsListItemDTO
     [chalk.grey('Num Versions'), chalk.grey((submission as any).num_versions)],
   );
 
-  if (submission.date_last_activity)
+  if (submission.last_activity)
     table.push([
       chalk.grey('Date of last activity'),
-      chalk.grey(formatDate(submission.date_last_activity)),
+      chalk.grey(formatDate(submission.last_activity.date)),
     ]);
 
   session.log.info(table.toString());
