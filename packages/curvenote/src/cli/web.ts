@@ -15,6 +15,7 @@ import {
   makeSiteOption,
   makeDomainOption,
   makeVenueOption,
+  makeExecuteOption,
 } from './options.js';
 
 function makeCurvenoteStartCLI(program: Command) {
@@ -22,6 +23,7 @@ function makeCurvenoteStartCLI(program: Command) {
     .description('Start a local project as a web server')
     .addOption(makeKeepHostOption())
     .addOption(makeHeadlessOption())
+    .addOption(makeExecuteOption('Execute Notebooks'))
     .action(clirun(web.startCurvenoteServer, { program, requireSiteConfig: true }));
   return command;
 }
@@ -36,6 +38,7 @@ function makeBuildCLI(program: Command) {
     .addOption(makeTexOption('Build'))
     .addOption(makeDocxOption('Build'))
     .addOption(makeSiteOption('Build'))
+    .addOption(makeExecuteOption('Execute Notebooks'))
     .addOption(makeForceOption())
     .addOption(makeCheckLinksOption())
     .addOption(makeStrictOption())

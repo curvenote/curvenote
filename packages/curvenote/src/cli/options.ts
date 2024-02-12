@@ -85,3 +85,7 @@ export function makeDocxOption(verb: string) {
 export function makeSiteOption(verb: string) {
   return new Option('--site', `${verb} MyST site content`).default(false);
 }
+
+export function makeExecuteOption(description: string) {
+  return new Option('--execute', description).default(false);
+}
