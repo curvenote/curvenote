@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.37
+
+### Patch Changes
+
+- 0dd7061: Update to myst 1.1.40
+
 ## 0.8.36
 
 ### Patch Changes
