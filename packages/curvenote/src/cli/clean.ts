@@ -2,6 +2,7 @@ import { Command, Option } from 'commander';
 import { clean } from 'myst-cli';
 import {
   makeDocxOption,
+  makeExecuteOption,
   makePdfOption,
   makeSiteOption,
   makeTexOption,
@@ -47,6 +48,7 @@ export function makeCleanCLI(program: Command) {
     .addOption(makeSiteOption('Clean'))
     .addOption(makeTempOption())
     .addOption(makeExportsOption())
+    .addOption(makeExecuteOption('Clean execute cache'))
     .addOption(makeTemplatesOption())
     .addOption(makeAllOption())
     .addOption(makeYesOption())
