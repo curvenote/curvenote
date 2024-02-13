@@ -1,6 +1,8 @@
 import type { ISession as IMystSession } from 'myst-cli';
 import type { Store } from 'redux';
 import type { RootState } from '../store/index.js';
+import type { MystPlugin } from 'myst-common';
+import type { CheckInterface } from '@curvenote/check-implementations';
 
 export type Tokens = Partial<Record<'user' | 'session', string>>;
 
@@ -10,6 +12,10 @@ export type Response<T extends Record<string, any> = any> = Promise<{
   json: T;
 }>;
 
+export type CurvenotePlugin = MystPlugin & {
+  checks: CheckInterface[];
+};
+
 export type ISession = IMystSession & {
   API_URL: string;
   SITE_URL: string;
@@ -18,6 +24,7 @@ export type ISession = IMystSession & {
   PRIVATE_CDN: string;
   store: Store<RootState>;
   isAnon: boolean;
+  plugins: CurvenotePlugin | undefined;
 
   get<T extends Record<string, any> = any>(
     url: string,
