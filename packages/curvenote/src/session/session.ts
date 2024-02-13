@@ -6,14 +6,13 @@ import type { BuildWarning } from 'myst-cli';
 import {
   findCurrentProjectAndLoad,
   findCurrentSiteAndLoad,
-  loadPlugins,
   logUpdateAvailable,
   reloadAllConfigsForCurrentSite,
   selectors,
 } from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger } from 'myst-cli-utils';
-import type { MystPlugin, RuleId } from 'myst-common';
+import type { RuleId } from 'myst-common';
 import { KernelManager, ServerConnection, SessionManager } from '@jupyterlab/services';
 import type { JupyterServerSettings } from 'myst-execute';
 import { findExistingJupyterServer, launchJupyterServer } from 'myst-execute';
@@ -21,8 +20,9 @@ import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
 import { checkForClientVersionRejection } from '../utils/index.js';
 import { getHeaders, setSessionOrUserToken } from './tokens.js';
-import type { ISession, Response, Tokens } from './types.js';
+import type { CurvenotePlugin, ISession, Response, Tokens } from './types.js';
 import version from '../version.js';
+import { loadCurvenotePlugins } from './plugins.js';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
@@ -59,7 +59,7 @@ export class Session implements ISession {
   $tokens: Tokens = {};
   store: Store<RootState>;
   $logger: Logger;
-  plugins: MystPlugin | undefined;
+  plugins: CurvenotePlugin | undefined;
 
   get log(): Logger {
     return this.$logger;
@@ -164,12 +164,12 @@ export class Session implements ISession {
     return this;
   }
 
-  _pluginPromise: Promise<MystPlugin> | undefined;
+  _pluginPromise: Promise<CurvenotePlugin> | undefined;
 
   async loadPlugins() {
     // Early return if a promise has already been initiated
     if (this._pluginPromise) return this._pluginPromise;
-    this._pluginPromise = loadPlugins(this);
+    this._pluginPromise = loadCurvenotePlugins(this);
     this.plugins = await this._pluginPromise;
     return this.plugins;
   }

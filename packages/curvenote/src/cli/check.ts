@@ -7,15 +7,11 @@ import { build } from 'myst-cli';
 
 async function exampleChecks(session: ISession) {
   await build(session, [], { all: true, checkLinks: true });
-  const report = await runChecks(
-    session,
-    [
-      ...submissionRuleChecks.map(({ id }) => {
-        return { id };
-      }),
-    ],
-    [...submissionRuleChecks],
-  );
+  const checks = [...submissionRuleChecks, ...(session.plugins?.checks ?? [])];
+  const checkIds = checks.map(({ id }) => {
+    return { id };
+  });
+  const report = await runChecks(session, checkIds, checks);
   logCheckReport(session, report);
 }
 
