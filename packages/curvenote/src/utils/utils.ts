@@ -1,6 +1,6 @@
 import inquirer from 'inquirer';
 import path from 'node:path';
-import type { Logger } from 'myst-cli-utils';
+import { writeFileToFolder, type Logger } from 'myst-cli-utils';
 import type { JsonObject, VersionId } from '@curvenote/blocks';
 import type { ISession } from '../session/types.js';
 import { OxaTransformer, transformOxalinkStore } from '../transforms/links.js';
@@ -49,4 +49,8 @@ export function addOxaTransformersToOpts(session: ISession, opts: Record<string,
     extraLinkTransformers: [...(opts.extraLinkTransformers ?? []), new OxaTransformer(session)],
     extraTransforms: [...(opts.extraTransforms ?? []), transformOxalinkStore as any],
   };
+}
+
+export function writeJsonLogs(session: ISession, name: string, logData: Record<string, any>) {
+  writeFileToFolder(path.join(session.buildPath(), 'logs', name), JSON.stringify(logData, null, 2));
 }

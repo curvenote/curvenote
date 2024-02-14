@@ -3,6 +3,7 @@ import { clean } from 'myst-cli';
 import {
   makeDocxOption,
   makeExecuteOption,
+  makeLogsOption,
   makePdfOption,
   makeSiteOption,
   makeTexOption,
@@ -47,6 +48,7 @@ export function makeCleanCLI(program: Command) {
     .addOption(makeDocxOption('Clean'))
     .addOption(makeSiteOption('Clean'))
     .addOption(makeTempOption())
+    .addOption(makeLogsOption('Clean logs'))
     .addOption(makeExportsOption())
     .addOption(makeExecuteOption('Clean execute cache'))
     .addOption(makeTemplatesOption())

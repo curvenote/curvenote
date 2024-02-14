@@ -1,8 +1,5 @@
 import chalk from 'chalk';
-import fs from 'node:fs';
-import path from 'node:path';
 import { incrementOptions } from 'simple-validators';
-import { createTempFolder } from 'myst-cli';
 import type { ISession } from '../session/types.js';
 import type { CheckReport, CompiledCheckResults } from './types.js';
 import {
@@ -138,15 +135,4 @@ export function logCheckReport(session: ISession, completedChecks: CompiledCheck
     });
   });
   if (report.status !== CheckStatus.pass) process.exit(1);
-}
-
-export function writeCheckReport(session: ISession, report: Record<string, any>, logfile?: string) {
-  if (!logfile) {
-    const tempfolder = createTempFolder(session);
-    logfile = path.join(tempfolder, 'checks.log.json');
-  } else if (!fs.existsSync(path.dirname(logfile))) {
-    fs.mkdirSync(path.dirname(logfile), { recursive: true });
-  }
-  session.log.info(`🪵 Writing check logs to ${logfile}`);
-  fs.writeFileSync(logfile, JSON.stringify(report, null, 2));
 }
