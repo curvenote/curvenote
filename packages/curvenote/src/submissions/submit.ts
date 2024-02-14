@@ -2,7 +2,7 @@ import type { ISession } from '../session/types.js';
 import { upwriteTransferFile } from './utils.transfer.js';
 import { confirmOrExit, writeJsonLogs } from '../utils/utils.js';
 import chalk from 'chalk';
-import { postNewCliCheckJob, postNewSubmission, postNewWork } from './utils.js';
+import { getFromJournals, postNewCliCheckJob, postNewSubmission, postNewWork } from './utils.js';
 import { uploadContentAndDeployToPrivateCdn } from '../utils/web.js';
 import {
   ensureVenue,
@@ -17,6 +17,11 @@ import {
   getTransferData,
 } from './submit.utils.js';
 import type { SubmitOpts } from './submit.utils.js';
+import { submissionRuleChecks } from '@curvenote/check-implementations';
+import type { SubmissionKindsDTO } from '@curvenote/common';
+import { logCheckReport, runChecks } from '../check/index.js';
+import path from 'node:path';
+import fs from 'node:fs';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: Record<string, any> = {
@@ -70,10 +75,40 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   }
 
   //
+  // get checks
+  //
+  const kinds = (await getFromJournals(session, `sites/${venue}/kinds`)) as SubmissionKindsDTO;
+  const checks = kinds.items.find((k) => k.name === kind)?.checks;
+  const numChecks = checks?.length ?? 0;
+  if (numChecks === 0) {
+    session.log.info(`✅ "${venue}" does not require and checks for "${kind}"`);
+  } else {
+    session.log.info(`🚦 "${venue}" specifies ${checks?.length ?? 0} checks for "${kind}"`);
+  }
+
+  //
   // Process local folder and upload stuff
   //
   await performCleanRebuild(session, opts);
   celebrate(session, 'Successfully built your work!');
+
+  //
+  // run checks
+  //
+  if (checks && numChecks > 0) {
+    session.log.info(`🕵️‍♀️ running checks...`);
+    const report = await runChecks(
+      session,
+      checks.map((c) => ({ id: c.id })),
+      submissionRuleChecks,
+    );
+    const reportFilename = path.join(session.buildPath(), 'site', 'checks.json');
+    session.log.debug(`💼 adding check report to ${reportFilename} for upload...`);
+    fs.writeFileSync(reportFilename, JSON.stringify({ report }, null, 2));
+    logCheckReport(session, report, false);
+    session.log.info(`🏁 check run completed.`);
+  }
+
   // const cdnKey = '96b95ed0-d19d-4c54-b5d9-d10fb7b3d9da'; // dev debug
   const cdnKey = await uploadContentAndDeployToPrivateCdn(session, {
     ...opts,

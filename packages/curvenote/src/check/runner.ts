@@ -76,7 +76,11 @@ export function sortCheckResults(completedChecks: CompiledCheckResults) {
   return { status: finalStatus, results: Object.values(checkCategories) };
 }
 
-export function logCheckReport(session: ISession, completedChecks: CompiledCheckResults) {
+export function logCheckReport(
+  session: ISession,
+  completedChecks: CompiledCheckResults,
+  exitOnFailure = true,
+) {
   const report = sortCheckResults(completedChecks);
   const checkFail = (msg: string, icon?: boolean, prefix?: string, optional?: boolean) => {
     return chalk[optional ? 'yellow' : 'red'](
@@ -134,5 +138,5 @@ export function logCheckReport(session: ISession, completedChecks: CompiledCheck
       }
     });
   });
-  if (report.status !== CheckStatus.pass) process.exit(1);
+  if (report.status !== CheckStatus.pass && exitOnFailure) process.exit(1);
 }

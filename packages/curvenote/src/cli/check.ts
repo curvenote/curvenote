@@ -12,6 +12,7 @@ async function exampleChecks(session: ISession) {
   const checkIds = checks.map(({ id }) => {
     return { id };
   });
+
   const report = await runChecks(session, checkIds, checks);
   const checkLog = { input: {}, report };
   writeJsonLogs(session, 'curvenote.checks.json', checkLog);
