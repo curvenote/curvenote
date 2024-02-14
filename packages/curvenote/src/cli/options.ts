@@ -89,3 +89,7 @@ export function makeSiteOption(verb: string) {
 export function makeExecuteOption(description: string) {
   return new Option('--execute', description).default(false);
 }
+
+export function makeLogsOption(description: string) {
+  return new Option('--logs', description).default(false);
+}

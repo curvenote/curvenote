@@ -102,7 +102,7 @@ export async function performCleanRebuild(session: ISession, opts?: SubmitOpts) 
   });
   session.log.info(`📬 Performing exports:\n   ${exportLogList.join('\n   ')}`);
   await localArticleExport(session, exportOptionsList, {});
-  session.log.info(`⛴ Exports complete`);
+  session.log.info(`⛴  Exports complete`);
   // Build the files in the content folder and process them
   await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
   session.log.info(`✅ Work rebuild complete`);
@@ -238,6 +238,7 @@ export async function confirmUpdateToExistingSubmission(
 
 export async function updateExistingSubmission(
   session: ISession,
+  logCollector: Record<string, any>,
   venue: string,
   cdnKey: string,
   venueTransferData: TransferDataItem,
@@ -253,10 +254,12 @@ export async function updateExistingSubmission(
     session.log.error('🚨 No submission id found - invalid transfer.yml');
     process.exit(1);
   }
-
+  logCollector.workId = workId;
+  logCollector.submissionId = submissionId;
   try {
     session.log.debug(`posting new work version...`);
     const { workVersion } = await postNewWorkVersion(session, workId, cdnKey, session.PRIVATE_CDN);
+    logCollector.workVersion = workVersion;
     session.log.debug(`work version posted with id ${workVersion.id}`);
 
     session.log.debug(`posting new version to existing submission...`);
@@ -266,6 +269,7 @@ export async function updateExistingSubmission(
       submissionId,
       workVersion.id,
     );
+    logCollector.submissionVersion = submissionVersion;
     session.log.debug(`submission version posted with id ${submissionVersion.id}`);
 
     session.log.info(

@@ -1,6 +1,6 @@
 import type { ISession } from '../session/types.js';
 import { upwriteTransferFile } from './utils.transfer.js';
-import { confirmOrExit } from '../utils/utils.js';
+import { confirmOrExit, writeJsonLogs } from '../utils/utils.js';
 import chalk from 'chalk';
 import { postNewCliCheckJob, postNewSubmission, postNewWork } from './utils.js';
 import { uploadContentAndDeployToPrivateCdn } from '../utils/web.js';
@@ -19,6 +19,12 @@ import {
 import type { SubmitOpts } from './submit.utils.js';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
+  const submitLog: Record<string, any> = {
+    input: {
+      venue,
+      opts,
+    },
+  };
   if (session.isAnon) {
     throw new Error(
       '⚠️ You must be authenticated for this command. Use `curvenote token set [token]`',
@@ -79,7 +85,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // Create work and submission
   //
   if (transferData?.[venue] && !opts?.draft) {
-    await updateExistingSubmission(session, venue, cdnKey, transferData[venue]);
+    await updateExistingSubmission(session, submitLog, venue, cdnKey, transferData[venue]);
   } else {
     session.log.debug(`new submission - upload & post`);
 
@@ -99,6 +105,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
 
       session.log.debug(`posting new work...`);
       const { work, workVersion } = await postNewWork(session, cdnKey, session.PRIVATE_CDN);
+      submitLog.work = work;
+      submitLog.workVersion = workVersion;
       session.log.debug(`work posted with id ${work.id}`);
 
       session.log.debug(`posting new submission...`);
@@ -109,6 +117,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         workVersion.id,
         opts?.draft ?? false,
       );
+      submitLog.submission = submission;
+      submitLog.submissionVersion = submissionVersion;
       session.log.debug(`new submission posted with id ${submission.id}`);
 
       if (opts?.draft) {
@@ -142,6 +152,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         );
 
         const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
+        submitLog.job = job;
+        submitLog.buildUrl = buildUrl;
         session.log.info(chalk.bold.green(`📒 access the build report and draft submission here:`));
         session.log.info(`\n\n\t${chalk.bold.green(`🔗 ${buildUrl} 🔗`)}\n\n`);
       } else {
@@ -161,5 +173,6 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       session.log.info(`📣 ${chalk.bold(err.message)}.`);
       process.exit(1);
     }
+    writeJsonLogs(session, 'curvenote.submit.json', submitLog);
   }
 }
