@@ -13,7 +13,8 @@ async function exampleChecks(session: ISession) {
     return { id };
   });
   const report = await runChecks(session, checkIds, checks);
-  writeJsonLogs(session, 'curvenote.checks.json', report);
+  const checkLog = { input: {}, report };
+  writeJsonLogs(session, 'curvenote.checks.json', checkLog);
   logCheckReport(session, report);
 }
 
