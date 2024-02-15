@@ -1,19 +1,7 @@
 import { Command, Option } from 'commander';
 import { clirun } from './utils.js';
-import { makeYesOption } from './options.js';
+import { makeDraftOption, makeKindOption, makeVenueOption, makeYesOption } from './options.js';
 import * as submissions from '../submissions/index.js';
-
-function makeKindOption() {
-  return new Option('--kind <string>', 'Submit to the venue using this submission kind');
-}
-
-function makeVenueOption() {
-  return new Option('--venue <string>', 'Filter list of submissions by venue');
-}
-
-function makeDraftOption() {
-  return new Option('--draft', 'Make an draft submission');
-}
 
 function makeSubmitCLI(program: Command) {
   const command = new Command('submit')
@@ -42,7 +30,7 @@ function makeSubmissionsCLI() {
 function makeSubmissionsListCLI(program: Command) {
   const command = new Command('list')
     .description('List your Submissions')
-    .addOption(makeVenueOption())
+    .addOption(makeVenueOption('Filter list of submissions by venue'))
     .action(clirun(submissions.list, { program, requireSiteConfig: true }));
   return command;
 }
