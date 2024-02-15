@@ -21,7 +21,7 @@ export async function getChecksForSubmission(
   const checks = !kind ? kinds.items[0].checks : kinds.items.find((k) => k.name === kind)?.checks;
   const numChecks = checks?.length ?? 0;
   if (numChecks === 0) {
-    session.log.info(`✅ "${venue}" does not require and checks for "${kind}"`);
+    session.log.info(`✅ "${venue}" does not require checks for "${kind}"`);
   } else {
     session.log.info(`🚦 "${venue}" specifies ${checks?.length ?? 0} checks for "${kind}"`);
   }
