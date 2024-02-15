@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.8.38
+
+### Patch Changes
+
+- eebf3ef: During submit the SubmissonKind checks are run, a check report is displayed and a json copy is uploaded to cdn with the site
+- 093e75b: Fix check output when all successful
+- e6c11bb: Add checks to plugin interface
+- a4ba250: Collect programmatic logs for submission
+
 ## 0.8.37
 
 ### Patch Changes
