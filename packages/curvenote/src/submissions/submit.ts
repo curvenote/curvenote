@@ -95,7 +95,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     );
     const reportFilename = path.join(session.buildPath(), 'site', 'checks.json');
     session.log.debug(`💼 adding check report to ${reportFilename} for upload...`);
-    fs.writeFileSync(reportFilename, JSON.stringify({ report }, null, 2));
+    fs.writeFileSync(reportFilename, JSON.stringify({ venue, kind, report }, null, 2));
     logCheckReport(session, report, false);
     session.log.info(`🏁 checks completed`);
   }
@@ -176,11 +176,13 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
             submissionVersionId: submissionVersion.id,
             workId: work.id,
             workVersionId: workVersion.id,
-            checks: { report },
+            checks: { venue, kind, report },
           },
         );
 
         const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
+        submitLog.venue = venue;
+        submitLog.kind = kind;
         submitLog.report = report;
         submitLog.job = job;
         submitLog.buildUrl = buildUrl;
