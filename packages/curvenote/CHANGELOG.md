@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.39
+
+### Patch Changes
+
+- 5a4a346: Add check results to job results and `curvenote.submit.log`
+
 ## 0.8.38
 
 ### Patch Changes
