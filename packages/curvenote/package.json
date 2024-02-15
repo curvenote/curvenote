@@ -43,8 +43,8 @@
   },
   "dependencies": {
     "@curvenote/blocks": "^1.5.24",
-    "@curvenote/check-definitions": "^0.0.9",
-    "@curvenote/check-implementations": "^0.0.9",
+    "@curvenote/check-definitions": "^0.0.10",
+    "@curvenote/check-implementations": "^0.0.10",
     "@curvenote/common": "^0.1.14",
     "@curvenote/schema": "0.12.18",
     "@google-cloud/storage": "^5.18.2",
