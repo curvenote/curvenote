@@ -72,17 +72,17 @@ export async function determineSubmissionKind(
 
   let kind;
   if (opts?.kind) {
-    if (
-      !kinds.items
-        .map(({ name }: { name: string }) => name.toLowerCase())
-        .includes(opts.kind.toLowerCase())
-    ) {
+    const match = kinds.items.find(
+      ({ name }: { name: string }) => name.toLowerCase() === opts.kind?.toLowerCase(),
+    );
+    if (!match) {
       session.log.info(
         `${chalk.red(`🚨 submission kind "${opts.kind}" is not accepted at venue ${venue}`)}`,
       );
       process.exit(1);
     }
-    kind = opts?.kind;
+    // Return the actual kind (including case)
+    kind = match.name;
   } else if (kinds.items.length === 1) {
     kind = kinds.items[0].name;
   } else {

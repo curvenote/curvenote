@@ -17,6 +17,11 @@ import {
   getTransferData,
 } from './submit.utils.js';
 import type { SubmitOpts } from './submit.utils.js';
+import { submissionRuleChecks } from '@curvenote/check-implementations';
+import { logCheckReport, runChecks } from '../check/index.js';
+import path from 'node:path';
+import fs from 'node:fs';
+import { getChecksForSubmission } from './check.js';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: Record<string, any> = {
@@ -69,11 +74,30 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     );
   }
 
+  const checks = await getChecksForSubmission(session, venue, kind);
   //
   // Process local folder and upload stuff
   //
   await performCleanRebuild(session, opts);
   celebrate(session, 'Successfully built your work!');
+
+  //
+  // run checks
+  //
+  if (checks && checks.length > 0) {
+    session.log.info(`🕵️‍♀️ running checks...`);
+    const report = await runChecks(
+      session,
+      checks.map((c) => ({ id: c.id })),
+      submissionRuleChecks,
+    );
+    const reportFilename = path.join(session.buildPath(), 'site', 'checks.json');
+    session.log.debug(`💼 adding check report to ${reportFilename} for upload...`);
+    fs.writeFileSync(reportFilename, JSON.stringify({ report }, null, 2));
+    logCheckReport(session, report, false);
+    session.log.info(`🏁 checks completed`);
+  }
+
   // const cdnKey = '96b95ed0-d19d-4c54-b5d9-d10fb7b3d9da'; // dev debug
   const cdnKey = await uploadContentAndDeployToPrivateCdn(session, {
     ...opts,
@@ -132,7 +156,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       }
 
       if (opts?.draft) {
-        session.log.debug(`generating link for draft submision...`);
+        session.log.debug(`generating link for draft submission...`);
 
         const job = await postNewCliCheckJob(
           session,

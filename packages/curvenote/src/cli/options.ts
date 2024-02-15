@@ -11,11 +11,18 @@ export function makeDomainOption() {
   ).default(undefined);
 }
 
-export function makeVenueOption() {
-  return new Option(
-    '--venue <string>',
-    'Specify a venue to deploy to. A private deployment will be made and submitted to the venue.',
-  ).default(undefined);
+export function makeVenueOption(
+  description = 'Specify a venue to deploy to. A private deployment will be made and submitted to the venue.',
+) {
+  return new Option('--venue <string>', description).default(undefined);
+}
+
+export function makeKindOption() {
+  return new Option('--kind <string>', 'Submit to the venue using this submission kind');
+}
+
+export function makeDraftOption() {
+  return new Option('--draft', 'Make an draft submission');
 }
 
 export function makeBranchOption() {
