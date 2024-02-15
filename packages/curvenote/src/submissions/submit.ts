@@ -18,6 +18,7 @@ import {
 } from './submit.utils.js';
 import type { SubmitOpts } from './submit.utils.js';
 import { submissionRuleChecks } from '@curvenote/check-implementations';
+import type { CompiledCheckResults } from '../check/index.js';
 import { logCheckReport, runChecks } from '../check/index.js';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -84,9 +85,10 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   //
   // run checks
   //
+  let report: CompiledCheckResults | undefined;
   if (checks && checks.length > 0) {
     session.log.info(`🕵️‍♀️ running checks...`);
-    const report = await runChecks(
+    report = await runChecks(
       session,
       checks.map((c) => ({ id: c.id })),
       submissionRuleChecks,
@@ -172,10 +174,14 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
           {
             submissionId: submission.id,
             submissionVersionId: submissionVersion.id,
+            workId: work.id,
+            workVersionId: workVersion.id,
+            checks: { report },
           },
         );
 
         const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
+        submitLog.report = report;
         submitLog.job = job;
         submitLog.buildUrl = buildUrl;
         session.log.info(chalk.bold.green(`📒 access the build report and draft submission here:`));
