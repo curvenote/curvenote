@@ -100,8 +100,7 @@ export function logCheckReport(
       session.log.info(
         checkPass(
           `❯ ${chalk.bold(category)} (${checks.length}/${checks.length} tests passed)`,
-          true,
-          '  ',
+          false,
         ),
       );
     } else {
