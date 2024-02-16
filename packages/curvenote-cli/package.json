@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/cli",
-  "version": "0.8.39",
+  "version": "0.8.40",
   "description": "CLI Client library for Curvenote",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "license": "MIT",
