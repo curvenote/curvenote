@@ -1,7 +1,7 @@
 import { Command, Option } from 'commander';
-import { clirun } from './utils.js';
+import { clirun } from './clirun.js';
 import { makeDraftOption, makeKindOption, makeVenueOption, makeYesOption } from './options.js';
-import * as submissions from '../submissions/index.js';
+import { submissions } from '@curvenote/cli';
 
 function makeSubmitCLI(program: Command) {
   const command = new Command('submit')

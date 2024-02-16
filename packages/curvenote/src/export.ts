@@ -1,16 +1,7 @@
 import { Command, Option } from 'commander';
-import {
-  buildPdfOnly,
-  exportContent,
-  oxaLinkToTex,
-  oxaLinkToJupyterBook,
-  oxaLinkToMarkdown,
-  oxaLinkToNotebook,
-  oxaLinkToPdf,
-  oxaLinkToWord,
-} from '../export/index.js';
+import { exp } from '@curvenote/cli';
 import { makeCleanOption, makeZipOption } from './options.js';
-import { clirun } from './utils.js';
+import { clirun } from './clirun.js';
 
 function makeImageOption() {
   return new Option('-i, --images <images>', 'Change the path to save the images to').default(
@@ -50,7 +41,7 @@ function makeWordExportCLI(program: Command) {
     .argument('<article>', 'A link to the Curvenote article (e.g. OXA Link or API link)')
     .argument('[output]', 'The document filename to export to', '')
     .addOption(makeCleanOption())
-    .action(clirun(oxaLinkToWord, { program }, 3));
+    .action(clirun(exp.oxaLinkToWord, { program }, 3));
   return command;
 }
 
@@ -61,7 +52,7 @@ function makeMarkdownExportCLI(program: Command) {
     .argument('<article>', 'A link to the Curvenote article (e.g. OXA Link or API link)')
     .argument('[output]', 'The document filename to export to', 'article.md')
     .addOption(makeImageOption())
-    .action(clirun(oxaLinkToMarkdown, { program }));
+    .action(clirun(exp.oxaLinkToMarkdown, { program }));
   return command;
 }
 
@@ -81,7 +72,7 @@ function makeTexExportCLI(program: Command) {
     .addOption(makeZipOption())
     .addOption(makeTemplateOptionsOption())
     .addOption(makeConverterOption())
-    .action(clirun(oxaLinkToTex, { program }, 3));
+    .action(clirun(exp.oxaLinkToTex, { program }, 3));
   return command;
 }
 
@@ -98,7 +89,7 @@ function makePdfExportCLI(program: Command) {
     .addOption(makeCleanOption())
     .addOption(makeTemplateOptionsOption())
     .addOption(makeConverterOption())
-    .action(clirun(oxaLinkToPdf, { program }, 3));
+    .action(clirun(exp.oxaLinkToPdf, { program }, 3));
   return command;
 }
 
@@ -106,7 +97,7 @@ function makePdfBuildCLI(program: Command) {
   const command = new Command('pdf:build')
     .description('Build a pdf given a tex file')
     .argument('[output]', 'A path to the tex file to build')
-    .action(clirun(buildPdfOnly, { program }));
+    .action(clirun(exp.buildPdfOnly, { program }));
   return command;
 }
 
@@ -117,7 +108,7 @@ function makeJupyterNotebookExportCLI(program: Command) {
     .description('Export a jupyter-book project from a Curvenote link')
     .argument('<notebook>', 'A link to the Jupyter Notebook (e.g. OXA Link or API link)')
     .argument('[output]', 'The document filename to export to', 'notebook.ipynb')
-    .action(clirun(oxaLinkToNotebook, { program }));
+    .action(clirun(exp.oxaLinkToNotebook, { program }));
   return command;
 }
 
@@ -126,7 +117,7 @@ function makeJupyterBookExportCLI(program: Command) {
     .alias('jb')
     .description('Export a jupyter-book project from a Curvenote link')
     .argument('<project>', 'A link to the Curvenote project (e.g. OXA Link or projectId)')
-    .action(clirun(oxaLinkToJupyterBook, { program }));
+    .action(clirun(exp.oxaLinkToJupyterBook, { program }));
   return command;
 }
 
@@ -134,7 +125,7 @@ function makeJupyterBookExportCLI(program: Command) {
 function makeMultiExportCLI(program: Command) {
   const command = new Command('multi')
     .description('Export multiple targets from Curvenote via local configuration file')
-    .action(clirun(exportContent, { program }));
+    .action(clirun(exp.exportContent, { program }));
   return command;
 }
 

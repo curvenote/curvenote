@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { deleteToken, setToken, selectToken } from '../session/index.js';
-import { clirun } from './utils.js';
+import { deleteToken, setToken, selectToken } from '@curvenote/cli';
+import { clirun } from './clirun.js';
 
 export function addTokenCLI(program: Command) {
   const command = new Command('token').description(

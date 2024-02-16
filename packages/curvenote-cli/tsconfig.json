@@ -1,8 +1,5 @@
 {
   "extends": "../tsconfig/base.json",
-  "compilerOptions": {
-    "declarationMap": false
-  },
   "include": ["."],
   "exclude": ["dist", "build", "node_modules", "src/**/*.spec.ts", "tests", "scripts"]
 }

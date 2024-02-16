@@ -4,6 +4,11 @@ import type { RootState } from '../store/index.js';
 import type { MystPlugin } from 'myst-common';
 import type { CheckInterface } from '@curvenote/check-implementations';
 
+export type SessionOpts = {
+  debug?: boolean;
+  config?: string;
+};
+
 export type Tokens = Partial<Record<'user' | 'session', string>>;
 
 export type Response<T extends Record<string, any> = any> = Promise<{
