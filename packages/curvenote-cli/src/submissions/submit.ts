@@ -2,11 +2,10 @@ import type { ISession } from '../session/types.js';
 import { upwriteTransferFile } from './utils.transfer.js';
 import { confirmOrExit, writeJsonLogs } from '../utils/utils.js';
 import chalk from 'chalk';
-import { postNewCliCheckJob, postNewSubmission, postNewWork } from './utils.js';
+import { postNewCliCheckJob } from './utils.js';
 import { uploadContentAndDeployToPrivateCdn } from '../utils/web.js';
 import {
   ensureVenue,
-  getSiteConfig,
   checkVenueExists,
   checkVenueAccess,
   determineSubmissionKind,
@@ -41,7 +40,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // TODO check the venue allows for submissions & updates to the submission
   // TODO check user has permission to submit /  update a submission
 
-  const siteConfig = getSiteConfig(session);
+  // const siteConfig = getSiteConfig(session);
   const transferData = await getTransferData(session, opts);
   venue = await ensureVenue(session, venue);
   await checkVenueExists(session, venue);

@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
-import { checkNodeVersion, getNodeVersion, logVersions, selectors } from 'myst-cli';
-import { anonSession, getSession } from '@curvenote/cli';
+import { checkNodeVersion, getNodeVersion, selectors } from 'myst-cli';
+import { anonSession, getSession, logVersions } from '@curvenote/cli';
 import type { ISession, SessionOpts } from '@curvenote/cli';
 import chalk from 'chalk';
 
