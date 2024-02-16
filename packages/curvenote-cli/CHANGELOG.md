@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.40
+
+### Patch Changes
+
+- 47bbf26: Simplify packaging of curvenote for faster install times
+
 ## 0.8.39
 
 ### Patch Changes
