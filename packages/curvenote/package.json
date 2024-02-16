@@ -1,6 +1,6 @@
 {
   "name": "curvenote",
-  "version": "0.8.40",
+  "version": "0.8.41",
   "description": "Command line tools for using Curvenote",
   "author": "Curvenote Inc. <support@curvenote.com>",
   "license": "MIT",
@@ -49,6 +49,6 @@
     "commander": "^10.0.1",
     "core-js": "^3.31.1",
     "js-yaml": "^4.1.0",
-    "@curvenote/cli": "^0.8.40"
+    "@curvenote/cli": "^0.8.41"
   }
 }
