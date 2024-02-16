@@ -1,8 +1,8 @@
 {
   "name": "curvenote",
   "version": "0.8.39",
-  "description": "Command line tools for MyST Markdown",
-  "author": "Steve Purves <steve@curvenote.com>",
+  "description": "Command line tools for using Curvenote",
+  "author": "Curvenote Inc. <support@curvenote.com>",
   "license": "MIT",
   "type": "module",
   "keywords": [
