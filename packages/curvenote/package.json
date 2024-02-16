@@ -41,6 +41,9 @@
     "build:cli": "esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --target=node14",
     "build": "npm-run-all -l clean copy:version -p build:cli"
   },
+  "dependencies": {
+    "jsdom": "^19.0.0"
+  },
   "devDependencies": {
     "chalk": "^5.2.0",
     "commander": "^10.0.1",
