@@ -11,10 +11,10 @@ import {
   checkVenueAccess,
   determineSubmissionKind,
   performCleanRebuild,
-  celebrate,
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
   getTransferData,
+  createNewSubmission,
 } from './submit.utils.js';
 import type { SubmitOpts } from './submit.utils.js';
 import { submissionRuleChecks } from '@curvenote/check-implementations';
@@ -80,7 +80,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // Process local folder and upload stuff
   //
   await performCleanRebuild(session, opts);
-  celebrate(session, 'Successfully built your work!');
+  session.log.info('🪩 Successfully built your work!');
 
   //
   // run checks
@@ -100,7 +100,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     session.log.info(`🏁 checks completed`);
   }
 
-  // const cdnKey = '96b95ed0-d19d-4c54-b5d9-d10fb7b3d9da'; // dev debug
+  // const cdnKey = 'ad7fa60f-5460-4bf9-96ea-59be87944e41'; // dev debug
   const cdnKey = await uploadContentAndDeployToPrivateCdn(session, {
     ...opts,
     ci: opts?.yes,
@@ -111,100 +111,95 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // Create work and submission
   //
   if (transferData?.[venue] && !opts?.draft) {
-    await updateExistingSubmission(session, submitLog, venue, cdnKey, transferData[venue]);
-  } else {
-    session.log.debug(`new submission - upload & post`);
+    const { work, workVersion, submission, submissionVersion } = await updateExistingSubmission(
+      session,
+      venue,
+      cdnKey,
+      transferData[venue],
+    );
 
+    submitLog.workVersion = workVersion;
+    submitLog.work = work.id;
+    submitLog.submissionVersion = submissionVersion;
+    submitLog.submission = submission.id;
+  } else {
     if (opts?.draft) {
       session.log.info(
-        `📝 ${chalk.bold(
+        `${chalk.bold(
           `🖐 Making a draft submission, existing transfer.yml files will be ignored.`,
         )}`,
       );
+    } else {
+      session.log.info(`✨ making a new submission`);
     }
-    session.log.debug(`posting new work...`);
+
     try {
       if (!kind) {
         session.log.error('🚨 No submission kind found.');
         process.exit(1);
       }
 
-      session.log.debug(`posting new work...`);
-      const { work, workVersion } = await postNewWork(session, cdnKey, session.PRIVATE_CDN);
-      submitLog.work = work;
-      submitLog.workVersion = workVersion;
-      session.log.debug(`work posted with id ${work.id}`);
-
-      session.log.debug(`posting new submission...`);
-      const { submission, submissionVersion } = await postNewSubmission(
+      const { work, workVersion, submission, submissionVersion } = await createNewSubmission(
         session,
         venue,
         kind,
-        workVersion.id,
-        opts?.draft ?? false,
+        cdnKey,
+        opts,
       );
+
+      submitLog.work = work;
+      submitLog.workVersion = workVersion;
       submitLog.submission = submission;
       submitLog.submissionVersion = submissionVersion;
-      session.log.debug(`new submission posted with id ${submission.id}`);
-
-      if (opts?.draft) {
-        session.log.info(
-          `🚀 ${chalk.green(`Your draft was successfully submitted to "${venue}"`)}.`,
-        );
-      } else {
-        session.log.info(
-          `🚀 ${chalk.green(`Your work was successfully submitted to "${venue}"`)}.`,
-        );
-      }
-
-      if (opts?.draft) {
-        session.log.debug(`generating link for draft submission...`);
-
-        const job = await postNewCliCheckJob(
-          session,
-          {
-            journal: venue,
-            source: {
-              repo: opts.repo,
-              branch: opts.branch,
-              path: opts.path,
-              commit: opts.commit,
-            },
-          },
-          {
-            submissionId: submission.id,
-            submissionVersionId: submissionVersion.id,
-            workId: work.id,
-            workVersionId: workVersion.id,
-            checks: { venue, kind, report },
-          },
-        );
-
-        const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
-        submitLog.venue = venue;
-        submitLog.kind = kind;
-        submitLog.report = report;
-        submitLog.job = job;
-        submitLog.buildUrl = buildUrl;
-        session.log.info(chalk.bold.green(`📒 access the build report and draft submission here:`));
-        session.log.info(`\n\n\t${chalk.bold.green(`🔗 ${buildUrl} 🔗`)}\n\n`);
-      } else {
-        session.log.debug(`writing to transfer.yml...`);
-        await upwriteTransferFile(session, venue, {
-          work,
-          workVersion,
-          submission,
-          submissionVersion,
-        });
-        session.log.info(
-          `The "./transfer.yml" file has been updated your submission information, please keep this file or commit this change.`,
-        );
-      }
     } catch (err: any) {
       session.log.info(`\n\n🚨 ${chalk.bold.red('Could not submit your work')}.`);
       session.log.info(`📣 ${chalk.bold(err.message)}.`);
       process.exit(1);
     }
-    writeJsonLogs(session, 'curvenote.submit.json', submitLog);
   }
+
+  session.log.debug(`generating a build artifact for the submission...`);
+
+  const job = await postNewCliCheckJob(
+    session,
+    {
+      journal: venue,
+      source: {
+        repo: opts?.repo,
+        branch: opts?.branch,
+        path: opts?.path,
+        commit: opts?.commit,
+      },
+    },
+    {
+      submissionId: submitLog.submission.id,
+      submissionVersionId: submitLog.submissionVersion.id,
+      workId: submitLog.work.id,
+      workVersionId: submitLog.workVersion.id,
+      checks: { venue, kind, report },
+    },
+  );
+
+  const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
+  submitLog.venue = venue;
+  submitLog.kind = kind;
+  submitLog.report = report;
+  submitLog.job = job;
+  submitLog.buildUrl = buildUrl;
+  session.log.info(chalk.bold.green(`🔗 build report url: ${buildUrl}`));
+
+  if (!opts?.draft) {
+    session.log.debug(`writing to transfer.yml...`);
+    await upwriteTransferFile(session, venue, {
+      work: submitLog.work,
+      workVersion: submitLog.workVersion,
+      submission: submitLog.submission,
+      submissionVersion: submitLog.submissionVersion,
+    });
+    session.log.info(
+      `The "./transfer.yml" file has been updated your submission information, please keep this file or commit this change.`,
+    );
+  }
+
+  writeJsonLogs(session, 'curvenote.submit.json', submitLog);
 }
