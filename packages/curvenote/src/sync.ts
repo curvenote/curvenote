@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { sync } from '../index.js';
-import { clirun } from './utils.js';
+import { sync } from '@curvenote/cli';
+import { clirun } from './clirun.js';
 import {
   makeBranchOption,
   makeDomainOption,

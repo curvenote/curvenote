@@ -1,10 +1,8 @@
-import { Command } from 'commander';
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
-import { clirun } from './utils.js';
 import { getTokens } from '../index.js';
 
-async function checkAuth(session: ISession) {
+export async function checkAuth(session: ISession) {
   if (session.isAnon) {
     session.log.error('Your session is not authenticated.');
     return;
@@ -24,10 +22,4 @@ async function checkAuth(session: ISession) {
   if (data.environment) {
     session.log.info(`➕ Plus an additional token is set in your environment.`);
   }
-}
-
-export function addAuthCLI(program: Command) {
-  const command = new Command('auth').description('Check if you are logged into the API');
-  command.command('list').description('List ').action(clirun(checkAuth, { program }));
-  program.addCommand(command);
 }

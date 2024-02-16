@@ -9,7 +9,7 @@ import {
   makeTexOption,
   makeYesOption,
 } from './options.js';
-import { clirun } from './utils.js';
+import { clirun } from './clirun.js';
 
 export function makeTempOption() {
   return new Option(

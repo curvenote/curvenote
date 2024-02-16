@@ -1,9 +1,29 @@
-export * from './session/index.js';
-export * from './models.js';
-export * from './export/index.js';
-export * as web from './web/index.js';
-export * as sync from './sync/index.js';
-export * as check from './check/index.js';
-export * as works from './works/index.js';
-export * as utils from './utils/index.js';
-export { default as version } from './version.js';
+#!/usr/bin/env node
+import 'core-js/actual'; // This adds backwards compatible functionality for various CLIs
+import { Command } from 'commander';
+import { addAuthCLI } from './auth.js';
+import { addCheckCLI } from './check.js';
+import { addCleanCLI } from './clean.js';
+import { addExportCLI } from './export.js';
+import { addSyncCLI } from './sync.js';
+import { addTokenCLI } from './token.js';
+import { addWebCLI } from './web.js';
+import { addWorksCLI } from './works.js';
+import { addSubmitCLI, addSubmissionsCLI } from './submissions.js';
+import version from './version.js';
+
+const program = new Command();
+addSyncCLI(program);
+addWebCLI(program);
+addTokenCLI(program);
+addAuthCLI(program);
+addExportCLI(program);
+addCheckCLI(program);
+addCleanCLI(program);
+addWorksCLI(program);
+addSubmitCLI(program);
+addSubmissionsCLI(program);
+
+program.version(`v${version}`, '-v, --version', 'Print the current version of curvenote');
+program.option('-d, --debug', 'Log out any errors to the console.');
+program.parse(process.argv);

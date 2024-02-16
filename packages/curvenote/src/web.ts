@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { web } from '../index.js';
-import { clirun } from './utils.js';
+import { web } from '@curvenote/cli';
+import { clirun } from './clirun.js';
 import {
   makeCIOption,
   makeForceOption,

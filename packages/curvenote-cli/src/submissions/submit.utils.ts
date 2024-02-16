@@ -154,7 +154,7 @@ export async function checkVenueExists(session: ISession, venue: string) {
     session.log.debug(`found venue "${venue}"`);
   } catch (err) {
     session.log.debug(err);
-    session.log.error(`${chalk.red(`👩🏻‍🔬 venue "${venue}" not found.`)}`);
+    session.log.error(`${chalk.red(`😟 venue "${venue}" not found.`)}`);
     process.exit(1);
   }
 }
