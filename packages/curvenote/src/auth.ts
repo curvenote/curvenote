@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { clirun } from './clirun';
+import { clirun } from './clirun.js';
 import { auth } from '@curvenote/cli';
 
 export function addAuthCLI(program: Command) {
