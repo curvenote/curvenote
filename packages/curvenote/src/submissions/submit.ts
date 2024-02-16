@@ -111,17 +111,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // Create work and submission
   //
   if (transferData?.[venue] && !opts?.draft) {
-    const { work, workVersion, submission, submissionVersion } = await updateExistingSubmission(
-      session,
-      venue,
-      cdnKey,
-      transferData[venue],
-    );
-
-    submitLog.workVersion = workVersion;
-    submitLog.work = work.id;
-    submitLog.submissionVersion = submissionVersion;
-    submitLog.submission = submission.id;
+    await updateExistingSubmission(session, submitLog, venue, cdnKey, transferData[venue]);
   } else {
     if (opts?.draft) {
       session.log.info(
@@ -132,25 +122,12 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     } else {
       session.log.info(`✨ making a new submission`);
     }
-
     try {
       if (!kind) {
         session.log.error('🚨 No submission kind found.');
         process.exit(1);
       }
-
-      const { work, workVersion, submission, submissionVersion } = await createNewSubmission(
-        session,
-        venue,
-        kind,
-        cdnKey,
-        opts,
-      );
-
-      submitLog.work = work;
-      submitLog.workVersion = workVersion;
-      submitLog.submission = submission;
-      submitLog.submissionVersion = submissionVersion;
+      await createNewSubmission(session, submitLog, venue, kind, cdnKey, opts);
     } catch (err: any) {
       session.log.info(`\n\n🚨 ${chalk.bold.red('Could not submit your work')}.`);
       session.log.info(`📣 ${chalk.bold(err.message)}.`);

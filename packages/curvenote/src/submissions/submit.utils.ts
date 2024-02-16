@@ -240,6 +240,7 @@ export async function confirmUpdateToExistingSubmission(
 
 export async function createNewSubmission(
   session: ISession,
+  logCollector: Record<string, any>,
   venue: string,
   kind: string,
   cdnKey: string,
@@ -266,11 +267,15 @@ export async function createNewSubmission(
     session.log.info(`🚀 ${chalk.green(`Your work was successfully submitted to "${venue}"`)}.`);
   }
 
-  return { work, workVersion, submission, submissionVersion };
+  logCollector.work = work;
+  logCollector.workVersion = workVersion;
+  logCollector.submission = submission;
+  logCollector.submissionVersion = submissionVersion;
 }
 
 export async function updateExistingSubmission(
   session: ISession,
+  logCollector: Record<string, any>,
   venue: string,
   cdnKey: string,
   venueTransferData: TransferDataItem,
@@ -310,12 +315,10 @@ export async function updateExistingSubmission(
       `🚀 ${chalk.bold.green(`Your submission was successfully updated at "${venue}"`)}.`,
     );
 
-    return {
-      work,
-      workVersion,
-      submission,
-      submissionVersion,
-    };
+    logCollector.work = work;
+    logCollector.workVersion = workVersion;
+    logCollector.submission = submission;
+    logCollector.submissionVersion = submissionVersion;
   } catch (err: any) {
     session.log.info(`\n\n🚨 ${chalk.bold.red('Could not update your submission')}.`);
     session.log.info(`📣 ${chalk.red(err.message)}.`);
