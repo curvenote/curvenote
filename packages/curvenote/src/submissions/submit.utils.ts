@@ -8,11 +8,17 @@ import {
 import path from 'node:path';
 import type { ISession } from '../session/types.js';
 import type { TransferDataItem } from './utils.transfer.js';
-import { loadTransferFile, upwriteTransferFile } from './utils.transfer.js';
+import { loadTransferFile } from './utils.transfer.js';
 import { addOxaTransformersToOpts, confirmOrExit } from '../utils/utils.js';
 import chalk from 'chalk';
 import { format } from 'date-fns';
-import { getFromJournals, postNewWorkVersion, postUpdateSubmissionWorkVersion } from './utils.js';
+import {
+  getFromJournals,
+  postNewSubmission,
+  postNewWork,
+  postNewWorkVersion,
+  postUpdateSubmissionWorkVersion,
+} from './utils.js';
 import inquirer from 'inquirer';
 
 export type SubmitOpts = {
@@ -163,10 +169,6 @@ export async function checkVenueAccess(session: ISession, venue: string) {
   }
 }
 
-export function celebrate(session: ISession, message: string) {
-  session.log.info(`\n\n\t${chalk.bold.green(`🎉 ${message} 🎉`)}\n\n`);
-}
-
 export async function confirmUpdateToExistingSubmission(
   session: ISession,
   venue: string,
@@ -236,6 +238,41 @@ export async function confirmUpdateToExistingSubmission(
   return kind;
 }
 
+export async function createNewSubmission(
+  session: ISession,
+  logCollector: Record<string, any>,
+  venue: string,
+  kind: string,
+  cdnKey: string,
+  opts?: SubmitOpts,
+) {
+  session.log.debug(`posting new work...`);
+  const { work, workVersion } = await postNewWork(session, cdnKey, session.PRIVATE_CDN);
+  session.log.debug(`work posted with id ${work.id}`);
+
+  session.log.debug(`posting new submission...`);
+  const { submission, submissionVersion } = await postNewSubmission(
+    session,
+    venue,
+    kind,
+    workVersion.id,
+    opts?.draft ?? false,
+  );
+
+  session.log.debug(`new submission posted with id ${submission.id}`);
+
+  if (opts?.draft) {
+    session.log.info(`🚀 ${chalk.green(`Your draft was successfully submitted to "${venue}"`)}.`);
+  } else {
+    session.log.info(`🚀 ${chalk.green(`Your work was successfully submitted to "${venue}"`)}.`);
+  }
+
+  logCollector.work = work;
+  logCollector.workVersion = workVersion;
+  logCollector.submission = submission;
+  logCollector.submissionVersion = submissionVersion;
+}
+
 export async function updateExistingSubmission(
   session: ISession,
   logCollector: Record<string, any>,
@@ -254,33 +291,34 @@ export async function updateExistingSubmission(
     session.log.error('🚨 No submission id found - invalid transfer.yml');
     process.exit(1);
   }
-  logCollector.workId = workId;
-  logCollector.submissionId = submissionId;
   try {
     session.log.debug(`posting new work version...`);
-    const { workVersion } = await postNewWorkVersion(session, workId, cdnKey, session.PRIVATE_CDN);
-    logCollector.workVersion = workVersion;
+    const { work, workVersion } = await postNewWorkVersion(
+      session,
+      workId,
+      cdnKey,
+      session.PRIVATE_CDN,
+    );
     session.log.debug(`work version posted with id ${workVersion.id}`);
 
     session.log.debug(`posting new version to existing submission...`);
-    const { submissionVersion } = await postUpdateSubmissionWorkVersion(
+    const { submission, submissionVersion } = await postUpdateSubmissionWorkVersion(
       session,
       venue,
       submissionId,
       workVersion.id,
     );
-    logCollector.submissionVersion = submissionVersion;
+
     session.log.debug(`submission version posted with id ${submissionVersion.id}`);
 
     session.log.info(
       `🚀 ${chalk.bold.green(`Your submission was successfully updated at "${venue}"`)}.`,
     );
 
-    await upwriteTransferFile(session, venue, { workVersion, submissionVersion });
-
-    session.log.info(
-      `The "./transfer.yml" file has been updated your submission information, please keep this file or commit this change.`,
-    );
+    logCollector.work = work;
+    logCollector.workVersion = workVersion;
+    logCollector.submission = submission;
+    logCollector.submissionVersion = submissionVersion;
   } catch (err: any) {
     session.log.info(`\n\n🚨 ${chalk.bold.red('Could not update your submission')}.`);
     session.log.info(`📣 ${chalk.red(err.message)}.`);

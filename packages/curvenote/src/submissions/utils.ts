@@ -9,6 +9,7 @@ import type {
 import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
 import format from 'date-fns/format';
+import type { TransferDataItemData } from './utils.transfer.js';
 
 export function formatDate(date: string) {
   return format(new Date(date), 'dd MMM, yyyy HH:mm:ss');
@@ -57,7 +58,11 @@ async function postToJournals(
   });
 }
 
-export async function postNewWork(session: ISession, cdnKey: string, cdn: string) {
+export async function postNewWork(
+  session: ISession,
+  cdnKey: string,
+  cdn: string,
+): Promise<{ cdnKey: string; work: TransferDataItemData; workVersion: TransferDataItemData }> {
   const toc = tic();
 
   session.log.debug(
@@ -93,7 +98,7 @@ export async function postNewWorkVersion(
   workId: string,
   cdnKey: string,
   cdn: string,
-) {
+): Promise<{ cdnKey: string; work: TransferDataItemData; workVersion: TransferDataItemData }> {
   const toc = tic();
 
   session.log.debug(
@@ -155,7 +160,10 @@ export async function postNewSubmission(
   kind: string,
   work_version_id: string,
   draft: boolean,
-) {
+): Promise<{
+  submission: TransferDataItemData;
+  submissionVersion: TransferDataItemData;
+}> {
   const toc = tic();
   const submissionRequest: CreateSubmissionBody = { work_version_id, kind, draft };
   session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions...`);
@@ -186,7 +194,10 @@ export async function postUpdateSubmissionWorkVersion(
   venue: string,
   submissionId: string,
   work_version_id: string,
-) {
+): Promise<{
+  submission: TransferDataItemData;
+  submissionVersion: TransferDataItemData;
+}> {
   const toc = tic();
   const submissionRequest: UpdateSubmissionBody = { work_version_id };
   session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions/${submissionId}...`);
