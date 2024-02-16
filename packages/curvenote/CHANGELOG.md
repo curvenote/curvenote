@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.41
+
+### Patch Changes
+
+- cdc6d17: Add jsdom to the dependencies
+
 ## 0.8.40
 
 ### Patch Changes
