@@ -20,16 +20,14 @@ import {
   postUpdateSubmissionWorkVersion,
 } from './utils.js';
 import inquirer from 'inquirer';
+import type { SubmissionDTO } from '@curvenote/common';
 
 export type SubmitOpts = {
   kind?: string;
   yes?: boolean;
   info: boolean;
   draft?: boolean;
-  repo?: string;
-  branch?: string;
-  path?: string;
-  commit?: string;
+  key?: string;
 };
 
 export function kindQuestions(kinds: { name: string }[]) {
@@ -166,6 +164,21 @@ export async function checkVenueAccess(session: ISession, venue: string) {
   } catch (err) {
     session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
     process.exit(1);
+  }
+}
+
+export async function checkForSubmissionUsingKey(session: ISession, venue: string, key: string) {
+  session.log.debug(`checking for existing submission using key "${key}"`);
+  try {
+    const submission = await getFromJournals(session, `sites/${venue}/submissions/by?key=${key}`);
+    session.log.debug(
+      `${chalk.bold(`🔍 Found an existing submission at "${venue}" using the key "${key}"`)}`,
+    );
+    return submission as SubmissionDTO;
+  } catch (err) {
+    session.log.debug(err);
+    session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
+    return null;
   }
 }
 

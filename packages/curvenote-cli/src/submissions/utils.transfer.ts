@@ -12,6 +12,7 @@ export type TransferDataItemData = {
 };
 
 export type TransferDataItem = {
+  key?: string;
   work?: TransferDataItemData;
   workVersion?: TransferDataItemData;
   submission?: TransferDataItemData;

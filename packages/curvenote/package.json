@@ -42,13 +42,14 @@
     "build": "npm-run-all -l clean copy:version -p build:cli"
   },
   "dependencies": {
+    "isomorphic-git": "^1.25.6",
     "jsdom": "^19.0.0"
   },
   "devDependencies": {
+    "@curvenote/cli": "^0.8.41",
     "chalk": "^5.2.0",
     "commander": "^10.0.1",
     "core-js": "^3.31.1",
-    "js-yaml": "^4.1.0",
-    "@curvenote/cli": "^0.8.41"
+    "js-yaml": "^4.1.0"
   }
 }
