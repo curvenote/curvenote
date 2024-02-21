@@ -259,6 +259,7 @@ export async function createNewSubmission(
   venue: string,
   kind: string,
   cdnKey: string,
+  jobId: string,
   key?: string,
   opts?: SubmitOpts,
 ) {
@@ -273,6 +274,7 @@ export async function createNewSubmission(
     kind,
     workVersion.id,
     opts?.draft ?? false,
+    jobId,
     key,
   );
 
@@ -296,6 +298,7 @@ export async function updateExistingSubmission(
   venue: string,
   cdnKey: string,
   venueTransferData: TransferDataItem,
+  jobId: string,
 ) {
   session.log.debug(`existing submission - upload & post`);
   const workId = venueTransferData.work?.id;
@@ -324,6 +327,7 @@ export async function updateExistingSubmission(
       venue,
       submissionId,
       workVersion.id,
+      jobId,
     );
 
     session.log.debug(`submission version posted with id ${submissionVersion.id}`);

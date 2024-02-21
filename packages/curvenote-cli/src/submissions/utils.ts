@@ -3,6 +3,7 @@ import type { ISession } from '../session/types.js';
 import type {
   CreateCliCheckJobPostBody,
   CreateSubmissionBody,
+  UpdateCliCheckJobPostBody,
   UpdateSubmissionBody,
   WorkBody,
 } from '../utils/index.js';
@@ -41,12 +42,18 @@ export async function getFromJournals(session: ISession, pathname: string) {
 async function postToJournals(
   session: ISession,
   pathname: string,
-  body: WorkBody | CreateSubmissionBody | UpdateSubmissionBody | CreateCliCheckJobPostBody,
+  body:
+    | WorkBody
+    | CreateSubmissionBody
+    | UpdateSubmissionBody
+    | CreateCliCheckJobPostBody
+    | UpdateCliCheckJobPostBody,
+  opts: { method?: 'POST' | 'PATCH' } = {},
 ) {
   const url = `${session.JOURNALS_URL}${pathname}`;
-  session.log.debug('Posting to', url);
+  session.log.debug(`${opts?.method ?? 'POST'}ing to`, url);
 
-  const method = 'POST';
+  const method = opts?.method ?? 'POST';
   const headers = await getHeaders(session.log, (session as any).$tokens);
   return fetch(url, {
     method,
@@ -145,7 +152,34 @@ export async function postNewCliCheckJob(
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as any;
-    session.log.info(toc(`📑 Posted a build report in %s.`));
+    session.log.info(toc(`🎉 Posted a new job in %s.`));
+    session.log.debug(`Job id: ${json.id}`);
+    session.log.debug(`Job status: ${json.status}`);
+    return json;
+  } else {
+    throw new Error('Job creation failed: Please contact support@curvenote.com');
+  }
+}
+
+export async function patchUpdateCliCheckJob(
+  session: ISession,
+  jobId: string,
+  status: string,
+  message: string,
+  results: Record<string, any>,
+) {
+  const toc = tic();
+  const body: UpdateCliCheckJobPostBody = {
+    status,
+    message,
+    results,
+  };
+  session.log.debug(`PATCH to ${session.JOURNALS_URL}jobs...`);
+  const resp = await postToJournals(session, `jobs/${jobId}`, body, { method: 'PATCH' });
+  session.log.debug(`${resp.status} ${resp.statusText}`);
+  if (resp.ok) {
+    const json = (await resp.json()) as any;
+    session.log.info(toc(`🎉 Updated a job in %s.`));
     session.log.debug(`Job id: ${json.id}`);
     session.log.debug(`Job status: ${json.status}`);
     return json;
@@ -160,6 +194,7 @@ export async function postNewSubmission(
   kind: string,
   work_version_id: string,
   draft: boolean,
+  job_id: string,
   key?: string,
 ): Promise<{
   submission: TransferDataItemData;
@@ -171,6 +206,7 @@ export async function postNewSubmission(
     kind,
     draft,
     key,
+    job_id,
   };
   session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions...`);
   const resp = await postToJournals(session, `sites/${venue}/submissions`, submissionRequest);
@@ -200,12 +236,13 @@ export async function postUpdateSubmissionWorkVersion(
   venue: string,
   submissionId: string,
   work_version_id: string,
+  job_id: string,
 ): Promise<{
   submission: TransferDataItemData;
   submissionVersion: TransferDataItemData;
 }> {
   const toc = tic();
-  const submissionRequest: UpdateSubmissionBody = { work_version_id };
+  const submissionRequest: UpdateSubmissionBody = { work_version_id, job_id };
   session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions/${submissionId}...`);
   const resp = await postToJournals(
     session,
