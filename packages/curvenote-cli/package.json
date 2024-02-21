@@ -46,6 +46,7 @@
     "@google-cloud/storage": "^5.18.2",
     "@reduxjs/toolkit": "^1.7.2",
     "@wordpress/wordcount": "3.40.0",
+    "isomorphic-git": "^1.25.6",
     "bottleneck": "^2.19.5",
     "chalk": "^5.2.0",
     "check-node-version": "^4.2.1",

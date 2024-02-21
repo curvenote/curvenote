@@ -42,7 +42,6 @@
     "build": "npm-run-all -l clean copy:version -p build:cli"
   },
   "dependencies": {
-    "isomorphic-git": "^1.25.6",
     "jsdom": "^19.0.0"
   },
   "devDependencies": {
