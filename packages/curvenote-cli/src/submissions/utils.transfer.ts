@@ -12,6 +12,7 @@ export type TransferDataItemData = {
 };
 
 export type TransferDataItem = {
+  key?: string;
   work?: TransferDataItemData;
   workVersion?: TransferDataItemData;
   submission?: TransferDataItemData;
@@ -50,6 +51,7 @@ export async function upwriteTransferFile(
     [venue]: {
       ...(existing[venue] ?? {}),
       ...data,
+      key: data.key ?? existing[venue]?.key,
     },
   };
   await fs.writeFile(filepath, yaml.dump(merged), 'utf8');

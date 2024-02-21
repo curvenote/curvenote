@@ -25,6 +25,7 @@ export interface CreateSubmissionBody {
   work_version_id: string;
   kind: string;
   draft: boolean;
+  key?: string;
 }
 
 export interface UpdateSubmissionBody {

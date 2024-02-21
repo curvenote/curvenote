@@ -29,7 +29,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "copy:version": "echo \"const version = '\"$npm_package_version\"';\nexport default version;\" > src/version.ts",
-    "dev": "tsc -w --preserveWatchOutput --outDir dist -p .",
+    "dev": "tsc --project ./tsconfig.json --outDir dist --declaration -w --preserveWatchOutput --outDir dist -p .",
     "lint": "npm run copy:version; eslint \"src/**/*.ts\" -c .eslintrc.cjs",
     "lint:format": "npm run copy:version; prettier --check \"src/**/*.ts\"",
     "test": "npm run copy:version; npm run link; vitest run",
@@ -46,6 +46,7 @@
     "@google-cloud/storage": "^5.18.2",
     "@reduxjs/toolkit": "^1.7.2",
     "@wordpress/wordcount": "3.40.0",
+    "isomorphic-git": "^1.25.6",
     "bottleneck": "^2.19.5",
     "chalk": "^5.2.0",
     "check-node-version": "^4.2.1",

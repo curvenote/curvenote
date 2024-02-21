@@ -14,6 +14,7 @@ import {
   updateExistingSubmission,
   getTransferData,
   createNewSubmission,
+  checkForSubmissionUsingKey,
 } from './submit.utils.js';
 import type { SubmitOpts } from './submit.utils.js';
 import { submissionRuleChecks } from '@curvenote/check-implementations';
@@ -22,6 +23,7 @@ import { logCheckReport, runChecks } from '../check/index.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import { getChecksForSubmission } from './check.js';
+import { getGitRepoInfo } from './utils.git.js';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: Record<string, any> = {
@@ -36,15 +38,77 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     );
   }
 
+  if (opts?.key && opts?.key.length < 8 && opts?.key !== 'git') {
+    session.log.error(
+      `🚨 The key must be at least 8 characters long, please specify a longer key.`,
+    );
+    process.exit(1);
+  }
+
   // TODO upload preflight checks
   // TODO check the venue allows for submissions & updates to the submission
   // TODO check user has permission to submit /  update a submission
 
   // const siteConfig = getSiteConfig(session);
-  const transferData = await getTransferData(session, opts);
+  let transferData = await getTransferData(session, opts);
   venue = await ensureVenue(session, venue);
   await checkVenueExists(session, venue);
   await checkVenueAccess(session, venue);
+
+  const gitInfo = await getGitRepoInfo();
+
+  if (opts?.key === 'git' && gitInfo == null) {
+    session.log.error(
+      `🚨 You are trying to generate a key from git but you are not in a git repository, try specifying a persistent '--key' instead.`,
+    );
+    process.exit(1);
+  }
+
+  const key = opts?.key == 'git' ? gitInfo?.key : opts?.key;
+  if (key) {
+    session.log.info(`📍 Submitting using a key: ${chalk.bold(key)}`);
+    if (transferData?.[venue]) {
+      session.log.warn(
+        `🙈 The details in your existing transfer.yml file will not be used but will be overwritten with new details.`,
+      );
+      transferData = {};
+    }
+    const existing = await checkForSubmissionUsingKey(session, venue, key);
+    if (existing) {
+      session.log.info(
+        `🔍 Found an existing submission using this key, the existing submission will be updated.`,
+      );
+
+      // TODO remove casts once common is published
+      const sv = (existing as any).active_version as {
+        id: string;
+        date_created: string;
+        status: string;
+        submitted_by: {
+          id: string;
+          name: string;
+        };
+        work_id: string;
+        work_version_id: string;
+      };
+
+      transferData = {
+        ...transferData,
+        [venue]: {
+          work: {
+            id: sv.work_id,
+            date_created: sv.date_created,
+          },
+          workVersion: {
+            id: sv.work_version_id,
+            date_created: sv.date_created,
+          },
+          submission: { id: existing.id, date_created: existing.date_created },
+          submissionVersion: { id: sv.id, date_created: sv.date_created },
+        },
+      };
+    }
+  }
 
   //
   // Options, checks and prompts
@@ -126,7 +190,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         session.log.error('🚨 No submission kind found.');
         process.exit(1);
       }
-      await createNewSubmission(session, submitLog, venue, kind, cdnKey, opts);
+      await createNewSubmission(session, submitLog, venue, kind, cdnKey, key, opts);
     } catch (err: any) {
       session.log.info(`\n\n🚨 ${chalk.bold.red('Could not submit your work')}.`);
       session.log.info(`📣 ${chalk.bold(err.message)}.`);
@@ -136,16 +200,19 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
 
   session.log.debug(`generating a build artifact for the submission...`);
 
+  const source = {
+    repo: gitInfo?.repo,
+    branch: gitInfo?.branch,
+    path: gitInfo?.path,
+    commit: gitInfo?.commit,
+  };
+
   const job = await postNewCliCheckJob(
     session,
     {
       journal: venue,
-      source: {
-        repo: opts?.repo,
-        branch: opts?.branch,
-        path: opts?.path,
-        commit: opts?.commit,
-      },
+      source,
+      key,
     },
     {
       submissionId: submitLog.submission.id,
@@ -157,8 +224,10 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   );
 
   const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
+  submitLog.key = key;
   submitLog.venue = venue;
   submitLog.kind = kind;
+  submitLog.source = source;
   submitLog.report = report;
   submitLog.job = job;
   submitLog.buildUrl = buildUrl;
@@ -167,6 +236,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   if (!opts?.draft) {
     session.log.debug(`writing to transfer.yml...`);
     await upwriteTransferFile(session, venue, {
+      key,
       work: submitLog.work,
       workVersion: submitLog.workVersion,
       submission: submitLog.submission,

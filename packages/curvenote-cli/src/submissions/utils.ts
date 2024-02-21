@@ -160,12 +160,18 @@ export async function postNewSubmission(
   kind: string,
   work_version_id: string,
   draft: boolean,
+  key?: string,
 ): Promise<{
   submission: TransferDataItemData;
   submissionVersion: TransferDataItemData;
 }> {
   const toc = tic();
-  const submissionRequest: CreateSubmissionBody = { work_version_id, kind, draft };
+  const submissionRequest: CreateSubmissionBody = {
+    work_version_id,
+    kind,
+    draft,
+    key,
+  };
   session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions...`);
   const resp = await postToJournals(session, `sites/${venue}/submissions`, submissionRequest);
   session.log.debug(`${resp.status} ${resp.statusText}`);

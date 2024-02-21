@@ -10,10 +10,12 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeKindOption())
     .addOption(makeDraftOption())
     .addOption(makeYesOption())
-    .addOption(new Option('--repo <string>', 'Source repo for the submission'))
-    .addOption(new Option('--branch <string>', 'Source branch for the submission'))
-    .addOption(new Option('--path <string>', 'Source path for the submission'))
-    .addOption(new Option('--commit <string>', 'Source commit hash for the submission'))
+    .addOption(
+      new Option(
+        '--key <string>',
+        'Use a unique string as the key for the submission. Set `--key=git` to autogenerate a key based on your git repository.',
+      ),
+    )
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }
