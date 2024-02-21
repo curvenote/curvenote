@@ -20,7 +20,7 @@ import {
   postUpdateSubmissionWorkVersion,
 } from './utils.js';
 import inquirer from 'inquirer';
-import type { SubmissionDTO } from '@curvenote/common';
+import type { SubmissionsListItemDTO, SubmissionsListingDTO } from '@curvenote/common';
 
 export type SubmitOpts = {
   kind?: string;
@@ -170,11 +170,13 @@ export async function checkVenueAccess(session: ISession, venue: string) {
 export async function checkForSubmissionUsingKey(session: ISession, venue: string, key: string) {
   session.log.debug(`checking for existing submission using key "${key}"`);
   try {
-    const submission = await getFromJournals(session, `sites/${venue}/submissions/by?key=${key}`);
-    session.log.debug(
-      `${chalk.bold(`🔍 Found an existing submission at "${venue}" using the key "${key}"`)}`,
-    );
-    return submission as SubmissionDTO;
+    const submissions = (await getFromJournals(
+      session,
+      `sites/${venue}/submissions?key=${key}`,
+    )) as SubmissionsListingDTO;
+    if (submissions.items.length === 0) throw new Error('submission not found');
+    session.log.debug(`${chalk.bold(`🔍 Found an existing submission`)}`);
+    return submissions.items[0] as SubmissionsListItemDTO;
   } catch (err) {
     session.log.debug(err);
     session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
@@ -257,6 +259,7 @@ export async function createNewSubmission(
   venue: string,
   kind: string,
   cdnKey: string,
+  key?: string,
   opts?: SubmitOpts,
 ) {
   session.log.debug(`posting new work...`);
@@ -270,6 +273,7 @@ export async function createNewSubmission(
     kind,
     workVersion.id,
     opts?.draft ?? false,
+    key,
   );
 
   session.log.debug(`new submission posted with id ${submission.id}`);

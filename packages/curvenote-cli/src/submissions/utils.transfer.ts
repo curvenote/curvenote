@@ -51,6 +51,7 @@ export async function upwriteTransferFile(
     [venue]: {
       ...(existing[venue] ?? {}),
       ...data,
+      key: data.key ?? existing[venue]?.key,
     },
   };
   await fs.writeFile(filepath, yaml.dump(merged), 'utf8');

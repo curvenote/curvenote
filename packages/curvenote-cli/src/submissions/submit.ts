@@ -79,18 +79,29 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         `🔍 Found an existing submission using this key, the existing submission will be updated.`,
       );
 
-      const sv = existing.versions[existing.versions.length - 1];
+      // TODO remove casts once common is published
+      const sv = (existing as any).active_version as {
+        id: string;
+        date_created: string;
+        status: string;
+        submitted_by: {
+          id: string;
+          name: string;
+        };
+        work_id: string;
+        work_version_id: string;
+      };
 
       transferData = {
         ...transferData,
         [venue]: {
           work: {
-            id: sv.work_version.id,
-            date_created: sv.work_version.date_created,
+            id: sv.work_id,
+            date_created: sv.date_created,
           },
           workVersion: {
-            id: sv.work_version.version_id,
-            date_created: sv.work_version.date_created,
+            id: sv.work_version_id,
+            date_created: sv.date_created,
           },
           submission: { id: existing.id, date_created: existing.date_created },
           submissionVersion: { id: sv.id, date_created: sv.date_created },
@@ -179,7 +190,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         session.log.error('🚨 No submission kind found.');
         process.exit(1);
       }
-      await createNewSubmission(session, submitLog, venue, kind, cdnKey, opts);
+      await createNewSubmission(session, submitLog, venue, kind, cdnKey, key, opts);
     } catch (err: any) {
       session.log.info(`\n\n🚨 ${chalk.bold.red('Could not submit your work')}.`);
       session.log.info(`📣 ${chalk.bold(err.message)}.`);
@@ -201,9 +212,9 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     {
       journal: venue,
       source,
+      key,
     },
     {
-      key,
       submissionId: submitLog.submission.id,
       submissionVersionId: submitLog.submissionVersion.id,
       workId: submitLog.work.id,

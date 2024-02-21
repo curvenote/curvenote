@@ -6,7 +6,8 @@ function getNormalizedUrl(gitRemoteUrl: string) {
   return gitRemoteUrl
     .replace(/^[a-zA-Z]+:\/\//, '') // Remove protocols (http, https, git, etc.)
     .replace(/^git@/, '') // Remove 'git@' used in SSH URLs
-    .replace(/:/, '/'); // Replace ':' with '/' used in SSH URLs
+    .replace(/:/, '/') // Replace ':' with '/' used in SSH URLs
+    .replace(/.git/, ''); // Roemove trailing .git
 }
 
 function createKeyString(gitRemoteUrl: string, relativePath: string): string {
