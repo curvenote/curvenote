@@ -134,7 +134,7 @@ export async function init(session: ISession, opts: Options) {
         session.log.warn('Not writing the table of contents, it already exists!');
         return;
       } else {
-        const project = projectFromPath(session, currentPath);
+        const project = await projectFromPath(session, currentPath);
         session.log.info(
           `📓 Writing '_toc.yml' file to ${
             currentPath === '.' ? 'the current directory' : currentPath
