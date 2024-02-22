@@ -21,6 +21,7 @@ import {
 } from './utils.js';
 import inquirer from 'inquirer';
 import type { SubmissionsListItemDTO, SubmissionsListingDTO } from '@curvenote/common';
+import { tr } from 'date-fns/locale';
 
 export type SubmitOpts = {
   kind?: string;
@@ -341,8 +342,7 @@ export async function updateExistingSubmission(
     logCollector.submission = submission;
     logCollector.submissionVersion = submissionVersion;
   } catch (err: any) {
-    session.log.info(`\n\n🚨 ${chalk.bold.red('Could not update your submission')}.`);
-    session.log.info(`📣 ${chalk.red(err.message)}.`);
-    process.exit(1);
+    session.log.error(err.message);
+    throw new Error(`🚨 ${chalk.bold.red('Could not update your submission')}.`);
   }
 }

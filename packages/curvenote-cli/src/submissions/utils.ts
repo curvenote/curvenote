@@ -95,8 +95,7 @@ export async function postNewWork(
       },
     };
   } else {
-    session.log.debug(`${resp.status} ${resp.statusText}`);
-    throw new Error('Posting new work failed: Please contact support@curvenote.com');
+    throw new Error('Posting new work failed');
   }
 }
 
@@ -132,7 +131,7 @@ export async function postNewWorkVersion(
       },
     };
   } else {
-    throw new Error('Posting new version of the work failed: Please contact support@curvenote.com');
+    throw new Error('Posting new version of the work failed');
   }
 }
 
@@ -157,7 +156,7 @@ export async function postNewCliCheckJob(
     session.log.debug(`Job status: ${json.status}`);
     return json;
   } else {
-    throw new Error('Job creation failed: Please contact support@curvenote.com');
+    throw new Error('Job creation failed');
   }
 }
 
@@ -184,7 +183,7 @@ export async function patchUpdateCliCheckJob(
     session.log.debug(`Job status: ${json.status}`);
     return json;
   } else {
-    throw new Error('Job creation failed: Please contact support@curvenote.com');
+    throw new Error('Job update failed');
   }
 }
 
@@ -227,7 +226,7 @@ export async function postNewSubmission(
       },
     };
   } else {
-    throw new Error('Submission failed: Please contact support@curvenote.com');
+    throw new Error('Creating new submission failed');
   }
 }
 
@@ -266,6 +265,6 @@ export async function postUpdateSubmissionWorkVersion(
       },
     };
   } else {
-    throw new Error('Submission failed: Please contact support@curvenote.com');
+    throw new Error('Updating submission failed');
   }
 }

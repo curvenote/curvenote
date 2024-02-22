@@ -198,96 +198,99 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     },
   );
 
-  job = await patchUpdateCliCheckJob(session, job.id, 'RUNNING', 'Uploading work files to cdn', {
-    ...job.results,
-  });
-
-  // const cdnKey = 'ad7fa60f-5460-4bf9-96ea-59be87944e41'; // dev debug
-  const cdnKey = await uploadContentAndDeployToPrivateCdn(session, {
-    ...opts,
-    ci: opts?.yes,
-  });
-  session.log.info(`🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
-  job = await patchUpdateCliCheckJob(
-    session,
-    job.id,
-    'RUNNING',
-    'Creating new work and submission entry',
-    {
+  try {
+    job = await patchUpdateCliCheckJob(session, job.id, 'RUNNING', 'Uploading work files to cdn', {
       ...job.results,
-      cdnKey,
-    },
-  );
+    });
 
-  const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
-  session.log.info(`🤖 created a job to track this build: ${buildUrl}`);
+    // const cdnKey = 'ad7fa60f-5460-4bf9-96ea-59be87944e41'; // dev debug
+    const cdnKey = await uploadContentAndDeployToPrivateCdn(session, {
+      ...opts,
+      ci: opts?.yes,
+    });
+    session.log.info(`🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
+    job = await patchUpdateCliCheckJob(
+      session,
+      job.id,
+      'RUNNING',
+      'Creating new work and submission entry',
+      {
+        ...job.results,
+        cdnKey,
+      },
+    );
 
-  process.on('exit', async (exitCode: number) => {
-    // TODO https://stackoverflow.com/questions/40574218/how-to-perform-an-async-operation-on-exit
-    if (exitCode === 0) return;
-    await patchUpdateCliCheckJob(session, job.id, 'FAILED', 'Submission from CLI failed', {});
-  });
+    const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
+    session.log.info(`🤖 created a job to track this build: ${buildUrl}`);
 
-  //
-  // Create work and submission
-  //
-  if (transferData?.[venue] && !opts?.draft) {
-    await updateExistingSubmission(session, submitLog, venue, cdnKey, transferData[venue], job.id);
-  } else {
-    if (opts?.draft) {
-      session.log.info(
-        `${chalk.bold(
-          `🖐 Making a draft submission, existing transfer.yml files will be ignored.`,
-        )}`,
+    //
+    // Create work and submission
+    //
+    if (transferData?.[venue] && !opts?.draft) {
+      await updateExistingSubmission(
+        session,
+        submitLog,
+        venue,
+        cdnKey,
+        transferData[venue],
+        job.id,
       );
     } else {
-      session.log.info(`✨ making a new submission`);
-    }
-    try {
+      if (opts?.draft) {
+        session.log.info(
+          `${chalk.bold(
+            `🖐 Making a draft submission, existing transfer.yml files will be ignored.`,
+          )}`,
+        );
+      } else {
+        session.log.info(`✨ making a new submission`);
+      }
       if (!kind) {
         session.log.error('🚨 No submission kind found.');
         process.exit(1);
       }
       await createNewSubmission(session, submitLog, venue, kind, cdnKey, job.id, key, opts);
-    } catch (err: any) {
-      session.log.info(`\n\n🚨 ${chalk.bold.red('Could not submit your work')}.`);
-      session.log.info(`📣 ${chalk.bold(err.message)}.`);
-      process.exit(1);
     }
-  }
 
-  session.log.debug(`generating a build artifact for the submission...`);
+    session.log.debug(`generating a build artifact for the submission...`);
 
-  job = await patchUpdateCliCheckJob(session, job.id, 'COMPLETED', 'Submission completed', {
-    ...job.results,
-    submissionId: submitLog.submission.id,
-    submissionVersionId: submitLog.submissionVersion.id,
-    workId: submitLog.work.id,
-    workVersionId: submitLog.workVersion.id,
-  });
-
-  submitLog.key = key;
-  submitLog.venue = venue;
-  submitLog.kind = kind;
-  submitLog.source = source;
-  submitLog.report = report;
-  submitLog.job = job;
-  submitLog.buildUrl = buildUrl;
-  session.log.info(chalk.bold.green(`🔗 build report url: ${buildUrl}`));
-
-  if (!opts?.draft) {
-    session.log.debug(`writing to transfer.yml...`);
-    await upwriteTransferFile(session, venue, {
-      key,
-      work: submitLog.work,
-      workVersion: submitLog.workVersion,
-      submission: submitLog.submission,
-      submissionVersion: submitLog.submissionVersion,
+    job = await patchUpdateCliCheckJob(session, job.id, 'COMPLETED', 'Submission completed', {
+      ...job.results,
+      submissionId: submitLog.submission.id,
+      submissionVersionId: submitLog.submissionVersion.id,
+      workId: submitLog.work.id,
+      workVersionId: submitLog.workVersion.id,
     });
-    session.log.info(
-      `The "./transfer.yml" file has been updated your submission information, please keep this file or commit this change.`,
-    );
-  }
 
+    submitLog.key = key;
+    submitLog.venue = venue;
+    submitLog.kind = kind;
+    submitLog.source = source;
+    submitLog.report = report;
+    submitLog.job = job;
+    submitLog.buildUrl = buildUrl;
+    session.log.info(chalk.bold.green(`🔗 build report url: ${buildUrl}`));
+
+    if (!opts?.draft) {
+      session.log.debug(`writing to transfer.yml...`);
+      await upwriteTransferFile(session, venue, {
+        key,
+        work: submitLog.work,
+        workVersion: submitLog.workVersion,
+        submission: submitLog.submission,
+        submissionVersion: submitLog.submissionVersion,
+      });
+      session.log.info(
+        `The "./transfer.yml" file has been updated your submission information, please keep this file or commit this change.`,
+      );
+    }
+  } catch (err: any) {
+    await patchUpdateCliCheckJob(session, job.id, 'FAILED', 'Submission from CLI failed', {
+      ...job.results,
+      error: err.message,
+    });
+    session.log.error(`📣 ${chalk.bold.red(err.message)}.`);
+    session.log.info('📨 Please contact support@curvenote.com');
+  }
   writeJsonLogs(session, 'curvenote.submit.json', submitLog);
 }
