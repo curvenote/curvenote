@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.42
+
+### Patch Changes
+
+- b18c8a3: 🔑 key based submissions, auto detect git repo and read source data
+- c9c84da: Update to myst v1.1.43
+
 ## 0.8.41
 
 ### Patch Changes

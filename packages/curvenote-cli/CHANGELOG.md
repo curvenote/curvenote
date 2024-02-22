@@ -1,5 +1,15 @@
 # curvenote
 
+## 0.8.42
+
+### Patch Changes
+
+- db892aa: await projectFromPath generation
+- b18c8a3: 🔑 key based submissions, auto detect git repo and read source data
+- e5a3f0e: CLI now uses the new api endpoints at `sites.curvenote.com`
+- 1dfe158: Submitted works now have a job id sent with them, and the cli uses the job lifecycle more fully, creating a job and updating it
+- c9c84da: Update to myst v1.1.43
+
 ## 0.8.41
 
 ## 0.8.40
