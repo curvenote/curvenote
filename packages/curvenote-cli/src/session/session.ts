@@ -26,12 +26,12 @@ import { loadCurvenotePlugins } from './plugins.js';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
-const DEFAULT_JOURNALS_API_URL = 'https://journals.curvenote.com/v1/';
-const STAGING_JOURNALS_API_URL = 'https://journals.curvenote.dev/v1/';
+const DEFAULT_SITES_API_URL = 'https://sites.curvenote.com/v1/';
+const STAGING_SITES_API_URL = 'https://sites.curvenote.dev/v1/';
 const STAGING_API_URL = 'https://api.curvenote.one';
 const LOCAL_API_URL = 'http://localhost:8083';
 const LOCAL_SITE_URL = 'http://localhost:3000';
-const LOCAL_JOURNALS_API_URL = 'http://localhost:3031/v1/';
+const LOCAL_SITES_API_URL = 'http://localhost:3031/v1/';
 
 const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 
@@ -78,15 +78,15 @@ export class Session implements ISession {
     this.SITE_URL =
       opts.siteUrl ?? (this.API_URL === LOCAL_API_URL ? LOCAL_SITE_URL : DEFAULT_SITE_URL);
 
-    this.JOURNALS_URL = DEFAULT_JOURNALS_API_URL;
+    this.JOURNALS_URL = DEFAULT_SITES_API_URL;
     this.PRIVATE_CDN = 'https://prv.curvenote.com';
     this.PUBLIC_CDN = 'https://cdn.curvenote.com';
     if (url?.startsWith(STAGING_API_URL)) {
-      this.JOURNALS_URL = STAGING_JOURNALS_API_URL;
+      this.JOURNALS_URL = STAGING_SITES_API_URL;
       this.PRIVATE_CDN = 'https://prv.curvenote.dev';
       this.PUBLIC_CDN = 'https://cdn.curvenote.dev';
     } else if (url?.startsWith(LOCAL_API_URL)) {
-      this.JOURNALS_URL = LOCAL_JOURNALS_API_URL;
+      this.JOURNALS_URL = LOCAL_SITES_API_URL;
       this.PRIVATE_CDN = 'https://prv.curvenote.dev';
       this.PUBLIC_CDN = 'https://cdn.curvenote.dev';
     }
@@ -97,7 +97,7 @@ export class Session implements ISession {
     if (this.SITE_URL !== DEFAULT_SITE_URL) {
       this.log.warn(`Connecting to Site at: "${this.SITE_URL}".`);
     }
-    if (this.JOURNALS_URL !== DEFAULT_JOURNALS_API_URL) {
+    if (this.JOURNALS_URL !== DEFAULT_SITES_API_URL) {
       this.log.warn(`Connecting to Journals at: "${this.JOURNALS_URL}".`);
       this.log.warn(`Using public cdn at: "${this.PUBLIC_CDN}".`);
       this.log.warn(`Using private cdn at: "${this.PRIVATE_CDN}".`);
