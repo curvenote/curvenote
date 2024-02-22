@@ -56,6 +56,12 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   await checkVenueAccess(session, venue);
 
   const gitInfo = await getGitRepoInfo();
+  const source = {
+    repo: gitInfo?.repo,
+    branch: gitInfo?.branch,
+    path: gitInfo?.path,
+    commit: gitInfo?.commit,
+  };
 
   if (opts?.key === 'git' && gitInfo == null) {
     session.log.error(
@@ -163,32 +169,56 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     session.log.info(`🏁 checks completed`);
   }
 
-  // const cdnKey = 'ad7fa60f-5460-4bf9-96ea-59be87944e41'; // dev debug
-  const cdnKey = await uploadContentAndDeployToPrivateCdn(session, {
-    ...opts,
-    ci: opts?.yes,
-  });
-  session.log.info(`🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
+  if (!opts?.draft) {
+    await confirmOrExit(
+      checks
+        ? `Build and submission checks completed, are you happy to proceed with submission to "${venue}"?`
+        : `Build completed, are you happy to proceed with submission to "${venue}"?`,
+      opts,
+    );
+  }
 
   //
   // Create a job to track the build and checks
   //
-  const source = {
-    repo: gitInfo?.repo,
-    branch: gitInfo?.branch,
-    path: gitInfo?.path,
-    commit: gitInfo?.commit,
-  };
-
-  const job = await postNewCliCheckJob(
+  session.log.info(`⛴  OK! Starting the submission process...`);
+  let job = await postNewCliCheckJob(
     session,
     {
       site: venue,
       source,
       key,
     },
-    { checks: { venue, kind, report } },
+    {
+      checks: {
+        venue,
+        kind,
+        report,
+      },
+    },
   );
+
+  job = await patchUpdateCliCheckJob(session, job.id, 'RUNNING', 'Uploading work files to cdn', {
+    ...job.results,
+  });
+
+  // const cdnKey = 'ad7fa60f-5460-4bf9-96ea-59be87944e41'; // dev debug
+  const cdnKey = await uploadContentAndDeployToPrivateCdn(session, {
+    ...opts,
+    ci: opts?.yes,
+  });
+  session.log.info(`🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
+  job = await patchUpdateCliCheckJob(
+    session,
+    job.id,
+    'RUNNING',
+    'Creating new work and submission entry',
+    {
+      ...job.results,
+      cdnKey,
+    },
+  );
+
   const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
   session.log.info(`🤖 created a job to track this build: ${buildUrl}`);
 
@@ -228,12 +258,12 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
 
   session.log.debug(`generating a build artifact for the submission...`);
 
-  await patchUpdateCliCheckJob(session, job.id, 'COMPLETED', 'Submission completed', {
+  job = await patchUpdateCliCheckJob(session, job.id, 'COMPLETED', 'Submission completed', {
+    ...job.results,
     submissionId: submitLog.submission.id,
     submissionVersionId: submitLog.submissionVersion.id,
     workId: submitLog.work.id,
     workVersionId: submitLog.workVersion.id,
-    // checks: { venue, kind, report },
   });
 
   submitLog.key = key;
