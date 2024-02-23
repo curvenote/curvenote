@@ -85,6 +85,10 @@ export function makeTexOption(verb: string) {
   return new Option('--tex', `${verb} Tex outputs`).default(false);
 }
 
+export function makeTypstOption(verb: string) {
+  return new Option('--typst', `${verb} Typst outputs`).default(false);
+}
+
 export function makeDocxOption(verb: string) {
   return new Option('--word, --docx', `${verb} Docx output`).default(false);
 }
@@ -99,4 +103,8 @@ export function makeExecuteOption(description: string) {
 
 export function makeLogsOption(description: string) {
   return new Option('--logs', description).default(false);
+}
+
+export function makeCacheOption(description: string) {
+  return new Option('--cache', description).default(false);
 }
