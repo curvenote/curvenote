@@ -76,6 +76,24 @@ function makeTexExportCLI(program: Command) {
   return command;
 }
 
+function makeTypstExportCLI(program: Command) {
+  const command = new Command('typst')
+    .alias('typ')
+    .description('Export a typst file from a local markdown/notebook file or a Curvenote link')
+    .argument(
+      '<article>',
+      'A local file or link to the Curvenote article (e.g. OXA Link or API link)',
+    )
+    .argument('[output]', 'The document filename to export to', '')
+    .addOption(makeDisableTemplateOption())
+    .addOption(makeTemplateOption())
+    .addOption(makeCleanOption())
+    .addOption(makeZipOption())
+    .addOption(makeTemplateOptionsOption())
+    .action(clirun(exp.oxaLinkToTypst, { program }, 3));
+  return command;
+}
+
 function makePdfExportCLI(program: Command) {
   const command = new Command('pdf')
     .description('Export a pdf file from a local markdown/notebook file or a Curvenote link')
@@ -136,6 +154,7 @@ export function addExportCLI(program: Command) {
   command.addCommand(makeWordExportCLI(program));
   command.addCommand(makeMarkdownExportCLI(program));
   command.addCommand(makeTexExportCLI(program));
+  command.addCommand(makeTypstExportCLI(program));
   command.addCommand(makePdfExportCLI(program));
   command.addCommand(makePdfBuildCLI(program));
   command.addCommand(makeJupyterNotebookExportCLI(program));
