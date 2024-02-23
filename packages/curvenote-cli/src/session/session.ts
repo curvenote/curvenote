@@ -1,7 +1,9 @@
 import path from 'node:path';
-import fetch from 'node-fetch';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
+import type { HttpsProxyAgent } from 'https-proxy-agent';
+import type { RequestInfo, RequestInit, Response as FetchResponse } from 'node-fetch';
+import { default as nodeFetch } from 'node-fetch';
 import type { BuildWarning } from 'myst-cli';
 import {
   findCurrentProjectAndLoad,
@@ -108,6 +110,7 @@ export class Session implements ISession {
     findCurrentSiteAndLoad(this, '.');
   }
 
+  proxyAgent?: HttpsProxyAgent<string>;
   _shownUpgrade = false;
   _latestVersion?: string;
   _jupyterSessionManagerPromise?: Promise<SessionManager | undefined>;
@@ -164,6 +167,17 @@ export class Session implements ISession {
     return this;
   }
 
+  async fetch(url: URL | RequestInfo, init?: RequestInit): Promise<FetchResponse> {
+    this.log.debug(`Fetching: ${url}`);
+    if (this.proxyAgent) {
+      if (!init) init = {};
+      init = { agent: this.proxyAgent, ...init };
+      this.log.debug(`Using HTTPS proxy: ${this.proxyAgent.proxy}`);
+    }
+    const resp = await nodeFetch(url, init);
+    return resp;
+  }
+
   _pluginPromise: Promise<CurvenotePlugin> | undefined;
 
   async loadPlugins() {
@@ -188,7 +202,7 @@ export class Session implements ISession {
     const fullUrl = withQuery(withBase, query);
     const headers = await getHeaders(this.log, this.$tokens);
     this.log.debug(`GET ${url}`);
-    const response = await fetch(fullUrl, {
+    const response = await this.fetch(fullUrl, {
       method: 'get',
       headers: {
         'Content-Type': 'application/json',
@@ -216,7 +230,7 @@ export class Session implements ISession {
     if (url.startsWith(this.API_URL)) url = url.replace(this.API_URL, '');
     const headers = await getHeaders(this.log, this.$tokens);
     this.log.debug(`${method.toUpperCase()} ${url}`);
-    const response = await fetch(`${this.API_URL}${url}`, {
+    const response = await this.fetch(`${this.API_URL}${url}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
@@ -279,7 +293,7 @@ export class Session implements ISession {
         };
       } else {
         // Load existing running server
-        const existing = await findExistingJupyterServer();
+        const existing = await findExistingJupyterServer(this);
         if (existing) {
           this.log.debug(`Found existing server on: ${existing.appUrl}`);
           partialServerSettings = existing;
