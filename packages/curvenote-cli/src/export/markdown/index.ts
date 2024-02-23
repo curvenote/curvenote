@@ -3,7 +3,6 @@ import path from 'node:path';
 import YAML from 'js-yaml';
 import { prepareToWrite } from 'myst-cli';
 import { writeFileToFolder } from 'myst-cli-utils';
-import fetch from 'node-fetch';
 import type { VersionId, Blocks } from '@curvenote/blocks';
 import { KINDS, oxaLink } from '@curvenote/blocks';
 import { fillPageFrontmatter } from 'myst-frontmatter';
@@ -43,11 +42,12 @@ export type MarkdownExportOptions = {
  *
  */
 async function createOutputSnippet(
+  session: ISession,
   version: Version,
   name: string,
   mdastSnippets: Record<string, GenericNode<Record<string, any>>>,
 ) {
-  const response = await fetch(version.data.links.download);
+  const response = await session.fetch(version.data.links.download);
   if (!response.ok) return '';
   const outputData = (await response.json()) as Record<string, any>[];
   const snippetId = `${name}#${createId()}`;
@@ -72,7 +72,7 @@ export async function articleToMarkdown(
   if (data.kind !== KINDS.Article) throw new Error('Not an article');
   const article = await walkArticle(session, data);
 
-  const imageFilenames = await writeImagesToFiles(session.log, article.images, {
+  const imageFilenames = await writeImagesToFiles(session, article.images, {
     buildPath: opts?.path,
     basePath: opts?.images ?? 'images',
     simple: true,
@@ -92,7 +92,7 @@ export async function articleToMarkdown(
       let mdastSnippets: Record<string, GenericNode<Record<string, any>>> = {};
       if (opts.keepOutputs && child.version.data.kind === KINDS.Output) {
         // Reprocess output here, ignoring Output state from walkArticle
-        md = await createOutputSnippet(child.version, mdastName, mdastSnippets);
+        md = await createOutputSnippet(session, child.version, mdastName, mdastSnippets);
       } else if (child.state) {
         const myst = toMyst(child.state.doc, {
           ...localization,

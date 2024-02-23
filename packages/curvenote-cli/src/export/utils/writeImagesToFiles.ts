@@ -1,11 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import fetch from 'node-fetch';
 import mime from 'mime-types';
-import type { Logger } from 'myst-cli-utils';
 import type { Blocks } from '@curvenote/blocks';
 import type { Version } from '../../models.js';
 import { Block } from '../../models.js';
+import type { ISession } from '../../session/types.js';
 import { getImageSrc } from './getImageSrc.js';
 import type { ArticleState } from './walkArticle.js';
 
@@ -60,7 +59,7 @@ type Options = {
 };
 
 export async function writeImagesToFiles(
-  log: Logger,
+  session: ISession,
   images: ArticleState['images'],
   options: Options,
 ) {
@@ -72,7 +71,7 @@ export async function writeImagesToFiles(
       const [block] = await Promise.all([new Block(image.session, image.id).get(), image.get()]);
       const { src, content_type } = getImageSrc(image);
       if (!src || !content_type) return;
-      const response = await fetch(src);
+      const response = await session.fetch(src);
       const buffer = await response.buffer();
       const referencableFilename = makeUniqueFilename(
         basePath,
@@ -84,7 +83,7 @@ export async function writeImagesToFiles(
       );
       const filename = path.join(buildPath ?? '', referencableFilename);
       if (!fs.existsSync(filename)) fs.mkdirSync(path.dirname(filename), { recursive: true });
-      log.debug(`Writing ${filename}`);
+      session.log.debug(`Writing ${filename}`);
       fs.writeFileSync(filename, buffer);
       filenames[key] = referencableFilename;
       takenFilenames.add(referencableFilename);

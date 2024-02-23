@@ -189,7 +189,7 @@ export class Session implements ISession {
   }
 
   setToken(token?: string) {
-    const { tokens, url } = setSessionOrUserToken(this.log, token);
+    const { tokens, url } = setSessionOrUserToken(this, token);
     this.$tokens = tokens;
     return url;
   }
@@ -200,7 +200,7 @@ export class Session implements ISession {
   ): Response<T> {
     const withBase = url.startsWith(this.API_URL) ? url : `${this.API_URL}${url}`;
     const fullUrl = withQuery(withBase, query);
-    const headers = await getHeaders(this.log, this.$tokens);
+    const headers = await getHeaders(this, this.$tokens);
     this.log.debug(`GET ${url}`);
     const response = await this.fetch(fullUrl, {
       method: 'get',
@@ -228,7 +228,7 @@ export class Session implements ISession {
     method: 'post' | 'patch' = 'post',
   ): Response<T> {
     if (url.startsWith(this.API_URL)) url = url.replace(this.API_URL, '');
-    const headers = await getHeaders(this.log, this.$tokens);
+    const headers = await getHeaders(this, this.$tokens);
     this.log.debug(`${method.toUpperCase()} ${url}`);
     const response = await this.fetch(`${this.API_URL}${url}`, {
       method,

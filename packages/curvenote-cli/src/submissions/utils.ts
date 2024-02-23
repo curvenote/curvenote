@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import type { ISession } from '../session/types.js';
 import type {
   CreateCliCheckJobPostBody,
@@ -19,9 +18,9 @@ export function formatDate(date: string) {
 export async function getFromJournals(session: ISession, pathname: string) {
   const url = `${session.JOURNALS_URL}${pathname}`;
   session.log.debug('Getting from', url);
-  const headers = await getHeaders(session.log, (session as any).$tokens);
+  const headers = await getHeaders(session, (session as any).$tokens);
 
-  const response = await fetch(url, {
+  const response = await session.fetch(url, {
     headers: {
       'Content-Type': 'application/json',
       ...headers,
@@ -54,8 +53,8 @@ async function postToJournals(
   session.log.debug(`${opts?.method ?? 'POST'}ing to`, url);
 
   const method = opts?.method ?? 'POST';
-  const headers = await getHeaders(session.log, (session as any).$tokens);
-  return fetch(url, {
+  const headers = await getHeaders(session, (session as any).$tokens);
+  return session.fetch(url, {
     method,
     body: JSON.stringify(body),
     headers: {

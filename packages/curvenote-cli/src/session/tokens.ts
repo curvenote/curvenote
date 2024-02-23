@@ -1,12 +1,10 @@
 import jwt from 'jsonwebtoken';
-import fetch from 'node-fetch';
 import { XClientName } from '@curvenote/blocks';
-import type { Logger } from 'myst-cli-utils';
 import CLIENT_VERSION from '../version.js';
-import type { Tokens } from './types.js';
+import type { ISession, Tokens } from './types.js';
 
 function decodeAndValidateToken(
-  log: Logger,
+  session: ISession,
   token: string,
   throwErrors = true,
 ): { decoded: jwt.JwtPayload; expired: boolean | 'soon' } {
@@ -20,18 +18,18 @@ function decodeAndValidateToken(
     return { decoded, expired: true };
   }
   if (!decoded.ignoreExpiration && timeLeft < 5 * 60 * 1000) {
-    if (throwErrors) log.warn('The token has less than five minutes remaining');
+    if (throwErrors) session.log.warn('The token has less than five minutes remaining');
     return { decoded, expired: 'soon' };
   }
   return { decoded, expired: false };
 }
 
 export function setSessionOrUserToken(
-  log: Logger,
+  session: ISession,
   token?: string,
 ): { tokens: Tokens; url?: string } {
   if (!token) return { tokens: {} };
-  const { decoded } = decodeAndValidateToken(log, token);
+  const { decoded } = decodeAndValidateToken(session, token);
   const { aud } = decoded;
   if (typeof aud !== 'string') throw new Error('Expected an audience on the token (string).');
   if (aud.endsWith('/login')) {
@@ -40,21 +38,24 @@ export function setSessionOrUserToken(
   return { tokens: { session: token }, url: aud };
 }
 
-export async function getSessionToken(log: Logger, tokens: Tokens): Promise<string | undefined> {
+export async function getSessionToken(
+  session: ISession,
+  tokens: Tokens,
+): Promise<string | undefined> {
   if (!tokens.user) {
     if (!tokens.session) return undefined;
-    decodeAndValidateToken(log, tokens.session, false);
+    decodeAndValidateToken(session, tokens.session, false);
     return tokens.session;
   }
   // There is a user token.
   if (tokens.session) {
-    const { expired } = decodeAndValidateToken(log, tokens.session, false);
+    const { expired } = decodeAndValidateToken(session, tokens.session, false);
     if (!expired) return tokens.session;
   }
   // The session token hasn't been created, has expired or will 'soon'.
-  log.debug('SessionToken: Generating a fresh session token.');
-  const { decoded } = decodeAndValidateToken(log, tokens.user);
-  const response = await fetch(decoded.aud as string, {
+  session.log.debug('SessionToken: Generating a fresh session token.');
+  const { decoded } = decodeAndValidateToken(session, tokens.user);
+  const response = await session.fetch(decoded.aud as string, {
     method: 'post',
     headers: {
       'Content-Type': 'application/json',
@@ -70,14 +71,17 @@ export async function getSessionToken(log: Logger, tokens: Tokens): Promise<stri
   return json.session;
 }
 
-export async function getHeaders(log: Logger, tokens: Tokens): Promise<Record<string, string>> {
+export async function getHeaders(
+  session: ISession,
+  tokens: Tokens,
+): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     'X-Client-Name': XClientName.javascript,
     'X-Client-Version': CLIENT_VERSION,
   };
-  const session = await getSessionToken(log, tokens);
+  const sessionToken = await getSessionToken(session, tokens);
   if (session) {
-    tokens.session = session;
+    tokens.session = sessionToken;
     headers.Authorization = `Bearer ${session}`;
   }
   return headers;
