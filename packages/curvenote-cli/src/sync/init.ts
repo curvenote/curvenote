@@ -153,7 +153,7 @@ export async function init(session: ISession, opts: Options) {
         try {
           loadProjectFromDisk(session, currentPath, opts);
           session.log.info(`📓 Creating project config`);
-          projectConfig = getDefaultProjectConfig(title);
+          projectConfig = await getDefaultProjectConfig(title);
           projectConfigPaths.unshift(currentPath);
         } catch {
           if (!projectConfigPaths.length) {

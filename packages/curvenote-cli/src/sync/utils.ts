@@ -1,6 +1,8 @@
 import chalk from 'chalk';
 import path from 'node:path';
+import { v4 as uuid } from 'uuid';
 import type { ProjectConfig, SiteConfig, SiteProject } from 'myst-config';
+import { getGithubUrl, githubIdFromUrl } from 'myst-cli';
 import { docLinks } from '../docs.js';
 import { projectIdFromLink } from '../export/index.js';
 import { Project, RemoteSiteConfig } from '../models.js';
@@ -41,9 +43,12 @@ export async function getDefaultSiteConfigFromRemote(
   return siteConfig;
 }
 
-export function getDefaultProjectConfig(title?: string): ProjectConfig {
+export async function getDefaultProjectConfig(title?: string): Promise<ProjectConfig> {
+  const github = await getGithubUrl();
   return {
+    id: github ? githubIdFromUrl(github) : uuid(),
     title: title || 'my-project',
+    github,
   };
 }
 
