@@ -2,7 +2,7 @@ import path from 'node:path';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
 import type { HttpsProxyAgent } from 'https-proxy-agent';
-import type { RequestInfo, RequestInit, Response as FetchResponse } from 'node-fetch';
+import type { RequestInfo, RequestInit, Request, Response as FetchResponse } from 'node-fetch';
 import { default as nodeFetch } from 'node-fetch';
 import type { BuildWarning } from 'myst-cli';
 import {
@@ -34,6 +34,7 @@ const STAGING_API_URL = 'https://api.curvenote.one';
 const LOCAL_API_URL = 'http://localhost:8083';
 const LOCAL_SITE_URL = 'http://localhost:3000';
 const LOCAL_SITES_API_URL = 'http://localhost:3031/v1/';
+const LOCALHOSTS = ['localhost', '127.0.0.1', '::1'];
 
 const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 
@@ -168,8 +169,9 @@ export class Session implements ISession {
   }
 
   async fetch(url: URL | RequestInfo, init?: RequestInit): Promise<FetchResponse> {
-    this.log.debug(`Fetching: ${url}`);
-    if (this.proxyAgent) {
+    const urlOnly = new URL((url as Request).url ?? (url as URL | string));
+    this.log.debug(`Fetching: ${urlOnly}`);
+    if (this.proxyAgent && !LOCALHOSTS.includes(urlOnly.hostname)) {
       if (!init) init = {};
       init = { agent: this.proxyAgent, ...init };
       this.log.debug(`Using HTTPS proxy: ${this.proxyAgent.proxy}`);
