@@ -4,7 +4,9 @@ import {
   makeCacheOption,
   makeDocxOption,
   makeExecuteOption,
+  makeJatsOption,
   makeLogsOption,
+  makeMecaOption,
   makePdfOption,
   makeSiteOption,
   makeTexOption,
@@ -49,6 +51,8 @@ export function makeCleanCLI(program: Command) {
     .addOption(makeTexOption('Clean'))
     .addOption(makeTypstOption('Clean'))
     .addOption(makeDocxOption('Clean'))
+    .addOption(makeJatsOption('Clean'))
+    .addOption(makeMecaOption('Clean'))
     .addOption(makeSiteOption('Clean'))
     .addOption(makeTempOption())
     .addOption(makeLogsOption('Clean logs'))

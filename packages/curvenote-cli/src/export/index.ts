@@ -5,5 +5,7 @@ export * from './pdf/index.js';
 export * from './notebook/index.js';
 export * from './jupyter-book/index.js';
 export * from './utils/index.js';
+export * from './jats.js';
+export * from './meca.js';
 export * from './typst.js';
 export * from './multiple.js';

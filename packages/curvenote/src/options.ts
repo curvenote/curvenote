@@ -93,6 +93,14 @@ export function makeDocxOption(verb: string) {
   return new Option('--word, --docx', `${verb} Docx output`).default(false);
 }
 
+export function makeJatsOption(verb: string) {
+  return new Option('--jats, --xml', `${verb} JATS output`).default(false);
+}
+
+export function makeMecaOption(verb: string) {
+  return new Option('--meca', `${verb} MECA output`).default(false);
+}
+
 export function makeSiteOption(verb: string) {
   return new Option('--site', `${verb} MyST site content`).default(false);
 }

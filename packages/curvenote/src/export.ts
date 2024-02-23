@@ -111,6 +111,32 @@ function makePdfExportCLI(program: Command) {
   return command;
 }
 
+function makeJatsExportCLI(program: Command) {
+  const command = new Command('jats')
+    .description('Export a JATS file from a local markdown/notebook file or a Curvenote link')
+    .argument(
+      '<article>',
+      'A local file or link to the Curvenote article (e.g. OXA Link or API link)',
+    )
+    .argument('[output]', 'The document filename to export to', '')
+    .addOption(makeCleanOption())
+    .action(clirun(exp.oxaLinkToJats, { program }, 3));
+  return command;
+}
+
+function makeMecaExportCLI(program: Command) {
+  const command = new Command('meca')
+    .description('Export a MECA file from a local project or a Curvenote link')
+    .argument(
+      '<article>',
+      'A local file or link to the Curvenote article (e.g. OXA Link or API link)',
+    )
+    .argument('[output]', 'The document filename to export to', '')
+    .addOption(makeCleanOption())
+    .action(clirun(exp.oxaLinkToMeca, { program }, 3));
+  return command;
+}
+
 function makePdfBuildCLI(program: Command) {
   const command = new Command('pdf:build')
     .description('Build a pdf given a tex file')
@@ -156,6 +182,8 @@ export function addExportCLI(program: Command) {
   command.addCommand(makeTexExportCLI(program));
   command.addCommand(makeTypstExportCLI(program));
   command.addCommand(makePdfExportCLI(program));
+  command.addCommand(makeJatsExportCLI(program));
+  command.addCommand(makeMecaExportCLI(program));
   command.addCommand(makePdfBuildCLI(program));
   command.addCommand(makeJupyterNotebookExportCLI(program));
   command.addCommand(makeJupyterBookExportCLI(program));
