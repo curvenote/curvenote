@@ -59,9 +59,10 @@ export async function interactiveCloneQuestions(
       Object.entries(project.data).map(([key, item]) => [key, item === null ? undefined : item]),
     );
     const projectConfig = {
-      ...getDefaultProjectConfig(project.data.title),
+      ...(await getDefaultProjectConfig(project.data.title)),
       ...nonNullProjectData,
       remote: nonNullProjectData.id,
+      id: nonNullProjectData.id,
     };
     return {
       siteProject: { path, slug: project.data.name },
