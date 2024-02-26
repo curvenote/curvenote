@@ -82,7 +82,7 @@ export async function getHeaders(
   const sessionToken = await getSessionToken(session, tokens);
   if (session) {
     tokens.session = sessionToken;
-    headers.Authorization = `Bearer ${session}`;
+    headers.Authorization = `Bearer ${sessionToken}`;
   }
   return headers;
 }

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
-import type { HttpsProxyAgent } from 'https-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import type { RequestInfo, RequestInit, Request, Response as FetchResponse } from 'node-fetch';
 import { default as nodeFetch } from 'node-fetch';
 import type { BuildWarning } from 'myst-cli';
@@ -92,6 +92,12 @@ export class Session implements ISession {
       this.JOURNALS_URL = LOCAL_SITES_API_URL;
       this.PRIVATE_CDN = 'https://prv.curvenote.dev';
       this.PUBLIC_CDN = 'https://cdn.curvenote.dev';
+    }
+
+    const proxyUrl = process.env.HTTPS_PROXY;
+    if (proxyUrl) {
+      this.log.warn(`Using HTTPS proxy: ${proxyUrl}`);
+      this.proxyAgent = new HttpsProxyAgent(proxyUrl);
     }
 
     if (this.API_URL !== DEFAULT_API_URL) {
