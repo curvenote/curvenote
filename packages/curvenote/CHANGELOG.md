@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.8.43
+
+### Patch Changes
+
+- 640dd94: Add typst and cache to clean options
+- 640dd94: Fix site build cli command to correct scope
+- 640dd94: Add jats and meca to export/clean cli
+- 640dd94: Add typst export to curvenote cli
+
 ## 0.8.42
 
 ### Patch Changes
