@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.8.43
+
+### Patch Changes
+
+- 445122d: Add id/github to project config on init
+- 640dd94: Add jats and meca to export/clean cli
+- 7b3d44a: Consume session fetch and https proxy updates from myst
+- 640dd94: Add typst export to curvenote cli
+
 ## 0.8.42
 
 ### Patch Changes
