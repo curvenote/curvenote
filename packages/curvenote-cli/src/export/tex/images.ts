@@ -13,7 +13,7 @@ export async function localizeAndProcessImages(
   buildPath: string,
 ): Promise<Record<string, string>> {
   session.log.debug('Start localizing images..');
-  const imageFilenames = await writeImagesToFiles(session.log, article.images, {
+  const imageFilenames = await writeImagesToFiles(session, article.images, {
     basePath: opts?.images ?? 'images',
     buildPath,
   });

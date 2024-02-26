@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import Bottleneck from 'bottleneck';
 import { encode } from 'html-entities';
 import type { GenericNode } from 'myst-common';
-import fetch from 'node-fetch';
 import type { VersionId, Blocks, FigureStyles } from '@curvenote/blocks';
 import {
   KINDS,
@@ -62,7 +61,10 @@ function getFigureHTML(
 </figure>`;
 }
 
-async function getEditorStateFromFirstHTMLOutput(version: Version<Blocks.Output>) {
+async function getEditorStateFromFirstHTMLOutput(
+  session: ISession,
+  version: Version<Blocks.Output>,
+) {
   // find first
   const htmlOutput = version.data.outputs.find(
     (output) => output.kind === OutputSummaryKind.html && Boolean(output.content),
@@ -70,7 +72,7 @@ async function getEditorStateFromFirstHTMLOutput(version: Version<Blocks.Output>
   if (!htmlOutput) return null;
   let { content } = htmlOutput;
   if (htmlOutput.link) {
-    const response = await fetch(htmlOutput.link);
+    const response = await session.fetch(htmlOutput.link);
     if (!response.ok) return null;
     content = await response.text();
   }
@@ -171,7 +173,7 @@ export async function walkArticle(
             return { state, block: childBlock, version };
           }
           if (outputHasHtml(version)) {
-            const state = await getEditorStateFromFirstHTMLOutput(version);
+            const state = await getEditorStateFromFirstHTMLOutput(session, version);
             if (state == null) return {};
             return { state, block: childBlock, version };
           }
@@ -286,14 +288,14 @@ export async function walkArticle(
   };
 }
 
-export async function loadImagesToBuffers(images: ArticleState['images']) {
+export async function loadImagesToBuffers(session: ISession, images: ArticleState['images']) {
   const buffers: Record<string, Buffer> = {};
   await Promise.all(
     Object.entries(images).map(async ([key, version]) => {
       await version.get();
       const { src } = getImageSrc(version);
       if (!src) return;
-      const response = await fetch(src);
+      const response = await session.fetch(src);
       // TODO convert SVGs to PNG` with imagemagick
       const buffer = await response.buffer();
       buffers[key] = buffer;
