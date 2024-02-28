@@ -42,6 +42,7 @@ export type SessionOptions = {
   apiUrl?: string;
   siteUrl?: string;
   logger?: Logger;
+  skipProjectLoading?: boolean;
 };
 
 function withQuery(url: string, query: Record<string, string> = {}) {
@@ -113,8 +114,10 @@ export class Session implements ISession {
     }
 
     this.store = createStore(rootReducer);
-    findCurrentProjectAndLoad(this, '.');
-    findCurrentSiteAndLoad(this, '.');
+    if (!opts.skipProjectLoading) {
+      findCurrentProjectAndLoad(this, '.');
+      findCurrentSiteAndLoad(this, '.');
+    }
   }
 
   proxyAgent?: HttpsProxyAgent<string>;

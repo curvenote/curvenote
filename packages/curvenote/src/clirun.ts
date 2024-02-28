@@ -11,6 +11,7 @@ export function clirun(
   cli: {
     program: Command;
     anonymous?: boolean;
+    skipProjectLoading?: boolean;
     requireSiteConfig?: boolean;
     hideNoTokenWarning?: boolean;
   },
@@ -19,26 +20,32 @@ export function clirun(
   return async (...args: any[]) => {
     const opts = cli.program.opts() as SessionOpts;
     const useSession = cli.anonymous
-      ? anonSession(opts)
-      : getSession({ ...opts, hideNoTokenWarning: cli.hideNoTokenWarning });
+      ? anonSession({ ...opts, skipProjectLoading: cli.skipProjectLoading })
+      : getSession({
+          ...opts,
+          hideNoTokenWarning: cli.hideNoTokenWarning,
+          skipProjectLoading: cli.skipProjectLoading,
+        });
     const versions = await getNodeVersion(useSession);
     logVersions(useSession, versions);
     const versionsInstalled = await checkNodeVersion(useSession);
     if (!versionsInstalled) process.exit(1);
-    const state = useSession.store.getState();
-    const siteConfig = selectors.selectCurrentSiteConfig(state);
-    if (cli.requireSiteConfig && !siteConfig) {
-      const projectConfig = selectors.selectCurrentProjectConfig(state);
-      let message: string;
-      if (projectConfig) {
-        message = `No "site" config found in ${selectors.selectCurrentProjectFile(state)}`;
-      } else {
-        message = `You must be in a directory with a config file: ${useSession.configFiles.join(
-          ', ',
-        )}`;
+    if (!cli.skipProjectLoading) {
+      const state = useSession.store.getState();
+      const siteConfig = selectors.selectCurrentSiteConfig(state);
+      if (cli.requireSiteConfig && !siteConfig) {
+        const projectConfig = selectors.selectCurrentProjectConfig(state);
+        let message: string;
+        if (projectConfig) {
+          message = `No "site" config found in ${selectors.selectCurrentProjectFile(state)}`;
+        } else {
+          message = `You must be in a directory with a config file: ${useSession.configFiles.join(
+            ', ',
+          )}`;
+        }
+        useSession.log.error(`${message}\n\nDo you need to run: ${chalk.bold('curvenote init')}`);
+        process.exit(1);
       }
-      useSession.log.error(`${message}\n\nDo you need to run: ${chalk.bold('curvenote init')}`);
-      process.exit(1);
     }
     try {
       await func(useSession, ...args.slice(0, nArgs));
