@@ -13,6 +13,7 @@ export function addTokenCLI(program: Command) {
       clirun(async (session, token?: string) => setToken(session.log, token), {
         program,
         anonymous: true,
+        skipProjectLoading: true,
       }),
     );
   command
@@ -22,6 +23,7 @@ export function addTokenCLI(program: Command) {
       clirun(async (session) => selectToken(session.log), {
         program,
         anonymous: true,
+        skipProjectLoading: true,
       }),
     );
   command
@@ -32,6 +34,7 @@ export function addTokenCLI(program: Command) {
       clirun((session) => deleteToken(session.log), {
         program,
         anonymous: true,
+        skipProjectLoading: true,
       }),
     );
   program.addCommand(command);

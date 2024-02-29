@@ -7,6 +7,7 @@ import type { CheckInterface } from '@curvenote/check-implementations';
 export type SessionOpts = {
   debug?: boolean;
   config?: string;
+  skipProjectLoading?: boolean;
 };
 
 export type Tokens = Partial<Record<'user' | 'session', string>>;
