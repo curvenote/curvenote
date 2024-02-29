@@ -28,6 +28,7 @@ export type ISession = IMystSession & {
   JOURNALS_URL: string;
   PUBLIC_CDN: string;
   PRIVATE_CDN: string;
+  TEMP_CDN: string;
   store: Store<RootState>;
   isAnon: boolean;
   plugins: CurvenotePlugin | undefined;

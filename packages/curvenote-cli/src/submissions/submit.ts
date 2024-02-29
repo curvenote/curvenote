@@ -23,7 +23,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { getChecksForSubmission } from './check.js';
 import { getGitRepoInfo } from './utils.git.js';
-import * as web from '../web/index.js';
+import * as uploads from '../uploads/index.js';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: Record<string, any> = {
@@ -204,10 +204,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     });
 
     // const cdnKey = 'ad7fa60f-5460-4bf9-96ea-59be87944e41'; // dev debug
-    const cdnKey = await web.uploadContentAndDeployToPrivateCdn(session, {
-      ...opts,
-      ci: opts?.yes,
-    });
+    const cdn = opts?.draft ? session.TEMP_CDN : session.PRIVATE_CDN;
+    const { cdnKey } = await uploads.uploadToCdn(session, cdn);
     session.log.info(`🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
     job = await patchUpdateCliCheckJob(
       session,
@@ -249,7 +247,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         session.log.error('🚨 No submission kind found.');
         process.exit(1);
       }
-      await createNewSubmission(session, submitLog, venue, kind, cdnKey, job.id, key, opts);
+      await createNewSubmission(session, submitLog, venue, kind, cdn, cdnKey, job.id, key, opts);
     }
 
     session.log.debug(`generating a build artifact for the submission...`);

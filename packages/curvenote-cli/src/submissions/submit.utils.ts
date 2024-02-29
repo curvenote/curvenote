@@ -258,13 +258,14 @@ export async function createNewSubmission(
   logCollector: Record<string, any>,
   venue: string,
   kind: string,
+  cdn: string,
   cdnKey: string,
   jobId: string,
   key?: string,
   opts?: SubmitOpts,
 ) {
   session.log.debug(`posting new work...`);
-  const { work, workVersion } = await postNewWork(session, cdnKey, session.PRIVATE_CDN);
+  const { work, workVersion } = await postNewWork(session, cdnKey, cdn);
   session.log.debug(`work posted with id ${work.id}`);
 
   session.log.debug(`posting new submission...`);

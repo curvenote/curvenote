@@ -22,10 +22,29 @@ export const siteCommandWrapper =
  */
 export async function uploadContent(session: ISession, opts?: { ci?: boolean }) {
   const { files, uploadRequest } = await prepareUploadRequest(session);
-  const { json: uploadTargets } = await session.post<SiteUploadResponse>('/sites/upload', {
+  const { json: uploadInfo } = await session.post<SiteUploadResponse>('/sites/upload', {
     ...uploadRequest,
   });
-  const { cdnKey } = await performFileUploads(session, files, uploadTargets, opts);
+  session.log.info(`Files: ${JSON.stringify(files.slice(0, 2), null, 2)}`);
+  session.log.info(
+    `Targets: ${JSON.stringify(Object.entries(uploadInfo.files).slice(0, 2), null, 2)}`,
+  );
+
+  const filesToUpload = files.map((file) => {
+    const upload = uploadInfo.files[file.to];
+    return {
+      from: file.from,
+      to: upload.path,
+      md5: file.md5,
+      size: file.size,
+      contentType: file.contentType,
+      signedUrl: upload.signed_url,
+    };
+  });
+
+  await performFileUploads(session, filesToUpload, opts);
+  const cdnKey = uploadInfo.id;
+
   return { cdnKey, filepaths: files.map(({ to }) => ({ path: to })) };
 }
 

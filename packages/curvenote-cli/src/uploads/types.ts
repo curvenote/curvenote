@@ -11,8 +11,7 @@ export type FileInfo = {
   contentType: string;
 };
 
-export type FileUpload = FileInfo & {
-  bucket: string;
+export type SignedFileInfo = FileInfo & {
   signedUrl: string;
 };
 
