@@ -1,5 +1,4 @@
-import type { CheckDefinition } from '@curvenote/check-definitions';
-import type { CheckResult, CheckStatus } from '@curvenote/check-implementations';
+import type { CheckDefinition, CheckResult, CheckStatus } from '@curvenote/check-definitions';
 
 export type CompiledCheckResults = (CheckDefinition & CheckResult)[];
 
