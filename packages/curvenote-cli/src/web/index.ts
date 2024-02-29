@@ -6,3 +6,4 @@ export const buildCurvenoteSite = siteCommandWrapper(buildSite, {});
 export const startCurvenoteServer = siteCommandWrapper(startServer, {});
 
 export * from './deploy.js';
+export * from './utils.js';

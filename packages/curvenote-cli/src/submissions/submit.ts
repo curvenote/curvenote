@@ -23,7 +23,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { getChecksForSubmission } from './check.js';
 import { getGitRepoInfo } from './utils.git.js';
-import { uploadContentAndDeployToPrivateCdn } from '../index.js';
+import * as web from '../web/index.js';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: Record<string, any> = {
@@ -204,7 +204,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     });
 
     // const cdnKey = 'ad7fa60f-5460-4bf9-96ea-59be87944e41'; // dev debug
-    const cdnKey = await uploadContentAndDeployToPrivateCdn(session, {
+    const cdnKey = await web.uploadContentAndDeployToPrivateCdn(session, {
       ...opts,
       ci: opts?.yes,
     });

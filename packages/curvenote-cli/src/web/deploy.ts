@@ -4,31 +4,12 @@ import { tic } from 'myst-cli-utils';
 import type { DnsRouter } from '@curvenote/blocks';
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
-import {
-  addOxaTransformersToOpts,
-  confirmOrExit,
-  uploadContentAndDeployToPublicCdn,
-} from '../utils/index.js';
+import { addOxaTransformersToOpts, confirmOrExit } from '../utils/index.js';
 import type { SiteConfig } from 'myst-config';
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function preflightPromotePublicContent(session: ISession, domains?: string[]) {
-  // TODO throw on no permission to promote to any domain
-}
-
-export async function preflightPromoteToVenue(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  session: ISession,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  cdnKey: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  domains?: string[],
-) {
-  // TODO throw on no permission to submit to venue
-}
+import { uploadContentAndDeployToPublicCdn } from './utils.js';
 
 export async function promotePublicContent(session: ISession, cdnKey: string, domains?: string[]) {
-  const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState());
+  const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState()) as SiteConfig;
   if (!siteConfig) throw new Error('🧐 No site config found.');
   const toc = tic();
   const errorDomains: string[] = [];
@@ -124,7 +105,6 @@ export async function deploy(
       `🧐 No domains specified, use config.site.domains: - ${me.data.username}.curve.space`,
     );
   }
-  await preflightPromotePublicContent(session, domains); // TODO check domains exist, and user can promote to them
   await confirmOrExit(
     `Deploy local content to "${domains.map((d) => `https://${d}`).join('", "')}"?`,
     opts,
