@@ -7,7 +7,7 @@ import path from 'node:path';
 import type { FileInfo, SignedFileInfo, FromTo } from './types.js';
 import cliProgress from 'cli-progress';
 import pLimit from 'p-limit';
-import type { SiteUploadRequest, SiteUploadResponse } from '@curvenote/blocks';
+import type { SiteUploadRequest } from '@curvenote/blocks';
 
 export function listFolderContents(session: ISession, from: string, to = ''): FromTo[] {
   const directory = fs.readdirSync(from);

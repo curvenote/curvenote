@@ -17,6 +17,8 @@ export async function commitUploads(
 
   try {
     session.log.debug(await resp.text());
-  } catch (e) {}
+  } catch (e) {
+    session.log.debug('Error received but response has no text.');
+  }
   throw new Error(`🤕 Failed to commit uploads: ${resp.status} ${resp.statusText}`);
 }
