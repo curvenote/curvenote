@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.44
+
+### Patch Changes
+
+- 457f4b7: Some cli commands should skip project loading
+- 47a1009: `curvenote submit` now uses the sites API for uploads, draft submissions by default go to temporary cdn, uploads will re-try 3 times, and can optionally also try to resume
+
 ## 0.8.43
 
 ### Patch Changes
