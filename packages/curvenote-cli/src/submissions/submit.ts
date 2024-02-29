@@ -34,13 +34,19 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   };
   if (session.isAnon) {
     throw new Error(
-      '⚠️ You must be authenticated for this command. Use `curvenote token set [token]`',
+      '⛔️ You must be authenticated for this command. Use `curvenote token set [token]`',
     );
+  }
+
+  if (opts?.key && opts?.draft) {
+    // TODO we can make draft and key compatible, then drafts will be versions on a submission with that key
+    session.log.error(`⛔️ You cannot specify both --key and --draft.`);
+    process.exit(1);
   }
 
   if (opts?.key && opts?.key.length < 8 && opts?.key !== 'git') {
     session.log.error(
-      `🚨 The key must be at least 8 characters long, please specify a longer key.`,
+      `⛔️ The key must be at least 8 characters long, please specify a longer key.`,
     );
     process.exit(1);
   }
