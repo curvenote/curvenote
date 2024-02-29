@@ -12,6 +12,7 @@ import {
   makeDomainOption,
   makeVenueOption,
   makeExecuteOption,
+  makeResumeOption,
 } from './options.js';
 
 function makeCurvenoteStartCLI(program: Command) {
@@ -45,6 +46,7 @@ function makeDeployCLI(program: Command) {
     .addOption(makeDomainOption())
     .addOption(makeVenueOption())
     .addOption(makeCheckLinksOption())
+    .addOption(makeResumeOption())
     .action(clirun(web.deploy, { program, requireSiteConfig: true }));
   return command;
 }

@@ -20,15 +20,11 @@ export const siteCommandWrapper =
  * @param opts
  * @returns cdnkey and filepaths for deployment
  */
-export async function uploadContent(session: ISession, opts?: { ci?: boolean }) {
+export async function uploadContent(session: ISession, opts?: { ci?: boolean; resume?: boolean }) {
   const { files, uploadRequest } = await prepareUploadRequest(session);
   const { json: uploadInfo } = await session.post<SiteUploadResponse>('/sites/upload', {
     ...uploadRequest,
   });
-  session.log.info(`Files: ${JSON.stringify(files.slice(0, 2), null, 2)}`);
-  session.log.info(
-    `Targets: ${JSON.stringify(Object.entries(uploadInfo.files).slice(0, 2), null, 2)}`,
-  );
 
   const filesToUpload = files.map((file) => {
     const upload = uploadInfo.files[file.to];
@@ -105,7 +101,7 @@ export async function uploadContentAndDeployToPrivateCdn(
  */
 export async function uploadContentAndDeployToPublicCdn(
   session: ISession,
-  opts?: { ci?: boolean },
+  opts?: { ci?: boolean; resume?: boolean },
 ) {
   const { cdnKey, filepaths } = await uploadContent(session, opts);
   return await deployContent(session, { public: true }, cdnKey, filepaths);

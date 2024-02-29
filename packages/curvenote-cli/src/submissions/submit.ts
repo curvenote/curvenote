@@ -211,7 +211,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
 
     // const cdnKey = 'ad7fa60f-5460-4bf9-96ea-59be87944e41'; // dev debug
     const cdn = opts?.draft ? session.TEMP_CDN : session.PRIVATE_CDN;
-    const { cdnKey } = await uploads.uploadToCdn(session, cdn);
+    const { cdnKey } = await uploads.uploadToCdn(session, cdn, opts);
     session.log.info(`🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
     job = await patchUpdateCliCheckJob(
       session,

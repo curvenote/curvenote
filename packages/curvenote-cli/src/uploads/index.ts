@@ -7,11 +7,11 @@ import { performFileUploads } from './utils.js';
 export * from './types.js';
 export * from './utils.js';
 
-export async function test(session: ISession) {
-  return uploadToCdn(session, 'https://tmp.curvenote.dev/');
+export async function uploadToTmpCdn(session: ISession, opts?: { resume?: boolean }) {
+  return uploadToCdn(session, 'https://tmp.curvenote.dev/', opts);
 }
 
-export async function uploadToCdn(session: ISession, cdn: string) {
+export async function uploadToCdn(session: ISession, cdn: string, opts?: { resume?: boolean }) {
   const { cdnKey, cached, upload, files } = await stageUploads(session);
 
   const filesToUpload = files.map((file) => {
@@ -26,7 +26,7 @@ export async function uploadToCdn(session: ISession, cdn: string) {
   });
 
   if (filesToUpload.length > 0) {
-    await performFileUploads(session, filesToUpload, { ci: false });
+    await performFileUploads(session, filesToUpload, opts);
   }
 
   await commitUploads(session, {

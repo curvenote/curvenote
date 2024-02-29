@@ -28,6 +28,7 @@ export type SubmitOpts = {
   info: boolean;
   draft?: boolean;
   key?: string;
+  resume?: boolean;
 };
 
 export function kindQuestions(kinds: { name: string }[]) {
