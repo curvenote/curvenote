@@ -59,6 +59,7 @@ export class Session implements ISession {
   JOURNALS_URL: string;
   PUBLIC_CDN: string;
   PRIVATE_CDN: string;
+  TEMP_CDN: string;
   configFiles: string[];
   $tokens: Tokens = {};
   store: Store<RootState>;
@@ -84,14 +85,17 @@ export class Session implements ISession {
 
     this.JOURNALS_URL = DEFAULT_SITES_API_URL;
     this.PRIVATE_CDN = 'https://prv.curvenote.com';
+    this.TEMP_CDN = 'https://tmp.curvenote.com';
     this.PUBLIC_CDN = 'https://cdn.curvenote.com';
     if (url?.startsWith(STAGING_API_URL)) {
       this.JOURNALS_URL = STAGING_SITES_API_URL;
       this.PRIVATE_CDN = 'https://prv.curvenote.dev';
+      this.TEMP_CDN = 'https://tmp.curvenote.dev';
       this.PUBLIC_CDN = 'https://cdn.curvenote.dev';
     } else if (url?.startsWith(LOCAL_API_URL)) {
       this.JOURNALS_URL = LOCAL_SITES_API_URL;
       this.PRIVATE_CDN = 'https://prv.curvenote.dev';
+      this.TEMP_CDN = 'https://tmp.curvenote.dev';
       this.PUBLIC_CDN = 'https://cdn.curvenote.dev';
     }
 

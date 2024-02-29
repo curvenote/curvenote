@@ -1,6 +1,12 @@
 import { Command, Option } from 'commander';
 import { clirun } from './clirun.js';
-import { makeDraftOption, makeKindOption, makeVenueOption, makeYesOption } from './options.js';
+import {
+  makeDraftOption,
+  makeKindOption,
+  makeResumeOption,
+  makeVenueOption,
+  makeYesOption,
+} from './options.js';
 import { submissions } from '@curvenote/cli';
 
 function makeSubmitCLI(program: Command) {
@@ -10,6 +16,7 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeKindOption())
     .addOption(makeDraftOption())
     .addOption(makeYesOption())
+    .addOption(makeResumeOption())
     .addOption(
       new Option(
         '--key <string>',

@@ -2,13 +2,13 @@ import chalk from 'chalk';
 import { incrementOptions } from 'simple-validators';
 import type { ISession } from '../session/types.js';
 import type { CheckReport, CompiledCheckResults } from './types.js';
+import { validateCheck, type CheckInterface } from '@curvenote/check-implementations';
 import {
-  CheckStatus,
-  validateCheck,
-  type CheckInterface,
   type CheckResult,
-} from '@curvenote/check-implementations';
-import type { Check, CheckDefinition } from '@curvenote/check-definitions';
+  type Check,
+  type CheckDefinition,
+  CheckStatus,
+} from '@curvenote/check-definitions';
 
 export async function runChecks(
   session: ISession,

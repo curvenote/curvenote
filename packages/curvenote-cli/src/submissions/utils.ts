@@ -4,12 +4,12 @@ import type {
   CreateSubmissionBody,
   UpdateCliCheckJobPostBody,
   UpdateSubmissionBody,
-  WorkBody,
 } from '../utils/index.js';
 import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
 import format from 'date-fns/format';
 import type { TransferDataItemData } from './utils.transfer.js';
+import type { JsonObject } from '@curvenote/blocks';
 
 export function formatDate(date: string) {
   return format(new Date(date), 'dd MMM, yyyy HH:mm:ss');
@@ -38,15 +38,10 @@ export async function getFromJournals(session: ISession, pathname: string) {
   }
 }
 
-async function postToJournals(
+export async function postToJournals(
   session: ISession,
   pathname: string,
-  body:
-    | WorkBody
-    | CreateSubmissionBody
-    | UpdateSubmissionBody
-    | CreateCliCheckJobPostBody
-    | UpdateCliCheckJobPostBody,
+  body: JsonObject,
   opts: { method?: 'POST' | 'PATCH' } = {},
 ) {
   const url = `${session.JOURNALS_URL}${pathname}`;

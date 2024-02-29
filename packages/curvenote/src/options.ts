@@ -116,3 +116,10 @@ export function makeLogsOption(description: string) {
 export function makeCacheOption(description: string) {
   return new Option('--cache', description).default(false);
 }
+
+export function makeResumeOption() {
+  return new Option(
+    '--resume',
+    'If a file upload fails, try to resume before raising an error.',
+  ).default(false);
+}
