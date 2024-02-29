@@ -11,7 +11,7 @@ export async function commitUploads(
   if (resp.ok) {
     const { message } = (await resp.json()) as { message: string };
     session.log.info(`🚚 Transfer complete`);
-    session.log.info(`${message}`);
+    session.log.debug(`${message}`);
     return;
   }
 
