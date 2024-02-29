@@ -117,5 +117,7 @@ export async function uploadFileWithOptionalResume(
     }
   }
 
-  session.log.debug(toc(`Finished upload of ${upload.from} in %s.`));
+  session.log.debug(
+    toc(`Finished upload of ${upload.from} in %s.` + (retries > 0) ? ` (${retries} retries)` : ''),
+  );
 }
