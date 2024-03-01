@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.45
+
+### Patch Changes
+
+- ba71206: Bump `mystmd`
+
 ## 0.8.44
 
 ### Patch Changes
