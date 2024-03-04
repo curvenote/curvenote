@@ -14,6 +14,7 @@ import {
   getTransferData,
   createNewSubmission,
   checkForSubmissionUsingKey,
+  checkForSubmissionKeyInUse,
 } from './submit.utils.js';
 import type { SubmitOpts } from './submit.utils.js';
 import { submissionRuleChecks } from '@curvenote/check-implementations';
@@ -55,7 +56,6 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // TODO check the venue allows for submissions & updates to the submission
   // TODO check user has permission to submit /  update a submission
 
-  // const siteConfig = getSiteConfig(session);
   let transferData = await getTransferData(session, opts);
   venue = await ensureVenue(session, venue);
   await checkVenueExists(session, venue);
@@ -86,7 +86,16 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       transferData = {};
     }
     const existing = await checkForSubmissionUsingKey(session, venue, key);
-    if (existing) {
+    if (!existing) {
+      const exists = await checkForSubmissionKeyInUse(session, venue, key);
+      if (exists) {
+        session.log.error(
+          `⛔️ The key "${key}" is already in use at "${venue}", but you don't have permission to access that submission. Please specify a different key.`,
+        );
+        process.exit(1);
+      }
+      session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
+    } else {
       session.log.info(
         `🔍 Found an existing submission using this key, the existing submission will be updated.`,
       );
