@@ -160,11 +160,32 @@ export async function checkVenueExists(session: ISession, venue: string) {
 
 export async function checkVenueAccess(session: ISession, venue: string) {
   try {
-    await getFromJournals(session, `sites/${venue}/access`);
-    session.log.info(`${chalk.green(`💚 venue "${venue}" is accepting submissions.`)}`);
+    const { submit } = (await getFromJournals(session, `sites/${venue}/access`)) as {
+      read: boolean;
+      submit: boolean;
+    };
+    if (submit) session.log.info(`${chalk.green(`💚 venue "${venue}" is accepting submissions.`)}`);
+    else {
+      session.log.debug('You do not have permission to submit to this venue.');
+      throw new Error('You do not have permission to submit to this venue.');
+    }
   } catch (err) {
     session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
     process.exit(1);
+  }
+}
+
+export async function checkForSubmissionKeyInUse(session: ISession, venue: string, key: string) {
+  session.log.debug(`checking to see if submission key is in use: "${key}"`);
+  try {
+    const { exists } = (await getFromJournals(
+      session,
+      `sites/${venue}/submissions/key/${key}`,
+    )) as { exists: boolean };
+    return exists;
+  } catch (err) {
+    session.log.debug(err);
+    return null;
   }
 }
 
@@ -180,7 +201,6 @@ export async function checkForSubmissionUsingKey(session: ISession, venue: strin
     return submissions.items[0] as SubmissionsListItemDTO;
   } catch (err) {
     session.log.debug(err);
-    session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
     return null;
   }
 }
