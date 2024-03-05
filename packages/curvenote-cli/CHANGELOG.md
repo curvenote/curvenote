@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.46
+
+### Patch Changes
+
+- ade8b1e: Enable correct checking for submission permissions and duplicate keys
+
 ## 0.8.45
 
 ### Patch Changes
