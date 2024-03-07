@@ -4,6 +4,7 @@ import {
   makeDraftOption,
   makeKindOption,
   makeResumeOption,
+  makeMaxSizeWebpOption,
   makeVenueOption,
   makeYesOption,
 } from './options.js';
@@ -17,6 +18,7 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeDraftOption())
     .addOption(makeYesOption())
     .addOption(makeResumeOption())
+    .addOption(makeMaxSizeWebpOption(1000))
     .addOption(
       new Option(
         '--key <string>',

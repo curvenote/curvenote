@@ -13,6 +13,7 @@ import {
   makeVenueOption,
   makeExecuteOption,
   makeResumeOption,
+  makeMaxSizeWebpOption,
 } from './options.js';
 
 function makeCurvenoteStartCLI(program: Command) {
@@ -21,6 +22,7 @@ function makeCurvenoteStartCLI(program: Command) {
     .addOption(makeKeepHostOption())
     .addOption(makeHeadlessOption())
     .addOption(makeExecuteOption('Execute Notebooks'))
+    .addOption(makeMaxSizeWebpOption())
     .action(clirun(web.startCurvenoteServer, { program, requireSiteConfig: true }));
   return command;
 }
@@ -32,6 +34,7 @@ function makeBuildCLI(program: Command) {
     .addOption(makeForceOption())
     .addOption(makeCheckLinksOption())
     .addOption(makeStrictOption())
+    .addOption(makeMaxSizeWebpOption())
     .action(clirun(web.buildCurvenoteSite, { program, requireSiteConfig: true }));
   return command;
 }
@@ -47,6 +50,7 @@ function makeDeployCLI(program: Command) {
     .addOption(makeVenueOption())
     .addOption(makeCheckLinksOption())
     .addOption(makeResumeOption())
+    .addOption(makeMaxSizeWebpOption(1000))
     .action(clirun(web.deploy, { program, requireSiteConfig: true }));
   return command;
 }
