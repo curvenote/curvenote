@@ -172,11 +172,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   let report: CompiledCheckResults | undefined;
   if (checks && checks.length > 0) {
     session.log.info(`🕵️‍♀️ running checks...`);
-    report = await runChecks(
-      session,
-      checks.map((c) => ({ id: c.id })),
-      submissionRuleChecks,
-    );
+    report = await runChecks(session, checks, submissionRuleChecks);
     const reportFilename = path.join(session.buildPath(), 'site', 'checks.json');
     session.log.debug(`💼 adding check report to ${reportFilename} for upload...`);
     fs.writeFileSync(reportFilename, JSON.stringify({ venue, kind, report }, null, 2));
