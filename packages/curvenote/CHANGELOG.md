@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.47
+
+### Patch Changes
+
+- 08be003: Add maxSize webp option to cli and default to larger value for deploy/submit
+
 ## 0.8.46
 
 ## 0.8.45
