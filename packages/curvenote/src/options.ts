@@ -1,4 +1,4 @@
-import { Option } from 'commander';
+import { InvalidArgumentError, Option } from 'commander';
 
 export function makeYesOption() {
   return new Option('-y, --yes', 'Use the defaults and answer "Y" to confirmations').default(false);
@@ -122,4 +122,17 @@ export function makeResumeOption() {
     '--resume',
     'If a file upload fails, try to resume before raising an error.',
   ).default(false);
+}
+
+export function makeMaxSizeWebpOption(maxSizeMB = 1.5) {
+  return new Option('--max-size-webp <size>', 'Max image size to convert to webp format in MB')
+    .default(maxSizeMB * 1024 * 1024, `${maxSizeMB}`)
+    .argParser((value) => {
+      if (value == null) return undefined;
+      const parsedValue = parseFloat(value);
+      if (isNaN(parsedValue)) {
+        throw new InvalidArgumentError('Must be number');
+      }
+      return parsedValue * 1024 * 1024;
+    });
 }
