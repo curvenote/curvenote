@@ -174,7 +174,10 @@ export async function init(session: ISession, opts: Options) {
     throw Error(`Invalid init content: ${content}`);
   }
   // If there is a new project config, save to the state and write to disk
-  if (projectConfig) writeConfigs(session, currentPath, { projectConfig });
+  if (projectConfig) {
+    writeConfigs(session, currentPath, { projectConfig });
+    session.store.dispatch(config.actions.receiveCurrentProjectPath({ path: currentPath }));
+  }
   // Personalize the config
   session.log.info(`📓 Creating site config`);
   me = await me;
