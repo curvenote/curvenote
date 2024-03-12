@@ -2,8 +2,10 @@ import type { ISession } from '../session/types.js';
 import type {
   CreateCliCheckJobPostBody,
   CreateSubmissionBody,
+  STATUSES,
   UpdateCliCheckJobPostBody,
   UpdateSubmissionBody,
+  UpdateSubmissionStatusBody,
 } from '../utils/index.js';
 import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
@@ -260,5 +262,39 @@ export async function postUpdateSubmissionWorkVersion(
     };
   } else {
     throw new Error('Updating submission failed');
+  }
+}
+
+export async function patchUpdateSubmissionStatus(
+  session: ISession,
+  venue: string,
+  submissionId: string,
+  status: STATUSES,
+) {
+  const toc = tic();
+  const submissionRequest: UpdateSubmissionStatusBody = { status };
+  session.log.debug(
+    `PATCH to ${session.JOURNALS_URL}sites/${venue}/submissions/${submissionId}...`,
+  );
+  const resp = await postToJournals(
+    session,
+    `sites/${venue}/submissions/${submissionId}`,
+    submissionRequest,
+    { method: 'PATCH' },
+  );
+  session.log.debug(`${resp.status} ${resp.statusText}`);
+  if (resp.ok) {
+    const json = (await resp.json()) as any;
+    session.log.info(
+      toc(
+        `🚀 Submission successfully ${status === 'PUBLISHING' ? 'publishing to' : 'unpublishing from'} "${venue}" in %s.`,
+      ),
+    );
+    session.log.debug(`Submission id: ${json.id}`);
+    session.log.debug(
+      `Submission version statuses: ${json.versions.map((v: { status: string }) => v.status)}`,
+    );
+  } else {
+    throw new Error(`Submission failed to ${status === 'PUBLISHING' ? 'publish' : 'unpublish'}`);
   }
 }
