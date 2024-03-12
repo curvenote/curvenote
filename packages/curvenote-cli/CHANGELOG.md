@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.8.47
+
+### Patch Changes
+
+- 08be003: Add maxSize webp option to cli and default to larger value for deploy/submit
+- 89ef920: Fix init to correctly pull project
+- 89ef920: Fix to curvenote init to ensure that the project gets pulled from remote link
+- b6254cd: Run the same checks on check and submit
+
 ## 0.8.46
 
 ### Patch Changes
