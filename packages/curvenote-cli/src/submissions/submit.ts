@@ -26,6 +26,9 @@ import { getChecksForSubmission } from './check.js';
 import { getGitRepoInfo } from './utils.git.js';
 import * as uploads from '../uploads/index.js';
 
+const CDN_KEY_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
+
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: Record<string, any> = {
     input: {
@@ -214,9 +217,16 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       ...job.results,
     });
 
-    // const cdnKey = 'ad7fa60f-5460-4bf9-96ea-59be87944e41'; // dev debug
     const cdn = opts?.draft ? session.TEMP_CDN : session.PRIVATE_CDN;
-    const { cdnKey } = await uploads.uploadToCdn(session, cdn, opts);
+    let cdnKey: string;
+    if (!process.env.DEV_CDN || process.env.DEV_CDN === 'false') {
+      const uploadResult = await uploads.uploadToCdn(session, cdn, opts);
+      cdnKey = uploadResult.cdnKey;
+    } else if (process.env.DEV_CDN.match(CDN_KEY_RE)) {
+      cdnKey = process.env.DEV_CDN;
+    } else {
+      cdnKey = DEV_CDN_KEY;
+    }
     session.log.info(`🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
     job = await patchUpdateCliCheckJob(
       session,
