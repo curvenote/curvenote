@@ -2,10 +2,9 @@ import type { ISession } from '../session/types.js';
 import type {
   CreateCliCheckJobPostBody,
   CreateSubmissionBody,
-  STATUSES,
+  STATUS_ACTIONS,
   UpdateCliCheckJobPostBody,
   UpdateSubmissionBody,
-  UpdateSubmissionStatusBody,
 } from '../utils/index.js';
 import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
@@ -40,15 +39,13 @@ export async function getFromJournals(session: ISession, pathname: string) {
   }
 }
 
-export async function postToJournals(
+export async function postToUrl(
   session: ISession,
-  pathname: string,
+  url: string,
   body: JsonObject,
   opts: { method?: 'POST' | 'PATCH' } = {},
 ) {
-  const url = `${session.JOURNALS_URL}${pathname}`;
   session.log.debug(`${opts?.method ?? 'POST'}ing to`, url);
-
   const method = opts?.method ?? 'POST';
   const headers = await getHeaders(session, (session as any).$tokens);
   return session.fetch(url, {
@@ -59,6 +56,17 @@ export async function postToJournals(
       ...headers,
     },
   });
+}
+
+export async function postToJournals(
+  session: ISession,
+  pathname: string,
+  body: JsonObject,
+  opts: { method?: 'POST' | 'PATCH' } = {},
+) {
+  const url = `${session.JOURNALS_URL}${pathname}`;
+  const resp = await postToUrl(session, url, body, opts);
+  return resp;
 }
 
 export async function postNewWork(
@@ -269,25 +277,30 @@ export async function patchUpdateSubmissionStatus(
   session: ISession,
   venue: string,
   submissionId: string,
-  status: STATUSES,
+  action: STATUS_ACTIONS,
 ) {
   const toc = tic();
-  const submissionRequest: UpdateSubmissionStatusBody = { status };
-  session.log.debug(
-    `PATCH to ${session.JOURNALS_URL}sites/${venue}/submissions/${submissionId}...`,
-  );
-  const resp = await postToJournals(
+  session.log.debug(`GET to ${session.JOURNALS_URL}sites/${venue}/submissions/${submissionId}...`);
+  const submissionJson = await getFromJournals(
     session,
     `sites/${venue}/submissions/${submissionId}`,
-    submissionRequest,
-    { method: 'PATCH' },
+  );
+  const updateUrl = submissionJson?.links?.[action];
+  if (!updateUrl) {
+    throw new Error(`Action ${action} not available for submission`);
+  }
+  session.log.debug(`POST to ${updateUrl}...`);
+  const resp = await postToUrl(
+    session,
+    updateUrl,
+    {}, // Currently takes no body
   );
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as any;
     session.log.info(
       toc(
-        `🚀 Submission successfully ${status === 'PUBLISHING' ? 'publishing to' : 'unpublishing from'} "${venue}" in %s.`,
+        `🚀 Submission successfully ${action === 'publish' ? 'publishing to' : 'unpublishing from'} "${venue}" in %s.`,
       ),
     );
     session.log.debug(`Submission id: ${json.id}`);
@@ -295,6 +308,6 @@ export async function patchUpdateSubmissionStatus(
       `Submission version statuses: ${json.versions.map((v: { status: string }) => v.status)}`,
     );
   } else {
-    throw new Error(`Submission failed to ${status === 'PUBLISHING' ? 'publish' : 'unpublish'}`);
+    throw new Error(`Submission failed to ${action}`);
   }
 }
