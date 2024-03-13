@@ -43,7 +43,7 @@ export async function postToUrl(
   session: ISession,
   url: string,
   body: JsonObject,
-  opts: { method?: 'POST' | 'PATCH' } = {},
+  opts: { method?: 'POST' | 'PATCH' | 'PUT' } = {},
 ) {
   session.log.debug(`${opts?.method ?? 'POST'}ing to`, url);
   const method = opts?.method ?? 'POST';
@@ -294,6 +294,7 @@ export async function patchUpdateSubmissionStatus(
     session,
     updateUrl,
     {}, // Currently takes no body
+    { method: 'PUT' },
   );
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
