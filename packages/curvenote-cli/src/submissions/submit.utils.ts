@@ -259,12 +259,12 @@ export async function confirmUpdateToExistingSubmission(
     process.exit(1);
   }
 
-  if (opts?.kind) {
+  const kind = existingSubmission?.kind;
+  if (opts?.kind && opts.kind !== kind) {
     session.log.info(
       `🪧  NOTE: the --kind option was provided, but will be ignored as you are updating an existing submission`,
     );
   }
-  const kind = existingSubmission?.kind;
   session.log.debug(`resolved kind to ${kind}`);
 
   await confirmOrExit(

@@ -16,6 +16,8 @@ export interface UpdateSubmissionBody {
   job_id: string;
 }
 
+export type STATUS_ACTIONS = 'publish' | 'unpublish';
+
 export interface CreateCliCheckJobPostBody {
   job_type: 'CLI_CHECK';
   payload: Record<string, any>;

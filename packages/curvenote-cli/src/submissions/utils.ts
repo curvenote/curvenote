@@ -2,6 +2,7 @@ import type { ISession } from '../session/types.js';
 import type {
   CreateCliCheckJobPostBody,
   CreateSubmissionBody,
+  STATUS_ACTIONS,
   UpdateCliCheckJobPostBody,
   UpdateSubmissionBody,
 } from '../utils/index.js';
@@ -38,15 +39,13 @@ export async function getFromJournals(session: ISession, pathname: string) {
   }
 }
 
-export async function postToJournals(
+export async function postToUrl(
   session: ISession,
-  pathname: string,
+  url: string,
   body: JsonObject,
-  opts: { method?: 'POST' | 'PATCH' } = {},
+  opts: { method?: 'POST' | 'PATCH' | 'PUT' } = {},
 ) {
-  const url = `${session.JOURNALS_URL}${pathname}`;
   session.log.debug(`${opts?.method ?? 'POST'}ing to`, url);
-
   const method = opts?.method ?? 'POST';
   const headers = await getHeaders(session, (session as any).$tokens);
   return session.fetch(url, {
@@ -57,6 +56,17 @@ export async function postToJournals(
       ...headers,
     },
   });
+}
+
+export async function postToJournals(
+  session: ISession,
+  pathname: string,
+  body: JsonObject,
+  opts: { method?: 'POST' | 'PATCH' } = {},
+) {
+  const url = `${session.JOURNALS_URL}${pathname}`;
+  const resp = await postToUrl(session, url, body, opts);
+  return resp;
 }
 
 export async function postNewWork(
@@ -260,5 +270,45 @@ export async function postUpdateSubmissionWorkVersion(
     };
   } else {
     throw new Error('Updating submission failed');
+  }
+}
+
+export async function patchUpdateSubmissionStatus(
+  session: ISession,
+  venue: string,
+  submissionId: string,
+  action: STATUS_ACTIONS,
+) {
+  const toc = tic();
+  session.log.debug(`GET to ${session.JOURNALS_URL}sites/${venue}/submissions/${submissionId}...`);
+  const submissionJson = await getFromJournals(
+    session,
+    `sites/${venue}/submissions/${submissionId}`,
+  );
+  const updateUrl = submissionJson?.links?.[action];
+  if (!updateUrl) {
+    throw new Error(`Action ${action} not available for submission`);
+  }
+  session.log.debug(`POST to ${updateUrl}...`);
+  const resp = await postToUrl(
+    session,
+    updateUrl,
+    {}, // Currently takes no body
+    { method: 'PUT' },
+  );
+  session.log.debug(`${resp.status} ${resp.statusText}`);
+  if (resp.ok) {
+    const json = (await resp.json()) as any;
+    session.log.info(
+      toc(
+        `🚀 Submission successfully ${action === 'publish' ? 'publishing to' : 'unpublishing from'} "${venue}" in %s.`,
+      ),
+    );
+    session.log.debug(`Submission id: ${json.id}`);
+    session.log.debug(
+      `Submission version statuses: ${json.versions.map((v: { status: string }) => v.status)}`,
+    );
+  } else {
+    throw new Error(`Submission failed to ${action}`);
   }
 }
