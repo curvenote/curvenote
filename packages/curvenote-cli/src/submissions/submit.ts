@@ -2,7 +2,7 @@ import type { ISession } from '../session/types.js';
 import { upwriteTransferFile } from './utils.transfer.js';
 import { confirmOrExit, writeJsonLogs } from '../utils/utils.js';
 import chalk from 'chalk';
-import { postNewCliCheckJob, patchUpdateCliCheckJob } from './utils.js';
+import { postNewCliCheckJob, patchUpdateCliCheckJob, exitOnInvalidKeyOption } from './utils.js';
 import {
   ensureVenue,
   checkVenueExists,
@@ -48,12 +48,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     process.exit(1);
   }
 
-  if (opts?.key && opts?.key.length < 8 && opts?.key !== 'git') {
-    session.log.error(
-      `⛔️ The key must be at least 8 characters long, please specify a longer key.`,
-    );
-    process.exit(1);
-  }
+  exitOnInvalidKeyOption(session, opts?.key);
 
   // TODO upload preflight checks
   // TODO check the venue allows for submissions & updates to the submission

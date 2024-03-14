@@ -287,7 +287,7 @@ export async function patchUpdateSubmissionStatus(
   );
   const updateUrl = submissionJson?.links?.[action];
   if (!updateUrl) {
-    throw new Error(`Action ${action} not available for submission`);
+    throw new Error(`Action "${action}" not available for submission`);
   }
   session.log.debug(`POST to ${updateUrl}...`);
   const resp = await postToUrl(
@@ -310,5 +310,15 @@ export async function patchUpdateSubmissionStatus(
     );
   } else {
     throw new Error(`Submission failed to ${action}`);
+  }
+}
+
+export function exitOnInvalidKeyOption(session: ISession, key?: string) {
+  if (key) session.log.debug(`Checking for valid key option: ${key}`);
+  if (key && key.length < 8 && key !== 'git') {
+    session.log.error(
+      `⛔️ The key must be at least 8 characters long, please specify a longer key.`,
+    );
+    process.exit(1);
   }
 }

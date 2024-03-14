@@ -136,3 +136,10 @@ export function makeMaxSizeWebpOption(maxSizeMB = 1.5) {
       return parsedValue * 1024 * 1024;
     });
 }
+
+export function makeKeyOption() {
+  return new Option(
+    '--key <string>',
+    'Use a unique string as the key for the submission. Set `--key=git` to autogenerate a key based on your git repository.',
+  );
+}

@@ -7,6 +7,7 @@ import {
   makeMaxSizeWebpOption,
   makeVenueOption,
   makeYesOption,
+  makeKeyOption,
 } from './options.js';
 import { submissions } from '@curvenote/cli';
 
@@ -19,12 +20,7 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeYesOption())
     .addOption(makeResumeOption())
     .addOption(makeMaxSizeWebpOption(1000))
-    .addOption(
-      new Option(
-        '--key <string>',
-        'Use a unique string as the key for the submission. Set `--key=git` to autogenerate a key based on your git repository.',
-      ),
-    )
+    .addOption(makeKeyOption())
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }
@@ -50,6 +46,7 @@ function makeSubmissionPublishCLI(program: Command) {
   const command = new Command('publish')
     .description('Publish your Submission')
     .argument('[venue]', 'Venue to publish the submission to')
+    .addOption(makeKeyOption())
     .action(clirun(submissions.publish, { program, requireSiteConfig: true }));
   return command;
 }
@@ -58,6 +55,7 @@ function makeSubmissionUnpublishCLI(program: Command) {
   const command = new Command('unpublish')
     .description('Unpublish an existing Submission')
     .argument('[venue]', 'Venue to unpublish the submission from')
+    .addOption(makeKeyOption())
     .action(clirun(submissions.unpublish, { program, requireSiteConfig: true }));
   return command;
 }
