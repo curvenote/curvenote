@@ -365,6 +365,6 @@ export async function updateExistingSubmission(
     logCollector.submissionVersion = submissionVersion;
   } catch (err: any) {
     session.log.error(err.message);
-    throw new Error(`🚨 ${chalk.bold.red('Could not update your submission')}.`);
+    throw new Error(`🚨 ${chalk.bold.red('Could not update your submission')}`);
   }
 }

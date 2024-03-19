@@ -79,7 +79,7 @@ export async function postNewWork(
   session.log.debug(
     `POST to ${session.JOURNALS_URL}works with cdnKey: ${cdnKey} and cdn: ${cdn}...`,
   );
-  const resp = await postToJournals(session, 'works', { key: cdnKey, cdn });
+  const resp = await postToJournals(session, 'works', { cdn_key: cdnKey, cdn });
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as any;
@@ -114,7 +114,7 @@ export async function postNewWorkVersion(
   session.log.debug(
     `POST to ${session.JOURNALS_URL}works/${workId}/versions with cdnKey: ${cdnKey} and cdn: ${cdn}...`,
   );
-  const resp = await postToJournals(session, `works/${workId}/versions`, { key: cdnKey, cdn });
+  const resp = await postToJournals(session, `works/${workId}/versions`, { cdn_key: cdnKey, cdn });
   session.log.debug(`${resp.status} ${resp.statusText}`);
 
   if (resp.ok) {
