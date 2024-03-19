@@ -1,5 +1,15 @@
 # curvenote
 
+## 0.8.48
+
+### Patch Changes
+
+- f349c3a: Enable key based [un]publishing
+- 762d603: Update submission CLI for publish/unpublish
+- 762d603: Do not warn on duplicate kind during resubmit
+- 18b8d1d: Update work post from key -> cdn_key
+- 762d603: Allow cdn upload on submit with env variable
+
 ## 0.8.47
 
 ### Patch Changes
