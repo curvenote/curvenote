@@ -303,7 +303,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       ...job.results,
       error: err.message,
     });
-    session.log.error(`📣 ${chalk.bold.red(err.message)}.`);
+    session.log.error(`📣 ${chalk.bold.red(err.message)}`);
     session.log.info('📨 Please contact support@curvenote.com');
   }
   writeJsonLogs(session, 'curvenote.submit.json', submitLog);
