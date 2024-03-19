@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.48
+
+### Patch Changes
+
+- f349c3a: Enable key based [un]publishing
+- 762d603: Update submission CLI for publish/unpublish
+
 ## 0.8.47
 
 ### Patch Changes
