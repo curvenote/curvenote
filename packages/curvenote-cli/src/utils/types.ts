@@ -1,5 +1,5 @@
 export interface WorkBody {
-  key: string;
+  cdn_key: string;
   cdn: string;
 }
 
