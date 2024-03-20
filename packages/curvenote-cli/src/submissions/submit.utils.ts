@@ -20,10 +20,18 @@ import {
   postUpdateSubmissionWorkVersion,
 } from './utils.js';
 import inquirer from 'inquirer';
-import type { SubmissionsListItemDTO, SubmissionsListingDTO } from '@curvenote/common';
+import type {
+  CollectionDTO,
+  CollectionsDTO,
+  SubmissionDTO,
+  SubmissionKindDTO,
+  SubmissionsListItemDTO,
+  SubmissionsListingDTO,
+} from '@curvenote/common';
 
 export type SubmitOpts = {
   kind?: string;
+  collection?: string;
   yes?: boolean;
   info: boolean;
   draft?: boolean;
@@ -32,12 +40,29 @@ export type SubmitOpts = {
   maxSizeWebp?: number;
 };
 
-export function kindQuestions(kinds: { name: string }[]) {
+export function kindQuestions(kinds: Omit<SubmissionKindDTO, 'date_created' | 'checks'>[]) {
   return {
     name: 'kinds',
     type: 'list',
     message: 'What kind of submission are you making?',
-    choices: kinds.map(({ name }) => ({ name, value: name })),
+    choices: kinds.map(({ name, id }) => ({ name, value: id })),
+  };
+}
+
+export function collectionMoniker(collection: CollectionDTO) {
+  const slug = collection.slug === '' ? 'default' : collection.slug;
+  return `${collection.content.title} (${slug})` ?? slug;
+}
+
+export function collectionQuestions(venue: string, collections: CollectionsDTO['items']) {
+  return {
+    name: 'collections',
+    type: 'list',
+    message: `Venue ${venue} has multiple collections open for submission. Which do you want to submit to?`,
+    choices: collections.map((item) => ({
+      name: collectionMoniker(item),
+      value: item,
+    })),
   };
 }
 
@@ -61,41 +86,116 @@ export function venueQuestion(session: ISession) {
   };
 }
 
-export async function determineSubmissionKind(
+export async function determineCollectionAndKind(
   session: ISession,
   venue: string,
-  opts?: { kind?: string },
+  collections: CollectionsDTO,
+  opts?: { kind?: string; collection?: string },
 ) {
-  let kinds;
-  try {
-    kinds = await getFromJournals(session, `sites/${venue}/kinds`);
-  } catch (err: any) {
+  const openCollections = collections.items.filter((c) => c.open);
+  if (openCollections.length === 0) {
     session.log.info(
-      `${chalk.red(`🚨 could not get submission kinds listing from venue ${venue}`)}`,
+      `${chalk.red(`⛔️ no collections are open for submissions at venue "${venue}"`)}`,
     );
     process.exit(1);
   }
 
-  let kind;
+  session.log.debug(`Explicit collection provided: ${opts?.collection}`);
+  let selectedCollection = opts?.collection
+    ? openCollections.find(
+        (c) => c.slug === (opts?.collection === 'default' ? '' : opts?.collection),
+      )
+    : undefined;
+
+  if (opts?.collection && (!selectedCollection || !selectedCollection?.open)) {
+    session.log.info(
+      `${chalk.red(`⛔️ collection "${opts?.collection}" is not open for submissions at venue "${venue}"`)}`,
+    );
+    session.log.info(
+      `${chalk.bold(`🗂 open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+    );
+    process.exit(1);
+  }
+
+  if (!selectedCollection && openCollections.length === 1) {
+    selectedCollection = openCollections[0];
+  } else if (!selectedCollection) {
+    const response = await inquirer.prompt([collectionQuestions(venue, openCollections)]);
+    selectedCollection = response.collections;
+  }
+
+  if (!selectedCollection) {
+    session.log.info(`${chalk.red(`⛔️ could not determine the collection to submit to`)}`);
+    process.exit(1);
+  }
+  session.log.info(`🗂  Collection "${collectionMoniker(selectedCollection)}" selected`);
+
+  const kind = await determineSubmissionKindFromCollection(
+    session,
+    venue,
+    selectedCollection,
+    opts,
+  );
+
+  return { collection: selectedCollection, kind };
+}
+
+export async function getSubmissionKind(
+  session: ISession,
+  venue: string,
+  kindId: string,
+): Promise<SubmissionKindDTO> {
+  const kind = await getFromJournals(session, `sites/${venue}/kinds/${kindId}`);
+  if (!kind) throw new Error('kind not found');
+  return kind;
+}
+
+export async function determineSubmissionKindFromCollection(
+  session: ISession,
+  venue: string,
+  collection: CollectionDTO,
+  opts?: { kind?: string },
+) {
+  const kinds = collection.kinds;
+
+  let kindId;
   if (opts?.kind) {
-    const match = kinds.items.find(
+    const match = kinds.find(
       ({ name }: { name: string }) => name.toLowerCase() === opts.kind?.toLowerCase(),
     );
     if (!match) {
       session.log.info(
-        `${chalk.red(`🚨 submission kind "${opts.kind}" is not accepted at venue ${venue}`)}`,
+        `${chalk.bold.red(`⛔️ submission kind "${opts.kind}" is not accepted in the collection "${collectionMoniker(collection)}"`)}`,
+      );
+      session.log.info(
+        `${chalk.bold(`📚 accepted kinds are: ${kinds.map((k) => k.name).join(', ')}`)}`,
       );
       process.exit(1);
     }
     // Return the actual kind (including case)
-    kind = match.name;
-  } else if (kinds.items.length === 1) {
-    kind = kinds.items[0].name;
+    kindId = match.id;
+    session.log.debug(`kindId from options`);
+  } else if (kinds.length === 1) {
+    kindId = kinds[0].id;
+    session.log.debug(`kindId from only kind`);
   } else {
-    const response = await inquirer.prompt([kindQuestions(kinds.items)]);
-    kind = response.kinds;
+    const response = await inquirer.prompt([kindQuestions(kinds)]);
+    kindId = response.kinds;
+    session.log.debug(`kindId from prompt`);
   }
-  session.log.debug(`resolved kind to ${kind}`);
+  session.log.debug(`kindId: ${kindId}`);
+
+  let kind: SubmissionKindDTO | undefined;
+  // retrieve the full kind DTO from the API
+  try {
+    kind = await getSubmissionKind(session, venue, kindId);
+  } catch (err: any) {
+    session.log.info(
+      `${chalk.red(`🚨 could not get submission kind details "${kindId}" from venue ${venue}`)}`,
+    );
+    process.exit(1);
+  }
+
   return kind;
 }
 
@@ -165,8 +265,30 @@ export async function checkVenueAccess(session: ISession, venue: string) {
       read: boolean;
       submit: boolean;
     };
-    if (submit) session.log.info(`${chalk.green(`💚 venue "${venue}" is accepting submissions.`)}`);
-    else {
+    if (submit) {
+      const collections = (await getFromJournals(
+        session,
+        `sites/${venue}/collections`,
+      )) as CollectionsDTO;
+
+      const openCollections = collections.items.filter((c) => c.open);
+
+      if (openCollections.length === 0) {
+        session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
+        process.exit(1);
+      }
+
+      if (openCollections.length > 1) {
+        session.log.info(
+          `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => c.content.title ?? c.slug).join(', ')}`)}`,
+        );
+      } else {
+        session.log.info(
+          `${chalk.green(`💚 venue "${venue}" is accepting submissions (${openCollections[0].content.title ?? openCollections[0].content.slug}).`)}`,
+        );
+      }
+      return collections;
+    } else {
       session.log.debug('You do not have permission to submit to this venue.');
       throw new Error('You do not have permission to submit to this venue.');
     }
@@ -209,6 +331,7 @@ export async function checkForSubmissionUsingKey(session: ISession, venue: strin
 export async function confirmUpdateToExistingSubmission(
   session: ISession,
   venue: string,
+  collections: CollectionsDTO,
   venueTransferData: TransferDataItem,
   opts?: SubmitOpts,
 ) {
@@ -224,15 +347,77 @@ export async function confirmUpdateToExistingSubmission(
 
   session.log.info(`📡 Checking submission status...`);
 
-  let existingSubmission;
   try {
     session.log.debug(
       `GET from journals API sites/${venue}/submissions/${venueTransferData.submission?.id}`,
     );
-    existingSubmission = await getFromJournals(
+    const existingSubmission = (await getFromJournals(
       session,
       `sites/${venue}/submissions/${venueTransferData.submission?.id}`,
+    )) as SubmissionDTO;
+
+    session.log.debug('existing submission collection id', existingSubmission.collection?.id);
+    const collection = collections.items.find((c) => c.id === existingSubmission.collection?.id);
+    const openCollections = collections.items.filter((c) => c.open);
+
+    if (opts?.collection && opts.collection !== existingSubmission?.collection?.slug) {
+      session.log.info(
+        `🪧  NOTE: the --collection option was provided, but will be ignored as you are updating an existing submission`,
+      );
+    }
+
+    session.log.info(
+      `✅ Submission found, collection: ${collection ? collectionMoniker(collection) : 'unknown'}, ${existingSubmission?.versions.length} version${
+        (existingSubmission?.versions ?? []).length > 1 ? 's' : ''
+      } present, latest status: ${existingSubmission?.versions[0].status}.`,
     );
+
+    if (!collection?.open) {
+      session.log.error(
+        chalk.bold.red('⛔️ the collection for this submission is not accepting submissions'),
+      );
+      session.log.info(
+        `${chalk.bold(`📚 open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+      );
+      process.exit(1);
+    }
+
+    try {
+      session.log.debug(`GET from journals API my/works/${venueTransferData.work?.id}`);
+      await getFromJournals(session, `my/works/${venueTransferData.work?.id}`);
+    } catch (err) {
+      session.log.debug(err);
+      session.log.info(
+        `${chalk.red(
+          `🚨 the work related to your submission was not found, or you do not have permission to update it`,
+        )}`,
+      );
+      process.exit(1);
+    }
+
+    const kindId = existingSubmission.kind_id;
+    if (opts?.kind && opts.kind !== existingSubmission?.kind) {
+      session.log.info(
+        `🪧  NOTE: the --kind option was provided, but will be ignored as you are updating an existing submission`,
+      );
+    }
+
+    session.log.debug(`resolved kind to ${existingSubmission?.kind}`);
+    const kind = await getSubmissionKind(session, venue, kindId);
+
+    if (!collection.kinds.find((k) => k.id === kindId)) {
+      session.log.error(
+        `${chalk.red(`⛔️ the kind "${kind.name}" is not accepted in the collection "${collectionMoniker(collection)}". This indicates a problem with your previous submission, please contact support@curvenote.com.`)}`,
+      );
+      process.exit(1);
+    }
+
+    await confirmOrExit(
+      `Update your submission to "${venue}" based on the contents of your local folder?`,
+      opts,
+    );
+
+    return { kind, collection };
   } catch (err: any) {
     session.log.debug(err);
     session.log.info(
@@ -240,46 +425,14 @@ export async function confirmUpdateToExistingSubmission(
     );
     process.exit(1);
   }
-  session.log.info(
-    `✅ Submission found, ${existingSubmission?.versions.length} version${
-      existingSubmission?.versions.length > 1 ? 's' : ''
-    } present, latest status: ${existingSubmission?.versions[0].status}.`,
-  );
-
-  try {
-    session.log.debug(`GET from journals API my/works/${venueTransferData.work?.id}`);
-    await getFromJournals(session, `my/works/${venueTransferData.work?.id}`);
-  } catch (err) {
-    session.log.debug(err);
-    session.log.info(
-      `${chalk.red(
-        `🚨 the work related to your submission was not found, or you do not have permission to update it`,
-      )}`,
-    );
-    process.exit(1);
-  }
-
-  const kind = existingSubmission?.kind;
-  if (opts?.kind && opts.kind !== kind) {
-    session.log.info(
-      `🪧  NOTE: the --kind option was provided, but will be ignored as you are updating an existing submission`,
-    );
-  }
-  session.log.debug(`resolved kind to ${kind}`);
-
-  await confirmOrExit(
-    `Update your submission to "${venue}" based on the contents of your local folder?`,
-    opts,
-  );
-
-  return kind;
 }
 
 export async function createNewSubmission(
   session: ISession,
   logCollector: Record<string, any>,
   venue: string,
-  kind: string,
+  collection: CollectionDTO,
+  kind: SubmissionKindDTO,
   cdn: string,
   cdnKey: string,
   jobId: string,
@@ -294,7 +447,8 @@ export async function createNewSubmission(
   const { submission, submissionVersion } = await postNewSubmission(
     session,
     venue,
-    kind,
+    collection.id,
+    kind.id,
     workVersion.id,
     opts?.draft ?? false,
     jobId,

@@ -194,7 +194,8 @@ export async function patchUpdateCliCheckJob(
 export async function postNewSubmission(
   session: ISession,
   venue: string,
-  kind: string,
+  collection_id: string,
+  kind_id: string,
   work_version_id: string,
   draft: boolean,
   job_id: string,
@@ -206,7 +207,8 @@ export async function postNewSubmission(
   const toc = tic();
   const submissionRequest: CreateSubmissionBody = {
     work_version_id,
-    kind,
+    collection_id,
+    kind_id,
     draft,
     key,
     job_id,

@@ -5,7 +5,8 @@ export interface WorkBody {
 
 export interface CreateSubmissionBody {
   work_version_id: string;
-  kind: string;
+  collection_id: string;
+  kind_id: string;
   draft: boolean;
   job_id: string;
   key?: string;
