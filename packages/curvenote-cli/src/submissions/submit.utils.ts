@@ -25,6 +25,7 @@ import type {
   CollectionsDTO,
   SubmissionDTO,
   SubmissionKindDTO,
+  SubmissionKindsDTO,
   SubmissionsListItemDTO,
   SubmissionsListingDTO,
 } from '@curvenote/common';
@@ -143,11 +144,18 @@ export async function determineCollectionAndKind(
 export async function getSubmissionKind(
   session: ISession,
   venue: string,
-  kindId: string,
+  kindIdOrName: string,
 ): Promise<SubmissionKindDTO> {
-  const kind = await getFromJournals(session, `sites/${venue}/kinds/${kindId}`);
+  const kind = await getFromJournals(session, `sites/${venue}/kinds/${kindIdOrName}`);
   if (!kind) throw new Error('kind not found');
   return kind;
+}
+
+export async function listSubmissionKinds(
+  session: ISession,
+  venue: string,
+): Promise<SubmissionKindsDTO> {
+  return getFromJournals(session, `sites/${venue}/kinds`);
 }
 
 export async function determineSubmissionKindFromCollection(

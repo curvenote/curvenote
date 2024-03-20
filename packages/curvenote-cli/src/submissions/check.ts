@@ -3,22 +3,19 @@ import { build } from 'myst-cli';
 import { logCheckReport, runChecks } from '../check/runner.js';
 import { writeJsonLogs } from '../utils/utils.js';
 import type { ISession } from '../session/types.js';
-import { getFromJournals } from './utils.js';
-import type { SubmissionKindsDTO } from '@curvenote/common';
+import type { SubmissionKindDTO } from '@curvenote/common';
 import type { Check } from '@curvenote/check-definitions';
-import { determineSubmissionKind } from './submit.utils.js';
+import { listSubmissionKinds } from './submit.utils.js';
 
 //
 // get checks
 //
-export async function getChecksForSubmission(
+export function prepareChecksForSubmission(
   session: ISession,
   venue: string,
-  kind?: string,
-): Promise<Check[]> {
-  const kinds = (await getFromJournals(session, `sites/${venue}/kinds`)) as SubmissionKindsDTO;
-  kind = await determineSubmissionKind(session, venue, { kind });
-  const checks = !kind ? kinds.items[0].checks : kinds.items.find((k) => k.name === kind)?.checks;
+  kind: SubmissionKindDTO,
+): Check[] {
+  const checks = kind.checks;
   const numChecks = checks?.length ?? 0;
   if (numChecks === 0) {
     session.log.info(`✅ "${venue}" does not require checks for "${kind}"`);
@@ -39,7 +36,12 @@ function getCheckImplementations(session: ISession) {
 
 async function getChecks(session: ISession, opts: CheckOpts): Promise<Check[]> {
   if (opts.venue) {
-    return await getChecksForSubmission(session, opts.venue, opts.kind);
+    const kinds = await listSubmissionKinds(session, opts.venue);
+    const kind = opts.kind
+      ? kinds.items.find((k) => k.name === opts.kind)
+      : kinds.items.find((k) => k.default);
+    if (!kind) throw new Error(`Could not find kind for "${opts.kind}"`);
+    return prepareChecksForSubmission(session, opts.venue, kind);
   }
   const allChecks = getCheckImplementations(session);
   return allChecks.map(({ id }) => ({ id }));
