@@ -101,7 +101,7 @@ export async function determineCollectionAndKind(
     process.exit(1);
   }
 
-  session.log.debug(`Explicit collection provided: ${opts?.collection}`);
+  if (opts?.collection) session.log.debug(`Explicit collection provided: ${opts?.collection}`);
   let selectedCollection = opts?.collection
     ? openCollections.find(
         (c) => c.slug === (opts?.collection === 'default' ? '' : opts?.collection),
