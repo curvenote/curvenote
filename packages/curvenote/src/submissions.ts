@@ -1,4 +1,4 @@
-import { Command, Option } from 'commander';
+import { Command } from 'commander';
 import { clirun } from './clirun.js';
 import {
   makeDraftOption,
