@@ -22,10 +22,10 @@ import {
 import inquirer from 'inquirer';
 import type {
   CollectionDTO,
-  CollectionsDTO,
+  CollectionListingDTO,
   SubmissionDTO,
   SubmissionKindDTO,
-  SubmissionKindsDTO,
+  SubmissionKindListingDTO,
   SubmissionsListItemDTO,
   SubmissionsListingDTO,
 } from '@curvenote/common';
@@ -51,11 +51,10 @@ export function kindQuestions(kinds: Omit<SubmissionKindDTO, 'date_created' | 'c
 }
 
 export function collectionMoniker(collection: CollectionDTO) {
-  const slug = collection.slug === '' ? 'default' : collection.slug;
-  return `${collection.content.title} (${slug})` ?? slug;
+  return `${collection.content.title} (${collection.name})` ?? collection.name;
 }
 
-export function collectionQuestions(venue: string, collections: CollectionsDTO['items']) {
+export function collectionQuestions(venue: string, collections: CollectionListingDTO['items']) {
   return {
     name: 'collections',
     type: 'list',
@@ -90,7 +89,7 @@ export function venueQuestion(session: ISession) {
 export async function determineCollectionAndKind(
   session: ISession,
   venue: string,
-  collections: CollectionsDTO,
+  collections: CollectionListingDTO,
   opts?: { kind?: string; collection?: string },
 ) {
   const openCollections = collections.items.filter((c) => c.open);
@@ -103,19 +102,29 @@ export async function determineCollectionAndKind(
 
   if (opts?.collection) session.log.debug(`Explicit collection provided: ${opts?.collection}`);
   let selectedCollection = opts?.collection
-    ? openCollections.find(
-        (c) => c.slug === (opts?.collection === 'default' ? '' : opts?.collection),
-      )
+    ? openCollections.find((c) => c.name === opts?.collection)
     : undefined;
 
-  if (opts?.collection && (!selectedCollection || !selectedCollection?.open)) {
-    session.log.info(
-      `${chalk.red(`⛔️ collection "${opts?.collection}" is not open for submissions at venue "${venue}"`)}`,
-    );
-    session.log.info(
-      `${chalk.bold(`🗂 open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
-    );
-    process.exit(1);
+  if (opts?.collection) {
+    if (!selectedCollection) {
+      session.log.info(
+        `${chalk.bold.red(`⛔️ collection "${opts?.collection}" does not exist at venue "${venue}"`)}`,
+      );
+      session.log.info(
+        `${chalk.bold(`🗂  open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+      );
+      process.exit(1);
+    }
+
+    if (selectedCollection && !selectedCollection?.open) {
+      session.log.info(
+        `${chalk.bold.red(`⛔️ collection "${opts?.collection}" is not open for submissions at venue "${venue}"`)}`,
+      );
+      session.log.info(
+        `${chalk.bold(`🗂  open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+      );
+      process.exit(1);
+    }
   }
 
   if (!selectedCollection && openCollections.length === 1) {
@@ -154,7 +163,7 @@ export async function getSubmissionKind(
 export async function listSubmissionKinds(
   session: ISession,
   venue: string,
-): Promise<SubmissionKindsDTO> {
+): Promise<SubmissionKindListingDTO> {
   return getFromJournals(session, `sites/${venue}/kinds`);
 }
 
@@ -277,7 +286,7 @@ export async function checkVenueAccess(session: ISession, venue: string) {
       const collections = (await getFromJournals(
         session,
         `sites/${venue}/collections`,
-      )) as CollectionsDTO;
+      )) as CollectionListingDTO;
 
       const openCollections = collections.items.filter((c) => c.open);
 
@@ -288,11 +297,11 @@ export async function checkVenueAccess(session: ISession, venue: string) {
 
       if (openCollections.length > 1) {
         session.log.info(
-          `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => c.content.title ?? c.slug).join(', ')}`)}`,
+          `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
         );
       } else {
         session.log.info(
-          `${chalk.green(`💚 venue "${venue}" is accepting submissions (${openCollections[0].content.title ?? openCollections[0].content.slug}).`)}`,
+          `${chalk.green(`💚 venue "${venue}" is accepting submissions (${collectionMoniker(openCollections[0])}).`)}`,
         );
       }
       return collections;
@@ -339,7 +348,7 @@ export async function checkForSubmissionUsingKey(session: ISession, venue: strin
 export async function confirmUpdateToExistingSubmission(
   session: ISession,
   venue: string,
-  collections: CollectionsDTO,
+  collections: CollectionListingDTO,
   venueTransferData: TransferDataItem,
   opts?: SubmitOpts,
 ) {
@@ -368,7 +377,7 @@ export async function confirmUpdateToExistingSubmission(
     const collection = collections.items.find((c) => c.id === existingSubmission.collection?.id);
     const openCollections = collections.items.filter((c) => c.open);
 
-    if (opts?.collection && opts.collection !== existingSubmission?.collection?.slug) {
+    if (opts?.collection && opts.collection !== existingSubmission?.collection?.name) {
       session.log.info(
         `🪧  NOTE: the --collection option was provided, but will be ignored as you are updating an existing submission`,
       );
