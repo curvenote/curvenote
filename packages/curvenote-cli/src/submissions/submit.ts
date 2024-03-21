@@ -7,7 +7,6 @@ import {
   ensureVenue,
   checkVenueExists,
   checkVenueAccess,
-  determineSubmissionKind,
   performCleanRebuild,
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
@@ -15,6 +14,8 @@ import {
   createNewSubmission,
   checkForSubmissionUsingKey,
   checkForSubmissionKeyInUse,
+  determineCollectionAndKind,
+  collectionMoniker,
 } from './submit.utils.js';
 import type { SubmitOpts } from './submit.utils.js';
 import { submissionRuleChecks } from '@curvenote/check-implementations';
@@ -22,9 +23,10 @@ import type { CompiledCheckResults } from '../check/index.js';
 import { logCheckReport, runChecks } from '../check/index.js';
 import path from 'node:path';
 import fs from 'node:fs';
-import { getChecksForSubmission } from './check.js';
+import { prepareChecksForSubmission } from './check.js';
 import { getGitRepoInfo } from './utils.git.js';
 import * as uploads from '../uploads/index.js';
+import type { CollectionDTO, SubmissionKindDTO } from '@curvenote/common';
 
 const CDN_KEY_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
@@ -57,7 +59,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   let transferData = await getTransferData(session, opts);
   venue = await ensureVenue(session, venue);
   await checkVenueExists(session, venue);
-  await checkVenueAccess(session, venue);
+  const collections = await checkVenueAccess(session, venue);
 
   const gitInfo = await getGitRepoInfo();
   const source = {
@@ -132,15 +134,28 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   //
   // Options, checks and prompts
   //
-  let kind: string | undefined;
+  let kind: SubmissionKindDTO | undefined;
+  let collection: CollectionDTO | undefined;
   if (transferData?.[venue] && !opts?.draft) {
-    kind = await confirmUpdateToExistingSubmission(session, venue, transferData[venue], opts);
+    const existing = await confirmUpdateToExistingSubmission(
+      session,
+      venue,
+      collections,
+      transferData[venue],
+      opts,
+    );
+    kind = existing.kind;
+    collection = existing.collection;
   } else {
     //
     // NEW SUBMISSIONS
     //
-    session.log.debug('new submission');
-    kind = await determineSubmissionKind(session, venue, opts);
+    session.log.debug('Making a new submission...');
+    const determined = await determineCollectionAndKind(session, venue, collections, opts);
+    kind = determined.kind;
+    collection = determined.collection;
+
+    session.log.info(`📚 Submitting a "${kind?.name}" to the "${collectionMoniker(collection)}"`);
 
     if (opts?.draft)
       session.log.info(
@@ -157,7 +172,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     );
   }
 
-  const checks = await getChecksForSubmission(session, venue, kind);
+  const checks = prepareChecksForSubmission(session, venue, kind);
   //
   // Process local folder and upload stuff
   //
@@ -195,6 +210,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     session,
     {
       site: venue,
+      collection,
+      kind,
       source,
       key,
     },
@@ -263,7 +280,18 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         session.log.error('🚨 No submission kind found.');
         process.exit(1);
       }
-      await createNewSubmission(session, submitLog, venue, kind, cdn, cdnKey, job.id, key, opts);
+      await createNewSubmission(
+        session,
+        submitLog,
+        venue,
+        collection,
+        kind,
+        cdn,
+        cdnKey,
+        job.id,
+        key,
+        opts,
+      );
     }
 
     session.log.debug(`generating a build artifact for the submission...`);

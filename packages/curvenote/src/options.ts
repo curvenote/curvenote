@@ -21,6 +21,10 @@ export function makeKindOption() {
   return new Option('--kind <string>', 'Submit to the venue using this submission kind');
 }
 
+export function makeCollectionOption() {
+  return new Option('--collection <string>', 'Submit to this collection at the venue');
+}
+
 export function makeDraftOption() {
   return new Option('--draft', 'Make an draft submission');
 }

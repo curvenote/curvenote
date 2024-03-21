@@ -39,9 +39,9 @@
   },
   "dependencies": {
     "@curvenote/blocks": "^1.5.24",
-    "@curvenote/check-definitions": "^0.0.12",
-    "@curvenote/check-implementations": "^0.0.12",
-    "@curvenote/common": "^0.1.19",
+    "@curvenote/check-definitions": "^0.0.14",
+    "@curvenote/check-implementations": "^0.0.14",
+    "@curvenote/common": "^0.1.22",
     "@curvenote/schema": "0.12.18",
     "@google-cloud/storage": "^5.18.2",
     "@reduxjs/toolkit": "^1.7.2",
