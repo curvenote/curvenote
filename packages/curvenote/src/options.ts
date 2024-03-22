@@ -29,6 +29,13 @@ export function makeDraftOption() {
   return new Option('--draft', 'Make an draft submission');
 }
 
+export function makeNewOption() {
+  return new Option(
+    '--new',
+    'Start a new submission even if one already exists for the current work/venue',
+  );
+}
+
 export function makeBranchOption() {
   return new Option(
     '--branch <branch>',
@@ -139,11 +146,4 @@ export function makeMaxSizeWebpOption(maxSizeMB = 1.5) {
       }
       return parsedValue * 1024 * 1024;
     });
-}
-
-export function makeKeyOption() {
-  return new Option(
-    '--key <string>',
-    'Use a unique string as the key for the submission. Set `--key=git` to autogenerate a key based on your git repository.',
-  );
 }

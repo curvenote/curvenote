@@ -92,7 +92,6 @@ export async function postNewWork(
     session.log.debug(`CDN key: ${cdnKey}`);
     session.log.debug(`Work Id: ${json.id}`);
     session.log.debug(`Work Version Id: ${json.version_id}`);
-    console.log(json);
     return { workId: json.id, workVersionId: json.version_id };
   } else {
     throw new Error('Posting new work failed');
@@ -107,7 +106,6 @@ export async function postNewWorkVersion(
 ): Promise<{ workId: string; workVersionId: string }> {
   const toc = tic();
 
-  // const workResp = await getFromUrl(session, workUrl);
   session.log.debug(`POST to ${workUrl}/versions with cdnKey: ${cdnKey} and cdn: ${cdn}...`);
   const resp = await postToUrl(session, `${workUrl}/versions`, { cdn_key: cdnKey, cdn });
   session.log.debug(`${resp.status} ${resp.statusText}`);
