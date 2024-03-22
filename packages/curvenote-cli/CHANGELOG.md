@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.49
+
+### Patch Changes
+
+- abefe08: Added support for collections
+
 ## 0.8.48
 
 ### Patch Changes
