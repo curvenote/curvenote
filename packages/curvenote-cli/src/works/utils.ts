@@ -1,5 +1,6 @@
 import { selectors } from 'myst-cli';
 import type { ISession } from '../session/types.js';
+import { getFromJournals } from '../submissions/utils.js';
 
 /**
  * Get project.id from the current config file
@@ -21,4 +22,20 @@ export function workKeyFromConfig(session: ISession) {
   session.log.debug(`Found config file: ${projectConfigFile}`);
   const projectConfig = selectors.selectCurrentProjectConfig(state);
   return projectConfig?.id;
+}
+
+/**
+ * Load work from transfer.yml data
+ *
+ * Returns undefined if work for the given venue is not defined or
+ * if the API request for the work fails.
+ */
+export async function getWorkFromKey(session: ISession, key: string) {
+  try {
+    session.log.debug(`GET from journals API my/works?key=${key}`);
+    const resp = await getFromJournals(session, `my/works?key=${key}`);
+    return resp.items[0];
+  } catch {
+    return undefined;
+  }
 }

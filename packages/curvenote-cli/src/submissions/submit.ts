@@ -1,5 +1,5 @@
 import type { ISession } from '../session/types.js';
-import { upwriteTransferFile } from './utils.transfer.js';
+import { keyFromTransferFile, writeKeyToConfig } from './utils.transfer.js';
 import { confirmOrExit, writeJsonLogs } from '../utils/utils.js';
 import chalk from 'chalk';
 import { postNewCliCheckJob, patchUpdateCliCheckJob, exitOnInvalidKeyOption } from './utils.js';
@@ -10,12 +10,12 @@ import {
   performCleanRebuild,
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
-  getTransferData,
   createNewSubmission,
   checkForSubmissionUsingKey,
   checkForSubmissionKeyInUse,
   determineCollectionAndKind,
   collectionMoniker,
+  promptForNewKey,
 } from './submit.utils.js';
 import type { SubmitOpts } from './submit.utils.js';
 import { submissionRuleChecks } from '@curvenote/check-implementations';
@@ -26,7 +26,8 @@ import fs from 'node:fs';
 import { prepareChecksForSubmission } from './check.js';
 import { getGitRepoInfo } from './utils.git.js';
 import * as uploads from '../uploads/index.js';
-import type { CollectionDTO, SubmissionKindDTO } from '@curvenote/common';
+import { workKeyFromConfig } from '../works/utils.js';
+import type { CollectionDTO, SubmissionKindDTO, SubmissionsListItemDTO } from '@curvenote/common';
 
 const CDN_KEY_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
@@ -44,22 +45,24 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     );
   }
 
-  if (opts?.key && opts?.draft) {
-    // TODO we can make draft and key compatible, then drafts will be versions on a submission with that key
-    session.log.error(`⛔️ You cannot specify both --key and --draft.`);
-    process.exit(1);
-  }
-
-  exitOnInvalidKeyOption(session, opts?.key);
-
   // TODO upload preflight checks
   // TODO check the venue allows for submissions & updates to the submission
   // TODO check user has permission to submit /  update a submission
 
-  let transferData = await getTransferData(session, opts);
   venue = await ensureVenue(session, venue);
   await checkVenueExists(session, venue);
   const collections = await checkVenueAccess(session, venue);
+
+  let key = workKeyFromConfig(session);
+  // Deprecation step to handle old transfer.yml files
+  key = (await keyFromTransferFile(session, venue, key, opts)) ?? key;
+
+  if (!key) {
+    key = await promptForNewKey(session, opts);
+    await writeKeyToConfig(session, key);
+  }
+
+  exitOnInvalidKeyOption(session, key);
 
   const gitInfo = await getGitRepoInfo();
   const source = {
@@ -69,83 +72,48 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     commit: gitInfo?.commit,
   };
 
-  if (opts?.key === 'git' && gitInfo == null) {
-    session.log.error(
-      `🚨 You are trying to generate a key from git but you are not in a git repository, try specifying a persistent '--key' instead.`,
-    );
-    process.exit(1);
-  }
+  session.log.info(`📍 Submitting using key: ${chalk.bold(key)}`);
 
-  const key = opts?.key == 'git' ? gitInfo?.key : opts?.key;
-  if (key) {
-    session.log.info(`📍 Submitting using a key: ${chalk.bold(key)}`);
-    if (transferData?.[venue]) {
-      session.log.warn(
-        `🙈 The details in your existing transfer.yml file will not be used but will be overwritten with new details.`,
-      );
-      transferData = {};
-    }
-    const existing = await checkForSubmissionUsingKey(session, venue, key);
+  let existing: SubmissionsListItemDTO | undefined;
+  // Only check for submissions to update if we are not creating a new draft
+  if (!opts?.draft && !opts?.new) {
+    session.log.info(`📡 Checking submission status...`);
+    existing = await checkForSubmissionUsingKey(session, venue, key);
     if (!existing) {
       const exists = await checkForSubmissionKeyInUse(session, venue, key);
       if (exists) {
-        session.log.error(
-          `⛔️ The key "${key}" is already in use at "${venue}", but you don't have permission to access that submission. Please specify a different key.`,
+        session.log.warn(
+          `⛔️ This work has already been submitted to "${venue}", but you don't have permission to access that submission.`,
+        );
+        session.log.info(
+          'If you still want to make a new submission, you may explicitly add flag "--new"',
         );
         process.exit(1);
+      } else {
+        session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
       }
-      session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
     } else {
       session.log.info(
         `🔍 Found an existing submission using this key, the existing submission will be updated.`,
       );
-
-      // TODO remove casts once common is published
-      const sv = (existing as any).active_version as {
-        id: string;
-        date_created: string;
-        status: string;
-        submitted_by: {
-          id: string;
-          name: string;
-        };
-        work_id: string;
-        work_version_id: string;
-      };
-
-      transferData = {
-        ...transferData,
-        [venue]: {
-          work: {
-            id: sv.work_id,
-            date_created: sv.date_created,
-          },
-          workVersion: {
-            id: sv.work_version_id,
-            date_created: sv.date_created,
-          },
-          submission: { id: existing.id, date_created: existing.date_created },
-          submissionVersion: { id: sv.id, date_created: sv.date_created },
-        },
-      };
     }
   }
-
   //
   // Options, checks and prompts
   //
   let kind: SubmissionKindDTO | undefined;
   let collection: CollectionDTO | undefined;
-  if (transferData?.[venue] && !opts?.draft) {
-    const existing = await confirmUpdateToExistingSubmission(
+  if (existing) {
+    const confirmed = await confirmUpdateToExistingSubmission(
       session,
       venue,
       collections,
-      transferData[venue],
+      existing,
+      key,
       opts,
     );
-    kind = existing.kind;
-    collection = existing.collection;
+    kind = confirmed.kind;
+    collection = confirmed.collection;
   } else {
     //
     // NEW SUBMISSIONS
@@ -177,20 +145,20 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // Process local folder and upload stuff
   //
   await performCleanRebuild(session, opts);
-  session.log.info('🪩 Successfully built your work!');
+  session.log.info('🪩  Successfully built your work!');
 
   //
   // run checks
   //
   let report: CompiledCheckResults | undefined;
   if (checks && checks.length > 0) {
-    session.log.info(`🕵️‍♀️ running checks...`);
+    session.log.info(`🕵️‍♀️  Running checks...`);
     report = await runChecks(session, checks, submissionRuleChecks);
     const reportFilename = path.join(session.buildPath(), 'site', 'checks.json');
     session.log.debug(`💼 adding check report to ${reportFilename} for upload...`);
     fs.writeFileSync(reportFilename, JSON.stringify({ venue, kind, report }, null, 2));
     logCheckReport(session, report, false);
-    session.log.info(`🏁 checks completed`);
+    session.log.info(`🏁 Checks completed`);
   }
 
   if (!opts?.draft) {
@@ -257,15 +225,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     //
     // Create work and submission
     //
-    if (transferData?.[venue] && !opts?.draft) {
-      await updateExistingSubmission(
-        session,
-        submitLog,
-        venue,
-        cdnKey,
-        transferData[venue],
-        job.id,
-      );
+    if (existing) {
+      await updateExistingSubmission(session, submitLog, venue, cdnKey, existing, job.id);
     } else {
       if (opts?.draft) {
         session.log.info(
@@ -293,15 +254,14 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         opts,
       );
     }
-
     session.log.debug(`generating a build artifact for the submission...`);
 
     job = await patchUpdateCliCheckJob(session, job.id, 'COMPLETED', 'Submission completed', {
       ...job.results,
-      submissionId: submitLog.submission.id,
-      submissionVersionId: submitLog.submissionVersion.id,
-      workId: submitLog.work.id,
-      workVersionId: submitLog.workVersion.id,
+      submissionId: submitLog.submissionId,
+      submissionVersionId: submitLog.submissionVersionId,
+      workId: submitLog.workId,
+      workVersionId: submitLog.workVersionId,
     });
 
     submitLog.key = key;
@@ -312,20 +272,6 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     submitLog.job = job;
     submitLog.buildUrl = buildUrl;
     session.log.info(chalk.bold.green(`🔗 build report url: ${buildUrl}`));
-
-    if (!opts?.draft) {
-      session.log.debug(`writing to transfer.yml...`);
-      await upwriteTransferFile(session, venue, {
-        key,
-        work: submitLog.work,
-        workVersion: submitLog.workVersion,
-        submission: submitLog.submission,
-        submissionVersion: submitLog.submissionVersion,
-      });
-      session.log.info(
-        `The "./transfer.yml" file has been updated your submission information, please keep this file or commit this change.`,
-      );
-    }
   } catch (err: any) {
     await patchUpdateCliCheckJob(session, job.id, 'FAILED', 'Submission from CLI failed', {
       ...job.results,

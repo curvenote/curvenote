@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import chalk from 'chalk';
 import { getFromJournals, postToJournals } from './utils.js';
 import type { ISession } from '../session/types.js';
+import { promptForNewKey } from './submit.utils.js';
 
 export type TransferDataItemData = {
   id: string;
@@ -75,7 +76,7 @@ export async function getWorkFromTransferData(
   try {
     session.log.debug(`GET from journals API works/${workId}`);
     const resp = await getFromJournals(session, `works/${workId}`);
-    return resp.key;
+    return resp;
   } catch {
     return undefined;
   }
@@ -114,10 +115,55 @@ export async function writeKeyToConfig(session: ISession, key: string) {
   const state = session.store.getState();
   const path = selectors.selectCurrentProjectPath(state);
   const file = selectors.selectCurrentProjectFile(state);
+  if (!file || !path) {
+    session.log.error('No project configuration found');
+    process.exit(1);
+  }
   const projectConfig = selectors.selectLocalProjectConfig(state, path);
   const tempFolder = createTempFolder(session);
   session.log.info(`creating backup copy of config file ${file} -> ${tempFolder}`);
   await fs.copyFile(file, join(tempFolder, 'curvenote.yml'));
   session.log.info(`writing work key to ${file}`);
   writeConfigs(session, path, { projectConfig: { ...projectConfig, id: key } });
+}
+
+export async function keyFromTransferFile(
+  session: ISession,
+  venue: string,
+  configKey?: string,
+  opts?: { yes?: boolean },
+): Promise<string | undefined> {
+  const transferData = await loadTransferFile(session);
+  if (!transferData) return;
+  const configFile = selectors.selectCurrentProjectFile(session.store.getState());
+  session.log.warn(`transfer.yml found - this file is deprecated`);
+  session.log.debug(`checking work from transfer.yml for key...`);
+  const work = await getWorkFromTransferData(session, transferData, venue);
+  if (!work) {
+    session.log.info(`Could not load work for venue "${venue}" - ignoring transfer.yml`);
+  } else {
+    const workKey: string | undefined = work.key;
+    if (!workKey) {
+      session.log.info(`Existing work from transfer.yml does not have key`);
+      if (!configKey) {
+        session.log.info(`No key specified in ${configFile}`);
+        configKey = await promptForNewKey(session, opts);
+        await writeKeyToConfig(session, configKey);
+      }
+      await updateKeyForTransferDataWork(session, transferData, venue, configKey);
+      return configKey;
+    } else if (configKey === workKey) {
+      session.log.debug(`Work from transfer.yml agrees with ${configFile} id`);
+    } else {
+      if (configKey) {
+        session.log.warn(
+          `Key in ${configFile} (${configKey}) will be replaced by key from work specified by transfer.yml (${workKey})`,
+        );
+      }
+      // this message should be in writeKeyToConfig...
+      session.log.info(`writing work key to ***.yml - previous version was saved to ****.yml`);
+      await writeKeyToConfig(session, workKey);
+      return workKey;
+    }
+  }
 }
