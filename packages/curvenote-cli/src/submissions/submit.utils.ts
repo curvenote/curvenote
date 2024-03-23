@@ -460,14 +460,22 @@ export async function confirmUpdateToExistingSubmission(
     const collection = collections.items.find((c) => c.id === submission.collection?.id);
     const openCollections = collections.items.filter((c) => c.open);
 
-    if (opts?.collection && opts.collection !== submission?.collection?.name) {
+    if (
+      opts?.collection &&
+      // Cast may be removed with next @curvenote/common release
+      opts.collection !== (submission.collection as SubmissionDTO['collection'])?.name
+    ) {
       session.log.info(
         `🪧  NOTE: the --collection option was provided, but will be ignored as you are updating an existing submission`,
       );
     }
 
     session.log.info(
-      `✅ Submission found, collection: ${collection ? collectionMoniker(collection) : 'unknown'}, ${plural('%s version(s)', submission.num_versions)} present, latest status: ${existingSubmission?.versions[0].status}.`,
+      `✅ Submission found, collection: ${
+        collection ? collectionMoniker(collection) : 'unknown'
+      }, ${plural('%s version(s)', submission.num_versions)} present, active status: ${
+        submission.active_version.status
+      }.`,
     );
 
     if (!collection?.open) {
@@ -584,7 +592,7 @@ export async function updateExistingSubmission(
     session.log.debug(`posting new work version...`);
     const { workId, workVersionId } = await postNewWorkVersion(
       session,
-      submission.links.work,
+      (submission.links as any).work,
       cdnKey,
       session.PRIVATE_CDN,
     );
