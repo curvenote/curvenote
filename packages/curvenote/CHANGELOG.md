@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.50
+
+### Patch Changes
+
+- cd48c20: Update submission to use key not transfer.yml
+
 ## 0.8.49
 
 ### Patch Changes
