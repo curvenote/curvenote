@@ -306,7 +306,7 @@ export async function promptForNewKey(
           return 'Key must be no more than 50 characters';
         }
         try {
-          const { exists } = await getFromJournals(session, `works/keys/${key}`);
+          const { exists } = await getFromJournals(session, `works/key/${key}`);
           if (exists) return `Key "${key}" not available.`;
         } catch (err) {
           return 'Key validation failed';
