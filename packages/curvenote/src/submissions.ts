@@ -7,8 +7,8 @@ import {
   makeMaxSizeWebpOption,
   makeVenueOption,
   makeYesOption,
-  makeKeyOption,
   makeCollectionOption,
+  makeNewOption,
 } from './options.js';
 import { submissions } from '@curvenote/cli';
 
@@ -19,10 +19,10 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeKindOption())
     .addOption(makeCollectionOption())
     .addOption(makeDraftOption())
+    .addOption(makeNewOption())
     .addOption(makeYesOption())
     .addOption(makeResumeOption())
     .addOption(makeMaxSizeWebpOption(1000))
-    .addOption(makeKeyOption())
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }
@@ -48,7 +48,6 @@ function makeSubmissionPublishCLI(program: Command) {
   const command = new Command('publish')
     .description('Publish your Submission')
     .argument('[venue]', 'Venue to publish the submission to')
-    .addOption(makeKeyOption())
     .action(clirun(submissions.publish, { program, requireSiteConfig: true }));
   return command;
 }
@@ -57,7 +56,6 @@ function makeSubmissionUnpublishCLI(program: Command) {
   const command = new Command('unpublish')
     .description('Unpublish an existing Submission')
     .argument('[venue]', 'Venue to unpublish the submission from')
-    .addOption(makeKeyOption())
     .action(clirun(submissions.unpublish, { program, requireSiteConfig: true }));
   return command;
 }

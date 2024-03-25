@@ -9,15 +9,13 @@ import type {
 import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
 import format from 'date-fns/format';
-import type { TransferDataItemData } from './utils.transfer.js';
 import type { JsonObject } from '@curvenote/blocks';
 
 export function formatDate(date: string) {
   return format(new Date(date), 'dd MMM, yyyy HH:mm:ss');
 }
 
-export async function getFromJournals(session: ISession, pathname: string) {
-  const url = `${session.JOURNALS_URL}${pathname}`;
+export async function getFromUrl(session: ISession, url: string) {
   session.log.debug('Getting from', url);
   const headers = await getHeaders(session, (session as any).$tokens);
 
@@ -37,6 +35,12 @@ export async function getFromJournals(session: ISession, pathname: string) {
       Please contact support@curvenote.com`,
     );
   }
+}
+
+export async function getFromJournals(session: ISession, pathname: string) {
+  const url = `${session.JOURNALS_URL}${pathname}`;
+  const resp = await getFromUrl(session, url);
+  return resp;
 }
 
 export async function postToUrl(
@@ -73,13 +77,14 @@ export async function postNewWork(
   session: ISession,
   cdnKey: string,
   cdn: string,
-): Promise<{ cdnKey: string; work: TransferDataItemData; workVersion: TransferDataItemData }> {
+  key: string,
+): Promise<{ workId: string; workVersionId: string }> {
   const toc = tic();
 
   session.log.debug(
-    `POST to ${session.JOURNALS_URL}works with cdnKey: ${cdnKey} and cdn: ${cdn}...`,
+    `POST to ${session.JOURNALS_URL}works with cdnKey: ${cdnKey}, cdn: ${cdn}, key: ${key}...`,
   );
-  const resp = await postToJournals(session, 'works', { cdn_key: cdnKey, cdn });
+  const resp = await postToJournals(session, 'works', { cdn_key: cdnKey, cdn, key });
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as any;
@@ -87,17 +92,7 @@ export async function postNewWork(
     session.log.debug(`CDN key: ${cdnKey}`);
     session.log.debug(`Work Id: ${json.id}`);
     session.log.debug(`Work Version Id: ${json.version_id}`);
-    return {
-      cdnKey,
-      work: {
-        id: json.id,
-        date_created: json.date_created,
-      },
-      workVersion: {
-        id: json.version_id,
-        date_created: json.date_created,
-      },
-    };
+    return { workId: json.id, workVersionId: json.version_id };
   } else {
     throw new Error('Posting new work failed');
   }
@@ -105,16 +100,14 @@ export async function postNewWork(
 
 export async function postNewWorkVersion(
   session: ISession,
-  workId: string,
+  workUrl: string,
   cdnKey: string,
   cdn: string,
-): Promise<{ cdnKey: string; work: TransferDataItemData; workVersion: TransferDataItemData }> {
+): Promise<{ workId: string; workVersionId: string }> {
   const toc = tic();
 
-  session.log.debug(
-    `POST to ${session.JOURNALS_URL}works/${workId}/versions with cdnKey: ${cdnKey} and cdn: ${cdn}...`,
-  );
-  const resp = await postToJournals(session, `works/${workId}/versions`, { cdn_key: cdnKey, cdn });
+  session.log.debug(`POST to ${workUrl}/versions with cdnKey: ${cdnKey} and cdn: ${cdn}...`);
+  const resp = await postToUrl(session, `${workUrl}/versions`, { cdn_key: cdnKey, cdn });
   session.log.debug(`${resp.status} ${resp.statusText}`);
 
   if (resp.ok) {
@@ -123,17 +116,7 @@ export async function postNewWorkVersion(
     session.log.debug(`CDN key: ${cdnKey}`);
     session.log.debug(`Work Id: ${json.id}`);
     session.log.debug(`Work Version Id: ${json.version_id}`);
-    return {
-      cdnKey,
-      work: {
-        id: json.id,
-        date_created: json.date_created,
-      },
-      workVersion: {
-        id: json.version_id,
-        date_created: json.date_created,
-      },
-    };
+    return { workId: json.id, workVersionId: json.version_id };
   } else {
     throw new Error('Posting new version of the work failed');
   }
@@ -199,18 +182,13 @@ export async function postNewSubmission(
   work_version_id: string,
   draft: boolean,
   job_id: string,
-  key?: string,
-): Promise<{
-  submission: TransferDataItemData;
-  submissionVersion: TransferDataItemData;
-}> {
+): Promise<{ submissionId: string; submissionVersionId: string }> {
   const toc = tic();
   const submissionRequest: CreateSubmissionBody = {
     work_version_id,
     collection_id,
     kind_id,
     draft,
-    key,
     job_id,
   };
   session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions...`);
@@ -221,16 +199,7 @@ export async function postNewSubmission(
     session.log.info(toc(`🚀 Submitted to venue "${venue}" in %s.`));
     session.log.debug(`Submission id: ${json.id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
-    return {
-      submission: {
-        id: json.id,
-        date_created: json.date_created,
-      },
-      submissionVersion: {
-        id: json.versions[0].id,
-        date_created: json.versions[0].date_created,
-      },
-    };
+    return { submissionId: json.id, submissionVersionId: json.versions[0].id };
   } else {
     throw new Error('Creating new submission failed');
   }
@@ -239,21 +208,14 @@ export async function postNewSubmission(
 export async function postUpdateSubmissionWorkVersion(
   session: ISession,
   venue: string,
-  submissionId: string,
+  submissionUrl: string,
   work_version_id: string,
   job_id: string,
-): Promise<{
-  submission: TransferDataItemData;
-  submissionVersion: TransferDataItemData;
-}> {
+): Promise<{ submissionId: string; submissionVersionId: string }> {
   const toc = tic();
   const submissionRequest: UpdateSubmissionBody = { work_version_id, job_id };
-  session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions/${submissionId}...`);
-  const resp = await postToJournals(
-    session,
-    `sites/${venue}/submissions/${submissionId}`,
-    submissionRequest,
-  );
+  session.log.debug(`POST to ${submissionUrl}...`);
+  const resp = await postToUrl(session, submissionUrl, submissionRequest);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as any;
@@ -261,14 +223,8 @@ export async function postUpdateSubmissionWorkVersion(
     session.log.debug(`Submission id: ${json.id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
     return {
-      submission: {
-        id: json.id,
-        date_created: json.date_created,
-      },
-      submissionVersion: {
-        id: json.versions[json.versions.length - 1].id,
-        date_created: json.versions[json.versions.length - 1].date_created,
-      },
+      submissionId: json.id,
+      submissionVersionId: json.versions[json.versions.length - 1].id,
     };
   } else {
     throw new Error('Updating submission failed');
@@ -278,15 +234,12 @@ export async function postUpdateSubmissionWorkVersion(
 export async function patchUpdateSubmissionStatus(
   session: ISession,
   venue: string,
-  submissionId: string,
+  submissionUrl: string,
   action: STATUS_ACTIONS,
 ) {
   const toc = tic();
-  session.log.debug(`GET to ${session.JOURNALS_URL}sites/${venue}/submissions/${submissionId}...`);
-  const submissionJson = await getFromJournals(
-    session,
-    `sites/${venue}/submissions/${submissionId}`,
-  );
+  session.log.debug(`GET to ${submissionUrl}...`);
+  const submissionJson = await getFromUrl(session, submissionUrl);
   const updateUrl = submissionJson?.links?.[action];
   if (!updateUrl) {
     throw new Error(`Action "${action}" not available for submission`);
@@ -315,11 +268,11 @@ export async function patchUpdateSubmissionStatus(
   }
 }
 
-export function exitOnInvalidKeyOption(session: ISession, key?: string) {
-  if (key) session.log.debug(`Checking for valid key option: ${key}`);
-  if (key && key.length < 8 && key !== 'git') {
+export function exitOnInvalidKeyOption(session: ISession, key: string) {
+  session.log.debug(`Checking for valid key option: ${key}`);
+  if (key.length < 8 || key.length > 50) {
     session.log.error(
-      `⛔️ The key must be at least 8 characters long, please specify a longer key.`,
+      `⛔️ The key must be between 8 and 50 characters long, please specify a longer key.`,
     );
     process.exit(1);
   }

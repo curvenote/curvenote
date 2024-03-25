@@ -9,7 +9,6 @@ export interface CreateSubmissionBody {
   kind_id: string;
   draft: boolean;
   job_id: string;
-  key?: string;
 }
 
 export interface UpdateSubmissionBody {
