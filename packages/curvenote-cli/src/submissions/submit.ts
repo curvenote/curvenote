@@ -231,13 +231,9 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       await updateExistingSubmission(session, submitLog, venue, cdnKey, existing, job.id);
     } else {
       if (opts?.draft) {
-        session.log.info(
-          `${chalk.bold(
-            `🖐 Making a draft submission, existing transfer.yml files will be ignored.`,
-          )}`,
-        );
+        session.log.info(`${chalk.bold(`🖐  Making a draft submission`)}`);
       } else {
-        session.log.info(`✨ making a new submission`);
+        session.log.info(`✨ Making a new submission`);
       }
       if (!kind) {
         session.log.error('🚨 No submission kind found.');
