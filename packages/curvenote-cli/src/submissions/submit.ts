@@ -71,12 +71,12 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     path: gitInfo?.path,
     commit: gitInfo?.commit,
   };
-
-  session.log.info(`📍 Submitting using key: ${chalk.bold(key)}`);
+  if (opts?.draft) key = undefined;
+  session.log.info(`📍 Submitting using key: ${chalk.bold(key ? key : 'NO KEY')}`);
 
   let existing: SubmissionsListItemDTO | undefined;
   // Only check for submissions to update if we are not creating a new draft
-  if (!opts?.draft && !opts?.new) {
+  if (key && !opts?.draft && !opts?.new) {
     session.log.info(`📡 Checking submission status...`);
     existing = await checkForSubmissionUsingKey(session, venue, key);
     if (!existing) {
@@ -103,7 +103,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   //
   let kind: SubmissionKindDTO | undefined;
   let collection: CollectionDTO | undefined;
-  if (existing) {
+  if (key && existing) {
     const confirmed = await confirmUpdateToExistingSubmission(
       session,
       venue,
