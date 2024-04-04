@@ -77,12 +77,12 @@ export async function postNewWork(
   session: ISession,
   cdnKey: string,
   cdn: string,
-  key?: string,
+  key: string,
 ): Promise<{ workId: string; workVersionId: string }> {
   const toc = tic();
 
   session.log.debug(
-    `POST to ${session.JOURNALS_URL}works with cdnKey: ${cdnKey}, cdn: ${cdn}, key: ${key ? key : 'NO KEY'}...`,
+    `POST to ${session.JOURNALS_URL}works with cdnKey: ${cdnKey}, cdn: ${cdn}, key: ${key}...`,
   );
   const resp = await postToJournals(session, 'works', { cdn_key: cdnKey, cdn, key });
   session.log.debug(`${resp.status} ${resp.statusText}`);

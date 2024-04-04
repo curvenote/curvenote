@@ -549,19 +549,16 @@ export async function createNewSubmission(
   cdn: string,
   cdnKey: string,
   jobId: string,
-  key?: string,
+  key: string,
   opts?: SubmitOpts,
 ) {
-  let work: { workId: string; workVersionId: string } | undefined;
-  if (key) {
-    const workResp = await getWorkFromKey(session, key);
-    if (workResp) {
-      session.log.debug(`posting new work version...`);
-      work = await postNewWorkVersion(session, workResp.links.self, cdnKey, cdn);
-      session.log.debug(`new work posted with version id ${work.workVersionId}`);
-    }
-  }
-  if (!work) {
+  const workResp = await getWorkFromKey(session, key);
+  let work: { workId: string; workVersionId: string };
+  if (workResp) {
+    session.log.debug(`posting new work version...`);
+    work = await postNewWorkVersion(session, workResp.links.self, cdnKey, cdn);
+    session.log.debug(`new work posted with version id ${work.workVersionId}`);
+  } else {
     session.log.debug(`posting new work...`);
     work = await postNewWork(session, cdnKey, cdn, key);
     session.log.debug(`new work posted with id ${work.workId}`);
