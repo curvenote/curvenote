@@ -11,6 +11,8 @@ import { tic } from 'myst-cli-utils';
 import format from 'date-fns/format';
 import type { JsonObject } from '@curvenote/blocks';
 
+type LogInfo = { id: string; versionId: string; dateCreated: string; versionDateCreated: string };
+
 export function formatDate(date: string) {
   return format(new Date(date), 'dd MMM, yyyy HH:mm:ss');
 }
@@ -78,7 +80,7 @@ export async function postNewWork(
   cdnKey: string,
   cdn: string,
   key: string,
-): Promise<{ workId: string; workVersionId: string }> {
+): Promise<LogInfo> {
   const toc = tic();
 
   session.log.debug(
@@ -92,7 +94,12 @@ export async function postNewWork(
     session.log.debug(`CDN key: ${cdnKey}`);
     session.log.debug(`Work Id: ${json.id}`);
     session.log.debug(`Work Version Id: ${json.version_id}`);
-    return { workId: json.id, workVersionId: json.version_id };
+    return {
+      id: json.id,
+      versionId: json.version_id,
+      dateCreated: json.date_created,
+      versionDateCreated: json.date_created,
+    };
   } else {
     throw new Error('Posting new work failed');
   }
@@ -103,7 +110,7 @@ export async function postNewWorkVersion(
   workUrl: string,
   cdnKey: string,
   cdn: string,
-): Promise<{ workId: string; workVersionId: string }> {
+): Promise<LogInfo> {
   const toc = tic();
 
   session.log.debug(`POST to ${workUrl}/versions with cdnKey: ${cdnKey} and cdn: ${cdn}...`);
@@ -116,7 +123,12 @@ export async function postNewWorkVersion(
     session.log.debug(`CDN key: ${cdnKey}`);
     session.log.debug(`Work Id: ${json.id}`);
     session.log.debug(`Work Version Id: ${json.version_id}`);
-    return { workId: json.id, workVersionId: json.version_id };
+    return {
+      id: json.id,
+      versionId: json.version_id,
+      dateCreated: json.date_created,
+      versionDateCreated: json.date_created,
+    };
   } else {
     throw new Error('Posting new version of the work failed');
   }
@@ -182,7 +194,7 @@ export async function postNewSubmission(
   work_version_id: string,
   draft: boolean,
   job_id: string,
-): Promise<{ submissionId: string; submissionVersionId: string }> {
+): Promise<LogInfo> {
   const toc = tic();
   const submissionRequest: CreateSubmissionBody = {
     work_version_id,
@@ -199,7 +211,12 @@ export async function postNewSubmission(
     session.log.info(toc(`🚀 Submitted to venue "${venue}" in %s.`));
     session.log.debug(`Submission id: ${json.id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
-    return { submissionId: json.id, submissionVersionId: json.versions[0].id };
+    return {
+      id: json.id,
+      versionId: json.versions[0].id,
+      dateCreated: json.date_created,
+      versionDateCreated: json.versions[0].date_created,
+    };
   } else {
     throw new Error('Creating new submission failed');
   }
@@ -211,7 +228,7 @@ export async function postUpdateSubmissionWorkVersion(
   submissionUrl: string,
   work_version_id: string,
   job_id: string,
-): Promise<{ submissionId: string; submissionVersionId: string }> {
+): Promise<LogInfo> {
   const toc = tic();
   const submissionRequest: UpdateSubmissionBody = { work_version_id, job_id };
   session.log.debug(`POST to ${submissionUrl}...`);
@@ -223,8 +240,10 @@ export async function postUpdateSubmissionWorkVersion(
     session.log.debug(`Submission id: ${json.id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
     return {
-      submissionId: json.id,
-      submissionVersionId: json.versions[json.versions.length - 1].id,
+      id: json.id,
+      versionId: json.versions[json.versions.length - 1].id,
+      dateCreated: json.date_created,
+      versionDateCreated: json.versions[json.versions.length - 1].date_created,
     };
   } else {
     throw new Error('Updating submission failed');
