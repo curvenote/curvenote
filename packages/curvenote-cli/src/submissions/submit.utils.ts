@@ -404,7 +404,11 @@ export async function chooseSubmission(
   throw new Error('Using non-latest submission not yet supported...');
 }
 
-export async function checkForSubmissionUsingKey(session: ISession, venue: string, key: string) {
+export async function getAllSubmissionsUsingKey(
+  session: ISession,
+  venue: string,
+  key: string,
+): Promise<SubmissionsListItemDTO[] | undefined> {
   session.log.debug(`checking for existing submission using key "${key}"`);
   let submissions: SubmissionsListingDTO;
   try {
@@ -413,10 +417,17 @@ export async function checkForSubmissionUsingKey(session: ISession, venue: strin
     session.log.debug(err);
     return;
   }
-  const draftSubmissions = submissions.items.filter((submission) => {
+  return submissions.items;
+}
+
+export async function getSubmissionToUpdate(
+  session: ISession,
+  submissions: SubmissionsListItemDTO[],
+) {
+  const draftSubmissions = submissions.filter((submission) => {
     return submission.status === 'DRAFT';
   });
-  const nonDraftSubmissions = submissions.items.filter((submission) => {
+  const nonDraftSubmissions = submissions.filter((submission) => {
     return submission.status !== 'DRAFT';
   });
   if (draftSubmissions.length > 0) {
@@ -543,11 +554,11 @@ export async function createNewSubmission(
 ) {
   let work: { workId: string; workVersionId: string } | undefined;
   if (key) {
-  const workResp = await getWorkFromKey(session, key);
-  if (workResp) {
-    session.log.debug(`posting new work version...`);
-    work = await postNewWorkVersion(session, workResp.links.self, cdnKey, cdn);
-    session.log.debug(`new work posted with version id ${work.workVersionId}`);
+    const workResp = await getWorkFromKey(session, key);
+    if (workResp) {
+      session.log.debug(`posting new work version...`);
+      work = await postNewWorkVersion(session, workResp.links.self, cdnKey, cdn);
+      session.log.debug(`new work posted with version id ${work.workVersionId}`);
     }
   }
   if (!work) {

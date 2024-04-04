@@ -11,11 +11,12 @@ import {
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
   createNewSubmission,
-  checkForSubmissionUsingKey,
   checkForSubmissionKeyInUse,
   determineCollectionAndKind,
   collectionMoniker,
   promptForNewKey,
+  getAllSubmissionsUsingKey,
+  getSubmissionToUpdate,
 } from './submit.utils.js';
 import type { SubmitOpts } from './submit.utils.js';
 import { submissionRuleChecks } from '@curvenote/check-implementations';
@@ -78,8 +79,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // Only check for submissions to update if we are not creating a new draft
   if (key && !opts?.draft && !opts?.new) {
     session.log.info(`📡 Checking submission status...`);
-    existing = await checkForSubmissionUsingKey(session, venue, key);
-    if (!existing) {
+    const allExisting = await getAllSubmissionsUsingKey(session, venue, key);
+    if (!allExisting?.length) {
       const exists = await checkForSubmissionKeyInUse(session, venue, key);
       if (exists) {
         session.log.warn(
@@ -93,6 +94,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
       }
     } else {
+      existing = await getSubmissionToUpdate(session, allExisting);
       session.log.info(
         `🔍 Found an existing submission using this key, the existing submission will be updated.`,
       );
