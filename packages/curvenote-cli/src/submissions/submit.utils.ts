@@ -14,6 +14,7 @@ import chalk from 'chalk';
 import { format } from 'date-fns';
 import {
   getFromJournals,
+  getFromUrl,
   postNewSubmission,
   postNewWork,
   postNewWorkVersion,
@@ -404,7 +405,11 @@ export async function chooseSubmission(
   throw new Error('Using non-latest submission not yet supported...');
 }
 
-export async function checkForSubmissionUsingKey(session: ISession, venue: string, key: string) {
+export async function getAllSubmissionsUsingKey(
+  session: ISession,
+  venue: string,
+  key: string,
+): Promise<SubmissionsListItemDTO[] | undefined> {
   session.log.debug(`checking for existing submission using key "${key}"`);
   let submissions: SubmissionsListingDTO;
   try {
@@ -413,10 +418,17 @@ export async function checkForSubmissionUsingKey(session: ISession, venue: strin
     session.log.debug(err);
     return;
   }
-  const draftSubmissions = submissions.items.filter((submission) => {
+  return submissions.items;
+}
+
+export async function getSubmissionToUpdate(
+  session: ISession,
+  submissions: SubmissionsListItemDTO[],
+) {
+  const draftSubmissions = submissions.filter((submission) => {
     return submission.status === 'DRAFT';
   });
-  const nonDraftSubmissions = submissions.items.filter((submission) => {
+  const nonDraftSubmissions = submissions.filter((submission) => {
     return submission.status !== 'DRAFT';
   });
   if (draftSubmissions.length > 0) {
@@ -542,30 +554,33 @@ export async function createNewSubmission(
   opts?: SubmitOpts,
 ) {
   const workResp = await getWorkFromKey(session, key);
-  let work: { workId: string; workVersionId: string };
+  let work: {
+    id: string;
+    versionId: string;
+    dateCreated: string;
+    versionDateCreated: string;
+  };
   if (workResp) {
     session.log.debug(`posting new work version...`);
     work = await postNewWorkVersion(session, workResp.links.self, cdnKey, cdn);
-    session.log.debug(`new work posted with version id ${work.workVersionId}`);
+    session.log.debug(`new work posted with version id ${work.versionId}`);
   } else {
     session.log.debug(`posting new work...`);
     work = await postNewWork(session, cdnKey, cdn, key);
-    session.log.debug(`new work posted with id ${work.workId}`);
+    session.log.debug(`new work posted with id ${work.id}`);
   }
-  const { workId, workVersionId } = work;
-
   session.log.debug(`posting new submission...`);
-  const { submissionId, submissionVersionId } = await postNewSubmission(
+  const submission = await postNewSubmission(
     session,
     venue,
     collection.id,
     kind.id,
-    workVersionId,
+    work.versionId,
     opts?.draft ?? false,
     jobId,
   );
 
-  session.log.debug(`new submission posted with id ${submissionId}`);
+  session.log.debug(`new submission posted with id ${submission.id}`);
 
   if (opts?.draft) {
     session.log.info(`🚀 ${chalk.green(`Your draft was successfully submitted to "${venue}"`)}.`);
@@ -573,10 +588,22 @@ export async function createNewSubmission(
     session.log.info(`🚀 ${chalk.green(`Your work was successfully submitted to "${venue}"`)}.`);
   }
 
-  logCollector.workId = workId;
-  logCollector.workVersionId = workVersionId;
-  logCollector.submissionId = submissionId;
-  logCollector.submissionVersionId = submissionVersionId;
+  logCollector.work = {
+    id: work.id,
+    date_created: workResp?.date_created ?? work.dateCreated,
+  };
+  logCollector.workVersion = {
+    id: work.versionId,
+    date_created: work.versionDateCreated,
+  };
+  logCollector.submission = {
+    id: submission.id,
+    date_created: submission.dateCreated,
+  };
+  logCollector.submissionVersion = {
+    id: submission.versionId,
+    date_created: submission.versionDateCreated,
+  };
 }
 
 export async function updateExistingSubmission(
@@ -584,39 +611,53 @@ export async function updateExistingSubmission(
   logCollector: Record<string, any>,
   venue: string,
   cdnKey: string,
-  submission: SubmissionsListItemDTO,
+  existingSubmission: SubmissionsListItemDTO,
   jobId: string,
 ) {
   session.log.debug(`existing submission - upload & post`);
   try {
+    session.log.debug(`getting existing work...`);
+    const workResp = await getFromUrl(session, (existingSubmission.links as any).work);
     session.log.debug(`posting new work version...`);
-    const { workId, workVersionId } = await postNewWorkVersion(
+    const work = await postNewWorkVersion(
       session,
-      (submission.links as any).work,
+      (existingSubmission.links as any).work,
       cdnKey,
       session.PRIVATE_CDN,
     );
-    session.log.debug(`work version posted with id ${workVersionId}`);
+    session.log.debug(`work version posted with id ${work.versionId}`);
 
     session.log.debug(`posting new version to existing submission...`);
-    const { submissionId, submissionVersionId } = await postUpdateSubmissionWorkVersion(
+    const submission = await postUpdateSubmissionWorkVersion(
       session,
       venue,
-      submission.links.self,
-      workVersionId,
+      existingSubmission.links.self,
+      work.versionId,
       jobId,
     );
 
-    session.log.debug(`submission version posted with id ${submissionVersionId}`);
+    session.log.debug(`submission version posted with id ${submission.versionId}`);
 
     session.log.info(
       `🚀 ${chalk.bold.green(`Your submission was successfully updated at "${venue}"`)}.`,
     );
 
-    logCollector.workId = workId;
-    logCollector.workVersionId = workVersionId;
-    logCollector.submissionId = submissionId;
-    logCollector.submissionVersionId = submissionVersionId;
+    logCollector.work = {
+      id: work.id,
+      date_created: workResp?.date_created ?? work.dateCreated,
+    };
+    logCollector.workVersion = {
+      id: work.versionId,
+      date_created: work.versionDateCreated,
+    };
+    logCollector.submission = {
+      id: submission.id,
+      date_created: submission.dateCreated,
+    };
+    logCollector.submissionVersion = {
+      id: submission.versionId,
+      date_created: submission.versionDateCreated,
+    };
   } catch (err: any) {
     session.log.error(err.message);
     throw new Error(`🚨 ${chalk.bold.red('Could not update your submission')}`);

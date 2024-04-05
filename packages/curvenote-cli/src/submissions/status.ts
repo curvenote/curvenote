@@ -1,7 +1,12 @@
 import type { ISession } from '../session/types.js';
 import type { STATUS_ACTIONS } from '../utils/types.js';
 import { workKeyFromConfig } from '../works/utils.js';
-import { checkForSubmissionUsingKey, checkVenueExists, ensureVenue } from './submit.utils.js';
+import {
+  checkVenueExists,
+  ensureVenue,
+  getAllSubmissionsUsingKey,
+  getSubmissionToUpdate,
+} from './submit.utils.js';
 import { exitOnInvalidKeyOption, patchUpdateSubmissionStatus } from './utils.js';
 import { keyFromTransferFile } from './utils.transfer.js';
 
@@ -27,7 +32,8 @@ async function updateStatus(action: STATUS_ACTIONS, session: ISession, venue: st
   exitOnInvalidKeyOption(session, key);
 
   session.log.info(`📍 Updating submission status using a key: ${key}`);
-  const existing = await checkForSubmissionUsingKey(session, venue, key);
+  const allExisting = await getAllSubmissionsUsingKey(session, venue, key);
+  const existing = allExisting ? await getSubmissionToUpdate(session, allExisting) : undefined;
   if (!existing) {
     session.log.error(`⛔️ No existing submission found to ${action} with key: ${key}`);
     process.exit(1);
