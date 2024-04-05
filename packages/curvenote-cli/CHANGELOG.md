@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.52
+
+### Patch Changes
+
+- 7c938bf: Fix for build versions on the preview server
+
 ## 0.8.51
 
 ### Patch Changes
