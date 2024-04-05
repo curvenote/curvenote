@@ -32,17 +32,7 @@ import type {
 } from '@curvenote/common';
 import { plural } from 'myst-common';
 import { getWorkFromKey } from '../works/utils.js';
-
-export type SubmitOpts = {
-  kind?: string;
-  collection?: string;
-  yes?: boolean;
-  info: boolean;
-  draft?: boolean;
-  new?: boolean;
-  resume?: boolean;
-  maxSizeWebp?: number;
-};
+import type { SubmitLog, SubmitOpts } from './types.js';
 
 export function kindQuestions(kinds: Omit<SubmissionKindDTO, 'date_created' | 'checks'>[]) {
   return {
@@ -543,7 +533,7 @@ export async function confirmUpdateToExistingSubmission(
 
 export async function createNewSubmission(
   session: ISession,
-  logCollector: Record<string, any>,
+  submitLog: SubmitLog,
   venue: string,
   collection: CollectionDTO,
   kind: SubmissionKindDTO,
@@ -588,19 +578,19 @@ export async function createNewSubmission(
     session.log.info(`🚀 ${chalk.green(`Your work was successfully submitted to "${venue}"`)}.`);
   }
 
-  logCollector.work = {
+  submitLog.work = {
     id: work.id,
     date_created: workResp?.date_created ?? work.dateCreated,
   };
-  logCollector.workVersion = {
+  submitLog.workVersion = {
     id: work.versionId,
     date_created: work.versionDateCreated,
   };
-  logCollector.submission = {
+  submitLog.submission = {
     id: submission.id,
     date_created: submission.dateCreated,
   };
-  logCollector.submissionVersion = {
+  submitLog.submissionVersion = {
     id: submission.versionId,
     date_created: submission.versionDateCreated,
   };
@@ -608,7 +598,7 @@ export async function createNewSubmission(
 
 export async function updateExistingSubmission(
   session: ISession,
-  logCollector: Record<string, any>,
+  submitLog: SubmitLog,
   venue: string,
   cdnKey: string,
   existingSubmission: SubmissionsListItemDTO,
@@ -642,19 +632,19 @@ export async function updateExistingSubmission(
       `🚀 ${chalk.bold.green(`Your submission was successfully updated at "${venue}"`)}.`,
     );
 
-    logCollector.work = {
+    submitLog.work = {
       id: work.id,
       date_created: workResp?.date_created ?? work.dateCreated,
     };
-    logCollector.workVersion = {
+    submitLog.workVersion = {
       id: work.versionId,
       date_created: work.versionDateCreated,
     };
-    logCollector.submission = {
+    submitLog.submission = {
       id: submission.id,
       date_created: submission.dateCreated,
     };
-    logCollector.submissionVersion = {
+    submitLog.submissionVersion = {
       id: submission.versionId,
       date_created: submission.versionDateCreated,
     };
