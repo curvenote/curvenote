@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.51
+
+### Patch Changes
+
+- 297b453: Fix submissions with existing drafts
+
 ## 0.8.50
 
 ### Patch Changes
