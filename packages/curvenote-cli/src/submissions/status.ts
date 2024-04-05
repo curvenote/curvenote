@@ -10,7 +10,16 @@ import {
 import { exitOnInvalidKeyOption, patchUpdateSubmissionStatus } from './utils.js';
 import { keyFromTransferFile } from './utils.transfer.js';
 
-async function updateStatus(action: STATUS_ACTIONS, session: ISession, venue: string) {
+type StatusOptions = {
+  force?: boolean;
+};
+
+async function updateStatus(
+  action: STATUS_ACTIONS,
+  session: ISession,
+  venue: string,
+  opts: StatusOptions = {},
+) {
   if (session.isAnon) {
     throw new Error(
       '⛔️ You must be authenticated for this command. Use `curvenote token set [token]`',
@@ -40,13 +49,18 @@ async function updateStatus(action: STATUS_ACTIONS, session: ISession, venue: st
   }
   session.log.debug(`Found existing submission with key/id: ${key}/${existing.id}`);
 
-  await patchUpdateSubmissionStatus(session, venue, existing.links.self, action);
+  try {
+    await patchUpdateSubmissionStatus(session, venue, existing.links.self, action);
+  } catch (e: any) {
+    if (!opts.force) throw e;
+    session.log.warn(`⚠️  ${e.message}`);
+  }
 }
 
-export async function publish(session: ISession, venue: string) {
-  await updateStatus('publish', session, venue);
+export async function publish(session: ISession, venue: string, opts: StatusOptions = {}) {
+  await updateStatus('publish', session, venue, opts);
 }
 
-export async function unpublish(session: ISession, venue: string) {
-  await updateStatus('unpublish', session, venue);
+export async function unpublish(session: ISession, venue: string, opts: StatusOptions = {}) {
+  await updateStatus('unpublish', session, venue, opts);
 }

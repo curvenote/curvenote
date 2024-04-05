@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { clirun } from './clirun.js';
 import {
   makeDraftOption,
@@ -48,6 +48,12 @@ function makeSubmissionPublishCLI(program: Command) {
   const command = new Command('publish')
     .description('Publish your Submission')
     .argument('[venue]', 'Venue to publish the submission to')
+    .addOption(
+      new Option(
+        '-f, --force',
+        'If the publish action is not available, do not throw an error',
+      ).default(false),
+    )
     .action(clirun(submissions.publish, { program, requireSiteConfig: true }));
   return command;
 }
@@ -56,6 +62,12 @@ function makeSubmissionUnpublishCLI(program: Command) {
   const command = new Command('unpublish')
     .description('Unpublish an existing Submission')
     .argument('[venue]', 'Venue to unpublish the submission from')
+    .addOption(
+      new Option(
+        '-f, --force',
+        'If the unpublish action is not available, do not throw an error',
+      ).default(false),
+    )
     .action(clirun(submissions.unpublish, { program, requireSiteConfig: true }));
   return command;
 }
