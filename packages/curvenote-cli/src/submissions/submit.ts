@@ -256,10 +256,10 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
 
     job = await patchUpdateCliCheckJob(session, job.id, 'COMPLETED', 'Submission completed', {
       ...job.results,
-      submissionId: submitLog.submissionId,
-      submissionVersionId: submitLog.submissionVersionId,
-      workId: submitLog.workId,
-      workVersionId: submitLog.workVersionId,
+      submissionId: submitLog.submission.id,
+      submissionVersionId: submitLog.submissionVersion.id,
+      workId: submitLog.work.id,
+      workVersionId: submitLog.workVersion.id,
     });
 
     submitLog.key = key;
