@@ -83,7 +83,7 @@ export async function determineCollectionAndKind(
   session: ISession,
   venue: string,
   collections: CollectionListingDTO,
-  opts?: { kind?: string; collection?: string },
+  opts?: { kind?: string; collection?: string; yes?: boolean },
 ) {
   const openCollections = collections.items.filter((c) => c.open);
   if (openCollections.length === 0) {
@@ -119,12 +119,15 @@ export async function determineCollectionAndKind(
       process.exit(1);
     }
   }
-
-  if (!selectedCollection && openCollections.length === 1) {
-    selectedCollection = openCollections[0];
-  } else if (!selectedCollection) {
-    const response = await inquirer.prompt([collectionQuestions(venue, openCollections)]);
-    selectedCollection = response.collections;
+  if (!selectedCollection) {
+    if (openCollections.length === 1) {
+      selectedCollection = openCollections[0];
+    } else if (opts?.yes) {
+      throw new Error(`⛔️ collection must be specified to continue submission`);
+    } else {
+      const response = await inquirer.prompt([collectionQuestions(venue, openCollections)]);
+      selectedCollection = response.collections;
+    }
   }
 
   if (!selectedCollection) {
@@ -164,7 +167,7 @@ export async function determineSubmissionKindFromCollection(
   session: ISession,
   venue: string,
   collection: CollectionDTO,
-  opts?: { kind?: string },
+  opts?: { kind?: string; yes?: boolean },
 ) {
   const kinds = collection.kinds;
 
@@ -188,6 +191,8 @@ export async function determineSubmissionKindFromCollection(
   } else if (kinds.length === 1) {
     kindId = kinds[0].id;
     session.log.debug(`kindId from only kind`);
+  } else if (opts?.yes) {
+    throw new Error(`⛔️ kind must be specified to continue submission`);
   } else {
     const response = await inquirer.prompt([kindQuestions(kinds)]);
     kindId = response.kinds;
@@ -250,8 +255,15 @@ export async function getTransferData(session: ISession, opts?: SubmitOpts) {
   return transferData;
 }
 
-export async function ensureVenue(session: ISession, venue: string | undefined) {
+export async function ensureVenue(
+  session: ISession,
+  venue: string | undefined,
+  opts?: { yes?: boolean },
+) {
   if (venue) return venue;
+  if (opts?.yes) {
+    throw new Error(`⛔️ venue must be specified to continue submission`);
+  }
   session.log.debug('No venue provided, prompting user...');
   const answer = await inquirer.prompt([venueQuestion(session)]);
   return answer.venue;
