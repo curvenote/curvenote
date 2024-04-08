@@ -44,6 +44,9 @@ export function kindQuestions(kinds: Omit<SubmissionKindDTO, 'date_created' | 'c
 }
 
 export function collectionMoniker(collection: CollectionDTO) {
+  if (collection.name === collection.content.title) {
+    return collection.name;
+  }
   return `${collection.content.title} (${collection.name})` ?? collection.name;
 }
 
@@ -131,7 +134,7 @@ export async function determineCollectionAndKind(
     session.log.info(`${chalk.red(`⛔️ could not determine the collection to submit to`)}`);
     process.exit(1);
   }
-  session.log.info(`🗂  Collection "${collectionMoniker(selectedCollection)}" selected`);
+  session.log.info(`🗂  Collection ${collectionMoniker(selectedCollection)} selected`);
 
   const kind = await determineSubmissionKindFromCollection(
     session,
