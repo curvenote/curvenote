@@ -10,6 +10,8 @@ import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
 import format from 'date-fns/format';
 import type { JsonObject } from '@curvenote/blocks';
+import type { JobResponse, NewCheckJobPayload, NewCheckJobResults } from './types.js';
+import type { SubmissionDTO, WorkDTO } from '@curvenote/common';
 
 type LogInfo = { id: string; versionId: string; dateCreated: string; versionDateCreated: string };
 
@@ -89,16 +91,20 @@ export async function postNewWork(
   const resp = await postToJournals(session, 'works', { cdn_key: cdnKey, cdn, key });
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
-    const json = (await resp.json()) as any;
-    session.log.info(toc(`🚀 Submitted a new work in %s.`));
+    const json = (await resp.json()) as WorkDTO;
+    const { id, version_id, date_created } = json;
+    if (!version_id) {
+      throw new Error('Posting new work failed to create a version');
+    }
+    session.log.info(toc(`🚀 Created a new work in %s.`));
     session.log.debug(`CDN key: ${cdnKey}`);
-    session.log.debug(`Work Id: ${json.id}`);
-    session.log.debug(`Work Version Id: ${json.version_id}`);
+    session.log.debug(`Work Id: ${id}`);
+    session.log.debug(`Work Version Id: ${version_id}`);
     return {
-      id: json.id,
-      versionId: json.version_id,
-      dateCreated: json.date_created,
-      versionDateCreated: json.date_created,
+      id: id,
+      versionId: version_id,
+      dateCreated: date_created,
+      versionDateCreated: date_created,
     };
   } else {
     throw new Error('Posting new work failed');
@@ -118,16 +124,20 @@ export async function postNewWorkVersion(
   session.log.debug(`${resp.status} ${resp.statusText}`);
 
   if (resp.ok) {
-    const json = (await resp.json()) as any;
-    session.log.info(toc(`🚀 Submitted a new work version in %s.`));
+    const json = (await resp.json()) as WorkDTO;
+    const { id, version_id, date_created } = json;
+    if (!version_id) {
+      throw new Error('Updating work failed to create a version');
+    }
+    session.log.info(toc(`🚀 Created a new work version in %s.`));
     session.log.debug(`CDN key: ${cdnKey}`);
-    session.log.debug(`Work Id: ${json.id}`);
-    session.log.debug(`Work Version Id: ${json.version_id}`);
+    session.log.debug(`Work Id: ${id}`);
+    session.log.debug(`Work Version Id: ${version_id}`);
     return {
-      id: json.id,
-      versionId: json.version_id,
-      dateCreated: json.date_created,
-      versionDateCreated: json.date_created,
+      id: id,
+      versionId: version_id,
+      dateCreated: date_created,
+      versionDateCreated: date_created,
     };
   } else {
     throw new Error('Posting new version of the work failed');
@@ -136,8 +146,8 @@ export async function postNewWorkVersion(
 
 export async function postNewCliCheckJob(
   session: ISession,
-  payload: Record<string, any>,
-  results: Record<string, any>,
+  payload: NewCheckJobPayload,
+  results: NewCheckJobResults,
 ) {
   const toc = tic();
   const body: CreateCliCheckJobPostBody = {
@@ -149,7 +159,7 @@ export async function postNewCliCheckJob(
   const resp = await postToJournals(session, `jobs`, body);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
-    const json = (await resp.json()) as any;
+    const json = (await resp.json()) as JobResponse;
     session.log.info(toc(`🎉 Posted a new job in %s.`));
     session.log.debug(`Job id: ${json.id}`);
     session.log.debug(`Job status: ${json.status}`);
@@ -176,7 +186,7 @@ export async function patchUpdateCliCheckJob(
   const resp = await postToJournals(session, `jobs/${jobId}`, body, { method: 'PATCH' });
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
-    const json = (await resp.json()) as any;
+    const json = (await resp.json()) as JobResponse;
     session.log.info(toc(`🎉 Updated a job in %s.`));
     session.log.debug(`Job id: ${json.id}`);
     session.log.debug(`Job status: ${json.status}`);
@@ -207,7 +217,7 @@ export async function postNewSubmission(
   const resp = await postToJournals(session, `sites/${venue}/submissions`, submissionRequest);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
-    const json = (await resp.json()) as any;
+    const json = (await resp.json()) as SubmissionDTO;
     session.log.info(toc(`🚀 Submitted to venue "${venue}" in %s.`));
     session.log.debug(`Submission id: ${json.id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
@@ -235,7 +245,7 @@ export async function postUpdateSubmissionWorkVersion(
   const resp = await postToUrl(session, submissionUrl, submissionRequest);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
-    const json = (await resp.json()) as any;
+    const json = (await resp.json()) as SubmissionDTO;
     session.log.info(toc(`🚀 Updated submission accepted by "${venue}" in %s.`));
     session.log.debug(`Submission id: ${json.id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
@@ -263,7 +273,7 @@ export async function patchUpdateSubmissionStatus(
   if (!updateUrl) {
     throw new Error(`Action "${action}" not available for submission`);
   }
-  session.log.debug(`POST to ${updateUrl}...`);
+  session.log.debug(`PUT to ${updateUrl}...`);
   const resp = await postToUrl(
     session,
     updateUrl,
@@ -272,7 +282,7 @@ export async function patchUpdateSubmissionStatus(
   );
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
-    const json = (await resp.json()) as any;
+    const json = (await resp.json()) as SubmissionDTO;
     session.log.info(
       toc(
         `🚀 Submission successfully ${action === 'publish' ? 'publishing to' : 'unpublishing from'} "${venue}" in %s.`,

@@ -18,7 +18,6 @@ import {
   getAllSubmissionsUsingKey,
   getSubmissionToUpdate,
 } from './submit.utils.js';
-import type { SubmitOpts } from './submit.utils.js';
 import { submissionRuleChecks } from '@curvenote/check-implementations';
 import type { CompiledCheckResults } from '../check/index.js';
 import { logCheckReport, runChecks } from '../check/index.js';
@@ -29,12 +28,13 @@ import { getGitRepoInfo } from './utils.git.js';
 import * as uploads from '../uploads/index.js';
 import { workKeyFromConfig } from '../works/utils.js';
 import type { CollectionDTO, SubmissionKindDTO, SubmissionsListItemDTO } from '@curvenote/common';
+import type { GithubSource, SubmitLog, SubmitOpts } from './types.js';
 
 const CDN_KEY_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
-  const submitLog: Record<string, any> = {
+  const submitLog: SubmitLog = {
     input: {
       venue,
       opts,
@@ -66,7 +66,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   exitOnInvalidKeyOption(session, key);
 
   const gitInfo = await getGitRepoInfo();
-  const source = {
+  const source: GithubSource = {
     repo: gitInfo?.repo,
     branch: gitInfo?.branch,
     path: gitInfo?.path,
@@ -254,12 +254,23 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     }
     session.log.debug(`generating a build artifact for the submission...`);
 
+    if (
+      !submitLog.work?.id ||
+      !submitLog.workVersion?.id ||
+      !submitLog.submission?.id ||
+      !submitLog.submissionVersion?.id
+    ) {
+      // This is just a safety net - it will not be encountered unless we change
+      // implementation of create/update submission functions or change the shape
+      // of successful API responses.
+      throw new Error(`work/submission ids not found from submission response`);
+    }
     job = await patchUpdateCliCheckJob(session, job.id, 'COMPLETED', 'Submission completed', {
       ...job.results,
-      submissionId: submitLog.submission.id,
-      submissionVersionId: submitLog.submissionVersion.id,
-      workId: submitLog.work.id,
-      workVersionId: submitLog.workVersion.id,
+      submissionId: submitLog.submission?.id,
+      submissionVersionId: submitLog.submissionVersion?.id,
+      workId: submitLog.work?.id,
+      workVersionId: submitLog.workVersion?.id,
     });
 
     submitLog.key = key;
@@ -270,6 +281,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     submitLog.job = job;
     submitLog.buildUrl = buildUrl;
     session.log.info(chalk.bold.green(`🔗 build report url: ${buildUrl}`));
+    writeJsonLogs(session, 'curvenote.submit.json', submitLog);
   } catch (err: any) {
     await patchUpdateCliCheckJob(session, job.id, 'FAILED', 'Submission from CLI failed', {
       ...job.results,
@@ -277,6 +289,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     });
     session.log.error(`📣 ${chalk.bold.red(err.message)}`);
     session.log.info('📨 Please contact support@curvenote.com');
+    writeJsonLogs(session, 'curvenote.submit.json', submitLog);
+    process.exit(1);
   }
-  writeJsonLogs(session, 'curvenote.submit.json', submitLog);
 }
