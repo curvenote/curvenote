@@ -24,7 +24,6 @@ import inquirer from 'inquirer';
 import type {
   CollectionDTO,
   CollectionListingDTO,
-  SubmissionDTO,
   SubmissionKindDTO,
   SubmissionKindListingDTO,
   SubmissionsListItemDTO,
@@ -85,7 +84,10 @@ export async function determineCollectionAndKind(
   collections: CollectionListingDTO,
   opts?: { kind?: string; collection?: string; yes?: boolean },
 ) {
-  const openCollections = collections.items.filter((c) => c.open);
+  const openCollections = [
+    ...collections.items.filter((c) => c.open && c.default),
+    ...collections.items.filter((c) => c.open && !c.default),
+  ];
   if (openCollections.length === 0) {
     session.log.info(
       `${chalk.red(`⛔️ no collections are open for submissions at venue "${venue}"`)}`,
@@ -95,7 +97,7 @@ export async function determineCollectionAndKind(
 
   if (opts?.collection) session.log.debug(`Explicit collection provided: ${opts?.collection}`);
   let selectedCollection = opts?.collection
-    ? openCollections.find((c) => c.name === opts?.collection)
+    ? collections.items.find((c) => c.name === opts?.collection)
     : undefined;
 
   if (opts?.collection) {
@@ -120,8 +122,19 @@ export async function determineCollectionAndKind(
     }
   }
   if (!selectedCollection) {
+    const defaultCollection = collections.items.find((c) => c.default);
+    if (defaultCollection && !defaultCollection.open) {
+      session.log.info(
+        `${chalk.red(`🗂  default collection "${defaultCollection.name}" is not open for submissions at venue "${venue}"`)}`,
+      );
+      if (opts?.yes) {
+        throw new Error(`⛔️ collection must be specified to continue submission`);
+      }
+    }
     if (openCollections.length === 1) {
       selectedCollection = openCollections[0];
+    } else if (opts?.yes && defaultCollection?.open) {
+      selectedCollection = defaultCollection;
     } else if (opts?.yes) {
       throw new Error(`⛔️ collection must be specified to continue submission`);
     } else {
@@ -474,11 +487,7 @@ export async function confirmUpdateToExistingSubmission(
     const collection = collections.items.find((c) => c.id === submission.collection?.id);
     const openCollections = collections.items.filter((c) => c.open);
 
-    if (
-      opts?.collection &&
-      // Cast may be removed with next @curvenote/common release
-      opts.collection !== (submission.collection as SubmissionDTO['collection'])?.name
-    ) {
+    if (opts?.collection && opts.collection !== submission.collection?.name) {
       session.log.info(
         `🪧  NOTE: the --collection option was provided, but will be ignored as you are updating an existing submission`,
       );
