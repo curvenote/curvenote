@@ -50,7 +50,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   // TODO check the venue allows for submissions & updates to the submission
   // TODO check user has permission to submit /  update a submission
 
-  venue = await ensureVenue(session, venue);
+  venue = await ensureVenue(session, venue, opts);
   await checkVenueExists(session, venue);
   const collections = await checkVenueAccess(session, venue);
 
