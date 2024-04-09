@@ -18,9 +18,9 @@ export function prepareChecksForSubmission(
   const checks = kind.checks;
   const numChecks = checks?.length ?? 0;
   if (numChecks === 0) {
-    session.log.info(`✅ "${venue}" does not require checks for "${kind}"`);
+    session.log.info(`✅ "${venue}" does not require checks for "${kind.name}"`);
   } else {
-    session.log.info(`🚦 "${venue}" specifies ${checks?.length ?? 0} checks for "${kind}"`);
+    session.log.info(`🚦 "${venue}" specifies ${checks?.length ?? 0} checks for "${kind.name}"`);
   }
   return checks ?? [];
 }
