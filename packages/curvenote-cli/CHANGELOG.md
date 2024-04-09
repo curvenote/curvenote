@@ -1,5 +1,17 @@
 # curvenote
 
+## 0.8.53
+
+### Patch Changes
+
+- 800cbfd: Prioritize default collections on selection
+- 1573287: Comment updates
+- 17de0cd: Add types to submit log and api responses
+- e86db56: Allow user to set curvenote to anonymous session
+- 896433d: Do not prompt on --yes option, fail instead
+- e86db56: Fix 'Bearer undefined' bug
+- e86db56: Select API urls based on resolved url
+
 ## 0.8.52
 
 ### Patch Changes

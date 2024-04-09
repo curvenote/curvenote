@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.53
+
+### Patch Changes
+
+- e86db56: Allow user to set curvenote to anonymous session
+
 ## 0.8.52
 
 ## 0.8.51
