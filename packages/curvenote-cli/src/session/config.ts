@@ -83,7 +83,7 @@ export async function selectToken(log: Logger) {
   }
 
   const config = JSON.parse(fs.readFileSync(configPath).toString()) as TokenData;
-  if ((config.tokens && config.tokens.length === 0) || !config.token) {
+  if (config.tokens && config.tokens.length === 0) {
     log.error(`🫙 No tokens found. Try running ${chalk.bold('curvenote token set')} first.`);
     return;
   }
@@ -131,6 +131,35 @@ export async function selectToken(log: Logger) {
       `Token set for @${resp.selected.username} <${resp.selected.email}> at ${resp.selected.api}.`,
     ),
   );
+}
+
+export async function selectAnonymousToken(log: Logger) {
+  const configPath = getConfigPath();
+  if (!fs.existsSync(configPath)) {
+    log.error(`🫙 No saved tokens; your session will be anonymous.`);
+    return;
+  }
+
+  const config = JSON.parse(fs.readFileSync(configPath).toString()) as TokenData;
+  if ((config.tokens && config.tokens.length === 0) || !config.token) {
+    log.error(`🫙 No saved tokens; your session will be anonymous.`);
+    return;
+  }
+
+  if (config.token && !config.tokens) {
+    log.error(
+      `🛟 Session has an unsaved token. To run anonymously you must explicitly run ${chalk.bold('curvenote token delete')}.`,
+    );
+    return;
+  }
+
+  const updated = {
+    ...config,
+    token: undefined,
+  };
+
+  fs.writeFileSync(configPath, JSON.stringify(updated));
+  log.info(chalk.green(`Anonymous session selected.`));
 }
 
 export function deleteToken(logger: Logger = chalkLogger(LogLevel.info, process.cwd())) {

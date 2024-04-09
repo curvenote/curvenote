@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { deleteToken, setToken, selectToken } from '@curvenote/cli';
+import { deleteToken, setToken, selectToken, selectAnonymousToken } from '@curvenote/cli';
 import { clirun } from './clirun.js';
 
 export function addTokenCLI(program: Command) {
@@ -21,6 +21,17 @@ export function addTokenCLI(program: Command) {
     .description('Set a token and save to a config directory')
     .action(
       clirun(async (session) => selectToken(session.log), {
+        program,
+        anonymous: true,
+        skipProjectLoading: true,
+      }),
+    );
+  command
+    .command('anonymous')
+    .alias('anon')
+    .description('Use an anonymous session, without deleting your saved tokens')
+    .action(
+      clirun((session) => selectAnonymousToken(session.log), {
         program,
         anonymous: true,
         skipProjectLoading: true,

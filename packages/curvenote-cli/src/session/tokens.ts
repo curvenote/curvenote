@@ -80,7 +80,7 @@ export async function getHeaders(
     'X-Client-Version': CLIENT_VERSION,
   };
   const sessionToken = await getSessionToken(session, tokens);
-  if (session) {
+  if (sessionToken) {
     tokens.session = sessionToken;
     headers.Authorization = `Bearer ${sessionToken}`;
   }
