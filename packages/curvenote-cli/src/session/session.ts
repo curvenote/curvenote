@@ -87,12 +87,12 @@ export class Session implements ISession {
     this.PRIVATE_CDN = 'https://prv.curvenote.com';
     this.TEMP_CDN = 'https://tmp.curvenote.com';
     this.PUBLIC_CDN = 'https://cdn.curvenote.com';
-    if (url?.startsWith(STAGING_API_URL)) {
+    if (this.API_URL?.startsWith(STAGING_API_URL)) {
       this.JOURNALS_URL = STAGING_SITES_API_URL;
       this.PRIVATE_CDN = 'https://prv.curvenote.dev';
       this.TEMP_CDN = 'https://tmp.curvenote.dev';
       this.PUBLIC_CDN = 'https://cdn.curvenote.dev';
-    } else if (url?.startsWith(LOCAL_API_URL)) {
+    } else if (this.API_URL?.startsWith(LOCAL_API_URL)) {
       this.JOURNALS_URL = LOCAL_SITES_API_URL;
       this.PRIVATE_CDN = 'https://prv.curvenote.dev';
       this.TEMP_CDN = 'https://tmp.curvenote.dev';
