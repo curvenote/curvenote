@@ -8,7 +8,7 @@ import type { CurvenotePlugin, ISession } from './types.js';
  *
  * @param session session with logging
  */
-export async function loadCurvenotePlugins(session: ISession): Promise<CurvenotePlugin> {
+export async function loadProjectPlugins(session: ISession): Promise<CurvenotePlugin> {
   const config = selectors.selectCurrentProjectConfig(session.store.getState());
   const mystPlugins = await loadPlugins(session);
   const plugins: CurvenotePlugin = {
@@ -47,6 +47,6 @@ export async function loadCurvenotePlugins(session: ISession): Promise<Curvenote
       plugins.checks.push(...checks);
     }
   });
-  session.log.debug('Curvenote Plugins loaded');
+  session.log.debug('Project Plugins loaded');
   return plugins;
 }

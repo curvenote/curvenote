@@ -24,7 +24,8 @@ import { checkForClientVersionRejection } from '../utils/index.js';
 import { getHeaders, setSessionOrUserToken } from './tokens.js';
 import type { CurvenotePlugin, ISession, Response, Tokens } from './types.js';
 import version from '../version.js';
-import { loadCurvenotePlugins } from './plugins.js';
+import { loadProjectPlugins } from './plugins.js';
+import builtInPlugins from '../plugins/index.js';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
@@ -198,8 +199,15 @@ export class Session implements ISession {
   async loadPlugins() {
     // Early return if a promise has already been initiated
     if (this._pluginPromise) return this._pluginPromise;
-    this._pluginPromise = loadCurvenotePlugins(this);
+    this._pluginPromise = loadProjectPlugins(this);
     this.plugins = await this._pluginPromise;
+    const { directives, roles, transforms } = builtInPlugins;
+    this.plugins = {
+      ...this.plugins,
+      directives: [...this.plugins.directives, ...directives],
+      roles: [...this.plugins.roles, ...roles],
+      transforms: [...this.plugins.transforms, ...transforms],
+    };
     return this.plugins;
   }
 

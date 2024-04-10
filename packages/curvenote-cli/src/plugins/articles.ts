@@ -1,8 +1,7 @@
-import type { DirectiveData } from 'myst-common';
-import type { VFile } from 'vfile';
+import type { DirectiveSpec, GenericNode } from 'myst-common';
 
-export const listingDirective = {
-  name: 'listing',
+export const articlesDirective: DirectiveSpec = {
+  name: 'cn:articles',
   doc: 'A listing directive that can be used to show a list of articles from a specific venue, collection or kind.',
   arg: {
     type: 'myst',
@@ -14,32 +13,32 @@ export const listingDirective = {
   },
   options: {
     venue: {
-      type: 'string',
+      type: String,
       doc: 'The venue to list articles from.',
       required: true,
     },
     collection: {
-      type: 'string',
+      type: String,
       doc: 'The collection to list articles from.',
       required: false,
     },
     status: {
-      type: 'string',
+      type: String,
       doc: 'The status of articles to list (published | in-review).',
       required: false,
     },
     limit: {
-      type: 'number',
+      type: Number,
       doc: 'The maximum number of articles to list.',
       required: false,
     },
-    kind: {
-      type: 'string',
-      doc: 'The kind of listing to display (list | cards).',
+    display: {
+      type: String,
+      doc: 'The style of listing to display (list | cards).',
       required: false,
     },
   },
-  validate(data: DirectiveData, vfile: VFile) {
+  validate(data, vfile) {
     if (!data.options?.venue) {
       vfile.message('A venue must be supplied.');
     }
@@ -57,15 +56,15 @@ export const listingDirective = {
 
     return data;
   },
-  run(data: DirectiveData) {
+  run(data) {
     return [
       {
-        type: 'listing',
+        type: 'cn:articles',
         title: data.arg,
         description: data.body,
         ...data.options,
         kind: data.options?.kind ?? 'list',
       },
-    ]; // GenericNode
+    ] as GenericNode[];
   },
 };
