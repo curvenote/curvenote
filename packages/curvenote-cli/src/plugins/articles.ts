@@ -27,14 +27,19 @@ export const articlesDirective: DirectiveSpec = {
       doc: 'The status of articles to list (published | in-review).',
       required: false,
     },
+    display: {
+      type: String,
+      doc: 'The style of listing to display (list | cards).',
+      required: false,
+    },
     limit: {
       type: Number,
       doc: 'The maximum number of articles to list.',
       required: false,
     },
-    display: {
+    pagination: {
       type: String,
-      doc: 'The style of listing to display (list | cards).',
+      doc: 'If `limit` is set, this gives a hint to the renderer on how to handle pagination (more | all | infinite).',
       required: false,
     },
   },
