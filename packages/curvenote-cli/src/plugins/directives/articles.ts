@@ -1,5 +1,5 @@
 import type { DirectiveSpec, GenericNode } from 'myst-common';
-import { validateStringOptions } from './utils.js';
+import { validateStringOptions } from '../utils.js';
 
 export const articlesDirective: DirectiveSpec = {
   name: 'cn:articles',

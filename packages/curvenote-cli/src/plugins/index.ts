@@ -1,9 +1,10 @@
 import type { MystPlugin } from 'myst-common';
-import { articlesDirective } from './articles.js';
+import { articlesDirective } from './directives/articles.js';
+import { collectionsDirective } from './directives/collections.js';
 
 const plugin: MystPlugin = {
   name: 'Curvenote Plugin',
-  directives: [articlesDirective],
+  directives: [articlesDirective, collectionsDirective],
   roles: [],
   transforms: [],
 };
