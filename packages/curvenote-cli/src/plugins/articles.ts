@@ -32,9 +32,14 @@ export const articlesDirective: DirectiveSpec = {
       doc: 'The kind of articles to list.',
       required: false,
     },
-    display: {
+    layout: {
       type: String,
-      doc: 'The style of listing to display (list | cards).',
+      doc: 'The layout of the of articles (list | cards).',
+      required: false,
+    },
+    wide: {
+      type: Boolean,
+      doc: 'If set, the listing will be wide.',
       required: false,
     },
     limit: {
