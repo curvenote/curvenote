@@ -4,14 +4,6 @@ import { validateStringOptions } from '../utils.js';
 export const articlesDirective: DirectiveSpec = {
   name: 'cn:articles',
   doc: 'A listing directive that can be used to show a list of articles from a specific venue, collection or kind.',
-  arg: {
-    type: 'myst',
-    doc: 'The title of the listing.',
-  },
-  body: {
-    type: 'myst',
-    doc: 'Descriptive content to be displayed along with the listing.',
-  },
   options: {
     venue: {
       type: String,
@@ -73,8 +65,6 @@ export const articlesDirective: DirectiveSpec = {
     return [
       {
         type: 'cn:articles',
-        title: data.arg,
-        description: data.body,
         ...data.options,
         layout: data.options?.layout ?? 'list',
         pagination: data.options?.pagination ?? 'more',
