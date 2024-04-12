@@ -1,0 +1,74 @@
+import type { DirectiveSpec, GenericNode } from 'myst-common';
+import { validateStringOptions } from '../utils.js';
+
+export const articlesDirective: DirectiveSpec = {
+  name: 'cn:articles',
+  doc: 'A listing directive that can be used to show a list of articles from a specific venue, collection or kind.',
+  options: {
+    venue: {
+      type: String,
+      doc: 'The venue to list articles from.',
+      required: true,
+    },
+    collection: {
+      type: String,
+      doc: 'The collection to list articles from.',
+      required: false,
+    },
+    status: {
+      type: String,
+      doc: 'The status of articles to list (published | in-review).',
+      required: false,
+    },
+    submission_kind: {
+      type: String,
+      doc: 'The kind of articles to list.',
+      required: false,
+    },
+    layout: {
+      type: String,
+      doc: 'The layout of the of articles (list | cards).',
+      required: false,
+    },
+    wide: {
+      type: Boolean,
+      doc: 'If set, the listing will be wide.',
+      required: false,
+    },
+    limit: {
+      type: Number,
+      doc: 'The maximum number of articles to list.',
+      required: false,
+    },
+    pagination: {
+      type: String,
+      doc: 'If `limit` is set, this gives a hint to the renderer on how to handle pagination (more | all | scroll).',
+      required: false,
+    },
+  },
+  validate(data, vfile) {
+    if (!data.options?.venue) {
+      vfile.message('A venue must be supplied.');
+    }
+
+    validateStringOptions(vfile, 'status', data.options?.status, ['published', 'in-review']);
+    validateStringOptions(vfile, 'layout', data.options?.layout, ['list', 'cards']);
+    validateStringOptions(vfile, 'pagination', data.options?.pagination, ['more', 'all', 'scroll']);
+
+    // TODO get hold of session?
+    // TODO lookup API and validate venue, collection, kind exist?
+    // TODO how to validate against the correct API? dev/staging/prod?
+
+    return data;
+  },
+  run(data) {
+    return [
+      {
+        type: 'cn:articles',
+        ...data.options,
+        layout: data.options?.layout ?? 'list',
+        pagination: data.options?.pagination ?? 'more',
+      },
+    ] as GenericNode[];
+  },
+};
