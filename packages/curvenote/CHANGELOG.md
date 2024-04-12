@@ -1,5 +1,7 @@
 # curvenote
 
+## 0.8.54
+
 ## 0.8.53
 
 ### Patch Changes

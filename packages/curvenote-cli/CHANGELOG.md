@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.54
+
+### Patch Changes
+
+- b881093: Changed directive type to camelcase
+- 504c3a2: Added built-in custom directives via curvenote plugin. First two directives added (articles, collections)
+
 ## 0.8.53
 
 ### Patch Changes
