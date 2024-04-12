@@ -64,7 +64,7 @@ export const articlesDirective: DirectiveSpec = {
   run(data) {
     return [
       {
-        type: 'cn:articles',
+        type: 'curvenoteArticles',
         ...data.options,
         layout: data.options?.layout ?? 'list',
         pagination: data.options?.pagination ?? 'more',

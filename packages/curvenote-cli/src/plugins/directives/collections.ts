@@ -37,7 +37,7 @@ export const collectionsDirective: DirectiveSpec = {
   run(data) {
     return [
       {
-        type: 'cn:collections',
+        type: 'curvenoteCollections',
         ...data.options,
         show: data.options?.show ?? 'all',
       },
