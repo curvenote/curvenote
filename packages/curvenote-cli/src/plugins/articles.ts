@@ -27,6 +27,11 @@ export const articlesDirective: DirectiveSpec = {
       doc: 'The status of articles to list (published | in-review).',
       required: false,
     },
+    submission_kind: {
+      type: String,
+      doc: 'The kind of articles to list.',
+      required: false,
+    },
     display: {
       type: String,
       doc: 'The style of listing to display (list | cards).',
@@ -68,7 +73,8 @@ export const articlesDirective: DirectiveSpec = {
         title: data.arg,
         description: data.body,
         ...data.options,
-        kind: data.options?.kind ?? 'list',
+        display: data.options?.display ?? 'list',
+        pagination: data.options?.pagination ?? 'more',
       },
     ] as GenericNode[];
   },
