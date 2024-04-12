@@ -1,4 +1,5 @@
 import type { DirectiveSpec, GenericNode } from 'myst-common';
+import { validateStringOptions } from './utils.js';
 
 export const articlesDirective: DirectiveSpec = {
   name: 'cn:articles',
@@ -49,7 +50,7 @@ export const articlesDirective: DirectiveSpec = {
     },
     pagination: {
       type: String,
-      doc: 'If `limit` is set, this gives a hint to the renderer on how to handle pagination (more | all | infinite).',
+      doc: 'If `limit` is set, this gives a hint to the renderer on how to handle pagination (more | all | scroll).',
       required: false,
     },
   },
@@ -57,15 +58,12 @@ export const articlesDirective: DirectiveSpec = {
     if (!data.options?.venue) {
       vfile.message('A venue must be supplied.');
     }
-    if (
-      data.options?.status &&
-      (typeof data.options.status !== 'string' ||
-        (typeof data.options.status === 'string' &&
-          !['published', 'in-review'].includes(data.options.status)))
-    ) {
-      vfile.message('Invalid status supplied.');
-    }
 
+    validateStringOptions(vfile, 'status', data.options?.status, ['published', 'in-review']);
+    validateStringOptions(vfile, 'layout', data.options?.layout, ['list', 'cards']);
+    validateStringOptions(vfile, 'pagination', data.options?.pagination, ['more', 'all', 'scroll']);
+
+    // TODO get hold of session?
     // TODO lookup API and validate venue, collection, kind exist?
     // TODO how to validate against the correct API? dev/staging/prod?
 
@@ -78,7 +76,7 @@ export const articlesDirective: DirectiveSpec = {
         title: data.arg,
         description: data.body,
         ...data.options,
-        display: data.options?.display ?? 'list',
+        layout: data.options?.layout ?? 'list',
         pagination: data.options?.pagination ?? 'more',
       },
     ] as GenericNode[];
