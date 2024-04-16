@@ -57,7 +57,7 @@ export function sortCheckResults(completedChecks: CompiledCheckResults) {
   let finalStatus = CheckStatus.pass;
   const checkCategories: Record<string, CheckReport['results'][0]> = {};
   completedChecks.forEach((check) => {
-    const { tags, status } = check;
+    const { tags, status, optional } = check;
     const tag = tags[0];
     if (!checkCategories[tag]) {
       checkCategories[tag] = {
@@ -68,7 +68,7 @@ export function sortCheckResults(completedChecks: CompiledCheckResults) {
     } else {
       checkCategories[tag].checks.push(check);
     }
-    if (status !== CheckStatus.pass) {
+    if (status !== CheckStatus.pass && optional !== true) {
       checkCategories[tag].status = CheckStatus.fail;
       finalStatus = CheckStatus.fail;
     }
@@ -96,19 +96,25 @@ export function logCheckReport(
   session.log.info(`\n\n${chalk.bold.bgBlueBright(' Curvenote Checks ')} ✓✓✓ 🚀\n`);
   report.results.forEach((result) => {
     const { status, category, checks } = result;
-    if (status === CheckStatus.pass) {
+    const numPassed = checks.filter((c) => c.status === CheckStatus.pass).length;
+    const numOptional = checks.filter((c) => c.status !== CheckStatus.pass && c.optional).length;
+    if (status === CheckStatus.pass && numPassed === checks.length) {
       session.log.info(
-        checkPass(
-          `❯ ${chalk.bold(category)} (${checks.length}/${checks.length} tests passed)`,
+        checkPass(`❯ ${chalk.bold(category)} (${numPassed}/${checks.length} tests passed)`, false),
+      );
+    } else if (status === CheckStatus.pass) {
+      session.log.info(
+        checkFail(
+          `❯ ${chalk.bold(category)} (${numPassed}/${checks.length} tests passed, ${numOptional} optional)`,
           false,
+          '',
+          true,
         ),
       );
     } else {
       session.log.error(
         checkFail(
-          `❯ ${chalk.bold(category)} (${
-            checks.filter((c) => c.status === CheckStatus.pass).length
-          }/${checks.length} tests passed)`,
+          `❯ ${chalk.bold(category)} (${numPassed}/${checks.length} tests passed${numOptional > 0 ? `, ${numOptional} optional` : ''})`,
           false,
         ),
       );
