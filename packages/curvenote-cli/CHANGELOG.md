@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.55
+
+### Patch Changes
+
+- bca9e4d: Bump to myst 1.1.54
+- b739fd6: Do not error on optional checks
+
 ## 0.8.54
 
 ### Patch Changes
