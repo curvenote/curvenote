@@ -251,9 +251,11 @@ export async function postUpdateSubmissionWorkVersion(
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
     return {
       id: json.id,
-      versionId: json.versions[json.versions.length - 1].id,
+      // TODO: This sorting feels very fragile
+      // The list is sorted in reverse date order at the moment
+      versionId: json.versions[0].id,
       dateCreated: json.date_created,
-      versionDateCreated: json.versions[json.versions.length - 1].date_created,
+      versionDateCreated: json.versions[0].date_created,
     };
   } else {
     throw new Error('Updating submission failed');
