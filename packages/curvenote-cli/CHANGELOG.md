@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.8.56
+
+### Patch Changes
+
+- 83d9795: Retrun latest version
+
 ## 0.8.55
 
 ### Patch Changes
