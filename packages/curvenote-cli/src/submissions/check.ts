@@ -5,7 +5,7 @@ import { writeJsonLogs } from '../utils/utils.js';
 import type { ISession } from '../session/types.js';
 import type { SubmissionKindDTO } from '@curvenote/common';
 import type { Check } from '@curvenote/check-definitions';
-import { listSubmissionKinds } from './submit.utils.js';
+import { checkVenueAccess, checkVenueExists, determineCollectionAndKind } from './submit.utils.js';
 
 //
 // get checks
@@ -28,6 +28,8 @@ export function prepareChecksForSubmission(
 type CheckOpts = {
   venue?: string;
   kind?: string;
+  collection?: string;
+  yes?: boolean;
 };
 
 function getCheckImplementations(session: ISession) {
@@ -36,13 +38,15 @@ function getCheckImplementations(session: ISession) {
 
 async function getChecks(session: ISession, opts: CheckOpts): Promise<Check[]> {
   if (opts.venue) {
-    const kinds = await listSubmissionKinds(session, opts.venue);
-    const kind = opts.kind
-      ? kinds.items.find((k) => k.name === opts.kind)
-      : kinds.items.find((k) => k.default);
-    if (!kind) throw new Error(`Could not find kind for "${opts.kind}"`);
+    await checkVenueExists(session, opts.venue);
+    const collections = await checkVenueAccess(session, opts.venue);
+    const { kind } = await determineCollectionAndKind(session, opts.venue, collections, {
+      ...opts,
+      allowClosedCollection: true,
+    });
     return prepareChecksForSubmission(session, opts.venue, kind);
   }
+  session.log.warn('No venue provided, running basic submission checks');
   const allChecks = getCheckImplementations(session);
   return allChecks.map(({ id }) => ({ id }));
 }
