@@ -30,6 +30,11 @@ export const articlesDirective: DirectiveSpec = {
       doc: 'The layout of the of articles (list | cards).',
       required: false,
     },
+    thumbnails: {
+      type: Boolean,
+      doc: 'If set to false, the listing will not show thumbnails.',
+      required: false,
+    },
     wide: {
       type: Boolean,
       doc: 'If set, the listing will be wide.',
