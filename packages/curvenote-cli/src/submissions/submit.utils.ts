@@ -49,11 +49,15 @@ export function collectionMoniker(collection: CollectionDTO) {
   return `${collection.content.title} (${collection.name})` ?? collection.name;
 }
 
-export function collectionQuestions(venue: string, collections: CollectionListingDTO['items']) {
+export function collectionQuestions(
+  venue: string,
+  collections: CollectionListingDTO['items'],
+  opts?: { allowClosedCollection?: boolean },
+) {
   return {
     name: 'collections',
     type: 'list',
-    message: `Venue ${venue} has multiple collections open for submission. Which do you want to submit to?`,
+    message: `Venue ${venue} has multiple collections${opts?.allowClosedCollection ? '' : 'open for submission'}. Which do you want to select?`,
     choices: collections.map((item) => ({
       name: collectionMoniker(item),
       value: item,
@@ -85,13 +89,13 @@ export async function determineCollectionAndKind(
   session: ISession,
   venue: string,
   collections: CollectionListingDTO,
-  opts?: { kind?: string; collection?: string; yes?: boolean },
+  opts?: { kind?: string; collection?: string; yes?: boolean; allowClosedCollection?: boolean },
 ) {
   const openCollections = [
     ...collections.items.filter((c) => c.open && c.default),
     ...collections.items.filter((c) => c.open && !c.default),
   ];
-  if (openCollections.length === 0) {
+  if (!opts?.allowClosedCollection && openCollections.length === 0) {
     session.log.info(
       `${chalk.red(`⛔️ no collections are open for submissions at venue "${venue}"`)}`,
     );
@@ -118,10 +122,12 @@ export async function determineCollectionAndKind(
       session.log.info(
         `${chalk.bold.red(`⛔️ collection "${opts?.collection}" is not open for submissions at venue "${venue}"`)}`,
       );
-      session.log.info(
-        `${chalk.bold(`🗂  open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
-      );
-      process.exit(1);
+      if (!opts?.allowClosedCollection) {
+        session.log.info(
+          `${chalk.bold(`🗂  open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+        );
+        process.exit(1);
+      }
     }
   }
   if (!selectedCollection) {
@@ -130,18 +136,30 @@ export async function determineCollectionAndKind(
       session.log.info(
         `${chalk.red(`🗂  default collection "${defaultCollection.name}" is not open for submissions at venue "${venue}"`)}`,
       );
-      if (opts?.yes) {
+      if (!opts?.allowClosedCollection && opts?.yes) {
         throw new Error(`⛔️ collection must be specified to continue submission`);
       }
     }
-    if (openCollections.length === 1) {
+    if (!opts?.allowClosedCollection && openCollections.length === 1) {
       selectedCollection = openCollections[0];
-    } else if (opts?.yes && defaultCollection?.open) {
+    } else if (opts?.allowClosedCollection && collections.items.length === 1) {
+      selectedCollection = collections.items[0];
+    } else if (
+      opts?.yes &&
+      defaultCollection &&
+      (defaultCollection.open || opts?.allowClosedCollection)
+    ) {
       selectedCollection = defaultCollection;
     } else if (opts?.yes) {
       throw new Error(`⛔️ collection must be specified to continue submission`);
     } else {
-      const response = await inquirer.prompt([collectionQuestions(venue, openCollections)]);
+      const response = await inquirer.prompt([
+        collectionQuestions(
+          venue,
+          opts?.allowClosedCollection ? collections.items : openCollections,
+          opts,
+        ),
+      ]);
       selectedCollection = response.collections;
     }
   }
