@@ -95,7 +95,7 @@ export const convertToSrcId = (id: VersionId | DraftId | null): SrcId | null => 
   return null;
 };
 
-function input2name(input: string, allowed: RegExp, join: string) {
+export function input2name(input: string, allowed: RegExp, join: string) {
   let name = `¶${input}`
     .replace(/æ/g, 'ae')
     .replace(/œ/g, 'oe')
