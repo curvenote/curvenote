@@ -31,6 +31,7 @@ export enum WellKnownBlockParts {
   discussion = 'discussion',
   introduction = 'introduction',
   availability = 'availability',
+  data_availability = 'data_availability',
   summary = 'summary',
 }
 
