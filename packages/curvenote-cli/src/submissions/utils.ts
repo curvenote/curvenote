@@ -301,10 +301,8 @@ export async function patchUpdateSubmissionStatus(
 
 export function exitOnInvalidKeyOption(session: ISession, key: string) {
   session.log.debug(`Checking for valid key option: ${key}`);
-  if (key.length < 8 || key.length > 50) {
-    session.log.error(
-      `⛔️ The key must be between 8 and 50 characters long, please specify a longer key.`,
-    );
+  if (key.length < 8 || key.length > 128) {
+    session.log.error(`⛔️ The key must be between 8 and 128 characters long.`);
     process.exit(1);
   }
 }
