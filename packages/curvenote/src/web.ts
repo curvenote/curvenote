@@ -51,6 +51,7 @@ function makeDeployCLI(program: Command) {
     .addOption(makeCheckLinksOption())
     .addOption(makeResumeOption())
     .addOption(makeMaxSizeWebpOption(1000))
+    .addOption(makeExecuteOption('Execute Notebooks'))
     .action(clirun(web.deploy, { program, requireSiteConfig: true }));
   return command;
 }
