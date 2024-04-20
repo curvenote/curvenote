@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/cli",
-  "version": "0.8.56",
+  "version": "0.8.57",
   "description": "CLI Client library for Curvenote",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "license": "MIT",
@@ -38,7 +38,7 @@
     "build": "npm-run-all -l clean copy:version -p build:esm"
   },
   "dependencies": {
-    "@curvenote/blocks": "^1.5.24",
+    "@curvenote/blocks": "^1.5.25",
     "@curvenote/check-definitions": "^0.0.18",
     "@curvenote/check-implementations": "^0.0.18",
     "@curvenote/common": "^0.1.29",

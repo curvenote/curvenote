@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.57
+
+### Patch Changes
+
+- f0eb01b: Add execute flag to deploy
+- bbbdc17: Allow collection/kind options on check
+
 ## 0.8.56
 
 ## 0.8.55
