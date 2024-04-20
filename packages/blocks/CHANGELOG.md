@@ -1,5 +1,11 @@
 # @curvenote/blocks
 
+## 1.5.25
+
+### Patch Changes
+
+- 3780ccb: Expose `input2name` and add a default block part name
+
 ## 1.5.24
 
 ### Patch Changes

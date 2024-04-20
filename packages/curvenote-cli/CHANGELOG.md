@@ -1,5 +1,16 @@
 # curvenote
 
+## 0.8.57
+
+### Patch Changes
+
+- 5d70bd5: Added a `thumbnails` option to the `cn:articles` directive.
+- 4136c1a: Increased `work.key` upper limit
+- 40ff9fe: Update myst to 1.1.55
+- bbbdc17: Allow collection/kind options on check
+- Updated dependencies [3780ccb]
+  - @curvenote/blocks@1.5.25
+
 ## 0.8.56
 
 ### Patch Changes
