@@ -1,11 +1,22 @@
 import { Command } from 'commander';
-import { deleteToken, setToken, selectToken, selectAnonymousToken } from '@curvenote/cli';
+import {
+  listTokens,
+  deleteToken,
+  setToken,
+  selectToken,
+  selectAnonymousToken,
+} from '@curvenote/cli';
 import { clirun } from './clirun.js';
 
 export function addTokenCLI(program: Command) {
-  const command = new Command('token').description(
-    'Set or delete a token to access the Curvenote API',
-  );
+  const command = new Command('token')
+    .description('Set or delete a token to access the Curvenote API')
+    .alias('auth');
+  command
+    .command('list')
+    .alias('check')
+    .description('Check if you are logged into the API and list available tokens')
+    .action(clirun(listTokens, { program, skipProjectLoading: true }));
   command
     .command('set [token]')
     .description('Set a token and save to a config directory')
@@ -40,9 +51,10 @@ export function addTokenCLI(program: Command) {
   command
     .command('delete')
     .alias('remove')
-    .description('Delete all tokens from the config directory')
+    .description('Delete active token the config directory')
+    .option('--all', 'Delete all saved tokens, not just active token')
     .action(
-      clirun((session) => deleteToken(session.log), {
+      clirun((session, opts) => deleteToken(session.log, opts), {
         program,
         anonymous: true,
         skipProjectLoading: true,

@@ -12,7 +12,6 @@ import {
 import { Block, Project, Version } from '../../models.js';
 import type { ISession } from '../../session/types.js';
 import { resolvePath } from '../../utils/index.js';
-import { assertEndsInExtension } from '../utils/assertions.js';
 import { remoteExportWrapper } from '../utils/remoteExportWrapper.js';
 import { getChildren } from '../utils/getChildren.js';
 
@@ -61,7 +60,9 @@ export async function notebookToIpynb(
   versionId: VersionId,
   opts: NotebookExportOptions,
 ) {
-  assertEndsInExtension(opts.filename, 'ipynb');
+  if (!opts.filename.endsWith('.ipynb')) {
+    throw new Error(`Filename must end with '.ipynb': "${opts.filename}"`);
+  }
   const [block, version] = await Promise.all([
     new Block(session, versionId).get(),
     new Version<Blocks.Notebook>(session, versionId).get(),
