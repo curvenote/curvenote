@@ -41,7 +41,7 @@
     "@curvenote/blocks": "^1.5.25",
     "@curvenote/check-definitions": "^0.0.18",
     "@curvenote/check-implementations": "^0.0.18",
-    "@curvenote/common": "^0.1.29",
+    "@curvenote/common": "^0.1.30",
     "@curvenote/schema": "0.12.18",
     "@google-cloud/storage": "^5.18.2",
     "@reduxjs/toolkit": "^1.7.2",
