@@ -15,6 +15,8 @@ import {
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger } from 'myst-cli-utils';
 import type { RuleId } from 'myst-common';
+// use the version mystjs brings in!
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { KernelManager, ServerConnection, SessionManager } from '@jupyterlab/services';
 import type { JupyterServerSettings } from 'myst-execute';
 import { findExistingJupyterServer, launchJupyterServer } from 'myst-execute';
