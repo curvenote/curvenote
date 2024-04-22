@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.8.58
+
+### Patch Changes
+
+- 669caa4: Move to new submission version api
+- eb4d541: Better option naming on cn:articles directive
+
 ## 0.8.57
 
 ### Patch Changes

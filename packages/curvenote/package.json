@@ -1,6 +1,6 @@
 {
   "name": "curvenote",
-  "version": "0.8.57",
+  "version": "0.8.58",
   "description": "Command line tools for using Curvenote",
   "author": "Curvenote Inc. <support@curvenote.com>",
   "license": "MIT",
@@ -45,7 +45,7 @@
     "jsdom": "^19.0.0"
   },
   "devDependencies": {
-    "@curvenote/cli": "^0.8.57",
+    "@curvenote/cli": "^0.8.58",
     "chalk": "^5.2.0",
     "commander": "^10.0.1",
     "core-js": "^3.31.1",
