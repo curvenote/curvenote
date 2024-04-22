@@ -28,6 +28,7 @@ import type {
   SubmissionKindListingDTO,
   SubmissionsListItemDTO,
   SubmissionsListingDTO,
+  WorkDTO,
 } from '@curvenote/common';
 import { plural } from 'myst-common';
 import { getWorkFromKey } from '../works/utils.js';
@@ -586,20 +587,18 @@ export async function createNewSubmission(
   opts?: SubmitOpts,
 ) {
   const workResp = await getWorkFromKey(session, key);
-  let work: {
-    id: string;
-    versionId: string;
-    dateCreated: string;
-    versionDateCreated: string;
-  };
+  let work: WorkDTO;
   if (workResp) {
     session.log.debug(`posting new work version...`);
-    work = await postNewWorkVersion(session, workResp.links.self, cdnKey, cdn);
-    session.log.debug(`new work posted with version id ${work.versionId}`);
+    work = await postNewWorkVersion(session, workResp.links.versions, cdnKey, cdn);
+    session.log.debug(`new work posted with version id ${work.version_id}`);
   } else {
     session.log.debug(`posting new work...`);
     work = await postNewWork(session, cdnKey, cdn, key);
     session.log.debug(`new work posted with id ${work.id}`);
+  }
+  if (!work.version_id) {
+    throw new Error('Failed to create a work version');
   }
   session.log.debug(`posting new submission...`);
   const submission = await postNewSubmission(
@@ -607,10 +606,13 @@ export async function createNewSubmission(
     venue,
     collection.id,
     kind.id,
-    work.versionId,
+    work.version_id,
     opts?.draft ?? false,
     jobId,
   );
+  if (submission.versions.length !== 1) {
+    throw new Error('Failed to create a new submission with one version');
+  }
 
   session.log.debug(`new submission posted with id ${submission.id}`);
 
@@ -622,19 +624,19 @@ export async function createNewSubmission(
 
   submitLog.work = {
     id: work.id,
-    date_created: workResp?.date_created ?? work.dateCreated,
+    date_created: workResp?.date_created ?? work.date_created,
   };
   submitLog.workVersion = {
-    id: work.versionId,
-    date_created: work.versionDateCreated,
+    id: work.version_id,
+    date_created: work.date_created,
   };
   submitLog.submission = {
     id: submission.id,
-    date_created: submission.dateCreated,
+    date_created: submission.date_created,
   };
   submitLog.submissionVersion = {
-    id: submission.versionId,
-    date_created: submission.versionDateCreated,
+    id: submission.versions[0].id,
+    date_created: submission.versions[0].date_created,
   };
 }
 
@@ -648,27 +650,36 @@ export async function updateExistingSubmission(
 ) {
   session.log.debug(`existing submission - upload & post`);
   try {
+    if (!existingSubmission.links.work) {
+      throw new Error('No work associated with existing submission');
+    }
     session.log.debug(`getting existing work...`);
-    const workResp = await getFromUrl(session, (existingSubmission.links as any).work);
+    const workResp = await getFromUrl(session, existingSubmission.links.work);
+    if (!workResp) {
+      throw new Error('Unable to fetch work associated with existing submission');
+    }
     session.log.debug(`posting new work version...`);
     const work = await postNewWorkVersion(
       session,
-      (existingSubmission.links as any).work,
+      workResp.links.versions,
       cdnKey,
       session.PRIVATE_CDN,
     );
-    session.log.debug(`work version posted with id ${work.versionId}`);
+    if (!work.version_id) {
+      throw new Error('Failed to create a work version');
+    }
+    session.log.debug(`work version posted with id ${work.version_id}`);
 
     session.log.debug(`posting new version to existing submission...`);
-    const submission = await postUpdateSubmissionWorkVersion(
+    const submissionVersion = await postUpdateSubmissionWorkVersion(
       session,
       venue,
-      existingSubmission.links.self,
-      work.versionId,
+      existingSubmission.links.versions,
+      work.version_id,
       jobId,
     );
 
-    session.log.debug(`submission version posted with id ${submission.versionId}`);
+    session.log.debug(`submission version posted with id ${submissionVersion.id}`);
 
     session.log.info(
       `🚀 ${chalk.bold.green(`Your submission was successfully updated at "${venue}"`)}.`,
@@ -676,19 +687,19 @@ export async function updateExistingSubmission(
 
     submitLog.work = {
       id: work.id,
-      date_created: workResp?.date_created ?? work.dateCreated,
+      date_created: workResp?.date_created ?? work.date_created,
     };
     submitLog.workVersion = {
-      id: work.versionId,
-      date_created: work.versionDateCreated,
+      id: work.version_id,
+      date_created: work.date_created,
     };
     submitLog.submission = {
-      id: submission.id,
-      date_created: submission.dateCreated,
+      id: existingSubmission.id,
+      date_created: existingSubmission.date_created,
     };
     submitLog.submissionVersion = {
-      id: submission.versionId,
-      date_created: submission.versionDateCreated,
+      id: submissionVersion.id,
+      date_created: submissionVersion.date_created,
     };
   } catch (err: any) {
     session.log.error(err.message);

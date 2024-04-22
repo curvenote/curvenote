@@ -11,9 +11,7 @@ import { tic } from 'myst-cli-utils';
 import format from 'date-fns/format';
 import type { JsonObject } from '@curvenote/blocks';
 import type { JobResponse, NewCheckJobPayload, NewCheckJobResults } from './types.js';
-import type { SubmissionDTO, WorkDTO } from '@curvenote/common';
-
-type LogInfo = { id: string; versionId: string; dateCreated: string; versionDateCreated: string };
+import type { SubmissionDTO, SubmissionVersionDTO, WorkDTO } from '@curvenote/common';
 
 export function formatDate(date: string) {
   return format(new Date(date), 'dd MMM, yyyy HH:mm:ss');
@@ -82,7 +80,7 @@ export async function postNewWork(
   cdnKey: string,
   cdn: string,
   key: string,
-): Promise<LogInfo> {
+): Promise<WorkDTO> {
   const toc = tic();
 
   session.log.debug(
@@ -92,20 +90,12 @@ export async function postNewWork(
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as WorkDTO;
-    const { id, version_id, date_created } = json;
-    if (!version_id) {
-      throw new Error('Posting new work failed to create a version');
-    }
+    const { id, version_id } = json;
     session.log.info(toc(`🚀 Created a new work in %s.`));
     session.log.debug(`CDN key: ${cdnKey}`);
     session.log.debug(`Work Id: ${id}`);
     session.log.debug(`Work Version Id: ${version_id}`);
-    return {
-      id: id,
-      versionId: version_id,
-      dateCreated: date_created,
-      versionDateCreated: date_created,
-    };
+    return json;
   } else {
     throw new Error('Posting new work failed');
   }
@@ -113,32 +103,24 @@ export async function postNewWork(
 
 export async function postNewWorkVersion(
   session: ISession,
-  workUrl: string,
+  versionsUrl: string,
   cdnKey: string,
   cdn: string,
-): Promise<LogInfo> {
+): Promise<WorkDTO> {
   const toc = tic();
 
-  session.log.debug(`POST to ${workUrl}/versions with cdnKey: ${cdnKey} and cdn: ${cdn}...`);
-  const resp = await postToUrl(session, `${workUrl}/versions`, { cdn_key: cdnKey, cdn });
+  session.log.debug(`POST to ${versionsUrl} with cdnKey: ${cdnKey} and cdn: ${cdn}...`);
+  const resp = await postToUrl(session, `${versionsUrl}`, { cdn_key: cdnKey, cdn });
   session.log.debug(`${resp.status} ${resp.statusText}`);
 
   if (resp.ok) {
     const json = (await resp.json()) as WorkDTO;
-    const { id, version_id, date_created } = json;
-    if (!version_id) {
-      throw new Error('Updating work failed to create a version');
-    }
+    const { id, version_id } = json;
     session.log.info(toc(`🚀 Created a new work version in %s.`));
     session.log.debug(`CDN key: ${cdnKey}`);
     session.log.debug(`Work Id: ${id}`);
     session.log.debug(`Work Version Id: ${version_id}`);
-    return {
-      id: id,
-      versionId: version_id,
-      dateCreated: date_created,
-      versionDateCreated: date_created,
-    };
+    return json;
   } else {
     throw new Error('Posting new version of the work failed');
   }
@@ -204,7 +186,7 @@ export async function postNewSubmission(
   work_version_id: string,
   draft: boolean,
   job_id: string,
-): Promise<LogInfo> {
+): Promise<SubmissionDTO> {
   const toc = tic();
   const submissionRequest: CreateSubmissionBody = {
     work_version_id,
@@ -221,12 +203,7 @@ export async function postNewSubmission(
     session.log.info(toc(`🚀 Submitted to venue "${venue}" in %s.`));
     session.log.debug(`Submission id: ${json.id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
-    return {
-      id: json.id,
-      versionId: json.versions[0].id,
-      dateCreated: json.date_created,
-      versionDateCreated: json.versions[0].date_created,
-    };
+    return json;
   } else {
     throw new Error('Creating new submission failed');
   }
@@ -235,28 +212,21 @@ export async function postNewSubmission(
 export async function postUpdateSubmissionWorkVersion(
   session: ISession,
   venue: string,
-  submissionUrl: string,
+  versionsUrl: string,
   work_version_id: string,
   job_id: string,
-): Promise<LogInfo> {
+): Promise<SubmissionVersionDTO> {
   const toc = tic();
   const submissionRequest: UpdateSubmissionBody = { work_version_id, job_id };
-  session.log.debug(`POST to ${submissionUrl}...`);
-  const resp = await postToUrl(session, submissionUrl, submissionRequest);
+  session.log.debug(`POST to ${versionsUrl}...`);
+  const resp = await postToUrl(session, versionsUrl, submissionRequest);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
-    const json = (await resp.json()) as SubmissionDTO;
+    const json = (await resp.json()) as SubmissionVersionDTO;
     session.log.info(toc(`🚀 Updated submission accepted by "${venue}" in %s.`));
-    session.log.debug(`Submission id: ${json.id}`);
+    session.log.debug(`Submission id: ${json.submission_id}`);
     session.log.debug(`Submitted by: ${json.submitted_by.name ?? json.submitted_by.id}`);
-    return {
-      id: json.id,
-      // TODO: This sorting feels very fragile
-      // The list is sorted in reverse date order at the moment
-      versionId: json.versions[0].id,
-      dateCreated: json.date_created,
-      versionDateCreated: json.versions[0].date_created,
-    };
+    return json;
   } else {
     throw new Error('Updating submission failed');
   }
