@@ -261,9 +261,6 @@ export async function patchUpdateSubmissionStatus(
       ),
     );
     session.log.debug(`Submission id: ${json.id}`);
-    session.log.debug(
-      `Submission version statuses: ${json.versions.map((v: { status: string }) => v.status)}`,
-    );
   } else {
     throw new Error(`Submission failed to ${action}`);
   }

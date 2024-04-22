@@ -610,9 +610,6 @@ export async function createNewSubmission(
     opts?.draft ?? false,
     jobId,
   );
-  if (submission.versions.length !== 1) {
-    throw new Error('Failed to create a new submission with one version');
-  }
 
   session.log.debug(`new submission posted with id ${submission.id}`);
 
@@ -635,8 +632,8 @@ export async function createNewSubmission(
     date_created: submission.date_created,
   };
   submitLog.submissionVersion = {
-    id: submission.versions[0].id,
-    date_created: submission.versions[0].date_created,
+    id: submission.active_version_id,
+    date_created: submission.date_created,
   };
 }
 
