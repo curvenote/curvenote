@@ -7,12 +7,12 @@ export const collectionsDirective: DirectiveSpec = {
   options: {
     venue: {
       type: String,
-      doc: 'The venue to list articles from.',
+      doc: 'The venue to list collections from.',
       required: true,
     },
-    show: {
+    filter: {
       type: String,
-      doc: 'The status of articles to list (open | closed | all).',
+      doc: 'The status of collections to list (open | closed | all).',
       required: false,
     },
     exclude: {

@@ -20,7 +20,7 @@ export const articlesDirective: DirectiveSpec = {
       doc: 'The status of articles to list (published | in-review).',
       required: false,
     },
-    submission_kind: {
+    'submission-kind': {
       type: String,
       doc: 'The kind of articles to list.',
       required: false,
@@ -28,11 +28,6 @@ export const articlesDirective: DirectiveSpec = {
     layout: {
       type: String,
       doc: 'The layout of the of articles (list | cards).',
-      required: false,
-    },
-    thumbnails: {
-      type: Boolean,
-      doc: 'If set to false, the listing will not show thumbnails.',
       required: false,
     },
     wide: {
@@ -49,6 +44,26 @@ export const articlesDirective: DirectiveSpec = {
       type: String,
       doc: 'If `limit` is set, this gives a hint to the renderer on how to handle pagination (more | all | scroll).',
       required: false,
+    },
+    'show-collection': {
+      type: Boolean,
+      doc: 'If set to true, the listing will show the collection name.',
+      required: false,
+    },
+    'show-kind': {
+      type: Boolean,
+      doc: 'If set to true, the listing will show the kind name.',
+      required: false,
+    },
+    'show-date': {
+      type: Boolean,
+      doc: 'If set to true, the listing will not show the publication date.',
+      required: false,
+    },
+    'show-thumbnails': {
+      type: Boolean,
+      doc: 'If set to true, the listing will not show thumbnails.',
+      required: true,
     },
   },
   validate(data, vfile) {
