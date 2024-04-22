@@ -20,6 +20,11 @@ export const collectionsDirective: DirectiveSpec = {
       doc: 'Collections to ignore, by name and comma separated.',
       required: false,
     },
+    'show-count': {
+      type: Boolean,
+      doc: 'If set to true, the number of items in the collection will be shown.',
+      required: false,
+    },
   },
   validate(data, vfile) {
     if (!data.options?.venue) {
