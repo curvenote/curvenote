@@ -55,12 +55,12 @@ export const articlesDirective: DirectiveSpec = {
       doc: 'If set to true, the listing will show the kind name.',
       required: false,
     },
-    'hide-date': {
+    'show-date': {
       type: Boolean,
       doc: 'If set to true, the listing will not show the publication date.',
       required: false,
     },
-    'hide-thumbnails': {
+    'show-thumbnails': {
       type: Boolean,
       doc: 'If set to true, the listing will not show thumbnails.',
       required: true,
