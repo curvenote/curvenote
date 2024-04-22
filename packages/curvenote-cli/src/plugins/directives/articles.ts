@@ -63,7 +63,12 @@ export const articlesDirective: DirectiveSpec = {
     'show-thumbnails': {
       type: Boolean,
       doc: 'If set to true, the listing will not show thumbnails.',
-      required: true,
+      required: false,
+    },
+    'show-count': {
+      type: Boolean,
+      doc: 'If set to true, the total number of items in the listing will be shown.',
+      required: false,
     },
   },
   validate(data, vfile) {
