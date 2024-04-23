@@ -3,8 +3,8 @@ import type { Block, Project } from '@curvenote/blocks';
 import { CitationStyles, KINDS, ProjectVisibility } from '@curvenote/blocks';
 import { prepareToWrite } from 'myst-cli';
 import type { PageFrontmatter, ProjectFrontmatter } from 'myst-frontmatter';
-import { Session } from '../session';
-import { pageFrontmatterFromDTO, projectFrontmatterFromDTO, saveAffiliations } from './api';
+import { Session } from './session';
+import { pageFrontmatterFromDTO, projectFrontmatterFromDTO, saveAffiliations } from './frontmatter';
 
 const TEST_PROJECT: Project = {
   id: 'id',
@@ -41,6 +41,7 @@ describe('projectFrontmatterFromDTO', () => {
     name: 'name',
     title: 'title',
     description: 'description',
+    id: 'id',
   };
   it('minimal object returns self', async () => {
     expect(projectFrontmatterFromDTO(new Session(), TEST_PROJECT)).toEqual(frontmatter);

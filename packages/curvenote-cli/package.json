@@ -32,8 +32,8 @@
     "dev": "tsc --project ./tsconfig.json --outDir dist --declaration -w --preserveWatchOutput --outDir dist -p .",
     "lint": "npm run copy:version; eslint \"src/**/*.ts\" -c .eslintrc.cjs",
     "lint:format": "npm run copy:version; prettier --check \"src/**/*.ts\"",
-    "test": "npm run copy:version; npm run link; vitest run",
-    "test:watch": "npm run copy:version; npm run link; vitest watch",
+    "test": "npm run copy:version; vitest run",
+    "test:watch": "npm run copy:version; vitest watch",
     "build:esm": "tsc --project ./tsconfig.json --outDir dist --declaration",
     "build": "npm-run-all -l clean copy:version -p build:esm"
   },

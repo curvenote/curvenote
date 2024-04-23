@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import type { Blocks } from '@curvenote/blocks';
 import { OutputSummaryKind } from '@curvenote/blocks';
-import { outputHasHtml, outputHasImage } from '../src/export/utils';
+import { outputHasHtml, outputHasImage } from '../src/sync/pull/utils';
 import type { Version } from '../src/models';
 
 function makeFakeOutputVersion(
