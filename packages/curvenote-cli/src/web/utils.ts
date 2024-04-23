@@ -1,17 +1,7 @@
 import type { ISession } from '../session/types.js';
 import { performFileUploads, prepareUploadRequest } from '../uploads/index.js';
-import { addOxaTransformersToOpts } from '../utils/index.js';
 import { tic } from 'myst-cli-utils';
 import type { SiteDeployRequest, SiteUploadResponse } from '@curvenote/blocks';
-
-export const siteCommandWrapper =
-  (
-    siteCommand: (session: ISession, opts: Record<string, any>) => Promise<any>,
-    defaultOptions: Record<string, any>,
-  ) =>
-  async (session: ISession, opts: Record<string, any>) => {
-    await siteCommand(session, addOxaTransformersToOpts(session, { ...defaultOptions, ...opts }));
-  };
 
 /**
  * Upload content to the (private) staging bucket
