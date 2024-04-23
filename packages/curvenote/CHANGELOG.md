@@ -1,5 +1,18 @@
 # curvenote
 
+## 0.9.0
+
+### Minor Changes
+
+- ca0dcfb: Deprecate export cli, change build cli to match myst
+
+### Patch Changes
+
+- ca0dcfb: Consume shared CLI interfaces from myst
+- ca0dcfb: Remove multi-export functions
+- ca0dcfb: Add --all option to token delete
+- ca0dcfb: Move auth cli command under token
+
 ## 0.8.58
 
 ## 0.8.57
