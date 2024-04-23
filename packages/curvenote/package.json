@@ -36,7 +36,7 @@
     "lint:format": "npm run copy:version; prettier --check \"src/**/*.ts\"",
     "compile": "tsc --noEmit",
     "test:vitest": "npm run link; npm run copy:version; vitest run",
-    "test": "npm-run-all -l copy:version compile test:vitest",
+    "test": "npm-run-all -l build test:vitest",
     "test:watch": "npm run link; npm run copy:version; vitest watch",
     "build:cli": "esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --target=node14",
     "build": "npm-run-all -l clean copy:version -p build:cli"
