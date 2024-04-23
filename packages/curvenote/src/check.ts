@@ -1,7 +1,8 @@
 import { Command } from 'commander';
-import { clirun } from './clirun.js';
+import { makeYesOption } from 'myst-cli';
 import { submissions } from '@curvenote/cli';
-import { makeCollectionOption, makeKindOption, makeYesOption } from './options.js';
+import { clirun } from './clirun.js';
+import { makeCollectionOption, makeKindOption } from './options.js';
 
 export function makeCheckCLI(program: Command) {
   const command = new Command('check')
