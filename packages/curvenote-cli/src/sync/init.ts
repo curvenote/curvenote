@@ -19,12 +19,11 @@ import { docLinks, LOGO } from '../docs.js';
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
 import { interactiveCloneQuestions } from './clone.js';
-import { pullProjects } from './pull.js';
+import { pullProjects } from './pull/project.js';
 import questions from './questions.js';
 import { getDefaultProjectConfig, getDefaultSiteConfig, INIT_LOGO_PATH } from './utils.js';
 import { addOxaTransformersToOpts } from '../utils/utils.js';
 
-// TODO
 const CURVENOTE_YML = 'curvenote.yml';
 
 type Options = {

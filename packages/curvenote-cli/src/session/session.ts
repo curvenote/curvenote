@@ -20,9 +20,9 @@ import type { RuleId } from 'myst-common';
 import { KernelManager, ServerConnection, SessionManager } from '@jupyterlab/services';
 import type { JupyterServerSettings } from 'myst-execute';
 import { findExistingJupyterServer, launchJupyterServer } from 'myst-execute';
+import type { JsonObject } from '@curvenote/blocks';
 import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
-import { checkForClientVersionRejection } from '../utils/index.js';
 import { getHeaders, setSessionOrUserToken } from './tokens.js';
 import type { CurvenotePlugin, ISession, Response, Tokens } from './types.js';
 import version from '../version.js';
@@ -54,6 +54,15 @@ function withQuery(url: string, query: Record<string, string> = {}) {
     .join('&');
   if (params.length === 0) return url;
   return url.indexOf('?') === -1 ? `${url}?${params}` : `${url}&${params}`;
+}
+
+function checkForClientVersionRejection(log: Logger, status: number, body: JsonObject) {
+  if (status === 400) {
+    log.debug(`Request failed: ${JSON.stringify(body)}`);
+    if (body?.errors?.[0].code === 'outdated_client') {
+      log.error('Please run `npm i curvenote@latest` to update your client.');
+    }
+  }
 }
 
 export class Session implements ISession {

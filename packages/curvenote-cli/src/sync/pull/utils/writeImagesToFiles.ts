@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import mime from 'mime-types';
 import type { Blocks } from '@curvenote/blocks';
-import type { Version } from '../../models.js';
-import { Block } from '../../models.js';
-import type { ISession } from '../../session/types.js';
+import type { Version } from '../../../models.js';
+import { Block } from '../../../models.js';
+import type { ISession } from '../../../session/types.js';
 import { getImageSrc } from './getImageSrc.js';
 import type { ArticleState } from './walkArticle.js';
 

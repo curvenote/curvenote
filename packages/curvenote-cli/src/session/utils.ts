@@ -1,8 +1,16 @@
-import { chalkLogger } from 'myst-cli-utils';
-import { getLogLevel } from '../utils/utils.js';
+import { LogLevel, chalkLogger } from 'myst-cli-utils';
 import type { ISession, SessionOpts } from './types.js';
 import { Session } from './session.js';
 import { getTokens } from './auth.js';
+
+/**
+ * Duplicated from myst-cli-utils, where function is not exported
+ */
+function getLogLevel(level: LogLevel | boolean | string = LogLevel.info): LogLevel {
+  if (typeof level === 'number') return level;
+  const useLevel: LogLevel = level ? LogLevel.debug : LogLevel.info;
+  return useLevel;
+}
 
 export function anonSession(opts?: SessionOpts): ISession {
   const logger = chalkLogger(getLogLevel(opts?.debug), process.cwd());

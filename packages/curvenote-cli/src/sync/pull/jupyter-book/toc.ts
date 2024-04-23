@@ -5,9 +5,9 @@ import type { JupyterBookChapter, JupyterBookPart, TOC, TocOptions } from 'myst-
 import { writeFileToFolder } from 'myst-cli-utils';
 import type { Blocks } from '@curvenote/blocks';
 import { NavListItemKindEnum } from '@curvenote/blocks';
-import type { Version } from '../../models.js';
-import { Block } from '../../models.js';
-import type { ISession } from '../../session/types.js';
+import type { Version } from '../../../models.js';
+import { Block } from '../../../models.js';
+import type { ISession } from '../../../session/types.js';
 
 type FolderItem = {
   id: string;

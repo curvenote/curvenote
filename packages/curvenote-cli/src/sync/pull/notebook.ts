@@ -8,12 +8,12 @@ import {
   pageFrontmatterFromDTOAndThumbnail,
   projectFrontmatterFromDTO,
   saveAffiliations,
-} from '../../frontmatter/api.js';
+} from '../../frontmatter.js';
 import { Block, Project, Version } from '../../models.js';
 import type { ISession } from '../../session/types.js';
 import { resolvePath } from '../../utils/index.js';
-import { remoteExportWrapper } from '../utils/remoteExportWrapper.js';
-import { getChildren } from '../utils/getChildren.js';
+import { remoteExportWrapper } from './utils/remoteExportWrapper.js';
+import { getChildren } from './utils/getChildren.js';
 
 export type NotebookExportOptions = {
   path?: string;

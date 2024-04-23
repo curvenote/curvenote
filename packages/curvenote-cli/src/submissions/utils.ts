@@ -5,12 +5,14 @@ import type {
   STATUS_ACTIONS,
   UpdateCliCheckJobPostBody,
   UpdateSubmissionBody,
-} from '../utils/index.js';
+  JobResponse,
+  NewCheckJobPayload,
+  NewCheckJobResults,
+} from './types.js';
 import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
 import format from 'date-fns/format';
 import type { JsonObject } from '@curvenote/blocks';
-import type { JobResponse, NewCheckJobPayload, NewCheckJobResults } from './types.js';
 import type { SubmissionDTO, SubmissionVersionDTO, WorkDTO } from '@curvenote/common';
 
 export function formatDate(date: string) {

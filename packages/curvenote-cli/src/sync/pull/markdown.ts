@@ -11,16 +11,16 @@ import {
   pageFrontmatterFromDTOAndThumbnail,
   projectFrontmatterFromDTO,
   saveAffiliations,
-} from '../../frontmatter/api.js';
+} from '../../frontmatter.js';
 import { Block, Project, Version } from '../../models.js';
 import type { ISession } from '../../session/types.js';
 import { resolvePath } from '../../utils/index.js';
-import { remoteExportWrapper } from '../utils/remoteExportWrapper.js';
-import { getChildren } from '../utils/getChildren.js';
-import { localizationOptions } from '../utils/localizationOptions.js';
-import { walkArticle } from '../utils/walkArticle.js';
-import { writeBibtex } from '../utils/writeBibtex.js';
-import { writeImagesToFiles } from '../utils/writeImagesToFiles.js';
+import { remoteExportWrapper } from './utils/remoteExportWrapper.js';
+import { getChildren } from './utils/getChildren.js';
+import { localizationOptions } from './utils/localizationOptions.js';
+import { walkArticle } from './utils/walkArticle.js';
+import { writeBibtex } from './utils/writeBibtex.js';
+import { writeImagesToFiles } from './utils/writeImagesToFiles.js';
 
 export type MarkdownExportOptions = {
   path?: string;

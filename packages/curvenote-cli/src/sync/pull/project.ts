@@ -2,14 +2,16 @@ import fs from 'node:fs';
 import pLimit from 'p-limit';
 import { join, dirname, basename, extname } from 'node:path';
 import { LogLevel, tic, isDirectory } from 'myst-cli-utils';
-import { projectFrontmatterFromDTO, saveAffiliations } from '../frontmatter/api.js';
 import { config, getRawFrontmatterFromFile, loadConfig, selectors, writeConfigs } from 'myst-cli';
-import { oxaLinkToMarkdown, oxaLinkToNotebook, projectToJupyterBook } from '../export/index.js';
-import { Project } from '../models.js';
-import type { ISession } from '../session/types.js';
-import { confirmOrExit } from '../utils/index.js';
-import { processOption, projectLogString } from './utils.js';
-import type { SyncCiHelperOptions } from './types.js';
+import { projectFrontmatterFromDTO, saveAffiliations } from '../../frontmatter.js';
+import { Project } from '../../models.js';
+import type { ISession } from '../../session/types.js';
+import { confirmOrExit } from '../../utils/index.js';
+import type { SyncCiHelperOptions } from '../types.js';
+import { processOption, projectLogString } from '../utils.js';
+import { projectToJupyterBook } from './jupyter-book/project.js';
+import { oxaLinkToMarkdown } from './markdown.js';
+import { oxaLinkToNotebook } from './notebook.js';
 
 function logWithLevel(session: ISession, msg: string, level?: LogLevel) {
   if (level === LogLevel.info) {

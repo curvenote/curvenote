@@ -1,23 +1,25 @@
-import type { Blocks } from '@curvenote/blocks';
+import type { ProjectId, Blocks } from '@curvenote/blocks';
 import { KINDS, NavListItemKindEnum } from '@curvenote/blocks';
-import type { Version } from '../../models.js';
-import type { ISession } from '../../session/types.js';
-import type { MarkdownExportOptions } from '../markdown/index.js';
-import { articleToMarkdown } from '../markdown/index.js';
-import type { NotebookExportOptions } from '../notebook/index.js';
-import { notebookToIpynb } from '../notebook/index.js';
-import { getBlockAndLatestVersion } from '../utils/getLatest.js';
+import type { Version } from '../../../models.js';
+import { Project } from '../../../models.js';
+import type { ISession } from '../../../session/types.js';
+import type { MarkdownExportOptions } from '../markdown.js';
+import { articleToMarkdown } from '../markdown.js';
+import type { NotebookExportOptions } from '../notebook.js';
+import { notebookToIpynb } from '../notebook.js';
+import { getBlockAndLatestVersion } from '../utils/getBlockAndLatestVersion.js';
 import type { ArticleState } from '../utils/walkArticle.js';
 import { writeBibtex } from '../utils/writeBibtex.js';
+import { writeConfig } from './config.js';
+import { writeTOC } from './toc.js';
 
-export type ExportAllOptions = Omit<MarkdownExportOptions, 'filename' | 'writeBibtex'> &
-  Omit<NotebookExportOptions, 'filename'>;
+type Options = Omit<MarkdownExportOptions, 'filename' | 'writeBibtex'> &
+  Omit<NotebookExportOptions, 'filename'> & {
+    writeConfig?: boolean;
+    ci?: boolean;
+  };
 
-export async function exportAll(
-  session: ISession,
-  nav: Version<Blocks.Navigation>,
-  opts?: ExportAllOptions,
-) {
+async function pullAll(session: ISession, nav: Version<Blocks.Navigation>, opts?: Options) {
   const { bibtex = 'references.bib' } = opts ?? {};
   const blocks = await Promise.all(
     nav.data.items.map((item) => {
@@ -74,4 +76,32 @@ export async function exportAll(
     {} as ArticleState['references'],
   );
   await writeBibtex(session, references, bibtex, { path: opts?.path, alwaysWriteFile: false });
+}
+
+/**
+ * Write jupyterbook from project
+ *
+ * Logs an error if no version of the nav is saved.
+ */
+export async function projectToJupyterBook(session: ISession, projectId: ProjectId, opts: Options) {
+  const [project, { version: nav }] = await Promise.all([
+    new Project(session, projectId).get(),
+    getBlockAndLatestVersion<Blocks.Navigation>(session, { project: projectId, block: 'nav' }),
+  ]);
+  if (!nav) {
+    session.log.error(
+      `Unable to load project navigation "${project.data.name}" - please save any article in your project?`,
+    );
+    return;
+  }
+  if (opts.writeConfig ?? true) {
+    writeConfig(session, {
+      path: opts.path,
+      title: project.data.title,
+      author: project.data.team,
+      url: `${session.SITE_URL}/@${project.data.team}/${project.data.name}`,
+    });
+  }
+  await writeTOC(session, nav, { path: opts.path, ci: opts.ci });
+  await pullAll(session, nav, { bibtex: 'references.bib', ...opts });
 }

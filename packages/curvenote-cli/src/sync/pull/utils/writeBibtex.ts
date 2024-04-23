@@ -1,6 +1,6 @@
 import { writeFileToFolder } from 'myst-cli-utils';
-import type { ISession } from '../../session/types.js';
-import { resolvePath } from '../../utils/index.js';
+import type { ISession } from '../../../session/types.js';
+import { resolvePath } from '../../../utils/index.js';
 import type { ArticleState } from './walkArticle.js';
 
 type Options = {

@@ -13,7 +13,7 @@ import type { ExportResults } from 'myst-cli';
 import type { LinkTransformer } from 'myst-transforms';
 import { OxaTransformer } from './transforms/index.js';
 import type { ISession } from './session/types.js';
-import { oxaLinkToMarkdown } from './export/markdown/index.js';
+import { oxaLinkToMarkdown } from './sync/pull/markdown.js';
 
 export const localExportWrapper =
   (
