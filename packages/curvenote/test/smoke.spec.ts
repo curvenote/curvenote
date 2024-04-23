@@ -10,7 +10,7 @@ describe('CLI Smoke Tests', () => {
     async () => {
       expect.assertions(0);
       try {
-        const { stdout } = await exec('curvenote -v', { cwd: 'tests/example' });
+        const { stdout } = await exec('curvenote -v');
         console.log(stdout);
       } catch (error) {
         console.error(error);
