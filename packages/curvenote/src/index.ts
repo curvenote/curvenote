@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 import 'core-js/actual'; // This adds backwards compatible functionality for various CLIs
 import { Command } from 'commander';
-import { addAuthCLI } from './auth.js';
 import { addCheckCLI } from './check.js';
 import { addCleanCLI } from './clean.js';
-import { addExportCLI } from './export.js';
 import { addSyncCLI } from './sync.js';
 import { addTokenCLI } from './token.js';
 import { addWebCLI } from './web.js';
@@ -15,11 +13,9 @@ import version from './version.js';
 const program = new Command();
 addSyncCLI(program);
 addWebCLI(program);
-addTokenCLI(program);
-addAuthCLI(program);
-addExportCLI(program);
-addCheckCLI(program);
 addCleanCLI(program);
+addTokenCLI(program);
+addCheckCLI(program);
 addWorksCLI(program);
 addSubmitCLI(program);
 addSubmissionCLI(program);

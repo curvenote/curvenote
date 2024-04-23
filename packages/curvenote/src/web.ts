@@ -1,41 +1,34 @@
 import { Command } from 'commander';
+import {
+  makeBuildCommand,
+  makeStartCommand,
+  makeYesOption,
+  makeStrictOption,
+  makeCheckLinksOption,
+  makeExecuteOption,
+} from 'myst-cli';
 import { web } from '@curvenote/cli';
 import { clirun } from './clirun.js';
 import {
   makeCIOption,
   makeForceOption,
-  makeYesOption,
-  makeStrictOption,
-  makeCheckLinksOption,
-  makeKeepHostOption,
-  makeHeadlessOption,
   makeDomainOption,
   makeVenueOption,
-  makeExecuteOption,
   makeResumeOption,
   makeMaxSizeWebpOption,
 } from './options.js';
 
 function makeCurvenoteStartCLI(program: Command) {
-  const command = new Command('start')
-    .description('Start a local project as a web server')
-    .addOption(makeKeepHostOption())
-    .addOption(makeHeadlessOption())
-    .addOption(makeExecuteOption('Execute Notebooks'))
-    .addOption(makeMaxSizeWebpOption())
-    .action(clirun(web.startCurvenoteServer, { program, requireSiteConfig: true }));
+  const command = makeStartCommand().action(
+    clirun(web.curvenoteStart, { program, requireSiteConfig: true }),
+  );
   return command;
 }
 
 function makeBuildCLI(program: Command) {
-  const command = new Command('build')
-    .description('Build MyST site content')
-    .addOption(makeExecuteOption('Execute Notebooks'))
-    .addOption(makeForceOption())
-    .addOption(makeCheckLinksOption())
-    .addOption(makeStrictOption())
-    .addOption(makeMaxSizeWebpOption())
-    .action(clirun(web.buildCurvenoteSite, { program, requireSiteConfig: true }));
+  const command = makeBuildCommand().action(
+    clirun(web.curvenoteBuild, { program, requireSiteConfig: true }),
+  );
   return command;
 }
 
@@ -58,7 +51,7 @@ function makeDeployCLI(program: Command) {
 
 export function addWebCLI(program: Command): void {
   // Top level are `start`, `deploy`, and `build`
-  program.addCommand(makeCurvenoteStartCLI(program));
   program.addCommand(makeBuildCLI(program));
+  program.addCommand(makeCurvenoteStartCLI(program));
   program.addCommand(makeDeployCLI(program));
 }

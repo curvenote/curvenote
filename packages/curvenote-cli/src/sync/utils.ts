@@ -4,10 +4,10 @@ import { v4 as uuid } from 'uuid';
 import type { ProjectConfig, SiteConfig, SiteProject } from 'myst-config';
 import { getGithubUrl } from 'myst-cli';
 import { docLinks } from '../docs.js';
-import { projectIdFromLink } from '../export/index.js';
 import { Project, RemoteSiteConfig } from '../models.js';
 import type { ISession } from '../session/types.js';
 import type { SyncCiHelperOptions } from './types.js';
+import { oxaLinkToId } from '@curvenote/blocks';
 
 export function projectLogString(project: Project) {
   return `"${project.data.title}" (@${project.data.team}/${project.data.name})`;
@@ -50,6 +50,29 @@ export async function getDefaultProjectConfig(title?: string): Promise<ProjectCo
     title: title || 'my-project',
     github,
   };
+}
+
+const knownServices = new Set(['blocks', 'drafts', 'projects']);
+
+export function projectIdFromLink(session: ISession, link: string) {
+  const id = oxaLinkToId(link);
+  if (id) {
+    return id.block.project;
+  }
+  if (link.startsWith('@') && link.split('/').length === 2) {
+    // This is something, maybe, of the form @team/project
+    return link.replace('/', ':');
+  }
+  if (link.startsWith(session.API_URL)) {
+    const [service, project] = link.split('/').slice(3); // https://api.curvenote.com/{service}/{maybeProjectId}
+    if (!knownServices.has(service)) throw new Error('Unknown API URL for project.');
+    return project;
+  }
+  if (link.startsWith(session.SITE_URL)) {
+    const [team, project] = link.split('/').slice(-2);
+    return `${team}:${project}`;
+  }
+  return link;
 }
 
 export async function validateLinkIsAProject(

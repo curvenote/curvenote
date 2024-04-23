@@ -20,7 +20,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "lint": "eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
+    "lint": "eslint \"src/**/!(*.spec).ts\" -c ./.eslintrc.cjs",
     "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\"",
     "test": "vitest run",
     "test:watch": "vitest watch",
@@ -38,12 +38,6 @@
     "simple-validators": "^1.0.1"
   },
   "devDependencies": {
-    "eslint": "^8.21.0",
-    "eslint-config-curvenote": "latest",
-    "moment": "^2.29.4",
-    "prettier": "latest",
-    "rimraf": "^3.0.2",
-    "typescript": "latest",
-    "vitest": "^1.5.0"
+    "moment": "^2.29.4"
   }
 }

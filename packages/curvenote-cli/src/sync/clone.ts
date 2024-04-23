@@ -4,13 +4,13 @@ import inquirer from 'inquirer';
 import { loadConfig, selectors, writeConfigs } from 'myst-cli';
 import { LogLevel } from 'myst-cli-utils';
 import type { ProjectConfig, SiteConfig } from 'myst-config';
-import { projectIdFromLink } from '../export/index.js';
 import type { Project } from '../models.js';
 import type { ISession } from '../session/types.js';
-import { pullProject } from './pull.js';
+import { pullProject } from './pull/project.js';
 import questions from './questions.js';
 import type { SyncCiHelperOptions } from './types.js';
 import {
+  projectIdFromLink,
   getDefaultProjectConfig,
   getDefaultSiteConfigFromRemote,
   processOption,

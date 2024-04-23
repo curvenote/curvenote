@@ -30,10 +30,10 @@
     "clean": "rimraf dist",
     "copy:version": "echo \"const version = '\"$npm_package_version\"';\nexport default version;\" > src/version.ts",
     "dev": "tsc --project ./tsconfig.json --outDir dist --declaration -w --preserveWatchOutput --outDir dist -p .",
-    "lint": "npm run copy:version; eslint \"src/**/*.ts\" -c .eslintrc.cjs",
+    "lint": "npm run copy:version; eslint \"src/**/!(*.spec).ts\" -c .eslintrc.cjs",
     "lint:format": "npm run copy:version; prettier --check \"src/**/*.ts\"",
-    "test": "npm run copy:version; npm run link; vitest run",
-    "test:watch": "npm run copy:version; npm run link; vitest watch",
+    "test": "npm run copy:version; vitest run",
+    "test:watch": "npm run copy:version; vitest watch",
     "build:esm": "tsc --project ./tsconfig.json --outDir dist --declaration",
     "build": "npm-run-all -l clean copy:version -p build:esm"
   },
@@ -113,18 +113,10 @@
     "@types/wordpress__wordcount": "^2.4.2",
     "@types/ws": "^8.5.3",
     "concurrently": "^7.2.2",
-    "esbuild": "^0.15.12",
-    "eslint": "^8.21.0",
-    "eslint-config-curvenote": "latest",
     "memfs": "^3.4.7",
-    "npm-run-all": "^4.1.5",
-    "prettier": "latest",
     "prosemirror-schema-basic": "^1.2.0",
     "prosemirror-test-builder": "^1.1.0",
-    "rimraf": "^3.0.2",
-    "ts-node": "^10.7.0",
-    "typescript": "^4.6.3",
-    "vitest": "^1.5.0"
+    "typescript": "^4.6.3"
   },
   "engines": {
     "node": ">=14"

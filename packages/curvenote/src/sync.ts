@@ -1,11 +1,11 @@
 import { Command } from 'commander';
+import { makeYesOption } from 'myst-cli';
 import { sync } from '@curvenote/cli';
 import { clirun } from './clirun.js';
 import {
   makeBranchOption,
   makeDomainOption,
   makeForceOption,
-  makeYesOption,
   makeWriteTocOption,
   makeCIOption,
 } from './options.js';

@@ -1,4 +1,5 @@
 import { Command, Option } from 'commander';
+import { makeYesOption } from 'myst-cli';
 import { clirun } from './clirun.js';
 import {
   makeDraftOption,
@@ -6,7 +7,6 @@ import {
   makeResumeOption,
   makeMaxSizeWebpOption,
   makeVenueOption,
-  makeYesOption,
   makeCollectionOption,
   makeNewOption,
 } from './options.js';

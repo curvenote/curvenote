@@ -85,6 +85,7 @@ export async function deploy(
     venue?: string;
     forcePublic?: boolean; // not used in CLI, programmatic only
     resume?: boolean;
+    yes?: boolean;
   },
 ): Promise<void> {
   if (session.isAnon) {
