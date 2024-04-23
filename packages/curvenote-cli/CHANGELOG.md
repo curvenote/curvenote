@@ -1,5 +1,19 @@
 # curvenote
 
+## 0.9.0
+
+### Minor Changes
+
+- ca0dcfb: Deprecate export cli, change build cli to match myst
+
+### Patch Changes
+
+- 70eb5dd: Fixes bad required option on cn:articles and adds `show-count` option to both `cn:articles` and `cn:collections`
+- ca0dcfb: Remove multi-export functions
+- ca0dcfb: Reorganize old export commands as part of pull
+- ca0dcfb: Add --all option to token delete
+- ca0dcfb: Move auth cli command under token
+
 ## 0.8.58
 
 ### Patch Changes
