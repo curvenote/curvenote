@@ -368,41 +368,49 @@ export async function checkVenueExists(session: ISession, venue: string) {
   }
 }
 
-export async function checkVenueAccess(session: ISession, venue: string) {
+export async function checkVenueSubmitAccess(session: ISession, venue: string) {
   try {
     const { submit } = (await getFromJournals(session, `sites/${venue}/access`)) as {
       read: boolean;
       submit: boolean;
     };
-    if (submit) {
-      const collections = (await getFromJournals(
-        session,
-        `sites/${venue}/collections`,
-      )) as CollectionListingDTO;
-
-      const openCollections = collections.items.filter((c) => c.open);
-
-      if (openCollections.length === 0) {
-        session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
-        process.exit(1);
-      }
-
-      if (openCollections.length > 1) {
-        session.log.info(
-          `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
-        );
-      } else {
-        session.log.info(
-          `${chalk.green(`💚 venue "${venue}" is accepting submissions (${collectionMoniker(openCollections[0])}).`)}`,
-        );
-      }
-      return collections;
-    } else {
-      session.log.debug('You do not have permission to submit to this venue.');
-      throw new Error('You do not have permission to submit to this venue.');
-    }
+    if (submit) return true;
+    session.log.debug('You do not have permission to submit to this venue.');
+    throw new Error('You do not have permission to submit to this venue.');
   } catch (err) {
     session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
+    process.exit(1);
+  }
+}
+
+export async function getVenueCollections(session: ISession, venue: string) {
+  try {
+    const collections = (await getFromJournals(
+      session,
+      `sites/${venue}/collections`,
+    )) as CollectionListingDTO;
+
+    const openCollections = collections.items.filter((c) => c.open);
+
+    if (openCollections.length === 0) {
+      session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
+      process.exit(1);
+    }
+
+    if (openCollections.length > 1) {
+      session.log.info(
+        `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+      );
+    } else {
+      session.log.info(
+        `${chalk.green(`💚 venue "${venue}" is accepting submissions (${collectionMoniker(openCollections[0])}).`)}`,
+      );
+    }
+    return collections;
+  } catch (err) {
+    session.log.info(
+      `${chalk.red(`🚦 venue "${venue}" is unavailable; make sure the name is correct and you have permission to access`)}`,
+    );
     process.exit(1);
   }
 }
