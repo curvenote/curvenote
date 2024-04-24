@@ -27,7 +27,7 @@ import { getHeaders, setSessionOrUserToken } from './tokens.js';
 import type { CurvenotePlugin, ISession, Response, Tokens } from './types.js';
 import version from '../version.js';
 import { loadProjectPlugins } from './plugins.js';
-import builtInPlugins from '../plugins/index.js';
+import builtInPlugin from '@curvenote/cli-plugin';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
@@ -212,7 +212,7 @@ export class Session implements ISession {
     if (this._pluginPromise) return this._pluginPromise;
     this._pluginPromise = loadProjectPlugins(this);
     this.plugins = await this._pluginPromise;
-    const { directives, roles, transforms } = builtInPlugins;
+    const { directives, roles, transforms } = builtInPlugin;
     this.plugins = {
       ...this.plugins,
       directives: [...this.plugins.directives, ...directives],

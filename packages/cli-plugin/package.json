@@ -1,0 +1,46 @@
+{
+  "name": "@curvenote/cli-plugin",
+  "version": "0.9.0",
+  "description": "MyST Plugins for Curvenote",
+  "author": "Steve Purves <steve@curvenote.com>",
+  "license": "MIT",
+  "keywords": [
+    "markdown",
+    "myst-markdown",
+    "plugin",
+    "writing-software",
+    "scientific-visualization",
+    "science-research"
+  ],
+  "type": "module",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/curvenote/curvenote.git"
+  },
+  "bugs": {
+    "url": "https://github.com/curvenote/curvenote/issues"
+  },
+  "homepage": "https://github.com/curvenote/curvenote",
+  "scripts": {
+    "clean": "rimraf dist",
+    "dev": "tsc --project ./tsconfig.json --outDir dist --declaration -w --preserveWatchOutput --outDir dist -p .",
+    "lint": "eslint \"src/**/!(*.spec).ts\" -c .eslintrc.cjs",
+    "lint:format": "prettier --check \"src/**/*.ts\"",
+    "test": "npm run link; vitest run",
+    "test:watch": "npm run link; vitest watch",
+    "build:esm": "tsc --project ./tsconfig.json --outDir dist --declaration",
+    "build": "npm-run-all -l clean -p build:esm"
+  },
+  "dependencies": {
+    "myst-common": "^1.3.0",
+    "vfile": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
