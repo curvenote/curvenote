@@ -6,6 +6,6 @@
 
 ## Overview
 
-`@curvenote/plugin` is a MyST plugin for the Curvenote platform providing custom directives, roles, transforms and renderers.
+`@curvenote/plugin` is a plugin for the Curvenote CLI providing custom directives, roles, transforms and renderers for pubkicaitons on the Curvenote platform.
 
 Read the Curvenote [documentation](https://docs.curvenote.com/)
