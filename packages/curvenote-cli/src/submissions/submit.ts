@@ -6,7 +6,6 @@ import { postNewCliCheckJob, patchUpdateCliCheckJob, exitOnInvalidKeyOption } fr
 import {
   ensureVenue,
   checkVenueExists,
-  checkVenueAccess,
   performCleanRebuild,
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
@@ -17,6 +16,8 @@ import {
   promptForNewKey,
   getAllSubmissionsUsingKey,
   getSubmissionToUpdate,
+  checkVenueSubmitAccess,
+  getVenueCollections,
 } from './submit.utils.js';
 import { submissionRuleChecks } from '@curvenote/check-implementations';
 import type { CompiledCheckResults } from '../check/index.js';
@@ -52,7 +53,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
 
   venue = await ensureVenue(session, venue, opts);
   await checkVenueExists(session, venue);
-  const collections = await checkVenueAccess(session, venue);
+  await checkVenueSubmitAccess(session, venue);
+  const collections = await getVenueCollections(session, venue);
 
   let key = workKeyFromConfig(session);
   // Deprecation step to handle old transfer.yml files

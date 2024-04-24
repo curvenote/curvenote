@@ -5,7 +5,11 @@ import { writeJsonLogs } from '../utils/utils.js';
 import type { ISession } from '../session/types.js';
 import type { SubmissionKindDTO } from '@curvenote/common';
 import type { Check } from '@curvenote/check-definitions';
-import { checkVenueAccess, checkVenueExists, determineCollectionAndKind } from './submit.utils.js';
+import {
+  checkVenueExists,
+  determineCollectionAndKind,
+  getVenueCollections,
+} from './submit.utils.js';
 
 //
 // get checks
@@ -39,7 +43,7 @@ function getCheckImplementations(session: ISession) {
 async function getChecks(session: ISession, opts: CheckOpts): Promise<Check[]> {
   if (opts.venue) {
     await checkVenueExists(session, opts.venue);
-    const collections = await checkVenueAccess(session, opts.venue);
+    const collections = await getVenueCollections(session, opts.venue);
     const { kind } = await determineCollectionAndKind(session, opts.venue, collections, {
       ...opts,
       allowClosedCollection: true,
