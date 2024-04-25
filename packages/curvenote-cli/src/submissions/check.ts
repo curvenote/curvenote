@@ -12,7 +12,7 @@ import {
   getSubmissionKind,
   getVenueCollections,
 } from './submit.utils.js';
-import { determineKind } from './kind.utils.js';
+import { determineKindFromVenue } from './kind.utils.js';
 
 /**
  * Return list of checks from `kind` object and print log message
@@ -67,6 +67,7 @@ async function getChecks(session: ISession, opts: CheckOpts): Promise<Check[]> {
     await checkVenueExists(session, opts.venue);
     const collections = await getVenueCollections(session, opts.venue, false);
     let kind: SubmissionKindDTO;
+    let prompted = false;
     if (opts.kind) {
       try {
         kind = await getSubmissionKind(session, opts.venue, opts.kind);
@@ -99,12 +100,20 @@ async function getChecks(session: ISession, opts: CheckOpts): Promise<Check[]> {
         allowClosedCollection: true,
       });
       kind = result.kind;
+      prompted = result.prompted || prompted;
     } else {
-      kind = await determineKind(session, opts.venue, collections, opts);
+      const result = await determineKindFromVenue(session, opts.venue, collections, opts);
+      kind = result.kind;
+      prompted = result.prompted || prompted;
     }
     session.log.info(
-      `${chalk.green(`Running checks against kind "${kind.name}" from venue "${opts.venue}"`)}`,
+      `${chalk.green(`🏃‍♂️ Running checks against kind "${kind.name}" from venue "${opts.venue}"`)}`,
     );
+    if (prompted) {
+      session.log.info(
+        `${chalk.bold.green(`👉 You may rerun these same checks with: \`curvenote check ${opts.venue} --kind ${kind.name}\``)}`,
+      );
+    }
     return prepareChecksForSubmission(session, opts.venue, kind);
   }
   session.log.warn('No venue provided, running basic submission checks');

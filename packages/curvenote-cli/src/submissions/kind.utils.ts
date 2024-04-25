@@ -46,12 +46,12 @@ function collectionsWithKind(kindId: string, collections: CollectionListingDTO) 
  * This function also takes `collections`. These have no effect on the `kind` determination,
  * but they can improve messaging during interactive selection.
  */
-export async function determineKind(
+export async function determineKindFromVenue(
   session: ISession,
   venue: string,
   collections?: CollectionListingDTO,
   opts?: { yes?: boolean },
-) {
+): Promise<{ kind: SubmissionKindDTO; prompted?: boolean }> {
   let kinds: SubmissionKindDTO[];
   try {
     const resp = await listSubmissionKinds(session, venue);
@@ -66,13 +66,13 @@ export async function determineKind(
   }
   if (kinds.length === 1) {
     session.log.debug(`using only available kind ${kinds[0].name}`);
-    return kinds[0];
+    return { kind: kinds[0] };
   }
   if (opts?.yes) {
-    const defaultKind = kinds.find((k) => k.default) ?? (kinds.length === 1 ? kinds[0] : undefined);
+    const defaultKind = kinds.find((k) => k.default);
     if (defaultKind) {
       session.log.debug(`using default kind ${defaultKind.name}`);
-      return defaultKind;
+      return { kind: defaultKind };
     }
     session.log.info(`${chalk.red(`⛔️ kind must be specified for venue "${venue}"`)}`);
     process.exit(1);
@@ -97,5 +97,5 @@ export async function determineKind(
       }),
     },
   ]);
-  return response.kind;
+  return { kind: response.kind, prompted: true };
 }

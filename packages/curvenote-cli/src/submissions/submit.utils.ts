@@ -85,12 +85,31 @@ export function venueQuestion(session: ISession) {
   };
 }
 
+/**
+ * Choose and return a collection and kind based on venue
+ *
+ * By default, this function only looks at open collections; however, if
+ * `opts.allowClosedCollection` is `true`, the "open" requirement is removed.
+ *
+ * First `collection` must be determined; successful cases include:
+ * - `collection` is provided, valid, and "open"
+ * - `venue` has a single, "open" `collection`
+ * - `opts.yes` is `true` and the `venue` has a default, "open" `collection`
+ * - user interactively selects one of the available `collections` on the `venue`
+ *
+ * On failure, this function will `process.exit(1)`. Failure cases include:
+ * - No "open" collections
+ * - Provided `collection` is invalid or not "open"
+ * - `opts.yes` is `true` but there is no default, "open" `collection`
+ *
+ * After determining `collection`, `kind` is chosen using `determineKindFromCollection`.
+ */
 export async function determineCollectionAndKind(
   session: ISession,
   venue: string,
   collections: CollectionListingDTO,
   opts?: { kind?: string; collection?: string; yes?: boolean; allowClosedCollection?: boolean },
-) {
+): Promise<{ collection: CollectionDTO; kind: SubmissionKindDTO; prompted?: boolean }> {
   const openCollections = [
     ...collections.items.filter((c) => c.open && c.default),
     ...collections.items.filter((c) => c.open && !c.default),
@@ -130,15 +149,13 @@ export async function determineCollectionAndKind(
       }
     }
   }
+  let prompted = false;
   if (!selectedCollection) {
     const defaultCollection = collections.items.find((c) => c.default);
     if (defaultCollection && !defaultCollection.open) {
       session.log.info(
         `${chalk.red(`🗂  default collection "${defaultCollection.name}" is not open for submissions at venue "${venue}"`)}`,
       );
-      if (!opts?.allowClosedCollection && opts?.yes) {
-        throw new Error(`⛔️ collection must be specified to continue submission`);
-      }
     }
     if (!opts?.allowClosedCollection && openCollections.length === 1) {
       selectedCollection = openCollections[0];
@@ -151,7 +168,8 @@ export async function determineCollectionAndKind(
     ) {
       selectedCollection = defaultCollection;
     } else if (opts?.yes) {
-      throw new Error(`⛔️ collection must be specified to continue submission`);
+      session.log.info(`${chalk.red(`⛔️ collection must be specified to continue submission`)}`);
+      process.exit(1);
     } else {
       const response = await inquirer.prompt([
         collectionQuestions(
@@ -160,24 +178,19 @@ export async function determineCollectionAndKind(
           opts,
         ),
       ]);
-      selectedCollection = response.collections;
+      selectedCollection = response.collections as CollectionDTO;
+      prompted = true;
     }
-  }
-
-  if (!selectedCollection) {
-    session.log.info(`${chalk.red(`⛔️ could not determine the collection to submit to`)}`);
-    process.exit(1);
   }
   session.log.info(`🗂  Collection ${collectionMoniker(selectedCollection)} selected`);
 
-  const kind = await determineSubmissionKindFromCollection(
-    session,
-    venue,
-    selectedCollection,
-    opts,
-  );
+  const results = await determineKindFromCollection(session, venue, selectedCollection, opts);
 
-  return { collection: selectedCollection, kind };
+  return {
+    collection: selectedCollection,
+    kind: results.kind,
+    prompted: results.prompted || prompted,
+  };
 }
 
 /**
@@ -191,15 +204,30 @@ export async function getSubmissionKind(
   return getFromJournals(session, `sites/${venue}/kinds/${kindIdOrName}`);
 }
 
-export async function determineSubmissionKindFromCollection(
+/**
+ * Choose and return one kind based on venue and collection
+ *
+ * Successful cases include:
+ * - `kind` is provided and available on the `collection`
+ * - `collection` with a single `kind`, which is returned
+ * - `opts.yes` is `true` and the `collection` has a default `kind`, which is returned
+ * - user interactively selects one of the available `kinds` on the `collection`
+ *
+ * On failure, this function will `process.exit(1)`. Failure cases include:
+ * - Invalid `kind` is provided
+ * - `opts.yes` is `true` but there is no default `kind`
+ * - API fetch for selected kind fails (user is not authorized, venue does not exist, etc)
+ */
+export async function determineKindFromCollection(
   session: ISession,
   venue: string,
   collection: CollectionDTO,
   opts?: { kind?: string; yes?: boolean },
-) {
+): Promise<{ kind: SubmissionKindDTO; prompted?: boolean }> {
   const kinds = collection.kinds;
 
-  let kindId;
+  let kindId: string;
+  let prompted = false;
   if (opts?.kind) {
     const match = kinds.find(
       ({ name }: { name: string }) => name.toLowerCase() === opts.kind?.toLowerCase(),
@@ -220,10 +248,18 @@ export async function determineSubmissionKindFromCollection(
     kindId = kinds[0].id;
     session.log.debug(`kindId from only kind`);
   } else if (opts?.yes) {
-    throw new Error(`⛔️ kind must be specified to continue submission`);
+    const defaultKind = kinds.find((k) => k.default);
+    if (defaultKind) {
+      session.log.debug(`kindId from default kind`);
+      kindId = defaultKind.id;
+    } else {
+      session.log.info(`${chalk.red(`⛔️ kind must be specified to continue submission`)}`);
+      process.exit(1);
+    }
   } else {
     const response = await inquirer.prompt([kindQuestions(kinds)]);
     kindId = response.kinds;
+    prompted = true;
     session.log.debug(`kindId from prompt`);
   }
   session.log.debug(`kindId: ${kindId}`);
@@ -239,7 +275,7 @@ export async function determineSubmissionKindFromCollection(
     process.exit(1);
   }
 
-  return kind;
+  return { kind, prompted };
 }
 
 export async function performCleanRebuild(session: ISession, opts?: SubmitOpts) {
