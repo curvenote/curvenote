@@ -25,7 +25,6 @@ import type {
   CollectionDTO,
   CollectionListingDTO,
   SubmissionKindDTO,
-  SubmissionKindListingDTO,
   SubmissionsListItemDTO,
   SubmissionsListingDTO,
   WorkDTO,
@@ -58,7 +57,7 @@ export function collectionQuestions(
   return {
     name: 'collections',
     type: 'list',
-    message: `Venue ${venue} has multiple collections${opts?.allowClosedCollection ? '' : 'open for submission'}. Which do you want to select?`,
+    message: `Venue ${venue} has multiple collections${opts?.allowClosedCollection ? '' : ' open for submission'}. Which do you want to select?`,
     choices: collections.map((item) => ({
       name: collectionMoniker(item),
       value: item,
@@ -86,12 +85,31 @@ export function venueQuestion(session: ISession) {
   };
 }
 
+/**
+ * Choose and return a collection and kind based on venue
+ *
+ * By default, this function only looks at open collections; however, if
+ * `opts.allowClosedCollection` is `true`, the "open" requirement is removed.
+ *
+ * First `collection` must be determined; successful cases include:
+ * - `collection` is provided, valid, and "open"
+ * - `venue` has a single, "open" `collection`
+ * - `opts.yes` is `true` and the `venue` has a default, "open" `collection`
+ * - user interactively selects one of the available `collections` on the `venue`
+ *
+ * On failure, this function will `process.exit(1)`. Failure cases include:
+ * - No "open" collections
+ * - Provided `collection` is invalid or not "open"
+ * - `opts.yes` is `true` but there is no default, "open" `collection`
+ *
+ * After determining `collection`, `kind` is chosen using `determineKindFromCollection`.
+ */
 export async function determineCollectionAndKind(
   session: ISession,
   venue: string,
   collections: CollectionListingDTO,
   opts?: { kind?: string; collection?: string; yes?: boolean; allowClosedCollection?: boolean },
-) {
+): Promise<{ collection: CollectionDTO; kind: SubmissionKindDTO; prompted?: boolean }> {
   const openCollections = [
     ...collections.items.filter((c) => c.open && c.default),
     ...collections.items.filter((c) => c.open && !c.default),
@@ -131,15 +149,13 @@ export async function determineCollectionAndKind(
       }
     }
   }
+  let prompted = false;
   if (!selectedCollection) {
     const defaultCollection = collections.items.find((c) => c.default);
     if (defaultCollection && !defaultCollection.open) {
       session.log.info(
         `${chalk.red(`🗂  default collection "${defaultCollection.name}" is not open for submissions at venue "${venue}"`)}`,
       );
-      if (!opts?.allowClosedCollection && opts?.yes) {
-        throw new Error(`⛔️ collection must be specified to continue submission`);
-      }
     }
     if (!opts?.allowClosedCollection && openCollections.length === 1) {
       selectedCollection = openCollections[0];
@@ -152,7 +168,8 @@ export async function determineCollectionAndKind(
     ) {
       selectedCollection = defaultCollection;
     } else if (opts?.yes) {
-      throw new Error(`⛔️ collection must be specified to continue submission`);
+      session.log.info(`${chalk.red(`⛔️ collection must be specified to continue submission`)}`);
+      process.exit(1);
     } else {
       const response = await inquirer.prompt([
         collectionQuestions(
@@ -161,52 +178,56 @@ export async function determineCollectionAndKind(
           opts,
         ),
       ]);
-      selectedCollection = response.collections;
+      selectedCollection = response.collections as CollectionDTO;
+      prompted = true;
     }
-  }
-
-  if (!selectedCollection) {
-    session.log.info(`${chalk.red(`⛔️ could not determine the collection to submit to`)}`);
-    process.exit(1);
   }
   session.log.info(`🗂  Collection ${collectionMoniker(selectedCollection)} selected`);
 
-  const kind = await determineSubmissionKindFromCollection(
-    session,
-    venue,
-    selectedCollection,
-    opts,
-  );
+  const results = await determineKindFromCollection(session, venue, selectedCollection, opts);
 
-  return { collection: selectedCollection, kind };
+  return {
+    collection: selectedCollection,
+    kind: results.kind,
+    prompted: results.prompted || prompted,
+  };
 }
 
+/**
+ * Fetch a single `venue` kind from API
+ */
 export async function getSubmissionKind(
   session: ISession,
   venue: string,
   kindIdOrName: string,
 ): Promise<SubmissionKindDTO> {
-  const kind = await getFromJournals(session, `sites/${venue}/kinds/${kindIdOrName}`);
-  if (!kind) throw new Error('kind not found');
-  return kind;
+  return getFromJournals(session, `sites/${venue}/kinds/${kindIdOrName}`);
 }
 
-export async function listSubmissionKinds(
-  session: ISession,
-  venue: string,
-): Promise<SubmissionKindListingDTO> {
-  return getFromJournals(session, `sites/${venue}/kinds`);
-}
-
-export async function determineSubmissionKindFromCollection(
+/**
+ * Choose and return one kind based on venue and collection
+ *
+ * Successful cases include:
+ * - `kind` is provided and available on the `collection`
+ * - `collection` with a single `kind`, which is returned
+ * - `opts.yes` is `true` and the `collection` has a default `kind`, which is returned
+ * - user interactively selects one of the available `kinds` on the `collection`
+ *
+ * On failure, this function will `process.exit(1)`. Failure cases include:
+ * - Invalid `kind` is provided
+ * - `opts.yes` is `true` but there is no default `kind`
+ * - API fetch for selected kind fails (user is not authorized, venue does not exist, etc)
+ */
+export async function determineKindFromCollection(
   session: ISession,
   venue: string,
   collection: CollectionDTO,
   opts?: { kind?: string; yes?: boolean },
-) {
+): Promise<{ kind: SubmissionKindDTO; prompted?: boolean }> {
   const kinds = collection.kinds;
 
-  let kindId;
+  let kindId: string;
+  let prompted = false;
   if (opts?.kind) {
     const match = kinds.find(
       ({ name }: { name: string }) => name.toLowerCase() === opts.kind?.toLowerCase(),
@@ -227,10 +248,18 @@ export async function determineSubmissionKindFromCollection(
     kindId = kinds[0].id;
     session.log.debug(`kindId from only kind`);
   } else if (opts?.yes) {
-    throw new Error(`⛔️ kind must be specified to continue submission`);
+    const defaultKind = kinds.find((k) => k.default);
+    if (defaultKind) {
+      session.log.debug(`kindId from default kind`);
+      kindId = defaultKind.id;
+    } else {
+      session.log.info(`${chalk.red(`⛔️ kind must be specified to continue submission`)}`);
+      process.exit(1);
+    }
   } else {
     const response = await inquirer.prompt([kindQuestions(kinds)]);
     kindId = response.kinds;
+    prompted = true;
     session.log.debug(`kindId from prompt`);
   }
   session.log.debug(`kindId: ${kindId}`);
@@ -246,7 +275,7 @@ export async function determineSubmissionKindFromCollection(
     process.exit(1);
   }
 
-  return kind;
+  return { kind, prompted };
 }
 
 export async function performCleanRebuild(session: ISession, opts?: SubmitOpts) {
@@ -356,6 +385,11 @@ export async function promptForNewKey(
   return customKey;
 }
 
+/**
+ * Ensure that a `venue` exists by performing a basic request to the venue
+ *
+ * If venue does not exist, fails with `process.exit(1)`.
+ */
 export async function checkVenueExists(session: ISession, venue: string) {
   try {
     session.log.debug(`GET from journals API sites/${venue}`);
@@ -383,36 +417,55 @@ export async function checkVenueSubmitAccess(session: ISession, venue: string) {
   }
 }
 
-export async function getVenueCollections(session: ISession, venue: string) {
+/**
+ * Fetch `venue` collections from API
+ */
+export async function listCollections(
+  session: ISession,
+  venue: string,
+): Promise<CollectionListingDTO> {
+  return getFromJournals(session, `sites/${venue}/collections`);
+}
+
+/**
+ * Get collections from `venue` and log information about open collections
+ *
+ * This will fail with `process.exit(1)` if the fetch for venue collections fails.
+ * By default, it also fails if there are no open collections.
+ *
+ * If `requireOpenCollections` is false, this function will not fail if there are
+ * only closed collections or no collections at all.
+ */
+export async function getVenueCollections(
+  session: ISession,
+  venue: string,
+  requireOpenCollections = true,
+) {
+  let collections: CollectionListingDTO;
   try {
-    const collections = (await getFromJournals(
-      session,
-      `sites/${venue}/collections`,
-    )) as CollectionListingDTO;
-
-    const openCollections = collections.items.filter((c) => c.open);
-
-    if (openCollections.length === 0) {
-      session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
-      process.exit(1);
-    }
-
-    if (openCollections.length > 1) {
-      session.log.info(
-        `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
-      );
-    } else {
-      session.log.info(
-        `${chalk.green(`💚 venue "${venue}" is accepting submissions (${collectionMoniker(openCollections[0])}).`)}`,
-      );
-    }
-    return collections;
+    collections = await listCollections(session, venue);
   } catch (err) {
     session.log.info(
       `${chalk.red(`🚦 venue "${venue}" is unavailable; make sure the name is correct and you have permission to access`)}`,
     );
     process.exit(1);
   }
+
+  const openCollections = collections.items.filter((c) => c.open);
+
+  if (openCollections.length === 0) {
+    session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
+    if (requireOpenCollections) process.exit(1);
+  } else if (openCollections.length > 1) {
+    session.log.info(
+      `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+    );
+  } else {
+    session.log.info(
+      `${chalk.green(`💚 venue "${venue}" is accepting submissions (${collectionMoniker(openCollections[0])}).`)}`,
+    );
+  }
+  return collections;
 }
 
 export async function checkForSubmissionKeyInUse(session: ISession, venue: string, key: string) {

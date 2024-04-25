@@ -19,6 +19,12 @@ export function formatDate(date: string) {
   return format(new Date(date), 'dd MMM, yyyy HH:mm:ss');
 }
 
+/**
+ * Perform json GET request to `url`
+ *
+ * If request is successful, return the response json.
+ * If request fails, throw an error.
+ */
 export async function getFromUrl(session: ISession, url: string) {
   session.log.debug('Getting from', url);
   const headers = await getHeaders(session, (session as any).$tokens);
@@ -41,10 +47,15 @@ export async function getFromUrl(session: ISession, url: string) {
   }
 }
 
+/**
+ * Perform json GET request to `pathname` on the journals API
+ *
+ * If request is successful, return the response json.
+ * If request fails, throw an error.
+ */
 export async function getFromJournals(session: ISession, pathname: string) {
   const url = `${session.JOURNALS_URL}${pathname}`;
-  const resp = await getFromUrl(session, url);
-  return resp;
+  return getFromUrl(session, url);
 }
 
 export async function postToUrl(
