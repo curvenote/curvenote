@@ -57,7 +57,7 @@ export function collectionQuestions(
   return {
     name: 'collections',
     type: 'list',
-    message: `Venue ${venue} has multiple collections${opts?.allowClosedCollection ? '' : 'open for submission'}. Which do you want to select?`,
+    message: `Venue ${venue} has multiple collections${opts?.allowClosedCollection ? '' : ' open for submission'}. Which do you want to select?`,
     choices: collections.map((item) => ({
       name: collectionMoniker(item),
       value: item,
@@ -180,14 +180,15 @@ export async function determineCollectionAndKind(
   return { collection: selectedCollection, kind };
 }
 
+/**
+ * Fetch a single `venue` kind from API
+ */
 export async function getSubmissionKind(
   session: ISession,
   venue: string,
   kindIdOrName: string,
 ): Promise<SubmissionKindDTO> {
-  const kind = await getFromJournals(session, `sites/${venue}/kinds/${kindIdOrName}`);
-  if (!kind) throw new Error('kind not found');
-  return kind;
+  return getFromJournals(session, `sites/${venue}/kinds/${kindIdOrName}`);
 }
 
 export async function determineSubmissionKindFromCollection(
@@ -409,21 +410,21 @@ export async function getVenueCollections(
     process.exit(1);
   }
 
-    const openCollections = collections.items.filter((c) => c.open);
+  const openCollections = collections.items.filter((c) => c.open);
 
-    if (openCollections.length === 0) {
-      session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
+  if (openCollections.length === 0) {
+    session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
     if (requireOpenCollections) process.exit(1);
   } else if (openCollections.length > 1) {
-      session.log.info(
-        `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
-      );
-    } else {
-      session.log.info(
-        `${chalk.green(`💚 venue "${venue}" is accepting submissions (${collectionMoniker(openCollections[0])}).`)}`,
-      );
-    }
-    return collections;
+    session.log.info(
+      `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+    );
+  } else {
+    session.log.info(
+      `${chalk.green(`💚 venue "${venue}" is accepting submissions (${collectionMoniker(openCollections[0])}).`)}`,
+    );
+  }
+  return collections;
 }
 
 export async function checkForSubmissionKeyInUse(session: ISession, venue: string, key: string) {
