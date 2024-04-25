@@ -14,10 +14,11 @@ function decodeAndValidateToken(
   }
   const timeLeft = (decoded.exp as number) * 1000 - Date.now();
   if (!decoded.ignoreExpiration && timeLeft < 0) {
-    if (throwErrors)
+    if (throwErrors) {
       throw new Error(
         'The API token has expired. You can remove your token using: `curvenote token remove`',
       );
+    }
     return { decoded, expired: true };
   }
   if (!decoded.ignoreExpiration && timeLeft < 5 * 60 * 1000) {
