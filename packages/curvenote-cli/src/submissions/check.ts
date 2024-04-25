@@ -111,7 +111,7 @@ async function getChecks(session: ISession, opts: CheckOpts): Promise<Check[]> {
     );
     if (prompted) {
       session.log.info(
-        `${chalk.bold.green(`👉 You may rerun these same checks with: \`curvenote check ${opts.venue} --kind ${kind.name}\``)}`,
+        `${chalk.bold.green(`👉 You may run these same checks again with: \`curvenote check ${opts.venue} --kind ${kind.name}\``)}`,
       );
     }
     return prepareChecksForSubmission(session, opts.venue, kind);
