@@ -25,7 +25,6 @@ import type {
   CollectionDTO,
   CollectionListingDTO,
   SubmissionKindDTO,
-  SubmissionKindListingDTO,
   SubmissionsListItemDTO,
   SubmissionsListingDTO,
   WorkDTO,
@@ -376,21 +375,46 @@ export async function checkVenueSubmitAccess(session: ISession, venue: string) {
   }
 }
 
-export async function getVenueCollections(session: ISession, venue: string) {
+/**
+ * Fetch `venue` collections from API
+ */
+export async function listCollections(
+  session: ISession,
+  venue: string,
+): Promise<CollectionListingDTO> {
+  return getFromJournals(session, `sites/${venue}/collections`);
+}
+
+/**
+ * Get collections from `venue` and log information about open collections
+ *
+ * This will fail with `process.exit(1)` if the fetch for venue collections fails.
+ * By default, it also fails if there are no open collections.
+ *
+ * If `requireOpenCollections` is false, this function will not fail if there are
+ * only closed collections or no collections at all.
+ */
+export async function getVenueCollections(
+  session: ISession,
+  venue: string,
+  requireOpenCollections = true,
+) {
+  let collections: CollectionListingDTO;
   try {
-    const collections = (await getFromJournals(
-      session,
-      `sites/${venue}/collections`,
-    )) as CollectionListingDTO;
+    collections = await listCollections(session, venue);
+  } catch (err) {
+    session.log.info(
+      `${chalk.red(`🚦 venue "${venue}" is unavailable; make sure the name is correct and you have permission to access`)}`,
+    );
+    process.exit(1);
+  }
 
     const openCollections = collections.items.filter((c) => c.open);
 
     if (openCollections.length === 0) {
       session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
-      process.exit(1);
-    }
-
-    if (openCollections.length > 1) {
+    if (requireOpenCollections) process.exit(1);
+  } else if (openCollections.length > 1) {
       session.log.info(
         `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
       );
@@ -400,12 +424,6 @@ export async function getVenueCollections(session: ISession, venue: string) {
       );
     }
     return collections;
-  } catch (err) {
-    session.log.info(
-      `${chalk.red(`🚦 venue "${venue}" is unavailable; make sure the name is correct and you have permission to access`)}`,
-    );
-    process.exit(1);
-  }
 }
 
 export async function checkForSubmissionKeyInUse(session: ISession, venue: string, key: string) {
