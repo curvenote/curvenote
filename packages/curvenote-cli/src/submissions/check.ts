@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { submissionRuleChecks } from '@curvenote/check-implementations';
 import { build } from 'myst-cli';
 import { logCheckReport, runChecks } from '../check/runner.js';
@@ -8,12 +9,14 @@ import type { Check } from '@curvenote/check-definitions';
 import {
   checkVenueExists,
   determineCollectionAndKind,
+  getSubmissionKind,
   getVenueCollections,
 } from './submit.utils.js';
+import { determineKind } from './kind.utils.js';
 
-//
-// get checks
-//
+/**
+ * Return list of checks from `kind` object and print log message
+ */
 export function prepareChecksForSubmission(
   session: ISession,
   venue: string,
@@ -36,18 +39,72 @@ type CheckOpts = {
   yes?: boolean;
 };
 
+/**
+ * Combine available checks from @curvenote/check-implementations and local plugins
+ */
 function getCheckImplementations(session: ISession) {
   return [...submissionRuleChecks, ...(session.plugins?.checks ?? [])];
 }
 
+/**
+ * Get checks to run based on venue and other optional inputs
+ *
+ * If no `venue` is supplied, this just returns a default list of checks.
+ *
+ * If `venue` is supplied, this only needs a valid `kind` to get checks;
+ * `kind` may be provided explicitly or selected interactively.
+ *
+ * This function also accepts `collection`. In this case, if `kind` is not provided,
+ * the interactive selection will only present the collection's kinds.
+ * If `collection` and `kind` are provided, `kind` will be used to get
+ * the checks, but there may be warnings logged if the `collection` and
+ * `kind` are incompatible.
+ *
+ * Invalid `kind` or `venue` fail with `process.exit(1)`.
+ */
 async function getChecks(session: ISession, opts: CheckOpts): Promise<Check[]> {
   if (opts.venue) {
     await checkVenueExists(session, opts.venue);
-    const collections = await getVenueCollections(session, opts.venue);
-    const { kind } = await determineCollectionAndKind(session, opts.venue, collections, {
-      ...opts,
-      allowClosedCollection: true,
-    });
+    const collections = await getVenueCollections(session, opts.venue, false);
+    let kind: SubmissionKindDTO;
+    if (opts.kind) {
+      try {
+        kind = await getSubmissionKind(session, opts.venue, opts.kind);
+      } catch (err: any) {
+        session.log.error(err.message);
+        process.exit(1);
+      }
+      if (opts.collection) {
+        const collection = collections.items.find((c) => c.name === opts.collection);
+        if (!collection) {
+          session.log.info(
+            `${chalk.red(`Unknown collection "${opts.collection}" for venue "${opts.venue}"`)}`,
+          );
+        } else {
+          if (!collection.open) {
+            session.log.info(
+              `${chalk.red(`Collection "${opts.collection}" is not open for submissions`)}`,
+            );
+          }
+          if (!collection.kinds.find((k) => k.id === kind.id)) {
+            session.log.info(
+              `${chalk.red(`Collection "${opts.collection}" does not support kind "${opts.kind}"`)}`,
+            );
+          }
+        }
+      }
+    } else if (opts.collection) {
+      const result = await determineCollectionAndKind(session, opts.venue, collections, {
+        ...opts,
+        allowClosedCollection: true,
+      });
+      kind = result.kind;
+    } else {
+      kind = await determineKind(session, opts.venue, collections, opts);
+    }
+    session.log.info(
+      `${chalk.green(`Running checks against kind "${kind.name}" from venue "${opts.venue}"`)}`,
+    );
     return prepareChecksForSubmission(session, opts.venue, kind);
   }
   session.log.warn('No venue provided, running basic submission checks');

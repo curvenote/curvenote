@@ -349,6 +349,11 @@ export async function promptForNewKey(
   return customKey;
 }
 
+/**
+ * Ensure that a `venue` exists by performing a basic request to the venue
+ *
+ * If venue does not exist, fails with `process.exit(1)`.
+ */
 export async function checkVenueExists(session: ISession, venue: string) {
   try {
     session.log.debug(`GET from journals API sites/${venue}`);
