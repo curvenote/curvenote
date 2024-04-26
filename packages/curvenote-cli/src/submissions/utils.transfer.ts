@@ -40,26 +40,6 @@ export async function loadTransferFile(session: ISession): Promise<TransferData 
   return data;
 }
 
-export async function upwriteTransferFile(
-  session: ISession,
-  venue: string,
-  data: Partial<TransferDataItem>,
-): Promise<TransferData | null> {
-  const filepath = './transfer.yml';
-  const existing = (await loadTransferFile(session)) ?? {};
-  const merged = {
-    version: 1,
-    ...existing,
-    [venue]: {
-      ...(existing[venue] ?? {}),
-      ...data,
-      key: data.key ?? existing[venue]?.key,
-    },
-  };
-  await fs.writeFile(filepath, yaml.dump(merged), 'utf8');
-  return loadTransferFile(session);
-}
-
 /**
  * Load work from transfer.yml data
  *
