@@ -33,7 +33,6 @@ export function getSession(opts?: SessionOpts & { hideNoTokenWarning?: boolean }
     session = new Session(data.current, { logger, skipProjectLoading: opts?.skipProjectLoading });
   } catch (error) {
     logger.error((error as Error).message);
-    logger.info('You can remove your token using: `curvenote token remove`');
     process.exit(1);
   }
   return session;
