@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/cli",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "CLI Client library for Curvenote",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "license": "MIT",
@@ -41,7 +41,7 @@
     "@curvenote/blocks": "^1.5.25",
     "@curvenote/check-definitions": "^0.0.18",
     "@curvenote/check-implementations": "^0.0.18",
-    "@curvenote/cli-plugin": "^0.9.0",
+    "@curvenote/cli-plugin": "^0.9.1",
     "@curvenote/common": "^0.1.30",
     "@curvenote/schema": "0.12.18",
     "@google-cloud/storage": "^5.18.2",

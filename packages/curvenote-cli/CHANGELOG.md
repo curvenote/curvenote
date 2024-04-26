@@ -1,5 +1,18 @@
 # curvenote
 
+## 0.9.1
+
+### Patch Changes
+
+- 47e4a6b: Just try to get venue collections without checking access
+- 1193356: Move token removal suggestion to a more appropriate place
+- fbdf7fc: Add circular dependency check
+- f89308f: Update check command to only need kind, not collection
+- a60d5c3: Split Curvenote plugin out to it's own package, enabling direct import into the doc site
+- b5f22d1: CLI can consume `kind` as a string or object and is ready for deprecation of `kind_id`
+- Updated dependencies [a60d5c3]
+  - @curvenote/cli-plugin@0.9.1
+
 ## 0.9.0
 
 ### Minor Changes
