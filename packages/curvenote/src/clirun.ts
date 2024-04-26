@@ -55,7 +55,9 @@ export function clirun(
       }
       useSession.log.error((error as Error).message);
       logVersions(useSession, versions, false);
+      useSession.showUpgradeNotice?.();
       process.exit(1);
     }
+    useSession.showUpgradeNotice?.();
   };
 }

@@ -65,6 +65,7 @@ export function makeResumeOption() {
 }
 
 export function makeMaxSizeWebpOption(maxSizeMB = 1.5) {
+  /** Sets the maxSizeWebp Option in the CLI */
   return new Option('--max-size-webp <size>', 'Max image size to convert to webp format in MB')
     .default(maxSizeMB * 1024 * 1024, `${maxSizeMB}`)
     .argParser((value) => {

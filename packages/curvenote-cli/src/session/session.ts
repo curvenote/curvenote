@@ -5,6 +5,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import type { RequestInfo, RequestInit, Request, Response as FetchResponse } from 'node-fetch';
 import { default as nodeFetch } from 'node-fetch';
 import type { BuildWarning } from 'myst-cli';
+import latestVersion from 'latest-version';
 import {
   findCurrentProjectAndLoad,
   findCurrentSiteAndLoad,
@@ -204,9 +205,14 @@ export class Session implements ISession {
 
     this.store = createStore(rootReducer);
     if (!opts.skipProjectLoading) {
-      findCurrentProjectAndLoad(this, '.');
-      findCurrentSiteAndLoad(this, '.');
+      this.reload();
     }
+    // Allow the latest version to be loaded
+    latestVersion('curvenote')
+      .then((latest) => {
+        this._latestVersion = latest;
+      })
+      .catch(() => null);
   }
 
   proxyAgent?: HttpsProxyAgent<string>;
