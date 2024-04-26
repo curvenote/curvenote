@@ -7,6 +7,7 @@ import type { ISession } from '../session/types.js';
 import { addOxaTransformersToOpts, confirmOrExit } from '../utils/index.js';
 import type { SiteConfig } from 'myst-config';
 import { uploadContentAndDeployToPublicCdn } from './utils.js';
+import { uploadToCdn } from '../uploads/index.js';
 
 export async function promotePublicContent(session: ISession, cdnKey: string, domains?: string[]) {
   const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState()) as SiteConfig;
@@ -56,27 +57,6 @@ export async function promotePublicContent(session: ISession, cdnKey: string, do
   }
 }
 
-type DeploymentStrategy = 'public' | 'private-venue' | 'default-private';
-
-/**
- * Determine how deployment should be done based on the options and site config
- *
- * @returns DeploymentStrategy
- */
-export function resolveDeploymentStrategy(
-  siteConfig: SiteConfig,
-  opts: { domain?: string; venue?: string },
-): DeploymentStrategy {
-  // if a venue is specified, then it is private and takes precedence over domain
-  if (opts.venue) return 'private-venue';
-
-  const hasDomain = opts.domain !== undefined || (siteConfig.domains ?? []).length > 0;
-  if (hasDomain) return 'public';
-
-  // default to private
-  return 'default-private';
-}
-
 export async function deploy(
   session: ISession,
   opts: Parameters<typeof buildSite>[1] & {
@@ -119,6 +99,7 @@ export async function deploy(
   // Build the files in the content folder and process them
   await buildSite(session, addOxaTransformersToOpts(session, opts));
 
-  const cdnKey = await uploadContentAndDeployToPublicCdn(session, opts);
+  const { cdnKey } = await uploadToCdn(session, session.PUBLIC_CDN, opts);
+
   await promotePublicContent(session, cdnKey, domains);
 }
