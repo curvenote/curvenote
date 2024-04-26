@@ -603,14 +603,16 @@ export async function confirmUpdateToExistingSubmission(
       );
     }
 
-    const kindId = submission.kind_id;
-    if (opts?.kind && opts.kind !== submission?.kind) {
+    // TODO once API is updated, we could refactor to using submission.name as a unqiue identifier and submission.content.title etc... for display e.g. `Title (name)`
+    const kindId = (submission?.kind as any).id ?? submission.kind_id;
+    const kindName = (submission?.kind as any).name ?? submission?.kind;
+    if (opts?.kind && opts.kind !== kindName) {
       session.log.info(
         `🪧  NOTE: the --kind option was provided, but will be ignored as you are updating an existing submission`,
       );
     }
 
-    session.log.debug(`resolved kind to ${submission?.kind}`);
+    session.log.debug(`resolved kind to ${kindName}`);
     const kind = await getSubmissionKind(session, venue, kindId);
 
     if (!collection.kinds.find((k) => k.id === kindId)) {
