@@ -8,7 +8,6 @@ import {
 import path from 'node:path';
 import { v4 as uuid } from 'uuid';
 import type { ISession } from '../session/types.js';
-import { loadTransferFile } from './utils.transfer.js';
 import { addOxaTransformersToOpts, confirmOrExit } from '../utils/utils.js';
 import chalk from 'chalk';
 import { format } from 'date-fns';
@@ -299,24 +298,6 @@ export function getSiteConfig(session: ISession) {
     throw new Error('🧐 No site config found.');
   }
   return siteConfig;
-}
-
-export async function getTransferData(session: ISession, opts?: SubmitOpts) {
-  session.log.debug('Checking for a "transfer.yml" file...');
-  const transferData = await loadTransferFile(session);
-  if (transferData) {
-    if (!opts?.draft) {
-      session.log.info(`${chalk.bold(`🧐 Found a "transfer.yml" in this folder.`)}`);
-    } else {
-      session.log.info(
-        `${chalk.bold(
-          `🙈 Found a "transfer.yml", but ignoring it as you are submitting a draft.`,
-        )}`,
-      );
-      return undefined;
-    }
-  }
-  return transferData;
 }
 
 export async function ensureVenue(
