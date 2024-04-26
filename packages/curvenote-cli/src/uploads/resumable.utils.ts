@@ -36,11 +36,12 @@ async function doTheUpload(
     if (contentRange) {
       headers['Content-Range'] = contentRange;
     }
-    return session.fetch(location, {
+    const resp = session.fetch(location, {
       method: 'PUT',
       headers,
       body: readStream,
     });
+    return resp;
   } catch (e) {
     // eat error
   }
