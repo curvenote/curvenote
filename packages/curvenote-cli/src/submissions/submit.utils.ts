@@ -585,8 +585,8 @@ export async function confirmUpdateToExistingSubmission(
     }
 
     // TODO once API is updated, we could refactor to using submission.name as a unqiue identifier and submission.content.title etc... for display e.g. `Title (name)`
-    const kindId = (submission?.kind as any).id ?? submission.kind_id;
-    const kindName = (submission?.kind as any).name ?? submission?.kind;
+    const kindId = (submission?.kind as any)?.id ?? submission.kind_id;
+    const kindName = (submission?.kind as any)?.name ?? submission?.kind;
     if (opts?.kind && opts.kind !== kindName) {
       session.log.info(
         `🪧  NOTE: the --kind option was provided, but will be ignored as you are updating an existing submission`,
