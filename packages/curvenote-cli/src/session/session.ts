@@ -28,6 +28,8 @@ import type { CurvenotePlugin, ISession, Response, Tokens } from './types.js';
 import version from '../version.js';
 import { loadProjectPlugins } from './plugins.js';
 import builtInPlugin from '@curvenote/cli-plugin';
+import boxen from 'boxen';
+import chalk from 'chalk';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
@@ -56,11 +58,82 @@ function withQuery(url: string, query: Record<string, string> = {}) {
   return url.indexOf('?') === -1 ? `${url}?${params}` : `${url}&${params}`;
 }
 
-function checkForClientVersionRejection(log: Logger, status: number, body: JsonObject) {
-  if (status === 400) {
+/**
+ * This requires the body to be decoded as json and so is called later in the response handling chain
+ *
+ * @param log
+ * @param response
+ * @param body
+ */
+function checkForCurvenoteAPIClientVersionRejection(
+  log: Logger,
+  response: FetchResponse,
+  body: JsonObject,
+) {
+  // Check for client version rejection api.curvenote.com
+  if (response.status === 400) {
     log.debug(`Request failed: ${JSON.stringify(body)}`);
     if (body?.errors?.[0].code === 'outdated_client') {
-      log.error('Please run `npm i curvenote@latest` to update your client.');
+      logUpdateRequired({
+        current: version,
+        minimum: 'latest',
+        upgradeCommand: 'npm i -g curvenote@latest',
+        twitter: 'curvenote',
+      });
+    }
+  }
+}
+
+export function logUpdateRequired({
+  current,
+  minimum,
+  upgradeCommand,
+  twitter,
+}: {
+  current: string;
+  minimum: string;
+  upgradeCommand: string;
+  twitter: string;
+}) {
+  return boxen(
+    `Upgrade Required! ${chalk.dim(`v${current}`)} ≫ ${chalk.green.bold(
+      `v${minimum} (minimum)`,
+    )}\n\nRun \`${chalk.cyanBright.bold(
+      upgradeCommand,
+    )}\` to update.\n\nFollow ${chalk.yellowBright(
+      `@${twitter}`,
+    )} for updates!\nhttps://twitter.com/${twitter}`,
+    {
+      padding: 1,
+      margin: 1,
+      borderColor: 'red',
+      borderStyle: 'round',
+      textAlignment: 'center',
+    },
+  );
+}
+
+/**
+ * This should be called immedately after the fetch
+ *
+ * @param log
+ * @param response
+ */
+function checkForJournalsAPIClientVersionRejection(log: Logger, response: FetchResponse) {
+  // Check for client version rejection sites.curvenote.com
+  if (response.status === 403) {
+    const minimum = response.headers.get('x-minimum-client-version');
+    if (minimum != null) {
+      log.debug(response.statusText);
+      log.error(
+        logUpdateRequired({
+          current: version,
+          minimum,
+          upgradeCommand: 'npm i -g curvenote@latest',
+          twitter: 'curvenote',
+        }),
+      );
+      process.exit(1);
     }
   }
 }
@@ -202,6 +275,7 @@ export class Session implements ISession {
       this.log.debug(`Using HTTPS proxy: ${this.proxyAgent.proxy}`);
     }
     const resp = await nodeFetch(url, init);
+    checkForJournalsAPIClientVersionRejection(this.log, resp);
     return resp;
   }
 
@@ -244,7 +318,7 @@ export class Session implements ISession {
       },
     });
     const json = (await response.json()) as any;
-    checkForClientVersionRejection(this.log, response.status, json);
+    checkForCurvenoteAPIClientVersionRejection(this.log, response, json);
     return {
       ok: response.ok,
       status: response.status,
@@ -277,7 +351,7 @@ export class Session implements ISession {
       const dataString = JSON.stringify(json, null, 2);
       this.log.debug(`${method.toUpperCase()} FAILED ${url}: ${response.status}\n\n${dataString}`);
     }
-    checkForClientVersionRejection(this.log, response.status, json);
+    checkForCurvenoteAPIClientVersionRejection(this.log, response, json);
     return {
       ok: response.ok,
       status: response.status,
