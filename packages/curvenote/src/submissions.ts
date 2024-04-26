@@ -22,7 +22,7 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeNewOption())
     .addOption(makeYesOption())
     .addOption(makeResumeOption())
-    .addOption(makeMaxSizeWebpOption(1000))
+    .addOption(makeMaxSizeWebpOption(3))
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }
