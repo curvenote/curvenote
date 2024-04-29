@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.9.2
+
+### Patch Changes
+
+- 51566c7: Change webp max sizes
+
 ## 0.9.1
 
 ## 0.9.0
