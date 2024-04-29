@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { XClientName } from '@curvenote/blocks';
 import CLIENT_VERSION from '../version.js';
 import type { ISession, Tokens } from './types.js';
+import chalk from 'chalk';
 
 function decodeAndValidateToken(
   session: ISession,
@@ -66,7 +67,14 @@ export async function getSessionToken(
       Authorization: `Bearer ${tokens.user}`,
     },
   });
-  if (!response.ok) throw new Error('SessionToken: The user token is not valid.');
+  if (!response.ok) {
+    console.error(
+      chalk.bold(
+        '⛔️ There was a problem with your API token. If the error persists try generating a new token or contact support@curvenote.com.',
+      ),
+    );
+    throw new Error('SessionToken: The user token is not valid.');
+  }
   const json = (await response.json()) as any;
   if (!json.session)
     throw new Error(
