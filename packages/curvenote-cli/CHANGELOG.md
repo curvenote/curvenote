@@ -1,5 +1,16 @@
 # curvenote
 
+## 0.9.2
+
+### Patch Changes
+
+- 90407ce: - Better error handling on unknown submission kind
+  - More informative error message when the client cannot get a session token
+- 51566c7: Change webp max sizes
+- a71a06a: `curvenote deploy` uses new uploads mechanism
+- 51566c7: Show upgrade notice
+  - @curvenote/cli-plugin@0.9.2
+
 ## 0.9.1
 
 ### Patch Changes
