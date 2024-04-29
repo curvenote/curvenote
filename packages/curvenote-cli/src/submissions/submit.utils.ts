@@ -193,6 +193,16 @@ export async function determineCollectionAndKind(
 }
 
 /**
+ * Fetch a list of kinds from `venue` API
+ */
+export async function listSubmissionKinds(
+  session: ISession,
+  venue: string,
+): Promise<{ items: SubmissionKindDTO[] }> {
+  return getFromJournals(session, `sites/${venue}/kinds`);
+}
+
+/**
  * Fetch a single `venue` kind from API
  */
 export async function getSubmissionKind(

@@ -11,6 +11,7 @@ import {
   determineCollectionAndKind,
   getSubmissionKind,
   getVenueCollections,
+  listSubmissionKinds,
 } from './submit.utils.js';
 import { determineKindFromVenue } from './kind.utils.js';
 
@@ -72,7 +73,20 @@ async function getChecks(session: ISession, opts: CheckOpts): Promise<Check[]> {
       try {
         kind = await getSubmissionKind(session, opts.venue, opts.kind);
       } catch (err: any) {
-        session.log.error(err.message);
+        try {
+          const kinds = await listSubmissionKinds(session, opts.venue);
+          session.log.error(
+            chalk.bold(`⛔️ Submission Kind "${opts.kind}" not found for venue "${opts.venue}"`),
+          );
+          session.log.info(
+            chalk.bold(
+              `📚 accepted kinds for venue "${opts.venue}": ${kinds.items.map((k) => ((k as any).content ? `${(k as any).content?.title} (${k.name})` : k.name)).join(', ')}`,
+            ),
+          );
+        } catch (error: any) {
+          session.log.error(`⛔️ ${err.message}`);
+          process.exit(1);
+        }
         process.exit(1);
       }
       if (opts.collection) {
