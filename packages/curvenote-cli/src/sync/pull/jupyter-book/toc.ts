@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import YAML from 'js-yaml';
 import { TOC_FORMAT } from 'myst-cli';
-import type { JupyterBookChapter, JupyterBookPart, TOC, TocOptions } from 'myst-cli';
+import type { JupyterBookChapter, JupyterBookPart, TOC, TOCOptions } from 'myst-cli';
 import { writeFileToFolder } from 'myst-cli-utils';
 import type { Blocks } from '@curvenote/blocks';
 import { NavListItemKindEnum } from '@curvenote/blocks';
@@ -34,19 +34,19 @@ function getName(block: Block): string {
   return block.data.name || block.id.block;
 }
 
-function recurseTocChapters(item: FolderItem): JupyterBookChapter | null {
+function recurseTOCChapters(item: FolderItem): JupyterBookChapter | null {
   if (!item.block) return null;
   const chapter: JupyterBookChapter = { file: getName(item.block) };
   if (item.children && item.children.length > 0) {
     chapter.sections = item.children
-      .map(recurseTocChapters)
+      .map(recurseTOCChapters)
       .filter((c) => c) as JupyterBookChapter[];
   }
   return chapter;
 }
 
 function itemsToChapters(items: FolderItem[]): JupyterBookChapter[] {
-  const chapters = items.map(recurseTocChapters).filter((c) => c) as JupyterBookChapter[];
+  const chapters = items.map(recurseTOCChapters).filter((c) => c) as JupyterBookChapter[];
   return chapters;
 }
 
@@ -111,7 +111,7 @@ export function unflattenNavBlocks(loadedBlocks: LoadedBlocks[]) {
 export async function writeTOC(
   session: ISession,
   nav: Version<Blocks.Navigation>,
-  opts?: TocOptions,
+  opts?: TOCOptions,
 ) {
   const filename = join(opts?.path || '.', opts?.filename || '_toc.yml');
 

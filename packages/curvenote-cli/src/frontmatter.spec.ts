@@ -38,7 +38,6 @@ const TEST_PROJECT: Project = {
 
 describe('projectFrontmatterFromDTO', () => {
   const frontmatter: ProjectFrontmatter = {
-    name: 'name',
     title: 'title',
     description: 'description',
     id: 'id',
@@ -237,7 +236,6 @@ describe('pageFrontmatterFromDTO', () => {
   const frontmatter: PageFrontmatter = {
     title: 'title',
     description: 'description',
-    name: 'name',
     date: date.toISOString(),
     oxa: 'oxa:proj/block',
     keywords: ['a-tag'],
