@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.9.3
+
+### Patch Changes
+
+- cdca330: Upgrade Toc case to match MyST
+
 ## 0.9.2
 
 ### Patch Changes
