@@ -9,7 +9,7 @@ import {
   selectors,
   writeConfigs,
   startServer,
-  writeTocFromProject,
+  writeTOCFromProject,
   validateTOC,
   projectFromPath,
 } from 'myst-cli';
@@ -31,7 +31,7 @@ type Options = {
   force?: boolean;
   yes?: boolean;
   domain?: string;
-  writeToc?: boolean;
+  writeTOC?: boolean;
 };
 
 const WELCOME = async (session: ISession) => `
@@ -87,7 +87,7 @@ export async function init(session: ISession, opts: Options) {
   if (opts.domain) session.log.info(`Using custom domain ${opts.domain}`);
   let currentPath = resolve('.');
   // Initialize config - error if it exists
-  if (selectors.selectLocalSiteConfig(session.store.getState(), currentPath) && !opts.writeToc) {
+  if (selectors.selectLocalSiteConfig(session.store.getState(), currentPath) && !opts.writeTOC) {
     throw Error(
       `Site config in ${CURVENOTE_YML} config already exists, did you mean to ${chalk.bold(
         'curvenote clone',
@@ -128,7 +128,7 @@ export async function init(session: ISession, opts: Options) {
         )}\n${pathListString}\n`,
       );
     }
-    if (opts.writeToc && projectConfigPaths.length > 0) {
+    if (opts.writeTOC && projectConfigPaths.length > 0) {
       if (validateTOC(session, currentPath)) {
         session.log.warn('Not writing the table of contents, it already exists!');
         return;
@@ -140,7 +140,7 @@ export async function init(session: ISession, opts: Options) {
           }`,
         );
         if (!project) throw Error(`Could not load project from ${currentPath}`);
-        writeTocFromProject(project, currentPath);
+        writeTOCFromProject(project, currentPath);
         return;
       }
     } else {
@@ -209,7 +209,7 @@ export async function init(session: ISession, opts: Options) {
 
   let start = false;
   if (!opts.yes) {
-    const promptStart = await inquirer.prompt([questions.start(opts.writeToc)]);
+    const promptStart = await inquirer.prompt([questions.start(opts.writeTOC)]);
     start = promptStart.start;
   }
   if (!start && !opts.yes) {

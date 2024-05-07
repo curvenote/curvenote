@@ -6,7 +6,7 @@ import {
   makeBranchOption,
   makeDomainOption,
   makeForceOption,
-  makeWriteTocOption,
+  makeWriteTOCOption,
   makeCIOption,
 } from './options.js';
 
@@ -17,7 +17,7 @@ function makeInitCLI(program: Command) {
     .addOption(makeBranchOption())
     .addOption(makeYesOption())
     .addOption(makeDomainOption())
-    .addOption(makeWriteTocOption())
+    .addOption(makeWriteTOCOption())
     .action(clirun(sync.init, { program, hideNoTokenWarning: true }));
   return command;
 }
