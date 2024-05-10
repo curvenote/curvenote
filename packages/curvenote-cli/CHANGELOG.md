@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.4
+
+### Patch Changes
+
+- 15e130e: Upgrade to myst v1.2.2
+  - @curvenote/cli-plugin@0.9.4
+
 ## 0.9.3
 
 ### Patch Changes
