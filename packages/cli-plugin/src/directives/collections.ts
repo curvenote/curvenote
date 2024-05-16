@@ -1,5 +1,5 @@
 import type { DirectiveSpec, GenericNode } from 'myst-common';
-import { validateStringOptions } from '../utils.js';
+import { validateStringOptions, makePlaceholder } from '../utils.js';
 
 export const collectionsDirective: DirectiveSpec = {
   name: 'cn:collections',
@@ -45,6 +45,7 @@ export const collectionsDirective: DirectiveSpec = {
         type: 'curvenoteCollections',
         ...data.options,
         show: data.options?.show ?? 'all',
+        children: makePlaceholder(data, `a live listing of collectons from ${data.options?.venue}`),
       },
     ] as GenericNode[];
   },

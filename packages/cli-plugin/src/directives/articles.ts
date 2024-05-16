@@ -1,5 +1,5 @@
 import type { DirectiveSpec, GenericNode } from 'myst-common';
-import { validateStringOptions } from '../utils.js';
+import { validateStringOptions, makePlaceholder } from '../utils.js';
 
 export const articlesDirective: DirectiveSpec = {
   name: 'cn:articles',
@@ -93,6 +93,7 @@ export const articlesDirective: DirectiveSpec = {
         ...data.options,
         layout: data.options?.layout ?? 'list',
         pagination: data.options?.pagination ?? 'more',
+        children: makePlaceholder(data, `a live listing of articles from ${data.options?.venue}`),
       },
     ] as GenericNode[];
   },
