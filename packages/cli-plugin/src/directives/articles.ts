@@ -70,6 +70,16 @@ export const articlesDirective: DirectiveSpec = {
       doc: 'If set to true, the total number of items in the listing will be shown.',
       required: false,
     },
+    'show-authors': {
+      type: Boolean,
+      doc: 'If set to true, the listing will show the authors.',
+      required: false,
+    },
+    'show-doi': {
+      type: Boolean,
+      doc: 'If set to true, the listing will show the DOI.',
+      required: false,
+    },
   },
   validate(data, vfile) {
     if (!data.options?.venue) {
