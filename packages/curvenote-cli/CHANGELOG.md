@@ -1,5 +1,18 @@
 # curvenote
 
+## 0.9.5
+
+### Patch Changes
+
+- 481e268: Bump `myst` to `v1.2.5` / `v1.4.4`
+- 481e268: Bump myst dependencies (v1.2.4)
+- Updated dependencies [481e268]
+- Updated dependencies [f0009bc]
+- Updated dependencies [9ae14f0]
+- Updated dependencies [481e268]
+  - @curvenote/cli-plugin@0.9.5
+  - @curvenote/blocks@1.5.26
+
 ## 0.9.4
 
 ### Patch Changes

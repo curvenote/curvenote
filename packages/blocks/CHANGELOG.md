@@ -1,5 +1,12 @@
 # @curvenote/blocks
 
+## 1.5.26
+
+### Patch Changes
+
+- 481e268: Bump `myst` to `v1.2.5` / `v1.4.4`
+- 481e268: Bump myst dependencies (v1.2.4)
+
 ## 1.5.25
 
 ### Patch Changes
