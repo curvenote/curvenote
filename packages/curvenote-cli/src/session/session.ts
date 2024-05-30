@@ -241,6 +241,7 @@ export class Session implements ISession {
       apiUrl: this.API_URL,
       siteUrl: this.SITE_URL,
     });
+    await cloneSession.reload()
     // TODO: clean this up through better state handling
     cloneSession._jupyterSessionManagerPromise = this._jupyterSessionManagerPromise;
     this._clones.push(cloneSession);
@@ -263,11 +264,11 @@ export class Session implements ISession {
     return warnings;
   }
 
-  reload() {
-    findCurrentProjectAndLoad(this, '.');
-    findCurrentSiteAndLoad(this, '.');
+  async reload() {
+    await findCurrentProjectAndLoad(this, '.');
+    await findCurrentSiteAndLoad(this, '.');
     if (selectors.selectCurrentSitePath(this.store.getState())) {
-      reloadAllConfigsForCurrentSite(this);
+      await reloadAllConfigsForCurrentSite(this);
     }
     return this;
   }

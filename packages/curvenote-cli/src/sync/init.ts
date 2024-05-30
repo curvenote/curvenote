@@ -104,7 +104,7 @@ export async function init(session: ISession, opts: Options) {
   const folderIsEmpty = fs.readdirSync(currentPath).length === 0;
   if (folderIsEmpty && opts.yes) throw Error('Cannot initialize an empty folder');
   let content;
-  const projectConfigPaths = findProjectsOnPath(session, currentPath);
+  const projectConfigPaths = await findProjectsOnPath(session, currentPath);
   if ((!folderIsEmpty && opts.yes) || projectConfigPaths.length) {
     content = 'folder';
   } else {
@@ -133,7 +133,7 @@ export async function init(session: ISession, opts: Options) {
         session.log.warn('Not writing the table of contents, it already exists!');
         return;
       } else {
-        const project = await projectFromPath(session, currentPath);
+        const project = projectFromPath(session, currentPath);
         session.log.info(
           `📓 Writing '_toc.yml' file to ${
             currentPath === '.' ? 'the current directory' : currentPath
@@ -174,7 +174,7 @@ export async function init(session: ISession, opts: Options) {
   }
   // If there is a new project config, save to the state and write to disk
   if (projectConfig) {
-    writeConfigs(session, currentPath, { projectConfig });
+    await writeConfigs(session, currentPath, { projectConfig });
     session.store.dispatch(config.actions.receiveCurrentProjectPath({ path: currentPath }));
   }
   // Personalize the config
@@ -190,7 +190,7 @@ export async function init(session: ISession, opts: Options) {
     if (twitter) siteConfig.options.twitter = twitter;
   }
   // Save site config to state and write to disk
-  writeConfigs(session, '.', { siteConfig });
+  await writeConfigs(session, '.', { siteConfig });
   session.store.dispatch(config.actions.receiveCurrentSitePath({ path: '.' }));
 
   const pullOpts = { level: LogLevel.debug };

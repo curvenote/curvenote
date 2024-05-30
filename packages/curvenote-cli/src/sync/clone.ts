@@ -51,7 +51,7 @@ export async function interactiveCloneQuestions(
   }
   try {
     // Throw if project doesn't exist - that's what we want!
-    loadConfig(session, path);
+    await loadConfig(session, path);
     if (!selectors.selectLocalProjectConfig(session.store.getState(), path)) throw Error();
   } catch {
     // Project config does not exist; good!
@@ -91,7 +91,7 @@ export async function clone(session: ISession, remote?: string, path?: string, o
     remote,
     path,
   });
-  writeConfigs(session, siteProject.path, { projectConfig });
+  await writeConfigs(session, siteProject.path, { projectConfig });
   if (!siteConfig && remote) {
     // If there is no site config, but a remote is provided, create a config
     const newSiteConfig = await getDefaultSiteConfigFromRemote(
@@ -99,7 +99,7 @@ export async function clone(session: ISession, remote?: string, path?: string, o
       projectIdFromLink(session, remote),
       siteProject,
     );
-    writeConfigs(session, '.', { siteConfig: newSiteConfig });
+    await writeConfigs(session, '.', { siteConfig: newSiteConfig });
   } else if (siteConfig) {
     const newSiteConfig: SiteConfig = {
       ...siteConfig,
@@ -109,7 +109,7 @@ export async function clone(session: ISession, remote?: string, path?: string, o
       ],
       projects: [...(siteConfig?.projects || []), siteProject],
     };
-    writeConfigs(session, '.', { siteConfig: newSiteConfig });
+    await writeConfigs(session, '.', { siteConfig: newSiteConfig });
   }
   await pullProject(session, siteProject.path, { level: LogLevel.info, ci: opts?.ci });
 }
