@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.6
+
+### Patch Changes
+
+- 26125db: Bump @curvenote/check libs so link-check respects error-rules
+  - @curvenote/cli-plugin@0.9.6
+
 ## 0.9.5
 
 ### Patch Changes
