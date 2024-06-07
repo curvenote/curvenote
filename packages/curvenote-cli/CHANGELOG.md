@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.7
+
+### Patch Changes
+
+- a88376d: Update checks for gentler doi failures
+  - @curvenote/cli-plugin@0.9.7
+
 ## 0.9.6
 
 ### Patch Changes
