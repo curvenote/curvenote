@@ -14,8 +14,7 @@ function getLogLevel(level: LogLevel | boolean | string = LogLevel.info): LogLev
 
 export function anonSession(opts?: SessionOpts): ISession {
   const logger = chalkLogger(getLogLevel(opts?.debug), process.cwd());
-  const session = new Session(undefined, { logger, skipProjectLoading: opts?.skipProjectLoading });
-  await session.reload()
+  const session = new Session(undefined, { logger });
   return session;
 }
 
@@ -31,8 +30,7 @@ export function getSession(opts?: SessionOpts & { hideNoTokenWarning?: boolean }
   }
   let session;
   try {
-    session = new Session(data.current, { logger, skipProjectLoading: opts?.skipProjectLoading });
-    await session.reload()
+    session = new Session(data.current, { logger });
   } catch (error) {
     logger.error((error as Error).message);
     process.exit(1);

@@ -119,8 +119,7 @@ export async function setToken(log: Logger, token?: string) {
     ]);
     token = resp.token as string;
   }
-  const session = new Session(token, { skipProjectLoading: true });
-  await session.reload()
+  const session = new Session(token);
   let me;
   try {
     me = await new MyUser(session).get();

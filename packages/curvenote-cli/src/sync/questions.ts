@@ -49,11 +49,10 @@ function projectPath(path?: string) {
   };
 }
 
-function start(writeTOC?: boolean) {
-  const tocMessage = writeTOC ? 'write missing _toc.yml files and ' : '';
+function start() {
   return {
     name: 'start',
-    message: `Would you like to ${tocMessage}start a local server now?`,
+    message: `Would you like to start a local server now?`,
     type: 'confirm',
     default: true,
   };

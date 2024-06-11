@@ -20,17 +20,17 @@ export function clirun(
   return async (...args: any[]) => {
     const opts = cli.program.opts() as SessionOpts;
     const useSession = cli.anonymous
-      ? anonSession({ ...opts, skipProjectLoading: cli.skipProjectLoading })
+      ? anonSession({ ...opts })
       : getSession({
           ...opts,
           hideNoTokenWarning: cli.hideNoTokenWarning,
-          skipProjectLoading: cli.skipProjectLoading,
         });
     const versions = await getNodeVersion(useSession);
     logVersions(useSession, versions);
     const versionsInstalled = await checkNodeVersion(useSession);
     if (!versionsInstalled) process.exit(1);
     if (!cli.skipProjectLoading) {
+      await useSession.reload();
       const state = useSession.store.getState();
       const siteConfig = selectors.selectCurrentSiteConfig(state);
       if (cli.requireSiteConfig && !siteConfig) {
