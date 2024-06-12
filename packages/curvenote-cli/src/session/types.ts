@@ -7,7 +7,6 @@ import type { CheckInterface } from '@curvenote/check-implementations';
 export type SessionOpts = {
   debug?: boolean;
   config?: string;
-  skipProjectLoading?: boolean;
 };
 
 export type Tokens = Partial<Record<'user' | 'session', string>>;
@@ -42,5 +41,6 @@ export type ISession = IMystSession & {
 
   patch<T extends Record<string, any> = any>(url: string, data: unknown): Response<T>;
 
-  reload(): ISession;
+  reload(): Promise<ISession>;
+  clone(): Promise<ISession>;
 };

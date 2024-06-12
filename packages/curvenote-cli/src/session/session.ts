@@ -48,7 +48,6 @@ export type SessionOptions = {
   apiUrl?: string;
   siteUrl?: string;
   logger?: Logger;
-  skipProjectLoading?: boolean;
 };
 
 function withQuery(url: string, query: Record<string, string> = {}) {
@@ -204,9 +203,6 @@ export class Session implements ISession {
     }
 
     this.store = createStore(rootReducer);
-    if (!opts.skipProjectLoading) {
-      this.reload();
-    }
     // Allow the latest version to be loaded
     latestVersion('curvenote')
       .then((latest) => {
@@ -235,12 +231,13 @@ export class Session implements ISession {
 
   _clones: ISession[] = [];
 
-  clone() {
+  async clone() {
     const cloneSession = new Session(this.$tokens?.session ?? this.$tokens?.user, {
       logger: this.log,
       apiUrl: this.API_URL,
       siteUrl: this.SITE_URL,
     });
+    await cloneSession.reload();
     // TODO: clean this up through better state handling
     cloneSession._jupyterSessionManagerPromise = this._jupyterSessionManagerPromise;
     this._clones.push(cloneSession);
@@ -263,11 +260,11 @@ export class Session implements ISession {
     return warnings;
   }
 
-  reload() {
-    findCurrentProjectAndLoad(this, '.');
-    findCurrentSiteAndLoad(this, '.');
+  async reload() {
+    await findCurrentProjectAndLoad(this, '.');
+    await findCurrentSiteAndLoad(this, '.');
     if (selectors.selectCurrentSitePath(this.store.getState())) {
-      reloadAllConfigsForCurrentSite(this);
+      await reloadAllConfigsForCurrentSite(this);
     }
     return this;
   }

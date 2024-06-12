@@ -104,7 +104,7 @@ export async function writeKeyToConfig(session: ISession, key: string) {
   session.log.info(`creating backup copy of config file ${file} -> ${tempFolder}`);
   await fs.copyFile(file, join(tempFolder, 'curvenote.yml'));
   session.log.info(`writing work key to ${file}`);
-  writeConfigs(session, path, { projectConfig: { ...projectConfig, id: key } });
+  await writeConfigs(session, path, { projectConfig: { ...projectConfig, id: key } });
 }
 
 export async function keyFromTransferFile(

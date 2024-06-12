@@ -41,7 +41,7 @@ export async function pullProject(
   session.store.dispatch(
     config.actions.receiveProjectConfig({ path, ...projectConfig, ...newFrontmatter }),
   );
-  writeConfigs(session, path);
+  await writeConfigs(session, path);
   const toc = tic();
   logWithLevel(session, `📥 Pulling ${projectLogString(project)} into ${path}`, opts?.level);
   await projectToJupyterBook(session, project.id, {
@@ -136,7 +136,7 @@ export async function pull(session: ISession, path?: string, opts?: SyncCiHelper
     );
     await pullProjects(session, { level: LogLevel.info, ...opts });
   } else {
-    loadConfig(session, path);
+    await loadConfig(session, path);
     await confirmOrExit(
       `Pulling will overwrite all content in ${
         path === '.' ? 'current directory' : path

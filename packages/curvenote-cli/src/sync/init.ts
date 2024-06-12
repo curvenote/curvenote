@@ -9,9 +9,6 @@ import {
   selectors,
   writeConfigs,
   startServer,
-  writeTOCFromProject,
-  validateTOC,
-  projectFromPath,
 } from 'myst-cli';
 import { LogLevel, writeFileToFolder } from 'myst-cli-utils';
 import type { ProjectConfig } from 'myst-config';
@@ -104,7 +101,7 @@ export async function init(session: ISession, opts: Options) {
   const folderIsEmpty = fs.readdirSync(currentPath).length === 0;
   if (folderIsEmpty && opts.yes) throw Error('Cannot initialize an empty folder');
   let content;
-  const projectConfigPaths = findProjectsOnPath(session, currentPath);
+  const projectConfigPaths = await findProjectsOnPath(session, currentPath);
   if ((!folderIsEmpty && opts.yes) || projectConfigPaths.length) {
     content = 'folder';
   } else {
@@ -128,19 +125,12 @@ export async function init(session: ISession, opts: Options) {
         )}\n${pathListString}\n`,
       );
     }
-    if (opts.writeTOC && projectConfigPaths.length > 0) {
-      if (validateTOC(session, currentPath)) {
+    if (projectConfig && opts.writeTOC && projectConfigPaths.length > 0) {
+      if (projectConfig.toc) {
         session.log.warn('Not writing the table of contents, it already exists!');
         return;
       } else {
-        const project = await projectFromPath(session, currentPath);
-        session.log.info(
-          `📓 Writing '_toc.yml' file to ${
-            currentPath === '.' ? 'the current directory' : currentPath
-          }`,
-        );
-        if (!project) throw Error(`Could not load project from ${currentPath}`);
-        writeTOCFromProject(project, currentPath);
+        await loadProjectFromDisk(session, currentPath, opts);
         return;
       }
     } else {
@@ -150,7 +140,7 @@ export async function init(session: ISession, opts: Options) {
       }
       if (!projectConfig) {
         try {
-          loadProjectFromDisk(session, currentPath, opts);
+          await loadProjectFromDisk(session, currentPath, { ...opts, writeTOC: false });
           session.log.info(`📓 Creating project config`);
           projectConfig = await getDefaultProjectConfig(title);
           projectConfigPaths.unshift(currentPath);
@@ -174,7 +164,7 @@ export async function init(session: ISession, opts: Options) {
   }
   // If there is a new project config, save to the state and write to disk
   if (projectConfig) {
-    writeConfigs(session, currentPath, { projectConfig });
+    await writeConfigs(session, currentPath, { projectConfig });
     session.store.dispatch(config.actions.receiveCurrentProjectPath({ path: currentPath }));
   }
   // Personalize the config
@@ -190,7 +180,7 @@ export async function init(session: ISession, opts: Options) {
     if (twitter) siteConfig.options.twitter = twitter;
   }
   // Save site config to state and write to disk
-  writeConfigs(session, '.', { siteConfig });
+  await writeConfigs(session, '.', { siteConfig });
   session.store.dispatch(config.actions.receiveCurrentSitePath({ path: '.' }));
 
   const pullOpts = { level: LogLevel.debug };
@@ -209,7 +199,7 @@ export async function init(session: ISession, opts: Options) {
 
   let start = false;
   if (!opts.yes) {
-    const promptStart = await inquirer.prompt([questions.start(opts.writeTOC)]);
+    const promptStart = await inquirer.prompt([questions.start()]);
     start = promptStart.start;
   }
   if (!start && !opts.yes) {
@@ -223,10 +213,12 @@ export async function init(session: ISession, opts: Options) {
       )}`,
     );
   }
+  await pullProcess;
+  if (opts.writeTOC) {
+    await loadProjectFromDisk(session, currentPath, { ...opts, reloadProject: true });
+  }
   if (start) {
-    await pullProcess;
     session.log.info(chalk.dim('\nStarting local server with: '), chalk.bold('curvenote start'));
     await startServer(session, addOxaTransformersToOpts(session, opts));
   }
-  await pullProcess;
 }
