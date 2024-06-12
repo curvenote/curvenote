@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.10
+
+### Patch Changes
+
+- dfe3114: Bump check versions
+  - @curvenote/cli-plugin@0.9.10
+
 ## 0.9.9
 
 ### Patch Changes
