@@ -69,7 +69,7 @@
     "jsonwebtoken": "^8.5.1",
     "jtex": "^1.0.17",
     "mime-types": "^2.1.35",
-    "myst-cli": "^1.2.6",
+    "myst-cli": "^1.2.7",
     "myst-cli-utils": "^2.0.9",
     "myst-common": "^1.4.5",
     "myst-config": "^1.4.5",
