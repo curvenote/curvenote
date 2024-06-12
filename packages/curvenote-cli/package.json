@@ -39,8 +39,8 @@
   },
   "dependencies": {
     "@curvenote/blocks": "^1.5.26",
-    "@curvenote/check-definitions": "^0.0.21",
-    "@curvenote/check-implementations": "^0.0.21",
+    "@curvenote/check-definitions": "^0.0.22",
+    "@curvenote/check-implementations": "^0.0.22",
     "@curvenote/cli-plugin": "^0.9.9",
     "@curvenote/common": "^0.1.30",
     "@curvenote/schema": "0.12.18",
