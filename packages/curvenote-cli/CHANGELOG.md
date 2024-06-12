@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.8
+
+### Patch Changes
+
+- d9014c7: Update config/session loading to be async
+  - @curvenote/cli-plugin@0.9.8
+
 ## 0.9.7
 
 ### Patch Changes
