@@ -1,5 +1,7 @@
 # @curvenote/cli-plugin
 
+## 0.9.9
+
 ## 0.9.8
 
 ## 0.9.7

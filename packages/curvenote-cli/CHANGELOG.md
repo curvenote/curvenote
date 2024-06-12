@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.9
+
+### Patch Changes
+
+- 6e3677a: Bump myst version
+  - @curvenote/cli-plugin@0.9.9
+
 ## 0.9.8
 
 ### Patch Changes
