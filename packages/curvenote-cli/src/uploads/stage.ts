@@ -24,6 +24,19 @@ export async function stageUploads(session: ISession) {
         `📤 Staging complete - ${Object.keys(staged.upload).length}/${files.length} files need to be uploaded.`,
       );
     }
+
+    uploadRequest.files.forEach((f) => {
+      session.log.debug(`📁 ${f.path} found ${f.md5}.`);
+    });
+
+    Object.entries(staged.cached).forEach(([k, f]) => {
+      session.log.debug(`📦 ${k} ${f.path} cached.`);
+    });
+
+    Object.entries(staged.upload).forEach(([k, f]) => {
+      session.log.debug(`🆙 ${k} ${f.path} to upload.`);
+    });
+
     return { ...staged, files: files.filter((f) => staged.upload[f.md5]) };
   }
 
