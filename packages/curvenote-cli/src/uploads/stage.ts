@@ -17,11 +17,11 @@ export async function stageUploads(session: ISession) {
   const resp = await postToJournals(session, `uploads/stage`, uploadRequest, { method: 'POST' });
   if (resp.ok) {
     const staged = (await resp.json()) as UploadStagingDTO;
-    if (Object.keys(staged.upload).length === 0) {
+    if (staged.upload_items.length === 0) {
       session.log.info('✅ no new files need to be uploaded.');
     } else {
       session.log.info(
-        `📤 Staging complete - ${Object.keys(staged.upload).length}/${files.length} files need to be uploaded.`,
+        `📤 Staging complete - ${staged.upload_items.length}/${files.length} files need to be uploaded.`,
       );
     }
 
