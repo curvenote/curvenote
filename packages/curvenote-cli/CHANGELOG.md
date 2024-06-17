@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.9.11
+
+### Patch Changes
+
+- 0dfe150: Using list based upload staging API
+- 0dfe150: Bump mystjs to v1.2.8+
+- 1dca7ae: Added debug logs for upload staging
+  - @curvenote/cli-plugin@0.9.11
+
 ## 0.9.10
 
 ### Patch Changes
