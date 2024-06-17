@@ -29,15 +29,17 @@ export async function stageUploads(session: ISession) {
       session.log.debug(`📁 ${f.path} found ${f.md5}.`);
     });
 
-    Object.entries(staged.cached).forEach(([k, f]) => {
-      session.log.debug(`📦 ${k} ${f.path} cached.`);
+    staged.cached_items.forEach((f) => {
+      session.log.debug(`📦 ${f.md5} ${f.path} cached.`);
     });
 
-    Object.entries(staged.upload).forEach(([k, f]) => {
-      session.log.debug(`🆙 ${k} ${f.path} to upload.`);
+    staged.upload_items.forEach((f) => {
+      session.log.debug(`🆙 ${f.md5} ${f.path} to upload.`);
     });
 
-    return { ...staged, files: files.filter((f) => staged.upload[f.md5]) };
+    const toUpload = staged.upload_items.map((f) => f.md5);
+
+    return { ...staged, files: files.filter((f) => toUpload.includes(f.md5)) };
   }
 
   throw new Error(`🤕 Failed to stage uploads: ${resp.status} ${resp.statusText}`);

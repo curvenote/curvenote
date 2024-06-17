@@ -32,7 +32,9 @@ import { plural } from 'myst-common';
 import { getWorkFromKey } from '../works/utils.js';
 import type { SubmitLog, SubmitOpts } from './types.js';
 
-export function kindQuestions(kinds: Omit<SubmissionKindDTO, 'date_created' | 'checks'>[]) {
+export function kindQuestions(
+  kinds: Omit<SubmissionKindDTO, 'date_created' | 'date_modified' | 'checks'>[],
+) {
   return {
     name: 'kinds',
     type: 'list',
@@ -594,8 +596,7 @@ export async function confirmUpdateToExistingSubmission(
       );
     }
 
-    // TODO once API is updated, we could refactor to using submission.name as a unqiue identifier and submission.content.title etc... for display e.g. `Title (name)`
-    const kindId = (submission?.kind as any).id ?? submission.kind_id;
+    const kindId = (submission?.kind as any).id;
     const kindName = (submission?.kind as any).name ?? submission?.kind;
     if (opts?.kind && opts.kind !== kindName) {
       session.log.info(
