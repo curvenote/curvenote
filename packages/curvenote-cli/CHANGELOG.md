@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.12
+
+### Patch Changes
+
+- 1e70faa: Upload staging hotfix
+  - @curvenote/cli-plugin@0.9.12
+
 ## 0.9.11
 
 ### Patch Changes
