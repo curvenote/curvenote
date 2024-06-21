@@ -4,6 +4,8 @@ import { createStore } from 'redux';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import type { RequestInfo, RequestInit, Request, Response as FetchResponse } from 'node-fetch';
 import { default as nodeFetch } from 'node-fetch';
+import type { Limit } from 'p-limit';
+import pLimit from 'p-limit';
 import type { BuildWarning } from 'myst-cli';
 import latestVersion from 'latest-version';
 import {
@@ -31,7 +33,6 @@ import { loadProjectPlugins } from './plugins.js';
 import builtInPlugin from '@curvenote/cli-plugin';
 import boxen from 'boxen';
 import chalk from 'chalk';
-import pLimit, { Limit } from 'p-limit';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';

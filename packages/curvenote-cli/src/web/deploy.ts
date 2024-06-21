@@ -6,7 +6,6 @@ import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
 import { addOxaTransformersToOpts, confirmOrExit } from '../utils/index.js';
 import type { SiteConfig } from 'myst-config';
-import { uploadContentAndDeployToPublicCdn } from './utils.js';
 import { uploadToCdn } from '../uploads/index.js';
 
 export async function promotePublicContent(session: ISession, cdnKey: string, domains?: string[]) {
