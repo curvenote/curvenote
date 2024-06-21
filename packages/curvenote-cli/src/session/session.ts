@@ -31,6 +31,7 @@ import { loadProjectPlugins } from './plugins.js';
 import builtInPlugin from '@curvenote/cli-plugin';
 import boxen from 'boxen';
 import chalk from 'chalk';
+import pLimit, { Limit } from 'p-limit';
 
 const DEFAULT_API_URL = 'https://api.curvenote.com';
 const DEFAULT_SITE_URL = 'https://curvenote.com';
@@ -48,6 +49,7 @@ export type SessionOptions = {
   apiUrl?: string;
   siteUrl?: string;
   logger?: Logger;
+  doiLimiter?: Limit;
 };
 
 function withQuery(url: string, query: Record<string, string> = {}) {
@@ -149,6 +151,7 @@ export class Session implements ISession {
   $tokens: Tokens = {};
   store: Store<RootState>;
   $logger: Logger;
+  doiLimiter: Limit;
   plugins: CurvenotePlugin | undefined;
 
   get log(): Logger {
@@ -162,6 +165,7 @@ export class Session implements ISession {
   constructor(token?: string, opts: SessionOptions = {}) {
     this.configFiles = CONFIG_FILES;
     this.$logger = opts.logger ?? basicLogger(LogLevel.info);
+    this.doiLimiter = opts.doiLimiter ?? pLimit(3);
     const url = this.setToken(token);
     this.API_URL = opts.apiUrl ?? url ?? DEFAULT_API_URL;
     this.log.debug(`Connecting to API at: "${this.API_URL}".`);
@@ -236,6 +240,7 @@ export class Session implements ISession {
       logger: this.log,
       apiUrl: this.API_URL,
       siteUrl: this.SITE_URL,
+      doiLimiter: this.doiLimiter,
     });
     await cloneSession.reload();
     // TODO: clean this up through better state handling
