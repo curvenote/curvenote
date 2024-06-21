@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.13
+
+### Patch Changes
+
+- e5bfac1: Consume myst 1.2.9
+  - @curvenote/cli-plugin@0.9.13
+
 ## 0.9.12
 
 ### Patch Changes
