@@ -1,5 +1,13 @@
 # curvenote
 
+## 0.9.14
+
+### Patch Changes
+
+- 262b56c: Upgrade to v1.3.0
+- 3ceb9ba: Add submission query param to work
+  - @curvenote/cli-plugin@0.9.14
+
 ## 0.9.13
 
 ### Patch Changes
