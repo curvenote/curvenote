@@ -706,7 +706,10 @@ export async function updateExistingSubmission(
       throw new Error('No work associated with existing submission');
     }
     session.log.debug(`getting existing work...`);
-    const workResp = await getFromUrl(session, existingSubmission.links.work);
+    const workResp = await getFromUrl(
+      session,
+      `${existingSubmission.links.work}?submission=${existingSubmission.id}`,
+    );
     if (!workResp) {
       throw new Error('Unable to fetch work associated with existing submission');
     }
