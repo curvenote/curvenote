@@ -579,10 +579,10 @@ export async function confirmUpdateToExistingSubmission(
 
     if (!collection?.open) {
       session.log.error(
-        chalk.bold.red('⛔️ the collection for this submission is not accepting submissions'),
+        chalk.bold.red('⛔️ The collection for this submission is not accepting submissions'),
       );
       session.log.info(
-        `${chalk.bold(`📚 open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+        `${chalk.bold(`📚 Open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
       );
       process.exit(1);
     }
@@ -590,9 +590,7 @@ export async function confirmUpdateToExistingSubmission(
     const work = await getWorkFromKey(session, key);
     if (!work) {
       session.log.info(
-        `${chalk.red(
-          `🚨 the work related to your submission was not found, or you do not have permission to update it`,
-        )}`,
+        `${chalk.yellow('👉 You do not own the work associated with this submission, but you may still be able to update it')}`,
       );
     }
 
@@ -609,7 +607,7 @@ export async function confirmUpdateToExistingSubmission(
 
     if (!collection.kinds.find((k) => k.id === kindId)) {
       session.log.error(
-        `${chalk.red(`⛔️ the kind "${kind.name}" is not accepted in the collection "${collectionMoniker(collection)}". This indicates a problem with your previous submission, please contact support@curvenote.com.`)}`,
+        `${chalk.red(`⛔️ The kind "${kind.name}" is not accepted in the collection "${collectionMoniker(collection)}". This indicates a problem with your previous submission, please contact support@curvenote.com.`)}`,
       );
       process.exit(1);
     }
@@ -623,7 +621,7 @@ export async function confirmUpdateToExistingSubmission(
   } catch (err: any) {
     session.log.debug(err);
     session.log.info(
-      `${chalk.red(`🚨 submission not found, or you do not have permission to update it`)}`,
+      `${chalk.red(`🚨 Submission not found, or you do not have permission to update it`)}`,
     );
     process.exit(1);
   }
@@ -706,7 +704,10 @@ export async function updateExistingSubmission(
       throw new Error('No work associated with existing submission');
     }
     session.log.debug(`getting existing work...`);
-    const workResp = await getFromUrl(session, existingSubmission.links.work);
+    const workResp = await getFromUrl(
+      session,
+      `${existingSubmission.links.work}?submission=${existingSubmission.id}`,
+    );
     if (!workResp) {
       throw new Error('Unable to fetch work associated with existing submission');
     }
