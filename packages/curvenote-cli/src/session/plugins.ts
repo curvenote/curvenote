@@ -20,15 +20,15 @@ export async function loadProjectPlugins(session: ISession): Promise<CurvenotePl
   }
   // Already validated by myst plugin loader
   const modules = await Promise.all(
-    config?.plugins?.map(async (filename) => {
-      if (fs.statSync(filename).isFile() && filename.endsWith('.mjs')) {
+    config?.plugins?.map(async (plugin) => {
+      if (fs.statSync(plugin.path).isFile() && plugin.path.endsWith('.mjs')) {
         let module: any;
         try {
-          module = await import(filename);
+          module = await import(plugin.path);
         } catch (error) {
           return null;
         }
-        return { filename, module };
+        return { path: plugin.path, module };
       }
       return null;
     }),
@@ -40,7 +40,7 @@ export async function loadProjectPlugins(session: ISession): Promise<CurvenotePl
     if (checks) {
       session.log.debug(
         `🔌 ${plugin?.name ?? 'Unnamed Plugin'} (${
-          pluginLoader.filename
+          pluginLoader.path
         }) also loaded loaded: ${plural('%s check(s)', checks)}`,
       );
       // TODO: validate each check
