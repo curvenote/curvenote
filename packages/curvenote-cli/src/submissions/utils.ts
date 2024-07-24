@@ -92,12 +92,12 @@ export async function postNewWork(
   session: ISession,
   cdnKey: string,
   cdn: string,
-  key: string,
+  key?: string,
 ): Promise<WorkDTO> {
   const toc = tic();
 
   session.log.debug(
-    `POST to ${session.JOURNALS_URL}works with cdnKey: ${cdnKey}, cdn: ${cdn}, key: ${key}...`,
+    `POST to ${session.JOURNALS_URL}works with cdnKey: ${cdnKey}, cdn: ${cdn}${key ? `, key: ${key}` : ''}...`,
   );
   const resp = await postToJournals(session, 'works', { cdn_key: cdnKey, cdn, key });
   session.log.debug(`${resp.status} ${resp.statusText}`);
@@ -110,7 +110,8 @@ export async function postNewWork(
     session.log.debug(`Work Version Id: ${version_id}`);
     return json;
   } else {
-    throw new Error('Posting new work failed');
+    const message = ((await resp.json()) as { message?: string })?.message;
+    throw new Error(`Posting new work failed${message ? `: ${message}` : ''}`);
   }
 }
 

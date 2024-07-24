@@ -647,7 +647,18 @@ export async function createNewSubmission(
     session.log.debug(`new work posted with version id ${work.version_id}`);
   } else {
     session.log.debug(`posting new work...`);
-    work = await postNewWork(session, cdnKey, cdn, key);
+    try {
+      work = await postNewWork(session, cdnKey, cdn, key);
+    } catch (err) {
+      if (opts?.draft) {
+        session.log.debug(
+          `unable to create a work with key ${key} - attempting to create un-keyed work for draft submission`,
+        );
+        work = await postNewWork(session, cdnKey, cdn);
+      } else {
+        throw err;
+      }
+    }
     session.log.debug(`new work posted with id ${work.id}`);
   }
   if (!work.version_id) {
