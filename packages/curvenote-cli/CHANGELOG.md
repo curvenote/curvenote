@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.15
+
+### Patch Changes
+
+- 4c19212: Allow drafts to use works without key
+  - @curvenote/cli-plugin@0.9.15
+
 ## 0.9.14
 
 ### Patch Changes
