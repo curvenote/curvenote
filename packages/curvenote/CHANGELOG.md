@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.16
+
+### Patch Changes
+
+- 26276ff: Log waiting on long fetches
+- c42d8c2: Update to myst v1.3.3
+
 ## 0.9.15
 
 ## 0.9.14

@@ -1,5 +1,13 @@
 # curvenote
 
+## 0.9.16
+
+### Patch Changes
+
+- 14c936b: Bump myst version to 1.3.2
+- 26276ff: Log waiting on long fetches
+  - @curvenote/cli-plugin@0.9.16
+
 ## 0.9.15
 
 ### Patch Changes
