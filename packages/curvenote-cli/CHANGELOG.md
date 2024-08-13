@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.9.17
+
+### Patch Changes
+
+- c3b3122: Bump myst to 1.3.4
+  - @curvenote/cli-plugin@0.9.17
+
 ## 0.9.16
 
 ### Patch Changes
