@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.9.18
+
+### Patch Changes
+
+- 2db91fd: Updates to myst v1.3.5
+- Updated dependencies [2db91fd]
+  - @curvenote/blocks@1.5.27
+  - @curvenote/cli-plugin@0.9.18
+
 ## 0.9.17
 
 ### Patch Changes
