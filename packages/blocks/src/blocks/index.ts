@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { getDate } from 'simple-validators';
+import { getDate } from '../utils/date.js';
 import type { JsonObject } from '../types.js';
 import type { VersionId, BlockId, Block, BasePartialVersion, FormatTypes } from './types/index.js';
 import { KINDS, ContentFormatTypes } from './types/index.js';

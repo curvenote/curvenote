@@ -3,7 +3,6 @@ import { validateSiteConfig } from 'myst-config';
 import type { ValidationOptions } from 'simple-validators';
 import {
   defined,
-  getDate,
   incrementOptions,
   validateString,
   validateSubdomain,
@@ -12,6 +11,7 @@ import {
 } from 'simple-validators';
 import type { ProjectId } from './projects.js';
 import type { BaseLinks, JsonObject } from './types.js';
+import { getDate } from './utils/date.js';
 
 export interface UploadFileInfo {
   path: string;

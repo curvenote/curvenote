@@ -1,4 +1,4 @@
-import { getDate } from 'simple-validators';
+import { getDate } from '../utils/date.js';
 import type { JsonObject } from '../types.js';
 import type { KINDS, ChildId, BlockChildDict, BaseVersion } from './types/index.js';
 import { ArticleFormatTypes } from './types/index.js';
