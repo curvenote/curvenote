@@ -8,8 +8,8 @@ import { pageFrontmatterFromDTO, projectFrontmatterFromDTO, saveAffiliations } f
 
 const TEST_PROJECT: Project = {
   id: 'id',
-  date_created: new Date(),
-  date_modified: new Date(),
+  date_created: '2024-02-01' as any,
+  date_modified: '2024-02-01' as any,
   created_by: '',
   team: 'team',
   name: 'name',
@@ -232,11 +232,12 @@ describe('projectFrontmatterFromDTO', () => {
 });
 
 describe('pageFrontmatterFromDTO', () => {
-  const date = new Date();
+  const dateString = '2024-08-22';
+  const date = new Date(dateString);
   const frontmatter: PageFrontmatter = {
     title: 'title',
     description: 'description',
-    date: date.toISOString(),
+    date: dateString,
     oxa: 'oxa:proj/block',
     keywords: ['a-tag'],
     tags: ['a-tag'],

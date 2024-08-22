@@ -1,4 +1,4 @@
-import { getDate } from 'simple-validators';
+import { getDate } from './utils/date.js';
 import type { ROLES } from './roles.js';
 import type { BaseLinks, JsonObject } from './types.js';
 

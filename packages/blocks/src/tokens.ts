@@ -1,4 +1,4 @@
-import { getDate } from 'simple-validators';
+import { getDate } from './utils/date.js';
 import type { JsonObject, BaseLinks } from './types.js';
 
 export interface TokenLinks extends BaseLinks {
