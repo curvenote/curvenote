@@ -1,17 +1,17 @@
 import fs from 'node:fs';
 import { plural } from 'myst-common';
 import { loadPlugins, selectors } from 'myst-cli';
-import type { CurvenotePlugin, ISession } from './types.js';
+import type { CurvenotePlugin, ISession, ValidatedCurvenotePlugin } from './types.js';
 
 /**
  * Load user-defined plugin modules declared in the project frontmatter
  *
  * @param session session with logging
  */
-export async function loadProjectPlugins(session: ISession): Promise<CurvenotePlugin> {
+export async function loadProjectPlugins(session: ISession): Promise<ValidatedCurvenotePlugin> {
   const config = selectors.selectCurrentProjectConfig(session.store.getState());
   const mystPlugins = await loadPlugins(session);
-  const plugins: CurvenotePlugin = {
+  const plugins: ValidatedCurvenotePlugin = {
     ...mystPlugins,
     checks: [],
   };
