@@ -18,8 +18,12 @@ export type Response<T extends Record<string, any> = any> = Promise<{
 }>;
 
 export type CurvenotePlugin = MystPlugin & {
-  checks: CheckInterface[];
+  checks?: CheckInterface[];
 };
+
+export type ValidatedCurvenotePlugin = Required<
+  Pick<CurvenotePlugin, 'directives' | 'roles' | 'transforms' | 'checks'>
+>;
 
 export type ISession = IMystSession & {
   API_URL: string;
@@ -30,7 +34,7 @@ export type ISession = IMystSession & {
   TEMP_CDN: string;
   store: Store<RootState>;
   isAnon: boolean;
-  plugins: CurvenotePlugin | undefined;
+  plugins: ValidatedCurvenotePlugin | undefined;
 
   get<T extends Record<string, any> = any>(
     url: string,

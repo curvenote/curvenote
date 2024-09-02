@@ -27,10 +27,10 @@ import type { JsonObject } from '@curvenote/blocks';
 import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
 import { getHeaders, setSessionOrUserToken } from './tokens.js';
-import type { CurvenotePlugin, ISession, Response, Tokens } from './types.js';
+import type { ValidatedCurvenotePlugin, ISession, Response, Tokens } from './types.js';
 import version from '../version.js';
 import { loadProjectPlugins } from './plugins.js';
-import builtInPlugin from '@curvenote/cli-plugin';
+import { combinePlugins, getBuiltInPlugins } from './builtinPlugins.js';
 import boxen from 'boxen';
 import chalk from 'chalk';
 
@@ -153,7 +153,7 @@ export class Session implements ISession {
   store: Store<RootState>;
   $logger: Logger;
   doiLimiter: Limit;
-  plugins: CurvenotePlugin | undefined;
+  plugins: ValidatedCurvenotePlugin | undefined;
 
   get log(): Logger {
     return this.$logger;
@@ -293,20 +293,14 @@ export class Session implements ISession {
     return resp;
   }
 
-  _pluginPromise: Promise<CurvenotePlugin> | undefined;
+  _pluginPromise: Promise<ValidatedCurvenotePlugin> | undefined;
 
-  async loadPlugins() {
+  async loadPlugins(): Promise<ValidatedCurvenotePlugin> {
     // Early return if a promise has already been initiated
     if (this._pluginPromise) return this._pluginPromise;
     this._pluginPromise = loadProjectPlugins(this);
-    this.plugins = await this._pluginPromise;
-    const { directives, roles, transforms } = builtInPlugin;
-    this.plugins = {
-      ...this.plugins,
-      directives: [...this.plugins.directives, ...directives],
-      roles: [...this.plugins.roles, ...roles],
-      transforms: [...this.plugins.transforms, ...transforms],
-    };
+    const loadedPlugins = await this._pluginPromise;
+    this.plugins = combinePlugins([getBuiltInPlugins(), loadedPlugins]);
     return this.plugins;
   }
 
