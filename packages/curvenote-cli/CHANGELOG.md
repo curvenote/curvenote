@@ -1,5 +1,13 @@
 # curvenote
 
+## 0.9.19
+
+### Patch Changes
+
+- 143e9d6: Add person and template extensions
+- 9a17382: Update to the latest check code
+  - @curvenote/cli-plugin@0.9.19
+
 ## 0.9.18
 
 ### Patch Changes
