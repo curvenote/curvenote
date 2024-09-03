@@ -10,15 +10,15 @@ Create, edit, share and publish scientific documents.
 
 `curvenote` is an open source library and command line interface (CLI) to create share and publish technical documents.
 
-- Write papers and reports in Markdown and Jupyter ([docs](https://curvenote.com/docs/cli))
-- Create and share interactive websites ([docs](https://curvenote.com/docs/web))
-- Export to Word, LaTeX, and PDF with any [template](https://github.com/curvenote/templates) ([docs](https://curvenote.com/docs/export))
+- Write papers and reports in Markdown and Jupyter ([docs](https://curvenote.com/docs/publish/authoring-in-myst)
+- Create and share interactive websites ([docs](https://curvenote.com/docs/publish/tutorial-deploy-local))
+- Export to [Word](https://curvenote.com/docs/write/export-microsoft-word), [LaTeX](https://curvenote.com/docs/write/export-latex), and [PDF](https://curvenote.com/docs/write/export-pdf) with any [template](https://github.com/curvenote/templates)
 
 In addition to being completely local, `curvenote` can optionally sync content to <https://curvenote.com> to allow you to work with collaborators who enjoy WYSIWYG editing, commenting & real time collaboration for technical documents.
 
 ## Get Started
 
-Curvenote is available through Node and NPM. Unless you already have this on your system you will have to [install NodeJS](https://curvenote.com/docs/cli/installing-prerequisites). See [full install instructions](https://curvenote.com/docs/cli/installing) in the docs!
+Curvenote is available through Node and NPM. Unless you already have this on your system you will have to [install NodeJS](https://curvenote.com/docs/publish/installing-prerequisites). See [full install instructions](https://curvenote.com/docs/publish/installing) in the docs!
 
 ```bash
 npm install -g curvenote
@@ -27,7 +27,7 @@ curvenote start
 curvenote deploy
 ```
 
-[![](packages/curvenote/images/cli-init.png)](https://curvenote.com/docs/web)
+[![](packages/curvenote/images/cli-init.png)](https://curvenote.com/docs/publish/tutorial-deploy-local)
 
 ## Built with Curvenote
 
@@ -62,7 +62,7 @@ The client library is entirely local, and rebuilds in ~50ms for most projects. M
 
 ## Direct export from Curvenote
 
-First login, see [authorization docs](https://curvenote.com/docs/cli/authorization) to get an API token.
+First login, see [authentication docs](https://curvenote.com/docs/publish/authentication) to get an API token.
 
 ```bash
 curvenote token set
@@ -81,21 +81,6 @@ curvenote export docx https://curvenote.com/@curvenote/blog/communicating-scienc
 curvenote export md https://curvenote.com/@curvenote/blog/version-control-for-scientists version-control.md
 curvenote export tex https://curvenote.com/@curvenote/blog/version-control-for-scientists version-control.tex -template plain_latex
 curvenote export pdf https://curvenote.com/@curvenote/blog/version-control-for-scientists version-control.pdf -template arxiv_nips
-```
-
-## LaTeX and PDF Dependencies
-
-Exporting to:
-
-- LaTeX (`latex`|`tex`) with a template option specified
-- or to PDF
-
-Requires the [jtex](https://pypi.org/project/jtex/) python package to be installed and available on the user's `PATH`.
-
-With python 3.7 or greater installed, install `jtex` via pip:
-
-```bash
-python -m pip install jtex
 ```
 
 # Development
