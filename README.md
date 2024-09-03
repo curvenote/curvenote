@@ -10,7 +10,7 @@ Create, edit, share and publish scientific documents.
 
 `curvenote` is an open source library and command line interface (CLI) to create share and publish technical documents.
 
-- Write papers and reports in Markdown and Jupyter ([docs](https://curvenote.com/docs/publish/authoring-in-myst)
+- Write papers and reports in Markdown and Jupyter ([docs](https://curvenote.com/docs/publish/authoring-in-myst))
 - Create and share interactive websites ([docs](https://curvenote.com/docs/publish/tutorial-deploy-local))
 - Export to [Word](https://curvenote.com/docs/write/export-microsoft-word), [LaTeX](https://curvenote.com/docs/write/export-latex), and [PDF](https://curvenote.com/docs/write/export-pdf) with any [template](https://github.com/curvenote/templates)
 
