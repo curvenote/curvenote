@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.9.20
+
+### Patch Changes
+
+- 6f5cdd3: Bump MyST to v1.3.7
+
 ## 0.9.19
 
 ## 0.9.18
