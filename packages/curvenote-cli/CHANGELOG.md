@@ -1,5 +1,13 @@
 # curvenote
 
+## 0.9.20
+
+### Patch Changes
+
+- 99529b9: Update to 1.3.8 and add blog cards
+- 6f5cdd3: Bump MyST to v1.3.7
+  - @curvenote/cli-plugin@0.9.20
+
 ## 0.9.19
 
 ### Patch Changes
