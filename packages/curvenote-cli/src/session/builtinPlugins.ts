@@ -2,6 +2,7 @@ import type { CurvenotePlugin, ValidatedCurvenotePlugin } from './types.js';
 import cliPlugins from '@curvenote/cli-plugin';
 import extPerson from '@curvenote/ext-person';
 import extTemplate from '@curvenote/ext-template';
+import extBlog from '@curvenote/ext-blog';
 
 export function combinePlugins(plugins: CurvenotePlugin[]): ValidatedCurvenotePlugin {
   return plugins.slice(1).reduce(
@@ -16,5 +17,5 @@ export function combinePlugins(plugins: CurvenotePlugin[]): ValidatedCurvenotePl
 }
 
 export function getBuiltInPlugins() {
-  return combinePlugins([cliPlugins, extPerson, extTemplate]);
+  return combinePlugins([cliPlugins, extPerson, extTemplate, extBlog]);
 }
