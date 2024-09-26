@@ -1,12 +1,11 @@
 import type { ISession } from '../session/types.js';
 import { keyFromTransferFile, writeKeyToConfig } from './utils.transfer.js';
-import { confirmOrExit, writeJsonLogs } from '../utils/utils.js';
+import { confirmOrExit, writeJsonLogs, addOxaTransformersToOpts } from '../utils/utils.js';
 import chalk from 'chalk';
 import { postNewCliCheckJob, patchUpdateCliCheckJob, exitOnInvalidKeyOption } from './utils.js';
 import {
   ensureVenue,
   checkVenueExists,
-  performCleanRebuild,
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
   createNewSubmission,
@@ -30,9 +29,25 @@ import * as uploads from '../uploads/index.js';
 import { workKeyFromConfig } from '../works/utils.js';
 import type { CollectionDTO, SubmissionKindDTO, SubmissionsListItemDTO } from '@curvenote/common';
 import type { GithubSource, SubmitLog, SubmitOpts } from './types.js';
+import { buildSite, clean, collectAllBuildExportOptions, localArticleExport } from 'myst-cli';
 
 const CDN_KEY_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
+
+export async function performCleanRebuild(session: ISession, opts?: SubmitOpts) {
+  session.log.info('\n\n\t✨✨✨  performing a clean re-build of your work  ✨✨✨\n\n');
+  await clean(session, [], { site: true, html: true, temp: true, exports: true, yes: true });
+  const exportOptionsList = await collectAllBuildExportOptions(session, [], { all: true });
+  const exportLogList = exportOptionsList.map((exportOptions) => {
+    return `${path.relative('.', exportOptions.$file)} -> ${exportOptions.output}`;
+  });
+  session.log.info(`📬 Performing exports:\n   ${exportLogList.join('\n   ')}`);
+  await localArticleExport(session, exportOptionsList, {});
+  session.log.info(`⛴  Exports complete`);
+  // Build the files in the content folder and process them
+  await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
+  session.log.info(`✅ Work rebuild complete`);
+}
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: SubmitLog = {
@@ -102,6 +117,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       );
     }
   }
+
   //
   // Options, checks and prompts
   //
