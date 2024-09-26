@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.10.0
+
+### Patch Changes
+
+- b653945: Update to MyST 1.3.10
+
 ## 0.9.20
 
 ### Patch Changes

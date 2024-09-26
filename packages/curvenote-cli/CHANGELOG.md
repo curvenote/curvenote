@@ -1,5 +1,15 @@
 # curvenote
 
+## 0.10.0
+
+### Minor Changes
+
+- fcfdb07: Exposed `performCleanRebuild` for apps using ts client
+
+### Patch Changes
+
+- @curvenote/cli-plugin@0.10.0
+
 ## 0.9.20
 
 ### Patch Changes
