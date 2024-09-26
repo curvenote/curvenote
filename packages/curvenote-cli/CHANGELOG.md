@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.10.1
+
+### Patch Changes
+
+- b6fb911: bump myst
+  - @curvenote/cli-plugin@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes
