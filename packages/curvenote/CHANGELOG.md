@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.10.1
+
+### Patch Changes
+
+- b6fb911: bump myst
+
 ## 0.10.0
 
 ### Patch Changes
