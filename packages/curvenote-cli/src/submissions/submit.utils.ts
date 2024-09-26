@@ -58,7 +58,9 @@ export function collectionQuestions(
   return {
     name: 'collections',
     type: 'list',
-    message: `Venue ${venue} has multiple collections${opts?.allowClosedCollection ? '' : ' open for submission'}. Which do you want to select?`,
+    message: `Venue ${venue} has multiple collections${
+      opts?.allowClosedCollection ? '' : ' open for submission'
+    }. Which do you want to select?`,
     choices: collections.map((item) => ({
       name: collectionMoniker(item),
       value: item,
@@ -130,21 +132,31 @@ export async function determineCollectionAndKind(
   if (opts?.collection) {
     if (!selectedCollection) {
       session.log.info(
-        `${chalk.bold.red(`⛔️ collection "${opts?.collection}" does not exist at venue "${venue}"`)}`,
+        `${chalk.bold.red(
+          `⛔️ collection "${opts?.collection}" does not exist at venue "${venue}"`,
+        )}`,
       );
       session.log.info(
-        `${chalk.bold(`🗂  open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+        `${chalk.bold(
+          `🗂  open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`,
+        )}`,
       );
       process.exit(1);
     }
 
     if (selectedCollection && !selectedCollection?.open) {
       session.log.info(
-        `${chalk.bold.red(`⛔️ collection "${opts?.collection}" is not open for submissions at venue "${venue}"`)}`,
+        `${chalk.bold.red(
+          `⛔️ collection "${opts?.collection}" is not open for submissions at venue "${venue}"`,
+        )}`,
       );
       if (!opts?.allowClosedCollection) {
         session.log.info(
-          `${chalk.bold(`🗂  open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+          `${chalk.bold(
+            `🗂  open collections are: ${openCollections
+              .map((c) => collectionMoniker(c))
+              .join(', ')}`,
+          )}`,
         );
         process.exit(1);
       }
@@ -155,7 +167,9 @@ export async function determineCollectionAndKind(
     const defaultCollection = collections.items.find((c) => c.default);
     if (defaultCollection && !defaultCollection.open) {
       session.log.info(
-        `${chalk.red(`🗂  default collection "${defaultCollection.name}" is not open for submissions at venue "${venue}"`)}`,
+        `${chalk.red(
+          `🗂  default collection "${defaultCollection.name}" is not open for submissions at venue "${venue}"`,
+        )}`,
       );
     }
     if (!opts?.allowClosedCollection && openCollections.length === 1) {
@@ -245,7 +259,11 @@ export async function determineKindFromCollection(
     );
     if (!match) {
       session.log.info(
-        `${chalk.bold.red(`⛔️ submission kind "${opts.kind}" is not accepted in the collection "${collectionMoniker(collection)}"`)}`,
+        `${chalk.bold.red(
+          `⛔️ submission kind "${
+            opts.kind
+          }" is not accepted in the collection "${collectionMoniker(collection)}"`,
+        )}`,
       );
       session.log.info(
         `${chalk.bold(`📚 accepted kinds are: ${kinds.map((k) => k.name).join(', ')}`)}`,
@@ -287,21 +305,6 @@ export async function determineKindFromCollection(
   }
 
   return { kind, prompted };
-}
-
-export async function performCleanRebuild(session: ISession, opts?: SubmitOpts) {
-  session.log.info('\n\n\t✨✨✨  performing a clean re-build of your work  ✨✨✨\n\n');
-  await clean(session, [], { site: true, html: true, temp: true, exports: true, yes: true });
-  const exportOptionsList = await collectAllBuildExportOptions(session, [], { all: true });
-  const exportLogList = exportOptionsList.map((exportOptions) => {
-    return `${path.relative('.', exportOptions.$file)} -> ${exportOptions.output}`;
-  });
-  session.log.info(`📬 Performing exports:\n   ${exportLogList.join('\n   ')}`);
-  await localArticleExport(session, exportOptionsList, {});
-  session.log.info(`⛴  Exports complete`);
-  // Build the files in the content folder and process them
-  await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
-  session.log.info(`✅ Work rebuild complete`);
 }
 
 export function getSiteConfig(session: ISession) {
@@ -439,7 +442,9 @@ export async function getVenueCollections(
     collections = await listCollections(session, venue);
   } catch (err) {
     session.log.info(
-      `${chalk.red(`🚦 venue "${venue}" is unavailable; make sure the name is correct and you have permission to access`)}`,
+      `${chalk.red(
+        `🚦 venue "${venue}" is unavailable; make sure the name is correct and you have permission to access`,
+      )}`,
     );
     process.exit(1);
   }
@@ -451,11 +456,17 @@ export async function getVenueCollections(
     if (requireOpenCollections) process.exit(1);
   } else if (openCollections.length > 1) {
     session.log.info(
-      `${chalk.green(`💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+      `${chalk.green(
+        `💚 venue "${venue}" is accepting submissions in the following collections: ${openCollections
+          .map((c) => collectionMoniker(c))
+          .join(', ')}`,
+      )}`,
     );
   } else {
     session.log.info(
-      `${chalk.green(`💚 venue "${venue}" is accepting submissions (${collectionMoniker(openCollections[0])}).`)}`,
+      `${chalk.green(
+        `💚 venue "${venue}" is accepting submissions (${collectionMoniker(openCollections[0])}).`,
+      )}`,
     );
   }
   return collections;
@@ -582,7 +593,9 @@ export async function confirmUpdateToExistingSubmission(
         chalk.bold.red('⛔️ The collection for this submission is not accepting submissions'),
       );
       session.log.info(
-        `${chalk.bold(`📚 Open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`)}`,
+        `${chalk.bold(
+          `📚 Open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`,
+        )}`,
       );
       process.exit(1);
     }
@@ -590,7 +603,9 @@ export async function confirmUpdateToExistingSubmission(
     const work = await getWorkFromKey(session, key);
     if (!work) {
       session.log.info(
-        `${chalk.yellow('👉 You do not own the work associated with this submission, but you may still be able to update it')}`,
+        `${chalk.yellow(
+          '👉 You do not own the work associated with this submission, but you may still be able to update it',
+        )}`,
       );
     }
 
@@ -607,7 +622,11 @@ export async function confirmUpdateToExistingSubmission(
 
     if (!collection.kinds.find((k) => k.id === kindId)) {
       session.log.error(
-        `${chalk.red(`⛔️ The kind "${kind.name}" is not accepted in the collection "${collectionMoniker(collection)}". This indicates a problem with your previous submission, please contact support@curvenote.com.`)}`,
+        `${chalk.red(
+          `⛔️ The kind "${kind.name}" is not accepted in the collection "${collectionMoniker(
+            collection,
+          )}". This indicates a problem with your previous submission, please contact support@curvenote.com.`,
+        )}`,
       );
       process.exit(1);
     }
