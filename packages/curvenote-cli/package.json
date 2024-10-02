@@ -42,7 +42,7 @@
     "@curvenote/check-definitions": "^0.0.23",
     "@curvenote/check-implementations": "^0.0.23",
     "@curvenote/cli-plugin": "^0.10.1",
-    "@curvenote/common": "^0.1.45",
+    "@curvenote/common": "^0.2.7",
     "@curvenote/ext-blog": "^0.2.7",
     "@curvenote/ext-footer": "^0.2.7",
     "@curvenote/ext-landing": "^0.2.7",
