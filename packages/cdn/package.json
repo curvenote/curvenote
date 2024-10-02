@@ -1,0 +1,41 @@
+{
+  "name": "@curvenote/cdn",
+  "version": "0.2.7",
+  "type": "module",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "MIT",
+  "sideEffects": false,
+  "scripts": {
+    "clean": "rimraf dist",
+    "lint": "eslint \"src/**/!(*.spec).ts*\" -c ./.eslintrc.cjs",
+    "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\"",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "dev": "npm-run-all --parallel \"build:* -- --watch\"",
+    "build:esm": "tsc",
+    "build": "npm-run-all -l clean -p build:esm"
+  },
+  "dependencies": {
+    "@curvenote/common": "^0.2.7",
+    "@myst-theme/common": "^0.12.0",
+    "cache-manager": "^5.2.3",
+    "doi-utils": "^2.0.2",
+    "myst-config": "^1.6.0",
+    "node-cache": "^5.1.2",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node-fetch": "^2.6.4",
+    "typescript": "latest"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
