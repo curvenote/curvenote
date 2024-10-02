@@ -1,5 +1,11 @@
 # @curvenote/cdn
 
+## 0.2.7
+
+### Patch Changes
+
+- @curvenote/common@0.2.7
+
 ## 0.2.6
 
 ### Patch Changes
