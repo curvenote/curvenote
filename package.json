@@ -29,7 +29,7 @@
     "rimraf": "^3.0.2",
     "turbo": "latest",
     "typescript": "latest",
-    "vitest": "^0.32.4"
+    "vitest": "^2.1.2"
   },
   "engines": {
     "npm": ">=7.0.0",

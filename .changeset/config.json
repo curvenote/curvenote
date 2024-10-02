@@ -2,7 +2,10 @@
   "$schema": "https://unpkg.com/@changesets/config@2.0.1/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "fixed": [["curvenote", "@curvenote/cli", "@curvenote/cli-plugin"]],
+  "fixed": [
+    ["curvenote", "@curvenote/cli", "@curvenote/cli-plugin"],
+    ["@curvenote/cdn", "@curvenote/common"]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
