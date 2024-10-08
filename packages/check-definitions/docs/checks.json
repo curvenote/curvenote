@@ -1,0 +1,656 @@
+{
+  "items": [
+    {
+      "id": "abstract-exists",
+      "category": "abstract",
+      "source": "curvenote",
+      "title": "Abstract Exists",
+      "description": "Ensure abstract exists in MyST project"
+    },
+    {
+      "id": "abstract-length",
+      "category": "abstract",
+      "source": "curvenote",
+      "title": "Abstract Length",
+      "description": "Ensure abstract in MyST project is the correct length",
+      "options": [
+        {
+          "id": "max",
+          "title": "Maximum word count for abstract",
+          "required": true,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "availability-exists",
+      "category": "availability",
+      "source": "curvenote",
+      "title": "Availability Statement Exists",
+      "description": "Ensure availability statement exists in MyST project"
+    },
+    {
+      "id": "citation-is-unique",
+      "category": "citation",
+      "source": "myst",
+      "title": "Citation is unique",
+      "description": "Citation does not have any duplicate identifiers in the MyST project."
+    },
+    {
+      "id": "bib-file-exists",
+      "category": "citation",
+      "source": "myst",
+      "title": "Bib file exists",
+      "description": "Bib file referenced in config file exists in the MyST project."
+    },
+    {
+      "id": "myst-citation",
+      "category": "citation",
+      "source": "myst",
+      "title": "MyST citation checks pass",
+      "description": "No citation-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "code-metadata-lifted",
+      "category": "code",
+      "source": "myst",
+      "title": "Code metadata lifted",
+      "description": "Metadata defined on code is lifted to blocks; often failures are associated with multiple code metadata definitions within one block."
+    },
+    {
+      "id": "code-metatags-valid",
+      "category": "code",
+      "source": "myst",
+      "title": "Code metatags valid",
+      "description": "Tags in code metadata must be a list of strings, and they must not conflict with each other."
+    },
+    {
+      "id": "code-lang-defined",
+      "category": "code",
+      "source": "myst",
+      "title": "Code lang defined",
+      "description": "Code blocks should define their language"
+    },
+    {
+      "id": "code-metadata-loads",
+      "category": "code",
+      "source": "myst",
+      "title": "Code metadata loads",
+      "description": "Code metadata must be valid yaml."
+    },
+    {
+      "id": "inline-expression-renders",
+      "category": "code",
+      "source": "myst",
+      "title": "Inline expression renders",
+      "description": "Inline expression must be a recognized mime bundle."
+    },
+    {
+      "id": "myst-code",
+      "category": "code",
+      "source": "myst",
+      "title": "MyST code checks pass",
+      "description": "No code-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "directive-known",
+      "category": "directive",
+      "source": "myst",
+      "title": "Known Directive",
+      "description": "Check if directive is recognized."
+    },
+    {
+      "id": "directive-argument-correct",
+      "category": "directive",
+      "source": "myst",
+      "title": "Directive Argument Validates",
+      "description": "Argument is valid, according to the rules of the specific directive."
+    },
+    {
+      "id": "directive-options-correct",
+      "category": "directive",
+      "source": "myst",
+      "title": "Directive Options Validate",
+      "description": "Options are valid, according to the rules of the specific directive."
+    },
+    {
+      "id": "directive-body-correct",
+      "category": "directive",
+      "source": "myst",
+      "title": "Directive Body Validates",
+      "description": "Body is valid, according to the rules of the specific directive."
+    },
+    {
+      "id": "myst-directive",
+      "category": "directive",
+      "source": "myst",
+      "title": "MyST directive checks pass",
+      "description": "No directive-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "docx-renders",
+      "category": "export",
+      "source": "myst",
+      "title": "DOCX Renders Successfully",
+      "description": "The document renders to DOCX format without errors."
+    },
+    {
+      "id": "jats-renders",
+      "category": "export",
+      "source": "myst",
+      "title": "JATS Renders Successfully",
+      "description": "The document renders to JATS format without errors."
+    },
+    {
+      "id": "md-renders",
+      "category": "export",
+      "source": "myst",
+      "title": "Markdown Renders Successfully",
+      "description": "The document renders to Markdown format without errors."
+    },
+    {
+      "id": "meca-includes-jats",
+      "category": "export",
+      "source": "myst",
+      "title": "MECA Includes JATS",
+      "description": "MECA bundle includes a single JATS document."
+    },
+    {
+      "id": "meca-exports-built",
+      "category": "export",
+      "source": "myst",
+      "title": "MECA Includes Manuscripts",
+      "description": "Manuscript files (pdf, docx, etc) are built and included in MECA bundle."
+    },
+    {
+      "id": "meca-files-copied",
+      "category": "export",
+      "source": "myst",
+      "title": "MECA Includes Files",
+      "description": "Files are copied successfully to MECA bundle."
+    },
+    {
+      "id": "pdf-builds-without-errors",
+      "category": "export",
+      "source": "myst",
+      "title": "PDF Builds Without Errors",
+      "description": "PDF generation completes without errors."
+    },
+    {
+      "id": "pdf-builds",
+      "category": "export",
+      "source": "myst",
+      "title": "PDF Builds Successfully",
+      "description": "The document builds to PDF format without errors."
+    },
+    {
+      "id": "tex-renders",
+      "category": "export",
+      "source": "myst",
+      "title": "TeX Renders Successfully",
+      "description": "The document renders to TeX format without errors."
+    },
+    {
+      "id": "export-extension-correct",
+      "category": "export",
+      "source": "myst",
+      "title": "Export Extension Correct",
+      "description": "The exported file has the correct file extension."
+    },
+    {
+      "id": "export-article-exists",
+      "category": "export",
+      "source": "myst",
+      "title": "Exported Article Exists",
+      "description": "The exported article exists as expected."
+    },
+    {
+      "id": "myst-export",
+      "category": "export",
+      "source": "myst",
+      "title": "MyST export checks pass",
+      "description": "No export-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "valid-config-structure",
+      "category": "frontmatter",
+      "source": "myst",
+      "title": "Valid Config Structure",
+      "description": "The configuration file has a valid structure."
+    },
+    {
+      "id": "site-config-exists",
+      "category": "frontmatter",
+      "source": "myst",
+      "title": "Site Config Exists",
+      "description": "The site configuration file exists."
+    },
+    {
+      "id": "project-config-exists",
+      "category": "frontmatter",
+      "source": "myst",
+      "title": "Project Config Exists",
+      "description": "The project configuration file exists."
+    },
+    {
+      "id": "valid-site-config",
+      "category": "frontmatter",
+      "source": "myst",
+      "title": "Valid Site Config",
+      "description": "The site configuration is valid."
+    },
+    {
+      "id": "valid-project-config",
+      "category": "frontmatter",
+      "source": "myst",
+      "title": "Valid Project Config",
+      "description": "The project configuration is valid."
+    },
+    {
+      "id": "config-has-no-deprecated-fields",
+      "category": "frontmatter",
+      "source": "myst",
+      "title": "Config Has No Deprecated Fields",
+      "description": "There are no deprecated fields in the configuration file."
+    },
+    {
+      "id": "frontmatter-is-yaml",
+      "category": "frontmatter",
+      "source": "myst",
+      "title": "Frontmatter Is YAML",
+      "description": "The frontmatter format is YAML."
+    },
+    {
+      "id": "valid-page-frontmatter",
+      "category": "frontmatter",
+      "source": "myst",
+      "title": "Valid Page Frontmatter",
+      "description": "The page frontmatter is valid."
+    },
+    {
+      "id": "valid-frontmatter-export-list",
+      "category": "frontmatter",
+      "source": "myst",
+      "title": "Valid Export List",
+      "description": "The frontmatter export list is valid."
+    },
+    {
+      "id": "myst-frontmatter",
+      "category": "frontmatter",
+      "source": "myst",
+      "title": "MyST frontmatter checks pass",
+      "description": "No frontmatter-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "image-downloads",
+      "category": "image",
+      "source": "myst",
+      "title": "Image Downloads",
+      "description": "Remote images are downloaded successfully."
+    },
+    {
+      "id": "image-exists",
+      "category": "image",
+      "source": "myst",
+      "title": "Image Exists",
+      "description": "The image exists on disk."
+    },
+    {
+      "id": "image-format-converts",
+      "category": "image",
+      "source": "myst",
+      "title": "Image Format Converts",
+      "description": "Image format is converted successfully from unsupported to supported format."
+    },
+    {
+      "id": "image-copied",
+      "category": "image",
+      "source": "myst",
+      "title": "Image Copied",
+      "description": "Image is copied successfully from source location."
+    },
+    {
+      "id": "image-format-optimizes",
+      "category": "image",
+      "source": "myst",
+      "title": "Image Format Optimizes",
+      "description": "Images format is converted to webp for optimal web performance."
+    },
+    {
+      "id": "myst-image",
+      "category": "image",
+      "source": "myst",
+      "title": "MyST image checks pass",
+      "description": "No image-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "myst-link-valid",
+      "category": "link",
+      "source": "myst",
+      "title": "Valid MyST Link",
+      "description": "Myst link to local or intersphinx content is valid."
+    },
+    {
+      "id": "rrid-link-valid",
+      "category": "link",
+      "source": "myst",
+      "title": "Valid RRID Link",
+      "description": "The RRID link matches expected pattern."
+    },
+    {
+      "id": "wikipedia-link-valid",
+      "category": "link",
+      "source": "myst",
+      "title": "Valid Wikipedia Link",
+      "description": "Wikipedia link matches expected pattern."
+    },
+    {
+      "id": "doi-link-valid",
+      "category": "link",
+      "source": "myst",
+      "title": "Valid DOI Link",
+      "description": "DOI link is a valid DOI."
+    },
+    {
+      "id": "link-resolves",
+      "category": "link",
+      "source": "myst",
+      "title": "Link Resolves",
+      "description": "Link can be successfully fetched."
+    },
+    {
+      "id": "myst-link",
+      "category": "link",
+      "source": "myst",
+      "title": "MyST link checks pass",
+      "description": "No link-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "math-label-lifted",
+      "category": "math",
+      "source": "myst",
+      "title": "Math Label Lifted",
+      "description": "Enumerated math label is identified and lifted from latex."
+    },
+    {
+      "id": "math-equation-env-removed",
+      "category": "math",
+      "source": "myst",
+      "title": "Math Equation Env Removed",
+      "description": "Equation environment is removed from latex."
+    },
+    {
+      "id": "math-eqnarray-replaced",
+      "category": "math",
+      "source": "myst",
+      "title": "Eqnarray Replaced",
+      "description": "Latex align environment should be used instead of eqnarray."
+    },
+    {
+      "id": "math-alignment-adjusted",
+      "category": "math",
+      "source": "myst",
+      "title": "Math Alignment Adjusted",
+      "description": "Math align environment renders correctly."
+    },
+    {
+      "id": "math-renders",
+      "category": "math",
+      "source": "myst",
+      "title": "Math Renders Successfully",
+      "description": "Equation renders without any warning or errors."
+    },
+    {
+      "id": "myst-math",
+      "category": "math",
+      "source": "myst",
+      "title": "MyST math checks pass",
+      "description": "No math-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "mdast-snippet-imports",
+      "category": "miscellaneous",
+      "source": "myst",
+      "title": "MDAST Snippet Imports",
+      "description": "MDAST snippet imports are resolved and loaded."
+    },
+    {
+      "id": "include-content-filters",
+      "category": "miscellaneous",
+      "source": "myst",
+      "title": "Include Content Filters",
+      "description": "Line number filters apply to include content successfully."
+    },
+    {
+      "id": "include-content-loads",
+      "category": "miscellaneous",
+      "source": "myst",
+      "title": "Include Content Loads",
+      "description": "Include content resolves and loads."
+    },
+    {
+      "id": "gated-nodes-join",
+      "category": "miscellaneous",
+      "source": "myst",
+      "title": "Gated Nodes Join",
+      "description": "Gated nodes are successfully joined."
+    },
+    {
+      "id": "glossary-uses-definition-list",
+      "category": "miscellaneous",
+      "source": "myst",
+      "title": "Glossary Uses Definition List",
+      "description": "Glossary contains terms as a definition list."
+    },
+    {
+      "id": "block-metadata-loads",
+      "category": "miscellaneous",
+      "source": "myst",
+      "title": "Block Metadata Loads",
+      "description": "Block metadata is loaded successfully."
+    },
+    {
+      "id": "myst-miscellaneous",
+      "category": "miscellaneous",
+      "source": "myst",
+      "title": "MyST miscellaneous content checks pass",
+      "description": "No miscellaneous content-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "notebook-attachments-resolve",
+      "category": "notebook",
+      "source": "myst",
+      "title": "Notebook Attachments Resolve",
+      "description": "Notebook attachments successfully load."
+    },
+    {
+      "id": "notebook-output-copied",
+      "category": "notebook",
+      "source": "myst",
+      "title": "Notebook Output Copied",
+      "description": "Notebook output is copied to separate file."
+    },
+    {
+      "id": "myst-notebook",
+      "category": "notebook",
+      "source": "myst",
+      "title": "MyST notebook checks pass",
+      "description": "No notebook-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "tex-parses",
+      "category": "parse",
+      "source": "myst",
+      "title": "TeX Parses",
+      "description": "TeX source file parses to MyST"
+    },
+    {
+      "id": "jats-parses",
+      "category": "parse",
+      "source": "myst",
+      "title": "JATS Parses",
+      "description": "JATS source file parses to MyST"
+    },
+    {
+      "id": "myst-file-loads",
+      "category": "parse",
+      "source": "myst",
+      "title": "MyST File Loads",
+      "description": "MyST markdown/notebook file parses to MyST"
+    },
+    {
+      "id": "myst-parse",
+      "category": "parse",
+      "source": "myst",
+      "title": "MyST parse checks pass",
+      "description": "No parse-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "reference-template-fills",
+      "category": "reference",
+      "source": "myst",
+      "title": "Reference Template Fills",
+      "description": "Template for reference enumeration is valid and fills."
+    },
+    {
+      "id": "identifier-is-unique",
+      "category": "reference",
+      "source": "myst",
+      "title": "Unique Identifier",
+      "description": "Identifiers are unique."
+    },
+    {
+      "id": "reference-target-resolves",
+      "category": "reference",
+      "source": "myst",
+      "title": "Reference Target Resolves",
+      "description": "Cross-reference target exists and resolves."
+    },
+    {
+      "id": "reference-syntax-valid",
+      "category": "reference",
+      "source": "myst",
+      "title": "Valid Reference Syntax",
+      "description": "Cross-reference syntax is valid."
+    },
+    {
+      "id": "reference-target-explicit",
+      "category": "reference",
+      "source": "myst",
+      "title": "Explicit Reference Target",
+      "description": "Cross-reference target is explicitly specified."
+    },
+    {
+      "id": "footnote-references-definition",
+      "category": "reference",
+      "source": "myst",
+      "title": "Footnote References Definition",
+      "description": "Footnote references correctly point to their definitions."
+    },
+    {
+      "id": "intersphinx-references-resolve",
+      "category": "reference",
+      "source": "myst",
+      "title": "Intersphinx References Resolve",
+      "description": "Intersphinx references successfully resolve."
+    },
+    {
+      "id": "myst-reference",
+      "category": "reference",
+      "source": "myst",
+      "title": "MyST reference checks pass",
+      "description": "No reference-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "role-known",
+      "category": "role",
+      "source": "myst",
+      "title": "Known Role",
+      "description": "Check if role is recognized."
+    },
+    {
+      "id": "role-body-correct",
+      "category": "role",
+      "source": "myst",
+      "title": "Role Body Validates",
+      "description": "Body is valid, according to the rules of the specific role."
+    },
+    {
+      "id": "myst-role",
+      "category": "role",
+      "source": "myst",
+      "title": "MyST role checks pass",
+      "description": "No role-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "static-file-copied",
+      "category": "static",
+      "source": "myst",
+      "title": "Static File Copied",
+      "description": "Static site asset successfully copied."
+    },
+    {
+      "id": "export-file-copied",
+      "category": "static",
+      "source": "myst",
+      "title": "Export File Copied",
+      "description": "Exported file is successfully copied."
+    },
+    {
+      "id": "source-file-copied",
+      "category": "static",
+      "source": "myst",
+      "title": "Source File Copied",
+      "description": "Source file for MyST site is successfully copied."
+    },
+    {
+      "id": "template-file-copied",
+      "category": "static",
+      "source": "myst",
+      "title": "Template File Copied",
+      "description": "Supporting template file is successfully copied."
+    },
+    {
+      "id": "static-action-file-copied",
+      "category": "static",
+      "source": "myst",
+      "title": "Static Action File Copied",
+      "description": "Static site action file is successfully copied."
+    },
+    {
+      "id": "myst-static",
+      "category": "static",
+      "source": "myst",
+      "title": "MyST static file checks pass",
+      "description": "No static-file-related errors or warnings are produced during MyST build."
+    },
+    {
+      "id": "toc-contents-exist",
+      "category": "toc",
+      "source": "myst",
+      "title": "TOC Contents Exist",
+      "description": "The table of contents points to existing files."
+    },
+    {
+      "id": "valid-toc-structure",
+      "category": "toc",
+      "source": "myst",
+      "title": "Valid TOC Structure",
+      "description": "The table of contents has a valid basic structure."
+    },
+    {
+      "id": "valid-toc",
+      "category": "toc",
+      "source": "myst",
+      "title": "Valid TOC",
+      "description": "The table of contents is able to load."
+    },
+    {
+      "id": "myst-toc",
+      "category": "toc",
+      "source": "myst",
+      "title": "MyST toc checks pass",
+      "description": "No toc-related errors or warnings are produced during MyST build."
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@curvenote/check-definitions",
+  "description": "Definitions for Curvenote checks",
+  "author": "Franklin Koch <franklin@curvenote.com>",
+  "version": "0.0.23",
+  "type": "module",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "sideEffects": false,
+  "scripts": {
+    "clean": "rimraf dist",
+    "lint": "eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
+    "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\"",
+    "build:esm": "tsc --outDir dist",
+    "build": "npm-run-all -l clean -p build:esm",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "myst-common": "^1.2.0",
+    "myst-templates": "^1.0.17"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "@types/unist": "3.0.1"
+  }
+}
