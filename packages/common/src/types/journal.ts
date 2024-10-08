@@ -24,6 +24,7 @@ export interface JupyterFeatureConfig {
     clientProxyUrl: string;
   };
   allowLite?: boolean;
+  openInServerRoot?: boolean;
 }
 
 export interface JupyterUIThemeConfig {
