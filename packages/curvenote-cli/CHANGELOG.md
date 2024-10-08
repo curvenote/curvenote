@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.10.2
+
+### Patch Changes
+
+- 9a46ab2: Add footer/icon and landing plugins
+  - @curvenote/cli-plugin@0.10.2
+
 ## 0.10.1
 
 ### Patch Changes
