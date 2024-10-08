@@ -1,0 +1,42 @@
+{
+  "name": "@curvenote/check-implementations",
+  "description": "Implementations for Curvenote checks",
+  "author": "Franklin Koch <franklin@curvenote.com>",
+  "version": "0.0.23",
+  "type": "module",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "sideEffects": false,
+  "scripts": {
+    "clean": "rimraf dist",
+    "lint": "eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
+    "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\"",
+    "build:esm": "tsc --outDir dist",
+    "build": "npm-run-all -l clean -p build:esm",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "dependencies": {
+    "@curvenote/check-definitions": "^0.0.23",
+    "@wordpress/wordcount": "^3.50.0",
+    "lodash.isequal": "^4.5.0",
+    "p-limit": "^3.1.0",
+    "unist-util-select": "^4.0.3",
+    "myst-cli": "^1.1.54",
+    "myst-common": "^1.2.0",
+    "myst-frontmatter": "^1.2.0",
+    "node-fetch": "^3.3.2",
+    "vfile": "^5.3.5"
+  },
+  "peerDependencies": {},
+  "devDependencies": {
+    "@types/lodash.isequal": "^4.5.7",
+    "@types/unist": "3.0.1",
+    "@types/wordpress__wordcount": "^2.4.4",
+    "typescript": "latest"
+  }
+}

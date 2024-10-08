@@ -1,0 +1,18 @@
+version: 1
+project:
+  title: Curvenote Checks
+  plugins:
+    - checks.mjs
+  abbreviations:
+    MyST: Markedly Structured Text
+    ORCID: Open Researcher and Contributor ID
+site:
+  title: Curvenote Checks
+  logo: curvenote.png
+  logo_dark: curvenote.png
+  nav: []
+  actions:
+    - title: Curvenote Sites
+      url: https://curvenote.com/for/journals
+  domains:
+    - checks.curvenote.com
