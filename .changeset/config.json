@@ -4,7 +4,8 @@
   "commit": false,
   "fixed": [
     ["curvenote", "@curvenote/cli", "@curvenote/cli-plugin"],
-    ["@curvenote/cdn", "@curvenote/common"]
+    ["@curvenote/cdn", "@curvenote/common"],
+    ["@curvenote/check-definitions", "@curvenote/check-implementations"]
   ],
   "linked": [],
   "access": "public",
