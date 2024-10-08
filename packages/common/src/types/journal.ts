@@ -21,6 +21,7 @@ export interface JupyterFeatureConfig {
     title: string;
     description?: string;
     icon?: string;
+    clientProxyUrl: string;
   };
   allowLite?: boolean;
 }
