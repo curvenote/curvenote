@@ -21,7 +21,8 @@ export interface JupyterFeatureConfig {
     title: string;
     description?: string;
     icon?: string;
-    clientProxyUrl: string;
+    clientProxyUrl?: string;
+    gitPullerTargetPath?: string;
   };
   allowLite?: boolean;
   openInServerRoot?: boolean;
