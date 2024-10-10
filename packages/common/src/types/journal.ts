@@ -130,7 +130,7 @@ export interface JournalThemeConfig {
     heading?: string;
     subheading?: string;
   };
-  jupyter?: JupyterFeatureConfig;
+  jupyter?: JupyterUIThemeConfig & JupyterFeatureConfig;
   defaults?: {
     subject?: string;
   };
