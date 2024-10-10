@@ -21,8 +21,11 @@ export interface JupyterFeatureConfig {
     title: string;
     description?: string;
     icon?: string;
+    clientProxyUrl?: string;
+    gitPullerTargetPath?: string;
   };
   allowLite?: boolean;
+  openInServerRoot?: boolean;
 }
 
 export interface JupyterUIThemeConfig {
@@ -127,7 +130,7 @@ export interface JournalThemeConfig {
     heading?: string;
     subheading?: string;
   };
-  jupyter?: JupyterFeatureConfig;
+  jupyter?: JupyterUIThemeConfig & JupyterFeatureConfig;
   defaults?: {
     subject?: string;
   };
