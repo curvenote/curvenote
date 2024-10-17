@@ -14,8 +14,14 @@ export function clirun(
     skipProjectLoading?: boolean;
     requireSiteConfig?: boolean;
     hideNoTokenWarning?: boolean;
+    /**
+     * Wait for all promises to finish, even if the main command is complete.
+     *
+     * For example, when starting a watch process.
+     * For build commands, this should be `false`, the default, to ensure a speedy exit from the CLI.
+     */
+    keepAlive?: boolean | ((...args: any[]) => boolean);
   },
-  nArgs?: number,
 ) {
   return async (...args: any[]) => {
     const opts = cli.program.opts() as SessionOpts;
@@ -48,7 +54,7 @@ export function clirun(
       }
     }
     try {
-      await func(useSession, ...args.slice(0, nArgs));
+      await func(useSession, ...args);
     } catch (error) {
       if (opts.debug) {
         useSession.log.debug(`\n\n${(error as Error)?.stack}\n\n`);
@@ -59,5 +65,10 @@ export function clirun(
       process.exit(1);
     }
     useSession.showUpgradeNotice?.();
+    if (typeof cli?.keepAlive === 'function') {
+      if (!cli.keepAlive(...args)) process.exit(0);
+    } else if (!cli?.keepAlive) {
+      process.exit(0);
+    }
   };
 }
