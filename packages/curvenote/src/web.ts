@@ -20,14 +20,18 @@ import {
 
 function makeCurvenoteStartCLI(program: Command) {
   const command = makeStartCommand().action(
-    clirun(web.curvenoteStart, { program, requireSiteConfig: true }),
+    clirun(web.curvenoteStart, { program, requireSiteConfig: true, keepAlive: true }),
   );
   return command;
 }
 
 function makeBuildCLI(program: Command) {
   const command = makeBuildCommand().action(
-    clirun(web.curvenoteBuild, { program, requireSiteConfig: true }),
+    clirun(web.curvenoteBuild, {
+      program,
+      requireSiteConfig: true,
+      keepAlive: (_, opts) => !!opts.watch,
+    }),
   );
   return command;
 }
