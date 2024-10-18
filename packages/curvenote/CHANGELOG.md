@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.10.2
+
+### Patch Changes
+
+- 20d9914: Exit when task completes from CLI and cancel other promises
+- 20d9914: Update packages
+
 ## 0.10.1
 
 ### Patch Changes

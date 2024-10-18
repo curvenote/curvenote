@@ -1,5 +1,11 @@
 # @curvenote/cli-plugin
 
+## 0.10.2
+
+### Patch Changes
+
+- 20d9914: Update packages
+
 ## 0.10.1
 
 ## 0.10.0

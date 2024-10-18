@@ -1,5 +1,13 @@
 # @curvenote/check-implementations
 
+## 0.0.24
+
+### Patch Changes
+
+- 20d9914: Update packages
+- Updated dependencies [20d9914]
+  - @curvenote/check-definitions@0.0.24
+
 ## 0.0.23
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @curvenote/cdn
 
+## 0.2.8
+
+### Patch Changes
+
+- 20d9914: Update packages
+- Updated dependencies [20d9914]
+  - @curvenote/common@0.2.8
+
 ## 0.2.7
 
 ### Patch Changes

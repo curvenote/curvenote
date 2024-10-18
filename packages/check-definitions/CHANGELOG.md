@@ -1,5 +1,11 @@
 # @curvenote/check-definitions
 
+## 0.0.24
+
+### Patch Changes
+
+- 20d9914: Update packages
+
 ## 0.0.23
 
 ## 0.0.22
