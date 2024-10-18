@@ -37,7 +37,7 @@
     "build": "npm-run-all -l clean -p build:esm"
   },
   "dependencies": {
-    "myst-common": "^1.5.3",
+    "myst-common": "^1.7.2",
     "vfile": "^5.3.7"
   },
   "engines": {
