@@ -1,5 +1,11 @@
 # @curvenote/common
 
+## 0.2.8
+
+### Patch Changes
+
+- 20d9914: Update packages
+
 ## 0.2.7
 
 ## 0.2.6

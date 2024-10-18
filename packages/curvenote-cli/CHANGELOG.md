@@ -1,5 +1,17 @@
 # curvenote
 
+## 0.10.2
+
+### Patch Changes
+
+- 9a46ab2: Add footer/icon and landing plugins
+- 20d9914: Update packages
+- Updated dependencies [20d9914]
+  - @curvenote/check-implementations@0.0.24
+  - @curvenote/check-definitions@0.0.24
+  - @curvenote/cli-plugin@0.10.2
+  - @curvenote/common@0.2.8
+
 ## 0.10.1
 
 ### Patch Changes

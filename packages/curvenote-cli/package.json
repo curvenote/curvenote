@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/cli",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "CLI Client library for Curvenote",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "license": "MIT",
@@ -39,10 +39,10 @@
   },
   "dependencies": {
     "@curvenote/blocks": "^1.5.27",
-    "@curvenote/check-definitions": "^0.0.23",
-    "@curvenote/check-implementations": "^0.0.23",
-    "@curvenote/cli-plugin": "^0.10.1",
-    "@curvenote/common": "^0.2.7",
+    "@curvenote/check-definitions": "^0.0.24",
+    "@curvenote/check-implementations": "^0.0.24",
+    "@curvenote/cli-plugin": "^0.10.2",
+    "@curvenote/common": "^0.2.8",
     "@curvenote/ext-blog": "^0.2.7",
     "@curvenote/ext-footer": "^0.2.7",
     "@curvenote/ext-landing": "^0.2.7",
