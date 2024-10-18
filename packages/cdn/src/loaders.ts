@@ -252,6 +252,17 @@ export async function getMystXrefJson(host: Host, mount = ''): Promise<Record<st
   return xrefs;
 }
 
+export async function getMystSearchJson(host: Host): Promise<Record<string, any> | null> {
+  const baseUrl = await getCdnBaseUrl(host);
+  if (!baseUrl) return null;
+  const url = `${baseUrl}myst.search.json`;
+  const response = await fetch(url);
+  if (response.status === 404) return null;
+  if (!response.ok) throw responseError(response);
+  const search = (await response.json()) as Record<string, any>;
+  return search;
+}
+
 async function getData(
   baseUrl: string,
   config?: SiteManifest,
