@@ -19,8 +19,8 @@
   },
   "dependencies": {
     "@curvenote/blocks": "^1.5.27",
-    "myst-common": "^1.6.0",
-    "myst-config": "^1.6.0"
+    "myst-common": "^1.7.2",
+    "myst-config": "^1.7.2"
   },
   "devDependencies": {
     "typescript": "latest"
