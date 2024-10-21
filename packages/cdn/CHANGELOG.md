@@ -1,5 +1,12 @@
 # @curvenote/cdn
 
+## 0.2.9
+
+### Patch Changes
+
+- c843d17: Add search lookup
+  - @curvenote/common@0.2.9
+
 ## 0.2.8
 
 ### Patch Changes
