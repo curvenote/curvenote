@@ -187,6 +187,10 @@ export async function getWorks(
   return data;
 }
 
+function ensureTrailingSlash(url: string): string {
+  return url.endsWith('/') ? url : `${url}/`;
+}
+
 export async function getConfig(
   host: Host,
   opts?: { cache?: Cache; bypass?: string },
@@ -194,14 +198,15 @@ export async function getConfig(
   let response;
   let data;
   if (opts?.bypass) {
-    response = await fetch(`${opts.bypass}/config.json`);
+    const bypass = ensureTrailingSlash(opts.bypass);
+    response = await fetch(`${bypass}config.json`);
     if (response.status === 404) throw responseNoSite();
     if (!response.ok) throw responseError(response);
     data = (await response.json()) as SiteManifest;
     data.id = 'bypass';
     removeSingleNavItems(data);
     updateSiteManifestStaticLinksInplace(data, (url) =>
-      withBaseUrl(`${opts.bypass?.endsWith('/') ? opts?.bypass : `${opts.bypass}`}`, url),
+      withBaseUrl(ensureTrailingSlash(bypass), url),
     );
   } else {
     const location = await getCdnLocation(host);
@@ -237,10 +242,14 @@ export async function getObjectsInv(host: Host): Promise<ArrayBuffer | undefined
   return buffer;
 }
 
-export async function getMystXrefJson(host: Host, mount = ''): Promise<Record<string, any> | null> {
+export async function getMystXrefJson(
+  host: Host,
+  mount = '',
+  opts?: { bypass?: string },
+): Promise<Record<string, any> | null> {
   const baseUrl = await getCdnBaseUrl(host);
-  if (!baseUrl) return null;
-  const url = `${baseUrl}myst.xref.json`;
+  if (!baseUrl && !opts?.bypass) return null;
+  const url = `${opts?.bypass ? ensureTrailingSlash(opts.bypass) : baseUrl}myst.xref.json`;
   const response = await fetch(url);
   if (response.status === 404) return null;
   if (!response.ok) throw responseError(response);
@@ -252,10 +261,13 @@ export async function getMystXrefJson(host: Host, mount = ''): Promise<Record<st
   return xrefs;
 }
 
-export async function getMystSearchJson(host: Host): Promise<Record<string, any> | null> {
+export async function getMystSearchJson(
+  host: Host,
+  opts?: { bypass?: string },
+): Promise<Record<string, any> | null> {
   const baseUrl = await getCdnBaseUrl(host);
-  if (!baseUrl) return null;
-  const url = `${baseUrl}myst.search.json`;
+  if (!baseUrl && !opts?.bypass) return null;
+  const url = `${opts?.bypass ? ensureTrailingSlash(opts.bypass) : baseUrl}myst.search.json`;
   const response = await fetch(url);
   if (response.status === 404) return null;
   if (!response.ok) throw responseError(response);
@@ -276,23 +288,18 @@ async function getData(
   if (!id) throw responseNoSite();
   const projectPart = project ? `${project}/` : '';
   const response = opts?.bypass
-    ? await fetch(`${opts?.bypass}/content/${projectPart}${slug}.json`)
+    ? await fetch(`${ensureTrailingSlash(opts.bypass)}content/${projectPart}${slug}.json`)
     : await fetch(withBaseUrl(baseUrl, `content/${projectPart}${slug}.json`, query));
   if (response.status === 404) throw responseNoArticle();
   if (!response.ok) throw responseError(response);
   const data = (await response.json()) as PageLoader;
   if (opts?.bypass) {
+    const bypass = ensureTrailingSlash(opts.bypass);
     return updatePageStaticLinksInplace(data, (url) =>
-      withBaseUrl(`${opts.bypass?.endsWith('/') ? opts?.bypass : `${opts.bypass}`}`, url, query),
+      withBaseUrl(ensureTrailingSlash(bypass), url, query),
     );
   } else {
-    return updatePageStaticLinksInplace(data, (url) =>
-      withPublicFolderUrl(
-        opts?.bypass ? (opts.bypass.endsWith('/') ? opts?.bypass : `${opts.bypass}/`) : baseUrl,
-        url,
-        query,
-      ),
-    );
+    return updatePageStaticLinksInplace(data, (url) => withPublicFolderUrl(baseUrl, url, query));
   }
 }
 
