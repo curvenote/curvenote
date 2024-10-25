@@ -17,7 +17,8 @@
     "changeset": "changeset",
     "version": "changeset version && npm install",
     "publish": "npm run clean && npm run build -- --force && changeset publish && git push --follow-tags",
-    "publish:ci": "npm run build && changeset publish && git push --follow-tags"
+    "publish:ci": "npm run build && changeset publish && git push --follow-tags",
+    "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'"
   },
   "devDependencies": {
     "@changesets/cli": "^2.23.2",
@@ -25,6 +26,7 @@
     "eslint-config-curvenote": "^0.0.3",
     "madge": "^6.1.0",
     "npm-run-all": "^4.1.5",
+    "npm-upgrade-monorepo": "^1.2.6",
     "prettier": "latest",
     "rimraf": "^3.0.2",
     "turbo": "latest",
