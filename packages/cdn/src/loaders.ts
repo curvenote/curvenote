@@ -320,11 +320,15 @@ export async function getPage(
   if (!config) throw responseNoSite();
   const project = getProject(config, projectName);
   if (!project) throw responseNoArticle();
-  const slug = opts?.loadIndexPage || opts?.slug == null ? project.index : opts.slug;
+  let slug = opts?.loadIndexPage || opts?.slug == null ? project.index : opts.slug;
   const loader = await getData(baseUrl, config, project.slug, slug, location.query, opts).catch(
-    (e) => {
-      console.error(e);
-      return null;
+    async (e) => {
+      slug = `${slug}.index`;
+      return getData(baseUrl, config, project.slug, slug, location.query, opts).catch(() => {
+        // log error from original slug if both error
+        console.error(e);
+        return null;
+      });
     },
   );
   if (!loader) throw responseNoArticle();
