@@ -284,8 +284,14 @@ async function getData(
   opts?: { bypass?: string },
 ): Promise<PageLoader | null> {
   if (!slug || !config) throw responseNoArticle();
-  const { id } = config;
+  const { id, projects } = config;
   if (!id) throw responseNoSite();
+  const allSlugs = [
+    ...(projects ?? []).map(({ index }) => index),
+    ...(projects ?? []).map(({ pages }) => pages.map((page) => page.slug)).flat(),
+  ];
+  if (!allSlugs.includes(slug)) slug = `${slug}.index`;
+  if (!allSlugs.includes(slug)) throw responseNoArticle();
   const projectPart = project ? `${project}/` : '';
   const response = opts?.bypass
     ? await fetch(`${ensureTrailingSlash(opts.bypass)}content/${projectPart}${slug}.json`)
@@ -320,7 +326,7 @@ export async function getPage(
   if (!config) throw responseNoSite();
   const project = getProject(config, projectName);
   if (!project) throw responseNoArticle();
-  const slug = opts?.loadIndexPage || opts?.slug == null ? project.index : opts.slug;
+  const slug = opts?.loadIndexPage || !opts?.slug ? project.index : opts.slug;
   const loader = await getData(baseUrl, config, project.slug, slug, location.query, opts).catch(
     (e) => {
       console.error(e);
@@ -328,7 +334,7 @@ export async function getPage(
     },
   );
   if (!loader) throw responseNoArticle();
-  const footer = getFooterLinks(config, project.slug, slug);
+  const footer = getFooterLinks(config, project.slug, loader.slug);
   return { ...loader, footer, domain: opts?.domain as string, project: project.slug as string };
 }
 
