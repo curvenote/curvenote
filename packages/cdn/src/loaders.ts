@@ -284,8 +284,14 @@ async function getData(
   opts?: { bypass?: string },
 ): Promise<PageLoader | null> {
   if (!slug || !config) throw responseNoArticle();
-  const { id } = config;
+  const { id, projects } = config;
   if (!id) throw responseNoSite();
+  const allSlugs = [
+    ...(projects ?? []).map(({ index }) => index),
+    ...(projects ?? []).map(({ pages }) => pages.map((page) => page.slug)).flat(),
+  ];
+  if (!allSlugs.includes(slug)) slug = `${slug}.index`;
+  if (!allSlugs.includes(slug)) throw responseNoArticle();
   const projectPart = project ? `${project}/` : '';
   const response = opts?.bypass
     ? await fetch(`${ensureTrailingSlash(opts.bypass)}content/${projectPart}${slug}.json`)
@@ -320,15 +326,11 @@ export async function getPage(
   if (!config) throw responseNoSite();
   const project = getProject(config, projectName);
   if (!project) throw responseNoArticle();
-  let slug = opts?.loadIndexPage || opts?.slug == null ? project.index : opts.slug;
+  const slug = opts?.loadIndexPage || opts?.slug == null ? project.index : opts.slug;
   const loader = await getData(baseUrl, config, project.slug, slug, location.query, opts).catch(
-    async (e) => {
-      slug = `${slug}.index`;
-      return getData(baseUrl, config, project.slug, slug, location.query, opts).catch(() => {
-        // log error from original slug if both error
-        console.error(e);
-        return null;
-      });
+    (e) => {
+      console.error(e);
+      return null;
     },
   );
   if (!loader) throw responseNoArticle();
