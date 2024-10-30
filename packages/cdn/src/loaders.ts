@@ -326,7 +326,7 @@ export async function getPage(
   if (!config) throw responseNoSite();
   const project = getProject(config, projectName);
   if (!project) throw responseNoArticle();
-  const slug = opts?.loadIndexPage || opts?.slug == null ? project.index : opts.slug;
+  const slug = opts?.loadIndexPage || !opts?.slug ? project.index : opts.slug;
   const loader = await getData(baseUrl, config, project.slug, slug, location.query, opts).catch(
     (e) => {
       console.error(e);
