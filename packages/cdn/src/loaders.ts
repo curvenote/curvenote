@@ -334,7 +334,7 @@ export async function getPage(
     },
   );
   if (!loader) throw responseNoArticle();
-  const footer = getFooterLinks(config, project.slug, slug);
+  const footer = getFooterLinks(config, project.slug, loader.slug);
   return { ...loader, footer, domain: opts?.domain as string, project: project.slug as string };
 }
 
