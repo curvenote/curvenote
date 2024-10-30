@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.11.0
+
+### Minor Changes
+
+- 27d2fee: Add `cn` as an additional cli entrypoint
+
 ## 0.10.2
 
 ### Patch Changes

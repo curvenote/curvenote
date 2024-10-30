@@ -1,5 +1,11 @@
 # @curvenote/check-definitions
 
+## 0.0.25
+
+### Patch Changes
+
+- 2a28d5d: Update myst and dependencies
+
 ## 0.0.24
 
 ### Patch Changes

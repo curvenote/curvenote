@@ -1,5 +1,13 @@
 # @curvenote/nbtx
 
+## 0.1.16
+
+### Patch Changes
+
+- 2a28d5d: Update myst and dependencies
+- Updated dependencies [2a28d5d]
+  - @curvenote/blocks@1.5.28
+
 ## 0.1.15
 
 ### Patch Changes

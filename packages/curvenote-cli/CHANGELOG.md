@@ -1,5 +1,17 @@
 # curvenote
 
+## 0.11.0
+
+### Patch Changes
+
+- 2a28d5d: Update myst and dependencies
+- Updated dependencies [2a28d5d]
+  - @curvenote/check-implementations@0.0.25
+  - @curvenote/check-definitions@0.0.25
+  - @curvenote/cli-plugin@0.11.0
+  - @curvenote/blocks@1.5.28
+  - @curvenote/common@0.2.9
+
 ## 0.10.2
 
 ### Patch Changes

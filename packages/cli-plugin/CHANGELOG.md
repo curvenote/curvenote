@@ -1,5 +1,11 @@
 # @curvenote/cli-plugin
 
+## 0.11.0
+
+### Patch Changes
+
+- 2a28d5d: Update myst and dependencies
+
 ## 0.10.2
 
 ### Patch Changes
