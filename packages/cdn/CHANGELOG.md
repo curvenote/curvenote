@@ -1,5 +1,16 @@
 # @curvenote/cdn
 
+## 0.2.9
+
+### Patch Changes
+
+- 6bff69b: Extending myst.xref loader functions with `bypass` options aligning with other loaders for local dev.
+- 3b9edf8: Support nested index pages in cdn loader
+- c843d17: Add search lookup
+- 2a28d5d: Update myst and dependencies
+- Updated dependencies [2a28d5d]
+  - @curvenote/common@0.2.9
+
 ## 0.2.8
 
 ### Patch Changes

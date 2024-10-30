@@ -1,5 +1,13 @@
 # @curvenote/common
 
+## 0.2.9
+
+### Patch Changes
+
+- 2a28d5d: Update myst and dependencies
+- Updated dependencies [2a28d5d]
+  - @curvenote/blocks@1.5.28
+
 ## 0.2.8
 
 ### Patch Changes
