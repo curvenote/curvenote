@@ -1,5 +1,11 @@
 # @curvenote/blocks
 
+## 1.5.29
+
+### Patch Changes
+
+- b430454: Bump myst versions
+
 ## 1.5.28
 
 ### Patch Changes

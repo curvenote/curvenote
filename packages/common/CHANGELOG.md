@@ -1,5 +1,13 @@
 # @curvenote/common
 
+## 0.2.10
+
+### Patch Changes
+
+- b430454: Bump myst versions
+- Updated dependencies [b430454]
+  - @curvenote/blocks@1.5.29
+
 ## 0.2.9
 
 ### Patch Changes
