@@ -1,5 +1,11 @@
 # @curvenote/check-definitions
 
+## 0.0.26
+
+### Patch Changes
+
+- b430454: Bump myst versions
+
 ## 0.0.25
 
 ### Patch Changes

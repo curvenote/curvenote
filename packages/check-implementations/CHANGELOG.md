@@ -1,5 +1,13 @@
 # @curvenote/check-implementations
 
+## 0.0.26
+
+### Patch Changes
+
+- b430454: Bump myst versions
+- Updated dependencies [b430454]
+  - @curvenote/check-definitions@0.0.26
+
 ## 0.0.25
 
 ### Patch Changes

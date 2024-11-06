@@ -1,5 +1,11 @@
 # @curvenote/cli-plugin
 
+## 0.11.1
+
+### Patch Changes
+
+- b430454: Bump myst versions
+
 ## 0.11.0
 
 ### Patch Changes
