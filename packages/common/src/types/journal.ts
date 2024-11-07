@@ -23,6 +23,8 @@ export interface JupyterFeatureConfig {
     icon?: string;
   };
   allowLite?: boolean;
+  openInServerRoot?: boolean;
+  openInServerTargetPath?: string;
 }
 
 export interface JupyterUIThemeConfig {
