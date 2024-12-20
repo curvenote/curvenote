@@ -400,10 +400,12 @@ export async function checkVenueExists(session: ISession, venue: string) {
 
 export async function checkVenueSubmitAccess(session: ISession, venue: string) {
   try {
+    session.log.debug('checking submit access');
     const { submit } = (await getFromJournals(session, `sites/${venue}/access`)) as {
       read: boolean;
       submit: boolean;
     };
+    session.log.debug('checking submit access - GET successful', submit);
     if (submit) return true;
     session.log.debug('You do not have permission to submit to this venue.');
     throw new Error('You do not have permission to submit to this venue.');

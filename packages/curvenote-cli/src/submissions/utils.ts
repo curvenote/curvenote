@@ -40,6 +40,7 @@ export async function getFromUrl(session: ISession, url: string) {
     const json = (await response.json()) as any;
     return json;
   } else {
+    session.log.debug('GET FAILED', url, response.status, response.statusText);
     throw new Error(
       `GET FAILED ${url}: ${response.status}\n\n${response.statusText}
       Please contact support@curvenote.com`,
