@@ -46,6 +46,7 @@ export type SiteConfig = {
   description: string;
   content: Host;
   private: boolean;
+  restricted: boolean;
   favicon?: string;
   tagline?: string;
   logo: string;
