@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.11.2
+
+### Patch Changes
+
+- f156729: Update to myst-cli 1.3.20
+
 ## 0.11.1
 
 ## 0.11.0
