@@ -6,84 +6,12 @@ import type { Logger } from 'myst-cli-utils';
 import { chalkLogger, LogLevel } from 'myst-cli-utils';
 import { MyUser } from '../models.js';
 import { actionLinks } from '../docs.js';
-import type { ISession } from './types.js';
+import type { ISession, TokenConfig, TokenData } from './types.js';
 import { Session } from './session.js';
 import Table from 'cli-table3';
-import { decodeTokenAndCheckExpiry } from './tokens.js';
+import { decodeTokenAndCheckExpiry, getTokens } from './tokens.js';
 import { formatDate } from '../submissions/utils.js';
-
-interface TokenData {
-  api: string;
-  email: string;
-  username?: string;
-  note?: string;
-  token: string;
-}
-
-interface TokenConfig {
-  tokens?: TokenData[];
-  token?: string;
-}
-
-function getConfigPath() {
-  const pathArr: string[] = [];
-  const local = ['curvenote', 'settings.json'];
-  if (process.env.APPDATA) {
-    pathArr.push(process.env.APPDATA);
-  } else if (process.platform === 'darwin' && process.env.HOME) {
-    pathArr.push(path.join(process.env.HOME, '.config'));
-  } else if (process.env.HOME) {
-    pathArr.push(process.env.HOME);
-    if (local.length > 0) {
-      local[0] = `.${local[0]}`;
-    }
-  }
-  return path.join(...pathArr, ...local);
-}
-
-/**
- * Return `current` token and `saved` available tokens
- *
- * Curvenote tokens can come from 2 places:
- * - CURVENOTE_TOKEN environment variable
- * - Curvenote config file saved to your system
- *
- * The curvenote config may have a list of available tokens and a current token;
- * this function will return the available tokens as `saved` and the `current` token.
- *
- * If CURVENOTE_TOKEN environment variable is found, it will be returned as `current`,
- * taking priority over any current token in your config file. The field `environment`
- * will be set to `true`, indicating current came from the environment variable.
- */
-export function getTokens(log: Logger = chalkLogger(LogLevel.info, process.cwd())): {
-  saved?: TokenData[];
-  current?: string;
-  environment?: boolean;
-} {
-  const env = process.env.CURVENOTE_TOKEN;
-  if (env) {
-    log.warn('Using the CURVENOTE_TOKEN env variable.');
-  }
-  const configPath = getConfigPath();
-  let config: TokenConfig | undefined;
-  if (fs.existsSync(configPath)) {
-    try {
-      config = JSON.parse(fs.readFileSync(configPath).toString());
-    } catch (error) {
-      log.debug(`\n\n${(error as Error)?.stack}\n\n`);
-      if (env) {
-        log.error('Could not read settings file; continuing with CURVENOTE_TOKEN env variable');
-      } else {
-        throw new Error('Could not read settings file to get Curvenote token');
-      }
-    }
-  }
-  return {
-    saved: config?.tokens,
-    current: env ?? config?.token,
-    environment: !!env,
-  };
-}
+import { getConfigPath } from './utils/getConfigPath.js';
 
 /**
  * Write token config data to file

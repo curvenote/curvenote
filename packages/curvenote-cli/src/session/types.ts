@@ -9,6 +9,19 @@ export type SessionOpts = {
   config?: string;
 };
 
+export interface TokenData {
+  api: string;
+  email: string;
+  username?: string;
+  note?: string;
+  token: string;
+}
+
+export interface TokenConfig {
+  tokens?: TokenData[];
+  token?: string;
+}
+
 export type TokenPayload = {
   aud: string;
   iss: string;
@@ -24,7 +37,7 @@ export type TokenPayload = {
 
 export type Token = { token: string; decoded: TokenPayload };
 
-export type Tokens = Partial<Record<'user' | 'session', Token>>;
+export type TokenPair = Partial<Record<'user' | 'session', Token>>;
 
 export type Response<T extends Record<string, any> = any> = Promise<{
   ok: boolean;
@@ -54,7 +67,7 @@ export type ISession = IMystSession & {
   store: Store<RootState>;
   isAnon: boolean;
   config: CLIConfigData;
-  activeTokens: Tokens;
+  activeTokens: TokenPair;
   plugins: ValidatedCurvenotePlugin | undefined;
 
   refreshSessionToken(): Promise<void>;

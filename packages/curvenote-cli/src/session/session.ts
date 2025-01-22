@@ -16,7 +16,7 @@ import {
   selectors,
 } from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
-import { LogLevel, basicLogger } from 'myst-cli-utils';
+import { LogLevel, basicLogger, chalkLogger } from 'myst-cli-utils';
 import type { RuleId } from 'myst-common';
 // use the version mystjs brings in!
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -25,14 +25,15 @@ import type { JupyterServerSettings } from 'myst-execute';
 import { findExistingJupyterServer, launchJupyterServer } from 'myst-execute';
 import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
-import { decodeTokenAndCheckExpiry } from './tokens.js';
+import { decodeTokenAndCheckExpiry, getTokens } from './tokens.js';
 import type {
   ValidatedCurvenotePlugin,
   ISession,
   Response,
-  Tokens as TokenPair,
+  TokenPair,
   Token,
   CLIConfigData,
+  SessionOpts,
 } from './types.js';
 import { XClientName } from '@curvenote/blocks';
 import CLIENT_VERSION from '../version.js';
@@ -44,9 +45,10 @@ import {
   checkForPlatformAPIClientVersionRejection,
   withQuery,
   checkForCurvenoteAPIClientVersionRejection,
-} from './utils.js';
+} from './utils/index.js';
 import jwt from 'jsonwebtoken';
 import chalk from 'chalk';
+import { getLogLevel } from './utils/getLogLevel.js';
 
 const LOCALHOSTS = ['localhost', '127.0.0.1', '::1'];
 
@@ -480,4 +482,32 @@ export class Session implements ISession {
       this._jupyterSessionManagerPromise = undefined;
     }
   }
+}
+
+export async function anonSession(opts?: SessionOpts): Promise<ISession> {
+  const logger = chalkLogger(getLogLevel(opts?.debug), process.cwd());
+  const session = await Session.create(undefined, { logger });
+  return session;
+}
+
+export async function getSession(
+  opts?: SessionOpts & { hideNoTokenWarning?: boolean },
+): Promise<ISession> {
+  const logger = chalkLogger(getLogLevel(opts?.debug), process.cwd());
+  const data = getTokens(logger);
+  if (!data.current && !opts?.hideNoTokenWarning) {
+    logger.warn('No token was found in settings or CURVENOTE_TOKEN. Session is not authenticated.');
+    logger.info('You can set a new token with: `curvenote token set API_TOKEN`');
+    if (data.saved?.length) {
+      logger.info('or you can select an existing token with: `curvenote token select`');
+    }
+  }
+  let session;
+  try {
+    session = await Session.create(data.current, { logger });
+  } catch (error) {
+    logger.error((error as Error).message);
+    process.exit(1);
+  }
+  return session;
 }
