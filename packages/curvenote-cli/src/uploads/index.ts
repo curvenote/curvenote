@@ -19,7 +19,7 @@ export async function uploadToCdn(session: ISession, cdn: string, opts?: { resum
     .map((file) => {
       const upload = upload_items.find((f) => f.md5 === file.md5);
       if (!upload) {
-        console.error(
+        session.log.error(
           `🚨 Could not find upload url for ${file.md5} ${file.from}, upload will be skipped`,
         );
         return null;

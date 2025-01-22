@@ -87,7 +87,6 @@ class BaseTransfer<
       this.data = fromSession;
       return this;
     }
-    console.log(`Fetching ${this.modelKind}: "${url}"`);
     this.session.log.debug(`Fetching ${this.modelKind}: "${url}"`);
     const { ok, json } = await this.session.get(url, query);
     if (!ok) {

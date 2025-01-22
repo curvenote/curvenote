@@ -164,8 +164,7 @@ export async function setUserToken(log: Logger, token?: string) {
 }
 
 function summarizeAsString({ note, username, email, api }: Omit<TokenData, 'token'>) {
-  const name = note ?? `@${username}`;
-  return `"${name}" <${email}> at ${api}`;
+  return `"${username}" <${email}> at ${api}${note ? ` (${note})` : ''}`;
 }
 
 /**
@@ -207,10 +206,10 @@ export async function selectToken(log: Logger) {
       choices: (data.saved ?? []).map(
         (t: { api: string; note?: string; username?: string; email: string; token: string }) => {
           const { note, email, username, api, token } = t;
-          return {
-            name: `${summarizeAsString({ note, email, username, api })} ${token === data.current ? '(active)' : ''}`,
-            value: t,
-          };
+          const line = `${summarizeAsString({ note, email, username, api })}`;
+          const name =
+            token === data.current ? chalk.bold(chalk.green(`${line} (active)`)) : `${line}`;
+          return { name, value: t };
         },
       ),
     },
@@ -295,20 +294,19 @@ export async function checkUserTokenStatus(session: ISession) {
     return;
   }
 
-  session.log.info(`Token issued by ${active?.api}`); // active api == audience
+  session.log.debug(`Token issued by ${active?.api}`); // active api == audience
   session.log.debug(`Session Configuration:`);
   session.log.debug(JSON.stringify(session.config, null, 2));
 
   const { decoded, expired } = decodeTokenAndCheckExpiry(active.token, session.log, false);
   session.log.debug(`Token payload:`);
   session.log.debug(JSON.stringify(decoded, null, 2));
-  session.log.info(`Token status: ${expired ? chalk.red('EXPIRED') : chalk.green('VERIFIED')}`);
+  session.log.info(`Token status: ${expired ? chalk.red('EXPIRED') : chalk.green('ACTIVE')}`);
 
   const model = new MyUser(session);
   const me = await model.get();
   const name = me.data.username ? `@${me.data.username}` : me.data.display_name;
-  session.log.info(`Logged in as ${name} <${me.data.email}>`);
-  session.log.debug(`Login verified by: ${model.$createUrl()}`);
+  session.log.info(`Login as ${name} <${me.data.email}> verified by ${model.$createUrl()}`);
 }
 
 function showCurrentTokenRecord(log: Logger, tokens?: ReturnType<typeof getTokens>) {
@@ -341,12 +339,12 @@ export async function listUserTokens(log: Logger) {
   if (data.current) showCurrentTokenRecord(log, data);
 
   const table = new Table({
-    head: ['User/Note', 'Email', 'API', 'Active'],
+    head: ['User', 'Email', 'API', 'Active', 'Note'],
   });
 
   log.info(`\nAvailable tokens:`);
   for (const t of data.saved ?? []) {
-    table.push([t.note ?? t.username, t.email, t.api, t.token === data.current ? '(active)' : '']);
+    table.push([t.username, t.email, t.api, t.token === data.current ? '(active)' : '', t.note]);
   }
 
   log.info(table.toString());

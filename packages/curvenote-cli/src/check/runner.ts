@@ -27,14 +27,14 @@ export async function runChecks(
       if (!validCheck) {
         // Validates the journal options against the check definition
         // TODO! - send this as an error back anyways
-        console.error(`Check with ID: ${check.id} was not found or is invalid`);
-        console.log(opts.messages);
+        session.log.error(`Check with ID: ${check.id} was not found or is invalid`);
+        session.log.info(opts.messages);
         return undefined;
       }
       const { validate, ...def } = implementations.find(({ id }) => check.id === id) ?? {};
       if (!validate) {
         // TODO! - send this as an error back anyways
-        console.error(`Check with ID: ${check.id} did not have a validate function`);
+        session.log.error(`Check with ID: ${check.id} did not have a validate function`);
         return undefined;
       }
       const result = await validate(session, validCheck);
