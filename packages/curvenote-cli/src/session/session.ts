@@ -192,6 +192,7 @@ export class Session implements ISession {
       this.log.error(
         `⛔️ There was a problem with your API token or the API at ${aud} is unreachable.`,
       );
+      this.log.error('Run `curvenote token check` to see the status of your token.');
       this.log.error(
         'If the error persists try generating a new token or contact support@curvenote.com.',
       );

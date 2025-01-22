@@ -171,8 +171,7 @@ function summarizeAsString({ note, username, email, api }: Omit<TokenData, 'toke
 /**
  * Interactively select a saved token to use
  */
-export async function selectToken(session: Session) {
-  const log = session.log;
+export async function selectToken(log: Logger) {
   const data = getTokens(log);
   if (!data.current && !data.saved?.length) {
     log.error(`🫙 No tokens found. Try running ${chalk.bold('curvenote token set')} first.`);
@@ -217,10 +216,8 @@ export async function selectToken(session: Session) {
     },
   ]);
   updateCurrentTokenConfig(log, resp.selected.token);
-  const { decoded } = decodeTokenAndCheckExpiry(resp.selected.token, log, false);
-  session.setUserToken({ token: resp.selected.token, decoded });
-  await session.configure();
-  await checkUserTokenStatus(session);
+  const { note, email, api, username } = resp.selected;
+  log.info(chalk.green(`Token set for ${summarizeAsString({ note, email, username, api })}.`));
 }
 
 /**
