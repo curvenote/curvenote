@@ -152,7 +152,7 @@ export async function getWork(
   opts?: { apiUrl?: string; headers?: Record<string, string> },
 ): Promise<WorkDTO> {
   const API_URL = opts?.apiUrl ?? JOURNALS_API;
-  const resp = await fetch(`${API_URL}/works/${workId}`, { headers: opts?.headers });
+  const resp = await fetch(`${API_URL}works/${workId}`, { headers: opts?.headers });
   const data = (await resp.json()) as WorkDTO;
   return data;
 }
