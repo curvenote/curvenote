@@ -1,100 +1,22 @@
 import chalk from 'chalk';
-import * as fs from 'node:fs';
 import inquirer from 'inquirer';
-import path from 'node:path';
 import type { Logger } from 'myst-cli-utils';
 import { chalkLogger, LogLevel } from 'myst-cli-utils';
-import { MyUser } from '../models.js';
-import { actionLinks } from '../docs.js';
-import type { ISession, TokenConfig, TokenData } from './types.js';
-import { Session } from './session.js';
+import type { TokenData } from '../types.js';
 import Table from 'cli-table3';
-import { decodeTokenAndCheckExpiry, getTokens } from './tokens.js';
-import { formatDate } from '../submissions/utils.js';
-import { getConfigPath } from './utils/getConfigPath.js';
+import {
+  decodeTokenAndCheckExpiry,
+  getTokens,
+  summarizeAsString,
+  updateCurrentTokenConfig,
+  writeConfigFile,
+} from '../tokens.js';
+import { formatDate } from '../../submissions/utils.js';
+import { showCurrentTokenRecord } from './showCurrentTokenRecord.js';
 
-/**
- * Write token config data to file
- */
-function writeConfigFile(data: TokenConfig) {
-  const configPath = getConfigPath();
-  if (!fs.existsSync(configPath)) {
-    fs.mkdirSync(path.dirname(configPath), { recursive: true });
-  }
-  fs.writeFileSync(configPath, JSON.stringify(data));
-}
-
-/**
- * Replace current token in saved config file
- */
-function updateCurrentTokenConfig(log: Logger, token?: string) {
-  const { saved } = getTokens();
-  writeConfigFile({ tokens: saved, token });
-}
-
-/**
- * Validate token and save to local config file
- *
- * If config file does not exist, it will be created.
- * If config file does exist with saved tokens, this token will be added
- * to the saved tokens and set as the current token.
- */
-export async function setUserToken(log: Logger, token?: string) {
-  if (!token) {
-    log.info(`Create an API token here:\n\n${actionLinks.apiToken}\n`);
-    const resp = await inquirer.prompt([
-      {
-        name: 'token',
-        message: 'API Token:',
-        type: 'input',
-      },
-    ]);
-    token = resp.token as string;
-  }
-
-  log.debug('Creating session with new token');
-  const session = await Session.create(token);
-  log.debug('User token payload:');
-  log.debug(JSON.stringify(session.activeTokens.user?.decoded, null, 2));
-  log.debug('Session token payload:');
-  log.debug(JSON.stringify(session.activeTokens.session?.decoded, null, 2));
-
-  let me;
-  try {
-    me = await new MyUser(session).get();
-  } catch (error) {
-    log.error(error);
-    throw new Error(
-      `There was a problem with the token for ${session.activeTokens.session?.decoded.aud}`,
-    );
-  }
-  if (!me.data.email_verified) throw new Error('Your account is not activated');
-  const data = getTokens();
-  const tokens = data.saved ? [...data.saved] : [];
-  if (!tokens.find(({ token: t }) => t === token)) {
-    tokens.push({
-      api: session.activeTokens.user?.decoded.aud ?? 'unknown-audience', // TODO this should be based on the audience
-      email: me.data.email,
-      username: session.activeTokens.user?.decoded.name ?? me.data.username ?? me.data.display_name,
-      note: session.activeTokens.user?.decoded.note,
-      token,
-    });
-  }
-
-  writeConfigFile({ tokens, token });
-  const aud = session.activeTokens.user?.decoded.aud ?? 'unknown-audience';
-  const note = session.activeTokens.user?.decoded.note;
-  const { username, display_name, email } = me.data;
-  session.log.info(
-    chalk.green(
-      `Token set for ${summarizeAsString({ note, email, username: username ?? display_name, api: aud })}.`,
-    ),
-  );
-}
-
-function summarizeAsString({ note, username, email, api }: Omit<TokenData, 'token'>) {
-  return `"${username}" <${email}> at ${api}${note ? ` (${note})` : ''}`;
-}
+export * from './checkUserTokenStatus.js';
+export * from './setUserToken.js';
+export * from './showCurrentTokenRecord.js';
 
 /**
  * Interactively select a saved token to use
@@ -136,16 +58,28 @@ export async function selectToken(log: Logger) {
         (t: { api: string; note?: string; username?: string; email: string; token: string }) => {
           const { note, email, username, api, token } = t;
           const line = `${summarizeAsString({ note, email, username, api })}`;
-          const name =
-            token === data.current ? chalk.bold(chalk.green(`${line} (active)`)) : `${line}`;
-          return { name, value: t };
+          let name = token === data.current ? `${line} (active)` : `${line}`;
+          const { expired } = decodeTokenAndCheckExpiry(t.token, log, false);
+          if (expired === 'soon') name = chalk.yellow(name + ' (expiring soon)');
+          else if (expired) name = chalk.red(name + ' (expired)');
+          else if (token === data.current) name = chalk.green(name);
+          if (token === data.current) name = chalk.bold(name);
+          return { name, value: t, expired };
         },
       ),
     },
   ]);
   updateCurrentTokenConfig(log, resp.selected.token);
-  const { note, email, api, username } = resp.selected;
-  log.info(chalk.green(`Token set for ${summarizeAsString({ note, email, username, api })}.`));
+  const { note, email, api, username, expired } = resp.selected;
+  let message = `Token set for ${summarizeAsString({ note, email, username, api })}.`;
+  if (expired === 'soon') {
+    message = chalk.yellow(message);
+  } else if (expired) {
+    message = chalk.red(message);
+  } else {
+    message = chalk.green(message);
+  }
+  log.info(chalk.bold(message));
 }
 
 /**
@@ -209,46 +143,6 @@ export function deleteToken(
   }
   writeConfigFile({ tokens });
   log.info(chalk.green(message));
-}
-
-export async function checkUserTokenStatus(session: ISession) {
-  if (session.isAnon) {
-    session.log.error('Anonymous session, select a token.');
-    return;
-  }
-
-  const active = showCurrentTokenRecord(session.log);
-  if (!active) {
-    session.log.error('No active token found');
-    return;
-  }
-
-  session.log.debug(`Token issued by ${active?.api}`); // active api == audience
-  const { decoded, expired } = decodeTokenAndCheckExpiry(active.token, session.log, false);
-  session.log.info(`\nToken status: ${expired ? chalk.red('EXPIRED') : chalk.green('CURRENT')}`);
-  session.log.info(
-    `Expiry: ${decoded.exp ? formatDate(new Date(decoded.exp * 1000).toISOString()) : 'no expiry'}`,
-  );
-
-  const model = new MyUser(session);
-  const me = await model.get();
-  const name = me.data.username ? `@${me.data.username}` : me.data.display_name;
-  session.log.info(`Login as ${name} <${me.data.email}> verified by ${model.$createUrl()}`);
-}
-
-function showCurrentTokenRecord(log: Logger, tokens?: ReturnType<typeof getTokens>) {
-  const active = getCurrentTokenRecord(tokens);
-  if (active) {
-    log.info(chalk.bold(chalk.green(`\nActive token:`)));
-    log.info(chalk.bold(chalk.green(summarizeAsString(active))));
-  }
-  return active;
-}
-
-function getCurrentTokenRecord(tokens?: ReturnType<typeof getTokens>) {
-  const data = tokens ?? getTokens();
-  if (!data.current) return;
-  return data.saved?.find(({ token }) => token === data.current);
 }
 
 /**

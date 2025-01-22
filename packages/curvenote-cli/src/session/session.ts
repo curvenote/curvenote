@@ -49,6 +49,7 @@ import {
 import jwt from 'jsonwebtoken';
 import chalk from 'chalk';
 import { getLogLevel } from './utils/getLogLevel.js';
+import { checkUserTokenStatus } from './auth/checkUserTokenStatus.js';
 
 const LOCALHOSTS = ['localhost', '127.0.0.1', '::1'];
 
@@ -194,11 +195,11 @@ export class Session implements ISession {
       this.log.error(
         `⛔️ There was a problem with your API token or the API at ${aud} is unreachable.`,
       );
-      this.log.error('Run `curvenote token check` to see the status of your token.');
       this.log.error(
         'If the error persists try generating a new token or contact support@curvenote.com.',
       );
       this.log.debug(chalk.red(error));
+      await checkUserTokenStatus(this);
       throw new Error('Could not refresh session token');
     }
   }

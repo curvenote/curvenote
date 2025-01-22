@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import jwt from 'jsonwebtoken';
 import type { ISession, Token, TokenConfig, TokenData, TokenPayload } from './types.js';
 import type { Logger } from 'myst-cli-utils';
@@ -9,6 +10,7 @@ export function decodeTokenAndCheckExpiry(
   token: string,
   log: ISession['log'],
   throwErrors = true,
+  kindForExpiryCheck: 'user' | 'session' = 'session',
 ): { decoded: TokenPayload; expired: boolean | 'soon' } {
   const rawDecoded = jwt.decode(token);
   if (!rawDecoded || typeof rawDecoded === 'string')
@@ -23,9 +25,15 @@ export function decodeTokenAndCheckExpiry(
     }
     return { decoded, expired: true };
   }
-  if (!decoded.ignoreExpiration && timeLeft < 30 * 1000) {
-    if (throwErrors) log.warn('The token has less than 30 seconds remaining');
-    return { decoded, expired: 'soon' };
+  if (!decoded.ignoreExpiration) {
+    if (kindForExpiryCheck === 'session' && timeLeft < 30 * 1000) {
+      if (throwErrors) log.warn(`The token has less than 30 seconds remaining`);
+      return { decoded, expired: 'soon' };
+    }
+    if (kindForExpiryCheck === 'user' && timeLeft < 24 * 60 * 60 * 1000) {
+      if (throwErrors) log.warn(`The token has less than 1 day remaining`);
+      return { decoded, expired: 'soon' };
+    }
   }
   return { decoded, expired: false };
 }
@@ -82,4 +90,33 @@ export function getTokens(log: Logger = chalkLogger(LogLevel.info, process.cwd()
     current: env ?? config?.token,
     environment: !!env,
   };
+}
+
+/**
+ * Write token config data to file
+ */
+export function writeConfigFile(data: TokenConfig) {
+  const configPath = getConfigPath();
+  if (!fs.existsSync(configPath)) {
+    fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  }
+  fs.writeFileSync(configPath, JSON.stringify(data));
+}
+
+/**
+ * Replace current token in saved config file
+ */
+export function updateCurrentTokenConfig(log: Logger, token?: string) {
+  const { saved } = getTokens();
+  writeConfigFile({ tokens: saved, token });
+}
+
+export function summarizeAsString({ note, username, email, api }: Omit<TokenData, 'token'>) {
+  return `"${username}" <${email}> at ${api}${note ? ` (${note})` : ''}`;
+}
+
+export function getCurrentTokenRecord(tokens?: ReturnType<typeof getTokens>) {
+  const data = tokens ?? getTokens();
+  if (!data.current) return;
+  return data.saved?.find(({ token }) => token === data.current);
 }
