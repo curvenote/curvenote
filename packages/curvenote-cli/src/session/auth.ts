@@ -6,80 +6,12 @@ import type { Logger } from 'myst-cli-utils';
 import { chalkLogger, LogLevel } from 'myst-cli-utils';
 import { MyUser } from '../models.js';
 import { actionLinks } from '../docs.js';
+import type { ISession, TokenConfig, TokenData } from './types.js';
 import { Session } from './session.js';
-import type { ISession } from './types.js';
-
-interface TokenData {
-  api: string;
-  email: string;
-  username: string;
-  token: string;
-}
-
-interface TokenConfig {
-  tokens?: TokenData[];
-  token?: string;
-}
-
-function getConfigPath() {
-  const pathArr: string[] = [];
-  const local = ['curvenote', 'settings.json'];
-  if (process.env.APPDATA) {
-    pathArr.push(process.env.APPDATA);
-  } else if (process.platform === 'darwin' && process.env.HOME) {
-    pathArr.push(path.join(process.env.HOME, '.config'));
-  } else if (process.env.HOME) {
-    pathArr.push(process.env.HOME);
-    if (local.length > 0) {
-      local[0] = `.${local[0]}`;
-    }
-  }
-  return path.join(...pathArr, ...local);
-}
-
-/**
- * Return `current` token and `saved` available tokens
- *
- * Curvenote tokens can come from 2 places:
- * - CURVENOTE_TOKEN environment variable
- * - Curvenote config file saved to your system
- *
- * The curvenote config may have a list of available tokens and a current token;
- * this function will return the available tokens as `saved` and the `current` token.
- *
- * If CURVENOTE_TOKEN environment variable is found, it will be returned as `current`,
- * taking priority over any current token in your config file. The field `environment`
- * will be set to `true`, indicating current came from the environment variable.
- */
-export function getTokens(log: Logger = chalkLogger(LogLevel.info, process.cwd())): {
-  saved?: TokenData[];
-  current?: string;
-  environment?: boolean;
-} {
-  const env = process.env.CURVENOTE_TOKEN;
-  if (env) {
-    log.warn('Using the CURVENOTE_TOKEN env variable.');
-  }
-  const configPath = getConfigPath();
-  let config: TokenConfig | undefined;
-  if (fs.existsSync(configPath)) {
-    try {
-      config = JSON.parse(fs.readFileSync(configPath).toString());
-    } catch (error) {
-      log.debug(`\n\n${(error as Error)?.stack}\n\n`);
-      if (env) {
-        log.error('Could not read settings file; continuing with CURVENOTE_TOKEN env variable');
-      } else {
-        throw new Error('Could not read settings file to get Curvenote token');
-      }
-    }
-  }
-  return {
-    saved: config?.tokens,
-    current: env ?? config?.token,
-    environment: !!env,
-  };
-}
+import Table from 'cli-table3';
+import { decodeTokenAndCheckExpiry, getTokens } from './tokens.js';
+import { formatDate } from '../submissions/utils.js';
+import { getConfigPath } from './utils/getConfigPath.js';
 
 /**
  * Write token config data to file
@@ -107,7 +39,7 @@ function updateCurrentTokenConfig(log: Logger, token?: string) {
  * If config file does exist with saved tokens, this token will be added
  * to the saved tokens and set as the current token.
  */
-export async function setToken(log: Logger, token?: string) {
+export async function setUserToken(log: Logger, token?: string) {
   if (!token) {
     log.info(`Create an API token here:\n\n${actionLinks.apiToken}\n`);
     const resp = await inquirer.prompt([
@@ -119,23 +51,49 @@ export async function setToken(log: Logger, token?: string) {
     ]);
     token = resp.token as string;
   }
-  const session = new Session(token);
+
+  log.debug('Creating session with new token');
+  const session = await Session.create(token);
+  log.debug('User token payload:');
+  log.debug(JSON.stringify(session.activeTokens.user?.decoded, null, 2));
+  log.debug('Session token payload:');
+  log.debug(JSON.stringify(session.activeTokens.session?.decoded, null, 2));
+
   let me;
   try {
     me = await new MyUser(session).get();
   } catch (error) {
-    throw new Error(`There was a problem with the token for ${session.API_URL}`);
+    log.error(error);
+    throw new Error(
+      `There was a problem with the token for ${session.activeTokens.session?.decoded.aud}`,
+    );
   }
   if (!me.data.email_verified) throw new Error('Your account is not activated');
   const data = getTokens();
   const tokens = data.saved ? [...data.saved] : [];
   if (!tokens.find(({ token: t }) => t === token)) {
-    tokens.push({ api: session.API_URL, email: me.data.email, username: me.data.username, token });
+    tokens.push({
+      api: session.activeTokens.user?.decoded.aud ?? 'unknown-audience', // TODO this should be based on the audience
+      email: me.data.email,
+      username: session.activeTokens.user?.decoded.name ?? me.data.username ?? me.data.display_name,
+      note: session.activeTokens.user?.decoded.note,
+      token,
+    });
   }
+
   writeConfigFile({ tokens, token });
+  const aud = session.activeTokens.user?.decoded.aud ?? 'unknown-audience';
+  const note = session.activeTokens.user?.decoded.note;
+  const { username, display_name, email } = me.data;
   session.log.info(
-    chalk.green(`Token set for @${me.data.username} <${me.data.email}> at ${session.API_URL}.`),
+    chalk.green(
+      `Token set for ${summarizeAsString({ note, email, username: username ?? display_name, api: aud })}.`,
+    ),
   );
+}
+
+function summarizeAsString({ note, username, email, api }: Omit<TokenData, 'token'>) {
+  return `"${username}" <${email}> at ${api}${note ? ` (${note})` : ''}`;
 }
 
 /**
@@ -155,9 +113,10 @@ export async function selectToken(log: Logger) {
     return;
   }
   if (data.saved?.length === 1 && data.current === data.saved[0].token) {
+    const { username, email, api, note } = data.saved[0];
     log.info(
       chalk.green(
-        `1️⃣ Using token for @${data.saved[0].username} <${data.saved[0].email}> at ${data.saved[0].api}. This is the only token currently set.`,
+        `1️⃣ Using token for ${summarizeAsString({ note, email, username, api })}. This is the only token currently set.`,
       ),
     );
     return;
@@ -174,21 +133,19 @@ export async function selectToken(log: Logger) {
       type: 'list',
       message: 'Which token would you like to use?',
       choices: (data.saved ?? []).map(
-        (t: { api: string; username: string; email: string; token: string }) => ({
-          name: `@${t.username} <${t.email}> at ${t.api} ${
-            t.token === data.current ? '(active)' : ''
-          }`,
-          value: t,
-        }),
+        (t: { api: string; note?: string; username?: string; email: string; token: string }) => {
+          const { note, email, username, api, token } = t;
+          const line = `${summarizeAsString({ note, email, username, api })}`;
+          const name =
+            token === data.current ? chalk.bold(chalk.green(`${line} (active)`)) : `${line}`;
+          return { name, value: t };
+        },
       ),
     },
   ]);
   updateCurrentTokenConfig(log, resp.selected.token);
-  log.info(
-    chalk.green(
-      `Token set for @${resp.selected.username} <${resp.selected.email}> at ${resp.selected.api}.`,
-    ),
-  );
+  const { note, email, api, username } = resp.selected;
+  log.info(chalk.green(`Token set for ${summarizeAsString({ note, email, username, api })}.`));
 }
 
 /**
@@ -254,32 +211,88 @@ export function deleteToken(
   log.info(chalk.green(message));
 }
 
+export async function checkUserTokenStatus(session: ISession) {
+  if (session.isAnon) {
+    session.log.error('Anonymous session, select a token.');
+    return;
+  }
+
+  const active = showCurrentTokenRecord(session.log);
+  if (!active) {
+    session.log.error('No active token found');
+    return;
+  }
+
+  session.log.debug(`Token issued by ${active?.api}`); // active api == audience
+  const { decoded, expired } = decodeTokenAndCheckExpiry(active.token, session.log, false);
+  session.log.info(`\nToken status: ${expired ? chalk.red('EXPIRED') : chalk.green('CURRENT')}`);
+  session.log.info(
+    `Expiry: ${decoded.exp ? formatDate(new Date(decoded.exp * 1000).toISOString()) : 'no expiry'}`,
+  );
+
+  const model = new MyUser(session);
+  const me = await model.get();
+  const name = me.data.username ? `@${me.data.username}` : me.data.display_name;
+  session.log.info(`Login as ${name} <${me.data.email}> verified by ${model.$createUrl()}`);
+}
+
+function showCurrentTokenRecord(log: Logger, tokens?: ReturnType<typeof getTokens>) {
+  const active = getCurrentTokenRecord(tokens);
+  if (active) {
+    log.info(chalk.bold(chalk.green(`\nActive token:`)));
+    log.info(chalk.bold(chalk.green(summarizeAsString(active))));
+  }
+  return active;
+}
+
+function getCurrentTokenRecord(tokens?: ReturnType<typeof getTokens>) {
+  const data = tokens ?? getTokens();
+  if (!data.current) return;
+  return data.saved?.find(({ token }) => token === data.current);
+}
+
 /**
  * Provide info on the current session token and other saved tokens
  */
-export async function listTokens(session: ISession) {
-  if (session.isAnon) {
-    session.log.error('Your session is not authenticated.');
-  } else {
-    const me = await new MyUser(session).get();
-    session.log.info(`Authenticating at ${session.API_URL}`);
-    session.log.info(`Logged in as @${me.data.username} <${me.data.email}> at ${session.API_URL}`);
-  }
-
+export async function listUserTokens(log: Logger) {
   const data = getTokens();
   if (!data.current && !data.saved?.length) {
-    session.log.error(
+    log.error(
       'You have no tokens available; you can set a new token with: `curvenote token set API_TOKEN`',
     );
     return;
   }
-  session.log.info(`\nAvailable tokens:`);
+
+  if (data.current) showCurrentTokenRecord(log, data);
+
+  const table = new Table({
+    head: ['Active', 'User', 'API', 'Expires', 'Note'],
+  });
+
+  log.info(`\nAvailable tokens:`);
   for (const t of data.saved ?? []) {
-    session.log.info(
-      `@${t.username} <${t.email}> at ${t.api}${t.token === data.current ? ' (active)' : ''}`,
+    const name = t.username ? `${t.username}\n${t.email}` : t.email;
+    const { decoded, expired } = decodeTokenAndCheckExpiry(t.token, log, false);
+    const expiry =
+      decoded.exp && !decoded.ignoreExpiration
+        ? formatDate(new Date(decoded.exp * 1000).toISOString())
+        : 'no expiry';
+    const styledExpiry =
+      expired === 'soon' ? chalk.yellow(expiry) : expired ? chalk.red(expiry) : expiry;
+    table.push(
+      [
+        t.token === data.current ? '(active)' : '',
+        name,
+        t.api,
+        styledExpiry,
+        t.note ? t.note : '',
+      ].map((i) => (t.token === data.current ? chalk.green(i) : i)),
     );
   }
+
+  log.info(table.toString());
+
   if (data.environment) {
-    session.log.info(`➕ CURVENOTE_TOKEN set in your environment. (active)`);
+    log.info(`➕ CURVENOTE_TOKEN set in your environment. (active)`);
   }
 }

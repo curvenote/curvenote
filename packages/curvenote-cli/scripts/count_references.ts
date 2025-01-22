@@ -5,7 +5,7 @@ const PROJECT_ID = 'UQpQnbX8k8j6zcU3ZLtz';
 
 async function main() {
   const session = getSession();
-  console.log('Got session', session.API_URL);
+  console.log('Got session', session.$config.apiUrl);
 
   const resp = await session.get(`/blocks/${PROJECT_ID}?kind=${KINDS.Reference}&limit=1000`);
   console.log('# References', resp.json.items.length);

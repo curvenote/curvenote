@@ -86,7 +86,7 @@ export async function list(session: ISession, opts: { venue?: string }) {
 
   if (opts?.venue) {
     try {
-      await getFromJournals(session, `sites/${venue}`);
+      await getFromJournals(session, `/sites/${venue}`);
       // TODO check if submissions are allowed from this user
     } catch (err) {
       session.log.error(`${chalk.bold.red(`🤕 venue "${venue}" not found.`)}`);

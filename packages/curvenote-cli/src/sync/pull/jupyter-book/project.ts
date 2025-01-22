@@ -99,7 +99,7 @@ export async function projectToJupyterBook(session: ISession, projectId: Project
       path: opts.path,
       title: project.data.title,
       author: project.data.team,
-      url: `${session.SITE_URL}/@${project.data.team}/${project.data.name}`,
+      url: `${session.config.editorUrl}/@${project.data.team}/${project.data.name}`,
     });
   }
   await writeTOC(session, nav, { path: opts.path, ci: opts.ci });

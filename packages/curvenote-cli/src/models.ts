@@ -109,7 +109,11 @@ export class MyUser extends BaseTransfer<string, MyUserDTO> {
 
   $fromDTO = myUserFromDTO;
 
-  $createUrl = () => `/my/user`;
+  $createUrl = () => {
+    let audience = this.session.activeTokens.session?.decoded?.aud;
+    if (audience && !audience?.endsWith('/')) audience = audience.replace(/\/$/, '');
+    return `${audience ?? this.session.config.editorApiUrl}/my/user`;
+  };
 
   $receive = users.actions.receive;
 
@@ -121,7 +125,9 @@ export class User extends BaseTransfer<string, UserDTO> {
 
   $fromDTO = userFromDTO;
 
-  $createUrl = () => `/users/${this.id}`;
+  $createUrl = () => {
+    return `${this.session.config.editorApiUrl}/users/${this.id}`;
+  };
 
   $receive = users.actions.receive;
 
@@ -133,7 +139,9 @@ export class Team extends BaseTransfer<string, TeamDTO> {
 
   $fromDTO = teamFromDTO;
 
-  $createUrl = () => `/teams/${this.id}`;
+  $createUrl = () => {
+    return `${this.session.config.editorApiUrl}/teams/${this.id}`;
+  };
 
   $receive = teams.actions.receive;
 
@@ -145,7 +153,9 @@ export class Project extends BaseTransfer<ProjectId, ProjectDTO> {
 
   $fromDTO = projectFromDTO;
 
-  $createUrl = () => `/projects/${this.id}`;
+  $createUrl = () => {
+    return `${this.session.config.editorApiUrl}/projects/${this.id}`;
+  };
 
   $receive = projects.actions.receive;
 
@@ -157,7 +167,9 @@ export class RemoteSiteConfig extends BaseTransfer<ProjectId, SiteConfigDTO> {
 
   $fromDTO = siteConfigFromDTO;
 
-  $createUrl = () => `/sites/${this.id}`;
+  $createUrl = () => {
+    return `${this.session.config.editorApiUrl}/sites/${this.id}`;
+  };
 
   $receive = siteconfigs.actions.receive;
 
@@ -169,7 +181,9 @@ export class Block extends BaseTransfer<BlockId, BlockDTO> {
 
   $fromDTO = blockFromDTO;
 
-  $createUrl = () => `/blocks/${this.id.project}/${this.id.block}`;
+  $createUrl = () => {
+    return `${this.session.config.editorApiUrl}/blocks/${this.id.project}/${this.id.block}`;
+  };
 
   $receive = blocks.actions.receive;
 
@@ -187,7 +201,9 @@ export class Version<T extends ALL_BLOCKS = ALL_BLOCKS> extends BaseTransfer<
 
   $fromDTO = versionFromDTO as (versionId: VersionId, json: Record<string, any>) => T;
 
-  $createUrl = () => versionIdToURL(this.id);
+  $createUrl = () => {
+    return `${this.session.config.editorApiUrl}${versionIdToURL(this.id)}`;
+  };
 
   $receive = versions.actions.receive;
 
@@ -201,7 +217,9 @@ export class Template extends BaseTransfer<string, TemplateSpec & { id: string }
   $fromDTO = (id: string, json: Record<string, any>) =>
     ({ id, ...json }) as TemplateSpec & { id: string };
 
-  $createUrl = () => `/templates/${this.id}`;
+  $createUrl = () => {
+    return `${this.session.config.editorApiUrl}/templates/${this.id}`;
+  };
 
   $receive = templates.actions.receive;
 

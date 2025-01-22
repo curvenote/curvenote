@@ -25,7 +25,7 @@ export function localizationOptions(
     localizeLink: (href) => {
       const oxa = oxaLinkToId(href);
       if (!oxa) return href;
-      return oxaLink(session.SITE_URL, oxa.block, oxa) as string;
+      return oxaLink(session.config.editorUrl, oxa.block, oxa) as string;
     },
   };
 }

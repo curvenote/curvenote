@@ -16,7 +16,7 @@ export async function listSubmissionKinds(
   session: ISession,
   venue: string,
 ): Promise<SubmissionKindListingDTO> {
-  return getFromJournals(session, `sites/${venue}/kinds`);
+  return getFromJournals(session, `/sites/${venue}/kinds`);
 }
 
 /**

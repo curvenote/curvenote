@@ -16,196 +16,110 @@ import {
   selectors,
 } from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
-import { LogLevel, basicLogger } from 'myst-cli-utils';
+import { LogLevel, basicLogger, chalkLogger } from 'myst-cli-utils';
 import type { RuleId } from 'myst-common';
 // use the version mystjs brings in!
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { KernelManager, ServerConnection, SessionManager } from '@jupyterlab/services';
 import type { JupyterServerSettings } from 'myst-execute';
 import { findExistingJupyterServer, launchJupyterServer } from 'myst-execute';
-import type { JsonObject } from '@curvenote/blocks';
 import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
-import { getHeaders, setSessionOrUserToken } from './tokens.js';
-import type { ValidatedCurvenotePlugin, ISession, Response, Tokens } from './types.js';
-import version from '../version.js';
+import { decodeTokenAndCheckExpiry, getTokens } from './tokens.js';
+import type {
+  ValidatedCurvenotePlugin,
+  ISession,
+  Response,
+  TokenPair,
+  Token,
+  CLIConfigData,
+  SessionOpts,
+} from './types.js';
+import { XClientName } from '@curvenote/blocks';
+import CLIENT_VERSION from '../version.js';
 import { loadProjectPlugins } from './plugins.js';
 import { combinePlugins, getBuiltInPlugins } from './builtinPlugins.js';
-import boxen from 'boxen';
+import {
+  makeDefaultConfig,
+  ensureBaseUrl,
+  checkForPlatformAPIClientVersionRejection,
+  withQuery,
+  checkForCurvenoteAPIClientVersionRejection,
+} from './utils/index.js';
+import jwt from 'jsonwebtoken';
 import chalk from 'chalk';
+import { getLogLevel } from './utils/getLogLevel.js';
 
-const DEFAULT_API_URL = 'https://api.curvenote.com';
-const DEFAULT_SITE_URL = 'https://curvenote.com';
-const DEFAULT_SITES_API_URL = 'https://sites.curvenote.com/v1/';
-const STAGING_SITES_API_URL = 'https://sites.curvenote.dev/v1/';
-const STAGING_API_URL = 'https://api.curvenote.one';
-const LOCAL_API_URL = 'http://localhost:8083';
-const LOCAL_SITE_URL = 'http://localhost:3000';
-const LOCAL_SITES_API_URL = 'http://localhost:3031/v1/';
 const LOCALHOSTS = ['localhost', '127.0.0.1', '::1'];
 
 const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 
 export type SessionOptions = {
-  apiUrl?: string;
-  siteUrl?: string;
   logger?: Logger;
   doiLimiter?: Limit;
 };
 
-function withQuery(url: string, query: Record<string, string> = {}) {
-  const params = Object.entries(query ?? {})
-    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-    .join('&');
-  if (params.length === 0) return url;
-  return url.indexOf('?') === -1 ? `${url}?${params}` : `${url}&${params}`;
-}
-
-/**
- * This requires the body to be decoded as json and so is called later in the response handling chain
- *
- * @param log
- * @param response
- * @param body
- */
-function checkForCurvenoteAPIClientVersionRejection(
-  log: Logger,
-  response: FetchResponse,
-  body: JsonObject,
-) {
-  // Check for client version rejection api.curvenote.com
-  if (response.status === 400) {
-    log.debug(`Request failed: ${JSON.stringify(body)}`);
-    if (body?.errors?.[0].code === 'outdated_client') {
-      logUpdateRequired({
-        current: version,
-        minimum: 'latest',
-        upgradeCommand: 'npm i -g curvenote@latest',
-        twitter: 'curvenote',
-      });
-    }
-  }
-}
-
-export function logUpdateRequired({
-  current,
-  minimum,
-  upgradeCommand,
-  twitter,
-}: {
-  current: string;
-  minimum: string;
-  upgradeCommand: string;
-  twitter: string;
-}) {
-  return boxen(
-    `Upgrade Required! ${chalk.dim(`v${current}`)} ≫ ${chalk.green.bold(
-      `v${minimum} (minimum)`,
-    )}\n\nRun \`${chalk.cyanBright.bold(
-      upgradeCommand,
-    )}\` to update.\n\nFollow ${chalk.yellowBright(
-      `@${twitter}`,
-    )} for updates!\nhttps://twitter.com/${twitter}`,
-    {
-      padding: 1,
-      margin: 1,
-      borderColor: 'red',
-      borderStyle: 'round',
-      textAlignment: 'center',
-    },
-  );
-}
-
-/**
- * This should be called immedately after the fetch
- *
- * @param log
- * @param response
- */
-function checkForJournalsAPIClientVersionRejection(log: Logger, response: FetchResponse) {
-  // Check for client version rejection sites.curvenote.com
-  if (response.status === 403) {
-    const minimum = response.headers.get('x-minimum-client-version');
-    if (minimum != null) {
-      log.debug(response.statusText);
-      log.error(
-        logUpdateRequired({
-          current: version,
-          minimum,
-          upgradeCommand: 'npm i -g curvenote@latest',
-          twitter: 'curvenote',
-        }),
-      );
-      process.exit(1);
-    }
-  }
-}
-
 export class Session implements ISession {
-  API_URL: string;
-  SITE_URL: string;
-  JOURNALS_URL: string;
-  PUBLIC_CDN: string;
-  PRIVATE_CDN: string;
-  TEMP_CDN: string;
-  configFiles: string[];
-  $tokens: Tokens = {};
-  store: Store<RootState>;
+  $config?: CLIConfigData;
+  $activeTokens: TokenPair = {};
   $logger: Logger;
+  API_URL: string;
+  configFiles: string[];
+
+  store: Store<RootState>;
+
   doiLimiter: Limit;
   plugins: ValidatedCurvenotePlugin | undefined;
+
+  proxyAgent?: HttpsProxyAgent<string>;
+  _shownUpgrade = false;
+  _latestVersion?: string;
+  _jupyterSessionManagerPromise?: Promise<SessionManager | undefined>;
 
   get log(): Logger {
     return this.$logger;
   }
 
   get isAnon() {
-    return !(this.$tokens.user || this.$tokens.session);
+    return !(this.$activeTokens.user || this.$activeTokens.session);
   }
 
-  constructor(token?: string, opts: SessionOptions = {}) {
+  get config(): CLIConfigData {
+    if (!this.$config) throw new Error('No config set on session');
+    return this.$config;
+  }
+
+  get activeTokens(): TokenPair {
+    return this.$activeTokens;
+  }
+
+  static async create(token?: string, opts: SessionOptions = {}) {
+    const session = new Session(opts);
+
+    if (token) {
+      const { decoded } = decodeTokenAndCheckExpiry(token, session.$logger, false);
+      session.log.debug('Creating session with token (decoded):');
+      session.log.debug(JSON.stringify(decoded, null, 2));
+
+      session.setUserToken({ token, decoded });
+      await session.refreshSessionToken();
+      await session.configure();
+    }
+
+    return session;
+  }
+
+  private constructor(opts: SessionOptions = {}) {
     this.configFiles = CONFIG_FILES;
     this.$logger = opts.logger ?? basicLogger(LogLevel.info);
     this.doiLimiter = opts.doiLimiter ?? pLimit(3);
-    const url = this.setToken(token);
-    this.API_URL = opts.apiUrl ?? url ?? DEFAULT_API_URL;
-    this.log.debug(`Connecting to API at: "${this.API_URL}".`);
-    this.SITE_URL =
-      opts.siteUrl ?? (this.API_URL === LOCAL_API_URL ? LOCAL_SITE_URL : DEFAULT_SITE_URL);
-
-    this.JOURNALS_URL = DEFAULT_SITES_API_URL;
-    this.PRIVATE_CDN = 'https://prv.curvenote.com';
-    this.TEMP_CDN = 'https://tmp.curvenote.com';
-    this.PUBLIC_CDN = 'https://cdn.curvenote.com';
-    if (this.API_URL?.startsWith(STAGING_API_URL)) {
-      this.JOURNALS_URL = STAGING_SITES_API_URL;
-      this.PRIVATE_CDN = 'https://prv.curvenote.dev';
-      this.TEMP_CDN = 'https://tmp.curvenote.dev';
-      this.PUBLIC_CDN = 'https://cdn.curvenote.dev';
-    } else if (this.API_URL?.startsWith(LOCAL_API_URL)) {
-      this.JOURNALS_URL = LOCAL_SITES_API_URL;
-      this.PRIVATE_CDN = 'https://prv.curvenote.dev';
-      this.TEMP_CDN = 'https://tmp.curvenote.dev';
-      this.PUBLIC_CDN = 'https://cdn.curvenote.dev';
-    }
-
     const proxyUrl = process.env.HTTPS_PROXY;
     if (proxyUrl) {
       this.log.warn(`Using HTTPS proxy: ${proxyUrl}`);
       this.proxyAgent = new HttpsProxyAgent(proxyUrl);
     }
 
-    if (this.API_URL !== DEFAULT_API_URL) {
-      this.log.warn(`Connecting to API at: "${this.API_URL}".`);
-    }
-    if (this.SITE_URL !== DEFAULT_SITE_URL) {
-      this.log.warn(`Connecting to Site at: "${this.SITE_URL}".`);
-    }
-    if (this.JOURNALS_URL !== DEFAULT_SITES_API_URL) {
-      this.log.warn(`Connecting to Journals at: "${this.JOURNALS_URL}".`);
-      this.log.warn(`Using public cdn at: "${this.PUBLIC_CDN}".`);
-      this.log.warn(`Using private cdn at: "${this.PRIVATE_CDN}".`);
-    }
+    this.API_URL = 'INVALID';
 
     this.store = createStore(rootReducer);
     // Allow the latest version to be loaded
@@ -216,16 +130,144 @@ export class Session implements ISession {
       .catch(() => null);
   }
 
-  proxyAgent?: HttpsProxyAgent<string>;
-  _shownUpgrade = false;
-  _latestVersion?: string;
-  _jupyterSessionManagerPromise?: Promise<SessionManager | undefined>;
+  setUserToken(token: Token) {
+    this.$activeTokens.user = token;
+  }
+
+  async refreshSessionToken() {
+    if (!this.$activeTokens.user) {
+      if (!this.$activeTokens.session) {
+        throw new Error('No user or session token to refresh.');
+      }
+      const { expired } = decodeTokenAndCheckExpiry(this.$activeTokens.session.token, this.log);
+      if (expired === 'soon') {
+        this.log.debug('Session token will expire soon.');
+      } else if (expired) {
+        throw new Error('Session token is expired and no user token provided.');
+      }
+      return; // no user token, nothing left to do
+    }
+
+    // There is a user token, meaning refresh is possible
+    if (this.$activeTokens.session) {
+      // check current session token
+      const { expired } = decodeTokenAndCheckExpiry(
+        this.$activeTokens.session.token,
+        this.log,
+        false, // don't throw if expired
+      );
+      if (expired === 'soon') this.log.debug('SessionToken: The session token will expire soon.');
+      if (expired) this.log.debug('SessionToken: The session token has expired.');
+      if (expired === 'soon' || expired) {
+        this.$activeTokens.session = undefined;
+      } else return; // no need to refresh
+    }
+
+    // Request a new session token
+    this.log.debug('SessionToken: requesting a new session token.');
+    const {
+      decoded: { aud },
+    } = this.$activeTokens.user;
+    try {
+      const response = await this.fetch(aud as string, {
+        method: 'post',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.$activeTokens.user.token}`,
+        },
+      });
+      if (!response.ok) {
+        this.log.debug(`Response: ${response.status} ${response.statusText}`);
+        throw new Error(`SessionToken: The user token is not valid.`);
+      }
+      const json = (await response.json()) as { session?: string };
+      if (!json.session)
+        throw new Error(
+          "SessionToken: There was an error in the response, expected a 'session' in the JSON object.",
+        );
+      const decoded = jwt.decode(json.session) as Token['decoded'];
+      this.$activeTokens.session = { token: json.session, decoded };
+      this.log.debug('SessionToken: new session token created.');
+      this.log.debug('SessionToken payload:');
+      this.log.debug(JSON.stringify(decoded, null, 2));
+    } catch (error) {
+      this.log.error(
+        `⛔️ There was a problem with your API token or the API at ${aud} is unreachable.`,
+      );
+      this.log.error('Run `curvenote token check` to see the status of your token.');
+      this.log.error(
+        'If the error persists try generating a new token or contact support@curvenote.com.',
+      );
+      this.log.debug(chalk.red(error));
+      throw new Error('Could not refresh session token');
+    }
+  }
+
+  async getHeaders() {
+    const headers: Record<string, string> = {
+      'X-Client-Name': XClientName.javascript,
+      'X-Client-Version': CLIENT_VERSION,
+    };
+    this.refreshSessionToken();
+    if (this.$activeTokens.session) {
+      headers.Authorization = `Bearer ${this.$activeTokens.session.token}`;
+    }
+    return headers;
+  }
+
+  async configure() {
+    if (!this.$activeTokens.session?.decoded.aud) return;
+    const { aud, cfg } = this.$activeTokens.session.decoded;
+    const audience = Array.isArray(aud)
+      ? aud[0]
+      : (this.$activeTokens.session.decoded.aud as string);
+
+    if (cfg) {
+      this.log.debug(`Configure using 'cfg' claim: "${cfg}".`);
+      try {
+        const headers = await this.getHeaders();
+        this.log.debug(`GET ${cfg}`);
+        const response = await this.fetch(cfg, {
+          method: 'get',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+        });
+        if (response.ok) {
+          this.log.debug(`Response ok.`);
+          this.$config = (await response.json()) as CLIConfigData;
+          this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".`);
+
+          // We are still setting this as some of the myst-cli functions rely on it
+          this.API_URL = this.$config?.editorApiUrl ?? 'INVALID';
+
+          return;
+        }
+        const json = await response.json();
+        this.log.debug(
+          `Response not ok: ${response.status} "${response.statusText}" ${JSON.stringify(json)}.`,
+        );
+      } catch (e) {
+        this.log.debug(`Failed to fetch config from "${cfg}".`);
+        this.log.debug(e);
+      }
+      this.log.debug('Falling back to default configuration via audience.');
+    }
+    this.log.debug(`Configure using audience: "${audience}".`);
+    this.$config = makeDefaultConfig(audience);
+    this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".\n`);
+
+    // We are still setting this as some of the myst-cli functions rely on it
+    this.API_URL = this.$config?.editorApiUrl ?? 'INVALID';
+  }
 
   showUpgradeNotice() {
-    if (this._shownUpgrade || !this._latestVersion || version === this._latestVersion) return;
+    if (this._shownUpgrade || !this._latestVersion || CLIENT_VERSION === this._latestVersion)
+      return;
     this.log.info(
       logUpdateAvailable({
-        current: version,
+        current: CLIENT_VERSION,
         latest: this._latestVersion,
         upgradeCommand: 'npm i -g curvenote@latest',
         twitter: 'curvenote',
@@ -237,12 +279,11 @@ export class Session implements ISession {
   _clones: ISession[] = [];
 
   async clone() {
-    const cloneSession = new Session(this.$tokens?.session ?? this.$tokens?.user, {
+    const cloneSession = new Session({
       logger: this.log,
-      apiUrl: this.API_URL,
-      siteUrl: this.SITE_URL,
       doiLimiter: this.doiLimiter,
     });
+    cloneSession.$config = this.$config;
     await cloneSession.reload();
     // TODO: clean this up through better state handling
     cloneSession._jupyterSessionManagerPromise = this._jupyterSessionManagerPromise;
@@ -289,7 +330,7 @@ export class Session implements ISession {
     }, 5000);
     const resp = await nodeFetch(url, init);
     logData.done = true;
-    checkForJournalsAPIClientVersionRejection(this.log, resp);
+    checkForPlatformAPIClientVersionRejection(this.log, resp);
     return resp;
   }
 
@@ -304,19 +345,14 @@ export class Session implements ISession {
     return this.plugins;
   }
 
-  setToken(token?: string) {
-    const { tokens, url } = setSessionOrUserToken(this, token);
-    this.$tokens = tokens;
-    return url;
-  }
-
   async get<T extends Record<string, any>>(
     url: string,
     query?: Record<string, string>,
   ): Response<T> {
-    const withBase = url.startsWith(this.API_URL) ? url : `${this.API_URL}${url}`;
-    const fullUrl = withQuery(withBase, query);
-    const headers = await getHeaders(this, this.$tokens);
+    if (!this.$config) throw new Error('Cannot make API requests without an authenticated session');
+    const parsed = ensureBaseUrl(url, this.$config.apiUrl); // allow origins from caller
+    const fullUrl = withQuery(parsed.toString(), query);
+    const headers = await this.getHeaders();
     this.log.debug(`GET ${url}`);
     const response = await this.fetch(fullUrl, {
       method: 'get',
@@ -327,6 +363,7 @@ export class Session implements ISession {
     });
     const json = (await response.json()) as any;
     checkForCurvenoteAPIClientVersionRejection(this.log, response, json);
+    checkForPlatformAPIClientVersionRejection(this.log, response);
     return {
       ok: response.ok,
       status: response.status,
@@ -343,10 +380,12 @@ export class Session implements ISession {
     data: Record<string, any>,
     method: 'post' | 'patch' = 'post',
   ): Response<T> {
-    if (url.startsWith(this.API_URL)) url = url.replace(this.API_URL, '');
-    const headers = await getHeaders(this, this.$tokens);
-    this.log.debug(`${method.toUpperCase()} ${url}`);
-    const response = await this.fetch(`${this.API_URL}${url}`, {
+    if (!this.$config) throw new Error('Cannot make API requests without an authenticated session');
+    const parsed = ensureBaseUrl(url, this.$config.apiUrl); // allow origins from caller
+    const fullUrl = parsed.toString();
+    const headers = await this.getHeaders();
+    this.log.debug(`${method.toUpperCase()} ${fullUrl}`);
+    const response = await this.fetch(fullUrl, {
       method,
       headers: {
         'Content-Type': 'application/json',
@@ -360,6 +399,7 @@ export class Session implements ISession {
       this.log.debug(`${method.toUpperCase()} FAILED ${url}: ${response.status}\n\n${dataString}`);
     }
     checkForCurvenoteAPIClientVersionRejection(this.log, response, json);
+    checkForPlatformAPIClientVersionRejection(this.log, response);
     return {
       ok: response.ok,
       status: response.status,
@@ -442,4 +482,32 @@ export class Session implements ISession {
       this._jupyterSessionManagerPromise = undefined;
     }
   }
+}
+
+export async function anonSession(opts?: SessionOpts): Promise<ISession> {
+  const logger = chalkLogger(getLogLevel(opts?.debug), process.cwd());
+  const session = await Session.create(undefined, { logger });
+  return session;
+}
+
+export async function getSession(
+  opts?: SessionOpts & { hideNoTokenWarning?: boolean },
+): Promise<ISession> {
+  const logger = chalkLogger(getLogLevel(opts?.debug), process.cwd());
+  const data = getTokens(logger);
+  if (!data.current && !opts?.hideNoTokenWarning) {
+    logger.warn('No token was found in settings or CURVENOTE_TOKEN. Session is not authenticated.');
+    logger.info('You can set a new token with: `curvenote token set API_TOKEN`');
+    if (data.saved?.length) {
+      logger.info('or you can select an existing token with: `curvenote token select`');
+    }
+  }
+  let session;
+  try {
+    session = await Session.create(data.current, { logger });
+  } catch (error) {
+    logger.error((error as Error).message);
+    process.exit(1);
+  }
+  return session;
 }

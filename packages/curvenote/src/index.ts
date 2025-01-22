@@ -9,6 +9,9 @@ import { addWebCLI } from './web.js';
 import { addWorksCLI } from './works.js';
 import { addSubmitCLI, addSubmissionCLI } from './submissions.js';
 import version from './version.js';
+import { addDevHelpCLI } from './devhelp.js';
+
+(process as any).noDeprecation = true;
 
 const program = new Command();
 addSyncCLI(program);
@@ -19,6 +22,7 @@ addCheckCLI(program);
 addWorksCLI(program);
 addSubmitCLI(program);
 addSubmissionCLI(program);
+addDevHelpCLI(program);
 
 program.version(`v${version}`, '-v, --version', 'Print the current version of curvenote');
 program.option('-d, --debug', 'Log out any errors to the console.');

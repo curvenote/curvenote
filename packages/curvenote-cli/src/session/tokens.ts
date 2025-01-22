@@ -1,18 +1,19 @@
+import fs from 'node:fs';
 import jwt from 'jsonwebtoken';
-import { XClientName } from '@curvenote/blocks';
-import CLIENT_VERSION from '../version.js';
-import type { ISession, Tokens } from './types.js';
-import chalk from 'chalk';
+import type { ISession, Token, TokenConfig, TokenData, TokenPayload } from './types.js';
+import type { Logger } from 'myst-cli-utils';
+import { chalkLogger, LogLevel } from 'myst-cli-utils';
+import { getConfigPath } from './utils/index.js';
 
-function decodeAndValidateToken(
-  session: ISession,
+export function decodeTokenAndCheckExpiry(
   token: string,
+  log: ISession['log'],
   throwErrors = true,
-): { decoded: jwt.JwtPayload; expired: boolean | 'soon' } {
-  const decoded = jwt.decode(token);
-  if (!decoded || typeof decoded === 'string') {
+): { decoded: TokenPayload; expired: boolean | 'soon' } {
+  const rawDecoded = jwt.decode(token);
+  if (!rawDecoded || typeof rawDecoded === 'string')
     throw new Error('Could not decode session token. Please ensure that the API token is valid.');
-  }
+  const decoded = rawDecoded as TokenPayload;
   const timeLeft = (decoded.exp as number) * 1000 - Date.now();
   if (!decoded.ignoreExpiration && timeLeft < 0) {
     if (throwErrors) {
@@ -22,79 +23,63 @@ function decodeAndValidateToken(
     }
     return { decoded, expired: true };
   }
-  if (!decoded.ignoreExpiration && timeLeft < 5 * 60 * 1000) {
-    if (throwErrors) session.log.warn('The token has less than five minutes remaining');
+  if (!decoded.ignoreExpiration && timeLeft < 30 * 1000) {
+    if (throwErrors) log.warn('The token has less than 30 seconds remaining');
     return { decoded, expired: 'soon' };
   }
   return { decoded, expired: false };
 }
 
-export function setSessionOrUserToken(
-  session: ISession,
-  token?: string,
-): { tokens: Tokens; url?: string } {
-  if (!token) return { tokens: {} };
-  const { decoded } = decodeAndValidateToken(session, token);
-  const { aud } = decoded;
+export function validateSessionToken(token: string, log: ISession['log']): Token {
+  const { decoded } = decodeTokenAndCheckExpiry(token, log);
+  const { aud, cfg, iss } = decoded;
   if (typeof aud !== 'string') throw new Error('Expected an audience on the token (string).');
-  if (aud.endsWith('/login')) {
-    return { tokens: { user: token }, url: aud.slice(0, -6) };
-  }
-  return { tokens: { session: token }, url: aud };
+  if (!iss?.endsWith('tokens/session')) throw new Error('Expected a session token.');
+  if (typeof cfg === 'string')
+    log.debug(`SessionToken contains a "cfg" claim, reading configuration from api at ${cfg}.`);
+  return { token, decoded };
 }
 
-export async function getSessionToken(
-  session: ISession,
-  tokens: Tokens,
-): Promise<string | undefined> {
-  if (!tokens.user) {
-    if (!tokens.session) return undefined;
-    decodeAndValidateToken(session, tokens.session, false);
-    return tokens.session;
+/**
+ * Return `current` token and `saved` available tokens
+ *
+ * Curvenote tokens can come from 2 places:
+ * - CURVENOTE_TOKEN environment variable
+ * - Curvenote config file saved to your system
+ *
+ * The curvenote config may have a list of available tokens and a current token;
+ * this function will return the available tokens as `saved` and the `current` token.
+ *
+ * If CURVENOTE_TOKEN environment variable is found, it will be returned as `current`,
+ * taking priority over any current token in your config file. The field `environment`
+ * will be set to `true`, indicating current came from the environment variable.
+ */
+export function getTokens(log: Logger = chalkLogger(LogLevel.info, process.cwd())): {
+  saved?: TokenData[];
+  current?: string;
+  environment?: boolean;
+} {
+  const env = process.env.CURVENOTE_TOKEN;
+  if (env) {
+    log.warn('Using the CURVENOTE_TOKEN env variable.');
   }
-  // There is a user token.
-  if (tokens.session) {
-    const { expired } = decodeAndValidateToken(session, tokens.session, false);
-    if (!expired) return tokens.session;
+  const configPath = getConfigPath();
+  let config: TokenConfig | undefined;
+  if (fs.existsSync(configPath)) {
+    try {
+      config = JSON.parse(fs.readFileSync(configPath).toString());
+    } catch (error) {
+      log.debug(`\n\n${(error as Error)?.stack}\n\n`);
+      if (env) {
+        log.error('Could not read settings file; continuing with CURVENOTE_TOKEN env variable');
+      } else {
+        throw new Error('Could not read settings file to get Curvenote token');
+      }
+    }
   }
-  // The session token hasn't been created, has expired or will 'soon'.
-  session.log.debug('SessionToken: Generating a fresh session token.');
-  const { decoded } = decodeAndValidateToken(session, tokens.user);
-  const response = await session.fetch(decoded.aud as string, {
-    method: 'post',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${tokens.user}`,
-    },
-  });
-  if (!response.ok) {
-    console.error(
-      chalk.bold(
-        '⛔️ There was a problem with your API token. If the error persists try generating a new token or contact support@curvenote.com.',
-      ),
-    );
-    throw new Error('SessionToken: The user token is not valid.');
-  }
-  const json = (await response.json()) as any;
-  if (!json.session)
-    throw new Error(
-      "SessionToken: There was an error in the response, expected a 'session' in the JSON object.",
-    );
-  return json.session;
-}
-
-export async function getHeaders(
-  session: ISession,
-  tokens: Tokens,
-): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    'X-Client-Name': XClientName.javascript,
-    'X-Client-Version': CLIENT_VERSION,
+  return {
+    saved: config?.tokens,
+    current: env ?? config?.token,
+    environment: !!env,
   };
-  const sessionToken = await getSessionToken(session, tokens);
-  if (sessionToken) {
-    tokens.session = sessionToken;
-    headers.Authorization = `Bearer ${sessionToken}`;
-  }
-  return headers;
 }

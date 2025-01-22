@@ -31,8 +31,9 @@ import type { CollectionDTO, SubmissionKindDTO, SubmissionsListItemDTO } from '@
 import type { GithubSource, SubmitLog, SubmitOpts } from './types.js';
 import { buildSite, clean, collectAllBuildExportOptions, localArticleExport } from 'myst-cli';
 
-const CDN_KEY_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
+export const CDN_KEY_RE =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+export const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
 
 export async function performCleanRebuild(session: ISession, opts?: SubmitOpts) {
   session.log.info('\n\n\t✨✨✨  performing a clean re-build of your work  ✨✨✨\n\n');
@@ -217,7 +218,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       ...job.results,
     });
 
-    const cdn = opts?.draft ? session.TEMP_CDN : session.PRIVATE_CDN;
+    const cdn = opts?.draft ? session.config.tempCdnUrl : session.config.privateCdnUrl;
     let cdnKey: string;
     if (!process.env.DEV_CDN || process.env.DEV_CDN === 'false') {
       const uploadResult = await uploads.uploadToCdn(session, cdn, opts);
@@ -239,7 +240,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       },
     );
 
-    const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
+    const buildUrl = `${session.config.adminUrl}/build/${job.id}`;
     session.log.info(`🤖 created a job to track this build: ${buildUrl}`);
 
     //

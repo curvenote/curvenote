@@ -1,43 +1,53 @@
 import { Command } from 'commander';
 import {
-  listTokens,
+  listUserTokens,
   deleteToken,
-  setToken,
+  setUserToken,
   selectToken,
   selectAnonymousToken,
+  checkUserTokenStatus,
 } from '@curvenote/cli';
 import { clirun } from './clirun.js';
 
 export function addTokenCLI(program: Command) {
-  const command = new Command('token')
+  const token = new Command('token')
     .description('Set or delete a token to access the Curvenote API')
     .alias('auth');
-  command
+  token
     .command('list')
-    .alias('check')
     .description('Check if you are logged into the API and list available tokens')
-    .action(clirun(listTokens, { program, skipProjectLoading: true }));
-  command
+    .action(
+      clirun(async (session) => listUserTokens(session.log), {
+        program,
+        anonymous: true,
+        skipProjectLoading: true,
+      }),
+    );
+  token
+    .command('check')
+    .description('Check status of the active token')
+    .action(clirun(checkUserTokenStatus, { program, skipProjectLoading: true }));
+  token
     .command('set [token]')
     .description('Set a token and save to a config directory')
     .action(
-      clirun(async (session, token?: string) => setToken(session.log, token), {
+      clirun(async (session, t?: string) => setUserToken(session.log, t), {
         program,
         anonymous: true,
         skipProjectLoading: true,
       }),
     );
-  command
+  token
     .command('select')
     .description('Set a token and save to a config directory')
     .action(
-      clirun(async (session) => selectToken(session.log), {
+      clirun((s) => selectToken(s.log), {
         program,
         anonymous: true,
         skipProjectLoading: true,
       }),
     );
-  command
+  token
     .command('anonymous')
     .alias('anon')
     .description('Use an anonymous session, without deleting your saved tokens')
@@ -48,7 +58,7 @@ export function addTokenCLI(program: Command) {
         skipProjectLoading: true,
       }),
     );
-  command
+  token
     .command('delete')
     .alias('remove')
     .description('Delete active token the config directory')
@@ -60,5 +70,5 @@ export function addTokenCLI(program: Command) {
         skipProjectLoading: true,
       }),
     );
-  program.addCommand(command);
+  program.addCommand(token);
 }
