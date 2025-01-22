@@ -68,18 +68,18 @@ export function collectionQuestions(
   };
 }
 
-export function venueQuestion(session: ISession) {
+export function venueQuestion(session: ISession, action = 'submit') {
   return {
     name: 'venue',
     type: 'input',
-    message: 'Enter the venue name you want to submit to?',
+    message: `Enter the venue name you want to ${action} to?`,
     filter: (venue: string) => venue.toLowerCase(),
     validate: async (venue: string) => {
       if (venue.length < 3) {
         return 'Venue name must be at least 3 characters';
       }
       try {
-        await getFromJournals(session, `sites/${venue}`);
+        await getFromJournals(session, `/sites/${venue}`);
       } catch (err) {
         return `Venue "${venue}" not found.`;
       }
@@ -215,7 +215,7 @@ export async function listSubmissionKinds(
   session: ISession,
   venue: string,
 ): Promise<{ items: SubmissionKindDTO[] }> {
-  return getFromJournals(session, `sites/${venue}/kinds`);
+  return getFromJournals(session, `/sites/${venue}/kinds`);
 }
 
 /**
@@ -226,7 +226,7 @@ export async function getSubmissionKind(
   venue: string,
   kindIdOrName: string,
 ): Promise<SubmissionKindDTO> {
-  return getFromJournals(session, `sites/${venue}/kinds/${kindIdOrName}`);
+  return getFromJournals(session, `/sites/${venue}/kinds/${kindIdOrName}`);
 }
 
 /**
@@ -318,14 +318,14 @@ export function getSiteConfig(session: ISession) {
 export async function ensureVenue(
   session: ISession,
   venue: string | undefined,
-  opts?: { yes?: boolean },
+  opts: { yes?: boolean; action?: string } = { action: 'submit' },
 ) {
   if (venue) return venue;
   if (opts?.yes) {
     throw new Error(`⛔️ venue must be specified to continue submission`);
   }
   session.log.debug('No venue provided, prompting user...');
-  const answer = await inquirer.prompt([venueQuestion(session)]);
+  const answer = await inquirer.prompt([venueQuestion(session, opts.action)]);
   return answer.venue;
 }
 
@@ -369,7 +369,7 @@ export async function promptForNewKey(
           return 'Key must be no more than 50 characters';
         }
         try {
-          const { exists } = await getFromJournals(session, `works/key/${key}`);
+          const { exists } = await getFromJournals(session, `/works/key/${key}`);
           if (exists) return `Key "${key}" not available.`;
         } catch (err) {
           return 'Key validation failed';
@@ -388,8 +388,8 @@ export async function promptForNewKey(
  */
 export async function checkVenueExists(session: ISession, venue: string) {
   try {
-    session.log.debug(`GET from journals API sites/${venue}`);
-    await getFromJournals(session, `sites/${venue}`);
+    session.log.debug(`GET from journals API /sites/${venue}`);
+    await getFromJournals(session, `/sites/${venue}`);
     session.log.debug(`found venue "${venue}"`);
   } catch (err) {
     session.log.debug(err);
@@ -401,7 +401,7 @@ export async function checkVenueExists(session: ISession, venue: string) {
 export async function checkVenueSubmitAccess(session: ISession, venue: string) {
   try {
     session.log.debug('checking submit access');
-    const { submit } = (await getFromJournals(session, `sites/${venue}/access`)) as {
+    const { submit } = (await getFromJournals(session, `/sites/${venue}/access`)) as {
       read: boolean;
       submit: boolean;
     };
@@ -422,7 +422,7 @@ export async function listCollections(
   session: ISession,
   venue: string,
 ): Promise<CollectionListingDTO> {
-  return getFromJournals(session, `sites/${venue}/collections`);
+  return getFromJournals(session, `/sites/${venue}/collections`);
 }
 
 /**
@@ -479,7 +479,7 @@ export async function checkForSubmissionKeyInUse(session: ISession, venue: strin
   try {
     const { exists } = (await getFromJournals(
       session,
-      `sites/${venue}/submissions/key/${key}`,
+      `/sites/${venue}/submissions/key/${key}`,
     )) as { exists: boolean };
     return exists;
   } catch (err) {
@@ -517,7 +517,7 @@ export async function getAllSubmissionsUsingKey(
   session.log.debug(`checking for existing submission using key "${key}"`);
   let submissions: SubmissionsListingDTO;
   try {
-    submissions = await getFromJournals(session, `sites/${venue}/submissions?key=${key}`);
+    submissions = await getFromJournals(session, `/sites/${venue}/submissions?key=${key}`);
   } catch (err) {
     session.log.debug(err);
     return;

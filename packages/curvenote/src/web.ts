@@ -20,7 +20,12 @@ import {
 
 function makeCurvenoteStartCLI(program: Command) {
   const command = makeStartCommand().action(
-    clirun(web.curvenoteStart, { program, requireSiteConfig: true, keepAlive: true }),
+    clirun(web.curvenoteStart, {
+      program,
+      requireSiteConfig: true,
+      keepAlive: true,
+      hideNoTokenWarning: true,
+    }),
   );
   return command;
 }

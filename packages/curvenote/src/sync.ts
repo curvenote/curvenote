@@ -18,7 +18,7 @@ function makeInitCLI(program: Command) {
     .addOption(makeYesOption())
     .addOption(makeDomainOption())
     .addOption(makeWriteTOCOption())
-    .action(clirun(sync.init, { program, hideNoTokenWarning: true }));
+    .action(clirun(sync.init, { program, hideNoTokenWarning: true, keepAlive: true }));
   return command;
 }
 

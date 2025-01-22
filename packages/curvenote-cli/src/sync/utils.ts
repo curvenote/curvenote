@@ -63,12 +63,12 @@ export function projectIdFromLink(session: ISession, link: string) {
     // This is something, maybe, of the form @team/project
     return link.replace('/', ':');
   }
-  if (link.startsWith(session.API_URL)) {
+  if (link.startsWith(session.config.editorApiUrl)) {
     const [service, project] = link.split('/').slice(3); // https://api.curvenote.com/{service}/{maybeProjectId}
     if (!knownServices.has(service)) throw new Error('Unknown API URL for project.');
     return project;
   }
-  if (link.startsWith(session.SITE_URL)) {
+  if (link.startsWith(session.config.editorUrl)) {
     const [team, project] = link.split('/').slice(-2);
     return `${team}:${project}`;
   }

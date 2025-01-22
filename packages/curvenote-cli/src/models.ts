@@ -110,7 +110,8 @@ export class MyUser extends BaseTransfer<string, MyUserDTO> {
   $fromDTO = myUserFromDTO;
 
   $createUrl = () => {
-    const audience = this.session.activeTokens.session?.decoded?.aud;
+    let audience = this.session.activeTokens.session?.decoded?.aud;
+    if (audience && !audience?.endsWith('/')) audience = audience.replace(/\/$/, '');
     return `${audience ?? this.session.config.editorApiUrl}/my/user`;
   };
 

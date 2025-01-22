@@ -32,7 +32,7 @@ export class OxaTransformer implements LinkTransformer {
     const key = oxaLink(oxa, false) as string;
     const store = this.session.store.getState() as RootState;
     const info = selectors.selectOxaLinkInformation(store, key);
-    const externalOxaUrl = oxa ? oxaLink(this.session.SITE_URL, oxa.block) : null;
+    const externalOxaUrl = oxa ? oxaLink(this.session.config.editorUrl, oxa.block) : null;
     if (info) {
       const url = info?.url;
       if (url && url !== link.url) {

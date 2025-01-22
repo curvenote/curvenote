@@ -54,8 +54,8 @@ export async function getWorkFromTransferData(
   const workId = data[venue]?.work?.id;
   if (!workId) return;
   try {
-    session.log.debug(`GET from journals API works/${workId}`);
-    const resp = await getFromJournals(session, `works/${workId}`);
+    session.log.debug(`GET from journals API /works/${workId}`);
+    const resp = await getFromJournals(session, `/works/${workId}`);
     return resp;
   } catch {
     return undefined;
@@ -77,11 +77,11 @@ export async function updateKeyForTransferDataWork(
     return;
   }
   try {
-    session.log.debug(`PATCH to journals API works/${workId}`);
-    const resp = await postToJournals(session, `works/${workId}`, { key }, { method: 'PATCH' });
+    session.log.debug(`PATCH to journals API /works/${workId}`);
+    const resp = await postToJournals(session, `/works/${workId}`, { key }, { method: 'PATCH' });
     if (resp.ok) return;
   } catch {
-    session.log.debug(`Error patching works/${workId}`);
+    session.log.debug(`Error patching /works/${workId}`);
   }
   session.log.error(`Cannot update key for work id ${workId}`);
 }

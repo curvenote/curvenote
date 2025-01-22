@@ -54,6 +54,7 @@ export async function getFromUrl(session: ISession, url: string) {
  * If request fails, throw an error.
  */
 export async function getFromJournals(session: ISession, pathname: string) {
+  // TODO this could/should now just use session.get? and so
   const url = `${session.config.apiUrl}${pathname}`;
   return getFromUrl(session, url);
 }
@@ -97,9 +98,9 @@ export async function postNewWork(
   const toc = tic();
 
   session.log.debug(
-    `POST to ${session.config?.apiUrl}works with cdnKey: ${cdnKey}, cdn: ${cdn}${key ? `, key: ${key}` : ''}...`,
+    `POST to ${session.config?.apiUrl}/works with cdnKey: ${cdnKey}, cdn: ${cdn}${key ? `, key: ${key}` : ''}...`,
   );
-  const resp = await postToJournals(session, 'works', { cdn_key: cdnKey, cdn, key });
+  const resp = await postToJournals(session, '/works', { cdn_key: cdnKey, cdn, key });
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as WorkDTO;
@@ -151,8 +152,8 @@ export async function postNewCliCheckJob(
     payload,
     results,
   };
-  session.log.debug(`POST to ${session.config?.apiUrl}jobs...`);
-  const resp = await postToJournals(session, `jobs`, body);
+  session.log.debug(`POST to ${session.config?.apiUrl}/jobs...`);
+  const resp = await postToJournals(session, `/jobs`, body);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as JobResponse;
@@ -178,8 +179,8 @@ export async function patchUpdateCliCheckJob(
     message,
     results,
   };
-  session.log.debug(`PATCH to ${session.config?.apiUrl}jobs...`);
-  const resp = await postToJournals(session, `jobs/${jobId}`, body, { method: 'PATCH' });
+  session.log.debug(`PATCH to ${session.config?.apiUrl}/jobs...`);
+  const resp = await postToJournals(session, `/jobs/${jobId}`, body, { method: 'PATCH' });
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as JobResponse;
@@ -209,8 +210,8 @@ export async function postNewSubmission(
     draft,
     job_id,
   };
-  session.log.debug(`POST to ${session.config?.apiUrl}sites/${venue}/submissions...`);
-  const resp = await postToJournals(session, `sites/${venue}/submissions`, submissionRequest);
+  session.log.debug(`POST to ${session.config?.apiUrl}/sites/${venue}/submissions...`);
+  const resp = await postToJournals(session, `/sites/${venue}/submissions`, submissionRequest);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as SubmissionDTO;

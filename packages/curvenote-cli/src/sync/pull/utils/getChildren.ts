@@ -4,7 +4,7 @@ import type { ISession } from '../../../session/types.js';
 import { versionIdToURL } from '../../../utils/index.js';
 
 export async function getChildren(session: ISession, versionId: VersionId) {
-  const url = `${versionIdToURL(versionId)}/children`;
+  const url = `${session.config.editorApiUrl}${versionIdToURL(versionId)}/children`;
   session.log.debug(`Fetching version children: ${url}`);
   const { ok, json } = await session.get(url);
   if (!ok) throw new Error('Could not get children');

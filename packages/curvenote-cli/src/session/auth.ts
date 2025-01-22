@@ -10,6 +10,7 @@ import type { ISession } from './types.js';
 import { Session } from './session.js';
 import Table from 'cli-table3';
 import { decodeTokenAndCheckExpiry } from './tokens.js';
+import { formatDate } from '../submissions/utils.js';
 
 interface TokenData {
   api: string;
@@ -170,7 +171,8 @@ function summarizeAsString({ note, username, email, api }: Omit<TokenData, 'toke
 /**
  * Interactively select a saved token to use
  */
-export async function selectToken(log: Logger) {
+export async function selectToken(session: Session) {
+  const log = session.log;
   const data = getTokens(log);
   if (!data.current && !data.saved?.length) {
     log.error(`🫙 No tokens found. Try running ${chalk.bold('curvenote token set')} first.`);
@@ -295,13 +297,11 @@ export async function checkUserTokenStatus(session: ISession) {
   }
 
   session.log.debug(`Token issued by ${active?.api}`); // active api == audience
-  session.log.debug(`Session Configuration:`);
-  session.log.debug(JSON.stringify(session.config, null, 2));
-
   const { decoded, expired } = decodeTokenAndCheckExpiry(active.token, session.log, false);
-  session.log.debug(`Token payload:`);
-  session.log.debug(JSON.stringify(decoded, null, 2));
-  session.log.info(`Token status: ${expired ? chalk.red('EXPIRED') : chalk.green('ACTIVE')}`);
+  session.log.info(`\nToken status: ${expired ? chalk.red('EXPIRED') : chalk.green('CURRENT')}`);
+  session.log.info(
+    `Expiry: ${decoded.exp ? formatDate(new Date(decoded.exp * 1000).toISOString()) : 'no expiry'}`,
+  );
 
   const model = new MyUser(session);
   const me = await model.get();
@@ -344,7 +344,11 @@ export async function listUserTokens(log: Logger) {
 
   log.info(`\nAvailable tokens:`);
   for (const t of data.saved ?? []) {
-    table.push([t.username, t.email, t.api, t.token === data.current ? '(active)' : '', t.note]);
+    table.push(
+      [t.username, t.email, t.api, t.token === data.current ? '(active)' : '', t.note].map((i) =>
+        t.token === data.current ? chalk.green(i) : i,
+      ),
+    );
   }
 
   log.info(table.toString());

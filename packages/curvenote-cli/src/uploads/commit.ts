@@ -6,7 +6,7 @@ export async function commitUploads(
   data: { cdn: string; cdnKey: string; files: any[] },
 ) {
   session.log.debug(`📦 Committing uploads - ${data.files.length} items`);
-  const resp = await postToJournals(session, `uploads/commit`, data, { method: 'POST' });
+  const resp = await postToJournals(session, `/uploads/commit`, data, { method: 'POST' });
 
   if (resp.ok) {
     const { message } = (await resp.json()) as { message: string };

@@ -41,7 +41,7 @@ export function addTokenCLI(program: Command) {
     .command('select')
     .description('Set a token and save to a config directory')
     .action(
-      clirun(async (session) => selectToken(session.log), {
+      clirun(selectToken, {
         program,
         anonymous: true,
         skipProjectLoading: true,

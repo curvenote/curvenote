@@ -14,7 +14,7 @@ import type { UploadStagingDTO } from '@curvenote/common';
  */
 export async function stageUploads(session: ISession) {
   const { files, uploadRequest } = await prepareUploadRequest(session);
-  const resp = await postToJournals(session, `uploads/stage`, uploadRequest, { method: 'POST' });
+  const resp = await postToJournals(session, `/uploads/stage`, uploadRequest, { method: 'POST' });
   if (resp.ok) {
     const staged = (await resp.json()) as UploadStagingDTO;
     if (staged.upload_items.length === 0) {

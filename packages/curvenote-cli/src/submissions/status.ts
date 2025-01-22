@@ -25,7 +25,7 @@ async function updateStatus(
       '⛔️ You must be authenticated for this command. Use `curvenote token set [token]`',
     );
   }
-  venue = await ensureVenue(session, venue);
+  venue = await ensureVenue(session, venue, { action });
   await checkVenueExists(session, venue);
   // TODO check user scope on this venue! await checkVenueAccess(session, venue);
 

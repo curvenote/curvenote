@@ -42,6 +42,7 @@ export type ValidatedCurvenotePlugin = Required<
 
 export type CLIConfigData = {
   apiUrl: string;
+  adminUrl: string;
   editorApiUrl: string;
   editorUrl: string;
   privateCdnUrl: string;
@@ -50,8 +51,6 @@ export type CLIConfigData = {
 };
 
 export type ISession = IMystSession & {
-  API_URL: string;
-  SITE_URL: string;
   store: Store<RootState>;
   isAnon: boolean;
   config: CLIConfigData;

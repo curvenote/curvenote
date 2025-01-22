@@ -23,7 +23,6 @@ import type { RuleId } from 'myst-common';
 import { KernelManager, ServerConnection, SessionManager } from '@jupyterlab/services';
 import type { JupyterServerSettings } from 'myst-execute';
 import { findExistingJupyterServer, launchJupyterServer } from 'myst-execute';
-import type { JsonObject } from '@curvenote/blocks';
 import type { RootState } from '../store/index.js';
 import { rootReducer } from '../store/index.js';
 import { decodeTokenAndCheckExpiry } from './tokens.js';
@@ -39,158 +38,30 @@ import { XClientName } from '@curvenote/blocks';
 import CLIENT_VERSION from '../version.js';
 import { loadProjectPlugins } from './plugins.js';
 import { combinePlugins, getBuiltInPlugins } from './builtinPlugins.js';
-import { logUpdateRequired } from './utils.js';
+import {
+  makeDefaultConfig,
+  ensureBaseUrl,
+  checkForPlatformAPIClientVersionRejection,
+  withQuery,
+  checkForCurvenoteAPIClientVersionRejection,
+} from './utils.js';
 import jwt from 'jsonwebtoken';
 import chalk from 'chalk';
-
-const DEFAULT_EDITOR_API_URL = 'https://api.curvenote.com';
-const DEFAULT_PLATFORM_API_URL = 'https://sites.curvenote.com/v1/';
-const DEFAULT_EDITOR_URL = 'https://curvenote.com';
-
-const STAGING_PLATFORM_API_URL = 'https://sites.curvenote.dev/v1/';
-const STAGING_EDITOR_API_URL = 'https://api.curvenote.one';
-const STAGING_EDITOR_URL = 'https://curvenote.one';
-
-const LOCAL_EDITOR_API_URL = 'http://localhost:8083';
-const LOCAL_PLATFORM_API_URL = 'http://localhost:3031/v1/';
-const LOCAL_EDITOR_URL = 'http://localhost:3000';
 
 const LOCALHOSTS = ['localhost', '127.0.0.1', '::1'];
 
 const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 
 export type SessionOptions = {
-  apiUrl?: string;
-  siteUrl?: string;
   logger?: Logger;
   doiLimiter?: Limit;
 };
-
-function withQuery(url: string, query: Record<string, string> = {}) {
-  const params = Object.entries(query ?? {})
-    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-    .join('&');
-  if (params.length === 0) return url;
-  return url.indexOf('?') === -1 ? `${url}?${params}` : `${url}&${params}`;
-}
-
-/**
- * This requires the body to be decoded as json and so is called later in the response handling chain
- *
- * @param log
- * @param response
- * @param body
- */
-function checkForCurvenoteAPIClientVersionRejection(
-  log: Logger,
-  response: FetchResponse,
-  body: JsonObject,
-) {
-  // Check for client version rejection api.curvenote.com
-  if (response.status === 400) {
-    log.debug(`Request failed: ${JSON.stringify(body)}`);
-    if (body?.errors?.[0].code === 'outdated_client') {
-      logUpdateRequired({
-        current: CLIENT_VERSION,
-        minimum: 'latest',
-        upgradeCommand: 'npm i -g curvenote@latest',
-        twitter: 'curvenote',
-      });
-    }
-  }
-}
-
-/**
- * This should be called immedately after the fetch
- *
- * @param log
- * @param response
- */
-function checkForPlatformAPIClientVersionRejection(log: Logger, response: FetchResponse) {
-  // Check for client version rejection sites.curvenote.com
-  if (response.status === 403) {
-    const minimum = response.headers.get('x-minimum-client-version');
-    if (minimum != null) {
-      log.debug(response.statusText);
-      log.error(
-        logUpdateRequired({
-          current: CLIENT_VERSION,
-          minimum,
-          upgradeCommand: 'npm i -g curvenote@latest',
-          twitter: 'curvenote',
-        }),
-      );
-      process.exit(1);
-    }
-  }
-}
-
-/**
- * makeDefaultConfig cerate the fallback configuration which only needs to be valid for
- * the case where the user token was created on the legacy API
- *
- * @param session
- * @param opts
- * @returns
- */
-function makeDefaultConfig(audience: string, log: Logger): CLIConfigData {
-  let apiUrl = DEFAULT_PLATFORM_API_URL;
-  let editorApiUrl = DEFAULT_EDITOR_API_URL;
-  let editorUrl = DEFAULT_EDITOR_URL;
-  let privateCdnUrl = 'https://prv.curvenote.com';
-  let tempCdnUrl = 'https://tmp.curvenote.com';
-  let publicCdnUrl = 'https://cdn.curvenote.com';
-
-  if (
-    audience.startsWith(STAGING_EDITOR_API_URL) ||
-    audience.startsWith(STAGING_PLATFORM_API_URL)
-  ) {
-    apiUrl = STAGING_PLATFORM_API_URL;
-    editorApiUrl = STAGING_EDITOR_API_URL;
-    editorUrl = STAGING_PLATFORM_API_URL;
-    privateCdnUrl = 'https://prv.curvenote.dev';
-    tempCdnUrl = 'https://tmp.curvenote.dev';
-    publicCdnUrl = 'https://cdn.curvenote.dev';
-  } else if (
-    audience.startsWith(LOCAL_EDITOR_API_URL) ||
-    audience.startsWith(LOCAL_PLATFORM_API_URL)
-  ) {
-    apiUrl = LOCAL_PLATFORM_API_URL;
-    editorApiUrl = LOCAL_EDITOR_API_URL;
-    editorUrl = LOCAL_EDITOR_URL;
-    privateCdnUrl = 'https://prv.curvenote.dev';
-    tempCdnUrl = 'https://tmp.curvenote.dev';
-    publicCdnUrl = 'https://cdn.curvenote.dev';
-  }
-
-  if (editorApiUrl !== DEFAULT_EDITOR_API_URL) {
-    log.warn(`Connecting to API at: "${editorApiUrl}".`);
-  }
-  if (editorUrl !== DEFAULT_EDITOR_URL) {
-    log.warn(`Connecting to Site at: "${editorUrl}".`);
-  }
-  if (apiUrl !== DEFAULT_PLATFORM_API_URL) {
-    log.warn(`Connecting to Sites API at: "${apiUrl}".`);
-    log.warn(`Using public cdn at: "${publicCdnUrl}".`);
-    log.warn(`Using private cdn at: "${privateCdnUrl}".`);
-  }
-
-  return {
-    apiUrl,
-    editorApiUrl,
-    editorUrl,
-    privateCdnUrl,
-    tempCdnUrl,
-    publicCdnUrl,
-  };
-}
 
 export class Session implements ISession {
   $config?: CLIConfigData;
   $activeTokens: TokenPair = {};
   $logger: Logger;
   API_URL: string;
-  SITE_URL: string;
   configFiles: string[];
 
   store: Store<RootState>;
@@ -230,7 +101,7 @@ export class Session implements ISession {
 
       session.setUserToken({ token, decoded });
       await session.refreshSessionToken();
-      await session.fetchConfig();
+      await session.configure();
     }
 
     return session;
@@ -247,7 +118,6 @@ export class Session implements ISession {
     }
 
     this.API_URL = 'INVALID';
-    this.SITE_URL = 'INVALID';
 
     this.store = createStore(rootReducer);
     // Allow the latest version to be loaded
@@ -342,24 +212,51 @@ export class Session implements ISession {
     return headers;
   }
 
-  async fetchConfig() {
+  async configure() {
     if (!this.$activeTokens.session?.decoded.aud) return;
-    const { aud } = this.$activeTokens.session.decoded;
+    const { aud, cfg } = this.$activeTokens.session.decoded;
     const audience = Array.isArray(aud)
       ? aud[0]
       : (this.$activeTokens.session.decoded.aud as string);
-    this.$config = makeDefaultConfig(audience, this.log);
 
-    this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".`);
+    if (cfg) {
+      this.log.debug(`Configure using 'cfg' claim: "${cfg}".`);
+      try {
+        const headers = await this.getHeaders();
+        this.log.debug(`GET ${cfg}`);
+        const response = await this.fetch(cfg, {
+          method: 'get',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+        });
+        if (response.ok) {
+          this.log.debug(`Response ok.`);
+          this.$config = (await response.json()) as CLIConfigData;
+          this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".`);
 
-    return;
-    // if (!decoded?.cfg) {
-    //   this.log.debug('No cfg claim found in token payload');
-    //   this.$config = makeDefaultConfig();
-    //   return;
-    // }
+          // We are still setting this as some of the myst-cli functions rely on it
+          this.API_URL = this.$config?.editorApiUrl ?? 'INVALID';
 
-    // fetch the config from the API
+          return;
+        }
+        const json = await response.json();
+        this.log.debug(
+          `Response not ok: ${response.status} "${response.statusText}" ${JSON.stringify(json)}.`,
+        );
+      } catch (e) {
+        this.log.debug(`Failed to fetch config from "${cfg}".`);
+        this.log.debug(e);
+      }
+      this.log.debug('Falling back to default configuration via audience.');
+    }
+    this.log.debug(`Configure using audience: "${audience}".`);
+    this.$config = makeDefaultConfig(audience);
+    this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".\n`);
+
+    // We are still setting this as some of the myst-cli functions rely on it
+    this.API_URL = this.$config?.editorApiUrl ?? 'INVALID';
   }
 
   showUpgradeNotice() {
@@ -381,8 +278,6 @@ export class Session implements ISession {
   async clone() {
     const cloneSession = new Session({
       logger: this.log,
-      apiUrl: this.$config?.apiUrl,
-      siteUrl: this.$config?.editorUrl,
       doiLimiter: this.doiLimiter,
     });
     cloneSession.$config = this.$config;
@@ -452,7 +347,7 @@ export class Session implements ISession {
     query?: Record<string, string>,
   ): Response<T> {
     if (!this.$config) throw new Error('Cannot make API requests without an authenticated session');
-    const parsed = new URL(url, this.$config.apiUrl); // allow origins from caller
+    const parsed = ensureBaseUrl(url, this.$config.apiUrl); // allow origins from caller
     const fullUrl = withQuery(parsed.toString(), query);
     const headers = await this.getHeaders();
     this.log.debug(`GET ${url}`);
@@ -483,7 +378,7 @@ export class Session implements ISession {
     method: 'post' | 'patch' = 'post',
   ): Response<T> {
     if (!this.$config) throw new Error('Cannot make API requests without an authenticated session');
-    const parsed = new URL(url, this.$config.apiUrl); // allow origins from caller
+    const parsed = ensureBaseUrl(url, this.$config.apiUrl); // allow origins from caller
     const fullUrl = parsed.toString();
     const headers = await this.getHeaders();
     this.log.debug(`${method.toUpperCase()} ${fullUrl}`);
@@ -501,6 +396,7 @@ export class Session implements ISession {
       this.log.debug(`${method.toUpperCase()} FAILED ${url}: ${response.status}\n\n${dataString}`);
     }
     checkForCurvenoteAPIClientVersionRejection(this.log, response, json);
+    checkForPlatformAPIClientVersionRejection(this.log, response);
     return {
       ok: response.ok,
       status: response.status,

@@ -1,60 +1,11 @@
 import chalk from 'chalk';
 import { selectors, buildSite, clean } from 'myst-cli';
-import { tic } from 'myst-cli-utils';
-import type { DnsRouter } from '@curvenote/blocks';
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
 import { addOxaTransformersToOpts, confirmOrExit } from '../utils/index.js';
-import type { SiteConfig } from 'myst-config';
 import { uploadToCdn } from '../uploads/index.js';
-
-export async function promotePublicContent(session: ISession, cdnKey: string, domains?: string[]) {
-  const siteConfig = selectors.selectCurrentSiteConfig(session.store.getState()) as SiteConfig;
-  if (!siteConfig) throw new Error('🧐 No site config found.');
-  const toc = tic();
-  const errorDomains: string[] = [];
-  const useDomains = domains ?? siteConfig.domains;
-  const sites = useDomains
-    ? (
-        await Promise.all(
-          useDomains.map(async (domain) => {
-            const resp = await session.post<DnsRouter>('/routers', {
-              cdn: cdnKey,
-              domain,
-            });
-            if (resp.ok) return resp.json;
-            errorDomains.push(`https://${domain}`);
-            return null;
-          }),
-        )
-      ).filter((s): s is DnsRouter => !!s)
-    : [];
-
-  if (errorDomains.length === 0)
-    session.log.info(`\n\n${chalk.bold.green('🚀 Website successfully deployed')}`);
-
-  const allSites = sites.map((s) => `https://${s.id}`).join('\n  - ');
-  if (allSites.length > 0) {
-    session.log.info(
-      toc(
-        `🌍 Site promoted to ${sites.length} domain${
-          sites.length > 1 ? 's' : ''
-        } in %s:\n  - ${allSites}`,
-      ),
-    );
-  }
-  session.log.info(
-    '\n⚠️  https://curve.space is in beta. Please ensure you have a copy of your content locally.',
-  );
-  if (errorDomains.length > 0) {
-    session.log.info(`\n\n${chalk.bold.red('⚠️ Could not deploy to some domains!')}`);
-    throw Error(
-      `Error promoting site(s): ${errorDomains.join(
-        ', ',
-      )}. Please ensure you have permission or contact support@curvenote.com`,
-    );
-  }
-}
+import { CDN_KEY_RE, DEV_CDN_KEY } from '../submissions/submit.js';
+import { promotePublicContent } from './promote.js';
 
 export async function deploy(
   session: ISession,
@@ -98,7 +49,17 @@ export async function deploy(
   // Build the files in the content folder and process them
   await buildSite(session, addOxaTransformersToOpts(session, opts));
 
-  const { cdnKey } = await uploadToCdn(session, session.config.publicCdnUrl, opts);
+  let cdnKey: string;
+  if (!process.env.DEV_CDN || process.env.DEV_CDN === 'false') {
+    const result = await uploadToCdn(session, session.config.publicCdnUrl, opts);
+    cdnKey = result.cdnKey;
+  } else if (process.env.DEV_CDN.match(CDN_KEY_RE)) {
+    session.log.info(chalk.bold('Skipping upload, Using DEV_CDN from environment'));
+    cdnKey = process.env.DEV_CDN;
+  } else {
+    session.log.info(chalk.bold('Skipping upload, Using default DEV_CDN_KEY'));
+    cdnKey = DEV_CDN_KEY;
+  }
 
   await promotePublicContent(session, cdnKey, domains);
 }
