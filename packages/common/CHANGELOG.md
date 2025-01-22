@@ -1,5 +1,14 @@
 # @curvenote/common
 
+## 0.2.11
+
+### Patch Changes
+
+- fdb85f8: Added `clientProxyUrl` and `gitPullerTargetUrl` to the theme Jupyter configuration for dedicated hubs.
+  Added `openInServerRoot` to prevent attempts to open files that do not exist.
+  `jupyter` key content is now uniform across the different locations in the theme config.
+- 8ef9ac3: Extended SiteDTO with restricted field
+
 ## 0.2.10
 
 ### Patch Changes

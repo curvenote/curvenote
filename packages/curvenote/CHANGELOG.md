@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.12.0
+
+### Minor Changes
+
+- fc08539: Overhaul of token management and sessions so that `token.aud` is honored for session token creation and `token.cfg` is used for configuration when present.
+
 ## 0.11.2
 
 ### Patch Changes

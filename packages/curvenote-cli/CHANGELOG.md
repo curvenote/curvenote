@@ -1,5 +1,20 @@
 # curvenote
 
+## 0.12.0
+
+### Minor Changes
+
+- fc08539: Overhaul of token management and sessions so that `token.aud` is honored for session token creation and `token.cfg` is used for configuration when present.
+
+### Patch Changes
+
+- 228aff9: UX improvements on CLI for active expired tokens and on failure.
+- 8ef9ac3: Additional debug logging
+- Updated dependencies [fdb85f8]
+- Updated dependencies [8ef9ac3]
+  - @curvenote/common@0.2.11
+  - @curvenote/cli-plugin@0.12.0
+
 ## 0.11.2
 
 ### Patch Changes
