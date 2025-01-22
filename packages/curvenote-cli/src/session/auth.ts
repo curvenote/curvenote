@@ -217,8 +217,10 @@ export async function selectToken(session: Session) {
     },
   ]);
   updateCurrentTokenConfig(log, resp.selected.token);
-  const { note, email, api, username } = resp.selected;
-  log.info(chalk.green(`Token set for ${summarizeAsString({ note, email, username, api })}.`));
+  const { decoded } = decodeTokenAndCheckExpiry(resp.selected.token, log, false);
+  session.setUserToken({ token: resp.selected.token, decoded });
+  await session.configure();
+  await checkUserTokenStatus(session);
 }
 
 /**
@@ -339,15 +341,27 @@ export async function listUserTokens(log: Logger) {
   if (data.current) showCurrentTokenRecord(log, data);
 
   const table = new Table({
-    head: ['User', 'Email', 'API', 'Active', 'Note'],
+    head: ['Active', 'User', 'API', 'Expires', 'Note'],
   });
 
   log.info(`\nAvailable tokens:`);
   for (const t of data.saved ?? []) {
+    const name = t.username ? `${t.username}\n${t.email}` : t.email;
+    const { decoded, expired } = decodeTokenAndCheckExpiry(t.token, log, false);
+    const expiry =
+      decoded.exp && !decoded.ignoreExpiration
+        ? formatDate(new Date(decoded.exp * 1000).toISOString())
+        : 'no expiry';
+    const styledExpiry =
+      expired === 'soon' ? chalk.yellow(expiry) : expired ? chalk.red(expiry) : expiry;
     table.push(
-      [t.username, t.email, t.api, t.token === data.current ? '(active)' : '', t.note].map((i) =>
-        t.token === data.current ? chalk.green(i) : i,
-      ),
+      [
+        t.token === data.current ? '(active)' : '',
+        name,
+        t.api,
+        styledExpiry,
+        t.note ? t.note : '',
+      ].map((i) => (t.token === data.current ? chalk.green(i) : i)),
     );
   }
 

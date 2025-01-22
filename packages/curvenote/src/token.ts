@@ -43,7 +43,6 @@ export function addTokenCLI(program: Command) {
     .action(
       clirun(selectToken, {
         program,
-        anonymous: true,
         skipProjectLoading: true,
       }),
     );
