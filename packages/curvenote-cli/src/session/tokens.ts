@@ -1,18 +1,15 @@
 import jwt from 'jsonwebtoken';
-import { XClientName } from '@curvenote/blocks';
-import CLIENT_VERSION from '../version.js';
-import type { ISession, Tokens } from './types.js';
-import chalk from 'chalk';
+import type { ISession, Token, TokenPayload } from './types.js';
 
-function decodeAndValidateToken(
-  session: ISession,
+export function decodeTokenAndCheckExpiry(
   token: string,
+  log: ISession['log'],
   throwErrors = true,
-): { decoded: jwt.JwtPayload; expired: boolean | 'soon' } {
-  const decoded = jwt.decode(token);
-  if (!decoded || typeof decoded === 'string') {
+): { decoded: TokenPayload; expired: boolean | 'soon' } {
+  const rawDecoded = jwt.decode(token);
+  if (!rawDecoded || typeof rawDecoded === 'string')
     throw new Error('Could not decode session token. Please ensure that the API token is valid.');
-  }
+  const decoded = rawDecoded as TokenPayload;
   const timeLeft = (decoded.exp as number) * 1000 - Date.now();
   if (!decoded.ignoreExpiration && timeLeft < 0) {
     if (throwErrors) {
@@ -22,79 +19,100 @@ function decodeAndValidateToken(
     }
     return { decoded, expired: true };
   }
-  if (!decoded.ignoreExpiration && timeLeft < 5 * 60 * 1000) {
-    if (throwErrors) session.log.warn('The token has less than five minutes remaining');
+  if (!decoded.ignoreExpiration && timeLeft < 30 * 1000) {
+    if (throwErrors) log.warn('The token has less than 30 seconds remaining');
     return { decoded, expired: 'soon' };
   }
   return { decoded, expired: false };
 }
 
-export function setSessionOrUserToken(
-  session: ISession,
-  token?: string,
-): { tokens: Tokens; url?: string } {
-  if (!token) return { tokens: {} };
-  const { decoded } = decodeAndValidateToken(session, token);
-  const { aud } = decoded;
+export function validateSessionToken(token: string, log: ISession['log']): Token {
+  const { decoded } = decodeTokenAndCheckExpiry(token, log);
+  const { aud, cfg, iss } = decoded;
   if (typeof aud !== 'string') throw new Error('Expected an audience on the token (string).');
-  if (aud.endsWith('/login')) {
-    return { tokens: { user: token }, url: aud.slice(0, -6) };
-  }
-  return { tokens: { session: token }, url: aud };
+  if (!iss?.endsWith('tokens/session')) throw new Error('Expected a session token.');
+  if (typeof cfg === 'string')
+    log.debug(`SessionToken contains a "cfg" claim, reading configuration from api at ${cfg}.`);
+  return { token, decoded };
 }
 
-export async function getSessionToken(
-  session: ISession,
-  tokens: Tokens,
-): Promise<string | undefined> {
-  if (!tokens.user) {
-    if (!tokens.session) return undefined;
-    decodeAndValidateToken(session, tokens.session, false);
-    return tokens.session;
-  }
-  // There is a user token.
-  if (tokens.session) {
-    const { expired } = decodeAndValidateToken(session, tokens.session, false);
-    if (!expired) return tokens.session;
-  }
-  // The session token hasn't been created, has expired or will 'soon'.
-  session.log.debug('SessionToken: Generating a fresh session token.');
-  const { decoded } = decodeAndValidateToken(session, tokens.user);
-  const response = await session.fetch(decoded.aud as string, {
-    method: 'post',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${tokens.user}`,
-    },
-  });
-  if (!response.ok) {
-    console.error(
-      chalk.bold(
-        '⛔️ There was a problem with your API token. If the error persists try generating a new token or contact support@curvenote.com.',
-      ),
-    );
-    throw new Error('SessionToken: The user token is not valid.');
-  }
-  const json = (await response.json()) as any;
-  if (!json.session)
-    throw new Error(
-      "SessionToken: There was an error in the response, expected a 'session' in the JSON object.",
-    );
-  return json.session;
-}
+// // TODO session.refreshSessionToken
+// export async function getOrFetchSessionToken(
+//   session: ISession,
+//   tokens: Tokens,
+// ): Promise<Token | undefined> {
+//   if (!tokens.user) {
+//     if (!tokens.session) return undefined;
+//     decodeTokenAndCheckExpiry(tokens.session.token, session.log);
+//     return tokens.session;
+//   }
 
-export async function getHeaders(
-  session: ISession,
-  tokens: Tokens,
-): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    'X-Client-Name': XClientName.javascript,
-    'X-Client-Version': CLIENT_VERSION,
-  };
-  const sessionToken = await getSessionToken(session, tokens);
-  if (sessionToken) {
-    tokens.session = sessionToken;
-    headers.Authorization = `Bearer ${sessionToken}`;
-  }
-  return headers;
-}
+//   // There is a user token, meaning refresh is possible
+//   if (tokens.session) {
+//     // check current session token
+//     const { expired } = decodeTokenAndCheckExpiry(
+//       tokens.session.token,
+//       session.log,
+//       false, // don't throw if expired
+//     );
+//     if (!expired) return tokens.session;
+//     if (expired === 'soon') {
+//       session.log.debug('SessionToken: The session token will expire soon.');
+//     } else {
+//       session.log.debug('SessionToken: The session token has expired.');
+//     }
+//   }
+
+//   // TODO session.refreshSessionToken
+//   // The session token hasn't been created, has expired or will 'soon'.
+//   session.log.debug('SessionToken: Generating a fresh session token.');
+//   const {
+//     decoded: { aud },
+//   } = decodeTokenAndCheckExpiry(tokens.user.token, session.log);
+//   const response = await session.fetch(aud as string, {
+//     method: 'post',
+//     headers: {
+//       'Content-Type': 'application/json',
+//       Authorization: `Bearer ${tokens.user}`,
+//     },
+//   });
+//   if (!response.ok) {
+//     console.error(
+//       chalk.bold(
+//         '⛔️ There was a problem with your API token. If the error persists try generating a new token or contact support@curvenote.com.',
+//       ),
+//     );
+//     throw new Error('SessionToken: The user token is not valid.');
+//   }
+//   const json = (await response.json()) as { session?: string };
+//   if (!json.session)
+//     throw new Error(
+//       "SessionToken: There was an error in the response, expected a 'session' in the JSON object.",
+//     );
+//   const decoded = jwt.decode(json.session) as Token['decoded'];
+//   return { token: json.session, decoded };
+// }
+
+// /**
+//  * SIDE EFFECTS - sets the session token in the tokens argument
+//  * TODO: session.getHeaders
+//  *
+//  * @param session
+//  * @param tokens
+//  * @returns
+//  */
+// export async function getHeadersWithSideEffects(
+//   session: ISession,
+//   tokens: Tokens,
+// ): Promise<Record<string, string>> {
+//   const headers: Record<string, string> = {
+//     'X-Client-Name': XClientName.javascript,
+//     'X-Client-Version': CLIENT_VERSION,
+//   };
+//   const sessionToken = await getOrFetchSessionToken(session, tokens);
+//   if (sessionToken) {
+//     tokens.session = sessionToken;
+//     headers.Authorization = `Bearer ${sessionToken}`;
+//   }
+//   return headers;
+// }

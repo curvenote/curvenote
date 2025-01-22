@@ -217,7 +217,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       ...job.results,
     });
 
-    const cdn = opts?.draft ? session.TEMP_CDN : session.PRIVATE_CDN;
+    const cdn = opts?.draft ? session.config.tempCdnUrl : session.config.privateCdnUrl;
     let cdnKey: string;
     if (!process.env.DEV_CDN || process.env.DEV_CDN === 'false') {
       const uploadResult = await uploads.uploadToCdn(session, cdn, opts);
@@ -239,7 +239,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       },
     );
 
-    const buildUrl = `${session.JOURNALS_URL.replace('v1/', '')}build/${job.id}`;
+    const buildUrl = `${session.config.apiUrl.replace('v1/', '')}build/${job.id}`;
     session.log.info(`🤖 created a job to track this build: ${buildUrl}`);
 
     //

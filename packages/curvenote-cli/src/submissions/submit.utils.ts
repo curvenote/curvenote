@@ -748,7 +748,7 @@ export async function updateExistingSubmission(
       session,
       workResp.links.versions,
       cdnKey,
-      session.PRIVATE_CDN,
+      session.config.privateCdnUrl,
     );
     if (!work.version_id) {
       throw new Error('Failed to create a work version');

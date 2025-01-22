@@ -2,6 +2,37 @@ import { LogLevel, chalkLogger } from 'myst-cli-utils';
 import type { ISession, SessionOpts } from './types.js';
 import { Session } from './session.js';
 import { getTokens } from './auth.js';
+import boxen from 'boxen';
+import chalk from 'chalk';
+
+export function logUpdateRequired({
+  current,
+  minimum,
+  upgradeCommand,
+  twitter,
+}: {
+  current: string;
+  minimum: string;
+  upgradeCommand: string;
+  twitter: string;
+}) {
+  return boxen(
+    `Upgrade Required! ${chalk.dim(`v${current}`)} ≫ ${chalk.green.bold(
+      `v${minimum} (minimum)`,
+    )}\n\nRun \`${chalk.cyanBright.bold(
+      upgradeCommand,
+    )}\` to update.\n\nFollow ${chalk.yellowBright(
+      `@${twitter}`,
+    )} for updates!\nhttps://twitter.com/${twitter}`,
+    {
+      padding: 1,
+      margin: 1,
+      borderColor: 'red',
+      borderStyle: 'round',
+      textAlignment: 'center',
+    },
+  );
+}
 
 /**
  * Duplicated from myst-cli-utils, where function is not exported
@@ -12,13 +43,15 @@ function getLogLevel(level: LogLevel | boolean | string = LogLevel.info): LogLev
   return useLevel;
 }
 
-export function anonSession(opts?: SessionOpts): ISession {
+export async function anonSession(opts?: SessionOpts): Promise<ISession> {
   const logger = chalkLogger(getLogLevel(opts?.debug), process.cwd());
-  const session = new Session(undefined, { logger });
+  const session = await Session.create(undefined, { logger });
   return session;
 }
 
-export function getSession(opts?: SessionOpts & { hideNoTokenWarning?: boolean }): ISession {
+export async function getSession(
+  opts?: SessionOpts & { hideNoTokenWarning?: boolean },
+): Promise<ISession> {
   const logger = chalkLogger(getLogLevel(opts?.debug), process.cwd());
   const data = getTokens(logger);
   if (!data.current && !opts?.hideNoTokenWarning) {
@@ -30,7 +63,7 @@ export function getSession(opts?: SessionOpts & { hideNoTokenWarning?: boolean }
   }
   let session;
   try {
-    session = new Session(data.current, { logger });
+    session = await Session.create(data.current, { logger });
   } catch (error) {
     logger.error((error as Error).message);
     process.exit(1);

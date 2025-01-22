@@ -98,7 +98,7 @@ export async function deploy(
   // Build the files in the content folder and process them
   await buildSite(session, addOxaTransformersToOpts(session, opts));
 
-  const { cdnKey } = await uploadToCdn(session, session.PUBLIC_CDN, opts);
+  const { cdnKey } = await uploadToCdn(session, session.config.publicCdnUrl, opts);
 
   await promotePublicContent(session, cdnKey, domains);
 }

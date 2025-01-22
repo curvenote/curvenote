@@ -26,8 +26,8 @@ export function clirun(
   return async (...args: any[]) => {
     const opts = cli.program.opts() as SessionOpts;
     const useSession = cli.anonymous
-      ? anonSession({ ...opts })
-      : getSession({
+      ? await anonSession({ ...opts })
+      : await getSession({
           ...opts,
           hideNoTokenWarning: cli.hideNoTokenWarning,
         });

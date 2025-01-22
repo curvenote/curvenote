@@ -10,6 +10,8 @@ import { addWorksCLI } from './works.js';
 import { addSubmitCLI, addSubmissionCLI } from './submissions.js';
 import version from './version.js';
 
+(process as any).noDeprecation = true;
+
 const program = new Command();
 addSyncCLI(program);
 addWebCLI(program);

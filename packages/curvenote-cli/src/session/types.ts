@@ -9,7 +9,22 @@ export type SessionOpts = {
   config?: string;
 };
 
-export type Tokens = Partial<Record<'user' | 'session', string>>;
+export type TokenPayload = {
+  aud: string;
+  iss: string;
+  sub: string;
+  exp?: number;
+  iat?: number;
+  cfg?: string;
+  ignoreExpiration?: boolean;
+  name?: string;
+  note?: string;
+  [key: string]: any;
+};
+
+export type Token = { token: string; decoded: TokenPayload };
+
+export type Tokens = Partial<Record<'user' | 'session', Token>>;
 
 export type Response<T extends Record<string, any> = any> = Promise<{
   ok: boolean;
@@ -25,26 +40,32 @@ export type ValidatedCurvenotePlugin = Required<
   Pick<CurvenotePlugin, 'directives' | 'roles' | 'transforms' | 'checks'>
 >;
 
+export type CLIConfigData = {
+  apiUrl: string;
+  editorApiUrl: string;
+  editorUrl: string;
+  privateCdnUrl: string;
+  tempCdnUrl: string;
+  publicCdnUrl: string;
+};
+
 export type ISession = IMystSession & {
   API_URL: string;
   SITE_URL: string;
-  JOURNALS_URL: string;
-  PUBLIC_CDN: string;
-  PRIVATE_CDN: string;
-  TEMP_CDN: string;
   store: Store<RootState>;
   isAnon: boolean;
+  config: CLIConfigData;
+  activeTokens: Tokens;
   plugins: ValidatedCurvenotePlugin | undefined;
 
+  refreshSessionToken(): Promise<void>;
+  getHeaders(): Promise<Record<string, string>>;
   get<T extends Record<string, any> = any>(
     url: string,
     query?: Record<string, string>,
   ): Response<T>;
-
   post<T extends Record<string, any> = any>(url: string, data: unknown): Response<T>;
-
   patch<T extends Record<string, any> = any>(url: string, data: unknown): Response<T>;
-
   reload(): Promise<ISession>;
   clone(): Promise<ISession>;
 };

@@ -9,7 +9,6 @@ import type {
   NewCheckJobPayload,
   NewCheckJobResults,
 } from './types.js';
-import { getHeaders } from '../session/tokens.js';
 import { tic } from 'myst-cli-utils';
 import format from 'date-fns/format';
 import type { JsonObject } from '@curvenote/blocks';
@@ -27,7 +26,7 @@ export function formatDate(date: string) {
  */
 export async function getFromUrl(session: ISession, url: string) {
   session.log.debug('Getting from', url);
-  const headers = await getHeaders(session, (session as any).$tokens);
+  const headers = await session.getHeaders();
 
   const response = await session.fetch(url, {
     headers: {
@@ -55,7 +54,7 @@ export async function getFromUrl(session: ISession, url: string) {
  * If request fails, throw an error.
  */
 export async function getFromJournals(session: ISession, pathname: string) {
-  const url = `${session.JOURNALS_URL}${pathname}`;
+  const url = `${session.config.apiUrl}${pathname}`;
   return getFromUrl(session, url);
 }
 
@@ -67,7 +66,7 @@ export async function postToUrl(
 ) {
   session.log.debug(`${opts?.method ?? 'POST'}ing to`, url);
   const method = opts?.method ?? 'POST';
-  const headers = await getHeaders(session, (session as any).$tokens);
+  const headers = await session.getHeaders();
   return session.fetch(url, {
     method,
     body: JSON.stringify(body),
@@ -84,7 +83,7 @@ export async function postToJournals(
   body: JsonObject,
   opts: { method?: 'POST' | 'PATCH' } = {},
 ) {
-  const url = `${session.JOURNALS_URL}${pathname}`;
+  const url = `${session.config?.apiUrl}${pathname}`;
   const resp = await postToUrl(session, url, body, opts);
   return resp;
 }
@@ -98,7 +97,7 @@ export async function postNewWork(
   const toc = tic();
 
   session.log.debug(
-    `POST to ${session.JOURNALS_URL}works with cdnKey: ${cdnKey}, cdn: ${cdn}${key ? `, key: ${key}` : ''}...`,
+    `POST to ${session.config?.apiUrl}works with cdnKey: ${cdnKey}, cdn: ${cdn}${key ? `, key: ${key}` : ''}...`,
   );
   const resp = await postToJournals(session, 'works', { cdn_key: cdnKey, cdn, key });
   session.log.debug(`${resp.status} ${resp.statusText}`);
@@ -152,7 +151,7 @@ export async function postNewCliCheckJob(
     payload,
     results,
   };
-  session.log.debug(`POST to ${session.JOURNALS_URL}jobs...`);
+  session.log.debug(`POST to ${session.config?.apiUrl}jobs...`);
   const resp = await postToJournals(session, `jobs`, body);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
@@ -179,7 +178,7 @@ export async function patchUpdateCliCheckJob(
     message,
     results,
   };
-  session.log.debug(`PATCH to ${session.JOURNALS_URL}jobs...`);
+  session.log.debug(`PATCH to ${session.config?.apiUrl}jobs...`);
   const resp = await postToJournals(session, `jobs/${jobId}`, body, { method: 'PATCH' });
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
@@ -210,7 +209,7 @@ export async function postNewSubmission(
     draft,
     job_id,
   };
-  session.log.debug(`POST to ${session.JOURNALS_URL}sites/${venue}/submissions...`);
+  session.log.debug(`POST to ${session.config?.apiUrl}sites/${venue}/submissions...`);
   const resp = await postToJournals(session, `sites/${venue}/submissions`, submissionRequest);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
