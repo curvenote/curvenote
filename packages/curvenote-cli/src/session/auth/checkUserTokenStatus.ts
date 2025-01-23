@@ -33,11 +33,11 @@ export async function checkUserTokenStatus(session: ISession) {
   session.log.info(
     `Expiry: ${decoded.exp && !decoded.ignoreExpiration ? formatDate(new Date(decoded.exp * 1000).toISOString()) : 'no expiry'}`,
   );
-  let statusMessage = chalk.green('SIGNATURE VERIFIED');
+  let statusMessage = chalk.green('VERIFIED');
   if (revoked) {
     statusMessage = chalk.red('REVOKED');
   } else if (expired === 'soon' && !revoked) {
-    statusMessage = chalk.yellow('EXPIRING SOON');
+    statusMessage = chalk.yellow('VERIFIED BUT EXPIRING SOON');
   } else if (expired) {
     statusMessage = chalk.red('EXPIRED');
   }

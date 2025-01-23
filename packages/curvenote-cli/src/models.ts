@@ -114,7 +114,6 @@ export class MyUser extends BaseTransfer<string, MyUserDTO> {
   $createUrl = () => {
     let audience = this.session.activeTokens.session?.decoded?.aud;
     if (audience && !audience?.endsWith('/')) audience = audience.replace(/\/$/, '');
-    console.log('MyUSer audience', this.session.activeTokens);
     return `${audience}/my/user`;
   };
 
