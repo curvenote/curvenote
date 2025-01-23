@@ -32,8 +32,8 @@ export function workKeyFromConfig(session: ISession) {
  */
 export async function getWorkFromKey(session: ISession, key: string) {
   try {
-    session.log.debug(`GET from journals API my/works?key=${key}`);
-    const resp = await getFromJournals(session, `my/works?key=${key}`);
+    session.log.debug(`GET from journals API /my/works?key=${key}`);
+    const resp = await getFromJournals(session, `/my/works?key=${key}`);
     return resp.items[0];
   } catch {
     return undefined;
