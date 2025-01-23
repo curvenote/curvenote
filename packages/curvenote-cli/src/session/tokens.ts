@@ -112,7 +112,7 @@ export function updateCurrentTokenConfig(log: Logger, token?: string) {
 }
 
 export function summarizeAsString({ note, username, email, api }: Omit<TokenData, 'token'>) {
-  return `"${username}" <${email}> at ${api}${note ? ` (${note})` : ''}`;
+  return `"${username}" <${email}> at ${api}${note ? ` "${note}"` : ''}`;
 }
 
 export function getCurrentTokenRecord(tokens?: ReturnType<typeof getTokens>) {
