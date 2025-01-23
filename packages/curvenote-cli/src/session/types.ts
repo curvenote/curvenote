@@ -70,7 +70,7 @@ export type ISession = IMystSession & {
   activeTokens: TokenPair;
   plugins: ValidatedCurvenotePlugin | undefined;
 
-  refreshSessionToken(): Promise<void>;
+  refreshSessionToken(opts?: { checkStatusOnFailure: boolean }): Promise<void>;
   getHeaders(): Promise<Record<string, string>>;
   get<T extends Record<string, any> = any>(
     url: string,

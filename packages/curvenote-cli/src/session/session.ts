@@ -135,7 +135,9 @@ export class Session implements ISession {
     this.$activeTokens.user = token;
   }
 
-  async refreshSessionToken() {
+  async refreshSessionToken(
+    opts: { checkStatusOnFailure?: boolean } = { checkStatusOnFailure: true },
+  ) {
     if (!this.$activeTokens.user) {
       if (!this.$activeTokens.session) {
         throw new Error('No user or session token to refresh.');
@@ -179,12 +181,12 @@ export class Session implements ISession {
       });
       if (!response.ok) {
         this.log.debug(`Response: ${response.status} ${response.statusText}`);
-        throw new Error(`SessionToken: The user token is not valid.`);
+        throw new Error(`API Response: ${response.status} ${response.statusText}`);
       }
       const json = (await response.json()) as { session?: string };
       if (!json.session)
         throw new Error(
-          "SessionToken: There was an error in the response, expected a 'session' in the JSON object.",
+          "API Response: There was an error in the response, expected a 'session' in the JSON object.",
         );
       const decoded = jwt.decode(json.session) as Token['decoded'];
       this.$activeTokens.session = { token: json.session, decoded };
@@ -192,15 +194,16 @@ export class Session implements ISession {
       this.log.debug('SessionToken payload:');
       this.log.debug(JSON.stringify(decoded, null, 2));
     } catch (error) {
-      this.log.error(
-        `⛔️ There was a problem with your API token or the API at ${aud} is unreachable.`,
-      );
-      this.log.error(
-        'If the error persists try generating a new token or contact support@curvenote.com.',
-      );
-      this.log.debug(chalk.red(error));
-      await checkUserTokenStatus(this);
-      throw new Error('Could not refresh session token');
+      if (opts.checkStatusOnFailure) {
+        this.log.error(
+          `⛔️ There was a problem with your API token or the API at ${aud} is unreachable.`,
+        );
+        this.log.error(
+          'If the error persists try generating a new token or contact support@curvenote.com.',
+        );
+        await checkUserTokenStatus(this);
+      }
+      throw error;
     }
   }
 
@@ -209,7 +212,7 @@ export class Session implements ISession {
       'X-Client-Name': XClientName.javascript,
       'X-Client-Version': CLIENT_VERSION,
     };
-    this.refreshSessionToken();
+    await this.refreshSessionToken();
     if (this.$activeTokens.session) {
       headers.Authorization = `Bearer ${this.$activeTokens.session.token}`;
     }
@@ -329,10 +332,15 @@ export class Session implements ISession {
     setTimeout(() => {
       if (!logData.done) this.log.info(`⏳ Waiting for response from ${url}`);
     }, 5000);
-    const resp = await nodeFetch(url, init);
-    logData.done = true;
-    checkForPlatformAPIClientVersionRejection(this.log, resp);
-    return resp;
+    try {
+      const resp = await nodeFetch(url, init);
+      logData.done = true;
+      checkForPlatformAPIClientVersionRejection(this.log, resp);
+      return resp;
+    } catch (e) {
+      console.log('session fetch error', e);
+      throw e;
+    }
   }
 
   _pluginPromise: Promise<ValidatedCurvenotePlugin> | undefined;
