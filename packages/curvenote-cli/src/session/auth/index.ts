@@ -6,13 +6,15 @@ import type { TokenData } from '../types.js';
 import Table from 'cli-table3';
 import {
   decodeTokenAndCheckExpiry,
+  getCurrentTokenRecord,
   getTokens,
   summarizeAsString,
   updateCurrentTokenConfig,
   writeConfigFile,
 } from '../tokens.js';
 import { formatDate } from '../../submissions/utils.js';
-import { showCurrentTokenRecord } from './showCurrentTokenRecord.js';
+import { showActiveTokenRecord } from './showCurrentTokenRecord.js';
+import { get } from 'http';
 
 export * from './checkUserTokenStatus.js';
 export * from './setUserToken.js';
@@ -157,7 +159,11 @@ export async function listUserTokens(log: Logger) {
     return;
   }
 
-  if (data.current) showCurrentTokenRecord(log, data);
+  const active = getCurrentTokenRecord(data);
+  if (active) {
+    const { expired } = decodeTokenAndCheckExpiry(active.token, log, false, 'user');
+    showActiveTokenRecord(log, active, expired);
+  }
 
   const table = new Table({
     head: ['Active', 'User', 'API', 'Expires', 'Note'],
