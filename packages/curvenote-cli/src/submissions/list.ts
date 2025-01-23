@@ -77,7 +77,7 @@ export async function list(session: ISession, opts: { venue?: string }) {
 
   const submissions = (await getFromJournals(
     session,
-    `my/submissions/`,
+    `/my/submissions/`,
   )) as MySubmissionsListingDTO;
   if (!submissions.items.length) {
     session.log.info(`🫙 You have no submissions.`);
