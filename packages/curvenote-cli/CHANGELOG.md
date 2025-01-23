@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.2
+
+### Patch Changes
+
+- 69c8fdf: Add missing slash to /my/ url
+  - @curvenote/cli-plugin@0.12.2
+
 ## 0.12.1
 
 ### Patch Changes
