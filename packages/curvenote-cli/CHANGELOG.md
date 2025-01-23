@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.1
+
+### Patch Changes
+
+- b007033: Improve output from `cn token check` to reflect status based on local verification and API response. Now reports on expired tokens nicely.
+  - @curvenote/cli-plugin@0.12.1
+
 ## 0.12.0
 
 ### Minor Changes
