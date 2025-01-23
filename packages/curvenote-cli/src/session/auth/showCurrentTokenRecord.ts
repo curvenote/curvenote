@@ -1,21 +1,26 @@
 import chalk from 'chalk';
 import type { Logger } from 'myst-cli-utils';
-import type { getTokens } from '../tokens.js';
-import { decodeTokenAndCheckExpiry, getCurrentTokenRecord, summarizeAsString } from '../tokens.js';
+import { summarizeAsString } from '../tokens.js';
+import type { TokenData } from '../types.js';
 
-export function showCurrentTokenRecord(log: Logger, tokens?: ReturnType<typeof getTokens>) {
-  const active = getCurrentTokenRecord(tokens);
-  if (active) {
-    const { expired } = decodeTokenAndCheckExpiry(active?.token, log, false, 'user');
-    let message = `\nActive token:\n${summarizeAsString(active)}`;
-    if (expired === 'soon') {
-      message = chalk.yellow(message);
-    } else if (expired) {
-      message = chalk.red(message);
-    } else {
-      message = chalk.green(message);
-    }
-    log.info(chalk.bold(message));
+export function applyExpiryChalk(message: string, expired: boolean | 'soon', revoked?: boolean) {
+  if (expired === 'soon' && !revoked) {
+    message = chalk.yellow(message);
+  } else if (expired || revoked) {
+    message = chalk.red(message);
+  } else {
+    message = chalk.green(message);
   }
-  return active;
+  return message;
+}
+
+export function showActiveTokenRecord(
+  log: Logger,
+  active: TokenData,
+  expired: boolean | 'soon',
+  revoked?: boolean,
+) {
+  let message = `\nActive token:\n${summarizeAsString(active)}`;
+  message = applyExpiryChalk(message, expired, revoked);
+  log.info(chalk.bold(message));
 }

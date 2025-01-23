@@ -91,8 +91,10 @@ class BaseTransfer<
     const { ok, json } = await this.session.get(url, query);
     if (!ok) {
       if ('message' in json) {
+        console.log('mode.get throw 1');
         throw new Error(`${this.modelKind}: (${url}) ${json.message}`);
       }
+      console.log('mode.get throw 2');
       throw new Error(`${this.modelKind}: Not found (${url}) or you do not have access.`);
     }
     this.data = json as any;
@@ -112,7 +114,7 @@ export class MyUser extends BaseTransfer<string, MyUserDTO> {
   $createUrl = () => {
     let audience = this.session.activeTokens.session?.decoded?.aud;
     if (audience && !audience?.endsWith('/')) audience = audience.replace(/\/$/, '');
-    return `${audience ?? this.session.config.editorApiUrl}/my/user`;
+    return `${audience}/my/user`;
   };
 
   $receive = users.actions.receive;
