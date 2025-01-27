@@ -1,14 +1,7 @@
-import {
-  buildSite,
-  clean,
-  collectAllBuildExportOptions,
-  localArticleExport,
-  selectors,
-} from 'myst-cli';
-import path from 'node:path';
+import { selectors } from 'myst-cli';
 import { v4 as uuid } from 'uuid';
 import type { ISession } from '../session/types.js';
-import { addOxaTransformersToOpts, confirmOrExit } from '../utils/utils.js';
+import { confirmOrExit } from '../utils/utils.js';
 import chalk from 'chalk';
 import { format } from 'date-fns';
 import {
@@ -409,8 +402,10 @@ export async function checkVenueSubmitAccess(session: ISession, venue: string) {
     if (submit) return true;
     session.log.debug('You do not have permission to submit to this venue.');
     throw new Error('You do not have permission to submit to this venue.');
-  } catch (err) {
+  } catch (err: any) {
     session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
+    session.log.info(`${chalk.gray(`🤖 API Response: ${err.message}`)}`);
+    session.log.debug(JSON.stringify(err, null, 2));
     process.exit(1);
   }
 }
@@ -454,7 +449,7 @@ export async function getVenueCollections(
   const openCollections = collections.items.filter((c) => c.open);
 
   if (openCollections.length === 0) {
-    session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
+    session.log.info(`${chalk.red(`🚦 venue "${venue}" has no open collections.`)}`);
     if (requireOpenCollections) process.exit(1);
   } else if (openCollections.length > 1) {
     session.log.info(

@@ -514,6 +514,10 @@ export async function getSession(
   let session;
   try {
     session = await Session.create(data.current, { logger });
+    if (data.environment) {
+      logger.warn('Checking user token...');
+      await checkUserTokenStatus(session);
+    }
   } catch (error) {
     logger.error((error as Error).message);
     process.exit(1);
