@@ -118,5 +118,15 @@ export function summarizeAsString({ note, username, email, api }: Omit<TokenData
 export function getCurrentTokenRecord(tokens?: ReturnType<typeof getTokens>) {
   const data = tokens ?? getTokens();
   if (!data.current) return;
+  if (data.environment) {
+    const { decoded } = decodeTokenAndCheckExpiry(data.current, chalkLogger(LogLevel.info));
+    return {
+      token: data.current,
+      api: decoded.aud,
+      email: decoded.email,
+      username: decoded.name ?? decoded.user_id,
+      note: 'From environment variable',
+    };
+  }
   return data.saved?.find(({ token }) => token === data.current);
 }

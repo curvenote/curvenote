@@ -15,9 +15,9 @@ export async function checkUserTokenStatus(session: ISession) {
     session.log.error('No active token found');
     return;
   }
-  session.log.debug(`Token issued by ${active?.api}`); // active api == audience
 
   const { decoded, expired } = decodeTokenAndCheckExpiry(active?.token, session.log, false, 'user');
+  session.log.debug(`Token issued by ${active?.api}`); // active api == audience
 
   let revoked = false;
   if (expired !== true) {
@@ -50,4 +50,6 @@ export async function checkUserTokenStatus(session: ISession) {
     const loginVerifiedMessage = `Login as ${name} <${me.data.email}> verified by ${model.$createUrl()}`;
     session.log.info(loginVerifiedMessage);
   }
+
+  return true;
 }
