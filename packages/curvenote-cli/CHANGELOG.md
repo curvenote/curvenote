@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.4
+
+### Patch Changes
+
+- 196a006: Improved cli message when submission fails and added additional initial check on token validity when configured via the environment.
+  - @curvenote/cli-plugin@0.12.4
+
 ## 0.12.3
 
 ### Patch Changes
