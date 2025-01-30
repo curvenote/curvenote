@@ -135,6 +135,7 @@ export type WorkVersion = {
  */
 export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind'> &
   Work & {
+    submission_version_id: string;
     links: {
       self: string;
       config: string;
