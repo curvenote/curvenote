@@ -120,7 +120,7 @@ export class Session implements ISession {
       this.proxyAgent = new HttpsProxyAgent(proxyUrl);
     }
 
-    this.API_URL = 'INVALID';
+    this.API_URL = 'NOTSET';
 
     this.store = createStore(rootReducer);
     // Allow the latest version to be loaded
@@ -283,11 +283,11 @@ export class Session implements ISession {
   _clones: ISession[] = [];
 
   async clone() {
-    const cloneSession = new Session({
-      logger: this.log,
+    const cloneSession = await Session.create(this.$activeTokens.user?.token, {
+      logger: this.$logger,
       doiLimiter: this.doiLimiter,
     });
-    cloneSession.$config = this.$config;
+
     await cloneSession.reload();
     // TODO: clean this up through better state handling
     cloneSession._jupyterSessionManagerPromise = this._jupyterSessionManagerPromise;
