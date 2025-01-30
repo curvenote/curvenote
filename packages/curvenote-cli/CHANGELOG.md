@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.5
+
+### Patch Changes
+
+- 76b23b1: Fixes invalid URL when fetching templates for pdf builds
+  - @curvenote/cli-plugin@0.12.5
+
 ## 0.12.4
 
 ### Patch Changes
