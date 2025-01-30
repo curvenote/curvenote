@@ -1,5 +1,11 @@
 # @curvenote/common
 
+## 0.2.12
+
+### Patch Changes
+
+- 942427f: Extending `SiteWorkDTO` with Submission Version Id.
+
 ## 0.2.11
 
 ### Patch Changes
