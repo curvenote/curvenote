@@ -1,5 +1,11 @@
 # @curvenote/common
 
+## 0.2.13
+
+### Patch Changes
+
+- d289e1c: Add date_published to submssion types
+
 ## 0.2.12
 
 ### Patch Changes
