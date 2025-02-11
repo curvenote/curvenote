@@ -2,15 +2,14 @@ import fetch from 'node-fetch';
 import { doi } from 'doi-utils';
 import type { SiteManifest } from 'myst-config';
 import {
-  type PageLoader,
   getFooterLinks,
   getProject,
   updatePageStaticLinksInplace,
   updateSiteManifestStaticLinksInplace,
-} from '@myst-theme/common';
+} from './utils.js';
 import type { Host, SiteDTO, WorkDTO, HostSpec, SiteWorkListingDTO } from '@curvenote/common';
 import { responseError, responseNoArticle, responseNoSite } from './errors.server.js';
-import type { Cache } from './types.js';
+import type { Cache, PageLoader } from './types.js';
 
 interface CdnRouter {
   cdn?: string; // this is the cdn key
