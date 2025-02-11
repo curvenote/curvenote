@@ -27,6 +27,7 @@ export type Heading = {
   short_title?: string;
   level: number | 'index';
   group?: string;
+  enumerator?: string;
 };
 
 export type SiteLoader = {

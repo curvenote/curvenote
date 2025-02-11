@@ -1,4 +1,4 @@
-import { ErrorStatus } from '@myst-theme/common';
+import { ErrorStatus } from './types.js';
 import type { Response as NodeFetchResponse } from 'node-fetch';
 
 export function responseNoSite(): Response {
