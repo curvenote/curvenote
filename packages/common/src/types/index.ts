@@ -133,8 +133,10 @@ export type WorkVersion = {
  * A "SiteWork" is a representation of a version of a work that is associated with a specific site and submission
  * It blends the information from the work and the work version, adding in the site and submission specific fields
  */
-export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind'> &
-  Work & {
+export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind' | 'date_published'> &
+  Omit<Work, 'date'> & {
+    /** @deprecated - date_published is favored over date */
+    date?: string;
     submission_version_id: string;
     links: {
       self: string;
@@ -214,6 +216,7 @@ export type SubmissionActivityDTO = {
     date_created: string;
   };
   kind?: string;
+  date_published?: string;
   links: {
     self: string;
     submission: string;
@@ -223,6 +226,7 @@ export type SubmissionActivityDTO = {
 export type SubmissionVersionDTO = {
   id: string;
   date_created: string;
+  date_published?: string;
   status: string;
   submission_id: string;
   kind: SubmissionKindSummaryDTO; // string is deprecated
@@ -270,6 +274,7 @@ export type SubmissionLinksDTO = {
 export type SubmissionDTO = {
   id: string;
   date_created: string;
+  date_published?: string;
   kind: SubmissionKindSummaryDTO; // string is deprecated
   submitted_by: {
     id: string;
@@ -301,6 +306,7 @@ export type SubmissionVersionSummaryDTO = {
 export type SubmissionsListItemDTO = {
   id: string;
   date_created: string;
+  date_published?: string;
   kind: SubmissionKindSummaryDTO; // deprecated
   collection: Pick<CollectionDTO, 'id' | 'name' | 'slug' | 'content' | 'open' | 'workflow'>;
   slug: string;
