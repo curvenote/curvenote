@@ -134,7 +134,7 @@ export type WorkVersion = {
  * It blends the information from the work and the work version, adding in the site and submission specific fields
  */
 export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind' | 'date_published'> &
-  Exclude<Work, 'date'> & {
+  Omit<Work, 'date'> & {
     /** @deprecated - date_published is favored over date */
     date?: string;
     submission_version_id: string;
