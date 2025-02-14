@@ -252,6 +252,7 @@ export async function patchUpdateSubmissionStatus(
   venue: string,
   submissionUrl: string,
   action: STATUS_ACTIONS,
+  date?: string,
 ) {
   const toc = tic();
   session.log.debug(`GET to ${submissionUrl}...`);
@@ -261,12 +262,7 @@ export async function patchUpdateSubmissionStatus(
     throw new Error(`Action "${action}" not available for submission`);
   }
   session.log.debug(`PUT to ${updateUrl}...`);
-  const resp = await postToUrl(
-    session,
-    updateUrl,
-    {}, // Currently takes no body
-    { method: 'PUT' },
-  );
+  const resp = await postToUrl(session, updateUrl, { date }, { method: 'PUT' });
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as SubmissionDTO;

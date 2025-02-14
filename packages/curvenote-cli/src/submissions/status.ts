@@ -12,6 +12,7 @@ import { keyFromTransferFile } from './utils.transfer.js';
 
 type StatusOptions = {
   force?: boolean;
+  date?: boolean | string;
 };
 
 async function updateStatus(
@@ -48,9 +49,12 @@ async function updateStatus(
     process.exit(1);
   }
   session.log.debug(`Found existing submission with key/id: ${key}/${existing.id}`);
-
+  let date: string | undefined;
+  if (action === 'publish' && opts.date) {
+    date = opts.date === true ? existing.date : opts.date;
+  }
   try {
-    await patchUpdateSubmissionStatus(session, venue, existing.links.self, action);
+    await patchUpdateSubmissionStatus(session, venue, existing.links.self, action, date);
   } catch (e: any) {
     if (!opts.force) throw e;
     session.log.warn(`⚠️  ${e.message}`);
