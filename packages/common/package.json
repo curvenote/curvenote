@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/common",
   "description": "Common types for curvenote journals",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",

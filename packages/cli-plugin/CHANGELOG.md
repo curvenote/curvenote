@@ -1,5 +1,11 @@
 # @curvenote/cli-plugin
 
+## 0.12.6
+
+### Patch Changes
+
+- ef0537a: Added `any:bundle` a first AnyWidget conformant directive for loading externally hosted widget modules. (should be considered Alpha)
+
 ## 0.12.5
 
 ## 0.12.4
