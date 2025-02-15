@@ -25,11 +25,11 @@
   "dependencies": {
     "@curvenote/common": "^0.2.13",
     "cache-manager": "^5.2.3",
-    "doi-utils": "^2.0.2",
-    "myst-common": "^1.7.4",
-    "myst-config": "^1.7.4",
-    "myst-frontmatter": "^1.7.4",
-    "myst-spec-ext": "^1.7.4",
+    "doi-utils": "^2.0.4",
+    "myst-common": "^1.7.8",
+    "myst-config": "^1.7.8",
+    "myst-frontmatter": "^1.7.8",
+    "myst-spec-ext": "^1.7.8",
     "nbtx": "^0.2.3",
     "node-cache": "^5.1.2",
     "node-fetch": "^2.7.0"
