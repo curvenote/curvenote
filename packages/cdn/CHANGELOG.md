@@ -1,5 +1,12 @@
 # @curvenote/cdn
 
+## 0.2.14
+
+### Patch Changes
+
+- 75bfb2a: Update CDN functions from myst-theme and depend on these
+  - @curvenote/common@0.2.14
+
 ## 0.2.13
 
 ### Patch Changes
