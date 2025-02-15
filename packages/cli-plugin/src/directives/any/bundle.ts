@@ -11,6 +11,11 @@ export const anyBundle: DirectiveSpec = {
     doc: 'A URL to the AnyWidget component bundle',
   },
   options: {
+    class: {
+      type: String,
+      required: false,
+      doc: 'Tailwind classes to apply to the container element',
+    },
     styles: {
       type: String,
       required: false,
@@ -25,6 +30,7 @@ export const anyBundle: DirectiveSpec = {
   validate(data, vfile) {
     // TODO: validate the URL for the esm
     validateStringOptions(vfile, 'arg', data.arg);
+    validateStringOptions(vfile, 'class', data.options?.class);
     validateStringOptions(vfile, 'styles', data.options?.styles);
     validateStringOptions(vfile, 'body', data.body);
     return data;
@@ -38,6 +44,7 @@ export const anyBundle: DirectiveSpec = {
         kind: 'any:bundle',
         data: {
           import: data.arg,
+          class: data.options?.class ?? '',
           styles: data.options?.styles ?? '',
           json: JSON.parse(body),
         },
