@@ -6,14 +6,13 @@ export function validateStringOptions(
   vfile: VFile,
   fieldName: string,
   field: unknown,
-  validValues: string[],
+  validValues?: string[],
 ) {
-  if (
-    field &&
-    (typeof field !== 'string' || (typeof field === 'string' && !validValues.includes(field)))
-  ) {
+  const notString = typeof field !== 'string';
+  const invalidValues = validValues && typeof field === 'string' && !validValues.includes(field);
+  if (notString) vfile.message(`Invalid ${fieldName} supplied.`);
+  if (invalidValues)
     vfile.message(`Invalid ${fieldName} supplied must be one of (${validValues.join(' | ')}).`);
-  }
 }
 
 export function makePlaceholder(data: DirectiveData, description: string) {
