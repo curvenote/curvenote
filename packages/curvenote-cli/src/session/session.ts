@@ -49,7 +49,6 @@ import {
 import jwt from 'jsonwebtoken';
 import { getLogLevel } from './utils/getLogLevel.js';
 import { checkUserTokenStatus } from './auth/checkUserTokenStatus.js';
-import e from 'cors';
 
 const LOCALHOSTS = ['localhost', '127.0.0.1', '::1'];
 
