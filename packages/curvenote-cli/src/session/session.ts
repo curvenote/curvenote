@@ -47,7 +47,6 @@ import {
   checkForCurvenoteAPIClientVersionRejection,
 } from './utils/index.js';
 import jwt from 'jsonwebtoken';
-import chalk from 'chalk';
 import { getLogLevel } from './utils/getLogLevel.js';
 import { checkUserTokenStatus } from './auth/checkUserTokenStatus.js';
 
@@ -99,11 +98,18 @@ export class Session implements ISession {
 
     if (token) {
       const { decoded } = decodeTokenAndCheckExpiry(token, session.$logger, false);
-      session.log.debug('Creating session with token (decoded):');
-      session.log.debug(JSON.stringify(decoded, null, 2));
+      session.log.debug('Decoded token', JSON.stringify(decoded, null, 2));
 
-      session.setUserToken({ token, decoded });
-      await session.refreshSessionToken();
+      if (decoded.iss.endsWith('/session')) {
+        session.log.debug('Creating session with token (session):');
+        session.$activeTokens.session = { token, decoded };
+      } else {
+        session.log.debug('Creating session with token (decoded):');
+        session.log.debug(JSON.stringify(decoded, null, 2));
+        session.setUserToken({ token, decoded });
+        await session.refreshSessionToken();
+      }
+
       await session.configure();
     }
 
