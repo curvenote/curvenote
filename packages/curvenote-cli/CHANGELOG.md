@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.8
+
+### Patch Changes
+
+- 8f6dc56: Modifying session creation flow to allow valid session tokens to be used, not just user tokens.
+  - @curvenote/cli-plugin@0.12.8
+
 ## 0.12.7
 
 ### Patch Changes
