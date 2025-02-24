@@ -1,5 +1,11 @@
 # @curvenote/cli-plugin
 
+## 0.12.7
+
+### Patch Changes
+
+- 2524232: Adding a zarr directive for simplied access to mulitple zarr viewers
+
 ## 0.12.6
 
 ### Patch Changes
