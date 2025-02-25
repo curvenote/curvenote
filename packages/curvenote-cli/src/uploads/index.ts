@@ -9,7 +9,7 @@ export * from './types.js';
 export * from './utils.js';
 
 export async function uploadToTmpCdn(session: ISession, opts?: { resume?: boolean }) {
-  return uploadToCdn(session, 'https://tmp.curvenote.dev/', opts);
+  return uploadToCdn(session, session.config.tempCdnUrl, opts);
 }
 
 export async function uploadToCdn(session: ISession, cdn: string, opts?: { resume?: boolean }) {
