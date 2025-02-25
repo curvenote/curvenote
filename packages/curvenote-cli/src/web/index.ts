@@ -12,4 +12,3 @@ export const curvenoteStart = async (session: ISession, opts: BuildOpts) => {
 };
 
 export * from './deploy.js';
-export * from './utils.js';
