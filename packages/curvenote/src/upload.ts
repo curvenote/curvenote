@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { upload, web } from '@curvenote/cli';
+import { upload } from '@curvenote/cli';
 import { clirun } from './clirun.js';
 import { makeResumeOption } from './options.js';
 
@@ -10,10 +10,6 @@ export function addTestUploadCLI(program: Command) {
       program,
     }),
   );
-  command.command('old', { hidden: true }).addOption(makeResumeOption()).action(
-    clirun(web.uploadContent, {
-      program,
-    }),
-  );
+
   program.addCommand(command, { hidden: true });
 }
