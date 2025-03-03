@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.12.9
+
+### Patch Changes
+
+- 173f815: Upgrade to MyST 1.3.24
+
 ## 0.12.8
 
 ## 0.12.7
