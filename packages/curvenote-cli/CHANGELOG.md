@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.9
+
+### Patch Changes
+
+- c81351a: Remove hard coded tmp-cdn url and unused (deprecated) upload functions
+  - @curvenote/cli-plugin@0.12.9
+
 ## 0.12.8
 
 ### Patch Changes
