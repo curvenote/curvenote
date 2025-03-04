@@ -15,6 +15,13 @@ type StatusOptions = {
   date?: boolean | string;
 };
 
+export function hyphenatedFromDate(date: Date) {
+  const year = date.getFullYear().toString();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 async function updateStatus(
   action: STATUS_ACTIONS,
   session: ISession,
@@ -51,7 +58,13 @@ async function updateStatus(
   session.log.debug(`Found existing submission with key/id: ${key}/${existing.id}`);
   let date: string | undefined;
   if (action === 'publish' && opts.date) {
-    date = opts.date === true ? existing.date : opts.date;
+    if (typeof opts.date === 'string') {
+      date = opts.date;
+    } else if (existing.date) {
+      date = hyphenatedFromDate(new Date(existing.date));
+    } else {
+      session.log.warn('No alternative publish date provided; using today');
+    }
   }
   try {
     await patchUpdateSubmissionStatus(session, venue, existing.links.self, action, date);
