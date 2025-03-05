@@ -25,7 +25,7 @@
   "dependencies": {
     "@curvenote/common": "^0.2.14",
     "cache-manager": "^5.2.3",
-    "doi-utils": "^2.0.4",
+    "doi-utils": "^2.0.5",
     "myst-common": "^1.7.8",
     "myst-config": "^1.7.8",
     "myst-frontmatter": "^1.7.8",
