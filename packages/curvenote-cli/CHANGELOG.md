@@ -1,5 +1,13 @@
 # curvenote
 
+## 0.12.9
+
+### Patch Changes
+
+- e811146: Update to mystmd 1.3.25
+- c81351a: Remove hard coded tmp-cdn url and unused (deprecated) upload functions
+  - @curvenote/cli-plugin@0.12.9
+
 ## 0.12.8
 
 ### Patch Changes
