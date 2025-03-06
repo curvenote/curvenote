@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.9
+
+### Patch Changes
+
+- e811146: Update to mystmd 1.3.25
+- 173f815: Upgrade to MyST 1.3.24
+
 ## 0.12.8
 
 ## 0.12.7
