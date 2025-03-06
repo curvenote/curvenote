@@ -355,7 +355,7 @@ export type MySubmissionsListingDTO = {
 
 export type MyUserDTO = {
   id: string;
-  email: string;
+  email?: string;
   display_name: string;
   system_role: string;
   site_roles: {
