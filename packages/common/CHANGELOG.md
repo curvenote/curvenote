@@ -1,5 +1,11 @@
 # @curvenote/common
 
+## 0.2.15
+
+### Patch Changes
+
+- 0b44678: `email` field on `MyUserDTO` is now optional
+
 ## 0.2.14
 
 ## 0.2.13
