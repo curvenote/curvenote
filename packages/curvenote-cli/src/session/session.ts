@@ -231,6 +231,7 @@ export class Session implements ISession {
     const audience = Array.isArray(aud)
       ? aud[0]
       : (this.$activeTokens.session.decoded.aud as string);
+    const defaultConfig = makeDefaultConfig(audience);
 
     if (cfg) {
       this.log.debug(`Configure using 'cfg' claim: "${cfg}".`);
@@ -246,7 +247,11 @@ export class Session implements ISession {
         });
         if (response.ok) {
           this.log.debug(`Response ok.`);
-          this.$config = (await response.json()) as CLIConfigData;
+          const configFromApi = (await response.json()) as CLIConfigData;
+          this.$config = {
+            ...defaultConfig, // ensure the deploymentCdnUrl is set
+            ...configFromApi,
+          };
           this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".`);
 
           // We are still setting this as some of the myst-cli functions rely on it
@@ -265,7 +270,7 @@ export class Session implements ISession {
       this.log.debug('Falling back to default configuration via audience.');
     }
     this.log.debug(`Configure using audience: "${audience}".`);
-    this.$config = makeDefaultConfig(audience);
+    this.$config = defaultConfig;
     this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".\n`);
 
     // We are still setting this as some of the myst-cli functions rely on it

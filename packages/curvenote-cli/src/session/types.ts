@@ -61,6 +61,7 @@ export type CLIConfigData = {
   privateCdnUrl: string;
   tempCdnUrl: string;
   publicCdnUrl: string;
+  deploymentCdnUrl: string;
 };
 
 export type ISession = IMystSession & {
