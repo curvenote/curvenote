@@ -1,5 +1,16 @@
 # curvenote
 
+## 0.12.9
+
+### Patch Changes
+
+- e811146: Update to mystmd 1.3.25
+- 1fe36ce: Extended the default configuration to include a `deploymentCdnUrl`, distinct from `publicCdnUrl`, where the former is used to `deploy` rather than `submit`.
+- c81351a: Remove hard coded tmp-cdn url and unused (deprecated) upload functions
+- Updated dependencies [0b44678]
+  - @curvenote/common@0.2.15
+  - @curvenote/cli-plugin@0.12.9
+
 ## 0.12.8
 
 ### Patch Changes
