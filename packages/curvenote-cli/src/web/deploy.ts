@@ -51,7 +51,7 @@ export async function deploy(
 
   let cdnKey: string;
   if (!process.env.DEV_CDN || process.env.DEV_CDN === 'false') {
-    const result = await uploadToCdn(session, session.config.publicCdnUrl, opts);
+    const result = await uploadToCdn(session, session.config.deploymentCdnUrl, opts);
     cdnKey = result.cdnKey;
   } else if (process.env.DEV_CDN.match(CDN_KEY_RE)) {
     session.log.info(chalk.bold('Skipping upload, Using DEV_CDN from environment'));

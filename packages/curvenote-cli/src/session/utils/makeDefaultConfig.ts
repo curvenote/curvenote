@@ -31,6 +31,7 @@ export function makeDefaultConfig(audience: string): CLIConfigData {
   let privateCdnUrl = 'https://prv.curvenote.com';
   let tempCdnUrl = 'https://tmp.curvenote.com';
   let publicCdnUrl = 'https://cdn.curvenote.com';
+  let deploymentCdnUrl = 'https://cdn.curvenote.com';
 
   if (
     audience.startsWith(STAGING_EDITOR_API_URL) ||
@@ -43,6 +44,7 @@ export function makeDefaultConfig(audience: string): CLIConfigData {
     privateCdnUrl = 'https://prv.curvenote.dev';
     tempCdnUrl = 'https://tmp.curvenote.dev';
     publicCdnUrl = 'https://cdn.curvenote.dev';
+    deploymentCdnUrl = 'https://cdn.curvenote.dev';
   } else if (
     audience.startsWith(LOCAL_EDITOR_API_URL) ||
     audience.startsWith(LOCAL_PLATFORM_API_URL)
@@ -54,6 +56,7 @@ export function makeDefaultConfig(audience: string): CLIConfigData {
     privateCdnUrl = 'https://prv.curvenote.dev';
     tempCdnUrl = 'https://tmp.curvenote.dev';
     publicCdnUrl = 'https://cdn.curvenote.dev';
+    deploymentCdnUrl = 'https://cdn.curvenote.dev';
   }
 
   return {
@@ -64,5 +67,6 @@ export function makeDefaultConfig(audience: string): CLIConfigData {
     privateCdnUrl,
     tempCdnUrl,
     publicCdnUrl,
+    deploymentCdnUrl,
   };
 }

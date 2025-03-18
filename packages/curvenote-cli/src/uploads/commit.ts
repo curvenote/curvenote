@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import type { ISession } from '../session/types.js';
 import { postToJournals } from '../submissions/utils.js';
 
@@ -11,7 +12,7 @@ export async function commitUploads(
   if (resp.ok) {
     const { message } = (await resp.json()) as { message: string };
     session.log.info(`🚚 Transfer complete`);
-    session.log.debug(`${message}`);
+    session.log.debug(chalk.bold(chalk.green(`\n${message}\n`)));
     return;
   }
 
