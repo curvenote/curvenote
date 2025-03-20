@@ -102,7 +102,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       const exists = await checkForSubmissionKeyInUse(session, venue, key);
       if (exists) {
         session.log.warn(
-          `⛔️ This work has already been submitted to "${venue}", but you don't have permission to access that submission.`,
+          `⛔️ This work has already been submitted to a Curvenote site, but you don't have permission to access that submission.`,
         );
         session.log.info(
           'If you still want to make a new submission, you may explicitly add flag "--new"',
