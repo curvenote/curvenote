@@ -54,6 +54,12 @@ function makeSubmissionPublishCLI(program: Command) {
         'If the publish action is not available, do not throw an error',
       ).default(false),
     )
+    .addOption(
+      new Option(
+        '--date [value]',
+        'Set different publish date than today. If no argument is provided for this option, frontmatter date will be used.',
+      ),
+    )
     .action(clirun(submissions.publish, { program, requireSiteConfig: true }));
   return command;
 }
