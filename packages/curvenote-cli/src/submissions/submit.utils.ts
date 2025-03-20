@@ -37,10 +37,10 @@ export function kindQuestions(
 }
 
 export function collectionMoniker(collection: CollectionDTO) {
-  if (collection.name === collection.content.title) {
+  if (collection.name === collection.content.title || !collection.content.title) {
     return collection.name;
   }
-  return `${collection.content.title} (${collection.name})` ?? collection.name;
+  return `${collection.content.title} (${collection.name})`;
 }
 
 export function collectionQuestions(
@@ -510,14 +510,31 @@ export async function getAllSubmissionsUsingKey(
   key: string,
 ): Promise<SubmissionsListItemDTO[] | undefined> {
   session.log.debug(`checking for existing submission using key "${key}"`);
-  let submissions: SubmissionsListingDTO;
+  const submissions: SubmissionsListItemDTO[] = [];
   try {
-    submissions = await getFromJournals(session, `/sites/${venue}/submissions?key=${key}`);
+    const siteSubmissions: SubmissionsListingDTO = await getFromJournals(
+      session,
+      `/sites/${venue}/submissions?key=${key}`,
+    );
+    submissions.push(...siteSubmissions.items);
   } catch (err) {
     session.log.debug(err);
-    return;
   }
-  return submissions.items;
+  try {
+    const mySubmissions: SubmissionsListingDTO = await getFromJournals(
+      session,
+      `/my/submissions?key=${key}`,
+    );
+    submissions.push(
+      ...mySubmissions.items.filter((submission) => {
+        const correctVenue = submission.site_name === venue;
+        return correctVenue && !submissions.map(({ id }) => id).includes(submission.id);
+      }),
+    );
+  } catch (err) {
+    session.log.debug(err);
+  }
+  return submissions;
 }
 
 export async function getSubmissionToUpdate(
