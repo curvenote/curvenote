@@ -525,10 +525,21 @@ export async function getAllSubmissionsUsingKey(
       session,
       `/my/submissions?key=${key}`,
     );
+    // These extra fetches are required for the old version of the API where
+    // the 'key' query parameter is not respected on /my/submissions.
+    // This may be removed (along with the 'correctKey' check below) once
+    // the API is updated.
+    const works = await Promise.all(
+      mySubmissions.items.map((sub) => {
+        return getFromUrl(session, sub.links.work);
+      }),
+    );
     submissions.push(
-      ...mySubmissions.items.filter((submission) => {
+      ...mySubmissions.items.filter((submission, ind) => {
         const correctVenue = submission.site_name === venue;
-        return correctVenue && !submissions.map(({ id }) => id).includes(submission.id);
+        const correctKey = works[ind].key === key;
+        const submissionIsDuplicate = submissions.map(({ id }) => id).includes(submission.id);
+        return correctVenue && correctKey && !submissionIsDuplicate;
       }),
     );
   } catch (err) {
