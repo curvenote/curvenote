@@ -1,5 +1,13 @@
 # curvenote
 
+## 0.12.10
+
+### Patch Changes
+
+- 48f5440: Allow date to be set on publish
+- 48f5440: Look at site and my APIs for my submissions
+  - @curvenote/cli-plugin@0.12.10
+
 ## 0.12.9
 
 ### Patch Changes
