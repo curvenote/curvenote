@@ -1,5 +1,11 @@
 # @curvenote/common
 
+## 0.2.16
+
+### Patch Changes
+
+- fa469b2: Changes to DTO types
+
 ## 0.2.15
 
 ### Patch Changes

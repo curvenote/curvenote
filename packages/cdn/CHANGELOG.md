@@ -1,5 +1,12 @@
 # @curvenote/cdn
 
+## 0.2.16
+
+### Patch Changes
+
+- Updated dependencies [fa469b2]
+  - @curvenote/common@0.2.16
+
 ## 0.2.15
 
 ### Patch Changes
