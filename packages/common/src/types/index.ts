@@ -41,12 +41,13 @@ export type FooterLink = {
 export type Site = SiteConfig; // TODO deprecate
 export type SiteConfig = {
   name: string;
+  external: boolean;
+  private: boolean;
+  restricted: boolean;
   default_workflow: string;
   title: string;
   description: string;
   content: Host;
-  private: boolean;
-  restricted: boolean;
   favicon?: string;
   tagline?: string;
   logo: string;
@@ -68,10 +69,10 @@ export type SiteListingDTO = {
 
 export type SiteDTO = SiteConfig & {
   id: string;
-  url: string;
+  url?: string;
   links: {
     self: string;
-    html: string;
+    html?: string;
     collections: string;
     works: string;
   };
@@ -117,8 +118,8 @@ export type Work = {
 export type WorkVersion = {
   id: string;
   date_created: string;
-  cdn: string;
-  cdn_key: string;
+  cdn?: string;
+  cdn_key?: string;
   cdn_query?: string;
   title: string;
   authors: Author[];
@@ -140,11 +141,11 @@ export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind' | 'date_published'
     submission_version_id: string;
     links: {
       self: string;
-      config: string;
       site: string;
       work: string;
-      thumbnail: string;
-      social: string;
+      config?: string;
+      thumbnail?: string;
+      social?: string;
       doi?: string;
     };
   };
@@ -264,7 +265,7 @@ export type SubmissionLinksDTO = {
   self: string;
   site: string;
   versions: string;
-  thumbnail: string;
+  thumbnail?: string;
   build?: string;
   work: string;
   publish?: string;
