@@ -1,5 +1,12 @@
 # @curvenote/cdn
 
+## 0.2.17
+
+### Patch Changes
+
+- f0811e1: Support `cdn` urls with or without trailing slashes.
+  - @curvenote/common@0.2.17
+
 ## 0.2.16
 
 ### Patch Changes
