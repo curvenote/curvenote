@@ -69,7 +69,7 @@ export async function getCdnLocation(host: Host): Promise<HostSpec> {
  */
 export async function getCdnBaseUrl(host: Host): Promise<string> {
   const { cdn, key } = await getCdnLocation(host);
-  return `${cdn}${key.replace(/\./g, '/')}/`;
+  return `${ensureTrailingSlash(cdn)}${key.replace(/\./g, '/')}/`;
 }
 
 /**
@@ -177,7 +177,7 @@ export async function getWorkByDOI(
 
 export async function getWorks(
   siteName: string,
-  opts?: { apiUrl?: string; headers?: Record<string, string> },
+  opts?: { apiUrl?: string; headers?: Record<string, string>; page?: number; limit?: number },
 ): Promise<SiteWorkListingDTO> {
   const API_URL = opts?.apiUrl ?? JOURNALS_API;
   const resp = await fetch(`${API_URL}sites/${siteName}/works`, { headers: opts?.headers });
