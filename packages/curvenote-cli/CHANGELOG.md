@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.11
+
+### Patch Changes
+
+- 8872bee: Bumping to latest (bleeding edge) mystmd to fix fatal error in checkLinkTransform when processing card nodes with no url.
+  - @curvenote/cli-plugin@0.12.11
+
 ## 0.12.10
 
 ### Patch Changes
