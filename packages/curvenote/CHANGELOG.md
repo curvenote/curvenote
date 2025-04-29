@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.12.12
+
+### Patch Changes
+
+- 9a02f82: Update to myst 1.3.26
+
 ## 0.12.11
 
 ## 0.12.10
