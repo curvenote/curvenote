@@ -62,6 +62,7 @@ export type CLIConfigData = {
   tempCdnUrl: string;
   publicCdnUrl: string;
   deploymentCdnUrl: string;
+  anonymous?: boolean;
 };
 
 export type ISession = IMystSession & {
