@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { loadProjectFromDisk, selectFile } from 'myst-cli';
+import { loadProjectFromDisk, resolveFrontmatterParts, selectFile } from 'myst-cli';
 import { copyNode, extractPart, toText } from 'myst-common';
 import { count } from '@wordpress/wordcount';
 import { error, fail, pass } from '../utils.js';
@@ -10,9 +10,11 @@ export const abstractExists: CheckInterface = {
   ...getCheckDefinition('abstract-exists'),
   validate: async (session) => {
     const { file } = await loadProjectFromDisk(session);
-    const { mdast } = selectFile(session, path.resolve(file)) ?? {};
+    const { mdast, frontmatter } = selectFile(session, path.resolve(file)) ?? {};
     if (!mdast) return error('Error loading content', { file });
-    const abstract = extractPart(copyNode(mdast), 'abstract');
+    const abstract = extractPart(copyNode(mdast), 'abstract', {
+      frontmatterParts: resolveFrontmatterParts(session, frontmatter),
+    });
     if (!abstract) {
       return fail(`No abstract found`, { file, help: 'Add an abstract' });
     }
@@ -28,10 +30,12 @@ export const abstractLength: CheckInterface = {
   ...getCheckDefinition('abstract-length'),
   validate: async (session, options) => {
     const { file } = await loadProjectFromDisk(session);
-    const { mdast } = selectFile(session, path.resolve(file)) ?? {};
+    const { mdast, frontmatter } = selectFile(session, path.resolve(file)) ?? {};
     const help = `Abstract should be less than ${options.max} words`;
     if (!mdast) return error(`Error loading content`, { file, cause: abstractExists.id, help });
-    const abstract = extractPart(copyNode(mdast), 'abstract');
+    const abstract = extractPart(copyNode(mdast), 'abstract', {
+      frontmatterParts: resolveFrontmatterParts(session, frontmatter),
+    });
     if (!abstract) {
       return error(`No abstract found`, {
         file,
