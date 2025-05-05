@@ -109,9 +109,8 @@ export class Session implements ISession {
         session.setUserToken({ token, decoded });
         await session.refreshSessionToken();
       }
-
-      await session.configure();
     }
+    await session.configure();
 
     return session;
   }
@@ -218,7 +217,11 @@ export class Session implements ISession {
       'X-Client-Name': XClientName.javascript,
       'X-Client-Version': CLIENT_VERSION,
     };
-    await this.refreshSessionToken();
+    try {
+      await this.refreshSessionToken();
+    } catch (error) {
+      this.log.debug((error as Error).message);
+    }
     if (this.$activeTokens.session) {
       headers.Authorization = `Bearer ${this.$activeTokens.session.token}`;
     }
@@ -226,7 +229,13 @@ export class Session implements ISession {
   }
 
   async configure() {
-    if (!this.$activeTokens.session?.decoded.aud) return;
+    if (!this.$activeTokens.session?.decoded.aud) {
+      this.log.debug(`Configured for anonymous session.`);
+      this.$config = makeDefaultConfig();
+      this.$config.anonymous = true;
+      this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".\n`);
+      return;
+    }
     const { aud, cfg } = this.$activeTokens.session.decoded;
     const audience = Array.isArray(aud)
       ? aud[0]
@@ -369,7 +378,7 @@ export class Session implements ISession {
     url: string,
     query?: Record<string, string>,
   ): Response<T> {
-    if (!this.$config) throw new Error('Cannot make API requests without an authenticated session');
+    if (!this.$config) throw new Error('Cannot make API requests without an configured session');
     const parsed = ensureBaseUrl(url, this.$config.apiUrl); // allow origins from caller
     const fullUrl = withQuery(parsed.toString(), query);
     const headers = await this.getHeaders();
@@ -400,7 +409,8 @@ export class Session implements ISession {
     data: Record<string, any>,
     method: 'post' | 'patch' = 'post',
   ): Response<T> {
-    if (!this.$config) throw new Error('Cannot make API requests without an authenticated session');
+    if (!this.$config || this.$config.anonymous)
+      throw new Error('Cannot make API requests without an authenticated session');
     const parsed = ensureBaseUrl(url, this.$config.apiUrl); // allow origins from caller
     const fullUrl = parsed.toString();
     const headers = await this.getHeaders();

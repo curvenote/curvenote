@@ -23,7 +23,7 @@ const LOCAL_EDITOR_URL = 'http://localhost:3000';
  * @param opts
  * @returns
  */
-export function makeDefaultConfig(audience: string): CLIConfigData {
+export function makeDefaultConfig(audience?: string): CLIConfigData {
   let apiUrl = DEFAULT_PLATFORM_API_URL;
   let adminUrl = DEFAULT_PLATFORM_APP_URL;
   let editorApiUrl = DEFAULT_EDITOR_API_URL;
@@ -34,8 +34,8 @@ export function makeDefaultConfig(audience: string): CLIConfigData {
   let deploymentCdnUrl = 'https://cdn.curvenote.com';
 
   if (
-    audience.startsWith(STAGING_EDITOR_API_URL) ||
-    audience.startsWith(STAGING_PLATFORM_API_URL)
+    audience?.startsWith(STAGING_EDITOR_API_URL) ||
+    audience?.startsWith(STAGING_PLATFORM_API_URL)
   ) {
     apiUrl = STAGING_PLATFORM_API_URL;
     adminUrl = STAGING_PLATFORM_APP_URL;
@@ -46,8 +46,8 @@ export function makeDefaultConfig(audience: string): CLIConfigData {
     publicCdnUrl = 'https://cdn.curvenote.dev';
     deploymentCdnUrl = 'https://cdn.curvenote.dev';
   } else if (
-    audience.startsWith(LOCAL_EDITOR_API_URL) ||
-    audience.startsWith(LOCAL_PLATFORM_API_URL)
+    audience?.startsWith(LOCAL_EDITOR_API_URL) ||
+    audience?.startsWith(LOCAL_PLATFORM_API_URL)
   ) {
     apiUrl = LOCAL_PLATFORM_API_URL;
     adminUrl = LOCAL_PLATFORM_APP_URL;
