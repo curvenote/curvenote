@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { loadProjectFromDisk, selectFile } from 'myst-cli';
+import { loadProjectFromDisk, resolveFrontmatterParts, selectFile } from 'myst-cli';
 import type { GenericNode } from 'myst-common';
 import { copyNode, extractPart } from 'myst-common';
 import { getCheckDefinition } from '@curvenote/check-definitions';
@@ -62,12 +62,14 @@ export const wordCount: CheckInterface = {
   validate: async (session, opts) => {
     const { part, figures, footnotes, min, max } = opts;
     const { file } = await loadProjectFromDisk(session);
-    const { mdast } = selectFile(session, path.resolve(file)) ?? {};
+    const { mdast, frontmatter } = selectFile(session, path.resolve(file)) ?? {};
     if (!mdast) return error('Error loading content', { file });
     let content = copyNode(mdast);
     if (part) {
       // Only count part
-      const partContent = extractPart(content, part);
+      const partContent = extractPart(content, part, {
+        frontmatterParts: resolveFrontmatterParts(session, frontmatter),
+      });
       if (!partContent) {
         return error(`No ${part} found`, { file });
       }
@@ -75,7 +77,9 @@ export const wordCount: CheckInterface = {
     } else {
       // Do not count known parts; remove them from content
       PAGE_KNOWN_PARTS.forEach((knownPart) => {
-        extractPart(content, knownPart);
+        extractPart(content, knownPart, {
+          frontmatterParts: resolveFrontmatterParts(session, frontmatter),
+        });
       });
     }
     const length = count(toWordCountText(content, { figures, footnotes }), 'words', {});
