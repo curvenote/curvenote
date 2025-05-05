@@ -1,5 +1,15 @@
 # curvenote
 
+## 0.12.13
+
+### Patch Changes
+
+- e546d88: Enable anonymous api get requests
+- Updated dependencies [0c62f02]
+  - @curvenote/check-implementations@0.0.27
+  - @curvenote/cli-plugin@0.12.13
+  - @curvenote/check-definitions@0.0.27
+
 ## 0.12.12
 
 ### Patch Changes

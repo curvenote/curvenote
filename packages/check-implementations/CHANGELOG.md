@@ -1,5 +1,12 @@
 # @curvenote/check-implementations
 
+## 0.0.27
+
+### Patch Changes
+
+- 0c62f02: Update parts logic in check immplementations
+  - @curvenote/check-definitions@0.0.27
+
 ## 0.0.26
 
 ### Patch Changes
