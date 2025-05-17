@@ -1,5 +1,11 @@
 # @curvenote/common
 
+## 0.2.18
+
+### Patch Changes
+
+- b0f9eaf: Bump myst package versions
+
 ## 0.2.17
 
 ## 0.2.16

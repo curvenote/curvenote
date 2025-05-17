@@ -1,5 +1,13 @@
 # @curvenote/cdn
 
+## 0.2.18
+
+### Patch Changes
+
+- b0f9eaf: Bump myst package versions
+- Updated dependencies [b0f9eaf]
+  - @curvenote/common@0.2.18
+
 ## 0.2.17
 
 ### Patch Changes
