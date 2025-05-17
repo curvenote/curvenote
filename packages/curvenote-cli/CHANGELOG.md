@@ -1,5 +1,16 @@
 # curvenote
 
+## 0.12.14
+
+### Patch Changes
+
+- b0f9eaf: Bump myst package versions
+- Updated dependencies [b0f9eaf]
+  - @curvenote/check-implementations@0.0.28
+  - @curvenote/check-definitions@0.0.28
+  - @curvenote/cli-plugin@0.12.14
+  - @curvenote/common@0.2.18
+
 ## 0.12.13
 
 ### Patch Changes

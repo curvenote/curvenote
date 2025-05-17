@@ -1,5 +1,11 @@
 # @curvenote/check-definitions
 
+## 0.0.28
+
+### Patch Changes
+
+- b0f9eaf: Bump myst package versions
+
 ## 0.0.27
 
 ## 0.0.26
