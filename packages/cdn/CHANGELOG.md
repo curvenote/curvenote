@@ -1,5 +1,12 @@
 # @curvenote/cdn
 
+## 0.2.19
+
+### Patch Changes
+
+- 2371d0c: Add styles to the list of things that need their URLs updated
+  - @curvenote/common@0.2.19
+
 ## 0.2.18
 
 ### Patch Changes
