@@ -7,7 +7,14 @@ import {
   updatePageStaticLinksInplace,
   updateSiteManifestStaticLinksInplace,
 } from './utils.js';
-import type { Host, SiteDTO, WorkDTO, HostSpec, SiteWorkListingDTO } from '@curvenote/common';
+import type {
+  Host,
+  SiteDTO,
+  WorkDTO,
+  HostSpec,
+  SiteWorkListingDTO,
+  SiteWithContentDTO,
+} from '@curvenote/common';
 import { responseError, responseNoArticle, responseNoSite } from './errors.server.js';
 import type { Cache, PageLoader } from './types.js';
 
@@ -112,18 +119,18 @@ export async function lookupJournal(
   const API_URL = opts?.apiUrl ?? JOURNALS_API;
   const data = await requestJournal(hostname, `${API_URL}sites?hostname=${hostname}`, opts);
   if (data.items.length === 0) throw responseNoSite();
-  opts?.cache?.set<SiteDTO>('journals', hostname, data);
-  return data.items[0] as SiteDTO;
+  opts?.cache?.set<SiteWithContentDTO>('journals', hostname, data);
+  return data.items[0] as SiteWithContentDTO;
 }
 
 export async function getJournal(
   siteName: string,
   opts?: { cache?: Cache; apiUrl?: string; headers?: Record<string, string> },
-): Promise<SiteDTO> {
+): Promise<SiteWithContentDTO> {
   const API_URL = opts?.apiUrl ?? JOURNALS_API;
   const data = await requestJournal(siteName, `${API_URL}sites/${siteName}`, opts);
-  opts?.cache?.set<SiteDTO>('journals', siteName, data);
-  return data as SiteDTO;
+  opts?.cache?.set<SiteWithContentDTO>('journals', siteName, data);
+  return data as SiteWithContentDTO;
 }
 
 async function requestJournal(
@@ -131,7 +138,7 @@ async function requestJournal(
   url: string,
   opts?: { cache?: Cache; apiUrl?: string; headers?: Record<string, string> },
 ): Promise<any> {
-  const cached = opts?.cache?.get<SiteDTO>('journals', key);
+  const cached = opts?.cache?.get<SiteWithContentDTO>('journals', key);
   if (cached) return cached;
   const response = await fetch(url, { headers: opts?.headers });
   if (response.status === 404) throw responseNoSite();
