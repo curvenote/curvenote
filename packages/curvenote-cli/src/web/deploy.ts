@@ -1,11 +1,9 @@
-import chalk from 'chalk';
 import { selectors, buildSite, clean } from 'myst-cli';
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
 import { addOxaTransformersToOpts, confirmOrExit } from '../utils/index.js';
-import { uploadToCdn } from '../uploads/index.js';
-import { CDN_KEY_RE, DEV_CDN_KEY } from '../submissions/submit.js';
 import { promotePublicContent } from './promote.js';
+import { uploadAndGetCdnKey } from '../works/utils.js';
 
 export async function deploy(
   session: ISession,
@@ -49,17 +47,7 @@ export async function deploy(
   // Build the files in the content folder and process them
   await buildSite(session, addOxaTransformersToOpts(session, opts));
 
-  let cdnKey: string;
-  if (!process.env.DEV_CDN || process.env.DEV_CDN === 'false') {
-    const result = await uploadToCdn(session, session.config.deploymentCdnUrl, opts);
-    cdnKey = result.cdnKey;
-  } else if (process.env.DEV_CDN.match(CDN_KEY_RE)) {
-    session.log.info(chalk.bold('Skipping upload, Using DEV_CDN from environment'));
-    cdnKey = process.env.DEV_CDN;
-  } else {
-    session.log.info(chalk.bold('Skipping upload, Using default DEV_CDN_KEY'));
-    cdnKey = DEV_CDN_KEY;
-  }
+  const cdnKey = await uploadAndGetCdnKey(session, session.config.deploymentCdnUrl, opts);
 
   await promotePublicContent(session, cdnKey, domains);
 }
