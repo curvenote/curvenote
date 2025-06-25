@@ -1,5 +1,5 @@
 import type { ISession } from '../session/types.js';
-import { workKeyFromConfig } from '../works/utils.js';
+import { exitOnInvalidKeyOption, workKeyFromConfig } from '../works/utils.js';
 import {
   checkVenueExists,
   ensureVenue,
@@ -7,7 +7,7 @@ import {
   getSubmissionToUpdate,
 } from './submit.utils.js';
 import type { STATUS_ACTIONS } from './types.js';
-import { exitOnInvalidKeyOption, patchUpdateSubmissionStatus } from './utils.js';
+import { patchUpdateSubmissionStatus } from './utils.js';
 import { keyFromTransferFile } from './utils.transfer.js';
 
 type StatusOptions = {
