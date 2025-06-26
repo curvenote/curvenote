@@ -1,16 +1,42 @@
 import { v4 as uuid } from 'uuid';
 import inquirer from 'inquirer';
 import fs from 'fs/promises';
-import { selectors, writeConfigs, createTempFolder } from 'myst-cli';
-import { join } from 'node:path';
+import {
+  selectors,
+  writeConfigs,
+  createTempFolder,
+  buildSite,
+  clean,
+  collectAllBuildExportOptions,
+  localArticleExport,
+} from 'myst-cli';
+import { join, relative } from 'node:path';
+import type { WorkDTO } from '@curvenote/common';
 import * as uploads from '../uploads/index.js';
 import type { ISession } from '../session/types.js';
 import chalk from 'chalk';
 import { getFromJournals } from '../utils/api.js';
+import { addOxaTransformersToOpts } from '../utils/utils.js';
+import type { BaseOpts } from '../logs/types.js';
 
 export const CDN_KEY_RE =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 export const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
+
+export async function performCleanRebuild(session: ISession, opts?: BaseOpts) {
+  session.log.info('\n\n\t✨✨✨  performing a clean re-build of your work  ✨✨✨\n\n');
+  await clean(session, [], { site: true, html: true, temp: true, exports: true, yes: true });
+  const exportOptionsList = await collectAllBuildExportOptions(session, [], { all: true });
+  const exportLogList = exportOptionsList.map((exportOptions) => {
+    return `${relative('.', exportOptions.$file)} -> ${exportOptions.output}`;
+  });
+  session.log.info(`📬 Performing exports:\n   ${exportLogList.join('\n   ')}`);
+  await localArticleExport(session, exportOptionsList, {});
+  session.log.info(`⛴  Exports complete`);
+  // Build the files in the content folder and process them
+  await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
+  session.log.info(`✅ Work rebuild complete`);
+}
 
 export async function uploadAndGetCdnKey(
   session: ISession,
@@ -57,7 +83,7 @@ export function workKeyFromConfig(session: ISession) {
  * Returns undefined if work for the given venue is not defined or
  * if the API request for the work fails.
  */
-export async function getWorkFromKey(session: ISession, key: string) {
+export async function getWorkFromKey(session: ISession, key: string): Promise<WorkDTO | undefined> {
   try {
     session.log.debug(`GET from journals API /my/works?key=${key}`);
     const resp = await getFromJournals(session, `/my/works?key=${key}`);

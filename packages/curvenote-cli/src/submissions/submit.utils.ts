@@ -55,26 +55,6 @@ export function collectionQuestions(
   };
 }
 
-export function venueQuestion(session: ISession, action = 'submit') {
-  return {
-    name: 'venue',
-    type: 'input',
-    message: `Enter the venue name you want to ${action} to?`,
-    filter: (venue: string) => venue.toLowerCase(),
-    validate: async (venue: string) => {
-      if (venue.length < 3) {
-        return 'Venue name must be at least 3 characters';
-      }
-      try {
-        await getFromJournals(session, `/sites/${venue}`);
-      } catch (err) {
-        return `Venue "${venue}" not found.`;
-      }
-      return true;
-    },
-  };
-}
-
 /**
  * Choose and return a collection and kind based on venue
  *
@@ -300,37 +280,6 @@ export function getSiteConfig(session: ISession) {
     throw new Error('🧐 No site config found.');
   }
   return siteConfig;
-}
-
-export async function ensureVenue(
-  session: ISession,
-  venue: string | undefined,
-  opts: { yes?: boolean; action?: string } = { action: 'submit' },
-) {
-  if (venue) return venue;
-  if (opts?.yes) {
-    throw new Error(`⛔️ venue must be specified to continue submission`);
-  }
-  session.log.debug('No venue provided, prompting user...');
-  const answer = await inquirer.prompt([venueQuestion(session, opts.action)]);
-  return answer.venue;
-}
-
-/**
- * Ensure that a `venue` exists by performing a basic request to the venue
- *
- * If venue does not exist, fails with `process.exit(1)`.
- */
-export async function checkVenueExists(session: ISession, venue: string) {
-  try {
-    session.log.debug(`GET from journals API /sites/${venue}`);
-    await getFromJournals(session, `/sites/${venue}`);
-    session.log.debug(`found venue "${venue}"`);
-  } catch (err) {
-    session.log.debug(err);
-    session.log.error(`${chalk.red(`😟 venue "${venue}" not found.`)}`);
-    process.exit(1);
-  }
 }
 
 export async function checkVenueSubmitAccess(session: ISession, venue: string) {

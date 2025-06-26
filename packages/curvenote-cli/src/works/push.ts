@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import {
   exitOnInvalidKeyOption,
   getWorkFromKey,
+  performCleanRebuild,
   promptForNewKey,
   uploadAndGetCdnKey,
   workKeyFromConfig,
@@ -100,6 +101,7 @@ export async function push(session: ISession, opts?: BaseOpts) {
 
   await addSourceToLogs(pushLog);
   try {
+    await performCleanRebuild(session, opts);
     const cdn = session.config.privateCdnUrl;
     const cdnKey = await uploadAndGetCdnKey(session, cdn, opts);
 

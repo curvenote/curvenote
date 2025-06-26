@@ -1,11 +1,9 @@
 import type { ISession } from '../session/types.js';
 import { keyFromTransferFile } from './utils.transfer.js';
-import { confirmOrExit, writeJsonLogs, addOxaTransformersToOpts } from '../utils/utils.js';
+import { confirmOrExit, writeJsonLogs } from '../utils/utils.js';
 import chalk from 'chalk';
 import { postNewCliCheckJob, patchUpdateCliCheckJob } from './utils.js';
 import {
-  ensureVenue,
-  checkVenueExists,
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
   createNewSubmission,
@@ -25,6 +23,7 @@ import fs from 'node:fs';
 import { prepareChecksForSubmission } from './check.js';
 import {
   exitOnInvalidKeyOption,
+  performCleanRebuild,
   promptForNewKey,
   uploadAndGetCdnKey,
   workKeyFromConfig,
@@ -32,23 +31,8 @@ import {
 } from '../works/utils.js';
 import type { CollectionDTO, SubmissionKindDTO, SubmissionsListItemDTO } from '@curvenote/common';
 import type { SubmitLog, SubmitOpts } from './types.js';
-import { buildSite, clean, collectAllBuildExportOptions, localArticleExport } from 'myst-cli';
 import { addSourceToLogs } from '../logs/index.js';
-
-export async function performCleanRebuild(session: ISession, opts?: SubmitOpts) {
-  session.log.info('\n\n\t✨✨✨  performing a clean re-build of your work  ✨✨✨\n\n');
-  await clean(session, [], { site: true, html: true, temp: true, exports: true, yes: true });
-  const exportOptionsList = await collectAllBuildExportOptions(session, [], { all: true });
-  const exportLogList = exportOptionsList.map((exportOptions) => {
-    return `${path.relative('.', exportOptions.$file)} -> ${exportOptions.output}`;
-  });
-  session.log.info(`📬 Performing exports:\n   ${exportLogList.join('\n   ')}`);
-  await localArticleExport(session, exportOptionsList, {});
-  session.log.info(`⛴  Exports complete`);
-  // Build the files in the content folder and process them
-  await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
-  session.log.info(`✅ Work rebuild complete`);
-}
+import { checkVenueExists, ensureVenue } from '../sites/utils.js';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: SubmitLog = {
