@@ -40,7 +40,7 @@
     "@curvenote/blocks": "^1.5.28"
   },
   "devDependencies": {
-    "@curvenote/blocks": "^1.5.28",
+    "@curvenote/blocks": "^1.5.29",
     "@types/uuid": "^8.3.4"
   }
 }
