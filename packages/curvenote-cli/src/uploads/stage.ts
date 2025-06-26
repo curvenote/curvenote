@@ -1,5 +1,5 @@
 import type { ISession } from '../session/types.js';
-import { postToJournals } from '../submissions/utils.js';
+import { postToJournals } from '../utils/api.js';
 import { prepareUploadRequest } from './utils.js';
 import type { UploadStagingDTO } from '@curvenote/common';
 

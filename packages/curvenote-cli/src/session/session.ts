@@ -18,6 +18,7 @@ import {
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger, chalkLogger } from 'myst-cli-utils';
 import type { RuleId } from 'myst-common';
+import type { PluginInfo } from 'myst-config';
 // use the version mystjs brings in!
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { KernelManager, ServerConnection, SessionManager } from '@jupyterlab/services';
@@ -365,11 +366,8 @@ export class Session implements ISession {
 
   _pluginPromise: Promise<ValidatedCurvenotePlugin> | undefined;
 
-  async loadPlugins(): Promise<ValidatedCurvenotePlugin> {
-    // Early return if a promise has already been initiated
-    if (this._pluginPromise) return this._pluginPromise;
-    this._pluginPromise = loadProjectPlugins(this);
-    const loadedPlugins = await this._pluginPromise;
+  async loadPlugins(plugins: PluginInfo[]) {
+    const loadedPlugins = await loadProjectPlugins(this, plugins);
     this.plugins = combinePlugins([getBuiltInPlugins(), loadedPlugins]);
     return this.plugins;
   }

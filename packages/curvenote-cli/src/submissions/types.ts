@@ -1,29 +1,15 @@
 import type { CollectionDTO, SubmissionKindDTO } from '@curvenote/common';
 import type { CompiledCheckResults } from '../check/types.js';
+import type { BaseOpts, GithubSource, IdAndDate } from '../logs/types.js';
+import type { WorkPushLog } from '../works/types.js';
 
 export type STATUS_ACTIONS = 'publish' | 'unpublish';
 
-export type SubmitOpts = {
+export type SubmitOpts = BaseOpts & {
   kind?: string;
   collection?: string;
-  yes?: boolean;
-  info: boolean;
   draft?: boolean;
   new?: boolean;
-  resume?: boolean;
-  maxSizeWebp?: number;
-};
-
-export type GithubSource = {
-  repo?: string;
-  branch?: string;
-  path?: string;
-  commit?: string;
-};
-
-type idAndDate = {
-  id?: string;
-  date_created: string;
 };
 
 export type JobResponse = {
@@ -32,19 +18,15 @@ export type JobResponse = {
   results?: Record<string, any>;
 };
 
-export type SubmitLog = {
+export type SubmitLog = WorkPushLog & {
   input?: {
     venue: string;
     opts?: SubmitOpts;
   };
-  work?: idAndDate;
-  workVersion?: idAndDate;
-  submission?: idAndDate;
-  submissionVersion?: idAndDate;
-  key?: string;
+  submission?: IdAndDate;
+  submissionVersion?: IdAndDate;
   venue?: string;
   kind?: SubmissionKindDTO;
-  source?: GithubSource;
   report?: CompiledCheckResults;
   job?: JobResponse;
   buildUrl?: string;

@@ -7,13 +7,13 @@ import type { ISession } from '../session/types.js';
 import type { SubmissionKindDTO } from '@curvenote/common';
 import type { Check } from '@curvenote/check-definitions';
 import {
-  checkVenueExists,
   determineCollectionAndKind,
   getSubmissionKind,
   getVenueCollections,
   listSubmissionKinds,
 } from './submit.utils.js';
 import { determineKindFromVenue } from './kind.utils.js';
+import { checkVenueExists } from '../sites/utils.js';
 
 /**
  * Return list of checks from `kind` object and print log message

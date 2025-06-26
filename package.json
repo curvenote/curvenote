@@ -30,7 +30,7 @@
     "prettier": "latest",
     "rimraf": "^3.0.2",
     "turbo": "latest",
-    "typescript": "latest",
+    "typescript": "5.6.2",
     "vitest": "^2.1.2"
   },
   "engines": {

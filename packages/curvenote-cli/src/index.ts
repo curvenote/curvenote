@@ -3,6 +3,7 @@ export * from './session/index.js';
 export * from './models.js';
 export * from './utils/index.js';
 export * as check from './check/index.js';
+export * as sites from './sites/index.js';
 export * as submissions from './submissions/index.js';
 export * as sync from './sync/index.js';
 export * as upload from './uploads/index.js';

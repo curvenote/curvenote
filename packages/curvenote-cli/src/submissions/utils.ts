@@ -11,134 +11,11 @@ import type {
 } from './types.js';
 import { tic } from 'myst-cli-utils';
 import format from 'date-fns/format';
-import type { JsonObject } from '@curvenote/blocks';
-import type { SubmissionDTO, SubmissionVersionDTO, WorkDTO } from '@curvenote/common';
+import type { SubmissionDTO, SubmissionVersionDTO } from '@curvenote/common';
+import { getFromUrl, postToJournals, postToUrl } from '../utils/api.js';
 
 export function formatDate(date: string) {
   return format(new Date(date), 'dd MMM, yyyy HH:mm:ss');
-}
-
-/**
- * Perform json GET request to `url`
- *
- * If request is successful, return the response json.
- * If request fails, throw an error.
- */
-export async function getFromUrl(session: ISession, url: string) {
-  session.log.debug('Getting from', url);
-  const headers = await session.getHeaders();
-
-  const response = await session.fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-  });
-
-  if (response.ok) {
-    const json = (await response.json()) as any;
-    return json;
-  } else {
-    session.log.debug('GET FAILED', url, response.status, response.statusText);
-    throw new Error(
-      `GET FAILED ${url}: ${response.status}\n\n${response.statusText}
-      Please contact support@curvenote.com`,
-    );
-  }
-}
-
-/**
- * Perform json GET request to `pathname` on the journals API
- *
- * If request is successful, return the response json.
- * If request fails, throw an error.
- */
-export async function getFromJournals(session: ISession, pathname: string) {
-  // TODO this could/should now just use session.get? and so
-  const url = `${session.config.apiUrl}${pathname}`;
-  return getFromUrl(session, url);
-}
-
-export async function postToUrl(
-  session: ISession,
-  url: string,
-  body: JsonObject,
-  opts: { method?: 'POST' | 'PATCH' | 'PUT' } = {},
-) {
-  session.log.debug(`${opts?.method ?? 'POST'}ing to`, url);
-  const method = opts?.method ?? 'POST';
-  const headers = await session.getHeaders();
-  return session.fetch(url, {
-    method,
-    body: JSON.stringify(body),
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-  });
-}
-
-export async function postToJournals(
-  session: ISession,
-  pathname: string,
-  body: JsonObject,
-  opts: { method?: 'POST' | 'PATCH' } = {},
-) {
-  const url = `${session.config?.apiUrl}${pathname}`;
-  const resp = await postToUrl(session, url, body, opts);
-  return resp;
-}
-
-export async function postNewWork(
-  session: ISession,
-  cdnKey: string,
-  cdn: string,
-  key?: string,
-): Promise<WorkDTO> {
-  const toc = tic();
-
-  session.log.debug(
-    `POST to ${session.config?.apiUrl}/works with cdnKey: ${cdnKey}, cdn: ${cdn}${key ? `, key: ${key}` : ''}...`,
-  );
-  const resp = await postToJournals(session, '/works', { cdn_key: cdnKey, cdn, key });
-  session.log.debug(`${resp.status} ${resp.statusText}`);
-  if (resp.ok) {
-    const json = (await resp.json()) as WorkDTO;
-    const { id, version_id } = json;
-    session.log.info(toc(`🚀 Created a new work in %s.`));
-    session.log.debug(`CDN key: ${cdnKey}`);
-    session.log.debug(`Work Id: ${id}`);
-    session.log.debug(`Work Version Id: ${version_id}`);
-    return json;
-  } else {
-    const message = ((await resp.json()) as { message?: string })?.message;
-    throw new Error(`Posting new work failed${message ? `: ${message}` : ''}`);
-  }
-}
-
-export async function postNewWorkVersion(
-  session: ISession,
-  versionsUrl: string,
-  cdnKey: string,
-  cdn: string,
-): Promise<WorkDTO> {
-  const toc = tic();
-
-  session.log.debug(`POST to ${versionsUrl} with cdnKey: ${cdnKey} and cdn: ${cdn}...`);
-  const resp = await postToUrl(session, `${versionsUrl}`, { cdn_key: cdnKey, cdn });
-  session.log.debug(`${resp.status} ${resp.statusText}`);
-
-  if (resp.ok) {
-    const json = (await resp.json()) as WorkDTO;
-    const { id, version_id } = json;
-    session.log.info(toc(`🚀 Created a new work version in %s.`));
-    session.log.debug(`CDN key: ${cdnKey}`);
-    session.log.debug(`Work Id: ${id}`);
-    session.log.debug(`Work Version Id: ${version_id}`);
-    return json;
-  } else {
-    throw new Error('Posting new version of the work failed');
-  }
 }
 
 export async function postNewCliCheckJob(
@@ -274,13 +151,5 @@ export async function patchUpdateSubmissionStatus(
     session.log.debug(`Submission id: ${json.id}`);
   } else {
     throw new Error(`Submission failed to ${action}`);
-  }
-}
-
-export function exitOnInvalidKeyOption(session: ISession, key: string) {
-  session.log.debug(`Checking for valid key option: ${key}`);
-  if (key.length < 8 || key.length > 128) {
-    session.log.error(`⛔️ The key must be between 8 and 128 characters long.`);
-    process.exit(1);
   }
 }

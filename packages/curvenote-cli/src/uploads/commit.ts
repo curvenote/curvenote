@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import type { ISession } from '../session/types.js';
-import { postToJournals } from '../submissions/utils.js';
+import { postToJournals } from '../utils/api.js';
 
 export async function commitUploads(
   session: ISession,

@@ -51,7 +51,10 @@ export type CurvenotePlugin = MystPlugin & {
 
 export type ValidatedCurvenotePlugin = Required<
   Pick<CurvenotePlugin, 'directives' | 'roles' | 'transforms' | 'checks'>
->;
+> & {
+  paths: string[];
+  checksPaths: string[];
+};
 
 export type CLIConfigData = {
   apiUrl: string;

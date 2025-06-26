@@ -10,6 +10,7 @@ import { addWorksCLI } from './works.js';
 import { addSubmitCLI, addSubmissionCLI } from './submissions.js';
 import version from './version.js';
 import { addDevHelpCLI } from './devhelp.js';
+import { addSiteCLI } from './sites.js';
 
 (process as any).noDeprecation = true;
 
@@ -22,6 +23,7 @@ addCheckCLI(program);
 addWorksCLI(program);
 addSubmitCLI(program);
 addSubmissionCLI(program);
+addSiteCLI(program);
 addDevHelpCLI(program);
 
 program.version(`v${version}`, '-v, --version', 'Print the current version of curvenote');

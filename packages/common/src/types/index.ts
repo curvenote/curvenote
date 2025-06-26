@@ -47,7 +47,6 @@ export type SiteConfig = {
   default_workflow: string;
   title: string;
   description: string;
-  content: Host;
   favicon?: string;
   tagline?: string;
   logo: string;
@@ -76,6 +75,10 @@ export type SiteDTO = SiteConfig & {
     collections: string;
     works: string;
   };
+};
+
+export type SiteWithContentDTO = SiteDTO & {
+  content: Host;
 };
 
 export type CollectionSummaryDTO = {

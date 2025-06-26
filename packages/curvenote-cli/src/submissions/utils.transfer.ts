@@ -1,12 +1,12 @@
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import yaml from 'js-yaml';
-import { selectors, writeConfigs, createTempFolder } from 'myst-cli';
+import { selectors } from 'myst-cli';
 import { join } from 'node:path';
 import chalk from 'chalk';
-import { getFromJournals, postToJournals } from './utils.js';
 import type { ISession } from '../session/types.js';
-import { promptForNewKey } from './submit.utils.js';
+import { getFromJournals, postToJournals } from '../utils/api.js';
+import { promptForNewKey, writeKeyToConfig } from '../works/utils.js';
 
 export type TransferDataItemData = {
   id: string;
@@ -84,27 +84,6 @@ export async function updateKeyForTransferDataWork(
     session.log.debug(`Error patching /works/${workId}`);
   }
   session.log.error(`Cannot update key for work id ${workId}`);
-}
-
-/**
- * Updates project.id in config yaml with key
- *
- * Creates a backup of the original file in the _build/temp folder
- */
-export async function writeKeyToConfig(session: ISession, key: string) {
-  const state = session.store.getState();
-  const path = selectors.selectCurrentProjectPath(state);
-  const file = selectors.selectCurrentProjectFile(state);
-  if (!file || !path) {
-    session.log.error('No project configuration found');
-    process.exit(1);
-  }
-  const projectConfig = selectors.selectLocalProjectConfig(state, path);
-  const tempFolder = createTempFolder(session);
-  session.log.info(`creating backup copy of config file ${file} -> ${tempFolder}`);
-  await fs.copyFile(file, join(tempFolder, 'curvenote.yml'));
-  session.log.info(`writing work key to ${file}`);
-  await writeConfigs(session, path, { projectConfig: { ...projectConfig, id: key } });
 }
 
 export async function keyFromTransferFile(
