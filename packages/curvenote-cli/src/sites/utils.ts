@@ -10,7 +10,7 @@ export async function ensureVenue(
 ) {
   if (venue) return venue;
   if (opts?.yes) {
-    throw new Error(`⛔️ Site must be specified to continue submission`);
+    throw new Error(`⛔️ Site must be specified to continue`);
   }
   session.log.debug('No Site provided, prompting user...');
   const answer = await inquirer.prompt([venueQuestion(session, opts.action)]);
