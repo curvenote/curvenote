@@ -2,6 +2,7 @@ import { v4 as uuid } from 'uuid';
 import inquirer from 'inquirer';
 import fs from 'fs/promises';
 import type { ExportWithOutput } from 'myst-cli';
+import { silentLogger } from 'myst-cli-utils';
 import { ExportFormats } from 'myst-frontmatter';
 import AdmZip from 'adm-zip';
 import {
@@ -31,18 +32,20 @@ export const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
  * Create a zip file containing the source contents from a MECA export
  */
 async function createSourceZip(session: ISession) {
-  session.log.info('📦 Bundling MECA bundle to extract source files...');
+  const activeLogger = (session as any).$logger;
+  (session as any).$logger = silentLogger();
+  activeLogger.info('🎁 Bundling source files...');
 
   try {
     const state = session.store.getState();
     const projectPath = selectors.selectCurrentProjectPath(state);
     if (!projectPath) {
-      session.log.debug('No project path found');
+      activeLogger.debug('No project path found');
       return;
     }
     const projectFile = selectors.selectLocalConfigFile(state, projectPath);
     if (!projectFile) {
-      session.log.debug('No project file found');
+      activeLogger.debug('No project file found');
       return;
     }
     const mecaExport: ExportWithOutput = {
@@ -59,7 +62,7 @@ async function createSourceZip(session: ISession) {
         .then(() => false)
         .catch(() => true)
     ) {
-      session.log.debug('MECA export file not created');
+      activeLogger.debug('MECA export file not created');
       return;
     }
     const zip = new AdmZip(mecaZipPath);
@@ -70,7 +73,7 @@ async function createSourceZip(session: ISession) {
       .filter((entry) => entry.entryName.startsWith('bundle/') && entry.entryName !== 'bundle/');
 
     if (sourceEntries.length === 0) {
-      session.log.debug('No source files found in MECA export');
+      activeLogger.debug('No source files found in MECA export');
       return;
     }
     // Create a new zip with just the source contents
@@ -82,12 +85,14 @@ async function createSourceZip(session: ISession) {
     const sourceZipPath = join(session.sitePath(), 'source.zip');
     await fs.mkdir(dirname(sourceZipPath), { recursive: true });
     sourceZip.writeZip(sourceZipPath);
-    session.log.info(`✅ Source zip created`);
+    activeLogger.info(`🎁 Source zip created`);
+    (session as any).$logger = activeLogger;
 
     // Clean up the temporary MECA zip
     await fs.unlink(mecaZipPath);
   } catch (error) {
-    session.log.debug(`Failed to create source zip: ${error}`);
+    activeLogger.debug(`Failed to create source zip: ${error}`);
+    (session as any).$logger = activeLogger;
   }
 }
 
