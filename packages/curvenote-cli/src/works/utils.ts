@@ -29,9 +29,9 @@ export const CDN_KEY_RE =
 export const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
 
 /**
- * Create a zip file containing the source contents from a MECA export
+ * Extract the source contents from a MECA export into a source/ folder
  */
-async function createSourceZip(session: ISession) {
+async function createSourceFolder(session: ISession) {
   const activeLogger = (session as any).$logger;
   (session as any).$logger = silentLogger();
   activeLogger.info('🎁 Bundling source files...');
@@ -76,22 +76,24 @@ async function createSourceZip(session: ISession) {
       activeLogger.debug('No source files found in MECA export');
       return;
     }
-    // Create a new zip with just the source contents
-    const sourceZip = new AdmZip();
-    sourceEntries.forEach((entry) => {
+    const sourceFolderPath = join(session.sitePath(), 'source');
+    await fs.mkdir(sourceFolderPath, { recursive: true });
+    for (const entry of sourceEntries) {
       const relativePath = entry.entryName.replace(/^bundle\//, '');
-      sourceZip.addFile(relativePath, entry.getData());
-    });
-    const sourceZipPath = join(session.sitePath(), 'source.zip');
-    await fs.mkdir(dirname(sourceZipPath), { recursive: true });
-    sourceZip.writeZip(sourceZipPath);
-    activeLogger.info(`🎁 Source zip created`);
+      const destPath = join(sourceFolderPath, ...relativePath.split('/'));
+      // Ensure parent directory exists
+      await fs.mkdir(dirname(destPath), { recursive: true });
+      if (!entry.isDirectory) {
+        await fs.writeFile(destPath, entry.getData());
+      }
+    }
+    activeLogger.info(`🎁 Source folder created`);
     (session as any).$logger = activeLogger;
 
     // Clean up the temporary MECA zip
     await fs.unlink(mecaZipPath);
   } catch (error) {
-    activeLogger.debug(`Failed to create source zip: ${error}`);
+    activeLogger.debug(`Failed to create source folder: ${error}`);
     (session as any).$logger = activeLogger;
   }
 }
@@ -106,10 +108,11 @@ export async function performCleanRebuild(session: ISession, opts?: BaseOpts) {
   session.log.info(`📬 Performing exports:\n   ${exportLogList.join('\n   ')}`);
   await localArticleExport(session, exportOptionsList, {});
   session.log.info(`⛴  Exports complete`);
+
   // Build the files in the content folder and process them
   await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
-  // Create source zip from MECA export
-  await createSourceZip(session);
+  // Create source folder from MECA export
+  await createSourceFolder(session);
   session.log.info(`✅ Work rebuild complete`);
 }
 
