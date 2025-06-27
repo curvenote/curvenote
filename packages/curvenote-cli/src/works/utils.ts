@@ -1,6 +1,9 @@
 import { v4 as uuid } from 'uuid';
 import inquirer from 'inquirer';
 import fs from 'fs/promises';
+import type { ExportWithOutput } from 'myst-cli';
+import { ExportFormats } from 'myst-frontmatter';
+import AdmZip from 'adm-zip';
 import {
   selectors,
   writeConfigs,
@@ -9,8 +12,9 @@ import {
   clean,
   collectAllBuildExportOptions,
   localArticleExport,
+  runMecaExport,
 } from 'myst-cli';
-import { join, relative } from 'node:path';
+import { join, relative, dirname } from 'node:path';
 import type { WorkDTO } from '@curvenote/common';
 import * as uploads from '../uploads/index.js';
 import type { ISession } from '../session/types.js';
@@ -22,6 +26,70 @@ import type { BaseOpts } from '../logs/types.js';
 export const CDN_KEY_RE =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 export const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
+
+/**
+ * Create a zip file containing the source contents from a MECA export
+ */
+async function createSourceZip(session: ISession) {
+  session.log.info('📦 Bundling MECA bundle to extract source files...');
+
+  try {
+    const state = session.store.getState();
+    const projectPath = selectors.selectCurrentProjectPath(state);
+    if (!projectPath) {
+      session.log.debug('No project path found');
+      return;
+    }
+    const projectFile = selectors.selectLocalConfigFile(state, projectPath);
+    if (!projectFile) {
+      session.log.debug('No project file found');
+      return;
+    }
+    const mecaExport: ExportWithOutput = {
+      format: ExportFormats.meca,
+      output: join(session.buildPath(), 'temp', 'meca-export.zip'),
+      articles: [],
+    };
+    await runMecaExport(session, projectFile, mecaExport, { projectPath });
+
+    const mecaZipPath = mecaExport.output;
+    if (
+      await fs
+        .access(mecaZipPath)
+        .then(() => false)
+        .catch(() => true)
+    ) {
+      session.log.debug('MECA export file not created');
+      return;
+    }
+    const zip = new AdmZip(mecaZipPath);
+
+    // Extract the source files from MECA bundle folder
+    const sourceEntries = zip
+      .getEntries()
+      .filter((entry) => entry.entryName.startsWith('bundle/') && entry.entryName !== 'bundle/');
+
+    if (sourceEntries.length === 0) {
+      session.log.debug('No source files found in MECA export');
+      return;
+    }
+    // Create a new zip with just the source contents
+    const sourceZip = new AdmZip();
+    sourceEntries.forEach((entry) => {
+      const relativePath = entry.entryName.replace(/^bundle\//, '');
+      sourceZip.addFile(relativePath, entry.getData());
+    });
+    const sourceZipPath = join(session.sitePath(), 'source.zip');
+    await fs.mkdir(dirname(sourceZipPath), { recursive: true });
+    sourceZip.writeZip(sourceZipPath);
+    session.log.info(`✅ Source zip created`);
+
+    // Clean up the temporary MECA zip
+    await fs.unlink(mecaZipPath);
+  } catch (error) {
+    session.log.debug(`Failed to create source zip: ${error}`);
+  }
+}
 
 export async function performCleanRebuild(session: ISession, opts?: BaseOpts) {
   session.log.info('\n\n\t✨✨✨  performing a clean re-build of your work  ✨✨✨\n\n');
@@ -35,6 +103,8 @@ export async function performCleanRebuild(session: ISession, opts?: BaseOpts) {
   session.log.info(`⛴  Exports complete`);
   // Build the files in the content folder and process them
   await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
+  // Create source zip from MECA export
+  await createSourceZip(session);
   session.log.info(`✅ Work rebuild complete`);
 }
 
