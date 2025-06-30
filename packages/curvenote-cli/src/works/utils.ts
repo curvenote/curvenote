@@ -1,6 +1,10 @@
 import { v4 as uuid } from 'uuid';
 import inquirer from 'inquirer';
 import fs from 'fs/promises';
+import type { ExportWithOutput } from 'myst-cli';
+import { silentLogger } from 'myst-cli-utils';
+import { ExportFormats } from 'myst-frontmatter';
+import AdmZip from 'adm-zip';
 import {
   selectors,
   writeConfigs,
@@ -9,8 +13,9 @@ import {
   clean,
   collectAllBuildExportOptions,
   localArticleExport,
+  runMecaExport,
 } from 'myst-cli';
-import { join, relative } from 'node:path';
+import { join, relative, dirname } from 'node:path';
 import type { WorkDTO } from '@curvenote/common';
 import * as uploads from '../uploads/index.js';
 import type { ISession } from '../session/types.js';
@@ -23,6 +28,76 @@ export const CDN_KEY_RE =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 export const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
 
+/**
+ * Extract the source contents from a MECA export into a source/ folder
+ */
+async function createSourceFolder(session: ISession) {
+  const activeLogger = (session as any).$logger;
+  (session as any).$logger = silentLogger();
+  activeLogger.info('🎁 Bundling source files...');
+
+  try {
+    const state = session.store.getState();
+    const projectPath = selectors.selectCurrentProjectPath(state);
+    if (!projectPath) {
+      activeLogger.debug('No project path found');
+      return;
+    }
+    const projectFile = selectors.selectLocalConfigFile(state, projectPath);
+    if (!projectFile) {
+      activeLogger.debug('No project file found');
+      return;
+    }
+    const mecaExport: ExportWithOutput = {
+      format: ExportFormats.meca,
+      output: join(session.buildPath(), 'temp', 'meca-export.zip'),
+      articles: [],
+    };
+    await runMecaExport(session, projectFile, mecaExport, { projectPath });
+
+    const mecaZipPath = mecaExport.output;
+    if (
+      await fs
+        .access(mecaZipPath)
+        .then(() => false)
+        .catch(() => true)
+    ) {
+      activeLogger.debug('MECA export file not created');
+      return;
+    }
+    const zip = new AdmZip(mecaZipPath);
+
+    // Extract the source files from MECA bundle folder
+    const sourceEntries = zip
+      .getEntries()
+      .filter((entry) => entry.entryName.startsWith('bundle/') && entry.entryName !== 'bundle/');
+
+    if (sourceEntries.length === 0) {
+      activeLogger.debug('No source files found in MECA export');
+      return;
+    }
+    const sourceFolderPath = join(session.sitePath(), 'source');
+    await fs.mkdir(sourceFolderPath, { recursive: true });
+    for (const entry of sourceEntries) {
+      const relativePath = entry.entryName.replace(/^bundle\//, '');
+      const destPath = join(sourceFolderPath, ...relativePath.split('/'));
+      // Ensure parent directory exists
+      await fs.mkdir(dirname(destPath), { recursive: true });
+      if (!entry.isDirectory) {
+        await fs.writeFile(destPath, entry.getData());
+      }
+    }
+    activeLogger.info(`🎁 Source folder created`);
+    (session as any).$logger = activeLogger;
+
+    // Clean up the temporary MECA zip
+    await fs.unlink(mecaZipPath);
+  } catch (error) {
+    activeLogger.debug(`Failed to create source folder: ${error}`);
+    (session as any).$logger = activeLogger;
+  }
+}
+
 export async function performCleanRebuild(session: ISession, opts?: BaseOpts) {
   session.log.info('\n\n\t✨✨✨  performing a clean re-build of your work  ✨✨✨\n\n');
   await clean(session, [], { site: true, html: true, temp: true, exports: true, yes: true });
@@ -33,8 +108,11 @@ export async function performCleanRebuild(session: ISession, opts?: BaseOpts) {
   session.log.info(`📬 Performing exports:\n   ${exportLogList.join('\n   ')}`);
   await localArticleExport(session, exportOptionsList, {});
   session.log.info(`⛴  Exports complete`);
+
   // Build the files in the content folder and process them
   await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
+  // Create source folder from MECA export
+  await createSourceFolder(session);
   session.log.info(`✅ Work rebuild complete`);
 }
 
