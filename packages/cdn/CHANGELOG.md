@@ -1,5 +1,13 @@
 # @curvenote/cdn
 
+## 0.2.20
+
+### Patch Changes
+
+- 6ceb5c8: Remove content from SiteDTO
+- Updated dependencies [6ceb5c8]
+  - @curvenote/common@0.2.20
+
 ## 0.2.19
 
 ### Patch Changes

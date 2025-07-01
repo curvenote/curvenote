@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.16
+
+### Patch Changes
+
+- 6ceb5c8: Add work push to cli
+- 6ceb5c8: Add site init set landing content to cli
+
 ## 0.12.15
 
 ### Patch Changes
