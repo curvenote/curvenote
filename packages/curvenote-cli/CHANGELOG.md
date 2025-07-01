@@ -1,5 +1,18 @@
 # curvenote
 
+## 0.12.16
+
+### Patch Changes
+
+- 6ceb5c8: Add work push to cli
+- 606b39b: Write source zip to cdn when pushing work
+- 6ceb5c8: Remove content from SiteDTO
+- 6ceb5c8: Consume myst updates to plugin loading
+- 6ceb5c8: Add site init set landing content to cli
+- Updated dependencies [6ceb5c8]
+  - @curvenote/common@0.2.20
+  - @curvenote/cli-plugin@0.12.16
+
 ## 0.12.15
 
 ### Patch Changes

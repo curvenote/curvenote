@@ -1,5 +1,11 @@
 # @curvenote/common
 
+## 0.2.20
+
+### Patch Changes
+
+- 6ceb5c8: Remove content from SiteDTO
+
 ## 0.2.19
 
 ## 0.2.18
