@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.12.17
+
+### Patch Changes
+
+- 83bd0c1: Allow works to be pushed to public CDN
+
 ## 0.12.16
 
 ### Patch Changes
