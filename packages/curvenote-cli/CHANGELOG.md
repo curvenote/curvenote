@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.12.18
+
+### Patch Changes
+
+- @curvenote/cli-plugin@0.12.18
+
 ## 0.12.17
 
 ### Patch Changes

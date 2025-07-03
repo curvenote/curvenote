@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.12.18
+
+### Patch Changes
+
+- 11c5933: Expose existing push options to CLI
+
 ## 0.12.17
 
 ### Patch Changes
