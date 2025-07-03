@@ -17,6 +17,7 @@ function makeWorksListCLI(program: Command) {
 function makeWorksPushCLI(program: Command) {
   const command = new Command('push')
     .description('Push a new Work or a new version of an existing Work')
+    .option('--public', 'Push to the public CDN instead of the private CDN')
     .action(clirun(works.push, { program, requireSiteConfig: true }));
   return command;
 }

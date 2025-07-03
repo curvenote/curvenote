@@ -10,10 +10,9 @@ import {
 } from './utils.js';
 import type { WorkDTO } from '@curvenote/common';
 import { tic } from 'myst-cli-utils';
-import type { BaseOpts } from '../logs/index.js';
+import type { PushOpts, WorkPushLog } from './types.js';
 import { addSourceToLogs } from '../logs/index.js';
 import type { ISession } from '../session/types.js';
-import type { WorkPushLog } from './types.js';
 import { postToJournals, postToUrl } from '../utils/api.js';
 import { writeJsonLogs } from 'myst-cli';
 
@@ -78,7 +77,7 @@ export async function postNewWorkVersion(
  * - Check if work exists and if not, create new work
  * - Create new version of work
  */
-export async function push(session: ISession, opts?: BaseOpts) {
+export async function push(session: ISession, opts?: PushOpts) {
   const pushLog: WorkPushLog = {
     input: {
       opts,
@@ -97,12 +96,17 @@ export async function push(session: ISession, opts?: BaseOpts) {
   exitOnInvalidKeyOption(session, inputKey);
   const key = inputKey;
   pushLog.key = key;
-  session.log.info(`📍 Pushing work using key: ${chalk.bold(key)}`);
+  if (opts?.public) {
+    session.log.info(chalk.yellowBright(`🌍 You are pushing this work ${chalk.bold('publicly')}`));
+  }
+  session.log.info(
+    `📍 Pushing ${opts?.public ? 'public' : 'private'} work using key: ${chalk.bold(key)}`,
+  );
 
   await addSourceToLogs(pushLog);
   try {
     await performCleanRebuild(session, opts);
-    const cdn = session.config.privateCdnUrl;
+    const cdn = opts?.public ? session.config.publicCdnUrl : session.config.privateCdnUrl;
     const cdnKey = await uploadAndGetCdnKey(session, cdn, opts);
 
     const workResp = await getWorkFromKey(session, key);
@@ -128,7 +132,9 @@ export async function push(session: ISession, opts?: BaseOpts) {
       date_created: work.date_created,
     };
     session.log.info(
-      chalk.bold.green(`📄 Work ${workResp ? 'updated' : 'created'} for key ${key}!`),
+      chalk.bold.green(
+        `📄 ${opts?.public ? 'Public' : 'Private'} work ${workResp ? 'updated' : 'created'} for key ${key}!`,
+      ),
     );
     writeJsonLogs(session, 'curvenote.push.json', pushLog);
   } catch (err: any) {
