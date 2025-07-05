@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.19
+
+### Patch Changes
+
+- 4268bce: Upgrade to mystmd 1.5.1
+  - @curvenote/cli-plugin@0.12.19
+
 ## 0.12.18
 
 ### Patch Changes
