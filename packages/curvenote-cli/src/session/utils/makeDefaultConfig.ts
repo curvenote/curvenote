@@ -2,7 +2,7 @@ import type { CLIConfigData } from '../types.js';
 
 const DEFAULT_PLATFORM_API_URL = 'https://sites.curvenote.com/v1';
 const DEFAULT_PLATFORM_APP_URL = 'https://sites.curvenote.com';
-const DEFAULT_EDITOR_API_URL = 'https://api.curvenote.com';
+export const DEFAULT_EDITOR_API_URL = 'https://api.curvenote.com';
 const DEFAULT_EDITOR_URL = 'https://curvenote.com';
 
 const STAGING_PLATFORM_API_URL = 'https://sites.curvenote.dev/v1';

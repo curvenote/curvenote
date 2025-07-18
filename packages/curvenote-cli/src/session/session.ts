@@ -46,6 +46,7 @@ import {
   checkForPlatformAPIClientVersionRejection,
   withQuery,
   checkForCurvenoteAPIClientVersionRejection,
+  DEFAULT_EDITOR_API_URL,
 } from './utils/index.js';
 import jwt from 'jsonwebtoken';
 import { getLogLevel } from './utils/getLogLevel.js';
@@ -126,7 +127,8 @@ export class Session implements ISession {
       this.proxyAgent = new HttpsProxyAgent(proxyUrl);
     }
 
-    this.API_URL = 'NOTSET';
+    // We are still setting this as some of the myst-cli functions rely on it
+    this.API_URL = DEFAULT_EDITOR_API_URL;
 
     this.store = createStore(rootReducer);
     // Allow the latest version to be loaded
@@ -265,7 +267,7 @@ export class Session implements ISession {
           this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".`);
 
           // We are still setting this as some of the myst-cli functions rely on it
-          this.API_URL = this.$config?.editorApiUrl ?? 'INVALID';
+          this.API_URL = this.$config?.editorApiUrl ?? DEFAULT_EDITOR_API_URL;
 
           return;
         }
@@ -284,7 +286,7 @@ export class Session implements ISession {
     this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".\n`);
 
     // We are still setting this as some of the myst-cli functions rely on it
-    this.API_URL = this.$config?.editorApiUrl ?? 'INVALID';
+    this.API_URL = this.$config?.editorApiUrl ?? DEFAULT_EDITOR_API_URL;
   }
 
   showUpgradeNotice() {
