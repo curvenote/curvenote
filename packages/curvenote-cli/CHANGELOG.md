@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.20
+
+### Patch Changes
+
+- 3775d1c: Enable template download with no token
+  - @curvenote/cli-plugin@0.12.20
+
 ## 0.12.19
 
 ### Patch Changes

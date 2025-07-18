@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.12.20
+
+### Patch Changes
+
+- 3775d1c: Add env variables for myst whitelabeling
+
 ## 0.12.19
 
 ### Patch Changes
