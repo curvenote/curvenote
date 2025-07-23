@@ -15,6 +15,7 @@ export interface Author {
 }
 
 export type SocialSite =
+  | 'bluesky'
   | 'twitter'
   | 'mastodon'
   | 'linkedin'
