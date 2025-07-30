@@ -5,16 +5,16 @@ import type { Response as FetchResponse } from 'node-fetch';
 import chalk from 'chalk';
 import boxen from 'boxen';
 
-export function logUpdateRequired({
+function logUpdateRequired({
   current,
   minimum,
   upgradeCommand,
-  twitter,
+  bluesky,
 }: {
   current: string;
   minimum: string;
   upgradeCommand: string;
-  twitter: string;
+  bluesky: string;
 }) {
   return boxen(
     `Upgrade Required! ${chalk.dim(`v${current}`)} ≫ ${chalk.green.bold(
@@ -22,8 +22,8 @@ export function logUpdateRequired({
     )}\n\nRun \`${chalk.cyanBright.bold(
       upgradeCommand,
     )}\` to update.\n\nFollow ${chalk.yellowBright(
-      `@${twitter}`,
-    )} for updates!\nhttps://twitter.com/${twitter}`,
+      `@${bluesky}`,
+    )} for updates!\nhttps://bsky.app/profile/${bluesky}`,
     {
       padding: 1,
       margin: 1,
@@ -54,7 +54,7 @@ export function checkForCurvenoteAPIClientVersionRejection(
         current: CLIENT_VERSION,
         minimum: 'latest',
         upgradeCommand: 'npm i -g curvenote@latest',
-        twitter: 'curvenote',
+        bluesky: 'curvenote.com',
       });
     }
   }
@@ -77,7 +77,7 @@ export function checkForPlatformAPIClientVersionRejection(log: Logger, response:
           current: CLIENT_VERSION,
           minimum,
           upgradeCommand: 'npm i -g curvenote@latest',
-          twitter: 'curvenote',
+          bluesky: 'curvenote.com',
         }),
       );
       process.exit(1);
