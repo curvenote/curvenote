@@ -71,7 +71,7 @@ export class Session implements ISession {
   store: Store<RootState>;
 
   doiLimiter: Limit;
-  plugins: ValidatedCurvenotePlugin | undefined;
+  plugins: ValidatedCurvenotePlugin | undefined = combinePlugins([getBuiltInPlugins()]);
 
   proxyAgent?: HttpsProxyAgent<string>;
   _shownUpgrade = false;
@@ -369,8 +369,7 @@ export class Session implements ISession {
   _pluginPromise: Promise<ValidatedCurvenotePlugin> | undefined;
 
   async loadPlugins(plugins: PluginInfo[]) {
-    const loadedPlugins = await loadProjectPlugins(this, plugins);
-    this.plugins = combinePlugins([getBuiltInPlugins(), loadedPlugins]);
+    this.plugins = await loadProjectPlugins(this, plugins);
     return this.plugins;
   }
 
