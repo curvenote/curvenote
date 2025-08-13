@@ -2,4 +2,4 @@
 "@curvenote/cli-plugin": patch
 ---
 
-Make the articl edirective a bit nicer on validation
+Make the `cn:article` directive a bit less vocal on validation
