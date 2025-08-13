@@ -1,5 +1,16 @@
 # curvenote
 
+## 0.12.21
+
+### Patch Changes
+
+- 76425d4: Change from twitter to bluesky for social updates
+- 0a1025e: Plugins are loaded by default.
+- Updated dependencies [316cffe]
+- Updated dependencies [a651c71]
+  - @curvenote/cli-plugin@0.12.21
+  - @curvenote/common@0.2.21
+
 ## 0.12.20
 
 ### Patch Changes

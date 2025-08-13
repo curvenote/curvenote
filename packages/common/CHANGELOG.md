@@ -1,5 +1,11 @@
 # @curvenote/common
 
+## 0.2.21
+
+### Patch Changes
+
+- a651c71: Add bluesky to known socials
+
 ## 0.2.20
 
 ### Patch Changes
