@@ -86,9 +86,19 @@ export const articlesDirective: DirectiveSpec = {
       vfile.message('A venue must be supplied.');
     }
 
-    validateStringOptions(vfile, 'status', data.options?.status, ['published', 'in-review']);
-    validateStringOptions(vfile, 'layout', data.options?.layout, ['list', 'cards']);
-    validateStringOptions(vfile, 'pagination', data.options?.pagination, ['more', 'all', 'scroll']);
+    if (data.options?.status) {
+      validateStringOptions(vfile, 'status', data.options?.status, ['published', 'in-review']);
+    }
+    if (data.options?.layout) {
+      validateStringOptions(vfile, 'layout', data.options?.layout, ['list', 'cards']);
+    }
+    if (data.options?.pagination) {
+      validateStringOptions(vfile, 'pagination', data.options?.pagination, [
+        'more',
+        'all',
+        'scroll',
+      ]);
+    }
 
     // TODO get hold of session?
     // TODO lookup API and validate venue, collection, kind exist?
