@@ -1,5 +1,11 @@
 # @curvenote/cli-plugin
 
+## 0.12.21
+
+### Patch Changes
+
+- [#729](https://github.com/curvenote/curvenote/pull/729) [`316cffe`](https://github.com/curvenote/curvenote/commit/316cffecc765e5f1d3abedb9ee0c789c703e3998) Thanks [@rowanc1](https://github.com/rowanc1)! - Make the `cn:article` directive a bit less vocal on validation
+
 ## 0.12.20
 
 ## 0.12.19

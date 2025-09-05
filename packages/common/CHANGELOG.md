@@ -1,5 +1,11 @@
 # @curvenote/common
 
+## 0.2.21
+
+### Patch Changes
+
+- [#724](https://github.com/curvenote/curvenote/pull/724) [`a651c71`](https://github.com/curvenote/curvenote/commit/a651c71255b95218d416269540062213cea2da78) Thanks [@rowanc1](https://github.com/rowanc1)! - Add bluesky to known socials
+
 ## 0.2.20
 
 ### Patch Changes
