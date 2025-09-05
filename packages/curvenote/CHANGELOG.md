@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.12.21
+
+### Patch Changes
+
+- [`c0b68a8`](https://github.com/curvenote/curvenote/commit/c0b68a813bf8d907505ee177bf4ed4616732fbf9) Thanks [@rowanc1](https://github.com/rowanc1)! - Releasing fixed readme links
+
 ## 0.12.20
 
 ### Patch Changes

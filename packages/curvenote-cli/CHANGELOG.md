@@ -1,5 +1,17 @@
 # curvenote
 
+## 0.12.21
+
+### Patch Changes
+
+- [#726](https://github.com/curvenote/curvenote/pull/726) [`76425d4`](https://github.com/curvenote/curvenote/commit/76425d43c2ada89222ea832d2ce571cfe6b0b5d0) Thanks [@rowanc1](https://github.com/rowanc1)! - Change from twitter to bluesky for social updates
+
+- [#728](https://github.com/curvenote/curvenote/pull/728) [`0a1025e`](https://github.com/curvenote/curvenote/commit/0a1025e1412f8e850ca2e4ba8d4ebf056cbb45f3) Thanks [@rowanc1](https://github.com/rowanc1)! - Plugins are loaded by default.
+
+- Updated dependencies [[`316cffe`](https://github.com/curvenote/curvenote/commit/316cffecc765e5f1d3abedb9ee0c789c703e3998), [`a651c71`](https://github.com/curvenote/curvenote/commit/a651c71255b95218d416269540062213cea2da78)]:
+  - @curvenote/cli-plugin@0.12.21
+  - @curvenote/common@0.2.21
+
 ## 0.12.20
 
 ### Patch Changes
