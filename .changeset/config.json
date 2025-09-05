@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@2.0.1/schema.json",
-  "changelog": "@changesets/cli/changelog",
+  "changelog": ["@changesets/changelog-github", { "repo": "curvenote/curvenote" }],
   "commit": false,
   "fixed": [
     ["curvenote", "@curvenote/cli", "@curvenote/cli-plugin"],

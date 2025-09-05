@@ -38,5 +38,7 @@
     "node": ">=14.0.0"
   },
   "packageManager": "npm@8.10.0",
-  "dependencies": {}
+  "dependencies": {
+    "@changesets/changelog-github": "^0.5.1"
+  }
 }
