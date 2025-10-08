@@ -66,15 +66,44 @@ export async function handleLocalFolderContent(
  */
 export async function handleCurvenoteImport(
   session: ISession,
-  opts?: Options,
+  currentPath: string,
+  opts: Options,
+  providedCurvenoteUrl?: string,
 ): Promise<{ projectConfig: ProjectConfig; title?: string; currentPath: string }> {
-  const results = await interactiveCloneQuestions(session, opts);
+  // Get Curvenote URL (from CLI option or interactive prompt)
+  let curvenoteUrl = providedCurvenoteUrl;
+  if (!curvenoteUrl) {
+    const curvenoteResponse = await inquirer.prompt([questions.projectLink()]);
+    curvenoteUrl = curvenoteResponse.projectLink;
+  }
+  if (!curvenoteUrl) {
+    throw new Error('Curvenote project URL is required');
+  }
+
+  // Extract project name from URL for default folder name
+  // URL format: https://curvenote.com/@username/project-name
+  let defaultPath = '.';
+  if (providedCurvenoteUrl && !opts.output) {
+    // Only set default folder for CLI mode (when URL was provided via --curvenote)
+    const urlPath = curvenoteUrl.replace(/^https?:\/\/[^/]+\//, ''); // Remove domain
+    const pathSegments = urlPath.split('/').filter(Boolean);
+    if (pathSegments.length > 0) {
+      defaultPath = pathSegments[pathSegments.length - 1]; // Last segment
+    }
+  }
+
+  // Use the existing clone logic with the URL
+  const results = await interactiveCloneQuestions(session, {
+    ...opts,
+    remote: curvenoteUrl,
+    path: opts.output || (defaultPath !== '.' ? defaultPath : undefined),
+  });
   const { siteProject } = results;
   const projectConfig = results.projectConfig;
   const title = projectConfig.title;
-  const currentPath = siteProject.path;
+  const targetPath = siteProject.path;
 
-  return { projectConfig, title, currentPath };
+  return { projectConfig, title, currentPath: targetPath };
 }
 
 /**

@@ -85,6 +85,18 @@ export function makeGithubOption() {
   });
 }
 
+export function makeCurvenoteOption() {
+  return new Option(
+    '--curvenote <url>',
+    'Initialize project from a Curvenote project URL',
+  ).argParser((value) => {
+    if (!value) {
+      throw new InvalidArgumentError('Curvenote URL is required');
+    }
+    return value;
+  });
+}
+
 export function makeOutputOption() {
   return new Option(
     '--output <folder>',

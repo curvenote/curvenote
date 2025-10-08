@@ -39,7 +39,8 @@ export async function interactiveCloneQuestions(
   }
   let path: string;
   const defaultPath = '.';
-  if (opts?.path || opts?.yes) {
+  // Skip path prompt if: --output provided, --yes flag set, or CLI-driven with --remote
+  if (opts?.path || opts?.yes || opts?.remote) {
     path = opts?.path ?? defaultPath;
     if (path !== '.' && fs.existsSync(path)) {
       throw new Error(`Invalid path for clone: "${path}", it must not exist.`);

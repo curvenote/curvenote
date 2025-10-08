@@ -9,6 +9,7 @@ import {
   makeWriteTOCOption,
   makeAddAuthorsOption,
   makeGithubOption,
+  makeCurvenoteOption,
   makeOutputOption,
   makeCIOption,
 } from './options.js';
@@ -23,6 +24,7 @@ function makeInitCLI(program: Command) {
     .addOption(makeWriteTOCOption())
     .addOption(makeAddAuthorsOption())
     .addOption(makeGithubOption())
+    .addOption(makeCurvenoteOption())
     .addOption(makeOutputOption())
     .action(clirun(sync.init, { program, hideNoTokenWarning: true, keepAlive: true }));
   return command;

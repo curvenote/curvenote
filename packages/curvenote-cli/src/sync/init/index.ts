@@ -93,6 +93,7 @@ export async function init(session: ISession, opts: Options) {
   const folderIsEmpty = fs.readdirSync(currentPath).length === 0;
   let content: string;
   let githubUrl: string | undefined;
+  let curvenoteUrl: string | undefined;
 
   const projectConfigPaths = await findProjectsOnPath(session, currentPath);
 
@@ -101,6 +102,10 @@ export async function init(session: ISession, opts: Options) {
     session.log.debug(`GitHub option detected: ${opts.github}`);
     content = 'github';
     githubUrl = opts.github;
+  } else if (opts.curvenote) {
+    session.log.debug(`Curvenote option detected: ${opts.curvenote}`);
+    content = 'curvenote';
+    curvenoteUrl = opts.curvenote;
   } else if ((!folderIsEmpty && opts.yes) || projectConfigPaths.length) {
     content = 'folder';
   } else {
@@ -133,7 +138,8 @@ export async function init(session: ISession, opts: Options) {
     currentPath = result.currentPath;
     pullComplete = true;
   } else if (content === 'curvenote') {
-    const result = await handleCurvenoteImport(session, opts);
+    // Curvenote import (interactive or CLI option)
+    const result = await handleCurvenoteImport(session, currentPath, opts, curvenoteUrl);
     projectConfig = result.projectConfig;
     title = result.title;
     currentPath = result.currentPath;
@@ -187,14 +193,25 @@ export async function init(session: ISession, opts: Options) {
   }
 
   // Check if this is a CLI-driven initialization (non-interactive)
-  const isCliDriven = !!opts.github; // Add more CLI options here as needed (e.g., || opts.curvenote)
+  const isCliDriven = !!opts.github || !!opts.curvenote;
 
-  if (!opts.yes) session.log.info(await FINISHED(session));
-
-  // Exit early for CLI-driven initializations without prompting to start server
+  // For CLI-driven initializations, wait for pull to complete before showing completion message
   if (isCliDriven) {
+    if (!pullComplete) {
+      pullOpts.level = LogLevel.info;
+      session.log.info(
+        `${chalk.dim('\nFinishing')} ${chalk.bold('curvenote pull')}${chalk.dim(
+          '. This may take a minute ⏳...',
+        )}`,
+      );
+      await pullProcess;
+    }
+    if (!opts.yes) session.log.info(await FINISHED(session));
     return;
   }
+
+  // Interactive mode: show completion message and continue
+  if (!opts.yes) session.log.info(await FINISHED(session));
 
   let start = false;
   if (!opts.yes) {
