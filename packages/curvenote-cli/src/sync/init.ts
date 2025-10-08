@@ -71,6 +71,113 @@ ${docLinks.overview}
 
 `;
 
+// ============================================================================
+// PROJECT MODIFICATION HANDLERS
+// These functions operate on EXISTING projects (require projectConfig)
+// Add new project modification operations here
+// ============================================================================
+
+/**
+ * Handle --write-toc option: Generate table of contents for existing project
+ */
+async function handleWriteTOC(
+  session: ISession,
+  currentPath: string,
+  projectConfig: ProjectConfig,
+): Promise<void> {
+  if (projectConfig.toc) {
+    session.log.warn('Not writing the table of contents, it already exists!');
+    return;
+  }
+  await loadProjectFromDisk(session, currentPath, { writeTOC: true });
+}
+
+// Add more project modification handlers here, following the same pattern:
+// - async function handleSomeOption(session, currentPath, projectConfig)
+// - Validate preconditions (e.g., check if already exists)
+// - Perform the operation
+// - Log appropriately
+
+/**
+ * Helper to validate that a project config exists
+ * Used by project modification operations
+ */
+function validateExistingProject(session: ISession, currentPath: string): ProjectConfig {
+  const projectConfig = selectors.selectCurrentProjectConfig(session.store.getState());
+  if (!projectConfig) {
+    throw Error(
+      `No project config found at ${currentPath}. Run ${chalk.bold('curvenote init')} first.`,
+    );
+  }
+  return projectConfig;
+}
+
+// ============================================================================
+// PROJECT INITIALIZATION HANDLERS
+// These functions create NEW projects from different sources
+// ============================================================================
+
+/**
+ * Handle initialization from local folder content
+ */
+async function handleLocalFolderContent(
+  session: ISession,
+  currentPath: string,
+  projectConfigPaths: string[],
+  opts: Options,
+  existingProjectConfig?: ProjectConfig,
+  existingTitle?: string,
+): Promise<{ projectConfig?: ProjectConfig; title?: string; currentPath: string }> {
+  if (projectConfigPaths.length > 0) {
+    const pathListString = projectConfigPaths
+      .map((p) => `  - ${join(p, CURVENOTE_YML)}`)
+      .join('\n');
+
+    session.log.info(
+      `👀 ${chalk.bold('Found existing project config files on your path:')}\n${pathListString}\n`,
+    );
+  }
+
+  let title = existingTitle;
+  if (!opts.yes) {
+    const promptTitle = await inquirer.prompt([questions.title({ title: title || '' })]);
+    title = promptTitle.title;
+  }
+
+  let projectConfig = existingProjectConfig;
+  if (!projectConfig) {
+    try {
+      await loadProjectFromDisk(session, currentPath);
+      session.log.info(`📓 Creating project config`);
+      projectConfig = await getDefaultProjectConfig(title);
+      projectConfigPaths.unshift(currentPath);
+    } catch {
+      if (!projectConfigPaths.length) {
+        throw Error(`No markdown or notebook files found`);
+      }
+      session.log.info(`🧹 No additional markdown or notebook files found`);
+    }
+  }
+
+  return { projectConfig, title, currentPath };
+}
+
+/**
+ * Handle initialization from remote Curvenote project
+ */
+async function handleCurvenoteImport(
+  session: ISession,
+  opts?: Options,
+): Promise<{ projectConfig: ProjectConfig; title?: string; currentPath: string }> {
+  const results = await interactiveCloneQuestions(session, opts);
+  const { siteProject } = results;
+  const projectConfig = results.projectConfig;
+  const title = projectConfig.title;
+  const currentPath = siteProject.path;
+
+  return { projectConfig, title, currentPath };
+}
+
 /**
  * Initialize local curvenote project from folder or remote project
  *
@@ -80,27 +187,52 @@ ${docLinks.overview}
  * This fails if curvenote.yml already exists; use `start` or `add`.
  */
 export async function init(session: ISession, opts: Options) {
+  let currentPath = resolve('.');
+
+  // ========================================================================
+  // PROJECT MODIFICATION OPERATIONS
+  // These operations modify existing projects and return early
+  // Add new modification operations here by checking opts and calling handlers
+  // ========================================================================
+
+  // Handle --write-toc: Generate table of contents
+  if (opts.writeTOC) {
+    const projectConfig = validateExistingProject(session, currentPath);
+    await handleWriteTOC(session, currentPath, projectConfig);
+    return;
+  }
+
+  // Add more project modification operations here following this pattern:
+  // if (opts.someOption) {
+  //   const projectConfig = validateExistingProject(session, currentPath);
+  //   await handleSomeOption(session, currentPath, projectConfig);
+  //   return;
+  // }
+
+  // ========================================================================
+  // PROJECT INITIALIZATION FLOW
+  // Everything below creates a NEW project (fails if project already exists)
+  // ========================================================================
+
   if (!opts.yes) session.log.info(await WELCOME(session));
   if (opts.domain) session.log.info(`Using custom domain ${opts.domain}`);
-  let currentPath = resolve('.');
+
   // Initialize config - error if it exists
-  if (selectors.selectLocalSiteConfig(session.store.getState(), currentPath) && !opts.writeTOC) {
+  if (selectors.selectLocalSiteConfig(session.store.getState(), currentPath)) {
     throw Error(
       `Site config in ${CURVENOTE_YML} config already exists, did you mean to ${chalk.bold(
         'curvenote clone',
       )} or ${chalk.bold('curvenote start')}?`,
     );
   }
-  const folderName = basename(currentPath);
-  const siteConfig = getDefaultSiteConfig(folderName);
 
   // Load the user now, and wait for it below!
   let me: MyUser | Promise<MyUser> | undefined;
   if (!session.isAnon) me = new MyUser(session).get();
 
+  // Determine content source
   const folderIsEmpty = fs.readdirSync(currentPath).length === 0;
-  if (folderIsEmpty && opts.yes) throw Error('Cannot initialize an empty folder');
-  let content;
+  let content: string;
   const projectConfigPaths = await findProjectsOnPath(session, currentPath);
   if ((!folderIsEmpty && opts.yes) || projectConfigPaths.length) {
     content = 'folder';
@@ -108,57 +240,37 @@ export async function init(session: ISession, opts: Options) {
     const response = await inquirer.prompt([questions.content({ folderIsEmpty })]);
     content = response.content;
   }
+
+  // Get initial project config and title
   let projectConfig: ProjectConfig | undefined = selectors.selectCurrentProjectConfig(
     session.store.getState(),
   );
+  let title = undefined;
   let pullComplete = false;
-  let title = projectConfig?.title || siteConfig.title || undefined;
-  if (content === 'folder') {
-    if (projectConfigPaths.length > 0) {
-      const pathListString = projectConfigPaths
-        .map((p) => `  - ${join(p, CURVENOTE_YML)}`)
-        .join('\n');
 
-      session.log.info(
-        `👀 ${chalk.bold(
-          'Found existing project config files on your path:',
-        )}\n${pathListString}\n`,
-      );
-    }
-    if (projectConfig && opts.writeTOC && projectConfigPaths.length > 0) {
-      if (projectConfig.toc) {
-        session.log.warn('Not writing the table of contents, it already exists!');
-        return;
-      } else {
-        await loadProjectFromDisk(session, currentPath, opts);
-        return;
-      }
-    } else {
-      if (!opts.yes) {
-        const promptTitle = await inquirer.prompt([questions.title({ title: title || '' })]);
-        title = promptTitle.title;
-      }
-      if (!projectConfig) {
-        try {
-          await loadProjectFromDisk(session, currentPath, { ...opts, writeTOC: false });
-          session.log.info(`📓 Creating project config`);
-          projectConfig = await getDefaultProjectConfig(title);
-          projectConfigPaths.unshift(currentPath);
-        } catch {
-          if (!projectConfigPaths.length) {
-            throw Error(`No markdown or notebook files found`);
-          }
-          session.log.info(`🧹 No additional markdown or notebook files found`);
-        }
-      }
-    }
+  // Handle content source
+  if (content === 'folder') {
+    if (folderIsEmpty && opts.yes) throw Error('Cannot initialize an empty folder');
+
+    const result = await handleLocalFolderContent(
+      session,
+      currentPath,
+      projectConfigPaths,
+      opts,
+      projectConfig,
+      title,
+    );
+
+    projectConfig = result.projectConfig;
+    title = result.title;
+    currentPath = result.currentPath;
     pullComplete = true;
   } else if (content === 'curvenote') {
-    const results = await interactiveCloneQuestions(session);
-    const { siteProject } = results;
-    projectConfig = results.projectConfig;
-    title = projectConfig.title;
-    currentPath = siteProject.path;
+    const result = await handleCurvenoteImport(session, opts);
+    projectConfig = result.projectConfig;
+    title = result.title;
+    currentPath = result.currentPath;
+    pullComplete = false;
   } else {
     throw Error(`Invalid init content: ${content}`);
   }
@@ -167,9 +279,12 @@ export async function init(session: ISession, opts: Options) {
     await writeConfigs(session, currentPath, { projectConfig });
     session.store.dispatch(config.actions.receiveCurrentProjectPath({ path: currentPath }));
   }
-  // Personalize the config
+
+  // Create and personalize the site config
   session.log.info(`📓 Creating site config`);
   me = await me;
+  const folderName = basename(currentPath);
+  const siteConfig = getDefaultSiteConfig(folderName);
   siteConfig.title = title;
   siteConfig.options = { logo_text: title };
   if (me) {
@@ -214,9 +329,6 @@ export async function init(session: ISession, opts: Options) {
     );
   }
   await pullProcess;
-  if (opts.writeTOC) {
-    await loadProjectFromDisk(session, currentPath, { ...opts, reloadProject: true });
-  }
   if (start) {
     session.log.info(chalk.dim('\nStarting local server with: '), chalk.bold('curvenote start'));
     await startServer(session, addOxaTransformersToOpts(session, opts));

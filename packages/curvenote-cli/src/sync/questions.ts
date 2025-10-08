@@ -8,26 +8,32 @@ function title(opts: { title: string }) {
 }
 
 function content(opts: { folderIsEmpty: boolean }) {
+  const choices = [
+    {
+      name: 'Use the content & notebooks in this folder',
+      value: 'folder',
+      disabled: opts.folderIsEmpty,
+    },
+    {
+      name: 'Start from a template repository (github)',
+      value: 'github',
+    },
+    {
+      name: 'Import from Curvenote',
+      value: 'curvenote',
+    },
+    {
+      name: 'Show me some demo content!',
+      value: 'demo',
+      disabled: true,
+    },
+  ].sort((a, b) => (a.disabled ? 1 : b.disabled ? -1 : 0));more customElements
+
   return {
     name: 'content',
     type: 'list',
     message: 'What content would you like to use?',
-    choices: [
-      {
-        name: 'Import from Curvenote',
-        value: 'curvenote',
-      },
-      {
-        name: 'Use the content & notebooks in this folder',
-        value: 'folder',
-        disabled: opts.folderIsEmpty,
-      },
-      {
-        name: 'Show me some demo content!',
-        value: 'demo',
-        disabled: true,
-      },
-    ],
+    choices,
   };
 }
 
