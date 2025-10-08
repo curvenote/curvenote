@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import fs from 'node:fs';
 import inquirer from 'inquirer';
-import { basename, resolve } from 'node:path';
+import { basename, resolve, join } from 'node:path';
 import { config, findProjectsOnPath, selectors, writeConfigs, startServer } from 'myst-cli';
 import { LogLevel, writeFileToFolder } from 'myst-cli-utils';
 import type { ProjectConfig } from 'myst-config';
@@ -20,7 +20,11 @@ import {
   handleWriteTOC,
   handleAddAuthors,
 } from './modification-handlers.js';
-import { handleLocalFolderContent, handleCurvenoteImport } from './initialization-handlers.js';
+import {
+  handleLocalFolderContent,
+  handleCurvenoteImport,
+  handleGithubImport,
+} from './initialization-handlers.js';
 
 /**
  * Initialize local curvenote project from folder or remote project
@@ -88,8 +92,16 @@ export async function init(session: ISession, opts: Options) {
   // Determine content source
   const folderIsEmpty = fs.readdirSync(currentPath).length === 0;
   let content: string;
+  let githubUrl: string | undefined;
+
   const projectConfigPaths = await findProjectsOnPath(session, currentPath);
-  if ((!folderIsEmpty && opts.yes) || projectConfigPaths.length) {
+
+  // Handle --github option: set content to 'github' and store the URL
+  if (opts.github) {
+    session.log.debug(`GitHub option detected: ${opts.github}`);
+    content = 'github';
+    githubUrl = opts.github;
+  } else if ((!folderIsEmpty && opts.yes) || projectConfigPaths.length) {
     content = 'folder';
   } else {
     const response = await inquirer.prompt([questions.content({ folderIsEmpty })]);
@@ -126,6 +138,13 @@ export async function init(session: ISession, opts: Options) {
     title = result.title;
     currentPath = result.currentPath;
     pullComplete = false;
+  } else if (content === 'github') {
+    // GitHub import (interactive or CLI option)
+    const result = await handleGithubImport(session, currentPath, opts, githubUrl);
+    projectConfig = result.projectConfig;
+    title = result.title;
+    currentPath = result.currentPath;
+    pullComplete = true;
   } else {
     throw Error(`Invalid init content: ${content}`);
   }
@@ -150,8 +169,8 @@ export async function init(session: ISession, opts: Options) {
     if (twitter) siteConfig.options.twitter = twitter;
   }
   // Save site config to state and write to disk
-  await writeConfigs(session, '.', { siteConfig });
-  session.store.dispatch(config.actions.receiveCurrentSitePath({ path: '.' }));
+  await writeConfigs(session, currentPath, { siteConfig });
+  session.store.dispatch(config.actions.receiveCurrentSitePath({ path: currentPath }));
 
   const pullOpts = { level: LogLevel.debug };
   let pullProcess: Promise<void> | undefined;
@@ -162,7 +181,9 @@ export async function init(session: ISession, opts: Options) {
   }
 
   if (siteConfig.options?.logo === INIT_LOGO_PATH) {
-    writeFileToFolder(INIT_LOGO_PATH, LOGO);
+    const logoPath =
+      currentPath === resolve('.') ? INIT_LOGO_PATH : join(currentPath, INIT_LOGO_PATH);
+    writeFileToFolder(logoPath, LOGO);
   }
 
   if (!opts.yes) session.log.info(await FINISHED(session));

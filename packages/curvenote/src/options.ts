@@ -73,6 +73,18 @@ export function makeAddAuthorsOption() {
   });
 }
 
+export function makeGithubOption() {
+  return new Option(
+    '--github <url>',
+    'Initialize project from a GitHub repository template URL',
+  ).argParser((value) => {
+    if (!value) {
+      throw new InvalidArgumentError('GitHub URL is required');
+    }
+    return value;
+  });
+}
+
 export function makeResumeOption() {
   return new Option(
     '--resume',

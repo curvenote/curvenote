@@ -103,3 +103,33 @@ export function processOption(opts: SyncCiHelperOptions | undefined) {
     yes: opts.ci || opts.yes,
   };
 }
+
+/**
+ * Normalize GitHub URL to HTTPS clone URL
+ * Handles formats:
+ * - https://github.com/user/repo
+ * - https://github.com/user/repo.git
+ * - git@github.com:user/repo.git
+ * - github.com/user/repo
+ * - user/repo
+ */
+export function normalizeGithubUrl(url: string): string {
+  let normalized = url.trim();
+
+  // Convert SSH format to HTTPS
+  if (normalized.startsWith('git@github.com:')) {
+    normalized = normalized.replace('git@github.com:', 'https://github.com/');
+  }
+
+  // Ensure HTTPS protocol
+  if (!normalized.startsWith('http')) {
+    normalized = 'https://github.com/' + normalized.replace(/^github\.com\//, '');
+  }
+
+  // Ensure .git extension for cloning
+  if (!normalized.endsWith('.git')) {
+    normalized = normalized + '.git';
+  }
+
+  return normalized;
+}

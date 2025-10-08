@@ -8,6 +8,7 @@ import {
   makeForceOption,
   makeWriteTOCOption,
   makeAddAuthorsOption,
+  makeGithubOption,
   makeCIOption,
 } from './options.js';
 
@@ -20,6 +21,7 @@ function makeInitCLI(program: Command) {
     .addOption(makeDomainOption())
     .addOption(makeWriteTOCOption())
     .addOption(makeAddAuthorsOption())
+    .addOption(makeGithubOption())
     .action(clirun(sync.init, { program, hideNoTokenWarning: true, keepAlive: true }));
   return command;
 }

@@ -46,6 +46,39 @@ function projectLink(opts?: { projectLink?: string }) {
   };
 }
 
+function githubUrl() {
+  return {
+    name: 'githubUrl',
+    message: 'GitHub repository URL:',
+    type: 'input',
+    validate: (input: string) => {
+      if (!input || !input.trim()) {
+        return 'GitHub URL is required';
+      }
+      // Basic validation for GitHub URL
+      if (!input.includes('github.com')) {
+        return 'Please provide a valid GitHub repository URL';
+      }
+      return true;
+    },
+  };
+}
+
+function githubFolder(opts: { defaultFolder: string }) {
+  return {
+    name: 'githubFolder',
+    message: 'Clone into folder:',
+    type: 'input',
+    default: opts.defaultFolder,
+    validate: (input: string) => {
+      if (!input || !input.trim()) {
+        return 'Folder name is required';
+      }
+      return true;
+    },
+  };
+}
+
 function projectPath(path?: string) {
   return {
     name: 'projectPath',
@@ -77,6 +110,8 @@ export default {
   title,
   content,
   projectLink,
+  githubUrl,
+  githubFolder,
   projectPath,
   start,
   pull,
