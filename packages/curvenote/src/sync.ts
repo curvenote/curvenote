@@ -7,6 +7,7 @@ import {
   makeDomainOption,
   makeForceOption,
   makeWriteTOCOption,
+  makeAddAuthorsOption,
   makeCIOption,
 } from './options.js';
 
@@ -18,6 +19,7 @@ function makeInitCLI(program: Command) {
     .addOption(makeYesOption())
     .addOption(makeDomainOption())
     .addOption(makeWriteTOCOption())
+    .addOption(makeAddAuthorsOption())
     .action(clirun(sync.init, { program, hideNoTokenWarning: true, keepAlive: true }));
   return command;
 }

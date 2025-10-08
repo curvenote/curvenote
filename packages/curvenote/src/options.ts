@@ -59,6 +59,20 @@ export function makeWriteTOCOption() {
     .implies({ writeTOC: true });
 }
 
+export function makeAddAuthorsOption() {
+  return new Option(
+    '--add-authors [authors]',
+    'Add authors to project. Interactive (no args), ORCIDs (comma-separated), or "Name; Affiliation; Email" (comma-separated)',
+  ).argParser((value) => {
+    // If no value provided (just --add-authors), return true for interactive mode
+    if (!value) {
+      return true;
+    }
+    // Otherwise return the string as-is (will be comma-separated list)
+    return value;
+  });
+}
+
 export function makeResumeOption() {
   return new Option(
     '--resume',

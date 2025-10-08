@@ -4,6 +4,7 @@ export type Options = {
   yes?: boolean;
   domain?: string;
   writeTOC?: boolean;
+  addAuthors?: boolean | string; // true for interactive, or comma-separated list
 };
 
 export const CURVENOTE_YML = 'curvenote.yml';

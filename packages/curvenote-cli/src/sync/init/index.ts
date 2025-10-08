@@ -15,7 +15,11 @@ import { addOxaTransformersToOpts } from '../../utils/utils.js';
 import type { Options } from './types.js';
 import { CURVENOTE_YML } from './types.js';
 import { WELCOME, FINISHED } from './messages.js';
-import { validateExistingProject, handleWriteTOC } from './modification-handlers.js';
+import {
+  validateExistingProject,
+  handleWriteTOC,
+  handleAddAuthors,
+} from './modification-handlers.js';
 import { handleLocalFolderContent, handleCurvenoteImport } from './initialization-handlers.js';
 
 /**
@@ -41,6 +45,15 @@ export async function init(session: ISession, opts: Options) {
   if (opts.writeTOC) {
     const projectConfig = validateExistingProject(session, currentPath);
     await handleWriteTOC(session, currentPath, projectConfig);
+    return;
+  }
+
+  // Handle --add-authors: Add authors to project
+  if (opts.addAuthors !== undefined && opts.addAuthors !== false) {
+    session.log.debug(`addAuthors option detected: ${JSON.stringify(opts.addAuthors)}`);
+    const projectConfig = validateExistingProject(session, currentPath);
+    const authorsInput = typeof opts.addAuthors === 'string' ? opts.addAuthors : undefined;
+    await handleAddAuthors(session, currentPath, projectConfig, authorsInput);
     return;
   }
 
