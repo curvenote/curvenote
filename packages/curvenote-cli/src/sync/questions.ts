@@ -27,7 +27,7 @@ function content(opts: { folderIsEmpty: boolean }) {
       value: 'demo',
       disabled: true,
     },
-  ].sort((a, b) => (a.disabled ? 1 : b.disabled ? -1 : 0));more customElements
+  ].sort((a, b) => (a.disabled ? 1 : b.disabled ? -1 : 0));
 
   return {
     name: 'content',
