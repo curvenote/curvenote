@@ -99,6 +99,7 @@ export interface JournalThemeConfig {
     grid?: string;
     floatingNav?: boolean;
     curvenoteTag?: boolean;
+    curvenoteTagBgColor?: string;
     headerHeight?: number;
     hero?: HeroConfig;
     listing?: 'cards' | 'list';
