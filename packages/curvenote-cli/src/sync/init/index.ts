@@ -186,7 +186,15 @@ export async function init(session: ISession, opts: Options) {
     writeFileToFolder(logoPath, LOGO);
   }
 
+  // Check if this is a CLI-driven initialization (non-interactive)
+  const isCliDriven = !!opts.github; // Add more CLI options here as needed (e.g., || opts.curvenote)
+
   if (!opts.yes) session.log.info(await FINISHED(session));
+
+  // Exit early for CLI-driven initializations without prompting to start server
+  if (isCliDriven) {
+    return;
+  }
 
   let start = false;
   if (!opts.yes) {

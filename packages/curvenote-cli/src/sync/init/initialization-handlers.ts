@@ -106,13 +106,18 @@ export async function handleGithubImport(
   const repoName = basename(cloneUrl, '.git');
   let targetFolder: string | undefined;
 
-  // Interactive mode: ask for target folder
-  if (!opts.github) {
+  // Get target folder from --output option or interactive prompt
+  if (opts.output) {
+    // CLI mode with --output option
+    targetFolder = opts.output;
+  } else if (!opts.github) {
+    // Interactive mode: ask for target folder
     const folderResponse = await inquirer.prompt([
       questions.githubFolder({ defaultFolder: repoName }),
     ]);
     targetFolder = folderResponse.githubFolder;
   }
+  // If opts.github is set but no opts.output, targetFolder remains undefined (uses repoName default)
 
   let targetPath: string;
   let displayName: string;

@@ -6,6 +6,7 @@ export type Options = {
   writeTOC?: boolean;
   addAuthors?: boolean | string; // true for interactive, or comma-separated list
   github?: string; // GitHub repository URL
+  output?: string; // Output folder for cloned/initialized project
 };
 
 export const CURVENOTE_YML = 'curvenote.yml';

@@ -85,6 +85,13 @@ export function makeGithubOption() {
   });
 }
 
+export function makeOutputOption() {
+  return new Option(
+    '--output <folder>',
+    'Specify output folder for cloned/initialized project (use "." for current directory)',
+  );
+}
+
 export function makeResumeOption() {
   return new Option(
     '--resume',
