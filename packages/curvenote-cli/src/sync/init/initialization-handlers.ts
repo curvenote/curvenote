@@ -266,8 +266,9 @@ export async function handleGithubImport(
   }
 
   // Ask template initialization questions (both CLI --github and interactive modes)
+  // Try to load custom questions from template.yml in the cloned directory
   if (projectConfig) {
-    const templateMetadata = await runTemplateInitQuestions(session);
+    const templateMetadata = await runTemplateInitQuestions(session, targetPath);
 
     // Merge template metadata into project config
     projectConfig = {

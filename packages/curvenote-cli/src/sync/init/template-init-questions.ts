@@ -11,7 +11,7 @@ import { lookupAuthor } from './author-lookup.js';
 // configuration files.
 // ============================================================================
 
-export type TemplateQuestionType = 'text' | 'authors' | 'keywords';
+export type TemplateQuestionType = 'text' | 'authors' | 'list';
 
 export interface TemplateQuestionSpec {
   id: string;
@@ -74,7 +74,7 @@ export const DEFAULT_TEMPLATE_INIT_QUESTIONS: TemplateQuestionSpec[] = [
     id: 'keywords',
     field: 'project.keywords',
     enabled: true,
-    type: 'keywords',
+    type: 'list',
     message: 'Keywords:',
     placeholder: 'e.g., science, research, data analysis',
     hint: 'Help others discover your project',
@@ -358,9 +358,9 @@ async function promptAuthorsQuestion(
 }
 
 /**
- * Prompt for keywords (comma-separated list)
+ * Prompt for a comma-separated list question (e.g., keywords, tags, etc.)
  */
-async function promptKeywordsQuestion(spec: TemplateQuestionSpec): Promise<string[] | undefined> {
+async function promptListQuestion(spec: TemplateQuestionSpec): Promise<string[] | undefined> {
   // Show hint before the question if available
   if (spec.hint) {
     console.log(chalk.gray(`\n${spec.hint}`));
@@ -410,16 +410,32 @@ async function promptKeywordsQuestion(spec: TemplateQuestionSpec): Promise<strin
 
 /**
  * Run template initialization questions and return collected metadata
+ * @param session The session object
+ * @param targetPath The directory to check for template.yml (optional, defaults to checking current directory)
+ * @param questionSpecs Optional custom question specifications (if not provided, will try to load from template.yml or use defaults)
  */
 export async function runTemplateInitQuestions(
   session: ISession,
-  questionSpecs: TemplateQuestionSpec[] = DEFAULT_TEMPLATE_INIT_QUESTIONS,
+  targetPath?: string,
+  questionSpecs?: TemplateQuestionSpec[],
 ): Promise<Partial<ProjectConfig>> {
+  // If no specs provided and targetPath given, try to load from template.yml
+  let questions = questionSpecs;
+  if (!questions && targetPath) {
+    const { loadTemplateFile } = await import('./template-file.js');
+    questions = loadTemplateFile(session, targetPath);
+  }
+
+  // Fall back to defaults if still no questions
+  if (!questions) {
+    questions = DEFAULT_TEMPLATE_INIT_QUESTIONS;
+  }
+
   console.log(chalk.bold("\n📝 Let's set up your project metadata...\n"));
 
   const metadata: any = {};
 
-  for (const spec of questionSpecs) {
+  for (const spec of questions) {
     if (!spec.enabled) {
       continue;
     }
@@ -433,8 +449,8 @@ export async function runTemplateInitQuestions(
       case 'authors':
         value = await promptAuthorsQuestion(session, spec);
         break;
-      case 'keywords':
-        value = await promptKeywordsQuestion(spec);
+      case 'list':
+        value = await promptListQuestion(spec);
         break;
       default:
         session.log.warn(`Unknown question type: ${spec.type}`);

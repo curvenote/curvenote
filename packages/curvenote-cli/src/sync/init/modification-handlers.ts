@@ -5,6 +5,7 @@ import type { ProjectConfig } from 'myst-config';
 import type { Contributor } from 'myst-frontmatter';
 import type { ISession } from '../../session/types.js';
 import { isORCID, isGitHubUsername, lookupAuthor } from './author-lookup.js';
+import { cleanProjectConfigForWrite } from '../utils.js';
 
 // ============================================================================
 // PROJECT MODIFICATION HANDLERS
@@ -297,7 +298,9 @@ export async function handleAddAuthors(
     authors: updatedAuthors,
   };
 
-  await writeConfigs(session, currentPath, { projectConfig: updatedProjectConfig });
+  await writeConfigs(session, currentPath, {
+    projectConfig: cleanProjectConfigForWrite(updatedProjectConfig),
+  });
 
   session.log.info(
     chalk.green(

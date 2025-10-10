@@ -104,6 +104,13 @@ export function makeOutputOption() {
   );
 }
 
+export function makeWriteTemplateOption() {
+  return new Option(
+    '--write-template',
+    'Write a template.yml file with default initialization questions to the current directory',
+  );
+}
+
 export function makeResumeOption() {
   return new Option(
     '--resume',

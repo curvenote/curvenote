@@ -15,6 +15,7 @@ import {
   getDefaultSiteConfigFromRemote,
   processOption,
   validateLinkIsAProject,
+  cleanProjectConfigForWrite,
 } from './utils.js';
 
 type Options = {
@@ -92,7 +93,9 @@ export async function clone(session: ISession, remote?: string, path?: string, o
     remote,
     path,
   });
-  await writeConfigs(session, siteProject.path, { projectConfig });
+  await writeConfigs(session, siteProject.path, {
+    projectConfig: cleanProjectConfigForWrite(projectConfig),
+  });
   if (!siteConfig && remote) {
     // If there is no site config, but a remote is provided, create a config
     const newSiteConfig = await getDefaultSiteConfigFromRemote(

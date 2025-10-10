@@ -10,7 +10,7 @@ import { MyUser } from '../../models.js';
 import type { ISession } from '../../session/types.js';
 import { pullProjects } from '../pull/project.js';
 import questions from '../questions.js';
-import { getDefaultSiteConfig, INIT_LOGO_PATH } from '../utils.js';
+import { getDefaultSiteConfig, INIT_LOGO_PATH, cleanProjectConfigForWrite } from '../utils.js';
 import { addOxaTransformersToOpts } from '../../utils/utils.js';
 import type { Options } from './types.js';
 import { CURVENOTE_YML } from './types.js';
@@ -25,6 +25,7 @@ import {
   handleCurvenoteImport,
   handleGithubImport,
 } from './initialization-handlers.js';
+import { writeTemplateFile } from './template-file.js';
 
 /**
  * Initialize local curvenote project from folder or remote project
@@ -44,6 +45,12 @@ export async function init(session: ISession, opts: Options) {
   // These operations modify existing projects and return early
   // Add new modification operations here by checking opts and calling handlers
   // ========================================================================
+
+  // Handle --write-template: Write template.yml with default questions
+  if (opts.writeTemplate) {
+    await writeTemplateFile(session, currentPath);
+    return;
+  }
 
   // Handle --write-toc: Generate table of contents
   if (opts.writeTOC) {
@@ -156,7 +163,9 @@ export async function init(session: ISession, opts: Options) {
   }
   // If there is a new project config, save to the state and write to disk
   if (projectConfig) {
-    await writeConfigs(session, currentPath, { projectConfig });
+    await writeConfigs(session, currentPath, {
+      projectConfig: cleanProjectConfigForWrite(projectConfig),
+    });
     session.store.dispatch(config.actions.receiveCurrentProjectPath({ path: currentPath }));
   }
 

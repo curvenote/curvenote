@@ -11,6 +11,7 @@ import {
   makeGithubOption,
   makeCurvenoteOption,
   makeOutputOption,
+  makeWriteTemplateOption,
   makeCIOption,
 } from './options.js';
 
@@ -26,6 +27,7 @@ function makeInitCLI(program: Command) {
     .addOption(makeGithubOption())
     .addOption(makeCurvenoteOption())
     .addOption(makeOutputOption())
+    .addOption(makeWriteTemplateOption())
     .action(clirun(sync.init, { program, hideNoTokenWarning: true, keepAlive: true }));
   return command;
 }
