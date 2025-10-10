@@ -78,7 +78,7 @@ export async function handleImproveProject(
   }
 
   console.log(chalk.bold('\n📋 Summary of changes:\n'));
-  changes.forEach((change) => console.log(change));
+  changes.map((change) => console.log(change));
 
   // Ask for confirmation
   const confirm = await inquirer.prompt([
