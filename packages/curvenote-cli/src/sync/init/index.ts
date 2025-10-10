@@ -192,11 +192,10 @@ export async function init(session: ISession, opts: Options) {
     writeFileToFolder(logoPath, LOGO);
   }
 
-  // Check if this is a CLI-driven initialization (non-interactive)
-  const isCliDriven = !!opts.github || !!opts.curvenote;
+  // For Curvenote imports (--curvenote), wait for pull to complete and exit (non-interactive)
+  const isCurvenoteImport = !!opts.curvenote;
 
-  // For CLI-driven initializations, wait for pull to complete before showing completion message
-  if (isCliDriven) {
+  if (isCurvenoteImport) {
     if (!pullComplete) {
       pullOpts.level = LogLevel.info;
       session.log.info(
@@ -210,6 +209,7 @@ export async function init(session: ISession, opts: Options) {
     return;
   }
 
+  // For GitHub imports (--github or interactive), continue with server prompt
   // Interactive mode: show completion message and continue
   if (!opts.yes) session.log.info(await FINISHED(session));
 

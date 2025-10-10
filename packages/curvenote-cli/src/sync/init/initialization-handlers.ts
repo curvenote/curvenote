@@ -265,8 +265,8 @@ export async function handleGithubImport(
     };
   }
 
-  // In interactive mode (no CLI providedGithubUrl), ask template initialization questions
-  if (!providedGithubUrl && projectConfig) {
+  // Ask template initialization questions (both CLI --github and interactive modes)
+  if (projectConfig) {
     const templateMetadata = await runTemplateInitQuestions(session);
 
     // Merge template metadata into project config

@@ -21,6 +21,7 @@ export interface TemplateQuestionSpec {
   message: string;
   placeholder?: string;
   hint?: string;
+  default?: string; // If set, pressing Enter uses this value; if not set, pressing Enter returns undefined
   required: boolean;
 }
 
@@ -36,7 +37,7 @@ export const DEFAULT_TEMPLATE_INIT_QUESTIONS: TemplateQuestionSpec[] = [
     enabled: true,
     type: 'text',
     message: 'Project title:',
-    placeholder: 'My Project',
+    placeholder: 'e.g., My Research Project',
     required: false,
   },
   {
@@ -44,8 +45,8 @@ export const DEFAULT_TEMPLATE_INIT_QUESTIONS: TemplateQuestionSpec[] = [
     field: 'project.subtitle',
     enabled: true,
     type: 'text',
-    message: 'Subtitle (concise, single line):',
-    placeholder: 'A brief description of your project',
+    message: 'Subtitle:',
+    placeholder: 'A concise, single line description',
     hint: 'Keep it short - this appears as a tagline',
     required: false,
   },
@@ -55,8 +56,8 @@ export const DEFAULT_TEMPLATE_INIT_QUESTIONS: TemplateQuestionSpec[] = [
     enabled: true,
     type: 'text',
     message: 'Description:',
-    placeholder: 'A longer description of your project',
-    hint: 'This is used for social media and article listings',
+    placeholder: 'A longer description suitable for social media and listings',
+    hint: 'Used for social media and article listings',
     required: false,
   },
   {
@@ -64,8 +65,9 @@ export const DEFAULT_TEMPLATE_INIT_QUESTIONS: TemplateQuestionSpec[] = [
     field: 'project.authors',
     enabled: true,
     type: 'authors',
-    message: 'Add author(s) (ORCID, GitHub username, or manual entry):',
-    hint: 'You can add multiple authors',
+    message: 'Add author(s):',
+    placeholder: 'ORCID, GitHub username, or comma-separated list',
+    hint: 'You can add multiple authors separated by commas',
     required: false,
   },
   {
@@ -73,8 +75,8 @@ export const DEFAULT_TEMPLATE_INIT_QUESTIONS: TemplateQuestionSpec[] = [
     field: 'project.keywords',
     enabled: true,
     type: 'keywords',
-    message: 'Keywords (comma-separated):',
-    placeholder: 'e.g., science, research, data',
+    message: 'Keywords:',
+    placeholder: 'e.g., science, research, data analysis',
     hint: 'Help others discover your project',
     required: false,
   },
@@ -84,16 +86,36 @@ export const DEFAULT_TEMPLATE_INIT_QUESTIONS: TemplateQuestionSpec[] = [
  * Prompt for a single text question
  */
 async function promptTextQuestion(spec: TemplateQuestionSpec): Promise<string | undefined> {
+  // Show hint before the question if available
   if (spec.hint) {
-    console.log(chalk.dim(`  ${spec.hint}`));
+    console.log(chalk.gray(`\n${spec.hint}`));
+  }
+
+  // Build display text: placeholder + [default] if default exists
+  let displayText = spec.placeholder || '';
+  if (spec.default) {
+    displayText = displayText ? `${displayText} [${spec.default}]` : `[${spec.default}]`;
+  }
+
+  // Add "(optional)" or "(press Enter to skip)" to message if not required
+  let message = spec.message;
+  if (!spec.required && !spec.default) {
+    message = `${spec.message} ${chalk.dim('(press Enter to skip)')}`;
   }
 
   const response = await inquirer.prompt([
     {
       name: 'value',
       type: 'input',
-      message: spec.message,
-      default: spec.placeholder,
+      message,
+      default: spec.default, // Use default if provided
+      transformer: (input: string) => {
+        // Show placeholder + [default] when empty
+        if (!input && displayText) {
+          return chalk.dim(displayText);
+        }
+        return input;
+      },
       validate: (input: string) => {
         if (spec.required && !input.trim()) {
           return `${spec.id} is required`;
@@ -103,7 +125,13 @@ async function promptTextQuestion(spec: TemplateQuestionSpec): Promise<string | 
     },
   ]);
 
-  return response.value?.trim() || undefined;
+  // If default exists, return default or entered value
+  // If no default, return undefined when empty
+  const trimmed = response.value?.trim();
+  if (!trimmed && !spec.default) {
+    return undefined;
+  }
+  return trimmed || spec.default;
 }
 
 /**
@@ -114,21 +142,41 @@ async function promptAuthorsQuestion(
   session: ISession,
   spec: TemplateQuestionSpec,
 ): Promise<any[] | undefined> {
+  // Show hint before the question if available
   if (spec.hint) {
-    console.log(chalk.dim(`  ${spec.hint}`));
+    console.log(chalk.gray(`\n${spec.hint}`));
   }
 
   const authors: any[] = [];
+
+  // Build display text: placeholder + [default] if default exists
+  let displayText = spec.placeholder || '';
+  if (spec.default) {
+    displayText = displayText ? `${displayText} [${spec.default}]` : `[${spec.default}]`;
+  }
+
+  // Add "(press Enter to skip)" to message if not required
+  let message = spec.message;
+  if (!spec.required && !spec.default) {
+    message = `${spec.message} ${chalk.dim('(press Enter to skip)')}`;
+  }
 
   // First prompt - can accept comma-separated list or single identifier
   const identifierPrompt = await inquirer.prompt([
     {
       name: 'identifier',
       type: 'input',
-      message: 'Enter ORCID(s), GitHub username(s) - comma-separated (or press Enter to skip):',
+      message,
+      default: spec.default,
+      transformer: (input: string) => {
+        if (!input && displayText) {
+          return chalk.dim(displayText);
+        }
+        return input;
+      },
       validate: (input: string) => {
-        // Empty is OK (skip)
-        if (!input.trim()) return true;
+        // Empty is OK (skip) only if no default
+        if (!input.trim() && !spec.default) return true;
         return true;
       },
     },
@@ -313,25 +361,46 @@ async function promptAuthorsQuestion(
  * Prompt for keywords (comma-separated list)
  */
 async function promptKeywordsQuestion(spec: TemplateQuestionSpec): Promise<string[] | undefined> {
+  // Show hint before the question if available
   if (spec.hint) {
-    console.log(chalk.dim(`  ${spec.hint}`));
+    console.log(chalk.gray(`\n${spec.hint}`));
+  }
+
+  // Build display text: placeholder + [default] if default exists
+  let displayText = spec.placeholder || '';
+  if (spec.default) {
+    displayText = displayText ? `${displayText} [${spec.default}]` : `[${spec.default}]`;
+  }
+
+  // Add "(press Enter to skip)" to message if not required
+  let message = spec.message;
+  if (!spec.required && !spec.default) {
+    message = `${spec.message} ${chalk.dim('(press Enter to skip)')}`;
   }
 
   const response = await inquirer.prompt([
     {
       name: 'value',
       type: 'input',
-      message: spec.message,
-      default: spec.placeholder,
+      message,
+      default: spec.default,
+      transformer: (input: string) => {
+        if (!input && displayText) {
+          return chalk.dim(displayText);
+        }
+        return input;
+      },
     },
   ]);
 
-  if (!response.value?.trim()) {
+  const value = response.value?.trim() || spec.default;
+
+  if (!value) {
     return undefined;
   }
 
   // Split by comma and clean up
-  const keywords = response.value
+  const keywords = value
     .split(',')
     .map((k: string) => k.trim())
     .filter(Boolean);
