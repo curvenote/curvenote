@@ -12,6 +12,7 @@ import {
   makeCurvenoteOption,
   makeOutputOption,
   makeWriteTemplateOption,
+  makeImproveOption,
   makeCIOption,
 } from './options.js';
 
@@ -28,6 +29,7 @@ function makeInitCLI(program: Command) {
     .addOption(makeCurvenoteOption())
     .addOption(makeOutputOption())
     .addOption(makeWriteTemplateOption())
+    .addOption(makeImproveOption())
     .action(clirun(sync.init, { program, hideNoTokenWarning: true, keepAlive: true }));
   return command;
 }

@@ -111,6 +111,13 @@ export function makeWriteTemplateOption() {
   );
 }
 
+export function makeImproveOption() {
+  return new Option(
+    '--improve',
+    'Update existing project configuration by re-answering initialization questions',
+  );
+}
+
 export function makeResumeOption() {
   return new Option(
     '--resume',

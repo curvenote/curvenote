@@ -20,6 +20,7 @@ import {
   handleWriteTOC,
   handleAddAuthors,
 } from './modification-handlers.js';
+import { handleImproveProject } from './improve-handler.js';
 import {
   handleLocalFolderContent,
   handleCurvenoteImport,
@@ -49,6 +50,13 @@ export async function init(session: ISession, opts: Options) {
   // Handle --write-template: Write template.yml with default questions
   if (opts.writeTemplate) {
     await writeTemplateFile(session, currentPath);
+    return;
+  }
+
+  // Handle --improve: Update existing project by re-answering template questions
+  if (opts.improve) {
+    const projectConfig = validateExistingProject(session, currentPath);
+    await handleImproveProject(session, currentPath, projectConfig);
     return;
   }
 

@@ -9,6 +9,7 @@ export type Options = {
   curvenote?: string; // Curvenote project URL
   output?: string; // Output folder for cloned/initialized project
   writeTemplate?: boolean; // Write template.yml with default questions
+  improve?: boolean; // Update existing project by re-answering template questions
 };
 
 export const CURVENOTE_YML = 'curvenote.yml';
