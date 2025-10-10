@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { join, resolve, basename } from 'node:path';
 import fs from 'node:fs';
+import { v4 as uuid } from 'uuid';
 import { loadProjectFromDisk, selectors, loadConfig } from 'myst-cli';
 import type { ProjectConfig } from 'myst-config';
 import type { ISession } from '../../session/types.js';
@@ -240,6 +241,27 @@ export async function handleGithubImport(
     } catch (error) {
       session.log.debug(`Could not load project from disk: ${(error as Error).message}`);
     }
+  }
+
+  // Always generate a new UUID for the project ID (don't reuse template's ID)
+  if (projectConfig) {
+    const newUuid = uuid();
+    let newId: string;
+
+    if (projectConfig.id) {
+      // If template has an ID, append the new UUID after a hyphen
+      newId = `${projectConfig.id}-${newUuid}`;
+      session.log.debug(`Appending UUID to existing ID: ${projectConfig.id} -> ${newId}`);
+    } else {
+      // If no ID exists, just use the new UUID
+      newId = newUuid;
+      session.log.debug(`Generating new project ID: ${newId}`);
+    }
+
+    projectConfig = {
+      ...projectConfig,
+      id: newId,
+    };
   }
 
   return { projectConfig, title, currentPath: targetPath };
