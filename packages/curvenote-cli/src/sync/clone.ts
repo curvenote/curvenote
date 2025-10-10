@@ -15,6 +15,7 @@ import {
   getDefaultSiteConfigFromRemote,
   processOption,
   validateLinkIsAProject,
+  cleanProjectConfigForWrite,
 } from './utils.js';
 
 type Options = {
@@ -39,7 +40,8 @@ export async function interactiveCloneQuestions(
   }
   let path: string;
   const defaultPath = '.';
-  if (opts?.path || opts?.yes) {
+  // Skip path prompt if: --output provided, --yes flag set, or CLI-driven with --remote
+  if (opts?.path || opts?.yes || opts?.remote) {
     path = opts?.path ?? defaultPath;
     if (path !== '.' && fs.existsSync(path)) {
       throw new Error(`Invalid path for clone: "${path}", it must not exist.`);
@@ -91,7 +93,9 @@ export async function clone(session: ISession, remote?: string, path?: string, o
     remote,
     path,
   });
-  await writeConfigs(session, siteProject.path, { projectConfig });
+  await writeConfigs(session, siteProject.path, {
+    projectConfig: cleanProjectConfigForWrite(projectConfig),
+  });
   if (!siteConfig && remote) {
     // If there is no site config, but a remote is provided, create a config
     const newSiteConfig = await getDefaultSiteConfigFromRemote(

@@ -103,3 +103,70 @@ export function processOption(opts: SyncCiHelperOptions | undefined) {
     yes: opts.ci || opts.yes,
   };
 }
+
+/**
+ * Normalize GitHub URL to HTTPS clone URL
+ * Handles formats:
+ * - https://github.com/user/repo
+ * - https://github.com/user/repo.git
+ * - git@github.com:user/repo.git
+ * - github.com/user/repo
+ * - user/repo
+ */
+export function normalizeGithubUrl(url: string): string {
+  let normalized = url.trim();
+
+  // Convert SSH format to HTTPS
+  if (normalized.startsWith('git@github.com:')) {
+    normalized = normalized.replace('git@github.com:', 'https://github.com/');
+  }
+
+  // Ensure HTTPS protocol
+  if (!normalized.startsWith('http')) {
+    normalized = 'https://github.com/' + normalized.replace(/^github\.com\//, '');
+  }
+
+  // Ensure .git extension for cloning
+  if (!normalized.endsWith('.git')) {
+    normalized = normalized + '.git';
+  }
+
+  return normalized;
+}
+
+/**
+ * Clean author/contributor objects by removing computed or internal fields
+ * that shouldn't be persisted to the config file (id, nameParsed)
+ */
+function cleanContributors(contributors: any[] | undefined): any[] | undefined {
+  if (!contributors || !Array.isArray(contributors)) return contributors;
+
+  return contributors.map((contributor) => {
+    if (!contributor || typeof contributor !== 'object') return contributor;
+
+    // Create a shallow copy and remove unwanted fields
+    const { id, nameParsed, ...cleaned } = contributor;
+
+    return cleaned;
+  });
+}
+
+/**
+ * Prepare project config for writing by removing computed/internal fields
+ * This makes the YAML more compact and readable
+ */
+export function cleanProjectConfigForWrite(projectConfig: ProjectConfig): ProjectConfig {
+  const result: any = { ...projectConfig };
+
+  // Clean authors (remove id and nameParsed)
+  if (result.authors) {
+    result.authors = cleanContributors(result.authors);
+  }
+
+  // Clean contributors (remove id and nameParsed)
+  if (result.contributors) {
+    result.contributors = cleanContributors(result.contributors);
+  }
+
+  return result;
+}

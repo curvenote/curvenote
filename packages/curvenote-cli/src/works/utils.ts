@@ -18,6 +18,7 @@ import {
 import { join, relative, dirname } from 'node:path';
 import type { WorkDTO } from '@curvenote/common';
 import * as uploads from '../uploads/index.js';
+import { cleanProjectConfigForWrite } from '../sync/utils.js';
 import type { ISession } from '../session/types.js';
 import chalk from 'chalk';
 import { getFromJournals } from '../utils/api.js';
@@ -241,7 +242,9 @@ export async function writeKeyToConfig(session: ISession, key: string) {
   session.log.info(`creating backup copy of config file ${file} -> ${tempFolder}`);
   await fs.copyFile(file, join(tempFolder, 'curvenote.yml'));
   session.log.info(`writing work key to ${file}`);
-  await writeConfigs(session, path, { projectConfig: { ...projectConfig, id: key } });
+  await writeConfigs(session, path, {
+    projectConfig: cleanProjectConfigForWrite({ ...projectConfig, id: key }),
+  });
 }
 
 export function exitOnInvalidKeyOption(session: ISession, key: string) {

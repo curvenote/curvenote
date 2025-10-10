@@ -8,26 +8,32 @@ function title(opts: { title: string }) {
 }
 
 function content(opts: { folderIsEmpty: boolean }) {
+  const choices = [
+    {
+      name: 'Use the content & notebooks in this folder',
+      value: 'folder',
+      disabled: opts.folderIsEmpty,
+    },
+    {
+      name: 'Start from a template repository (github)',
+      value: 'github',
+    },
+    {
+      name: 'Import from Curvenote',
+      value: 'curvenote',
+    },
+    {
+      name: 'Show me some demo content!',
+      value: 'demo',
+      disabled: true,
+    },
+  ].sort((a, b) => (a.disabled ? 1 : b.disabled ? -1 : 0));
+
   return {
     name: 'content',
     type: 'list',
     message: 'What content would you like to use?',
-    choices: [
-      {
-        name: 'Import from Curvenote',
-        value: 'curvenote',
-      },
-      {
-        name: 'Use the content & notebooks in this folder',
-        value: 'folder',
-        disabled: opts.folderIsEmpty,
-      },
-      {
-        name: 'Show me some demo content!',
-        value: 'demo',
-        disabled: true,
-      },
-    ],
+    choices,
   };
 }
 
@@ -37,6 +43,39 @@ function projectLink(opts?: { projectLink?: string }) {
     message: 'Link to Curvenote project:',
     type: 'input',
     default: opts?.projectLink || 'https://curvenote.com/@templates/web',
+  };
+}
+
+function githubUrl() {
+  return {
+    name: 'githubUrl',
+    message: 'GitHub repository URL:',
+    type: 'input',
+    validate: (input: string) => {
+      if (!input || !input.trim()) {
+        return 'GitHub URL is required';
+      }
+      // Basic validation for GitHub URL
+      if (!input.includes('github.com')) {
+        return 'Please provide a valid GitHub repository URL';
+      }
+      return true;
+    },
+  };
+}
+
+function githubFolder(opts: { defaultFolder: string }) {
+  return {
+    name: 'githubFolder',
+    message: 'Clone into folder:',
+    type: 'input',
+    default: opts.defaultFolder,
+    validate: (input: string) => {
+      if (!input || !input.trim()) {
+        return 'Folder name is required';
+      }
+      return true;
+    },
   };
 }
 
@@ -71,6 +110,8 @@ export default {
   title,
   content,
   projectLink,
+  githubUrl,
+  githubFolder,
   projectPath,
   start,
   pull,
