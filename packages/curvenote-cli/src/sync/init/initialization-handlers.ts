@@ -29,15 +29,8 @@ export async function handleLocalFolderContent(
   existingProjectConfig?: ProjectConfig,
   existingTitle?: string,
 ): Promise<{ projectConfig?: ProjectConfig; title?: string; currentPath: string }> {
-  if (projectConfigPaths.length > 0) {
-    const pathListString = projectConfigPaths
-      .map((p) => `  - ${join(p, CURVENOTE_YML)}`)
-      .join('\n');
-
-    session.log.info(
-      `👀 ${chalk.bold('Found existing project config files on your path:')}\n${pathListString}\n`,
-    );
-  }
+  // Note: The nested project paths are now shown in the nestedProjectChoice question
+  // in index.ts, so we don't need to show them again here
 
   let title = existingTitle;
   if (!opts.yes) {
