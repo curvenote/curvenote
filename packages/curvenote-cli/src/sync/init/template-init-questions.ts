@@ -11,7 +11,7 @@ import { lookupAuthor } from './author-lookup.js';
 // configuration files.
 // ============================================================================
 
-export type TemplateQuestionType = 'text' | 'authors' | 'list';
+export type TemplateQuestionType = 'text' | 'people' | 'list';
 
 export interface TemplateQuestionSpec {
   id: string;
@@ -64,7 +64,7 @@ export const DEFAULT_TEMPLATE_INIT_QUESTIONS: TemplateQuestionSpec[] = [
     id: 'authors',
     field: 'project.authors',
     enabled: true,
-    type: 'authors',
+    type: 'people',
     message: 'Add author(s):',
     placeholder: 'ORCID, GitHub username, or comma-separated list',
     hint: 'You can add multiple authors separated by commas',
@@ -135,10 +135,11 @@ async function promptTextQuestion(spec: TemplateQuestionSpec): Promise<string | 
 }
 
 /**
- * Prompt for authors (repeatable, supports ORCID/GitHub/manual)
+ * Prompt for people (authors, editors, contributors) with ORCID/GitHub username lookup + manual entry
+ * This can be used for any field that accepts a list of people (authors, editors, contributors, etc.)
  * Accepts comma-separated list or interactive one-by-one entry
  */
-async function promptAuthorsQuestion(
+async function promptPeopleQuestion(
   session: ISession,
   spec: TemplateQuestionSpec,
 ): Promise<any[] | undefined> {
@@ -147,7 +148,7 @@ async function promptAuthorsQuestion(
     console.log(chalk.gray(`\n${spec.hint}`));
   }
 
-  const authors: any[] = [];
+  const people: any[] = [];
 
   // Build display text: placeholder + [default] if default exists
   let displayText = spec.placeholder || '';
@@ -183,7 +184,7 @@ async function promptAuthorsQuestion(
   ]);
 
   if (!identifierPrompt.identifier?.trim()) {
-    // User pressed Enter without input - skip authors
+    // User pressed Enter without input - skip
     return undefined;
   }
 
@@ -194,48 +195,48 @@ async function promptAuthorsQuestion(
     .filter(Boolean);
 
   // Look up all identifiers
-  console.log(chalk.bold('\n📝 Looking up authors...\n'));
+  console.log(chalk.bold('\n📝 Looking up people...\n'));
 
   for (const identifier of identifiers) {
-    const author = await lookupAuthor(session, identifier);
+    const person = await lookupAuthor(session, identifier);
 
-    if (author) {
+    if (person) {
       // Show what was found and confirm
-      console.log(chalk.green(`  ✓ Found: ${author.name}`));
-      if (author.orcid) console.log(chalk.dim(`    ORCID: ${author.orcid}`));
-      if (author.github) console.log(chalk.dim(`    GitHub: ${author.github}`));
-      if (author.email) console.log(chalk.dim(`    Email: ${author.email}`));
+      console.log(chalk.green(`  ✓ Found: ${person.name}`));
+      if (person.orcid) console.log(chalk.dim(`    ORCID: ${person.orcid}`));
+      if (person.github) console.log(chalk.dim(`    GitHub: ${person.github}`));
+      if (person.email) console.log(chalk.dim(`    Email: ${person.email}`));
 
       const confirm = await inquirer.prompt([
         {
           name: 'add',
           type: 'confirm',
-          message: 'Add this author?',
+          message: 'Add this person?',
           default: true,
         },
       ]);
 
       if (confirm.add) {
-        authors.push(author);
+        people.push(person);
       }
     } else {
       // Lookup failed - offer manual entry
-      console.log(chalk.yellow(`  Could not find author information for: ${identifier}`));
+      console.log(chalk.yellow(`  Could not find person information for: ${identifier}`));
       const manualPrompt = await inquirer.prompt([
         {
           name: 'manual',
           type: 'confirm',
-          message: 'Enter author information manually?',
+          message: 'Enter person information manually?',
           default: false,
         },
       ]);
 
       if (manualPrompt.manual) {
-        const manualAuthor = await inquirer.prompt([
+        const manualPerson = await inquirer.prompt([
           {
             name: 'name',
             type: 'input',
-            message: 'Author name:',
+            message: 'Name:',
             validate: (input: string) => (input.trim() ? true : 'Name is required'),
           },
           {
@@ -246,30 +247,30 @@ async function promptAuthorsQuestion(
           {
             name: 'corresponding',
             type: 'confirm',
-            message: 'Corresponding author?',
+            message: 'Corresponding?',
             default: false,
             when: (answers: any) => !!answers.email,
           },
         ]);
 
-        authors.push({
-          name: manualAuthor.name,
-          email: manualAuthor.email || undefined,
-          corresponding: manualAuthor.corresponding || false,
+        people.push({
+          name: manualPerson.name,
+          email: manualPerson.email || undefined,
+          corresponding: manualPerson.corresponding || false,
         });
       }
     }
   }
 
   // After processing the initial list, ask if they want to add more
-  if (authors.length > 0) {
+  if (people.length > 0) {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const continuePrompt = await inquirer.prompt([
         {
           name: 'addMore',
           type: 'confirm',
-          message: 'Add another author?',
+          message: 'Add another person?',
           default: false,
         },
       ]);
@@ -278,7 +279,7 @@ async function promptAuthorsQuestion(
         break;
       }
 
-      // Single identifier entry for additional authors
+      // Single identifier entry for additional people
       const additionalPrompt = await inquirer.prompt([
         {
           name: 'identifier',
@@ -291,43 +292,43 @@ async function promptAuthorsQuestion(
         break;
       }
 
-      const author = await lookupAuthor(session, additionalPrompt.identifier);
+      const person = await lookupAuthor(session, additionalPrompt.identifier);
 
-      if (author) {
-        console.log(chalk.green(`  ✓ Found: ${author.name}`));
-        if (author.orcid) console.log(chalk.dim(`    ORCID: ${author.orcid}`));
-        if (author.github) console.log(chalk.dim(`    GitHub: ${author.github}`));
-        if (author.email) console.log(chalk.dim(`    Email: ${author.email}`));
+      if (person) {
+        console.log(chalk.green(`  ✓ Found: ${person.name}`));
+        if (person.orcid) console.log(chalk.dim(`    ORCID: ${person.orcid}`));
+        if (person.github) console.log(chalk.dim(`    GitHub: ${person.github}`));
+        if (person.email) console.log(chalk.dim(`    Email: ${person.email}`));
 
         const confirm = await inquirer.prompt([
           {
             name: 'add',
             type: 'confirm',
-            message: 'Add this author?',
+            message: 'Add this person?',
             default: true,
           },
         ]);
 
         if (confirm.add) {
-          authors.push(author);
+          people.push(person);
         }
       } else {
-        console.log(chalk.yellow('  Could not find author information.'));
+        console.log(chalk.yellow('  Could not find person information.'));
         const manualPrompt = await inquirer.prompt([
           {
             name: 'manual',
             type: 'confirm',
-            message: 'Enter author information manually?',
+            message: 'Enter person information manually?',
             default: false,
           },
         ]);
 
         if (manualPrompt.manual) {
-          const manualAuthor = await inquirer.prompt([
+          const manualPerson = await inquirer.prompt([
             {
               name: 'name',
               type: 'input',
-              message: 'Author name:',
+              message: 'Name:',
               validate: (input: string) => (input.trim() ? true : 'Name is required'),
             },
             {
@@ -338,23 +339,23 @@ async function promptAuthorsQuestion(
             {
               name: 'corresponding',
               type: 'confirm',
-              message: 'Corresponding author?',
+              message: 'Corresponding?',
               default: false,
               when: (answers: any) => !!answers.email,
             },
           ]);
 
-          authors.push({
-            name: manualAuthor.name,
-            email: manualAuthor.email || undefined,
-            corresponding: manualAuthor.corresponding || false,
+          people.push({
+            name: manualPerson.name,
+            email: manualPerson.email || undefined,
+            corresponding: manualPerson.corresponding || false,
           });
         }
       }
     }
   }
 
-  return authors.length > 0 ? authors : undefined;
+  return people.length > 0 ? people : undefined;
 }
 
 /**
@@ -446,8 +447,8 @@ export async function runTemplateInitQuestions(
       case 'text':
         value = await promptTextQuestion(spec);
         break;
-      case 'authors':
-        value = await promptAuthorsQuestion(session, spec);
+      case 'people':
+        value = await promptPeopleQuestion(session, spec);
         break;
       case 'list':
         value = await promptListQuestion(spec);

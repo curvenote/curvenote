@@ -21,7 +21,19 @@ const TEMPLATE_HEADER = `# Curvenote Init Template Configuration
 # QUESTION TYPES:
 # - text: Single-line text input
 # - list: Comma-separated list (e.g., keywords, tags)
-# - authors: Special type for ORCID/GitHub author lookup
+# - people: Person list with ORCID/GitHub lookup (for authors, editors, contributors)
+#
+# USING THE 'PEOPLE' TYPE:
+# The 'people' type can be used for authors, editors, or contributors:
+#
+# - id: editors
+#   field: project.editors       # Use 'project.editors' or 'project.contributors'
+#   enabled: true
+#   type: people
+#   message: "Add editor(s):"
+#   placeholder: "ORCID, GitHub username, or comma-separated list"
+#   hint: "You can add multiple editors separated by commas"
+#   required: false
 #
 # ADDING CUSTOM QUESTIONS:
 # You can add custom text or list questions:
@@ -193,10 +205,10 @@ export function loadTemplateFile(
         continue;
       }
 
-      if (!['text', 'list', 'authors'].includes(q.type)) {
+      if (!['text', 'list', 'people'].includes(q.type)) {
         session.log.warn(
           chalk.yellow(
-            `⚠️  Skipping question '${q.id}': invalid type '${q.type}' (must be 'text', 'list', or 'authors')`,
+            `⚠️  Skipping question '${q.id}': invalid type '${q.type}' (must be 'text', 'list', or 'people')`,
           ),
         );
         continue;
