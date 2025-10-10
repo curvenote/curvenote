@@ -37,6 +37,27 @@ function content(opts: { folderIsEmpty: boolean }) {
   };
 }
 
+function nestedProjectChoice(opts: { projectPaths: string[] }) {
+  const pathListString = opts.projectPaths.map((p) => `  - ${p}`).join('\n');
+  return {
+    name: 'action',
+    type: 'list',
+    message: `Found existing project config files on your path:\n${pathListString}\n\nWhat would you like to do?`,
+    choices: [
+      {
+        name: 'Create a site containing these projects',
+        value: 'site',
+        short: 'Create site',
+      },
+      {
+        name: 'Initialize a new project',
+        value: 'new',
+        short: 'New project',
+      },
+    ],
+  };
+}
+
 function projectLink(opts?: { projectLink?: string }) {
   return {
     name: 'projectLink',
@@ -109,6 +130,7 @@ function pull() {
 export default {
   title,
   content,
+  nestedProjectChoice,
   projectLink,
   githubUrl,
   githubFolder,
