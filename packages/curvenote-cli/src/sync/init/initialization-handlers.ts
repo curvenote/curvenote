@@ -11,6 +11,7 @@ import questions from '../questions.js';
 import { getDefaultProjectConfig, normalizeGithubUrl } from '../utils.js';
 import type { Options } from './types.js';
 import { CURVENOTE_YML } from './types.js';
+import { runTemplateInitQuestions } from './template-init-questions.js';
 
 // ============================================================================
 // PROJECT INITIALIZATION HANDLERS
@@ -262,6 +263,22 @@ export async function handleGithubImport(
       ...projectConfig,
       id: newId,
     };
+  }
+
+  // In interactive mode (no CLI providedGithubUrl), ask template initialization questions
+  if (!providedGithubUrl && projectConfig) {
+    const templateMetadata = await runTemplateInitQuestions(session);
+
+    // Merge template metadata into project config
+    projectConfig = {
+      ...projectConfig,
+      ...templateMetadata,
+    };
+
+    // Update title if provided
+    if (templateMetadata.title) {
+      title = templateMetadata.title;
+    }
   }
 
   return { projectConfig, title, currentPath: targetPath };
