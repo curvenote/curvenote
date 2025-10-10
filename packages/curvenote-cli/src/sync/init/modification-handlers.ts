@@ -3,8 +3,8 @@ import inquirer from 'inquirer';
 import { loadProjectFromDisk, selectors, writeConfigs } from 'myst-cli';
 import type { ProjectConfig } from 'myst-config';
 import type { Contributor } from 'myst-frontmatter';
-import { orcid } from 'orcid';
 import type { ISession } from '../../session/types.js';
+import { isORCID, isGitHubUsername, lookupAuthor } from './author-lookup.js';
 
 // ============================================================================
 // PROJECT MODIFICATION HANDLERS
@@ -46,89 +46,10 @@ export async function handleWriteTOC(
 // ============================================================================
 
 /**
- * Extract and normalize ORCID ID from a string (handles URLs like https://orcid.org/0000-0002-7859-8394)
- */
-function extractORCID(input: string): string {
-  const normalized = orcid.normalize(input);
-  return normalized || input.trim();
-}
-
-/**
- * Validate ORCID format (xxxx-xxxx-xxxx-xxxx)
- */
-function validateORCID(orcidStr: string): boolean {
-  return orcid.validate(orcidStr);
-}
-
-/**
  * Validate email format
  */
 function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-/**
- * Fetch author information from ORCID Public API
- */
-async function fetchORCIDInfo(session: ISession, orcidId: string): Promise<Contributor | null> {
-  try {
-    session.log.debug(`Fetching ORCID info for ${orcidId}`);
-
-    const response = await session.fetch(`https://pub.orcid.org/v3.0/${orcidId}/person`, {
-      headers: {
-        Accept: 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      session.log.error(`ORCID API returned ${response.status} for ${orcidId}`);
-      return null;
-    }
-
-    const person = (await response.json()) as any;
-
-    const name =
-      person?.name?.['credit-name']?.value ||
-      `${person?.name?.['given-names']?.value || ''} ${person?.name?.['family-name']?.value || ''}`.trim();
-
-    const emails = person?.emails?.email?.map((e: any) => e.email).filter(Boolean) || [];
-    const email = emails[0] || undefined;
-
-    // Extract affiliations
-    const affiliations: string[] = [];
-    const employments = person?.['activities-summary']?.employments?.['affiliation-group'] || [];
-    for (const group of employments) {
-      const summaries = Array.isArray(group['employment-summary'])
-        ? group['employment-summary']
-        : [group['employment-summary']];
-      for (const emp of summaries) {
-        const orgName = emp?.organization?.name;
-        if (orgName && !affiliations.includes(orgName)) {
-          affiliations.push(orgName);
-        }
-      }
-    }
-
-    if (!name) {
-      session.log.warn(`Could not extract name from ORCID ${orcidId}`);
-      return null;
-    }
-
-    session.log.debug(
-      `ORCID ${orcidId} fetched: name=${name}, email=${email}, affiliations=${JSON.stringify(affiliations)}`,
-    );
-
-    return {
-      name,
-      orcid: orcidId,
-      email,
-      affiliations: affiliations.length > 0 ? affiliations : undefined,
-      corresponding: !!email,
-    };
-  } catch (error) {
-    session.log.error(`Failed to fetch ORCID info for ${orcidId}: ${(error as Error).message}`);
-    return null;
-  }
 }
 
 /**
@@ -151,6 +72,7 @@ function parseAuthorString(authorStr: string): Partial<Contributor> {
 
 /**
  * Match or add affiliations to the project
+ * Does case-insensitive matching against existing affiliations
  */
 function matchOrAddAffiliations(
   projectConfig: ProjectConfig,
@@ -160,34 +82,60 @@ function matchOrAddAffiliations(
     return undefined;
   }
 
-  // For now, just return the affiliations as-is
-  // MyST stores affiliations as strings in the authors array
-  return author.affiliations;
+  // Get existing affiliations from project config
+  const existingAffiliations = (projectConfig.affiliations as any[]) || [];
+
+  const matchedAffiliations: string[] = [];
+
+  for (const newAffiliation of author.affiliations) {
+    // Try to find a case-insensitive match
+    const matchedExisting = existingAffiliations.find((existing) => {
+      const existingName = existing.name || existing.id || '';
+      return existingName.toLowerCase() === newAffiliation.toLowerCase();
+    });
+
+    if (matchedExisting) {
+      // Use the ID of the existing affiliation
+      const affiliationId = matchedExisting.id || matchedExisting.name;
+      matchedAffiliations.push(affiliationId);
+    } else {
+      // No match found - add as new affiliation
+      // Use the affiliation string as-is (will be created by MyST)
+      matchedAffiliations.push(newAffiliation);
+    }
+  }
+
+  return matchedAffiliations.length > 0 ? matchedAffiliations : undefined;
 }
 
 /**
  * Interactive prompt for adding an author
  */
 async function promptForAuthor(session: ISession): Promise<Contributor | null> {
-  const orcidPrompt = await inquirer.prompt([
+  const identifierPrompt = await inquirer.prompt([
     {
-      name: 'orcid',
-      message: 'Enter ORCID or ORCID URL (or leave blank to enter manually):',
+      name: 'identifier',
+      message: 'Enter ORCID or GitHub username (or leave blank to enter manually):',
       type: 'input',
       validate: (input: string) => {
         if (!input) return true;
-        const extracted = extractORCID(input);
-        return validateORCID(extracted) || 'Invalid ORCID format (should be xxxx-xxxx-xxxx-xxxx)';
+        const trimmed = input.trim();
+        // Check if it's a valid ORCID or GitHub username
+        if (isORCID(trimmed) || isGitHubUsername(trimmed)) {
+          return true;
+        }
+        return 'Invalid format. Please enter an ORCID ID (xxxx-xxxx-xxxx-xxxx) or a GitHub username';
       },
     },
   ]);
 
-  if (orcidPrompt.orcid) {
-    const extractedORCID = extractORCID(orcidPrompt.orcid);
-    const author = await fetchORCIDInfo(session, extractedORCID);
+  if (identifierPrompt.identifier) {
+    const author = await lookupAuthor(session, identifierPrompt.identifier);
     if (author) {
       session.log.info(`\n${chalk.bold('Found author information:')}`);
       session.log.info(`  Name: ${author.name}`);
+      if (author.orcid) session.log.info(`  ORCID: ${author.orcid}`);
+      if (author.github) session.log.info(`  GitHub: ${author.github}`);
       if (author.email) session.log.info(`  Email: ${author.email}`);
       if (author.affiliations?.length) {
         session.log.info(`  Affiliations: ${author.affiliations.join(', ')}`);
@@ -273,24 +221,23 @@ export async function handleAddAuthors(
       addMore = continuePrompt.addMore;
     }
   } else {
-    // Check if this is pattern 2 (ORCIDs) or pattern 3 (name-based)
+    // Check if this is pattern 2 (ORCID/GitHub lookup) or pattern 3 (name-based)
     const entries = authorsInput
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
 
-    for (const entry of entries) {
-      // Extract ORCID from potential URL
-      const extractedORCID = extractORCID(entry);
+    session.log.info(chalk.bold('\n📝 Looking up authors...\n'));
 
-      // Check if it looks like an ORCID (all digits and dashes except last char)
-      if (validateORCID(extractedORCID)) {
-        // Pattern 2: ORCID lookup
-        const author = await fetchORCIDInfo(session, extractedORCID);
+    for (const entry of entries) {
+      // Try ORCID or GitHub lookup first
+      if (isORCID(entry) || isGitHubUsername(entry)) {
+        // Pattern 2: ORCID or GitHub lookup
+        const author = await lookupAuthor(session, entry);
         if (author) {
           newAuthors.push(author as Contributor);
         } else {
-          session.log.error(`Skipping ORCID ${extractedORCID} due to lookup failure`);
+          session.log.error(`Skipping ${entry} due to lookup failure`);
         }
       } else {
         // Pattern 3: Parse name-based entry
@@ -358,7 +305,11 @@ export async function handleAddAuthors(
     ),
   );
   newAuthors.forEach((author, idx) => {
-    session.log.info(`  ${idx + 1}. ${author.name}${author.orcid ? ` (${author.orcid})` : ''}`);
+    const identifiers = [];
+    if (author.orcid) identifiers.push(`ORCID: ${author.orcid}`);
+    if (author.github) identifiers.push(`GitHub: ${author.github}`);
+    const identifierStr = identifiers.length > 0 ? ` (${identifiers.join(', ')})` : '';
+    session.log.info(`  ${idx + 1}. ${author.name}${identifierStr}`);
   });
 }
 
