@@ -59,6 +59,65 @@ export function makeWriteTOCOption() {
     .implies({ writeTOC: true });
 }
 
+export function makeAddAuthorsOption() {
+  return new Option(
+    '--add-authors [authors]',
+    'Add authors to project. Interactive (no args), ORCIDs (comma-separated), or "Name; Affiliation; Email" (comma-separated)',
+  ).argParser((value) => {
+    // If no value provided (just --add-authors), return true for interactive mode
+    if (!value) {
+      return true;
+    }
+    // Otherwise return the string as-is (will be comma-separated list)
+    return value;
+  });
+}
+
+export function makeGithubOption() {
+  return new Option(
+    '--github <url>',
+    'Initialize project from a GitHub repository template URL',
+  ).argParser((value) => {
+    if (!value) {
+      throw new InvalidArgumentError('GitHub URL is required');
+    }
+    return value;
+  });
+}
+
+export function makeCurvenoteOption() {
+  return new Option(
+    '--curvenote <url>',
+    'Initialize project from a Curvenote project URL',
+  ).argParser((value) => {
+    if (!value) {
+      throw new InvalidArgumentError('Curvenote URL is required');
+    }
+    return value;
+  });
+}
+
+export function makeOutputOption() {
+  return new Option(
+    '--output <folder>',
+    'Specify output folder for cloned/initialized project (use "." for current directory)',
+  );
+}
+
+export function makeWriteTemplateOption() {
+  return new Option(
+    '--write-template',
+    'Write a template.yml file with default initialization questions to the current directory',
+  );
+}
+
+export function makeImproveOption() {
+  return new Option(
+    '--improve',
+    'Update existing project configuration by re-answering initialization questions',
+  );
+}
+
 export function makeResumeOption() {
   return new Option(
     '--resume',

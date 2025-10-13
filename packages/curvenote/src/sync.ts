@@ -7,6 +7,12 @@ import {
   makeDomainOption,
   makeForceOption,
   makeWriteTOCOption,
+  makeAddAuthorsOption,
+  makeGithubOption,
+  makeCurvenoteOption,
+  makeOutputOption,
+  makeWriteTemplateOption,
+  makeImproveOption,
   makeCIOption,
 } from './options.js';
 
@@ -18,6 +24,12 @@ function makeInitCLI(program: Command) {
     .addOption(makeYesOption())
     .addOption(makeDomainOption())
     .addOption(makeWriteTOCOption())
+    .addOption(makeAddAuthorsOption())
+    .addOption(makeGithubOption())
+    .addOption(makeCurvenoteOption())
+    .addOption(makeOutputOption())
+    .addOption(makeWriteTemplateOption())
+    .addOption(makeImproveOption())
     .action(clirun(sync.init, { program, hideNoTokenWarning: true, keepAlive: true }));
   return command;
 }
