@@ -1,5 +1,27 @@
 # curvenote
 
+## 0.12.22
+
+### Patch Changes
+
+- [#732](https://github.com/curvenote/curvenote/pull/732) [`0027ec6`](https://github.com/curvenote/curvenote/commit/0027ec6dc5267a9bdb7d5b896b29c34b21986f21) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Inserted a new question when nested project folders are found on `cn init`
+
+- [#732](https://github.com/curvenote/curvenote/pull/732) [`0027ec6`](https://github.com/curvenote/curvenote/commit/0027ec6dc5267a9bdb7d5b896b29c34b21986f21) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Extended `curvenote init` with template support and new initialization options:
+
+  - `cn init --github <url>` - Initialize from GitHub repository with interactive questions
+  - `cn init --curvenote <url>` - Initialize from Curvenote project URL
+  - `cn init --write-template` - Generate customizable `template.yml` file
+  - `cn init --improve` - Update existing project by re-answering template questions
+  - `cn init --add-authors <orcid|github>` - Add authors via ORCID or GitHub username lookup
+  - `--output <folder>` option for all init commands
+  - Template system with `people`, `text`, and `list` question types
+  - Compact author YAML output (removes internal `id` and `nameParsed` fields)
+  - GitHub profile scraping for comprehensive author metadata (ORCID, social links, affiliations)
+
+- Updated dependencies [[`87b129a`](https://github.com/curvenote/curvenote/commit/87b129a9af0f6c26aa8a31a680ede5fc66ae8329)]:
+  - @curvenote/common@0.2.22
+  - @curvenote/cli-plugin@0.12.22
+
 ## 0.12.21
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @curvenote/common
 
+## 0.2.22
+
+### Patch Changes
+
+- [#730](https://github.com/curvenote/curvenote/pull/730) [`87b129a`](https://github.com/curvenote/curvenote/commit/87b129a9af0f6c26aa8a31a680ede5fc66ae8329) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Extended JournalTheem config type with curvenoteTagBgColor
+
 ## 0.2.21
 
 ### Patch Changes
