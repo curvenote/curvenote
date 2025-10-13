@@ -3,13 +3,13 @@ import inquirer from 'inquirer';
 import { writeConfigs } from 'myst-cli';
 import type { ProjectConfig } from 'myst-config';
 import type { ISession } from '../../session/types.js';
-import { lookupAuthor } from './author-lookup.js';
+import { lookupAuthor } from './peopleLookup.js';
 import { cleanProjectConfigForWrite } from '../utils.js';
-import { loadTemplateFile } from './template-file.js';
+import { loadTemplateFile } from './loadTemplateFile.js';
 import {
   DEFAULT_TEMPLATE_INIT_QUESTIONS,
   type TemplateQuestionSpec,
-} from './template-init-questions.js';
+} from './templateInitQuestions.js';
 
 /**
  * Handle --improve: Update existing project by re-answering template questions

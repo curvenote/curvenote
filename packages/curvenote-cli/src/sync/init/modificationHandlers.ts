@@ -4,7 +4,7 @@ import { loadProjectFromDisk, selectors, writeConfigs } from 'myst-cli';
 import type { ProjectConfig } from 'myst-config';
 import type { Contributor } from 'myst-frontmatter';
 import type { ISession } from '../../session/types.js';
-import { isORCID, isGitHubUsername, lookupAuthor } from './author-lookup.js';
+import { isORCID, isGitHubUsername, lookupAuthor } from './peopleLookup.js';
 import { cleanProjectConfigForWrite } from '../utils.js';
 
 // ============================================================================

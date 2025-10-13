@@ -14,3 +14,17 @@ export type Options = {
 
 export const CURVENOTE_YML = 'curvenote.yml';
 export const TEMPLATE_YML = 'template.yml';
+
+export type TemplateQuestionType = 'text' | 'people' | 'list';
+
+export interface TemplateQuestionSpec {
+  id: string;
+  field: string; // Path in project config (e.g., 'project.title', 'project.authors')
+  enabled: boolean;
+  type: TemplateQuestionType;
+  message: string;
+  placeholder?: string;
+  hint?: string;
+  default?: string; // If set, pressing Enter uses this value; if not set, pressing Enter returns undefined
+  required: boolean;
+}

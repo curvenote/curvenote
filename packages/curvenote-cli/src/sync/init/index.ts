@@ -19,14 +19,14 @@ import {
   validateExistingProject,
   handleWriteTOC,
   handleAddAuthors,
-} from './modification-handlers.js';
-import { handleImproveProject } from './improve-handler.js';
+} from './modificationHandlers.js';
+import { handleImproveProject } from './improveHandler.js';
 import {
   handleLocalFolderContent,
   handleCurvenoteImport,
   handleGithubImport,
-} from './initialization-handlers.js';
-import { writeTemplateFile } from './template-file.js';
+} from './initializationHandlers.js';
+import { writeTemplateFile } from './loadTemplateFile.js';
 
 /**
  * Initialize local curvenote project from folder or remote project

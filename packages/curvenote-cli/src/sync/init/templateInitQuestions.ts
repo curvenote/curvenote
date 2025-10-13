@@ -2,7 +2,9 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import type { ProjectConfig } from 'myst-config';
 import type { ISession } from '../../session/types.js';
-import { lookupAuthor } from './author-lookup.js';
+import { lookupAuthor } from './peopleLookup.js';
+import { loadTemplateFile } from './loadTemplateFile.js';
+import type { TemplateQuestionSpec } from './types.js';
 
 // ============================================================================
 // TEMPLATE INITIALIZATION QUESTIONS
@@ -10,20 +12,6 @@ import { lookupAuthor } from './author-lookup.js';
 // a template. The specification can later be overridden by template-specific
 // configuration files.
 // ============================================================================
-
-export type TemplateQuestionType = 'text' | 'people' | 'list';
-
-export interface TemplateQuestionSpec {
-  id: string;
-  field: string; // Path in project config (e.g., 'project.title', 'project.authors')
-  enabled: boolean;
-  type: TemplateQuestionType;
-  message: string;
-  placeholder?: string;
-  hint?: string;
-  default?: string; // If set, pressing Enter uses this value; if not set, pressing Enter returns undefined
-  required: boolean;
-}
 
 /**
  * Default template initialization questions
@@ -417,19 +405,18 @@ async function promptListQuestion(spec: TemplateQuestionSpec): Promise<string[] 
  */
 export async function runTemplateInitQuestions(
   session: ISession,
-  targetPath?: string,
-  questionSpecs?: TemplateQuestionSpec[],
+  targetPath: string,
+  defaultQuestions: TemplateQuestionSpec[],
 ): Promise<Partial<ProjectConfig>> {
   // If no specs provided and targetPath given, try to load from template.yml
-  let questions = questionSpecs;
-  if (!questions && targetPath) {
-    const { loadTemplateFile } = await import('./template-file.js');
+  let questions: TemplateQuestionSpec[] | undefined = defaultQuestions;
+  if (targetPath) {
     questions = loadTemplateFile(session, targetPath);
   }
 
   // Fall back to defaults if still no questions
   if (!questions) {
-    questions = DEFAULT_TEMPLATE_INIT_QUESTIONS;
+    questions = defaultQuestions;
   }
 
   console.log(chalk.bold("\n📝 Let's set up your project metadata...\n"));

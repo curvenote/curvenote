@@ -11,7 +11,10 @@ import questions from '../questions.js';
 import { getDefaultProjectConfig, normalizeGithubUrl } from '../utils.js';
 import type { Options } from './types.js';
 import { CURVENOTE_YML } from './types.js';
-import { runTemplateInitQuestions } from './template-init-questions.js';
+import {
+  DEFAULT_TEMPLATE_INIT_QUESTIONS,
+  runTemplateInitQuestions,
+} from './templateInitQuestions.js';
 
 // ============================================================================
 // PROJECT INITIALIZATION HANDLERS
@@ -261,7 +264,11 @@ export async function handleGithubImport(
   // Ask template initialization questions (both CLI --github and interactive modes)
   // Try to load custom questions from template.yml in the cloned directory
   if (projectConfig) {
-    const templateMetadata = await runTemplateInitQuestions(session, targetPath);
+    const templateMetadata = await runTemplateInitQuestions(
+      session,
+      targetPath,
+      DEFAULT_TEMPLATE_INIT_QUESTIONS,
+    );
 
     // Merge template metadata into project config
     projectConfig = {
