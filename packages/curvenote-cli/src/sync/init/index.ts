@@ -121,7 +121,27 @@ export async function init(session: ISession, opts: Options) {
     session.log.debug(`Curvenote option detected: ${opts.curvenote}`);
     content = 'curvenote';
     curvenoteUrl = opts.curvenote;
-  } else if ((!folderIsEmpty && opts.yes) || projectConfigPaths.length) {
+  } else if (projectConfigPaths.length > 0) {
+    // Found nested projects - ask user what they want to do
+    if (opts.yes) {
+      // With --yes flag, maintain existing behavior (create site)
+      content = 'folder';
+    } else {
+      // Interactive mode - give user a choice
+      const projectPaths = projectConfigPaths.map((p) => join(p, CURVENOTE_YML));
+      const choiceResponse = await inquirer.prompt([
+        questions.nestedProjectChoice({ projectPaths }),
+      ]);
+
+      if (choiceResponse.action === 'site') {
+        content = 'folder';
+      } else {
+        // User wants to initialize a new project - ask where content comes from
+        const contentResponse = await inquirer.prompt([questions.content({ folderIsEmpty })]);
+        content = contentResponse.content;
+      }
+    }
+  } else if (!folderIsEmpty && opts.yes) {
     content = 'folder';
   } else {
     const response = await inquirer.prompt([questions.content({ folderIsEmpty })]);
