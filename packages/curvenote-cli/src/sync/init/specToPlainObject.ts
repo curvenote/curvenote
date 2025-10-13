@@ -1,3 +1,5 @@
+import type { TemplateQuestionSpec } from './types.js';
+
 /**
  * Convert a TemplateQuestionSpec to a plain object with all fields,
  * including undefined values for clarity

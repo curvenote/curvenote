@@ -26,7 +26,7 @@ import {
   handleCurvenoteImport,
   handleGithubImport,
 } from './initializationHandlers.js';
-import { writeTemplateFile } from './loadTemplateFile.js';
+import { writeTemplateFile } from './writeTemplateFile.js';
 
 /**
  * Initialize local curvenote project from folder or remote project

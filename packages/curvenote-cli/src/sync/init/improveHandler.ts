@@ -6,10 +6,8 @@ import type { ISession } from '../../session/types.js';
 import { lookupAuthor } from './peopleLookup.js';
 import { cleanProjectConfigForWrite } from '../utils.js';
 import { loadTemplateFile } from './loadTemplateFile.js';
-import {
-  DEFAULT_TEMPLATE_INIT_QUESTIONS,
-  type TemplateQuestionSpec,
-} from './templateInitQuestions.js';
+import { DEFAULT_TEMPLATE_INIT_QUESTIONS } from './templateInitQuestions.js';
+import type { TemplateQuestionSpec } from './types.js';
 
 /**
  * Handle --improve: Update existing project by re-answering template questions
