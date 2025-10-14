@@ -2,7 +2,7 @@
   "name": "@curvenote/check-definitions",
   "description": "Definitions for Curvenote checks",
   "author": "Franklin Koch <franklin@curvenote.com>",
-  "version": "0.0.28",
+  "version": "0.0.29",
   "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
