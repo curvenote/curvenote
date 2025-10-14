@@ -26,9 +26,9 @@
     "lodash.isequal": "^4.5.0",
     "p-limit": "^3.1.0",
     "unist-util-select": "^4.0.3",
-    "myst-cli": "^1.5.0",
-    "myst-common": "^1.8.0",
-    "myst-frontmatter": "^1.8.0",
+    "myst-cli": "^1.6.3",
+    "myst-common": "^1.8.3",
+    "myst-frontmatter": "^1.8.3",
     "node-fetch": "^3.3.2",
     "vfile": "^5.3.5"
   },

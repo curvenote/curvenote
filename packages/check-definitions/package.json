@@ -20,8 +20,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "myst-common": "^1.8.0",
-    "myst-templates": "^1.0.25"
+    "myst-common": "^1.8.3",
+    "myst-templates": "^1.0.26"
   },
   "devDependencies": {
     "typescript": "latest",
