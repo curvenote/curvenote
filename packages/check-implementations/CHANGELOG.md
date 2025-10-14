@@ -1,5 +1,14 @@
 # @curvenote/check-implementations
 
+## 0.0.29
+
+### Patch Changes
+
+- [#734](https://github.com/curvenote/curvenote/pull/734) [`1c8ccb9`](https://github.com/curvenote/curvenote/commit/1c8ccb9ebd80cee00132d44684edd506e15a600c) Thanks [@fwkoch](https://github.com/fwkoch)! - Consume myst@1.6.3
+
+- Updated dependencies [[`1c8ccb9`](https://github.com/curvenote/curvenote/commit/1c8ccb9ebd80cee00132d44684edd506e15a600c)]:
+  - @curvenote/check-definitions@0.0.29
+
 ## 0.0.28
 
 ### Patch Changes
