@@ -24,6 +24,11 @@ export const zarrViewer: DirectiveSpec = {
       required: false,
       doc: 'URL to the CSS file',
     },
+    css: {
+      type: String,
+      required: false,
+      doc: 'URL to the CSS file',
+    },
     viewer: {
       type: String,
       required: false,
@@ -39,6 +44,8 @@ export const zarrViewer: DirectiveSpec = {
     // TODO: validate the URL for the esm
     validateStringOptions(vfile, 'arg', data.arg);
     if (data.options?.class) validateStringOptions(vfile, 'class', data.options?.class);
+    if (data.options?.styles) validateStringOptions(vfile, 'styles', data.options?.styles);
+    if (data.options?.css) validateStringOptions(vfile, 'css', data.options?.css);
     if (data.options?.veiwer) validateStringOptions(vfile, 'viewer', data.options?.viewer);
     if (data.options?.height) validateStringOptions(vfile, 'height', data.options?.height);
     if (
@@ -60,17 +67,14 @@ export const zarrViewer: DirectiveSpec = {
         viewerUrl = VIZARR_URL;
     }
 
-    console.log('viewerUrl', viewerUrl);
-    console.log('data.arg', data.arg);
-
     const block = u(
       'block',
       {
         kind: 'any:bundle',
         data: {
-          import: viewerUrl,
+          js: viewerUrl,
           class: data.options?.class ?? '',
-          styles: '',
+          css: '',
           json: {
             directive: 'zarr',
             source: data.arg,
