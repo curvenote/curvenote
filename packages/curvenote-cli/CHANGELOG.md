@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.12.24
+
+### Patch Changes
+
+- Updated dependencies [[`4835771`](https://github.com/curvenote/curvenote/commit/4835771d28b0875d5309ec4450142dfdde8578ee)]:
+  - @curvenote/cli-plugin@0.12.24
+
 ## 0.12.23
 
 ### Patch Changes
