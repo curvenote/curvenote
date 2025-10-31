@@ -1,6 +1,7 @@
 import type { DirectiveSpec } from 'myst-common';
 import { u } from 'unist-builder';
 import { makePlaceholder, validateStringOptions } from '../../utils.js';
+import type { AnyBundleDirective } from './types.js';
 
 export const anyBundle: DirectiveSpec = {
   name: 'any:bundle',
@@ -57,16 +58,16 @@ export const anyBundle: DirectiveSpec = {
       {
         kind: 'any:bundle',
         data: {
-          js: data.arg,
-          css: data.options?.css ?? data.options?.styles ?? '',
-          static: data.options?.static ?? '',
-          class: data.options?.class ?? '',
-          json: JSON.parse(body),
+          esm: data.arg as string,
+          json: JSON.parse(body) as Record<string, unknown>,
+          css: (data.options?.css ?? data.options?.styles) as string | undefined,
+          static: data.options?.static as string | undefined,
+          class: data.options?.class as string | undefined,
           // legacy
-          import: data.arg,
-          styles: data.options?.css ?? data.options?.styles ?? '',
+          import: data.arg as string,
+          styles: (data.options?.css ?? data.options?.styles) as string | undefined,
         },
-      },
+      } satisfies Omit<AnyBundleDirective, 'type'>,
       makePlaceholder(data, data.arg as string),
     );
 
