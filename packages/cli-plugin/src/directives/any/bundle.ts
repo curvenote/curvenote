@@ -1,6 +1,7 @@
 import type { DirectiveSpec } from 'myst-common';
 import { u } from 'unist-builder';
 import { makePlaceholder, validateStringOptions } from '../../utils.js';
+import type { AnyBundleDirective } from './types.js';
 
 export const anyBundle: DirectiveSpec = {
   name: 'any:bundle',
@@ -21,6 +22,16 @@ export const anyBundle: DirectiveSpec = {
       required: false,
       doc: 'URL to the CSS file',
     },
+    css: {
+      type: String,
+      required: false,
+      doc: 'URL to the CSS file',
+    },
+    static: {
+      type: String,
+      required: false,
+      doc: 'A file path, folder path or glob pattern to static files to make available to the module',
+    },
   },
   body: {
     doc: 'JSON object with props to pass down to the component',
@@ -30,9 +41,13 @@ export const anyBundle: DirectiveSpec = {
   validate(data, vfile) {
     // TODO: validate the URL for the esm
     validateStringOptions(vfile, 'arg', data.arg);
-    validateStringOptions(vfile, 'class', data.options?.class);
-    validateStringOptions(vfile, 'styles', data.options?.styles);
+    if (data.options?.class) validateStringOptions(vfile, 'class', data.options?.class);
+    if (data.options?.css) validateStringOptions(vfile, 'css', data.options?.css);
+    if (data.options?.static) validateStringOptions(vfile, 'static', data.options?.static);
     validateStringOptions(vfile, 'body', data.body);
+
+    // legacy
+    if (data.options?.styles) validateStringOptions(vfile, 'styles', data.options?.styles);
     return data;
   },
   run(data, _vfile, _opts) {
@@ -43,12 +58,16 @@ export const anyBundle: DirectiveSpec = {
       {
         kind: 'any:bundle',
         data: {
-          import: data.arg,
-          class: data.options?.class ?? '',
-          styles: data.options?.styles ?? '',
-          json: JSON.parse(body),
+          esm: data.arg as string,
+          json: JSON.parse(body) as Record<string, unknown>,
+          css: (data.options?.css ?? data.options?.styles) as string | undefined,
+          static: data.options?.static as string | undefined,
+          class: data.options?.class as string | undefined,
+          // legacy
+          import: data.arg as string,
+          styles: (data.options?.css ?? data.options?.styles) as string | undefined,
         },
-      },
+      } satisfies Omit<AnyBundleDirective, 'type'>,
       makePlaceholder(data, data.arg as string),
     );
 

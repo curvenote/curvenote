@@ -30,14 +30,14 @@ export function makePlaceholder(data: DirectiveData, description: string) {
   return [
     u('admonition', { kind: 'important' }, [
       u('admonitionTitle', [u('inlineCode', [u('text', data.name)])]),
-      u('paragraph', [
+      u('block', [
         u('text', 'This block will be replaced with '),
         u('strong', [u('text', description)]),
         u('text', ' when deployed to '),
         u('link', { url: 'https://curvenote.com' }, [u('text', 'Curvenote')]),
         u('text', '.'),
       ]),
-      u('paragraph', [u('text', 'Options:'), ...optionList]),
+      u('block', [u('text', 'Options:'), ...optionList]),
     ]),
   ];
 }
