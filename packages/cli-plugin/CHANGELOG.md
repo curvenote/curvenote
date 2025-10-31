@@ -1,5 +1,11 @@
 # @curvenote/cli-plugin
 
+## 0.12.24
+
+### Patch Changes
+
+- [#736](https://github.com/curvenote/curvenote/pull/736) [`4835771`](https://github.com/curvenote/curvenote/commit/4835771d28b0875d5309ec4450142dfdde8578ee) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Update and extend the `any:bundle` interface while maintaining backwards compatibility
+
 ## 0.12.23
 
 ### Patch Changes
