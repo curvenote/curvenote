@@ -17,6 +17,7 @@ import type {
 } from '@curvenote/common';
 import { responseError, responseNoArticle, responseNoSite } from './errors.server.js';
 import type { Cache, PageLoader } from './types.js';
+import { migrate } from 'myst-migrate';
 
 interface CdnRouter {
   cdn?: string; // this is the cdn key
@@ -287,7 +288,7 @@ async function getData(
   project?: string,
   slug?: string,
   query?: string,
-  opts?: { bypass?: string },
+  opts?: { bypass?: string; mystSpecVersion?: number },
 ): Promise<PageLoader | null> {
   if (!slug || !config) throw responseNoArticle();
   const { id, projects } = config;
@@ -304,7 +305,10 @@ async function getData(
     : await fetch(withBaseUrl(baseUrl, `content/${projectPart}${slug}.json`, query));
   if (response.status === 404) throw responseNoArticle();
   if (!response.ok) throw responseError(response);
-  const data = (await response.json()) as PageLoader;
+  let data = (await response.json()) as PageLoader;
+  if (opts?.mystSpecVersion) {
+    data = (await migrate({ version: 0, ...data }, { to: opts.mystSpecVersion })) as PageLoader;
+  }
   if (opts?.bypass) {
     const bypass = ensureTrailingSlash(opts.bypass);
     return updatePageStaticLinksInplace(data, (url) =>
@@ -323,6 +327,7 @@ export async function getPage(
     loadIndexPage?: boolean;
     slug?: string;
     bypass?: string;
+    mystSpecVersion?: number;
   },
 ): Promise<PageLoader | null> {
   const projectName = opts?.project;
