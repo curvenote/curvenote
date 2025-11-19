@@ -145,8 +145,16 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   //
   // Process local folder and upload stuff
   //
-  await performCleanRebuild(session, opts);
-  session.log.info('🪩  Successfully built your work!');
+  if (opts?.skipRebuild) {
+    session.log.info(
+      chalk.bold.yellow(
+        '\n⚠️  SKIPPING REBUILD - Using existing build artifacts from _build directory\n',
+      ),
+    );
+  } else {
+    await performCleanRebuild(session, opts);
+    session.log.info('🪩  Successfully built your work!');
+  }
 
   //
   // run checks
