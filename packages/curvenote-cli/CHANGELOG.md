@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.12.25
+
+### Patch Changes
+
+- [#740](https://github.com/curvenote/curvenote/pull/740) [`b632f4f`](https://github.com/curvenote/curvenote/commit/b632f4f091e464e6e9286bebf6206cdc55fb2214) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bumping `mystmd` to `v1.6.6`
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.12.25
+
 ## 0.12.24
 
 ### Patch Changes
