@@ -1,5 +1,11 @@
 # curvenote
 
+## 0.12.26
+
+### Patch Changes
+
+- [#739](https://github.com/curvenote/curvenote/pull/739) [`b2e6b1c`](https://github.com/curvenote/curvenote/commit/b2e6b1c2da5532f3c13834e359703f147dcd224d) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Adds a `--skip-build` option to `curvenote submit` to avoid the clean and rebuild step.
+
 ## 0.12.25
 
 ## 0.12.24
