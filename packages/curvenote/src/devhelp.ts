@@ -3,6 +3,7 @@ import { clirun } from './clirun.js';
 import chalk from 'chalk';
 import type { ISession } from '@curvenote/cli';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function devhelp(session: ISession) {
   const message = `🚀 Curvenote CLI Developer Help 🚀
 

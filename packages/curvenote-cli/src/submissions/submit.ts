@@ -145,8 +145,29 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   //
   // Process local folder and upload stuff
   //
-  await performCleanRebuild(session, opts);
-  session.log.info('🪩  Successfully built your work!');
+  if (opts?.skipRebuild) {
+    session.log.info(
+      chalk.bold.yellow(
+        '\n⚠️  SKIPPING REBUILD - Using existing build artifacts from _build directory\n',
+      ),
+    );
+    // Validate that build artifacts exist
+    const sitePath = path.join(session.buildPath(), 'site');
+    const configPath = path.join(sitePath, 'config.json');
+    if (!fs.existsSync(sitePath) || !fs.existsSync(configPath)) {
+      session.log.error(
+        chalk.bold.red(`\n⛔️ Cannot skip rebuild - no existing build found at "${sitePath}"\n`),
+      );
+      session.log.info(
+        'Please run without --skip-rebuild to build your work first, or run "curvenote build --all" separately.',
+      );
+      process.exit(1);
+    }
+    session.log.info(`✅ Existing build validated at ${sitePath}`);
+  } else {
+    await performCleanRebuild(session, opts);
+    session.log.info('🪩  Successfully built your work!');
+  }
 
   //
   // run checks

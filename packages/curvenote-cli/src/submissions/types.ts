@@ -10,6 +10,7 @@ export type SubmitOpts = BaseOpts & {
   collection?: string;
   draft?: boolean;
   new?: boolean;
+  skipRebuild?: boolean;
 };
 
 export type JobResponse = {
