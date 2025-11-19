@@ -1,5 +1,7 @@
 # @curvenote/cli-plugin
 
+## 0.12.25
+
 ## 0.12.24
 
 ### Patch Changes
