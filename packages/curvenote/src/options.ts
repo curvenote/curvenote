@@ -140,5 +140,7 @@ export function makeMaxSizeWebpOption(maxSizeMB = 1.5) {
 }
 
 export function makeSkipRebuildOption() {
-  return new Option('--skip-rebuild', 'Skip the clean rebuild step during submission').default(false);
+  return new Option('--skip-rebuild', 'Skip the clean rebuild step during submission').default(
+    false,
+  );
 }
