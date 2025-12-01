@@ -113,14 +113,17 @@ export function AnyWidgetRenderer({ node }: { node: AnyWidgetDirective }) {
     return (
       <details className="p-3 bg-gray-100 rounded border border-gray-300 cursor-pointer">
         <summary className="text-sm text-gray-600 select-none">
-          Failed to load <code className="text-xs">any:bundle</code> module.
+          Failed to load <code className="text-xs">any:widget</code> module.
         </summary>
         <div className="pt-2 mt-2 space-y-1 text-xs border-t border-gray-200">
           <div className="text-gray-500">
-            <span className="font-medium">Bundle URL:</span> {esmModuleUrl}
+            <span className="font-medium">Widget Module URL:</span> {esmModuleUrl}
           </div>
           <div className="text-gray-700">
             <span className="font-medium">Error:</span> {error.message}
+          </div>
+          <div className="text-gray-700">
+            <span className="font-medium">Stack:</span> {error.stack}
           </div>
         </div>
       </details>

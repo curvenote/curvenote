@@ -37,6 +37,9 @@
   ],
   "author": "Steve Purves <steve@curvenote.com>",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "myst-common": "^1.9.0",
     "unist-builder": "^4.0.0"
