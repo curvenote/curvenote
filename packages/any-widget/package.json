@@ -1,0 +1,51 @@
+{
+  "name": "@curvenote/any-widget",
+  "version": "0.1.0",
+  "description": "Extension interface and NodeRenderer following the `any-widget` interfaces",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/renderer/index.d.ts",
+      "default": "./dist/renderer/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "compile": "tsc --noEmit",
+    "build:esm": "tsc",
+    "build:plugin": "tsup",
+    "build": "npm-run-all -l clean -p build:esm build:plugin",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://curvenote.com/curvenote/curvenote"
+  },
+  "keywords": [
+    "any-widget",
+    "Curvenote",
+    "MyST Markdown",
+    "React"
+  ],
+  "author": "Steve Purves <steve@curvenote.com>",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "myst-common": "^1.9.0",
+    "unist-builder": "^4.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.1.0",
+    "cpx": "^1.5.0"
+  }
+}
