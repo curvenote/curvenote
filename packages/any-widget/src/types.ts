@@ -1,9 +1,8 @@
-// TODO get this into a distributable package
-export type AnyBundleDirective = {
+export type AnyWidgetDirective = {
   /** The type of the directive */
   type: 'block';
   /** The kind of the directive */
-  kind: 'any:bundle';
+  kind: 'any:bundle' | 'any:widget';
   /** The data to pass to the model */
   data: {
     /** The ES module to import */

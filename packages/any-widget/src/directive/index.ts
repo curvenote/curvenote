@@ -1,10 +1,11 @@
 import type { DirectiveSpec } from 'myst-common';
 import { u } from 'unist-builder';
-import { makePlaceholder, validateStringOptions } from '../../utils.js';
-import type { AnyBundleDirective } from './types.js';
+import { makePlaceholder, validateStringOptions } from './utils.js';
+import type { AnyWidgetDirective } from '../types.js';
 
-export const anyBundle: DirectiveSpec = {
-  name: 'any:bundle',
+export const anyWidget: DirectiveSpec = {
+  name: 'any:widget',
+  alias: ['any:bundle'],
   doc: 'Embed a bundled AnyWidget component with data in the body',
   arg: {
     type: String,
@@ -56,7 +57,7 @@ export const anyBundle: DirectiveSpec = {
     const block = u(
       'block',
       {
-        kind: 'any:bundle',
+        kind: 'any:widget',
         data: {
           esm: data.arg as string,
           json: JSON.parse(body) as Record<string, unknown>,
@@ -67,7 +68,7 @@ export const anyBundle: DirectiveSpec = {
           import: data.arg as string,
           styles: (data.options?.css ?? data.options?.styles) as string | undefined,
         },
-      } satisfies Omit<AnyBundleDirective, 'type'>,
+      } satisfies Omit<AnyWidgetDirective, 'type'>,
       makePlaceholder(data, data.arg as string),
     );
 

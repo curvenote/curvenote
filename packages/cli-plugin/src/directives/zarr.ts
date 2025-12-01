@@ -1,6 +1,6 @@
 import type { DirectiveSpec } from 'myst-common';
 import { u } from 'unist-builder';
-import { makePlaceholder, validateStringOptions } from '../../utils.js';
+import { makePlaceholder, validateStringOptions } from '../utils.js';
 
 // TODO: talk to package manager
 const VIZARR_URL = 'https://curvenote.github.io/widgets/widgets/vizarr-viewer.js';
