@@ -1,5 +1,14 @@
 # @curvenote/cdn
 
+## 0.2.24
+
+### Patch Changes
+
+- [#745](https://github.com/curvenote/curvenote/pull/745) [`ff817d5`](https://github.com/curvenote/curvenote/commit/ff817d59ce38dc5bb1567446ed39430914e783ad) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add migration option to cdn getPage
+
+- Updated dependencies []:
+  - @curvenote/common@0.2.24
+
 ## 0.2.23
 
 ### Patch Changes

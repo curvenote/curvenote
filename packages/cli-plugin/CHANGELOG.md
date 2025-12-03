@@ -1,5 +1,14 @@
 # @curvenote/cli-plugin
 
+## 0.12.27
+
+### Patch Changes
+
+- [#743](https://github.com/curvenote/curvenote/pull/743) [`377ee3a`](https://github.com/curvenote/curvenote/commit/377ee3a077f0fc6e848a830792720a739ad186bc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Exposing any-widget in it's own package including the accompanying NodeRenderer
+
+- Updated dependencies [[`377ee3a`](https://github.com/curvenote/curvenote/commit/377ee3a077f0fc6e848a830792720a739ad186bc)]:
+  - @curvenote/any-widget@0.1.1
+
 ## 0.12.26
 
 ## 0.12.25
