@@ -60,6 +60,7 @@ type PageFrontmatterWithDownloads = Omit<PageFrontmatter, 'parts' | 'downloads' 
 };
 
 export type PageLoader = {
+  version?: number;
   kind: SourceFileKind;
   location: string;
   sha256: string;
