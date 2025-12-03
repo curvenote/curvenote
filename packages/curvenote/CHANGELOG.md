@@ -1,5 +1,7 @@
 # curvenote
 
+## 0.12.27
+
 ## 0.12.26
 
 ### Patch Changes

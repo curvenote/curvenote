@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/any-widget",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Extension interface and NodeRenderer following the `any-widget` interfaces",
   "type": "module",
   "files": [
