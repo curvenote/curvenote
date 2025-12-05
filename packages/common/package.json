@@ -19,12 +19,10 @@
   },
   "dependencies": {
     "@curvenote/blocks": "^1.5.30",
-    "myst-common": "^1.8.3",
-    "myst-config": "^1.8.3"
+    "myst-common": "^1.9.2",
+    "myst-config": "^1.9.2"
   },
-  "devDependencies": {
-    "typescript": "latest"
-  },
+  "devDependencies": {},
   "publishConfig": {
     "access": "public"
   }

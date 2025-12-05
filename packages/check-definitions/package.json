@@ -20,11 +20,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "myst-common": "^1.8.3",
+    "myst-common": "^1.9.2",
     "myst-templates": "^1.0.26"
   },
   "devDependencies": {
-    "typescript": "latest",
     "@types/unist": "3.0.1"
   }
 }

@@ -23,7 +23,9 @@ export function getSignedCDNQuery(opts: {
 
   const policy = `URLPrefix=${encodedUrlPrefix}&Expires=${opts.expires}&KeyName=${opts.keyName}`;
   const keyBuffer = Buffer.from(opts.keyBase64, 'base64');
-  const digest = createHmac('sha1', keyBuffer).update(policy).digest('base64');
+  const digest = createHmac('sha1', keyBuffer as any)
+    .update(policy)
+    .digest('base64');
   const signature = Buffer.from(digest, 'base64').toString('base64url');
 
   return `${policy}&Signature=${signature}`;
