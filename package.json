@@ -12,7 +12,7 @@
     "lint": "turbo run lint --filter='@curvenote/*' --filter='curvenote'",
     "lint:format": "turbo run lint:format --filter='@curvenote/*' --filter='curvenote'",
     "lint:circular": "madge -c packages/*/src/*",
-    "test": "turbo run test --filter=blocks --filter=curvenote --filter=nbtx --filter=@curvenote/*",
+    "test": "turbo run test --filter='curvenote' --filter='@curvenote/*'",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
     "version": "changeset version && npm install",
