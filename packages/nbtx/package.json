@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/nbtx",
   "license": "MIT",
-  "version": "0.1.16",
+  "version": "1.0.0",
   "description": "Notebook Tranlators",
   "author": "Steve Purves <steve@curvenote.com>",
   "main": "./dist/cjs/index.js",
@@ -38,10 +38,10 @@
     "uuid": "^8.3.2"
   },
   "peerDependencies": {
-    "@curvenote/blocks": "^1.5.28"
+    "@curvenote/blocks": "^1.6.0"
   },
   "devDependencies": {
-    "@curvenote/blocks": "^1.5.30",
+    "@curvenote/blocks": "^1.6.0",
     "@types/uuid": "^8.3.4"
   }
 }

@@ -1,5 +1,20 @@
 # curvenote
 
+## 0.13.0
+
+### Minor Changes
+
+- [#746](https://github.com/curvenote/curvenote/pull/746) [`4f55fe9`](https://github.com/curvenote/curvenote/commit/4f55fe9994bfbf75360e2af97039c2d4888efacd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - myst packages, align typescript builds and config and fix type issues. Adopting this version of myst means switching to V3 AST.
+
+### Patch Changes
+
+- Updated dependencies [[`4f55fe9`](https://github.com/curvenote/curvenote/commit/4f55fe9994bfbf75360e2af97039c2d4888efacd)]:
+  - @curvenote/check-implementations@0.1.0
+  - @curvenote/check-definitions@0.1.0
+  - @curvenote/cli-plugin@0.13.0
+  - @curvenote/blocks@1.6.0
+  - @curvenote/common@0.3.0
+
 ## 0.12.27
 
 ### Patch Changes
@@ -53,7 +68,6 @@
 - [#732](https://github.com/curvenote/curvenote/pull/732) [`0027ec6`](https://github.com/curvenote/curvenote/commit/0027ec6dc5267a9bdb7d5b896b29c34b21986f21) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Inserted a new question when nested project folders are found on `cn init`
 
 - [#732](https://github.com/curvenote/curvenote/pull/732) [`0027ec6`](https://github.com/curvenote/curvenote/commit/0027ec6dc5267a9bdb7d5b896b29c34b21986f21) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Extended `curvenote init` with template support and new initialization options:
-
   - `cn init --github <url>` - Initialize from GitHub repository with interactive questions
   - `cn init --curvenote <url>` - Initialize from Curvenote project URL
   - `cn init --write-template` - Generate customizable `template.yml` file
