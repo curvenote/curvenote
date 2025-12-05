@@ -57,6 +57,7 @@ export const zarrViewer: DirectiveSpec = {
     }
     return data;
   },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   run(data, _vfile, _opts) {
     const viewer = data.options?.viewer ?? 'vizarr';
 
