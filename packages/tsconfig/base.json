@@ -5,12 +5,12 @@
     "composite": false,
     "declaration": true,
     "declarationMap": true,
-    "target": "ES2019",
+    "target": "es2022",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSources": false,
     "isolatedModules": true,
-    "module": "node16",
+    "module": "node18",
     "moduleResolution": "node16",
     "allowSyntheticDefaultImports": true,
     "noUnusedLocals": false,
@@ -18,12 +18,13 @@
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "strict": true,
-    "lib": ["es2021", "DOM"],
+    "lib": ["es2022"],
     "typeRoots": [
       "./types",
       "./node_modules/@types",
       "../../node_modules/@types",
-      "../../../node_modules/@types"
+      "../../../node_modules/@types",
+      "../../../../node_modules/@types"
     ]
   },
   "exclude": ["node_modules"]

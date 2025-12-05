@@ -10,7 +10,6 @@ import { interactiveCloneQuestions } from '../clone.js';
 import questions from '../questions.js';
 import { getDefaultProjectConfig, normalizeGithubUrl } from '../utils.js';
 import type { Options } from './types.js';
-import { CURVENOTE_YML } from './types.js';
 import {
   DEFAULT_TEMPLATE_INIT_QUESTIONS,
   runTemplateInitQuestions,

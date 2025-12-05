@@ -45,13 +45,13 @@
     "build": "npm-run-all -l clean copy:version -p build:cli"
   },
   "dependencies": {
-    "jsdom": "^19.0.0"
-  },
-  "devDependencies": {
+    "jsdom": "^19.0.0",
     "@curvenote/cli": "^0.12.27",
     "chalk": "^5.2.0",
     "commander": "^10.0.1",
-    "core-js": "^3.31.1",
+    "core-js": "^3.31.1"
+  },
+  "devDependencies": {
     "js-yaml": "^4.1.0"
   }
 }

@@ -26,18 +26,18 @@
     "@curvenote/common": "^0.2.24",
     "cache-manager": "^5.2.3",
     "doi-utils": "^2.0.5",
-    "myst-common": "^1.8.3",
-    "myst-config": "^1.8.3",
-    "myst-frontmatter": "^1.8.3",
-    "myst-migrate": "^1.6.4",
-    "myst-spec-ext": "^1.8.3",
+    "myst-common": "^1.9.2",
+    "myst-config": "^1.9.2",
+    "myst-frontmatter": "^1.9.2",
+    "myst-migrate": "^1.7.0",
+    "myst-spec-ext": "^1.9.2",
     "nbtx": "^0.2.3",
     "node-cache": "^5.1.2",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "unist-util-select": "^5.0.0"
   },
   "devDependencies": {
-    "@types/node-fetch": "^2.6.4",
-    "typescript": "latest"
+    "@types/node-fetch": "^2.6.4"
   },
   "publishConfig": {
     "access": "public"
