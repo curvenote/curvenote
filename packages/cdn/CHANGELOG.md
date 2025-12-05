@@ -1,5 +1,14 @@
 # @curvenote/cdn
 
+## 0.3.1
+
+### Patch Changes
+
+- [`be686d5`](https://github.com/curvenote/curvenote/commit/be686d5889d923a29e86a55eede54b43562cf004) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Critical fix to bad `unit-util-select` dependency version, and added tsts covering al loader functions.
+
+- Updated dependencies []:
+  - @curvenote/common@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes
