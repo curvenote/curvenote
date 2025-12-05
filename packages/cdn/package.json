@@ -34,7 +34,7 @@
     "nbtx": "^0.2.3",
     "node-cache": "^5.1.2",
     "node-fetch": "^2.7.0",
-    "unist-util-select": "^5.0.0"
+    "unist-util-select": "^4.0.3"
   },
   "devDependencies": {
     "@types/node-fetch": "^2.6.4"

@@ -288,7 +288,7 @@ async function getData(
   project?: string,
   slug?: string,
   query?: string,
-  opts?: { bypass?: string; mystSpecVersion?: number },
+  opts?: { bypass?: string; migrateToMystSpecVersion?: number },
 ): Promise<PageLoader | null> {
   if (!slug || !config) throw responseNoArticle();
   const { id, projects } = config;
@@ -306,8 +306,11 @@ async function getData(
   if (response.status === 404) throw responseNoArticle();
   if (!response.ok) throw responseError(response);
   let data = (await response.json()) as PageLoader;
-  if (opts?.mystSpecVersion) {
-    data = (await migrate({ version: 0, ...data }, { to: opts.mystSpecVersion })) as PageLoader;
+  if (opts?.migrateToMystSpecVersion) {
+    data = (await migrate(
+      { version: 0, ...data },
+      { to: opts.migrateToMystSpecVersion },
+    )) as PageLoader;
   }
   if (opts?.bypass) {
     const bypass = ensureTrailingSlash(opts.bypass);
@@ -327,7 +330,7 @@ export async function getPage(
     loadIndexPage?: boolean;
     slug?: string;
     bypass?: string;
-    mystSpecVersion?: number;
+    migrateToMystSpecVersion?: number;
   },
 ): Promise<PageLoader | null> {
   const projectName = opts?.project;
