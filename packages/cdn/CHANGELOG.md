@@ -1,5 +1,14 @@
 # @curvenote/cdn
 
+## 0.3.2
+
+### Patch Changes
+
+- [#749](https://github.com/curvenote/curvenote/pull/749) [`a4b97dd`](https://github.com/curvenote/curvenote/commit/a4b97dd1422373c4eccc9ac0205a6ba06bd84c80) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Aligns link rewriting with V3 AST
+
+- Updated dependencies []:
+  - @curvenote/common@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes
