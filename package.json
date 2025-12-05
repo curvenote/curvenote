@@ -10,7 +10,7 @@
     "dev": "turbo run dev --parallel",
     "clean": "turbo run clean --parallel && find . -name '.turbo' -type d -prune -exec rm -rf '{}' +",
     "lint": "turbo run lint --filter='@curvenote/*' --filter='curvenote'",
-    "lint:format": "turbo run lint:format",
+    "lint:format": "turbo run lint:format --filter='@curvenote/*' --filter='curvenote'",
     "lint:circular": "madge -c packages/*/src/*",
     "test": "turbo run test --filter=blocks --filter=curvenote --filter=nbtx --filter=@curvenote/*",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
