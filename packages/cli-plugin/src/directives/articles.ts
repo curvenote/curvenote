@@ -7,8 +7,8 @@ export const articlesDirective: DirectiveSpec = {
   options: {
     venue: {
       type: String,
-      doc: 'The venue to list articles from.',
-      required: true,
+      doc: 'The venue to list articles from, if not provided, the current venue will be used.',
+      required: false,
     },
     collection: {
       type: String,
@@ -82,10 +82,6 @@ export const articlesDirective: DirectiveSpec = {
     },
   },
   validate(data, vfile) {
-    if (!data.options?.venue) {
-      vfile.message('A venue must be supplied.');
-    }
-
     if (data.options?.status) {
       validateStringOptions(vfile, 'status', data.options?.status, ['published', 'in-review']);
     }
@@ -113,7 +109,10 @@ export const articlesDirective: DirectiveSpec = {
         ...data.options,
         layout: data.options?.layout ?? 'list',
         pagination: data.options?.pagination ?? 'more',
-        children: makePlaceholder(data, `a live listing of articles from ${data.options?.venue}`),
+        children: makePlaceholder(
+          data,
+          `a live listing of articles from ${data.options?.venue ?? 'the current venue'}`,
+        ),
       },
     ] as GenericNode[];
   },
