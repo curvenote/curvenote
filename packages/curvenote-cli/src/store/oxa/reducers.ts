@@ -18,3 +18,9 @@ export const oxalink = createSlice({
     },
   },
 });
+
+// Export the reducer directly for consistency with api/reducers.ts
+export const oxalinkReducer = oxalink.reducer;
+
+// Export the state type for better type safety
+export type OxaState = ReturnType<typeof oxalinkReducer>;
