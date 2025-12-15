@@ -11,6 +11,10 @@
     "node": ">=16"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/curvenote/curvenote.git"
+  },
   "sideEffects": false,
   "scripts": {
     "clean": "rimraf dist",

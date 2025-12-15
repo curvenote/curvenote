@@ -10,6 +10,10 @@
   ],
   "license": "MIT",
   "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/curvenote/curvenote.git"
+  },
   "scripts": {
     "clean": "rimraf dist",
     "lint": "eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
