@@ -1,5 +1,16 @@
 # @curvenote/cdn
 
+## 0.3.3
+
+### Patch Changes
+
+- [#756](https://github.com/curvenote/curvenote/pull/756) [`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bump `myst-*` deps
+
+- [#755](https://github.com/curvenote/curvenote/pull/755) [`7c91b6d`](https://github.com/curvenote/curvenote/commit/7c91b6d80f3f1f0f910d2c413fd6aa8070edebaa) Thanks [@rowanc1](https://github.com/rowanc1)! - Add security to the cdn loaders for resources
+
+- Updated dependencies [[`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004)]:
+  - @curvenote/common@0.3.3
+
 ## 0.3.2
 
 ### Patch Changes
