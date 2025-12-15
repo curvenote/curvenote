@@ -238,10 +238,28 @@ export async function getConfig(
   return data as SiteManifest;
 }
 
-export async function getObjectsInv(host: Host): Promise<ArrayBuffer | undefined> {
-  const baseUrl = await getCdnBaseUrl(host);
-  if (!baseUrl) return;
-  const url = `${baseUrl}objects.inv`;
+/**
+ * Constructs a URL for a CDN resource, handling both bypass and normal CDN cases.
+ * Includes query parameters from the host location when not using bypass.
+ */
+async function getCdnResourceUrl(
+  host: Host,
+  filename: string,
+  opts?: { bypass?: string },
+): Promise<string> {
+  if (opts?.bypass) {
+    return withBaseUrl(ensureTrailingSlash(opts.bypass), filename);
+  }
+  const location = await getCdnLocation(host);
+  const baseUrl = await getCdnBaseUrl(location);
+  return withBaseUrl(baseUrl, filename, location.query);
+}
+
+export async function getObjectsInv(
+  host: Host,
+  opts?: { bypass?: string },
+): Promise<ArrayBuffer | undefined> {
+  const url = await getCdnResourceUrl(host, 'objects.inv', opts);
   const response = await fetch(url);
   if (response.status === 404) return;
   if (!response.ok) throw responseError(response);
@@ -254,9 +272,7 @@ export async function getMystXrefJson(
   mount = '',
   opts?: { bypass?: string },
 ): Promise<Record<string, any> | null> {
-  const baseUrl = await getCdnBaseUrl(host);
-  if (!baseUrl && !opts?.bypass) return null;
-  const url = `${opts?.bypass ? ensureTrailingSlash(opts.bypass) : baseUrl}myst.xref.json`;
+  const url = await getCdnResourceUrl(host, 'myst.xref.json', opts);
   const response = await fetch(url);
   if (response.status === 404) return null;
   if (!response.ok) throw responseError(response);
@@ -272,9 +288,7 @@ export async function getMystSearchJson(
   host: Host,
   opts?: { bypass?: string },
 ): Promise<Record<string, any> | null> {
-  const baseUrl = await getCdnBaseUrl(host);
-  if (!baseUrl && !opts?.bypass) return null;
-  const url = `${opts?.bypass ? ensureTrailingSlash(opts.bypass) : baseUrl}myst.search.json`;
+  const url = await getCdnResourceUrl(host, 'myst.search.json', opts);
   const response = await fetch(url);
   if (response.status === 404) return null;
   if (!response.ok) throw responseError(response);
