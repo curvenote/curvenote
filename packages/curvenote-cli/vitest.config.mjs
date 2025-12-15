@@ -6,7 +6,12 @@ export default defineConfig({
     threads: false,
     server: {
       deps: {
-        inline: ['@curvenote/check-implementations', 'myst-cli', 'myst-to-docx'],
+        inline: [
+          '@curvenote/check-implementations', 
+          'myst-cli', 
+          'myst-to-docx',
+          'citation-js-utils'
+        ],
       },
     },
   },
