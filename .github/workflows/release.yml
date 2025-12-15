@@ -25,11 +25,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libxml2-utils
-      - name: Setup Node.js 18.x
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 24.x
           registry-url: 'https://registry.npmjs.org'
+      - name: Ensure npm 11.5.1+ for trusted publishing
+        run: npm install -g npm@^11.5.1
       - name: Install node deps
         run: npm install
       - name: Run build
