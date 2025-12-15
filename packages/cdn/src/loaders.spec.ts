@@ -290,7 +290,7 @@ describe('CDN Loaders', () => {
       expect(xrefs).toBeNull();
     });
 
-    it.only('should work with bypass option', async () => {
+    it('should work with bypass option', async () => {
       const mockXrefs = {
         references: [],
       };
