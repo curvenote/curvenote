@@ -41,7 +41,7 @@
     "access": "public"
   },
   "dependencies": {
-    "myst-common": "^1.9.2",
+    "myst-common": "^1.9.3",
     "unist-builder": "^4.0.0"
   },
   "devDependencies": {

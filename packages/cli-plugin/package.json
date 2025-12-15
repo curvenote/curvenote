@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@curvenote/any-widget": "^0.2.0",
-    "myst-common": "^1.9.2",
+    "myst-common": "^1.9.3",
     "unist-builder": "^4.0.0",
     "vfile": "^5.3.7"
   },

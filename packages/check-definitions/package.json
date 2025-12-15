@@ -20,7 +20,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "myst-common": "^1.9.2",
+    "myst-common": "^1.9.3",
     "myst-templates": "^1.0.26"
   },
   "devDependencies": {
