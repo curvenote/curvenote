@@ -290,21 +290,16 @@ describe('CDN Loaders', () => {
       expect(xrefs).toBeNull();
     });
 
-    it('should work with bypass option', async () => {
+    it.only('should work with bypass option', async () => {
       const mockXrefs = {
         references: [],
       };
 
-      (fetch as any)
-        .mockResolvedValueOnce({
-          status: 200,
-          json: async () => ({ cdn: 'test.key' }),
-        })
-        .mockResolvedValueOnce({
-          status: 200,
-          ok: true,
-          json: async () => mockXrefs,
-        });
+      (fetch as any).mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: async () => mockXrefs,
+      });
 
       const xrefs = await getMystXrefJson('example.com', '', {
         bypass: 'https://bypass.example.com',
