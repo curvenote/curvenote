@@ -41,15 +41,17 @@
     "test:vitest": "npm run link; npm run copy:version; vitest run",
     "test": "npm-run-all -l copy:version -p compile test:vitest",
     "test:watch": "npm run link; npm run copy:version; vitest watch",
-    "build:cli": "esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --target=node14",
+    "build:cli": "esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --target=node18",
     "build": "npm-run-all -l clean copy:version -p build:cli"
   },
   "dependencies": {
-    "jsdom": "^19.0.0",
     "@curvenote/cli": "^0.13.0",
     "chalk": "^5.2.0",
     "commander": "^10.0.1",
-    "core-js": "^3.31.1"
+    "core-js": "^3.31.1",
+    "jsdom": "^19.0.0",
+    "myst-cli": "^1.7.0",
+    "myst-to-tex": "^1.0.43"
   },
   "devDependencies": {
     "js-yaml": "^4.1.0"
