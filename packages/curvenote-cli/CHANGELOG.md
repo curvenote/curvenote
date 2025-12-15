@@ -1,5 +1,18 @@
 # curvenote
 
+## 0.13.1
+
+### Patch Changes
+
+- [#756](https://github.com/curvenote/curvenote/pull/756) [`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bump `myst-*` deps
+
+- Updated dependencies [[`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004), [`65cb539`](https://github.com/curvenote/curvenote/commit/65cb53950fe9f1a1f6b24d31a2a75f0822d0578c), [`e559c93`](https://github.com/curvenote/curvenote/commit/e559c932deaf2cf19e800e40504fca6a955e2acf)]:
+  - @curvenote/check-implementations@0.1.1
+  - @curvenote/check-definitions@0.1.1
+  - @curvenote/cli-plugin@0.13.1
+  - @curvenote/blocks@1.6.1
+  - @curvenote/common@0.3.3
+
 ## 0.13.0
 
 ### Minor Changes
