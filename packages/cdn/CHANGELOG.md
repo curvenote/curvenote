@@ -1,5 +1,14 @@
 # @curvenote/cdn
 
+## 0.3.4
+
+### Patch Changes
+
+- [#758](https://github.com/curvenote/curvenote/pull/758) [`7abc3f7`](https://github.com/curvenote/curvenote/commit/7abc3f7d83392a90d5c7011940c41e49a349409e) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove the `getSignedCDNQuery` function
+
+- Updated dependencies []:
+  - @curvenote/common@0.3.4
+
 ## 0.3.3
 
 ### Patch Changes
