@@ -1,0 +1,123 @@
+{
+  "name": "@curvenote/scms-sites-ext",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Sites extension for Curvenote SCMS applications",
+  "author": "Rowan Cockett <rowan@curvenote.com>",
+  "homepage": "https://github.com/curvenote/journals",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "browser": false,
+  "exports": {
+    ".": {
+      "node": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "require": "./dist/client.js",
+      "default": "./dist/client.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/curvenote/journals.git"
+  },
+  "scripts": {
+    "prepush": "npm run lint:format:fix; npm run lint:circular; npm run lint; npm run compile; npm run test:ci; npm run test:unit; npm run test:integration",
+    "pp": "npm run prepush",
+    "clean": "rimraf dist _build api && find . -name '.turbo' -type d -prune -exec rm -rf '{}' +",
+    "lint": "npx eslint -c ../../.eslintrc.cjs \"src/**/*.{ts,tsx}\"",
+    "lint:format": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "lint:format:fix": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "lint:circular": "npx madge --circular --extensions ts,tsx src",
+    "config": "npx @app-config/cli@2 generate",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "tsc --project tsconfig.json",
+    "build:client": "tsup",
+    "dev": "tsc -w",
+    "compile": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "changeset": "changeset",
+    "version": "changeset version && npm install"
+  },
+  "bugs": {
+    "url": "https://github.com/curvenote/journals/issues"
+  },
+  "dependencies": {
+    "@codemirror/view": "^6.35.0",
+    "@curvenote/check-definitions": "^0.0.29",
+    "@curvenote/common": "^0.2.23",
+    "@curvenote/icons": "0.0.4",
+    "@curvenote/scms-core": "0.0.1",
+    "@curvenote/scms-server": "0.0.1",
+    "@heroicons/react": "^2.2.0",
+    "@prisma/client": "^6.15.0",
+    "@react-router/dev": "7.9.5",
+    "classnames": "^2.5.1",
+    "color": "^5.0.2",
+    "date-fns": "3.6.0",
+    "js-yaml": "^4.1.1",
+    "lucide-react": "^0.552.0",
+    "myst-common": "^1.9.3",
+    "myst-config": "^1.9.3",
+    "myst-to-react": "^1.0.0",
+    "react": "^18.3.1",
+    "react-infinite-scroll-hook": "^5.0.2",
+    "react-router": "7.9.5",
+    "sonner": "^2.0.7",
+    "uuidv7": "^1.0.2",
+    "zod": "^4.1.12",
+    "zod-form-data": "^3.0.1"
+  },
+  "optionalDependencies": {
+    "@esbuild/linux-x64": "^0.25.1",
+    "@rollup/rollup-linux-x64-gnu": "^4.35.0"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@react-router/serve": "7.9.5",
+    "@tailwindcss/postcss": "^4.0.14",
+    "@types/color": "^4.2.0",
+    "@types/express": "^4.17.21",
+    "@types/js-yaml": "^4.0.9",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/md5": "^2.3.5",
+    "@types/node": "^22.19.0",
+    "@types/nprogress": "^0.2.3",
+    "@types/numeral": "^2.0.5",
+    "@types/react": "^18.3.18",
+    "@types/react-datepicker": "^6.2.0",
+    "@types/react-dom": "^18.3.5",
+    "@types/semver": "^7.5.8",
+    "@typescript-eslint/eslint-plugin": "^8.46.3",
+    "concurrently": "^9.1.2",
+    "dotenv-cli": "^11.0.0",
+    "eslint-config-curvenote": "^0.0.4",
+    "glob": "^11.1.0",
+    "madge": "^8.0.0",
+    "prettier": "^3.5.3",
+    "prettier-eslint": "^16.3.0",
+    "prisma": "^6.15.0",
+    "tailwindcss": "^4.0.14",
+    "tsup": "^8.5.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.6.3",
+    "vitest": "^4.0.6"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.mts"
+  },
+  "engines": {
+    "npm": ">=10.0.0",
+    "node": ">=22.21.0"
+  },
+  "packageManager": "npm@10.9.2"
+}

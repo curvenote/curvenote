@@ -1,0 +1,7 @@
+model UnsubscribedEmail {
+  id           String @id
+  email        String @unique
+  date_created String
+
+  @@index([email])
+}

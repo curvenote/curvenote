@@ -1,0 +1,39 @@
+{
+  "globalEnv": ["APP_CONFIG", "APP_CONFIG_SCHEMA"],
+  "$schema": "https://turborepo.org/schema.json",
+  "tasks": {
+    "compile": {
+      "dependsOn": ["^compile"],
+      "outputs": ["dist/**"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [
+        "dist/**",
+        "api/**",
+        "public/build/**",
+        "build/**",
+        ".vercel/**",
+        ".react-router/**"
+      ]
+    },
+    "clean": {
+      "dependsOn": ["^clean"],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
+    "lint:format": {
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "dependsOn": ["^build"]
+    }
+  }
+}

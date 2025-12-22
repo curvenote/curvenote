@@ -1,0 +1,431 @@
+{
+  "url": "https://scipy.curve.space",
+  "private": false,
+  "site": {
+    "id": "d872a7c4-19e0-48f5-9c0b-051950a01878",
+    "name": "scipy",
+    "default_workflow": "SIMPLE",
+    "title": "SciPy Proceedings",
+    "description": "Proceedings of the Python in Science Conferences",
+    "favicon": "https://cdn.curvenote.com/static/site/scipy/favicon.ico",
+    "tagline": "",
+    "content": "scipy-landingstaging.curve.space",
+    "logo": "https://cdn.curvenote.com/static/site/scipy/scipy-logo.svg",
+    "logo_dark": "https://cdn.curvenote.com/static/site/scipy/scipy-logo-lightblue.svg",
+    "footer_logo": "https://cdn.curvenote.com/static/site/scipy/scipy-logo-footer.svg",
+    "footer_logo_dark": "https://cdn.curvenote.com/static/site/scipy/scipy-logo-footer.svg",
+    "slug_strategy": "DOI",
+    "footer_links": [
+      [
+        {
+          "url": "/",
+          "title": "Home"
+        },
+        {
+          "url": "/articles",
+          "title": "Latest Articles"
+        },
+        {
+          "url": "/archive",
+          "title": "Archive"
+        },
+        {
+          "url": "/past-conferences",
+          "title": "Past Conferences"
+        },
+        {
+          "url": "/news",
+          "title": "News"
+        }
+      ],
+      [
+        {
+          "url": "/submit",
+          "title": "Submit An Article"
+        },
+        {
+          "url": "/getting-started",
+          "title": "Author Instructions"
+        }
+      ]
+    ],
+    "social_links": [
+      {
+        "kind": "twitter",
+        "url": "https://twitter.com/SciPyConf"
+      },
+      { "kind": "github", "url": "https://github.com/scipy-conference" }
+    ],
+    "kinds": [
+      {
+        "name": "article",
+        "content": {
+          "title": "Article",
+          "description": "A research article"
+        },
+        "default": true,
+        "checks": [
+          {
+            "id": "abstract-exists"
+          },
+          {
+            "id": "abstract-length"
+          },
+          {
+            "id": "authors-exist"
+          },
+          {
+            "id": "authors-corresponding"
+          },
+          {
+            "id": "authors-have-affiliations"
+          },
+          {
+            "id": "authors-have-orcid",
+            "optional": true
+          },
+          {
+            "id": "authors-have-credit-roles"
+          },
+          {
+            "id": "data-availability-exists"
+          },
+          {
+            "id": "keywords-defined",
+            "optional": true
+          },
+          {
+            "id": "keywords-length"
+          },
+          {
+            "id": "keywords-unique"
+          },
+          {
+            "id": "links-resolve"
+          },
+          {
+            "id": "abstract-exists"
+          },
+          {
+            "id": "doi-exists"
+          }
+        ]
+      }
+    ],
+    "theme_config": {
+      "grid": "article-left-grid",
+      "name": "theme-one",
+      "colors": {
+        "primary": "#0154a5"
+      },
+      "fonts": {
+        "one": {
+          "name": "Monserrat",
+          "src": "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+        }
+      },
+      "styles": {
+        "footer": "bg-primary dark:bg-stone-700 text-primary-contrast dark:text-white"
+      },
+      "content": {
+        "tableOfContents": true,
+        "navigationBanner": false
+      },
+      "jupyter": {
+        "mecaBundle": true,
+        "launchBinder": true,
+        "figureCompute": true,
+        "notebookCompute": true,
+        "binderUrlOverride": "https://xhrtcvh6l53u.curvenote.dev/services/binder/"
+      },
+      "landing": {
+        "grid": "article-grid",
+        "hero": {
+          "cta": [
+            {
+              "url": "/2023",
+              "icon": "doc-chart",
+              "label": "Read 2023 Abstracts",
+              "classes": "inline-block px-8 py-4 rounded-lg bg-white text-black no-underline text-lg font-light tracking-wide border-1 border-white hover:opacity-90",
+              "openInNewTab": false
+            },
+            {
+              "url": "https://www.scipy2024.scipy.org/",
+              "label": "SciPy Conference",
+              "classes": "inline-block px-8 py-4 rounded-lg bg-transparent border-1 text-white no-underline text-lg font-light tracking-wide hover:bg-gray-50/10",
+              "openInNewTab": true
+            }
+          ],
+          "title": "Python in Science Conferences",
+          "layout": "left",
+          "classes": {
+            "text": "text-primary-contrast font-one",
+            "heading": "text-5xl font-extralight text-white tracking-tight",
+            "kicker": "font-regular text-lg",
+            "description": "font-extralight text-xl leading-8",
+            "backgroundScreen": "bg-black bg-opacity-50 lg:hidden"
+          },
+          "kicker": "THE PROCEEDINGS",
+          "description": "The SciPy Conference is a cross-disciplinary gathering focused on the use and development of the Python language in scientific research. This event strives to bring together both users and developers of scientific tools, as well as academic research and state of the art industry.",
+          "backgroundImage": "https://cdn.curvenote.com/static/site/scipy/scipy-hero-v2-tilt.webp"
+        },
+        "listing": "list",
+        "listingTitle": "2023 Proceedings",
+        "listingActionText": "See All Proceedings"
+      },
+      "listing": {
+        "type": "list"
+      },
+      "articles": {
+        "tableOfContents": false,
+        "supportingDocuments": true
+      },
+      "manifest": {
+        "nav": [
+          {
+            "url": "/",
+            "title": "Home"
+          },
+          {
+            "url": "/articles",
+            "title": "Proceedings"
+          },
+          {
+            "url": "https://conference.scipy.org/proceedings",
+            "title": "Archive"
+          },
+          {
+            "url": "https://www.scipy2024.scipy.org",
+            "title": "2024 Conference"
+          }
+        ]
+      },
+      "submission": false
+    }
+  },
+  "collections": [
+    {
+      "name": "articles",
+      "slug": "",
+      "workflow": "SIMPLE",
+      "default": false,
+      "open": false,
+      "content": {
+        "title": "Articles",
+        "description": "A collection of research articles"
+      }
+    },
+    {
+      "name": "2024",
+      "slug": "2024",
+      "workflow": "SIMPLE",
+      "default": false,
+      "open": true,
+      "content": {
+        "title": "2024 Research Articles",
+        "description": "A collection of research articles for 2024"
+      }
+    },
+    {
+      "name": "2023",
+      "slug": "2023",
+      "workflow": "SIMPLE",
+      "default": false,
+      "open": false,
+      "content": {
+        "title": "2023 Research Articles",
+        "description": "A collection of research articles for 2023"
+      }
+    }
+  ],
+  "works": [
+    {
+      "id": "018e0f6a-2eae-7617-8cc4-259e23150308",
+      "title": "Simple Testing Project",
+      "description": "This is a simple project to test various myst and curvenote features.",
+      "authors": ["Steve Purves", "Rowan Cockett"],
+      "date": "2024-03-05T16:20:00.814Z",
+      "kind": "article",
+      "collection": "2023",
+      "doi": "99.123/the.work",
+      "versions": [
+        {
+          "id": "018e0f6a-2eae-7617-8cc4-259f80847833",
+          "cdn_key": "018e3f0e-6f99-71ca-ad6c-a0fd2227012d",
+          "cdn": "https://prv.curvenote.dev/",
+          "date_created": "2024-03-05T16:20:00.814Z",
+          "canonical": true,
+          "doi": "99.123/the.work.version"
+        }
+      ],
+      "submission": {},
+      "job": {
+        "id": "018e3f0e-6c25-7b47-b880-babaa851cabc",
+        "job_type": "CLI_CHECK",
+        "status": "COMPLETED",
+        "payload": {
+          "key": "scipy-seed-dev-1",
+          "site": "scipy",
+          "source": {
+            "path": "",
+            "repo": "github.com/stevejpurves/simple-test",
+            "branch": "main",
+            "commit": "e724b68"
+          }
+        },
+        "results": {
+          "cdnKey": "018e3f0e-6f99-71ca-ad6c-a0fd2227012d",
+          "checks": {
+            "kind": "Proceeding",
+            "venue": "scipy",
+            "report": [
+              {
+                "id": "abstract-exists",
+                "file": "/Users/stevejpurves/dev/demos/simple/paper.md",
+                "help": "Add an abstract",
+                "tags": ["frontmatter", "abstract"],
+                "title": "Abstract Exists",
+                "status": "fail",
+                "message": "No abstract found",
+                "purpose": "ensure abstract exists"
+              },
+              {
+                "id": "abstract-length",
+                "file": "/Users/stevejpurves/dev/demos/simple/paper.md",
+                "help": "Abstract should be less than 400 words",
+                "tags": ["frontmatter", "abstract"],
+                "cause": "abstract-exists",
+                "title": "Abstract Length",
+                "status": "error",
+                "message": "No abstract found",
+                "options": [
+                  {
+                    "id": "max",
+                    "type": "number",
+                    "title": "Maximum word count for abstract",
+                    "default": 400
+                  }
+                ],
+                "purpose": "ensure abstract has the correct length"
+              },
+              {
+                "id": "authors-exist",
+                "file": "/Users/stevejpurves/dev/demos/simple/myst.yml",
+                "nice": "Authors found 👋",
+                "tags": ["frontmatter", "authors"],
+                "title": "Authors",
+                "status": "pass",
+                "message": "Found 1 authors",
+                "purpose": "ensure authors are defined"
+              },
+              {
+                "id": "authors-corresponding",
+                "file": "/Users/stevejpurves/dev/demos/simple/myst.yml",
+                "nice": "Corresponding author is set 📧",
+                "tags": ["frontmatter", "authors"],
+                "title": "Corresponding Author",
+                "status": "pass",
+                "message": "Steve Purves (Project) provided an email: <steve@curvenote.com>",
+                "purpose": "ensure there is a corresponding author"
+              },
+              {
+                "id": "authors-have-affiliations",
+                "file": "/Users/stevejpurves/dev/demos/simple/myst.yml",
+                "nice": "All authors have affiliations 🏫",
+                "tags": ["frontmatter", "authors"],
+                "title": "Author Affiliations",
+                "status": "pass",
+                "message": "Steve Purves (Project) has an affiliation",
+                "purpose": "ensure each author has an affiliation"
+              },
+              {
+                "id": "authors-have-orcid",
+                "file": "/Users/stevejpurves/dev/demos/simple/myst.yml",
+                "nice": "Thanks for adding ORCIDs, robots love orchids 🤖💚🌸",
+                "tags": ["frontmatter", "authors"],
+                "title": "ORCID",
+                "status": "pass",
+                "message": "Steve Purves (Project) has an ORCID",
+                "purpose": "ensure each author has an ORCID"
+              },
+              {
+                "id": "authors-have-credit-roles",
+                "file": "/Users/stevejpurves/dev/demos/simple/myst.yml",
+                "help": "Add CRediT roles to each author",
+                "tags": ["frontmatter", "authors"],
+                "title": "CRediT Roles",
+                "status": "fail",
+                "message": "Steve Purves (Project) does not have any CRediT Roles",
+                "purpose": "ensure each author has one or more CRediT roles"
+              },
+              {
+                "id": "data-availability-exists",
+                "file": "/Users/stevejpurves/dev/demos/simple/paper.md",
+                "help": "Add a data availability statement",
+                "tags": ["frontmatter", "data-availability"],
+                "title": "Data Availability Statement",
+                "status": "fail",
+                "message": "No availability statement found",
+                "purpose": "ensure data availability statement exists"
+              },
+              {
+                "id": "keywords-defined",
+                "file": "/Users/stevejpurves/dev/demos/simple/myst.yml",
+                "help": "Add keywords to your project",
+                "tags": ["frontmatter", "keywords"],
+                "title": "Keywords",
+                "status": "fail",
+                "message": "No keywords found",
+                "purpose": "ensure keywords exist"
+              },
+              {
+                "id": "keywords-length",
+                "file": "/Users/stevejpurves/dev/demos/simple/myst.yml",
+                "help": "Include up to 5 keywords to your project",
+                "tags": ["frontmatter", "keywords"],
+                "cause": "keywords-defined",
+                "title": "Number of Keywords",
+                "status": "error",
+                "message": "No keywords found",
+                "options": [
+                  {
+                    "id": "max",
+                    "type": "number",
+                    "title": "Maximum number of keywords",
+                    "default": 5
+                  }
+                ],
+                "purpose": "ensure the right number of keywords exist"
+              },
+              {
+                "id": "keywords-unique",
+                "file": "/Users/stevejpurves/dev/demos/simple/myst.yml",
+                "help": "Ensure each keyword is unique",
+                "tags": ["frontmatter", "keywords"],
+                "cause": "keywords-defined",
+                "title": "Unique Keywords",
+                "status": "error",
+                "message": "No keywords found",
+                "purpose": "ensure the keywords are unique"
+              },
+              {
+                "id": "abstract-exists",
+                "file": "/Users/stevejpurves/dev/demos/simple/paper.md",
+                "help": "Add an abstract",
+                "tags": ["frontmatter", "abstract"],
+                "title": "Abstract Exists",
+                "status": "fail",
+                "message": "No abstract found",
+                "purpose": "ensure abstract exists"
+              }
+            ]
+          },
+          "workId": "018e0f6a-2eae-7617-8cc4-259e23150308",
+          "submissionId": "018e3f0b-fe2d-7ebd-b1a7-00556b74640c",
+          "workVersionId": "018e0f6a-2eae-7617-8cc4-259f80847833",
+          "submissionVersionId": "018e3f0b-fe2d-7ebd-b1a7-0054a0fd4451"
+        }
+      }
+    }
+  ]
+}

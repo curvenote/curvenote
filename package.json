@@ -1,11 +1,24 @@
 {
   "private": true,
+  "type": "module",
   "workspaces": [
     "mystmd/packages/*",
-    "packages/*"
+    "packages/*",
+    "ee/*",
+    "extensions/*/packages/*"
   ],
   "scripts": {
-    "build": "turbo run build",
+    "postinstall": "npm run prisma:generate && npm run generate:extensions",
+    "prisma:generate": "npx prisma generate --schema=./prisma/schema",
+    "generate:extensions": "node platform/scms/scripts/generate-extensions.js",
+    "prisma:format": "npx prisma format --schema=./prisma/schema",
+    "db:studio": "prisma studio --schema=./prisma/schema/",
+    "dev:db:reset": "npx prisma migrate reset --schema=./prisma/schema",
+    "dev:db:migrate": "npx prisma migrate dev --schema=./prisma/schema",
+    "test:db:reset": "dotenv -e .env.test -- npx prisma db push --force-reset --schema=./prisma/schema; dotenv -e .env.test -- tsx prisma/seed.test.mts",
+    "config": "npx @app-config/cli@2 generate",
+    "build": "npm run config && turbo run build",
+    "build:scms": "cd platform/scms && npm run build",
     "build:web": "turbo run build --filter=@curvespace/default",
     "dev": "turbo run dev --parallel",
     "clean": "turbo run clean --parallel && find . -name '.turbo' -type d -prune -exec rm -rf '{}' +",
@@ -29,6 +42,7 @@
     "npm-run-all": "^4.1.5",
     "npm-upgrade-monorepo": "^1.2.6",
     "prettier": "latest",
+    "prisma": "^6.18.0",
     "rimraf": "^3.0.2",
     "turbo": "latest",
     "typescript": "^5.9.3",
@@ -40,7 +54,8 @@
   },
   "packageManager": "npm@8.10.0",
   "dependencies": {
-    "@changesets/changelog-github": "^0.5.1"
+    "@changesets/changelog-github": "^0.5.1",
+    "@prisma/client": "^6.18.0"
   },
   "overrides": {
     "@types/node": "^24.6.2",
@@ -48,6 +63,11 @@
     "@types/ws": "^8.18.1",
     "vite": {
       "rollup": "npm:@rollup/wasm-node"
+    },
+    "@curvenote/scms-core": {
+      "zod-form-data": {
+        "zod": "^4.1.12"
+      }
     }
   }
 }
