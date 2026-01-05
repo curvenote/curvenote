@@ -42,5 +42,6 @@ extensions/*
 !extensions/README.md
 
 .app-config.*
+!.app-config.meta.yml
 !.app-config.schema.yml
 !.app-config.sample.yml

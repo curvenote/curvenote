@@ -1,0 +1,3 @@
+generate:
+  - { file: 'types/app-config.d.ts', augmentModule: false }
+  - { file: 'platform/scms/types/app-config.d.ts', augmentModule: false }
