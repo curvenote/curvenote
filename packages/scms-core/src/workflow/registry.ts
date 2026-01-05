@@ -70,7 +70,14 @@ export function getWorkflow(
   validateWorkflows(config, extensionWorkflows);
   const workflow = workflowRegistry.get(name);
   if (!workflow) {
-    throw new Error(`Workflow ${name} not found`);
+    console.error(`Workflow ${name} not found, defaulting to SIMPLE`);
+    const simpleWorkflow = workflowRegistry.get('SIMPLE');
+    if (!simpleWorkflow) {
+      throw new Error(
+        'FATAL: SIMPLE workflow not found, core workflow registry is not properly initialized',
+      );
+    }
+    return simpleWorkflow;
   }
   return workflow;
 }

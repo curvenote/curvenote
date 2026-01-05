@@ -20,6 +20,9 @@ export async function dbGetInboxSubmissions(ctx: SiteContext) {
   // this will fix inbox temporarily, but we need to address the active version selection
   const prisma = await getPrismaClient();
   const submissionsWithLatestVersion = await prisma.submission.findMany({
+    where: {
+      site_id: ctx.site.id,
+    },
     include: {
       collection: true,
       versions: {
