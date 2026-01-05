@@ -10,17 +10,17 @@ export async function getConfig(
   schemaOptions?: SchemaLoadingOptions,
 ): Promise<AppConfig> {
   const localConfigOptions = {
-    ...configOptions,
     directory: process.env.VITE_APP_CONFIG_DIRECTORY
       ? path.resolve(process.cwd(), process.env.VITE_APP_CONFIG_DIRECTORY)
       : undefined,
+    ...configOptions,
   };
 
   const localSchemaOptions = {
-    ...schemaOptions,
     directory: process.env.VITE_APP_CONFIG_SCHEMA_DIRECTORY
       ? path.resolve(process.cwd(), process.env.VITE_APP_CONFIG_SCHEMA_DIRECTORY)
       : undefined,
+    ...schemaOptions,
   };
 
   if (!config) {

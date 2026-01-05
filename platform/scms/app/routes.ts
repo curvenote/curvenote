@@ -10,10 +10,10 @@ const environmentOverride =
 const appConfig = await getConfig(
   {
     environmentOverride,
-    directory: path.resolve(__dirname, '../'),
+    directory: path.resolve(process.cwd(), '.'),
   },
   {
-    directory: path.resolve(__dirname, '../../../'),
+    directory: path.resolve(process.cwd(), '../../'),
   },
 );
 
