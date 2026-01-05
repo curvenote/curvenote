@@ -7,10 +7,15 @@ import path from 'node:path';
 const environmentOverride =
   process.env.NODE_ENV !== 'production' ? process.env.NODE_ENV : undefined;
 
-const appConfig = await getConfig({
-  environmentOverride,
-  directory: path.resolve(__dirname, '../../../'),
-});
+const appConfig = await getConfig(
+  {
+    environmentOverride,
+    directory: path.resolve(__dirname, '../'),
+  },
+  {
+    directory: path.resolve(__dirname, '../../../'),
+  },
+);
 
 const authProviderNames = Object.keys(appConfig.auth ?? {});
 

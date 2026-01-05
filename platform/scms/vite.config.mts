@@ -26,10 +26,15 @@ export default defineConfig(async ({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '');
-  await loadConfig({
-    environmentOverride: env.VITE_APP_CONFIG_ENV,
-    directory: path.resolve(process.cwd(), '../../'),
-  });
+  await loadConfig(
+    {
+      environmentOverride: env.VITE_APP_CONFIG_ENV,
+      directory: path.resolve(process.cwd(), '.'),
+    },
+    {
+      directory: path.resolve(process.cwd(), '../../'),
+    },
+  );
   // TODO need to respect the allowLogin flag whilst allowing linking
 
   /**
