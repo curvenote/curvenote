@@ -126,7 +126,7 @@ function generateWork(index: number) {
 }
 
 // Generate 100 works
-const works = Array.from({ length: 100 }, (_, i) => generateWork(i));
+const works = Array.from({ length: 5 }, (_, i) => generateWork(i));
 
 // Export the works array
 export default works;
