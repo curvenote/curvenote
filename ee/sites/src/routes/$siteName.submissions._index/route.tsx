@@ -7,14 +7,14 @@ import {
   site as siteScopes,
   getBrandingFromMetaMatches,
   joinPageTitle,
+  useInfiniteScroll,
 } from '@curvenote/scms-core';
 import type { Prisma } from '@prisma/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { zfd } from 'zod-form-data';
 import { z } from 'zod';
 import { dbListSignedSubmissions, dbQueryJobs } from './db.server.js';
 import type { AugmentedSubmissionsListWithPagination } from './types.js';
-import useInfiniteScroll from 'react-infinite-scroll-hook';
 import { CollectionSelect } from './CollectionSelect.js';
 import { SiteTrackEvent } from '../../analytics/events.js';
 import { SubmissionList } from '../../components/SubmissionList.js';
@@ -159,33 +159,34 @@ export default function AllSubmissionsPage({ loaderData }: { loaderData: LoaderD
     ? (fetcher.data.submissions.hasMore ?? false)
     : (submissions.hasMore ?? false);
 
-  const [infiniteRef, { rootRef }] = useInfiniteScroll({
+  const handleLoadMore = useCallback(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : undefined;
+    const perPage = searchParams.get('perPage')
+      ? parseInt(searchParams.get('perPage')!)
+      : undefined;
+
+    if (page === undefined || perPage === undefined) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('intent', 'scroll');
+    formData.append('page', (page + 1).toString());
+    if (fetcher.data?.submissions?.perPage) {
+      formData.append('perPage', fetcher.data.submissions.perPage.toString());
+    } else {
+      formData.append('perPage', DEFAULT_PER_PAGE.toString());
+    }
+    formData.append('collection', urlSearchParams.get('collection') ?? 'all');
+
+    fetcher.submit(formData, { method: 'post' });
+  }, [fetcher, urlSearchParams]);
+
+  const { infiniteRef, rootRef } = useInfiniteScroll({
     loading: fetcher.state !== 'idle',
     hasNextPage,
-    onLoadMore: () => {
-      const searchParams = new URLSearchParams(window.location.search);
-      const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : undefined;
-      const perPage = searchParams.get('perPage')
-        ? parseInt(searchParams.get('perPage')!)
-        : undefined;
-
-      if (page === undefined || perPage === undefined) {
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('intent', 'scroll');
-      formData.append('page', (page + 1).toString());
-      if (fetcher.data?.submissions?.perPage) {
-        formData.append('perPage', fetcher.data.submissions.perPage.toString());
-      } else {
-        formData.append('perPage', DEFAULT_PER_PAGE.toString());
-      }
-      formData.append('collection', urlSearchParams.get('collection') ?? 'all');
-
-      fetcher.submit(formData, { method: 'post' });
-    },
-    rootMargin: '0px 0px 10px 0px',
+    onLoadMore: handleLoadMore,
   });
 
   // Update URL with pagination parameters when they are defined
@@ -233,7 +234,7 @@ export default function AllSubmissionsPage({ loaderData }: { loaderData: LoaderD
   return (
     <PageFrame
       ref={rootRef}
-      className="relative h-screen overflow-y-scroll"
+      className="overflow-y-scroll relative h-screen"
       title="Submitted Articles"
       subtitle={`List and view all article submissions for ${site.title}`}
       breadcrumbs={breadcrumbs}
@@ -247,7 +248,7 @@ export default function AllSubmissionsPage({ loaderData }: { loaderData: LoaderD
       )}
       {items.length === 0 && <div className="mt-8 font-medium">No submitted articles found</div>}
       {items.length > 0 && (
-        <div className="flex flex-col w-full gap-4 overflow-y-scroll sm:gap-2">
+        <div className="flex overflow-y-scroll flex-col gap-4 w-full sm:gap-2">
           <SubmissionList
             scopes={scopes}
             site={site}
@@ -259,7 +260,7 @@ export default function AllSubmissionsPage({ loaderData }: { loaderData: LoaderD
         </div>
       )}
       {hasNextPage && (
-        <div ref={infiniteRef} className="flex items-center justify-center">
+        <div ref={infiniteRef} className="flex justify-center items-center">
           <div className="text-sm text-gray-500 animate-pulse">Loading more...</div>
         </div>
       )}
