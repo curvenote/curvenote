@@ -23,6 +23,8 @@ app/firebase.json
 app/.firebaserc
 
 .app-config.*
+!.app-config.test.yml
+!.app-config.secrets.test.yml
 app-config.d.ts
 
 package.json
