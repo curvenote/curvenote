@@ -7,7 +7,7 @@ import { createRequire } from 'module';
 import path from 'path';
 import ViteRestart from 'vite-plugin-restart';
 import { loadConfig } from '@app-config/main';
-// import builtins from 'rollup-plugin-node-builtins';
+import tailwindcss from '@tailwindcss/vite';
 
 const require = createRequire(import.meta.url);
 const prismaClientDirectory = path.normalize(
@@ -122,7 +122,30 @@ export default defineConfig(async ({ mode }) => {
     plugins: [
       reactRouter(),
       tsconfigPaths(),
+      tailwindcss(),
       (appConfigVite as any).default(), // don't know why the default import is not working
+      // Plugin to suppress sourcemap warnings for node_modules packages
+      {
+        name: 'suppress-sourcemap-warnings',
+        enforce: 'pre',
+        buildStart() {
+          // Suppress sourcemap warnings from node_modules
+          // These warnings occur when packages include sourcemap references
+          // but don't include the source files in their distribution
+          const originalWarn = console.warn;
+          console.warn = (...args: any[]) => {
+            const message = args[0]?.toString() || '';
+            // Filter out sourcemap warnings from node_modules
+            if (
+              message.includes('Sourcemap for') &&
+              message.includes('points to missing source files')
+            ) {
+              return; // Suppress this warning
+            }
+            originalWarn.apply(console, args);
+          };
+        },
+      },
       ViteRestart({
         restart: [
           '.app-config.*',
@@ -288,6 +311,18 @@ export default defineConfig(async ({ mode }) => {
           'crypto',
           '@curvenote/scms-server',
         ],
+        onwarn(warning, warn) {
+          // Suppress sourcemap warnings from node_modules packages
+          // These occur when packages include sourcemap references but don't include source files
+          if (
+            warning.message?.includes('Sourcemap for') &&
+            warning.message?.includes('points to missing source files')
+          ) {
+            return; // Suppress this warning
+          }
+          // Use default warning handler for other warnings
+          warn(warning);
+        },
       },
     },
   };
