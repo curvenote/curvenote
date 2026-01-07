@@ -45,3 +45,5 @@ extensions/*
 !.app-config.meta.yml
 !.app-config.schema.yml
 !.app-config.sample.yml
+
+types/app-config.d.ts
