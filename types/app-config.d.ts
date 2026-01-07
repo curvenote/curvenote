@@ -362,9 +362,156 @@ export interface VideoElement {
 
 export interface Extensions {
   /**
+   * HHMI Compliance Extension Module Configuration
+   */
+  "hhmi-compliance"?: HHMIComplianceExtensionModule;
+  /**
+   * PMC Extension Module Configuration
+   */
+  pmc?: PMCExtensionModule;
+  /**
    * Sites Extension Module Configuration
    */
   sites?: SitesExtensionModule;
+}
+
+/**
+ * HHMI Compliance Extension Module Configuration
+ */
+export interface HHMIComplianceExtensionModule {
+  airtable?: HhmiComplianceAirtable;
+  /**
+   * This extension will register new (prisma) data models and migrations
+   */
+  dataModels?: boolean;
+  /**
+   * This extension will register new site navigation items
+   */
+  navigation?: boolean;
+  /**
+   * This extension will register new routes
+   */
+  routes?: boolean;
+  /**
+   * This extension will register one of more tasks
+   */
+  task?: boolean;
+  /**
+   * This extension will register new workflows
+   */
+  workflows?: boolean;
+}
+
+export interface HhmiComplianceAirtable {
+  /**
+   * Airtable API key for accessing the HHMI compliance database
+   */
+  apiKey: string;
+}
+
+/**
+ * PMC Extension Module Configuration
+ */
+export interface PMCExtensionModule {
+  airtable?: PmcAirtable;
+  /**
+   * This extension will register new (prisma) data models and migrations
+   */
+  dataModels?: boolean;
+  depositService?: DepositService;
+  inboundEmail?: InboundEmail;
+  /**
+   * This extension will register new site navigation items
+   */
+  navigation?: boolean;
+  /**
+   * This extension will register new routes
+   */
+  routes?: boolean;
+  /**
+   * This extension will register one of more tasks
+   */
+  task?: boolean;
+  /**
+   * This extension will register new workflows
+   */
+  workflows?: boolean;
+}
+
+export interface PmcAirtable {
+  /**
+   * Airtable API key for accessing both PMC submissions and scientists databases
+   */
+  apiKey: string;
+  /**
+   * Airtable base ID for accessing the HHMI databases
+   */
+  baseId: string;
+  tables: Tables;
+}
+
+export interface Tables {
+  pmcSubmissions: PmcSubmissions;
+  scientists: Scientists;
+}
+
+export interface PmcSubmissions {
+  fields: PmcSubmissionsFields;
+  /**
+   * Airtable PMC submissions table ID
+   */
+  id: string;
+}
+
+export interface PmcSubmissionsFields {
+  /**
+   * Airtable NIHMSID field ID
+   */
+  nihmsId: string;
+}
+
+export interface Scientists {
+  fields: ScientistsFields;
+  /**
+   * Airtable scientists table ID
+   */
+  id: string;
+  /**
+   * Airtable scientists view ID (optional filter)
+   */
+  viewId?: string;
+}
+
+export interface ScientistsFields {
+  /**
+   * Airtable full name field ID
+   */
+  fullName: string;
+  /**
+   * Airtable grant ID field ID
+   */
+  grantId: string;
+  /**
+   * Airtable ORCID field ID
+   */
+  orcid: string;
+}
+
+export interface DepositService {
+  projectId: string;
+  secretKeyfile: string;
+  topic: string;
+}
+
+export interface InboundEmail {
+  enabled?: boolean;
+  password?: string;
+  /**
+   * A list of email addresses (or regular expressions)that are allowed to send emails to the
+   * site
+   */
+  senders?: string[];
+  username?: string;
 }
 
 /**
