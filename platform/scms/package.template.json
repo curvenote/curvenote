@@ -25,6 +25,7 @@
     "dev:db:reset": "npx prisma migrate reset --schema=../../prisma/schema",
     "dev:db:migrate": "npx prisma migrate dev --schema=../../prisma/schema",
     "test:db:reset": "dotenv -e .env.test -- npx prisma db push --force-reset --schema=../../prisma/schema; dotenv -e .env.test -- tsx ../../prisma/seed.test.mts",
+    "config": "cd ../.. && npm run config",
     "compile": "NODE_ENV=development react-router typegen; tsc --noEmit",
     "optimize": "vite optimize",
     "build": "npm run build:dev",
