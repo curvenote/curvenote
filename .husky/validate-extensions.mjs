@@ -119,7 +119,7 @@ function validateExtensions(extensions) {
   );
 
   if (invalidExtensions.length > 0) {
-    console.error('\n❌ Pre-commit validation failed!\n');
+    console.error('\n❌ .app-config.schema.yml pre-commit validation failed!\n');
     console.error(
       `The following extensions are not whitelisted: ${invalidExtensions.join(', ')}`,
     );
