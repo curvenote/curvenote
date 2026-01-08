@@ -12,6 +12,7 @@ model SubmissionKind {
   submissionActivity Activity[]
   collections        KindsInCollections[]
   occ                Int                  @default(0)
+  submissionForms    SubmissionForm[]
 
   @@unique([name, site_id])
 }
@@ -45,6 +46,33 @@ model Collection {
   childCollections  Collection[]         @relation("CollectionToCollection")
   activity          Activity[]
   occ               Int                  @default(0)
+  forms             CollectionsInForms[]
+
+  @@unique([name, site_id])
+}
+
+model CollectionsInForms {
+  id            String         @id
+  date_created  String
+  date_modified String
+  collection    Collection     @relation(fields: [collection_id], references: [id])
+  collection_id String
+  form          SubmissionForm @relation(fields: [form_id], references: [id])
+  form_id       String
+}
+
+model SubmissionForm {
+  id            String               @id
+  date_created  String
+  date_modified String
+  name          String
+  content       Json
+  site          Site                 @relation(fields: [site_id], references: [id])
+  site_id       String
+  kind          SubmissionKind       @relation(fields: [kind_id], references: [id])
+  kind_id       String
+  collections   CollectionsInForms[]
+  activity      Activity[]
 
   @@unique([name, site_id])
 }
