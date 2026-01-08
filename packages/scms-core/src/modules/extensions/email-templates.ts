@@ -1,4 +1,5 @@
-import type { ClientExtension, ExtensionEmailTemplate } from './types.js';
+import type { ClientExtension } from './types.js';
+import type { ExtensionEmailTemplate } from '../../backend/types.js';
 
 export function getExtensionEmailTemplates(
   extensions: ClientExtension[],

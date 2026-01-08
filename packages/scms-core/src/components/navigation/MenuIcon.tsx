@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../utils/index.js';
 import type { ClientExtension } from '../../modules/extensions/types.js';
-import { getExtensionIcon } from '../../modules/index.js';
+import { getExtensionIcon } from '../../modules/extensions/icons.js';
 
 export function MenuIcon({
   className,

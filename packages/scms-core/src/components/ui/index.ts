@@ -31,7 +31,7 @@ export * from './RoleBadge.js';
 export * from './select.js';
 export * from './simple-dialog.js';
 export * from './SimpleAlert.js';
-export * from './sonner.js';
+export * from './Toaster.js';
 export * from './StatefulButton.js';
 export * from './SubmissionVersionBadge.js';
 export * from './switch.js';

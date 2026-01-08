@@ -1,5 +1,4 @@
 import type { ResendEventType } from '../services/emails/types.js';
-import type { ExtensionEmailTemplate } from '../modules/extensions/types.js';
 import type { AllTrackEvent } from './services/analytics/events.js';
 import type { EventOptions } from '../utils/analytics.js';
 
@@ -141,4 +140,22 @@ export interface StorageBackend {
 
   /** Create a folder handler for the given key and bucket */
   createFolder(key: string, bucket: KnownBuckets): any; // Folder - using any to avoid circular dependency
+}
+
+export interface ExtensionEmailTemplate {
+  eventType: string;
+  component: React.ComponentType<any>;
+  props: Record<string, any>;
+  templateInfo?: {
+    name: string;
+    description: string;
+    exampleSubject: string;
+    fields: Array<{
+      name: string;
+      label: string;
+      type: 'text' | 'email' | 'url' | 'textarea' | 'boolean';
+      optional?: boolean;
+      example: string | boolean;
+    }>;
+  };
 }

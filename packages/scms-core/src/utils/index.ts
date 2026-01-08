@@ -16,7 +16,7 @@ export * from './sleep.js';
 export * from './status.js';
 export * from './truncate.js';
 export * from './wildcard.js';
-export * from './zod.js';
+export * from './formatZodError.js';
 
 export const version = 'v1';
 

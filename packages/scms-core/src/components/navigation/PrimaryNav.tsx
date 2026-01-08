@@ -5,7 +5,7 @@ import { NavLink } from 'react-router';
 import { MenuIcon } from './MenuIcon.js';
 import { useMobile } from './Mobile.js';
 import { UserMenu } from './UserMenu.js';
-import type { ClientExtension } from '../../modules/index.js';
+import type { ClientExtension } from '../../modules/extensions/types.js';
 
 function CurvenoteIconLogo({ className }: { className?: string }) {
   return (

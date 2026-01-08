@@ -1,6 +1,6 @@
 import type { RouteConfigEntry } from '@react-router/dev/routes';
-import type { MenuContents } from '../../components/navigation/index.js';
-import type { Context, StorageBackend } from '../../backend/types.js';
+import type { MenuContents } from '../../components/navigation/types.js';
+import type { Context, ExtensionEmailTemplate, StorageBackend } from '../../backend/types.js';
 import type { CreateJob } from '../../backend/loaders/jobs/types.js';
 import type { WorkflowRegistration } from '../../workflow/types.js';
 
@@ -30,24 +30,6 @@ export interface ExtensionIcon {
 export interface ExtensionAnalyticsEvents {
   events: Record<string, string>;
   descriptions: Record<string, string>;
-}
-
-export interface ExtensionEmailTemplate {
-  eventType: string;
-  component: React.ComponentType<any>;
-  props: Record<string, any>;
-  templateInfo?: {
-    name: string;
-    description: string;
-    exampleSubject: string;
-    fields: Array<{
-      name: string;
-      label: string;
-      type: 'text' | 'email' | 'url' | 'textarea' | 'boolean';
-      optional?: boolean;
-      example: string | boolean;
-    }>;
-  };
 }
 
 export interface ExtensionCheckService {
