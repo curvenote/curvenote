@@ -159,7 +159,6 @@ export function ClientFilterableList<T>({
       items
         .then((data) => {
           setResolvedItems(data);
-          console.log('resolved data', data);
           setIsLoading(false);
         })
         .catch((promiseError) => {
