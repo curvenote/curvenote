@@ -1,3 +1,91 @@
 #!/usr/bin/env sh
+
+# Check if either lockfile is staged
+STAGED_FILES=$(git diff --cached --name-only)
+ROOT_LOCKFILE_STAGED=$(echo "$STAGED_FILES" | grep -q "^package-lock.json$" && echo "yes" || echo "no")
+SCMS_LOCKFILE_STAGED=$(echo "$STAGED_FILES" | grep -q "^platform/scms/package-lock.json$" && echo "yes" || echo "no")
+
+# Count staged files excluding lockfiles
+STAGED_NON_LOCKFILES=$(echo "$STAGED_FILES" | grep -v "^package-lock.json$" | grep -v "^platform/scms/package-lock.json$" | grep -v "^$" | wc -l | tr -d ' ')
+
+# Remove extension-related packages from lockfiles if either is staged
+if [ "$ROOT_LOCKFILE_STAGED" = "yes" ] || [ "$SCMS_LOCKFILE_STAGED" = "yes" ]; then
+  # Run the cleanup script and capture output
+  CLEANUP_OUTPUT=$(node scripts/remove-extensions-from-lockfile.mjs --quiet 2>&1)
+  
+  # Check if each lockfile differs from HEAD after cleanup
+  ROOT_DIFFERS_FROM_HEAD="no"
+  SCMS_DIFFERS_FROM_HEAD="no"
+  
+  if [ "$ROOT_LOCKFILE_STAGED" = "yes" ]; then
+    if ! git diff --quiet HEAD -- package-lock.json 2>/dev/null; then
+      ROOT_DIFFERS_FROM_HEAD="yes"
+    fi
+  fi
+  
+  if [ "$SCMS_LOCKFILE_STAGED" = "yes" ]; then
+    if ! git diff --quiet HEAD -- platform/scms/package-lock.json 2>/dev/null; then
+      SCMS_DIFFERS_FROM_HEAD="yes"
+    fi
+  fi
+  
+  # Determine if we should keep each lockfile staged
+  # Keep it if: it differs from HEAD OR there are other staged files
+  ROOT_SHOULD_STAGE="no"
+  SCMS_SHOULD_STAGE="no"
+  
+  if [ "$ROOT_LOCKFILE_STAGED" = "yes" ]; then
+    if [ "$ROOT_DIFFERS_FROM_HEAD" = "yes" ] || [ "$STAGED_NON_LOCKFILES" -gt 0 ]; then
+      ROOT_SHOULD_STAGE="yes"
+    fi
+  fi
+  
+  if [ "$SCMS_LOCKFILE_STAGED" = "yes" ]; then
+    if [ "$SCMS_DIFFERS_FROM_HEAD" = "yes" ] || [ "$STAGED_NON_LOCKFILES" -gt 0 ]; then
+      SCMS_SHOULD_STAGE="yes"
+    fi
+  fi
+  
+  # Stage or unstage each lockfile based on our decision
+  if [ "$ROOT_LOCKFILE_STAGED" = "yes" ]; then
+    if [ "$ROOT_SHOULD_STAGE" = "yes" ]; then
+      git add package-lock.json
+    else
+      git restore --staged package-lock.json
+    fi
+  fi
+  
+  if [ "$SCMS_LOCKFILE_STAGED" = "yes" ]; then
+    if [ "$SCMS_SHOULD_STAGE" = "yes" ]; then
+      git add platform/scms/package-lock.json
+    else
+      git restore --staged platform/scms/package-lock.json
+    fi
+  fi
+  
+  # Check if we have any staged files remaining after cleanup
+  REMAINING_STAGED=$(git diff --cached --name-only | grep -v "^$" | wc -l | tr -d ' ')
+  
+  # If no files are staged after cleanup, abort the commit
+  if [ "$REMAINING_STAGED" -eq 0 ]; then
+    echo ""
+    echo "❌ Commit aborted: Lock files were cleaned, and now there are no changes to commit."
+    echo "   The lock files now match HEAD after removing extension-related packages."
+    echo ""
+    # Show what was actually done to the lockfiles
+    if [ -n "$CLEANUP_OUTPUT" ]; then
+      echo "$CLEANUP_OUTPUT"
+    fi
+    echo ""
+    exit 1
+  fi
+  
+  # If commit proceeds, show the cleanup summary
+  if [ -n "$CLEANUP_OUTPUT" ]; then
+    echo "$CLEANUP_OUTPUT"
+  fi
+fi
+
+# Validate extensions in app-config schema
 node .husky/validate-extensions.mjs
 
