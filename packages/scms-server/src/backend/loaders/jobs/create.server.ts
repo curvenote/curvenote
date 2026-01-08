@@ -1,11 +1,10 @@
 import type { Context } from '../../context.server.js';
 import { httpError, KnownJobTypes } from '@curvenote/scms-core';
 import { formatJobDTO } from './get.server.js';
-import type { CreateJob, JobRegistration, ServerExtension } from '@curvenote/scms-core';
+import type { CreateJob, JobRegistration } from '@curvenote/scms-core';
 import { getHandlers } from './handlers/index.js';
 import { StorageBackend } from '../../storage/index.js';
 import { KnownBuckets } from '../../storage/constants.server.js';
-import { registerExtensionJobs } from '../../../modules/extensions/jobs.js';
 
 export default async function (ctx: Context, data: CreateJob, extensionJobs: JobRegistration[]) {
   const { job_type } = data;

@@ -2,10 +2,9 @@ import { checkCLIHandler, checkHandler } from './check.server.js';
 import { publishHandler } from './publish.server.js';
 import { unpublishHandler } from './unpublish.server.js';
 import type { Context } from '../../../context.server.js';
-import type { CreateJob, JobRegistration, ServerExtension } from '@curvenote/scms-core';
+import type { CreateJob, JobRegistration } from '@curvenote/scms-core';
 import type { StorageBackend } from '../../../storage/index.js';
 import { KnownJobTypes } from '@curvenote/scms-core';
-import { registerExtensionJobs } from '../../../../modules/extensions/jobs.js';
 
 export type JobHandler = (
   ctx: Context,

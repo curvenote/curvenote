@@ -1,6 +1,6 @@
 import type { ConfigLoadingOptions } from '@app-config/config';
 import { loadValidatedConfig } from '@app-config/config';
-import { SchemaLoadingOptions } from '@app-config/main';
+import type { SchemaLoadingOptions } from '@app-config/main';
 import path from 'node:path';
 
 let config: Awaited<ReturnType<typeof loadValidatedConfig>> | null = null;
