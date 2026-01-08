@@ -39,6 +39,11 @@ export async function buildMenu(ctx: SiteContext): Promise<MenuContents> {
           url: `${baseUrl}/collections`,
         },
         {
+          name: 'admin.forms',
+          label: 'Submission Forms',
+          url: `${baseUrl}/forms`,
+        },
+        {
           name: 'admin.users',
           label: 'Users',
           url: `${baseUrl}/users`,
