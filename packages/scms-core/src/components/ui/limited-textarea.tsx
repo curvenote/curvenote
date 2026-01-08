@@ -3,8 +3,10 @@ import { Textarea } from './textarea.js';
 import { CharacterCounter } from './character-counter.js';
 import { cn } from '../../utils/cn.js';
 
-export interface LimitedTextareaProps
-  extends Omit<React.ComponentProps<'textarea'>, 'maxLength' | 'onChange'> {
+export interface LimitedTextareaProps extends Omit<
+  React.ComponentProps<'textarea'>,
+  'maxLength' | 'onChange'
+> {
   maxLength: number;
   value: string;
   onChange: (value: string) => void;

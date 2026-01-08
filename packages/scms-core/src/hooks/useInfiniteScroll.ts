@@ -85,7 +85,7 @@ interface UseInfiniteScrollReturn {
  * });
  *
  * return (
- *   <div ref={rootRef} className="overflow-y-scroll h-screen">
+ *   <div ref={rootRef} className="h-screen overflow-y-scroll">
  *     <ItemList items={items} />
  *     {hasNextPage && (
  *       <div ref={infiniteRef} className="flex justify-center p-4">
@@ -167,4 +167,3 @@ export function useInfiniteScroll({
     rootRef,
   };
 }
-

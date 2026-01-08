@@ -20,8 +20,10 @@ export interface DialogButton {
   disabled?: boolean;
 }
 
-export interface SimpleDialogProps
-  extends Omit<DialogContentProps, 'children' | 'title' | 'description' | 'onOpenAutoFocus'> {
+export interface SimpleDialogProps extends Omit<
+  DialogContentProps,
+  'children' | 'title' | 'description' | 'onOpenAutoFocus'
+> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: React.ReactNode;
