@@ -1,0 +1,103 @@
+{
+  "url": "https://science.curve.space",
+  "private": false,
+  "site": {
+    "id": "91d1353e-913f-4a5c-85dd-0e12c33ad9f7",
+    "name": "science",
+    "title": "Science",
+    "description": "A scientific journal",
+    "submission_cdn": "https://prv.curvenote.dev/",
+    "favicon": "https://localhost:3031/logos/curvenote/favicon.ico",
+    "tagline": "Digital transformation towards geosciences 4.0",
+    "content": "science-content.curve.space",
+    "logo": "https://localhost:3031/logos/curvenote/logo.png",
+    "logo_dark": "https://localhost:3031/logos/curvenote/logo_dark.png",
+    "footer_logo": "https://localhost:3031/logos/curvenote/footer.svg",
+    "footer_logo_dark": "https://localhost:3031/logos/curvenote/footer.svg",
+    "footer_links": [
+      [
+        { "url": "/", "title": "Home" },
+        { "url": "/articles", "title": "Latest Research" },
+        { "url": "/about", "title": "About" }
+      ]
+    ],
+    "social_links": [
+      {
+        "kind": "website",
+        "url": "https://curvenote.com"
+      }
+    ],
+    "kinds": [
+      {
+        "id": "018b9034-d660-7a20-9135-5794c1eb0bf0",
+        "name": "Original",
+        "content": {
+          "title": "Original Research",
+          "description": "Original research articles"
+        },
+        "default": true,
+        "checks": []
+      }
+    ],
+    "collections": [
+      {
+        "id": "018b9034-d660-7a20-9135-5794c1eb0bfd",
+        "name": "articles",
+        "slug": "",
+        "workflow": "SIMPLE",
+        "content": {
+          "title": "Articles",
+          "description": "A collection of research articles"
+        },
+        "open": true,
+        "default": true
+      }
+    ]
+  },
+  "works": [
+    {
+      "id": "CRV0001",
+      "title": "La Palma Seismicity 2021",
+      "description": "In September 2021, a significant jump in seismic activity on the island of La Palma (Canary Islands, Spain) signaled the start of a volcanic crisis that still continues at the time of writing. This article is an example for the Notebooks Now submission guide.",
+      "authors": ["Steve Purves", "Rowan Cockett"],
+      "date": "2022-05-11T00:00:00.000Z",
+      "kind": "Original",
+      "collection": "articles",
+      "versions": [
+        {
+          "id": "cdd87129-6ea8-4ed5-8c9f-14aa94a60a01",
+          "cdn_key": "tests/058beab0-a837-423b-90d4-db1353b50821",
+          "cdn": "https://cdn.curvenote.dev/",
+          "date_created": "2022-05-11T00:00:00.000Z",
+          "canonical": false
+        },
+        {
+          "id": "c29ed7d3-53e5-4b98-ba16-752f16fd9eac",
+          "cdn_key": "tests/6cec16c6-dccc-4f88-b850-9e2203e86c1c",
+          "cdn": "https://cdn.curvenote.dev/",
+          "date_created": "2022-05-11T00:00:00.000Z",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "EC220001",
+      "title": "Data Cleaning with Pandas and Jupyter Notebooks",
+      "description": "This project demonstrates how the Extending Ocean Drilling Pursuits project uses Jupyter Notebooks to clean and standardize 50 years of sedimentary description and microfossil data.",
+      "authors": ["Wai-Yin Kwan"],
+      "date": "2022-06-30T00:00:00.000Z",
+      "kind": "Original",
+      "collection": "articles",
+      "doi": "10.5281/zenodo.5634114",
+      "versions": [
+        {
+          "id": "943ef9fc-1f48-409b-958c-1a4a6238c702",
+          "cdn_key": "tests/6738b173-0acc-469d-9a8d-85fddf58414d",
+          "cdn": "https://cdn.curvenote.dev/",
+          "date_created": "2022-06-30T00:00:00.000Z",
+          "canonical": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+enum SiteRole {
+  ADMIN
+  EDITOR
+  SUBMITTER
+  REVIEWER
+  AUTHOR
+  PUBLIC // Role granted to all users for public sites
+  UNRESTRICTED // Role granted to all users for sites without restricted submissions
+}
+
+model SiteUser {
+  id            String   @id
+  date_created  String
+  date_modified String
+  role          SiteRole @default(AUTHOR)
+  site          Site     @relation(fields: [site_id], references: [id])
+  site_id       String
+  user          User     @relation(fields: [user_id], references: [id])
+  user_id       String
+}
+
+enum SlugStrategy {
+  NONE
+  DOI
+}
+
+// minimal relational data for a site, remainder is looked up json data
+model Site {
+  id                  String               @id
+  date_created        String
+  date_modified       String
+  name                String               @unique
+  external            Boolean              @default(false)
+  title               String
+  private             Boolean              @default(false)
+  // Restrict submissions on public sites to scoped users
+  restricted          Boolean              @default(true)
+  description         String?
+  metadata            Json
+  data                Json?
+  occ                 Int                  @default(0)
+  default_workflow    String               @default("SIMPLE")
+  content             Work?                @relation(fields: [content_id], references: [id])
+  content_id          String?
+  activity            Activity[]
+  submissionKinds     SubmissionKind[]
+  submissions         Submission[]
+  site_users          SiteUser[]
+  domains             Domain[]
+  slugs               Slug[]
+  slug_strategy       SlugStrategy         @default(NONE)
+  collections         Collection[]
+  ApiEvent            ApiEvent[]
+  analyticsDashboards AnalyticsDashboard[]
+  access              Access[]
+}
+
+model Domain {
+  id            String  @id
+  date_created  String
+  date_modified String
+  hostname      String  @unique
+  site          Site    @relation(fields: [site_id], references: [id])
+  site_id       String
+  default       Boolean @default(false)
+}

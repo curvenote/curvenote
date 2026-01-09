@@ -120,6 +120,40 @@ Curvenote uses [changesets](https://github.com/changesets/changesets) to documen
 - [ESLint](https://eslint.org/) for code linting
 - [Prettier](https://prettier.io) for code formatting
 
+### Git Hooks with Husky
+
+This repository uses [Husky](https://typicode.github.io/husky/) to automate pre-commit checks. Husky runs automatically when you commit changes, ensuring code quality and preventing common mistakes.
+
+#### Pre-commit Validation
+
+The pre-commit hook validates the `.app-config.schema.yml` file to ensure that only whitelisted extensions are present in the `extensions` key. This prevents unauthorized extensions from being added to the configuration schema.
+
+**Current whitelisted extensions:**
+- `sites`
+
+**How it works:**
+1. When you attempt to commit changes, Husky runs the validation script
+2. The script only validates if `.app-config.schema.yml` is staged for commit
+3. If the file is not staged, validation is skipped (allowing you to keep local unstaged modifications)
+4. If the file is staged, the script checks the staged version's `extensions` key
+5. If any non-whitelisted extensions are found in the staged changes, the commit is blocked
+6. You'll see an error message listing the unauthorized extensions
+
+**Note:** The validation only checks staged changes, not your working directory. This allows you to have local modifications to the schema file while committing other changes.
+
+**Adding a new extension to the whitelist:**
+1. Edit `.husky/validate-extensions.mjs`
+2. Add the extension name to the `ALLOWED_EXTENSIONS` array
+3. Commit the change (this will pass validation since you're updating the whitelist)
+
+**Skipping hooks (use with caution):**
+If you need to temporarily skip the pre-commit hook (e.g., for emergency fixes), use:
+```bash
+git commit --no-verify -m "your message"
+```
+
+**Note:** Skipping hooks should be rare and only used when necessary. The validation exists to maintain code quality and prevent configuration errors.
+
 ### Build
 
 To build all apps and packages, run the following command:

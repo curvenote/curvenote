@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`sites.private > sites/private/collections 1`] = `
+[
+  {
+    "id": "articles",
+    "links": {
+      "self": "http://localhost:3032/v1/sites/science/collections/articles",
+    },
+    "title": "Articles",
+  },
+]
+`;
+
+exports[`sites.private > sites/science/collections 1`] = `
+[
+  {
+    "id": "articles",
+    "links": {
+      "self": "http://localhost:3032/v1/sites/science/collections/articles",
+    },
+    "title": "Articles",
+  },
+]
+`;
+
+exports[`sites.private > with authorization > sites/private/collections 1`] = `
+[
+  {
+    "id": "articles",
+    "links": {
+      "self": "http://localhost:3032/v1/sites/private/collections/articles",
+    },
+    "title": "Articles",
+  },
+]
+`;

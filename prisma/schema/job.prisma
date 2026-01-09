@@ -1,0 +1,19 @@
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Job {
+  id                String             @id
+  date_created      String
+  date_modified     String
+  job_type          String
+  status            JobStatus
+  payload           Json
+  results           Json?
+  messages          String[]
+  SubmissionVersion SubmissionVersion?
+}

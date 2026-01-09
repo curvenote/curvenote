@@ -1,0 +1,14 @@
+model Message {
+  id            String @id
+  date_created  String
+  date_modified String
+  module        String // e.g., "sites" - identifies which module/extension this message belongs to
+  type          String // e.g., "inbound_email" - identifies the type of message
+  status        String // "PENDING", "SUCCESS", "ERROR", "PARTIAL", "IGNORED" - overall processing status
+  payload       Json // Complete CloudMailin webhook payload - store everything for debugging
+  results       Json? // Structured processing results - our parsed and processed data
+
+  // Indexes
+  @@index([module, type])
+  @@index([date_created])
+}

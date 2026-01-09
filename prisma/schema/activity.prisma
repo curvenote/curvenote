@@ -1,0 +1,67 @@
+enum ActivityType {
+  NEW_SUBMISSION
+  SUBMISSION_KIND_CHANGE
+  SUBMISSION_DATE_CHANGE
+  SUBMISSION_VERSION_ADDED
+  SUBMISSION_VERSION_STATUS_CHANGE
+  SUBMISSION_VERSION_TRANSITION_STARTED
+  NEW_WORK
+  WORK_VERSION_ADDED
+  KIND_DELETED
+  KIND_CREATED
+  KIND_UPDATED
+  SITE_CONTENT_UPDATED
+  COLLECTION_DELETED
+  COLLECTION_CREATED
+  COLLECTION_UPDATED
+  USER_ENABLED
+  USER_DISABLED
+  USER_APPROVED
+  USER_REJECTED
+  ACCESS_GRANTED
+  ACCESS_REVOKED
+  ROLE_CREATED
+  ROLE_UPDATED
+  ROLE_DELETED
+  ROLE_ASSIGNED
+  ROLE_REMOVED
+}
+
+model Activity {
+  id                    String             @id
+  date_created          String
+  date_modified         String
+  activity_by           User               @relation(fields: [activity_by_id], references: [id])
+  activity_by_id        String
+  activity_type         ActivityType
+  // fields that could have been updated, null if not updated
+  submission            Submission?        @relation(fields: [submission_id], references: [id])
+  submission_id         String?
+  submission_version    SubmissionVersion? @relation(fields: [submission_version_id], references: [id])
+  submission_version_id String?
+  kind                  SubmissionKind?    @relation(fields: [kind_id], references: [id])
+  kind_id               String?
+  collection            Collection?        @relation(fields: [collection_id], references: [id])
+  collection_id         String?
+  work                  Work?              @relation(fields: [work_id], references: [id])
+  work_id               String?
+  work_version          WorkVersion?       @relation(fields: [work_version_id], references: [id])
+  work_version_id       String?
+  site                  Site?              @relation(fields: [site_id], references: [id])
+  site_id               String?
+  // user that was affected by this activity (for user-related activities)
+  user                  User?              @relation("UserActivity", fields: [user_id], references: [id])
+  user_id               String?
+  // access control activities
+  access                Access?            @relation(fields: [access_id], references: [id])
+  access_id             String?
+  // role activities
+  role                  Role?              @relation(fields: [role_id], references: [id])
+  role_id               String?
+  user_role             UserRole?          @relation(fields: [user_role_id], references: [id])
+  user_role_id          String?
+  // the following fields should probably be relegated to json data
+  status                String?            @default("PENDING")
+  transition            Json? // Stores the transition object that caused this activity
+  date_published        String?
+}

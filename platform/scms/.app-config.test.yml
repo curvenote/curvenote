@@ -1,0 +1,124 @@
+# yaml-language-server: $schema=./.app-config.schema.yml
+name: Curvenote Platform
+auth:
+  firebase:
+    displayName: Curvenote
+    actionTitle: Curvenote
+    provisionNewUser: true
+    allowLogin: true
+api:
+  url: http://localhost:3031/v1
+  editorApiUrl: http://localhost:8083
+  previewIssuer: http://localhost:3031
+  handshakeIssuer: http://localhost:3031
+  userTokenAudience: http://localhost:3031/v1/login
+  userTokenIssuer: http://localhost:3031/v1/tokens/user
+  sessionTokenAudience: http://localhost:3031/v1
+  sessionTokenIssuer: http://localhost:3031/v1/tokens/session
+  tokenConfigUrl: http://localhost:3031/v1/config
+  checkProjectId: qwerty
+  checkTopic: qwerty
+  knownBucketInfoMap:
+    cdn:
+      uri: qwerty
+      cdn: https://qwerty.com
+    pub:
+      uri: qwerty
+      cdn: https://qwerty.com
+    prv:
+      uri: qwerty
+      cdn: https://qwerty.com
+    tmp:
+      uri: qwerty
+      cdn: https://qwerty.com
+    hashstore:
+      uri: qwerty
+    staging:
+      uri: qwerty
+  privateSiteClaimSubject: qwerty
+  submissionsServiceAccount:
+    id: qwerty
+  resend:
+    fromEmail: Acme <onboarding@resend.dev>
+  slack:
+    disabled: true
+app:
+  adminUrl: http://qwerty.com
+  editorUrl: http://qwerty.com
+  renderServiceUrl: 'http://qwerty.com'
+  branding:
+    title: Curvenote Platform
+    showLoginLink: true
+    poweredBy: true
+    supportEmail: support@qwerty.com
+    welcome:
+      title: 'Welcome to the Curvenote SCMS'
+      tagline: 'Share interactive research that connects your work to the bigger scientific story.'
+      showTasks: true
+      videos:
+        - title: 'Walkthrough Video'
+          url: https://curvenote.com/videos/demo-1.mp4
+  signin:
+    mode: 'preferred'
+    preferred: 'firebase'
+    prompt: 'Sign in using your Google account'
+    alternativePrompt: "Don't have a Google account?"
+  signup:
+    mode: 'preferred'
+    preferred: 'firebase'
+    prompt: 'Sign up with a Google account'
+    alternativePrompt: 'See other ways to sign up'
+    progressMessage: "You're almost ready to take advantage of the Curvenote Platform."
+    approval:
+      manual: false
+      skipApproval: ['firebase'] # Firebase users get immediate access for testing
+    steps:
+      - type: 'data-collection'
+        title: 'Confirm account details'
+        fields: ['displayName', 'email']
+      - type: 'agreement'
+        title: 'Agree to Terms of Service'
+        agreementUrls:
+          - label: 'Terms of Service'
+            url: 'https://example.com/terms'
+          - label: 'Privacy Policy'
+            url: 'https://example.com/privacy'
+  extensions:
+    sites:
+      routes: true
+      navigation: true
+      video:
+        title: 'Curvenote Sites'
+        url: https://curvenote.com/videos/demo-1.mp4
+        thumbnail: https://cdn.curvenote.com/static/welcome-video.png
+  defaultRoute: dashboard
+  navigation:
+    - name: dashboard
+      label: Home
+      icon: house
+      path: dashboard
+    - name: works
+      label: My Works
+      icon: files
+      path: works
+    - name: sites
+      label: My Sites
+      icon: site
+      path: sites
+      end: true
+    - name: settings
+      label: Settings
+      icon: settings
+      path: settings
+    - name: platform
+      label: Platform
+      icon: platform
+      path: platform
+      scopes:
+        - app:platform:admin
+    - name: system
+      label: System
+      icon: zap
+      path: system
+      scopes:
+        - system:admin

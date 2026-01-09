@@ -1,0 +1,299 @@
+# Tests for all app routes as an anonymous user
+# This file tests how routes behave for non-logged-in users
+title: App Routes (Anonymous User)
+system_role: ANON
+cases:
+  # Public Routes Group
+  - title: Public Access Routes
+    cases:
+      - title: Landing Page Endpoint
+        url: /
+        status: 200
+
+      - title: Login Page Endpoint
+        url: /login
+        status: 200
+
+      - title: Admin Login Page Endpoint
+        url: /login/admin
+        status: 302
+        location: /login
+
+      - title: Signup Page Endpoint
+        url: /signup
+        status: 200
+
+      - title: New Account Page Endpoint
+        url: /new-account
+        status: 200
+
+      - title: Auth Error Page Endpoint
+        url: /auth-error
+        status: 200
+
+      - title: Logout Page Endpoint
+        url: /logout
+        status: 200
+
+      - title: Link Accounts Page Endpoint
+        url: /link-accounts
+        status: 200
+
+  # Error Pages Group
+  - title: Error Page Routes
+    cases:
+      - title: 404 Error Page Endpoint
+        url: /404
+        status: 200
+
+      - title: 500 Error Page Endpoint
+        url: /500
+        status: 200
+
+  # Resource Routes Group
+  - title: Resource Management Routes
+    method: POST
+    cases:
+      - title: Set Theme Resource Endpoint
+        url: /resources/set-theme
+        status: 200
+
+      - title: Set Theme With Body Endpoint
+        url: /resources/set-theme
+        body:
+          theme: dark
+        status: 200
+
+  # Build Routes Group
+  - title: Build Management Routes
+    cases:
+      - title: Build Job Details Endpoint
+        url: /build/018b9034-d660-7a20-9135-5794c1eb0bfc
+        status: 200
+
+  # Auth Provider Routes Group
+  - title: Authentication Provider Routes
+    cases:
+      - title: Unknown Auth Provider Endpoint
+        url: /auth/unknown
+        status: 302
+        location: /404
+
+      - title: Unknown Auth Callback Endpoint
+        url: /auth/unknown/callback
+        status: 302
+        location: /404
+
+  # Protected Routes Group
+  - title: Protected Application Routes
+    cases:
+      - title: Application Root Endpoint
+        url: /app
+        status: 302
+        location: /login
+
+      - title: Application Root With Redirect Endpoint
+        url: /app
+        followRedirects: true
+        status: 200
+        location: /login
+
+      - title: Dashboard Endpoint
+        url: /app/dashboard
+        status: 302
+        location: /login
+
+  # Settings Routes Group
+  - title: User Settings Routes
+    cases:
+      - title: Settings Root Endpoint
+        url: /app/settings
+        status: 302
+        location: /login
+
+      - title: Account Settings Endpoint
+        url: /app/settings/account
+        status: 302
+        location: /login
+
+      - title: Token Management Endpoint
+        url: /app/settings/tokens
+        status: 302
+        location: /login
+
+      - title: Linked Accounts Management Endpoint
+        url: /app/settings/linked-accounts
+        status: 302
+        location: /login
+
+      - title: Email Settings Endpoint
+        url: /app/settings/emails
+        status: 302
+        location: /login
+
+  # System Routes Group
+  - title: System Administration Routes
+    cases:
+      - title: System Root Endpoint
+        url: /app/system
+        status: 302
+        location: /login
+
+      - title: System Submissions Management Endpoint
+        url: /app/system/submissions
+        status: 302
+        location: /login
+
+      - title: System Extensions Management Endpoint
+        url: /app/system/extensions
+        status: 302
+        location: /login
+
+      - title: Add Site Management Endpoint
+        url: /app/system/add-site
+        status: 302
+        location: /login
+
+      - title: System Migration Endpoint
+        url: /app/system/migrate
+        status: 302
+        location: /login
+
+      - title: Storage Management Endpoint
+        url: /app/system/storage
+        status: 302
+        location: /login
+
+      - title: User Management Endpoint
+        url: /app/system/users
+        status: 302
+        location: /login
+
+      - title: System Workflows Management Endpoint
+        url: /app/system/workflows
+        status: 302
+        location: /login
+
+      - title: System Messages Management Endpoint
+        url: /app/system/messages
+        status: 302
+        location: /login
+
+      - title: System Message Details Endpoint
+        url: /app/system/messages/does-not-exist
+        status: 302
+        location: /login
+
+      - title: System Email Test Endpoint
+        url: /app/system/email-test
+        status: 302
+        location: /login
+
+      - title: System Design Endpoint
+        url: /app/system/design
+        status: 302
+        location: /login
+
+      - title: System Roles Management Endpoint
+        url: /app/system/roles
+        status: 302
+        location: /login
+
+  # Discovery Routes Group
+  - title: Discovery Routes
+    cases:
+      - title: Discovery Root Endpoint
+        url: /app/discovery
+        status: 302
+        location: /login
+
+      - title: Discovery People Endpoint
+        url: /app/discovery/people
+        status: 302
+        location: /login
+
+  # Platform Routes Group
+  - title: Platform Routes
+    cases:
+      - title: Platform Root Endpoint
+        url: /app/platform
+        status: 302
+        location: /login
+
+      - title: Platform Users Endpoint
+        url: /app/platform/users
+        status: 302
+        location: /login
+
+      - title: Platform Onboarding Endpoint
+        url: /app/platform/onboarding
+        status: 302
+        location: /login
+
+  # Editor Routes Group
+  - title: Editor Routes
+    cases:
+      - title: Editor Root Endpoint
+        url: /app/editor
+        status: 302
+        location: /login
+
+  # Works Routes Group
+  - title: Work Management Routes
+    cases:
+      - title: Works Root Endpoint
+        url: /app/works
+        status: 302
+        location: /login
+
+      - title: Work Details Endpoint
+        url: /app/works/does-not-exist
+        status: 302
+        location: /login
+
+      - title: Work Details With Redirect Endpoint
+        url: /app/works/does-not-exist
+        followRedirects: true
+        status: 200
+        location: /login
+
+      - title: Work Advanced Details Endpoint
+        url: /app/works/does-not-exist/details
+        status: 302
+        location: /login
+
+      - title: Work User Management Endpoint
+        url: /app/works/does-not-exist/users
+        status: 302
+        location: /login
+
+      - title: Work Site Submission Endpoint
+        url: /app/works/does-not-exist/site/science/submission/does-not-exist
+        status: 302
+        location: /login
+
+  # Form Submissions Group
+  - title: Form Submission Routes
+    method: POST
+    cases:
+      - title: Login Form Submission Endpoint
+        url: /login
+        status: 405
+
+  # Catch-all Routes Group
+  - title: Catch-all Routes
+    cases:
+      - title: App catch-all
+        url: /app/not-a-real-route
+        status: 302
+        location: /login
+
+      - title: App catch-all with redirect
+        url: /app/not-a-real-route
+        followRedirects: true
+        status: 200
+        location: /login
+
+  # Negative Tests Group
+  - title: Negative Tests
+    cases:

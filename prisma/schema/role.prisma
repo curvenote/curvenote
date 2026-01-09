@@ -1,0 +1,15 @@
+model Role {
+  id            String     @id
+  date_created  String
+  date_modified String
+  name          String     @unique
+  title         String
+  description   String
+  scopes        Json // Array of scope strings
+  createdBy     String
+  creator       User       @relation("RoleCreator", fields: [createdBy], references: [id])
+  UserRoles     UserRole[] @relation("UserRoles")
+  activities    Activity[]
+
+  @@index([name])
+}

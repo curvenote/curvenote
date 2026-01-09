@@ -1,0 +1,37 @@
+{
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.svg"],
+  "exclude": ["dist", "node_modules"],
+  "files": [
+    "../../types/app-config.d.ts",
+    "../../types/prisma.d.ts",
+    "../../types/globals.d.ts",
+    "../../types/json.d.ts",
+    "../../types/svg.d.ts"
+  ],
+  "compilerOptions": {
+    "composite": false,
+    "declaration": true,
+    "declarationMap": true,
+    "target": "ES2019",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": false,
+    "isolatedModules": true,
+    "module": "node16",
+    "moduleResolution": "node16",
+    "allowSyntheticDefaultImports": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "preserveWatchOutput": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "lib": ["es2021", "DOM", "DOM.Iterable"],
+    "typeRoots": ["./types", "./node_modules/@types", "../../node_modules/@types"],
+    "paths": {
+      "@/*": ["../../*"]
+    },
+    "outDir": "./dist",
+    "rootDirs": ["."],
+    "jsx": "react-jsx"
+  }
+}

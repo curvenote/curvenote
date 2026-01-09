@@ -1,0 +1,55 @@
+enum WorkRole {
+  OWNER
+  CONTRIBUTOR
+  VIEWER
+}
+
+model WorkUser {
+  id            String   @id
+  date_created  String
+  date_modified String
+  role          WorkRole @default(VIEWER)
+  work          Work     @relation(fields: [work_id], references: [id])
+  work_id       String
+  user          User     @relation(fields: [user_id], references: [id])
+  user_id       String
+}
+
+model Work {
+  id                 String        @id
+  date_created       String
+  date_modified      String
+  contains           String[]      @default(["myst"])
+  doi                String?
+  versions           WorkVersion[]
+  work_users         WorkUser[]
+  created_by         User          @relation(fields: [created_by_id], references: [id])
+  created_by_id      String
+  key                String?       @unique
+  activity           Activity[]
+  submissions        Submission[]
+  landingContentSite Site[]
+  access             Access[]
+}
+
+model WorkVersion {
+  id                 String              @id
+  date_created       String
+  date_modified      String
+  draft              Boolean             @default(false)
+  cdn                String?
+  cdn_key            String?
+  title              String
+  description        String?
+  authors            String[]
+  author_details     Json[]
+  date               String?
+  doi                String?
+  canonical          Boolean?
+  metadata           Json?
+  work               Work                @relation(fields: [work_id], references: [id])
+  work_id            String
+  submissionVersions SubmissionVersion[]
+  submissionActivity Activity[]
+  occ                Int                 @default(0)
+}

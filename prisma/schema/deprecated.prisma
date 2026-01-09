@@ -1,0 +1,18 @@
+model ApiEvent {
+  id            String  @id
+  date_created  String
+  date_modified String
+  method        String
+  url           String
+  pathname      String
+  service       String
+  endpoint      String
+  ok            Boolean
+  response_code Int
+  response_text String?
+  params        Json
+  site          Site?   @relation(fields: [site_id], references: [id])
+  site_id       String?
+  user          User?   @relation(fields: [user_id], references: [id])
+  user_id       String?
+}

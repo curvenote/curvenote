@@ -1,0 +1,781 @@
+# $schema: https://json-schema.org/draft/2020-12/schema
+title: Curvenote SCMS
+description: Configuration for the Curvenote SCMS
+type: object
+additionalProperties: false
+required:
+  - name
+  - api
+  - app
+properties:
+  name:
+    type: string
+  auth:
+    type: object
+    properties:
+      firebase:
+        type: object
+        required:
+          - clientConfig
+          - secretKeyfile
+        properties:
+          displayName:
+            type: string
+            description: Display name for the auth provider shown in UI
+          actionTitle:
+            type: string
+          provisionNewUser:
+            type: boolean
+            default: false
+          allowLinking:
+            type: boolean
+            default: false
+          clientConfig:
+            type: string
+            secret: true
+          secretKeyfile:
+            type: string
+            secret: true
+          adminLogin:
+            type: boolean
+            default: false
+      google:
+        type: object
+        required:
+          - clientId
+          - clientSecret
+          - redirectUrl
+        properties:
+          displayName:
+            type: string
+            description: Display name for the auth provider shown in UI
+          clientId:
+            type: string
+          clientSecret:
+            type: string
+            secret: true
+          redirectUrl:
+            type: string
+          provisionNewUser:
+            type: boolean
+            default: false
+          allowLinking:
+            type: boolean
+            default: false
+          adminLogin:
+            type: boolean
+            default: false
+      okta:
+        type: object
+        required:
+          - domain
+          - clientId
+          - clientSecret
+          - redirectUrl
+        properties:
+          displayName:
+            type: string
+            description: Display name for the auth provider shown in UI
+          domain:
+            type: string
+          serverName:
+            type: string
+          clientId:
+            type: string
+          clientSecret:
+            type: string
+            secret: true
+          redirectUrl:
+            type: string
+          provisionNewUser:
+            type: boolean
+            default: false
+          allowLinking:
+            type: boolean
+            default: false
+          adminLogin:
+            type: boolean
+            default: false
+      orcid:
+        type: object
+        required:
+          - clientId
+          - clientSecret
+          - redirectUrl
+        properties:
+          displayName:
+            type: string
+            description: Display name for the auth provider shown in UI
+          clientId:
+            type: string
+          clientSecret:
+            type: string
+            secret: true
+          redirectUrl:
+            type: string
+          orcidBaseUrl:
+            type: string
+          allowLogin:
+            type: boolean
+            default: true
+          provisionNewUser:
+            type: boolean
+            default: false
+          allowLinking:
+            type: boolean
+            default: false
+          adminLogin:
+            type: boolean
+            default: false
+  api:
+    type: object
+    required:
+      - url
+      - editorApiUrl
+      - authCookieSecret
+      - sessionSecret
+      - analyticsSecret
+      - handshakeSigningSecret
+      - previewSigningSecret
+      - jwtSigningSecret
+      - checkSASecretKeyfile
+      - storageSASecretKeyfile
+      - privateCDNSigningInfo
+      - propertyPublicKey
+      - databaseUrl
+      - previewIssuer
+      - handshakeIssuer
+      - userTokenAudience
+      - sessionTokenAudience
+      - userTokenIssuer
+      - sessionTokenIssuer
+      - tokenConfigUrl
+      - checkProjectId
+      - checkTopic
+      - knownBucketInfoMap
+      - privateSiteClaimSubject
+      - submissionsServiceAccount
+    properties:
+      url:
+        type: string
+      editorApiUrl:
+        type: string
+      authCookieSecret:
+        type: string
+        secret: true
+      sessionSecret:
+        type: string
+        secret: true
+      analyticsSecret:
+        type: string
+        secret: true
+      handshakeSigningSecret:
+        type: string
+        secret: true
+      previewSigningSecret:
+        type: string
+        secret: true
+      jwtSigningSecret:
+        type: string
+        secret: true
+      checkSASecretKeyfile:
+        type: string
+        secret: true
+      storageSASecretKeyfile:
+        type: string
+        secret: true
+      privateCDNSigningInfo:
+        type: object
+        patternProperties:
+          '^[a-zA-Z0-9_.-]+$': { $ref: '#/$defs/CDNSigningInfo' }
+        secret: true
+      propertyPublicKey:
+        type: string
+        secret: true
+      databaseUrl:
+        type: string
+        secret: true
+      previewIssuer:
+        type: string
+      handshakeIssuer:
+        type: string
+      userTokenAudience:
+        type: string
+      sessionTokenAudience:
+        type: string
+      userTokenIssuer:
+        type: string
+      sessionTokenIssuer:
+        type: string
+      tokenConfigUrl:
+        type: string
+      checkProjectId:
+        type: string
+      checkTopic:
+        type: string
+      knownBucketInfoMap:
+        type: object
+        properties:
+          cdn:
+            $ref: '#/$defs/BucketInfo'
+          pub:
+            $ref: '#/$defs/BucketInfo'
+          prv:
+            $ref: '#/$defs/BucketInfo'
+          tmp:
+            $ref: '#/$defs/BucketInfo'
+          hashstore:
+            $ref: '#/$defs/BucketInfo'
+          staging:
+            $ref: '#/$defs/BucketInfo'
+        required:
+          - cdn
+          - pub
+          - prv
+          - tmp
+          - hashstore
+          - staging
+      privateSiteClaimSubject:
+        type: string
+      submissionsServiceAccount:
+        type: object
+        required:
+          - id
+        properties:
+          id:
+            type: string
+      vercel:
+        type: object
+        properties:
+          cron:
+            type: object
+            required:
+              - secret
+            properties:
+              secret:
+                type: string
+                secret: true
+                description: Secret key for securing cron job endpoints
+      integrations:
+        type: object
+        description: JWT integration configuration for external service authentication
+        required:
+          - issuer
+          - publicKey
+          - privateKey
+        properties:
+          issuer:
+            type: string
+            description: JWT token issuer - the endpoint URL for this service
+          tokenExpiryDuration:
+            type: string
+            description: Default expiry duration for integration tokens (e.g., "1m", "30m", "2d")
+            default: '1m'
+          publicKey:
+            $ref: '#/$defs/JWKPublicKey'
+            description: RSA public key in JWK format for token verification
+          privateKey:
+            $ref: '#/$defs/JWKPrivateKey'
+            secret: true
+            description: RSA private key in JWK format for token signing
+      slack:
+        type: object
+        description: Slack integration configuration for notifications
+        properties:
+          webhookUrl:
+            type: string
+            secret: true
+            description: Slack webhook URL for sending notifications
+          disabled:
+            type: boolean
+            default: false
+            description: Whether Slack notifications are disabled
+      resend:
+        type: object
+        description: Resend integration configuration for emails
+        properties:
+          apiKey:
+            type: string
+            secret: true
+            description: Resend API key for sending emails
+          disabled:
+            type: boolean
+            default: false
+            description: Whether Resend email sending is disabled
+          fromEmail:
+            type: string
+            description: Default from email address in format "Name <email@example.com>"
+      segment:
+        type: object
+        description: Segment integration configuration for analytics
+        properties:
+          writeKey:
+            type: string
+            secret: true
+            description: Segment write key for sending analytics events
+          disabled:
+            type: boolean
+            default: false
+            description: Whether Segment analytics are disabled
+          anonymousUserId:
+            type: string
+            description: If provided, this user ID will be used on anonymous analytics events
+  app:
+    type: object
+    required:
+      - adminUrl
+      - editorUrl
+      - navigation
+    properties:
+      supportEmail:
+        type: string
+        description: Support email address for user contact
+        format: email
+      adminUrl:
+        type: string
+      editorUrl:
+        type: string
+      branding:
+        type: object
+        properties:
+          title:
+            type: string
+          subtitle:
+            type: string
+          description:
+            type: string
+          logo:
+            type: string
+          logoDark:
+            type: string
+          logoEmail:
+            type: string
+          icon:
+            type: string
+          iconDark:
+            type: string
+          splash:
+            type: string
+          poweredBy:
+            type: boolean
+          showLoginLink:
+            type: boolean
+          supportEmail:
+            type: string
+            description: Support email address for user contact
+          welcome:
+            type: object
+            description: Welcome content to display on the dashboard
+            properties:
+              title:
+                type: string
+                description: Title of the welcome content
+              tagline:
+                type: string
+                description: Tagline of the welcome content
+              description:
+                type: string
+                description: Main paragraph of the welcome content
+              showTasks:
+                type: boolean
+                description: Whether to show the tasks section on the dashboard
+              videos:
+                type: array
+                description: Welcome videos to display on the dashboard
+                items:
+                  $ref: '#/$defs/Video'
+      renderServiceUrl:
+        type: string
+      statusBar:
+        type: object
+        description: Configuration for the status bar at the bottom of the application
+        properties:
+          reportProblem:
+            type: object
+            description: Configuration for the "Report a Problem" feature in the status bar
+            properties:
+              email:
+                type: string
+                description: Email address for problem reports
+                default: support@curvenote.com
+              subject:
+                type: string
+                description: Subject line for problem report emails
+                default: Feedback
+          items:
+            type: array
+            description: Configurable items to display in the status bar
+            items:
+              $ref: '#/$defs/StatusBarItem'
+      defaultRoute:
+        type: string
+        description: The default route to redirect to when accessing /app
+      navigation:
+        type: array
+        items:
+          $ref: '#/$defs/SimpleNavItem'
+      extensions:
+        type: object
+        properties:
+          sites:
+            $ref: './ee/sites/extension.schema.yml'
+      signin:
+        type: object
+        description: Configuration for sign-in page behavior
+        properties:
+          mode:
+            type: string
+            enum: ['all', 'preferred']
+            default: 'preferred'
+            description: Show all providers or just preferred provider
+          preferred:
+            type: string
+            description: Provider name to show as preferred (required when mode is 'preferred')
+          prompt:
+            type: string
+            description: Main sign-in prompt text
+            default: 'Sign in to continue'
+          alternativePrompt:
+            type: string
+            description: Text when user needs to sign up
+            default: "Need an account? Let's get you signed up!"
+      signup:
+        type: object
+        description: Configuration for sign-up page behavior and flow
+        properties:
+          mode:
+            type: string
+            enum: ['all', 'preferred']
+            default: 'all'
+            description: Show all providers or just preferred provider
+          preferred:
+            type: string
+            description: Provider name to show as preferred (required when mode is 'preferred')
+          prompt:
+            type: string
+            description: Sign-up page prompt text
+            default: 'Choose a provider to create your account'
+          alternativePrompt:
+            type: string
+            description: Text shown above additional providers button (preferred mode)
+            default: 'Or try a different provider:'
+          progressMessage:
+            type: string
+            description: Message shown in the signup progress component
+            default: "You're almost ready to take advantage of the platform."
+          approval:
+            type: object
+            description: Manual approval configuration
+            properties:
+              manual:
+                type: boolean
+                default: false
+                description: Require manual approval after signup completion
+              skipApproval:
+                type: array
+                items:
+                  type: string
+                default: []
+                description: Provider names that skip manual approval
+          steps:
+            type: array
+            description: Signup flow steps
+            default: []
+            items:
+              type: object
+              required:
+                - type
+                - title
+              properties:
+                type:
+                  type: string
+                  enum: ['link-providers', 'data-collection', 'agreement']
+                  description: Type of signup step
+                title:
+                  type: string
+                  description: Step display title
+                providers:
+                  type: array
+                  items:
+                    type: string
+                  description: List of provider names to show (link-providers step only)
+                alternativePrompts:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - provider
+                      - text
+                    properties:
+                      provider:
+                        type: string
+                        description: Provider name to show alternative prompt for
+                      text:
+                        type: string
+                        description: Alternative prompt text for this provider
+                  default: []
+                  description: Alternative prompts for specific providers (link-providers step only)
+                agreementUrls:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - label
+                      - url
+                    properties:
+                      label:
+                        type: string
+                        description: Link display text
+                      url:
+                        type: string
+                        description: Link URL
+                  description: Agreement URLs to display (agreement step only)
+      strings:
+        type: object
+        properties:
+          signupAdvice:
+            type: string
+          signupUrl:
+            type: string
+          signupUrlText:
+            type: string
+$defs:
+  Video:
+    type: object
+    description: Video URL and metadata
+    additionalProperties: false
+    required:
+      - title
+      - url
+    properties:
+      title:
+        type: string
+        description: Title of the video
+      url:
+        type: string
+        description: URL to the video file
+      thumbnail:
+        type: string
+        description: URL to the video thumbnail image
+  SimpleNavItem:
+    type: object
+    additionalProperties: false
+    required:
+      - name
+      - label
+      - icon
+      - path
+    properties:
+      name:
+        type: string
+      label:
+        type: string
+      icon:
+        type: string
+      path:
+        type: string
+      scopes:
+        type: array
+        items:
+          type: string
+      end:
+        type: boolean
+        default: false
+  VenuesNavItem:
+    type: object
+    additionalProperties: false
+    required:
+      - name
+    properties:
+      name:
+        enum:
+          - venues
+      label:
+        type: string
+      icon:
+        type: string
+      path:
+        type: string
+      expand:
+        type: number
+      pinned:
+        type: array
+        items:
+          type: string
+      scopes:
+        type: array
+        items:
+          type: string
+  BucketInfo:
+    type: object
+    additionalProperties: false
+    properties:
+      uri:
+        type: string
+      cdn:
+        type: string
+    required:
+      - uri
+  CDNSigningInfo:
+    type: object
+    additionalProperties: false
+    properties:
+      hostname:
+        type: string
+      keyName:
+        type: string
+      key:
+        type: string
+  JWKPublicKey:
+    type: object
+    additionalProperties: false
+    required:
+      - kty
+      - n
+      - e
+      - use
+      - alg
+      - kid
+    properties:
+      kty:
+        type: string
+        enum: ['RSA']
+        description: Key type, must be RSA
+      n:
+        type: string
+        description: RSA public key modulus (base64url encoded)
+      e:
+        type: string
+        description: RSA public key exponent (base64url encoded)
+      use:
+        type: string
+        enum: ['sig']
+        description: Key usage, must be signature
+      alg:
+        type: string
+        enum: ['RS256']
+        description: Algorithm, must be RS256
+      kid:
+        type: string
+        description: Key ID for key rotation and identification
+  JWKPrivateKey:
+    type: object
+    additionalProperties: false
+    required:
+      - kty
+      - n
+      - e
+      - d
+      - p
+      - q
+      - dp
+      - dq
+      - qi
+      - use
+      - alg
+      - kid
+    properties:
+      kty:
+        type: string
+        enum: ['RSA']
+        description: Key type, must be RSA
+      n:
+        type: string
+        description: RSA public key modulus (base64url encoded)
+      e:
+        type: string
+        description: RSA public key exponent (base64url encoded)
+      d:
+        type: string
+        description: RSA private exponent (base64url encoded)
+      p:
+        type: string
+        description: First prime factor (base64url encoded)
+      q:
+        type: string
+        description: Second prime factor (base64url encoded)
+      dp:
+        type: string
+        description: d mod (p-1) (base64url encoded)
+      dq:
+        type: string
+        description: d mod (q-1) (base64url encoded)
+      qi:
+        type: string
+        description: q^-1 mod p (base64url encoded)
+      use:
+        type: string
+        enum: ['sig']
+        description: Key usage, must be signature
+      alg:
+        type: string
+        enum: ['RS256']
+        description: Algorithm, must be RS256
+      kid:
+        type: string
+        description: Key ID for key rotation and identification
+  StatusBarItem:
+    type: object
+    additionalProperties: false
+    required:
+      - name
+      - type
+      - position
+      - properties
+    properties:
+      name:
+        type: string
+        description: Unique identifier for the status bar item
+      type:
+        type: string
+        enum: ['mailto-link', 'request-help']
+        description: The type of status bar component to render
+      position:
+        type: string
+        enum: ['left', 'right']
+        description: Position of the item in the status bar
+      properties:
+        oneOf:
+          - $ref: '#/$defs/MailtoLinkProperties'
+          - $ref: '#/$defs/RequestHelpProperties'
+        description: Component-specific properties based on the type
+  MailtoLinkProperties:
+    type: object
+    additionalProperties: false
+    required:
+      - label
+      - email
+    properties:
+      label:
+        type: string
+        description: Display text for the mailto link
+      email:
+        type: string
+        description: Target email address for the mailto link
+      subject:
+        type: string
+        description: Optional subject line for the email
+      body:
+        type: string
+        description: Optional additional text to append to the email body
+  RequestHelpProperties:
+    type: object
+    additionalProperties: false
+    required:
+      - label
+    properties:
+      label:
+        type: string
+        description: Display text for the help request link
+      prompt:
+        type: string
+        description: Optional prompt text to display in the help request dialog
+      title:
+        type: string
+        description: Optional title for the help request dialog
+      description:
+        type: string
+        description: Optional description text for the help request dialog
+      successMessage:
+        type: string
+        description: Optional success message to display after submitting the help request

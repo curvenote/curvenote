@@ -1,0 +1,93 @@
+title: Site Routes (Site Admin User)
+system_role: USER
+site_roles:
+  - name: test-site
+    role: ADMIN
+headers:
+  Authorization: Bearer ${TOKEN}
+cases:
+  # Site Management Routes Group (Site Admin Access)
+  - title: Site Management Routes (Site Admin Access)
+    cases:
+      - title: Sites Root Endpoint
+        url: /app/sites
+        status: 200
+
+      - title: Site Details Endpoint (Redirects to Inbox)
+        url: /app/sites/test-site
+        status: 302
+        location: /app/sites/test-site/inbox
+
+      - title: Site Collections Management Endpoint
+        url: /app/sites/test-site/collections
+        status: 200
+
+      - title: Site Submissions Management Endpoint
+        url: /app/sites/test-site/submissions
+        status: 200
+
+      - title: Site Submission Details Endpoint (Not Found)
+        url: /app/sites/test-site/submissions/does-not-exist
+        status: 404
+
+      - title: Site Advanced Settings Endpoint
+        url: /app/sites/test-site/advanced
+        status: 200
+
+      - title: Site Domain Management Endpoint
+        url: /app/sites/test-site/domains
+        status: 200
+
+      - title: Site Website Management Endpoint
+        url: /app/sites/test-site/website
+        status: 200
+
+      - title: Site Inbox Management Endpoint
+        url: /app/sites/test-site/inbox
+        status: 200
+
+      - title: Site Kinds Management Endpoint
+        url: /app/sites/test-site/kinds
+        status: 200
+
+      - title: Site User Management Endpoint
+        url: /app/sites/test-site/users
+        status: 200
+
+  # Different Site Routes (Site Admin Access)
+  - title: Different Site Routes (Site Admin Access)
+    cases:
+      - title: Site Settings Root Endpoint
+        url: /app/sites/test-site/settings
+        status: 302
+        location: /login
+
+      - title: Site Settings Advanced Endpoint
+        url: /app/sites/test-site/settings/advanced
+        status: 302
+        location: /login
+
+      - title: Site Settings Domains Endpoint
+        url: /app/sites/test-site/settings/domains
+        status: 302
+        location: /login
+
+      - title: Site Settings Website Endpoint
+        url: /app/sites/test-site/settings/website
+        status: 302
+        location: /login
+
+      - title: Site Settings Inbox Endpoint
+        url: /app/sites/test-site/settings/inbox
+        status: 302
+        location: /login
+
+      - title: Site Settings Kinds Endpoint
+        url: /app/sites/test-site/settings/kinds
+        status: 302
+        location: /login
+
+      - title: Site Settings Users Endpoint
+        url: /app/sites/test-site/settings/users
+        status: 302
+        location: /login

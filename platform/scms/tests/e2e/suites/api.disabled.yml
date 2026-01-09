@@ -1,0 +1,400 @@
+# Tests for all API routes as a disabled user
+# This file tests how routes behave for disabled users
+title: API Routes (Disabled User)
+system_role: USER
+disabled: true
+headers:
+  Authorization: Bearer ${TOKEN}
+cases:
+  # Base API Routes Group
+  - title: Base API Routes
+    cases:
+      - title: Root endpoint returns version info
+        url: /v1
+        status: 200
+        response:
+          version: string
+          message: string
+
+      - title: Root endpoint with trailing slash returns version info
+        url: /v1/
+        status: 200
+        response:
+          version: string
+          message: string
+
+      - title: Config endpoint allows disabled user (public route)
+        url: /v1/config
+        status: 200
+        response:
+          apiUrl: string
+          adminUrl: string
+          editorApiUrl: string
+          editorUrl: string
+          privateCdnUrl: string
+          tempCdnUrl: string
+          publicCdnUrl: string
+          deploymentCdnUrl: string
+
+      - title: Login endpoint rejects disabled user
+        url: /v1/login
+        method: POST
+        status: 401
+        response:
+          error: string
+
+      - title: Unknown API route returns 404 error
+        url: /v1/not/a/real/route
+        status: 404
+        response:
+          error: string
+
+  # Token Routes Group
+  - title: Token Routes
+    cases:
+      - title: Session token endpoint allows disabled user (public route)
+        url: /v1/tokens/session
+        status: 200
+        response:
+          valid: boolean
+
+      - title: User token endpoint rejects disabled user (expects user token, not session token)
+        url: /v1/tokens/user
+        status: 401
+        response:
+          error: string
+
+  # My Routes Group
+  - title: My Routes
+    cases:
+      - title: My user endpoint rejects disabled user
+        url: /v1/my/user
+        status: 401
+        response:
+          error: string
+
+      - title: My sites endpoint rejects disabled user
+        url: /v1/my/sites
+        status: 401
+        response:
+          error: string
+
+      - title: My works endpoint rejects disabled user
+        url: /v1/my/works
+        status: 401
+        response:
+          error: string
+
+      - title: My work by ID endpoint obfuscates disabled user (404 for security)
+        url: /v1/my/works/CRV0001
+        status: 401
+        response:
+          status: 401
+          message: string
+
+      - title: My submissions endpoint rejects disabled user
+        url: /v1/my/submissions
+        status: 401
+        response:
+          error: string
+
+      - title: My submission by ID endpoint rejects disabled user
+        url: /v1/my/submissions/does-not-exist
+        status: 401
+        response:
+          error: string
+
+  # Sites Routes Group
+  - title: Sites Routes
+    cases:
+      - title: Sites list endpoint returns public sites (no auth required)
+        url: /v1/sites
+        status: 200
+        response:
+          items: array
+          links: object
+
+      - title: Site by name endpoint returns public site (no auth required)
+        url: /v1/sites/science
+        status: 200
+        response:
+          id: string
+          name: string
+          url: string
+          private: boolean
+          collections: array
+          links: object
+
+      - title: Site access endpoint rejects disabled user
+        url: /v1/sites/science/access
+        status: 401
+        response:
+          error: string
+
+      - title: Site sign endpoint rejects disabled user
+        url: /v1/sites/science/sign
+        method: POST
+        status: 401
+        response:
+          error: string
+
+      - title: Site collections endpoint returns public collections (no auth required)
+        url: /v1/sites/science/collections
+        status: 200
+        response:
+          items: array
+          links: object
+
+      - title: Site collection by ID endpoint returns public collection (no auth required)
+        url: /v1/sites/science/collections/018b9034-d660-7a20-9135-5794c1eb0bfd
+        status: 200
+        response:
+          id: string
+          name: string
+          links: object
+
+      - title: Site kinds endpoint returns public kinds (no auth required)
+        url: /v1/sites/science/kinds
+        status: 200
+        response:
+          items: array
+          links: object
+
+      - title: Site kind by ID endpoint returns public kind (no auth required)
+        url: /v1/sites/science/kinds/018b9034-d660-7a20-9135-5794c1eb0bf0
+        status: 200
+        response:
+          id: string
+          name: string
+          links: object
+
+      - title: Site DOI endpoint returns 404 for non-existent DOI (no auth required)
+        url: /v1/sites/science/doi/10.1234/5678
+        status: 404
+        response:
+          status: string
+          message: string
+
+  # Site Works Routes Group
+  - title: Site Works Routes
+    cases:
+      - title: Site works endpoint returns public works (no auth required)
+        url: /v1/sites/science/works
+        status: 200
+        response:
+          items: array
+          links: object
+
+      - title: Site work by ID endpoint returns 404 for non-existent work (no auth required)
+        url: /v1/sites/science/works/does-not-exist
+        status: 404
+
+      - title: Site work thumbnail endpoint returns 404 for non-existent work (no auth required)
+        url: /v1/sites/science/works/does-not-exist/thumbnail
+        status: 404
+
+      - title: Site work social endpoint returns 404 for non-existent work (no auth required)
+        url: /v1/sites/science/works/does-not-exist/social
+        status: 404
+
+      - title: Site work published endpoint returns 404 for non-existent work (no auth required)
+        url: /v1/sites/science/works/does-not-exist/published
+        status: 404
+
+      - title: Site work versions endpoint returns 404 for non-existent work (no auth required)
+        url: /v1/sites/science/works/does-not-exist/versions
+        status: 404
+
+      - title: Site work version by ID endpoint returns 404 for non-existent work (no auth required)
+        url: /v1/sites/science/works/does-not-exist/versions/does-not-exist
+        status: 404
+
+      - title: Site work version thumbnail endpoint returns 404 for non-existent work (no auth required)
+        url: /v1/sites/science/works/does-not-exist/versions/does-not-exist/thumbnail
+        status: 404
+
+      - title: Site work version social endpoint returns 404 for non-existent work (no auth required)
+        url: /v1/sites/science/works/does-not-exist/versions/does-not-exist/social
+        status: 404
+
+  # Site Submissions Routes Group
+  - title: Site Submissions Routes
+    cases:
+      - title: Site submissions endpoint rejects disabled user
+        url: /v1/sites/science/submissions
+        status: 401
+        response:
+          error: string
+
+      - title: Site submission by ID endpoint obfuscates disabled user (404 for security)
+        url: /v1/sites/science/submissions/does-not-exist
+        status: 404
+        response:
+          status: 404
+          message: string
+
+      - title: Site submission versions endpoint obfuscates disabled user (404 for security)
+        url: /v1/sites/science/submissions/does-not-exist/versions
+        status: 404
+        response:
+          status: 404
+          message: string
+
+      - title: Site submission version by ID endpoint obfuscates disabled user (404 for security)
+        url: /v1/sites/science/submissions/does-not-exist/versions/cdd87129-6ea8-4ed5-8c9f-14aa94a60a01
+        status: 404
+        response:
+          status: 404
+          message: string
+
+      - title: Site submission publish endpoint obfuscates disabled user (404 for security)
+        url: /v1/sites/science/submissions/does-not-exist/publish
+        method: POST
+        status: 404
+        response:
+          status: 404
+          message: string
+
+      - title: Site submission unpublish endpoint obfuscates disabled user (404 for security)
+        url: /v1/sites/science/submissions/does-not-exist/unpublish
+        method: POST
+        status: 404
+        response:
+          status: 404
+          message: string
+
+      - title: Site submission key endpoint rejects disabled user
+        url: /v1/sites/science/submissions/key/does-not-exist
+        status: 401
+        response:
+          status: 401
+          message: string
+
+  # Works Routes Group
+  - title: Works Routes
+    cases:
+      - title: Works endpoint returns 405 for GET method (no auth required)
+        url: /v1/works
+        status: 405
+        response:
+          error: string
+
+      - title: Work by ID endpoint obfuscates disabled user (404 for security)
+        url: /v1/works/does-not-exist
+        status: 401
+        response:
+          status: 401
+          message: string
+
+      - title: Work thumbnail endpoint rejects disabled user
+        url: /v1/works/does-not-exist/thumbnail
+        status: 401
+        response:
+          status: 401
+          message: string
+
+      - title: Work versions endpoint returns 405 for GET method (no auth required)
+        url: /v1/works/does-not-exist/versions
+        status: 405
+        response:
+          error: string
+
+      - title: Work key endpoint rejects disabled user
+        url: /v1/works/key/does-not-exist
+        status: 401
+        response:
+          error: string
+
+  # Upload Routes Group
+  - title: Upload Routes
+    cases:
+      - title: Upload commit endpoint rejects disabled user
+        url: /v1/uploads/commit
+        method: POST
+        status: 401
+        response:
+          error: string
+
+      - title: Upload stage endpoint rejects disabled user
+        url: /v1/uploads/stage
+        method: POST
+        status: 401
+        response:
+          error: string
+
+  # Preview Routes Group
+  - title: Preview Routes
+    cases:
+      - title: Preview endpoint obfuscates disabled user (404 for security)
+        url: /v1/previews/does-not-exist
+        status: 404
+        response:
+          status: 404
+          message: string
+
+  # Job Routes Group
+  - title: Job Routes
+    cases:
+      - title: Jobs endpoint returns 405 for GET method (no auth required)
+        url: /v1/jobs
+        status: 405
+        response:
+          error: string
+
+      - title: Job by ID endpoint returns job details (no auth required)
+        url: /v1/jobs/018b9034-d660-7a20-9135-5794c1eb0bfc
+        status: 200
+        response:
+          id: string
+          status: string
+          job_type: string
+          messages: array
+          results: object
+
+  # Check Routes Group
+  - title: Check Routes
+    cases:
+      - title: Checks endpoint returns public checks (no auth required)
+        url: /v1/checks
+        status: 200
+        response:
+          items: array
+          links: object
+
+      - title: Check by ID endpoint returns public check (no auth required)
+        url: /v1/checks/authors-exist
+        status: 200
+        response:
+          id: string
+          title: string
+          purpose: string
+          tags: array
+          links: object
+
+      - title: Check docs endpoint returns public documentation (no auth required)
+        url: /v1/checks/authors-exist/docs
+        status: 200
+        response:
+          kind: string
+          frontmatter: object
+          mdast: object
+
+  # DNS Router Routes Group
+  - title: DNS Router Routes
+    cases:
+      - title: Routers GET not allowed (no auth required)
+        url: /v1/routers
+        status: 405
+      - title: Domain not found (no auth required)
+        url: /v1/routers/docker.space
+        status: 404
+      - title: Domain creation rejects disabled user
+        url: /v1/routers
+        method: POST
+        status: 401
+        headers:
+          Content-Type: application/json
+        body:
+          domain: test.curve.space
+          cdn: https://cdn.test.dev
+          cdn_key: 9208e5ae-3adb-4de1-b380-3f810aaae08b

@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=./.app-config.schema.yml
+name: Curvenote Platform
+api:
+  previewIssuer: http://localhost:3031
+  handshakeIssuer: http://localhost:3031
+  databaseUrl: 'postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0'
+  checkProjectId: project-1
+  checkTopic: projects/project-1/topics/checks
+  knownBucketInfoMap:
+    cdn:
+      uri: cdn-dev-1
+      cdn: https://cdn.deployment.org
+    pub:
+      uri: cdn-pub-dev-1
+      cdn: https://pub.deployment.org
+    prv:
+      uri: cdn-private-dev-1
+      cdn: https://prv.deployment.org
+    tmp:
+      uri: cdn-tmp-dev-1
+      cdn: https://tmp.deployment.org
+    hashstore:
+      uri: hashstore-dev-1
+    staging:
+      uri: staging-dev-1
+  privateSiteClaimSubject: curvenote.deployment.org
+  authProviders:
+    - name: Curvenote
+      url: http://localhost:8083
+      audience: http://localhost:8083
+  submissionsServiceAccount:
+    id: qwerty-123456-zxcvbn-987654
+app:
+  renderServiceUrl: 'http://localhost:3000'

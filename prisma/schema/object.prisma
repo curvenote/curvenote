@@ -1,0 +1,10 @@
+model Object {
+  id            String @id
+  type          String
+  date_created  String
+  date_modified String
+  data          Json?
+  occ           Int    @default(0)
+
+  @@index([type])
+}

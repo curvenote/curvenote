@@ -1,0 +1,42 @@
+{
+  "include": ["src/**/*.ts", "src/**/*.tsx", "./.react-router/types/**/*"],
+  "exclude": ["dist", "node_modules"],
+  "files": [
+    "../../types/app-config.d.ts",
+    "../../types/prisma.d.ts",
+    "../../types/globals.d.ts",
+    "../../types/json.d.ts",
+    "../../types/svg.d.ts"
+  ],
+  "compilerOptions": {
+    "composite": false,
+    "declaration": true,
+    "declarationMap": true,
+    "inlineSources": false,
+    "module": "node16",
+    "moduleResolution": "node16",
+    "allowSyntheticDefaultImports": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "preserveWatchOutput": true,
+    "lib": ["es2021", "DOM", "DOM.Iterable"],
+
+    "types": ["vite/client", "@react-router/node", "node", "vitest/globals"],
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "resolveJsonModule": true,
+    "target": "ES2019",
+    "strict": true,
+    "allowJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": ["../../*"]
+    },
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "rootDirs": [".", "./.react-router/types"]
+  }
+}

@@ -1,0 +1,29 @@
+model MagicLink {
+  id            String  @id
+  date_created  String
+  date_modified String
+  created_by    User    @relation(fields: [created_by_id], references: [id])
+  created_by_id String
+  type          String // e.g., "submission_preview"
+  data          Json // stores submissionId, siteName, email, name, and other metadata
+  expiry        String? // ISO date string when link expires
+  revoked       Boolean @default(false)
+  access_limit  Int? // max number of successful accesses
+
+  @@index([created_by_id])
+  @@index([type])
+  @@index([revoked])
+}
+
+model MagicLinkAccess {
+  id            String  @id
+  date_created  String
+  magic_link_id String // No FK constraint - allows deletion of MagicLink while preserving audit history
+  ip_address    String?
+  user_agent    String?
+  success       Boolean // whether access was granted
+  error_message String? // if access denied, why
+
+  @@index([magic_link_id])
+  @@index([date_created])
+}

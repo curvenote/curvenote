@@ -1,0 +1,32 @@
+model Access {
+    id            String  @id
+    date_created  String
+    date_modified String
+    type          String // freeform string like "user", "work", "site", etc.
+    grants        Json // { scopes: ['scope1','scope2'], roles: ['roleA','roleB'] }
+    active        Boolean @default(true)
+
+    // Optional foreign keys for different resource types
+    work_id     String?
+    receiver_id String? // this is the user who is receiving the access
+    site_id     String?
+
+    // Who granted and ownsthis access
+    owner_id String
+    owner    User   @relation("AccessOwner", fields: [owner_id], references: [id])
+
+    // Who received this access
+    receiver User? @relation("AccessReceiver", fields: [receiver_id], references: [id])
+
+    // Optional relationships to other entities (future expansion)
+    work Work? @relation(fields: [work_id], references: [id])
+    site Site? @relation(fields: [site_id], references: [id])
+
+    // Activity tracking
+    activity Activity[]
+
+    @@index([receiver_id])
+    @@index([owner_id])
+    @@index([type])
+    @@index([active])
+}

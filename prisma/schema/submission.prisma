@@ -1,0 +1,104 @@
+model SubmissionKind {
+  id                 String               @id
+  name               String
+  date_created       String
+  date_modified      String
+  default            Boolean              @default(false)
+  content            Json                 @default("{}")
+  checks             Json?
+  site               Site                 @relation(fields: [site_id], references: [id])
+  site_id            String
+  submissions        Submission[]
+  submissionActivity Activity[]
+  collections        KindsInCollections[]
+  occ                Int                  @default(0)
+
+  @@unique([name, site_id])
+}
+
+model KindsInCollections {
+  id            String         @id
+  date_created  String
+  date_modified String
+  kind          SubmissionKind @relation(fields: [kind_id], references: [id])
+  kind_id       String
+  collection    Collection     @relation(fields: [collection_id], references: [id])
+  collection_id String
+}
+
+model Collection {
+  id                String               @id
+  name              String
+  slug              String
+  date_created      String
+  date_modified     String
+  workflow          String               @default("SIMPLE")
+  default           Boolean              @default(false)
+  open              Boolean              @default(true)
+  content           Json
+  site              Site                 @relation(fields: [site_id], references: [id])
+  site_id           String
+  kindsInCollection KindsInCollections[]
+  submissions       Submission[]
+  parent_id         String?
+  parentCollection  Collection?          @relation("CollectionToCollection", fields: [parent_id], references: [id])
+  childCollections  Collection[]         @relation("CollectionToCollection")
+  activity          Activity[]
+  occ               Int                  @default(0)
+
+  @@unique([name, site_id])
+}
+
+model SubmissionVersion {
+  id                  String      @id
+  date_created        String
+  date_modified       String
+  date_published      String?
+  status              String      @default("PENDING")
+  transition          Json? // Stores the active transition object
+  work_version        WorkVersion @relation(fields: [work_version_id], references: [id])
+  work_version_id     String
+  submitted_by        User        @relation(fields: [submitted_by_id], references: [id])
+  submitted_by_id     String
+  submission          Submission  @relation(fields: [submission_id], references: [id])
+  submission_id       String
+  submission_activity Activity[]
+  job                 Job?        @relation(fields: [job_id], references: [id])
+  job_id              String?     @unique
+  metadata            Json? // JSON metadata field for extensible data
+  occ                 Int         @default(0) // Optimistic concurrency control
+}
+
+model Submission {
+  id              String              @id
+  date_created    String
+  date_modified   String
+  date_published  String?
+  submitted_by    User                @relation(fields: [submitted_by_id], references: [id])
+  submitted_by_id String
+  kind            SubmissionKind      @relation(fields: [kind_id], references: [id])
+  kind_id         String
+  site            Site                @relation(fields: [site_id], references: [id])
+  site_id         String
+  versions        SubmissionVersion[]
+  activity        Activity[]
+  slugs           Slug[]
+  collection      Collection          @relation(fields: [collection_id], references: [id])
+  collection_id   String
+  work            Work?               @relation(fields: [work_id], references: [id])
+  work_id         String?
+}
+
+model Slug {
+  id            String     @id
+  date_created  String
+  date_modified String
+  slug          String
+  site          Site       @relation(fields: [site_id], references: [id])
+  site_id       String
+  submission    Submission @relation(fields: [submission_id], references: [id])
+  submission_id String
+  primary       Boolean    @default(false)
+
+  @@unique([slug, site_id])
+}
