@@ -2,7 +2,6 @@ import type { Config } from '@/types/app-config.js';
 import type { OktaIdTokenClaims, OktaProfile } from '@curvenote/remix-auth-okta';
 import { OktaStrategy } from '@curvenote/remix-auth-okta';
 import type { Authenticator } from 'remix-auth';
-import type { AuthenticatedUserWithProviderCookie } from '../auth.server.js';
 import jwt from 'jsonwebtoken';
 import { error401, TrackEvent } from '@curvenote/scms-core';
 import {
@@ -15,6 +14,7 @@ import {
 } from '../common.server.js';
 import { getSetProviderCookie } from '../../../cookies.server.js';
 import { redirect } from 'react-router';
+import type { AuthenticatedUserWithProviderCookie } from '../../../session.server.js';
 import { sessionStorageFactory } from '../../../session.server.js';
 import { $sendSlackNotification, SlackEventType } from '../../../backend/services/slack.server.js';
 import {

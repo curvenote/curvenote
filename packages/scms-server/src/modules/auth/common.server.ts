@@ -4,9 +4,8 @@ import { httpError } from '@curvenote/scms-core';
 import { uuidv7 } from 'uuidv7';
 import type { UserInfo, UserRecord } from 'firebase-admin/auth';
 import { redirect } from 'react-router';
-import type { AuthenticatedUser } from './auth.server.js';
+import type { AuthenticatedUser, Session, SessionStorage } from '../../session.server.js';
 import { $sendSlackNotification, SlackEventType } from '../../backend/services/slack.server.js';
-import type { Session, SessionStorage } from '../../session.server.js';
 import { sessionStorageFactory } from '../../session.server.js';
 
 /**

@@ -1,7 +1,6 @@
 import type { GoogleProfile } from '@curvenote/remix-auth-google';
 import { GoogleStrategy } from '@curvenote/remix-auth-google';
 import type { Authenticator } from 'remix-auth';
-import type { AuthenticatedUserWithProviderCookie } from '../auth.server.js';
 import { getSetProviderCookie } from '../../../cookies.server.js';
 import {
   assertLinkedAccount,
@@ -14,6 +13,7 @@ import {
 import type { firebase } from '@curvenote/scms-core';
 import jwt from 'jsonwebtoken';
 import { redirect } from 'react-router';
+import type { AuthenticatedUserWithProviderCookie } from '../../../session.server.js';
 import { sessionStorageFactory } from '../../../session.server.js';
 import { $sendSlackNotification, SlackEventType } from '../../../backend/services/slack.server.js';
 import {

@@ -1,6 +1,17 @@
 import { getConfig } from './app-config.server.js';
 import { createCookieSessionStorage } from 'react-router'; // or cloudflare/deno
-import type { AuthenticatedUser } from './modules/auth/auth.server.js';
+
+export type AuthenticatedUser = {
+  userId: string;
+  primaryProvider: string;
+  provider: string;
+  pending: boolean;
+  ready_for_approval: boolean;
+};
+
+export type AuthenticatedUserWithProviderCookie = AuthenticatedUser & {
+  providerSetCookie: string;
+};
 
 export type SessionData = {
   user: AuthenticatedUser;

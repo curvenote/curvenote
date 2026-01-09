@@ -5,7 +5,7 @@ import { getPrismaClient } from '../../../../prisma.server.js';
 import { error404 } from '@curvenote/scms-core';
 import { formatDate } from '@curvenote/common';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
-import { formatCollectionSummaryDTO } from '../../collections/get.server.js';
+import { formatCollectionSummaryDTO } from '../../get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../../kinds/get.server.js';
 import { createArticleUrl } from '../../../../domains.server.js';
 

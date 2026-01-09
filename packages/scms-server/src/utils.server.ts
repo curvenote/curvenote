@@ -7,8 +7,7 @@ import {
   MESSAGE_404,
 } from '@curvenote/scms-core';
 import type { Config } from '@/types/app-config.js';
-import type { ClientDeploymentConfig, SimpleNavItemType } from '@curvenote/scms-core';
-import type { Context } from './backend/context.server.js';
+import type { ClientDeploymentConfig, Context, SimpleNavItemType } from '@curvenote/scms-core';
 import { redirect } from 'react-router';
 import { userHasScopes } from './backend/scopes.helpers.server.js';
 

@@ -1,5 +1,5 @@
 import { httpError } from '@curvenote/scms-core';
-import type { Context } from './context.server.js';
+import type { Context } from '@curvenote/scms-core';
 import semver from 'semver';
 
 const CLIENT_NAME_HEADER = `x-client-name`;

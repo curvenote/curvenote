@@ -112,3 +112,8 @@ export class Folder {
     return hash;
   }
 }
+
+export function createFolder(backend: StorageBackend, key: string, bucket: KnownBuckets): Folder {
+  backend.ensureConnection(bucket);
+  return new Folder(backend, key, bucket);
+}

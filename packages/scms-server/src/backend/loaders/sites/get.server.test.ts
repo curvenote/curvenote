@@ -11,7 +11,7 @@ vi.mock('../../domains.server', () => ({
   }),
 }));
 
-vi.mock('./collections/get.server', () => ({
+vi.mock('./get.server', () => ({
   formatCollectionSummaryDTO: vi.fn(() => ({ id: 'collection1', name: 'Test Collection' })),
 }));
 

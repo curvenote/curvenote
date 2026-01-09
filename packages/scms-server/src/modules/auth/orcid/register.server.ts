@@ -1,6 +1,5 @@
 import type { Authenticator } from 'remix-auth';
 import { OAuth2Strategy } from 'remix-auth-oauth2';
-import type { AuthenticatedUser } from '../auth.server.js';
 import jwt from 'jsonwebtoken';
 import {
   assertLinkedAccount,
@@ -13,6 +12,7 @@ import {
 import type { orcid } from '@curvenote/scms-core';
 import { getSetProviderCookie } from '../../../cookies.server.js';
 import { redirect } from 'react-router';
+import type { AuthenticatedUser } from '../../../session.server.js';
 import { sessionStorageFactory } from '../../../session.server.js';
 import { $sendSlackNotification, SlackEventType } from '../../../backend/services/slack.server.js';
 import {

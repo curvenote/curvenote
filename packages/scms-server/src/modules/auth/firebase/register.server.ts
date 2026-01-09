@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 import type { Authenticator } from 'remix-auth';
 import { Strategy } from 'remix-auth/strategy';
-import type { AuthenticatedUser, AuthenticatedUserWithProviderCookie } from '../auth.server.js';
 import { getServerAuth } from '../../database/firebase/firebase.server.js';
 import { error401, TrackEvent } from '@curvenote/scms-core';
 import {
@@ -13,6 +12,10 @@ import {
 } from '../common.server.js';
 import { getSetProviderCookie } from '../../../cookies.server.js';
 import { redirectDocument } from 'react-router';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUserWithProviderCookie,
+} from '../../../session.server.js';
 import { sessionStorageFactory } from '../../../session.server.js';
 import {
   AnalyticsContext,

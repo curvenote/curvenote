@@ -15,7 +15,7 @@ import { userHasScope } from './scopes.helpers.server.js';
 import { uuidv7 } from 'uuidv7';
 import { KnownBuckets } from './storage/constants.server.js';
 import { Folder, StorageBackend } from './storage/index.js';
-import type { SecureContext } from './context.server.js';
+import { getUserById, type SecureContext } from './context.server.js';
 
 export async function listAllSites(): Promise<SiteDBO[]> {
   const prisma = await getPrismaClient();
@@ -30,39 +30,6 @@ export async function checkSiteExists(name: string): Promise<boolean> {
 export async function checkWorkExists(id: string): Promise<boolean> {
   const prisma = await getPrismaClient();
   return (await prisma.work.count({ where: { id } })) > 0;
-}
-
-/**
- * Look up user by curvenote userId
- *
- * @param id
- * @returns
- */
-export async function getUserById(id: string): Promise<UserWithRolesDBO | null> {
-  const prisma = await getPrismaClient();
-  return prisma.user.findUnique({
-    where: { id },
-    include: {
-      site_roles: {
-        include: {
-          site: {
-            select: {
-              id: true,
-              name: true,
-              title: true,
-            },
-          },
-        },
-      },
-      work_roles: true,
-      linkedAccounts: true,
-      roles: {
-        include: {
-          role: true,
-        },
-      },
-    },
-  });
 }
 
 /**

@@ -1,10 +1,15 @@
 import { getPrismaClient } from '../../prisma.server.js';
-import type { Host, Site as SiteConfig, SiteDTO, SiteWithContentDTO } from '@curvenote/common';
+import type {
+  CollectionSummaryDTO,
+  Host,
+  Site as SiteConfig,
+  SiteDTO,
+  SiteWithContentDTO,
+} from '@curvenote/common';
 import { formatFooterLinks, formatSocialLinks } from '../../format.server.js';
-import { error404 } from '@curvenote/scms-core';
-import type { SiteRole } from '@prisma/client';
+import { coerceToObject, error404 } from '@curvenote/scms-core';
+import type { Collection, SiteRole } from '@prisma/client';
 import type { Context } from '../../context.server.js';
-import { formatCollectionSummaryDTO } from './collections/get.server.js';
 import type { UserDBO } from '../../db.types.js';
 import { createSiteRootUrl } from '../../domains.server.js';
 
@@ -53,6 +58,17 @@ export async function dbGetUserSiteRoles(userId: string, siteId: string) {
     },
   });
   return siteUsers;
+}
+
+export function formatCollectionSummaryDTO(dbo: Collection): CollectionSummaryDTO {
+  return {
+    id: dbo.id,
+    name: dbo.name,
+    slug: dbo.slug,
+    workflow: dbo.workflow,
+    content: coerceToObject(dbo.content),
+    open: dbo.open,
+  };
 }
 
 export function formatSiteDTO(ctx: Context, dbo: DBO): SiteDTO {

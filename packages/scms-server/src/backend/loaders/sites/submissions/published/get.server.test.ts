@@ -24,7 +24,7 @@ vi.mock('../../kinds/get.server', () => ({
   formatSubmissionKindSummaryDTO: vi.fn(() => ({ id: 'kind1', name: 'Article' })),
 }));
 
-vi.mock('../../collections/get.server', () => ({
+vi.mock('../../get.server', () => ({
   formatCollectionSummaryDTO: vi.fn(() => ({ id: 'collection1', name: 'Articles' })),
 }));
 

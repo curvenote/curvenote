@@ -4,18 +4,7 @@ import { registerGoogleStrategy } from './google/register.server.js';
 import { registerFirebaseStrategy } from './firebase/register.server.js';
 import { registerOktaStrategy } from './okta/register.server.js';
 import { registerOrcidStrategy } from './orcid/register.server.js';
-
-export type AuthenticatedUser = {
-  userId: string;
-  primaryProvider: string;
-  provider: string;
-  pending: boolean;
-  ready_for_approval: boolean;
-};
-
-export type AuthenticatedUserWithProviderCookie = AuthenticatedUser & {
-  providerSetCookie: string;
-};
+import type { AuthenticatedUserWithProviderCookie } from '../../session.server.js';
 
 export type AppAuthenticator = Authenticator<AuthenticatedUserWithProviderCookie>;
 

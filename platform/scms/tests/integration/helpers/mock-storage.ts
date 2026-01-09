@@ -29,12 +29,6 @@ export class MockStorageBackend {
     });
     this.folder = createMockFolder();
   }
-
-  createFolder(_key: string, bucket: KnownBuckets) {
-    // Call the mock as a function - this is intentionally a floating promise for testing
-    (this.ensureConnection as any)(bucket);
-    return this.folder;
-  }
 }
 
 export function createMockFolder(): MockFolder {

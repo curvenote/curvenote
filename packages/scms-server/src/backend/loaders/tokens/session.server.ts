@@ -1,4 +1,4 @@
-import type { Context } from '../../context.server.js';
+import type { Context } from '@curvenote/scms-core';
 import { error401, error404, httpError } from '@curvenote/scms-core';
 import { createSessionToken, verifySessionToken } from '../../sign.tokens.server.js';
 import {

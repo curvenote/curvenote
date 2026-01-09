@@ -2,7 +2,8 @@ import type { Context } from '../../../context.server.js';
 import type { CreateJob, SubmissionPublishedEmailProps } from '@curvenote/scms-core';
 import { JobStatus } from '@prisma/client';
 import { dbCreateJob, dbUpdateJob } from './db.server.js';
-import type { StorageBackend } from '../../../storage/index.js';
+import type { StorageBackend } from '../../../storage/backend.server.js';
+import { createFolder } from '../../../storage/folder.server.js';
 import { KnownBuckets } from '../../../storage/constants.server.js';
 import { validate } from '../../../../api.schemas.js';
 import type { PublishJobResults } from './schemas.server.js';
@@ -60,7 +61,7 @@ export async function publishHandler(
   storageBackend.ensureConnection(sourceBucket);
 
   // check source file location
-  const folder = storageBackend.createFolder(key, sourceBucket);
+  const folder = createFolder(storageBackend, key, sourceBucket);
   const exists = await folder.exists();
   if (!exists) {
     // TODO: on failures we need to clear transitions, and log an activity indicating failure and preserving the jobId

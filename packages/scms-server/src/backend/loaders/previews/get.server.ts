@@ -7,8 +7,8 @@ import { userHasScope } from '../../scopes.helpers.server.js';
 import type { ModifiedSiteWorkDTO } from '../sites/submissions/published/get.server.js';
 import { formatSiteWorkDTO } from '../sites/submissions/published/get.server.js';
 import { SiteContext } from '../../context.site.server.js';
-import { formatCollectionSummaryDTO } from '../sites/collections/get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../sites/kinds/get.server.js';
+import { formatCollectionSummaryDTO } from '../sites/get.server.js';
 
 export async function dbGetSubmissionVersion(id: string) {
   const prisma = await getPrismaClient();

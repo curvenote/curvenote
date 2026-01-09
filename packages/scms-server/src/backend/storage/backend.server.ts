@@ -1,7 +1,6 @@
 import type { Bucket } from '@google-cloud/storage';
 import { Storage } from '@google-cloud/storage';
 import type { Context } from '@curvenote/scms-core';
-import { Folder } from './folder.server.js';
 import { KnownBuckets } from './constants.server.js';
 import type { KeyFile, KnownBucketInfo } from './types.js';
 
@@ -73,10 +72,5 @@ export class StorageBackend {
       read: 24 * 60 * 60, // 24 hours
       write: 30 * 60, // 1 hour
     };
-  }
-
-  createFolder(key: string, bucket: KnownBuckets): Folder {
-    this.ensureConnection(bucket);
-    return new Folder(this, key, bucket);
   }
 }

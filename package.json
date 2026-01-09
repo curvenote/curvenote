@@ -26,7 +26,7 @@
     "clean": "turbo run clean --parallel && find . -name '.turbo' -type d -prune -exec rm -rf '{}' +",
     "lint": "turbo run lint --filter='@curvenote/*' --filter='curvenote'",
     "lint:format": "turbo run lint:format --filter='@curvenote/*' --filter='curvenote'",
-    "lint:circular": "madge -c packages/*/src/*",
+    "lint:circular": "madge -c packages/*/src/* ee/*/src/*",
     "test": "turbo run test --filter='curvenote' --filter='@curvenote/*'",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",

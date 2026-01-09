@@ -137,9 +137,6 @@ export interface StorageBackend {
     read: number; // seconds
     write: number; // seconds
   };
-
-  /** Create a folder handler for the given key and bucket */
-  createFolder(key: string, bucket: KnownBuckets): any; // Folder - using any to avoid circular dependency
 }
 
 export interface ExtensionEmailTemplate {

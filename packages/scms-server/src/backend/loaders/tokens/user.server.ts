@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import type { Context } from '../../context.server.js';
+import type { Context } from '@curvenote/scms-core';
 import { error401 } from '@curvenote/scms-core';
 import { verifyUserToken } from '../../sign.tokens.server.js';
 import { getPrismaClient } from '../../prisma.server.js';

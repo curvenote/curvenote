@@ -35,7 +35,7 @@
     "dev": "npx concurrently \"tsc -w\" \"react-router dev\"",
     "lint": "npx eslint -c .eslintrc.cjs \"app/**/*.{ts,tsx}\"",
     "lint:format": "prettier --check \"app/**/*.{ts,tsx}\"",
-    "lint:circular": "madge -c app/src/*",
+    "lint:circular": "madge -c app/*",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
     "version": "changeset version && npm install",

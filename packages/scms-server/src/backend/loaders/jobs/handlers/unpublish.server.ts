@@ -12,6 +12,7 @@ import type { Context } from '../../../context.server.js';
 import { $updateSubmissionVersion } from '../../../db.server.js';
 import { SlackEventType } from '../../../services/slack.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
+import { createFolder } from '../../../storage/folder.server.js';
 
 export async function unpublishHandler(
   ctx: Context,
@@ -39,7 +40,7 @@ export async function unpublishHandler(
   // check current location, if is in the pub bucket, then we should remove it
   if (storageBackend.knownBucketFromCDN(cdn) === KnownBuckets.pub) {
     // we think it is in the pub bucket, let's check that it is
-    const pubFolder = storageBackend.createFolder(key, KnownBuckets.pub);
+    const pubFolder = createFolder(storageBackend, key, KnownBuckets.pub);
     const pubExists = await pubFolder.exists();
     if (pubExists) {
       await dbUpdateJob(created.id, {
@@ -48,7 +49,7 @@ export async function unpublishHandler(
         results,
       });
       // if there is a copy on the prv bucket, remove it from pub
-      const prvFolder = storageBackend.createFolder(key, KnownBuckets.prv);
+      const prvFolder = createFolder(storageBackend, key, KnownBuckets.prv);
       const prvExists = await prvFolder.exists();
       if (prvExists) {
         try {
@@ -88,7 +89,7 @@ export async function unpublishHandler(
         results,
       });
       // check for a copy in the prv bucket, if no copy then error!
-      const prvFolder = storageBackend.createFolder(key, KnownBuckets.prv);
+      const prvFolder = createFolder(storageBackend, key, KnownBuckets.prv);
       const prvExists = await prvFolder.exists();
       if (!prvExists) {
         const message =

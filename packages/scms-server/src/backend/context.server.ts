@@ -1,4 +1,4 @@
-import type { MyUserDBO } from './db.types.js';
+import type { MyUserDBO, UserWithRolesDBO } from './db.types.js';
 import {
   error401,
   httpError,
@@ -24,7 +24,6 @@ import type {
   HandshakeTokenClaims,
   PreviewTokenClaims,
 } from './processing.server.js';
-import { getUserById } from './db.server.js';
 import { hasScopeViaSystemRole } from './roles.server.js';
 import { userHasScope, getUserScopesSet, userHasScopes } from './scopes.helpers.server.js';
 import { verifyPreviewToken } from './sign.previews.server.js';
@@ -32,7 +31,7 @@ import { verifyHandshakeToken } from './sign.handshake.server.js';
 import type { ModifyUrl } from './loaders/types.js';
 import { getConfig } from '../app-config.server.js';
 import { sessionStorageFactory, type Session } from '../session.server.js';
-import { validateSessionJWT } from './loaders/tokens/index.js';
+import { validateSessionJWT } from './loaders/tokens/session.server.js';
 import { throwOnMinimumCurvenoteClientVersion } from './minimumClient.server.js';
 import type { AppAuthenticator } from '../modules/auth/auth.server.js';
 import { authenticatorFactory } from '../modules/auth/auth.server.js';
@@ -47,6 +46,40 @@ import { createUnsubscribeToken } from './sign.tokens.server.js';
 import { dbGetUnsubscribedEmail } from './loaders/unsubscribe.js';
 import { addSegmentAnalytics, AnalyticsContext } from './services/analytics/segment.server.js';
 import type { User } from '@prisma/client';
+import { getPrismaClient } from './prisma.server.js';
+
+/**
+ * Look up user by curvenote userId
+ *
+ * @param id
+ * @returns
+ */
+export async function getUserById(id: string): Promise<UserWithRolesDBO | null> {
+  const prisma = await getPrismaClient();
+  return prisma.user.findUnique({
+    where: { id },
+    include: {
+      site_roles: {
+        include: {
+          site: {
+            select: {
+              id: true,
+              name: true,
+              title: true,
+            },
+          },
+        },
+      },
+      work_roles: true,
+      linkedAccounts: true,
+      roles: {
+        include: {
+          role: true,
+        },
+      },
+    },
+  });
+}
 
 export class Context implements ContextType {
   asApiUrl: ModifyUrl;
