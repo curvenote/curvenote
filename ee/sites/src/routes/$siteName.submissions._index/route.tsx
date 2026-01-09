@@ -82,7 +82,7 @@ export const loader = async (args: LoaderFunctionArgs): Promise<LoaderData> => {
     scopes: ctx.scopes,
     site: ctx.siteDTO,
     submissions,
-    collections: ctx.site.collections.map((c) => sites.collections.formatCollectionSummaryDTO(c)),
+    collections: ctx.site.collections.map((c) => sites.formatCollectionSummaryDTO(c)),
     defaultCollectionOnly: ctx.site.collections.length === 1 && ctx.site.collections[0].default,
   };
 };
