@@ -5,7 +5,7 @@ import { extensions } from '../../extensions/server';
 
 const ParamsSchema = z.object({
   collection: z.string().min(1).max(64).optional(),
-  kind: z.string().min(1).max(64).optional(), // TODO need https://github.com/curvenote/journals/issues/243
+  kind: z.string().min(1).max(64).optional(), // TODO kind name should be url-safe
   status: z.union([z.literal('published'), z.literal('in-review')]).optional(),
   limit: z.number().int().min(1).max(500).default(500),
   page: z.number().int().min(0).optional(),

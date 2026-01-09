@@ -2,7 +2,7 @@ version: 1
 project:
   title: Curvenote Platform Documentation
   description: Documentation for the setup and configuration of the Curvenote Platform
-  github: https://github.com/curvenote/journals
+  github: https://github.com/curvenote/curvenote
   id: b889d146-a08a-4047-970a-909f01166365
   toc:
     - file: index

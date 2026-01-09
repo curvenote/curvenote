@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "description": "Server-side library for Curvenote SCMS applications",
   "author": "Rowan Cockett <rowan@curvenote.com>",
-  "homepage": "https://github.com/curvenote/journals",
+  "homepage": "https://github.com/curvenote/curvenote",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,7 +23,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/curvenote/journals.git"
+    "url": "git+https://github.com/curvenote/curvenote.git"
   },
   "scripts": {
     "prepush": "npm run lint:format:fix; npm run lint:circular; npm run lint; npm run compile; npm run test:ci; npm run test:unit; npm run test:integration",
@@ -42,7 +42,7 @@
     "version": "changeset version && npm install"
   },
   "bugs": {
-    "url": "https://github.com/curvenote/journals/issues"
+    "url": "https://github.com/curvenote/curvenote/issues"
   },
   "dependencies": {
     "@app-config/config": "^2.8.7",
