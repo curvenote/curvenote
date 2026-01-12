@@ -1,7 +1,6 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs, MetaFunction } from 'react-router';
 import { redirect, data, useActionData, Form } from 'react-router';
 import {
-  PageFrame,
   primitives,
   ui,
   httpError,
@@ -105,23 +104,25 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
   const title = (form.content as any)?.title ?? form.name;
   const description = (form.content as any)?.description;
 
-  const breadcrumbs = [
-    { label: 'Sites', href: '/app/sites' },
-    { label: siteTitle || siteName, href: `/app/sites/${siteName}/inbox` },
-    { label: title, isCurrentPage: true },
-  ];
-
   const hasMultipleCollections = formCollections.length > 1;
 
   return (
-    <PageFrame className="max-w-3xl" title={title} subtitle={description} breadcrumbs={breadcrumbs}>
-      {actionData?.error && (
-        <div className="p-4 mb-6 text-sm text-red-600 border border-red-200 rounded bg-red-50">
-          {actionData.error.message || 'An error occurred while submitting'}
+    <div className="max-w-3xl px-4 mx-auto mt-8">
+      <primitives.Card className="p-8">
+        <div className="mb-8">
+          <h1 className="mb-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{title}</h1>
+          {description && (
+            <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
+          )}
         </div>
-      )}
 
-      <Form method="post" className="flex flex-col gap-8">
+        {actionData?.error && (
+          <div className="p-4 mb-6 text-sm text-red-600 border border-red-200 rounded bg-red-50 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+            {actionData.error.message || 'An error occurred while submitting'}
+          </div>
+        )}
+
+        <Form method="post" className="flex flex-col gap-8">
         {/* Your Details Section */}
         <primitives.Card className="p-6" lift>
           <div className="flex items-center gap-3 mb-6">
@@ -232,6 +233,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
           </ui.Button>
         </div>
       </Form>
-    </PageFrame>
+      </primitives.Card>
+    </div>
   );
 }
