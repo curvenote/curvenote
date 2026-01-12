@@ -46,6 +46,8 @@
     "prepush": "npm run lint:format:fix; npm run lint:circular; npm run lint; npm run compile; npm run test:ci; npm run test:unit; npm run test:integration",
     "pp": "npm run prepush",
     "lint:format:fix": "prettier --write \"app/**/*.{ts,tsx}\"",
+    "test": "npm run test:ci; npm run test:unit; npm run test:integration",
+    "test:integration": "npm run test:db:reset && dotenv -e .env.test -- vitest run --config vitest.config.integration.mjs",
     "test:unit": "dotenv -e .env.test -- vitest run --config vitest.config.unit.mjs",
     "test:ci": "dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:local": "dotenv -e .env.test -- vitest tests/e2e/e2e.spec.ts",
@@ -65,8 +67,6 @@
     "test:e2e:api:security": "TEST_FILES=api.anon,api.disabled,api.pending dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:e2e:api:auth-tests": "TEST_FILES=api.auth dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:e2e:api:pending": "TEST_FILES=api.pending dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
-    "test:integration": "npm run test:db:reset && dotenv -e .env.test -- vitest run --config vitest.config.integration.mjs",
-    "test": "npm run test:ci; npm run test:unit; npm run test:integration",
     "test:start-server": "dotenv -e .env.test -- react-router dev",
     "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs"
   },

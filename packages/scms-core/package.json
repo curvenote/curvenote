@@ -30,6 +30,7 @@
     "dev": "tsc -w",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs",
+    "test": "vitest run",
     "changeset": "changeset",
     "version": "changeset version && npm install"
   },

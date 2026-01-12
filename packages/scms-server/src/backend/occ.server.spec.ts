@@ -13,13 +13,18 @@ vi.mock('./prisma.server', () => ({
   getPrismaClient: vi.fn(),
 }));
 
-vi.mock('../utils', () => ({
-  httpError: vi.fn(),
-}));
-
-vi.mock('../utils/delay', () => ({
-  delay: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock('@curvenote/scms-core', async () => {
+  const actual = await vi.importActual('@curvenote/scms-core');
+  return {
+    ...actual,
+    httpError: vi.fn((status: number, message: string) => {
+      const error = new Error(message) as any;
+      error.status = status;
+      throw error;
+    }),
+    delay: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 describe('OCC Functions', () => {
   let mockPrisma: any;
@@ -171,7 +176,6 @@ describe('OCC Functions', () => {
     it('should throw 404 error when record not found', async () => {
       const workVersionId = 'non-existent-id';
       mockPrisma.workVersion.findUnique.mockResolvedValue(null);
-      vi.mocked(httpError).mockImplementation((status, message) => new Error(message) as any);
 
       const modifyFn = vi.fn();
 
@@ -232,7 +236,6 @@ describe('OCC Functions', () => {
       });
 
       mockPrisma.workVersion.update.mockRejectedValue(new Error('OCC conflict'));
-      vi.mocked(httpError).mockImplementation((status, message) => new Error(message) as any);
 
       const modifyFn = vi.fn().mockReturnValue({ version: 1, test: 'updated' });
 
