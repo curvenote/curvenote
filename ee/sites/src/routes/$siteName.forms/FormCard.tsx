@@ -1,6 +1,6 @@
 import { Link, useFetcher } from 'react-router';
 import { primitives, ui } from '@curvenote/scms-core';
-import { MoreVertical, FileText } from 'lucide-react';
+import { MoreVertical, FileText, ExternalLink } from 'lucide-react';
 
 export function FormCard({ form, siteName }: { form: any; siteName: string }) {
   const title = form.content?.title ?? form.name;
@@ -10,14 +10,14 @@ export function FormCard({ form, siteName }: { form: any; siteName: string }) {
     <Link to={`${form.name}`} tabIndex={0} aria-label={title} className="block focus:outline-none">
       <primitives.Card
         lift
-        className="relative group cursor-pointer border rounded-md transition-colors"
+        className="relative transition-colors border rounded-md cursor-pointer group"
         validateUsing={fetcher}
       >
         <div className="flex flex-col gap-2 p-5">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-2xl font-semibold mb-3">{title}</div>
-              <div className="text-sm mb-4">{description}</div>
+              <div className="mb-3 text-2xl font-semibold">{title}</div>
+              <div className="mb-4 text-sm">{description}</div>
             </div>
             <div onClick={(e) => e.stopPropagation()}>
               <ui.Menu>
@@ -60,8 +60,18 @@ export function FormCard({ form, siteName }: { form: any; siteName: string }) {
               </span>
             </div>
           )}
-          <div className="flex justify-end items-center mt-4">
-            <span className="px-3 py-1 rounded-full border border-stone-400 dark:border-stone-200 text-xs font-mono">
+          <div className="flex items-center justify-between mt-4">
+            <a
+              href={`/app/sites/${siteName}/submit/${form.name}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
+            >
+              View Form
+              <ExternalLink className="inline-block w-3 h-3 align-middle" />
+            </a>
+            <span className="px-3 py-1 font-mono text-xs border rounded-full border-stone-400 dark:border-stone-200">
               {form.name}
             </span>
           </div>
@@ -70,4 +80,3 @@ export function FormCard({ form, siteName }: { form: any; siteName: string }) {
     </Link>
   );
 }
-
