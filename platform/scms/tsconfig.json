@@ -33,7 +33,8 @@
     "baseUrl": ".",
     "skipLibCheck": true,
     "paths": {
-      "@/*": ["../../*"]
+      "@/*": ["../../*"],
+      "@prisma/client": ["../../node_modules/@prisma/client"]
     },
     "noEmit": true,
     "rootDirs": [".", "./.react-router/types"]

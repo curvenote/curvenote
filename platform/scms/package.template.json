@@ -133,7 +133,7 @@
     "@headlessui/tailwindcss": "^0.2.1",
     "@heroicons/react": "^2.2.0",
     "@myst-theme/providers": "^0.17.1",
-    "@prisma/client": "^6.18.0",
+    "@prisma/client": "file:../../node_modules/@prisma/client",
     "@react-router/dev": "7.9.5",
     "@react-router/express": "7.9.5",
     "@react-router/node": "7.9.5",
