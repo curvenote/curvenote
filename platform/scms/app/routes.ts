@@ -81,6 +81,9 @@ export default [
   // Unsubscribe Route
   route('unsubscribe', 'routes/unsubscribe/route.tsx'),
 
+  // Mount point for routes outside of app/api
+  ...getRoutesForMountPoint(''),
+
   // Main App Routes
   route('app', 'routes/app/route.tsx', [
     // Dashboard

@@ -354,7 +354,7 @@ export default function FormDetails({ loaderData }: { loaderData: LoaderData }) 
       <div className="flex items-center justify-between mt-2">
         <div>
           <a
-            href={`/app/sites/${siteName}/submit/${form.name}`}
+            href={`/forms/${siteName}/${form.name}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-sm text-blue-600 hover:underline"

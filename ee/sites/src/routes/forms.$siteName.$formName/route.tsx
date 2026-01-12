@@ -72,7 +72,7 @@ export async function action(args: ActionFunctionArgs) {
     const result = await submitForm(ctx, form, formData);
     if ('workId' in result && result.workId) {
       return redirect(
-        `/app/sites/${ctx.site.name}/submit/${formName}/success?workId=${result.workId}`,
+        `/forms/${ctx.site.name}/${formName}/success?workId=${result.workId}`,
       );
     }
     return result;

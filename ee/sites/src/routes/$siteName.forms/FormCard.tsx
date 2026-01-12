@@ -62,7 +62,7 @@ export function FormCard({ form, siteName }: { form: any; siteName: string }) {
           )}
           <div className="flex items-center justify-between mt-4">
             <a
-              href={`/app/sites/${siteName}/submit/${form.name}`}
+              href={`/forms/${siteName}/${form.name}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
