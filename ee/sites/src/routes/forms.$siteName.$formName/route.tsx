@@ -28,7 +28,7 @@ type LoaderData = Awaited<ReturnType<typeof dbGetForm>> & {
 };
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
-  const ctx = await withAppSiteContext(args, [scopes.site.forms.read]);
+  const ctx = await withAppSiteContext(args, [scopes.site.submissions.create]);
 
   const { formName } = args.params;
   if (!formName) throw httpError(400, 'Missing form name');

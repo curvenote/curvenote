@@ -10,7 +10,7 @@ import {
   SectionWithHeading,
   scopes,
 } from '@curvenote/scms-core';
-import { FileText, Trash2, Shapes, Library } from 'lucide-react';
+import { FileText, Trash2, Shapes, Library, ExternalLink } from 'lucide-react';
 import type { SubmissionKindDBO } from '@curvenote/scms-server';
 import { withAppSiteContext } from '@curvenote/scms-server';
 import { dbListCollections } from '../$siteName.collections/db.server.js';
@@ -53,10 +53,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
 }
 
 export async function action(args: ActionFunctionArgs) {
-  const ctx = await withAppSiteContext(args, [
-    scopes.site.forms.update,
-    scopes.site.forms.delete,
-  ]);
+  const ctx = await withAppSiteContext(args, [scopes.site.forms.update, scopes.site.forms.delete]);
 
   if (args.request.method.toLowerCase() !== 'post') {
     return data(
@@ -168,12 +165,14 @@ export default function FormDetails({ loaderData }: { loaderData: LoaderData }) 
 
   // Get the current kind name for error messages
   const currentKind = kinds.find((k) => k.id === currentKindId);
-  const currentKindTitle = currentKind ? (currentKind.content as any)?.title ?? currentKind.name : '';
+  const currentKindTitle = currentKind
+    ? ((currentKind.content as any)?.title ?? currentKind.name)
+    : '';
 
   // Handle kind change - server will ensure at least one compatible collection is selected
   function handleKindChange(newKindId: string) {
     setCurrentKindId(newKindId);
-    
+
     // Optimistically update selected collections - remove incompatible ones
     // The server will also handle this, but we update UI immediately
     setSelectedCollectionIds((prev) => {
@@ -241,9 +240,9 @@ export default function FormDetails({ loaderData }: { loaderData: LoaderData }) 
       subtitle={`Edit details for the ${title ?? form.name} submission form`}
       breadcrumbs={breadcrumbs}
     >
-      <primitives.Card className="flex relative flex-col gap-4 p-8 mb-8" lift>
+      <primitives.Card className="relative flex flex-col gap-4 p-8 mb-8" lift>
         <div className="flex gap-4">
-          <div className="flex gap-3 items-center mb-2 grow">
+          <div className="flex items-center gap-3 mb-2 grow">
             <FileText className="w-8 h-8 text-stone-500 stroke-[1.5px]" aria-label="Form" />
             <ui.InlineEditable
               intent="update-form-title"
@@ -262,7 +261,7 @@ export default function FormDetails({ loaderData }: { loaderData: LoaderData }) 
               error={nameError || undefined}
               onChange={handleNameChange}
               renderDisplay={(value) => (
-                <span className="px-3 py-1 font-mono text-xs rounded-full border border-stone-400 dark:border-stone-200">
+                <span className="px-3 py-1 font-mono text-xs border rounded-full border-stone-400 dark:border-stone-200">
                   {value}
                 </span>
               )}
@@ -290,11 +289,7 @@ export default function FormDetails({ loaderData }: { loaderData: LoaderData }) 
           <div className="px-6 py-4">
             <fetcher.Form method="post" className="w-full" ref={kindFormRef}>
               <input type="hidden" name="intent" value="update-form-kind" />
-              <ui.Select
-                name="value"
-                value={currentKindId}
-                onValueChange={handleKindChange}
-              >
+              <ui.Select name="value" value={currentKindId} onValueChange={handleKindChange}>
                 <ui.SelectTrigger className="w-full">
                   <ui.SelectValue />
                 </ui.SelectTrigger>
@@ -317,7 +312,7 @@ export default function FormDetails({ loaderData }: { loaderData: LoaderData }) 
         icon={<Library className="w-6 h-6 stroke-[1.5px]" />}
       >
         {collectionError && (
-          <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
+          <div className="p-3 mb-4 text-sm text-red-600 border border-red-200 rounded bg-red-50">
             {collectionError}
           </div>
         )}
@@ -348,58 +343,64 @@ export default function FormDetails({ loaderData }: { loaderData: LoaderData }) 
               </div>
             </primitives.Card>
           ) : (
-            <div className="flex flex-col justify-center items-center py-8 text-center text-muted-foreground">
-              <Library className="mb-2 w-8 h-8 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+              <Library className="w-8 h-8 mb-2 text-muted-foreground" />
               <span className="text-base">No collections available.</span>
             </div>
           )}
         </div>
       </SectionWithHeading>
 
-      <div className="flex justify-between items-center mt-2">
+      <div className="flex items-center justify-between mt-2">
         <div>
           <a
             href={`/app/sites/${siteName}/submit/${form.name}`}
-            className="text-sm text-blue-600 hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
           >
-            View Form →
+            View Form
+            <ExternalLink className="inline-block w-3 h-3 align-middle" />
           </a>
         </div>
         <div>
           <ui.Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <ui.DialogTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-2 text-red-600 bg-transparent border-none p-0 m-0 text-sm font-medium cursor-pointer hover:underline hover:text-red-700"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete Form
-            </button>
-          </ui.DialogTrigger>
-          <ui.DialogContent>
-            <ui.DialogHeader>
-              <ui.DialogTitle>Delete Form</ui.DialogTitle>
-              <ui.DialogDescription>
-                Are you sure you want to delete the form <b>{title}</b>? This action cannot be
-                undone.
-              </ui.DialogDescription>
-            </ui.DialogHeader>
-            <ui.DialogFooter>
-              <ui.DialogClose asChild>
-                <ui.Button variant="outline">Cancel</ui.Button>
-              </ui.DialogClose>
-              <fetcher.Form method="post">
-                <input type="hidden" name="intent" value="delete-form" />
-                <ui.Button type="submit" variant="destructive" onClick={() => setDialogOpen(false)}>
-                  Delete Form
-                </ui.Button>
-              </fetcher.Form>
-            </ui.DialogFooter>
-          </ui.DialogContent>
-        </ui.Dialog>
+            <ui.DialogTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-2 p-0 m-0 text-sm font-medium text-red-600 bg-transparent border-none cursor-pointer hover:underline hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Form
+              </button>
+            </ui.DialogTrigger>
+            <ui.DialogContent>
+              <ui.DialogHeader>
+                <ui.DialogTitle>Delete Form</ui.DialogTitle>
+                <ui.DialogDescription>
+                  Are you sure you want to delete the form <b>{title}</b>? This action cannot be
+                  undone.
+                </ui.DialogDescription>
+              </ui.DialogHeader>
+              <ui.DialogFooter>
+                <ui.DialogClose asChild>
+                  <ui.Button variant="outline">Cancel</ui.Button>
+                </ui.DialogClose>
+                <fetcher.Form method="post">
+                  <input type="hidden" name="intent" value="delete-form" />
+                  <ui.Button
+                    type="submit"
+                    variant="destructive"
+                    onClick={() => setDialogOpen(false)}
+                  >
+                    Delete Form
+                  </ui.Button>
+                </fetcher.Form>
+              </ui.DialogFooter>
+            </ui.DialogContent>
+          </ui.Dialog>
         </div>
       </div>
     </PageFrame>
   );
 }
-
