@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "SiteRole" ADD VALUE 'SUBMITTER';

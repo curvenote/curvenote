@@ -1,0 +1,571 @@
+{
+  "url": "https://scipy.curve.space",
+  "private": false,
+  "site": {
+    "id": "d872a7c4-19e0-48f5-9c0b-051950a01878",
+    "name": "scipy",
+    "default_workflow": "SIMPLE",
+    "title": "SciPy Proceedings",
+    "description": "Proceedings of the Python in Science Conferences",
+    "favicon": "https://cdn.curvenote.com/static/site/scipy/favicon.ico",
+    "tagline": "",
+    "content": "scipy-landingstaging.curve.space",
+    "logo": "https://cdn.curvenote.com/static/site/scipy/scipy-logo.svg",
+    "logo_dark": "https://cdn.curvenote.com/static/site/scipy/scipy-logo-lightblue.svg",
+    "footer_logo": "https://cdn.curvenote.com/static/site/scipy/scipy-logo-footer.svg",
+    "footer_logo_dark": "https://cdn.curvenote.com/static/site/scipy/scipy-logo-footer.svg",
+    "slug_strategy": "DOI",
+    "footer_links": [
+      [
+        {
+          "url": "/",
+          "title": "Home"
+        },
+        {
+          "url": "/articles",
+          "title": "Latest Articles"
+        },
+        {
+          "url": "/archive",
+          "title": "Archive"
+        },
+        {
+          "url": "/past-conferences",
+          "title": "Past Conferences"
+        },
+        {
+          "url": "/news",
+          "title": "News"
+        }
+      ],
+      [
+        {
+          "url": "/submit",
+          "title": "Submit An Article"
+        },
+        {
+          "url": "/getting-started",
+          "title": "Author Instructions"
+        }
+      ]
+    ],
+    "social_links": [
+      {
+        "kind": "twitter",
+        "url": "https://twitter.com/SciPyConf"
+      },
+      {
+        "kind": "github",
+        "url": "https://github.com/scipy-conference"
+      }
+    ],
+    "kinds": [
+      {
+        "name": "article",
+        "content": {
+          "title": "Article",
+          "description": "A research article"
+        },
+        "default": true,
+        "checks": [
+          {
+            "id": "abstract-exists"
+          },
+          {
+            "id": "abstract-length"
+          },
+          {
+            "id": "authors-exist"
+          },
+          {
+            "id": "authors-corresponding"
+          },
+          {
+            "id": "authors-have-affiliations"
+          },
+          {
+            "id": "authors-have-orcid",
+            "optional": true
+          },
+          {
+            "id": "authors-have-credit-roles"
+          },
+          {
+            "id": "data-availability-exists"
+          },
+          {
+            "id": "keywords-defined",
+            "optional": true
+          },
+          {
+            "id": "keywords-length"
+          },
+          {
+            "id": "keywords-unique"
+          },
+          {
+            "id": "links-resolve"
+          },
+          {
+            "id": "abstract-exists"
+          },
+          {
+            "id": "doi-exists"
+          }
+        ]
+      }
+    ],
+    "theme_config": {
+      "grid": "article-left-grid",
+      "name": "theme-one",
+      "colors": {
+        "primary": "#0154a5"
+      },
+      "fonts": {
+        "one": {
+          "name": "Monserrat",
+          "src": "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+        }
+      },
+      "styles": {
+        "footer": "bg-primary dark:bg-stone-700 text-primary-contrast dark:text-white"
+      },
+      "content": {
+        "tableOfContents": true,
+        "navigationBanner": false
+      },
+      "jupyter": {
+        "mecaBundle": true,
+        "launchBinder": true,
+        "figureCompute": true,
+        "notebookCompute": true,
+        "binderUrlOverride": "https://xhrtcvh6l53u.curvenote.dev/services/binder/"
+      },
+      "landing": {
+        "grid": "article-grid",
+        "hero": {
+          "cta": [
+            {
+              "url": "/2023",
+              "icon": "doc-chart",
+              "label": "Read 2023 Abstracts",
+              "classes": "inline-block px-8 py-4 rounded-lg bg-white text-black no-underline text-lg font-light tracking-wide border-1 border-white hover:opacity-90",
+              "openInNewTab": false
+            },
+            {
+              "url": "https://www.scipy2024.scipy.org/",
+              "label": "SciPy Conference",
+              "classes": "inline-block px-8 py-4 rounded-lg bg-transparent border-1 text-white no-underline text-lg font-light tracking-wide hover:bg-gray-50/10",
+              "openInNewTab": true
+            }
+          ],
+          "title": "Python in Science Conferences",
+          "layout": "left",
+          "classes": {
+            "text": "text-primary-contrast font-one",
+            "heading": "text-5xl font-extralight text-white tracking-tight",
+            "kicker": "font-regular text-lg",
+            "description": "font-extralight text-xl leading-8",
+            "backgroundScreen": "bg-black bg-opacity-50 lg:hidden"
+          },
+          "kicker": "THE PROCEEDINGS",
+          "description": "The SciPy Conference is a cross-disciplinary gathering focused on the use and development of the Python language in scientific research. This event strives to bring together both users and developers of scientific tools, as well as academic research and state of the art industry.",
+          "backgroundImage": "https://cdn.curvenote.com/static/site/scipy/scipy-hero-v2-tilt.webp"
+        },
+        "listing": "list",
+        "listingTitle": "2023 Proceedings",
+        "listingActionText": "See All Proceedings"
+      },
+      "listing": {
+        "type": "list"
+      },
+      "articles": {
+        "tableOfContents": false,
+        "supportingDocuments": true
+      },
+      "manifest": {
+        "nav": [
+          {
+            "url": "/",
+            "title": "Home"
+          },
+          {
+            "url": "/articles",
+            "title": "Proceedings"
+          },
+          {
+            "url": "https://conference.scipy.org/proceedings",
+            "title": "Archive"
+          },
+          {
+            "url": "https://www.scipy2024.scipy.org",
+            "title": "2024 Conference"
+          }
+        ]
+      },
+      "submission": false
+    }
+  },
+  "collections": [
+    {
+      "name": "articles",
+      "slug": "",
+      "workflow": "SIMPLE",
+      "default": false,
+      "open": false,
+      "content": {
+        "title": "Articles",
+        "description": "A collection of research articles"
+      }
+    },
+    {
+      "name": "2024",
+      "slug": "2024",
+      "workflow": "SIMPLE",
+      "default": false,
+      "open": true,
+      "content": {
+        "title": "2024 Research Articles",
+        "description": "A collection of research articles for 2024"
+      }
+    },
+    {
+      "name": "2023",
+      "slug": "2023",
+      "workflow": "SIMPLE",
+      "default": false,
+      "open": false,
+      "content": {
+        "title": "2023 Research Articles",
+        "description": "A collection of research articles for 2023"
+      }
+    }
+  ],
+  "works": [
+    {
+      "id": "019b8eee-306e-7711-8956-71834bc5b61f",
+      "title": "0 Predictive Technique for Optimization",
+      "description": "A research article about Visualization",
+      "authors": [
+        "Steve Purves",
+        "Rowan Cockett"
+      ],
+      "date": "2024-03-05T16:20:00.814Z",
+      "kind": "article",
+      "collection": "2023",
+      "doi": "99.123/work.0",
+      "versions": [
+        {
+          "id": "019b8eee-306e-7711-8956-7184e216dbcf",
+          "cdn_key": "019b8eee-306f-7cd6-80e4-71f614b1125e",
+          "cdn": "https://prv.curvenote.dev/",
+          "date_created": "2024-03-05T16:20:00.814Z",
+          "canonical": true,
+          "doi": "99.123/work.0.version"
+        }
+      ],
+      "submission": {},
+      "job": {
+        "id": "019b8eee-306e-7711-8956-718532d4b510",
+        "job_type": "CLI_CHECK",
+        "status": "COMPLETED",
+        "payload": {
+          "key": "scipy-seed-dev-0",
+          "site": "scipy",
+          "source": {
+            "path": "",
+            "repo": "github.com/stevejpurves/simple-test",
+            "branch": "main",
+            "commit": "e724b68"
+          }
+        },
+        "results": {
+          "cdnKey": "019b8eee-306f-7cd6-80e4-71f79f50afc2",
+          "checks": {
+            "kind": "Proceeding",
+            "venue": "scipy",
+            "report": [
+              {
+                "id": "abstract-exists",
+                "file": "/Users/stevejpurves/dev/demos/simple/paper.md",
+                "help": "Add an abstract",
+                "tags": [
+                  "frontmatter",
+                  "abstract"
+                ],
+                "title": "Abstract Exists",
+                "status": "fail",
+                "message": "No abstract found",
+                "purpose": "ensure abstract exists"
+              }
+            ]
+          },
+          "workId": "019b8eee-306e-7711-8956-71834bc5b61f",
+          "submissionId": "019b8eee-306e-7711-8956-71866c12c75d",
+          "workVersionId": "019b8eee-306e-7711-8956-7184e216dbcf",
+          "submissionVersionId": "019b8eee-306e-7711-8956-71872165ac40"
+        }
+      }
+    },
+    {
+      "id": "019b8eee-306f-7cd6-80e4-71f828ef247e",
+      "title": "1 Scalable Model for Signal Processing",
+      "description": "A research article about Scientific Computing",
+      "authors": [
+        "Steve Purves",
+        "Rowan Cockett"
+      ],
+      "date": "2024-03-04T16:20:00.814Z",
+      "kind": "article",
+      "collection": "2023",
+      "doi": "99.123/work.1",
+      "versions": [
+        {
+          "id": "019b8eee-306f-7cd6-80e4-71f912f025b6",
+          "cdn_key": "019b8eee-306f-7cd6-80e4-71fd0c69448d",
+          "cdn": "https://prv.curvenote.dev/",
+          "date_created": "2024-03-05T16:20:00.814Z",
+          "canonical": true,
+          "doi": "99.123/work.1.version"
+        }
+      ],
+      "submission": {},
+      "job": {
+        "id": "019b8eee-306f-7cd6-80e4-71fa2b25bdbc",
+        "job_type": "CLI_CHECK",
+        "status": "COMPLETED",
+        "payload": {
+          "key": "scipy-seed-dev-1",
+          "site": "scipy",
+          "source": {
+            "path": "",
+            "repo": "github.com/stevejpurves/simple-test",
+            "branch": "main",
+            "commit": "e724b68"
+          }
+        },
+        "results": {
+          "cdnKey": "019b8eee-306f-7cd6-80e4-71fe855100a4",
+          "checks": {
+            "kind": "Proceeding",
+            "venue": "scipy",
+            "report": [
+              {
+                "id": "abstract-exists",
+                "file": "/Users/stevejpurves/dev/demos/simple/paper.md",
+                "help": "Add an abstract",
+                "tags": [
+                  "frontmatter",
+                  "abstract"
+                ],
+                "title": "Abstract Exists",
+                "status": "fail",
+                "message": "No abstract found",
+                "purpose": "ensure abstract exists"
+              }
+            ]
+          },
+          "workId": "019b8eee-306f-7cd6-80e4-71f828ef247e",
+          "submissionId": "019b8eee-306f-7cd6-80e4-71fb47ac7f68",
+          "workVersionId": "019b8eee-306f-7cd6-80e4-71f912f025b6",
+          "submissionVersionId": "019b8eee-306f-7cd6-80e4-71fcbc2821bb"
+        }
+      }
+    },
+    {
+      "id": "019b8eee-306f-7cd6-80e4-71ff4288b6d5",
+      "title": "2 Real-time Solution for Physics",
+      "description": "A research article about Astronomy",
+      "authors": [
+        "Steve Purves",
+        "Rowan Cockett"
+      ],
+      "date": "2024-03-03T16:20:00.814Z",
+      "kind": "article",
+      "collection": "2023",
+      "doi": "99.123/work.2",
+      "versions": [
+        {
+          "id": "019b8eee-306f-7cd6-80e4-720074d0bbd6",
+          "cdn_key": "019b8eee-306f-7cd6-80e4-72046dc665d7",
+          "cdn": "https://prv.curvenote.dev/",
+          "date_created": "2024-03-05T16:20:00.814Z",
+          "canonical": true,
+          "doi": "99.123/work.2.version"
+        }
+      ],
+      "submission": {},
+      "job": {
+        "id": "019b8eee-306f-7cd6-80e4-7201e6fdb8fd",
+        "job_type": "CLI_CHECK",
+        "status": "COMPLETED",
+        "payload": {
+          "key": "scipy-seed-dev-2",
+          "site": "scipy",
+          "source": {
+            "path": "",
+            "repo": "github.com/stevejpurves/simple-test",
+            "branch": "main",
+            "commit": "e724b68"
+          }
+        },
+        "results": {
+          "cdnKey": "019b8eee-306f-7cd6-80e4-720504b863b5",
+          "checks": {
+            "kind": "Proceeding",
+            "venue": "scipy",
+            "report": [
+              {
+                "id": "abstract-exists",
+                "file": "/Users/stevejpurves/dev/demos/simple/paper.md",
+                "help": "Add an abstract",
+                "tags": [
+                  "frontmatter",
+                  "abstract"
+                ],
+                "title": "Abstract Exists",
+                "status": "fail",
+                "message": "No abstract found",
+                "purpose": "ensure abstract exists"
+              }
+            ]
+          },
+          "workId": "019b8eee-306f-7cd6-80e4-71ff4288b6d5",
+          "submissionId": "019b8eee-306f-7cd6-80e4-720269a838ce",
+          "workVersionId": "019b8eee-306f-7cd6-80e4-720074d0bbd6",
+          "submissionVersionId": "019b8eee-306f-7cd6-80e4-72039585d52a"
+        }
+      }
+    },
+    {
+      "id": "019b8eee-306f-7cd6-80e4-720641f70f44",
+      "title": "3 Intelligent Technique for Scientific Computing",
+      "description": "A research article about Optimization",
+      "authors": [
+        "Steve Purves",
+        "Rowan Cockett"
+      ],
+      "date": "2024-03-02T16:20:00.814Z",
+      "kind": "article",
+      "collection": "2023",
+      "doi": "99.123/work.3",
+      "versions": [
+        {
+          "id": "019b8eee-306f-7cd6-80e4-72071b8757a0",
+          "cdn_key": "019b8eee-306f-7cd6-80e4-720ba8915f4b",
+          "cdn": "https://prv.curvenote.dev/",
+          "date_created": "2024-03-05T16:20:00.814Z",
+          "canonical": true,
+          "doi": "99.123/work.3.version"
+        }
+      ],
+      "submission": {},
+      "job": {
+        "id": "019b8eee-306f-7cd6-80e4-7208026971ed",
+        "job_type": "CLI_CHECK",
+        "status": "COMPLETED",
+        "payload": {
+          "key": "scipy-seed-dev-3",
+          "site": "scipy",
+          "source": {
+            "path": "",
+            "repo": "github.com/stevejpurves/simple-test",
+            "branch": "main",
+            "commit": "e724b68"
+          }
+        },
+        "results": {
+          "cdnKey": "019b8eee-306f-7cd6-80e4-720cf5559a8e",
+          "checks": {
+            "kind": "Proceeding",
+            "venue": "scipy",
+            "report": [
+              {
+                "id": "abstract-exists",
+                "file": "/Users/stevejpurves/dev/demos/simple/paper.md",
+                "help": "Add an abstract",
+                "tags": [
+                  "frontmatter",
+                  "abstract"
+                ],
+                "title": "Abstract Exists",
+                "status": "fail",
+                "message": "No abstract found",
+                "purpose": "ensure abstract exists"
+              }
+            ]
+          },
+          "workId": "019b8eee-306f-7cd6-80e4-720641f70f44",
+          "submissionId": "019b8eee-306f-7cd6-80e4-7209f20bdfd1",
+          "workVersionId": "019b8eee-306f-7cd6-80e4-72071b8757a0",
+          "submissionVersionId": "019b8eee-306f-7cd6-80e4-720a15ca74aa"
+        }
+      }
+    },
+    {
+      "id": "019b8eee-306f-7cd6-80e4-720da4aa1559",
+      "title": "4 Novel Implementation for Scientific Computing",
+      "description": "A research article about Visualization",
+      "authors": [
+        "Steve Purves",
+        "Rowan Cockett"
+      ],
+      "date": "2024-03-01T16:20:00.814Z",
+      "kind": "article",
+      "collection": "2023",
+      "doi": "99.123/work.4",
+      "versions": [
+        {
+          "id": "019b8eee-306f-7cd6-80e4-720e3f5810d8",
+          "cdn_key": "019b8eee-306f-7cd6-80e4-7212208dbc0d",
+          "cdn": "https://prv.curvenote.dev/",
+          "date_created": "2024-03-05T16:20:00.814Z",
+          "canonical": true,
+          "doi": "99.123/work.4.version"
+        }
+      ],
+      "submission": {},
+      "job": {
+        "id": "019b8eee-306f-7cd6-80e4-720fcf78a024",
+        "job_type": "CLI_CHECK",
+        "status": "COMPLETED",
+        "payload": {
+          "key": "scipy-seed-dev-4",
+          "site": "scipy",
+          "source": {
+            "path": "",
+            "repo": "github.com/stevejpurves/simple-test",
+            "branch": "main",
+            "commit": "e724b68"
+          }
+        },
+        "results": {
+          "cdnKey": "019b8eee-306f-7cd6-80e4-7213d5445525",
+          "checks": {
+            "kind": "Proceeding",
+            "venue": "scipy",
+            "report": [
+              {
+                "id": "abstract-exists",
+                "file": "/Users/stevejpurves/dev/demos/simple/paper.md",
+                "help": "Add an abstract",
+                "tags": [
+                  "frontmatter",
+                  "abstract"
+                ],
+                "title": "Abstract Exists",
+                "status": "fail",
+                "message": "No abstract found",
+                "purpose": "ensure abstract exists"
+              }
+            ]
+          },
+          "workId": "019b8eee-306f-7cd6-80e4-720da4aa1559",
+          "submissionId": "019b8eee-306f-7cd6-80e4-7210844449a7",
+          "workVersionId": "019b8eee-306f-7cd6-80e4-720e3f5810d8",
+          "submissionVersionId": "019b8eee-306f-7cd6-80e4-72111ea1bce6"
+        }
+      }
+    }
+  ]
+}

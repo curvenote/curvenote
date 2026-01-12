@@ -1,0 +1,4 @@
+ALTER USER journals WITH ENCRYPTED PASSWORD 'curvenote';
+GRANT ALL PRIVILEGES ON DATABASE journals TO journals;
+GRANT ALL on SCHEMA public TO journals;
+ALTER USER journals CREATEDB;

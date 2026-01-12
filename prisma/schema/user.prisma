@@ -1,0 +1,80 @@
+enum SystemRole {
+  SERVICE
+  ADMIN
+  PLATFORM_ADMIN
+  USER
+  ANON
+}
+
+model User {
+  id                 String              @id
+  date_created       String
+  date_modified      String
+  email              String?
+  username           String?
+  primaryProvider    String?
+  display_name       String?
+  system_role        SystemRole          @default(USER)
+  pending            Boolean             @default(false)
+  disabled           Boolean             @default(false)
+  ready_for_approval Boolean             @default(false)
+  data               Json?
+  roles              UserRole[]          @relation("UserRoles")
+  site_roles         SiteUser[]
+  work_roles         WorkUser[]
+  created_works      Work[]
+  submissionVersions SubmissionVersion[]
+  submissionActivity Activity[]
+  userActivity       Activity[]          @relation("UserActivity")
+  submission         Submission[]
+  ApiEvent           ApiEvent[]
+  linkedAccounts     UserLinkedAccount[]
+  userTokens         UserToken[]
+  dnsRouters         DnsRouter[]
+  accessOwner        Access[]            @relation("AccessOwner")
+  accessReceived     Access[]            @relation("AccessReceiver")
+  createdRoles       Role[]              @relation("RoleCreator")
+  magicLinks         MagicLink[]
+}
+
+model UserLinkedAccount {
+  id            String  @id
+  date_created  String
+  date_modified String?
+  date_linked   String?
+  provider      String
+  idAtProvider  String?
+  email         String?
+  profile       Json?
+  pending       Boolean @default(false)
+  user_id       String
+  user          User    @relation(fields: [user_id], references: [id])
+
+  @@unique(name: "uniqueProviderUserId", [provider, user_id])
+}
+
+model UserToken {
+  id             String  @id
+  user           User    @relation(fields: [user_id], references: [id])
+  user_id        String
+  description    String
+  date_last_used String?
+  date_expires   String?
+  date_created   String
+  date_modified  String
+}
+
+model UserRole {
+  id            String     @id
+  user_id       String
+  role_id       String
+  date_created  String
+  date_modified String
+  user          User       @relation("UserRoles", fields: [user_id], references: [id])
+  role          Role       @relation("UserRoles", fields: [role_id], references: [id])
+  activities    Activity[]
+
+  @@unique([user_id, role_id]) // Prevent duplicate role assignments
+  @@index([user_id])
+  @@index([role_id])
+}

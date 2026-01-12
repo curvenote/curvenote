@@ -1,0 +1,42 @@
+{
+  "include": [
+    "remix.env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.svg",
+    "vite.config.mts",
+    "prisma/*.mts",
+    "tests/**/*.ts",
+    ".react-router/types/**/*"
+  ],
+  "exclude": [],
+  "files": [
+    "./types/app-config.d.ts",
+    "./types/prisma.d.ts",
+    "./types/globals.d.ts",
+    "./types/json.d.ts",
+    "./types/svg.d.ts"
+  ],
+  "compilerOptions": {
+    "types": ["vite/client", "@react-router/node", "node", "vitest/globals"],
+    "lib": ["DOM", "DOM.Iterable", "ES2019"],
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "target": "ES2019",
+    "strict": true,
+    "allowJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": ["../../*"],
+      "@prisma/client": ["../../node_modules/@prisma/client"]
+    },
+    "noEmit": true,
+    "rootDirs": [".", "./.react-router/types"]
+  }
+}

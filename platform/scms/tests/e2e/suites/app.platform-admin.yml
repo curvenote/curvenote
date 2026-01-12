@@ -1,0 +1,333 @@
+title: App Routes (Platform Admin User with platformAdminRole)
+system_role: USER
+roles: [platform-admin]
+headers:
+  Authorization: Bearer ${TOKEN}
+cases:
+  # Public Access Routes Group
+  - title: Public Access Routes (Platform Admin)
+    cases:
+      - title: Landing Page Endpoint
+        url: /
+        status: 302
+        location: /app
+
+      - title: Login Page Endpoint
+        url: /login
+        status: 302
+        location: /app
+
+      - title: Signup Page Endpoint (Redirects to App)
+        url: /signup
+        status: 302
+        location: /app
+
+      - title: New Account Page Endpoint
+        url: /new-account
+        status: 200
+
+      - title: Auth Error Page Endpoint
+        url: /auth/error
+        status: 302
+        location: /404
+
+      - title: Logout Page Endpoint
+        url: /logout
+        status: 200
+
+      - title: Link Accounts Page Endpoint
+        url: /link-accounts
+        status: 200
+
+  # Error Page Routes Group
+  - title: Error Page Routes
+    cases:
+      - title: 404 Error Page Endpoint
+        url: /404
+        status: 200
+
+      - title: 500 Error Page Endpoint
+        url: /500
+        status: 200
+
+  # Resource Management Routes Group
+  - title: Resource Management Routes
+    cases:
+      - title: Set Theme Resource Endpoint
+        url: /resources/set-theme
+        method: POST
+        status: 200
+
+      - title: Set Theme With Body Endpoint
+        url: /resources/set-theme
+        method: POST
+        body: '{"theme":"dark"}'
+        status: 200
+
+  # Build Management Routes Group
+  - title: Build Management Routes
+    cases:
+      - title: Build Job Details Endpoint
+        url: /build/test-job-123
+        status: 404
+
+  # Authentication Provider Routes Group
+  - title: Authentication Provider Routes
+    cases:
+      - title: Unknown Auth Provider Endpoint
+        url: /auth/unknown-provider
+        status: 302
+        location: /404
+
+      - title: Unknown Auth Callback Endpoint
+        url: /auth/unknown-provider/callback
+        status: 302
+        location: /404
+
+  # Protected Application Routes Group
+  - title: Protected Application Routes
+    cases:
+      - title: Application Root Endpoint (Redirects to Sites)
+        url: /app
+        status: 302
+        location: /app/dashboard
+
+      - title: Application Root With Redirect Endpoint
+        url: /app?redirect=/app/dashboard
+        status: 302
+        location: /app/dashboard
+
+      - title: Dashboard Endpoint
+        url: /app/dashboard
+        status: 200
+
+  # User Settings Routes Group
+  - title: User Settings Routes
+    cases:
+      - title: Settings Root Endpoint (Redirects to Account)
+        url: /app/settings
+        status: 302
+        location: /app/settings/account
+
+      - title: Account Settings Endpoint
+        url: /app/settings/account
+        status: 200
+
+      - title: Token Management Endpoint
+        url: /app/settings/tokens
+        status: 200
+
+      - title: Linked Accounts Management Endpoint
+        url: /app/settings/linked-accounts
+        status: 200
+
+      - title: Email Settings Endpoint
+        url: /app/settings/emails
+        status: 200
+
+  # Discovery Routes Group (Platform Admin Access)
+  - title: Discovery Routes (Unauthorized)
+    cases:
+      - title: Discovery Root Endpoint
+        url: /app/discovery
+        status: 302
+        location: /app
+
+      - title: Discovery People Endpoint
+        url: /app/discovery/people
+        status: 302
+
+  # Platform Routes Group (platformAdminRole Access)
+  - title: Platform Routes (platformAdminRole Access)
+    cases:
+      - title: Platform Root Endpoint
+        url: /app/platform
+        status: 302
+        location: /app/platform/users
+
+      - title: User Management Endpoint
+        url: /app/platform/users
+        status: 200
+
+      - title: Platform Onboarding Endpoint
+        url: /app/platform/onboarding
+        status: 200
+
+      - title: Platform Workflows Endpoint
+        url: /app/platform/workflows
+        status: 200
+
+      - title: Platform Extensions Endpoint
+        url: /app/platform/extensions
+        status: 200
+
+      - title: Platform Messages Endpoint
+        url: /app/platform/messages
+        status: 200
+
+  # Editor Routes Group (Unauthorized)
+  - title: Editor Routes (Unauthorized)
+    cases:
+      - title: Editor Root Endpoint
+        url: /app/editor
+        status: 403
+
+  # System Administration Routes Group (Mixed Access - Some routes moved to platformAdminRole)
+  - title: System Administration Routes (Mixed Access)
+    cases:
+      - title: System Root Endpoint (Unauthorized)
+        url: /app/system
+        status: 302
+        location: /app
+
+      - title: System Submissions Management Endpoint (Unauthorized)
+        url: /app/system/submissions
+        status: 302
+        location: /app
+
+      - title: Add Site Management Endpoint (Unauthorized)
+        url: /app/system/sites/add
+        status: 302
+        location: /login
+
+      - title: System Migration Endpoint (Unauthorized)
+        url: /app/system/migration
+        status: 302
+        location: /login
+
+      - title: Storage Management Endpoint (Unauthorized)
+        url: /app/system/storage
+        status: 302
+        location: /app
+
+      - title: System Email Test Endpoint (Unauthorized)
+        url: /app/system/email-test
+        status: 302
+        location: /app
+
+      - title: System Design Endpoint (Unauthorized)
+        url: /app/system/design
+        status: 302
+        location: /app
+
+      - title: System Roles Management Endpoint (Unauthorized)
+        url: /app/system/roles
+        status: 302
+        location: /app
+
+  # Site Management Routes Group (Unauthorized - platformAdminRole doesn't have site admin)
+  - title: Site Management Routes (Unauthorized)
+    cases:
+      - title: Sites Root Endpoint (Unauthorized)
+        url: /app/sites
+        status: 200
+
+      - title: Site Details Endpoint (Unauthorized)
+        url: /app/sites/test-site
+        status: 302
+        location: /app
+
+      - title: Site Collections Management Endpoint (Unauthorized)
+        url: /app/sites/test-site/collections
+        status: 302
+        location: /app
+
+      - title: Site Submissions Management Endpoint (Unauthorized)
+        url: /app/sites/test-site/submissions
+        status: 302
+        location: /app
+
+      - title: Site Submission Details Endpoint (Unauthorized)
+        url: /app/sites/test-site/submissions/test-submission-123
+        status: 302
+        location: /app
+
+      - title: Site Advanced Settings Endpoint (Unauthorized)
+        url: /app/sites/test-site/settings/advanced
+        status: 302
+        location: /login
+
+      - title: Site Domain Management Endpoint (Unauthorized)
+        url: /app/sites/test-site/settings/domains
+        status: 302
+        location: /login
+
+      - title: Site Website Management Endpoint (Unauthorized)
+        url: /app/sites/test-site/settings/website
+        status: 302
+        location: /login
+
+      - title: Site Inbox Management Endpoint (Unauthorized)
+        url: /app/sites/test-site/settings/inbox
+        status: 302
+        location: /login
+
+      - title: Site Kinds Management Endpoint (Unauthorized)
+        url: /app/sites/test-site/settings/kinds
+        status: 302
+        location: /login
+
+      - title: Site User Management Endpoint (Unauthorized)
+        url: /app/sites/test-site/settings/users
+        status: 302
+        location: /login
+
+  # Work Management Routes Group
+  - title: Work Management Routes
+    cases:
+      - title: Works Root Endpoint
+        url: /app/works
+        status: 200
+
+      - title: Work Details Endpoint (Not Found)
+        url: /app/works/test-work-123
+        status: 404
+
+      - title: Work Details Endpoint (Not Found)
+        url: /app/works/nonexistent-work
+        status: 404
+
+      - title: Work User Management Endpoint (Not Found)
+        url: /app/works/nonexistent-work/users
+        status: 404
+
+      - title: Work Site Submission Endpoint (Not Found)
+        url: /app/works/nonexistent-work/sites/nonexistent-site/submit
+        status: 302
+        location: /login
+
+  # Form Submission Routes Group
+  - title: Form Submission Routes
+    cases:
+      - title: Login Form Submission Endpoint
+        url: /login
+        method: POST
+        status: 405
+
+      - title: Signup Form Submission Endpoint (Method Not Allowed)
+        url: /signup
+        method: POST
+        status: 405
+
+      - title: New Account Form Submission Endpoint
+        url: /new-account
+        method: POST
+        status: 405
+
+      - title: Link Accounts Form Submission Endpoint
+        url: /link-accounts
+        method: POST
+        status: 405
+
+  # Catch-all Routes Group
+  - title: Catch-all Routes
+    cases:
+      - title: App catch-all
+        url: /app/nonexistent-route
+        status: 302
+        location: /login
+
+      - title: App catch-all with redirect
+        url: /app/nonexistent-route?redirect=/app/dashboard
+        status: 302
+        location: /login
