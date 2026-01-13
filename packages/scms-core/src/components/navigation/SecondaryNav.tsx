@@ -76,7 +76,7 @@ export function SecondaryNav({
         {contents.map(({ sectionName, menus }) => (
           <ul key={sectionName ?? menus.reduce((acc, i) => `${acc}-${i}`, '')}>
             <>
-              {open && sectionName && (
+              {sectionName && (
                 <li className="px-5">
                   <div className="flex flex-row items-center h-8">
                     <div className="text-xs font-light uppercase text-stone-800 dark:text-white">
