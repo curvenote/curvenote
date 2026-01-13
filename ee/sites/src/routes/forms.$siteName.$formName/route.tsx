@@ -70,9 +70,7 @@ export async function action(args: ActionFunctionArgs) {
   try {
     const result = await submitForm(ctx, form, formData);
     if ('workId' in result && result.workId) {
-      return redirect(
-        `/forms/${ctx.site.name}/${formName}/success?workId=${result.workId}`,
-      );
+      return redirect(`/forms/${ctx.site.name}/${formName}/success?workId=${result.workId}`);
     }
     return result;
   } catch (error) {
@@ -111,9 +109,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
       <primitives.Card className="p-8">
         <div className="mb-8">
           <h1 className="mb-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{title}</h1>
-          {description && (
-            <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
-          )}
+          {description && <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>}
         </div>
 
         {actionData?.error && (
@@ -123,116 +119,116 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
         )}
 
         <Form method="post" className="flex flex-col gap-8">
-        {/* Your Details Section */}
-        <primitives.Card className="p-6" lift>
-          <div className="flex items-center gap-3 mb-6">
-            <User className="w-6 h-6 text-stone-500 stroke-[1.5px]" />
-            <h2 className="text-xl font-semibold">Your Details</h2>
-          </div>
-          <div className="flex flex-col gap-4">
-            <ui.TextField
-              id="submitter-name"
-              name="name"
-              label="Name"
-              placeholder="Your full name"
-              required
-              defaultValue={user?.name}
-            />
-            <ui.TextField
-              id="submitter-email"
-              name="email"
-              type="email"
-              label="Email"
-              placeholder="your.email@example.com"
-              required
-              defaultValue={user?.email}
-            />
-            <ui.TextField
-              id="submitter-orcid"
-              name="orcid"
-              label="ORCID"
-              placeholder="0000-0000-0000-0000"
-              defaultValue={user?.orcid}
-            />
-            <ui.TextField
-              id="submitter-affiliation"
-              name="affiliation"
-              label="Affiliation"
-              placeholder="Your institution or organization"
-              defaultValue={user?.affiliation}
-            />
-            <div className="flex items-center gap-2">
-              <ui.Checkbox
-                id="is-corresponding-author"
-                name="isCorrespondingAuthor"
-                value="true"
-                defaultChecked={true}
-              />
-              <label
-                htmlFor="is-corresponding-author"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                You are the corresponding author
-              </label>
+          {/* Your Details Section */}
+          <primitives.Card className="p-6" lift>
+            <div className="flex items-center gap-3 mb-6">
+              <User className="w-6 h-6 text-stone-500 stroke-[1.5px]" />
+              <h2 className="text-xl font-semibold">Your Details</h2>
             </div>
-          </div>
-        </primitives.Card>
+            <div className="flex flex-col gap-4">
+              <ui.TextField
+                id="submitter-name"
+                name="name"
+                label="Name"
+                placeholder="Your full name"
+                required
+                defaultValue={user?.name}
+              />
+              <ui.TextField
+                id="submitter-email"
+                name="email"
+                type="email"
+                label="Email"
+                placeholder="your.email@example.com"
+                required
+                defaultValue={user?.email}
+              />
+              <ui.TextField
+                id="submitter-orcid"
+                name="orcid"
+                label="ORCID"
+                placeholder="0000-0000-0000-0000"
+                defaultValue={user?.orcid}
+              />
+              <ui.TextField
+                id="submitter-affiliation"
+                name="affiliation"
+                label="Affiliation"
+                placeholder="Your institution or organization"
+                defaultValue={user?.affiliation}
+              />
+              <div className="flex items-center gap-2">
+                <ui.Checkbox
+                  id="is-corresponding-author"
+                  name="isCorrespondingAuthor"
+                  value="true"
+                  defaultChecked={true}
+                />
+                <label
+                  htmlFor="is-corresponding-author"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  You are the corresponding author
+                </label>
+              </div>
+            </div>
+          </primitives.Card>
 
-        {/* Collection Selection (only if multiple) */}
-        {hasMultipleCollections ? (
+          {/* Collection Selection (only if multiple) */}
+          {hasMultipleCollections ? (
+            <primitives.Card className="p-6" lift>
+              <div className="flex items-center gap-3 mb-6">
+                <FileText className="w-6 h-6 text-stone-500 stroke-[1.5px]" />
+                <h2 className="text-xl font-semibold">Collection</h2>
+              </div>
+              <ui.Select name="collectionId" required>
+                <ui.SelectTrigger>
+                  <ui.SelectValue placeholder="Select a collection" />
+                </ui.SelectTrigger>
+                <ui.SelectContent>
+                  {formCollections.map((collection) => (
+                    <ui.SelectItem key={collection.id} value={collection.id}>
+                      {(collection.content as any)?.title ?? collection.name}
+                    </ui.SelectItem>
+                  ))}
+                </ui.SelectContent>
+              </ui.Select>
+            </primitives.Card>
+          ) : (
+            // Hidden input for single collection
+            <input type="hidden" name="collectionId" value={formCollections[0]?.id} />
+          )}
+
+          {/* Work Details Section */}
           <primitives.Card className="p-6" lift>
             <div className="flex items-center gap-3 mb-6">
               <FileText className="w-6 h-6 text-stone-500 stroke-[1.5px]" />
-              <h2 className="text-xl font-semibold">Collection</h2>
+              <h2 className="text-xl font-semibold">Work Details</h2>
             </div>
-            <ui.Select name="collectionId" required>
-              <ui.SelectTrigger>
-                <ui.SelectValue placeholder="Select a collection" />
-              </ui.SelectTrigger>
-              <ui.SelectContent>
-                {formCollections.map((collection) => (
-                  <ui.SelectItem key={collection.id} value={collection.id}>
-                    {(collection.content as any)?.title ?? collection.name}
-                  </ui.SelectItem>
-                ))}
-              </ui.SelectContent>
-            </ui.Select>
+            <div className="flex flex-col gap-4">
+              <ui.TextField
+                id="work-title"
+                name="workTitle"
+                label="Title"
+                placeholder="Title of your work"
+                required
+              />
+              <primitives.TextArea
+                id="work-description"
+                name="workDescription"
+                label="Description"
+                placeholder="Brief description of your work"
+                rows={4}
+              />
+            </div>
           </primitives.Card>
-        ) : (
-          // Hidden input for single collection
-          <input type="hidden" name="collectionId" value={formCollections[0]?.id} />
-        )}
 
-        {/* Work Details Section */}
-        <primitives.Card className="p-6" lift>
-          <div className="flex items-center gap-3 mb-6">
-            <FileText className="w-6 h-6 text-stone-500 stroke-[1.5px]" />
-            <h2 className="text-xl font-semibold">Work Details</h2>
+          <div className="flex justify-end gap-4">
+            <ui.Button type="submit" variant="default" className="px-8">
+              Submit
+            </ui.Button>
           </div>
-          <div className="flex flex-col gap-4">
-            <ui.TextField
-              id="work-title"
-              name="workTitle"
-              label="Title"
-              placeholder="Title of your work"
-              required
-            />
-            <primitives.TextArea
-              id="work-description"
-              name="workDescription"
-              label="Description"
-              placeholder="Brief description of your work"
-              rows={4}
-            />
-          </div>
-        </primitives.Card>
-
-        <div className="flex justify-end gap-4">
-          <ui.Button type="submit" variant="default" className="px-8">
-            Submit
-          </ui.Button>
-        </div>
-      </Form>
+        </Form>
       </primitives.Card>
     </div>
   );
