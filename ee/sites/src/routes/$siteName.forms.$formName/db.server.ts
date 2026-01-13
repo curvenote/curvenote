@@ -196,18 +196,14 @@ export async function dbUpdateFormKind(kindId: string, formId: string, userId: s
     });
 
     allCollections.forEach((collection) => {
-      const isCompatible = collection.kindsInCollection.some(
-        (kic) => kic.kind_id === kindId,
-      );
+      const isCompatible = collection.kindsInCollection.some((kic) => kic.kind_id === kindId);
       if (isCompatible) {
         compatibleCollectionIds.add(collection.id);
       }
     });
 
     // Get currently selected collection IDs
-    const currentCollectionIds = new Set(
-      currentForm.collections.map((cif) => cif.collection_id),
-    );
+    const currentCollectionIds = new Set(currentForm.collections.map((cif) => cif.collection_id));
 
     // Remove incompatible collections
     const collectionsToRemove: string[] = [];
@@ -374,4 +370,3 @@ export async function dbDeleteForm(formId: string, userId: string) {
     return deleted;
   });
 }
-

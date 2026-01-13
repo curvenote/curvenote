@@ -1,7 +1,7 @@
 import { data } from 'react-router';
 import { zfd } from 'zod-form-data';
 import { scopes } from '@curvenote/scms-core';
-import { withValidFormData, userHasSiteScope } from '@curvenote/scms-server';
+import { withValidFormData, userHasSiteScope, getPrismaClient } from '@curvenote/scms-server';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
 import {
   safeFormContentUpdate,
@@ -11,7 +11,6 @@ import {
   dbDeleteFormCollection,
   dbDeleteForm,
 } from './db.server.js';
-import { getPrismaClient } from '@curvenote/scms-server';
 import { z } from 'zod';
 
 const UpdateFormTitleSchema = zfd.formData({
@@ -80,11 +79,7 @@ export async function updateFormDescription(
   );
 }
 
-export async function updateFormName(
-  ctx: SiteContextWithUser,
-  formId: string,
-  formData: FormData,
-) {
+export async function updateFormName(ctx: SiteContextWithUser, formId: string, formData: FormData) {
   return withValidFormData(
     UpdateFormNameSchema,
     formData,
@@ -96,11 +91,7 @@ export async function updateFormName(
   );
 }
 
-export async function updateFormKind(
-  ctx: SiteContextWithUser,
-  formId: string,
-  formData: FormData,
-) {
+export async function updateFormKind(ctx: SiteContextWithUser, formId: string, formData: FormData) {
   if (!userHasSiteScope(ctx.user, scopes.site.forms.update, ctx.site.id)) {
     return data({ error: { message: 'Forbidden' } }, { status: 403 });
   }
@@ -177,4 +168,3 @@ export async function deleteForm(ctx: SiteContextWithUser, formId: string) {
     );
   }
 }
-

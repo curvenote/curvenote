@@ -79,4 +79,3 @@ export default function Forms({ loaderData }: { loaderData: LoaderData }) {
     </PageFrame>
   );
 }
-
