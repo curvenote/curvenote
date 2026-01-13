@@ -5,7 +5,8 @@
     "mystmd/packages/*",
     "packages/*",
     "ee/*",
-    "extensions/*/packages/*"
+    "extensions/*/packages/*",
+    "platform/scms"
   ],
   "scripts": {
     "prepare": "husky",
@@ -31,7 +32,7 @@
     "test:scms": "cd platform/scms && npm run test:unit",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
-    "version": "changeset version && npm install",
+    "version": "changeset version && npm install && npx tsx scripts/sync-scms-template-version.ts",
     "publish": "npm run clean && npm run build -- --force && changeset publish && git push --follow-tags",
     "publish:ci": "npm run build && changeset publish && git push --follow-tags",
     "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'"

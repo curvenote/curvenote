@@ -37,8 +37,6 @@
     "lint:format": "prettier --check \"app/**/*.{ts,tsx}\"",
     "lint:circular": "madge -c app/*",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "changeset": "changeset",
-    "version": "changeset version && npm install",
     "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'",
     "data-migration:default-submission-kind": "dotenv -e .env -- tsx ../../prisma/migrations/20240123221351_default_submission_kind/data-migration.ts",
     "check-types": "NODE_ENV=development react-router typegen; tsc --noEmit",
