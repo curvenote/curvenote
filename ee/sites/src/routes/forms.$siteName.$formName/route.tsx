@@ -96,7 +96,7 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 };
 
 export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
-  const { siteName, siteTitle, formCollections, user, ...form } = loaderData;
+  const { formCollections, user, ...form } = loaderData;
   const actionData = useActionData<{ error?: { message?: string } }>();
 
   const title = (form.content as any)?.title ?? form.name;

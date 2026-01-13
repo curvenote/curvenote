@@ -79,4 +79,3 @@ export async function createForm(ctx: SiteContextWithUser, formData: FormData) {
     { errorFields: { type: 'general', intent: 'create-form' } },
   );
 }
-

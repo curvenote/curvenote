@@ -1,9 +1,14 @@
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { useNavigate } from 'react-router';
-import { getBrandingFromMetaMatches, joinPageTitle, scopes } from '@curvenote/scms-core';
+import {
+  getBrandingFromMetaMatches,
+  joinPageTitle,
+  scopes,
+  primitives,
+  ui,
+} from '@curvenote/scms-core';
 import { withAppSiteContext } from '@curvenote/scms-server';
 import { CheckCircle, ArrowRight } from 'lucide-react';
-import { primitives, ui } from '@curvenote/scms-core';
 import { useEffect, useState } from 'react';
 
 type LoaderData = {
@@ -49,7 +54,7 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 };
 
 export default function SubmitSuccess({ loaderData }: { loaderData: LoaderData }) {
-  const { siteName, siteTitle, formName, workId, isLoggedIn } = loaderData;
+  const { workId, isLoggedIn } = loaderData;
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState(5);
 
@@ -71,7 +76,7 @@ export default function SubmitSuccess({ loaderData }: { loaderData: LoaderData }
   }, [countdown, isLoggedIn, workUrl, navigate]);
 
   return (
-    <div className="max-w-2xl mx-auto mt-8 px-4">
+    <div className="max-w-2xl px-4 mx-auto mt-8">
       <primitives.Card className="p-8 text-center">
         <div className="flex flex-col items-center gap-6">
           <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full dark:bg-green-900">

@@ -68,7 +68,7 @@ export function FormCollectionToggleItem({
             {title}
           </span>
           {disabled && disabledMessage && (
-            <span className="ml-2 text-sm font-normal text-muted-foreground italic">
+            <span className="ml-2 text-sm italic font-normal text-muted-foreground">
               {disabledMessage}
             </span>
           )}
@@ -77,4 +77,3 @@ export function FormCollectionToggleItem({
     </div>
   );
 }
-
