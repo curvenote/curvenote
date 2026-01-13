@@ -42,6 +42,19 @@ export type SimpleNavItemType = {
   end?: boolean;
 };
 
+export type NavigationHelpItem = {
+  enabled: boolean;
+  icon: string;
+  scopes?: string[];
+  properties: {
+    label: string;
+    prompt?: string;
+    title?: string;
+    description?: string;
+    successMessage?: string;
+  };
+};
+
 export type ClientStatusBarItem =
   | {
       name: string;
@@ -73,7 +86,10 @@ export type ClientDeploymentConfig = {
   renderServiceUrl: string | undefined;
   authProviders: ClientSideSafeAuthOptions[];
   signupConfig?: ClientSigninSignupConfig;
-  navigation: ClientDeploymentNavigation;
+  navigation: {
+    items: ClientDeploymentNavigation;
+    helpItem?: NavigationHelpItem;
+  };
   fbClientConfig?: string;
   branding?: ClientDeploymentBranding;
   statusBar?: {

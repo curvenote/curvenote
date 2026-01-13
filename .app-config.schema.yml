@@ -407,13 +407,36 @@ properties:
             description: Configurable items to display in the status bar
             items:
               $ref: '#/$defs/StatusBarItem'
-      defaultRoute:
-        type: string
-        description: The default route to redirect to when accessing /app
       navigation:
-        type: array
-        items:
-          $ref: '#/$defs/SimpleNavItem'
+        type: object
+        properties:
+          defaultRoute:
+            type: string
+            description: The default route to redirect to when accessing /app
+          items:
+            type: array
+            items:
+              $ref: '#/$defs/SimpleNavItem'
+          helpItem:
+            type: object
+            additionalProperties: false
+            properties:
+              enabled:
+                type: boolean
+                description: Whether to show the help item. Defaults to true if helpItem exists with any properties. Set to false to disable.
+              icon:
+                type: string
+                description: Icon name (e.g., "help-circle", "help"). Defaults to "help-circle" if not provided.
+              scopes:
+                type: array
+                items:
+                  type: string
+                description: Required scopes to see the item
+              properties:
+                $ref: '#/$defs/RequestHelpProperties'
+                description: Properties matching RequestHelpProperties. If not provided or partially provided, defaults will be applied at runtime.
+        additionalProperties: false
+        description: Navigation configuration with items array, optional defaultRoute, and optional helpItem
       extensions:
         type: object
         properties:
