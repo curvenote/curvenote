@@ -1,0 +1,353 @@
+title: App Routes (Pending User)
+system_role: USER
+headers:
+  Authorization: Bearer ${TOKEN}
+cases:
+  # Public Access Routes Group
+  - title: Public Access Routes (Pending)
+    cases:
+      - title: Landing Page Endpoint (Shows landing page for pending users)
+        url: /
+        status: 200
+
+      - title: Login Page Endpoint (Logs out pending user)
+        url: /login
+        status: 302
+        location: /new-account/pending
+
+      - title: Signup Page Endpoint (Redirects to New Account Pending)
+        url: /signup
+        status: 302
+        location: /new-account/pending
+
+      - title: New Account Page Endpoint
+        url: /new-account
+        status: 200
+
+      - title: Auth Error Page Endpoint
+        url: /auth/error
+        status: 302
+        location: /404
+
+      - title: Logout Page Endpoint
+        url: /logout
+        status: 200
+
+      - title: Link Accounts Page Endpoint
+        url: /link-accounts
+        status: 200
+
+  # Error Page Routes Group
+  - title: Error Page Routes
+    cases:
+      - title: 404 Error Page Endpoint
+        url: /404
+        status: 200
+
+      - title: 500 Error Page Endpoint
+        url: /500
+        status: 200
+
+  # Resource Management Routes Group
+  - title: Resource Management Routes
+    cases:
+      - title: Set Theme Resource Endpoint
+        url: /resources/set-theme
+        method: POST
+        status: 200
+
+      - title: Set Theme With Body Endpoint
+        url: /resources/set-theme
+        method: POST
+        body: '{"theme":"dark"}'
+        status: 200
+
+  # Build Management Routes Group
+  - title: Build Management Routes
+    cases:
+      - title: Build Job Details Endpoint
+        url: /build/test-job-123
+        status: 404
+
+  # Authentication Provider Routes Group
+  - title: Authentication Provider Routes
+    cases:
+      - title: Unknown Auth Provider Endpoint
+        url: /auth/unknown-provider
+        status: 302
+        location: /404
+
+      - title: Unknown Auth Callback Endpoint
+        url: /auth/unknown-provider/callback
+        status: 302
+        location: /404
+
+  # Protected Application Routes Group (Blocked for Pending Users)
+  - title: Protected Application Routes (Blocked)
+    cases:
+      - title: Application Root Endpoint (Blocked)
+        url: /app
+        status: 302
+        location: /new-account/pending
+
+      - title: Application Root With Redirect Endpoint (Blocked)
+        url: /app?redirect=/app/dashboard
+        status: 302
+        location: /new-account/pending
+
+      - title: Dashboard Endpoint (Blocked)
+        url: /app/dashboard
+        status: 302
+        location: /new-account/pending
+
+  # User Settings Routes Group (Blocked for Pending Users)
+  - title: User Settings Routes (Blocked)
+    cases:
+      - title: Settings Root Endpoint (Blocked)
+        url: /app/settings
+        status: 302
+        location: /new-account/pending
+
+      - title: Account Settings Endpoint (Blocked)
+        url: /app/settings/account
+        status: 302
+        location: /new-account/pending
+
+      - title: Token Management Endpoint (Blocked)
+        url: /app/settings/tokens
+        status: 302
+        location: /new-account/pending
+
+      - title: Linked Accounts Management Endpoint (Blocked)
+        url: /app/settings/linked-accounts
+        status: 302
+        location: /new-account/pending
+
+      - title: Email Settings Endpoint (Blocked)
+        url: /app/settings/emails
+        status: 302
+        location: /new-account/pending
+
+  # Discovery Routes Group (Blocked for Pending Users)
+  - title: Discovery Routes (Blocked)
+    cases:
+      - title: Discovery Root Endpoint (Blocked)
+        url: /app/discovery
+        status: 302
+        location: /new-account/pending
+
+      - title: Discovery People Endpoint (Blocked)
+        url: /app/discovery/people
+        status: 302
+        location: /new-account/pending
+
+  # Platform Routes Group (Blocked for Pending Users)
+  - title: Platform Routes (Blocked)
+    cases:
+      - title: Platform Root Endpoint (Blocked)
+        url: /app/platform
+        status: 302
+        location: /new-account/pending
+
+      - title: User Management Endpoint (Blocked)
+        url: /app/platform/users
+        status: 302
+        location: /new-account/pending
+
+      - title: Platform Onboarding Endpoint (Blocked)
+        url: /app/platform/onboarding
+        status: 302
+        location: /new-account/pending
+
+      - title: Platform Extensions Management Endpoint (Blocked)
+        url: /app/platform/extensions
+        status: 302
+        location: /new-account/pending
+
+      - title: Platform Workflows Management Endpoint (Blocked)
+        url: /app/platform/workflows
+        status: 302
+        location: /new-account/pending
+
+      - title: Platform Messages Management Endpoint (Blocked)
+        url: /app/platform/messages
+        status: 302
+        location: /new-account/pending
+
+      - title: Platform Message Details Endpoint (Blocked)
+        url: /app/platform/messages/test-message-123
+        status: 302
+        location: /new-account/pending
+
+  # Editor Routes Group (Blocked for Pending Users)
+  - title: Editor Routes (Blocked)
+    cases:
+      - title: Editor Root Endpoint (Blocked)
+        url: /app/editor
+        status: 302
+        location: /new-account/pending
+
+  # System Administration Routes Group (Blocked for Pending Users)
+  - title: System Administration Routes (Blocked)
+    cases:
+      - title: System Root Endpoint (Blocked)
+        url: /app/system
+        status: 302
+        location: /new-account/pending
+
+      - title: System Submissions Management Endpoint (Blocked)
+        url: /app/system/submissions
+        status: 302
+        location: /new-account/pending
+
+      - title: Add Site Management Endpoint (Blocked)
+        url: /app/system/sites/add
+        status: 302
+        location: /new-account/pending
+
+      - title: System Migration Endpoint (Blocked)
+        url: /app/system/migration
+        status: 302
+        location: /new-account/pending
+
+      - title: Storage Management Endpoint (Blocked)
+        url: /app/system/storage
+        status: 302
+        location: /new-account/pending
+
+      - title: System Email Test Endpoint (Blocked)
+        url: /app/system/email-test
+        status: 302
+        location: /new-account/pending
+
+      - title: System Design Endpoint (Blocked)
+        url: /app/system/design
+        status: 302
+        location: /new-account/pending
+
+      - title: System Roles Management Endpoint (Blocked)
+        url: /app/system/roles
+        status: 302
+        location: /new-account/pending
+
+  # Site Management Routes Group (Blocked for Pending Users)
+  - title: Site Management Routes (Blocked)
+    cases:
+      - title: Sites Root Endpoint (Blocked)
+        url: /app/sites
+        status: 302
+        location: /new-account/pending
+
+      - title: Site Details Endpoint (Blocked)
+        url: /app/sites/test-site
+        status: 302
+        location: /new-account/pending
+
+      - title: Site Collections Management Endpoint (Blocked)
+        url: /app/sites/test-site/collections
+        status: 302
+        location: /new-account/pending
+
+      - title: Site Submissions Management Endpoint (Blocked)
+        url: /app/sites/test-site/submissions
+        status: 302
+        location: /new-account/pending
+
+      - title: Site Submission Details Endpoint (Blocked)
+        url: /app/sites/test-site/submissions/test-submission-123
+        status: 302
+        location: /new-account/pending
+
+      - title: Site Advanced Settings Endpoint (Blocked)
+        url: /app/sites/test-site/settings/advanced
+        status: 302
+        location: /new-account/pending
+
+      - title: Site Domain Management Endpoint (Blocked)
+        url: /app/sites/test-site/settings/domains
+        status: 302
+        location: /new-account/pending
+
+      - title: Site Website Management Endpoint (Blocked)
+        url: /app/sites/test-site/settings/website
+        status: 302
+        location: /new-account/pending
+
+      - title: Site Inbox Management Endpoint (Blocked)
+        url: /app/sites/test-site/settings/inbox
+        status: 302
+        location: /new-account/pending
+
+      - title: Site Kinds Management Endpoint (Blocked)
+        url: /app/sites/test-site/settings/kinds
+        status: 302
+        location: /new-account/pending
+
+      - title: Site User Management Endpoint (Blocked)
+        url: /app/sites/test-site/settings/users
+        status: 302
+        location: /new-account/pending
+
+  # Work Management Routes Group (Blocked for Pending Users)
+  - title: Work Management Routes (Blocked)
+    cases:
+      - title: Works Root Endpoint (Blocked)
+        url: /app/works
+        status: 302
+        location: /new-account/pending
+
+      - title: Work Details Endpoint (Blocked)
+        url: /app/works/test-work-123
+        status: 302
+        location: /new-account/pending
+
+      - title: Work Details Endpoint (Not Found) (Blocked)
+        url: /app/works/nonexistent-work
+        status: 302
+        location: /new-account/pending
+
+      - title: Work User Management Endpoint (Blocked)
+        url: /app/works/nonexistent-work/users
+        status: 302
+        location: /new-account/pending
+
+      - title: Work Site Submission Endpoint (Blocked)
+        url: /app/works/nonexistent-work/sites/nonexistent-site/submit
+        status: 302
+        location: /new-account/pending
+
+  # Form Submission Routes Group
+  - title: Form Submission Routes
+    cases:
+      - title: Login Form Submission Endpoint
+        url: /login
+        method: POST
+        status: 405
+
+      - title: Signup Form Submission Endpoint (Method Not Allowed)
+        url: /signup
+        method: POST
+        status: 405
+
+      - title: New Account Form Submission Endpoint
+        url: /new-account
+        method: POST
+        status: 405
+
+      - title: Link Accounts Form Submission Endpoint
+        url: /link-accounts
+        method: POST
+        status: 405
+
+  # Catch-all Routes Group
+  - title: Catch-all Routes
+    cases:
+      - title: App catch-all (Blocked)
+        url: /app/nonexistent-route
+        status: 302
+        location: /new-account/pending
+
+      - title: App catch-all with redirect (Blocked)
+        url: /app/nonexistent-route?redirect=/app/dashboard
+        status: 302
+        location: /new-account/pending

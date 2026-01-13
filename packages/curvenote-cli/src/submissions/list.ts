@@ -1,8 +1,9 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import type { ISession } from '../session/types.js';
-import { formatDate, getFromJournals } from './utils.js';
 import type { MySubmissionsListingDTO, SubmissionsListItemDTO } from '@curvenote/common';
+import { formatDate } from './utils.js';
+import { getFromJournals } from '../utils/api.js';
 
 function logSubmissionItem(session: ISession, submission: SubmissionsListItemDTO) {
   const table = new Table({

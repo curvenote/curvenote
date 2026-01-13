@@ -2,7 +2,7 @@
   "name": "@curvenote/check-definitions",
   "description": "Definitions for Curvenote checks",
   "author": "Franklin Koch <franklin@curvenote.com>",
-  "version": "0.0.28",
+  "version": "0.1.1",
   "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,6 +11,10 @@
   ],
   "license": "MIT",
   "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/curvenote/curvenote.git"
+  },
   "scripts": {
     "clean": "rimraf dist",
     "lint": "eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
@@ -20,11 +24,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "myst-common": "^1.7.11",
-    "myst-templates": "^1.0.24"
+    "myst-common": "^1.9.3",
+    "myst-templates": "^1.0.26"
   },
   "devDependencies": {
-    "typescript": "latest",
     "@types/unist": "3.0.1"
   }
 }

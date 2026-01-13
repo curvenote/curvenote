@@ -10,8 +10,15 @@ import { addWorksCLI } from './works.js';
 import { addSubmitCLI, addSubmissionCLI } from './submissions.js';
 import version from './version.js';
 import { addDevHelpCLI } from './devhelp.js';
+import { addSiteCLI } from './sites.js';
 
 (process as any).noDeprecation = true;
+
+// Set whitelabeling
+process.env.MYSTMD_READABLE_NAME = 'Curvenote';
+process.env.MYSTMD_BINARY_NAME = 'curvenote';
+process.env.MYSTMD_NPM_BINARY_NAME = 'curvenote';
+process.env.MYSTMD_NPM_PACKAGE_NAME = 'curvenote';
 
 const program = new Command();
 addSyncCLI(program);
@@ -22,6 +29,7 @@ addCheckCLI(program);
 addWorksCLI(program);
 addSubmitCLI(program);
 addSubmissionCLI(program);
+addSiteCLI(program);
 addDevHelpCLI(program);
 
 program.version(`v${version}`, '-v, --version', 'Print the current version of curvenote');

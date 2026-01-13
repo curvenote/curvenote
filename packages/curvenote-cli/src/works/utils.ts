@@ -1,6 +1,138 @@
-import { selectors } from 'myst-cli';
+import { v4 as uuid } from 'uuid';
+import inquirer from 'inquirer';
+import fs from 'fs/promises';
+import type { ExportWithOutput } from 'myst-cli';
+import { silentLogger } from 'myst-cli-utils';
+import { ExportFormats } from 'myst-frontmatter';
+import AdmZip from 'adm-zip';
+import {
+  selectors,
+  writeConfigs,
+  createTempFolder,
+  buildSite,
+  clean,
+  collectAllBuildExportOptions,
+  localArticleExport,
+  runMecaExport,
+} from 'myst-cli';
+import { join, relative, dirname } from 'node:path';
+import type { WorkDTO } from '@curvenote/common';
+import * as uploads from '../uploads/index.js';
+import { cleanProjectConfigForWrite } from '../sync/utils.js';
 import type { ISession } from '../session/types.js';
-import { getFromJournals } from '../submissions/utils.js';
+import chalk from 'chalk';
+import { getFromJournals } from '../utils/api.js';
+import { addOxaTransformersToOpts } from '../utils/utils.js';
+import type { BaseOpts } from '../logs/types.js';
+
+export const CDN_KEY_RE =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+export const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
+
+/**
+ * Extract the source contents from a MECA export into a source/ folder
+ */
+async function createSourceFolder(session: ISession) {
+  const activeLogger = (session as any).$logger;
+  (session as any).$logger = silentLogger();
+  activeLogger.info('🎁 Bundling source files...');
+
+  try {
+    const state = session.store.getState();
+    const projectPath = selectors.selectCurrentProjectPath(state);
+    if (!projectPath) {
+      activeLogger.debug('No project path found');
+      return;
+    }
+    const projectFile = selectors.selectLocalConfigFile(state, projectPath);
+    if (!projectFile) {
+      activeLogger.debug('No project file found');
+      return;
+    }
+    const mecaExport: ExportWithOutput = {
+      format: ExportFormats.meca,
+      output: join(session.buildPath(), 'temp', 'meca-export.zip'),
+      articles: [],
+    };
+    await runMecaExport(session, projectFile, mecaExport, { projectPath });
+
+    const mecaZipPath = mecaExport.output;
+    if (
+      await fs
+        .access(mecaZipPath)
+        .then(() => false)
+        .catch(() => true)
+    ) {
+      activeLogger.debug('MECA export file not created');
+      return;
+    }
+    const zip = new AdmZip(mecaZipPath);
+
+    // Extract the source files from MECA bundle folder
+    const sourceEntries = zip
+      .getEntries()
+      .filter((entry) => entry.entryName.startsWith('bundle/') && entry.entryName !== 'bundle/');
+
+    if (sourceEntries.length === 0) {
+      activeLogger.debug('No source files found in MECA export');
+      return;
+    }
+    const sourceFolderPath = join(session.sitePath(), 'source');
+    await fs.mkdir(sourceFolderPath, { recursive: true });
+    for (const entry of sourceEntries) {
+      const relativePath = entry.entryName.replace(/^bundle\//, '');
+      const destPath = join(sourceFolderPath, ...relativePath.split('/'));
+      // Ensure parent directory exists
+      await fs.mkdir(dirname(destPath), { recursive: true });
+      if (!entry.isDirectory) {
+        await fs.writeFile(destPath, entry.getData());
+      }
+    }
+    activeLogger.info(`🎁 Source folder created`);
+    (session as any).$logger = activeLogger;
+
+    // Clean up the temporary MECA zip
+    await fs.unlink(mecaZipPath);
+  } catch (error) {
+    activeLogger.debug(`Failed to create source folder: ${error}`);
+    (session as any).$logger = activeLogger;
+  }
+}
+
+export async function performCleanRebuild(session: ISession, opts?: BaseOpts) {
+  session.log.info('\n\n\t✨✨✨  performing a clean re-build of your work  ✨✨✨\n\n');
+  await clean(session, [], { site: true, html: true, temp: true, exports: true, yes: true });
+  const exportOptionsList = await collectAllBuildExportOptions(session, [], { all: true });
+  const exportLogList = exportOptionsList.map((exportOptions) => {
+    return `${relative('.', exportOptions.$file)} -> ${exportOptions.output}`;
+  });
+  session.log.info(`📬 Performing exports:\n   ${exportLogList.join('\n   ')}`);
+  await localArticleExport(session, exportOptionsList, {});
+  session.log.info(`⛴  Exports complete`);
+
+  // Build the files in the content folder and process them
+  await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
+  // Create source folder from MECA export
+  await createSourceFolder(session);
+  session.log.info(`✅ Work rebuild complete`);
+}
+
+export async function uploadAndGetCdnKey(
+  session: ISession,
+  cdn: string,
+  opts?: { resume?: boolean },
+) {
+  if (!process.env.DEV_CDN || process.env.DEV_CDN === 'false') {
+    const uploadResult = await uploads.uploadToCdn(session, cdn, opts);
+    return uploadResult.cdnKey;
+  }
+  if (process.env.DEV_CDN.match(CDN_KEY_RE)) {
+    session.log.info(chalk.bold('Skipping upload, using DEV_CDN from environment'));
+    return process.env.DEV_CDN;
+  }
+  session.log.info(chalk.bold('Skipping upload, using default DEV_CDN_KEY'));
+  return DEV_CDN_KEY;
+}
 
 /**
  * Get project.id from the current config file
@@ -30,12 +162,95 @@ export function workKeyFromConfig(session: ISession) {
  * Returns undefined if work for the given venue is not defined or
  * if the API request for the work fails.
  */
-export async function getWorkFromKey(session: ISession, key: string) {
+export async function getWorkFromKey(session: ISession, key: string): Promise<WorkDTO | undefined> {
   try {
     session.log.debug(`GET from journals API /my/works?key=${key}`);
     const resp = await getFromJournals(session, `/my/works?key=${key}`);
     return resp.items[0];
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * Prompt user for a new work key
+ *
+ * First, gives a simple Y/n with a default UUID. If the user is unhappy with that,
+ * they are prompted to write their own key.
+ *
+ * This key cannot already exist as a work key; if you want to link to an existing
+ * work, you must put the key directly in your project config file.
+ */
+export async function promptForNewKey(
+  session: ISession,
+  opts?: { yes?: boolean },
+): Promise<string> {
+  const defaultKey = uuid();
+  if (opts?.yes) {
+    session.log.debug(`Using autogenerated key: ${defaultKey}`);
+    return defaultKey;
+  }
+  const { useDefault } = await inquirer.prompt([
+    {
+      name: 'useDefault',
+      message: `Work key is required. Use autogenerated value? (${defaultKey})`,
+      type: 'confirm',
+      default: true,
+    },
+  ]);
+  if (useDefault) return defaultKey;
+  const { customKey } = await inquirer.prompt([
+    {
+      name: 'customKey',
+      type: 'input',
+      message: 'Enter a unique key for your work?',
+      validate: async (key: string) => {
+        if (key.length < 8) {
+          return 'Key must be at least 8 characters';
+        }
+        if (key.length > 50) {
+          return 'Key must be no more than 50 characters';
+        }
+        try {
+          const { exists } = await getFromJournals(session, `/works/key/${key}`);
+          if (exists) return `Key "${key}" not available.`;
+        } catch (err) {
+          return 'Key validation failed';
+        }
+        return true;
+      },
+    },
+  ]);
+  return customKey;
+}
+
+/**
+ * Updates project.id in config yaml with key
+ *
+ * Creates a backup of the original file in the _build/temp folder
+ */
+export async function writeKeyToConfig(session: ISession, key: string) {
+  const state = session.store.getState();
+  const path = selectors.selectCurrentProjectPath(state);
+  const file = selectors.selectCurrentProjectFile(state);
+  if (!file || !path) {
+    session.log.error('No project configuration found');
+    process.exit(1);
+  }
+  const projectConfig = selectors.selectLocalProjectConfig(state, path);
+  const tempFolder = createTempFolder(session);
+  session.log.info(`creating backup copy of config file ${file} -> ${tempFolder}`);
+  await fs.copyFile(file, join(tempFolder, 'curvenote.yml'));
+  session.log.info(`writing work key to ${file}`);
+  await writeConfigs(session, path, {
+    projectConfig: cleanProjectConfigForWrite({ ...projectConfig, id: key }),
+  });
+}
+
+export function exitOnInvalidKeyOption(session: ISession, key: string) {
+  session.log.debug(`Checking for valid key option: ${key}`);
+  if (key.length < 8 || key.length > 128) {
+    session.log.error(`⛔️ The key must be between 8 and 128 characters long.`);
+    process.exit(1);
   }
 }

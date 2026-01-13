@@ -7,7 +7,7 @@ import type {
   SubmissionKindListingDTO,
 } from '@curvenote/common';
 import type { ISession } from '../session/types.js';
-import { getFromJournals } from './utils.js';
+import { getFromJournals } from '../utils/api.js';
 
 /**
  * Fetch `venue` kinds from API

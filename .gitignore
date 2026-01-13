@@ -29,6 +29,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env
 
 # turbo
 .turbo
@@ -37,3 +38,13 @@ _build
 
 yalc.lock
 .yalc
+
+extensions/
+!extensions/README.md
+
+.app-config.*
+!.app-config.meta.yml
+!.app-config.schema.yml
+!.app-config.sample.yml
+
+types/app-config.d.ts

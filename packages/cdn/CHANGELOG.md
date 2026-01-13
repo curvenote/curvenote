@@ -1,5 +1,94 @@
 # @curvenote/cdn
 
+## 0.3.4
+
+### Patch Changes
+
+- [#758](https://github.com/curvenote/curvenote/pull/758) [`7abc3f7`](https://github.com/curvenote/curvenote/commit/7abc3f7d83392a90d5c7011940c41e49a349409e) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove the `getSignedCDNQuery` function
+
+- Updated dependencies []:
+  - @curvenote/common@0.3.4
+
+## 0.3.3
+
+### Patch Changes
+
+- [#756](https://github.com/curvenote/curvenote/pull/756) [`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bump `myst-*` deps
+
+- [#755](https://github.com/curvenote/curvenote/pull/755) [`7c91b6d`](https://github.com/curvenote/curvenote/commit/7c91b6d80f3f1f0f910d2c413fd6aa8070edebaa) Thanks [@rowanc1](https://github.com/rowanc1)! - Add security to the cdn loaders for resources
+
+- Updated dependencies [[`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004)]:
+  - @curvenote/common@0.3.3
+
+## 0.3.2
+
+### Patch Changes
+
+- [#749](https://github.com/curvenote/curvenote/pull/749) [`a4b97dd`](https://github.com/curvenote/curvenote/commit/a4b97dd1422373c4eccc9ac0205a6ba06bd84c80) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Aligns link rewriting with V3 AST
+
+- Updated dependencies []:
+  - @curvenote/common@0.3.2
+
+## 0.3.1
+
+### Patch Changes
+
+- [`be686d5`](https://github.com/curvenote/curvenote/commit/be686d5889d923a29e86a55eede54b43562cf004) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Critical fix to bad `unit-util-select` dependency version, and added tsts covering al loader functions.
+
+- Updated dependencies []:
+  - @curvenote/common@0.3.1
+
+## 0.3.0
+
+### Minor Changes
+
+- [#746](https://github.com/curvenote/curvenote/pull/746) [`4f55fe9`](https://github.com/curvenote/curvenote/commit/4f55fe9994bfbf75360e2af97039c2d4888efacd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - myst packages, align typescript builds and config and fix type issues. Adopting this version of myst means switching to V3 AST.
+
+### Patch Changes
+
+- Updated dependencies [[`4f55fe9`](https://github.com/curvenote/curvenote/commit/4f55fe9994bfbf75360e2af97039c2d4888efacd)]:
+  - @curvenote/common@0.3.0
+
+## 0.2.24
+
+### Patch Changes
+
+- [#745](https://github.com/curvenote/curvenote/pull/745) [`ff817d5`](https://github.com/curvenote/curvenote/commit/ff817d59ce38dc5bb1567446ed39430914e783ad) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add migration option to cdn getPage
+
+- Updated dependencies []:
+  - @curvenote/common@0.2.24
+
+## 0.2.23
+
+### Patch Changes
+
+- [#734](https://github.com/curvenote/curvenote/pull/734) [`1c8ccb9`](https://github.com/curvenote/curvenote/commit/1c8ccb9ebd80cee00132d44684edd506e15a600c) Thanks [@fwkoch](https://github.com/fwkoch)! - Consume myst@1.6.3
+
+- Updated dependencies [[`1c8ccb9`](https://github.com/curvenote/curvenote/commit/1c8ccb9ebd80cee00132d44684edd506e15a600c)]:
+  - @curvenote/common@0.2.23
+
+## 0.2.22
+
+### Patch Changes
+
+- Updated dependencies [[`87b129a`](https://github.com/curvenote/curvenote/commit/87b129a9af0f6c26aa8a31a680ede5fc66ae8329)]:
+  - @curvenote/common@0.2.22
+
+## 0.2.21
+
+### Patch Changes
+
+- Updated dependencies [[`a651c71`](https://github.com/curvenote/curvenote/commit/a651c71255b95218d416269540062213cea2da78)]:
+  - @curvenote/common@0.2.21
+
+## 0.2.20
+
+### Patch Changes
+
+- 6ceb5c8: Remove content from SiteDTO
+- Updated dependencies [6ceb5c8]
+  - @curvenote/common@0.2.20
+
 ## 0.2.19
 
 ### Patch Changes

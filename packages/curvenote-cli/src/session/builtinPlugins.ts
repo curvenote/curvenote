@@ -14,6 +14,10 @@ export function combinePlugins(plugins: CurvenotePlugin[]): ValidatedCurvenotePl
       roles: [...(base.roles ?? []), ...(next.roles ?? [])],
       transforms: [...(base.transforms ?? []), ...(next.transforms ?? [])],
       checks: [...(base.checks ?? []), ...(next.checks ?? [])],
+      paths: [
+        ...((base as ValidatedCurvenotePlugin).paths ?? []),
+        ...((next as ValidatedCurvenotePlugin).paths ?? []),
+      ],
     }),
     plugins[0],
   ) as ValidatedCurvenotePlugin;

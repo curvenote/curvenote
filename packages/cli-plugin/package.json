@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/cli-plugin",
-  "version": "0.12.15",
+  "version": "0.13.1",
   "description": "MyST Plugins for Curvenote",
   "author": "Steve Purves <steve@curvenote.com>",
   "license": "MIT",
@@ -37,7 +37,9 @@
     "build": "npm-run-all -l clean -p build:esm"
   },
   "dependencies": {
-    "myst-common": "^1.7.11",
+    "@curvenote/any-widget": "^0.2.1",
+    "myst-common": "^1.9.3",
+    "unist-builder": "^4.0.0",
     "vfile": "^5.3.7"
   },
   "engines": {

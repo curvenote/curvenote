@@ -1,0 +1,57 @@
+{
+  "url": "https://private.curve.space",
+  "private": true,
+  "site": {
+    "id": "c58f5c6c-c029-405f-8aeb-e29607277463",
+    "name": "private",
+    "title": "Private",
+    "description": "A private portal",
+    "submission_cdn": "https://prv.curvenote.dev/",
+    "favicon": "https://localhost:3031/logos/curvenote/favicon.ico",
+    "tagline": "Somewhere private to communicate cmputaitonal science",
+    "content": "private-content.curve.space",
+    "logo": "https://localhost:3031/logos/curvenote/logo.png",
+    "logo_dark": "https://localhost:3031/logos/curvenote/logo_dark.png",
+    "footer_logo": "https://localhost:3031/logos/curvenote/footer.svg",
+    "footer_logo_dark": "https://localhost:3031/logos/curvenote/footer.svg",
+    "footer_links": [
+      [
+        { "url": "/", "title": "Home" },
+        { "url": "/articles", "title": "Latest Research" },
+        { "url": "/about", "title": "About" }
+      ]
+    ],
+    "social_links": [
+      {
+        "kind": "website",
+        "url": "https://curvenote.com"
+      }
+    ],
+    "kinds": [
+      {
+        "name": "Original"
+      }
+    ],
+    "team_name": "private_journal"
+  },
+  "works": [
+    {
+      "id": "PRV00001",
+      "title": "Predicting Solar Flares with Machine Learning",
+      "description": "We present a machine learning-based system (FlareML) for solar flare prediction. FlareML employs three existing machine learning algorithms, namely random forests, multilayer perceptrons, extreme learning machines, and an ensemble algorithm that combines the three machine learning algorithms.",
+      "authors": ["Yasser Abduallah", "Jason T. L. Wang", "Haimin Wang"],
+      "date": "2021-10-31",
+      "kind": "Original",
+      "doi": "10.5281/zenodo.5634114",
+      "versions": [
+        {
+          "id": "951204c5-e8d4-4833-9def-eabe4f4d26cc",
+          "cdn_key": "tests/a904a43e-f04b-4e76-b118-9b080a400564",
+          "cdn": "https://prv.curvenote.dev/",
+          "date_created": "2021-10-31",
+          "canonical": true
+        }
+      ]
+    }
+  ]
+}

@@ -7,9 +7,17 @@ import {
   updatePageStaticLinksInplace,
   updateSiteManifestStaticLinksInplace,
 } from './utils.js';
-import type { Host, SiteDTO, WorkDTO, HostSpec, SiteWorkListingDTO } from '@curvenote/common';
+import type {
+  Host,
+  SiteDTO,
+  WorkDTO,
+  HostSpec,
+  SiteWorkListingDTO,
+  SiteWithContentDTO,
+} from '@curvenote/common';
 import { responseError, responseNoArticle, responseNoSite } from './errors.server.js';
 import type { Cache, PageLoader } from './types.js';
+import { migrate } from 'myst-migrate';
 
 interface CdnRouter {
   cdn?: string; // this is the cdn key
@@ -112,18 +120,18 @@ export async function lookupJournal(
   const API_URL = opts?.apiUrl ?? JOURNALS_API;
   const data = await requestJournal(hostname, `${API_URL}sites?hostname=${hostname}`, opts);
   if (data.items.length === 0) throw responseNoSite();
-  opts?.cache?.set<SiteDTO>('journals', hostname, data);
-  return data.items[0] as SiteDTO;
+  opts?.cache?.set<SiteWithContentDTO>('journals', hostname, data);
+  return data.items[0] as SiteWithContentDTO;
 }
 
 export async function getJournal(
   siteName: string,
   opts?: { cache?: Cache; apiUrl?: string; headers?: Record<string, string> },
-): Promise<SiteDTO> {
+): Promise<SiteWithContentDTO> {
   const API_URL = opts?.apiUrl ?? JOURNALS_API;
   const data = await requestJournal(siteName, `${API_URL}sites/${siteName}`, opts);
-  opts?.cache?.set<SiteDTO>('journals', siteName, data);
-  return data as SiteDTO;
+  opts?.cache?.set<SiteWithContentDTO>('journals', siteName, data);
+  return data as SiteWithContentDTO;
 }
 
 async function requestJournal(
@@ -131,7 +139,7 @@ async function requestJournal(
   url: string,
   opts?: { cache?: Cache; apiUrl?: string; headers?: Record<string, string> },
 ): Promise<any> {
-  const cached = opts?.cache?.get<SiteDTO>('journals', key);
+  const cached = opts?.cache?.get<SiteWithContentDTO>('journals', key);
   if (cached) return cached;
   const response = await fetch(url, { headers: opts?.headers });
   if (response.status === 404) throw responseNoSite();
@@ -230,10 +238,28 @@ export async function getConfig(
   return data as SiteManifest;
 }
 
-export async function getObjectsInv(host: Host): Promise<ArrayBuffer | undefined> {
-  const baseUrl = await getCdnBaseUrl(host);
-  if (!baseUrl) return;
-  const url = `${baseUrl}objects.inv`;
+/**
+ * Constructs a URL for a CDN resource, handling both bypass and normal CDN cases.
+ * Includes query parameters from the host location when not using bypass.
+ */
+async function getCdnResourceUrl(
+  host: Host,
+  filename: string,
+  opts?: { bypass?: string },
+): Promise<string> {
+  if (opts?.bypass) {
+    return withBaseUrl(ensureTrailingSlash(opts.bypass), filename);
+  }
+  const location = await getCdnLocation(host);
+  const baseUrl = await getCdnBaseUrl(location);
+  return withBaseUrl(baseUrl, filename, location.query);
+}
+
+export async function getObjectsInv(
+  host: Host,
+  opts?: { bypass?: string },
+): Promise<ArrayBuffer | undefined> {
+  const url = await getCdnResourceUrl(host, 'objects.inv', opts);
   const response = await fetch(url);
   if (response.status === 404) return;
   if (!response.ok) throw responseError(response);
@@ -246,9 +272,7 @@ export async function getMystXrefJson(
   mount = '',
   opts?: { bypass?: string },
 ): Promise<Record<string, any> | null> {
-  const baseUrl = await getCdnBaseUrl(host);
-  if (!baseUrl && !opts?.bypass) return null;
-  const url = `${opts?.bypass ? ensureTrailingSlash(opts.bypass) : baseUrl}myst.xref.json`;
+  const url = await getCdnResourceUrl(host, 'myst.xref.json', opts);
   const response = await fetch(url);
   if (response.status === 404) return null;
   if (!response.ok) throw responseError(response);
@@ -264,9 +288,7 @@ export async function getMystSearchJson(
   host: Host,
   opts?: { bypass?: string },
 ): Promise<Record<string, any> | null> {
-  const baseUrl = await getCdnBaseUrl(host);
-  if (!baseUrl && !opts?.bypass) return null;
-  const url = `${opts?.bypass ? ensureTrailingSlash(opts.bypass) : baseUrl}myst.search.json`;
+  const url = await getCdnResourceUrl(host, 'myst.search.json', opts);
   const response = await fetch(url);
   if (response.status === 404) return null;
   if (!response.ok) throw responseError(response);
@@ -280,7 +302,7 @@ async function getData(
   project?: string,
   slug?: string,
   query?: string,
-  opts?: { bypass?: string },
+  opts?: { bypass?: string; migrateToMystSpecVersion?: number },
 ): Promise<PageLoader | null> {
   if (!slug || !config) throw responseNoArticle();
   const { id, projects } = config;
@@ -297,7 +319,13 @@ async function getData(
     : await fetch(withBaseUrl(baseUrl, `content/${projectPart}${slug}.json`, query));
   if (response.status === 404) throw responseNoArticle();
   if (!response.ok) throw responseError(response);
-  const data = (await response.json()) as PageLoader;
+  let data = (await response.json()) as PageLoader;
+  if (opts?.migrateToMystSpecVersion) {
+    data = (await migrate(
+      { version: 0, ...data },
+      { to: opts.migrateToMystSpecVersion },
+    )) as PageLoader;
+  }
   if (opts?.bypass) {
     const bypass = ensureTrailingSlash(opts.bypass);
     return updatePageStaticLinksInplace(data, (url) =>
@@ -316,6 +344,7 @@ export async function getPage(
     loadIndexPage?: boolean;
     slug?: string;
     bypass?: string;
+    migrateToMystSpecVersion?: number;
   },
 ): Promise<PageLoader | null> {
   const projectName = opts?.project;

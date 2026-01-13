@@ -1,0 +1,33 @@
+{
+  "url": "https://newscience.curve.space",
+  "private": false,
+  "site": {
+    "id": "b61a5e75-c59b-4e48-a834-24ac948f51ab",
+    "name": "newscience",
+    "title": "New Science",
+    "description": "A brand new scientific journal",
+    "submission_cdn": "https://prv.curvenote.dev/",
+    "favicon": "https://localhost:3031/logos/curvenote/favicon.ico",
+    "tagline": "Digital transformation towards geosciences 4.0",
+    "content": "newscience-content.curve.space",
+    "logo": "https://localhost:3031/logos/curvenote/logo.png",
+    "logo_dark": "https://localhost:3031/logos/curvenote/logo_dark.png",
+    "footer_logo": "https://localhost:3031/logos/curvenote/footer.svg",
+    "footer_logo_dark": "https://localhost:3031/logos/curvenote/footer.svg",
+    "footer_links": [
+      [
+        { "url": "/", "title": "Home" },
+        { "url": "/articles", "title": "Latest Research" },
+        { "url": "/about", "title": "About" }
+      ]
+    ],
+    "social_links": [
+      {
+        "kind": "website",
+        "url": "https://curvenote.com"
+      }
+    ],
+    "kinds": []
+  },
+  "works": []
+}

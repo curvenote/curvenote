@@ -1,0 +1,100 @@
+title: Site Routes (No Site Role User)
+system_role: USER
+site_roles: []
+headers:
+  Authorization: Bearer ${TOKEN}
+cases:
+  # Site Management Routes Group (Blocked - No Site Role)
+  - title: Site Management Routes (Blocked - No Site Role)
+    cases:
+      - title: Sites Root Endpoint (Blocked)
+        url: /app/sites
+        status: 200
+
+      - title: Site Details Endpoint (Blocked)
+        url: /app/sites/test-site
+        status: 302
+        location: /app
+
+      - title: Site Collections Management Endpoint (Blocked)
+        url: /app/sites/test-site/collections
+        status: 302
+        location: /app
+
+      - title: Site Submissions Management Endpoint (Blocked)
+        url: /app/sites/test-site/submissions
+        status: 302
+        location: /app
+
+      - title: Site Submission Details Endpoint (Blocked)
+        url: /app/sites/test-site/submissions/does-not-exist
+        status: 302
+        location: /app
+
+      - title: Site Advanced Settings Endpoint (Blocked)
+        url: /app/sites/test-site/advanced
+        status: 302
+        location: /app
+
+      - title: Site Domain Management Endpoint (Blocked)
+        url: /app/sites/test-site/domains
+        status: 302
+        location: /app
+
+      - title: Site Website Management Endpoint (Blocked)
+        url: /app/sites/test-site/website
+        status: 302
+        location: /app
+
+      - title: Site Inbox Management Endpoint (Blocked)
+        url: /app/sites/test-site/inbox
+        status: 302
+        location: /app
+
+      - title: Site Kinds Management Endpoint (Blocked)
+        url: /app/sites/test-site/kinds
+        status: 302
+        location: /app
+
+      - title: Site User Management Endpoint (Blocked)
+        url: /app/sites/test-site/users
+        status: 302
+        location: /app
+
+  # Other Site Routes (Blocked - No Site Role)
+  - title: Other Site Routes (Blocked - No Site Role)
+    cases:
+      - title: Site Settings Root Endpoint (Blocked)
+        url: /app/sites/test-site/settings
+        status: 302
+        location: /login
+
+      - title: Site Settings Advanced Endpoint (Blocked)
+        url: /app/sites/test-site/settings/advanced
+        status: 302
+        location: /login
+
+      - title: Site Settings Domains Endpoint (Blocked)
+        url: /app/sites/test-site/settings/domains
+        status: 302
+        location: /login
+
+      - title: Site Settings Website Endpoint (Blocked)
+        url: /app/sites/test-site/settings/website
+        status: 302
+        location: /login
+
+      - title: Site Settings Inbox Endpoint (Blocked)
+        url: /app/sites/test-site/settings/inbox
+        status: 302
+        location: /login
+
+      - title: Site Settings Kinds Endpoint (Blocked)
+        url: /app/sites/test-site/settings/kinds
+        status: 302
+        location: /login
+
+      - title: Site Settings Users Endpoint (Blocked)
+        url: /app/sites/test-site/settings/users
+        status: 302
+        location: /login

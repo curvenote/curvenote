@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/cdn",
-  "version": "0.2.19",
+  "version": "0.3.4",
   "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,6 +11,10 @@
     "node": ">=16"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/curvenote/curvenote.git"
+  },
   "sideEffects": false,
   "scripts": {
     "clean": "rimraf dist",
@@ -23,20 +27,21 @@
     "build": "npm-run-all -l clean -p build:esm"
   },
   "dependencies": {
-    "@curvenote/common": "^0.2.19",
+    "@curvenote/common": "^0.3.4",
     "cache-manager": "^5.2.3",
     "doi-utils": "^2.0.5",
-    "myst-common": "^1.7.11",
-    "myst-config": "^1.7.11",
-    "myst-frontmatter": "^1.7.11",
-    "myst-spec-ext": "^1.7.11",
+    "myst-common": "^1.9.3",
+    "myst-config": "^1.9.3",
+    "myst-frontmatter": "^1.9.3",
+    "myst-migrate": "^1.7.1",
+    "myst-spec-ext": "^1.9.3",
     "nbtx": "^0.2.3",
     "node-cache": "^5.1.2",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "unist-util-select": "^4.0.3"
   },
   "devDependencies": {
-    "@types/node-fetch": "^2.6.4",
-    "typescript": "latest"
+    "@types/node-fetch": "^2.6.4"
   },
   "publishConfig": {
     "access": "public"

@@ -18,6 +18,7 @@ import {
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger, chalkLogger } from 'myst-cli-utils';
 import type { RuleId } from 'myst-common';
+import type { PluginInfo } from 'myst-config';
 // use the version mystjs brings in!
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { KernelManager, ServerConnection, SessionManager } from '@jupyterlab/services';
@@ -45,6 +46,7 @@ import {
   checkForPlatformAPIClientVersionRejection,
   withQuery,
   checkForCurvenoteAPIClientVersionRejection,
+  DEFAULT_EDITOR_API_URL,
 } from './utils/index.js';
 import jwt from 'jsonwebtoken';
 import { getLogLevel } from './utils/getLogLevel.js';
@@ -69,7 +71,7 @@ export class Session implements ISession {
   store: Store<RootState>;
 
   doiLimiter: Limit;
-  plugins: ValidatedCurvenotePlugin | undefined;
+  plugins: ValidatedCurvenotePlugin | undefined = combinePlugins([getBuiltInPlugins()]);
 
   proxyAgent?: HttpsProxyAgent<string>;
   _shownUpgrade = false;
@@ -125,7 +127,8 @@ export class Session implements ISession {
       this.proxyAgent = new HttpsProxyAgent(proxyUrl);
     }
 
-    this.API_URL = 'NOTSET';
+    // We are still setting this as some of the myst-cli functions rely on it
+    this.API_URL = DEFAULT_EDITOR_API_URL;
 
     this.store = createStore(rootReducer);
     // Allow the latest version to be loaded
@@ -264,7 +267,7 @@ export class Session implements ISession {
           this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".`);
 
           // We are still setting this as some of the myst-cli functions rely on it
-          this.API_URL = this.$config?.editorApiUrl ?? 'INVALID';
+          this.API_URL = this.$config?.editorApiUrl ?? DEFAULT_EDITOR_API_URL;
 
           return;
         }
@@ -283,7 +286,7 @@ export class Session implements ISession {
     this.log.debug(`Configuration set: "${JSON.stringify(this.$config, null, 2)}".\n`);
 
     // We are still setting this as some of the myst-cli functions rely on it
-    this.API_URL = this.$config?.editorApiUrl ?? 'INVALID';
+    this.API_URL = this.$config?.editorApiUrl ?? DEFAULT_EDITOR_API_URL;
   }
 
   showUpgradeNotice() {
@@ -365,12 +368,8 @@ export class Session implements ISession {
 
   _pluginPromise: Promise<ValidatedCurvenotePlugin> | undefined;
 
-  async loadPlugins(): Promise<ValidatedCurvenotePlugin> {
-    // Early return if a promise has already been initiated
-    if (this._pluginPromise) return this._pluginPromise;
-    this._pluginPromise = loadProjectPlugins(this);
-    const loadedPlugins = await this._pluginPromise;
-    this.plugins = combinePlugins([getBuiltInPlugins(), loadedPlugins]);
+  async loadPlugins(plugins: PluginInfo[]) {
+    this.plugins = await loadProjectPlugins(this, plugins);
     return this.plugins;
   }
 

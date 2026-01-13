@@ -1,5 +1,72 @@
 # curvenote
 
+## 0.13.1
+
+### Patch Changes
+
+- Updated dependencies [[`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004)]:
+  - @curvenote/cli@0.13.1
+
+## 0.13.0
+
+### Patch Changes
+
+- Updated dependencies [[`4f55fe9`](https://github.com/curvenote/curvenote/commit/4f55fe9994bfbf75360e2af97039c2d4888efacd)]:
+  - @curvenote/cli@0.13.0
+
+## 0.12.27
+
+## 0.12.26
+
+### Patch Changes
+
+- [#739](https://github.com/curvenote/curvenote/pull/739) [`b2e6b1c`](https://github.com/curvenote/curvenote/commit/b2e6b1c2da5532f3c13834e359703f147dcd224d) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Adds a `--skip-build` option to `curvenote submit` to avoid the clean and rebuild step.
+
+## 0.12.25
+
+## 0.12.24
+
+## 0.12.23
+
+## 0.12.22
+
+## 0.12.21
+
+### Patch Changes
+
+- [`c0b68a8`](https://github.com/curvenote/curvenote/commit/c0b68a813bf8d907505ee177bf4ed4616732fbf9) Thanks [@rowanc1](https://github.com/rowanc1)! - Releasing fixed readme links
+
+## 0.12.20
+
+### Patch Changes
+
+- 3775d1c: Add env variables for myst whitelabeling
+
+## 0.12.19
+
+### Patch Changes
+
+- 4268bce: Upgrade to mystmd 1.5.1
+
+## 0.12.18
+
+### Patch Changes
+
+- 11c5933: Expose existing push options to CLI
+
+## 0.12.17
+
+### Patch Changes
+
+- 83bd0c1: Allow works to be pushed to public CDN
+
+## 0.12.16
+
+### Patch Changes
+
+- 6ceb5c8: Add work push to cli
+- 6ceb5c8: Add site init set landing content to cli
+
 ## 0.12.15
 
 ### Patch Changes

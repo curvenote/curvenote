@@ -1,5 +1,23 @@
 # @curvenote/blocks
 
+## 1.6.1
+
+### Patch Changes
+
+- [#756](https://github.com/curvenote/curvenote/pull/756) [`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bump `myst-*` deps
+
+## 1.6.0
+
+### Minor Changes
+
+- [#746](https://github.com/curvenote/curvenote/pull/746) [`4f55fe9`](https://github.com/curvenote/curvenote/commit/4f55fe9994bfbf75360e2af97039c2d4888efacd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - myst packages, align typescript builds and config and fix type issues. Adopting this version of myst means switching to V3 AST.
+
+## 1.5.30
+
+### Patch Changes
+
+- [#734](https://github.com/curvenote/curvenote/pull/734) [`1c8ccb9`](https://github.com/curvenote/curvenote/commit/1c8ccb9ebd80cee00132d44684edd506e15a600c) Thanks [@fwkoch](https://github.com/fwkoch)! - Consume myst@1.6.3
+
 ## 1.5.29
 
 ### Patch Changes

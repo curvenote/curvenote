@@ -1,5 +1,72 @@
 # @curvenote/cli-plugin
 
+## 0.13.1
+
+### Patch Changes
+
+- [#756](https://github.com/curvenote/curvenote/pull/756) [`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bump `myst-*` deps
+
+- [#752](https://github.com/curvenote/curvenote/pull/752) [`65cb539`](https://github.com/curvenote/curvenote/commit/65cb53950fe9f1a1f6b24d31a2a75f0822d0578c) Thanks [@rowanc1](https://github.com/rowanc1)! - Allow for cn-articles venue to not be defined
+
+- [#753](https://github.com/curvenote/curvenote/pull/753) [`e559c93`](https://github.com/curvenote/curvenote/commit/e559c932deaf2cf19e800e40504fca6a955e2acf) Thanks [@rowanc1](https://github.com/rowanc1)! - Add hero directive
+
+- Updated dependencies [[`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004)]:
+  - @curvenote/any-widget@0.2.1
+
+## 0.13.0
+
+### Minor Changes
+
+- [#746](https://github.com/curvenote/curvenote/pull/746) [`4f55fe9`](https://github.com/curvenote/curvenote/commit/4f55fe9994bfbf75360e2af97039c2d4888efacd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - myst packages, align typescript builds and config and fix type issues. Adopting this version of myst means switching to V3 AST.
+
+### Patch Changes
+
+- Updated dependencies [[`4f55fe9`](https://github.com/curvenote/curvenote/commit/4f55fe9994bfbf75360e2af97039c2d4888efacd)]:
+  - @curvenote/any-widget@0.2.0
+
+## 0.12.27
+
+### Patch Changes
+
+- [#743](https://github.com/curvenote/curvenote/pull/743) [`377ee3a`](https://github.com/curvenote/curvenote/commit/377ee3a077f0fc6e848a830792720a739ad186bc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Exposing any-widget in it's own package including the accompanying NodeRenderer
+
+- Updated dependencies [[`377ee3a`](https://github.com/curvenote/curvenote/commit/377ee3a077f0fc6e848a830792720a739ad186bc)]:
+  - @curvenote/any-widget@0.1.1
+
+## 0.12.26
+
+## 0.12.25
+
+## 0.12.24
+
+### Patch Changes
+
+- [#736](https://github.com/curvenote/curvenote/pull/736) [`4835771`](https://github.com/curvenote/curvenote/commit/4835771d28b0875d5309ec4450142dfdde8578ee) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Update and extend the `any:bundle` interface while maintaining backwards compatibility
+
+## 0.12.23
+
+### Patch Changes
+
+- [#734](https://github.com/curvenote/curvenote/pull/734) [`1c8ccb9`](https://github.com/curvenote/curvenote/commit/1c8ccb9ebd80cee00132d44684edd506e15a600c) Thanks [@fwkoch](https://github.com/fwkoch)! - Consume myst@1.6.3
+
+## 0.12.22
+
+## 0.12.21
+
+### Patch Changes
+
+- [#729](https://github.com/curvenote/curvenote/pull/729) [`316cffe`](https://github.com/curvenote/curvenote/commit/316cffecc765e5f1d3abedb9ee0c789c703e3998) Thanks [@rowanc1](https://github.com/rowanc1)! - Make the `cn:article` directive a bit less vocal on validation
+
+## 0.12.20
+
+## 0.12.19
+
+## 0.12.18
+
+## 0.12.17
+
+## 0.12.16
+
 ## 0.12.15
 
 ## 0.12.14

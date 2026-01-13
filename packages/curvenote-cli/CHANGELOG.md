@@ -1,5 +1,152 @@
 # curvenote
 
+## 0.13.1
+
+### Patch Changes
+
+- [#756](https://github.com/curvenote/curvenote/pull/756) [`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bump `myst-*` deps
+
+- Updated dependencies [[`87bde5f`](https://github.com/curvenote/curvenote/commit/87bde5fed45ce5ff555345a20801b5837e5ca004), [`65cb539`](https://github.com/curvenote/curvenote/commit/65cb53950fe9f1a1f6b24d31a2a75f0822d0578c), [`e559c93`](https://github.com/curvenote/curvenote/commit/e559c932deaf2cf19e800e40504fca6a955e2acf)]:
+  - @curvenote/check-implementations@0.1.1
+  - @curvenote/check-definitions@0.1.1
+  - @curvenote/cli-plugin@0.13.1
+  - @curvenote/blocks@1.6.1
+  - @curvenote/common@0.3.3
+
+## 0.13.0
+
+### Minor Changes
+
+- [#746](https://github.com/curvenote/curvenote/pull/746) [`4f55fe9`](https://github.com/curvenote/curvenote/commit/4f55fe9994bfbf75360e2af97039c2d4888efacd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - myst packages, align typescript builds and config and fix type issues. Adopting this version of myst means switching to V3 AST.
+
+### Patch Changes
+
+- Updated dependencies [[`4f55fe9`](https://github.com/curvenote/curvenote/commit/4f55fe9994bfbf75360e2af97039c2d4888efacd)]:
+  - @curvenote/check-implementations@0.1.0
+  - @curvenote/check-definitions@0.1.0
+  - @curvenote/cli-plugin@0.13.0
+  - @curvenote/blocks@1.6.0
+  - @curvenote/common@0.3.0
+
+## 0.12.27
+
+### Patch Changes
+
+- Updated dependencies [[`377ee3a`](https://github.com/curvenote/curvenote/commit/377ee3a077f0fc6e848a830792720a739ad186bc)]:
+  - @curvenote/cli-plugin@0.12.27
+  - @curvenote/common@0.2.24
+
+## 0.12.26
+
+### Patch Changes
+
+- [#739](https://github.com/curvenote/curvenote/pull/739) [`b2e6b1c`](https://github.com/curvenote/curvenote/commit/b2e6b1c2da5532f3c13834e359703f147dcd224d) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Adds a `--skip-build` option to `curvenote submit` to avoid the clean and rebuild step.
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.12.26
+
+## 0.12.25
+
+### Patch Changes
+
+- [#740](https://github.com/curvenote/curvenote/pull/740) [`b632f4f`](https://github.com/curvenote/curvenote/commit/b632f4f091e464e6e9286bebf6206cdc55fb2214) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bumping `mystmd` to `v1.6.6`
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.12.25
+
+## 0.12.24
+
+### Patch Changes
+
+- Updated dependencies [[`4835771`](https://github.com/curvenote/curvenote/commit/4835771d28b0875d5309ec4450142dfdde8578ee)]:
+  - @curvenote/cli-plugin@0.12.24
+
+## 0.12.23
+
+### Patch Changes
+
+- [#734](https://github.com/curvenote/curvenote/pull/734) [`1c8ccb9`](https://github.com/curvenote/curvenote/commit/1c8ccb9ebd80cee00132d44684edd506e15a600c) Thanks [@fwkoch](https://github.com/fwkoch)! - Consume myst@1.6.3
+
+- Updated dependencies [[`1c8ccb9`](https://github.com/curvenote/curvenote/commit/1c8ccb9ebd80cee00132d44684edd506e15a600c)]:
+  - @curvenote/check-implementations@0.0.29
+  - @curvenote/check-definitions@0.0.29
+  - @curvenote/cli-plugin@0.12.23
+  - @curvenote/blocks@1.5.30
+  - @curvenote/common@0.2.23
+
+## 0.12.22
+
+### Patch Changes
+
+- [#732](https://github.com/curvenote/curvenote/pull/732) [`0027ec6`](https://github.com/curvenote/curvenote/commit/0027ec6dc5267a9bdb7d5b896b29c34b21986f21) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Inserted a new question when nested project folders are found on `cn init`
+
+- [#732](https://github.com/curvenote/curvenote/pull/732) [`0027ec6`](https://github.com/curvenote/curvenote/commit/0027ec6dc5267a9bdb7d5b896b29c34b21986f21) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Extended `curvenote init` with template support and new initialization options:
+  - `cn init --github <url>` - Initialize from GitHub repository with interactive questions
+  - `cn init --curvenote <url>` - Initialize from Curvenote project URL
+  - `cn init --write-template` - Generate customizable `template.yml` file
+  - `cn init --improve` - Update existing project by re-answering template questions
+  - `cn init --add-authors <orcid|github>` - Add authors via ORCID or GitHub username lookup
+  - `--output <folder>` option for all init commands
+  - Template system with `people`, `text`, and `list` question types
+  - Compact author YAML output (removes internal `id` and `nameParsed` fields)
+  - GitHub profile scraping for comprehensive author metadata (ORCID, social links, affiliations)
+
+- Updated dependencies [[`87b129a`](https://github.com/curvenote/curvenote/commit/87b129a9af0f6c26aa8a31a680ede5fc66ae8329)]:
+  - @curvenote/common@0.2.22
+  - @curvenote/cli-plugin@0.12.22
+
+## 0.12.21
+
+### Patch Changes
+
+- [#726](https://github.com/curvenote/curvenote/pull/726) [`76425d4`](https://github.com/curvenote/curvenote/commit/76425d43c2ada89222ea832d2ce571cfe6b0b5d0) Thanks [@rowanc1](https://github.com/rowanc1)! - Change from twitter to bluesky for social updates
+
+- [#728](https://github.com/curvenote/curvenote/pull/728) [`0a1025e`](https://github.com/curvenote/curvenote/commit/0a1025e1412f8e850ca2e4ba8d4ebf056cbb45f3) Thanks [@rowanc1](https://github.com/rowanc1)! - Plugins are loaded by default.
+
+- Updated dependencies [[`316cffe`](https://github.com/curvenote/curvenote/commit/316cffecc765e5f1d3abedb9ee0c789c703e3998), [`a651c71`](https://github.com/curvenote/curvenote/commit/a651c71255b95218d416269540062213cea2da78)]:
+  - @curvenote/cli-plugin@0.12.21
+  - @curvenote/common@0.2.21
+
+## 0.12.20
+
+### Patch Changes
+
+- 3775d1c: Enable template download with no token
+  - @curvenote/cli-plugin@0.12.20
+
+## 0.12.19
+
+### Patch Changes
+
+- 4268bce: Upgrade to mystmd 1.5.1
+  - @curvenote/cli-plugin@0.12.19
+
+## 0.12.18
+
+### Patch Changes
+
+- @curvenote/cli-plugin@0.12.18
+
+## 0.12.17
+
+### Patch Changes
+
+- 83bd0c1: Allow works to be pushed to public CDN
+  - @curvenote/cli-plugin@0.12.17
+
+## 0.12.16
+
+### Patch Changes
+
+- 6ceb5c8: Add work push to cli
+- 606b39b: Write source zip to cdn when pushing work
+- 6ceb5c8: Remove content from SiteDTO
+- 6ceb5c8: Consume myst updates to plugin loading
+- 6ceb5c8: Add site init set landing content to cli
+- Updated dependencies [6ceb5c8]
+  - @curvenote/common@0.2.20
+  - @curvenote/cli-plugin@0.12.16
+
 ## 0.12.15
 
 ### Patch Changes

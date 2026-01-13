@@ -1,18 +1,15 @@
 import type { ISession } from '../session/types.js';
-import { keyFromTransferFile, writeKeyToConfig } from './utils.transfer.js';
-import { confirmOrExit, writeJsonLogs, addOxaTransformersToOpts } from '../utils/utils.js';
+import { keyFromTransferFile } from './utils.transfer.js';
+import { confirmOrExit, writeJsonLogs } from '../utils/utils.js';
 import chalk from 'chalk';
-import { postNewCliCheckJob, patchUpdateCliCheckJob, exitOnInvalidKeyOption } from './utils.js';
+import { postNewCliCheckJob, patchUpdateCliCheckJob } from './utils.js';
 import {
-  ensureVenue,
-  checkVenueExists,
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
   createNewSubmission,
   checkForSubmissionKeyInUse,
   determineCollectionAndKind,
   collectionMoniker,
-  promptForNewKey,
   getAllSubmissionsUsingKey,
   getSubmissionToUpdate,
   checkVenueSubmitAccess,
@@ -24,31 +21,18 @@ import { logCheckReport, runChecks } from '../check/index.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import { prepareChecksForSubmission } from './check.js';
-import { getGitRepoInfo } from './utils.git.js';
-import * as uploads from '../uploads/index.js';
-import { workKeyFromConfig } from '../works/utils.js';
+import {
+  exitOnInvalidKeyOption,
+  performCleanRebuild,
+  promptForNewKey,
+  uploadAndGetCdnKey,
+  workKeyFromConfig,
+  writeKeyToConfig,
+} from '../works/utils.js';
 import type { CollectionDTO, SubmissionKindDTO, SubmissionsListItemDTO } from '@curvenote/common';
-import type { GithubSource, SubmitLog, SubmitOpts } from './types.js';
-import { buildSite, clean, collectAllBuildExportOptions, localArticleExport } from 'myst-cli';
-
-export const CDN_KEY_RE =
-  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-export const DEV_CDN_KEY = 'ad7fa60f-5460-4bf9-96ea-59be87944e41';
-
-export async function performCleanRebuild(session: ISession, opts?: SubmitOpts) {
-  session.log.info('\n\n\t✨✨✨  performing a clean re-build of your work  ✨✨✨\n\n');
-  await clean(session, [], { site: true, html: true, temp: true, exports: true, yes: true });
-  const exportOptionsList = await collectAllBuildExportOptions(session, [], { all: true });
-  const exportLogList = exportOptionsList.map((exportOptions) => {
-    return `${path.relative('.', exportOptions.$file)} -> ${exportOptions.output}`;
-  });
-  session.log.info(`📬 Performing exports:\n   ${exportLogList.join('\n   ')}`);
-  await localArticleExport(session, exportOptionsList, {});
-  session.log.info(`⛴  Exports complete`);
-  // Build the files in the content folder and process them
-  await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
-  session.log.info(`✅ Work rebuild complete`);
-}
+import type { SubmitLog, SubmitOpts } from './types.js';
+import { addSourceToLogs } from '../logs/index.js';
+import { checkVenueExists, ensureVenue } from '../sites/utils.js';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: SubmitLog = {
@@ -72,26 +56,22 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   await checkVenueSubmitAccess(session, venue);
   const collections = await getVenueCollections(session, venue);
 
-  let key = workKeyFromConfig(session);
+  // Determine Work key
+  let inputKey = workKeyFromConfig(session);
   // Deprecation step to handle old transfer.yml files
-  key = (await keyFromTransferFile(session, venue, key, opts)) ?? key;
-
-  if (!key) {
-    key = await promptForNewKey(session, opts);
-    await writeKeyToConfig(session, key);
+  inputKey = (await keyFromTransferFile(session, venue, inputKey, opts)) ?? inputKey;
+  if (!inputKey) {
+    inputKey = await promptForNewKey(session, opts);
+    await writeKeyToConfig(session, inputKey);
   }
+  exitOnInvalidKeyOption(session, inputKey);
 
-  exitOnInvalidKeyOption(session, key);
-
-  const gitInfo = await getGitRepoInfo();
-  const source: GithubSource = {
-    repo: gitInfo?.repo,
-    branch: gitInfo?.branch,
-    path: gitInfo?.path,
-    commit: gitInfo?.commit,
-  };
-
+  // Key should not change after this point
+  const key = inputKey;
+  submitLog.key = key;
   session.log.info(`📍 Submitting using key: ${chalk.bold(key)}`);
+
+  await addSourceToLogs(submitLog);
 
   let existing: SubmissionsListItemDTO | undefined;
   // Only check for submissions to update if we are not creating a new draft
@@ -165,8 +145,29 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   //
   // Process local folder and upload stuff
   //
-  await performCleanRebuild(session, opts);
-  session.log.info('🪩  Successfully built your work!');
+  if (opts?.skipRebuild) {
+    session.log.info(
+      chalk.bold.yellow(
+        '\n⚠️  SKIPPING REBUILD - Using existing build artifacts from _build directory\n',
+      ),
+    );
+    // Validate that build artifacts exist
+    const sitePath = path.join(session.buildPath(), 'site');
+    const configPath = path.join(sitePath, 'config.json');
+    if (!fs.existsSync(sitePath) || !fs.existsSync(configPath)) {
+      session.log.error(
+        chalk.bold.red(`\n⛔️ Cannot skip rebuild - no existing build found at "${sitePath}"\n`),
+      );
+      session.log.info(
+        'Please run without --skip-rebuild to build your work first, or run "curvenote build --all" separately.',
+      );
+      process.exit(1);
+    }
+    session.log.info(`✅ Existing build validated at ${sitePath}`);
+  } else {
+    await performCleanRebuild(session, opts);
+    session.log.info('🪩  Successfully built your work!');
+  }
 
   //
   // run checks
@@ -201,7 +202,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       site: venue,
       collection,
       kind,
-      source,
+      source: submitLog.source ?? {},
       key,
     },
     {
@@ -219,15 +220,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     });
 
     const cdn = opts?.draft ? session.config.tempCdnUrl : session.config.privateCdnUrl;
-    let cdnKey: string;
-    if (!process.env.DEV_CDN || process.env.DEV_CDN === 'false') {
-      const uploadResult = await uploads.uploadToCdn(session, cdn, opts);
-      cdnKey = uploadResult.cdnKey;
-    } else if (process.env.DEV_CDN.match(CDN_KEY_RE)) {
-      cdnKey = process.env.DEV_CDN;
-    } else {
-      cdnKey = DEV_CDN_KEY;
-    }
+    const cdnKey = await uploadAndGetCdnKey(session, cdn, opts);
     session.log.info(`🚀 ${chalk.bold.green(`Content uploaded with key ${cdnKey}`)}.`);
     job = await patchUpdateCliCheckJob(
       session,
@@ -292,10 +285,8 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
       workVersionId: submitLog.workVersion?.id,
     });
 
-    submitLog.key = key;
     submitLog.venue = venue;
     submitLog.kind = kind;
-    submitLog.source = source;
     submitLog.report = report;
     submitLog.job = job;
     submitLog.buildUrl = buildUrl;

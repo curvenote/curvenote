@@ -14,7 +14,6 @@ import {
 } from '../tokens.js';
 import { formatDate } from '../../submissions/utils.js';
 import { showActiveTokenRecord } from './showCurrentTokenRecord.js';
-import { get } from 'http';
 
 export * from './checkUserTokenStatus.js';
 export * from './setUserToken.js';

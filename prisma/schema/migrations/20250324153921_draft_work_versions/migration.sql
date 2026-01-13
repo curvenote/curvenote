@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "WorkVersion" ADD COLUMN     "draft" BOOLEAN NOT NULL DEFAULT false,
+ALTER COLUMN "cdn" DROP NOT NULL,
+ALTER COLUMN "cdn_key" DROP NOT NULL;

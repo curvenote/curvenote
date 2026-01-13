@@ -9,6 +9,7 @@ import {
   makeVenueOption,
   makeCollectionOption,
   makeNewOption,
+  makeSkipRebuildOption,
 } from './options.js';
 import { submissions } from '@curvenote/cli';
 
@@ -23,6 +24,7 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeYesOption())
     .addOption(makeResumeOption())
     .addOption(makeMaxSizeWebpOption(3))
+    .addOption(makeSkipRebuildOption())
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }
