@@ -50,6 +50,10 @@ interface InviteUserDialogProps {
    * Optional additional context to include in the request
    */
   context?: Record<string, string>;
+  /**
+   * Optional initial email address to pre-fill in the email field
+   */
+  initialEmail?: string;
 }
 
 const MAX_MESSAGE_LENGTH = 2000;
@@ -75,6 +79,7 @@ export function InviteUserDialog({
   platformName = 'the workspace',
   intent = 'invite-new-user',
   context,
+  initialEmail,
 }: InviteUserDialogProps) {
   // Use a unique fetcher key to isolate this fetcher
   const fetcherKey = `invite-user-${actionUrl || 'default'}`;
@@ -136,14 +141,18 @@ export function InviteUserDialog({
   }, [fetcher.state, fetcher.data]);
 
   // Reset success state and handled response ref when dialog closes
+  // Also set initial email when dialog opens
   useEffect(() => {
     if (!open) {
       setShowSuccess(false);
       setEmail('');
       setMessage('');
       handledResponseRef.current = null;
+    } else if (initialEmail) {
+      // Pre-fill email when dialog opens with initialEmail
+      setEmail(initialEmail);
     }
-  }, [open]);
+  }, [open, initialEmail]);
 
   const handleSubmit = () => {
     const trimmedEmail = email.trim();
@@ -214,7 +223,7 @@ export function InviteUserDialog({
         footerButtons={[{ label: 'Close', onClick: handleSuccessClose }]}
       >
         <div className="flex flex-col items-center py-6">
-          <CircleCheck className="w-16 h-16 mb-4 text-green-600" />
+          <CircleCheck className="mb-4 w-16 h-16 text-green-600" />
           <h2 className="text-lg font-semibold leading-none text-center">Invitation Sent</h2>
           <p className="mt-2 text-base text-center text-muted-foreground">{successMessage}</p>
         </div>
