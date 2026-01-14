@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms-core",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.13.2",
   "description": "Core library for Curvenote SCMS applications",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",
