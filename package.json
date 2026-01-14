@@ -19,7 +19,7 @@
     "dev:db:migrate": "npx prisma migrate dev --schema=./prisma/schema",
     "test:db:reset": "dotenv -e .env.test -- npx prisma db push --force-reset --schema=./prisma/schema; dotenv -e .env.test -- tsx prisma/seed.test.mts",
     "config": "npx @app-config/cli@2 generate",
-    "build": "npm run config && turbo run build",
+    "build": "npm run config && turbo run build --filter='!@curvenote/scms'",
     "build:scms": "cd platform/scms && npm run build",
     "build:web": "turbo run build --filter=@curvespace/default",
     "dev:all": "turbo run dev --parallel",
