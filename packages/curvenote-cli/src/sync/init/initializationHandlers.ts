@@ -8,7 +8,11 @@ import type { ProjectConfig } from 'myst-config';
 import type { ISession } from '../../session/types.js';
 import { interactiveCloneQuestions } from '../clone.js';
 import questions from '../questions.js';
-import { getDefaultProjectConfig, normalizeGithubUrl } from '../utils.js';
+import {
+  getDefaultProjectConfig,
+  normalizeGithubUrl,
+  generateNewValidatedWorkKey,
+} from '../utils.js';
 import type { Options } from './types.js';
 import {
   DEFAULT_TEMPLATE_INIT_QUESTIONS,
@@ -241,7 +245,7 @@ export async function handleGithubImport(
 
   // Always generate a new UUID for the project ID (don't reuse template's ID)
   if (projectConfig) {
-    const newUuid = uuid();
+    const newUuid = await generateNewValidatedWorkKey(session);
     let newId: string;
 
     if (projectConfig.id) {
