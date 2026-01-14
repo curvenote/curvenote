@@ -53,6 +53,7 @@ model Site {
   ApiEvent            ApiEvent[]
   analyticsDashboards AnalyticsDashboard[]
   access              Access[]
+  forms               SubmissionForm[]
 }
 
 model Domain {

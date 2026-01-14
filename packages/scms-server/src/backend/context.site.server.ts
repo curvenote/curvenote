@@ -176,7 +176,8 @@ export function addPublicSiteRoles(user: MyUserDBO, site: SiteDBO) {
 /**
  * Context wrapper for /app/sites endpoints in the Remix app
  *
- * Validates the user is defined and has correctly scoped access to the site
+ * Validates the user is defined and has correctly scoped access to the site.
+ * If multiple scopes are provided, the user must have at least one of the scopes.
  */
 export async function withAppSiteContext<T extends LoaderFunctionArgs | ActionFunctionArgs>(
   args: T,
