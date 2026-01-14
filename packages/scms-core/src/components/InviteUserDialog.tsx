@@ -149,10 +149,11 @@ export function InviteUserDialog({
       setMessage('');
       handledResponseRef.current = null;
     } else if (initialEmail) {
-      // Pre-fill email when dialog opens with initialEmail
+      // Pre-fill email when dialog opens
+      // initialEmail is not in dependencies, so changes to it won't overwrite user input
       setEmail(initialEmail);
     }
-  }, [open, initialEmail]);
+  }, [open]);
 
   const handleSubmit = () => {
     const trimmedEmail = email.trim();
