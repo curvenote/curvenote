@@ -25,7 +25,11 @@ export const OUTBOUND_EMAIL_PAYLOAD_SCHEMA = {
       type: ['string', 'null'],
       description: 'Resend API message ID if available, null otherwise',
     },
-    sentAt: { type: 'string', format: 'date-time', description: 'ISO timestamp when email was sent' },
+    sentAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'ISO timestamp when email was sent',
+    },
   },
   required: ['eventType', 'to', 'from', 'subject', 'sentAt'],
 };
