@@ -87,8 +87,14 @@ export default function SystemMessagesPage({ loaderData }: Route.ComponentProps)
               </Link>
             </div>
             <div>
-              {message.type === 'outbound_email' ? 'To' : 'From'}: {from}
-              {to && message.type === 'outbound_email' && ` → ${to}`}
+              {message.type === 'outbound_email' ? (
+                <>
+                  To: {to || 'Unknown'}
+                  {from && ` (From: ${from})`}
+                </>
+              ) : (
+                <>From: {from}</>
+              )}
             </div>
             {date && (
               <div>
