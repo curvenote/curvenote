@@ -2,8 +2,8 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { join, resolve, basename } from 'node:path';
 import fs from 'node:fs';
-import { v4 as uuid } from 'uuid';
-import { loadProjectFromDisk, selectors, loadConfig } from 'myst-cli';
+import yaml from 'js-yaml';
+import { loadProjectFromDisk } from 'myst-cli';
 import type { ProjectConfig } from 'myst-config';
 import type { ISession } from '../../session/types.js';
 import { interactiveCloneQuestions } from '../clone.js';
@@ -205,16 +205,19 @@ export async function handleGithubImport(
   let title: string | undefined;
 
   if (configPath) {
-    // Load and validate the configuration
+    // Load raw YAML file directly (no expansion, no validation)
     try {
       session.log.info(`📖 Loading project configuration...`);
-      await loadConfig(session, targetPath);
-      const state = session.store.getState();
-      projectConfig = selectors.selectLocalProjectConfig(state, targetPath);
+      const rawYamlContent = fs.readFileSync(configPath, 'utf-8');
+      const rawConfig = yaml.load(rawYamlContent) as Record<string, any>;
 
-      if (projectConfig) {
-        title = projectConfig.title;
-        session.log.info(chalk.green(`✓ Project configuration loaded: ${chalk.bold(title)}`));
+      // Extract project config directly from the project key
+      if (rawConfig?.project) {
+        projectConfig = rawConfig.project as ProjectConfig;
+        if (projectConfig) {
+          title = projectConfig.title;
+          session.log.info(chalk.green(`✓ Project configuration loaded: ${chalk.bold(title)}`));
+        }
       }
     } catch (error) {
       session.log.warn(
@@ -230,17 +233,12 @@ export async function handleGithubImport(
     );
   }
 
-  // If no valid config was found, try to load project from disk content
+  // If no valid config was found, create a default one
   if (!projectConfig) {
-    try {
-      await loadProjectFromDisk(session, targetPath);
-      session.log.info(`📓 Creating project config from repository content`);
-      const repoTitle = repoName.replace(/-/g, ' ').replace(/_/g, ' ');
-      projectConfig = await getDefaultProjectConfig(repoTitle);
-      title = repoTitle;
-    } catch (error) {
-      session.log.debug(`Could not load project from disk: ${(error as Error).message}`);
-    }
+    session.log.info(`📓 Creating project config from repository content`);
+    const repoTitle = repoName.replace(/-/g, ' ').replace(/_/g, ' ');
+    projectConfig = await getDefaultProjectConfig(repoTitle);
+    title = repoTitle;
   }
 
   // Always generate a new UUID for the project ID (don't reuse template's ID)
