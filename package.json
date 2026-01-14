@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "prepare": "husky",
+    "preinstall": "rm -f ./platform/scms/package.json",
     "postinstall": "npm run prisma:generate && npm run generate:extensions",
     "prisma:generate": "npx prisma generate --schema=./prisma/schema",
     "generate:extensions": "node platform/scms/scripts/generate-extensions.js",
