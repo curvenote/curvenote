@@ -32,11 +32,7 @@ export function extractMessageEmailData(
   const hasPayloadSchema = payload?.$schema;
   const hasResultsSchema = results?.$schema;
 
-  const {
-    fallbackTo = undefined,
-    fallbackDate = undefined,
-    fallbackBody = undefined,
-  } = options;
+  const { fallbackTo = undefined, fallbackDate = undefined, fallbackBody = undefined } = options;
 
   // Determine if we should use structured data from payload or results (if schema exists)
   let subject: string;
