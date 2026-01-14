@@ -81,7 +81,13 @@ export function extractMessageEmailData(
     from = payload?.headers?.from || payload?.envelope?.from || payload?.from || 'Unknown';
     to = payload?.headers?.to || payload?.envelope?.to || payload?.to;
     date = payload?.headers?.date || payload?.envelope?.date || payload?.date;
-    body = payload?.plain || payload?.html || payload;
+    // Ensure body is always a string or undefined, never an object
+    const plainOrHtml = payload?.plain || payload?.html;
+    if (plainOrHtml && typeof plainOrHtml === 'string') {
+      body = plainOrHtml;
+    } else {
+      body = fallbackBody;
+    }
   }
 
   return {
