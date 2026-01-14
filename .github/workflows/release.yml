@@ -45,8 +45,8 @@ jobs:
         with:
           version: npm run version
           publish: npm run publish:ci
-          commit: 🚀 Release
-          title: 🚀 Release
+          commit: 🚀 Version Packages
+          title: 🚀 Version Packages
           createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
