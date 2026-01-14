@@ -63,6 +63,18 @@ describe('root', () => {
       });
     });
 
+    test('should preserve beta property when present', async () => {
+      expect(
+        await buildClientNavigation(MockEmptyContext, [
+          { name: 'home', label: 'Home', icon: 'home', path: '/' },
+          { name: 'beta-feature', label: 'Beta Feature', icon: 'flask', path: '/beta', beta: true },
+        ]),
+      ).toEqual([
+        { name: 'home', label: 'Home', icon: 'home', path: '/' },
+        { name: 'beta-feature', label: 'Beta Feature', icon: 'flask', path: '/beta', beta: true },
+      ]);
+    });
+
     test('should filter out System Admin navigation items when user dos not have ADMIN system_role', async () => {
       const contextWithoutAdmin = {
         scopes: [''],
