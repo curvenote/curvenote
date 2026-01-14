@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { PageFrame, ui, primitives, formatDatetime } from '@curvenote/scms-core';
 import { withAppPlatformAdminContext, dbGetMessage } from '@curvenote/scms-server';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { extractMessageEmailData } from '../platform.messages/message-utils';
 
 export const meta: Route.MetaFunction = () => {
   return [
@@ -66,7 +67,7 @@ function JsonDisplay({ title, data, defaultExpanded = false }: JsonDisplayProps)
     <primitives.Card className="p-4">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center w-full gap-2 text-left"
+        className="flex gap-2 items-center w-full text-left"
       >
         {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
         <h3 className="text-lg font-semibold">{title}</h3>
@@ -74,7 +75,7 @@ function JsonDisplay({ title, data, defaultExpanded = false }: JsonDisplayProps)
 
       {isExpanded && (
         <div className="mt-4">
-          <pre className="p-4 overflow-auto text-sm rounded-md bg-gray-50 dark:bg-gray-800">
+          <pre className="overflow-auto p-4 text-sm bg-gray-50 rounded-md dark:bg-gray-800">
             {JSON.stringify(data, null, 2)}
           </pre>
         </div>
@@ -85,34 +86,45 @@ function JsonDisplay({ title, data, defaultExpanded = false }: JsonDisplayProps)
 
 export default function MessageDetailPage({ loaderData }: Route.ComponentProps) {
   const { message } = loaderData;
-  // TODO type this as it is standard for email payloads
-  const payload = message.payload;
+  const payload = message.payload as any;
+  const results = message.results as any;
+  const hasPayloadSchema = payload?.$schema;
+  const hasResultsSchema = results?.$schema;
+
+  // Extract email data using shared utility
+  const { subject, from, to, date, body } = extractMessageEmailData(message, {
+    fallbackTo: 'Unknown',
+    fallbackDate: 'Unknown',
+    fallbackBody: 'Unknown',
+  });
 
   const breadcrumbs = [
     { label: 'Platform Messages', href: '/app/platform/messages' },
     { label: message.id, isCurrentPage: true },
   ];
-  const date = payload.headers?.date ?? payload.envelope?.date ?? payload.date;
 
   return (
     <PageFrame
       title="Message Details"
       description={`Details for message ${message.id}`}
-      className="max-w-screen-lg mx-auto"
+      className="mx-auto max-w-screen-lg"
       breadcrumbs={breadcrumbs}
     >
       <div className="space-y-6">
         {/* Message Overview */}
         <primitives.Card className="p-6">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex justify-between items-start mb-4">
             <div>
-              <h2 className="text-2xl font-bold">
-                {payload.headers?.subject ?? payload.subject ?? message.id}
-              </h2>
+              <h2 className="text-2xl font-bold">{subject}</h2>
               <div>
-                from: {payload.headers?.from ?? payload.envelope?.from ?? payload.from ?? 'Unknown'}
+                {message.type === 'outbound_email' ? 'To' : 'From'}: {from}
+                {to && message.type === 'outbound_email' && ` → ${to}`}
               </div>
-              {date && <div>date: {date}</div>}
+              {date && (
+                <div>
+                  {message.type === 'outbound_email' ? 'Sent' : 'Received'}: {formatDatetime(date)}
+                </div>
+              )}
               <div className="flex gap-2 mt-2">
                 <ui.Badge variant="outline">{message.module}</ui.Badge>
                 <ui.Badge variant="outline">{message.type}</ui.Badge>
@@ -121,28 +133,49 @@ export default function MessageDetailPage({ loaderData }: Route.ComponentProps) 
             </div>
             <div className="text-sm text-right text-gray-600 dark:text-gray-400">
               <div>
-                <strong>Received:</strong> {formatDatetime(message.date_created)}
+                <strong>{message.type === 'outbound_email' ? 'Created' : 'Received'}:</strong>{' '}
+                {formatDatetime(message.date_created)}
               </div>
               <div>
                 <strong>Modified:</strong> {formatDatetime(message.date_modified)}
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-200 dark:border-gray-700">
-            <div className="my-2 -ml-2 text-xs font-medium">Message Body:</div>
-            <div className="font-mono text-sm whitespace-pre-wrap">
-              {payload.plain ?? 'No plain text body'}
+          {body && (
+            <div className="border-t border-gray-200 dark:border-gray-700">
+              <div className="my-2 -ml-2 text-xs font-medium">Message Body:</div>
+              <div className="font-mono text-sm whitespace-pre-wrap">{body}</div>
             </div>
-          </div>
+          )}
         </primitives.Card>
 
-        {/* Processing Results */}
-        {message.results && (
-          <JsonDisplay title="Processing Results" data={message.results} defaultExpanded={true} />
+        {/* Structured Results (if schema exists) */}
+        {hasResultsSchema && results && (
+          <JsonDisplay
+            title="Structured Results (with schema)"
+            data={results}
+            defaultExpanded={true}
+          />
         )}
 
-        {/* Raw Payload */}
-        <JsonDisplay title="Raw Payload" data={message.payload} />
+        {/* Processing Results (for backward compatibility with existing messages without schema) */}
+        {message.results && !hasResultsSchema && (
+          <JsonDisplay title="Processing Results" data={message.results} defaultExpanded={false} />
+        )}
+
+        {/* Structured Payload (if schema exists) */}
+        {hasPayloadSchema && payload && (
+          <JsonDisplay
+            title="Structured Payload (with schema)"
+            data={payload}
+            defaultExpanded={false}
+          />
+        )}
+
+        {/* Raw Payload (for backward compatibility or when no schema) */}
+        {(!hasPayloadSchema || !hasResultsSchema) && (
+          <JsonDisplay title="Raw Payload" data={message.payload} />
+        )}
 
         {/* Actions */}
         <div className="flex gap-4">

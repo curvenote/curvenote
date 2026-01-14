@@ -324,6 +324,7 @@ export class Context implements ContextType {
   async sendEmail<T extends ResendEventType, P extends object>(
     email: TemplatedResendEmail<T, P>,
     extensionTemplates?: ExtensionEmailTemplate[],
+    module?: string,
   ) {
     if (!email.ignoreUnsubscribe && !!(await dbGetUnsubscribedEmail(email.to))) {
       console.log(`Not sending to unsubscribed email: ${email.to}`);
@@ -347,12 +348,14 @@ export class Context implements ContextType {
         resendConfig: this.$config.api?.resend,
       },
       extensionTemplates,
+      module,
     );
   }
 
   async sendEmailBatch<T extends ResendEventType, P extends object>(
     emails: TemplatedResendEmail<T, P>[],
     extensionTemplates?: ExtensionEmailTemplate[],
+    module?: string,
   ) {
     const emailBatch = (
       await Promise.all(
@@ -382,6 +385,7 @@ export class Context implements ContextType {
         resendConfig: this.$config.api?.resend,
       },
       extensionTemplates,
+      module,
     );
   }
 
