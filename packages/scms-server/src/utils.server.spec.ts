@@ -33,13 +33,19 @@ const MockEmptyContext = { scopes: [] as string[], user: { system_role: 'USER' }
 describe('root', () => {
   describe('buildClientNavigation', () => {
     test('should return empty array when no navigation is provided', async () => {
-      expect(await buildClientNavigation(MockEmptyContext)).toEqual([]);
+      expect(await buildClientNavigation(MockEmptyContext)).toEqual({
+        items: [],
+      });
     });
     test('should return empty array when navigation is empty', async () => {
-      expect(await buildClientNavigation(MockEmptyContext)).toEqual([]);
+      expect(await buildClientNavigation(MockEmptyContext)).toEqual({
+        items: [],
+      });
     });
     test('should return empty array when no user is defined', async () => {
-      expect(await buildClientNavigation({ scopes: [] as string[] } as Context)).toEqual([]);
+      expect(await buildClientNavigation({ scopes: [] as string[] } as Context)).toEqual({
+        items: [],
+      });
     });
     test('should allow pass through of simple options', async () => {
       expect(
@@ -151,7 +157,7 @@ describe('root', () => {
       });
     });
 
-    test('should filter our navigation items when user does not have the required scope', async () => {
+    test('should filter out navigation items when user does not have the required scope', async () => {
       const contextWithAdmin = {
         scopes: [''],
         user: {
@@ -174,16 +180,7 @@ describe('root', () => {
           ],
         }),
       ).toEqual({
-        items: [
-          { name: 'home', label: 'Home', icon: 'home', path: '/' },
-          {
-            name: 'platform',
-            label: 'Platform Admin',
-            icon: 'settings',
-            path: '/platform',
-            scopes: ['app:platform:admin'],
-          },
-        ],
+        items: [{ name: 'home', label: 'Home', icon: 'home', path: '/' }],
       });
     });
 
@@ -271,7 +268,7 @@ describe('root', () => {
             },
           ],
         }),
-      ).toEqual([]);
+      ).toEqual({ items: [] });
     });
 
     test('should filter navigation item when user is missing one of multiple required scopes', async () => {

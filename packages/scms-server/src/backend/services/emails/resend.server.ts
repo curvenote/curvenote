@@ -7,6 +7,9 @@ import type {
   ExtensionEmailTemplate,
 } from '@curvenote/scms-core';
 import { baseEmailTemplates, registerExtensionEmailTemplates } from '@curvenote/scms-core';
+import { getPrismaClient } from '../../prisma.server.js';
+import { uuidv7 } from 'uuidv7';
+import { OUTBOUND_EMAIL_PAYLOAD_SCHEMA, OUTBOUND_EMAIL_RESULTS_SCHEMA } from './message-schemas.js';
 
 export async function renderEmailTemplate(
   eventType: ResendEventType,
@@ -52,10 +55,117 @@ export function getResend(resendConfig?: ResendConfig) {
   return new Resend(resendConfig.apiKey);
 }
 
+/**
+ * Logs an outbound email to the messages table
+ */
+async function logEmailToMessages(
+  email: ResendEmail,
+  from: string,
+  resendId: string | undefined,
+  module?: string,
+) {
+  try {
+    const prisma = await getPrismaClient();
+    const now = new Date().toISOString();
+
+    const payload = {
+      $schema: OUTBOUND_EMAIL_PAYLOAD_SCHEMA,
+      eventType: email.eventType,
+      to: email.to,
+      from,
+      subject: email.subject,
+      html: email.html,
+      ignoreUnsubscribe: email.ignoreUnsubscribe,
+      resendId: resendId || null,
+      sentAt: now,
+    };
+
+    const results = {
+      $schema: OUTBOUND_EMAIL_RESULTS_SCHEMA,
+      status: 'SUCCESS',
+      resendId: resendId || null,
+      sentAt: now,
+    };
+
+    await prisma.message.create({
+      data: {
+        id: uuidv7(),
+        date_created: now,
+        date_modified: now,
+        module: module || 'SCMS',
+        type: 'outbound_email',
+        status: 'SUCCESS',
+        payload,
+        results,
+      },
+    });
+  } catch (error) {
+    // Don't fail email send if logging fails
+    console.error('Failed to log email to messages table:', error);
+  }
+}
+
+/**
+ * Logs multiple outbound emails to the messages table in a single transaction using createMany
+ */
+async function batchLogEmailToMessages(
+  emails: Array<{
+    email: ResendEmail;
+    from: string;
+    resendId: string | undefined;
+    module?: string;
+  }>,
+) {
+  try {
+    const prisma = await getPrismaClient();
+    const now = new Date().toISOString();
+
+    const messageData = emails.map(({ email, from, resendId, module }) => {
+      const payload = {
+        $schema: OUTBOUND_EMAIL_PAYLOAD_SCHEMA,
+        eventType: email.eventType,
+        to: email.to,
+        from,
+        subject: email.subject,
+        html: email.html,
+        ignoreUnsubscribe: email.ignoreUnsubscribe,
+        resendId: resendId || null,
+        sentAt: now,
+      };
+
+      const results = {
+        $schema: OUTBOUND_EMAIL_RESULTS_SCHEMA,
+        status: 'SUCCESS',
+        resendId: resendId || null,
+        sentAt: now,
+      };
+
+      return {
+        id: uuidv7(),
+        date_created: now,
+        date_modified: now,
+        module: module || 'SCMS',
+        type: 'outbound_email',
+        status: 'SUCCESS',
+        payload,
+        results,
+      };
+    });
+
+    await prisma.message.createMany({
+      data: messageData,
+    });
+  } catch (error) {
+    // Don't fail email send if logging fails
+    console.error('Failed to batch log emails to messages table:', error);
+  }
+}
+
 export async function $sendRawEmail(
   email: ResendEmail,
   defaultProps: DefaultEmailProps,
   context: ResendContext,
+  module?: string,
 ) {
   const { resend, resendConfig } = context;
   console.log('Resend email:', {
@@ -106,6 +216,8 @@ export async function $sendRawEmail(
       console.error('Failed to send Resend email:', error);
     } else {
       console.log('Resend email sent successfully:', data?.id);
+      // Log successful email send to messages table
+      await logEmailToMessages(email, from, data?.id, module);
     }
   } catch (error) {
     console.error('Error sending Resend email:', error);
@@ -120,6 +232,7 @@ export async function $sendEmail<T extends ResendEventType, P extends object>(
   defaultProps: DefaultEmailProps,
   context: ResendContext,
   extensionTemplates?: ExtensionEmailTemplate[],
+  module?: string,
 ) {
   const html = await renderEmailTemplate(
     email.eventType,
@@ -138,6 +251,7 @@ export async function $sendEmail<T extends ResendEventType, P extends object>(
     },
     defaultProps,
     context,
+    module,
   );
 }
 
@@ -147,6 +261,7 @@ export async function $sendEmail<T extends ResendEventType, P extends object>(
 export async function $sendRawEmailBatch(
   batch: { email: ResendEmail; defaultProps: DefaultEmailProps }[],
   context: ResendContext,
+  module?: string,
 ) {
   console.log('Resend email batch:', {
     emailCount: batch.length,
@@ -204,6 +319,26 @@ export async function $sendRawEmailBatch(
         'Resend emails sent successfully:',
         data?.data?.map(({ id }) => id),
       );
+      // Log successful email sends to messages table in a single transaction
+      if (data?.data) {
+        const emailsToLog = data.data
+          .map((result, index) => {
+            if (result.id && index < batch.length) {
+              return {
+                email: batch[index].email,
+                from,
+                resendId: result.id,
+                module,
+              };
+            }
+            return null;
+          })
+          .filter((item): item is NonNullable<typeof item> => item !== null);
+
+        if (emailsToLog.length > 0) {
+          await batchLogEmailToMessages(emailsToLog);
+        }
+      }
     }
   } catch (error) {
     console.error('Error sending Resend email:', error);
@@ -220,6 +355,7 @@ export async function $sendEmailBatch<T extends ResendEventType, P extends objec
   }[],
   context: ResendContext,
   extensionTemplates?: ExtensionEmailTemplate[],
+  module?: string,
 ) {
   const emailBatch = await Promise.all(
     batch.map(async ({ email, defaultProps }) => {
@@ -242,5 +378,5 @@ export async function $sendEmailBatch<T extends ResendEventType, P extends objec
     }),
   );
 
-  await $sendRawEmailBatch(emailBatch, context);
+  await $sendRawEmailBatch(emailBatch, context, module);
 }
