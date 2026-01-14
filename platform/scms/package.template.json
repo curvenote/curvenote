@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms",
   "private": true,
-  "version": "0.13.1",
+  "version": "0.13.2",
   "description": "Curvenote SCMS application and API",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",

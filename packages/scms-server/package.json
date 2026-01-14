@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms-server",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.13.2",
   "description": "Server-side library for Curvenote SCMS applications",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",
@@ -52,7 +52,7 @@
     "@curvenote/cdn": "^0.2.23",
     "@curvenote/check-definitions": "^0.0.29",
     "@curvenote/common": "^0.2.23",
-    "@curvenote/scms-core": "0.0.1",
+    "@curvenote/scms-core": "0.13.2",
     "@curvenote/remix-auth-google": "^3.0.0",
     "@curvenote/remix-auth-okta": "^3.0.0",
     "@google-cloud/pubsub": "^5.2.0",
