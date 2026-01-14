@@ -74,6 +74,7 @@ export interface ClientFilterableListProps<T> {
   // States
   filters: FilterDefinition[]; // Filter definitions for auto-building defaults and filter behavior
   persist?: boolean; // Optional: keep URL params in sync and persist filter state in memory across navigation (default: false)
+  reactive?: boolean; // Optional: react to external URL changes (e.g., from setSearchParams in other components) (default: false)
   error?: string;
   emptyMessage?: string;
   className?: string;
@@ -99,6 +100,7 @@ export function ClientFilterableList<T>({
   loadingComponent,
   filters,
   persist = false,
+  reactive = false,
 }: ClientFilterableListProps<T>) {
   // Get search params from Remix (works on both server and client)
   const [searchParams] = useSearchParams();
@@ -128,7 +130,34 @@ export function ClientFilterableList<T>({
   const [searchTerm, setSearchTerm] = useState(initialState.search);
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>(initialState.filters);
 
+  // Sync state from URL when searchParams change externally (e.g., from another component)
+  // This makes the component reactive to URL changes triggered by setSearchParams elsewhere
+  // Only active when reactive={true}
+  useEffect(() => {
+    if (persist) {
+      const urlState = getInitialStateFromURL(effectiveDefaultFilters, '', searchParams);
+      const stateKey = typeof window !== 'undefined' ? window.location.pathname : 'default';
+
+      // Only update if URL state differs from current state (avoid loops)
+      // Use JSON.stringify for deep comparison of filters object
+      const urlFiltersString = JSON.stringify(urlState.filters);
+      const currentFiltersString = JSON.stringify(activeFilters);
+      const filtersDiffer = urlFiltersString !== currentFiltersString;
+      const searchDiffers = urlState.search !== searchTerm;
+
+      if (reactive && (filtersDiffer || searchDiffers)) {
+        // URL was changed externally (e.g., by ComplianceStatus component)
+        // Clear memory state for this path so URL takes precedence
+        globalFilterState.delete(stateKey);
+        setActiveFilters(urlState.filters);
+        setSearchTerm(urlState.search);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.toString(), persist, reactive, effectiveDefaultFilters]); // Use searchParams.toString() to detect changes
+
   // Sync URL when activeFilters or searchTerm change (if persist=true)
+  // Note: This uses window.history.replaceState which doesn't trigger searchParams changes
   useEffect(() => {
     if (persist) {
       updateURLWithState(activeFilters, searchTerm);
