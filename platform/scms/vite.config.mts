@@ -296,18 +296,35 @@ export default defineConfig(async ({ mode }) => {
     build: {
       rollupOptions: {
         // plugins: [builtinsPlugin],
-        external: [
-          '@google-cloud/storage',
-          'jwa',
-          'jsonwebtoken',
-          'jose',
-          'gtoken',
-          'google-gax',
-          'google-auth-library',
-          'firebase-admin',
-          'crypto',
-          '@curvenote/scms-server',
-        ],
+        external: (id) => {
+          // External packages that should not be bundled
+          const externalPackages = [
+            '@google-cloud/storage',
+            'jwa',
+            'jsonwebtoken',
+            'jose',
+            'gtoken',
+            'google-gax',
+            'google-auth-library',
+            'firebase-admin',
+            'crypto',
+            '@curvenote/scms-server',
+            '@prisma/client',
+          ];
+          
+          // Check exact matches
+          if (externalPackages.includes(id)) {
+            return true;
+          }
+          
+          // Prisma client uses relative imports like .prisma/client/default
+          // that don't work in bundled code - mark as external
+          if (id.startsWith('.prisma/client')) {
+            return true;
+          }
+          
+          return false;
+        },
         onwarn(warning, warn) {
           // Suppress sourcemap warnings from node_modules packages
           // These occur when packages include sourcemap references but don't include source files
