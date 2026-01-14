@@ -52,11 +52,11 @@ export function extractMessageEmailData(
       body = payload.html;
     } else {
       // Fallback to payload (backward compatibility for records without schema)
-      subject = payload.subject || 'No subject';
-      from = payload.from || 'Unknown';
-      to = payload.to || fallbackTo;
-      date = payload.sentAt || fallbackDate;
-      body = payload.html || fallbackBody;
+      subject = payload?.subject || 'No subject';
+      from = payload?.from || 'Unknown';
+      to = payload?.to || fallbackTo;
+      date = payload?.sentAt || fallbackDate;
+      body = payload?.html || fallbackBody;
     }
   } else if (message.type === 'inbound_email') {
     // Inbound email - results has structured data, payload is unknown structure
@@ -69,19 +69,19 @@ export function extractMessageEmailData(
       body = results.plain || results.html;
     } else {
       // Fallback to payload (backward compatibility for existing records)
-      subject = payload.headers?.subject || payload.subject || 'No subject';
-      from = payload.headers?.from || payload.envelope?.from || payload.from || 'Unknown';
-      to = payload.headers?.to || payload.envelope?.to || payload.to;
-      date = payload.headers?.date || payload.envelope?.date || payload.date;
-      body = payload.plain || payload.html;
+      subject = payload?.headers?.subject || payload?.subject || 'No subject';
+      from = payload?.headers?.from || payload?.envelope?.from || payload?.from || 'Unknown';
+      to = payload?.headers?.to || payload?.envelope?.to || payload?.to;
+      date = payload?.headers?.date || payload?.envelope?.date || payload?.date;
+      body = payload?.plain || payload?.html;
     }
   } else {
     // Other message types - use payload
-    subject = payload.headers?.subject || payload.subject || message.id;
-    from = payload.headers?.from || payload.envelope?.from || payload.from || 'Unknown';
-    to = payload.headers?.to || payload.envelope?.to || payload.to;
-    date = payload.headers?.date || payload.envelope?.date || payload.date;
-    body = payload.plain || payload.html || payload;
+    subject = payload?.headers?.subject || payload?.subject || message.id;
+    from = payload?.headers?.from || payload?.envelope?.from || payload?.from || 'Unknown';
+    to = payload?.headers?.to || payload?.envelope?.to || payload?.to;
+    date = payload?.headers?.date || payload?.envelope?.date || payload?.date;
+    body = payload?.plain || payload?.html || payload;
   }
 
   return {
