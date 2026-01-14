@@ -18,7 +18,7 @@
     "../../extensions/*/packages/*"
   ],
   "scripts": {
-    "postinstall": "npm run prisma:generate",
+    "postinstall": "rm -rf ./node_modules/.prisma && ln -sfn ../../../node_modules/.prisma ./node_modules/.prisma",
     "prisma:generate": "npx prisma generate --schema=../../prisma/schema",
     "prisma:format": "npx prisma format --schema=../../prisma/schema",
     "db:studio": "prisma studio --schema=../../prisma/schema/",
@@ -125,8 +125,8 @@
     "@curvenote/common": "^0.2.23",
     "@curvenote/icons": "^0.0.4",
     "@curvenote/remix-auth-okta": "^3.0.0",
-    "@curvenote/scms-core": "0.0.1",
-    "@curvenote/scms-server": "0.0.1",
+    "@curvenote/scms-core": "^0.13.2",
+    "@curvenote/scms-server": "^0.13.2",
     "@headlessui/tailwindcss": "^0.2.1",
     "@heroicons/react": "^2.2.0",
     "@myst-theme/providers": "^0.17.1",
