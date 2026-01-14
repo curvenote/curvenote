@@ -33,7 +33,7 @@
     "test:scms": "cd platform/scms && npm run test:unit",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
-    "version": "changeset version && npm install && npx tsx scripts/sync-scms-template-version.ts",
+    "version": "npm install && changeset version && npx tsx scripts/sync-scms-template-version.ts && npm install",
     "publish": "npm run clean && npm run build -- --force && changeset publish && git push --follow-tags",
     "publish:ci": "npm run build && changeset publish && git push --follow-tags",
     "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'"
