@@ -41,7 +41,7 @@
     "test:vitest": "npm run link; npm run copy:version; vitest run",
     "test": "npm-run-all -l copy:version -p compile test:vitest",
     "test:watch": "npm run link; npm run copy:version; vitest watch",
-    "build:cli": "esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --target=node18",
+    "build:cli": "esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --target=node20",
     "build": "npm-run-all -l clean copy:version -p build:cli"
   },
   "dependencies": {
@@ -55,5 +55,8 @@
   },
   "devDependencies": {
     "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=20 <25"
   }
 }
