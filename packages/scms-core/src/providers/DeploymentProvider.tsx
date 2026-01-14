@@ -40,6 +40,7 @@ export type SimpleNavItemType = {
   path: string;
   hidden?: boolean;
   end?: boolean;
+  beta?: boolean;
 };
 
 export type NavigationHelpItem = {

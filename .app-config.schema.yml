@@ -604,6 +604,10 @@ $defs:
       end:
         type: boolean
         default: false
+      beta:
+        type: boolean
+        default: false
+        description: Show a beta indicator overlay on the navigation item
   VenuesNavItem:
     type: object
     additionalProperties: false

@@ -424,6 +424,7 @@ export const loader = async (args: Route.LoaderArgs) => {
     'navigation.items.*.scopes',
     'navigation.items.*.icon',
     'navigation.items.*.end',
+    'navigation.items.*.beta',
     'navigation.helpItem',
     'navigation.helpItem.enabled',
     'navigation.helpItem.icon',

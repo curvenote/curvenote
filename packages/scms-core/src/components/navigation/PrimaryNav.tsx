@@ -38,7 +38,7 @@ function PrimaryNavItem({
   item: SimpleNavItemType;
   extensions?: ClientExtension[];
 }) {
-  const { path, label, icon, end } = item;
+  const { path, label, icon, end, beta } = item;
   const iconIsImage = icon.match(/^http[s]:\/\//) != null;
 
   return (
@@ -55,8 +55,8 @@ function PrimaryNavItem({
         )
       }
     >
-      <div className="flex flex-col items-center justify-center w-full p-2">
-        <div className="flex items-center justify-center w-full h-10">
+      <div className="flex flex-col justify-center items-center p-2 w-full">
+        <div className="flex relative justify-center items-center w-full h-10">
           {iconIsImage ? (
             <img data-name="primary-nav-item-img" src={icon} alt={label} className="h-6" />
           ) : (
@@ -65,6 +65,11 @@ function PrimaryNavItem({
               name={icon}
               extensions={extensions}
             />
+          )}
+          {beta && (
+            <span className="absolute top-0 right-1 text-[8px] px-[2px] py-[1px] border border-white font-bold text-black bg-white rounded-sm uppercase">
+              beta
+            </span>
           )}
         </div>
         <div>{label}</div>
@@ -108,7 +113,7 @@ export function PrimaryNav({ extensions }: { extensions?: ClientExtension[] }) {
       )}
     >
       {logo}
-      <div className="flex flex-col items-center w-full pb-4 overflow-y-auto scrollbar scrollbar-thin scrollbar-track-slate-700 scrollbar-thumb-slate-400 grow">
+      <div className="flex overflow-y-auto flex-col items-center pb-4 w-full scrollbar scrollbar-thin scrollbar-track-slate-700 scrollbar-thumb-slate-400 grow">
         {navigation.items.map((item) => (
           <PrimaryNavItem key={item.name} item={item} extensions={extensions} />
         ))}
