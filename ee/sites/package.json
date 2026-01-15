@@ -59,7 +59,7 @@
     "@curvenote/scms-core": "0.13.2",
     "@curvenote/scms-server": "0.13.2",
     "@heroicons/react": "^2.2.0",
-    "@prisma/client": "^6.15.0",
+    "@prisma/client": "^7.2.0",
     "@react-router/dev": "7.9.5",
     "classnames": "^2.5.1",
     "color": "^5.0.2",
@@ -104,14 +104,11 @@
     "madge": "^8.0.0",
     "prettier": "^3.5.3",
     "prettier-eslint": "^16.3.0",
-    "prisma": "^6.15.0",
+    "prisma": "^7.2.0",
     "tsup": "^8.5.1",
     "tsx": "^4.19.3",
     "typescript": "^5.6.3",
     "vitest": "^4.0.6"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.mts"
   },
   "engines": {
     "npm": ">=10.0.0",

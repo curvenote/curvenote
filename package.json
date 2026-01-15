@@ -11,7 +11,7 @@
   "scripts": {
     "prepare": "husky",
     "preinstall": "rm -f ./platform/scms/package.json",
-    "postinstall": "npm run prisma:generate && npm run generate:extensions",
+    "postinstall__": "npm run prisma:generate && npm run generate:extensions",
     "prisma:generate": "npx prisma generate --schema=./prisma/schema",
     "generate:extensions": "node platform/scms/scripts/generate-extensions.js",
     "prisma:format": "npx prisma format --schema=./prisma/schema",
@@ -36,11 +36,13 @@
     "version": "npm install && changeset version && npx tsx scripts/sync-scms-template-version.ts && npm install",
     "publish": "npm run clean && npm run build -- --force && changeset publish && git push --follow-tags",
     "publish:ci": "npm run build && changeset publish && git push --follow-tags",
-    "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'"
+    "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'",
+    "nmnuke": "node scripts/remove-node-modules.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.23.2",
     "@types/node": "^24.6.2",
+    "@types/pg": "^8.16.0",
     "@typescript-eslint/parser": "^8.50.0",
     "esbuild": "^0.15.12",
     "eslint-config-curvenote": "^0.0.4",
@@ -50,8 +52,9 @@
     "npm-run-all": "^4.1.5",
     "npm-upgrade-monorepo": "^1.2.6",
     "prettier": "latest",
-    "prisma": "^6.18.0",
+    "prisma": "^7.2.0",
     "rimraf": "^3.0.2",
+    "tsx": "^4.21.0",
     "turbo": "latest",
     "typescript": "^5.9.3",
     "vite-tsconfig-paths": "^6.0.4",
@@ -64,7 +67,8 @@
   "packageManager": "npm@8.10.0",
   "dependencies": {
     "@changesets/changelog-github": "^0.5.1",
-    "@prisma/client": "^6.18.0"
+    "@prisma/client": "^7.2.0",
+    "dotenv": "^17.2.3"
   },
   "overrides": {
     "@types/node": "^24.6.2",

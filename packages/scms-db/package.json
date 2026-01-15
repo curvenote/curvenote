@@ -1,0 +1,50 @@
+{
+  "name": "@curvenote/scms-db",
+  "private": true,
+  "version": "0.13.2",
+  "description": "Database package for Curvenote SCMS applications using Prisma",
+  "author": "Rowan Cockett <rowan@curvenote.com>",
+  "homepage": "https://github.com/curvenote/curvenote",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "browser": false,
+  "exports": {
+    ".": {
+      "node": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./browser": {
+      "browser": "./src/browser.ts",
+      "default": "./src/browser.ts"
+    }
+  },
+  "types": "./src/index.ts",
+  "source": "./src/index.ts",
+  "sideEffects": false,
+  "files": [
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/curvenote/curvenote.git"
+  },
+  "scripts": {
+    "generate": "prisma generate --schema=../../prisma/schema",
+    "format": "prisma format --schema=../../prisma/schema"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
+    "pg": "^8.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "prisma": "^7.2.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "npm": ">=10.0.0",
+    "node": ">=18"
+  }
+}
