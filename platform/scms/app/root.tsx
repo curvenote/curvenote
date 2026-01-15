@@ -172,9 +172,67 @@ export const loader = async (args: Route.LoaderArgs) => {
   /**
    * build navigation based on deployment configuration and scopes
    */
-  let clientNavigation: ClientDeploymentConfig['navigation'] = [];
-  if (ctx.user) {
-    clientNavigation = await buildClientNavigation(ctx, ctx.$config.app?.navigation);
+  type ClientNavigation = ClientDeploymentConfig['navigation'];
+  const builtNav: ClientNavigation = ctx.user
+    ? ((await buildClientNavigation(
+        ctx,
+        ctx.$config.app?.navigation,
+      )) as unknown as ClientNavigation)
+    : { items: [], helpItem: undefined };
+  let clientNavigation: ClientNavigation = builtNav;
+
+  // Process helpItem config and apply defaults
+  let processedHelpItem: ClientNavigation['helpItem'] | undefined = undefined;
+  const navConfig = ctx.$config.app?.navigation;
+  type HelpItemConfig = {
+    enabled: boolean;
+    icon?: string;
+    scopes?: string[];
+    properties?: {
+      label?: string;
+      prompt?: string;
+      title?: string;
+      description?: string;
+      successMessage?: string;
+    };
+  };
+  const helpItemConfig: HelpItemConfig | undefined =
+    navConfig && 'helpItem' in navConfig
+      ? (navConfig as { helpItem?: HelpItemConfig }).helpItem
+      : undefined;
+  // If helpItem exists, it's enabled by default (enabled is optional)
+  // Only disable if explicitly set to false
+  if (helpItemConfig && helpItemConfig.enabled !== false) {
+    // Apply defaults
+    const icon = helpItemConfig.icon || 'help-circle';
+    const properties = helpItemConfig.properties || {};
+
+    processedHelpItem = {
+      enabled: true,
+      icon,
+      scopes: helpItemConfig.scopes,
+      properties: {
+        label: properties.label || 'Report a Problem',
+        prompt:
+          properties.prompt ||
+          "Please describe the problem you're experiencing. Let us know what you were trying to achieve and what happened instead.",
+        title: properties.title,
+        description:
+          properties.description ||
+          'Sending this request will include your name and email address so we can respond to you.',
+        successMessage:
+          properties.successMessage ||
+          "Your request has been sent to the support team. We'll get back to you as soon as possible.",
+      },
+    };
+  }
+
+  // Update navigation with processed helpItem (only if defined)
+  if (processedHelpItem) {
+    clientNavigation = {
+      ...clientNavigation,
+      helpItem: processedHelpItem,
+    };
   }
 
   // Create safe extension data that only includes capability flags and names
@@ -265,7 +323,8 @@ export const loader = async (args: Route.LoaderArgs) => {
       // The schema types (ItemElement) match the client types (ClientStatusBarItem) by design
       items: ctx.$config.app?.statusBar?.items as ClientStatusBarItem[] | undefined,
     },
-    navigation: clientNavigation,
+    navigation: clientNavigation as unknown as ClientDeploymentConfig['navigation'],
+    pages: ctx.$config.app?.pages,
     strings: {
       app: {
         signupAdvice: ctx.$config.app?.strings?.signupAdvice,
@@ -358,12 +417,31 @@ export const loader = async (args: Route.LoaderArgs) => {
     'statusBar.items.*.properties.title',
     'statusBar.items.*.properties.description',
     'navigation',
-    'navigation.*.name',
-    'navigation.*.label',
-    'navigation.*.path',
-    'navigation.*.scopes',
-    'navigation.*.icon',
-    'navigation.*.end',
+    'navigation.defaultRoute',
+    'navigation.items',
+    'navigation.items.*.name',
+    'navigation.items.*.label',
+    'navigation.items.*.path',
+    'navigation.items.*.scopes',
+    'navigation.items.*.icon',
+    'navigation.items.*.end',
+    'navigation.items.*.beta',
+    'navigation.helpItem',
+    'navigation.helpItem.enabled',
+    'navigation.helpItem.icon',
+    'navigation.helpItem.scopes',
+    'navigation.helpItem.scopes.*',
+    'navigation.helpItem.properties',
+    'navigation.helpItem.properties.label',
+    'navigation.helpItem.properties.prompt',
+    'navigation.helpItem.properties.title',
+    'navigation.helpItem.properties.description',
+    'navigation.helpItem.properties.successMessage',
+    'pages',
+    'pages.*.path',
+    'pages.*.title',
+    'pages.*.subtitle',
+    'pages.*.description',
     'strings.app.signupAdvice',
     'strings.app.signupUrl',
     'strings.app.signupUrlText',

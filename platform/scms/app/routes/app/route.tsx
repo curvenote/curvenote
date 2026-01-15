@@ -22,7 +22,9 @@ export async function loader(args: Route.LoaderArgs) {
   const pathname = new URL(args.request.url).pathname;
   if (pathname === '/app') {
     // Use configured default route or fallback to first navigation item
-    const defaultRoute = ctx.$config.app?.defaultRoute ?? 'settings';
+    const navConfig = ctx.$config.app?.navigation;
+    const defaultRoute =
+      (navConfig && 'defaultRoute' in navConfig ? navConfig.defaultRoute : undefined) || 'settings';
     throw redirect('/app/' + defaultRoute);
   }
 
@@ -36,11 +38,11 @@ export const meta: Route.MetaFunction = ({ matches }) => {
 
 export default function App() {
   return (
-    <div data-name="app-route" className="relative flex w-full min-h-screen">
+    <div data-name="app-route" className="flex relative w-full min-h-screen">
       <Mobile>
         <MobileControls />
         <PrimaryNav extensions={clientExtensions} />
-        <div className="relative flex flex-col flex-1 w-full">
+        <div className="flex relative flex-col flex-1 w-full">
           <div className="fixed z-50 top-0 h-[3px] w-full">
             <LoadingBar />
           </div>

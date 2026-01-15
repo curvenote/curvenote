@@ -91,34 +91,35 @@ app:
         title: 'Curvenote Sites'
         url: https://curvenote.com/videos/demo-1.mp4
         thumbnail: https://cdn.curvenote.com/static/welcome-video.png
-  defaultRoute: dashboard
   navigation:
-    - name: dashboard
-      label: Home
-      icon: house
-      path: dashboard
-    - name: works
-      label: My Works
-      icon: files
-      path: works
-    - name: sites
-      label: My Sites
-      icon: site
-      path: sites
-      end: true
-    - name: settings
-      label: Settings
-      icon: settings
-      path: settings
-    - name: platform
-      label: Platform
-      icon: platform
-      path: platform
-      scopes:
-        - app:platform:admin
-    - name: system
-      label: System
-      icon: zap
-      path: system
-      scopes:
-        - system:admin
+    defaultRoute: dashboard
+    items:
+      - name: dashboard
+        label: Home
+        icon: house
+        path: dashboard
+      - name: works
+        label: My Works
+        icon: files
+        path: works
+      - name: sites
+        label: My Sites
+        icon: site
+        path: sites
+        end: true
+      - name: settings
+        label: Settings
+        icon: settings
+        path: settings
+      - name: platform
+        label: Platform
+        icon: platform
+        path: platform
+        scopes:
+          - app:platform:admin
+      - name: system
+        label: System
+        icon: zap
+        path: system
+        scopes:
+          - system:admin

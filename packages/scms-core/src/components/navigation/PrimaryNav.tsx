@@ -5,6 +5,8 @@ import { NavLink } from 'react-router';
 import { MenuIcon } from './MenuIcon.js';
 import { useMobile } from './Mobile.js';
 import { UserMenu } from './UserMenu.js';
+import { NavHelpItem } from './NavHelpItem.js';
+import { useMyUser } from '../../providers/MyUserProvider.js';
 import type { ClientExtension } from '../../modules/extensions/types.js';
 
 function CurvenoteIconLogo({ className }: { className?: string }) {
@@ -36,7 +38,7 @@ function PrimaryNavItem({
   item: SimpleNavItemType;
   extensions?: ClientExtension[];
 }) {
-  const { path, label, icon, end } = item;
+  const { path, label, icon, end, beta } = item;
   const iconIsImage = icon.match(/^http[s]:\/\//) != null;
 
   return (
@@ -53,8 +55,8 @@ function PrimaryNavItem({
         )
       }
     >
-      <div className="flex flex-col items-center justify-center w-full p-2">
-        <div className="flex items-center justify-center w-full h-10">
+      <div className="flex flex-col justify-center items-center p-2 w-full">
+        <div className="flex relative justify-center items-center w-full h-10">
           {iconIsImage ? (
             <img data-name="primary-nav-item-img" src={icon} alt={label} className="h-6" />
           ) : (
@@ -63,6 +65,11 @@ function PrimaryNavItem({
               name={icon}
               extensions={extensions}
             />
+          )}
+          {beta && (
+            <span className="absolute top-0 right-1 text-[8px] px-[2px] py-[1px] border border-white font-bold text-black bg-white rounded-sm uppercase">
+              beta
+            </span>
           )}
         </div>
         <div>{label}</div>
@@ -74,6 +81,7 @@ function PrimaryNavItem({
 export function PrimaryNav({ extensions }: { extensions?: ClientExtension[] }) {
   const { navigation, branding } = useDeploymentConfig();
   const { open } = useMobile();
+  const user = useMyUser();
 
   let logo = <CurvenoteIconLogo className="my-[60px]" />;
   const brandingIcon = branding?.icon ?? branding?.logo;
@@ -87,6 +95,15 @@ export function PrimaryNav({ extensions }: { extensions?: ClientExtension[] }) {
     );
   }
 
+  // Check if help item should be shown
+  // helpItem is enabled by default if it exists (enabled is optional, defaults to true)
+  // Only disable if explicitly set to false
+  const showHelpItem =
+    navigation.helpItem &&
+    navigation.helpItem.enabled !== false &&
+    (!navigation.helpItem.scopes ||
+      (user?.scopes && navigation.helpItem.scopes.every((scope) => user.scopes?.includes(scope))));
+
   return (
     <nav
       className={cn(
@@ -96,13 +113,16 @@ export function PrimaryNav({ extensions }: { extensions?: ClientExtension[] }) {
       )}
     >
       {logo}
-      <div className="flex flex-col items-center w-full pb-4 overflow-y-auto scrollbar scrollbar-thin scrollbar-track-slate-700 scrollbar-thumb-slate-400 grow">
-        {navigation.map((item) => (
+      <div className="flex overflow-y-auto flex-col items-center pb-4 w-full scrollbar scrollbar-thin scrollbar-track-slate-700 scrollbar-thumb-slate-400 grow">
+        {navigation.items.map((item) => (
           <PrimaryNavItem key={item.name} item={item} extensions={extensions} />
         ))}
         <div className="grow min-h-8" />
       </div>
       <div className="flex flex-col items-center w-full">
+        {showHelpItem && navigation.helpItem && (
+          <NavHelpItem helpItem={navigation.helpItem} extensions={extensions} />
+        )}
         <UserMenu />
       </div>
     </nav>

@@ -55,7 +55,7 @@ export async function getCreateWorkVersionDataFromMyst(
 
     // for submissions we prioritize the project frontmatter over the page frontmatter
     const authorDetails = project?.authors ?? page.frontmatter?.authors ?? [];
-    const authorNames = authorDetails.map((a) => a.name ?? '');
+    const authorNames = authorDetails.map((a: { name?: string }) => a.name ?? '');
     const data: MystWorkVersion = {
       cdn: host.cdn,
       cdn_key: host.key,

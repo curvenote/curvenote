@@ -5,10 +5,12 @@
     "mystmd/packages/*",
     "packages/*",
     "ee/*",
-    "extensions/*/packages/*"
+    "extensions/*/packages/*",
+    "platform/scms"
   ],
   "scripts": {
     "prepare": "husky",
+    "preinstall": "rm -f ./platform/scms/package.json",
     "postinstall": "npm run prisma:generate && npm run generate:extensions",
     "prisma:generate": "npx prisma generate --schema=./prisma/schema",
     "generate:extensions": "node platform/scms/scripts/generate-extensions.js",
@@ -18,7 +20,7 @@
     "dev:db:migrate": "npx prisma migrate dev --schema=./prisma/schema",
     "test:db:reset": "dotenv -e .env.test -- npx prisma db push --force-reset --schema=./prisma/schema; dotenv -e .env.test -- tsx prisma/seed.test.mts",
     "config": "npx @app-config/cli@2 generate",
-    "build": "npm run config && turbo run build",
+    "build": "npm run config && turbo run build --filter='!@curvenote/scms'",
     "build:scms": "cd platform/scms && npm run build",
     "build:web": "turbo run build --filter=@curvespace/default",
     "dev:all": "turbo run dev --parallel",
@@ -31,7 +33,7 @@
     "test:scms": "cd platform/scms && npm run test:unit",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
-    "version": "changeset version && npm install",
+    "version": "npm install && changeset version && npx tsx scripts/sync-scms-template-version.ts && npm install",
     "publish": "npm run clean && npm run build -- --force && changeset publish && git push --follow-tags",
     "publish:ci": "npm run build && changeset publish && git push --follow-tags",
     "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'"

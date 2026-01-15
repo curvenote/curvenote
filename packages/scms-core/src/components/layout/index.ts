@@ -1,7 +1,6 @@
 export * from './Container.js';
 export * from './MainWrapper.js';
 export * from './PageFrame.js';
-export * from './PageFrameProvider.js';
 export * from './StatusBar.js';
 export * from './StatusBarContent.js';
 export * from './CurvenotePowered.js';

@@ -7,6 +7,7 @@ import {
 } from '@curvenote/scms-server';
 import { PageFrame, ui, formatDatetime } from '@curvenote/scms-core';
 import { parseMessageQuery, buildMessageQuery, type MessageQuery } from './query-parser';
+import { extractMessageEmailData } from './message-utils';
 import type { Message } from '@prisma/client';
 
 export const meta: Route.MetaFunction = () => {
@@ -66,31 +67,45 @@ export default function SystemMessagesPage({ loaderData }: Route.ComponentProps)
   const { messages, counts, query } = loaderData;
 
   const renderMessage = (message: Message) => {
-    // TODO if an inbound_email message, which is all we have right now
-    const payload = message.payload as any;
-    const date = payload.headers?.date ?? payload.envelope?.date ?? payload.date;
+    const { subject, from, to, date, body } = extractMessageEmailData(message, {
+      fallbackTo: 'Unknown',
+      fallbackDate: 'Unknown',
+      fallbackBody: 'Unknown',
+    });
+
     return (
       <>
         {/* Message Info */}
-        <div className="flex flex-col flex-1 min-w-0 gap-2">
+        <div className="flex flex-col flex-1 gap-2 min-w-0">
           <div className="flex flex-col gap-1">
             <div>
               <Link
                 to={`/app/platform/messages/${message.id}`}
-                className="flex-shrink-0 block text-lg font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                className="block flex-shrink-0 text-lg font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
               >
-                {payload.headers?.subject ??
-                  payload.envelope?.from ??
-                  payload.subject ??
-                  message.id}
+                {subject}
               </Link>
             </div>
             <div>
-              From: {payload.headers?.from ?? payload.envelope?.from ?? payload.from ?? 'Unknown'}
+              {message.type === 'outbound_email' ? (
+                <>
+                  To: {to || 'Unknown'}
+                  {from && ` (From: ${from})`}
+                </>
+              ) : (
+                <>From: {from}</>
+              )}
             </div>
-            {date && <div>Date: {date}</div>}
+            {date && (
+              <div>
+                {message.type === 'outbound_email' ? 'Sent' : 'Received'}: {formatDatetime(date)}
+              </div>
+            )}
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              <div>Received: {formatDatetime(message.date_created)}</div>
+              <div>
+                {message.type === 'outbound_email' ? 'Created' : 'Received'}:{' '}
+                {formatDatetime(message.date_created)}
+              </div>
             </div>
             <div className="flex flex-wrap gap-2 my-2">
               <ui.Badge variant="outline">{message.module}</ui.Badge>
@@ -98,15 +113,15 @@ export default function SystemMessagesPage({ loaderData }: Route.ComponentProps)
               <ui.Badge variant={getStatusVariant(message.status)}>{message.status}</ui.Badge>
             </div>
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            <div className="mt-1 overflow-hidden font-mono text-xs">
-              {truncatePayload(payload.plain ?? payload)}
+          {body && (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="overflow-hidden mt-1 font-mono text-xs">{truncatePayload(body)}</div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end flex-shrink-0 w-32">
+        <div className="flex flex-shrink-0 justify-end w-32">
           <Link to={`/app/platform/messages/${message.id}`}>
             <ui.Button variant="outline" size="sm" className="w-full">
               View Details
@@ -185,8 +200,8 @@ export default function SystemMessagesPage({ loaderData }: Route.ComponentProps)
   return (
     <PageFrame
       title="System Messages"
-      description="Message processing logs and system events"
-      className="max-w-screen-xl mx-auto"
+      description="Message processing logs and system events (1000 most recent messages)."
+      className="mx-auto max-w-screen-xl"
     >
       <ui.FilterableList
         searchComponent={

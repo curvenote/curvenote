@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms",
   "private": true,
-  "version": "0.13.1",
+  "version": "0.13.2",
   "description": "Curvenote SCMS application and API",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",
@@ -18,7 +18,7 @@
     "../../extensions/*/packages/*"
   ],
   "scripts": {
-    "postinstall": "npm run prisma:generate",
+    "postinstall": "rm -rf ./node_modules/.prisma && ln -sfn ../../../node_modules/.prisma ./node_modules/.prisma",
     "prisma:generate": "npx prisma generate --schema=../../prisma/schema",
     "prisma:format": "npx prisma format --schema=../../prisma/schema",
     "db:studio": "prisma studio --schema=../../prisma/schema/",
@@ -37,8 +37,6 @@
     "lint:format": "prettier --check \"app/**/*.{ts,tsx}\"",
     "lint:circular": "madge -c app/*",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "changeset": "changeset",
-    "version": "changeset version && npm install",
     "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'",
     "data-migration:default-submission-kind": "dotenv -e .env -- tsx ../../prisma/migrations/20240123221351_default_submission_kind/data-migration.ts",
     "check-types": "NODE_ENV=development react-router typegen; tsc --noEmit",
@@ -127,8 +125,8 @@
     "@curvenote/common": "^0.2.23",
     "@curvenote/icons": "^0.0.4",
     "@curvenote/remix-auth-okta": "^3.0.0",
-    "@curvenote/scms-core": "0.0.1",
-    "@curvenote/scms-server": "0.0.1",
+    "@curvenote/scms-core": "*",
+    "@curvenote/scms-server": "*",
     "@headlessui/tailwindcss": "^0.2.1",
     "@heroicons/react": "^2.2.0",
     "@myst-theme/providers": "^0.17.1",

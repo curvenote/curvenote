@@ -19,9 +19,6 @@ const prismaClientDirectory = path.normalize(
 
 const prismaIndexBrowserPath = path.join(prismaClientDirectory, 'index-browser.js');
 
-// const builtinsPlugin = builtins({ crypto: true });
-// builtinsPlugin.name = 'builtins';
-
 export default defineConfig(async ({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
@@ -298,7 +295,6 @@ export default defineConfig(async ({ mode }) => {
     },
     build: {
       rollupOptions: {
-        // plugins: [builtinsPlugin],
         external: [
           '@google-cloud/storage',
           'jwa',
