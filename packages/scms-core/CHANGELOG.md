@@ -1,5 +1,13 @@
 # @curvenote/scms-core
 
+## 0.13.3
+
+### Patch Changes
+
+- [#767](https://github.com/curvenote/curvenote/pull/767) [`198d139`](https://github.com/curvenote/curvenote/commit/198d1393790a2a259d4c27036611f1117a2bdc94) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Removed unused PageFrameProvider and simplified PageFrameProps. PageFrame and FrameHeader are not configurable from `.app-config.yml#app.pages` where configuration setting will override local props.
+
+- [#767](https://github.com/curvenote/curvenote/pull/767) [`97e5053`](https://github.com/curvenote/curvenote/commit/97e505314971983fe3a4d8c2c5844c7f29bfbed3) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Client filterabel lists can be set to reactive to respond to external changes
+
 ## 0.13.2
 
 ### Patch Changes
