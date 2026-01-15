@@ -1,4 +1,4 @@
-import type { Message } from '@prisma/client';
+import type { Message } from '@curvenote/scms-db/browser';
 
 /**
  * Extracted email data from a message for display purposes

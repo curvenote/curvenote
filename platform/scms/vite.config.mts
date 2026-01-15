@@ -3,21 +3,14 @@ import { defineConfig, loadEnv } from 'vite';
 import { reactRouter } from '@react-router/dev/vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import appConfigVite from '@app-config/vite';
-import { createRequire } from 'module';
 import path from 'path';
 import ViteRestart from 'vite-plugin-restart';
 import { loadConfig } from '@app-config/main';
 import tailwindcss from '@tailwindcss/vite';
 
-const require = createRequire(import.meta.url);
-const prismaClientDirectory = path.normalize(
-  path.relative(
-    process.cwd(),
-    require.resolve('@prisma/client').replace(/@prisma(\/|\\)client(\/|\\).*/, '.prisma/client'),
-  ),
-);
-
-const prismaIndexBrowserPath = path.join(prismaClientDirectory, 'index-browser.js');
+// Prisma 7: Generated client is now in packages/scms-db/src/generated
+// Browser-safe types are exported via @curvenote/scms-db/browser
+// No need for custom Prisma client resolution in Vite config
 
 export default defineConfig(async ({ mode }) => {
   // Load env file based on `mode` in the current working directory.
@@ -286,7 +279,6 @@ export default defineConfig(async ({ mode }) => {
     ],
     resolve: {
       alias: {
-        '.prisma/client/index-browser': prismaIndexBrowserPath,
         '@': path.resolve(__dirname, './src'),
         http: 'node:http',
       },

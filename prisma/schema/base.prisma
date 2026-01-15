@@ -1,13 +1,11 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
-  output        = "../../packages/scms-db/src/generated"
-}
-
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../packages/scms-db/src/generated"
 }
