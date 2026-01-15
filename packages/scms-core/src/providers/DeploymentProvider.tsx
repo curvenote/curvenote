@@ -81,6 +81,13 @@ export type ClientStatusBarItem =
       };
     };
 
+export type PageConfig = {
+  path: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+};
+
 export type ClientDeploymentConfig = {
   name: string;
   editorApiUrl: string;
@@ -91,6 +98,7 @@ export type ClientDeploymentConfig = {
     items: ClientDeploymentNavigation;
     helpItem?: NavigationHelpItem;
   };
+  pages?: PageConfig[];
   fbClientConfig?: string;
   branding?: ClientDeploymentBranding;
   statusBar?: {
