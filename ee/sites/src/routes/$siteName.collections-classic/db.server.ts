@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '@curvenote/scms-server';
 import type { dbListCollections } from '../$siteName.collections/db.server.js';
 
@@ -16,5 +16,5 @@ export async function dbListSubmissionKinds(siteId: string) {
   });
 }
 
-export type KindsDBO = Prisma.PromiseReturnType<typeof dbListSubmissionKinds>;
-export type CollectionsDBO = Prisma.PromiseReturnType<typeof dbListCollections>;
+export type KindsDBO = Awaited<ReturnType<typeof dbListSubmissionKinds>>;
+export type CollectionsDBO = Awaited<ReturnType<typeof dbListCollections>>;

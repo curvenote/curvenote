@@ -4,7 +4,7 @@ import { ExternalLink } from 'lucide-react';
 import { dbGetSiteAnalyticsDashboards, dbGetSiteSubmissionStats } from './db.server.js';
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import type { SiteDTO } from '@curvenote/common';
-import type { AnalyticsDashboard } from '@prisma/client';
+import type { AnalyticsDashboard } from '@curvenote/scms-db';
 
 interface LoaderData {
   site: SiteDTO;
@@ -39,7 +39,7 @@ export default function SiteAnalytics({ loaderData }: { loaderData: LoaderData }
     <PageFrame title="Analytics" subtitle={`Analytics for ${site.title}`}>
       <div className="space-y-6">
         {/* Site Statistics */}
-        <div className="p-6 border rounded-lg bg-card">
+        <div className="p-6 rounded-lg border bg-card">
           <h2 className="mb-4 text-lg font-semibold">Site Statistics</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="text-center">
@@ -79,7 +79,7 @@ export default function SiteAnalytics({ loaderData }: { loaderData: LoaderData }
             <ui.CardContent>
               <div className="space-y-2">
                 {Object.entries(submissionStats.byStatus).map(([status, count]) => (
-                  <div key={status} className="flex items-center justify-between">
+                  <div key={status} className="flex justify-between items-center">
                     <span className="text-sm capitalize">{status.toLowerCase()}</span>
                     <span className="font-medium">{count.toLocaleString()}</span>
                   </div>
@@ -96,7 +96,7 @@ export default function SiteAnalytics({ loaderData }: { loaderData: LoaderData }
             <ui.CardContent>
               <div className="space-y-2">
                 {Object.entries(submissionStats.byKind).map(([kind, count]) => (
-                  <div key={kind} className="flex items-center justify-between">
+                  <div key={kind} className="flex justify-between items-center">
                     <span className="text-sm">{kind}</span>
                     <span className="font-medium">{count.toLocaleString()}</span>
                   </div>
@@ -113,7 +113,7 @@ export default function SiteAnalytics({ loaderData }: { loaderData: LoaderData }
             <ui.CardContent>
               <div className="space-y-2">
                 {Object.entries(submissionStats.byCollection).map(([collection, count]) => (
-                  <div key={collection} className="flex items-center justify-between">
+                  <div key={collection} className="flex justify-between items-center">
                     <span className="text-sm">{collection}</span>
                     <span className="font-medium">{count.toLocaleString()}</span>
                   </div>
@@ -131,7 +131,7 @@ export default function SiteAnalytics({ loaderData }: { loaderData: LoaderData }
               {analyticsDashboards.map((dashboard) => (
                 <ui.Card key={dashboard.id}>
                   <ui.CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex justify-between items-start">
                       <div className="space-y-1">
                         <ui.CardTitle className="text-lg">{dashboard.title}</ui.CardTitle>
                         {dashboard.description && (
@@ -153,7 +153,7 @@ export default function SiteAnalytics({ loaderData }: { loaderData: LoaderData }
                     <div className="w-full aspect-video">
                       <iframe
                         src={dashboard.url}
-                        className="w-full h-full border rounded-md"
+                        className="w-full h-full rounded-md border"
                         title={dashboard.title}
                       />
                     </div>
@@ -163,7 +163,7 @@ export default function SiteAnalytics({ loaderData }: { loaderData: LoaderData }
             </div>
           </div>
         ) : (
-          <div className="p-6 border rounded-lg bg-card">
+          <div className="p-6 rounded-lg border bg-card">
             <h2 className="mb-4 text-lg font-semibold">Analytics Dashboards</h2>
             <p className="text-muted-foreground">
               No analytics dashboards configured for this site yet. Contact your system

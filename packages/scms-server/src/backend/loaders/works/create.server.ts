@@ -14,8 +14,8 @@ import { getPrismaClient } from '../../prisma.server.js';
 import { getSignedCDNQuery } from '../../sign.private.server.js';
 import { error401, ensureTrailingSlash, WorkContents, TrackEvent } from '@curvenote/scms-core';
 import { formatWorkDTO } from './get.server.js';
-import { ActivityType, WorkRole } from '@prisma/client';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
+import { $Enums } from '@curvenote/scms-db';
 
 type PageLoader = NonNullable<Awaited<ReturnType<typeof getPage>>>;
 
@@ -133,7 +133,7 @@ export async function dbCreateWorkAndVersion(
                   id: owner.id,
                 },
               },
-              role: WorkRole.OWNER,
+              role: $Enums.WorkRole.OWNER,
             },
           ],
         },
@@ -155,7 +155,7 @@ export async function dbCreateWorkAndVersion(
             id: owner.id,
           },
         },
-        activity_type: ActivityType.NEW_WORK,
+        activity_type: $Enums.ActivityType.NEW_WORK,
         work: {
           connect: {
             id: workId,

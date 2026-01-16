@@ -1,6 +1,6 @@
 import { getPrismaClient } from '@curvenote/scms-server';
 import { KnownResendEvents } from '@curvenote/scms-core';
-import { ActivityType } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 import type { SecureContext } from '@curvenote/scms-server';
 
@@ -112,7 +112,9 @@ export async function dbToggleUserDisabled(
         date_created: dateCreated,
         date_modified: dateCreated,
         activity_by_id: activityByUserId,
-        activity_type: disabled ? ActivityType.USER_DISABLED : ActivityType.USER_ENABLED,
+        activity_type: disabled
+          ? $Enums.ActivityType.USER_DISABLED
+          : $Enums.ActivityType.USER_ENABLED,
         user_id: id,
         status: disabled ? 'DISABLED' : 'ENABLED',
       },
@@ -142,7 +144,7 @@ export async function dbApproveUser(userId: string, activityByUserId: string) {
         date_created: dateCreated,
         date_modified: dateCreated,
         activity_by_id: activityByUserId,
-        activity_type: ActivityType.USER_APPROVED,
+        activity_type: $Enums.ActivityType.USER_APPROVED,
         user_id: userId,
         status: 'APPROVED',
       },
@@ -173,7 +175,7 @@ export async function dbRejectUser(userId: string, activityByUserId: string) {
         date_created: dateCreated,
         date_modified: dateCreated,
         activity_by_id: activityByUserId,
-        activity_type: ActivityType.USER_REJECTED,
+        activity_type: $Enums.ActivityType.USER_REJECTED,
         user_id: userId,
         status: 'REJECTED',
       },

@@ -42,8 +42,8 @@ import {
   actionDeleteMagicLink,
   loadMagicLinks,
 } from './magicLinks.server.js';
-import type { Slug } from '@prisma/client';
-import { JobStatus } from '@prisma/client';
+import type { Slug } from '@curvenote/scms-db';
+import { $Enums } from '@curvenote/scms-db';
 import { useEffect, useState } from 'react';
 import { ActivityFeed } from './ActivityFeed.js';
 import { Versions } from './Versions.js';
@@ -138,7 +138,7 @@ export const loader = async (args: LoaderFunctionArgs): Promise<LoaderData> => {
     ctx,
     ctx.site.id,
     [KnownJobTypes.PUBLISH, KnownJobTypes.UNPUBLISH],
-    [JobStatus.RUNNING],
+    [$Enums.JobStatus.RUNNING],
   );
 
   const [submissionVersions, jobsListing, magicLinks] = await Promise.all([

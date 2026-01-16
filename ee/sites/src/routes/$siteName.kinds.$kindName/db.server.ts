@@ -2,7 +2,7 @@ import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '@curvenote/scms-server';
 import { coerceToList, coerceToObject, httpError, delay } from '@curvenote/scms-core';
-import { ActivityType } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { submissionRuleChecks, type Check } from '@curvenote/check-definitions';
 
 /**
@@ -55,7 +55,7 @@ export async function safeKindContentUpdate(
                 id: userId,
               },
             },
-            activity_type: ActivityType.KIND_UPDATED,
+            activity_type: $Enums.ActivityType.KIND_UPDATED,
             kind: {
               connect: {
                 id: kindId,
@@ -107,7 +107,7 @@ export async function dbUpdateKindName(name: string, kindId: string, userId: str
             id: userId,
           },
         },
-        activity_type: ActivityType.KIND_UPDATED,
+        activity_type: $Enums.ActivityType.KIND_UPDATED,
         kind: {
           connect: {
             id: kindId,
@@ -148,7 +148,7 @@ export async function dbUpdateKindDefault(
             id: userId,
           },
         },
-        activity_type: ActivityType.KIND_UPDATED,
+        activity_type: $Enums.ActivityType.KIND_UPDATED,
         kind: {
           connect: {
             id: kindId,
@@ -189,7 +189,7 @@ export async function dbUpdateKindDefault(
                   id: userId,
                 },
               },
-              activity_type: ActivityType.KIND_UPDATED,
+              activity_type: $Enums.ActivityType.KIND_UPDATED,
               kind: {
                 connect: {
                   id,
@@ -257,7 +257,7 @@ export async function safeKindChecksUpdate(
                 id: userId,
               },
             },
-            activity_type: ActivityType.KIND_UPDATED,
+            activity_type: $Enums.ActivityType.KIND_UPDATED,
             kind: {
               connect: {
                 id: kindId,

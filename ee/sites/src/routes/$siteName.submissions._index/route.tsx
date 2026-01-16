@@ -9,7 +9,7 @@ import {
   joinPageTitle,
   useInfiniteScroll,
 } from '@curvenote/scms-core';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { useEffect, useState, useCallback } from 'react';
 import { zfd } from 'zod-form-data';
 import { z } from 'zod';

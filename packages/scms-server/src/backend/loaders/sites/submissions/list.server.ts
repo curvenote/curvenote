@@ -1,7 +1,7 @@
 import type { SiteContext } from '../../../context.site.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { coerceToObject, error404 } from '@curvenote/scms-core';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { formatAuthorDTO } from '../../../format.server.js';
 import { findImportantVersions } from './utils.server.js';
 import { formatSubmissionLinksDTO } from './get.server.js';
@@ -9,7 +9,7 @@ import { formatSubmissionKindSummaryDTO } from '../kinds/get.server.js';
 import type { ClientExtension, WorkflowTransition } from '@curvenote/scms-core';
 
 export async function dbListSubmissions(
-  where: Prisma.SubmissionFindManyArgs['where'],
+  where: Prisma.SubmissionWhereInput,
   skip?: number,
   take?: number,
 ) {
@@ -77,7 +77,7 @@ export async function dbListSiteSubmissions(
   return dbListSubmissions({ site: { is: { name: siteName } }, ...where }, skip, take);
 }
 
-type DBO = Exclude<Prisma.PromiseReturnType<typeof dbListSiteSubmissions>, null>;
+type DBO = Exclude<Awaited<ReturnType<typeof dbListSiteSubmissions>>, null>;
 
 type SubmissionVersionDBOFragment = {
   id: string;

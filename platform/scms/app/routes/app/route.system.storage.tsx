@@ -19,7 +19,7 @@ import {
   useDeploymentConfig,
 } from '@curvenote/scms-core';
 import type { Context, KnownBucketInfo } from '@curvenote/scms-server';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import pLimit from 'p-limit';
 
 export async function loader(args: Route.LoaderArgs) {
@@ -357,7 +357,7 @@ function QueryByKeyUI() {
   return (
     <div>
       <h2 className="text-xl font-semibold">Query Storage Path</h2>
-      <fetcher.Form className="max-w-lg py-4 space-y-2" method="POST">
+      <fetcher.Form className="py-4 space-y-2 max-w-lg" method="POST">
         <input type="hidden" name="action" value="query-by-key" />
         <primitives.TextField
           id="path"
@@ -460,9 +460,7 @@ function CopyToCDN({
   toBucket,
   fromBucket,
 }: {
-  workVersion: Prisma.PromiseReturnType<
-    typeof dbListAllSubmissions
-  >[0]['versions'][0]['work_version'];
+  workVersion: Awaited<ReturnType<typeof dbListAllSubmissions>>[0]['versions'][0]['work_version'];
   toBucket: string;
   fromBucket?: string;
 }) {
@@ -498,7 +496,7 @@ function CopyToCDN({
       {copied ? (
         <span className="font-bold text-green-600">copied</span>
       ) : (
-        <button className="underline cursor-pointer opacity-80 hover:opacity-100">
+        <button className="underline opacity-80 cursor-pointer hover:opacity-100">
           copy to here
         </button>
       )}
@@ -511,7 +509,7 @@ function Versions({
   versions,
   site,
 }: {
-  versions: (Prisma.PromiseReturnType<typeof dbListAllSubmissions>[0]['versions'][0] & {
+  versions: (Awaited<ReturnType<typeof dbListAllSubmissions>>[0]['versions'][0] & {
     reference_cdn_warning: boolean;
     can_publish: {
       tmp: boolean;
@@ -532,7 +530,7 @@ function Versions({
       pub: string;
     };
   })[];
-  site: Prisma.PromiseReturnType<typeof sitesLoader.list>['items'][0];
+  site: Awaited<ReturnType<typeof sitesLoader.list>>['items'][0];
 }) {
   const config = useDeploymentConfig();
   return (
@@ -638,18 +636,14 @@ function Versions({
   );
 }
 
-function ManageSubmissions({
-  sites,
-}: {
-  sites: Prisma.PromiseReturnType<typeof sitesLoader.list>;
-}) {
+function ManageSubmissions({ sites }: { sites: Awaited<ReturnType<typeof sitesLoader.list>> }) {
   const fetcher = useFetcher<typeof action>();
   const submissions = fetcher.data && 'submissions' in fetcher.data ? fetcher.data.submissions : [];
 
   return (
     <div>
       <h2 className="text-xl font-semibold">Manage Submission Storage</h2>
-      <fetcher.Form className="max-w-lg py-4 space-x-2" method="POST">
+      <fetcher.Form className="py-4 space-x-2 max-w-lg" method="POST">
         <input type="hidden" name="action" value="manage-submissions" />
         <select className="bg-stone-50 dark:bg-stone-900" name="site_id">
           <option value="">Select a site</option>
@@ -704,7 +698,7 @@ export default function StorageAdminPanel({ loaderData }: Route.ComponentProps) 
     sites,
   } = loaderData as {
     summary: { info: Record<KnownBuckets, KnownBucketInfo> };
-    sites: Prisma.PromiseReturnType<typeof sitesLoader.list>;
+    sites: Awaited<ReturnType<typeof sitesLoader.list>>;
   };
 
   return (

@@ -1,7 +1,7 @@
 // lib/prisma.server.ts
 // Re-export from @curvenote/scms-db for backward compatibility
 // This allows existing code to continue using getPrismaClient from this location
-import { getPrismaClient as getDbPrismaClient } from '@curvenote/scms-db';
+import { getLowLevelPrismaClient } from '@curvenote/scms-db';
 import { getConfig } from '../app-config.server.js';
 import type { PrismaClient } from '@curvenote/scms-db';
 
@@ -18,5 +18,5 @@ import type { PrismaClient } from '@curvenote/scms-db';
  */
 export async function getPrismaClient(): Promise<PrismaClient> {
   const config = await getConfig();
-  return getDbPrismaClient(config.api.databaseUrl);
+  return getLowLevelPrismaClient(config.api.databaseUrl);
 }

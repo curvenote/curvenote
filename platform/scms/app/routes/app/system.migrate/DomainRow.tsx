@@ -1,10 +1,9 @@
 import { ui } from '@curvenote/scms-core';
-import type { Prisma } from '@prisma/client';
 import type { dbListAllDomains } from './db.server';
 import classNames from 'classnames';
 import type { FetcherWithComponents } from 'react-router';
 
-type DomainsDBO = Prisma.PromiseReturnType<typeof dbListAllDomains>;
+type DomainsDBO = Awaited<ReturnType<typeof dbListAllDomains>>;
 type DomainDBO = DomainsDBO[number];
 
 interface DomainRowProps {

@@ -7,7 +7,7 @@ import { getPrismaClient } from '../../prisma.server.js';
 import { error401, error404, site } from '@curvenote/scms-core';
 import { dbGetSubmission } from '../sites/submissions/get.server.js';
 import { signPrivateUrls } from '../../sign.private.server.js';
-import type { WorkRole } from '@prisma/client';
+import type { WorkRole } from '@curvenote/scms-db';
 import { userHasSiteScope } from '../../scopes.helpers.server.js';
 
 export type WorkAndVersionsDBO = WorkDBO & { versions?: WorkVersionDBO[] };

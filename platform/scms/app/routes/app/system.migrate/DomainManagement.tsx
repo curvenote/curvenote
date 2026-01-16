@@ -1,11 +1,10 @@
 import { useFetcher } from 'react-router';
 import { ui } from '@curvenote/scms-core';
-import type { Prisma } from '@prisma/client';
 import type { dbListAllDomains } from './db.server';
 import { DomainRow } from './DomainRow';
 import { useEffect, useRef, useState } from 'react';
 
-type DomainsDBO = Prisma.PromiseReturnType<typeof dbListAllDomains>;
+type DomainsDBO = Awaited<ReturnType<typeof dbListAllDomains>>;
 
 // Subtle background colors for different sites
 const SITE_BACKGROUNDS = [

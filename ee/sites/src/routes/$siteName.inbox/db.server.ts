@@ -1,6 +1,6 @@
 import type { SiteContext } from '@curvenote/scms-server';
 import { jobs, sites, getPrismaClient } from '@curvenote/scms-server';
-import { JobStatus } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { getWorkflow, KnownJobTypes } from '@curvenote/scms-core';
 
 /**
@@ -14,7 +14,7 @@ export async function dbGetInboxSubmissions(ctx: SiteContext) {
     ctx,
     ctx.site.id,
     [KnownJobTypes.PUBLISH, KnownJobTypes.UNPUBLISH],
-    [JobStatus.RUNNING],
+    [$Enums.JobStatus.RUNNING],
   );
 
   // this will fix inbox temporarily, but we need to address the active version selection

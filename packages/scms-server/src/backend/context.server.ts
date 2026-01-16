@@ -45,7 +45,7 @@ import { $sendEmail, $sendEmailBatch, getResend } from './services/emails/resend
 import { createUnsubscribeToken } from './sign.tokens.server.js';
 import { dbGetUnsubscribedEmail } from './loaders/unsubscribe.js';
 import { addSegmentAnalytics, AnalyticsContext } from './services/analytics/segment.server.js';
-import type { User } from '@curvenote/scms-db/browser';
+import type { User } from '@curvenote/scms-db';
 import { getPrismaClient } from './prisma.server.js';
 
 /**

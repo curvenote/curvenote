@@ -1,4 +1,4 @@
-import { ActivityType } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import {
   error401,
   error403,
@@ -136,7 +136,7 @@ async function startJobBasedTransition(
         date_created: timestamp,
         date_modified: timestamp,
         activity_by_id: ctx.user!.id,
-        activity_type: ActivityType.SUBMISSION_VERSION_TRANSITION_STARTED,
+        activity_type: $Enums.ActivityType.SUBMISSION_VERSION_TRANSITION_STARTED,
         submission_id: existing.submission.id,
         submission_version_id: existing.id,
         transition,
@@ -220,7 +220,7 @@ async function performSimpleTransition(
         date_created: timestamp,
         date_modified: timestamp,
         activity_by_id: ctx.user!.id,
-        activity_type: ActivityType.SUBMISSION_VERSION_STATUS_CHANGE,
+        activity_type: $Enums.ActivityType.SUBMISSION_VERSION_STATUS_CHANGE,
         submission_id: existing.submission.id,
         submission_version_id: existing.id,
         status: targetStateName,

@@ -1,10 +1,10 @@
 import { formatDistance } from 'date-fns';
 import { Activity } from 'lucide-react';
 import type { SubmissionDTO, SubmissionActivityDTO } from '@curvenote/common';
-import type { ActivityType } from '@prisma/client';
+import type { $Enums } from '@curvenote/scms-db';
 import { SectionWithHeading, primitives, formatDate } from '@curvenote/scms-core';
 
-const ACTIVITY_TYPES: Record<ActivityType, string> = {
+const ACTIVITY_TYPES: Record<$Enums.ActivityType, string> = {
   NEW_SUBMISSION: 'New submission',
   SUBMISSION_KIND_CHANGE: 'Submission kind changed',
   SUBMISSION_DATE_CHANGE: 'Submission publication date changed',
@@ -64,7 +64,7 @@ function ActivityItemBody({ activity }: { activity: SubmissionActivityDTO }) {
       className={`flex col-span-3 whitespace-nowrap before:block before:h-full before:w-1 before:rounded-full ${tagColor} before:content-['']`}
     >
       <div className="pl-2">
-        <p className="font-medium">{ACTIVITY_TYPES[activity_type as ActivityType]}</p>
+        <p className="font-medium">{ACTIVITY_TYPES[activity_type as $Enums.ActivityType]}</p>
         {additionalInfo}
         <primitives.Caption>{activity_by.name}</primitives.Caption>
       </div>
@@ -78,7 +78,7 @@ export default function ActivityTable({ activities }: { activities: SubmissionAc
       {activities.map((a) => (
         <div key={a.id}>
           <div className="flex h-full">
-            <div className="flex flex-col items-center justify-center pr-2 select-none">
+            <div className="flex flex-col justify-center items-center pr-2 select-none">
               <p className="font-semibold whitespace-pre-wrap">
                 {formatDistance(new Date(a.date_created), new Date())} ago
               </p>

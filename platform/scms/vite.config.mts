@@ -8,10 +8,6 @@ import ViteRestart from 'vite-plugin-restart';
 import { loadConfig } from '@app-config/main';
 import tailwindcss from '@tailwindcss/vite';
 
-// Prisma 7: Generated client is now in packages/scms-db/src/generated
-// Browser-safe types are exported via @curvenote/scms-db/browser
-// No need for custom Prisma client resolution in Vite config
-
 export default defineConfig(async ({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
@@ -192,9 +188,19 @@ export default defineConfig(async ({ mode }) => {
                 importer.includes('ssr') ||
                 importer.includes('server-build')));
 
+          // Handle @curvenote/scms-db - redirect to browser export in client builds
+          if (id === '@curvenote/scms-db' && !isSSR) {
+            // In client builds, redirect to the browser-safe export
+            return {
+              id: '@curvenote/scms-db/browser',
+              external: false, // Let Vite process the browser export
+            };
+          }
+
           // Server-only packages that should never be processed for client
           const serverOnlyPackages = [
             '@curvenote/scms-server',
+            '@curvenote/scms-db', // Main entry is server-only
             '@google-cloud/storage',
             '@google-cloud/pubsub',
             'google-auth-library',
@@ -255,6 +261,7 @@ export default defineConfig(async ({ mode }) => {
           // Only intercept in client mode (not SSR)
           const serverOnlyPackages = [
             '@curvenote/scms-server',
+            '@curvenote/scms-db', // Main entry is server-only (browser export is handled separately)
             '@google-cloud/storage',
             '@google-cloud/pubsub',
             'google-auth-library',
@@ -298,6 +305,7 @@ export default defineConfig(async ({ mode }) => {
           'firebase-admin',
           'crypto',
           '@curvenote/scms-server',
+          '@curvenote/scms-db', // Main entry is server-only (browser export is bundled)
         ],
         onwarn(warning, warn) {
           // Suppress sourcemap warnings from node_modules packages

@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '@curvenote/scms-server';
 import { uuidv7 } from 'uuidv7';
 

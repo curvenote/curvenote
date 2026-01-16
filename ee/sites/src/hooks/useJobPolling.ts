@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { JobStatus } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db/browser';
 import { usePolling } from '@curvenote/scms-core';
 import type { JobDTO } from '@curvenote/common';
 import type { WorkflowTransition } from '@curvenote/scms-core';
@@ -29,7 +29,7 @@ export function useJobPolling({
   const shouldPoll = activeTransition?.requiresJob && jobId;
 
   const shouldStopPolling = useCallback((job: JobDTO) => {
-    return job.status === JobStatus.COMPLETED || job.status === JobStatus.FAILED;
+    return job.status === $Enums.JobStatus.COMPLETED || job.status === $Enums.JobStatus.FAILED;
   }, []);
 
   const handleJobComplete = useCallback(

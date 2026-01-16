@@ -1,4 +1,4 @@
-import { JobStatus, Prisma } from '@prisma/client';
+import { $Enums, Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { formatDate } from '@curvenote/common';
 import type { CreateJob, UpdateJob } from '@curvenote/scms-core';
@@ -12,7 +12,7 @@ export async function dbCreateJob({ id, job_type, payload, status, results, mess
       date_created,
       date_modified: date_created,
       job_type,
-      status: status ?? JobStatus.QUEUED,
+      status: status ?? $Enums.JobStatus.QUEUED,
       payload: payload === null ? Prisma.JsonNull : payload,
       results: results == null ? Prisma.JsonNull : results,
       messages: message ? [message] : [],

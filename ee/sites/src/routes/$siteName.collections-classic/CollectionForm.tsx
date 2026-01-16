@@ -56,7 +56,7 @@ export function CollectionForm({
   return (
     <fetcher.Form ref={form} className="py-4 space-y-6" method="POST">
       <div className="flex space-x-4 space-y-4">
-        <div className="max-w-lg space-y-4 grow">
+        <div className="space-y-4 max-w-lg grow">
           <input type="hidden" name="formAction" value={formAction} />
           <input type="hidden" name="id" value={initialState?.id} />
           <primitives.TextField
@@ -102,7 +102,7 @@ export function CollectionForm({
             defaultValue={(initialState?.content as any)?.description}
           />
         </div>
-        <div className="max-w-lg space-y-4 grow">
+        <div className="space-y-4 max-w-lg grow">
           <div className="p-4 rounded bg-stone-100 dark:bg-stone-800 border-[1px] border-slate-200 dark:border-slate-700">
             <h4 className="mb-2 font-semibold">Workflow</h4>
             <select
@@ -199,7 +199,7 @@ export function CollectionForm({
         </ui.StatefulButton>
       </div>
       {fetcher.data?.error && (
-        <div className="text-red-500 ">
+        <div className="text-red-500">
           {Array.isArray(fetcher.data.error) ? (
             fetcher.data.error.map((e: any, i: number) => (
               <div key={`error-${e.path.join('.')}-${i}`}>

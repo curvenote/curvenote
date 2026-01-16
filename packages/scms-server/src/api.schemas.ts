@@ -1,7 +1,7 @@
 /* eslint-disable import/no-named-as-default-member */
 import type { ZodError } from 'zod';
 import { z } from 'zod';
-import { JobStatus } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import type { ClientExtension, ServerExtension } from '@curvenote/scms-core';
 import { httpError, KnownJobTypes } from '@curvenote/scms-core';
 import { registerExtensionJobs } from './modules/extensions/jobs.js';
@@ -122,8 +122,8 @@ export async function createJobPostBodySchema(extensions: ClientExtension[]) {
 }
 
 export const UpdateJobPatchBodySchema = z.object({
-  status: z.nativeEnum(JobStatus, {
-    error: () => `status must be ${Object.values(JobStatus).join(', ')}`,
+  status: z.nativeEnum($Enums.JobStatus, {
+    error: () => `status must be ${Object.values($Enums.JobStatus).join(', ')}`,
   }),
   message: z
     .string({

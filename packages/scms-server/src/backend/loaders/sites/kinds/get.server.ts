@@ -1,5 +1,5 @@
 import type { SubmissionKindDTO, CheckDTO, SubmissionKindSummaryDTO } from '@curvenote/common';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import type { SiteContext } from '../../../context.site.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { coerceToObject } from '@curvenote/scms-core';
@@ -9,7 +9,7 @@ export async function dbGetKind(ctx: SiteContext, where: Prisma.SubmissionKindWh
   return prisma.submissionKind.findFirst({ where: { site: { id: ctx.site.id }, ...where } });
 }
 
-export type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetKind>, null>;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbGetKind>>, null>;
 
 export function formatSubmissionKindSummaryDTO(dbo: DBO): SubmissionKindSummaryDTO {
   return {

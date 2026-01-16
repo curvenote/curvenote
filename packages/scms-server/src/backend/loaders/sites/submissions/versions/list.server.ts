@@ -1,5 +1,4 @@
-import type { Prisma, PrismaClient } from '@prisma/client';
-import type { DefaultArgs } from '@prisma/client/runtime/library';
+import type { Prisma } from '@curvenote/scms-db';
 import type { SubmissionVersionListingDTO } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
@@ -7,7 +6,11 @@ import { error404, makePaginationLinks } from '@curvenote/scms-core';
 import { formatSubmissionVersionDTO } from './get.server.js';
 import type { ModifiedSubmissionVersionDTO } from '../../../previews/get.server.js';
 
-async function dbCountSubmissionVersions(siteName: string, submissionId: string, tx?: TXClient) {
+async function dbCountSubmissionVersions(
+  siteName: string,
+  submissionId: string,
+  tx?: Prisma.TransactionClient,
+) {
   const prisma = await getPrismaClient();
   const count = await (tx ?? prisma).submissionVersion.count({
     where: {
@@ -21,16 +24,11 @@ async function dbCountSubmissionVersions(siteName: string, submissionId: string,
   return count;
 }
 
-type TXClient = Omit<
-  PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>,
-  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
->;
-
 async function dbQuerySubmissionVersions(
   siteName: string,
   submissionId: string,
   opts?: { page?: number; limit?: number },
-  tx?: TXClient,
+  tx?: Prisma.TransactionClient,
 ) {
   const skip = opts?.limit ? (opts?.page ?? 0) * opts?.limit : undefined;
   const take = opts?.limit;
@@ -86,7 +84,7 @@ export async function dbListSubmissionVersions(
   });
 }
 
-export type DBO = Exclude<Prisma.PromiseReturnType<typeof dbListSubmissionVersions>, null>;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbListSubmissionVersions>>, null>;
 
 export function formatSubmissionVersionListingDTO(
   ctx: SiteContext,

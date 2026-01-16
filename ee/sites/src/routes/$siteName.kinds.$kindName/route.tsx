@@ -27,7 +27,7 @@ import {
 } from './actionHelpers.server.js';
 import { CollectionToggleItem } from '../$siteName.collections.$collectionName/CollectionToggleItem.js';
 import { isCheckArray } from '../$siteName.kinds/utils.server.js';
-import type { SubmissionKind } from '@prisma/client';
+import type { SubmissionKind } from '@curvenote/scms-db';
 
 type LoaderData = SubmissionKind & {
   enabledChecks: Check[];

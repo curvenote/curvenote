@@ -3,7 +3,7 @@ import { error401, TrackEvent } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import { formatSubmissionVersionDTO } from './get.server.js';
 import { formatDate } from '@curvenote/common';
-import { ActivityType } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 import type { SiteContext } from '../../../../context.site.server.js';
 import { dbGetWorkflowForSubmission } from '../../../../../workflow/utils.server.js';
@@ -96,7 +96,7 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
             id: sv.id,
           },
         },
-        activity_type: ActivityType.SUBMISSION_VERSION_ADDED,
+        activity_type: $Enums.ActivityType.SUBMISSION_VERSION_ADDED,
         status: sv.status,
         work_version: {
           connect: {

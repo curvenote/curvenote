@@ -11,7 +11,7 @@ import classNames from 'classnames';
 import type { SubmissionDTO, SubmissionVersionDTO } from '@curvenote/common';
 import type { SlugsDTO } from './types.server.js';
 import { Slugs, getSlugSuggestion } from './Slugs.js';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { Kinds } from './Kinds.js';
 import { buildUrl } from 'doi-utils';
 import { useLoaderData } from 'react-router';
@@ -37,7 +37,7 @@ export function SubmissionDetails({ baseUrl }: { baseUrl?: string }) {
     site: ReturnType<typeof sites.formatSiteDTO>;
     signature: string;
     slugs: SlugsDTO;
-    collections: Prisma.PromiseReturnType<typeof sites.collections.list>;
+    collections: Awaited<ReturnType<typeof sites.collections.list>>;
     workflow: Workflow;
     poll: boolean;
   };

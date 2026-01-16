@@ -3,7 +3,7 @@ import type { SiteContext } from '@curvenote/scms-server';
 import type { JournalThemeConfig } from '@curvenote/common';
 import { coerceToObject, TrackEvent } from '@curvenote/scms-core';
 import { getPrismaClient, safeSiteMetadataUpdate } from '@curvenote/scms-server';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 
 export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormData) {
   const title = formData.get('title') as string;

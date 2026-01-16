@@ -1,5 +1,5 @@
 import { getPrismaClient } from '@curvenote/scms-server';
-import type { Domain } from '@prisma/client';
+import type { Domain } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
 
 export type { Domain };

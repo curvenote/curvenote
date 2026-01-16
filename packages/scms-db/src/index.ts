@@ -1,9 +1,9 @@
 /**
  * Server-side entry point for @curvenote/scms-db
- * 
+ *
  * This exports the PrismaClient factory function with the PostgreSQL adapter.
  * Use this in server-side code (React Router loaders, actions, API routes).
- * 
+ *
  * @example
  * ```ts
  * import { getPrismaClient } from '@curvenote/scms-db';
@@ -12,10 +12,9 @@
  * ```
  */
 
-import { PrismaClient } from './generated/client.js';
+import { PrismaClient, Prisma } from './generated/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import type { Prisma } from './generated/client.js';
 
 // Type-safe global cache (dev hot-reload & serverless runtime reuse)
 const g = globalThis as unknown as {
@@ -25,16 +24,16 @@ const g = globalThis as unknown as {
 
 /**
  * Creates a PrismaClient instance with the PostgreSQL adapter.
- * 
+ *
  * @param connectionString - Database connection string. If not provided, uses DATABASE_URL env var.
  * @returns Configured PrismaClient instance
  */
 function makeClient(connectionString?: string): PrismaClient {
   const dbUrl = connectionString || process.env.DATABASE_URL;
-  
+
   if (!dbUrl) {
     throw new Error(
-      'DATABASE_URL environment variable is required, or provide a connection string to getPrismaClient()'
+      'DATABASE_URL environment variable is required, or provide a connection string to getPrismaClient()',
     );
   }
 
@@ -58,27 +57,20 @@ function makeClient(connectionString?: string): PrismaClient {
 /**
  * Gets or creates the singleton PrismaClient instance.
  * 
+ * NOTE: do not use this directly, use getPrismaClient from scms-server instead for a
+ * properly configured Prisma client instance.
+ *
  * This function implements a singleton pattern to ensure only one PrismaClient
  * instance exists per process, which is important for connection pooling and
  * serverless environments.
- * 
+ *
  * @param connectionString - Optional database connection string. If not provided,
  *                           uses DATABASE_URL env var. Only used on first call.
  * @returns Promise that resolves to the PrismaClient instance
+
  * 
- * @example
- * ```ts
- * import { getPrismaClient } from '@curvenote/scms-db';
- * 
- * export async function loader() {
- *   const prisma = await getPrismaClient();
- *   return await prisma.user.findMany();
- * }
- * ```
  */
-export async function getPrismaClient(
-  connectionString?: string,
-): Promise<PrismaClient> {
+export async function getLowLevelPrismaClient(connectionString?: string): Promise<PrismaClient> {
   if (g.__prisma) return g.__prisma;
   if (g.__prismaInit) return g.__prismaInit;
 
@@ -103,6 +95,6 @@ export async function getPrismaClient(
   return g.__prismaInit;
 }
 
-// Re-export types from the generated client for server-side usage
-export type { Prisma, PrismaClient } from './generated/client.js';
+// Re-export types and the Prisma namespace from the generated client for server-side usage
+export { Prisma, PrismaClient } from './generated/client.js';
 export * from './generated/client.js';

@@ -1,4 +1,3 @@
-import type { Prisma } from '@prisma/client';
 import { getPrismaClient } from '../../prisma.server.js';
 import type { SubmissionVersionDTO } from '@curvenote/common';
 import type { Context } from '../../context.server.js';
@@ -36,7 +35,7 @@ export async function dbGetSubmissionVersion(id: string) {
   });
 }
 
-type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetSubmissionVersion>, null>;
+type DBO = Exclude<Awaited<ReturnType<typeof dbGetSubmissionVersion>>, null>;
 
 export type ModifiedSubmissionVersionDTO = Omit<SubmissionVersionDTO, 'site_work'> & {
   site_work: ModifiedSiteWorkDTO;

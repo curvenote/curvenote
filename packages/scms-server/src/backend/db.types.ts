@@ -1,4 +1,4 @@
-import type { Prisma, SiteRole } from '@prisma/client';
+import type { $Enums, Prisma } from '@curvenote/scms-db';
 
 export type {
   Site as SiteDBO,
@@ -6,7 +6,7 @@ export type {
   User as UserDBO,
   Submission as SubmissionDBO,
   SubmissionKind as SubmissionKindDBO,
-} from '@prisma/client';
+} from '@curvenote/scms-db';
 
 export type UserWithRolesDBO = Prisma.UserGetPayload<{
   include: {
@@ -179,6 +179,6 @@ export type MystWorkVersion = CreateWorkVersion & {
 
 export type MyUserDBO = UserWithRolesDBO;
 
-export type UserSiteDBO = Prisma.SiteGetPayload<any> & { role: SiteRole | null };
+export type UserSiteDBO = Prisma.SiteGetPayload<any> & { role: $Enums.SiteRole | null };
 
 export type JobDBO = Prisma.JobGetPayload<any>;

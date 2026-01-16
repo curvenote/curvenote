@@ -26,7 +26,7 @@ export async function loader() {
 ### Browser-Side (React Components)
 
 ```ts
-import { UserRole, type User } from '@curvenote/scms-db/browser';
+import { UserRole, type User } from '@curvenote/scms-db';
 
 function UserBadge({ role }: { role: UserRole }) {
   return role === UserRole.ADMIN ? <span>Admin</span> : <span>User</span>;

@@ -1,9 +1,9 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import type { Prisma, SiteRole } from '@prisma/client';
+import type { Prisma, $Enums } from '@curvenote/scms-db';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '@curvenote/scms-server';
 
-export async function dbAddSiteUserRole(siteId: string, userId: string, role: SiteRole) {
+export async function dbAddSiteUserRole(siteId: string, userId: string, role: $Enums.SiteRole) {
   const prisma = await getPrismaClient();
   const timestamp = formatDate();
   return prisma.siteUser.create({
@@ -19,7 +19,7 @@ export async function dbAddSiteUserRole(siteId: string, userId: string, role: Si
   });
 }
 
-export async function dbRemoveSiteUserRole(siteId: string, userId: string, role: SiteRole) {
+export async function dbRemoveSiteUserRole(siteId: string, userId: string, role: $Enums.SiteRole) {
   const prisma = await getPrismaClient();
   return prisma.siteUser.deleteMany({
     where: {
@@ -90,7 +90,7 @@ export async function dbGetSiteUsers(siteName: string) {
   });
 }
 
-export type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetSiteUsers>, null | undefined>;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbGetSiteUsers>>, null | undefined>;
 
 export function dtoSiteUsers(dbo: DBO) {
   return dbo.map((user) => ({

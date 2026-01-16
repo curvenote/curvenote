@@ -1,6 +1,6 @@
 import type { SiteListingDTO } from '@curvenote/common';
 import { getPrismaClient } from '../../prisma.server.js';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { dbGetSiteContent, formatSiteDTO, formatSiteWithContentDTO } from './get.server.js';
 import type { Context } from '../../context.server.js';
 
@@ -21,7 +21,7 @@ export async function dbListMany(where?: Prisma.SiteWhereInput, include?: Prisma
   });
 }
 
-type DBO = Omit<Prisma.PromiseReturnType<typeof dbListMany>, 'null'>;
+type DBO = Omit<Awaited<ReturnType<typeof dbListMany>>, 'null'>;
 
 function formatSiteListingDTO(ctx: Context, dbo: DBO): SiteListingDTO {
   return {

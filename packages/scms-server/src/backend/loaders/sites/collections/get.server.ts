@@ -2,7 +2,7 @@ import type { CollectionDTO } from '@curvenote/common';
 import type { SiteContext } from '../../../context.site.server.js';
 import { coerceToObject, error404 } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../prisma.server.js';
-import { type Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 
 async function dbGetCollection(ctx: SiteContext, where: Prisma.CollectionWhereInput) {
   const prisma = await getPrismaClient();
@@ -36,7 +36,7 @@ async function dbGetCollection(ctx: SiteContext, where: Prisma.CollectionWhereIn
   });
 }
 
-export type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetCollection>, null>;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbGetCollection>>, null>;
 
 export function formatCollectionDTO(ctx: SiteContext, dbo: DBO): CollectionDTO {
   const content = coerceToObject(dbo.content);

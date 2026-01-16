@@ -3,7 +3,7 @@ import { Replace, SquarePen, SquareCheckBig } from 'lucide-react';
 import classNames from 'classnames';
 import type { sites } from '@curvenote/scms-server';
 import { primitives } from '@curvenote/scms-core';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { useRef } from 'react';
 
 export function Collections({
@@ -14,7 +14,7 @@ export function Collections({
 }: {
   submissionId: string;
   collectionId: string;
-  collections: Prisma.PromiseReturnType<typeof sites.collections.list>['items'];
+  collections: Awaited<ReturnType<typeof sites.collections.list>>['items'];
   canUpdate: boolean;
 }) {
   const fetcher = useFetcher<{ error?: string }>();

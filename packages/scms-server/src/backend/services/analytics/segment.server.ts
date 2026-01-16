@@ -11,7 +11,7 @@ import type {
 } from '@segment/analytics-node';
 import { Analytics } from '@segment/analytics-node';
 import type { Segment as SegmentConfig } from '@/types/app-config.js';
-import type { User } from '@prisma/client';
+import type { User } from '@curvenote/scms-db';
 import type { AllTrackEvent } from '@curvenote/scms-core';
 
 /**

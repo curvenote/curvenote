@@ -1,8 +1,8 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import type { Prisma, WorkRole } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { getPrismaClient } from '@curvenote/scms-server';
 
-export async function dbAddWorkUserRole(workId: string, userId: string, role: WorkRole) {
+export async function dbAddWorkUserRole(workId: string, userId: string, role: $Enums.WorkRole) {
   const prisma = await getPrismaClient();
   const timestamp = new Date().toISOString();
   return prisma.workUser.create({
@@ -18,7 +18,7 @@ export async function dbAddWorkUserRole(workId: string, userId: string, role: Wo
   });
 }
 
-export async function dbRemoveWorkUserRole(workId: string, userId: string, role: WorkRole) {
+export async function dbRemoveWorkUserRole(workId: string, userId: string, role: $Enums.WorkRole) {
   const prisma = await getPrismaClient();
   return prisma.workUser.deleteMany({
     where: {
@@ -69,7 +69,7 @@ export async function dbGetWorkUsers(workId: string) {
   });
 }
 
-export type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetWorkUsers>, null | undefined>;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbGetWorkUsers>>, null | undefined>;
 
 export function dtoWorkUsers(dbo: DBO) {
   return dbo.map((user) => ({

@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { expect } from 'vitest';
 import jwt from 'jsonwebtoken';
-import type { SiteRole } from '@prisma/client';
+import type { $Enums } from '@curvenote/scms-db';
 import { JobStatus, PrismaClient, SystemRole } from '@prisma/client';
 import { createSessionToken } from '@curvenote/scms-server';
 import { KnownJobTypes } from '@curvenote/scms-core';
@@ -316,7 +316,7 @@ export async function createTestUser(
   options: {
     pending?: boolean;
     disabled?: boolean;
-    siteRoles?: { siteName: string; role: SiteRole }[];
+    siteRoles?: { siteName: string; role: $Enums.SiteRole }[];
     roles?: string[]; // Array of role names to assign to the user
   } = {},
 ) {
@@ -441,7 +441,7 @@ export async function createTestUserWithPlatformAdminRole(
   options: {
     pending?: boolean;
     disabled?: boolean;
-    siteRoles?: { siteName: string; role: SiteRole }[];
+    siteRoles?: { siteName: string; role: $Enums.SiteRole }[];
   } = {},
 ) {
   return createTestUser(SystemRole.USER, {

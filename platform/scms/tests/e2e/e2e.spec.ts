@@ -6,7 +6,7 @@ import { load } from 'js-yaml';
 import { loadValidatedConfig } from '@app-config/config';
 import { createTestUser, generateTestToken } from './helpers';
 import type { UserDBO } from '@curvenote/scms-server';
-import { SystemRole, SiteRole } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 
 const PORT = '3032';
 
@@ -158,7 +158,7 @@ type TestFile = {
   url?: string;
   method?: string;
   status?: number;
-  system_role?: SystemRole;
+  system_role?: $Enums.SystemRole;
   site_roles?: { name: string; role: string }[];
   roles?: string[]; // Array of role names to assign to the user
   headers?: Record<string, string>;
@@ -422,11 +422,11 @@ function runTestCases(tests: TestFile[]) {
           if (site_roles && site_roles.length > 0) {
             userOptions.siteRoles = site_roles.map((sr) => ({
               siteName: sr.name,
-              role: SiteRole[sr.role as keyof typeof SiteRole],
+              role: $Enums.SiteRole[sr.role as keyof typeof $Enums.SiteRole],
             }));
           }
 
-          testUser = await createTestUser(system_role ?? SystemRole.USER, {
+          testUser = await createTestUser(system_role ?? $Enums.SystemRole.USER, {
             ...userOptions,
             roles,
           });

@@ -1,4 +1,4 @@
-import { JobStatus } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 
 export function getStatusButtonClasses(status: string | undefined) {
   if (!status)
@@ -29,26 +29,26 @@ export function getStatusButtonClasses(status: string | undefined) {
   }
 }
 
-export function getStatusDotClasses(status: JobStatus | string) {
+export function getStatusDotClasses(status: $Enums.JobStatus | string) {
   switch (status) {
     case 'INCOMPLETE':
     case 'DRAFT':
-    case JobStatus.QUEUED:
+    case $Enums.JobStatus.QUEUED:
     case 'RETRACTED':
     case 'UNPUBLISHED':
       return 'bg-neutral-400';
     case 'IN_REVIEW':
     case 'APPROVED':
       return 'bg-sky-500';
-    case JobStatus.RUNNING:
+    case $Enums.JobStatus.RUNNING:
     case 'PENDING':
     case 'PUBLISHING':
     case 'UNPUBLISHING':
       return 'bg-orange-500';
-    case JobStatus.COMPLETED:
+    case $Enums.JobStatus.COMPLETED:
     case 'PUBLISHED':
       return 'bg-green-500';
-    case JobStatus.FAILED:
+    case $Enums.JobStatus.FAILED:
     case 'REJECTED':
       return 'bg-red-500';
   }

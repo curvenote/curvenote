@@ -1,4 +1,4 @@
-import type { JobStatus, Prisma } from '@prisma/client';
+import type { $Enums, Prisma } from '@curvenote/scms-db';
 import type { Context } from '../../context.server.js';
 import { formatJobDTO } from './get.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
@@ -6,7 +6,7 @@ import { getPrismaClient } from '../../prisma.server.js';
 async function dbListJobs(
   siteId: string,
   types: string[],
-  statuses?: JobStatus[],
+  statuses?: $Enums.JobStatus[],
   take?: number,
   skip?: number,
 ) {
@@ -41,7 +41,7 @@ export default async function (
   ctx: Context,
   siteId: string,
   types: string[],
-  statuses?: JobStatus[],
+  statuses?: $Enums.JobStatus[],
   take?: number,
   skip?: number,
 ) {

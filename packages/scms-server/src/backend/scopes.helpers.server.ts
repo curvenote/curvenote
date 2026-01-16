@@ -1,4 +1,4 @@
-import type { SiteRole, WorkRole } from '@prisma/client';
+import type { $Enums } from '@curvenote/scms-db';
 import type { UserDBO, UserWithRolesDBO } from './db.types.js';
 import { system } from '@curvenote/scms-core';
 import {
@@ -16,9 +16,7 @@ import {
  * Otherwise returns false.
  */
 export function userHasSiteScope(
-  user:
-    | (UserDBO & { site_roles: { site_id: string; user_id: string; role: SiteRole }[] })
-    | undefined,
+  user: UserWithRolesDBO | undefined,
   scope: string,
   siteId?: string,
 ): boolean {
@@ -135,7 +133,7 @@ export function getUserScopesSet(user: UserWithRolesDBO): Set<string> {
 export function userHasWorkScope(
   user:
     | (UserDBO & {
-        work_roles: { work_id: string; user_id: string; role: WorkRole }[];
+        work_roles: { work_id: string; user_id: string; role: $Enums.WorkRole }[];
       })
     | undefined,
   scope: string,

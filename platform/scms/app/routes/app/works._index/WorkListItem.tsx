@@ -2,9 +2,8 @@ import { Link } from 'react-router';
 import { formatDate, formatToNow, primitives, ui } from '@curvenote/scms-core';
 import { ExternalLink } from 'lucide-react';
 import type { dbGetWorksAndSubmissionVersions } from './db.server';
-import type { Prisma } from '@prisma/client';
 
-export type WorkCardDBO = Prisma.PromiseReturnType<typeof dbGetWorksAndSubmissionVersions>[0];
+export type WorkCardDBO = Awaited<ReturnType<typeof dbGetWorksAndSubmissionVersions>>[0];
 
 export function WorkListItem({
   work,
@@ -34,10 +33,10 @@ export function WorkListItem({
 
   return (
     <div className="px-6 py-4">
-      <div className="flex flex-col items-start gap-1 md:gap-6 md:flex-row">
+      <div className="flex flex-col gap-1 items-start md:gap-6 md:flex-row">
         {/* Column 1: Title, Authors, DOI Links */}
         <div className="flex flex-col flex-grow gap-1">
-          <div className="flex items-start gap-2">
+          <div className="flex gap-2 items-start">
             <h3 className="font-normal leading-tight transition-colors line-clamp-2">
               <Link
                 to={`/app/works/${work.id}`}
@@ -62,7 +61,7 @@ export function WorkListItem({
                   href={work.doi.startsWith('http') ? work.doi : `https://doi.org/${work.doi}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs"
+                  className="inline-flex gap-1 items-center text-xs"
                 >
                   Work DOI: {work.doi.replace('https://doi.org/', '')}
                   <ExternalLink className="w-2.5 h-2.5" />
@@ -79,7 +78,7 @@ export function WorkListItem({
                   }
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs"
+                  className="inline-flex gap-1 items-center text-xs"
                 >
                   DOI: {latestVersion.doi.replace('https://doi.org/', '')}
                   <ExternalLink className="w-2.5 h-2.5" />
@@ -145,7 +144,7 @@ export function WorkListItem({
 
         {/* Column 2: Activity and Date */}
         <div className="flex flex-col flex-shrink-0 items-center self-stretch w-48 pt-[1px]">
-          <div className="flex flex-wrap justify-center w-full gap-2 mb-2">
+          <div className="flex flex-wrap gap-2 justify-center mb-2 w-full">
             {activityTime && (
               <primitives.Chip
                 className="text-gray-500 border-[1px] border-gray-200 dark:border-gray-500 dark:text-gray-500"
