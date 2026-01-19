@@ -11,6 +11,7 @@ export default defineConfig({
   schema: 'prisma/schema',
   migrations: {
     path: 'prisma/schema/migrations',
+    seed: 'npx tsx ./prisma/seed.mts',
   },
   datasource: {
     url: env('DATABASE_URL'),

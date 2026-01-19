@@ -9,13 +9,30 @@ const __dirname = path.dirname(__filename);
 
 const prisma = new PrismaClient();
 
+// Track what we've created for the summary
+const summary = {
+  users: 0,
+  roles: 0,
+  userRoles: 0,
+  sites: 0,
+  works: 0,
+  submissions: 0,
+  collections: 0,
+};
+
+console.log('🌱 Starting database seed...\n');
+
 async function main() {
+  console.log('📂 Loading seed data files...');
   const data: { site: any; works: any[] }[] = await loadAllJsonFilesFromDir(
     path.join(__dirname, 'data'),
   );
+  console.log(`   ✓ Loaded ${data.length} site data file(s)\n`);
 
   const startDate = new Date(2023, 1, 1);
   const startDateString = startDate.toISOString();
+
+  console.log('👥 Creating users...');
 
   const rowanStaging = await prisma.user.create({
     data: {
@@ -27,6 +44,8 @@ async function main() {
       system_role: SystemRole.ADMIN,
     },
   });
+  summary.users++;
+  console.log(`   ✓ Created user: ${rowanStaging.display_name} (${rowanStaging.email})`);
 
   const steveStaging = await prisma.user.create({
     data: {
@@ -38,6 +57,8 @@ async function main() {
       system_role: SystemRole.ADMIN,
     },
   });
+  summary.users++;
+  console.log(`   ✓ Created user: ${steveStaging.display_name} (${steveStaging.email})`);
 
   const franklin = await prisma.user.create({
     data: {
@@ -49,6 +70,8 @@ async function main() {
       system_role: SystemRole.ADMIN,
     },
   });
+  summary.users++;
+  console.log(`   ✓ Created user: ${franklin.display_name} (${franklin.email})`);
 
   const support = await prisma.user.create({
     data: {
@@ -60,6 +83,8 @@ async function main() {
       system_role: SystemRole.ADMIN,
     },
   });
+  summary.users++;
+  console.log(`   ✓ Created user: ${support.display_name} (${support.email})`);
 
   const mikeStaging = await prisma.user.create({
     data: {
@@ -71,7 +96,11 @@ async function main() {
       system_role: SystemRole.USER,
     },
   });
+  summary.users++;
+  console.log(`   ✓ Created user: ${mikeStaging.display_name} (${mikeStaging.email})`);
+  console.log(`   Total users created: ${summary.users}\n`);
 
+  console.log('🔐 Creating roles...');
   // Create roles for development
   const platformAdminRole = await prisma.role.create({
     data: {
@@ -85,6 +114,8 @@ async function main() {
       date_modified: startDateString,
     },
   });
+  summary.roles++;
+  console.log(`   ✓ Created role: ${platformAdminRole.title} (${platformAdminRole.name})`);
 
   const myWorksPreviewRole = await prisma.role.create({
     data: {
@@ -98,7 +129,11 @@ async function main() {
       date_modified: startDateString,
     },
   });
+  summary.roles++;
+  console.log(`   ✓ Created role: ${myWorksPreviewRole.title} (${myWorksPreviewRole.name})`);
+  console.log(`   Total roles created: ${summary.roles}\n`);
 
+  console.log('🔗 Assigning roles to users...');
   // Assign roles to all users except Support for admin roles
   const usersToAssignRoles = [franklin, rowanStaging, steveStaging, mikeStaging];
 
@@ -113,6 +148,8 @@ async function main() {
         date_modified: startDateString,
       },
     });
+    summary.userRoles++;
+    console.log(`   ✓ Assigned ${platformAdminRole.title} to ${user.display_name}`);
   }
 
   // Assign My Works Preview role to ALL users including support
@@ -127,20 +164,44 @@ async function main() {
         date_modified: startDateString,
       },
     });
+    summary.userRoles++;
+    console.log(`   ✓ Assigned ${myWorksPreviewRole.title} to ${user.display_name}`);
   }
+  console.log(`   Total role assignments: ${summary.userRoles}\n`);
 
-  await seedBySites(data, startDateString, {
+  console.log('🏗️  Seeding sites, works, and submissions...\n');
+  const siteSummary = await seedBySites(data, startDateString, {
     support,
     others: [franklin, rowanStaging, steveStaging, mikeStaging],
-    tellus: [mikeStaging],
   });
+  
+  // Merge site summary into main summary
+  summary.sites += siteSummary.sites;
+  summary.works += siteSummary.works;
+  summary.submissions += siteSummary.submissions;
+  summary.collections += siteSummary.collections;
 }
 
 main()
   .then(async () => {
     await prisma.$disconnect();
+    
+    // Print summary
+    console.log('\n' + '='.repeat(60));
+    console.log('✅ SEED COMPLETED SUCCESSFULLY');
+    console.log('='.repeat(60));
+    console.log('\n📊 Summary:');
+    console.log(`   👥 Users:        ${summary.users}`);
+    console.log(`   🔐 Roles:        ${summary.roles}`);
+    console.log(`   🔗 User Roles:   ${summary.userRoles}`);
+    console.log(`   🏢 Sites:        ${summary.sites}`);
+    console.log(`   📄 Works:        ${summary.works}`);
+    console.log(`   📝 Submissions:  ${summary.submissions}`);
+    console.log(`   📚 Collections:  ${summary.collections}`);
+    console.log('\n' + '='.repeat(60) + '\n');
   })
   .catch(async (e) => {
+    console.error('\n❌ Seed failed with error:');
     console.error(e);
     await prisma.$disconnect();
     process.exit(1);
