@@ -22,7 +22,7 @@ import {
   KnownJobTypes,
 } from '@curvenote/scms-core';
 import { CurvenoteLogo, CurvenoteText } from '@curvenote/icons';
-import type { $Enums } from '@curvenote/scms-db';
+import type { JobStatus } from '@curvenote/scms-db';
 import { Checks } from '@curvenote/check-ui';
 import { Theme, ThemeProvider } from '@myst-theme/providers';
 import { DEFAULT_RENDERERS } from 'myst-to-react';
@@ -340,7 +340,7 @@ export default function BuildScreen({ loaderData }: Route.ComponentProps) {
                       <div
                         className={cn(
                           'inline-block w-2 h-2 bg-green-600 rounded-full',
-                          getStatusDotClasses(job.status as $Enums.JobStatus),
+                          getStatusDotClasses(job.status as JobStatus),
                         )}
                       />
                       {job.status}

@@ -1,4 +1,4 @@
-import type { $Enums } from '@curvenote/scms-db';
+import type { WorkRole } from '@curvenote/scms-db';
 import type { UserDBO, UserWithRolesDBO } from './db.types.js';
 import { system } from '@curvenote/scms-core';
 import {
@@ -133,7 +133,7 @@ export function getUserScopesSet(user: UserWithRolesDBO): Set<string> {
 export function userHasWorkScope(
   user:
     | (UserDBO & {
-        work_roles: { work_id: string; user_id: string; role: $Enums.WorkRole }[];
+        work_roles: { work_id: string; user_id: string; role: WorkRole }[];
       })
     | undefined,
   scope: string,

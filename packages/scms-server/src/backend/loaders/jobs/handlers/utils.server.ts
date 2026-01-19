@@ -1,4 +1,4 @@
-import { $Enums } from '@curvenote/scms-db';
+import { JobStatus } from '@curvenote/scms-db';
 import { dbUpdateJob } from './db.server.js';
 import { error401, httpError, site } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../prisma.server.js';
@@ -31,7 +31,7 @@ export async function updateCdnOnWorkVersion(
     if (!wv) throw Error('Work Version not updated');
     results = { ...results, work_version_updated: true, cdn: newCdn };
     await dbUpdateJob(jobId, {
-      status: $Enums.JobStatus.RUNNING,
+      status: JobStatus.RUNNING,
       message: 'Files transferred to new location',
       results,
     });
@@ -39,7 +39,7 @@ export async function updateCdnOnWorkVersion(
     const message = 'Error updating work version';
     console.log(message, error);
     await dbUpdateJob(jobId, {
-      status: $Enums.JobStatus.FAILED,
+      status: JobStatus.FAILED,
       message,
       results,
     });

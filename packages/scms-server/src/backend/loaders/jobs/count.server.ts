@@ -1,8 +1,8 @@
-import type { $Enums, Prisma } from '@curvenote/scms-db';
+import type { JobStatus, Prisma } from '@curvenote/scms-db';
 import type { Context } from '../../context.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
 
-async function dbCountJobs(siteId: string, types: string[], statuses?: $Enums.JobStatus[]) {
+async function dbCountJobs(siteId: string, types: string[], statuses?: JobStatus[]) {
   const where: Prisma.JobWhereInput = {
     job_type: {
       in: types,
@@ -27,7 +27,7 @@ export default async function (
   ctx: Context,
   siteId: string,
   types: string[],
-  statuses?: $Enums.JobStatus[],
+  statuses?: JobStatus[],
 ) {
   return await dbCountJobs(siteId, types, statuses);
 }

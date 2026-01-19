@@ -2,7 +2,7 @@ import { ui, formatDatetime } from '@curvenote/scms-core';
 import { Copy } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useFetcher } from 'react-router';
-import type { $Enums } from '@curvenote/scms-db';
+import type { SystemRole } from '@curvenote/scms-db';
 import type { SystemUserDTO } from './db.server';
 
 interface SystemUserCardProps {
@@ -74,7 +74,7 @@ type ActionResponse = {
 
 export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps) {
   const fetcher = useFetcher<ActionResponse>();
-  const [selectedRole, setSelectedRole] = useState<$Enums.SystemRole>(user.system_role);
+  const [selectedRole, setSelectedRole] = useState<SystemRole>(user.system_role);
 
   const isCurrentUser = user.id === currentUserId;
   const isLoading = fetcher.state !== 'idle';
@@ -115,7 +115,7 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
   }, [fetcher.data, selectedRole, getDisplayName, getRoleDisplayName]);
 
   const handleRoleChange = (newRole: string) => {
-    const roleValue = newRole as $Enums.SystemRole;
+    const roleValue = newRole as SystemRole;
     setSelectedRole(roleValue);
 
     const formData = new FormData();

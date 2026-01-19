@@ -1,4 +1,4 @@
-import { $Enums } from '@curvenote/scms-db';
+import { JobStatus } from '@curvenote/scms-db';
 
 export function getStatusButtonClasses(status: string | undefined) {
   if (!status)
@@ -29,26 +29,26 @@ export function getStatusButtonClasses(status: string | undefined) {
   }
 }
 
-export function getStatusDotClasses(status: $Enums.JobStatus | string) {
+export function getStatusDotClasses(status: JobStatus | string) {
   switch (status) {
     case 'INCOMPLETE':
     case 'DRAFT':
-    case $Enums.JobStatus.QUEUED:
+    case JobStatus.QUEUED:
     case 'RETRACTED':
     case 'UNPUBLISHED':
       return 'bg-neutral-400';
     case 'IN_REVIEW':
     case 'APPROVED':
       return 'bg-sky-500';
-    case $Enums.JobStatus.RUNNING:
+    case JobStatus.RUNNING:
     case 'PENDING':
     case 'PUBLISHING':
     case 'UNPUBLISHING':
       return 'bg-orange-500';
-    case $Enums.JobStatus.COMPLETED:
+    case JobStatus.COMPLETED:
     case 'PUBLISHED':
       return 'bg-green-500';
-    case $Enums.JobStatus.FAILED:
+    case JobStatus.FAILED:
     case 'REJECTED':
       return 'bg-red-500';
   }

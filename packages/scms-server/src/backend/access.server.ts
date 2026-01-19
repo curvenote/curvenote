@@ -2,7 +2,7 @@ import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from './prisma.server.js';
 import { getUserScopesSet } from './scopes.helpers.server.js';
 import type { PrismaClient, Access, User } from '@curvenote/scms-db';
-import { $Enums } from '@curvenote/scms-db';
+import { ActivityType } from '@curvenote/scms-db';
 
 export interface AccessGrants {
   scopes: string[];
@@ -49,7 +49,7 @@ export async function createAccess(params: CreateAccessParams): Promise<Access> 
         date_created: now,
         date_modified: now,
         activity_by_id: params.ownerId,
-        activity_type: $Enums.ActivityType.ACCESS_GRANTED,
+        activity_type: ActivityType.ACCESS_GRANTED,
         access_id: access.id,
         user_id: params.receiverId,
       },
@@ -178,7 +178,7 @@ export async function revokeAccess(accessId: string, performedByUserId?: string)
         date_created: now,
         date_modified: now,
         activity_by_id: performedByUserId || access.owner_id, // The person who performed the revocation
-        activity_type: $Enums.ActivityType.ACCESS_REVOKED,
+        activity_type: ActivityType.ACCESS_REVOKED,
         access_id: accessId,
         user_id: access.receiver_id, // The user who had access revoked
       },

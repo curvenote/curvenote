@@ -1,6 +1,6 @@
 import { primitives, ui, formatDate } from '@curvenote/scms-core';
 import { Star, Mail, Building2 } from 'lucide-react';
-import type { $Enums } from '@curvenote/scms-db';
+import type { SystemRole } from '@curvenote/scms-db';
 
 type User = {
   id: string;
@@ -9,7 +9,7 @@ type User = {
   username: string | null;
   primaryProvider: string | null;
   display_name: string | null;
-  system_role: $Enums.SystemRole;
+  system_role: SystemRole;
   site_roles: Array<{
     id: string;
     date_created: string;
