@@ -18,5 +18,5 @@ import type { PrismaClient } from '@curvenote/scms-db';
  */
 export async function getPrismaClient(): Promise<PrismaClient> {
   const config = await getConfig();
-  return getLowLevelPrismaClient(config.api.databaseUrl);
+  return getLowLevelPrismaClient(config.api.databaseUrl, config.api.databaseCACertificate);
 }

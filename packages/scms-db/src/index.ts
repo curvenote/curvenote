@@ -28,7 +28,7 @@ const g = globalThis as unknown as {
  * @param connectionString - Database connection string. If not provided, uses DATABASE_URL env var.
  * @returns Configured PrismaClient instance
  */
-function makeClient(connectionString?: string): PrismaClient {
+function makeClient(connectionString?: string, dbCACertificate?: string): PrismaClient {
   const dbUrl = connectionString || process.env.DATABASE_URL;
 
   if (!dbUrl) {
@@ -38,7 +38,12 @@ function makeClient(connectionString?: string): PrismaClient {
   }
 
   // Create a connection pool for the adapter
-  const pool = new Pool({ connectionString: dbUrl });
+  const pool = new Pool({
+    connectionString: dbUrl,
+    ssl: dbCACertificate ? { ca: dbCACertificate } : undefined,
+    max: process.env.NODE_ENV !== 'production' ? 1 : undefined,
+  });
+
   const adapter = new PrismaPg(pool);
 
   const opts: Prisma.PrismaClientOptions = {
@@ -70,13 +75,13 @@ function makeClient(connectionString?: string): PrismaClient {
 
  * 
  */
-export async function getLowLevelPrismaClient(connectionString?: string): Promise<PrismaClient> {
+export async function getLowLevelPrismaClient(connectionString?: string, dbCACertificate?: string): Promise<PrismaClient> {
   if (g.__prisma) return g.__prisma;
   if (g.__prismaInit) return g.__prismaInit;
 
   g.__prismaInit = (async () => {
     try {
-      const client = makeClient(connectionString);
+      const client = makeClient(connectionString, dbCACertificate);
 
       if (process.env.NODE_ENV !== 'production') {
         // fail fast in dev and prove the pool path is correct
