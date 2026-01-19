@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms-core",
   "private": true,
-  "version": "0.13.2",
+  "version": "0.14.0",
   "description": "Core library for Curvenote SCMS applications",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",
@@ -56,7 +56,7 @@
     "@curvenote/common": "^0.2.23",
     "@curvenote/icons": "^0.0.4",
     "@curvenote/remix-auth-okta": "^3.0.0",
-    "@curvenote/scms-db": "0.13.2",
+    "@curvenote/scms-db": "0.14.0",
     "@firebase/auth": "^1.11.1",
     "@headlessui/react": "^2.2.9",
     "@headlessui/tailwindcss": "^0.2.1",
