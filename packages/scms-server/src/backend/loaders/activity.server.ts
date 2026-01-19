@@ -1,10 +1,10 @@
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../prisma.server.js';
-import type { $Enums } from '@curvenote/scms-db';
+import type { ActivityType } from '@curvenote/scms-db';
 
 export interface LogActivityData {
   activityBy: string;
-  activityType: $Enums.ActivityType;
+  activityType: ActivityType;
   submissionId?: string;
   submissionVersionId?: string;
   kindId?: string;

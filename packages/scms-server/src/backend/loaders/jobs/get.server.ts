@@ -1,4 +1,4 @@
-import { $Enums } from '@curvenote/scms-db';
+import { JobStatus } from '@curvenote/scms-db';
 import type { Context } from '@curvenote/scms-core';
 import type { JobDTO } from '@curvenote/common';
 import { getPrismaClient } from '../../prisma.server.js';
@@ -20,7 +20,7 @@ export function formatJobDTO(ctx: Context, job: DBO): JobDTO {
   let signature: string | undefined;
   if (
     job.job_type === 'CHECK' &&
-    job.status === $Enums.JobStatus.COMPLETED &&
+    job.status === JobStatus.COMPLETED &&
     payload.journal &&
     results?.submissionId
   ) {

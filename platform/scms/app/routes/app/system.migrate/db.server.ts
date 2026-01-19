@@ -1,4 +1,4 @@
-import { $Enums } from '@curvenote/scms-db';
+import { WorkRole } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '@curvenote/scms-server';
 
@@ -98,7 +98,7 @@ export async function dbCreateWorkUsers(
       date_modified: work.date_created,
       work_id: work.id,
       user_id: work.created_by_id,
-      role: $Enums.WorkRole.OWNER,
+      role: WorkRole.OWNER,
     },
   });
 }

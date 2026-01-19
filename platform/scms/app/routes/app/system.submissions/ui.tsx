@@ -3,7 +3,7 @@ import { useFetcher } from 'react-router';
 import { X } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
 import type { SiteDTO } from '@curvenote/common';
-import { $Enums } from '@curvenote/scms-db';
+import { WorkRole } from '@curvenote/scms-db';
 
 interface WorkInfoProps {
   work: {
@@ -16,7 +16,7 @@ interface WorkInfoProps {
         display_name: string | null;
         email: string | null;
       };
-      role: $Enums.WorkRole;
+      role: WorkRole;
     }>;
   };
   users: Array<{
@@ -31,7 +31,7 @@ export function WorkInfo({ work, users }: WorkInfoProps): JSX.Element {
     work_users?: Array<{
       id: string;
       user: { id: string; display_name: string | null; email: string | null };
-      role: $Enums.WorkRole;
+      role: WorkRole;
     }>;
     error?: string;
   }>();
@@ -64,10 +64,10 @@ export function WorkInfo({ work, users }: WorkInfoProps): JSX.Element {
             <div className="font-medium">Users:</div>
             <ul className="list-disc list-inside">
               {workUsers.map((workUser) => {
-                const isOwner = workUser.role === $Enums.WorkRole.OWNER;
+                const isOwner = workUser.role === WorkRole.OWNER;
                 const isOnlyOwner =
                   isOwner &&
-                  workUsers.filter((wu) => wu.role === $Enums.WorkRole.OWNER).length === 1;
+                  workUsers.filter((wu) => wu.role === WorkRole.OWNER).length === 1;
                 const userName = workUser.user.display_name || workUser.user.email;
 
                 return (
@@ -113,7 +113,7 @@ export function WorkInfo({ work, users }: WorkInfoProps): JSX.Element {
               required
             >
               <option value="">Role</option>
-              {Object.values($Enums.WorkRole).map((role) => (
+              {Object.values(WorkRole).map((role) => (
                 <option key={role} value={role}>
                   {role}
                 </option>

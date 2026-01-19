@@ -1,7 +1,7 @@
 import type { SiteContext } from '@curvenote/scms-server';
 import { createPreviewToken, getPrismaClient, sites, jobs } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
-import { $Enums } from '@curvenote/scms-db';
+import { JobStatus } from '@curvenote/scms-db';
 import { getWorkflow, KnownJobTypes } from '@curvenote/scms-core';
 
 /**
@@ -98,6 +98,6 @@ export async function dbQueryJobs(ctx: SiteContext) {
     ctx,
     ctx.site.id,
     [KnownJobTypes.PUBLISH, KnownJobTypes.UNPUBLISH],
-    [$Enums.JobStatus.RUNNING],
+    [JobStatus.RUNNING],
   );
 }

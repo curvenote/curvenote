@@ -21,7 +21,7 @@ import {
   dbUpdateDatePublishedFromVersion,
   dbUpdateDatePublishedFromWork,
 } from './db.server';
-import { $Enums } from '@curvenote/scms-db';
+import { WorkRole } from '@curvenote/scms-db';
 import { firstPublishedVersionDateCreated, lastPublishedVersionWorkDate } from './utils';
 import { SiteSelect, WorkInfo } from './ui';
 import { uuidv7 } from 'uuidv7';
@@ -55,7 +55,7 @@ export async function action(args: Route.ActionArgs) {
   } else if (formAction === 'add-work-user') {
     const workId = formData.get('workId') as string;
     const userId = formData.get('userId') as string;
-    const role = formData.get('role') as $Enums.WorkRole;
+    const role = formData.get('role') as WorkRole;
 
     const prisma = await getPrismaClient();
 
@@ -112,7 +112,7 @@ export async function action(args: Route.ActionArgs) {
       return data({ error: 'Work user not found' }, { status: 404 });
     }
 
-    if (workUser.role === $Enums.WorkRole.OWNER && workUser.work.work_users.length <= 1) {
+    if (workUser.role === WorkRole.OWNER && workUser.work.work_users.length <= 1) {
       return data({ error: 'Cannot remove the last owner' }, { status: 400 });
     }
 
