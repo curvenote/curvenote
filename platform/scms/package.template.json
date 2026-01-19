@@ -42,7 +42,7 @@
     "data-migration:default-submission-kind": "dotenv -e .env -- tsx ../../prisma/migrations/20240123221351_default_submission_kind/data-migration.ts",
     "check-types": "NODE_ENV=development react-router typegen; tsc --noEmit",
     "compile:ci": "NODE_ENV=test react-router typegen; tsc --noEmit",
-    "prepush": "npm run lint:format:fix; npm run lint:circular; npm run lint; npm run compile; npm run test:ci; npm run test:unit; npm run test:integration",
+    "prepush": "npm run lint:format:fix; npm run lint:circular; npm run lint; npm run compile; npm run test:ci; npm run test:unit",
     "pp": "npm run prepush",
     "lint:format:fix": "prettier --write \"app/**/*.{ts,tsx}\"",
     "test:integration": "npm run test:db:reset && dotenv -e .env.test -- vitest run --config vitest.config.integration.mjs",

@@ -1,5 +1,5 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import { $Enums } from '@curvenote/scms-db';
+import type { $Enums } from '@curvenote/scms-db';
 import { getPrismaClient } from '@curvenote/scms-server';
 
 export async function dbAddWorkUserRole(workId: string, userId: string, role: $Enums.WorkRole) {
