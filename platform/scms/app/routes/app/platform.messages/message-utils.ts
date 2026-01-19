@@ -1,4 +1,4 @@
-import type { Message } from '@curvenote/scms-db/browser';
+import type { Message } from '@curvenote/scms-db';
 
 /**
  * Extracted email data from a message for display purposes

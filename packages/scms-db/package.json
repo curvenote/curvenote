@@ -7,21 +7,18 @@
   "homepage": "https://github.com/curvenote/curvenote",
   "license": "MIT",
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
   "browser": false,
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "node": "./src/index.ts",
-      "default": "./src/index.ts"
-    },
-    "./browser": {
-      "types": "./src/browser.ts",
-      "browser": "./src/browser.ts",
-      "default": "./src/browser.ts"
+      "node": "./dist/index.js",
+      "types": "./dist/index.js",
+      "browser": "./dist/browser.js",
+      "require": "./dist/browser.js",
+      "import": "./dist/index.js"
     }
   },
-  "types": "./src/index.ts",
+  "types": "./dist/index.js",
   "source": "./src/index.ts",
   "sideEffects": false,
   "files": [
