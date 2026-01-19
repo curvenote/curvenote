@@ -66,8 +66,7 @@ export function WorkInfo({ work, users }: WorkInfoProps): JSX.Element {
               {workUsers.map((workUser) => {
                 const isOwner = workUser.role === WorkRole.OWNER;
                 const isOnlyOwner =
-                  isOwner &&
-                  workUsers.filter((wu) => wu.role === WorkRole.OWNER).length === 1;
+                  isOwner && workUsers.filter((wu) => wu.role === WorkRole.OWNER).length === 1;
                 const userName = workUser.user.display_name || workUser.user.email;
 
                 return (

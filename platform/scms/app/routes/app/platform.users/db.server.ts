@@ -112,9 +112,7 @@ export async function dbToggleUserDisabled(
         date_created: dateCreated,
         date_modified: dateCreated,
         activity_by_id: activityByUserId,
-        activity_type: disabled
-          ? ActivityType.USER_DISABLED
-          : ActivityType.USER_ENABLED,
+        activity_type: disabled ? ActivityType.USER_DISABLED : ActivityType.USER_ENABLED,
         user_id: id,
         status: disabled ? 'DISABLED' : 'ENABLED',
       },
