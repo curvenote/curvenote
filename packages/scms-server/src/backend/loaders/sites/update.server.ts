@@ -1,7 +1,7 @@
 import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '../../prisma.server.js';
-import { ActivityType } from '@prisma/client';
+import { ActivityType } from '@curvenote/scms-db';
 import type { SiteContext } from '../../context.site.server.js';
 import { error401, error404 } from '@curvenote/scms-core';
 import { formatSiteWithContentDTO } from './get.server.js';

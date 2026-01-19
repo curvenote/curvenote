@@ -1,8 +1,9 @@
 import { forwardRef } from 'react';
+import { useLocation } from 'react-router';
 import { cn } from '../../utils/index.js';
 import { FrameHeader } from '../FrameHeader.js';
 import { ConfigurableBreadcrumb, type BreadcrumbItemConfig } from '../ui/ConfigurableBreadcrumb.js';
-import { PageFrameProvider, usePageFrame } from './PageFrameProvider.js';
+import { useDeploymentConfig } from '../../providers/DeploymentProvider.js';
 
 interface PageFrameProps {
   title?: React.ReactNode;
@@ -13,66 +14,12 @@ interface PageFrameProps {
   hasSecondaryNav?: boolean;
   breadcrumbs?: BreadcrumbItemConfig[];
   children: React.ReactNode;
-  enableProvider?: boolean;
 }
 
 /**
- * PageFrame component with optional provider support for dynamic updates
+ * PageFrame component that can use page configuration from app config
  */
 export const PageFrame = forwardRef<HTMLDivElement, PageFrameProps>(function PageFrame(
-  {
-    title,
-    subtitle,
-    description,
-    header,
-    children,
-    className,
-    hasSecondaryNav = true,
-    breadcrumbs,
-    enableProvider = false,
-  },
-  ref,
-) {
-  // If provider is enabled, wrap children with PageFrameProvider
-  if (enableProvider) {
-    return (
-      <PageFrameProvider
-        initialProps={{
-          title,
-          subtitle,
-          description,
-          header,
-          className,
-          hasSecondaryNav,
-          breadcrumbs,
-        }}
-      >
-        <PageFrameContent ref={ref}>{children}</PageFrameContent>
-      </PageFrameProvider>
-    );
-  }
-
-  // Default behavior without provider
-  return (
-    <PageFrameContent
-      ref={ref}
-      title={title}
-      subtitle={subtitle}
-      description={description}
-      header={header}
-      className={className}
-      hasSecondaryNav={hasSecondaryNav}
-      breadcrumbs={breadcrumbs}
-    >
-      {children}
-    </PageFrameContent>
-  );
-});
-
-/**
- * Internal PageFrame content component that can use context or props
- */
-const PageFrameContent = forwardRef<HTMLDivElement, PageFrameProps>(function PageFrameContent(
   {
     title: propTitle,
     subtitle: propSubtitle,
@@ -85,23 +32,21 @@ const PageFrameContent = forwardRef<HTMLDivElement, PageFrameProps>(function Pag
   },
   ref,
 ) {
-  // Try to use context, fall back to props
-  let contextState: any = {};
-  try {
-    const { state } = usePageFrame();
-    contextState = state;
-  } catch {
-    // Not in provider context, use props
-  }
+  const location = useLocation();
+  const deploymentConfig = useDeploymentConfig();
 
-  // Merge context state with props (props take precedence)
-  const finalTitle = propTitle ?? contextState.title;
-  const finalSubtitle = propSubtitle ?? contextState.subtitle;
-  const finalDescription = propDescription ?? contextState.description;
-  const finalHeader = propHeader ?? contextState.header;
-  const finalClassName = propClassName ?? contextState.className;
-  const finalHasSecondaryNav = propHasSecondaryNav ?? contextState.hasSecondaryNav ?? true;
-  const finalBreadcrumbs = propBreadcrumbs ?? contextState.breadcrumbs;
+  // Look up current path in pages config
+  const pageConfig = deploymentConfig.pages?.find((page) => page.path === location.pathname);
+
+  // Use page config if found, otherwise use props
+  // Props take precedence if both are provided
+  const finalTitle = pageConfig?.title ?? propTitle;
+  const finalSubtitle = pageConfig?.subtitle ?? propSubtitle;
+  const finalDescription = pageConfig?.description ?? propDescription;
+  const finalHeader = propHeader;
+  const finalClassName = propClassName;
+  const finalHasSecondaryNav = propHasSecondaryNav ?? true;
+  const finalBreadcrumbs = propBreadcrumbs;
 
   return (
     <div

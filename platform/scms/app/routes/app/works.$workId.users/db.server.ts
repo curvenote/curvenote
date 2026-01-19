@@ -1,5 +1,5 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import type { Prisma, WorkRole } from '@prisma/client';
+import type { WorkRole } from '@curvenote/scms-db';
 import { getPrismaClient } from '@curvenote/scms-server';
 
 export async function dbAddWorkUserRole(workId: string, userId: string, role: WorkRole) {
@@ -69,7 +69,7 @@ export async function dbGetWorkUsers(workId: string) {
   });
 }
 
-export type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetWorkUsers>, null | undefined>;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbGetWorkUsers>>, null | undefined>;
 
 export function dtoWorkUsers(dbo: DBO) {
   return dbo.map((user) => ({

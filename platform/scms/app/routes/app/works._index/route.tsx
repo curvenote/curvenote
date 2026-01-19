@@ -309,8 +309,6 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
     <>
       <MainWrapper>
         <PageFrame
-          title="My Works"
-          subtitle="Manage your works and submissions"
           header={
             <FrameHeader
               className="max-w-4xl"

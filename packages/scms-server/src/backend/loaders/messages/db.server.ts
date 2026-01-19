@@ -58,6 +58,7 @@ export async function dbGetMessages(ctx: Context, query: MessageQuery = {}): Pro
   const messages = await prisma.message.findMany({
     where,
     orderBy: { date_created: 'desc' },
+    take: 1000, // limit for now, paginate later if/when there is demand
     select: {
       id: true,
       date_created: true,

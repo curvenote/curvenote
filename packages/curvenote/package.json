@@ -1,6 +1,6 @@
 {
   "name": "curvenote",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "description": "Command line tools for using Curvenote",
   "author": "Curvenote Inc. <support@curvenote.com>",
   "license": "MIT",
@@ -41,11 +41,11 @@
     "test:vitest": "npm run link; npm run copy:version; vitest run",
     "test": "npm-run-all -l copy:version -p compile test:vitest",
     "test:watch": "npm run link; npm run copy:version; vitest watch",
-    "build:cli": "esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --target=node18",
+    "build:cli": "esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --target=node20",
     "build": "npm-run-all -l clean copy:version -p build:cli"
   },
   "dependencies": {
-    "@curvenote/cli": "^0.13.1",
+    "@curvenote/cli": "^0.13.2",
     "chalk": "^5.2.0",
     "commander": "^10.0.1",
     "core-js": "^3.31.1",
@@ -55,5 +55,8 @@
   },
   "devDependencies": {
     "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=20 <25"
   }
 }

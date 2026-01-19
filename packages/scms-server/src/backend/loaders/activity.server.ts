@@ -1,6 +1,6 @@
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../prisma.server.js';
-import type { ActivityType } from '@prisma/client';
+import type { ActivityType } from '@curvenote/scms-db';
 
 export interface LogActivityData {
   activityBy: string;

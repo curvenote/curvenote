@@ -2,7 +2,7 @@ import { useFetcher } from 'react-router';
 import { primitives, ui, useEditor } from '@curvenote/scms-core';
 import { useState } from 'react';
 import type { SiteDTO } from '@curvenote/common';
-import type { JsonObject } from '@prisma/client/runtime/library';
+import type { Prisma } from '@curvenote/scms-db';
 import { dump, load } from 'js-yaml';
 
 // Helper function to determine the complexity of a value
@@ -30,7 +30,13 @@ function sortKeys(a: string, b: string, obj: any): number {
   return a.localeCompare(b);
 }
 
-export function SiteMetadataForm({ site, metadata }: { site: SiteDTO; metadata: JsonObject }) {
+export function SiteMetadataForm({
+  site,
+  metadata,
+}: {
+  site: SiteDTO;
+  metadata: Prisma.JsonObject;
+}) {
   const fetcher = useFetcher<{ error?: string; info?: string }>();
 
   const [error, setError] = useState<string | undefined>();
@@ -122,7 +128,7 @@ export function SiteMetadataForm({ site, metadata }: { site: SiteDTO; metadata: 
             className="min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           />
           {error && (
-            <div className="absolute bottom-0 left-0 right-0 p-2 text-sm text-red-600 bg-red-50">
+            <div className="absolute right-0 bottom-0 left-0 p-2 text-sm text-red-600 bg-red-50">
               {error}
             </div>
           )}

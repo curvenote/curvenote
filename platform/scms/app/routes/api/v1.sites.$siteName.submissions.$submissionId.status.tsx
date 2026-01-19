@@ -9,7 +9,7 @@ import {
 } from '@curvenote/scms-server';
 import { type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
-import { JobStatus } from '@prisma/client';
+import { JobStatus } from '@curvenote/scms-db';
 import { site, error401 } from '@curvenote/scms-core';
 import { extensions } from '../../extensions/server';
 

@@ -2,7 +2,7 @@ import type { CollectionListingDTO } from '@curvenote/common';
 import type { SiteContext } from '../../../context.site.server.js';
 import type { ModifyUrl } from '../../types.js';
 import { getPrismaClient } from '../../../prisma.server.js';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { formatCollectionDTO } from './get.server.js';
 
 async function dbListCollections(ctx: SiteContext, where: Prisma.CollectionWhereInput) {
@@ -42,7 +42,7 @@ async function dbListCollections(ctx: SiteContext, where: Prisma.CollectionWhere
   });
 }
 
-export type DBO = Prisma.PromiseReturnType<typeof dbListCollections>;
+export type DBO = Awaited<ReturnType<typeof dbListCollections>>;
 
 export function formatCollectionListingDTO(
   ctx: SiteContext,

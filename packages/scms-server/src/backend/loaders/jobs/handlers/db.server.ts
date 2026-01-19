@@ -1,4 +1,4 @@
-import { JobStatus, Prisma } from '@prisma/client';
+import { JobStatus, Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { formatDate } from '@curvenote/common';
 import type { CreateJob, UpdateJob } from '@curvenote/scms-core';

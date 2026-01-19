@@ -6,7 +6,7 @@ import { load } from 'js-yaml';
 import { loadValidatedConfig } from '@app-config/config';
 import { createTestUser, generateTestToken } from './helpers';
 import type { UserDBO } from '@curvenote/scms-server';
-import { SystemRole, SiteRole } from '@prisma/client';
+import { SystemRole, SiteRole, WorkRole } from '@curvenote/scms-db';
 
 const PORT = '3032';
 

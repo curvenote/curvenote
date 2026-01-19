@@ -3,7 +3,6 @@ import { SquarePen, SquareCheckBig, Replace } from 'lucide-react';
 import classNames from 'classnames';
 import type { sites } from '@curvenote/scms-server';
 import { primitives, cn } from '@curvenote/scms-core';
-import type { Prisma } from '@prisma/client';
 import { useRef } from 'react';
 
 export function Kinds({
@@ -14,7 +13,7 @@ export function Kinds({
   canUpdate,
 }: {
   submissionId: string;
-  collection: Prisma.PromiseReturnType<typeof sites.collections.list>['items'][0];
+  collection: Awaited<ReturnType<typeof sites.collections.list>>['items'][0];
   kindId: string;
   kindNameOrTitle: string;
   canUpdate: boolean;
@@ -108,13 +107,13 @@ export function Kinds({
   return (
     <primitives.PopoverWrapper
       ref={popoverRef}
-      className={cn('min-w-[310px] z-20 p-6 pb-4')}
+      className={cn('z-20 p-6 pb-4 min-w-[310px]')}
       content={cardContent}
     >
       <div className="flex flex-col items-right">
         <div
           className={cn('text-right underline cursor-pointer', {
-            'text-red-500 font-semibold': !submissionKindMatch,
+            'font-semibold text-red-500': !submissionKindMatch,
           })}
           title={kindId}
         >

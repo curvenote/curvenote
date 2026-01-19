@@ -1,4 +1,4 @@
-import type { Prisma, SiteRole } from '@prisma/client';
+import type { SiteRole, Prisma } from '@curvenote/scms-db';
 
 export type {
   Site as SiteDBO,
@@ -6,7 +6,7 @@ export type {
   User as UserDBO,
   Submission as SubmissionDBO,
   SubmissionKind as SubmissionKindDBO,
-} from '@prisma/client';
+} from '@curvenote/scms-db';
 
 export type UserWithRolesDBO = Prisma.UserGetPayload<{
   include: {

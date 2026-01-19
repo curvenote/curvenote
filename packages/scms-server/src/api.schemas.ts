@@ -1,7 +1,7 @@
 /* eslint-disable import/no-named-as-default-member */
 import type { ZodError } from 'zod';
 import { z } from 'zod';
-import { JobStatus } from '@prisma/client';
+import { JobStatus } from '@curvenote/scms-db';
 import type { ClientExtension, ServerExtension } from '@curvenote/scms-core';
 import { httpError, KnownJobTypes } from '@curvenote/scms-core';
 import { registerExtensionJobs } from './modules/extensions/jobs.js';

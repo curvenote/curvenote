@@ -45,7 +45,7 @@ import { $sendEmail, $sendEmailBatch, getResend } from './services/emails/resend
 import { createUnsubscribeToken } from './sign.tokens.server.js';
 import { dbGetUnsubscribedEmail } from './loaders/unsubscribe.js';
 import { addSegmentAnalytics, AnalyticsContext } from './services/analytics/segment.server.js';
-import type { User } from '@prisma/client';
+import type { User } from '@curvenote/scms-db';
 import { getPrismaClient } from './prisma.server.js';
 
 /**
@@ -324,6 +324,7 @@ export class Context implements ContextType {
   async sendEmail<T extends ResendEventType, P extends object>(
     email: TemplatedResendEmail<T, P>,
     extensionTemplates?: ExtensionEmailTemplate[],
+    module?: string,
   ) {
     if (!email.ignoreUnsubscribe && !!(await dbGetUnsubscribedEmail(email.to))) {
       console.log(`Not sending to unsubscribed email: ${email.to}`);
@@ -347,12 +348,14 @@ export class Context implements ContextType {
         resendConfig: this.$config.api?.resend,
       },
       extensionTemplates,
+      module,
     );
   }
 
   async sendEmailBatch<T extends ResendEventType, P extends object>(
     emails: TemplatedResendEmail<T, P>[],
     extensionTemplates?: ExtensionEmailTemplate[],
+    module?: string,
   ) {
     const emailBatch = (
       await Promise.all(
@@ -382,6 +385,7 @@ export class Context implements ContextType {
         resendConfig: this.$config.api?.resend,
       },
       extensionTemplates,
+      module,
     );
   }
 

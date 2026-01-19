@@ -8,7 +8,7 @@ import type {
 } from '@curvenote/common';
 import { formatFooterLinks, formatSocialLinks } from '../../format.server.js';
 import { coerceToObject, error404 } from '@curvenote/scms-core';
-import type { Collection, SiteRole } from '@prisma/client';
+import type { Collection, SiteRole } from '@curvenote/scms-db';
 import type { Context } from '../../context.server.js';
 import type { UserDBO } from '../../db.types.js';
 import { createSiteRootUrl } from '../../domains.server.js';
@@ -55,6 +55,15 @@ export async function dbGetUserSiteRoles(userId: string, siteId: string) {
     where: {
       user_id: userId,
       site_id: siteId,
+    },
+    include: {
+      site: {
+        select: {
+          id: true,
+          name: true,
+          title: true,
+        },
+      },
     },
   });
   return siteUsers;

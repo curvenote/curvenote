@@ -1,4 +1,4 @@
-import { JobStatus } from '@prisma/client';
+import { JobStatus } from '@curvenote/scms-db';
 
 export function getStatusButtonClasses(status: string | undefined) {
   if (!status)

@@ -1,4 +1,4 @@
-import { JobStatus } from '@prisma/client';
+import { JobStatus } from '@curvenote/scms-db';
 import { dbUpdateJob } from './db.server.js';
 import { error401, httpError, site } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../prisma.server.js';

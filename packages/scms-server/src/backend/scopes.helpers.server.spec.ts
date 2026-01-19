@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, test, expect } from 'vitest';
-import { SiteRole, SystemRole } from '@prisma/client';
+import { SiteRole, SystemRole } from '@curvenote/scms-db';
 import { userHasScope, userHasScopes } from './scopes.helpers.server.js';
 import { site } from '@curvenote/scms-core';
 

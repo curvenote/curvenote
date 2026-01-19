@@ -1,8 +1,8 @@
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from './prisma.server.js';
-import type { User as UserPrisma, Access } from '@prisma/client';
 import { getUserScopesSet } from './scopes.helpers.server.js';
-import { ActivityType } from '@prisma/client';
+import type { PrismaClient, Access, User } from '@curvenote/scms-db';
+import { ActivityType } from '@curvenote/scms-db';
 
 export interface AccessGrants {
   scopes: string[];
@@ -111,7 +111,7 @@ export async function getAccessReceivedBy(receiverId: string, type?: string): Pr
  * Check if a user has access to a specific resource through access grants
  */
 export async function userHasAccess(
-  user: UserPrisma & { access_received?: Access[] },
+  user: User & { access_received?: Access[] },
   scope: string,
   resourceId?: string,
   resourceType?: 'user' | 'work' | 'site',

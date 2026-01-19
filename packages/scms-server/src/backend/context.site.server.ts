@@ -5,7 +5,7 @@ import { getSitePublicKey } from './sign.private.server.js';
 import jwt from 'jsonwebtoken';
 import { withAppContext, withContext, Context } from './context.server.js';
 import { dbGetSite, formatSiteDTO, type DBO as SiteDBO } from './loaders/sites/get.server.js';
-import { SiteRole, SystemRole } from '@prisma/client';
+import { SiteRole, SystemRole } from '@curvenote/scms-db';
 import type { AllTrackEvent } from '@curvenote/scms-core';
 import { hasSiteScope } from './roles.server.js';
 import { getUserScopesSet, userHasSiteScope } from './scopes.helpers.server.js';

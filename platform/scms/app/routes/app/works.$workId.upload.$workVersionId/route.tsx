@@ -10,7 +10,7 @@ import {
   getPrismaClient,
   safeWorkVersionJsonUpdate,
 } from '@curvenote/scms-server';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
 import {
   MainWrapper,

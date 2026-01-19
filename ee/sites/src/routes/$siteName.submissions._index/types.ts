@@ -1,8 +1,7 @@
-import type { Prisma } from '@prisma/client';
 import type { sites, jobs } from '@curvenote/scms-server';
 import type { getWorkflow } from '@curvenote/scms-core';
 
-export type ArrayOfJobs = Prisma.PromiseReturnType<typeof jobs.list>;
+export type ArrayOfJobs = Awaited<ReturnType<typeof jobs.list>>;
 
 export type AugmentedSubmissionsList = {
   items: (Awaited<ReturnType<typeof sites.submissions.list>>['items'][0] & {

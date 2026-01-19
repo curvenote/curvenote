@@ -1,5 +1,5 @@
-import type { Prisma } from '@prisma/client';
-import { SlugStrategy } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
+import { SlugStrategy } from '@curvenote/scms-db';
 import type { SiteContext } from '../../../context.site.server.js';
 import { userHasScope } from '../../../scopes.helpers.server.js';
 import { error401, scopes } from '@curvenote/scms-core';

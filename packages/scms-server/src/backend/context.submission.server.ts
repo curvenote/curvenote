@@ -14,11 +14,11 @@ import { userHasSiteScope, userHasWorkScope } from './scopes.helpers.server.js';
 import { SiteContextWithUser } from './context.site.server.js';
 import { dbGetSite, dbGetUserSiteRoles, type DBO as SiteDBO } from './loaders/sites/get.server.js';
 import { dbGetSubmission, formatSubmissionDTO } from './loaders/sites/submissions/get.server.js';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { formatSubmissionVersionDTO } from './loaders/sites/submissions/versions/get.server.js';
 import type { AllTrackEvent, ClientExtension } from '@curvenote/scms-core';
 
-type SubmissionAndVersionsDBO = Exclude<Prisma.PromiseReturnType<typeof dbGetSubmission>, null>;
+type SubmissionAndVersionsDBO = Exclude<Awaited<ReturnType<typeof dbGetSubmission>>, null>;
 
 export class SubmissionContext extends SiteContextWithUser {
   work: WorkAndVersionsDBO;

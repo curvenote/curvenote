@@ -1,8 +1,8 @@
 import { data } from 'react-router';
 import { zfd } from 'zod-form-data';
 import { z } from 'zod';
-import type { User, WorkUser } from '@prisma/client';
-import { WorkRole } from '@prisma/client';
+import type { User, WorkUser } from '@curvenote/scms-db';
+import { WorkRole } from '@curvenote/scms-db';
 import {
   dbAddWorkUserRole,
   dbGetUserByEmail,

@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getPrismaClient } from '../prisma.server.js';
-import type { MagicLink, MagicLinkAccess } from '@prisma/client';
+import type { MagicLink, MagicLinkAccess } from '@curvenote/scms-db';
 
 export interface MagicLinkData {
   submissionId: string;

@@ -1,7 +1,7 @@
 import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient, sites } from '@curvenote/scms-server';
-import { ActivityType } from '@prisma/client';
+import { ActivityType } from '@curvenote/scms-db';
 
 export async function dbDeleteKind(kindId: string, siteId: string, userId: string) {
   const prisma = await getPrismaClient();

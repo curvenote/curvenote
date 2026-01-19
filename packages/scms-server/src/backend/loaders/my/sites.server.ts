@@ -1,5 +1,5 @@
 import type { UserSitesDTO } from '@curvenote/common';
-import type { Prisma, User as UserDBO } from '@prisma/client';
+import type { Prisma, User as UserDBO } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../prisma.server.js';
 import type { Context } from '../../context.server.js';
 import { hasSiteScope, hasScopeViaSystemRole } from '../../roles.server.js';
@@ -80,7 +80,7 @@ async function dbListSitesForUser(user: UserDBO) {
   }
 }
 
-export type UserSiteDBO = Prisma.PromiseReturnType<typeof dbListSitesForUser>[0];
+export type UserSiteDBO = Awaited<ReturnType<typeof dbListSitesForUser>>[0];
 
 function formatMySitesDTO(ctx: Context, sites: UserSiteDBO[]): UserSitesDTO {
   return {

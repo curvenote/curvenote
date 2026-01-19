@@ -1,6 +1,6 @@
 import type { Context } from '../../../context.server.js';
 import type { CreateJob, SubmissionPublishedEmailProps } from '@curvenote/scms-core';
-import { JobStatus } from '@prisma/client';
+import { JobStatus } from '@curvenote/scms-db';
 import { dbCreateJob, dbUpdateJob } from './db.server.js';
 import type { StorageBackend } from '../../../storage/backend.server.js';
 import { createFolder } from '../../../storage/folder.server.js';

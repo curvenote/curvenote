@@ -37,6 +37,7 @@ import {
   SquareLibrary,
   Share2,
   GraduationCap,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '../../utils/index.js';
 import type { ClientExtension } from '../../modules/extensions/types.js';
@@ -173,6 +174,9 @@ export function MenuIcon({
       return <Share2 className={classNameWithDefaults} />;
     case 'graduation-cap':
       return <GraduationCap className={classNameWithDefaults} />;
+    case 'help-circle':
+    case 'help':
+      return <HelpCircle className={classNameWithDefaults} />;
     default:
       return <Book className={classNameWithDefaults} />;
   }

@@ -3,7 +3,7 @@ import { useFetcher } from 'react-router';
 import { X } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
 import type { SiteDTO } from '@curvenote/common';
-import { WorkRole } from '@prisma/client';
+import { WorkRole } from '@curvenote/scms-db';
 
 interface WorkInfoProps {
   work: {
@@ -55,7 +55,7 @@ export function WorkInfo({ work, users }: WorkInfoProps): JSX.Element {
       <div className="space-y-1 text-sm">
         <div>DOI: {work.doi}</div>
         {fetcher.data?.error && (
-          <div className="p-2 text-sm text-red-600 rounded bg-red-50 dark:bg-red-900/20 dark:text-red-400">
+          <div className="p-2 text-sm text-red-600 bg-red-50 rounded dark:bg-red-900/20 dark:text-red-400">
             {fetcher.data.error}
           </div>
         )}
@@ -70,7 +70,7 @@ export function WorkInfo({ work, users }: WorkInfoProps): JSX.Element {
                 const userName = workUser.user.display_name || workUser.user.email;
 
                 return (
-                  <li key={workUser.id} className="flex items-center gap-2 text-sm group">
+                  <li key={workUser.id} className="flex gap-2 items-center text-sm group">
                     <span>{userName}</span>
                     <span className="text-xs px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300">
                       {workUser.role}
@@ -78,7 +78,7 @@ export function WorkInfo({ work, users }: WorkInfoProps): JSX.Element {
                     {!isOnlyOwner && (
                       <button
                         onClick={() => handleDeleteUser(workUser.id, userName)}
-                        className="p-1 transition-colors rounded cursor-pointer hover:bg-stone-200 dark:hover:bg-stone-700"
+                        className="p-1 rounded transition-colors cursor-pointer hover:bg-stone-200 dark:hover:bg-stone-700"
                         title="Remove user"
                       >
                         <X className="w-3 h-3 text-stone-500 dark:text-stone-400" />
@@ -96,7 +96,7 @@ export function WorkInfo({ work, users }: WorkInfoProps): JSX.Element {
           <div className="flex gap-2">
             <select
               name="userId"
-              className="flex-1 px-2 py-1 text-xs border rounded dark:bg-stone-800 dark:border-stone-700"
+              className="flex-1 px-2 py-1 text-xs rounded border dark:bg-stone-800 dark:border-stone-700"
               required
             >
               <option value="">Select a user</option>
@@ -108,7 +108,7 @@ export function WorkInfo({ work, users }: WorkInfoProps): JSX.Element {
             </select>
             <select
               name="role"
-              className="px-2 py-1 text-xs border rounded dark:bg-stone-800 dark:border-stone-700"
+              className="px-2 py-1 text-xs rounded border dark:bg-stone-800 dark:border-stone-700"
               required
             >
               <option value="">Role</option>
@@ -145,7 +145,7 @@ export function SiteSelect({
   return (
     <div className="w-full max-w-md">
       <select
-        className="w-full px-3 py-2 text-sm transition-colors duration-200 border border-blue-100 rounded-lg text-stone-600 placeholder:font-light focus:border-theme-blue-900 focus:ring-theme-blue-900 dark:border-blue-100/20 dark:bg-transparent dark:text-white"
+        className="px-3 py-2 w-full text-sm rounded-lg border border-blue-100 transition-colors duration-200 text-stone-600 placeholder:font-light focus:border-theme-blue-900 focus:ring-theme-blue-900 dark:border-blue-100/20 dark:bg-transparent dark:text-white"
         name="site_name"
         disabled={disabled}
         onChange={onChange}

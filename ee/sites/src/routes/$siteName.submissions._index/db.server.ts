@@ -1,7 +1,7 @@
 import type { SiteContext } from '@curvenote/scms-server';
 import { createPreviewToken, getPrismaClient, sites, jobs } from '@curvenote/scms-server';
-import type { Prisma } from '@prisma/client';
-import { JobStatus } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
+import { JobStatus } from '@curvenote/scms-db';
 import { getWorkflow, KnownJobTypes } from '@curvenote/scms-core';
 
 /**

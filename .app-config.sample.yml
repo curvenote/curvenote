@@ -32,3 +32,33 @@ api:
     id: qwerty-123456-zxcvbn-987654
 app:
   renderServiceUrl: 'http://localhost:3000'
+  navigation:
+    defaultRoute: works
+    items:
+      - name: works
+        label: My Works
+        icon: files
+        path: works
+      - name: settings
+        label: Settings
+        icon: settings
+        path: settings
+      - name: platform
+        label: Platform
+        icon: platform
+        path: platform
+        scopes:
+          - app:platform:admin
+      - name: system
+        label: System
+        icon: zap
+        path: system
+        scopes:
+          - system:admin
+    helpItem:
+      icon: help-circle
+      properties:
+        label: Report a Problem
+        prompt: "Please describe the problem you're experiencing. Let us know what you were trying to achieve and what happened instead."
+        description: 'Sending this request will include your name and email address so we can respond to you.'
+        successMessage: "Your request has been sent to the support team. We'll get back to you as soon as possible."

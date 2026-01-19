@@ -1,4 +1,4 @@
-import type { JobStatus } from '@prisma/client';
+import type { JobStatus } from '@curvenote/scms-db';
 
 export type CreateJob = {
   id: string;

@@ -14,8 +14,8 @@ import { getPrismaClient } from '../../prisma.server.js';
 import { getSignedCDNQuery } from '../../sign.private.server.js';
 import { error401, ensureTrailingSlash, WorkContents, TrackEvent } from '@curvenote/scms-core';
 import { formatWorkDTO } from './get.server.js';
-import { ActivityType, WorkRole } from '@prisma/client';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
+import { WorkRole, ActivityType } from '@curvenote/scms-db';
 
 type PageLoader = NonNullable<Awaited<ReturnType<typeof getPage>>>;
 
@@ -55,7 +55,7 @@ export async function getCreateWorkVersionDataFromMyst(
 
     // for submissions we prioritize the project frontmatter over the page frontmatter
     const authorDetails = project?.authors ?? page.frontmatter?.authors ?? [];
-    const authorNames = authorDetails.map((a) => a.name ?? '');
+    const authorNames = authorDetails.map((a: { name?: string }) => a.name ?? '');
     const data: MystWorkVersion = {
       cdn: host.cdn,
       cdn_key: host.key,

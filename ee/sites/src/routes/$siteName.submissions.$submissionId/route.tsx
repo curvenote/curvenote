@@ -42,8 +42,8 @@ import {
   actionDeleteMagicLink,
   loadMagicLinks,
 } from './magicLinks.server.js';
-import type { Slug } from '@prisma/client';
-import { JobStatus } from '@prisma/client';
+import type { Slug } from '@curvenote/scms-db';
+import { JobStatus } from '@curvenote/scms-db';
 import { useEffect, useState } from 'react';
 import { ActivityFeed } from './ActivityFeed.js';
 import { Versions } from './Versions.js';

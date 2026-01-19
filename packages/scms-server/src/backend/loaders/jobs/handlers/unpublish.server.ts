@@ -3,7 +3,7 @@ import { dbCreateJob, dbUpdateJob } from './db.server.js';
 import { validate } from '../../../../api.schemas.js';
 import type { PublishJobResults } from './schemas.server.js';
 import { CreatePublishJobPayloadSchema } from './schemas.server.js';
-import { JobStatus } from '@prisma/client';
+import { JobStatus } from '@curvenote/scms-db';
 import type { StorageBackend } from '../../../storage/index.js';
 import { KnownBuckets } from '../../../storage/constants.server.js';
 import { httpError } from '@curvenote/scms-core';

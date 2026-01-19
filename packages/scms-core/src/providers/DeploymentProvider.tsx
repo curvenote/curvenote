@@ -40,6 +40,20 @@ export type SimpleNavItemType = {
   path: string;
   hidden?: boolean;
   end?: boolean;
+  beta?: boolean;
+};
+
+export type NavigationHelpItem = {
+  enabled: boolean;
+  icon: string;
+  scopes?: string[];
+  properties: {
+    label: string;
+    prompt?: string;
+    title?: string;
+    description?: string;
+    successMessage?: string;
+  };
 };
 
 export type ClientStatusBarItem =
@@ -67,13 +81,24 @@ export type ClientStatusBarItem =
       };
     };
 
+export type PageConfig = {
+  path: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+};
+
 export type ClientDeploymentConfig = {
   name: string;
   editorApiUrl: string;
   renderServiceUrl: string | undefined;
   authProviders: ClientSideSafeAuthOptions[];
   signupConfig?: ClientSigninSignupConfig;
-  navigation: ClientDeploymentNavigation;
+  navigation: {
+    items: ClientDeploymentNavigation;
+    helpItem?: NavigationHelpItem;
+  };
+  pages?: PageConfig[];
   fbClientConfig?: string;
   branding?: ClientDeploymentBranding;
   statusBar?: {

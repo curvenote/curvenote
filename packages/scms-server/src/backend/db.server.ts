@@ -8,8 +8,8 @@ import type {
   WorkDBO,
   WorkVersionDBO,
 } from './db.types.js';
-import type { SubmissionVersion, WorkVersion } from '@prisma/client';
-import { ActivityType, Prisma, WorkRole } from '@prisma/client';
+import type { SubmissionVersion, WorkVersion } from '@curvenote/scms-db';
+import { Prisma, ActivityType, WorkRole } from '@curvenote/scms-db';
 import { error401, httpError, WorkContents, TrackEvent, scopes } from '@curvenote/scms-core';
 import { userHasScope } from './scopes.helpers.server.js';
 import { uuidv7 } from 'uuidv7';

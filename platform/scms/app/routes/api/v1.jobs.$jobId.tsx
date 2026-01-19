@@ -7,7 +7,7 @@ import {
   validate,
 } from '@curvenote/scms-server';
 import { error401, error404, httpError } from '@curvenote/scms-core';
-import { JobStatus } from '@prisma/client';
+import { JobStatus } from '@curvenote/scms-db';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withContext(args);

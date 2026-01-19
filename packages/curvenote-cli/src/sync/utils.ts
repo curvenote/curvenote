@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import path from 'node:path';
-import { v4 as uuid } from 'uuid';
+import { uuidv7 } from 'uuidv7';
 import type { ProjectConfig, SiteConfig, SiteProject } from 'myst-config';
 import { getGithubUrl } from 'myst-cli';
 import { docLinks } from '../docs.js';
@@ -8,6 +8,8 @@ import { Project, RemoteSiteConfig } from '../models.js';
 import type { ISession } from '../session/types.js';
 import type { SyncCiHelperOptions } from './types.js';
 import { oxaLinkToId } from '@curvenote/blocks';
+import { getFromJournals } from '../utils/api.js';
+import CurvenoteVersion from '../version.js';
 
 export function projectLogString(project: Project) {
   return `"${project.data.title}" (@${project.data.team}/${project.data.name})`;
@@ -46,7 +48,7 @@ export async function getDefaultSiteConfigFromRemote(
 export async function getDefaultProjectConfig(title?: string): Promise<ProjectConfig> {
   const github = await getGithubUrl();
   return {
-    id: uuid(),
+    id: uuidv7(),
     title: title || 'my-project',
     github,
   };
@@ -132,6 +134,49 @@ export function normalizeGithubUrl(url: string): string {
   }
 
   return normalized;
+}
+
+/**
+ * Generate a new work key (UUID) and validate it against the API to ensure it's available.
+ * Retries up to 3 times if the key is already taken.
+ *
+ * @param session - The session object for API calls
+ * @returns A validated work key that is available
+ * @throws Error if all retry attempts fail, including Node.js version, Curvenote version, and support contact info
+ */
+export async function generateNewValidatedWorkKey(session: ISession): Promise<string> {
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const newKey = uuidv7();
+    session.log.debug(`Generated work key (attempt ${attempt}/${MAX_RETRIES}): ${newKey}`);
+
+    try {
+      const { exists } = await getFromJournals(session, `/works/key/${newKey}`);
+      if (!exists) {
+        session.log.debug(`Work key validated and available: ${newKey}`);
+        return newKey;
+      }
+      session.log.debug(`Work key already exists, retrying...`);
+    } catch (error) {
+      // If the API call fails, we'll retry with a new key
+      session.log.debug(`Key validation failed, retrying: ${(error as Error).message}`);
+    }
+  }
+
+  // All retries exhausted - throw error with diagnostic information
+  const nodeVersion = process.version;
+  const errorMessage = `Failed to generate a unique work key after ${MAX_RETRIES} attempts.
+
+This is an unexpected error that may indicate an issue with UUID generation or API connectivity.
+
+Diagnostic Information:
+  - Node.js version: ${nodeVersion}
+  - Curvenote version: ${CurvenoteVersion}
+
+Please contact support@curvenote.com for assistance.`;
+
+  throw new Error(errorMessage);
 }
 
 /**

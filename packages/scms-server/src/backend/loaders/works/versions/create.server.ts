@@ -6,7 +6,7 @@ import { getPrismaClient } from '../../../prisma.server.js';
 import { error401, error404, site } from '@curvenote/scms-core';
 import { dbGetWorkForUser, formatWorkDTO, getWorkFromSubmission } from '../get.server.js';
 import { getCreateWorkVersionDataFromMyst } from '../create.server.js';
-import { ActivityType } from '@prisma/client';
+import { ActivityType } from '@curvenote/scms-db';
 
 export async function dbCreateWorkVersionAndUpdateWork(
   workId: string,

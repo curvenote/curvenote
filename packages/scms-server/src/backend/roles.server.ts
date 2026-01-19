@@ -1,4 +1,4 @@
-import { SiteRole, SystemRole, WorkRole } from '@prisma/client';
+import { SystemRole, SiteRole, WorkRole } from '@curvenote/scms-db';
 import { system, site, work, app } from '@curvenote/scms-core';
 
 const SYSTEM_ROLES: Record<SystemRole, Set<string>> = {

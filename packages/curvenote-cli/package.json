@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/cli",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "description": "CLI Client library for Curvenote",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "license": "MIT",
@@ -41,7 +41,7 @@
     "@curvenote/blocks": "^1.6.1",
     "@curvenote/check-definitions": "^0.1.1",
     "@curvenote/check-implementations": "^0.1.1",
-    "@curvenote/cli-plugin": "^0.13.1",
+    "@curvenote/cli-plugin": "^0.13.2",
     "@curvenote/common": "^0.3.3",
     "@curvenote/ext-blog": "^0.6.12",
     "@curvenote/ext-footer": "^0.6.12",
@@ -95,7 +95,7 @@
     "redux": "^4.1.2",
     "simple-validators": "^1.0.6",
     "unist-util-select": "^4.0.1",
-    "uuid": "^8.3.2",
+    "uuidv7": "^1.1.0",
     "vfile": "^5.0.0",
     "which": "^3.0.1",
     "ws": "^8.9.0"
@@ -120,7 +120,6 @@
     "@types/mime-types": "^2.1.1",
     "@types/mocha": "^8.2.3",
     "@types/pretty-hrtime": "^1.0.1",
-    "@types/uuid": "^8.3.4",
     "@types/which": "^2.0.1",
     "@types/wordpress__wordcount": "^2.4.2",
     "@types/ws": "^8.5.3",

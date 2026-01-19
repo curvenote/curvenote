@@ -1,6 +1,6 @@
 import { getPrismaClient } from '@curvenote/scms-server';
 import { KnownResendEvents } from '@curvenote/scms-core';
-import { ActivityType } from '@prisma/client';
+import { ActivityType } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 import type { SecureContext } from '@curvenote/scms-server';
 

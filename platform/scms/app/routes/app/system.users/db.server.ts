@@ -1,5 +1,5 @@
 import { getPrismaClient } from '@curvenote/scms-server';
-import { SystemRole } from '@prisma/client';
+import { SystemRole } from '@curvenote/scms-db';
 
 export type SystemUserDTO = Awaited<ReturnType<typeof dbGetSystemUsers>>[0];
 

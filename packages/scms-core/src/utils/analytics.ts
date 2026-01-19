@@ -1,5 +1,5 @@
 import { useMyUser } from '../providers/MyUserProvider.js';
-import { SystemRole } from '@prisma/client';
+import { SystemRole } from '@curvenote/scms-db';
 
 export type EventOptions = {
   anonymous?: boolean;

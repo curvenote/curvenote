@@ -1,5 +1,16 @@
 # curvenote
 
+## 0.13.2
+
+### Patch Changes
+
+- [#765](https://github.com/curvenote/curvenote/pull/765) [`a59cfe2`](https://github.com/curvenote/curvenote/commit/a59cfe2a7387c8b3c89f6355cbf54b388a75c934) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Do not extend or expand `curvenote.yml#project` when initializing from github
+
+- [#765](https://github.com/curvenote/curvenote/pull/765) [`a59cfe2`](https://github.com/curvenote/curvenote/commit/a59cfe2a7387c8b3c89f6355cbf54b388a75c934) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Using v7 uuids for key generation during template based init, with API validation and retries
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.13.2
+
 ## 0.13.1
 
 ### Patch Changes

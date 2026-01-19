@@ -5,7 +5,7 @@ import { getPrismaClient } from '@curvenote/scms-server';
 import { isSafeSlug, looksLikeUUID, formatZodError, TrackEvent } from '@curvenote/scms-core';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { ActivityType } from '@prisma/client';
+import { ActivityType } from '@curvenote/scms-db';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
 
 export async function actionSetPrimarySlug(

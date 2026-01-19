@@ -1,6 +1,6 @@
 import { formatDate } from '@curvenote/common';
 import type { SubmissionActivityDTO, SubmissionDTO, SubmissionLinksDTO } from '@curvenote/common';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import type { SiteContext } from '../../../context.site.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { signPrivateUrls } from '../../../sign.private.server.js';
@@ -60,7 +60,7 @@ export async function dbGetSubmission(where: Prisma.SubmissionFindUniqueArgs['wh
   });
 }
 
-type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetSubmission>, null>;
+type DBO = Exclude<Awaited<ReturnType<typeof dbGetSubmission>>, null>;
 
 export function formatSubmissionActivityDTO(
   ctx: SiteContext,

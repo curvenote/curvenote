@@ -1,21 +1,16 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { expect } from 'vitest';
 import jwt from 'jsonwebtoken';
-import type { SiteRole } from '@prisma/client';
-import { JobStatus, PrismaClient, SystemRole } from '@prisma/client';
+import type { SiteRole } from '@curvenote/scms-db';
+import { JobStatus, SystemRole, getLowLevelPrismaClient } from '@curvenote/scms-db';
 import { createSessionToken } from '@curvenote/scms-server';
 import { KnownJobTypes } from '@curvenote/scms-core';
 import { loadValidatedConfig } from '@app-config/config';
 import type { UserDBO } from '@curvenote/scms-server';
 
-// Initialize Prisma with test database configuration
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
-});
+// Initialize Prisma with test database configuration using scms-db
+// getLowLevelPrismaClient uses a singleton pattern, so we resolve it once
+const prisma = await getLowLevelPrismaClient();
 
 // Log database connection on initialization
 console.log('Initializing Prisma with database URL:', process.env.DATABASE_URL);

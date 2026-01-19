@@ -1,5 +1,5 @@
 import { getPrismaClient, Folder, StorageBackend, KnownBuckets } from '@curvenote/scms-server';
-import type { WorkRole, WorkVersion } from '@prisma/client';
+import type { WorkRole, WorkVersion } from '@curvenote/scms-db';
 import type { SecureContext } from '@curvenote/scms-server';
 
 export async function dbGetWorksAndSubmissionVersions(userId: string) {

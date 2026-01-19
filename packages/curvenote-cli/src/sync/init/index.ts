@@ -10,7 +10,7 @@ import { MyUser } from '../../models.js';
 import type { ISession } from '../../session/types.js';
 import { pullProjects } from '../pull/project.js';
 import questions from '../questions.js';
-import { getDefaultSiteConfig, INIT_LOGO_PATH, cleanProjectConfigForWrite } from '../utils.js';
+import { getDefaultSiteConfig, INIT_LOGO_PATH } from '../utils.js';
 import { addOxaTransformersToOpts } from '../../utils/utils.js';
 import type { Options } from './types.js';
 import { CURVENOTE_YML } from './types.js';
@@ -27,6 +27,7 @@ import {
   handleGithubImport,
 } from './initializationHandlers.js';
 import { writeTemplateFile } from './writeTemplateFile.js';
+import { writeProjectToTemplateYmlFile } from './utils.js';
 
 /**
  * Initialize local curvenote project from folder or remote project
@@ -191,59 +192,60 @@ export async function init(session: ISession, opts: Options) {
   }
   // If there is a new project config, save to the state and write to disk
   if (projectConfig) {
-    await writeConfigs(session, currentPath, {
-      projectConfig: cleanProjectConfigForWrite(projectConfig),
-    });
+    await writeProjectToTemplateYmlFile(session, currentPath, projectConfig);
     session.store.dispatch(config.actions.receiveCurrentProjectPath({ path: currentPath }));
   }
 
-  // Create and personalize the site config
-  session.log.info(`📓 Creating site config`);
-  me = await me;
-  const folderName = basename(currentPath);
-  const siteConfig = getDefaultSiteConfig(folderName);
-  siteConfig.title = title;
-  siteConfig.options = { logo_text: title };
-  if (me) {
-    const { username, twitter } = me.data;
-    siteConfig.domains = opts.domain
-      ? [opts.domain.replace(/^http[s]*:\/\//, '')]
-      : [`${username}.curve.space`];
-    if (twitter) siteConfig.options.twitter = twitter;
-  }
-  // Save site config to state and write to disk
-  await writeConfigs(session, currentPath, { siteConfig });
-  session.store.dispatch(config.actions.receiveCurrentSitePath({ path: currentPath }));
-
   const pullOpts = { level: LogLevel.debug };
   let pullProcess: Promise<void> | undefined;
-  if (!pullComplete) {
-    pullProcess = pullProjects(session, pullOpts).then(() => {
-      pullComplete = true;
-    });
-  }
 
-  if (siteConfig.options?.logo === INIT_LOGO_PATH) {
-    const logoPath =
-      currentPath === resolve('.') ? INIT_LOGO_PATH : join(currentPath, INIT_LOGO_PATH);
-    writeFileToFolder(logoPath, LOGO);
-  }
-
-  // For Curvenote imports (--curvenote), wait for pull to complete and exit (non-interactive)
-  const isCurvenoteImport = !!opts.curvenote;
-
-  if (isCurvenoteImport) {
-    if (!pullComplete) {
-      pullOpts.level = LogLevel.info;
-      session.log.info(
-        `${chalk.dim('\nFinishing')} ${chalk.bold('curvenote pull')}${chalk.dim(
-          '. This may take a minute ⏳...',
-        )}`,
-      );
-      await pullProcess;
+  if (content !== 'github') {
+    // Create and personalize the site config
+    session.log.info(`📓 Creating site config`);
+    me = await me;
+    const folderName = basename(currentPath);
+    const siteConfig = getDefaultSiteConfig(folderName);
+    siteConfig.title = title;
+    siteConfig.options = { logo_text: title };
+    if (me) {
+      const { username, twitter } = me.data;
+      siteConfig.domains = opts.domain
+        ? [opts.domain.replace(/^http[s]*:\/\//, '')]
+        : [`${username}.curve.space`];
+      if (twitter) siteConfig.options.twitter = twitter;
     }
-    if (!opts.yes) session.log.info(await FINISHED(session));
-    return;
+    // Save site config to state and write to disk
+    await writeConfigs(session, currentPath, { siteConfig });
+    session.store.dispatch(config.actions.receiveCurrentSitePath({ path: currentPath }));
+
+    if (!pullComplete) {
+      pullProcess = pullProjects(session, pullOpts).then(() => {
+        pullComplete = true;
+      });
+    }
+
+    if (siteConfig.options?.logo === INIT_LOGO_PATH) {
+      const logoPath =
+        currentPath === resolve('.') ? INIT_LOGO_PATH : join(currentPath, INIT_LOGO_PATH);
+      writeFileToFolder(logoPath, LOGO);
+    }
+
+    // For Curvenote imports (--curvenote), wait for pull to complete and exit (non-interactive)
+    const isCurvenoteImport = !!opts.curvenote;
+
+    if (isCurvenoteImport) {
+      if (!pullComplete) {
+        pullOpts.level = LogLevel.info;
+        session.log.info(
+          `${chalk.dim('\nFinishing')} ${chalk.bold('curvenote pull')}${chalk.dim(
+            '. This may take a minute ⏳...',
+          )}`,
+        );
+        await pullProcess;
+      }
+      if (!opts.yes) session.log.info(await FINISHED(session));
+      return;
+    }
   }
 
   // For GitHub imports (--github or interactive), continue with server prompt

@@ -1,4 +1,4 @@
-import type { WorkRole } from '@prisma/client';
+import type { WorkRole } from '@curvenote/scms-db';
 import type { WorkCardDBO } from './WorkListItem';
 import { ui } from '@curvenote/scms-core';
 

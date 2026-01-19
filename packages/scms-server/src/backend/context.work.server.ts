@@ -10,7 +10,7 @@ import {
   getCanonicalOrLatestVersion,
 } from './loaders/works/get.server.js';
 import { getUserScopesSet, userHasWorkScope } from './scopes.helpers.server.js';
-import { SystemRole } from '@prisma/client';
+import { SystemRole } from '@curvenote/scms-db';
 import type { MyUserDBO } from './db.types.js';
 import type { AllTrackEvent } from '@curvenote/scms-core';
 

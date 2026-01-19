@@ -112,11 +112,11 @@ export function formValueIsString(value: FormDataEntryValue | null): value is st
  * Builds the client navigation configuration based on the provided context and navigation configuration.
  *
  * @param ctx - The context object containing user and scope information.
- * @param navConfig - An optional array of navigation configurations.
- * @returns A promise that resolves to the client deployment configuration's navigation array.
+ * @param navConfig - An optional navigation configuration object with items array.
+ * @returns A promise that resolves to the client deployment configuration's navigation object.
  *
  * This function performs the following steps:
- * 1. If no navigation configuration is provided, it returns an empty array.
+ * 1. If no navigation configuration is provided, it returns an empty navigation object.
  * 2. Maps the navigation items, checking for scope requirements.
  * 3. Filters out any invalid navigation items.
  */
@@ -124,13 +124,25 @@ export async function buildClientNavigation(
   ctx: Context,
   navConfig?: Config['app']['navigation'],
 ): Promise<ClientDeploymentConfig['navigation']> {
-  if (!navConfig || !ctx.user) return [];
-  return navConfig
+  if (!navConfig || !ctx.user) {
+    return { items: [], helpItem: undefined };
+  }
+
+  // Navigation is now always an object with items array
+  const navConfigObj = navConfig as { items?: Array<SimpleNavItemType & { scopes?: string[] }> };
+  const navItems = navConfigObj.items || [];
+  const items = navItems
     .map((nav) => {
       if (nav.scopes && !userHasScopes(ctx.user, nav.scopes)) return undefined;
       return nav as SimpleNavItemType;
     })
     .filter((nav): nav is SimpleNavItemType => !!nav);
+
+  // helpItem is processed separately in root.tsx with defaults applied
+  return {
+    items,
+    helpItem: undefined,
+  };
 }
 
 /**

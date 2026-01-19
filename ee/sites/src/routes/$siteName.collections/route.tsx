@@ -7,7 +7,7 @@ import { ClassicCollectionsRedirect } from './ClassicCollectionsRedirect.js';
 import { CreateCollectionForm } from './CreateCollectionForm.js';
 import { dbListCollections } from './db.server.js';
 import { $actionSimpleCollectionCreate, $actionDeleteCollection } from './actionHelpers.server.js';
-import type { Collection } from '@prisma/client';
+import type { Collection } from '@curvenote/scms-db';
 
 interface LoaderData {
   siteName: string;

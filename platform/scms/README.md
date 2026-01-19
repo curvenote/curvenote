@@ -12,7 +12,7 @@ Then at the top level of the monorepo:
 npm install
 ```
 
-This installs all the workspace dependencies and the `postinstall` step generates `@prisma/client` and the `platform/scms` package.json with extensions, as well as the `client.ts`/`server.ts` files in the scms extensions source folder.
+This installs all the workspace dependencies and the `postinstall` step generates the `platform/scms` package.json with extensions, as well as the `client.ts`/`server.ts` files in the scms extensions source folder.
 
 Still at the top level:
 

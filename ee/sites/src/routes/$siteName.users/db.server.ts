@@ -1,5 +1,5 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import type { Prisma, SiteRole } from '@prisma/client';
+import type { SiteRole } from '@curvenote/scms-db';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '@curvenote/scms-server';
 
@@ -90,7 +90,7 @@ export async function dbGetSiteUsers(siteName: string) {
   });
 }
 
-export type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetSiteUsers>, null | undefined>;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbGetSiteUsers>>, null | undefined>;
 
 export function dtoSiteUsers(dbo: DBO) {
   return dbo.map((user) => ({

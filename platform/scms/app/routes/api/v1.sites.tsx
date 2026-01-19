@@ -1,5 +1,5 @@
 import type { Route } from './+types/v1.sites';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { withContext, sites } from '@curvenote/scms-server';
 
 export async function loader(args: Route.LoaderArgs) {

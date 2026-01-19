@@ -11,7 +11,7 @@ import type {
 } from '@curvenote/scms-core';
 import { KnownResendEvents, TrackEvent } from '@curvenote/scms-core';
 import type { Context } from '../context.server.js';
-import type { User } from '@prisma/client';
+import type { User } from '@curvenote/scms-db';
 
 /**
  * Load and validate signin/signup configuration from app config

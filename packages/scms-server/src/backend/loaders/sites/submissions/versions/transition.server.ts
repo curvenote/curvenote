@@ -1,4 +1,4 @@
-import { ActivityType } from '@prisma/client';
+import { ActivityType } from '@curvenote/scms-db';
 import {
   error401,
   error403,

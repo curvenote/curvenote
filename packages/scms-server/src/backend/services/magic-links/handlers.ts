@@ -1,4 +1,4 @@
-import type { MagicLink } from '@prisma/client';
+import type { MagicLink } from '@curvenote/scms-db';
 import type { Context } from '../../context.server.js';
 
 export interface MagicLinkHandler {

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { JobStatus } from '@prisma/client';
+import { JobStatus } from '@curvenote/scms-db';
 import { usePolling } from '@curvenote/scms-core';
 import type { JobDTO } from '@curvenote/common';
 import type { WorkflowTransition } from '@curvenote/scms-core';

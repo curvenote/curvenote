@@ -1,8 +1,8 @@
 import { data } from 'react-router';
 import { zfd } from 'zod-form-data';
 import { z } from 'zod';
-import type { SiteUser, User } from '@prisma/client';
-import { SiteRole } from '@prisma/client';
+import type { SiteUser, User } from '@curvenote/scms-db';
+import { SiteRole } from '@curvenote/scms-db';
 import type { SiteContextWithUser, SiteContext } from '@curvenote/scms-server';
 import {
   dbAddSiteUserRole,

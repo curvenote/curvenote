@@ -6,7 +6,6 @@ import {
 import { error401, error404 } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../prisma.server.js';
 import * as cdnlib from '@curvenote/cdn';
-import type { Prisma } from '@prisma/client';
 
 async function dbGetLatestSubmissionVersion(siteName: string, workIdOrSlug: string) {
   const prisma = await getPrismaClient();
@@ -43,7 +42,7 @@ async function dbGetLatestSubmissionVersion(siteName: string, workIdOrSlug: stri
   });
 }
 
-type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetLatestSubmissionVersion>, null>;
+type DBO = Exclude<Awaited<ReturnType<typeof dbGetLatestSubmissionVersion>>, null>;
 
 export default async function loadSiteWorkThumbnail(
   ctx: SiteContext,

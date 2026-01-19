@@ -1,4 +1,3 @@
-import type { Prisma } from '@prisma/client';
 import { getPrismaClient } from '../../../prisma.server.js';
 import type { SubmissionKindListingDTO } from '@curvenote/common';
 import type { SiteContext } from '../../../context.site.server.js';
@@ -18,7 +17,7 @@ export async function dbGetKinds(siteName: string) {
   });
 }
 
-export type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetKinds>, null>;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbGetKinds>>, null>;
 
 function formatSubmissionKindListingDTO(ctx: SiteContext, dbo: DBO): SubmissionKindListingDTO {
   return {
