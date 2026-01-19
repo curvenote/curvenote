@@ -1,8 +1,8 @@
 import { data } from 'react-router';
 import { zfd } from 'zod-form-data';
 import { z } from 'zod';
-import type { User, WorkUser } from '@prisma/client';
-import { WorkRole } from '@prisma/client';
+import type { User, WorkUser } from '@curvenote/scms-db';
+import { $Enums } from '@curvenote/scms-db';
 import {
   dbAddWorkUserRole,
   dbGetUserByEmail,
@@ -28,7 +28,7 @@ async function getUserWithRolesByEmail(
   ctx: WorkContext,
   formData: FormData,
   dbUpdate: (
-    role: WorkRole,
+    role: $Enums.WorkRole,
     userWithRoles: User,
     requestedRole?: WorkUser,
   ) => Promise<{ message: string; error?: string; status?: number }>,
@@ -56,7 +56,7 @@ async function getUserWithRolesById(
   ctx: WorkContext,
   formData: FormData,
   dbUpdate: (
-    role: WorkRole,
+    role: $Enums.WorkRole,
     userWithRoles: User,
     requestedRole?: WorkUser,
   ) => Promise<{ message: string; error?: string; status?: number }>,
@@ -148,7 +148,7 @@ export async function actionRevokeUserRole(ctx: WorkContext, formData: FormData)
       if (!requestedRole) {
         return { message: 'ok', info: 'user does not have specified role' };
       }
-      if (role === WorkRole.OWNER && ctx.user?.id === userWithRoles.id) {
+      if (role === $Enums.WorkRole.OWNER && ctx.user?.id === userWithRoles.id) {
         return {
           message: 'unprocessable content',
           error: 'cannot revoke your own owner permissions',

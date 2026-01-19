@@ -11,14 +11,15 @@
   "scripts": {
     "prepare": "husky",
     "preinstall": "rm -f ./platform/scms/package.json",
-    "postinstall": "npm run prisma:generate && npm run generate:extensions",
-    "prisma:generate": "npx prisma generate --schema=./prisma/schema",
+    "postinstall": "npm run generate:extensions",
     "generate:extensions": "node platform/scms/scripts/generate-extensions.js",
-    "prisma:format": "npx prisma format --schema=./prisma/schema",
-    "db:studio": "prisma studio --schema=./prisma/schema/",
-    "dev:db:reset": "npx prisma migrate reset --schema=./prisma/schema",
-    "dev:db:migrate": "npx prisma migrate dev --schema=./prisma/schema",
-    "test:db:reset": "dotenv -e .env.test -- npx prisma db push --force-reset --schema=./prisma/schema; dotenv -e .env.test -- tsx prisma/seed.test.mts",
+    "prisma:generate": "npx prisma generate --config=./prisma.config.ts",
+    "prisma:format": "npx prisma format --config=./prisma.config.ts",
+    "db:studio": "prisma studio --config=./prisma.config.ts",
+    "dev:db:reset": "npx prisma migrate reset --config=./prisma.config.ts; npm run dev:db:seed",
+    "dev:db:seed": "npx prisma db seed --config=./prisma.config.ts",
+    "dev:db:migrate": "npx prisma migrate dev --config=./prisma.config.ts",
+    "test:db:reset": "dotenv -e .env.test -- npx prisma db push --force-reset --config=./prisma.config.ts; dotenv -e .env.test -- tsx ./prisma/seed.test.mts",
     "config": "npx @app-config/cli@2 generate",
     "build": "npm run config && turbo run build --filter='!@curvenote/scms'",
     "build:scms": "cd platform/scms && npm run build",
@@ -36,11 +37,13 @@
     "version": "npm install && changeset version && npx tsx scripts/sync-scms-template-version.ts && npm install",
     "publish": "npm run clean && npm run build -- --force && changeset publish && git push --follow-tags",
     "publish:ci": "npm run build && changeset publish && git push --follow-tags",
-    "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'"
+    "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'",
+    "nmnuke": "node scripts/remove-node-modules.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.23.2",
     "@types/node": "^24.6.2",
+    "@types/pg": "^8.16.0",
     "@typescript-eslint/parser": "^8.50.0",
     "esbuild": "^0.15.12",
     "eslint-config-curvenote": "^0.0.4",
@@ -50,8 +53,9 @@
     "npm-run-all": "^4.1.5",
     "npm-upgrade-monorepo": "^1.2.6",
     "prettier": "latest",
-    "prisma": "^6.18.0",
+    "prisma": "^7.2.0",
     "rimraf": "^3.0.2",
+    "tsx": "^4.21.0",
     "turbo": "latest",
     "typescript": "^5.9.3",
     "vite-tsconfig-paths": "^6.0.4",
@@ -64,7 +68,8 @@
   "packageManager": "npm@8.10.0",
   "dependencies": {
     "@changesets/changelog-github": "^0.5.1",
-    "@prisma/client": "^6.18.0"
+    "@prisma/client": "^7.2.0",
+    "dotenv": "^17.2.3"
   },
   "overrides": {
     "@types/node": "^24.6.2",

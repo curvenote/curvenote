@@ -3,7 +3,7 @@
  * a work version using OCC with a parameterised number of maxretries
  */
 
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from './prisma.server.js';
 import { httpError, delay } from '@curvenote/scms-core';
 

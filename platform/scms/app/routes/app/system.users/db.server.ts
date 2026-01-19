@@ -1,5 +1,5 @@
 import { getPrismaClient } from '@curvenote/scms-server';
-import { SystemRole } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 
 export type SystemUserDTO = Awaited<ReturnType<typeof dbGetSystemUsers>>[0];
 
@@ -30,7 +30,7 @@ export async function dbUpdateUserSystemRole(userId: string, systemRole: string)
   const prisma = await getPrismaClient();
 
   // Validate the system role
-  const validRoles = Object.values(SystemRole) as string[];
+  const validRoles = Object.values($Enums.SystemRole) as string[];
   if (!validRoles.includes(systemRole)) {
     throw new Error('Invalid system role');
   }
@@ -38,7 +38,7 @@ export async function dbUpdateUserSystemRole(userId: string, systemRole: string)
   return prisma.user.update({
     where: { id: userId },
     data: {
-      system_role: systemRole as SystemRole,
+      system_role: systemRole as $Enums.SystemRole,
       date_modified: new Date().toISOString(),
     },
     select: {

@@ -1,6 +1,6 @@
 import { primitives, ui, formatDate } from '@curvenote/scms-core';
 import { Star, Mail, Building2 } from 'lucide-react';
-import type { SystemRole } from '@prisma/client';
+import type { $Enums } from '@curvenote/scms-db';
 
 type User = {
   id: string;
@@ -9,7 +9,7 @@ type User = {
   username: string | null;
   primaryProvider: string | null;
   display_name: string | null;
-  system_role: SystemRole;
+  system_role: $Enums.SystemRole;
   site_roles: Array<{
     id: string;
     date_created: string;
@@ -67,13 +67,13 @@ export function UserCard({ user }: { user: User }) {
   return (
     <primitives.Card lift className="p-6 space-y-4">
       {/* Name and Admin Star */}
-      <div className="flex items-start justify-between">
+      <div className="flex justify-between items-start">
         <h3 className="text-lg font-semibold leading-tight text-gray-900 dark:text-gray-100">
           {displayName}
         </h3>
         {isSystemAdmin && (
           <Star
-            className="flex-shrink-0 w-5 h-5 ml-2 text-yellow-500 fill-current"
+            className="flex-shrink-0 ml-2 w-5 h-5 text-yellow-500 fill-current"
             aria-label="System Admin"
           />
         )}
@@ -81,7 +81,7 @@ export function UserCard({ user }: { user: User }) {
 
       {/* Email */}
       {user.email && (
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex gap-2 items-center text-sm text-gray-600 dark:text-gray-400">
           <Mail className="flex-shrink-0 w-4 h-4" />
           <span className="truncate">{user.email}</span>
         </div>
@@ -89,7 +89,7 @@ export function UserCard({ user }: { user: User }) {
 
       {/* Company/Affiliation */}
       {company && (
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex gap-2 items-center text-sm text-gray-600 dark:text-gray-400">
           <Building2 className="flex-shrink-0 w-4 h-4" />
           <span className="truncate">{company}</span>
         </div>

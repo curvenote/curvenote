@@ -9,7 +9,7 @@ import {
 } from '@curvenote/scms-server';
 import { type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
-import { JobStatus } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { site, error401 } from '@curvenote/scms-core';
 import { extensions } from '../../extensions/server';
 
@@ -45,7 +45,7 @@ export async function action(args: ActionFunctionArgs) {
   });
 
   // The handshake token must also declare a running jobId that corresponds to the submission in the path
-  if (!job || job.status !== JobStatus.RUNNING) {
+  if (!job || job.status !== $Enums.JobStatus.RUNNING) {
     throw error401('Unauthorized');
   }
   if (!job.SubmissionVersion || job.SubmissionVersion.submission.id !== ctx.submission.id) {

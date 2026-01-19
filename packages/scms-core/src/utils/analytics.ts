@@ -1,5 +1,5 @@
 import { useMyUser } from '../providers/MyUserProvider.js';
-import { SystemRole } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 
 export type EventOptions = {
   anonymous?: boolean;
@@ -9,9 +9,12 @@ export type EventOptions = {
 /**
  * Check if the current user has admin privileges
  */
-export function isAdmin(user?: { system_role: SystemRole | string } | null): boolean {
+export function isAdmin(user?: { system_role: $Enums.SystemRole | string } | null): boolean {
   if (!user) return false;
-  return user.system_role === SystemRole.ADMIN || user.system_role === SystemRole.PLATFORM_ADMIN;
+  return (
+    user.system_role === $Enums.SystemRole.ADMIN ||
+    user.system_role === $Enums.SystemRole.PLATFORM_ADMIN
+  );
 }
 
 /**

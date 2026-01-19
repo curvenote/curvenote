@@ -1,4 +1,4 @@
-import { JobStatus, type Prisma } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import type { Context } from '@curvenote/scms-core';
 import type { JobDTO } from '@curvenote/common';
 import { getPrismaClient } from '../../prisma.server.js';
@@ -10,7 +10,7 @@ async function dbGet(id: string) {
   return prisma.job.findUnique({ where: { id } });
 }
 
-export type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGet>, null>;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbGet>>, null>;
 
 export function formatJobDTO(ctx: Context, job: DBO): JobDTO {
   const payload = coerceToObject(job.payload);
@@ -20,7 +20,7 @@ export function formatJobDTO(ctx: Context, job: DBO): JobDTO {
   let signature: string | undefined;
   if (
     job.job_type === 'CHECK' &&
-    job.status === JobStatus.COMPLETED &&
+    job.status === $Enums.JobStatus.COMPLETED &&
     payload.journal &&
     results?.submissionId
   ) {

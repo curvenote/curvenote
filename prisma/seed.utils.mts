@@ -45,17 +45,24 @@ export async function seedBySites(
   users: {
     support: Prisma.UserGetPayload<any>;
     others: Prisma.UserGetPayload<any>[];
-    tellus: Prisma.UserGetPayload<any>[];
   },
-) {
-  const insertedWorks = [];
+): Promise<{ sites: number; works: number; submissions: number; collections: number }> {
+  const summary = {
+    sites: 0,
+    works: 0,
+    submissions: 0,
+    collections: 0,
+  };
+  
   for (const item of data) {
     item.site.id ??= uuid();
-    log(`\n\n*** Adding site ${item.site.name} ***`);
+    console.log(`\n📦 Processing site: ${item.site.name || item.site.title || 'Untitled'}`);
     let submissionVersions: any[] = [];
+    let workCount = 0;
 
     for (const work of item.works) {
-      log(`\n\n*** Adding work ${work.id} ***`);
+      workCount++;
+      console.log(`   📄 Creating work ${workCount}/${item.works.length}: ${work.title || work.id}`);
 
       const versions = work.versions.map((version: any) => ({
         date_created: new Date(version.date_created).toISOString(),
@@ -145,8 +152,8 @@ export async function seedBySites(
 
       submissionVersions = [...submissionVersions, ...workSubmissionVersions];
 
-      insertedWorks.push(workData);
-      log(`\n\n*** added work ***`, workData);
+      summary.works++;
+      console.log(`      ✓ Created work: ${workData.id} (${workData.versions.length} version(s))`);
 
       if (work.job) {
         const job = await prisma.job.create({
@@ -165,11 +172,12 @@ export async function seedBySites(
           },
         });
 
-        log(`\n\n*** Added build job ${job} ***`);
+        console.log(`      ✓ Created build job: ${job.id}`);
       }
     }
+    console.log(`   ✓ Processed ${workCount} work(s) for site ${item.site.name}`);
 
-    log(`\n\n*** Adding site ${item.site.name} ***`);
+    console.log(`   🏢 Creating site: ${item.site.name || item.site.title || 'Untitled'}`);
     const siteUsers = [
       {
         id: uuid(),
@@ -186,18 +194,6 @@ export async function seedBySites(
         role: SiteRole.ADMIN,
       })),
     ];
-
-    if (item.site.name === 'tellus') {
-      siteUsers.push(
-        ...users.tellus.map((user) => ({
-          id: uuid(),
-          date_created: startDateString,
-          date_modified: startDateString,
-          user_id: user.id,
-          role: SiteRole.ADMIN,
-        })),
-      );
-    }
 
     if (item.url === undefined) throw new Error('URL is required');
     if (item.private === undefined) throw new Error('Private is required');
@@ -234,9 +230,10 @@ export async function seedBySites(
         submissionKinds: true,
       },
     });
-    log(`\n\n *** Added site ***`, siteData);
+    summary.sites++;
+    console.log(`   ✓ Created site: ${siteData.name} (${siteData.submissionKinds.length} submission kind(s))`);
 
-    log(`\n\n *** Adding collections ***`);
+    console.log(`   📚 Creating collections...`);
 
     const collectionData = item.site.collections ?? [
       {
@@ -261,6 +258,8 @@ export async function seedBySites(
         site_id: siteData.id,
       })),
     });
+    summary.collections += collectionData.length;
+    console.log(`      ✓ Created ${collectionData.length} collection(s)`);
 
     const collections = await prisma.collection.findMany({ where: { site_id: siteData.id } });
     const kinds = await prisma.submissionKind.findMany({ where: { site_id: siteData.id } });
@@ -291,10 +290,8 @@ export async function seedBySites(
       }),
     );
 
-    log(`\n\n *** Added collections ***`);
-
-    log(`\n\n *** Adding domains ***`);
-    await prisma.domain.create({
+    console.log(`   ✓ Linked collections to submission kinds`);
+    const domain = await prisma.domain.create({
       data: {
         id: uuid(),
         date_created: startDateString,
@@ -307,10 +304,9 @@ export async function seedBySites(
         },
       },
     });
+    console.log(`   ✓ Created domain: ${domain.hostname}`);
 
-    log(`\n\n *** Added domains ***`);
-
-    log(`\n\n *** Adding submissions with activity ***`);
+    console.log(`   📝 Creating submissions and activities...`);
     const subData = await Promise.all(
       submissionVersions.map(async (sv, i) => {
         const subVersion = await prisma.submissionVersion.create({
@@ -343,7 +339,6 @@ export async function seedBySites(
                 kind: {
                   connect: {
                     id: siteData.submissionKinds.find((kind) => {
-                      log('KINDS MATCHING', kind.name, sv.submission.create.kind);
                       return kind.name === sv.submission.create.kind;
                     })!.id,
                   },
@@ -406,6 +401,10 @@ export async function seedBySites(
         return subVersion;
       }),
     );
-    log(`\n\n *** Added submissions ***`, subData);
+    summary.submissions += subData.length;
+    console.log(`   ✓ Created ${subData.length} submission(s) with activity records`);
+    console.log(`   ✅ Completed site: ${item.site.name}\n`);
   }
+  
+  return summary;
 }

@@ -1,7 +1,7 @@
 import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient, sites } from '@curvenote/scms-server';
-import { ActivityType } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 
 export async function dbDeleteKind(kindId: string, siteId: string, userId: string) {
   const prisma = await getPrismaClient();
@@ -17,7 +17,7 @@ export async function dbDeleteKind(kindId: string, siteId: string, userId: strin
             id: userId,
           },
         },
-        activity_type: ActivityType.KIND_DELETED,
+        activity_type: $Enums.ActivityType.KIND_DELETED,
         kind: {
           connect: {
             id: kindId,
@@ -58,7 +58,7 @@ export async function dbDeleteKind(kindId: string, siteId: string, userId: strin
                 id: userId,
               },
             },
-            activity_type: ActivityType.KIND_UPDATED,
+            activity_type: $Enums.ActivityType.KIND_UPDATED,
             kind: {
               connect: {
                 id: newDefault.id,
@@ -129,7 +129,7 @@ export async function dbCreateKind(
             id: userId,
           },
         },
-        activity_type: ActivityType.KIND_CREATED,
+        activity_type: $Enums.ActivityType.KIND_CREATED,
         kind: {
           connect: {
             id: kindId,

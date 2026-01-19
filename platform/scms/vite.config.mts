@@ -3,21 +3,10 @@ import { defineConfig, loadEnv } from 'vite';
 import { reactRouter } from '@react-router/dev/vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import appConfigVite from '@app-config/vite';
-import { createRequire } from 'module';
 import path from 'path';
 import ViteRestart from 'vite-plugin-restart';
 import { loadConfig } from '@app-config/main';
 import tailwindcss from '@tailwindcss/vite';
-
-const require = createRequire(import.meta.url);
-const prismaClientDirectory = path.normalize(
-  path.relative(
-    process.cwd(),
-    require.resolve('@prisma/client').replace(/@prisma(\/|\\)client(\/|\\).*/, '.prisma/client'),
-  ),
-);
-
-const prismaIndexBrowserPath = path.join(prismaClientDirectory, 'index-browser.js');
 
 export default defineConfig(async ({ mode }) => {
   // Load env file based on `mode` in the current working directory.
@@ -84,26 +73,11 @@ export default defineConfig(async ({ mode }) => {
         // Exclude all local packages from pre-bundling for faster HMR
         '@curvenote/scms-server',
         '@curvenote/scms-core',
+        '@curvenote/scms-db',
       ],
-      esbuildOptions: {
-        // Configure esbuild to handle crypto imports during dependency optimization
-        // Mark crypto as external to prevent resolving the deprecated npm package
-        // During optimizeDeps, we're in client mode, so we can use node:crypto
-        plugins: [
-          {
-            name: 'crypto-to-node-crypto',
-            setup(build) {
-              build.onResolve({ filter: /^crypto$/ }, () => {
-                // For optimizeDeps (client-side), redirect to node:crypto
-                return { path: 'node:crypto', external: true };
-              });
-            },
-          },
-        ],
-      },
-      force: true,
     },
     ssr: {
+      external: ['crypto', '@curvenote/scms-server', '@curvenote/scms-db'],
       noExternal: [
         'lucide-react',
         'clsx',
@@ -186,140 +160,13 @@ export default defineConfig(async ({ mode }) => {
           });
         },
       },
-      // Plugin to handle crypto imports and exclude server-only packages from client builds
-      {
-        name: 'fix-crypto-imports',
-        enforce: 'pre',
-        resolveId(id, importer, options) {
-          // Detect SSR mode - check multiple indicators
-          const isSSR =
-            options?.ssr === true ||
-            (importer &&
-              (importer.includes('virtual:react-router') ||
-                importer.includes('ssr') ||
-                importer.includes('server-build')));
-
-          // Server-only packages that should never be processed for client
-          const serverOnlyPackages = [
-            '@curvenote/scms-server',
-            '@google-cloud/storage',
-            '@google-cloud/pubsub',
-            'google-auth-library',
-            'firebase-admin',
-          ];
-
-          // Check if the ID itself is a server-only package
-          const isServerOnlyPackageId = serverOnlyPackages.some((pkg) => id.includes(pkg));
-
-          // For client builds, mark server-only packages as external immediately
-          if (!isSSR && isServerOnlyPackageId) {
-            return {
-              id,
-              external: true,
-            };
-          }
-
-          // Handle 'node:crypto' imports first (most common in built packages)
-          if (id === 'node:crypto') {
-            if (isSSR) {
-              // Convert node:crypto back to crypto for SSR (Vite's SSR loader can't handle node: protocol)
-              return {
-                id: 'crypto',
-                external: true,
-              };
-            } else {
-              // For client builds, always convert to crypto and mark external
-              // This prevents Vite from trying to load node:crypto in the browser
-              return {
-                id: 'crypto',
-                external: true,
-              };
-            }
-          }
-
-          // Handle 'crypto' imports
-          if (id === 'crypto' && !id.startsWith('node:') && !id.startsWith('.')) {
-            if (isSSR) {
-              // For SSR, just mark as external - Node.js will handle it natively
-              return {
-                id: 'crypto',
-                external: true,
-              };
-            } else {
-              // For client builds, always mark as external
-              // Server-only packages shouldn't be processed for client anyway
-              return {
-                id: 'crypto',
-                external: true,
-              };
-            }
-          }
-
-          return null;
-        },
-        // Intercept loading of files to prevent Vite from processing server-only packages
-        load(id) {
-          // Only intercept in client mode (not SSR)
-          const serverOnlyPackages = [
-            '@curvenote/scms-server',
-            '@google-cloud/storage',
-            '@google-cloud/pubsub',
-            'google-auth-library',
-            'firebase-admin',
-          ];
-
-          // Check if this is a server-only package file
-          const isServerOnlyFile = serverOnlyPackages.some((pkg) => id.includes(pkg));
-
-          if (isServerOnlyFile && !id.includes('virtual:') && !id.includes('node_modules/.vite')) {
-            // Return an empty module to prevent Vite from processing it
-            // The resolveId hook should have already marked it as external
-            return {
-              code: '// Server-only module - skipped in client build',
-              map: null,
-            };
-          }
-
-          return null;
-        },
-      },
     ],
     resolve: {
       alias: {
-        '.prisma/client/index-browser': prismaIndexBrowserPath,
-        '@': path.resolve(__dirname, './src'),
         http: 'node:http',
       },
       // Dedupe these packages to avoid multiple instances
       dedupe: ['react', 'react-dom', 'react-router'],
-    },
-    build: {
-      rollupOptions: {
-        external: [
-          '@google-cloud/storage',
-          'jwa',
-          'jsonwebtoken',
-          'jose',
-          'gtoken',
-          'google-gax',
-          'google-auth-library',
-          'firebase-admin',
-          'crypto',
-          '@curvenote/scms-server',
-        ],
-        onwarn(warning, warn) {
-          // Suppress sourcemap warnings from node_modules packages
-          // These occur when packages include sourcemap references but don't include source files
-          if (
-            warning.message?.includes('Sourcemap for') &&
-            warning.message?.includes('points to missing source files')
-          ) {
-            return; // Suppress this warning
-          }
-          // Use default warning handler for other warnings
-          warn(warning);
-        },
-      },
     },
   };
   return userConfig;

@@ -6,7 +6,7 @@ import { getPrismaClient } from '../../../prisma.server.js';
 import { error401, error404, site } from '@curvenote/scms-core';
 import { dbGetWorkForUser, formatWorkDTO, getWorkFromSubmission } from '../get.server.js';
 import { getCreateWorkVersionDataFromMyst } from '../create.server.js';
-import { ActivityType } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 
 export async function dbCreateWorkVersionAndUpdateWork(
   workId: string,
@@ -55,7 +55,7 @@ export async function dbCreateWorkVersionAndUpdateWork(
         id: uuid(),
         date_created,
         date_modified: date_created,
-        activity_type: ActivityType.WORK_VERSION_ADDED,
+        activity_type: $Enums.ActivityType.WORK_VERSION_ADDED,
         activity_by: {
           connect: {
             id: userId,

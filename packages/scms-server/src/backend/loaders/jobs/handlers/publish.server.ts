@@ -1,6 +1,6 @@
 import type { Context } from '../../../context.server.js';
 import type { CreateJob, SubmissionPublishedEmailProps } from '@curvenote/scms-core';
-import { JobStatus } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { dbCreateJob, dbUpdateJob } from './db.server.js';
 import type { StorageBackend } from '../../../storage/backend.server.js';
 import { createFolder } from '../../../storage/folder.server.js';
@@ -52,7 +52,7 @@ export async function publishHandler(
     throw httpError(500, 'Storage backend is required for publish operations');
   }
 
-  const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
+  const created = await dbCreateJob({ ...data, status: $Enums.JobStatus.RUNNING });
   // currently implemented as a long running task in the job response handler
   // must complete before a response is sent, could be moved to another endpoint if needed
   // as we create a job to start with clients/callers can fire-and-forget if they choose
@@ -68,7 +68,7 @@ export async function publishHandler(
     const message = `Folder does not exist ${cdn}/${key}`;
     console.warn(message);
     await dbUpdateJob(created.id, {
-      status: JobStatus.FAILED,
+      status: $Enums.JobStatus.FAILED,
       message,
       results: { files_transfered: false },
     });
@@ -87,7 +87,7 @@ export async function publishHandler(
     await folder.copy({ bucket: KnownBuckets.pub, path: key });
     results = { files_transfered: true };
     await dbUpdateJob(created.id, {
-      status: JobStatus.RUNNING,
+      status: $Enums.JobStatus.RUNNING,
       message: 'Files transferred to new location',
       results,
     });
@@ -95,7 +95,7 @@ export async function publishHandler(
     const message = 'Error copying folder';
     console.log(message, error);
     await dbUpdateJob(created.id, {
-      status: JobStatus.FAILED,
+      status: $Enums.JobStatus.FAILED,
       message,
       results,
     });
@@ -122,7 +122,7 @@ export async function publishHandler(
     const message = 'Error updating submission status';
     console.log(message, error);
     await dbUpdateJob(created.id, {
-      status: JobStatus.FAILED,
+      status: $Enums.JobStatus.FAILED,
       message,
       results,
     });
@@ -190,7 +190,7 @@ export async function publishHandler(
   }
   results = { ...results, submission_updated: true, date_published_updated: !!date_published };
   const job = await dbUpdateJob(created.id, {
-    status: JobStatus.COMPLETED,
+    status: $Enums.JobStatus.COMPLETED,
     message: 'Publishing complete.',
     results,
   });

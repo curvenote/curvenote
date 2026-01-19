@@ -1,6 +1,6 @@
 import { formatDate } from '@curvenote/common';
 import type { SubmissionVersionDTO } from '@curvenote/common';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
 import { getPrismaClient } from '../../../../prisma.server.js';
@@ -35,7 +35,7 @@ export async function dbGetSubmissionVersion(
   });
 }
 
-type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetSubmissionVersion>, null>;
+type DBO = Exclude<Awaited<ReturnType<typeof dbGetSubmissionVersion>>, null>;
 
 export function formatSubmissionVersionDTO(
   ctx: SiteContext,

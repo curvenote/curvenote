@@ -21,7 +21,7 @@ import {
   dbUpdateDatePublishedFromVersion,
   dbUpdateDatePublishedFromWork,
 } from './db.server';
-import { WorkRole } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { firstPublishedVersionDateCreated, lastPublishedVersionWorkDate } from './utils';
 import { SiteSelect, WorkInfo } from './ui';
 import { uuidv7 } from 'uuidv7';
@@ -55,7 +55,7 @@ export async function action(args: Route.ActionArgs) {
   } else if (formAction === 'add-work-user') {
     const workId = formData.get('workId') as string;
     const userId = formData.get('userId') as string;
-    const role = formData.get('role') as WorkRole;
+    const role = formData.get('role') as $Enums.WorkRole;
 
     const prisma = await getPrismaClient();
 
@@ -112,7 +112,7 @@ export async function action(args: Route.ActionArgs) {
       return data({ error: 'Work user not found' }, { status: 404 });
     }
 
-    if (workUser.role === WorkRole.OWNER && workUser.work.work_users.length <= 1) {
+    if (workUser.role === $Enums.WorkRole.OWNER && workUser.work.work_users.length <= 1) {
       return data({ error: 'Cannot remove the last owner' }, { status: 400 });
     }
 
@@ -262,9 +262,9 @@ export default function SubmissionAdmin({ loaderData }: Route.ComponentProps) {
                       <primitives.Card key={s.id} className="p-4">
                         <div className="space-y-6">
                           {/* Submission Header */}
-                          <div className="flex items-center justify-between pb-4 border-b">
+                          <div className="flex justify-between items-center pb-4 border-b">
                             <div className="space-y-1">
-                              <div className="flex items-center gap-4">
+                              <div className="flex gap-4 items-center">
                                 <span className="text-sm text-gray-500 dark:text-gray-400">
                                   {formatDatetime(s.date_created)}
                                 </span>
@@ -342,7 +342,7 @@ export default function SubmissionAdmin({ loaderData }: Route.ComponentProps) {
                                           View Details
                                         </ui.TooltipTrigger>
                                         <ui.TooltipContent className="max-w-[800px] max-h-[300px] overflow-y-auto">
-                                          <pre className="text-xs break-words whitespace-pre-wrap">
+                                          <pre className="text-xs whitespace-pre-wrap break-words">
                                             {JSON.stringify(sv, null, 2)}
                                           </pre>
                                         </ui.TooltipContent>

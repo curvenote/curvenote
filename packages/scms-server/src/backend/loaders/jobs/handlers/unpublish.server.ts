@@ -3,7 +3,7 @@ import { dbCreateJob, dbUpdateJob } from './db.server.js';
 import { validate } from '../../../../api.schemas.js';
 import type { PublishJobResults } from './schemas.server.js';
 import { CreatePublishJobPayloadSchema } from './schemas.server.js';
-import { JobStatus } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import type { StorageBackend } from '../../../storage/index.js';
 import { KnownBuckets } from '../../../storage/constants.server.js';
 import { httpError } from '@curvenote/scms-core';
@@ -30,7 +30,7 @@ export async function unpublishHandler(
     throw httpError(500, 'Storage backend is required for unpublish operations');
   }
 
-  const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
+  const created = await dbCreateJob({ ...data, status: $Enums.JobStatus.RUNNING });
 
   // setup storage
   const sourceBucket = storageBackend.knownBucketFromCDN(cdn);
@@ -44,7 +44,7 @@ export async function unpublishHandler(
     const pubExists = await pubFolder.exists();
     if (pubExists) {
       await dbUpdateJob(created.id, {
-        status: JobStatus.RUNNING,
+        status: $Enums.JobStatus.RUNNING,
         message: 'Found the work version in the pub bucket',
         results,
       });
@@ -58,7 +58,7 @@ export async function unpublishHandler(
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
           return dbUpdateJob(created.id, {
-            status: JobStatus.FAILED,
+            status: $Enums.JobStatus.FAILED,
             message: 'Error removing public copy',
             results,
           });
@@ -70,7 +70,7 @@ export async function unpublishHandler(
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
           return dbUpdateJob(created.id, {
-            status: JobStatus.FAILED,
+            status: $Enums.JobStatus.FAILED,
             message: 'Error moving public copy to prv bucket',
             results,
           });
@@ -78,13 +78,13 @@ export async function unpublishHandler(
       }
       results.files_transfered = true;
       await dbUpdateJob(created.id, {
-        status: JobStatus.RUNNING,
+        status: $Enums.JobStatus.RUNNING,
         message: 'Files transferred to new location',
         results,
       });
     } else {
       await dbUpdateJob(created.id, {
-        status: JobStatus.RUNNING,
+        status: $Enums.JobStatus.RUNNING,
         message: 'No work version found in the pub bucket',
         results,
       });
@@ -95,7 +95,7 @@ export async function unpublishHandler(
         const message =
           'Cannot Unpublish - No copy of the work version exists in the pub or prv bucket';
         await dbUpdateJob(created.id, {
-          status: JobStatus.FAILED,
+          status: $Enums.JobStatus.FAILED,
           message,
           results,
         });
@@ -103,7 +103,7 @@ export async function unpublishHandler(
       }
       results.files_transfered = true;
       await dbUpdateJob(created.id, {
-        status: JobStatus.RUNNING,
+        status: $Enums.JobStatus.RUNNING,
         message: 'Work version found in prv bucket',
         results,
       });
@@ -128,7 +128,7 @@ export async function unpublishHandler(
     const message = 'Error updating submission status';
     console.log(message, error);
     await dbUpdateJob(created.id, {
-      status: JobStatus.FAILED,
+      status: $Enums.JobStatus.FAILED,
       message,
       results,
     });
@@ -153,7 +153,7 @@ export async function unpublishHandler(
 
   results = { ...results, submission_updated: true };
   return dbUpdateJob(created.id, {
-    status: JobStatus.COMPLETED,
+    status: $Enums.JobStatus.COMPLETED,
     message: 'Unpublishing complete.',
     results,
   });

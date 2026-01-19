@@ -8,7 +8,7 @@ import {
 import { PageFrame, ui, formatDatetime } from '@curvenote/scms-core';
 import { parseMessageQuery, buildMessageQuery, type MessageQuery } from './query-parser';
 import { extractMessageEmailData } from './message-utils';
-import type { Message } from '@prisma/client';
+import type { Message } from '@curvenote/scms-db';
 
 export const meta: Route.MetaFunction = () => {
   return [

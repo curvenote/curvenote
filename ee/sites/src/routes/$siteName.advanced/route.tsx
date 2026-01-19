@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { data } from 'react-router';
 import { withAppSiteContext, validateFormData } from '@curvenote/scms-server';
-import type { JsonObject } from '@prisma/client/runtime/library';
+import type { Prisma } from '@curvenote/scms-db';
 import {
   SystemAdminBadge,
   PageFrame,
@@ -29,7 +29,7 @@ import { zfd } from 'zod-form-data';
 interface LoaderData {
   site: SiteDTO;
   siteWithAppData: SiteWithAppData;
-  metadata: JsonObject;
+  metadata: Prisma.JsonObject;
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -52,7 +52,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     description, // eslint-disable-line @typescript-eslint/no-unused-vars
     private: privateField, // eslint-disable-line @typescript-eslint/no-unused-vars
     ...filteredMetadata
-  } = metadata as JsonObject;
+  } = metadata as Prisma.JsonObject;
 
   return { site: ctx.siteDTO, siteWithAppData, metadata: filteredMetadata };
 }
@@ -99,7 +99,7 @@ export default function Settings({ loaderData }: { loaderData: LoaderData }) {
     <PageFrame title="Site Settings" subtitle={`Manage the settings for ${site.title}`}>
       <div className="flex flex-col space-y-5">
         <SystemAdminBadge />
-        <primitives.Card lift className="max-w-4xl px-6 py-4 space-y-4">
+        <primitives.Card lift className="px-6 py-4 space-y-4 max-w-4xl">
           <h2>Site Information</h2>
           <p className="text-sm font-light">These fields cannot be changed.</p>
           <div className="space-y-4">

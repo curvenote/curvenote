@@ -1,7 +1,7 @@
 import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '@curvenote/scms-server';
-import { ActivityType } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { coerceToObject, httpError, delay } from '@curvenote/scms-core';
 
 /**
@@ -54,7 +54,7 @@ export async function safeCollectionContentUpdate(
                 id: userId,
               },
             },
-            activity_type: ActivityType.COLLECTION_UPDATED,
+            activity_type: $Enums.ActivityType.COLLECTION_UPDATED,
             collection: {
               connect: {
                 id: collectionId,
@@ -106,7 +106,7 @@ export async function dbUpdateCollectionName(name: string, collectionId: string,
             id: userId,
           },
         },
-        activity_type: ActivityType.COLLECTION_UPDATED,
+        activity_type: $Enums.ActivityType.COLLECTION_UPDATED,
         collection: {
           connect: {
             id: collectionId,
@@ -146,7 +146,7 @@ export async function dbUpdateCollectionDefault(
             id: userId,
           },
         },
-        activity_type: ActivityType.COLLECTION_UPDATED,
+        activity_type: $Enums.ActivityType.COLLECTION_UPDATED,
         collection: {
           connect: {
             id: collectionId,
@@ -187,7 +187,7 @@ export async function dbUpdateCollectionDefault(
                   id: userId,
                 },
               },
-              activity_type: ActivityType.COLLECTION_UPDATED,
+              activity_type: $Enums.ActivityType.COLLECTION_UPDATED,
               collection: {
                 connect: {
                   id,
@@ -227,7 +227,7 @@ export async function dbCreateCollectionKind(kindId: string, collectionId: strin
             id: userId,
           },
         },
-        activity_type: ActivityType.COLLECTION_UPDATED,
+        activity_type: $Enums.ActivityType.COLLECTION_UPDATED,
         collection: {
           connect: {
             id: collectionId,
@@ -267,7 +267,7 @@ export async function dbDeleteCollectionKind(kindId: string, collectionId: strin
             id: userId,
           },
         },
-        activity_type: ActivityType.COLLECTION_UPDATED,
+        activity_type: $Enums.ActivityType.COLLECTION_UPDATED,
         collection: {
           connect: {
             id: collectionId,
@@ -309,7 +309,7 @@ export async function dbUpdateCollectionOpen(value: boolean, collectionId: strin
             id: userId,
           },
         },
-        activity_type: ActivityType.COLLECTION_UPDATED,
+        activity_type: $Enums.ActivityType.COLLECTION_UPDATED,
         collection: {
           connect: {
             id: collectionId,
@@ -336,7 +336,7 @@ export async function dbDeleteCollection(collectionId: string, userId: string) {
             id: userId,
           },
         },
-        activity_type: ActivityType.COLLECTION_DELETED,
+        activity_type: $Enums.ActivityType.COLLECTION_DELETED,
         collection: {
           connect: {
             id: collectionId,
@@ -386,7 +386,7 @@ export async function dbUpdateCollectionParent(
             id: userId,
           },
         },
-        activity_type: ActivityType.COLLECTION_UPDATED,
+        activity_type: $Enums.ActivityType.COLLECTION_UPDATED,
         collection: {
           connect: {
             id: collectionId,

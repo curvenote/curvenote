@@ -1,16 +1,16 @@
-import { SiteRole, SystemRole, WorkRole } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { system, site, work, app } from '@curvenote/scms-core';
 
-const SYSTEM_ROLES: Record<SystemRole, Set<string>> = {
-  [SystemRole.SERVICE]: new Set([system.admin]), // in future service accounts will have limited scope, that's the whole point
-  [SystemRole.ADMIN]: new Set([system.admin]),
-  [SystemRole.PLATFORM_ADMIN]: new Set([app.platform.admin]),
-  [SystemRole.USER]: new Set([work.create, work.list]),
-  [SystemRole.ANON]: new Set([]),
+const SYSTEM_ROLES: Record<$Enums.SystemRole, Set<string>> = {
+  [$Enums.SystemRole.SERVICE]: new Set([system.admin]), // in future service accounts will have limited scope, that's the whole point
+  [$Enums.SystemRole.ADMIN]: new Set([system.admin]),
+  [$Enums.SystemRole.PLATFORM_ADMIN]: new Set([app.platform.admin]),
+  [$Enums.SystemRole.USER]: new Set([work.create, work.list]),
+  [$Enums.SystemRole.ANON]: new Set([]),
 };
 
-const SITE_ROLES: Record<SiteRole, Set<string>> = {
-  [SiteRole.ADMIN]: new Set([
+const SITE_ROLES: Record<$Enums.SiteRole, Set<string>> = {
+  [$Enums.SiteRole.ADMIN]: new Set([
     site.list,
     site.read,
     site.update,
@@ -41,7 +41,7 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.users.update,
     site.users.delete,
   ]),
-  [SiteRole.EDITOR]: new Set([
+  [$Enums.SiteRole.EDITOR]: new Set([
     site.list,
     site.read,
     site.details,
@@ -57,7 +57,7 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.users.list,
     site.users.read,
   ]),
-  [SiteRole.SUBMITTER]: new Set([
+  [$Enums.SiteRole.SUBMITTER]: new Set([
     site.list,
     site.read,
     site.details,
@@ -70,10 +70,10 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.submissions.create,
     site.submissions.versions.create,
   ]),
-  [SiteRole.REVIEWER]: new Set([site.read]),
-  [SiteRole.AUTHOR]: new Set([site.read]),
-  [SiteRole.PUBLIC]: new Set([site.read]),
-  [SiteRole.UNRESTRICTED]: new Set([
+  [$Enums.SiteRole.REVIEWER]: new Set([site.read]),
+  [$Enums.SiteRole.AUTHOR]: new Set([site.read]),
+  [$Enums.SiteRole.PUBLIC]: new Set([site.read]),
+  [$Enums.SiteRole.UNRESTRICTED]: new Set([
     site.read,
     site.kinds.list,
     site.kinds.read,
@@ -83,8 +83,8 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
   ]),
 };
 
-const WORK_ROLES: Record<WorkRole, Set<string>> = {
-  [WorkRole.OWNER]: new Set([
+const WORK_ROLES: Record<$Enums.WorkRole, Set<string>> = {
+  [$Enums.WorkRole.OWNER]: new Set([
     work.read,
     work.update,
     work.submissions.list,
@@ -98,7 +98,7 @@ const WORK_ROLES: Record<WorkRole, Set<string>> = {
     work.checks.read,
     work.checks.dispatch,
   ]),
-  [WorkRole.CONTRIBUTOR]: new Set([
+  [$Enums.WorkRole.CONTRIBUTOR]: new Set([
     work.read,
     work.update,
     work.submissions.list,
@@ -109,33 +109,33 @@ const WORK_ROLES: Record<WorkRole, Set<string>> = {
     work.users.read,
     work.checks.read,
   ]),
-  [WorkRole.VIEWER]: new Set([work.read]),
+  [$Enums.WorkRole.VIEWER]: new Set([work.read]),
 };
 
-export function hasScopeViaSystemRole(role: SystemRole, scope: string): boolean {
+export function hasScopeViaSystemRole(role: $Enums.SystemRole, scope: string): boolean {
   return SYSTEM_ROLES[role]?.has(scope) ?? false;
 }
 
-export function hasSiteScope(role: SiteRole, scope: string): boolean {
+export function hasSiteScope(role: $Enums.SiteRole, scope: string): boolean {
   const s = scope;
   const has = SITE_ROLES[role]?.has(s) ?? false;
   return has;
 }
 
-export function hasWorkScope(role: WorkRole, scope: string): boolean {
+export function hasWorkScope(role: $Enums.WorkRole, scope: string): boolean {
   const s = scope;
   const has = WORK_ROLES[role]?.has(s) ?? false;
   return has;
 }
 
-export function getSystemRoleScopes(role: SystemRole): string[] {
+export function getSystemRoleScopes(role: $Enums.SystemRole): string[] {
   return Array.from(SYSTEM_ROLES[role]);
 }
 
-export function getSiteRoleScopes(role: SiteRole): string[] {
+export function getSiteRoleScopes(role: $Enums.SiteRole): string[] {
   return Array.from(SITE_ROLES[role]);
 }
 
-export function getWorkRoleScopes(role: WorkRole): string[] {
+export function getWorkRoleScopes(role: $Enums.WorkRole): string[] {
   return Array.from(WORK_ROLES[role]);
 }

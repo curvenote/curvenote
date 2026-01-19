@@ -10,7 +10,7 @@ import {
   getCanonicalOrLatestVersion,
 } from './loaders/works/get.server.js';
 import { getUserScopesSet, userHasWorkScope } from './scopes.helpers.server.js';
-import { SystemRole } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import type { MyUserDBO } from './db.types.js';
 import type { AllTrackEvent } from '@curvenote/scms-core';
 
@@ -148,7 +148,7 @@ export async function withAppWorkContext<T extends LoaderFunctionArgs | ActionFu
   // Check if user is disabled - treat as authentication failure
   if (ctx.user.disabled) throw error401();
   // User has no permission on the work
-  if (ctx.user.system_role !== SystemRole.ADMIN && ctx.user.work_roles.length === 0) {
+  if (ctx.user.system_role !== $Enums.SystemRole.ADMIN && ctx.user.work_roles.length === 0) {
     throw throwRedirectOr404(opts);
   }
   // User does not have a correct scope on the work

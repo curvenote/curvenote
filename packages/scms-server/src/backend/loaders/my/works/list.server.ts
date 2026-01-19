@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import type { WorksDTO } from '@curvenote/common';
 import type { Context } from '../../../context.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
@@ -31,7 +31,7 @@ async function dbListWorksForUser(user: UserDBO, where: Prisma.WorkWhereInput = 
   return works;
 }
 
-type DBO = Exclude<Prisma.PromiseReturnType<typeof dbListWorksForUser>, null>;
+type DBO = Exclude<Awaited<ReturnType<typeof dbListWorksForUser>>, null>;
 
 export function formatMyWorksDTO(ctx: Context, dbo: DBO, where?: Prisma.WorkWhereInput): WorksDTO {
   const selfQuery = where?.key ? `?key=${where.key}` : '';

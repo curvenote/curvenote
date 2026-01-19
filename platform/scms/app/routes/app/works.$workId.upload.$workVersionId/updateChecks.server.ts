@@ -1,6 +1,6 @@
 import { safeWorkVersionJsonUpdate } from '@curvenote/scms-server';
 import { data } from 'react-router';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import type { WorkVersionCheckName } from '@curvenote/scms-server';
 import { isValidCheckName, checksMetadataSchema } from './checks.schema';
 

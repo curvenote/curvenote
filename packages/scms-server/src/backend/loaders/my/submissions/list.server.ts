@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import type { Context } from '../../../context.server.js';
 import { SiteContext } from '../../../context.site.server.js';
 import type { ClientExtension } from '@curvenote/scms-core';
@@ -19,7 +19,7 @@ export async function dbListUserSubmissions(userId: string, key?: string) {
   });
 }
 
-type DBO = Exclude<Prisma.PromiseReturnType<typeof dbListUserSubmissions>, null>;
+type DBO = Exclude<Awaited<ReturnType<typeof dbListUserSubmissions>>, null>;
 
 export async function formatMySubmissionListDTO(
   ctx: Context,

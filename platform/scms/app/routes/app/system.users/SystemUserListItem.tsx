@@ -2,7 +2,7 @@ import { ui, formatDatetime } from '@curvenote/scms-core';
 import { Copy } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useFetcher } from 'react-router';
-import type { SystemRole } from '@prisma/client';
+import type { $Enums } from '@curvenote/scms-db';
 import type { SystemUserDTO } from './db.server';
 
 interface SystemUserCardProps {
@@ -28,7 +28,7 @@ function CopyableUserID({ userId }: { userId: string }) {
       <span>ID: </span>
       <button
         onClick={copyToClipboard}
-        className="inline-flex items-center gap-1 font-mono text-xs transition-colors cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+        className="inline-flex gap-1 items-center font-mono text-xs transition-colors cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
         title={copied ? 'Copied!' : 'Copy user ID'}
       >
         <span>{userId}</span>
@@ -55,7 +55,7 @@ function CopyableEmail({ email }: { email: string }) {
   return (
     <button
       onClick={copyToClipboard}
-      className="inline-flex items-center gap-1 text-sm text-gray-600 truncate transition-colors cursor-pointer dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+      className="inline-flex gap-1 items-center text-sm text-gray-600 truncate transition-colors cursor-pointer dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
       title={copied ? 'Copied!' : 'Copy email'}
     >
       <span className="truncate">{email}</span>
@@ -74,7 +74,7 @@ type ActionResponse = {
 
 export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps) {
   const fetcher = useFetcher<ActionResponse>();
-  const [selectedRole, setSelectedRole] = useState<SystemRole>(user.system_role);
+  const [selectedRole, setSelectedRole] = useState<$Enums.SystemRole>(user.system_role);
 
   const isCurrentUser = user.id === currentUserId;
   const isLoading = fetcher.state !== 'idle';
@@ -115,7 +115,7 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
   }, [fetcher.data, selectedRole, getDisplayName, getRoleDisplayName]);
 
   const handleRoleChange = (newRole: string) => {
-    const roleValue = newRole as SystemRole;
+    const roleValue = newRole as $Enums.SystemRole;
     setSelectedRole(roleValue);
 
     const formData = new FormData();
@@ -127,7 +127,7 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
   };
 
   return (
-    <div className="flex flex-col items-start w-full gap-1 md:gap-6 md:flex-row">
+    <div className="flex flex-col gap-1 items-start w-full md:gap-6 md:flex-row">
       {/* Column 1: Main user info (grows to fill space) */}
       <div data-name="card-column-1" className="flex-grow min-w-0">
         <div className="space-y-2">
@@ -159,7 +159,7 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
       <div data-name="card-column-2" className="flex-shrink-0 w-72">
         <div className="space-y-4">
           {/* System role form */}
-          <div className="p-3 border rounded-md bg-gray-50 dark:bg-gray-800">
+          <div className="p-3 bg-gray-50 rounded-md border dark:bg-gray-800">
             <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
               System Role
             </h4>

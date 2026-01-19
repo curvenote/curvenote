@@ -5,7 +5,7 @@ import { getSitePublicKey } from './sign.private.server.js';
 import jwt from 'jsonwebtoken';
 import { withAppContext, withContext, Context } from './context.server.js';
 import { dbGetSite, formatSiteDTO, type DBO as SiteDBO } from './loaders/sites/get.server.js';
-import { SiteRole, SystemRole } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import type { AllTrackEvent } from '@curvenote/scms-core';
 import { hasSiteScope } from './roles.server.js';
 import { getUserScopesSet, userHasSiteScope } from './scopes.helpers.server.js';
@@ -156,7 +156,7 @@ export function addPublicSiteRoles(user: MyUserDBO, site: SiteDBO) {
       date_modified: timestamp,
       user_id: user.id,
       site_id: site.id,
-      role: SiteRole.PUBLIC,
+      role: $Enums.SiteRole.PUBLIC,
       site,
     });
   }
@@ -167,7 +167,7 @@ export function addPublicSiteRoles(user: MyUserDBO, site: SiteDBO) {
       date_modified: timestamp,
       user_id: user.id,
       site_id: site.id,
-      role: SiteRole.UNRESTRICTED,
+      role: $Enums.SiteRole.UNRESTRICTED,
       site,
     });
   }
@@ -195,12 +195,12 @@ export async function withAppSiteContext<T extends LoaderFunctionArgs | ActionFu
   addPublicSiteRoles(ctx.user, site);
 
   // User has no permission on the site
-  if (ctx.user.system_role !== SystemRole.ADMIN && ctx.user.site_roles.length === 0) {
+  if (ctx.user.system_role !== $Enums.SystemRole.ADMIN && ctx.user.site_roles.length === 0) {
     throw throwRedirectOr404(opts);
   }
   // User does not have a correct scope on the site
   if (
-    ctx.user.system_role !== SystemRole.ADMIN &&
+    ctx.user.system_role !== $Enums.SystemRole.ADMIN &&
     !scopes.find((scope) => userHasSiteScope(ctx.user, scope, site.id))
   ) {
     console.warn(
@@ -243,7 +243,7 @@ export async function withAPISiteContext<T extends LoaderFunctionArgs | ActionFu
     const token = authString.split('Bearer ')[1];
     try {
       await siteCtx.verifySiteToken(token);
-      if (scopes.find((scope) => hasSiteScope(SiteRole.PUBLIC, scope))) return siteCtx;
+      if (scopes.find((scope) => hasSiteScope($Enums.SiteRole.PUBLIC, scope))) return siteCtx;
     } catch (e: any) {
       console.error('Error verifying site token', e);
     }
@@ -256,7 +256,7 @@ export async function withAPISiteContext<T extends LoaderFunctionArgs | ActionFu
 
   addPublicSiteRoles(ctx.user, site);
   // User has no permission on the site
-  if (ctx.user.system_role !== SystemRole.ADMIN && ctx.user.site_roles.length === 0) {
+  if (ctx.user.system_role !== $Enums.SystemRole.ADMIN && ctx.user.site_roles.length === 0) {
     throw error404();
   }
   // User does not have a correct scope on the site

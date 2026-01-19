@@ -153,7 +153,6 @@ export function ClientFilterableList<T>({
         setSearchTerm(urlState.search);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.toString(), persist, reactive, effectiveDefaultFilters]); // Use searchParams.toString() to detect changes
 
   // Sync URL when activeFilters or searchTerm change (if persist=true)

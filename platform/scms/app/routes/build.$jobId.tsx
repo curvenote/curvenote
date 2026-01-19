@@ -22,7 +22,7 @@ import {
   KnownJobTypes,
 } from '@curvenote/scms-core';
 import { CurvenoteLogo, CurvenoteText } from '@curvenote/icons';
-import type { Prisma, JobStatus } from '@prisma/client';
+import type { $Enums } from '@curvenote/scms-db';
 import { Checks } from '@curvenote/check-ui';
 import { Theme, ThemeProvider } from '@myst-theme/providers';
 import { DEFAULT_RENDERERS } from 'myst-to-react';
@@ -58,7 +58,7 @@ async function dbGetSubmissionVersion(submissionVersionId: string) {
   });
 }
 
-type DBO = Exclude<Prisma.PromiseReturnType<typeof dbGetSubmissionVersion>, null>;
+type DBO = Exclude<Awaited<ReturnType<typeof dbGetSubmissionVersion>>, null>;
 
 function formatSubmissionVersionDTO(ctx: Context, dbo: DBO) {
   const site = sites.formatSiteDTO(ctx, dbo.submission.site);
@@ -150,7 +150,7 @@ function MiniPanelItem({ title, content }: { title: string; content: React.React
   return (
     <div>
       <div className="font-light text-gray-600 dark:text-gray-200">{title}</div>
-      <div className="flex items-center gap-1 mt-1 text-sm dark:text-gray-200">{content}</div>
+      <div className="flex gap-1 items-center mt-1 text-sm dark:text-gray-200">{content}</div>
     </div>
   );
 }
@@ -162,12 +162,12 @@ function PreviewAndArtifacts({
 }) {
   if (!sv) return null;
   return (
-    <div className="flex flex-wrap items-center gap-4 shrink lg:items-start lg:flex-col dark:text-gray-200">
+    <div className="flex flex-wrap gap-4 items-center shrink lg:items-start lg:flex-col dark:text-gray-200">
       {sv && (
         <div className="">
           <a
             href={sv.links.preview}
-            className="inline-block px-4 py-2 text-center text-white align-middle transition-shadow duration-150 rounded-md hover:text-white bg-curvenote-blue hover:shadow-md dark:hover:shadow-dark-visible"
+            className="inline-block px-4 py-2 text-center text-white align-middle rounded-md transition-shadow duration-150 hover:text-white bg-curvenote-blue hover:shadow-md dark:hover:shadow-dark-visible"
             target="_blank"
             rel="noreferrer noopener"
           >
@@ -198,7 +198,7 @@ function PreviewAndArtifacts({
                 rel="noreferrer noopener"
               >
                 submission
-                <ArrowTopRightOnSquareIcon className="inline-block w-4 h-4 ml-1 align-text-bottom" />
+                <ArrowTopRightOnSquareIcon className="inline-block ml-1 w-4 h-4 align-text-bottom" />
               </Link>
             </div>
           </div>
@@ -242,7 +242,7 @@ export default function BuildScreen({ loaderData }: Route.ComponentProps) {
     <div className="relative flex flex-col *:border-b-[1px] *:border-gray-300 dark:bg-gray-900 min-h-screen">
       <div className="w-full">
         <div className="p-2 max-w-[1280px] mx-auto flex justify-between">
-          <div className="flex flex-col items-center justify-center gap-2 p-4 max-w-max">
+          <div className="flex flex-col gap-2 justify-center items-center p-4 max-w-max">
             <CurvenoteLogo fill="" className="text-curvenote-blue dark:text-white md:hidden" />
             <CurvenoteText
               fill=""
@@ -275,12 +275,12 @@ export default function BuildScreen({ loaderData }: Route.ComponentProps) {
       </div>
       <div className="w-full grow">
         <div className="w-full max-w-[1280px] mx-auto flex flex-col items-center px-4 py-8 space-y-4">
-          <div className="flex flex-col w-full gap-4 xl:gap-12 md:py-8 xl:py-24 md:flex-row">
+          <div className="flex flex-col gap-4 w-full xl:gap-12 md:py-8 xl:py-24 md:flex-row">
             <div className="sm:basis-1/3 sm:min-w-[340px] grow lg:grow-0">
               <>
                 {!wv && (
                   <div className="border-[1px] border-black dark:border-gray-300 flex flex-col rounded-lg overflow-hidden">
-                    <div className="relative flex justify-center bg-gray-200">
+                    <div className="flex relative justify-center bg-gray-200">
                       <primitives.Thumbnail
                         className="w-full h-[260px]"
                         alt="thumbnail image"
@@ -302,7 +302,7 @@ export default function BuildScreen({ loaderData }: Route.ComponentProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <div className="relative flex justify-center bg-gray-200">
+                    <div className="flex relative justify-center bg-gray-200">
                       <primitives.Thumbnail
                         className="w-full h-[200px]"
                         alt="thumbnail image"
@@ -340,7 +340,7 @@ export default function BuildScreen({ loaderData }: Route.ComponentProps) {
                       <div
                         className={cn(
                           'inline-block w-2 h-2 bg-green-600 rounded-full',
-                          getStatusDotClasses(job.status as JobStatus),
+                          getStatusDotClasses(job.status as $Enums.JobStatus),
                         )}
                       />
                       {job.status}

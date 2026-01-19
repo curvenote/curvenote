@@ -1,5 +1,5 @@
 import { getPrismaClient } from '@curvenote/scms-server';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
 
 export async function dbListSubmissionKinds(siteId: string) {
@@ -16,7 +16,7 @@ export async function dbListSubmissionKinds(siteId: string) {
   });
 }
 
-export type DBO = Prisma.PromiseReturnType<typeof dbListSubmissionKinds>;
+export type DBO = Awaited<ReturnType<typeof dbListSubmissionKinds>>;
 
 export async function dbSubmissionKindExists(
   siteName: string,

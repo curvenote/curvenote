@@ -1,6 +1,6 @@
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../prisma.server.js';
-import type { Role } from '@prisma/client';
+import type { Role } from '@curvenote/scms-db';
 
 export interface CreateRoleData {
   name: string;

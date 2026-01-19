@@ -1,5 +1,5 @@
-import type { Prisma } from '@prisma/client';
-import { SlugStrategy } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
+import { $Enums } from '@curvenote/scms-db';
 import type { SiteContext } from '../../../context.site.server.js';
 import { userHasScope } from '../../../scopes.helpers.server.js';
 import { error401, scopes } from '@curvenote/scms-core';
@@ -59,7 +59,7 @@ export async function apply(
   if (!userHasScope(ctx.user, scopes.site.submissions.update, ctx.site.name))
     return error401('Unauthorized - cannot update slug');
   const doi = submissionVersion.work_version.doi ?? submissionVersion.submission.work?.doi;
-  if (ctx.site.slug_strategy === SlugStrategy.NONE || doi == null) return null;
+  if (ctx.site.slug_strategy === $Enums.SlugStrategy.NONE || doi == null) return null;
   const numSlugs = await dbCountSlugsForSubmission(submissionVersion.submission.id);
   if (numSlugs > 0) return null;
 

@@ -1,4 +1,4 @@
-import type { WorkRole } from '@prisma/client';
+import type { $Enums } from '@curvenote/scms-db';
 import type { WorkCardDBO } from './WorkListItem';
 import { ui } from '@curvenote/scms-core';
 
@@ -6,7 +6,7 @@ import { ui } from '@curvenote/scms-core';
  * Type for works with user role information
  */
 export type WorkWithRole = WorkCardDBO & {
-  userRole: WorkRole | 'ORPHANED';
+  userRole: $Enums.WorkRole | 'ORPHANED';
   // Add computed fields for filter counting
   sites: string[];
 };
@@ -14,7 +14,7 @@ export type WorkWithRole = WorkCardDBO & {
 /**
  * Role mapping to friendly labels for group headers
  */
-export const ROLE_LABELS: Record<WorkRole | 'ORPHANED', string> = {
+export const ROLE_LABELS: Record<$Enums.WorkRole | 'ORPHANED', string> = {
   OWNER: 'Owned By Me',
   CONTRIBUTOR: 'Contributing To',
   VIEWER: 'Viewing',
@@ -25,7 +25,7 @@ export const ROLE_LABELS: Record<WorkRole | 'ORPHANED', string> = {
  * Role precedence order for sorting groups
  * Using string prefixes that will sort correctly alphabetically
  */
-export const ROLE_ORDER: Record<WorkRole | 'ORPHANED', string> = {
+export const ROLE_ORDER: Record<$Enums.WorkRole | 'ORPHANED', string> = {
   OWNER: '1-OWNER',
   CONTRIBUTOR: '2-CONTRIBUTOR',
   VIEWER: '3-VIEWER',
@@ -169,7 +169,7 @@ export function filterWorks(
 export function getRoleLabel(role: string): string {
   // Extract the actual role from the sortable key (e.g., "1-OWNER" -> "OWNER")
   const actualRole = role.includes('-') ? role.split('-')[1] : role;
-  return ROLE_LABELS[actualRole as WorkRole | 'ORPHANED'] || actualRole;
+  return ROLE_LABELS[actualRole as $Enums.WorkRole | 'ORPHANED'] || actualRole;
 }
 
 /**

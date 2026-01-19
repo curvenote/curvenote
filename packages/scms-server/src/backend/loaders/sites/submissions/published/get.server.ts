@@ -1,6 +1,5 @@
 import type { SiteContext } from '../../../../context.site.server.js';
 import type { HostSpec, SiteWorkDTO } from '@curvenote/common';
-import type { Prisma } from '@prisma/client';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import { error404 } from '@curvenote/scms-core';
 import { formatDate } from '@curvenote/common';
@@ -57,10 +56,7 @@ export async function dbGetLatestPublishedSubmissionVersion(
   });
 }
 
-export type DBO = Exclude<
-  Prisma.PromiseReturnType<typeof dbGetLatestPublishedSubmissionVersion>,
-  null
->;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbGetLatestPublishedSubmissionVersion>>, null>;
 
 type ModifiedSiteWorkLinksDTO = Omit<SiteWorkDTO['links'], 'thumbnail' | 'social' | 'config'> & {
   thumbnail?: string;

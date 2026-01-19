@@ -1,5 +1,5 @@
 import { getPrismaClient, Folder, StorageBackend, KnownBuckets } from '@curvenote/scms-server';
-import type { WorkRole, WorkVersion } from '@prisma/client';
+import type { $Enums, WorkVersion } from '@curvenote/scms-db';
 import type { SecureContext } from '@curvenote/scms-server';
 
 export async function dbGetWorksAndSubmissionVersions(userId: string) {
@@ -67,7 +67,7 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
   return works.map((work) => {
     // Get the highest precedence role: OWNER > CONTRIBUTOR > VIEWER
     const userRoles = work.work_users.map((wu) => wu.role);
-    let userRole: WorkRole | 'ORPHANED' = 'ORPHANED';
+    let userRole: $Enums.WorkRole | 'ORPHANED' = 'ORPHANED';
 
     if (userRoles.includes('OWNER')) {
       userRole = 'OWNER';

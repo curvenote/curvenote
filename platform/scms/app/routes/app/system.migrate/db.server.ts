@@ -1,4 +1,4 @@
-import { WorkRole, type Prisma } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '@curvenote/scms-server';
 
@@ -88,7 +88,7 @@ export async function dbListWorksWithoutUsers(take: number) {
 }
 
 export async function dbCreateWorkUsers(
-  work: Prisma.PromiseReturnType<typeof dbListWorksWithoutUsers>[0],
+  work: Awaited<ReturnType<typeof dbListWorksWithoutUsers>>[0],
 ) {
   const prisma = await getPrismaClient();
   return prisma.workUser.create({
@@ -98,7 +98,7 @@ export async function dbCreateWorkUsers(
       date_modified: work.date_created,
       work_id: work.id,
       user_id: work.created_by_id,
-      role: WorkRole.OWNER,
+      role: $Enums.WorkRole.OWNER,
     },
   });
 }

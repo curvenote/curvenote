@@ -195,6 +195,10 @@ properties:
       databaseUrl:
         type: string
         secret: true
+      databaseCACertificate:
+        type: string
+        secret: true
+        description: Optional CA certificate string for SSL database connections
       previewIssuer:
         type: string
       handshakeIssuer:

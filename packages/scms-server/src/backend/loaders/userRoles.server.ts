@@ -1,6 +1,6 @@
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../prisma.server.js';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 
 export interface AssignRoleData {
   userId: string;

@@ -1,8 +1,8 @@
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from './prisma.server.js';
-import type { User as UserPrisma, Access } from '@prisma/client';
 import { getUserScopesSet } from './scopes.helpers.server.js';
-import { ActivityType } from '@prisma/client';
+import type { PrismaClient, Access, User } from '@curvenote/scms-db';
+import { $Enums } from '@curvenote/scms-db';
 
 export interface AccessGrants {
   scopes: string[];
@@ -49,7 +49,7 @@ export async function createAccess(params: CreateAccessParams): Promise<Access> 
         date_created: now,
         date_modified: now,
         activity_by_id: params.ownerId,
-        activity_type: ActivityType.ACCESS_GRANTED,
+        activity_type: $Enums.ActivityType.ACCESS_GRANTED,
         access_id: access.id,
         user_id: params.receiverId,
       },
@@ -111,7 +111,7 @@ export async function getAccessReceivedBy(receiverId: string, type?: string): Pr
  * Check if a user has access to a specific resource through access grants
  */
 export async function userHasAccess(
-  user: UserPrisma & { access_received?: Access[] },
+  user: User & { access_received?: Access[] },
   scope: string,
   resourceId?: string,
   resourceType?: 'user' | 'work' | 'site',
@@ -178,7 +178,7 @@ export async function revokeAccess(accessId: string, performedByUserId?: string)
         date_created: now,
         date_modified: now,
         activity_by_id: performedByUserId || access.owner_id, // The person who performed the revocation
-        activity_type: ActivityType.ACCESS_REVOKED,
+        activity_type: $Enums.ActivityType.ACCESS_REVOKED,
         access_id: accessId,
         user_id: access.receiver_id, // The user who had access revoked
       },

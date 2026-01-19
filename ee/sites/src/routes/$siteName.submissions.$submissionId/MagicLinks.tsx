@@ -21,7 +21,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import classNames from 'classnames';
-import type { MagicLink } from '@prisma/client';
+import type { MagicLink } from '@curvenote/scms-db';
 import { DeleteMagicLinkDialog } from './DeleteMagicLinkDialog.js';
 import { ConfirmMagicLinkActionDialog } from './ConfirmMagicLinkActionDialog.js';
 import type { SiteWithAppData } from '../../backend/db.server.js';

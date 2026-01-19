@@ -5,7 +5,7 @@ import { getPrismaClient } from '@curvenote/scms-server';
 import { isSafeSlug, looksLikeUUID, formatZodError, TrackEvent } from '@curvenote/scms-core';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { ActivityType } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
 
 export async function actionSetPrimarySlug(
@@ -409,7 +409,7 @@ export async function actionUpdateDatePublished(
             id: submission_id,
           },
         },
-        activity_type: ActivityType.SUBMISSION_DATE_CHANGE,
+        activity_type: $Enums.ActivityType.SUBMISSION_DATE_CHANGE,
         date_published,
       },
       include: {

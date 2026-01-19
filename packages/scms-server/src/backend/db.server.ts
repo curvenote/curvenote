@@ -8,8 +8,8 @@ import type {
   WorkDBO,
   WorkVersionDBO,
 } from './db.types.js';
-import type { SubmissionVersion, WorkVersion } from '@prisma/client';
-import { ActivityType, Prisma, WorkRole } from '@prisma/client';
+import type { SubmissionVersion, WorkVersion, PrismaClient } from '@curvenote/scms-db';
+import { $Enums, Prisma } from '@curvenote/scms-db';
 import { error401, httpError, WorkContents, TrackEvent, scopes } from '@curvenote/scms-core';
 import { userHasScope } from './scopes.helpers.server.js';
 import { uuidv7 } from 'uuidv7';
@@ -280,7 +280,7 @@ export async function $updateSubmissionVersion(
           },
         },
         status: data.status,
-        activity_type: ActivityType.SUBMISSION_VERSION_STATUS_CHANGE,
+        activity_type: $Enums.ActivityType.SUBMISSION_VERSION_STATUS_CHANGE,
       },
       include: {
         kind: true,
@@ -364,7 +364,7 @@ export async function updateSubmissionKind(
             id: updated.versions[0].id,
           },
         },
-        activity_type: ActivityType.SUBMISSION_KIND_CHANGE,
+        activity_type: $Enums.ActivityType.SUBMISSION_KIND_CHANGE,
         kind: {
           connect: {
             id: kindId ?? existing.kind.id,
@@ -441,7 +441,7 @@ export async function dbCreateDraftWork(
               date_created,
               date_modified: date_created,
               user_id: ctx.user.id,
-              role: WorkRole.OWNER,
+              role: $Enums.WorkRole.OWNER,
             },
           ],
         },
@@ -462,7 +462,7 @@ export async function dbCreateDraftWork(
             id: ctx.user.id,
           },
         },
-        activity_type: ActivityType.NEW_WORK,
+        activity_type: $Enums.ActivityType.NEW_WORK,
         work: {
           connect: {
             id: workId,
@@ -604,7 +604,7 @@ export async function dbCreateDraftSubmission(
             id: user.id,
           },
         },
-        activity_type: ActivityType.NEW_SUBMISSION,
+        activity_type: $Enums.ActivityType.NEW_SUBMISSION,
         submission: {
           connect: {
             id: submissionId,

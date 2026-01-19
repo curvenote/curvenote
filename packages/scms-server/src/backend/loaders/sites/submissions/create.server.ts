@@ -4,7 +4,7 @@ import { getPrismaClient } from '../../../prisma.server.js';
 import { formatSubmissionDTO } from './get.server.js';
 import { formatDate } from '@curvenote/common';
 import type { UserDBO } from '../../../db.types.js';
-import { ActivityType } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 import type { SiteContext } from '../../../context.site.server.js';
 import { SlackEventType } from '../../../services/slack.server.js';
@@ -144,7 +144,7 @@ export async function dbCreateNewSubmission(
             id: sv.id,
           },
         },
-        activity_type: ActivityType.NEW_SUBMISSION,
+        activity_type: $Enums.ActivityType.NEW_SUBMISSION,
         status: sv.status,
         work_version: {
           connect: {

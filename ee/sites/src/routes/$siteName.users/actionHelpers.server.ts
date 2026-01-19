@@ -1,8 +1,8 @@
 import { data } from 'react-router';
 import { zfd } from 'zod-form-data';
 import { z } from 'zod';
-import type { SiteUser, User } from '@prisma/client';
-import { SiteRole } from '@prisma/client';
+import type { SiteUser, User } from '@curvenote/scms-db';
+import { $Enums } from '@curvenote/scms-db';
 import type { SiteContextWithUser, SiteContext } from '@curvenote/scms-server';
 import {
   dbAddSiteUserRole,
@@ -24,7 +24,7 @@ const UpdateSiteRoleObject = {
 async function getUserWithRoles<T>(
   ctx: SiteContext,
   formData: FormData,
-  dbUpdate: (role: SiteRole, userWithRoles: User, requestedRole?: SiteUser) => Promise<T>,
+  dbUpdate: (role: $Enums.SiteRole, userWithRoles: User, requestedRole?: SiteUser) => Promise<T>,
 ) {
   const UpdateSiteRoleSchema = zfd.formData(UpdateSiteRoleObject);
   let payload;
@@ -138,7 +138,7 @@ export async function actionRevokeUserRole(ctx: SiteContext, formData: FormData)
     if (!requestedRole) {
       return { message: 'ok', info: 'user does not have specified role' };
     }
-    if (role === SiteRole.ADMIN && ctx.user?.id === userWithRoles.id) {
+    if (role === $Enums.SiteRole.ADMIN && ctx.user?.id === userWithRoles.id) {
       return data(
         { message: 'unprocessable content', error: 'cannot revoke your own admin permissions' },
         { status: 422 },

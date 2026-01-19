@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, test, expect } from 'vitest';
-import { SiteRole, SystemRole } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 import { userHasScope, userHasScopes } from './scopes.helpers.server.js';
 import { site } from '@curvenote/scms-core';
 
@@ -19,7 +19,7 @@ function roleWithScopes(scopes: string[]) {
   return { role: { scopes } } as any;
 }
 
-function siteRole(siteName: string, role: SiteRole) {
+function siteRole(siteName: string, role: $Enums.SiteRole) {
   return { site: { name: siteName }, role } as any;
 }
 
@@ -29,7 +29,7 @@ describe('userHasScope', () => {
   });
 
   test('returns true for system admin regardless of requested scope', () => {
-    const user = createUser({ system_role: SystemRole.ADMIN });
+    const user = createUser({ system_role: $Enums.SystemRole.ADMIN });
     expect(userHasScope(user, 'anything')).toBe(true);
   });
 
@@ -58,14 +58,14 @@ describe('userHasScope', () => {
 
   test('returns false for site: scope when site_roles do not match site name', () => {
     const user = createUser({
-      site_roles: [siteRole('othersite', SiteRole.ADMIN)],
+      site_roles: [siteRole('othersite', $Enums.SiteRole.ADMIN)],
     });
     expect(userHasScope(user, `${site.read}:mysite`)).toBe(false);
   });
 
   test('returns true for site: scope (inferred) when matching site role has raw scope', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.EDITOR)],
+      site_roles: [siteRole('mysite', $Enums.SiteRole.EDITOR)],
     });
     expect(userHasScope(user, `${site.read}:mysite`)).toBe(true);
   });
@@ -73,21 +73,21 @@ describe('userHasScope', () => {
   test('returns false for site: scope (inferred) when matching site role lacks raw scope', () => {
     const user = createUser({
       // REVIEWER only has site.read, so choose a scope they don't have, e.g., site.update
-      site_roles: [siteRole('mysite', SiteRole.REVIEWER)],
+      site_roles: [siteRole('mysite', $Enums.SiteRole.REVIEWER)],
     });
     expect(userHasScope(user, `${site.update}:mysite`)).toBe(false);
   });
 
   test('handles malformed site: scopes (no site suffix) by returning false', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.EDITOR)],
+      site_roles: [siteRole('mysite', $Enums.SiteRole.EDITOR)],
     });
     expect(userHasScope(user, site.read)).toBe(false);
   });
 
   test('returns true for site override branch when siteName is provided and raw scope matches', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.EDITOR)],
+      site_roles: [siteRole('mysite', $Enums.SiteRole.EDITOR)],
     });
     // siteName override provided; scope is treated as raw
     expect(userHasScope(user, site.read, 'mysite')).toBe(true);
@@ -95,14 +95,14 @@ describe('userHasScope', () => {
 
   test('returns false for site override branch when raw scope does not match', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.REVIEWER)],
+      site_roles: [siteRole('mysite', $Enums.SiteRole.REVIEWER)],
     });
     expect(userHasScope(user, site.update, 'mysite')).toBe(false);
   });
 
   test('does not strip suffix in override branch; passing suffixed scope with override returns false', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.EDITOR)],
+      site_roles: [siteRole('mysite', $Enums.SiteRole.EDITOR)],
     });
     // We pass a suffixed scope while also providing a siteName; code treats scope as raw
     expect(userHasScope(user, `${site.read}:othersite`, 'mysite')).toBe(false);
@@ -113,7 +113,7 @@ describe('userHasScopes', () => {
   test('returns true when all requested scopes are satisfied', () => {
     const user = createUser({
       roles: [roleWithScopes(['x', 'y'])],
-      site_roles: [siteRole('mysite', SiteRole.EDITOR)],
+      site_roles: [siteRole('mysite', $Enums.SiteRole.EDITOR)],
     });
     expect(userHasScopes(user, ['x', `${site.read}:mysite`])).toBe(true);
   });

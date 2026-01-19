@@ -7,7 +7,7 @@ import {
   validate,
 } from '@curvenote/scms-server';
 import { error401, error404, httpError } from '@curvenote/scms-core';
-import { JobStatus } from '@prisma/client';
+import { $Enums } from '@curvenote/scms-db';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withContext(args);
@@ -31,7 +31,7 @@ export async function action(args: Route.ActionArgs) {
 
   if (!job) throw error404(`Job not found ${jobId}`);
 
-  if (job.status === JobStatus.COMPLETED || job.status === JobStatus.FAILED) {
+  if (job.status === $Enums.JobStatus.COMPLETED || job.status === $Enums.JobStatus.FAILED) {
     const statusText = `Cannot update ${job.status} job`;
     throw httpError(400, statusText);
   }

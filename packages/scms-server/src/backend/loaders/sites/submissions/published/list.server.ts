@@ -9,21 +9,21 @@ import {
   getWorkflows,
   registerExtensionWorkflows,
 } from '@curvenote/scms-core';
-import type { Prisma, PrismaClient } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import type { ModifiedSiteWorkDTO } from './get.server.js';
 import { formatSiteWorkDTO } from './get.server.js';
-import type { DefaultArgs } from '@prisma/client/runtime/library';
 
-// NOTE we can not just count() here because of the distinct field
+/** NOTE we can not just count() here because of the distinct field
 // writing a raw query would be an option but that is complex for this query
 // especially with multiple parameters and ensuring safety from sql injection
 // to this is a workaround that should be replaced if performance is an issue
+ */
 async function dbCountSubmissions(
   siteName: string,
   collectionName: string | undefined,
   status: string,
   kind?: string,
-  tx?: TXClient,
+  tx?: Prisma.TransactionClient,
 ) {
   const prisma = await getPrismaClient();
   const records = await (tx ?? prisma).submissionVersion.findMany({
@@ -48,18 +48,13 @@ async function dbCountSubmissions(
   return records.length;
 }
 
-type TXClient = Omit<
-  PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>,
-  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
->;
-
 async function dbQuerySubmissions(
   siteName: string,
   collectionName: string | undefined,
   status: string,
   kind?: string,
   opts?: { page?: number; limit?: number },
-  tx?: TXClient,
+  tx?: Prisma.TransactionClient,
 ) {
   const skip = opts?.limit ? (opts?.page ?? 0) * opts?.limit : undefined;
   const take = opts?.limit;
@@ -189,7 +184,7 @@ export async function dbListLatestPublishedSubmissions(
 }
 
 export type DBO = NonNullable<
-  Exclude<Prisma.PromiseReturnType<typeof dbListLatestPublishedSubmissions>, null>
+  Exclude<Awaited<ReturnType<typeof dbListLatestPublishedSubmissions>>, null>
 >;
 
 export function formatSiteWorkDTOFromSubmissions(

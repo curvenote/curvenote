@@ -1,5 +1,5 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient, assertUserDefined } from '@curvenote/scms-server';
 import type { Context } from '@curvenote/scms-core';
 
@@ -46,7 +46,7 @@ export async function dbCreateUserToken(
   });
 }
 
-export type DBO = Exclude<Prisma.PromiseReturnType<typeof dbCreateUserToken>, null | undefined>;
+export type DBO = Exclude<Awaited<ReturnType<typeof dbCreateUserToken>>, null | undefined>;
 
 export function dtoUserToken(dbo: DBO) {
   const expired = dbo.date_expires ? new Date() > new Date(dbo.date_expires) : false;
