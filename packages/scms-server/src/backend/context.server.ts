@@ -160,7 +160,7 @@ export class Context implements ContextType {
     this.request = request;
     this.asApiUrl = withApiBaseUrl(request);
     this.asBaseUrl = withBaseUrl(request);
-    this.scopes = [];
+    this.scopes = []; // this will be set when the user is authenticated, would be better to have this an undefined when not initialised yet
     this.$verifiedSession = false;
     // Use provided analytics instance (from middleware) or create new one
     this.$analytics = analytics ?? new AnalyticsContext();
