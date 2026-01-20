@@ -180,14 +180,8 @@ function generatePackageJson(packages) {
   // Create dependencies object with extension packages
   const extensionDependencies = {};
   packages.forEach((pkg) => {
-    // Read the version from the extension's package.json
-    try {
-      const pkgJson = JSON.parse(readFileSync(pkg.path, 'utf-8'));
-      extensionDependencies[pkg.name] = pkgJson.version || '0.0.1';
-    } catch (e) {
-      console.warn(`Could not read version for ${pkg.name}, using 0.0.1`);
-      extensionDependencies[pkg.name] = '0.0.1';
-    }
+    // Assume monorepo + submodule based deployments, so we don't need to specify the version
+    extensionDependencies[pkg.name] = '*';
   });
 
   // Merge extension dependencies into template dependencies
