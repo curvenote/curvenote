@@ -156,18 +156,41 @@ git commit --no-verify -m "your message"
 
 ### Build
 
-To build all apps and packages, run the following command:
+To build all packages, run the following command:
 
 ```
 cd curvenote
+npm install
+npm run build
+
+cd platform/scms
+npm install
 npm run build
 ```
 
-### Develop
+### Develop the Curvenote CLI
 
 To develop all apps and packages, run the following command:
 
 ```
 cd curvenote
+npm install
+npm run dev
+```
+
+### Develop the Curvenote SCMS
+
+To develop all apps and packages, run the following command:
+
+```
+cd curvenote
+npm install
+npm run build
+
+cd platform/scms
+
+npm run dev:db:reset
+
+npm install
 npm run dev
 ```
