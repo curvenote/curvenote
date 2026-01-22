@@ -12,18 +12,22 @@ type UserProps = {
   email?: string | null;
   name?: string | null;
   userId?: string | null;
+  canManageUsers?: boolean;
 };
 
 function TableRow({ children, className }: { children: React.ReactNode; className?: string }) {
   return <div className={cn('border-b bg-background last:border-b-0', className)}>{children}</div>;
 }
 
-export function UserCard({ roles, email, name, userId }: UserProps) {
+export function UserCard({ roles, email, name, userId, canManageUsers = true }: UserProps) {
   const fetcher = useFetcher<{ ok: boolean; error?: string; info?: string }>();
   const currentUser = useMyUser();
 
   // Check if the current user is viewing their own card
   const isCurrentUser = currentUser && userId && currentUser.id === userId;
+  
+  // Only show revoke button if user has permission and it's not their own card
+  const canRevokeRole = canManageUsers && !isCurrentUser;
 
   // Handle toast notifications for role removal
   useEffect(() => {
@@ -101,7 +105,7 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
         <div className="flex items-center space-x-2">
           {roles.map((role) => (
             <div key={role} className="relative">
-              {!isCurrentUser ? (
+              {canRevokeRole ? (
                 <fetcher.Form
                   method="post"
                   onSubmit={(e) => {

@@ -8,7 +8,6 @@ import {
   dbGetUserByEmail,
   dbGetUserById,
   dbRemoveWorkUserRole,
-  dbGetUserWorkRole,
 } from './db.server';
 import type { GeneralError } from '@curvenote/scms-core';
 import { TrackEvent, KnownResendEvents } from '@curvenote/scms-core';
@@ -17,11 +16,14 @@ import { works } from '@curvenote/scms-server';
 
 /**
  * Helper function to check if the current user has OWNER role on the work
+ * Uses the work_roles already loaded in the context to avoid additional DB queries
  */
-async function isCurrentUserOwner(ctx: WorkContext): Promise<boolean> {
+function isCurrentUserOwner(ctx: WorkContext): boolean {
   if (!ctx.user) return false;
-  const userRole = await dbGetUserWorkRole(ctx.user.id, ctx.work.id);
-  return userRole?.role === WorkRole.OWNER;
+  // ctx.user.work_roles contains all work roles for the user
+  // Filter to find the role for the current work
+  const userWorkRole = ctx.user.work_roles?.find((wr) => wr.work_id === ctx.work.id);
+  return userWorkRole?.role === WorkRole.OWNER;
 }
 
 const UpdateWorkRoleObject = {
@@ -92,7 +94,7 @@ async function getUserWithRolesById(
 
 export async function actionGrantUserRole(ctx: WorkContext, formData: FormData) {
   // Check if current user is an OWNER
-  const isOwner = await isCurrentUserOwner(ctx);
+  const isOwner = isCurrentUserOwner(ctx);
   if (!isOwner) {
     return data(
       {
@@ -161,7 +163,7 @@ export async function actionGrantUserRole(ctx: WorkContext, formData: FormData) 
 
 export async function actionRevokeUserRole(ctx: WorkContext, formData: FormData) {
   // Check if current user is an OWNER
-  const isOwner = await isCurrentUserOwner(ctx);
+  const isOwner = isCurrentUserOwner(ctx);
   if (!isOwner) {
     return data(
       {

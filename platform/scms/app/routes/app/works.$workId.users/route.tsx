@@ -18,9 +18,15 @@ import { actionGrantUserRole, actionRevokeUserRole } from './actionHelpers.serve
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureWorkContext(args, [scopes.work.users.read]);
   const dbo = await dbGetWorkUsers(ctx.work.id);
-  if (!dbo) return { work: ctx.workDTO, error: 'Failed to get work users', users: [] };
+  if (!dbo) return { work: ctx.workDTO, error: 'Failed to get work users', users: [], canManageUsers: false };
   const users = dtoWorkUsers(dbo);
-  return { work: ctx.workDTO, users };
+  
+  // Check if the current user is an OWNER of this work
+  // Only OWNERs can add or remove users
+  const userWorkRole = ctx.user.work_roles?.find((wr) => wr.work_id === ctx.work.id);
+  const canManageUsers = userWorkRole?.role === 'OWNER';
+  
+  return { work: ctx.workDTO, users, canManageUsers };
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {
@@ -54,7 +60,7 @@ export async function action(args: Route.ActionArgs) {
 }
 
 export default function Users({ loaderData }: Route.ComponentProps) {
-  const { work, users } = loaderData;
+  const { work, users, canManageUsers } = loaderData;
 
   const truncatedTitle = work.title
     ? work.title.length > 32
@@ -71,9 +77,11 @@ export default function Users({ loaderData }: Route.ComponentProps) {
   return (
     <PageFrame title="Users" subtitle="Who can access this work?" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col space-y-5">
-        <div>
-          <WorkRolesForm />
-        </div>
+        {canManageUsers && (
+          <div>
+            <WorkRolesForm />
+          </div>
+        )}
         <SectionWithHeading heading="Current Users" icon={User}>
           <div className="overflow-hidden rounded-sm border bg-background">
             {users.map((u) => (
@@ -83,6 +91,7 @@ export default function Users({ loaderData }: Route.ComponentProps) {
                 roles={u.work_roles}
                 email={u.email}
                 userId={u.id}
+                canManageUsers={canManageUsers}
               />
             ))}
           </div>
