@@ -49,6 +49,16 @@ export async function dbGetUserById(userId: string) {
   });
 }
 
+export async function dbGetUserWorkRole(userId: string, workId: string) {
+  const prisma = await getPrismaClient();
+  return prisma.workUser.findFirst({
+    where: {
+      user_id: userId,
+      work_id: workId,
+    },
+  });
+}
+
 export async function dbGetWorkUsers(workId: string) {
   const prisma = await getPrismaClient();
   return prisma.user.findMany({

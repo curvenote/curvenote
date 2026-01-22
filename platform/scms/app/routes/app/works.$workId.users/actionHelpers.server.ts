@@ -8,11 +8,21 @@ import {
   dbGetUserByEmail,
   dbGetUserById,
   dbRemoveWorkUserRole,
+  dbGetUserWorkRole,
 } from './db.server';
 import type { GeneralError } from '@curvenote/scms-core';
 import { TrackEvent, KnownResendEvents } from '@curvenote/scms-core';
 import type { WorkContext } from '@curvenote/scms-server';
 import { works } from '@curvenote/scms-server';
+
+/**
+ * Helper function to check if the current user has OWNER role on the work
+ */
+async function isCurrentUserOwner(ctx: WorkContext): Promise<boolean> {
+  if (!ctx.user) return false;
+  const userRole = await dbGetUserWorkRole(ctx.user.id, ctx.work.id);
+  return userRole?.role === WorkRole.OWNER;
+}
 
 const UpdateWorkRoleObject = {
   email: zfd.text(z.string().email({ message: 'invalid email address' }).trim().toLowerCase()),
@@ -81,6 +91,20 @@ async function getUserWithRolesById(
 }
 
 export async function actionGrantUserRole(ctx: WorkContext, formData: FormData) {
+  // Check if current user is an OWNER
+  const isOwner = await isCurrentUserOwner(ctx);
+  if (!isOwner) {
+    return data(
+      {
+        error: {
+          type: 'general',
+          message: 'Only owners can add users to this work',
+        } as GeneralError,
+      },
+      { status: 403 },
+    );
+  }
+
   const userId = formData.get('userId');
 
   // Determine which method to use based on available data
@@ -136,6 +160,20 @@ export async function actionGrantUserRole(ctx: WorkContext, formData: FormData) 
 }
 
 export async function actionRevokeUserRole(ctx: WorkContext, formData: FormData) {
+  // Check if current user is an OWNER
+  const isOwner = await isCurrentUserOwner(ctx);
+  if (!isOwner) {
+    return data(
+      {
+        error: {
+          type: 'general',
+          message: 'Only owners can remove users from this work',
+        } as GeneralError,
+      },
+      { status: 403 },
+    );
+  }
+
   const userId = formData.get('userId');
 
   // Determine which method to use based on available data
