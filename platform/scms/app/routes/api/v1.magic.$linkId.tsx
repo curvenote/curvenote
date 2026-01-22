@@ -23,7 +23,7 @@ import {
  *
  * Flow:
  * 1. Look up magic link by ID
- * 2. Validate link (not expired, not revoked, under access limit)
+ * 2. Validate link (not expired, not revoked)
  * 3. Look up handler for the magic link type
  * 4. Delegate to handler to get redirect URL
  * 5. Log access attempt (with IP, user agent, success/failure)
@@ -107,7 +107,6 @@ export async function loader(args: LoaderFunctionArgs) {
     }
 
     // Atomically validate the magic link and log access
-    // This prevents race conditions when checking access limits
     const validation = await validateAndLogAccess(linkId, {
       ipAddress,
       userAgent,
@@ -185,7 +184,6 @@ export async function loader(args: LoaderFunctionArgs) {
             : null,
           expires: magicLink.expiry,
           revoked: magicLink.revoked,
-          access_limit: magicLink.access_limit,
           url: url.origin + url.pathname,
         },
         target: {
