@@ -78,14 +78,14 @@ export function LoadingBar({ fetcher }: { fetcher?: FetcherWithComponents<any> }
   return (
     <>
       <div className="absolute top-0 right-0 left-0 z-50">
-    <div
+        <div
           className={classNames('min-w-[10px] bg-blue-500 origin-left', {
             'animate-load': !isPulseState && showLoading,
             'h-[3px]': !isPulseState && showLoading,
             'h-[5px]': isPulseState && showLoading,
             'w-full animate-pulse': isPulseState && showLoading,
           })}
-    />
+        />
       </div>
     </>
   );
