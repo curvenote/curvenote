@@ -5,7 +5,6 @@ import type { MagicLink, MagicLinkAccess } from '@curvenote/scms-db';
 export interface MagicLinkData {
   submissionId: string;
   siteName: string;
-  email?: string;
   name?: string;
   [key: string]: any;
 }
@@ -15,7 +14,6 @@ export interface CreateMagicLinkParams {
   data: MagicLinkData;
   createdById: string;
   expiryDuration?: number; // in milliseconds
-  accessLimit?: number;
 }
 
 export interface LogAccessParams {
@@ -29,28 +27,10 @@ export interface LogAccessParams {
  * Creates a new magic link
  */
 export async function createMagicLink(params: CreateMagicLinkParams): Promise<MagicLink> {
-  const { type, data, createdById, expiryDuration, accessLimit } = params;
+  const { type, data, createdById, expiryDuration } = params;
   const prisma = await getPrismaClient();
   const now = new Date();
   const nowStr = now.toISOString();
-
-  // Validate accessLimit (defense-in-depth: reject zero, negative, or invalid values)
-  // This prevents bypassing client-side validation (e.g., if accessLimit=0 is submitted)
-  // A value of 0 would make the link permanently invalid since 0 >= 0 evaluates to true
-  if (accessLimit !== undefined) {
-    // Check for invalid number types (NaN, Infinity, non-integers)
-    if (typeof accessLimit !== 'number' || !Number.isFinite(accessLimit)) {
-      throw new Error('Access limit must be a valid finite number');
-    }
-    // Check for non-integers (reject floats)
-    if (!Number.isInteger(accessLimit)) {
-      throw new Error('Access limit must be an integer');
-    }
-    // Check for zero or negative values
-    if (accessLimit < 1) {
-      throw new Error('Access limit must be a positive integer (1 or greater)');
-    }
-  }
 
   const expiry = expiryDuration ? new Date(now.getTime() + expiryDuration).toISOString() : null;
 
@@ -64,7 +44,7 @@ export async function createMagicLink(params: CreateMagicLinkParams): Promise<Ma
       data: data as any,
       expiry,
       revoked: false,
-      access_limit: accessLimit ?? null,
+      access_limit: null,
     },
   });
 
@@ -83,8 +63,6 @@ export async function getMagicLink(linkId: string): Promise<MagicLink | null> {
 
 /**
  * Validates a magic link and returns validation result
- * NOTE: This function does NOT check access limits atomically.
- * Use validateAndLogAccess for atomic validation with access limit enforcement.
  */
 export async function validateMagicLink(link: MagicLink): Promise<{
   valid: boolean;
@@ -103,29 +81,12 @@ export async function validateMagicLink(link: MagicLink): Promise<{
     }
   }
 
-  // Check access limit (non-atomic - for display purposes only)
-  // For atomic access limit enforcement, use validateAndLogAccess instead
-  if (link.access_limit !== null) {
-    const prisma = await getPrismaClient();
-    const accessCount = await prisma.magicLinkAccess.count({
-      where: {
-        magic_link_id: link.id,
-        success: true,
-      },
-    });
-
-    if (accessCount >= link.access_limit) {
-      return { valid: false, reason: 'Access limit reached' };
-    }
-  }
-
   return { valid: true };
 }
 
 /**
  * Atomically validates a magic link and logs access if valid.
- * This function prevents race conditions when checking access limits by using
- * a database transaction with row-level locking.
+ * Uses a database transaction with row-level locking to prevent race conditions.
  *
  * @param linkId - The magic link ID
  * @param params - Access logging parameters
@@ -191,33 +152,6 @@ export async function validateAndLogAccess(
           },
         });
         return { valid: false, reason: 'Link has expired', accessLog };
-      }
-    }
-
-    // Atomically check access limit and log access
-    if (magicLink.access_limit !== null) {
-      // Count successful accesses within the transaction (with row lock)
-      const accessCount = await tx.magicLinkAccess.count({
-        where: {
-          magic_link_id: linkId,
-          success: true,
-        },
-      });
-
-      if (accessCount >= magicLink.access_limit) {
-        // Log failed access
-        const accessLog = await tx.magicLinkAccess.create({
-          data: {
-            id: randomUUID(),
-            date_created: now,
-            magic_link_id: linkId,
-            ip_address: ipAddress ?? null,
-            user_agent: userAgent ?? null,
-            success: false,
-            error_message: 'Access limit reached',
-          },
-        });
-        return { valid: false, reason: 'Access limit reached', accessLog };
       }
     }
 
