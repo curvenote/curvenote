@@ -50,8 +50,22 @@ export function LoadingBar({ fetcher }: { fetcher?: FetcherWithComponents<any> }
   const { isLoading, showLoading } = useLoading(fetcher);
   const [isPulseState, setIsPulseState] = useState(false);
   const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prevIsLoadingRef = useRef(isLoading);
 
   useEffect(() => {
+    // Reset pulse state when a new loading cycle begins (isLoading transitions from false to true)
+    // This handles the case where loads happen in quick succession and showLoading never becomes false
+    if (isLoading && !prevIsLoadingRef.current && isPulseState) {
+      setIsPulseState(false);
+      if (pulseTimeoutRef.current) {
+        clearTimeout(pulseTimeoutRef.current);
+        pulseTimeoutRef.current = null;
+      }
+    }
+
+    // Update previous isLoading value
+    prevIsLoadingRef.current = isLoading;
+
     if (showLoading && !isPulseState) {
       pulseTimeoutRef.current = setTimeout(() => {
         setIsPulseState(true);
@@ -70,7 +84,7 @@ export function LoadingBar({ fetcher }: { fetcher?: FetcherWithComponents<any> }
         pulseTimeoutRef.current = null;
       }
     };
-  }, [showLoading, isLoading]);
+  }, [showLoading, isLoading, isPulseState]);
 
   if (!showLoading) return null;
 
