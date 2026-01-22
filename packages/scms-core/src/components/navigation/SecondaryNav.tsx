@@ -75,7 +75,7 @@ export function SecondaryNav({
       <div className="overflow-y-auto overflow-x-hidden h-full grow scrollbar scrollbar-thin scrollbar-track-stone-100 scrollbar-thumb-stone-500 dark:scrollbar-track-stone-800 dark:scrollbar-thumb-stone-400">
         {contents.map(({ sectionName, menus }, index) => (
           <ul
-            key={sectionName ?? menus.map((m) => m.name ?? m.url).join('-') ?? `section-${index}`}
+            key={sectionName ?? (menus.map((m) => m.name ?? m.url).join('-') || `section-${index}`)}
           >
             <>
               {open && sectionName && (
