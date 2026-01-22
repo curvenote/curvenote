@@ -15,8 +15,6 @@ import {
   Plus,
   CheckCircle2,
   Clock,
-  ChevronDown,
-  ChevronUp,
   Trash2,
 } from 'lucide-react';
 import classNames from 'classnames';
@@ -41,7 +39,6 @@ export function MagicLinks() {
   const apiBaseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const fetcher = useFetcher();
   const [showForm, setShowForm] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [linkToDelete, setLinkToDelete] = useState<{ id: string; label?: string } | null>(null);
@@ -63,7 +60,6 @@ export function MagicLinks() {
       ui.toastSuccess('Magic link created successfully');
       // Close form on success
       setShowForm(false);
-      setShowAdvanced(false);
     } else if (fetcher.data?.error && fetcher.state === 'idle') {
       ui.toastError(fetcher.data.error);
       // Keep form open on error so user can fix it
@@ -163,38 +159,21 @@ export function MagicLinks() {
                 </p>
               </div>
 
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex gap-2 items-center text-sm text-gray-700 hover:text-gray-900"
-                >
-                  {showAdvanced ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                  Advanced Options
-                </button>
+              <div className="space-y-2">
+                <ui.Label htmlFor="expiryDuration">Expires In</ui.Label>
+                <ui.Select name="expiryDuration" defaultValue="0">
+                  <ui.SelectTrigger>
+                    <ui.SelectValue placeholder="Select duration" />
+                  </ui.SelectTrigger>
+                  <ui.SelectContent>
+                    <ui.SelectItem value="86400000">1 Day</ui.SelectItem>
+                    <ui.SelectItem value="604800000">7 Days</ui.SelectItem>
+                    <ui.SelectItem value="2592000000">30 Days</ui.SelectItem>
+                    <ui.SelectItem value="7776000000">90 Days</ui.SelectItem>
+                    <ui.SelectItem value="0">Never</ui.SelectItem>
+                  </ui.SelectContent>
+                </ui.Select>
               </div>
-
-              {showAdvanced && (
-                <div className="space-y-2 pt-2">
-                  <ui.Label htmlFor="expiryDuration">Expires In</ui.Label>
-                  <ui.Select name="expiryDuration" defaultValue="0">
-                    <ui.SelectTrigger>
-                      <ui.SelectValue placeholder="Select duration" />
-                    </ui.SelectTrigger>
-                    <ui.SelectContent>
-                      <ui.SelectItem value="86400000">1 Day</ui.SelectItem>
-                      <ui.SelectItem value="604800000">7 Days</ui.SelectItem>
-                      <ui.SelectItem value="2592000000">30 Days</ui.SelectItem>
-                      <ui.SelectItem value="7776000000">90 Days</ui.SelectItem>
-                      <ui.SelectItem value="0">Never</ui.SelectItem>
-                    </ui.SelectContent>
-                  </ui.Select>
-                </div>
-              )}
 
               <div className="flex gap-2 justify-end">
                 <ui.Button
@@ -203,7 +182,6 @@ export function MagicLinks() {
                   size="sm"
                   onClick={() => {
                     setShowForm(false);
-                    setShowAdvanced(false);
                   }}
                 >
                   Cancel
