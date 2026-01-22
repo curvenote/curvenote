@@ -8,15 +8,7 @@ import {
   clientCheckSiteScopes,
   scopes,
 } from '@curvenote/scms-core';
-import {
-  Link2,
-  Copy,
-  XCircle,
-  Plus,
-  CheckCircle2,
-  Clock,
-  Trash2,
-} from 'lucide-react';
+import { Link2, Copy, XCircle, Plus, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 import classNames from 'classnames';
 import type { MagicLink } from '@curvenote/scms-db';
 import { DeleteMagicLinkDialog } from './DeleteMagicLinkDialog.js';
