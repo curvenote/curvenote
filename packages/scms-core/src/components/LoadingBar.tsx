@@ -52,8 +52,7 @@ export function LoadingBar({ fetcher }: { fetcher?: FetcherWithComponents<any> }
   const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (showLoading && isLoading && !isPulseState) {
-      setIsPulseState(false);
+    if (showLoading && !isPulseState) {
       pulseTimeoutRef.current = setTimeout(() => {
         setIsPulseState(true);
       }, 5000);
@@ -66,7 +65,7 @@ export function LoadingBar({ fetcher }: { fetcher?: FetcherWithComponents<any> }
     }
 
     return () => {
-      if (pulseTimeoutRef.current && !isLoading) {
+      if (pulseTimeoutRef.current) {
         clearTimeout(pulseTimeoutRef.current);
         pulseTimeoutRef.current = null;
       }
