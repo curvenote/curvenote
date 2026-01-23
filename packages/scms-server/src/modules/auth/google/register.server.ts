@@ -157,7 +157,7 @@ export function registerGoogleStrategy(
           } else if (provisionNewUsers) {
             // Create a new user and linked account
             // NOTE: this will provision new google accounts independent of firebase and the EditorAPI
-            // to create accounts bsed on EditorAPI curvenote accounts use teh firebase provider
+            // to create accounts based on EditorAPI curvenote accounts use the firebase provider
             dbUserViaGoogle = await dbCreateUserWithPrimaryLinkedAccount<firebase.FirebaseProfile>({
               email: profile.email,
               username: profile.displayName.toLocaleLowerCase().replace(/\s/g, '_'),

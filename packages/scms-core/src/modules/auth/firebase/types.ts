@@ -7,6 +7,7 @@ export interface FirebaseClientSideSafeOptions {
   actionTitle?: string;
   allowLinking?: false;
   provisionNewUser?: boolean;
+  createEditorUser?: boolean;
   allowLogin?: boolean;
   adminLogin?: boolean;
 }

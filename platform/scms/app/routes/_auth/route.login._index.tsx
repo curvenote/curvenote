@@ -95,7 +95,6 @@ function PreferredLoginArea({
   authProviders: ClientSideSafeAuthOptions[];
 }) {
   useAuthErrorToast();
-  const [showMoreProviders, setShowMoreProviders] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const preferredProvider = config.signin?.preferred;
@@ -128,63 +127,48 @@ function PreferredLoginArea({
 
   const MoreProvidersUI = providersThatAllowLogin
     .filter((p) => p.provider !== preferredProvider)
-    .map((p) =>
-      getProviderUI({
-        provider: p.provider,
-        submitting,
-        setSubmitting,
-      }),
-    );
+    .map((p) => (
+      <div key={p.provider}>
+        {getProviderUI({
+          provider: p.provider,
+          submitting,
+          setSubmitting,
+        })}
+      </div>
+    ));
 
   const loginAuthProviders = authProviders.filter((p) => p.allowLogin);
-  const showOrDivider =
-    loginAuthProviders.length > 0 &&
-    loginAuthProviders.map(({ provider }) => provider).includes('firebase');
   const firebaseProvider = loginAuthProviders.find((p) => p.provider === 'firebase');
 
   return (
     <div className="flex flex-col w-full space-y-8 items-left">
       <div className="space-y-4">
-        <div className="text-lg lg:text-xl">{config?.signin?.prompt ?? 'Sign in'}</div>
-        <div>{PreferredProviderUI}</div>
-      </div>
-      <div className="space-y-2">
-        <div className="">
-          <ui.Button
-            variant="link"
-            size="lg"
-            onClick={() => setShowMoreProviders(true)}
-            className="text-md lg:text-md"
-          >
-            {config?.signin?.alternativePrompt ?? 'More sign in options'}
-          </ui.Button>
+        <div className="text-lg lg:text-xl">
+          {config?.signin?.prompt ?? 'Sign up or Sign in using the options below'}
         </div>
-        {showMoreProviders && (
-          <div className="space-y-8">
-            <div className="space-y-2">{MoreProvidersUI}</div>
-            {showOrDivider && <OrDivider />}
-            {firebaseProvider && firebaseProvider.allowLogin && (
-              <firebase.FirebasePasswordLoginUI
-                disabled={submitting}
-                setSubmitting={setSubmitting}
-                notice={
-                  <div>
-                    To sign up, with username and password, first make an account on{' '}
-                    <a
-                      href="https://editor.curvenote.com"
-                      target="_blank"
-                      rel="noreferrer noopener"
-                    >
-                      https://editor.curvenote.com
-                    </a>
-                    .
-                  </div>
-                }
-              />
-            )}
-          </div>
-        )}
+        <div className="space-y-2">
+          {PreferredProviderUI}
+          {MoreProvidersUI}
+        </div>
       </div>
+      {firebaseProvider && firebaseProvider.allowLogin && (
+        <div className="space-y-4">
+          <OrDivider />
+          <firebase.FirebasePasswordLoginUI
+            disabled={submitting}
+            setSubmitting={setSubmitting}
+            notice={
+              <div>
+                If you signed up with email and password at{' '}
+                <a href="https://editor.curvenote.com" target="_blank" rel="noreferrer noopener">
+                  editor.curvenote.com
+                </a>{' '}
+                you can use those credentials to log in here.
+              </div>
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
