@@ -52,7 +52,8 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData | { e
     [siteScopes.users.update, siteScopes.users.delete],
     ctx.site.id,
   );
-  const canModifyAdminRoles = canUpdateRoles && userHasSiteScope(ctx.user, siteScopes.users.admin);
+  const canModifyAdminRoles =
+    canUpdateRoles && userHasSiteScope(ctx.user, siteScopes.users.admin, ctx.site.id);
 
   // Regular page load
   const dbo = await dbGetSiteUsers(ctx.site.name);
@@ -112,7 +113,7 @@ export async function action(args: ActionFunctionArgs) {
   const { role: targetRole } = rolePayload;
 
   if (targetRole === SiteRole.ADMIN) {
-    if (!userHasSiteScope(ctx.user, siteScopes.users.admin)) {
+    if (!userHasSiteScope(ctx.user, siteScopes.users.admin, ctx.site.id)) {
       return data(
         {
           error: {

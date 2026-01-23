@@ -18,17 +18,13 @@ import {
 export function userHasSiteScope(
   user: UserWithRolesDBO | undefined,
   scope: string,
-  siteId?: string,
+  siteId: string,
 ): boolean {
   if (!user) return false;
   if (hasScopeViaSystemRole(user.system_role, system.admin)) return true;
-  if (siteId) {
-    const siteRoles = user.site_roles.filter((sr) => sr.site_id === siteId).map(({ role }) => role);
-    const rolesWithScope = siteRoles.filter((siteRole) => hasSiteScope(siteRole, scope));
-
-    return rolesWithScope.length > 0;
-  }
-  return false;
+  const siteRoles = user.site_roles.filter((sr) => sr.site_id === siteId).map(({ role }) => role);
+  const rolesWithScope = siteRoles.filter((siteRole) => hasSiteScope(siteRole, scope));
+  return rolesWithScope.length > 0;
 }
 
 /**
@@ -40,7 +36,7 @@ export function userHasSiteScope(
 export function userHasSiteScopes(
   user: UserWithRolesDBO | undefined,
   scopes: string[],
-  siteId?: string,
+  siteId: string,
 ): boolean {
   return scopes.every((scope) => userHasSiteScope(user, scope, siteId));
 }
