@@ -113,6 +113,7 @@ export interface ORCIDClientSideSafeOptions {
   displayName?: string;
   allowLinking?: boolean;
   provisionNewUser?: boolean;
+  createEditorUser?: boolean;
   allowLogin?: boolean;
   adminLogin?: boolean;
 }
