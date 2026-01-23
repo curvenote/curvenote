@@ -5,6 +5,13 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "api/**", "public/build/**"]
     },
+    "@curvenote/scms-db#build": {
+      "inputs": [
+        "../../prisma/**",
+        "./src"
+      ],
+      "outputs": ["dist/**"]
+    },
     "clean": {
       "outputs": []
     },

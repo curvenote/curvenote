@@ -1,5 +1,5 @@
-import type { Prisma } from '@prisma/client';
-import { PrismaClient, SiteRole, ActivityType, WorkRole } from '@prisma/client';
+import type { Prisma } from '@curvenote/scms-db';
+import { getLowLevelPrismaClient, SiteRole, ActivityType, WorkRole } from '@curvenote/scms-db';
 import fs from 'fs/promises';
 import path from 'path';
 import { uuidv7 as uuid } from 'uuidv7';
@@ -7,7 +7,7 @@ import { uuidv7 as uuid } from 'uuidv7';
 const DEFAULT_CHECKS: string[] = [];
 const QUIET = true; // Set to true to suppress console output
 
-const prisma = new PrismaClient();
+const prisma = await getLowLevelPrismaClient();
 
 function log(...args: any[]) {
   if (!QUIET) {
@@ -53,7 +53,7 @@ export async function seedBySites(
     submissions: 0,
     collections: 0,
   };
-  
+
   for (const item of data) {
     item.site.id ??= uuid();
     console.log(`\n📦 Processing site: ${item.site.name || item.site.title || 'Untitled'}`);
@@ -62,7 +62,9 @@ export async function seedBySites(
 
     for (const work of item.works) {
       workCount++;
-      console.log(`   📄 Creating work ${workCount}/${item.works.length}: ${work.title || work.id}`);
+      console.log(
+        `   📄 Creating work ${workCount}/${item.works.length}: ${work.title || work.id}`,
+      );
 
       const versions = work.versions.map((version: any) => ({
         date_created: new Date(version.date_created).toISOString(),
@@ -231,7 +233,9 @@ export async function seedBySites(
       },
     });
     summary.sites++;
-    console.log(`   ✓ Created site: ${siteData.name} (${siteData.submissionKinds.length} submission kind(s))`);
+    console.log(
+      `   ✓ Created site: ${siteData.name} (${siteData.submissionKinds.length} submission kind(s))`,
+    );
 
     console.log(`   📚 Creating collections...`);
 
@@ -405,6 +409,6 @@ export async function seedBySites(
     console.log(`   ✓ Created ${subData.length} submission(s) with activity records`);
     console.log(`   ✅ Completed site: ${item.site.name}\n`);
   }
-  
+
   return summary;
 }

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { deleteJob, expectJob, expectStatus, expectSuccess, seedJob } from './helpers';
-import { JobStatus } from '@prisma/client';
+import { JobStatus } from '@curvenote/scms-db';
 import { createHandshakeToken } from '@curvenote/scms-server';
 
 const id = 'existent-patch-id';

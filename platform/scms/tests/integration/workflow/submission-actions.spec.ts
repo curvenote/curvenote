@@ -1,6 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, test, expect, beforeEach } from 'vitest';
-import type { SiteRole } from '@prisma/client';
+import type { SiteRole } from '@curvenote/scms-db';
 import { getPrismaClient, sites } from '@curvenote/scms-server';
 import { createTestData, type TestData } from '../helpers/mocks';
 import { setupVercelMocks } from '../helpers/mock-vercel';

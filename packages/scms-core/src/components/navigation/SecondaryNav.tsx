@@ -78,7 +78,7 @@ export function SecondaryNav({
             key={sectionName ?? (menus.map((m) => m.name ?? m.url).join('-') || `section-${index}`)}
           >
             <>
-              {open && sectionName && (
+              {sectionName && (
                 <li className="px-5">
                   <div className="flex flex-row items-center h-8">
                     <div className="text-xs font-light uppercase text-stone-800 dark:text-white">

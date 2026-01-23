@@ -50,6 +50,11 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
                   'routes/$siteName.collections.$collectionName/route.tsx',
                 ),
               ),
+              route('forms', resolveRoutePath(import.meta.url, 'routes/$siteName.forms/route.tsx')),
+              route(
+                'forms/:formName',
+                resolveRoutePath(import.meta.url, 'routes/$siteName.forms.$formName/route.tsx'),
+              ),
               route(
                 'submissions',
                 resolveRoutePath(import.meta.url, 'routes/$siteName.submissions/route.tsx'),
@@ -92,6 +97,20 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
               ),
             ]),
           ]),
+        ] satisfies RouteConfigEntry[],
+    },
+    {
+      attachTo: '',
+      register: () =>
+        [
+          route(
+            'forms/:siteName/:formName',
+            resolveRoutePath(import.meta.url, 'routes/forms.$siteName.$formName/route.tsx'),
+          ),
+          route(
+            'forms/:siteName/:formName/success',
+            resolveRoutePath(import.meta.url, 'routes/forms.$siteName.$formName.success/route.tsx'),
+          ),
         ] satisfies RouteConfigEntry[],
     },
   ];
