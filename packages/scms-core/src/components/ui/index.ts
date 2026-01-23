@@ -29,7 +29,6 @@ export * from './popover.js';
 export * from './radio-group.js';
 export * from './RoleBadge.js';
 export * from './select.js';
-export * from './simple-dialog.js';
 export * from './SimpleAlert.js';
 export * from './Toaster.js';
 export * from './StatefulButton.js';

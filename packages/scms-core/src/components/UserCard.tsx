@@ -2,8 +2,9 @@ import { useFetcher } from 'react-router';
 import { UserIcon } from '@heroicons/react/24/outline';
 import { X } from 'lucide-react';
 import { Badge } from './ui/index.js';
+import { SimpleDialog } from './dialogs/index.js';
 import { cn } from '../utils/cn.js';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMyUser } from '../providers/MyUserProvider.js';
 import { toastSuccess, toastError } from './ui/toast.js';
 import type { GeneralError } from '../backend/types.js';
@@ -23,6 +24,9 @@ function TableRow({ children, className }: { children: React.ReactNode; classNam
 export function UserCard({ roles, email, name, userId }: UserProps) {
   const fetcher = useFetcher<{ error?: GeneralError; message?: string; info?: string }>();
   const currentUser = useMyUser();
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [roleToRemove, setRoleToRemove] = useState<string | null>(null);
+  const [formToSubmit, setFormToSubmit] = useState<HTMLFormElement | null>(null);
 
   // Check if the current user is viewing their own card
   const isCurrentUser = currentUser && userId && currentUser.id === userId;
@@ -44,6 +48,22 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
 
   const getRoleDisplayName = (role: string) => {
     return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+  };
+
+  const handleConfirmRemove = () => {
+    if (formToSubmit) {
+      const formData = new FormData(formToSubmit);
+      fetcher.submit(formData, { method: 'POST' });
+    }
+    setConfirmDialogOpen(false);
+    setRoleToRemove(null);
+    setFormToSubmit(null);
+  };
+
+  const handleCancelRemove = () => {
+    setConfirmDialogOpen(false);
+    setRoleToRemove(null);
+    setFormToSubmit(null);
   };
 
   return (
@@ -77,14 +97,9 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
                       toastError('Cannot remove user: user ID is missing');
                       return;
                     }
-                    if (
-                      window.confirm(
-                        `Are you sure you want to remove the ${getRoleDisplayName(role)} role from ${name || 'this user'}?`,
-                      )
-                    ) {
-                      const formData = new FormData(e.currentTarget);
-                      fetcher.submit(formData, { method: 'POST' });
-                    }
+                    setRoleToRemove(role);
+                    setFormToSubmit(e.currentTarget);
+                    setConfirmDialogOpen(true);
                   }}
                 >
                   <input type="hidden" name="intent" value="revoke" />
@@ -119,6 +134,28 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
           ))}
         </div>
       </TableRow>
+      <SimpleDialog
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        title="Remove Role"
+        description={
+          roleToRemove
+            ? `Are you sure you want to remove the ${getRoleDisplayName(roleToRemove)} role from ${name || 'this user'}?`
+            : ''
+        }
+        footerButtons={[
+          {
+            label: 'Cancel',
+            onClick: handleCancelRemove,
+            variant: 'outline',
+          },
+          {
+            label: 'Remove Role',
+            onClick: handleConfirmRemove,
+            variant: 'destructive',
+          },
+        ]}
+      />
     </>
   );
 }

@@ -8,8 +8,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from './dialog.js';
-import { Button, type ButtonProps } from './button.js';
+} from '../ui/dialog.js';
+import { Button, type ButtonProps } from '../ui/button.js';
 import { cn } from '../../utils/cn.js';
 import type { DialogContentProps } from '@radix-ui/react-dialog';
 
