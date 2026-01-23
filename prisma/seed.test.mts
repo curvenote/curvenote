@@ -1,4 +1,4 @@
-import { PrismaClient, SystemRole, JobStatus } from '@prisma/client';
+import { getLowLevelPrismaClient, SystemRole, JobStatus } from '@curvenote/scms-db';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { loadAllJsonFilesFromDir, seedBySites } from './seed.utils.mjs';
@@ -16,7 +16,7 @@ function log(...args: any[]) {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const prisma = new PrismaClient();
+const prisma = await getLowLevelPrismaClient();
 
 async function main() {
   const dateOne = new Date(2023, 1, 1);
