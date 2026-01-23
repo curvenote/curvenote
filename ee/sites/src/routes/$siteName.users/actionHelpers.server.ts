@@ -39,8 +39,11 @@ async function getUserWithRoles<T>(
   }
   const { email, userId, role } = payload;
 
-  // Validate that either email or userId is provided
-  if (!email && !userId) {
+  // Validate that either email or userId is provided (and not empty strings)
+  const hasUserId = userId && typeof userId === 'string' && userId.trim().length > 0;
+  const hasEmail = email && typeof email === 'string' && email.trim().length > 0;
+
+  if (!hasUserId && !hasEmail) {
     return data(
       { message: 'unprocessable content', error: 'Either email or userId must be provided' },
       { status: 422 },
@@ -49,7 +52,7 @@ async function getUserWithRoles<T>(
 
   // Get user by email or userId
   let userWithRoles;
-  if (userId) {
+  if (hasUserId && userId) {
     userWithRoles = await dbGetUserById(userId);
     if (!userWithRoles) {
       return data(
@@ -57,7 +60,7 @@ async function getUserWithRoles<T>(
         { status: 404 },
       );
     }
-  } else if (email) {
+  } else if (hasEmail && email) {
     // Validate email format if provided
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -133,7 +136,7 @@ export async function actionGrantUserRole(ctx: SiteContextWithUser, formData: Fo
   });
 }
 
-export async function actionRevokeUserRole(ctx: SiteContext, formData: FormData) {
+export async function actionRevokeUserRole(ctx: SiteContextWithUser, formData: FormData) {
   return getUserWithRoles(ctx, formData, async (role, userWithRoles, requestedRole) => {
     if (!requestedRole) {
       return { message: 'ok', info: 'user does not have specified role' };

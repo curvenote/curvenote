@@ -106,6 +106,10 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
                   method="post"
                   onSubmit={(e) => {
                     e.preventDefault();
+                    if (!userId) {
+                      toastError('Cannot remove user: user ID is missing');
+                      return;
+                    }
                     if (
                       window.confirm(
                         `Are you sure you want to remove the ${getRoleDisplayName(role)} role from ${name || 'this user'}?`,
@@ -117,7 +121,7 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
                   }}
                 >
                   <input type="hidden" name="intent" value="revoke" />
-                  <input type="hidden" name="email" value={email || ''} />
+                  <input type="hidden" name="userId" value={userId || ''} />
                   <input type="hidden" name="role" value={role} />
                   <Badge
                     variant="outline"

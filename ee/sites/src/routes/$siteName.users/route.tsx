@@ -45,6 +45,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData | { e
 
 export async function action(args: ActionFunctionArgs) {
   const ctx = await withAppSiteContext(args, [siteScopes.users.update, siteScopes.users.delete]);
+  console.log('ctx', ctx.user);
 
   const formData = await args.request.formData();
   const intent = formData.get('intent');
