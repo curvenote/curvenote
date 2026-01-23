@@ -1,6 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, test, expect, beforeEach } from 'vitest';
-import type { SiteRole } from '@prisma/client';
+import type { SiteRole } from '@curvenote/scms-db';
 import { getPrismaClient, sites, jobs, registerExtensionJobs } from '@curvenote/scms-server';
 import {
   KnownJobTypes,

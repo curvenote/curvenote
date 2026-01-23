@@ -8,7 +8,7 @@ import {
   dbCreateUserWithPrimaryLinkedAccount,
   // dbAddSiteUserRole,
 } from '@curvenote/scms-server';
-import { SiteRole } from '@prisma/client';
+import { SiteRole } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
 
 export function createMockConfig() {

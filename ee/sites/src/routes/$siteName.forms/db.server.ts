@@ -1,7 +1,7 @@
 import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '@curvenote/scms-server';
-import { ActivityType } from '@prisma/client';
+import { ActivityType } from '@curvenote/scms-db';
 
 export async function dbListForms(siteId: string) {
   const prisma = await getPrismaClient();

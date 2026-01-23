@@ -1,7 +1,7 @@
 import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '@curvenote/scms-server';
-import { ActivityType, WorkRole } from '@prisma/client';
+import { ActivityType, WorkRole } from '@curvenote/scms-db';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { WorkContents } from '@curvenote/scms-core';
 
