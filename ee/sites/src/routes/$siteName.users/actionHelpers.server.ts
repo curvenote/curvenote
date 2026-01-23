@@ -277,18 +277,7 @@ export async function $actionRevokeUserRole(ctx: SiteContextWithUser, payload: P
       );
     }
 
-    // Prevent users from revoking their own admin role (even admins)
-    if (role === SiteRole.ADMIN && ctx.user.id === userWithRoles.id) {
-      return data(
-        {
-          error: {
-            type: 'general',
-            message: 'cannot revoke your own admin permissions',
-          },
-        },
-        { status: 422 },
-      );
-    }
+
     await dbRemoveSiteUserRole(ctx.site.id, userWithRoles.id, role);
     await ctx.sendSlackNotification({
       eventType: SlackEventType.SITE_ROLE_REVOKED,
