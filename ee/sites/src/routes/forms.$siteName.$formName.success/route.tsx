@@ -20,7 +20,7 @@ type LoaderData = {
 };
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
-  const ctx = await withAppSiteContext(args, [scopes.site.forms.read]);
+  const ctx = await withAppSiteContext(args, [scopes.site.submissions.create]);
 
   // Get formName from params - it should be available from the parent route
   // If not in current params, try to extract from URL path
