@@ -63,7 +63,12 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData | { e
     ...user,
     site_roles: user.site_roles.map((role) => ({
       role,
-      canRemove: role === SiteRole.ADMIN ? canModifyAdminRoles : canUpdateRoles,
+      canRemove:
+        user.id === ctx.user.id
+          ? false
+          : role === SiteRole.ADMIN
+            ? canModifyAdminRoles
+            : canUpdateRoles,
     })),
   }));
 
