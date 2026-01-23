@@ -14,6 +14,7 @@ export * from './combobox-client.js';
 export * from './command.js';
 export * from './ConfigurableBreadcrumb.js';
 export * from './dialog.js';
+export * from './dialogs/index.js';
 export * from './dot.js';
 export * from './dropzone.js';
 export * from './error.js';

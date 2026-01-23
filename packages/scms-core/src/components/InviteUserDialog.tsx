@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFetcher } from 'react-router';
-import { SimpleDialog } from './dialogs/SimpleDialog.js';
+import { SimpleDialog } from './ui/dialogs/index.js';
 import { Button } from './ui/button.js';
 import { LimitedTextarea } from './ui/limited-textarea.js';
 import { Label } from './ui/label.js';

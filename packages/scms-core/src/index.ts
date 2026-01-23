@@ -7,3 +7,6 @@ export * from './providers/index.js';
 export * from './services/index.js';
 export * from './utils/index.js';
 export * from './workflow/index.js';
+
+// Re-export commonly used types from ui components
+export type { DraftWork } from './components/ui/dialogs/types.js';

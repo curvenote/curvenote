@@ -8,24 +8,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../ui/dialog.js';
-import { Button } from '../ui/button.js';
-import { LoadingSpinner } from '../LoadingSpinner.js';
+} from '../dialog.js';
+import { Button } from '../button.js';
+import { LoadingSpinner } from '../../LoadingSpinner.js';
 import { formatDistanceToNow } from 'date-fns';
 import { Trash2 } from 'lucide-react';
-import { plural } from '../../utils/plural.js';
-
-/**
- * Base draft work type - can be extended for specific use cases
- */
-export interface DraftWork {
-  workId: string;
-  workVersionId: string;
-  workTitle: string;
-  dateModified: string;
-  dateCreated: string;
-  metadata?: any;
-}
+import { plural } from '../../../utils/plural.js';
+import type { DraftWork } from './types.js';
 
 /**
  * Props for the ResumeDraftWorkDialog component
@@ -177,9 +166,9 @@ function DraftWorkItem<T extends DraftWork>({
 
   return (
     <>
-      <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+      <div className="flex justify-between items-center p-4 rounded-lg border hover:bg-gray-50">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex justify-between items-center mb-2">
             <div className="flex flex-col">
               <div className="text-sm font-medium text-muted-foreground">
                 Last modified {timeAgo}
@@ -196,7 +185,7 @@ function DraftWorkItem<T extends DraftWork>({
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex justify-between items-center mb-1">
             <h3 className="text-base font-medium text-gray-900 truncate">{draft.workTitle}</h3>
           </div>
           {renderDetails && (
@@ -204,7 +193,7 @@ function DraftWorkItem<T extends DraftWork>({
           )}
           <Button
             onClick={handleResume}
-            className="w-full mt-2"
+            className="mt-2 w-full"
             disabled={fetcher.state !== 'idle'}
           >
             {resumeButtonLabel}
@@ -364,11 +353,11 @@ export function ResumeDraftWorkDialog<T extends DraftWork>({
     <div>
       You already have <span className="font-bold">{drafts.length}</span> draft{' '}
       {plural(`${objectLabel}(s)`, drafts.length)}. {resumeButtonLabel} one of them,{' '}
-      <Button className="inline-block h-auto py-0" variant="link" onClick={handleCreateNew}>
+      <Button className="inline-block py-0 h-auto" variant="link" onClick={handleCreateNew}>
         create a new {objectLabel}
       </Button>{' '}
       or{' '}
-      <Button className="inline-block h-auto py-0" variant="link" onClick={handleDeleteAll}>
+      <Button className="inline-block py-0 h-auto" variant="link" onClick={handleDeleteAll}>
         delete them all
       </Button>
       .

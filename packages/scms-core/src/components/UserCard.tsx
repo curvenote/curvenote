@@ -2,7 +2,7 @@ import { useFetcher } from 'react-router';
 import { UserIcon } from '@heroicons/react/24/outline';
 import { X } from 'lucide-react';
 import { Badge } from './ui/index.js';
-import { SimpleDialog } from './dialogs/index.js';
+import { SimpleDialog } from './ui/dialogs/index.js';
 import { cn } from '../utils/cn.js';
 import { useEffect, useState } from 'react';
 import { useMyUser } from '../providers/MyUserProvider.js';
