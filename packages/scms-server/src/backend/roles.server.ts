@@ -1,6 +1,5 @@
 import { SystemRole, SiteRole, WorkRole } from '@curvenote/scms-db';
 import { system, site, work, app } from '@curvenote/scms-core';
-import type { MyUserDBO } from './db.types.js';
 
 const SYSTEM_ROLES: Record<SystemRole, Set<string>> = {
   [SystemRole.SERVICE]: new Set([system.admin]), // in future service accounts will have limited scope, that's the whole point
@@ -43,6 +42,7 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.users.read,
     site.users.update,
     site.users.delete,
+    site.users.admin,
   ]),
   [SiteRole.EDITOR]: new Set([
     site.list,
