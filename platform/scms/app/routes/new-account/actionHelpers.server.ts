@@ -346,7 +346,12 @@ export async function completeSignup(ctx: Context): Promise<{
     const result = await completeSignupFlow(ctx);
     return result;
   } catch (error) {
-    // Track signup completion failure
+    // If it's a redirect (Response), rethrow it so Remix can handle it
+    if (error instanceof Response) {
+      throw error;
+    }
+
+    // Track signup completion failure (only for non-redirect errors)
     await ctx.trackEvent(TrackEvent.SIGNUP_COMPLETION_FAILED, {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
