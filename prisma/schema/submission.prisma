@@ -46,7 +46,7 @@ model Collection {
   childCollections  Collection[]         @relation("CollectionToCollection")
   activity          Activity[]
   occ               Int                  @default(0)
-  forms             CollectionsInForms[]
+  submissionForms   CollectionsInForms[]
 
   @@unique([name, site_id])
 }
