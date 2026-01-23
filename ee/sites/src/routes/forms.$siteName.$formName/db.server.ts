@@ -181,7 +181,6 @@ export async function dbSubmitForm(ctx: SiteContextWithUser, form: any, data: Su
       },
     });
 
-    // Create NEW_SUBMISSION activity
     await tx.activity.create({
       data: {
         id: uuid(),
@@ -217,47 +216,46 @@ export async function dbSubmitForm(ctx: SiteContextWithUser, form: any, data: Su
       },
     });
 
-    return sv.submission;
-  });
+    await tx.activity.create({
+      data: {
+        id: uuid(),
+        date_created: timestamp,
+        date_modified: timestamp,
+        activity_by: {
+          connect: {
+            id: submitter.id,
+          },
+        },
+        activity_type: ActivityType.FORM_SUBMITTED,
+        form: {
+          connect: {
+            id: form.id,
+          },
+        },
+        submission: {
+          connect: {
+            id: sv.submission.id,
+          },
+        },
+        submission_version: {
+          connect: {
+            id: submissionVersionId,
+          },
+        },
+        work: {
+          connect: {
+            id: work.id,
+          },
+        },
+        work_version: {
+          connect: {
+            id: workVersion.id,
+          },
+        },
+      },
+    });
 
-  // Create FORM_SUBMITTED activity
-  await prisma.activity.create({
-    data: {
-      id: uuid(),
-      date_created: timestamp,
-      date_modified: timestamp,
-      activity_by: {
-        connect: {
-          id: submitter.id,
-        },
-      },
-      activity_type: ActivityType.FORM_SUBMITTED,
-      form: {
-        connect: {
-          id: form.id,
-        },
-      },
-      submission: {
-        connect: {
-          id: submission.id,
-        },
-      },
-      submission_version: {
-        connect: {
-          id: submissionVersionId,
-        },
-      },
-      work: {
-        connect: {
-          id: work.id,
-        },
-      },
-      work_version: {
-        connect: {
-          id: workVersion.id,
-        },
-      },
-    },
+    return sv.submission;
   });
 
   return {
