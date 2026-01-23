@@ -171,7 +171,7 @@ async function getUserWithRoles<T>(
  */
 export async function $actionGrantUserRole(ctx: SiteContextWithUser, payload: ParsedFormData) {
   return getUserWithRoles(ctx, payload, async (role, userWithRoles, existingRoleIfOnTargetUser) => {
-    // Prevent non-admins from modifying their own roles
+    // Prevent users from modifying their own roles
     if (ctx.user.id === userWithRoles.id) {
       return data(
         {
@@ -264,11 +264,8 @@ export async function $actionRevokeUserRole(ctx: SiteContextWithUser, payload: P
       );
     }
 
-    // Prevent non-admins from modifying their own roles
-    if (
-      ctx.user.id === userWithRoles.id &&
-      !userHasSiteScope(ctx.user, siteScopes.users.admin, ctx.site.id)
-    ) {
+    // Prevent users from modifying their own roles
+    if (ctx.user.id === userWithRoles.id) {
       return data(
         {
           error: {
