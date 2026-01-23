@@ -32,6 +32,20 @@ export function userHasSiteScope(
 }
 
 /**
+ * Returns true only if the user has ALL of the requested site scopes.
+ *
+ * For site-scoped checks, if `siteId` is provided it will be used
+ * for all scope checks.
+ */
+export function userHasSiteScopes(
+  user: UserWithRolesDBO | undefined,
+  scopes: string[],
+  siteId?: string,
+): boolean {
+  return scopes.every((scope) => userHasSiteScope(user, scope, siteId));
+}
+
+/**
  * ⚠️  IMPORTANT: Consider using userHasSiteScope or userHasWorkScope when specifically checking for site or work scopes
  *
  * Returns true if the user exists and has the specified scope, or if they are a system admin.

@@ -1,8 +1,9 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { data } from 'react-router';
+import { SiteRole } from '@curvenote/scms-db';
 import type { GeneralError } from '@curvenote/scms-core';
 import type { sites } from '@curvenote/scms-server';
-import { withAppSiteContext, userHasScope, assertUserDefined } from '@curvenote/scms-server';
+import { withAppSiteContext, userHasSiteScopes, userHasSiteScope } from '@curvenote/scms-server';
 import { UserIcon } from '@heroicons/react/24/outline';
 import { User, UserPlus } from 'lucide-react';
 import {
@@ -12,15 +13,20 @@ import {
   getBrandingFromMetaMatches,
   joinPageTitle,
   SectionWithHeading,
-  scopes,
 } from '@curvenote/scms-core';
 import { dbGetSiteUsers, dtoSiteUsers } from './db.server.js';
 import { SiteRolesForm } from './SiteRolesForm.js';
-import { actionGrantUserRole, actionRevokeUserRole } from './actionHelpers.server.js';
+import {
+  $actionGrantUserRole,
+  $actionRevokeUserRole,
+  ActionFormDataSchema,
+} from './actionHelpers.server.js';
 
 interface LoaderData {
   users: ReturnType<typeof dtoSiteUsers>;
   site: ReturnType<typeof sites.formatSiteDTO>;
+  canAddRemoveUsers: boolean;
+  canRemoveAdmins: boolean;
 }
 
 export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
@@ -36,48 +42,76 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData | { e
     redirect: true,
   });
 
+  const canAddRemoveUsers = userHasSiteScopes(
+    ctx.user,
+    [siteScopes.users.update, siteScopes.users.delete],
+    ctx.site.id,
+  );
+  const canRemoveAdmins = canAddRemoveUsers && userHasSiteScope(ctx.user, siteScopes.users.admin);
+
   // Regular page load
   const dbo = await dbGetSiteUsers(ctx.site.name);
   if (!dbo) return { error: 'Failed to get site users' };
   const users = dtoSiteUsers(dbo);
-  return { users, site: ctx.siteDTO };
+  return { users, site: ctx.siteDTO, canAddRemoveUsers, canRemoveAdmins };
 }
 
 export async function action(args: ActionFunctionArgs) {
-  const ctx = await withAppSiteContext(args, [siteScopes.users.update, siteScopes.users.delete]);
-  console.log('ctx', ctx.user);
+  // redirect: false here without a catch and custom error handling, with return a hard 403, resulting in an error page
+  // this desired UX as the UI controls should be disabled if the user does not have permission
+  const ctx = await withAppSiteContext(
+    args,
+    [siteScopes.users.update, siteScopes.users.delete, siteScopes.users.admin],
+    {
+      redirect: false,
+    },
+  );
 
   const formData = await args.request.formData();
-  const intent = formData.get('intent');
 
-  if (typeof intent !== 'string' || intent.length === 0) {
-    return data(
-      { error: { type: 'general', message: 'Intent not set' } as GeneralError },
-      { status: 400 },
-    );
-  }
-
-  // For grant/revoke actions, require additional permissions
-  assertUserDefined(ctx.user);
-
-  if (!userHasScope(ctx.user, scopes.site.users.update, ctx.site.name)) {
+  // Validate form data including intent
+  let validatedData;
+  try {
+    validatedData = ActionFormDataSchema.parse(Object.fromEntries(formData));
+  } catch (error: any) {
+    console.error(`Invalid form data ${error}`);
     return data(
       {
         error: {
           type: 'general',
-          message: 'Unauthorized: current user cannot update user roles',
+          message: error?.issues?.[0]?.message || 'Invalid form data',
         } as GeneralError,
       },
-      { status: 401 },
+      { status: 422 },
     );
   }
 
-  if (intent === 'grant') {
-    return actionGrantUserRole(ctx, formData);
-  } else if (intent === 'revoke') {
-    return actionRevokeUserRole(ctx, formData);
+  // Extract intent and payload (without intent)
+  const { intent, ...payload } = validatedData;
+  const { role: targetRole } = payload;
+
+  if (targetRole === SiteRole.ADMIN) {
+    if (!userHasSiteScope(ctx.user, siteScopes.users.admin)) {
+      return data(
+        {
+          error: {
+            type: 'general',
+            message: `You are not authorized to ${intent} admin permissions`,
+          } as GeneralError,
+        },
+        { status: 403 },
+      );
+    }
   }
 
+  // Route to appropriate action based on intent
+  if (intent === 'grant') {
+    return $actionGrantUserRole(ctx, payload);
+  } else if (intent === 'revoke') {
+    return $actionRevokeUserRole(ctx, payload);
+  }
+
+  // This should never happen due to Zod validation, but TypeScript needs it
   return data(
     { error: { type: 'general', message: 'Invalid intent' } as GeneralError },
     { status: 400 },
@@ -85,17 +119,19 @@ export async function action(args: ActionFunctionArgs) {
 }
 
 export default function Users({ loaderData }: { loaderData: LoaderData }) {
-  const { users, site } = loaderData;
+  const { users, site, canAddRemoveUsers } = loaderData;
 
   return (
     <PageFrame title="Users" subtitle={`Manage the users and access roles for ${site?.title}`}>
       {/* Add User Section */}
 
-      <SectionWithHeading heading="Add User" icon={UserPlus}>
-        <div className="p-6 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-          <SiteRolesForm />
-        </div>
-      </SectionWithHeading>
+      {canAddRemoveUsers && (
+        <SectionWithHeading heading="Add User" icon={UserPlus}>
+          <div className="p-6 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            <SiteRolesForm />
+          </div>
+        </SectionWithHeading>
+      )}
 
       {/* Current Users Section */}
       <SectionWithHeading heading="Current Users" icon={User}>
@@ -114,7 +150,10 @@ export default function Users({ loaderData }: { loaderData: LoaderData }) {
                 key={user.id}
                 name={user.display_name || 'Unknown User'}
                 email={user.email}
-                roles={user.site_roles}
+                roles={user.site_roles.map((role) => ({
+                  role,
+                  canRemove: canAddRemoveUsers,
+                }))}
                 userId={user.id}
               />
             ))

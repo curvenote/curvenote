@@ -1,9 +1,9 @@
 import type { MenuContents } from '@curvenote/scms-core';
-import type { SiteContext } from '@curvenote/scms-server';
+import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { registerExtensionNavigation, scopes } from '@curvenote/scms-core';
 import { userHasSiteScope } from '@curvenote/scms-server';
 
-export async function buildMenu(ctx: SiteContext): Promise<MenuContents> {
+export async function buildMenu(ctx: SiteContextWithUser): Promise<MenuContents> {
   const mountPoint = `app/sites/${ctx.site.name}`;
   const baseUrl = `/${mountPoint}`;
 
@@ -71,13 +71,13 @@ export async function buildMenu(ctx: SiteContext): Promise<MenuContents> {
           name: 'admin.advanced',
           label: 'Advanced',
           url: `${baseUrl}/advanced`,
-          scope: scopes.site.update,
+          scope: scopes.system.admin,
         },
         {
           name: 'admin.analytics',
           label: 'Analytics',
           url: `${baseUrl}/analytics`,
-          scope: scopes.site.read,
+          scope: scopes.site.analytics.list,
         },
       ],
     },

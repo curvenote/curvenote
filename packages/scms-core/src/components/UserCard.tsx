@@ -1,17 +1,19 @@
 import { useFetcher } from 'react-router';
 import { UserIcon } from '@heroicons/react/24/outline';
-import { X, Crown, Edit, Eye, User, FileText } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Badge } from './ui/index.js';
 import { cn } from '../utils/cn.js';
 import { useEffect } from 'react';
 import { useMyUser } from '../providers/MyUserProvider.js';
 import { toastSuccess, toastError } from './ui/toast.js';
+import type { SiteRole } from '@curvenote/scms-db';
 
 type UserProps = {
-  roles: string[];
+  roles: { role: SiteRole; canRemove: boolean }[];
   email?: string | null;
   name?: string | null;
   userId?: string | null;
+  canUpdateUsers?: boolean;
 };
 
 function TableRow({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -36,55 +38,16 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
     }
   }, [fetcher.state, fetcher.data]);
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'ADMIN':
-      case 'OWNER':
-        return <Crown className="w-4 h-4 text-foreground" />;
-      case 'CONTRIBUTOR':
-      case 'EDITOR':
-        return <Edit className="w-4 h-4 text-foreground" />;
-      case 'VIEWER':
-      case 'REVIEWER':
-        return <Eye className="w-4 h-4 text-foreground" />;
-      case 'AUTHOR':
-        return <User className="w-4 h-4 text-foreground" />;
-      case 'SUBMITTER':
-        return <FileText className="w-4 h-4 text-foreground" />;
-      default:
-        return <User className="w-4 h-4 text-foreground" />;
-    }
-  };
-
   const getRoleDisplayName = (role: string) => {
-    switch (role) {
-      case 'ADMIN':
-        return 'Admin';
-      case 'EDITOR':
-        return 'Editor';
-      case 'REVIEWER':
-        return 'Reviewer';
-      case 'AUTHOR':
-        return 'Author';
-      case 'SUBMITTER':
-        return 'Submitter';
-      case 'OWNER':
-        return 'Owner';
-      case 'CONTRIBUTOR':
-        return 'Contributor';
-      case 'VIEWER':
-        return 'Viewer';
-      default:
-        return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
-    }
+    return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
   };
 
   return (
     <>
-      <TableRow className="flex items-center justify-between p-4 bg-white">
+      <TableRow className="flex justify-between items-center p-4 bg-white">
         <div className="flex items-center space-x-3">
           <div className="flex-shrink-0">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-foreground/10">
+            <div className="flex justify-center items-center w-10 h-10 rounded-full bg-foreground/10">
               <UserIcon className="w-6 h-6 text-muted-foreground" />
             </div>
           </div>
@@ -99,9 +62,9 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
         </div>
 
         <div className="flex items-center space-x-2">
-          {roles.map((role) => (
+          {roles.map(({ role, canRemove }) => (
             <div key={role} className="relative">
-              {!isCurrentUser ? (
+              {!isCurrentUser && canRemove ? (
                 <fetcher.Form
                   method="post"
                   onSubmit={(e) => {
@@ -135,16 +98,14 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
                       }
                     }}
                   >
-                    {getRoleIcon(role)}
                     <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                       {getRoleDisplayName(role)}
                     </span>
-                    <X className="w-3 h-3 ml-1 text-gray-400 transition-colors group-hover:text-red-500" />
+                    <X className="ml-1 w-3 h-3 text-gray-400 transition-colors group-hover:text-red-500" />
                   </Badge>
                 </fetcher.Form>
               ) : (
                 <Badge variant="outline">
-                  {getRoleIcon(role)}
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                     {getRoleDisplayName(role)}
                   </span>
