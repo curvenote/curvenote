@@ -9,7 +9,7 @@ import {
   MainWrapper,
   PageFrame,
   FrameHeader,
-  ResumeDraftWorkDialog,
+  ui,
   getBrandingFromMetaMatches,
   joinPageTitle,
   getWorkflows,
@@ -326,7 +326,7 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
         </PageFrame>
       </MainWrapper>
 
-      <ResumeDraftWorkDialog<DraftWork>
+      <ui.ResumeDraftWorkDialog<DraftWork>
         isOpen={showResumeDialog}
         onClose={() => setShowResumeDialog(false)}
         onCreateNew={handleCreateNew}

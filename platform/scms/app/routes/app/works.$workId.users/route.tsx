@@ -80,7 +80,7 @@ export default function Users({ loaderData }: Route.ComponentProps) {
               <UserCard
                 key={u.id}
                 name={u.display_name}
-                roles={u.work_roles}
+                roles={u.work_roles.map((role) => ({ role, canRemove: false }))}
                 email={u.email}
                 userId={u.id}
               />

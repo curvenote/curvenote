@@ -15,6 +15,8 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.read,
     site.update,
     site.details,
+    site.analytics.read,
+    site.analytics.list,
     site.domains.list,
     site.domains.create,
     site.domains.delete,
@@ -40,6 +42,7 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.users.read,
     site.users.update,
     site.users.delete,
+    site.users.admin,
   ]),
   [SiteRole.EDITOR]: new Set([
     site.list,
@@ -56,6 +59,8 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.submissions.versions.create,
     site.users.list,
     site.users.read,
+    site.users.update,
+    site.users.delete,
   ]),
   [SiteRole.SUBMITTER]: new Set([
     site.list,

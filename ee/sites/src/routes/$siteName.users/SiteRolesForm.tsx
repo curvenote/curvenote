@@ -1,26 +1,25 @@
 import { useFetcher } from 'react-router';
-import { ui } from '@curvenote/scms-core';
+import { ui, type GeneralError } from '@curvenote/scms-core';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
-export function SiteRolesForm() {
+export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolean }) {
   const form = useRef<HTMLFormElement>(null);
-  const fetcher = useFetcher<{ ok: boolean; error?: string | string[]; info?: string }>();
+  const fetcher = useFetcher<{ error?: GeneralError; message?: string; info?: string }>();
   const [selectedUser, setSelectedUser] = useState<string>('');
-  const [selectedRole, setSelectedRole] = useState<string>('ADMIN');
 
   // Handle toast notifications
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
       if (fetcher.data.error) {
-        const errorMessage = Array.isArray(fetcher.data.error)
-          ? fetcher.data.error.map((e: any) => e.message || e.code || String(e)).join(', ')
-          : String(fetcher.data.error);
+        const errorMessage =
+          typeof fetcher.data.error === 'object' && 'message' in fetcher.data.error
+            ? fetcher.data.error.message
+            : 'An error occurred';
         ui.toastError(errorMessage);
       } else if (fetcher.data.info) {
         ui.toastSuccess(fetcher.data.info);
         // Reset form on success
         setSelectedUser('');
-        setSelectedRole('ADMIN');
         form.current?.reset();
       }
     }
@@ -75,25 +74,28 @@ export function SiteRolesForm() {
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedUser) {
       ui.toastError('Please select a user');
       return;
     }
 
-    const formData = new FormData();
-    formData.append('intent', 'grant');
-    formData.append('userId', selectedUser);
-    formData.append('role', selectedRole);
+    // Get form data directly from the form element
+    // This automatically captures all form fields with 'name' attributes
+    // e.g. role
+    const formData = new FormData(e.currentTarget);
+    // Add the intent and userId since they're not in the form
+    formData.set('intent', 'grant');
+    formData.set('userId', selectedUser);
 
     fetcher.submit(formData, { method: 'POST' });
   };
 
   return (
     <form ref={form} className="flex flex-col gap-4" onSubmit={handleSubmit}>
-      <div className="flex items-center gap-2">
-        <h3 className="font-medium text-md">Add New User</h3>
+      <div className="flex gap-2 items-center">
+        <h3 className="font-medium text-md">Add a New User or Grant a Role</h3>
       </div>
 
       {/* Single row layout on md+ breakpoints */}
@@ -123,27 +125,26 @@ export function SiteRolesForm() {
             Role
           </label>
           <select
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+            className="px-3 py-2 w-full text-sm bg-white rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
             id="invite.role"
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
+            name="role"
             required
             disabled={fetcher.state === 'submitting'}
           >
-            <option value="ADMIN">Admin</option>
+            {canGrantAdminRole && <option value="ADMIN">Admin</option>}
             <option value="EDITOR">Editor</option>
             <option value="SUBMITTER">Submitter</option>
           </select>
         </div>
 
-        <div className="flex-none">
+        <div className="flex-none pb-[1px]">
           <ui.StatefulButton
             type="submit"
             overlayBusy
             busy={fetcher.state === 'submitting'}
             disabled={fetcher.state === 'submitting' || !selectedUser}
           >
-            Add User
+            Grant
           </ui.StatefulButton>
         </div>
       </div>

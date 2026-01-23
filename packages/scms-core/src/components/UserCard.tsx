@@ -1,17 +1,20 @@
 import { useFetcher } from 'react-router';
 import { UserIcon } from '@heroicons/react/24/outline';
-import { X, Crown, Edit, Eye, User, FileText } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Badge } from './ui/index.js';
+import { SimpleDialog } from './ui/dialogs/index.js';
 import { cn } from '../utils/cn.js';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMyUser } from '../providers/MyUserProvider.js';
 import { toastSuccess, toastError } from './ui/toast.js';
+import type { GeneralError } from '../backend/types.js';
 
 type UserProps = {
-  roles: string[];
+  roles: { role: string; canRemove: boolean }[];
   email?: string | null;
   name?: string | null;
   userId?: string | null;
+  canUpdateUsers?: boolean;
 };
 
 function TableRow({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -19,8 +22,11 @@ function TableRow({ children, className }: { children: React.ReactNode; classNam
 }
 
 export function UserCard({ roles, email, name, userId }: UserProps) {
-  const fetcher = useFetcher<{ ok: boolean; error?: string; info?: string }>();
+  const fetcher = useFetcher<{ error?: GeneralError; message?: string; info?: string }>();
   const currentUser = useMyUser();
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [roleToRemove, setRoleToRemove] = useState<string | null>(null);
+  const [formToSubmit, setFormToSubmit] = useState<HTMLFormElement | null>(null);
 
   // Check if the current user is viewing their own card
   const isCurrentUser = currentUser && userId && currentUser.id === userId;
@@ -29,62 +35,43 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
       if (fetcher.data.error) {
-        toastError(fetcher.data.error);
+        const errorMessage =
+          typeof fetcher.data.error === 'object' && 'message' in fetcher.data.error
+            ? fetcher.data.error.message
+            : 'An error occurred';
+        toastError(errorMessage);
       } else if (fetcher.data.info) {
         toastSuccess(fetcher.data.info);
       }
     }
   }, [fetcher.state, fetcher.data]);
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'ADMIN':
-      case 'OWNER':
-        return <Crown className="w-4 h-4 text-foreground" />;
-      case 'CONTRIBUTOR':
-      case 'EDITOR':
-        return <Edit className="w-4 h-4 text-foreground" />;
-      case 'VIEWER':
-      case 'REVIEWER':
-        return <Eye className="w-4 h-4 text-foreground" />;
-      case 'AUTHOR':
-        return <User className="w-4 h-4 text-foreground" />;
-      case 'SUBMITTER':
-        return <FileText className="w-4 h-4 text-foreground" />;
-      default:
-        return <User className="w-4 h-4 text-foreground" />;
-    }
+  const getRoleDisplayName = (role: string) => {
+    return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
   };
 
-  const getRoleDisplayName = (role: string) => {
-    switch (role) {
-      case 'ADMIN':
-        return 'Admin';
-      case 'EDITOR':
-        return 'Editor';
-      case 'REVIEWER':
-        return 'Reviewer';
-      case 'AUTHOR':
-        return 'Author';
-      case 'SUBMITTER':
-        return 'Submitter';
-      case 'OWNER':
-        return 'Owner';
-      case 'CONTRIBUTOR':
-        return 'Contributor';
-      case 'VIEWER':
-        return 'Viewer';
-      default:
-        return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+  const handleConfirmRemove = () => {
+    if (formToSubmit) {
+      const formData = new FormData(formToSubmit);
+      fetcher.submit(formData, { method: 'POST' });
     }
+    setConfirmDialogOpen(false);
+    setRoleToRemove(null);
+    setFormToSubmit(null);
+  };
+
+  const handleCancelRemove = () => {
+    setConfirmDialogOpen(false);
+    setRoleToRemove(null);
+    setFormToSubmit(null);
   };
 
   return (
     <>
-      <TableRow className="flex items-center justify-between p-4 bg-white">
+      <TableRow className="flex justify-between items-center p-4 bg-white">
         <div className="flex items-center space-x-3">
           <div className="flex-shrink-0">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-foreground/10">
+            <div className="flex justify-center items-center w-10 h-10 rounded-full bg-foreground/10">
               <UserIcon className="w-6 h-6 text-muted-foreground" />
             </div>
           </div>
@@ -99,25 +86,24 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
         </div>
 
         <div className="flex items-center space-x-2">
-          {roles.map((role) => (
+          {roles.map(({ role, canRemove }) => (
             <div key={role} className="relative">
-              {!isCurrentUser ? (
+              {!isCurrentUser && canRemove ? (
                 <fetcher.Form
                   method="post"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (
-                      window.confirm(
-                        `Are you sure you want to remove the ${getRoleDisplayName(role)} role from ${name || 'this user'}?`,
-                      )
-                    ) {
-                      const formData = new FormData(e.currentTarget);
-                      fetcher.submit(formData, { method: 'POST' });
+                    if (!userId) {
+                      toastError('Cannot remove user: user ID is missing');
+                      return;
                     }
+                    setRoleToRemove(role);
+                    setFormToSubmit(e.currentTarget);
+                    setConfirmDialogOpen(true);
                   }}
                 >
                   <input type="hidden" name="intent" value="revoke" />
-                  <input type="hidden" name="email" value={email || ''} />
+                  <input type="hidden" name="userId" value={userId || ''} />
                   <input type="hidden" name="role" value={role} />
                   <Badge
                     variant="outline"
@@ -131,16 +117,14 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
                       }
                     }}
                   >
-                    {getRoleIcon(role)}
                     <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                       {getRoleDisplayName(role)}
                     </span>
-                    <X className="w-3 h-3 ml-1 text-gray-400 transition-colors group-hover:text-red-500" />
+                    <X className="ml-1 w-3 h-3 text-gray-400 transition-colors group-hover:text-red-500" />
                   </Badge>
                 </fetcher.Form>
               ) : (
                 <Badge variant="outline">
-                  {getRoleIcon(role)}
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                     {getRoleDisplayName(role)}
                   </span>
@@ -150,6 +134,28 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
           ))}
         </div>
       </TableRow>
+      <SimpleDialog
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        title="Remove Role"
+        description={
+          roleToRemove
+            ? `Are you sure you want to remove the ${getRoleDisplayName(roleToRemove)} role from ${name || 'this user'}?`
+            : ''
+        }
+        footerButtons={[
+          {
+            label: 'Cancel',
+            onClick: handleCancelRemove,
+            variant: 'outline',
+          },
+          {
+            label: 'Remove Role',
+            onClick: handleConfirmRemove,
+            variant: 'destructive',
+          },
+        ]}
+      />
     </>
   );
 }
