@@ -3,8 +3,8 @@ import { primitives, ui } from '@curvenote/scms-core';
 import { MoreVertical, FileText, ExternalLink } from 'lucide-react';
 
 export function FormCard({ form, siteName }: { form: any; siteName: string }) {
-  const title = form.content?.title ?? form.name;
-  const description = form.content?.description ?? 'No description';
+  const title = form.data?.title ?? form.name;
+  const description = form.data?.description ?? 'No description';
   const fetcher = useFetcher();
   return (
     <Link to={`${form.name}`} tabIndex={0} aria-label={title} className="block focus:outline-none">

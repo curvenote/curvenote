@@ -9,6 +9,7 @@
 ALTER TYPE "ActivityType" ADD VALUE 'FORM_DELETED';
 ALTER TYPE "ActivityType" ADD VALUE 'FORM_CREATED';
 ALTER TYPE "ActivityType" ADD VALUE 'FORM_UPDATED';
+ALTER TYPE "ActivityType" ADD VALUE 'FORM_SUBMITTED';
 
 -- AlterTable
 ALTER TABLE "Activity" ADD COLUMN     "form_id" TEXT;
@@ -30,7 +31,7 @@ CREATE TABLE "SubmissionForm" (
     "date_created" TEXT NOT NULL,
     "date_modified" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "content" JSONB NOT NULL,
+    "data" JSONB,
     "site_id" TEXT NOT NULL,
     "kind_id" TEXT NOT NULL,
 

@@ -63,7 +63,7 @@ export async function dbCreateForm(
           },
         },
         name: data.name,
-        content: {
+        data: {
           title: data.title,
           description: data.description,
         },

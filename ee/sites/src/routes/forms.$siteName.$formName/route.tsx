@@ -86,7 +86,7 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
   return [
     {
       title: joinPageTitle(
-        (loaderData?.content as any)?.title,
+        (loaderData?.data as any)?.title,
         'Submit',
         loaderData?.siteName,
         branding.title,
@@ -99,8 +99,8 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
   const { formCollections, user, ...form } = loaderData;
   const actionData = useActionData<{ error?: { message?: string } }>();
 
-  const title = (form.content as any)?.title ?? form.name;
-  const description = (form.content as any)?.description;
+  const title = (form.data as any)?.title ?? form.name;
+  const description = (form.data as any)?.description;
 
   const hasMultipleCollections = formCollections.length > 1;
 

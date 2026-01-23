@@ -106,7 +106,7 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
   return [
     {
       title: joinPageTitle(
-        (loaderData?.content as any)?.title,
+        (loaderData?.data as any)?.title,
         'Form Details',
         loaderData?.siteName,
         branding.title,
@@ -120,8 +120,8 @@ export default function FormDetails({ loaderData }: { loaderData: LoaderData }) 
   const fetcher = useFetcher();
   const kindFormRef = useRef<HTMLFormElement>(null);
 
-  const title = (form.content as any)?.title;
-  const description = (form.content as any)?.description;
+  const title = (form.data as any)?.title;
+  const description = (form.data as any)?.description;
 
   const breadcrumbs = [
     { label: 'Sites', href: '/app/sites' },

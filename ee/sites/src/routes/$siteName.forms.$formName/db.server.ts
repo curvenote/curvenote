@@ -58,7 +58,7 @@ export async function safeFormContentUpdate(
       throw httpError(404, 'Form not found');
     }
 
-    const content = { ...coerceToObject(currentForm.content), ...newContent };
+    const formData = { ...coerceToObject(currentForm.data), ...newContent };
 
     // Attempt to update
     try {
@@ -70,7 +70,7 @@ export async function safeFormContentUpdate(
             id: formId,
           },
           data: {
-            content,
+            data: formData,
             date_modified: timestamp,
           },
         });
