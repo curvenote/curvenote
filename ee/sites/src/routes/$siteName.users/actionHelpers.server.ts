@@ -255,8 +255,10 @@ export async function $actionRevokeUserRole(ctx: SiteContextWithUser, payload: P
     if (!existingRoleIfOnTargetUser) {
       return data(
         {
-          message: 'unprocessable content',
-          info: 'user does not have specified role, cannot revoke it',
+          error: {
+            type: 'general',
+            message: 'user does not have specified role, cannot revoke it',
+          },
         },
         { status: 422 },
       );

@@ -78,13 +78,9 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData | { e
 export async function action(args: ActionFunctionArgs) {
   // redirect: false here without a catch and custom error handling, with return a hard 403, resulting in an error page
   // this desired UX as the UI controls should be disabled if the user does not have permission
-  const ctx = await withAppSiteContext(
-    args,
-    [siteScopes.users.update, siteScopes.users.delete, siteScopes.users.admin],
-    {
-      redirect: false,
-    },
-  );
+  const ctx = await withAppSiteContext(args, [siteScopes.users.update, siteScopes.users.delete], {
+    redirect: false,
+  });
 
   const formData = await args.request.formData();
 
@@ -146,7 +142,7 @@ export default function Users({ loaderData }: { loaderData: LoaderData }) {
       {/* Add User Section */}
 
       {canUpdateRoles && (
-        <SectionWithHeading heading="Add User" icon={UserPlus}>
+        <SectionWithHeading heading="Grant Roles" icon={UserPlus}>
           <div className="p-6 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
             <SiteRolesForm canGrantAdminRole={canModifyAdminRoles} />
           </div>
@@ -170,10 +166,7 @@ export default function Users({ loaderData }: { loaderData: LoaderData }) {
                 key={user.id}
                 name={user.display_name || 'Unknown User'}
                 email={user.email}
-                roles={user.site_roles.map((roleObj) => ({
-                  role: roleObj.role,
-                  canRemove: roleObj.canRemove,
-                }))}
+                roles={user.site_roles}
                 userId={user.id}
               />
             ))
