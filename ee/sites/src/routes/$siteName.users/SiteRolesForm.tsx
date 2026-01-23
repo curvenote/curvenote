@@ -2,7 +2,7 @@ import { useFetcher } from 'react-router';
 import { ui, type GeneralError } from '@curvenote/scms-core';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
-export function SiteRolesForm() {
+export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolean }) {
   const form = useRef<HTMLFormElement>(null);
   const fetcher = useFetcher<{ error?: GeneralError; message?: string; info?: string }>();
   const [selectedUser, setSelectedUser] = useState<string>('');
@@ -131,7 +131,7 @@ export function SiteRolesForm() {
             required
             disabled={fetcher.state === 'submitting'}
           >
-            <option value="ADMIN">Admin</option>
+            {canGrantAdminRole && <option value="ADMIN">Admin</option>}
             <option value="EDITOR">Editor</option>
             <option value="SUBMITTER">Submitter</option>
           </select>

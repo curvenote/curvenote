@@ -24,10 +24,14 @@ import {
 } from './actionHelpers.server.js';
 
 interface LoaderData {
-  users: ReturnType<typeof dtoSiteUsers>;
+  users: Array<
+    Omit<ReturnType<typeof dtoSiteUsers>[number], 'site_roles'> & {
+      site_roles: { role: SiteRole; canRemove: boolean }[];
+    }
+  >;
   site: ReturnType<typeof sites.formatSiteDTO>;
-  canAddRemoveUsers: boolean;
-  canRemoveAdmins: boolean;
+  canUpdateRoles: boolean;
+  canModifyAdminRoles: boolean;
 }
 
 export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
@@ -43,18 +47,32 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData | { e
     redirect: true,
   });
 
-  const canAddRemoveUsers = userHasSiteScopes(
+  const canUpdateRoles = userHasSiteScopes(
     ctx.user,
     [siteScopes.users.update, siteScopes.users.delete],
     ctx.site.id,
   );
-  const canRemoveAdmins = canAddRemoveUsers && userHasSiteScope(ctx.user, siteScopes.users.admin);
+  const canModifyAdminRoles = canUpdateRoles && userHasSiteScope(ctx.user, siteScopes.users.admin);
 
   // Regular page load
   const dbo = await dbGetSiteUsers(ctx.site.name);
   if (!dbo) return { error: 'Failed to get site users' };
   const users = dtoSiteUsers(dbo);
-  return { users, site: ctx.siteDTO, canAddRemoveUsers, canRemoveAdmins };
+
+  const usersWithScopedRoles = users.map((user) => ({
+    ...user,
+    site_roles: user.site_roles.map((role) => ({
+      role,
+      canRemove: role === SiteRole.ADMIN ? canModifyAdminRoles : canUpdateRoles,
+    })),
+  }));
+
+  return {
+    users: usersWithScopedRoles,
+    site: ctx.siteDTO,
+    canUpdateRoles,
+    canModifyAdminRoles,
+  };
 }
 
 export async function action(args: ActionFunctionArgs) {
@@ -121,16 +139,16 @@ export async function action(args: ActionFunctionArgs) {
 }
 
 export default function Users({ loaderData }: { loaderData: LoaderData }) {
-  const { users, site, canAddRemoveUsers } = loaderData;
+  const { users, site, canUpdateRoles, canModifyAdminRoles } = loaderData;
 
   return (
     <PageFrame title="Users" subtitle={`Manage the users and access roles for ${site?.title}`}>
       {/* Add User Section */}
 
-      {canAddRemoveUsers && (
+      {canUpdateRoles && (
         <SectionWithHeading heading="Add User" icon={UserPlus}>
           <div className="p-6 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-            <SiteRolesForm />
+            <SiteRolesForm canGrantAdminRole={canModifyAdminRoles} />
           </div>
         </SectionWithHeading>
       )}
@@ -152,9 +170,9 @@ export default function Users({ loaderData }: { loaderData: LoaderData }) {
                 key={user.id}
                 name={user.display_name || 'Unknown User'}
                 email={user.email}
-                roles={user.site_roles.map((role) => ({
-                  role,
-                  canRemove: canAddRemoveUsers,
+                roles={user.site_roles.map((roleObj) => ({
+                  role: roleObj.role,
+                  canRemove: roleObj.canRemove,
                 }))}
                 userId={user.id}
               />
