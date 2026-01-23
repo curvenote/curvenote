@@ -6,10 +6,10 @@ import { cn } from '../utils/cn.js';
 import { useEffect } from 'react';
 import { useMyUser } from '../providers/MyUserProvider.js';
 import { toastSuccess, toastError } from './ui/toast.js';
-import type { SiteRole } from '@curvenote/scms-db';
+import type { GeneralError } from '../backend/types.js';
 
 type UserProps = {
-  roles: { role: SiteRole; canRemove: boolean }[];
+  roles: { role: string; canRemove: boolean }[];
   email?: string | null;
   name?: string | null;
   userId?: string | null;
@@ -21,7 +21,7 @@ function TableRow({ children, className }: { children: React.ReactNode; classNam
 }
 
 export function UserCard({ roles, email, name, userId }: UserProps) {
-  const fetcher = useFetcher<{ ok: boolean; error?: string; info?: string }>();
+  const fetcher = useFetcher<{ error?: GeneralError; message?: string; info?: string }>();
   const currentUser = useMyUser();
 
   // Check if the current user is viewing their own card
@@ -31,7 +31,11 @@ export function UserCard({ roles, email, name, userId }: UserProps) {
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
       if (fetcher.data.error) {
-        toastError(fetcher.data.error);
+        const errorMessage =
+          typeof fetcher.data.error === 'object' && 'message' in fetcher.data.error
+            ? fetcher.data.error.message
+            : 'An error occurred';
+        toastError(errorMessage);
       } else if (fetcher.data.info) {
         toastSuccess(fetcher.data.info);
       }

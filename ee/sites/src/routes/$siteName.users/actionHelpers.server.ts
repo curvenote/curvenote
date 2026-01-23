@@ -4,14 +4,14 @@ import { z } from 'zod';
 import type { SiteUser, User } from '@curvenote/scms-db';
 import { SiteRole } from '@curvenote/scms-db';
 import type { SiteContextWithUser, SiteContext } from '@curvenote/scms-server';
-import { SlackEventType } from '@curvenote/scms-server';
+import { SlackEventType, userHasSiteScope } from '@curvenote/scms-server';
 import {
   dbAddSiteUserRole,
   dbGetUserByEmail,
   dbGetUserById,
   dbRemoveSiteUserRole,
 } from './db.server.js';
-import { KnownResendEvents } from '@curvenote/scms-core';
+import { KnownResendEvents, site as siteScopes } from '@curvenote/scms-core';
 import { SiteTrackEvent } from '../../analytics/events.js';
 
 // User type that includes site_roles (as returned by dbGetUserById/dbGetUserByEmail)
@@ -171,6 +171,19 @@ async function getUserWithRoles<T>(
  */
 export async function $actionGrantUserRole(ctx: SiteContextWithUser, payload: ParsedFormData) {
   return getUserWithRoles(ctx, payload, async (role, userWithRoles, existingRoleIfOnTargetUser) => {
+    // Prevent non-admins from modifying their own roles
+    if (ctx.user.id === userWithRoles.id && !userHasSiteScope(ctx.user, siteScopes.users.admin, ctx.site.id)) {
+      return data(
+        {
+          error: {
+            type: 'general',
+            message: 'Only admins can modify their own roles',
+          },
+        },
+        { status: 403 },
+      );
+    }
+
     if (existingRoleIfOnTargetUser) {
       return { message: 'ok', info: 'user already has the requested role' };
     }
@@ -226,7 +239,8 @@ export async function $actionGrantUserRole(ctx: SiteContextWithUser, payload: Pa
  *
  * The function performs:
  * - Validation that the user has the role to revoke
- * - Self-protection check (prevents users from revoking their own admin role)
+ * - Self-protection check (prevents non-admins from modifying their own roles)
+ * - Self-protection check (prevents users from revoking their own admin role, even admins)
  *
  * Authorization should be performed in the route handler using:
  * - `withAppSiteContext()` to check required scopes
@@ -247,9 +261,29 @@ export async function $actionRevokeUserRole(ctx: SiteContextWithUser, payload: P
         { status: 422 },
       );
     }
-    if (role === SiteRole.ADMIN && ctx.user?.id === userWithRoles.id) {
+
+    // Prevent non-admins from modifying their own roles
+    if (ctx.user.id === userWithRoles.id && !userHasSiteScope(ctx.user, siteScopes.users.admin, ctx.site.id)) {
       return data(
-        { message: 'unprocessable content', error: 'cannot revoke your own admin permissions' },
+        {
+          error: {
+            type: 'general',
+            message: 'Only admins can modify their own roles',
+          },
+        },
+        { status: 403 },
+      );
+    }
+
+    // Prevent users from revoking their own admin role (even admins)
+    if (role === SiteRole.ADMIN && ctx.user.id === userWithRoles.id) {
+      return data(
+        {
+          error: {
+            type: 'general',
+            message: 'cannot revoke your own admin permissions',
+          },
+        },
         { status: 422 },
       );
     }

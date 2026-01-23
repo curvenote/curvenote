@@ -1,10 +1,10 @@
 import { useFetcher } from 'react-router';
-import { ui } from '@curvenote/scms-core';
+import { ui, type GeneralError } from '@curvenote/scms-core';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
 export function SiteRolesForm() {
   const form = useRef<HTMLFormElement>(null);
-  const fetcher = useFetcher<{ ok: boolean; error?: string | string[]; info?: string }>();
+  const fetcher = useFetcher<{ error?: GeneralError; message?: string; info?: string }>();
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedRole, setSelectedRole] = useState<string>('ADMIN');
 
@@ -12,9 +12,10 @@ export function SiteRolesForm() {
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
       if (fetcher.data.error) {
-        const errorMessage = Array.isArray(fetcher.data.error)
-          ? fetcher.data.error.map((e: any) => e.message || e.code || String(e)).join(', ')
-          : String(fetcher.data.error);
+        const errorMessage =
+          typeof fetcher.data.error === 'object' && 'message' in fetcher.data.error
+            ? fetcher.data.error.message
+            : 'An error occurred';
         ui.toastError(errorMessage);
       } else if (fetcher.data.info) {
         ui.toastSuccess(fetcher.data.info);

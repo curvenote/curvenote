@@ -20,6 +20,7 @@ import {
   $actionGrantUserRole,
   $actionRevokeUserRole,
   ActionFormDataSchema,
+  type ParsedFormData,
 } from './actionHelpers.server.js';
 
 interface LoaderData {
@@ -88,7 +89,8 @@ export async function action(args: ActionFunctionArgs) {
 
   // Extract intent and payload (without intent)
   const { intent, ...payload } = validatedData;
-  const { role: targetRole } = payload;
+  const rolePayload: ParsedFormData = payload;
+  const { role: targetRole } = rolePayload;
 
   if (targetRole === SiteRole.ADMIN) {
     if (!userHasSiteScope(ctx.user, siteScopes.users.admin)) {
@@ -106,9 +108,9 @@ export async function action(args: ActionFunctionArgs) {
 
   // Route to appropriate action based on intent
   if (intent === 'grant') {
-    return $actionGrantUserRole(ctx, payload);
+    return $actionGrantUserRole(ctx, rolePayload);
   } else if (intent === 'revoke') {
-    return $actionRevokeUserRole(ctx, payload);
+    return $actionRevokeUserRole(ctx, rolePayload);
   }
 
   // This should never happen due to Zod validation, but TypeScript needs it
