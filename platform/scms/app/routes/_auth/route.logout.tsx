@@ -2,7 +2,7 @@ import type { ActionFunction, MetaFunction } from 'react-router';
 import { redirect, Form, Link, useNavigation } from 'react-router';
 import { ui } from '@curvenote/scms-core';
 import type { ClientDeploymentConfig } from '@curvenote/scms-core';
-import { sessionStorageFactory, getInvalidateProviderCookie } from '@curvenote/scms-server';
+import { sessionStorageFactory, createLogoutHeaders } from '@curvenote/scms-server';
 
 export const meta: MetaFunction = ({ matches }) => {
   const { data } = matches.find(({ id }) => id === 'root') as {
@@ -19,12 +19,7 @@ export const meta: MetaFunction = ({ matches }) => {
 export const action: ActionFunction = async ({ request }) => {
   const sessionStorage = await sessionStorageFactory();
   const session = await sessionStorage.getSession(request.headers.get('Cookie'));
-  const user = session.get('user');
-  const headers = new Headers();
-  headers.append('Set-Cookie', await sessionStorage.destroySession(session));
-  if (user?.provider) {
-    headers.append('Set-Cookie', getInvalidateProviderCookie(user?.provider));
-  }
+  const headers = await createLogoutHeaders(sessionStorage, session);
   return redirect('/login', { headers });
 };
 
