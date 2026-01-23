@@ -34,6 +34,7 @@ CREATE TABLE "SubmissionForm" (
     "data" JSONB,
     "site_id" TEXT NOT NULL,
     "kind_id" TEXT NOT NULL,
+    "occ" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "SubmissionForm_pkey" PRIMARY KEY ("id")
 );

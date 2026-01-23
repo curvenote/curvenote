@@ -73,6 +73,7 @@ model SubmissionForm {
   kind_id       String
   collections   CollectionsInForms[]
   activity      Activity[]
+  occ           Int                  @default(0)
 
   @@unique([name, site_id])
 }

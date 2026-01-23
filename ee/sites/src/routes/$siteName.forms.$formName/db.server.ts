@@ -3,6 +3,7 @@ import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '@curvenote/scms-server';
 import { ActivityType } from '@curvenote/scms-db';
 import { coerceToObject, httpError, delay } from '@curvenote/scms-core';
+import { TITLE_DESCRIPTION_SCHEMA } from '../../schemas.js';
 
 export async function dbGetForm(formName: string, siteId: string) {
   const prisma = await getPrismaClient();
@@ -37,11 +38,11 @@ export async function dbGetForm(formName: string, siteId: string) {
 }
 
 /**
- * This is a server action that updates the content field of
+ * This is a server action that updates the data field of
  * a form using OCC with a parameterised number of maxretries
  */
-export async function safeFormContentUpdate(
-  newContent: { title?: string; description?: string },
+export async function safeFormDataUpdate(
+  newData: { title?: string; description?: string },
   formId: string,
   userId: string,
   maxRetries: number = 5,
@@ -49,7 +50,7 @@ export async function safeFormContentUpdate(
   const prisma = await getPrismaClient();
   let retries = 0;
   while (retries < maxRetries) {
-    // Get the current form
+    // Get the current form with its OCC value
     const currentForm = await prisma.submissionForm.findUnique({
       where: { id: formId },
     });
@@ -58,9 +59,13 @@ export async function safeFormContentUpdate(
       throw httpError(404, 'Form not found');
     }
 
-    const formData = { ...coerceToObject(currentForm.data), ...newContent };
+    const updatedData = {
+      ...coerceToObject(currentForm.data),
+      ...newData,
+      $schema: TITLE_DESCRIPTION_SCHEMA,
+    };
 
-    // Attempt to update
+    // Attempt to update with OCC check
     try {
       const updated = prisma.$transaction(async (tx) => {
         const timestamp = formatDate();
@@ -68,9 +73,11 @@ export async function safeFormContentUpdate(
         const form = await tx.submissionForm.update({
           where: {
             id: formId,
+            occ: currentForm.occ, // This ensures we only update if OCC matches
           },
           data: {
-            data: formData,
+            data: updatedData,
+            occ: { increment: 1 }, // Increment OCC on successful update
             date_modified: timestamp,
           },
         });

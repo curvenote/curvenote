@@ -2,6 +2,7 @@ import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '@curvenote/scms-server';
 import { ActivityType } from '@curvenote/scms-db';
+import { TITLE_DESCRIPTION_SCHEMA } from '../../schemas.js';
 
 export async function dbListForms(siteId: string) {
   const prisma = await getPrismaClient();
@@ -64,6 +65,7 @@ export async function dbCreateForm(
         },
         name: data.name,
         data: {
+          $schema: TITLE_DESCRIPTION_SCHEMA,
           title: data.title,
           description: data.description,
         },

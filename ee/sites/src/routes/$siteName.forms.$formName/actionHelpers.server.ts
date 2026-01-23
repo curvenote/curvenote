@@ -4,7 +4,7 @@ import { scopes } from '@curvenote/scms-core';
 import { withValidFormData, userHasSiteScope, getPrismaClient } from '@curvenote/scms-server';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
 import {
-  safeFormContentUpdate,
+  safeFormDataUpdate,
   dbUpdateFormName,
   dbUpdateFormKind,
   dbCreateFormCollection,
@@ -55,7 +55,7 @@ export async function updateFormTitle(
     UpdateFormTitleSchema,
     formData,
     async ({ value }) => {
-      return safeFormContentUpdate({ title: value }, formId, ctx.user.id);
+      return safeFormDataUpdate({ title: value }, formId, ctx.user.id);
     },
     { errorFields: { type: 'general', intent: 'update-form-title' } },
   );
@@ -73,7 +73,7 @@ export async function updateFormDescription(
     UpdateFormDescriptionSchema,
     formData,
     async ({ value }) => {
-      return safeFormContentUpdate({ description: value }, formId, ctx.user.id);
+      return safeFormDataUpdate({ description: value }, formId, ctx.user.id);
     },
     { errorFields: { type: 'general', intent: 'update-form-description' } },
   );
