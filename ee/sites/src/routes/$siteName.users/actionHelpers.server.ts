@@ -238,8 +238,7 @@ export async function $actionGrantUserRole(ctx: SiteContextWithUser, payload: Pa
  *
  * The function performs:
  * - Validation that the user has the role to revoke
- * - Self-protection check (prevents non-admins from modifying their own roles)
- * - Self-protection check (prevents users from revoking their own admin role, even admins)
+ * - Self-protection check (prevents all users from modifying their own roles)
  *
  * Authorization should be performed in the route handler using:
  * - `withAppSiteContext()` to check required scopes
@@ -269,7 +268,7 @@ export async function $actionRevokeUserRole(ctx: SiteContextWithUser, payload: P
         {
           error: {
             type: 'general',
-            message: 'Only admins can modify their own roles',
+            message: 'Users cannot modify their own roles',
           },
         },
         { status: 403 },
