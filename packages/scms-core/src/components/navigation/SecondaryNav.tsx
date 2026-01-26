@@ -35,9 +35,9 @@ export function SecondaryNav({
         <>
           {branding.url ? (
             <div className="pt-[60px]">
-              <a className="flex flex-col items-center justify-center" href={branding.url}>
+              <a className="flex flex-col justify-center items-center" href={branding.url}>
                 <SiteLogo
-                  className="object-cover h-10 mb-4"
+                  className="object-cover mb-4 h-10"
                   alt={title ?? ''}
                   logo={branding.logo}
                   logo_dark={branding.logo_dark}
@@ -51,7 +51,7 @@ export function SecondaryNav({
             <div className="flex flex-col justify-center items-center pt-[60px]">
               {branding.logo && (
                 <SiteLogo
-                  className="object-cover h-10 mb-4"
+                  className="object-cover mb-4 h-10"
                   alt={title ?? ''}
                   logo={branding.logo}
                   logo_dark={branding.logo_dark}
@@ -72,11 +72,13 @@ export function SecondaryNav({
           {subtitle && <div className="py-1 font-normal txt-base">{subtitle}</div>}
         </div>
       )}
-      <div className="h-full overflow-x-hidden overflow-y-auto grow scrollbar scrollbar-thin scrollbar-track-stone-100 scrollbar-thumb-stone-500 dark:scrollbar-track-stone-800 dark:scrollbar-thumb-stone-400">
-        {contents.map(({ sectionName, menus }) => (
-          <ul key={sectionName ?? menus.reduce((acc, i) => `${acc}-${i}`, '')}>
+      <div className="overflow-y-auto overflow-x-hidden h-full grow scrollbar scrollbar-thin scrollbar-track-stone-100 scrollbar-thumb-stone-500 dark:scrollbar-track-stone-800 dark:scrollbar-thumb-stone-400">
+        {contents.map(({ sectionName, menus }, index) => (
+          <ul
+            key={sectionName ?? (menus.map((m) => m.name ?? m.url).join('-') || `section-${index}`)}
+          >
             <>
-              {open && sectionName && (
+              {sectionName && (
                 <li className="px-5">
                   <div className="flex flex-row items-center h-8">
                     <div className="text-xs font-light uppercase text-stone-800 dark:text-white">

@@ -84,7 +84,7 @@ export function WorkList({
       renderGroup={renderGroup}
       renderItem={renderItem}
       getItemKey={(work) => work.id}
-      emptyMessage="No Works to show"
+      emptyMessage="No items to show"
       persist={true}
     />
   );

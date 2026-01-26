@@ -22,13 +22,6 @@ const CreateMagicLinkSchema = zfd.formData({
       return val && val.trim() !== '' ? val.trim() : undefined;
     })
     .pipe(z.string().optional()),
-  email: zfd
-    .text(z.string().optional())
-    .transform((val) => {
-      // Transform empty string to undefined for optional field
-      return val && val.trim() !== '' ? val.trim() : undefined;
-    })
-    .pipe(z.string().email('Invalid email address').optional()),
   expiryDuration: zfd
     .text(z.string().optional())
     .transform((val) => {
@@ -37,26 +30,6 @@ const CreateMagicLinkSchema = zfd.formData({
       return isNaN(num) ? undefined : num;
     })
     .pipe(z.number().int().min(0, 'Expiry duration must be non-negative').optional()),
-  accessLimit: zfd
-    .text(z.string().optional())
-    .transform((val) => {
-      // Treat empty string as undefined (no limit)
-      if (!val || val === '') return undefined;
-      const num = parseInt(val, 10);
-      // Return undefined for invalid numbers (treated as no limit)
-      if (isNaN(num)) return undefined;
-      // Return the number as-is (including 0) so .min(1) can reject invalid values
-      // This ensures that 0 is explicitly rejected by the .min(1) validation
-      return num;
-    })
-    .pipe(
-      z
-        .union([
-          z.undefined(),
-          z.number().int().min(1, 'Access limit must be a positive integer (1 or greater)'),
-        ])
-        .optional(),
-    ),
 });
 
 const MagicLinkActionSchema = zfd.formData({
@@ -114,7 +87,7 @@ export async function actionCreateMagicLink(
     return data({ error: formatZodError(e) }, { status: 400 });
   }
 
-  const { name, email, expiryDuration, accessLimit } = payload;
+  const { name, expiryDuration } = payload;
 
   try {
     const magicLinkData: MagicLinkData = {
@@ -123,9 +96,6 @@ export async function actionCreateMagicLink(
     };
 
     // Schema already handles trimming and empty string to undefined conversion
-    if (email) {
-      magicLinkData.email = email;
-    }
     if (name) {
       magicLinkData.name = name;
     }
@@ -135,7 +105,6 @@ export async function actionCreateMagicLink(
       data: magicLinkData,
       createdById: ctx.user.id,
       expiryDuration: expiryDuration && expiryDuration > 0 ? expiryDuration : undefined,
-      accessLimit,
     });
 
     // Track magic link creation
@@ -146,7 +115,6 @@ export async function actionCreateMagicLink(
         submissionId,
         siteName: ctx.site.name,
         hasExpiry: !!magicLink.expiry,
-        hasAccessLimit: magicLink.access_limit !== null,
       });
     } catch (trackError) {
       console.error('Failed to track magic link creation:', trackError);

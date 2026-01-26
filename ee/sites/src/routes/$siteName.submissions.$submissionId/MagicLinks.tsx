@@ -8,18 +8,7 @@ import {
   clientCheckSiteScopes,
   scopes,
 } from '@curvenote/scms-core';
-import {
-  Link2,
-  Copy,
-  XCircle,
-  Plus,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  ChevronDown,
-  ChevronUp,
-  Trash2,
-} from 'lucide-react';
+import { Link2, Copy, XCircle, Plus, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 import classNames from 'classnames';
 import type { MagicLink } from '@curvenote/scms-db';
 import { DeleteMagicLinkDialog } from './DeleteMagicLinkDialog.js';
@@ -42,7 +31,6 @@ export function MagicLinks() {
   const apiBaseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const fetcher = useFetcher();
   const [showForm, setShowForm] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [linkToDelete, setLinkToDelete] = useState<{ id: string; label?: string } | null>(null);
@@ -64,7 +52,6 @@ export function MagicLinks() {
       ui.toastSuccess('Magic link created successfully');
       // Close form on success
       setShowForm(false);
-      setShowAdvanced(false);
     } else if (fetcher.data?.error && fetcher.state === 'idle') {
       ui.toastError(fetcher.data.error);
       // Keep form open on error so user can fix it
@@ -125,9 +112,6 @@ export function MagicLinks() {
     if (link.expiry && new Date(link.expiry) < new Date()) {
       return { label: 'Expired', color: 'text-orange-600', icon: Clock };
     }
-    if (link.access_limit && link.access_count >= link.access_limit) {
-      return { label: 'Limit Reached', color: 'text-orange-600', icon: AlertCircle };
-    }
     return { label: 'Active', color: 'text-green-600', icon: CheckCircle2 };
   };
 
@@ -167,61 +151,21 @@ export function MagicLinks() {
                 </p>
               </div>
 
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex gap-2 items-center text-sm text-gray-700 hover:text-gray-900"
-                >
-                  {showAdvanced ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                  Advanced Options
-                </button>
+              <div className="space-y-2">
+                <ui.Label htmlFor="expiryDuration">Expires In</ui.Label>
+                <ui.Select name="expiryDuration" defaultValue="0">
+                  <ui.SelectTrigger>
+                    <ui.SelectValue placeholder="Select duration" />
+                  </ui.SelectTrigger>
+                  <ui.SelectContent>
+                    <ui.SelectItem value="86400000">1 Day</ui.SelectItem>
+                    <ui.SelectItem value="604800000">7 Days</ui.SelectItem>
+                    <ui.SelectItem value="2592000000">30 Days</ui.SelectItem>
+                    <ui.SelectItem value="7776000000">90 Days</ui.SelectItem>
+                    <ui.SelectItem value="0">Never</ui.SelectItem>
+                  </ui.SelectContent>
+                </ui.Select>
               </div>
-
-              {showAdvanced && (
-                <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <ui.Label htmlFor="email">Email (optional)</ui.Label>
-                    <ui.Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="reviewer@example.com"
-                    />
-                    <p className="text-xs text-gray-500">For tracking purposes only</p>
-                  </div>
-                  <div className="space-y-2">
-                    <ui.Label htmlFor="expiryDuration">Expires In</ui.Label>
-                    <ui.Select name="expiryDuration" defaultValue="0">
-                      <ui.SelectTrigger>
-                        <ui.SelectValue placeholder="Select duration" />
-                      </ui.SelectTrigger>
-                      <ui.SelectContent>
-                        <ui.SelectItem value="86400000">1 Day</ui.SelectItem>
-                        <ui.SelectItem value="604800000">7 Days</ui.SelectItem>
-                        <ui.SelectItem value="2592000000">30 Days</ui.SelectItem>
-                        <ui.SelectItem value="7776000000">90 Days</ui.SelectItem>
-                        <ui.SelectItem value="0">Never</ui.SelectItem>
-                      </ui.SelectContent>
-                    </ui.Select>
-                  </div>
-                  <div className="space-y-2">
-                    <ui.Label htmlFor="accessLimit">Access Limit</ui.Label>
-                    <ui.Input
-                      id="accessLimit"
-                      name="accessLimit"
-                      type="number"
-                      min="1"
-                      placeholder="Unlimited"
-                    />
-                    <p className="text-xs text-gray-500">Maximum successful accesses</p>
-                  </div>
-                </div>
-              )}
 
               <div className="flex gap-2 justify-end">
                 <ui.Button
@@ -230,7 +174,6 @@ export function MagicLinks() {
                   size="sm"
                   onClick={() => {
                     setShowForm(false);
-                    setShowAdvanced(false);
                   }}
                 >
                   Cancel
@@ -271,16 +214,10 @@ export function MagicLinks() {
 
                       {/* Metadata on same line for wide screens */}
                       <div className="flex flex-wrap gap-y-1 gap-x-4 text-xs text-gray-500">
-                        {data.email && (
-                          <span>
-                            <span className="font-medium">Email:</span> {data.email}
-                          </span>
-                        )}
                         <span>Created {formatDate(link.date_created, 'MMM dd, y')}</span>
                         {link.expiry && <span>Expires {formatDate(link.expiry, 'MMM dd, y')}</span>}
                         <span>
                           {link.access_count} access{link.access_count !== 1 ? 'es' : ''}
-                          {link.access_limit && ` / ${link.access_limit} max`}
                         </span>
                       </div>
 

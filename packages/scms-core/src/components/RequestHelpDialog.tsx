@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFetcher } from 'react-router';
-import { SimpleDialog } from './ui/simple-dialog.js';
+import { SimpleDialog } from './ui/dialogs/index.js';
 import { Button } from './ui/button.js';
 import { LimitedTextarea } from './ui/limited-textarea.js';
 import { Label } from './ui/label.js';
@@ -287,7 +287,7 @@ export function RequestHelpDialog({
         footerButtons={[{ label: 'Close', onClick: handleSuccessClose }]}
       >
         <div className="flex flex-col items-center py-6">
-          <CircleCheck className="w-16 h-16 mb-4 text-green-600" />
+          <CircleCheck className="mb-4 w-16 h-16 text-green-600" />
           <h2 className="text-lg font-semibold leading-none text-center">Request Sent</h2>
           <p className="mt-2 text-base text-center text-muted-foreground">{successMessage}</p>
         </div>

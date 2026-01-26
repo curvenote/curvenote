@@ -14,6 +14,10 @@ enum ActivityType {
   COLLECTION_DELETED
   COLLECTION_CREATED
   COLLECTION_UPDATED
+  FORM_DELETED
+  FORM_CREATED
+  FORM_UPDATED
+  FORM_SUBMITTED
   USER_ENABLED
   USER_DISABLED
   USER_APPROVED
@@ -43,6 +47,8 @@ model Activity {
   kind_id               String?
   collection            Collection?        @relation(fields: [collection_id], references: [id])
   collection_id         String?
+  form                  SubmissionForm?    @relation(fields: [form_id], references: [id])
+  form_id               String?
   work                  Work?              @relation(fields: [work_id], references: [id])
   work_id               String?
   work_version          WorkVersion?       @relation(fields: [work_version_id], references: [id])

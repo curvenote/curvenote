@@ -1,18 +1,13 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, test, expect, beforeAll } from 'vitest';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@curvenote/scms-db';
+import { getLowLevelPrismaClient } from '@curvenote/scms-db';
 
 describe('Database Connectivity', () => {
   let prisma: PrismaClient;
 
-  beforeAll(() => {
-    prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL,
-        },
-      },
-    });
+  beforeAll(async () => {
+    prisma = await getLowLevelPrismaClient();
   });
 
   test('should connect to the database and perform a basic query', async () => {

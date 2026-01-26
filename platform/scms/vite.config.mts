@@ -26,8 +26,8 @@ export default defineConfig(async ({ mode }) => {
   /**
    * Monorepo-optimized Vite configuration
    *
-   * This config enables hot module reload (HMR) for changes in local packages:
-   * - Watches package source directories for changes
+   * This config enables hot module reload (HMR) for changes in local packages and ee:
+   * - Watches package and ee source directories for changes
    * - Excludes local packages from pre-bundling for faster updates
    * - Processes local packages through Vite's SSR transform
    * - Restarts dev server when package configuration changes
@@ -35,13 +35,15 @@ export default defineConfig(async ({ mode }) => {
   const userConfig: UserConfig = {
     server: {
       port: env.VITE_PORT ? parseInt(env.VITE_PORT) : undefined,
-      // Watch package source files for changes to enable hot reload
+      // Watch package and ee source files for changes to enable hot reload
       watch: {
-        // Explicitly watch all files in packages directory (use ** for recursive matching)
+        // Explicitly watch all files in packages and ee directories (use ** for recursive matching)
         // The negation pattern (!) means "don't ignore this"
         ignored: [
           // Don't ignore any files in packages - watch everything recursively
           '!**/packages/**',
+          // Don't ignore any files in ee - watch everything recursively
+          '!**/ee/**',
         ],
         // Use polling for better reliability with TypeScript file changes
         // This ensures enum/type changes are picked up immediately
@@ -49,13 +51,15 @@ export default defineConfig(async ({ mode }) => {
         // Increase interval for polling if enabled
         interval: 100,
       },
-      // Allow Vite to serve files from the workspace root and packages
+      // Allow Vite to serve files from the workspace root, packages, and ee
       fs: {
         allow: [
-          // Workspace root
+          // Workspace root (current directory when running from platform/scms)
           process.cwd(),
-          // Allow access to all packages
-          path.join(process.cwd(), 'packages'),
+          // Allow access to all packages (go up to workspace root, then into packages)
+          path.resolve(process.cwd(), '../../packages'),
+          // Allow access to ee folder (go up to workspace root, then into ee)
+          path.resolve(process.cwd(), '../../ee'),
         ],
       },
     },
@@ -124,16 +128,22 @@ export default defineConfig(async ({ mode }) => {
           'packages/*/package.json',
           // Restart when tsconfig files change in packages (affects types)
           'packages/*/tsconfig.json',
+          // Restart when package.json or tsconfig files change in ee
+          'ee/*/package.json',
+          'ee/*/tsconfig.json',
         ],
       }),
       // Plugin to invalidate modules when TypeScript files change (e.g., enum updates)
-      // This ensures enum/type changes in packages are picked up immediately without rebuild
+      // This ensures enum/type changes in packages and ee are picked up immediately without rebuild
       {
         name: 'invalidate-on-typescript-changes',
         configureServer(server) {
-          // Watch TypeScript files in packages and trigger HMR when they change
+          // Watch TypeScript files in packages and ee, trigger HMR when they change
           server.watcher.on('change', (file) => {
-            if (file.includes('packages/') && (file.endsWith('.ts') || file.endsWith('.tsx'))) {
+            if (
+              (file.includes('packages/') || file.includes('ee/')) &&
+              (file.endsWith('.ts') || file.endsWith('.tsx'))
+            ) {
               // Find the module and invalidate it along with all dependents
               const module = server.moduleGraph.getModuleById(file);
               if (module) {

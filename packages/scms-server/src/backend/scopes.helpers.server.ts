@@ -18,17 +18,27 @@ import {
 export function userHasSiteScope(
   user: UserWithRolesDBO | undefined,
   scope: string,
-  siteId?: string,
+  siteId: string,
 ): boolean {
   if (!user) return false;
   if (hasScopeViaSystemRole(user.system_role, system.admin)) return true;
-  if (siteId) {
-    const siteRoles = user.site_roles.filter((sr) => sr.site_id === siteId).map(({ role }) => role);
-    const rolesWithScope = siteRoles.filter((siteRole) => hasSiteScope(siteRole, scope));
+  const siteRoles = user.site_roles.filter((sr) => sr.site_id === siteId).map(({ role }) => role);
+  const rolesWithScope = siteRoles.filter((siteRole) => hasSiteScope(siteRole, scope));
+  return rolesWithScope.length > 0;
+}
 
-    return rolesWithScope.length > 0;
-  }
-  return false;
+/**
+ * Returns true only if the user has ALL of the requested site scopes.
+ *
+ * For site-scoped checks, if `siteId` is provided it will be used
+ * for all scope checks.
+ */
+export function userHasSiteScopes(
+  user: UserWithRolesDBO | undefined,
+  scopes: string[],
+  siteId: string,
+): boolean {
+  return scopes.every((scope) => userHasSiteScope(user, scope, siteId));
 }
 
 /**
@@ -54,16 +64,8 @@ export function userHasScope(
   if (hasScopeViaSystemRole(user.system_role, scope)) return true;
 
   // Check for required scopes via the UserRole/Role assignment
-  const userScopes = (user.roles || []).reduce((acc, r) => {
-    // Defensively handle the scopes field - only add if it's an array of strings
-    const scopes = r.role.scopes;
-    if (Array.isArray(scopes) && scopes.every((s) => typeof s === 'string')) {
-      return [...acc, ...scopes];
-    }
-    return acc;
-  }, [] as string[]);
-
-  if (userScopes.includes(scope)) return true;
+  const userRoleScopes = getUserRoleScopes(user);
+  if (userRoleScopes.includes(scope)) return true;
 
   // FUTURE: This will move the access table and uniformly handle site/work/user scopes
   if (scope.startsWith('site:') && (user.site_roles ?? []).length > 0) {
@@ -110,7 +112,25 @@ export function userHasScopes(
 }
 
 /**
- * Get a complete set of all user scopes, including system and site scopes, where
+ * Extract scopes from user.roles (UserRole/Role assignments).
+ * Defensively handles the scopes field - only adds if it's an array of strings.
+ *
+ * @param user - User with roles
+ * @returns Array of scopes from user.roles
+ */
+function getUserRoleScopes(user: UserWithRolesDBO): string[] {
+  return (user.roles || []).reduce((acc, r) => {
+    // Defensively handle the scopes field - only add if it's an array of strings
+    const scopes = r.role.scopes;
+    if (Array.isArray(scopes) && scopes.every((s) => typeof s === 'string')) {
+      return [...acc, ...scopes];
+    }
+    return acc;
+  }, [] as string[]);
+}
+
+/**
+ * Get a complete set of all user scopes, including system, site, and user role scopes, where
  * site scopes have been extended using the site name
  *
  * @param user
@@ -121,7 +141,8 @@ export function getUserScopesSet(user: UserWithRolesDBO): Set<string> {
   const siteScopes = user.site_roles.flatMap((sr) => {
     return getSiteRoleScopes(sr.role).map((scope) => `${scope}:${sr.site.name}`);
   });
-  return new Set([...systemScopes, ...siteScopes]);
+  const userRoleScopes = getUserRoleScopes(user);
+  return new Set([...systemScopes, ...siteScopes, ...userRoleScopes]);
 }
 
 /**

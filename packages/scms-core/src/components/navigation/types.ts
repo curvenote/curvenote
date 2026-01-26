@@ -6,6 +6,7 @@ export type ServerSideMenuContents = {
     icon?: string;
     url: string;
     end?: boolean;
+    requiredScope?: string; // Optional scope required to see this menu item
   }[];
 }[];
 

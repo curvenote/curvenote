@@ -19,6 +19,7 @@ export interface ExtensionTask {
   name: string;
   description: string;
   component: TaskComponent;
+  scopes?: string[]; // Optional list of scopes that the task is allowed to be accessed under
 }
 
 export interface ExtensionIcon {

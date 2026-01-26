@@ -12,6 +12,10 @@ export const site = {
     delete: 'site:domains:delete',
     update: 'site:domains:update',
   },
+  analytics: {
+    read: 'site:analytics:read',
+    list: 'site:analytics:list',
+  },
   submissions: {
     list: 'site:submissions:list',
     read: 'site:submissions:read',
@@ -37,12 +41,20 @@ export const site = {
     update: 'site:collections:update',
     delete: 'site:collections:delete',
   },
+  forms: {
+    list: 'site:forms:list',
+    read: 'site:forms:read',
+    create: 'site:forms:create',
+    update: 'site:forms:update',
+    delete: 'site:forms:delete',
+  },
   users: {
     list: 'site:users:list',
     read: 'site:users',
     create: 'site:users:create',
     update: 'site:users:update',
     delete: 'site:users:delete',
+    admin: 'site:users:admin',
   },
 };
 

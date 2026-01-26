@@ -1,4 +1,4 @@
-import { PrismaClient, SystemRole } from '@prisma/client';
+import { SystemRole, getLowLevelPrismaClient } from '@curvenote/scms-db';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { loadAllJsonFilesFromDir, seedBySites } from './seed.utils.mjs';
@@ -7,7 +7,7 @@ import { uuidv7 } from 'uuidv7';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const prisma = new PrismaClient();
+const prisma = await getLowLevelPrismaClient();
 
 // Track what we've created for the summary
 const summary = {
@@ -174,7 +174,7 @@ async function main() {
     support,
     others: [franklin, rowanStaging, steveStaging, mikeStaging],
   });
-  
+
   // Merge site summary into main summary
   summary.sites += siteSummary.sites;
   summary.works += siteSummary.works;
@@ -185,7 +185,7 @@ async function main() {
 main()
   .then(async () => {
     await prisma.$disconnect();
-    
+
     // Print summary
     console.log('\n' + '='.repeat(60));
     console.log('✅ SEED COMPLETED SUCCESSFULLY');

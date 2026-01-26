@@ -43,7 +43,7 @@ export default function App() {
         <MobileControls />
         <PrimaryNav extensions={clientExtensions} />
         <div className="flex relative flex-col flex-1 w-full">
-          <div className="fixed z-50 top-0 h-[3px] w-full">
+          <div className="fixed top-0 z-50 w-full">
             <LoadingBar />
           </div>
           <div
