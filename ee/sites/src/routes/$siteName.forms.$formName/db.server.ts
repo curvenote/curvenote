@@ -67,7 +67,7 @@ export async function safeFormDataUpdate(
 
     // Attempt to update with OCC check
     try {
-      const updated = prisma.$transaction(async (tx) => {
+      const updated = await prisma.$transaction(async (tx) => {
         const timestamp = formatDate();
 
         const form = await tx.submissionForm.update({
