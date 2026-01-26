@@ -1,17 +1,16 @@
 import { data } from 'react-router';
 import { zfd } from 'zod-form-data';
 import { z } from 'zod';
-import type { SiteUser, User } from '@curvenote/scms-db';
-import { SiteRole } from '@curvenote/scms-db';
+import type { SiteUser, User, SiteRole } from '@curvenote/scms-db';
 import type { SiteContextWithUser, SiteContext } from '@curvenote/scms-server';
-import { SlackEventType, userHasSiteScope } from '@curvenote/scms-server';
+import { SlackEventType } from '@curvenote/scms-server';
 import {
   dbAddSiteUserRole,
   dbGetUserByEmail,
   dbGetUserById,
   dbRemoveSiteUserRole,
 } from './db.server.js';
-import { KnownResendEvents, site as siteScopes } from '@curvenote/scms-core';
+import { KnownResendEvents } from '@curvenote/scms-core';
 import { SiteTrackEvent } from '../../analytics/events.js';
 
 // User type that includes site_roles (as returned by dbGetUserById/dbGetUserByEmail)
@@ -276,7 +275,6 @@ export async function $actionRevokeUserRole(ctx: SiteContextWithUser, payload: P
         { status: 403 },
       );
     }
-
 
     await dbRemoveSiteUserRole(ctx.site.id, userWithRoles.id, role);
     await ctx.sendSlackNotification({
