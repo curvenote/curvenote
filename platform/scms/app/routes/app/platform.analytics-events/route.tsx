@@ -1,5 +1,5 @@
 import type { Route } from './+types/route';
-import { withAppAdminContext } from '@curvenote/scms-server';
+import { withAppPlatformAdminContext } from '@curvenote/scms-server';
 import {
   PageFrame,
   TrackEvent,
@@ -11,7 +11,7 @@ import type { AnalyticsEvent } from './components/AnalyticsEventListingHelpers';
 import { extensions } from '../../../extensions/client';
 
 export async function loader(args: Route.LoaderArgs) {
-  await withAppAdminContext(args);
+  await withAppPlatformAdminContext(args);
   // Convert base TrackEvent enum to array with descriptions
   const baseTrackEvents: AnalyticsEvent[] = Object.entries(TrackEvent).map(([key, value]) => ({
     key,
@@ -41,8 +41,8 @@ export async function loader(args: Route.LoaderArgs) {
 
 export const meta: Route.MetaFunction = () => {
   return [
-    { title: 'Analytics Events - System Administration' },
-    { name: 'description', content: 'System analytics event types and descriptions' },
+    { title: 'Analytics Events - Platform Administration' },
+    { name: 'description', content: 'Platform analytics event types and descriptions' },
   ];
 };
 

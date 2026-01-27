@@ -114,7 +114,6 @@ export default [
       route('email-test', 'routes/app/system.email-test/route.tsx'),
       route('design', 'routes/app/system.design/route.tsx'),
       route('users', 'routes/app/system.users/route.tsx'),
-      route('analytics-events', 'routes/app/system.analytics-events/route.tsx'),
       route('analytics-dashboards', 'routes/app/system.analytics-dashboards/route.tsx'),
       route('roles', 'routes/app/system.roles/route.tsx'),
     ]),
@@ -128,6 +127,7 @@ export default [
       route('messages', 'routes/app/platform.messages/route.tsx'),
       route('messages/:messageId', 'routes/app/platform.messages.$messageId/route.tsx'),
       route('analytics', 'routes/app/platform.analytics/route.tsx'),
+      route('analytics-events', 'routes/app/platform.analytics-events/route.tsx'),
     ]),
 
     // Register extension task route
