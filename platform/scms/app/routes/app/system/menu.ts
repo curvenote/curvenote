@@ -46,11 +46,6 @@ export function buildMenu(baseUrl: string, userScopes: string[]) {
           url: `${baseUrl}/design`,
         },
         {
-          name: 'admin.analytics-events',
-          label: 'Analytics Events',
-          url: `${baseUrl}/analytics-events`,
-        },
-        {
           name: 'admin.analytics-dashboards',
           icon: 'layout-dashboard',
           label: 'Analytics Dashboards',

@@ -34,6 +34,11 @@ export function buildMenu(baseUrl: string, userScopes: string[]) {
           label: 'Analytics',
           url: `${baseUrl}/analytics`,
         },
+        {
+          name: 'platform.analytics-events',
+          label: 'Analytics Events',
+          url: `${baseUrl}/analytics-events`,
+        },
       ],
     },
   ];
