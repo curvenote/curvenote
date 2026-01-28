@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.13.4
+
+### Patch Changes
+
+- [#785](https://github.com/curvenote/curvenote/pull/785) [`2fa2dab`](https://github.com/curvenote/curvenote/commit/2fa2dab41b274c78b99382c7597bdb8c773a5887) Thanks [@rowanc1](https://github.com/rowanc1)! - Changed default configuration to use `scms` subdomain
+
+- Updated dependencies [[`2fa2dab`](https://github.com/curvenote/curvenote/commit/2fa2dab41b274c78b99382c7597bdb8c773a5887)]:
+  - @curvenote/cli@0.13.4
+
 ## 0.13.3
 
 ### Patch Changes
