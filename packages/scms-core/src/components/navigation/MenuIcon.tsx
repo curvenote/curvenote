@@ -130,6 +130,7 @@ export function MenuIcon({
     case 'admin.analytics':
     case 'platform.analytics':
     case 'admin.analytics-events':
+    case 'platform.analytics-events':
       return <LineChart className={classNameWithDefaults} />;
     case 'key-round':
     case 'settings.tokens':

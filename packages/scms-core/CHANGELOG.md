@@ -1,5 +1,14 @@
 # @curvenote/scms-core
 
+## 0.14.2
+
+### Patch Changes
+
+- [#784](https://github.com/curvenote/curvenote/pull/784) [`ac62dd3`](https://github.com/curvenote/curvenote/commit/ac62dd3ea84be2609acef0519ea2ba8080a2533c) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Make the "Analytics Events" page available to platform administrators
+
+- Updated dependencies []:
+  - @curvenote/scms-db@0.14.2
+
 ## 0.14.1
 
 ### Patch Changes

@@ -154,10 +154,6 @@ cases:
         url: /app/system/users
         status: 200
 
-      - title: System Analytics Events Endpoint
-        url: /app/system/analytics-events
-        status: 200
-
       - title: System Email Test Endpoint
         url: /app/system/email-test
         status: 200
@@ -196,6 +192,10 @@ cases:
 
       - title: Platform Onboarding Endpoint
         url: /app/platform/onboarding
+        status: 200
+
+      - title: Platform Analytics Events Endpoint
+        url: /app/platform/analytics-events
         status: 200
 
   # Editor Routes Group

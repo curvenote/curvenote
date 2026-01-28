@@ -64,7 +64,7 @@ Add your firebase config and secrets to both.
 
 ### Seed
 
-To reset and seed the database for **initial** development work
+To reset and seed the database for **initial** development work. This needs to be run from the top level.
 
 ```
 npm run dev:db:reset
@@ -72,12 +72,6 @@ npm run dev:db:migrate
 ```
 
 To only format the schema
-
-```
-npx prisma format
-```
-
-or
 
 ```
 npm run prisma:format
@@ -227,17 +221,18 @@ const token = await createIntegrationToken(
   'external-service-id',
   'https://partner-service.com/api/webhook',
   {
-    customClaims: { 
+    customClaims: {
       permissions: ['read', 'write'],
-      service_type: 'webhook'
+      service_type: 'webhook',
     },
-    expiryOverride: '5m'
-  }
+    expiryOverride: '5m',
+  },
 );
 
 // Verify a token (optionally checking audience)
 const claims = await verifyIntegrationToken(ctx, token, 'expected-audience');
 ```
+
 ### Security Notes
 
 - **Never commit private keys** to version control
@@ -245,4 +240,3 @@ const claims = await verifyIntegrationToken(ctx, token, 'expected-audience');
 - **Rotate keys regularly** (recommended: every 90 days)
 - **Monitor the `/v1/keys` endpoint** for unusual access patterns
 - **Update issuer URLs** to match your production domain
-

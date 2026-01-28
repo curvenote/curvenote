@@ -4,6 +4,7 @@ import { SiteLogo } from '../SiteLogo.js';
 import { useMobile } from './Mobile.js';
 import type { MenuContents, ServerSideMenuContents } from './types.js';
 import type { ClientExtension } from '../../modules/index.js';
+import { SimpleTooltip } from '../ui/tooltip.js';
 
 export function SecondaryNav({
   contents,
@@ -22,6 +23,8 @@ export function SecondaryNav({
 }) {
   const { open } = useMobile();
 
+  const displayUrl = branding?.url?.replace(/^https?:\/\//i, '') ?? '';
+
   return (
     <aside
       className={cn(
@@ -35,17 +38,22 @@ export function SecondaryNav({
         <>
           {branding.url ? (
             <div className="pt-[60px]">
-              <a className="flex flex-col justify-center items-center" href={branding.url}>
-                <SiteLogo
-                  className="object-cover mb-4 h-10"
-                  alt={title ?? ''}
-                  logo={branding.logo}
-                  logo_dark={branding.logo_dark}
-                />
-                <div className="my-[2px] text-2xl font-normal text-black dark:text-white">
-                  {title}
-                </div>
-              </a>
+              <SimpleTooltip title={`Visit site at : ${branding.url}`} delayDuration={1000}>
+                <a className="flex flex-col justify-center items-center" href={branding.url}>
+                  <SiteLogo
+                    className="object-cover mb-4 h-10"
+                    alt={title ?? ''}
+                    logo={branding.logo}
+                    logo_dark={branding.logo_dark}
+                  />
+                  <div className="my-[2px] text-2xl font-normal text-black dark:text-white">
+                    {title}
+                  </div>
+                  <div className="px-2 w-full min-w-0 text-xs text-center truncate text-muted-foreground">
+                    {displayUrl}
+                  </div>
+                </a>
+              </SimpleTooltip>
             </div>
           ) : (
             <div className="flex flex-col justify-center items-center pt-[60px]">
