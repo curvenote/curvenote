@@ -23,6 +23,8 @@ export function SecondaryNav({
 }) {
   const { open } = useMobile();
 
+  const displayUrl = branding?.url?.replace(/^https?:\/\//i, '') ?? '';
+
   return (
     <aside
       className={cn(
@@ -47,8 +49,8 @@ export function SecondaryNav({
                   <div className="my-[2px] text-2xl font-normal text-black dark:text-white">
                     {title}
                   </div>
-                  <div className="flex justify-center max-w-full text-xs truncate text-muted-foreground">
-                    {branding.url}
+                  <div className="px-2 w-full min-w-0 text-xs text-center truncate text-muted-foreground">
+                    {displayUrl}
                   </div>
                 </a>
               </SimpleTooltip>
