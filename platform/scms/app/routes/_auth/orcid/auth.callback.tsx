@@ -28,6 +28,10 @@ export async function loader(args: LoaderFunctionArgs) {
     handleCallbackErrorsWithoutCatchingRedirects('orcid', errorOrRedirect);
   }
 
+  if (!authResponse) {
+    throw redirect('/login');
+  }
+
   const { providerSetCookie, ...user } = authResponse;
   headers.append('Set-Cookie', providerSetCookie);
 
@@ -55,6 +59,14 @@ export async function loader(args: LoaderFunctionArgs) {
 
   session.set('user', user);
   headers.append('Set-Cookie', await sessionStorage.commitSession(session));
+
+  // If a returnTo URL is set, always honor it (even for pending users).
+  // This allows inline flows (e.g. forms) to keep users on the originating page.
+  const returnToUrl = await getReturnToUrl(session, sessionStorage, headers);
+  if (returnToUrl) {
+    console.log(`ORCID redirecting to returnTo URL: ${returnToUrl}`);
+    throw redirect(returnToUrl, { headers });
+  }
 
   if (user) {
     // login or signup flow
