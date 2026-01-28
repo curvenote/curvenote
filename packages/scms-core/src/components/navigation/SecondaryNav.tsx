@@ -47,11 +47,9 @@ export function SecondaryNav({
                   <div className="my-[2px] text-2xl font-normal text-black dark:text-white">
                     {title}
                   </div>
-                  {branding.url && (
-                    <div className="flex justify-center max-w-full text-xs truncate text-muted-foreground">
-                      {branding.url}
-                    </div>
-                  )}
+                  <div className="flex justify-center max-w-full text-xs truncate text-muted-foreground">
+                    {branding.url}
+                  </div>
                 </a>
               </SimpleTooltip>
             </div>
