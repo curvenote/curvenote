@@ -63,5 +63,12 @@ export async function loader(args: LoaderFunctionArgs) {
 
   session.set('user', user);
   headers.append('Set-Cookie', await sessionStorage.commitSession(session));
+
+  // If a returnTo URL is set, always honor it (even for pending users).
+  const returnToUrl = await getReturnToUrl(session, sessionStorage, headers);
+  if (returnToUrl) {
+    throw redirect(returnToUrl, { headers });
+  }
+
   throw redirect('/app', { headers });
 }
