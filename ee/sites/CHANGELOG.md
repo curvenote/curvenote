@@ -1,5 +1,18 @@
 # @curvenote/scms-sites-ext
 
+## 0.14.2
+
+### Patch Changes
+
+- [#783](https://github.com/curvenote/curvenote/pull/783) [`cced401`](https://github.com/curvenote/curvenote/commit/cced40124322a6c92de1783824cb213e8251c809) Thanks [@github-actions](https://github.com/apps/github-actions)! - Fix misleading error message
+
+- [#787](https://github.com/curvenote/curvenote/pull/787) [`534825a`](https://github.com/curvenote/curvenote/commit/534825aef6a58ea34d012cc318fcb84057afb649) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove site link from SiteCard, add primary domain to site branding area in secondary nav
+
+- Updated dependencies [[`ac62dd3`](https://github.com/curvenote/curvenote/commit/ac62dd3ea84be2609acef0519ea2ba8080a2533c)]:
+  - @curvenote/scms-core@0.14.2
+  - @curvenote/scms-server@0.14.2
+  - @curvenote/scms-db@0.14.2
+
 ## 0.14.1
 
 ### Patch Changes
