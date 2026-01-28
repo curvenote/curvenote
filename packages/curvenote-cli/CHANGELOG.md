@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.13.5
+
+### Patch Changes
+
+- [#789](https://github.com/curvenote/curvenote/pull/789) [`3a7ed2c`](https://github.com/curvenote/curvenote/commit/3a7ed2c8bf573895c8de17c317f93a886440ad0c) Thanks [@github-actions](https://github.com/apps/github-actions)! - Force a package bump due to broken release tarball for v0.13.4
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.13.5
+
 ## 0.13.4
 
 ### Patch Changes
