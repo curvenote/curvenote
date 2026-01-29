@@ -14,12 +14,10 @@ import {
 } from '@curvenote/scms-core';
 import { FileText, User } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { withInsecureSiteContext, getPrismaClient } from '@curvenote/scms-server';
+import { withInsecureSiteContext, dbUpsertPendingLinkedAccount } from '@curvenote/scms-server';
 import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
 import { dbListCollections } from '../$siteName.collections/db.server.js';
 import { submitForm } from './actionHelpers.server.js';
-import { uuidv7 } from 'uuidv7';
-import { formatDate } from '@curvenote/common';
 
 type AgreementURL = { label: string; url: string };
 
@@ -87,32 +85,7 @@ export async function action(args: ActionFunctionArgs) {
       siteName: ctx.site.name,
     });
 
-    const prisma = await getPrismaClient();
-    const timestamp = formatDate();
-
-    // Create pending linked account (same logic as settings page)
-    const linkedAccount = await prisma.userLinkedAccount.upsert({
-      where: {
-        uniqueProviderUserId: {
-          user_id: ctx.user.id,
-          provider: 'orcid',
-        },
-      },
-      update: {
-        date_modified: timestamp,
-        date_linked: null,
-        pending: true,
-      },
-      create: {
-        id: uuidv7(),
-        date_created: timestamp,
-        date_modified: timestamp,
-        date_linked: null,
-        user_id: ctx.user.id,
-        provider: 'orcid',
-        pending: true,
-      },
-    });
+    const linkedAccount = await dbUpsertPendingLinkedAccount(ctx.user.id, 'orcid');
 
     console.log('[FORM] Created/updated pending linked account', {
       linkedAccountId: linkedAccount.id,
@@ -120,9 +93,9 @@ export async function action(args: ActionFunctionArgs) {
       pending: linkedAccount.pending,
     });
 
-    // NOTE: We cannot redirect to `/auth/orcid` here because it must be a POST.
-    // The client initiates the OAuth POST (see LinkAccount-style flow in the component).
-    return data({ ok: true });
+    // Return signal for client to POST to /auth/orcid
+    const currentUrl = new URL(args.request.url).pathname + new URL(args.request.url).search;
+    return data({ linkOrcid: true, returnTo: currentUrl });
   }
 
   const form = await dbGetForm(formName, ctx.site.id);
@@ -157,12 +130,27 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 
 export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
   const { formCollections, user, ...form } = loaderData;
-  const actionData = useActionData<{ error?: { message?: string } }>();
+  const actionData = useActionData<{
+    error?: { message?: string };
+    linkOrcid?: boolean;
+    returnTo?: string;
+  }>();
   const config = useDeploymentConfig();
   const [submitting, setSubmitting] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(user?.hasAcceptedTerms ?? false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const orcidInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle ORCID linking: after pending account is created, POST to /auth/orcid
+  useEffect(() => {
+    if (actionData?.linkOrcid && actionData.returnTo) {
+      const authForm = document.createElement('form');
+      authForm.method = 'POST';
+      authForm.action = `/auth/orcid?returnTo=${encodeURIComponent(actionData.returnTo)}`;
+      document.body.appendChild(authForm);
+      authForm.submit();
+    }
+  }, [actionData?.linkOrcid, actionData?.returnTo]);
 
   const title = (form.data as any)?.title ?? form.name;
   const description = (form.data as any)?.description;
@@ -258,19 +246,8 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
                   {!user?.orcid && (
                     <div className="pb-2">
                       {isLoggedIn ? (
-                        <orcidFetcher.Form
-                          method="post"
-                          action={`/auth/orcid${
-                            currentUrl ? `?returnTo=${encodeURIComponent(currentUrl)}` : ''
-                          }`}
-                          onSubmit={async (e) => {
-                            await fetch(window.location.pathname + window.location.search, {
-                              method: 'POST',
-                              body: new FormData(e.currentTarget),
-                            });
-                          }}
-                          className="w-full"
-                        >
+                        // For logged-in users: POST to our action to create pending account, then client POSTs to /auth/orcid
+                        <orcidFetcher.Form method="post" className="w-full">
                           <input type="hidden" name="intent" value="link-orcid" />
                           <ui.StatefulButton
                             variant="outline"
