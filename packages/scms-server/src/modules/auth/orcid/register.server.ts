@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import {
   assertLinkedAccount,
   dbCreateUserWithPrimaryLinkedAccount,
+  dbDeletePendingUser,
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
@@ -98,43 +99,78 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
           // Check if this ORCID account is already linked to a different user
           const user = session.get('user');
           if (user && dbUserViaOrcid.id !== user.userId) {
-            // ORCID account is already linked to a different user
-            throw redirect(
-              `/app/settings/linked-accounts?error=true&provider=orcid&message=${encodeURIComponent('This ORCID account has already been linked to another account.')}`,
-            );
+            /**
+             * Edge case:
+             * ORCID signup can provision a *pending* user with a linked ORCID account.
+             * If that flow is abandoned, the ORCID remains "claimed" by an orphan pending user,
+             * blocking legitimate account linking later.
+             *
+             * If we are currently attempting a linking flow (session user exists) and the
+             * existing ORCID owner is a pending/orphan user, delete that pending user so the
+             * current linking can proceed.
+             */
+            const isOrphanPendingUser =
+              allowLinking &&
+              !!user &&
+              dbUserViaOrcid.pending &&
+              !dbUserViaOrcid.ready_for_approval &&
+              dbUserViaOrcid.primaryProvider === 'orcid';
+
+            if (isOrphanPendingUser) {
+              console.warn('[ORCID REGISTER] Deleting orphan pending ORCID user to allow linking', {
+                orphanUserId: dbUserViaOrcid.id,
+                linkingUserId: user.userId,
+                orcid: profile.id,
+              });
+              await dbDeletePendingUser(dbUserViaOrcid.id);
+              console.log('delete success');
+              dbUserViaOrcid = null;
+            } else {
+              console.log('redirecting here...');
+              // ORCID account is already linked to a different (non-orphan) user
+              throw redirect(
+                `/app/settings/linked-accounts?error=true&provider=orcid&message=${encodeURIComponent('This ORCID account has already been linked to another account.')}`,
+              );
+            }
           }
-          // update profile
-          try {
-            const account = assertLinkedAccount('orcid', dbUserViaOrcid);
-            await dbUpdateUserLinkedAccountProfile(account.id, profile);
-          } catch (error: any) {
-            console.error('ORCID provider - Failed to update linked account profile', error);
-            // Track account linking failure
+
+          // If we still have a user via ORCID (login flow), update profile + track login
+          if (dbUserViaOrcid) {
+            // update profile
+            try {
+              const account = assertLinkedAccount('orcid', dbUserViaOrcid);
+              await dbUpdateUserLinkedAccountProfile(account.id, profile);
+            } catch (error: any) {
+              console.error('ORCID provider - Failed to update linked account profile', error);
+              // Track account linking failure
+              await analytics.trackEvent(
+                TrackEvent.USER_LINKING_FAILED,
+                dbUserViaOrcid.id,
+                {
+                  provider: 'orcid',
+                  operation: 'update_profile',
+                  error: error.message || 'Unknown error',
+                },
+                request,
+              );
+            }
+
+            await analytics.identifyEvent(dbUserViaOrcid);
             await analytics.trackEvent(
-              TrackEvent.USER_LINKING_FAILED,
+              TrackEvent.USER_LOGGED_IN,
               dbUserViaOrcid.id,
               {
                 provider: 'orcid',
-                operation: 'update_profile',
-                error: error.message || 'Unknown error',
+                method: 'oauth',
+                linkedAccountEmail: profile.email,
+                idAtProvider: profile.id,
               },
               request,
             );
           }
+        }
 
-          await analytics.identifyEvent(dbUserViaOrcid);
-          await analytics.trackEvent(
-            TrackEvent.USER_LOGGED_IN,
-            dbUserViaOrcid.id,
-            {
-              provider: 'orcid',
-              method: 'oauth',
-              linkedAccountEmail: profile.email,
-              idAtProvider: profile.id,
-            },
-            request,
-          );
-        } else if (!dbUserViaOrcid) {
+        if (!dbUserViaOrcid) {
           const user = session.get('user');
           if (user && allowLinking) {
             try {

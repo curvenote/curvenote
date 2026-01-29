@@ -8,6 +8,7 @@ import {
   updateSignupStep,
   completeSignupFlow,
   completeSignupStep,
+  dbUpsertPendingLinkedAccount,
 } from '@curvenote/scms-server';
 import type {
   DataCollectionStepData,
@@ -18,7 +19,6 @@ import type {
   AuthProvider,
 } from '@curvenote/scms-core';
 import { TrackEvent } from '@curvenote/scms-core';
-import { dbUpsertPendingLinkedAccount } from '../app/settings.linked-accounts/db.server';
 import type { OktaProfile } from '@curvenote/remix-auth-okta';
 import { uuidv7 } from 'uuidv7';
 

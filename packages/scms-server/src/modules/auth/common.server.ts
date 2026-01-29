@@ -92,6 +92,40 @@ export async function dbDeletePendingUser(userId: string): Promise<void> {
 }
 
 /**
+ * Create or update a pending linked account for a user (e.g. before OAuth account linking).
+ *
+ * @param userId - The user ID
+ * @param provider - The provider name (e.g. 'orcid')
+ * @returns The upserted linked account record
+ */
+export async function dbUpsertPendingLinkedAccount(userId: string, provider: string) {
+  const prisma = await getPrismaClient();
+  const timestamp = formatDate();
+  return prisma.userLinkedAccount.upsert({
+    where: {
+      uniqueProviderUserId: {
+        user_id: userId,
+        provider,
+      },
+    },
+    update: {
+      date_modified: timestamp,
+      date_linked: null,
+      pending: true,
+    },
+    create: {
+      id: uuidv7(),
+      date_created: timestamp,
+      date_modified: timestamp,
+      date_linked: null,
+      user_id: userId,
+      provider,
+      pending: true,
+    },
+  });
+}
+
+/**
  * Get a user by their linked account.
  *
  * @param provider - The provider name (e.g., 'okta')
