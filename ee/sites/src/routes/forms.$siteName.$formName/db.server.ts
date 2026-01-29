@@ -3,7 +3,6 @@ import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '@curvenote/scms-server';
 import { ActivityType, WorkRole } from '@curvenote/scms-db';
 import type { SiteContext, MyUserDBO } from '@curvenote/scms-server';
-import { WorkContents } from '@curvenote/scms-core';
 
 interface SubmitFormData {
   name: string;
