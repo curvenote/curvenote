@@ -1,10 +1,7 @@
 import { data } from 'react-router';
 import { zfd } from 'zod-form-data';
-import { scopes, TrackEvent } from '@curvenote/scms-core';
+import { TrackEvent } from '@curvenote/scms-core';
 import {
-  userHasSiteScope,
-  dbCreateUser,
-  dbUpsertLinkedUserLinkedAccount,
   getPrismaClient,
   withContext,
   completeSignupFlow,
@@ -96,22 +93,22 @@ export async function submitForm(
   formData: FormData,
   actionArgs?: ActionFunctionArgs,
 ) {
-  // For logged-in non-pending users, check scope
-  if (
-    user &&
-    !user.pending &&
-    !userHasSiteScope(user, scopes.site.submissions.create, ctx.site.id)
-  ) {
-    return data({ error: { message: 'Forbidden' } }, { status: 403 });
-  }
-
   return zfd
     .formData(SubmitFormSchema)
     .parseAsync(Object.fromEntries(formData))
     .then(
       async (dataParsed) => {
+        // Submissions must always be associated with an authenticated user.
+        // Anonymous users must authenticate (creating a pending user) before submitting.
+        if (!user) {
+          return data(
+            { error: { message: 'Please sign in (e.g. ORCID/Google) before submitting.' } },
+            { status: 400 },
+          );
+        }
+
         // For non-logged-in users or pending users, require terms acceptance
-        const needsTermsAcceptance = !user || user.pending;
+        const needsTermsAcceptance = user.pending;
         if (needsTermsAcceptance && dataParsed.agreedToTerms !== 'true') {
           return data(
             { error: { message: 'You must accept the terms to submit' } },
@@ -195,61 +192,7 @@ export async function submitForm(
         const isCorrespondingAuthor = dataParsed.isCorrespondingAuthor === 'true';
         const authors = isCorrespondingAuthor ? [dataParsed.name] : [];
 
-        // If no user, create one
-        let submitter: MyUserDBO | null = user;
-        if (!submitter) {
-          const prisma = await getPrismaClient();
-
-          // Check if user with this email already exists
-          const existingUser = await prisma.user.findFirst({
-            where: { email: dataParsed.email },
-            include: {
-              linkedAccounts: true,
-              site_roles: true,
-              work_roles: true,
-              roles: { include: { role: true } },
-            },
-          });
-
-          if (existingUser) {
-            // Use existing user
-            submitter = existingUser as MyUserDBO;
-          } else {
-            // Create new user
-            const username = dataParsed.email
-              .split('@')[0]
-              .toLowerCase()
-              .replace(/[^a-z0-9_]/g, '_');
-            const newUser = await dbCreateUser({
-              email: dataParsed.email,
-              username,
-              displayName: dataParsed.name,
-              primaryProvider: dataParsed.orcid ? 'orcid' : undefined,
-              pending: false,
-              readyForApproval: false,
-            });
-            submitter = newUser as MyUserDBO;
-
-            // If ORCID provided, create linked account
-            if (dataParsed.orcid) {
-              await dbUpsertLinkedUserLinkedAccount('orcid', submitter.id, {
-                idAtProvider: dataParsed.orcid,
-                email: dataParsed.email,
-                profile: {
-                  id: dataParsed.orcid,
-                  name: dataParsed.name,
-                  email: dataParsed.email,
-                },
-              });
-            }
-          }
-        }
-
-        if (!submitter) {
-          return data({ error: { message: 'Unable to create or find user' } }, { status: 500 });
-        }
-
-        const result = await dbCreateWorkAndSubmission(ctx, submitter, form, {
+        const result = await dbCreateWorkAndSubmission(ctx, user, form, {
           name: dataParsed.name,
           email: dataParsed.email,
           orcid: dataParsed.orcid,
