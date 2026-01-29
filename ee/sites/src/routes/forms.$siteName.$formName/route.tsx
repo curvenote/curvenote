@@ -160,6 +160,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
   const isPending = user?.pending ?? false;
   // Show terms checkbox if user is not logged in OR if user is pending
   const showTermsCheckbox = !isLoggedIn || isPending;
+  const canSubmit = !!user;
   const agreementStep = config.signupConfig?.signup?.steps?.find(
     (step) => step.type === 'agreement',
   );
@@ -200,6 +201,10 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
           method="post"
           className="flex flex-col gap-8"
           onSubmit={(e) => {
+            if (!canSubmit) {
+              e.preventDefault();
+              return;
+            }
             if (showTermsCheckbox && !agreedToTerms) {
               e.preventDefault();
               return;
@@ -422,14 +427,20 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
             </primitives.Card>
           )}
 
-          <div className="flex gap-4 justify-end">
+          <div className="flex flex-col gap-2 items-end">
+            {!canSubmit && (
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Please sign in (e.g. ORCID/Google) above to create a pending account before
+                submitting.
+              </p>
+            )}
             <ui.Button
               type="submit"
               variant="default"
               className="px-8"
-              disabled={showTermsCheckbox && !agreedToTerms}
+              disabled={!canSubmit || (showTermsCheckbox && !agreedToTerms)}
             >
-              {isLoggedIn && !isPending ? 'Submit' : 'Create Account and Submit'}
+              {canSubmit ? 'Submit' : 'Sign in to submit'}
             </ui.Button>
           </div>
         </Form>
