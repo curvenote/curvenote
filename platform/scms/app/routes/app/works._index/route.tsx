@@ -85,7 +85,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 };
 
 export async function action(args: Route.ActionArgs) {
-  const ctx = await withAppScopedContext(args, [scopes.work.list]);
+  const ctx = await withAppScopedContext(args, [scopes.work.list, scopes.app.works.upload]);
   const formData = await args.request.formData();
 
   return withValidFormData(WorksActionSchema, formData, async (payload: WorksActionPayload) => {
@@ -314,9 +314,13 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
               className="max-w-4xl"
               title="My Works"
               subtitle="Manage your works and submissions"
-              actionLabel={canUpload ? 'Upload Work' : undefined}
-              actionIcon={canUpload ? <Upload className="w-4 h-4" /> : undefined}
-              onAction={canUpload ? handleUploadClick : undefined}
+              actionLabel="Upload Work"
+              actionIcon={<Upload className="w-4 h-4" />}
+              onAction={
+                canUpload
+                  ? handleUploadClick
+                  : () => alert('For early access to upload features, please contact support')
+              }
             />
           }
           hasSecondaryNav={false}
