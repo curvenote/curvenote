@@ -11,10 +11,15 @@ import {
   firebase,
   google,
   okta,
+  scopes,
 } from '@curvenote/scms-core';
 import { FileText, User } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { withInsecureSiteContext, dbUpsertPendingLinkedAccount } from '@curvenote/scms-server';
+import {
+  withInsecureSiteContext,
+  dbUpsertPendingLinkedAccount,
+  withAppSiteContext,
+} from '@curvenote/scms-server';
 import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
 import { dbListCollections } from '../$siteName.collections/db.server.js';
 import { submitForm } from './actionHelpers.server.js';
@@ -36,7 +41,10 @@ type LoaderData = Awaited<ReturnType<typeof dbGetForm>> & {
 };
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
-  const ctx = await withInsecureSiteContext(args);
+  let ctx = await withInsecureSiteContext(args);
+  if (ctx.site.restricted) {
+    ctx = await withAppSiteContext(args, [scopes.site.submissions.create]);
+  }
   const user = ctx.user;
 
   const { formName } = args.params;
@@ -69,8 +77,10 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
 }
 
 export async function action(args: ActionFunctionArgs) {
-  const ctx = await withInsecureSiteContext(args);
-
+  let ctx = await withInsecureSiteContext(args);
+  if (ctx.site.restricted) {
+    ctx = await withAppSiteContext(args, [scopes.site.submissions.create]);
+  }
   const { formName } = args.params;
   if (!formName) throw httpError(400, 'Missing form name');
 
