@@ -69,11 +69,12 @@ export function SubmitButton({ user }: SubmitButtonProps) {
               Sign in to submit your work. Choose an option below.
             </ui.DialogDescription>
           </ui.DialogHeader>
-          <div className="flex flex-wrap justify-center gap-2 pt-2">
+          <div className="flex flex-col gap-2 pt-2">
             {hasOrcid && (
               <orcidFetcher.Form
                 method="post"
                 action={`/auth/orcid${currentUrl ? `?returnTo=${encodeURIComponent(currentUrl)}` : ''}`}
+                className="w-full"
               >
                 <ui.StatefulButton
                   variant="outline"
@@ -81,7 +82,7 @@ export function SubmitButton({ user }: SubmitButtonProps) {
                   disabled={submitting}
                   busy={orcidFetcher.state !== 'idle'}
                   overlayBusy
-                  className="h-10"
+                  className="w-full h-10"
                 >
                   <orcid.Badge size={18} />
                 </ui.StatefulButton>
@@ -91,7 +92,7 @@ export function SubmitButton({ user }: SubmitButtonProps) {
               <firebase.FirebaseGoogleLoginUI
                 disabled={submitting}
                 setSubmitting={setSubmitting}
-                className="h-10"
+                className="w-full h-10"
                 returnTo={currentUrl}
               />
             )}
@@ -99,7 +100,7 @@ export function SubmitButton({ user }: SubmitButtonProps) {
               <google.LoginUI
                 disabled={submitting}
                 setSubmitting={setSubmitting}
-                className="h-10"
+                className="w-full h-10"
                 returnTo={currentUrl}
               />
             )}
@@ -107,7 +108,7 @@ export function SubmitButton({ user }: SubmitButtonProps) {
               <okta.LoginUI
                 disabled={submitting}
                 setSubmitting={setSubmitting}
-                className="h-10"
+                className="w-full h-10"
                 returnTo={currentUrl}
               />
             )}
