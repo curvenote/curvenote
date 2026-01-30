@@ -9,7 +9,7 @@ import {
   scopes,
 } from '@curvenote/scms-core';
 import { FileText, User } from 'lucide-react';
-import { withAppSiteContext } from '@curvenote/scms-server';
+import { withAppSiteContext, withInsecureSiteContext } from '@curvenote/scms-server';
 import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
 import { dbListCollections } from '../$siteName.collections/db.server.js';
 import { submitForm } from './actionHelpers.server.js';
@@ -33,7 +33,10 @@ type LoaderData = {
 };
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
-  const ctx = await withAppSiteContext(args, [scopes.site.submissions.create]);
+  let ctx = await withInsecureSiteContext(args);
+  if (ctx.site.restricted) {
+    ctx = await withAppSiteContext(args, [scopes.site.submissions.create]);
+  }
   const { formName, siteName, pageName } = args.params;
   if (!formName) throw httpError(400, 'Missing form name');
   if (!siteName) throw httpError(400, 'Missing site name');
@@ -265,6 +268,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
         formPages={form.pages}
         currentPage={currentPageSlug}
         submission={submission}
+        user={loaderData.user}
         basePath={`/formsui/${siteName}/${form.slug}/`}
       />
       {currentPage && (

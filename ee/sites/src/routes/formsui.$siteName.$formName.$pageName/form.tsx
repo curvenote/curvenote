@@ -14,6 +14,7 @@ import type {
 import { cn, ui, WizardQuestion } from '@curvenote/scms-core';
 import { FormLabel } from './label.js';
 import { AuthorField } from './authors.js';
+import { SubmitButton } from './SubmitButton.js';
 
 type LoaderData = {
   nothing: null;
@@ -23,6 +24,13 @@ export async function loader(): Promise<LoaderData> {
   return { nothing: null };
 }
 
+type SubmitButtonUser = {
+  name?: string;
+  email?: string;
+  orcid?: string;
+  affiliation?: string;
+};
+
 type MultiStepFormProps = {
   formName: string;
   title: string;
@@ -31,6 +39,7 @@ type MultiStepFormProps = {
   basePath?: string;
   currentPage?: string;
   submission: Pick<FormSubmission, 'pages'>;
+  user: SubmitButtonUser | null;
   className?: string;
 };
 
@@ -42,6 +51,7 @@ export function MultiStepForm({
   basePath,
   currentPage,
   submission,
+  user,
   className,
 }: MultiStepFormProps) {
   return (
@@ -94,12 +104,7 @@ export function MultiStepForm({
         })}
       </div>
       <div className="m-8">
-        <ui.Button
-          className="w-full bg-[#3E7AA9] text-white hover:bg-[#3E7AA9]/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          size="lg"
-        >
-          Review & Submit
-        </ui.Button>
+        <SubmitButton user={user} />
       </div>
     </div>
   );
