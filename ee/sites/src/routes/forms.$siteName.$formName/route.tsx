@@ -89,19 +89,11 @@ export async function action(args: ActionFunctionArgs) {
 
   // Handle ORCID linking intent - create pending linked account and redirect to OAuth
   if (intent === 'link-orcid' && ctx.user) {
-    console.log('[FORM] ORCID linking intent detected', {
-      userId: ctx.user.id,
-      formName,
-      siteName: ctx.site.name,
-    });
+    console.log('Submission form - ORCID linking intent detected');
 
-    const linkedAccount = await dbUpsertPendingLinkedAccount(ctx.user.id, 'orcid');
+    await dbUpsertPendingLinkedAccount(ctx.user.id, 'orcid');
 
-    console.log('[FORM] Created/updated pending linked account', {
-      linkedAccountId: linkedAccount.id,
-      userId: ctx.user.id,
-      pending: linkedAccount.pending,
-    });
+    console.log('Submission form - Created/updated pending linked account');
 
     // Return signal for client to POST to /auth/orcid
     const currentUrl = new URL(args.request.url).pathname + new URL(args.request.url).search;

@@ -81,7 +81,6 @@ export async function dbCreateWorkAndSubmission(
 
     const workVersion = newWork.versions[0];
 
-    // Create activity record for NEW_WORK
     await tx.activity.create({
       data: {
         id: uuid(),
@@ -106,7 +105,6 @@ export async function dbCreateWorkAndSubmission(
       },
     });
 
-    // Create submission and submission version
     const sv = await tx.submissionVersion.create({
       data: {
         id: submissionVersionId,
@@ -161,7 +159,6 @@ export async function dbCreateWorkAndSubmission(
       },
     });
 
-    // Create activity record for NEW_SUBMISSION
     await tx.activity.create({
       data: {
         id: uuid(),
@@ -197,7 +194,6 @@ export async function dbCreateWorkAndSubmission(
       },
     });
 
-    // Create activity record for FORM_SUBMITTED
     await tx.activity.create({
       data: {
         id: uuid(),
