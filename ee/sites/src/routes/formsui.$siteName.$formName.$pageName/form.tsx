@@ -14,6 +14,7 @@ import type {
 import { cn, ui, WizardQuestion } from '@curvenote/scms-core';
 import { FormLabel } from './label.js';
 import { AuthorField } from './authors.js';
+import { ContactDetails } from './ContactDetails.js';
 import { SubmitButton } from './SubmitButton.js';
 
 type LoaderData = {
@@ -256,12 +257,20 @@ export function RadioField({ schema, value, onChange }: RadioFieldProps) {
   );
 }
 
+type FormBodyUser = {
+  name?: string;
+  email?: string;
+  orcid?: string;
+  affiliation?: string;
+} | null;
+
 type FormBodyProps = {
   stepNumber: number;
   stepTitle: string;
   formFields: FieldSchema[];
   formChildren: FormPage['children'];
   submission: FormSubmission;
+  user?: FormBodyUser;
 };
 
 export function FormBody({
@@ -270,6 +279,7 @@ export function FormBody({
   formFields,
   formChildren,
   submission,
+  user = null,
 }: FormBodyProps) {
   const [values, setValues] = useState<Record<string, any>>(submission.fields);
 
@@ -327,12 +337,14 @@ export function FormBody({
         );
       case 'author':
         return (
-          <AuthorField
-            key={schema.name}
-            schema={schema}
-            value={value}
-            onChange={(v) => handleChange(schema.name, v)}
-          />
+          <div key={schema.name} className="space-y-6">
+            <ContactDetails user={user ?? null} />
+            <AuthorField
+              schema={schema}
+              value={value}
+              onChange={(v) => handleChange(schema.name, v)}
+            />
+          </div>
         );
       default:
         return null;

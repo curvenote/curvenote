@@ -18,7 +18,6 @@ import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
 import { dbListCollections } from '../$siteName.collections/db.server.js';
 import { submitForm } from './actionHelpers.server.js';
 import { FormArea, FormBody, MultiStepForm } from './form.js';
-import { ContactDetails } from './ContactDetails.js';
 import type { FormDefinition, FormSubmission } from './types.js';
 import { formatError } from 'zod';
 
@@ -278,16 +277,14 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
         basePath={`/formsui/${siteName}/${form.slug}/`}
       />
       {currentPage && (
-        <div className="flex flex-col gap-8">
-          {currentPage.slug === 'authors' && <ContactDetails user={loaderData.user} />}
-          <FormBody
-            stepNumber={stepNumber}
-            stepTitle={currentPage.title}
-            formChildren={currentPage.children}
-            formFields={form.fields}
-            submission={submission}
-          />
-        </div>
+        <FormBody
+          stepNumber={stepNumber}
+          stepTitle={currentPage.title}
+          formChildren={currentPage.children}
+          formFields={form.fields}
+          submission={submission}
+          user={loaderData.user}
+        />
       )}
       {!currentPage && (
         <FormArea stepNumber="?" stepTitle="Page not found">

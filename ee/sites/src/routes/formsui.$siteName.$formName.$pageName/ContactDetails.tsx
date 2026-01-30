@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useActionData, useFetcher } from 'react-router';
-import { primitives, ui, orcid } from '@curvenote/scms-core';
-import { User } from 'lucide-react';
+import { ui, orcid } from '@curvenote/scms-core';
+import { FormLabel } from './label.js';
 
 type ContactDetailsUser = {
   name?: string;
@@ -21,6 +21,18 @@ export function ContactDetails({ user }: ContactDetailsProps) {
   }>();
   const orcidFetcher = useFetcher();
 
+  const [name, setName] = useState(user?.name ?? '');
+  const [affiliation, setAffiliation] = useState(user?.affiliation ?? '');
+  const [email, setEmail] = useState(user?.email ?? '');
+  const [orcidId, setOrcidId] = useState(user?.orcid ?? '');
+
+  useEffect(() => {
+    setName(user?.name ?? '');
+    setAffiliation(user?.affiliation ?? '');
+    setEmail(user?.email ?? '');
+    setOrcidId(user?.orcid ?? '');
+  }, [user?.name, user?.affiliation, user?.email, user?.orcid]);
+
   const currentUrl =
     typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
 
@@ -38,48 +50,68 @@ export function ContactDetails({ user }: ContactDetailsProps) {
   }, [actionData?.linkOrcid, actionData?.returnTo]);
 
   return (
-    <primitives.Card className="p-6" lift>
-      <div className="flex gap-3 items-center mb-6">
-        <User className="w-6 h-6 text-stone-500 stroke-[1.5px]" />
-        <h2 className="text-xl font-semibold">What are your contact details?</h2>
-      </div>
-      <div className="flex gap-6 items-start">
-        <div className="flex flex-col gap-4 flex-1 min-w-0">
-          <ui.TextField
-            id="contact-name"
-            name="name"
-            label="Your Name"
-            placeholder="Full name"
-            required
-            defaultValue={user?.name}
-          />
-          <ui.TextField
-            id="contact-affiliation"
-            name="affiliation"
-            label="Affiliation"
-            placeholder="University or organization"
-            required
-            defaultValue={user?.affiliation}
-          />
-          <ui.TextField
-            id="contact-email"
-            name="email"
-            type="email"
-            label="Email"
-            placeholder="you@example.com"
-            required
-            defaultValue={user?.email}
-          />
-          <ui.TextField
-            id="contact-orcid"
-            name="orcid"
-            label="ORCID ID (optional)"
-            placeholder="0000-0000-0000-0000"
-            defaultValue={user?.orcid}
-          />
+    <div className="pb-6 space-y-4 border-b border-border">
+      <div className="flex gap-6 items-center">
+        <div className="flex flex-col flex-1 gap-4 min-w-0">
+          <div className="space-y-2">
+            <FormLabel htmlFor="contact-name" required valid={name.trim().length > 0}>
+              Your Name
+            </FormLabel>
+            <ui.Input
+              id="contact-name"
+              name="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Full name"
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-2">
+            <FormLabel htmlFor="contact-affiliation" required valid={affiliation.trim().length > 0}>
+              Affiliation
+            </FormLabel>
+            <ui.Input
+              id="contact-affiliation"
+              name="affiliation"
+              type="text"
+              value={affiliation}
+              onChange={(e) => setAffiliation(e.target.value)}
+              placeholder="University or organization"
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-2">
+            <FormLabel htmlFor="contact-email" required valid={email.trim().length > 0}>
+              Email
+            </FormLabel>
+            <ui.Input
+              id="contact-email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-2">
+            <FormLabel htmlFor="contact-orcid" required={false} valid={orcidId.trim().length > 0}>
+              ORCID ID
+            </FormLabel>
+            <ui.Input
+              id="contact-orcid"
+              name="orcid"
+              type="text"
+              value={orcidId}
+              onChange={(e) => setOrcidId(e.target.value)}
+              placeholder="0000-0000-0000-0000"
+              className="w-full"
+            />
+          </div>
         </div>
         {!user?.orcid && (
-          <div className="flex items-center shrink-0 pt-2">
+          <div className="flex items-center shrink-0">
             {isLoggedIn ? (
               <orcidFetcher.Form method="post" className="w-full">
                 <input type="hidden" name="intent" value="link-orcid" />
@@ -120,10 +152,10 @@ export function ContactDetails({ user }: ContactDetailsProps) {
         )}
       </div>
       {isLoggedIn && !user?.orcid && (
-        <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-sm text-muted-foreground">
           Connect your ORCID account to automatically fill in your information.
         </p>
       )}
-    </primitives.Card>
+    </div>
   );
 }
