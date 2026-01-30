@@ -10,27 +10,40 @@ import { StatefulButton } from '../../../components/ui/index.js';
 export function Badge({
   className,
   size,
+  white,
 }: {
   className?: string;
   size?: number;
   showName?: boolean;
+  /** When true, use the white logo (for use on dark backgrounds). */
+  white?: boolean;
 }) {
   const ratio = 68.52 / 18;
+  const dimensions = { width: ratio * (size ?? 20), height: size ?? 20 };
+
+  if (white) {
+    return (
+      <div className={className}>
+        <img src={logoDark} alt="ORCID Logo" width={dimensions.width} height={dimensions.height} />
+      </div>
+    );
+  }
+
   return (
     <div className={className}>
       <img
         className="dark:hidden"
         src={logo}
         alt="ORCID Logo"
-        width={ratio * (size ?? 20)}
-        height={size ?? 20}
+        width={dimensions.width}
+        height={dimensions.height}
       />
       <img
         className="hidden dark:block"
         src={logoDark}
         alt="ORCID Logo"
-        width={ratio * (size ?? 20)}
-        height={size ?? 20}
+        width={dimensions.width}
+        height={dimensions.height}
       />
     </div>
   );

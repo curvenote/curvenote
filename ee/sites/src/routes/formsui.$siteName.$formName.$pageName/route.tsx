@@ -9,11 +9,16 @@ import {
   scopes,
 } from '@curvenote/scms-core';
 import { FileText, User } from 'lucide-react';
-import { withAppSiteContext, withInsecureSiteContext } from '@curvenote/scms-server';
+import {
+  withAppSiteContext,
+  withInsecureSiteContext,
+  dbUpsertPendingLinkedAccount,
+} from '@curvenote/scms-server';
 import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
 import { dbListCollections } from '../$siteName.collections/db.server.js';
 import { submitForm } from './actionHelpers.server.js';
 import { FormArea, FormBody, MultiStepForm } from './form.js';
+import { ContactDetails } from './ContactDetails.js';
 import type { FormDefinition, FormSubmission } from './types.js';
 import { formatError } from 'zod';
 
@@ -200,23 +205,24 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
 }
 
 export async function action(args: ActionFunctionArgs) {
-  // const ctx = await withAppSiteContext(args, [scopes.site.submissions.create]);
-  // const { formName } = args.params;
-  // if (!formName) throw httpError(400, 'Missing form name');
-  // const form = await dbGetForm(formName, ctx.site.id);
-  // const formData = await args.request.formData();
-  // try {
-  //   const result = await submitForm(ctx, form, formData);
-  //   if ('workId' in result && result.workId) {
-  //     return redirect(`/forms/${ctx.site.name}/${formName}/success?workId=${result.workId}`);
-  //   }
-  //   return result;
-  // } catch (error) {
-  //   if (error instanceof Error) {
-  //     return data({ error: { message: error.message } }, { status: 400 });
-  //   }
-  //   return data({ error: { message: 'An unexpected error occurred' } }, { status: 500 });
-  // }
+  let ctx = await withInsecureSiteContext(args);
+  if (ctx.site.restricted) {
+    ctx = await withAppSiteContext(args, [scopes.site.submissions.create]);
+  }
+  const { formName } = args.params;
+  if (!formName) throw httpError(400, 'Missing form name');
+
+  const formData = await args.request.formData();
+  const intent = formData.get('intent') as string;
+
+  // Handle ORCID linking intent - create pending linked account and redirect to OAuth (same as forms)
+  if (intent === 'link-orcid' && ctx.user) {
+    await dbUpsertPendingLinkedAccount(ctx.user.id, 'orcid');
+    const currentUrl = new URL(args.request.url).pathname + new URL(args.request.url).search;
+    return data({ linkOrcid: true, returnTo: currentUrl });
+  }
+
+  // TODO: submit form handling when needed
 }
 
 export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
@@ -272,13 +278,16 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
         basePath={`/formsui/${siteName}/${form.slug}/`}
       />
       {currentPage && (
-        <FormBody
-          stepNumber={stepNumber}
-          stepTitle={currentPage.title}
-          formChildren={currentPage.children}
-          formFields={form.fields}
-          submission={submission}
-        />
+        <div className="flex flex-col gap-8">
+          {currentPage.slug === 'authors' && <ContactDetails user={loaderData.user} />}
+          <FormBody
+            stepNumber={stepNumber}
+            stepTitle={currentPage.title}
+            formChildren={currentPage.children}
+            formFields={form.fields}
+            submission={submission}
+          />
+        </div>
       )}
       {!currentPage && (
         <FormArea stepNumber="?" stepTitle="Page not found">
