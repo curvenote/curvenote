@@ -37,6 +37,11 @@ export function ContactDetails({ user }: ContactDetailsProps) {
     typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
 
   const isLoggedIn = !!user;
+  // Disable each field only when its value came from OAuth/account (user may not have all fields)
+  const nameReadOnly = isLoggedIn && user?.name != null && user.name !== '';
+  const affiliationReadOnly = isLoggedIn && user?.affiliation != null && user.affiliation !== '';
+  const emailReadOnly = isLoggedIn && user?.email != null && user.email !== '';
+  const orcidReadOnly = isLoggedIn && user?.orcid != null && user.orcid !== '';
 
   // Handle ORCID linking: after pending account is created, POST to /auth/orcid (same as forms)
   useEffect(() => {
@@ -65,6 +70,7 @@ export function ContactDetails({ user }: ContactDetailsProps) {
               onChange={(e) => setName(e.target.value)}
               placeholder="Full name"
               className="w-full"
+              disabled={nameReadOnly}
             />
           </div>
           <div className="space-y-2">
@@ -79,6 +85,7 @@ export function ContactDetails({ user }: ContactDetailsProps) {
               onChange={(e) => setAffiliation(e.target.value)}
               placeholder="University or organization"
               className="w-full"
+              disabled={affiliationReadOnly}
             />
           </div>
           <div className="space-y-2">
@@ -93,6 +100,7 @@ export function ContactDetails({ user }: ContactDetailsProps) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               className="w-full"
+              disabled={emailReadOnly}
             />
           </div>
           <div className="space-y-2">
@@ -107,6 +115,7 @@ export function ContactDetails({ user }: ContactDetailsProps) {
               onChange={(e) => setOrcidId(e.target.value)}
               placeholder="0000-0000-0000-0000"
               className="w-full"
+              disabled={orcidReadOnly}
             />
           </div>
         </div>
