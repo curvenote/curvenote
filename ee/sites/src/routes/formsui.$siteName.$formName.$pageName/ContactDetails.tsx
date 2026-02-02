@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useActionData, useFetcher } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { useFetcher } from 'react-router';
 import { ui, orcid } from '@curvenote/scms-core';
 import { FormLabel } from './label.js';
 
@@ -15,11 +15,18 @@ type ContactDetailsProps = {
 };
 
 export function ContactDetails({ user }: ContactDetailsProps) {
-  const actionData = useActionData<{
-    linkOrcid?: boolean;
-    returnTo?: string;
-  }>();
   const orcidFetcher = useFetcher();
+  const linkOrcidResponse = orcidFetcher.data as
+    | { linkOrcid?: boolean; returnTo?: string }
+    | undefined;
+  const didRedirectRef = useRef(false);
+
+  // Allow redirect again when user submits the form again (e.g. retry after error)
+  useEffect(() => {
+    if (orcidFetcher.state === 'submitting') {
+      didRedirectRef.current = false;
+    }
+  }, [orcidFetcher.state]);
 
   const [name, setName] = useState(user?.name ?? '');
   const [affiliation, setAffiliation] = useState(user?.affiliation ?? '');
@@ -43,16 +50,19 @@ export function ContactDetails({ user }: ContactDetailsProps) {
   const emailReadOnly = isLoggedIn && user?.email != null && user.email !== '';
   const orcidReadOnly = isLoggedIn && user?.orcid != null && user.orcid !== '';
 
-  // Handle ORCID linking: after pending account is created, POST to /auth/orcid (same as forms)
+  // Handle ORCID linking: after pending account is created, POST to /auth/orcid (same as forms).
+  // Response comes from fetcher (orcidFetcher.Form), not useActionData(). Only redirect once per response.
   useEffect(() => {
-    if (actionData?.linkOrcid && actionData.returnTo) {
-      const authForm = document.createElement('form');
-      authForm.method = 'POST';
-      authForm.action = `/auth/orcid?returnTo=${encodeURIComponent(actionData.returnTo)}`;
-      document.body.appendChild(authForm);
-      authForm.submit();
+    if (!linkOrcidResponse?.linkOrcid || !linkOrcidResponse.returnTo || didRedirectRef.current) {
+      return;
     }
-  }, [actionData?.linkOrcid, actionData?.returnTo]);
+    didRedirectRef.current = true;
+    const authForm = document.createElement('form');
+    authForm.method = 'POST';
+    authForm.action = `/auth/orcid?returnTo=${encodeURIComponent(linkOrcidResponse.returnTo)}`;
+    document.body.appendChild(authForm);
+    authForm.submit();
+  }, [linkOrcidResponse?.linkOrcid, linkOrcidResponse?.returnTo]);
 
   return (
     <div className="pb-6 space-y-4 border-b border-border">
