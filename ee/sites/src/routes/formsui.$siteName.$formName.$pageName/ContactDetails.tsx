@@ -50,8 +50,7 @@ export function ContactDetails({ user }: ContactDetailsProps) {
   const emailReadOnly = isLoggedIn && user?.email != null && user.email !== '';
   const orcidReadOnly = isLoggedIn && user?.orcid != null && user.orcid !== '';
 
-  // Handle ORCID linking: after pending account is created, POST to /auth/orcid (same as forms).
-  // Response comes from fetcher (orcidFetcher.Form), not useActionData(). Only redirect once per response.
+  // Handle ORCID linking: after pending account is created, POST to /auth/orcid (same as forms)
   useEffect(() => {
     if (!linkOrcidResponse?.linkOrcid || !linkOrcidResponse.returnTo || didRedirectRef.current) {
       return;
