@@ -3,6 +3,8 @@ model Object {
   type          String
   date_created  String
   date_modified String
+  created_by    User?   @relation(fields: [created_by_id], references: [id])
+  created_by_id String?
   data          Json?
   occ           Int    @default(0)
 

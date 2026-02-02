@@ -1,9 +1,66 @@
 import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
-import { getPrismaClient } from '@curvenote/scms-server';
+import { getPrismaClient, safeObjectDataUpdate } from '@curvenote/scms-server';
 import { ActivityType, WorkRole } from '@curvenote/scms-db';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
-import { WorkContents } from '@curvenote/scms-core';
+import { WorkContents, coerceToObject } from '@curvenote/scms-core';
+import { DRAFT_OBJECT_TYPE_CONST } from './draft.server.js';
+
+/** Create a new formsui draft Object with initial field data. If createdById is provided (logged-in user), connect the user. */
+export async function createDraftObject(
+  initialData: Record<string, unknown>,
+  createdById?: string | null,
+) {
+  const prisma = await getPrismaClient();
+  const id = uuid();
+  const now = formatDate();
+  await prisma.object.create({
+    data: {
+      id,
+      type: DRAFT_OBJECT_TYPE_CONST,
+      date_created: now,
+      date_modified: now,
+      data: initialData as object,
+      occ: 0,
+      ...(createdById && { created_by: { connect: { id: createdById } } }),
+    },
+  });
+  return id;
+}
+
+/** Load a formsui draft Object by id. Returns null if not found or wrong type. */
+export async function getDraftObject(objectId: string) {
+  const prisma = await getPrismaClient();
+  const row = await prisma.object.findUnique({
+    where: { id: objectId, type: DRAFT_OBJECT_TYPE_CONST },
+  });
+  return row;
+}
+
+/** Update a single field on a draft Object using OCC (safe merge, no overwrite). If createdById is provided and the object has no created_by yet, sets created_by. */
+export async function updateDraftObjectField(
+  objectId: string,
+  fieldName: string,
+  value: unknown,
+  createdById?: string | null,
+): Promise<void> {
+  await safeObjectDataUpdate(objectId, (data) => ({
+    ...coerceToObject(data),
+    [fieldName]: value,
+  }));
+
+  if (createdById) {
+    const prisma = await getPrismaClient();
+    await (prisma.object as any).updateMany({
+      where: {
+        id: objectId,
+        type: DRAFT_OBJECT_TYPE_CONST,
+        created_by_id: null,
+      },
+      data: { created_by_id: createdById },
+    });
+  }
+}
 
 interface SubmitFormData {
   name: string;

@@ -1,32 +1,22 @@
+import * as React from 'react';
 import type { LoaderFunctionArgs, ActionFunctionArgs, MetaFunction } from 'react-router';
-import { redirect, data, useActionData, Form } from 'react-router';
-import {
-  primitives,
-  ui,
-  httpError,
-  getBrandingFromMetaMatches,
-  joinPageTitle,
-  scopes,
-} from '@curvenote/scms-core';
-import { FileText, User } from 'lucide-react';
+import { data } from 'react-router';
+import { httpError, getBrandingFromMetaMatches, joinPageTitle, scopes } from '@curvenote/scms-core';
 import {
   withAppSiteContext,
   withInsecureSiteContext,
   dbUpsertPendingLinkedAccount,
 } from '@curvenote/scms-server';
 import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
-import { dbListCollections } from '../$siteName.collections/db.server.js';
-import { submitForm } from './actionHelpers.server.js';
+import { createDraftObject, getDraftObject, updateDraftObjectField } from './db.server.js';
+import { getDraftObjectIdFromCookie, setDraftObjectIdCookie } from './draft.server.js';
 import { FormArea, FormBody, MultiStepForm } from './form.js';
 import type { FormDefinition, FormSubmission } from './types.js';
-import { formatError } from 'zod';
 
 type LoaderData = {
   siteName: string;
   formName: string;
   pageName?: string;
-  // siteTitle: string;
-  // formCollections: Awaited<ReturnType<typeof dbListCollections>>;
   user: {
     name?: string;
     email?: string;
@@ -34,6 +24,10 @@ type LoaderData = {
     affiliation?: string;
   } | null;
   form: FormDefinition;
+  /** Draft object id from cookie (if any). */
+  draftObjectId: string | null;
+  /** Draft field data from DB for hydration (if draft exists). */
+  draftData: Record<string, unknown> | null;
 };
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -194,13 +188,33 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     ],
   };
 
+  const draftObjectId = getDraftObjectIdFromCookie(args.request);
+  let draftData: Record<string, unknown> | null = null;
+  if (draftObjectId) {
+    const draft = await getDraftObject(draftObjectId);
+    if (draft?.data && typeof draft.data === 'object' && !Array.isArray(draft.data)) {
+      draftData = draft.data as Record<string, unknown>;
+    }
+  }
+
   return {
     siteName,
     formName,
     pageName: pageName || formUI.pages[0]?.slug || undefined,
     user,
     form: formUI,
+    draftObjectId,
+    draftData,
   };
+}
+
+function parseFieldValue(raw: string): unknown {
+  if (raw === '') return raw;
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return raw;
+  }
 }
 
 export async function action(args: ActionFunctionArgs) {
@@ -208,8 +222,9 @@ export async function action(args: ActionFunctionArgs) {
   if (ctx.site.restricted) {
     ctx = await withAppSiteContext(args, [scopes.site.submissions.create]);
   }
-  const { formName } = args.params;
+  const { formName, siteName } = args.params;
   if (!formName) throw httpError(400, 'Missing form name');
+  if (!siteName) throw httpError(400, 'Missing site name');
 
   const formData = await args.request.formData();
   const intent = formData.get('intent') as string;
@@ -219,6 +234,28 @@ export async function action(args: ActionFunctionArgs) {
     await dbUpsertPendingLinkedAccount(ctx.user.id, 'orcid');
     const currentUrl = new URL(args.request.url).pathname + new URL(args.request.url).search;
     return data({ linkOrcid: true, returnTo: currentUrl });
+  }
+
+  // Save a single field to the draft Object (create if no objectId, else OCC update)
+  if (intent === 'save-field') {
+    const fieldName = formData.get('fieldName') as string | null;
+    const valueRaw = formData.get('value') as string | null;
+    if (!fieldName) throw httpError(400, 'Missing field name');
+    const value = valueRaw !== null ? parseFieldValue(valueRaw) : undefined;
+
+    let objectId =
+      (formData.get('objectId') as string | null) || getDraftObjectIdFromCookie(args.request);
+
+    if (!objectId) {
+      objectId = await createDraftObject({ [fieldName]: value }, ctx.user?.id ?? null);
+      return data(
+        { objectId },
+        { headers: { 'Set-Cookie': setDraftObjectIdCookie(objectId, siteName, formName) } },
+      );
+    }
+
+    await updateDraftObjectField(objectId, fieldName, value, ctx.user?.id ?? null);
+    return data({ objectId });
   }
 
   // TODO: submit form handling when needed
@@ -233,34 +270,34 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
   ];
 };
 
+const FALLBACK_FIELDS: FormSubmission['fields'] = {
+  title:
+    'Linking soil structure and function: pore network analysis to understand soil hydraulic properties',
+  abstract:
+    "Understanding the relationship between soil structure and hydraulic properties is essential for optimizing agricultural water management practices. This study introduces an innovative approach that integrates X-ray computed tomography (CT) imaging with pore network analysis to effectively characterize soil structure and predict hydraulic conductivity.\n\nTo conduct this research, intact soil cores were collected from various agricultural fields and scanned using X-ray CT technology at a high resolution of 30 µm. This advanced imaging technique allows for a detailed examination of the soil's internal structure, revealing the intricate arrangement of pores and particles. Following the scanning process, sophisticated image processing techniques, including segmentation and skeletonization, were employed to extract three-dimensional",
+  keywords: '',
+  format: '',
+  license: '',
+  authors: [],
+};
+
 export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
-  const { form, siteName, pageName } = loaderData;
-  // const actionData = useActionData<{ error?: { message?: string } }>();
+  const { form, siteName, pageName, draftObjectId: loaderDraftId, draftData } = loaderData;
+  const [draftObjectId, setDraftObjectId] = React.useState<string | null>(loaderDraftId ?? null);
 
-  // const title = (form.data as any)?.title ?? form.name;
-  // const description = (form.data as any)?.description;
-
-  // const hasMultipleCollections = formCollections.length > 1;
+  // Sync draft id from loader (e.g. after refresh with cookie)
+  React.useEffect(() => {
+    if (loaderDraftId) setDraftObjectId(loaderDraftId);
+  }, [loaderDraftId]);
 
   const currentPageSlug = pageName;
   const currentPage = form.pages.find((page) => page.slug === currentPageSlug);
   const currentPageIndex = form.pages.findIndex((page) => page.slug === currentPageSlug);
   const stepNumber = currentPageIndex + 1;
 
-  // Data continues to live in the frontend for now
   const submission: FormSubmission = {
-    fields: {
-      title:
-        'Linking soil structure and function: pore network analysis to understand soil hydraulic properties',
-      abstract:
-        "Understanding the relationship between soil structure and hydraulic properties is essential for optimizing agricultural water management practices. This study introduces an innovative approach that integrates X-ray computed tomography (CT) imaging with pore network analysis to effectively characterize soil structure and predict hydraulic conductivity.\n\nTo conduct this research, intact soil cores were collected from various agricultural fields and scanned using X-ray CT technology at a high resolution of 30 µm. This advanced imaging technique allows for a detailed examination of the soil's internal structure, revealing the intricate arrangement of pores and particles. Following the scanning process, sophisticated image processing techniques, including segmentation and skeletonization, were employed to extract three-dimensional",
-      keywords: '',
-    },
-    pages: {
-      license: {
-        completed: true,
-      },
-    },
+    fields: { ...FALLBACK_FIELDS, ...draftData } as FormSubmission['fields'],
+    pages: {},
   };
 
   return (
@@ -268,7 +305,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
       <MultiStepForm
         className="justify-self-end mr-5"
         formName={form.title}
-        title={submission.fields.title || 'New Submission'}
+        title={String(submission.fields.title || 'New Submission')}
         description={form.description}
         formPages={form.pages}
         currentPage={currentPageSlug}
@@ -284,6 +321,8 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
           formFields={form.fields}
           submission={submission}
           user={loaderData.user}
+          draftObjectId={draftObjectId}
+          onDraftCreated={setDraftObjectId}
         />
       )}
       {!currentPage && (

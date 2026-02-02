@@ -27,6 +27,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { FormLabel } from './label.js';
 import type { Author, AuthorOption } from './types.js';
+import { useSaveField } from './useSaveField.js';
 import { ui } from '@curvenote/scms-core';
 
 type AuthorCardProps = {
@@ -261,12 +262,26 @@ type AuthorFieldProps = {
   schema: AuthorOption;
   value: Author[];
   onChange: (value: Author[]) => void;
+  draftObjectId?: string | null;
+  onDraftCreated?: (id: string) => void;
 };
 
-export function AuthorField({ schema, value = [], onChange }: AuthorFieldProps) {
+export function AuthorField({
+  schema,
+  value = [],
+  onChange,
+  draftObjectId = null,
+  onDraftCreated,
+}: AuthorFieldProps) {
   const [inputValue, setInputValue] = useState('');
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const isValid = value.length > 0;
+  const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
+
+  const handleChange = (newAuthors: Author[]) => {
+    onChange(newAuthors);
+    save(newAuthors);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -291,7 +306,7 @@ export function AuthorField({ schema, value = [], onChange }: AuthorFieldProps) 
         const newAuthors = [...value];
         const [movedAuthor] = newAuthors.splice(oldIndex, 1);
         newAuthors.splice(newIndex, 0, movedAuthor);
-        onChange(newAuthors);
+        handleChange(newAuthors);
 
         // Update openIndex if needed
         if (openIndex === oldIndex) {
@@ -324,7 +339,7 @@ export function AuthorField({ schema, value = [], onChange }: AuthorFieldProps) 
       affiliations: [],
     }));
 
-    onChange([...value, ...newAuthors]);
+    handleChange([...value, ...newAuthors]);
     setInputValue('');
   };
 
@@ -338,12 +353,12 @@ export function AuthorField({ schema, value = [], onChange }: AuthorFieldProps) 
   const handleAuthorChange = (index: number, updatedAuthor: Author) => {
     const newAuthors = [...value];
     newAuthors[index] = updatedAuthor;
-    onChange(newAuthors);
+    handleChange(newAuthors);
   };
 
   const handleDelete = (index: number) => {
     const newAuthors = value.filter((_, i) => i !== index);
-    onChange(newAuthors);
+    handleChange(newAuthors);
     if (openIndex === index) {
       setOpenIndex(null);
     } else if (openIndex !== null && openIndex > index) {

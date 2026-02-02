@@ -16,6 +16,7 @@ import { FormLabel } from './label.js';
 import { AuthorField } from './authors.js';
 import { ContactDetails } from './ContactDetails.js';
 import { SubmitButton } from './SubmitButton.js';
+import { useSaveField } from './useSaveField.js';
 
 type LoaderData = {
   nothing: null;
@@ -135,10 +136,19 @@ type TitleFieldProps = {
   schema: FieldSchema;
   value: string;
   onChange: (value: string) => void;
+  draftObjectId?: string | null;
+  onDraftCreated?: (id: string) => void;
 };
 
-export function TitleField({ schema, value, onChange }: TitleFieldProps) {
+export function TitleField({
+  schema,
+  value,
+  onChange,
+  draftObjectId = null,
+  onDraftCreated,
+}: TitleFieldProps) {
   const isValid = value.trim().length > 0;
+  const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
 
   return (
     <div className="space-y-2">
@@ -149,7 +159,11 @@ export function TitleField({ schema, value, onChange }: TitleFieldProps) {
         id={schema.name}
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          const v = e.target.value;
+          onChange(v);
+          save(v);
+        }}
         className="font-bold"
       />
     </div>
@@ -160,14 +174,23 @@ type AbstractFieldProps = {
   schema: ParagraphOption;
   value: string;
   onChange: (value: string) => void;
+  draftObjectId?: string | null;
+  onDraftCreated?: (id: string) => void;
 };
 
-export function AbstractField({ schema, value, onChange }: AbstractFieldProps) {
+export function AbstractField({
+  schema,
+  value,
+  onChange,
+  draftObjectId = null,
+  onDraftCreated,
+}: AbstractFieldProps) {
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
   const maxWords = schema.wordCount?.max || 0;
   const progressPercentage = maxWords > 0 ? (wordCount / maxWords) * 100 : 0;
   const isOverLimit = wordCount > maxWords;
   const isValid = value.trim().length > 0;
+  const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
 
   return (
     <div className="space-y-2">
@@ -178,7 +201,11 @@ export function AbstractField({ schema, value, onChange }: AbstractFieldProps) {
         id={schema.name}
         rows={8}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          const v = e.target.value;
+          onChange(v);
+          save(v);
+        }}
         className={cn(
           'px-3 py-2 w-full text-base bg-transparent border rounded-xs min-h-[200px] border-input',
           'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
@@ -211,10 +238,19 @@ type KeywordsFieldProps = {
   schema: StringOption;
   value: string;
   onChange: (value: string) => void;
+  draftObjectId?: string | null;
+  onDraftCreated?: (id: string) => void;
 };
 
-export function KeywordsField({ schema, value, onChange }: KeywordsFieldProps) {
+export function KeywordsField({
+  schema,
+  value,
+  onChange,
+  draftObjectId = null,
+  onDraftCreated,
+}: KeywordsFieldProps) {
   const isValid = value.trim().length > 0;
+  const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
 
   return (
     <div className="space-y-2">
@@ -225,7 +261,11 @@ export function KeywordsField({ schema, value, onChange }: KeywordsFieldProps) {
         id={schema.name}
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          const v = e.target.value;
+          onChange(v);
+          save(v);
+        }}
         placeholder={schema.placeholder || 'Type and press enter...'}
         className="w-full"
       />
@@ -237,15 +277,28 @@ type RadioFieldProps = {
   schema: RadioOption;
   value: string;
   onChange: (value: string) => void;
+  draftObjectId?: string | null;
+  onDraftCreated?: (id: string) => void;
 };
 
-export function RadioField({ schema, value, onChange }: RadioFieldProps) {
+export function RadioField({
+  schema,
+  value,
+  onChange,
+  draftObjectId = null,
+  onDraftCreated,
+}: RadioFieldProps) {
+  const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
+
   return (
     <div className="space-y-2">
       <WizardQuestion
         key={schema.name}
         value={value}
-        onChange={onChange}
+        onChange={(v) => {
+          onChange(v);
+          save(v);
+        }}
         question={{
           id: schema.name,
           title: schema.title,
@@ -271,7 +324,12 @@ type FormBodyProps = {
   formChildren: FormPage['children'];
   submission: FormSubmission;
   user?: FormBodyUser;
+  draftObjectId?: string | null;
+  onDraftCreated?: (id: string) => void;
 };
+
+const draftProps = (draftObjectId: string | null | undefined, onDraftCreated: ((id: string) => void) | undefined) =>
+  ({ draftObjectId: draftObjectId ?? null, onDraftCreated });
 
 export function FormBody({
   stepNumber,
@@ -280,8 +338,11 @@ export function FormBody({
   formChildren,
   submission,
   user = null,
+  draftObjectId = null,
+  onDraftCreated,
 }: FormBodyProps) {
   const [values, setValues] = useState<Record<string, any>>(submission.fields);
+  const dp = draftProps(draftObjectId, onDraftCreated);
 
   const handleChange = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
@@ -306,6 +367,7 @@ export function FormBody({
               schema={schema}
               value={value}
               onChange={(v) => handleChange(schema.name, v)}
+              {...dp}
             />
           );
         }
@@ -315,6 +377,7 @@ export function FormBody({
             schema={schema}
             value={value}
             onChange={(v) => handleChange(schema.name, v)}
+            {...dp}
           />
         );
       case 'radio':
@@ -324,6 +387,7 @@ export function FormBody({
             schema={schema}
             value={value}
             onChange={(v) => handleChange(schema.name, v)}
+            {...dp}
           />
         );
       case 'paragraph':
@@ -333,6 +397,7 @@ export function FormBody({
             schema={schema}
             value={value}
             onChange={(v) => handleChange(schema.name, v)}
+            {...dp}
           />
         );
       case 'author':
@@ -343,6 +408,7 @@ export function FormBody({
               schema={schema}
               value={value}
               onChange={(v) => handleChange(schema.name, v)}
+              {...dp}
             />
           </div>
         );
