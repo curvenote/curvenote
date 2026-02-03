@@ -10,6 +10,8 @@ export function getUniqueSubmissions(versions: WorkVersionWithSubmissionVersions
   const submissions: Record<string, SubmissionWithVersionsAndSite> = {};
   versions.forEach((v) => {
     v.submissionVersions.forEach((sv) => {
+      // Never surface draft submission versions in work details.
+      if (sv.status === 'DRAFT') return;
       if (submissions[sv.submission_id]) {
         submissions[sv.submission_id].versions.push(sv);
       } else {
@@ -21,6 +23,8 @@ export function getUniqueSubmissions(versions: WorkVersionWithSubmissionVersions
     });
   });
   return Object.values(submissions)
+    // If a submission only has draft versions, omit the submission entirely.
+    .filter((s) => s.versions.length > 0)
     .map((s) => ({
       ...s,
       versions: s.versions.sort((a, b) => {
