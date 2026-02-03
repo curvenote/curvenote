@@ -173,6 +173,46 @@ export function FormArea({ stepNumber, stepTitle, children }: FormAreaProps) {
   );
 }
 
+type PageNavProps = {
+  basePath: string;
+  currentPageSlug: string;
+  formPages: FormPage[];
+};
+
+export function PageNav({ basePath, currentPageSlug, formPages }: PageNavProps) {
+  const currentIndex = formPages.findIndex((p) => p.slug === currentPageSlug);
+  const prevPage = currentIndex > 0 ? formPages[currentIndex - 1] : null;
+  const nextPage =
+    currentIndex >= 0 && currentIndex < formPages.length - 1 ? formPages[currentIndex + 1] : null;
+  const prevHref = prevPage ? `${basePath}${prevPage.slug}` : null;
+  const nextHref = nextPage ? `${basePath}${nextPage.slug}` : null;
+
+  return (
+    <div className="flex justify-between items-center pt-6 mt-6 border-t border-border">
+      {prevHref ? (
+        <Link
+          to={prevHref}
+          className="inline-flex gap-2 items-center px-4 py-2 text-sm font-medium text-foreground rounded-md bg-background border border-border hover:bg-muted transition-colors"
+        >
+          ‹ Back
+        </Link>
+      ) : (
+        <span />
+      )}
+      {nextHref ? (
+        <Link
+          to={nextHref}
+          className="inline-flex gap-2 items-center px-4 py-2 text-sm font-medium text-white rounded-md bg-[#3E7AA9] hover:bg-[#3E7AA9]/90 transition-colors"
+        >
+          Continue ›
+        </Link>
+      ) : (
+        <span />
+      )}
+    </div>
+  );
+}
+
 type TitleFieldProps = {
   schema: FieldSchema;
   value: string;
@@ -363,6 +403,9 @@ type FormBodyProps = {
   stepTitle: string;
   formFields: FieldSchema[];
   formChildren: FormPage['children'];
+  formPages: FormPage[];
+  currentPageSlug: string;
+  basePath: string;
   submission: FormSubmission;
   user?: FormBodyUser;
   draftObjectId?: string | null;
@@ -379,6 +422,9 @@ export function FormBody({
   stepTitle,
   formFields,
   formChildren,
+  formPages,
+  currentPageSlug,
+  basePath,
   submission,
   user = null,
   draftObjectId = null,
@@ -471,6 +517,7 @@ export function FormBody({
   return (
     <FormArea stepNumber={stepNumber} stepTitle={stepTitle}>
       {formChildren.map((child) => renderFormChild(child))}
+      <PageNav basePath={basePath} currentPageSlug={currentPageSlug} formPages={formPages} />
     </FormArea>
   );
 }

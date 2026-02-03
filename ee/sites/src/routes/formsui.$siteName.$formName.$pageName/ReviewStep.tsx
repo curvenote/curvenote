@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import type { Author, FieldSchema, FormDefinition, FormSubmission } from './types.js';
-import { FormArea } from './form.js';
+import { FormArea, PageNav } from './form.js';
 import { SubmitButton } from './SubmitButton.js';
 
 type ReviewStepUser = {
@@ -98,6 +98,7 @@ export function ReviewStep({
           </section>
         )}
 
+        <PageNav basePath={basePath} currentPageSlug="review" formPages={form.pages} />
         {/* Submit / Sign in to submit */}
         <div className="flex flex-col gap-2 pt-4">
           <SubmitButton user={user} variant="review" draftObjectId={draftObjectId} />

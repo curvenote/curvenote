@@ -145,7 +145,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
             subLabel: '(CC-BY)',
           },
           {
-            value: '',
+            value: 'Other',
             label: 'No',
             subLabel: 'I need a custom license',
           },
@@ -410,7 +410,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
     <FormSyncProvider>
       <div className="grid min-h-screen grid-cols-[1fr_minmax(48ch,72ch)_1fr] gap-8 items-stretch">
         <MultiStepForm
-          className="justify-self-end mr-5 self-stretch"
+          className="justify-self-end self-stretch mr-5"
           formName={form.title}
           title={String(submission.fields.title || 'New Submission')}
           description={form.description}
@@ -441,6 +441,9 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
             stepTitle={currentPage.title}
             formChildren={currentPage.children}
             formFields={form.fields}
+            formPages={form.pages}
+            currentPageSlug={currentPageSlug!}
+            basePath={basePath}
             submission={submission}
             user={loaderData.user}
             draftObjectId={draftObjectId}
