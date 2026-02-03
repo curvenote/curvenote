@@ -1,5 +1,5 @@
-import { CheckIcon } from 'lucide-react';
-import { useState } from 'react';
+import { CheckIcon, Cloud } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router';
 import type {
   FieldSchema,
@@ -14,6 +14,7 @@ import { useFormSyncContext } from './formSyncContext.js';
 import { FormLabel } from './label.js';
 import { AuthorField } from './authors.js';
 import { ContactDetails } from './ContactDetails.js';
+import { PoweredByCurvenote } from './PoweredByCurvenote.js';
 import { SubmitButton } from './SubmitButton.js';
 import { useSaveField } from './useSaveField.js';
 
@@ -57,17 +58,31 @@ export function MultiStepForm({
 }: MultiStepFormProps) {
   const syncContext = useFormSyncContext();
   const isSaving = syncContext?.isSaving ?? false;
+  const [showDraftSaved, setShowDraftSaved] = useState(false);
+  const prevSavingRef = useRef(isSaving);
+
+  useEffect(() => {
+    if (prevSavingRef.current && !isSaving) {
+      setShowDraftSaved(true);
+      const t = setTimeout(() => setShowDraftSaved(false), 1000);
+      return () => clearTimeout(t);
+    }
+    prevSavingRef.current = isSaving;
+  }, [isSaving]);
 
   return (
     <div
-      className={cn('w-full border max-w-[300px] border-border not-prose bg-background', className)}
+      className={cn(
+        'flex flex-col h-full w-full border max-w-[300px] border-border not-prose bg-background',
+        className,
+      )}
     >
-      <div className="flex flex-col gap-2 p-4">
+      <div className="shrink-0 flex flex-col gap-2 p-4">
         <div className="text-sm font-semibold text-muted-foreground">{formName}</div>
         <h2 className="text-xl font-bold line-clamp-2 wrap-break-words">{title}</h2>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
-      <div className="">
+      <div className="flex-1 overflow-auto shrink min-h-0">
         {formPages.map((page, index) => {
           const stepNumber = index + 1;
           const completed = submission.pages[page.slug]?.completed || false;
@@ -107,8 +122,17 @@ export function MultiStepForm({
           );
         })}
       </div>
-      <div className="m-8">
-        <SubmitButton user={user} variant="sidebar" isSaving={isSaving} />
+      <div className="shrink-0 flex flex-col gap-3 p-4 pt-4">
+        {!user && <SubmitButton user={user} variant="sidebar" isSaving={false} />}
+        {user && showDraftSaved && (
+          <p className="flex gap-2 items-center text-sm text-muted-foreground" role="status">
+            <Cloud className="w-4 h-4 shrink-0" aria-hidden />
+            Draft saved
+          </p>
+        )}
+        <div className="-mx-4 border-t border-border px-4 pt-3 flex flex-col gap-3">
+          <PoweredByCurvenote />
+        </div>
       </div>
     </div>
   );

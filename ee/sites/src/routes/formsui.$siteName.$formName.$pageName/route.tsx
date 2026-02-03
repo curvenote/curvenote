@@ -408,9 +408,9 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
 
   return (
     <FormSyncProvider>
-      <div className="grid grid-cols-[1fr_minmax(48ch,72ch)_1fr] gap-8 items-start">
+      <div className="grid min-h-screen grid-cols-[1fr_minmax(48ch,72ch)_1fr] gap-8 items-stretch">
         <MultiStepForm
-          className="justify-self-end mr-5"
+          className="justify-self-end mr-5 self-stretch"
           formName={form.title}
           title={String(submission.fields.title || 'New Submission')}
           description={form.description}
