@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { LoaderFunctionArgs, ActionFunctionArgs, MetaFunction } from 'react-router';
-import { data } from 'react-router';
+import { data, redirect } from 'react-router';
 import { httpError, getBrandingFromMetaMatches, joinPageTitle, scopes } from '@curvenote/scms-core';
 import {
   withAppSiteContext,
@@ -10,6 +10,8 @@ import {
 import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
 import { createDraftObject, getDraftObject, updateDraftObjectField } from './db.server.js';
 import { getDraftObjectIdFromCookie, setDraftObjectIdCookie } from './draft.server.js';
+import { submitForm } from './actionHelpers.server.js';
+import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { FormArea, FormBody, MultiStepForm } from './form.js';
 import { FormSyncProvider } from './formSyncContext.js';
 import { ReviewStep } from './ReviewStep.js';
@@ -266,7 +268,57 @@ export async function action(args: ActionFunctionArgs) {
     return data({ objectId });
   }
 
-  // TODO: submit form handling when needed
+  // Submit (logged-in only): load draft, build payload, create work and submission
+  if (intent === 'submit') {
+    if (!ctx.user) {
+      return data({ error: { message: 'Please sign in before submitting.' } }, { status: 400 });
+    }
+    const objectId =
+      (formData.get('objectId') as string | null) || getDraftObjectIdFromCookie(args.request);
+    if (!objectId) {
+      return data(
+        { error: { message: 'No draft found. Please complete the form and try again.' } },
+        { status: 400 },
+      );
+    }
+    const draft = await getDraftObject(objectId);
+    if (!draft?.data || typeof draft.data !== 'object' || Array.isArray(draft.data)) {
+      return data({ error: { message: 'Invalid draft. Please try again.' } }, { status: 400 });
+    }
+    const fields = draft.data as Record<string, unknown>;
+    const form = await dbGetForm(formName!, ctx.site.id);
+    const collectionId =
+      form.collections?.length === 1 ? form.collections[0].collection.id : undefined;
+    if (!collectionId) {
+      return data({ error: { message: 'Collection is required.' } }, { status: 400 });
+    }
+    const authorsRaw = (fields.authors as { name?: string }[] | undefined) ?? [];
+    const authors = authorsRaw.map((a) => (a?.name ?? '').trim()).filter(Boolean);
+
+    const submitData = new FormData();
+    submitData.set('intent', 'submit');
+    submitData.set('objectId', objectId);
+    submitData.set('name', String(fields.contactName ?? ctx.user.display_name ?? ''));
+    submitData.set('email', String(fields.contactEmail ?? ctx.user.email ?? ''));
+    if (fields.contactOrcidId) submitData.set('orcid', String(fields.contactOrcidId));
+    if (fields.contactAffiliation) submitData.set('affiliation', String(fields.contactAffiliation));
+    submitData.set('collectionId', collectionId);
+    submitData.set('workTitle', String(fields.title ?? ''));
+    if (fields.abstract) submitData.set('workDescription', String(fields.abstract));
+    submitData.set('authors', JSON.stringify(authors));
+
+    const result = await submitForm(ctx as SiteContextWithUser, form, submitData);
+    if (result && typeof result === 'object' && 'error' in result && result.error) {
+      return data(result as { error: { message: string } }, { status: 400 });
+    }
+    const ok = result as { workId?: string; submissionId?: string };
+    if (ok?.workId) {
+      throw redirect(
+        `/formsui/${siteName}/${formName}/review?submitted=1&workId=${encodeURIComponent(ok.workId)}`,
+      );
+    }
+    return result;
+  }
 }
 
 export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
@@ -335,6 +387,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
             submission={submission}
             user={loaderData.user}
             basePath={basePath}
+            draftObjectId={draftObjectId}
           />
         ) : currentPage ? (
           <FormBody

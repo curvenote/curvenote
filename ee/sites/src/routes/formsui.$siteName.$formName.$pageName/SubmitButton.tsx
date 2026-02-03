@@ -14,9 +14,16 @@ type SubmitButtonProps = {
   user: SubmitButtonUser | null;
   variant: 'sidebar' | 'review';
   isSaving?: boolean;
+  /** Required for review variant when logged in: draft object id to submit. */
+  draftObjectId?: string | null;
 };
 
-export function SubmitButton({ user, variant, isSaving = false }: SubmitButtonProps) {
+export function SubmitButton({
+  user,
+  variant,
+  isSaving = false,
+  draftObjectId = null,
+}: SubmitButtonProps) {
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const orcidFetcher = useFetcher();
@@ -89,16 +96,21 @@ export function SubmitButton({ user, variant, isSaving = false }: SubmitButtonPr
     );
   }
 
-  // Review: logged in -> Submit button
+  // Review: logged in -> Submit form (POST intent=submit + objectId)
   if (variant === 'review' && user) {
     return (
-      <ui.Button
-        className="w-full bg-[#3E7AA9] text-white hover:bg-[#3E7AA9]/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        size="lg"
-        type="button"
-      >
-        Submit
-      </ui.Button>
+      <form method="post" className="w-full">
+        <input type="hidden" name="intent" value="submit" />
+        {draftObjectId && <input type="hidden" name="objectId" value={draftObjectId} />}
+        <ui.Button
+          className="w-full bg-[#3E7AA9] text-white hover:bg-[#3E7AA9]/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          size="lg"
+          type="submit"
+          disabled={!draftObjectId}
+        >
+          Submit
+        </ui.Button>
+      </form>
     );
   }
 

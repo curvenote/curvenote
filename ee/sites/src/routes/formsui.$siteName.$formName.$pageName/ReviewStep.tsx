@@ -16,6 +16,7 @@ type ReviewStepProps = {
   submission: Pick<FormSubmission, 'fields'>;
   user: ReviewStepUser;
   basePath: string;
+  draftObjectId?: string | null;
 };
 
 function formatFieldValue(schema: FieldSchema, value: unknown): string {
@@ -41,7 +42,14 @@ function isFieldEmpty(schema: FieldSchema, value: unknown): boolean {
   return false;
 }
 
-export function ReviewStep({ stepNumber, form, submission, user, basePath }: ReviewStepProps) {
+export function ReviewStep({
+  stepNumber,
+  form,
+  submission,
+  user,
+  basePath,
+  draftObjectId = null,
+}: ReviewStepProps) {
   const fields = form.fields;
   const values = submission.fields;
 
@@ -92,7 +100,7 @@ export function ReviewStep({ stepNumber, form, submission, user, basePath }: Rev
 
         {/* Submit / Sign in to submit */}
         <div className="flex flex-col gap-2 pt-4">
-          <SubmitButton user={user} variant="review" />
+          <SubmitButton user={user} variant="review" draftObjectId={draftObjectId} />
         </div>
       </div>
     </FormArea>

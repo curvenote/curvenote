@@ -3,7 +3,7 @@ import { zfd } from 'zod-form-data';
 import { scopes } from '@curvenote/scms-core';
 import { userHasSiteScope } from '@curvenote/scms-server';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
-import { dbSubmitForm } from './db.server.js';
+import { dbCreateWorkAndSubmission } from './db.server.js';
 import { z } from 'zod';
 
 const SubmitFormSchema = zfd.formData({
@@ -15,6 +15,8 @@ const SubmitFormSchema = zfd.formData({
   workTitle: zfd.text(z.string().min(1)),
   workDescription: zfd.text(z.string().optional()),
   isCorrespondingAuthor: zfd.text(z.string().optional()),
+  /** JSON array of author names; when present used instead of isCorrespondingAuthor. */
+  authors: zfd.text(z.string().optional()),
 });
 
 export async function submitForm(ctx: SiteContextWithUser, form: any, formData: FormData) {
@@ -36,12 +38,23 @@ export async function submitForm(ctx: SiteContextWithUser, form: any, formData: 
           return data({ error: { message: 'Collection is required' } }, { status: 400 });
         }
 
-        // Set authors based on checkbox: empty array if not checked, or [name] if checked
-        // Checkbox sends "true" when checked, or is undefined when unchecked
-        const isCorrespondingAuthor = dataParsed.isCorrespondingAuthor === 'true';
-        const authors = isCorrespondingAuthor ? [dataParsed.name] : [];
+        // Authors: use JSON from formData if present (e.g. from draft), else isCorrespondingAuthor
+        let authors: string[];
+        if (dataParsed.authors) {
+          try {
+            const parsed = JSON.parse(dataParsed.authors) as unknown;
+            authors = Array.isArray(parsed)
+              ? parsed.filter((a): a is string => typeof a === 'string')
+              : [];
+          } catch {
+            authors = [];
+          }
+        } else {
+          const isCorrespondingAuthor = dataParsed.isCorrespondingAuthor === 'true';
+          authors = isCorrespondingAuthor ? [dataParsed.name] : [];
+        }
 
-        const result = await dbSubmitForm(ctx, form, {
+        const result = await dbCreateWorkAndSubmission(ctx, ctx.user, form, {
           name: dataParsed.name,
           email: dataParsed.email,
           orcid: dataParsed.orcid,

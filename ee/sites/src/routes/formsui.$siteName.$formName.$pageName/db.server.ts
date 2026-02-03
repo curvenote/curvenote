@@ -2,8 +2,8 @@ import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient, safeObjectDataUpdate } from '@curvenote/scms-server';
 import { ActivityType, WorkRole } from '@curvenote/scms-db';
-import type { SiteContextWithUser } from '@curvenote/scms-server';
-import { WorkContents, coerceToObject } from '@curvenote/scms-core';
+import type { SiteContext, MyUserDBO } from '@curvenote/scms-server';
+import { coerceToObject } from '@curvenote/scms-core';
 import { DRAFT_OBJECT_TYPE_CONST } from './draft.server.js';
 
 /** Create a new formsui draft Object with initial field data. If createdById is provided (logged-in user), connect the user. */
@@ -62,7 +62,7 @@ export async function updateDraftObjectField(
   }
 }
 
-interface SubmitFormData {
+export interface SubmitFormData {
   name: string;
   email: string;
   orcid?: string;
@@ -73,33 +73,34 @@ interface SubmitFormData {
   authors: string[];
 }
 
-async function dbCreateWork(
-  ctx: SiteContextWithUser,
-  title: string,
-  description: string,
-  authors: string[],
-  contains: WorkContents[],
+/** Create work and submission in one transaction (same as forms route). */
+export async function dbCreateWorkAndSubmission(
+  ctx: SiteContext,
+  submitter: MyUserDBO,
+  form: any,
+  data: SubmitFormData,
 ) {
-  const date_created = formatDate();
   const prisma = await getPrismaClient();
+  const date_created = formatDate();
+  const timestamp = formatDate();
   const workId = uuid();
   const workVersionId = uuid();
+  const submissionId = uuid();
+  const submissionVersionId = uuid();
 
-  // Get CDN from config (same as StorageBackend does)
   const cdn = ctx.$config.api.knownBucketInfoMap.prv.cdn;
   const cdnKey = uuid();
 
   return prisma.$transaction(async (tx) => {
-    // Create the work
     const newWork = await tx.work.create({
       data: {
         id: workId,
         date_created,
         date_modified: date_created,
-        contains,
+        contains: [],
         created_by: {
           connect: {
-            id: ctx.user.id,
+            id: submitter.id,
           },
         },
         versions: {
@@ -110,10 +111,10 @@ async function dbCreateWork(
               date_modified: date_created,
               cdn,
               cdn_key: cdnKey,
-              title,
-              description: description || null,
+              title: data.workTitle,
+              description: data.workDescription || null,
               draft: false,
-              authors,
+              authors: data.authors,
               metadata: {},
             },
           ],
@@ -124,7 +125,7 @@ async function dbCreateWork(
               id: uuid(),
               date_created,
               date_modified: date_created,
-              user_id: ctx.user.id,
+              user_id: submitter.id,
               role: WorkRole.OWNER,
             },
           ],
@@ -135,7 +136,8 @@ async function dbCreateWork(
       },
     });
 
-    // Create activity record
+    const workVersion = newWork.versions[0];
+
     await tx.activity.create({
       data: {
         id: uuid(),
@@ -143,7 +145,7 @@ async function dbCreateWork(
         date_modified: date_created,
         activity_by: {
           connect: {
-            id: ctx.user.id,
+            id: submitter.id,
           },
         },
         activity_type: ActivityType.NEW_WORK,
@@ -160,30 +162,6 @@ async function dbCreateWork(
       },
     });
 
-    return newWork;
-  });
-}
-
-export async function dbSubmitForm(ctx: SiteContextWithUser, form: any, data: SubmitFormData) {
-  const prisma = await getPrismaClient();
-  const timestamp = formatDate();
-
-  // Create or get user for submission
-  // For logged-in users, use existing user; for anonymous, we might need to create a guest user
-  // For now, we'll use the context user (which should exist since we require authentication)
-  const submitter = ctx.user;
-
-  // Create work and work version
-  const work = await dbCreateWork(ctx, data.workTitle, data.workDescription || '', data.authors, [
-    WorkContents.MYST,
-  ]);
-
-  const workVersion = work.versions[0];
-
-  // Create submission and submission version
-  const date_created = formatDate();
-  const submissionVersionId = uuid();
-  const submission = await prisma.$transaction(async (tx) => {
     const sv = await tx.submissionVersion.create({
       data: {
         id: submissionVersionId,
@@ -202,7 +180,7 @@ export async function dbSubmitForm(ctx: SiteContextWithUser, form: any, data: Su
         },
         submission: {
           create: {
-            id: uuid(),
+            id: submissionId,
             date_created,
             date_modified: date_created,
             submitted_by: {
@@ -227,7 +205,7 @@ export async function dbSubmitForm(ctx: SiteContextWithUser, form: any, data: Su
             },
             work: {
               connect: {
-                id: work.id,
+                id: workId,
               },
             },
           },
@@ -301,7 +279,7 @@ export async function dbSubmitForm(ctx: SiteContextWithUser, form: any, data: Su
         },
         work: {
           connect: {
-            id: work.id,
+            id: workId,
           },
         },
         work_version: {
@@ -312,11 +290,9 @@ export async function dbSubmitForm(ctx: SiteContextWithUser, form: any, data: Su
       },
     });
 
-    return sv.submission;
+    return {
+      submissionId: sv.submission.id,
+      workId: workId,
+    };
   });
-
-  return {
-    submissionId: submission.id,
-    workId: work.id,
-  };
 }
