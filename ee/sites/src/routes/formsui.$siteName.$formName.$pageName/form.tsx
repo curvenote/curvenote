@@ -328,8 +328,10 @@ type FormBodyProps = {
   onDraftCreated?: (id: string) => void;
 };
 
-const draftProps = (draftObjectId: string | null | undefined, onDraftCreated: ((id: string) => void) | undefined) =>
-  ({ draftObjectId: draftObjectId ?? null, onDraftCreated });
+const draftProps = (
+  draftObjectId: string | null | undefined,
+  onDraftCreated: ((id: string) => void) | undefined,
+) => ({ draftObjectId: draftObjectId ?? null, onDraftCreated });
 
 export function FormBody({
   stepNumber,
@@ -403,7 +405,15 @@ export function FormBody({
       case 'author':
         return (
           <div key={schema.name} className="space-y-6">
-            <ContactDetails user={user ?? null} />
+            <ContactDetails
+              user={user ?? null}
+              draftObjectId={draftObjectId}
+              onDraftCreated={onDraftCreated}
+              draftContactName={values.contactName}
+              draftContactAffiliation={values.contactAffiliation}
+              draftContactEmail={values.contactEmail}
+              draftContactOrcidId={values.contactOrcidId}
+            />
             <AuthorField
               schema={schema}
               value={value}

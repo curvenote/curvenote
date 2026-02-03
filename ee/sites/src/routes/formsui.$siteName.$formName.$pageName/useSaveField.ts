@@ -3,6 +3,10 @@ import { useFetcher } from 'react-router';
 
 const SAVE_DEBOUNCE_MS = 400;
 
+/**
+ * Hook that owns its fetcher: debounced save(value) builds FormData and submits.
+ * When the action returns objectId, onDraftCreated is called.
+ */
 export function useSaveField(
   draftObjectId: string | null,
   fieldName: string,

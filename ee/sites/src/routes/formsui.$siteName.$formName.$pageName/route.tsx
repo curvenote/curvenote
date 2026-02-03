@@ -279,6 +279,10 @@ const FALLBACK_FIELDS: FormSubmission['fields'] = {
   format: '',
   license: '',
   authors: [],
+  contactName: '',
+  contactAffiliation: '',
+  contactEmail: '',
+  contactOrcidId: '',
 };
 
 export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {

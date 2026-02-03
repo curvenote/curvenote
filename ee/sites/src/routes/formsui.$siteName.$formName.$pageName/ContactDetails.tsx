@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { ui, orcid } from '@curvenote/scms-core';
 import { FormLabel } from './label.js';
+import { useSaveField } from './useSaveField.js';
 
 type ContactDetailsUser = {
   name?: string;
@@ -12,14 +13,40 @@ type ContactDetailsUser = {
 
 type ContactDetailsProps = {
   user: ContactDetailsUser | null;
+  draftObjectId?: string | null;
+  onDraftCreated?: (id: string) => void;
+  draftContactName?: string;
+  draftContactAffiliation?: string;
+  draftContactEmail?: string;
+  draftContactOrcidId?: string;
 };
 
-export function ContactDetails({ user }: ContactDetailsProps) {
+export function ContactDetails({
+  user,
+  draftObjectId = null,
+  onDraftCreated,
+  draftContactName = '',
+  draftContactAffiliation = '',
+  draftContactEmail = '',
+  draftContactOrcidId = '',
+}: ContactDetailsProps) {
   const orcidFetcher = useFetcher();
   const linkOrcidResponse = orcidFetcher.data as
     | { linkOrcid?: boolean; returnTo?: string }
     | undefined;
   const didRedirectRef = useRef(false);
+
+  const [name, setName] = useState(user?.name ?? draftContactName ?? '');
+  const [affiliation, setAffiliation] = useState(
+    user?.affiliation ?? draftContactAffiliation ?? '',
+  );
+  const [email, setEmail] = useState(user?.email ?? draftContactEmail ?? '');
+  const [orcidId, setOrcidId] = useState(user?.orcid ?? draftContactOrcidId ?? '');
+
+  const saveName = useSaveField(draftObjectId ?? null, 'contactName', onDraftCreated);
+  const saveAffiliation = useSaveField(draftObjectId ?? null, 'contactAffiliation', onDraftCreated);
+  const saveEmail = useSaveField(draftObjectId ?? null, 'contactEmail', onDraftCreated);
+  const saveOrcidId = useSaveField(draftObjectId ?? null, 'contactOrcidId', onDraftCreated);
 
   // Allow redirect again when user submits the form again (e.g. retry after error)
   useEffect(() => {
@@ -28,17 +55,22 @@ export function ContactDetails({ user }: ContactDetailsProps) {
     }
   }, [orcidFetcher.state]);
 
-  const [name, setName] = useState(user?.name ?? '');
-  const [affiliation, setAffiliation] = useState(user?.affiliation ?? '');
-  const [email, setEmail] = useState(user?.email ?? '');
-  const [orcidId, setOrcidId] = useState(user?.orcid ?? '');
-
+  // Sync from user (OAuth) or draft when those change; user takes precedence
   useEffect(() => {
-    setName(user?.name ?? '');
-    setAffiliation(user?.affiliation ?? '');
-    setEmail(user?.email ?? '');
-    setOrcidId(user?.orcid ?? '');
-  }, [user?.name, user?.affiliation, user?.email, user?.orcid]);
+    setName(user?.name ?? draftContactName ?? '');
+    setAffiliation(user?.affiliation ?? draftContactAffiliation ?? '');
+    setEmail(user?.email ?? draftContactEmail ?? '');
+    setOrcidId(user?.orcid ?? draftContactOrcidId ?? '');
+  }, [
+    user?.name,
+    user?.affiliation,
+    user?.email,
+    user?.orcid,
+    draftContactName,
+    draftContactAffiliation,
+    draftContactEmail,
+    draftContactOrcidId,
+  ]);
 
   const currentUrl =
     typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
@@ -73,10 +105,13 @@ export function ContactDetails({ user }: ContactDetailsProps) {
             </FormLabel>
             <ui.Input
               id="contact-name"
-              name="name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setName(v);
+                if (!nameReadOnly) saveName(v);
+              }}
               placeholder="Full name"
               className="w-full"
               disabled={nameReadOnly}
@@ -88,10 +123,13 @@ export function ContactDetails({ user }: ContactDetailsProps) {
             </FormLabel>
             <ui.Input
               id="contact-affiliation"
-              name="affiliation"
               type="text"
               value={affiliation}
-              onChange={(e) => setAffiliation(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setAffiliation(v);
+                if (!affiliationReadOnly) saveAffiliation(v);
+              }}
               placeholder="University or organization"
               className="w-full"
               disabled={affiliationReadOnly}
@@ -103,10 +141,13 @@ export function ContactDetails({ user }: ContactDetailsProps) {
             </FormLabel>
             <ui.Input
               id="contact-email"
-              name="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setEmail(v);
+                if (!emailReadOnly) saveEmail(v);
+              }}
               placeholder="you@example.com"
               className="w-full"
               disabled={emailReadOnly}
@@ -118,10 +159,13 @@ export function ContactDetails({ user }: ContactDetailsProps) {
             </FormLabel>
             <ui.Input
               id="contact-orcid"
-              name="orcid"
               type="text"
               value={orcidId}
-              onChange={(e) => setOrcidId(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setOrcidId(v);
+                if (!orcidReadOnly) saveOrcidId(v);
+              }}
               placeholder="0000-0000-0000-0000"
               className="w-full"
               disabled={orcidReadOnly}
