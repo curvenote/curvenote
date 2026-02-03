@@ -77,15 +77,12 @@
       "authors": ["Steve Purves", "Rowan Cockett"],
       "date": "2022-05-11T00:00:00.000Z",
       "kind": "example",
-      "versions": [
-        {
-          "id": "4ba8cadf-f345-4ab3-8299-d583f554693b",
-          "cdn_key": "59b16f70-255b-4b2b-bb7a-8e0db22b1832",
-          "cdn": "https://prv.curvenote.dev/",
-          "date_created": "2022-05-11T00:00:00.000Z",
-          "canonical": true
-        }
-      ]
+      "version_count": 15,
+      "submission_version_count": 4,
+      "version_template": {
+        "cdn_key": "59b16f70-255b-4b2b-bb7a-8e0db22b1832",
+        "cdn": "https://prv.curvenote.dev/"
+      }
     }
   ]
 }

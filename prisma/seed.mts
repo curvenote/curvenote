@@ -199,6 +199,8 @@ main()
     console.log(`   📝 Submissions:  ${summary.submissions}`);
     console.log(`   📚 Collections:  ${summary.collections}`);
     console.log('\n' + '='.repeat(60) + '\n');
+
+    process.exit(0);
   })
   .catch(async (e) => {
     console.error('\n❌ Seed failed with error:');
