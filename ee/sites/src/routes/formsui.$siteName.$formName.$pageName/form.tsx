@@ -58,14 +58,23 @@ export function MultiStepForm({
 }: MultiStepFormProps) {
   const syncContext = useFormSyncContext();
   const isSaving = syncContext?.isSaving ?? false;
-  const [showDraftSaved, setShowDraftSaved] = useState(false);
+  type DraftSavedPhase = 'hidden' | 'visible' | 'fadingOut';
+  const [draftSavedPhase, setDraftSavedPhase] = useState<DraftSavedPhase>('hidden');
   const prevSavingRef = useRef(isSaving);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     if (prevSavingRef.current && !isSaving) {
-      setShowDraftSaved(true);
-      const t = setTimeout(() => setShowDraftSaved(false), 1000);
-      return () => clearTimeout(t);
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+      setDraftSavedPhase('visible');
+      timeoutsRef.current.push(
+        setTimeout(() => {
+          setDraftSavedPhase('fadingOut');
+          timeoutsRef.current.push(setTimeout(() => setDraftSavedPhase('hidden'), 150));
+        }, 1500),
+      );
+      return () => timeoutsRef.current.forEach(clearTimeout);
     }
     prevSavingRef.current = isSaving;
   }, [isSaving]);
@@ -77,12 +86,12 @@ export function MultiStepForm({
         className,
       )}
     >
-      <div className="shrink-0 flex flex-col gap-2 p-4">
+      <div className="flex flex-col gap-2 p-4 shrink-0">
         <div className="text-sm font-semibold text-muted-foreground">{formName}</div>
         <h2 className="text-xl font-bold line-clamp-2 wrap-break-words">{title}</h2>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
-      <div className="flex-1 overflow-auto shrink min-h-0">
+      <div className="overflow-auto flex-1 min-h-0 shrink">
         {formPages.map((page, index) => {
           const stepNumber = index + 1;
           const completed = submission.pages[page.slug]?.completed || false;
@@ -122,15 +131,21 @@ export function MultiStepForm({
           );
         })}
       </div>
-      <div className="shrink-0 flex flex-col gap-3 p-4 pt-4">
+      <div className="flex flex-col gap-3 p-4 pt-4 shrink-0">
         {!user && <SubmitButton user={user} variant="sidebar" isSaving={false} />}
-        {user && showDraftSaved && (
-          <p className="flex gap-2 items-center text-sm text-muted-foreground" role="status">
+        {user && draftSavedPhase !== 'hidden' && (
+          <p
+            className={cn(
+              'flex gap-2 items-center text-sm text-muted-foreground transition-opacity duration-150 ease-out',
+              draftSavedPhase === 'fadingOut' ? 'opacity-0' : 'opacity-100',
+            )}
+            role="status"
+          >
             <Cloud className="w-4 h-4 shrink-0" aria-hidden />
             Draft saved
           </p>
         )}
-        <div className="-mx-4 border-t border-border px-4 pt-3 flex flex-col gap-3">
+        <div className="flex flex-col gap-3 px-4 pt-3 -mx-4 border-t border-border">
           <PoweredByCurvenote />
         </div>
       </div>
