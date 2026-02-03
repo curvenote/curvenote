@@ -22,16 +22,18 @@ export function getUniqueSubmissions(versions: WorkVersionWithSubmissionVersions
       }
     });
   });
-  return Object.values(submissions)
-    // If a submission only has draft versions, omit the submission entirely.
-    .filter((s) => s.versions.length > 0)
-    .map((s) => ({
-      ...s,
-      versions: s.versions.sort((a, b) => {
+  return (
+    Object.values(submissions)
+      // If a submission only has draft versions, omit the submission entirely.
+      .filter((s) => s.versions.length > 0)
+      .map((s) => ({
+        ...s,
+        versions: s.versions.sort((a, b) => {
+          return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
+        }),
+      }))
+      .sort((a, b) => {
         return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
-      }),
-    }))
-    .sort((a, b) => {
-      return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
-    });
+      })
+  );
 }
