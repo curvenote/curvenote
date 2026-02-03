@@ -73,12 +73,13 @@ export interface SubmitFormData {
   authors: string[];
 }
 
-/** Create work and submission in one transaction (same as forms route). */
+/** Create work and submission in one transaction (same as forms route). If draftObjectId is provided, deletes the draft Object in the same transaction. */
 export async function dbCreateWorkAndSubmission(
   ctx: SiteContext,
   submitter: MyUserDBO,
   form: any,
   data: SubmitFormData,
+  draftObjectId?: string | null,
 ) {
   const prisma = await getPrismaClient();
   const date_created = formatDate();
@@ -289,6 +290,12 @@ export async function dbCreateWorkAndSubmission(
         },
       },
     });
+
+    if (draftObjectId) {
+      await tx.object.deleteMany({
+        where: { id: draftObjectId, type: DRAFT_OBJECT_TYPE_CONST },
+      });
+    }
 
     return {
       submissionId: sv.submission.id,

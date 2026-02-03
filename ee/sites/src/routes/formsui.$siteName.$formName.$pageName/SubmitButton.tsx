@@ -27,6 +27,7 @@ export function SubmitButton({
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const orcidFetcher = useFetcher();
+  const submitFetcher = useFetcher();
   const config = useDeploymentConfig();
 
   const authProviders = config.authProviders?.filter((p) => p.allowLogin) ?? [];
@@ -96,21 +97,35 @@ export function SubmitButton({
     );
   }
 
-  // Review: logged in -> Submit form (POST intent=submit + objectId)
+  // Review: logged in -> Submit via fetcher so we stay on page and can show error
   if (variant === 'review' && user) {
+    const submitError =
+      submitFetcher.state === 'idle' &&
+      submitFetcher.data &&
+      typeof submitFetcher.data === 'object' &&
+      'error' in submitFetcher.data
+        ? (submitFetcher.data as { error?: { message?: string } }).error?.message
+        : null;
     return (
-      <form method="post" className="w-full">
-        <input type="hidden" name="intent" value="submit" />
-        {draftObjectId && <input type="hidden" name="objectId" value={draftObjectId} />}
-        <ui.Button
-          className="w-full bg-[#3E7AA9] text-white hover:bg-[#3E7AA9]/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          size="lg"
-          type="submit"
-          disabled={!draftObjectId}
-        >
-          Submit
-        </ui.Button>
-      </form>
+      <div className="w-full space-y-2">
+        {submitError && (
+          <p className="text-sm text-destructive" role="alert">
+            {submitError}
+          </p>
+        )}
+        <submitFetcher.Form method="post" className="w-full">
+          <input type="hidden" name="intent" value="submit" />
+          {draftObjectId && <input type="hidden" name="objectId" value={draftObjectId} />}
+          <ui.Button
+            className="w-full bg-[#3E7AA9] text-white hover:bg-[#3E7AA9]/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            size="lg"
+            type="submit"
+            disabled={!draftObjectId || submitFetcher.state !== 'idle'}
+          >
+            {submitFetcher.state !== 'idle' ? 'Submitting…' : 'Submit'}
+          </ui.Button>
+        </submitFetcher.Form>
+      </div>
     );
   }
 

@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 const SubmitFormSchema = zfd.formData({
   name: zfd.text(z.string().min(1)),
-  email: zfd.text(z.string().email()),
+  email: zfd.text(z.email()),
   orcid: zfd.text(z.string().optional()),
   affiliation: zfd.text(z.string().optional()),
   collectionId: zfd.text(z.string().uuid()).optional(),
@@ -54,24 +54,29 @@ export async function submitForm(ctx: SiteContextWithUser, form: any, formData: 
           authors = isCorrespondingAuthor ? [dataParsed.name] : [];
         }
 
-        const result = await dbCreateWorkAndSubmission(ctx, ctx.user, form, {
-          name: dataParsed.name,
-          email: dataParsed.email,
-          orcid: dataParsed.orcid,
-          affiliation: dataParsed.affiliation,
-          collectionId,
-          workTitle: dataParsed.workTitle,
-          workDescription: dataParsed.workDescription,
-          authors,
-        });
+        const draftObjectId = (formData.get('objectId') as string | null) || null;
+        const result = await dbCreateWorkAndSubmission(
+          ctx,
+          ctx.user,
+          form,
+          {
+            name: dataParsed.name,
+            email: dataParsed.email,
+            orcid: dataParsed.orcid,
+            affiliation: dataParsed.affiliation,
+            collectionId,
+            workTitle: dataParsed.workTitle,
+            workDescription: dataParsed.workDescription,
+            authors,
+          },
+          draftObjectId,
+        );
 
         return { submissionId: result.submissionId, workId: result.workId };
       },
-      (error) => {
-        return data(
-          { error: { message: error.errors?.[0]?.message || 'Invalid form data' } },
-          { status: 400 },
-        );
+      (error: { issues?: Array<{ message?: string }> }) => {
+        const message = error?.issues?.[0]?.message ?? 'Invalid form data';
+        return data({ error: { message } }, { status: 400 });
       },
     );
 }

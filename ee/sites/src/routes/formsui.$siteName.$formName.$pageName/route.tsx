@@ -9,7 +9,11 @@ import {
 } from '@curvenote/scms-server';
 import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
 import { createDraftObject, getDraftObject, updateDraftObjectField } from './db.server.js';
-import { getDraftObjectIdFromCookie, setDraftObjectIdCookie } from './draft.server.js';
+import {
+  getDraftObjectIdFromCookie,
+  setDraftObjectIdCookie,
+  clearDraftCookie,
+} from './draft.server.js';
 import { submitForm } from './actionHelpers.server.js';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { FormArea, FormBody, MultiStepForm } from './form.js';
@@ -234,6 +238,22 @@ function parseFieldValue(raw: string): unknown {
   }
 }
 
+/** Same fallbacks as the page; submit uses merged { ...FALLBACK_FIELDS, ...draft } so we submit what we display. */
+const FALLBACK_FIELDS: FormSubmission['fields'] = {
+  title:
+    'Linking soil structure and function: pore network analysis to understand soil hydraulic properties',
+  abstract:
+    "Understanding the relationship between soil structure and hydraulic properties is essential for optimizing agricultural water management practices. This study introduces an innovative approach that integrates X-ray computed tomography (CT) imaging with pore network analysis to effectively characterize soil structure and predict hydraulic conductivity.\n\nTo conduct this research, intact soil cores were collected from various agricultural fields and scanned using X-ray CT technology at a high resolution of 30 µm. This advanced imaging technique allows for a detailed examination of the soil's internal structure, revealing the intricate arrangement of pores and particles. Following the scanning process, sophisticated image processing techniques, including segmentation and skeletonization, were employed to extract three-dimensional",
+  keywords: '',
+  format: '',
+  license: '',
+  authors: [],
+  contactName: '',
+  contactAffiliation: '',
+  contactEmail: '',
+  contactOrcidId: '',
+};
+
 export async function action(args: ActionFunctionArgs) {
   let ctx = await withInsecureSiteContext(args);
   if (ctx.site.restricted) {
@@ -292,7 +312,11 @@ export async function action(args: ActionFunctionArgs) {
     if (!draft?.data || typeof draft.data !== 'object' || Array.isArray(draft.data)) {
       return data({ error: { message: 'Invalid draft. Please try again.' } }, { status: 400 });
     }
-    const fields = draft.data as Record<string, unknown>;
+    // Merge with fallbacks so we submit exactly what the review page displays (UI = fallback + draft)
+    const fields = {
+      ...FALLBACK_FIELDS,
+      ...(draft.data as Record<string, unknown>),
+    } as Record<string, unknown>;
     const form = await dbGetForm(formName!, ctx.site.id);
     const collectionId =
       form.collections?.length === 1 ? form.collections[0].collection.id : undefined;
@@ -302,15 +326,32 @@ export async function action(args: ActionFunctionArgs) {
     const authorsRaw = (fields.authors as { name?: string }[] | undefined) ?? [];
     const authors = authorsRaw.map((a) => (a?.name ?? '').trim()).filter(Boolean);
 
+    // Contact details: same precedence as UI (user then merged fields) so we submit what we display
+    const userOrcid = ctx.user.linkedAccounts?.find((la) => la.provider === 'orcid')?.idAtProvider;
+    const name = String(fields.contactName || ctx.user.display_name || '').trim();
+    const email = String(fields.contactEmail || ctx.user.email || '').trim();
+    const contactOrcid = String(fields.contactOrcidId || userOrcid || '').trim();
+    const contactAffiliation = String(fields.contactAffiliation || '').trim();
+    const workTitle = String(fields.title ?? '').trim();
+    if (!name) {
+      return data({ error: { message: 'Your name is required.' } }, { status: 400 });
+    }
+    if (!email) {
+      return data({ error: { message: 'Email is required.' } }, { status: 400 });
+    }
+    if (!workTitle) {
+      return data({ error: { message: 'Title is required.' } }, { status: 400 });
+    }
+
     const submitData = new FormData();
     submitData.set('intent', 'submit');
     submitData.set('objectId', objectId);
-    submitData.set('name', String(fields.contactName ?? ctx.user.display_name ?? ''));
-    submitData.set('email', String(fields.contactEmail ?? ctx.user.email ?? ''));
-    if (fields.contactOrcidId) submitData.set('orcid', String(fields.contactOrcidId));
-    if (fields.contactAffiliation) submitData.set('affiliation', String(fields.contactAffiliation));
+    submitData.set('name', name);
+    submitData.set('email', email);
+    if (contactOrcid) submitData.set('orcid', contactOrcid);
+    if (contactAffiliation) submitData.set('affiliation', contactAffiliation);
     submitData.set('collectionId', collectionId);
-    submitData.set('workTitle', String(fields.title ?? ''));
+    submitData.set('workTitle', workTitle);
     if (fields.abstract) submitData.set('workDescription', String(fields.abstract));
     submitData.set('authors', JSON.stringify(authors));
 
@@ -322,6 +363,7 @@ export async function action(args: ActionFunctionArgs) {
     if (ok?.workId) {
       throw redirect(
         `/formsui/${siteName}/${formName}/success?workId=${encodeURIComponent(ok.workId)}`,
+        { headers: { 'Set-Cookie': clearDraftCookie(siteName, formName!) } },
       );
     }
     return result;
@@ -337,21 +379,6 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
       title: joinPageTitle(pageTitle, loaderData?.siteName, branding.title),
     },
   ];
-};
-
-const FALLBACK_FIELDS: FormSubmission['fields'] = {
-  title:
-    'Linking soil structure and function: pore network analysis to understand soil hydraulic properties',
-  abstract:
-    "Understanding the relationship between soil structure and hydraulic properties is essential for optimizing agricultural water management practices. This study introduces an innovative approach that integrates X-ray computed tomography (CT) imaging with pore network analysis to effectively characterize soil structure and predict hydraulic conductivity.\n\nTo conduct this research, intact soil cores were collected from various agricultural fields and scanned using X-ray CT technology at a high resolution of 30 µm. This advanced imaging technique allows for a detailed examination of the soil's internal structure, revealing the intricate arrangement of pores and particles. Following the scanning process, sophisticated image processing techniques, including segmentation and skeletonization, were employed to extract three-dimensional",
-  keywords: '',
-  format: '',
-  license: '',
-  authors: [],
-  contactName: '',
-  contactAffiliation: '',
-  contactEmail: '',
-  contactOrcidId: '',
 };
 
 export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
