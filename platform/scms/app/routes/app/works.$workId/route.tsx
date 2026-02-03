@@ -23,12 +23,35 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   const { workId } = args.params;
   if (!workId) return redirect('/app/works');
-  if (args.request.url.endsWith(workId)) {
-    throw redirect(`/app/works/${workId}/details`);
-  }
 
   const workVersions = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
   if (!workVersions) throw redirect('/app/works');
+
+  const isDraftOnlyWork = workVersions.length > 0 && workVersions.every((v) => v.draft);
+
+  const url = new URL(args.request.url);
+  const pathname = url.pathname;
+
+  // Draft-only works should route users into the upload flow, not the details pages.
+  if (isDraftOnlyWork) {
+    const isUploadPath = pathname.includes(`/app/works/${workId}/upload/`);
+    const isDetailsLikePath =
+      pathname === `/app/works/${workId}` ||
+      pathname === `/app/works/${workId}/` ||
+      pathname.startsWith(`/app/works/${workId}/details`) ||
+      pathname.startsWith(`/app/works/${workId}/users`) ||
+      pathname.startsWith(`/app/works/${workId}/checks`) ||
+      pathname.startsWith(`/app/works/${workId}/site/`);
+
+    if (!isUploadPath && isDetailsLikePath) {
+      throw redirect(`/app/works/${workId}/upload/${workVersions[0].id}`);
+    }
+  }
+
+  // Default index redirect.
+  if (pathname === `/app/works/${workId}` || pathname === `/app/works/${workId}/`) {
+    throw redirect(`/app/works/${workId}/details`);
+  }
 
   const submissions = getUniqueSubmissions(workVersions);
   const workflowNames = submissions.map((s) => s.collection.workflow);
@@ -67,7 +90,7 @@ export const meta: Route.MetaFunction = ({ matches, loaderData }) => {
 export default function WorkLayout({ loaderData }: Route.ComponentProps) {
   const { work, versions, submissions, userScopes } = loaderData;
 
-  const isDrafting = versions.length === 1 && versions[0].draft;
+  const isDrafting = versions.length > 0 && versions.every((v) => v.draft);
   const menu = buildMenu(`/app/works/${work.id}`, isDrafting, submissions, userScopes);
 
   return (

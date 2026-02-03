@@ -12,6 +12,10 @@ export async function getSubmissionVersionsForWorkAndSite(workId: string, siteNa
           name: siteName,
         },
       },
+      // Never show draft submission versions.
+      status: {
+        not: 'DRAFT',
+      },
     },
     include: {
       work_version: true,
@@ -39,6 +43,9 @@ export async function getSubmissionForWorkAndSite(workId: string, siteName: stri
         some: {
           work_version: {
             work_id: workId,
+          },
+          status: {
+            not: 'DRAFT',
           },
         },
       },

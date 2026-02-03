@@ -42,7 +42,14 @@ export const loader = async (args: Route.LoaderArgs) => {
     throw redirect(`/app/works/${workId}`);
   }
 
-  // Get the specific version being viewed
+  // Get all submission versions for the table
+  const submissionVersions = await getSubmissionVersionsForWorkAndSite(workId, siteName);
+  if (submissionVersions.length === 0) {
+    // Submission exists but only has draft versions (or none) that we intentionally hide.
+    throw redirect(`/app/works/${workId}`);
+  }
+
+  // Get the specific version being viewed (and ensure it isn't a hidden draft version)
   const viewingVersion = await getSubmissionVersion(submissionVersionId);
   if (!viewingVersion) {
     throw redirect(`/app/works/${workId}`);
@@ -56,8 +63,12 @@ export const loader = async (args: Route.LoaderArgs) => {
     throw redirect(`/app/works/${workId}`);
   }
 
-  // Get all submission versions for the table
-  const submissionVersions = await getSubmissionVersionsForWorkAndSite(workId, siteName);
+  // If the requested version is draft/hidden (or otherwise not in the visible list),
+  // redirect to the latest visible version.
+  const isVisibleRequestedVersion = submissionVersions.some((v) => v.id === viewingVersion.id);
+  if (!isVisibleRequestedVersion) {
+    throw redirect(`/app/works/${workId}/site/${siteName}/submission/${submissionVersions[0].id}`);
+  }
 
   // Get workflow configuration
   const workflow = getWorkflow(
@@ -82,7 +93,7 @@ export const loader = async (args: Route.LoaderArgs) => {
   });
 
   // Determine overall publication status and find published version
-  const publishedVersion = submissionVersions.find((v) => v.status === 'published');
+  const publishedVersion = submissionVersions.find((v) => v.status === 'PUBLISHED');
   const overallStatus = publishedVersion ? 'published' : activeVersion.status;
 
   // Get site logo from metadata if available

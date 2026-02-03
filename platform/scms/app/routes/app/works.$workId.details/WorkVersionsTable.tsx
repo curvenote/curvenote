@@ -30,6 +30,9 @@ export function WorkVersionsTable({
             // there may be multiple submissions to a site, and there is a history of submission versions that it may be
             // important to surface but that is a TODO and needs more UI to convey
             // TODO: the badge should show a popup with user facing information about the submission and submission version history
+            const nonDraftSubmissionVersions = v.submissionVersions.filter(
+              (sv) => sv.status !== 'DRAFT',
+            );
             return (
               <tr key={v.id} className="border-b-[1px] border-gray-300 last:border-none">
                 <td
@@ -45,9 +48,9 @@ export function WorkVersionsTable({
                     'opacity-50': idx !== 0,
                   })}
                 >
-                  {v.submissionVersions.length > 0 ? (
+                  {nonDraftSubmissionVersions.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {v.submissionVersions.map((sv) => (
+                      {nonDraftSubmissionVersions.map((sv) => (
                         <ui.SubmissionVersionBadge
                           key={`submission-badge-${v.id}-${sv.id}`}
                           submissionVersion={sv}

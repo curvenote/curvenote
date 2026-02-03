@@ -65,6 +65,19 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
 
   // Transform works to include the user's role with precedence handling
   return works.map((work) => {
+    // Remove draft submission versions and drop submissions that only have drafts.
+    // This keeps listings consistent with the "don't show draft submissions/versions" rule.
+    const visibleSubmissions = work.submissions
+      .map((submission) => {
+        const nonDraftVersions = (submission.versions ?? []).filter((v) => v.status !== 'DRAFT');
+        if (nonDraftVersions.length === 0) return null;
+        return {
+          ...submission,
+          versions: nonDraftVersions,
+        };
+      })
+      .filter((s): s is NonNullable<typeof s> => !!s);
+
     // Get the highest precedence role: OWNER > CONTRIBUTOR > VIEWER
     const userRoles = work.work_users.map((wu) => wu.role);
     let userRole: WorkRole | 'ORPHANED' = 'ORPHANED';
@@ -78,10 +91,11 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
     }
 
     // Extract unique sites for filter counting
-    const sites = [...new Set(work.submissions.map((sub) => sub.site.name))].filter(Boolean);
+    const sites = [...new Set(visibleSubmissions.map((sub) => sub.site.name))].filter(Boolean);
 
     return {
       ...work,
+      submissions: visibleSubmissions,
       userRole,
       sites,
     };

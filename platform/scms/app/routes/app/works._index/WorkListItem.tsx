@@ -99,9 +99,8 @@ export function WorkListItem({
             {work.submissions
               .filter((submission) => submission.versions && submission.versions.length > 0)
               .map((submission) => {
-                const latestNonDraftSubmissionVersion = submission.versions.filter(
-                  (v) => v.status !== 'DRAFT',
-                )[0]; // Already sorted by date_created desc
+                // `dbGetWorksAndSubmissionVersions` already filters out DRAFT submission versions.
+                const latestNonDraftSubmissionVersion = submission.versions[0];
 
                 // Guard against null/undefined collection
                 if (!submission.collection?.workflow) return null;
@@ -131,7 +130,7 @@ export function WorkListItem({
                     workflows={{ [submission.collection.workflow]: workflow }}
                     basePath={`/app/works/${work.id}`}
                     workVersionId={
-                      latestNonDraftSubmissionVersion.work_version?.id || work.versions[0]?.id || ''
+                      latestNonDraftSubmissionVersion.work_version?.id || latestVersion?.id || ''
                     }
                     showSite
                     showLink={false}
