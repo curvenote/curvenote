@@ -11,6 +11,8 @@ import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
 import { createDraftObject, getDraftObject, updateDraftObjectField } from './db.server.js';
 import { getDraftObjectIdFromCookie, setDraftObjectIdCookie } from './draft.server.js';
 import { FormArea, FormBody, MultiStepForm } from './form.js';
+import { FormSyncProvider } from './formSyncContext.js';
+import { ReviewStep } from './ReviewStep.js';
 import type { FormDefinition, FormSubmission } from './types.js';
 
 type LoaderData = {
@@ -185,6 +187,12 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
           },
         ],
       },
+      {
+        title: 'Review and Submit',
+        shortTitle: 'Review and Submit',
+        slug: 'review',
+        children: [],
+      },
     ],
   };
 
@@ -304,38 +312,49 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
     pages: {},
   };
 
+  const basePath = `/formsui/${siteName}/${form.slug}/`;
+
   return (
-    <div className="grid grid-cols-[1fr_minmax(48ch,72ch)_1fr] gap-8 items-start">
-      <MultiStepForm
-        className="justify-self-end mr-5"
-        formName={form.title}
-        title={String(submission.fields.title || 'New Submission')}
-        description={form.description}
-        formPages={form.pages}
-        currentPage={currentPageSlug}
-        submission={submission}
-        user={loaderData.user}
-        basePath={`/formsui/${siteName}/${form.slug}/`}
-      />
-      {currentPage && (
-        <FormBody
-          stepNumber={stepNumber}
-          stepTitle={currentPage.title}
-          formChildren={currentPage.children}
-          formFields={form.fields}
+    <FormSyncProvider>
+      <div className="grid grid-cols-[1fr_minmax(48ch,72ch)_1fr] gap-8 items-start">
+        <MultiStepForm
+          className="justify-self-end mr-5"
+          formName={form.title}
+          title={String(submission.fields.title || 'New Submission')}
+          description={form.description}
+          formPages={form.pages}
+          currentPage={currentPageSlug}
           submission={submission}
           user={loaderData.user}
-          draftObjectId={draftObjectId}
-          onDraftCreated={setDraftObjectId}
+          basePath={basePath}
         />
-      )}
-      {!currentPage && (
-        <FormArea stepNumber="?" stepTitle="Page not found">
-          <div className="prose">
-            <p>The page you are looking for does not exist.</p>
-          </div>
-        </FormArea>
-      )}
-    </div>
+        {currentPage?.slug === 'review' ? (
+          <ReviewStep
+            stepNumber={stepNumber}
+            form={form}
+            submission={submission}
+            user={loaderData.user}
+            basePath={basePath}
+          />
+        ) : currentPage ? (
+          <FormBody
+            stepNumber={stepNumber}
+            stepTitle={currentPage.title}
+            formChildren={currentPage.children}
+            formFields={form.fields}
+            submission={submission}
+            user={loaderData.user}
+            draftObjectId={draftObjectId}
+            onDraftCreated={setDraftObjectId}
+          />
+        ) : (
+          <FormArea stepNumber="?" stepTitle="Page not found">
+            <div className="prose">
+              <p>The page you are looking for does not exist.</p>
+            </div>
+          </FormArea>
+        )}
+      </div>
+    </FormSyncProvider>
   );
 }

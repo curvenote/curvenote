@@ -1,23 +1,28 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useId, useRef } from 'react';
 import { useFetcher } from 'react-router';
+import { useReportFetcherState } from './formSyncContext.js';
 
 const SAVE_DEBOUNCE_MS = 400;
 
 /**
  * Hook that owns its fetcher: debounced save(value) builds FormData and submits.
  * When the action returns objectId, onDraftCreated is called.
+ * Reports fetcher state to FormSyncContext so sidebar can show saving vs synced.
  */
 export function useSaveField(
   draftObjectId: string | null,
   fieldName: string,
   onDraftCreated: ((id: string) => void) | undefined,
 ) {
+  const id = useId();
   const fetcher = useFetcher();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useReportFetcherState(fetcher, `${id}-${fieldName}`);
+
   useEffect(() => {
-    const id = (fetcher.data as { objectId?: string } | undefined)?.objectId;
-    if (id && onDraftCreated) onDraftCreated(id);
+    const objectId = (fetcher.data as { objectId?: string } | undefined)?.objectId;
+    if (objectId && onDraftCreated) onDraftCreated(objectId);
   }, [fetcher.data, onDraftCreated]);
 
   const save = useCallback(

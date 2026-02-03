@@ -2,8 +2,6 @@ import { CheckIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import type {
-  Author,
-  AuthorOption,
   FieldSchema,
   FormPage,
   FormSubmission,
@@ -12,6 +10,7 @@ import type {
   StringOption,
 } from './types.js';
 import { cn, ui, WizardQuestion } from '@curvenote/scms-core';
+import { useFormSyncContext } from './formSyncContext.js';
 import { FormLabel } from './label.js';
 import { AuthorField } from './authors.js';
 import { ContactDetails } from './ContactDetails.js';
@@ -56,6 +55,9 @@ export function MultiStepForm({
   user,
   className,
 }: MultiStepFormProps) {
+  const syncContext = useFormSyncContext();
+  const isSaving = syncContext?.isSaving ?? false;
+
   return (
     <div
       className={cn('w-full border max-w-[300px] border-border not-prose bg-background', className)}
@@ -106,7 +108,7 @@ export function MultiStepForm({
         })}
       </div>
       <div className="m-8">
-        <SubmitButton user={user} />
+        <SubmitButton user={user} variant="sidebar" isSaving={isSaving} />
       </div>
     </div>
   );
