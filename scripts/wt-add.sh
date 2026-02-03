@@ -6,7 +6,7 @@ usage() {
 Usage: wt-add.sh <name>
 
 Creates a new git worktree at ../trees/<name> and a branch named <name>,
-based off the local 'dev' branch.
+based off the current branch.
 
 Also:
   - initializes submodules (recursive)
@@ -39,7 +39,13 @@ fi
 
 cd "$ROOT"
 
-BASE_BRANCH="dev"
+# Base the new worktree on the current branch (or HEAD if detached).
+BASE_REF="$(git branch --show-current)"
+if [[ -z "$BASE_REF" ]]; then
+  BASE_REF="$(git rev-parse HEAD)"
+  echo "→ Detached HEAD; using current commit as base: ${BASE_REF}"
+fi
+
 BRANCH="$NAME"
 WT_PARENT="${ROOT}/../trees"
 WT_DIR="${WT_PARENT}/${NAME}"
@@ -47,17 +53,6 @@ WT_DIR="${WT_PARENT}/${NAME}"
 if [[ -e "$WT_DIR" ]]; then
   echo "❌ Worktree path already exists: ${WT_DIR}" >&2
   exit 1
-fi
-
-# Ensure base branch exists locally (create tracking branch if only remote exists).
-if ! git show-ref --verify --quiet "refs/heads/${BASE_BRANCH}"; then
-  if git show-ref --verify --quiet "refs/remotes/origin/${BASE_BRANCH}"; then
-    echo "→ Creating local '${BASE_BRANCH}' tracking branch from origin/${BASE_BRANCH}"
-    git branch --track "${BASE_BRANCH}" "origin/${BASE_BRANCH}"
-  else
-    echo "❌ Base branch '${BASE_BRANCH}' not found (neither local nor origin/${BASE_BRANCH})." >&2
-    exit 1
-  fi
 fi
 
 # Refuse to proceed if the target branch already exists (local or remote).
@@ -74,8 +69,8 @@ mkdir -p "$WT_PARENT"
 
 echo "→ Adding worktree at: ${WT_DIR}"
 echo "  - branch: ${BRANCH}"
-echo "  - base:   ${BASE_BRANCH}"
-git worktree add -b "${BRANCH}" "${WT_DIR}" "${BASE_BRANCH}"
+echo "  - base:   ${BASE_REF}"
+git worktree add -b "${BRANCH}" "${WT_DIR}" "${BASE_REF}"
 
 echo "→ Initializing submodules in ${WT_DIR}"
 git -C "${WT_DIR}" submodule sync --recursive

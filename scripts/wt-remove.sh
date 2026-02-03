@@ -3,18 +3,15 @@ set -Eeuo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: wt-remove.sh <absolute-worktree-path> [--force]
+Usage: wt-remove.sh <absolute-worktree-path>
 
-Removes a git worktree by absolute path.
+Removes a git worktree by absolute path (uses git worktree remove --force).
 
 If the worktree contains submodules, git may refuse to remove it.
 This script will:
-  - attempt git worktree remove
+  - attempt git worktree remove --force
   - deinit submodules and retry
   - if still blocked, delete the directory and prune stale worktree metadata
-
-By default, this script refuses to proceed if the worktree (or any initialized
-submodule) has uncommitted changes. Use --force to override.
 EOF
 }
 
@@ -24,13 +21,12 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
 fi
 
 WT_DIR=""
-FORCE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --force|-f)
-      FORCE=true
-      shift
+    -h|--help)
+      usage
+      exit 0
       ;;
     -*)
       echo "Unknown option: $1" >&2
@@ -90,36 +86,6 @@ if ! git worktree list --porcelain | awk -v wt="$WT_DIR" '
   exit 1
 fi
 
-is_dirty_repo() {
-  local dir="$1"
-  [[ -d "$dir" ]] || return 1
-  # status --porcelain returns non-empty if dirty
-  [[ -n "$(git -C "$dir" status --porcelain 2>/dev/null || true)" ]]
-}
-
-is_dirty_submodules() {
-  local dir="$1"
-  [[ -d "$dir" ]] || return 1
-  [[ -f "${dir}/.gitmodules" ]] || return 1
-  # foreach prints output per submodule; we treat any porcelain output as dirty
-  local out
-  out="$(git -C "$dir" submodule foreach --recursive 'git status --porcelain' 2>/dev/null || true)"
-  [[ -n "$(echo "$out" | tr -d '[:space:]')" ]]
-}
-
-if [[ "$FORCE" != "true" ]]; then
-  if is_dirty_repo "$WT_DIR"; then
-    echo "❌ Worktree has uncommitted changes: ${WT_DIR}" >&2
-    echo "   Re-run with --force to override." >&2
-    exit 1
-  fi
-  if is_dirty_submodules "$WT_DIR"; then
-    echo "❌ One or more submodules have uncommitted changes in: ${WT_DIR}" >&2
-    echo "   Re-run with --force to override." >&2
-    exit 1
-  fi
-fi
-
 worktree_gitdir_for_path() {
   local wt="$1"
   git worktree list --porcelain | awk -v wt="$wt" '
@@ -132,11 +98,7 @@ worktree_gitdir_for_path() {
 GITDIR="$(worktree_gitdir_for_path "$WT_DIR" || true)"
 
 try_remove() {
-  if [[ "$FORCE" == "true" ]]; then
-    git worktree remove --force "$WT_DIR" 2>&1
-  else
-    git worktree remove "$WT_DIR" 2>&1
-  fi
+  git worktree remove --force "$WT_DIR" 2>&1
 }
 
 echo "→ Removing worktree: ${WT_DIR}"
