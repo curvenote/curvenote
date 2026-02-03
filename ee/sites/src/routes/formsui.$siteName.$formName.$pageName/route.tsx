@@ -15,6 +15,7 @@ import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { FormArea, FormBody, MultiStepForm } from './form.js';
 import { FormSyncProvider } from './formSyncContext.js';
 import { ReviewStep } from './ReviewStep.js';
+import { SuccessStep } from './SuccessStep.js';
 import type { FormDefinition, FormSubmission } from './types.js';
 
 type LoaderData = {
@@ -32,6 +33,8 @@ type LoaderData = {
   draftObjectId: string | null;
   /** Draft field data from DB for hydration (if draft exists). */
   draftData: Record<string, unknown> | null;
+  /** Set when on success page: workId from ?workId= search param. */
+  workId: string | null;
 };
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -207,6 +210,9 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     }
   }
 
+  const url = new URL(args.request.url);
+  const workId = url.searchParams.get('workId');
+
   return {
     siteName,
     formName,
@@ -215,6 +221,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     form: formUI,
     draftObjectId,
     draftData,
+    workId,
   };
 }
 
@@ -314,7 +321,7 @@ export async function action(args: ActionFunctionArgs) {
     const ok = result as { workId?: string; submissionId?: string };
     if (ok?.workId) {
       throw redirect(
-        `/formsui/${siteName}/${formName}/review?submitted=1&workId=${encodeURIComponent(ok.workId)}`,
+        `/formsui/${siteName}/${formName}/success?workId=${encodeURIComponent(ok.workId)}`,
       );
     }
     return result;
@@ -323,9 +330,11 @@ export async function action(args: ActionFunctionArgs) {
 
 export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
   const branding = getBrandingFromMetaMatches(matches);
+  const pageTitle =
+    loaderData?.pageName === 'success' ? 'Submission Successful' : (loaderData?.form.title ?? '');
   return [
     {
-      title: joinPageTitle(loaderData?.form.title, loaderData?.siteName, branding.title),
+      title: joinPageTitle(pageTitle, loaderData?.siteName, branding.title),
     },
   ];
 };
@@ -355,9 +364,13 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
   }, [loaderDraftId]);
 
   const currentPageSlug = pageName;
+  const isSuccessPage = pageName === 'success';
+  // When we're on the success URL, show "Review and Submit" as active in the sidebar (not a success step)
+  const sidebarCurrentPage = isSuccessPage ? 'review' : currentPageSlug;
   const currentPage = form.pages.find((page) => page.slug === currentPageSlug);
   const currentPageIndex = form.pages.findIndex((page) => page.slug === currentPageSlug);
-  const stepNumber = currentPageIndex + 1;
+  const reviewStepIndex = form.pages.findIndex((page) => page.slug === 'review');
+  const stepNumber = isSuccessPage ? reviewStepIndex + 1 : currentPageIndex + 1;
 
   const submission: FormSubmission = {
     fields: { ...FALLBACK_FIELDS, ...draftData } as FormSubmission['fields'],
@@ -375,12 +388,18 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
           title={String(submission.fields.title || 'New Submission')}
           description={form.description}
           formPages={form.pages}
-          currentPage={currentPageSlug}
+          currentPage={sidebarCurrentPage}
           submission={submission}
           user={loaderData.user}
           basePath={basePath}
         />
-        {currentPage?.slug === 'review' ? (
+        {isSuccessPage ? (
+          <SuccessStep
+            stepNumber={stepNumber}
+            workId={loaderData.workId ?? null}
+            isLoggedIn={!!loaderData.user}
+          />
+        ) : currentPage?.slug === 'review' ? (
           <ReviewStep
             stepNumber={stepNumber}
             form={form}
