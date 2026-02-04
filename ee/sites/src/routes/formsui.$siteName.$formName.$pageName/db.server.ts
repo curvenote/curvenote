@@ -37,6 +37,20 @@ export async function getDraftObject(objectId: string) {
   return row;
 }
 
+/** Returns workId if the work exists and is owned by the given user (created_by_id). Otherwise null. */
+export async function getWorkIdIfOwnedByUser(
+  workId: string,
+  userId: string | null,
+): Promise<string | null> {
+  if (!userId) return null;
+  const prisma = await getPrismaClient();
+  const work = await prisma.work.findUnique({
+    where: { id: workId },
+    select: { created_by_id: true },
+  });
+  return work?.created_by_id === userId ? workId : null;
+}
+
 /** Update a single field on a draft Object using OCC (safe merge, no overwrite). If createdById is provided and the object has no created_by yet, sets created_by. */
 export async function updateDraftObjectField(
   objectId: string,

@@ -8,7 +8,12 @@ import {
   dbUpsertPendingLinkedAccount,
 } from '@curvenote/scms-server';
 import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
-import { createDraftObject, getDraftObject, updateDraftObjectField } from './db.server.js';
+import {
+  createDraftObject,
+  getDraftObject,
+  getWorkIdIfOwnedByUser,
+  updateDraftObjectField,
+} from './db.server.js';
 import {
   getDraftObjectIdFromCookie,
   setDraftObjectIdCookie,
@@ -216,7 +221,11 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   }
 
   const url = new URL(args.request.url);
-  const workId = url.searchParams.get('workId');
+  let workId: string | null = url.searchParams.get('workId');
+  const pageNameFromParams = args.params.pageName;
+  if (pageNameFromParams === 'success') {
+    workId = workId ? await getWorkIdIfOwnedByUser(workId, ctx.user?.id ?? null) : null;
+  }
 
   return {
     siteName,
@@ -374,7 +383,9 @@ export async function action(args: ActionFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
   const branding = getBrandingFromMetaMatches(matches);
   const pageTitle =
-    loaderData?.pageName === 'success' ? 'Submission Successful' : (loaderData?.form.title ?? '');
+    loaderData?.pageName === 'success' && loaderData?.workId
+      ? 'Submission Successful'
+      : (loaderData?.form.title ?? '');
   return [
     {
       title: joinPageTitle(pageTitle, loaderData?.siteName, branding.title),
@@ -392,9 +403,9 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
   }, [loaderDraftId]);
 
   const currentPageSlug = pageName;
-  const isSuccessPage = pageName === 'success';
-  // When we're on the success URL, show "Review and Submit" as active in the sidebar (not a success step)
-  const sidebarCurrentPage = isSuccessPage ? 'review' : currentPageSlug;
+  const isSuccessPage = pageName === 'success' && loaderData.workId != null;
+  // When we're on the success URL (valid or not), show "Review and Submit" as active in the sidebar
+  const sidebarCurrentPage = pageName === 'success' ? 'review' : currentPageSlug;
   const currentPage = form.pages.find((page) => page.slug === currentPageSlug);
   const currentPageIndex = form.pages.findIndex((page) => page.slug === currentPageSlug);
   const reviewStepIndex = form.pages.findIndex((page) => page.slug === 'review');
