@@ -27,8 +27,15 @@ import { ReviewStep } from './ReviewStep.js';
 import { SuccessStep } from './SuccessStep.js';
 import type { FormDefinition, FormSubmission } from './types.js';
 
+type FormCollectionOption = {
+  id: string;
+  name: string;
+  title: string;
+};
+
 type LoaderData = {
   siteName: string;
+  siteTitle: string;
   formName: string;
   pageName?: string;
   user: {
@@ -39,6 +46,8 @@ type LoaderData = {
     pending?: boolean;
   } | null;
   form: FormDefinition;
+  /** Collections associated with the form (for collection picker on review). */
+  formCollections: FormCollectionOption[];
   /** Draft object id from cookie (if any). */
   draftObjectId: string | null;
   /** Draft field data from DB for hydration (if draft exists). */
@@ -57,10 +66,13 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   if (!siteName) throw httpError(400, 'Missing site name');
   const form = await dbGetForm(formName, ctx.site.id);
 
-  // const collections = await dbListCollections(ctx.site.id);
-  // // Filter collections to only those associated with the form
-  // const formCollectionIds = new Set(form.collections.map((cif: any) => cif.collection.id));
-  // const formCollections = collections.filter((c) => formCollectionIds.has(c.id));
+  const formCollections: FormCollectionOption[] =
+    form.collections?.map((c: { collection: { id: string; name: string; content?: unknown } }) => ({
+      id: c.collection.id,
+      name: c.collection.name,
+      title: (c.collection.content as { title?: string })?.title ?? c.collection.name,
+    })) ?? [];
+
   // Get user info if logged in (or pending after ORCID sign-in)
   const user = ctx.user
     ? {
@@ -231,10 +243,12 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
 
   return {
     siteName,
+    siteTitle: ctx.site.title,
     formName,
     pageName: pageName || formUI.pages[0]?.slug || undefined,
     user,
     form: formUI,
+    formCollections,
     draftObjectId,
     draftData,
     workId,
@@ -331,7 +345,9 @@ export async function action(args: ActionFunctionArgs) {
     } as Record<string, unknown>;
     const form = await dbGetForm(formName!, ctx.site.id);
     const collectionId =
-      form.collections?.length === 1 ? form.collections[0].collection.id : undefined;
+      (fields.collectionId as string)?.trim() ||
+      (form.collections?.length === 1 ? form.collections[0].collection.id : undefined) ||
+      form.collections?.[0]?.collection?.id;
     if (!collectionId) {
       return data({ error: { message: 'Collection is required.' } }, { status: 400 });
     }
@@ -464,6 +480,9 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
             user={loaderData.user}
             basePath={basePath}
             draftObjectId={draftObjectId}
+            onDraftCreated={setDraftObjectId}
+            siteTitle={loaderData.siteTitle}
+            formCollections={loaderData.formCollections}
           />
         ) : currentPage ? (
           <FormBody

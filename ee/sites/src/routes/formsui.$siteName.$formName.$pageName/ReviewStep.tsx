@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { useDeploymentConfig } from '@curvenote/scms-core';
 import type { Author, FieldSchema, FormDefinition, FormSubmission } from './types.js';
 import { getMissingRequiredForPage } from './validationUtils.js';
 import { FormArea } from './form.js';
 import { SubmitButton } from './SubmitButton.js';
+import { useSaveField } from './useSaveField.js';
 
+type FormCollectionOption = { id: string; name: string; title: string };
 type AgreementURL = { label: string; url: string };
 
 type ReviewStepUser = {
@@ -23,6 +25,9 @@ type ReviewStepProps = {
   user: ReviewStepUser;
   basePath: string;
   draftObjectId?: string | null;
+  onDraftCreated?: (id: string) => void;
+  siteTitle: string;
+  formCollections: FormCollectionOption[];
 };
 
 function formatFieldValue(schema: FieldSchema, value: unknown): string {
@@ -48,6 +53,9 @@ export function ReviewStep({
   user,
   basePath,
   draftObjectId = null,
+  onDraftCreated,
+  siteTitle,
+  formCollections,
 }: ReviewStepProps) {
   const config = useDeploymentConfig();
   const agreementStep = config.signupConfig?.signup?.steps?.find(
@@ -60,6 +68,30 @@ export function ReviewStep({
 
   const fields = form.fields;
   const values = submission.fields;
+  const defaultCollectionId = formCollections[0]?.id ?? '';
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string>(
+    () => (values.collectionId as string) || defaultCollectionId,
+  );
+  const saveCollectionId = useSaveField(draftObjectId ?? null, 'collectionId', onDraftCreated);
+
+  useEffect(() => {
+    const fromDraft = values.collectionId as string | undefined;
+    if (fromDraft && formCollections.some((c) => c.id === fromDraft)) {
+      setSelectedCollectionId(fromDraft);
+    } else if (defaultCollectionId && !fromDraft) {
+      setSelectedCollectionId(defaultCollectionId);
+    }
+  }, [values.collectionId, defaultCollectionId, formCollections]);
+
+  const handleCollectionChange = (newId: string) => {
+    setSelectedCollectionId(newId);
+    saveCollectionId(newId);
+  };
+
+  const selectedCollection = formCollections.find((c) => c.id === selectedCollectionId);
+  const selectedCollectionTitle = selectedCollection?.title ?? selectedCollection?.name ?? '—';
+  const canChangeCollection = formCollections.length > 1;
+
   const reviewPage = form.pages.find((p) => p.slug === 'review');
   const missingRequired = reviewPage ? getMissingRequiredForPage(reviewPage, form, values) : [];
   const canSubmit = missingRequired.length === 0 && (!showTermsCheckbox || agreedToTerms);
@@ -82,6 +114,30 @@ export function ReviewStep({
             ))}
           </dl>
         </section>
+
+        {/* Collection picker: above error, label and dropdown side by side */}
+        {canChangeCollection && (
+          <section className="flex gap-3 items-center w-full">
+            <label
+              htmlFor="review-collection"
+              className="text-sm font-medium text-muted-foreground shrink-0"
+            >
+              Choose collection:
+            </label>
+            <select
+              id="review-collection"
+              value={selectedCollectionId}
+              onChange={(e) => handleCollectionChange(e.target.value)}
+              className="flex-1 px-3 py-2 min-w-0 text-sm rounded-md border border-input bg-background"
+            >
+              {formCollections.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title || c.name}
+                </option>
+              ))}
+            </select>
+          </section>
+        )}
 
         {/* Missing data: always visible when there are errors */}
         {missingRequired.length > 0 && (
@@ -143,25 +199,34 @@ export function ReviewStep({
         )}
 
         {/* Same row as other pages: Back left, Submit right */}
-        <div className="flex justify-between items-center pt-6 mt-6 border-t border-border">
-          {prevHref ? (
-            <Link
-              to={prevHref}
-              className="inline-flex gap-2 items-center px-4 py-2 text-sm font-medium text-foreground rounded-md bg-background border border-border hover:bg-muted transition-colors"
-            >
-              ‹ Back
-            </Link>
-          ) : (
-            <span />
+        <div className="flex flex-col gap-0 items-end pt-6 mt-6 border-t border-border">
+          {formCollections.length > 0 && (
+            <p className="text-sm text-right text-muted-foreground">
+              Submitting to <span className="font-semibold text-foreground">{siteTitle}</span>
+              {' – '}
+              <span className="font-semibold text-foreground">{selectedCollectionTitle}</span>
+            </p>
           )}
-          <SubmitButton
-            user={user}
-            variant="review"
-            draftObjectId={draftObjectId}
-            canSubmit={canSubmit}
-            validate={() => missingRequired.length === 0}
-            agreedToTerms={showTermsCheckbox ? agreedToTerms : undefined}
-          />
+          <div className="flex justify-between items-center w-full">
+            {prevHref ? (
+              <Link
+                to={prevHref}
+                className="inline-flex gap-2 items-center px-4 py-2 text-sm font-medium rounded-md border transition-colors text-foreground bg-background border-border hover:bg-muted"
+              >
+                ‹ Back
+              </Link>
+            ) : (
+              <span />
+            )}
+            <SubmitButton
+              user={user}
+              variant="review"
+              draftObjectId={draftObjectId}
+              canSubmit={canSubmit}
+              validate={() => missingRequired.length === 0}
+              agreedToTerms={showTermsCheckbox ? agreedToTerms : undefined}
+            />
+          </div>
         </div>
       </div>
     </FormArea>
