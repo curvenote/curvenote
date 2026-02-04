@@ -69,22 +69,20 @@ export function SubmitButton({
     );
   }
 
-  // Sidebar: not logged in -> sign in to save progress
+  // Sidebar: not logged in -> sign in to save progress (whole box clickable, "Sign in" blue)
   if (variant === 'sidebar' && !user) {
     return (
       <>
-        <div className="flex flex-col gap-2 justify-center items-center px-3 py-3 w-full text-sm text-center rounded-lg border border-border bg-muted/50 text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => setSignInModalOpen(true)}
+          className="flex flex-col gap-2 justify-center items-center px-3 py-3 w-full text-sm text-center rounded-lg border transition-colors cursor-pointer border-border bg-muted/50 text-muted-foreground hover:bg-muted"
+        >
           <span>
-            <button
-              type="button"
-              onClick={() => setSignInModalOpen(true)}
-              className="font-medium text-blue-600 cursor-pointer dark:text-blue-400 underline-offset-4 hover:underline"
-            >
-              Sign in
-            </button>
+            <span className="font-medium text-blue-600 dark:text-blue-400">Sign in</span>
             {' to save your progress and continue later'}
           </span>
-        </div>
+        </button>
         <SignInDialog
           open={signInModalOpen}
           onOpenChange={setSignInModalOpen}
@@ -142,21 +140,19 @@ export function SubmitButton({
     );
   }
 
-  // Review: not logged in -> Sign in to submit
+  // Review: not logged in -> Sign in to submit (button-style, "Sign in" blue, same row as Back)
   return (
     <>
-      <div className="flex flex-col gap-2 justify-center items-center px-3 py-3 w-full text-sm text-center rounded-lg border border-border bg-muted/50 text-muted-foreground">
+      <button
+        type="button"
+        onClick={() => setSignInModalOpen(true)}
+        className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md border transition-colors cursor-pointer border-border bg-muted/50 text-muted-foreground hover:bg-muted"
+      >
         <span>
-          <button
-            type="button"
-            onClick={() => setSignInModalOpen(true)}
-            className="font-medium text-blue-600 cursor-pointer dark:text-blue-400 underline-offset-4 hover:underline"
-          >
-            Sign in
-          </button>
+          <span className="text-blue-600 dark:text-blue-400">Sign in</span>
           {' to submit'}
         </span>
-      </div>
+      </button>
       <SignInDialog
         open={signInModalOpen}
         onOpenChange={setSignInModalOpen}
