@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
 import type { Author, FieldSchema, FormDefinition, FormSubmission } from './types.js';
 import { getMissingRequiredForPage } from './validationUtils.js';
-import { FormArea, PageNav } from './form.js';
+import { FormArea } from './form.js';
 import { SubmitButton } from './SubmitButton.js';
 
 type ReviewStepUser = {
@@ -45,13 +44,14 @@ export function ReviewStep({
   basePath,
   draftObjectId = null,
 }: ReviewStepProps) {
-  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const fields = form.fields;
   const values = submission.fields;
   const reviewPage = form.pages.find((p) => p.slug === 'review');
   const missingRequired = reviewPage ? getMissingRequiredForPage(reviewPage, form, values) : [];
-
-  const showValidationBox = attemptedSubmit && missingRequired.length > 0;
+  const canSubmit = missingRequired.length === 0;
+  const reviewIndex = form.pages.findIndex((p) => p.slug === 'review');
+  const prevPage = reviewIndex > 0 ? form.pages[reviewIndex - 1] : null;
+  const prevHref = prevPage ? `${basePath}${prevPage.slug}` : null;
 
   return (
     <FormArea stepNumber={stepNumber} stepTitle="Review and Submit">
@@ -69,8 +69,8 @@ export function ReviewStep({
           </dl>
         </section>
 
-        {/* Missing data: only show after user has attempted Submit */}
-        {showValidationBox && (
+        {/* Missing data: always visible when there are errors */}
+        {missingRequired.length > 0 && (
           <section className="p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
             <h4 className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-200">
               Missing required information
@@ -96,15 +96,24 @@ export function ReviewStep({
           </section>
         )}
 
-        <PageNav basePath={basePath} currentPageSlug="review" formPages={form.pages} />
-        {/* Submit / Sign in to submit */}
-        <div className="flex flex-col gap-2 pt-4">
+        {/* Same row as other pages: Back left, Submit right */}
+        <div className="flex justify-between items-center pt-6 mt-6 border-t border-border">
+          {prevHref ? (
+            <Link
+              to={prevHref}
+              className="inline-flex gap-2 items-center px-4 py-2 text-sm font-medium text-foreground rounded-md bg-background border border-border hover:bg-muted transition-colors"
+            >
+              ‹ Back
+            </Link>
+          ) : (
+            <span />
+          )}
           <SubmitButton
             user={user}
             variant="review"
             draftObjectId={draftObjectId}
+            canSubmit={canSubmit}
             validate={() => missingRequired.length === 0}
-            onValidationFail={() => setAttemptedSubmit(true)}
           />
         </div>
       </div>

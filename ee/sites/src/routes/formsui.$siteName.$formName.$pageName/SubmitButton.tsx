@@ -16,9 +16,10 @@ type SubmitButtonProps = {
   isSaving?: boolean;
   /** Required for review variant when logged in: draft object id to submit. */
   draftObjectId?: string | null;
-  /** Review variant: when provided, submit is blocked when this returns false; onValidationFail is called. */
+  /** Review variant: when false, submit button is disabled (e.g. until validation passes). */
+  canSubmit?: boolean;
+  /** Review variant: when provided, submit is blocked when this returns false (safety net). */
   validate?: () => boolean;
-  onValidationFail?: () => void;
 };
 
 export function SubmitButton({
@@ -26,8 +27,8 @@ export function SubmitButton({
   variant,
   isSaving = false,
   draftObjectId = null,
+  canSubmit = true,
   validate,
-  onValidationFail,
 }: SubmitButtonProps) {
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -112,7 +113,7 @@ export function SubmitButton({
         ? (submitFetcher.data as { error?: { message?: string } }).error?.message
         : null;
     return (
-      <div className="w-full space-y-2">
+      <div className="space-y-2">
         {submitError && (
           <p className="text-sm text-destructive" role="alert">
             {submitError}
@@ -120,24 +121,22 @@ export function SubmitButton({
         )}
         <submitFetcher.Form
           method="post"
-          className="w-full"
+          className="inline-block"
           onSubmit={(e) => {
             if (validate && !validate()) {
               e.preventDefault();
-              onValidationFail?.();
             }
           }}
         >
           <input type="hidden" name="intent" value="submit" />
           {draftObjectId && <input type="hidden" name="objectId" value={draftObjectId} />}
-          <ui.Button
-            className="w-full bg-[#3E7AA9] text-white hover:bg-[#3E7AA9]/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            size="lg"
+          <button
             type="submit"
-            disabled={!draftObjectId || submitFetcher.state !== 'idle'}
+            disabled={!draftObjectId || submitFetcher.state !== 'idle' || !canSubmit}
+            className="inline-flex gap-2 items-center justify-center min-w-[7rem] px-5 py-2 text-sm font-medium text-white rounded-md bg-[#3E7AA9] hover:bg-[#3E7AA9]/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
           >
             {submitFetcher.state !== 'idle' ? 'Submitting…' : 'Submit'}
-          </ui.Button>
+          </button>
         </submitFetcher.Form>
       </div>
     );
