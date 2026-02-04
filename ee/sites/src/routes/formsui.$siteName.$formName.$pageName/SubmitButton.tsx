@@ -16,6 +16,9 @@ type SubmitButtonProps = {
   isSaving?: boolean;
   /** Required for review variant when logged in: draft object id to submit. */
   draftObjectId?: string | null;
+  /** Review variant: when provided, submit is blocked when this returns false; onValidationFail is called. */
+  validate?: () => boolean;
+  onValidationFail?: () => void;
 };
 
 export function SubmitButton({
@@ -23,6 +26,8 @@ export function SubmitButton({
   variant,
   isSaving = false,
   draftObjectId = null,
+  validate,
+  onValidationFail,
 }: SubmitButtonProps) {
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -113,7 +118,16 @@ export function SubmitButton({
             {submitError}
           </p>
         )}
-        <submitFetcher.Form method="post" className="w-full">
+        <submitFetcher.Form
+          method="post"
+          className="w-full"
+          onSubmit={(e) => {
+            if (validate && !validate()) {
+              e.preventDefault();
+              onValidationFail?.();
+            }
+          }}
+        >
           <input type="hidden" name="intent" value="submit" />
           {draftObjectId && <input type="hidden" name="objectId" value={draftObjectId} />}
           <ui.Button

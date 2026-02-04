@@ -15,6 +15,7 @@ import {
   clearDraftCookie,
 } from './draft.server.js';
 import { submitForm } from './actionHelpers.server.js';
+import { isPageComplete } from './validationUtils.js';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { FormArea, FormBody, MultiStepForm } from './form.js';
 import { FormSyncProvider } from './formSyncContext.js';
@@ -399,9 +400,20 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
   const reviewStepIndex = form.pages.findIndex((page) => page.slug === 'review');
   const stepNumber = isSuccessPage ? reviewStepIndex + 1 : currentPageIndex + 1;
 
+  const fields = { ...FALLBACK_FIELDS, ...draftData } as FormSubmission['fields'];
+  const pages: FormSubmission['pages'] = {};
+  for (const page of form.pages) {
+    // On success page, show all steps checked (draft is gone so we can't recompute from data)
+    const completed = isSuccessPage
+      ? true
+      : page.slug === 'review'
+        ? false
+        : isPageComplete(page, form, fields);
+    pages[page.slug] = { completed };
+  }
   const submission: FormSubmission = {
-    fields: { ...FALLBACK_FIELDS, ...draftData } as FormSubmission['fields'],
-    pages: {},
+    fields,
+    pages,
   };
 
   const basePath = `/formsui/${siteName}/${form.slug}/`;
@@ -419,6 +431,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
           submission={submission}
           user={loaderData.user}
           basePath={basePath}
+          stepsDisabled={isSuccessPage}
         />
         {isSuccessPage ? (
           <SuccessStep
@@ -439,6 +452,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
           <FormBody
             stepNumber={stepNumber}
             stepTitle={currentPage.title}
+            form={form}
             formChildren={currentPage.children}
             formFields={form.fields}
             formPages={form.pages}

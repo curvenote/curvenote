@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router';
 import type {
   FieldSchema,
+  FormDefinition,
   FormPage,
   FormSubmission,
   ParagraphOption,
@@ -11,6 +12,7 @@ import type {
 } from './types.js';
 import { cn, ui, WizardQuestion } from '@curvenote/scms-core';
 import { useFormSyncContext } from './formSyncContext.js';
+import { getMissingRequiredForPage } from './validationUtils.js';
 import { FormLabel } from './label.js';
 import { AuthorField } from './authors.js';
 import { ContactDetails } from './ContactDetails.js';
@@ -42,6 +44,8 @@ type MultiStepFormProps = {
   currentPage?: string;
   submission: Pick<FormSubmission, 'pages'>;
   user: SubmitButtonUser | null;
+  /** When true (e.g. on success page), step links are not clickable. */
+  stepsDisabled?: boolean;
   className?: string;
 };
 
@@ -54,6 +58,7 @@ export function MultiStepForm({
   currentPage,
   submission,
   user,
+  stepsDisabled = false,
   className,
 }: MultiStepFormProps) {
   const syncContext = useFormSyncContext();
@@ -96,19 +101,16 @@ export function MultiStepForm({
           const stepNumber = index + 1;
           const completed = submission.pages[page.slug]?.completed || false;
           const active = page.slug === currentPage;
-          return (
-            <Link
-              to={`${basePath ?? ''}${page.slug}`}
-              key={index}
-              className={cn(
-                'relative flex gap-4 items-center p-4 transition-colors cursor-pointer',
-                index === 0 ? 'border-t border-b border-border' : 'border-b border-border',
-                'hover:bg-[#3E7AA9]/10',
-                active
-                  ? 'bg-[#3E7AA9]/20 before:absolute before:left-0 before:-top-px before:h-[calc(100%+2px)] before:w-1 before:bg-[#3E7AA9] before:content-[""]'
-                  : 'bg-transparent',
-              )}
-            >
+          const stepClassName = cn(
+            'relative flex gap-4 items-center p-4 transition-colors',
+            index === 0 ? 'border-t border-b border-border' : 'border-b border-border',
+            stepsDisabled ? 'cursor-default' : 'cursor-pointer hover:bg-[#3E7AA9]/10',
+            active
+              ? 'bg-[#3E7AA9]/20 before:absolute before:left-0 before:-top-px before:h-[calc(100%+2px)] before:w-1 before:bg-[#3E7AA9] before:content-[""]'
+              : 'bg-transparent',
+          );
+          const content = (
+            <>
               <div
                 className={cn('flex items-center justify-center w-8 h-8 rounded-full shrink-0', {
                   'bg-[#3E7AA9] text-white': completed,
@@ -127,6 +129,15 @@ export function MultiStepForm({
               <div className={cn('font-medium', active && 'font-semibold')}>
                 {page.shortTitle || page.title}
               </div>
+            </>
+          );
+          return stepsDisabled ? (
+            <span key={index} className={stepClassName}>
+              {content}
+            </span>
+          ) : (
+            <Link to={`${basePath ?? ''}${page.slug}`} key={index} className={stepClassName}>
+              {content}
             </Link>
           );
         })}
@@ -177,9 +188,19 @@ type PageNavProps = {
   basePath: string;
   currentPageSlug: string;
   formPages: FormPage[];
+  /** If provided, Continue is only allowed when this returns true. Called on click; navigation is prevented when false. */
+  onBeforeContinue?: () => boolean;
+  /** When true, Continue is shown but disabled (e.g. when validation errors are visible). */
+  continueDisabled?: boolean;
 };
 
-export function PageNav({ basePath, currentPageSlug, formPages }: PageNavProps) {
+export function PageNav({
+  basePath,
+  currentPageSlug,
+  formPages,
+  onBeforeContinue,
+  continueDisabled = false,
+}: PageNavProps) {
   const currentIndex = formPages.findIndex((p) => p.slug === currentPageSlug);
   const prevPage = currentIndex > 0 ? formPages[currentIndex - 1] : null;
   const nextPage =
@@ -187,12 +208,24 @@ export function PageNav({ basePath, currentPageSlug, formPages }: PageNavProps) 
   const prevHref = prevPage ? `${basePath}${prevPage.slug}` : null;
   const nextHref = nextPage ? `${basePath}${nextPage.slug}` : null;
 
+  const handleContinueClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (onBeforeContinue && !onBeforeContinue()) {
+      e.preventDefault();
+    }
+  };
+
+  const continueClassName =
+    'inline-flex gap-2 items-center px-4 py-2 text-sm font-medium rounded-md transition-colors';
+
   return (
     <div className="flex justify-between items-center pt-6 mt-6 border-t border-border">
       {prevHref ? (
         <Link
           to={prevHref}
-          className="inline-flex gap-2 items-center px-4 py-2 text-sm font-medium text-foreground rounded-md bg-background border border-border hover:bg-muted transition-colors"
+          className={cn(
+            continueClassName,
+            'text-foreground bg-background border border-border hover:bg-muted',
+          )}
         >
           ‹ Back
         </Link>
@@ -200,12 +233,28 @@ export function PageNav({ basePath, currentPageSlug, formPages }: PageNavProps) 
         <span />
       )}
       {nextHref ? (
-        <Link
-          to={nextHref}
-          className="inline-flex gap-2 items-center px-4 py-2 text-sm font-medium text-white rounded-md bg-[#3E7AA9] hover:bg-[#3E7AA9]/90 transition-colors"
-        >
-          Continue ›
-        </Link>
+        continueDisabled ? (
+          <span
+            className={cn(
+              continueClassName,
+              'text-white bg-[#3E7AA9]/60 cursor-not-allowed border border-transparent',
+            )}
+            aria-disabled="true"
+          >
+            Continue ›
+          </span>
+        ) : (
+          <Link
+            to={nextHref}
+            onClick={handleContinueClick}
+            className={cn(
+              continueClassName,
+              'text-white bg-[#3E7AA9] hover:bg-[#3E7AA9]/90 border border-transparent',
+            )}
+          >
+            Continue ›
+          </Link>
+        )
       ) : (
         <span />
       )}
@@ -401,6 +450,7 @@ type FormBodyUser = {
 type FormBodyProps = {
   stepNumber: number;
   stepTitle: string;
+  form: FormDefinition;
   formFields: FieldSchema[];
   formChildren: FormPage['children'];
   formPages: FormPage[];
@@ -420,6 +470,7 @@ const draftProps = (
 export function FormBody({
   stepNumber,
   stepTitle,
+  form,
   formFields,
   formChildren,
   formPages,
@@ -431,10 +482,25 @@ export function FormBody({
   onDraftCreated,
 }: FormBodyProps) {
   const [values, setValues] = useState<Record<string, any>>(submission.fields);
+  const [attemptedContinue, setAttemptedContinue] = useState(false);
   const dp = draftProps(draftObjectId, onDraftCreated);
+
+  // Only show validation on this page after user clicks Continue; clear when navigating away
+  useEffect(() => {
+    setAttemptedContinue(false);
+  }, [currentPageSlug]);
+
+  const currentPage = formPages.find((p) => p.slug === currentPageSlug);
+  const missingRequired = currentPage ? getMissingRequiredForPage(currentPage, form, values) : [];
+  const showValidationBox = attemptedContinue && missingRequired.length > 0;
 
   const handleChange = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleBeforeContinue = () => {
+    setAttemptedContinue(true);
+    return missingRequired.length === 0;
   };
 
   const renderFormChild = (field: FormPage['children'][0]) => {
@@ -517,7 +583,25 @@ export function FormBody({
   return (
     <FormArea stepNumber={stepNumber} stepTitle={stepTitle}>
       {formChildren.map((child) => renderFormChild(child))}
-      <PageNav basePath={basePath} currentPageSlug={currentPageSlug} formPages={formPages} />
+      {showValidationBox && (
+        <section className="p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+          <h4 className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-200">
+            Missing required information
+          </h4>
+          <ul className="space-y-1 text-sm list-disc list-inside text-amber-800 dark:text-amber-200">
+            {missingRequired.map((f) => (
+              <li key={f.name}>{f.title}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <PageNav
+        basePath={basePath}
+        currentPageSlug={currentPageSlug}
+        formPages={formPages}
+        onBeforeContinue={handleBeforeContinue}
+        continueDisabled={showValidationBox}
+      />
     </FormArea>
   );
 }

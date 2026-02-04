@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
 import type { Author, FieldSchema, FormDefinition, FormSubmission } from './types.js';
+import { getMissingRequiredForPage } from './validationUtils.js';
 import { FormArea, PageNav } from './form.js';
 import { SubmitButton } from './SubmitButton.js';
 
@@ -35,13 +37,6 @@ function formatFieldValue(schema: FieldSchema, value: unknown): string {
   return String(value);
 }
 
-function isFieldEmpty(schema: FieldSchema, value: unknown): boolean {
-  if (value == null) return true;
-  if (typeof value === 'string') return value.trim() === '';
-  if (Array.isArray(value)) return value.length === 0;
-  return false;
-}
-
 export function ReviewStep({
   stepNumber,
   form,
@@ -50,10 +45,13 @@ export function ReviewStep({
   basePath,
   draftObjectId = null,
 }: ReviewStepProps) {
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const fields = form.fields;
   const values = submission.fields;
+  const reviewPage = form.pages.find((p) => p.slug === 'review');
+  const missingRequired = reviewPage ? getMissingRequiredForPage(reviewPage, form, values) : [];
 
-  const missingRequired = fields.filter((f) => f.required && isFieldEmpty(f, values[f.name]));
+  const showValidationBox = attemptedSubmit && missingRequired.length > 0;
 
   return (
     <FormArea stepNumber={stepNumber} stepTitle="Review and Submit">
@@ -71,8 +69,8 @@ export function ReviewStep({
           </dl>
         </section>
 
-        {/* Missing data */}
-        {missingRequired.length > 0 && (
+        {/* Missing data: only show after user has attempted Submit */}
+        {showValidationBox && (
           <section className="p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
             <h4 className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-200">
               Missing required information
@@ -101,7 +99,13 @@ export function ReviewStep({
         <PageNav basePath={basePath} currentPageSlug="review" formPages={form.pages} />
         {/* Submit / Sign in to submit */}
         <div className="flex flex-col gap-2 pt-4">
-          <SubmitButton user={user} variant="review" draftObjectId={draftObjectId} />
+          <SubmitButton
+            user={user}
+            variant="review"
+            draftObjectId={draftObjectId}
+            validate={() => missingRequired.length === 0}
+            onValidationFail={() => setAttemptedSubmit(true)}
+          />
         </div>
       </div>
     </FormArea>
