@@ -21,7 +21,6 @@ import {
 } from './draft.server.js';
 import { submitForm } from './actionHelpers.server.js';
 import { isPageComplete } from './validationUtils.js';
-import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { FormArea, FormBody, MultiStepForm } from './form.js';
 import { FormSyncProvider } from './formSyncContext.js';
 import { ReviewStep } from './ReviewStep.js';
@@ -37,6 +36,7 @@ type LoaderData = {
     email?: string;
     orcid?: string;
     affiliation?: string;
+    pending?: boolean;
   } | null;
   form: FormDefinition;
   /** Draft object id from cookie (if any). */
@@ -61,13 +61,15 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   // // Filter collections to only those associated with the form
   // const formCollectionIds = new Set(form.collections.map((cif: any) => cif.collection.id));
   // const formCollections = collections.filter((c) => formCollectionIds.has(c.id));
-  // Get user info if logged in
+  // Get user info if logged in (or pending after ORCID sign-in)
   const user = ctx.user
     ? {
         name: ctx.user.display_name ?? undefined,
         email: ctx.user.email ?? undefined,
         orcid:
           ctx.user.linkedAccounts.find((la) => la.provider === 'orcid')?.idAtProvider ?? undefined,
+        affiliation: (ctx.user as { affiliation?: string }).affiliation ?? undefined,
+        pending: (ctx.user as { pending?: boolean }).pending ?? false,
       }
     : null;
   // return {
@@ -364,8 +366,12 @@ export async function action(args: ActionFunctionArgs) {
     submitData.set('workTitle', workTitle);
     if (fields.abstract) submitData.set('workDescription', String(fields.abstract));
     submitData.set('authors', JSON.stringify(authors));
+    const isPending = (ctx.user as { pending?: boolean }).pending ?? false;
+    if (isPending && formData.get('agreedToTerms') === 'true') {
+      submitData.set('agreedToTerms', 'true');
+    }
 
-    const result = await submitForm(ctx as SiteContextWithUser, form, submitData);
+    const result = await submitForm(ctx, ctx.user!, form, submitData, args);
     if (result && typeof result === 'object' && 'error' in result && result.error) {
       return data(result as { error: { message: string } }, { status: 400 });
     }

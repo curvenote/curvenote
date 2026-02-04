@@ -20,6 +20,8 @@ type SubmitButtonProps = {
   canSubmit?: boolean;
   /** Review variant: when provided, submit is blocked when this returns false (safety net). */
   validate?: () => boolean;
+  /** Review variant: when user is pending, terms must be accepted; pass true to include in submit. */
+  agreedToTerms?: boolean;
 };
 
 export function SubmitButton({
@@ -29,6 +31,7 @@ export function SubmitButton({
   draftObjectId = null,
   canSubmit = true,
   validate,
+  agreedToTerms,
 }: SubmitButtonProps) {
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -128,6 +131,7 @@ export function SubmitButton({
         >
           <input type="hidden" name="intent" value="submit" />
           {draftObjectId && <input type="hidden" name="objectId" value={draftObjectId} />}
+          {agreedToTerms && <input type="hidden" name="agreedToTerms" value="true" />}
           <button
             type="submit"
             disabled={!draftObjectId || submitFetcher.state !== 'idle' || !canSubmit}
