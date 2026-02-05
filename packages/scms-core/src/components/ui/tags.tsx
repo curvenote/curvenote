@@ -522,7 +522,7 @@ const tagsInputItemVariants = cva(
         default: 'rounded-md',
         rounded: 'rounded-full',
         square: 'rounded-none',
-        pill: 'rounded-lg',
+        pill: 'rounded-full',
       },
       size: {
         default: 'h-8 px-2 text-sm',
@@ -559,6 +559,12 @@ const TagsInputItem = React.forwardRef<HTMLElement, TagsInputItemProps>(
     const isFocused = React.useCallback(() => document.activeElement === itemRef.current, []);
 
     const isTagDisabled = isTagNonInteractive || disabled;
+
+    const handleTagClick = React.useCallback(() => {
+      if (isTagDisabled) return;
+      // Delete button has stopPropagation, so this runs only when clicking the tag body
+      removeTag(keyIndex);
+    }, [isTagDisabled, removeTag, keyIndex]);
 
     const handleTagKeyDown = React.useCallback(
       (e: React.KeyboardEvent<HTMLElement>) => {
@@ -643,6 +649,8 @@ const TagsInputItem = React.forwardRef<HTMLElement, TagsInputItemProps>(
         tabIndex={isTagDisabled ? -1 : 0}
         aria-labelledby={textIdPrefix}
         aria-disabled={isTagDisabled}
+        role="button"
+        onClick={handleTagClick}
         onKeyDown={handleTagKeyDown}
         className={cn(tagsInputItemVariants({ variant, size, shape }), className)}
         {...rest}
@@ -689,7 +697,7 @@ const TagsInputItemDelete = React.forwardRef<
       aria-disabled={isButtonNonInteractive}
       size="icon"
       className={cn(
-        'ml-1 h-4 w-4 min-w-4 shrink-0 opacity-70 hover:opacity-100 hover:bg-primary/10 [&_svg]:size-3',
+        'ml-1 h-4 w-4 min-w-4 shrink-0 opacity-70 hover:opacity-70 hover:bg-transparent [&_svg]:size-3',
         className,
       )}
       onClick={handleRemove}
