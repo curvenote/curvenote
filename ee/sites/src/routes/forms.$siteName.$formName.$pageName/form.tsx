@@ -402,12 +402,26 @@ export function KeywordsField({
       <FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
         {schema.title}
       </FormLabel>
-      <ui.KeywordsInput
-        id={schema.name}
+      <ui.TagsInput<string>
         value={value}
-        onValueChange={handleValueChange}
-        placeholder={schema.placeholder || 'Type and press Enter to add'}
-      />
+        onChange={handleValueChange}
+        className="rounded-md border border-input bg-background px-3 py-2 shadow-xs min-h-9 focus-within:ring-1 focus-within:ring-ring"
+      >
+        {({ tags }: { tags: string[] }) => (
+          <ui.TagsInputGroup>
+            {tags.map((tag: string, idx: number) => (
+              <ui.TagsInputItem key={idx}>
+                <ui.TagsInputItemText>{tag}</ui.TagsInputItemText>
+                <ui.TagsInputItemDelete />
+              </ui.TagsInputItem>
+            ))}
+            <ui.TagsInputInput
+              placeholder={schema.placeholder || 'Type and press Enter to add'}
+              id={schema.name}
+            />
+          </ui.TagsInputGroup>
+        )}
+      </ui.TagsInput>
     </div>
   );
 }

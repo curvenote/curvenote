@@ -36,6 +36,7 @@ export * from './Toaster.js';
 export * from './StatefulButton.js';
 export * from './SubmissionVersionBadge.js';
 export * from './switch.js';
+export * from './tags.js';
 export * from './tabs.js';
 export * from './text-field.js';
 export * from './textarea.js';
