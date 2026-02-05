@@ -392,9 +392,10 @@ export function KeywordsField({
   const isValid = !schema.required || value.length > 0;
   const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
 
-  const handleValueChange = (next: string[]) => {
-    onChange(next);
-    save(next);
+  const handleValueChange = (next: (string | number)[]) => {
+    const strings = next.map((t) => String(t));
+    onChange(strings);
+    save(strings);
   };
 
   return (
@@ -402,22 +403,23 @@ export function KeywordsField({
       <FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
         {schema.title}
       </FormLabel>
-      <ui.TagsInput<string>
-        value={value}
-        onChange={handleValueChange}
-        className="rounded-md border border-input bg-background px-3 py-2 shadow-xs min-h-9 focus-within:ring-1 focus-within:ring-ring"
-      >
+      <ui.TagsInput<string> value={value} onChange={handleValueChange}>
         {({ tags }: { tags: string[] }) => (
           <ui.TagsInputGroup>
-            {tags.map((tag: string, idx: number) => (
-              <ui.TagsInputItem key={idx}>
-                <ui.TagsInputItemText>{tag}</ui.TagsInputItemText>
+            {tags.map((tag, idx) => (
+              <ui.TagsInputItem key={idx} variant="chip" shape="pill">
+                <ui.TagsInputItemText>{String(tag)}</ui.TagsInputItemText>
                 <ui.TagsInputItemDelete />
               </ui.TagsInputItem>
             ))}
             <ui.TagsInputInput
-              placeholder={schema.placeholder || 'Type and press Enter to add'}
+              placeholder={
+                tags.length > 0
+                  ? 'Add more...'
+                  : schema.placeholder || 'Type and press Enter to add'
+              }
               id={schema.name}
+              className="border-dashed"
             />
           </ui.TagsInputGroup>
         )}

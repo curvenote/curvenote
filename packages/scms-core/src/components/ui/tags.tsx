@@ -507,11 +507,12 @@ const TagsInputGroup = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTM
 TagsInputGroup.displayName = 'TagsInputGroup';
 
 const tagsInputItemVariants = cva(
-  'inline-flex shrink-0 items-center justify-between text-primary-foreground transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 data-[disabled]:pointer-events-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 group-data-[orientation=row]:w-full data-[disabled]:[&_svg]:pointer-events-none data-[disabled]:[&_svg]:shrink-0',
+  'inline-flex shrink-0 items-center justify-between transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 data-[disabled]:pointer-events-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 group-data-[orientation=row]:w-full data-[disabled]:[&_svg]:pointer-events-none data-[disabled]:[&_svg]:shrink-0 cursor-pointer',
   {
     variants: {
       variant: {
-        default: 'bg-primary hover:bg-primary/90',
+        default: 'text-primary-foreground bg-primary hover:bg-primary/90',
+        chip: 'bg-stone-200 text-foreground hover:bg-red-50 hover:text-red-600 [&_button]:text-stone-500 hover:[&_button]:text-red-600 dark:bg-stone-600 dark:text-stone-100 dark:hover:bg-red-950/30 dark:hover:text-red-400',
         outline:
           'border border-input bg-background text-accent-foreground hover:bg-accent hover:text-accent-foreground/80',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
@@ -687,7 +688,10 @@ const TagsInputItemDelete = React.forwardRef<
       aria-label="delete tag"
       aria-disabled={isButtonNonInteractive}
       size="icon"
-      className={cn('ml-2 h-5 w-5', className)}
+      className={cn(
+        'ml-1 h-4 w-4 min-w-4 shrink-0 opacity-70 hover:opacity-100 hover:bg-primary/10 [&_svg]:size-3',
+        className,
+      )}
       onClick={handleRemove}
       disabled={isButtonNonInteractive}
       {...rest}
@@ -736,7 +740,7 @@ const TagsInputInput = React.forwardRef<
         const trimmedValue = value.trim();
         if (!trimmedValue) return;
 
-        const parseTag = (tag: string) => (!isNaN(Number(tag)) ? Number(tag) : tag.trim());
+        const parseTag = (tag: string) => tag.trim();
 
         const tags =
           delimiters.length && delimiterRegex.test(trimmedValue)
@@ -813,7 +817,7 @@ const TagsInputInput = React.forwardRef<
         disabled={isInputNonInteractive}
         onKeyDown={handleInputKeyDown}
         onPaste={handleInputPaste}
-        className={cn('grow [[data-inline][data-orientation=column]_&]:basis-2/4', className)}
+        className={cn('min-w-[8rem] w-auto max-w-[12rem]', className)}
         {...rest}
       />
     );

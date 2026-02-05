@@ -144,7 +144,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
         type: 'keywords',
         title: 'Keywords',
         required: false,
-        placeholder: 'Type a keyword and press Enter to add',
+        placeholder: 'Type and press Enter',
       },
       {
         name: 'authors',
