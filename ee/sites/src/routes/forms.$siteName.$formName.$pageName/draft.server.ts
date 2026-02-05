@@ -1,10 +1,10 @@
 /**
- * Helpers for formsui draft Object: cookie for objectId and create/update with OCC.
+ * Helpers for forms draft Object: cookie for objectId and create/update with OCC.
  */
 
-const DRAFT_COOKIE_NAME = 'formsui_draft_id';
+const DRAFT_COOKIE_NAME = 'forms_draft_id';
 const DRAFT_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
-const DRAFT_OBJECT_TYPE = 'formsui-draft';
+const DRAFT_OBJECT_TYPE = 'forms-draft';
 
 export function getDraftObjectIdFromCookie(request: Request): string | null {
   const cookieHeader = request.headers.get('Cookie');
@@ -18,13 +18,13 @@ export function setDraftObjectIdCookie(
   siteName: string,
   formName: string,
 ): string {
-  const path = `/formsui/${siteName}/${formName}`;
+  const path = `/forms/${siteName}/${formName}`;
   return `${DRAFT_COOKIE_NAME}=${encodeURIComponent(objectId)}; Path=${path}; Max-Age=${DRAFT_COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax`;
 }
 
 /** Returns Set-Cookie header value to clear the draft cookie (same Path, Max-Age=0). */
 export function clearDraftCookie(siteName: string, formName: string): string {
-  const path = `/formsui/${siteName}/${formName}`;
+  const path = `/forms/${siteName}/${formName}`;
   return `${DRAFT_COOKIE_NAME}=; Path=${path}; Max-Age=0; HttpOnly; SameSite=Lax`;
 }
 

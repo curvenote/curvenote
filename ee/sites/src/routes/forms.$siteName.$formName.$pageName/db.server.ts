@@ -1,10 +1,82 @@
 import { uuidv7 as uuid } from 'uuidv7';
 import { formatDate } from '@curvenote/common';
-import { getPrismaClient } from '@curvenote/scms-server';
+import { getPrismaClient, safeObjectDataUpdate } from '@curvenote/scms-server';
 import { ActivityType, WorkRole } from '@curvenote/scms-db';
 import type { SiteContext, MyUserDBO } from '@curvenote/scms-server';
+import { coerceToObject } from '@curvenote/scms-core';
+import { DRAFT_OBJECT_TYPE_CONST } from './draft.server.js';
 
-interface SubmitFormData {
+/** Create a new forms draft Object with initial field data. If createdById is provided (logged-in user), connect the user. */
+export async function createDraftObject(
+  initialData: Record<string, unknown>,
+  createdById?: string | null,
+) {
+  const prisma = await getPrismaClient();
+  const id = uuid();
+  const now = formatDate();
+  await prisma.object.create({
+    data: {
+      id,
+      type: DRAFT_OBJECT_TYPE_CONST,
+      date_created: now,
+      date_modified: now,
+      data: initialData as object,
+      occ: 0,
+      ...(createdById && { created_by: { connect: { id: createdById } } }),
+    },
+  });
+  return id;
+}
+
+/** Load a forms draft Object by id. Returns null if not found or wrong type. */
+export async function getDraftObject(objectId: string) {
+  const prisma = await getPrismaClient();
+  const row = await prisma.object.findUnique({
+    where: { id: objectId, type: DRAFT_OBJECT_TYPE_CONST },
+  });
+  return row;
+}
+
+/** Returns workId if the work exists and is owned by the given user (created_by_id). Otherwise null. */
+export async function getWorkIdIfOwnedByUser(
+  workId: string,
+  userId: string | null,
+): Promise<string | null> {
+  if (!userId) return null;
+  const prisma = await getPrismaClient();
+  const work = await prisma.work.findUnique({
+    where: { id: workId },
+    select: { created_by_id: true },
+  });
+  return work?.created_by_id === userId ? workId : null;
+}
+
+/** Update a single field on a draft Object using OCC (safe merge, no overwrite). If createdById is provided and the object has no created_by yet, sets created_by. */
+export async function updateDraftObjectField(
+  objectId: string,
+  fieldName: string,
+  value: unknown,
+  createdById?: string | null,
+): Promise<void> {
+  await safeObjectDataUpdate(objectId, (data) => ({
+    ...coerceToObject(data),
+    [fieldName]: value,
+  }));
+
+  if (createdById) {
+    const prisma = await getPrismaClient();
+    await (prisma.object as any).updateMany({
+      where: {
+        id: objectId,
+        type: DRAFT_OBJECT_TYPE_CONST,
+        created_by_id: null,
+      },
+      data: { created_by_id: createdById },
+    });
+  }
+}
+
+export interface SubmitFormData {
   name: string;
   email: string;
   orcid?: string;
@@ -15,11 +87,13 @@ interface SubmitFormData {
   authors: string[];
 }
 
+/** Create work and submission in one transaction (same as forms route). If draftObjectId is provided, deletes the draft Object in the same transaction. */
 export async function dbCreateWorkAndSubmission(
   ctx: SiteContext,
   submitter: MyUserDBO,
   form: any,
   data: SubmitFormData,
+  draftObjectId?: string | null,
 ) {
   const prisma = await getPrismaClient();
   const date_created = formatDate();
@@ -29,18 +103,16 @@ export async function dbCreateWorkAndSubmission(
   const submissionId = uuid();
   const submissionVersionId = uuid();
 
-  // Get CDN from config (same as StorageBackend does)
   const cdn = ctx.$config.api.knownBucketInfoMap.prv.cdn;
   const cdnKey = uuid();
 
   return prisma.$transaction(async (tx) => {
-    // Create the work and work version
     const newWork = await tx.work.create({
       data: {
         id: workId,
         date_created,
         date_modified: date_created,
-        contains: [], // [WorkContents.MYST],
+        contains: [],
         created_by: {
           connect: {
             id: submitter.id,
@@ -232,6 +304,12 @@ export async function dbCreateWorkAndSubmission(
         },
       },
     });
+
+    if (draftObjectId) {
+      await tx.object.deleteMany({
+        where: { id: draftObjectId, type: DRAFT_OBJECT_TYPE_CONST },
+      });
+    }
 
     return {
       submissionId: sv.submission.id,

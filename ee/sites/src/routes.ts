@@ -104,19 +104,11 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
       register: () =>
         [
           route(
-            'forms/:siteName/:formName',
-            resolveRoutePath(import.meta.url, 'routes/forms.$siteName.$formName/route.tsx'),
-          ),
-          route(
-            'formsui/:siteName/:formName/:pageName?',
+            'forms/:siteName/:formName/:pageName?',
             resolveRoutePath(
               import.meta.url,
-              'routes/formsui.$siteName.$formName.$pageName/route.tsx',
+              'routes/forms.$siteName.$formName.$pageName/route.tsx',
             ),
-          ),
-          route(
-            'forms/:siteName/:formName/success',
-            resolveRoutePath(import.meta.url, 'routes/forms.$siteName.$formName.success/route.tsx'),
           ),
         ] satisfies RouteConfigEntry[],
     },

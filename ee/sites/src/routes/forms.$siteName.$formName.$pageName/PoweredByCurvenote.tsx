@@ -1,6 +1,6 @@
 import { CurvenoteText } from '@curvenote/icons';
 
-/** "Powered by Curvenote" link for formsui sidebar (reuses same content as main app status bar). */
+/** "Powered by Curvenote" link for forms sidebar (reuses same content as main app status bar). */
 export function PoweredByCurvenote() {
   return (
     <div className="text-sm text-muted-foreground">

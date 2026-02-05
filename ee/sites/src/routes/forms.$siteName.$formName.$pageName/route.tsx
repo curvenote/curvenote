@@ -394,7 +394,7 @@ export async function action(args: ActionFunctionArgs) {
     const ok = result as { workId?: string; submissionId?: string };
     if (ok?.workId) {
       throw redirect(
-        `/formsui/${siteName}/${formName}/success?workId=${encodeURIComponent(ok.workId)}`,
+        `/forms/${siteName}/${formName}/success?workId=${encodeURIComponent(ok.workId)}`,
         { headers: { 'Set-Cookie': clearDraftCookie(siteName, formName!) } },
       );
     }
@@ -449,7 +449,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
     pages,
   };
 
-  const basePath = `/formsui/${siteName}/${form.slug}/`;
+  const basePath = `/forms/${siteName}/${form.slug}/`;
 
   return (
     <FormSyncProvider>
