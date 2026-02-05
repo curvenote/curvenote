@@ -64,7 +64,10 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
   });
 
   // Transform works to include the user's role with precedence handling
-  return works.map((work) => {
+  const mapped = works.map((work) => {
+    // Capture raw submission count before we filter (used for exclusion rule below)
+    const rawSubmissionCount = work.submissions.length;
+
     // Remove draft submission versions and drop submissions that only have drafts.
     // This keeps listings consistent with the "don't show draft submissions/versions" rule.
     const visibleSubmissions = work.submissions
@@ -77,6 +80,13 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
         };
       })
       .filter((s): s is NonNullable<typeof s> => !!s);
+
+    // Exclude from listing: single work version + single submission that is DRAFT-only.
+    // (We already exclude "all versions draft" in the route loader.)
+    const excludeAsSingleDraftSubmissionWork =
+      work.versions.length === 1 &&
+      rawSubmissionCount === 1 &&
+      visibleSubmissions.length === 0;
 
     // Get the highest precedence role: OWNER > CONTRIBUTOR > VIEWER
     const userRoles = work.work_users.map((wu) => wu.role);
@@ -98,8 +108,14 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
       submissions: visibleSubmissions,
       userRole,
       sites,
+      excludeAsSingleDraftSubmissionWork,
     };
   });
+
+  // Drop works that are single-version + single DRAFT-only submission (no visible submissions)
+  return mapped
+    .filter((w) => !w.excludeAsSingleDraftSubmissionWork)
+    .map(({ excludeAsSingleDraftSubmissionWork: _dropped, ...w }) => w);
 }
 
 /**
