@@ -46,9 +46,8 @@ export type StringOption = BaseInput<'string'> & {
 export type ParagraphOption = BaseInput<'paragraph'> & {
   type: 'paragraph';
   placeholder?: string;
-  wordCount?: {
-    max: number;
-  };
+  /** Max words allowed; validation error if exceeded. */
+  maxWordCount?: number;
 };
 
 export type RadioOption = BaseInput<'radio'> & {
@@ -70,6 +69,7 @@ export type AuthorOption = BaseInput<'author'> & {
 export type KeywordsOption = BaseInput<'keywords'> & {
   type: 'keywords';
   placeholder?: string;
+  maxKeywords?: number;
 };
 
 export type FieldSchema =

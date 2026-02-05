@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { useDeploymentConfig } from '@curvenote/scms-core';
 import type { Author, FieldSchema, FormDefinition, FormSubmission } from './types.js';
-import { getMissingRequiredForPage } from './validationUtils.js';
+import { getMissingRequiredForPage, getFieldErrors } from './validationUtils.js';
 import { FormArea } from './form.js';
 import { SubmitButton } from './SubmitButton.js';
 import { useSaveField } from './useSaveField.js';
@@ -98,7 +98,11 @@ export function ReviewStep({
 
   const reviewPage = form.pages.find((p) => p.slug === 'review');
   const missingRequired = reviewPage ? getMissingRequiredForPage(reviewPage, form, values) : [];
-  const canSubmit = missingRequired.length === 0 && (!showTermsCheckbox || agreedToTerms);
+  const fieldErrors = getFieldErrors(form, values);
+  const canSubmit =
+    missingRequired.length === 0 &&
+    fieldErrors.length === 0 &&
+    (!showTermsCheckbox || agreedToTerms);
   const reviewIndex = form.pages.findIndex((p) => p.slug === 'review');
   const prevPage = reviewIndex > 0 ? form.pages[reviewIndex - 1] : null;
   const prevHref = prevPage ? `${basePath}${prevPage.slug}` : null;
@@ -170,6 +174,33 @@ export function ReviewStep({
           </section>
         )}
 
+        {/* Field validation errors (e.g. keywords over max) */}
+        {fieldErrors.length > 0 && (
+          <section className="p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+            <h4 className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-200">
+              Validation errors
+            </h4>
+            <ul className="space-y-1 text-sm list-disc list-inside text-amber-800 dark:text-amber-200">
+              {fieldErrors.map(({ schema, message }) => (
+                <li key={schema.name}>
+                  <Link
+                    to={`${basePath}${
+                      form.pages.find((p) =>
+                        p.children.some((c) => c.type === 'field' && c.id === schema.name),
+                      )?.slug ??
+                      form.pages[0]?.slug ??
+                      ''
+                    }`}
+                    className="underline hover:no-underline"
+                  >
+                    {schema.title}: {message}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Terms acceptance (pending users only – form handles new account, no pending page visit) */}
         {showTermsCheckbox && (
           <section className="p-4 rounded-lg border border-border bg-background">
@@ -227,7 +258,7 @@ export function ReviewStep({
               variant="review"
               draftObjectId={draftObjectId}
               canSubmit={canSubmit}
-              validate={() => missingRequired.length === 0}
+              validate={() => missingRequired.length === 0 && fieldErrors.length === 0}
               agreedToTerms={showTermsCheckbox ? agreedToTerms : undefined}
             />
           </div>

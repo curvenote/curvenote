@@ -1,4 +1,4 @@
-import { CheckIcon, Cloud } from 'lucide-react';
+import { AlertCircle, CheckIcon, Cloud } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router';
 import type {
@@ -12,7 +12,7 @@ import type {
 } from './types.js';
 import { cn, ui, WizardQuestion } from '@curvenote/scms-core';
 import { useFormSyncContext } from './formSyncContext.js';
-import { getMissingRequiredForPage } from './validationUtils.js';
+import { getMissingRequiredForPage, getFieldErrors } from './validationUtils.js';
 import { FormLabel } from './label.js';
 import { AuthorField } from './authors.js';
 import { ContactDetails } from './ContactDetails.js';
@@ -316,10 +316,10 @@ export function AbstractField({
   onDraftCreated,
 }: AbstractFieldProps) {
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
-  const maxWords = schema.wordCount?.max || 0;
+  const maxWords = schema.maxWordCount ?? 0;
   const progressPercentage = maxWords > 0 ? (wordCount / maxWords) * 100 : 0;
-  const isOverLimit = wordCount > maxWords;
-  const isValid = value.trim().length > 0;
+  const isOverLimit = maxWords > 0 && wordCount > maxWords;
+  const isValid = value.trim().length > 0 && !isOverLimit;
   const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
 
   return (
@@ -342,7 +342,7 @@ export function AbstractField({
           'resize-y',
         )}
       />
-      {schema.wordCount && (
+      {maxWords > 0 && (
         <div className="flex gap-3 items-center">
           <div className="overflow-hidden flex-1 h-2 bg-gray-200 rounded-full dark:bg-gray-700">
             <div
@@ -352,10 +352,11 @@ export function AbstractField({
           </div>
           <span
             className={cn(
-              'text-sm whitespace-nowrap',
+              'flex items-center gap-1 text-sm whitespace-nowrap',
               isOverLimit ? 'text-destructive' : 'text-muted-foreground',
             )}
           >
+            {isOverLimit && <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />}
             {wordCount}/{maxWords} words
           </span>
         </div>
@@ -389,7 +390,8 @@ export function KeywordsField({
   draftObjectId = null,
   onDraftCreated,
 }: KeywordsFieldProps) {
-  const isValid = !schema.required || value.length > 0;
+  const overMax = schema.maxKeywords != null && value.length > schema.maxKeywords;
+  const isValid = (!schema.required || value.length > 0) && !overMax;
   const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
 
   const handleValueChange = (next: (string | number)[]) => {
@@ -400,9 +402,22 @@ export function KeywordsField({
 
   return (
     <div className="space-y-2">
-      <FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
-        {schema.title}
-      </FormLabel>
+      <div className="flex items-center justify-between gap-2">
+        <FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
+          {schema.title}
+        </FormLabel>
+        {schema.maxKeywords != null && (
+          <span
+            className={cn(
+              'flex items-center gap-1 text-sm shrink-0',
+              overMax ? 'text-destructive font-medium' : 'text-muted-foreground',
+            )}
+          >
+            {overMax && <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+            {value.length} / {schema.maxKeywords} keyword{schema.maxKeywords === 1 ? '' : 's'}
+          </span>
+        )}
+      </div>
       <ui.TagsInput<string> value={value} onChange={handleValueChange}>
         {({ tags }: { tags: string[] }) => (
           <ui.TagsInputGroup>
@@ -520,7 +535,12 @@ export function FormBody({
 
   const currentPage = formPages.find((p) => p.slug === currentPageSlug);
   const missingRequired = currentPage ? getMissingRequiredForPage(currentPage, form, values) : [];
-  const showValidationBox = attemptedContinue && missingRequired.length > 0;
+  const fieldErrors = getFieldErrors(form, values);
+  const currentPageFieldErrors = fieldErrors.filter((e) =>
+    currentPage?.children.some((c) => c.type === 'field' && c.id === e.schema.name),
+  );
+  const showValidationBox =
+    attemptedContinue && (missingRequired.length > 0 || currentPageFieldErrors.length > 0);
 
   const handleChange = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
@@ -528,7 +548,7 @@ export function FormBody({
 
   const handleBeforeContinue = () => {
     setAttemptedContinue(true);
-    return missingRequired.length === 0;
+    return missingRequired.length === 0 && currentPageFieldErrors.length === 0;
   };
 
   const renderFormChild = (field: FormPage['children'][0]) => {
@@ -613,11 +633,16 @@ export function FormBody({
       {showValidationBox && (
         <section className="p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
           <h4 className="mb-2 text-sm font-semibold text-amber-800 dark:text-amber-200">
-            Missing required information
+            Please fix the following
           </h4>
           <ul className="space-y-1 text-sm list-disc list-inside text-amber-800 dark:text-amber-200">
             {missingRequired.map((f) => (
-              <li key={f.name}>{f.title}</li>
+              <li key={f.name}>{f.title} (required)</li>
+            ))}
+            {currentPageFieldErrors.map(({ schema, message }) => (
+              <li key={schema.name}>
+                {schema.title}: {message}
+              </li>
             ))}
           </ul>
         </section>

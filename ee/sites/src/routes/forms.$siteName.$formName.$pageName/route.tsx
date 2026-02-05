@@ -20,12 +20,111 @@ import {
   clearDraftCookie,
 } from './draft.server.js';
 import { submitForm } from './actionHelpers.server.js';
-import { isPageComplete } from './validationUtils.js';
+import { isPageComplete, getFieldErrors } from './validationUtils.js';
 import { FormArea, FormBody, MultiStepForm } from './form.js';
 import { FormSyncProvider } from './formSyncContext.js';
 import { ReviewStep } from './ReviewStep.js';
 import { SuccessStep } from './SuccessStep.js';
 import type { FormDefinition, FormSubmission } from './types.js';
+
+/** Example form UI (eventually from DB). Single constant for loader and action validation. */
+const EXAMPLE_FORM_UI: FormDefinition = {
+  title: '',
+  description: '',
+  slug: '',
+  banner: {
+    url: 'https://fastly.picsum.photos/id/640/400/200.jpg?hmac=G1mHrvmA_S_hACaus12cj8muJI-q9cI8C3_8e2GF2rM',
+    optimizedUrl:
+      'https://fastly.picsum.photos/id/640/400/200.jpg?hmac=G1mHrvmA_S_hACaus12cj8muJI-q9cI8C3_8e2GF2rM',
+  },
+  fields: [
+    {
+      name: 'format',
+      type: 'radio',
+      title: 'How would you like to present your science?',
+      kind: 'vertical',
+      required: true,
+      options: [
+        {
+          value: 'poster',
+          label: 'Poster',
+          subLabel: 'Design and bring a physical poster and stand next to it at the event.',
+        },
+        {
+          value: 'presentation',
+          label: 'Oral Presentation',
+          subLabel: 'Give a presentation at an assigned time to a live audience.',
+        },
+      ],
+    },
+    { name: 'title', type: 'string', title: 'Title', required: true },
+    {
+      name: 'abstract',
+      type: 'paragraph',
+      title: 'Abstract',
+      required: true,
+      maxWordCount: 250,
+    },
+    {
+      name: 'keywords',
+      type: 'keywords',
+      title: 'Keywords',
+      required: false,
+      placeholder: 'Type and press Enter',
+      maxKeywords: 5,
+    },
+    {
+      name: 'authors',
+      type: 'author',
+      title: 'List the authors of this submission',
+      required: true,
+    },
+    {
+      name: 'license',
+      type: 'radio',
+      kind: 'vertical',
+      title: 'Is the paper being published with a CC BY license?',
+      required: true,
+      options: [
+        { value: 'CC-BY-4.0', label: 'Yes', subLabel: '(CC-BY)' },
+        { value: 'Other', label: 'No', subLabel: 'I need a custom license' },
+      ],
+    },
+  ],
+  pages: [
+    {
+      title: 'Choose format',
+      slug: 'format',
+      children: [{ type: 'field', id: 'format' }],
+    },
+    {
+      title: 'Fill-in abstract',
+      shortTitle: 'Abstract',
+      slug: 'abstract',
+      children: [
+        { type: 'field', id: 'title' },
+        { type: 'field', id: 'abstract' },
+        { type: 'field', id: 'keywords' },
+      ],
+    },
+    {
+      title: 'List authors',
+      slug: 'authors',
+      children: [{ type: 'field', id: 'authors' }],
+    },
+    {
+      title: 'Choose license',
+      slug: 'license',
+      children: [{ type: 'field', id: 'license' }],
+    },
+    {
+      title: 'Review and Submit',
+      shortTitle: 'Review and Submit',
+      slug: 'review',
+      children: [],
+    },
+  ],
+};
 
 type FormCollectionOption = {
   id: string;
@@ -96,133 +195,10 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     (form.data as { title?: string; description?: string }) ?? {};
 
   const formUI: FormDefinition = {
-    title: title,
-    description: description,
+    ...EXAMPLE_FORM_UI,
+    title: title || EXAMPLE_FORM_UI.title,
+    description: description || EXAMPLE_FORM_UI.description,
     slug: form.name,
-    banner: {
-      url: 'https://fastly.picsum.photos/id/640/400/200.jpg?hmac=G1mHrvmA_S_hACaus12cj8muJI-q9cI8C3_8e2GF2rM',
-      optimizedUrl:
-        'https://fastly.picsum.photos/id/640/400/200.jpg?hmac=G1mHrvmA_S_hACaus12cj8muJI-q9cI8C3_8e2GF2rM',
-    },
-    fields: [
-      {
-        name: 'format',
-        type: 'radio',
-        title: 'How would you like to present your science?',
-        kind: 'vertical',
-        required: true,
-        options: [
-          {
-            value: 'poster',
-            label: 'Poster',
-            subLabel: 'Design and bring a physical poster and stand next to it at the event.',
-          },
-          {
-            value: 'presentation',
-            label: 'Oral Presentation',
-            subLabel: 'Give a presentation at an assigned time to a live audience.',
-          },
-        ],
-      },
-      {
-        name: 'title',
-        type: 'string',
-        title: 'Title',
-        required: true,
-      },
-      {
-        name: 'abstract',
-        type: 'paragraph',
-        title: 'Abstract',
-        required: true,
-        wordCount: {
-          max: 250,
-        },
-      },
-      {
-        name: 'keywords',
-        type: 'keywords',
-        title: 'Keywords',
-        required: false,
-        placeholder: 'Type and press Enter',
-      },
-      {
-        name: 'authors',
-        type: 'author',
-        title: 'List the authors of this submission',
-        required: true,
-      },
-      {
-        name: 'license',
-        type: 'radio',
-        kind: 'vertical',
-        title: 'Is the paper being published with a CC BY license?',
-        required: true,
-        options: [
-          {
-            value: 'CC-BY-4.0',
-            label: 'Yes',
-            subLabel: '(CC-BY)',
-          },
-          {
-            value: 'Other',
-            label: 'No',
-            subLabel: 'I need a custom license',
-          },
-        ],
-      },
-    ],
-    pages: [
-      {
-        title: 'Choose format',
-        slug: 'format',
-        children: [
-          {
-            type: 'field',
-            id: 'format',
-          },
-        ],
-      },
-      {
-        title: 'Fill-in abstract',
-        shortTitle: 'Abstract',
-        slug: 'abstract',
-        children: [
-          { type: 'field', id: 'title' },
-          {
-            type: 'field',
-            id: 'abstract',
-          },
-          { type: 'field', id: 'keywords' },
-        ],
-      },
-      {
-        title: 'List authors',
-        slug: 'authors',
-        children: [
-          {
-            type: 'field',
-            id: 'authors',
-          },
-        ],
-      },
-      {
-        title: 'Choose license',
-        slug: 'license',
-        children: [
-          {
-            type: 'field',
-            id: 'license',
-          },
-        ],
-      },
-      {
-        title: 'Review and Submit',
-        shortTitle: 'Review and Submit',
-        slug: 'review',
-        children: [],
-      },
-    ],
   };
 
   const draftObjectId = getDraftObjectIdFromCookie(args.request);
@@ -353,6 +329,10 @@ export async function action(args: ActionFunctionArgs) {
       ...FALLBACK_FIELDS,
       ...(draft.data as Record<string, unknown>),
     } as Record<string, unknown>;
+    const fieldErrors = getFieldErrors(EXAMPLE_FORM_UI, fields);
+    if (fieldErrors.length > 0) {
+      return data({ error: { message: fieldErrors[0].message } }, { status: 400 });
+    }
     const form = await dbGetForm(formName!, ctx.site.id);
     const collectionId =
       (fields.collectionId as string)?.trim() ||
