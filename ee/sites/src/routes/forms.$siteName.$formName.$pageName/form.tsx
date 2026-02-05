@@ -428,6 +428,7 @@ export function RadioField({
   onDraftCreated,
 }: RadioFieldProps) {
   const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
+  const useVertical = schema.kind === 'vertical' || schema.options.length > 2;
 
   return (
     <div className="space-y-2">
@@ -441,9 +442,11 @@ export function RadioField({
         question={{
           id: schema.name,
           title: schema.title,
-          type: 'radio',
+          type: useVertical ? 'radio_vertical' : 'radio',
           options: schema.options,
         }}
+        radioPosition="left"
+        verticalConstrainWidth={useVertical}
       />
     </div>
   );
