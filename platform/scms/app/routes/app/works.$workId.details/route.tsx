@@ -36,6 +36,11 @@ export default function WorkDetailRoute() {
     'routes/app/works.$workId/route',
   ) as LoaderData;
 
+  // Prefer the latest non-draft work version for user-facing "Last updated" copy.
+  // (Versions are sorted newest-first, but drafts may appear at the top.)
+  const latestNonDraftWorkVersion = versions.find((v) => !v.draft);
+  const lastUpdatedDate = (latestNonDraftWorkVersion ?? versions[0])?.date_created;
+
   const truncatedTitle = work.title
     ? work.title.length > 32
       ? work.title.substring(0, 32) + '...'
@@ -58,9 +63,11 @@ export default function WorkDetailRoute() {
               ? work.authors.map((a) => a.name).join(', ')
               : 'Unknown authors'}
           </div>
-          <div className="text-xs text-muted-foreground">
-            Last updated {formatToNow(versions[0].date_created, { addSuffix: true })}
-          </div>
+          {lastUpdatedDate && (
+            <div className="text-xs text-muted-foreground">
+              Last updated {formatToNow(lastUpdatedDate, { addSuffix: true })}
+            </div>
+          )}
         </div>
         <SectionWithHeading heading="Submissions" icon={Radio}>
           <div className="grid grid-cols-1 gap-5 mt-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -107,7 +114,7 @@ export default function WorkDetailRoute() {
                           submissionVersion={sub.versions[0]}
                           workflows={workflows}
                           basePath={`/app/works/${work.id}`}
-                          workVersionId={sub.versions[0].id}
+                          workVersionId={sub.versions[0].work_version_id}
                           showLink
                         />
                       </div>

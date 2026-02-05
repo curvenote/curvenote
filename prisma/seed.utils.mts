@@ -9,6 +9,121 @@ const QUIET = true; // Set to true to suppress console output
 
 const prisma = await getLowLevelPrismaClient();
 
+/** Seeded RNG (mulberry32) for deterministic version dates and submission indices. */
+function createSeededRng(seed: string): () => number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(31, h) + seed.charCodeAt(i);
+    h = (h << 0) >>> 0;
+  }
+  return function () {
+    h = Math.imul(h ^ (h >>> 15), h | 0);
+    h = Math.imul(h ^ (h >>> 7), h | 0);
+    return ((h ^ (h >>> 13)) >>> 0) / 0xffffffff;
+  };
+}
+
+/**
+ * Generate version_count work versions over ~6 months ending at publication date,
+ * with submission_version_count of them also having submissions (always including the last version).
+ * Returns { versions, submissionVersionEntries } for use in seed.
+ */
+function generateWorkVersions(
+  work: {
+    id: string;
+    title: string;
+    description?: string;
+    authors: string[];
+    date: string;
+    version_count: number;
+    submission_version_count: number;
+    version_template?: { cdn_key?: string; cdn?: string };
+  },
+  uuid: () => string,
+): {
+  versions: Array<{
+    id: string;
+    date_created: string;
+    date_modified: string;
+    cdn_key: string | undefined;
+    cdn: string | undefined;
+    title: string;
+    description: string | undefined;
+    authors: string[];
+    date: string | undefined;
+    doi: string | undefined;
+    canonical: boolean;
+  }>;
+  submissionVersionEntries: Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }>;
+} {
+  const rng = createSeededRng(work.id);
+  const pubDate = new Date(work.date);
+  const oneMonthMs = 30 * 24 * 60 * 60 * 1000;
+  const count = work.version_count;
+  // count versions with at least 1 month between each = (count-1) gaps of 30 days
+  const windowMs = count * oneMonthMs;
+  const startDate = new Date(pubDate.getTime() - windowMs);
+
+  // (count-1) timestamps in non-overlapping 30-day slots (at least 1 month apart), then pub as last
+  const randomDates: number[] = [];
+  for (let i = 0; i < count - 1; i++) {
+    const slotStart = startDate.getTime() + i * oneMonthMs;
+    const slotEnd = slotStart + oneMonthMs;
+    randomDates.push(slotStart + rng() * (slotEnd - slotStart - 1)); // random within slot, leave gap
+  }
+  const sortedDates = [...randomDates, pubDate.getTime()];
+
+  // 3 PUBLISHED + 4 DRAFT = 7 submission versions; 1 work version has 2 SVs (DRAFT + PUBLISHED)
+  // Latest work version (count-1) must have a PUBLISHED submission version
+  // Distribute the other 5 work version indices evenly between second (1) and last (count-1)
+  const rangeStart = 1;
+  const rangeEnd = count - 2; // exclude latest (count-1) for these 5; latest gets PUBLISHED separately
+  const numSlots = 5;
+  const evenlySpacedIndices: number[] = [];
+  for (let i = 0; i < numSlots; i++) {
+    const t = numSlots === 1 ? 0.5 : i / (numSlots - 1);
+    evenlySpacedIndices.push(
+      Math.min(rangeEnd, rangeStart + Math.round(t * (rangeEnd - rangeStart))),
+    );
+  }
+  // Assign which of the 5 is doubleIdx (2 SVs), which 3 are DRAFT-only, which 1 is PUBLISHED-only (shuffle with rng)
+  const shuffled = [...evenlySpacedIndices].sort(() => rng() - 0.5);
+  const doubleIdx = shuffled[0];
+  const draftOnlyIndices = [shuffled[1], shuffled[2], shuffled[3]];
+  const publishedOnlyIdx = shuffled[4];
+  const submissionVersionEntries: Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }> = [
+    { workVersionIndex: doubleIdx, status: 'DRAFT' },
+    { workVersionIndex: doubleIdx, status: 'PUBLISHED' },
+    { workVersionIndex: draftOnlyIndices[0], status: 'DRAFT' },
+    { workVersionIndex: draftOnlyIndices[1], status: 'DRAFT' },
+    { workVersionIndex: draftOnlyIndices[2], status: 'DRAFT' },
+    { workVersionIndex: publishedOnlyIdx, status: 'PUBLISHED' },
+    { workVersionIndex: count - 1, status: 'PUBLISHED' }, // latest work version always has PUBLISHED
+  ].sort((a, b) => a.workVersionIndex - b.workVersionIndex);
+
+  const template = work.version_template ?? {};
+  const versions = sortedDates.map((ts, i) => {
+    const dateCreated = new Date(ts).toISOString();
+    const isLast = i === count - 1;
+    return {
+      id: uuid(),
+      date_created: dateCreated,
+      date_modified: dateCreated,
+      cdn_key: template.cdn_key,
+      cdn: template.cdn,
+      title: work.title,
+      description: work.description,
+      authors: work.authors,
+      author_details: [],
+      date: isLast ? work.date : undefined,
+      doi: undefined,
+      canonical: isLast, // only the latest work version is canonical
+    };
+  });
+
+  return { versions, submissionVersionEntries };
+}
+
 function log(...args: any[]) {
   if (!QUIET) {
     console.log(...args);
@@ -66,19 +181,43 @@ export async function seedBySites(
         `   📄 Creating work ${workCount}/${item.works.length}: ${work.title || work.id}`,
       );
 
-      const versions = work.versions.map((version: any) => ({
-        date_created: new Date(version.date_created).toISOString(),
-        date_modified: new Date(version.date_created).toISOString(),
-        id: version.id,
-        cdn_key: version.cdn_key,
-        cdn: version.cdn,
-        title: work.title,
-        description: work.description,
-        authors: work.authors,
-        date: work.date,
-        doi: version.doi,
-        canonical: version.canonical,
-      }));
+      let submissionVersionEntries:
+        | Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }>
+        | undefined;
+      const versions: Array<{
+        id: string;
+        date_created: string;
+        date_modified: string;
+        cdn_key?: string;
+        cdn?: string;
+        title: string;
+        description?: string;
+        authors: string[];
+        date?: string;
+        doi?: string;
+        canonical: boolean;
+      }> = work.version_count
+        ? (() => {
+            const { versions: gen, submissionVersionEntries: entries } = generateWorkVersions(
+              work,
+              uuid,
+            );
+            submissionVersionEntries = entries;
+            return gen;
+          })()
+        : work.versions.map((version: any) => ({
+            date_created: new Date(version.date_created).toISOString(),
+            date_modified: new Date(version.date_created).toISOString(),
+            id: version.id,
+            cdn_key: version.cdn_key,
+            cdn: version.cdn,
+            title: work.title,
+            description: work.description,
+            authors: work.authors,
+            date: work.date,
+            doi: version.doi,
+            canonical: version.canonical,
+          }));
 
       const workData = await prisma.work.upsert({
         where: {
@@ -113,13 +252,30 @@ export async function seedBySites(
         },
       });
 
-      const workSubmissionVersions = workData.versions
-        .filter(({ canonical }: { canonical: boolean | null }) => !!canonical)
-        .map((version: any) => ({
+      const workIndex = workCount - 1;
+      const versionsToSubmitWithStatus: Array<{ version: any; status: 'DRAFT' | 'PUBLISHED' }> =
+        work.version_count && submissionVersionEntries
+          ? submissionVersionEntries
+              .map((entry) => ({
+                version: workData.versions[entry.workVersionIndex],
+                status: entry.status,
+              }))
+              .sort(
+                (a, b) =>
+                  new Date(a.version.date_created).getTime() -
+                  new Date(b.version.date_created).getTime(),
+              )
+          : workData.versions
+              .filter(({ canonical }: { canonical: boolean | null }) => !!canonical)
+              .map((version: any) => ({ version, status: 'PUBLISHED' as const }));
+      // First SV (earliest date) will create the Submission, so Submission date_created aligns with first submission version
+      const workSubmissionVersions = versionsToSubmitWithStatus.map(
+        ({ version, status }: { version: any; status: 'DRAFT' | 'PUBLISHED' }) => ({
+          workIndex,
           id: uuid(),
           date_created: version.date_created,
-          date_published: version.date || version.date_created,
-          status: 'PUBLISHED',
+          date_published: status === 'PUBLISHED' ? (version.date || version.date_created) : undefined,
+          status,
           submitted_by: {
             connect: { id: users.support.id },
           },
@@ -135,7 +291,8 @@ export async function seedBySites(
                 connect: { id: users.support.id },
               },
               date_created: version.date_created,
-              date_published: version.date || version.date_created,
+              date_published:
+                status === 'PUBLISHED' ? (version.date || version.date_created) : undefined,
               kind: work.kind,
               site: {
                 connect: {
@@ -150,7 +307,8 @@ export async function seedBySites(
             },
           },
           job_id: work.job?.id,
-        }));
+        }),
+      );
 
       submissionVersions = [...submissionVersions, ...workSubmissionVersions];
 
@@ -311,102 +469,120 @@ export async function seedBySites(
     console.log(`   ✓ Created domain: ${domain.hostname}`);
 
     console.log(`   📝 Creating submissions and activities...`);
-    const subData = await Promise.all(
-      submissionVersions.map(async (sv, i) => {
-        const subVersion = await prisma.submissionVersion.create({
-          data: {
-            id: sv.id,
-            date_created: sv.date_created,
-            date_modified: sv.date_created,
-            status: sv.status,
-            submitted_by: {
-              connect: {
-                id: sv.submitted_by.connect.id,
-              },
-            },
-            work_version: {
-              connect: {
-                id: sv.work_version.connect.id,
-              },
-            },
-            submission: {
-              create: {
-                ...sv.submission.create,
-                date_modified: sv.submission.create.date_created ?? sv.date_created,
-                collection: {
-                  connect: {
-                    id:
-                      collections.find((c) => c.name === item.works[i].collection)?.id ??
-                      collections[0].id,
-                  },
-                },
-                kind: {
-                  connect: {
-                    id: siteData.submissionKinds.find((kind) => {
-                      return kind.name === sv.submission.create.kind;
-                    })!.id,
-                  },
-                },
-                site: {
-                  connect: {
-                    id: siteData.id,
-                  },
-                },
-              },
-            },
-            job: sv.job_id
-              ? {
-                  connect: {
-                    id: sv.job_id,
-                  },
-                }
-              : undefined,
-          },
-          include: {
-            submission: true,
-          },
-        });
-
-        await prisma.activity.create({
-          data: {
-            id: uuid(),
-            date_created: sv.date_created,
-            date_modified: sv.date_created,
-            activity_by: {
-              connect: {
-                id: subVersion.submitted_by_id,
-              },
-            },
-            submission: {
-              connect: {
-                id: subVersion.submission_id,
-              },
-            },
-            submission_version: {
-              connect: {
-                id: subVersion.id,
-              },
-            },
-            activity_type: ActivityType.NEW_SUBMISSION,
-            status: subVersion.status,
-            work_version: {
-              connect: {
-                id: subVersion.work_version_id,
-              },
-            },
-            kind: {
-              connect: {
-                id: subVersion.submission.kind_id,
-              },
-            },
-          },
-        });
-
-        return subVersion;
-      }),
+    // One Submission per work: first submission version for each work creates the submission;
+    // subsequent submission versions for the same work connect to it.
+    const submissionIdsByWorkIndex: Record<number, string> = {};
+    const sortedSubmissionVersions = [...submissionVersions].sort(
+      (a, b) => a.workIndex - b.workIndex,
     );
-    summary.submissions += subData.length;
-    console.log(`   ✓ Created ${subData.length} submission(s) with activity records`);
+    const subData: Awaited<ReturnType<typeof prisma.submissionVersion.create>>[] = [];
+    for (const sv of sortedSubmissionVersions) {
+      const isFirstForWork = submissionIdsByWorkIndex[sv.workIndex] === undefined;
+      const subVersion = await prisma.submissionVersion.create({
+        data: {
+          id: sv.id,
+          date_created: sv.date_created,
+          date_modified: sv.date_created,
+          status: sv.status,
+          submitted_by: {
+            connect: {
+              id: sv.submitted_by.connect.id,
+            },
+          },
+          work_version: {
+            connect: {
+              id: sv.work_version.connect.id,
+            },
+          },
+          submission: isFirstForWork
+            ? {
+                create: {
+                  ...sv.submission.create,
+                  date_modified: sv.submission.create.date_created ?? sv.date_created,
+                  collection: {
+                    connect: {
+                      id:
+                        collections.find(
+                          (c) => c.name === item.works[sv.workIndex]?.collection,
+                        )?.id ?? collections[0].id,
+                    },
+                  },
+                  kind: {
+                    connect: {
+                      id: siteData.submissionKinds.find((kind) => {
+                        return kind.name === sv.submission.create.kind;
+                      })!.id,
+                    },
+                  },
+                  site: {
+                    connect: {
+                      id: siteData.id,
+                    },
+                  },
+                },
+              }
+            : {
+                connect: {
+                  id: submissionIdsByWorkIndex[sv.workIndex],
+                },
+              },
+          job: sv.job_id
+            ? {
+                connect: {
+                  id: sv.job_id,
+                },
+              }
+            : undefined,
+        },
+        include: {
+          submission: true,
+        },
+      });
+      if (isFirstForWork) {
+        submissionIdsByWorkIndex[sv.workIndex] = subVersion.submission_id;
+      }
+      subData.push(subVersion);
+
+      await prisma.activity.create({
+        data: {
+          id: uuid(),
+          date_created: sv.date_created,
+          date_modified: sv.date_created,
+          activity_by: {
+            connect: {
+              id: subVersion.submitted_by_id,
+            },
+          },
+          submission: {
+            connect: {
+              id: subVersion.submission_id,
+            },
+          },
+          submission_version: {
+            connect: {
+              id: subVersion.id,
+            },
+          },
+          activity_type: ActivityType.NEW_SUBMISSION,
+          status: subVersion.status,
+          work_version: {
+            connect: {
+              id: subVersion.work_version_id,
+            },
+          },
+          kind: {
+            connect: {
+              id: subVersion.submission.kind_id,
+            },
+          },
+        },
+      });
+    }
+    const uniqueSubmissionCount = new Set(subData.map((s) => s.submission_id)).size;
+    summary.submissions += uniqueSubmissionCount;
+    console.log(
+      `   ✓ Created ${uniqueSubmissionCount} submission(s), ${subData.length} submission version(s) with activity records`,
+    );
     console.log(`   ✅ Completed site: ${item.site.name}\n`);
   }
 

@@ -1,5 +1,13 @@
 # @curvenote/scms-db
 
+## 0.14.4
+
+## 0.14.3
+
+### Patch Changes
+
+- [`34afcc7`](https://github.com/curvenote/curvenote/commit/34afcc7dd6b165f50b0e956b75230dfc1c03e998) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Force package bump because of CI release failure on 0.14.2
+
 ## 0.14.2
 
 ## 0.14.1

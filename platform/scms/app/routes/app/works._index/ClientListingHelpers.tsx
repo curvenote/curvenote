@@ -43,7 +43,8 @@ export function searchWorks(works: WorkWithRole[], searchTerm: string): WorkWith
   const searchLower = searchTerm.toLowerCase();
 
   return works.filter((work) => {
-    const latestVersion = work.versions[0];
+    // Always search against the latest non-draft version so draft versions don't affect listing/search.
+    const latestVersion = work.versions.find((v) => !v.draft);
     if (!latestVersion) return false;
 
     // Search in work version title
