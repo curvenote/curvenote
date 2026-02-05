@@ -1,5 +1,20 @@
 # @curvenote/scms
 
+## 0.14.4
+
+### Patch Changes
+
+- [#791](https://github.com/curvenote/curvenote/pull/791) [`8102142`](https://github.com/curvenote/curvenote/commit/810214283496689c5e13aba206ec41a7e7b6fa42) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Do not show draft works or works/workVersions that have submissions with only DRAFT status
+  Do not show submissions/submissionVersions with DRAFT status
+
+- [#775](https://github.com/curvenote/curvenote/pull/775) [`6c9f095`](https://github.com/curvenote/curvenote/commit/6c9f0954ef2056e316eb960dec2f85d38ab5a865) Thanks [@fwkoch](https://github.com/fwkoch)! - Add early access CTA for works upload
+
+- Updated dependencies []:
+  - @curvenote/scms-core@0.14.4
+  - @curvenote/scms-server@0.14.4
+  - @curvenote/scms-db@0.14.4
+  - @curvenote/scms-sites-ext@0.14.4
+
 ## 0.14.3
 
 ### Patch Changes
