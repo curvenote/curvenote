@@ -382,6 +382,7 @@ export async function action(args: ActionFunctionArgs) {
     submitData.set('workTitle', workTitle);
     if (fields.abstract) submitData.set('workDescription', String(fields.abstract));
     submitData.set('authors', JSON.stringify(authors));
+    submitData.set('formMetadata', JSON.stringify(fields));
     const isPending = (ctx.user as { pending?: boolean }).pending ?? false;
     if (isPending && formData.get('agreedToTerms') === 'true') {
       submitData.set('agreedToTerms', 'true');

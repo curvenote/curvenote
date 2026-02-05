@@ -69,6 +69,8 @@ const SubmitFormSchema = zfd.formData({
   isCorrespondingAuthor: zfd.text(z.string().optional()),
   authors: zfd.text(z.string().optional()),
   agreedToTerms: zfd.text(z.string().optional()),
+  /** JSON string of form-defined fields (keywords, format, license, etc.) for work version metadata. */
+  formMetadata: zfd.text(z.string().optional()),
 });
 
 export async function submitForm(
@@ -177,6 +179,15 @@ export async function submitForm(
           authors = isCorrespondingAuthor ? [dataParsed.name] : [];
         }
 
+        let formMetadata: Record<string, unknown> = {};
+        if (dataParsed.formMetadata?.trim()) {
+          try {
+            formMetadata = JSON.parse(dataParsed.formMetadata) as Record<string, unknown>;
+          } catch {
+            // ignore invalid JSON
+          }
+        }
+
         const draftObjectId = (formData.get('objectId') as string | null) || null;
         const result = await dbCreateWorkAndSubmission(
           ctx,
@@ -191,6 +202,7 @@ export async function submitForm(
             workTitle: dataParsed.workTitle,
             workDescription: dataParsed.workDescription,
             authors,
+            formMetadata,
           },
           draftObjectId,
         );

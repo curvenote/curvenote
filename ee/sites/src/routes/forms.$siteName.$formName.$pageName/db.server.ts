@@ -85,6 +85,8 @@ export interface SubmitFormData {
   workTitle: string;
   workDescription?: string;
   authors: string[];
+  /** Form-defined fields (keywords, format, license, etc.) stored in work version metadata. */
+  formMetadata?: Record<string, unknown>;
 }
 
 /** Create work and submission in one transaction (same as forms route). If draftObjectId is provided, deletes the draft Object in the same transaction. */
@@ -130,7 +132,7 @@ export async function dbCreateWorkAndSubmission(
               description: data.workDescription || null,
               draft: false,
               authors: data.authors,
-              metadata: {},
+              metadata: (data.formMetadata ?? {}) as object,
             },
           ],
         },
