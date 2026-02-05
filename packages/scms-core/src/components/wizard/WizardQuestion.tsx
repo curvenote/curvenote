@@ -149,7 +149,7 @@ export function WizardQuestion<T = string | boolean>({
             'absolute z-10 block w-5 h-5 rounded-full border-2 border-blue-200 bg-white',
             'transition-colors',
             'peer-data-[state=checked]:border-blue-500',
-            radioLeft ? 'left-2 top-1/2 -translate-y-1/2' : 'top-2 right-2',
+            radioLeft ? 'left-4 top-1/2 -translate-y-1/2' : 'top-2 right-2',
             disabled ? 'cursor-not-allowed' : 'cursor-pointer',
           )}
         />
@@ -157,7 +157,7 @@ export function WizardQuestion<T = string | boolean>({
           className={cn(
             'absolute z-10 w-3 h-3 rounded-full bg-blue-500 transition-opacity',
             'opacity-0 peer-data-[state=checked]:opacity-100',
-            radioLeft ? 'left-[12px] top-1/2 -translate-y-1/2' : 'top-[12px] right-[12px]',
+            radioLeft ? 'left-[20px] top-1/2 -translate-y-1/2' : 'top-[12px] right-[12px]',
             disabled ? 'cursor-not-allowed' : 'cursor-pointer',
           )}
         />
@@ -165,7 +165,7 @@ export function WizardQuestion<T = string | boolean>({
           lift={!disabled}
           className={cn(
             'relative flex flex-col justify-center',
-            radioLeft ? 'pl-9 sm:items-start' : 'sm:items-center',
+            radioLeft ? 'pl-12 sm:items-start' : 'sm:items-center',
             // Use reduced horizontal padding for uncertainty options with subLabel
             option.subLabel ? 'px-4 py-4' : 'p-4',
             // Ensure consistent height for boolean and horizontal radio questions
