@@ -317,6 +317,16 @@ export async function action(args: ActionFunctionArgs) {
       );
     }
 
+    // Cookie may point to a draft that no longer exists; create a new one and reset cookie
+    const existingDraft = await getDraftObject(objectId);
+    if (!existingDraft) {
+      objectId = await createDraftObject({ [fieldName]: value }, ctx.user?.id ?? null);
+      return data(
+        { objectId },
+        { headers: { 'Set-Cookie': setDraftObjectIdCookie(objectId, siteName, formName) } },
+      );
+    }
+
     await updateDraftObjectField(objectId, fieldName, value, ctx.user?.id ?? null);
     return data({ objectId });
   }
