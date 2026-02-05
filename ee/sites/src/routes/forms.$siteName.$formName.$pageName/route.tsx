@@ -141,10 +141,10 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
       },
       {
         name: 'keywords',
-        type: 'string',
+        type: 'keywords',
         title: 'Keywords',
         required: false,
-        placeholder: 'Type and press enter...',
+        placeholder: 'Type a keyword and press Enter to add',
       },
       {
         name: 'authors',
@@ -270,7 +270,7 @@ const FALLBACK_FIELDS: FormSubmission['fields'] = {
     'Linking soil structure and function: pore network analysis to understand soil hydraulic properties',
   abstract:
     "Understanding the relationship between soil structure and hydraulic properties is essential for optimizing agricultural water management practices. This study introduces an innovative approach that integrates X-ray computed tomography (CT) imaging with pore network analysis to effectively characterize soil structure and predict hydraulic conductivity.\n\nTo conduct this research, intact soil cores were collected from various agricultural fields and scanned using X-ray CT technology at a high resolution of 30 µm. This advanced imaging technique allows for a detailed examination of the soil's internal structure, revealing the intricate arrangement of pores and particles. Following the scanning process, sophisticated image processing techniques, including segmentation and skeletonization, were employed to extract three-dimensional",
-  keywords: '',
+  keywords: [],
   format: '',
   license: '',
   authors: [],

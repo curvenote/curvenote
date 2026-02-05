@@ -21,6 +21,7 @@ export * from './error.js';
 export * from './ErrorMessage.js';
 export * from './InlineEditable.js';
 export * from './input.js';
+export * from './KeywordsInput.js';
 export * from './label.js';
 export * from './limited-textarea.js';
 export * from './listings/index.js';

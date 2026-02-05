@@ -6,9 +6,9 @@ import type {
   FormDefinition,
   FormPage,
   FormSubmission,
+  KeywordsOption,
   ParagraphOption,
   RadioOption,
-  StringOption,
 } from './types.js';
 import { cn, ui, WizardQuestion } from '@curvenote/scms-core';
 import { useFormSyncContext } from './formSyncContext.js';
@@ -364,10 +364,20 @@ export function AbstractField({
   );
 }
 
+function normalizeKeywords(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
+  if (typeof value === 'string' && value.trim())
+    return value
+      .split(/[,;]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  return [];
+}
+
 type KeywordsFieldProps = {
-  schema: StringOption;
-  value: string;
-  onChange: (value: string) => void;
+  schema: KeywordsOption;
+  value: string[];
+  onChange: (value: string[]) => void;
   draftObjectId?: string | null;
   onDraftCreated?: (id: string) => void;
 };
@@ -379,25 +389,24 @@ export function KeywordsField({
   draftObjectId = null,
   onDraftCreated,
 }: KeywordsFieldProps) {
-  const isValid = value.trim().length > 0;
+  const isValid = !schema.required || value.length > 0;
   const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
+
+  const handleValueChange = (next: string[]) => {
+    onChange(next);
+    save(next);
+  };
 
   return (
     <div className="space-y-2">
       <FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
         {schema.title}
       </FormLabel>
-      <ui.Input
+      <ui.KeywordsInput
         id={schema.name}
-        type="text"
         value={value}
-        onChange={(e) => {
-          const v = e.target.value;
-          onChange(v);
-          save(v);
-        }}
-        placeholder={schema.placeholder || 'Type and press enter...'}
-        className="w-full"
+        onValueChange={handleValueChange}
+        placeholder={schema.placeholder || 'Type and press Enter to add'}
       />
     </div>
   );
@@ -514,18 +523,17 @@ export function FormBody({
     const value = values[schema.name];
 
     switch (schema.type) {
+      case 'keywords':
+        return (
+          <KeywordsField
+            key={schema.name}
+            schema={schema}
+            value={normalizeKeywords(value)}
+            onChange={(v) => handleChange(schema.name, v)}
+            {...dp}
+          />
+        );
       case 'string':
-        if (schema.name === 'keywords') {
-          return (
-            <KeywordsField
-              key={schema.name}
-              schema={schema}
-              value={value}
-              onChange={(v) => handleChange(schema.name, v)}
-              {...dp}
-            />
-          );
-        }
         return (
           <TitleField
             key={schema.name}

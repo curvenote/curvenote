@@ -36,6 +36,10 @@ function formatFieldValue(schema: FieldSchema, value: unknown): string {
     const authors = value as Author[];
     return authors.length === 0 ? '—' : authors.map((a) => a.name).join(', ');
   }
+  if (schema.type === 'keywords' && Array.isArray(value)) {
+    const keywords = value as string[];
+    return keywords.length === 0 ? '—' : keywords.join(', ');
+  }
   if (schema.type === 'radio' && 'options' in schema) {
     const opt = schema.options.find((o) => o.value === value);
     return opt ? opt.label : String(value);

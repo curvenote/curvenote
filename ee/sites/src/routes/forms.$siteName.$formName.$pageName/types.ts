@@ -67,7 +67,17 @@ export type AuthorOption = BaseInput<'author'> & {
   title: string;
 };
 
-export type FieldSchema = StringOption | ParagraphOption | RadioOption | AuthorOption;
+export type KeywordsOption = BaseInput<'keywords'> & {
+  type: 'keywords';
+  placeholder?: string;
+};
+
+export type FieldSchema =
+  | StringOption
+  | ParagraphOption
+  | RadioOption
+  | AuthorOption
+  | KeywordsOption;
 
 export type FormDefinition = {
   title: string;
