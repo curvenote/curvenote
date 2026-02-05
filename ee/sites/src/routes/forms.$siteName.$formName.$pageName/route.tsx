@@ -425,14 +425,20 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
   const stepNumber = isSuccessPage ? reviewStepIndex + 1 : currentPageIndex + 1;
 
   const fields = { ...FALLBACK_FIELDS, ...draftData } as FormSubmission['fields'];
+  const fieldErrors = getFieldErrors(form, fields);
   const pages: FormSubmission['pages'] = {};
   for (const page of form.pages) {
-    // On success page, show all steps checked (draft is gone so we can't recompute from data)
-    const completed = isSuccessPage
-      ? true
-      : page.slug === 'review'
-        ? false
-        : isPageComplete(page, form, fields);
+    let completed: boolean;
+    if (isSuccessPage) {
+      completed = true;
+    } else if (page.slug === 'review') {
+      completed = false;
+    } else {
+      const pageFieldErrors = fieldErrors.filter((e) =>
+        page.children.some((c) => c.type === 'field' && c.id === e.schema.name),
+      );
+      completed = isPageComplete(page, form, fields) && pageFieldErrors.length === 0;
+    }
     pages[page.slug] = { completed };
   }
   const submission: FormSubmission = {
