@@ -31,6 +31,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   const url = new URL(args.request.url);
   const pathname = url.pathname;
+  const includeDraftSubmissions = url.searchParams.get('drafts') === 'true';
 
   // Draft-only works should route users into the upload flow, not the details pages.
   if (isDraftOnlyWork) {
@@ -48,12 +49,14 @@ export const loader = async (args: LoaderFunctionArgs) => {
     }
   }
 
-  // Default index redirect.
+  // Default index redirect (preserve query string e.g. ?drafts=true).
   if (pathname === `/app/works/${workId}` || pathname === `/app/works/${workId}/`) {
-    throw redirect(`/app/works/${workId}/details`);
+    throw redirect(`/app/works/${workId}/details${url.search}`);
   }
 
-  const submissions = getUniqueSubmissions(workVersions);
+  const submissions = getUniqueSubmissions(workVersions, {
+    includeDrafts: includeDraftSubmissions,
+  });
   const workflowNames = submissions.map((s) => s.collection.workflow);
 
   // TODO we could filter workflows based on the work versions
