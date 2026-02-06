@@ -324,7 +324,12 @@ export function AbstractField({
 
   return (
     <div className="space-y-2">
-      <FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
+      <FormLabel
+        htmlFor={schema.name}
+        required={schema.required}
+        valid={isValid}
+        invalid={isOverLimit}
+      >
         {schema.title}
       </FormLabel>
       <textarea
@@ -391,7 +396,7 @@ export function KeywordsField({
   onDraftCreated,
 }: KeywordsFieldProps) {
   const overMax = schema.maxKeywords != null && value.length > schema.maxKeywords;
-  const isValid = (!schema.required || value.length > 0) && !overMax;
+  const isValid = value.length > 0 && !overMax;
   const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
 
   const handleValueChange = (next: (string | number)[]) => {
@@ -403,7 +408,12 @@ export function KeywordsField({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
+        <FormLabel
+          htmlFor={schema.name}
+          required={schema.required}
+          valid={isValid}
+          invalid={overMax}
+        >
           {schema.title}
         </FormLabel>
         {schema.maxKeywords != null && (
