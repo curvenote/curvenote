@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { primitives, ui } from '@curvenote/scms-core';
-import { FormArea } from './form.js';
+import { FormArea } from './FormArea.js';
 
 type SuccessStepProps = {
   stepNumber: number;

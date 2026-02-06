@@ -25,7 +25,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FormLabel } from './label.js';
+import { FormLabel } from './FormLabel.js';
 import type { Author, AuthorOption } from './types.js';
 import { useSaveField } from './useSaveField.js';
 import { ui } from '@curvenote/scms-core';

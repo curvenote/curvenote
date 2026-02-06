@@ -1,5 +1,5 @@
 /**
- * Helpers for forms draft Object: cookie for objectId and create/update with OCC.
+ * Cookie helpers for forms draft: get/set/clear draft objectId cookie.
  */
 
 const DRAFT_COOKIE_NAME = 'forms_draft_id';

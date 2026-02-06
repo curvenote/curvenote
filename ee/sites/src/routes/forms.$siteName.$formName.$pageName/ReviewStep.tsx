@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { useDeploymentConfig } from '@curvenote/scms-core';
 import type { Author, FieldSchema, FormDefinition, FormSubmission } from './types.js';
 import { getMissingRequiredForPage, getFieldErrors } from './validationUtils.js';
-import { FormArea } from './form.js';
+import { FormArea } from './FormArea.js';
 import { SubmitButton } from './SubmitButton.js';
 import { useSaveField } from './useSaveField.js';
 

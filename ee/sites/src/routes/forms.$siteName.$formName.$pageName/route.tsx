@@ -18,10 +18,12 @@ import {
   getDraftObjectIdFromCookie,
   setDraftObjectIdCookie,
   clearDraftCookie,
-} from './draft.server.js';
+} from './cookies.server.js';
 import { submitForm } from './actionHelpers.server.js';
 import { isPageComplete, getFieldErrors } from './validationUtils.js';
-import { FormArea, FormBody, MultiStepForm } from './form.js';
+import { FormArea } from './FormArea.js';
+import { FormBody } from './FormBody.js';
+import { MultiStepForm } from './MultiStepForm.js';
 import { FormSyncProvider } from './formSyncContext.js';
 import { ReviewStep } from './ReviewStep.js';
 import { SuccessStep } from './SuccessStep.js';

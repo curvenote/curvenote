@@ -4,7 +4,7 @@ import { getPrismaClient, safeObjectDataUpdate } from '@curvenote/scms-server';
 import { ActivityType, WorkRole } from '@curvenote/scms-db';
 import type { SiteContext, MyUserDBO } from '@curvenote/scms-server';
 import { coerceToObject } from '@curvenote/scms-core';
-import { DRAFT_OBJECT_TYPE_CONST } from './draft.server.js';
+import { DRAFT_OBJECT_TYPE_CONST } from './cookies.server.js';
 
 /** Create a new forms draft Object with initial field data. If createdById is provided (logged-in user), connect the user. */
 export async function createDraftObject(

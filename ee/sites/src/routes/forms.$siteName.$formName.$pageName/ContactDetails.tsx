@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { ui, orcid } from '@curvenote/scms-core';
-import { FormLabel } from './label.js';
+import { FormLabel } from './FormLabel.js';
 import { useSaveField } from './useSaveField.js';
 
 type ContactDetailsUser = {
