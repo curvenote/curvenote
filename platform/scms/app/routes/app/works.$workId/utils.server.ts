@@ -1,17 +1,26 @@
 import type { SubmissionWithVersionsAndSite, WorkVersionWithSubmissionVersions } from './types';
 
+export type GetUniqueSubmissionsOptions = {
+  /** When true, include submission versions with status DRAFT (default: false) */
+  includeDrafts?: boolean;
+};
+
 /**
  * Get unique submissions from work versions using client side transformation
  *
  * @param versions
+ * @param options.includeDrafts - when true, do not filter out DRAFT submission versions
  * @returns an array of unique submissions, with their submission versions sorted by date_created descending
  */
-export function getUniqueSubmissions(versions: WorkVersionWithSubmissionVersions[]) {
+export function getUniqueSubmissions(
+  versions: WorkVersionWithSubmissionVersions[],
+  options?: GetUniqueSubmissionsOptions,
+) {
+  const includeDrafts = options?.includeDrafts === true;
   const submissions: Record<string, SubmissionWithVersionsAndSite> = {};
   versions.forEach((v) => {
     v.submissionVersions.forEach((sv) => {
-      // Never surface draft submission versions in work details.
-      if (sv.status === 'DRAFT') return;
+      if (!includeDrafts && sv.status === 'DRAFT') return;
       if (submissions[sv.submission_id]) {
         submissions[sv.submission_id].versions.push(sv);
       } else {

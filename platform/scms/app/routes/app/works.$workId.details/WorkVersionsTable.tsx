@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router';
 import { cn, formatDate, ui } from '@curvenote/scms-core';
 import type { WorkVersionWithSubmissionVersions } from '../works.$workId/types';
 import type { Workflow } from '@curvenote/scms-core';
@@ -11,6 +12,9 @@ export function WorkVersionsTable({
   versions: WorkVersionWithSubmissionVersions[];
   basePath: string;
 }) {
+  const [searchParams] = useSearchParams();
+  const includeDrafts = searchParams.get('drafts') === 'true';
+
   return (
     <>
       <table className="w-full text-left table-fixed dark:text-white">
@@ -30,9 +34,9 @@ export function WorkVersionsTable({
             // there may be multiple submissions to a site, and there is a history of submission versions that it may be
             // important to surface but that is a TODO and needs more UI to convey
             // TODO: the badge should show a popup with user facing information about the submission and submission version history
-            const nonDraftSubmissionVersions = v.submissionVersions.filter(
-              (sv) => sv.status !== 'DRAFT',
-            );
+            const submissionVersionsToShow = includeDrafts
+              ? v.submissionVersions
+              : v.submissionVersions.filter((sv) => sv.status !== 'DRAFT');
             return (
               <tr key={v.id} className="border-b-[1px] border-gray-300 last:border-none">
                 <td
@@ -48,9 +52,9 @@ export function WorkVersionsTable({
                     'opacity-50': idx !== 0,
                   })}
                 >
-                  {nonDraftSubmissionVersions.length > 0 ? (
+                  {submissionVersionsToShow.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {nonDraftSubmissionVersions.map((sv) => (
+                      {submissionVersionsToShow.map((sv) => (
                         <ui.SubmissionVersionBadge
                           key={`submission-badge-${v.id}-${sv.id}`}
                           submissionVersion={sv}

@@ -91,6 +91,7 @@ copy_or_warn() {
 
 echo "→ Copying development config files (warn on missing)"
 copy_or_warn "${ROOT}/platform/scms/.app-config.development.yml" "${WT_DIR}/platform/scms/.app-config.development.yml"
+copy_or_warn "${ROOT}/platform/scms/.app-config.secrets.development.yml" "${WT_DIR}/platform/scms/.app-config.secrets.development.yml"
 copy_or_warn "${ROOT}/platform/scms/.env" "${WT_DIR}/platform/scms/.env"
 copy_or_warn "${ROOT}/.env" "${WT_DIR}/.env"
 
