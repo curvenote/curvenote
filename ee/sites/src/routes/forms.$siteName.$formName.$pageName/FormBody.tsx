@@ -1,10 +1,5 @@
 import { useState, useEffect } from 'react';
-import type {
-  FieldSchema,
-  FormDefinition,
-  FormPage,
-  FormSubmission,
-} from './types.js';
+import type { FieldSchema, FormDefinition, FormPage, FormSubmission } from './types.js';
 import { getMissingRequiredForPage, getFieldErrors } from './validationUtils.js';
 import { FormArea } from './FormArea.js';
 import { PageNav } from './PageNav.js';
@@ -14,6 +9,7 @@ import { KeywordsField, normalizeKeywords } from './KeywordsField.js';
 import { RadioField } from './RadioField.js';
 import { ContactDetails } from './ContactDetails.js';
 import { AuthorField } from './authors.js';
+import { useSaveField } from './useSaveField.js';
 
 type FormBodyUser = {
   name?: string;
@@ -59,6 +55,11 @@ export function FormBody({
   const [values, setValues] = useState<Record<string, any>>(submission.fields);
   const [attemptedContinue, setAttemptedContinue] = useState(false);
   const dp = draftProps(draftObjectId, onDraftCreated);
+  const saveAffiliationChoices = useSaveField(
+    draftObjectId ?? null,
+    'affiliations',
+    onDraftCreated,
+  );
 
   // Only show validation on this page after user clicks Continue; clear when navigating away
   useEffect(() => {
@@ -150,6 +151,11 @@ export function FormBody({
               schema={schema}
               value={value}
               onChange={(v) => handleChange(schema.name, v)}
+              affiliationChoices={values.affiliations}
+              onAffiliationChoicesChange={(list) => {
+                handleChange('affiliations', list);
+                saveAffiliationChoices(list);
+              }}
               {...dp}
             />
           </div>

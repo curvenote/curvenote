@@ -252,6 +252,7 @@ const FALLBACK_FIELDS: FormSubmission['fields'] = {
   format: '',
   license: '',
   authors: [],
+  affiliations: [],
   contactName: '',
   contactAffiliation: '',
   contactEmail: '',
