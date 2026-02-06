@@ -84,9 +84,7 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
     // Exclude from listing: single work version + single submission that is DRAFT-only.
     // (We already exclude "all versions draft" in the route loader.)
     const excludeAsSingleDraftSubmissionWork =
-      work.versions.length === 1 &&
-      rawSubmissionCount === 1 &&
-      visibleSubmissions.length === 0;
+      work.versions.length === 1 && rawSubmissionCount === 1 && visibleSubmissions.length === 0;
 
     // Get the highest precedence role: OWNER > CONTRIBUTOR > VIEWER
     const userRoles = work.work_users.map((wu) => wu.role);
