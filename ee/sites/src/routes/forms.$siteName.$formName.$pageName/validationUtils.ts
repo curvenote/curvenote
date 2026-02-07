@@ -43,7 +43,9 @@ export function getAuthorFieldErrors(authors: unknown[]): { message: string }[] 
     const orcid = String((a as any)?.orcid ?? '').trim();
     const corresponding = (a as any)?.corresponding === true;
     const affiliationIds = Array.isArray((a as any)?.affiliationIds)
-      ? ((a as any).affiliationIds as unknown[]).filter((id): id is string => typeof id === 'string')
+      ? ((a as any).affiliationIds as unknown[]).filter(
+          (id): id is string => typeof id === 'string',
+        )
       : [];
 
     if (!name) {
@@ -173,6 +175,19 @@ export function getFieldErrors(
           errors.push({
             schema,
             message: `Author ${i + 1}: at least one affiliation is required.`,
+          });
+        }
+      }
+
+      // Affiliations list: each affiliation must have a name
+      const affiliationsList = Array.isArray(fields.affiliations) ? fields.affiliations : [];
+      for (const [i, aff] of affiliationsList.entries()) {
+        const affObj = aff as { name?: string } | null | undefined;
+        const name = (affObj?.name ?? '').trim();
+        if (!name) {
+          errors.push({
+            schema,
+            message: `Affiliation ${i + 1}: name is required.`,
           });
         }
       }

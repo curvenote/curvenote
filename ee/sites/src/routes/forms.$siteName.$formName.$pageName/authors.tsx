@@ -83,7 +83,7 @@ function SortableAffiliationRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex gap-2 items-center rounded-md border border-border bg-muted/30 px-3 py-2 text-sm"
+      className="flex gap-2 items-center px-3 py-2 text-sm rounded-md border border-border bg-muted/30"
     >
       <button
         {...attributes}
@@ -93,7 +93,7 @@ function SortableAffiliationRow({
       >
         <GripVertical className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground" />
       </button>
-      <span className="shrink-0 text-xs text-muted-foreground tabular-nums w-6">
+      <span className="w-6 text-xs tabular-nums shrink-0 text-muted-foreground">
         {getOrdinalLabel(index + 1)}
       </span>
       {editing ? (
@@ -109,7 +109,7 @@ function SortableAffiliationRow({
               setEditing(false);
             }
           }}
-          className="flex-1 min-w-0 px-2 py-1 text-sm rounded border border-input bg-background outline-none"
+          className="flex-1 px-2 py-1 min-w-0 text-sm rounded border outline-none border-input bg-background"
           autoFocus
         />
       ) : (
@@ -153,7 +153,8 @@ type AffiliationSortableListProps = {
 };
 
 function getAffiliationName(list: Affiliation[], id: string): string {
-  return list.find((a) => a.id === id)?.name ?? id;
+  const name = list.find((a) => a.id === id)?.name;
+  return (name ?? '').trim();
 }
 
 function AffiliationSortableList({
@@ -332,18 +333,19 @@ function AuthorCard({
               </div>
               {editAffiliationIds.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {editAffiliationIds.map((affId) => (
-                    <ui.Badge
-                      key={affId}
-                      variant="outline-muted"
-                      className="flex gap-1 items-center text-xs"
-                    >
-                      <Building2 className="w-3 h-3" />
-                      <span className="truncate max-w-[200px]">
-                        {getAffiliationName(affiliationList, affId)}
-                      </span>
-                    </ui.Badge>
-                  ))}
+                  {editAffiliationIds.map((affId) => {
+                    const affName = getAffiliationName(affiliationList, affId);
+                    return (
+                      <ui.Badge
+                        key={affId}
+                        variant="outline-muted"
+                        className="flex gap-1 items-center text-xs"
+                      >
+                        <Building2 className="w-3 h-3" />
+                        {affName ? <span className="truncate max-w-[200px]">{affName}</span> : null}
+                      </ui.Badge>
+                    );
+                  })}
                 </div>
               ) : null}
             </div>
@@ -530,21 +532,23 @@ function AuthorCard({
             {/* Affiliations: chips when any, or entry box only when none (first creation) */}
             {value.affiliationIds && value.affiliationIds.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {value.affiliationIds.map((affId) => (
-                  <ui.Badge
-                    key={affId}
-                    variant="outline-muted"
-                    className="flex gap-1 items-center text-xs"
-                  >
-                    <Building2 className="w-3 h-3" />
-                    <span
-                      className="truncate max-w-[200px]"
-                      title={getAffiliationName(affiliationList, affId)}
+                {value.affiliationIds.map((affId) => {
+                  const affName = getAffiliationName(affiliationList, affId);
+                  return (
+                    <ui.Badge
+                      key={affId}
+                      variant="outline-muted"
+                      className="flex gap-1 items-center text-xs"
                     >
-                      {getAffiliationName(affiliationList, affId)}
-                    </span>
-                  </ui.Badge>
-                ))}
+                      <Building2 className="w-3 h-3" />
+                      {affName ? (
+                        <span className="truncate max-w-[200px]" title={affName}>
+                          {affName}
+                        </span>
+                      ) : null}
+                    </ui.Badge>
+                  );
+                })}
               </div>
             ) : (
               /* Add affiliation (view mode) – only when author has no affiliations yet */
@@ -672,6 +676,7 @@ export function AuthorField({
   const [nameInput, setNameInput] = useState('');
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [openAffiliationId, setOpenAffiliationId] = useState<string | null>(null);
   const lastCardAffiliationInputRef = useRef<HTMLInputElement>(null);
   const authorCountRef = useRef(value.length);
   const affiliationList = affiliationListProp ?? [];
@@ -753,6 +758,11 @@ export function AuthorField({
     const newList = affiliationList.map((a) =>
       a.id === affiliationId ? { ...a, name: trimmed } : a,
     );
+    onAffiliationListChange?.(newList);
+  };
+
+  const handleUpdateAffiliation = (affiliationId: string, updates: Partial<Affiliation>) => {
+    const newList = affiliationList.map((a) => (a.id === affiliationId ? { ...a, ...updates } : a));
     onAffiliationListChange?.(newList);
   };
 
@@ -863,12 +873,13 @@ export function AuthorField({
           </summary>
           <div className="px-4 pt-1 pb-4 space-y-2 border-t border-border">
             <ul className="space-y-2">
-              {affiliationList.map((aff, idx) => (
+              {affiliationList.map((aff) => (
                 <AffiliationListItem
                   key={aff.id}
-                  index={idx}
-                  name={aff.name}
-                  onRename={(newName) => handleRenameAffiliation(aff.id, newName)}
+                  affiliation={aff}
+                  open={openAffiliationId === aff.id}
+                  onOpenChange={(open) => setOpenAffiliationId(open ? aff.id : null)}
+                  onUpdate={(updates) => handleUpdateAffiliation(aff.id, updates)}
                   onRemove={() => handleRemoveAffiliationFromList(aff.id)}
                 />
               ))}
@@ -881,89 +892,177 @@ export function AuthorField({
 }
 
 type AffiliationListItemProps = {
-  index: number;
-  name: string;
-  onRename: (newName: string) => void;
+  affiliation: Affiliation;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onUpdate: (updates: Partial<Affiliation>) => void;
   onRemove: () => void;
 };
 
-function AffiliationListItem({ index, name, onRename, onRemove }: AffiliationListItemProps) {
-  const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(name);
+function AffiliationListItem({
+  affiliation,
+  open,
+  onOpenChange,
+  onUpdate,
+  onRemove,
+}: AffiliationListItemProps) {
+  const [editName, setEditName] = useState(affiliation.name ?? '');
+  const [editDepartment, setEditDepartment] = useState(affiliation.department ?? '');
+  const [editCity, setEditCity] = useState(affiliation.city ?? '');
+  const [editCountry, setEditCountry] = useState(affiliation.country ?? '');
 
   useEffect(() => {
-    setEditValue(name);
-  }, [name]);
+    setEditName(affiliation.name ?? '');
+    setEditDepartment(affiliation.department ?? '');
+    setEditCity(affiliation.city ?? '');
+    setEditCountry(affiliation.country ?? '');
+  }, [affiliation]);
 
-  const handleSave = () => {
-    const trimmed = editValue.trim();
-    if (trimmed && trimmed !== name) onRename(trimmed);
-    setEditing(false);
+  const saveName = () => {
+    const trimmed = (editName ?? '').trim();
+    const current = (affiliation.name ?? '').trim();
+    if (trimmed !== current) onUpdate({ name: trimmed || undefined });
+  };
+  const saveDepartment = () => {
+    const trimmed = (editDepartment ?? '').trim();
+    if (trimmed !== (affiliation.department ?? '').trim()) {
+      onUpdate({ department: trimmed || undefined });
+    }
+  };
+  const saveCity = () => {
+    const trimmed = (editCity ?? '').trim();
+    if (trimmed !== (affiliation.city ?? '').trim()) onUpdate({ city: trimmed || undefined });
+  };
+  const saveCountry = () => {
+    const trimmed = (editCountry ?? '').trim();
+    if (trimmed !== (affiliation.country ?? '').trim()) onUpdate({ country: trimmed || undefined });
   };
 
+  const nameDisplay = (editName ?? '').trim();
+  const nameValid = nameDisplay.length > 0;
+  const deptDisplay = (editDepartment ?? '').trim();
+  const cityDisplay = (editCity ?? '').trim();
+  const countryDisplay = (editCountry ?? '').trim();
+
   return (
-    <li className="flex gap-2 items-center text-sm">
-      <span className="shrink-0 w-6 text-xs text-muted-foreground tabular-nums">
-        {getOrdinalLabel(index + 1)}
-      </span>
-      {editing ? (
-        <>
-          <input
-            type="text"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSave();
-              if (e.key === 'Escape') {
-                setEditValue(name);
-                setEditing(false);
-              }
-            }}
-            className="flex-1 px-2 py-1 min-w-0 text-sm rounded border border-input bg-background"
-            autoFocus
-          />
-          <ui.Button type="button" size="sm" onClick={handleSave} className="cursor-pointer">
-            Save
-          </ui.Button>
-          <ui.Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setEditValue(name);
-              setEditing(false);
-            }}
-            className="cursor-pointer"
-          >
-            Cancel
-          </ui.Button>
-        </>
-      ) : (
-        <>
+    <li className="flex gap-2 items-start p-4 rounded-sm border border-border bg-background">
+      <div className="flex-1 min-w-0">
+        {/* Top bar: same when collapsed and expanded */}
+        <div className="flex gap-2 items-center mb-2">
           <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
-          <span className="flex-1 min-w-0 truncate">{name}</span>
-          <ui.Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setEditing(true)}
-            aria-label="Edit affiliation"
-            className="cursor-pointer shrink-0"
+          <span
+            className={`text-base font-semibold flex-1 min-w-0 truncate ${
+              !nameValid ? 'text-muted-foreground/60' : ''
+            }`}
           >
-            <Pencil className="w-3.5 h-3.5" />
-          </ui.Button>
-          <ui.Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={onRemove}
-            aria-label="Remove affiliation"
-            className="cursor-pointer shrink-0"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-          </ui.Button>
-        </>
-      )}
+            {nameDisplay || 'Affiliation name'}
+          </span>
+          {(deptDisplay || cityDisplay || countryDisplay) && (
+            <span className="text-sm truncate text-muted-foreground">
+              {[deptDisplay, cityDisplay, countryDisplay].filter(Boolean).join(' · ')}
+            </span>
+          )}
+        </div>
+
+        {open ? (
+          <>
+            <hr className="mb-4 border-border" />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <FormLabel
+                  htmlFor={`aff-${affiliation.id}-name`}
+                  required
+                  valid={nameValid}
+                  invalid={!nameValid}
+                >
+                  Name
+                </FormLabel>
+                <ui.Input
+                  id={`aff-${affiliation.id}-name`}
+                  type="text"
+                  value={editName ?? ''}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onBlur={saveName}
+                  placeholder="Affiliation name"
+                  className="w-full"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor={`aff-${affiliation.id}-department`} className="text-sm font-medium">
+                  Department
+                </label>
+                <ui.Input
+                  id={`aff-${affiliation.id}-department`}
+                  type="text"
+                  value={editDepartment}
+                  onChange={(e) => setEditDepartment(e.target.value)}
+                  onBlur={saveDepartment}
+                  placeholder="Department"
+                  className="w-full"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 space-y-2">
+                  <label htmlFor={`aff-${affiliation.id}-city`} className="text-sm font-medium">
+                    City
+                  </label>
+                  <ui.Input
+                    id={`aff-${affiliation.id}-city`}
+                    type="text"
+                    value={editCity}
+                    onChange={(e) => setEditCity(e.target.value)}
+                    onBlur={saveCity}
+                    placeholder="City"
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <label htmlFor={`aff-${affiliation.id}-country`} className="text-sm font-medium">
+                    Country
+                  </label>
+                  <ui.Input
+                    id={`aff-${affiliation.id}-country`}
+                    type="text"
+                    value={editCountry}
+                    onChange={(e) => setEditCountry(e.target.value)}
+                    onBlur={saveCountry}
+                    placeholder="Country"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      {/* Collapse/Edit and Delete */}
+      <div className="flex gap-1 items-start shrink-0">
+        <ui.Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => onOpenChange(!open)}
+          aria-label={open ? 'Collapse' : 'Edit affiliation'}
+          className="cursor-pointer"
+        >
+          {open ? (
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <Pencil className="w-4 h-4 text-muted-foreground" />
+          )}
+        </ui.Button>
+        <ui.Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          onClick={onRemove}
+          aria-label="Remove affiliation"
+          className="cursor-pointer"
+        >
+          <Trash2 className="w-4 h-4 text-muted-foreground" />
+        </ui.Button>
+      </div>
     </li>
   );
 }
