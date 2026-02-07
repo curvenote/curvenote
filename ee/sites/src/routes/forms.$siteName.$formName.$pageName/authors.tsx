@@ -310,7 +310,11 @@ function AuthorCard({
             {/* Preview: same layout as collapsed – name + ORCID badge when valid only */}
             <div>
               <div className="flex gap-2 items-center mb-2">
-                <span className="text-base font-semibold">{editName}</span>
+                <span
+                  className={`text-base font-semibold ${editName.trim() ? '' : 'text-muted-foreground/60'}`}
+                >
+                  {editName.trim() || 'Author Name'}
+                </span>
                 {orcidValid === true && (
                   <BadgeCheck
                     className="w-4 h-4 text-green-500 shrink-0"
@@ -497,7 +501,11 @@ function AuthorCard({
           <>
             {/* Author name + ORCID badge when valid only (no top-level error indicator) */}
             <div className="flex gap-2 items-center mb-2">
-              <span className="text-base font-semibold">{value.name}</span>
+              <span
+                className={`text-base font-semibold ${value.name?.trim() ? '' : 'text-muted-foreground/60'}`}
+              >
+                {value.name?.trim() || 'Author Name'}
+              </span>
               {orcidValid === true && (
                 <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" aria-label="ORCID valid" />
               )}
