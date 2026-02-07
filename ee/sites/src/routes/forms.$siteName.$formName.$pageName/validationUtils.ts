@@ -6,6 +6,16 @@ function countWords(s: string): number {
   return t ? t.split(/\s+/).length : 0;
 }
 
+export function isValidEmail(email: string): boolean {
+  // Simple, pragmatic validation (not full RFC).
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+export function isValidOrcid(orcid: string): boolean {
+  // Requested format: ####-####-####-#### (digits only)
+  return /^\d{4}-\d{4}-\d{4}-\d{4}$/.test(orcid.trim());
+}
+
 export function isFieldEmpty(schema: FieldSchema, value: unknown): boolean {
   if (value == null) return true;
   if (typeof value === 'string') return value.trim() === '';
@@ -14,6 +24,59 @@ export function isFieldEmpty(schema: FieldSchema, value: unknown): boolean {
 }
 
 export type FieldValidationError = { schema: FieldSchema; message: string };
+
+/** Author-list validation errors (same rules as getFieldErrors for type author). */
+export function getAuthorFieldErrors(authors: unknown[]): { message: string }[] {
+  const errors: { message: string }[] = [];
+  const list = Array.isArray(authors) ? authors : [];
+
+  if (list.length > 0) {
+    const correspondingCount = list.filter((a: any) => a?.corresponding === true).length;
+    if (correspondingCount === 0) {
+      errors.push({ message: 'Please mark at least one author as corresponding.' });
+    }
+  }
+
+  for (const [i, a] of list.entries()) {
+    const name = String((a as any)?.name ?? '').trim();
+    const email = String((a as any)?.email ?? '').trim();
+    const orcid = String((a as any)?.orcid ?? '').trim();
+    const corresponding = (a as any)?.corresponding === true;
+    const affiliations = Array.isArray((a as any)?.affiliations)
+      ? ((a as any).affiliations as unknown[])
+      : [];
+
+    if (!name) {
+      errors.push({ message: `Author ${i + 1}: name is required.` });
+    }
+
+    if (corresponding) {
+      if (!email) {
+        errors.push({
+          message: `Author ${i + 1}: email is required for corresponding authors.`,
+        });
+      } else if (!isValidEmail(email)) {
+        errors.push({ message: `Author ${i + 1}: email format is invalid.` });
+      }
+    } else if (email && !isValidEmail(email)) {
+      errors.push({ message: `Author ${i + 1}: email format is invalid.` });
+    }
+
+    if (orcid && !isValidOrcid(orcid)) {
+      errors.push({
+        message: `Author ${i + 1}: ORCID must be in the format 0000-0000-0000-0000.`,
+      });
+    }
+
+    if (affiliations.length === 0) {
+      errors.push({
+        message: `Author ${i + 1}: at least one affiliation is required.`,
+      });
+    }
+  }
+
+  return errors;
+}
 
 /** Validation errors (e.g. keywords over max). Does not include required-empty. */
 export function getFieldErrors(
@@ -46,6 +109,70 @@ export function getFieldErrors(
           schema,
           message: `Please reduce to ${max} words or fewer.`,
         });
+      }
+    }
+
+    if (schema.type === 'author') {
+      const value = fields[schema.name];
+      const authors = Array.isArray(value) ? (value as any[]) : [];
+
+      if (authors.length > 0) {
+        // At least one corresponding author overall.
+        const correspondingCount = authors.filter((a) => a?.corresponding === true).length;
+        if (correspondingCount === 0) {
+          errors.push({
+            schema,
+            message: 'Please mark at least one author as corresponding.',
+          });
+        }
+      }
+
+      for (const [i, a] of authors.entries()) {
+        const name = String(a?.name ?? '').trim();
+        const email = String(a?.email ?? '').trim();
+        const orcid = String(a?.orcid ?? '').trim();
+        const corresponding = a?.corresponding === true;
+        const affiliations = Array.isArray(a?.affiliations) ? (a.affiliations as unknown[]) : [];
+
+        if (!name) {
+          errors.push({
+            schema,
+            message: `Author ${i + 1}: name is required.`,
+          });
+        }
+
+        if (corresponding) {
+          if (!email) {
+            errors.push({
+              schema,
+              message: `Author ${i + 1}: email is required for corresponding authors.`,
+            });
+          } else if (!isValidEmail(email)) {
+            errors.push({
+              schema,
+              message: `Author ${i + 1}: email format is invalid.`,
+            });
+          }
+        } else if (email && !isValidEmail(email)) {
+          errors.push({
+            schema,
+            message: `Author ${i + 1}: email format is invalid.`,
+          });
+        }
+
+        if (orcid && !isValidOrcid(orcid)) {
+          errors.push({
+            schema,
+            message: `Author ${i + 1}: ORCID must be in the format 0000-0000-0000-0000.`,
+          });
+        }
+
+        if (affiliations.length === 0) {
+          errors.push({
+            schema,
+            message: `Author ${i + 1}: at least one affiliation is required.`,
+          });
+        }
       }
     }
   }

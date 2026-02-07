@@ -2,12 +2,12 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { uuidv7 as uuid } from 'uuidv7';
 import {
   GripVertical,
-  Mail,
   Building2,
   Pencil,
   Plus,
   Trash2,
   ChevronDown,
+  ChevronUp,
   BadgeCheck,
 } from 'lucide-react';
 import {
@@ -28,8 +28,175 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { FormLabel } from './FormLabel.js';
 import type { Author, AuthorOption } from './types.js';
+import { isValidEmail, isValidOrcid, getAuthorFieldErrors } from './validationUtils.js';
 import { useSaveField } from './useSaveField.js';
 import { ui } from '@curvenote/scms-core';
+
+function getOrdinalLabel(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+type SortableAffiliationRowProps = {
+  authorId: string;
+  index: number;
+  name: string;
+  onRename: (oldName: string, newName: string) => void;
+  onRemove: () => void;
+};
+
+function SortableAffiliationRow({
+  authorId,
+  index,
+  name,
+  onRename,
+  onRemove,
+}: SortableAffiliationRowProps) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(name);
+  const id = `${authorId}-aff-${index}`;
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
+    id,
+  });
+
+  useEffect(() => {
+    setEditValue(name);
+  }, [name]);
+
+  const handleSaveRename = () => {
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== name) onRename(name, trimmed);
+    setEditing(false);
+  };
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: 'none',
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex gap-2 items-center rounded-md border border-border bg-muted/30 px-3 py-2 text-sm"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        type="button"
+        className="cursor-grab active:cursor-grabbing touch-none shrink-0"
+      >
+        <GripVertical className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground" />
+      </button>
+      <span className="shrink-0 text-xs text-muted-foreground tabular-nums w-6">
+        {getOrdinalLabel(index + 1)}
+      </span>
+      {editing ? (
+        <input
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSaveRename}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSaveRename();
+            if (e.key === 'Escape') {
+              setEditValue(name);
+              setEditing(false);
+            }
+          }}
+          className="flex-1 min-w-0 px-2 py-1 text-sm rounded border border-input bg-background outline-none"
+          autoFocus
+        />
+      ) : (
+        <span className="flex-1 min-w-0 truncate">{name}</span>
+      )}
+      {!editing && (
+        <>
+          <ui.Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setEditing(true)}
+            aria-label="Edit affiliation"
+            className="cursor-pointer shrink-0"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </ui.Button>
+          <ui.Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            onClick={onRemove}
+            aria-label="Remove affiliation"
+            className="cursor-pointer shrink-0"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+          </ui.Button>
+        </>
+      )}
+    </div>
+  );
+}
+
+type AffiliationSortableListProps = {
+  affiliations: string[];
+  onReorder: (newOrder: string[]) => void;
+  onRemove: (index: number) => void;
+  onRename: (oldName: string, newName: string) => void;
+  authorId: string;
+};
+
+function AffiliationSortableList({
+  affiliations,
+  onReorder,
+  onRemove,
+  onRename,
+  authorId,
+}: AffiliationSortableListProps) {
+  const items = useMemo(
+    () => affiliations.map((_, i) => `${authorId}-aff-${i}`),
+    [affiliations, authorId],
+  );
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.indexOf(active.id as string);
+    const newIndex = items.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const newOrder = [...affiliations];
+    const [removed] = newOrder.splice(oldIndex, 1);
+    newOrder.splice(newIndex, 0, removed);
+    onReorder(newOrder);
+  };
+
+  if (affiliations.length === 0) return null;
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={items} strategy={verticalListSortingStrategy}>
+        <div className="space-y-2">
+          {affiliations.map((name, idx) => (
+            <SortableAffiliationRow
+              key={`${authorId}-aff-${idx}`}
+              authorId={authorId}
+              index={idx}
+              name={name}
+              onRename={onRename}
+              onRemove={() => onRemove(idx)}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
 
 type AuthorCardProps = {
   value: Author;
@@ -40,6 +207,7 @@ type AuthorCardProps = {
   onDelete: () => void;
   affiliationChoices: string[];
   onEnsureAffiliationInChoices: (name: string) => void;
+  onRenameAffiliation?: (oldName: string, newName: string) => void;
   affiliationInputRef?: React.RefObject<HTMLInputElement | null>;
 };
 
@@ -52,6 +220,7 @@ function AuthorCard({
   onDelete,
   affiliationChoices,
   onEnsureAffiliationInChoices,
+  onRenameAffiliation,
   affiliationInputRef,
 }: AuthorCardProps) {
   const [editName, setEditName] = useState(value.name);
@@ -71,25 +240,8 @@ function AuthorCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const handleSave = () => {
-    onChange({
-      ...value,
-      name: editName,
-      orcid: editOrcid || undefined,
-      email: editEmail || undefined,
-      corresponding: editCorresponding,
-      affiliations: editAffiliations,
-    });
-    onOpenChange(false);
-  };
-
-  const handleCancel = () => {
-    setEditName(value.name);
-    setEditOrcid(value.orcid || '');
-    setEditEmail(value.email || '');
-    setEditCorresponding(value.corresponding || false);
-    setEditAffiliations(value.affiliations ?? []);
-    onOpenChange(false);
+  const pushAuthor = (updates: Partial<Author>) => {
+    onChange({ ...value, ...updates });
   };
 
   const addAffiliation = (name: string) => {
@@ -97,11 +249,9 @@ function AuthorCard({
     if (!trimmed) return;
     if (editAffiliations.includes(trimmed)) return;
     onEnsureAffiliationInChoices(trimmed);
-    setEditAffiliations((prev) => [...prev, trimmed]);
-  };
-
-  const removeAffiliation = (idx: number) => {
-    setEditAffiliations((prev) => prev.filter((_, i) => i !== idx));
+    const next = [...editAffiliations, trimmed];
+    setEditAffiliations(next);
+    pushAuthor({ affiliations: next });
   };
 
   const addAffiliationInViewMode = (name: string) => {
@@ -124,6 +274,9 @@ function AuthorCard({
     setEditAffiliations(value.affiliations ?? []);
   }, [value]);
 
+  const emailValid = editEmail.trim() === '' ? null : isValidEmail(editEmail);
+  const orcidValid = editOrcid.trim() === '' ? null : isValidOrcid(editOrcid);
+
   return (
     <div
       ref={setNodeRef}
@@ -144,11 +297,45 @@ function AuthorCard({
         </button>
       </div>
 
+      {/* Ordinal (1st, 2nd, 3rd) */}
+      <div className="pt-1.5 shrink-0 text-xs text-muted-foreground tabular-nums">
+        {getOrdinalLabel(index + 1)}
+      </div>
+
       {/* Author content */}
       <div className="flex-1 min-w-0">
         {open ? (
-          /* Edit mode */
+          /* Expanded: top matches collapsed card exactly, then divider, then form */
           <div className="space-y-4">
+            {/* Preview: same layout as collapsed – name + ORCID badge when valid only */}
+            <div>
+              <div className="flex gap-2 items-center mb-2">
+                <span className="text-base font-semibold">{editName}</span>
+                {orcidValid === true && (
+                  <BadgeCheck
+                    className="w-4 h-4 text-green-500 shrink-0"
+                    aria-label="ORCID valid"
+                  />
+                )}
+              </div>
+              {editAffiliations.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {editAffiliations.map((aff) => (
+                    <ui.Badge
+                      key={aff}
+                      variant="outline-muted"
+                      className="flex gap-1 items-center text-xs"
+                    >
+                      <Building2 className="w-3 h-3" />
+                      <span className="truncate max-w-[200px]">{aff}</span>
+                    </ui.Badge>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <hr className="border-border" />
+
             {/* Full Name */}
             <div className="space-y-2">
               <FormLabel
@@ -162,7 +349,10 @@ function AuthorCard({
                 id={`author-${index}-name`}
                 type="text"
                 value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                onChange={(e) => {
+                  setEditName(e.target.value);
+                  pushAuthor({ name: e.target.value });
+                }}
                 placeholder="Enter full name"
               />
             </div>
@@ -170,11 +360,15 @@ function AuthorCard({
             {/* ORCID */}
             <div className="space-y-2">
               <div className="flex gap-2 items-center">
-                <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
+                <BadgeCheck
+                  className={`w-4 h-4 shrink-0 ${orcidValid === true ? 'text-green-500' : 'text-muted-foreground'}`}
+                  aria-label={orcidValid === true ? 'ORCID valid' : 'ORCID'}
+                />
                 <FormLabel
                   htmlFor={`author-${index}-orcid`}
                   required={false}
-                  valid={!!value.orcid && value.orcid.trim().length > 0}
+                  valid={orcidValid === true}
+                  invalid={orcidValid === false}
                 >
                   ORCID
                 </FormLabel>
@@ -183,7 +377,10 @@ function AuthorCard({
                 id={`author-${index}-orcid`}
                 type="text"
                 value={editOrcid}
-                onChange={(e) => setEditOrcid(e.target.value)}
+                onChange={(e) => {
+                  setEditOrcid(e.target.value);
+                  pushAuthor({ orcid: e.target.value.trim() || undefined });
+                }}
                 placeholder="0000-0000-0000-0000"
               />
             </div>
@@ -192,16 +389,20 @@ function AuthorCard({
             <div className="space-y-2">
               <FormLabel
                 htmlFor={`author-${index}-email`}
-                required={true}
-                valid={editEmail.trim().length > 0}
+                required={editCorresponding}
+                valid={emailValid === true}
+                invalid={emailValid === false}
               >
-                Email
+                Email {editCorresponding && '(required for corresponding)'}
               </FormLabel>
               <ui.Input
                 id={`author-${index}-email`}
                 type="email"
                 value={editEmail}
-                onChange={(e) => setEditEmail(e.target.value)}
+                onChange={(e) => {
+                  setEditEmail(e.target.value);
+                  pushAuthor({ email: e.target.value.trim() || undefined });
+                }}
                 placeholder="email@example.com"
               />
             </div>
@@ -211,7 +412,10 @@ function AuthorCard({
               <ui.Checkbox
                 id={`author-${index}-corresponding`}
                 checked={editCorresponding}
-                onCheckedChange={(checked) => setEditCorresponding(checked === true)}
+                onCheckedChange={(checked) => {
+                  setEditCorresponding(checked === true);
+                  pushAuthor({ corresponding: checked === true });
+                }}
               />
               <label
                 htmlFor={`author-${index}-corresponding`}
@@ -221,29 +425,26 @@ function AuthorCard({
               </label>
             </div>
 
-            {/* Affiliations */}
+            {/* Affiliations: reorderable horizontal rectangles with edit/delete */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Affiliations</label>
-              <div className="flex flex-wrap gap-2">
-                {editAffiliations.map((aff, idx) => (
-                  <ui.Badge
-                    key={idx}
-                    variant="outline-muted"
-                    className="flex gap-1 items-center text-xs"
-                  >
-                    <Building2 className="w-3 h-3" />
-                    <span className="truncate max-w-[200px]">{aff}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeAffiliation(idx)}
-                      className="ml-0.5 rounded hover:bg-muted p-0.5"
-                      aria-label="Remove affiliation"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </ui.Badge>
-                ))}
-              </div>
+              <AffiliationSortableList
+                affiliations={editAffiliations}
+                onReorder={(newOrder) => {
+                  setEditAffiliations(newOrder);
+                  pushAuthor({ affiliations: newOrder });
+                }}
+                onRemove={(idx) => {
+                  const next = editAffiliations.filter((_, i) => i !== idx);
+                  setEditAffiliations(next);
+                  pushAuthor({ affiliations: next });
+                }}
+                onRename={(oldName, newName) => {
+                  if (!onRenameAffiliation) return;
+                  onRenameAffiliation(oldName, newName.trim());
+                }}
+                authorId={value.id}
+              />
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -290,34 +491,15 @@ function AuthorCard({
                 </div>
               )}
             </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-2">
-              <ui.Button type="button" onClick={handleSave} size="sm" className="cursor-pointer">
-                Save
-              </ui.Button>
-              <ui.Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                size="sm"
-                className="cursor-pointer"
-              >
-                Cancel
-              </ui.Button>
-            </div>
           </div>
         ) : (
           /* View mode */
           <>
-            {/* Author name and icons */}
+            {/* Author name + ORCID badge when valid only (no top-level error indicator) */}
             <div className="flex gap-2 items-center mb-2">
               <span className="text-base font-semibold">{value.name}</span>
-              {value.email && (
-                <Mail className="w-4 h-4 text-muted-foreground shrink-0" aria-label="Email" />
-              )}
-              {value.orcid && (
-                <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" aria-label="ORCID" />
+              {orcidValid === true && (
+                <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" aria-label="ORCID valid" />
               )}
             </div>
 
@@ -395,9 +577,20 @@ function AuthorCard({
         )}
       </div>
 
-      {/* Edit and delete buttons (view mode only) */}
-      {!open && (
-        <div className="flex gap-1 items-start shrink-0">
+      {/* Collapse/Edit and Delete: when expanded show collapse caret; when collapsed show pencil */}
+      <div className="flex gap-1 items-start shrink-0">
+        {open ? (
+          <ui.Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => onOpenChange(false)}
+            aria-label="Collapse"
+            className="cursor-pointer"
+          >
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+          </ui.Button>
+        ) : (
           <ui.Button
             type="button"
             variant="ghost"
@@ -408,18 +601,18 @@ function AuthorCard({
           >
             <Pencil className="w-4 h-4 text-muted-foreground" />
           </ui.Button>
-          <ui.Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={onDelete}
-            aria-label="Delete author"
-            className="cursor-pointer"
-          >
-            <Trash2 className="w-4 h-4 text-muted-foreground" />
-          </ui.Button>
-        </div>
-      )}
+        )}
+        <ui.Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          onClick={onDelete}
+          aria-label="Delete author"
+          className="cursor-pointer"
+        >
+          <Trash2 className="w-4 h-4 text-muted-foreground" />
+        </ui.Button>
+      </div>
     </div>
   );
 }
@@ -458,7 +651,8 @@ export function AuthorField({
     });
     return Array.from(set);
   }, [affiliationChoices, value]);
-  const isValid = value.length > 0;
+  const authorErrors = getAuthorFieldErrors(value);
+  const isValid = value.length > 0 && authorErrors.length === 0;
 
   // When a new author is added, focus that card's affiliation input
   useEffect(() => {
@@ -633,6 +827,7 @@ export function AuthorField({
                   onDelete={() => handleDelete(index)}
                   affiliationChoices={derivedOptions}
                   onEnsureAffiliationInChoices={ensureAffiliationInChoices}
+                  onRenameAffiliation={handleRenameAffiliation}
                   affiliationInputRef={
                     index === value.length - 1 ? lastCardAffiliationInputRef : undefined
                   }
@@ -663,9 +858,10 @@ export function AuthorField({
               </p>
             ) : (
               <ul className="space-y-2">
-                {derivedOptions.map((aff) => (
+                {derivedOptions.map((aff, idx) => (
                   <AffiliationListItem
                     key={aff}
+                    index={idx}
                     name={aff}
                     onRename={(newName) => handleRenameAffiliation(aff, newName)}
                     onRemove={() => handleRemoveAffiliationOption(aff)}
@@ -681,12 +877,13 @@ export function AuthorField({
 }
 
 type AffiliationListItemProps = {
+  index: number;
   name: string;
   onRename: (newName: string) => void;
   onRemove: () => void;
 };
 
-function AffiliationListItem({ name, onRename, onRemove }: AffiliationListItemProps) {
+function AffiliationListItem({ index, name, onRename, onRemove }: AffiliationListItemProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
 
@@ -702,6 +899,9 @@ function AffiliationListItem({ name, onRename, onRemove }: AffiliationListItemPr
 
   return (
     <li className="flex gap-2 items-center text-sm">
+      <span className="shrink-0 w-6 text-xs text-muted-foreground tabular-nums">
+        {getOrdinalLabel(index + 1)}
+      </span>
       {editing ? (
         <>
           <input
