@@ -873,16 +873,22 @@ export function AuthorField({
           </summary>
           <div className="px-4 pt-1 pb-4 space-y-2 border-t border-border">
             <ul className="space-y-2">
-              {affiliationList.map((aff) => (
-                <AffiliationListItem
-                  key={aff.id}
-                  affiliation={aff}
-                  open={openAffiliationId === aff.id}
-                  onOpenChange={(open) => setOpenAffiliationId(open ? aff.id : null)}
-                  onUpdate={(updates) => handleUpdateAffiliation(aff.id, updates)}
-                  onRemove={() => handleRemoveAffiliationFromList(aff.id)}
-                />
-              ))}
+              {affiliationList.map((aff) => {
+                const authorCount = value.filter((a) =>
+                  (a.affiliationIds ?? []).includes(aff.id),
+                ).length;
+                return (
+                  <AffiliationListItem
+                    key={aff.id}
+                    affiliation={aff}
+                    authorCount={authorCount}
+                    open={openAffiliationId === aff.id}
+                    onOpenChange={(open) => setOpenAffiliationId(open ? aff.id : null)}
+                    onUpdate={(updates) => handleUpdateAffiliation(aff.id, updates)}
+                    onRemove={() => handleRemoveAffiliationFromList(aff.id)}
+                  />
+                );
+              })}
             </ul>
           </div>
         </details>
@@ -893,6 +899,7 @@ export function AuthorField({
 
 type AffiliationListItemProps = {
   affiliation: Affiliation;
+  authorCount: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate: (updates: Partial<Affiliation>) => void;
@@ -901,6 +908,7 @@ type AffiliationListItemProps = {
 
 function AffiliationListItem({
   affiliation,
+  authorCount,
   open,
   onOpenChange,
   onUpdate,
@@ -948,7 +956,7 @@ function AffiliationListItem({
     <li className="flex gap-2 items-start p-4 rounded-sm border border-border bg-background">
       <div className="flex-1 min-w-0">
         {/* Top bar: same when collapsed and expanded */}
-        <div className="flex gap-2 items-center mb-2">
+        <div className="flex gap-2 items-center mb-2 flex-wrap">
           <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
           <span
             className={`text-base font-semibold flex-1 min-w-0 truncate ${
@@ -956,6 +964,9 @@ function AffiliationListItem({
             }`}
           >
             {nameDisplay || 'Affiliation name'}
+          </span>
+          <span className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground bg-muted/70 shrink-0">
+            {authorCount === 1 ? '1 author' : `${authorCount} authors`}
           </span>
           {(deptDisplay || cityDisplay || countryDisplay) && (
             <span className="text-sm truncate text-muted-foreground">
