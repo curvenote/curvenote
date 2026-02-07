@@ -453,9 +453,9 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
 
   return (
     <FormSyncProvider>
-      <div className="grid min-h-screen grid-cols-[1fr_minmax(48ch,72ch)_1fr] gap-8 items-stretch">
+      <div className="grid h-screen overflow-hidden grid-cols-[1fr_minmax(48ch,72ch)_1fr] gap-8 items-stretch">
         <MultiStepForm
-          className="justify-self-end self-stretch mr-5"
+          className="justify-self-end self-stretch mr-5 min-h-0"
           formName={form.title}
           title={String(submission.fields.title || 'New Submission')}
           description={form.description}
@@ -466,46 +466,48 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
           basePath={basePath}
           stepsDisabled={isSuccessPage}
         />
-        {isSuccessPage ? (
-          <SuccessStep
-            stepNumber={stepNumber}
-            workId={loaderData.workId ?? null}
-            isLoggedIn={!!loaderData.user}
-          />
-        ) : currentPage?.slug === 'review' ? (
-          <ReviewStep
-            stepNumber={stepNumber}
-            form={form}
-            submission={submission}
-            user={loaderData.user}
-            basePath={basePath}
-            draftObjectId={draftObjectId}
-            onDraftCreated={setDraftObjectId}
-            siteTitle={loaderData.siteTitle}
-            formCollections={loaderData.formCollections}
-          />
-        ) : currentPage ? (
-          <FormBody
-            stepNumber={stepNumber}
-            stepTitle={currentPage.title}
-            form={form}
-            formChildren={currentPage.children}
-            formFields={form.fields}
-            formPages={form.pages}
-            currentPageSlug={currentPageSlug!}
-            basePath={basePath}
-            submission={submission}
-            user={loaderData.user}
-            draftObjectId={draftObjectId}
-            onDraftCreated={setDraftObjectId}
-          />
-        ) : (
-          <FormArea stepNumber="?" stepTitle="Page not found">
-            <div className="prose">
-              <p>The page you are looking for does not exist.</p>
-            </div>
-          </FormArea>
-        )}
+        <div className="min-h-0 overflow-auto">
+          {isSuccessPage ? (
+            <SuccessStep
+              stepNumber={stepNumber}
+              workId={loaderData.workId ?? null}
+              isLoggedIn={!!loaderData.user}
+            />
+          ) : currentPage?.slug === 'review' ? (
+            <ReviewStep
+              stepNumber={stepNumber}
+              form={form}
+              submission={submission}
+              user={loaderData.user}
+              basePath={basePath}
+              draftObjectId={draftObjectId}
+              onDraftCreated={setDraftObjectId}
+              siteTitle={loaderData.siteTitle}
+              formCollections={loaderData.formCollections}
+            />
+          ) : currentPage ? (
+            <FormBody
+              stepNumber={stepNumber}
+              stepTitle={currentPage.title}
+              form={form}
+              formChildren={currentPage.children}
+              formFields={form.fields}
+              formPages={form.pages}
+              currentPageSlug={currentPageSlug!}
+              basePath={basePath}
+              submission={submission}
+              user={loaderData.user}
+              draftObjectId={draftObjectId}
+              onDraftCreated={setDraftObjectId}
+            />
+          ) : (
+            <FormArea stepNumber="?" stepTitle="Page not found">
+              <div className="prose">
+                <p>The page you are looking for does not exist.</p>
+              </div>
+            </FormArea>
+          )}
+        </div>
       </div>
     </FormSyncProvider>
   );
