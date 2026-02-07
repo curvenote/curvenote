@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   BadgeCheck,
+  CornerDownLeft,
 } from 'lucide-react';
 import {
   DndContext,
@@ -780,38 +781,6 @@ export function AuthorField({
         {schema.title}
       </FormLabel>
 
-      {/* Add author: name only */}
-      <div className="flex gap-2 items-end">
-        <div className="flex-1 space-y-1 min-w-0">
-          <label htmlFor={`${schema.name}-add-name`} className="text-sm font-medium">
-            Name
-          </label>
-          <ui.Input
-            id={`${schema.name}-add-name`}
-            type="text"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddAuthor();
-              }
-            }}
-            placeholder="Marie Curie - or - 0002-1234-2312-3839"
-            className="w-full"
-          />
-        </div>
-        <ui.Button
-          type="button"
-          onClick={handleAddAuthor}
-          disabled={!nameInput.trim()}
-          className="cursor-pointer shrink-0"
-        >
-          Add
-          <ChevronDown className="w-4 h-4" />
-        </ui.Button>
-      </div>
-
       {/* Author cards list */}
       {value.length > 0 && (
         <div className="space-y-2">
@@ -845,6 +814,33 @@ export function AuthorField({
           </DndContext>
         </div>
       )}
+
+      {/* Add author: input at bottom of list */}
+      <div className="flex gap-2 items-center">
+        <ui.Input
+          id={`${schema.name}-add-name`}
+          type="text"
+          value={nameInput}
+          onChange={(e) => setNameInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddAuthor();
+            }
+          }}
+          placeholder="Marie Curie - or - 0002-1234-2312-3839"
+          className="flex-1 min-w-0"
+        />
+        <ui.Button
+          type="button"
+          onClick={handleAddAuthor}
+          disabled={!nameInput.trim()}
+          className="cursor-pointer shrink-0"
+        >
+          Add Author
+          <CornerDownLeft className="w-4 h-4" aria-hidden />
+        </ui.Button>
+      </div>
 
       {/* Advanced options: edit affiliation list */}
       {derivedOptions.length > 0 && (
