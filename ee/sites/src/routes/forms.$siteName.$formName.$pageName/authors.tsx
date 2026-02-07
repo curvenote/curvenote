@@ -28,7 +28,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormLabel } from './FormLabel.js';
-import type { Author, AuthorOption } from './types.js';
+import type { Author, Affiliation, AuthorOption } from './types.js';
 import { isValidEmail, isValidOrcid, getAuthorFieldErrors } from './validationUtils.js';
 import { useSaveField } from './useSaveField.js';
 import { ui } from '@curvenote/scms-core';
@@ -42,14 +42,16 @@ function getOrdinalLabel(n: number): string {
 type SortableAffiliationRowProps = {
   authorId: string;
   index: number;
+  affiliationId: string;
   name: string;
-  onRename: (oldName: string, newName: string) => void;
+  onRename: (affiliationId: string, newName: string) => void;
   onRemove: () => void;
 };
 
 function SortableAffiliationRow({
   authorId,
   index,
+  affiliationId,
   name,
   onRename,
   onRemove,
@@ -67,7 +69,7 @@ function SortableAffiliationRow({
 
   const handleSaveRename = () => {
     const trimmed = editValue.trim();
-    if (trimmed && trimmed !== name) onRename(name, trimmed);
+    if (trimmed && trimmed !== name) onRename(affiliationId, trimmed);
     setEditing(false);
   };
 
@@ -142,23 +144,29 @@ function SortableAffiliationRow({
 }
 
 type AffiliationSortableListProps = {
-  affiliations: string[];
+  affiliationIds: string[];
+  affiliationList: Affiliation[];
   onReorder: (newOrder: string[]) => void;
-  onRemove: (index: number) => void;
-  onRename: (oldName: string, newName: string) => void;
+  onRemove: (affiliationId: string) => void;
+  onRename: (affiliationId: string, newName: string) => void;
   authorId: string;
 };
 
+function getAffiliationName(list: Affiliation[], id: string): string {
+  return list.find((a) => a.id === id)?.name ?? id;
+}
+
 function AffiliationSortableList({
-  affiliations,
+  affiliationIds,
+  affiliationList,
   onReorder,
   onRemove,
   onRename,
   authorId,
 }: AffiliationSortableListProps) {
   const items = useMemo(
-    () => affiliations.map((_, i) => `${authorId}-aff-${i}`),
-    [affiliations, authorId],
+    () => affiliationIds.map((_, i) => `${authorId}-aff-${i}`),
+    [affiliationIds, authorId],
   );
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -171,26 +179,27 @@ function AffiliationSortableList({
     const oldIndex = items.indexOf(active.id as string);
     const newIndex = items.indexOf(over.id as string);
     if (oldIndex === -1 || newIndex === -1) return;
-    const newOrder = [...affiliations];
+    const newOrder = [...affiliationIds];
     const [removed] = newOrder.splice(oldIndex, 1);
     newOrder.splice(newIndex, 0, removed);
     onReorder(newOrder);
   };
 
-  if (affiliations.length === 0) return null;
+  if (affiliationIds.length === 0) return null;
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">
-          {affiliations.map((name, idx) => (
+          {affiliationIds.map((affId, idx) => (
             <SortableAffiliationRow
               key={`${authorId}-aff-${idx}`}
               authorId={authorId}
               index={idx}
-              name={name}
+              affiliationId={affId}
+              name={getAffiliationName(affiliationList, affId)}
               onRename={onRename}
-              onRemove={() => onRemove(idx)}
+              onRemove={() => onRemove(affId)}
             />
           ))}
         </div>
@@ -206,9 +215,9 @@ type AuthorCardProps = {
   onOpenChange: (open: boolean) => void;
   onChange: (author: Author) => void;
   onDelete: () => void;
-  affiliationChoices: string[];
-  onEnsureAffiliationInChoices: (name: string) => void;
-  onRenameAffiliation?: (oldName: string, newName: string) => void;
+  affiliationList: Affiliation[];
+  onEnsureAffiliationInList: (aff: Affiliation) => void;
+  onRenameAffiliation?: (affiliationId: string, newName: string) => void;
   affiliationInputRef?: React.RefObject<HTMLInputElement | null>;
 };
 
@@ -219,8 +228,8 @@ function AuthorCard({
   onOpenChange,
   onChange,
   onDelete,
-  affiliationChoices,
-  onEnsureAffiliationInChoices,
+  affiliationList,
+  onEnsureAffiliationInList,
   onRenameAffiliation,
   affiliationInputRef,
 }: AuthorCardProps) {
@@ -228,7 +237,9 @@ function AuthorCard({
   const [editOrcid, setEditOrcid] = useState(value.orcid || '');
   const [editEmail, setEditEmail] = useState(value.email || '');
   const [editCorresponding, setEditCorresponding] = useState(value.corresponding || false);
-  const [editAffiliations, setEditAffiliations] = useState<string[]>(value.affiliations ?? []);
+  const [editAffiliationIds, setEditAffiliationIds] = useState<string[]>(
+    value.affiliationIds ?? [],
+  );
   const [newAffiliationInput, setNewAffiliationInput] = useState('');
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -245,24 +256,20 @@ function AuthorCard({
     onChange({ ...value, ...updates });
   };
 
-  const addAffiliation = (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    if (editAffiliations.includes(trimmed)) return;
-    onEnsureAffiliationInChoices(trimmed);
-    const next = [...editAffiliations, trimmed];
-    setEditAffiliations(next);
-    pushAuthor({ affiliations: next });
+  const addAffiliation = (aff: Affiliation) => {
+    if (editAffiliationIds.includes(aff.id)) return;
+    onEnsureAffiliationInList(aff);
+    const next = [...editAffiliationIds, aff.id];
+    setEditAffiliationIds(next);
+    pushAuthor({ affiliationIds: next });
   };
 
-  const addAffiliationInViewMode = (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    if ((value.affiliations ?? []).includes(trimmed)) return;
-    onEnsureAffiliationInChoices(trimmed);
+  const addAffiliationInViewMode = (aff: Affiliation) => {
+    if ((value.affiliationIds ?? []).includes(aff.id)) return;
+    onEnsureAffiliationInList(aff);
     onChange({
       ...value,
-      affiliations: [...(value.affiliations ?? []), trimmed],
+      affiliationIds: [...(value.affiliationIds ?? []), aff.id],
     });
   };
 
@@ -272,7 +279,7 @@ function AuthorCard({
     setEditOrcid(value.orcid || '');
     setEditEmail(value.email || '');
     setEditCorresponding(value.corresponding || false);
-    setEditAffiliations(value.affiliations ?? []);
+    setEditAffiliationIds(value.affiliationIds ?? []);
   }, [value]);
 
   const emailValid = editEmail.trim() === '' ? null : isValidEmail(editEmail);
@@ -323,16 +330,18 @@ function AuthorCard({
                   />
                 )}
               </div>
-              {editAffiliations.length > 0 ? (
+              {editAffiliationIds.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {editAffiliations.map((aff) => (
+                  {editAffiliationIds.map((affId) => (
                     <ui.Badge
-                      key={aff}
+                      key={affId}
                       variant="outline-muted"
                       className="flex gap-1 items-center text-xs"
                     >
                       <Building2 className="w-3 h-3" />
-                      <span className="truncate max-w-[200px]">{aff}</span>
+                      <span className="truncate max-w-[200px]">
+                        {getAffiliationName(affiliationList, affId)}
+                      </span>
                     </ui.Badge>
                   ))}
                 </div>
@@ -434,19 +443,19 @@ function AuthorCard({
             <div className="space-y-2">
               <label className="text-sm font-medium">Affiliations</label>
               <AffiliationSortableList
-                affiliations={editAffiliations}
+                affiliationIds={editAffiliationIds}
+                affiliationList={affiliationList}
                 onReorder={(newOrder) => {
-                  setEditAffiliations(newOrder);
-                  pushAuthor({ affiliations: newOrder });
+                  setEditAffiliationIds(newOrder);
+                  pushAuthor({ affiliationIds: newOrder });
                 }}
-                onRemove={(idx) => {
-                  const next = editAffiliations.filter((_, i) => i !== idx);
-                  setEditAffiliations(next);
-                  pushAuthor({ affiliations: next });
+                onRemove={(affiliationId) => {
+                  const next = editAffiliationIds.filter((id) => id !== affiliationId);
+                  setEditAffiliationIds(next);
+                  pushAuthor({ affiliationIds: next });
                 }}
-                onRename={(oldName, newName) => {
-                  if (!onRenameAffiliation) return;
-                  onRenameAffiliation(oldName, newName.trim());
+                onRename={(affiliationId, newName) => {
+                  onRenameAffiliation?.(affiliationId, newName.trim());
                 }}
                 authorId={value.id}
               />
@@ -458,8 +467,11 @@ function AuthorCard({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      addAffiliation(newAffiliationInput);
-                      setNewAffiliationInput('');
+                      const trimmed = newAffiliationInput.trim();
+                      if (trimmed) {
+                        addAffiliation({ id: uuid(), name: trimmed });
+                        setNewAffiliationInput('');
+                      }
                     }
                   }}
                   placeholder="Add affiliation"
@@ -471,26 +483,29 @@ function AuthorCard({
                   size="sm"
                   className="cursor-pointer shrink-0"
                   onClick={() => {
-                    addAffiliation(newAffiliationInput);
-                    setNewAffiliationInput('');
+                    const trimmed = newAffiliationInput.trim();
+                    if (trimmed) {
+                      addAffiliation({ id: uuid(), name: trimmed });
+                      setNewAffiliationInput('');
+                    }
                   }}
                 >
                   Add
                 </ui.Button>
               </div>
-              {affiliationChoices.filter((opt) => !editAffiliations.includes(opt)).length > 0 && (
+              {affiliationList.filter((a) => !editAffiliationIds.includes(a.id)).length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {affiliationChoices
-                    .filter((opt) => !editAffiliations.includes(opt))
-                    .map((opt) => (
+                  {affiliationList
+                    .filter((a) => !editAffiliationIds.includes(a.id))
+                    .map((aff) => (
                       <button
-                        key={opt}
+                        key={aff.id}
                         type="button"
-                        onClick={() => addAffiliation(opt)}
+                        onClick={() => addAffiliation(aff)}
                         className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-muted/70 border-0 cursor-pointer hover:text-foreground hover:bg-sky-100"
                       >
                         <Plus className="w-3 h-3 shrink-0" />
-                        {opt}
+                        {aff.name}
                       </button>
                     ))}
                 </div>
@@ -513,17 +528,20 @@ function AuthorCard({
             </div>
 
             {/* Affiliations: chips when any, or entry box only when none (first creation) */}
-            {value.affiliations && value.affiliations.length > 0 ? (
+            {value.affiliationIds && value.affiliationIds.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {value.affiliations.map((affiliation, idx) => (
+                {value.affiliationIds.map((affId) => (
                   <ui.Badge
-                    key={idx}
+                    key={affId}
                     variant="outline-muted"
                     className="flex gap-1 items-center text-xs"
                   >
                     <Building2 className="w-3 h-3" />
-                    <span className="truncate max-w-[200px]" title={affiliation}>
-                      {affiliation}
+                    <span
+                      className="truncate max-w-[200px]"
+                      title={getAffiliationName(affiliationList, affId)}
+                    >
+                      {getAffiliationName(affiliationList, affId)}
                     </span>
                   </ui.Badge>
                 ))}
@@ -540,8 +558,11 @@ function AuthorCard({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        addAffiliationInViewMode(newAffiliationInput);
-                        setNewAffiliationInput('');
+                        const trimmed = newAffiliationInput.trim();
+                        if (trimmed) {
+                          addAffiliationInViewMode({ id: uuid(), name: trimmed });
+                          setNewAffiliationInput('');
+                        }
                       }
                     }}
                     placeholder="Add affiliation"
@@ -553,28 +574,31 @@ function AuthorCard({
                     size="sm"
                     className="cursor-pointer shrink-0"
                     onClick={() => {
-                      addAffiliationInViewMode(newAffiliationInput);
-                      setNewAffiliationInput('');
+                      const trimmed = newAffiliationInput.trim();
+                      if (trimmed) {
+                        addAffiliationInViewMode({ id: uuid(), name: trimmed });
+                        setNewAffiliationInput('');
+                      }
                     }}
                   >
                     Add
                   </ui.Button>
                 </div>
                 {(() => {
-                  const otherAffiliations = affiliationChoices.filter(
-                    (opt) => !(value.affiliations ?? []).includes(opt),
+                  const otherAffiliations = affiliationList.filter(
+                    (a) => !(value.affiliationIds ?? []).includes(a.id),
                   );
                   return otherAffiliations.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
-                      {otherAffiliations.map((opt) => (
+                      {otherAffiliations.map((aff) => (
                         <button
-                          key={opt}
+                          key={aff.id}
                           type="button"
-                          onClick={() => addAffiliationInViewMode(opt)}
+                          onClick={() => addAffiliationInViewMode(aff)}
                           className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-muted/70 border-0 cursor-pointer hover:text-foreground hover:bg-sky-100"
                         >
                           <Plus className="w-3 h-3 shrink-0" />
-                          {opt}
+                          {aff.name}
                         </button>
                       ))}
                     </div>
@@ -630,8 +654,8 @@ type AuthorFieldProps = {
   schema: AuthorOption;
   value: Author[];
   onChange: (value: Author[]) => void;
-  affiliationChoices?: string[];
-  onAffiliationChoicesChange?: (list: string[]) => void;
+  affiliationList?: Affiliation[];
+  onAffiliationListChange?: (list: Affiliation[]) => void;
   draftObjectId?: string | null;
   onDraftCreated?: (id: string) => void;
 };
@@ -640,8 +664,8 @@ export function AuthorField({
   schema,
   value = [],
   onChange,
-  affiliationChoices: affiliationChoicesProp = [],
-  onAffiliationChoicesChange,
+  affiliationList: affiliationListProp = [],
+  onAffiliationListChange,
   draftObjectId = null,
   onDraftCreated,
 }: AuthorFieldProps) {
@@ -650,16 +674,7 @@ export function AuthorField({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const lastCardAffiliationInputRef = useRef<HTMLInputElement>(null);
   const authorCountRef = useRef(value.length);
-  const affiliationChoices = affiliationChoicesProp ?? [];
-  const derivedOptions = useMemo(() => {
-    const set = new Set(affiliationChoices);
-    value.forEach((a) => {
-      (a.affiliations ?? []).forEach((aff) => {
-        set.add(aff);
-      });
-    });
-    return Array.from(set);
-  }, [affiliationChoices, value]);
+  const affiliationList = affiliationListProp ?? [];
   const authorErrors = getAuthorFieldErrors(value);
   const isValid = value.length > 0 && authorErrors.length === 0;
 
@@ -675,12 +690,6 @@ export function AuthorField({
   const handleChange = (newAuthors: Author[]) => {
     onChange(newAuthors);
     save(newAuthors);
-  };
-
-  const ensureAffiliationInChoices = (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed || derivedOptions.includes(trimmed)) return;
-    onAffiliationChoicesChange?.([...derivedOptions, trimmed]);
   };
 
   const sensors = useSensors(
@@ -727,34 +736,31 @@ export function AuthorField({
     const newAuthor: Author = {
       id: uuid(),
       name: nameInput.trim(),
-      affiliation: '',
-      affiliations: [],
+      affiliationIds: [],
     };
     handleChange([...value, newAuthor]);
     setNameInput('');
   };
 
-  const handleAffiliationChoicesChange = (newList: string[]) => {
-    onAffiliationChoicesChange?.(newList);
+  const handleEnsureAffiliationInList = (aff: Affiliation) => {
+    if (affiliationList.some((a) => a.id === aff.id)) return;
+    onAffiliationListChange?.([...affiliationList, aff]);
   };
 
-  const handleRenameAffiliation = (oldName: string, newName: string) => {
+  const handleRenameAffiliation = (affiliationId: string, newName: string) => {
     const trimmed = newName.trim();
-    if (!trimmed || trimmed === oldName) return;
-    const newOptions = affiliationChoices.map((a) => (a === oldName ? trimmed : a));
-    handleAffiliationChoicesChange(newOptions);
-    const newAuthors = value.map((author) => ({
-      ...author,
-      affiliations: author.affiliations.map((a) => (a === oldName ? trimmed : a)),
-    }));
-    handleChange(newAuthors);
+    if (!trimmed) return;
+    const newList = affiliationList.map((a) =>
+      a.id === affiliationId ? { ...a, name: trimmed } : a,
+    );
+    onAffiliationListChange?.(newList);
   };
 
-  const handleRemoveAffiliationOption = (name: string) => {
-    handleAffiliationChoicesChange(derivedOptions.filter((a) => a !== name));
+  const handleRemoveAffiliationFromList = (affiliationId: string) => {
+    onAffiliationListChange?.(affiliationList.filter((a) => a.id !== affiliationId));
     const newAuthors = value.map((author) => ({
       ...author,
-      affiliations: author.affiliations.filter((a) => a !== name),
+      affiliationIds: (author.affiliationIds ?? []).filter((id) => id !== affiliationId),
     }));
     handleChange(newAuthors);
   };
@@ -802,8 +808,8 @@ export function AuthorField({
                   onOpenChange={(open) => setOpenIndex(open ? index : null)}
                   onChange={(updatedAuthor) => handleAuthorChange(index, updatedAuthor)}
                   onDelete={() => handleDelete(index)}
-                  affiliationChoices={derivedOptions}
-                  onEnsureAffiliationInChoices={ensureAffiliationInChoices}
+                  affiliationList={affiliationList}
+                  onEnsureAffiliationInList={handleEnsureAffiliationInList}
                   onRenameAffiliation={handleRenameAffiliation}
                   affiliationInputRef={
                     index === value.length - 1 ? lastCardAffiliationInputRef : undefined
@@ -843,7 +849,7 @@ export function AuthorField({
       </div>
 
       {/* Advanced options: edit affiliation list */}
-      {derivedOptions.length > 0 && (
+      {affiliationList.length > 0 && (
         <details
           className="mt-6 rounded-md border border-border"
           open={advancedOpen}
@@ -856,23 +862,17 @@ export function AuthorField({
             Advanced options – edit affiliations
           </summary>
           <div className="px-4 pt-1 pb-4 space-y-2 border-t border-border">
-            {affiliationChoices.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Add authors with affiliations above; they will appear here for editing.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {derivedOptions.map((aff, idx) => (
-                  <AffiliationListItem
-                    key={aff}
-                    index={idx}
-                    name={aff}
-                    onRename={(newName) => handleRenameAffiliation(aff, newName)}
-                    onRemove={() => handleRemoveAffiliationOption(aff)}
-                  />
-                ))}
-              </ul>
-            )}
+            <ul className="space-y-2">
+              {affiliationList.map((aff, idx) => (
+                <AffiliationListItem
+                  key={aff.id}
+                  index={idx}
+                  name={aff.name}
+                  onRename={(newName) => handleRenameAffiliation(aff.id, newName)}
+                  onRemove={() => handleRemoveAffiliationFromList(aff.id)}
+                />
+              ))}
+            </ul>
           </div>
         </details>
       )}

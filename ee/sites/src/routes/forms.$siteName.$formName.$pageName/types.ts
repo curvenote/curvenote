@@ -99,11 +99,11 @@ export type FormSubmission = {
 export type Author = {
   id: string;
   name: string;
-  affiliation: string;
   email?: string;
   corresponding?: boolean;
   orcid?: string;
-  affiliations: string[];
+  /** IDs referencing the global affiliations list. */
+  affiliationIds: string[];
 };
 
 export type Affiliation = {

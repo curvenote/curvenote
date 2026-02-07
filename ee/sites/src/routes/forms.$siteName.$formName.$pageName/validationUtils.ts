@@ -42,8 +42,8 @@ export function getAuthorFieldErrors(authors: unknown[]): { message: string }[] 
     const email = String((a as any)?.email ?? '').trim();
     const orcid = String((a as any)?.orcid ?? '').trim();
     const corresponding = (a as any)?.corresponding === true;
-    const affiliations = Array.isArray((a as any)?.affiliations)
-      ? ((a as any).affiliations as unknown[])
+    const affiliationIds = Array.isArray((a as any)?.affiliationIds)
+      ? ((a as any).affiliationIds as unknown[]).filter((id): id is string => typeof id === 'string')
       : [];
 
     if (!name) {
@@ -68,7 +68,7 @@ export function getAuthorFieldErrors(authors: unknown[]): { message: string }[] 
       });
     }
 
-    if (affiliations.length === 0) {
+    if (affiliationIds.length === 0) {
       errors.push({
         message: `Author ${i + 1}: at least one affiliation is required.`,
       });
@@ -132,7 +132,9 @@ export function getFieldErrors(
         const email = String(a?.email ?? '').trim();
         const orcid = String(a?.orcid ?? '').trim();
         const corresponding = a?.corresponding === true;
-        const affiliations = Array.isArray(a?.affiliations) ? (a.affiliations as unknown[]) : [];
+        const affiliationIds = Array.isArray(a?.affiliationIds)
+          ? (a.affiliationIds as unknown[]).filter((id): id is string => typeof id === 'string')
+          : [];
 
         if (!name) {
           errors.push({
@@ -167,7 +169,7 @@ export function getFieldErrors(
           });
         }
 
-        if (affiliations.length === 0) {
+        if (affiliationIds.length === 0) {
           errors.push({
             schema,
             message: `Author ${i + 1}: at least one affiliation is required.`,

@@ -151,8 +151,8 @@ export function FormBody({
               schema={schema}
               value={value}
               onChange={(v) => handleChange(schema.name, v)}
-              affiliationChoices={values.affiliations}
-              onAffiliationChoicesChange={(list) => {
+              affiliationList={Array.isArray(values.affiliations) ? values.affiliations : []}
+              onAffiliationListChange={(list) => {
                 handleChange('affiliations', list);
                 saveAffiliationChoices(list);
               }}
