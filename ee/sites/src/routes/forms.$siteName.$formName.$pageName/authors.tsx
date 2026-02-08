@@ -5,8 +5,8 @@ import {
   Building2,
   Pencil,
   Plus,
+  Minus,
   Trash2,
-  ChevronDown,
   ChevronUp,
   BadgeCheck,
   CornerDownLeft,
@@ -858,40 +858,46 @@ export function AuthorField({
         </ui.Button>
       </div>
 
-      {/* Advanced options: edit affiliation list */}
+      {/* Affiliations: small gray text + expand/collapse */}
       {affiliationList.length > 0 && (
-        <details
-          className="mt-6 rounded-md border border-border"
-          open={advancedOpen}
-          onToggle={(e) => setAdvancedOpen((e.target as HTMLDetailsElement).open)}
-        >
-          <summary className="flex gap-2 items-center px-4 py-3 text-sm font-medium list-none cursor-pointer">
-            <ChevronDown
-              className={`w-4 h-4 transition-transform ${advancedOpen ? 'rotate-0' : '-rotate-90'}`}
-            />
-            Advanced options – edit affiliations
-          </summary>
-          <div className="px-4 pt-1 pb-4 space-y-2 border-t border-border">
-            <ul className="space-y-2">
-              {affiliationList.map((aff) => {
-                const authorCount = value.filter((a) =>
-                  (a.affiliationIds ?? []).includes(aff.id),
-                ).length;
-                return (
-                  <AffiliationListItem
-                    key={aff.id}
-                    affiliation={aff}
-                    authorCount={authorCount}
-                    open={openAffiliationId === aff.id}
-                    onOpenChange={(open) => setOpenAffiliationId(open ? aff.id : null)}
-                    onUpdate={(updates) => handleUpdateAffiliation(aff.id, updates)}
-                    onRemove={() => handleRemoveAffiliationFromList(aff.id)}
-                  />
-                );
-              })}
-            </ul>
-          </div>
-        </details>
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((open) => !open)}
+            className="flex gap-2 items-center p-0 text-sm bg-transparent border-0 cursor-pointer text-muted-foreground hover:text-foreground"
+            aria-expanded={advancedOpen}
+          >
+            {advancedOpen ? (
+              <Minus className="w-4 h-4 shrink-0" aria-hidden />
+            ) : (
+              <Plus className="w-4 h-4 shrink-0" aria-hidden />
+            )}
+            <span>Advanced options</span>
+          </button>
+          {advancedOpen && (
+            <div className="mt-3 space-y-2">
+              <p className="text-sm font-medium text-foreground">Affiliations</p>
+              <ul className="space-y-2">
+                {affiliationList.map((aff) => {
+                  const authorCount = value.filter((a) =>
+                    (a.affiliationIds ?? []).includes(aff.id),
+                  ).length;
+                  return (
+                    <AffiliationListItem
+                      key={aff.id}
+                      affiliation={aff}
+                      authorCount={authorCount}
+                      open={openAffiliationId === aff.id}
+                      onOpenChange={(open) => setOpenAffiliationId(open ? aff.id : null)}
+                      onUpdate={(updates) => handleUpdateAffiliation(aff.id, updates)}
+                      onRemove={() => handleRemoveAffiliationFromList(aff.id)}
+                    />
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -956,7 +962,7 @@ function AffiliationListItem({
     <li className="flex gap-2 items-start p-4 rounded-sm border border-border bg-background">
       <div className="flex-1 min-w-0">
         {/* Top bar: same when collapsed and expanded */}
-        <div className="flex gap-2 items-center mb-2 flex-wrap">
+        <div className="flex flex-wrap gap-2 items-center mb-2">
           <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
           <span
             className={`text-base font-semibold flex-1 min-w-0 truncate ${
