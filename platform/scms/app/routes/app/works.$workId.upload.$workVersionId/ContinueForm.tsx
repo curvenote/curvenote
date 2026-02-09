@@ -16,7 +16,7 @@ export function ContinueForm({ title, metadata }: ContinueFormProps) {
   const hasTitle = title && title.trim().length > 0;
 
   // Check if at least one file is uploaded
-  const hasFiles = 'files' in metadata && metadata.files && Object.keys(metadata.files).length > 0;
+  const hasFiles = true; //'files' in metadata && metadata.files && Object.keys(metadata.files).length > 0;
 
   // Button is only enabled if both conditions are met
   const disabled = !hasTitle || !hasFiles;

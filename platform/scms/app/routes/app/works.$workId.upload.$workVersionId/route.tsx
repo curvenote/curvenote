@@ -303,53 +303,71 @@ export async function action(args: Route.ActionArgs) {
               return {
                 ...current,
                 status: 'healthy',
-                serviceData: { ...current.serviceData },
+                serviceData: {
+                  ...current.serviceData,
+                  stages: {
+                    ...current.serviceData?.stages,
+                    initialPost: { status: 'processing', timestamp: new Date().toISOString() },
+                  },
+                },
               } as Prisma.JsonObject;
             });
 
-            // // make the API call to the proofig API
-            // const PROOFIG_API_BASE_URL = 'http://localhost:5173/api/curvenote';
-            // const PROOFIG_API_SUBMIT_URL = `${PROOFIG_API_BASE_URL}/api/submit`;
-            // const WEBHOOK_BASE_URL = 'http://localhost:3030/api/hooks/proofig_notify';
+            // make the API call to the proofig API
+            const PROOFIG_API_BASE_URL = 'http://localhost:5173/api/curvenote';
+            const PROOFIG_API_SUBMIT_URL = `${PROOFIG_API_BASE_URL}/api/submit`;
+            const WEBHOOK_BASE_URL = 'http://localhost:3030/api/hooks/proofig_notify';
 
-            // const response = await fetch(PROOFIG_API_SUBMIT_URL, {
-            //   method: 'POST',
-            //   body: JSON.stringify({
-            //     title: wv.title,
-            //     journal: 'HHMI Workspace',
-            //     authors: wv.authors,
-            //     filename: manuscriptFile?.name,
-            //     notify_url: `${WEBHOOK_BASE_URL}/${proofigRun.id}`,
-            //     file_url: manuscriptFile?.signedUrl,
-            //   }),
-            // });
+            const response = await fetch(PROOFIG_API_SUBMIT_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                submit_req_id: proofigRun.id,
+                identifier: wv.id,
+                notify_url: `${WEBHOOK_BASE_URL}/${proofigRun.id}`,
+                file_url: manuscriptFile?.signedUrl,
+                title: wv.title,
+                journal: 'HHMI Workspace',
+                authors: wv.authors.join(', '),
+                filename: manuscriptFile?.name,
+                notes: 'Uploaded from HHMI Workspace',
+              }),
+            });
 
-            // if (response.ok) {
-            //   // update the status to submitted is successful
-            //   await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
-            //     const current = (runData as Record<string, any>) ?? {};
-            //     return {
-            //       ...current,
-            //       serviceData: {
-            //         ...current.serviceData,
-            //         initialPost: { status: 'submitted', timestamp: new Date().toISOString() },
-            //       },
-            //     } as Prisma.JsonObject;
-            //   });
-            // } else {
-            //   console.error('Proofig API submission failed', response.status, response.statusText);
-            //   await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
-            //     const current = (runData as Record<string, any>) ?? {};
-            //     return {
-            //       ...current,
-            //       status: 'error',
-            //       serviceData: {
-            //         ...current.serviceData,
-            //         initialPost: { status: 'error', timestamp: new Date().toISOString() },
-            //       },
-            //     } as Prisma.JsonObject;
-            //   });
-            // }
+            if (response.ok) {
+              // update the status to submitted is successful
+              await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
+                const current = (runData as Record<string, any>) ?? {};
+                return {
+                  ...current,
+                  serviceData: {
+                    ...current.serviceData,
+                    stages: {
+                      ...current.serviceData?.stages,
+                      initialPost: { status: 'completed', timestamp: new Date().toISOString() },
+                    },
+                  },
+                } as Prisma.JsonObject;
+              });
+            } else {
+              console.error('Proofig API submission failed', response.status, response.statusText);
+              await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
+                const current = (runData as Record<string, any>) ?? {};
+                return {
+                  ...current,
+                  status: 'error',
+                  serviceData: {
+                    ...current.serviceData,
+                    stages: {
+                      ...current.serviceData?.stages,
+                      initialPost: { status: 'error', timestamp: new Date().toISOString() },
+                    },
+                  },
+                } as Prisma.JsonObject;
+              });
+            }
           }
         }
 
