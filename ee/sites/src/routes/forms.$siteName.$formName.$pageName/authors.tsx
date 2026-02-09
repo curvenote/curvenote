@@ -374,12 +374,15 @@ function AuthorCard({
           <div className="space-y-4">
             {/* Preview: same layout as collapsed – name + ORCID badge when valid only */}
             <div>
-              <div className="flex gap-2 items-center mb-2">
+              <div className="flex gap-2 items-center mb-2 flex-wrap">
                 <span
                   className={`text-base font-semibold ${editName.trim() ? '' : 'text-muted-foreground/60'}`}
                 >
                   {editName.trim() || 'Author Name'}
                 </span>
+                {isSubmitterAuthor && (
+                  <span className="text-base font-normal text-muted-foreground">(you)</span>
+                )}
                 {orcidValid === true && (
                   <BadgeCheck
                     className="w-4 h-4 text-green-500 shrink-0"
@@ -426,7 +429,7 @@ function AuthorCard({
                   pushAuthor({ name: e.target.value });
                 }}
                 placeholder="Enter full name"
-                disabled={isSubmitterAuthor && contactReadOnly.name}
+                disabled={isSubmitterAuthor}
               />
             </div>
 
@@ -455,6 +458,7 @@ function AuthorCard({
                   pushAuthor({ orcid: e.target.value.trim() || undefined });
                 }}
                 placeholder="0000-0000-0000-0000"
+                disabled={isSubmitterAuthor}
               />
             </div>
 
@@ -666,12 +670,15 @@ function AuthorCard({
           /* View mode */
           <>
             {/* Author name + ORCID badge when valid only (no top-level error indicator) */}
-            <div className="flex gap-2 items-center mb-2">
+            <div className="flex gap-2 items-center mb-2 flex-wrap">
               <span
                 className={`text-base font-semibold ${value.name?.trim() ? '' : 'text-muted-foreground/60'}`}
               >
                 {value.name?.trim() || 'Author Name'}
               </span>
+              {isSubmitterAuthor && (
+                <span className="text-base font-normal text-muted-foreground">(you)</span>
+              )}
               {orcidValid === true && (
                 <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" aria-label="ORCID valid" />
               )}
@@ -938,6 +945,8 @@ export function AuthorField({
   const [openAffiliationId, setOpenAffiliationId] = useState<string | null>(null);
   const lastCardAffiliationInputRef = useRef<HTMLInputElement>(null);
   const authorCountRef = useRef(value.length);
+  const valueRef = useRef(value);
+  valueRef.current = value;
   const affiliationList = affiliationListProp ?? [];
   const authorErrors = getAuthorFieldErrors(value);
   const isValid = value.length > 0 && authorErrors.length === 0;
@@ -984,12 +993,14 @@ export function AuthorField({
     value,
   ]);
 
-  // Sync contact details into submitter author when contact changes
+  // Sync contact details into submitter author only when contact (top section) changes.
+  // Do not depend on value so that editing ORCID/name/email on the author card is not overwritten.
   useEffect(() => {
     if (!hasSubmitterFlow || !submitterAuthorId || !contactDetails) return;
-    const idx = value.findIndex((a) => a.id === submitterAuthorId);
+    const currentValue = valueRef.current;
+    const idx = currentValue.findIndex((a) => a.id === submitterAuthorId);
     if (idx === -1) return;
-    const author = value[idx];
+    const author = currentValue[idx];
     const updates: Partial<Author> = {};
     if (author.name !== contactDetails.name) updates.name = contactDetails.name;
     if ((author.email ?? '') !== contactDetails.email)
@@ -997,7 +1008,7 @@ export function AuthorField({
     if ((author.orcid ?? '') !== contactDetails.orcidId)
       updates.orcid = contactDetails.orcidId || undefined;
     if (Object.keys(updates).length === 0) return;
-    const next = value.map((a, i) => (i === idx ? { ...a, ...updates } : a));
+    const next = currentValue.map((a, i) => (i === idx ? { ...a, ...updates } : a));
     handleChange(next);
   }, [
     hasSubmitterFlow,
@@ -1005,7 +1016,6 @@ export function AuthorField({
     contactDetails?.name,
     contactDetails?.email,
     contactDetails?.orcidId,
-    value,
   ]);
 
   const sensors = useSensors(

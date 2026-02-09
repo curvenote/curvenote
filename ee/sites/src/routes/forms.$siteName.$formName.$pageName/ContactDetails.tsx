@@ -3,6 +3,7 @@ import { useFetcher } from 'react-router';
 import { ui, orcid } from '@curvenote/scms-core';
 import { FormLabel } from './FormLabel.js';
 import { useSaveField } from './useSaveField.js';
+import { isValidOrcid } from './validationUtils.js';
 
 type ContactDetailsUser = {
   name?: string;
@@ -139,7 +140,12 @@ export function ContactDetails({
             />
           </div>
           <div className="space-y-2">
-            <FormLabel htmlFor="contact-orcid" required={false} valid={orcidId.trim().length > 0}>
+            <FormLabel
+              htmlFor="contact-orcid"
+              required={false}
+              valid={isValidOrcid(orcidId)}
+              invalid={orcidId.trim().length > 0 && !isValidOrcid(orcidId)}
+            >
               ORCID ID
             </FormLabel>
             <ui.Input
