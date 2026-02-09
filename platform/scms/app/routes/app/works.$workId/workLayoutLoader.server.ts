@@ -1,11 +1,6 @@
 import { redirect, type LoaderFunctionArgs } from 'react-router';
 import { withSecureWorkContext } from '@curvenote/scms-server';
-import {
-  TrackEvent,
-  getWorkflows,
-  registerExtensionWorkflows,
-  scopes,
-} from '@curvenote/scms-core';
+import { TrackEvent, getWorkflows, registerExtensionWorkflows, scopes } from '@curvenote/scms-core';
 import { dbGetWorkVersionsWithSubmissionVersions } from './db.server';
 import { getUniqueSubmissions } from './utils.server';
 import { extensions } from '../../../extensions/client';

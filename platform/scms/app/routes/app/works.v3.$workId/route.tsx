@@ -59,7 +59,9 @@ export default function WorkDetailsV3Route({ loaderData }: Route.ComponentProps)
       : '—';
 
   const truncatedTitle =
-    work.title && work.title.length > 32 ? work.title.substring(0, 32) + '...' : work.title ?? 'Untitled Work';
+    work.title && work.title.length > 32
+      ? work.title.substring(0, 32) + '...'
+      : (work.title ?? 'Untitled Work');
   const breadcrumbs = [
     { label: 'Works', href: '/app/works' },
     { label: truncatedTitle, isCurrentPage: true },
@@ -86,14 +88,14 @@ export default function WorkDetailsV3Route({ loaderData }: Route.ComponentProps)
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Metadata */}
             <primitives.Card className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold">Metadata</h2>
                 <button
                   type="button"
                   className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
                   aria-label="Edit metadata"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="w-4 h-4" />
                   Edit
                 </button>
               </div>
@@ -119,11 +121,11 @@ export default function WorkDetailsV3Route({ loaderData }: Route.ComponentProps)
 
             {/* Submissions */}
             <primitives.Card className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold">Submissions</h2>
                 {/* TODO: link to new submission flow (e.g. site picker) when available */}
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground opacity-90">
-                  <PlusCircle className="h-4 w-4" />
+                  <PlusCircle className="w-4 h-4" />
                   New submission
                 </span>
               </div>
@@ -138,9 +140,9 @@ export default function WorkDetailsV3Route({ loaderData }: Route.ComponentProps)
                     return (
                       <li
                         key={sub.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3"
+                        className="flex flex-wrap gap-2 justify-between items-center p-3 rounded-md border"
                       >
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap gap-2 items-center">
                           <span className="font-medium">{sub.site.title}</span>
                           <ui.SubmissionVersionBadge
                             submissionVersion={latestSv}
@@ -167,14 +169,14 @@ export default function WorkDetailsV3Route({ loaderData }: Route.ComponentProps)
 
           {/* Revisions */}
           <primitives.Card className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Revisions</h2>
               {latestVersionId && (
                 <Link
                   to={`/app/works/${workId}/upload/${latestVersionId}`}
                   className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                 >
-                  <Upload className="h-4 w-4" />
+                  <Upload className="w-4 h-4" />
                   Upload new revision
                 </Link>
               )}
@@ -186,7 +188,7 @@ export default function WorkDetailsV3Route({ loaderData }: Route.ComponentProps)
                 return (
                   <li
                     key={v.id}
-                    className="flex flex-wrap items-center gap-2 rounded-md border p-3 text-sm"
+                    className="flex flex-wrap gap-2 items-center p-3 text-sm rounded-md border"
                   >
                     <span className="font-medium tabular-nums">
                       {formatDate(v.date_created, 'MMM dd, yyyy')}
@@ -197,8 +199,8 @@ export default function WorkDetailsV3Route({ loaderData }: Route.ComponentProps)
                       </ui.Badge>
                     )}
                     {nonDraftSvs.length > 0 ? (
-                      <span className="flex flex-wrap items-center gap-2">
-                        <Leaf className="h-4 w-4 text-muted-foreground" aria-hidden />
+                      <span className="flex flex-wrap gap-2 items-center">
+                        <Leaf className="w-4 h-4 text-muted-foreground" aria-hidden />
                         {nonDraftSvs.map((sv) => (
                           <ui.SubmissionVersionBadge
                             key={sv.id}
