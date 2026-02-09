@@ -1,7 +1,7 @@
 {
-  "name": "@curvenote/scms-job-client",
+  "name": "@curvenote/scms-tasks",
   "version": "0.14.3",
-  "description": "Client for SCMS job service",
+  "description": "SCMS tasks library: job client and helpers for cloud runners",
   "type": "module",
   "engines": { "node": ">=20" },
   "exports": "./dist/index.js",
@@ -25,6 +25,9 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {},
+  "peerDependencies": {
+    "express": ">=4"
+  },
   "devDependencies": {
     "@types/express": "^4.17.13",
     "@types/node": "^22.9.0",
