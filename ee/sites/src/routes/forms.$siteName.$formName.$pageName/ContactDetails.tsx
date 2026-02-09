@@ -19,15 +19,12 @@ type ContactDetailsProps = {
   draftContactName?: string;
   draftContactEmail?: string;
   draftContactOrcidId?: string;
-  /** Called when contact fields change so parent can sync (e.g. submitter author). */
+  /** Called when contact fields change so parent can sync. */
   onContactChange?: (updates: {
     contactName?: string;
     contactEmail?: string;
     contactOrcidId?: string;
   }) => void;
-  /** When set, show "I am an author" checkbox (used on author step). */
-  submitterIsAuthor?: boolean;
-  onSubmitterIsAuthorChange?: (checked: boolean) => void;
 };
 
 export function ContactDetails({
@@ -38,8 +35,6 @@ export function ContactDetails({
   draftContactEmail = '',
   draftContactOrcidId = '',
   onContactChange,
-  submitterIsAuthor = true,
-  onSubmitterIsAuthorChange,
 }: ContactDetailsProps) {
   const orcidFetcher = useFetcher();
   const linkOrcidResponse = orcidFetcher.data as
@@ -84,6 +79,7 @@ export function ContactDetails({
   const nameReadOnly = isLoggedIn && user?.name != null && user.name !== '';
   const emailReadOnly = isLoggedIn && user?.email != null && user.email !== '';
   const orcidReadOnly = isLoggedIn && user?.orcid != null && user.orcid !== '';
+  const allFromUser = nameReadOnly && emailReadOnly && orcidReadOnly;
 
   // Handle ORCID linking: after pending account is created, POST to /auth/orcid (same as forms)
   useEffect(() => {
@@ -98,8 +94,20 @@ export function ContactDetails({
     authForm.submit();
   }, [linkOrcidResponse?.linkOrcid, linkOrcidResponse?.returnTo]);
 
+  if (allFromUser) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-foreground">
+        {name.trim() && <span className="font-medium">{name.trim()}</span>}
+        {email.trim() && <span className="text-muted-foreground">{email.trim()}</span>}
+        {orcidId.trim() && isValidOrcid(orcidId) && (
+          <span className="text-muted-foreground tabular-nums">{orcidId.trim()}</span>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="pb-6 space-y-4 border-b border-border">
+    <div className="space-y-4">
       <div className="flex gap-6 items-center">
         <div className="flex flex-col flex-1 gap-4 min-w-0">
           <div className="space-y-2">
@@ -209,18 +217,6 @@ export function ContactDetails({
         <p className="text-sm text-muted-foreground">
           Connect your ORCID account to automatically fill in your information.
         </p>
-      )}
-      {onSubmitterIsAuthorChange != null && (
-        <div className="flex gap-2 items-center pt-1">
-          <ui.Checkbox
-            id="submitter-is-author"
-            checked={submitterIsAuthor}
-            onCheckedChange={(checked) => onSubmitterIsAuthorChange(checked === true)}
-          />
-          <label htmlFor="submitter-is-author" className="text-sm font-medium cursor-pointer">
-            I am an author
-          </label>
-        </div>
       )}
     </div>
   );

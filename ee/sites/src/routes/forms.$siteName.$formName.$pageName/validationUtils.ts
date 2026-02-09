@@ -12,12 +12,10 @@ function countWords(s: string): number {
 }
 
 export function isValidEmail(email: string): boolean {
-  // Simple, pragmatic validation (not full RFC).
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
 export function isValidOrcid(orcid: string): boolean {
-  // Requested format: ####-####-####-#### (digits only)
   return /^\d{4}-\d{4}-\d{4}-\d{4}$/.test(orcid.trim());
 }
 
@@ -31,9 +29,7 @@ export function isFieldEmpty(schema: FieldSchema, value: unknown): boolean {
 export type FieldValidationError = {
   schema: FieldSchema;
   message: string;
-  /** 0-based author index for author-field errors (enables deep link to expand that author). */
   authorIndex?: number;
-  /** 0-based affiliation index for affiliation errors (enables deep link to expand that affiliation). */
   affiliationIndex?: number;
 };
 

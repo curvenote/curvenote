@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useFetcher } from 'react-router';
+import { useState, useEffect } from 'react';
 import type { FieldSchema, FormDefinition, FormPage, FormSubmission } from './types.js';
 import { getMissingRequiredForPage, getFieldErrors } from './validationUtils.js';
 import { FormArea } from './FormArea.js';
@@ -76,40 +75,6 @@ export function FormBody({
     'affiliations',
     onDraftCreated,
   );
-  const saveSubmitterIsAuthor = useSaveField(
-    draftObjectId ?? null,
-    'submitterIsAuthor',
-    onDraftCreated,
-  );
-  const saveSubmitterAuthorId = useSaveField(
-    draftObjectId ?? null,
-    'submitterAuthorId',
-    onDraftCreated,
-  );
-  const saveSubmitterAffiliationIds = useSaveField(
-    draftObjectId ?? null,
-    'submitterAffiliationIds',
-    onDraftCreated,
-  );
-  const saveAuthors = useSaveField(draftObjectId ?? null, 'authors', onDraftCreated);
-
-  const batchSaveFetcher = useFetcher();
-  useEffect(() => {
-    const objectId = (batchSaveFetcher.data as { objectId?: string } | undefined)?.objectId;
-    if (objectId && onDraftCreated) onDraftCreated(objectId);
-  }, [batchSaveFetcher.data, onDraftCreated]);
-
-  const saveFieldsBatch = useCallback(
-    (payload: Record<string, unknown>) => {
-      const formData = new FormData();
-      formData.set('intent', 'save-fields');
-      formData.set('payload', JSON.stringify(payload));
-      if (draftObjectId) formData.set('objectId', draftObjectId);
-      batchSaveFetcher.submit(formData, { method: 'POST' });
-    },
-    [draftObjectId, batchSaveFetcher],
-  );
-
   // Only show validation on this page after user clicks Continue; clear when navigating away
   useEffect(() => {
     setAttemptedContinue(false);
@@ -184,49 +149,38 @@ export function FormBody({
             {...dp}
           />
         );
-      case 'author':
+      case 'author': {
+        const contactAllFromUser = !!(
+          user?.name != null &&
+          user.name !== '' &&
+          user?.email != null &&
+          user.email !== '' &&
+          user?.orcid != null &&
+          user.orcid !== ''
+        );
         return (
           <div key={schema.name} className="space-y-6">
-            <ContactDetails
-              user={user ?? null}
-              draftObjectId={draftObjectId}
-              onDraftCreated={onDraftCreated}
-              draftContactName={values.contactName}
-              draftContactEmail={values.contactEmail}
-              draftContactOrcidId={values.contactOrcidId}
-              onContactChange={(updates) => {
-                Object.entries(updates).forEach(([k, v]) => {
-                  handleChange(k, v);
-                });
-              }}
-              submitterIsAuthor={values.submitterIsAuthor !== false}
-              onSubmitterIsAuthorChange={(checked) => {
-                if (!checked) {
-                  const authors = Array.isArray(value) ? value : [];
-                  const sid = (values.submitterAuthorId as string | null) ?? null;
-                  const submitterAuthor =
-                    sid != null ? authors.find((a: { id: string }) => a.id === sid) : null;
-                  const affIds =
-                    (submitterAuthor as { affiliationIds?: string[] } | undefined)
-                      ?.affiliationIds ??
-                    (Array.isArray(values.submitterAffiliationIds)
-                      ? values.submitterAffiliationIds
-                      : []);
-                  handleChange('submitterAffiliationIds', affIds);
-                  saveSubmitterAffiliationIds(affIds);
-                  handleChange('submitterIsAuthor', false);
-                  saveSubmitterIsAuthor(false);
-                  handleChange('submitterAuthorId', null);
-                  saveSubmitterAuthorId(null);
-                  const newAuthors = authors.filter((a: { id: string }) => a.id !== sid);
-                  handleChange(schema.name, newAuthors);
-                  saveAuthors(newAuthors);
-                } else {
-                  handleChange('submitterIsAuthor', true);
-                  saveSubmitterIsAuthor(true);
-                }
-              }}
-            />
+            <h2 id="contact-details-heading" className="mb-2 text-sm font-medium text-foreground">
+              {contactAllFromUser ? 'Your contact details' : 'What are your contact details?'}
+            </h2>
+            <section
+              className="rounded-lg border border-border bg-muted/30 p-4"
+              aria-labelledby="contact-details-heading"
+            >
+              <ContactDetails
+                user={user ?? null}
+                draftObjectId={draftObjectId}
+                onDraftCreated={onDraftCreated}
+                draftContactName={values.contactName}
+                draftContactEmail={values.contactEmail}
+                draftContactOrcidId={values.contactOrcidId}
+                onContactChange={(updates) => {
+                  Object.entries(updates).forEach(([k, v]) => {
+                    handleChange(k, v);
+                  });
+                }}
+              />
+            </section>
             <AuthorField
               schema={schema}
               value={value}
@@ -246,53 +200,11 @@ export function FormBody({
                 emailReadOnly: !!(user && user.email != null && user.email !== ''),
                 orcidReadOnly: !!(user && user.orcid != null && user.orcid !== ''),
               }}
-              submitterIsAuthor={values.submitterIsAuthor !== false}
-              submitterAuthorId={(values.submitterAuthorId as string | null) ?? null}
-              submitterAffiliationIds={
-                Array.isArray(values.submitterAffiliationIds) ? values.submitterAffiliationIds : []
-              }
-              onSubmitterStateChange={(updates) => {
-                if ('submitterIsAuthor' in updates) {
-                  handleChange('submitterIsAuthor', updates.submitterIsAuthor);
-                  saveSubmitterIsAuthor(updates.submitterIsAuthor);
-                }
-                if ('submitterAuthorId' in updates) {
-                  handleChange('submitterAuthorId', updates.submitterAuthorId);
-                  saveSubmitterAuthorId(updates.submitterAuthorId);
-                }
-                if ('submitterAffiliationIds' in updates) {
-                  handleChange('submitterAffiliationIds', updates.submitterAffiliationIds);
-                  saveSubmitterAffiliationIds(updates.submitterAffiliationIds);
-                }
-              }}
-              onBatchPersist={
-                draftObjectId
-                  ? undefined
-                  : (payload) => {
-                      setValues((prev) => ({
-                        ...prev,
-                        authors: payload.authors,
-                        affiliations: payload.affiliations,
-                        submitterAffiliationIds:
-                          payload.submitterAffiliationIds ?? prev.submitterAffiliationIds,
-                        ...(payload.submitterAuthorId != null && {
-                          submitterAuthorId: payload.submitterAuthorId,
-                        }),
-                      }));
-                      const batch: Record<string, unknown> = {
-                        authors: payload.authors,
-                        affiliations: payload.affiliations,
-                        submitterAffiliationIds: payload.submitterAffiliationIds ?? [],
-                      };
-                      if (payload.submitterAuthorId != null)
-                        batch.submitterAuthorId = payload.submitterAuthorId;
-                      saveFieldsBatch(batch);
-                    }
-              }
               {...dp}
             />
           </div>
         );
+      }
       default:
         return null;
     }

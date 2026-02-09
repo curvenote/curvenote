@@ -37,6 +37,8 @@ import { isValidEmail, isValidOrcid, getAuthorFieldErrors } from './validationUt
 import { useSaveField } from './useSaveField.js';
 import { ui } from '@curvenote/scms-core';
 
+const ADD_AUTHOR_PLACEHOLDER_ID = 'add-author-placeholder';
+
 function getOrdinalLabel(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
@@ -393,12 +395,6 @@ function AffiliationSortableList({
   );
 }
 
-type ContactReadOnly = {
-  name: boolean;
-  email: boolean;
-  orcid: boolean;
-};
-
 type AuthorCardProps = {
   value: Author;
   index: number;
@@ -411,9 +407,6 @@ type AuthorCardProps = {
   onRenameAffiliation?: (affiliationId: string, newName: string) => void;
   onUpdateAffiliation?: (affiliationId: string, updates: Partial<Affiliation>) => void;
   affiliationInputRef?: React.RefObject<HTMLInputElement | null>;
-  /** When true, name/email/orcid are disabled when contactReadOnly flags are set (submitter mirrors contact). */
-  isSubmitterAuthor?: boolean;
-  contactReadOnly?: ContactReadOnly;
 };
 
 function AuthorCard({
@@ -428,8 +421,6 @@ function AuthorCard({
   onRenameAffiliation,
   onUpdateAffiliation,
   affiliationInputRef,
-  isSubmitterAuthor = false,
-  contactReadOnly = { name: false, email: false, orcid: false },
 }: AuthorCardProps) {
   const [editName, setEditName] = useState(value.name);
   const [editOrcid, setEditOrcid] = useState(value.orcid || '');
@@ -526,9 +517,6 @@ function AuthorCard({
                 >
                   {editName.trim() || 'Author Name'}
                 </span>
-                {isSubmitterAuthor && (
-                  <span className="text-base font-normal text-muted-foreground">(you)</span>
-                )}
                 {orcidValid === true && (
                   <BadgeCheck
                     className="w-4 h-4 text-green-500 shrink-0"
@@ -575,7 +563,6 @@ function AuthorCard({
                   pushAuthor({ name: e.target.value });
                 }}
                 placeholder="Enter full name"
-                disabled={isSubmitterAuthor}
               />
             </div>
 
@@ -604,7 +591,6 @@ function AuthorCard({
                   pushAuthor({ orcid: e.target.value.trim() || undefined });
                 }}
                 placeholder="0000-0000-0000-0000"
-                disabled={isSubmitterAuthor}
               />
             </div>
 
@@ -627,7 +613,6 @@ function AuthorCard({
                   pushAuthor({ email: e.target.value.trim() || undefined });
                 }}
                 placeholder="email@example.com"
-                disabled={isSubmitterAuthor && contactReadOnly.email}
               />
             </div>
 
@@ -825,9 +810,6 @@ function AuthorCard({
               >
                 {value.name?.trim() || 'Author Name'}
               </span>
-              {isSubmitterAuthor && (
-                <span className="text-base font-normal text-muted-foreground">(you)</span>
-              )}
               {orcidValid === true && (
                 <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" aria-label="ORCID valid" />
               )}
@@ -1045,6 +1027,118 @@ function AuthorCard({
   );
 }
 
+type AddAuthorPlaceholderCardProps = {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  nameInput: string;
+  setNameInput: (v: string) => void;
+  handleAddAuthor: () => void;
+  orcidFetcher: { state: string };
+  addMeAsAuthor: () => void;
+  contactDetails: ContactDetailsForAuthor | null | undefined;
+  schemaName: string;
+  isEmpty: boolean;
+};
+
+function AddAuthorPlaceholderCard({
+  inputRef,
+  nameInput,
+  setNameInput,
+  handleAddAuthor,
+  orcidFetcher,
+  addMeAsAuthor,
+  contactDetails,
+  schemaName,
+  isEmpty,
+}: AddAuthorPlaceholderCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: ADD_AUTHOR_PLACEHOLDER_ID,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0 : 1,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex gap-3 items-start p-4 rounded-sm border bg-background ${
+        isDragging ? 'shadow-lg border-primary border-dashed' : 'border-dashed border-border'
+      }`}
+    >
+      <div className="flex flex-col gap-1 items-center pt-1 shrink-0">
+        <button
+          {...attributes}
+          {...listeners}
+          type="button"
+          className="cursor-grab active:cursor-grabbing touch-none"
+        >
+          <GripVertical className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground" />
+        </button>
+      </div>
+      <div className="flex-1 min-w-0 space-y-2">
+        {isEmpty && contactDetails && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <ui.Button
+              type="button"
+              variant="default"
+              onClick={addMeAsAuthor}
+              className="cursor-pointer w-fit"
+            >
+              Add me as an author
+            </ui.Button>
+            <span className="text-sm text-muted-foreground">or</span>
+          </div>
+        )}
+        <div className="flex gap-2 items-center">
+          <ui.Input
+            ref={inputRef as React.RefObject<HTMLInputElement>}
+            id={`${schemaName}-add-name`}
+            type="text"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddAuthor();
+              }
+            }}
+            placeholder="Name or ORCID (e.g. 0000-0002-1825-0097)"
+            className="flex-1 min-w-0"
+          />
+          <ui.Button
+            type="button"
+            onClick={handleAddAuthor}
+            disabled={!nameInput.trim() || orcidFetcher.state !== 'idle'}
+            className="cursor-pointer shrink-0"
+          >
+            {orcidFetcher.state !== 'idle' ? (
+              'Looking up…'
+            ) : (
+              <>
+                Add Author
+                <CornerDownLeft className="w-4 h-4" aria-hidden />
+              </>
+            )}
+          </ui.Button>
+        </div>
+        {!isEmpty && contactDetails && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={addMeAsAuthor}
+              className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
+            >
+              <Plus className="w-3 h-3 shrink-0" aria-hidden />
+              <span>Add me as an author</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 type ContactDetailsForAuthor = {
   name: string;
   email: string;
@@ -1066,23 +1160,8 @@ type AuthorFieldProps = {
   initialOpenAuthorIndex?: number;
   /** When set (e.g. from review error link query), expand this affiliation (0-based index in list) on load. */
   initialOpenAffiliationIndex?: number;
-  /** Contact details for submitter; when set, "I am an author" checkbox and submitter sync are used. */
+  /** When set, show "Add me as author" button/link that adds an author with these contact details. */
   contactDetails?: ContactDetailsForAuthor;
-  submitterIsAuthor?: boolean;
-  submitterAuthorId?: string | null;
-  submitterAffiliationIds?: string[];
-  onSubmitterStateChange?: (updates: {
-    submitterIsAuthor?: boolean;
-    submitterAuthorId?: string | null;
-    submitterAffiliationIds?: string[];
-  }) => void;
-  /** When set (no draft yet), merge updates can be persisted in one request to avoid creating multiple draft objects. */
-  onBatchPersist?: (payload: {
-    authors: Author[];
-    affiliations: Affiliation[];
-    submitterAffiliationIds: string[];
-    submitterAuthorId?: string | null;
-  }) => void;
 };
 
 export function AuthorField({
@@ -1096,11 +1175,6 @@ export function AuthorField({
   initialOpenAuthorIndex,
   initialOpenAffiliationIndex,
   contactDetails,
-  submitterIsAuthor = true,
-  submitterAuthorId = null,
-  submitterAffiliationIds = [],
-  onSubmitterStateChange,
-  onBatchPersist,
 }: AuthorFieldProps) {
   const [nameInput, setNameInput] = useState('');
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -1112,13 +1186,66 @@ export function AuthorField({
   const valueRef = useRef(value);
   valueRef.current = value;
   const pendingOrcidRef = useRef<string | null>(null);
-  const submitterOrcidFetchRef = useRef<string | null>(null);
-  const submitterOrcidFetchedRef = useRef<string | null>(null);
+  const addMeOrcidAuthorIdRef = useRef<string | null>(null);
   const orcidFetcher = useFetcher();
   const affiliationList = affiliationListProp ?? [];
   const authorErrors = getAuthorFieldErrors(value);
   const isValid = value.length > 0 && authorErrors.length === 0;
-  const hasSubmitterFlow = contactDetails != null && onSubmitterStateChange != null;
+
+  const [authorOrder, setAuthorOrder] = useState<(string | typeof ADD_AUTHOR_PLACEHOLDER_ID)[]>(
+    () => [...value.map((a) => a.id), ADD_AUTHOR_PLACEHOLDER_ID],
+  );
+
+  // Sync authorOrder when value's author set changes (add/remove), keep placeholder position otherwise
+  useEffect(() => {
+    const ids = value.map((a) => a.id);
+    setAuthorOrder((prev) => {
+      const prevIds = prev.filter((id): id is string => id !== ADD_AUTHOR_PLACEHOLDER_ID);
+      if (prevIds.length !== ids.length || prevIds.some((id, i) => id !== ids[i]))
+        return [...ids, ADD_AUTHOR_PLACEHOLDER_ID];
+      return prev;
+    });
+  }, [value]);
+
+  const insertIndexRef = useRef(0);
+  useEffect(() => {
+    insertIndexRef.current = authorOrder.indexOf(ADD_AUTHOR_PLACEHOLDER_ID);
+  }, [authorOrder]);
+
+  const insertAuthorAt = (idx: number, newAuthor: Author) => {
+    const current = valueRef.current;
+    const i = idx < 0 ? current.length : Math.min(idx, current.length);
+    const newAuthors = [...current.slice(0, i), newAuthor, ...current.slice(i)];
+    handleChange(newAuthors);
+    setAuthorOrder([...newAuthors.map((a) => a.id), ADD_AUTHOR_PLACEHOLDER_ID]);
+  };
+
+  const insertAtPlaceholder = (newAuthor: Author) => {
+    insertAuthorAt(authorOrder.indexOf(ADD_AUTHOR_PLACEHOLDER_ID), newAuthor);
+  };
+
+  const addMeAsAuthor = () => {
+    if (!contactDetails) return;
+    const newAuthor: Author = {
+      id: uuid(),
+      name: contactDetails.name || 'Author',
+      email: contactDetails.email || undefined,
+      orcid: contactDetails.orcidId || undefined,
+      affiliationIds: [],
+    };
+    insertAtPlaceholder(newAuthor);
+    if (
+      contactDetails.orcidId &&
+      isValidOrcid(contactDetails.orcidId) &&
+      orcidFetcher.state === 'idle'
+    ) {
+      addMeOrcidAuthorIdRef.current = newAuthor.id;
+      const fd = new FormData();
+      fd.set('intent', 'fetch-orcid');
+      fd.set('orcid', contactDetails.orcidId);
+      orcidFetcher.submit(fd, { method: 'POST' });
+    }
+  };
 
   // Expand author/affiliation from review error link query params (one-time on load)
   const initialExpandAppliedRef = useRef({ author: false, affiliation: false });
@@ -1161,97 +1288,6 @@ export function AuthorField({
     save(newAuthors);
   };
 
-  // Ensure submitter author exists when submitterIsAuthor is true (create from contact + persisted affiliations)
-  useEffect(() => {
-    if (!hasSubmitterFlow || !submitterIsAuthor || !contactDetails) return;
-    const hasSubmitterInList =
-      submitterAuthorId != null && value.some((a) => a.id === submitterAuthorId);
-    if (hasSubmitterInList) return;
-    const newAuthor: Author = {
-      id: uuid(),
-      name: contactDetails.name || 'Author',
-      email: contactDetails.email || undefined,
-      orcid: contactDetails.orcidId || undefined,
-      affiliationIds: [...submitterAffiliationIds],
-    };
-    const next = [...value, newAuthor];
-    if (onBatchPersist) {
-      onBatchPersist({
-        authors: next,
-        affiliations: affiliationList,
-        submitterAffiliationIds,
-        submitterAuthorId: newAuthor.id,
-      });
-    } else {
-      handleChange(next);
-      onSubmitterStateChange({ submitterAuthorId: newAuthor.id });
-    }
-  }, [
-    hasSubmitterFlow,
-    submitterIsAuthor,
-    submitterAuthorId,
-    contactDetails?.name,
-    contactDetails?.email,
-    contactDetails?.orcidId,
-    JSON.stringify(submitterAffiliationIds),
-    value,
-    affiliationList,
-    onBatchPersist,
-  ]);
-
-  // When submitter is author and has ORCID, fetch their ORCID profile once and fill in missing data (especially affiliations)
-  useEffect(() => {
-    if (
-      !hasSubmitterFlow ||
-      !submitterIsAuthor ||
-      !contactDetails?.orcidId ||
-      !isValidOrcid(contactDetails.orcidId) ||
-      !submitterAuthorId ||
-      !value.some((a) => a.id === submitterAuthorId)
-    )
-      return;
-    if (submitterOrcidFetchedRef.current === contactDetails.orcidId) return;
-    if (submitterOrcidFetchRef.current === contactDetails.orcidId && orcidFetcher.state !== 'idle')
-      return;
-    submitterOrcidFetchRef.current = contactDetails.orcidId;
-    const fd = new FormData();
-    fd.set('intent', 'fetch-orcid');
-    fd.set('orcid', contactDetails.orcidId);
-    orcidFetcher.submit(fd, { method: 'POST' });
-  }, [
-    hasSubmitterFlow,
-    submitterIsAuthor,
-    contactDetails?.orcidId,
-    submitterAuthorId,
-    value,
-    orcidFetcher.state,
-  ]);
-
-  // Sync contact details into submitter author only when contact (top section) changes.
-  // Do not depend on value so that editing ORCID/name/email on the author card is not overwritten.
-  useEffect(() => {
-    if (!hasSubmitterFlow || !submitterAuthorId || !contactDetails) return;
-    const currentValue = valueRef.current;
-    const idx = currentValue.findIndex((a) => a.id === submitterAuthorId);
-    if (idx === -1) return;
-    const author = currentValue[idx];
-    const updates: Partial<Author> = {};
-    if (author.name !== contactDetails.name) updates.name = contactDetails.name;
-    if ((author.email ?? '') !== contactDetails.email)
-      updates.email = contactDetails.email || undefined;
-    if ((author.orcid ?? '') !== contactDetails.orcidId)
-      updates.orcid = contactDetails.orcidId || undefined;
-    if (Object.keys(updates).length === 0) return;
-    const next = currentValue.map((a, i) => (i === idx ? { ...a, ...updates } : a));
-    handleChange(next);
-  }, [
-    hasSubmitterFlow,
-    submitterAuthorId,
-    contactDetails?.name,
-    contactDetails?.email,
-    contactDetails?.orcidId,
-  ]);
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -1267,36 +1303,50 @@ export function AuthorField({
     setActiveAuthorId(event.active.id as string);
   };
 
+  const activePlaceholderOverlay =
+    activeAuthorId === ADD_AUTHOR_PLACEHOLDER_ID ? (
+      <div
+        className="flex gap-3 items-center p-4 w-72 rounded-sm border border-dashed shadow-lg border-border bg-background cursor-grabbing"
+        style={{ minHeight: 56 }}
+      >
+        <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+        <span className="flex-1 min-w-0 truncate text-base text-muted-foreground">Add author</span>
+      </div>
+    ) : null;
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveAuthorId(null);
-    if (over && active.id !== over.id) {
-      const activeId = active.id as string;
-      const overId = over.id as string;
-      const oldIndex = value.findIndex((author) => author.id === activeId);
-      const newIndex = value.findIndex((author) => author.id === overId);
+    if (!over || active.id === over.id) return;
+    const oldIndex = authorOrder.indexOf(active.id as string);
+    const newIndex = authorOrder.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const newOrder = [...authorOrder];
+    const [moved] = newOrder.splice(oldIndex, 1);
+    newOrder.splice(newIndex, 0, moved);
+    setAuthorOrder(newOrder);
 
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newAuthors = [...value];
-        const [movedAuthor] = newAuthors.splice(oldIndex, 1);
-        newAuthors.splice(newIndex, 0, movedAuthor);
-        handleChange(newAuthors);
-
-        // Update openIndex if needed
-        if (openIndex === oldIndex) {
-          setOpenIndex(newIndex);
-        } else if (openIndex !== null) {
-          if (oldIndex < openIndex && newIndex >= openIndex) {
-            setOpenIndex(openIndex - 1);
-          } else if (oldIndex > openIndex && newIndex <= openIndex) {
-            setOpenIndex(openIndex + 1);
-          }
+    if (moved !== ADD_AUTHOR_PLACEHOLDER_ID) {
+      const newValue = newOrder
+        .filter((id): id is string => id !== ADD_AUTHOR_PLACEHOLDER_ID)
+        .map((id) => value.find((a) => a.id === id))
+        .filter((a): a is Author => a != null);
+      handleChange(newValue);
+      const oldValueIndex = value.findIndex((a) => a.id === moved);
+      const newValueIndex = newValue.findIndex((a) => a.id === moved);
+      if (openIndex === oldValueIndex) {
+        setOpenIndex(newValueIndex);
+      } else if (openIndex !== null) {
+        if (oldValueIndex < openIndex && newValueIndex >= openIndex) {
+          setOpenIndex(openIndex - 1);
+        } else if (oldValueIndex > openIndex && newValueIndex <= openIndex) {
+          setOpenIndex(openIndex + 1);
         }
       }
     }
   };
 
-  // When ORCID lookup returns: either merge into submitter (if we fetched for them) or add new author
+  // When ORCID lookup returns: merge into "Add me" author (if addMeOrcidAuthorIdRef set) or add new author (typed ORCID)
   useEffect(() => {
     if (orcidFetcher.state !== 'idle' || !orcidFetcher.data) return;
     const data = orcidFetcher.data as {
@@ -1306,32 +1356,20 @@ export function AuthorField({
       affiliations?: { name: string; city?: string; region?: string; country?: string }[];
       error?: { message?: string };
     };
-    const fetchedOrcid = (data?.orcid ?? '').trim();
 
-    // Submitter merge: we fetched for the submitter's ORCID – fill in missing name, email, affiliations
-    if (
-      submitterOrcidFetchRef.current != null &&
-      fetchedOrcid &&
-      submitterOrcidFetchRef.current === fetchedOrcid &&
-      submitterAuthorId
-    ) {
-      submitterOrcidFetchedRef.current = submitterOrcidFetchRef.current;
-      submitterOrcidFetchRef.current = null;
+    // Merge into author we just added via "Add me as author" (ORCID lookup for contact)
+    if (addMeOrcidAuthorIdRef.current) {
+      const targetId = addMeOrcidAuthorIdRef.current;
+      addMeOrcidAuthorIdRef.current = null;
       if (data?.error) return;
-
       const currentAuthors = valueRef.current;
-      const idx = currentAuthors.findIndex((a) => a.id === submitterAuthorId);
+      const idx = currentAuthors.findIndex((a) => a.id === targetId);
       if (idx === -1) return;
       const author = currentAuthors[idx];
-
       const nameFromOrcid =
-        !data?.error && data?.name && data?.orcid
-          ? String(data.name).trim() || undefined
-          : undefined;
-      const emailFromOrcid =
-        !data?.error && data?.orcid && data?.email?.trim() ? data.email?.trim() : undefined;
+        data?.name && data?.orcid ? String(data.name).trim() || undefined : undefined;
+      const emailFromOrcid = data?.orcid && data?.email?.trim() ? data.email?.trim() : undefined;
       const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
-
       let nextList = [...affiliationList];
       const newAffiliationIds: string[] = [...(author.affiliationIds ?? [])];
       for (const aff of affiliationsFromOrcid) {
@@ -1356,36 +1394,20 @@ export function AuthorField({
           newAffiliationIds.push(newAff.id);
         }
       }
-      if (nextList.length > affiliationList.length) {
-        onAffiliationListChange?.(nextList);
-      }
-
+      if (nextList.length > affiliationList.length) onAffiliationListChange?.(nextList);
       const updates: Partial<Author> = {};
       if (nameFromOrcid && (!(author.name ?? '').trim() || author.name === 'Author'))
         updates.name = nameFromOrcid;
       if (emailFromOrcid && !(author.email ?? '').trim()) updates.email = emailFromOrcid;
       if (newAffiliationIds.length > 0) updates.affiliationIds = newAffiliationIds;
-
       if (Object.keys(updates).length > 0) {
         const next = currentAuthors.map((a, i) => (i === idx ? { ...a, ...updates } : a));
-        const submitterAffIds = updates.affiliationIds ?? author.affiliationIds ?? [];
-        if (onBatchPersist) {
-          onBatchPersist({
-            authors: next,
-            affiliations: nextList,
-            submitterAffiliationIds: submitterAffIds,
-          });
-        } else {
-          handleChange(next);
-          if (nextList.length > affiliationList.length) onAffiliationListChange?.(nextList);
-          if (updates.affiliationIds)
-            onSubmitterStateChange?.({ submitterAffiliationIds: updates.affiliationIds });
-        }
+        handleChange(next);
       }
       return;
     }
 
-    // Add new author (user typed ORCID in the name field)
+    // Add new author (user typed ORCID in add-author box)
     if (!pendingOrcidRef.current) return;
     const orcid = pendingOrcidRef.current;
     pendingOrcidRef.current = null;
@@ -1428,16 +1450,10 @@ export function AuthorField({
       ...(email && { email }),
       affiliationIds,
     };
-    handleChange([...valueRef.current, newAuthor]);
+    const idx = insertIndexRef.current < 0 ? valueRef.current.length : insertIndexRef.current;
+    insertAuthorAt(idx, newAuthor);
     setNameInput('');
-  }, [
-    orcidFetcher.state,
-    orcidFetcher.data,
-    affiliationList,
-    onAffiliationListChange,
-    submitterAuthorId,
-    onSubmitterStateChange,
-  ]);
+  }, [orcidFetcher.state, orcidFetcher.data, affiliationList, onAffiliationListChange]);
 
   const handleAddAuthor = () => {
     const trimmed = nameInput.trim();
@@ -1455,7 +1471,7 @@ export function AuthorField({
       name: trimmed,
       affiliationIds: [],
     };
-    handleChange([...value, newAuthor]);
+    insertAtPlaceholder(newAuthor);
     setNameInput('');
   };
 
@@ -1491,28 +1507,12 @@ export function AuthorField({
     const newAuthors = [...value];
     newAuthors[index] = updatedAuthor;
     handleChange(newAuthors);
-    if (
-      hasSubmitterFlow &&
-      submitterAuthorId != null &&
-      updatedAuthor.id === submitterAuthorId &&
-      JSON.stringify(updatedAuthor.affiliationIds ?? []) !== JSON.stringify(submitterAffiliationIds)
-    ) {
-      onSubmitterStateChange!({ submitterAffiliationIds: updatedAuthor.affiliationIds ?? [] });
-    }
   };
 
   const handleDelete = (index: number) => {
-    const author = value[index];
-    const isSubmitter = hasSubmitterFlow && author?.id === submitterAuthorId;
-    if (isSubmitter && onSubmitterStateChange) {
-      onSubmitterStateChange({
-        submitterAffiliationIds: author?.affiliationIds ?? [],
-        submitterIsAuthor: false,
-        submitterAuthorId: null,
-      });
-    }
     const newAuthors = value.filter((_, i) => i !== index);
     handleChange(newAuthors);
+    setAuthorOrder([...newAuthors.map((a) => a.id), ADD_AUTHOR_PLACEHOLDER_ID]);
     if (openIndex === index) {
       setOpenIndex(null);
     } else if (openIndex !== null && openIndex > index) {
@@ -1550,20 +1550,35 @@ export function AuthorField({
         {schema.title}
       </FormLabel>
 
-      {/* Author cards list */}
-      {value.length > 0 && (
-        <div className="space-y-2">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={value.map((author) => author.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {value.map((author, index) => (
+      <div className="space-y-2">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={authorOrder} strategy={verticalListSortingStrategy}>
+            {authorOrder.map((id) => {
+              if (id === ADD_AUTHOR_PLACEHOLDER_ID) {
+                return (
+                  <AddAuthorPlaceholderCard
+                    key={ADD_AUTHOR_PLACEHOLDER_ID}
+                    inputRef={lastCardAffiliationInputRef}
+                    nameInput={nameInput}
+                    setNameInput={setNameInput}
+                    handleAddAuthor={handleAddAuthor}
+                    orcidFetcher={orcidFetcher}
+                    addMeAsAuthor={addMeAsAuthor}
+                    contactDetails={contactDetails}
+                    schemaName={schema.name}
+                    isEmpty={value.length === 0}
+                  />
+                );
+              }
+              const author = value.find((a) => a.id === id);
+              if (!author) return null;
+              const index = value.findIndex((a) => a.id === id);
+              return (
                 <AuthorCard
                   key={author.id}
                   value={author}
@@ -1579,55 +1594,14 @@ export function AuthorField({
                   affiliationInputRef={
                     index === value.length - 1 ? lastCardAffiliationInputRef : undefined
                   }
-                  isSubmitterAuthor={hasSubmitterFlow && author.id === submitterAuthorId}
-                  contactReadOnly={
-                    hasSubmitterFlow && author.id === submitterAuthorId && contactDetails
-                      ? {
-                          name: contactDetails.nameReadOnly,
-                          email: contactDetails.emailReadOnly,
-                          orcid: contactDetails.orcidReadOnly,
-                        }
-                      : undefined
-                  }
                 />
-              ))}
-            </SortableContext>
-            <DragOverlay dropAnimation={null}>{activeAuthorOverlay}</DragOverlay>
-          </DndContext>
-        </div>
-      )}
-
-      {/* Add author: input at bottom of list */}
-      <div className="flex gap-2 items-center">
-        <ui.Input
-          id={`${schema.name}-add-name`}
-          type="text"
-          value={nameInput}
-          onChange={(e) => setNameInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleAddAuthor();
-            }
-          }}
-          placeholder="Name or ORCID (e.g. 0000-0002-1825-0097)"
-          className="flex-1 min-w-0"
-        />
-        <ui.Button
-          type="button"
-          onClick={handleAddAuthor}
-          disabled={!nameInput.trim() || orcidFetcher.state !== 'idle'}
-          className="cursor-pointer shrink-0"
-        >
-          {orcidFetcher.state !== 'idle' ? (
-            'Looking up…'
-          ) : (
-            <>
-              Add Author
-              <CornerDownLeft className="w-4 h-4" aria-hidden />
-            </>
-          )}
-        </ui.Button>
+              );
+            })}
+          </SortableContext>
+          <DragOverlay dropAnimation={null}>
+            {activePlaceholderOverlay ?? activeAuthorOverlay}
+          </DragOverlay>
+        </DndContext>
       </div>
 
       {/* Affiliations: small gray text + expand/collapse */}
