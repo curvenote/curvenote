@@ -19,8 +19,8 @@
 #   PROJECT_ID       - GCP project ID (e.g. my-project)
 #   PROJECT_NUMBER   - GCP project number (numeric; find in Console or: gcloud projects describe PROJECT_ID --format='value(projectNumber)')
 #   REGION           - Cloud Run region (e.g. us-central1)
-#   SERVICE_NAME     - Name of the Cloud Run service (e.g. scms-converter)
-#   PUSH_ENDPOINT    - Full URL of the Cloud Run service (e.g. https://scms-converter-xxxxx-uc.a.run.app)
+#   SERVICE_NAME     - Name of the Cloud Run service (e.g. task-converter)
+#   PUSH_ENDPOINT    - Full URL of the Cloud Run service (e.g. https://task-converter-xxxxx-uc.a.run.app)
 #
 # Optional (defaults shown):
 #   TOPIC_NAME             - Pub/Sub topic (default: scmsTasksTopic)
@@ -66,8 +66,8 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   echo "  export PROJECT_ID=my-gcp-project"
   echo "  export PROJECT_NUMBER=\$(gcloud projects describe \$PROJECT_ID --format='value(projectNumber)')"
   echo "  export REGION=us-central1"
-  echo "  export SERVICE_NAME=scms-converter"
-  echo "  export PUSH_ENDPOINT=https://scms-converter-xxxxx-uc.a.run.app"
+  echo "  export SERVICE_NAME=task-converter"
+  echo "  export PUSH_ENDPOINT=https://task-converter-xxxxx-uc.a.run.app"
   echo "  ./scripts/pubsub.sh"
   exit 1
 fi

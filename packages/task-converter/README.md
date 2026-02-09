@@ -1,6 +1,6 @@
-# SCMS Converter Service
+# Task Converter Service
 
-Node.js server for the SCMS converter, structured for Cloud Run but with **no** Cloud Run build or deployment logic. Use this package to build, run, and link the server locally.
+Node.js server for the task converter, structured for Cloud Run but with **no** Cloud Run build or deployment logic. Use this package to build, run, and link the server locally.
 
 ## Build
 
@@ -31,10 +31,10 @@ Runs `build:watch` and `nodemon` so the server restarts when `dist/index.js` cha
 `@curvenote/scms-tasks` is not published to the public registry. From the repo root, the workspace will resolve it when you run `npm install` at the root. To work from this package only:
 
 ```bash
-cd packages/scms-converter && npm install && npm run build && npm run start
+cd packages/task-converter && npm install && npm run build && npm run start
 ```
 
-Or use `npm run dev` from `packages/scms-converter` after a root install.
+Or use `npm run dev` from `packages/task-converter` after a root install.
 
 ## Environment
 

@@ -1,7 +1,7 @@
 {
-  "name": "@curvenote/scms-converter",
+  "name": "@curvenote/task-converter",
   "version": "0.1.0",
-  "description": "Node.js server for the SCMS converter service (Cloud Run style, local build and run)",
+  "description": "Node.js server for the task converter service (Cloud Run style, local build and run)",
   "type": "module",
   "main": "dist/index.js",
   "exports": "./dist/index.js",

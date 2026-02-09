@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# POST a Pub/Sub-style message to the local scms-converter service.
+# POST a Pub/Sub-style message to the local task-converter service.
 # Use when the service is running (e.g. npm run start).
 #
 # The body matches what withPubSubHandler expects: message.attributes and
