@@ -3,10 +3,10 @@ set -Eeuo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: wt-add.sh <name>
+Usage: wt-add.sh <name> [base-branch]
 
-Creates a new git worktree at ../trees/<name> and a branch named <name>,
-based off the current branch.
+Creates a new git worktree at ../trees/<name> and a branch named <name>.
+If base-branch is given, the new branch is based off it; otherwise the current branch.
 
 Also:
   - initializes submodules (recursive)
@@ -31,6 +31,8 @@ if [[ -z "$NAME" ]]; then
   exit 1
 fi
 
+BASE_BRANCH="${2:-}"
+
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [[ -z "$ROOT" ]]; then
   echo "❌ Not inside a git repository." >&2
@@ -39,11 +41,19 @@ fi
 
 cd "$ROOT"
 
-# Base the new worktree on the current branch (or HEAD if detached).
-BASE_REF="$(git branch --show-current)"
-if [[ -z "$BASE_REF" ]]; then
-  BASE_REF="$(git rev-parse HEAD)"
-  echo "→ Detached HEAD; using current commit as base: ${BASE_REF}"
+if [[ -n "$BASE_BRANCH" ]]; then
+  BASE_REF="$BASE_BRANCH"
+  if ! git rev-parse --verify -q "$BASE_REF" >/dev/null 2>&1; then
+    echo "❌ Base branch or ref not found: ${BASE_REF}" >&2
+    exit 1
+  fi
+else
+  # Base the new worktree on the current branch (or HEAD if detached).
+  BASE_REF="$(git branch --show-current)"
+  if [[ -z "$BASE_REF" ]]; then
+    BASE_REF="$(git rev-parse HEAD)"
+    echo "→ Detached HEAD; using current commit as base: ${BASE_REF}"
+  fi
 fi
 
 BRANCH="$NAME"
