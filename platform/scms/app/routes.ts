@@ -136,6 +136,8 @@ export default [
     // Register extension routes at the app level
     ...getRoutesForMountPoint('app'),
 
+    ...prefix('works/v3', [index('routes/app/works._index/route.tsx', { id: 'works.v3.index' })]),
+
     // Works Routes
     ...prefix('works/v2', [
       index('routes/app/works._index/route.tsx', { id: 'worksV2.index' }),
@@ -149,6 +151,7 @@ export default [
       ...getRoutesForMountPoint('app/works'),
       index('routes/app/works._index/route.tsx'),
       route('drafts', 'routes/app/works.drafts/route.tsx'),
+      route('v3/:workId', 'routes/app/works.v3.$workId/route.tsx'),
       route(':workId', 'routes/app/works.$workId/route.tsx', [
         ...getRoutesForMountPoint('app/works/:workId'),
         // index('routes/app/works.$workId._index/route.tsx'),
