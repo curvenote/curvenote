@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useFetcher } from 'react-router';
 import type { FieldSchema, FormDefinition, FormPage, FormSubmission } from './types.js';
 import { getMissingRequiredForPage, getFieldErrors } from './validationUtils.js';
 import { FormArea } from './FormArea.js';
@@ -91,6 +92,23 @@ export function FormBody({
     onDraftCreated,
   );
   const saveAuthors = useSaveField(draftObjectId ?? null, 'authors', onDraftCreated);
+
+  const batchSaveFetcher = useFetcher();
+  useEffect(() => {
+    const objectId = (batchSaveFetcher.data as { objectId?: string } | undefined)?.objectId;
+    if (objectId && onDraftCreated) onDraftCreated(objectId);
+  }, [batchSaveFetcher.data, onDraftCreated]);
+
+  const saveFieldsBatch = useCallback(
+    (payload: Record<string, unknown>) => {
+      const formData = new FormData();
+      formData.set('intent', 'save-fields');
+      formData.set('payload', JSON.stringify(payload));
+      if (draftObjectId) formData.set('objectId', draftObjectId);
+      batchSaveFetcher.submit(formData, { method: 'POST' });
+    },
+    [draftObjectId, batchSaveFetcher],
+  );
 
   // Only show validation on this page after user clicks Continue; clear when navigating away
   useEffect(() => {
@@ -247,6 +265,30 @@ export function FormBody({
                   saveSubmitterAffiliationIds(updates.submitterAffiliationIds);
                 }
               }}
+              onBatchPersist={
+                draftObjectId
+                  ? undefined
+                  : (payload) => {
+                      setValues((prev) => ({
+                        ...prev,
+                        authors: payload.authors,
+                        affiliations: payload.affiliations,
+                        submitterAffiliationIds:
+                          payload.submitterAffiliationIds ?? prev.submitterAffiliationIds,
+                        ...(payload.submitterAuthorId != null && {
+                          submitterAuthorId: payload.submitterAuthorId,
+                        }),
+                      }));
+                      const batch: Record<string, unknown> = {
+                        authors: payload.authors,
+                        affiliations: payload.affiliations,
+                        submitterAffiliationIds: payload.submitterAffiliationIds ?? [],
+                      };
+                      if (payload.submitterAuthorId != null)
+                        batch.submitterAuthorId = payload.submitterAuthorId;
+                      saveFieldsBatch(batch);
+                    }
+              }
               {...dp}
             />
           </div>

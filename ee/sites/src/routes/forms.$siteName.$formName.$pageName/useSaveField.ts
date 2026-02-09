@@ -30,9 +30,8 @@ export function useSaveField(
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
         const formData = new FormData();
-        formData.set('intent', 'save-field');
-        formData.set('fieldName', fieldName);
-        formData.set('value', typeof value !== 'string' ? JSON.stringify(value) : value);
+        formData.set('intent', 'save-fields');
+        formData.set('payload', JSON.stringify({ [fieldName]: value }));
         if (draftObjectId) formData.set('objectId', draftObjectId);
         fetcher.submit(formData, { method: 'POST' });
       }, SAVE_DEBOUNCE_MS);

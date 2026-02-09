@@ -1076,6 +1076,13 @@ type AuthorFieldProps = {
     submitterAuthorId?: string | null;
     submitterAffiliationIds?: string[];
   }) => void;
+  /** When set (no draft yet), merge updates can be persisted in one request to avoid creating multiple draft objects. */
+  onBatchPersist?: (payload: {
+    authors: Author[];
+    affiliations: Affiliation[];
+    submitterAffiliationIds: string[];
+    submitterAuthorId?: string | null;
+  }) => void;
 };
 
 export function AuthorField({
@@ -1093,6 +1100,7 @@ export function AuthorField({
   submitterAuthorId = null,
   submitterAffiliationIds = [],
   onSubmitterStateChange,
+  onBatchPersist,
 }: AuthorFieldProps) {
   const [nameInput, setNameInput] = useState('');
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -1104,6 +1112,8 @@ export function AuthorField({
   const valueRef = useRef(value);
   valueRef.current = value;
   const pendingOrcidRef = useRef<string | null>(null);
+  const submitterOrcidFetchRef = useRef<string | null>(null);
+  const submitterOrcidFetchedRef = useRef<string | null>(null);
   const orcidFetcher = useFetcher();
   const affiliationList = affiliationListProp ?? [];
   const authorErrors = getAuthorFieldErrors(value);
@@ -1165,8 +1175,17 @@ export function AuthorField({
       affiliationIds: [...submitterAffiliationIds],
     };
     const next = [...value, newAuthor];
-    handleChange(next);
-    onSubmitterStateChange({ submitterAuthorId: newAuthor.id });
+    if (onBatchPersist) {
+      onBatchPersist({
+        authors: next,
+        affiliations: affiliationList,
+        submitterAffiliationIds,
+        submitterAuthorId: newAuthor.id,
+      });
+    } else {
+      handleChange(next);
+      onSubmitterStateChange({ submitterAuthorId: newAuthor.id });
+    }
   }, [
     hasSubmitterFlow,
     submitterIsAuthor,
@@ -1176,6 +1195,36 @@ export function AuthorField({
     contactDetails?.orcidId,
     JSON.stringify(submitterAffiliationIds),
     value,
+    affiliationList,
+    onBatchPersist,
+  ]);
+
+  // When submitter is author and has ORCID, fetch their ORCID profile once and fill in missing data (especially affiliations)
+  useEffect(() => {
+    if (
+      !hasSubmitterFlow ||
+      !submitterIsAuthor ||
+      !contactDetails?.orcidId ||
+      !isValidOrcid(contactDetails.orcidId) ||
+      !submitterAuthorId ||
+      !value.some((a) => a.id === submitterAuthorId)
+    )
+      return;
+    if (submitterOrcidFetchedRef.current === contactDetails.orcidId) return;
+    if (submitterOrcidFetchRef.current === contactDetails.orcidId && orcidFetcher.state !== 'idle')
+      return;
+    submitterOrcidFetchRef.current = contactDetails.orcidId;
+    const fd = new FormData();
+    fd.set('intent', 'fetch-orcid');
+    fd.set('orcid', contactDetails.orcidId);
+    orcidFetcher.submit(fd, { method: 'POST' });
+  }, [
+    hasSubmitterFlow,
+    submitterIsAuthor,
+    contactDetails?.orcidId,
+    submitterAuthorId,
+    value,
+    orcidFetcher.state,
   ]);
 
   // Sync contact details into submitter author only when contact (top section) changes.
@@ -1247,9 +1296,9 @@ export function AuthorField({
     }
   };
 
-  // When ORCID lookup returns, add author (with email/affiliations if present) and clear input
+  // When ORCID lookup returns: either merge into submitter (if we fetched for them) or add new author
   useEffect(() => {
-    if (orcidFetcher.state !== 'idle' || !pendingOrcidRef.current || !orcidFetcher.data) return;
+    if (orcidFetcher.state !== 'idle' || !orcidFetcher.data) return;
     const data = orcidFetcher.data as {
       name?: string;
       orcid?: string;
@@ -1257,6 +1306,87 @@ export function AuthorField({
       affiliations?: { name: string; city?: string; region?: string; country?: string }[];
       error?: { message?: string };
     };
+    const fetchedOrcid = (data?.orcid ?? '').trim();
+
+    // Submitter merge: we fetched for the submitter's ORCID – fill in missing name, email, affiliations
+    if (
+      submitterOrcidFetchRef.current != null &&
+      fetchedOrcid &&
+      submitterOrcidFetchRef.current === fetchedOrcid &&
+      submitterAuthorId
+    ) {
+      submitterOrcidFetchedRef.current = submitterOrcidFetchRef.current;
+      submitterOrcidFetchRef.current = null;
+      if (data?.error) return;
+
+      const currentAuthors = valueRef.current;
+      const idx = currentAuthors.findIndex((a) => a.id === submitterAuthorId);
+      if (idx === -1) return;
+      const author = currentAuthors[idx];
+
+      const nameFromOrcid =
+        !data?.error && data?.name && data?.orcid
+          ? String(data.name).trim() || undefined
+          : undefined;
+      const emailFromOrcid =
+        !data?.error && data?.orcid && data?.email?.trim() ? data.email?.trim() : undefined;
+      const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
+
+      let nextList = [...affiliationList];
+      const newAffiliationIds: string[] = [...(author.affiliationIds ?? [])];
+      for (const aff of affiliationsFromOrcid) {
+        const trimmed = String(aff?.name ?? '').trim();
+        if (!trimmed) continue;
+        const existing = nextList.find(
+          (a) =>
+            (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase() &&
+            (a.city ?? '') === (aff?.city ?? '') &&
+            (a.country ?? '') === (aff?.country ?? ''),
+        );
+        if (existing) {
+          if (!newAffiliationIds.includes(existing.id)) newAffiliationIds.push(existing.id);
+        } else {
+          const newAff: Affiliation = {
+            id: uuid(),
+            name: trimmed,
+            ...(aff?.city && { city: aff.city }),
+            ...(aff?.country && { country: aff.country }),
+          };
+          nextList = [...nextList, newAff];
+          newAffiliationIds.push(newAff.id);
+        }
+      }
+      if (nextList.length > affiliationList.length) {
+        onAffiliationListChange?.(nextList);
+      }
+
+      const updates: Partial<Author> = {};
+      if (nameFromOrcid && (!(author.name ?? '').trim() || author.name === 'Author'))
+        updates.name = nameFromOrcid;
+      if (emailFromOrcid && !(author.email ?? '').trim()) updates.email = emailFromOrcid;
+      if (newAffiliationIds.length > 0) updates.affiliationIds = newAffiliationIds;
+
+      if (Object.keys(updates).length > 0) {
+        const next = currentAuthors.map((a, i) => (i === idx ? { ...a, ...updates } : a));
+        const submitterAffIds = updates.affiliationIds ?? author.affiliationIds ?? [];
+        if (onBatchPersist) {
+          onBatchPersist({
+            authors: next,
+            affiliations: nextList,
+            submitterAffiliationIds: submitterAffIds,
+          });
+        } else {
+          handleChange(next);
+          if (nextList.length > affiliationList.length) onAffiliationListChange?.(nextList);
+          if (updates.affiliationIds)
+            onSubmitterStateChange?.({ submitterAffiliationIds: updates.affiliationIds });
+        }
+      }
+      return;
+    }
+
+    // Add new author (user typed ORCID in the name field)
+    if (!pendingOrcidRef.current) return;
     const orcid = pendingOrcidRef.current;
     pendingOrcidRef.current = null;
     const name =
@@ -1300,7 +1430,14 @@ export function AuthorField({
     };
     handleChange([...valueRef.current, newAuthor]);
     setNameInput('');
-  }, [orcidFetcher.state, orcidFetcher.data, affiliationList, onAffiliationListChange]);
+  }, [
+    orcidFetcher.state,
+    orcidFetcher.data,
+    affiliationList,
+    onAffiliationListChange,
+    submitterAuthorId,
+    onSubmitterStateChange,
+  ]);
 
   const handleAddAuthor = () => {
     const trimmed = nameInput.trim();

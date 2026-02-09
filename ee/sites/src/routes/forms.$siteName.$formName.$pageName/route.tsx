@@ -234,15 +234,6 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   };
 }
 
-function parseFieldValue(raw: string): unknown {
-  if (raw === '') return raw;
-  try {
-    return JSON.parse(raw) as unknown;
-  } catch {
-    return raw;
-  }
-}
-
 /** Same fallbacks as the page; submit uses merged { ...FALLBACK_FIELDS, ...draft } so we submit what we display. */
 const FALLBACK_FIELDS: FormSubmission['fields'] = {
   title:
@@ -302,35 +293,42 @@ export async function action(args: ActionFunctionArgs) {
     });
   }
 
-  // Save a single field to the draft Object (create if no objectId, else OCC update)
-  if (intent === 'save-field') {
-    const fieldName = formData.get('fieldName') as string | null;
-    const valueRaw = formData.get('value') as string | null;
-    if (!fieldName) throw httpError(400, 'Missing field name');
-    const value = valueRaw !== null ? parseFieldValue(valueRaw) : undefined;
+  // Save one or more fields to the draft Object (create if no objectId, else OCC update)
+  if (intent === 'save-fields') {
+    const payloadRaw = formData.get('payload') as string | null;
+    if (!payloadRaw || typeof payloadRaw !== 'string') throw httpError(400, 'Missing payload');
+    let payload: Record<string, unknown>;
+    try {
+      payload = JSON.parse(payloadRaw) as Record<string, unknown>;
+    } catch {
+      throw httpError(400, 'Invalid payload');
+    }
+    const keys = Object.keys(payload);
+    if (keys.length === 0) throw httpError(400, 'Empty payload');
 
     let objectId =
       (formData.get('objectId') as string | null) || getDraftObjectIdFromCookie(args.request);
 
     if (!objectId) {
-      objectId = await createDraftObject({ [fieldName]: value }, ctx.user?.id ?? null);
+      objectId = await createDraftObject(payload, ctx.user?.id ?? null);
       return data(
         { objectId },
         { headers: { 'Set-Cookie': setDraftObjectIdCookie(objectId, siteName, formName) } },
       );
     }
 
-    // Cookie may point to a draft that no longer exists; create a new one and reset cookie
     const existingDraft = await getDraftObject(objectId);
     if (!existingDraft) {
-      objectId = await createDraftObject({ [fieldName]: value }, ctx.user?.id ?? null);
+      objectId = await createDraftObject(payload, ctx.user?.id ?? null);
       return data(
         { objectId },
         { headers: { 'Set-Cookie': setDraftObjectIdCookie(objectId, siteName, formName) } },
       );
     }
 
-    await updateDraftObjectField(objectId, fieldName, value, ctx.user?.id ?? null);
+    for (const fieldName of keys) {
+      await updateDraftObjectField(objectId, fieldName, payload[fieldName], ctx.user?.id ?? null);
+    }
     return data({ objectId });
   }
 
