@@ -22,7 +22,11 @@ export function WorkListItem({
     ? formatToNow(lastActivity.date_created, { addSuffix: true })
     : undefined;
 
-  // Get the latest non-draft version info
+  // Get the latest work version (versions are ordered date_created desc)
+  const latestWorkVersion = work.versions[0];
+  const isDraft = latestWorkVersion?.draft === true;
+
+  // Get the latest non-draft version info for title/authors/published
   const latestVersion = work.versions.find((version) => !version.draft);
   const publishedDate = latestVersion?.date;
 
@@ -36,15 +40,20 @@ export function WorkListItem({
       <div className="flex flex-col gap-1 items-start md:gap-6 md:flex-row">
         {/* Column 1: Title, Authors, DOI Links */}
         <div className="flex flex-col flex-grow gap-1">
-          <div className="flex gap-2 items-start">
+          <div className="flex flex-wrap gap-2 items-start">
             <h3 className="font-normal leading-tight transition-colors line-clamp-2">
               <Link
                 to={`${work.id}`}
                 className="text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
               >
-                {latestVersion?.title || 'Untitled Work'}
+                {latestVersion?.title || latestWorkVersion?.title || 'Untitled Work'}
               </Link>
             </h3>
+            {isDraft && (
+              <ui.Badge variant="secondary" className="font-normal shrink-0">
+                Draft
+              </ui.Badge>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-1 text-sm text-gray-600 dark:text-gray-400">
