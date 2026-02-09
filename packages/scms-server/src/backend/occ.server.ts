@@ -81,11 +81,13 @@ const modelConfig = {
 
 /**
  * Generic OCC function that can update any model with metadata and occ fields
+ *
+ * If the modifyFn returns null, the record is not updated and the current record is returned.
  */
 export async function safeJsonUpdateGeneric<T extends Prisma.JsonObject, M extends ModelType>(
   modelType: M,
   recordId: string,
-  modifyFn: (metadata?: Prisma.JsonValue) => T,
+  modifyFn: (metadata?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<ModelReturnType<M>> {
   const prisma = await getPrismaClient();
@@ -103,6 +105,12 @@ export async function safeJsonUpdateGeneric<T extends Prisma.JsonObject, M exten
     }
 
     const newMetadata = modifyFn(currentRecord[config.metadataField]);
+    if (!newMetadata) {
+      console.log(
+        `OCC: No metadata to update for ${config.errorPrefix} ${recordId}, returning current record`,
+      );
+      return currentRecord as ModelReturnType<M>;
+    }
 
     // Attempt to update with OCC check
     try {
