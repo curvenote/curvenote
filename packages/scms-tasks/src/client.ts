@@ -5,11 +5,13 @@ export class SCMSJobClient {
   readonly jobUrl: string;
   readonly statusUrl: string;
   readonly handshake: string;
+  readonly loggingOnlyMode: boolean;
 
-  constructor(jobUrl: string, statusUrl: string, handshake: string) {
+  constructor(jobUrl: string, statusUrl: string, handshake: string, loggingOnlyMode = false) {
     this.jobUrl = jobUrl;
     this.statusUrl = statusUrl;
     this.handshake = handshake;
+    this.loggingOnlyMode = loggingOnlyMode;
   }
 
   /**
@@ -19,6 +21,10 @@ export class SCMSJobClient {
    * return a 400 response.
    */
   async completed(res: Response, message: string, results: Record<string, any>): Promise<Response> {
+    if (this.loggingOnlyMode) {
+      console.log('[loggingOnlyMode] Skipping COMPLETED request');
+      return alreadySent(res) ? res : send(res, 200);
+    }
     await this.patchJobStatus('COMPLETED', results, message, res);
     return send(res, 200);
   }
@@ -31,6 +37,10 @@ export class SCMSJobClient {
    * return a 400 response.
    */
   async failed(res: Response, message: string, results?: Record<string, any>): Promise<Response> {
+    if (this.loggingOnlyMode) {
+      console.log('[loggingOnlyMode] Skipping FAILED request');
+      return alreadySent(res) ? res : send(res, 200);
+    }
     await this.patchJobStatus('FAILED', results, message, res);
     return alreadySent(res) ? res : send(res, 200);
   }
@@ -43,6 +53,10 @@ export class SCMSJobClient {
    * stopped.
    */
   async running(res: Response, message: string, results?: Record<string, any>): Promise<void> {
+    if (this.loggingOnlyMode) {
+      console.log('[loggingOnlyMode] Skipping RUNNING request');
+      return;
+    }
     await this.patchJobStatus('RUNNING', results, message, res);
   }
 
@@ -62,11 +76,14 @@ export class SCMSJobClient {
     message: string,
     res: Response,
   ): Promise<Response | undefined> {
+    const body: Record<string, any> = { status, message };
+    if (results) body.results = results;
+    console.log(`PATCH ${this.jobUrl}`, JSON.stringify(body));
+    if (this.loggingOnlyMode) {
+      console.log('[loggingOnlyMode] Skipping PATCH request');
+      return;
+    }
     try {
-      console.log(`PATCH ${this.jobUrl}`);
-      const body: Record<string, any> = { status, message };
-      if (results) body.results = results;
-      console.log(JSON.stringify(body));
       const response = await fetch(this.jobUrl, {
         method: 'PATCH',
         body: JSON.stringify(body),
@@ -93,10 +110,13 @@ export class SCMSJobClient {
    * @param body
    */
   async putSubmissionStatus(status: string, userId: string, res: Response) {
+    const body: Record<string, any> = { status, userId };
+    console.log(`PUT ${this.statusUrl}`, JSON.stringify(body));
+    if (this.loggingOnlyMode) {
+      console.log('[loggingOnlyMode] Skipping PUT request');
+      return;
+    }
     try {
-      console.log(`PUT ${this.statusUrl}`);
-      const body: Record<string, any> = { status, userId };
-      console.log(JSON.stringify(body));
       const response = await fetch(this.statusUrl, {
         method: 'PUT',
         body: JSON.stringify(body),

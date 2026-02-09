@@ -37,17 +37,20 @@ export function createService() {
    */
   app.post(
     '/',
-    withPubSubHandler<ConverterPayload>(async (ctx: HandlerContext<ConverterPayload>) => {
-      const { client, attributes, payload, tmpFolder, res } = ctx;
-      // Handler receives (client, attributes, payload, tmpFolder, res). Get taskId from payload/attributes.
-      const taskId = payload.taskId;
-      if (taskId) console.log('Task ID from payload', taskId);
+    withPubSubHandler<ConverterPayload>(
+      async (ctx: HandlerContext<ConverterPayload>) => {
+        const { client, attributes, payload, tmpFolder, res } = ctx;
+        // Handler receives (client, attributes, payload, tmpFolder, res). Get taskId from payload/attributes.
+        const taskId = payload.taskId;
+        if (taskId) console.log('Task ID from payload', taskId);
+        console.log('In handler');
 
-      // Placeholder: add real conversion logic here.
+        // Placeholder: add real conversion logic here.
 
-      await client.putSubmissionStatus(attributes.successState, attributes.userId, res);
-      await client.completed(res, 'Converter completed (placeholder)', { taskId });
-    }),
+        await client.completed(res, 'Converter completed (placeholder)', { taskId });
+      },
+      { clientLoggingOnlyMode: true },
+    ),
   );
 
   return app;

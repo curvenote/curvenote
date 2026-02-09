@@ -5,8 +5,8 @@
  * decodes the JSON payload, then invokes the provided handler with (client,
  * attributes, payload, tmpFolder, res). On success the handler is responsible
  * for putSubmissionStatus and completed(); the wrapper only removes the temp
- * folder. On error the wrapper handles cleanup, putSubmissionStatus(failureState),
- * and failed().
+ * folder. On error the wrapper handles cleanup, optionally calls onFailure
+ * (e.g. to update submission status), then failed().
  */
 
 import type { Request, Response } from 'express';
@@ -60,11 +60,28 @@ export type HandlerSuccessResult = {
 /**
  * Converter handler: receives (client, attributes, payload, tmpFolder, res).
  * On success the handler must call putSubmissionStatus and completed(); then the wrapper removes the temp folder.
- * Throw on failure (wrapper handles cleanup, putSubmissionStatus(failureState), failed()).
+ * Throw on failure (wrapper handles cleanup, optional onFailure, then failed()).
  */
 export type ConverterHandler<TPayload = unknown> = (
   ctx: HandlerContext<TPayload>,
 ) => Promise<HandlerSuccessResult | void>;
+
+/**
+ * Optional callback invoked on failure. Receives failureState, userId, and res
+ * (and client when invoking) so the caller can e.g. update submission status.
+ */
+export type OnFailureCallback = (
+  client: SCMSJobClient,
+  failureState: string,
+  userId: string,
+  res: Response,
+) => Promise<void>;
+
+export type WithPubSubHandlerOptions = {
+  onFailure?: OnFailureCallback;
+  /** When true, SCMSJobClient skips HTTP calls and only logs to console (for development). */
+  clientLoggingOnlyMode?: boolean;
+};
 
 /**
  * Wraps the Pub/Sub POST boilerplate and calls the given handler with (client, attributes, payload, tmpFolder, res).
@@ -74,14 +91,17 @@ export type ConverterHandler<TPayload = unknown> = (
  * - Creates SCMSJobClient and calls client.running()
  * - Invokes handler(ctx)
  * - On success: handler is responsible for putSubmissionStatus and completed(); wrapper then removes folder
- * - On error: removes folder, putSubmissionStatus(failureState), failed(res, ...)
+ * - On error: removes folder, calls onFailure(client, failureState, userId, res) when provided, then failed(res, ...)
  *
  * @param handler - Function that receives client, attributes, decoded payload, tmpFolder, and res
+ * @param options - Optional; onFailure called on failure with (client, failureState, userId, res)
  * @returns Express request handler (req, res) => Promise<void>
  */
 export function withPubSubHandler<TPayload = unknown>(
   handler: ConverterHandler<TPayload>,
+  options?: WithPubSubHandlerOptions,
 ): (req: Request, res: Response) => Promise<void> {
+  const { onFailure, clientLoggingOnlyMode } = options ?? {};
   return async (req: Request, res: Response): Promise<void> => {
     console.log('Received request', req.body);
     const { body } = req;
@@ -136,15 +156,8 @@ export function withPubSubHandler<TPayload = unknown>(
       }
 
       const { jobUrl, statusUrl, handshake } = validatedAttributes;
-      client = new SCMSJobClient(jobUrl, statusUrl, handshake);
+      client = new SCMSJobClient(jobUrl, statusUrl, handshake, clientLoggingOnlyMode ?? false);
       await client.running(res, 'Starting converter job...');
-
-      // Optional: extract taskId for logging and error reporting
-      const withTaskId = payload as { taskId?: string };
-      if (withTaskId?.taskId) {
-        taskId = withTaskId.taskId;
-        console.log('Task ID', taskId);
-      }
 
       const ctx: HandlerContext<TPayload> = {
         client,
@@ -165,7 +178,9 @@ export function withPubSubHandler<TPayload = unknown>(
       try {
         if (client) {
           const { failureState, userId } = validatedAttributes;
-          await client.putSubmissionStatus(failureState, userId, res);
+          if (onFailure) {
+            await onFailure(client, failureState, userId, res);
+          }
           await client.failed(res, `Converter failed: ${errMessage}`, {
             error: errMessage,
             taskId,
