@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { LoaderFunctionArgs, ActionFunctionArgs, MetaFunction } from 'react-router';
-import { data, redirect } from 'react-router';
+import { data, redirect, useSearchParams } from 'react-router';
 import { httpError, getBrandingFromMetaMatches, joinPageTitle, scopes } from '@curvenote/scms-core';
 import {
   withAppSiteContext,
@@ -79,7 +79,7 @@ const EXAMPLE_FORM_UI: FormDefinition = {
     {
       name: 'authors',
       type: 'author',
-      title: 'List the authors of this submission',
+      title: 'Authors',
       required: true,
     },
     {
@@ -448,6 +448,12 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
   const { form, siteName, pageName, draftObjectId: loaderDraftId, draftData } = loaderData;
   const [draftObjectId, setDraftObjectId] = React.useState<string | null>(loaderDraftId ?? null);
+  const [searchParams] = useSearchParams();
+  const expandAuthor = searchParams.get('expandAuthor');
+  const expandAffiliation = searchParams.get('expandAffiliation');
+  const initialExpandAuthorIndex = expandAuthor != null ? parseInt(expandAuthor, 10) : undefined;
+  const initialExpandAffiliationIndex =
+    expandAffiliation != null ? parseInt(expandAffiliation, 10) : undefined;
 
   // Sync draft id from loader (e.g. after refresh with cookie)
   React.useEffect(() => {
@@ -535,6 +541,20 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
               user={loaderData.user}
               draftObjectId={draftObjectId}
               onDraftCreated={setDraftObjectId}
+              initialExpandAuthorIndex={
+                typeof initialExpandAuthorIndex === 'number' &&
+                !Number.isNaN(initialExpandAuthorIndex) &&
+                initialExpandAuthorIndex >= 0
+                  ? initialExpandAuthorIndex
+                  : undefined
+              }
+              initialExpandAffiliationIndex={
+                typeof initialExpandAffiliationIndex === 'number' &&
+                !Number.isNaN(initialExpandAffiliationIndex) &&
+                initialExpandAffiliationIndex >= 0
+                  ? initialExpandAffiliationIndex
+                  : undefined
+              }
             />
           ) : (
             <FormArea stepNumber="?" stepTitle="Page not found">

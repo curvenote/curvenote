@@ -40,6 +40,10 @@ type FormBodyProps = {
   user?: FormBodyUser;
   draftObjectId?: string | null;
   onDraftCreated?: (id: string) => void;
+  /** When set, expand this author card (0-based index) after navigation from review error link. */
+  initialExpandAuthorIndex?: number;
+  /** When set, expand this affiliation (0-based index in list) after navigation from review error link. */
+  initialExpandAffiliationIndex?: number;
 };
 
 const draftProps = (
@@ -60,6 +64,8 @@ export function FormBody({
   user = null,
   draftObjectId = null,
   onDraftCreated,
+  initialExpandAuthorIndex,
+  initialExpandAffiliationIndex,
 }: FormBodyProps) {
   const [values, setValues] = useState<Record<string, any>>(submission.fields);
   const [attemptedContinue, setAttemptedContinue] = useState(false);
@@ -212,6 +218,8 @@ export function FormBody({
                 handleChange('affiliations', list);
                 saveAffiliationChoices(list);
               }}
+              initialOpenAuthorIndex={initialExpandAuthorIndex}
+              initialOpenAffiliationIndex={initialExpandAffiliationIndex}
               contactDetails={{
                 name: String(values.contactName ?? '').trim() || (user?.name ?? ''),
                 email: String(values.contactEmail ?? '').trim() || (user?.email ?? ''),

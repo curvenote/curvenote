@@ -1062,6 +1062,10 @@ type AuthorFieldProps = {
   onAffiliationListChange?: (list: Affiliation[]) => void;
   draftObjectId?: string | null;
   onDraftCreated?: (id: string) => void;
+  /** When set (e.g. from review error link query), expand this author card (0-based index) on load. */
+  initialOpenAuthorIndex?: number;
+  /** When set (e.g. from review error link query), expand this affiliation (0-based index in list) on load. */
+  initialOpenAffiliationIndex?: number;
   /** Contact details for submitter; when set, "I am an author" checkbox and submitter sync are used. */
   contactDetails?: ContactDetailsForAuthor;
   submitterIsAuthor?: boolean;
@@ -1082,6 +1086,8 @@ export function AuthorField({
   onAffiliationListChange,
   draftObjectId = null,
   onDraftCreated,
+  initialOpenAuthorIndex,
+  initialOpenAffiliationIndex,
   contactDetails,
   submitterIsAuthor = true,
   submitterAuthorId = null,
@@ -1103,6 +1109,33 @@ export function AuthorField({
   const authorErrors = getAuthorFieldErrors(value);
   const isValid = value.length > 0 && authorErrors.length === 0;
   const hasSubmitterFlow = contactDetails != null && onSubmitterStateChange != null;
+
+  // Expand author/affiliation from review error link query params (one-time on load)
+  const initialExpandAppliedRef = useRef({ author: false, affiliation: false });
+  useEffect(() => {
+    if (
+      initialExpandAppliedRef.current.author ||
+      initialOpenAuthorIndex == null ||
+      initialOpenAuthorIndex < 0 ||
+      initialOpenAuthorIndex >= value.length
+    )
+      return;
+    initialExpandAppliedRef.current.author = true;
+    setOpenIndex(initialOpenAuthorIndex);
+  }, [initialOpenAuthorIndex, value.length]);
+
+  useEffect(() => {
+    if (
+      initialExpandAppliedRef.current.affiliation ||
+      initialOpenAffiliationIndex == null ||
+      initialOpenAffiliationIndex < 0 ||
+      !affiliationList[initialOpenAffiliationIndex]
+    )
+      return;
+    initialExpandAppliedRef.current.affiliation = true;
+    setAdvancedOpen(true);
+    setOpenAffiliationId(affiliationList[initialOpenAffiliationIndex].id);
+  }, [initialOpenAffiliationIndex, affiliationList]);
 
   // When a new author is added, focus that card's affiliation input
   useEffect(() => {

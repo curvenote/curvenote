@@ -181,22 +181,28 @@ export function ReviewStep({
               Validation errors
             </h4>
             <ul className="space-y-1 text-sm list-disc list-inside text-amber-800 dark:text-amber-200">
-              {fieldErrors.map(({ schema, message }) => (
-                <li key={schema.name}>
-                  <Link
-                    to={`${basePath}${
-                      form.pages.find((p) =>
-                        p.children.some((c) => c.type === 'field' && c.id === schema.name),
-                      )?.slug ??
-                      form.pages[0]?.slug ??
-                      ''
-                    }`}
-                    className="underline hover:no-underline"
+              {fieldErrors.map(({ schema, message, authorIndex, affiliationIndex }) => {
+                const pageSlug =
+                  form.pages.find((p) =>
+                    p.children.some((c) => c.type === 'field' && c.id === schema.name),
+                  )?.slug ??
+                  form.pages[0]?.slug ??
+                  '';
+                const search = new URLSearchParams();
+                if (authorIndex != null) search.set('expandAuthor', String(authorIndex));
+                if (affiliationIndex != null)
+                  search.set('expandAffiliation', String(affiliationIndex));
+                const to = `${basePath}${pageSlug}${search.toString() ? `?${search.toString()}` : ''}`;
+                return (
+                  <li
+                    key={`${schema.name}-${authorIndex ?? 'x'}-${affiliationIndex ?? 'x'}-${message}`}
                   >
-                    {schema.title}: {message}
-                  </Link>
-                </li>
-              ))}
+                    <Link to={to} className="underline hover:no-underline">
+                      {schema.title}: {message}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}

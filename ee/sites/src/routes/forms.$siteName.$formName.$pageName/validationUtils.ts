@@ -28,7 +28,14 @@ export function isFieldEmpty(schema: FieldSchema, value: unknown): boolean {
   return false;
 }
 
-export type FieldValidationError = { schema: FieldSchema; message: string };
+export type FieldValidationError = {
+  schema: FieldSchema;
+  message: string;
+  /** 0-based author index for author-field errors (enables deep link to expand that author). */
+  authorIndex?: number;
+  /** 0-based affiliation index for affiliation errors (enables deep link to expand that affiliation). */
+  affiliationIndex?: number;
+};
 
 /** Author-list validation errors (same rules as getFieldErrors for type author). */
 export function getAuthorFieldErrors(authors: unknown[]): { message: string }[] {
@@ -130,6 +137,7 @@ export function getFieldErrors(
           errors.push({
             schema,
             message: 'Please mark at least one author as corresponding.',
+            authorIndex: 0,
           });
         }
       }
@@ -147,6 +155,7 @@ export function getFieldErrors(
           errors.push({
             schema,
             message: `Author ${i + 1}: name is required.`,
+            authorIndex: i,
           });
         }
 
@@ -155,17 +164,20 @@ export function getFieldErrors(
             errors.push({
               schema,
               message: `Author ${i + 1}: email is required for corresponding authors.`,
+              authorIndex: i,
             });
           } else if (!isValidEmail(email)) {
             errors.push({
               schema,
               message: `Author ${i + 1}: email format is invalid.`,
+              authorIndex: i,
             });
           }
         } else if (email && !isValidEmail(email)) {
           errors.push({
             schema,
             message: `Author ${i + 1}: email format is invalid.`,
+            authorIndex: i,
           });
         }
 
@@ -173,6 +185,7 @@ export function getFieldErrors(
           errors.push({
             schema,
             message: `Author ${i + 1}: ORCID must be in the format 0000-0000-0000-0000.`,
+            authorIndex: i,
           });
         }
 
@@ -180,6 +193,7 @@ export function getFieldErrors(
           errors.push({
             schema,
             message: `Author ${i + 1}: at least one affiliation is required.`,
+            authorIndex: i,
           });
         }
       }
@@ -193,6 +207,7 @@ export function getFieldErrors(
           errors.push({
             schema,
             message: `Affiliation ${i + 1}: name is required.`,
+            affiliationIndex: i,
           });
         }
       }
