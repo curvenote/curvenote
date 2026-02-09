@@ -144,7 +144,7 @@ function SortableAffiliationRow({
       <span className="w-6 text-xs tabular-nums shrink-0 text-muted-foreground mt-0.5">
         {getOrdinalLabel(index + 1)}
       </span>
-      <div className="flex-1 min-w-0 space-y-2">
+      <div className="flex-1 space-y-2 min-w-0">
         {editing ? (
           <>
             <input
@@ -159,7 +159,7 @@ function SortableAffiliationRow({
                   setEditing(false);
                 }
               }}
-              className="w-full px-2 py-1 min-w-0 text-sm rounded border outline-none border-input bg-background"
+              className="px-2 py-1 w-full min-w-0 text-sm rounded border outline-none border-input bg-background"
               autoFocus
             />
             <div className="space-y-2">
@@ -178,7 +178,7 @@ function SortableAffiliationRow({
                 </span>
               </button>
               {deptLocationExpanded && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pl-5">
+                <div className="grid grid-cols-1 gap-2 pl-5 sm:grid-cols-3">
                   <div className="space-y-1">
                     <label
                       htmlFor={`${id}-department`}
@@ -376,7 +376,7 @@ function AffiliationSortableList({
       <DragOverlay dropAnimation={null}>
         {activeAffiliation ? (
           <div
-            className="flex gap-2 items-center px-3 py-2 text-sm rounded-md border border-border bg-muted/30 shadow-lg cursor-grabbing w-64"
+            className="flex gap-2 items-center px-3 py-2 w-64 text-sm rounded-md border shadow-lg border-border bg-muted/30 cursor-grabbing"
             style={{ minHeight: 40 }}
           >
             <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />
@@ -474,46 +474,6 @@ function AuthorCard({
       ...value,
       affiliationIds: [...(value.affiliationIds ?? []), aff.id],
     });
-  };
-
-  const submitAddDetails = () => {
-    const name = (addDetailsName ?? '').trim();
-    if (!name) return;
-    const aff: Affiliation = {
-      id: uuid(),
-      name,
-      department: (addDetailsDepartment ?? '').trim() || undefined,
-      city: (addDetailsCity ?? '').trim() || undefined,
-      country: (addDetailsCountry ?? '').trim() || undefined,
-    };
-    addAffiliation(aff);
-    setAddDetailsName('');
-    setAddDetailsDepartment('');
-    setAddDetailsCity('');
-    setAddDetailsCountry('');
-    setExpandAddDetails(false);
-    setNewAffiliationInput('');
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used when adding from expanded form (view mode)
-  const submitAddDetailsInViewMode = () => {
-    const name = (addDetailsName ?? '').trim();
-    if (!name) return;
-    const aff: Affiliation = {
-      id: uuid(),
-      name,
-      department: (addDetailsDepartment ?? '').trim() || undefined,
-      city: (addDetailsCity ?? '').trim() || undefined,
-      country: (addDetailsCountry ?? '').trim() || undefined,
-    };
-    onEnsureAffiliationInList(aff);
-    addAffiliationInViewMode(aff);
-    setAddDetailsName('');
-    setAddDetailsDepartment('');
-    setAddDetailsCity('');
-    setAddDetailsCountry('');
-    setExpandAddDetails(false);
-    setNewAffiliationInput('');
   };
 
   // Update local state when value changes externally
@@ -1394,11 +1354,11 @@ export function AuthorField({
   const activeAuthorOverlay =
     activeAuthor && activeAuthorId ? (
       <div
-        className="flex gap-3 items-center p-4 rounded-sm border border-border bg-background shadow-lg cursor-grabbing w-72"
+        className="flex gap-3 items-center p-4 w-72 rounded-sm border shadow-lg border-border bg-background cursor-grabbing"
         style={{ minHeight: 56 }}
       >
         <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+        <span className="text-xs tabular-nums shrink-0 text-muted-foreground">
           {getOrdinalLabel(value.findIndex((a) => a.id === activeAuthorId) + 1)}
         </span>
         <span

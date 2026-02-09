@@ -1,5 +1,10 @@
-import type { FieldSchema, FormDefinition, FormPage } from './types.js';
-import type { KeywordsOption, ParagraphOption } from './types.js';
+import type {
+  FieldSchema,
+  FormDefinition,
+  FormPage,
+  KeywordsOption,
+  ParagraphOption,
+} from './types.js';
 
 function countWords(s: string): number {
   const t = s.trim();

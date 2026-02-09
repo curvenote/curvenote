@@ -33,9 +33,9 @@ export function SuccessStep({ stepNumber, workId, isLoggedIn }: SuccessStepProps
 
   return (
     <FormArea stepNumber={stepNumber} stepTitle="Submission successful">
-      <primitives.Card className="p-8 text-center border-0 shadow-none bg-transparent">
-        <div className="flex flex-col items-center gap-6">
-          <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full dark:bg-green-900">
+      <primitives.Card className="p-8 text-center bg-transparent border-0 shadow-none">
+        <div className="flex flex-col gap-6 items-center">
+          <div className="flex justify-center items-center w-16 h-16 bg-green-100 rounded-full dark:bg-green-900">
             <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
           </div>
 
@@ -47,7 +47,7 @@ export function SuccessStep({ stepNumber, workId, isLoggedIn }: SuccessStepProps
           </div>
 
           {isLoggedIn && workUrl ? (
-            <div className="flex flex-col items-center w-full gap-4">
+            <div className="flex flex-col gap-4 items-center w-full">
               <p className="text-sm text-stone-600 dark:text-stone-400">
                 {countdown > 0
                   ? `Redirecting to your work in ${countdown} second${countdown !== 1 ? 's' : ''}...`
@@ -59,7 +59,7 @@ export function SuccessStep({ stepNumber, workId, isLoggedIn }: SuccessStepProps
               </ui.Button>
             </div>
           ) : (
-            <div className="p-4 text-sm text-center text-blue-800 rounded bg-blue-50 dark:bg-blue-900/20 dark:text-blue-200">
+            <div className="p-4 text-sm text-center text-blue-800 bg-blue-50 rounded dark:bg-blue-900/20 dark:text-blue-200">
               <p className="font-medium">Next Steps</p>
               <p className="mt-2">
                 Please check your email for further instructions and updates about your submission.

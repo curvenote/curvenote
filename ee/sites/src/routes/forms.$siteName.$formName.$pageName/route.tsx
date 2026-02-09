@@ -502,7 +502,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
           basePath={basePath}
           stepsDisabled={isSuccessPage}
         />
-        <div className="min-h-0 overflow-auto">
+        <div className="overflow-auto min-h-0">
           {isSuccessPage ? (
             <SuccessStep
               stepNumber={stepNumber}

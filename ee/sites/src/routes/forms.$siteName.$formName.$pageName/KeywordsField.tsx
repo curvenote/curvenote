@@ -41,7 +41,7 @@ export function KeywordsField({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex gap-2 justify-between items-center">
         <FormLabel
           htmlFor={schema.name}
           required={schema.required}
