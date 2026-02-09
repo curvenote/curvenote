@@ -254,9 +254,11 @@ const FALLBACK_FIELDS: FormSubmission['fields'] = {
   authors: [],
   affiliations: [],
   contactName: '',
-  contactAffiliation: '',
   contactEmail: '',
   contactOrcidId: '',
+  submitterIsAuthor: true,
+  submitterAuthorId: null as string | null,
+  submitterAffiliationIds: [] as string[],
 };
 
 export async function action(args: ActionFunctionArgs) {
@@ -352,7 +354,19 @@ export async function action(args: ActionFunctionArgs) {
     const name = String(fields.contactName || ctx.user.display_name || '').trim();
     const email = String(fields.contactEmail || ctx.user.email || '').trim();
     const contactOrcid = String(fields.contactOrcidId || userOrcid || '').trim();
-    const contactAffiliation = String(fields.contactAffiliation || '').trim();
+    // Affiliation can come from submitter author's first affiliation if they are an author
+    const submitterAffiliationIds = (fields.submitterAffiliationIds as string[] | undefined) ?? [];
+    const affiliationsList =
+      (fields.affiliations as { id: string; name?: string }[] | undefined) ?? [];
+    const firstAffId = submitterAffiliationIds[0];
+    const firstAff = Array.isArray(affiliationsList)
+      ? affiliationsList.find(
+          (a): a is { id: string; name?: string } =>
+            a != null && typeof a === 'object' && 'id' in a && a.id === firstAffId,
+        )
+      : undefined;
+    const contactAffiliation =
+      firstAff && typeof firstAff.name === 'string' ? firstAff.name.trim() : '';
     const workTitle = String(fields.title ?? '').trim();
     if (!name) {
       return data({ error: { message: 'Your name is required.' } }, { status: 400 });

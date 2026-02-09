@@ -18,6 +18,15 @@ type FormBodyUser = {
   affiliation?: string;
 } | null;
 
+export type ContactDetailsForAuthor = {
+  name: string;
+  email: string;
+  orcidId: string;
+  nameReadOnly: boolean;
+  emailReadOnly: boolean;
+  orcidReadOnly: boolean;
+};
+
 type FormBodyProps = {
   stepNumber: number;
   stepTitle: string;
@@ -60,6 +69,22 @@ export function FormBody({
     'affiliations',
     onDraftCreated,
   );
+  const saveSubmitterIsAuthor = useSaveField(
+    draftObjectId ?? null,
+    'submitterIsAuthor',
+    onDraftCreated,
+  );
+  const saveSubmitterAuthorId = useSaveField(
+    draftObjectId ?? null,
+    'submitterAuthorId',
+    onDraftCreated,
+  );
+  const saveSubmitterAffiliationIds = useSaveField(
+    draftObjectId ?? null,
+    'submitterAffiliationIds',
+    onDraftCreated,
+  );
+  const saveAuthors = useSaveField(draftObjectId ?? null, 'authors', onDraftCreated);
 
   // Only show validation on this page after user clicks Continue; clear when navigating away
   useEffect(() => {
@@ -143,9 +168,40 @@ export function FormBody({
               draftObjectId={draftObjectId}
               onDraftCreated={onDraftCreated}
               draftContactName={values.contactName}
-              draftContactAffiliation={values.contactAffiliation}
               draftContactEmail={values.contactEmail}
               draftContactOrcidId={values.contactOrcidId}
+              onContactChange={(updates) => {
+                Object.entries(updates).forEach(([k, v]) => {
+                  handleChange(k, v);
+                });
+              }}
+              submitterIsAuthor={values.submitterIsAuthor !== false}
+              onSubmitterIsAuthorChange={(checked) => {
+                if (!checked) {
+                  const authors = Array.isArray(value) ? value : [];
+                  const sid = (values.submitterAuthorId as string | null) ?? null;
+                  const submitterAuthor =
+                    sid != null ? authors.find((a: { id: string }) => a.id === sid) : null;
+                  const affIds =
+                    (submitterAuthor as { affiliationIds?: string[] } | undefined)
+                      ?.affiliationIds ??
+                    (Array.isArray(values.submitterAffiliationIds)
+                      ? values.submitterAffiliationIds
+                      : []);
+                  handleChange('submitterAffiliationIds', affIds);
+                  saveSubmitterAffiliationIds(affIds);
+                  handleChange('submitterIsAuthor', false);
+                  saveSubmitterIsAuthor(false);
+                  handleChange('submitterAuthorId', null);
+                  saveSubmitterAuthorId(null);
+                  const newAuthors = authors.filter((a: { id: string }) => a.id !== sid);
+                  handleChange(schema.name, newAuthors);
+                  saveAuthors(newAuthors);
+                } else {
+                  handleChange('submitterIsAuthor', true);
+                  saveSubmitterIsAuthor(true);
+                }
+              }}
             />
             <AuthorField
               schema={schema}
@@ -155,6 +211,33 @@ export function FormBody({
               onAffiliationListChange={(list) => {
                 handleChange('affiliations', list);
                 saveAffiliationChoices(list);
+              }}
+              contactDetails={{
+                name: String(values.contactName ?? '').trim() || (user?.name ?? ''),
+                email: String(values.contactEmail ?? '').trim() || (user?.email ?? ''),
+                orcidId: String(values.contactOrcidId ?? '').trim() || (user?.orcid ?? ''),
+                nameReadOnly: !!(user && user.name != null && user.name !== ''),
+                emailReadOnly: !!(user && user.email != null && user.email !== ''),
+                orcidReadOnly: !!(user && user.orcid != null && user.orcid !== ''),
+              }}
+              submitterIsAuthor={values.submitterIsAuthor !== false}
+              submitterAuthorId={(values.submitterAuthorId as string | null) ?? null}
+              submitterAffiliationIds={
+                Array.isArray(values.submitterAffiliationIds) ? values.submitterAffiliationIds : []
+              }
+              onSubmitterStateChange={(updates) => {
+                if ('submitterIsAuthor' in updates) {
+                  handleChange('submitterIsAuthor', updates.submitterIsAuthor);
+                  saveSubmitterIsAuthor(updates.submitterIsAuthor);
+                }
+                if ('submitterAuthorId' in updates) {
+                  handleChange('submitterAuthorId', updates.submitterAuthorId);
+                  saveSubmitterAuthorId(updates.submitterAuthorId);
+                }
+                if ('submitterAffiliationIds' in updates) {
+                  handleChange('submitterAffiliationIds', updates.submitterAffiliationIds);
+                  saveSubmitterAffiliationIds(updates.submitterAffiliationIds);
+                }
               }}
               {...dp}
             />

@@ -16,9 +16,17 @@ type ContactDetailsProps = {
   draftObjectId?: string | null;
   onDraftCreated?: (id: string) => void;
   draftContactName?: string;
-  draftContactAffiliation?: string;
   draftContactEmail?: string;
   draftContactOrcidId?: string;
+  /** Called when contact fields change so parent can sync (e.g. submitter author). */
+  onContactChange?: (updates: {
+    contactName?: string;
+    contactEmail?: string;
+    contactOrcidId?: string;
+  }) => void;
+  /** When set, show "I am an author" checkbox (used on author step). */
+  submitterIsAuthor?: boolean;
+  onSubmitterIsAuthorChange?: (checked: boolean) => void;
 };
 
 export function ContactDetails({
@@ -26,9 +34,11 @@ export function ContactDetails({
   draftObjectId = null,
   onDraftCreated,
   draftContactName = '',
-  draftContactAffiliation = '',
   draftContactEmail = '',
   draftContactOrcidId = '',
+  onContactChange,
+  submitterIsAuthor = true,
+  onSubmitterIsAuthorChange,
 }: ContactDetailsProps) {
   const orcidFetcher = useFetcher();
   const linkOrcidResponse = orcidFetcher.data as
@@ -37,14 +47,10 @@ export function ContactDetails({
   const didRedirectRef = useRef(false);
 
   const [name, setName] = useState(user?.name ?? draftContactName ?? '');
-  const [affiliation, setAffiliation] = useState(
-    user?.affiliation ?? draftContactAffiliation ?? '',
-  );
   const [email, setEmail] = useState(user?.email ?? draftContactEmail ?? '');
   const [orcidId, setOrcidId] = useState(user?.orcid ?? draftContactOrcidId ?? '');
 
   const saveName = useSaveField(draftObjectId ?? null, 'contactName', onDraftCreated);
-  const saveAffiliation = useSaveField(draftObjectId ?? null, 'contactAffiliation', onDraftCreated);
   const saveEmail = useSaveField(draftObjectId ?? null, 'contactEmail', onDraftCreated);
   const saveOrcidId = useSaveField(draftObjectId ?? null, 'contactOrcidId', onDraftCreated);
 
@@ -58,16 +64,13 @@ export function ContactDetails({
   // Sync from user (OAuth) or draft when those change; user takes precedence
   useEffect(() => {
     setName(user?.name ?? draftContactName ?? '');
-    setAffiliation(user?.affiliation ?? draftContactAffiliation ?? '');
     setEmail(user?.email ?? draftContactEmail ?? '');
     setOrcidId(user?.orcid ?? draftContactOrcidId ?? '');
   }, [
     user?.name,
-    user?.affiliation,
     user?.email,
     user?.orcid,
     draftContactName,
-    draftContactAffiliation,
     draftContactEmail,
     draftContactOrcidId,
   ]);
@@ -78,7 +81,6 @@ export function ContactDetails({
   const isLoggedIn = !!user;
   // Disable each field only when its value came from OAuth/account (user may not have all fields)
   const nameReadOnly = isLoggedIn && user?.name != null && user.name !== '';
-  const affiliationReadOnly = isLoggedIn && user?.affiliation != null && user.affiliation !== '';
   const emailReadOnly = isLoggedIn && user?.email != null && user.email !== '';
   const orcidReadOnly = isLoggedIn && user?.orcid != null && user.orcid !== '';
 
@@ -111,28 +113,11 @@ export function ContactDetails({
                 const v = e.target.value;
                 setName(v);
                 if (!nameReadOnly) saveName(v);
+                onContactChange?.({ contactName: v, contactEmail: email, contactOrcidId: orcidId });
               }}
               placeholder="Full name"
               className="w-full"
               disabled={nameReadOnly}
-            />
-          </div>
-          <div className="space-y-2">
-            <FormLabel htmlFor="contact-affiliation" required valid={affiliation.trim().length > 0}>
-              Affiliation
-            </FormLabel>
-            <ui.Input
-              id="contact-affiliation"
-              type="text"
-              value={affiliation}
-              onChange={(e) => {
-                const v = e.target.value;
-                setAffiliation(v);
-                if (!affiliationReadOnly) saveAffiliation(v);
-              }}
-              placeholder="University or organization"
-              className="w-full"
-              disabled={affiliationReadOnly}
             />
           </div>
           <div className="space-y-2">
@@ -165,6 +150,7 @@ export function ContactDetails({
                 const v = e.target.value;
                 setOrcidId(v);
                 if (!orcidReadOnly) saveOrcidId(v);
+                onContactChange?.({ contactName: name, contactEmail: email, contactOrcidId: v });
               }}
               placeholder="0000-0000-0000-0000"
               className="w-full"
@@ -217,6 +203,18 @@ export function ContactDetails({
         <p className="text-sm text-muted-foreground">
           Connect your ORCID account to automatically fill in your information.
         </p>
+      )}
+      {onSubmitterIsAuthorChange != null && (
+        <div className="flex gap-2 items-center pt-1">
+          <ui.Checkbox
+            id="submitter-is-author"
+            checked={submitterIsAuthor}
+            onCheckedChange={(checked) => onSubmitterIsAuthorChange(checked === true)}
+          />
+          <label htmlFor="submitter-is-author" className="text-sm font-medium cursor-pointer">
+            I am an author
+          </label>
+        </div>
       )}
     </div>
   );

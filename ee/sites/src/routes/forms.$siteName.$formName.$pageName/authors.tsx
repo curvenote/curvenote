@@ -209,6 +209,12 @@ function AffiliationSortableList({
   );
 }
 
+type ContactReadOnly = {
+  name: boolean;
+  email: boolean;
+  orcid: boolean;
+};
+
 type AuthorCardProps = {
   value: Author;
   index: number;
@@ -220,6 +226,9 @@ type AuthorCardProps = {
   onEnsureAffiliationInList: (aff: Affiliation) => void;
   onRenameAffiliation?: (affiliationId: string, newName: string) => void;
   affiliationInputRef?: React.RefObject<HTMLInputElement | null>;
+  /** When true, name/email/orcid are disabled when contactReadOnly flags are set (submitter mirrors contact). */
+  isSubmitterAuthor?: boolean;
+  contactReadOnly?: ContactReadOnly;
 };
 
 function AuthorCard({
@@ -233,6 +242,8 @@ function AuthorCard({
   onEnsureAffiliationInList,
   onRenameAffiliation,
   affiliationInputRef,
+  isSubmitterAuthor = false,
+  contactReadOnly = { name: false, email: false, orcid: false },
 }: AuthorCardProps) {
   const [editName, setEditName] = useState(value.name);
   const [editOrcid, setEditOrcid] = useState(value.orcid || '');
@@ -298,6 +309,7 @@ function AuthorCard({
     setNewAffiliationInput('');
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used when adding from expanded form (view mode)
   const submitAddDetailsInViewMode = () => {
     const name = (addDetailsName ?? '').trim();
     if (!name) return;
@@ -414,6 +426,7 @@ function AuthorCard({
                   pushAuthor({ name: e.target.value });
                 }}
                 placeholder="Enter full name"
+                disabled={isSubmitterAuthor && contactReadOnly.name}
               />
             </div>
 
@@ -464,6 +477,7 @@ function AuthorCard({
                   pushAuthor({ email: e.target.value.trim() || undefined });
                 }}
                 placeholder="email@example.com"
+                disabled={isSubmitterAuthor && contactReadOnly.email}
               />
             </div>
 
@@ -875,6 +889,15 @@ function AuthorCard({
   );
 }
 
+type ContactDetailsForAuthor = {
+  name: string;
+  email: string;
+  orcidId: string;
+  nameReadOnly: boolean;
+  emailReadOnly: boolean;
+  orcidReadOnly: boolean;
+};
+
 type AuthorFieldProps = {
   schema: AuthorOption;
   value: Author[];
@@ -883,6 +906,16 @@ type AuthorFieldProps = {
   onAffiliationListChange?: (list: Affiliation[]) => void;
   draftObjectId?: string | null;
   onDraftCreated?: (id: string) => void;
+  /** Contact details for submitter; when set, "I am an author" checkbox and submitter sync are used. */
+  contactDetails?: ContactDetailsForAuthor;
+  submitterIsAuthor?: boolean;
+  submitterAuthorId?: string | null;
+  submitterAffiliationIds?: string[];
+  onSubmitterStateChange?: (updates: {
+    submitterIsAuthor?: boolean;
+    submitterAuthorId?: string | null;
+    submitterAffiliationIds?: string[];
+  }) => void;
 };
 
 export function AuthorField({
@@ -893,6 +926,11 @@ export function AuthorField({
   onAffiliationListChange,
   draftObjectId = null,
   onDraftCreated,
+  contactDetails,
+  submitterIsAuthor = true,
+  submitterAuthorId = null,
+  submitterAffiliationIds = [],
+  onSubmitterStateChange,
 }: AuthorFieldProps) {
   const [nameInput, setNameInput] = useState('');
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -903,6 +941,7 @@ export function AuthorField({
   const affiliationList = affiliationListProp ?? [];
   const authorErrors = getAuthorFieldErrors(value);
   const isValid = value.length > 0 && authorErrors.length === 0;
+  const hasSubmitterFlow = contactDetails != null && onSubmitterStateChange != null;
 
   // When a new author is added, focus that card's affiliation input
   useEffect(() => {
@@ -917,6 +956,57 @@ export function AuthorField({
     onChange(newAuthors);
     save(newAuthors);
   };
+
+  // Ensure submitter author exists when submitterIsAuthor is true (create from contact + persisted affiliations)
+  useEffect(() => {
+    if (!hasSubmitterFlow || !submitterIsAuthor || !contactDetails) return;
+    const hasSubmitterInList =
+      submitterAuthorId != null && value.some((a) => a.id === submitterAuthorId);
+    if (hasSubmitterInList) return;
+    const newAuthor: Author = {
+      id: uuid(),
+      name: contactDetails.name || 'Author',
+      email: contactDetails.email || undefined,
+      orcid: contactDetails.orcidId || undefined,
+      affiliationIds: [...submitterAffiliationIds],
+    };
+    const next = [...value, newAuthor];
+    handleChange(next);
+    onSubmitterStateChange({ submitterAuthorId: newAuthor.id });
+  }, [
+    hasSubmitterFlow,
+    submitterIsAuthor,
+    submitterAuthorId,
+    contactDetails?.name,
+    contactDetails?.email,
+    contactDetails?.orcidId,
+    JSON.stringify(submitterAffiliationIds),
+    value,
+  ]);
+
+  // Sync contact details into submitter author when contact changes
+  useEffect(() => {
+    if (!hasSubmitterFlow || !submitterAuthorId || !contactDetails) return;
+    const idx = value.findIndex((a) => a.id === submitterAuthorId);
+    if (idx === -1) return;
+    const author = value[idx];
+    const updates: Partial<Author> = {};
+    if (author.name !== contactDetails.name) updates.name = contactDetails.name;
+    if ((author.email ?? '') !== contactDetails.email)
+      updates.email = contactDetails.email || undefined;
+    if ((author.orcid ?? '') !== contactDetails.orcidId)
+      updates.orcid = contactDetails.orcidId || undefined;
+    if (Object.keys(updates).length === 0) return;
+    const next = value.map((a, i) => (i === idx ? { ...a, ...updates } : a));
+    handleChange(next);
+  }, [
+    hasSubmitterFlow,
+    submitterAuthorId,
+    contactDetails?.name,
+    contactDetails?.email,
+    contactDetails?.orcidId,
+    value,
+  ]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -1000,9 +1090,26 @@ export function AuthorField({
     const newAuthors = [...value];
     newAuthors[index] = updatedAuthor;
     handleChange(newAuthors);
+    if (
+      hasSubmitterFlow &&
+      submitterAuthorId != null &&
+      updatedAuthor.id === submitterAuthorId &&
+      JSON.stringify(updatedAuthor.affiliationIds ?? []) !== JSON.stringify(submitterAffiliationIds)
+    ) {
+      onSubmitterStateChange!({ submitterAffiliationIds: updatedAuthor.affiliationIds ?? [] });
+    }
   };
 
   const handleDelete = (index: number) => {
+    const author = value[index];
+    const isSubmitter = hasSubmitterFlow && author?.id === submitterAuthorId;
+    if (isSubmitter && onSubmitterStateChange) {
+      onSubmitterStateChange({
+        submitterAffiliationIds: author?.affiliationIds ?? [],
+        submitterIsAuthor: false,
+        submitterAuthorId: null,
+      });
+    }
     const newAuthors = value.filter((_, i) => i !== index);
     handleChange(newAuthors);
     if (openIndex === index) {
@@ -1044,6 +1151,16 @@ export function AuthorField({
                   onRenameAffiliation={handleRenameAffiliation}
                   affiliationInputRef={
                     index === value.length - 1 ? lastCardAffiliationInputRef : undefined
+                  }
+                  isSubmitterAuthor={hasSubmitterFlow && author.id === submitterAuthorId}
+                  contactReadOnly={
+                    hasSubmitterFlow && author.id === submitterAuthorId && contactDetails
+                      ? {
+                          name: contactDetails.nameReadOnly,
+                          email: contactDetails.emailReadOnly,
+                          orcid: contactDetails.orcidReadOnly,
+                        }
+                      : undefined
                   }
                 />
               ))}
