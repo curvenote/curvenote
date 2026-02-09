@@ -6,10 +6,11 @@ import type { ChecksMetadataSection } from './checks.schema';
 
 interface ContinueFormProps {
   title: string;
+  authors: string;
   metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
 }
 
-export function ContinueForm({ title, metadata }: ContinueFormProps) {
+export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
   const fetcher = useFetcher();
 
   // Check if title is non-empty
@@ -24,6 +25,7 @@ export function ContinueForm({ title, metadata }: ContinueFormProps) {
   const handleContinue = () => {
     const formData = new FormData();
     formData.append('intent', 'confirm-work');
+    formData.append('authors', authors);
     fetcher.submit(formData, { method: 'post' });
   };
 

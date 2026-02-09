@@ -94,6 +94,11 @@ git worktree add "$WT_DIR" "$BRANCH"
 
 mkdir -p "$WT_DIR"
 
+# Ensure submodules are checked out in the new worktree
+echo "→ Initializing submodules in ${WT_DIR}"
+git -C "$WT_DIR" submodule sync --recursive
+git -C "$WT_DIR" submodule update --init --recursive
+
 # Ensure .gitignore exists and can be appended to
 WT_IGNORE="${WT_DIR}/.gitignore"
 touch "$WT_IGNORE"
@@ -132,6 +137,43 @@ should_overwrite() {
     esac
   fi
   return 0
+}
+
+copy_scms_app_configs() {
+  local SRC_DIR="${ROOT}/platform/scms"
+  local DEST_DIR="${WT_DIR}/platform/scms"
+
+  mkdir -p "$DEST_DIR"
+
+  # Match the dev app-config files (and the dev secrets file, if present).
+  # These are typically ignored by git and therefore won't exist in a fresh worktree checkout.
+  shopt -s nullglob
+  local files=(
+    "$SRC_DIR"/.app-config.development*.yml
+    "$SRC_DIR"/.app-config.development*.yaml
+    "$SRC_DIR"/.app-config.secrets.development*.yml
+    "$SRC_DIR"/.app-config.secrets.development*.yaml
+  )
+  shopt -u nullglob
+
+  if [[ ${#files[@]} -eq 0 ]]; then
+    echo "ℹ️  No SCMS development app-config files found in ${SRC_DIR}; skipping."
+    return 0
+  fi
+
+  echo "→ Copying SCMS development app-config files into ${DEST_DIR}"
+  for SRC in "${files[@]}"; do
+    local BASE
+    BASE="$(basename "$SRC")"
+    local DEST="${DEST_DIR}/${BASE}"
+
+    if should_overwrite "$DEST"; then
+      echo "  - ${BASE}"
+      cp "$SRC" "$DEST"
+    else
+      echo "  - Skipping ${BASE} (destination exists and overwrite declined)"
+    fi
+  done
 }
 
 copy_item() {
@@ -185,6 +227,9 @@ if [[ ${#COPY_FILES[@]} -gt 0 ]]; then
 else
   echo "ℹ️  No --copy items specified; skipping copy."
 fi
+
+# Copy SCMS dev app-configs into the new worktree (if they exist here)
+copy_scms_app_configs
 
 # Install Node dependencies
 if [[ -f "$WT_DIR/package.json" ]]; then

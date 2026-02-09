@@ -53,11 +53,19 @@ const WorkUploadActionSchema = zfd.formData({
   completedFiles: zfd.text(z.string()).optional(), // Used by 'complete' intent
   path: zfd.text(z.string()).optional(), // Used by 'remove' intent
   title: zfd.text(z.string().default('')), // Used by 'update-title' intent - allows empty strings
+  authors: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent
   checkName: zfd.text(workVersionCheckNameSchema).optional(), // Used by 'toggle-check' intent
   checked: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'toggle-check' intent
 });
 
 type WorkUploadActionPayload = z.infer<typeof WorkUploadActionSchema>;
+
+function parseAuthorsList(authorsText: string): string[] {
+  return authorsText
+    .split(',')
+    .map((a) => a.trim())
+    .filter((a) => a.length > 0);
+}
 
 const CHECK_SERVICE_RUN_ACTION_SCHEMA = {
   type: 'object',
@@ -106,6 +114,13 @@ export async function loader(args: Route.LoaderArgs) {
     throw redirect('/app/works');
   }
 
+  const userDisplayName =
+    ctx.user?.display_name?.trim() || ctx.user?.username?.trim() || ctx.user?.email?.trim() || '';
+
+  // Note: this starts disabled/auto-populated, but we still thread it through
+  // to `confirm-work` so the server can persist it onto the work version.
+  const authorsText = work.authors?.length ? work.authors.join(', ') : userDisplayName;
+
   // Track view
   await ctx.trackEvent(TrackEvent.WORK_VIEWED, {
     workId: work.id,
@@ -143,6 +158,7 @@ export async function loader(args: Route.LoaderArgs) {
     cdnKey: work.cdn_key!,
     cdn: work.cdn!,
     title: work.title,
+    authors: authorsText,
     metadata: signedMetadata as any,
     uploadConfig: WORK_UPLOAD_CONFIGURATION,
   };
@@ -165,7 +181,7 @@ export async function action(args: Route.ActionArgs) {
     WorkUploadActionSchema,
     formData,
     async (payload: WorkUploadActionPayload) => {
-      const { intent: uploadIntent, slot, title, checkName, checked } = payload;
+      const { intent: uploadIntent, slot, title, authors, checkName, checked } = payload;
 
       // Handle title update intent (updates title field)
       if (uploadIntent === 'update-title') {
@@ -215,6 +231,15 @@ export async function action(args: Route.ActionArgs) {
         const prisma = await getPrismaClient();
         const timestamp = new Date().toISOString();
 
+        const userDisplayName =
+          baseCtx.user?.display_name?.trim() ||
+          baseCtx.user?.username?.trim() ||
+          baseCtx.user?.email?.trim() ||
+          '';
+
+        const authorsText = (authors ?? '').trim() || userDisplayName;
+        const authorsList = authorsText ? parseAuthorsList(authorsText) : [];
+
         // Get current metadata to access enabled checks
         let wv = await prisma.workVersion.findUnique({
           where: { id: workVersionId },
@@ -248,6 +273,7 @@ export async function action(args: Route.ActionArgs) {
           data: {
             draft: false,
             date_modified: timestamp,
+            ...(authorsList.length > 0 ? { authors: authorsList } : {}),
           },
         });
 
@@ -316,7 +342,7 @@ export async function action(args: Route.ActionArgs) {
             // make the API call to the proofig API
             const PROOFIG_API_BASE_URL = 'http://localhost:5173/api/curvenote';
             const PROOFIG_API_SUBMIT_URL = `${PROOFIG_API_BASE_URL}/api/submit`;
-            const WEBHOOK_BASE_URL = 'http://localhost:3030/api/hooks/proofig_notify';
+            const WEBHOOK_BASE_URL = 'http://localhost:3031/v1/hooks/proofig/notify';
 
             const response = await fetch(PROOFIG_API_SUBMIT_URL, {
               method: 'POST',
@@ -327,16 +353,23 @@ export async function action(args: Route.ActionArgs) {
                 submit_req_id: proofigRun.id,
                 identifier: wv.id,
                 notify_url: `${WEBHOOK_BASE_URL}/${proofigRun.id}`,
-                file_url: manuscriptFile?.signedUrl,
-                title: wv.title,
+                file_url: manuscriptFile?.signedUrl ?? 'WARNING: No manuscript file found',
+                title: wv.title ?? 'Anonymized Title',
                 journal: 'HHMI Workspace',
-                authors: wv.authors.join(', '),
-                filename: manuscriptFile?.name,
+                authors:
+                  !wv.authors || wv.authors.length === 0 ? 'Anonymous' : wv.authors.join(', '),
+                filename: manuscriptFile?.name ? `${manuscriptFile?.name}.pdf` : 'manuscript.pdf',
                 notes: 'Uploaded from HHMI Workspace',
               }),
             });
 
             if (response.ok) {
+              // Proofig returns `{ report_id, status, error_message }` on success.
+              // We store `report_id` at the top-level of the Proofig serviceData (not inside summary).
+
+              // TODO be defensive and handle errors gracefully
+              const { report_id: reportId } = (await response.json()) as { report_id: string }; // TODO validate with Zod
+
               // update the status to submitted is successful
               await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
                 const current = (runData as Record<string, any>) ?? {};
@@ -344,6 +377,7 @@ export async function action(args: Route.ActionArgs) {
                   ...current,
                   serviceData: {
                     ...current.serviceData,
+                    reportId,
                     stages: {
                       ...current.serviceData?.stages,
                       initialPost: { status: 'completed', timestamp: new Date().toISOString() },
@@ -426,7 +460,7 @@ export async function action(args: Route.ActionArgs) {
 }
 
 export default function WorksUpload({ loaderData }: Route.ComponentProps) {
-  const { cdnKey, uploadConfig, metadata, title } = loaderData;
+  const { cdnKey, uploadConfig, metadata, title, authors } = loaderData;
 
   // Resolve check services at render time to avoid serialization issues
   // Construct minimal AppConfig from ClientDeploymentConfig
@@ -466,6 +500,18 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           </p>
           <ui.Card className="px-6 pt-4 pb-6 space-y-4">
             <WorkTitleForm title={title} />
+            <div className="space-y-1">
+              <label htmlFor="authors" className="inline-block text-sm font-medium">
+                Authors
+              </label>
+              <ui.Input
+                id="authors"
+                type="text"
+                value={authors}
+                disabled
+                placeholder="Auto-populated on submission"
+              />
+            </div>
           </ui.Card>
         </SectionWithHeading>
         <SectionWithHeading
@@ -483,7 +529,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             />
           </ui.Card>
         </SectionWithHeading>
-        <ContinueForm title={title} metadata={metadata} />
+        <ContinueForm title={title} authors={authors} metadata={metadata} />
       </PageFrame>
     </MainWrapper>
   );
