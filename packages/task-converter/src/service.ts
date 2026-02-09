@@ -2,16 +2,33 @@
  * SCMS Converter Service
  *
  * Node.js server for the SCMS converter (Cloud Run style). Validates incoming
- * POST payload and message attributes, creates a temp folder, then runs
- * converter implementation with consistent error handling and cleanup.
+ * POST payload (target, conversionType, workVersion, optional filename), runs
+ * Word → PDF via pandoc-myst pipeline, then stubs for upload and metadata update.
  */
 
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import express from 'express';
 import type { HandlerContext } from '@curvenote/scms-tasks';
 import { withPubSubHandler } from '@curvenote/scms-tasks';
+import {
+  validatePayload,
+  type ConverterPayload,
+  type WorkVersionMetadataPayload,
+  type FileMetadataSectionItem,
+} from './payload.js';
+import { runPandocMystPipeline } from './convert.js';
+import { getWorksApiBase, uploadPdfToStorage, updateWorkVersionMetadata } from './worksApi.js';
 
-/** Payload shape for the converter (extend with task-specific fields as needed). */
-type ConverterPayload = { taskId?: string };
+const EXPORT_SLOT = 'export';
+const PDF_MIME = 'application/pdf';
+const DEFAULT_EXPORT_FILENAME = 'document.pdf';
+
+function exportFilenameFromPayload(filename?: string): string {
+  if (!filename || typeof filename !== 'string') return DEFAULT_EXPORT_FILENAME;
+  const base = path.basename(filename);
+  return base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`;
+}
 
 /**
  * Creates and configures the Express service for the SCMS converter.
@@ -30,26 +47,76 @@ export function createService() {
   /**
    * Main endpoint for converter jobs.
    *
-   * Uses withPubSubHandler to validate request/message/attributes/data, create
-   * temp folder and job client, decode JSON payload, then run the converter.
-   * Your handler receives (client, attributes, payload, tmpFolder); get taskId
-   * or other task-specific info from attributes or payload as needed.
+   * Validates payload (target === 'pdf', conversionType === 'pandoc-myst', workVersion).
+   * Export filename comes from payload.filename, default 'document.pdf'.
+   * Runs: pick Word → download → pandoc → write curvenote.yml + index.md front matter
+   * → curvenote build --pdf → upload PDF (stub) → update work version metadata (stub) → completed.
    */
   app.post(
     '/',
     withPubSubHandler<ConverterPayload>(
       async (ctx: HandlerContext<ConverterPayload>) => {
         const { client, attributes, payload, tmpFolder, res } = ctx;
-        // Handler receives (client, attributes, payload, tmpFolder, res). Get taskId from payload/attributes.
+
+        if (!validatePayload(payload)) {
+          throw new Error(
+            'Invalid payload: required workVersion (object with id, work_id, title, authors), target = "pdf", conversionType = "pandoc-myst", and metadata as object',
+          );
+        }
+
+        const workVersion = payload.workVersion;
         const taskId = payload.taskId;
+        const exportFilename = exportFilenameFromPayload(payload.filename);
         if (taskId) console.log('Task ID from payload', taskId);
-        console.log('In handler');
 
-        // Placeholder: add real conversion logic here.
+        const pdfPath = await runPandocMystPipeline(workVersion, tmpFolder, exportFilename);
+        const stats = await fs.stat(pdfPath);
+        const baseUrl = getWorksApiBase(attributes);
+        // const uploadResult = await uploadPdfToStorage(
+        //   pdfPath,
+        //   workVersion.cdn,
+        //   workVersion.cdn_key,
+        //   attributes.handshake,
+        //   baseUrl,
+        // );
 
-        await client.completed(res, 'Converter completed (placeholder)', { taskId });
+        // const pdfFileEntry: FileMetadataSectionItem = {
+        //   name: exportFilename,
+        //   size: stats.size,
+        //   type: PDF_MIME,
+        //   path: uploadResult.path,
+        //   md5: '', // stub; real implementation would compute or get from upload
+        //   uploadDate: new Date().toISOString(),
+        //   slot: EXPORT_SLOT,
+        // };
+
+        // const metadata: WorkVersionMetadataPayload = {
+        //   ...workVersion.metadata,
+        //   version: workVersion.metadata?.version ?? 1,
+        //   files: {
+        //     ...(workVersion.metadata?.files && typeof workVersion.metadata.files === 'object'
+        //       ? workVersion.metadata.files
+        //       : {}),
+        //     [uploadResult.path]: pdfFileEntry,
+        //   },
+        // };
+
+        // await updateWorkVersionMetadata(
+        //   workVersion.work_id,
+        //   workVersion.id,
+        //   metadata,
+        //   attributes.handshake,
+        //   baseUrl,
+        // );
+
+        await client.completed(res, 'PDF conversion completed', {
+          taskId,
+          workVersionId: workVersion.id,
+          workId: workVersion.work_id,
+          exportPath: pdfPath, //uploadResult.path,
+        });
       },
-      { clientLoggingOnlyMode: true },
+      { clientLoggingOnlyMode: true, tmpFolderRoot: './tmp', preserveTmpFolder: true },
     ),
   );
 

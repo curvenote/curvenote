@@ -81,6 +81,8 @@ export type WithPubSubHandlerOptions = {
   onFailure?: OnFailureCallback;
   /** When true, SCMSJobClient skips HTTP calls and only logs to console (for development). */
   clientLoggingOnlyMode?: boolean;
+  tmpFolderRoot?: string;
+  preserveTmpFolder?: boolean;
 };
 
 /**
@@ -101,7 +103,7 @@ export function withPubSubHandler<TPayload = unknown>(
   handler: ConverterHandler<TPayload>,
   options?: WithPubSubHandlerOptions,
 ): (req: Request, res: Response) => Promise<void> {
-  const { onFailure, clientLoggingOnlyMode } = options ?? {};
+  const { onFailure, clientLoggingOnlyMode, tmpFolderRoot, preserveTmpFolder } = options ?? {};
   return async (req: Request, res: Response): Promise<void> => {
     console.log('Received request', req.body);
     const { body } = req;
@@ -137,7 +139,7 @@ export function withPubSubHandler<TPayload = unknown>(
 
     const validatedAttributes = attrs as Attributes;
     console.log('Creating temporary folder');
-    const tmpFolder = await fs.mkdtemp(path.join(os.tmpdir(), 'scms-job'));
+    const tmpFolder = await fs.mkdtemp(path.join(tmpFolderRoot ?? os.tmpdir(), 'scms-job'));
     console.log('Temporary folder created', tmpFolder);
 
     try {
@@ -169,12 +171,16 @@ export function withPubSubHandler<TPayload = unknown>(
 
       await handler(ctx);
 
-      removeFolder(tmpFolder);
+      if (!preserveTmpFolder) {
+        removeFolder(tmpFolder);
+      }
       console.log('Removed temporary folder');
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : String(err);
       console.error('Error processing converter job:', err);
-      removeFolder(tmpFolder);
+      if (!preserveTmpFolder) {
+        removeFolder(tmpFolder);
+      }
       try {
         if (client) {
           const { failureState, userId } = validatedAttributes;

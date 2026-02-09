@@ -1,0 +1,10 @@
+# Minimal curvenote.yml template for converter-generated projects.
+# The converter augments this at runtime with project.id (UUID), project.title,
+# project.description, project.authors, and site.title from workVersion.
+version: 1
+project:
+  id: placeholder
+  title: Untitled
+  description: ""
+site:
+  title: Untitled

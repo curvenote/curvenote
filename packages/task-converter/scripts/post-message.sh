@@ -4,9 +4,8 @@
 # Use when the service is running (e.g. npm run start).
 #
 # The body matches what withPubSubHandler expects: message.attributes and
-# message.data (base64-encoded JSON). Payload shape: taskId, target, workVersion
-# (WorkVersion model fields + metadata with files). Exactly one Word-doc-style
-# file entry is included for conversion; add signedUrl for a real download URL.
+# message.data (base64-encoded JSON). Payload shape: taskId, target, conversionType,
+# optional filename, workVersion. Add signedUrl to the file entry for real conversion.
 #
 # Usage:
 #   ./scripts/post-message.sh
@@ -17,16 +16,19 @@ set -euo pipefail
 PORT="${PORT:-8080}"
 BASE_URL="http://localhost:${PORT}"
 
-# Payload: workVersion (WorkVersion shape) with metadata.files containing one Word doc entry
+# Payload: workVersion (WorkVersion shape) with metadata from real storage.
+# For end-to-end conversion, add "signedUrl" to the file entry with a download URL.
 PAYLOAD_JSON=$(cat <<'PAYLOAD_EOF'
 {
   "taskId": "test-converter-1",
   "target": "pdf",
+  "conversionType": "pandoc-myst",
+  "filename": "paper.pdf",
   "workVersion": {
-    "id": "0197e5a6-a693-7c86-8514-e219855d724c",
-    "work_id": "0197e5a6-a693-7c86-8514-e219855d724b",
-    "date_created": "2025-07-07T16:00:00.000Z",
-    "date_modified": "2025-07-07T16:00:00.000Z",
+    "id": "019c425e-399f-7d65-93f5-691196ed551b",
+    "work_id": "019c425e-399f-7d64-0000-000000000001",
+    "date_created": "2026-02-09T12:00:00.000Z",
+    "date_modified": "2026-02-09T12:27:40.648Z",
     "draft": true,
     "cdn": null,
     "cdn_key": null,
@@ -40,16 +42,22 @@ PAYLOAD_JSON=$(cat <<'PAYLOAD_EOF'
     "metadata": {
       "version": 1,
       "files": {
-        "0197e5a6-a693-7c86-8514-e219855d724c/pmc/manuscript/Paper.docx": {
-          "md5": "874578c75f467a5de1ec3c4094be23cc",
-          "name": "Paper.docx",
-          "path": "0197e5a6-a693-7c86-8514-e219855d724c/pmc/manuscript/Paper.docx",
-          "size": 12078,
-          "slot": "pmc/manuscript",
+        "019c425e-399f-7d65-93f5-691196ed551b/manuscript/paper.docx": {
+          "md5": "508afb329e745ff3a95d224ee6dbc92e",
+          "name": "paper.docx",
+          "path": "019c425e-399f-7d65-93f5-691196ed551b/manuscript/paper.docx",
+          "size": 1692568,
+          "slot": "manuscript",
           "type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          "label": "Paper",
-          "uploadDate": "2025-07-07T16:10:41.212Z"
+          "label": "paper",
+          "order": 1,
+          "uploadDate": "2026-02-09T12:27:40.648Z",
+          "signedUrl": "https://storage.googleapis.com/cdn-curvenote-dev-1/static/very-simple.docx"
         }
+      },
+      "checks": {
+        "enabled": ["proofig"],
+        "proofig": {}
       }
     },
     "occ": 0
@@ -60,7 +68,7 @@ PAYLOAD_EOF
 # Single-line base64 for embedding in outer JSON
 DATA_B64="$(echo -n "$PAYLOAD_JSON" | base64 | tr -d '\n')"
 
-# Required attributes (placeholder values for local testing)
+# Required attributes (placeholder values for local testing; conversionType is in payload)
 BODY=$(cat <<EOF
 {
   "message": {
@@ -70,8 +78,7 @@ BODY=$(cat <<EOF
       "failureState": "failure",
       "statusUrl": "http://localhost:${PORT}/status",
       "jobUrl": "http://localhost:${PORT}/job/1111-2222-3333-4444-555555555555",
-      "handshake": "local-test",
-      "conversionType": "pandoc-myst"
+      "handshake": "local-test"
     },
     "data": "${DATA_B64}"
   }
