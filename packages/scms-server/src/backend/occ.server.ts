@@ -158,7 +158,7 @@ export async function safeJsonUpdateGeneric<T extends Prisma.JsonObject, M exten
  */
 export async function safeWorkVersionJsonUpdate<T extends Prisma.JsonObject>(
   workVersionId: string,
-  modifyFn: (metadata?: Prisma.JsonValue) => T,
+  modifyFn: (metadata?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.WorkVersionGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('workVersion', workVersionId, modifyFn, maxRetries);
@@ -169,7 +169,7 @@ export async function safeWorkVersionJsonUpdate<T extends Prisma.JsonObject>(
  */
 export async function safeSubmissionVersionJsonUpdate<T extends Prisma.JsonObject>(
   submissionVersionId: string,
-  modifyFn: (metadata?: Prisma.JsonValue) => T,
+  modifyFn: (metadata?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.SubmissionVersionGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('submissionVersion', submissionVersionId, modifyFn, maxRetries);
@@ -180,7 +180,7 @@ export async function safeSubmissionVersionJsonUpdate<T extends Prisma.JsonObjec
  */
 export async function safeSubmissionKindJsonUpdate<T extends Prisma.JsonObject>(
   submissionKindId: string,
-  modifyFn: (metadata?: Prisma.JsonValue) => T,
+  modifyFn: (metadata?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.SubmissionKindGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('submissionKind', submissionKindId, modifyFn, maxRetries);
@@ -191,7 +191,7 @@ export async function safeSubmissionKindJsonUpdate<T extends Prisma.JsonObject>(
  */
 export async function safeObjectDataUpdate<T extends Prisma.JsonObject>(
   objectId: string,
-  modifyFn: (data?: Prisma.JsonValue) => T,
+  modifyFn: (data?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.ObjectGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('object', objectId, modifyFn, maxRetries);
@@ -202,7 +202,7 @@ export async function safeObjectDataUpdate<T extends Prisma.JsonObject>(
  */
 export async function safeCheckServiceRunDataUpdate<T extends Prisma.JsonObject>(
   checkServiceRunId: string,
-  modifyFn: (data?: Prisma.JsonValue) => T,
+  modifyFn: (data?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.CheckServiceRunGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('checkServiceRun', checkServiceRunId, modifyFn, maxRetries);
@@ -213,7 +213,7 @@ export async function safeCheckServiceRunDataUpdate<T extends Prisma.JsonObject>
  */
 export async function safeSiteDataUpdate<T extends Prisma.JsonObject>(
   siteId: string,
-  modifyFn: (data?: Prisma.JsonValue) => T,
+  modifyFn: (data?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.SiteGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('siteData', siteId, modifyFn, maxRetries);
@@ -224,7 +224,7 @@ export async function safeSiteDataUpdate<T extends Prisma.JsonObject>(
  */
 export async function safeSiteMetadataUpdate<T extends Prisma.JsonObject>(
   siteId: string,
-  modifyFn: (metadata?: Prisma.JsonValue) => T,
+  modifyFn: (metadata?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.SiteGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('siteMetadata', siteId, modifyFn, maxRetries);

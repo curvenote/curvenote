@@ -42,6 +42,7 @@ import { List, Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 as uuid } from 'uuidv7';
+import { MINIMAL_PROOFIG_SERVICE_DATA } from '@/extensions/hhmi-checks/packages/checks-proofig/dist/schema';
 
 /**
  * Zod schema for work upload form validation
@@ -249,9 +250,9 @@ export async function action(args: Route.ActionArgs) {
         const enabledChecks = (currentMetadata.checks?.enabled as WorkVersionCheckName[]) || [];
 
         // Create check status objects for each enabled check
-        const checkStatuses: Record<string, { dispatched: boolean }> = {};
+        const checkStatuses: Record<string, any> = {};
         enabledChecks.forEach((name) => {
-          checkStatuses[name] = { dispatched: false };
+          checkStatuses[name] = {};
         });
 
         // Update metadata with check statuses
@@ -290,18 +291,7 @@ export async function action(args: Route.ActionArgs) {
               $schema: CHECK_SERVICE_RUN_ACTION_SCHEMA,
               status: 'healthy',
               serviceDataSchema: {},
-              serviceData: {
-                stages: {
-                  // TODO this is proofig specific; we should generalize this
-                  initialPost: { status: 'pending', timestamp: new Date().toISOString() },
-                  // subimageDetection: { status: 'pending', timestamp: new Date().toISOString() },
-                  // subimageSelection: { status: 'pending', timestamp: new Date().toISOString() },
-                  // integrityDetection: { status: 'pending', timestamp: new Date().toISOString() },
-                  // resultsReview: { status: 'pending', timestamp: new Date().toISOString() },
-                  // finalReport: { status: 'pending', timestamp: new Date().toISOString() },
-                },
-                reportUrl: undefined,
-              },
+              serviceData: MINIMAL_PROOFIG_SERVICE_DATA,
             },
           }));
 
@@ -381,6 +371,10 @@ export async function action(args: Route.ActionArgs) {
                     stages: {
                       ...current.serviceData?.stages,
                       initialPost: { status: 'completed', timestamp: new Date().toISOString() },
+                      subimageDetection: {
+                        status: 'processing',
+                        timestamp: new Date().toISOString(),
+                      },
                     },
                   },
                 } as Prisma.JsonObject;

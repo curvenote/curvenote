@@ -162,14 +162,12 @@ export default function ChecksPage({ loaderData }: Route.ComponentProps) {
           return (
             <React.Fragment key={service.id}>
               <Component metadata={(existingRunFromThisService?.data as any)?.serviceData} />
-              <pre className="p-2 text-xs bg-gray-100 rounded-md min-h-24">
-                {JSON.stringify(
-                  checkServiceRuns.map(({ id, kind }) => ({ id, kind })),
-                  null,
-                  2,
-                )}
-                {JSON.stringify((existingRunFromThisService?.data as any)?.serviceData, null, 2)}
-              </pre>
+              <details>
+                <summary>Debug Info</summary>
+                <pre className="p-2 text-xs bg-gray-100 rounded-md min-h-24">
+                  {JSON.stringify((existingRunFromThisService?.data as any)?.serviceData, null, 2)}
+                </pre>
+              </details>
             </React.Fragment>
           );
         })}
