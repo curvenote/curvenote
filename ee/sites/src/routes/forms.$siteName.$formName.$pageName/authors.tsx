@@ -9,6 +9,7 @@ import {
   Minus,
   Trash2,
   ChevronUp,
+  ChevronDown,
   BadgeCheck,
   CornerDownLeft,
 } from 'lucide-react';
@@ -44,8 +45,10 @@ type SortableAffiliationRowProps = {
   authorId: string;
   index: number;
   affiliationId: string;
+  affiliation: Affiliation;
   name: string;
   onRename: (affiliationId: string, newName: string) => void;
+  onUpdate: (affiliationId: string, updates: Partial<Affiliation>) => void;
   onRemove: () => void;
 };
 
@@ -53,12 +56,18 @@ function SortableAffiliationRow({
   authorId,
   index,
   affiliationId,
+  affiliation,
   name,
   onRename,
+  onUpdate,
   onRemove,
 }: SortableAffiliationRowProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
+  const [showDeptLocation, setShowDeptLocation] = useState(false);
+  const [editDepartment, setEditDepartment] = useState(affiliation.department ?? '');
+  const [editCity, setEditCity] = useState(affiliation.city ?? '');
+  const [editCountry, setEditCountry] = useState(affiliation.country ?? '');
   const id = `${authorId}-aff-${index}`;
   const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
     id,
@@ -67,11 +76,45 @@ function SortableAffiliationRow({
   useEffect(() => {
     setEditValue(name);
   }, [name]);
+  useEffect(() => {
+    setEditDepartment(affiliation.department ?? '');
+    setEditCity(affiliation.city ?? '');
+    setEditCountry(affiliation.country ?? '');
+  }, [affiliation.department, affiliation.city, affiliation.country]);
 
-  const handleSaveRename = () => {
+  const hasDeptOrLocation = !!(
+    (affiliation.department ?? '').trim() ||
+    (affiliation.city ?? '').trim() ||
+    (affiliation.country ?? '').trim()
+  );
+
+  const saveNameOnly = () => {
     const trimmed = editValue.trim();
     if (trimmed && trimmed !== name) onRename(affiliationId, trimmed);
+  };
+
+  const handleDoneEditing = () => {
+    saveNameOnly();
     setEditing(false);
+  };
+
+  const saveDepartment = () => {
+    const trimmed = (editDepartment ?? '').trim();
+    if (trimmed !== (affiliation.department ?? '').trim()) {
+      onUpdate(affiliationId, { department: trimmed || undefined });
+    }
+  };
+  const saveCity = () => {
+    const trimmed = (editCity ?? '').trim();
+    if (trimmed !== (affiliation.city ?? '').trim()) {
+      onUpdate(affiliationId, { city: trimmed || undefined });
+    }
+  };
+  const saveCountry = () => {
+    const trimmed = (editCountry ?? '').trim();
+    if (trimmed !== (affiliation.country ?? '').trim()) {
+      onUpdate(affiliationId, { country: trimmed || undefined });
+    }
   };
 
   const style = {
@@ -80,66 +123,168 @@ function SortableAffiliationRow({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const deptLocationExpanded = showDeptLocation;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex gap-2 items-center px-3 py-2 text-sm rounded-md border border-border bg-muted/30"
+      className="flex gap-2 items-start px-3 py-2 text-sm rounded-md border border-border bg-muted/30"
     >
       <button
         {...attributes}
         {...listeners}
         type="button"
-        className="cursor-grab active:cursor-grabbing touch-none shrink-0"
+        className="cursor-grab active:cursor-grabbing touch-none shrink-0 mt-0.5"
       >
         <GripVertical className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground" />
       </button>
-      <span className="w-6 text-xs tabular-nums shrink-0 text-muted-foreground">
+      <span className="w-6 text-xs tabular-nums shrink-0 text-muted-foreground mt-0.5">
         {getOrdinalLabel(index + 1)}
       </span>
-      {editing ? (
-        <input
-          type="text"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={handleSaveRename}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSaveRename();
-            if (e.key === 'Escape') {
-              setEditValue(name);
-              setEditing(false);
-            }
-          }}
-          className="flex-1 px-2 py-1 min-w-0 text-sm rounded border outline-none border-input bg-background"
-          autoFocus
-        />
-      ) : (
-        <span className="flex-1 min-w-0 truncate">{name}</span>
-      )}
-      {!editing && (
-        <>
-          <ui.Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setEditing(true)}
-            aria-label="Edit affiliation"
-            className="cursor-pointer shrink-0"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </ui.Button>
-          <ui.Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={onRemove}
-            aria-label="Remove affiliation"
-            className="cursor-pointer shrink-0"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-          </ui.Button>
-        </>
-      )}
+      <div className="flex-1 min-w-0 space-y-2">
+        {editing ? (
+          <>
+            <input
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={saveNameOnly}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveNameOnly();
+                if (e.key === 'Escape') {
+                  setEditValue(name);
+                  setEditing(false);
+                }
+              }}
+              className="w-full px-2 py-1 min-w-0 text-sm rounded border outline-none border-input bg-background"
+              autoFocus
+            />
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowDeptLocation(!deptLocationExpanded)}
+                className="flex gap-1.5 items-center text-xs text-muted-foreground hover:text-foreground"
+              >
+                {deptLocationExpanded ? (
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+                ) : (
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span>
+                  {hasDeptOrLocation ? 'Edit department or location' : 'Add department or location'}
+                </span>
+              </button>
+              {deptLocationExpanded && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pl-5">
+                  <div className="space-y-1">
+                    <label
+                      htmlFor={`${id}-department`}
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Department
+                    </label>
+                    <ui.Input
+                      id={`${id}-department`}
+                      type="text"
+                      value={editDepartment}
+                      onChange={(e) => setEditDepartment(e.target.value)}
+                      onBlur={saveDepartment}
+                      placeholder="Department"
+                      className="w-full text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label
+                      htmlFor={`${id}-city`}
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      City
+                    </label>
+                    <ui.Input
+                      id={`${id}-city`}
+                      type="text"
+                      value={editCity}
+                      onChange={(e) => setEditCity(e.target.value)}
+                      onBlur={saveCity}
+                      placeholder="City"
+                      className="w-full text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label
+                      htmlFor={`${id}-country`}
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Country
+                    </label>
+                    <ui.Input
+                      id={`${id}-country`}
+                      type="text"
+                      value={editCountry}
+                      onChange={(e) => setEditCountry(e.target.value)}
+                      onBlur={saveCountry}
+                      placeholder="Country"
+                      className="w-full text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <span className="block min-w-0 truncate">{name}</span>
+        )}
+      </div>
+      <div className="flex gap-1 items-start shrink-0">
+        {editing ? (
+          <>
+            <ui.Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={handleDoneEditing}
+              aria-label="Collapse"
+              className="cursor-pointer shrink-0"
+            >
+              <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+            </ui.Button>
+            <ui.Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={onRemove}
+              aria-label="Remove affiliation"
+              className="cursor-pointer shrink-0"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+            </ui.Button>
+          </>
+        ) : (
+          <>
+            <ui.Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => setEditing(true)}
+              aria-label="Edit affiliation"
+              className="cursor-pointer shrink-0"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </ui.Button>
+            <ui.Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={onRemove}
+              aria-label="Remove affiliation"
+              className="cursor-pointer shrink-0"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+            </ui.Button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -150,6 +295,7 @@ type AffiliationSortableListProps = {
   onReorder: (newOrder: string[]) => void;
   onRemove: (affiliationId: string) => void;
   onRename: (affiliationId: string, newName: string) => void;
+  onUpdate: (affiliationId: string, updates: Partial<Affiliation>) => void;
   authorId: string;
 };
 
@@ -164,6 +310,7 @@ function AffiliationSortableList({
   onReorder,
   onRemove,
   onRename,
+  onUpdate,
   authorId,
 }: AffiliationSortableListProps) {
   const items = useMemo(
@@ -193,17 +340,23 @@ function AffiliationSortableList({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">
-          {affiliationIds.map((affId, idx) => (
-            <SortableAffiliationRow
-              key={`${authorId}-aff-${idx}`}
-              authorId={authorId}
-              index={idx}
-              affiliationId={affId}
-              name={getAffiliationName(affiliationList, affId)}
-              onRename={onRename}
-              onRemove={() => onRemove(affId)}
-            />
-          ))}
+          {affiliationIds.map((affId, idx) => {
+            const affiliation = affiliationList.find((a) => a.id === affId);
+            if (!affiliation) return null;
+            return (
+              <SortableAffiliationRow
+                key={`${authorId}-aff-${idx}`}
+                authorId={authorId}
+                index={idx}
+                affiliationId={affId}
+                affiliation={affiliation}
+                name={getAffiliationName(affiliationList, affId)}
+                onRename={onRename}
+                onUpdate={onUpdate}
+                onRemove={() => onRemove(affId)}
+              />
+            );
+          })}
         </div>
       </SortableContext>
     </DndContext>
@@ -226,6 +379,7 @@ type AuthorCardProps = {
   affiliationList: Affiliation[];
   onEnsureAffiliationInList: (aff: Affiliation) => void;
   onRenameAffiliation?: (affiliationId: string, newName: string) => void;
+  onUpdateAffiliation?: (affiliationId: string, updates: Partial<Affiliation>) => void;
   affiliationInputRef?: React.RefObject<HTMLInputElement | null>;
   /** When true, name/email/orcid are disabled when contactReadOnly flags are set (submitter mirrors contact). */
   isSubmitterAuthor?: boolean;
@@ -242,6 +396,7 @@ function AuthorCard({
   affiliationList,
   onEnsureAffiliationInList,
   onRenameAffiliation,
+  onUpdateAffiliation,
   affiliationInputRef,
   isSubmitterAuthor = false,
   contactReadOnly = { name: false, email: false, orcid: false },
@@ -521,6 +676,9 @@ function AuthorCard({
                 }}
                 onRename={(affiliationId, newName) => {
                   onRenameAffiliation?.(affiliationId, newName.trim());
+                }}
+                onUpdate={(affiliationId, updates) => {
+                  onUpdateAffiliation?.(affiliationId, updates);
                 }}
                 authorId={value.id}
               />
@@ -1226,6 +1384,7 @@ export function AuthorField({
                   affiliationList={affiliationList}
                   onEnsureAffiliationInList={handleEnsureAffiliationInList}
                   onRenameAffiliation={handleRenameAffiliation}
+                  onUpdateAffiliation={handleUpdateAffiliation}
                   affiliationInputRef={
                     index === value.length - 1 ? lastCardAffiliationInputRef : undefined
                   }
