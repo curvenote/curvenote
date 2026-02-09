@@ -137,6 +137,13 @@ export default [
     ...getRoutesForMountPoint('app'),
 
     // Works Routes
+    ...prefix('works/v2', [
+      index('routes/app/works._index/route.tsx', { id: 'worksV2.index' }),
+      // V2 work detail (UX experiment: no outlet, no secondary nav)
+      route(':workId', 'routes/app/works.v2.$workId/route.tsx', { id: 'worksV2.$workId' }),
+    ]),
+
+    // Works Routes
     ...prefix('works', [
       // Register extension routes at the works level
       ...getRoutesForMountPoint('app/works'),

@@ -39,7 +39,7 @@ export function WorkListItem({
           <div className="flex gap-2 items-start">
             <h3 className="font-normal leading-tight transition-colors line-clamp-2">
               <Link
-                to={`/app/works/${work.id}`}
+                to={`${work.id}`}
                 className="text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
               >
                 {latestVersion?.title || 'Untitled Work'}

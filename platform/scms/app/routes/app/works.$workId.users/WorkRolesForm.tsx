@@ -3,7 +3,13 @@ import { ui } from '@curvenote/scms-core';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { GeneralError } from '@curvenote/scms-core';
 
-export function WorkRolesForm() {
+export function WorkRolesForm({
+  submitAction,
+  onSuccess,
+}: {
+  submitAction?: string;
+  onSuccess?: () => void;
+} = {}) {
   const form = useRef<HTMLFormElement>(null);
   const fetcher = useFetcher<{
     message?: string;
@@ -36,9 +42,10 @@ export function WorkRolesForm() {
         setSelectedUser('');
         setSelectedRole('CONTRIBUTOR');
         form.current?.reset();
+        onSuccess?.();
       }
     }
-  }, [fetcher.state, fetcher.data]);
+  }, [fetcher.state, fetcher.data, onSuccess]);
 
   // Search function for AsyncComboBox using plain fetch
   const searchUsers = useCallback(async (query: string): Promise<ui.ComboBoxOption[]> => {
@@ -101,7 +108,7 @@ export function WorkRolesForm() {
     formData.append('userId', selectedUser);
     formData.append('role', selectedRole);
 
-    fetcher.submit(formData, { method: 'POST' });
+    fetcher.submit(formData, { method: 'POST', ...(submitAction && { action: submitAction }) });
   };
 
   return (
