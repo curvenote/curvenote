@@ -1,20 +1,34 @@
 import type { Route } from './+types/route';
 import { redirect, type LoaderFunctionArgs } from 'react-router';
 import { Outlet } from 'react-router';
+import { withSecureWorkContext } from '@curvenote/scms-server';
 import {
   MainWrapper,
   SecondaryNav,
   getBrandingFromMetaMatches,
   joinPageTitle,
+  TrackEvent,
+  getWorkflows,
+  registerExtensionWorkflows,
+  scopes,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
+import { dbGetWorkVersionsWithSubmissionVersions } from './db.server';
 import { WorkDetailsCard } from './WorkDetailsCard';
+import { getUniqueSubmissions } from './utils.server';
 import { extensions } from '../../../extensions/client';
-import { workLayoutLoader } from './workLayoutLoader.server';
 
 export const loader = async (args: LoaderFunctionArgs) => {
-  const data = await workLayoutLoader(args);
+  const ctx = await withSecureWorkContext(args, [scopes.work.read]);
+
   const { workId } = args.params;
+  if (!workId) return redirect('/app/works');
+
+  const workVersions = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
+  if (!workVersions) throw redirect('/app/works');
+
+  const isDraftOnlyWork = workVersions.length > 0 && workVersions.every((v) => v.draft);
+
   const url = new URL(args.request.url);
   const pathname = url.pathname;
   const includeDraftSubmissions = url.searchParams.get('drafts') === 'true';
@@ -36,7 +50,6 @@ export const loader = async (args: LoaderFunctionArgs) => {
   }
 
   // Default index redirect (preserve query string e.g. ?drafts=true).
-  // Default index redirect for main work layout only.
   if (pathname === `/app/works/${workId}` || pathname === `/app/works/${workId}/`) {
     throw redirect(`/app/works/${workId}/details${url.search}`);
   }
