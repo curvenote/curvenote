@@ -20,7 +20,8 @@ import {
   clearDraftCookie,
 } from './cookies.server.js';
 import { submitForm } from './actionHelpers.server.js';
-import { isPageComplete, getFieldErrors } from './validationUtils.js';
+import { fetchOrcidPerson } from './orcidLookup.server.js';
+import { isPageComplete, getFieldErrors, isValidOrcid } from './validationUtils.js';
 import { FormArea } from './FormArea.js';
 import { FormBody } from './FormBody.js';
 import { MultiStepForm } from './MultiStepForm.js';
@@ -278,6 +279,27 @@ export async function action(args: ActionFunctionArgs) {
     await dbUpsertPendingLinkedAccount(ctx.user.id, 'orcid');
     const currentUrl = new URL(args.request.url).pathname + new URL(args.request.url).search;
     return data({ linkOrcid: true, returnTo: currentUrl });
+  }
+
+  // Fetch ORCID person by iD (public API lookup for auto-filling author)
+  if (intent === 'fetch-orcid') {
+    const orcid = (formData.get('orcid') as string)?.trim() ?? '';
+    if (!isValidOrcid(orcid)) {
+      return data({ error: { message: 'Invalid ORCID format.' } }, { status: 400 });
+    }
+    const person = await fetchOrcidPerson(orcid);
+    if (!person) {
+      return data(
+        { error: { message: 'Could not find this ORCID or fetch public record.' } },
+        { status: 404 },
+      );
+    }
+    return data({
+      name: person.name,
+      orcid: person.orcid,
+      ...(person.email && { email: person.email }),
+      affiliations: person.affiliations ?? [],
+    });
   }
 
   // Save a single field to the draft Object (create if no objectId, else OCC update)

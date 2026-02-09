@@ -10,7 +10,7 @@ import {
   failureRedirectUrl,
   handleAccountLinking,
 } from '../common.server.js';
-import type { orcid } from '@curvenote/scms-core';
+import { orcid, TrackEvent } from '@curvenote/scms-core';
 import { getSetProviderCookie } from '../../../cookies.server.js';
 import { redirect } from 'react-router';
 import { getServerAuth } from '../../database/firebase/firebase.server.js';
@@ -21,7 +21,6 @@ import {
   AnalyticsContext,
   addSegmentAnalytics,
 } from '../../../backend/services/analytics/segment.server.js';
-import { TrackEvent } from '@curvenote/scms-core';
 
 async function getUserPersonInfo(id: string, accessToken: string): Promise<orcid.ORCIDProfile> {
   const resp = await fetch(`https://pub.orcid.org/v3.0/${id}/person`, {
@@ -36,19 +35,18 @@ async function getUserPersonInfo(id: string, accessToken: string): Promise<orcid
   }
 
   const person = (await resp.json()) as orcid.ORCIDPersonResponse;
-
   const emails: orcid.ORCIDEmail[] = person.emails?.email ?? [];
-  const primaryEmail: orcid.ORCIDEmail | undefined =
-    emails.filter((e) => e.primary && e.verified)[0] ??
-    emails.filter((e) => e.primary)[0] ??
-    emails[0];
+  const primaryEmail = orcid.parseOrcidPrimaryEmail(person);
+  const primaryEntry =
+    emails.find((e) => e.primary && e.verified) ?? emails.find((e) => e.primary) ?? emails[0];
+  const name = orcid.parseOrcidPersonName(person);
 
   return {
     id,
-    email: primaryEmail?.email,
-    emailVerified: primaryEmail?.verified ?? false,
+    email: primaryEmail,
+    emailVerified: primaryEntry?.verified ?? false,
     emails,
-    name: `${person.name?.['given-names']?.value ?? ''} ${person.name?.['family-name']?.value ?? ''}`,
+    name: name?.trim() || id,
   };
 }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useFetcher } from 'react-router';
 import { uuidv7 as uuid } from 'uuidv7';
 import {
   GripVertical,
@@ -374,7 +375,7 @@ function AuthorCard({
           <div className="space-y-4">
             {/* Preview: same layout as collapsed – name + ORCID badge when valid only */}
             <div>
-              <div className="flex gap-2 items-center mb-2 flex-wrap">
+              <div className="flex flex-wrap gap-2 items-center mb-2">
                 <span
                   className={`text-base font-semibold ${editName.trim() ? '' : 'text-muted-foreground/60'}`}
                 >
@@ -592,7 +593,7 @@ function AuthorCard({
                         </button>
                       </div>
                       {expandAddDetails && (
-                        <div className="space-y-3 pl-6 border-l-2 border-border">
+                        <div className="pl-6 space-y-3 border-l-2 border-border">
                           <div className="space-y-1">
                             <label className="text-xs font-medium text-muted-foreground">
                               Name
@@ -670,7 +671,7 @@ function AuthorCard({
           /* View mode */
           <>
             {/* Author name + ORCID badge when valid only (no top-level error indicator) */}
-            <div className="flex gap-2 items-center mb-2 flex-wrap">
+            <div className="flex flex-wrap gap-2 items-center mb-2">
               <span
                 className={`text-base font-semibold ${value.name?.trim() ? '' : 'text-muted-foreground/60'}`}
               >
@@ -778,7 +779,7 @@ function AuthorCard({
                           </button>
                         </div>
                         {expandAddDetails && (
-                          <div className="space-y-3 pl-6 border-l-2 border-border">
+                          <div className="pl-6 space-y-3 border-l-2 border-border">
                             <div className="space-y-1">
                               <label className="text-xs font-medium text-muted-foreground">
                                 Name
@@ -947,6 +948,8 @@ export function AuthorField({
   const authorCountRef = useRef(value.length);
   const valueRef = useRef(value);
   valueRef.current = value;
+  const pendingOrcidRef = useRef<string | null>(null);
+  const orcidFetcher = useFetcher();
   const affiliationList = affiliationListProp ?? [];
   const authorErrors = getAuthorFieldErrors(value);
   const isValid = value.length > 0 && authorErrors.length === 0;
@@ -1057,11 +1060,75 @@ export function AuthorField({
     }
   };
 
-  const handleAddAuthor = () => {
-    if (!nameInput.trim()) return;
+  // When ORCID lookup returns, add author (with email/affiliations if present) and clear input
+  useEffect(() => {
+    if (orcidFetcher.state !== 'idle' || !pendingOrcidRef.current || !orcidFetcher.data) return;
+    const data = orcidFetcher.data as {
+      name?: string;
+      orcid?: string;
+      email?: string;
+      affiliations?: { name: string; city?: string; region?: string; country?: string }[];
+      error?: { message?: string };
+    };
+    const orcid = pendingOrcidRef.current;
+    pendingOrcidRef.current = null;
+    const name =
+      data?.error || !data?.name || !data?.orcid ? orcid : String(data.name).trim() || orcid;
+    const email =
+      data?.error || !data?.orcid ? undefined : (data.email?.trim() && data.email) || undefined;
+    const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
+    let nextList = [...affiliationList];
+    const affiliationIds: string[] = [];
+    for (const aff of affiliationsFromOrcid) {
+      const trimmed = String(aff?.name ?? '').trim();
+      if (!trimmed) continue;
+      const existing = nextList.find(
+        (a) =>
+          (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase() &&
+          (a.city ?? '') === (aff?.city ?? '') &&
+          (a.country ?? '') === (aff?.country ?? ''),
+      );
+      if (existing) {
+        affiliationIds.push(existing.id);
+      } else {
+        const newAff: Affiliation = {
+          id: uuid(),
+          name: trimmed,
+          ...(aff?.city && { city: aff.city }),
+          ...(aff?.country && { country: aff.country }),
+        };
+        nextList = [...nextList, newAff];
+        affiliationIds.push(newAff.id);
+      }
+    }
+    if (nextList.length > affiliationList.length) {
+      onAffiliationListChange?.(nextList);
+    }
     const newAuthor: Author = {
       id: uuid(),
-      name: nameInput.trim(),
+      name,
+      orcid: data?.orcid ?? orcid,
+      ...(email && { email }),
+      affiliationIds,
+    };
+    handleChange([...valueRef.current, newAuthor]);
+    setNameInput('');
+  }, [orcidFetcher.state, orcidFetcher.data, affiliationList, onAffiliationListChange]);
+
+  const handleAddAuthor = () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    if (isValidOrcid(trimmed)) {
+      pendingOrcidRef.current = trimmed;
+      const fd = new FormData();
+      fd.set('intent', 'fetch-orcid');
+      fd.set('orcid', trimmed);
+      orcidFetcher.submit(fd, { method: 'POST' });
+      return;
+    }
+    const newAuthor: Author = {
+      id: uuid(),
+      name: trimmed,
       affiliationIds: [],
     };
     handleChange([...value, newAuthor]);
@@ -1192,17 +1259,23 @@ export function AuthorField({
               handleAddAuthor();
             }
           }}
-          placeholder="Marie Curie - or - 0002-1234-2312-3839"
+          placeholder="Name or ORCID (e.g. 0000-0002-1825-0097)"
           className="flex-1 min-w-0"
         />
         <ui.Button
           type="button"
           onClick={handleAddAuthor}
-          disabled={!nameInput.trim()}
+          disabled={!nameInput.trim() || orcidFetcher.state !== 'idle'}
           className="cursor-pointer shrink-0"
         >
-          Add Author
-          <CornerDownLeft className="w-4 h-4" aria-hidden />
+          {orcidFetcher.state !== 'idle' ? (
+            'Looking up…'
+          ) : (
+            <>
+              Add Author
+              <CornerDownLeft className="w-4 h-4" aria-hidden />
+            </>
+          )}
         </ui.Button>
       </div>
 
