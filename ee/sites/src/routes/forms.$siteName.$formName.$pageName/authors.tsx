@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFetcher } from 'react-router';
 import { uuidv7 as uuid } from 'uuidv7';
 import {
@@ -15,12 +15,14 @@ import {
 } from 'lucide-react';
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -68,9 +70,9 @@ function SortableAffiliationRow({
   const [editDepartment, setEditDepartment] = useState(affiliation.department ?? '');
   const [editCity, setEditCity] = useState(affiliation.city ?? '');
   const [editCountry, setEditCountry] = useState(affiliation.country ?? '');
-  const id = `${authorId}-aff-${index}`;
+  const id = `${authorId}-aff-${affiliationId}`;
   const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
-    id,
+    id: affiliationId,
   });
 
   useEffect(() => {
@@ -120,7 +122,7 @@ function SortableAffiliationRow({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: 'none',
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0 : 1,
   };
 
   const deptLocationExpanded = showDeptLocation;
@@ -313,20 +315,24 @@ function AffiliationSortableList({
   onUpdate,
   authorId,
 }: AffiliationSortableListProps) {
-  const items = useMemo(
-    () => affiliationIds.map((_, i) => `${authorId}-aff-${i}`),
-    [affiliationIds, authorId],
-  );
+  const [activeAffId, setActiveAffId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveAffId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveAffId(null);
     if (!over || active.id === over.id) return;
-    const oldIndex = items.indexOf(active.id as string);
-    const newIndex = items.indexOf(over.id as string);
+    const activeId = active.id as string;
+    const overId = over.id as string;
+    const oldIndex = affiliationIds.indexOf(activeId);
+    const newIndex = affiliationIds.indexOf(overId);
     if (oldIndex === -1 || newIndex === -1) return;
     const newOrder = [...affiliationIds];
     const [removed] = newOrder.splice(oldIndex, 1);
@@ -336,16 +342,24 @@ function AffiliationSortableList({
 
   if (affiliationIds.length === 0) return null;
 
+  const activeAffiliation = activeAffId ? affiliationList.find((a) => a.id === activeAffId) : null;
+  const activeIndex = activeAffId ? affiliationIds.indexOf(activeAffId) + 1 : 0;
+
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={items} strategy={verticalListSortingStrategy}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={affiliationIds} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">
           {affiliationIds.map((affId, idx) => {
             const affiliation = affiliationList.find((a) => a.id === affId);
             if (!affiliation) return null;
             return (
               <SortableAffiliationRow
-                key={`${authorId}-aff-${idx}`}
+                key={`${authorId}-aff-${affId}`}
                 authorId={authorId}
                 index={idx}
                 affiliationId={affId}
@@ -359,6 +373,22 @@ function AffiliationSortableList({
           })}
         </div>
       </SortableContext>
+      <DragOverlay dropAnimation={null}>
+        {activeAffiliation ? (
+          <div
+            className="flex gap-2 items-center px-3 py-2 text-sm rounded-md border border-border bg-muted/30 shadow-lg cursor-grabbing w-64"
+            style={{ minHeight: 40 }}
+          >
+            <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+            <span className="w-6 text-xs tabular-nums shrink-0 text-muted-foreground">
+              {getOrdinalLabel(activeIndex)}
+            </span>
+            <span className="flex-1 min-w-0 truncate">
+              {(activeAffiliation.name ?? '').trim() || 'Affiliation'}
+            </span>
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }
@@ -422,7 +452,7 @@ function AuthorCard({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0 : 1,
   };
 
   const pushAuthor = (updates: Partial<Author>) => {
@@ -1100,6 +1130,7 @@ export function AuthorField({
 }: AuthorFieldProps) {
   const [nameInput, setNameInput] = useState('');
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [activeAuthorId, setActiveAuthorId] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [openAffiliationId, setOpenAffiliationId] = useState<string | null>(null);
   const lastCardAffiliationInputRef = useRef<HTMLInputElement>(null);
@@ -1190,8 +1221,13 @@ export function AuthorField({
     }),
   );
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveAuthorId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveAuthorId(null);
     if (over && active.id !== over.id) {
       const activeId = active.id as string;
       const overId = over.id as string;
@@ -1354,6 +1390,30 @@ export function AuthorField({
     }
   };
 
+  const activeAuthor = activeAuthorId ? value.find((a) => a.id === activeAuthorId) : null;
+  const activeAuthorOverlay =
+    activeAuthor && activeAuthorId ? (
+      <div
+        className="flex gap-3 items-center p-4 rounded-sm border border-border bg-background shadow-lg cursor-grabbing w-72"
+        style={{ minHeight: 56 }}
+      >
+        <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+          {getOrdinalLabel(value.findIndex((a) => a.id === activeAuthorId) + 1)}
+        </span>
+        <span
+          className={`flex-1 min-w-0 truncate text-base font-semibold ${
+            (activeAuthor.name ?? '').trim() ? '' : 'text-muted-foreground/60'
+          }`}
+        >
+          {(activeAuthor.name ?? '').trim() || 'Author Name'}
+        </span>
+        {activeAuthor.orcid && isValidOrcid(activeAuthor.orcid) && (
+          <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
+        )}
+      </div>
+    ) : null;
+
   return (
     <div className="space-y-4">
       <FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
@@ -1366,6 +1426,7 @@ export function AuthorField({
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
             <SortableContext
@@ -1401,6 +1462,7 @@ export function AuthorField({
                 />
               ))}
             </SortableContext>
+            <DragOverlay dropAnimation={null}>{activeAuthorOverlay}</DragOverlay>
           </DndContext>
         </div>
       )}
