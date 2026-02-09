@@ -9,6 +9,8 @@ import {
   withValidFormData,
   getPrismaClient,
   safeWorkVersionJsonUpdate,
+  safeCheckServiceRunDataUpdate,
+  signFilesInMetadata,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
@@ -59,16 +61,34 @@ type WorkUploadActionPayload = z.infer<typeof WorkUploadActionSchema>;
 
 const CHECK_SERVICE_RUN_ACTION_SCHEMA = {
   type: 'object',
-  description:
-    'Check service run data. This schema describes the data object excluding the `$schema` key itself.',
+  description: 'Check service run data',
   properties: {
+    $schema: {
+      type: 'object',
+      description: 'Schema for the check service run data.',
+    },
     status: {
       type: 'string',
+      enum: ['healthy', 'error', 'archive'],
       description: 'Current status of the check service run.',
+    },
+    serviceDataSchema: {
+      type: 'object',
+      description: 'Data specific to the check service.',
+      properties: {
+        $schema: {
+          type: 'object',
+          description: 'Schema for the check service data, provided by the check service.',
+        },
+      },
+    },
+    serviceData: {
+      type: 'object',
+      description: 'Data specific to the check service and described by the serviceDataSchema.',
+      additionalProperties: true,
     },
   },
   required: ['status'],
-  additionalProperties: true,
 };
 
 export async function loader(args: Route.LoaderArgs) {
@@ -116,12 +136,14 @@ export async function loader(args: Route.LoaderArgs) {
     ...checks,
   };
 
+  const signedMetadata = await signFilesInMetadata(metadata, work.cdn ?? '', ctx);
+
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
     cdn: work.cdn!,
     title: work.title,
-    metadata,
+    metadata: signedMetadata as any,
     uploadConfig: WORK_UPLOAD_CONFIGURATION,
   };
 }
@@ -194,12 +216,11 @@ export async function action(args: Route.ActionArgs) {
         const timestamp = new Date().toISOString();
 
         // Get current metadata to access enabled checks
-        const work = await prisma.workVersion.findUnique({
+        let wv = await prisma.workVersion.findUnique({
           where: { id: workVersionId },
-          select: { metadata: true },
         });
 
-        const currentMetadata = (work?.metadata as any) || { version: 1 };
+        const currentMetadata = (wv?.metadata as any) || { version: 1 };
         const enabledChecks = (currentMetadata.checks?.enabled as WorkVersionCheckName[]) || [];
 
         // Create check status objects for each enabled check
@@ -222,7 +243,7 @@ export async function action(args: Route.ActionArgs) {
         });
 
         // Flip the work out of draft mode
-        await prisma.workVersion.update({
+        wv = await prisma.workVersion.update({
           where: { id: workVersionId },
           data: {
             draft: false,
@@ -233,19 +254,103 @@ export async function action(args: Route.ActionArgs) {
         // Create a check service run entry for each enabled check
         // NOTE: allow multiple runs; higher-level logic will reconcile duplicates.
         if (enabledChecks.length > 0) {
-          await (prisma as any).checkServiceRun.createMany({
-            data: enabledChecks.map((kind) => ({
-              id: uuid(),
-              date_created: timestamp,
-              date_modified: timestamp,
-              kind,
-              work_version_id: workVersionId,
-              data: {
-                $schema: CHECK_SERVICE_RUN_ACTION_SCHEMA,
-                status: 'pending',
+          const runRows = enabledChecks.map((kind) => ({
+            id: uuid(),
+            date_created: timestamp,
+            date_modified: timestamp,
+            kind,
+            work_version_id: workVersionId,
+            data: {
+              $schema: CHECK_SERVICE_RUN_ACTION_SCHEMA,
+              status: 'healthy',
+              serviceDataSchema: {},
+              serviceData: {
+                stages: {
+                  // TODO this is proofig specific; we should generalize this
+                  initialPost: { status: 'pending', timestamp: new Date().toISOString() },
+                  // subimageDetection: { status: 'pending', timestamp: new Date().toISOString() },
+                  // subimageSelection: { status: 'pending', timestamp: new Date().toISOString() },
+                  // integrityDetection: { status: 'pending', timestamp: new Date().toISOString() },
+                  // resultsReview: { status: 'pending', timestamp: new Date().toISOString() },
+                  // finalReport: { status: 'pending', timestamp: new Date().toISOString() },
+                },
+                reportUrl: undefined,
               },
-            })),
+            },
+          }));
+
+          await prisma.checkServiceRun.createMany({
+            data: runRows,
           });
+
+          const signedMetadata = await signFilesInMetadata(
+            wv.metadata as WorkVersionMetadata & FileMetadataSection,
+            wv.cdn ?? '',
+            baseCtx,
+          );
+
+          const manuscriptFile = Object.values(signedMetadata.files || {})[0];
+
+          if (enabledChecks.includes('proofig')) {
+            const proofigRun = runRows.find((run) => run.kind === 'proofig');
+            if (!proofigRun) {
+              // Should not happen, but avoid crashing if enabledChecks contains 'proofig' unexpectedly
+              return redirect(`/app/works/${workId}/checks`);
+            }
+            // update the check run to show dispatched is true
+            await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
+              const current = (runData as Record<string, any>) ?? {};
+              return {
+                ...current,
+                status: 'healthy',
+                serviceData: { ...current.serviceData },
+              } as Prisma.JsonObject;
+            });
+
+            // // make the API call to the proofig API
+            // const PROOFIG_API_BASE_URL = 'http://localhost:5173/api/curvenote';
+            // const PROOFIG_API_SUBMIT_URL = `${PROOFIG_API_BASE_URL}/api/submit`;
+            // const WEBHOOK_BASE_URL = 'http://localhost:3030/api/hooks/proofig_notify';
+
+            // const response = await fetch(PROOFIG_API_SUBMIT_URL, {
+            //   method: 'POST',
+            //   body: JSON.stringify({
+            //     title: wv.title,
+            //     journal: 'HHMI Workspace',
+            //     authors: wv.authors,
+            //     filename: manuscriptFile?.name,
+            //     notify_url: `${WEBHOOK_BASE_URL}/${proofigRun.id}`,
+            //     file_url: manuscriptFile?.signedUrl,
+            //   }),
+            // });
+
+            // if (response.ok) {
+            //   // update the status to submitted is successful
+            //   await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
+            //     const current = (runData as Record<string, any>) ?? {};
+            //     return {
+            //       ...current,
+            //       serviceData: {
+            //         ...current.serviceData,
+            //         initialPost: { status: 'submitted', timestamp: new Date().toISOString() },
+            //       },
+            //     } as Prisma.JsonObject;
+            //   });
+            // } else {
+            //   console.error('Proofig API submission failed', response.status, response.statusText);
+            //   await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
+            //     const current = (runData as Record<string, any>) ?? {};
+            //     return {
+            //       ...current,
+            //       status: 'error',
+            //       serviceData: {
+            //         ...current.serviceData,
+            //         initialPost: { status: 'error', timestamp: new Date().toISOString() },
+            //       },
+            //     } as Prisma.JsonObject;
+            //   });
+            // }
+          }
         }
 
         // Navigate to checks page

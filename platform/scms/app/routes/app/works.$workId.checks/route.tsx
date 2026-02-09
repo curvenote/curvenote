@@ -1,7 +1,11 @@
 import type { Route } from './+types/route';
 import { data } from 'react-router';
 import type React from 'react';
-import { withSecureWorkContext, type WorkVersionMetadata } from '@curvenote/scms-server';
+import {
+  getPrismaClient,
+  withSecureWorkContext,
+  type WorkVersionMetadata,
+} from '@curvenote/scms-server';
 import type { FileMetadataSection } from '@curvenote/scms-core';
 import {
   PageFrame,
@@ -32,10 +36,17 @@ export async function loader(args: Route.LoaderArgs) {
 
   const workVersionDTO = formatWorkVersionDTO(ctx, ctx.work.id, latestVersion);
 
+  const prisma = await getPrismaClient();
+  const checkServiceRuns = await prisma.checkServiceRun.findMany({
+    where: { work_version_id: latestVersion.id }, // just the latest version for now
+    orderBy: { date_created: 'desc' },
+  });
+
   return {
     work: ctx.workDTO,
     workVersion: workVersionDTO,
     metadata,
+    checkServiceRuns,
   };
 }
 
@@ -98,7 +109,7 @@ export const meta: Route.MetaFunction = ({ matches }) => {
 };
 
 export default function ChecksPage({ loaderData }: Route.ComponentProps) {
-  const { work, workVersion, metadata } = loaderData;
+  const { work, workVersion, metadata, checkServiceRuns } = loaderData;
 
   // Resolve check services at render time to avoid serialization issues
   // Construct minimal AppConfig from ClientDeploymentConfig
@@ -143,7 +154,27 @@ export default function ChecksPage({ loaderData }: Route.ComponentProps) {
           const Component = service.checksSectionComponent as React.ComponentType<{
             metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
           }>;
-          return <Component key={service.id} metadata={metadata} />;
+
+          const existingRunFromThisService = checkServiceRuns.find(
+            (run) => run.kind === service.id,
+          );
+
+          return (
+            <>
+              <Component
+                key={service.id}
+                metadata={(existingRunFromThisService?.data as any)?.serviceData}
+              />
+              <pre className="p-2 text-xs bg-gray-100 rounded-md min-h-24">
+                {JSON.stringify(
+                  checkServiceRuns.map(({ id, kind }) => ({ id, kind })),
+                  null,
+                  2,
+                )}
+                {JSON.stringify((existingRunFromThisService?.data as any)?.serviceData, null, 2)}
+              </pre>
+            </>
+          );
         })}
       </div>
     </PageFrame>

@@ -8,6 +8,7 @@ export * from './db.server.js';
 export * from './db.types.js';
 export * from './format.server.js';
 export * from './metadata.js';
+export * from './files-metadata.server.js';
 export * from './middleware.server.js';
 export * from './minimumClient.server.js';
 export * from './occ.server.js';
