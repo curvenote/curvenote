@@ -242,6 +242,11 @@ function AuthorCard({
     value.affiliationIds ?? [],
   );
   const [newAffiliationInput, setNewAffiliationInput] = useState('');
+  const [expandAddDetails, setExpandAddDetails] = useState(false);
+  const [addDetailsName, setAddDetailsName] = useState('');
+  const [addDetailsDepartment, setAddDetailsDepartment] = useState('');
+  const [addDetailsCity, setAddDetailsCity] = useState('');
+  const [addDetailsCountry, setAddDetailsCountry] = useState('');
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: value.id,
@@ -272,6 +277,45 @@ function AuthorCard({
       ...value,
       affiliationIds: [...(value.affiliationIds ?? []), aff.id],
     });
+  };
+
+  const submitAddDetails = () => {
+    const name = (addDetailsName ?? '').trim();
+    if (!name) return;
+    const aff: Affiliation = {
+      id: uuid(),
+      name,
+      department: (addDetailsDepartment ?? '').trim() || undefined,
+      city: (addDetailsCity ?? '').trim() || undefined,
+      country: (addDetailsCountry ?? '').trim() || undefined,
+    };
+    addAffiliation(aff);
+    setAddDetailsName('');
+    setAddDetailsDepartment('');
+    setAddDetailsCity('');
+    setAddDetailsCountry('');
+    setExpandAddDetails(false);
+    setNewAffiliationInput('');
+  };
+
+  const submitAddDetailsInViewMode = () => {
+    const name = (addDetailsName ?? '').trim();
+    if (!name) return;
+    const aff: Affiliation = {
+      id: uuid(),
+      name,
+      department: (addDetailsDepartment ?? '').trim() || undefined,
+      city: (addDetailsCity ?? '').trim() || undefined,
+      country: (addDetailsCountry ?? '').trim() || undefined,
+    };
+    onEnsureAffiliationInList(aff);
+    addAffiliationInViewMode(aff);
+    setAddDetailsName('');
+    setAddDetailsDepartment('');
+    setAddDetailsCity('');
+    setAddDetailsCountry('');
+    setExpandAddDetails(false);
+    setNewAffiliationInput('');
   };
 
   // Update local state when value changes externally
@@ -495,11 +539,100 @@ function AuthorCard({
                   Add
                 </ui.Button>
               </div>
-              {affiliationList.filter((a) => !editAffiliationIds.includes(a.id)).length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {affiliationList
-                    .filter((a) => !editAffiliationIds.includes(a.id))
-                    .map((aff) => (
+              {(() => {
+                const otherOptions = affiliationList.filter(
+                  (a) => !editAffiliationIds.includes(a.id),
+                );
+                const typed = (newAffiliationInput ?? '').trim();
+                const hasTypedNonMatching =
+                  typed !== '' &&
+                  !otherOptions.some(
+                    (a) => (a.name ?? '').trim().toLowerCase() === typed.toLowerCase(),
+                  );
+                const showAddDetailsPrompt =
+                  typed !== '' && (otherOptions.length === 0 || hasTypedNonMatching);
+
+                if (showAddDetailsPrompt) {
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExpandAddDetails((e) => !e);
+                            if (!expandAddDetails) setAddDetailsName(typed || '');
+                          }}
+                          className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
+                          aria-expanded={expandAddDetails}
+                        >
+                          {expandAddDetails ? (
+                            <Minus className="w-3 h-3 shrink-0" aria-hidden />
+                          ) : (
+                            <Plus className="w-3 h-3 shrink-0" aria-hidden />
+                          )}
+                          <span>Add department or location</span>
+                        </button>
+                      </div>
+                      {expandAddDetails && (
+                        <div className="space-y-3 pl-6 border-l-2 border-border">
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground">
+                              Name
+                            </label>
+                            <ui.Input
+                              type="text"
+                              value={addDetailsName}
+                              onChange={(e) => setAddDetailsName(e.target.value)}
+                              placeholder="Affiliation name"
+                              className="w-full h-9 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground">
+                              Department
+                            </label>
+                            <ui.Input
+                              type="text"
+                              value={addDetailsDepartment}
+                              onChange={(e) => setAddDetailsDepartment(e.target.value)}
+                              placeholder="Department"
+                              className="w-full h-9 text-sm"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="flex-1 space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">
+                                City
+                              </label>
+                              <ui.Input
+                                type="text"
+                                value={addDetailsCity}
+                                onChange={(e) => setAddDetailsCity(e.target.value)}
+                                placeholder="City"
+                                className="w-full h-9 text-sm"
+                              />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">
+                                Country
+                              </label>
+                              <ui.Input
+                                type="text"
+                                value={addDetailsCountry}
+                                onChange={(e) => setAddDetailsCountry(e.target.value)}
+                                placeholder="Country"
+                                className="w-full h-9 text-sm"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return (
+                  <div className="flex flex-wrap gap-1.5">
+                    {otherOptions.map((aff) => (
                       <button
                         key={aff.id}
                         type="button"
@@ -510,8 +643,9 @@ function AuthorCard({
                         {aff.name}
                       </button>
                     ))}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         ) : (
@@ -589,12 +723,99 @@ function AuthorCard({
                   </ui.Button>
                 </div>
                 {(() => {
-                  const otherAffiliations = affiliationList.filter(
+                  const otherOptions = affiliationList.filter(
                     (a) => !(value.affiliationIds ?? []).includes(a.id),
                   );
-                  return otherAffiliations.length > 0 ? (
+                  const typed = (newAffiliationInput ?? '').trim();
+                  const hasTypedNonMatching =
+                    typed !== '' &&
+                    !otherOptions.some(
+                      (a) => (a.name ?? '').trim().toLowerCase() === typed.toLowerCase(),
+                    );
+                  const showAddDetailsPrompt =
+                    typed !== '' && (otherOptions.length === 0 || hasTypedNonMatching);
+
+                  if (showAddDetailsPrompt) {
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExpandAddDetails((e) => !e);
+                              if (!expandAddDetails) setAddDetailsName(typed || '');
+                            }}
+                            className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
+                            aria-expanded={expandAddDetails}
+                          >
+                            {expandAddDetails ? (
+                              <Minus className="w-3 h-3 shrink-0" aria-hidden />
+                            ) : (
+                              <Plus className="w-3 h-3 shrink-0" aria-hidden />
+                            )}
+                            <span>Add department or location</span>
+                          </button>
+                        </div>
+                        {expandAddDetails && (
+                          <div className="space-y-3 pl-6 border-l-2 border-border">
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">
+                                Name
+                              </label>
+                              <ui.Input
+                                type="text"
+                                value={addDetailsName}
+                                onChange={(e) => setAddDetailsName(e.target.value)}
+                                placeholder="Affiliation name"
+                                className="w-full h-9 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">
+                                Department
+                              </label>
+                              <ui.Input
+                                type="text"
+                                value={addDetailsDepartment}
+                                onChange={(e) => setAddDetailsDepartment(e.target.value)}
+                                placeholder="Department"
+                                className="w-full h-9 text-sm"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <div className="flex-1 space-y-1">
+                                <label className="text-xs font-medium text-muted-foreground">
+                                  City
+                                </label>
+                                <ui.Input
+                                  type="text"
+                                  value={addDetailsCity}
+                                  onChange={(e) => setAddDetailsCity(e.target.value)}
+                                  placeholder="City"
+                                  className="w-full h-9 text-sm"
+                                />
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <label className="text-xs font-medium text-muted-foreground">
+                                  Country
+                                </label>
+                                <ui.Input
+                                  type="text"
+                                  value={addDetailsCountry}
+                                  onChange={(e) => setAddDetailsCountry(e.target.value)}
+                                  placeholder="Country"
+                                  className="w-full h-9 text-sm"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return (
                     <div className="flex flex-wrap gap-1.5">
-                      {otherAffiliations.map((aff) => (
+                      {otherOptions.map((aff) => (
                         <button
                           key={aff.id}
                           type="button"
@@ -606,7 +827,7 @@ function AuthorCard({
                         </button>
                       ))}
                     </div>
-                  ) : null;
+                  );
                 })()}
               </div>
             )}
