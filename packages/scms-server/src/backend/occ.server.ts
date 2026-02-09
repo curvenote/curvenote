@@ -13,6 +13,7 @@ type ModelType =
   | 'submissionVersion'
   | 'submissionKind'
   | 'object'
+  | 'checkServiceRun'
   | 'siteData'
   | 'siteMetadata';
 
@@ -26,9 +27,11 @@ export type ModelReturnType<T extends ModelType> = T extends 'workVersion'
       ? Prisma.SubmissionKindGetPayload<Record<string, never>>
       : T extends 'object'
         ? Prisma.ObjectGetPayload<Record<string, never>>
-        : T extends 'siteData' | 'siteMetadata'
-          ? Prisma.SiteGetPayload<Record<string, never>>
-          : never;
+        : T extends 'checkServiceRun'
+          ? Prisma.CheckServiceRunGetPayload<Record<string, never>>
+          : T extends 'siteData' | 'siteMetadata'
+            ? Prisma.SiteGetPayload<Record<string, never>>
+            : never;
 
 // Configuration for each model type
 const modelConfig = {
@@ -55,6 +58,12 @@ const modelConfig = {
     metadataField: 'data' as const, // Object model uses 'data' field
     occField: 'occ' as const,
     errorPrefix: 'Object',
+  },
+  checkServiceRun: {
+    table: 'checkServiceRun' as const,
+    metadataField: 'data' as const,
+    occField: 'occ' as const,
+    errorPrefix: 'CheckServiceRun',
   },
   siteData: {
     table: 'site' as const,
@@ -178,6 +187,17 @@ export async function safeObjectDataUpdate<T extends Prisma.JsonObject>(
   maxRetries: number = 5,
 ): Promise<Prisma.ObjectGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('object', objectId, modifyFn, maxRetries);
+}
+
+/**
+ * OCC function specifically for CheckServiceRun, data field
+ */
+export async function safeCheckServiceRunDataUpdate<T extends Prisma.JsonObject>(
+  checkServiceRunId: string,
+  modifyFn: (data?: Prisma.JsonValue) => T,
+  maxRetries: number = 5,
+): Promise<Prisma.CheckServiceRunGetPayload<Record<string, never>>> {
+  return safeJsonUpdateGeneric('checkServiceRun', checkServiceRunId, modifyFn, maxRetries);
 }
 
 /**

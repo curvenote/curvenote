@@ -21,8 +21,8 @@ import {
   ui,
   FileMetadataSectionSchema,
   scopes,
-  getExtensionCheckServices,
   useDeploymentConfig,
+  getExtensionCheckServicesFromClientConfig,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { WorkTitleForm } from './WorkTitleForm';
@@ -39,6 +39,7 @@ import { data, redirect } from 'react-router';
 import { List, Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
+import { uuidv7 as uuid } from 'uuidv7';
 
 /**
  * Zod schema for work upload form validation
@@ -55,6 +56,20 @@ const WorkUploadActionSchema = zfd.formData({
 });
 
 type WorkUploadActionPayload = z.infer<typeof WorkUploadActionSchema>;
+
+const CHECK_SERVICE_RUN_ACTION_SCHEMA = {
+  type: 'object',
+  description:
+    'Check service run data. This schema describes the data object excluding the `$schema` key itself.',
+  properties: {
+    status: {
+      type: 'string',
+      description: 'Current status of the check service run.',
+    },
+  },
+  required: ['status'],
+  additionalProperties: true,
+};
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppScopedContext(args, [scopes.app.works.upload]);
@@ -176,6 +191,7 @@ export async function action(args: Route.ActionArgs) {
         }
 
         const prisma = await getPrismaClient();
+        const timestamp = new Date().toISOString();
 
         // Get current metadata to access enabled checks
         const work = await prisma.workVersion.findUnique({
@@ -210,9 +226,27 @@ export async function action(args: Route.ActionArgs) {
           where: { id: workVersionId },
           data: {
             draft: false,
-            date_modified: new Date().toISOString(),
+            date_modified: timestamp,
           },
         });
+
+        // Create a check service run entry for each enabled check
+        // NOTE: allow multiple runs; higher-level logic will reconcile duplicates.
+        if (enabledChecks.length > 0) {
+          await (prisma as any).checkServiceRun.createMany({
+            data: enabledChecks.map((kind) => ({
+              id: uuid(),
+              date_created: timestamp,
+              date_modified: timestamp,
+              kind,
+              work_version_id: workVersionId,
+              data: {
+                $schema: CHECK_SERVICE_RUN_ACTION_SCHEMA,
+                status: 'pending',
+              },
+            })),
+          });
+        }
 
         // Navigate to checks page
         return redirect(`/app/works/${workId}/checks`);
@@ -274,19 +308,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   // Resolve check services at render time to avoid serialization issues
   // Construct minimal AppConfig from ClientDeploymentConfig
   const deploymentConfig = useDeploymentConfig();
-  const extensionsConfig: Record<string, { checks?: boolean }> = {};
-  if (deploymentConfig.extensions) {
-    for (const [extId, extInfo] of Object.entries(deploymentConfig.extensions)) {
-      // If 'checks' is in capabilities, enable it
-      if (extInfo.capabilities.includes('checks')) {
-        extensionsConfig[extId] = { checks: true };
-      }
-    }
-  }
-  const checkServices = getExtensionCheckServices(
-    { app: { extensions: extensionsConfig } } as unknown as AppConfig,
-    extensions,
-  );
+  const checkServices = getExtensionCheckServicesFromClientConfig(deploymentConfig, extensions);
 
   return (
     <MainWrapper>
@@ -329,7 +351,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           className="space-y-4"
         >
           <p className="text-muted-foreground">
-            Choose which integrity checks you'd like to run on your work.
+            Choose which checks you'd like to run on your work.
           </p>
           <ui.Card className="p-6 space-y-4">
             <WorkUploadChecksForm

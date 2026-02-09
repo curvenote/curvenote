@@ -9,7 +9,7 @@ import {
   joinPageTitle,
   httpError,
   scopes,
-  getExtensionCheckServices,
+  getExtensionCheckServicesFromServerConfig,
   useDeploymentConfig,
 } from '@curvenote/scms-core';
 import { CurvenoteStructureChecksSection } from './CurvenoteStructureChecksSection';
@@ -61,7 +61,7 @@ export async function action(args: Route.ActionArgs) {
     ChecksMetadataSection;
 
   // Try to route action to a check service handler
-  const checkServices = getExtensionCheckServices(ctx.$config, extensions);
+  const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, extensions);
   for (const service of checkServices) {
     if (service.handleAction) {
       // Check if this service handles this intent
@@ -112,7 +112,7 @@ export default function ChecksPage({ loaderData }: Route.ComponentProps) {
       }
     }
   }
-  const checkServices = getExtensionCheckServices(
+  const checkServices = getExtensionCheckServicesFromServerConfig(
     { app: { extensions: extensionsConfig } } as unknown as AppConfig,
     extensions,
   );

@@ -51,5 +51,21 @@ model WorkVersion {
   work_id            String
   submissionVersions SubmissionVersion[]
   submissionActivity Activity[]
+  checkServiceRuns   CheckServiceRun[]
   occ                Int                 @default(0)
+}
+
+model CheckServiceRun {
+  id              String      @id
+  date_created    String
+  date_modified   String
+  kind            String
+  data            Json?
+  work_version    WorkVersion @relation(fields: [work_version_id], references: [id])
+  work_version_id String
+  occ             Int         @default(0)
+
+  @@index([work_version_id])
+  @@index([kind])
+  @@index([date_created])
 }
