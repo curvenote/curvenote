@@ -1412,8 +1412,11 @@ function AffiliationListItem({
           variant="ghost"
           size="icon-xs"
           onClick={onRemove}
-          aria-label="Remove affiliation"
-          className="cursor-pointer"
+          disabled={authorCount >= 1}
+          aria-label={
+            authorCount >= 1 ? 'Remove affiliation (in use by authors)' : 'Remove affiliation'
+          }
+          className="cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Trash2 className="w-4 h-4 text-muted-foreground" />
         </ui.Button>
