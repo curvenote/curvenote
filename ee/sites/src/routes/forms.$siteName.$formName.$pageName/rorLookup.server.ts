@@ -32,7 +32,7 @@ export async function searchRor(query: string): Promise<RorSearchHit[]> {
   const json = (await res.json()) as {
     items?: Array<{
       id?: string;
-      names?: Array<{ types?: string[]; value?: string }>;
+      names?: Array<{ types?: string[]; value?: string; lang?: string | null }>;
       locations?: Array<{
         geonames_details?: { name?: string; country_code?: string; country_name?: string };
       }>;
@@ -48,11 +48,24 @@ export async function searchRor(query: string): Promise<RorSearchHit[]> {
     const names = item.names;
     let name = '';
     if (Array.isArray(names)) {
-      const rorDisplay = names.find(
-        (n) => n.types?.includes('ror_display') || n.types?.includes('label'),
+      const isEn = (n: { lang?: string | null }) =>
+        n.lang == null || n.lang === 'en' || n.lang === '';
+      const rorDisplayEn = names.find(
+        (n) =>
+          (n.types?.includes('ror_display') || n.types?.includes('label')) &&
+          isEn(n) &&
+          typeof n.value === 'string' &&
+          n.value?.trim(),
+      );
+      const rorDisplayAny = names.find(
+        (n) =>
+          (n.types?.includes('ror_display') || n.types?.includes('label')) &&
+          typeof n.value === 'string' &&
+          n.value?.trim(),
       );
       const anyName = names.find((n) => typeof n.value === 'string' && n.value?.trim());
-      name = (rorDisplay?.value ?? anyName?.value ?? '').trim();
+      const raw = rorDisplayEn?.value ?? rorDisplayAny?.value ?? anyName?.value ?? '';
+      name = typeof raw === 'string' ? raw.trim() : '';
     }
     if (!name) name = id.replace(/^https:\/\/ror\.org\//, '');
     const loc = item.locations?.[0]?.geonames_details;

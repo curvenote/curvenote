@@ -1910,6 +1910,50 @@ export function AuthorField({
     handleChange(newAuthors);
   };
 
+  const [addAffiliationInput, setAddAffiliationInput] = useState('');
+  const [debouncedAddAffiliationQuery, setDebouncedAddAffiliationQuery] = useState('');
+  const addAffiliationRorFetcher = useFetcher();
+  const addAffiliationRorResults: RorSearchHit[] =
+    (addAffiliationRorFetcher.data as { results?: RorSearchHit[] } | undefined)?.results ?? [];
+  const addAffiliationRorLoading = addAffiliationRorFetcher.state !== 'idle';
+  const showAddAffiliationRorSuggestions =
+    (addAffiliationRorLoading || addAffiliationRorResults.length > 0) &&
+    debouncedAddAffiliationQuery.trim() !== '';
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedAddAffiliationQuery(addAffiliationInput), 200);
+    return () => clearTimeout(t);
+  }, [addAffiliationInput]);
+
+  useEffect(() => {
+    const q = debouncedAddAffiliationQuery.trim();
+    if (!q) return;
+    const fd = new FormData();
+    fd.set('intent', 'search-ror');
+    fd.set('q', q);
+    addAffiliationRorFetcher.submit(fd, { method: 'POST' });
+  }, [debouncedAddAffiliationQuery]);
+
+  const onSelectAddAffiliationRor = (hit: RorSearchHit) => {
+    const aff: Affiliation = {
+      id: uuid(),
+      name: hit.name,
+      ror: hit.ror,
+      ...(hit.city && { city: hit.city }),
+      ...(hit.country && { country: hit.country }),
+    };
+    onAffiliationListChange?.([...affiliationList, aff]);
+    setAddAffiliationInput('');
+  };
+
+  const handleAddAffiliationFromBox = () => {
+    const trimmed = addAffiliationInput.trim();
+    if (!trimmed) return;
+    const aff: Affiliation = { id: uuid(), name: trimmed };
+    onAffiliationListChange?.([...affiliationList, aff]);
+    setAddAffiliationInput('');
+  };
+
   const handleAuthorChange = (index: number, updatedAuthor: Author) => {
     const newAuthors = [...value];
     newAuthors[index] = updatedAuthor;
@@ -2028,25 +2072,25 @@ export function AuthorField({
         </DndContext>
       </div>
 
-      {/* Affiliations: small gray text + expand/collapse */}
-      {affiliationList.length > 0 && (
-        <div className="mt-6">
-          <button
-            type="button"
-            onClick={() => setAdvancedOpen((open) => !open)}
-            className="flex gap-2 items-center p-0 text-sm bg-transparent border-0 cursor-pointer text-muted-foreground hover:text-foreground"
-            aria-expanded={advancedOpen}
-          >
-            {advancedOpen ? (
-              <Minus className="w-4 h-4 shrink-0" aria-hidden />
-            ) : (
-              <Plus className="w-4 h-4 shrink-0" aria-hidden />
-            )}
-            <span>Advanced options</span>
-          </button>
-          {advancedOpen && (
-            <div className="mt-3 space-y-2">
-              <p className="text-sm font-medium text-foreground">Affiliations</p>
+      {/* Advanced options: affiliations list + Add Affiliation box */}
+      <div className="mt-6">
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen((open) => !open)}
+          className="flex gap-2 items-center p-0 text-sm bg-transparent border-0 cursor-pointer text-muted-foreground hover:text-foreground"
+          aria-expanded={advancedOpen}
+        >
+          {advancedOpen ? (
+            <Minus className="w-4 h-4 shrink-0" aria-hidden />
+          ) : (
+            <Plus className="w-4 h-4 shrink-0" aria-hidden />
+          )}
+          <span>Advanced options</span>
+        </button>
+        {advancedOpen && (
+          <div className="mt-3 space-y-2">
+            <p className="text-sm font-medium text-foreground">Affiliations</p>
+            {affiliationList.length > 0 ? (
               <ul className="space-y-2">
                 {affiliationList.map((aff) => {
                   const authorCount = value.filter((a) =>
@@ -2065,10 +2109,78 @@ export function AuthorField({
                   );
                 })}
               </ul>
+            ) : null}
+            <div className="flex gap-2 items-center p-4 rounded-sm border border-dashed border-border bg-background">
+              <div className="relative flex-1 min-w-0">
+                <input
+                  type="text"
+                  value={addAffiliationInput}
+                  onChange={(e) => setAddAffiliationInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddAffiliationFromBox();
+                    }
+                  }}
+                  placeholder="Affiliation name (search ROR)"
+                  className="flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
+                />
+                {showAddAffiliationRorSuggestions && addAffiliationInput.trim() && (
+                  <div
+                    className="absolute top-full left-0 right-0 z-10 mt-1 rounded-md border border-border bg-popover shadow-md"
+                    role="listbox"
+                  >
+                    {addAffiliationRorLoading ? (
+                      <div className="flex gap-2 items-center px-3 py-2 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden />
+                        <span>Searching ROR…</span>
+                      </div>
+                    ) : addAffiliationRorResults.length > 0 ? (
+                      <ul className="max-h-60 overflow-auto py-1">
+                        {addAffiliationRorResults.map((hit) => (
+                          <li key={hit.ror}>
+                            <button
+                              type="button"
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-muted/50 cursor-pointer border-0 bg-transparent"
+                              onClick={() => onSelectAddAffiliationRor(hit)}
+                              role="option"
+                            >
+                              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                <span className="font-medium">{hit.name}</span>
+                                {(hit.city || hit.country) && (
+                                  <span className="text-muted-foreground text-xs">
+                                    {[hit.city, hit.country].filter(Boolean).join(', ')}
+                                  </span>
+                                )}
+                                <span className="text-muted-foreground font-mono text-xs shrink-0">
+                                  {hit.ror}
+                                </span>
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              <ui.Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddAffiliationFromBox}
+                disabled={!addAffiliationInput.trim()}
+                className="cursor-pointer shrink-0"
+              >
+                <>
+                  Add Affiliation
+                  <CornerDownLeft className="w-4 h-4 shrink-0" aria-hidden />
+                </>
+              </ui.Button>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
