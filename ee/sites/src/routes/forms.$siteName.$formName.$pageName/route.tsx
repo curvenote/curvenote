@@ -20,7 +20,7 @@ import {
   clearDraftCookie,
 } from './cookies.server.js';
 import { submitForm } from './actionHelpers.server.js';
-import { fetchOrcidPerson } from './orcidLookup.server.js';
+import { fetchOrcidPerson, searchOrcid } from './orcidLookup.server.js';
 import { isPageComplete, getFieldErrors, isValidOrcid } from './validationUtils.js';
 import { FormArea } from './FormArea.js';
 import { FormBody } from './FormBody.js';
@@ -288,6 +288,13 @@ export async function action(args: ActionFunctionArgs) {
       ...(person.email && { email: person.email }),
       affiliations: person.affiliations ?? [],
     });
+  }
+
+  // Search ORCID by name/query (for author name typeahead)
+  if (intent === 'search-orcid') {
+    const q = (formData.get('q') as string)?.trim() ?? '';
+    const results = await searchOrcid(q);
+    return data({ results });
   }
 
   // Save one or more fields to the draft Object (create if no objectId, else OCC update)

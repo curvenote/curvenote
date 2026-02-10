@@ -12,6 +12,7 @@ import {
   ChevronDown,
   BadgeCheck,
   CornerDownLeft,
+  Loader2,
 } from 'lucide-react';
 import {
   DndContext,
@@ -1027,6 +1028,13 @@ function AuthorCard({
   );
 }
 
+type OrcidSearchHit = {
+  orcid: string;
+  name: string;
+  firstAffiliation?: string;
+  email?: string;
+};
+
 type AddAuthorPlaceholderCardProps = {
   inputRef: React.RefObject<HTMLInputElement | null>;
   nameInput: string;
@@ -1037,6 +1045,10 @@ type AddAuthorPlaceholderCardProps = {
   contactDetails: ContactDetailsForAuthor | null | undefined;
   schemaName: string;
   isEmpty: boolean;
+  orcidSearchResults: OrcidSearchHit[];
+  orcidSearchLoading: boolean;
+  showOrcidSuggestions: boolean;
+  onSelectOrcidSuggestion: (hit: OrcidSearchHit) => void;
 };
 
 function AddAuthorPlaceholderCard({
@@ -1049,6 +1061,10 @@ function AddAuthorPlaceholderCard({
   contactDetails,
   schemaName,
   isEmpty,
+  orcidSearchResults,
+  orcidSearchLoading,
+  showOrcidSuggestions,
+  onSelectOrcidSuggestion,
 }: AddAuthorPlaceholderCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: ADD_AUTHOR_PLACEHOLDER_ID,
@@ -1091,21 +1107,66 @@ function AddAuthorPlaceholderCard({
           </div>
         )}
         <div className="flex gap-2 items-center">
-          <ui.Input
-            ref={inputRef as React.RefObject<HTMLInputElement>}
-            id={`${schemaName}-add-name`}
-            type="text"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddAuthor();
-              }
-            }}
-            placeholder="Name or ORCID (e.g. 0000-0002-1825-0097)"
-            className="flex-1 min-w-0"
-          />
+          <div className="relative flex-1 min-w-0">
+            <ui.Input
+              ref={inputRef as React.RefObject<HTMLInputElement>}
+              id={`${schemaName}-add-name`}
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddAuthor();
+                }
+              }}
+              placeholder="Name or ORCID (e.g. 0000-0002-1825-0097)"
+              className="flex-1 min-w-0 w-full"
+            />
+            {showOrcidSuggestions && (
+              <div
+                className="absolute top-full left-0 right-0 z-10 mt-1 rounded-md border border-border bg-popover shadow-md"
+                role="listbox"
+              >
+                {orcidSearchLoading ? (
+                  <div className="flex gap-2 items-center px-3 py-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden />
+                    <span>Searching ORCID…</span>
+                  </div>
+                ) : orcidSearchResults.length > 0 ? (
+                  <ul className="max-h-60 overflow-auto py-1">
+                    {orcidSearchResults.map((hit) => (
+                      <li key={hit.orcid}>
+                        <button
+                          type="button"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted/50 cursor-pointer border-0 bg-transparent"
+                          onClick={() => onSelectOrcidSuggestion(hit)}
+                          role="option"
+                        >
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <span className="font-medium">{hit.name}</span>
+                            {hit.firstAffiliation && (
+                              <span className="text-muted-foreground text-xs truncate max-w-[12rem]">
+                                {hit.firstAffiliation}
+                              </span>
+                            )}
+                            <span className="text-muted-foreground tabular-nums text-xs shrink-0">
+                              {hit.orcid}
+                            </span>
+                          </div>
+                          {hit.email && (
+                            <div className="mt-0.5 text-muted-foreground text-xs truncate">
+                              {hit.email}
+                            </div>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            )}
+          </div>
           <ui.Button
             type="button"
             onClick={handleAddAuthor}
@@ -1177,6 +1238,7 @@ export function AuthorField({
   contactDetails,
 }: AuthorFieldProps) {
   const [nameInput, setNameInput] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [activeAuthorId, setActiveAuthorId] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -1187,8 +1249,27 @@ export function AuthorField({
   valueRef.current = value;
   const pendingOrcidRef = useRef<string | null>(null);
   const addMeOrcidAuthorIdRef = useRef<string | null>(null);
+  const suggestionOrcidAuthorIdRef = useRef<string | null>(null);
   const orcidFetcher = useFetcher();
+  const orcidSearchFetcher = useFetcher();
   const affiliationList = affiliationListProp ?? [];
+
+  // Debounce name input for ORCID search (300ms, same as combobox-async)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(nameInput), 300);
+    return () => clearTimeout(t);
+  }, [nameInput]);
+
+  // When debounced query has at least two words and is not an ORCID, search ORCID
+  useEffect(() => {
+    const trimmed = debouncedQuery.trim();
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (words.length < 2 || isValidOrcid(trimmed)) return;
+    const fd = new FormData();
+    fd.set('intent', 'search-orcid');
+    fd.set('q', trimmed);
+    orcidSearchFetcher.submit(fd, { method: 'POST' });
+  }, [debouncedQuery]);
   const authorErrors = getAuthorFieldErrors(value);
   const isValid = value.length > 0 && authorErrors.length === 0;
 
@@ -1375,12 +1456,68 @@ export function AuthorField({
       for (const aff of affiliationsFromOrcid) {
         const trimmed = String(aff?.name ?? '').trim();
         if (!trimmed) continue;
-        const existing = nextList.find(
+        const existingExact = nextList.find(
           (a) =>
             (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase() &&
             (a.city ?? '') === (aff?.city ?? '') &&
             (a.country ?? '') === (aff?.country ?? ''),
         );
+        const existing =
+          existingExact ||
+          nextList.find((a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
+        if (existing) {
+          if (!newAffiliationIds.includes(existing.id)) newAffiliationIds.push(existing.id);
+        } else {
+          const newAff: Affiliation = {
+            id: uuid(),
+            name: trimmed,
+            ...(aff?.city && { city: aff.city }),
+            ...(aff?.country && { country: aff.country }),
+          };
+          nextList = [...nextList, newAff];
+          newAffiliationIds.push(newAff.id);
+        }
+      }
+      if (nextList.length > affiliationList.length) onAffiliationListChange?.(nextList);
+      const updates: Partial<Author> = {};
+      if (nameFromOrcid && (!(author.name ?? '').trim() || author.name === 'Author'))
+        updates.name = nameFromOrcid;
+      if (emailFromOrcid && !(author.email ?? '').trim()) updates.email = emailFromOrcid;
+      if (newAffiliationIds.length > 0) updates.affiliationIds = newAffiliationIds;
+      if (Object.keys(updates).length > 0) {
+        const next = currentAuthors.map((a, i) => (i === idx ? { ...a, ...updates } : a));
+        handleChange(next);
+      }
+      return;
+    }
+
+    // Merge into author we just added from ORCID search dropdown (enrich with full fetch-orcid response)
+    if (suggestionOrcidAuthorIdRef.current) {
+      const targetId = suggestionOrcidAuthorIdRef.current;
+      suggestionOrcidAuthorIdRef.current = null;
+      if (data?.error) return;
+      const currentAuthors = valueRef.current;
+      const idx = currentAuthors.findIndex((a) => a.id === targetId);
+      if (idx === -1) return;
+      const author = currentAuthors[idx];
+      const nameFromOrcid =
+        data?.name && data?.orcid ? String(data.name).trim() || undefined : undefined;
+      const emailFromOrcid = data?.orcid && data?.email?.trim() ? data.email?.trim() : undefined;
+      const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
+      let nextList = [...affiliationList];
+      const newAffiliationIds: string[] = [...(author.affiliationIds ?? [])];
+      for (const aff of affiliationsFromOrcid) {
+        const trimmed = String(aff?.name ?? '').trim();
+        if (!trimmed) continue;
+        const existingExact = nextList.find(
+          (a) =>
+            (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase() &&
+            (a.city ?? '') === (aff?.city ?? '') &&
+            (a.country ?? '') === (aff?.country ?? ''),
+        );
+        const existing =
+          existingExact ||
+          nextList.find((a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
         if (existing) {
           if (!newAffiliationIds.includes(existing.id)) newAffiliationIds.push(existing.id);
         } else {
@@ -1421,12 +1558,15 @@ export function AuthorField({
     for (const aff of affiliationsFromOrcid) {
       const trimmed = String(aff?.name ?? '').trim();
       if (!trimmed) continue;
-      const existing = nextList.find(
+      const existingExact = nextList.find(
         (a) =>
           (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase() &&
           (a.city ?? '') === (aff?.city ?? '') &&
           (a.country ?? '') === (aff?.country ?? ''),
       );
+      const existing =
+        existingExact ||
+        nextList.find((a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
       if (existing) {
         affiliationIds.push(existing.id);
       } else {
@@ -1454,6 +1594,48 @@ export function AuthorField({
     insertAuthorAt(idx, newAuthor);
     setNameInput('');
   }, [orcidFetcher.state, orcidFetcher.data, affiliationList, onAffiliationListChange]);
+
+  const orcidSearchResults: OrcidSearchHit[] =
+    (orcidSearchFetcher.data as { results?: OrcidSearchHit[] } | undefined)?.results ?? [];
+  const orcidSearchLoading = orcidSearchFetcher.state !== 'idle';
+  const debouncedWords = debouncedQuery.trim().split(/\s+/).filter(Boolean);
+  const showOrcidSuggestions =
+    debouncedWords.length >= 2 &&
+    !isValidOrcid(debouncedQuery.trim()) &&
+    (orcidSearchLoading || orcidSearchResults.length > 0);
+
+  const onSelectOrcidSuggestion = (hit: OrcidSearchHit) => {
+    setNameInput('');
+    let affiliationIds: string[] = [];
+    let nextList = [...affiliationList];
+    if (hit.firstAffiliation?.trim()) {
+      const trimmed = hit.firstAffiliation.trim();
+      const existing = nextList.find(
+        (a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase(),
+      );
+      if (existing) {
+        affiliationIds = [existing.id];
+      } else {
+        const newAff: Affiliation = { id: uuid(), name: trimmed };
+        nextList = [...nextList, newAff];
+        affiliationIds = [newAff.id];
+      }
+      if (nextList.length > affiliationList.length) onAffiliationListChange?.(nextList);
+    }
+    const newAuthor: Author = {
+      id: uuid(),
+      name: hit.name.trim() || hit.orcid,
+      orcid: hit.orcid,
+      ...(hit.email?.trim() && { email: hit.email.trim() }),
+      affiliationIds,
+    };
+    insertAtPlaceholder(newAuthor);
+    suggestionOrcidAuthorIdRef.current = newAuthor.id;
+    const fd = new FormData();
+    fd.set('intent', 'fetch-orcid');
+    fd.set('orcid', hit.orcid);
+    orcidFetcher.submit(fd, { method: 'POST' });
+  };
 
   const handleAddAuthor = () => {
     const trimmed = nameInput.trim();
@@ -1572,6 +1754,10 @@ export function AuthorField({
                     contactDetails={contactDetails}
                     schemaName={schema.name}
                     isEmpty={value.length === 0}
+                    orcidSearchResults={orcidSearchResults}
+                    orcidSearchLoading={orcidSearchLoading}
+                    showOrcidSuggestions={showOrcidSuggestions}
+                    onSelectOrcidSuggestion={onSelectOrcidSuggestion}
                   />
                 );
               }
