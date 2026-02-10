@@ -18,25 +18,20 @@ import { getWorksApiBase } from './works.js';
 import { SCMSClient } from './client.js';
 
 /**
- * Message attributes structure expected from the pub/sub system
+ * Message attributes structure expected from the pub/sub system.
+ * jobUrl, handshake, and userId are required. statusUrl, successState, and failureState
+ * are optional (e.g. for job-only flows with no submission status transition).
  */
 export type Attributes = {
-  userId: string;
-  successState: string;
-  failureState: string;
-  statusUrl: string;
   jobUrl: string;
   handshake: string;
+  userId: string;
+  statusUrl?: string;
+  successState?: string;
+  failureState?: string;
 };
 
-const REQUIRED_ATTRS: (keyof Attributes)[] = [
-  'jobUrl',
-  'statusUrl',
-  'handshake',
-  'successState',
-  'failureState',
-  'userId',
-];
+const REQUIRED_ATTRS: (keyof Attributes)[] = ['jobUrl', 'handshake', 'userId'];
 
 /**
  * Context passed to the converter handler: client, attributes, decoded payload, temp folder, and response (for progress updates).
@@ -141,7 +136,9 @@ export function withPubSubHandler<TPayload = unknown>(
 
     const validatedAttributes = attrs as Attributes;
     console.log('Creating temporary folder');
-    const tmpFolder = await fs.mkdtemp(path.join(tmpFolderRoot ?? os.tmpdir(), 'scms-job'));
+    const root = tmpFolderRoot ?? os.tmpdir();
+    await fs.mkdir(root, { recursive: true });
+    const tmpFolder = await fs.mkdtemp(path.join(root, 'scms-job'));
     console.log('Temporary folder created', tmpFolder);
 
     try {
@@ -160,8 +157,9 @@ export function withPubSubHandler<TPayload = unknown>(
       }
 
       const { jobUrl, statusUrl, handshake } = validatedAttributes;
+      const effectiveStatusUrl = statusUrl ?? jobUrl;
       const baseUrl = getWorksApiBase(validatedAttributes);
-      client = new SCMSClient(jobUrl, statusUrl, handshake, {
+      client = new SCMSClient(jobUrl, effectiveStatusUrl, handshake, {
         baseUrl,
         loggingOnlyMode: clientLoggingOnlyMode ?? false,
       });
@@ -190,7 +188,7 @@ export function withPubSubHandler<TPayload = unknown>(
       try {
         if (client) {
           const { failureState, userId } = validatedAttributes;
-          if (onFailure) {
+          if (onFailure && failureState != null && userId != null) {
             await onFailure(client, failureState, userId, res);
           }
           await client.jobs.failed(res, `Converter failed: ${errMessage}`, {

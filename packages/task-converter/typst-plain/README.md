@@ -17,7 +17,7 @@ Reference the template by path in your document front matter. When the template 
 
 ```yaml
 ---
-title: "My document"
+title: 'My document'
 exports:
   - format: typst
     template: ../typst-plain
@@ -37,15 +37,15 @@ Example with options:
 
 ```yaml
 ---
-title: "My document"
+title: 'My document'
 exports:
   - format: typst
     template: ../typst-plain
     output: exports/paper.pdf
     show_header: true
-    logo: "my-logo.svg"
-    header_text: "My Short Title"
-short_title: "My Short Title"
+    logo: 'my-logo.svg'
+    header_text: 'My Short Title'
+short_title: 'My Short Title'
 ---
 ```
 

@@ -19,24 +19,24 @@ Optional: `taskId` for logging.
 
 From [prisma/schema/work.prisma](../../prisma/schema/work.prisma) (WorkVersion model):
 
-| Field | Type | Notes |
-|-------|------|--------|
-| id | string | |
-| work_id | string | |
-| date_created | string | |
-| date_modified | string | |
-| draft | boolean | |
-| cdn | string? | |
-| cdn_key | string? | |
-| title | string | |
-| description | string? | |
-| authors | string[] | |
-| author_details | Json[] | |
-| date | string? | |
-| doi | string? | |
-| canonical | boolean? | |
-| **metadata** | **Json?** | WorkVersionMetadata & FileMetadataSection (see below) |
-| occ | number | |
+| Field          | Type      | Notes                                                 |
+| -------------- | --------- | ----------------------------------------------------- |
+| id             | string    |                                                       |
+| work_id        | string    |                                                       |
+| date_created   | string    |                                                       |
+| date_modified  | string    |                                                       |
+| draft          | boolean   |                                                       |
+| cdn            | string?   |                                                       |
+| cdn_key        | string?   |                                                       |
+| title          | string    |                                                       |
+| description    | string?   |                                                       |
+| authors        | string[]  |                                                       |
+| author_details | Json[]    |                                                       |
+| date           | string?   |                                                       |
+| doi            | string?   |                                                       |
+| canonical      | boolean?  |                                                       |
+| **metadata**   | **Json?** | WorkVersionMetadata & FileMetadataSection (see below) |
+| occ            | number    |                                                       |
 
 Relations may be omitted when serializing for the converter.
 
@@ -146,12 +146,12 @@ No Works API call to **get** work version; the publisher supplies the full work 
 
 ## 6. File layout (suggested)
 
-| File | Purpose |
-|------|---------|
+| File                             | Purpose                                                                                                                                                                                                                                                               |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [src/service.ts](src/service.ts) | Handler: validate attributes (conversionType pandoc-myst), payload (workVersion + target), pick Word → download → pandoc (Word → Markdown) → write curvenote.yml + index.md front matter → myst build --typst → uploadPdf (stub) → updateMetadata (stub) → completed. |
-| src/worksApi.ts (or stubs.ts) | `updateWorkVersionMetadata`, `uploadPdfToStorage` only (no getWorkVersion). |
-| src/convert.ts (or wordToPdf.ts) | Pure steps for pandoc-myst: pickWordFile, downloadFile, runPandoc, writeProjectFiles, runMystBuild. |
-| src/templates/curvenote.yml | Minimal template to copy and augment. |
+| src/worksApi.ts (or stubs.ts)    | `updateWorkVersionMetadata`, `uploadPdfToStorage` only (no getWorkVersion).                                                                                                                                                                                           |
+| src/convert.ts (or wordToPdf.ts) | Pure steps for pandoc-myst: pickWordFile, downloadFile, runPandoc, writeProjectFiles, runMystBuild.                                                                                                                                                                   |
+| src/templates/curvenote.yml      | Minimal template to copy and augment.                                                                                                                                                                                                                                 |
 
 ---
 

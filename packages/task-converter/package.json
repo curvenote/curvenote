@@ -11,14 +11,16 @@
   ],
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "esbuild src/index.ts --outfile=dist/index.js --bundle --platform=node --format=esm --external:express --external:@curvenote/scms-tasks --external:fsevents --loader:.node=copy",
-    "build:watch": "esbuild src/index.ts --outfile=dist/index.js --bundle --platform=node --format=esm --watch --external:express --external:@curvenote/scms-tasks --external:fsevents",
+    "build": "esbuild src/index.ts --outfile=dist/index.js --bundle --platform=node --format=esm --external:express --external:fsevents --loader:.node=copy",
+    "build:watch": "esbuild src/index.ts --outfile=dist/index.js --bundle --platform=node --format=esm --watch --external:express --external:fsevents",
     "start": "node ./dist/index.js",
     "dev": "npm run clean && npm run build && NODE_ENV=development concurrently \"npm run build:watch\" \"nodemon\"",
     "lint": "eslint \"src/**/*.ts\" -c ./.eslintrc.cjs",
     "lint:format": "npx prettier --check \"src/**/*.ts\""
   },
   "dependencies": {
+    "@curvenote/common": "^0.3.4",
+    "@curvenote/scms-core": "^0.14.4",
     "@curvenote/scms-tasks": "^0.14.3",
     "express": "^4.18.1"
   },

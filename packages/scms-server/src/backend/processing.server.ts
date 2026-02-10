@@ -94,3 +94,52 @@ export async function publishCheck(attributes: CheckMessageAttributes) {
   const messageId = await pubSubClient.topic(config.api.checkTopic).publishMessage({ attributes });
   return messageId;
 }
+
+export type ConverterMessageAttributes = {
+  handshake: string;
+  jobUrl: string;
+  userId: string;
+  statusUrl?: string;
+  successState?: string;
+  failureState?: string;
+} & Record<string, string>;
+
+/**
+ * Publish a message to the converter Pub/Sub topic (task-converter service).
+ * Message has attributes (handshake, jobUrl, userId, etc.) and data (base64-encoded JSON payload).
+ */
+export async function publishConverterMessage(
+  attributes: ConverterMessageAttributes,
+  data: Record<string, unknown>,
+): Promise<string> {
+  const config = await getConfig();
+  if (process.env.NODE_ENV === 'test' || process.env.APP_CONFIG_ENV === 'test') {
+    return 'testPubSubId';
+  }
+  const dataBase64 = Buffer.from(JSON.stringify(data), 'utf-8').toString('base64');
+  if (process.env.NODE_ENV === 'development') {
+    const jobUrl = attributes.jobUrl?.replace('localhost', 'host.docker.internal');
+    fetch('http://127.0.0.1:8080/', {
+      method: 'POST',
+      body: JSON.stringify({ message: { attributes: { ...attributes, jobUrl }, data: dataBase64 } }),
+      headers: { 'content-type': 'application/json' },
+    }).then(
+      (res) => console.info('converter response', res),
+      (err) => console.error('converter error', err),
+    );
+    return 'testPubSubId';
+  }
+  const topicName = config.api.converterTopic;
+  const projectIdMatch = topicName.match(/^projects\/([^/]+)\//);
+  if (!projectIdMatch) {
+    throw new Error('converterTopic must be full resource name (projects/PROJECT_ID/topics/TOPIC_NAME)');
+  }
+  const pubSubClient = new PubSub({
+    projectId: projectIdMatch[1],
+    credentials: JSON.parse(config.api.converterSASecretKeyfile),
+  });
+  const messageId = await pubSubClient
+    .topic(topicName)
+    .publishMessage({ data: Buffer.from(JSON.stringify(data), 'utf-8'), attributes });
+  return messageId;
+}

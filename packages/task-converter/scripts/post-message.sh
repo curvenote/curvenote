@@ -22,7 +22,8 @@ PAYLOAD_JSON=$(cat <<'PAYLOAD_EOF'
 {
   "taskId": "test-converter-1",
   "target": "pdf",
-  "conversionType": "pandoc-myst",
+  "conversionType_1": "docx-pandoc-myst-pdf",
+  "conversionType": "docx-lowriter-pdf",
   "filename": "paper.pdf",
   "workVersion": {
     "id": "019c425e-399f-7d65-93f5-691196ed551b",

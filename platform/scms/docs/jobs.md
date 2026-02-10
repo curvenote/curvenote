@@ -6,8 +6,8 @@
    The app (or any authenticated client) sends `POST /api/v1/jobs` with `{ job_type, payload }`.  
    The API validates `job_type` and `payload`, looks up the handler for that type, runs the handler, and returns the created job DTO. The handler is responsible for creating the job row (and optionally enqueueing an async task).
 
-2. **Run**  
-   - **Sync**: The handler does all work and updates the job (e.g. PUBLISH, UNPUBLISH).  
+2. **Run**
+   - **Sync**: The handler does all work and updates the job (e.g. PUBLISH, UNPUBLISH).
    - **Async**: The handler creates the job, publishes a message (e.g. SNS/PubSub) with a handshake token and `job_url`, and returns. A worker consumes the message, does the work, and updates the job via `PATCH /api/v1/jobs/:jobId` using the handshake token (e.g. CHECK, EXPORT_TO_PDF).
 
 3. **Update**  
@@ -22,14 +22,14 @@
 
 To add a job like **Export to PDF** that triggers an async task:
 
-| Step | What | Where |
-|------|------|--------|
-| 1 | Declare job type constant | [packages/scms-core/src/backend/loaders/jobs/names.ts](packages/scms-core/src/backend/loaders/jobs/names.ts) – add to `KnownJobTypes` |
-| 2 | Allow type in API validation | [packages/scms-server/src/api.schemas.ts](packages/scms-server/src/api.schemas.ts) – add to `coreJobTypes` in `getJobTypes()` |
-| 3 | Define payload schema | [packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts) – e.g. `CreateExportToPdfJobPayloadSchema` |
-| 4 | Implement handler | [packages/scms-server/src/backend/loaders/jobs/handlers/export-to-pdf.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/export-to-pdf.server.ts) – validate payload, `dbCreateJob`, enqueue (e.g. SNS), return job |
-| 5 | Register handler | [packages/scms-server/src/backend/loaders/jobs/handlers/index.ts](packages/scms-server/src/backend/loaders/jobs/handlers/index.ts) – add to `coreHandlers` |
-| 6 | (Optional) Storage | [packages/scms-server/src/backend/loaders/jobs/create.server.ts](packages/scms-server/src/backend/loaders/jobs/create.server.ts) – add job type to `jobsRequiringStorage` only if the handler needs `StorageBackend` |
+| Step | What                         | Where                                                                                                                                                                                                                              |
+| ---- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Declare job type constant    | [packages/scms-core/src/backend/loaders/jobs/names.ts](packages/scms-core/src/backend/loaders/jobs/names.ts) – add to `KnownJobTypes`                                                                                              |
+| 2    | Allow type in API validation | [packages/scms-server/src/api.schemas.ts](packages/scms-server/src/api.schemas.ts) – add to `coreJobTypes` in `getJobTypes()`                                                                                                      |
+| 3    | Define payload schema        | [packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts) – e.g. `CreateExportToPdfJobPayloadSchema`                                    |
+| 4    | Implement handler            | [packages/scms-server/src/backend/loaders/jobs/handlers/export-to-pdf.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/export-to-pdf.server.ts) – validate payload, `dbCreateJob`, enqueue (e.g. SNS), return job |
+| 5    | Register handler             | [packages/scms-server/src/backend/loaders/jobs/handlers/index.ts](packages/scms-server/src/backend/loaders/jobs/handlers/index.ts) – add to `coreHandlers`                                                                         |
+| 6    | (Optional) Storage           | [packages/scms-server/src/backend/loaders/jobs/create.server.ts](packages/scms-server/src/backend/loaders/jobs/create.server.ts) – add job type to `jobsRequiringStorage` only if the handler needs `StorageBackend`               |
 
 **Trigger from the app**: `POST /api/v1/jobs` with body `{ "job_type": "EXPORT_TO_PDF", "payload": { "target": "..." } }`.  
 The route that receives this: [platform/scms/app/routes/api/v1.jobs.tsx](platform/scms/app/routes/api/v1.jobs.tsx).
@@ -58,16 +58,16 @@ To add a job **without** touching `KnownJobTypes` or core handlers:
 
 ## File reference (links to touch for a new core job)
 
-| Purpose | File |
-|--------|------|
-| Job type constant | [packages/scms-core/src/backend/loaders/jobs/names.ts](packages/scms-core/src/backend/loaders/jobs/names.ts) |
-| API allowed job types | [packages/scms-server/src/api.schemas.ts](packages/scms-server/src/api.schemas.ts) |
-| Payload schema | [packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts) |
-| Handler implementation | New file under `packages/scms-server/src/backend/loaders/jobs/handlers/` (e.g. `export-to-pdf.server.ts`) |
-| Register handler | [packages/scms-server/src/backend/loaders/jobs/handlers/index.ts](packages/scms-server/src/backend/loaders/jobs/handlers/index.ts) |
-| (Optional) Storage for job | [packages/scms-server/src/backend/loaders/jobs/create.server.ts](packages/scms-server/src/backend/loaders/jobs/create.server.ts) |
-| Create job API route | [platform/scms/app/routes/api/v1.jobs.tsx](platform/scms/app/routes/api/v1.jobs.tsx) |
-| Get/update job API route | [platform/scms/app/routes/api/v1.jobs.$jobId.tsx](platform/scms/app/routes/api/v1.jobs.$jobId.tsx) |
-| Handshake token helpers | [packages/scms-server/src/backend/sign.handshake.server.ts](packages/scms-server/src/backend/sign.handshake.server.ts) |
-| Job DB helpers | [packages/scms-server/src/backend/loaders/jobs/handlers/db.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/db.server.ts) |
-| Job types (CreateJob, UpdateJob) | [packages/scms-core/src/backend/loaders/jobs/types.ts](packages/scms-core/src/backend/loaders/jobs/types.ts) |
+| Purpose                          | File                                                                                                                                                 |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Job type constant                | [packages/scms-core/src/backend/loaders/jobs/names.ts](packages/scms-core/src/backend/loaders/jobs/names.ts)                                         |
+| API allowed job types            | [packages/scms-server/src/api.schemas.ts](packages/scms-server/src/api.schemas.ts)                                                                   |
+| Payload schema                   | [packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts) |
+| Handler implementation           | New file under `packages/scms-server/src/backend/loaders/jobs/handlers/` (e.g. `export-to-pdf.server.ts`)                                            |
+| Register handler                 | [packages/scms-server/src/backend/loaders/jobs/handlers/index.ts](packages/scms-server/src/backend/loaders/jobs/handlers/index.ts)                   |
+| (Optional) Storage for job       | [packages/scms-server/src/backend/loaders/jobs/create.server.ts](packages/scms-server/src/backend/loaders/jobs/create.server.ts)                     |
+| Create job API route             | [platform/scms/app/routes/api/v1.jobs.tsx](platform/scms/app/routes/api/v1.jobs.tsx)                                                                 |
+| Get/update job API route         | [platform/scms/app/routes/api/v1.jobs.$jobId.tsx](platform/scms/app/routes/api/v1.jobs.$jobId.tsx)                                                   |
+| Handshake token helpers          | [packages/scms-server/src/backend/sign.handshake.server.ts](packages/scms-server/src/backend/sign.handshake.server.ts)                               |
+| Job DB helpers                   | [packages/scms-server/src/backend/loaders/jobs/handlers/db.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/db.server.ts)           |
+| Job types (CreateJob, UpdateJob) | [packages/scms-core/src/backend/loaders/jobs/types.ts](packages/scms-core/src/backend/loaders/jobs/types.ts)                                         |

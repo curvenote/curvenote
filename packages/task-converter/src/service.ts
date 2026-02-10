@@ -2,33 +2,18 @@
  * SCMS Converter Service
  *
  * Node.js server for the SCMS converter (Cloud Run style). Validates incoming
- * POST payload (target, conversionType, workVersion, optional filename), runs
- * Word → PDF via pandoc-myst pipeline, then uploads PDF and updates work version
- * metadata via the SCMS client (when workVersion has cdn/cdn_key).
+ * POST payload (target, conversionType, workVersion, optional filename), routes
+ * to the appropriate HAT conversion handler (e.g. docx-pandoc-myst-pdf or
+ * docx-lowriter-pdf), then uploads PDF and updates work version metadata via
+ * Handlers produce the PDF, upload to CDN and update work version metadata (when cdn/cdn_key
+ * present), and return the export path; the service then signals job completed.
  */
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import express from 'express';
 import type { HandlerContext } from '@curvenote/scms-tasks';
 import { withPubSubHandler } from '@curvenote/scms-tasks';
-import {
-  validatePayload,
-  type ConverterPayload,
-  type WorkVersionMetadataPayload,
-  type FileMetadataSectionItem,
-} from './payload.js';
-import { runPandocMystPipeline } from './convert.js';
-
-const EXPORT_SLOT = 'export';
-const PDF_MIME = 'application/pdf';
-const DEFAULT_EXPORT_FILENAME = 'document.pdf';
-
-function exportFilenameFromPayload(filename?: string): string {
-  if (!filename || typeof filename !== 'string') return DEFAULT_EXPORT_FILENAME;
-  const base = path.basename(filename);
-  return base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`;
-}
+import { validatePayload, type ConverterPayload } from './payload.js';
+import { getHandler } from './handlers/index.js';
 
 /**
  * Creates and configures the Express service for the SCMS converter.
@@ -47,66 +32,30 @@ export function createService() {
   /**
    * Main endpoint for converter jobs.
    *
-   * Validates payload (target === 'pdf', conversionType === 'pandoc-myst', workVersion).
+   * Validates payload (target === 'pdf', conversionType in supported HAT handlers, workVersion).
    * Export filename comes from payload.filename, default 'document.pdf'.
-   * Runs: pick Word → download → pandoc → write curvenote.yml + index.md front matter
-   * → curvenote build --pdf → upload PDF and update work version metadata (via SCMS client) → completed.
+   * Routes to the handler for the given conversionType. The handler produces the PDF,
+   * uploads and updates work version metadata (when cdn/cdn_key present), and returns
+   * the export path. Service then signals job completed.
    */
   app.post(
     '/',
     withPubSubHandler<ConverterPayload>(
       async (ctx: HandlerContext<ConverterPayload>) => {
-        const { client, attributes, payload, tmpFolder, res } = ctx;
+        const { client, payload, res } = ctx;
 
         if (!validatePayload(payload)) {
           throw new Error(
-            'Invalid payload: required workVersion (object with id, work_id, title, authors), target = "pdf", conversionType = "pandoc-myst", and metadata as object',
+            'Invalid payload: required workVersion (object with id, work_id, title, authors), target = "pdf", conversionType one of (docx-pandoc-myst-pdf, docx-lowriter-pdf), and metadata as object',
           );
         }
 
         const workVersion = payload.workVersion;
         const taskId = payload.taskId;
-        const exportFilename = exportFilenameFromPayload(payload.filename);
         if (taskId) console.log('Task ID from payload', taskId);
 
-        const pdfPath = await runPandocMystPipeline(workVersion, tmpFolder, exportFilename);
-        const stats = await fs.stat(pdfPath);
-        let exportPath: string = pdfPath;
-
-        // Upload and update work version via SCMS client (when cdn/cdn_key present)
-        if (workVersion.cdn?.trim() && workVersion.cdn_key?.trim()) {
-          const uploadResult = await client.uploads.uploadSingleFileToCdn({
-            cdn: workVersion.cdn,
-            cdnKey: workVersion.cdn_key,
-            localPath: pdfPath,
-            storagePath: `export/${exportFilename}`,
-          });
-          exportPath = uploadResult.path;
-          const pdfFileEntry: FileMetadataSectionItem = {
-            name: exportFilename,
-            size: stats.size,
-            type: PDF_MIME,
-            path: uploadResult.path,
-            md5: '', // upload API could be extended to return md5 if needed
-            uploadDate: new Date().toISOString(),
-            slot: EXPORT_SLOT,
-          };
-          const metadata: WorkVersionMetadataPayload = {
-            ...workVersion.metadata,
-            version: workVersion.metadata?.version ?? 1,
-            files: {
-              ...(workVersion.metadata?.files && typeof workVersion.metadata.files === 'object'
-                ? workVersion.metadata.files
-                : {}),
-              [uploadResult.path]: pdfFileEntry,
-            },
-          };
-          await client.works.updateWorkVersionMetadata(
-            workVersion.work_id,
-            workVersion.id,
-            metadata,
-          );
-        }
+        const handler = getHandler(payload.conversionType);
+        const exportPath = await handler(ctx);
 
         await client.jobs.completed(res, 'PDF conversion completed', {
           taskId,

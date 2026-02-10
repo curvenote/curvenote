@@ -1,77 +1,33 @@
 /**
- * Payload and WorkVersion types for the SCMS converter.
- * Aligned with WorkVersion Prisma model and metadata.files shape.
+ * Payload types from @curvenote/common; file metadata from scms-core for pickWordFile.
  */
 
-/** File entry in metadata.files (minimal shape for converter). */
-export type FileMetadataSectionItem = {
-  name: string;
-  size: number;
-  type: string;
-  path: string;
-  md5: string;
-  uploadDate: string;
-  slot: string;
-  label?: string;
-  order?: number;
-  signedUrl?: string;
-};
+import type { ConverterPayload, WorkVersionPayload } from '@curvenote/common';
+import { CONVERSION_TYPES } from '@curvenote/common';
+import type { FileMetadataSectionItem } from '@curvenote/scms-core';
 
-/** metadata.files is Record<path, FileMetadataSectionItem> */
-export type FileMetadataSection = {
-  files: Record<string, FileMetadataSectionItem>;
-};
+export type {
+  WorkVersionMetadataPayload,
+  WorkVersionPayload,
+  ConversionType,
+  ConverterPayload,
+} from '@curvenote/common';
+export { CONVERSION_TYPES } from '@curvenote/common';
+export type { FileMetadataSectionItem, FileMetadataSection } from '@curvenote/scms-core';
 
-/** workVersion.metadata: version + files (and optional checks, etc.) */
-export type WorkVersionMetadataPayload = {
-  version: number;
-  files?: Record<string, FileMetadataSectionItem>;
-  checks?: { enabled: string[] };
-  [key: string]: unknown;
-};
-
-/** WorkVersion as received in payload (no relations). */
-export type WorkVersionPayload = {
-  id: string;
-  work_id: string;
-  date_created: string;
-  date_modified: string;
-  draft: boolean;
-  cdn: string | null;
-  cdn_key: string | null;
-  title: string;
-  description: string | null;
-  authors: string[];
-  author_details: unknown[];
-  date: string | null;
-  doi: string | null;
-  canonical: boolean | null;
-  metadata: WorkVersionMetadataPayload | null;
-  occ: number;
-};
-
-/** Message payload (decoded from Pub/Sub message.data). */
-export type ConverterPayload = {
-  taskId?: string;
-  target: 'pdf';
-  conversionType: 'pandoc-myst';
-  filename?: string;
-  workVersion: WorkVersionPayload;
-};
-
-const WORD_MIME =
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const WORD_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const DOCX_EXT = '.docx';
 
 /**
- * Validates payload: workVersion (object), target === 'pdf', conversionType === 'pandoc-myst',
+ * Validates payload: workVersion (object), target === 'pdf', conversionType one of CONVERSION_TYPES,
  * required workVersion fields, and metadata as non-null object (for metadata.files).
  */
 export function validatePayload(payload: unknown): payload is ConverterPayload {
   if (!payload || typeof payload !== 'object') return false;
   const p = payload as Record<string, unknown>;
   if (p.target !== 'pdf') return false;
-  if (p.conversionType !== 'pandoc-myst') return false;
+  const ct = p.conversionType;
+  if (typeof ct !== 'string' || !(CONVERSION_TYPES as readonly string[]).includes(ct)) return false;
   const wv = p.workVersion;
   if (!wv || typeof wv !== 'object') return false;
   const w = wv as Record<string, unknown>;

@@ -33,7 +33,12 @@ import {
 const handler = withPubSubHandler<MyPayload>(async (ctx) => {
   const { client, payload, tmpFolder, res } = ctx;
   await client.jobs.running(res, 'Starting...');
-  const result = await client.uploads.uploadSingleFileToCdn({ cdn, cdnKey, localPath, storagePath });
+  const result = await client.uploads.uploadSingleFileToCdn({
+    cdn,
+    cdnKey,
+    localPath,
+    storagePath,
+  });
   await client.works.updateWorkVersionMetadata(workId, workVersionId, metadata);
   await client.jobs.completed(res, 'Done', { exportPath: result.path });
 });
