@@ -25,9 +25,9 @@ WORKDIR /usr/app
 
 # Pre-built assets (copied into this folder by build:service or local.sh before docker build)
 COPY dist/ ./dist/
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY typst-plain/ ./typst-plain/
 
-RUN npm install
+RUN npm ci
 
 CMD ["npm", "run", "start"]

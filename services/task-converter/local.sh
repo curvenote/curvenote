@@ -15,10 +15,9 @@ cd "$PACKAGE_DIR"
 npm install
 npm run build
 
-echo "Copying dist, package.json, and typst-plain into services/task-converter..."
+echo "Copying dist and typst-plain into services/task-converter (keeping local package.json and package-lock.json)..."
+rm -rf "$SCRIPT_DIR/dist"
 cp -r dist "$SCRIPT_DIR/"
-cp package.json "$SCRIPT_DIR/"
-[ -f package-lock.json ] && cp package-lock.json "$SCRIPT_DIR/" || true
 rm -rf "$SCRIPT_DIR/typst-plain"
 cp -r typst-plain "$SCRIPT_DIR/"
 

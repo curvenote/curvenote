@@ -4,11 +4,12 @@ This directory holds the Dockerfile and scripts to build and deploy the **task-c
 
 ## Build flow
 
-The Docker image is built from **pre-built assets** that must be copied here first:
+This directory has its **own minimal `package.json`** (and optionally `package-lock.json`): only runtime deps and the `start` script. The task-converter package’s `package.json` is **not** copied here.
 
-1. Build the task-converter package (`packages/task-converter`).
-2. Copy `dist/`, `package.json`, and `typst-plain/` into `services/task-converter/`.
-3. Run `docker build` or `gcloud builds submit` from this directory.
+The Docker image is built from **pre-built assets** copied here by `build:service` or `local.sh`:
+
+1. Build `packages/task-converter` and copy `dist/` and `typst-plain/` into `services/task-converter/` (never overwrite local `package.json` or `package-lock.json`).
+2. Run `docker build` or `gcloud builds submit` from this directory.
 
 Do **not** build the Node app inside the Dockerfile; it only copies what is already in this folder.
 
@@ -39,7 +40,7 @@ cp .env.sample .env
 
 | Command | Description |
 |---------|-------------|
-| `npm run build:service` | Build `packages/task-converter` and copy `dist/`, `package.json`, `typst-plain/` here. |
+| `npm run build:service` | Build `task-converter`, copy `dist/` and `typst-plain/` here (never overwrites local `package.json` or `package-lock.json`). |
 | `npm run build` | `build:service` then `./build.sh` (full remote image build). |
 | `npm run deploy` | `./deploy.sh` |
 | `npm run build:local` | `build:service` then `docker build -t task-converter-local .` |
@@ -60,3 +61,13 @@ cp .env.sample .env
 | `PORT` | Local dev port | 8080 |
 
 Cloud Run sets `PORT` at runtime; no need to pass it in deploy.
+
+## package-lock.json
+
+This directory has its own `package-lock.json` for reproducible installs in the container (`npm ci`). To regenerate it after changing `package.json`:
+
+```bash
+npm install
+```
+
+Commit the updated `package-lock.json`.
