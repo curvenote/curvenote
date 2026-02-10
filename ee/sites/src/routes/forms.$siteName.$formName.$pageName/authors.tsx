@@ -92,6 +92,7 @@ function SortableAffiliationRow({
     (affiliation.city ?? '').trim() ||
     (affiliation.country ?? '').trim()
   );
+  const hasRor = !!(affiliation.ror ?? '').trim();
 
   const saveNameOnly = () => {
     const trimmed = editValue.trim();
@@ -181,58 +182,73 @@ function SortableAffiliationRow({
                 </span>
               </button>
               {deptLocationExpanded && (
-                <div className="grid grid-cols-1 gap-2 pl-5 sm:grid-cols-3">
-                  <div className="space-y-1">
-                    <label
-                      htmlFor={`${id}-department`}
-                      className="text-xs font-medium text-muted-foreground"
-                    >
-                      Department
-                    </label>
-                    <ui.Input
-                      id={`${id}-department`}
-                      type="text"
-                      value={editDepartment}
-                      onChange={(e) => setEditDepartment(e.target.value)}
-                      onBlur={saveDepartment}
-                      placeholder="Department"
-                      className="w-full text-sm"
-                    />
+                <div className="space-y-3 pl-5">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="space-y-1">
+                      <label
+                        htmlFor={`${id}-department`}
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        Department
+                      </label>
+                      <ui.Input
+                        id={`${id}-department`}
+                        type="text"
+                        value={editDepartment}
+                        onChange={(e) => setEditDepartment(e.target.value)}
+                        onBlur={saveDepartment}
+                        placeholder="Department"
+                        className="w-full text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label
+                        htmlFor={`${id}-city`}
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        City
+                      </label>
+                      <ui.Input
+                        id={`${id}-city`}
+                        type="text"
+                        value={editCity}
+                        onChange={(e) => setEditCity(e.target.value)}
+                        onBlur={saveCity}
+                        placeholder="City"
+                        className="w-full text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label
+                        htmlFor={`${id}-country`}
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        Country
+                      </label>
+                      <ui.Input
+                        id={`${id}-country`}
+                        type="text"
+                        value={editCountry}
+                        onChange={(e) => setEditCountry(e.target.value)}
+                        onBlur={saveCountry}
+                        placeholder="Country"
+                        className="w-full text-sm"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label
-                      htmlFor={`${id}-city`}
-                      className="text-xs font-medium text-muted-foreground"
-                    >
-                      City
-                    </label>
-                    <ui.Input
-                      id={`${id}-city`}
-                      type="text"
-                      value={editCity}
-                      onChange={(e) => setEditCity(e.target.value)}
-                      onBlur={saveCity}
-                      placeholder="City"
-                      className="w-full text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label
-                      htmlFor={`${id}-country`}
-                      className="text-xs font-medium text-muted-foreground"
-                    >
-                      Country
-                    </label>
-                    <ui.Input
-                      id={`${id}-country`}
-                      type="text"
-                      value={editCountry}
-                      onChange={(e) => setEditCountry(e.target.value)}
-                      onBlur={saveCountry}
-                      placeholder="Country"
-                      className="w-full text-sm"
-                    />
-                  </div>
+                  {hasRor && affiliation.ror && (
+                    <p className="text-xs text-muted-foreground font-mono truncate">
+                      ROR:{' '}
+                      <a
+                        href={affiliation.ror}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cursor-pointer text-muted-foreground no-underline hover:text-muted-foreground"
+                      >
+                        {affiliation.ror}
+                      </a>
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -518,11 +534,20 @@ function AuthorCard({
                 >
                   {editName.trim() || 'Author Name'}
                 </span>
-                {orcidValid === true && (
-                  <BadgeCheck
-                    className="w-4 h-4 text-green-500 shrink-0"
-                    aria-label="ORCID valid"
-                  />
+                {orcidValid === true && (value.orcid ?? editOrcid)?.trim() && (
+                  <a
+                    href={
+                      (value.orcid ?? editOrcid)!.trim().startsWith('http')
+                        ? (value.orcid ?? editOrcid)!.trim()
+                        : `https://orcid.org/${(value.orcid ?? editOrcid)!.trim()}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cursor-pointer no-underline shrink-0"
+                    aria-label="View ORCID profile"
+                  >
+                    <BadgeCheck className="w-4 h-4 text-green-500" aria-hidden />
+                  </a>
                 )}
               </div>
               {editAffiliationIds.length > 0 ? (
@@ -811,8 +836,20 @@ function AuthorCard({
               >
                 {value.name?.trim() || 'Author Name'}
               </span>
-              {orcidValid === true && (
-                <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" aria-label="ORCID valid" />
+              {orcidValid === true && value.orcid?.trim() && (
+                <a
+                  href={
+                    value.orcid.trim().startsWith('http')
+                      ? value.orcid.trim()
+                      : `https://orcid.org/${value.orcid.trim()}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cursor-pointer no-underline shrink-0"
+                  aria-label="View ORCID profile"
+                >
+                  <BadgeCheck className="w-4 h-4 text-green-500" aria-hidden />
+                </a>
               )}
             </div>
 
@@ -1434,7 +1471,13 @@ export function AuthorField({
       name?: string;
       orcid?: string;
       email?: string;
-      affiliations?: { name: string; city?: string; region?: string; country?: string }[];
+      affiliations?: {
+        name: string;
+        city?: string;
+        region?: string;
+        country?: string;
+        ror?: string;
+      }[];
       error?: { message?: string };
     };
 
@@ -1452,6 +1495,7 @@ export function AuthorField({
       const emailFromOrcid = data?.orcid && data?.email?.trim() ? data.email?.trim() : undefined;
       const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
       let nextList = [...affiliationList];
+      let listModified = false;
       const newAffiliationIds: string[] = [...(author.affiliationIds ?? [])];
       for (const aff of affiliationsFromOrcid) {
         const trimmed = String(aff?.name ?? '').trim();
@@ -1467,18 +1511,24 @@ export function AuthorField({
           nextList.find((a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
         if (existing) {
           if (!newAffiliationIds.includes(existing.id)) newAffiliationIds.push(existing.id);
+          if (aff?.ror && !(existing.ror ?? '').trim()) {
+            nextList = nextList.map((a) => (a.id === existing.id ? { ...a, ror: aff.ror } : a));
+            listModified = true;
+          }
         } else {
           const newAff: Affiliation = {
             id: uuid(),
             name: trimmed,
             ...(aff?.city && { city: aff.city }),
             ...(aff?.country && { country: aff.country }),
+            ...(aff?.ror && { ror: aff.ror }),
           };
           nextList = [...nextList, newAff];
           newAffiliationIds.push(newAff.id);
+          listModified = true;
         }
       }
-      if (nextList.length > affiliationList.length) onAffiliationListChange?.(nextList);
+      if (listModified) onAffiliationListChange?.(nextList);
       const updates: Partial<Author> = {};
       if (nameFromOrcid && (!(author.name ?? '').trim() || author.name === 'Author'))
         updates.name = nameFromOrcid;
@@ -1505,6 +1555,7 @@ export function AuthorField({
       const emailFromOrcid = data?.orcid && data?.email?.trim() ? data.email?.trim() : undefined;
       const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
       let nextList = [...affiliationList];
+      let listModified = false;
       const newAffiliationIds: string[] = [...(author.affiliationIds ?? [])];
       for (const aff of affiliationsFromOrcid) {
         const trimmed = String(aff?.name ?? '').trim();
@@ -1520,18 +1571,24 @@ export function AuthorField({
           nextList.find((a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
         if (existing) {
           if (!newAffiliationIds.includes(existing.id)) newAffiliationIds.push(existing.id);
+          if (aff?.ror && !(existing.ror ?? '').trim()) {
+            nextList = nextList.map((a) => (a.id === existing.id ? { ...a, ror: aff.ror } : a));
+            listModified = true;
+          }
         } else {
           const newAff: Affiliation = {
             id: uuid(),
             name: trimmed,
             ...(aff?.city && { city: aff.city }),
             ...(aff?.country && { country: aff.country }),
+            ...(aff?.ror && { ror: aff.ror }),
           };
           nextList = [...nextList, newAff];
           newAffiliationIds.push(newAff.id);
+          listModified = true;
         }
       }
-      if (nextList.length > affiliationList.length) onAffiliationListChange?.(nextList);
+      if (listModified) onAffiliationListChange?.(nextList);
       const updates: Partial<Author> = {};
       if (nameFromOrcid && (!(author.name ?? '').trim() || author.name === 'Author'))
         updates.name = nameFromOrcid;
@@ -1554,6 +1611,7 @@ export function AuthorField({
       data?.error || !data?.orcid ? undefined : (data.email?.trim() && data.email) || undefined;
     const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
     let nextList = [...affiliationList];
+    let listModified = false;
     const affiliationIds: string[] = [];
     for (const aff of affiliationsFromOrcid) {
       const trimmed = String(aff?.name ?? '').trim();
@@ -1569,20 +1627,24 @@ export function AuthorField({
         nextList.find((a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
       if (existing) {
         affiliationIds.push(existing.id);
+        if (aff?.ror && !(existing.ror ?? '').trim()) {
+          nextList = nextList.map((a) => (a.id === existing.id ? { ...a, ror: aff.ror } : a));
+          listModified = true;
+        }
       } else {
         const newAff: Affiliation = {
           id: uuid(),
           name: trimmed,
           ...(aff?.city && { city: aff.city }),
           ...(aff?.country && { country: aff.country }),
+          ...(aff?.ror && { ror: aff.ror }),
         };
         nextList = [...nextList, newAff];
         affiliationIds.push(newAff.id);
+        listModified = true;
       }
     }
-    if (nextList.length > affiliationList.length) {
-      onAffiliationListChange?.(nextList);
-    }
+    if (listModified) onAffiliationListChange?.(nextList);
     const newAuthor: Author = {
       id: uuid(),
       name,
@@ -1721,7 +1783,20 @@ export function AuthorField({
           {(activeAuthor.name ?? '').trim() || 'Author Name'}
         </span>
         {activeAuthor.orcid && isValidOrcid(activeAuthor.orcid) && (
-          <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
+          <a
+            href={
+              activeAuthor.orcid.startsWith('http')
+                ? activeAuthor.orcid
+                : `https://orcid.org/${activeAuthor.orcid}`
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cursor-pointer no-underline shrink-0"
+            aria-label="View ORCID profile"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <BadgeCheck className="w-4 h-4 text-green-500" aria-hidden />
+          </a>
         )}
       </div>
     ) : null;
@@ -1906,9 +1981,23 @@ function AffiliationListItem({
           <span className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground bg-muted/70 shrink-0">
             {authorCount === 1 ? '1 author' : `${authorCount} authors`}
           </span>
-          {(deptDisplay || cityDisplay || countryDisplay) && (
-            <span className="text-sm truncate text-muted-foreground">
+          {(deptDisplay || cityDisplay || countryDisplay || (affiliation.ror ?? '').trim()) && (
+            <span className="text-sm truncate text-muted-foreground flex flex-wrap items-center gap-x-1">
               {[deptDisplay, cityDisplay, countryDisplay].filter(Boolean).join(' · ')}
+              {(deptDisplay || cityDisplay || countryDisplay) && (affiliation.ror ?? '').trim() && (
+                <span className="text-muted-foreground"> · </span>
+              )}
+              {(affiliation.ror ?? '').trim() && (
+                <a
+                  href={affiliation.ror!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cursor-pointer text-muted-foreground no-underline hover:text-muted-foreground font-mono text-xs truncate max-w-full inline-block"
+                  title={affiliation.ror}
+                >
+                  {affiliation.ror}
+                </a>
+              )}
             </span>
           )}
         </div>
@@ -1980,6 +2069,19 @@ function AffiliationListItem({
                   />
                 </div>
               </div>
+              {(affiliation.ror ?? '').trim() && (
+                <p className="text-sm font-mono text-muted-foreground truncate pt-1">
+                  ROR:{' '}
+                  <a
+                    href={affiliation.ror!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cursor-pointer text-muted-foreground no-underline hover:text-muted-foreground"
+                  >
+                    {affiliation.ror}
+                  </a>
+                </p>
+              )}
             </div>
           </>
         ) : null}

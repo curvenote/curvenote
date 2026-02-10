@@ -16,6 +16,8 @@ export type OrcidAffiliationResult = {
   city?: string;
   region?: string;
   country?: string;
+  /** ROR ID when present (e.g. https://ror.org/03yrm5c26) */
+  ror?: string;
 };
 
 export type OrcidPersonResult = {
@@ -152,6 +154,7 @@ export async function fetchOrcidPerson(orcidId: string): Promise<OrcidPersonResu
   const email = orcid.parseOrcidPrimaryEmail(emailJson);
   const employmentAffs = orcid.parseOrcidAffiliations(employmentsJson);
   const educationAffs = orcid.parseOrcidAffiliations(educationsJson);
+
   const seen = new Set<string>();
   const affiliations: OrcidAffiliationResult[] = [];
   for (const a of [...employmentAffs, ...educationAffs]) {

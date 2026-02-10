@@ -49,12 +49,14 @@ export function parseOrcidPrimaryEmail(emailsSource: unknown): string | undefine
   return email && /@/.test(email) ? email : undefined;
 }
 
-/** Affiliation parsed from ORCID employments/educations API (organization name + address). */
+/** Affiliation parsed from ORCID employments/educations API (organization name + address + optional ROR). */
 export type OrcidAffiliation = {
   name: string;
   city?: string;
   region?: string;
   country?: string;
+  /** ROR ID when present (disambiguation-source ROR); full URL e.g. https://ror.org/03yrm5c26 */
+  ror?: string;
 };
 
 /**
@@ -108,6 +110,27 @@ export function parseOrcidAffiliations(json: unknown): OrcidAffiliation[] {
           : typeof (addr?.country as { value?: string })?.value === 'string'
             ? String((addr!.country as { value: string }).value).trim()
             : undefined;
+      const disambiguated = org['disambiguated-organization'] as
+        | {
+            'disambiguation-source'?: string | { value?: string };
+            'disambiguated-organization-identifier'?: string | { value?: string };
+          }
+        | undefined;
+      const sourceRaw = disambiguated?.['disambiguation-source'];
+      const source =
+        typeof sourceRaw === 'string'
+          ? sourceRaw
+          : typeof (sourceRaw as { value?: string })?.value === 'string'
+            ? (sourceRaw as { value: string }).value
+            : undefined;
+      const idRaw = disambiguated?.['disambiguated-organization-identifier'];
+      const idValue =
+        typeof idRaw === 'string'
+          ? idRaw.trim()
+          : typeof (idRaw as { value?: string })?.value === 'string'
+            ? String((idRaw as { value: string }).value).trim()
+            : undefined;
+      const ror = source === 'ROR' && idValue ? idValue : undefined;
       const key = [name, city ?? '', region ?? '', country ?? ''].join('\0');
       if (seen.has(key)) continue;
       seen.add(key);
@@ -116,6 +139,7 @@ export function parseOrcidAffiliations(json: unknown): OrcidAffiliation[] {
         ...(city && { city }),
         ...(region && { region }),
         ...(country && { country }),
+        ...(ror && { ror }),
       });
     }
   }
