@@ -57,7 +57,9 @@ export function normalizeExportFilename(name: string): string {
 /**
  * Safe basename for the Word file: use original name from metadata, no path traversal.
  */
-export function safeDocxBasename(fileEntry: FileMetadataSectionItem & { pathKey?: string }): string {
+export function safeDocxBasename(
+  fileEntry: FileMetadataSectionItem & { pathKey?: string },
+): string {
   const raw = fileEntry.name || (fileEntry.path && path.basename(fileEntry.path)) || '';
   const base = path.basename(raw).trim();
   if (!base) return FALLBACK_DOCX_BASENAME;

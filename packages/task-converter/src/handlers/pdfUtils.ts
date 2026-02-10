@@ -59,11 +59,7 @@ export async function uploadPdfAndUpdateWorkVersion(
     },
   };
 
-  await client.works.updateWorkVersionMetadata(
-    workVersion.work_id,
-    workVersion.id,
-    metadata,
-  );
+  await client.works.updateWorkVersionMetadata(workVersion.work_id, workVersion.id, metadata);
 
   return uploadResult.path;
 }
