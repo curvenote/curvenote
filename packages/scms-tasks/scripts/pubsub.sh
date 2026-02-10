@@ -3,11 +3,13 @@
 # Set up GCP Pub/Sub for an SCMS Cloud Run service that uses @curvenote/scms-tasks.
 #
 # This script:
-#   1. Creates a dedicated service account for invoking the Cloud Run service and publishing to Pub/Sub
+#   1. Creates a dedicated service account for invoking the Cloud Run service and publishing to Pub/Sub (or uses existing)
 #   2. Grants that account roles/run.invoker on the Cloud Run service
 #   3. Grants that account roles/pubsub.publisher on the project
 #   4. Grants the GCP Pub/Sub service agent roles/iam.serviceAccountTokenCreator (required for push + auth)
-#   5. Creates a Pub/Sub topic and a push subscription that delivers to your Cloud Run URL
+#   5. Creates a Pub/Sub topic and a push subscription that delivers to your Cloud Run URL (or uses existing)
+#
+# Idempotent: safe to re-run; uses existing service account, topic, and subscription if present.
 #
 # Prerequisites:
 #   - gcloud CLI installed and authenticated (gcloud auth login)
@@ -21,10 +23,10 @@
 #   REGION           - Cloud Run region (e.g. us-central1)
 #   SERVICE_NAME     - Name of the Cloud Run service (e.g. task-converter)
 #   PUSH_ENDPOINT    - Full URL of the Cloud Run service (e.g. https://task-converter-xxxxx-uc.a.run.app)
+#   TOPIC_NAME       - Pub/Sub topic (e.g. scmsTaskConverterTopic)
+#   SUBSCRIPTION_NAME - Push subscription (e.g. scmsTaskConverterSub)
 #
 # Optional (defaults shown):
-#   TOPIC_NAME             - Pub/Sub topic (default: scmsTasksTopic)
-#   SUBSCRIPTION_NAME      - Push subscription (default: scmsTasksSub)
 #   SERVICE_ACCOUNT_NAME   - Name for the invoker SA (default: scms-tasks-invoker)
 #   ACK_DEADLINE          - Subscription ack deadline in seconds (default: 600)
 #
@@ -47,9 +49,9 @@ PROJECT_NUMBER="${PROJECT_NUMBER:-}"
 REGION="${REGION:-}"
 SERVICE_NAME="${SERVICE_NAME:-}"
 PUSH_ENDPOINT="${PUSH_ENDPOINT:-}"
-TOPIC_NAME="${TOPIC_NAME:-scmsTasksTopic}"
-SUBSCRIPTION_NAME="${SUBSCRIPTION_NAME:-scmsTasksSub}"
-SERVICE_ACCOUNT_NAME="${SERVICE_ACCOUNT_NAME:-scms-tasks-invoker}"
+TOPIC_NAME="${TOPIC_NAME:-}"
+SUBSCRIPTION_NAME="${SUBSCRIPTION_NAME:-}"
+SERVICE_ACCOUNT_NAME="${SERVICE_ACCOUNT_NAME:-check-pub-sub-invoker}"
 ACK_DEADLINE="${ACK_DEADLINE:-600}"
 
 missing=()
@@ -58,6 +60,8 @@ missing=()
 [[ -z "$REGION" ]]         && missing+=(REGION)
 [[ -z "$SERVICE_NAME" ]]   && missing+=(SERVICE_NAME)
 [[ -z "$PUSH_ENDPOINT" ]]  && missing+=(PUSH_ENDPOINT)
+[[ -z "$TOPIC_NAME" ]]     && missing+=(TOPIC_NAME)
+[[ -z "$SUBSCRIPTION_NAME" ]] && missing+=(SUBSCRIPTION_NAME)
 
 if [[ ${#missing[@]} -gt 0 ]]; then
   echo "Missing required environment variables: ${missing[*]}"
@@ -68,6 +72,8 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   echo "  export REGION=us-central1"
   echo "  export SERVICE_NAME=task-converter"
   echo "  export PUSH_ENDPOINT=https://task-converter-xxxxx-uc.a.run.app"
+  echo "  export TOPIC_NAME=scmsTaskConverterTopic"
+  echo "  export SUBSCRIPTION_NAME=scmsTaskConverterSub"
   echo "  ./scripts/pubsub.sh"
   exit 1
 fi
@@ -75,10 +81,14 @@ fi
 SA_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 PUBSUB_SA_EMAIL="service-${PROJECT_NUMBER}@gcp-sa-pubsub.iam.gserviceaccount.com"
 
-echo "Creating service account: ${SERVICE_ACCOUNT_NAME}"
-gcloud iam service-accounts create "${SERVICE_ACCOUNT_NAME}" \
-  --display-name "SCMS Tasks Pub/Sub Invoker" \
-  --project "${PROJECT_ID}"
+if gcloud iam service-accounts describe "${SERVICE_ACCOUNT_NAME}" --project "${PROJECT_ID}" &>/dev/null; then
+  echo "Using existing service account: ${SERVICE_ACCOUNT_NAME}"
+else
+  echo "Creating service account: ${SERVICE_ACCOUNT_NAME}"
+  gcloud iam service-accounts create "${SERVICE_ACCOUNT_NAME}" \
+    --display-name "SCMS Tasks Pub/Sub Invoker" \
+    --project "${PROJECT_ID}"
+fi
 
 echo "Granting run.invoker on Cloud Run service: ${SERVICE_NAME}"
 gcloud run services add-iam-policy-binding "${SERVICE_NAME}" \
@@ -97,16 +107,24 @@ gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="serviceAccount:${PUBSUB_SA_EMAIL}" \
   --role=roles/iam.serviceAccountTokenCreator
 
-echo "Creating Pub/Sub topic: ${TOPIC_NAME}"
-gcloud pubsub topics create "${TOPIC_NAME}" --project "${PROJECT_ID}"
+if gcloud pubsub topics describe "${TOPIC_NAME}" --project "${PROJECT_ID}" &>/dev/null; then
+  echo "Using existing Pub/Sub topic: ${TOPIC_NAME}"
+else
+  echo "Creating Pub/Sub topic: ${TOPIC_NAME}"
+  gcloud pubsub topics create "${TOPIC_NAME}" --project "${PROJECT_ID}"
+fi
 
-echo "Creating push subscription: ${SUBSCRIPTION_NAME}"
-gcloud pubsub subscriptions create "${SUBSCRIPTION_NAME}" \
-  --topic "${TOPIC_NAME}" \
-  --ack-deadline="${ACK_DEADLINE}" \
-  --push-endpoint="${PUSH_ENDPOINT}" \
-  --push-auth-service-account="${SA_EMAIL}" \
-  --project "${PROJECT_ID}"
+if gcloud pubsub subscriptions describe "${SUBSCRIPTION_NAME}" --project "${PROJECT_ID}" &>/dev/null; then
+  echo "Using existing push subscription: ${SUBSCRIPTION_NAME}"
+else
+  echo "Creating push subscription: ${SUBSCRIPTION_NAME}"
+  gcloud pubsub subscriptions create "${SUBSCRIPTION_NAME}" \
+    --topic "${TOPIC_NAME}" \
+    --ack-deadline="${ACK_DEADLINE}" \
+    --push-endpoint="${PUSH_ENDPOINT}" \
+    --push-auth-service-account="${SA_EMAIL}" \
+    --project "${PROJECT_ID}"
+fi
 
 echo ""
 echo "Done. Add to your app config:"
