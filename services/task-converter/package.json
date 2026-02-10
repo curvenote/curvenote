@@ -1,0 +1,13 @@
+{
+  "name": "@curvenote/task-converter-cloudrun",
+  "description": "Cloud Run deployment for task-converter service",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build:service": "bash -c 'cd ../../packages/task-converter && npm run build && cp -r dist ../../services/task-converter/ && cp package.json ../../services/task-converter/ && ([ -f package-lock.json ] && cp package-lock.json ../../services/task-converter/) && rm -rf ../../services/task-converter/typst-plain && cp -r typst-plain ../../services/task-converter/'",
+    "build": "npm run build:service && ./build.sh",
+    "deploy": "./deploy.sh",
+    "build:local": "npm run build:service && docker build -t task-converter-local .",
+    "dev": "npm run build:local && ./run.sh"
+  }
+}

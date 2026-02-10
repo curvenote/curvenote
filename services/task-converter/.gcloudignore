@@ -1,0 +1,6 @@
+*.sh
+README.md
+.env
+.env.sample
+.git
+.gitignore
