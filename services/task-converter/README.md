@@ -29,22 +29,22 @@ cp .env.sample .env
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `./local.sh` | Build package, copy assets here, build Docker image, then run container (uses `.env` if present). |
-| `./build.sh` | Remote Docker build on GCP (requires assets already copied; run `npm run build:service` first). |
-| `./deploy.sh` | Deploy current image to Cloud Run (uses `.env`). |
-| `./run.sh` | Run the local image `task-converter-local` (port 8080). |
+| Script        | Description                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------------- |
+| `./local.sh`  | Build package, copy assets here, build Docker image, then run container (uses `.env` if present). |
+| `./build.sh`  | Remote Docker build on GCP (requires assets already copied; run `npm run build:service` first).   |
+| `./deploy.sh` | Deploy current image to Cloud Run (uses `.env`).                                                  |
+| `./run.sh`    | Run the local image `task-converter-local` (port 8080).                                           |
 
 ## npm scripts (run from this directory)
 
-| Command | Description |
-|---------|-------------|
+| Command                 | Description                                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `npm run build:service` | Build `task-converter`, copy `dist/` and `typst-plain/` here (never overwrites local `package.json` or `package-lock.json`). |
-| `npm run build` | `build:service` then `./build.sh` (full remote image build). |
-| `npm run deploy` | `./deploy.sh` |
-| `npm run build:local` | `build:service` then `docker build -t task-converter-local .` |
-| `npm run dev` | `build:local` then `./run.sh` |
+| `npm run build`         | `build:service` then `./build.sh` (full remote image build).                                                                 |
+| `npm run deploy`        | `./deploy.sh`                                                                                                                |
+| `npm run build:local`   | `build:service` then `docker build -t task-converter-local .`                                                                |
+| `npm run dev`           | `build:local` then `./run.sh`                                                                                                |
 
 ## Workflow
 
@@ -54,11 +54,11 @@ cp .env.sample .env
 
 ## Environment variables
 
-| Variable | Description | Default |
-|----------|-------------|--------|
+| Variable      | Description             | Default                     |
+| ------------- | ----------------------- | --------------------------- |
 | `GCP_PROJECT` | Google Cloud project ID | (required for build/deploy) |
-| `GCP_REGION` | Cloud Run region | us-central1 |
-| `PORT` | Local dev port | 8080 |
+| `GCP_REGION`  | Cloud Run region        | us-central1                 |
+| `PORT`        | Local dev port          | 8080                        |
 
 Cloud Run sets `PORT` at runtime; no need to pass it in deploy.
 
