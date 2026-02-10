@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     pandoc \
     unoconv \
-    libreoffice-writer \
+    libreoffice \
     xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
@@ -28,6 +28,7 @@ WORKDIR /usr/app
 COPY dist/ ./dist/
 COPY package.json package-lock.json ./
 COPY typst-plain/ ./typst-plain/
+COPY NOTICE ./NOTICE
 
 RUN npm ci
 

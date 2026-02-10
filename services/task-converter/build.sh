@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # build.sh - Build task-converter Docker image remotely (GCP Cloud Build)
-# Requires build:service to have run first so dist/ and typst-plain/ are in place.
+# Runs build:service first so dist/ and typst-plain/ are in place.
 
 set -e
 
@@ -21,6 +21,9 @@ fi
 echo "Building task-converter image on GCP..."
 echo "Project: $GCP_PROJECT"
 echo "Region: ${GCP_REGION:-us-central1}"
+
+echo "Running build:service (packages/task-converter build → dist/ + typst-plain/)..."
+npm run build:service
 
 gcloud builds submit \
   --project "$GCP_PROJECT" \

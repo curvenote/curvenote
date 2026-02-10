@@ -17,8 +17,12 @@ Do **not** build the Node app inside the Dockerfile; it only copies what is alre
 
 - **Curvenote CLI** (`@curvenote/cli@latest`)
 - **pandoc**
-- **unoconv** + **libreoffice-writer** (minimal LibreOffice for unoconv)
+- **unoconv** + **libreoffice-writer** (minimal LibreOffice for docx → PDF and unoconv)
 - **typst** (from GitHub release)
+
+## Third-party licenses (MPL compliance)
+
+The image includes **LibreOffice** (Mozilla Public License v2.0). When you distribute this image you must comply with the MPL: the image includes a `NOTICE` file in the working directory with the license and a link to the LibreOffice source code. See [LibreOffice licenses](https://www.libreoffice.org/about-us/licenses/) and `NOTICE` in this directory.
 
 ## Setup
 
