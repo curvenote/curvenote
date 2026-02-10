@@ -47,9 +47,9 @@ The POST handler in `src/service.ts`:
 1. Validates body, message, attributes, and data
 2. Creates a temp folder under `os.tmpdir()`
 3. Validates required attributes (`jobUrl`, `statusUrl`, `handshake`, `successState`, `failureState`, `userId`)
-4. Inits `SCMSJobClient` and decodes base64 message data
+4. Inits `SCMSClient` and decodes base64 message data
 5. Leaves a clearly marked section for **converter implementation**
 6. On success: removes temp folder, updates submission status, completes the job
-7. On error: removes temp folder in `catch`, reports failure via `SCMSJobClient`
+7. On error: removes temp folder in `catch`, reports failure via `SCMSClient`
 
 Add converter logic in the marked section in `src/service.ts`; use `tmpFolder` for any temporary files.

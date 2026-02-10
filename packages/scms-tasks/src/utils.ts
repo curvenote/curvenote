@@ -2,6 +2,53 @@ import type { Response } from 'express';
 import fs from 'node:fs';
 
 /**
+ * Options for a single JSON request to the SCMS API (PATCH or PUT).
+ * Used to DRY fetch, status check, and pubsub error handling.
+ */
+export type ScmsRequestOptions = {
+  method: 'PATCH' | 'PUT';
+  url: string;
+  body: Record<string, unknown>;
+  authToken: string;
+  res: Response;
+  /** Short label for logs and errors, e.g. "patching job" / "putting status" */
+  contextLabel: string;
+  loggingOnlyMode?: boolean;
+};
+
+/**
+ * Send a JSON PATCH or PUT to the SCMS API.
+ * On 200: logs success and returns.
+ * On non-200 or throw: calls pubsubError(res, ...) and returns (caller should treat as failure).
+ */
+export async function scmsRequest(options: ScmsRequestOptions): Promise<void> {
+  const { method, url, body, authToken, res, contextLabel, loggingOnlyMode } = options;
+  console.log(`${method} ${url}`, JSON.stringify(body));
+  if (loggingOnlyMode) {
+    console.log('[loggingOnlyMode] Skipping request');
+    return;
+  }
+  try {
+    const response = await fetch(url, {
+      method,
+      body: JSON.stringify(body),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+    });
+    if (response.status === 200) {
+      console.log(`Successfully ${contextLabel}: ${url}`);
+      return;
+    }
+    pubsubError(`Bad response ${contextLabel}: ${response.status} - ${response.statusText}`, res);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    pubsubError(`Error ${contextLabel}: ${message}`, res);
+  }
+}
+
+/**
  * Check if the response has already been sent.
  */
 export function alreadySent(res: Response) {

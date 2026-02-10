@@ -3,7 +3,8 @@
  *
  * Node.js server for the SCMS converter (Cloud Run style). Validates incoming
  * POST payload (target, conversionType, workVersion, optional filename), runs
- * Word → PDF via pandoc-myst pipeline, then stubs for upload and metadata update.
+ * Word → PDF via pandoc-myst pipeline, then uploads PDF and updates work version
+ * metadata via the SCMS client (when workVersion has cdn/cdn_key).
  */
 
 import fs from 'node:fs/promises';
@@ -18,7 +19,6 @@ import {
   type FileMetadataSectionItem,
 } from './payload.js';
 import { runPandocMystPipeline } from './convert.js';
-import { getWorksApiBase, uploadPdfToStorage, updateWorkVersionMetadata } from './worksApi.js';
 
 const EXPORT_SLOT = 'export';
 const PDF_MIME = 'application/pdf';
@@ -50,7 +50,7 @@ export function createService() {
    * Validates payload (target === 'pdf', conversionType === 'pandoc-myst', workVersion).
    * Export filename comes from payload.filename, default 'document.pdf'.
    * Runs: pick Word → download → pandoc → write curvenote.yml + index.md front matter
-   * → curvenote build --pdf → upload PDF (stub) → update work version metadata (stub) → completed.
+   * → curvenote build --pdf → upload PDF and update work version metadata (via SCMS client) → completed.
    */
   app.post(
     '/',
@@ -71,49 +71,48 @@ export function createService() {
 
         const pdfPath = await runPandocMystPipeline(workVersion, tmpFolder, exportFilename);
         const stats = await fs.stat(pdfPath);
-        const baseUrl = getWorksApiBase(attributes);
-        // const uploadResult = await uploadPdfToStorage(
-        //   pdfPath,
-        //   workVersion.cdn,
-        //   workVersion.cdn_key,
-        //   attributes.handshake,
-        //   baseUrl,
-        // );
+        let exportPath: string = pdfPath;
 
-        // const pdfFileEntry: FileMetadataSectionItem = {
-        //   name: exportFilename,
-        //   size: stats.size,
-        //   type: PDF_MIME,
-        //   path: uploadResult.path,
-        //   md5: '', // stub; real implementation would compute or get from upload
-        //   uploadDate: new Date().toISOString(),
-        //   slot: EXPORT_SLOT,
-        // };
+        // Upload and update work version via SCMS client (when cdn/cdn_key present)
+        if (workVersion.cdn?.trim() && workVersion.cdn_key?.trim()) {
+          const uploadResult = await client.uploads.uploadSingleFileToCdn({
+            cdn: workVersion.cdn,
+            cdnKey: workVersion.cdn_key,
+            localPath: pdfPath,
+            storagePath: `export/${exportFilename}`,
+          });
+          exportPath = uploadResult.path;
+          const pdfFileEntry: FileMetadataSectionItem = {
+            name: exportFilename,
+            size: stats.size,
+            type: PDF_MIME,
+            path: uploadResult.path,
+            md5: '', // upload API could be extended to return md5 if needed
+            uploadDate: new Date().toISOString(),
+            slot: EXPORT_SLOT,
+          };
+          const metadata: WorkVersionMetadataPayload = {
+            ...workVersion.metadata,
+            version: workVersion.metadata?.version ?? 1,
+            files: {
+              ...(workVersion.metadata?.files && typeof workVersion.metadata.files === 'object'
+                ? workVersion.metadata.files
+                : {}),
+              [uploadResult.path]: pdfFileEntry,
+            },
+          };
+          await client.works.updateWorkVersionMetadata(
+            workVersion.work_id,
+            workVersion.id,
+            metadata,
+          );
+        }
 
-        // const metadata: WorkVersionMetadataPayload = {
-        //   ...workVersion.metadata,
-        //   version: workVersion.metadata?.version ?? 1,
-        //   files: {
-        //     ...(workVersion.metadata?.files && typeof workVersion.metadata.files === 'object'
-        //       ? workVersion.metadata.files
-        //       : {}),
-        //     [uploadResult.path]: pdfFileEntry,
-        //   },
-        // };
-
-        // await updateWorkVersionMetadata(
-        //   workVersion.work_id,
-        //   workVersion.id,
-        //   metadata,
-        //   attributes.handshake,
-        //   baseUrl,
-        // );
-
-        await client.completed(res, 'PDF conversion completed', {
+        await client.jobs.completed(res, 'PDF conversion completed', {
           taskId,
           workVersionId: workVersion.id,
           workId: workVersion.work_id,
-          exportPath: pdfPath, //uploadResult.path,
+          exportPath,
         });
       },
       { clientLoggingOnlyMode: true, tmpFolderRoot: './tmp', preserveTmpFolder: true },

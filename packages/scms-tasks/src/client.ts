@@ -1,138 +1,106 @@
 import type { Response } from 'express';
-import { send, alreadySent, pubsubError } from './utils.js';
+import {
+  getWorksApiBase,
+  updateWorkVersionMetadata,
+  type WorkVersionMetadataPayload,
+} from './works.js';
+import { uploadSingleFileToCdn, type UploadResult } from './uploads.js';
+import { createJobsHandler, type JobsHandler } from './jobs.js';
+import { createSubmissionsHandler, type SubmissionsHandler } from './submissions.js';
 
-export class SCMSJobClient {
+/** Options when creating the SCMS client. */
+export type SCMSClientOptions = {
+  /** v1 API base URL (e.g. https://api.example.com/v1). Defaults to derived from jobUrl. */
+  baseUrl?: string;
+  /** When true, all SCMS HTTP calls (jobs, submissions, works, uploads) are skipped and only logged. */
+  loggingOnlyMode?: boolean;
+};
+
+/**
+ * Unified SCMS client: jobs, submissions, works, and uploads.
+ * Use this in cloud runners to interact with the SCMS API without depending on @curvenote/cli.
+ *
+ * - jobs: update job status (completed, failed, running)
+ * - submissions: put submission status (putStatus)
+ * - works: get base URL, update work version metadata
+ * - uploads: upload single file to CDN (stage → upload → commit)
+ *
+ * Use client.jobs.*, client.submissions.*, client.works.*, client.uploads.* only.
+ */
+export class SCMSClient {
   readonly jobUrl: string;
   readonly statusUrl: string;
   readonly handshake: string;
+  readonly baseUrl: string;
   readonly loggingOnlyMode: boolean;
 
-  constructor(jobUrl: string, statusUrl: string, handshake: string, loggingOnlyMode = false) {
+  readonly jobs: JobsHandler;
+  readonly submissions: SubmissionsHandler;
+
+  readonly works: {
+    getBaseUrl: () => string;
+    updateWorkVersionMetadata: (
+      workId: string,
+      workVersionId: string,
+      metadata: WorkVersionMetadataPayload,
+    ) => Promise<void>;
+  };
+
+  readonly uploads: {
+    uploadSingleFileToCdn: (opts: {
+      cdn: string;
+      cdnKey: string;
+      localPath: string;
+      storagePath: string;
+      resume?: boolean;
+    }) => Promise<UploadResult>;
+  };
+
+  constructor(jobUrl: string, statusUrl: string, handshake: string, options?: SCMSClientOptions) {
     this.jobUrl = jobUrl;
     this.statusUrl = statusUrl;
     this.handshake = handshake;
-    this.loggingOnlyMode = loggingOnlyMode;
-  }
+    this.baseUrl = options?.baseUrl ?? getWorksApiBase({ jobUrl, statusUrl });
+    this.loggingOnlyMode = options?.loggingOnlyMode ?? false;
 
-  /**
-   * Update job as completed, with a log message
-   *
-   * This will return a 200 response, unless this update itself fails; then it will
-   * return a 400 response.
-   */
-  async completed(res: Response, message: string, results: Record<string, any>): Promise<Response> {
-    if (this.loggingOnlyMode) {
-      console.log('[loggingOnlyMode] Skipping COMPLETED request');
-      return alreadySent(res) ? res : send(res, 200);
-    }
-    await this.patchJobStatus('COMPLETED', results, message, res);
-    return send(res, 200);
-  }
+    this.jobs = createJobsHandler(this.jobUrl, this.handshake, this.loggingOnlyMode);
+    this.submissions = createSubmissionsHandler(
+      this.statusUrl,
+      this.handshake,
+      this.loggingOnlyMode,
+    );
 
-  /**
-   * Update job as failed, with a log message
-   *
-   * This will return a 200 response (a failed job is still successfully
-   * completed), unless this update itself fails; then it will
-   * return a 400 response.
-   */
-  async failed(res: Response, message: string, results?: Record<string, any>): Promise<Response> {
-    if (this.loggingOnlyMode) {
-      console.log('[loggingOnlyMode] Skipping FAILED request');
-      return alreadySent(res) ? res : send(res, 200);
-    }
-    await this.patchJobStatus('FAILED', results, message, res);
-    return alreadySent(res) ? res : send(res, 200);
-  }
+    this.works = {
+      getBaseUrl: () => this.baseUrl,
+      updateWorkVersionMetadata: (
+        workId: string,
+        workVersionId: string,
+        metadata: WorkVersionMetadataPayload,
+      ) =>
+        updateWorkVersionMetadata(
+          workId,
+          workVersionId,
+          metadata,
+          this.handshake,
+          this.baseUrl,
+          fetch,
+          this.loggingOnlyMode,
+        ),
+    };
 
-  /**
-   * Update job as running, with a log message
-   *
-   * This will return nothing so the job may continue. If the update itself
-   * fails, a 400 response will be sent and subsequent processing will be
-   * stopped.
-   */
-  async running(res: Response, message: string, results?: Record<string, any>): Promise<void> {
-    if (this.loggingOnlyMode) {
-      console.log('[loggingOnlyMode] Skipping RUNNING request');
-      return;
-    }
-    await this.patchJobStatus('RUNNING', results, message, res);
-  }
-
-  /**
-   * Send PATCH request to client url
-   *
-   * Request includes handshake, job status, and log message.
-   * Messages are also logged on the server, along with PATCH request status.
-   *
-   * If the PATCH request responds 200, this function returns undefined, and the job may continue.
-   * If the PATCH request errors or responds other than 200, this function returns a
-   * pubsub error, telling the job to retry.
-   */
-  async patchJobStatus(
-    status: string,
-    results: Record<string, any> | undefined,
-    message: string,
-    res: Response,
-  ): Promise<Response | undefined> {
-    const body: Record<string, any> = { status, message };
-    if (results) body.results = results;
-    console.log(`PATCH ${this.jobUrl}`, JSON.stringify(body));
-    if (this.loggingOnlyMode) {
-      console.log('[loggingOnlyMode] Skipping PATCH request');
-      return;
-    }
-    try {
-      const response = await fetch(this.jobUrl, {
-        method: 'PATCH',
-        body: JSON.stringify(body),
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.handshake}` },
-      });
-
-      if (response.status === 200) {
-        console.log(`Successfully patched job: ${this.jobUrl}`);
-        return;
-      }
-      return pubsubError(
-        `Bad response patching job: ${response.status} - ${response.statusText}`,
-        res,
+    const getAuthHeaders = (): Promise<Record<string, string>> =>
+      Promise.resolve(
+        this.handshake
+          ? { Authorization: `Bearer ${this.handshake}` }
+          : ({} as Record<string, string>),
       );
-    } catch (error: any) {
-      return pubsubError(`Error patching job: ${error.message}`, res);
-    }
-  }
 
-  /**
-   * Sent a POST request to the SCMS API with a json body
-   *
-   * @param pathname
-   * @param body
-   */
-  async putSubmissionStatus(status: string, userId: string, res: Response) {
-    const body: Record<string, any> = { status, userId };
-    console.log(`PUT ${this.statusUrl}`, JSON.stringify(body));
-    if (this.loggingOnlyMode) {
-      console.log('[loggingOnlyMode] Skipping PUT request');
-      return;
-    }
-    try {
-      const response = await fetch(this.statusUrl, {
-        method: 'PUT',
-        body: JSON.stringify(body),
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.handshake}` },
-      });
-
-      if (response.status === 200) {
-        console.log(`Successfully put status: ${this.statusUrl}`);
-        return;
-      }
-      return pubsubError(
-        `Bad response putting status: ${response.status} - ${response.statusText}`,
-        res,
-      );
-    } catch (error: any) {
-      return pubsubError(`Error putting status: ${error.message}`, res);
-    }
+    this.uploads = {
+      uploadSingleFileToCdn: (opts) =>
+        uploadSingleFileToCdn(this.baseUrl, getAuthHeaders, {
+          ...opts,
+          loggingOnlyMode: this.loggingOnlyMode,
+        }),
+    };
   }
 }

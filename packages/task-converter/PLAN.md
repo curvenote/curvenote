@@ -84,7 +84,7 @@ sequenceDiagram
   Handler->>MyST: myst build index.md --typst
   Handler->>Storage: upload PDF (stub)
   Handler->>Stubs: updateWorkVersionMetadata(metadata.files + PDF, slot export)
-  Handler->>Handler: client.completed()
+  Handler->>Handler: client.jobs.completed()
 ```
 
 No Works API call to **get** work version; the publisher supplies the full work version in the payload.
@@ -139,7 +139,7 @@ No Works API call to **get** work version; the publisher supplies the full work 
 
 ### 5.8 Success path and dependencies
 
-- On success: `client.putSubmissionStatus(successState, userId, res)` and `client.completed(res, '...', { taskId, workVersionId: workVersion.id, ... })`. On failure: throw so wrapper cleans up and calls `client.failed`.
+- On success: `client.submissions.putStatus(successState, userId, res)` and `client.jobs.completed(res, '...', { taskId, workVersionId: workVersion.id, ... })`. On failure: throw so wrapper cleans up and calls `client.jobs.failed`.
 - Dependencies: Use Node `crypto.randomUUID()` if needed, `child_process`, `fs/promises`, `fetch`. Add `@curvenote/scms-core` only if needed for file types; otherwise minimal local types.
 
 ---
