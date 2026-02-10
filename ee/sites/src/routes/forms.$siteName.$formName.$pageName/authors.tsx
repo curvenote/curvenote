@@ -96,6 +96,10 @@ type SortableAffiliationRowProps = {
   onRename: (affiliationId: string, newName: string) => void;
   onUpdate: (affiliationId: string, updates: Partial<Affiliation>) => void;
   onRemove: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 };
 
 function SortableAffiliationRow({
@@ -107,6 +111,10 @@ function SortableAffiliationRow({
   onRename,
   onUpdate,
   onRemove,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
 }: SortableAffiliationRowProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
@@ -178,14 +186,39 @@ function SortableAffiliationRow({
       style={style}
       className="flex gap-2 items-start px-3 py-2 text-sm rounded-md border border-border bg-muted/30"
     >
-      <button
-        {...attributes}
-        {...listeners}
-        type="button"
-        className="cursor-grab active:cursor-grabbing touch-none shrink-0 mt-0.5"
-      >
-        <GripVertical className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground" />
-      </button>
+      <div className="flex flex-col gap-0.5 items-center shrink-0 mt-0.5">
+        {onMoveUp != null && (
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+            className="p-0.5 rounded touch-manipulation cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:cursor-default text-muted-foreground hover:text-foreground"
+            aria-label="Move up"
+          >
+            <ChevronUp className="w-3 h-3" />
+          </button>
+        )}
+        <button
+          {...attributes}
+          {...listeners}
+          type="button"
+          className="cursor-grab active:cursor-grabbing touch-none p-0.5"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground" />
+        </button>
+        {onMoveDown != null && (
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+            className="p-0.5 rounded touch-manipulation cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:cursor-default text-muted-foreground hover:text-foreground"
+            aria-label="Move down"
+          >
+            <ChevronDown className="w-3 h-3" />
+          </button>
+        )}
+      </div>
       <span className="w-6 text-xs tabular-nums shrink-0 text-muted-foreground mt-0.5">
         {getOrdinalLabel(index + 1)}
       </span>
@@ -402,6 +435,15 @@ function AffiliationSortableList({
 
   if (affiliationIds.length === 0) return null;
 
+  const moveAffiliation = (idx: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && idx <= 0) return;
+    if (direction === 'down' && idx >= affiliationIds.length - 1) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    const newOrder = [...affiliationIds];
+    [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
+    onReorder(newOrder);
+  };
+
   const activeAffiliation = activeAffId ? affiliationList.find((a) => a.id === activeAffId) : null;
   const activeIndex = activeAffId ? affiliationIds.indexOf(activeAffId) + 1 : 0;
 
@@ -428,6 +470,10 @@ function AffiliationSortableList({
                 onRename={onRename}
                 onUpdate={onUpdate}
                 onRemove={() => onRemove(affId)}
+                onMoveUp={() => moveAffiliation(idx, 'up')}
+                onMoveDown={() => moveAffiliation(idx, 'down')}
+                canMoveUp={idx > 0}
+                canMoveDown={idx < affiliationIds.length - 1}
               />
             );
           })}
@@ -465,6 +511,10 @@ type AuthorCardProps = {
   onRenameAffiliation?: (affiliationId: string, newName: string) => void;
   onUpdateAffiliation?: (affiliationId: string, updates: Partial<Affiliation>) => void;
   affiliationInputRef?: React.RefObject<HTMLInputElement | null>;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 };
 
 function AuthorCard({
@@ -479,6 +529,10 @@ function AuthorCard({
   onRenameAffiliation,
   onUpdateAffiliation,
   affiliationInputRef,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
 }: AuthorCardProps) {
   const [editName, setEditName] = useState(value.name);
   const [editOrcid, setEditOrcid] = useState(value.orcid || '');
@@ -580,16 +634,39 @@ function AuthorCard({
         isDragging ? 'shadow-lg border-primary' : 'border-border'
       }`}
     >
-      {/* Drag handle */}
-      <div className="flex flex-col gap-1 items-center pt-1 shrink-0">
+      {/* Move up, drag handle, move down */}
+      <div className="flex flex-col gap-0.5 items-center pt-1 shrink-0">
+        {onMoveUp != null && (
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+            className="p-0.5 rounded touch-manipulation cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:cursor-default text-muted-foreground hover:text-foreground"
+            aria-label="Move up"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </button>
+        )}
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing touch-none"
+          className="cursor-grab active:cursor-grabbing touch-none p-0.5"
           type="button"
+          aria-label="Drag to reorder"
         >
           <GripVertical className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground" />
         </button>
+        {onMoveDown != null && (
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+            className="p-0.5 rounded touch-manipulation cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:cursor-default text-muted-foreground hover:text-foreground"
+            aria-label="Move down"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Ordinal (1st, 2nd, 3rd) */}
@@ -1249,6 +1326,10 @@ type AddAuthorPlaceholderCardProps = {
   orcidSearchLoading: boolean;
   showOrcidSuggestions: boolean;
   onSelectOrcidSuggestion: (hit: OrcidSearchHit) => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 };
 
 function AddAuthorPlaceholderCard({
@@ -1265,6 +1346,10 @@ function AddAuthorPlaceholderCard({
   orcidSearchLoading,
   showOrcidSuggestions,
   onSelectOrcidSuggestion,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
 }: AddAuthorPlaceholderCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: ADD_AUTHOR_PLACEHOLDER_ID,
@@ -1282,15 +1367,38 @@ function AddAuthorPlaceholderCard({
         isDragging ? 'shadow-lg border-primary border-dashed' : 'border-dashed border-border'
       }`}
     >
-      <div className="flex flex-col gap-1 items-center pt-1 shrink-0">
+      <div className="flex flex-col gap-0.5 items-center pt-1 shrink-0">
+        {onMoveUp != null && (
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+            className="p-0.5 rounded touch-manipulation cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:cursor-default text-muted-foreground hover:text-foreground"
+            aria-label="Move up"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </button>
+        )}
         <button
           {...attributes}
           {...listeners}
           type="button"
-          className="cursor-grab active:cursor-grabbing touch-none"
+          className="cursor-grab active:cursor-grabbing touch-none p-0.5"
+          aria-label="Drag to reorder"
         >
           <GripVertical className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground" />
         </button>
+        {onMoveDown != null && (
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+            className="p-0.5 rounded touch-manipulation cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:cursor-default text-muted-foreground hover:text-foreground"
+            aria-label="Move down"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        )}
       </div>
       <div className="flex-1 space-y-2 min-w-0">
         {isEmpty && contactDetails && (
@@ -1622,6 +1730,33 @@ export function AuthorField({
         } else if (oldValueIndex > openIndex && newValueIndex <= openIndex) {
           setOpenIndex(openIndex + 1);
         }
+      }
+    }
+  };
+
+  const handleMoveAuthorOrderItem = (itemId: string, direction: 'up' | 'down') => {
+    const oldIndex = authorOrder.indexOf(itemId);
+    if (oldIndex === -1) return;
+    const newIndex = direction === 'up' ? oldIndex - 1 : oldIndex + 1;
+    if (newIndex < 0 || newIndex >= authorOrder.length) return;
+    const newOrder = [...authorOrder];
+    [newOrder[oldIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[oldIndex]];
+    setAuthorOrder(newOrder);
+
+    const newValue = newOrder
+      .filter((id): id is string => id !== ADD_AUTHOR_PLACEHOLDER_ID)
+      .map((id) => value.find((a) => a.id === id))
+      .filter((a): a is Author => a != null);
+    const prevIds = value.map((a) => a.id);
+    const nextIds = newValue.map((a) => a.id);
+    const sameAuthorOrder =
+      prevIds.length === nextIds.length && prevIds.every((id, i) => id === nextIds[i]);
+    if (!sameAuthorOrder) {
+      handleChange(newValue);
+      if (openIndex != null) {
+        const openId = value[openIndex]?.id;
+        const nextOpenIndex = openId ? newValue.findIndex((a) => a.id === openId) : -1;
+        setOpenIndex(nextOpenIndex === -1 ? null : nextOpenIndex);
       }
     }
   };
@@ -2020,7 +2155,7 @@ export function AuthorField({
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={authorOrder} strategy={verticalListSortingStrategy}>
-            {authorOrder.map((id) => {
+            {authorOrder.map((id, orderIndex) => {
               if (id === ADD_AUTHOR_PLACEHOLDER_ID) {
                 return (
                   <AddAuthorPlaceholderCard
@@ -2038,6 +2173,10 @@ export function AuthorField({
                     orcidSearchLoading={orcidSearchLoading}
                     showOrcidSuggestions={showOrcidSuggestions}
                     onSelectOrcidSuggestion={onSelectOrcidSuggestion}
+                    onMoveUp={() => handleMoveAuthorOrderItem(ADD_AUTHOR_PLACEHOLDER_ID, 'up')}
+                    onMoveDown={() => handleMoveAuthorOrderItem(ADD_AUTHOR_PLACEHOLDER_ID, 'down')}
+                    canMoveUp={orderIndex > 0}
+                    canMoveDown={orderIndex < authorOrder.length - 1}
                   />
                 );
               }
@@ -2060,6 +2199,10 @@ export function AuthorField({
                   affiliationInputRef={
                     index === value.length - 1 ? lastCardAffiliationInputRef : undefined
                   }
+                  onMoveUp={() => handleMoveAuthorOrderItem(author.id, 'up')}
+                  onMoveDown={() => handleMoveAuthorOrderItem(author.id, 'down')}
+                  canMoveUp={orderIndex > 0}
+                  canMoveDown={orderIndex < authorOrder.length - 1}
                 />
               );
             })}
