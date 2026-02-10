@@ -428,9 +428,7 @@ export async function action(args: Route.ActionArgs) {
           case 'stage':
             return workVersionUploadsStage(ctx, uploadConfig, formData, workVersionId);
           case 'complete':
-            return workVersionUploadsComplete(ctx, formData, workVersionId, cdn, {
-              includeSignedUrlsInMetadata: true,
-            });
+            return workVersionUploadsComplete(ctx, formData, workVersionId, cdn);
           case 'remove':
             return workVersionUploadRemove(ctx, formData, workVersionId, cdn);
           default:

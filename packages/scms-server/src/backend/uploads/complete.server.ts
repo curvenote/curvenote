@@ -1,14 +1,9 @@
 import { formatDate } from '@curvenote/common';
 import { data as dataResponse } from 'react-router';
 import type { UploadFileInfo } from '@curvenote/common';
-import {
-  safeWorkVersionJsonUpdate,
-  safeWorkVersionJsonUpdateAsync,
-  safeSiteDataUpdate,
-} from '../occ.server.js';
-import { signFilesInMetadata } from '../files-metadata.server.js';
+import { safeWorkVersionJsonUpdate, safeSiteDataUpdate } from '../occ.server.js';
 import { TrackEvent, coerceToObject, generateUniqueFileLabel } from '@curvenote/scms-core';
-import { makeDefaultWorkVersionMetadata, type WorkVersionMetadata } from '../metadata.js';
+import { makeDefaultWorkVersionMetadata } from '../metadata.js';
 import type { FileMetadataSection } from '@curvenote/scms-core';
 import pLimit from 'p-limit';
 import { File } from '../storage/file.server.js';
@@ -170,17 +165,11 @@ function finalizeFileMetadata(
   return metadata;
 }
 
-export type WorkVersionUploadsCompleteOptions = {
-  /** When true, persisted metadata.files will include signedUrl for each file (e.g. for task-converter). */
-  includeSignedUrlsInMetadata?: boolean;
-};
-
 export async function workVersionUploadsComplete(
   ctx: WorkContext,
   formData: FormData,
   workVersionId: string,
   cdn: string,
-  options?: WorkVersionUploadsCompleteOptions,
 ) {
   const backend = new StorageBackend(ctx, [
     KnownBuckets.hashstore,
@@ -188,7 +177,6 @@ export async function workVersionUploadsComplete(
     KnownBuckets.tmp,
   ]);
   const targetBucket = backend.knownBucketFromCDN(cdn);
-  const includeSignedUrls = options?.includeSignedUrlsInMetadata === true;
 
   return uploadsComplete(
     ctx,
@@ -196,33 +184,16 @@ export async function workVersionUploadsComplete(
     targetBucket,
     [KnownBuckets.hashstore, KnownBuckets.prv, KnownBuckets.tmp],
     async (successfullyCopied, slot) => {
-      if (includeSignedUrls) {
-        await safeWorkVersionJsonUpdateAsync<FileMetadataSection>(workVersionId, async (metadata) => {
-          const readMetadata = coerceToObject(metadata);
-          const updatedMetadata: FileMetadataSection = {
-            ...makeDefaultWorkVersionMetadata(),
-            ...readMetadata,
-            files: { ...(readMetadata?.files || {}) },
-          };
-          const finalized = finalizeFileMetadata(updatedMetadata, successfullyCopied, slot);
-          return (await signFilesInMetadata(
-            finalized as WorkVersionMetadata & FileMetadataSection,
-            cdn,
-            ctx,
-          )) as FileMetadataSection;
-        });
-      } else {
-        await safeWorkVersionJsonUpdate<FileMetadataSection>(workVersionId, (metadata) => {
-          const readMetadata = coerceToObject(metadata);
-          const updatedMetadata: FileMetadataSection = {
-            ...makeDefaultWorkVersionMetadata(),
-            ...readMetadata,
-            files: { ...(readMetadata?.files || {}) },
-          };
+      await safeWorkVersionJsonUpdate<FileMetadataSection>(workVersionId, (metadata) => {
+        const readMetadata = coerceToObject(metadata);
+        const updatedMetadata: FileMetadataSection = {
+          ...makeDefaultWorkVersionMetadata(),
+          ...readMetadata,
+          files: { ...(readMetadata?.files || {}) },
+        };
 
-          return finalizeFileMetadata(updatedMetadata, successfullyCopied, slot);
-        });
-      }
+        return finalizeFileMetadata(updatedMetadata, successfullyCopied, slot);
+      });
     },
     { workVersionId },
   );
