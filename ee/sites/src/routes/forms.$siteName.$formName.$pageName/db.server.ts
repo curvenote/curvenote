@@ -4,6 +4,7 @@ import { getPrismaClient, safeObjectDataUpdate } from '@curvenote/scms-server';
 import { ActivityType, WorkRole } from '@curvenote/scms-db';
 import type { SiteContext, MyUserDBO } from '@curvenote/scms-server';
 import { coerceToObject } from '@curvenote/scms-core';
+import { FORM_METADATA_FIELDS_SCHEMA } from '../../schemas.js';
 import { DRAFT_OBJECT_TYPE_CONST } from './cookies.server.js';
 
 /** Create a new forms draft Object with initial field data. If createdById is provided (logged-in user), connect the user. */
@@ -20,7 +21,10 @@ export async function createDraftObject(
       type: DRAFT_OBJECT_TYPE_CONST,
       date_created: now,
       date_modified: now,
-      data: initialData as object,
+      data: {
+        ...(initialData as object),
+        $schema: FORM_METADATA_FIELDS_SCHEMA,
+      },
       occ: 0,
       ...(createdById && { created_by: { connect: { id: createdById } } }),
     },
@@ -58,10 +62,14 @@ export async function updateDraftObjectField(
   value: unknown,
   createdById?: string | null,
 ): Promise<void> {
-  await safeObjectDataUpdate(objectId, (data) => ({
-    ...coerceToObject(data),
-    [fieldName]: value,
-  }));
+  await safeObjectDataUpdate(objectId, (data) => {
+    const base = coerceToObject(data);
+    return {
+      ...base,
+      [fieldName]: value,
+      $schema: FORM_METADATA_FIELDS_SCHEMA,
+    };
+  });
 
   if (createdById) {
     const prisma = await getPrismaClient();
@@ -132,7 +140,12 @@ export async function dbCreateWorkAndSubmission(
               description: data.workDescription || null,
               draft: false,
               authors: data.authors,
-              metadata: { fields: data.formMetadata ?? {} } as object,
+              metadata: {
+                fields: {
+                  ...(data.formMetadata ?? {}),
+                  $schema: FORM_METADATA_FIELDS_SCHEMA,
+                },
+              } as object,
             },
           ],
         },
