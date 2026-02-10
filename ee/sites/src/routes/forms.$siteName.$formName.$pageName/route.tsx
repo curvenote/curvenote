@@ -21,6 +21,7 @@ import {
 } from './cookies.server.js';
 import { submitForm } from './actionHelpers.server.js';
 import { fetchOrcidPerson, searchOrcid } from './orcidLookup.server.js';
+import { searchRor } from './rorLookup.server.js';
 import { isPageComplete, getFieldErrors, isValidOrcid } from './validationUtils.js';
 import { FormArea } from './FormArea.js';
 import { FormBody } from './FormBody.js';
@@ -294,6 +295,13 @@ export async function action(args: ActionFunctionArgs) {
   if (intent === 'search-orcid') {
     const q = (formData.get('q') as string)?.trim() ?? '';
     const results = await searchOrcid(q);
+    return data({ results });
+  }
+
+  // Search ROR by query (for affiliation typeahead)
+  if (intent === 'search-ror') {
+    const q = (formData.get('q') as string)?.trim() ?? '';
+    const results = await searchRor(q);
     return data({ results });
   }
 
