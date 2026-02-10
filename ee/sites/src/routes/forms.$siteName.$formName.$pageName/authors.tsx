@@ -1460,11 +1460,10 @@ export function AuthorField({
     return () => clearTimeout(t);
   }, [nameInput]);
 
-  // When debounced query has at least two words and is not an ORCID, search ORCID
+  // When debounced query is non-empty and not an ORCID ID, search ORCID
   useEffect(() => {
     const trimmed = debouncedQuery.trim();
-    const words = trimmed.split(/\s+/).filter(Boolean);
-    if (words.length < 2 || isValidOrcid(trimmed)) return;
+    if (!trimmed || isValidOrcid(trimmed)) return;
     const fd = new FormData();
     fd.set('intent', 'search-orcid');
     fd.set('q', trimmed);
@@ -1823,9 +1822,8 @@ export function AuthorField({
   const orcidSearchResults: OrcidSearchHit[] =
     (orcidSearchFetcher.data as { results?: OrcidSearchHit[] } | undefined)?.results ?? [];
   const orcidSearchLoading = orcidSearchFetcher.state !== 'idle';
-  const debouncedWords = debouncedQuery.trim().split(/\s+/).filter(Boolean);
   const showOrcidSuggestions =
-    debouncedWords.length >= 2 &&
+    debouncedQuery.trim().length > 0 &&
     !isValidOrcid(debouncedQuery.trim()) &&
     (orcidSearchLoading || orcidSearchResults.length > 0);
 
