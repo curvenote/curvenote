@@ -1,5 +1,4 @@
-Task Converter – Third-party software and licenses
-==================================================
+# Task Converter – Third-party software and licenses
 
 Source code for this project (task-converter / Curvenote):
 https://github.com/curvenote/curvenote
@@ -7,17 +6,16 @@ https://github.com/curvenote/curvenote
 This Docker image includes the following third-party software. Compliance
 with their licenses is required when distributing this image.
 
+## LibreOffice (libreoffice)
 
-LibreOffice (libreoffice-writer)
---------------------------------
 LibreOffice is included for docx → PDF conversion (docx-lowriter-pdf).
 
-  License:  Mozilla Public License, v. 2.0 (MPL 2.0)
-  Full text: https://www.mozilla.org/MPL/2.0/
-  Summary:  https://www.libreoffice.org/about-us/licenses/
+License: Mozilla Public License, v. 2.0 (MPL 2.0)
+Full text: https://www.mozilla.org/MPL/2.0/
+Summary: https://www.libreoffice.org/about-us/licenses/
 
-  Source code (required by MPL when distributing Executable Form):
-  https://www.libreoffice.org/about-us/source-code/
+Source code (required by MPL when distributing Executable Form):
+https://www.libreoffice.org/about-us/source-code/
 
-  You may obtain the source code from the above URL. This notice does not
-  alter your rights under the MPL 2.0.
+You may obtain the source code from the above URL. This notice does not
+alter your rights under the MPL 2.0.

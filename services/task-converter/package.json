@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node ./dist/index.js",
-    "build:service": "bash -c 'cd ../../packages/task-converter && npm install && npm run build && rm -rf ../../services/task-converter/dist && cp -r dist ../../services/task-converter/ && rm -rf ../../services/task-converter/typst-plain && cp -r typst-plain ../../services/task-converter/'",
+    "build:service": "bash -c 'cd ../../packages/task-converter && npm install && npm run build && rm -rf ../../services/task-converter/dist && cp -r dist ../../services/task-converter/ && rm -rf ../../services/task-converter/typst-plain && git clone --depth 1 https://github.com/curvenote-themes/typst-plain ../../services/task-converter/typst-plain'",
     "build": "npm run build:service && ./build.sh",
     "deploy": "./deploy.sh",
     "build:local": "npm run build:service && docker build -t task-converter-local .",

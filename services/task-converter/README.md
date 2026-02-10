@@ -8,7 +8,7 @@ This directory has its **own minimal `package.json`** (and optionally `package-l
 
 The Docker image is built from **pre-built assets** copied here by `build:service` or `local.sh`:
 
-1. Build `packages/task-converter` and copy `dist/` and `typst-plain/` into `services/task-converter/` (never overwrite local `package.json` or `package-lock.json`).
+1. Build `packages/task-converter` and copy `dist/` here; check out `typst-plain/` from [github.com/curvenote-themes/typst-plain](https://github.com/curvenote-themes/typst-plain) (never overwrite local `package.json` or `package-lock.json`).
 2. Run `docker build` or `gcloud builds submit` from this directory.
 
 Do **not** build the Node app inside the Dockerfile; it only copies what is already in this folder.
@@ -44,7 +44,7 @@ cp .env.sample .env
 
 | Command                 | Description                                                                                                                  |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `npm run build:service` | Build `task-converter`, copy `dist/` and `typst-plain/` here (never overwrites local `package.json` or `package-lock.json`). |
+| `npm run build:service` | Build `task-converter`, copy `dist/` here, clone `typst-plain/` from GitHub (never overwrites local `package.json` or `package-lock.json`). |
 | `npm run build`         | `build:service` then `./build.sh` (full remote image build).                                                                 |
 | `npm run deploy`        | `./deploy.sh`                                                                                                                |
 | `npm run build:local`   | `build:service` then `docker build -t task-converter-local .`                                                                |

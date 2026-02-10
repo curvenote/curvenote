@@ -15,11 +15,11 @@ cd "$PACKAGE_DIR"
 npm install
 npm run build
 
-echo "Copying dist and typst-plain into services/task-converter (keeping local package.json and package-lock.json)..."
+echo "Copying dist into services/task-converter and checking out typst-plain from GitHub..."
 rm -rf "$SCRIPT_DIR/dist"
 cp -r dist "$SCRIPT_DIR/"
 rm -rf "$SCRIPT_DIR/typst-plain"
-cp -r typst-plain "$SCRIPT_DIR/"
+git clone --depth 1 https://github.com/curvenote-themes/typst-plain "$SCRIPT_DIR/typst-plain"
 
 cd "$SCRIPT_DIR"
 
