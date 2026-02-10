@@ -1,10 +1,13 @@
 /**
  * Works API helpers for the converter.
  * getWorksApiBase: derive v1 base URL from job/status URL.
- * uploadPdfToStorage, updateWorkVersionMetadata: stubs (log and return placeholders).
+ * uploadPdfToStorage: upload PDF via CLI upload API (stage → upload → commit with existing cdnKey).
+ * updateWorkVersionMetadata: stub (log and return placeholder).
  */
 
 import type { WorkVersionMetadataPayload } from './payload.js';
+import { upload as cliUpload } from '@curvenote/cli';
+import type { ISession } from '@curvenote/cli';
 
 export type AttributesLike = {
   jobUrl?: string;
@@ -27,28 +30,79 @@ export function getWorksApiBase(attributes: AttributesLike): string {
   }
 }
 
-/** Result from upload stub: path (and optional signedUrl for downstream). */
+/** Result from upload: path (and optional signedUrl for downstream). */
 export type UploadResult = {
   path: string;
   signedUrl?: string;
 };
 
+const noop = (): void => {};
+/** Minimal log for CLI upload calls (no-op to avoid noise; use console in dev if needed). */
+const minimalLog = { debug: noop, info: noop, error: noop };
+
 /**
- * Stub: log and return placeholder path for the uploaded PDF.
- * Real implementation: upload API or GCS with service account under version cdn/cdn_key.
- * exportFilename defaults to 'document.pdf'.
+ * Create a minimal session-like object for CLI upload APIs. Implements only the surface
+ * used by stage/upload/commit: config.apiUrl, getHeaders(), fetch, log.
+ */
+export function createUploadSession(
+  apiUrl: string,
+  authHeaders: () => Promise<Record<string, string>>,
+  fetchFn: typeof fetch = fetch,
+): ISession {
+  return {
+    config: { apiUrl } as ISession['config'],
+    getHeaders: authHeaders,
+    fetch: (url: string | URL | Request, init?: RequestInit) => fetchFn(url, init),
+    log: minimalLog,
+  } as unknown as ISession;
+}
+
+/**
+ * Upload the local PDF to storage at {cdnKey}/export/{exportFilename} using the
+ * upload API (stage → upload to signed URL → commit with existing cdnKey).
+ * Requires cdn and cdnKey (e.g. from workVersion); uses handshake for Authorization.
  */
 export async function uploadPdfToStorage(
-  _localPdfPath: string,
-  _cdn: string | null,
+  localPdfPath: string,
+  cdn: string | null,
   cdnKey: string | null,
-  _handshake: string,
-  _baseUrl: string,
+  handshake: string,
+  baseUrl: string,
   exportFilename: string = 'document.pdf',
 ): Promise<UploadResult> {
-  const storagePath = cdnKey ? `${cdnKey}/export/${exportFilename}` : `export/${exportFilename}`;
-  console.log('[stub] uploadPdfToStorage: would upload to', storagePath);
-  return { path: storagePath };
+  if (!cdn?.trim() || !cdnKey?.trim()) {
+    throw new Error(
+      'uploadPdfToStorage: cdn and cdnKey are required to upload to an existing location',
+    );
+  }
+  const storagePath = `export/${exportFilename}`;
+  const session = createUploadSession(baseUrl, () =>
+    Promise.resolve(
+      handshake ? { Authorization: `Bearer ${handshake}` } : ({} as Record<string, string>),
+    ),
+  );
+  const uploadSingleFileToCdn = (
+    cliUpload as unknown as {
+      uploadSingleFileToCdn: (
+        s: ISession,
+        o: {
+          cdn: string;
+          cdnKey: string;
+          localPath: string;
+          storagePath: string;
+          resume?: boolean;
+        },
+      ) => Promise<{ path: string; cdnKey: string }>;
+    }
+  ).uploadSingleFileToCdn;
+  const result = await uploadSingleFileToCdn(session, {
+    cdn,
+    cdnKey,
+    localPath: localPdfPath,
+    storagePath,
+    resume: false,
+  });
+  return { path: result.path };
 }
 
 /**
