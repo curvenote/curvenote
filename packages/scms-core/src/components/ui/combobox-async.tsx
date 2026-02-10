@@ -28,6 +28,9 @@ function debounce<T extends (...args: any[]) => any>(
   };
 }
 
+/** 'button' = click button to open popover, then type inside (default). 'inline' = type directly in the box; dropdown appears below with arrow-key select. */
+export type AsyncComboBoxTriggerMode = 'button' | 'inline';
+
 interface AsyncComboBoxProps {
   value?: string;
   onValueChange: (value: string) => void;
@@ -45,6 +48,14 @@ interface AsyncComboBoxProps {
   onErrorClear?: () => void;
   clearOnEmptySearch?: boolean;
   initialOptions?: ComboBoxOption[];
+  /** When 'inline', the control is a single input: type in the box, dropdown appears below, arrow keys to select. When 'button' (default), click to open then type in popover. */
+  triggerMode?: AsyncComboBoxTriggerMode;
+  /** Optional: called when the search/input string changes (e.g. to support "Add current text" alongside selection). */
+  onSearchChange?: (query: string) => void;
+  /** When provided, options are driven by the parent (e.g. from a fetcher). Internal onSearch is not called; use for server-side search. */
+  externalOptions?: ComboBoxOption[];
+  /** When provided with externalOptions, controls loading state (e.g. fetcher.state !== 'idle'). */
+  externalLoading?: boolean;
 }
 
 export function AsyncComboBox({
@@ -64,11 +75,17 @@ export function AsyncComboBox({
   onErrorClear,
   clearOnEmptySearch: clearOnEmpty = false,
   initialOptions = [],
+  triggerMode = 'button',
+  onSearchChange,
+  externalOptions,
+  externalLoading,
 }: AsyncComboBoxProps) {
   const [open, setOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState('');
   const [options, setOptions] = React.useState<ComboBoxOption[]>(initialOptions);
   const [isLoading, setIsLoading] = React.useState(false);
+  const displayOptions = externalOptions !== undefined ? externalOptions : options;
+  const displayLoading = externalLoading !== undefined ? externalLoading : isLoading;
   const [searchError, setSearchError] = React.useState<string | null>(null);
   const [selectedOption, setSelectedOption] = React.useState<ComboBoxOption | null>(() => {
     // Initialize selectedOption if we have a value and initial options
@@ -79,6 +96,7 @@ export function AsyncComboBox({
   });
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced search function
   const debouncedSearch = React.useCallback(
@@ -94,7 +112,7 @@ export function AsyncComboBox({
 
       try {
         const results = await onSearch(query);
-        setOptions(results);
+        setOptions(Array.isArray(results) ? results : []);
       } catch (err) {
         console.error('Search failed:', err);
         setOptions([]);
@@ -106,29 +124,41 @@ export function AsyncComboBox({
     [onSearch, minSearchLength],
   );
 
-  // Trigger search when search value changes
+  // Trigger search when search value changes (skip when parent provides externalOptions)
   React.useEffect(() => {
+    if (externalOptions !== undefined) return;
     debouncedSearch(searchValue);
-  }, [searchValue, debouncedSearch]);
+  }, [searchValue, debouncedSearch, externalOptions]);
 
   // Load selected option details if value is provided
   React.useEffect(() => {
     if (value && !selectedOption) {
-      const found = options.find((option) => option.value === value);
+      const found = displayOptions.find((option) => option.value === value);
       if (found) {
         setSelectedOption(found);
       }
     }
-  }, [value, options, selectedOption]);
+  }, [value, displayOptions, selectedOption]);
 
-  // Reset state when value is cleared
+  // Reset state only when value changes from something to nothing (user cleared selection).
+  // Do not reset when value is always falsy (e.g. add-author combobox with value=""), so results can render.
+  const prevValueRef = React.useRef<string | undefined>(value);
   React.useEffect(() => {
-    if (!value) {
+    const hadValue = prevValueRef.current !== undefined && prevValueRef.current !== '';
+    const hasNoValue = value === undefined || value === '';
+    if (hadValue && hasNoValue) {
       setSearchValue('');
       setSelectedOption(null);
       setSearchError(null);
     }
+    prevValueRef.current = value;
   }, [value]);
+
+  React.useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
 
   const handleOpen = () => {
     const newOpen = !open;
@@ -157,13 +187,23 @@ export function AsyncComboBox({
     setSearchValue(newValue);
     setSelectedOption(null);
     setSearchError(null);
-
-    // Don't automatically clear the value when input is emptied
-    // Only clear when user explicitly confirms with Enter/Escape (if clearOnEmpty is true)
+    onSearchChange?.(newValue);
   };
 
+  const focusAfterClose = React.useCallback(() => {
+    if (triggerMode === 'inline') {
+      inputRef.current?.focus();
+    } else {
+      triggerRef.current?.focus();
+    }
+  }, [triggerMode]);
+
   const handleSelect = (optionValue: string) => {
-    const option = options.find((opt) => opt.value === optionValue);
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    const option = displayOptions.find((opt) => opt.value === optionValue);
     if (option) {
       setSelectedOption(option);
       onValueChange(optionValue);
@@ -174,19 +214,21 @@ export function AsyncComboBox({
     setOpen(false);
     setSearchValue('');
     setSearchError(null);
-    // Return focus to trigger button
-    triggerRef.current?.focus();
+    requestAnimationFrame(() => focusAfterClose());
   };
 
   const clearSelection = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
     onValueChange('');
     setSelectedOption(null);
     setSearchError(null);
     onErrorClear?.();
     setOpen(false);
     setSearchValue('');
-    // Return focus to trigger button
-    triggerRef.current?.focus();
+    requestAnimationFrame(() => focusAfterClose());
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -204,6 +246,139 @@ export function AsyncComboBox({
 
   // Show error if there's a value and an error, but not when the dropdown is open
   const shouldShowError = Boolean(error && displayValue && !open);
+
+  const handleInlineFocus = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setOpen(true);
+    setSearchError(null);
+    setSearchValue(''); // so user types fresh and placeholder shows
+  };
+
+  const handleInlineBlur = () => {
+    closeTimeoutRef.current = setTimeout(() => {
+      closeTimeoutRef.current = null;
+      setOpen(false);
+    }, 200);
+  };
+
+  // Inline mode: single input, type in the box, dropdown below with arrow-key select
+  if (triggerMode === 'inline') {
+    const inlineInputValue = open ? searchValue : displayValue;
+    return (
+      <div className={cn('relative', className)}>
+        <Command
+          shouldFilter={false}
+          filter={() => 1}
+          className={cn(
+            'flex flex-col rounded-md border border-input bg-background',
+            shouldShowError && 'border-red-500',
+            triggerClassName,
+          )}
+        >
+          <CommandInput
+            ref={inputRef}
+            autoComplete="off"
+            placeholder={displayValue ? searchPlaceholder : placeholder}
+            value={inlineInputValue}
+            onValueChange={(v) => {
+              setSearchValue(v);
+              setSelectedOption(null);
+              setSearchError(null);
+              onSearchChange?.(v);
+            }}
+            onFocus={handleInlineFocus}
+            onBlur={handleInlineBlur}
+            onKeyDown={handleKeyDown}
+            disabled={disabled}
+            className={cn(
+              'h-9 rounded-md border-0 bg-transparent focus-visible:ring-2 focus-visible:ring-ring',
+              !open && 'cursor-pointer',
+            )}
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            aria-controls={open ? 'combobox-list-inline' : undefined}
+          />
+          {open && searchValue.length > 0 && (
+            <CommandList
+              id="combobox-list-inline"
+              role="listbox"
+              className={cn(
+                'absolute top-full left-0 right-0 z-10 mt-1 max-h-[300px] rounded-md border border-border bg-popover shadow-md',
+                contentClassName,
+              )}
+            >
+              {searchValue.length > 0 && searchValue.length < minSearchLength && (
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  Type at least {minSearchLength} characters to search
+                </div>
+              )}
+
+              {searchValue.length >= minSearchLength && displayLoading && (
+                <div className="flex gap-2 items-center px-3 py-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {loadingMessage}
+                </div>
+              )}
+
+              {searchError && <div className="px-3 py-2 text-sm text-red-600">{searchError}</div>}
+
+              {searchValue.length >= minSearchLength &&
+                !displayLoading &&
+                !searchError &&
+                displayOptions.length === 0 && (
+                  <CommandEmpty>
+                    {typeof emptyMessage === 'string' ? emptyMessage : <div>{emptyMessage}</div>}
+                  </CommandEmpty>
+                )}
+
+              {!displayLoading && !searchError && displayOptions.length > 0 && (
+                <CommandGroup>
+                  {displayOptions.map((option) => (
+                    <CommandItem
+                      key={option.value}
+                      value={option.value}
+                      disabled={option.disabled}
+                      onSelect={handleSelect}
+                      role="option"
+                      aria-selected={value === option.value}
+                    >
+                      <Check
+                        className={cn(
+                          'mr-2 h-4 w-4',
+                          value === option.value ? 'opacity-100 text-green-600' : 'opacity-0',
+                        )}
+                      />
+                      <div className="flex flex-col">
+                        <span>{option.label}</span>
+                        {option.description && (
+                          <span className="text-xs text-muted-foreground">
+                            {option.description}
+                          </span>
+                        )}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+
+              {!clearOnEmpty && searchValue.trim() === '' && value && (
+                <CommandGroup>
+                  <CommandItem value="__clear__" onSelect={() => clearSelection()} role="option">
+                    <Check className="mr-2 w-4 h-4 opacity-0" />
+                    <span className="text-muted-foreground">Clear selection</span>
+                  </CommandItem>
+                </CommandGroup>
+              )}
+            </CommandList>
+          )}
+        </Command>
+        {shouldShowError && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className={cn('relative', className)}>
@@ -228,7 +403,7 @@ export function AsyncComboBox({
             <span className={cn('truncate', !displayValue && 'text-muted-foreground')}>
               {displayValue || placeholder}
             </span>
-            <ChevronsUpDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
+            <ChevronsUpDown className="ml-2 w-4 h-4 opacity-50 shrink-0" />
           </Button>
         </PopoverTrigger>
         <PopoverContent
@@ -237,9 +412,10 @@ export function AsyncComboBox({
             width: triggerRef.current?.offsetWidth,
           }}
         >
-          <Command shouldFilter={false}>
+          <Command shouldFilter={false} filter={() => 1}>
             <CommandInput
               ref={inputRef}
+              autoComplete="off"
               placeholder={searchPlaceholder}
               value={searchValue}
               onValueChange={handleInputChange}
@@ -253,8 +429,8 @@ export function AsyncComboBox({
                 </div>
               )}
 
-              {searchValue.length >= minSearchLength && isLoading && (
-                <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+              {searchValue.length >= minSearchLength && displayLoading && (
+                <div className="flex gap-2 items-center px-3 py-2 text-sm text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   {loadingMessage}
                 </div>
@@ -263,17 +439,17 @@ export function AsyncComboBox({
               {searchError && <div className="px-3 py-2 text-sm text-red-600">{searchError}</div>}
 
               {searchValue.length >= minSearchLength &&
-                !isLoading &&
+                !displayLoading &&
                 !searchError &&
-                options.length === 0 && (
+                displayOptions.length === 0 && (
                   <CommandEmpty>
                     {typeof emptyMessage === 'string' ? emptyMessage : <div>{emptyMessage}</div>}
                   </CommandEmpty>
                 )}
 
-              {!isLoading && !searchError && options.length > 0 && (
+              {!displayLoading && !searchError && displayOptions.length > 0 && (
                 <CommandGroup>
-                  {options.map((option) => (
+                  {displayOptions.map((option) => (
                     <CommandItem
                       key={option.value}
                       value={option.value}
@@ -311,7 +487,7 @@ export function AsyncComboBox({
                     }}
                     role="option"
                   >
-                    <Check className="w-4 h-4 mr-2 opacity-0" />
+                    <Check className="mr-2 w-4 h-4 opacity-0" />
                     <span className="text-muted-foreground">Clear selection</span>
                   </CommandItem>
                 </CommandGroup>

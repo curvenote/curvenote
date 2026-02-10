@@ -12,7 +12,6 @@ import {
   ChevronDown,
   BadgeCheck,
   CornerDownLeft,
-  Loader2,
 } from 'lucide-react';
 import {
   DndContext,
@@ -227,6 +226,7 @@ function SortableAffiliationRow({
           <>
             <input
               type="text"
+              autoComplete="off"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={saveNameOnly}
@@ -268,6 +268,7 @@ function SortableAffiliationRow({
                       <ui.Input
                         id={`${id}-department`}
                         type="text"
+                        autoComplete="off"
                         value={editDepartment}
                         onChange={(e) => setEditDepartment(e.target.value)}
                         onBlur={saveDepartment}
@@ -285,6 +286,7 @@ function SortableAffiliationRow({
                       <ui.Input
                         id={`${id}-city`}
                         type="text"
+                        autoComplete="off"
                         value={editCity}
                         onChange={(e) => setEditCity(e.target.value)}
                         onBlur={saveCity}
@@ -302,6 +304,7 @@ function SortableAffiliationRow({
                       <ui.Input
                         id={`${id}-country`}
                         type="text"
+                        autoComplete="off"
                         value={editCountry}
                         onChange={(e) => setEditCountry(e.target.value)}
                         onBlur={saveCountry}
@@ -542,33 +545,43 @@ function AuthorCard({
     value.affiliationIds ?? [],
   );
   const [newAffiliationInput, setNewAffiliationInput] = useState('');
-  const [debouncedAffiliationQuery, setDebouncedAffiliationQuery] = useState('');
   const [expandAddDetails, setExpandAddDetails] = useState(false);
   const [addDetailsName, setAddDetailsName] = useState('');
   const [addDetailsDepartment, setAddDetailsDepartment] = useState('');
   const [addDetailsCity, setAddDetailsCity] = useState('');
   const [addDetailsCountry, setAddDetailsCountry] = useState('');
-
+  const lastRorResultsRef = useRef<RorSearchHit[]>([]);
+  const lastSubmittedRorQRef = useRef('');
   const rorSearchFetcher = useFetcher();
-  const rorSearchResults: RorSearchHit[] =
-    (rorSearchFetcher.data as { results?: RorSearchHit[] } | undefined)?.results ?? [];
-  const rorSearchLoading = rorSearchFetcher.state !== 'idle';
-  const showRorSuggestions =
-    (rorSearchLoading || rorSearchResults.length > 0) && debouncedAffiliationQuery.trim() !== '';
 
+  // Debounced server-side ROR search via fetcher (keeps requests on backend)
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedAffiliationQuery(newAffiliationInput), 200);
+    const trimmed = newAffiliationInput.trim();
+    if (!trimmed) return;
+    const t = setTimeout(() => {
+      lastSubmittedRorQRef.current = trimmed;
+      const fd = new FormData();
+      fd.set('intent', 'search-ror');
+      fd.set('q', trimmed);
+      rorSearchFetcher.submit(fd, { method: 'POST' });
+    }, 300);
     return () => clearTimeout(t);
   }, [newAffiliationInput]);
 
-  useEffect(() => {
-    const q = debouncedAffiliationQuery.trim();
-    if (!q) return;
-    const fd = new FormData();
-    fd.set('intent', 'search-ror');
-    fd.set('q', q);
-    rorSearchFetcher.submit(fd, { method: 'POST' });
-  }, [debouncedAffiliationQuery]);
+  const rorSearchOptions = (() => {
+    if (rorSearchFetcher.state !== 'idle' || !rorSearchFetcher.data) return undefined;
+    const currentQ = newAffiliationInput.trim();
+    if (currentQ !== lastSubmittedRorQRef.current) return undefined;
+    const data = rorSearchFetcher.data as { results?: RorSearchHit[] };
+    const results = data?.results ?? [];
+    lastRorResultsRef.current = results;
+    return results.map((r) => ({
+      value: r.ror,
+      label: r.name,
+      description: [r.city, r.country].filter(Boolean).join(', ') || undefined,
+    }));
+  })();
+  const rorSearchLoading = rorSearchFetcher.state !== 'idle';
 
   const onSelectRorSuggestion = (hit: RorSearchHit) => {
     const aff: Affiliation = {
@@ -581,6 +594,11 @@ function AuthorCard({
     if (open) addAffiliation(aff);
     else addAffiliationInViewMode(aff);
     setNewAffiliationInput('');
+  };
+
+  const onRorSelectFromCombobox = (ror: string) => {
+    const hit = lastRorResultsRef.current.find((r) => r.ror === ror);
+    if (hit) onSelectRorSuggestion(hit);
   };
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -736,6 +754,7 @@ function AuthorCard({
               <ui.Input
                 id={`author-${index}-name`}
                 type="text"
+                autoComplete="off"
                 value={editName}
                 onChange={(e) => {
                   setEditName(e.target.value);
@@ -764,6 +783,7 @@ function AuthorCard({
               <ui.Input
                 id={`author-${index}-orcid`}
                 type="text"
+                autoComplete="off"
                 value={editOrcid}
                 onChange={(e) => {
                   setEditOrcid(e.target.value);
@@ -786,6 +806,7 @@ function AuthorCard({
               <ui.Input
                 id={`author-${index}-email`}
                 type="email"
+                autoComplete="off"
                 value={editEmail}
                 onChange={(e) => {
                   setEditEmail(e.target.value);
@@ -838,61 +859,21 @@ function AuthorCard({
               />
               <div className="flex gap-2">
                 <div className="relative flex-1 min-w-0">
-                  <input
-                    type="text"
-                    value={newAffiliationInput}
-                    onChange={(e) => setNewAffiliationInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const trimmed = newAffiliationInput.trim();
-                        if (trimmed) {
-                          addAffiliation({ id: uuid(), name: trimmed });
-                          setNewAffiliationInput('');
-                        }
-                      }
-                    }}
+                  <ui.AsyncComboBox
+                    triggerMode="inline"
+                    value=""
+                    onValueChange={onRorSelectFromCombobox}
+                    onSearch={async () => []}
+                    onSearchChange={setNewAffiliationInput}
+                    externalOptions={rorSearchOptions ?? []}
+                    externalLoading={rorSearchLoading}
                     placeholder="Add affiliation (search ROR)"
-                    className="flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
+                    searchPlaceholder="Search ROR…"
+                    minSearchLength={1}
+                    emptyMessage="No ROR matches."
+                    loadingMessage="Searching ROR…"
+                    className="w-full"
                   />
-                  {showRorSuggestions && newAffiliationInput.trim() && (
-                    <div
-                      className="absolute right-0 left-0 top-full z-10 mt-1 rounded-md border shadow-md border-border bg-popover"
-                      role="listbox"
-                    >
-                      {rorSearchLoading ? (
-                        <div className="flex gap-2 items-center px-3 py-2 text-sm text-muted-foreground">
-                          <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
-                          <span>Searching ROR…</span>
-                        </div>
-                      ) : rorSearchResults.length > 0 ? (
-                        <ul className="overflow-auto py-1 max-h-60">
-                          {rorSearchResults.map((hit) => (
-                            <li key={hit.ror}>
-                              <button
-                                type="button"
-                                className="px-3 py-2 w-full text-sm text-left bg-transparent border-0 cursor-pointer hover:bg-muted/50"
-                                onClick={() => onSelectRorSuggestion(hit)}
-                                role="option"
-                              >
-                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                                  <span className="font-medium">{hit.name}</span>
-                                  {(hit.city || hit.country) && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {[hit.city, hit.country].filter(Boolean).join(', ')}
-                                    </span>
-                                  )}
-                                  <span className="font-mono text-xs text-muted-foreground shrink-0">
-                                    {hit.ror}
-                                  </span>
-                                </div>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                  )}
                 </div>
                 <ui.Button
                   type="button"
@@ -952,6 +933,7 @@ function AuthorCard({
                             </label>
                             <ui.Input
                               type="text"
+                              autoComplete="off"
                               value={addDetailsName}
                               onChange={(e) => setAddDetailsName(e.target.value)}
                               placeholder="Affiliation name"
@@ -964,6 +946,7 @@ function AuthorCard({
                             </label>
                             <ui.Input
                               type="text"
+                              autoComplete="off"
                               value={addDetailsDepartment}
                               onChange={(e) => setAddDetailsDepartment(e.target.value)}
                               placeholder="Department"
@@ -977,6 +960,7 @@ function AuthorCard({
                               </label>
                               <ui.Input
                                 type="text"
+                                autoComplete="off"
                                 value={addDetailsCity}
                                 onChange={(e) => setAddDetailsCity(e.target.value)}
                                 placeholder="City"
@@ -989,6 +973,7 @@ function AuthorCard({
                               </label>
                               <ui.Input
                                 type="text"
+                                autoComplete="off"
                                 value={addDetailsCountry}
                                 onChange={(e) => setAddDetailsCountry(e.target.value)}
                                 placeholder="Country"
@@ -1071,63 +1056,25 @@ function AuthorCard({
               /* Add affiliation (view mode) – only when author has no affiliations yet */
               <div className="space-y-2">
                 <div className="flex gap-2">
-                  <div className="relative flex-1 min-w-0">
-                    <input
-                      ref={affiliationInputRef as React.RefObject<HTMLInputElement>}
-                      type="text"
-                      value={newAffiliationInput}
-                      onChange={(e) => setNewAffiliationInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const trimmed = newAffiliationInput.trim();
-                          if (trimmed) {
-                            addAffiliationInViewMode({ id: uuid(), name: trimmed });
-                            setNewAffiliationInput('');
-                          }
-                        }
-                      }}
+                  <div
+                    className="relative flex-1 min-w-0"
+                    ref={affiliationInputRef as React.RefObject<HTMLDivElement>}
+                  >
+                    <ui.AsyncComboBox
+                      triggerMode="inline"
+                      value=""
+                      onValueChange={onRorSelectFromCombobox}
+                      onSearch={async () => []}
+                      onSearchChange={setNewAffiliationInput}
+                      externalOptions={rorSearchOptions ?? []}
+                      externalLoading={rorSearchLoading}
                       placeholder="Add affiliation (search ROR)"
-                      className="flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
+                      searchPlaceholder="Search ROR…"
+                      minSearchLength={1}
+                      emptyMessage="No ROR matches."
+                      loadingMessage="Searching ROR…"
+                      className="w-full"
                     />
-                    {showRorSuggestions && newAffiliationInput.trim() && (
-                      <div
-                        className="absolute right-0 left-0 top-full z-10 mt-1 rounded-md border shadow-md border-border bg-popover"
-                        role="listbox"
-                      >
-                        {rorSearchLoading ? (
-                          <div className="flex gap-2 items-center px-3 py-2 text-sm text-muted-foreground">
-                            <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
-                            <span>Searching ROR…</span>
-                          </div>
-                        ) : rorSearchResults.length > 0 ? (
-                          <ul className="overflow-auto py-1 max-h-60">
-                            {rorSearchResults.map((hit) => (
-                              <li key={hit.ror}>
-                                <button
-                                  type="button"
-                                  className="px-3 py-2 w-full text-sm text-left bg-transparent border-0 cursor-pointer hover:bg-muted/50"
-                                  onClick={() => onSelectRorSuggestion(hit)}
-                                  role="option"
-                                >
-                                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                                    <span className="font-medium">{hit.name}</span>
-                                    {(hit.city || hit.country) && (
-                                      <span className="text-xs text-muted-foreground">
-                                        {[hit.city, hit.country].filter(Boolean).join(', ')}
-                                      </span>
-                                    )}
-                                    <span className="font-mono text-xs text-muted-foreground shrink-0">
-                                      {hit.ror}
-                                    </span>
-                                  </div>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </div>
-                    )}
                   </div>
                   <ui.Button
                     type="button"
@@ -1187,6 +1134,7 @@ function AuthorCard({
                               </label>
                               <ui.Input
                                 type="text"
+                                autoComplete="off"
                                 value={addDetailsName}
                                 onChange={(e) => setAddDetailsName(e.target.value)}
                                 placeholder="Affiliation name"
@@ -1199,6 +1147,7 @@ function AuthorCard({
                               </label>
                               <ui.Input
                                 type="text"
+                                autoComplete="off"
                                 value={addDetailsDepartment}
                                 onChange={(e) => setAddDetailsDepartment(e.target.value)}
                                 placeholder="Department"
@@ -1212,6 +1161,7 @@ function AuthorCard({
                                 </label>
                                 <ui.Input
                                   type="text"
+                                  autoComplete="off"
                                   value={addDetailsCity}
                                   onChange={(e) => setAddDetailsCity(e.target.value)}
                                   placeholder="City"
@@ -1224,6 +1174,7 @@ function AuthorCard({
                                 </label>
                                 <ui.Input
                                   type="text"
+                                  autoComplete="off"
                                   value={addDetailsCountry}
                                   onChange={(e) => setAddDetailsCountry(e.target.value)}
                                   placeholder="Country"
@@ -1313,19 +1264,17 @@ type RorSearchHit = {
 };
 
 type AddAuthorPlaceholderCardProps = {
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  nameInput: string;
-  setNameInput: (v: string) => void;
+  /** Options from server-side ORCID search (fetcher); when provided, combobox uses these instead of client fetch. */
+  orcidSearchExternalOptions?: { value: string; label: string; description?: string }[];
+  orcidSearchLoading?: boolean;
+  onAuthorSelect: (orcid: string) => void;
+  onSearchChange: (query: string) => void;
+  addAuthorSearchValue: string;
   handleAddAuthor: () => void;
   orcidFetcher: { state: string };
   addMeAsAuthor: () => void;
   contactDetails: ContactDetailsForAuthor | null | undefined;
-  schemaName: string;
   isEmpty: boolean;
-  orcidSearchResults: OrcidSearchHit[];
-  orcidSearchLoading: boolean;
-  showOrcidSuggestions: boolean;
-  onSelectOrcidSuggestion: (hit: OrcidSearchHit) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   canMoveUp?: boolean;
@@ -1333,19 +1282,16 @@ type AddAuthorPlaceholderCardProps = {
 };
 
 function AddAuthorPlaceholderCard({
-  inputRef,
-  nameInput,
-  setNameInput,
+  orcidSearchExternalOptions,
+  orcidSearchLoading,
+  onAuthorSelect,
+  onSearchChange,
+  addAuthorSearchValue,
   handleAddAuthor,
   orcidFetcher,
   addMeAsAuthor,
   contactDetails,
-  schemaName,
   isEmpty,
-  orcidSearchResults,
-  orcidSearchLoading,
-  showOrcidSuggestions,
-  onSelectOrcidSuggestion,
   onMoveUp,
   onMoveDown,
   canMoveUp,
@@ -1416,69 +1362,26 @@ function AddAuthorPlaceholderCard({
         )}
         <div className="flex gap-2 items-center">
           <div className="relative flex-1 min-w-0">
-            <ui.Input
-              ref={inputRef as React.RefObject<HTMLInputElement>}
-              id={`${schemaName}-add-name`}
-              type="text"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddAuthor();
-                }
-              }}
+            <ui.AsyncComboBox
+              triggerMode="inline"
+              value=""
+              onValueChange={onAuthorSelect}
+              onSearch={async () => []}
+              onSearchChange={onSearchChange}
+              externalOptions={orcidSearchExternalOptions}
+              externalLoading={orcidSearchLoading}
               placeholder="Name or ORCID (e.g. 0000-0002-1825-0097)"
-              className="flex-1 w-full min-w-0"
+              searchPlaceholder="Search ORCID…"
+              minSearchLength={1}
+              emptyMessage="No ORCID matches."
+              loadingMessage="Searching ORCID…"
+              className="w-full"
             />
-            {showOrcidSuggestions && (
-              <div
-                className="absolute right-0 left-0 top-full z-10 mt-1 rounded-md border shadow-md border-border bg-popover"
-                role="listbox"
-              >
-                {orcidSearchLoading ? (
-                  <div className="flex gap-2 items-center px-3 py-2 text-sm text-muted-foreground">
-                    <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
-                    <span>Searching ORCID…</span>
-                  </div>
-                ) : orcidSearchResults.length > 0 ? (
-                  <ul className="overflow-auto py-1 max-h-60">
-                    {orcidSearchResults.map((hit) => (
-                      <li key={hit.orcid}>
-                        <button
-                          type="button"
-                          className="px-3 py-2 w-full text-sm text-left bg-transparent border-0 cursor-pointer hover:bg-muted/50"
-                          onClick={() => onSelectOrcidSuggestion(hit)}
-                          role="option"
-                        >
-                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                            <span className="font-medium">{hit.name}</span>
-                            {hit.firstAffiliation && (
-                              <span className="text-muted-foreground text-xs truncate max-w-[12rem]">
-                                {hit.firstAffiliation}
-                              </span>
-                            )}
-                            <span className="text-xs tabular-nums text-muted-foreground shrink-0">
-                              {hit.orcid}
-                            </span>
-                          </div>
-                          {hit.email && (
-                            <div className="mt-0.5 text-muted-foreground text-xs truncate">
-                              {hit.email}
-                            </div>
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            )}
           </div>
           <ui.Button
             type="button"
             onClick={handleAddAuthor}
-            disabled={!nameInput.trim() || orcidFetcher.state !== 'idle'}
+            disabled={!addAuthorSearchValue.trim() || orcidFetcher.state !== 'idle'}
             className="cursor-pointer shrink-0"
           >
             {orcidFetcher.state !== 'idle' ? (
@@ -1545,8 +1448,8 @@ export function AuthorField({
   initialOpenAffiliationIndex,
   contactDetails,
 }: AuthorFieldProps) {
-  const [nameInput, setNameInput] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [addAuthorSearchValue, setAddAuthorSearchValue] = useState('');
+  const lastOrcidResultsRef = useRef<OrcidSearchHit[]>([]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [activeAuthorId, setActiveAuthorId] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -1558,25 +1461,41 @@ export function AuthorField({
   const pendingOrcidRef = useRef<string | null>(null);
   const addMeOrcidAuthorIdRef = useRef<string | null>(null);
   const suggestionOrcidAuthorIdRef = useRef<string | null>(null);
+  const lastSubmittedOrcidQRef = useRef('');
   const orcidFetcher = useFetcher();
   const orcidSearchFetcher = useFetcher();
   const affiliationList = affiliationListProp ?? [];
 
-  // Debounce name input for ORCID search (300ms, same as combobox-async)
+  // Debounced server-side ORCID search via fetcher (keeps requests on backend).
+  // Only depend on addAuthorSearchValue so we don't re-run when fetcher state changes (which would re-submit and show loading again).
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(nameInput), 300);
-    return () => clearTimeout(t);
-  }, [nameInput]);
-
-  // When debounced query is non-empty and not an ORCID ID, search ORCID
-  useEffect(() => {
-    const trimmed = debouncedQuery.trim();
+    const trimmed = addAuthorSearchValue.trim();
     if (!trimmed || isValidOrcid(trimmed)) return;
-    const fd = new FormData();
-    fd.set('intent', 'search-orcid');
-    fd.set('q', trimmed);
-    orcidSearchFetcher.submit(fd, { method: 'POST' });
-  }, [debouncedQuery]);
+    const t = setTimeout(() => {
+      lastSubmittedOrcidQRef.current = trimmed;
+      const fd = new FormData();
+      fd.set('intent', 'search-orcid');
+      fd.set('q', trimmed);
+      orcidSearchFetcher.submit(fd, { method: 'POST' });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [addAuthorSearchValue]);
+
+  const orcidSearchOptions = (() => {
+    if (orcidSearchFetcher.state !== 'idle' || !orcidSearchFetcher.data) return undefined;
+    const currentQ = addAuthorSearchValue.trim();
+    if (currentQ !== lastSubmittedOrcidQRef.current) return undefined;
+    const data = orcidSearchFetcher.data as { results?: OrcidSearchHit[] };
+    const results = data?.results ?? [];
+    lastOrcidResultsRef.current = results;
+    return results.map((r) => ({
+      value: r.orcid,
+      label: r.name,
+      description: r.firstAffiliation,
+    }));
+  })();
+  const orcidSearchLoading = orcidSearchFetcher.state !== 'idle';
+
   const authorErrors = getAuthorFieldErrors(value);
   const isValid = value.length > 0 && authorErrors.length === 0;
 
@@ -1951,19 +1870,11 @@ export function AuthorField({
     };
     const idx = insertIndexRef.current < 0 ? valueRef.current.length : insertIndexRef.current;
     insertAuthorAt(idx, newAuthor);
-    setNameInput('');
+    setAddAuthorSearchValue('');
   }, [orcidFetcher.state, orcidFetcher.data, affiliationList, onAffiliationListChange]);
 
-  const orcidSearchResults: OrcidSearchHit[] =
-    (orcidSearchFetcher.data as { results?: OrcidSearchHit[] } | undefined)?.results ?? [];
-  const orcidSearchLoading = orcidSearchFetcher.state !== 'idle';
-  const showOrcidSuggestions =
-    debouncedQuery.trim().length > 0 &&
-    !isValidOrcid(debouncedQuery.trim()) &&
-    (orcidSearchLoading || orcidSearchResults.length > 0);
-
   const onSelectOrcidSuggestion = (hit: OrcidSearchHit) => {
-    setNameInput('');
+    setAddAuthorSearchValue('');
     let affiliationIds: string[] = [];
     let nextList = [...affiliationList];
     if (hit.firstAffiliation?.trim()) {
@@ -1995,8 +1906,16 @@ export function AuthorField({
     orcidFetcher.submit(fd, { method: 'POST' });
   };
 
+  const onAuthorSelectFromCombobox = (orcid: string) => {
+    const hit = lastOrcidResultsRef.current.find((r) => r.orcid === orcid);
+    if (hit) {
+      onSelectOrcidSuggestion(hit);
+      setAddAuthorSearchValue('');
+    }
+  };
+
   const handleAddAuthor = () => {
-    const trimmed = nameInput.trim();
+    const trimmed = addAuthorSearchValue.trim();
     if (!trimmed) return;
     if (isValidOrcid(trimmed)) {
       pendingOrcidRef.current = trimmed;
@@ -2012,7 +1931,7 @@ export function AuthorField({
       affiliationIds: [],
     };
     insertAtPlaceholder(newAuthor);
-    setNameInput('');
+    setAddAuthorSearchValue('');
   };
 
   const handleEnsureAffiliationInList = (aff: Affiliation) => {
@@ -2044,28 +1963,40 @@ export function AuthorField({
   };
 
   const [addAffiliationInput, setAddAffiliationInput] = useState('');
-  const [debouncedAddAffiliationQuery, setDebouncedAddAffiliationQuery] = useState('');
+  const lastAddAffiliationRorResultsRef = useRef<RorSearchHit[]>([]);
+  const lastSubmittedAddAffiliationRorQRef = useRef('');
   const addAffiliationRorFetcher = useFetcher();
-  const addAffiliationRorResults: RorSearchHit[] =
-    (addAffiliationRorFetcher.data as { results?: RorSearchHit[] } | undefined)?.results ?? [];
-  const addAffiliationRorLoading = addAffiliationRorFetcher.state !== 'idle';
-  const showAddAffiliationRorSuggestions =
-    (addAffiliationRorLoading || addAffiliationRorResults.length > 0) &&
-    debouncedAddAffiliationQuery.trim() !== '';
 
+  // Debounced server-side ROR search for standalone Add affiliation box (keeps requests on backend)
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedAddAffiliationQuery(addAffiliationInput), 200);
+    const trimmed = addAffiliationInput.trim();
+    if (!trimmed) return;
+    const t = setTimeout(() => {
+      lastSubmittedAddAffiliationRorQRef.current = trimmed;
+      const fd = new FormData();
+      fd.set('intent', 'search-ror');
+      fd.set('q', trimmed);
+      addAffiliationRorFetcher.submit(fd, { method: 'POST' });
+    }, 300);
     return () => clearTimeout(t);
   }, [addAffiliationInput]);
 
-  useEffect(() => {
-    const q = debouncedAddAffiliationQuery.trim();
-    if (!q) return;
-    const fd = new FormData();
-    fd.set('intent', 'search-ror');
-    fd.set('q', q);
-    addAffiliationRorFetcher.submit(fd, { method: 'POST' });
-  }, [debouncedAddAffiliationQuery]);
+  const addAffiliationRorOptions = (() => {
+    const hasRorResults =
+      addAffiliationRorFetcher.state === 'idle' && addAffiliationRorFetcher.data;
+    if (!hasRorResults) return undefined;
+    const currentQ = addAffiliationInput.trim();
+    if (currentQ !== lastSubmittedAddAffiliationRorQRef.current) return undefined;
+    const data = addAffiliationRorFetcher.data as { results?: RorSearchHit[] };
+    const results = data?.results ?? [];
+    lastAddAffiliationRorResultsRef.current = results;
+    return results.map((r) => ({
+      value: r.ror,
+      label: r.name,
+      description: [r.city, r.country].filter(Boolean).join(', ') || undefined,
+    }));
+  })();
+  const addAffiliationRorLoading = addAffiliationRorFetcher.state !== 'idle';
 
   const onSelectAddAffiliationRor = (hit: RorSearchHit) => {
     const aff: Affiliation = {
@@ -2077,6 +2008,11 @@ export function AuthorField({
     };
     onAffiliationListChange?.([...affiliationList, aff]);
     setAddAffiliationInput('');
+  };
+
+  const onSelectAddAffiliationRorFromCombobox = (ror: string) => {
+    const hit = lastAddAffiliationRorResultsRef.current.find((r) => r.ror === ror);
+    if (hit) onSelectAddAffiliationRor(hit);
   };
 
   const handleAddAffiliationFromBox = () => {
@@ -2160,19 +2096,16 @@ export function AuthorField({
                 return (
                   <AddAuthorPlaceholderCard
                     key={ADD_AUTHOR_PLACEHOLDER_ID}
-                    inputRef={lastCardAffiliationInputRef}
-                    nameInput={nameInput}
-                    setNameInput={setNameInput}
+                    orcidSearchExternalOptions={orcidSearchOptions ?? []}
+                    orcidSearchLoading={orcidSearchLoading}
+                    onAuthorSelect={onAuthorSelectFromCombobox}
+                    onSearchChange={setAddAuthorSearchValue}
+                    addAuthorSearchValue={addAuthorSearchValue}
                     handleAddAuthor={handleAddAuthor}
                     orcidFetcher={orcidFetcher}
                     addMeAsAuthor={addMeAsAuthor}
                     contactDetails={contactDetails}
-                    schemaName={schema.name}
                     isEmpty={value.length === 0}
-                    orcidSearchResults={orcidSearchResults}
-                    orcidSearchLoading={orcidSearchLoading}
-                    showOrcidSuggestions={showOrcidSuggestions}
-                    onSelectOrcidSuggestion={onSelectOrcidSuggestion}
                     onMoveUp={() => handleMoveAuthorOrderItem(ADD_AUTHOR_PLACEHOLDER_ID, 'up')}
                     onMoveDown={() => handleMoveAuthorOrderItem(ADD_AUTHOR_PLACEHOLDER_ID, 'down')}
                     canMoveUp={orderIndex > 0}
@@ -2253,57 +2186,21 @@ export function AuthorField({
             ) : null}
             <div className="flex gap-2 items-center p-4 rounded-sm border border-dashed border-border bg-background">
               <div className="relative flex-1 min-w-0">
-                <input
-                  type="text"
-                  value={addAffiliationInput}
-                  onChange={(e) => setAddAffiliationInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddAffiliationFromBox();
-                    }
-                  }}
+                <ui.AsyncComboBox
+                  triggerMode="inline"
+                  value=""
+                  onValueChange={onSelectAddAffiliationRorFromCombobox}
+                  onSearch={async () => []}
+                  onSearchChange={setAddAffiliationInput}
+                  externalOptions={addAffiliationRorOptions ?? []}
+                  externalLoading={addAffiliationRorLoading}
                   placeholder="Affiliation name (search ROR)"
-                  className="flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px]"
+                  searchPlaceholder="Search ROR…"
+                  minSearchLength={1}
+                  emptyMessage="No ROR matches."
+                  loadingMessage="Searching ROR…"
+                  className="w-full"
                 />
-                {showAddAffiliationRorSuggestions && addAffiliationInput.trim() && (
-                  <div
-                    className="absolute top-full left-0 right-0 z-10 mt-1 rounded-md border border-border bg-popover shadow-md"
-                    role="listbox"
-                  >
-                    {addAffiliationRorLoading ? (
-                      <div className="flex gap-2 items-center px-3 py-2 text-sm text-muted-foreground">
-                        <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden />
-                        <span>Searching ROR…</span>
-                      </div>
-                    ) : addAffiliationRorResults.length > 0 ? (
-                      <ul className="max-h-60 overflow-auto py-1">
-                        {addAffiliationRorResults.map((hit) => (
-                          <li key={hit.ror}>
-                            <button
-                              type="button"
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-muted/50 cursor-pointer border-0 bg-transparent"
-                              onClick={() => onSelectAddAffiliationRor(hit)}
-                              role="option"
-                            >
-                              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                                <span className="font-medium">{hit.name}</span>
-                                {(hit.city || hit.country) && (
-                                  <span className="text-muted-foreground text-xs">
-                                    {[hit.city, hit.country].filter(Boolean).join(', ')}
-                                  </span>
-                                )}
-                                <span className="text-muted-foreground font-mono text-xs shrink-0">
-                                  {hit.ror}
-                                </span>
-                              </div>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                )}
               </div>
               <ui.Button
                 type="button"
@@ -2434,6 +2331,7 @@ function AffiliationListItem({
                 <ui.Input
                   id={`aff-${affiliation.id}-name`}
                   type="text"
+                  autoComplete="off"
                   value={editName ?? ''}
                   onChange={(e) => setEditName(e.target.value)}
                   onBlur={saveName}
@@ -2448,6 +2346,7 @@ function AffiliationListItem({
                 <ui.Input
                   id={`aff-${affiliation.id}-department`}
                   type="text"
+                  autoComplete="off"
                   value={editDepartment}
                   onChange={(e) => setEditDepartment(e.target.value)}
                   onBlur={saveDepartment}
@@ -2463,6 +2362,7 @@ function AffiliationListItem({
                   <ui.Input
                     id={`aff-${affiliation.id}-city`}
                     type="text"
+                    autoComplete="off"
                     value={editCity}
                     onChange={(e) => setEditCity(e.target.value)}
                     onBlur={saveCity}
@@ -2477,6 +2377,7 @@ function AffiliationListItem({
                   <ui.Input
                     id={`aff-${affiliation.id}-country`}
                     type="text"
+                    autoComplete="off"
                     value={editCountry}
                     onChange={(e) => setEditCountry(e.target.value)}
                     onBlur={saveCountry}
