@@ -33,7 +33,12 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { FormLabel } from './FormLabel.js';
 import type { Author, Affiliation, AuthorOption } from './types.js';
-import { isValidEmail, isValidOrcid, getAuthorFieldErrors } from './validationUtils.js';
+import {
+  isValidEmail,
+  isValidOrcid,
+  getAuthorFieldErrors,
+  normalizeOrcidForCompare,
+} from './validationUtils.js';
 import { useSaveField } from './useSaveField.js';
 import { ui } from '@curvenote/scms-core';
 
@@ -80,15 +85,8 @@ function RorIcon({ className }: { className?: string }) {
   );
 }
 
-function getOrdinalLabel(n: number): string {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
-
 type SortableAffiliationRowProps = {
   authorId: string;
-  index: number;
   affiliationId: string;
   affiliation: Affiliation;
   name: string;
@@ -103,7 +101,6 @@ type SortableAffiliationRowProps = {
 
 function SortableAffiliationRow({
   authorId,
-  index,
   affiliationId,
   affiliation,
   name,
@@ -218,9 +215,6 @@ function SortableAffiliationRow({
           </button>
         )}
       </div>
-      <span className="w-6 text-xs tabular-nums shrink-0 text-muted-foreground mt-0.5">
-        {getOrdinalLabel(index + 1)}
-      </span>
       <div className="flex-1 space-y-2 min-w-0">
         {editing ? (
           <>
@@ -448,7 +442,6 @@ function AffiliationSortableList({
   };
 
   const activeAffiliation = activeAffId ? affiliationList.find((a) => a.id === activeAffId) : null;
-  const activeIndex = activeAffId ? affiliationIds.indexOf(activeAffId) + 1 : 0;
 
   return (
     <DndContext
@@ -466,7 +459,6 @@ function AffiliationSortableList({
               <SortableAffiliationRow
                 key={`${authorId}-aff-${affId}`}
                 authorId={authorId}
-                index={idx}
                 affiliationId={affId}
                 affiliation={affiliation}
                 name={getAffiliationName(affiliationList, affId)}
@@ -489,9 +481,6 @@ function AffiliationSortableList({
             style={{ minHeight: 40 }}
           >
             <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />
-            <span className="w-6 text-xs tabular-nums shrink-0 text-muted-foreground">
-              {getOrdinalLabel(activeIndex)}
-            </span>
             <span className="flex-1 min-w-0 truncate">
               {(activeAffiliation.name ?? '').trim() || 'Affiliation'}
             </span>
@@ -684,11 +673,6 @@ function AuthorCard({
             <ChevronDown className="w-4 h-4" />
           </button>
         )}
-      </div>
-
-      {/* Ordinal (1st, 2nd, 3rd) */}
-      <div className="pt-1.5 shrink-0 text-xs text-muted-foreground tabular-nums">
-        {getOrdinalLabel(index + 1)}
       </div>
 
       {/* Author content */}
@@ -992,7 +976,7 @@ function AuthorCard({
                         key={aff.id}
                         type="button"
                         onClick={() => addAffiliation(aff)}
-                        className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-muted/70 border-0 cursor-pointer hover:text-foreground hover:bg-sky-100"
+                        className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
                       >
                         <Plus className="w-3 h-3 shrink-0" />
                         {aff.name}
@@ -1193,7 +1177,7 @@ function AuthorCard({
                           key={aff.id}
                           type="button"
                           onClick={() => addAffiliationInViewMode(aff)}
-                          className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-muted/70 border-0 cursor-pointer hover:text-foreground hover:bg-sky-100"
+                          className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
                         >
                           <Plus className="w-3 h-3 shrink-0" />
                           {aff.name}
@@ -1271,7 +1255,8 @@ type AddAuthorPlaceholderCardProps = {
   handleAddAuthor: () => void;
   orcidFetcher: { state: string };
   addMeAsAuthor: () => void;
-  contactDetails: ContactDetailsForAuthor | null | undefined;
+  /** When false, "Add me as author" is hidden (e.g. user's ORCID is already in the list). */
+  showAddMeAsAuthor: boolean;
   isEmpty: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
@@ -1288,7 +1273,7 @@ function AddAuthorPlaceholderCard({
   handleAddAuthor,
   orcidFetcher,
   addMeAsAuthor,
-  contactDetails,
+  showAddMeAsAuthor,
   isEmpty,
   onMoveUp,
   onMoveDown,
@@ -1345,7 +1330,7 @@ function AddAuthorPlaceholderCard({
         )}
       </div>
       <div className="flex-1 space-y-2 min-w-0">
-        {isEmpty && contactDetails && (
+        {isEmpty && showAddMeAsAuthor && (
           <div className="flex flex-wrap gap-2 items-center">
             <ui.Button
               type="button"
@@ -1392,7 +1377,7 @@ function AddAuthorPlaceholderCard({
             )}
           </ui.Button>
         </div>
-        {!isEmpty && contactDetails && (
+        {!isEmpty && showAddMeAsAuthor && (
           <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
@@ -2043,9 +2028,6 @@ export function AuthorField({
         style={{ minHeight: 56 }}
       >
         <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />
-        <span className="text-xs tabular-nums shrink-0 text-muted-foreground">
-          {getOrdinalLabel(value.findIndex((a) => a.id === activeAuthorId) + 1)}
-        </span>
         <span
           className={`flex-1 min-w-0 truncate text-base font-semibold ${
             (activeAuthor.name ?? '').trim() ? '' : 'text-muted-foreground/60'
@@ -2099,7 +2081,14 @@ export function AuthorField({
                     handleAddAuthor={handleAddAuthor}
                     orcidFetcher={orcidFetcher}
                     addMeAsAuthor={addMeAsAuthor}
-                    contactDetails={contactDetails}
+                    showAddMeAsAuthor={Boolean(
+                      contactDetails &&
+                      !value.some(
+                        (a) =>
+                          normalizeOrcidForCompare(a.orcid) ===
+                          normalizeOrcidForCompare(contactDetails?.orcidId),
+                      ),
+                    )}
                     isEmpty={value.length === 0}
                     onMoveUp={() => handleMoveAuthorOrderItem(ADD_AUTHOR_PLACEHOLDER_ID, 'up')}
                     onMoveDown={() => handleMoveAuthorOrderItem(ADD_AUTHOR_PLACEHOLDER_ID, 'down')}

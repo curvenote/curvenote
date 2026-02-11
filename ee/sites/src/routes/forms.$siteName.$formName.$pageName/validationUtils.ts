@@ -19,6 +19,11 @@ export function isValidOrcid(orcid: string): boolean {
   return /^\d{4}-\d{4}-\d{4}-\d{4}$/.test(orcid.trim());
 }
 
+/** Normalize ORCID for comparison (strip spaces/dashes, lowercase). */
+export function normalizeOrcidForCompare(orcid: string | undefined): string {
+  return (orcid ?? '').replace(/[\s-]/g, '').toLowerCase();
+}
+
 export function isFieldEmpty(schema: FieldSchema, value: unknown): boolean {
   if (value == null) return true;
   if (typeof value === 'string') return value.trim() === '';
@@ -81,6 +86,23 @@ export function getAuthorFieldErrors(authors: unknown[]): { message: string }[] 
     if (affiliationIds.length === 0) {
       errors.push({
         message: `Author ${i + 1}: at least one affiliation is required.`,
+      });
+    }
+  }
+
+  // Duplicate ORCID check
+  const orcidToIndices = new Map<string, number[]>();
+  for (const [i, a] of list.entries()) {
+    const orcid = String((a as any)?.orcid ?? '').trim();
+    if (!orcid) continue;
+    const key = normalizeOrcidForCompare(orcid);
+    if (!orcidToIndices.has(key)) orcidToIndices.set(key, []);
+    orcidToIndices.get(key)!.push(i + 1);
+  }
+  for (const [, indices] of orcidToIndices) {
+    if (indices.length > 1) {
+      errors.push({
+        message: `Duplicate ORCID: the same ORCID appears for authors ${indices.join(', ')}.`,
       });
     }
   }
