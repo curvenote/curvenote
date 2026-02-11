@@ -554,7 +554,6 @@ function AuthorCard({
   const lastSubmittedRorQRef = useRef('');
   const rorSearchFetcher = useFetcher();
 
-  // Debounced server-side ROR search via fetcher (keeps requests on backend)
   useEffect(() => {
     const trimmed = newAffiliationInput.trim();
     if (!trimmed) return;
@@ -1264,7 +1263,6 @@ type RorSearchHit = {
 };
 
 type AddAuthorPlaceholderCardProps = {
-  /** Options from server-side ORCID search (fetcher); when provided, combobox uses these instead of client fetch. */
   orcidSearchExternalOptions?: { value: string; label: string; description?: string }[];
   orcidSearchLoading?: boolean;
   onAuthorSelect: (orcid: string) => void;
@@ -1368,7 +1366,7 @@ function AddAuthorPlaceholderCard({
               onValueChange={onAuthorSelect}
               onSearch={async () => []}
               onSearchChange={onSearchChange}
-              externalOptions={orcidSearchExternalOptions}
+              externalOptions={orcidSearchExternalOptions ?? []}
               externalLoading={orcidSearchLoading}
               placeholder="Name or ORCID (e.g. 0000-0002-1825-0097)"
               searchPlaceholder="Search ORCID…"
@@ -1466,8 +1464,6 @@ export function AuthorField({
   const orcidSearchFetcher = useFetcher();
   const affiliationList = affiliationListProp ?? [];
 
-  // Debounced server-side ORCID search via fetcher (keeps requests on backend).
-  // Only depend on addAuthorSearchValue so we don't re-run when fetcher state changes (which would re-submit and show loading again).
   useEffect(() => {
     const trimmed = addAuthorSearchValue.trim();
     if (!trimmed || isValidOrcid(trimmed)) return;
@@ -1967,7 +1963,6 @@ export function AuthorField({
   const lastSubmittedAddAffiliationRorQRef = useRef('');
   const addAffiliationRorFetcher = useFetcher();
 
-  // Debounced server-side ROR search for standalone Add affiliation box (keeps requests on backend)
   useEffect(() => {
     const trimmed = addAffiliationInput.trim();
     if (!trimmed) return;
