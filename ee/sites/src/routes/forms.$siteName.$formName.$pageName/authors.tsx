@@ -2044,7 +2044,31 @@ export function AuthorField({
         </button>
         {advancedOpen && (
           <div className="mt-3 space-y-2">
-            <p className="text-sm font-medium text-foreground">Affiliations</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium text-foreground">Affiliations</p>
+              {(() => {
+                const usedAffiliationIds = new Set(value.flatMap((a) => a.affiliationIds ?? []));
+                const unusedCount = affiliationList.filter(
+                  (aff) => !usedAffiliationIds.has(aff.id),
+                ).length;
+                return (
+                  <ui.Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={unusedCount === 0}
+                    onClick={() => {
+                      const used = new Set(value.flatMap((a) => a.affiliationIds ?? []));
+                      onAffiliationListChange?.(affiliationList.filter((aff) => used.has(aff.id)));
+                    }}
+                    className="cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                    Delete unused affiliations
+                  </ui.Button>
+                );
+              })()}
+            </div>
             {affiliationList.length > 0 ? (
               <ul className="space-y-2">
                 {affiliationList.map((aff) => {
