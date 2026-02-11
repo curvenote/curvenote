@@ -205,7 +205,6 @@ export function AsyncComboBox({
     }
     const option = displayOptions.find((opt) => opt.value === optionValue);
     if (option) {
-      setSelectedOption(option);
       onValueChange(optionValue);
       // Clear any validation errors when a new option is selected
       setSearchError(null);
@@ -214,7 +213,22 @@ export function AsyncComboBox({
     setOpen(false);
     setSearchValue('');
     setSearchError(null);
-    requestAnimationFrame(() => focusAfterClose());
+    // When value is empty (e.g. "add another" pattern), keep selection cleared so input shows empty and is ready to type
+    const isEmptyValue = value === '' || value === undefined;
+    if (isEmptyValue) {
+      setSelectedOption(null);
+      onSearchChange?.('');
+    } else if (option) {
+      setSelectedOption(option);
+    }
+    // Inline + empty value: blur then focus after a tick so cmdk leaves "command" state and the input accepts typing again
+    if (isEmptyValue && triggerMode === 'inline') {
+      const input = inputRef.current;
+      input?.blur();
+      setTimeout(() => input?.focus(), 0);
+    } else {
+      requestAnimationFrame(() => focusAfterClose());
+    }
   };
 
   const clearSelection = () => {
