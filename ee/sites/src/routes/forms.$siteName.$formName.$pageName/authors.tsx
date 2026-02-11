@@ -42,8 +42,6 @@ import {
 import { useSaveField } from './useSaveField.js';
 import { ui } from '@curvenote/scms-core';
 
-const ADD_AUTHOR_PLACEHOLDER_ID = 'add-author-placeholder';
-
 /** ROR (Research Organization Registry) icon - from https://github.com/ror-community/ror-logos */
 function RorIcon({ className }: { className?: string }) {
   return (
@@ -1258,10 +1256,6 @@ type AddAuthorPlaceholderCardProps = {
   /** When false, "Add me as author" is hidden (e.g. user's ORCID is already in the list). */
   showAddMeAsAuthor: boolean;
   isEmpty: boolean;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
-  canMoveUp?: boolean;
-  canMoveDown?: boolean;
 };
 
 function AddAuthorPlaceholderCard({
@@ -1275,60 +1269,9 @@ function AddAuthorPlaceholderCard({
   addMeAsAuthor,
   showAddMeAsAuthor,
   isEmpty,
-  onMoveUp,
-  onMoveDown,
-  canMoveUp,
-  canMoveDown,
 }: AddAuthorPlaceholderCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: ADD_AUTHOR_PLACEHOLDER_ID,
-  });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0 : 1,
-  };
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex gap-3 items-start p-4 rounded-sm border bg-background ${
-        isDragging ? 'shadow-lg border-primary border-dashed' : 'border-dashed border-border'
-      }`}
-    >
-      <div className="flex flex-col gap-0.5 items-center pt-1 shrink-0">
-        {onMoveUp != null && (
-          <button
-            type="button"
-            onClick={onMoveUp}
-            disabled={!canMoveUp}
-            className="p-0.5 rounded touch-manipulation cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:cursor-default text-muted-foreground hover:text-foreground"
-            aria-label="Move up"
-          >
-            <ChevronUp className="w-4 h-4" />
-          </button>
-        )}
-        <button
-          {...attributes}
-          {...listeners}
-          type="button"
-          className="cursor-grab active:cursor-grabbing touch-none p-0.5"
-          aria-label="Drag to reorder"
-        >
-          <GripVertical className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground" />
-        </button>
-        {onMoveDown != null && (
-          <button
-            type="button"
-            onClick={onMoveDown}
-            disabled={!canMoveDown}
-            className="p-0.5 rounded touch-manipulation cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:cursor-default text-muted-foreground hover:text-foreground"
-            aria-label="Move down"
-          >
-            <ChevronDown className="w-4 h-4" />
-          </button>
-        )}
-      </div>
+    <div className="flex gap-3 items-start p-4 rounded-sm border border-dashed border-border bg-background">
       <div className="flex-1 space-y-2 min-w-0">
         {isEmpty && showAddMeAsAuthor && (
           <div className="flex flex-wrap gap-2 items-center">
@@ -1480,36 +1423,17 @@ export function AuthorField({
   const authorErrors = getAuthorFieldErrors(value);
   const isValid = value.length > 0 && authorErrors.length === 0;
 
-  const [authorOrder, setAuthorOrder] = useState<(string | typeof ADD_AUTHOR_PLACEHOLDER_ID)[]>(
-    () => [...value.map((a) => a.id), ADD_AUTHOR_PLACEHOLDER_ID],
-  );
+  const [authorOrder, setAuthorOrder] = useState<string[]>(() => value.map((a) => a.id));
 
-  // Sync authorOrder when value's author set changes (add/remove), keep placeholder position otherwise
+  // Sync authorOrder when value's author set changes (add/remove)
   useEffect(() => {
-    const ids = value.map((a) => a.id);
-    setAuthorOrder((prev) => {
-      const prevIds = prev.filter((id): id is string => id !== ADD_AUTHOR_PLACEHOLDER_ID);
-      if (prevIds.length !== ids.length || prevIds.some((id, i) => id !== ids[i]))
-        return [...ids, ADD_AUTHOR_PLACEHOLDER_ID];
-      return prev;
-    });
+    setAuthorOrder(value.map((a) => a.id));
   }, [value]);
 
-  const insertIndexRef = useRef(0);
-  useEffect(() => {
-    insertIndexRef.current = authorOrder.indexOf(ADD_AUTHOR_PLACEHOLDER_ID);
-  }, [authorOrder]);
-
-  const insertAuthorAt = (idx: number, newAuthor: Author) => {
-    const current = valueRef.current;
-    const i = idx < 0 ? current.length : Math.min(idx, current.length);
-    const newAuthors = [...current.slice(0, i), newAuthor, ...current.slice(i)];
+  const appendAuthor = (newAuthor: Author) => {
+    const newAuthors = [...valueRef.current, newAuthor];
     handleChange(newAuthors);
-    setAuthorOrder([...newAuthors.map((a) => a.id), ADD_AUTHOR_PLACEHOLDER_ID]);
-  };
-
-  const insertAtPlaceholder = (newAuthor: Author) => {
-    insertAuthorAt(authorOrder.indexOf(ADD_AUTHOR_PLACEHOLDER_ID), newAuthor);
+    setAuthorOrder(newAuthors.map((a) => a.id));
   };
 
   const addMeAsAuthor = () => {
@@ -1521,7 +1445,7 @@ export function AuthorField({
       orcid: contactDetails.orcidId || undefined,
       affiliationIds: [],
     };
-    insertAtPlaceholder(newAuthor);
+    appendAuthor(newAuthor);
     if (
       contactDetails.orcidId &&
       isValidOrcid(contactDetails.orcidId) &&
@@ -1591,17 +1515,6 @@ export function AuthorField({
     setActiveAuthorId(event.active.id as string);
   };
 
-  const activePlaceholderOverlay =
-    activeAuthorId === ADD_AUTHOR_PLACEHOLDER_ID ? (
-      <div
-        className="flex gap-3 items-center p-4 w-72 rounded-sm border border-dashed shadow-lg border-border bg-background cursor-grabbing"
-        style={{ minHeight: 56 }}
-      >
-        <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />
-        <span className="flex-1 min-w-0 text-base truncate text-muted-foreground">Add author</span>
-      </div>
-    ) : null;
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveAuthorId(null);
@@ -1614,22 +1527,19 @@ export function AuthorField({
     newOrder.splice(newIndex, 0, moved);
     setAuthorOrder(newOrder);
 
-    if (moved !== ADD_AUTHOR_PLACEHOLDER_ID) {
-      const newValue = newOrder
-        .filter((id): id is string => id !== ADD_AUTHOR_PLACEHOLDER_ID)
-        .map((id) => value.find((a) => a.id === id))
-        .filter((a): a is Author => a != null);
-      handleChange(newValue);
-      const oldValueIndex = value.findIndex((a) => a.id === moved);
-      const newValueIndex = newValue.findIndex((a) => a.id === moved);
-      if (openIndex === oldValueIndex) {
-        setOpenIndex(newValueIndex);
-      } else if (openIndex !== null) {
-        if (oldValueIndex < openIndex && newValueIndex >= openIndex) {
-          setOpenIndex(openIndex - 1);
-        } else if (oldValueIndex > openIndex && newValueIndex <= openIndex) {
-          setOpenIndex(openIndex + 1);
-        }
+    const newValue = newOrder
+      .map((id) => value.find((a) => a.id === id))
+      .filter((a): a is Author => a != null);
+    handleChange(newValue);
+    const oldValueIndex = value.findIndex((a) => a.id === moved);
+    const newValueIndex = newValue.findIndex((a) => a.id === moved);
+    if (openIndex === oldValueIndex) {
+      setOpenIndex(newValueIndex);
+    } else if (openIndex !== null) {
+      if (oldValueIndex < openIndex && newValueIndex >= openIndex) {
+        setOpenIndex(openIndex - 1);
+      } else if (oldValueIndex > openIndex && newValueIndex <= openIndex) {
+        setOpenIndex(openIndex + 1);
       }
     }
   };
@@ -1644,7 +1554,6 @@ export function AuthorField({
     setAuthorOrder(newOrder);
 
     const newValue = newOrder
-      .filter((id): id is string => id !== ADD_AUTHOR_PLACEHOLDER_ID)
       .map((id) => value.find((a) => a.id === id))
       .filter((a): a is Author => a != null);
     const prevIds = value.map((a) => a.id);
@@ -1849,8 +1758,7 @@ export function AuthorField({
       ...(email && { email }),
       affiliationIds,
     };
-    const idx = insertIndexRef.current < 0 ? valueRef.current.length : insertIndexRef.current;
-    insertAuthorAt(idx, newAuthor);
+    appendAuthor(newAuthor);
     setAddAuthorSearchValue('');
   }, [orcidFetcher.state, orcidFetcher.data, affiliationList, onAffiliationListChange]);
 
@@ -1879,7 +1787,7 @@ export function AuthorField({
       ...(hit.email?.trim() && { email: hit.email.trim() }),
       affiliationIds,
     };
-    insertAtPlaceholder(newAuthor);
+    appendAuthor(newAuthor);
     suggestionOrcidAuthorIdRef.current = newAuthor.id;
     const fd = new FormData();
     fd.set('intent', 'fetch-orcid');
@@ -1911,7 +1819,7 @@ export function AuthorField({
       name: trimmed,
       affiliationIds: [],
     };
-    insertAtPlaceholder(newAuthor);
+    appendAuthor(newAuthor);
     setAddAuthorSearchValue('');
   };
 
@@ -2012,7 +1920,7 @@ export function AuthorField({
   const handleDelete = (index: number) => {
     const newAuthors = value.filter((_, i) => i !== index);
     handleChange(newAuthors);
-    setAuthorOrder([...newAuthors.map((a) => a.id), ADD_AUTHOR_PLACEHOLDER_ID]);
+    setAuthorOrder(newAuthors.map((a) => a.id));
     if (openIndex === index) {
       setOpenIndex(null);
     } else if (openIndex !== null && openIndex > index) {
@@ -2069,34 +1977,6 @@ export function AuthorField({
         >
           <SortableContext items={authorOrder} strategy={verticalListSortingStrategy}>
             {authorOrder.map((id, orderIndex) => {
-              if (id === ADD_AUTHOR_PLACEHOLDER_ID) {
-                return (
-                  <AddAuthorPlaceholderCard
-                    key={ADD_AUTHOR_PLACEHOLDER_ID}
-                    orcidSearchExternalOptions={orcidSearchOptions ?? []}
-                    orcidSearchLoading={orcidSearchLoading}
-                    onAuthorSelect={onAuthorSelectFromCombobox}
-                    onSearchChange={setAddAuthorSearchValue}
-                    addAuthorSearchValue={addAuthorSearchValue}
-                    handleAddAuthor={handleAddAuthor}
-                    orcidFetcher={orcidFetcher}
-                    addMeAsAuthor={addMeAsAuthor}
-                    showAddMeAsAuthor={Boolean(
-                      contactDetails &&
-                      !value.some(
-                        (a) =>
-                          normalizeOrcidForCompare(a.orcid) ===
-                          normalizeOrcidForCompare(contactDetails?.orcidId),
-                      ),
-                    )}
-                    isEmpty={value.length === 0}
-                    onMoveUp={() => handleMoveAuthorOrderItem(ADD_AUTHOR_PLACEHOLDER_ID, 'up')}
-                    onMoveDown={() => handleMoveAuthorOrderItem(ADD_AUTHOR_PLACEHOLDER_ID, 'down')}
-                    canMoveUp={orderIndex > 0}
-                    canMoveDown={orderIndex < authorOrder.length - 1}
-                  />
-                );
-              }
               const author = value.find((a) => a.id === id);
               if (!author) return null;
               const index = value.findIndex((a) => a.id === id);
@@ -2124,9 +2004,26 @@ export function AuthorField({
               );
             })}
           </SortableContext>
-          <DragOverlay dropAnimation={null}>
-            {activePlaceholderOverlay ?? activeAuthorOverlay}
-          </DragOverlay>
+          <AddAuthorPlaceholderCard
+            orcidSearchExternalOptions={orcidSearchOptions ?? []}
+            orcidSearchLoading={orcidSearchLoading}
+            onAuthorSelect={onAuthorSelectFromCombobox}
+            onSearchChange={setAddAuthorSearchValue}
+            addAuthorSearchValue={addAuthorSearchValue}
+            handleAddAuthor={handleAddAuthor}
+            orcidFetcher={orcidFetcher}
+            addMeAsAuthor={addMeAsAuthor}
+            showAddMeAsAuthor={Boolean(
+              contactDetails &&
+              !value.some(
+                (a) =>
+                  normalizeOrcidForCompare(a.orcid) ===
+                  normalizeOrcidForCompare(contactDetails?.orcidId),
+              ),
+            )}
+            isEmpty={value.length === 0}
+          />
+          <DragOverlay dropAnimation={null}>{activeAuthorOverlay}</DragOverlay>
         </DndContext>
       </div>
 

@@ -19,9 +19,12 @@ export function isValidOrcid(orcid: string): boolean {
   return /^\d{4}-\d{4}-\d{4}-\d{4}$/.test(orcid.trim());
 }
 
-/** Normalize ORCID for comparison (strip spaces/dashes, lowercase). */
+/** Normalize ORCID for comparison: strip URL prefix, then keep only digits and X, lowercase. */
 export function normalizeOrcidForCompare(orcid: string | undefined): string {
-  return (orcid ?? '').replace(/[\s-]/g, '').toLowerCase();
+  const s = (orcid ?? '').trim();
+  // Strip common URL prefix so "https://orcid.org/0000-0002-1825-0097" matches "0000-0002-1825-0097"
+  const withoutUrl = s.replace(/^https?:\/\/[^/]*\/?/i, '').trim();
+  return withoutUrl.replace(/[^0-9x]/gi, '').toLowerCase();
 }
 
 export function isFieldEmpty(schema: FieldSchema, value: unknown): boolean {
@@ -147,73 +150,9 @@ export function getFieldErrors(
     if (schema.type === 'author') {
       const value = fields[schema.name];
       const authors = Array.isArray(value) ? (value as any[]) : [];
-
-      if (authors.length > 0) {
-        // At least one corresponding author overall.
-        const correspondingCount = authors.filter((a) => a?.corresponding === true).length;
-        if (correspondingCount === 0) {
-          errors.push({
-            schema,
-            message: 'Please mark at least one author as corresponding.',
-            authorIndex: 0,
-          });
-        }
-      }
-
-      for (const [i, a] of authors.entries()) {
-        const name = String(a?.name ?? '').trim();
-        const email = String(a?.email ?? '').trim();
-        const orcid = String(a?.orcid ?? '').trim();
-        const corresponding = a?.corresponding === true;
-        const affiliationIds = Array.isArray(a?.affiliationIds)
-          ? (a.affiliationIds as unknown[]).filter((id): id is string => typeof id === 'string')
-          : [];
-
-        if (!name) {
-          errors.push({
-            schema,
-            message: `Author ${i + 1}: name is required.`,
-            authorIndex: i,
-          });
-        }
-
-        if (corresponding) {
-          if (!email) {
-            errors.push({
-              schema,
-              message: `Author ${i + 1}: email is required for corresponding authors.`,
-              authorIndex: i,
-            });
-          } else if (!isValidEmail(email)) {
-            errors.push({
-              schema,
-              message: `Author ${i + 1}: email format is invalid.`,
-              authorIndex: i,
-            });
-          }
-        } else if (email && !isValidEmail(email)) {
-          errors.push({
-            schema,
-            message: `Author ${i + 1}: email format is invalid.`,
-            authorIndex: i,
-          });
-        }
-
-        if (orcid && !isValidOrcid(orcid)) {
-          errors.push({
-            schema,
-            message: `Author ${i + 1}: ORCID must be in the format 0000-0000-0000-0000.`,
-            authorIndex: i,
-          });
-        }
-
-        if (affiliationIds.length === 0) {
-          errors.push({
-            schema,
-            message: `Author ${i + 1}: at least one affiliation is required.`,
-            authorIndex: i,
-          });
-        }
+      const authorErrors = getAuthorFieldErrors(authors);
+      for (const e of authorErrors) {
+        errors.push({ schema, message: e.message });
       }
 
       // Affiliations list: each affiliation must have a name
