@@ -64,6 +64,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@heroicons/react": "^2.2.0",
     "@react-router/dev": "7.9.5",
+    "@scienceicons/react": "^0.0.13",
     "classnames": "^2.5.1",
     "color": "^5.0.2",
     "date-fns": "3.6.0",
