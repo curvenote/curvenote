@@ -52,6 +52,7 @@ model WorkVersion {
   submissionVersions SubmissionVersion[]
   submissionActivity Activity[]
   checkServiceRuns   CheckServiceRun[]
+  linkedJobs         LinkedJob[]
   occ                Int                 @default(0)
 }
 

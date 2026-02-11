@@ -1,7 +1,7 @@
 import type { Route } from './+types/route';
-import { redirect, type LoaderFunctionArgs } from 'react-router';
+import { data, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 import { Outlet } from 'react-router';
-import { withSecureWorkContext } from '@curvenote/scms-server';
+import { withSecureWorkContext, signFilesInMetadata } from '@curvenote/scms-server';
 import {
   MainWrapper,
   SecondaryNav,
@@ -13,10 +13,41 @@ import {
   scopes,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
-import { dbGetWorkVersionsWithSubmissionVersions } from './db.server';
+import {
+  dbGetLinkedJobsByWorkVersionIds,
+  dbGetWorkVersionsWithSubmissionVersions,
+} from './db.server';
 import { WorkDetailsCard } from './WorkDetailsCard';
 import { getUniqueSubmissions } from './utils.server';
 import { extensions } from '../../../extensions/client';
+import { exportToPdfAction } from './actionHelpers.server';
+import { z } from 'zod';
+import { zfd } from 'zod-form-data';
+
+const WorkActionIntentSchema = zfd.formData({
+  intent: zfd.text(z.enum(['export-to-pdf'])),
+});
+
+export async function action(args: ActionFunctionArgs) {
+  const ctx = await withSecureWorkContext(args, [scopes.work.read]);
+  const formData = await args.request.formData();
+  const parsed = WorkActionIntentSchema.safeParse(formData);
+  if (!parsed.success) {
+    return data(
+      { error: { type: 'general' as const, message: 'Invalid form data' } },
+      { status: 400 },
+    );
+  }
+  switch (parsed.data.intent) {
+    case 'export-to-pdf':
+      return exportToPdfAction(ctx, formData);
+    default:
+      return data(
+        { error: { type: 'general' as const, message: 'Unknown intent' } },
+        { status: 400 },
+      );
+  }
+}
 
 export const loader = async (args: LoaderFunctionArgs) => {
   const ctx = await withSecureWorkContext(args, [scopes.work.read]);
@@ -76,12 +107,32 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   await ctx.analytics.flush();
 
+  const versionIds = workVersions.map((v) => v.id);
+
+  // Sign file URLs for versions that have metadata.files (for download links on details page).
+  const versionsWithSignedFileMetadata = await Promise.all(
+    workVersions.map(async (v) => {
+      const meta =
+        v.metadata != null && typeof v.metadata === 'object'
+          ? (v.metadata as Record<string, unknown>)
+          : null;
+      if (!meta?.files || typeof meta.files !== 'object') return v;
+      const signed = await signFilesInMetadata(
+        meta as Parameters<typeof signFilesInMetadata>[0],
+        v.cdn ?? '',
+        ctx,
+      );
+      return { ...v, metadata: signed };
+    }),
+  );
+
   return {
     userScopes: ctx.scopes,
     workflows,
     work: ctx.workDTO,
-    versions: workVersions ?? [],
+    versions: versionsWithSignedFileMetadata,
     submissions: submissions ?? [],
+    linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
   };
 };
 

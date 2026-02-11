@@ -269,7 +269,12 @@ export default [
       route('key/:keyName', 'routes/api/v1.works.key.$keyName.tsx'),
       route(':workId', 'routes/api/v1.works.$workId.tsx', [
         route('thumbnail', 'routes/api/v1.works.$workId.thumbnail.tsx'),
-        route('versions', 'routes/api/v1.works.$workId.versions.tsx'),
+        route('versions', 'routes/api/v1.works.$workId.versions.tsx', [
+          route(
+            ':workVersionId/files',
+            'routes/api/v1.works.$workId.versions.$workVersionId.files.tsx',
+          ),
+        ]),
       ]),
     ]),
 

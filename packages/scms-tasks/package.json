@@ -24,7 +24,9 @@
     "test:watch": "vitest watch",
     "check-types": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@curvenote/common": "^0.3.4"
+  },
   "peerDependencies": {
     "express": ">=4"
   },

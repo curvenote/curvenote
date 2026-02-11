@@ -101,6 +101,10 @@ export function withPubSubHandler<TPayload = unknown>(
   options?: WithPubSubHandlerOptions,
 ): (req: Request, res: Response) => Promise<void> {
   const { onFailure, clientLoggingOnlyMode, tmpFolderRoot, preserveTmpFolder } = options ?? {};
+
+  console.log('withPubSubHandler options', options);
+  console.log('env.NODE_ENV', process.env.NODE_ENV);
+
   return async (req: Request, res: Response): Promise<void> => {
     console.log('Received request', req.body);
     const { body } = req;

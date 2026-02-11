@@ -1,8 +1,8 @@
 import type { Response } from 'express';
 import {
   getWorksApiBase,
-  updateWorkVersionMetadata,
-  type WorkVersionMetadataPayload,
+  addFilesToWorkVersion,
+  type WorkVersionFileEntry,
 } from './works.js';
 import { uploadSingleFileToCdn, type UploadResult } from './uploads.js';
 import { createJobsHandler, type JobsHandler } from './jobs.js';
@@ -22,7 +22,7 @@ export type SCMSClientOptions = {
  *
  * - jobs: update job status (completed, failed, running)
  * - submissions: put submission status (putStatus)
- * - works: get base URL, update work version metadata
+ * - works: get base URL, add files to work version metadata
  * - uploads: upload single file to CDN (stage → upload → commit)
  *
  * Use client.jobs.*, client.submissions.*, client.works.*, client.uploads.* only.
@@ -39,10 +39,10 @@ export class SCMSClient {
 
   readonly works: {
     getBaseUrl: () => string;
-    updateWorkVersionMetadata: (
+    addFilesToWorkVersion: (
       workId: string,
       workVersionId: string,
-      metadata: WorkVersionMetadataPayload,
+      files: WorkVersionFileEntry[],
     ) => Promise<void>;
   };
 
@@ -72,15 +72,15 @@ export class SCMSClient {
 
     this.works = {
       getBaseUrl: () => this.baseUrl,
-      updateWorkVersionMetadata: (
+      addFilesToWorkVersion: (
         workId: string,
         workVersionId: string,
-        metadata: WorkVersionMetadataPayload,
+        files: WorkVersionFileEntry[],
       ) =>
-        updateWorkVersionMetadata(
+        addFilesToWorkVersion(
           workId,
           workVersionId,
-          metadata,
+          files,
           this.handshake,
           this.baseUrl,
           fetch,

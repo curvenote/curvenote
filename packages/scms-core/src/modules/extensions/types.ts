@@ -33,6 +33,50 @@ export interface ExtensionAnalyticsEvents {
   descriptions: Record<string, string>;
 }
 
+/** Arguments for the execute check action (e.g. enqueue job). */
+export interface ExtensionCheckExecuteArgs {
+  ctx: Context;
+  workVersionId: string;
+  checkRunId: string;
+  /** Create a job; platform provides this so extensions can enqueue without knowing extension list. */
+  createJob: (jobType: string, payload: Record<string, unknown>) => Promise<unknown>;
+}
+
+/** Result of execute check action. */
+export interface ExtensionCheckExecuteResult {
+  success: boolean;
+  error?: string;
+}
+
+/** Arguments for the status check action. */
+export interface ExtensionCheckStatusArgs {
+  ctx: Context;
+  checkRunId: string;
+}
+
+/** Result of status check action. */
+export interface ExtensionCheckStatusResult {
+  status: string;
+  serviceData?: unknown;
+  message?: string;
+}
+
+/** Arguments for handleAction. Used from both upload flow (execute) and checks page (form intents). */
+export interface ExtensionCheckHandleActionArgs {
+  intent: string;
+  workVersionId: string;
+  /** Form data when invoked from checks page. */
+  formData?: FormData;
+  /** Work version metadata when invoked from checks page. */
+  metadata?: any; // WorkVersionMetadata & ChecksMetadataSection
+  /** Context when invoked from upload flow (execute). Enables job creation. */
+  ctx?: Context;
+  /** Check run id when invoked from upload flow (execute). */
+  checkRunId?: string;
+  /** Create-job callback when ctx is provided. Platform injects this so extension can enqueue without extension list. */
+  createJob?: (jobType: string, payload: Record<string, unknown>) => Promise<unknown>;
+}
+
 export interface ExtensionCheckService {
   id: string; // e.g., 'curvenote-structure'
   name: string; // Display name
@@ -41,13 +85,10 @@ export interface ExtensionCheckService {
   checksSectionComponent: React.ComponentType<{
     metadata: any; // WorkVersionMetadata & ChecksMetadataSection
   }>;
-  // Optional: Server-side action handler
-  handleAction?: (args: {
-    intent: string;
-    formData: FormData;
-    workVersionId: string;
-    metadata: any; // WorkVersionMetadata & ChecksMetadataSection
-  }) => Promise<Response>;
+  /** Server-side action handler. Used from upload flow (intent 'execute' + ctx + checkRunId + createJob) and checks page (intent + formData + metadata). */
+  handleAction?: (args: ExtensionCheckHandleActionArgs) => Promise<Response>;
+  /** Get current status of a check run. */
+  status?: (args: ExtensionCheckStatusArgs) => Promise<ExtensionCheckStatusResult>;
 }
 
 export interface ClientExtension {

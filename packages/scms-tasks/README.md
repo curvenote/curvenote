@@ -10,7 +10,7 @@ SCMS tasks library for cloud runners: unified SCMS client and shared helpers use
   - **works** – get v1 base URL, update work version metadata (PATCH)
   - **uploads** – upload single file to CDN (stage → resumable upload → commit)
 - **createJobsHandler**, **createSubmissionsHandler** – factories used by SCMSClient (exported for testing or custom wiring)
-- **getWorksApiBase**, **updateWorkVersionMetadata** – works API helpers (also exposed via `client.works`)
+- **getWorksApiBase**, **addFilesToWorkVersion** – works API helpers (also exposed via `client.works`)
 - **uploadSingleFileToCdn**, **stageUploadRequest**, **commitUploads** – upload API (also exposed via `client.uploads`)
 - **removeFolder**, **pubsubError** – utilities for Pub/Sub handlers and temp cleanup
 - **withPubSubHandler** – wraps POST handler with validation, temp folder, and **SCMSClient** in context
@@ -39,7 +39,7 @@ const handler = withPubSubHandler<MyPayload>(async (ctx) => {
     localPath,
     storagePath,
   });
-  await client.works.updateWorkVersionMetadata(workId, workVersionId, metadata);
+  await client.works.addFilesToWorkVersion(workId, workVersionId, files);
   await client.jobs.completed(res, 'Done', { exportPath: result.path });
 });
 
@@ -47,7 +47,7 @@ const handler = withPubSubHandler<MyPayload>(async (ctx) => {
 const baseUrl = getWorksApiBase({ jobUrl, statusUrl });
 const client = new SCMSClient(jobUrl, statusUrl, handshake, { baseUrl, loggingOnlyMode: false });
 await client.jobs.completed(res, 'Done', {});
-await client.works.updateWorkVersionMetadata(workId, workVersionId, metadata);
+await client.works.addFilesToWorkVersion(workId, workVersionId, files);
 await client.uploads.uploadSingleFileToCdn({ cdn, cdnKey, localPath, storagePath });
 ```
 

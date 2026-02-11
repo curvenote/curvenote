@@ -1,6 +1,6 @@
 /**
  * Works API helpers for SCMS (v1).
- * Base URL derivation and work version metadata update.
+ * Base URL derivation and add-files-to-work-version.
  */
 
 export type AttributesLike = {
@@ -11,7 +11,7 @@ export type AttributesLike = {
 
 /**
  * Parse jobUrl or statusUrl to return the Works API v1 base URL (origin + /v1).
- * Used for work version updates and upload API calls.
+ * Used for work version file updates and upload API calls.
  */
 export function getWorksApiBase(attributes: AttributesLike): string {
   const url = attributes.jobUrl ?? attributes.statusUrl ?? '';
@@ -23,30 +23,40 @@ export function getWorksApiBase(attributes: AttributesLike): string {
   }
 }
 
-/** Payload for PATCH work version metadata (metadata object only). */
-export type WorkVersionMetadataPayload = {
-  version?: number;
-  files?: Record<string, unknown>;
-  [key: string]: unknown;
+/**
+ * File entry for adding to work version metadata.files.
+ * Matches the API PATCH /files body (no signedUrl).
+ */
+export type WorkVersionFileEntry = {
+  name: string;
+  size: number;
+  type: string;
+  path: string;
+  md5: string;
+  uploadDate: string;
+  slot: string;
+  label?: string;
+  order?: number;
 };
 
 /**
- * PATCH work version metadata via the SCMS Works API.
- * PATCH ${baseUrl}/works/${workId}/versions/${workVersionId} with body { metadata }.
+ * Add one or more file entries to work version metadata via the SCMS Works API.
+ * PATCH ${baseUrl}/works/${workId}/versions/${workVersionId}/files with body { files }.
  * When loggingOnlyMode is true, skips the request and returns without error.
  */
-export async function updateWorkVersionMetadata(
+export async function addFilesToWorkVersion(
   workId: string,
   workVersionId: string,
-  metadata: WorkVersionMetadataPayload,
+  files: WorkVersionFileEntry[],
   handshake: string,
   baseUrl: string,
   fetchFn: typeof fetch = fetch,
   loggingOnlyMode = false,
 ): Promise<void> {
-  const url = `${baseUrl.replace(/\/$/, '')}/works/${workId}/versions/${workVersionId}`;
+  if (files.length === 0) return;
+  const url = `${baseUrl.replace(/\/$/, '')}/works/${workId}/versions/${workVersionId}/files`;
   if (loggingOnlyMode) {
-    console.log('[loggingOnlyMode] Skipping PATCH work version metadata', url);
+    console.log('[loggingOnlyMode] Skipping PATCH add files to work version', url, files.length);
     return;
   }
   const response = await fetchFn(url, {
@@ -55,11 +65,11 @@ export async function updateWorkVersionMetadata(
       'Content-Type': 'application/json',
       ...(handshake ? { Authorization: `Bearer ${handshake}` } : {}),
     },
-    body: JSON.stringify({ metadata }),
+    body: JSON.stringify({ files }),
   });
   if (!response.ok) {
     throw new Error(
-      `Failed to update work version metadata: ${response.status} ${response.statusText}`,
+      `Failed to add files to work version: ${response.status} ${response.statusText}`,
     );
   }
 }

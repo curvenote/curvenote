@@ -5,6 +5,8 @@ import {
   getPrismaClient,
   withSecureWorkContext,
   type WorkVersionMetadata,
+  jobs,
+  registerExtensionJobs,
 } from '@curvenote/scms-server';
 import type { FileMetadataSection } from '@curvenote/scms-core';
 import {
@@ -20,6 +22,8 @@ import { CurvenoteStructureChecksSection } from './CurvenoteStructureChecksSecti
 import { formatWorkVersionDTO } from './db.server';
 import type { ChecksMetadataSection } from '../works.$workId.upload.$workVersionId/checks.schema';
 import { extensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
+import { uuidv7 as uuid } from 'uuidv7';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureWorkContext(args, [scopes.work.checks.read]);
@@ -73,10 +77,15 @@ export async function action(args: Route.ActionArgs) {
 
   // Try to route action to a check service handler
   const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, extensions);
+  const createJob = (jobType: string, payload: Record<string, unknown>) =>
+    jobs.create(
+      ctx,
+      { id: uuid(), job_type: jobType, payload, results: undefined },
+      registerExtensionJobs(serverExtensions),
+    );
   for (const service of checkServices) {
     if (service.handleAction) {
       // Check if this service handles this intent
-      // For now, we'll check if the intent starts with the service ID
       if (intent.startsWith(service.id) || intent.includes(service.id)) {
         try {
           return await service.handleAction({
@@ -84,6 +93,8 @@ export async function action(args: Route.ActionArgs) {
             formData,
             workVersionId: latestVersion.id,
             metadata,
+            ctx,
+            createJob,
           });
         } catch (error) {
           return data(

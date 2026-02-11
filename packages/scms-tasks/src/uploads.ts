@@ -1,44 +1,21 @@
 /**
  * Upload API for SCMS: stage → resumable upload to signed URL → commit.
- * No dependency on @curvenote/cli; uses fetch and node:fs.
+ * Uses types from @curvenote/common; implements resume/retry behavior aligned with CLI.
  */
 
+import type { FileUploadResponse, UploadFileInfo, UploadStagingDTO } from '@curvenote/common';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 
-/** File entry for stage request (path, content_type, md5, size). */
-export type StageFileEntry = {
-  path: string;
-  content_type: string;
-  md5: string;
-  size: number;
-};
-
-/** Stage request body. */
+/** Stage request body (same shape as SiteUploadRequest). */
 export type StageRequest = {
-  files: StageFileEntry[];
+  files: UploadFileInfo[];
 };
 
-/** Item in stage response upload_items / cached_items. */
-export type UploadFileInfo = {
-  path: string;
-  content_type: string;
-  md5: string;
-  size: number;
-};
-
-export type FileUploadResponse = UploadFileInfo & {
-  signed_url: string;
-};
-
-/** Stage response (uploads/stage). */
-export type UploadStagingDTO = {
-  cdnKey: string;
-  cached_items: UploadFileInfo[];
-  upload_items: FileUploadResponse[];
-};
+/** Re-export for callers that need the response type. */
+export type { FileUploadResponse, UploadFileInfo, UploadStagingDTO };
 
 /** Commit request body (uploads/commit). */
 export type CommitRequest = {
@@ -118,9 +95,81 @@ export async function commitUploads(
   }
 }
 
+/** Check if resumable upload at location is complete via PUT with empty body and Content-Range query. */
+async function checkUploadCompleted(
+  location: string,
+  fetchFn: typeof fetch,
+): Promise<{ complete: true } | { complete: false; range: string | null }> {
+  const resp = await fetchFn(location, {
+    method: 'PUT',
+    headers: {
+      'Content-Length': '0',
+      'Content-Range': 'bytes */*',
+    },
+  });
+  if (resp.ok) {
+    return { complete: true };
+  }
+  if (resp.status === 308) {
+    return { complete: false, range: resp.headers.get('range') };
+  }
+  throw new Error(`Unexpected status code ${resp.status} from upload check`);
+}
+
+/** Parse Range header from 308 response to get next byte and content range for resume. */
+function parseRangeHeader(
+  range: string,
+  uploadSize: number,
+): {
+  nextByte: number;
+  lastByte: number;
+  contentLength: number;
+  contentRange: string;
+} {
+  const [, end] = range.split('-');
+  const nextByte = parseInt(end, 10) + 1;
+  const lastByte = uploadSize - 1;
+  const contentLength = uploadSize - nextByte;
+  return {
+    nextByte,
+    lastByte,
+    contentLength,
+    contentRange: `bytes ${nextByte}-${lastByte}/${uploadSize}`,
+  };
+}
+
+/** Perform a single PUT (full file or byte range). */
+async function doTheUpload(
+  location: string,
+  localPath: string,
+  size: number,
+  contentType: string,
+  fetchFn: typeof fetch,
+  range?: { contentLength: number; contentRange: string; start: number; end: number },
+): Promise<Response> {
+  const isResume = range != null;
+  const readStream = isResume
+    ? fs.createReadStream(localPath, { start: range.start, end: range.end })
+    : fs.createReadStream(localPath);
+  const webStream = Readable.toWeb(readStream) as ReadableStream;
+  const headers: Record<string, string> = {
+    'Content-Length': `${range?.contentLength ?? size}`,
+    'Content-Type': contentType,
+  };
+  if (range) {
+    headers['Content-Range'] = range.contentRange;
+  }
+  return fetchFn(location, {
+    method: 'PUT',
+    headers,
+    body: webStream,
+    duplex: 'half',
+  } as RequestInit);
+}
+
 /**
- * Start resumable upload (POST x-goog-resumable: start), then PUT file to location.
- * Uses getAuthHeaders for the initial POST; signed URL may not need auth for PUT (GCS).
+ * Start resumable upload (POST x-goog-resumable: start), then PUT file with retries and optional resume.
+ * When resume is true, on 308 uses Content-Range to upload only remaining bytes and retries.
  */
 async function performResumableUpload(
   signedUrl: string,
@@ -128,7 +177,8 @@ async function performResumableUpload(
   contentType: string,
   size: number,
   getAuthHeaders: () => Promise<Record<string, string>>,
-  fetchFn: typeof fetch = fetch,
+  fetchFn: typeof fetch,
+  resume: boolean,
 ): Promise<void> {
   const headers = await getAuthHeaders();
   const startResponse = await fetchFn(signedUrl, {
@@ -148,25 +198,58 @@ async function performResumableUpload(
   if (!location) {
     throw new Error('Resumable upload start did not return location');
   }
-  const nodeStream = fs.createReadStream(localPath);
-  const webStream = Readable.toWeb(nodeStream) as ReadableStream;
-  const putResponse = await fetchFn(location, {
-    method: 'PUT',
-    headers: {
-      'Content-Length': `${size}`,
-      'Content-Type': contentType,
-    },
-    body: webStream,
-  });
-  if (!putResponse.ok) {
-    throw new Error(`Failed to upload file: ${putResponse.status} ${putResponse.statusText}`);
+
+  const numberOfRetries = 3;
+  const numberOfResumes = 10;
+
+  for (let retries = 0; retries < numberOfRetries; retries++) {
+    await doTheUpload(location, localPath, size, contentType, fetchFn);
+    const check = await checkUploadCompleted(location, fetchFn);
+    if (check.complete) {
+      return;
+    }
+    if (check.range != null && resume) {
+      let range: {
+        contentLength: number;
+        contentRange: string;
+        start: number;
+        end: number;
+      } = (() => {
+        const r = parseRangeHeader(check.range!, size);
+        return {
+          contentLength: r.contentLength,
+          contentRange: r.contentRange,
+          start: r.nextByte,
+          end: r.lastByte,
+        };
+      })();
+      for (let resumes = 0; resumes < numberOfResumes; resumes++) {
+        await doTheUpload(location, localPath, size, contentType, fetchFn, range);
+        const recheck = await checkUploadCompleted(location, fetchFn);
+        if (recheck.complete) {
+          return;
+        }
+        if (recheck.range != null) {
+          const next = parseRangeHeader(recheck.range, size);
+          range = {
+            contentLength: next.contentLength,
+            contentRange: next.contentRange,
+            start: next.nextByte,
+            end: next.lastByte,
+          };
+        }
+      }
+    }
   }
+
+  throw new Error(`Failed to complete resumable upload after ${numberOfRetries} retries`);
 }
 
 /**
  * Upload a single file to storage at {cdnKey}/{storagePath}: stage → upload → commit.
  * Requires cdn and cdnKey (e.g. from work version). Uses getAuthHeaders for API and upload start.
- * When loggingOnlyMode is true, skips all requests and returns a synthetic path without error.
+ * When resume is true, implements retry and resume-on-308 behavior. When loggingOnlyMode is true,
+ * skips all requests and returns a synthetic path without error.
  */
 export async function uploadSingleFileToCdn(
   baseUrl: string,
@@ -181,7 +264,7 @@ export async function uploadSingleFileToCdn(
   },
   fetchFn: typeof fetch = fetch,
 ): Promise<UploadResult> {
-  const { cdn, cdnKey, localPath, storagePath, loggingOnlyMode = false } = opts;
+  const { cdn, cdnKey, localPath, storagePath, loggingOnlyMode = false, resume = false } = opts;
   if (!cdn?.trim() || !cdnKey?.trim()) {
     throw new Error('uploadSingleFileToCdn: cdn and cdnKey are required');
   }
@@ -203,12 +286,14 @@ export async function uploadSingleFileToCdn(
       size,
       getAuthHeaders,
       fetchFn,
+      resume,
     );
   }
   const files: UploadFileInfo[] = [
     ...staged.cached_items,
     ...staged.upload_items.map((f) => {
-      const { signed_url: _s, ...rest } = f;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omit signed_url for commit payload
+      const { signed_url, ...rest } = f;
       return rest;
     }),
   ];

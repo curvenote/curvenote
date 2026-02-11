@@ -17,7 +17,7 @@ export function createHandshakeToken(
 ) {
   const claims: HandshakeTokenClaims = {
     iss: issuer,
-    exp: expiry ?? Math.floor(Date.now() / 1000) + 60 * 60 * 4, // 4 hours
+    exp: expiry ?? Math.floor(Date.now() / 1000) + 60 * 60 * 1, // 1 hours
     aud: audience,
     jobId,
   };

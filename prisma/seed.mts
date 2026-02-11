@@ -117,20 +117,28 @@ async function main() {
   summary.roles++;
   console.log(`   ✓ Created role: ${platformAdminRole.title} (${platformAdminRole.name})`);
 
-  const myWorksPreviewRole = await prisma.role.create({
-    data: {
+  const myWorksPreviewScopes = ['app:works:feature', 'app:works:upload', 'app:works:export'];
+  const myWorksPreviewRole = await prisma.role.upsert({
+    where: { name: 'my-works-preview' },
+    create: {
       id: 'my-works-preview-role',
       name: 'my-works-preview',
       title: 'My Works Preview',
       description: 'Access to the My Works feature and upload functionality',
-      scopes: ['app:works:feature', 'app:works:upload'],
+      scopes: myWorksPreviewScopes,
       createdBy: franklin.id,
       date_created: startDateString,
       date_modified: startDateString,
     },
+    update: {
+      scopes: myWorksPreviewScopes,
+      date_modified: startDateString,
+    },
   });
   summary.roles++;
-  console.log(`   ✓ Created role: ${myWorksPreviewRole.title} (${myWorksPreviewRole.name})`);
+  console.log(
+    `   ✓ Created/updated role: ${myWorksPreviewRole.title} (${myWorksPreviewRole.name})`,
+  );
   console.log(`   Total roles created: ${summary.roles}\n`);
 
   console.log('🔗 Assigning roles to users...');

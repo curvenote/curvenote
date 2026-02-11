@@ -3,7 +3,7 @@ import type { ZodError } from 'zod';
 import { z } from 'zod';
 import { JobStatus } from '@curvenote/scms-db';
 import type { ClientExtension, ServerExtension } from '@curvenote/scms-core';
-import { httpError, KnownJobTypes } from '@curvenote/scms-core';
+import { FileMetadataSectionItemSchema, httpError, KnownJobTypes } from '@curvenote/scms-core';
 import { registerExtensionJobs } from './modules/extensions/jobs.js';
 
 /**
@@ -89,6 +89,18 @@ export const CreateSubmissionVersionPostBodySchema = z.object({
 });
 
 export type CreateSubmissionVersionPostBody = z.infer<typeof CreateSubmissionVersionPostBodySchema>;
+
+/** PATCH body for adding a single file entry to work version metadata.files (no signedUrl). */
+export const AddWorkVersionFilePatchBodySchema = FileMetadataSectionItemSchema.omit({
+  signedUrl: true,
+});
+export type AddWorkVersionFilePatchBody = z.infer<typeof AddWorkVersionFilePatchBodySchema>;
+
+/** PATCH body for adding file entries: { files: FileEntry[] }. */
+export const AddWorkVersionFilesPatchBodySchema = z.object({
+  files: z.array(AddWorkVersionFilePatchBodySchema).min(1),
+});
+export type AddWorkVersionFilesPatchBody = z.infer<typeof AddWorkVersionFilesPatchBodySchema>;
 
 async function getJobTypes(extensions: ServerExtension[]): Promise<readonly string[]> {
   const coreJobTypes = [

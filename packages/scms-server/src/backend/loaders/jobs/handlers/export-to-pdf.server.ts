@@ -7,9 +7,11 @@ import type {
   WorkVersionPayload,
   WorkVersionMetadataPayload,
 } from '@curvenote/common';
+import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { createHandshakeToken } from '../../../sign.handshake.server.js';
 import { publishConverterMessage } from '../../../processing.server.js';
+import { signFilesInMetadata } from '../../../files-metadata.server.js';
 import { dbCreateJob, dbUpdateJob } from './db.server.js';
 import { validate } from '../../../../api.schemas.js';
 import { CreateExportToPdfJobPayloadSchema } from './schemas.server.js';
@@ -102,7 +104,25 @@ export async function exportToPdfHandler(ctx: Context, data: CreateJob) {
   const job = await dbCreateJob({ ...data, status: JobStatus.QUEUED });
   rollingLog.push(rollingLogEntry('job created', job.id));
 
+  await prisma.linkedJob.create({
+    data: {
+      id: uuidv7(),
+      date_created: job.date_created,
+      job_id: job.id,
+      work_version_id: payload.work_version_id,
+    },
+  });
+
   const workVersionPayload = workVersionToPayload(workVersionRow);
+  if (workVersionPayload.metadata) {
+    const signedMetadata = await signFilesInMetadata(
+      workVersionPayload.metadata as Parameters<typeof signFilesInMetadata>[0],
+      workVersionRow.cdn ?? '',
+      ctx,
+    );
+    workVersionPayload.metadata = signedMetadata as WorkVersionMetadataPayload;
+  }
+
   const converterPayload: ConverterPayload = {
     taskId: job.id,
     target: 'pdf',

@@ -5,11 +5,7 @@
 
 import fs from 'node:fs/promises';
 import type { SCMSClient } from '@curvenote/scms-tasks';
-import type {
-  WorkVersionPayload,
-  WorkVersionMetadataPayload,
-  FileMetadataSectionItem,
-} from '../payload.js';
+import type { WorkVersionPayload, FileMetadataSectionItem } from '../payload.js';
 
 const EXPORT_SLOT = 'export';
 const PDF_MIME = 'application/pdf';
@@ -48,18 +44,7 @@ export async function uploadPdfAndUpdateWorkVersion(
     slot: EXPORT_SLOT,
   };
 
-  const metadata: WorkVersionMetadataPayload = {
-    ...workVersion.metadata,
-    version: workVersion.metadata?.version ?? 1,
-    files: {
-      ...(workVersion.metadata?.files && typeof workVersion.metadata.files === 'object'
-        ? workVersion.metadata.files
-        : {}),
-      [uploadResult.path]: pdfFileEntry,
-    },
-  };
-
-  await client.works.updateWorkVersionMetadata(workVersion.work_id, workVersion.id, metadata);
+  await client.works.addFilesToWorkVersion(workVersion.work_id, workVersion.id, [pdfFileEntry]);
 
   return uploadResult.path;
 }

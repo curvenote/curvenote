@@ -39,8 +39,8 @@ _build
 yalc.lock
 .yalc
 
-extensions/
-!extensions/README.md
+/extensions/
+!/extensions/README.md
 
 .app-config.*
 !.app-config.meta.yml

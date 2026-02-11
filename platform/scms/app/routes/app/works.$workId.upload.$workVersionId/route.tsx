@@ -9,11 +9,16 @@ import {
   withValidFormData,
   getPrismaClient,
   safeWorkVersionJsonUpdate,
-  safeCheckServiceRunDataUpdate,
   signFilesInMetadata,
+  jobs,
+  registerExtensionJobs,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
-import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
+import type {
+  ExtensionCheckService,
+  ExtensionCheckHandleActionArgs,
+  FileMetadataSection,
+} from '@curvenote/scms-core';
 import {
   MainWrapper,
   PageFrame,
@@ -25,8 +30,10 @@ import {
   scopes,
   useDeploymentConfig,
   getExtensionCheckServicesFromClientConfig,
+  getExtensionCheckServicesFromServerConfig,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
 import { WorkTitleForm } from './WorkTitleForm';
 import { WorkUploadChecksForm } from './WorkUploadChecksForm';
 import { ContinueForm } from './ContinueForm';
@@ -299,102 +306,35 @@ export async function action(args: Route.ActionArgs) {
             data: runRows,
           });
 
-          const signedMetadata = await signFilesInMetadata(
-            wv.metadata as WorkVersionMetadata & FileMetadataSection,
-            wv.cdn ?? '',
-            baseCtx,
+          const checkServices = getExtensionCheckServicesFromServerConfig(
+            baseCtx.$config,
+            serverExtensions,
           );
-
-          const manuscriptFile = Object.values(signedMetadata.files || {})[0];
-
-          if (enabledChecks.includes('proofig')) {
-            const proofigRun = runRows.find((run) => run.kind === 'proofig');
-            if (!proofigRun) {
-              // Should not happen, but avoid crashing if enabledChecks contains 'proofig' unexpectedly
-              return redirect(`/app/works/${workId}/checks`);
-            }
-            // update the check run to show dispatched is true
-            await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
-              const current = (runData as Record<string, any>) ?? {};
-              return {
-                ...current,
-                status: 'healthy',
-                serviceData: {
-                  ...current.serviceData,
-                  stages: {
-                    ...current.serviceData?.stages,
-                    initialPost: { status: 'processing', timestamp: new Date().toISOString() },
+          for (const kind of enabledChecks) {
+            const service = checkServices.find((s) => s.id === kind);
+            if (!service?.handleAction) continue;
+            const run = runRows.find((r) => r.kind === kind);
+            if (!run) continue;
+            const actionArgs: ExtensionCheckHandleActionArgs = {
+              intent: 'execute',
+              workVersionId,
+              checkRunId: run.id,
+              ctx: baseCtx,
+              createJob: (jobType: string, jobPayload: Record<string, unknown>) =>
+                jobs.create(
+                  baseCtx,
+                  {
+                    id: uuid(),
+                    job_type: jobType,
+                    payload: jobPayload,
+                    results: undefined,
                   },
-                },
-              } as Prisma.JsonObject;
-            });
-
-            // make the API call to the proofig API
-            const PROOFIG_API_BASE_URL = 'http://localhost:5173/api/curvenote';
-            const PROOFIG_API_SUBMIT_URL = `${PROOFIG_API_BASE_URL}/api/submit`;
-            const WEBHOOK_BASE_URL = 'http://localhost:3031/v1/hooks/proofig/notify';
-
-            const response = await fetch(PROOFIG_API_SUBMIT_URL, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                submit_req_id: proofigRun.id,
-                identifier: wv.id,
-                notify_url: `${WEBHOOK_BASE_URL}/${proofigRun.id}`,
-                file_url: manuscriptFile?.signedUrl ?? 'WARNING: No manuscript file found',
-                title: wv.title ?? 'Anonymized Title',
-                journal: 'HHMI Workspace',
-                authors:
-                  !wv.authors || wv.authors.length === 0 ? 'Anonymous' : wv.authors.join(', '),
-                filename: manuscriptFile?.name ? `${manuscriptFile?.name}.pdf` : 'manuscript.pdf',
-                notes: 'Uploaded from HHMI Workspace',
-              }),
-            });
-
-            if (response.ok) {
-              // Proofig returns `{ report_id, status, error_message }` on success.
-              // We store `report_id` at the top-level of the Proofig serviceData (not inside summary).
-
-              // TODO be defensive and handle errors gracefully
-              const { report_id: reportId } = (await response.json()) as { report_id: string }; // TODO validate with Zod
-
-              // update the status to submitted is successful
-              await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
-                const current = (runData as Record<string, any>) ?? {};
-                return {
-                  ...current,
-                  serviceData: {
-                    ...current.serviceData,
-                    reportId,
-                    stages: {
-                      ...current.serviceData?.stages,
-                      initialPost: { status: 'completed', timestamp: new Date().toISOString() },
-                      subimageDetection: {
-                        status: 'processing',
-                        timestamp: new Date().toISOString(),
-                      },
-                    },
-                  },
-                } as Prisma.JsonObject;
-              });
-            } else {
-              console.error('Proofig API submission failed', response.status, response.statusText);
-              await safeCheckServiceRunDataUpdate(proofigRun.id, (runData?: Prisma.JsonValue) => {
-                const current = (runData as Record<string, any>) ?? {};
-                return {
-                  ...current,
-                  status: 'error',
-                  serviceData: {
-                    ...current.serviceData,
-                    stages: {
-                      ...current.serviceData?.stages,
-                      initialPost: { status: 'error', timestamp: new Date().toISOString() },
-                    },
-                  },
-                } as Prisma.JsonObject;
-              });
+                  registerExtensionJobs(serverExtensions),
+                ),
+            };
+            const res = await service.handleAction(actionArgs);
+            if (!res.ok) {
+              console.error(`${kind} check execute failed`, await res.text());
             }
           }
         }

@@ -1,5 +1,5 @@
 import type { Route } from './+types/route';
-import { Link } from 'react-router';
+import { Link, redirect, type LoaderFunctionArgs } from 'react-router';
 import {
   MainWrapper,
   PageFrame,
@@ -8,13 +8,23 @@ import {
   getBrandingFromMetaMatches,
   joinPageTitle,
   ui,
+  TrackEvent,
+  getWorkflows,
+  registerExtensionWorkflows,
+  scopes,
 } from '@curvenote/scms-core';
-import { workLayoutLoader } from '../works.$workId/workLayoutLoader.server';
+import { withSecureWorkContext } from '@curvenote/scms-server';
+import {
+  dbGetLinkedJobsByWorkVersionIds,
+  dbGetWorkVersionsWithSubmissionVersions,
+} from '../works.$workId/db.server';
+import { getUniqueSubmissions } from '../works.$workId/utils.server';
 import type {
   SubmissionWithVersionsAndSite,
   WorkVersionWithSubmissionVersions,
 } from '../works.$workId/types';
 import type { Workflow } from '@curvenote/scms-core';
+import { extensions } from '../../../extensions/client';
 import { Settings, PlusCircle, RefreshCw, Upload, Leaf } from 'lucide-react';
 
 type LoaderData = {
@@ -37,7 +47,64 @@ function formatMetadataValue(value: unknown): string {
   return String(value);
 }
 
-export const loader = workLayoutLoader;
+export async function loader(args: LoaderFunctionArgs) {
+  const ctx = await withSecureWorkContext(args, [scopes.work.read]);
+
+  const { workId } = args.params;
+  if (!workId) return redirect('/app/works');
+
+  const workVersions = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
+  if (!workVersions) throw redirect('/app/works');
+
+  const isDraftOnlyWork = workVersions.length > 0 && workVersions.every((v) => v.draft);
+
+  const url = new URL(args.request.url);
+  const pathname = url.pathname;
+
+  const isUploadPath = pathname.includes(`/app/works/${workId}/upload/`);
+  const isDetailsLikePath =
+    pathname === `/app/works/${workId}` ||
+    pathname === `/app/works/${workId}/` ||
+    pathname.startsWith(`/app/works/${workId}/details`) ||
+    pathname.startsWith(`/app/works/${workId}/users`) ||
+    pathname.startsWith(`/app/works/${workId}/checks`) ||
+    pathname.startsWith(`/app/works/${workId}/site/`) ||
+    pathname === `/app/works/v3/${workId}`;
+
+  if (isDraftOnlyWork && !isUploadPath && isDetailsLikePath) {
+    throw redirect(`/app/works/${workId}/upload/${workVersions[0].id}`);
+  }
+
+  const submissions = getUniqueSubmissions(workVersions);
+  const workflowNames = submissions.map((s) => s.collection.workflow);
+
+  const workflows = Object.fromEntries(
+    Object.entries(getWorkflows(ctx.$config, registerExtensionWorkflows(extensions))).filter(
+      ([name]) => workflowNames.includes(name),
+    ),
+  );
+
+  await ctx.trackEvent(TrackEvent.WORK_VIEWED, {
+    workId: ctx.work.id,
+    workTitle: ctx.workDTO.title,
+    versionCount: workVersions.length,
+    submissionCount: submissions.length,
+    isDraft: workVersions.length === 1 && workVersions[0].draft,
+  });
+
+  await ctx.analytics.flush();
+
+  const versionIds = workVersions.map((v) => v.id);
+
+  return {
+    userScopes: ctx.scopes,
+    workflows,
+    work: ctx.workDTO,
+    versions: workVersions ?? [],
+    submissions: submissions ?? [],
+    linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
+  };
+}
 
 export const meta: Route.MetaFunction = ({ matches, loaderData }) => {
   const branding = getBrandingFromMetaMatches(matches);

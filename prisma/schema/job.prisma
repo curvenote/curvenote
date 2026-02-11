@@ -16,4 +16,16 @@ model Job {
   results           Json?
   messages          String[]
   SubmissionVersion SubmissionVersion?
+  linkedJobs        LinkedJob[]
+}
+
+model LinkedJob {
+  id              String      @id
+  date_created    String
+  job             Job         @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  job_id          String
+  work_version    WorkVersion @relation(fields: [work_version_id], references: [id], onDelete: Cascade)
+  work_version_id String
+
+  @@index([work_version_id])
 }

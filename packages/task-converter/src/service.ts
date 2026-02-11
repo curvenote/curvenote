@@ -65,7 +65,7 @@ export function createService() {
         });
       },
       {
-        clientLoggingOnlyMode: process.env.NODE_ENV === 'development' ? true : undefined,
+        clientLoggingOnlyMode: undefined,
         tmpFolderRoot: process.env.NODE_ENV === 'development' ? './tmp' : undefined,
         preserveTmpFolder: process.env.NODE_ENV === 'development' ? true : undefined,
       },

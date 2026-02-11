@@ -18,12 +18,15 @@ import type {
   WorkVersionWithSubmissionVersions,
 } from '../works.$workId/types';
 import type { Workflow } from '@curvenote/scms-core';
+import type { LinkedJobsByWorkVersionId } from './WorkVersionsTable';
 
 type LoaderData = {
+  userScopes: string[];
   workflows: Record<string, Workflow>;
   work: WorkDTO;
   versions: WorkVersionWithSubmissionVersions[];
   submissions: SubmissionWithVersionsAndSite[];
+  linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
 };
 
 export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
@@ -32,9 +35,8 @@ export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
 };
 
 export default function WorkDetailRoute() {
-  const { workflows, work, versions, submissions } = useRouteLoaderData(
-    'routes/app/works.$workId/route',
-  ) as LoaderData;
+  const { userScopes, workflows, work, versions, submissions, linkedJobsByWorkVersionId } =
+    useRouteLoaderData('routes/app/works.$workId/route') as LoaderData;
 
   // Prefer the latest non-draft work version for user-facing "Last updated" copy.
   // (Versions are sorted newest-first, but drafts may appear at the top.)
@@ -79,7 +81,7 @@ export default function WorkDetailRoute() {
               return (
                 <div key={sub.id}>
                   <Link
-                    className="flex justify-center block"
+                    className="block flex justify-center"
                     prefetch="intent"
                     relative="path"
                     to={linkTarget}
@@ -129,7 +131,7 @@ export default function WorkDetailRoute() {
           className=""
           heading={
             (
-              <span className="flex items-center gap-2">
+              <span className="flex gap-2 items-center">
                 <GitBranch className="w-5 h-5" />
                 Versions
               </span>
@@ -141,6 +143,8 @@ export default function WorkDetailRoute() {
               workflows={workflows}
               versions={versions}
               basePath={`/app/works/${work.id}`}
+              userScopes={userScopes}
+              linkedJobsByWorkVersionIdPromise={linkedJobsByWorkVersionId}
             />
           </primitives.Card>
         </SectionWithHeading>
