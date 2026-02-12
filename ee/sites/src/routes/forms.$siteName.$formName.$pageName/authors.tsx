@@ -36,6 +36,7 @@ import type { Author, Affiliation, AuthorOption } from './types.js';
 import {
   isValidEmail,
   isValidOrcid,
+  extractOrcidId,
   getAuthorFieldErrors,
   normalizeOrcidForCompare,
 } from './validationUtils.js';
@@ -1242,7 +1243,7 @@ function AddAuthorPlaceholderCard({
             >
               Add me as an author
             </ui.Button>
-            <span className="text-sm text-muted-foreground">or</span>
+            <span className="text-sm text-muted-foreground">or search for authors:</span>
           </div>
         )}
         <div className="flex gap-2 items-center">
@@ -1353,7 +1354,16 @@ export function AuthorField({
 
   useEffect(() => {
     const trimmed = addAuthorSearchValue.trim();
-    if (!trimmed || isValidOrcid(trimmed)) return;
+    if (!trimmed) return;
+    const orcidId = extractOrcidId(trimmed);
+    if (orcidId) {
+      lastSubmittedOrcidQRef.current = trimmed;
+      const fd = new FormData();
+      fd.set('intent', 'search-orcid-by-id');
+      fd.set('orcid', orcidId);
+      orcidSearchFetcher.submit(fd, { method: 'POST' });
+      return;
+    }
     const t = setTimeout(() => {
       lastSubmittedOrcidQRef.current = trimmed;
       const fd = new FormData();

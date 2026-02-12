@@ -20,7 +20,7 @@ import {
   clearDraftCookie,
 } from './cookies.server.js';
 import { submitForm } from './actionHelpers.server.js';
-import { fetchOrcidPerson, searchOrcid } from './orcidLookup.server.js';
+import { fetchOrcidPerson, searchOrcid, searchOrcidById } from './orcidLookup.server.js';
 import { searchRor } from './rorLookup.server.js';
 import { isPageComplete, getFieldErrors, isValidOrcid } from './validationUtils.js';
 import { FormArea } from './FormArea.js';
@@ -295,6 +295,16 @@ export async function action(args: ActionFunctionArgs) {
   if (intent === 'search-orcid') {
     const q = (formData.get('q') as string)?.trim() ?? '';
     const results = await searchOrcid(q);
+    return data({ results });
+  }
+
+  // Look up a single ORCID by id (when user types/pastes an ORCID in Add Author box)
+  if (intent === 'search-orcid-by-id') {
+    const orcid = (formData.get('orcid') as string)?.trim() ?? '';
+    if (!isValidOrcid(orcid)) {
+      return data({ error: { message: 'Invalid ORCID format.' } }, { status: 400 });
+    }
+    const results = await searchOrcidById(orcid);
     return data({ results });
   }
 

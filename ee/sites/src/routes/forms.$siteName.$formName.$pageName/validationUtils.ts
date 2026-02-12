@@ -19,6 +19,15 @@ export function isValidOrcid(orcid: string): boolean {
   return /^\d{4}-\d{4}-\d{4}-\d{4}$/.test(orcid.trim());
 }
 
+/** Extract canonical ORCID (0000-0000-0000-0000) from input; supports URL or plain id. Returns null if not parseable. */
+export function extractOrcidId(input: string): string | null {
+  const s = (input ?? '').trim();
+  const withoutUrl = s.replace(/^https?:\/\/[^/]*\/?/i, '').trim();
+  const digits = withoutUrl.replace(/[^0-9x]/gi, '');
+  if (digits.length !== 16 || !/^\d{4}\d{4}\d{4}\d{3}[\dx]$/i.test(digits)) return null;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 8)}-${digits.slice(8, 12)}-${digits.slice(12, 16)}`;
+}
+
 /** Normalize ORCID for comparison: strip URL prefix, then keep only digits and X, lowercase. */
 export function normalizeOrcidForCompare(orcid: string | undefined): string {
   const s = (orcid ?? '').trim();

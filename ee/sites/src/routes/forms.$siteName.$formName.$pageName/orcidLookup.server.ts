@@ -171,3 +171,22 @@ export async function fetchOrcidPerson(orcidId: string): Promise<OrcidPersonResu
     affiliations,
   };
 }
+
+/**
+ * Look up a single ORCID by id and return as a one-element search result list (same shape as searchOrcid).
+ * Use when the user has typed/pasted an ORCID id so the Add Author dropdown can show that person.
+ */
+export async function searchOrcidById(orcidId: string): Promise<OrcidSearchHit[]> {
+  const person = await fetchOrcidPerson(orcidId.trim());
+  if (!person) return [];
+  const firstAffiliation =
+    person.affiliations && person.affiliations.length > 0 ? person.affiliations[0].name : undefined;
+  return [
+    {
+      orcid: person.orcid,
+      name: person.name,
+      ...(firstAffiliation && { firstAffiliation }),
+      ...(person.email && { email: person.email }),
+    },
+  ];
+}
