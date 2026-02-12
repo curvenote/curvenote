@@ -110,6 +110,8 @@ export type Affiliation = {
   id: string;
   name: string;
   ror?: string;
+  /** Fields that came from ROR API (read-only). Array of field names like ['name', 'city', 'country']. */
+  rorFields?: string[];
   department?: string;
   address?: string;
   city?: string;

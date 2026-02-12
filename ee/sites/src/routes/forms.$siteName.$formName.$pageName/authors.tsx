@@ -134,6 +134,11 @@ function SortableAffiliationRow({
 
   const deptLocationExpanded = showDeptLocation;
   const subtitle = getAffiliationSubtitle(affiliation);
+  // Fields from ROR should be read-only based on rorFields tracking
+  const rorFields = affiliation.rorFields ?? [];
+  const nameFromRor = rorFields.includes('name');
+  const cityFromRor = rorFields.includes('city');
+  const countryFromRor = rorFields.includes('country');
 
   return (
     <div
@@ -190,8 +195,9 @@ function SortableAffiliationRow({
                   setEditing(false);
                 }
               }}
-              className="px-2 py-1 w-full min-w-0 text-sm rounded border outline-none border-input bg-background"
-              autoFocus
+              disabled={nameFromRor}
+              className="px-2 py-1 w-full min-w-0 text-sm rounded border outline-none border-input bg-background disabled:opacity-60 disabled:cursor-not-allowed"
+              autoFocus={!nameFromRor}
             />
             <div className="space-y-2">
               <button
@@ -244,6 +250,7 @@ function SortableAffiliationRow({
                         onChange={(e) => setEditCity(e.target.value)}
                         onBlur={saveCity}
                         placeholder="City"
+                        disabled={cityFromRor}
                         className="w-full text-sm"
                       />
                     </div>
@@ -262,6 +269,7 @@ function SortableAffiliationRow({
                         onChange={(e) => setEditCountry(e.target.value)}
                         onBlur={saveCountry}
                         placeholder="Country"
+                        disabled={countryFromRor}
                         className="w-full text-sm"
                       />
                     </div>
@@ -571,10 +579,14 @@ function AuthorCard({
   const rorSearchLoading = rorSearchFetcher.state !== 'idle';
 
   const onSelectRorSuggestion = (hit: RorSearchHit) => {
+    const rorFields: string[] = ['name'];
+    if (hit.city) rorFields.push('city');
+    if (hit.country) rorFields.push('country');
     const aff: Affiliation = {
       id: uuid(),
       name: hit.name,
       ror: hit.ror,
+      rorFields,
       ...(hit.city && { city: hit.city }),
       ...(hit.country && { country: hit.country }),
     };
@@ -1897,10 +1909,14 @@ export function AuthorField({
   const addAffiliationRorLoading = addAffiliationRorFetcher.state !== 'idle';
 
   const onSelectAddAffiliationRor = (hit: RorSearchHit) => {
+    const rorFields: string[] = ['name'];
+    if (hit.city) rorFields.push('city');
+    if (hit.country) rorFields.push('country');
     const aff: Affiliation = {
       id: uuid(),
       name: hit.name,
       ror: hit.ror,
+      rorFields,
       ...(hit.city && { city: hit.city }),
       ...(hit.country && { country: hit.country }),
     };
@@ -2191,6 +2207,11 @@ function AffiliationListItem({
   const deptDisplay = (editDepartment ?? '').trim();
   const cityDisplay = (editCity ?? '').trim();
   const countryDisplay = (editCountry ?? '').trim();
+  // Fields from ROR should be read-only based on rorFields tracking
+  const rorFields = affiliation.rorFields ?? [];
+  const nameFromRor = rorFields.includes('name');
+  const cityFromRor = rorFields.includes('city');
+  const countryFromRor = rorFields.includes('country');
 
   return (
     <li className="flex gap-2 items-start p-4 rounded-sm border border-border bg-background">
@@ -2250,6 +2271,7 @@ function AffiliationListItem({
                   onChange={(e) => setEditName(e.target.value)}
                   onBlur={saveName}
                   placeholder="Affiliation name"
+                  disabled={nameFromRor}
                   className="w-full"
                 />
               </div>
@@ -2281,6 +2303,7 @@ function AffiliationListItem({
                     onChange={(e) => setEditCity(e.target.value)}
                     onBlur={saveCity}
                     placeholder="City"
+                    disabled={cityFromRor}
                     className="w-full"
                   />
                 </div>
@@ -2296,6 +2319,7 @@ function AffiliationListItem({
                     onChange={(e) => setEditCountry(e.target.value)}
                     onBlur={saveCountry}
                     placeholder="Country"
+                    disabled={countryFromRor}
                     className="w-full"
                   />
                 </div>
