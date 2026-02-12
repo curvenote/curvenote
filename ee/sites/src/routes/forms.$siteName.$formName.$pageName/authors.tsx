@@ -798,7 +798,7 @@ function AuthorCard({
                 }}
                 authorId={value.id}
               />
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <div className="relative flex-1 min-w-0">
                   <ui.AsyncComboBox
                     triggerMode="inline"
@@ -818,8 +818,8 @@ function AuthorCard({
                 </div>
                 <ui.Button
                   type="button"
-                  variant="outline"
-                  size="sm"
+                  variant="default"
+                  disabled={!newAffiliationInput.trim()}
                   className="cursor-pointer shrink-0"
                   onClick={() => {
                     const trimmed = newAffiliationInput.trim();
@@ -996,7 +996,7 @@ function AuthorCard({
             ) : (
               /* Add affiliation (view mode) – only when author has no affiliations yet */
               <div className="space-y-2">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <div
                     className="relative flex-1 min-w-0"
                     ref={affiliationInputRef as React.RefObject<HTMLDivElement>}
@@ -1019,8 +1019,8 @@ function AuthorCard({
                   </div>
                   <ui.Button
                     type="button"
-                    variant="outline"
-                    size="sm"
+                    variant="default"
+                    disabled={!newAffiliationInput.trim()}
                     className="cursor-pointer shrink-0"
                     onClick={() => {
                       const trimmed = newAffiliationInput.trim();
@@ -2078,8 +2078,7 @@ export function AuthorField({
               </div>
               <ui.Button
                 type="button"
-                variant="outline"
-                size="sm"
+                variant="default"
                 onClick={handleAddAffiliationFromBox}
                 disabled={!addAffiliationInput.trim()}
                 className="cursor-pointer shrink-0"
