@@ -36,6 +36,24 @@ export function normalizeOrcidForCompare(orcid: string | undefined): string {
   return withoutUrl.replace(/[^0-9x]/gi, '').toLowerCase();
 }
 
+/** Normalize affiliation for comparison: all fields normalized and joined. */
+function normalizeAffiliationForCompare(aff: {
+  name?: string;
+  ror?: string;
+  department?: string;
+  city?: string;
+  country?: string;
+}): string {
+  const parts = [
+    (aff.name ?? '').trim().toLowerCase(),
+    (aff.ror ?? '').trim().toLowerCase(),
+    (aff.department ?? '').trim().toLowerCase(),
+    (aff.city ?? '').trim().toLowerCase(),
+    (aff.country ?? '').trim().toLowerCase(),
+  ];
+  return parts.join('|');
+}
+
 export function isFieldEmpty(schema: FieldSchema, value: unknown): boolean {
   if (value == null) return true;
   if (typeof value === 'string') return value.trim() === '';
@@ -174,6 +192,33 @@ export function getFieldErrors(
             schema,
             message: `Affiliation ${i + 1}: name is required.`,
             affiliationIndex: i,
+          });
+        }
+      }
+
+      // Duplicate affiliation check: all fields must match
+      const affiliationKeyToIndices = new Map<string, number[]>();
+      for (const [i, aff] of affiliationsList.entries()) {
+        const affObj = aff as
+          | {
+              name?: string;
+              ror?: string;
+              department?: string;
+              city?: string;
+              country?: string;
+            }
+          | null
+          | undefined;
+        if (!affObj) continue;
+        const key = normalizeAffiliationForCompare(affObj);
+        if (!affiliationKeyToIndices.has(key)) affiliationKeyToIndices.set(key, []);
+        affiliationKeyToIndices.get(key)!.push(i + 1);
+      }
+      for (const [, indices] of affiliationKeyToIndices) {
+        if (indices.length > 1) {
+          errors.push({
+            schema,
+            message: `Duplicate affiliation: identical affiliations appear at positions ${indices.join(', ')}.`,
           });
         }
       }
