@@ -187,14 +187,6 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
         pending: (ctx.user as { pending?: boolean }).pending ?? false,
       }
     : null;
-  // return {
-  //   ...form,
-  //   siteName: ctx.site.name,
-  //   siteTitle: ctx.site.title,
-  //   formCollections,
-  //   user,
-  // };
-
   const { title = '', description = '' } =
     (form.data as { title?: string; description?: string }) ?? {};
 

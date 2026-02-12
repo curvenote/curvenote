@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { ui, orcid } from '@curvenote/scms-core';
-import { FormLabel } from './FormLabel.js';
 import { useSaveField } from './useSaveField.js';
 import { isValidOrcid } from './validationUtils.js';
 
@@ -111,9 +110,9 @@ export function ContactDetails({
       <div className="flex gap-6 items-center">
         <div className="flex flex-col flex-1 gap-4 min-w-0">
           <div className="space-y-2">
-            <FormLabel htmlFor="contact-name" required valid={name.trim().length > 0}>
+            <ui.FormLabel htmlFor="contact-name" required valid={name.trim().length > 0}>
               Your Name
-            </FormLabel>
+            </ui.FormLabel>
             <ui.Input
               id="contact-name"
               type="text"
@@ -130,9 +129,9 @@ export function ContactDetails({
             />
           </div>
           <div className="space-y-2">
-            <FormLabel htmlFor="contact-email" required valid={email.trim().length > 0}>
+            <ui.FormLabel htmlFor="contact-email" required valid={email.trim().length > 0}>
               Email
-            </FormLabel>
+            </ui.FormLabel>
             <ui.Input
               id="contact-email"
               type="email"
@@ -148,14 +147,14 @@ export function ContactDetails({
             />
           </div>
           <div className="space-y-2">
-            <FormLabel
+            <ui.FormLabel
               htmlFor="contact-orcid"
               required={false}
               valid={isValidOrcid(orcidId)}
               invalid={orcidId.trim().length > 0 && !isValidOrcid(orcidId)}
             >
               ORCID ID
-            </FormLabel>
+            </ui.FormLabel>
             <ui.Input
               id="contact-orcid"
               type="text"

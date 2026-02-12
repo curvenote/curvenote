@@ -1,6 +1,5 @@
 import type { FieldSchema } from './types.js';
 import { ui } from '@curvenote/scms-core';
-import { FormLabel } from './FormLabel.js';
 import { useSaveField } from './useSaveField.js';
 
 type TitleFieldProps = {
@@ -23,9 +22,9 @@ export function TitleField({
 
   return (
     <div className="space-y-2">
-      <FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
+      <ui.FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
         {schema.title}
-      </FormLabel>
+      </ui.FormLabel>
       <ui.Input
         id={schema.name}
         type="text"

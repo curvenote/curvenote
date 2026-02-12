@@ -1,12 +1,10 @@
 import * as React from 'react';
 import { CheckIcon } from 'lucide-react';
 
-type FormLabelProps = {
+export type FormLabelProps = {
   htmlFor: string;
   required?: boolean;
-  /** True when field has valid content (optional: has value; required: filled; and within limits). */
   valid: boolean;
-  /** True when field has a validation error (e.g. over limit). Shows red * even for optional. */
   invalid?: boolean;
   children: React.ReactNode;
 };

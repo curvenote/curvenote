@@ -8,8 +8,10 @@ import { AbstractField } from './AbstractField.js';
 import { KeywordsField, normalizeKeywords } from './KeywordsField.js';
 import { RadioField } from './RadioField.js';
 import { ContactDetails } from './ContactDetails.js';
-import { AuthorField } from './authors.js';
+import { AuthorField, type ContactDetailsForAuthor } from './authors/index.js';
 import { useSaveField } from './useSaveField.js';
+
+export type { ContactDetailsForAuthor };
 
 type FormBodyUser = {
   name?: string;
@@ -17,15 +19,6 @@ type FormBodyUser = {
   orcid?: string;
   affiliation?: string;
 } | null;
-
-export type ContactDetailsForAuthor = {
-  name: string;
-  email: string;
-  orcidId: string;
-  nameReadOnly: boolean;
-  emailReadOnly: boolean;
-  orcidReadOnly: boolean;
-};
 
 type FormBodyProps = {
   stepNumber: number;
@@ -164,7 +157,7 @@ export function FormBody({
               {contactAllFromUser ? 'Your contact details' : 'What are your contact details?'}
             </h2>
             <section
-              className="rounded-lg border border-border bg-muted/30 p-4"
+              className="p-4 rounded-lg border border-border bg-muted/30"
               aria-labelledby="contact-details-heading"
             >
               <ContactDetails

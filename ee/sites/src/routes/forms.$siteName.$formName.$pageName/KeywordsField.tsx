@@ -1,7 +1,6 @@
 import { AlertCircle } from 'lucide-react';
 import type { KeywordsOption } from './types.js';
 import { cn, ui } from '@curvenote/scms-core';
-import { FormLabel } from './FormLabel.js';
 import { useSaveField } from './useSaveField.js';
 
 export function normalizeKeywords(value: unknown): string[] {
@@ -42,14 +41,14 @@ export function KeywordsField({
   return (
     <div className="space-y-2">
       <div className="flex gap-2 justify-between items-center">
-        <FormLabel
+        <ui.FormLabel
           htmlFor={schema.name}
           required={schema.required}
           valid={isValid}
           invalid={overMax}
         >
           {schema.title}
-        </FormLabel>
+        </ui.FormLabel>
         {schema.maxKeywords != null && (
           <span
             className={cn(

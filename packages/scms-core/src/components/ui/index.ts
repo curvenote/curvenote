@@ -19,6 +19,7 @@ export * from './dot.js';
 export * from './dropzone.js';
 export * from './error.js';
 export * from './ErrorMessage.js';
+export * from './FormLabel.js';
 export * from './InlineEditable.js';
 export * from './input.js';
 export * from './label.js';

@@ -25,7 +25,8 @@ export const TITLE_DESCRIPTION_SCHEMA = {
  */
 export const FORM_METADATA_FIELDS_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  description: 'Schema for form submission metadata fields stored in draft object.data and work version metadata.fields.',
+  description:
+    'Schema for form submission metadata fields stored in draft object.data and work version metadata.fields.',
   type: 'object',
   properties: {
     title: { type: 'string', description: 'Work title' },

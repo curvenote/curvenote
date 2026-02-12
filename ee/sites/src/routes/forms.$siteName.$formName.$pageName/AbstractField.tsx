@@ -1,7 +1,6 @@
 import { AlertCircle } from 'lucide-react';
 import type { ParagraphOption } from './types.js';
-import { cn } from '@curvenote/scms-core';
-import { FormLabel } from './FormLabel.js';
+import { cn, ui } from '@curvenote/scms-core';
 import { useSaveField } from './useSaveField.js';
 
 type AbstractFieldProps = {
@@ -28,14 +27,14 @@ export function AbstractField({
 
   return (
     <div className="space-y-2">
-      <FormLabel
+      <ui.FormLabel
         htmlFor={schema.name}
         required={schema.required}
         valid={isValid}
         invalid={isOverLimit}
       >
         {schema.title}
-      </FormLabel>
+      </ui.FormLabel>
       <textarea
         id={schema.name}
         rows={8}
