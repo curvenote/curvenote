@@ -133,6 +133,7 @@ function SortableAffiliationRow({
   };
 
   const deptLocationExpanded = showDeptLocation;
+  const subtitle = getAffiliationSubtitle(affiliation);
 
   return (
     <div
@@ -196,7 +197,7 @@ function SortableAffiliationRow({
               <button
                 type="button"
                 onClick={() => setShowDeptLocation(!deptLocationExpanded)}
-                className="flex gap-1.5 items-center text-xs text-muted-foreground hover:text-foreground"
+                className="flex gap-1.5 items-center text-xs text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 {deptLocationExpanded ? (
                   <ChevronDown className="w-3.5 h-3.5 shrink-0" />
@@ -283,7 +284,26 @@ function SortableAffiliationRow({
             </div>
           </>
         ) : (
-          <span className="block min-w-0 truncate">{name}</span>
+          <div className="flex-1 min-w-0 space-y-2">
+            <span className="block min-w-0 truncate">{name}</span>
+            {subtitle ? (
+              <span className="block text-xs text-muted-foreground truncate min-w-0">
+                {subtitle}
+              </span>
+            ) : !hasDeptOrLocation ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(true);
+                  setShowDeptLocation(true);
+                }}
+                className="flex gap-1.5 items-center text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 shrink-0" />
+                <span>Add department or location</span>
+              </button>
+            ) : null}
+          </div>
         )}
       </div>
       <div className="flex gap-1 items-start shrink-0">
@@ -354,6 +374,19 @@ function getAffiliationName(list: Affiliation[], id: string): string {
   return (name ?? '').trim();
 }
 
+/** Subtitle for large affiliation cards: "department · city, country" format. */
+function getAffiliationSubtitle(aff: Affiliation | undefined): string | null {
+  if (!aff) return null;
+  const dept = (aff.department ?? '').trim();
+  const city = (aff.city ?? '').trim();
+  const country = (aff.country ?? '').trim();
+  const parts: string[] = [];
+  if (dept) parts.push(dept);
+  const location = [city, country].filter(Boolean).join(', ');
+  if (location) parts.push(location);
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
 function AffiliationSortableList({
   affiliationIds,
   affiliationList,
@@ -400,6 +433,7 @@ function AffiliationSortableList({
   };
 
   const activeAffiliation = activeAffId ? affiliationList.find((a) => a.id === activeAffId) : null;
+  const activeSubtitle = activeAffiliation ? getAffiliationSubtitle(activeAffiliation) : null;
 
   return (
     <DndContext
@@ -439,9 +473,16 @@ function AffiliationSortableList({
             style={{ minHeight: 40 }}
           >
             <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />
-            <span className="flex-1 min-w-0 truncate">
-              {(activeAffiliation.name ?? '').trim() || 'Affiliation'}
-            </span>
+            <div className="flex-1 min-w-0 truncate">
+              <span className="block truncate">
+                {(activeAffiliation.name ?? '').trim() || 'Affiliation'}
+              </span>
+              {activeSubtitle ? (
+                <span className="block text-xs text-muted-foreground truncate">
+                  {activeSubtitle}
+                </span>
+              ) : null}
+            </div>
           </div>
         ) : null}
       </DragOverlay>
@@ -672,7 +713,7 @@ function AuthorCard({
                         variant="outline-muted"
                         className="flex gap-1 items-center text-xs"
                       >
-                        <Building2 className="w-3 h-3" />
+                        <Building2 className="w-3 h-3 shrink-0" />
                         {affName ? <span className="truncate max-w-[200px]">{affName}</span> : null}
                       </ui.Badge>
                     );
@@ -983,7 +1024,7 @@ function AuthorCard({
                       variant="outline-muted"
                       className="flex gap-1 items-center text-xs"
                     >
-                      <Building2 className="w-3 h-3" />
+                      <Building2 className="w-3 h-3 shrink-0" />
                       {affName ? (
                         <span className="truncate max-w-[200px]" title={affName}>
                           {affName}
