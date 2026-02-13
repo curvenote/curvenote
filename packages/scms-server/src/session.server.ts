@@ -1,5 +1,6 @@
 import { getConfig } from './app-config.server.js';
 import { createCookieSessionStorage } from 'react-router'; // or cloudflare/deno
+import { MAX_AGE } from './cookies.server.js';
 
 export type AuthenticatedUser = {
   userId: string;
@@ -21,8 +22,6 @@ export type SessionData = {
 type SessionFlashData = {
   error: string;
 };
-
-export const MAX_AGE = 60 * 60 * 24 * 7 * 4;
 
 let sessionStorage: SessionStorage | null = null;
 
