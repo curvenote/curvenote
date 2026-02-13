@@ -2,7 +2,8 @@ import { useFetcher } from 'react-router';
 import { useEffect } from 'react';
 import { ProfileContentLayout } from '../common.js';
 import type { GitHubProfile } from './types.js';
-import { Github, Shield } from 'lucide-react';
+import { Shield } from 'lucide-react';
+import { GithubIcon } from '@scienceicons/react/24/solid';
 import { StatefulButton } from '../../../components/ui/index.js';
 
 export function Badge({
@@ -16,7 +17,7 @@ export function Badge({
 }) {
   return (
     <div className={`flex items-center space-x-2 ${className ?? ''}`}>
-      <Github size={size ?? 20} strokeWidth={1.5} />
+      <GithubIcon style={{ width: size ?? 20, height: size ?? 20 }} />
       {showName && <span>GitHub</span>}
     </div>
   );
@@ -30,7 +31,7 @@ export function ProfileCardContent({
     <ProfileContentLayout
       content={
         <div className="flex items-center space-x-6 grow">
-          <Github className="flex-shrink-0" size={48} strokeWidth={1.5} />
+          <GithubIcon className="flex-shrink-0 w-12 h-12" />
           <div className="flex flex-col">
             <p title="Display Name">{profile.name ?? profile.login}</p>
             <p title="email" className="flex items-center">
@@ -83,8 +84,10 @@ export function LoginUI({
         overlayBusy
         className={className}
       >
-        <Github className="w-5 h-5 mr-2" strokeWidth={1.5} />
-        Sign in with GitHub
+        <span className="inline-flex items-center whitespace-nowrap">
+          <GithubIcon className="mr-1.5 w-5 h-5 shrink-0" />
+          GitHub
+        </span>
       </StatefulButton>
     </fetcher.Form>
   );
