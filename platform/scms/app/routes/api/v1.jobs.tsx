@@ -33,10 +33,10 @@ export async function action(args: Route.ActionArgs) {
   if (!ctx.user) throw error401('Unauthorized - jobs must be created on behalf of a user');
   const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
   const schema = await createJobPostBodySchema(extensions);
-  const { id, job_type, payload, results } = validate(schema, body);
+  const { id, job_type, payload, results, follow_on } = validate(schema, body);
   const dto = await jobs.invoke(
     ctx,
-    { payload, job_type, id: id ?? uuidv7(), results },
+    { payload, job_type, id: id ?? uuidv7(), results, follow_on },
     registerExtensionJobs(extensions),
   );
   return Response.json(dto, { status: 201 });

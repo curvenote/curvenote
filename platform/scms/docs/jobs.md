@@ -18,6 +18,16 @@
 
 ---
 
+## Job chaining
+
+When creating a job, you can optionally supply a **follow-on** spec. The follow-on job is created **only when the first job is updated to `COMPLETED`** via `PATCH /api/v1/jobs/:jobId`. There is no follow-on on failure. Chaining is triggered only when the job is updated through the API (typical for async workers that PATCH the job when done).
+
+- **On create**: Send `follow_on` in the `POST /api/v1/jobs` body. It must include `$schema` (inline JSON Schema for the follow_on shape) and `on_success` with `job_type`, `payload`, and optional `id` for the follow-on job. The follow-on `job_type` must be a valid registered job type.
+- **Storage**: The full `follow_on` object (including `$schema`) is stored on the first job’s row. When that job is later PATCHed to `COMPLETED`, the server creates the follow-on job using the same create flow (validation and handlers). The follow-on can itself have a `follow_on` for further chaining.
+- **Idempotency**: The PATCH route rejects updates when the job is already `COMPLETED` or `FAILED`, so the follow-on trigger runs at most once per job.
+
+---
+
 ## Adding a new job (core job in SCMS)
 
 To add a job like **Export to PDF** that triggers an async task:

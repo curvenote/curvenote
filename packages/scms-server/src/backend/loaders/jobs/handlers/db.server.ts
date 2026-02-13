@@ -3,7 +3,15 @@ import { getPrismaClient } from '../../../prisma.server.js';
 import { formatDate } from '@curvenote/common';
 import type { CreateJob, UpdateJob } from '@curvenote/scms-core';
 
-export async function dbCreateJob({ id, job_type, payload, status, results, message }: CreateJob) {
+export async function dbCreateJob({
+  id,
+  job_type,
+  payload,
+  status,
+  results,
+  message,
+  follow_on,
+}: CreateJob) {
   const date_created = formatDate();
   const prisma = await getPrismaClient();
   return prisma.job.create({
@@ -16,6 +24,7 @@ export async function dbCreateJob({ id, job_type, payload, status, results, mess
       payload: payload === null ? Prisma.JsonNull : payload,
       results: results == null ? Prisma.JsonNull : results,
       messages: message ? [message] : [],
+      follow_on: follow_on == null ? Prisma.JsonNull : follow_on,
     },
   });
 }

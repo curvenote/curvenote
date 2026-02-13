@@ -15,6 +15,7 @@ model Job {
   payload           Json
   results           Json?
   messages          String[]
+  follow_on         Json?
   SubmissionVersion SubmissionVersion?
   linkedJobs        LinkedJob[]
 }

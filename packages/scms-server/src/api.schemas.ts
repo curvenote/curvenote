@@ -3,7 +3,12 @@ import type { ZodError } from 'zod';
 import { z } from 'zod';
 import { JobStatus } from '@curvenote/scms-db';
 import type { ClientExtension, ServerExtension } from '@curvenote/scms-core';
-import { FileMetadataSectionItemSchema, httpError, KnownJobTypes } from '@curvenote/scms-core';
+import {
+  createFollowOnSchemas,
+  FileMetadataSectionItemSchema,
+  httpError,
+  KnownJobTypes,
+} from '@curvenote/scms-core';
 import { registerExtensionJobs } from './modules/extensions/jobs.js';
 
 /**
@@ -116,6 +121,7 @@ async function getJobTypes(extensions: ServerExtension[]): Promise<readonly stri
 
 export async function createJobPostBodySchema(extensions: ClientExtension[]) {
   const JOB_TYPES = await getJobTypes(extensions);
+  const { FollowOnSchema } = createFollowOnSchemas(JOB_TYPES);
   return z.object({
     id: z.uuid().optional(),
     job_type: z
@@ -131,6 +137,7 @@ export async function createJobPostBodySchema(extensions: ClientExtension[]) {
         error: (issue) => (issue.code === 'invalid_type' ? 'results must be an object' : undefined),
       })
       .optional(),
+    follow_on: FollowOnSchema.optional(),
   });
 }
 
