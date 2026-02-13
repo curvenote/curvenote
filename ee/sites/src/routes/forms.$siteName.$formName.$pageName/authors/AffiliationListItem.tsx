@@ -108,7 +108,7 @@ export function AffiliationListItem({
                   htmlFor={`aff-${affiliation.id}-name`}
                   required
                   valid={nameValid}
-                  invalid={!nameValid}
+                  defined={!!nameDisplay}
                 >
                   Name
                 </ui.FormLabel>

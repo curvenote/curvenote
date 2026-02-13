@@ -22,7 +22,12 @@ export function TitleField({
 
   return (
     <div className="space-y-2">
-      <ui.FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
+      <ui.FormLabel
+        htmlFor={schema.name}
+        required={schema.required}
+        valid={isValid}
+        defined={value.trim().length > 0}
+      >
         {schema.title}
       </ui.FormLabel>
       <ui.Input

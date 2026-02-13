@@ -663,7 +663,12 @@ export function AuthorField({
 
   return (
     <div className="space-y-4">
-      <ui.FormLabel htmlFor={schema.name} required={schema.required} valid={isValid}>
+      <ui.FormLabel
+        htmlFor={schema.name}
+        required={schema.required}
+        valid={isValid}
+        defined={value.length > 0}
+      >
         {schema.title}
       </ui.FormLabel>
 

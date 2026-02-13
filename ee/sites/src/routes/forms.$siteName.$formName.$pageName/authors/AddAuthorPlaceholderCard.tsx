@@ -10,7 +10,6 @@ export type AddAuthorPlaceholderCardProps = {
   handleAddAuthor: () => void;
   orcidFetcher: { state: string };
   addMeAsAuthor: () => void;
-  /** When false, "Add me as author" is hidden (e.g. user's ORCID is already in the list). */
   showAddMeAsAuthor: boolean;
   isEmpty: boolean;
 };

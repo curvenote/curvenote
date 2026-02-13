@@ -110,7 +110,12 @@ export function ContactDetails({
       <div className="flex gap-6 items-center">
         <div className="flex flex-col flex-1 gap-4 min-w-0">
           <div className="space-y-2">
-            <ui.FormLabel htmlFor="contact-name" required valid={name.trim().length > 0}>
+            <ui.FormLabel
+              htmlFor="contact-name"
+              required
+              valid={name.trim().length > 0}
+              defined={name.trim().length > 0}
+            >
               Your Name
             </ui.FormLabel>
             <ui.Input
@@ -129,7 +134,12 @@ export function ContactDetails({
             />
           </div>
           <div className="space-y-2">
-            <ui.FormLabel htmlFor="contact-email" required valid={email.trim().length > 0}>
+            <ui.FormLabel
+              htmlFor="contact-email"
+              required
+              valid={email.trim().length > 0}
+              defined={email.trim().length > 0}
+            >
               Email
             </ui.FormLabel>
             <ui.Input
@@ -151,7 +161,7 @@ export function ContactDetails({
               htmlFor="contact-orcid"
               required={false}
               valid={isValidOrcid(orcidId)}
-              invalid={orcidId.trim().length > 0 && !isValidOrcid(orcidId)}
+              defined={orcidId.trim().length > 0}
             >
               ORCID ID
             </ui.FormLabel>

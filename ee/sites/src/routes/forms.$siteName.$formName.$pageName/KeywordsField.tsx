@@ -45,7 +45,7 @@ export function KeywordsField({
           htmlFor={schema.name}
           required={schema.required}
           valid={isValid}
-          invalid={overMax}
+          defined={value.length > 0}
         >
           {schema.title}
         </ui.FormLabel>

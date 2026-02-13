@@ -31,7 +31,7 @@ export function AbstractField({
         htmlFor={schema.name}
         required={schema.required}
         valid={isValid}
-        invalid={isOverLimit}
+        defined={value.trim().length > 0}
       >
         {schema.title}
       </ui.FormLabel>

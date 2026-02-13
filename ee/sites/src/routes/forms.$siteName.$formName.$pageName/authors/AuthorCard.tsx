@@ -258,8 +258,9 @@ export function AuthorCard({
             <div className="space-y-2">
               <ui.FormLabel
                 htmlFor={`author-${index}-name`}
-                required={true}
+                required
                 valid={editName.trim().length > 0}
+                defined={editName.trim().length > 0}
               >
                 Full Name
               </ui.FormLabel>
@@ -286,7 +287,7 @@ export function AuthorCard({
                   htmlFor={`author-${index}-orcid`}
                   required={false}
                   valid={orcidValid === true}
-                  invalid={orcidValid === false}
+                  defined={(editOrcid ?? '').trim().length > 0}
                 >
                   ORCID
                 </ui.FormLabel>
@@ -309,7 +310,7 @@ export function AuthorCard({
                 htmlFor={`author-${index}-email`}
                 required={editCorresponding}
                 valid={emailValid === true}
-                invalid={emailValid === false}
+                defined={(editEmail ?? '').trim().length > 0}
               >
                 Email {editCorresponding && '(required for corresponding)'}
               </ui.FormLabel>
