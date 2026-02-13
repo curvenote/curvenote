@@ -31,7 +31,7 @@ function debounce<T extends (...args: any[]) => any>(
 /** 'button' = click button to open popover, then type inside (default). 'inline' = type directly in the box; dropdown appears below with arrow-key select. */
 export type AsyncComboBoxTriggerMode = 'button' | 'inline';
 
-interface AsyncComboBoxProps {
+export interface AsyncComboBoxProps {
   value?: string;
   onValueChange: (value: string) => void;
   onSearch: (query: string) => Promise<ComboBoxOption[]>;
@@ -56,6 +56,8 @@ interface AsyncComboBoxProps {
   externalOptions?: ComboBoxOption[];
   /** When provided with externalOptions, controls loading state (e.g. fetcher.state !== 'idle'). */
   externalLoading?: boolean;
+  /** When provided, the search/input text is controlled by the parent (e.g. so it clears when parent clears after "Add"). */
+  searchValue?: string;
 }
 
 export function AsyncComboBox({
@@ -79,9 +81,20 @@ export function AsyncComboBox({
   onSearchChange,
   externalOptions,
   externalLoading,
+  searchValue: controlledSearchValue,
 }: AsyncComboBoxProps) {
   const [open, setOpen] = React.useState(false);
-  const [searchValue, setSearchValue] = React.useState('');
+  const [internalSearchValue, setInternalSearchValue] = React.useState('');
+  const searchValue = controlledSearchValue !== undefined ? controlledSearchValue : internalSearchValue;
+  const setSearchValue = React.useCallback(
+    (v: string | ((prev: string) => string)) => {
+      const prev = controlledSearchValue !== undefined ? controlledSearchValue : internalSearchValue;
+      const next = typeof v === 'function' ? v(prev) : v;
+      if (controlledSearchValue === undefined) setInternalSearchValue(next);
+      onSearchChange?.(next);
+    },
+    [controlledSearchValue, internalSearchValue, onSearchChange],
+  );
   const [options, setOptions] = React.useState<ComboBoxOption[]>(initialOptions);
   const [isLoading, setIsLoading] = React.useState(false);
   const displayOptions = externalOptions !== undefined ? externalOptions : options;
@@ -268,7 +281,10 @@ export function AsyncComboBox({
     }
     setOpen(true);
     setSearchError(null);
-    setSearchValue(''); // so user types fresh and placeholder shows
+    // When controlled, parent owns the value; don't clear on focus (only parent clears on "Add").
+    if (controlledSearchValue === undefined) {
+      setSearchValue(''); // so user types fresh and placeholder shows
+    }
   };
 
   const handleInlineBlur = () => {
@@ -278,9 +294,11 @@ export function AsyncComboBox({
     }, 200);
   };
 
-  // Inline mode: single input, type in the box, dropdown below with arrow-key select
+  // Inline mode: single input, type in the box, dropdown below with arrow-key select.
+  // When closed with no selection (value empty), keep showing searchValue so typed text persists on blur.
   if (triggerMode === 'inline') {
-    const inlineInputValue = open ? searchValue : displayValue;
+    const hasSelection = value !== undefined && value !== '';
+    const inlineInputValue = open ? searchValue : hasSelection ? displayValue : searchValue;
     return (
       <div className={cn('relative', className)}>
         <Command

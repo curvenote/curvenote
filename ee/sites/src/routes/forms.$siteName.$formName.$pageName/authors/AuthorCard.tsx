@@ -371,6 +371,7 @@ export function AuthorCard({
                   <ui.AsyncComboBox
                     triggerMode="inline"
                     value=""
+                    searchValue={newAffiliationInput}
                     onValueChange={onRorSelectFromCombobox}
                     onSearch={async () => []}
                     onSearchChange={setNewAffiliationInput}
@@ -568,6 +569,7 @@ export function AuthorCard({
                     <ui.AsyncComboBox
                       triggerMode="inline"
                       value=""
+                      searchValue={newAffiliationInput}
                       onValueChange={onRorSelectFromCombobox}
                       onSearch={async () => []}
                       onSearchChange={setNewAffiliationInput}

@@ -47,6 +47,7 @@ export function AddAuthorPlaceholderCard({
             <ui.AsyncComboBox
               triggerMode="inline"
               value=""
+              searchValue={addAuthorSearchValue}
               onValueChange={onAuthorSelect}
               onSearch={async () => []}
               onSearchChange={onSearchChange}

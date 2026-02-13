@@ -797,6 +797,7 @@ export function AuthorField({
                 <ui.AsyncComboBox
                   triggerMode="inline"
                   value=""
+                  searchValue={addAffiliationInput}
                   onValueChange={onSelectAddAffiliationRorFromCombobox}
                   onSearch={async () => []}
                   onSearchChange={setAddAffiliationInput}
