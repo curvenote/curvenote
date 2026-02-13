@@ -1,9 +1,21 @@
-# SCMS Jobs – Summary and Extension Points
+# SCMS Jobs – Developer guide
+
+This document describes how jobs work in SCMS, how to use **job chaining** (follow-on jobs), and how to add new job types (core or extension). It is intended for developers working on the platform or writing extensions.
+
+**Contents**
+
+- [How jobs work](#how-jobs-work) – Create, run (sync/async), update, read
+- [API reference](#api-reference) – Request/response for `POST` and `PATCH`
+- [Job chaining](#job-chaining) – Follow-on jobs: request shape, example, and using `buildFollowOnEnvelope` in code
+- [Adding a new job (core)](#adding-a-new-job-core-job-in-scms) – Steps and file reference
+- [Extension jobs](#extension-jobs-no-change-to-core-names) – Add jobs without changing core
+
+---
 
 ## How jobs work
 
 1. **Create**  
-   The app (or any authenticated client) sends `POST /api/v1/jobs` with `{ job_type, payload }`.  
+   The app (or any authenticated client) sends `POST /api/v1/jobs` with `{ job_type, payload }` (and optionally `follow_on` for chaining).  
    The API validates `job_type` and `payload`, looks up the handler for that type, runs the handler, and returns the created job DTO. The handler is responsible for creating the job row (and optionally enqueueing an async task).
 
 2. **Run**
@@ -18,13 +30,105 @@
 
 ---
 
+## API reference
+
+### Create job – `POST /api/v1/jobs`
+
+**Request body**
+
+| Field       | Type   | Required | Description |
+| ----------- | ------ | -------- | ----------- |
+| `job_type`  | string | yes      | Registered job type (e.g. `CHECK`, `EXPORT_TO_PDF`). |
+| `payload`   | object | yes      | Parameters for the job. |
+| `id`        | string | no       | UUID for the job; server generates one if omitted. |
+| `results`   | object | no       | Pre-populated results (rare). |
+| `follow_on` | object | no       | Optional follow-on job spec; see [Job chaining](#job-chaining) below. |
+
+**Example (no chaining)**
+
+```json
+{
+  "job_type": "EXPORT_TO_PDF",
+  "payload": { "target": "submission-xyz" }
+}
+```
+
+**Response:** `201` with job DTO (`id`, `date_created`, `job_type`, `status`, `payload`, `results`, `messages`, `links`).
+
+### Update job – `PATCH /api/v1/jobs/:jobId`
+
+**Request body**
+
+| Field     | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `status`  | string | yes      | One of: `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`. |
+| `message` | string | no       | Appended to job messages. |
+| `results` | object | no       | Job results (e.g. for CHECK, EXPORT_TO_PDF). |
+
+**Authorization:** Curvenote auth or handshake token whose `jobId` claim matches `:jobId`.  
+**Response:** `200` with updated job DTO. The route rejects PATCH when the job is already `COMPLETED` or `FAILED`.
+
+---
+
 ## Job chaining
 
-When creating a job, you can optionally supply a **follow-on** spec. The follow-on job is created **only when the first job is updated to `COMPLETED`** via `PATCH /api/v1/jobs/:jobId`. There is no follow-on on failure. Chaining is triggered only when the job is updated through the API (typical for async workers that PATCH the job when done).
+Job chaining lets you run a **follow-on job** automatically when the first job completes successfully. You specify the follow-on at **create time**; the server creates it when the first job is updated to `COMPLETED` via `PATCH`. There is no follow-on on failure.
 
-- **On create**: Send `follow_on` in the `POST /api/v1/jobs` body. It must include `$schema` (inline JSON Schema for the follow_on shape) and `on_success` with `job_type`, `payload`, and optional `id` for the follow-on job. The follow-on `job_type` must be a valid registered job type.
-- **Storage**: The full `follow_on` object (including `$schema`) is stored on the first job’s row. When that job is later PATCHed to `COMPLETED`, the server creates the follow-on job using the same create flow (validation and handlers). The follow-on can itself have a `follow_on` for further chaining.
-- **Idempotency**: The PATCH route rejects updates when the job is already `COMPLETED` or `FAILED`, so the follow-on trigger runs at most once per job.
+- **Who triggers the follow-on:** The server. When a client (e.g. an async worker) calls `PATCH /api/v1/jobs/:jobId` with `status: "COMPLETED"`, the update handler runs and, if the job has a valid `follow_on`, creates the follow-on job. Handlers do not need to check for or invoke follow-ons.
+- **Sync jobs:** Follow-on is only triggered when the job is completed via the **PATCH** API. Sync handlers that never call PATCH do not trigger a follow-on in the current design.
+
+### Request shape for `follow_on`
+
+When creating a job, you may send an optional `follow_on` object. It must include:
+
+- **`$schema`** – Inline JSON Schema document describing the `follow_on` shape (for validation and documentation). Stored with the job.
+- **`on_success`** – The follow-on job spec:
+  - **`job_type`** (string, required): A registered job type (e.g. `CHECK`, `PUBLISH`).
+  - **`payload`** (object, required): The full payload for that job, as you would send in a normal `POST /api/v1/jobs` for that type.
+  - **`id`** (string, optional): UUID for the follow-on job; server generates one if omitted.
+
+**Example: create job with follow-on**
+
+```json
+{
+  "job_type": "EXPORT_TO_PDF",
+  "payload": { "target": "submission-xyz" },
+  "follow_on": {
+    "$schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "urn:curvenote:scms:job-follow-on:1-0-0",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "on_success": {
+          "type": "object",
+          "required": ["job_type", "payload"],
+          "additionalProperties": false,
+          "properties": {
+            "job_type": { "type": "string" },
+            "id": { "type": "string", "format": "uuid" },
+            "payload": { "type": "object" }
+          }
+        }
+      },
+      "required": ["on_success"]
+    },
+    "on_success": {
+      "job_type": "CHECK",
+      "payload": {
+        "submission_version_id": "abc-123",
+        "checks": ["spelling"]
+      }
+    }
+  }
+}
+```
+
+### Using job chaining in code
+
+- **Types:** `FollowOnSpec` and `FollowOnEnvelope` are in `@curvenote/scms-core` ([packages/scms-core/src/backend/loaders/jobs/types.ts](packages/scms-core/src/backend/loaders/jobs/types.ts)).
+- **Building the envelope:** Use `buildFollowOnEnvelope(spec)` from `@curvenote/scms-core` ([packages/scms-core/src/backend/loaders/jobs/followOn.ts](packages/scms-core/src/backend/loaders/jobs/followOn.ts)) to build the full `follow_on` object (including `$schema`) from a `FollowOnSpec` (`{ job_type, payload, id? }`). Use this when creating jobs programmatically so you don’t hand-roll the `$schema` object.
+- **Storage and idempotency:** The full `follow_on` (including `$schema`) is stored on the first job. When that job is PATCHed to `COMPLETED`, the server creates the follow-on job once; the PATCH route rejects further updates to terminal jobs, so the trigger runs at most once per job. The follow-on job can itself have a `follow_on` for further chaining.
 
 ---
 
