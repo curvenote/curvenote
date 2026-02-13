@@ -84,6 +84,13 @@ export function registerGoogleStrategy(
         let dbUserViaGoogle = await dbGetUserByLinkedAccount('google', providerProfile.id);
 
         if (dbUserViaGoogle) {
+          // Check if this Google account is already linked to a different user
+          const user = session.get('user');
+          if (user && dbUserViaGoogle.id !== user.userId) {
+            throw redirect(
+              `/app/settings/linked-accounts?error=true&provider=google&message=${encodeURIComponent('This Google account has already been linked to another account.')}`,
+            );
+          }
           try {
             // update the user's provider profile
             const account = assertLinkedAccount('google', dbUserViaGoogle);
