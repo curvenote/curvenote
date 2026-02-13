@@ -158,8 +158,6 @@ export default function ChecksPage({ loaderData }: Route.ComponentProps) {
       breadcrumbs={breadcrumbs}
     >
       <div className="mt-4 space-y-6">
-        {/* Always show core Curvenote structure checks */}
-        <CurvenoteStructureChecksSection />
         {/* Dynamically render check sections from extensions */}
         {checkServices.map((service) => {
           const Component = service.checksSectionComponent as React.ComponentType<{

@@ -194,6 +194,7 @@ export async function exportToPdfHandler(ctx: Context, data: CreateJob) {
   };
 
   const messageId = await publishConverterMessage(
+    ctx,
     attributes,
     converterPayload as Record<string, unknown>,
   );

@@ -10,8 +10,6 @@ import {
   getPrismaClient,
   safeWorkVersionJsonUpdate,
   signFilesInMetadata,
-  jobs,
-  registerExtensionJobs,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
@@ -48,7 +46,6 @@ import { data, redirect } from 'react-router';
 import { List, Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { uuidv7 as uuid } from 'uuidv7';
 
 /**
  * Zod schema for work upload form validation

@@ -2,6 +2,8 @@ import jwt from 'jsonwebtoken';
 import { PubSub } from '@google-cloud/pubsub';
 import { error401 } from '@curvenote/scms-core';
 import { getConfig } from '../app-config.server.js';
+import type { Context } from './context.server.js';
+import type { KeyFile } from './storage/types.js';
 
 /*
  * processing.server.ts - things that hit external APIs and could take longer than other server functions
@@ -110,10 +112,10 @@ export type ConverterMessageAttributes = {
  * Message has attributes (handshake, jobUrl, userId, etc.) and data (base64-encoded JSON payload).
  */
 export async function publishConverterMessage(
+  ctx: Context,
   attributes: ConverterMessageAttributes,
   data: Record<string, unknown>,
 ): Promise<string> {
-  const config = await getConfig();
   if (process.env.NODE_ENV === 'test' || process.env.APP_CONFIG_ENV === 'test') {
     return 'testPubSubId';
   }
@@ -132,6 +134,7 @@ export async function publishConverterMessage(
     );
     return 'testPubSubId';
   }
+  const config = await getConfig();
   const topicName = config.api.converterTopic;
   const projectIdMatch = topicName.match(/^projects\/([^/]+)\//);
   if (!projectIdMatch) {
@@ -142,67 +145,6 @@ export async function publishConverterMessage(
   const pubSubClient = new PubSub({
     projectId: projectIdMatch[1],
     credentials: JSON.parse(config.api.converterSASecretKeyfile),
-  });
-  const messageId = await pubSubClient
-    .topic(topicName)
-    .publishMessage({ data: Buffer.from(JSON.stringify(data), 'utf-8'), attributes });
-  return messageId;
-}
-
-/**
- * Options for publishing to the Proofig submit topic. Caller (extension) provides topic from extension config.
- */
-export interface PublishProofigSubmitOptions {
-  /** Full Pub/Sub topic resource name (e.g. projects/PROJECT_ID/topics/proofig-submit). Required in production. */
-  topic: string;
-}
-
-/**
- * Publish a message to the Proofig submit Pub/Sub topic (task-submit-proofig service).
- * Message has attributes (handshake, jobUrl, userId) and data (JSON payload with workVersion, submit_req_id, notify_url).
- * Topic must be passed via options (from extension config). Reuses checkSASecretKeyfile for credentials.
- */
-export async function publishProofigSubmitMessage(
-  attributes: ConverterMessageAttributes,
-  data: Record<string, unknown>,
-  options: PublishProofigSubmitOptions,
-): Promise<string> {
-  if (process.env.NODE_ENV === 'test' || process.env.APP_CONFIG_ENV === 'test') {
-    return 'testPubSubId';
-  }
-  const { topic: topicName } = options;
-  if (!topicName) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('proofigSubmitTopic not set; skipping Proofig submit publish in development');
-      return 'testPubSubId';
-    }
-    throw new Error('proofigSubmitTopic (options.topic) is required for PROOFIG_SUBMIT job');
-  }
-  const dataBase64 = Buffer.from(JSON.stringify(data), 'utf-8').toString('base64');
-  if (process.env.NODE_ENV === 'development') {
-    console.log('publishing proofig submit message to localhost', attributes.jobUrl);
-    fetch('http://127.0.0.1:8080/', {
-      method: 'POST',
-      body: JSON.stringify({
-        message: { attributes: { ...attributes, jobUrl: attributes.jobUrl }, data: dataBase64 },
-      }),
-      headers: { 'content-type': 'application/json' },
-    }).then(
-      (res) => console.info('proofig submit response', res),
-      (err) => console.error('proofig submit error', err),
-    );
-    return 'testPubSubId';
-  }
-  const projectIdMatch = topicName.match(/^projects\/([^/]+)\//);
-  if (!projectIdMatch) {
-    throw new Error(
-      'proofigSubmitTopic must be full resource name (projects/PROJECT_ID/topics/TOPIC_NAME)',
-    );
-  }
-  const config = await getConfig();
-  const pubSubClient = new PubSub({
-    projectId: projectIdMatch[1],
-    credentials: JSON.parse(config.api.checkSASecretKeyfile),
   });
   const messageId = await pubSubClient
     .topic(topicName)
