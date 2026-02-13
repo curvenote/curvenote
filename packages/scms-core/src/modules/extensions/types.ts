@@ -48,23 +48,24 @@ export interface ExtensionCheckExecuteResult {
   error?: string;
 }
 
+export type CheckServiceRunData<T extends object> = {
+  status: string;
+  serviceData?: T;
+  serviceDataSchema?: Record<string, any>;
+};
+
 /** Arguments for the status check action. */
 export interface ExtensionCheckStatusArgs {
   ctx: Context;
   checkRunId: string;
 }
 
-/** Result of status check action. */
-export interface ExtensionCheckStatusResult {
-  status: string;
-  serviceData?: unknown;
-  message?: string;
-}
-
 /** Arguments for handleAction. Used from both upload flow (execute) and checks page (form intents). */
 export interface ExtensionCheckHandleActionArgs {
   intent: string;
   workVersionId: string;
+  /** Server extensions allowing this extension to interact with other extensions. */
+  serverExtensions: ServerExtension[];
   /** Form data when invoked from checks page. */
   formData?: FormData;
   /** Work version metadata when invoked from checks page. */
@@ -73,8 +74,11 @@ export interface ExtensionCheckHandleActionArgs {
   ctx?: Context;
   /** Check run id when invoked from upload flow (execute). */
   checkRunId?: string;
-  /** Create-job callback when ctx is provided. Platform injects this so extension can enqueue without extension list. */
-  createJob?: (jobType: string, payload: Record<string, unknown>) => Promise<unknown>;
+  /**
+   * Optional transport / submit mode for checks that support multiple backends
+   * (e.g. 'service' for external container, 'stream' for in-process streaming job).
+   */
+  submitMode?: 'service' | 'stream';
 }
 
 export interface ExtensionCheckService {
@@ -88,8 +92,13 @@ export interface ExtensionCheckService {
   /** Server-side action handler. Used from upload flow (intent 'execute' + ctx + checkRunId + createJob) and checks page (intent + formData + metadata). */
   handleAction?: (args: ExtensionCheckHandleActionArgs) => Promise<Response>;
   /** Get current status of a check run. */
-  status?: (args: ExtensionCheckStatusArgs) => Promise<ExtensionCheckStatusResult>;
+  handleStatus?: (args: ExtensionCheckStatusArgs) => Promise<Response>;
 }
+
+export type ClientExtensionCheckService = Omit<
+  ExtensionCheckService,
+  'handleAction' | 'handleStatus'
+>;
 
 export interface ClientExtension {
   id: string;
@@ -100,7 +109,7 @@ export interface ClientExtension {
   getAnalyticsEvents?: () => ExtensionAnalyticsEvents;
   getEmailTemplates?: () => ExtensionEmailTemplate[];
   getWorkflows?: () => WorkflowRegistration;
-  getChecks?: () => ExtensionCheckService[];
+  getChecks?: () => ClientExtensionCheckService[];
   registerNavigation: NavigationRegistrationFn;
 }
 

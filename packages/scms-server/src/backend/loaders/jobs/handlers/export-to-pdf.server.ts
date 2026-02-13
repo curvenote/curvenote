@@ -15,8 +15,12 @@ import { signFilesInMetadata } from '../../../files-metadata.server.js';
 import { dbCreateJob, dbUpdateJob } from './db.server.js';
 import { validate } from '../../../../api.schemas.js';
 import { CreateExportToPdfJobPayloadSchema } from './schemas.server.js';
+import path from 'node:path';
 
 const rollingLogEntry = (message: string, data: unknown) => ({ message, data });
+
+const WORD_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const DOCX_EXT = '.docx';
 
 /** Normalize to ISO string (data layer may give Date; we always want string in the payload). */
 function isoString(value: string | Date | null): string | null {
@@ -76,6 +80,45 @@ function workVersionToPayload(row: {
 }
 
 /**
+ * Derive a PDF export filename from workVersion.metadata.files.
+ * Picks the first Word document (by MIME type or .docx extension) and
+ * returns its basename with a .pdf extension. Returns undefined when
+ * metadata.files is missing or no Word document is found.
+ */
+function deriveExportFilenameFromMetadata(
+  metadata: WorkVersionMetadataPayload | null,
+): string | undefined {
+  if (!metadata || typeof metadata !== 'object') return undefined;
+  const files = metadata.files;
+  if (!files || typeof files !== 'object') return undefined;
+
+  const entries = Object.values(files) as Array<{ type?: string; name?: string; path?: string }>;
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object') continue;
+    const type = entry.type;
+    const name = entry.name ?? '';
+    const pathStr = entry.path ?? '';
+    const lowerName = name.toLowerCase();
+    const lowerPath = pathStr.toLowerCase();
+
+    const isWord =
+      type === WORD_MIME || lowerName.endsWith(DOCX_EXT) || lowerPath.endsWith(DOCX_EXT);
+    if (!isWord) continue;
+
+    const rawBase = name || (pathStr ? path.basename(pathStr) : '');
+    const base = rawBase.trim();
+    if (!base) return undefined;
+
+    if (base.toLowerCase().endsWith(DOCX_EXT)) {
+      return `${base.slice(0, -DOCX_EXT.length)}.pdf`;
+    }
+    return `${base}.pdf`;
+  }
+
+  return undefined;
+}
+
+/**
  * Export-to-PDF job handler (async pattern).
  *
  * 1. Validates payload; loads work version (if not found, returns error without creating job).
@@ -123,11 +166,14 @@ export async function exportToPdfHandler(ctx: Context, data: CreateJob) {
     workVersionPayload.metadata = signedMetadata as WorkVersionMetadataPayload;
   }
 
+  const filename = deriveExportFilenameFromMetadata(workVersionPayload.metadata);
+
   const converterPayload: ConverterPayload = {
     taskId: job.id,
     target: 'pdf',
     conversionType: payload.conversion_type,
     workVersion: workVersionPayload,
+    ...(filename ? { filename } : {}),
   };
   rollingLog.push(rollingLogEntry('converter payload built', { taskId: job.id }));
 

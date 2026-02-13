@@ -118,7 +118,7 @@ export async function publishConverterMessage(
     return 'testPubSubId';
   }
   const dataBase64 = Buffer.from(JSON.stringify(data), 'utf-8').toString('base64');
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'development' && process.env.DEV_PUBSUB_CONVERTER !== 'true') {
     console.log('publishing converter message to localhost', attributes.jobUrl);
     fetch('http://127.0.0.1:8080/', {
       method: 'POST',

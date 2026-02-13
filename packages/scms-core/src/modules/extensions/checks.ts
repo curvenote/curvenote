@@ -1,5 +1,5 @@
 import type { ClientDeploymentConfig } from '../../providers/DeploymentProvider.js';
-import type { ClientExtension, ExtensionCheckService } from './types.js';
+import type { ClientExtension, ExtensionCheckService, ServerExtension } from './types.js';
 import { getExtensionConfig } from './utils.js';
 
 /**
@@ -26,7 +26,7 @@ export function getExtensionCheckServicesFromClientConfig(
  */
 export function getExtensionCheckServicesFromServerConfig(
   serverConfig: AppConfig,
-  extensions: ClientExtension[],
+  extensions: ServerExtension[],
 ): ExtensionCheckService[] {
   const services: ExtensionCheckService[] = [];
   for (const ext of extensions) {

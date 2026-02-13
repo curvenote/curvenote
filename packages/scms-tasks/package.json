@@ -3,14 +3,23 @@
   "version": "0.14.3",
   "description": "SCMS tasks library: job client and helpers for cloud runners",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "private": true,
-  "publishConfig": { "access": "restricted" },
-  "files": ["dist"],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
-  "repository": { "type": "git", "url": "git+https://github.com/curvenote/curvenote.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/curvenote/curvenote.git"
+  },
   "scripts": {
     "gcp-build": "npm run build",
     "clean": "rimraf dist",

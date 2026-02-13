@@ -71,7 +71,7 @@ export async function exportToPdfAction(ctx: WorkContext, formData: FormData) {
   }
 
   try {
-    const dto = await jobs.create(
+    const dto = await jobs.invoke(
       ctx,
       {
         id: uuidv7(),

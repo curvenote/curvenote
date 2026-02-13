@@ -5,8 +5,6 @@ import {
   getPrismaClient,
   withSecureWorkContext,
   type WorkVersionMetadata,
-  jobs,
-  registerExtensionJobs,
 } from '@curvenote/scms-server';
 import type { FileMetadataSection } from '@curvenote/scms-core';
 import {
@@ -23,6 +21,7 @@ import { formatWorkVersionDTO } from './db.server';
 import type { ChecksMetadataSection } from '../works.$workId.upload.$workVersionId/checks.schema';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
+import { jobs, registerExtensionJobs } from '@curvenote/scms-server';
 import { uuidv7 as uuid } from 'uuidv7';
 
 export async function loader(args: Route.LoaderArgs) {
@@ -76,9 +75,10 @@ export async function action(args: Route.ActionArgs) {
     ChecksMetadataSection;
 
   // Try to route action to a check service handler
-  const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, extensions);
+  // Use server extensions here so we see server-only fields like handleAction/status.
+  const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, serverExtensions);
   const createJob = (jobType: string, payload: Record<string, unknown>) =>
-    jobs.create(
+    jobs.invoke(
       ctx,
       { id: uuid(), job_type: jobType, payload, results: undefined },
       registerExtensionJobs(serverExtensions),
@@ -94,7 +94,7 @@ export async function action(args: Route.ActionArgs) {
             workVersionId: latestVersion.id,
             metadata,
             ctx,
-            createJob,
+            serverExtensions,
           });
         } catch (error) {
           return data(

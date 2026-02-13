@@ -34,7 +34,7 @@ export async function action(args: Route.ActionArgs) {
   const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
   const schema = await createJobPostBodySchema(extensions);
   const { id, job_type, payload, results } = validate(schema, body);
-  const dto = await jobs.create(
+  const dto = await jobs.invoke(
     ctx,
     { payload, job_type, id: id ?? uuidv7(), results },
     registerExtensionJobs(extensions),

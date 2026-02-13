@@ -49,7 +49,6 @@ import { List, Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 as uuid } from 'uuidv7';
-import { MINIMAL_PROOFIG_SERVICE_DATA } from '@/extensions/hhmi-checks/packages/checks-proofig/dist/schema';
 
 /**
  * Zod schema for work upload form validation
@@ -75,37 +74,8 @@ function parseAuthorsList(authorsText: string): string[] {
     .filter((a) => a.length > 0);
 }
 
-const CHECK_SERVICE_RUN_ACTION_SCHEMA = {
-  type: 'object',
-  description: 'Check service run data',
-  properties: {
-    $schema: {
-      type: 'object',
-      description: 'Schema for the check service run data.',
-    },
-    status: {
-      type: 'string',
-      enum: ['healthy', 'error', 'archive'],
-      description: 'Current status of the check service run.',
-    },
-    serviceDataSchema: {
-      type: 'object',
-      description: 'Data specific to the check service.',
-      properties: {
-        $schema: {
-          type: 'object',
-          description: 'Schema for the check service data, provided by the check service.',
-        },
-      },
-    },
-    serviceData: {
-      type: 'object',
-      description: 'Data specific to the check service and described by the serviceDataSchema.',
-      additionalProperties: true,
-    },
-  },
-  required: ['status'],
-};
+// NOTE: Check service run schema is now defined and managed by each check
+// extension when they create checkServiceRun rows.
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppScopedContext(args, [scopes.app.works.upload]);
@@ -285,27 +255,9 @@ export async function action(args: Route.ActionArgs) {
           },
         });
 
-        // Create a check service run entry for each enabled check
-        // NOTE: allow multiple runs; higher-level logic will reconcile duplicates.
+        // Execute each enabled check via its extension. Each check service is
+        // responsible for creating its own checkServiceRun rows and jobs.
         if (enabledChecks.length > 0) {
-          const runRows = enabledChecks.map((kind) => ({
-            id: uuid(),
-            date_created: timestamp,
-            date_modified: timestamp,
-            kind,
-            work_version_id: workVersionId,
-            data: {
-              $schema: CHECK_SERVICE_RUN_ACTION_SCHEMA,
-              status: 'healthy',
-              serviceDataSchema: {},
-              serviceData: MINIMAL_PROOFIG_SERVICE_DATA,
-            },
-          }));
-
-          await prisma.checkServiceRun.createMany({
-            data: runRows,
-          });
-
           const checkServices = getExtensionCheckServicesFromServerConfig(
             baseCtx.$config,
             serverExtensions,
@@ -313,24 +265,11 @@ export async function action(args: Route.ActionArgs) {
           for (const kind of enabledChecks) {
             const service = checkServices.find((s) => s.id === kind);
             if (!service?.handleAction) continue;
-            const run = runRows.find((r) => r.kind === kind);
-            if (!run) continue;
             const actionArgs: ExtensionCheckHandleActionArgs = {
               intent: 'execute',
               workVersionId,
-              checkRunId: run.id,
               ctx: baseCtx,
-              createJob: (jobType: string, jobPayload: Record<string, unknown>) =>
-                jobs.create(
-                  baseCtx,
-                  {
-                    id: uuid(),
-                    job_type: jobType,
-                    payload: jobPayload,
-                    results: undefined,
-                  },
-                  registerExtensionJobs(serverExtensions),
-                ),
+              serverExtensions,
             };
             const res = await service.handleAction(actionArgs);
             if (!res.ok) {

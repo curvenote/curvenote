@@ -26,6 +26,6 @@ export default async function (ctx: Context, data: CreateJob, extensionJobs: Job
     : undefined;
 
   const dbo = await handlers[job_type](ctx, data, storageBackend);
-  if (!dbo) throw httpError(422, 'Unable to create job');
+  if (!dbo) throw httpError(422, 'Unable to invoke job handler');
   return formatJobDTO(ctx, dbo);
 }

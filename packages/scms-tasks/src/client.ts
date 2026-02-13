@@ -1,9 +1,5 @@
 import type { Response } from 'express';
-import {
-  getWorksApiBase,
-  addFilesToWorkVersion,
-  type WorkVersionFileEntry,
-} from './works.js';
+import { getWorksApiBase, addFilesToWorkVersion, type WorkVersionFileEntry } from './works.js';
 import { uploadSingleFileToCdn, type UploadResult } from './uploads.js';
 import { createJobsHandler, type JobsHandler } from './jobs.js';
 import { createSubmissionsHandler, type SubmissionsHandler } from './submissions.js';
