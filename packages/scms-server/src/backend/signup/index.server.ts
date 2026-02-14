@@ -446,9 +446,11 @@ function validateSigninSignupConfig(
   }
 
   // validate link-providers step
-  // list linkable providers from auth config
+  // list linkable providers from auth config (use Record to support all configured providers including github)
   const linkableProviderNames = authConfig
-    ? Object.keys(authConfig).filter((p) => authConfig?.[p as AuthProvider]?.allowLinking)
+    ? Object.keys(authConfig).filter((p) =>
+        (authConfig as Record<string, { allowLinking?: boolean }>)?.[p]?.allowLinking,
+      )
     : [];
 
   if (config?.signup?.steps) {

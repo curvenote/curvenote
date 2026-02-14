@@ -1,4 +1,4 @@
-import { useDeploymentConfig, google, okta, orcid, firebase, ui } from '@curvenote/scms-core';
+import { useDeploymentConfig, firebase, github, google, okta, orcid, ui } from '@curvenote/scms-core';
 import { useEffect, useState } from 'react';
 import { OrDivider } from './OrDivider';
 import type { ClientSideSafeAuthOptions, ClientSigninSignupConfig } from '@curvenote/scms-core';
@@ -52,6 +52,7 @@ function AllProviderLoginArea({
     loginAuthProviders.length > 0 &&
     loginAuthProviders.map(({ provider }) => provider).includes('firebase');
   const firebaseProvider = loginAuthProviders.find((p) => p.provider === 'firebase');
+  const githubProvider = loginAuthProviders.find((p) => p.provider === 'github');
   const orcidProvider = loginAuthProviders.find((p) => p.provider === 'orcid');
   const googleProvider = loginAuthProviders.find((p) => p.provider === 'google');
   const oktaProvider = loginAuthProviders.find((p) => p.provider === 'okta');
@@ -71,6 +72,9 @@ function AllProviderLoginArea({
         )}
         {googleProvider && googleProvider.allowLogin && (
           <google.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
+        )}
+        {githubProvider && githubProvider.allowLogin && (
+          <github.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
         )}
         {oktaProvider && oktaProvider.allowLogin && (
           <okta.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />

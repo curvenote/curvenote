@@ -18,27 +18,35 @@ export async function loader(args: LoaderFunctionArgs) {
 
   let authResponse: AuthenticatedUserWithProviderCookie | undefined;
   try {
-    authResponse = await ctx.$auth.authenticate('google', args.request);
+    authResponse = await ctx.$auth.authenticate('github', args.request);
   } catch (errorOrRedirect: any) {
-    console.warn('GOOGLE /auth/callback - linking failed');
-    handleCallbackErrorsWithoutCatchingRedirects('google', errorOrRedirect);
+    console.warn('GITHUB /auth/callback - linking failed');
+    handleCallbackErrorsWithoutCatchingRedirects('github', errorOrRedirect);
+  }
+
+  if (!authResponse) {
+    throw redirect(
+      failureRedirectUrl({
+        provider: 'github',
+        message: 'Unable to authenticate with GitHub. Please try again or contact support.',
+      }),
+      { headers: { 'Set-Cookie': await sessionStorage.destroySession(session) } },
+    );
   }
 
   const { providerSetCookie, ...user } = authResponse;
   headers.append('Set-Cookie', providerSetCookie);
 
   if (loggedInUser) {
-    // account linking flow
-    console.log('GOOGLE /auth/callback - linking complete');
+    console.log('GITHUB /auth/callback - linking complete');
     if (loggedInUser.ready_for_approval) {
-      console.log('GOOGLE /auth/callback - redirecting to awaiting-approval');
+      console.log('GITHUB /auth/callback - redirect to /awaiting-approval');
       throw redirect('/awaiting-approval', { headers });
     } else if (loggedInUser.pending) {
-      console.log('GOOGLE /auth/callback - returning to signup flow');
+      console.log('GITHUB /auth/callback - redirect to /new-account/pending');
       throw redirect('/new-account/pending', { headers });
     }
 
-    // Check for returnTo URL and redirect if present
     const returnToUrl = await getReturnToUrl(session, sessionStorage, headers);
     if (returnToUrl) {
       throw redirect(returnToUrl, { headers });
@@ -47,13 +55,12 @@ export async function loader(args: LoaderFunctionArgs) {
     throw redirect('/app/settings/linked-accounts', { headers });
   }
 
-  // catch all if no user is found
   if (!user) {
-    console.warn('GOOGLE /auth/callback - user not found');
+    console.warn('GITHUB /auth/callback - user not found');
     throw redirect(
       failureRedirectUrl({
-        provider: 'google',
-        message: `Unable to authenticate with GOOGLE (user not found). Please try again or contact support.`,
+        provider: 'github',
+        message: `Unable to authenticate with GitHub (user not found). Please try again or contact support.`,
       }),
       {
         headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },

@@ -1,5 +1,6 @@
 import { Authenticator } from 'remix-auth';
 import { getConfig } from '../../app-config.server.js';
+import { registerGitHubStrategy } from './github/register.server.js';
 import { registerGoogleStrategy } from './google/register.server.js';
 import { registerFirebaseStrategy } from './firebase/register.server.js';
 import { registerOktaStrategy } from './okta/register.server.js';
@@ -21,6 +22,9 @@ export async function authenticatorFactory() {
   const authProviders = config.auth;
   for (const provider in authProviders) {
     // TODO some dynamic module loading thing
+    if (provider === 'github') {
+      registerGitHubStrategy(config, authenticator);
+    }
     if (provider === 'google') {
       registerGoogleStrategy(config, authenticator);
     }
