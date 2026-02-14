@@ -28,6 +28,34 @@ export interface GitHubProfile {
   avatar_url: string | null;
 }
 
+/** GitHub /user/emails entry (subset we use). */
+interface GitHubEmail {
+  email: string;
+  primary: boolean;
+  verified: boolean;
+  visibility: string | null;
+}
+
+async function getGitHubUserEmails(accessToken: string): Promise<string | null> {
+  const resp = await fetch('https://api.github.com/user/emails', {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${accessToken}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  });
+
+  if (!resp.ok) {
+    return null;
+  }
+
+  const emails = (await resp.json()) as GitHubEmail[];
+  const primaryVerified = emails.find((e) => e.primary && e.verified);
+  if (primaryVerified) return primaryVerified.email;
+  const firstVerified = emails.find((e) => e.verified);
+  return firstVerified?.email ?? null;
+}
+
 async function getGitHubUser(accessToken: string): Promise<GitHubProfile> {
   const resp = await fetch('https://api.github.com/user', {
     headers: {
@@ -42,11 +70,15 @@ async function getGitHubUser(accessToken: string): Promise<GitHubProfile> {
   }
 
   const data = (await resp.json()) as GitHubProfile;
+  let email = data.email?.trim() ?? null;
+  if (!email) {
+    email = await getGitHubUserEmails(accessToken);
+  }
   return {
     id: data.id,
     login: data.login,
     name: data.name ?? data.login,
-    email: data.email ?? null,
+    email,
     avatar_url: data.avatar_url ?? null,
   };
 }
@@ -63,7 +95,7 @@ export function registerGitHubStrategy(
         authorizationEndpoint: 'https://github.com/login/oauth/authorize',
         tokenEndpoint: 'https://github.com/login/oauth/access_token',
         redirectURI: config.auth?.github?.redirectUrl ?? 'INVALID',
-        scopes: ['user', 'user:email'],
+        scopes: ['read:user', 'user:email'],
       },
       async ({ tokens, request }) => {
         const analytics = new AnalyticsContext();
@@ -160,7 +192,7 @@ export function registerGitHubStrategy(
                 failureRedirectUrl({
                   provider: 'github',
                   message:
-                    'GitHub did not provide an email. Please add a public email in your GitHub profile or make your email visible, then try again.',
+                    'GitHub did not provide a verified email. Please add and verify an email in your GitHub account settings, then try again.',
                 }),
                 {
                   headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },
