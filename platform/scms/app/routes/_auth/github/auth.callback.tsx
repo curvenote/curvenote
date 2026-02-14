@@ -70,5 +70,13 @@ export async function loader(args: LoaderFunctionArgs) {
 
   session.set('user', user);
   headers.append('Set-Cookie', await sessionStorage.commitSession(session));
+
+  if (user.ready_for_approval) {
+    throw redirect('/awaiting-approval', { headers });
+  }
+  if (user.pending) {
+    throw redirect('/new-account/pending', { headers });
+  }
+
   throw redirect('/app', { headers });
 }
