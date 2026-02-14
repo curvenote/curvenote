@@ -41,7 +41,7 @@ export async function loader(args: LoaderFunctionArgs) {
     console.log('GITHUB /auth/callback - linking complete');
     if (loggedInUser.ready_for_approval) {
       console.log('GITHUB /auth/callback - redirect to /awaiting-approval');
-      throw redirect('/awaiting-approval');
+      throw redirect('/awaiting-approval', { headers });
     } else if (loggedInUser.pending) {
       console.log('GITHUB /auth/callback - redirect to /new-account/pending');
       throw redirect('/new-account/pending', { headers });

@@ -32,7 +32,7 @@ export async function loader(args: LoaderFunctionArgs) {
     console.log('GOOGLE /auth/callback - linking complete');
     if (loggedInUser.ready_for_approval) {
       console.log('GOOGLE /auth/callback - redirecting to awaiting-approval');
-      throw redirect('/awaiting-approval');
+      throw redirect('/awaiting-approval', { headers });
     } else if (loggedInUser.pending) {
       console.log('GOOGLE /auth/callback - returning to signup flow');
       throw redirect('/new-account/pending', { headers });
