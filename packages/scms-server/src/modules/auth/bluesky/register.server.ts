@@ -23,10 +23,17 @@ import {
 } from '../../../backend/services/analytics/segment.server.js';
 import { TrackEvent } from '@curvenote/scms-core';
 import { blueskyStateStore, blueskySessionStore } from './stores.server.js';
+import { persistBlueskySessionForLinkedAccount } from './session-db.server.js';
 import type { BlueskyProfile, BlueskyProviderConfig } from './types.js';
 import { getBlueskyClientMetadata } from './metadata.server.js';
 
 let cachedClient: NodeOAuthClient | null = null;
+
+/** Ensure PEM string has real newlines (YAML single-quoted strings give literal \n). */
+function normalizePem(pem: string | undefined): string | undefined {
+  if (!pem) return undefined;
+  return pem.includes('\\n') ? pem.replace(/\\n/g, '\n') : pem;
+}
 
 function getBlueskyConfig(config: AppConfig): BlueskyProviderConfig | null {
   const bluesky = config.auth?.bluesky;
@@ -35,7 +42,7 @@ function getBlueskyConfig(config: AppConfig): BlueskyProviderConfig | null {
     clientId: bluesky.clientId,
     redirectUrl: bluesky.redirectUrl,
     jwksUri: bluesky.jwksUri,
-    privateKeyPem: bluesky.privateKeyPem,
+    privateKeyPem: normalizePem(bluesky.privateKeyPem),
     displayName: bluesky.displayName,
     allowLogin: bluesky.allowLogin ?? true,
     provisionNewUser: bluesky.provisionNewUser ?? false,
@@ -294,6 +301,34 @@ export async function registerBlueskyStrategy(
             headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },
           },
         );
+      }
+
+      const linkedAccount = dbUserViaBluesky.linkedAccounts?.find((a) => a.provider === 'bluesky');
+      if (linkedAccount) {
+        const storedSession = await blueskySessionStore.get(did);
+        if (
+          storedSession &&
+          typeof storedSession === 'object' &&
+          'tokenSet' in storedSession &&
+          'dpopJwk' in storedSession
+        ) {
+          try {
+            const tokenSet = (storedSession as { tokenSet: unknown }).tokenSet;
+            const dpopJwk = (storedSession as { dpopJwk: unknown }).dpopJwk;
+            const iss =
+              typeof tokenSet === 'object' && tokenSet !== null && 'iss' in tokenSet
+                ? (tokenSet as { iss?: string }).iss
+                : undefined;
+            await persistBlueskySessionForLinkedAccount(
+              linkedAccount.id,
+              did,
+              { tokenSet, dpopJwk },
+              iss,
+            );
+          } catch (err) {
+            console.error('Bluesky provider - Failed to persist session for PDS use', err);
+          }
+        }
       }
 
       const providerSetCookie = getSetProviderCookie(config.api.authCookieSecret, 'bluesky', {
