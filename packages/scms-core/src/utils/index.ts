@@ -1,3 +1,4 @@
+export * from './activityLabels.js';
 export * from './analytics.js';
 export * from './authors.js';
 export * from './cn.js';

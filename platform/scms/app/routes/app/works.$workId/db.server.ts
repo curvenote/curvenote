@@ -1,4 +1,6 @@
-import { getPrismaClient } from '@curvenote/scms-server';
+import { getPrismaClient, StorageBackend, KnownBuckets, Folder } from '@curvenote/scms-server';
+import type { SecureContext } from '@curvenote/scms-server';
+import type { WorkVersion } from '@curvenote/scms-db';
 
 export type LinkedJobWithStatus = { id: string; status: string };
 
@@ -35,7 +37,7 @@ export async function dbGetWorkVersionsWithSubmissionVersions(workId: string) {
   const workVersions = await prisma.workVersion.findMany({
     where: { work_id: workId },
     orderBy: {
-      date_created: 'desc',
+      date_modified: 'desc',
     },
     include: {
       submissionVersions: {
@@ -95,6 +97,8 @@ export type WorkActivityRow = {
   activity_by: { id: string; display_name: string | null };
   work_version_id: string | null;
   submission?: { site: { name: string; title: string | null } };
+  /** Optional payload (e.g. CHECK_STARTED uses transition.checkKind for which check). */
+  transition?: Record<string, unknown> | null;
 };
 
 /** Activities for a work (filtered to this work). Group by work_version_id in the UI. */
@@ -118,5 +122,49 @@ export async function dbGetWorkActivities(workId: string): Promise<WorkActivityR
     submission: a.submission
       ? { site: a.submission.site as { name: string; title: string | null } }
       : undefined,
+    transition: a.transition != null ? (a.transition as Record<string, unknown>) : undefined,
   }));
+}
+
+/**
+ * Delete storage files for a single work version (used when deleting a draft version).
+ */
+async function deleteWorkVersionStorage(ctx: SecureContext, version: WorkVersion) {
+  if (!version.cdn || !version.cdn_key) return;
+  const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub, KnownBuckets.tmp]);
+  const bucket = backend.knownBucketFromCDN(version.cdn);
+  const folder = new Folder(backend, version.cdn_key, bucket);
+  const exists = await folder.exists();
+  if (exists) await folder.delete();
+}
+
+/**
+ * Delete the latest work version on a work if it is a draft with no submission versions.
+ * Used from work details "Upload New Version" resume dialog when user deletes the in-progress draft.
+ */
+export async function dbDeleteDraftVersionOnWork(
+  ctx: SecureContext,
+  workId: string,
+): Promise<{ deleted: boolean; error?: string }> {
+  const prisma = await getPrismaClient();
+  const versions = await prisma.workVersion.findMany({
+    where: { work_id: workId },
+    orderBy: { date_created: 'desc' },
+    include: { submissionVersions: { take: 1 } },
+    take: 1,
+  });
+  const latest = versions[0];
+  if (!latest || !latest.draft || latest.submissionVersions.length > 0) {
+    return {
+      deleted: false,
+      error: latest
+        ? latest.submissionVersions.length > 0
+          ? 'Cannot delete a version that has submissions'
+          : 'Latest version is not a draft'
+        : 'No versions found',
+    };
+  }
+  await prisma.workVersion.delete({ where: { id: latest.id } });
+  await deleteWorkVersionStorage(ctx, latest);
+  return { deleted: true };
 }

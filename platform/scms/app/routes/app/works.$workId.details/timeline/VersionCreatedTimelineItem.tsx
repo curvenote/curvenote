@@ -73,7 +73,7 @@ export function VersionCreatedTimelineItem({
   }, [fetcher.state, fetcher.data]);
 
   const by = ownerName?.trim() ? ownerName : 'owner';
-  const message = <>Version created by {by}</>;
+  const message = <>New Version created by {by}</>;
   const date = <DateWithPopover date={dateCreated} />;
 
   const files =

@@ -1,7 +1,19 @@
 import type { Route } from './+types/route';
-import { data, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
+import {
+  data,
+  redirect,
+  type ActionFunctionArgs,
+  type LoaderFunctionArgs,
+  type ShouldRevalidateFunctionArgs,
+} from 'react-router';
 import { Outlet } from 'react-router';
-import { withSecureWorkContext, signFilesInMetadata } from '@curvenote/scms-server';
+import {
+  withSecureWorkContext,
+  signFilesInMetadata,
+  dbCreateDraftWorkVersion,
+  userHasScope,
+  works as worksLoaders,
+} from '@curvenote/scms-server';
 import {
   MainWrapper,
   SecondaryNav,
@@ -18,6 +30,7 @@ import {
   dbGetWorkActivities,
   dbGetWorkOwnerName,
   dbGetWorkVersionsWithSubmissionVersions,
+  dbDeleteDraftVersionOnWork,
 } from './db.server';
 import { WorkDetailsCard } from './WorkDetailsCard';
 import { getUniqueSubmissions } from './utils.server';
@@ -27,11 +40,19 @@ import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 
 const WorkActionIntentSchema = zfd.formData({
-  intent: zfd.text(z.enum(['export-to-pdf'])),
+  intent: zfd.text(
+    z.enum(['export-to-pdf', 'get-drafts-for-work', 'create-new-version', 'delete-draft']),
+  ),
+  workId: zfd.text(z.string().optional()),
 });
 
+/** Draft version is valid for resume if it has the checks field in metadata (same as My Works). */
+function isDraftVersionValidForReuse(version: { metadata: unknown }): boolean {
+  const meta = version.metadata as Record<string, unknown> | null;
+  return Boolean(meta && 'checks' in meta);
+}
+
 export async function action(args: ActionFunctionArgs) {
-  const ctx = await withSecureWorkContext(args, [scopes.work.read]);
   const formData = await args.request.formData();
   const parsed = WorkActionIntentSchema.safeParse(formData);
   if (!parsed.success) {
@@ -40,15 +61,88 @@ export async function action(args: ActionFunctionArgs) {
       { status: 400 },
     );
   }
-  switch (parsed.data.intent) {
-    case 'export-to-pdf':
-      return exportToPdfAction(ctx, formData);
-    default:
-      return data(
-        { error: { type: 'general' as const, message: 'Unknown intent' } },
-        { status: 400 },
-      );
+
+  const { intent, workId: formWorkId } = parsed.data;
+  const ctx = await withSecureWorkContext(args, [scopes.work.read]);
+
+  if (intent === 'get-drafts-for-work') {
+    const workVersions = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
+    const latest = workVersions[0];
+    const drafts =
+      latest?.draft && isDraftVersionValidForReuse(latest)
+        ? [
+            {
+              workId: ctx.work.id,
+              workVersionId: latest.id,
+              workTitle: latest.title || 'Untitled Work',
+              dateModified: latest.date_modified,
+              dateCreated: latest.date_created,
+              metadata: latest.metadata,
+            },
+          ]
+        : [];
+    return { success: true, intent, drafts };
   }
+
+  if (intent === 'create-new-version') {
+    if (!userHasScope(ctx.user, scopes.app.works.upload)) {
+      return data({ success: false, intent, error: 'Upload scope required' }, { status: 403 });
+    }
+    try {
+      const workVersionsForTitle = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
+      const latestNonDraft = workVersionsForTitle?.find((v) => !v.draft);
+      const workTitle = latestNonDraft?.title ?? ctx.workDTO?.title ?? '';
+      const result = await dbCreateDraftWorkVersion(ctx, ctx.work.id, 'work-details', workTitle);
+      return {
+        success: true,
+        intent: 'create-new-version',
+        workId: result.workId,
+        workVersionId: result.workVersionId,
+      };
+    } catch (error) {
+      console.error('Failed to create new draft version:', error);
+      return data(
+        {
+          success: false,
+          intent,
+          error: error instanceof Error ? error.message : 'Failed to create new version',
+        },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (intent === 'delete-draft') {
+    if (formWorkId && formWorkId !== ctx.work.id) {
+      return data({ success: false, intent, error: 'Work ID mismatch' }, { status: 400 });
+    }
+    try {
+      const result = await dbDeleteDraftVersionOnWork(ctx, ctx.work.id);
+      if (!result.deleted) {
+        return data(
+          { success: false, intent, error: result.error ?? 'Could not delete draft' },
+          { status: 400 },
+        );
+      }
+      return { success: true, intent };
+    } catch (error) {
+      console.error('Failed to delete draft version:', error);
+      return data(
+        {
+          success: false,
+          intent,
+          error: error instanceof Error ? error.message : 'Failed to delete draft version',
+        },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (intent === 'export-to-pdf') {
+    return exportToPdfAction(ctx, formData);
+  }
+
+  return data({ error: { type: 'general' as const, message: 'Unknown intent' } }, { status: 400 });
 }
 
 export const loader = async (args: LoaderFunctionArgs) => {
@@ -130,16 +224,24 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   const workOwnerName = await dbGetWorkOwnerName(ctx.work.id);
   const activities = await dbGetWorkActivities(ctx.work.id);
+  const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
+
+  // Use latest non-draft work version for card and details metadata; fall back to ctx.workDTO if all are drafts
+  const latestNonDraftVersion = versionsWithSignedFileMetadata.find((v) => !v.draft);
+  const work = latestNonDraftVersion
+    ? worksLoaders.formatWorkDTO(ctx, ctx.work, latestNonDraftVersion)
+    : ctx.workDTO;
 
   return {
     userScopes: ctx.scopes,
     workflows,
-    work: ctx.workDTO,
+    work,
     versions: versionsWithSignedFileMetadata,
     submissions: submissions ?? [],
     linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
     workOwnerName,
     activities,
+    canUpload,
   };
 };
 
@@ -147,6 +249,21 @@ export const meta: Route.MetaFunction = ({ matches, loaderData }) => {
   const branding = getBrandingFromMetaMatches(matches);
   return [{ title: joinPageTitle(loaderData?.work?.title, 'Work Details', branding.title) }];
 };
+
+export function shouldRevalidate({
+  formData,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  const intent = formData?.get('intent');
+  if (
+    intent === 'get-drafts-for-work' ||
+    intent === 'create-new-version' ||
+    intent === 'delete-draft'
+  ) {
+    return false;
+  }
+  return defaultShouldRevalidate;
+}
 
 export default function WorkLayout({ loaderData }: Route.ComponentProps) {
   const { work, versions, submissions, userScopes } = loaderData;

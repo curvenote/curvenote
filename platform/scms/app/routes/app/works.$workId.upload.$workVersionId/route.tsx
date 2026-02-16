@@ -10,6 +10,7 @@ import {
   getPrismaClient,
   safeWorkVersionJsonUpdate,
   signFilesInMetadata,
+  createWorkActivity,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
@@ -272,12 +273,20 @@ export async function action(args: Route.ActionArgs) {
             const res = await service.handleAction(actionArgs);
             if (!res.ok) {
               console.error(`${kind} check execute failed`, await res.text());
+            } else if (baseCtx.user?.id) {
+              await createWorkActivity({
+                workId,
+                workVersionId,
+                activityById: baseCtx.user.id,
+                activityType: 'CHECK_STARTED',
+                transition: { checkKind: kind },
+              });
             }
           }
         }
 
-        // Navigate to work integrity page
-        return redirect(`/app/works/${workId}/work-integrity`);
+        // Navigate to work details page
+        return redirect(`/app/works/${workId}/details`);
       }
 
       // For other intents, slot is required

@@ -40,12 +40,17 @@ function getSortedSectionEntries(
   activitiesForVersion: WorkActivityRow[],
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [
-    {
-      kind: 'work-version',
-      date: version.date_created,
-      key: `work-version-${version.id}`,
-      version,
-    },
+    // Only show the "Version created" row for finalized (non-draft) versions
+    ...(version.draft
+      ? []
+      : [
+          {
+            kind: 'work-version' as const,
+            date: version.date_modified,
+            key: `work-version-${version.id}`,
+            version,
+          },
+        ]),
     ...submissionVersionsToShow.map((sv) => {
       const isPublished = sv.status === 'PUBLISHED';
       const date = (isPublished ? sv.date_published : null) ?? sv.date_created;
@@ -98,6 +103,7 @@ export function WorkVersionTimeline({
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
 
+  // Show all versions; draft versions display only their activities (and submissions), not the "Version created" row
   return (
     <Timeline title="Timeline">
       {versions.map((v) => {
@@ -105,12 +111,14 @@ export function WorkVersionTimeline({
           ? v.submissionVersions
           : v.submissionVersions.filter((sv) => sv.status !== 'DRAFT');
         const activitiesForVersion = activities.filter((a) => a.work_version_id === v.id);
-        const label = formatDate(v.date_created, 'MMM dd, yyyy');
+        const label = formatDate(v.date_modified, 'MMM dd, yyyy');
         const sortedEntries = getSortedSectionEntries(
           v,
           submissionVersionsToShow,
           activitiesForVersion,
         );
+
+        if (sortedEntries.length === 0) return null;
 
         return (
           <TimelineSection key={v.id} label={label}>
@@ -120,7 +128,7 @@ export function WorkVersionTimeline({
                 return (
                   <VersionCreatedTimelineItem
                     key={entry.key}
-                    dateCreated={version.date_created}
+                    dateCreated={version.date_modified}
                     ownerName={workOwnerName}
                     metadata={version.metadata}
                     workVersionId={version.id}

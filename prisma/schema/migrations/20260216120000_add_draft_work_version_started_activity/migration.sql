@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "ActivityType" ADD VALUE 'DRAFT_WORK_VERSION_STARTED';

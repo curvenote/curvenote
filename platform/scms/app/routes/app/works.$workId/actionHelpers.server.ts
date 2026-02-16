@@ -1,5 +1,11 @@
 import { data } from 'react-router';
-import { userHasScope, jobs, getPrismaClient, registerExtensionJobs } from '@curvenote/scms-server';
+import {
+  userHasScope,
+  jobs,
+  getPrismaClient,
+  registerExtensionJobs,
+  createWorkActivity,
+} from '@curvenote/scms-server';
 import type { WorkContext } from '@curvenote/scms-server';
 import { scopes } from '@curvenote/scms-core';
 import { z } from 'zod';
@@ -85,6 +91,12 @@ export async function exportToPdfAction(ctx: WorkContext, formData: FormData) {
       },
       registerExtensionJobs(extensions),
     );
+    await createWorkActivity({
+      workId: ctx.work.id,
+      workVersionId,
+      activityById: ctx.user.id,
+      activityType: 'EXPORT_TO_PDF_STARTED',
+    });
     return data({ success: true, jobId: dto.id });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Export to PDF failed.';

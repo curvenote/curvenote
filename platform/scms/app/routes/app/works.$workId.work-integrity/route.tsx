@@ -79,12 +79,12 @@ export async function action(args: Route.ActionArgs) {
   // Try to route action to a check service handler
   // Use server extensions here so we see server-only fields like handleAction/status.
   const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, serverExtensions);
-  const createJob = (jobType: string, payload: Record<string, unknown>) =>
-    jobs.invoke(
-      ctx,
-      { id: uuid(), job_type: jobType, payload, results: undefined },
-      registerExtensionJobs(serverExtensions),
-    );
+  // const createJob = (jobType: string, payload: Record<string, unknown>) =>
+  //   jobs.invoke(
+  //     ctx,
+  //     { id: uuid(), job_type: jobType, payload, results: undefined },
+  //     registerExtensionJobs(serverExtensions),
+  //   );
   for (const service of checkServices) {
     if (service.handleAction) {
       // Check if this service handles this intent

@@ -505,6 +505,102 @@ export async function dbCreateDraftFileWork(ctx: SecureContext, source: string =
   return newWork;
 }
 
+/**
+ * Create a new draft work version on an existing work (for "Upload New Version" from work details).
+ * The new version is draft, has checks metadata, and gets its own cdn/cdn_key for uploads.
+ * @param defaultTitle - Title for the new version (e.g. existing work title); defaults to '' if omitted.
+ */
+export async function dbCreateDraftWorkVersion(
+  ctx: SecureContext,
+  workId: string,
+  source: string = 'work-details',
+  defaultTitle: string = '',
+) {
+  const date_created = new Date().toISOString();
+  const prisma = await getPrismaClient();
+  const workVersionId = uuidv7();
+  const backend = new StorageBackend(ctx, [KnownBuckets.prv]);
+  const cdnKey = uuidv7();
+
+  return prisma.$transaction(async (tx) => {
+    const work = await tx.work.update({
+      where: { id: workId },
+      data: {
+        date_modified: date_created,
+        versions: {
+          create: [
+            {
+              id: workVersionId,
+              date_created,
+              date_modified: date_created,
+              cdn: backend.cdnFromKnownBucket(KnownBuckets.prv),
+              cdn_key: cdnKey,
+              title: defaultTitle ?? '',
+              description: '',
+              draft: true,
+              authors: [],
+              metadata: { checks: {} },
+            },
+          ],
+        },
+      },
+      include: {
+        versions: {
+          orderBy: { date_created: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    await tx.activity.create({
+      data: {
+        id: uuidv7(),
+        date_created,
+        date_modified: date_created,
+        activity_by: {
+          connect: { id: ctx.user.id },
+        },
+        activity_type: 'DRAFT_WORK_VERSION_STARTED' as ActivityType,
+        work: {
+          connect: { id: workId },
+        },
+        work_version: {
+          connect: { id: workVersionId },
+        },
+      },
+    });
+
+    return { workId, workVersionId, work };
+  });
+}
+
+/**
+ * Create a work-scoped activity (e.g. Export to PDF started, Check started).
+ * Used from platform actions to log timeline events.
+ */
+export async function createWorkActivity(params: {
+  workId: string;
+  workVersionId: string;
+  activityById: string;
+  activityType: ActivityType | 'EXPORT_TO_PDF_STARTED' | 'CHECK_STARTED';
+  transition?: Record<string, unknown> | null;
+}): Promise<void> {
+  const prisma = await getPrismaClient();
+  const date_created = formatDate();
+  await prisma.activity.create({
+    data: {
+      id: uuidv7(),
+      date_created,
+      date_modified: date_created,
+      activity_by: { connect: { id: params.activityById } },
+      activity_type: params.activityType as ActivityType,
+      work: { connect: { id: params.workId } },
+      work_version: { connect: { id: params.workVersionId } },
+      ...(params.transition != null ? { transition: params.transition as object } : {}),
+    },
+  });
+}
+
 export async function dbCreateDraftSubmission(
   user: UserDBO,
   work: Awaited<ReturnType<typeof dbCreateDraftWork>>,
