@@ -79,9 +79,7 @@ export function LinkProvidersStep({
 
   let providersToShow = providers
     .filter((p) =>
-      linkableAuthProviderNames.includes(
-        p as 'firebase' | 'google' | 'okta' | 'orcid' |'github'| 'bluesky',
-      ),
+      linkableAuthProviderNames.includes(p as 'firebase' | 'google' | 'okta' | 'orcid' |'github'|'bluesky'),
     )
     .filter((provider) => provider !== user.primaryProvider);
 

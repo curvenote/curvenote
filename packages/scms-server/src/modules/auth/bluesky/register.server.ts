@@ -1,5 +1,5 @@
 import type { Authenticator } from 'remix-auth';
-import { Strategy } from 'remix-auth';
+import { Strategy } from 'remix-auth/strategy';
 import { NodeOAuthClient } from '@atproto/oauth-client-node';
 import { Agent } from '@atproto/api';
 import { JoseKey } from '@atproto/jwk-jose';
@@ -45,7 +45,9 @@ function getBlueskyConfig(config: AppConfig): BlueskyProviderConfig | null {
   };
 }
 
-async function createBlueskyClient(providerConfig: BlueskyProviderConfig): Promise<NodeOAuthClient> {
+async function createBlueskyClient(
+  providerConfig: BlueskyProviderConfig,
+): Promise<NodeOAuthClient> {
   const clientMetadata = getBlueskyClientMetadata(providerConfig) as Record<string, unknown> & {
     client_id: string;
     redirect_uris: string[];
@@ -60,9 +62,7 @@ async function createBlueskyClient(providerConfig: BlueskyProviderConfig): Promi
 
   const keyset =
     providerConfig.privateKeyPem &&
-    (await Promise.all([
-      JoseKey.fromImportable(providerConfig.privateKeyPem, 'key1'),
-    ]));
+    (await Promise.all([JoseKey.fromImportable(providerConfig.privateKeyPem, 'key1')]));
 
   const client = new NodeOAuthClient({
     clientMetadata,
@@ -112,10 +112,7 @@ type BlueskyVerifyParams = {
   request: Request;
 };
 
-class BlueskyStrategy extends Strategy<
-  AuthenticatedUserWithProviderCookie,
-  BlueskyVerifyParams
-> {
+class BlueskyStrategy extends Strategy<AuthenticatedUserWithProviderCookie, BlueskyVerifyParams> {
   name = 'bluesky';
 
   constructor(
@@ -160,121 +157,67 @@ export async function registerBlueskyStrategy(
   const client = await createBlueskyClient(providerConfig);
   cachedClient = client;
   auth.use(
-      new BlueskyStrategy(client, providerConfig, config, async ({ profile, did, request }) => {
-        const analytics = new AnalyticsContext();
-        addSegmentAnalytics(analytics, config.api?.segment);
+    new BlueskyStrategy(client, providerConfig, config, async ({ profile, did, request }) => {
+      const analytics = new AnalyticsContext();
+      addSegmentAnalytics(analytics, config.api?.segment);
 
-        const sessionStorage = await sessionStorageFactory();
-        const session = await sessionStorage.getSession(request.headers.get('Cookie'));
+      const sessionStorage = await sessionStorageFactory();
+      const session = await sessionStorage.getSession(request.headers.get('Cookie'));
 
-        const provisionNewUsers = providerConfig.provisionNewUser ?? false;
-        const allowLinking = providerConfig.allowLinking ?? false;
-        const idAtProvider = did;
+      const provisionNewUsers = providerConfig.provisionNewUser ?? false;
+      const allowLinking = providerConfig.allowLinking ?? false;
+      const idAtProvider = did;
 
-        let dbUserViaBluesky = await dbGetUserByLinkedAccount('bluesky', idAtProvider);
+      let dbUserViaBluesky = await dbGetUserByLinkedAccount('bluesky', idAtProvider);
 
-        if (dbUserViaBluesky) {
-          const user = session.get('user');
-          if (user && dbUserViaBluesky.id !== user.userId) {
-            throw redirect(
-              `/app/settings/linked-accounts?error=true&provider=bluesky&message=${encodeURIComponent('This Bluesky account has already been linked to another account.')}`,
-            );
-          }
-          try {
-            const account = assertLinkedAccount('bluesky', dbUserViaBluesky);
-            await dbUpdateUserLinkedAccountProfile(account.id, profile as Record<string, any>);
-          } catch (error: any) {
-            console.error('Bluesky provider - Failed to update linked account profile', error);
-            await analytics.trackEvent(
-              TrackEvent.USER_LINKING_FAILED,
-              dbUserViaBluesky.id,
-              {
-                provider: 'bluesky',
-                operation: 'update_profile',
-                error: error?.message || 'Unknown error',
-              },
-              request,
-            );
-          }
-
-          await analytics.identifyEvent(dbUserViaBluesky);
+      if (dbUserViaBluesky) {
+        const user = session.get('user');
+        if (user && dbUserViaBluesky.id !== user.userId) {
+          throw redirect(
+            `/app/settings/linked-accounts?error=true&provider=bluesky&message=${encodeURIComponent('This Bluesky account has already been linked to another account.')}`,
+          );
+        }
+        try {
+          const account = assertLinkedAccount('bluesky', dbUserViaBluesky);
+          await dbUpdateUserLinkedAccountProfile(account.id, profile as Record<string, any>);
+        } catch (error: any) {
+          console.error('Bluesky provider - Failed to update linked account profile', error);
           await analytics.trackEvent(
-            TrackEvent.USER_LOGGED_IN,
+            TrackEvent.USER_LINKING_FAILED,
             dbUserViaBluesky.id,
             {
               provider: 'bluesky',
-              method: 'oauth',
-              idAtProvider,
+              operation: 'update_profile',
+              error: error?.message || 'Unknown error',
             },
             request,
           );
-        } else {
-          const user = session.get('user');
-          if (user && allowLinking) {
-            try {
-              dbUserViaBluesky = await handleAccountLinking('bluesky', user, {
-                idAtProvider,
-                email: undefined,
-                profile: profile as Record<string, any>,
-              });
+        }
 
-              await analytics.identifyEvent(dbUserViaBluesky);
-              await analytics.trackEvent(
-                TrackEvent.USER_LINKED,
-                dbUserViaBluesky.id,
-                {
-                  provider: 'bluesky',
-                  method: 'oauth',
-                  idAtProvider,
-                },
-                request,
-              );
-            } catch (error: any) {
-              console.error('Bluesky provider - Failed to link account', error);
-              await analytics.trackEvent(
-                TrackEvent.USER_LINKING_FAILED,
-                user.userId,
-                {
-                  provider: 'bluesky',
-                  operation: 'link_account',
-                  error: error?.message || 'Unknown error',
-                },
-                request,
-              );
-              throw error;
-            }
-          } else if (provisionNewUsers) {
-            const displayName = profile.displayName ?? profile.handle ?? profile.did;
-            const username = (profile.handle ?? profile.did).replace(/\./g, '_').toLowerCase().slice(0, 32);
-            const profileForDb = { ...profile, id: idAtProvider };
-
-            dbUserViaBluesky = await dbCreateUserWithPrimaryLinkedAccount<typeof profileForDb>({
+        await analytics.identifyEvent(dbUserViaBluesky);
+        await analytics.trackEvent(
+          TrackEvent.USER_LOGGED_IN,
+          dbUserViaBluesky.id,
+          {
+            provider: 'bluesky',
+            method: 'oauth',
+            idAtProvider,
+          },
+          request,
+        );
+      } else {
+        const user = session.get('user');
+        if (user && allowLinking) {
+          try {
+            dbUserViaBluesky = await handleAccountLinking('bluesky', user, {
+              idAtProvider,
               email: undefined,
-              username: username || `bluesky_${idAtProvider.slice(-8)}`,
-              displayName,
-              primaryProvider: 'bluesky',
-              profile: profileForDb,
+              profile: profile as Record<string, any>,
             });
-            console.log(
-              `Bluesky provider - provisioned new user (${displayName}, ${idAtProvider}, ${dbUserViaBluesky.id})`,
-            );
-            await $sendSlackNotification(
-              {
-                eventType: SlackEventType.USER_CREATED,
-                message: `New user${dbUserViaBluesky.username ? ` *${dbUserViaBluesky.username}*` : ''} provisioned via bluesky`,
-                user: dbUserViaBluesky,
-                metadata: {
-                  provider: 'bluesky',
-                  username: dbUserViaBluesky.username,
-                  displayName: dbUserViaBluesky.display_name,
-                },
-              },
-              config.api?.slack,
-            );
 
             await analytics.identifyEvent(dbUserViaBluesky);
             await analytics.trackEvent(
-              TrackEvent.USER_SIGNED_UP,
+              TrackEvent.USER_LINKED,
               dbUserViaBluesky.id,
               {
                 provider: 'bluesky',
@@ -283,38 +226,95 @@ export async function registerBlueskyStrategy(
               },
               request,
             );
-          } else if (allowLinking) {
-            if (!user) {
-              throw redirect(`/link-accounts?provider=bluesky`);
-            }
+          } catch (error: any) {
+            console.error('Bluesky provider - Failed to link account', error);
+            await analytics.trackEvent(
+              TrackEvent.USER_LINKING_FAILED,
+              user.userId,
+              {
+                provider: 'bluesky',
+                operation: 'link_account',
+                error: error?.message || 'Unknown error',
+              },
+              request,
+            );
+            throw error;
+          }
+        } else if (provisionNewUsers) {
+          const displayName = profile.displayName ?? profile.handle ?? profile.did;
+          const username = (profile.handle ?? profile.did)
+            .replace(/\./g, '_')
+            .toLowerCase()
+            .slice(0, 32);
+          const profileForDb = { ...profile, id: idAtProvider };
+
+          dbUserViaBluesky = await dbCreateUserWithPrimaryLinkedAccount<typeof profileForDb>({
+            email: undefined,
+            username: username || `bluesky_${idAtProvider.slice(-8)}`,
+            displayName,
+            primaryProvider: 'bluesky',
+            profile: profileForDb,
+          });
+          console.log(
+            `Bluesky provider - provisioned new user (${displayName}, ${idAtProvider}, ${dbUserViaBluesky.id})`,
+          );
+          await $sendSlackNotification(
+            {
+              eventType: SlackEventType.USER_CREATED,
+              message: `New user${dbUserViaBluesky.username ? ` *${dbUserViaBluesky.username}*` : ''} provisioned via bluesky`,
+              user: dbUserViaBluesky,
+              metadata: {
+                provider: 'bluesky',
+                username: dbUserViaBluesky.username,
+                displayName: dbUserViaBluesky.display_name,
+              },
+            },
+            config.api?.slack,
+          );
+
+          await analytics.identifyEvent(dbUserViaBluesky);
+          await analytics.trackEvent(
+            TrackEvent.USER_SIGNED_UP,
+            dbUserViaBluesky.id,
+            {
+              provider: 'bluesky',
+              method: 'oauth',
+              idAtProvider,
+            },
+            request,
+          );
+        } else if (allowLinking) {
+          if (!user) {
+            throw redirect(`/link-accounts?provider=bluesky`);
           }
         }
+      }
 
-        if (!dbUserViaBluesky) {
-          throw redirect(
-            failureRedirectUrl({
-              provider: 'bluesky',
-              message: `You are logged into Bluesky as ${profile.handle ?? profile.did} but that user is not found. To log in as a different user log out of Bluesky and try again.`,
-            }),
-            {
-              headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },
-            },
-          );
-        }
+      if (!dbUserViaBluesky) {
+        throw redirect(
+          failureRedirectUrl({
+            provider: 'bluesky',
+            message: `You are logged into Bluesky as ${profile.handle ?? profile.did} but that user is not found. To log in as a different user log out of Bluesky and try again.`,
+          }),
+          {
+            headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },
+          },
+        );
+      }
 
-        const providerSetCookie = getSetProviderCookie(config.api.authCookieSecret, 'bluesky', {
-          profile,
-        });
+      const providerSetCookie = getSetProviderCookie(config.api.authCookieSecret, 'bluesky', {
+        profile,
+      });
 
-        return {
-          userId: dbUserViaBluesky.id,
-          primaryProvider: dbUserViaBluesky.primaryProvider ?? 'unknown',
-          provider: 'bluesky',
-          pending: dbUserViaBluesky.pending,
-          ready_for_approval: dbUserViaBluesky.ready_for_approval,
-          providerSetCookie,
-        };
-      }),
+      return {
+        userId: dbUserViaBluesky.id,
+        primaryProvider: dbUserViaBluesky.primaryProvider ?? 'unknown',
+        provider: 'bluesky',
+        pending: dbUserViaBluesky.pending,
+        ready_for_approval: dbUserViaBluesky.ready_for_approval,
+        providerSetCookie,
+      };
+    }),
     'bluesky',
   );
 }

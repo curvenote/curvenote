@@ -3,9 +3,6 @@ import {
   LoginProviderButtons,
   firebase,
   ui,
-  google,
-  okta,
-  orcid,
   bluesky,
 } from '@curvenote/scms-core';
 import { useEffect, useState } from 'react';
