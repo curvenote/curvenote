@@ -36,12 +36,12 @@ This document describes how jobs work in SCMS, how to use **job chaining** (foll
 
 **Request body**
 
-| Field       | Type   | Required | Description |
-| ----------- | ------ | -------- | ----------- |
-| `job_type`  | string | yes      | Registered job type (e.g. `CHECK`, `EXPORT_TO_PDF`). |
-| `payload`   | object | yes      | Parameters for the job. |
-| `id`        | string | no       | UUID for the job; server generates one if omitted. |
-| `results`   | object | no       | Pre-populated results (rare). |
+| Field       | Type   | Required | Description                                                           |
+| ----------- | ------ | -------- | --------------------------------------------------------------------- |
+| `job_type`  | string | yes      | Registered job type (e.g. `CHECK`, `EXPORT_TO_PDF`).                  |
+| `payload`   | object | yes      | Parameters for the job.                                               |
+| `id`        | string | no       | UUID for the job; server generates one if omitted.                    |
+| `results`   | object | no       | Pre-populated results (rare).                                         |
 | `follow_on` | object | no       | Optional follow-on job spec; see [Job chaining](#job-chaining) below. |
 
 **Example (no chaining)**
@@ -59,11 +59,11 @@ This document describes how jobs work in SCMS, how to use **job chaining** (foll
 
 **Request body**
 
-| Field     | Type   | Required | Description |
-| --------- | ------ | -------- | ----------- |
+| Field     | Type   | Required | Description                                                      |
+| --------- | ------ | -------- | ---------------------------------------------------------------- |
 | `status`  | string | yes      | One of: `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`. |
-| `message` | string | no       | Appended to job messages. |
-| `results` | object | no       | Job results (e.g. for CHECK, EXPORT_TO_PDF). |
+| `message` | string | no       | Appended to job messages.                                        |
+| `results` | object | no       | Job results (e.g. for CHECK, EXPORT_TO_PDF).                     |
 
 **Authorization:** Curvenote auth or handshake token whose `jobId` claim matches `:jobId`.  
 **Response:** `200` with updated job DTO. The route rejects PATCH when the job is already `COMPLETED` or `FAILED`.

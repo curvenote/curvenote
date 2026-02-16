@@ -51,7 +51,7 @@ SERVICE_NAME="${SERVICE_NAME:-}"
 PUSH_ENDPOINT="${PUSH_ENDPOINT:-}"
 TOPIC_NAME="${TOPIC_NAME:-}"
 SUBSCRIPTION_NAME="${SUBSCRIPTION_NAME:-}"
-SERVICE_ACCOUNT_NAME="${SERVICE_ACCOUNT_NAME:-check-pub-sub-invoker}"
+SERVICE_ACCOUNT_NAME="${SERVICE_ACCOUNT_NAME:-check-pubsub-invoker}"
 ACK_DEADLINE="${ACK_DEADLINE:-600}"
 
 missing=()
@@ -81,13 +81,19 @@ fi
 SA_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 PUBSUB_SA_EMAIL="service-${PROJECT_NUMBER}@gcp-sa-pubsub.iam.gserviceaccount.com"
 
-if gcloud iam service-accounts describe "${SERVICE_ACCOUNT_NAME}" --project "${PROJECT_ID}" &>/dev/null; then
+if gcloud iam service-accounts describe "${SA_EMAIL}" --project "${PROJECT_ID}" &>/dev/null; then
   echo "Using existing service account: ${SERVICE_ACCOUNT_NAME}"
 else
   echo "Creating service account: ${SERVICE_ACCOUNT_NAME}"
-  gcloud iam service-accounts create "${SERVICE_ACCOUNT_NAME}" \
+  if ! gcloud iam service-accounts create "${SERVICE_ACCOUNT_NAME}" \
     --display-name "SCMS Tasks Pub/Sub Invoker" \
-    --project "${PROJECT_ID}"
+    --project "${PROJECT_ID}" 2>&1; then
+    if gcloud iam service-accounts describe "${SA_EMAIL}" --project "${PROJECT_ID}" &>/dev/null; then
+      echo "Service account already exists (created elsewhere), continuing."
+    else
+      exit 1
+    fi
+  fi
 fi
 
 echo "Granting run.invoker on Cloud Run service: ${SERVICE_NAME}"

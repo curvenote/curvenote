@@ -7,8 +7,53 @@ import { Clock, Loader2, MoreVertical } from 'lucide-react';
 
 export type LinkedJobsByWorkVersionId = Record<string, { id: string; status: string }[]>;
 
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const PDF_MIME = 'application/pdf';
+
 /** File entry in work version metadata.files (may include signedUrl when loaded for details). */
-type MetadataFileItem = { name: string; path?: string; label?: string; signedUrl?: string; size?: number };
+type MetadataFileItem = {
+  name?: string;
+  path?: string;
+  label?: string;
+  type?: string;
+  signedUrl?: string;
+  size?: number;
+};
+
+/** True when the version has files and at least one is a Word document (docx). */
+function versionHasDocx(metadata: unknown): boolean {
+  if (!metadata || typeof metadata !== 'object') return false;
+  const meta = metadata as Record<string, unknown>;
+  const files = meta.files;
+  if (!files || typeof files !== 'object') return false;
+  const entries = Object.values(files) as MetadataFileItem[];
+  return entries.some(
+    (f) =>
+      f?.type === DOCX_MIME ||
+      (typeof f?.name === 'string' && f.name.toLowerCase().endsWith('.docx')) ||
+      (typeof f?.path === 'string' && f.path.toLowerCase().endsWith('.docx')),
+  );
+}
+
+/** True when the version has files and at least one is a PDF. */
+function versionHasPdf(metadata: unknown): boolean {
+  if (!metadata || typeof metadata !== 'object') return false;
+  const meta = metadata as Record<string, unknown>;
+  const files = meta.files;
+  if (!files || typeof files !== 'object') return false;
+  const entries = Object.values(files) as MetadataFileItem[];
+  return entries.some(
+    (f) =>
+      f?.type === PDF_MIME ||
+      (typeof f?.name === 'string' && f.name.toLowerCase().endsWith('.pdf')) ||
+      (typeof f?.path === 'string' && f.path.toLowerCase().endsWith('.pdf')),
+  );
+}
+
+/** Show Export to PDF menu when version has docx but no PDF (export is needed). */
+function versionNeedsExportToPdf(metadata: unknown): boolean {
+  return versionHasDocx(metadata) && !versionHasPdf(metadata);
+}
 
 function formatFileSize(bytes: number | undefined): string {
   if (bytes == null || typeof bytes !== 'number' || bytes < 0) return '';
@@ -154,48 +199,50 @@ function WorkVersionTableRow({
       </td>
       {canExport && (
         <td className="px-4 py-3 align-middle w-[80px]">
-          <Suspense fallback={null}>
-            <Await
-              resolve={linkedJobsByWorkVersionIdPromise}
-              errorElement={null}
-            >
-              {(resolved) => {
-                const linkedJobs = resolved[v.id] ?? [];
-                const hasQueued = linkedJobs.some((j) => j.status === 'QUEUED');
-                const hasRunning = linkedJobs.some((j) => j.status === 'RUNNING');
-                const isExporting = hasQueued || hasRunning;
-                return (
-                  <ui.Menu open={menuOpenId === v.id} onOpenChange={(open) => setMenuOpenId(open ? v.id : null)}>
-                    <ui.MenuTrigger asChild>
-                      <ui.Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        aria-label="Version actions"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </ui.Button>
-                    </ui.MenuTrigger>
-                    <ui.MenuContent>
-                      <ui.MenuItem
-                        disabled={isExporting}
-                        onSelect={() => {
-                          setMenuOpenId(null);
-                          if (isExporting) return;
-                          fetcher.submit(
-                            { intent: 'export-to-pdf', workVersionId: v.id },
-                            { method: 'post', action: basePath },
-                          );
-                        }}
-                      >
-                        Export to PDF
-                      </ui.MenuItem>
-                    </ui.MenuContent>
-                  </ui.Menu>
-                );
-              }}
-            </Await>
-          </Suspense>
+          {versionNeedsExportToPdf(v.metadata) ? (
+            <Suspense fallback={null}>
+              <Await
+                resolve={linkedJobsByWorkVersionIdPromise}
+                errorElement={null}
+              >
+                {(resolved) => {
+                  const linkedJobs = resolved[v.id] ?? [];
+                  const hasQueued = linkedJobs.some((j) => j.status === 'QUEUED');
+                  const hasRunning = linkedJobs.some((j) => j.status === 'RUNNING');
+                  const isExporting = hasQueued || hasRunning;
+                  return (
+                    <ui.Menu open={menuOpenId === v.id} onOpenChange={(open) => setMenuOpenId(open ? v.id : null)}>
+                      <ui.MenuTrigger asChild>
+                        <ui.Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          aria-label="Version actions"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </ui.Button>
+                      </ui.MenuTrigger>
+                      <ui.MenuContent>
+                        <ui.MenuItem
+                          disabled={isExporting}
+                          onSelect={() => {
+                            setMenuOpenId(null);
+                            if (isExporting) return;
+                            fetcher.submit(
+                              { intent: 'export-to-pdf', workVersionId: v.id },
+                              { method: 'post', action: basePath },
+                            );
+                          }}
+                        >
+                          Export to PDF
+                        </ui.MenuItem>
+                      </ui.MenuContent>
+                    </ui.Menu>
+                  );
+                }}
+              </Await>
+            </Suspense>
+          ) : null}
         </td>
       )}
     </tr>
@@ -235,7 +282,7 @@ export function WorkVersionsTable({
           <th className="px-4 py-2 w-[180px]">Date</th>
           <th className="px-4 py-2 min-w-[120px]">Files</th>
           <th className="px-4 py-2 min-w-[250px]">Submission Status</th>
-          {canExport && <th className="px-4 py-2 w-[80px]" />}
+          {canExport && <th className="px-4 py-2 w-[80px]" aria-label="Actions" />}
         </tr>
       </thead>
       <tbody>

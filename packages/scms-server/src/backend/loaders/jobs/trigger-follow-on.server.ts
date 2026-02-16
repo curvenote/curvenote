@@ -3,7 +3,10 @@ import { createFollowOnSchemas } from '@curvenote/scms-core';
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../../prisma.server.js';
 
-export type CreateJobFn = (ctx: Context, data: { id: string; job_type: string; payload: Record<string, any> }) => Promise<unknown>;
+export type CreateJobFn = (
+  ctx: Context,
+  data: { id: string; job_type: string; payload: Record<string, any> },
+) => Promise<unknown>;
 
 /**
  * If the job is COMPLETED and has follow_on.on_success, create the follow-on job via createJobFn.
