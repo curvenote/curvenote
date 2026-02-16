@@ -54,7 +54,7 @@ export function LinkAccountDuringSignupButton({
         overlayBusy
         className="w-full"
       >
-        <div className="flex items-center justify-center w-full gap-2">{badge} Link Account</div>
+        <div className="flex gap-2 justify-center items-center w-full">{badge} Link Account</div>
       </ui.StatefulButton>
     </fetcher.Form>
   );
@@ -78,9 +78,7 @@ export function LinkProvidersStep({
 
   let providersToShow = providers
     .filter((p) =>
-      linkableAuthProviderNames.includes(
-        p as 'firebase' | 'google' | 'okta' | 'orcid' | 'bluesky',
-      ),
+      linkableAuthProviderNames.includes(p as 'firebase' | 'google' | 'okta' | 'orcid' | 'bluesky'),
     )
     .filter((provider) => provider !== user.primaryProvider);
 
@@ -137,11 +135,11 @@ export function LinkProvidersStep({
             </div>
           )}
           {!noProvidersToShow && (
-            <div className="flex flex-col items-center w-full my-8 space-y-2">
+            <div className="flex flex-col items-center my-8 space-y-2 w-full">
               {providersToShow.map((provider) => (
                 <div
                   key={provider}
-                  className="flex flex-wrap justify-center w-full max-w-xs gap-x-1 gap-y-2"
+                  className="flex flex-wrap gap-x-1 gap-y-2 justify-center w-full max-w-xs"
                 >
                   {provider === 'firebase' && linkedProviderNames.includes('firebase') && (
                     <div className="flex items-center w-full">
@@ -174,7 +172,7 @@ export function LinkProvidersStep({
                     />
                   )}
                   {provider === 'okta' && linkedProviderNames.includes('okta') && (
-                    <div className="flex items-center w-full gap-2">
+                    <div className="flex gap-2 items-center w-full">
                       <CheckCircle className="w-5 h-5 stroke-green-700 fill-green-50" />
                       <okta.Badge showName /> OKTA
                       <div className="pb-[2px] opacity-50">successfully linked</div>
@@ -191,7 +189,7 @@ export function LinkProvidersStep({
                     />
                   )}
                   {provider === 'orcid' && linkedProviderNames.includes('orcid') && (
-                    <div className="flex items-center w-full gap-2">
+                    <div className="flex gap-2 items-center w-full">
                       <CheckCircle className="w-5 h-5 stroke-green-700 fill-green-50" />
                       <orcid.Badge />
                       <div className="pb-[2px] opacity-50">successfully linked</div>
@@ -208,7 +206,7 @@ export function LinkProvidersStep({
                     />
                   )}
                   {provider === 'bluesky' && linkedProviderNames.includes('bluesky') && (
-                    <div className="flex items-center w-full gap-2">
+                    <div className="flex gap-2 items-center w-full">
                       <CheckCircle className="w-5 h-5 stroke-green-700 fill-green-50" />
                       <bluesky.Badge />
                       <div className="pb-[2px] opacity-50">successfully linked</div>
