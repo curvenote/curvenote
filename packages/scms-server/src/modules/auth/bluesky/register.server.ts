@@ -48,25 +48,19 @@ function getBlueskyConfig(config: AppConfig): BlueskyProviderConfig | null {
 async function createBlueskyClient(
   providerConfig: BlueskyProviderConfig,
 ): Promise<NodeOAuthClient> {
-  const clientMetadata = getBlueskyClientMetadata(providerConfig) as Record<string, unknown> & {
-    client_id: string;
-    redirect_uris: string[];
-    scope: string;
-    grant_types: string[];
-    response_types: string[];
-    dpop_bound_access_tokens: boolean;
-    token_endpoint_auth_method?: string;
-    token_endpoint_auth_signing_alg?: string;
-    jwks_uri?: string;
+  const metadata = getBlueskyClientMetadata(providerConfig);
+  const clientMetadata = {
+    ...metadata,
+    redirect_uris: [providerConfig.redirectUrl] as [string, ...string[]],
   };
 
-  const keyset =
-    providerConfig.privateKeyPem &&
-    (await Promise.all([JoseKey.fromImportable(providerConfig.privateKeyPem, 'key1')]));
+  const keyset = providerConfig.privateKeyPem
+    ? await Promise.all([JoseKey.fromImportable(providerConfig.privateKeyPem, 'key1')])
+    : undefined;
 
   const client = new NodeOAuthClient({
     clientMetadata,
-    keyset: keyset ?? undefined,
+    keyset: keyset?.length ? keyset : undefined,
     stateStore: blueskyStateStore as any,
     sessionStore: blueskySessionStore as any,
   });
