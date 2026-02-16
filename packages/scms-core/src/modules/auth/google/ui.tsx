@@ -7,6 +7,7 @@ import type { FirebaseProfile } from '../firebase/types.js';
 import { cn } from '../../../utils/cn.js';
 import { Shield } from 'lucide-react';
 import { StatefulButton } from '../../../components/ui/index.js';
+import { ClientOnly } from '../../../components/ClientOnly.js';
 
 export function Badge({
   className,
@@ -57,10 +58,16 @@ export function ProfileCardContent({
               {profile.uid}
             </p>
           </div>
-          <Avatar className="hidden w-16 h-16 md:block">
-            <AvatarImage src={profile.photoURL} alt={profile.displayName} />
-            <AvatarFallback>{profile.displayName[0]}</AvatarFallback>
-          </Avatar>
+          <ClientOnly
+            fallback={<div className="hidden w-16 h-16 md:block rounded-full bg-muted" />}
+          >
+            {() => (
+              <Avatar className="hidden w-16 h-16 md:block">
+                <AvatarImage src={profile.photoURL} alt={profile.displayName} />
+                <AvatarFallback>{profile.displayName[0]}</AvatarFallback>
+              </Avatar>
+            )}
+          </ClientOnly>
         </div>
       }
     >
