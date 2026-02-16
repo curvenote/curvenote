@@ -49,7 +49,6 @@ import { List, Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 as uuid } from 'uuidv7';
-import { MINIMAL_PROOFIG_SERVICE_DATA } from '@/extensions/hhmi-checks/packages/checks-proofig/dist/schema';
 
 /**
  * Zod schema for work upload form validation
@@ -298,7 +297,7 @@ export async function action(args: Route.ActionArgs) {
               $schema: CHECK_SERVICE_RUN_ACTION_SCHEMA,
               status: 'healthy',
               serviceDataSchema: {},
-              serviceData: MINIMAL_PROOFIG_SERVICE_DATA,
+              serviceData: {},
             },
           }));
 

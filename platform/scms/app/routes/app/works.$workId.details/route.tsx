@@ -11,12 +11,13 @@ import {
 } from '@curvenote/scms-core';
 import type { MetaFunction } from 'react-router';
 import type { WorkDTO } from '@curvenote/common';
-import { GitBranch, Radio } from 'lucide-react';
-import { WorkVersionsTable } from './WorkVersionsTable';
+import { Radio } from 'lucide-react';
+import { WorkVersionTimeline } from './WorkVersionTimeline';
 import type {
   SubmissionWithVersionsAndSite,
   WorkVersionWithSubmissionVersions,
 } from '../works.$workId/types';
+import type { WorkActivityRow } from '../works.$workId/db.server';
 import type { Workflow } from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from './WorkVersionsTable';
 
@@ -27,6 +28,8 @@ type LoaderData = {
   versions: WorkVersionWithSubmissionVersions[];
   submissions: SubmissionWithVersionsAndSite[];
   linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
+  workOwnerName: string | null;
+  activities: WorkActivityRow[];
 };
 
 export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
@@ -35,8 +38,16 @@ export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
 };
 
 export default function WorkDetailRoute() {
-  const { userScopes, workflows, work, versions, submissions, linkedJobsByWorkVersionId } =
-    useRouteLoaderData('routes/app/works.$workId/route') as LoaderData;
+  const {
+    userScopes,
+    workflows,
+    work,
+    versions,
+    submissions,
+    linkedJobsByWorkVersionId,
+    workOwnerName,
+    activities,
+  } = useRouteLoaderData('routes/app/works.$workId/route') as LoaderData;
 
   // Prefer the latest non-draft work version for user-facing "Last updated" copy.
   // (Versions are sorted newest-first, but drafts may appear at the top.)
@@ -127,27 +138,17 @@ export default function WorkDetailRoute() {
             })}
           </div>
         </SectionWithHeading>
-        <SectionWithHeading
-          className=""
-          heading={
-            (
-              <span className="flex gap-2 items-center">
-                <GitBranch className="w-5 h-5" />
-                Versions
-              </span>
-            ) as React.ReactNode
-          }
-        >
-          <primitives.Card lift>
-            <WorkVersionsTable
-              workflows={workflows}
-              versions={versions}
-              basePath={`/app/works/${work.id}`}
-              userScopes={userScopes}
-              linkedJobsByWorkVersionIdPromise={linkedJobsByWorkVersionId}
-            />
-          </primitives.Card>
-        </SectionWithHeading>
+        <div>
+          <WorkVersionTimeline
+            versions={versions}
+            workflows={workflows}
+            workOwnerName={workOwnerName}
+            basePath={`/app/works/${work.id}`}
+            userScopes={userScopes}
+            linkedJobsByWorkVersionId={linkedJobsByWorkVersionId}
+            activities={activities}
+          />
+        </div>
       </div>
     </PageFrame>
   );

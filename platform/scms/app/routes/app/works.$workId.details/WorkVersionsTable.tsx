@@ -1,14 +1,20 @@
-import { Suspense, useEffect, useState } from 'react';
-import { Await, useSearchParams, useFetcher } from 'react-router';
-import { cn, formatDate, ui, scopes } from '@curvenote/scms-core';
+import { Suspense } from 'react';
+import { Await, useSearchParams } from 'react-router';
+import { cn, formatDate, ui } from '@curvenote/scms-core';
 import type { WorkVersionWithSubmissionVersions } from '../works.$workId/types';
 import type { Workflow } from '@curvenote/scms-core';
-import { Clock, Loader2, MoreVertical } from 'lucide-react';
+import { Clock, Loader2 } from 'lucide-react';
 
 export type LinkedJobsByWorkVersionId = Record<string, { id: string; status: string }[]>;
 
 /** File entry in work version metadata.files (may include signedUrl when loaded for details). */
-type MetadataFileItem = { name: string; path?: string; label?: string; signedUrl?: string; size?: number };
+type MetadataFileItem = {
+  name: string;
+  path?: string;
+  label?: string;
+  signedUrl?: string;
+  size?: number;
+};
 
 function formatFileSize(bytes: number | undefined): string {
   if (bytes == null || typeof bytes !== 'number' || bytes < 0) return '';
@@ -24,24 +30,14 @@ function WorkVersionTableRow({
   idx,
   workflows,
   basePath,
-  userScopes,
-  canExport,
   linkedJobsByWorkVersionIdPromise,
-  fetcher,
-  menuOpenId,
-  setMenuOpenId,
   includeDrafts,
 }: {
   v: WorkVersionWithSubmissionVersions;
   idx: number;
   workflows: Record<string, Workflow>;
   basePath: string;
-  userScopes: string[];
-  canExport: boolean;
   linkedJobsByWorkVersionIdPromise: Promise<LinkedJobsByWorkVersionId>;
-  fetcher: ReturnType<typeof useFetcher>;
-  menuOpenId: string | null;
-  setMenuOpenId: (id: string | null) => void;
   includeDrafts: boolean;
 }) {
   const submissionVersionsToShow = includeDrafts
@@ -71,7 +67,7 @@ function WorkVersionTableRow({
               return <span className="text-sm italic text-gray-400">—</span>;
             }
             return (
-              <ul className="list-none p-0 m-0 flex flex-col gap-1">
+              <ul className="flex flex-col gap-1 p-0 m-0 list-none">
                 {Object.entries(files).map(([, file]) => {
                   const name = file?.name ?? file?.label ?? 'Download';
                   const sizeStr = formatFileSize(file?.size);
@@ -107,7 +103,7 @@ function WorkVersionTableRow({
           'opacity-50': idx !== 0,
         })}
       >
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap gap-2 items-center">
           {submissionVersionsToShow.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {submissionVersionsToShow.map((sv) => (
@@ -125,10 +121,7 @@ function WorkVersionTableRow({
             <span className="text-sm italic text-gray-400">No submissions</span>
           )}
           <Suspense fallback={null}>
-            <Await
-              resolve={linkedJobsByWorkVersionIdPromise}
-              errorElement={null}
-            >
+            <Await resolve={linkedJobsByWorkVersionIdPromise} errorElement={null}>
               {(resolved) => {
                 const linkedJobs = resolved[v.id] ?? [];
                 const hasQueued = linkedJobs.some((j) => j.status === 'QUEUED');
@@ -141,9 +134,9 @@ function WorkVersionTableRow({
                     title={busyTitle}
                   >
                     {hasRunning ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
                     ) : (
-                      <Clock className="h-4 w-4" aria-hidden />
+                      <Clock className="w-4 h-4" aria-hidden />
                     )}
                   </span>
                 );
@@ -152,52 +145,6 @@ function WorkVersionTableRow({
           </Suspense>
         </div>
       </td>
-      {canExport && (
-        <td className="px-4 py-3 align-middle w-[80px]">
-          <Suspense fallback={null}>
-            <Await
-              resolve={linkedJobsByWorkVersionIdPromise}
-              errorElement={null}
-            >
-              {(resolved) => {
-                const linkedJobs = resolved[v.id] ?? [];
-                const hasQueued = linkedJobs.some((j) => j.status === 'QUEUED');
-                const hasRunning = linkedJobs.some((j) => j.status === 'RUNNING');
-                const isExporting = hasQueued || hasRunning;
-                return (
-                  <ui.Menu open={menuOpenId === v.id} onOpenChange={(open) => setMenuOpenId(open ? v.id : null)}>
-                    <ui.MenuTrigger asChild>
-                      <ui.Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        aria-label="Version actions"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </ui.Button>
-                    </ui.MenuTrigger>
-                    <ui.MenuContent>
-                      <ui.MenuItem
-                        disabled={isExporting}
-                        onSelect={() => {
-                          setMenuOpenId(null);
-                          if (isExporting) return;
-                          fetcher.submit(
-                            { intent: 'export-to-pdf', workVersionId: v.id },
-                            { method: 'post', action: basePath },
-                          );
-                        }}
-                      >
-                        Export to PDF
-                      </ui.MenuItem>
-                    </ui.MenuContent>
-                  </ui.Menu>
-                );
-              }}
-            </Await>
-          </Suspense>
-        </td>
-      )}
     </tr>
   );
 }
@@ -206,27 +153,15 @@ export function WorkVersionsTable({
   workflows,
   versions,
   basePath,
-  userScopes,
   linkedJobsByWorkVersionIdPromise,
 }: {
   workflows: Record<string, Workflow>;
   versions: WorkVersionWithSubmissionVersions[];
   basePath: string;
-  userScopes: string[];
   linkedJobsByWorkVersionIdPromise: Promise<LinkedJobsByWorkVersionId>;
 }) {
   const [searchParams] = useSearchParams();
   const includeDrafts = searchParams.get('drafts') === 'true';
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const fetcher = useFetcher<{ success?: boolean; jobId?: string; error?: { type: string; message: string } }>();
-
-  const canExport = userScopes.includes(scopes.app.works.export);
-
-  useEffect(() => {
-    if (fetcher.state === 'idle' && fetcher.data?.error) {
-      ui.toastError(fetcher.data.error.message);
-    }
-  }, [fetcher.state, fetcher.data]);
 
   return (
     <table className="w-full text-left table-fixed dark:text-white">
@@ -235,7 +170,6 @@ export function WorkVersionsTable({
           <th className="px-4 py-2 w-[180px]">Date</th>
           <th className="px-4 py-2 min-w-[120px]">Files</th>
           <th className="px-4 py-2 min-w-[250px]">Submission Status</th>
-          {canExport && <th className="px-4 py-2 w-[80px]" />}
         </tr>
       </thead>
       <tbody>
@@ -246,12 +180,7 @@ export function WorkVersionsTable({
             idx={idx}
             workflows={workflows}
             basePath={basePath}
-            userScopes={userScopes}
-            canExport={canExport}
             linkedJobsByWorkVersionIdPromise={linkedJobsByWorkVersionIdPromise}
-            fetcher={fetcher}
-            menuOpenId={menuOpenId}
-            setMenuOpenId={setMenuOpenId}
             includeDrafts={includeDrafts}
           />
         ))}
