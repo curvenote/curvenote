@@ -541,7 +541,10 @@ export async function createEditorUser(
 }
 
 /**
- * Provision a new user from the editor API.
+ * Provision a new SCMS user, optionally looking up profile data from Editor API.
+ *
+ * If user exists in Editor API, creates SCMS user with Editor profile data and marks signup flow as complete.
+ * If user does NOT exist in Editor API, creates pending SCMS user with signup flow required.
  *
  * @param config - The application configuration
  * @param data - The user data
@@ -565,37 +568,15 @@ export async function provisionNewUserFromEditorAPI(
 
   // Try to get user profile from Editor API
   let editorUserProfile: { username?: string; displayName?: string; email?: string } | undefined;
-  let isExistingEditorUser = false;
-  let isNewEditorUser = false;
   if (resp.ok) {
     editorUserProfile = await resp.json();
-    isExistingEditorUser = true;
   } else {
     console.info(`User not found (Editor API) ${resp.status} ${resp.statusText}`);
-
-    // If not creating Editor users, redirect to pending page
-    if (!config.auth?.firebase?.createEditorUser) {
-      throw redirect('/new-account/pending');
-    }
-
-    // User doesn't exist in Editor API - create them in the Editor Firestore database
-    try {
-      editorUserProfile = await createEditorUser(uid, {
-        email: email ?? '',
-        displayName,
-        emailVerified: true, // They authenticated via Firebase
-      });
-      isNewEditorUser = true;
-    } catch (error: any) {
-      // If user already exists by email, they should use their existing account
-      if (error instanceof EditorUserExistsError) {
-        throw redirect('/new-account/pending');
-      }
-      // Other errors - log and continue -
-      console.log(`Editor user creation: ${error.message}`);
-    }
+    // User doesn't exist in Editor API - will go through signup flow
+    // Editor user creation will be handled in completeSignupFlow
   }
 
+  // Always create SCMS user, whether or not they exist in Editor API
   let user: Awaited<ReturnType<typeof dbCreateUser>>;
 
   // For Google login via Firebase, create a Google-linked user
@@ -608,7 +589,7 @@ export async function provisionNewUserFromEditorAPI(
       primaryProvider: 'google',
       profile: providerData,
       // Only skip signup flow if user was found in Editor API (existing user)
-      editorUserNoPendingOverride: isExistingEditorUser,
+      editorUserNoPendingOverride: !!editorUserProfile,
     });
   } else {
     // Email/password login - create non-linked user
@@ -620,9 +601,9 @@ export async function provisionNewUserFromEditorAPI(
       displayName: editorUserProfile?.displayName ?? displayName,
       primaryProvider: provider,
       // Only skip signup flow if user was found in Editor API
-      pending: !isExistingEditorUser,
+      pending: !editorUserProfile,
       readyForApproval: false,
-      signupData: isExistingEditorUser
+      signupData: editorUserProfile
         ? {
             completedAt: timestamp,
             status: 'completed',
@@ -651,8 +632,7 @@ export async function provisionNewUserFromEditorAPI(
         provider,
         username: editorUserProfile?.username,
         displayName: editorUserProfile?.displayName ?? displayName,
-        isExistingEditorUser,
-        isNewEditorUser,
+        isExistingEditorUser: !!editorUserProfile,
       },
     },
     config.api?.slack,
