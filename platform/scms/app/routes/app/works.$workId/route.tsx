@@ -15,6 +15,8 @@ import {
 import { buildMenu } from './menu';
 import {
   dbGetLinkedJobsByWorkVersionIds,
+  dbGetWorkActivities,
+  dbGetWorkOwnerName,
   dbGetWorkVersionsWithSubmissionVersions,
 } from './db.server';
 import { WorkDetailsCard } from './WorkDetailsCard';
@@ -126,6 +128,9 @@ export const loader = async (args: LoaderFunctionArgs) => {
     }),
   );
 
+  const workOwnerName = await dbGetWorkOwnerName(ctx.work.id);
+  const activities = await dbGetWorkActivities(ctx.work.id);
+
   return {
     userScopes: ctx.scopes,
     workflows,
@@ -133,6 +138,8 @@ export const loader = async (args: LoaderFunctionArgs) => {
     versions: versionsWithSignedFileMetadata,
     submissions: submissions ?? [],
     linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
+    workOwnerName,
+    activities,
   };
 };
 
