@@ -15,6 +15,7 @@ import {
   scopes,
   getExtensionCheckServicesFromServerConfig,
   useDeploymentConfig,
+  ui,
 } from '@curvenote/scms-core';
 import { formatWorkVersionDTO } from './db.server';
 import type { ChecksMetadataSection } from '../works.$workId.upload.$workVersionId/checks.schema';
@@ -153,26 +154,33 @@ export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) 
   return (
     <PageFrame title="Work Integrity" breadcrumbs={breadcrumbs}>
       <div className="mt-4 space-y-6">
-        {/* Dynamically render check sections from extensions */}
+        {/* Dynamically render check sections from extensions: header then activity in a card */}
         {checkServices.map((service) => {
-          const Component = service.checksSectionComponent as React.ComponentType<{
+          const HeaderComponent = service.sectionHeaderComponent;
+          const ActivityComponent = service.sectionActivityComponent as React.ComponentType<{
             metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
           }>;
 
           const existingRunFromThisService = checkServiceRuns.find(
             (run) => run.kind === service.id,
           );
+          const serviceMetadata = (existingRunFromThisService?.data as any)?.serviceData;
 
           return (
-            <React.Fragment key={service.id}>
-              <Component metadata={(existingRunFromThisService?.data as any)?.serviceData} />
+            <div key={service.id} className="space-y-4">
+              <HeaderComponent tag={service.id} />
+              <ui.Card>
+                <ui.CardContent className="pt-6">
+                  <ActivityComponent metadata={serviceMetadata} />
+                </ui.CardContent>
+              </ui.Card>
               <details>
                 <summary>Debug Info</summary>
                 <pre className="p-2 text-xs bg-gray-100 rounded-md min-h-24">
-                  {JSON.stringify((existingRunFromThisService?.data as any)?.serviceData, null, 2)}
+                  {JSON.stringify(serviceMetadata, null, 2)}
                 </pre>
               </details>
-            </React.Fragment>
+            </div>
           );
         })}
       </div>

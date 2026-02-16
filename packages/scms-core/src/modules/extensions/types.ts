@@ -86,7 +86,8 @@ export interface ExtensionCheckService {
   name: string; // Display name
   description: string; // Display description
   // Client-side component to render on checks screen
-  checksSectionComponent: React.ComponentType<{
+  sectionHeaderComponent: React.ComponentType<{ tag: string }>;
+  sectionActivityComponent: React.ComponentType<{
     metadata: any; // WorkVersionMetadata & ChecksMetadataSection
   }>;
   /** Server-side action handler. Used from upload flow (intent 'execute' + ctx + checkRunId + createJob) and checks page (intent + formData + metadata). */
