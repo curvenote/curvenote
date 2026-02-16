@@ -16,15 +16,15 @@ export function SignupCompletionForm({ disabled = false }: { disabled?: boolean 
 
   return (
     <div className="border-t border-stone-300">
-      <fetcher.Form method="post">
-        <input type="hidden" name="intent" value="complete-signup" />
-        <div className="flex justify-between px-8 py-6">
-          <Form action="/logout" method="POST" className="flex justify-center">
-            <ui.Button variant="link" type="submit">
-              Logout
-            </ui.Button>
-          </Form>
-          <div className="flex justify-end">
+      <div className="flex justify-between px-8 py-6">
+        <Form action="/logout" method="POST" className="flex justify-center">
+          <ui.Button variant="link" type="submit">
+            Logout
+          </ui.Button>
+        </Form>
+        <div className="flex justify-end">
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="complete-signup" />
             <ui.StatefulButton
               type="submit"
               name="intent"
@@ -35,9 +35,9 @@ export function SignupCompletionForm({ disabled = false }: { disabled?: boolean 
             >
               Complete Signup
             </ui.StatefulButton>
-          </div>
+          </fetcher.Form>
         </div>
-      </fetcher.Form>
+      </div>
     </div>
   );
 }

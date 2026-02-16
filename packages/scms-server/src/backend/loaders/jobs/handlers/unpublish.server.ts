@@ -13,18 +13,41 @@ import { $updateSubmissionVersion } from '../../../db.server.js';
 import { SlackEventType } from '../../../services/slack.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { createFolder } from '../../../storage/folder.server.js';
+import { unpublishFromAtproto } from '../../../../modules/auth/bluesky/publish.server.js';
 
 export async function unpublishHandler(
   ctx: Context,
   data: CreateJob,
   storageBackend?: StorageBackend,
 ) {
-  const { submission_version_id, cdn, key, user_id } = validate(
-    CreatePublishJobPayloadSchema,
-    data.payload,
-  );
+  const payload = validate(CreatePublishJobPayloadSchema, data.payload);
+  const { submission_version_id, site_id, cdn, key, user_id } = payload;
 
   await validateSitePublishingScopes(ctx, submission_version_id);
+
+  const prismaForSite = await getPrismaClient();
+  const site = await prismaForSite.site.findUnique({
+    where: { id: site_id },
+    select: { data: true },
+  });
+  const siteData = (site?.data as { backend?: { type?: string; nominatedUserLinkedAccountId?: string } } | null) ?? {};
+  const backend = siteData.backend;
+
+  if (backend?.type === 'atproto' && backend.nominatedUserLinkedAccountId) {
+    const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
+    await unpublishFromAtproto({
+      siteId: site_id,
+      nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId,
+      submissionVersionId: submission_version_id,
+      payload: payload as Record<string, unknown>,
+    });
+    const job = await dbUpdateJob(created.id, {
+      status: JobStatus.COMPLETED,
+      message: 'Atproto unpublish path (stub).',
+      results: {},
+    });
+    return job;
+  }
 
   if (!storageBackend) {
     throw httpError(500, 'Storage backend is required for unpublish operations');
@@ -134,8 +157,8 @@ export async function unpublishHandler(
     });
     throw httpError(422, message, { message, error, submission_version_id });
   }
-  const prisma = await getPrismaClient();
-  const sv = await prisma.submissionVersion.findFirst({
+  const prismaClient = await getPrismaClient();
+  const sv = await prismaClient.submissionVersion.findFirst({
     where: { id: submission_version_id },
     include: { submission: { include: { site: { select: { name: true } } } } },
   });

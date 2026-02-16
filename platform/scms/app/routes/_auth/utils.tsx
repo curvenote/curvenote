@@ -1,4 +1,4 @@
-import { firebase, google, okta, orcid } from '@curvenote/scms-core';
+import { firebase, google, okta, orcid, bluesky } from '@curvenote/scms-core';
 
 export function getProviderUI({
   provider,
@@ -21,6 +21,10 @@ export function getProviderUI({
     case 'orcid':
       return (
         <orcid.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
+      );
+    case 'bluesky':
+      return (
+        <bluesky.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
       );
     case 'firebase':
       return (

@@ -42,7 +42,7 @@ export async function $sendSlackNotification(message: SlackMessage, slackConfig?
 
   const text = `${process.env.VERCEL_ENV !== 'production' ? '*[DEV]* ' : ''}${message.message}`;
 
-  const fields = [
+  const fields: { title: string; value: string; short: boolean }[] = [
     {
       title: 'Event Type',
       value: message.eventType,

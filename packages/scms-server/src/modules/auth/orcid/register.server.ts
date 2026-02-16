@@ -12,6 +12,7 @@ import {
 import type { orcid } from '@curvenote/scms-core';
 import { getSetProviderCookie } from '../../../cookies.server.js';
 import { redirect } from 'react-router';
+import { getServerAuth } from '../../database/firebase/firebase.server.js';
 import type { AuthenticatedUser } from '../../../session.server.js';
 import { sessionStorageFactory } from '../../../session.server.js';
 import { $sendSlackNotification, SlackEventType } from '../../../backend/services/slack.server.js';
@@ -94,6 +95,14 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
         let dbUserViaOrcid = await dbGetUserByLinkedAccount('orcid', idPayload.sub);
 
         if (dbUserViaOrcid) {
+          // Check if this ORCID account is already linked to a different user
+          const user = session.get('user');
+          if (user && dbUserViaOrcid.id !== user.userId) {
+            // ORCID account is already linked to a different user
+            throw redirect(
+              `/app/settings/linked-accounts?error=true&provider=orcid&message=${encodeURIComponent('This ORCID account has already been linked to another account.')}`,
+            );
+          }
           // update profile
           try {
             const account = assertLinkedAccount('orcid', dbUserViaOrcid);
@@ -164,6 +173,34 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
               throw error;
             }
           } else if (provisionNewUsers) {
+            // Check if a Firebase Auth user already exists with this email
+            // If so, redirect to Firebase login flow
+            if (profile.email) {
+              let firebaseUserExists = false;
+              try {
+                const serverAuth = await getServerAuth();
+                await serverAuth.getUserByEmail(profile.email);
+                firebaseUserExists = true;
+              } catch (error: any) {
+                // If user not found, that's fine - continue with ORCID signup
+                if (error?.code === 'auth/user-not-found') {
+                  // Continue to create user
+                } else {
+                  // Other errors - log and continue
+                  console.error('Error checking Firebase user:', error);
+                }
+              }
+              if (firebaseUserExists) {
+                throw redirect(
+                  failureRedirectUrl({
+                    provider: 'firebase',
+                    message:
+                      'An account with this email already exists. Please log in then connect your ORCID account.',
+                  }),
+                );
+              }
+            }
+
             // Create a new user and linked account
             dbUserViaOrcid = await dbCreateUserWithPrimaryLinkedAccount<orcid.ORCIDProfile>({
               email: profile.email,

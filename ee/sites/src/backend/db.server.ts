@@ -1,12 +1,26 @@
 import { getPrismaClient } from '@curvenote/scms-server';
 
 /**
+ * Backend configuration stored in site.data.backend
+ */
+export type SiteBackendConfig =
+  | { type: 'curvenote-cdn' }
+  | { type: 'atproto'; nominatedUserLinkedAccountId: string };
+
+/**
+ * Schema reference for site.data JSON (top-level $schema key)
+ */
+export const SITE_DATA_SCHEMA = 'https://curvenote.com/schemas/site-data/v1';
+
+/**
  * Site data structure for internal app use
  * This includes fields not exposed via the public API
  */
 export type SiteAppData = {
   magicLinksEnabled?: boolean;
-  // Add other app-specific site data fields here as needed
+  /** @see SITE_DATA_SCHEMA */
+  $schema?: string;
+  backend?: SiteBackendConfig;
 };
 
 /**

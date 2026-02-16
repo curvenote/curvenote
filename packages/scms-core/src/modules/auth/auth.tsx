@@ -14,6 +14,11 @@ import {
   ProfileCardContent as ORCIDProfileCardContent,
   LoginUI as ORCIDLoginUI,
 } from './orcid/ui.js';
+import {
+  Badge as BlueskyBadge,
+  ProfileCardContent as BlueskyProfileCardContent,
+  LoginUI as BlueskyLoginUI,
+} from './bluesky/ui.js';
 import type { FirebaseProfile } from './firebase/types.js';
 import type { OktaProfile } from '@curvenote/remix-auth-okta';
 
@@ -27,6 +32,8 @@ export function ProviderBadge({ provider, ...props }: { provider: string }) {
       return <OktaBadge {...props} />;
     case 'orcid':
       return <ORCIDBadge {...props} />;
+    case 'bluesky':
+      return <BlueskyBadge {...props} />;
     default:
       return <div className="capitalize">{provider}</div>;
   }
@@ -66,5 +73,10 @@ export const AuthComponentMap: Record<string, AuthProviderComponents> = {
     Badge: ORCIDBadge,
     ProfileCardContent: ORCIDProfileCardContent,
     LoginUI: ORCIDLoginUI,
+  },
+  bluesky: {
+    Badge: BlueskyBadge,
+    ProfileCardContent: BlueskyProfileCardContent,
+    LoginUI: BlueskyLoginUI,
   },
 };
