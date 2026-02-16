@@ -4,6 +4,7 @@ import { registerGoogleStrategy } from './google/register.server.js';
 import { registerFirebaseStrategy } from './firebase/register.server.js';
 import { registerOktaStrategy } from './okta/register.server.js';
 import { registerOrcidStrategy } from './orcid/register.server.js';
+import { registerBlueskyStrategy } from './bluesky/register.server.js';
 import type { AuthenticatedUserWithProviderCookie } from '../../session.server.js';
 
 export type AppAuthenticator = Authenticator<AuthenticatedUserWithProviderCookie>;
@@ -32,6 +33,9 @@ export async function authenticatorFactory() {
     }
     if (provider === 'orcid') {
       registerOrcidStrategy(config, authenticator);
+    }
+    if (provider === 'bluesky') {
+      await registerBlueskyStrategy(config, authenticator);
     }
   }
   return authenticator;

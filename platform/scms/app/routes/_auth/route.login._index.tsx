@@ -1,4 +1,4 @@
-import { useDeploymentConfig, google, okta, orcid, firebase, ui } from '@curvenote/scms-core';
+import { useDeploymentConfig, google, okta, orcid, firebase, bluesky, ui } from '@curvenote/scms-core';
 import { useEffect, useState } from 'react';
 import { OrDivider } from './OrDivider';
 import type { ClientSideSafeAuthOptions, ClientSigninSignupConfig } from '@curvenote/scms-core';
@@ -55,6 +55,7 @@ function AllProviderLoginArea({
   const orcidProvider = loginAuthProviders.find((p) => p.provider === 'orcid');
   const googleProvider = loginAuthProviders.find((p) => p.provider === 'google');
   const oktaProvider = loginAuthProviders.find((p) => p.provider === 'okta');
+  const blueskyProvider = loginAuthProviders.find((p) => p.provider === 'bluesky');
 
   return (
     <div className="flex flex-col items-center w-full space-y-8">
@@ -77,6 +78,9 @@ function AllProviderLoginArea({
         )}
         {orcidProvider && orcidProvider.allowLogin && (
           <orcid.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
+        )}
+        {blueskyProvider && blueskyProvider.allowLogin && (
+          <bluesky.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
         )}
       </div>
       {showOrDivider && <OrDivider />}
