@@ -2,6 +2,7 @@ import { useFetcher, useLoaderData } from 'react-router';
 import type { ActionResponse, LoaderData } from './types';
 import { TaskListStep } from './TaskListStep';
 import { ui, useDeploymentConfig, github, google, okta, orcid, cn } from '@curvenote/scms-core';
+import { ui, useDeploymentConfig, google, okta, orcid, bluesky, cn } from '@curvenote/scms-core';
 import { useEffect, useState } from 'react';
 import type { LinkProvidersStepData, UserData } from '@curvenote/scms-core';
 import type { AlternativePrompt } from '@/types/app-config';
@@ -54,7 +55,7 @@ export function LinkAccountDuringSignupButton({
         overlayBusy
         className="w-full"
       >
-        <div className="flex items-center justify-center w-full gap-2">{badge} Link Account</div>
+        <div className="flex gap-2 justify-center items-center w-full">{badge} Link Account</div>
       </ui.StatefulButton>
     </fetcher.Form>
   );
@@ -78,7 +79,9 @@ export function LinkProvidersStep({
 
   let providersToShow = providers
     .filter((p) =>
-      linkableAuthProviderNames.includes(p as 'firebase' | 'github' | 'google' | 'okta' | 'orcid'),
+      linkableAuthProviderNames.includes(
+        p as 'firebase' | 'google' | 'okta' | 'orcid' |'github'| 'bluesky',
+      ),
     )
     .filter((provider) => provider !== user.primaryProvider);
 
@@ -135,11 +138,11 @@ export function LinkProvidersStep({
             </div>
           )}
           {!noProvidersToShow && (
-            <div className="flex flex-col items-center w-full my-8 space-y-2">
+            <div className="flex flex-col items-center my-8 space-y-2 w-full">
               {providersToShow.map((provider) => (
                 <div
                   key={provider}
-                  className="flex flex-wrap justify-center w-full max-w-xs gap-x-1 gap-y-2"
+                  className="flex flex-wrap gap-x-1 gap-y-2 justify-center w-full max-w-xs"
                 >
                   {provider === 'firebase' && linkedProviderNames.includes('firebase') && (
                     <div className="flex items-center w-full">
@@ -172,7 +175,7 @@ export function LinkProvidersStep({
                     />
                   )}
                   {provider === 'okta' && linkedProviderNames.includes('okta') && (
-                    <div className="flex items-center w-full gap-2">
+                    <div className="flex gap-2 items-center w-full">
                       <CheckCircle className="w-5 h-5 stroke-green-700 fill-green-50" />
                       <okta.Badge showName /> OKTA
                       <div className="pb-[2px] opacity-50">successfully linked</div>
@@ -189,7 +192,7 @@ export function LinkProvidersStep({
                     />
                   )}
                   {provider === 'orcid' && linkedProviderNames.includes('orcid') && (
-                    <div className="flex items-center w-full gap-2">
+                    <div className="flex gap-2 items-center w-full">
                       <CheckCircle className="w-5 h-5 stroke-green-700 fill-green-50" />
                       <orcid.Badge />
                       <div className="pb-[2px] opacity-50">successfully linked</div>
@@ -206,7 +209,7 @@ export function LinkProvidersStep({
                     />
                   )}
                   {provider === 'github' && linkedProviderNames.includes('github') && (
-                    <div className="flex items-center w-full gap-2">
+                    <div className="flex gap-2 items-center w-full">
                       <CheckCircle className="w-5 h-5 stroke-green-700 fill-green-50" />
                       <github.Badge />
                       <div className="pb-[2px] opacity-50">successfully linked</div>
@@ -216,6 +219,17 @@ export function LinkProvidersStep({
                     <LinkAccountDuringSignupButton
                       provider={provider}
                       badge={<github.Badge />}
+                  {provider === 'bluesky' && linkedProviderNames.includes('bluesky') && (
+                    <div className="flex gap-2 items-center w-full">
+                      <CheckCircle className="w-5 h-5 stroke-green-700 fill-green-50" />
+                      <bluesky.Badge />
+                      <div className="pb-[2px] opacity-50">successfully linked</div>
+                    </div>
+                  )}
+                  {provider === 'bluesky' && !linkedProviderNames.includes('bluesky') && (
+                    <LinkAccountDuringSignupButton
+                      provider={provider}
+                      badge={<bluesky.Badge />}
                       disabled={submitting || skipped}
                       submitting={submitting}
                       setSubmitting={setSubmitting}
