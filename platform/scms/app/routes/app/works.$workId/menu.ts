@@ -23,9 +23,9 @@ export function buildMenu(
       end: true,
     });
     menus.push({
-      name: 'work.checks',
-      label: 'Checks',
-      url: `${baseUrl}/checks`,
+      name: 'work.work-integrity',
+      label: 'Work Integrity',
+      url: `${baseUrl}/work-integrity`,
     });
     menus.push({
       name: 'work.users',

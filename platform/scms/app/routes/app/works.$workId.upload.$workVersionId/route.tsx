@@ -275,8 +275,8 @@ export async function action(args: Route.ActionArgs) {
           }
         }
 
-        // Navigate to checks page
-        return redirect(`/app/works/${workId}/checks`);
+        // Navigate to work integrity page
+        return redirect(`/app/works/${workId}/work-integrity`);
       }
 
       // For other intents, slot is required

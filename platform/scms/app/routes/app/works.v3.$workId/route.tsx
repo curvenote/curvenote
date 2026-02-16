@@ -67,7 +67,7 @@ export async function loader(args: LoaderFunctionArgs) {
     pathname === `/app/works/${workId}/` ||
     pathname.startsWith(`/app/works/${workId}/details`) ||
     pathname.startsWith(`/app/works/${workId}/users`) ||
-    pathname.startsWith(`/app/works/${workId}/checks`) ||
+    pathname.startsWith(`/app/works/${workId}/work-integrity`) ||
     pathname.startsWith(`/app/works/${workId}/site/`) ||
     pathname === `/app/works/v3/${workId}`;
 

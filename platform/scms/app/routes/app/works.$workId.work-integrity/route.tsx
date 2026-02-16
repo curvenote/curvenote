@@ -116,10 +116,10 @@ export async function action(args: Route.ActionArgs) {
 
 export const meta: Route.MetaFunction = ({ matches }) => {
   const branding = getBrandingFromMetaMatches(matches);
-  return [{ title: joinPageTitle('Checks', branding.title) }];
+  return [{ title: joinPageTitle('Work Integrity', branding.title) }];
 };
 
-export default function ChecksPage({ loaderData }: Route.ComponentProps) {
+export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) {
   const { work, workVersion, checkServiceRuns } = loaderData;
 
   // Resolve check services at render time to avoid serialization issues
@@ -148,12 +148,12 @@ export default function ChecksPage({ loaderData }: Route.ComponentProps) {
   const breadcrumbs = [
     { label: 'Works', href: '/app/works' },
     { label: truncatedTitle, href: `/app/works/${work.id}` },
-    { label: 'Checks', isCurrentPage: true },
+    { label: 'Work Integrity', isCurrentPage: true },
   ];
 
   return (
     <PageFrame
-      title="Checks"
+      title="Work Integrity"
       subtitle="Run integrity checks on this work"
       breadcrumbs={breadcrumbs}
     >

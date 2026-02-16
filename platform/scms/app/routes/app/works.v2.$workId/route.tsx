@@ -54,7 +54,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
       pathname === `/app/works/${workId}/` ||
       pathname.startsWith(`/app/works/${workId}/details`) ||
       pathname.startsWith(`/app/works/${workId}/users`) ||
-      pathname.startsWith(`/app/works/${workId}/checks`) ||
+      pathname.startsWith(`/app/works/${workId}/work-integrity`) ||
       pathname.startsWith(`/app/works/${workId}/site/`) ||
       pathname === `/app/works/v2/${workId}` ||
       pathname.startsWith(`/app/works/v2/${workId}/`);
@@ -270,7 +270,7 @@ export default function WorkDetailV2Route({ loaderData }: Route.ComponentProps) 
                                 <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
                                     <CheckCircle2 className="h-4 w-4" aria-hidden />
-                                    {hasMetadata ? 'Checks' : 'Check results —'}
+                                    {hasMetadata ? 'Work Integrity' : 'Work integrity results —'}
                                   </span>
                                   {nonDraftSvs.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
