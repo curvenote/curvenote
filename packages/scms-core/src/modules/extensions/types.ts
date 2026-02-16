@@ -86,7 +86,7 @@ export interface ExtensionCheckService {
   name: string; // Display name
   description: string; // Display description
   // Client-side component to render on checks screen
-  sectionHeaderComponent: React.ComponentType<{ tag: string }>;
+  sectionHeaderComponent: React.ComponentType<{ tag: React.ReactNode }>;
   sectionActivityComponent: React.ComponentType<{
     metadata: any; // WorkVersionMetadata & ChecksMetadataSection
   }>;

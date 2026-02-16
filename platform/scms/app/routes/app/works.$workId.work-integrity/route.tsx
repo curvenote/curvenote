@@ -16,6 +16,7 @@ import {
   getExtensionCheckServicesFromServerConfig,
   useDeploymentConfig,
   ui,
+  formatDate,
 } from '@curvenote/scms-core';
 import { formatWorkVersionDTO } from './db.server';
 import type { ChecksMetadataSection } from '../works.$workId.upload.$workVersionId/checks.schema';
@@ -23,6 +24,7 @@ import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { jobs, registerExtensionJobs } from '@curvenote/scms-server';
 import { uuidv7 as uuid } from 'uuidv7';
+import { Tag } from './Tag';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureWorkContext(args, [scopes.work.checks.read]);
@@ -151,6 +153,9 @@ export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) 
     { label: 'Work Integrity', isCurrentPage: true },
   ];
 
+  const formattedDate = formatDate(workVersion.date_created, 'MMM dd, yyyy');
+  const tag = <Tag tag={formattedDate} />;
+
   return (
     <PageFrame title="Work Integrity" breadcrumbs={breadcrumbs}>
       <div className="mt-4 space-y-6">
@@ -168,7 +173,7 @@ export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) 
 
           return (
             <div key={service.id} className="space-y-4">
-              <HeaderComponent tag={service.id} />
+              <HeaderComponent tag={tag} />
               <ui.Card>
                 <ui.CardContent className="pt-6">
                   <ActivityComponent metadata={serviceMetadata} />
