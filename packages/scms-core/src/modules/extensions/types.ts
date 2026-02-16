@@ -101,6 +101,9 @@ export type ClientExtensionCheckService = Omit<
   'handleAction' | 'handleStatus'
 >;
 
+/** Props for the optional extension admin card component (platform extensions page). */
+export type ExtensionAdminCardProps = { config: Record<string, unknown> };
+
 export interface ClientExtension {
   id: string;
   name: string;
@@ -112,11 +115,15 @@ export interface ClientExtension {
   getWorkflows?: () => WorkflowRegistration;
   getChecks?: () => ClientExtensionCheckService[];
   registerNavigation: NavigationRegistrationFn;
+  /** Optional component to render extension admin card content; receives sanitized config. */
+  getExtensionAdminCard?: () => React.ComponentType<ExtensionAdminCardProps>;
 }
 
 export interface ServerExtension extends ClientExtension {
   registerRoutes?: (appConfig: AppConfig) => Promise<RouteRegistration[]>;
   getJobs?: () => JobRegistration[];
+  /** Returns safe admin config for platform UI; must obfuscate secrets. Only called server-side. */
+  getSafeAdminConfig?: (config: Record<string, unknown>) => Record<string, unknown>;
 }
 
 export type RouteRegistration = {

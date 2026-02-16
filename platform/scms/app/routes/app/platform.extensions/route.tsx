@@ -7,11 +7,13 @@ import {
   SectionWithHeading,
   useDeploymentConfig,
   getExtensionIcon,
+  sanitizeExtensionAdminConfig,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
 
 export async function loader(args: Route.LoaderArgs) {
-  await withAppPlatformAdminContext(args, { redirectTo: '/app' });
+  const ctx = await withAppPlatformAdminContext(args, { redirectTo: '/app' });
   const prisma = await getPrismaClient();
   const sites = await prisma.site.findMany({
     where: { external: true },
@@ -23,11 +25,56 @@ export async function loader(args: Route.LoaderArgs) {
     },
   });
 
-  return { sites };
+  const extensionAdminConfigs: Record<string, Record<string, unknown> | undefined> = {};
+  const rawExtensions = ctx.$config.app?.extensions as Record<string, Record<string, unknown>> | undefined;
+  if (rawExtensions) {
+    for (const [id, config] of Object.entries(rawExtensions)) {
+      if (!config || typeof config !== 'object') continue;
+      const ext = serverExtensions.find((e) => e.id.toLowerCase() === id.toLowerCase());
+      let safe: Record<string, unknown> | undefined;
+      if (ext?.getSafeAdminConfig) {
+        safe = ext.getSafeAdminConfig(config);
+      }
+      extensionAdminConfigs[id] = safe !== undefined ? sanitizeExtensionAdminConfig(safe) : undefined;
+    }
+  }
+
+  return { sites, extensionAdminConfigs };
+}
+
+const capabilityLabels: Record<string, string> = {
+  dataModels: 'Data Models',
+  inboundEmail: 'Inbound Email',
+  navigation: 'Navigation',
+  routes: 'Routes',
+  task: 'Dashboard Task',
+  workflows: 'Workflows',
+  checks: 'Checks',
+};
+
+function ExtensionCardBodyFallback({ extension }: { extension: { capabilities: string[] } }) {
+  return (
+    <div className="space-y-3">
+      {extension.capabilities.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Capabilities:</p>
+          <div className="flex flex-wrap gap-2">
+            {extension.capabilities.map((capability) => (
+              <ui.Badge key={capability} variant="secondary">
+                {capabilityLabels[capability] || capability}
+              </ui.Badge>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">No capabilities configured</p>
+      )}
+    </div>
+  );
 }
 
 export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
-  const { sites } = loaderData;
+  const { sites, extensionAdminConfigs } = loaderData;
 
   const deploymentConfig = useDeploymentConfig();
   const extensionsConfig = deploymentConfig.extensions ?? {};
@@ -35,18 +82,12 @@ export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
   return (
     <PageFrame title="Extensions">
       <SectionWithHeading heading="Configured Extensions">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-col gap-4">
           {Object.entries(extensionsConfig ?? {}).map(([name, extension]) => {
-            // Resolve icon component from registry using extension name/ID
             const ExtensionIcon = getExtensionIcon(extensions, name);
-            const capabilityLabels: Record<string, string> = {
-              dataModels: 'Data Models',
-              inboundEmail: 'Inbound Email',
-              navigation: 'Navigation',
-              routes: 'Routes',
-              task: 'Dashboard Task',
-              workflows: 'Workflows',
-            };
+            const clientExt = extensions.find((e) => e.id.toLowerCase() === name.toLowerCase());
+            const AdminCardComponent = clientExt?.getExtensionAdminCard?.();
+            const safeConfig = extensionAdminConfigs?.[name];
 
             return (
               <primitives.Card key={name} lift>
@@ -55,23 +96,11 @@ export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
                     {ExtensionIcon && <ExtensionIcon className="w-6 h-6" />}
                     <h2 className="text-xl font-semibold capitalize">{name}</h2>
                   </div>
-                  <div className="space-y-3">
-                    {extension.capabilities.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-muted-foreground">Capabilities:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {extension.capabilities.map((capability) => (
-                            <ui.Badge key={capability} variant="secondary">
-                              {capabilityLabels[capability] || capability}
-                            </ui.Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {extension.capabilities.length === 0 && (
-                      <p className="text-sm text-muted-foreground">No capabilities configured</p>
-                    )}
-                  </div>
+                  {AdminCardComponent && safeConfig !== undefined ? (
+                    <AdminCardComponent config={safeConfig} />
+                  ) : (
+                    <ExtensionCardBodyFallback extension={extension} />
+                  )}
                 </div>
               </primitives.Card>
             );
