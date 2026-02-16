@@ -3,12 +3,14 @@ import { OAuth2Strategy } from 'remix-auth-oauth2';
 import jwt from 'jsonwebtoken';
 import {
   assertLinkedAccount,
+  createEditorUser,
   dbCreateUserWithPrimaryLinkedAccount,
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
   handleAccountLinking,
 } from '../common.server.js';
+import { getServerAuth } from '../../database/firebase/firebase.server.js';
 import type { orcid } from '@curvenote/scms-core';
 import { getSetProviderCookie } from '../../../cookies.server.js';
 import { redirect } from 'react-router';
@@ -164,8 +166,55 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
               throw error;
             }
           } else if (provisionNewUsers) {
-            // Create a new user and linked account
+            // Create Firebase Auth user first (if enabled), then use Firebase UID as SCMS user ID
+            let firebaseUid: string | undefined;
+            let isNewEditorUser = false;
+            const orcidEmail = profile.email;
+            if (config.auth?.orcid?.createEditorUser && orcidEmail) {
+              const serverAuth = await getServerAuth();
+
+              // First, create Firebase Auth user (so they can use email/password login later)
+              try {
+                const firebaseUser = await serverAuth.createUser({
+                  email: orcidEmail,
+                  displayName: profile.name,
+                  emailVerified: true, // They authenticated via ORCID
+                });
+                firebaseUid = firebaseUser.uid;
+              } catch (error: any) {
+                // If Firebase Auth user already exists, redirect to Firebase flow
+                if (
+                  error?.code === 'auth/uid-already-exists' ||
+                  error?.code === 'auth/email-already-exists'
+                ) {
+                  throw redirect(
+                    failureRedirectUrl({
+                      provider: 'firebase',
+                      message:
+                        'An account with this email already exists. Please log in then connect your ORCID account.',
+                    }),
+                  );
+                }
+                throw error;
+              }
+
+              // Then, create Editor Firestore document
+              try {
+                await createEditorUser(firebaseUid, {
+                  email: orcidEmail,
+                  displayName: profile.name,
+                  emailVerified: true,
+                });
+                isNewEditorUser = true;
+              } catch (error: any) {
+                // If Editor user already exists, that's fine - continue
+                console.log(`Editor user creation: ${error.message}`);
+              }
+            }
+
+            // Create a new user and linked account (use Firebase UID as SCMS user ID if available)
             dbUserViaOrcid = await dbCreateUserWithPrimaryLinkedAccount<orcid.ORCIDProfile>({
+              id: firebaseUid, // Use Firebase UID as SCMS user ID if available
               email: profile.email,
               username: profile.name.toLocaleLowerCase().replace(/\s/g, '_'),
               displayName: profile.name,
@@ -184,6 +233,7 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
                   provider: 'orcid',
                   username: dbUserViaOrcid.username,
                   displayName: dbUserViaOrcid.display_name,
+                  isNewEditorUser,
                 },
               },
               config.api?.slack,
