@@ -3,10 +3,12 @@ import { useEffect } from 'react';
 import { ProfileContentLayout } from '../common.js';
 import type { BlueskyProfile } from './types.js';
 import { StatefulButton } from '../../../components/ui/index.js';
+import logo from './logo.svg';
 
 export function Badge({
   className,
   size = 20,
+  showName,
 }: {
   className?: string;
   size?: number;
@@ -17,7 +19,17 @@ export function Badge({
       className={className}
       style={{ fontSize: size, fontWeight: 600, color: 'var(--bluesky-blue, #0085ff)' }}
     >
-      Bluesky
+      <div className="flex items-center gap-2">
+        <img
+          src={logo}
+          alt=""
+          width={size}
+          height={size}
+          className="shrink-0"
+          aria-hidden
+        />
+        {showName && <span>Bluesky</span>}
+      </div>
     </div>
   );
 }
@@ -30,6 +42,9 @@ export function ProfileCardContent({
     <ProfileContentLayout
       content={
         <div className="flex items-center space-x-6 grow">
+          <div className="flex shrink-0 w-12 h-12">
+            <img src={logo} alt="Bluesky" className="w-full h-full object-contain" />
+          </div>
           <div className="flex flex-col">
             <p title="Display Name">{profile.displayName ?? profile.handle ?? 'Bluesky user'}</p>
             {profile.handle && (
@@ -77,7 +92,10 @@ export function LoginUI({
         overlayBusy
         className={className}
       >
-        <span style={{ fontWeight: 600, color: 'var(--bluesky-blue, #0085ff)' }}>Bluesky</span>
+        <div className="flex items-center justify-center gap-2">
+          <img src={logo} alt="" width={20} height={20} className="shrink-0" aria-hidden />
+          <span style={{ fontWeight: 600, color: 'var(--bluesky-blue, #0085ff)' }}>Bluesky</span>
+        </div>
       </StatefulButton>
     </fetcher.Form>
   );
