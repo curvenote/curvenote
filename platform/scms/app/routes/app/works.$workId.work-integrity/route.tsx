@@ -16,7 +16,6 @@ import {
   getExtensionCheckServicesFromServerConfig,
   useDeploymentConfig,
 } from '@curvenote/scms-core';
-import { CurvenoteStructureChecksSection } from './CurvenoteStructureChecksSection';
 import { formatWorkVersionDTO } from './db.server';
 import type { ChecksMetadataSection } from '../works.$workId.upload.$workVersionId/checks.schema';
 import { extensions } from '../../../extensions/client';
@@ -152,11 +151,7 @@ export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) 
   ];
 
   return (
-    <PageFrame
-      title="Work Integrity"
-      subtitle="Run integrity checks on this work"
-      breadcrumbs={breadcrumbs}
-    >
+    <PageFrame title="Work Integrity" breadcrumbs={breadcrumbs}>
       <div className="mt-4 space-y-6">
         {/* Dynamically render check sections from extensions */}
         {checkServices.map((service) => {

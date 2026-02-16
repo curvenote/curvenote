@@ -23,7 +23,7 @@ export function buildMenu(
       end: true,
     });
     menus.push({
-      name: 'work.work-integrity',
+      name: 'work.integrity',
       label: 'Work Integrity',
       url: `${baseUrl}/work-integrity`,
     });

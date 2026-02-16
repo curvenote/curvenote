@@ -3,7 +3,7 @@ import { formatDate, scopes } from '@curvenote/scms-core';
 import type { WorkVersionWithSubmissionVersions } from '../works.$workId/types';
 import type { WorkActivityRow } from '../works.$workId/db.server';
 import type { Workflow } from '@curvenote/scms-core';
-import type { LinkedJobsByWorkVersionId } from './WorkVersionsTable';
+import type { LinkedJobsByWorkVersionId } from './types';
 import { Timeline } from './timeline/Timeline';
 import { TimelineSection } from './timeline/TimelineSection';
 import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineItem';

@@ -4,7 +4,7 @@ import { FilePlus, Loader2 } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
 import { TimelineItemPlain, TimelineItemExpandable } from './TimelineItem';
 import { DateWithPopover } from './DateWithPopover';
-import type { LinkedJobsByWorkVersionId } from '../WorkVersionsTable';
+import type { LinkedJobsByWorkVersionId } from '../types';
 
 /** File entry in work version metadata.files (may include signedUrl when loaded for details). */
 type MetadataFileItem = {
