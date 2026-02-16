@@ -81,6 +81,13 @@ export interface ExtensionCheckHandleActionArgs {
   submitMode?: 'service' | 'stream';
 }
 
+/** Result of handleAction: success with optional status, or error (message string or object with type/message). */
+export type ExtensionCheckHandleActionResult = {
+  success?: boolean;
+  error?: { type: string; message: string; status?: number };
+  status?: number;
+};
+
 export interface ExtensionCheckService {
   id: string; // e.g., 'curvenote-structure'
   name: string; // Display name
@@ -91,7 +98,9 @@ export interface ExtensionCheckService {
     metadata: any; // WorkVersionMetadata & ChecksMetadataSection
   }>;
   /** Server-side action handler. Used from upload flow (intent 'execute' + ctx + checkRunId + createJob) and checks page (intent + formData + metadata). */
-  handleAction?: (args: ExtensionCheckHandleActionArgs) => Promise<Response>;
+  handleAction?: (
+    args: ExtensionCheckHandleActionArgs,
+  ) => Promise<ExtensionCheckHandleActionResult>;
   /** Get current status of a check run. */
   handleStatus?: (args: ExtensionCheckStatusArgs) => Promise<Response>;
 }

@@ -577,6 +577,7 @@ export async function dbCreateDraftWorkVersion(
 /**
  * Create a work-scoped activity (e.g. Export to PDF started, Check started).
  * Used from platform actions to log timeline events.
+ * Use `data` for general payload (e.g. CHECK_STARTED: { check: { kind } }); `transition` remains for transition-related payloads.
  */
 export async function createWorkActivity(params: {
   workId: string;
@@ -584,6 +585,7 @@ export async function createWorkActivity(params: {
   activityById: string;
   activityType: ActivityType | 'EXPORT_TO_PDF_STARTED' | 'CHECK_STARTED';
   transition?: Record<string, unknown> | null;
+  data?: Record<string, unknown> | null;
 }): Promise<void> {
   const prisma = await getPrismaClient();
   const date_created = formatDate();
@@ -597,6 +599,7 @@ export async function createWorkActivity(params: {
       work: { connect: { id: params.workId } },
       work_version: { connect: { id: params.workVersionId } },
       ...(params.transition != null ? { transition: params.transition as object } : {}),
+      ...(params.data != null ? { data: params.data as object } : {}),
     },
   });
 }

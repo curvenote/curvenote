@@ -16,6 +16,8 @@ export const FOLLOW_ON_JSON_SCHEMA: Record<string, any> = {
         job_type: { type: 'string' },
         id: { type: 'string', format: 'uuid' },
         payload: { type: 'object' },
+        activity_type: { type: 'string' },
+        activity_data: { type: 'object' },
       },
     },
   },
@@ -45,12 +47,16 @@ export function createFollowOnSchemas(jobTypes: readonly string[]) {
     job_type: JobTypeEnum,
     id: z.string().uuid().optional(),
     payload: z.record(z.string().min(1), z.any()),
+    activity_type: z.string().optional(),
+    activity_data: z.record(z.string(), z.unknown()).optional(),
   });
 
   const OnSuccessSpecSchemaRelaxed = z.object({
     job_type: z.string(),
     id: z.string().uuid().optional(),
     payload: z.record(z.string().min(1), z.any()),
+    activity_type: z.string().optional(),
+    activity_data: z.record(z.string(), z.unknown()).optional(),
   });
 
   const FollowOnSchema = z.object({

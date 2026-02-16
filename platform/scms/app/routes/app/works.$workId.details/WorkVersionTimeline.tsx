@@ -46,7 +46,7 @@ function getSortedSectionEntries(
       : [
           {
             kind: 'work-version' as const,
-            date: version.date_modified,
+            date: version.date_created,
             key: `work-version-${version.id}`,
             version,
           },
@@ -128,7 +128,7 @@ export function WorkVersionTimeline({
                 return (
                   <VersionCreatedTimelineItem
                     key={entry.key}
-                    dateCreated={version.date_modified}
+                    dateCreated={version.date_created}
                     ownerName={workOwnerName}
                     metadata={version.metadata}
                     workVersionId={version.id}
@@ -146,7 +146,13 @@ export function WorkVersionTimeline({
                   />
                 );
               }
-              return <ActivityTimelineItem key={entry.key} activity={entry.activity} />;
+              return (
+                <ActivityTimelineItem
+                  key={entry.key}
+                  activity={entry.activity}
+                  workIntegrityHref={`${basePath}/work-integrity`}
+                />
+              );
             })}
           </TimelineSection>
         );

@@ -270,16 +270,20 @@ export async function action(args: Route.ActionArgs) {
               ctx: baseCtx,
               serverExtensions,
             };
-            const res = await service.handleAction(actionArgs);
-            if (!res.ok) {
-              console.error(`${kind} check execute failed`, await res.text());
-            } else if (baseCtx.user?.id) {
+            const { success, error, status } = await service.handleAction(actionArgs);
+            if (!success || error) {
+              return data(
+                { error: { type: 'general', message: error?.message ?? 'Check execution failed' } },
+                { status: status ?? 500 },
+              );
+            }
+            if (baseCtx.user?.id) {
               await createWorkActivity({
                 workId,
                 workVersionId,
                 activityById: baseCtx.user.id,
                 activityType: 'CHECK_STARTED',
-                transition: { checkKind: kind },
+                data: { check: { kind } },
               });
             }
           }

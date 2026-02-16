@@ -16,10 +16,8 @@ export default async function (
   if (!dbo) throw error404();
 
   if (dbo.status === 'COMPLETED' && extensionJobs != null) {
-    const createJobFn = (
-      c: Context,
-      d: { id: string; job_type: string; payload: Record<string, any> },
-    ) => invoke(c, d, extensionJobs);
+    const createJobFn = (c: Context, d: Parameters<typeof invoke>[1]) =>
+      invoke(c, d, extensionJobs);
     await triggerFollowOn(ctx, jobId, createJobFn);
   }
 

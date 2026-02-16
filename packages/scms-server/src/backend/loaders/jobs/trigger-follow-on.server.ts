@@ -1,12 +1,10 @@
 import type { Context } from '../../context.server.js';
+import type { CreateJob } from '@curvenote/scms-core';
 import { createFollowOnSchemas } from '@curvenote/scms-core';
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../../prisma.server.js';
 
-export type CreateJobFn = (
-  ctx: Context,
-  data: { id: string; job_type: string; payload: Record<string, any> },
-) => Promise<unknown>;
+export type CreateJobFn = (ctx: Context, data: CreateJob) => Promise<unknown>;
 
 /**
  * If the job is COMPLETED and has follow_on.on_success, create the follow-on job via createJobFn.
@@ -36,12 +34,19 @@ export async function triggerFollowOn(
 
   const { on_success } = parsed.data;
   const id = on_success.id ?? uuidv7();
+  const createJobData: CreateJob = {
+    id,
+    job_type: on_success.job_type,
+    payload: on_success.payload,
+  };
+  if (on_success.activity_type != null) {
+    createJobData.activity_type = on_success.activity_type;
+    if (on_success.activity_data != null) {
+      createJobData.activity_data = on_success.activity_data;
+    }
+  }
   try {
-    await createJobFn(ctx, {
-      id,
-      job_type: on_success.job_type,
-      payload: on_success.payload,
-    });
+    await createJobFn(ctx, createJobData);
   } catch (err) {
     console.error('[triggerFollowOn] Failed to create follow-on job for', jobId, err);
     throw err;

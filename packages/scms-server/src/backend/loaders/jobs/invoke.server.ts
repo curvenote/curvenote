@@ -5,6 +5,8 @@ import type { CreateJob, JobRegistration } from '@curvenote/scms-core';
 import { getHandlers } from './handlers/index.js';
 import { StorageBackend } from '../../storage/index.js';
 import { KnownBuckets } from '../../storage/constants.server.js';
+import { createWorkActivity } from '../../db.server.js';
+import { getPrismaClient } from '../../prisma.server.js';
 
 export default async function (ctx: Context, data: CreateJob, extensionJobs: JobRegistration[]) {
   const { job_type } = data;
@@ -27,5 +29,29 @@ export default async function (ctx: Context, data: CreateJob, extensionJobs: Job
 
   const dbo = await handlers[job_type](ctx, data, storageBackend);
   if (!dbo) throw httpError(422, 'Unable to invoke job handler');
+
+  // Optional: create a work-scoped activity when activity_type is set (work_version_id + user from context).
+  const workVersionId = data.payload?.work_version_id;
+  if (data.activity_type && ctx.user?.id && typeof workVersionId === 'string') {
+    try {
+      const prisma = await getPrismaClient();
+      const wv = await prisma.workVersion.findUnique({
+        where: { id: workVersionId },
+        select: { work_id: true },
+      });
+      if (wv) {
+        await createWorkActivity({
+          workId: wv.work_id,
+          workVersionId,
+          activityById: ctx.user.id,
+          activityType: data.activity_type as 'EXPORT_TO_PDF_STARTED' | 'CHECK_STARTED',
+          data: data.activity_data ?? undefined,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to create work activity after job invoke', data.activity_type, err);
+    }
+  }
+
   return formatJobDTO(ctx, dbo);
 }

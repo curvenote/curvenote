@@ -97,7 +97,8 @@ export type WorkActivityRow = {
   activity_by: { id: string; display_name: string | null };
   work_version_id: string | null;
   submission?: { site: { name: string; title: string | null } };
-  /** Optional payload (e.g. CHECK_STARTED uses transition.checkKind for which check). */
+  /** Optional payload (e.g. CHECK_STARTED uses data.check.kind for which check). */
+  data?: Record<string, unknown> | null;
   transition?: Record<string, unknown> | null;
 };
 
@@ -122,6 +123,7 @@ export async function dbGetWorkActivities(workId: string): Promise<WorkActivityR
     submission: a.submission
       ? { site: a.submission.site as { name: string; title: string | null } }
       : undefined,
+    data: a.data != null ? (a.data as Record<string, unknown>) : undefined,
     transition: a.transition != null ? (a.transition as Record<string, unknown>) : undefined,
   }));
 }

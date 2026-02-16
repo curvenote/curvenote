@@ -9,7 +9,7 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   SUBMISSION_VERSION_ADDED: 'New submission version',
   SUBMISSION_VERSION_STATUS_CHANGE: 'Submission version status changed',
   SUBMISSION_VERSION_TRANSITION_STARTED: 'Submission version transition started',
-  NEW_WORK: 'New work',
+  NEW_WORK: 'New Work',
   WORK_VERSION_ADDED: 'New work version',
   DRAFT_WORK_VERSION_STARTED: 'Draft work version started',
   EXPORT_TO_PDF_STARTED: 'Export to PDF started',
@@ -45,21 +45,28 @@ export function formatCheckKind(checkKind: string): string {
 }
 
 /**
- * Resolve an activity type (and optional transition payload) to a display label.
+ * Resolve an activity type (and optional data/transition payload) to a display label.
  * Use this in activity feeds and timelines so labels stay in one place.
+ * CHECK_STARTED: use options.data?.check?.kind (or options.transition?.checkKind for legacy rows).
  */
 export function getActivityTypeLabel(
   activityType: string,
-  options?: { transition?: Record<string, unknown> | null },
+  options?: {
+    data?: Record<string, unknown> | null;
+    transition?: Record<string, unknown> | null;
+  },
 ): string {
-  if (activityType === 'CHECK_STARTED' && options?.transition) {
-    const checkKind =
-      typeof options.transition.checkKind === 'string' ? options.transition.checkKind : null;
+  if (activityType === 'CHECK_STARTED') {
+    const checkFromData =
+      options?.data && typeof (options.data.check as { kind?: string })?.kind === 'string'
+        ? (options.data.check as { kind: string }).kind
+        : null;
+    const checkFromTransition =
+      typeof options?.transition?.checkKind === 'string' ? options.transition.checkKind : null;
+    const checkKind = checkFromData ?? checkFromTransition;
     if (checkKind) {
       return `${formatCheckKind(checkKind)} check started`;
     }
   }
-  return (
-    ACTIVITY_TYPE_LABELS[activityType] ?? activityType.replace(/_/g, ' ').toLowerCase()
-  );
+  return ACTIVITY_TYPE_LABELS[activityType] ?? activityType.replace(/_/g, ' ').toLowerCase();
 }

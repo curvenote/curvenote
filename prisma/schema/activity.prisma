@@ -72,5 +72,6 @@ model Activity {
   // the following fields should probably be relegated to json data
   status                String?            @default("PENDING")
   transition            Json? // Stores the transition object that caused this activity
+  data                  Json? // General JSON payload (e.g. CHECK_STARTED uses { check: { kind } })
   date_published        String?
 }

@@ -141,23 +141,11 @@ export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) 
     extensions,
   );
 
-  const truncatedTitle = work.title
-    ? workVersion.title.length > 32
-      ? workVersion.title.substring(0, 32) + '...'
-      : workVersion.title
-    : 'Untitled Work';
-
-  const breadcrumbs = [
-    { label: 'Works', href: '/app/works' },
-    { label: truncatedTitle, href: `/app/works/${work.id}` },
-    { label: 'Work Integrity', isCurrentPage: true },
-  ];
-
   const formattedDate = formatDate(workVersion.date_created, 'MMM dd, yyyy');
   const tag = <Tag tag={formattedDate} />;
 
   return (
-    <PageFrame title="Work Integrity" breadcrumbs={breadcrumbs}>
+    <PageFrame title="Work Integrity">
       <div className="mt-4 space-y-6">
         {/* Dynamically render check sections from extensions: header then activity in a card */}
         {checkServices.map((service) => {
