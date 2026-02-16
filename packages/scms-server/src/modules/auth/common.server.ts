@@ -8,6 +8,7 @@ import type { AuthenticatedUser, Session, SessionStorage } from '../../session.s
 import { $sendSlackNotification, SlackEventType } from '../../backend/services/slack.server.js';
 import { sessionStorageFactory } from '../../session.server.js';
 import { getServerFirestore } from '../database/firebase/firebase.server.js';
+import { randomBytes } from 'node:crypto';
 
 /**
  * Error thrown when an Editor user already exists.
@@ -32,6 +33,15 @@ function generateUsernameFromEmail(email: string): string {
 }
 
 /**
+ * Generate a secure random password for Firebase Auth users.
+ * Users can reset this via the "forgot password" flow.
+ */
+export function generateRandomPassword(): string {
+  // Generate 32 random bytes and convert to base64
+  return randomBytes(32).toString('base64');
+}
+
+/**
  * Get a user by their ID.
  *
  * @param id - The user ID
@@ -42,6 +52,42 @@ export async function dbGetUserById(id: string) {
   return prisma.user.findUnique({
     where: { id },
     include: { linkedAccounts: true },
+  });
+}
+
+/**
+ * Delete a pending user and all their linked accounts.
+ * This is used when cleaning up invalid pending users (e.g., duplicate account detection).
+ * Safety check: Only deletes users that are in pending state.
+ *
+ * @param userId - The user ID to delete
+ * @throws Error if user is not found or not in pending state
+ */
+export async function dbDeletePendingUser(userId: string): Promise<void> {
+  const prisma = await getPrismaClient();
+  await prisma.$transaction(async (tx) => {
+    // First verify the user exists and is pending
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { pending: true },
+    });
+
+    if (!user) {
+      throw new Error(`User ${userId} not found`);
+    }
+
+    if (!user.pending) {
+      throw new Error(`User ${userId} is not pending - cannot delete active user`);
+    }
+
+    // Delete linked accounts first (foreign key constraint)
+    await tx.userLinkedAccount.deleteMany({
+      where: { user_id: userId },
+    });
+    // Delete the pending user
+    await tx.user.delete({
+      where: { id: userId },
+    });
   });
 }
 

@@ -93,6 +93,8 @@ export default function LinkedAccounts({ loaderData }: Route.ComponentProps) {
   );
   const showDivider = linkedProviders.length > 0 && linkableOrPendingProviders.length > 0;
 
+  // TODO: Handle error toasts from URL parameters (e.g., from account linking failures)
+
   return (
     <PageFrame
       title="Linked Accounts"
