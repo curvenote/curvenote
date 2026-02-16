@@ -192,6 +192,6 @@ layer(base);
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-stone-100 text-foreground;
   }
 }

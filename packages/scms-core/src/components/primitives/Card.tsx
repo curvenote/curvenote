@@ -32,9 +32,9 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(function Card(
     <div
       ref={ref}
       className={cn(
-        'hide-scrollbar relative w-full overflow-hidden rounded-sm bg-white px-4 border-[1px] border-stone-200 dark:bg-stone-900 dark:border-stone-500 py-4 transition-[padding] duration-300 ease-in-out',
+        'overflow-hidden relative px-4 py-4 w-full bg-white rounded-sm duration-300 ease-in-out hide-scrollbar border-[1px] border-stone-200 dark:bg-stone-900 dark:border-stone-500 transition-[padding]',
         {
-          'shadow-[0px_1px_2px_0px_rgba(68,64,60,0.24),0px_1px_3px_0px_rgba(68,64,60,0.12)] ': lift,
+          'shadow-xs': lift,
           'pb-8': hasMessage,
         },
         className,

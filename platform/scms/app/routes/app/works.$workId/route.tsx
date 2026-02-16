@@ -19,6 +19,7 @@ import {
   dbGetWorkOwnerName,
   dbGetWorkVersionsWithSubmissionVersions,
 } from './db.server';
+import { dbGetWorkUsers, dtoWorkUsers } from '../works.$workId.users/db.server';
 import { WorkDetailsCard } from './WorkDetailsCard';
 import { getUniqueSubmissions } from './utils.server';
 import { extensions } from '../../../extensions/client';
@@ -130,6 +131,8 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   const workOwnerName = await dbGetWorkOwnerName(ctx.work.id);
   const activities = await dbGetWorkActivities(ctx.work.id);
+  const usersDbo = await dbGetWorkUsers(ctx.work.id);
+  const users = usersDbo ? dtoWorkUsers(usersDbo) : [];
 
   return {
     userScopes: ctx.scopes,
@@ -140,6 +143,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
     workOwnerName,
     activities,
+    users,
   };
 };
 
