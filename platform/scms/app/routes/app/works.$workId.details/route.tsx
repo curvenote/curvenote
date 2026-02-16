@@ -15,13 +15,27 @@ import type { WorkDTO } from '@curvenote/common';
 import type { Workflow } from '@curvenote/scms-core';
 import { Radio, Upload } from 'lucide-react';
 import { useEffect } from 'react';
+import { useRouteLoaderData } from 'react-router';
+import { getBrandingFromMetaMatches, joinPageTitle } from '@curvenote/scms-core';
+import type { MetaFunction } from 'react-router';
+import type { WorkDTO } from '@curvenote/common';
 import { WorkVersionTimeline } from './WorkVersionTimeline';
+import { WorkDetailsTopBar } from './WorkDetailsTopBar';
+import { WorkDetailsContentCard } from './WorkDetailsContentCard';
+import { SubmittedToBar } from './SubmittedToBar';
 import type {
   SubmissionWithVersionsAndSite,
   WorkVersionWithSubmissionVersions,
 } from '../works.$workId/types';
 import type { WorkActivityRow } from '../works.$workId/db.server';
 import type { LinkedJobsByWorkVersionId } from './types';
+
+type WorkUser = {
+  id: string;
+  display_name: string | null;
+  email: string | null;
+  work_roles: string[];
+};
 
 type LoaderData = {
   userScopes: string[];
@@ -33,6 +47,7 @@ type LoaderData = {
   workOwnerName: string | null;
   activities: WorkActivityRow[];
   canUpload: boolean;
+  users: WorkUser[];
 };
 
 export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
@@ -51,6 +66,7 @@ export default function WorkDetailRoute() {
     workOwnerName,
     activities,
     canUpload,
+    users,
   } = useRouteLoaderData('routes/app/works.$workId/route') as LoaderData;
 
   const navigate = useNavigate();
@@ -105,8 +121,13 @@ export default function WorkDetailRoute() {
 
   // Prefer the latest non-draft work version for user-facing "Last updated" copy.
   // (Versions are sorted newest-first, but drafts may appear at the top.)
+
   const latestNonDraftWorkVersion = versions.find((v) => !v.draft);
-  const lastUpdatedDate = (latestNonDraftWorkVersion ?? versions[0])?.date_created;
+  const lastUpdatedDate =
+    latestNonDraftWorkVersion?.date_modified ?? versions[0]?.date_modified ?? undefined;
+  const uploadHref = latestNonDraftWorkVersion
+    ? `/app/works/${work.id}/upload/${latestNonDraftWorkVersion.id}`
+    : null;
 
   const truncatedTitle = work.title
     ? work.title.length > 32
@@ -119,21 +140,29 @@ export default function WorkDetailRoute() {
     { label: truncatedTitle, isCurrentPage: true },
   ];
 
+  const basePath = `/app/works/${work.id}`;
+
   return (
-    <>
-      <PageFrame
-        breadcrumbs={breadcrumbs}
-        header={
-          <FrameHeader
-            className="max-w-4xl"
-            title={work.title ?? 'Untitled Work'}
-            subtitle={work.description ?? undefined}
-            actionLabel={canUpload ? uploadButtonLabel : undefined}
-            actionIcon={canUpload ? <Upload className="w-4 h-4" /> : undefined}
-            onAction={canUpload ? handleUploadAction : undefined}
+    <div
+      className="relative w-full py-16 pr-4 xl:mt-0 xl:py-[56px] xl:pr-8 2xl:pr-16 xl:pl-10 2xl:pl-16 max-w-[1400px]"
+      data-name="page-frame"
+    >
+      <div className="space-y-12">
+        <WorkDetailsTopBar workId={work.id} users={users} uploadHref={uploadHref} />
+        <div className="space-y-1">
+          <WorkDetailsContentCard version={latestNonDraftWorkVersion ?? null} />
+          <SubmittedToBar submissions={submissions} workflows={workflows} basePath={basePath} />
+        </div>
+        <div>
+          <WorkVersionTimeline
+            versions={versions}
+            workflows={workflows}
+            workOwnerName={workOwnerName}
+            basePath={basePath}
+            userScopes={userScopes}
+            linkedJobsByWorkVersionId={linkedJobsByWorkVersionId}
+            activities={activities}
           />
-        }
-      >
         <div className="mt-4 space-y-6 md:space-y-12">
           <div className="space-y-2">
             <div className="text-base text-muted-foreground">
@@ -215,7 +244,7 @@ export default function WorkDetailRoute() {
             />
           </div>
         </div>
-      </PageFrame>
-    </>
+      </div>
+    </div>
   );
 }

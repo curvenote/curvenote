@@ -32,6 +32,7 @@ import {
   dbGetWorkVersionsWithSubmissionVersions,
   dbDeleteDraftVersionOnWork,
 } from './db.server';
+import { dbGetWorkUsers, dtoWorkUsers } from '../works.$workId.users/db.server';
 import { WorkDetailsCard } from './WorkDetailsCard';
 import { getUniqueSubmissions } from './utils.server';
 import { extensions } from '../../../extensions/client';
@@ -231,6 +232,8 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const work = latestNonDraftVersion
     ? worksLoaders.formatWorkDTO(ctx, ctx.work, latestNonDraftVersion)
     : ctx.workDTO;
+  const usersDbo = await dbGetWorkUsers(ctx.work.id);
+  const users = usersDbo ? dtoWorkUsers(usersDbo) : [];
 
   return {
     userScopes: ctx.scopes,
@@ -242,6 +245,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     workOwnerName,
     activities,
     canUpload,
+    users,
   };
 };
 
