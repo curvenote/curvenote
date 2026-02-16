@@ -102,7 +102,13 @@ export type ClientExtensionCheckService = Omit<
 >;
 
 /** Props for the optional extension admin card component (platform extensions page). */
-export type ExtensionAdminCardProps = { config: Record<string, unknown> };
+export type ExtensionAdminCardProps = {
+  config: Record<string, unknown>;
+  /** Extension display name; extensions should render this as the first item for consistency. */
+  extensionName: string;
+  /** Optional icon component; extensions may render it next to the name. */
+  ExtensionIcon?: React.ComponentType<{ className?: string }>;
+};
 
 export interface ClientExtension {
   id: string;

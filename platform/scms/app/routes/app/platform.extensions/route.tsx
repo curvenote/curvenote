@@ -11,6 +11,7 @@ import {
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
+import { ExtensionCardBodyFallback } from './ExtensionCardBodyFallback';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppPlatformAdminContext(args, { redirectTo: '/app' });
@@ -26,7 +27,9 @@ export async function loader(args: Route.LoaderArgs) {
   });
 
   const extensionAdminConfigs: Record<string, Record<string, unknown> | undefined> = {};
-  const rawExtensions = ctx.$config.app?.extensions as Record<string, Record<string, unknown>> | undefined;
+  const rawExtensions = ctx.$config.app?.extensions as
+    | Record<string, Record<string, unknown>>
+    | undefined;
   if (rawExtensions) {
     for (const [id, config] of Object.entries(rawExtensions)) {
       if (!config || typeof config !== 'object') continue;
@@ -35,42 +38,12 @@ export async function loader(args: Route.LoaderArgs) {
       if (ext?.getSafeAdminConfig) {
         safe = ext.getSafeAdminConfig(config);
       }
-      extensionAdminConfigs[id] = safe !== undefined ? sanitizeExtensionAdminConfig(safe) : undefined;
+      extensionAdminConfigs[id] =
+        safe !== undefined ? sanitizeExtensionAdminConfig(safe) : undefined;
     }
   }
 
   return { sites, extensionAdminConfigs };
-}
-
-const capabilityLabels: Record<string, string> = {
-  dataModels: 'Data Models',
-  inboundEmail: 'Inbound Email',
-  navigation: 'Navigation',
-  routes: 'Routes',
-  task: 'Dashboard Task',
-  workflows: 'Workflows',
-  checks: 'Checks',
-};
-
-function ExtensionCardBodyFallback({ extension }: { extension: { capabilities: string[] } }) {
-  return (
-    <div className="space-y-3">
-      {extension.capabilities.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Capabilities:</p>
-          <div className="flex flex-wrap gap-2">
-            {extension.capabilities.map((capability) => (
-              <ui.Badge key={capability} variant="secondary">
-                {capabilityLabels[capability] || capability}
-              </ui.Badge>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">No capabilities configured</p>
-      )}
-    </div>
-  );
 }
 
 export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
@@ -91,15 +64,19 @@ export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
 
             return (
               <primitives.Card key={name} lift>
-                <div className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    {ExtensionIcon && <ExtensionIcon className="w-6 h-6" />}
-                    <h2 className="text-xl font-semibold capitalize">{name}</h2>
-                  </div>
+                <div className="p-4">
                   {AdminCardComponent && safeConfig !== undefined ? (
-                    <AdminCardComponent config={safeConfig} />
+                    <AdminCardComponent
+                      config={safeConfig}
+                      extensionName={name}
+                      ExtensionIcon={ExtensionIcon}
+                    />
                   ) : (
-                    <ExtensionCardBodyFallback extension={extension} />
+                    <ExtensionCardBodyFallback
+                      name={name}
+                      extension={extension}
+                      ExtensionIcon={ExtensionIcon}
+                    />
                   )}
                 </div>
               </primitives.Card>
@@ -112,7 +89,7 @@ export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
           {sites.map((site) => (
             <primitives.Card key={site.id} lift>
               <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex justify-between items-start mb-4">
                   <div>
                     <h2 className="text-xl font-semibold">{site.title}</h2>
                     <p className="mt-1 text-sm text-muted-foreground">{site.description}</p>
@@ -171,7 +148,7 @@ export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
 
                 <details className="mt-6">
                   <summary className="text-sm font-medium cursor-pointer">Site Metadata</summary>
-                  <pre className="p-4 mt-2 overflow-auto text-sm rounded-md bg-muted">
+                  <pre className="overflow-auto p-4 mt-2 text-sm rounded-md bg-muted">
                     {JSON.stringify(site.metadata, null, 2)}
                   </pre>
                 </details>
