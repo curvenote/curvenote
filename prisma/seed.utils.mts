@@ -209,6 +209,7 @@ export async function seedBySites(
         default_workflow: item.site.default_workflow,
         title: item.site.title,
         private: item.private ?? false,
+        restricted: item.site.restricted ?? true,
         description: item.site.description,
         slug_strategy: item.site.slug_strategy,
         metadata: item.site,
@@ -309,6 +310,35 @@ export async function seedBySites(
       },
     });
     console.log(`   ✓ Created domain: ${domain.hostname}`);
+
+    if (siteData.name === 'scipy') {
+      const defaultKind =
+        siteData.submissionKinds.find((k: { default: boolean }) => k.default) ??
+        siteData.submissionKinds[0];
+      const defaultCollection = collections[0];
+      const formId = uuid();
+      await prisma.submissionForm.create({
+        data: {
+          id: formId,
+          date_created: startDateString,
+          date_modified: startDateString,
+          name: 'Article',
+          site_id: siteData.id,
+          kind_id: defaultKind.id,
+          data: { title: 'Article', description: 'Submit an article' },
+        },
+      });
+      await prisma.collectionsInForms.create({
+        data: {
+          id: uuid(),
+          date_created: startDateString,
+          date_modified: startDateString,
+          collection_id: defaultCollection.id,
+          form_id: formId,
+        },
+      });
+      console.log(`   ✓ Created form "Article" for scipy`);
+    }
 
     console.log(`   📝 Creating submissions and activities...`);
     const subData = await Promise.all(

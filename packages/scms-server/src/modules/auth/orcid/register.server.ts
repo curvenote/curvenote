@@ -210,25 +210,24 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
           } else if (provisionNewUsers) {
             // When ORCID provides an email, fail early if that email already has a Curvenote user
             if (profile.email) {
+              const existingEmailMessage =
+                'An account with this email already exists. Sign in with that account, then you can link your ORCID in settings.';
               const email = profile.email.trim();
               const existingUserByEmail = await dbGetUserByEmails([email]);
               if (existingUserByEmail) {
                 throw redirect(
                   failureRedirectUrl({
                     provider: 'orcid',
-                    message:
-                      'An account with this email already exists. Sign in with that account, then link your ORCID in settings if you want.',
+                    message: existingEmailMessage,
                   }),
                   {
                     headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },
                   },
                 );
               }
-            }
 
-            // Check if a Firebase Auth user already exists with this email
-            // If so, redirect to Firebase login flow
-            if (profile.email) {
+              // Check if a Firebase Auth user already exists with this email
+              // If so, redirect to Firebase login flow
               let firebaseUserExists = false;
               try {
                 const serverAuth = await getServerAuth();
@@ -247,8 +246,7 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
                 throw redirect(
                   failureRedirectUrl({
                     provider: 'firebase',
-                    message:
-                      'An account with this email already exists. Please log in then connect your ORCID account.',
+                    message: existingEmailMessage,
                   }),
                 );
               }
