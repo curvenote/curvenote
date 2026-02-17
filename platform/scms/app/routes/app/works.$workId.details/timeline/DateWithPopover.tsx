@@ -12,7 +12,7 @@ type DateWithPopoverProps = {
  */
 export function DateWithPopover({ date, className }: DateWithPopoverProps) {
   const relative = formatToNow(date, { addSuffix: true });
-  const full = formatDate(date, 'MMM d, yyyy h:mm a');
+  const full = formatDate(date, 'MMM d, yyyy h:mm:ss a');
 
   if (!relative) return null;
 

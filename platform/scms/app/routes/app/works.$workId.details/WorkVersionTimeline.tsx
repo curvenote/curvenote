@@ -1,14 +1,15 @@
 import { useSearchParams } from 'react-router';
 import { formatDate, scopes } from '@curvenote/scms-core';
 import type { WorkVersionWithSubmissionVersions } from '../works.$workId/types';
-import type { WorkActivityRow } from '../works.$workId/db.server';
-import type { Workflow } from '@curvenote/scms-core';
+import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
+import type { Workflow, ClientExtensionCheckService } from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from './types';
 import { Timeline } from './timeline/Timeline';
 import { TimelineSection } from './timeline/TimelineSection';
 import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineItem';
 import { SubmissionTimelineItem } from './timeline/SubmissionTimelineItem';
 import { ActivityTimelineItem } from './timeline/ActivityTimelineItem';
+import { CheckServiceRunTimelineItem } from './timeline/CheckServiceRunTimelineItem';
 
 type SubmissionVersionRow = WorkVersionWithSubmissionVersions['submissionVersions'][number];
 
@@ -31,13 +32,28 @@ type TimelineEntry =
       date: string;
       key: string;
       activity: WorkActivityRow;
+    }
+  | {
+      kind: 'check-service-run';
+      date: string;
+      key: string;
+      run: CheckServiceRunRow;
+      version: WorkVersionWithSubmissionVersions;
     };
+
+/** Truncate to minute resolution for sort comparison (items in same minute are tied). */
+function toMinuteKey(dateStr: string): number {
+  const d = new Date(dateStr);
+  d.setSeconds(0, 0);
+  return d.getTime();
+}
 
 /** Build section entries and sort by date descending (most recent first). */
 function getSortedSectionEntries(
   version: WorkVersionWithSubmissionVersions,
   submissionVersionsToShow: SubmissionVersionRow[],
   activitiesForVersion: WorkActivityRow[],
+  checkRunsForVersion: CheckServiceRunRow[],
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [
     // Only show the "Version created" row for finalized (non-draft) versions
@@ -67,8 +83,24 @@ function getSortedSectionEntries(
       key: `activity-${a.id}`,
       activity: a,
     })),
+    ...checkRunsForVersion.map((run) => ({
+      kind: 'check-service-run' as const,
+      date: run.date_modified,
+      key: `check-run-${run.id}`,
+      run,
+      version,
+    })),
   ];
-  entries.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
+  entries.sort((a, b) => {
+    const minA = toMinuteKey(a.date);
+    const minB = toMinuteKey(b.date);
+    if (minA > minB) return -1;
+    if (minA < minB) return 1;
+    // Tie (same minute): check-service-run first; then order rest by full timestamp descending
+    if (a.kind === 'check-service-run' && b.kind !== 'check-service-run') return -1;
+    if (a.kind !== 'check-service-run' && b.kind === 'check-service-run') return 1;
+    return a.date > b.date ? -1 : a.date < b.date ? 1 : 0;
+  });
   return entries;
 }
 
@@ -82,6 +114,10 @@ type WorkVersionTimelineProps = {
   linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
   /** Activities for this work (already filtered to work). Shown per version by work_version_id. */
   activities: WorkActivityRow[];
+  /** Check service runs grouped by work_version_id (for timeline check items). */
+  checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>;
+  /** Resolved check services from extensions (run.kind maps to service.id). */
+  checkServices: ClientExtensionCheckService[];
 };
 
 /**
@@ -98,24 +134,34 @@ export function WorkVersionTimeline({
   userScopes,
   linkedJobsByWorkVersionId,
   activities,
+  checkServiceRunsByWorkVersionId,
+  checkServices,
 }: WorkVersionTimelineProps) {
   const [searchParams] = useSearchParams();
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
+  const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
+
+  // Order sections by date_modified descending (most recently modified first)
+  const versionsByModified = [...versions].sort((a, b) =>
+    a.date_modified > b.date_modified ? -1 : a.date_modified < b.date_modified ? 1 : 0,
+  );
 
   // Show all versions; draft versions display only their activities (and submissions), not the "Version created" row
   return (
     <Timeline title="Timeline">
-      {versions.map((v) => {
+      {versionsByModified.map((v) => {
         const submissionVersionsToShow = includeDrafts
           ? v.submissionVersions
           : v.submissionVersions.filter((sv) => sv.status !== 'DRAFT');
         const activitiesForVersion = activities.filter((a) => a.work_version_id === v.id);
+        const checkRunsForVersion = checkServiceRunsByWorkVersionId[v.id] ?? [];
         const label = formatDate(v.date_modified, 'MMM dd, yyyy');
         const sortedEntries = getSortedSectionEntries(
           v,
           submissionVersionsToShow,
           activitiesForVersion,
+          checkRunsForVersion,
         );
 
         if (sortedEntries.length === 0) return null;
@@ -146,12 +192,18 @@ export function WorkVersionTimeline({
                   />
                 );
               }
-              return (
-                <ActivityTimelineItem
-                  key={entry.key}
-                  activity={entry.activity}
-                />
-              );
+              if (entry.kind === 'check-service-run') {
+                const service = checkServiceById[entry.run.kind] ?? null;
+                return (
+                  <CheckServiceRunTimelineItem
+                    key={entry.key}
+                    run={entry.run}
+                    checkService={service}
+                    basePath={basePath}
+                  />
+                );
+              }
+              return <ActivityTimelineItem key={entry.key} activity={entry.activity} />;
             })}
           </TimelineSection>
         );

@@ -26,6 +26,7 @@ import {
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
 import {
+  dbGetCheckServiceRunsByWorkVersionIds,
   dbGetLinkedJobsByWorkVersionIds,
   dbGetWorkActivities,
   dbGetWorkOwnerName,
@@ -225,6 +226,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   const workOwnerName = await dbGetWorkOwnerName(ctx.work.id);
   const activities = await dbGetWorkActivities(ctx.work.id);
+  const checkServiceRunsByWorkVersionId = await dbGetCheckServiceRunsByWorkVersionIds(versionIds);
   const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
 
   // Use latest non-draft work version for card and details metadata; fall back to ctx.workDTO if all are drafts
@@ -244,6 +246,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
     workOwnerName,
     activities,
+    checkServiceRunsByWorkVersionId,
     canUpload,
     users,
   };

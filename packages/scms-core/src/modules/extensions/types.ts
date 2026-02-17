@@ -97,6 +97,8 @@ export interface ExtensionCheckService {
   sectionActivityComponent: React.ComponentType<{
     metadata: any; // WorkVersionMetadata & ChecksMetadataSection
   }>;
+  /** Optional summary badge for timeline (e.g. "All clear", "2 problems", "Awaiting review"). Same metadata as sectionActivityComponent. */
+  sectionSummaryBadgeComponent?: React.ComponentType<{ metadata: any }>;
   /** Server-side action handler. Used from upload flow (intent 'execute' + ctx + checkRunId + createJob) and checks page (intent + formData + metadata). */
   handleAction?: (
     args: ExtensionCheckHandleActionArgs,

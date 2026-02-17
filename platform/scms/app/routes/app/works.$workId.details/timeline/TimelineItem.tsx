@@ -45,12 +45,12 @@ export function TimelineItemPlain({
 export type TimelineItemPillProps = {
   label: ReactNode;
   onClick?: () => void;
-  /** Optional variant for styling (e.g. "success") */
-  variant?: 'default' | 'success';
+  /** Optional variant for styling */
+  variant?: 'default' | 'success' | 'warning' | 'error';
 };
 
 /**
- * Small pill/badge for timeline item (e.g. "38 FIGURES PASSED").
+ * Small pill/badge for timeline item (e.g. "All clear", "2 problems").
  */
 export function TimelineItemPill({ label, onClick, variant = 'default' }: TimelineItemPillProps) {
   const isButton = onClick != null;
@@ -59,7 +59,11 @@ export function TimelineItemPill({ label, onClick, variant = 'default' }: Timeli
   const variantClass =
     variant === 'success'
       ? 'text-teal-700 border border-teal-700 hover:bg-teal-50'
-      : 'text-foreground border border-border hover:bg-muted/50';
+      : variant === 'warning'
+        ? 'text-amber-700 border border-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-400 dark:hover:bg-amber-950/30'
+        : variant === 'error'
+          ? 'text-red-700 border border-red-700 hover:bg-red-50 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-950/30'
+          : 'text-foreground border border-border hover:bg-muted/50';
   const className = cn(base, variantClass, isButton && 'cursor-pointer');
 
   if (isButton) {

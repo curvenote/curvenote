@@ -4,6 +4,48 @@ import type { WorkVersion } from '@curvenote/scms-db';
 
 export type LinkedJobWithStatus = { id: string; status: string };
 
+/** Check service run row for timeline (id, kind, date_created, date_modified, data). */
+export type CheckServiceRunRow = {
+  id: string;
+  kind: string;
+  date_created: string;
+  date_modified: string;
+  data: unknown;
+};
+
+/** Check service runs grouped by work_version_id (for work details timeline). */
+export async function dbGetCheckServiceRunsByWorkVersionIds(
+  workVersionIds: string[],
+): Promise<Record<string, CheckServiceRunRow[]>> {
+  if (workVersionIds.length === 0) return {};
+  const prisma = await getPrismaClient();
+  const rows = await prisma.checkServiceRun.findMany({
+    where: { work_version_id: { in: workVersionIds } },
+    orderBy: { date_modified: 'desc' },
+    select: {
+      id: true,
+      kind: true,
+      date_created: true,
+      date_modified: true,
+      data: true,
+      work_version_id: true,
+    },
+  });
+  const map: Record<string, CheckServiceRunRow[]> = {};
+  for (const row of rows) {
+    const list = map[row.work_version_id] ?? [];
+    list.push({
+      id: row.id,
+      kind: row.kind,
+      date_created: row.date_created,
+      date_modified: row.date_modified,
+      data: row.data,
+    });
+    map[row.work_version_id] = list;
+  }
+  return map;
+}
+
 export async function dbGetLinkedJobsByWorkVersionIds(
   workVersionIds: string[],
 ): Promise<Record<string, LinkedJobWithStatus[]>> {
@@ -37,7 +79,7 @@ export async function dbGetWorkVersionsWithSubmissionVersions(workId: string) {
   const workVersions = await prisma.workVersion.findMany({
     where: { work_id: workId },
     orderBy: {
-      date_modified: 'desc',
+      date_created: 'desc',
     },
     include: {
       submissionVersions: {

@@ -1,17 +1,13 @@
-import { Link, useRouteLoaderData } from 'react-router';
+import { useRouteLoaderData } from 'react-router';
 import {
-  primitives,
-  formatToNow,
-  SectionWithHeading,
-  SiteLogo,
   getBrandingFromMetaMatches,
   joinPageTitle,
-  ui,
+  getExtensionCheckServicesFromServerConfig,
+  useDeploymentConfig,
 } from '@curvenote/scms-core';
 import type { MetaFunction } from 'react-router';
 import type { WorkDTO } from '@curvenote/common';
 import type { Workflow } from '@curvenote/scms-core';
-import { Radio } from 'lucide-react';
 import { WorkVersionTimeline } from './WorkVersionTimeline';
 import { WorkDetailsTopBar } from './WorkDetailsTopBar';
 import { WorkDetailsContentCard } from './WorkDetailsContentCard';
@@ -20,8 +16,9 @@ import type {
   SubmissionWithVersionsAndSite,
   WorkVersionWithSubmissionVersions,
 } from '../works.$workId/types';
-import type { WorkActivityRow } from '../works.$workId/db.server';
+import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
 import type { LinkedJobsByWorkVersionId } from './types';
+import { extensions } from '../../../extensions/client';
 
 type WorkUser = {
   id: string;
@@ -39,6 +36,7 @@ type LoaderData = {
   linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
   workOwnerName: string | null;
   activities: WorkActivityRow[];
+  checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>;
   canUpload: boolean;
   users: WorkUser[];
 };
@@ -58,9 +56,26 @@ export default function WorkDetailRoute() {
     linkedJobsByWorkVersionId,
     workOwnerName,
     activities,
+    checkServiceRunsByWorkVersionId,
     canUpload,
     users,
   } = useRouteLoaderData('routes/app/works.$workId/route') as LoaderData;
+
+  const deploymentConfig = useDeploymentConfig();
+  const extensionsConfig: Record<string, { checks?: boolean }> = {};
+  if (deploymentConfig.extensions) {
+    for (const [extId, extInfo] of Object.entries(deploymentConfig.extensions)) {
+      if (extInfo.capabilities?.includes('checks')) {
+        extensionsConfig[extId] = { checks: true };
+      }
+    }
+  }
+  const checkServices = getExtensionCheckServicesFromServerConfig(
+    { app: { extensions: extensionsConfig } } as unknown as Parameters<
+      typeof getExtensionCheckServicesFromServerConfig
+    >[0],
+    extensions,
+  );
 
   const workBasePath = `/app/works/${work.id}`;
   // Versions are ordered by date_modified desc; latest is first.
@@ -97,6 +112,8 @@ export default function WorkDetailRoute() {
             userScopes={userScopes}
             linkedJobsByWorkVersionId={linkedJobsByWorkVersionId}
             activities={activities}
+            checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
+            checkServices={checkServices}
           />
         </div>
       </div>
