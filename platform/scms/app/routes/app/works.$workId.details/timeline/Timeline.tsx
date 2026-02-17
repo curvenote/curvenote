@@ -20,7 +20,7 @@ export function Timeline({ title, headerAction, children, className }: TimelineP
       {(title != null || headerAction != null) && (
         <div className="flex justify-between items-center mb-3">
           {title != null && (
-            <span className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+            <span className="text-sm font-normal text-muted-foreground">
               {title}
             </span>
           )}
