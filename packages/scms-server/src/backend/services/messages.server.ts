@@ -35,7 +35,10 @@ export async function createMessageRecord(options: CreateMessageRecordOptions): 
 
   const payload: Prisma.InputJsonValue =
     options.payloadSchema && options.payload && typeof options.payload === 'object'
-      ? ({ ...(options.payload as Record<string, any>), $schema: options.payloadSchema } as Prisma.InputJsonValue)
+      ? ({
+          ...(options.payload as Record<string, any>),
+          $schema: options.payloadSchema,
+        } as Prisma.InputJsonValue)
       : options.payloadSchema
         ? ({ $schema: options.payloadSchema, payload: options.payload } as Prisma.InputJsonValue)
         : ({ payload: options.payload } as Prisma.InputJsonValue);
@@ -44,7 +47,10 @@ export async function createMessageRecord(options: CreateMessageRecordOptions): 
     options.results === undefined
       ? undefined
       : options.resultsSchema && options.results && typeof options.results === 'object'
-        ? ({ ...(options.results as Record<string, any>), $schema: options.resultsSchema } as Prisma.InputJsonValue)
+        ? ({
+            ...(options.results as Record<string, any>),
+            $schema: options.resultsSchema,
+          } as Prisma.InputJsonValue)
         : options.resultsSchema
           ? ({ $schema: options.resultsSchema, results: options.results } as Prisma.InputJsonValue)
           : ({ results: options.results } as Prisma.InputJsonValue);
@@ -89,4 +95,3 @@ export async function updateMessageStatus(
   }
   await prisma.message.update({ where: { id: messageId }, data });
 }
-

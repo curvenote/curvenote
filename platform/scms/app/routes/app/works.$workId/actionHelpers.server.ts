@@ -1,10 +1,5 @@
 import { data } from 'react-router';
-import {
-  userHasScope,
-  jobs,
-  getPrismaClient,
-  registerExtensionJobs,
-} from '@curvenote/scms-server';
+import { userHasScope, jobs, getPrismaClient, registerExtensionJobs } from '@curvenote/scms-server';
 import type { WorkContext } from '@curvenote/scms-server';
 import { scopes } from '@curvenote/scms-core';
 import { z } from 'zod';
