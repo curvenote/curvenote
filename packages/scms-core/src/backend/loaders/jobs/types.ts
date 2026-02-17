@@ -30,6 +30,8 @@ export type CreateJob = {
   message?: string;
   results?: Record<string, any>;
   follow_on?: FollowOnEnvelope;
+  /** User who triggered the job; used for completion/failure activity attribution. */
+  invoked_by_id?: string;
   /** If set, create a work activity of this type after the job is created (work_version_id + user from context). */
   activity_type?: string;
   /** Optional payload stored on Activity.data. For CHECK_STARTED supply { check: { kind: '<service-id>' } }. */

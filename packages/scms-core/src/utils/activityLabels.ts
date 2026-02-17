@@ -12,7 +12,7 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   NEW_WORK: 'New Work',
   WORK_VERSION_ADDED: 'New work version',
   DRAFT_WORK_VERSION_STARTED: 'Draft work version started',
-  EXPORT_TO_PDF_STARTED: 'Export to PDF started',
+  CONVERTER_TASK_STARTED: 'Converter task started',
   CHECK_STARTED: 'Check started',
   KIND_CREATED: 'New submission kind',
   KIND_DELETED: 'Submission kind deleted',
@@ -47,7 +47,8 @@ export function formatCheckKind(checkKind: string): string {
 /**
  * Resolve an activity type (and optional data/transition payload) to a display label.
  * Use this in activity feeds and timelines so labels stay in one place.
- * CHECK_STARTED: use options.data?.check?.kind (or options.transition?.checkKind for legacy rows).
+ * CHECK_STARTED: use options.data?.check?.kind for check kind.
+ * CONVERTER_TASK_STARTED: use options.data?.converter?.target and options.data?.converter?.type.
  */
 export function getActivityTypeLabel(
   activityType: string,
@@ -56,17 +57,22 @@ export function getActivityTypeLabel(
     transition?: Record<string, unknown> | null;
   },
 ): string {
-  if (activityType === 'CHECK_STARTED') {
-    const checkFromData =
-      options?.data && typeof (options.data.check as { kind?: string })?.kind === 'string'
-        ? (options.data.check as { kind: string }).kind
-        : null;
-    const checkFromTransition =
-      typeof options?.transition?.checkKind === 'string' ? options.transition.checkKind : null;
-    const checkKind = checkFromData ?? checkFromTransition;
-    if (checkKind) {
-      return `${formatCheckKind(checkKind)} check started`;
-    }
+  const checkFromData =
+    options?.data && typeof (options.data.check as { kind?: string })?.kind === 'string'
+      ? (options.data.check as { kind: string }).kind
+      : null;
+  const checkFromTransition =
+    typeof options?.transition?.checkKind === 'string' ? options.transition.checkKind : null;
+  const checkKind = checkFromData ?? checkFromTransition;
+  if (activityType === 'CHECK_STARTED' && checkKind) {
+    return `${formatCheckKind(checkKind)} check started`;
+  }
+  const converter = options?.data?.converter as { target?: string; type?: string } | undefined;
+  if (activityType === 'CONVERTER_TASK_STARTED' && converter) {
+    const target = converter.target ?? 'document';
+    const type = converter.type ?? '';
+    const suffix = type ? ` (${type})` : '';
+    return `${target} conversion${suffix} started`;
   }
   return ACTIVITY_TYPE_LABELS[activityType] ?? activityType.replace(/_/g, ' ').toLowerCase();
 }

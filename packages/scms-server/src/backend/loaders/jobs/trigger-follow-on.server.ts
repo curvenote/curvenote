@@ -18,7 +18,7 @@ export async function triggerFollowOn(
   const prisma = await getPrismaClient();
   const job = await prisma.job.findUnique({
     where: { id: jobId },
-    select: { status: true, follow_on: true },
+    select: { status: true, follow_on: true, invoked_by_id: true, activity_type: true },
   });
   if (!job || job.status !== 'COMPLETED') return;
 
@@ -38,6 +38,7 @@ export async function triggerFollowOn(
     id,
     job_type: on_success.job_type,
     payload: on_success.payload,
+    invoked_by_id: job.invoked_by_id ?? undefined,
   };
   if (on_success.activity_type != null) {
     createJobData.activity_type = on_success.activity_type;

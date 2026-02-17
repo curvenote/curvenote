@@ -4,7 +4,6 @@ import {
   jobs,
   getPrismaClient,
   registerExtensionJobs,
-  createWorkActivity,
 } from '@curvenote/scms-server';
 import type { WorkContext } from '@curvenote/scms-server';
 import { scopes } from '@curvenote/scms-core';
@@ -88,15 +87,10 @@ export async function exportToPdfAction(ctx: WorkContext, formData: FormData) {
           conversion_type: 'docx-pandoc-myst-pdf',
         },
         results: undefined,
+        invoked_by_id: ctx.user?.id,
       },
       registerExtensionJobs(extensions),
     );
-    await createWorkActivity({
-      workId: ctx.work.id,
-      workVersionId,
-      activityById: ctx.user.id,
-      activityType: 'EXPORT_TO_PDF_STARTED',
-    });
     return data({ success: true, jobId: dto.id });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Export to PDF failed.';

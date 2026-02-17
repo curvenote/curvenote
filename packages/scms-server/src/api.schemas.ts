@@ -138,6 +138,8 @@ export async function createJobPostBodySchema(extensions: ClientExtension[]) {
       })
       .optional(),
     follow_on: FollowOnSchema.optional(),
+    activity_type: z.string().optional(),
+    activity_data: z.record(z.string().min(0), z.any()).optional(),
   });
 }
 

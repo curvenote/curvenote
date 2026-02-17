@@ -27,6 +27,20 @@ export default async function (ctx: Context, data: CreateJob, extensionJobs: Job
     ? new StorageBackend(ctx, [KnownBuckets.pub, KnownBuckets.prv])
     : undefined;
 
+  // For converter task (EXPORT_TO_PDF), set activity_type and activity_data so job and start activity use CONVERTER_TASK_STARTED.
+  if (job_type === KnownJobTypes.EXPORT_TO_PDF && data.payload && !data.activity_type) {
+    data = {
+      ...data,
+      activity_type: 'CONVERTER_TASK_STARTED',
+      activity_data: {
+        converter: {
+          target: data.payload.target ?? 'pdf',
+          type: data.payload.conversion_type ?? 'docx-pandoc-myst-pdf',
+        },
+      },
+    };
+  }
+
   const dbo = await handlers[job_type](ctx, data, storageBackend);
   if (!dbo) throw httpError(422, 'Unable to invoke job handler');
 
@@ -44,7 +58,7 @@ export default async function (ctx: Context, data: CreateJob, extensionJobs: Job
           workId: wv.work_id,
           workVersionId,
           activityById: ctx.user.id,
-          activityType: data.activity_type as 'EXPORT_TO_PDF_STARTED' | 'CHECK_STARTED',
+          activityType: data.activity_type as 'CONVERTER_TASK_STARTED' | 'CHECK_STARTED',
           data: data.activity_data ?? undefined,
         });
       }

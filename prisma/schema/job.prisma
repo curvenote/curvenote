@@ -16,6 +16,9 @@ model Job {
   results           Json?
   messages          String[]
   follow_on         Json?
+  invoked_by_id     String?
+  activity_type     String?
+  invoked_by        User?              @relation(fields: [invoked_by_id], references: [id], onDelete: SetNull)
   SubmissionVersion SubmissionVersion?
   linkedJobs        LinkedJob[]
 }

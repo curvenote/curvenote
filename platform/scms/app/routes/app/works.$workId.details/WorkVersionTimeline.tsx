@@ -150,7 +150,6 @@ export function WorkVersionTimeline({
                 <ActivityTimelineItem
                   key={entry.key}
                   activity={entry.activity}
-                  workIntegrityHref={`${basePath}/work-integrity`}
                 />
               );
             })}
