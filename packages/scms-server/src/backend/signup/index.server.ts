@@ -7,7 +7,6 @@ import type {
   SignupStepData,
   DataCollectionStepData,
   UserData,
-  AuthProvider,
 } from '@curvenote/scms-core';
 import { KnownResendEvents, TrackEvent } from '@curvenote/scms-core';
 import type { Context } from '../context.server.js';
@@ -448,8 +447,8 @@ function validateSigninSignupConfig(
   // validate link-providers step
   // list linkable providers from auth config (use Record to support all configured providers including github)
   const linkableProviderNames = authConfig
-    ? Object.keys(authConfig).filter((p) =>
-        (authConfig as Record<string, { allowLinking?: boolean }>)?.[p]?.allowLinking,
+    ? Object.keys(authConfig).filter(
+        (p) => (authConfig as Record<string, { allowLinking?: boolean }>)?.[p]?.allowLinking,
       )
     : [];
 

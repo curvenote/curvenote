@@ -1,4 +1,12 @@
-import { useDeploymentConfig, firebase, github, google, okta, orcid, ui } from '@curvenote/scms-core';
+import {
+  useDeploymentConfig,
+  firebase,
+  github,
+  google,
+  okta,
+  orcid,
+  ui,
+} from '@curvenote/scms-core';
 import { useEffect, useState } from 'react';
 import { OrDivider } from './OrDivider';
 import type { ClientSideSafeAuthOptions, ClientSigninSignupConfig } from '@curvenote/scms-core';
@@ -58,11 +66,11 @@ function AllProviderLoginArea({
   const oktaProvider = loginAuthProviders.find((p) => p.provider === 'okta');
 
   return (
-    <div className="flex flex-col items-center w-full space-y-8">
+    <div className="flex flex-col items-center space-y-8 w-full">
       <h1 className="mt-0 text-lg font-light text-center lg:text-xl">
         {config?.signin?.prompt ?? 'Sign in'}
       </h1>
-      <div className="flex flex-wrap justify-center max-w-xs gap-x-1 gap-y-2">
+      <div className="flex flex-wrap gap-x-1 gap-y-2 justify-center max-w-xs">
         {firebaseProvider && firebaseProvider.allowLogin && (
           <firebase.FirebaseGoogleLoginUI
             disabled={submitting}
@@ -145,7 +153,7 @@ function PreferredLoginArea({
   const firebaseProvider = loginAuthProviders.find((p) => p.provider === 'firebase');
 
   return (
-    <div className="flex flex-col w-full space-y-8 items-left">
+    <div className="flex flex-col space-y-8 w-full items-left">
       <div className="space-y-4">
         <div className="text-lg lg:text-xl">
           {config?.signin?.prompt ?? 'Sign up or Sign in using the options below'}
