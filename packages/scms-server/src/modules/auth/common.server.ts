@@ -529,7 +529,7 @@ export function failureRedirectUrl({
   if (error?.status) params.set('status', error.status);
   else if (message) params.set('message', message);
   else params.set('message', 'Unable to authenticate. Please try again or contact support.');
-  return `/login?${params.toString()}`;
+  return `/auth-error?${params.toString()}`;
 }
 
 /**
