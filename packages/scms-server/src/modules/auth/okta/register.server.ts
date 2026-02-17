@@ -94,6 +94,13 @@ export function registerOktaStrategy(
         let dbUserViaOkta = await dbGetUserByLinkedAccount('okta', profile.id);
 
         if (dbUserViaOkta) {
+          // Check if this Okta account is already linked to a different user
+          const user = session.get('user');
+          if (user && dbUserViaOkta.id !== user.userId) {
+            throw redirect(
+              `/app/settings/linked-accounts?error=true&provider=okta&message=${encodeURIComponent('This Okta account has already been linked to another account.')}`,
+            );
+          }
           // Update the user's provider profile
           try {
             const account = assertLinkedAccount('okta', dbUserViaOkta);
