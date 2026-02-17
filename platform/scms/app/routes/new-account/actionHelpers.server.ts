@@ -15,6 +15,7 @@ import type {
   UserData,
   GeneralError,
   orcid,
+  github,
   AuthProvider,
 } from '@curvenote/scms-core';
 import { TrackEvent } from '@curvenote/scms-core';
@@ -511,7 +512,11 @@ async function enrichUserObject(
   // Only proceed if user is missing data and we have a valid provider to extract data from
   const prisma = await getPrismaClient();
   if (userIsMissingData) {
-    if (currentProviderBeingLinked === 'orcid' || currentProviderBeingLinked === 'okta') {
+    if (
+      currentProviderBeingLinked === 'orcid' ||
+      currentProviderBeingLinked === 'okta' ||
+      currentProviderBeingLinked === 'github'
+    ) {
       // Initialize object to hold data extracted from the authentication provider
       let providerData: { email?: string; display_name?: string; username?: string } = {};
 
@@ -542,6 +547,22 @@ async function enrichUserObject(
             email: oktaAccount.email ?? undefined,
             display_name: oktaProfile?.name,
             username: oktaProfile?.preferred_username,
+          };
+        }
+      }
+
+      // Extract data from GitHub provider
+      if (currentProviderBeingLinked === 'github') {
+        const githubAccount = user.linkedAccounts?.find((account) => account.provider === 'github');
+        if (githubAccount) {
+          const githubProfile = githubAccount?.profile as unknown as github.GitHubProfile;
+          const name = githubProfile?.name ?? githubProfile?.login;
+          providerData = {
+            email: githubAccount.email ?? githubProfile?.email ?? undefined,
+            display_name: name ?? undefined,
+            username: name
+              ? name.toLowerCase().replace(/\s/g, '_') + '_' + uuidv7().substring(0, 6)
+              : undefined,
           };
         }
       }

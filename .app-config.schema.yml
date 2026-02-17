@@ -127,6 +127,35 @@ properties:
           adminLogin:
             type: boolean
             default: false
+      github:
+        type: object
+        required:
+          - clientId
+          - clientSecret
+          - redirectUrl
+        properties:
+          displayName:
+            type: string
+            description: Display name for the auth provider shown in UI
+          clientId:
+            type: string
+          clientSecret:
+            type: string
+            secret: true
+          redirectUrl:
+            type: string
+          allowLogin:
+            type: boolean
+            default: true
+          provisionNewUser:
+            type: boolean
+            default: false
+          allowLinking:
+            type: boolean
+            default: false
+          adminLogin:
+            type: boolean
+            default: false
   api:
     type: object
     required:
