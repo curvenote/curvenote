@@ -3,9 +3,11 @@ import {
   ensureJsonBodyFromMethod,
   withContext,
   jobs,
+  registerExtensionJobs,
   UpdateJobPatchBodySchema,
   validate,
 } from '@curvenote/scms-server';
+import { extensions } from '../../extensions/server';
 import { error401, error404, httpError } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
 
@@ -38,7 +40,7 @@ export async function action(args: Route.ActionArgs) {
 
   const body = await ensureJsonBodyFromMethod(args.request, ['PATCH']);
   const data = validate(UpdateJobPatchBodySchema, body);
-  const dto = await jobs.update(ctx, jobId, data);
+  const dto = await jobs.update(ctx, jobId, data, registerExtensionJobs(extensions));
 
   return Response.json(dto);
 }

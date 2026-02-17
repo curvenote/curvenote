@@ -3,7 +3,12 @@ import type { ZodError } from 'zod';
 import { z } from 'zod';
 import { JobStatus } from '@curvenote/scms-db';
 import type { ClientExtension, ServerExtension } from '@curvenote/scms-core';
-import { httpError, KnownJobTypes } from '@curvenote/scms-core';
+import {
+  createFollowOnSchemas,
+  FileMetadataSectionItemSchema,
+  httpError,
+  KnownJobTypes,
+} from '@curvenote/scms-core';
 import { registerExtensionJobs } from './modules/extensions/jobs.js';
 
 /**
@@ -90,12 +95,25 @@ export const CreateSubmissionVersionPostBodySchema = z.object({
 
 export type CreateSubmissionVersionPostBody = z.infer<typeof CreateSubmissionVersionPostBodySchema>;
 
+/** PATCH body for adding a single file entry to work version metadata.files (no signedUrl). */
+export const AddWorkVersionFilePatchBodySchema = FileMetadataSectionItemSchema.omit({
+  signedUrl: true,
+});
+export type AddWorkVersionFilePatchBody = z.infer<typeof AddWorkVersionFilePatchBodySchema>;
+
+/** PATCH body for adding file entries: { files: FileEntry[] }. */
+export const AddWorkVersionFilesPatchBodySchema = z.object({
+  files: z.array(AddWorkVersionFilePatchBodySchema).min(1),
+});
+export type AddWorkVersionFilesPatchBody = z.infer<typeof AddWorkVersionFilesPatchBodySchema>;
+
 async function getJobTypes(extensions: ServerExtension[]): Promise<readonly string[]> {
   const coreJobTypes = [
     KnownJobTypes.CHECK,
     KnownJobTypes.CLI_CHECK,
     KnownJobTypes.PUBLISH,
     KnownJobTypes.UNPUBLISH,
+    KnownJobTypes.CONVERTER_TASK,
   ];
   const extensionJobTypes = registerExtensionJobs(extensions).map((job) => job.jobType);
   return [...coreJobTypes, ...extensionJobTypes] as const;
@@ -103,6 +121,7 @@ async function getJobTypes(extensions: ServerExtension[]): Promise<readonly stri
 
 export async function createJobPostBodySchema(extensions: ClientExtension[]) {
   const JOB_TYPES = await getJobTypes(extensions);
+  const { FollowOnSchema } = createFollowOnSchemas(JOB_TYPES);
   return z.object({
     id: z.uuid().optional(),
     job_type: z
@@ -118,6 +137,9 @@ export async function createJobPostBodySchema(extensions: ClientExtension[]) {
         error: (issue) => (issue.code === 'invalid_type' ? 'results must be an object' : undefined),
       })
       .optional(),
+    follow_on: FollowOnSchema.optional(),
+    activity_type: z.string().optional(),
+    activity_data: z.record(z.string().min(0), z.any()).optional(),
   });
 }
 

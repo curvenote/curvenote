@@ -1,3 +1,4 @@
+import { error401 } from '@curvenote/scms-core';
 import type { Route } from './+types/v1.uploads.stage';
 import {
   ensureJsonBodyFromMethod,
@@ -21,6 +22,11 @@ export async function loader(args: Route.LoaderArgs) {
 
 export async function action(args: Route.ActionArgs) {
   const ctx = await withAPISecureContext(args);
+  // TODO: handshake scopes
+  if (ctx.authorized.handshake) {
+    const audience = ctx.$handshakeClaims?.audience;
+    if (audience !== 'CONVERTER_TASK') return error401('Invalid handshake audience');
+  }
   const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
   const data = validate(UploadStagePostBodySchema, body);
   assertUserDefined(ctx.user);

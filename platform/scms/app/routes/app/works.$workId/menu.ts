@@ -22,11 +22,11 @@ export function buildMenu(
       url: `${baseUrl}/details`,
       end: true,
     });
-    // menus.push({
-    //   name: 'work.checks',
-    //   label: 'Checks',
-    //   url: `${baseUrl}/checks`,
-    // });
+    menus.push({
+      name: 'work.integrity',
+      label: 'Work Integrity',
+      url: `${baseUrl}/work-integrity`,
+    });
     menus.push({
       name: 'work.users',
       label: 'Who can access this?',

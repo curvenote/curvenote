@@ -1,4 +1,4 @@
-import { useFetcher, Link } from 'react-router';
+import { useFetcher, Link, useParams } from 'react-router';
 import { ui } from '@curvenote/scms-core';
 import type { FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata } from '@curvenote/scms-server';
@@ -6,17 +6,20 @@ import type { ChecksMetadataSection } from './checks.schema';
 
 interface ContinueFormProps {
   title: string;
+  authors: string;
   metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
 }
 
-export function ContinueForm({ title, metadata }: ContinueFormProps) {
+export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
   const fetcher = useFetcher();
+  const { workId } = useParams();
+  const detailsHref = workId ? `/app/works/${workId}/details` : '/app/works';
 
   // Check if title is non-empty
   const hasTitle = title && title.trim().length > 0;
 
   // Check if at least one file is uploaded
-  const hasFiles = 'files' in metadata && metadata.files && Object.keys(metadata.files).length > 0;
+  const hasFiles = true; //'files' in metadata && metadata.files && Object.keys(metadata.files).length > 0;
 
   // Button is only enabled if both conditions are met
   const disabled = !hasTitle || !hasFiles;
@@ -24,6 +27,7 @@ export function ContinueForm({ title, metadata }: ContinueFormProps) {
   const handleContinue = () => {
     const formData = new FormData();
     formData.append('intent', 'confirm-work');
+    formData.append('authors', authors);
     fetcher.submit(formData, { method: 'post' });
   };
 
@@ -38,7 +42,7 @@ export function ContinueForm({ title, metadata }: ContinueFormProps) {
         Continue
       </ui.StatefulButton>
       <ui.Button variant="link" asChild>
-        <Link to="/app/works">Come back and finish this later</Link>
+        <Link to={detailsHref}>Come back and finish this later</Link>
       </ui.Button>
     </div>
   );

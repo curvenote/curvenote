@@ -152,6 +152,8 @@ properties:
       - tokenConfigUrl
       - checkProjectId
       - checkTopic
+      - converterTopic
+      - converterSASecretKeyfile
       - knownBucketInfoMap
       - privateSiteClaimSubject
       - submissionsServiceAccount
@@ -217,6 +219,12 @@ properties:
         type: string
       checkTopic:
         type: string
+      converterTopic:
+        type: string
+        description: Full Pub/Sub topic resource name (e.g. projects/PROJECT_ID/topics/TOPIC_NAME). Project ID is derived from this for the client.
+      converterSASecretKeyfile:
+        type: string
+        secret: true
       knownBucketInfoMap:
         type: object
         properties:

@@ -6,7 +6,14 @@
     ["curvenote", "@curvenote/cli", "@curvenote/cli-plugin"],
     ["@curvenote/cdn", "@curvenote/common"],
     ["@curvenote/check-definitions", "@curvenote/check-implementations"],
-    ["@curvenote/scms-core", "@curvenote/scms-server", "@curvenote/scms", "@curvenote/scms-db", "@curvenote/scms-sites-ext"]
+    [
+      "@curvenote/scms-core",
+      "@curvenote/scms-server",
+      "@curvenote/scms",
+      "@curvenote/scms-db",
+      "@curvenote/scms-sites-ext",
+      "@curvenote/scms-tasks"
+    ]
   ],
   "linked": [],
   "access": "public",

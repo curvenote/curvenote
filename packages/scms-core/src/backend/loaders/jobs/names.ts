@@ -3,4 +3,5 @@ export const KnownJobTypes = {
   CLI_CHECK: 'CLI_CHECK',
   PUBLISH: 'PUBLISH',
   UNPUBLISH: 'UNPUBLISH',
+  CONVERTER_TASK: 'CONVERTER_TASK',
 } as const;

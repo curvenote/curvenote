@@ -277,7 +277,11 @@ export class Context implements ContextType {
         ); // remove 'Bearer '
         // this throws if the token is invalid, immediate 401
         this.$verifiedHandshakeToken = token;
-        this.$handshakeClaims = { jobId: payload.jobId };
+        this.$handshakeClaims = {
+          audience: payload.aud as string,
+          expiry: payload.exp as number,
+          jobId: payload.jobId,
+        };
         const saUser = await getUserById(this.$config.api.submissionsServiceAccount.id);
         if (!saUser) throw httpError(500, 'Could not recover service account user');
         this.user = { email_verified: false, ...saUser };
@@ -667,7 +671,7 @@ export async function withAppPlatformAdminContext<
 
 /**
  * Context wrapper intended for usage on API endpoints to ensure the user exists with a
- * valid curvenote token
+ * valid curvenote token or handshake token with specific claims
  */
 // TODO: rename to withSecureAPIContext & return a SecureContext
 export async function withAPISecureContext<T extends LoaderFunctionArgs | ActionFunctionArgs>(
@@ -675,7 +679,16 @@ export async function withAPISecureContext<T extends LoaderFunctionArgs | Action
 ): Promise<SecureContext> {
   const ctx = await withContext<T>(args);
 
-  if (!ctx.authorized.curvenote) throw error401();
+  // TODO improve and generalise the handshake claims check, align with scopes and resource access?
+  const acceptableHandshake =
+    ctx.authorized.handshake &&
+    ctx.$handshakeClaims?.audience != null &&
+    ctx.$handshakeClaims?.expiry > Math.floor(Date.now() / 1000);
+  if (!ctx.authorized.curvenote && !acceptableHandshake) {
+    console.error('authorized', ctx.authorized);
+    console.error('handshake claims', ctx.$handshakeClaims);
+    throw error401('Invalid/expired token');
+  }
 
   // Check if user is disabled - treat as authentication failure
   if (ctx.user && ctx.user.disabled) throw error401();

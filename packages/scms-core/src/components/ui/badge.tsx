@@ -14,7 +14,7 @@ const badgeVariants = cva(
         secondary:
           'border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
         destructive:
-          'border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+          'border-destructive bg-destructive/10 text-destructive [a&]:hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 dark:text-destructive dark:border-destructive',
         // Customized for higher contrast: darker borders/text, lighter backgrounds
         outline:
           'border-gray-700 text-gray-800 bg-white dark:border-gray-300 dark:text-gray-200 dark:bg-gray-900 [a&]:hover:bg-gray-50 dark:[a&]:hover:bg-gray-700',

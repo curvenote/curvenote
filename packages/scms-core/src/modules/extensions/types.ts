@@ -33,22 +33,93 @@ export interface ExtensionAnalyticsEvents {
   descriptions: Record<string, string>;
 }
 
+/** Arguments for the execute check action (e.g. enqueue job). */
+export interface ExtensionCheckExecuteArgs {
+  ctx: Context;
+  workVersionId: string;
+  checkRunId: string;
+  /** Create a job; platform provides this so extensions can enqueue without knowing extension list. */
+  createJob: (jobType: string, payload: Record<string, unknown>) => Promise<unknown>;
+}
+
+/** Result of execute check action. */
+export interface ExtensionCheckExecuteResult {
+  success: boolean;
+  error?: string;
+}
+
+export type CheckServiceRunData<T extends object> = {
+  status: string;
+  serviceData?: T;
+  serviceDataSchema?: Record<string, any>;
+};
+
+/** Arguments for the status check action. */
+export interface ExtensionCheckStatusArgs {
+  ctx: Context;
+  checkRunId: string;
+}
+
+/** Arguments for handleAction. Used from both upload flow (execute) and checks page (form intents). */
+export interface ExtensionCheckHandleActionArgs {
+  intent: string;
+  workVersionId: string;
+  /** Server extensions allowing this extension to interact with other extensions. */
+  serverExtensions: ServerExtension[];
+  /** Form data when invoked from checks page. */
+  formData?: FormData;
+  /** Work version metadata when invoked from checks page. */
+  metadata?: any; // WorkVersionMetadata & ChecksMetadataSection
+  /** Context when invoked from upload flow (execute). Enables job creation. */
+  ctx?: Context;
+  /** Check run id when invoked from upload flow (execute). */
+  checkRunId?: string;
+  /**
+   * Optional transport / submit mode for checks that support multiple backends
+   * (e.g. 'service' for external container, 'stream' for in-process streaming job).
+   */
+  submitMode?: 'service' | 'stream';
+}
+
+/** Result of handleAction: success with optional status, or error (message string or object with type/message). */
+export type ExtensionCheckHandleActionResult = {
+  success?: boolean;
+  error?: { type: string; message: string; status?: number };
+  status?: number;
+};
+
 export interface ExtensionCheckService {
   id: string; // e.g., 'curvenote-structure'
   name: string; // Display name
   description: string; // Display description
   // Client-side component to render on checks screen
-  checksSectionComponent: React.ComponentType<{
+  sectionHeaderComponent: React.ComponentType<{ tag: React.ReactNode }>;
+  sectionActivityComponent: React.ComponentType<{
     metadata: any; // WorkVersionMetadata & ChecksMetadataSection
   }>;
-  // Optional: Server-side action handler
-  handleAction?: (args: {
-    intent: string;
-    formData: FormData;
-    workVersionId: string;
-    metadata: any; // WorkVersionMetadata & ChecksMetadataSection
-  }) => Promise<Response>;
+  /** Optional summary badge for timeline (e.g. "All clear", "2 problems", "Awaiting review"). Same metadata as sectionActivityComponent. */
+  sectionSummaryBadgeComponent?: React.ComponentType<{ metadata: any }>;
+  /** Server-side action handler. Used from upload flow (intent 'execute' + ctx + checkRunId + createJob) and checks page (intent + formData + metadata). */
+  handleAction?: (
+    args: ExtensionCheckHandleActionArgs,
+  ) => Promise<ExtensionCheckHandleActionResult>;
+  /** Get current status of a check run. */
+  handleStatus?: (args: ExtensionCheckStatusArgs) => Promise<Response>;
 }
+
+export type ClientExtensionCheckService = Omit<
+  ExtensionCheckService,
+  'handleAction' | 'handleStatus'
+>;
+
+/** Props for the optional extension admin card component (platform extensions page). */
+export type ExtensionAdminCardProps = {
+  config: Record<string, unknown>;
+  /** Extension display name; extensions should render this as the first item for consistency. */
+  extensionName: string;
+  /** Optional icon component; extensions may render it next to the name. */
+  ExtensionIcon?: React.ComponentType<{ className?: string }>;
+};
 
 export interface ClientExtension {
   id: string;
@@ -59,13 +130,17 @@ export interface ClientExtension {
   getAnalyticsEvents?: () => ExtensionAnalyticsEvents;
   getEmailTemplates?: () => ExtensionEmailTemplate[];
   getWorkflows?: () => WorkflowRegistration;
-  getChecks?: () => ExtensionCheckService[];
+  getChecks?: () => ClientExtensionCheckService[];
   registerNavigation: NavigationRegistrationFn;
+  /** Optional component to render extension admin card content; receives sanitized config. */
+  getExtensionAdminCard?: () => React.ComponentType<ExtensionAdminCardProps>;
 }
 
 export interface ServerExtension extends ClientExtension {
   registerRoutes?: (appConfig: AppConfig) => Promise<RouteRegistration[]>;
   getJobs?: () => JobRegistration[];
+  /** Returns safe admin config for platform UI; must obfuscate secrets. Only called server-side. */
+  getSafeAdminConfig?: (config: Record<string, unknown>) => Record<string, unknown>;
 }
 
 export type RouteRegistration = {

@@ -2,6 +2,26 @@ import type { ISession } from '../session/types.js';
 import { postToJournals } from '../utils/api.js';
 import { prepareUploadRequest } from './utils.js';
 import type { UploadStagingDTO } from '@curvenote/common';
+import type { SiteUploadRequest } from '@curvenote/blocks';
+
+/**
+ * POST an arbitrary upload request to the stage API. Does not scan session.sitePath().
+ * Use this for single-file or custom folder uploads (e.g. uploadSingleFileToCdn).
+ *
+ * @param session
+ * @param uploadRequest - { files: [{ path, content_type, md5, size }] }
+ * @returns Staging DTO (cdnKey, cached_items, upload_items)
+ */
+export async function stageWithRequest(
+  session: ISession,
+  uploadRequest: SiteUploadRequest,
+): Promise<UploadStagingDTO> {
+  const resp = await postToJournals(session, `/uploads/stage`, uploadRequest, { method: 'POST' });
+  if (!resp.ok) {
+    throw new Error(`🤕 Failed to stage uploads: ${resp.status} ${resp.statusText}`);
+  }
+  return (await resp.json()) as UploadStagingDTO;
+}
 
 /**
  * Scans the project folder, gets the list of files to upload and then asked the

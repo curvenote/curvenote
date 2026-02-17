@@ -250,6 +250,7 @@ export const loader = async (args: Route.LoaderArgs) => {
           'routes',
           'task',
           'workflows',
+          'checks',
         ];
 
         knownCapabilities.forEach((capability) => {

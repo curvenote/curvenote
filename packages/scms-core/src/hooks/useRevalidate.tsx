@@ -1,7 +1,7 @@
 // https://sergiodxa.com/articles/automatic-revalidation-in-remix
 
 import { useNavigate } from 'react-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 
 export function useRevalidate() {
   // We get the navigate function from React Rotuer
@@ -22,22 +22,16 @@ export function useRevalidateOnInterval({
   enabled: boolean;
   interval?: number;
 }) {
-  const [id, setId] = useState<NodeJS.Timeout | null>(null);
   const revalidate = useRevalidate();
   useEffect(
     function revalidateOnInterval() {
-      if (!enabled) {
-        if (id) {
-          clearInterval(id);
-          setId(null);
-        }
-        return;
-      }
-      if (!enabled || id) return;
+      if (!enabled) return;
       const tId = setInterval(revalidate, interval);
-      setId(tId);
+      return function cleanup() {
+        clearInterval(tId);
+      };
     },
-    [revalidate, id, enabled],
+    [revalidate, interval, enabled],
   );
   return revalidate;
 }

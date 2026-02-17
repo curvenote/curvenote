@@ -1,41 +1,12 @@
 import { formatDistance } from 'date-fns';
 import { Activity } from 'lucide-react';
 import type { SubmissionDTO, SubmissionActivityDTO } from '@curvenote/common';
-import type { ActivityType } from '@curvenote/scms-db';
-import { SectionWithHeading, primitives, formatDate } from '@curvenote/scms-core';
-
-const ACTIVITY_TYPES: Record<ActivityType, string> = {
-  NEW_SUBMISSION: 'New submission',
-  SUBMISSION_KIND_CHANGE: 'Submission kind changed',
-  SUBMISSION_DATE_CHANGE: 'Submission publication date changed',
-  SUBMISSION_VERSION_ADDED: 'New submission version',
-  SUBMISSION_VERSION_STATUS_CHANGE: 'Submission version status changed',
-  SUBMISSION_VERSION_TRANSITION_STARTED: 'Submission version transition started',
-  NEW_WORK: 'New work',
-  WORK_VERSION_ADDED: 'New work version',
-  KIND_CREATED: 'New submission kind',
-  KIND_DELETED: 'Submission kind deleted',
-  KIND_UPDATED: 'Submission kind updated',
-  SITE_CONTENT_UPDATED: 'Site landing content updated',
-  COLLECTION_CREATED: 'New collection',
-  COLLECTION_DELETED: 'Collection deleted',
-  COLLECTION_UPDATED: 'Collection updated',
-  FORM_CREATED: 'Form created',
-  FORM_DELETED: 'Form deleted',
-  FORM_UPDATED: 'Form updated',
-  FORM_SUBMITTED: 'Form submitted',
-  USER_ENABLED: 'User enabled',
-  USER_DISABLED: 'User disabled',
-  USER_APPROVED: 'User approved',
-  USER_REJECTED: 'User rejected',
-  ACCESS_GRANTED: 'Access granted',
-  ACCESS_REVOKED: 'Access revoked',
-  ROLE_CREATED: 'Role created',
-  ROLE_UPDATED: 'Role updated',
-  ROLE_DELETED: 'Role deleted',
-  ROLE_ASSIGNED: 'Role assigned',
-  ROLE_REMOVED: 'Role removed',
-};
+import {
+  SectionWithHeading,
+  primitives,
+  formatDate,
+  getActivityTypeLabel,
+} from '@curvenote/scms-core';
 
 function ActivityItemBody({ activity }: { activity: SubmissionActivityDTO }) {
   const { activity_type, activity_by, status, kind, submission_version, date_published } = activity;
@@ -68,7 +39,7 @@ function ActivityItemBody({ activity }: { activity: SubmissionActivityDTO }) {
       className={`flex col-span-3 whitespace-nowrap before:block before:h-full before:w-1 before:rounded-full ${tagColor} before:content-['']`}
     >
       <div className="pl-2">
-        <p className="font-medium">{ACTIVITY_TYPES[activity_type as ActivityType]}</p>
+        <p className="font-medium">{getActivityTypeLabel(activity_type)}</p>
         {additionalInfo}
         <primitives.Caption>{activity_by.name}</primitives.Caption>
       </div>

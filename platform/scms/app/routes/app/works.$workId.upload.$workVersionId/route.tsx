@@ -9,9 +9,14 @@ import {
   withValidFormData,
   getPrismaClient,
   safeWorkVersionJsonUpdate,
+  signFilesInMetadata,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
-import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
+import type {
+  ExtensionCheckService,
+  ExtensionCheckHandleActionArgs,
+  FileMetadataSection,
+} from '@curvenote/scms-core';
 import {
   MainWrapper,
   PageFrame,
@@ -21,10 +26,12 @@ import {
   ui,
   FileMetadataSectionSchema,
   scopes,
-  getExtensionCheckServices,
   useDeploymentConfig,
+  getExtensionCheckServicesFromClientConfig,
+  getExtensionCheckServicesFromServerConfig,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
 import { WorkTitleForm } from './WorkTitleForm';
 import { WorkUploadChecksForm } from './WorkUploadChecksForm';
 import { ContinueForm } from './ContinueForm';
@@ -39,6 +46,7 @@ import { data, redirect } from 'react-router';
 import { List, Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
+import { uuidv7 as uuid } from 'uuidv7';
 
 /**
  * Zod schema for work upload form validation
@@ -50,11 +58,22 @@ const WorkUploadActionSchema = zfd.formData({
   completedFiles: zfd.text(z.string()).optional(), // Used by 'complete' intent
   path: zfd.text(z.string()).optional(), // Used by 'remove' intent
   title: zfd.text(z.string().default('')), // Used by 'update-title' intent - allows empty strings
+  authors: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent
   checkName: zfd.text(workVersionCheckNameSchema).optional(), // Used by 'toggle-check' intent
   checked: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'toggle-check' intent
 });
 
 type WorkUploadActionPayload = z.infer<typeof WorkUploadActionSchema>;
+
+function parseAuthorsList(authorsText: string): string[] {
+  return authorsText
+    .split(',')
+    .map((a) => a.trim())
+    .filter((a) => a.length > 0);
+}
+
+// NOTE: Check service run schema is now defined and managed by each check
+// extension when they create checkServiceRun rows.
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppScopedContext(args, [scopes.app.works.upload]);
@@ -70,6 +89,13 @@ export async function loader(args: Route.LoaderArgs) {
   if (!work || work.id !== workId) {
     throw redirect('/app/works');
   }
+
+  const userDisplayName =
+    ctx.user?.display_name?.trim() || ctx.user?.username?.trim() || ctx.user?.email?.trim() || '';
+
+  // Note: this starts disabled/auto-populated, but we still thread it through
+  // to `confirm-work` so the server can persist it onto the work version.
+  const authorsText = work.authors?.length ? work.authors.join(', ') : userDisplayName;
 
   // Track view
   await ctx.trackEvent(TrackEvent.WORK_VIEWED, {
@@ -101,12 +127,15 @@ export async function loader(args: Route.LoaderArgs) {
     ...checks,
   };
 
+  const signedMetadata = await signFilesInMetadata(metadata, work.cdn ?? '', ctx);
+
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
     cdn: work.cdn!,
     title: work.title,
-    metadata,
+    authors: authorsText,
+    metadata: signedMetadata as any,
     uploadConfig: WORK_UPLOAD_CONFIGURATION,
   };
 }
@@ -128,7 +157,7 @@ export async function action(args: Route.ActionArgs) {
     WorkUploadActionSchema,
     formData,
     async (payload: WorkUploadActionPayload) => {
-      const { intent: uploadIntent, slot, title, checkName, checked } = payload;
+      const { intent: uploadIntent, slot, title, authors, checkName, checked } = payload;
 
       // Handle title update intent (updates title field)
       if (uploadIntent === 'update-title') {
@@ -176,20 +205,29 @@ export async function action(args: Route.ActionArgs) {
         }
 
         const prisma = await getPrismaClient();
+        const timestamp = new Date().toISOString();
+
+        const userDisplayName =
+          baseCtx.user?.display_name?.trim() ||
+          baseCtx.user?.username?.trim() ||
+          baseCtx.user?.email?.trim() ||
+          '';
+
+        const authorsText = (authors ?? '').trim() || userDisplayName;
+        const authorsList = authorsText ? parseAuthorsList(authorsText) : [];
 
         // Get current metadata to access enabled checks
-        const work = await prisma.workVersion.findUnique({
+        let wv = await prisma.workVersion.findUnique({
           where: { id: workVersionId },
-          select: { metadata: true },
         });
 
-        const currentMetadata = (work?.metadata as any) || { version: 1 };
+        const currentMetadata = (wv?.metadata as any) || { version: 1 };
         const enabledChecks = (currentMetadata.checks?.enabled as WorkVersionCheckName[]) || [];
 
         // Create check status objects for each enabled check
-        const checkStatuses: Record<string, { dispatched: boolean }> = {};
+        const checkStatuses: Record<string, any> = {};
         enabledChecks.forEach((name) => {
-          checkStatuses[name] = { dispatched: false };
+          checkStatuses[name] = {};
         });
 
         // Update metadata with check statuses
@@ -206,16 +244,45 @@ export async function action(args: Route.ActionArgs) {
         });
 
         // Flip the work out of draft mode
-        await prisma.workVersion.update({
+        wv = await prisma.workVersion.update({
           where: { id: workVersionId },
           data: {
             draft: false,
-            date_modified: new Date().toISOString(),
+            date_modified: timestamp,
+            ...(authorsList.length > 0 ? { authors: authorsList } : {}),
           },
         });
 
-        // Navigate to checks page
-        return redirect(`/app/works/${workId}/checks`);
+        // Execute each enabled check via its extension. Each check service is
+        // responsible for creating its own checkServiceRun rows and jobs.
+        if (enabledChecks.length > 0) {
+          const checkServices = getExtensionCheckServicesFromServerConfig(
+            baseCtx.$config,
+            serverExtensions,
+          );
+          for (const kind of enabledChecks) {
+            const service = checkServices.find((s) => s.id === kind);
+            if (!service?.handleAction) continue;
+            const actionArgs: ExtensionCheckHandleActionArgs = {
+              intent: 'execute',
+              workVersionId,
+              ctx: baseCtx,
+              serverExtensions,
+            };
+            const { success, error, status } = await service.handleAction(actionArgs);
+            if (!success || error) {
+              return data(
+                { error: { type: 'general', message: error?.message ?? 'Check execution failed' } },
+                { status: status ?? 500 },
+              );
+            }
+            // Check-start activities are created when jobs are invoked (invoke.server.ts),
+            // including for follow-on jobs, so we do not create them here.
+          }
+        }
+
+        // Navigate to work details page
+        return redirect(`/app/works/${workId}/details`);
       }
 
       // For other intents, slot is required
@@ -269,24 +336,12 @@ export async function action(args: Route.ActionArgs) {
 }
 
 export default function WorksUpload({ loaderData }: Route.ComponentProps) {
-  const { cdnKey, uploadConfig, metadata, title } = loaderData;
+  const { cdnKey, uploadConfig, metadata, title, authors } = loaderData;
 
   // Resolve check services at render time to avoid serialization issues
   // Construct minimal AppConfig from ClientDeploymentConfig
   const deploymentConfig = useDeploymentConfig();
-  const extensionsConfig: Record<string, { checks?: boolean }> = {};
-  if (deploymentConfig.extensions) {
-    for (const [extId, extInfo] of Object.entries(deploymentConfig.extensions)) {
-      // If 'checks' is in capabilities, enable it
-      if (extInfo.capabilities.includes('checks')) {
-        extensionsConfig[extId] = { checks: true };
-      }
-    }
-  }
-  const checkServices = getExtensionCheckServices(
-    { app: { extensions: extensionsConfig } } as unknown as AppConfig,
-    extensions,
-  );
+  const checkServices = getExtensionCheckServicesFromClientConfig(deploymentConfig, extensions);
 
   return (
     <MainWrapper>
@@ -321,6 +376,18 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           </p>
           <ui.Card className="px-6 pt-4 pb-6 space-y-4">
             <WorkTitleForm title={title} />
+            <div className="space-y-1">
+              <label htmlFor="authors" className="inline-block text-sm font-medium">
+                Authors
+              </label>
+              <ui.Input
+                id="authors"
+                type="text"
+                value={authors}
+                disabled
+                placeholder="Auto-populated on submission"
+              />
+            </div>
           </ui.Card>
         </SectionWithHeading>
         <SectionWithHeading
@@ -329,7 +396,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           className="space-y-4"
         >
           <p className="text-muted-foreground">
-            Choose which integrity checks you'd like to run on your work.
+            Choose which checks you'd like to run on your work.
           </p>
           <ui.Card className="p-6 space-y-4">
             <WorkUploadChecksForm
@@ -338,7 +405,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             />
           </ui.Card>
         </SectionWithHeading>
-        <ContinueForm title={title} metadata={metadata} />
+        <ContinueForm title={title} authors={authors} metadata={metadata} />
       </PageFrame>
     </MainWrapper>
   );

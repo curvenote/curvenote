@@ -6,6 +6,7 @@ import type { ClientExtension, ExtensionAnalyticsEvents } from '@curvenote/scms-
 import { SiteTrackEvent, SiteTrackEventDescriptions } from './analytics/events.js';
 import { registerNavigation } from './navigation.js';
 import { getIcons } from './icons.js';
+import ExtensionAdminCard from './ExtensionAdminCard.js';
 
 export const id = 'sites';
 export const name = 'Sites';
@@ -18,11 +19,16 @@ function getAnalyticsEvents(): ExtensionAnalyticsEvents {
   };
 }
 
+function getExtensionAdminCard() {
+  return ExtensionAdminCard;
+}
+
 export const extension: ClientExtension = {
   id,
   name,
   description,
   getAnalyticsEvents,
   getIcons,
+  getExtensionAdminCard,
   registerNavigation,
 } as const;

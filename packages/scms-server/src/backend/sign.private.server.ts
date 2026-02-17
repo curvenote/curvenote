@@ -1,5 +1,5 @@
 import type { HostSpec } from '@curvenote/common';
-import * as cdnlib from '@curvenote/cdn';
+import { createHmac } from 'crypto';
 import type { DBO as SiteDBO } from './loaders/sites/get.server.js';
 import NodeCache from 'node-cache';
 import type { Context } from './context.server.js';
@@ -19,10 +19,13 @@ export async function getSitePublicKey(
 
 /**
  * For use with private sites, this function will generate a signed CDN query
- * scoped to the baseURL
+ * scoped to the baseURL.
+ *
+ * Uses Google CDN signed URLs with URL prefix:
+ * https://cloud.google.com/cdn/docs/using-signed-urls#programmatically_create_signed_urls_with_a_url_prefix
  *
  * @param baseUrl
- * @returns
+ * @returns Query string (URLPrefix, Expires, KeyName, Signature) or '' if no signing key.
  */
 export function getSignedCDNQuery(ctx: Context, baseUrl: string) {
   // TODO not getting types well here
@@ -36,12 +39,13 @@ export function getSignedCDNQuery(ctx: Context, baseUrl: string) {
   if (signingInfo.length > 1) console.warn('Multiple signing keys found for', baseUrl);
 
   // TODO memcache this?
-  return cdnlib.getSignedCDNQuery({
-    urlPrefix: baseUrl,
-    expires: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
-    keyName: signingInfo[0].keyName,
-    keyBase64: signingInfo[0].key,
-  });
+  const expires = Math.floor(Date.now() / 1000) + 60 * 60 * 24;
+  const encodedUrlPrefix = Buffer.from(baseUrl).toString('base64url');
+  const policy = `URLPrefix=${encodedUrlPrefix}&Expires=${expires}&KeyName=${signingInfo[0].keyName}`;
+  const keyBuffer = Buffer.from(signingInfo[0].key, 'base64');
+  const digest = createHmac('sha1', keyBuffer).update(policy).digest('base64');
+  const signature = Buffer.from(digest, 'base64').toString('base64url');
+  return `${policy}&Signature=${signature}`;
 }
 
 const cache = new NodeCache({ stdTTL: 60 * 60 * 12, checkperiod: 60, maxKeys: 1000 });
