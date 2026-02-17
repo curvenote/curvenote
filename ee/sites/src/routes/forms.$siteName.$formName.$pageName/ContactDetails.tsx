@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { ui, orcid } from '@curvenote/scms-core';
 import { useSaveField } from './useSaveField.js';
-import { isValidOrcid } from './validationUtils.js';
+import { isValidEmail, isValidOrcid } from './validationUtils.js';
 
 type ContactDetailsUser = {
   name?: string;
@@ -137,7 +137,7 @@ export function ContactDetails({
             <ui.FormLabel
               htmlFor="contact-email"
               required
-              valid={email.trim().length > 0}
+              valid={isValidEmail(email)}
               defined={email.trim().length > 0}
             >
               Email
@@ -150,6 +150,7 @@ export function ContactDetails({
                 const v = e.target.value;
                 setEmail(v);
                 if (!emailReadOnly) saveEmail(v);
+                onContactChange?.({ contactName: name, contactEmail: v, contactOrcidId: orcidId });
               }}
               placeholder="you@example.com"
               className="w-full"

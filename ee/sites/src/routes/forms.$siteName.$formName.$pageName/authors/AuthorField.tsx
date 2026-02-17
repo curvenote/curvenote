@@ -719,12 +719,25 @@ export function AuthorField({
             addMeAsAuthor={addMeAsAuthor}
             showAddMeAsAuthor={Boolean(
               contactDetails &&
-              !value.some(
-                (a) =>
-                  normalizeOrcidForCompare(a.orcid) ===
-                  normalizeOrcidForCompare(contactDetails?.orcidId),
-              ),
+              !value.some((a) => {
+                const authorOrcid = normalizeOrcidForCompare(a.orcid);
+                const contactOrcid = normalizeOrcidForCompare(contactDetails?.orcidId);
+                const orcidMatch = authorOrcid && contactOrcid && authorOrcid === contactOrcid;
+                const contactName = String(contactDetails?.name ?? '').trim();
+                const contactEmail = String(contactDetails?.email ?? '').trim();
+                const authorName = String(a.name ?? '').trim();
+                const authorEmail = String(a.email ?? '').trim();
+                const nameEmailMatch =
+                  contactName &&
+                  contactEmail &&
+                  authorName &&
+                  authorEmail &&
+                  authorName.toLowerCase() === contactName.toLowerCase() &&
+                  authorEmail.toLowerCase() === contactEmail.toLowerCase();
+                return orcidMatch || nameEmailMatch;
+              }),
             )}
+            addMeDisabled={!contactDetails || !String(contactDetails.name ?? '').trim()}
             isEmpty={value.length === 0}
           />
           <DragOverlay dropAnimation={null}>{activeAuthorOverlay}</DragOverlay>

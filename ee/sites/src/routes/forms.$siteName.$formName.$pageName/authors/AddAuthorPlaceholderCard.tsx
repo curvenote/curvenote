@@ -11,6 +11,7 @@ export type AddAuthorPlaceholderCardProps = {
   orcidFetcher: { state: string };
   addMeAsAuthor: () => void;
   showAddMeAsAuthor: boolean;
+  addMeDisabled?: boolean;
   isEmpty: boolean;
 };
 
@@ -24,6 +25,7 @@ export function AddAuthorPlaceholderCard({
   orcidFetcher,
   addMeAsAuthor,
   showAddMeAsAuthor,
+  addMeDisabled = false,
   isEmpty,
 }: AddAuthorPlaceholderCardProps) {
   return (
@@ -35,6 +37,8 @@ export function AddAuthorPlaceholderCard({
               type="button"
               variant="default"
               onClick={addMeAsAuthor}
+              disabled={addMeDisabled}
+              title={addMeDisabled ? 'Fill in your name in Contact details first' : undefined}
               className="cursor-pointer w-fit"
             >
               Add me as an author
@@ -82,7 +86,9 @@ export function AddAuthorPlaceholderCard({
             <button
               type="button"
               onClick={addMeAsAuthor}
-              className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
+              disabled={addMeDisabled}
+              title={addMeDisabled ? 'Fill in your name in Contact details first' : undefined}
+              className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-muted-foreground disabled:hover:bg-background"
             >
               <Plus className="w-3 h-3 shrink-0" aria-hidden />
               <span>Add me as an author</span>
