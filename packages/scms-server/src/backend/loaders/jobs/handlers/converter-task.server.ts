@@ -14,7 +14,7 @@ import { publishConverterMessage } from '../../../processing.server.js';
 import { signFilesInMetadata } from '../../../files-metadata.server.js';
 import { dbCreateJob, dbUpdateJob } from './db.server.js';
 import { validate } from '../../../../api.schemas.js';
-import { CreateExportToPdfJobPayloadSchema } from './schemas.server.js';
+import { CreateConverterTaskPayloadSchema } from './schemas.server.js';
 import path from 'node:path';
 
 const rollingLogEntry = (message: string, data: unknown) => ({ message, data });
@@ -119,7 +119,9 @@ function deriveExportFilenameFromMetadata(
 }
 
 /**
- * Export-to-PDF job handler (async pattern).
+ * Converter-task job handler (async pattern).
+ * Payload specifies target (e.g. pdf) and conversion_type; this implementation
+ * handles PDF export (Docx → PDF).
  *
  * 1. Validates payload; loads work version (if not found, returns error without creating job).
  * 2. Creates job in DB (QUEUED).
@@ -127,10 +129,10 @@ function deriveExportFilenameFromMetadata(
  * 4. Updates job with rollingLog and messageId; returns job DBO.
  * Worker later PATCHes the job (status/results) using the handshake token.
  */
-export async function exportToPdfHandler(ctx: Context, data: CreateJob) {
+export async function converterTaskHandler(ctx: Context, data: CreateJob) {
   const rollingLog: { message: string; data: unknown }[] = [];
 
-  const payload = validate(CreateExportToPdfJobPayloadSchema, data.payload);
+  const payload = validate(CreateConverterTaskPayloadSchema, data.payload);
   rollingLog.push(
     rollingLogEntry('payload validated', { work_version_id: payload.work_version_id }),
   );
@@ -179,13 +181,13 @@ export async function exportToPdfHandler(ctx: Context, data: CreateJob) {
 
   const handshake = createHandshakeToken(
     job.id,
-    KnownJobTypes.EXPORT_TO_PDF,
+    KnownJobTypes.CONVERTER_TASK,
     ctx.$config.api.handshakeIssuer,
     ctx.$config.api.handshakeSigningSecret,
   );
   const jobUrl = ctx.asApiUrl(`/jobs/${job.id}`);
   if (!ctx.user?.id) {
-    throw httpError(401, 'Export job requires an authenticated user');
+    throw httpError(401, 'Converter task job requires an authenticated user');
   }
   const attributes = {
     handshake,
@@ -202,7 +204,7 @@ export async function exportToPdfHandler(ctx: Context, data: CreateJob) {
 
   const updated = await dbUpdateJob(job.id, {
     status: JobStatus.RUNNING,
-    message: 'Export-to-PDF message published to converter',
+    message: 'Converter task message published to converter',
     results: {
       rollingLog,
       pubsubMessageId: messageId,

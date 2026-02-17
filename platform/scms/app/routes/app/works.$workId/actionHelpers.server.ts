@@ -80,7 +80,7 @@ export async function exportToPdfAction(ctx: WorkContext, formData: FormData) {
       ctx,
       {
         id: uuidv7(),
-        job_type: 'EXPORT_TO_PDF',
+        job_type: 'CONVERTER_TASK',
         payload: {
           work_version_id: workVersionId,
           target: 'pdf',

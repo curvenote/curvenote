@@ -25,7 +25,7 @@ export async function action(args: Route.ActionArgs) {
   // TODO: handshake scopes
   if (ctx.authorized.handshake) {
     const audience = ctx.$handshakeClaims?.audience;
-    if (audience !== 'EXPORT_TO_PDF') return error401('Invalid handshake audience');
+    if (audience !== 'CONVERTER_TASK') return error401('Invalid handshake audience');
   }
   const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
   const data = validate(UploadStagePostBodySchema, body);

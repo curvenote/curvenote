@@ -20,7 +20,7 @@ This document describes how jobs work in SCMS, how to use **job chaining** (foll
 
 2. **Run**
    - **Sync**: The handler does all work and updates the job (e.g. PUBLISH, UNPUBLISH).
-   - **Async**: The handler creates the job, publishes a message (e.g. SNS/PubSub) with a handshake token and `job_url`, and returns. A worker consumes the message, does the work, and updates the job via `PATCH /api/v1/jobs/:jobId` using the handshake token (e.g. CHECK, EXPORT_TO_PDF).
+   - **Async**: The handler creates the job, publishes a message (e.g. SNS/PubSub) with a handshake token and `job_url`, and returns. A worker consumes the message, does the work, and updates the job via `PATCH /api/v1/jobs/:jobId` using the handshake token (e.g. CHECK, CONVERTER_TASK).
 
 3. **Update**  
    `PATCH /api/v1/jobs/:jobId` with `{ status, message?, results? }` is allowed only when authorized by Curvenote auth or by a valid handshake token whose `jobId` claim matches the route param. Used by async workers to set COMPLETED/FAILED and attach results.
@@ -38,7 +38,7 @@ This document describes how jobs work in SCMS, how to use **job chaining** (foll
 
 | Field       | Type   | Required | Description                                                           |
 | ----------- | ------ | -------- | --------------------------------------------------------------------- |
-| `job_type`  | string | yes      | Registered job type (e.g. `CHECK`, `EXPORT_TO_PDF`).                  |
+| `job_type`  | string | yes      | Registered job type (e.g. `CHECK`, `CONVERTER_TASK`).                  |
 | `payload`   | object | yes      | Parameters for the job.                                               |
 | `id`        | string | no       | UUID for the job; server generates one if omitted.                    |
 | `results`   | object | no       | Pre-populated results (rare).                                         |
@@ -48,8 +48,8 @@ This document describes how jobs work in SCMS, how to use **job chaining** (foll
 
 ```json
 {
-  "job_type": "EXPORT_TO_PDF",
-  "payload": { "target": "submission-xyz" }
+  "job_type": "CONVERTER_TASK",
+  "payload": { "target": "pdf", "work_version_id": "..." }
 }
 ```
 
@@ -63,7 +63,7 @@ This document describes how jobs work in SCMS, how to use **job chaining** (foll
 | --------- | ------ | -------- | ---------------------------------------------------------------- |
 | `status`  | string | yes      | One of: `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`. |
 | `message` | string | no       | Appended to job messages.                                        |
-| `results` | object | no       | Job results (e.g. for CHECK, EXPORT_TO_PDF).                     |
+| `results` | object | no       | Job results (e.g. for CHECK, CONVERTER_TASK).                     |
 
 **Authorization:** Curvenote auth or handshake token whose `jobId` claim matches `:jobId`.  
 **Response:** `200` with updated job DTO. The route rejects PATCH when the job is already `COMPLETED` or `FAILED`.
@@ -91,8 +91,8 @@ When creating a job, you may send an optional `follow_on` object. It must includ
 
 ```json
 {
-  "job_type": "EXPORT_TO_PDF",
-  "payload": { "target": "submission-xyz" },
+  "job_type": "CONVERTER_TASK",
+  "payload": { "target": "pdf", "work_version_id": "..." },
   "follow_on": {
     "$schema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -140,12 +140,12 @@ To add a job like **Export to PDF** that triggers an async task:
 | ---- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | Declare job type constant    | [packages/scms-core/src/backend/loaders/jobs/names.ts](packages/scms-core/src/backend/loaders/jobs/names.ts) – add to `KnownJobTypes`                                                                                              |
 | 2    | Allow type in API validation | [packages/scms-server/src/api.schemas.ts](packages/scms-server/src/api.schemas.ts) – add to `coreJobTypes` in `getJobTypes()`                                                                                                      |
-| 3    | Define payload schema        | [packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts) – e.g. `CreateExportToPdfJobPayloadSchema`                                    |
-| 4    | Implement handler            | [packages/scms-server/src/backend/loaders/jobs/handlers/export-to-pdf.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/export-to-pdf.server.ts) – validate payload, `dbCreateJob`, enqueue (e.g. SNS), return job |
+| 3    | Define payload schema        | [packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts) – e.g. `CreateConverterTaskPayloadSchema`                                    |
+| 4    | Implement handler            | [packages/scms-server/src/backend/loaders/jobs/handlers/converter-task.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/converter-task.server.ts) – validate payload, `dbCreateJob`, enqueue (e.g. SNS), return job |
 | 5    | Register handler             | [packages/scms-server/src/backend/loaders/jobs/handlers/index.ts](packages/scms-server/src/backend/loaders/jobs/handlers/index.ts) – add to `coreHandlers`                                                                         |
 | 6    | (Optional) Storage           | [packages/scms-server/src/backend/loaders/jobs/create.server.ts](packages/scms-server/src/backend/loaders/jobs/create.server.ts) – add job type to `jobsRequiringStorage` only if the handler needs `StorageBackend`               |
 
-**Trigger from the app**: `POST /api/v1/jobs` with body `{ "job_type": "EXPORT_TO_PDF", "payload": { "target": "..." } }`.  
+**Trigger from the app**: `POST /api/v1/jobs` with body `{ "job_type": "CONVERTER_TASK", "payload": { "work_version_id": "...", "target": "pdf" } }`.  
 The route that receives this: [platform/scms/app/routes/api/v1.jobs.tsx](platform/scms/app/routes/api/v1.jobs.tsx).
 
 **Async worker**: Publish a message that includes a handshake token (see [packages/scms-server/src/backend/sign.handshake.server.ts](packages/scms-server/src/backend/sign.handshake.server.ts)) and `job_url` (e.g. `{base}/api/v1/jobs/{id}`). The worker calls `PATCH job_url` with `Authorization: Bearer <handshake>` and `{ status, message?, results? }`. Reference: CHECK job in [packages/scms-server/src/backend/loaders/jobs/handlers/check.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/check.server.ts) and [packages/scms-server/src/backend/processing.server.ts](packages/scms-server/src/backend/processing.server.ts) (`publishCheck`).

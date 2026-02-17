@@ -1,5 +1,5 @@
 import { checkCLIHandler, checkHandler } from './check.server.js';
-import { exportToPdfHandler } from './export-to-pdf.server.js';
+import { converterTaskHandler } from './converter-task.server.js';
 import { publishHandler } from './publish.server.js';
 import { unpublishHandler } from './unpublish.server.js';
 import type { Context } from '../../../context.server.js';
@@ -18,7 +18,7 @@ export const coreHandlers: Record<string, JobHandler> = {
   [KnownJobTypes.CLI_CHECK]: checkCLIHandler,
   [KnownJobTypes.PUBLISH]: publishHandler,
   [KnownJobTypes.UNPUBLISH]: unpublishHandler,
-  [KnownJobTypes.EXPORT_TO_PDF]: exportToPdfHandler,
+  [KnownJobTypes.CONVERTER_TASK]: converterTaskHandler,
 };
 
 export function getHandlers(extensionJobs: JobRegistration[]): Record<string, JobHandler> {

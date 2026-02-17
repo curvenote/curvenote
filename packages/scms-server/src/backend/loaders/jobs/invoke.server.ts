@@ -27,8 +27,8 @@ export default async function (ctx: Context, data: CreateJob, extensionJobs: Job
     ? new StorageBackend(ctx, [KnownBuckets.pub, KnownBuckets.prv])
     : undefined;
 
-  // For converter task (EXPORT_TO_PDF), set activity_type and activity_data so job and start activity use CONVERTER_TASK_STARTED.
-  if (job_type === KnownJobTypes.EXPORT_TO_PDF && data.payload && !data.activity_type) {
+  // For converter task (CONVERTER_TASK), set activity_type and activity_data so job and start activity use CONVERTER_TASK_STARTED.
+  if (job_type === KnownJobTypes.CONVERTER_TASK && data.payload && !data.activity_type) {
     data = {
       ...data,
       activity_type: 'CONVERTER_TASK_STARTED',

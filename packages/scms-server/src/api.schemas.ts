@@ -113,7 +113,7 @@ async function getJobTypes(extensions: ServerExtension[]): Promise<readonly stri
     KnownJobTypes.CLI_CHECK,
     KnownJobTypes.PUBLISH,
     KnownJobTypes.UNPUBLISH,
-    KnownJobTypes.EXPORT_TO_PDF,
+    KnownJobTypes.CONVERTER_TASK,
   ];
   const extensionJobTypes = registerExtensionJobs(extensions).map((job) => job.jobType);
   return [...coreJobTypes, ...extensionJobTypes] as const;
