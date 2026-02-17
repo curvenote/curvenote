@@ -235,8 +235,8 @@ async function cmsFallback(
   const response = await next();
 
   if (response.status === 404) {
-    const redirect = await checkCmsRedirects(request.url);
-    if (redirect) throw redirect(redirect, 302);
+    const redirectUrl = await checkCmsRedirects(request.url);
+    if (redirectUrl) throw redirect(redirectUrl, 302);
   }
 
   return response;

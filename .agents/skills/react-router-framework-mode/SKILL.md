@@ -72,7 +72,9 @@ These are the most important patterns to follow. Load the relevant reference for
 
 ```tsx
 const fetcher = useFetcher();
-const optimistic = fetcher.formData?.get("favorite") === "true" ?? isFavorite;
+const optimistic = fetcher.formData
+  ? fetcher.formData.get("favorite") === "true"
+  : isFavorite;
 
 <fetcher.Form method="post" action={`/favorites/${id}`}>
   <button>{optimistic ? "★" : "☆"}</button>
