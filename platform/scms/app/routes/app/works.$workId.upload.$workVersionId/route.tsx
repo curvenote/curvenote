@@ -10,7 +10,6 @@ import {
   getPrismaClient,
   safeWorkVersionJsonUpdate,
   signFilesInMetadata,
-  createWorkActivity,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
@@ -277,15 +276,8 @@ export async function action(args: Route.ActionArgs) {
                 { status: status ?? 500 },
               );
             }
-            if (baseCtx.user?.id) {
-              await createWorkActivity({
-                workId,
-                workVersionId,
-                activityById: baseCtx.user.id,
-                activityType: 'CHECK_STARTED',
-                data: { check: { kind } },
-              });
-            }
+            // Check-start activities are created when jobs are invoked (invoke.server.ts),
+            // including for follow-on jobs, so we do not create them here.
           }
         }
 

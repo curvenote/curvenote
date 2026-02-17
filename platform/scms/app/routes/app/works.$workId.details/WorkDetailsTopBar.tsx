@@ -1,12 +1,21 @@
-import { Link } from 'react-router';
+import { Link, useNavigate, useFetcher } from 'react-router';
 import { ui } from '@curvenote/scms-core';
 import { Upload, Plus } from 'lucide-react';
+import { useEffect } from 'react';
 
 type WorkUser = {
   id: string;
   display_name: string | null;
   email: string | null;
   work_roles: string[];
+};
+
+/** Minimal shape for latest version used for resume-draft vs upload-new. */
+export type WorkDetailsUploadProps = {
+  canUpload: boolean;
+  workBasePath: string;
+  /** Latest work version (versions[0]); used to decide resume vs create and for resume target. */
+  latestVersion: { id: string; draft?: boolean; metadata?: unknown } | null | undefined;
 };
 
 function getInitials(displayName: string | null): string {
@@ -20,15 +29,71 @@ function getInitials(displayName: string | null): string {
   return displayName.slice(0, 2).toUpperCase();
 }
 
+/** True when the latest version is a draft with checks metadata (resumable). */
+export function canResumeDraft(
+  canUpload: boolean,
+  latestVersion: WorkDetailsUploadProps['latestVersion'],
+): boolean {
+  return (
+    canUpload === true &&
+    latestVersion?.draft === true &&
+    latestVersion.metadata != null &&
+    typeof latestVersion.metadata === 'object' &&
+    'checks' in latestVersion.metadata
+  );
+}
+
 export function WorkDetailsTopBar({
   workId,
   users,
-  uploadHref,
+  uploadProps,
 }: {
   workId: string;
   users: WorkUser[];
-  uploadHref: string | null;
+  /** When provided, the top bar owns the upload button and resume vs create-new-version logic. */
+  uploadProps: WorkDetailsUploadProps;
 }) {
+  const { canUpload, workBasePath, latestVersion } = uploadProps;
+  const navigate = useNavigate();
+  const fetcher = useFetcher<{
+    intent?: string;
+    success?: boolean;
+    workId?: string;
+    workVersionId?: string;
+  }>();
+
+  const resumeDraft = canResumeDraft(canUpload, latestVersion);
+  const uploadButtonLabel = resumeDraft ? 'Resume Draft Version' : 'Upload New Version';
+
+  const handleUploadAction = () => {
+    if (!canUpload) return;
+    if (resumeDraft && latestVersion) {
+      navigate(`${workBasePath}/upload/${latestVersion.id}`);
+      return;
+    }
+    const formData = new FormData();
+    formData.append('intent', 'create-new-version');
+    fetcher.submit(formData, { method: 'post', action: workBasePath });
+  };
+
+  useEffect(() => {
+    if (
+      fetcher.data &&
+      'intent' in fetcher.data &&
+      fetcher.data.intent === 'create-new-version' &&
+      fetcher.state === 'idle'
+    ) {
+      if (
+        'success' in fetcher.data &&
+        fetcher.data.success &&
+        fetcher.data.workId &&
+        fetcher.data.workVersionId
+      ) {
+        navigate(`${workBasePath}/upload/${fetcher.data.workVersionId}`);
+      }
+    }
+  }, [fetcher.state, fetcher.data, navigate, workBasePath]);
+
   const usersPageHref = `/app/works/${workId}/users`;
 
   return (
@@ -53,15 +118,20 @@ export function WorkDetailsTopBar({
         <span className="flex justify-center items-center w-8 h-8 rounded-full border-2 border-dashed shrink-0 border-muted-foreground/40 text-muted-foreground">
           <Plus className="w-4 h-4" />
         </span>
-        <span className="text-sm font-medium text-muted-foreground">Share</span>
+        <span className="text-sm font-medium text-muted-foreground">Invite</span>
       </Link>
       <div>
-        {uploadHref ? (
-          <ui.Button asChild size="default" variant="default">
-            <Link to={uploadHref} prefetch="intent" className="inline-flex items-center gap-2 text-base">
-              <Upload className="h-4 w-4" />
-              Upload new version
-            </Link>
+        {canUpload ? (
+          <ui.Button
+            type="button"
+            size="default"
+            variant="default"
+            onClick={handleUploadAction}
+            disabled={fetcher.state !== 'idle'}
+            className="inline-flex gap-2 items-center text-base"
+          >
+            <Upload className="w-4 h-4" />
+            {uploadButtonLabel}
           </ui.Button>
         ) : null}
       </div>

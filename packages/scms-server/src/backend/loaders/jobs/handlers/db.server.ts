@@ -24,7 +24,7 @@ export async function dbCreateJob({
       payload: payload === null ? Prisma.JsonNull : payload,
       results: results == null ? Prisma.JsonNull : results,
       messages: message ? [message] : [],
-      follow_on: follow_on == null ? Prisma.JsonNull : follow_on,
+      follow_on: follow_on == null ? Prisma.JsonNull : (follow_on as Prisma.InputJsonValue),
     },
   });
 }
