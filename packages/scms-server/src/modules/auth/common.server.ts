@@ -7,6 +7,29 @@ import { redirect } from 'react-router';
 import type { AuthenticatedUser, Session, SessionStorage } from '../../session.server.js';
 import { $sendSlackNotification, SlackEventType } from '../../backend/services/slack.server.js';
 import { sessionStorageFactory } from '../../session.server.js';
+import { getServerFirestore } from '../database/firebase/firebase.server.js';
+
+/**
+ * Error thrown when an Editor user already exists.
+ */
+export class EditorUserExistsError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'EditorUserExistsError';
+  }
+}
+
+/**
+ * Generate a username from an email address.
+ * Uses the email prefix, sanitized to lowercase alphanumeric, with 3 random digits appended.
+ */
+function generateUsernameFromEmail(email: string): string {
+  const prefix = email.split('@')[0] || 'user';
+  const sanitized = prefix.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  const base = sanitized.slice(0, 12) || 'user';
+  const suffix = Math.floor(100 + Math.random() * 900).toString();
+  return `${base}${suffix}`;
+}
 
 /**
  * Get a user by their ID.
@@ -430,6 +453,94 @@ export function failureRedirectUrl({
 }
 
 /**
+ * Create a user document in the Editor Firestore database.
+ *
+ * @param uid - The Firebase Auth UID (document ID)
+ * @param email - The user's email address
+ * @param displayName - The user's display name
+ * @param emailVerified - Whether the email is verified
+ * @throws If the user already exists (by uid or email) or cannot be created
+ */
+export async function createEditorUser(
+  uid: string,
+  data: {
+    email: string;
+    displayName?: string;
+    emailVerified?: boolean;
+    orcid?: string;
+  },
+) {
+  const firestore = await getServerFirestore();
+  const usersCollection = firestore.collection('users');
+  const userRef = usersCollection.doc(uid);
+
+  // Check if user already exists by UID
+  const existingUser = await userRef.get();
+  if (existingUser.exists) {
+    console.log(`Editor user already exists (uid): ${uid}`);
+    throw new EditorUserExistsError('Editor user already exists (uid)');
+  }
+
+  // Check if user already exists by email
+  const emailQuery = await usersCollection.where('email', '==', data.email).limit(1).get();
+  if (!emailQuery.empty) {
+    console.log(`Editor user already exists (email): ${data.email}`);
+    throw new EditorUserExistsError('Editor user already exists (email)');
+  }
+
+  let username = generateUsernameFromEmail(data.email);
+  let attempts = 0;
+  const maxAttempts = 10;
+  while (attempts < maxAttempts) {
+    const usernameQuery = await usersCollection.where('username', '==', username).limit(1).get();
+    if (usernameQuery.empty) {
+      break; // Username is available
+    }
+    // Try a new username
+    username = generateUsernameFromEmail(data.email);
+    attempts++;
+  }
+  if (attempts >= maxAttempts) {
+    throw new Error('Failed to generate unique username after max attempts');
+  }
+
+  const date = new Date().toISOString();
+  const userData = {
+    kind: 'User',
+    entitlements: 0,
+    plan: 'Community',
+    start_date: null,
+    expiry_date: null,
+    customer_id: null,
+    subscription_id: null,
+    notify_pending: false,
+    notify_last_email: null,
+    username,
+    accept_terms: false,
+    display_name: data.displayName ?? '',
+    email: data.email,
+    email_verified: data.emailVerified ?? false,
+    photo: '',
+    banner: null,
+    date_terms: {},
+    date_created: date,
+    date_modified: date,
+    bio: '',
+    location: '',
+    affiliation: '',
+    website: '',
+    github: '',
+    twitter: '',
+    orcid: data.orcid ?? '',
+    sso: {},
+  };
+
+  await userRef.set(userData);
+  console.log(`Created Editor user: ${uid} (${data.email}, @${username})`);
+  return { username, displayName: data.displayName, email: data.email };
+}
+
+/**
  * Provision a new user from the editor API.
  *
  * @param config - The application configuration
@@ -441,7 +552,7 @@ export async function provisionNewUserFromEditorAPI(
   config: AppConfig,
   data: {
     uid: string;
-    email?: string;
+    email: string;
     displayName: string;
     provider?: string;
   },
@@ -452,63 +563,96 @@ export async function provisionNewUserFromEditorAPI(
   // we need to call back to the editorApi to get the user's profile
   const resp = await fetch(`${config.api.editorApiUrl}/users/${uid}`);
 
-  // just username for now
-  let editorUserProfile: { username?: string; displayName?: string; email?: string };
-  if (!resp.ok) {
-    console.error(`User not found (Editor API) ${resp.status} ${resp.statusText}`);
-    // we are not going to throw a fatal error here, just continue with the
-    // information we have
-    throw redirect('/new-account/pending');
-  } else {
+  // Try to get user profile from Editor API
+  let editorUserProfile: { username?: string; displayName?: string; email?: string } | undefined;
+  let isExistingEditorUser = false;
+  let isNewEditorUser = false;
+  if (resp.ok) {
     editorUserProfile = await resp.json();
+    isExistingEditorUser = true;
+  } else {
+    console.info(`User not found (Editor API) ${resp.status} ${resp.statusText}`);
+
+    // If not creating Editor users, redirect to pending page
+    if (!config.auth?.firebase?.createEditorUser) {
+      throw redirect('/new-account/pending');
+    }
+
+    // User doesn't exist in Editor API - create them in the Editor Firestore database
+    try {
+      editorUserProfile = await createEditorUser(uid, {
+        email: email ?? '',
+        displayName,
+        emailVerified: true, // They authenticated via Firebase
+      });
+      isNewEditorUser = true;
+    } catch (error: any) {
+      // If user already exists by email, they should use their existing account
+      if (error instanceof EditorUserExistsError) {
+        throw redirect('/new-account/pending');
+      }
+      // Other errors - log and continue -
+      console.log(`Editor user creation: ${error.message}`);
+    }
   }
 
   let user: Awaited<ReturnType<typeof dbCreateUser>>;
 
+  // For Google login via Firebase, create a Google-linked user
   if (providerData && data.provider === 'google') {
     user = await dbCreateUserWithPrimaryLinkedAccount<Exclude<typeof providerData, undefined>>({
       id: uid,
       email,
-      username: editorUserProfile.username,
-      displayName: editorUserProfile.displayName ?? displayName,
+      username: editorUserProfile?.username,
+      displayName: editorUserProfile?.displayName ?? displayName,
       primaryProvider: 'google',
       profile: providerData,
-      editorUserNoPendingOverride: true,
+      // Only skip signup flow if user was found in Editor API (existing user)
+      editorUserNoPendingOverride: isExistingEditorUser,
     });
   } else {
+    // Email/password login - create non-linked user
     const timestamp = new Date().toISOString();
     user = await dbCreateUser({
       id: uid,
       email: email,
-      username: editorUserProfile.username,
-      displayName: editorUserProfile.displayName ?? displayName,
+      username: editorUserProfile?.username,
+      displayName: editorUserProfile?.displayName ?? displayName,
       primaryProvider: provider,
-      pending: false,
+      // Only skip signup flow if user was found in Editor API
+      pending: !isExistingEditorUser,
       readyForApproval: false,
-      signupData: {
-        completedAt: timestamp,
-        status: 'completed',
-        skipReason: 'editor_api',
-        steps: {
-          agreement: {
-            type: 'agreement',
-            completed: true,
-            accepted: true,
+      signupData: isExistingEditorUser
+        ? {
             completedAt: timestamp,
+            status: 'completed',
+            skipReason: 'editor_api',
+            steps: {
+              agreement: {
+                type: 'agreement',
+                completed: true,
+                accepted: true,
+                completedAt: timestamp,
+              },
+            },
+          }
+        : {
+            completedAt: timestamp,
+            status: 'in_progress',
           },
-        },
-      },
     });
   }
   await $sendSlackNotification(
     {
       eventType: SlackEventType.USER_CREATED,
-      message: `New user${user.username ? ` *${user.username}*` : ''} provisioned${provider ? ` via ${provider}` : ''}`,
+      message: `New user${user.username ? ` *${user.username}*` : ''} provisioned${provider ? ` via ${provider}` : ''}${editorUserProfile ? '' : ' (new Firebase user)'}`,
       user,
       metadata: {
         provider,
-        username: editorUserProfile.username,
-        displayName: editorUserProfile.displayName ?? displayName,
+        username: editorUserProfile?.username,
+        displayName: editorUserProfile?.displayName ?? displayName,
+        isExistingEditorUser,
+        isNewEditorUser,
       },
     },
     config.api?.slack,
