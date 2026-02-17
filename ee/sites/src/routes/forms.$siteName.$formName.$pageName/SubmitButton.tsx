@@ -1,6 +1,14 @@
 import { Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { ui, useDeploymentConfig, orcid, firebase, google, okta } from '@curvenote/scms-core';
+import {
+  ui,
+  useDeploymentConfig,
+  orcid,
+  firebase,
+  github,
+  google,
+  okta,
+} from '@curvenote/scms-core';
 import { useFetcher } from 'react-router';
 
 type SubmitButtonUser = {
@@ -42,6 +50,7 @@ export function SubmitButton({
   const authProviders = config.authProviders?.filter((p) => p.allowLogin) ?? [];
   const hasOrcid = authProviders.some((p) => p.provider === 'orcid');
   const hasFirebase = authProviders.some((p) => p.provider === 'firebase');
+  const hasGithub = authProviders.some((p) => p.provider === 'github');
   const hasGoogle = authProviders.some((p) => p.provider === 'google');
   const hasOkta = authProviders.some((p) => p.provider === 'okta');
 
@@ -96,6 +105,7 @@ export function SubmitButton({
           submitting={submitting}
           hasOrcid={hasOrcid}
           hasFirebase={hasFirebase}
+          hasGithub={hasGithub}
           hasGoogle={hasGoogle}
           hasOkta={hasOkta}
           setSubmitting={setSubmitting}
@@ -167,6 +177,7 @@ export function SubmitButton({
         submitting={submitting}
         hasOrcid={hasOrcid}
         hasFirebase={hasFirebase}
+        hasGithub={hasGithub}
         hasGoogle={hasGoogle}
         hasOkta={hasOkta}
         setSubmitting={setSubmitting}
@@ -185,6 +196,7 @@ type SignInDialogProps = {
   submitting: boolean;
   hasOrcid: boolean;
   hasFirebase: boolean;
+  hasGithub: boolean;
   hasGoogle: boolean;
   hasOkta: boolean;
   setSubmitting: (v: boolean) => void;
@@ -200,6 +212,7 @@ function SignInDialog({
   submitting,
   hasOrcid,
   hasFirebase,
+  hasGithub,
   hasGoogle,
   hasOkta,
   setSubmitting,
@@ -229,6 +242,13 @@ function SignInDialog({
                 <orcid.Badge size={18} />
               </ui.StatefulButton>
             </orcidFetcher.Form>
+          )}
+          {hasGithub && (
+            <github.LoginUI
+              disabled={submitting}
+              setSubmitting={setSubmitting}
+              className="w-full h-10"
+            />
           )}
           {hasFirebase && (
             <firebase.FirebaseGoogleLoginUI
