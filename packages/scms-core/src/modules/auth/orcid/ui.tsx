@@ -87,12 +87,16 @@ export function LoginUI({
   disabled,
   setSubmitting,
   className,
+  returnTo,
 }: {
   disabled?: boolean;
   setSubmitting: (flag: boolean) => void;
   className?: string;
+  returnTo?: string;
 }) {
   const fetcher = useFetcher();
+  const action =
+    returnTo != null ? `/auth/orcid?returnTo=${encodeURIComponent(returnTo)}` : '/auth/orcid';
 
   useEffect(() => {
     if (fetcher.state !== 'idle') {
@@ -101,7 +105,7 @@ export function LoginUI({
   }, [fetcher.state]);
 
   return (
-    <fetcher.Form method="post" action="/auth/orcid" aria-disabled={disabled} className="w-full">
+    <fetcher.Form method="post" action={action} aria-disabled={disabled} className="w-full">
       <StatefulButton
         variant="outline"
         type="submit"

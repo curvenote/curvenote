@@ -1,13 +1,10 @@
 import { Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   ui,
   useDeploymentConfig,
-  orcid,
-  firebase,
-  github,
-  google,
-  okta,
+  LoginProviderButtons,
+  type ClientSideSafeAuthOptions,
 } from '@curvenote/scms-core';
 import { useFetcher } from 'react-router';
 
@@ -43,27 +40,12 @@ export function SubmitButton({
 }: SubmitButtonProps) {
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const orcidFetcher = useFetcher();
   const submitFetcher = useFetcher();
   const config = useDeploymentConfig();
 
-  const authProviders = config.authProviders?.filter((p) => p.allowLogin) ?? [];
-  const hasOrcid = authProviders.some((p) => p.provider === 'orcid');
-  const hasFirebase = authProviders.some((p) => p.provider === 'firebase');
-  const hasGithub = authProviders.some((p) => p.provider === 'github');
-  const hasGoogle = authProviders.some((p) => p.provider === 'google');
-  const hasOkta = authProviders.some((p) => p.provider === 'okta');
-
+  const authProviders = config.authProviders ?? [];
   const currentUrl =
     typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
-
-  useEffect(() => {
-    if (orcidFetcher.state !== 'idle') {
-      setSubmitting(true);
-    } else {
-      setSubmitting(false);
-    }
-  }, [orcidFetcher.state]);
 
   // Sidebar: logged in -> sync status (loading / Form saved)
   if (variant === 'sidebar' && user) {
@@ -100,14 +82,9 @@ export function SubmitButton({
           onOpenChange={setSignInModalOpen}
           title="Sign in"
           description="Sign in to save your progress and continue later. Choose an option below."
+          authProviders={authProviders}
           currentUrl={currentUrl}
-          orcidFetcher={orcidFetcher}
           submitting={submitting}
-          hasOrcid={hasOrcid}
-          hasFirebase={hasFirebase}
-          hasGithub={hasGithub}
-          hasGoogle={hasGoogle}
-          hasOkta={hasOkta}
           setSubmitting={setSubmitting}
         />
       </>
@@ -172,14 +149,9 @@ export function SubmitButton({
         onOpenChange={setSignInModalOpen}
         title="Sign in"
         description="Sign in to submit your work. Choose an option below."
+        authProviders={authProviders}
         currentUrl={currentUrl}
-        orcidFetcher={orcidFetcher}
         submitting={submitting}
-        hasOrcid={hasOrcid}
-        hasFirebase={hasFirebase}
-        hasGithub={hasGithub}
-        hasGoogle={hasGoogle}
-        hasOkta={hasOkta}
         setSubmitting={setSubmitting}
       />
     </>
@@ -191,14 +163,9 @@ type SignInDialogProps = {
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
+  authProviders: ClientSideSafeAuthOptions[];
   currentUrl: string;
-  orcidFetcher: ReturnType<typeof useFetcher>;
   submitting: boolean;
-  hasOrcid: boolean;
-  hasFirebase: boolean;
-  hasGithub: boolean;
-  hasGoogle: boolean;
-  hasOkta: boolean;
   setSubmitting: (v: boolean) => void;
 };
 
@@ -207,14 +174,9 @@ function SignInDialog({
   onOpenChange,
   title,
   description,
+  authProviders,
   currentUrl,
-  orcidFetcher,
   submitting,
-  hasOrcid,
-  hasFirebase,
-  hasGithub,
-  hasGoogle,
-  hasOkta,
   setSubmitting,
 }: SignInDialogProps) {
   return (
@@ -224,56 +186,14 @@ function SignInDialog({
           <ui.DialogTitle>{title}</ui.DialogTitle>
           <ui.DialogDescription>{description}</ui.DialogDescription>
         </ui.DialogHeader>
-        <div className="flex flex-col gap-2 pt-2">
-          {hasOrcid && (
-            <orcidFetcher.Form
-              method="post"
-              action={`/auth/orcid${currentUrl ? `?returnTo=${encodeURIComponent(currentUrl)}` : ''}`}
-              className="w-full"
-            >
-              <ui.StatefulButton
-                variant="outline"
-                type="submit"
-                disabled={submitting}
-                busy={orcidFetcher.state !== 'idle'}
-                overlayBusy
-                className="w-full h-10"
-              >
-                <orcid.Badge size={18} />
-              </ui.StatefulButton>
-            </orcidFetcher.Form>
-          )}
-          {hasGithub && (
-            <github.LoginUI
-              disabled={submitting}
-              setSubmitting={setSubmitting}
-              className="w-full h-10"
-            />
-          )}
-          {hasFirebase && (
-            <firebase.FirebaseGoogleLoginUI
-              disabled={submitting}
-              setSubmitting={setSubmitting}
-              className="w-full h-10"
-              returnTo={currentUrl}
-            />
-          )}
-          {hasGoogle && !hasFirebase && (
-            <google.LoginUI
-              disabled={submitting}
-              setSubmitting={setSubmitting}
-              className="w-full h-10"
-              returnTo={currentUrl}
-            />
-          )}
-          {hasOkta && (
-            <okta.LoginUI
-              disabled={submitting}
-              setSubmitting={setSubmitting}
-              className="w-full h-10"
-              returnTo={currentUrl}
-            />
-          )}
+        <div className="pt-2">
+          <LoginProviderButtons
+            authProviders={authProviders}
+            submitting={submitting}
+            setSubmitting={setSubmitting}
+            className="w-full h-10"
+            returnTo={currentUrl}
+          />
         </div>
       </ui.DialogContent>
     </ui.Dialog>
