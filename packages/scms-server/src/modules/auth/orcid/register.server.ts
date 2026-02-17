@@ -5,6 +5,7 @@ import {
   assertLinkedAccount,
   dbCreateUserWithPrimaryLinkedAccount,
   dbDeletePendingUser,
+  dbGetUserByEmails,
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
@@ -207,6 +208,24 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
               throw error;
             }
           } else if (provisionNewUsers) {
+            // When ORCID provides an email, fail early if that email already has a Curvenote user
+            if (profile.email) {
+              const email = profile.email.trim();
+              const existingUserByEmail = await dbGetUserByEmails([email]);
+              if (existingUserByEmail) {
+                throw redirect(
+                  failureRedirectUrl({
+                    provider: 'orcid',
+                    message:
+                      'An account with this email already exists. Sign in with that account, then link your ORCID in settings if you want.',
+                  }),
+                  {
+                    headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },
+                  },
+                );
+              }
+            }
+
             // Check if a Firebase Auth user already exists with this email
             // If so, redirect to Firebase login flow
             if (profile.email) {

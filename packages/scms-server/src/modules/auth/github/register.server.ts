@@ -3,6 +3,7 @@ import { OAuth2Strategy } from 'remix-auth-oauth2';
 import {
   assertLinkedAccount,
   dbCreateUserWithPrimaryLinkedAccount,
+  dbGetUserByEmails,
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
@@ -193,6 +194,21 @@ export function registerGitHubStrategy(
                   provider: 'github',
                   message:
                     'GitHub did not provide a verified email. Please add and verify an email in your GitHub account settings, then try again.',
+                }),
+                {
+                  headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },
+                },
+              );
+            }
+
+            // Block creating a second account for an email that already has a Curvenote user
+            const existingUserByEmail = await dbGetUserByEmails([email]);
+            if (existingUserByEmail) {
+              throw redirect(
+                failureRedirectUrl({
+                  provider: 'github',
+                  message:
+                    'An account with this email already exists. Sign in with that account, then link your GitHub account in settings if you want.',
                 }),
                 {
                   headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },
