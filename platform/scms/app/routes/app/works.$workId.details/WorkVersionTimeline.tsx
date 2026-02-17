@@ -1,5 +1,5 @@
 import { useSearchParams } from 'react-router';
-import { formatDate, scopes } from '@curvenote/scms-core';
+import { formatDate, scopes, ui } from '@curvenote/scms-core';
 import type { WorkVersionWithSubmissionVersions } from '../works.$workId/types';
 import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
 import type { Workflow, ClientExtensionCheckService } from '@curvenote/scms-core';
@@ -147,6 +147,14 @@ export function WorkVersionTimeline({
     a.date_modified > b.date_modified ? -1 : a.date_modified < b.date_modified ? 1 : 0,
   );
 
+  const versionsByCreatedAsc = [...versions].sort((a, b) =>
+    a.date_created < b.date_created ? -1 : a.date_created > b.date_created ? 1 : 0,
+  );
+  const versionNumberByVersionId: Record<string, number> = {};
+  versionsByCreatedAsc.forEach((ver, i) => {
+    versionNumberByVersionId[ver.id] = i + 1;
+  });
+
   // Show all versions; draft versions display only their activities (and submissions), not the "Version created" row
   return (
     <Timeline title="Timeline">
@@ -156,7 +164,24 @@ export function WorkVersionTimeline({
           : v.submissionVersions.filter((sv) => sv.status !== 'DRAFT');
         const activitiesForVersion = activities.filter((a) => a.work_version_id === v.id);
         const checkRunsForVersion = checkServiceRunsByWorkVersionId[v.id] ?? [];
-        const label = formatDate(v.date_modified, 'MMM dd, yyyy');
+        const versionNumber = versionNumberByVersionId[v.id] ?? 0;
+        const label = (
+          <span className="flex gap-2 items-center">
+            <ui.TooltipProvider delayDuration={1000}>
+              <ui.Tooltip delayDuration={1000}>
+                <ui.TooltipTrigger asChild>
+                  <span className="cursor-default">v{versionNumber}</span>
+                </ui.TooltipTrigger>
+                <ui.TooltipContent side="top" className="text-sm">
+                  {formatDate(v.date_created, 'MMM d, yyyy h:mm:ss a')}
+                </ui.TooltipContent>
+              </ui.Tooltip>
+            </ui.TooltipProvider>
+            <span className="text-sm text-muted-foreground">
+              {formatDate(v.date_created, 'MMM d, yyyy HH:mm')}
+            </span>
+          </span>
+        );
         const sortedEntries = getSortedSectionEntries(
           v,
           submissionVersionsToShow,

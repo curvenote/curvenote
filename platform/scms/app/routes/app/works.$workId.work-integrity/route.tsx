@@ -1,11 +1,7 @@
 import type { Route } from './+types/route';
 import { data } from 'react-router';
 import React from 'react';
-import {
-  getPrismaClient,
-  withSecureWorkContext,
-  type WorkVersionMetadata,
-} from '@curvenote/scms-server';
+import { withSecureWorkContext, type WorkVersionMetadata } from '@curvenote/scms-server';
 import type { FileMetadataSection } from '@curvenote/scms-core';
 import {
   PageFrame,
@@ -20,38 +16,81 @@ import {
 } from '@curvenote/scms-core';
 import { formatWorkVersionDTO } from './db.server';
 import type { ChecksMetadataSection } from '../works.$workId.upload.$workVersionId/checks.schema';
+import {
+  dbGetCheckServiceRunsByWorkVersionIds,
+  type CheckServiceRunRow,
+} from '../works.$workId/db.server';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
-import { jobs, registerExtensionJobs } from '@curvenote/scms-server';
-import { uuidv7 as uuid } from 'uuidv7';
 import { Tag } from './Tag';
+import { Timeline } from '../works.$workId.details/timeline/Timeline';
+import { TimelineSection } from '../works.$workId.details/timeline/TimelineSection';
+import { CheckServiceRunTimelineItem } from '../works.$workId.details/timeline/CheckServiceRunTimelineItem';
+
+export type PreviousVersionWithRun = {
+  workVersionId: string;
+  date_created: string;
+  /** Version number by date_created order (v1 = oldest) */
+  versionNumber: number;
+  run: CheckServiceRunRow;
+};
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureWorkContext(args, [scopes.work.checks.read]);
 
-  // Get the latest work version from context (versions are already sorted by date_created desc)
   if (!ctx.work.versions || ctx.work.versions.length === 0) {
     throw httpError(404, 'No work version found');
   }
 
-  const latestVersion = ctx.work.versions[0];
+  const nonDraftVersions = ctx.work.versions.filter((v) => !v.draft);
+  if (nonDraftVersions.length === 0) {
+    throw httpError(404, 'No finalized work version found');
+  }
+
+  const latestVersion = nonDraftVersions[0];
   const metadata = (latestVersion.metadata ?? {
     version: 1,
   }) as WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
 
   const workVersionDTO = formatWorkVersionDTO(ctx, ctx.work.id, latestVersion);
 
-  const prisma = await getPrismaClient();
-  const checkServiceRuns = await prisma.checkServiceRun.findMany({
-    where: { work_version_id: latestVersion.id }, // just the latest version for now
-    orderBy: { date_created: 'desc' },
+  const nonDraftVersionIds = nonDraftVersions.map((v) => v.id);
+  const runsByVersionId = await dbGetCheckServiceRunsByWorkVersionIds(nonDraftVersionIds);
+  const checkServiceRuns = runsByVersionId[latestVersion.id] ?? [];
+
+  const versionNumberByWorkVersionId: Record<string, number> = {};
+  nonDraftVersions.forEach((v, i) => {
+    versionNumberByWorkVersionId[v.id] = nonDraftVersions.length - i;
   });
+
+  const previousVersions = nonDraftVersions.slice(1);
+  const previousVersionsWithRunsByService: Record<string, PreviousVersionWithRun[]> = {};
+  for (const version of previousVersions) {
+    const runs = runsByVersionId[version.id] ?? [];
+    const seenKind = new Set<string>();
+    for (const run of runs) {
+      if (seenKind.has(run.kind)) continue;
+      seenKind.add(run.kind);
+      const list = previousVersionsWithRunsByService[run.kind] ?? [];
+      list.push({
+        workVersionId: version.id,
+        date_created: version.date_created,
+        versionNumber: versionNumberByWorkVersionId[version.id] ?? 0,
+        run,
+      });
+      previousVersionsWithRunsByService[run.kind] = list;
+    }
+  }
+
+  const latestVersionNumber = versionNumberByWorkVersionId[latestVersion.id] ?? 0;
 
   return {
     work: ctx.workDTO,
     workVersion: workVersionDTO,
     metadata,
     checkServiceRuns,
+    previousVersionsWithRunsByService,
+    latestVersionNumber,
   };
 }
 
@@ -61,12 +100,12 @@ export async function action(args: Route.ActionArgs) {
   const formData = await args.request.formData();
   const intent = formData.get('intent') as string;
 
-  // Get the latest work version from context (versions are already sorted by date_created desc)
   if (!ctx.work.versions || ctx.work.versions.length === 0) {
     return data({ error: { type: 'general', message: 'No work version found' } }, { status: 404 });
   }
 
-  const latestVersion = ctx.work.versions[0];
+  const nonDraftVersions = ctx.work.versions.filter((v) => !v.draft);
+  const latestVersion = nonDraftVersions[0];
   if (!latestVersion) {
     return data({ error: { type: 'general', message: 'No work version found' } }, { status: 404 });
   }
@@ -79,12 +118,6 @@ export async function action(args: Route.ActionArgs) {
   // Try to route action to a check service handler
   // Use server extensions here so we see server-only fields like handleAction/status.
   const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, serverExtensions);
-  // const createJob = (jobType: string, payload: Record<string, unknown>) =>
-  //   jobs.invoke(
-  //     ctx,
-  //     { id: uuid(), job_type: jobType, payload, results: undefined },
-  //     registerExtensionJobs(serverExtensions),
-  //   );
   for (const service of checkServices) {
     if (service.handleAction) {
       // Check if this service handles this intent
@@ -122,16 +155,19 @@ export const meta: Route.MetaFunction = ({ matches }) => {
 };
 
 export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) {
-  const { work, workVersion, checkServiceRuns } = loaderData;
+  const {
+    work,
+    workVersion,
+    checkServiceRuns,
+    previousVersionsWithRunsByService,
+    latestVersionNumber,
+  } = loaderData;
 
-  // Resolve check services at render time to avoid serialization issues
-  // Construct minimal AppConfig from ClientDeploymentConfig
   const deploymentConfig = useDeploymentConfig();
   const extensionsConfig: Record<string, { checks?: boolean }> = {};
   if (deploymentConfig.extensions) {
     for (const [extId, extInfo] of Object.entries(deploymentConfig.extensions)) {
-      // If 'checks' is in capabilities, enable it
-      if (extInfo.capabilities.includes('checks')) {
+      if (extInfo.capabilities?.includes('checks')) {
         extensionsConfig[extId] = { checks: true };
       }
     }
@@ -141,13 +177,25 @@ export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) 
     extensions,
   );
 
-  const formattedDate = formatDate(workVersion.date_created, 'MMM dd, yyyy');
-  const tag = <Tag tag={formattedDate} />;
+  const tag = (
+    <ui.TooltipProvider delayDuration={1000}>
+      <ui.Tooltip delayDuration={1000}>
+        <ui.TooltipTrigger asChild>
+          <span className="inline-block cursor-default">
+            <Tag tag={`v${latestVersionNumber} (latest)`} />
+          </span>
+        </ui.TooltipTrigger>
+        <ui.TooltipContent side="top" className="text-sm">
+          {formatDate(workVersion.date_created, 'MMM d, yyyy h:mm:ss a')}
+        </ui.TooltipContent>
+      </ui.Tooltip>
+    </ui.TooltipProvider>
+  );
+  const basePath = `/app/works/${work.id}`;
 
   return (
     <PageFrame title="Work Integrity">
       <div className="mt-4 space-y-6">
-        {/* Dynamically render check sections from extensions: header then activity in a card */}
         {checkServices.map((service) => {
           const HeaderComponent = service.sectionHeaderComponent;
           const ActivityComponent = service.sectionActivityComponent as React.ComponentType<{
@@ -157,22 +205,59 @@ export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) 
           const existingRunFromThisService = checkServiceRuns.find(
             (run) => run.kind === service.id,
           );
-          const serviceMetadata = (existingRunFromThisService?.data as any)?.serviceData;
+          const runData = existingRunFromThisService?.data;
+          const serviceMetadata =
+            runData != null && typeof runData === 'object' && 'serviceData' in runData
+              ? (runData as { serviceData: unknown }).serviceData
+              : undefined;
+
+          const previousEntries = previousVersionsWithRunsByService[service.id] ?? [];
+          const showTimeline = previousEntries.length >= 1;
 
           return (
             <div key={service.id} className="space-y-4">
               <HeaderComponent tag={tag} />
-              <ui.Card>
-                <ui.CardContent className="pt-6">
-                  <ActivityComponent metadata={serviceMetadata} />
-                </ui.CardContent>
-              </ui.Card>
-              <details>
-                <summary>Debug Info</summary>
-                <pre className="p-2 text-xs bg-gray-100 rounded-md min-h-24">
-                  {JSON.stringify(serviceMetadata, null, 2)}
-                </pre>
-              </details>
+              <div className="space-y-0">
+                <ui.Card>
+                  <ui.CardContent className="pt-6">
+                    <ActivityComponent
+                      metadata={
+                        serviceMetadata as WorkVersionMetadata &
+                          FileMetadataSection &
+                          ChecksMetadataSection
+                      }
+                    />
+                  </ui.CardContent>
+                </ui.Card>
+                {showTimeline && (
+                  <Timeline className="ml-3" nested>
+                    {previousEntries.map((entry) => (
+                      <TimelineSection
+                        key={entry.workVersionId}
+                        label={
+                          <ui.TooltipProvider delayDuration={1000}>
+                            <ui.Tooltip delayDuration={1000}>
+                              <ui.TooltipTrigger asChild>
+                                <span className="cursor-default">v{entry.versionNumber}</span>
+                              </ui.TooltipTrigger>
+                              <ui.TooltipContent side="top" className="text-sm">
+                                {formatDate(entry.date_created, 'MMM d, yyyy h:mm:ss a')}
+                              </ui.TooltipContent>
+                            </ui.Tooltip>
+                          </ui.TooltipProvider>
+                        }
+                        nested
+                      >
+                        <CheckServiceRunTimelineItem
+                          run={entry.run}
+                          checkService={service}
+                          basePath={basePath}
+                        />
+                      </TimelineSection>
+                    ))}
+                  </Timeline>
+                )}
+              </div>
             </div>
           );
         })}
