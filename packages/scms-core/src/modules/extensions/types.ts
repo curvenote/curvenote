@@ -112,11 +112,14 @@ export type ClientExtensionCheckService = Omit<
   'handleAction' | 'handleStatus'
 >;
 
-/** Props for the optional extension admin card component (platform extensions page). */
+/** Props for the optional extension admin card component (platform extensions page). Aligned with ExtensionAdminCardFallback. */
 export type ExtensionAdminCardProps = {
-  config: Record<string, unknown>;
-  /** Extension display name; extensions should render this as the first item for consistency. */
-  extensionName: string;
+  /** Extension display name (e.g. config key). */
+  name: string;
+  /** Extension metadata from deployment config (e.g. capabilities). */
+  extension: { capabilities: string[] };
+  /** Obfuscated/sanitized admin config to display. */
+  record?: Record<string, unknown>;
   /** Optional icon component; extensions may render it next to the name. */
   ExtensionIcon?: React.ComponentType<{ className?: string }>;
 };
