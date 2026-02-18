@@ -172,17 +172,20 @@ export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) 
       }
     }
   }
+  console.log('deploymentConfig', deploymentConfig);
+  console.log('extensionsConfig', extensionsConfig);
   const checkServices = getExtensionCheckServicesFromServerConfig(
     { app: { extensions: extensionsConfig } } as unknown as AppConfig,
     extensions,
   );
+  console.log('checkServices', checkServices);
 
   const tag = (
     <ui.TooltipProvider delayDuration={1000}>
       <ui.Tooltip delayDuration={1000}>
         <ui.TooltipTrigger asChild>
           <span className="inline-block cursor-default">
-            <Tag tag={`v${latestVersionNumber} (latest)`} />
+            <Tag tag={`v${latestVersionNumber}`} />
           </span>
         </ui.TooltipTrigger>
         <ui.TooltipContent side="top" className="text-sm">
