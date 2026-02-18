@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFetcher } from 'react-router';
 import { uuidv7 as uuid } from 'uuidv7';
-import { CornerDownLeft, GripVertical, Minus, Plus, Trash2 } from 'lucide-react';
+import { CornerDownLeft, GripVertical, Mail, Minus, Plus, Trash2 } from 'lucide-react';
 import { OrcidIcon } from '@scienceicons/react/24/solid';
 import {
   DndContext,
@@ -139,12 +139,14 @@ export function AuthorField({
 
   const addMeAsAuthor = () => {
     if (!contactDetails) return;
+    const hasCorresponding = valueRef.current.some((a) => a.corresponding === true);
     const newAuthor: Author = {
       id: uuid(),
       name: contactDetails.name || 'Author',
       email: contactDetails.email || undefined,
       orcid: contactDetails.orcidId || undefined,
       affiliationIds: [],
+      corresponding: !hasCorresponding,
     };
     appendAuthor(newAuthor);
     if (
@@ -657,6 +659,12 @@ export function AuthorField({
           >
             <OrcidIcon className="w-4 h-4 text-[#A6CE39]" aria-hidden />
           </a>
+        )}
+        {activeAuthor.corresponding && (
+          <Mail
+            className="w-4 h-4 text-muted-foreground shrink-0"
+            aria-label="Corresponding author"
+          />
         )}
       </div>
     ) : null;

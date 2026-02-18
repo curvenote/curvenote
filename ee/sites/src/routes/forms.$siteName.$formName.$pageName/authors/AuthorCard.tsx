@@ -11,6 +11,7 @@ import {
   Trash2,
   ChevronUp,
   ChevronDown,
+  Mail,
 } from 'lucide-react';
 import { OrcidIcon } from '@scienceicons/react/24/solid';
 import { useSortable } from '@dnd-kit/sortable';
@@ -232,6 +233,12 @@ export function AuthorCard({
                   >
                     <OrcidIcon className="w-4 h-4 text-[#A6CE39]" aria-hidden />
                   </a>
+                )}
+                {editCorresponding && (
+                  <Mail
+                    className="w-4 h-4 text-muted-foreground shrink-0"
+                    aria-label="Corresponding author"
+                  />
                 )}
               </div>
               {editAffiliationIds.length > 0 ? (
@@ -536,6 +543,12 @@ export function AuthorCard({
                 >
                   <OrcidIcon className="w-4 h-4 text-[#A6CE39]" aria-hidden />
                 </a>
+              )}
+              {value.corresponding && (
+                <Mail
+                  className="w-4 h-4 text-muted-foreground shrink-0"
+                  aria-label="Corresponding author"
+                />
               )}
             </div>
 
