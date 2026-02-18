@@ -4,13 +4,14 @@ import type { WorkVersion } from '@curvenote/scms-db';
 
 export type LinkedJobWithStatus = { id: string; status: string };
 
-/** Check service run row for timeline (id, kind, date_created, date_modified, data). */
+/** Check service run row for timeline (id, kind, date_created, date_modified, data, created_by_id). */
 export type CheckServiceRunRow = {
   id: string;
   kind: string;
   date_created: string;
   date_modified: string;
   data: unknown;
+  created_by_id: string | null;
 };
 
 /** Check service runs grouped by work_version_id (for work details timeline). */
@@ -29,6 +30,7 @@ export async function dbGetCheckServiceRunsByWorkVersionIds(
       date_modified: true,
       data: true,
       work_version_id: true,
+      created_by_id: true,
     },
   });
   const map: Record<string, CheckServiceRunRow[]> = {};
@@ -40,6 +42,7 @@ export async function dbGetCheckServiceRunsByWorkVersionIds(
       date_created: row.date_created,
       date_modified: row.date_modified,
       data: row.data,
+      created_by_id: row.created_by_id,
     });
     map[row.work_version_id] = list;
   }
