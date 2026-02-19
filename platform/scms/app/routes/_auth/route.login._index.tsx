@@ -1,12 +1,4 @@
-import {
-  useDeploymentConfig,
-  firebase,
-  github,
-  google,
-  okta,
-  orcid,
-  ui,
-} from '@curvenote/scms-core';
+import { useDeploymentConfig, LoginProviderButtons, firebase, ui } from '@curvenote/scms-core';
 import { useEffect, useState } from 'react';
 import { OrDivider } from './OrDivider';
 import type { ClientSideSafeAuthOptions, ClientSigninSignupConfig } from '@curvenote/scms-core';
@@ -60,36 +52,19 @@ function AllProviderLoginArea({
     loginAuthProviders.length > 0 &&
     loginAuthProviders.map(({ provider }) => provider).includes('firebase');
   const firebaseProvider = loginAuthProviders.find((p) => p.provider === 'firebase');
-  const githubProvider = loginAuthProviders.find((p) => p.provider === 'github');
-  const orcidProvider = loginAuthProviders.find((p) => p.provider === 'orcid');
-  const googleProvider = loginAuthProviders.find((p) => p.provider === 'google');
-  const oktaProvider = loginAuthProviders.find((p) => p.provider === 'okta');
 
   return (
     <div className="flex flex-col items-center space-y-8 w-full">
       <h1 className="mt-0 text-lg font-light text-center lg:text-xl">
-        {config?.signin?.prompt ?? 'Sign in'}
+        {config?.signin?.prompt ?? 'Sign in or sign up'}
       </h1>
       <div className="flex flex-wrap gap-x-1 gap-y-2 justify-center max-w-xs">
-        {firebaseProvider && firebaseProvider.allowLogin && (
-          <firebase.FirebaseGoogleLoginUI
-            disabled={submitting}
-            setSubmitting={setSubmitting}
-            className="w-full"
-          />
-        )}
-        {googleProvider && googleProvider.allowLogin && (
-          <google.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
-        )}
-        {githubProvider && githubProvider.allowLogin && (
-          <github.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
-        )}
-        {oktaProvider && oktaProvider.allowLogin && (
-          <okta.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
-        )}
-        {orcidProvider && orcidProvider.allowLogin && (
-          <orcid.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
-        )}
+        <LoginProviderButtons
+          authProviders={authProviders}
+          submitting={submitting}
+          setSubmitting={setSubmitting}
+          className="w-full"
+        />
       </div>
       {showOrDivider && <OrDivider />}
       {firebaseProvider && firebaseProvider.allowLogin && (
@@ -156,7 +131,7 @@ function PreferredLoginArea({
     <div className="flex flex-col space-y-8 w-full items-left">
       <div className="space-y-4">
         <div className="text-lg lg:text-xl">
-          {config?.signin?.prompt ?? 'Sign up or Sign in using the options below'}
+          {config?.signin?.prompt ?? 'Sign in or sign up using the options below'}
         </div>
         <div className="space-y-2">
           {PreferredProviderUI}

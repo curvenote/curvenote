@@ -1,0 +1,58 @@
+import type { ClientSideSafeAuthOptions } from './types.js';
+import { FirebaseGoogleLoginUI } from './firebase/index.js';
+import { LoginUI as GitHubLoginUI } from './github/index.js';
+import { LoginUI as GoogleLoginUI } from './google/index.js';
+import { LoginUI as OktaLoginUI } from './okta/index.js';
+import { LoginUI as OrcidLoginUI } from './orcid/index.js';
+
+export type LoginProviderButtonsProps = {
+  /** Auth providers from deployment config (e.g. useDeploymentConfig().authProviders). */
+  authProviders: ClientSideSafeAuthOptions[];
+  submitting: boolean;
+  setSubmitting: (value: boolean) => void;
+  /** Applied to each provider button (e.g. "w-full" or "w-full h-10"). */
+  className?: string;
+  /** When set, auth flows redirect back to this URL after sign-in (e.g. form page path). */
+  returnTo?: string;
+};
+
+const PROVIDER_UIS = {
+  orcid: OrcidLoginUI,
+  github: GitHubLoginUI,
+  google: GoogleLoginUI,
+  firebase: FirebaseGoogleLoginUI,
+  okta: OktaLoginUI,
+} as const;
+
+/**
+ * Renders sign-in buttons for all enabled login providers.
+ * Button order follows the order of authProviders (from config, object key order is preserved).
+ * Use on the main login page and in embedded contexts (e.g. form sign-in modal).
+ */
+export function LoginProviderButtons({
+  authProviders,
+  submitting,
+  setSubmitting,
+  className = 'w-full',
+  returnTo,
+}: LoginProviderButtonsProps) {
+  const loginProviders = (authProviders ?? []).filter((p) => p.allowLogin);
+
+  return (
+    <div className="flex flex-col gap-2">
+      {loginProviders.map((p) => {
+        const UI = PROVIDER_UIS[p.provider as keyof typeof PROVIDER_UIS];
+        if (!UI) return null;
+        return (
+          <UI
+            key={p.provider}
+            disabled={submitting}
+            setSubmitting={setSubmitting}
+            className={className}
+            returnTo={returnTo}
+          />
+        );
+      })}
+    </div>
+  );
+}

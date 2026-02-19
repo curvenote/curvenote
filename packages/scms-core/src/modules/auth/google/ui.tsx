@@ -80,12 +80,16 @@ export function LoginUI({
   disabled,
   setSubmitting,
   className,
+  returnTo,
 }: {
   disabled: boolean;
   setSubmitting: (flag: boolean) => void;
   className?: string;
+  returnTo?: string;
 }) {
   const fetcher = useFetcher();
+  const action =
+    returnTo != null ? `/auth/google?returnTo=${encodeURIComponent(returnTo)}` : '/auth/google';
 
   useEffect(() => {
     if (fetcher.state !== 'idle') {
@@ -94,7 +98,7 @@ export function LoginUI({
   }, [fetcher.state]);
 
   return (
-    <fetcher.Form method="post" action="/auth/google" aria-disabled={disabled}>
+    <fetcher.Form method="post" action={action} aria-disabled={disabled}>
       <StatefulButton
         variant="outline"
         type="submit"

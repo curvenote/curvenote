@@ -36,6 +36,7 @@ model User {
   createdRoles       Role[]              @relation("RoleCreator")
   magicLinks         MagicLink[]
   jobsInvoked        Job[]
+  objects            Object[]
 }
 
 model UserLinkedAccount {

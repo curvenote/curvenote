@@ -58,12 +58,16 @@ export function LoginUI({
   disabled,
   setSubmitting,
   className,
+  returnTo,
 }: {
   disabled?: boolean;
   setSubmitting: (flag: boolean) => void;
   className?: string;
+  returnTo?: string;
 }) {
   const fetcher = useFetcher();
+  const action =
+    returnTo != null ? `/auth/github?returnTo=${encodeURIComponent(returnTo)}` : '/auth/github';
 
   useEffect(() => {
     if (fetcher.state !== 'idle') {
@@ -74,7 +78,7 @@ export function LoginUI({
   }, [fetcher.state, setSubmitting]);
 
   return (
-    <fetcher.Form method="post" action="/auth/github" aria-disabled={disabled} className="w-full">
+    <fetcher.Form method="post" action={action} aria-disabled={disabled} className="w-full">
       <StatefulButton
         variant="outline"
         type="submit"
