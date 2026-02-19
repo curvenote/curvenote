@@ -9,6 +9,7 @@ import {
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
+  getProviderDisplayName,
   handleAccountLinking,
 } from '../common.server.js';
 import { orcid, TrackEvent } from '@curvenote/scms-core';
@@ -210,11 +211,20 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
           } else if (provisionNewUsers) {
             // When ORCID provides an email, fail early if that email already has a Curvenote user
             if (profile.email) {
-              const existingEmailMessage =
-                'An account with this email already exists. Sign in with that account, then you can link your ORCID in settings.';
               const email = profile.email.trim();
               const existingUserByEmail = await dbGetUserByEmails([email]);
               if (existingUserByEmail) {
+                const existingProvider =
+                  existingUserByEmail.primaryProvider ??
+                  existingUserByEmail.linkedAccounts?.find((a) => a.pending === false)?.provider ??
+                  existingUserByEmail.linkedAccounts?.[0]?.provider ??
+                  null;
+                const existingProviderLabel = getProviderDisplayName(existingProvider);
+                const existingEmailMessage = `An account with this email already exists${
+                  existingProviderLabel ? ` (${existingProviderLabel})` : ''
+                }. Please sign in with ${
+                  existingProviderLabel ?? 'that account'
+                }, then you can link your ORCID in settings.`;
                 throw redirect(
                   failureRedirectUrl({
                     provider: 'orcid',
@@ -243,6 +253,8 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
                 }
               }
               if (firebaseUserExists) {
+                const existingEmailMessage =
+                  'An account with this email already exists. Please sign in with Google, then link your ORCID in settings.';
                 throw redirect(
                   failureRedirectUrl({
                     provider: 'firebase',

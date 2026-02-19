@@ -56,7 +56,7 @@ function AllProviderLoginArea({
   return (
     <div className="flex flex-col items-center space-y-8 w-full">
       <h1 className="mt-0 text-lg font-light text-center lg:text-xl">
-        {config?.signin?.prompt ?? 'Sign in'}
+        {config?.signin?.prompt ?? 'Sign in or sign up'}
       </h1>
       <div className="flex flex-wrap gap-x-1 gap-y-2 justify-center max-w-xs">
         <LoginProviderButtons
@@ -131,7 +131,7 @@ function PreferredLoginArea({
     <div className="flex flex-col space-y-8 w-full items-left">
       <div className="space-y-4">
         <div className="text-lg lg:text-xl">
-          {config?.signin?.prompt ?? 'Sign up or Sign in using the options below'}
+          {config?.signin?.prompt ?? 'Sign in or sign up using the options below'}
         </div>
         <div className="space-y-2">
           {PreferredProviderUI}

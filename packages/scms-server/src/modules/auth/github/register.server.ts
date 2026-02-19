@@ -7,6 +7,7 @@ import {
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
+  getProviderDisplayName,
   handleAccountLinking,
 } from '../common.server.js';
 import { getSetProviderCookie } from '../../../cookies.server.js';
@@ -204,11 +205,21 @@ export function registerGitHubStrategy(
             // Block creating a second account for an email that already has a Curvenote user
             const existingUserByEmail = await dbGetUserByEmails([email]);
             if (existingUserByEmail) {
+              const existingProvider =
+                existingUserByEmail.primaryProvider ??
+                existingUserByEmail.linkedAccounts?.find((a) => a.pending === false)?.provider ??
+                existingUserByEmail.linkedAccounts?.[0]?.provider ??
+                null;
+              const existingProviderLabel = getProviderDisplayName(existingProvider);
+              const existingProviderSuffix = existingProviderLabel
+                ? ` (${existingProviderLabel})`
+                : '';
+              const signInWith = existingProviderLabel ?? 'that account';
+              const existingEmailMessage = `An account with this email already exists${existingProviderSuffix}. Please sign in with ${signInWith}, then you can link your GitHub account in settings.`;
               throw redirect(
                 failureRedirectUrl({
                   provider: 'github',
-                  message:
-                    'An account with this email already exists. Sign in with that account, then link your GitHub account in settings if you want.',
+                  message: existingEmailMessage,
                 }),
                 {
                   headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },

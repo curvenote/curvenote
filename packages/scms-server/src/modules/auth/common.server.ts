@@ -502,6 +502,27 @@ export function assertLinkedAccount(
   return account;
 }
 
+export function getProviderDisplayName(provider: string | null | undefined): string | null {
+  if (!provider) return null;
+  switch (provider) {
+    case 'google':
+      return 'Google';
+    case 'github':
+      return 'GitHub';
+    case 'orcid':
+      return 'ORCID';
+    case 'okta':
+      return 'Okta';
+    case 'firebase':
+      return 'Google';
+    default: {
+      const trimmed = String(provider).trim();
+      if (!trimmed) return null;
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    }
+  }
+}
+
 /**
  * Generate a failure redirect URL.
  *
@@ -523,12 +544,11 @@ export function failureRedirectUrl({
   const params = new URLSearchParams();
   params.set('error', 'true');
   params.set('provider', provider);
-  if (error?.status) params.set('status', error.status);
-  else if (status) params.set('status', status.toString());
-  else params.set('status', '401');
-  if (error?.status) params.set('status', error.status);
-  else if (message) params.set('message', message);
-  else params.set('message', 'Unable to authenticate. Please try again or contact support.');
+  const statusCode = error?.status ?? status ?? 401;
+  params.set('status', String(statusCode));
+  const safeMessage =
+    message ?? error?.message ?? 'Unable to authenticate. Please try again or contact support.';
+  params.set('message', safeMessage);
   return `/auth-error?${params.toString()}`;
 }
 

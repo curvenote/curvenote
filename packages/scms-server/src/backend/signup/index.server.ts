@@ -17,6 +17,7 @@ import {
   EditorUserExistsError,
   generateRandomPassword,
   dbDeletePendingUser,
+  getProviderDisplayName,
 } from '../../modules/auth/common.server.js';
 import { getServerAuth } from '../../modules/database/firebase/firebase.server.js';
 import { redirect } from 'react-router';
@@ -139,8 +140,9 @@ export async function completeSignupFlow(
         // Logout the pending user - destroy session and redirect to login
         const session = await ctx.$sessionStorage.getSession(ctx.request.headers.get('Cookie'));
         const headers = await createLogoutHeaders(ctx.$sessionStorage, session);
+        const providerLabel = getProviderDisplayName('firebase') ?? 'your existing account';
         throw redirect(
-          '/login?error=true&message=An account with this email already exists. Please log in using your existing Editor account.',
+          `/login?error=true&message=${encodeURIComponent(`An account with this email already exists. Please sign in with ${providerLabel} using your existing account.`)}`,
           { headers },
         );
       }
@@ -164,8 +166,9 @@ export async function completeSignupFlow(
         // Logout the pending user - destroy session and redirect to login
         const session = await ctx.$sessionStorage.getSession(ctx.request.headers.get('Cookie'));
         const headers = await createLogoutHeaders(ctx.$sessionStorage, session);
+        const providerLabel = getProviderDisplayName('firebase') ?? 'your existing account';
         throw redirect(
-          '/login?error=true&message=An account with this email already exists for the Curvenote Editor. Please log in using your existing Editor account.',
+          `/login?error=true&message=${encodeURIComponent(`An account with this email already exists for the Curvenote Editor. Please sign in with ${providerLabel} using your existing Editor account.`)}`,
           { headers },
         );
       }
