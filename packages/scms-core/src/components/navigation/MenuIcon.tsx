@@ -38,6 +38,7 @@ import {
   Share2,
   GraduationCap,
   HelpCircle,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '../../utils/index.js';
 import type { ClientExtension } from '../../modules/extensions/types.js';
@@ -118,6 +119,9 @@ export function MenuIcon({
     case 'admin.collections':
     case 'library':
       return <Library className={classNameWithDefaults} />;
+    case 'admin.forms':
+    case 'clipboard-list':
+      return <ClipboardList className={classNameWithDefaults} />;
     case 'admin.migrate':
     case 'truck':
       return <Truck className={classNameWithDefaults} />;

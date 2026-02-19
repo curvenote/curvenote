@@ -1,6 +1,7 @@
 import { createCipheriv, randomBytes, createDecipheriv } from 'node:crypto';
 import { serialize } from 'cookie';
-import { MAX_AGE } from './session.server.js';
+
+export const MAX_AGE = 60 * 60 * 24 * 7 * 4;
 
 const IV_LENGTH = 16;
 

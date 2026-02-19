@@ -32,7 +32,7 @@ export async function loader(args: LoaderFunctionArgs) {
     console.log('GOOGLE /auth/callback - linking complete');
     if (loggedInUser.ready_for_approval) {
       console.log('GOOGLE /auth/callback - redirecting to awaiting-approval');
-      throw redirect('/awaiting-approval');
+      throw redirect('/awaiting-approval', { headers });
     } else if (loggedInUser.pending) {
       console.log('GOOGLE /auth/callback - returning to signup flow');
       throw redirect('/new-account/pending', { headers });
@@ -63,5 +63,18 @@ export async function loader(args: LoaderFunctionArgs) {
 
   session.set('user', user);
   headers.append('Set-Cookie', await sessionStorage.commitSession(session));
+
+  // If a returnTo URL is set, always honor it (even for pending users).
+  const returnToUrl = await getReturnToUrl(session, sessionStorage, headers);
+  if (returnToUrl) {
+    throw redirect(returnToUrl, { headers });
+  }
+
+  if (user.ready_for_approval) {
+    throw redirect('/awaiting-approval', { headers });
+  }
+  if (user.pending) {
+    throw redirect('/new-account/pending', { headers });
+  }
   throw redirect('/app', { headers });
 }

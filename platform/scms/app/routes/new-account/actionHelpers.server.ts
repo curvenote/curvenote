@@ -8,6 +8,7 @@ import {
   updateSignupStep,
   completeSignupFlow,
   completeSignupStep,
+  dbUpsertPendingLinkedAccount,
 } from '@curvenote/scms-server';
 import type {
   DataCollectionStepData,
@@ -15,10 +16,10 @@ import type {
   UserData,
   GeneralError,
   orcid,
+  github,
   AuthProvider,
 } from '@curvenote/scms-core';
 import { TrackEvent } from '@curvenote/scms-core';
-import { dbUpsertPendingLinkedAccount } from '../app/settings.linked-accounts/db.server';
 import type { OktaProfile } from '@curvenote/remix-auth-okta';
 import { uuidv7 } from 'uuidv7';
 
@@ -346,7 +347,12 @@ export async function completeSignup(ctx: Context): Promise<{
     const result = await completeSignupFlow(ctx);
     return result;
   } catch (error) {
-    // Track signup completion failure
+    // If it's a redirect (Response), rethrow it so Remix can handle it
+    if (error instanceof Response) {
+      throw error;
+    }
+
+    // Track signup completion failure (only for non-redirect errors)
     await ctx.trackEvent(TrackEvent.SIGNUP_COMPLETION_FAILED, {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -506,7 +512,11 @@ async function enrichUserObject(
   // Only proceed if user is missing data and we have a valid provider to extract data from
   const prisma = await getPrismaClient();
   if (userIsMissingData) {
-    if (currentProviderBeingLinked === 'orcid' || currentProviderBeingLinked === 'okta') {
+    if (
+      currentProviderBeingLinked === 'orcid' ||
+      currentProviderBeingLinked === 'okta' ||
+      currentProviderBeingLinked === 'github'
+    ) {
       // Initialize object to hold data extracted from the authentication provider
       let providerData: { email?: string; display_name?: string; username?: string } = {};
 
@@ -537,6 +547,22 @@ async function enrichUserObject(
             email: oktaAccount.email ?? undefined,
             display_name: oktaProfile?.name,
             username: oktaProfile?.preferred_username,
+          };
+        }
+      }
+
+      // Extract data from GitHub provider
+      if (currentProviderBeingLinked === 'github') {
+        const githubAccount = user.linkedAccounts?.find((account) => account.provider === 'github');
+        if (githubAccount) {
+          const githubProfile = githubAccount?.profile as unknown as github.GitHubProfile;
+          const name = githubProfile?.name ?? githubProfile?.login;
+          providerData = {
+            email: githubAccount.email ?? githubProfile?.email ?? undefined,
+            display_name: name ?? undefined,
+            username: name
+              ? name.toLowerCase().replace(/\s/g, '_') + '_' + uuidv7().substring(0, 6)
+              : undefined,
           };
         }
       }

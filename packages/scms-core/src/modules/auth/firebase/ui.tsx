@@ -11,6 +11,7 @@ import { Mail, Shield } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar.js';
 import { StatefulButton } from '../../../components/ui/index.js';
 import { SimpleAlert } from '../../../components/ui/SimpleAlert.js';
+import { ClientOnly } from '../../../components/ClientOnly.js';
 
 export function FirebaseEmailBadge({ size, showName }: { size?: number; showName?: boolean }) {
   return (
@@ -43,10 +44,14 @@ export function ProfileCardContent({
               {profile.uid}
             </div>
           </div>
-          <Avatar className="w-16 h-16">
-            <AvatarImage src={profile.photoURL} alt={profile.displayName} />
-            <AvatarFallback>{profile.displayName[0]}</AvatarFallback>
-          </Avatar>
+          <ClientOnly fallback={<div className="w-16 h-16 rounded-full bg-muted" />}>
+            {() => (
+              <Avatar className="w-16 h-16">
+                <AvatarImage src={profile.photoURL} alt={profile.displayName} />
+                <AvatarFallback>{profile.displayName[0]}</AvatarFallback>
+              </Avatar>
+            )}
+          </ClientOnly>
         </div>
       }
     >
@@ -59,13 +64,17 @@ export function FirebaseGoogleLoginUI({
   disabled,
   setSubmitting: setSubmitting,
   className,
+  returnTo,
 }: {
   disabled: boolean;
   setSubmitting: (flag: boolean) => void;
   className?: string;
+  returnTo?: string;
 }) {
   const fetcher = useFetcher();
   const [iAmSubmitting, setIAmSubmitting] = useState(false);
+  const firebaseAction =
+    returnTo != null ? `/auth/firebase?returnTo=${encodeURIComponent(returnTo)}` : '/auth/firebase';
 
   async function handleGoogleSignin() {
     setSubmitting?.(true);
@@ -75,7 +84,7 @@ export function FirebaseGoogleLoginUI({
       provider.setCustomParameters({ prompt: 'select_account' });
       const credential = await signInWithPopup(clientAuth, provider);
       const idToken = await credential.user.getIdToken();
-      fetcher.submit({ idToken }, { method: 'POST', action: '/auth/firebase' });
+      fetcher.submit({ idToken }, { method: 'POST', action: firebaseAction });
     } catch (error: any) {
       console.error(error);
       setIAmSubmitting?.(false);

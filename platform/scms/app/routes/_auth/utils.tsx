@@ -1,4 +1,4 @@
-import { firebase, google, okta, orcid } from '@curvenote/scms-core';
+import { firebase, github, google, okta, orcid } from '@curvenote/scms-core';
 
 export function getProviderUI({
   provider,
@@ -10,6 +10,10 @@ export function getProviderUI({
   setSubmitting: (submitting: boolean) => void;
 }) {
   switch (provider) {
+    case 'github':
+      return (
+        <github.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
+      );
     case 'google':
       return (
         <google.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />

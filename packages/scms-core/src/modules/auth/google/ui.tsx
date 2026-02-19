@@ -7,6 +7,7 @@ import type { FirebaseProfile } from '../firebase/types.js';
 import { cn } from '../../../utils/cn.js';
 import { Shield } from 'lucide-react';
 import { StatefulButton } from '../../../components/ui/index.js';
+import { ClientOnly } from '../../../components/ClientOnly.js';
 
 export function Badge({
   className,
@@ -57,10 +58,16 @@ export function ProfileCardContent({
               {profile.uid}
             </p>
           </div>
-          <Avatar className="hidden w-16 h-16 md:block">
-            <AvatarImage src={profile.photoURL} alt={profile.displayName} />
-            <AvatarFallback>{profile.displayName[0]}</AvatarFallback>
-          </Avatar>
+          <ClientOnly
+            fallback={<div className="hidden w-16 h-16 md:block rounded-full bg-muted" />}
+          >
+            {() => (
+              <Avatar className="hidden w-16 h-16 md:block">
+                <AvatarImage src={profile.photoURL} alt={profile.displayName} />
+                <AvatarFallback>{profile.displayName[0]}</AvatarFallback>
+              </Avatar>
+            )}
+          </ClientOnly>
         </div>
       }
     >
@@ -73,12 +80,16 @@ export function LoginUI({
   disabled,
   setSubmitting,
   className,
+  returnTo,
 }: {
   disabled: boolean;
   setSubmitting: (flag: boolean) => void;
   className?: string;
+  returnTo?: string;
 }) {
   const fetcher = useFetcher();
+  const action =
+    returnTo != null ? `/auth/google?returnTo=${encodeURIComponent(returnTo)}` : '/auth/google';
 
   useEffect(() => {
     if (fetcher.state !== 'idle') {
@@ -87,7 +98,7 @@ export function LoginUI({
   }, [fetcher.state]);
 
   return (
-    <fetcher.Form method="post" action="/auth/google" aria-disabled={disabled}>
+    <fetcher.Form method="post" action={action} aria-disabled={disabled}>
       <StatefulButton
         variant="outline"
         type="submit"

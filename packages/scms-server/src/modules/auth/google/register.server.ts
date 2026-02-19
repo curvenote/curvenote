@@ -84,6 +84,13 @@ export function registerGoogleStrategy(
         let dbUserViaGoogle = await dbGetUserByLinkedAccount('google', providerProfile.id);
 
         if (dbUserViaGoogle) {
+          // Check if this Google account is already linked to a different user
+          const user = session.get('user');
+          if (user && dbUserViaGoogle.id !== user.userId) {
+            throw redirect(
+              `/app/settings/linked-accounts?error=true&provider=google&message=${encodeURIComponent('This Google account has already been linked to another account.')}`,
+            );
+          }
           try {
             // update the user's provider profile
             const account = assertLinkedAccount('google', dbUserViaGoogle);
@@ -115,54 +122,49 @@ export function registerGoogleStrategy(
             },
             request,
           );
-        } else if (!dbUserViaGoogle && allowLinking) {
-          // if we are logged in (via session cookie), then we are attempting to link a google account
-          const user = session.get('user');
-          if (!user) {
-            // we are not logged in, so we are in the login flow
-            throw redirect(`/link-accounts?provider=google`);
-          }
-          try {
-            // link the account
-            dbUserViaGoogle = await handleAccountLinking(
-              'google',
-              user,
-              { idAtProvider: profile.uid, email: profile.email, profile },
-              { defaultToPrimary: true },
-            );
-
-            await analytics.identifyEvent(dbUserViaGoogle);
-            await analytics.trackEvent(
-              TrackEvent.USER_LINKED,
-              dbUserViaGoogle.id,
-              {
-                provider: 'google',
-                method: 'oauth',
-                linkedAccountEmail: profile.email,
-                idAtProvider: profile.uid,
-              },
-              request,
-            );
-          } catch (error: any) {
-            console.error('Google provider - Failed to link account', error);
-            // Track account linking failure
-            await analytics.trackEvent(
-              TrackEvent.USER_LINKING_FAILED,
-              user.userId,
-              {
-                provider: 'google',
-                operation: 'link_account',
-                error: error.message || 'Unknown error',
-              },
-              request,
-            );
-            throw error;
-          }
         } else if (!dbUserViaGoogle) {
-          if (provisionNewUsers) {
+          const user = session.get('user');
+          if (user && allowLinking) {
+            try {
+              // link the account
+              dbUserViaGoogle = await handleAccountLinking(
+                'google',
+                user,
+                { idAtProvider: profile.uid, email: profile.email, profile },
+                { defaultToPrimary: true },
+              );
+
+              await analytics.identifyEvent(dbUserViaGoogle);
+              await analytics.trackEvent(
+                TrackEvent.USER_LINKED,
+                dbUserViaGoogle.id,
+                {
+                  provider: 'google',
+                  method: 'oauth',
+                  linkedAccountEmail: profile.email,
+                  idAtProvider: profile.uid,
+                },
+                request,
+              );
+            } catch (error: any) {
+              console.error('Google provider - Failed to link account', error);
+              // Track account linking failure
+              await analytics.trackEvent(
+                TrackEvent.USER_LINKING_FAILED,
+                user.userId,
+                {
+                  provider: 'google',
+                  operation: 'link_account',
+                  error: error.message || 'Unknown error',
+                },
+                request,
+              );
+              throw error;
+            }
+          } else if (provisionNewUsers) {
             // Create a new user and linked account
             // NOTE: this will provision new google accounts independent of firebase and the EditorAPI
-            // to create accounts bsed on EditorAPI curvenote accounts use teh firebase provider
+            // to create accounts based on EditorAPI curvenote accounts use the firebase provider
             dbUserViaGoogle = await dbCreateUserWithPrimaryLinkedAccount<firebase.FirebaseProfile>({
               email: profile.email,
               username: profile.displayName.toLocaleLowerCase().replace(/\s/g, '_'),
@@ -199,6 +201,11 @@ export function registerGoogleStrategy(
               },
               request,
             );
+          } else if (allowLinking) {
+            if (!user) {
+              // we are not logged in, so we are in the login flow
+              throw redirect(`/link-accounts?provider=google`);
+            }
           }
         }
 

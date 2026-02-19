@@ -31,31 +31,29 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className="flex flex-col justify-center max-w-sm px-4 py-12 mx-auto space-y-10 md:max-w-md lg:max-w-lg">
-      <div className="flex flex-col w-full space-y-6 items-left">
-        <h1 className="text-4xl font-light text-left">Error</h1>
+    <div className="flex flex-col justify-center px-4 py-12 mx-auto space-y-10 max-w-sm md:max-w-md lg:max-w-lg">
+      <div className="flex flex-col space-y-6 w-full items-left">
+        <h1 className="text-4xl font-light text-left">Authentication Error</h1>
         {error && (
-          <div className="py-2">
-            <h2 className="text-2xl font-light">
-              During{' '}
-              {error.provider && (
-                <>
-                  <span className="font-semibold">{error?.provider}</span> authentication
-                </>
-              )}
-              .
-            </h2>
-            {(error?.status || error?.message) && (
+          <div className="py-2 space-y-2">
+            {error.message && <p className="text-lg text-foreground">{error.message}</p>}
+            {error.provider && !error.message && (
               <p className="text-lg">
-                {error?.status && <span>[{error?.status}] </span>}
-                {error?.message}
+                Something went wrong during <span className="font-semibold">{error.provider}</span>{' '}
+                sign-in.
               </p>
             )}
+            {error?.status && <p className="text-sm text-muted-foreground">[{error.status}]</p>}
           </div>
         )}
-        <Link to="/app" className="flex items-center space-x-2 underline pointer-cursor">
-          Back to App
-        </Link>
+        <div className="flex flex-wrap gap-4">
+          <Link
+            to="/login"
+            className="inline-flex justify-center items-center px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-muted"
+          >
+            Login
+          </Link>
+        </div>
       </div>
     </div>
   );

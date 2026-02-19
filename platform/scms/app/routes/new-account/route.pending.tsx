@@ -39,7 +39,7 @@ export async function loader(args: Route.LoaderArgs) {
   const signupData = userData.signup ?? {};
 
   // on first entry into the signup flow, we need to redirect to the check-accounts-linked step
-  // to esnure that the primary provider information is taken into account
+  // to ensure that the primary provider information is taken into account
   const signupFlowHasLinkProvidersStep = ctx.$config?.app?.signup?.steps?.some(
     (step) => step.type === 'link-providers',
   );

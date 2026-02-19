@@ -1,6 +1,10 @@
 import type { Route } from './+types/route';
 import { data } from 'react-router';
-import { withAppContext, withValidFormData } from '@curvenote/scms-server';
+import {
+  withAppContext,
+  withValidFormData,
+  dbUpsertPendingLinkedAccount,
+} from '@curvenote/scms-server';
 import {
   PageFrame,
   primitives,
@@ -14,11 +18,7 @@ import {
   joinPageTitle,
   TrackEvent,
 } from '@curvenote/scms-core';
-import {
-  dbDeleteLinkedAccount,
-  dbGetLinkedAccountsByUserId,
-  dbUpsertPendingLinkedAccount,
-} from './db.server';
+import { dbDeleteLinkedAccount, dbGetLinkedAccountsByUserId } from './db.server';
 import { LinkAccount } from './LinkAccount';
 import type { GeneralError } from '@curvenote/scms-core';
 import { useState } from 'react';
@@ -92,6 +92,8 @@ export default function LinkedAccounts({ loaderData }: Route.ComponentProps) {
     (item) => item.allowLinking && !linkedProviderNames.includes(item.provider),
   );
   const showDivider = linkedProviders.length > 0 && linkableOrPendingProviders.length > 0;
+
+  // TODO: Handle error toasts from URL parameters (e.g., from account linking failures)
 
   return (
     <PageFrame

@@ -24,6 +24,11 @@ export function DataCollectionStep({
   const displayName = stepData?.displayName ?? user.display_name ?? '';
   const email = stepData?.email ?? user.email ?? '';
 
+  // If user.email exists (from auth provider), email came from auth and should be read-only
+  // ORCID may not provide email, so in that case allow user input
+  const emailFromAuth =
+    !!user.email && user.linkedAccounts?.some((acc) => acc.email === user.email);
+
   // Handle fetcher errors and responses
   useEffect(() => {
     if (fetcher.data) {
@@ -63,7 +68,6 @@ export function DataCollectionStep({
               <input type="hidden" name="intent" value="revert-data-collection" />
             </>
           )}
-          <input type="hidden" name="intent" value="complete-data-collection" />
           <div>Do these details look correct?</div>
           <div>
             <label htmlFor="displayName" className="block text-sm font-medium">
@@ -77,7 +81,7 @@ export function DataCollectionStep({
               defaultValue={displayName}
               disabled={completed}
               data-lpignore="true"
-              className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
           <div>
@@ -91,13 +95,19 @@ export function DataCollectionStep({
               required
               defaultValue={email}
               disabled={completed}
+              readOnly={emailFromAuth}
               data-lpignore="true"
-              className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className={cn(
+                'block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed',
+                {
+                  'bg-gray-100 cursor-not-allowed': emailFromAuth,
+                },
+              )}
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-4 mt-4">
+        <div className="flex gap-4 items-center mt-4">
           {!completed ? (
             <>
               <ui.StatefulButton
