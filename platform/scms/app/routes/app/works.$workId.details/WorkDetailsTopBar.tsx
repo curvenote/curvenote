@@ -68,7 +68,7 @@ export function WorkDetailsTopBar({
   const handleUploadAction = () => {
     if (!canUpload) return;
     if (resumeDraft && latestVersion) {
-      navigate(`${workBasePath}/upload/${latestVersion.id}`);
+      navigate(`${workBasePath}/upload/${latestVersion.id}?from=details`);
       return;
     }
     const formData = new FormData();
@@ -89,7 +89,7 @@ export function WorkDetailsTopBar({
         fetcher.data.workId &&
         fetcher.data.workVersionId
       ) {
-        navigate(`${workBasePath}/upload/${fetcher.data.workVersionId}`);
+        navigate(`${workBasePath}/upload/${fetcher.data.workVersionId}?from=details`);
       }
     }
   }, [fetcher.state, fetcher.data, navigate, workBasePath]);
@@ -124,11 +124,11 @@ export function WorkDetailsTopBar({
         {canUpload ? (
           <ui.Button
             type="button"
-            size="default"
+            size="lg"
             variant="default"
             onClick={handleUploadAction}
             disabled={fetcher.state !== 'idle'}
-            className="inline-flex gap-2 items-center text-base"
+            className="inline-flex gap-2 items-center"
           >
             <Upload className="w-4 h-4" />
             {uploadButtonLabel}

@@ -23,11 +23,7 @@ import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { WorkList } from './WorkList';
 import { dbGetWorksAndSubmissionVersions, dangerouslyDeleteDraftWork } from './db.server';
-import {
-  getValidDraftWorksForUser,
-  isValidDraftForReuse,
-} from './getDrafts.server';
-import { dbFindDraftFileWorksForUser } from '../works.$workId.upload.$workVersionId/db.server';
+import { getValidDraftWorksForUser } from './getDrafts.server';
 import { extensions } from '../../../extensions/client';
 
 // Action schema for handling draft work intents
@@ -104,15 +100,16 @@ export async function action(args: Route.ActionArgs) {
       }
     }
 
-    // Handle delete-all-drafts intent
+    // Handle delete-all-drafts intent (same list as the Resume-draft dialog: single-version drafts only)
     if (intent === 'delete-all-drafts') {
       try {
-        const draftWorks = await dbFindDraftFileWorksForUser(ctx.user.id);
-        const validDrafts = draftWorks.filter(isValidDraftForReuse);
+        const validDrafts = await getValidDraftWorksForUser(ctx.user.id);
 
-        // Delete each draft
+        // Delete each draft work
         const deleteResults = await Promise.allSettled(
-          validDrafts.map((work) => dangerouslyDeleteDraftWork(ctx, work.id, ctx.user.id)),
+          validDrafts.map((draft) =>
+            dangerouslyDeleteDraftWork(ctx, draft.workId, ctx.user.id),
+          ),
         );
 
         // Count successes and failures
@@ -120,7 +117,9 @@ export async function action(args: Route.ActionArgs) {
         const failed = deleteResults.filter((r) => r.status === 'rejected').length;
 
         if (failed > 0) {
-          console.warn(`Failed to delete ${failed} out of ${validDrafts.length} drafts`);
+          console.warn(
+            `Failed to delete ${failed} out of ${validDrafts.length} single-version drafts`,
+          );
         }
 
         return {
