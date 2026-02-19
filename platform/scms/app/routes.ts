@@ -150,6 +150,7 @@ export default [
       // Register extension routes at the works level
       ...getRoutesForMountPoint('app/works'),
       index('routes/app/works._index/route.tsx'),
+      route('new', 'routes/app/works.new/route.tsx'),
       route('drafts', 'routes/app/works.drafts/route.tsx'),
       route('v3/:workId', 'routes/app/works.v3.$workId/route.tsx'),
       route(':workId', 'routes/app/works.$workId/route.tsx', [
