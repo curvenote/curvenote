@@ -3,9 +3,11 @@ import { OAuth2Strategy } from 'remix-auth-oauth2';
 import {
   assertLinkedAccount,
   dbCreateUserWithPrimaryLinkedAccount,
+  dbGetUserByEmails,
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
+  getProviderDisplayName,
   handleAccountLinking,
 } from '../common.server.js';
 import { getSetProviderCookie } from '../../../cookies.server.js';
@@ -193,6 +195,31 @@ export function registerGitHubStrategy(
                   provider: 'github',
                   message:
                     'GitHub did not provide a verified email. Please add and verify an email in your GitHub account settings, then try again.',
+                }),
+                {
+                  headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },
+                },
+              );
+            }
+
+            // Block creating a second account for an email that already has a Curvenote user
+            const existingUserByEmail = await dbGetUserByEmails([email]);
+            if (existingUserByEmail) {
+              const existingProvider =
+                existingUserByEmail.primaryProvider ??
+                existingUserByEmail.linkedAccounts?.find((a) => a.pending === false)?.provider ??
+                existingUserByEmail.linkedAccounts?.[0]?.provider ??
+                null;
+              const existingProviderLabel = getProviderDisplayName(existingProvider);
+              const existingProviderSuffix = existingProviderLabel
+                ? ` (${existingProviderLabel})`
+                : '';
+              const signInWith = existingProviderLabel ?? 'that account';
+              const existingEmailMessage = `An account with this email already exists${existingProviderSuffix}. Please sign in with ${signInWith}, then you can link your GitHub account in settings.`;
+              throw redirect(
+                failureRedirectUrl({
+                  provider: 'github',
+                  message: existingEmailMessage,
                 }),
                 {
                   headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },

@@ -4,6 +4,7 @@
   "site": {
     "id": "d872a7c4-19e0-48f5-9c0b-051950a01878",
     "name": "scipy",
+    "restricted": false,
     "default_workflow": "SIMPLE",
     "title": "SciPy Proceedings",
     "description": "Proceedings of the Python in Science Conferences",

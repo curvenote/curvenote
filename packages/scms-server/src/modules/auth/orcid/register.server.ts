@@ -4,12 +4,15 @@ import jwt from 'jsonwebtoken';
 import {
   assertLinkedAccount,
   dbCreateUserWithPrimaryLinkedAccount,
+  dbDeletePendingUser,
+  dbGetUserByEmails,
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
+  getProviderDisplayName,
   handleAccountLinking,
 } from '../common.server.js';
-import type { orcid } from '@curvenote/scms-core';
+import { orcid, TrackEvent } from '@curvenote/scms-core';
 import { getSetProviderCookie } from '../../../cookies.server.js';
 import { redirect } from 'react-router';
 import { getServerAuth } from '../../database/firebase/firebase.server.js';
@@ -20,7 +23,6 @@ import {
   AnalyticsContext,
   addSegmentAnalytics,
 } from '../../../backend/services/analytics/segment.server.js';
-import { TrackEvent } from '@curvenote/scms-core';
 
 async function getUserPersonInfo(id: string, accessToken: string): Promise<orcid.ORCIDProfile> {
   const resp = await fetch(`https://pub.orcid.org/v3.0/${id}/person`, {
@@ -35,19 +37,18 @@ async function getUserPersonInfo(id: string, accessToken: string): Promise<orcid
   }
 
   const person = (await resp.json()) as orcid.ORCIDPersonResponse;
-
   const emails: orcid.ORCIDEmail[] = person.emails?.email ?? [];
-  const primaryEmail: orcid.ORCIDEmail | undefined =
-    emails.filter((e) => e.primary && e.verified)[0] ??
-    emails.filter((e) => e.primary)[0] ??
-    emails[0];
+  const primaryEmail = orcid.parseOrcidPrimaryEmail(person);
+  const primaryEntry =
+    emails.find((e) => e.primary && e.verified) ?? emails.find((e) => e.primary) ?? emails[0];
+  const name = orcid.parseOrcidPersonName(person);
 
   return {
     id,
-    email: primaryEmail?.email,
-    emailVerified: primaryEmail?.verified ?? false,
+    email: primaryEmail,
+    emailVerified: primaryEntry?.verified ?? false,
     emails,
-    name: `${person.name?.['given-names']?.value ?? ''} ${person.name?.['family-name']?.value ?? ''}`,
+    name: name?.trim() || id,
   };
 }
 
@@ -98,43 +99,78 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
           // Check if this ORCID account is already linked to a different user
           const user = session.get('user');
           if (user && dbUserViaOrcid.id !== user.userId) {
-            // ORCID account is already linked to a different user
-            throw redirect(
-              `/app/settings/linked-accounts?error=true&provider=orcid&message=${encodeURIComponent('This ORCID account has already been linked to another account.')}`,
-            );
+            /**
+             * Edge case:
+             * ORCID signup can provision a *pending* user with a linked ORCID account.
+             * If that flow is abandoned, the ORCID remains "claimed" by an orphan pending user,
+             * blocking legitimate account linking later.
+             *
+             * If we are currently attempting a linking flow (session user exists) and the
+             * existing ORCID owner is a pending/orphan user, delete that pending user so the
+             * current linking can proceed.
+             */
+            const isOrphanPendingUser =
+              allowLinking &&
+              !!user &&
+              dbUserViaOrcid.pending &&
+              !dbUserViaOrcid.ready_for_approval &&
+              dbUserViaOrcid.primaryProvider === 'orcid';
+
+            if (isOrphanPendingUser) {
+              console.warn('[ORCID REGISTER] Deleting orphan pending ORCID user to allow linking', {
+                orphanUserId: dbUserViaOrcid.id,
+                linkingUserId: user.userId,
+                orcid: profile.id,
+              });
+              await dbDeletePendingUser(dbUserViaOrcid.id);
+              console.log('delete success');
+              dbUserViaOrcid = null;
+            } else {
+              console.log('redirecting here...');
+              // ORCID account is already linked to a different (non-orphan) user
+              throw redirect(
+                `/app/settings/linked-accounts?error=true&provider=orcid&message=${encodeURIComponent('This ORCID account has already been linked to another account.')}`,
+              );
+            }
           }
-          // update profile
-          try {
-            const account = assertLinkedAccount('orcid', dbUserViaOrcid);
-            await dbUpdateUserLinkedAccountProfile(account.id, profile);
-          } catch (error: any) {
-            console.error('ORCID provider - Failed to update linked account profile', error);
-            // Track account linking failure
+
+          // If we still have a user via ORCID (login flow), update profile + track login
+          if (dbUserViaOrcid) {
+            // update profile
+            try {
+              const account = assertLinkedAccount('orcid', dbUserViaOrcid);
+              await dbUpdateUserLinkedAccountProfile(account.id, profile);
+            } catch (error: any) {
+              console.error('ORCID provider - Failed to update linked account profile', error);
+              // Track account linking failure
+              await analytics.trackEvent(
+                TrackEvent.USER_LINKING_FAILED,
+                dbUserViaOrcid.id,
+                {
+                  provider: 'orcid',
+                  operation: 'update_profile',
+                  error: error.message || 'Unknown error',
+                },
+                request,
+              );
+            }
+
+            await analytics.identifyEvent(dbUserViaOrcid);
             await analytics.trackEvent(
-              TrackEvent.USER_LINKING_FAILED,
+              TrackEvent.USER_LOGGED_IN,
               dbUserViaOrcid.id,
               {
                 provider: 'orcid',
-                operation: 'update_profile',
-                error: error.message || 'Unknown error',
+                method: 'oauth',
+                linkedAccountEmail: profile.email,
+                idAtProvider: profile.id,
               },
               request,
             );
           }
+        }
 
-          await analytics.identifyEvent(dbUserViaOrcid);
-          await analytics.trackEvent(
-            TrackEvent.USER_LOGGED_IN,
-            dbUserViaOrcid.id,
-            {
-              provider: 'orcid',
-              method: 'oauth',
-              linkedAccountEmail: profile.email,
-              idAtProvider: profile.id,
-            },
-            request,
-          );
-        } else if (!dbUserViaOrcid) {
+        if (!dbUserViaOrcid) {
           const user = session.get('user');
           if (user && allowLinking) {
             try {
@@ -173,9 +209,35 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
               throw error;
             }
           } else if (provisionNewUsers) {
-            // Check if a Firebase Auth user already exists with this email
-            // If so, redirect to Firebase login flow
+            // When ORCID provides an email, fail early if that email already has a Curvenote user
             if (profile.email) {
+              const email = profile.email.trim();
+              const existingUserByEmail = await dbGetUserByEmails([email]);
+              if (existingUserByEmail) {
+                const existingProvider =
+                  existingUserByEmail.primaryProvider ??
+                  existingUserByEmail.linkedAccounts?.find((a) => a.pending === false)?.provider ??
+                  existingUserByEmail.linkedAccounts?.[0]?.provider ??
+                  null;
+                const existingProviderLabel = getProviderDisplayName(existingProvider);
+                const existingEmailMessage = `An account with this email already exists${
+                  existingProviderLabel ? ` (${existingProviderLabel})` : ''
+                }. Please sign in with ${
+                  existingProviderLabel ?? 'that account'
+                }, then you can link your ORCID in settings.`;
+                throw redirect(
+                  failureRedirectUrl({
+                    provider: 'orcid',
+                    message: existingEmailMessage,
+                  }),
+                  {
+                    headers: { 'Set-Cookie': await sessionStorage.destroySession(session) },
+                  },
+                );
+              }
+
+              // Check if a Firebase Auth user already exists with this email
+              // If so, redirect to Firebase login flow
               let firebaseUserExists = false;
               try {
                 const serverAuth = await getServerAuth();
@@ -191,11 +253,12 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
                 }
               }
               if (firebaseUserExists) {
+                const existingEmailMessage =
+                  'An account with this email already exists. Please sign in with Google, then link your ORCID in settings.';
                 throw redirect(
                   failureRedirectUrl({
                     provider: 'firebase',
-                    message:
-                      'An account with this email already exists. Please log in then connect your ORCID account.',
+                    message: existingEmailMessage,
                   }),
                 );
               }

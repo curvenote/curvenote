@@ -92,6 +92,40 @@ export async function dbDeletePendingUser(userId: string): Promise<void> {
 }
 
 /**
+ * Create or update a pending linked account for a user (e.g. before OAuth account linking).
+ *
+ * @param userId - The user ID
+ * @param provider - The provider name (e.g. 'orcid')
+ * @returns The upserted linked account record
+ */
+export async function dbUpsertPendingLinkedAccount(userId: string, provider: string) {
+  const prisma = await getPrismaClient();
+  const timestamp = formatDate();
+  return prisma.userLinkedAccount.upsert({
+    where: {
+      uniqueProviderUserId: {
+        user_id: userId,
+        provider,
+      },
+    },
+    update: {
+      date_modified: timestamp,
+      date_linked: null,
+      pending: true,
+    },
+    create: {
+      id: uuidv7(),
+      date_created: timestamp,
+      date_modified: timestamp,
+      date_linked: null,
+      user_id: userId,
+      provider,
+      pending: true,
+    },
+  });
+}
+
+/**
  * Get a user by their linked account.
  *
  * @param provider - The provider name (e.g., 'okta')
@@ -468,6 +502,27 @@ export function assertLinkedAccount(
   return account;
 }
 
+export function getProviderDisplayName(provider: string | null | undefined): string | null {
+  if (!provider) return null;
+  switch (provider) {
+    case 'google':
+      return 'Google';
+    case 'github':
+      return 'GitHub';
+    case 'orcid':
+      return 'ORCID';
+    case 'okta':
+      return 'Okta';
+    case 'firebase':
+      return 'Google';
+    default: {
+      const trimmed = String(provider).trim();
+      if (!trimmed) return null;
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    }
+  }
+}
+
 /**
  * Generate a failure redirect URL.
  *
@@ -489,13 +544,12 @@ export function failureRedirectUrl({
   const params = new URLSearchParams();
   params.set('error', 'true');
   params.set('provider', provider);
-  if (error?.status) params.set('status', error.status);
-  else if (status) params.set('status', status.toString());
-  else params.set('status', '401');
-  if (error?.status) params.set('status', error.status);
-  else if (message) params.set('message', message);
-  else params.set('message', 'Unable to authenticate. Please try again or contact support.');
-  return `/login?${params.toString()}`;
+  const statusCode = error?.status ?? status ?? 401;
+  params.set('status', String(statusCode));
+  const safeMessage =
+    message ?? error?.message ?? 'Unable to authenticate. Please try again or contact support.';
+  params.set('message', safeMessage);
+  return `/auth-error?${params.toString()}`;
 }
 
 /**

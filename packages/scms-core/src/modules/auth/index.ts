@@ -1,6 +1,7 @@
 // Client-only exports
 export * from './auth.js';
 export * from './common.js';
+export * from './LoginProviderButtons.js';
 export * from './types.js';
 export * as firebase from './firebase/index.js';
 export * as github from './github/index.js';

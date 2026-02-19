@@ -64,13 +64,17 @@ export function FirebaseGoogleLoginUI({
   disabled,
   setSubmitting: setSubmitting,
   className,
+  returnTo,
 }: {
   disabled: boolean;
   setSubmitting: (flag: boolean) => void;
   className?: string;
+  returnTo?: string;
 }) {
   const fetcher = useFetcher();
   const [iAmSubmitting, setIAmSubmitting] = useState(false);
+  const firebaseAction =
+    returnTo != null ? `/auth/firebase?returnTo=${encodeURIComponent(returnTo)}` : '/auth/firebase';
 
   async function handleGoogleSignin() {
     setSubmitting?.(true);
@@ -80,7 +84,7 @@ export function FirebaseGoogleLoginUI({
       provider.setCustomParameters({ prompt: 'select_account' });
       const credential = await signInWithPopup(clientAuth, provider);
       const idToken = await credential.user.getIdToken();
-      fetcher.submit({ idToken }, { method: 'POST', action: '/auth/firebase' });
+      fetcher.submit({ idToken }, { method: 'POST', action: firebaseAction });
     } catch (error: any) {
       console.error(error);
       setIAmSubmitting?.(false);
