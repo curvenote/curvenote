@@ -240,6 +240,11 @@ properties:
         type: string
       userTokenIssuer:
         type: string
+      acceptedUserTokenIssuers:
+        type: array
+        items:
+          type: string
+        description: Optional. Additional user token issuer URLs to accept (legacy domains). Primary userTokenIssuer is always accepted.
       sessionTokenIssuer:
         type: string
       tokenConfigUrl:
