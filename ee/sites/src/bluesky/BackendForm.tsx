@@ -69,7 +69,7 @@ export function BackendForm({
           {canSelectAtproto && (
             <div className="space-y-2">
               <label htmlFor="nominatedUserLinkedAccountId" className="block text-sm font-medium">
-                Nominated user (Bluesky account used for publishing)
+                Nominated Bluesky user (single required publishing account)
               </label>
               <select
                 id="nominatedUserLinkedAccountId"
@@ -77,7 +77,7 @@ export function BackendForm({
                 className="flex h-9 w-full max-w-md rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 defaultValue={nominatedId}
               >
-                <option value="">— Select when using AT Protocol —</option>
+                <option value="">— Select one when using AT Protocol —</option>
                 {siteUsersWithBluesky.map((u) => (
                   <option key={u.linkedAccountId} value={u.linkedAccountId}>
                     {u.displayName ?? u.userId} (@{u.handleOrDid})
