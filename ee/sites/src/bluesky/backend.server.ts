@@ -66,12 +66,26 @@ export async function updateSiteBackend(
   backend: SiteBackendConfig,
   schemaUrl: string = SITE_DATA_SCHEMA,
 ): Promise<void> {
+  const normalizedBackend =
+    backend.type === 'atproto'
+      ? {
+          ...backend,
+          nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId.trim(),
+        }
+      : backend;
+  if (
+    normalizedBackend.type === 'atproto' &&
+    !normalizedBackend.nominatedUserLinkedAccountId
+  ) {
+    throw new Error('AT Protocol backend requires a nominated Bluesky user');
+  }
+
   await safeSiteDataUpdate<Prisma.JsonObject>(siteId, (currentData) => {
     const data = (currentData as Record<string, unknown>) ?? {};
     return {
       ...data,
       $schema: schemaUrl,
-      backend,
+      backend: normalizedBackend,
     } as Prisma.JsonObject;
   });
 }

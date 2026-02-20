@@ -5,6 +5,7 @@ import { getPrismaClient } from '@curvenote/scms-server';
  */
 export type SiteBackendConfig =
   | { type: 'curvenote-cdn' }
+  // Single nominated Bluesky linked account used for writes to that user's PDS.
   | { type: 'atproto'; nominatedUserLinkedAccountId: string };
 
 /**
