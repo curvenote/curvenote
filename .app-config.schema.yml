@@ -531,7 +531,7 @@ properties:
           progressMessage:
             type: string
             description: Message shown in the signup progress component
-            default: "You're almost ready to take advantage of the platform."
+            default: "You're almost ready to use the platform."
           approval:
             type: object
             description: Manual approval configuration
