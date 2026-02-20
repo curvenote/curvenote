@@ -344,26 +344,53 @@ export class Session implements ISession {
   }
 
   async fetch(url: URL | RequestInfo, init?: RequestInit): Promise<FetchResponse> {
-    const urlOnly = new URL((url as Request).url ?? (url as URL | string));
-    this.log.debug(`Fetching: ${urlOnly}`);
-    if (this.proxyAgent && !LOCALHOSTS.includes(urlOnly.hostname)) {
-      if (!init) init = {};
-      init = { agent: this.proxyAgent, ...init };
-      this.log.debug(`Using HTTPS proxy: ${this.proxyAgent.proxy}`);
-    }
-    const logData = { url: urlOnly, done: false };
-    setTimeout(() => {
-      if (!logData.done) this.log.info(`⏳ Waiting for response from ${url}`);
-    }, 5000);
-    try {
-      const resp = await nodeFetch(url, init);
-      logData.done = true;
+    const MAX_REDIRECTS = 10;
+    let currentUrl: string = (url as Request).url ?? (url as URL).toString?.() ?? String(url);
+    let currentInit: RequestInit = init ?? {};
+    let resp: FetchResponse;
+
+    for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+      const urlOnly = new URL(currentUrl);
+      this.log.debug(`Fetching: ${urlOnly}`);
+      const fetchInit: RequestInit = {
+        ...currentInit,
+        redirect: 'manual',
+      };
+      if (this.proxyAgent && !LOCALHOSTS.includes(urlOnly.hostname)) {
+        fetchInit.agent = this.proxyAgent;
+        this.log.debug(`Using HTTPS proxy: ${this.proxyAgent.proxy}`);
+      }
+      const logData = { url: currentUrl, done: false };
+      setTimeout(() => {
+        if (!logData.done) this.log.info(`⏳ Waiting for response from ${currentUrl}`);
+      }, 5000);
+      try {
+        resp = await nodeFetch(currentUrl, fetchInit);
+        logData.done = true;
+      } catch (e) {
+        console.log('session fetch error', e);
+        throw e;
+      }
+
+      const isRedirect = [301, 302, 307, 308].includes(resp.status);
+      const location = resp.headers.get('location');
+
+      if (isRedirect && location && redirectCount < MAX_REDIRECTS) {
+        currentUrl = new URL(location, currentUrl).toString();
+        currentInit = {
+          method: currentInit.method,
+          headers: currentInit.headers,
+          body: currentInit.body,
+        };
+        this.log.debug(`Following redirect to ${currentUrl}`);
+        continue;
+      }
+
       checkForPlatformAPIClientVersionRejection(this.log, resp);
       return resp;
-    } catch (e) {
-      console.log('session fetch error', e);
-      throw e;
     }
+
+    throw new Error(`Too many redirects (max ${MAX_REDIRECTS})`);
   }
 
   _pluginPromise: Promise<ValidatedCurvenotePlugin> | undefined;
