@@ -2,7 +2,6 @@ import { useFetcher } from 'react-router';
 import { useEffect } from 'react';
 import { ProfileContentLayout } from '../common.js';
 import type { GitHubProfile } from './types.js';
-import { Shield } from 'lucide-react';
 import { GithubIcon } from '@scienceicons/react/24/solid';
 import { StatefulButton } from '../../../components/ui/index.js';
 
@@ -34,14 +33,7 @@ export function ProfileCardContent({
           <GithubIcon className="flex-shrink-0 w-12 h-12" />
           <div className="flex flex-col">
             <p title="Display Name">{profile.name ?? profile.login}</p>
-            <p title="email" className="flex items-center">
-              {profile.email ?? '—'}
-              {profile.email && (
-                <span className="inline-block ml-[2px]" title="email from GitHub">
-                  <Shield className="w-3 h-3 fill-blue-200 stroke-blue-600 dark:fill-stone-600 dark:stroke-stone-200" />
-                </span>
-              )}
-            </p>
+            <p title="email">{profile.email ?? '—'}</p>
             <p title="GitHub login" className="inline-block pt-1 font-mono text-xs text-stone-400">
               @{profile.login}
             </p>
