@@ -1,15 +1,24 @@
 {
   "lexicon": 1,
   "id": "com.curvenote.scms.workVersion",
-  "description": "Record storing a Curvenote SCMS work version as a myst site on the PDS: config, content JSONs, zipped source, and static public assets. Published from scms.curvenote.com.",
+  "description": "Record storing a Curvenote SCMS work version for AT Protocol publishing. Includes strong references to Standard.site publication and document records plus supporting content blobs.",
   "defs": {
     "main": {
       "type": "record",
-      "description": "Manifest for one work version; references config blob, optional source zip, and path->blob maps for content and public files.",
+      "description": "Manifest for one work version. Uses Standard.site schemas for site (publication) and submission (document) versions, with references to published records and optional supporting blobs.",
       "key": "any",
       "record": {
         "type": "object",
-        "required": ["config", "version", "schemaVersion", "createdAt"],
+        "required": [
+          "config",
+          "version",
+          "schemaVersion",
+          "siteSchema",
+          "site",
+          "submissionSchema",
+          "submission",
+          "createdAt"
+        ],
         "properties": {
           "config": {
             "type": "blob",
@@ -41,13 +50,25 @@
             "type": "string",
             "description": "Schema/lexicon version for interpreting this record (e.g. 1.0)."
           },
-          "site": {
+          "siteSchema": {
             "type": "string",
-            "description": "Site id or slug on scms.curvenote.com."
+            "description": "Standard.site schema identifier for the site version record.",
+            "enum": ["site.standard.publication"]
+          },
+          "site": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef",
+            "description": "Strong reference to a site.standard.publication record for this site version."
+          },
+          "submissionSchema": {
+            "type": "string",
+            "description": "Standard.site schema identifier for the submission version record.",
+            "enum": ["site.standard.document"]
           },
           "submission": {
-            "type": "string",
-            "description": "Submission id on scms.curvenote.com (internal linkage)."
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef",
+            "description": "Strong reference to a site.standard.document record for this submission version."
           },
           "createdAt": {
             "type": "string",
