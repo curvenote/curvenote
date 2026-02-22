@@ -3,7 +3,7 @@ import path from 'node:path';
 import { writeFileToFolder } from 'myst-cli-utils';
 import type { VersionId } from '@curvenote/blocks';
 import type { ISession } from '../session/types.js';
-import { OxaTransformer, transformOxalinkStore } from '../transforms/links.js';
+import { BlueskyTransformer, OxaTransformer, transformOxalinkStore } from '../transforms/links.js';
 
 export function resolvePath(optionalPath: string | undefined, filename: string) {
   if (optionalPath) return path.join(optionalPath, filename);
@@ -34,7 +34,11 @@ export async function confirmOrExit(message: string, opts?: { yes?: boolean }) {
 export function addOxaTransformersToOpts(session: ISession, opts: Record<string, any>) {
   return {
     ...opts,
-    extraLinkTransformers: [...(opts.extraLinkTransformers ?? []), new OxaTransformer(session)],
+    extraLinkTransformers: [
+      ...(opts.extraLinkTransformers ?? []),
+      new BlueskyTransformer(),
+      new OxaTransformer(session),
+    ],
     extraTransforms: [...(opts.extraTransforms ?? []), transformOxalinkStore as any],
   };
 }
