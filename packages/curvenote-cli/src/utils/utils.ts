@@ -35,7 +35,7 @@ export async function confirmOrExit(message: string, opts?: { yes?: boolean }) {
 }
 
 /** Add oxa link transformers to options */
-export function addOxaTransformersToOpts(session: ISession, opts: Record<string, any>) {
+export function addTransformersToOpts(session: ISession, opts: Record<string, any>) {
   return {
     ...opts,
     extraLinkTransformers: [

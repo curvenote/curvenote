@@ -22,7 +22,7 @@ import { cleanProjectConfigForWrite } from '../sync/utils.js';
 import type { ISession } from '../session/types.js';
 import chalk from 'chalk';
 import { getFromJournals } from '../utils/api.js';
-import { addOxaTransformersToOpts } from '../utils/utils.js';
+import { addTransformersToOpts } from '../utils/utils.js';
 import type { BaseOpts } from '../logs/types.js';
 
 export const CDN_KEY_RE =
@@ -111,7 +111,7 @@ export async function performCleanRebuild(session: ISession, opts?: BaseOpts) {
   session.log.info(`⛴  Exports complete`);
 
   // Build the files in the content folder and process them
-  await buildSite(session, addOxaTransformersToOpts(session, opts ?? {}));
+  await buildSite(session, addTransformersToOpts(session, opts ?? {}));
   // Create source folder from MECA export
   await createSourceFolder(session);
   session.log.info(`✅ Work rebuild complete`);
