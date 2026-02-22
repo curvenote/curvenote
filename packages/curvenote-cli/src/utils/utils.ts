@@ -3,7 +3,11 @@ import path from 'node:path';
 import { writeFileToFolder } from 'myst-cli-utils';
 import type { VersionId } from '@curvenote/blocks';
 import type { ISession } from '../session/types.js';
-import { BlueskyTransformer, OxaTransformer, transformOxalinkStore } from '../transforms/links.js';
+import {
+  BlueskyTransformer,
+  OxaTransformer,
+  transformOxalinkStore,
+} from '../transforms/links/index.js';
 
 export function resolvePath(optionalPath: string | undefined, filename: string) {
   if (optionalPath) return path.join(optionalPath, filename);
