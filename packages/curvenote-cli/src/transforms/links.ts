@@ -132,7 +132,8 @@ export class BlueskyTransformer implements LinkTransformer {
   test(uri?: string): boolean {
     if (!uri) return false;
     try {
-      return new URL(uri).host === BSKY_HOST;
+      const url = new URL(uri);
+      return url.host === BSKY_HOST && url.pathname.startsWith('/profile');
     } catch {
       return false;
     }
