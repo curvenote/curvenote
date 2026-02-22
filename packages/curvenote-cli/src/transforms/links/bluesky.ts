@@ -77,7 +77,7 @@ export class BlueskyTransformer implements LinkTransformer {
     if (!uri) return false;
     try {
       const url = new URL(uri);
-      return url.host === BSKY_HOST && url.pathname.startsWith('/profile');
+      return url.host === BSKY_HOST && url.pathname.startsWith('/profile/');
     } catch {
       return false;
     }
