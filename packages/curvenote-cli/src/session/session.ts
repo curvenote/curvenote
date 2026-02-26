@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { cpus } from 'node:os';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -6,6 +7,7 @@ import type { RequestInfo, RequestInit, Request, Response as FetchResponse } fro
 import { default as nodeFetch } from 'node-fetch';
 import type { Limit } from 'p-limit';
 import pLimit from 'p-limit';
+import { Semaphore } from 'async-mutex';
 import type { BuildWarning } from 'myst-cli';
 import latestVersion from 'latest-version';
 import {
@@ -59,6 +61,8 @@ const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 export type SessionOptions = {
   logger?: Logger;
   doiLimiter?: Limit;
+  executionSemaphore?: Semaphore;
+  configFiles?: string[];
 };
 
 export class Session implements ISession {
@@ -71,6 +75,7 @@ export class Session implements ISession {
   store: Store<RootState>;
 
   doiLimiter: Limit;
+  executionSemaphore: Semaphore;
   plugins: ValidatedCurvenotePlugin | undefined = combinePlugins([getBuiltInPlugins()]);
 
   proxyAgent?: HttpsProxyAgent<string>;
@@ -118,9 +123,11 @@ export class Session implements ISession {
   }
 
   private constructor(opts: SessionOptions = {}) {
-    this.configFiles = CONFIG_FILES;
+    this.configFiles = (opts.configFiles ?? CONFIG_FILES).slice();
     this.$logger = opts.logger ?? basicLogger(LogLevel.info);
     this.doiLimiter = opts.doiLimiter ?? pLimit(3);
+    this.executionSemaphore =
+      opts.executionSemaphore ?? new Semaphore(Math.max(1, cpus().length - 1));
     const proxyUrl = process.env.HTTPS_PROXY;
     if (proxyUrl) {
       this.log.warn(`Using HTTPS proxy: ${proxyUrl}`);
@@ -309,6 +316,8 @@ export class Session implements ISession {
     const cloneSession = await Session.create(this.$activeTokens.user?.token, {
       logger: this.$logger,
       doiLimiter: this.doiLimiter,
+      executionSemaphore: this.executionSemaphore,
+      configFiles: this.configFiles,
     });
 
     await cloneSession.reload();
@@ -344,26 +353,53 @@ export class Session implements ISession {
   }
 
   async fetch(url: URL | RequestInfo, init?: RequestInit): Promise<FetchResponse> {
-    const urlOnly = new URL((url as Request).url ?? (url as URL | string));
-    this.log.debug(`Fetching: ${urlOnly}`);
-    if (this.proxyAgent && !LOCALHOSTS.includes(urlOnly.hostname)) {
-      if (!init) init = {};
-      init = { agent: this.proxyAgent, ...init };
-      this.log.debug(`Using HTTPS proxy: ${this.proxyAgent.proxy}`);
-    }
-    const logData = { url: urlOnly, done: false };
-    setTimeout(() => {
-      if (!logData.done) this.log.info(`⏳ Waiting for response from ${url}`);
-    }, 5000);
-    try {
-      const resp = await nodeFetch(url, init);
-      logData.done = true;
+    const MAX_REDIRECTS = 10;
+    let currentUrl: string = (url as Request).url ?? (url as URL).toString?.() ?? String(url);
+    let currentInit: RequestInit = init ?? {};
+    let resp: FetchResponse;
+
+    for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+      const urlOnly = new URL(currentUrl);
+      this.log.debug(`Fetching: ${urlOnly}`);
+      const fetchInit: RequestInit = {
+        ...currentInit,
+        redirect: 'manual',
+      };
+      if (this.proxyAgent && !LOCALHOSTS.includes(urlOnly.hostname)) {
+        fetchInit.agent = this.proxyAgent;
+        this.log.debug(`Using HTTPS proxy: ${this.proxyAgent.proxy}`);
+      }
+      const logData = { url: currentUrl, done: false };
+      setTimeout(() => {
+        if (!logData.done) this.log.info(`⏳ Waiting for response from ${currentUrl}`);
+      }, 5000);
+      try {
+        resp = await nodeFetch(currentUrl, fetchInit);
+        logData.done = true;
+      } catch (e) {
+        console.log('session fetch error', e);
+        throw e;
+      }
+
+      const isRedirect = [301, 302, 307, 308].includes(resp.status);
+      const location = resp.headers.get('location');
+
+      if (isRedirect && location && redirectCount < MAX_REDIRECTS) {
+        currentUrl = new URL(location, currentUrl).toString();
+        currentInit = {
+          method: currentInit.method,
+          headers: currentInit.headers,
+          body: currentInit.body,
+        };
+        this.log.debug(`Following redirect to ${currentUrl}`);
+        continue;
+      }
+
       checkForPlatformAPIClientVersionRejection(this.log, resp);
       return resp;
-    } catch (e) {
-      console.log('session fetch error', e);
-      throw e;
     }
+
+    throw new Error(`Too many redirects (max ${MAX_REDIRECTS})`);
   }
 
   _pluginPromise: Promise<ValidatedCurvenotePlugin> | undefined;
@@ -506,6 +542,10 @@ export class Session implements ISession {
   }
 
   dispose() {
+    this._clones.forEach((session) => {
+      session.dispose();
+    });
+
     if (this._jupyterSessionManagerPromise) {
       this._jupyterSessionManagerPromise.then((manager) => manager?.dispose?.());
       this._jupyterSessionManagerPromise = undefined;
