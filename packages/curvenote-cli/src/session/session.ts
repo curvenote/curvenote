@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { cpus } from 'node:os';
 import type { Store } from 'redux';
 import { createStore } from 'redux';
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -6,6 +7,7 @@ import type { RequestInfo, RequestInit, Request, Response as FetchResponse } fro
 import { default as nodeFetch } from 'node-fetch';
 import type { Limit } from 'p-limit';
 import pLimit from 'p-limit';
+import { Semaphore } from 'async-mutex';
 import type { BuildWarning } from 'myst-cli';
 import latestVersion from 'latest-version';
 import {
@@ -59,6 +61,8 @@ const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 export type SessionOptions = {
   logger?: Logger;
   doiLimiter?: Limit;
+  executionSemaphore?: Semaphore;
+  configFiles?: string[];
 };
 
 export class Session implements ISession {
@@ -71,6 +75,7 @@ export class Session implements ISession {
   store: Store<RootState>;
 
   doiLimiter: Limit;
+  executionSemaphore: Semaphore;
   plugins: ValidatedCurvenotePlugin | undefined = combinePlugins([getBuiltInPlugins()]);
 
   proxyAgent?: HttpsProxyAgent<string>;
@@ -118,9 +123,11 @@ export class Session implements ISession {
   }
 
   private constructor(opts: SessionOptions = {}) {
-    this.configFiles = CONFIG_FILES;
+    this.configFiles = (opts.configFiles ?? CONFIG_FILES).slice();
     this.$logger = opts.logger ?? basicLogger(LogLevel.info);
     this.doiLimiter = opts.doiLimiter ?? pLimit(3);
+    this.executionSemaphore =
+      opts.executionSemaphore ?? new Semaphore(Math.max(1, cpus().length - 1));
     const proxyUrl = process.env.HTTPS_PROXY;
     if (proxyUrl) {
       this.log.warn(`Using HTTPS proxy: ${proxyUrl}`);
@@ -309,6 +316,8 @@ export class Session implements ISession {
     const cloneSession = await Session.create(this.$activeTokens.user?.token, {
       logger: this.$logger,
       doiLimiter: this.doiLimiter,
+      executionSemaphore: this.executionSemaphore,
+      configFiles: this.configFiles,
     });
 
     await cloneSession.reload();
@@ -533,6 +542,10 @@ export class Session implements ISession {
   }
 
   dispose() {
+    this._clones.forEach((session) => {
+      session.dispose();
+    });
+
     if (this._jupyterSessionManagerPromise) {
       this._jupyterSessionManagerPromise.then((manager) => manager?.dispose?.());
       this._jupyterSessionManagerPromise = undefined;
