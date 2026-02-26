@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/scms-tasks",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "description": "SCMS tasks library: job client and helpers for cloud runners",
   "type": "module",
   "engines": {
@@ -34,7 +34,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@curvenote/common": "^0.3.4"
+    "@curvenote/common": "^0.4.0"
   },
   "peerDependencies": {
     "express": ">=4"
