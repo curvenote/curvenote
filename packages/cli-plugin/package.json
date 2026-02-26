@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/cli-plugin",
-  "version": "0.13.5",
+  "version": "0.14.0",
   "description": "MyST Plugins for Curvenote",
   "author": "Steve Purves <steve@curvenote.com>",
   "license": "MIT",
