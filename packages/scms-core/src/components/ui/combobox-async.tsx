@@ -85,10 +85,12 @@ export function AsyncComboBox({
 }: AsyncComboBoxProps) {
   const [open, setOpen] = React.useState(false);
   const [internalSearchValue, setInternalSearchValue] = React.useState('');
-  const searchValue = controlledSearchValue !== undefined ? controlledSearchValue : internalSearchValue;
+  const searchValue =
+    controlledSearchValue !== undefined ? controlledSearchValue : internalSearchValue;
   const setSearchValue = React.useCallback(
     (v: string | ((prev: string) => string)) => {
-      const prev = controlledSearchValue !== undefined ? controlledSearchValue : internalSearchValue;
+      const prev =
+        controlledSearchValue !== undefined ? controlledSearchValue : internalSearchValue;
       const next = typeof v === 'function' ? v(prev) : v;
       if (controlledSearchValue === undefined) setInternalSearchValue(next);
       onSearchChange?.(next);
