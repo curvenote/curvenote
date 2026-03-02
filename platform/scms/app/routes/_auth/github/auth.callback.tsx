@@ -20,7 +20,18 @@ export async function loader(args: LoaderFunctionArgs) {
   try {
     authResponse = await ctx.$auth.authenticate('github', args.request);
   } catch (errorOrRedirect: any) {
-    console.warn('GITHUB /auth/callback - linking failed');
+    if (errorOrRedirect?.status === 302) throw errorOrRedirect;
+    if (loggedInUser && !loggedInUser.ready_for_approval && !loggedInUser.pending) {
+      console.warn('GITHUB /auth/callback - linking failed, redirecting to linked-accounts');
+      const params = new URLSearchParams();
+      params.set('error', 'true');
+      params.set('provider', 'github');
+      params.set(
+        'message',
+        errorOrRedirect?.message ?? 'Could not link GitHub account. Please try again.',
+      );
+      throw redirect(`/app/settings/linked-accounts?${params.toString()}`, { headers });
+    }
     handleCallbackErrorsWithoutCatchingRedirects('github', errorOrRedirect);
   }
 
@@ -52,7 +63,7 @@ export async function loader(args: LoaderFunctionArgs) {
       throw redirect(returnToUrl, { headers });
     }
 
-    throw redirect('/app/settings/linked-accounts', { headers });
+    throw redirect('/app/settings/linked-accounts?linked=github', { headers });
   }
 
   if (!user) {
