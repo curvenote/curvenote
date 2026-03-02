@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.14.1
+
+### Patch Changes
+
+- [#804](https://github.com/curvenote/curvenote/pull/804) [`ff63a73`](https://github.com/curvenote/curvenote/commit/ff63a73efa5933ffdff8318f79fa1453596c1f7c) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Adding bluesky link decorator
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.14.1
+
 ## 0.14.0
 
 ### Minor Changes
