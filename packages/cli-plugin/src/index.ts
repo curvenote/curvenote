@@ -8,7 +8,14 @@ import { blueskyDirective } from './directives/bluesky.js';
 
 const plugin: MystPlugin = {
   name: 'Curvenote Plugin',
-  directives: [articlesDirective, collectionsDirective, anyWidget, zarrViewer, heroDirective, blueskyDirective],
+  directives: [
+    articlesDirective,
+    collectionsDirective,
+    anyWidget,
+    zarrViewer,
+    heroDirective,
+    blueskyDirective,
+  ],
   roles: [],
   transforms: [],
 };

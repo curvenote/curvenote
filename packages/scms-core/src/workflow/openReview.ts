@@ -13,7 +13,7 @@ export const STATE_NAMES = {
   RETRACTED: 'RETRACTED',
 };
 
-const MERMAID: string = `graph TD
+const MERMAID = `graph TD
     PENDING[PENDING<br/>Pending]
     REJECTED[REJECTED<br/>Rejected]
     IN_REVIEW[IN_REVIEW<br/>In Review]

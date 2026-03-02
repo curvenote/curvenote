@@ -26,7 +26,7 @@ function useHighlightedFiles() {
     };
   }, []);
 
-  const highlightFile = (filePath: string, duration: number = 3000) => {
+  const highlightFile = (filePath: string, duration = 3000) => {
     highlightedFiles.add(filePath);
     highlightListeners.forEach((listener) => {
       listener();
