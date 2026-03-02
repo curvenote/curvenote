@@ -340,7 +340,7 @@ export function AsyncComboBox({
               id="combobox-list-inline"
               role="listbox"
               className={cn(
-                'absolute top-full left-0 right-0 z-10 mt-1 max-h-[300px] rounded-md border border-border bg-popover shadow-md',
+                'absolute right-0 left-0 top-full z-10 mt-1 rounded-md border shadow-md max-h-[300px] border-border bg-popover',
                 contentClassName,
               )}
             >

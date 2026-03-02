@@ -14,7 +14,7 @@ export const STATE_NAMES = {
   WITHDRAWN: 'WITHDRAWN',
 };
 
-const MERMAID: string = `graph TD
+const MERMAID = `graph TD
     PENDING[PENDING<br/>Pending]
     REJECTED[REJECTED<br/>Rejected]
     PUBLISHED[PUBLISHED<br/>Published]

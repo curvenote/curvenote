@@ -11,7 +11,7 @@ import {
 } from 'myst-cli';
 import type { ExportResults } from 'myst-cli';
 import type { LinkTransformer } from 'myst-transforms';
-import { OxaTransformer } from './transforms/index.js';
+import { OxaTransformer } from './transforms/links/index.js';
 import type { ISession } from './session/types.js';
 import { oxaLinkToMarkdown } from './sync/pull/markdown.js';
 

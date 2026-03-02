@@ -1,7 +1,7 @@
 import { selectors, buildSite, clean } from 'myst-cli';
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
-import { addOxaTransformersToOpts, confirmOrExit } from '../utils/index.js';
+import { addTransformersToOpts, confirmOrExit } from '../utils/index.js';
 import { promotePublicContent } from './promote.js';
 import { uploadAndGetCdnKey } from '../works/utils.js';
 
@@ -45,7 +45,7 @@ export async function deploy(
   // clean the site folder, otherwise downloadable files will accumulate
   await clean(session, [], { site: true, yes: true });
   // Build the files in the content folder and process them
-  await buildSite(session, addOxaTransformersToOpts(session, opts));
+  await buildSite(session, addTransformersToOpts(session, opts));
 
   const cdnKey = await uploadAndGetCdnKey(session, session.config.deploymentCdnUrl, opts);
 
