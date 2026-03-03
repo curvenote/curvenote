@@ -105,7 +105,8 @@
   },
   "optionalDependencies": {
     "@esbuild/linux-x64": "^0.25.1",
-    "@rollup/rollup-linux-x64-gnu": "^4.35.0"
+    "@rollup/rollup-linux-x64-gnu": "^4.35.0",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.2.1"
   },
   "engines": {
     "npm": ">=10.0.0",
