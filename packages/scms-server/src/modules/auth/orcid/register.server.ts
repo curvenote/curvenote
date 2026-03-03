@@ -62,6 +62,13 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
         tokenEndpoint: `${config.auth?.orcid?.orcidBaseUrl ?? 'https://orcid.org'}/oauth/token`,
         redirectURI: config.auth?.orcid?.redirectUrl ?? 'INVALID',
         scopes: ['openid', 'email', 'profile'],
+        cookie: {
+          name: 'oauth2',
+          secure: true,
+          sameSite: 'Lax',
+          httpOnly: true,
+          path: '/',
+        },
       },
       async ({ tokens, request }) => {
         const analytics = new AnalyticsContext();

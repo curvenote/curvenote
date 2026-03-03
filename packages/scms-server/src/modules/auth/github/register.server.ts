@@ -98,6 +98,13 @@ export function registerGitHubStrategy(
         tokenEndpoint: 'https://github.com/login/oauth/access_token',
         redirectURI: config.auth?.github?.redirectUrl ?? 'INVALID',
         scopes: ['read:user', 'user:email'],
+        cookie: {
+          name: 'oauth2',
+          secure: true,
+          sameSite: 'Lax',
+          httpOnly: true,
+          path: '/',
+        },
       },
       async ({ tokens, request }) => {
         const analytics = new AnalyticsContext();
