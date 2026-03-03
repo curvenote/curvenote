@@ -34,6 +34,35 @@ export function useAuthErrorToast() {
   }, [params, setSearchParams]);
 }
 
+const LOGIN_PASSWORD_NOTICE = (
+  <div>
+    If you signed up with email and password at{' '}
+    <a href="https://editor.curvenote.com" target="_blank" rel="noreferrer noopener">
+      editor.curvenote.com
+    </a>{' '}
+    you can use those credentials to sign in here.
+  </div>
+);
+
+function LoginWithPasswordSection({
+  disabled,
+  setSubmitting,
+}: {
+  disabled: boolean;
+  setSubmitting: (value: boolean) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <OrDivider />
+      <firebase.FirebasePasswordLoginUI
+        disabled={disabled}
+        setSubmitting={setSubmitting}
+        notice={LOGIN_PASSWORD_NOTICE}
+      />
+    </div>
+  );
+}
+
 function AllProviderLoginArea({
   config,
   authProviders,
@@ -77,26 +106,7 @@ function AllProviderLoginArea({
               </ui.Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              <OrDivider />
-              <firebase.FirebasePasswordLoginUI
-                disabled={submitting}
-                setSubmitting={setSubmitting}
-                notice={
-                  <div>
-                    If you signed up with email and password at{' '}
-                    <a
-                      href="https://editor.curvenote.com"
-                      target="_blank"
-                      rel="noreferrer noopener"
-                    >
-                      editor.curvenote.com
-                    </a>{' '}
-                    you can use those credentials to log in here.
-                  </div>
-                }
-              />
-            </div>
+            <LoginWithPasswordSection disabled={submitting} setSubmitting={setSubmitting} />
           )}
         </div>
       )}
@@ -156,9 +166,6 @@ function PreferredLoginArea({
     ));
 
   const firebaseProvider = providersThatAllowLogin.find((p) => p.provider === 'firebase');
-  const showOrDivider =
-    providersThatAllowLogin.length > 0 &&
-    providersThatAllowLogin.map(({ provider }) => provider).includes('firebase');
 
   return (
     <div className="flex flex-col space-y-8 w-full items-left">
@@ -181,25 +188,8 @@ function PreferredLoginArea({
         {showMoreProviders && (
           <div className="space-y-8">
             <div className="space-y-2">{MoreProvidersUI}</div>
-            {showOrDivider && <OrDivider />}
             {firebaseProvider && firebaseProvider.allowLogin && (
-              <firebase.FirebasePasswordLoginUI
-                disabled={submitting}
-                setSubmitting={setSubmitting}
-                notice={
-                  <div>
-                    If you signed up with email and password at{' '}
-                    <a
-                      href="https://editor.curvenote.com"
-                      target="_blank"
-                      rel="noreferrer noopener"
-                    >
-                      editor.curvenote.com
-                    </a>{' '}
-                    you can use those credentials to log in here.
-                  </div>
-                }
-              />
+              <LoginWithPasswordSection disabled={submitting} setSubmitting={setSubmitting} />
             )}
           </div>
         )}
