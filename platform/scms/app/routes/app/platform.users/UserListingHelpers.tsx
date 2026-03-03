@@ -1,5 +1,5 @@
 import type { ClientDeploymentConfig } from '@curvenote/scms-core';
-import { ui } from '@curvenote/scms-core';
+import { ui, formatAuthProviderDisplayName } from '@curvenote/scms-core';
 import type { UserDTO } from './db.server';
 
 /**
@@ -47,7 +47,7 @@ export function generateProviderFilters(config: ClientDeploymentConfig): ui.Filt
       filters.push({
         key: 'provider',
         value: provider.provider,
-        label: getProviderDisplayName(provider.provider),
+        label: formatAuthProviderDisplayName(provider.provider, availableProviders),
         groupKey: 'provider',
         default: false,
       });
@@ -110,24 +110,6 @@ export function generateRoleFilters(availableRoles: any[]): ui.FilterDefinition[
     groupKey: 'role',
     default: false,
   }));
-}
-
-/**
- * Get display name for provider
- */
-function getProviderDisplayName(provider: string): string {
-  const displayNames: Record<string, string> = {
-    orcid: 'ORCID',
-    google: 'Google',
-    github: 'GitHub',
-    okta: 'Okta',
-    firebase: 'Curvenote',
-    'firebase-google': 'Firebase Google',
-    'firebase-email': 'Firebase Email',
-  };
-  return (
-    displayNames[provider.toLowerCase()] || provider.charAt(0).toUpperCase() + provider.slice(1)
-  );
 }
 
 /**

@@ -68,7 +68,7 @@ app:
     preferred: 'firebase'
     prompt: 'Sign up with a Google account'
     alternativePrompt: 'See other ways to sign up'
-    progressMessage: "You're almost ready to take advantage of the Curvenote Platform."
+    progressMessage: "You're almost ready to use the Curvenote Platform."
     approval:
       manual: false
       skipApproval: ['firebase'] # Firebase users get immediate access for testing

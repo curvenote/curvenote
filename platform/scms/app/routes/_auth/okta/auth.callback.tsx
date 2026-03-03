@@ -16,7 +16,7 @@ export async function loader(args: LoaderFunctionArgs) {
 
   // this is the user that was logged in before the OAuth2 flow started
   // this is used to determine if we are in an account linking flow
-  const initialLoggedInUser = session.get('user');
+  const loggedInUser = session.get('user');
 
   const headers = new Headers();
 
@@ -24,20 +24,31 @@ export async function loader(args: LoaderFunctionArgs) {
   try {
     authResponse = await ctx.$auth.authenticate('okta', args.request);
   } catch (errorOrRedirect: any) {
-    console.warn('OKTA /auth/callback - linking failed');
+    if (errorOrRedirect?.status === 302) throw errorOrRedirect;
+    if (loggedInUser && !loggedInUser.ready_for_approval && !loggedInUser.pending) {
+      console.warn('OKTA /auth/callback - linking failed, redirecting to linked-accounts');
+      const params = new URLSearchParams();
+      params.set('error', 'true');
+      params.set('provider', 'okta');
+      params.set(
+        'message',
+        errorOrRedirect?.message ?? 'Could not link OKTA account. Please try again.',
+      );
+      throw redirect(`/app/settings/linked-accounts?${params.toString()}`, { headers });
+    }
     handleCallbackErrorsWithoutCatchingRedirects('okta', errorOrRedirect);
   }
 
   const { providerSetCookie, ...user } = authResponse;
   headers.append('Set-Cookie', providerSetCookie);
 
-  if (initialLoggedInUser) {
+  if (loggedInUser) {
     // account linking flow
     console.log('OKTA /auth/callback - linking complete');
-    if (initialLoggedInUser.ready_for_approval) {
+    if (loggedInUser.ready_for_approval) {
       console.log('OKTA /auth/callback - redirect to /awaiting-approval');
       throw redirect('/awaiting-approval', { headers });
-    } else if (initialLoggedInUser.pending) {
+    } else if (loggedInUser.pending) {
       console.log('OKTA /auth/callback - redirect to /new-account/check-accounts-linked');
       throw redirect('/new-account/check-accounts-linked', { headers });
     }
@@ -48,7 +59,7 @@ export async function loader(args: LoaderFunctionArgs) {
       throw redirect(returnToUrl, { headers });
     }
 
-    throw redirect('/app/settings/linked-accounts', { headers });
+    throw redirect('/app/settings/linked-accounts?linked=okta', { headers });
   }
 
   session.set('user', user);

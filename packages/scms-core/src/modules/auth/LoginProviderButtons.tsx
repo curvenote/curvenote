@@ -5,7 +5,7 @@ import { LoginUI as GoogleLoginUI } from './google/index.js';
 import { LoginUI as OktaLoginUI } from './okta/index.js';
 import { LoginUI as OrcidLoginUI } from './orcid/index.js';
 
-export type LoginProviderButtonsProps = {
+export type ProviderButtonsProps = {
   /** Auth providers from deployment config (e.g. useDeploymentConfig().authProviders). */
   authProviders: ClientSideSafeAuthOptions[];
   submitting: boolean;
@@ -24,23 +24,22 @@ const PROVIDER_UIS = {
   okta: OktaLoginUI,
 } as const;
 
-/**
- * Renders sign-in buttons for all enabled login providers.
- * Button order follows the order of authProviders (from config, object key order is preserved).
- * Use on the main login page and in embedded contexts (e.g. form sign-in modal).
- */
-export function LoginProviderButtons({
-  authProviders,
+function ProviderButtons({
+  providers,
   submitting,
   setSubmitting,
   className = 'w-full',
   returnTo,
-}: LoginProviderButtonsProps) {
-  const loginProviders = (authProviders ?? []).filter((p) => p.allowLogin);
-
+}: {
+  providers: ClientSideSafeAuthOptions[];
+  submitting: boolean;
+  setSubmitting: (value: boolean) => void;
+  className?: string;
+  returnTo?: string;
+}) {
   return (
     <div className="flex flex-col gap-2">
-      {loginProviders.map((p) => {
+      {providers.map((p) => {
         const UI = PROVIDER_UIS[p.provider as keyof typeof PROVIDER_UIS];
         if (!UI) return null;
         return (
@@ -55,4 +54,43 @@ export function LoginProviderButtons({
       })}
     </div>
   );
+}
+/**
+ * Renders sign-in buttons for all enabled login providers (with allowLogin=true).
+ * Button order follows the order of authProviders from config.
+ */
+export function LoginProviderButtons({
+  authProviders,
+  submitting,
+  setSubmitting,
+  className = 'w-full',
+  returnTo,
+}: ProviderButtonsProps) {
+  return ProviderButtons({
+    providers: (authProviders ?? []).filter((p) => p.allowLogin),
+    submitting,
+    setSubmitting,
+    className,
+    returnTo,
+  });
+}
+
+/**
+ * Renders sign-up buttons for all enabled signup providers (with provisionNewUser=true).
+ * Button order follows the order of authProviders from config.
+ */
+export function SignupProviderButtons({
+  authProviders,
+  submitting,
+  setSubmitting,
+  className = 'w-full',
+  returnTo,
+}: ProviderButtonsProps) {
+  return ProviderButtons({
+    providers: (authProviders ?? []).filter((p) => p.provisionNewUser),
+    submitting,
+    setSubmitting,
+    className,
+    returnTo,
+  });
 }

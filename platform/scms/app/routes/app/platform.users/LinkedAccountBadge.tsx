@@ -1,33 +1,11 @@
 import * as React from 'react';
-import { ui, useDeploymentConfig } from '@curvenote/scms-core';
+import { ui, useDeploymentConfig, formatAuthProviderDisplayName } from '@curvenote/scms-core';
 import type { UserDTO } from './db.server';
 
 type LinkedAccount = UserDTO['linkedAccounts'][0];
 
 interface LinkedAccountBadgeProps {
   account: LinkedAccount;
-}
-
-function getProviderDisplayName(provider: string, authProviders: any[]): string {
-  // First try to get display name from auth provider config
-  const authProvider = authProviders.find((p) => p.provider === provider.toLowerCase());
-  if (authProvider?.displayName) {
-    return authProvider.displayName;
-  }
-
-  // Fallback to previous hardcoded mappings for providers not configured or missing displayName
-  const fallbackDisplayNames: Record<string, string> = {
-    orcid: 'ORCID',
-    google: 'Google',
-    github: 'GitHub',
-    okta: 'Okta',
-    firebase: 'Curvenote',
-  };
-
-  return (
-    fallbackDisplayNames[provider.toLowerCase()] ||
-    provider.charAt(0).toUpperCase() + provider.slice(1)
-  );
 }
 
 function formatProfilePopover(account: LinkedAccount): React.ReactNode {
@@ -115,7 +93,7 @@ function formatProfilePopover(account: LinkedAccount): React.ReactNode {
 
 export function LinkedAccountBadge({ account }: LinkedAccountBadgeProps) {
   const config = useDeploymentConfig();
-  const displayName = getProviderDisplayName(account.provider, config.authProviders);
+  const displayName = formatAuthProviderDisplayName(account.provider, config.authProviders);
   const variant = 'outline';
   const label = account.pending ? `${displayName} (pending)` : displayName;
   const popoverContent = formatProfilePopover(account);

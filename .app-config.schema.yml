@@ -240,6 +240,11 @@ properties:
         type: string
       userTokenIssuer:
         type: string
+      acceptedUserTokenIssuers:
+        type: array
+        items:
+          type: string
+        description: Optional. Additional user token issuer URLs to accept (legacy domains). Primary userTokenIssuer is always accepted.
       sessionTokenIssuer:
         type: string
       tokenConfigUrl:
@@ -531,7 +536,7 @@ properties:
           progressMessage:
             type: string
             description: Message shown in the signup progress component
-            default: "You're almost ready to take advantage of the platform."
+            default: "You're almost ready to use the platform."
           approval:
             type: object
             description: Manual approval configuration

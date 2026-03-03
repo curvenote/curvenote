@@ -1,5 +1,5 @@
 import type { Route } from './+types/route';
-import { data } from 'react-router';
+import { data, useSearchParams, useFetcher } from 'react-router';
 import {
   withAppContext,
   withValidFormData,
@@ -17,11 +17,13 @@ import {
   getBrandingFromMetaMatches,
   joinPageTitle,
   TrackEvent,
+  useHydrated,
+  formatAuthProviderDisplayName,
 } from '@curvenote/scms-core';
 import { dbDeleteLinkedAccount, dbGetLinkedAccountsByUserId } from './db.server';
 import { LinkAccount } from './LinkAccount';
 import type { GeneralError } from '@curvenote/scms-core';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { zfd } from 'zod-form-data';
 import { z } from 'zod';
 import { UnlinkAccount } from './UnlinkAccount';
@@ -29,7 +31,22 @@ import { UnlinkAccount } from './UnlinkAccount';
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppContext(args);
   const accounts = await dbGetLinkedAccountsByUserId(ctx.user!.id);
-  return { accounts, primaryProvider: ctx.user!.primaryProvider };
+  const url = new URL(args.request.url);
+  const linked = url.searchParams.get('linked');
+  const linkError = url.searchParams.get('error');
+  const provider = url.searchParams.get('provider');
+  const message = url.searchParams.get('message');
+  const linkToast = linked
+    ? { type: 'success' as const, provider: linked }
+    : linkError
+      ? {
+          type: 'error' as const,
+          message:
+            message ?? `Could not link${provider ? ` ${provider}` : ''} account. Please try again.`,
+          provider: provider ?? undefined,
+        }
+      : undefined;
+  return { accounts, primaryProvider: ctx.user!.primaryProvider, linkToast };
 }
 
 const LinkAccountSchema = zfd.formData({
@@ -37,15 +54,40 @@ const LinkAccountSchema = zfd.formData({
   intent: zfd.text(z.enum(['link', 'unlink'])),
 });
 
+const LinkResultSchema = zfd.formData({
+  intent: zfd.text(z.literal('link-result')),
+  provider: zfd.text(z.string()),
+  kind: zfd.text(z.enum(['success', 'error'])).optional(),
+  message: zfd.text(z.string()).optional(),
+});
+
 export async function action(args: Route.ActionArgs) {
   const ctx = await withAppContext(args);
+  const formData = await args.request.formData();
+
+  const formIntent = formData.get('intent');
+  if (formIntent === 'link-result') {
+    return withValidFormData(LinkResultSchema, formData, async ({ provider, kind, message }) => {
+      if (kind === 'error') {
+        return {
+          error: { status: 400, message: message ?? 'Could not link account.' },
+          provider,
+        };
+      }
+      return { ok: true, provider };
+    });
+  }
+
   return withValidFormData(
     LinkAccountSchema,
-    await args.request.formData(),
+    formData,
     async ({ provider, intent }) => {
       const providerNames = Object.keys(ctx.$config.auth ?? {});
       if (!providerNames.includes(provider)) {
-        return data({ error: { status: 400, message: 'Invalid provider' } }, { status: 400 });
+        return data(
+          { error: { status: 400, message: 'Invalid provider' }, provider },
+          { status: 400 },
+        );
       }
 
       if (intent === 'link') {
@@ -67,10 +109,10 @@ export async function action(args: Route.ActionArgs) {
 
         await ctx.analytics.flush();
 
-        return { ok: true };
+        return { ok: true, provider };
       }
 
-      return data({ error: { status: 400, message: 'Invalid intent' } }, { status: 400 });
+      return data({ error: { status: 400, message: 'Invalid intent' }, provider }, { status: 400 });
     },
     { errorFields: { type: 'general', intent: 'link-account' } },
   );
@@ -81,10 +123,33 @@ export const meta: Route.MetaFunction = ({ matches }) => {
   return [{ title: joinPageTitle('Linked Accounts', branding.title) }];
 };
 
+function getFetcherErrorMessage(error: GeneralError | string | undefined): string {
+  if (!error) return 'An unknown error occurred';
+  if (typeof error === 'string') return error;
+  if (typeof error === 'object' && error !== null && 'message' in error) return error.message;
+  return 'An unknown error occurred';
+}
+
 export default function LinkedAccounts({ loaderData }: Route.ComponentProps) {
   const { authProviders } = useDeploymentConfig();
   const [errors, setErrors] = useState<Record<string, GeneralError | string>>({});
-  const { accounts, primaryProvider } = loaderData;
+  const [, setSearchParams] = useSearchParams();
+  const isHydrated = useHydrated();
+  const { accounts, primaryProvider, linkToast } = loaderData;
+  const unlinkFetcher = useFetcher<{
+    ok?: boolean;
+    provider?: string;
+    error?: GeneralError | string;
+  }>();
+  const linkFetcher = useFetcher<{
+    ok?: boolean;
+    provider?: string;
+    error?: GeneralError | string;
+  }>();
+  const lastUnlinkToastKey = useRef<string | null>(null);
+  const lastLinkToastKey = useRef<string | null>(null);
+  const linkToastSubmitted = useRef<string | null>(null);
+  const [pendingUnlinkProvider, setPendingUnlinkProvider] = useState<string | null>(null);
 
   const linkedProviders = accounts.filter((a) => !a.pending);
   const linkedProviderNames = linkedProviders.map(({ provider }) => provider);
@@ -93,7 +158,69 @@ export default function LinkedAccounts({ loaderData }: Route.ComponentProps) {
   );
   const showDivider = linkedProviders.length > 0 && linkableOrPendingProviders.length > 0;
 
-  // TODO: Handle error toasts from URL parameters (e.g., from account linking failures)
+  // Unlink toasts
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (unlinkFetcher.state !== 'idle' || !unlinkFetcher.data) return;
+    const result = unlinkFetcher.data;
+    const toastKey = JSON.stringify({
+      ok: result.ok,
+      provider: result.provider,
+      error: typeof result.error === 'string' ? result.error : result.error?.message,
+    });
+    if (toastKey === lastUnlinkToastKey.current) return;
+    lastUnlinkToastKey.current = toastKey;
+
+    if (result.ok && result.provider) {
+      ui.toastSuccess(
+        `${formatAuthProviderDisplayName(result.provider, authProviders)} account unlinked`,
+      );
+    } else if (result.error) {
+      ui.toastError(getFetcherErrorMessage(result.error));
+    }
+  }, [unlinkFetcher.state, unlinkFetcher.data, isHydrated, authProviders]);
+
+  useEffect(() => {
+    if (unlinkFetcher.state === 'idle') setPendingUnlinkProvider(null);
+  }, [unlinkFetcher.state]);
+
+  // Feed OAuth redirect result into linkFetcher so we can use the same toast pattern as unlink.
+  useEffect(() => {
+    if (!linkToast || linkToastSubmitted.current !== null) return;
+    const key = JSON.stringify(linkToast);
+    linkToastSubmitted.current = key;
+    const payload = new FormData();
+    payload.set('intent', 'link-result');
+    payload.set('provider', linkToast.provider ?? '');
+    payload.set('kind', linkToast.type);
+    if (linkToast.type === 'error' && linkToast.message) {
+      payload.set('message', linkToast.message);
+    }
+    linkFetcher.submit(payload, { method: 'post' });
+    setSearchParams({}, { replace: true });
+  }, [linkToast, linkFetcher, setSearchParams]);
+
+  // Link toasts
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (linkFetcher.state !== 'idle' || !linkFetcher.data) return;
+    const result = linkFetcher.data;
+    const toastKey = JSON.stringify({
+      ok: result.ok,
+      provider: result.provider,
+      error: typeof result.error === 'string' ? result.error : result.error?.message,
+    });
+    if (toastKey === lastLinkToastKey.current) return;
+    lastLinkToastKey.current = toastKey;
+
+    if (result.ok && result.provider) {
+      ui.toastSuccess(
+        `${formatAuthProviderDisplayName(result.provider, authProviders)} account linked successfully`,
+      );
+    } else if (result.error) {
+      ui.toastError(getFetcherErrorMessage(result.error));
+    }
+  }, [linkFetcher.state, linkFetcher.data, isHydrated, authProviders]);
 
   return (
     <PageFrame
@@ -115,7 +242,7 @@ export default function LinkedAccounts({ loaderData }: Route.ComponentProps) {
               <primitives.Card
                 key={account.id + account.provider}
                 lift
-                className="flex flex-col w-full px-6 py-4 space-y-4"
+                className="flex flex-col px-6 py-4 space-y-4 w-full"
               >
                 <ProfileCard profile={account.profile}>
                   <div>
@@ -145,6 +272,19 @@ export default function LinkedAccounts({ loaderData }: Route.ComponentProps) {
                         <div className="ml-auto">
                           <UnlinkAccount
                             account={account}
+                            fetcher={unlinkFetcher}
+                            busy={
+                              unlinkFetcher.state !== 'idle' &&
+                              pendingUnlinkProvider === account.provider
+                            }
+                            onSubmit={() => {
+                              setPendingUnlinkProvider(account.provider);
+                              setErrors((prev) => {
+                                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                const { [account.id]: _, ...rest } = prev;
+                                return rest;
+                              });
+                            }}
                             onError={(slot, error) => {
                               if (!error) {
                                 setErrors((prev) => {
@@ -167,7 +307,7 @@ export default function LinkedAccounts({ loaderData }: Route.ComponentProps) {
             );
           })}
         </div>
-        <div className="flex flex-wrap items-stretch gap-4 py-8">
+        <div className="flex flex-wrap gap-4 items-stretch py-8">
           {linkableOrPendingProviders.map((item) => (
             <LinkAccount key={item.provider} options={item} />
           ))}

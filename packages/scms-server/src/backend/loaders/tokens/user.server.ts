@@ -49,11 +49,10 @@ export async function validateUserJWT(ctx: Context, tokenString: string) {
   if (typeof nonVerifiedToken === 'string' || nonVerifiedToken == null)
     throw error401('Malformed user token');
   if (!nonVerifiedToken.iss?.endsWith('/tokens/user')) throw error401('Invalid token type');
-  const verified = verifyUserToken(
-    toVerify,
-    ctx.$config.api.userTokenIssuer,
-    ctx.$config.api.jwtSigningSecret,
-  );
+
+  const api = ctx.$config.api;
+  const acceptedIssuers = [api.userTokenIssuer, ...(api.acceptedUserTokenIssuers ?? [])];
+  const verified = verifyUserToken(toVerify, acceptedIssuers, api.jwtSigningSecret);
   const [userId, tokenId] = verified.sub.split('/');
 
   const token = await dbGetUserToken(userId, tokenId);
