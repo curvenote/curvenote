@@ -6,6 +6,7 @@ import { GenericNotificationEmail } from './generic-notification.js';
 import { SubmissionPublishedEmail } from './submission-published.js';
 import { RequestHelpEmail } from './request-help.js';
 import { KnownResendEvents } from './types.js';
+import { VerifyEmail } from './verify-email.js';
 import { WelcomeEmail } from './welcome.js';
 
 // Base email templates (non-extension)
@@ -15,6 +16,7 @@ export const baseEmailTemplates: Record<string, any> = {
   [KnownResendEvents.WORK_INVITATION]: WorkInvitationEmail,
   [KnownResendEvents.USER_APPROVAL_REQUESTED]: UserApprovalRequestedEmail,
   [KnownResendEvents.USER_WELCOME]: WelcomeEmail,
+  [KnownResendEvents.EMAIL_VERIFICATION]: VerifyEmail,
   [KnownResendEvents.GENERIC_NOTIFICATION]: GenericNotificationEmail,
   [KnownResendEvents.SUBMISSION_PUBLISHED]: SubmissionPublishedEmail,
   [KnownResendEvents.HELP_REQUEST]: RequestHelpEmail,

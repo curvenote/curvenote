@@ -34,6 +34,13 @@ export interface UnsubscribeTokenClaims {
   email: string;
 }
 
+export interface EmailVerificationTokenClaims {
+  exp: number;
+  iat: number;
+  user_id: string;
+  email: string;
+}
+
 export function createUserToken(
   user: UserDBO,
   tokenId: string,
@@ -53,7 +60,7 @@ export function createUserToken(
     name: user.display_name ?? user.id,
     note: description,
     email: user.email ?? undefined,
-    email_verified: true, // TODO extend User model once signup/verification is in placeuser.email_verified,
+    email_verified: user.email_verified ?? false,
   };
 
   if (expiry) {
@@ -121,7 +128,7 @@ export function createSessionToken(
     name: user.display_name ?? user.id,
     note: description,
     email: user.email ?? undefined,
-    email_verified: true, // TODO extend User model once signup/verification is in placeuser.email_verified,
+    email_verified: user.email_verified ?? false,
   };
 
   return jwt.sign(claims, key, {
@@ -171,5 +178,37 @@ export function verifyUnsubscribeToken(token: string, key: string) {
   } catch (err) {
     console.error('Invalid unsubscribe token', err);
     throw error401('Invalid unsubscribe token');
+  }
+}
+
+/** 1 day default expiry for email verification links */
+const EMAIL_VERIFICATION_EXPIRY_SECONDS = 60 * 60 * 24;
+
+/**
+ * Creates a JWT token for email verification links.
+ * Token expires in 1 day by default.
+ */
+export function createEmailVerificationToken(
+  userId: string,
+  email: string,
+  key: string,
+  expirySeconds: number = EMAIL_VERIFICATION_EXPIRY_SECONDS,
+) {
+  const now = Math.floor(Date.now() / 1000);
+  const claims: EmailVerificationTokenClaims = {
+    exp: now + expirySeconds,
+    iat: now,
+    user_id: userId,
+    email,
+  };
+  return jwt.sign(claims, key, { algorithm: 'HS256' });
+}
+
+export function verifyEmailVerificationToken(token: string, key: string) {
+  try {
+    return jwt.verify(token, key, { algorithms: ['HS256'] }) as EmailVerificationTokenClaims;
+  } catch (err) {
+    console.error('Invalid email verification token', err);
+    throw error401('Invalid or expired verification link');
   }
 }

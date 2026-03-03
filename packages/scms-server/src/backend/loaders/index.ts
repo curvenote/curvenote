@@ -5,6 +5,7 @@ export * as jobs from './jobs/index.js';
 export * as works from './works/index.js';
 export * as tokens from './tokens/index.js';
 export * as unsubscribe from './unsubscribe.js';
+export * as verifyEmail from './verify-email.js';
 export * as previews from './previews/index.js';
 export * from './messages/index.js';
 export * from './roles.server.js';

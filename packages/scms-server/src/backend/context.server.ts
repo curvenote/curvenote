@@ -94,10 +94,8 @@ export class Context implements ContextType {
     return this.$user;
   }
 
-  set user(user: (MyUserDBO & { email_verified: boolean }) | undefined) {
-    // TODO: when we complete signup flow we will need to hook in email verification
-    // fully, for now we just assume our early users are verified
-    this.$user = user ? { ...user, email_verified: true } : undefined;
+  set user(user: (MyUserDBO & { email_verified?: boolean }) | undefined) {
+    this.$user = user ? { ...user, email_verified: user.email_verified ?? false } : undefined;
     this.scopes = user ? Array.from(getUserScopesSet(user)) : [];
   }
 
@@ -307,8 +305,7 @@ export class Context implements ContextType {
 
         const dbUser = await getUserById(userId);
         if (!dbUser) throw httpError(401, 'Unknown user session');
-        // TODO: get email_verified into the model
-        this.user = { email_verified: false, ...dbUser };
+        this.user = dbUser;
         this.$verifiedSession = true;
       } catch (error: any) {
         console.log('Error validating token', error.statusText);
