@@ -56,9 +56,8 @@ function ProviderButtons({
   );
 }
 /**
- * Renders sign-in buttons for all enabled login providers.
- * Button order follows the order of authProviders (from config, object key order is preserved).
- * Use on the main login page and in embedded contexts (e.g. form sign-in modal).
+ * Renders sign-in buttons for all enabled login providers (with allowLogin=true).
+ * Button order follows the order of authProviders from config.
  */
 export function LoginProviderButtons({
   authProviders,
@@ -77,9 +76,8 @@ export function LoginProviderButtons({
 }
 
 /**
- * Renders sign-up buttons for all enabled signup providers (provisionNewUser).
- * Button order follows the order of authProviders (from config).
- * Use on the signup page. Same UI components as login; only the filter (provisionNewUser vs allowLogin) differs.
+ * Renders sign-up buttons for all enabled signup providers (with provisionNewUser=true).
+ * Button order follows the order of authProviders from config.
  */
 export function SignupProviderButtons({
   authProviders,

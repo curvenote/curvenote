@@ -158,7 +158,7 @@ export default function LinkedAccounts({ loaderData }: Route.ComponentProps) {
   );
   const showDivider = linkedProviders.length > 0 && linkableOrPendingProviders.length > 0;
 
-  // Unlink toasts: keep fetcher in this route so it survives revalidation/unmounting cards.
+  // Unlink toasts
   useEffect(() => {
     if (!isHydrated) return;
     if (unlinkFetcher.state !== 'idle' || !unlinkFetcher.data) return;
@@ -200,7 +200,7 @@ export default function LinkedAccounts({ loaderData }: Route.ComponentProps) {
     setSearchParams({}, { replace: true });
   }, [linkToast, linkFetcher, setSearchParams]);
 
-  // Link toasts: same pattern as unlink — show when linkFetcher is idle with data.
+  // Link toasts
   useEffect(() => {
     if (!isHydrated) return;
     if (linkFetcher.state !== 'idle' || !linkFetcher.data) return;
