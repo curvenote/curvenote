@@ -11,7 +11,7 @@ import type { ISession } from '../../session/types.js';
 import { pullProjects } from '../pull/project.js';
 import questions from '../questions.js';
 import { getDefaultSiteConfig, INIT_LOGO_PATH } from '../utils.js';
-import { addOxaTransformersToOpts } from '../../utils/utils.js';
+import { addTransformersToOpts } from '../../utils/utils.js';
 import type { Options } from './types.js';
 import { CURVENOTE_YML } from './types.js';
 import { WELCOME, FINISHED } from './messages.js';
@@ -271,6 +271,6 @@ export async function init(session: ISession, opts: Options) {
   await pullProcess;
   if (start) {
     session.log.info(chalk.dim('\nStarting local server with: '), chalk.bold('curvenote start'));
-    await startServer(session, addOxaTransformersToOpts(session, opts));
+    await startServer(session, addTransformersToOpts(session, opts));
   }
 }

@@ -1,10 +1,9 @@
 import type { Route } from './+types/route.signup';
 import { redirect } from 'react-router';
 import { useState } from 'react';
-import { ui, useDeploymentConfig, firebase, google, okta, orcid } from '@curvenote/scms-core';
+import { ui, useDeploymentConfig, SignupProviderButtons } from '@curvenote/scms-core';
 import { withContext } from '@curvenote/scms-server';
 import type { ClientSigninSignupConfig, ClientSideSafeAuthOptions } from '@curvenote/scms-core';
-import { OrDivider } from './OrDivider';
 import { getProviderUI } from './utils';
 
 export async function loader(args: Route.LoaderArgs) {
@@ -34,10 +33,6 @@ function PreferredSignupUI({
 
   const preferredProvider = config.signup?.preferred;
   const providersThatAllowSignup = authProviders.filter((p) => p.provisionNewUser);
-  const firebaseProvider = providersThatAllowSignup.find((p) => p.provider === 'firebase');
-  const showOrDivider =
-    providersThatAllowSignup.length > 0 &&
-    providersThatAllowSignup.map(({ provider }) => provider).includes('firebase');
 
   if (
     !preferredProvider ||
@@ -91,31 +86,7 @@ function PreferredSignupUI({
             {config?.signup?.alternativePrompt}
           </ui.Button>
         </div>
-        {showMoreProviders && (
-          <div className="space-y-8">
-            <div className="space-y-2">{MoreProvidersUI}</div>
-            {showOrDivider && <OrDivider />}
-            {firebaseProvider && firebaseProvider.allowLogin && (
-              <firebase.FirebasePasswordLoginUI
-                disabled={submitting}
-                setSubmitting={setSubmitting}
-                notice={
-                  <div>
-                    To sign up, with username and password, first make an account on{' '}
-                    <a
-                      href="https://editor.curvenote.com"
-                      target="_blank"
-                      rel="noreferrer noopener"
-                    >
-                      https://editor.curvenote.com
-                    </a>
-                    .
-                  </div>
-                }
-              />
-            )}
-          </div>
-        )}
+        {showMoreProviders && <div className="space-y-2">{MoreProvidersUI}</div>}
       </div>
     </div>
   );
@@ -130,54 +101,19 @@ function AllSignupUI({
 }) {
   const [submitting, setSubmitting] = useState(false);
 
-  const providersThatAllowSignup = authProviders.filter((p) => p.provisionNewUser);
-  const firebaseProvider = providersThatAllowSignup.find((p) => p.provider === 'firebase');
-  const orcidProvider = providersThatAllowSignup.find((p) => p.provider === 'orcid');
-  const googleProvider = providersThatAllowSignup.find((p) => p.provider === 'google');
-  const oktaProvider = providersThatAllowSignup.find((p) => p.provider === 'okta');
-
-  const showOrDivider =
-    providersThatAllowSignup.length > 0 &&
-    providersThatAllowSignup.map(({ provider }) => provider).includes('firebase');
-
   return (
     <div className="space-y-8">
       <div className="text-lg lg:text-xl">
         {config?.signup?.prompt ?? 'Choose a provider to create your account'}
       </div>
-      <div className="flex flex-wrap justify-center py-2 gap-x-1 gap-y-2 min-w-xs">
-        {firebaseProvider && firebaseProvider.allowLogin && (
-          <firebase.FirebaseGoogleLoginUI
-            disabled={submitting}
-            setSubmitting={setSubmitting}
-            className="w-full"
-          />
-        )}
-        {googleProvider && googleProvider.allowLogin && (
-          <google.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
-        )}
-        {oktaProvider && oktaProvider.allowLogin && (
-          <okta.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
-        )}
-        {orcidProvider && orcidProvider.allowLogin && (
-          <orcid.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
-        )}
-      </div>
-      {showOrDivider && <OrDivider />}
-      {firebaseProvider && firebaseProvider.allowLogin && (
-        <firebase.FirebasePasswordLoginUI
-          disabled={submitting}
+      <div className="w-full max-w-xs">
+        <SignupProviderButtons
+          authProviders={authProviders}
+          submitting={submitting}
           setSubmitting={setSubmitting}
-          notice={
-            <div>
-              To sign up, with username and password, first make an account on{' '}
-              <a href="https://editor.curvenote.com" target="_blank" rel="noreferrer noopener">
-                https://editor.curvenote.com
-              </a>
-            </div>
-          }
+          className="w-full"
         />
-      )}
+      </div>
     </div>
   );
 }

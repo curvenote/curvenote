@@ -89,6 +89,8 @@ export const app = {
   works: {
     feature: 'app:works:feature', // UI level feature flag
     upload: 'app:works:upload',
+    checks: 'app:works:checks',
+    export: 'app:works:export',
   },
 };
 

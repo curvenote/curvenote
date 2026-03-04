@@ -9,16 +9,6 @@ interface WorkUploadChecksFormProps extends ChecksObject {
 export function WorkUploadChecksForm({ enabled, checkServices }: WorkUploadChecksFormProps) {
   return (
     <div className="space-y-4">
-      {/* Always show core Curvenote structure check */}
-      <CheckOptionItem
-        intent="toggle-check"
-        name="curvenote-structure"
-        label="Article Structure"
-        description="Validate document structure, metadata, and formatting."
-        checked={enabled.includes('curvenote-structure')}
-        disabled={true}
-      />
-
       {/* Dynamically render check options from extension check services */}
       {checkServices.map((service) => (
         <CheckOptionItem
@@ -32,15 +22,25 @@ export function WorkUploadChecksForm({ enabled, checkServices }: WorkUploadCheck
         />
       ))}
 
-      {/* Text Integrity check (not yet implemented as extension) */}
+      {/* Always show core Curvenote structure check */}
       <CheckOptionItem
+        intent="toggle-check"
+        name="curvenote-structure"
+        label="Article Structure"
+        description="Validate document structure, metadata, and formatting."
+        checked={enabled.includes('curvenote-structure')}
+        disabled={true}
+      />
+
+      {/* Text Integrity check (not yet implemented as extension) */}
+      {/* <CheckOptionItem
         intent="toggle-check"
         name="ithenticate"
         label="Text Integrity"
         description="Identify potential plagiarism and originality issues."
         checked={enabled.includes('ithenticate')}
         disabled={true}
-      />
+      /> */}
     </div>
   );
 }

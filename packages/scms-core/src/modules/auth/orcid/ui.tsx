@@ -10,27 +10,40 @@ import { StatefulButton } from '../../../components/ui/index.js';
 export function Badge({
   className,
   size,
+  white,
 }: {
   className?: string;
   size?: number;
   showName?: boolean;
+  /** When true, use the white logo (for use on dark backgrounds). */
+  white?: boolean;
 }) {
   const ratio = 68.52 / 18;
+  const dimensions = { width: ratio * (size ?? 20), height: size ?? 20 };
+
+  if (white) {
+    return (
+      <div className={className}>
+        <img src={logoDark} alt="ORCID Logo" width={dimensions.width} height={dimensions.height} />
+      </div>
+    );
+  }
+
   return (
     <div className={className}>
       <img
         className="dark:hidden"
         src={logo}
         alt="ORCID Logo"
-        width={ratio * (size ?? 20)}
-        height={size ?? 20}
+        width={dimensions.width}
+        height={dimensions.height}
       />
       <img
         className="hidden dark:block"
         src={logoDark}
         alt="ORCID Logo"
-        width={ratio * (size ?? 20)}
-        height={size ?? 20}
+        width={dimensions.width}
+        height={dimensions.height}
       />
     </div>
   );
@@ -74,12 +87,16 @@ export function LoginUI({
   disabled,
   setSubmitting,
   className,
+  returnTo,
 }: {
   disabled?: boolean;
   setSubmitting: (flag: boolean) => void;
   className?: string;
+  returnTo?: string;
 }) {
   const fetcher = useFetcher();
+  const action =
+    returnTo != null ? `/auth/orcid?returnTo=${encodeURIComponent(returnTo)}` : '/auth/orcid';
 
   useEffect(() => {
     if (fetcher.state !== 'idle') {
@@ -88,7 +105,7 @@ export function LoginUI({
   }, [fetcher.state]);
 
   return (
-    <fetcher.Form method="post" action="/auth/orcid" aria-disabled={disabled} className="w-full">
+    <fetcher.Form method="post" action={action} aria-disabled={disabled} className="w-full">
       <StatefulButton
         variant="outline"
         type="submit"

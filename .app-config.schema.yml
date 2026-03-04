@@ -127,6 +127,35 @@ properties:
           adminLogin:
             type: boolean
             default: false
+      github:
+        type: object
+        required:
+          - clientId
+          - clientSecret
+          - redirectUrl
+        properties:
+          displayName:
+            type: string
+            description: Display name for the auth provider shown in UI
+          clientId:
+            type: string
+          clientSecret:
+            type: string
+            secret: true
+          redirectUrl:
+            type: string
+          allowLogin:
+            type: boolean
+            default: true
+          provisionNewUser:
+            type: boolean
+            default: false
+          allowLinking:
+            type: boolean
+            default: false
+          adminLogin:
+            type: boolean
+            default: false
   api:
     type: object
     required:
@@ -152,6 +181,8 @@ properties:
       - tokenConfigUrl
       - checkProjectId
       - checkTopic
+      - converterTopic
+      - converterSASecretKeyfile
       - knownBucketInfoMap
       - privateSiteClaimSubject
       - submissionsServiceAccount
@@ -209,6 +240,11 @@ properties:
         type: string
       userTokenIssuer:
         type: string
+      acceptedUserTokenIssuers:
+        type: array
+        items:
+          type: string
+        description: Optional. Additional user token issuer URLs to accept (legacy domains). Primary userTokenIssuer is always accepted.
       sessionTokenIssuer:
         type: string
       tokenConfigUrl:
@@ -217,6 +253,12 @@ properties:
         type: string
       checkTopic:
         type: string
+      converterTopic:
+        type: string
+        description: Full Pub/Sub topic resource name (e.g. projects/PROJECT_ID/topics/TOPIC_NAME). Project ID is derived from this for the client.
+      converterSASecretKeyfile:
+        type: string
+        secret: true
       knownBucketInfoMap:
         type: object
         properties:
@@ -494,7 +536,7 @@ properties:
           progressMessage:
             type: string
             description: Message shown in the signup progress component
-            default: "You're almost ready to take advantage of the platform."
+            default: "You're almost ready to use the platform."
           approval:
             type: object
             description: Manual approval configuration

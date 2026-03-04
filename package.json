@@ -71,7 +71,9 @@
   "dependencies": {
     "@changesets/changelog-github": "^0.5.1",
     "@prisma/client": "^7.2.0",
-    "dotenv": "^17.2.3"
+    "@scienceicons/react": "^0.0.13",
+    "dotenv": "^17.2.3",
+    "eslint-plugin-import": "^2.32.0"
   },
   "overrides": {
     "@types/node": "^24.6.2",
@@ -85,11 +87,6 @@
         "zod": "^4.1.12"
       }
     },
-    "@typescript-eslint/eslint-plugin": "^8.50.0",
-    "@typescript-eslint/parser": "^8.50.0",
-    "eslint-config-curvenote": {
-      "@typescript-eslint/eslint-plugin": "^8.50.0",
-      "@typescript-eslint/parser": "^8.50.0"
-    }
+    "eslint": "^8.57.1"
   }
 }

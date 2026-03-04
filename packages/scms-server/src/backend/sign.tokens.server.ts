@@ -66,20 +66,27 @@ export function createUserToken(
 }
 
 /**
- * Verifies a user token using the provided key and issuer.
+ * Verifies a user token using the provided key, accepting any of the given issuers.
+ * Pass a single issuer or multiple (e.g. primary + legacy domains in acceptedUserTokenIssuers).
  *
  * @param token - The JWT token to verify.
- * @param issuer - The expected issuer of the token.
+ * @param acceptedIssuers - Issuer URL(s) to accept (e.g. [userTokenIssuer, ...acceptedUserTokenIssuers]).
  * @param key - The secret key to verify the token.
  * @returns The decoded token claims if the token is valid.
  * @throws Will throw an error if the token is invalid or verification fails.
  */
-export function verifyUserToken(token: string, issuer: string, key: string) {
+export function verifyUserToken(
+  token: string,
+  acceptedIssuers: string[],
+  key: string,
+): UserTokenClaims {
+  if (acceptedIssuers.length === 0) throw error401('No accepted user token issuers configured');
   try {
-    return jwt.verify(token, key, {
-      algorithms: ['HS256'],
-      issuer,
-    }) as UserTokenClaims;
+    const decoded = jwt.verify(token, key, { algorithms: ['HS256'] }) as UserTokenClaims;
+    if (!decoded.iss || !acceptedIssuers.includes(decoded.iss)) {
+      throw new Error(`Token issuer "${decoded.iss}" not in accepted list`);
+    }
+    return decoded;
   } catch (err) {
     console.error('Invalid user token', err);
     throw error401('Invalid user token: ' + err);
@@ -123,10 +130,9 @@ export function createSessionToken(
 }
 
 /**
- * Verifies the provided session token using the specified issuer and key.
+ * Verifies the provided session token using the specified key.
  *
  * @param token - The session token to verify.
- * @param issuer - The expected issuer of the token.
  * @param key - The secret key used to verify the token.
  * @returns The decoded session token claims if the token is valid.
  * @throws Will throw an error if the token is invalid or verification fails.

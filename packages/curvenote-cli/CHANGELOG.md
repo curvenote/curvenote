@@ -1,5 +1,28 @@
 # curvenote
 
+## 0.14.1
+
+### Patch Changes
+
+- [#804](https://github.com/curvenote/curvenote/pull/804) [`ff63a73`](https://github.com/curvenote/curvenote/commit/ff63a73efa5933ffdff8318f79fa1453596c1f7c) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Adding bluesky link decorator
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.14.1
+
+## 0.14.0
+
+### Minor Changes
+
+- [#800](https://github.com/curvenote/curvenote/pull/800) [`e130200`](https://github.com/curvenote/curvenote/commit/e13020083be977f65a7911c608876c06dbdb9d72) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Sugnififcant updgrade to support extension checks interfaces and new SCMS Work degigns
+
+### Patch Changes
+
+- [#805](https://github.com/curvenote/curvenote/pull/805) [`725d1ec`](https://github.com/curvenote/curvenote/commit/725d1ec7567e80f14c7e06e36e96452de0ce394f) Thanks [@fwkoch](https://github.com/fwkoch)! - Add manual redirect handling to session fetch to persist headers
+
+- Updated dependencies [[`e130200`](https://github.com/curvenote/curvenote/commit/e13020083be977f65a7911c608876c06dbdb9d72)]:
+  - @curvenote/common@0.4.0
+  - @curvenote/cli-plugin@0.14.0
+
 ## 0.13.5
 
 ### Patch Changes

@@ -19,6 +19,7 @@ export const FileMetadataSectionItemSchema = FileBaseSchema.extend({
   slot: z.string(),
   label: z.string().max(100).optional(),
   order: z.number().int().positive().optional(), // Explicit ordering within slot
+  signedUrl: z.string().optional(),
 });
 
 /**

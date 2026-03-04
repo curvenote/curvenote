@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms-db",
   "private": true,
-  "version": "0.14.4",
+  "version": "0.15.1",
   "description": "Database package for Curvenote SCMS applications using Prisma",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",

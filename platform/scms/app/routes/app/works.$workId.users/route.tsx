@@ -56,20 +56,8 @@ export async function action(args: Route.ActionArgs) {
 export default function Users({ loaderData }: Route.ComponentProps) {
   const { work, users } = loaderData;
 
-  const truncatedTitle = work.title
-    ? work.title.length > 32
-      ? work.title.substring(0, 32) + '...'
-      : work.title
-    : 'Untitled Work';
-
-  const breadcrumbs = [
-    { label: 'Works', href: '/app/works' },
-    { label: truncatedTitle, href: `/app/works/${work.id}` },
-    { label: 'Users', isCurrentPage: true },
-  ];
-
   return (
-    <PageFrame title="Users" subtitle="Who can access this work?" breadcrumbs={breadcrumbs}>
+    <PageFrame title="Users" subtitle="Who can access this work?">
       <div className="flex flex-col space-y-5">
         <div>
           <WorkRolesForm />

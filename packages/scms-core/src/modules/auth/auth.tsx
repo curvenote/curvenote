@@ -14,6 +14,11 @@ import {
   ProfileCardContent as ORCIDProfileCardContent,
   LoginUI as ORCIDLoginUI,
 } from './orcid/ui.js';
+import {
+  Badge as GitHubBadge,
+  ProfileCardContent as GitHubProfileCardContent,
+  LoginUI as GitHubLoginUI,
+} from './github/ui.js';
 import type { FirebaseProfile } from './firebase/types.js';
 import type { OktaProfile } from '@curvenote/remix-auth-okta';
 
@@ -23,6 +28,8 @@ export function ProviderBadge({ provider, ...props }: { provider: string }) {
       return <Badge {...props} />;
     case 'firebase-email':
       return <FirebaseEmailBadge {...props} />;
+    case 'github':
+      return <GitHubBadge {...props} />;
     case 'okta':
       return <OktaBadge {...props} />;
     case 'orcid':
@@ -66,5 +73,10 @@ export const AuthComponentMap: Record<string, AuthProviderComponents> = {
     Badge: ORCIDBadge,
     ProfileCardContent: ORCIDProfileCardContent,
     LoginUI: ORCIDLoginUI,
+  },
+  github: {
+    Badge: GitHubBadge,
+    ProfileCardContent: GitHubProfileCardContent,
+    LoginUI: GitHubLoginUI,
   },
 };

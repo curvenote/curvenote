@@ -59,3 +59,14 @@ export const CreateStorageRemoveJobPayloadSchema = z.object({
 });
 
 export type CreateStorageRemoveJobPayload = z.infer<typeof CreateStorageRemoveJobPayloadSchema>;
+
+/** Payload for CONVERTER_TASK job. work_version_id required; target and conversion_type have defaults. */
+export const CreateConverterTaskPayloadSchema = z.object({
+  work_version_id: z.uuid('work_version_id is required'),
+  target: z.enum(['pdf']).default('pdf'),
+  conversion_type: z
+    .enum(['docx-pandoc-myst-pdf', 'docx-lowriter-pdf'])
+    .default('docx-pandoc-myst-pdf'),
+});
+
+export type CreateConverterTaskPayload = z.infer<typeof CreateConverterTaskPayloadSchema>;

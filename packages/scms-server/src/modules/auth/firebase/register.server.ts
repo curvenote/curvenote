@@ -103,6 +103,13 @@ export function registerFirebaseStrategy(
           request,
         );
       } else if (dbUser) {
+        // Check if this account is already linked to a different user
+        const user = session.get('user');
+        if (user && dbUser.id !== user.userId) {
+          throw redirectDocument(
+            `/app/settings/linked-accounts?error=true&provider=${encodeURIComponent(provider)}&message=${encodeURIComponent('This account has already been linked to another account.')}`,
+          );
+        }
         if (googleProviderData) {
           try {
             await dbUpsertLinkedUserLinkedAccount('google', dbUser.id, {

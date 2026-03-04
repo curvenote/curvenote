@@ -7,11 +7,20 @@ import type {
   SignupStepData,
   DataCollectionStepData,
   UserData,
-  AuthProvider,
 } from '@curvenote/scms-core';
 import { KnownResendEvents, TrackEvent } from '@curvenote/scms-core';
 import type { Context } from '../context.server.js';
 import type { User } from '@curvenote/scms-db';
+import {
+  createEditorUser,
+  EditorUserExistsError,
+  generateRandomPassword,
+  dbDeletePendingUser,
+  getProviderDisplayName,
+} from '../../modules/auth/common.server.js';
+import { getServerAuth } from '../../modules/database/firebase/firebase.server.js';
+import { redirect } from 'react-router';
+import { createLogoutHeaders } from '../../session.server.js';
 
 /**
  * Load and validate signin/signup configuration from app config
@@ -93,6 +102,79 @@ export async function completeSignupFlow(
 
   // Determine approval requirements before database update
   const dataCollectionStep = signupData.steps?.['data-collection'] as DataCollectionStepData;
+
+  // Create Editor user if enabled and email is provided
+  const email = dataCollectionStep?.email;
+  if (ctx.$config.api?.createEditorUser && email) {
+    let firebaseUid: string = user.id; // Default to user.id (for Firebase users, this is already the Firebase UID)
+
+    // For non-Firebase users, we need to create a Firebase Auth user
+    if (user.primaryProvider !== 'google' && user.primaryProvider !== 'firebase-email') {
+      const serverAuth = await getServerAuth();
+      // Check if Firebase Auth user already exists by email
+      let firebaseUser;
+      let firebaseUserExists = false;
+      try {
+        firebaseUser = await serverAuth.getUserByEmail(email);
+        firebaseUserExists = true;
+      } catch (error: any) {
+        if (error?.code === 'auth/user-not-found') {
+          // Create new Firebase Auth user
+          const password = generateRandomPassword();
+          firebaseUser = await serverAuth.createUser({
+            email,
+            displayName: dataCollectionStep?.displayName,
+            emailVerified: true, // Assume verified if they completed signup
+            password, // Random password - user can reset via "forgot password"
+          });
+          firebaseUid = firebaseUser.uid;
+        } else {
+          throw error;
+        }
+      }
+      if (firebaseUserExists) {
+        // Delete the invalid pending user before logout
+        await dbDeletePendingUser(user.id);
+
+        // Logout the pending user - destroy session and redirect to login
+        const session = await ctx.$sessionStorage.getSession(ctx.request.headers.get('Cookie'));
+        const headers = await createLogoutHeaders(ctx.$sessionStorage, session);
+        const providerLabel = getProviderDisplayName('firebase') ?? 'your existing account';
+        throw redirect(
+          `/login?error=true&message=${encodeURIComponent(`An account with this email already exists. Please sign in with ${providerLabel} using your existing account.`)}`,
+          { headers },
+        );
+      }
+    }
+
+    // Create Editor Firestore user
+    try {
+      await createEditorUser(firebaseUid, {
+        email,
+        displayName: dataCollectionStep?.displayName,
+        emailVerified: true,
+        orcid:
+          user.linkedAccounts?.find((acc) => acc.provider === 'orcid')?.idAtProvider ?? undefined,
+      });
+    } catch (error: any) {
+      // If Editor user already exists (by email), delete the invalid user and logout
+      if (error instanceof EditorUserExistsError) {
+        // Delete the invalid pending user before logout
+        await dbDeletePendingUser(user.id);
+
+        // Logout the pending user - destroy session and redirect to login
+        const session = await ctx.$sessionStorage.getSession(ctx.request.headers.get('Cookie'));
+        const headers = await createLogoutHeaders(ctx.$sessionStorage, session);
+        const providerLabel = getProviderDisplayName('firebase') ?? 'your existing account';
+        throw redirect(
+          `/login?error=true&message=${encodeURIComponent(`An account with this email already exists for the Curvenote Editor. Please sign in with ${providerLabel} using your existing Editor account.`)}`,
+          { headers },
+        );
+      }
+      // Re-throw other errors
+      throw error;
+    }
+  }
   let signupProvider = [
     user.primaryProvider,
     ...(user.linkedAccounts?.map((account) => account.provider) || []),
@@ -107,10 +189,10 @@ export async function completeSignupFlow(
   }
 
   // Check if manual approval can be skipped
+  const approvalConfig = signinSignupConfig.signup?.approval;
   const skipManualApproval =
-    !signinSignupConfig.signup?.approval?.manual ||
-    (signupProvider &&
-      signinSignupConfig.signup?.approval?.skipApproval?.some((p) => signupProvider.includes(p)));
+    !approvalConfig?.manual ||
+    (signupProvider && approvalConfig?.skipApproval?.some((p) => signupProvider.includes(p)));
 
   const timestamp = new Date().toISOString();
 
@@ -366,9 +448,11 @@ function validateSigninSignupConfig(
   }
 
   // validate link-providers step
-  // list linkable providers from auth config
+  // list linkable providers from auth config (use Record to support all configured providers including github)
   const linkableProviderNames = authConfig
-    ? Object.keys(authConfig).filter((p) => authConfig?.[p as AuthProvider]?.allowLinking)
+    ? Object.keys(authConfig).filter(
+        (p) => (authConfig as Record<string, { allowLinking?: boolean }>)?.[p]?.allowLinking,
+      )
     : [];
 
   if (config?.signup?.steps) {

@@ -136,18 +136,29 @@ export default [
     // Register extension routes at the app level
     ...getRoutesForMountPoint('app'),
 
+    ...prefix('works/v3', [index('routes/app/works._index/route.tsx', { id: 'works.v3.index' })]),
+
+    // Works Routes
+    ...prefix('works/v2', [
+      index('routes/app/works._index/route.tsx', { id: 'worksV2.index' }),
+      // V2 work detail (UX experiment: no outlet, no secondary nav)
+      route(':workId', 'routes/app/works.v2.$workId/route.tsx', { id: 'worksV2.$workId' }),
+    ]),
+
     // Works Routes
     ...prefix('works', [
       // Register extension routes at the works level
       ...getRoutesForMountPoint('app/works'),
       index('routes/app/works._index/route.tsx'),
+      route('drafts', 'routes/app/works.drafts/route.tsx'),
+      route('v3/:workId', 'routes/app/works.v3.$workId/route.tsx'),
       route(':workId', 'routes/app/works.$workId/route.tsx', [
         ...getRoutesForMountPoint('app/works/:workId'),
         // index('routes/app/works.$workId._index/route.tsx'),
         route('upload/:workVersionId', 'routes/app/works.$workId.upload.$workVersionId/route.tsx'),
         route('details', 'routes/app/works.$workId.details/route.tsx'),
         route('users', 'routes/app/works.$workId.users/route.tsx'),
-        route('checks', 'routes/app/works.$workId.checks/route.tsx'),
+        route('work-integrity', 'routes/app/works.$workId.work-integrity/route.tsx'),
         route('site', 'routes/app/route.works.$workId.site.tsx', [
           route(
             ':siteName/submission/:submissionVersionId',
@@ -258,7 +269,12 @@ export default [
       route('key/:keyName', 'routes/api/v1.works.key.$keyName.tsx'),
       route(':workId', 'routes/api/v1.works.$workId.tsx', [
         route('thumbnail', 'routes/api/v1.works.$workId.thumbnail.tsx'),
-        route('versions', 'routes/api/v1.works.$workId.versions.tsx'),
+        route('versions', 'routes/api/v1.works.$workId.versions.tsx', [
+          route(
+            ':workVersionId/files',
+            'routes/api/v1.works.$workId.versions.$workVersionId.files.tsx',
+          ),
+        ]),
       ]),
     ]),
 

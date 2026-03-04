@@ -7,6 +7,9 @@ enum ActivityType {
   SUBMISSION_VERSION_TRANSITION_STARTED
   NEW_WORK
   WORK_VERSION_ADDED
+  DRAFT_WORK_VERSION_STARTED
+  CONVERTER_TASK_STARTED
+  CHECK_STARTED
   KIND_DELETED
   KIND_CREATED
   KIND_UPDATED
@@ -69,5 +72,6 @@ model Activity {
   // the following fields should probably be relegated to json data
   status                String?            @default("PENDING")
   transition            Json? // Stores the transition object that caused this activity
+  data                  Json? // General JSON payload (e.g. CHECK_STARTED uses { check: { kind } })
   date_published        String?
 }

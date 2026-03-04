@@ -5,6 +5,7 @@ import type { JournalThemeConfig } from './journal.js';
 import type { MystPlugin } from 'myst-common';
 export * from './journal.js';
 export * from './checks.js';
+export * from './tasks.js';
 
 export type HostSpec = { cdn: string; key: string; query?: string };
 export type Host = string | HostSpec;

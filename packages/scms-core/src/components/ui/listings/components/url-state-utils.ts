@@ -86,8 +86,8 @@ export function decodeSearchFromURL(searchParams: URLSearchParams): string {
  */
 export function updateURLWithState(
   activeFilters: Record<string, any>,
-  searchTerm: string = '',
-  replaceState: boolean = true,
+  searchTerm = '',
+  replaceState = true,
 ): void {
   if (typeof window === 'undefined') {
     return;
@@ -126,7 +126,7 @@ export function updateURLWithState(
  */
 export function updateURLWithFilters(
   activeFilters: Record<string, any>,
-  replaceState: boolean = true,
+  replaceState = true,
 ): void {
   updateURLWithState(activeFilters, '', replaceState);
 }
@@ -137,7 +137,7 @@ export function updateURLWithFilters(
  * @param searchParams - URLSearchParams to read from (optional, for SSR compatibility)
  */
 export function getInitialSearchFromURL(
-  defaultSearch: string = '',
+  defaultSearch = '',
   searchParams?: URLSearchParams,
 ): string {
   // Use provided searchParams (from Remix) or fallback to current URL
@@ -178,7 +178,7 @@ export function getInitialFiltersFromURL(
  */
 export function getInitialStateFromURL(
   defaultFilters: Record<string, any>,
-  defaultSearch: string = '',
+  defaultSearch = '',
   searchParams?: URLSearchParams,
 ): { filters: Record<string, any>; search: string } {
   return {

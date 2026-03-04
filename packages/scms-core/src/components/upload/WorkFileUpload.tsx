@@ -26,7 +26,7 @@ function useHighlightedFiles() {
     };
   }, []);
 
-  const highlightFile = (filePath: string, duration: number = 3000) => {
+  const highlightFile = (filePath: string, duration = 3000) => {
     highlightedFiles.add(filePath);
     highlightListeners.forEach((listener) => {
       listener();
@@ -137,7 +137,6 @@ export function WorkFileUpload({
         md5: file.md5,
         status: 'completed',
         progress: 100,
-        // @ts-expect-error: signedUrl is added by backend, not in base type
         signedUrl: file.signedUrl,
         label: file.label,
         order: file.order,
@@ -506,8 +505,8 @@ export function WorkFileUpload({
         />
       )}
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col items-start justify-between sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col justify-between items-start sm:flex-row sm:items-center">
+          <div className="flex gap-2 items-center">
             <span className="text-sm text-stone-700 dark:text-stone-300">
               {label}
               {optional && !readonly && <span className="text-stone-400"> (optional)</span>}

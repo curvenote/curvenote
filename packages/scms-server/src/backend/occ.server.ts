@@ -13,6 +13,7 @@ type ModelType =
   | 'submissionVersion'
   | 'submissionKind'
   | 'object'
+  | 'checkServiceRun'
   | 'siteData'
   | 'siteMetadata';
 
@@ -26,9 +27,11 @@ export type ModelReturnType<T extends ModelType> = T extends 'workVersion'
       ? Prisma.SubmissionKindGetPayload<Record<string, never>>
       : T extends 'object'
         ? Prisma.ObjectGetPayload<Record<string, never>>
-        : T extends 'siteData' | 'siteMetadata'
-          ? Prisma.SiteGetPayload<Record<string, never>>
-          : never;
+        : T extends 'checkServiceRun'
+          ? Prisma.CheckServiceRunGetPayload<Record<string, never>>
+          : T extends 'siteData' | 'siteMetadata'
+            ? Prisma.SiteGetPayload<Record<string, never>>
+            : never;
 
 // Configuration for each model type
 const modelConfig = {
@@ -56,6 +59,12 @@ const modelConfig = {
     occField: 'occ' as const,
     errorPrefix: 'Object',
   },
+  checkServiceRun: {
+    table: 'checkServiceRun' as const,
+    metadataField: 'data' as const,
+    occField: 'occ' as const,
+    errorPrefix: 'CheckServiceRun',
+  },
   siteData: {
     table: 'site' as const,
     metadataField: 'data' as const,
@@ -72,11 +81,13 @@ const modelConfig = {
 
 /**
  * Generic OCC function that can update any model with metadata and occ fields
+ *
+ * If the modifyFn returns null, the record is not updated and the current record is returned.
  */
 export async function safeJsonUpdateGeneric<T extends Prisma.JsonObject, M extends ModelType>(
   modelType: M,
   recordId: string,
-  modifyFn: (metadata?: Prisma.JsonValue) => T,
+  modifyFn: (metadata?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<ModelReturnType<M>> {
   const prisma = await getPrismaClient();
@@ -94,6 +105,12 @@ export async function safeJsonUpdateGeneric<T extends Prisma.JsonObject, M exten
     }
 
     const newMetadata = modifyFn(currentRecord[config.metadataField]);
+    if (!newMetadata) {
+      console.log(
+        `OCC: No metadata to update for ${config.errorPrefix} ${recordId}, returning current record`,
+      );
+      return currentRecord as ModelReturnType<M>;
+    }
 
     // Attempt to update with OCC check
     try {
@@ -137,14 +154,87 @@ export async function safeJsonUpdateGeneric<T extends Prisma.JsonObject, M exten
 }
 
 /**
+ * Generic OCC with an async modifier. Use when the modifier must await (e.g. signing URLs).
+ */
+export async function safeJsonUpdateGenericAsync<T extends Prisma.JsonObject, M extends ModelType>(
+  modelType: M,
+  recordId: string,
+  modifyFn: (metadata?: Prisma.JsonValue) => Promise<T | null>,
+  maxRetries: number = 5,
+): Promise<ModelReturnType<M>> {
+  const prisma = await getPrismaClient();
+  const config = modelConfig[modelType];
+  let retries = 0;
+
+  while (retries < maxRetries) {
+    const currentRecord = await (prisma as any)[config.table].findUnique({
+      where: { id: recordId },
+    });
+
+    if (!currentRecord) {
+      throw httpError(404, `${config.errorPrefix} not found`);
+    }
+
+    const newMetadata = await modifyFn(currentRecord[config.metadataField]);
+    if (!newMetadata) {
+      console.log(
+        `OCC (async): No metadata to update for ${config.errorPrefix} ${recordId}, returning current record`,
+      );
+      return currentRecord as ModelReturnType<M>;
+    }
+
+    try {
+      const timestamp = new Date().toISOString();
+      const updated = await (prisma as any)[config.table].update({
+        where: {
+          id: recordId,
+          [config.occField]: currentRecord[config.occField],
+        },
+        data: {
+          [config.metadataField]: newMetadata,
+          [config.occField]: { increment: 1 },
+          date_modified: timestamp,
+        },
+      });
+
+      return updated as ModelReturnType<M>;
+    } catch {
+      retries++;
+      if (retries >= maxRetries) {
+        console.log(
+          `OCC (async): Could not update ${config.errorPrefix} ${recordId} after ${maxRetries} retries`,
+        );
+        throw httpError(
+          409,
+          `OCC could not update ${config.errorPrefix} after ${maxRetries} retries`,
+        );
+      }
+      await delay(100);
+    }
+  }
+  throw httpError(500, `OCC (async): Unexpected exit for ${config.errorPrefix}`);
+}
+
+/**
  * OCC function specifically for WorkVersion (maintains backward compatibility)
  */
 export async function safeWorkVersionJsonUpdate<T extends Prisma.JsonObject>(
   workVersionId: string,
-  modifyFn: (metadata?: Prisma.JsonValue) => T,
+  modifyFn: (metadata?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.WorkVersionGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('workVersion', workVersionId, modifyFn, maxRetries);
+}
+
+/**
+ * OCC for WorkVersion with an async modifier (e.g. when adding signed URLs to file metadata).
+ */
+export async function safeWorkVersionJsonUpdateAsync<T extends Prisma.JsonObject>(
+  workVersionId: string,
+  modifyFn: (metadata?: Prisma.JsonValue) => Promise<T | null>,
+  maxRetries: number = 5,
+): Promise<Prisma.WorkVersionGetPayload<Record<string, never>>> {
+  return safeJsonUpdateGenericAsync('workVersion', workVersionId, modifyFn, maxRetries);
 }
 
 /**
@@ -152,7 +242,7 @@ export async function safeWorkVersionJsonUpdate<T extends Prisma.JsonObject>(
  */
 export async function safeSubmissionVersionJsonUpdate<T extends Prisma.JsonObject>(
   submissionVersionId: string,
-  modifyFn: (metadata?: Prisma.JsonValue) => T,
+  modifyFn: (metadata?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.SubmissionVersionGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('submissionVersion', submissionVersionId, modifyFn, maxRetries);
@@ -163,7 +253,7 @@ export async function safeSubmissionVersionJsonUpdate<T extends Prisma.JsonObjec
  */
 export async function safeSubmissionKindJsonUpdate<T extends Prisma.JsonObject>(
   submissionKindId: string,
-  modifyFn: (metadata?: Prisma.JsonValue) => T,
+  modifyFn: (metadata?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.SubmissionKindGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('submissionKind', submissionKindId, modifyFn, maxRetries);
@@ -174,10 +264,21 @@ export async function safeSubmissionKindJsonUpdate<T extends Prisma.JsonObject>(
  */
 export async function safeObjectDataUpdate<T extends Prisma.JsonObject>(
   objectId: string,
-  modifyFn: (data?: Prisma.JsonValue) => T,
+  modifyFn: (data?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.ObjectGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('object', objectId, modifyFn, maxRetries);
+}
+
+/**
+ * OCC function specifically for CheckServiceRun, data field
+ */
+export async function safeCheckServiceRunDataUpdate<T extends Prisma.JsonObject>(
+  checkServiceRunId: string,
+  modifyFn: (data?: Prisma.JsonValue) => T | null,
+  maxRetries: number = 5,
+): Promise<Prisma.CheckServiceRunGetPayload<Record<string, never>>> {
+  return safeJsonUpdateGeneric('checkServiceRun', checkServiceRunId, modifyFn, maxRetries);
 }
 
 /**
@@ -185,7 +286,7 @@ export async function safeObjectDataUpdate<T extends Prisma.JsonObject>(
  */
 export async function safeSiteDataUpdate<T extends Prisma.JsonObject>(
   siteId: string,
-  modifyFn: (data?: Prisma.JsonValue) => T,
+  modifyFn: (data?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.SiteGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('siteData', siteId, modifyFn, maxRetries);
@@ -196,7 +297,7 @@ export async function safeSiteDataUpdate<T extends Prisma.JsonObject>(
  */
 export async function safeSiteMetadataUpdate<T extends Prisma.JsonObject>(
   siteId: string,
-  modifyFn: (metadata?: Prisma.JsonValue) => T,
+  modifyFn: (metadata?: Prisma.JsonValue) => T | null,
   maxRetries: number = 5,
 ): Promise<Prisma.SiteGetPayload<Record<string, never>>> {
   return safeJsonUpdateGeneric('siteMetadata', siteId, modifyFn, maxRetries);

@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms",
   "private": true,
-  "version": "0.14.4",
+  "version": "0.15.1",
   "description": "Curvenote SCMS application and API",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",
@@ -105,7 +105,8 @@
   },
   "optionalDependencies": {
     "@esbuild/linux-x64": "^0.25.1",
-    "@rollup/rollup-linux-x64-gnu": "^4.35.0"
+    "@rollup/rollup-linux-x64-gnu": "^4.35.0",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.2.1"
   },
   "engines": {
     "npm": ">=10.0.0",
@@ -116,10 +117,10 @@
     "@app-config/config": "^2.8.7",
     "@app-config/main": "^2.8.7",
     "@app-config/vite": "^2.8.7",
-    "@curvenote/cdn": "^0.2.23",
+    "@curvenote/cdn": "^0.4.0",
     "@curvenote/check-definitions": "^0.0.29",
     "@curvenote/check-ui": "^0.6.9",
-    "@curvenote/common": "^0.2.23",
+    "@curvenote/common": "^0.4.0",
     "@curvenote/icons": "^0.0.4",
     "@curvenote/remix-auth-okta": "^3.0.0",
     "@curvenote/scms-core": "*",

@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/cli-plugin",
-  "version": "0.13.5",
+  "version": "0.14.1",
   "description": "MyST Plugins for Curvenote",
   "author": "Steve Purves <steve@curvenote.com>",
   "license": "MIT",
@@ -29,8 +29,8 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "tsc --project ./tsconfig.json --outDir dist --declaration -w --preserveWatchOutput --outDir dist -p .",
-    "lint": "eslint \"src/**/!(*.spec).ts\" -c .eslintrc.cjs",
-    "lint:format": "prettier --check \"src/**/*.ts\"",
+    "lint": "eslint \"src/**/!(*.spec).ts*\" -c ./.eslintrc.cjs",
+    "lint:format": "prettier --check \"src/**/*.ts*\"",
     "test": "npm run link; vitest run",
     "test:watch": "npm run link; vitest watch",
     "build:esm": "tsc --project ./tsconfig.json --outDir dist --declaration",

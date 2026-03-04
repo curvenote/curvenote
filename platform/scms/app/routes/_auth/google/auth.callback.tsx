@@ -20,7 +20,18 @@ export async function loader(args: LoaderFunctionArgs) {
   try {
     authResponse = await ctx.$auth.authenticate('google', args.request);
   } catch (errorOrRedirect: any) {
-    console.warn('GOOGLE /auth/callback - linking failed');
+    if (errorOrRedirect?.status === 302) throw errorOrRedirect;
+    if (loggedInUser && !loggedInUser.ready_for_approval && !loggedInUser.pending) {
+      console.warn('GOOGLE /auth/callback - linking failed, redirecting to linked-accounts');
+      const params = new URLSearchParams();
+      params.set('error', 'true');
+      params.set('provider', 'google');
+      params.set(
+        'message',
+        errorOrRedirect?.message ?? 'Could not link Google account. Please try again.',
+      );
+      throw redirect(`/app/settings/linked-accounts?${params.toString()}`, { headers });
+    }
     handleCallbackErrorsWithoutCatchingRedirects('google', errorOrRedirect);
   }
 
@@ -32,7 +43,7 @@ export async function loader(args: LoaderFunctionArgs) {
     console.log('GOOGLE /auth/callback - linking complete');
     if (loggedInUser.ready_for_approval) {
       console.log('GOOGLE /auth/callback - redirecting to awaiting-approval');
-      throw redirect('/awaiting-approval');
+      throw redirect('/awaiting-approval', { headers });
     } else if (loggedInUser.pending) {
       console.log('GOOGLE /auth/callback - returning to signup flow');
       throw redirect('/new-account/pending', { headers });
@@ -44,7 +55,7 @@ export async function loader(args: LoaderFunctionArgs) {
       throw redirect(returnToUrl, { headers });
     }
 
-    throw redirect('/app/settings/linked-accounts', { headers });
+    throw redirect('/app/settings/linked-accounts?linked=google', { headers });
   }
 
   // catch all if no user is found
@@ -63,5 +74,18 @@ export async function loader(args: LoaderFunctionArgs) {
 
   session.set('user', user);
   headers.append('Set-Cookie', await sessionStorage.commitSession(session));
+
+  // If a returnTo URL is set, always honor it (even for pending users).
+  const returnToUrl = await getReturnToUrl(session, sessionStorage, headers);
+  if (returnToUrl) {
+    throw redirect(returnToUrl, { headers });
+  }
+
+  if (user.ready_for_approval) {
+    throw redirect('/awaiting-approval', { headers });
+  }
+  if (user.pending) {
+    throw redirect('/new-account/pending', { headers });
+  }
   throw redirect('/app', { headers });
 }

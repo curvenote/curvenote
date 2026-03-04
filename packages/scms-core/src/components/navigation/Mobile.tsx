@@ -10,7 +10,9 @@ type MobileContextType = {
 const MobileContext = React.createContext<MobileContextType>({
   open: false,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setMobileOpen: (value: boolean) => {},
+  setMobileOpen: (value: boolean): void => {
+    return;
+  },
 });
 
 export function Mobile({ children }: React.PropsWithChildren) {
@@ -32,7 +34,7 @@ export function MobileControls() {
       {open && (
         <div className="absolute inset-0 z-10 xl:hidden bg-stone-50/90 dark:bg-stone-900/90" />
       )}
-      <div className="fixed z-30 flex items-center justify-center top-2 right-2 xl:hidden">
+      <div className="flex fixed top-2 right-2 z-30 justify-center items-center xl:hidden">
         {!open && (
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!open)}>
             <Menu className="stroke-[1.5px] w-12 h-12" />

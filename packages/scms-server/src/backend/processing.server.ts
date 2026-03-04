@@ -2,6 +2,8 @@ import jwt from 'jsonwebtoken';
 import { PubSub } from '@google-cloud/pubsub';
 import { error401 } from '@curvenote/scms-core';
 import { getConfig } from '../app-config.server.js';
+import type { Context } from './context.server.js';
+import type { KeyFile } from './storage/types.js';
 
 /*
  * processing.server.ts - things that hit external APIs and could take longer than other server functions
@@ -12,6 +14,8 @@ export type PreviewTokenClaims = {
 };
 
 export type HandshakeTokenClaims = {
+  audience: string;
+  expiry: number;
   jobId: string;
 };
 
@@ -74,8 +78,7 @@ export async function publishCheck(attributes: CheckMessageAttributes) {
     return 'testPubSubId';
   }
   if (process.env.NODE_ENV === 'development') {
-    // This sends the job to a docker container running at localhost:8080 instead of pubsub
-    attributes.job_url = attributes.job_url?.replace('localhost', 'host.docker.internal');
+    // Host (SCMS) is always on the local machine; job URL stays as-is (e.g. localhost:3031)
     // Do not await response from the container; it will send intermittent updates
     fetch('http://127.0.0.1:8080/', {
       method: 'POST',
@@ -92,5 +95,59 @@ export async function publishCheck(attributes: CheckMessageAttributes) {
     credentials: JSON.parse(config.api.checkSASecretKeyfile),
   });
   const messageId = await pubSubClient.topic(config.api.checkTopic).publishMessage({ attributes });
+  return messageId;
+}
+
+export type ConverterMessageAttributes = {
+  handshake: string;
+  jobUrl: string;
+  userId: string;
+  statusUrl?: string;
+  successState?: string;
+  failureState?: string;
+} & Record<string, string>;
+
+/**
+ * Publish a message to the converter Pub/Sub topic (task-converter service).
+ * Message has attributes (handshake, jobUrl, userId, etc.) and data (base64-encoded JSON payload).
+ */
+export async function publishConverterMessage(
+  ctx: Context,
+  attributes: ConverterMessageAttributes,
+  data: Record<string, unknown>,
+): Promise<string> {
+  if (process.env.NODE_ENV === 'test' || process.env.APP_CONFIG_ENV === 'test') {
+    return 'testPubSubId';
+  }
+  const dataBase64 = Buffer.from(JSON.stringify(data), 'utf-8').toString('base64');
+  if (process.env.NODE_ENV === 'development' && process.env.DEV_PUBSUB_CONVERTER !== 'true') {
+    console.log('publishing converter message to localhost', attributes.jobUrl);
+    fetch('http://127.0.0.1:8080/', {
+      method: 'POST',
+      body: JSON.stringify({
+        message: { attributes: { ...attributes, jobUrl: attributes.jobUrl }, data: dataBase64 },
+      }),
+      headers: { 'content-type': 'application/json' },
+    }).then(
+      (res) => console.info('converter response', res),
+      (err) => console.error('converter error', err),
+    );
+    return 'testPubSubId';
+  }
+  const config = await getConfig();
+  const topicName = config.api.converterTopic;
+  const projectIdMatch = topicName.match(/^projects\/([^/]+)\//);
+  if (!projectIdMatch) {
+    throw new Error(
+      'converterTopic must be full resource name (projects/PROJECT_ID/topics/TOPIC_NAME)',
+    );
+  }
+  const pubSubClient = new PubSub({
+    projectId: projectIdMatch[1],
+    credentials: JSON.parse(config.api.converterSASecretKeyfile),
+  });
+  const messageId = await pubSubClient
+    .topic(topicName)
+    .publishMessage({ data: Buffer.from(JSON.stringify(data), 'utf-8'), attributes });
   return messageId;
 }

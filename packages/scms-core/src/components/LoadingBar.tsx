@@ -1,15 +1,37 @@
 import type { FetcherWithComponents } from 'react-router';
-import { useNavigation } from 'react-router';
+import { useLocation, useNavigation } from 'react-router';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import classNames from 'classnames';
 
+function isSameLocation(
+  a: { pathname: string; search: string; hash: string },
+  b: { pathname: string; search: string; hash: string },
+): boolean {
+  return a.pathname === b.pathname && a.search === b.search && a.hash === b.hash;
+}
+
 /**
- * Show a loading progess bad if the load takes more than 150ms
+ * Show a loading progress bar only for real navigations (new URL), not for revalidation
+ * on the same page. If a fetcher is passed, its state drives the bar. Otherwise we use
+ * useNavigation() but treat same-location loading as revalidation and do not show the bar.
  */
 function useLoading(fetcher?: FetcherWithComponents<any>) {
-  const transitionState = fetcher?.state ?? useNavigation().state;
+  const navigation = useNavigation();
+  const location = useLocation();
   const ref = useMemo<{ start?: NodeJS.Timeout; finish?: NodeJS.Timeout }>(() => ({}), []);
   const [showLoading, setShowLoading] = useState(false);
+
+  const transitionState = fetcher
+    ? fetcher.state
+    : (() => {
+        if (navigation.state === 'idle') return 'idle';
+        if (navigation.state === 'submitting') return 'loading';
+        if (navigation.state === 'loading' && navigation.location) {
+          const same = isSameLocation(location, navigation.location);
+          return same ? 'idle' : 'loading';
+        }
+        return 'idle';
+      })();
 
   useEffect(() => {
     if (transitionState === 'loading') {

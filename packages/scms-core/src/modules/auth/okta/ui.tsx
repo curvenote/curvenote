@@ -67,13 +67,17 @@ export function LoginUI({
   disabled,
   setSubmitting,
   className,
+  returnTo,
 }: {
   disabled: boolean;
   setSubmitting: (flag: boolean) => void;
   className?: string;
+  returnTo?: string;
 }) {
   const fetcher = useFetcher();
   const [eagerBusy, setEagerBusy] = useState(false);
+  const action =
+    returnTo != null ? `/auth/okta?returnTo=${encodeURIComponent(returnTo)}` : '/auth/okta';
 
   useEffect(() => {
     if (fetcher.state === 'submitting') {
@@ -84,7 +88,7 @@ export function LoginUI({
   return (
     <Form
       method="post"
-      action="/auth/okta"
+      action={action}
       aria-disabled={disabled}
       onSubmit={() => setEagerBusy(true)}
       className="w-full"
