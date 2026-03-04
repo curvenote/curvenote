@@ -24,7 +24,26 @@ export async function loader(args: LoaderFunctionArgs) {
   try {
     authResponse = await ctx.$auth.authenticate('orcid', args.request);
   } catch (errorOrRedirect: any) {
-    if (errorOrRedirect?.status === 302) throw errorOrRedirect;
+    if (errorOrRedirect?.status === 302) {
+      // When strategy redirects to linked-accounts with error (e.g. already linked), send pending users to account setup so they see the toast
+      const location = errorOrRedirect?.headers?.get?.('Location') ?? '';
+      if (
+        loggedInUser?.pending &&
+        location.includes('/app/settings/linked-accounts') &&
+        location.includes('error=true')
+      ) {
+        const url = new URL(location, args.request.url);
+        const params = new URLSearchParams();
+        const error = url.searchParams.get('error');
+        const provider = url.searchParams.get('provider');
+        const message = url.searchParams.get('message');
+        if (error) params.set('error', error);
+        if (provider) params.set('provider', provider);
+        if (message) params.set('message', message);
+        throw redirect(`/new-account/pending?${params.toString()}`, { headers });
+      }
+      throw errorOrRedirect;
+    }
     if (loggedInUser && !loggedInUser.ready_for_approval && !loggedInUser.pending) {
       console.warn('ORCID /auth/callback - linking failed, redirecting to linked-accounts');
       const params = new URLSearchParams();

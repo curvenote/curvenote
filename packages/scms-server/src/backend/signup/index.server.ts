@@ -138,7 +138,7 @@ export async function completeSignupFlow(
 
         // Logout the pending user - destroy session and redirect to login
         const session = await ctx.$sessionStorage.getSession(ctx.request.headers.get('Cookie'));
-        const headers = await createLogoutHeaders(ctx.$sessionStorage, session);
+        const headers = await createLogoutHeaders(ctx.$sessionStorage, session, ctx.request);
         const providerLabel = getProviderDisplayName('firebase') ?? 'your existing account';
         throw redirect(
           `/login?error=true&message=${encodeURIComponent(`An account with this email already exists. Please sign in with ${providerLabel} using your existing account.`)}`,
@@ -164,7 +164,7 @@ export async function completeSignupFlow(
 
         // Logout the pending user - destroy session and redirect to login
         const session = await ctx.$sessionStorage.getSession(ctx.request.headers.get('Cookie'));
-        const headers = await createLogoutHeaders(ctx.$sessionStorage, session);
+        const headers = await createLogoutHeaders(ctx.$sessionStorage, session, ctx.request);
         const providerLabel = getProviderDisplayName('firebase') ?? 'your existing account';
         throw redirect(
           `/login?error=true&message=${encodeURIComponent(`An account with this email already exists for the Curvenote Editor. Please sign in with ${providerLabel} using your existing Editor account.`)}`,
