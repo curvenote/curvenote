@@ -23,8 +23,8 @@
   },
   "dependencies": {
     "@curvenote/blocks": "^1.6.1",
-    "myst-common": "^1.9.3",
-    "myst-config": "^1.9.3"
+    "myst-common": "^1.9.5",
+    "myst-config": "^1.9.5"
   },
   "devDependencies": {},
   "publishConfig": {

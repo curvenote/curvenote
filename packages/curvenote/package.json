@@ -50,8 +50,8 @@
     "commander": "^10.0.1",
     "core-js": "^3.31.1",
     "jsdom": "^19.0.0",
-    "myst-cli": "^1.7.0",
-    "myst-to-tex": "^1.0.43"
+    "myst-cli": "^1.8.2",
+    "myst-to-tex": "^1.0.45"
   },
   "devDependencies": {
     "js-yaml": "^4.1.0"

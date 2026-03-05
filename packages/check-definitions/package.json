@@ -24,8 +24,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "myst-common": "^1.9.3",
-    "myst-templates": "^1.0.26"
+    "myst-common": "^1.9.5",
+    "myst-templates": "^1.0.27"
   },
   "devDependencies": {
     "@types/unist": "3.0.1"
