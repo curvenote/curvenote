@@ -1,5 +1,14 @@
 # @curvenote/cli-plugin
 
+## 0.14.2
+
+### Patch Changes
+
+- [#810](https://github.com/curvenote/curvenote/pull/810) [`9926a28`](https://github.com/curvenote/curvenote/commit/9926a288c478136718033a7394f305dac4df1a2c) Thanks [@fwkoch](https://github.com/fwkoch)! - Consume latest mystmd packages for anywidget
+
+- Updated dependencies [[`9926a28`](https://github.com/curvenote/curvenote/commit/9926a288c478136718033a7394f305dac4df1a2c)]:
+  - @curvenote/any-widget@0.2.2
+
 ## 0.14.1
 
 ## 0.14.0
