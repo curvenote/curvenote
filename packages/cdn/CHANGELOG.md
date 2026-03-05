@@ -1,5 +1,14 @@
 # @curvenote/cdn
 
+## 0.4.2
+
+### Patch Changes
+
+- [#812](https://github.com/curvenote/curvenote/pull/812) [`eeb45ab`](https://github.com/curvenote/curvenote/commit/eeb45ab367e11c13939e693f463f13d57a7b72e0) Thanks [@rowanc1](https://github.com/rowanc1)! - Add anywidget local url updates
+
+- Updated dependencies []:
+  - @curvenote/common@0.4.2
+
 ## 0.4.1
 
 ### Patch Changes
