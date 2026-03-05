@@ -45,3 +45,4 @@ export * from './toggle.js';
 export * from './toggle-group.js';
 export * from './tooltip.js';
 export * from './VideoPlayer.js';
+export * from './SplitButton.js';
