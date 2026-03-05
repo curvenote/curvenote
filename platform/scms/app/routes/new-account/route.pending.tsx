@@ -189,12 +189,13 @@ export default function SignupPending({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col items-center w-full h-screen">
-      <div className="flex items-center justify-start w-full max-w-xl gap-2 py-2 mt-8 sm:mt-12 lg:mt-18">
+      <ui.Toaster />
+      <div className="flex gap-2 justify-start items-center py-2 mt-8 w-full max-w-xl sm:mt-12 lg:mt-18">
         <ListChecks className="w-6 h-6 stroke-[1px]" />
         <div className="text-xl font-light">Signup Checklist</div>
       </div>
-      <div className="flex items-center justify-center w-full">
-        <primitives.Card lift className="max-w-xl p-0 pt-8 pb-0 bg-white">
+      <div className="flex justify-center items-center w-full">
+        <primitives.Card lift className="p-0 pt-8 pb-0 max-w-xl bg-white">
           <SignupProgress
             className="px-8 pb-6 border-b border-stone-300"
             totalSteps={totalSteps}
