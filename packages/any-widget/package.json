@@ -45,6 +45,7 @@
     "unist-builder": "^4.0.0"
   },
   "devDependencies": {
+    "@myst-theme/providers": "^1.1.4",
     "tsup": "^8.1.0",
     "cpx": "^1.5.0"
   }
