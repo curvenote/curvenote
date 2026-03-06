@@ -1,7 +1,13 @@
 import * as React from 'react';
 import type { LoaderFunctionArgs, ActionFunctionArgs, MetaFunction } from 'react-router';
 import { data, redirect, useSearchParams } from 'react-router';
-import { httpError, getBrandingFromMetaMatches, joinPageTitle, scopes } from '@curvenote/scms-core';
+import {
+  httpError,
+  getBrandingFromMetaMatches,
+  joinPageTitle,
+  scopes,
+  ui,
+} from '@curvenote/scms-core';
 import {
   withAppSiteContext,
   withInsecureSiteContext,
@@ -444,12 +450,35 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
   const { form, siteName, pageName, draftObjectId: loaderDraftId, draftData } = loaderData;
   const [draftObjectId, setDraftObjectId] = React.useState<string | null>(loaderDraftId ?? null);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const expandAuthor = searchParams.get('expandAuthor');
   const expandAffiliation = searchParams.get('expandAffiliation');
   const initialExpandAuthorIndex = expandAuthor != null ? parseInt(expandAuthor, 10) : undefined;
   const initialExpandAffiliationIndex =
     expandAffiliation != null ? parseInt(expandAffiliation, 10) : undefined;
+
+  // Show toast for ORCID (or other) link errors when redirected back from auth callback, then clear URL params
+  const linkErrorToastShownRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const error = searchParams.get('error');
+    const message = searchParams.get('message');
+    const provider = searchParams.get('provider');
+    if (error !== 'true') return;
+    const key = `${provider ?? ''}:${message ?? ''}`;
+    if (linkErrorToastShownRef.current === key) return;
+    linkErrorToastShownRef.current = key;
+    const toastMessage =
+      message ??
+      (provider
+        ? `Could not link ${provider} account. Please try again.`
+        : 'Could not link account. Please try again.');
+    ui.toastError(toastMessage);
+    const next = new URLSearchParams(searchParams);
+    next.delete('error');
+    next.delete('provider');
+    next.delete('message');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // Sync draft id from loader (e.g. after refresh with cookie)
   React.useEffect(() => {
@@ -491,6 +520,7 @@ export default function SubmitForm({ loaderData }: { loaderData: LoaderData }) {
 
   return (
     <FormSyncProvider>
+      <ui.Toaster />
       <div className="grid h-screen overflow-hidden grid-cols-[1fr_minmax(48ch,72ch)_1fr] gap-8 items-stretch">
         <MultiStepForm
           className="justify-self-end self-stretch mr-5 min-h-0"

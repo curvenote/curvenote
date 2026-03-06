@@ -25,34 +25,55 @@ export async function loader(args: LoaderFunctionArgs) {
     authResponse = await ctx.$auth.authenticate('orcid', args.request);
   } catch (errorOrRedirect: any) {
     if (errorOrRedirect?.status === 302) {
-      // When strategy redirects to linked-accounts with error (e.g. already linked), send pending users to account setup so they see the toast
+      // When strategy redirects to linked-accounts with error (e.g. already linked), send user back to returnTo (e.g. form page) or account setup so they see the toast there
       const location = errorOrRedirect?.headers?.get?.('Location') ?? '';
-      if (
-        loggedInUser?.pending &&
-        location.includes('/app/settings/linked-accounts') &&
-        location.includes('error=true')
-      ) {
-        const url = new URL(location, args.request.url);
-        const params = new URLSearchParams();
-        const error = url.searchParams.get('error');
-        const provider = url.searchParams.get('provider');
-        const message = url.searchParams.get('message');
-        if (error) params.set('error', error);
-        if (provider) params.set('provider', provider);
-        if (message) params.set('message', message);
-        throw redirect(`/new-account/pending?${params.toString()}`, { headers });
+      const isLinkedAccountsError =
+        location.includes('/app/settings/linked-accounts') && location.includes('error=true');
+      if (isLinkedAccountsError) {
+        const strategyUrl = new URL(location, args.request.url);
+        const error = strategyUrl.searchParams.get('error');
+        const provider = strategyUrl.searchParams.get('provider');
+        const message = strategyUrl.searchParams.get('message');
+        const returnTo = session.get('returnTo');
+        if (returnTo && typeof returnTo === 'string') {
+          // Redirect back to form (or other returnTo page) with error params so toast shows there
+          session.unset('returnTo');
+          headers.append('Set-Cookie', await sessionStorage.commitSession(session));
+          const returnToUrl = new URL(returnTo, args.request.url);
+          returnToUrl.searchParams.set('error', error ?? 'true');
+          if (provider) returnToUrl.searchParams.set('provider', provider);
+          if (message) returnToUrl.searchParams.set('message', message);
+          throw redirect(returnToUrl.pathname + returnToUrl.search, { headers });
+        }
+        if (loggedInUser?.pending) {
+          const params = new URLSearchParams();
+          if (error) params.set('error', error);
+          if (provider) params.set('provider', provider);
+          if (message) params.set('message', message);
+          throw redirect(`/new-account/pending?${params.toString()}`, { headers });
+        }
       }
       throw errorOrRedirect;
     }
     if (loggedInUser && !loggedInUser.ready_for_approval && !loggedInUser.pending) {
+      const errorMessage =
+        errorOrRedirect?.message ?? 'Could not link ORCID account. Please try again.';
+      const returnTo = session.get('returnTo');
+      if (returnTo && typeof returnTo === 'string') {
+        // Redirect back to form (or other returnTo page) with error params so toast shows there
+        session.unset('returnTo');
+        headers.append('Set-Cookie', await sessionStorage.commitSession(session));
+        const returnToUrl = new URL(returnTo, args.request.url);
+        returnToUrl.searchParams.set('error', 'true');
+        returnToUrl.searchParams.set('provider', 'orcid');
+        returnToUrl.searchParams.set('message', errorMessage);
+        throw redirect(returnToUrl.pathname + returnToUrl.search, { headers });
+      }
       console.warn('ORCID /auth/callback - linking failed, redirecting to linked-accounts');
       const params = new URLSearchParams();
       params.set('error', 'true');
       params.set('provider', 'orcid');
-      params.set(
-        'message',
-        errorOrRedirect?.message ?? 'Could not link ORCID account. Please try again.',
-      );
+      params.set('message', errorMessage);
       throw redirect(`/app/settings/linked-accounts?${params.toString()}`, { headers });
     }
     handleCallbackErrorsWithoutCatchingRedirects('orcid', errorOrRedirect);
