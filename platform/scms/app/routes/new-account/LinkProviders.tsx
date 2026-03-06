@@ -230,9 +230,7 @@ export function LinkProvidersStep({
       </div>
       <div className="space-y-2">
         {allProvidersLinked && !skipped && !noProvidersToShow && (
-          <div className="text-sm text-muted-foreground">
-            All required providers have been linked.
-          </div>
+          <div className="text-sm text-muted-foreground">All providers have been linked.</div>
         )}
         {noProvidersToShow && !skipped && (
           <div className="text-sm text-muted-foreground">No providers available to link.</div>
