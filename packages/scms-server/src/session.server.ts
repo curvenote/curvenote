@@ -1,6 +1,10 @@
 import { getConfig } from './app-config.server.js';
 import { createCookieSessionStorage } from 'react-router'; // or cloudflare/deno
-import { MAX_AGE } from './cookies.server.js';
+import {
+  getInvalidateOAuth2Cookies,
+  getInvalidateProviderCookie,
+  MAX_AGE,
+} from './cookies.server.js';
 
 export type AuthenticatedUser = {
   userId: string;
@@ -65,8 +69,6 @@ export async function createLogoutHeaders(
   session: Session,
   request?: Request,
 ): Promise<Headers> {
-  const { getInvalidateProviderCookie, getInvalidateOAuth2Cookies } =
-    await import('./cookies.server.js');
   const headers = new Headers();
   headers.append('Set-Cookie', await storage.destroySession(session));
   const user = session.get('user');
