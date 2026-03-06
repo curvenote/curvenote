@@ -1,9 +1,9 @@
 import { useDeploymentConfig, LoginProviderButtons, firebase, ui } from '@curvenote/scms-core';
 import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
 import { OrDivider } from './OrDivider';
 import type { ClientSideSafeAuthOptions, ClientSigninSignupConfig } from '@curvenote/scms-core';
 import { getProviderUI } from './utils';
-import { useSearchParams } from 'react-router';
 
 /**
  * Hook to handle authentication error toasts from URL parameters.
@@ -218,6 +218,12 @@ export default function LoginArea() {
       {mode === 'all' && (
         <AllProviderLoginArea config={signupConfig} authProviders={authProviders} />
       )}
+      <p className="pt-4 text-sm text-center text-muted-foreground">
+        Don&apos;t have an account?{' '}
+        <Link to="/signup" className="underline hover:text-foreground">
+          Sign up
+        </Link>
+      </p>
     </div>
   );
 }

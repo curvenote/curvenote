@@ -1,5 +1,5 @@
 import type { Route } from './+types/route.signup';
-import { redirect } from 'react-router';
+import { redirect, Link } from 'react-router';
 import { useState } from 'react';
 import { ui, useDeploymentConfig, SignupProviderButtons } from '@curvenote/scms-core';
 import { withContext } from '@curvenote/scms-server';
@@ -137,6 +137,12 @@ export default function Signup() {
       {signupConfig.signup.mode === 'all' && (
         <AllSignupUI config={signupConfig} authProviders={authProviders} />
       )}
+      <p className="pt-4 text-sm text-center text-muted-foreground">
+        Already have an account?{' '}
+        <Link to="/login" className="underline hover:text-foreground">
+          Sign in
+        </Link>
+      </p>
     </div>
   );
 }

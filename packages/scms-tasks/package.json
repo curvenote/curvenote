@@ -34,7 +34,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@curvenote/common": "^0.4.0"
+    "@curvenote/common": "^0.4.2"
   },
   "peerDependencies": {
     "express": ">=4"

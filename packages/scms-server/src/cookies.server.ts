@@ -67,3 +67,30 @@ export function getSetProviderCookie(secret: string, provider: string, data: Rec
 export function getInvalidateProviderCookie(provider: string) {
   return getInvalidateEncryptedCookie(`__provider-${provider}`, { sameSite: 'lax' });
 }
+
+/**
+ * Returns Set-Cookie header values to clear all remix-auth-oauth2 cookies (oauth2:<uuid>) from the request.
+ * These cookies are created by OAuth2Strategy and must be cleared on logout to avoid leaving stale OAuth state.
+ */
+export function getInvalidateOAuth2Cookies(cookieHeader: string | null): string[] {
+  if (!cookieHeader?.trim()) return [];
+  const pairs = cookieHeader.split(';').map((s) => s.trim());
+  const toClear: string[] = [];
+  for (const pair of pairs) {
+    const eq = pair.indexOf('=');
+    if (eq === -1) continue;
+    const name = pair.slice(0, eq).trim();
+    if (name.startsWith('oauth2:')) {
+      toClear.push(
+        serialize(name, '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 0,
+          path: '/',
+          sameSite: 'lax',
+        }),
+      );
+    }
+  }
+  return toClear;
+}
