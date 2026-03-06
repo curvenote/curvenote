@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { StatefulButton } from './StatefulButton.js';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from './menu.js';
 import { Button } from './button.js';
+import { cn } from '../../utils/cn.js';
 
 export interface SplitButtonOption {
   label: string;
