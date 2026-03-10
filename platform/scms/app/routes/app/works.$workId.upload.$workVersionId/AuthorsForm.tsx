@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFetcher } from 'react-router';
-import { Check } from 'lucide-react';
 import { cn, ui } from '@curvenote/scms-core';
 import type { Route } from './+types/route';
 import { useInlineSave } from './useInlineSave';
+import { InlineSaveIndicator } from './InlineSaveIndicator';
 
 interface AuthorsFormProps {
   /** Initial authors string (comma-separated); prefer wv.authors over extracted */
@@ -35,7 +35,9 @@ export function AuthorsForm({
   const triggerSave = useCallback(() => {
     const formData = new FormData();
     formData.append('intent', 'update-authors');
-    formData.append('authors', authors);
+    if (authors.trim()) {
+      formData.append('authors', authors);
+    }
     fetcher.submit(formData, { method: 'post' });
   }, [authors, fetcher]);
 
@@ -51,7 +53,8 @@ export function AuthorsForm({
   return (
     <div className="space-y-1">
       <label htmlFor="authors" className="inline-block text-sm font-medium">
-        Authors
+        Authors{' '}
+        <span className="text-xs text-muted-foreground">(optional, comma-separated list)</span>
       </label>
       <fetcher.Form className="relative">
         <ui.Textarea
@@ -64,16 +67,7 @@ export function AuthorsForm({
           className={cn(saveState !== 'idle' ? 'pr-20' : '', 'resize-none')}
           rows={3}
         />
-        {saveState === 'saving' && (
-          <div className="absolute bottom-3 right-3 pointer-events-none">
-            <p className="text-xs text-muted-foreground">Saving...</p>
-          </div>
-        )}
-        {saveState === 'saved' && (
-          <div className="absolute bottom-3 right-3 pointer-events-none">
-            <Check className="w-4 h-4 text-green-600" />
-          </div>
-        )}
+        <InlineSaveIndicator saveState={saveState} className="absolute right-3 bottom-3" />
       </fetcher.Form>
     </div>
   );

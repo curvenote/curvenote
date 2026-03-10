@@ -91,6 +91,7 @@ export const app = {
     upload: 'app:works:upload',
     checks: 'app:works:checks',
     export: 'app:works:export',
+    metadataPreview: 'app:works:metadatapreview',
   },
 };
 

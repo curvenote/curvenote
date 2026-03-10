@@ -37,7 +37,9 @@ export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
   const handleContinue = () => {
     const formData = new FormData();
     formData.append('intent', 'confirm-work');
-    formData.append('authors', authors);
+    if (authors?.trim()) {
+      formData.append('authors', authors);
+    }
     fetcher.submit(formData, { method: 'post' });
   };
 

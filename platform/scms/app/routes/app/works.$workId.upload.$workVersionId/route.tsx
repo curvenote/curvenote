@@ -31,7 +31,6 @@ import {
   useDeploymentConfig,
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
-  LoadingSpinner,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -52,11 +51,11 @@ import type { ExtractedMetadata } from './anthropic.server';
 import { workVersionCheckNameSchema, checksMetadataSchema } from './checks.schema';
 import type { WorkVersionCheckName, WorkVersionMetadata } from '@curvenote/scms-server';
 import { data, redirect, useFetcher, useRevalidator } from 'react-router';
-import { Upload, CheckSquare, Eye } from 'lucide-react';
+import { Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { DocxPreviewer } from './DocxPreviewer';
-import { MetadataFormCard } from './MetadataFormCard';
+import { MetadataPreviewSection } from './MetadataPreviewSection';
+import { CaptureMetadataSection } from './CaptureMetadataSection';
 
 /**
  * Zod schema for work upload form validation
@@ -182,6 +181,13 @@ export async function loader(args: Route.LoaderArgs) {
       ? ((myst as { frontmatter: ExtractedMetadata }).frontmatter as ExtractedMetadata)
       : null;
 
+  const hasMetadataPreviewScope = userHasScope(
+    ctx.user,
+    scopes.app.works.metadataPreview,
+    undefined,
+    { ignoreSystemAdmin: true },
+  );
+
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
@@ -194,6 +200,7 @@ export async function loader(args: Route.LoaderArgs) {
     pageSubtitle: pageCopy.subtitle,
     previews,
     extractedMetadata,
+    hasMetadataPreviewScope,
   };
 }
 
@@ -508,6 +515,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     pageSubtitle,
     previews = [],
     extractedMetadata,
+    hasMetadataPreviewScope,
   } = loaderData;
   const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
   const revalidator = useRevalidator();
@@ -573,52 +581,22 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             loadedFileMetadata={metadata as any}
           />
         </SectionWithHeading>
-        <SectionWithHeading
-          heading="Metadata Preview"
-          icon={<Eye className="w-5 h-5" />}
-          className="space-y-4"
-        >
-          <p className="text-muted-foreground">Review your document metadata</p>
-          <div
-            className={
-              previewList.length > 0
-                ? 'grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr] lg:items-stretch'
-                : 'flex gap-6 max-w-5xl'
-            }
-          >
-            <ui.Card
-              className={
-                previewList.length > 0
-                  ? 'overflow-hidden p-0 min-h-0 flex flex-col'
-                  : 'overflow-hidden p-0 min-h-0 flex flex-col max-w-xl'
-              }
-            >
-              <div className="min-h-[200px] flex-1 flex flex-col p-4 relative">
-                {isPreviewsLoading && (
-                  <div
-                    className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-md bg-background/80 backdrop-blur-[1px]"
-                    aria-busy="true"
-                    aria-live="polite"
-                  >
-                    <LoadingSpinner size={32} />
-                    <p className="text-sm text-muted-foreground">{previewOverlayMessage}</p>
-                  </div>
-                )}
-                <DocxPreviewer previews={previewList} />
-              </div>
-            </ui.Card>
-            <MetadataFormCard
-              extractedMetadata={extractedMetadata}
-              title={title}
-              authors={authors}
-              hasPreviews={previewList.length > 0}
-            />
-          </div>
-        </SectionWithHeading>
+        {hasMetadataPreviewScope ? (
+          <MetadataPreviewSection
+            previewList={previewList}
+            isPreviewsLoading={isPreviewsLoading}
+            previewOverlayMessage={previewOverlayMessage}
+            extractedMetadata={extractedMetadata}
+            title={title}
+            authors={authors}
+          />
+        ) : (
+          <CaptureMetadataSection title={title} authors={authors} />
+        )}
         <SectionWithHeading
           heading="Select Checks to Run"
           icon={<CheckSquare className="w-5 h-5" />}
-          className="space-y-4"
+          className="space-y-4 max-w-3xl"
         >
           <p className="text-muted-foreground">
             Choose which checks you'd like to run on your work.

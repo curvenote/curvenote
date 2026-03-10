@@ -56,10 +56,13 @@ export function userHasScope(
   user: UserWithRolesDBO | undefined,
   scope: string,
   siteName?: string,
+  opts: {
+    ignoreSystemAdmin?: boolean;
+  } = {},
 ): boolean {
   if (!user) return false;
   // System admins can do anything
-  if (hasScopeViaSystemRole(user.system_role, system.admin)) return true;
+  if (!opts.ignoreSystemAdmin && hasScopeViaSystemRole(user.system_role, system.admin)) return true;
   // System roles may grant app-level scopes
   if (hasScopeViaSystemRole(user.system_role, scope)) return true;
 
