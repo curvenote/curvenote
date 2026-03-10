@@ -483,13 +483,18 @@ export async function dbCreateDraftWork(
 /**
  * Helper to create a new draft file work with checks metadata
  * This is a convenience wrapper around dbCreateDraftWork specifically for file upload workflows
+ * @param authors - Optional initial authors (e.g. user display name for manuscript checks)
  */
-export async function dbCreateDraftFileWork(ctx: SecureContext, source: string = 'unknown') {
+export async function dbCreateDraftFileWork(
+  ctx: SecureContext,
+  source: string = 'unknown',
+  authors: string[] = [],
+) {
   const newWork = await dbCreateDraftWork(
     ctx,
     '', // Empty title - indicates untouched
     '', // Empty description
-    [], // No authors yet
+    authors,
     [WorkContents.FILES], // This is a files work
     { checks: {} }, // Initialize with checks field
   );
