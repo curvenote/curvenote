@@ -10,10 +10,10 @@ import { findWorkByVersion, signFilesInMetadata } from '@curvenote/scms-server';
 import type { FileMetadataSectionItem } from '@curvenote/scms-core';
 import type { Context } from '@curvenote/scms-server';
 import { parseOffice } from 'officeparser';
-import type { OfficeParserAST, OfficeContentNode } from 'officeparser';
+import type { OfficeParserAST, OfficeContentNode, OfficeAttachment } from 'officeparser';
 
-/** Number of top-level content nodes to include for "first page" preview (~75% of original 25) */
-const FIRST_PAGE_CONTENT_LIMIT = 19;
+/** Number of top-level content nodes to include for "first page" preview */
+const FIRST_PAGE_CONTENT_LIMIT = 10;
 
 function isDocxPath(path: string): boolean {
   return path.toLowerCase().endsWith('.docx');
@@ -22,17 +22,20 @@ function isDocxPath(path: string): boolean {
 /**
  * Truncate AST content to first N nodes (first "page").
  * Returns a serializable object (no toText method).
+ * Includes attachments so image nodes in the truncated content can be resolved.
  */
 function truncateAstToFirstPage(ast: OfficeParserAST): {
   type: OfficeParserAST['type'];
   metadata: OfficeParserAST['metadata'];
   content: OfficeContentNode[];
+  attachments: OfficeAttachment[];
 } {
   const content = (ast.content ?? []).slice(0, FIRST_PAGE_CONTENT_LIMIT);
   return {
     type: ast.type,
     metadata: ast.metadata,
     content,
+    attachments: ast.attachments ?? [],
   };
 }
 
@@ -96,7 +99,7 @@ export async function fetchDocxPreviews(
       }
       const arrayBuffer = await response.arrayBuffer();
       const ast = await parseOffice(arrayBuffer, {
-        extractAttachments: false,
+        extractAttachments: true,
         newlineDelimiter: '\n',
       });
       const { signedUrl: _drop, ...fileMeta } = file;
