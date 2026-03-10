@@ -65,8 +65,11 @@ model CheckServiceRun {
   work_version    WorkVersion @relation(fields: [work_version_id], references: [id])
   work_version_id String
   occ             Int         @default(0)
+  created_by      User?       @relation("CheckServiceRunCreator", fields: [created_by_id], references: [id])
+  created_by_id   String?
 
   @@index([work_version_id])
   @@index([kind])
   @@index([date_created])
+  @@index([created_by_id])
 }
