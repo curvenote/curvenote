@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { Route } from './+types/route';
 import {
   withAppScopedContext,
@@ -31,33 +31,48 @@ import {
   useDeploymentConfig,
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
+  LoadingSpinner,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
-import { WorkTitleForm } from './WorkTitleForm';
 import { WorkUploadChecksForm } from './WorkUploadChecksForm';
 import { ContinueForm } from './ContinueForm';
 import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
-import { updateWorkVersionTitle } from './updateMetadata.server';
+import { updateWorkVersionTitle, updateWorkVersionAuthors } from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
-import { handleFetchPreviewsIntent } from './fetchPreviews.server';
+import {
+  handleFetchPreviewsIntent,
+  readDocxPreviewsFromObjectTable,
+  type DocxPreviewItem,
+} from './fetchPreviews.server';
 import { extractMetadataFromPreviews } from './anthropic.server';
 import type { ChecksMetadataSection } from './checks.schema';
 import type { ExtractedMetadata } from './anthropic.server';
 import { workVersionCheckNameSchema, checksMetadataSchema } from './checks.schema';
 import type { WorkVersionCheckName, WorkVersionMetadata } from '@curvenote/scms-server';
-import { Await, data, redirect } from 'react-router';
+import { data, redirect, useFetcher, useRevalidator } from 'react-router';
 import { Upload, CheckSquare, Eye } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { DocxPreviewer } from './DocxPreviewer';
+import { MetadataFormCard } from './MetadataFormCard';
 
 /**
  * Zod schema for work upload form validation
  */
 const WorkUploadActionSchema = zfd.formData({
-  intent: z.enum(['stage', 'complete', 'remove', 'update-title', 'toggle-check', 'confirm-work']),
+  intent: z.enum([
+    'stage',
+    'complete',
+    'remove',
+    'update-title',
+    'update-authors',
+    'toggle-check',
+    'confirm-work',
+    'fetch-previews',
+    'extract-metadata',
+  ]),
   slot: zfd.text(z.string().min(1)).optional(),
   // Optional fields used by specific intents
   completedFiles: zfd.text(z.string()).optional(), // Used by 'complete' intent
@@ -75,60 +90,6 @@ function parseAuthorsList(authorsText: string): string[] {
     .split(',')
     .map((a) => a.trim())
     .filter((a) => a.length > 0);
-}
-
-function authorsFromExtracted(extracted: ExtractedMetadata | null): string {
-  if (!extracted?.authors?.length) return '';
-  return extracted.authors
-    .map((a) => (typeof a.name === 'string' ? a.name : ''))
-    .filter(Boolean)
-    .join(', ');
-}
-
-function MetadataCardResolved({
-  extracted,
-  loaderTitle,
-  authorsText,
-  setAuthorsText,
-}: {
-  extracted: ExtractedMetadata | null;
-  loaderTitle: string;
-  authorsText: string;
-  setAuthorsText: (v: string) => void;
-}) {
-  const displayTitle = extracted?.title ?? loaderTitle;
-
-  useEffect(() => {
-    if (extracted?.authors?.length) {
-      setAuthorsText(authorsFromExtracted(extracted));
-    }
-  }, [extracted, setAuthorsText]);
-
-  return (
-    <>
-      <WorkTitleForm title={displayTitle} />
-      <div className="space-y-1">
-        <label htmlFor="authors" className="inline-block text-sm font-medium">
-          Authors
-        </label>
-        <ui.Textarea
-          id="authors"
-          value={authorsText}
-          onChange={(e) => setAuthorsText(e.target.value)}
-          placeholder="Enter author names, comma-separated"
-          rows={3}
-        />
-      </div>
-      {extracted != null && (
-        <details className="mt-4">
-          <summary className="cursor-pointer text-sm font-medium">All metadata</summary>
-          <pre className="mt-2 text-xs overflow-auto rounded bg-muted p-3 max-h-48">
-            {JSON.stringify(extracted, null, 2)}
-          </pre>
-        </details>
-      )}
-    </>
-  );
 }
 
 // NOTE: Check service run schema is now defined and managed by each check
@@ -211,34 +172,14 @@ export async function loader(args: Route.LoaderArgs) {
     }
   })();
 
-  // Deferred: DOCX first-page previews (resolved in UI via <Await>)
-  const docxPreviewsPromise = handleFetchPreviewsIntent(workVersionId, ctx);
-  const extractedMetadataPromise = (async (): Promise<ExtractedMetadata | null> => {
-    const meta = rawMetadata as Record<string, unknown> | null | undefined;
-    const existingFrontmatter =
-      meta?.myst && typeof meta.myst === 'object'
-        ? (meta.myst as Record<string, unknown>).frontmatter
-        : undefined;
-    if (existingFrontmatter != null && typeof existingFrontmatter === 'object') {
-      return existingFrontmatter as ExtractedMetadata;
-    }
-    const previews = await docxPreviewsPromise;
-    const extracted = await extractMetadataFromPreviews(previews, ctx);
-    if (extracted != null && workVersionId) {
-      await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
-        const m = (current as Record<string, unknown>) || {};
-        const existingMyst = (m.myst as Record<string, unknown>) || {};
-        return {
-          ...m,
-          myst: { ...existingMyst, frontmatter: extracted },
-        } as Prisma.JsonObject;
-      });
-    }
-    return extracted;
-  })().catch((err) => {
-    console.error('[upload loader] extractedMetadataPromise failed:', err);
-    return null;
-  });
+  // Read only cached DOCX previews from Object table (no generation in loader)
+
+  const previews = await readDocxPreviewsFromObjectTable(signedMetadata);
+  const myst = (rawMetadata as Record<string, unknown>)?.myst;
+  const extractedMetadata: ExtractedMetadata | null =
+    myst != null && typeof myst === 'object' && 'frontmatter' in myst
+      ? ((myst as { frontmatter: ExtractedMetadata }).frontmatter as ExtractedMetadata)
+      : null;
 
   return {
     workVersionId: work.version_id,
@@ -250,8 +191,8 @@ export async function loader(args: Route.LoaderArgs) {
     uploadConfig: WORK_UPLOAD_CONFIGURATION,
     pageTitle: pageCopy.title,
     pageSubtitle: pageCopy.subtitle,
-    docxPreviewsPromise,
-    extractedMetadataPromise,
+    previews,
+    extractedMetadata,
   };
 }
 
@@ -287,6 +228,18 @@ export async function action(args: Route.ActionArgs) {
         const titleValue = title !== undefined ? title : '';
         console.log('updateWorkVersionTitle', workVersionId, 'title:', titleValue);
         return updateWorkVersionTitle(workVersionId, titleValue);
+      }
+
+      // Handle authors update intent (updates work version authors array)
+      if (uploadIntent === 'update-authors') {
+        if (!workVersionId) {
+          return data(
+            { error: { type: 'general', message: 'Work version ID is required' } },
+            { status: 400 },
+          );
+        }
+        const authorsValue = authors ?? '';
+        return updateWorkVersionAuthors(workVersionId, authorsValue);
       }
 
       // Handle check toggle intent (toggles a single check in metadata)
@@ -406,6 +359,70 @@ export async function action(args: Route.ActionArgs) {
         return redirect(`/app/works/${workId}/details`);
       }
 
+      // Fetch DOCX previews (generate + write to Object table only)
+      if (uploadIntent === 'fetch-previews') {
+        if (!workVersionId) {
+          return data(
+            { error: { type: 'general', message: 'Work version ID is required' } },
+            { status: 400 },
+          );
+        }
+        const { previews } = await handleFetchPreviewsIntent(workVersionId, baseCtx);
+        return data({ ok: true, previewsGenerated: previews.length });
+      }
+
+      // Extract metadata from first DOCX via Claude (only when no frontmatter and we have previews)
+      if (uploadIntent === 'extract-metadata') {
+        if (!workVersionId) {
+          return data(
+            { error: { type: 'general', message: 'Work version ID is required' } },
+            { status: 400 },
+          );
+        }
+        const work = await findWorkByVersion(workVersionId);
+        if (!work) {
+          return data(
+            { error: { type: 'general', message: 'Work version not found' } },
+            { status: 404 },
+          );
+        }
+        const currentMeta = (work.metadata as Record<string, unknown>) ?? {};
+        const hasMystFrontmatter =
+          currentMeta.myst != null &&
+          typeof currentMeta.myst === 'object' &&
+          (currentMeta.myst as Record<string, unknown>).frontmatter != null;
+        if (hasMystFrontmatter) {
+          return data({ ok: true });
+        }
+        const signedMetadata = await signFilesInMetadata(
+          (work.metadata as Parameters<typeof signFilesInMetadata>[0]) ?? {},
+          work.cdn ?? '',
+          baseCtx,
+        );
+        const previews = await readDocxPreviewsFromObjectTable(signedMetadata);
+        if (previews.length === 0) {
+          return data({ ok: true });
+        }
+        try {
+          const extracted = await extractMetadataFromPreviews({ previews }, baseCtx);
+          if (extracted != null) {
+            await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
+              const m = (current as Record<string, unknown>) || {};
+              const existingMyst = (m.myst as Record<string, unknown>) || {};
+              return {
+                ...m,
+                myst: { ...existingMyst, frontmatter: extracted },
+              } as Prisma.JsonObject;
+            });
+          }
+          return data({ ok: true });
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : 'Failed to extract metadata from document';
+          return data({ error: { type: 'general', message } }, { status: 500 });
+        }
+      }
+
       // For other intents, slot is required
       if (!slot) {
         return data(
@@ -456,14 +473,61 @@ export async function action(args: Route.ActionArgs) {
   );
 }
 
+function isDocxPath(path: string): boolean {
+  return path.toLowerCase().endsWith('.docx');
+}
+
 export default function WorksUpload({ loaderData }: Route.ComponentProps) {
-  const { cdnKey, uploadConfig, metadata, title, authors, pageTitle, pageSubtitle } = loaderData;
-  const [authorsText, setAuthorsText] = useState(authors ?? '');
+  const {
+    cdnKey,
+    uploadConfig,
+    metadata,
+    title,
+    authors,
+    pageTitle,
+    pageSubtitle,
+    previews = [],
+    extractedMetadata,
+  } = loaderData;
+  const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
+  const revalidator = useRevalidator();
+  const fetchPreviewsFetcher = useFetcher();
+  const hasTriggeredFetchPreviews = useRef(false);
 
   // Resolve check services at render time to avoid serialization issues
   // Construct minimal AppConfig from ClientDeploymentConfig
   const deploymentConfig = useDeploymentConfig();
   const checkServices = getExtensionCheckServicesFromClientConfig(deploymentConfig, extensions);
+
+  const files = (metadata?.files ?? {}) as Record<string, { path?: string; name?: string }>;
+  const docxFilePaths = Object.entries(files)
+    .filter(([, f]) => isDocxPath(f?.path ?? f?.name ?? ''))
+    .map(([path]) => path);
+  const previewPaths = new Set(previewList.map((p) => p.path));
+  const missingPreviewPaths = docxFilePaths.filter((p) => !previewPaths.has(p));
+  const shouldFetchPreviews = docxFilePaths.length > 0 && missingPreviewPaths.length > 0;
+
+  useEffect(() => {
+    if (!shouldFetchPreviews) {
+      hasTriggeredFetchPreviews.current = false;
+      return;
+    }
+    if (hasTriggeredFetchPreviews.current || fetchPreviewsFetcher.state !== 'idle') return;
+    hasTriggeredFetchPreviews.current = true;
+    fetchPreviewsFetcher.submit({ intent: 'fetch-previews' }, { method: 'POST' });
+  }, [shouldFetchPreviews, fetchPreviewsFetcher.state, fetchPreviewsFetcher]);
+
+  // Show toast when fetch-previews action returns an error
+  useEffect(() => {
+    if (fetchPreviewsFetcher.state === 'idle' && fetchPreviewsFetcher.data?.error) {
+      ui.toastError(fetchPreviewsFetcher.data.error.message);
+    }
+  }, [fetchPreviewsFetcher.state, fetchPreviewsFetcher.data]);
+
+  const isGeneratingPreviews =
+    fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
+  const isPreviewsLoading = revalidator.state === 'loading' || isGeneratingPreviews;
+  const previewOverlayMessage = isGeneratingPreviews ? 'Generating previews…' : 'Refreshing previews…';
 
   return (
     <MainWrapper>
@@ -493,75 +557,41 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           className="space-y-4"
         >
           <p className="text-muted-foreground">Review your document metadata</p>
-          <React.Suspense
-            fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}
+          <div
+            className={
+              previewList.length > 0
+                ? 'grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr] lg:items-stretch'
+                : 'flex gap-6 max-w-5xl'
+            }
           >
-            <Await
-              resolve={loaderData.docxPreviewsPromise}
-              errorElement={
-                <p className="text-sm text-destructive">Failed to load DOCX previews.</p>
+            <ui.Card
+              className={
+                previewList.length > 0
+                  ? 'overflow-hidden p-0 min-h-0 flex flex-col'
+                  : 'overflow-hidden p-0 min-h-0 flex flex-col max-w-xl'
               }
             >
-              {(resolved) => {
-                const hasPreviews = resolved.previews.length > 0;
-                const layoutClass = hasPreviews
-                  ? 'grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr] lg:items-stretch'
-                  : 'flex gap-6 max-w-5xl';
-                const previewCardClass = hasPreviews
-                  ? 'overflow-hidden p-0 min-h-0 flex flex-col'
-                  : 'overflow-hidden p-0 min-h-0 flex flex-col max-w-xl';
-                return (
-                  <div className={layoutClass}>
-                    <ui.Card className={previewCardClass}>
-                      <div className="min-h-[200px] flex-1 flex flex-col p-4">
-                        <DocxPreviewer previews={resolved.previews} />
-                      </div>
-                    </ui.Card>
-                    <ui.Card className="px-6 pt-4 pb-6 space-y-4 h-fit min-w-lg">
-                      <React.Suspense
-                        fallback={
-                          <>
-                            <WorkTitleForm title="" disabled placeholder="thinking..." />
-                            <div className="space-y-1">
-                              <label htmlFor="authors" className="inline-block text-sm font-medium">
-                                Authors
-                              </label>
-                              <ui.Textarea
-                                id="authors"
-                                value=""
-                                readOnly
-                                disabled
-                                placeholder="thinking..."
-                                rows={3}
-                              />
-                            </div>
-                          </>
-                        }
-                      >
-                        <Await
-                          resolve={loaderData.extractedMetadataPromise}
-                          errorElement={
-                            // Shown only if the promise rejects (throws). Normal failures (no API key,
-                            // no <json> in response, parse error) resolve to null and are not errors.
-                            <p className="text-sm text-destructive">Could not extract metadata.</p>
-                          }
-                        >
-                          {(extracted) => (
-                            <MetadataCardResolved
-                              extracted={extracted}
-                              loaderTitle={title}
-                              authorsText={authorsText}
-                              setAuthorsText={setAuthorsText}
-                            />
-                          )}
-                        </Await>
-                      </React.Suspense>
-                    </ui.Card>
+              <div className="min-h-[200px] flex-1 flex flex-col p-4 relative">
+                {isPreviewsLoading && (
+                  <div
+                    className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-md bg-background/80 backdrop-blur-[1px]"
+                    aria-busy="true"
+                    aria-live="polite"
+                  >
+                    <LoadingSpinner size={32} />
+                    <p className="text-sm text-muted-foreground">{previewOverlayMessage}</p>
                   </div>
-                );
-              }}
-            </Await>
-          </React.Suspense>
+                )}
+                <DocxPreviewer previews={previewList} />
+              </div>
+            </ui.Card>
+            <MetadataFormCard
+              extractedMetadata={extractedMetadata}
+              title={title}
+              authors={authors}
+              hasPreviews={previewList.length > 0}
+            />
+          </div>
         </SectionWithHeading>
         <SectionWithHeading
           heading="Select Checks to Run"
@@ -578,7 +608,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             />
           </ui.Card>
         </SectionWithHeading>
-        <ContinueForm title={title} authors={authorsText} metadata={metadata} />
+        <ContinueForm title={title} authors={authors} metadata={metadata} />
       </PageFrame>
     </MainWrapper>
   );

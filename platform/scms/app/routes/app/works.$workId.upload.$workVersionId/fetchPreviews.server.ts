@@ -27,13 +27,12 @@ function docxPreviewCacheId(md5: string): string {
 }
 
 /** Shape of cached AST stored in Object.data (must match truncateAstToFirstPage return) */
-function isCachedAst(
-  data: unknown,
-): data is {
+function isCachedAst(data: unknown): data is {
   type: string;
   metadata: unknown;
   content: unknown[];
   attachments: unknown[];
+  wasTruncated?: boolean;
 } {
   return (
     typeof data === 'object' &&
@@ -52,19 +51,24 @@ function isDocxPath(path: string): boolean {
  * Truncate AST content to first N nodes (first "page").
  * Returns a serializable object (no toText method).
  * Includes attachments so image nodes in the truncated content can be resolved.
+ * wasTruncated is true when the original content had more than FIRST_PAGE_CONTENT_LIMIT nodes.
  */
 function truncateAstToFirstPage(ast: OfficeParserAST): {
   type: OfficeParserAST['type'];
   metadata: OfficeParserAST['metadata'];
   content: OfficeContentNode[];
   attachments: OfficeAttachment[];
+  wasTruncated: boolean;
 } {
-  const content = (ast.content ?? []).slice(0, FIRST_PAGE_CONTENT_LIMIT);
+  const fullContent = ast.content ?? [];
+  const content = fullContent.slice(0, FIRST_PAGE_CONTENT_LIMIT);
+  const wasTruncated = fullContent.length > FIRST_PAGE_CONTENT_LIMIT;
   return {
     type: ast.type,
     metadata: ast.metadata,
     content,
     attachments: ast.attachments ?? [],
+    wasTruncated,
   };
 }
 
@@ -208,6 +212,7 @@ export async function fetchDocxPreviews(
                 date_modified: now,
                 data: ast as object,
                 occ: 0,
+                ...(ctx.user?.id ? { created_by_id: ctx.user.id } : {}),
               },
             });
           } catch (createErr: unknown) {
@@ -242,10 +247,8 @@ export async function fetchDocxPreviews(
 }
 
 /**
- * Single entry point for the fetch-previews intent.
- * Returns the payload to send to the client (previews array).
- * Use from the action as `return data(await handleFetchPreviewsIntent(...))`,
- * or from the loader by merging the result into loader data.
+ * Single entry point for the fetch-previews intent (action).
+ * Generates previews (and writes to Object table), returns previews.
  * Throws if workVersionId is missing (caller can map to 400).
  */
 export async function handleFetchPreviewsIntent(
@@ -257,4 +260,45 @@ export async function handleFetchPreviewsIntent(
   }
   const result = await fetchDocxPreviews(workVersionId, ctx);
   return { previews: result.previews };
+}
+
+/**
+ * Read DOCX previews from the Object table only (no download/parse).
+ * Used by the loader to return whatever previews are already cached.
+ * Caller must pass metadata that includes .files (e.g. signed metadata).
+ */
+export async function readDocxPreviewsFromObjectTable(metadata: {
+  files?: Record<string, FileMetadataSectionItem & { signedUrl?: string }>;
+}): Promise<DocxPreviewItem[]> {
+  const files = metadata.files ?? {};
+  if (typeof files !== 'object') {
+    return [];
+  }
+  const docxEntries = Object.entries(files).filter(([, file]) =>
+    isDocxPath(file.path ?? file.name ?? ''),
+  );
+  const prisma = await getPrismaClient();
+  const previews: DocxPreviewItem[] = [];
+  for (const [path, file] of docxEntries) {
+    const md5 = file.md5;
+    const cacheId = typeof md5 === 'string' && md5 ? docxPreviewCacheId(md5) : null;
+    if (!cacheId) continue;
+    const cached = await prisma.object.findUnique({
+      where: { id: cacheId },
+      select: { data: true },
+    });
+    if (cached?.data == null || !isCachedAst(cached.data)) continue;
+    const { signedUrl: _drop, ...fileMeta } = file;
+    previews.push({
+      path,
+      data: fileMeta as FileMetadataSectionItem,
+      ast: cached.data as ReturnType<typeof truncateAstToFirstPage>,
+    });
+  }
+  previews.sort((a, b) => {
+    const orderA = a.data.order ?? Number.POSITIVE_INFINITY;
+    const orderB = b.data.order ?? Number.POSITIVE_INFINITY;
+    return orderA - orderB;
+  });
+  return previews;
 }

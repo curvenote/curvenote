@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useFetcher, Link, useParams, useLocation } from 'react-router';
 import { ui } from '@curvenote/scms-core';
 import type { FileMetadataSection } from '@curvenote/scms-core';
@@ -16,6 +17,13 @@ export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
   const location = useLocation();
   const fromNewFlow = new URLSearchParams(location.search).get('from') === 'new';
   const finishLaterHref = fromNewFlow ? '/app/works' : (workId ? `/app/works/${workId}/details` : '/app/works');
+
+  // Show toast when action returns an error (e.g. confirm-work failed)
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data && 'error' in fetcher.data) {
+      ui.toastError((fetcher.data as { error: { message: string } }).error.message);
+    }
+  }, [fetcher.state, fetcher.data]);
 
   // Check if title is non-empty
   const hasTitle = title && title.trim().length > 0;
