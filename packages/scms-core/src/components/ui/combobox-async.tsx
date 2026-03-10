@@ -1,8 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
-
+import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
 import { Button } from './button.js';
 import {
@@ -237,10 +236,10 @@ export function AsyncComboBox({
       input?.blur();
       setTimeout(() => input?.focus(), 0);
     } else {
-      // After a selection, blur so the input/trigger does not retain focus
+      // On selection, force the command input to lose focus; in button mode also blur the trigger
       requestAnimationFrame(() => {
-        if (triggerMode === 'inline') inputRef.current?.blur();
-        else triggerRef.current?.blur();
+        inputRef.current?.blur();
+        if (triggerMode !== 'inline') triggerRef.current?.blur();
       });
     }
   };
@@ -337,6 +336,24 @@ export function AsyncComboBox({
             aria-expanded={open}
             aria-haspopup="listbox"
             aria-controls={open ? 'combobox-list-inline' : undefined}
+            trailingAction={
+              value ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 opacity-50"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clearSelection();
+                  }}
+                  aria-label="Clear selection"
+                >
+                  <X className="size-4" />
+                </Button>
+              ) : undefined
+            }
           />
           {open && searchValue.length > 0 && (
             <CommandList
@@ -465,6 +482,24 @@ export function AsyncComboBox({
               onValueChange={handleInputChange}
               onKeyDown={handleKeyDown}
               className="py-1 h-9"
+              trailingAction={
+                value ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 opacity-50"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      clearSelection();
+                    }}
+                    aria-label="Clear selection"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                ) : undefined
+              }
             />
             <CommandList id="combobox-list" role="listbox">
               {searchValue.length > 0 && searchValue.length < minSearchLength && (

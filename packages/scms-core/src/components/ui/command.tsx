@@ -10,7 +10,7 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        'bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md',
+        'flex overflow-hidden flex-col w-full h-full rounded-md bg-popover text-popover-foreground',
         className,
       )}
       {...props}
@@ -51,20 +51,27 @@ function CommandDialog({
 
 const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
-  React.ComponentProps<typeof CommandPrimitive.Input>
->(({ className, ...props }, ref) => {
+  React.ComponentProps<typeof CommandPrimitive.Input> & {
+    /** Optional trailing content (e.g. clear button). Rendered after the input in the wrapper. */
+    trailingAction?: React.ReactNode;
+  }
+>(({ className, trailingAction, ...props }, ref) => {
   return (
-    <div data-slot="command-input-wrapper" className="flex items-center gap-2 px-3 py-2 border-b">
+    <div
+      data-slot="command-input-wrapper"
+      className="flex gap-2 items-center px-3 py-2 rounded-md border-b focus-within:ring-2 focus-within:ring-ring"
+    >
       <SearchIcon className="opacity-50 size-4 shrink-0" />
       <CommandPrimitive.Input
         ref={ref}
         data-slot="command-input"
         className={cn(
-          'placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+          'flex py-3 w-full h-10 text-sm bg-transparent rounded-md outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
           className,
         )}
         {...props}
       />
+      {trailingAction}
     </div>
   );
 });
@@ -75,7 +82,7 @@ function CommandList({ className, ...props }: React.ComponentProps<typeof Comman
   return (
     <CommandPrimitive.List
       data-slot="command-list"
-      className={cn('max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto', className)}
+      className={cn('overflow-y-auto overflow-x-hidden max-h-[300px] scroll-py-1', className)}
       {...props}
     />
   );
@@ -114,7 +121,7 @@ function CommandSeparator({
   return (
     <CommandPrimitive.Separator
       data-slot="command-separator"
-      className={cn('bg-border -mx-1 h-px', className)}
+      className={cn('-mx-1 h-px bg-border', className)}
       {...props}
     />
   );
@@ -137,7 +144,7 @@ function CommandShortcut({ className, ...props }: React.ComponentProps<'span'>) 
   return (
     <span
       data-slot="command-shortcut"
-      className={cn('text-muted-foreground ml-auto text-xs tracking-widest', className)}
+      className={cn('ml-auto text-xs tracking-widest text-muted-foreground', className)}
       {...props}
     />
   );
