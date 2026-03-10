@@ -58,6 +58,8 @@ export interface AsyncComboBoxProps {
   externalLoading?: boolean;
   /** When provided, the search/input text is controlled by the parent (e.g. so it clears when parent clears after "Add"). */
   searchValue?: string;
+  /** Optional custom content for each option in the list (e.g. label + right-justified badge). Receives the option; default is label + description. */
+  renderOption?: (option: ComboBoxOption) => React.ReactNode;
 }
 
 export function AsyncComboBox({
@@ -82,6 +84,7 @@ export function AsyncComboBox({
   externalOptions,
   externalLoading,
   searchValue: controlledSearchValue,
+  renderOption,
 }: AsyncComboBoxProps) {
   const [open, setOpen] = React.useState(false);
   const [internalSearchValue, setInternalSearchValue] = React.useState('');
@@ -205,14 +208,6 @@ export function AsyncComboBox({
     onSearchChange?.(newValue);
   };
 
-  const focusAfterClose = React.useCallback(() => {
-    if (triggerMode === 'inline') {
-      inputRef.current?.focus();
-    } else {
-      triggerRef.current?.focus();
-    }
-  }, [triggerMode]);
-
   const handleSelect = (optionValue: string) => {
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
@@ -242,7 +237,11 @@ export function AsyncComboBox({
       input?.blur();
       setTimeout(() => input?.focus(), 0);
     } else {
-      requestAnimationFrame(() => focusAfterClose());
+      // After a selection, blur so the input/trigger does not retain focus
+      requestAnimationFrame(() => {
+        if (triggerMode === 'inline') inputRef.current?.blur();
+        else triggerRef.current?.blur();
+      });
     }
   };
 
@@ -257,7 +256,10 @@ export function AsyncComboBox({
     onErrorClear?.();
     setOpen(false);
     setSearchValue('');
-    requestAnimationFrame(() => focusAfterClose());
+    requestAnimationFrame(() => {
+      if (triggerMode === 'inline') inputRef.current?.blur();
+      else triggerRef.current?.blur();
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -271,7 +273,8 @@ export function AsyncComboBox({
     }
   };
 
-  const displayValue = selectedOption?.label || value || '';
+  // Use only the resolved option's label for display; never show raw value (e.g. id) to avoid flashing id before selectedOption is set (e.g. on hydration or slow options load).
+  const displayValue = selectedOption?.label ?? '';
 
   // Show error if there's a value and an error, but not when the dropdown is open
   const shouldShowError = Boolean(error && displayValue && !open);
@@ -315,7 +318,7 @@ export function AsyncComboBox({
           <CommandInput
             ref={inputRef}
             autoComplete="off"
-            placeholder={displayValue ? searchPlaceholder : placeholder}
+            placeholder={open ? searchPlaceholder : placeholder}
             value={inlineInputValue}
             onValueChange={(v) => {
               setSearchValue(v);
@@ -340,7 +343,7 @@ export function AsyncComboBox({
               id="combobox-list-inline"
               role="listbox"
               className={cn(
-                'absolute right-0 left-0 top-full z-10 mt-1 rounded-md border shadow-md max-h-[300px] border-border bg-popover',
+                'absolute right-0 left-0 top-full z-50 mt-1 rounded-md border shadow-md max-h-[300px] border-border bg-popover',
                 contentClassName,
               )}
             >
@@ -378,21 +381,28 @@ export function AsyncComboBox({
                       onSelect={handleSelect}
                       role="option"
                       aria-selected={value === option.value}
+                      className="flex gap-2 items-center"
                     >
                       <Check
                         className={cn(
-                          'mr-2 h-4 w-4',
+                          'h-4 w-4 shrink-0',
                           value === option.value ? 'opacity-100 text-green-600' : 'opacity-0',
                         )}
                       />
-                      <div className="flex flex-col">
-                        <span>{option.label}</span>
-                        {option.description && (
-                          <span className="text-xs text-muted-foreground">
-                            {option.description}
-                          </span>
-                        )}
-                      </div>
+                      {renderOption ? (
+                        <div className="flex flex-1 gap-2 justify-between items-center min-w-0">
+                          {renderOption(option)}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span>{option.label}</span>
+                          {option.description && (
+                            <span className="text-xs text-muted-foreground">
+                              {option.description}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -491,21 +501,28 @@ export function AsyncComboBox({
                       onSelect={handleSelect}
                       role="option"
                       aria-selected={value === option.value}
+                      className="flex gap-2 items-center"
                     >
                       <Check
                         className={cn(
-                          'mr-2 h-4 w-4',
+                          'h-4 w-4 shrink-0',
                           value === option.value ? 'opacity-100 text-green-600' : 'opacity-0',
                         )}
                       />
-                      <div className="flex flex-col">
-                        <span>{option.label}</span>
-                        {option.description && (
-                          <span className="text-xs text-muted-foreground">
-                            {option.description}
-                          </span>
-                        )}
-                      </div>
+                      {renderOption ? (
+                        <div className="flex flex-1 gap-2 justify-between items-center min-w-0">
+                          {renderOption(option)}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span>{option.label}</span>
+                          {option.description && (
+                            <span className="text-xs text-muted-foreground">
+                              {option.description}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
