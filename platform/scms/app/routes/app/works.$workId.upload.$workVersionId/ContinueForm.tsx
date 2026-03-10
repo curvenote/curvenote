@@ -1,4 +1,4 @@
-import { useFetcher, Link, useParams } from 'react-router';
+import { useFetcher, Link, useParams, useLocation } from 'react-router';
 import { ui } from '@curvenote/scms-core';
 import type { FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata } from '@curvenote/scms-server';
@@ -13,7 +13,9 @@ interface ContinueFormProps {
 export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
   const fetcher = useFetcher();
   const { workId } = useParams();
-  const detailsHref = workId ? `/app/works/${workId}/details` : '/app/works';
+  const location = useLocation();
+  const fromNewFlow = new URLSearchParams(location.search).get('from') === 'new';
+  const finishLaterHref = fromNewFlow ? '/app/works' : (workId ? `/app/works/${workId}/details` : '/app/works');
 
   // Check if title is non-empty
   const hasTitle = title && title.trim().length > 0;
@@ -42,7 +44,7 @@ export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
         Continue
       </ui.StatefulButton>
       <ui.Button variant="link" asChild>
-        <Link to={detailsHref}>Come back and finish this later</Link>
+        <Link to={finishLaterHref}>Come back and finish this later</Link>
       </ui.Button>
     </div>
   );
