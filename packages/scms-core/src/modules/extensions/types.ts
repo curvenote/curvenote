@@ -139,11 +139,23 @@ export interface ClientExtension {
   getExtensionAdminCard?: () => React.ComponentType<ExtensionAdminCardProps>;
 }
 
+export interface ExtensionAdminActionHandler {
+  name: string;
+  handler: (ctx: Context, formData: FormData) => Promise<ExtensionCheckHandleActionResult>;
+}
+
 export interface ServerExtension extends ClientExtension {
   registerRoutes?: (appConfig: AppConfig) => Promise<RouteRegistration[]>;
   getJobs?: () => JobRegistration[];
+  /**
+   * Returns the effective configuration for this extension.
+   * If not provided, the platform uses the extension's slice of app config.
+   * Implement to merge overrides (e.g. from DB) or customise resolution.
+   */
+  getExtensionConfiguration?: (ctx: Context) => Promise<Record<string, unknown> | undefined>;
   /** Returns safe admin config for platform UI; must obfuscate secrets. Only called server-side. */
   getSafeAdminConfig?: (config: Record<string, unknown>) => Record<string, unknown>;
+  getExtensionAdminActionHandlers?: () => ExtensionAdminActionHandler[];
 }
 
 export type RouteRegistration = {
