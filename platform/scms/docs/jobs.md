@@ -38,7 +38,7 @@ This document describes how jobs work in SCMS, how to use **job chaining** (foll
 
 | Field       | Type   | Required | Description                                                           |
 | ----------- | ------ | -------- | --------------------------------------------------------------------- |
-| `job_type`  | string | yes      | Registered job type (e.g. `CHECK`, `CONVERTER_TASK`).                  |
+| `job_type`  | string | yes      | Registered job type (e.g. `CHECK`, `CONVERTER_TASK`).                 |
 | `payload`   | object | yes      | Parameters for the job.                                               |
 | `id`        | string | no       | UUID for the job; server generates one if omitted.                    |
 | `results`   | object | no       | Pre-populated results (rare).                                         |
@@ -63,7 +63,7 @@ This document describes how jobs work in SCMS, how to use **job chaining** (foll
 | --------- | ------ | -------- | ---------------------------------------------------------------- |
 | `status`  | string | yes      | One of: `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`. |
 | `message` | string | no       | Appended to job messages.                                        |
-| `results` | object | no       | Job results (e.g. for CHECK, CONVERTER_TASK).                     |
+| `results` | object | no       | Job results (e.g. for CHECK, CONVERTER_TASK).                    |
 
 **Authorization:** Curvenote auth or handshake token whose `jobId` claim matches `:jobId`.  
 **Response:** `200` with updated job DTO. The route rejects PATCH when the job is already `COMPLETED` or `FAILED`.
@@ -136,14 +136,14 @@ When creating a job, you may send an optional `follow_on` object. It must includ
 
 To add a job like **Export to PDF** that triggers an async task:
 
-| Step | What                         | Where                                                                                                                                                                                                                              |
-| ---- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | Declare job type constant    | [packages/scms-core/src/backend/loaders/jobs/names.ts](packages/scms-core/src/backend/loaders/jobs/names.ts) – add to `KnownJobTypes`                                                                                              |
-| 2    | Allow type in API validation | [packages/scms-server/src/api.schemas.ts](packages/scms-server/src/api.schemas.ts) – add to `coreJobTypes` in `getJobTypes()`                                                                                                      |
-| 3    | Define payload schema        | [packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts) – e.g. `CreateConverterTaskPayloadSchema`                                    |
+| Step | What                         | Where                                                                                                                                                                                                                                |
+| ---- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Declare job type constant    | [packages/scms-core/src/backend/loaders/jobs/names.ts](packages/scms-core/src/backend/loaders/jobs/names.ts) – add to `KnownJobTypes`                                                                                                |
+| 2    | Allow type in API validation | [packages/scms-server/src/api.schemas.ts](packages/scms-server/src/api.schemas.ts) – add to `coreJobTypes` in `getJobTypes()`                                                                                                        |
+| 3    | Define payload schema        | [packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/schemas.server.ts) – e.g. `CreateConverterTaskPayloadSchema`                                       |
 | 4    | Implement handler            | [packages/scms-server/src/backend/loaders/jobs/handlers/converter-task.server.ts](packages/scms-server/src/backend/loaders/jobs/handlers/converter-task.server.ts) – validate payload, `dbCreateJob`, enqueue (e.g. SNS), return job |
-| 5    | Register handler             | [packages/scms-server/src/backend/loaders/jobs/handlers/index.ts](packages/scms-server/src/backend/loaders/jobs/handlers/index.ts) – add to `coreHandlers`                                                                         |
-| 6    | (Optional) Storage           | [packages/scms-server/src/backend/loaders/jobs/create.server.ts](packages/scms-server/src/backend/loaders/jobs/create.server.ts) – add job type to `jobsRequiringStorage` only if the handler needs `StorageBackend`               |
+| 5    | Register handler             | [packages/scms-server/src/backend/loaders/jobs/handlers/index.ts](packages/scms-server/src/backend/loaders/jobs/handlers/index.ts) – add to `coreHandlers`                                                                           |
+| 6    | (Optional) Storage           | [packages/scms-server/src/backend/loaders/jobs/create.server.ts](packages/scms-server/src/backend/loaders/jobs/create.server.ts) – add job type to `jobsRequiringStorage` only if the handler needs `StorageBackend`                 |
 
 **Trigger from the app**: `POST /api/v1/jobs` with body `{ "job_type": "CONVERTER_TASK", "payload": { "work_version_id": "...", "target": "pdf" } }`.  
 The route that receives this: [platform/scms/app/routes/api/v1.jobs.tsx](platform/scms/app/routes/api/v1.jobs.tsx).

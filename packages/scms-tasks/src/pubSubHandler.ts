@@ -180,14 +180,14 @@ export function withPubSubHandler<TPayload = unknown>(
       await handler(ctx);
 
       if (!preserveTmpFolder) {
-        removeFolder(tmpFolder);
+        await removeFolder(tmpFolder);
       }
       console.log('Removed temporary folder');
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : String(err);
       console.error('Error processing converter job:', err);
       if (!preserveTmpFolder) {
-        removeFolder(tmpFolder);
+        await removeFolder(tmpFolder);
       }
       try {
         if (client) {
