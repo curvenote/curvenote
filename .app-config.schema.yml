@@ -245,6 +245,14 @@ properties:
         items:
           type: string
         description: Optional. Additional user token issuer URLs to accept (legacy domains). Primary userTokenIssuer is always accepted.
+      anthropic:
+        type: object
+        description: Anthropic/Claude API configuration (e.g. document metadata extraction in upload flow)
+        properties:
+          apiKey:
+            type: string
+            secret: true
+            description: Anthropic API key for Claude
       sessionTokenIssuer:
         type: string
       tokenConfigUrl:

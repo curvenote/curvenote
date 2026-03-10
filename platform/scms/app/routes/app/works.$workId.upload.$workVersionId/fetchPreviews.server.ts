@@ -4,16 +4,45 @@
  * For the given work version: finds .docx files in metadata.files,
  * downloads each via signed URL, parses with officeparser, and returns
  * the first "page" of content (truncated AST) per file.
+ *
+ * Parsed first-page AST is cached in the Object table as
+ * type/id "docx:preview:${file.md5}" so repeated loads skip re-parsing.
  */
 
-import { findWorkByVersion, signFilesInMetadata } from '@curvenote/scms-server';
+import { findWorkByVersion, getPrismaClient, signFilesInMetadata } from '@curvenote/scms-server';
 import type { FileMetadataSectionItem } from '@curvenote/scms-core';
 import type { Context } from '@curvenote/scms-server';
+import { formatDate } from '@curvenote/common';
 import { parseOffice } from 'officeparser';
 import type { OfficeParserAST, OfficeContentNode, OfficeAttachment } from 'officeparser';
 
 /** Number of top-level content nodes to include for "first page" preview */
 const FIRST_PAGE_CONTENT_LIMIT = 10;
+
+/** Object table type/id prefix for DOCX preview cache entries */
+const DOCX_PREVIEW_CACHE_PREFIX = 'docx:preview:';
+
+function docxPreviewCacheId(md5: string): string {
+  return `${DOCX_PREVIEW_CACHE_PREFIX}${md5}`;
+}
+
+/** Shape of cached AST stored in Object.data (must match truncateAstToFirstPage return) */
+function isCachedAst(
+  data: unknown,
+): data is {
+  type: string;
+  metadata: unknown;
+  content: unknown[];
+  attachments: unknown[];
+} {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    'content' in data &&
+    Array.isArray((data as { content: unknown }).content)
+  );
+}
 
 function isDocxPath(path: string): boolean {
   return path.toLowerCase().endsWith('.docx');
@@ -53,6 +82,53 @@ export interface FetchPreviewsResult {
 }
 
 /**
+ * Recursively extract plain text from AST content nodes for sending to LLM.
+ * Skips image/attachment content (no binary); uses placeholder for images.
+ */
+function nodeToPlainText(node: OfficeContentNode): string {
+  if (node.type === 'text') {
+    return (node as { text?: string }).text ?? '';
+  }
+  if (node.type === 'image' || node.type === 'chart' || node.type === 'drawing') {
+    return '';
+  }
+  const children = (node as { children?: OfficeContentNode[] }).children;
+  if (!children?.length) {
+    const direct = (node as { text?: string }).text;
+    return direct != null ? String(direct) : '';
+  }
+  return children.map(nodeToPlainText).join('');
+}
+
+/**
+ * Convert first-page AST content to a single plain text string (no attachments).
+ * Used as the document body for the Anthropic fast-find-metadata call.
+ */
+export function astContentToPlainText(content: OfficeContentNode[]): string {
+  const parts = content.map((node) => {
+    const text = nodeToPlainText(node);
+    if (node.type === 'paragraph' || node.type === 'heading' || node.type === 'list') {
+      return text ? `${text}\n` : '\n';
+    }
+    if (node.type === 'table') {
+      const children = (node as { children?: OfficeContentNode[] }).children ?? [];
+      const rowTexts = children
+        .filter((c) => (c as { type?: string }).type === 'row')
+        .map((row) => {
+          const cells = (row as { children?: OfficeContentNode[] }).children ?? [];
+          return cells
+            .map((c) => nodeToPlainText(c as OfficeContentNode))
+            .filter(Boolean)
+            .join('\t');
+        });
+      return rowTexts.join('\n') + '\n';
+    }
+    return text;
+  });
+  return parts.join('').trim();
+}
+
+/**
  * Fetch previews for all .docx files in the work version's metadata.
  * Downloads each file via signed URL, parses with officeparser, and returns
  * file metadata plus truncated AST (first page of content).
@@ -83,6 +159,7 @@ export async function fetchDocxPreviews(
   );
 
   const previews: DocxPreviewItem[] = [];
+  const prisma = await getPrismaClient();
 
   for (const [path, file] of docxEntries) {
     const signedUrl = file.signedUrl;
@@ -91,27 +168,67 @@ export async function fetchDocxPreviews(
       continue;
     }
 
-    try {
-      const response = await fetch(signedUrl);
-      if (!response.ok) {
-        console.warn('fetchDocxPreviews: download failed', path, response.status);
+    const md5 = file.md5;
+    const cacheId = typeof md5 === 'string' && md5 ? docxPreviewCacheId(md5) : null;
+
+    let ast: ReturnType<typeof truncateAstToFirstPage> | null = null;
+
+    if (cacheId) {
+      const cached = await prisma.object.findUnique({
+        where: { id: cacheId },
+        select: { data: true },
+      });
+      if (cached?.data != null && isCachedAst(cached.data)) {
+        ast = cached.data as ReturnType<typeof truncateAstToFirstPage>;
+      }
+    }
+
+    if (!ast) {
+      try {
+        const response = await fetch(signedUrl);
+        if (!response.ok) {
+          console.warn('fetchDocxPreviews: download failed', path, response.status);
+          continue;
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        const fullAst = await parseOffice(arrayBuffer, {
+          extractAttachments: true,
+          newlineDelimiter: '\n',
+        });
+        ast = truncateAstToFirstPage(fullAst);
+
+        if (cacheId) {
+          const now = formatDate();
+          try {
+            await prisma.object.create({
+              data: {
+                id: cacheId,
+                type: cacheId,
+                date_created: now,
+                date_modified: now,
+                data: ast as object,
+                occ: 0,
+              },
+            });
+          } catch (createErr: unknown) {
+            const code = (createErr as { code?: string })?.code;
+            if (code !== 'P2002') {
+              console.warn('fetchDocxPreviews: failed to cache preview', path, createErr);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('fetchDocxPreviews: parse failed', path, err);
         continue;
       }
-      const arrayBuffer = await response.arrayBuffer();
-      const ast = await parseOffice(arrayBuffer, {
-        extractAttachments: true,
-        newlineDelimiter: '\n',
-      });
-      const { signedUrl: _drop, ...fileMeta } = file;
-      previews.push({
-        path,
-        data: fileMeta as FileMetadataSectionItem,
-        ast: truncateAstToFirstPage(ast),
-      });
-    } catch (err) {
-      console.warn('fetchDocxPreviews: parse failed', path, err);
-      // Skip this file; continue with others
     }
+
+    const { signedUrl: _drop, ...fileMeta } = file;
+    previews.push({
+      path,
+      data: fileMeta as FileMetadataSectionItem,
+      ast,
+    });
   }
 
   // Sort by file metadata order so display order matches upload order
