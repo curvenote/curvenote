@@ -79,6 +79,7 @@ const WorkUploadActionSchema = zfd.formData({
   path: zfd.text(z.string()).optional(), // Used by 'remove' intent
   title: zfd.text(z.string().default('')), // Used by 'update-title' intent - allows empty strings
   authors: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent
+  redirect: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'confirm-work' intent; default true
   checkName: zfd.text(workVersionCheckNameSchema).optional(), // Used by 'toggle-check' intent
   checked: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'toggle-check' intent
 });
@@ -208,12 +209,27 @@ export async function action(args: Route.ActionArgs) {
     );
   }
 
+  try {
+    const payload = WorkUploadActionSchema.parse(formData);
+    console.log('payload', payload);
+  } catch (error) {
+    return data({ error: { type: 'general', message: 'Invalid form data' } }, { status: 400 });
+  }
+
   // Handle upload intents (stage, complete, remove, update-title, toggle-check) with validation
   return withValidFormData(
     WorkUploadActionSchema,
     formData,
     async (payload: WorkUploadActionPayload) => {
-      const { intent: uploadIntent, slot, title, authors, checkName, checked } = payload;
+      const {
+        intent: uploadIntent,
+        slot,
+        title,
+        authors,
+        redirect: redirectParam,
+        checkName,
+        checked,
+      } = payload;
 
       // Handle title update intent (updates title field)
       if (uploadIntent === 'update-title') {
@@ -355,8 +371,12 @@ export async function action(args: Route.ActionArgs) {
           }
         }
 
-        // Navigate to work details page
-        return redirect(`/app/works/${workId}/details`);
+        // Redirect to work details unless redirect=false (e.g. when called from manuscript-checks dialog)
+        const shouldRedirect = redirectParam !== 'false';
+        if (shouldRedirect) {
+          return redirect(`/app/works/${workId}/details`);
+        }
+        return data({ success: true });
       }
 
       // Fetch DOCX previews (generate + write to Object table only)
@@ -527,7 +547,9 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const isGeneratingPreviews =
     fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
   const isPreviewsLoading = revalidator.state === 'loading' || isGeneratingPreviews;
-  const previewOverlayMessage = isGeneratingPreviews ? 'Generating previews…' : 'Refreshing previews…';
+  const previewOverlayMessage = isGeneratingPreviews
+    ? 'Generating previews…'
+    : 'Refreshing previews…';
 
   return (
     <MainWrapper>

@@ -20,17 +20,19 @@ export function getFilePath(cdnKey: string, slug: string, fileName: string): str
  * @param fetcher - The fetcher to use
  * @param slot - The slot to use
  * @param files - The files to submit
+ * @param action - Optional URL to submit to (e.g. another route's action)
  */
 export function submitCompletedFiles(
   fetcher: FetcherWithComponents<any>,
   slot: string,
   files: { path: string; content_type: string; size: number; md5: string }[],
+  action?: string,
 ) {
   const formData = new FormData();
   formData.append('intent', 'complete');
   formData.append('slot', slot);
   formData.append('completedFiles', JSON.stringify(files));
-  fetcher.submit(formData, { method: 'POST' });
+  fetcher.submit(formData, { method: 'POST', ...(action ? { action } : {}) });
 }
 
 /**
@@ -38,6 +40,7 @@ export function submitCompletedFiles(
  * @param fetcher - The fetcher to use
  * @param slot - The slot to use
  * @param file - The file to submit
+ * @param action - Optional URL to submit to (e.g. another route's action)
  */
 export function submitCompletedFile(
   fetcher: FetcherWithComponents<any>,
@@ -49,12 +52,13 @@ export function submitCompletedFile(
     md5: string;
     label?: string;
   },
+  action?: string,
 ) {
   const formData = new FormData();
   formData.append('intent', 'complete');
   formData.append('slot', slot);
   formData.append('completedFiles', JSON.stringify([file]));
-  fetcher.submit(formData, { method: 'POST' });
+  fetcher.submit(formData, { method: 'POST', ...(action ? { action } : {}) });
 }
 
 export async function getFileMD5Hash(file: File): Promise<string> {
