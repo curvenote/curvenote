@@ -73,7 +73,7 @@ sequenceDiagram
    My Works **"Create new work"** button or dashboard task navigates to `/app/works/new`. No dialog or fetcher logic on My Works; the [works.new](../app/routes/app/works.new/route.tsx) route owns the flow.
 
 2. **Loader**  
-   [works.new loader](../app/routes/app/works.new/route.tsx) requires `app.works.upload`; calls [`getValidDraftWorksForUser`](../app/routes/app/works._index/getDrafts.server.ts) (uses `dbFindDraftFileWorksForUser` + `isValidDraftForReuse`). Returns `{ drafts, canUpload }`.
+   [works.new loader](../app/routes/app/works.new/route.tsx) requires `app.works.upload`; calls [`getValidDraftWorksForUser`](../app/routes/app/works._index/getDrafts.server.ts) (uses `dbFindSingleVersionDraftFileWorksForUser` for single-version draft works only). Returns `{ drafts, canUpload }`.
 
 3. **Component**  
    If `drafts.length > 0`: render [ResumeDraftWorkDialog](../../../packages/scms-core/src/components/ui/dialogs/ResumeDraftWorkDialog.tsx) (fetch/delete post to `/app/works`). On resume → navigate to upload URL. On create new → submit `create-new-draft`, then navigate on success.  

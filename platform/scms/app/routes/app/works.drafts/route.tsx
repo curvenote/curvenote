@@ -37,7 +37,7 @@ function DraftWorkRow({ work }: { work: DraftWorkItem }) {
   const isWorkVersionDraft = work.draftKind === 'work_version_draft';
   const href =
     isWorkVersionDraft && version
-      ? `/app/works/${work.id}/upload/${version.id}`
+      ? `/app/works/${work.id}/upload/${version.id}?from=drafts`
       : `/app/works/${work.id}/details${DETAILS_WITH_DRAFTS}`;
 
   return (

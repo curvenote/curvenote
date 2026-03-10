@@ -130,6 +130,33 @@ export async function loader(args: Route.LoaderArgs) {
 
   const signedMetadata = await signFilesInMetadata(metadata, work.cdn ?? '', ctx);
 
+  // Customise title/subtitle by where the user arrived from (from= search param)
+  const from = new URL(args.request.url).searchParams.get('from') ?? '';
+  const pageCopy: { title: string; subtitle: string } = (() => {
+    switch (from) {
+      case 'new':
+        return {
+          title: 'Upload a New Work',
+          subtitle: 'Start a new work by uploading your files',
+        };
+      case 'details':
+        return {
+          title: 'Upload a New Version',
+          subtitle: 'Add a new version of this work by uploading your files',
+        };
+      case 'drafts':
+        return {
+          title: 'Resume Upload',
+          subtitle: 'Continue uploading and complete your draft',
+        };
+      default:
+        return {
+          title: 'Upload a New Work',
+          subtitle: 'Start a new work by uploading your files',
+        };
+    }
+  })();
+
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
@@ -138,6 +165,8 @@ export async function loader(args: Route.LoaderArgs) {
     authors: authorsText,
     metadata: signedMetadata as any,
     uploadConfig: WORK_UPLOAD_CONFIGURATION,
+    pageTitle: pageCopy.title,
+    pageSubtitle: pageCopy.subtitle,
   };
 }
 
@@ -349,7 +378,7 @@ export async function action(args: Route.ActionArgs) {
 }
 
 export default function WorksUpload({ loaderData }: Route.ComponentProps) {
-  const { cdnKey, uploadConfig, metadata, title, authors } = loaderData;
+  const { cdnKey, uploadConfig, metadata, title, authors, pageTitle, pageSubtitle } = loaderData;
 
   // Resolve check services at render time to avoid serialization issues
   // Construct minimal AppConfig from ClientDeploymentConfig
@@ -359,8 +388,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   return (
     <MainWrapper>
       <PageFrame
-        title="Upload a New Work"
-        subtitle="Start a new work by uploading your files"
+        title={pageTitle}
+        subtitle={pageSubtitle}
         hasSecondaryNav={false}
         className="mx-auto space-y-16 max-w-3xl"
       >
