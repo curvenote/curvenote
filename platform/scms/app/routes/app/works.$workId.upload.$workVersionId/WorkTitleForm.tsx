@@ -46,23 +46,23 @@ export function WorkTitleForm({ title: initialTitle }: WorkTitleFormProps) {
           Article Title
         </label>
         <fetcher.Form className="relative">
-          <ui.Input
+          <ui.Textarea
             id="article-title"
-            type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={handleBlur}
             placeholder="Enter the article title"
             disabled={fetcher.state !== 'idle'}
             className={saveState !== 'idle' ? 'pr-20' : ''}
+            rows={3}
           />
           {saveState === 'saving' && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="absolute right-3 top-3 pointer-events-none">
               <p className="text-xs text-muted-foreground">Saving...</p>
             </div>
           )}
           {saveState === 'saved' && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="absolute right-3 top-3 pointer-events-none">
               <Check className="w-4 h-4 text-green-600" />
             </div>
           )}

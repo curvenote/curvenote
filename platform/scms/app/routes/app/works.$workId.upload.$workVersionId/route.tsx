@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Route } from './+types/route';
 import {
   withAppScopedContext,
@@ -46,7 +46,7 @@ import type { ChecksMetadataSection } from './checks.schema';
 import { workVersionCheckNameSchema, checksMetadataSchema } from './checks.schema';
 import type { WorkVersionCheckName, WorkVersionMetadata } from '@curvenote/scms-server';
 import { Await, data, redirect } from 'react-router';
-import { List, Upload, CheckSquare, Eye } from 'lucide-react';
+import { Upload, CheckSquare, Eye } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 as uuid } from 'uuidv7';
@@ -386,6 +386,7 @@ export async function action(args: Route.ActionArgs) {
 
 export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const { cdnKey, uploadConfig, metadata, title, authors, pageTitle, pageSubtitle } = loaderData;
+  const [authorsText, setAuthorsText] = useState(authors ?? '');
 
   // Resolve check services at render time to avoid serialization issues
   // Construct minimal AppConfig from ClientDeploymentConfig
@@ -398,12 +399,12 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
         title={pageTitle}
         subtitle={pageSubtitle}
         hasSecondaryNav={false}
-        className="mx-auto space-y-16 max-w-3xl"
+        className="space-y-16 max-w-none text-left"
       >
         <SectionWithHeading
           heading="Upload some files"
           icon={<Upload className="w-5 h-5" />}
-          className="space-y-4"
+          className="space-y-4 max-w-3xl"
         >
           <p className="text-md text-muted-foreground">
             Let's start with your manuscript files and we will see what we can determine from them.
@@ -414,42 +415,56 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             loadedFileMetadata={metadata as any}
           />
         </SectionWithHeading>
-        <SectionWithHeading heading="Preview" icon={<Eye className="w-5 h-5" />}>
-          <React.Suspense fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}>
+        <SectionWithHeading
+          heading="Metadata Preview"
+          icon={<Eye className="w-5 h-5" />}
+          className="space-y-4"
+        >
+          <p className="text-muted-foreground">Review your document metadata</p>
+          <React.Suspense
+            fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}
+          >
             <Await
               resolve={loaderData.docxPreviewsPromise}
               errorElement={
                 <p className="text-sm text-destructive">Failed to load DOCX previews.</p>
               }
             >
-              {(resolved) => <DocxPreviewer previews={resolved.previews} />}
+              {(resolved) => {
+                const hasPreviews = resolved.previews.length > 0;
+                const layoutClass = hasPreviews
+                  ? 'grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr] lg:items-stretch'
+                  : 'flex gap-6 max-w-5xl';
+                const previewCardClass = hasPreviews
+                  ? 'overflow-hidden p-0 min-h-0 flex flex-col'
+                  : 'overflow-hidden p-0 min-h-0 flex flex-col max-w-xl';
+                return (
+                  <div className={layoutClass}>
+                    <ui.Card className={previewCardClass}>
+                      <div className="min-h-[200px] flex-1 flex flex-col p-4">
+                        <DocxPreviewer previews={resolved.previews} />
+                      </div>
+                    </ui.Card>
+                    <ui.Card className="px-6 pt-4 pb-6 space-y-4 h-fit min-w-lg">
+                      <WorkTitleForm title={title} />
+                      <div className="space-y-1">
+                        <label htmlFor="authors" className="inline-block text-sm font-medium">
+                          Authors
+                        </label>
+                        <ui.Textarea
+                          id="authors"
+                          value={authorsText}
+                          onChange={(e) => setAuthorsText(e.target.value)}
+                          placeholder="Enter author names, comma-separated"
+                          rows={3}
+                        />
+                      </div>
+                    </ui.Card>
+                  </div>
+                );
+              }}
             </Await>
           </React.Suspense>
-        </SectionWithHeading>
-        <SectionWithHeading
-          heading="Capture Your Metadata"
-          icon={<List className="w-5 h-5" />}
-          className="space-y-4"
-        >
-          <p className="text-muted-foreground">
-            We'll need the following metadata about your work, we've tried to guess some of it for
-            you but please check and adjust as needed.
-          </p>
-          <ui.Card className="px-6 pt-4 pb-6 space-y-4">
-            <WorkTitleForm title={title} />
-            <div className="space-y-1">
-              <label htmlFor="authors" className="inline-block text-sm font-medium">
-                Authors
-              </label>
-              <ui.Input
-                id="authors"
-                type="text"
-                value={authors}
-                disabled
-                placeholder="Auto-populated on submission"
-              />
-            </div>
-          </ui.Card>
         </SectionWithHeading>
         <SectionWithHeading
           heading="Select Checks to Run"
@@ -466,7 +481,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             />
           </ui.Card>
         </SectionWithHeading>
-        <ContinueForm title={title} authors={authors} metadata={metadata} />
+        <ContinueForm title={title} authors={authorsText} metadata={metadata} />
       </PageFrame>
     </MainWrapper>
   );
