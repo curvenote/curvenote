@@ -1,6 +1,7 @@
 import type { Route } from './+types/route';
 import {
   withAppScopedContext,
+  userHasScope,
   findWorkByVersion,
   workVersionUploadsStage,
   workVersionUploadsComplete,
@@ -255,7 +256,19 @@ export async function action(args: Route.ActionArgs) {
 
         // Execute each enabled check via its extension. Each check service is
         // responsible for creating its own checkServiceRun rows and jobs.
+        // Require work:checks:dispatch scope before dispatching (same as work-integrity action).
         if (enabledChecks.length > 0) {
+          if (!userHasScope(baseCtx.user, scopes.work.checks.dispatch)) {
+            return data(
+              {
+                error: {
+                  type: 'general',
+                  message: 'You do not have permission to dispatch checks for this work',
+                },
+              },
+              { status: 403 },
+            );
+          }
           const checkServices = getExtensionCheckServicesFromServerConfig(
             baseCtx.$config,
             serverExtensions,
