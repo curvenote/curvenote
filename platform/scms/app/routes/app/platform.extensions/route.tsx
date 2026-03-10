@@ -8,10 +8,10 @@ import {
   useDeploymentConfig,
   getExtensionIcon,
   sanitizeExtensionAdminConfig,
+  ExtensionAdminCardFallback,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
-import { ExtensionCardBodyFallback } from './ExtensionCardBodyFallback';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppPlatformAdminContext(args, { redirectTo: '/app' });
@@ -65,16 +65,11 @@ export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
             return (
               <primitives.Card key={name} lift>
                 <div className="p-4">
-                  {AdminCardComponent && safeConfig !== undefined ? (
-                    <AdminCardComponent
-                      config={safeConfig}
-                      extensionName={name}
-                      ExtensionIcon={ExtensionIcon}
-                    />
-                  ) : (
-                    <ExtensionCardBodyFallback
+                  {safeConfig !== undefined && (
+                    <ExtensionAdminCardFallback
                       name={name}
                       extension={extension}
+                      record={safeConfig}
                       ExtensionIcon={ExtensionIcon}
                     />
                   )}
