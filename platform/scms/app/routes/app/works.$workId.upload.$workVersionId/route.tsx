@@ -1,3 +1,4 @@
+import React from 'react';
 import type { Route } from './+types/route';
 import {
   withAppScopedContext,
@@ -40,14 +41,16 @@ import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
 import { updateWorkVersionTitle } from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
+import { handleFetchPreviewsIntent } from './fetchPreviews.server';
 import type { ChecksMetadataSection } from './checks.schema';
 import { workVersionCheckNameSchema, checksMetadataSchema } from './checks.schema';
 import type { WorkVersionCheckName, WorkVersionMetadata } from '@curvenote/scms-server';
-import { data, redirect } from 'react-router';
-import { List, Upload, CheckSquare } from 'lucide-react';
+import { Await, data, redirect } from 'react-router';
+import { List, Upload, CheckSquare, Eye } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 as uuid } from 'uuidv7';
+import { DocxPreviewer } from './DocxPreviewer';
 
 /**
  * Zod schema for work upload form validation
@@ -157,6 +160,9 @@ export async function loader(args: Route.LoaderArgs) {
     }
   })();
 
+  // Deferred: DOCX first-page previews (resolved in UI via <Await>)
+  const docxPreviewsPromise = handleFetchPreviewsIntent(workVersionId, ctx);
+
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
@@ -167,6 +173,7 @@ export async function loader(args: Route.LoaderArgs) {
     uploadConfig: WORK_UPLOAD_CONFIGURATION,
     pageTitle: pageCopy.title,
     pageSubtitle: pageCopy.subtitle,
+    docxPreviewsPromise,
   };
 }
 
@@ -406,6 +413,18 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             config={uploadConfig['manuscript']}
             loadedFileMetadata={metadata as any}
           />
+        </SectionWithHeading>
+        <SectionWithHeading heading="Preview" icon={<Eye className="w-5 h-5" />}>
+          <React.Suspense fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}>
+            <Await
+              resolve={loaderData.docxPreviewsPromise}
+              errorElement={
+                <p className="text-sm text-destructive">Failed to load DOCX previews.</p>
+              }
+            >
+              {(resolved) => <DocxPreviewer previews={resolved.previews} />}
+            </Await>
+          </React.Suspense>
         </SectionWithHeading>
         <SectionWithHeading
           heading="Capture Your Metadata"
