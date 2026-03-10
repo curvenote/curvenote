@@ -212,6 +212,8 @@ export function AsyncComboBox({
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
     }
+    // Blur the command input immediately so it loses focus before the popover closes
+    inputRef.current?.blur();
     const option = displayOptions.find((opt) => opt.value === optionValue);
     if (option) {
       onValueChange(optionValue);
@@ -233,14 +235,10 @@ export function AsyncComboBox({
     // Inline + empty value: blur then focus after a tick so cmdk leaves "command" state and the input accepts typing again
     if (isEmptyValue && triggerMode === 'inline') {
       const input = inputRef.current;
-      input?.blur();
       setTimeout(() => input?.focus(), 0);
-    } else {
-      // On selection, force the command input to lose focus; in button mode also blur the trigger
-      requestAnimationFrame(() => {
-        inputRef.current?.blur();
-        if (triggerMode !== 'inline') triggerRef.current?.blur();
-      });
+    } else if (triggerMode !== 'inline') {
+      // Button mode: blur the trigger so focus leaves the combobox
+      requestAnimationFrame(() => triggerRef.current?.blur());
     }
   };
 
@@ -317,7 +315,9 @@ export function AsyncComboBox({
           <CommandInput
             ref={inputRef}
             autoComplete="off"
-            placeholder={open ? searchPlaceholder : placeholder}
+            placeholder={
+              open ? (displayValue ? displayValue : searchPlaceholder) : placeholder
+            }
             value={inlineInputValue}
             onValueChange={(v) => {
               setSearchValue(v);
@@ -342,7 +342,7 @@ export function AsyncComboBox({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="shrink-0 opacity-50"
+                  className="opacity-50 shrink-0"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -477,7 +477,7 @@ export function AsyncComboBox({
             <CommandInput
               ref={inputRef}
               autoComplete="off"
-              placeholder={searchPlaceholder}
+              placeholder={displayValue || searchPlaceholder}
               value={searchValue}
               onValueChange={handleInputChange}
               onKeyDown={handleKeyDown}
@@ -488,7 +488,7 @@ export function AsyncComboBox({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="shrink-0 opacity-50"
+                    className="opacity-50 shrink-0"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -496,7 +496,7 @@ export function AsyncComboBox({
                     }}
                     aria-label="Clear selection"
                   >
-                    <X className="size-4" />
+                    <X className="size-3" />
                   </Button>
                 ) : undefined
               }
