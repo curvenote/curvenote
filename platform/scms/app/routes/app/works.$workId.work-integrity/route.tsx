@@ -174,6 +174,7 @@ export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) 
   }
   console.log('deploymentConfig', deploymentConfig);
   console.log('extensionsConfig', extensionsConfig);
+  console.log('extensions', extensions);
   const checkServices = getExtensionCheckServicesFromServerConfig(
     { app: { extensions: extensionsConfig } } as unknown as AppConfig,
     extensions,
