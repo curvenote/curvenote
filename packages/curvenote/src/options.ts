@@ -144,3 +144,10 @@ export function makeSkipRebuildOption() {
     false,
   );
 }
+
+export function makeWatchOnlyOption() {
+  return new Option(
+    '--watch-only',
+    'Build and watch only; do not start content or app server',
+  ).default(false);
+}
