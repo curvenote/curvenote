@@ -1,5 +1,16 @@
 # @curvenote/scms-core
 
+## 0.15.2
+
+### Patch Changes
+
+- [#803](https://github.com/curvenote/curvenote/pull/803) [`0549478`](https://github.com/curvenote/curvenote/commit/0549478873a8ba42f31fda6a013b63c0c156169d) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Adding the SplitButton component
+
+- [#817](https://github.com/curvenote/curvenote/pull/817) [`f1b4256`](https://github.com/curvenote/curvenote/commit/f1b425684e1f7c8d59c8a584dffe0be562447e6d) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Setup feature flag for prototype checks features
+
+- Updated dependencies []:
+  - @curvenote/scms-db@0.15.2
+
 ## 0.15.1
 
 ### Patch Changes
