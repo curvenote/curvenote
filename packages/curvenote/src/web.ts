@@ -16,20 +16,17 @@ import {
   makeVenueOption,
   makeResumeOption,
   makeMaxSizeWebpOption,
-  makeWatchOnlyOption,
 } from './options.js';
 
 function makeCurvenoteStartCLI(program: Command) {
-  const command = makeStartCommand()
-    .addOption(makeWatchOnlyOption())
-    .action(
-      clirun(web.curvenoteStart, {
-        program,
-        requireSiteConfig: true,
-        keepAlive: true,
-        hideNoTokenWarning: true,
-      }),
-    );
+  const command = makeStartCommand().action(
+    clirun(web.curvenoteStart, {
+      program,
+      requireSiteConfig: true,
+      keepAlive: true,
+      hideNoTokenWarning: true,
+    }),
+  );
   return command;
 }
 

@@ -27,7 +27,7 @@ curvenote start
 curvenote deploy
 ```
 
-Use `curvenote start --watch-only` to build and watch for changes without starting a content or app server (useful when another process serves the built site).
+Use `curvenote build --watch` to build the site and watch for changes (useful when another process serves the built site).
 
 [![](images/cli-init.png)](https://curvenote.com/docs/web)
 

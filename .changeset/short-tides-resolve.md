@@ -3,4 +3,4 @@
 'curvenote': minor
 ---
 
-Added `start --watch-only` to curvenote cli
+Added `build --watch` to curvenote cli for site content as well those targets supported by `mystmd`.
