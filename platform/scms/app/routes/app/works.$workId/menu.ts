@@ -1,5 +1,6 @@
 import type { MenuContents } from '@curvenote/scms-core';
 import type { SubmissionWithVersionsAndSite } from './types';
+import { scopes } from '@curvenote/scms-core';
 
 export function buildMenu(
   baseUrl: string,
@@ -22,11 +23,13 @@ export function buildMenu(
       url: `${baseUrl}/details`,
       end: true,
     });
-    menus.push({
-      name: 'work.integrity',
-      label: 'Work Integrity',
-      url: `${baseUrl}/work-integrity`,
-    });
+    if (userScopes.includes(scopes.app.works.checks)) {
+      menus.push({
+        name: 'work.checks',
+        label: 'Check My Work',
+        url: `${baseUrl}/checks`,
+      });
+    }
     menus.push({
       name: 'work.users',
       label: 'Who can access this?',

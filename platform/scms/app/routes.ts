@@ -158,7 +158,7 @@ export default [
         route('upload/:workVersionId', 'routes/app/works.$workId.upload.$workVersionId/route.tsx'),
         route('details', 'routes/app/works.$workId.details/route.tsx'),
         route('users', 'routes/app/works.$workId.users/route.tsx'),
-        route('work-integrity', 'routes/app/works.$workId.work-integrity/route.tsx'),
+        route('checks', 'routes/app/works.$workId.checks/route.tsx'),
         route('site', 'routes/app/route.works.$workId.site.tsx', [
           route(
             ':siteName/submission/:submissionVersionId',
