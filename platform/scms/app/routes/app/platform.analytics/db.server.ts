@@ -36,7 +36,7 @@ export async function dbGetPlatformAnalyticsDashboards() {
       enabled: true,
     },
     orderBy: {
-      title: 'asc',
+      date_created: 'asc',
     },
   });
 }

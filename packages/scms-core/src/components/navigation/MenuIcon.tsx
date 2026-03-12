@@ -72,7 +72,7 @@ export function MenuIcon({
     case 'work.details':
     case 'file-text':
       return <FileText className={classNameWithDefaults} />;
-    case 'work.integrity':
+    case 'work.checks':
     case 'shield-check':
       return <ShieldCheck className={classNameWithDefaults} />;
     case 'files':

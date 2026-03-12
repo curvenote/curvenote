@@ -19,7 +19,7 @@ export const meta: MetaFunction = ({ matches }) => {
 export const action: ActionFunction = async ({ request }) => {
   const sessionStorage = await sessionStorageFactory();
   const session = await sessionStorage.getSession(request.headers.get('Cookie'));
-  const headers = await createLogoutHeaders(sessionStorage, session);
+  const headers = await createLogoutHeaders(sessionStorage, session, request);
   return redirect('/login', { headers });
 };
 

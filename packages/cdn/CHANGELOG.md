@@ -1,5 +1,23 @@
 # @curvenote/cdn
 
+## 0.4.2
+
+### Patch Changes
+
+- [#812](https://github.com/curvenote/curvenote/pull/812) [`eeb45ab`](https://github.com/curvenote/curvenote/commit/eeb45ab367e11c13939e693f463f13d57a7b72e0) Thanks [@rowanc1](https://github.com/rowanc1)! - Add anywidget local url updates
+
+- Updated dependencies []:
+  - @curvenote/common@0.4.2
+
+## 0.4.1
+
+### Patch Changes
+
+- [#810](https://github.com/curvenote/curvenote/pull/810) [`9926a28`](https://github.com/curvenote/curvenote/commit/9926a288c478136718033a7394f305dac4df1a2c) Thanks [@fwkoch](https://github.com/fwkoch)! - Consume latest mystmd packages for anywidget
+
+- Updated dependencies [[`9926a28`](https://github.com/curvenote/curvenote/commit/9926a288c478136718033a7394f305dac4df1a2c)]:
+  - @curvenote/common@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes

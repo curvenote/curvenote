@@ -2,7 +2,7 @@
   "name": "@curvenote/check-implementations",
   "description": "Implementations for Curvenote checks",
   "author": "Franklin Koch <franklin@curvenote.com>",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,14 +25,14 @@
     "test:watch": "vitest watch"
   },
   "dependencies": {
-    "@curvenote/check-definitions": "^0.1.1",
+    "@curvenote/check-definitions": "^0.1.2",
     "@wordpress/wordcount": "^3.50.0",
     "lodash.isequal": "^4.5.0",
     "p-limit": "^3.1.0",
     "unist-util-select": "^4.0.3",
-    "myst-cli": "^1.7.1",
-    "myst-common": "^1.9.3",
-    "myst-frontmatter": "^1.9.3",
+    "myst-cli": "^1.8.2",
+    "myst-common": "^1.9.5",
+    "myst-frontmatter": "^1.9.5",
     "node-fetch": "^3.3.2",
     "vfile": "^5.3.5"
   },

@@ -151,10 +151,10 @@ export async function action(args: Route.ActionArgs) {
 
 export const meta: Route.MetaFunction = ({ matches }) => {
   const branding = getBrandingFromMetaMatches(matches);
-  return [{ title: joinPageTitle('Work Integrity', branding.title) }];
+  return [{ title: joinPageTitle('Check My Work', branding.title) }];
 };
 
-export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) {
+export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   const {
     work,
     workVersion,
@@ -194,7 +194,7 @@ export default function WorkIntegrityPage({ loaderData }: Route.ComponentProps) 
   const basePath = `/app/works/${work.id}`;
 
   return (
-    <PageFrame title="Work Integrity">
+    <PageFrame title="Check My Work">
       <div className="mt-4 space-y-6">
         {checkServices.map((service) => {
           const HeaderComponent = service.sectionHeaderComponent;

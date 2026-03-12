@@ -177,6 +177,10 @@ The directive will parse `any:widget` and `any:bundle` directives in your markdo
 
 If you're building a theme or React application that renders MyST documents, you'll need to add the React renderers to display the widgets.
 
+**For the standard mystmd `{anywidget}` directive**, use [@myst-theme/anywidget](https://github.com/jupyter-book/myst-theme/tree/main/packages/anywidget) and merge its `ANY_RENDERERS` with your theme's default renderers.
+
+**For Curvenote's `any:bundle` / `any:widget` block directive**, use the renderers from this package:
+
 **Import the renderers:**
 
 ```typescript

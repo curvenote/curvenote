@@ -5,7 +5,7 @@ export default function SignupLayout() {
   return (
     <div data-name="signup-layout">
       <Outlet />
-      <div className="fixed bottom-0 left-0 right-0 flex justify-end p-2">
+      <div className="flex fixed right-0 bottom-0 left-0 justify-end p-2">
         <PoweredByCurvenoteText message="Welcome to" />
       </div>
     </div>

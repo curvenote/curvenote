@@ -174,30 +174,6 @@ export default defineConfig(async ({ mode }) => {
     resolve: {
       // Dedupe these packages to avoid multiple instances
       dedupe: ['react', 'react-dom', 'react-router'],
-      alias:
-        mode === 'production'
-          ? {
-              http: 'node:http',
-              '@hhmi/checks-proofig/client': path.resolve(
-                __dirname,
-                '../../extensions/hhmi-checks/packages/checks-proofig/dist/client.js',
-              ),
-              '@hhmi/checks-proofig': path.resolve(
-                __dirname,
-                '../../extensions/hhmi-checks/packages/checks-proofig/dist/index.js',
-              ),
-            }
-          : {
-              http: 'node:http',
-              '@hhmi/checks-proofig/client': path.resolve(
-                __dirname,
-                '../../extensions/hhmi-checks/packages/checks-proofig/src/client.ts',
-              ),
-              '@hhmi/checks-proofig': path.resolve(
-                __dirname,
-                '../../extensions/hhmi-checks/packages/checks-proofig/src/index.ts',
-              ),
-            },
     },
   };
   return userConfig;
