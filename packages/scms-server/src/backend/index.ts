@@ -31,3 +31,5 @@ export * from './storage/index.js';
 export * from './services/index.js';
 export * from './signup/index.js';
 export * from './uploads/index.js';
+
+export { CURVENOTE_CLIENT_MINIMUM_VERSION } from './minimumClient.server.js';

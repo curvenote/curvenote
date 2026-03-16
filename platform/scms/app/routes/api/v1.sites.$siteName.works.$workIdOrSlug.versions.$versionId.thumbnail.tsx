@@ -1,6 +1,7 @@
 import type { Route } from './+types/v1.sites.$siteName.works.$workIdOrSlug.versions.$versionId.thumbnail';
 import { error404, httpError } from '@curvenote/scms-core';
 import { withInsecureSiteContext, sites, sortSignedUrlQuery } from '@curvenote/scms-server';
+import { vercelCacheHeaders } from 'app/lib/vercel-cache';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withInsecureSiteContext(args);
@@ -19,9 +20,13 @@ export async function loader(args: Route.LoaderArgs) {
   // this just gets the thumbnail from the version directly, workIdOrSlug is not actually used
   const thumbnail = await sites.works.versions.thumbnail(ctx, versionId, query);
   if (!thumbnail) throw error404('Thumbnail not found');
+  const headers = vercelCacheHeaders({
+    maxAge: 3600,
+    sMaxAge: 3600,
+    staleWhileRevalidate: 3600,
+    staleIfError: 86400,
+  });
   return new Response(thumbnail, {
-    headers: {
-      'Cache-Control': 'max-age=3600',
-    },
+    headers,
   });
 }
