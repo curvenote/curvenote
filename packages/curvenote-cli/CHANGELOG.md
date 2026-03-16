@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.14.3
+
+### Patch Changes
+
+- [#771](https://github.com/curvenote/curvenote/pull/771) [`6ede6b9`](https://github.com/curvenote/curvenote/commit/6ede6b9ceb069c1a7fb803916cfcadbeeb31e780) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Changed default configuration to use `scms` subdomain
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.14.3
+
 ## 0.14.2
 
 ### Patch Changes

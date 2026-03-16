@@ -1,5 +1,17 @@
 # @curvenote/scms-server
 
+## 0.15.3
+
+### Patch Changes
+
+- [#823](https://github.com/curvenote/curvenote/pull/823) [`2c4308c`](https://github.com/curvenote/curvenote/commit/2c4308c5e40da28044f7528728a09804b4cff166) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Return min client version in v1/config
+
+- [#822](https://github.com/curvenote/curvenote/pull/822) [`6d5955f`](https://github.com/curvenote/curvenote/commit/6d5955f55f20b306703d0a387ae930c9a3c19a69) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Increase min client version to v0.14.2
+
+- Updated dependencies []:
+  - @curvenote/scms-core@0.15.3
+  - @curvenote/scms-db@0.15.3
+
 ## 0.15.2
 
 ### Patch Changes
