@@ -9,12 +9,14 @@ import {
 } from '@curvenote/scms-server';
 import { error401, httpError, site } from '@curvenote/scms-core';
 import { z } from 'zod';
+import { SEMI_STATIC_BURST_PROTECTION, vercelCacheHeaders } from 'app/lib/vercel-cache';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withInsecureSiteContext(args);
   const contentVersion = await sites.dbGetSiteContent(ctx.site);
   const dto = sites.formatSiteWithContentDTO(ctx, ctx.site, contentVersion);
-  return Response.json(dto);
+  const headers = vercelCacheHeaders(SEMI_STATIC_BURST_PROTECTION);
+  return Response.json(dto, { headers });
 }
 
 const UpdateSitePatchBodySchema = z.object({
