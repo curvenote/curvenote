@@ -6,7 +6,7 @@ const CLIENT_NAME_HEADER = `x-client-name`;
 const CLIENT_VERSION_HEADER = `x-client-version`;
 const MINIMUM_VERSION_RESPONSE_HEADER = `x-minimum-client-version`;
 const CURVENOTE_CLIENT_NAME = 'Curvenote Javascript Client';
-const CURVENOTE_CLIENT_MINIMUM_VERSION = '0.14.2';
+export const CURVENOTE_CLIENT_MINIMUM_VERSION = '0.14.2';
 
 export async function throwOnMinimumCurvenoteClientVersion(ctx: Context, request: Request) {
   const clientName = request.headers.get(CLIENT_NAME_HEADER);
