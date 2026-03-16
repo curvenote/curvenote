@@ -1,6 +1,7 @@
 import type { Route } from './+types/v1.sites.$siteName.works.$workIdOrSlug.versions.$versionId.social';
 import { error404, httpError } from '@curvenote/scms-core';
 import { withInsecureSiteContext, sites } from '@curvenote/scms-server';
+import { vercelCacheHeaders } from 'app/lib/vercel-cache';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withInsecureSiteContext(args);
@@ -19,10 +20,15 @@ export async function loader(args: Route.LoaderArgs) {
   // TODO - serve up a default curvenote journals thumbnail?
   if (!social) throw error404('Social image only available for published works');
 
+  const headers = vercelCacheHeaders({
+    maxAge: 3600,
+    sMaxAge: 86400,
+    staleIfError: 86400,
+  });
   return new Response(social, {
     headers: {
       'Content-Type': 'image/png',
-      'Cache-Control': 'max-age=86400',
+      ...headers,
     },
   });
 }
