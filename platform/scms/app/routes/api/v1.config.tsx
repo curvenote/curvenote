@@ -1,8 +1,9 @@
 import type { Route } from './+types/v1.config';
 import { error401 } from '@curvenote/scms-core';
-import { withContext } from '@curvenote/scms-server';
+import { CURVENOTE_CLIENT_MINIMUM_VERSION, withContext } from '@curvenote/scms-server';
 
 type CLIConfigData = {
+  minClientVersion: string;
   apiUrl: string;
   adminUrl: string;
   editorApiUrl: string;
@@ -24,6 +25,7 @@ export async function loader(args: Route.LoaderArgs) {
   const ctx = await withContext(args);
   if (!ctx.user) return error401();
 
+  const minClientVersion = CURVENOTE_CLIENT_MINIMUM_VERSION;
   const apiUrl = ctx.$config.api.url;
   const adminUrl = ctx.$config.app.adminUrl;
   const editorApiUrl = ctx.$config.api.editorApiUrl;
@@ -34,6 +36,7 @@ export async function loader(args: Route.LoaderArgs) {
   const deploymentCdnUrl = ctx.$config.api.knownBucketInfoMap.cdn?.cdn ?? '';
 
   const dto: CLIConfigData = {
+    minClientVersion,
     apiUrl,
     adminUrl,
     editorApiUrl,
