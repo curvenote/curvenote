@@ -377,6 +377,7 @@ export function AuthorCard({
                 <div className="relative flex-1 min-w-0">
                   <ui.AsyncComboBox
                     triggerMode="inline"
+                    boxed
                     value=""
                     searchValue={newAffiliationInput}
                     onValueChange={onRorSelectFromCombobox}
@@ -581,6 +582,7 @@ export function AuthorCard({
                   >
                     <ui.AsyncComboBox
                       triggerMode="inline"
+                      boxed
                       value=""
                       searchValue={newAffiliationInput}
                       onValueChange={onRorSelectFromCombobox}

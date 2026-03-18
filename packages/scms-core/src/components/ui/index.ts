@@ -22,6 +22,7 @@ export * from './ErrorMessage.js';
 export * from './FormLabel.js';
 export * from './InlineEditable.js';
 export * from './input.js';
+export * from './input-with-adornments.js';
 export * from './label.js';
 export * from './limited-textarea.js';
 export * from './listings/index.js';

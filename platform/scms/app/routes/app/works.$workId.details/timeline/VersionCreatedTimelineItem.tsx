@@ -84,6 +84,7 @@ export function VersionCreatedTimelineItem({
   const hasDocx = hasFiles && Object.values(files!).some(isDocxFile);
   const hasPdf = hasFiles && Object.values(files!).some(isPdfFile);
   const showGeneratePdf =
+    false && // TODO: temporarily disabled here pending async dispatching
     canExport &&
     hasDocx &&
     !hasPdf &&

@@ -124,6 +124,7 @@ export function WorkRolesForm({
             Search User
           </label>
           <ui.AsyncComboBox
+            boxed
             value={selectedUser}
             onValueChange={setSelectedUser}
             onSearch={searchUsers}

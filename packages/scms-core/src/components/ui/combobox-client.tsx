@@ -19,6 +19,7 @@ interface ClientComboBoxProps {
   contentClassName?: string;
   error?: string;
   onErrorClear?: () => void;
+  boxed?: boolean;
 }
 
 export function ClientComboBox({
@@ -34,6 +35,7 @@ export function ClientComboBox({
   contentClassName,
   error,
   onErrorClear,
+  boxed = false,
 }: ClientComboBoxProps) {
   // Add clear option when there's a value
   const optionsWithClear = value
@@ -69,6 +71,7 @@ export function ClientComboBox({
         disabled={disabled}
         triggerClassName={cn(error && 'border-red-500 focus:border-red-500', triggerClassName)}
         contentClassName={contentClassName}
+        boxed={boxed}
       />
 
       {/* Error message */}

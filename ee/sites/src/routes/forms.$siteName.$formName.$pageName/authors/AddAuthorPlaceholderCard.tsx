@@ -50,6 +50,7 @@ export function AddAuthorPlaceholderCard({
           <div className="relative flex-1 min-w-0">
             <ui.AsyncComboBox
               triggerMode="inline"
+              boxed
               value=""
               searchValue={addAuthorSearchValue}
               onValueChange={onAuthorSelect}

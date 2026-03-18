@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react';
 
 import { cn } from '../../utils/cn.js';
 import { Button } from './button.js';
@@ -58,6 +58,12 @@ export interface AsyncComboBoxProps {
   externalLoading?: boolean;
   /** When provided, the search/input text is controlled by the parent (e.g. so it clears when parent clears after "Add"). */
   searchValue?: string;
+  /** Optional parent-resolved label for the current value, used while options are still loading. */
+  selectedLabel?: string;
+  /** Optional custom renderer for each option row. */
+  renderOption?: (option: ComboBoxOption) => React.ReactNode;
+  /** When true, applies bordered/padded input wrapper styling. */
+  boxed?: boolean;
 }
 
 export function AsyncComboBox({
@@ -82,6 +88,9 @@ export function AsyncComboBox({
   externalOptions,
   externalLoading,
   searchValue: controlledSearchValue,
+  selectedLabel,
+  renderOption,
+  boxed = false,
 }: AsyncComboBoxProps) {
   const [open, setOpen] = React.useState(false);
   const [internalSearchValue, setInternalSearchValue] = React.useState('');
@@ -236,14 +245,11 @@ export function AsyncComboBox({
     } else if (option) {
       setSelectedOption(option);
     }
-    // Inline + empty value: blur then focus after a tick so cmdk leaves "command" state and the input accepts typing again
-    if (isEmptyValue && triggerMode === 'inline') {
-      const input = inputRef.current;
-      input?.blur();
-      setTimeout(() => input?.focus(), 0);
-    } else {
-      requestAnimationFrame(() => focusAfterClose());
-    }
+    // On selection, close and explicitly blur so focus does not remain in the control.
+    requestAnimationFrame(() => {
+      inputRef.current?.blur();
+      triggerRef.current?.blur();
+    });
   };
 
   const clearSelection = () => {
@@ -271,7 +277,7 @@ export function AsyncComboBox({
     }
   };
 
-  const displayValue = selectedOption?.label || value || '';
+  const displayValue = selectedOption?.label ?? selectedLabel ?? '';
 
   // Show error if there's a value and an error, but not when the dropdown is open
   const shouldShowError = Boolean(error && displayValue && !open);
@@ -283,10 +289,20 @@ export function AsyncComboBox({
     }
     setOpen(true);
     setSearchError(null);
-    // When controlled, parent owns the value; don't clear on focus (only parent clears on "Add").
+    // In uncontrolled mode, mirror text-input behavior:
+    // if there is a selected value, show it in the input while focused.
     if (controlledSearchValue === undefined) {
-      setSearchValue(''); // so user types fresh and placeholder shows
+      if (value && displayValue && searchValue !== displayValue) {
+        setSearchValue(displayValue);
+      }
     }
+    // Place caret at end, like a regular text input focusing existing text.
+    setTimeout(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    }, 0);
   };
 
   const handleInlineBlur = () => {
@@ -315,6 +331,7 @@ export function AsyncComboBox({
           <CommandInput
             ref={inputRef}
             autoComplete="off"
+            boxed={boxed}
             placeholder={displayValue ? searchPlaceholder : placeholder}
             value={inlineInputValue}
             onValueChange={(v) => {
@@ -334,13 +351,31 @@ export function AsyncComboBox({
             aria-expanded={open}
             aria-haspopup="listbox"
             aria-controls={open ? 'combobox-list-inline' : undefined}
+            trailingAction={
+              value ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-50 shrink-0"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clearSelection();
+                  }}
+                  aria-label="Clear selection"
+                >
+                  <X className="size-3.5" strokeWidth={1.5} />
+                </Button>
+              ) : undefined
+            }
           />
           {open && searchValue.length > 0 && (
             <CommandList
               id="combobox-list-inline"
               role="listbox"
               className={cn(
-                'absolute right-0 left-0 top-full z-10 mt-1 rounded-md border shadow-md max-h-[300px] border-border bg-popover',
+                'absolute right-0 left-0 top-full z-50 mt-1 rounded-md border shadow-md max-h-[300px] border-border bg-popover',
                 contentClassName,
               )}
             >
@@ -385,14 +420,20 @@ export function AsyncComboBox({
                           value === option.value ? 'opacity-100 text-green-600' : 'opacity-0',
                         )}
                       />
-                      <div className="flex flex-col">
-                        <span>{option.label}</span>
-                        {option.description && (
-                          <span className="text-xs text-muted-foreground">
-                            {option.description}
-                          </span>
-                        )}
-                      </div>
+                      {renderOption ? (
+                        <div className="flex flex-1 gap-2 justify-between items-center min-w-0">
+                          {renderOption(option)}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col">
+                          <span>{option.label}</span>
+                          {option.description && (
+                            <span className="text-xs text-muted-foreground">
+                              {option.description}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -450,11 +491,30 @@ export function AsyncComboBox({
             <CommandInput
               ref={inputRef}
               autoComplete="off"
+              boxed={boxed}
               placeholder={searchPlaceholder}
               value={searchValue}
               onValueChange={handleInputChange}
               onKeyDown={handleKeyDown}
               className="py-1 h-9"
+              trailingAction={
+                value ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-50 shrink-0"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      clearSelection();
+                    }}
+                    aria-label="Clear selection"
+                  >
+                    <X className="size-2.5" strokeWidth={1.5} />
+                  </Button>
+                ) : undefined
+              }
             />
             <CommandList id="combobox-list" role="listbox">
               {searchValue.length > 0 && searchValue.length < minSearchLength && (
@@ -498,14 +558,20 @@ export function AsyncComboBox({
                           value === option.value ? 'opacity-100 text-green-600' : 'opacity-0',
                         )}
                       />
-                      <div className="flex flex-col">
-                        <span>{option.label}</span>
-                        {option.description && (
-                          <span className="text-xs text-muted-foreground">
-                            {option.description}
-                          </span>
-                        )}
-                      </div>
+                      {renderOption ? (
+                        <div className="flex flex-1 gap-2 justify-between items-center min-w-0">
+                          {renderOption(option)}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col">
+                          <span>{option.label}</span>
+                          {option.description && (
+                            <span className="text-xs text-muted-foreground">
+                              {option.description}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>

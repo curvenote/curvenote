@@ -170,8 +170,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
       pathname === `/app/works/${workId}/` ||
       pathname.startsWith(`/app/works/${workId}/details`) ||
       pathname.startsWith(`/app/works/${workId}/users`) ||
-      pathname.startsWith(`/app/works/${workId}/work-integrity`) ||
-      pathname.startsWith(`/app/works/${workId}/site/`);
+      pathname.startsWith(`/app/works/${workId}/work-integrity`);
 
     if (!isUploadPath && isDetailsLikePath) {
       throw redirect(`/app/works/${workId}/upload/${workVersions[0].id}`);

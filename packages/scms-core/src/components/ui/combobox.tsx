@@ -33,6 +33,7 @@ interface ComboBoxProps {
   className?: string;
   triggerClassName?: string;
   contentClassName?: string;
+  boxed?: boolean;
 }
 
 export function ComboBox({
@@ -45,6 +46,7 @@ export function ComboBox({
   disabled = false,
   triggerClassName,
   contentClassName,
+  boxed = false,
 }: ComboBoxProps) {
   const [open, setOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState('');
@@ -84,6 +86,7 @@ export function ComboBox({
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={searchPlaceholder}
+            boxed={boxed}
             className="py-1 h-9"
             value={searchValue}
             onValueChange={setSearchValue}

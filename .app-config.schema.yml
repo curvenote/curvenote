@@ -430,6 +430,59 @@ properties:
                 description: Welcome videos to display on the dashboard
                 items:
                   $ref: '#/$defs/Video'
+      dashboard:
+        type: object
+        description: Dashboard-specific configuration
+        properties:
+          welcome:
+            type: object
+            description: Welcome content to display on the dashboard
+            properties:
+              title:
+                type: string
+                description: Title of the welcome content
+              tagline:
+                type: string
+                description: Tagline of the welcome content
+              description:
+                type: string
+                description: Main paragraph of the welcome content
+              showTasks:
+                type: boolean
+                description: Whether to show the tasks section on the dashboard
+              videos:
+                type: array
+                description: Welcome videos to display on the dashboard
+                items:
+                  $ref: '#/$defs/Video'
+          tasks:
+            type: object
+            description: Task layout and section configuration for the dashboard
+            additionalProperties: false
+            properties:
+              enabled:
+                type: boolean
+                description: Whether dashboard tasks are displayed
+                default: false
+              sections:
+                type: array
+                description: Ordered list of task sections and the categories each section should include
+                items:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - title
+                    - categories
+                  properties:
+                    title:
+                      type: string
+                      description: Section title shown above grouped task cards
+                    categories:
+                      type: array
+                      description: Ordered list of task categories to include in this section
+                      items:
+                        type: string
+                        pattern: '^[a-z0-9][a-z0-9 _-]*$'
       renderServiceUrl:
         type: string
       statusBar:
