@@ -55,6 +55,37 @@ export async function dbGetUsers() {
   });
 }
 
+export async function dbGetUserByIdForAnalytics(userId: string) {
+  const prisma = await getPrismaClient();
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      display_name: true,
+      system_role: true,
+      primaryProvider: true,
+      pending: true,
+      ready_for_approval: true,
+      disabled: true,
+      roles: {
+        include: {
+          role: {
+            select: {
+              name: true,
+              scopes: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) throw new Error('User not found');
+  return user;
+}
+
 export async function dbCountUsers() {
   const prisma = await getPrismaClient();
   return prisma.user.count({

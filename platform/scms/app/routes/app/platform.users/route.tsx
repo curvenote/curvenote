@@ -10,6 +10,7 @@ import {
   approveAndNotifyUser,
   dbCountUsers,
   dbGetUsers,
+  dbGetUserByIdForAnalytics,
   dbRejectUser,
   dbToggleUserDisabled,
 } from './db.server';
@@ -48,10 +49,11 @@ export async function action(args: Route.ActionArgs) {
   const formData = await args.request.formData();
 
   return withValidFormData(PlatformUserActionSchema, formData, async (payload) => {
-    console.log('payload', payload);
     switch (payload.intent) {
       case 'approve-user': {
         await approveAndNotifyUser(ctx, payload.userId);
+        const updatedUser = await dbGetUserByIdForAnalytics(payload.userId);
+        await ctx.identifyEvent(updatedUser);
         await ctx.trackEvent(TrackEvent.USER_APPROVED, {
           targetUserId: payload.userId,
         });
@@ -60,6 +62,8 @@ export async function action(args: Route.ActionArgs) {
       }
       case 'reject-user': {
         const user = await dbRejectUser(payload.userId, ctx.user.id);
+        const updatedUser = await dbGetUserByIdForAnalytics(payload.userId);
+        await ctx.identifyEvent(updatedUser);
         await ctx.trackEvent(TrackEvent.USER_REJECTED, {
           targetUserId: payload.userId,
           targetUserEmail: user?.email,
@@ -73,6 +77,8 @@ export async function action(args: Route.ActionArgs) {
           throw new Error('disabled field is required for toggle-disabled intent');
         }
         const user = await dbToggleUserDisabled(payload.userId, payload.disabled, ctx.user.id);
+        const updatedUser = await dbGetUserByIdForAnalytics(payload.userId);
+        await ctx.identifyEvent(updatedUser);
         await ctx.trackEvent(
           payload.disabled ? TrackEvent.USER_DISABLED : TrackEvent.USER_ENABLED,
           {
@@ -85,10 +91,32 @@ export async function action(args: Route.ActionArgs) {
         return { success: true, user };
       }
       case 'assign-role': {
-        return handleAssignRole(ctx, formData);
+        const result = await handleAssignRole(ctx, formData);
+        const success =
+          typeof result === 'object' &&
+          result != null &&
+          'success' in result &&
+          (result as any).success === true;
+        if (success) {
+          const updatedUser = await dbGetUserByIdForAnalytics(payload.userId);
+          await ctx.identifyEvent(updatedUser);
+          await ctx.analytics.flush();
+        }
+        return result;
       }
       case 'remove-role': {
-        return handleRemoveRole(ctx, formData);
+        const result = await handleRemoveRole(ctx, formData);
+        const success =
+          typeof result === 'object' &&
+          result != null &&
+          'success' in result &&
+          (result as any).success === true;
+        if (success) {
+          const updatedUser = await dbGetUserByIdForAnalytics(payload.userId);
+          await ctx.identifyEvent(updatedUser);
+          await ctx.analytics.flush();
+        }
+        return result;
       }
       default: {
         throw new Error('Invalid intent');
