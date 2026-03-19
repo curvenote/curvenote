@@ -48,3 +48,5 @@ yalc.lock
 !.app-config.sample.yml
 
 types/app-config.d.ts
+
+.claude/worktrees
