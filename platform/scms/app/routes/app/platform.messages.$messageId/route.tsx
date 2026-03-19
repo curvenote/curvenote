@@ -4,7 +4,11 @@ import { useState } from 'react';
 import { PageFrame, ui, primitives, formatDatetime } from '@curvenote/scms-core';
 import { withAppPlatformAdminContext, dbGetMessage } from '@curvenote/scms-server';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { extractMessageEmailData, isLikelyHtmlContent } from '../platform.messages/message-utils';
+import {
+  extractInboundEmailValidationWarning,
+  extractMessageEmailData,
+  isLikelyHtmlContent,
+} from '../platform.messages/message-utils';
 
 export const meta: Route.MetaFunction = () => {
   return [
@@ -28,8 +32,8 @@ export async function loader(args: Route.LoaderArgs) {
   return { message };
 }
 
-function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (status.toUpperCase()) {
+function getStatusVariant(status: string | undefined | null): 'default' | 'secondary' | 'destructive' | 'outline' {
+  switch ((status ?? '').toUpperCase()) {
     case 'SUCCESS':
       return 'default';
     case 'ERROR':
@@ -98,6 +102,8 @@ export default function MessageDetailPage({ loaderData }: Route.ComponentProps) 
     fallbackBody: 'Unknown',
   });
 
+  const validationWarning = extractInboundEmailValidationWarning(message);
+
   const breadcrumbs = [
     { label: 'Platform Messages', href: '/app/platform/messages' },
     { label: message.id, isCurrentPage: true },
@@ -147,6 +153,20 @@ export default function MessageDetailPage({ loaderData }: Route.ComponentProps) 
               </div>
             </div>
           </div>
+          {validationWarning && (
+            <div className="mt-4">
+              <ui.SimpleAlert
+                type="warning"
+                size="normal"
+                message={
+                  <div>
+                    <div className="mb-1 font-semibold">Validation</div>
+                    <div className="whitespace-pre-wrap">{validationWarning.reason}</div>
+                  </div>
+                }
+              />
+            </div>
+          )}
           {body && (
             <div className="border-t border-gray-200 dark:border-gray-700">
               <div className="my-2 -ml-2 text-xs font-medium">Message Body:</div>

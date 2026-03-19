@@ -1,10 +1,48 @@
 import type { Message } from '@curvenote/scms-db';
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** Safe string for display; ignores objects/arrays so we never render [object Object]. */
+function asTrimmedString(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value).trim();
+  }
+  return '';
+}
+
+function joinDisplayParts(value: unknown[]): string | undefined {
+  const parts = value.map((item) => asTrimmedString(item)).filter((s) => s.length > 0);
+  return parts.length > 0 ? parts.join(', ') : undefined;
+}
+
+function pickDisplayString(value: unknown, fallback: string): string {
+  if (value === null || value === undefined) return fallback;
+  if (Array.isArray(value)) {
+    return joinDisplayParts(value) ?? fallback;
+  }
+  const s = asTrimmedString(value);
+  return s.length > 0 ? s : fallback;
+}
+
+function pickOptionalDisplayString(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (Array.isArray(value)) {
+    return joinDisplayParts(value);
+  }
+  const s = asTrimmedString(value);
+  return s.length > 0 ? s : undefined;
+}
+
 /**
  * Returns true when the string looks like HTML (document or fragment), e.g. outbound email bodies.
  * Plain text (no leading markup) returns false so callers can show monospace text instead of an iframe.
  */
 export function isLikelyHtmlContent(body: string): boolean {
+  if (typeof body !== 'string') return false;
   let t = body.trim();
   if (!t) return false;
   t = t.replace(/^(\s*<!--[\s\S]*?-->\s*)+/i, '').trim();
@@ -26,6 +64,47 @@ export interface MessageEmailData {
   body: string | undefined;
 }
 
+/** When inbound email results indicate failed content validation (e.g. missing template markers). */
+export interface InboundEmailValidationWarning {
+  /** Human-readable explanation, usually from `results.validation.reason`. */
+  reason: string;
+}
+
+/**
+ * For inbound email messages, returns validation failure details when `results.isValid === false`
+ * or `results.validation.isValid === false`.
+ */
+export function extractInboundEmailValidationWarning(
+  message: Message,
+): InboundEmailValidationWarning | null {
+  if (!message || typeof message.type !== 'string' || message.type !== 'inbound_email') {
+    return null;
+  }
+
+  const raw = message.results;
+  if (raw === null || raw === undefined || !isPlainRecord(raw)) {
+    return null;
+  }
+
+  const validationRaw = raw.validation;
+  const validation = isPlainRecord(validationRaw) ? validationRaw : undefined;
+
+  const topInvalid = raw.isValid === false;
+  const nestedInvalid = validation !== undefined && validation.isValid === false;
+  if (!topInvalid && !nestedInvalid) {
+    return null;
+  }
+
+  const reasonFromValidation = validation ? asTrimmedString(validation.reason) : '';
+  const reasonTop = asTrimmedString(raw.reason);
+  const reason =
+    reasonFromValidation ||
+    reasonTop ||
+    'This message did not pass validation checks. See structured results for details.';
+
+  return { reason };
+}
+
 /**
  * Extracts email display data from a message based on its type and schema availability.
  * Handles both schema-based (new) and legacy (backward compatibility) message formats.
@@ -42,10 +121,31 @@ export function extractMessageEmailData(
     fallbackBody?: string;
   } = {},
 ): MessageEmailData {
-  const payload = message.payload as any;
-  const results = message.results as any;
-  const hasPayloadSchema = payload?.$schema;
-  const hasResultsSchema = results?.$schema;
+  if (!message) {
+    return {
+      subject: 'No subject',
+      from: 'Unknown',
+      to: undefined,
+      date: undefined,
+      body: options.fallbackBody,
+    };
+  }
+
+  const payloadUnknown = message.payload;
+  const payload = isPlainRecord(payloadUnknown) ? payloadUnknown : undefined;
+  const headers =
+    payload && isPlainRecord(payload.headers)
+      ? (payload.headers as Record<string, unknown>)
+      : undefined;
+  const envelope =
+    payload && isPlainRecord(payload.envelope)
+      ? (payload.envelope as Record<string, unknown>)
+      : undefined;
+
+  const resultsUnknown = message.results;
+  const results = isPlainRecord(resultsUnknown) ? resultsUnknown : undefined;
+  const hasPayloadSchema = Boolean(payload && '$schema' in payload && payload.$schema);
+  const hasResultsSchema = Boolean(results && '$schema' in results && results.$schema);
 
   const { fallbackTo = undefined, fallbackDate = undefined, fallbackBody = undefined } = options;
 
@@ -59,50 +159,58 @@ export function extractMessageEmailData(
   if (message.type === 'outbound_email') {
     // Outbound email - payload contains email details, results only has success info
     if (hasPayloadSchema && payload) {
-      // Use payload for email details (new schema-based structure)
-      subject = payload.subject || 'No subject';
-      from = payload.from || 'Unknown';
-      to = payload.to;
-      date = payload.sentAt;
-      body = payload.html;
+      subject = pickDisplayString(payload.subject, 'No subject');
+      from = pickDisplayString(payload.from, 'Unknown');
+      to = pickOptionalDisplayString(payload.to) ?? fallbackTo;
+      date = pickOptionalDisplayString(payload.sentAt) ?? fallbackDate;
+      body = pickOptionalDisplayString(payload.html) ?? fallbackBody;
     } else {
-      // Fallback to payload (backward compatibility for records without schema)
-      subject = payload?.subject || 'No subject';
-      from = payload?.from || 'Unknown';
-      to = payload?.to || fallbackTo;
-      date = payload?.sentAt || fallbackDate;
-      body = payload?.html || fallbackBody;
+      subject = pickDisplayString(payload?.subject, 'No subject');
+      from = pickDisplayString(payload?.from, 'Unknown');
+      to = pickOptionalDisplayString(payload?.to) ?? fallbackTo;
+      date = pickOptionalDisplayString(payload?.sentAt) ?? fallbackDate;
+      body = pickOptionalDisplayString(payload?.html) ?? fallbackBody;
     }
   } else if (message.type === 'inbound_email') {
     // Inbound email - results has structured data, payload is unknown structure
     if (hasResultsSchema && results) {
-      // Use results for structured data (new schema-based structure)
-      subject = results.subject || 'No subject';
-      from = results.from || 'Unknown';
-      to = results.to;
-      date = results.receivedAt;
-      body = results.plain || results.html;
+      subject = pickDisplayString(results.subject, 'No subject');
+      from = pickDisplayString(results.from, 'Unknown');
+      to = pickOptionalDisplayString(results.to);
+      date = pickOptionalDisplayString(results.receivedAt);
+      body =
+        pickOptionalDisplayString(results.plain) ??
+        pickOptionalDisplayString(results.html) ??
+        undefined;
     } else {
-      // Fallback to payload (backward compatibility for existing records)
-      subject = payload?.headers?.subject || payload?.subject || 'No subject';
-      from = payload?.headers?.from || payload?.envelope?.from || payload?.from || 'Unknown';
-      to = payload?.headers?.to || payload?.envelope?.to || payload?.to;
-      date = payload?.headers?.date || payload?.envelope?.date || payload?.date;
-      body = payload?.plain || payload?.html;
+      subject = pickDisplayString(headers?.subject ?? payload?.subject, 'No subject');
+      from = pickDisplayString(headers?.from ?? envelope?.from ?? payload?.from, 'Unknown');
+      to =
+        pickOptionalDisplayString(headers?.to) ??
+        pickOptionalDisplayString(envelope?.to) ??
+        pickOptionalDisplayString(payload?.to);
+      date =
+        pickOptionalDisplayString(headers?.date) ??
+        pickOptionalDisplayString(envelope?.date) ??
+        pickOptionalDisplayString(payload?.date);
+      body = pickOptionalDisplayString(payload?.plain) ?? pickOptionalDisplayString(payload?.html);
     }
   } else {
     // Other message types - use payload
-    subject = payload?.headers?.subject || payload?.subject || message.id;
-    from = payload?.headers?.from || payload?.envelope?.from || payload?.from || 'Unknown';
-    to = payload?.headers?.to || payload?.envelope?.to || payload?.to;
-    date = payload?.headers?.date || payload?.envelope?.date || payload?.date;
-    // Ensure body is always a string or undefined, never an object
-    const plainOrHtml = payload?.plain || payload?.html;
-    if (plainOrHtml && typeof plainOrHtml === 'string') {
-      body = plainOrHtml;
-    } else {
-      body = fallbackBody;
-    }
+    subject = pickDisplayString(headers?.subject ?? payload?.subject, message.id ?? 'No subject');
+    from = pickDisplayString(headers?.from ?? envelope?.from ?? payload?.from, 'Unknown');
+    to =
+      pickOptionalDisplayString(headers?.to) ??
+      pickOptionalDisplayString(envelope?.to) ??
+      pickOptionalDisplayString(payload?.to);
+    date =
+      pickOptionalDisplayString(headers?.date) ??
+      pickOptionalDisplayString(envelope?.date) ??
+      pickOptionalDisplayString(payload?.date);
+    body =
+      pickOptionalDisplayString(payload?.plain) ??
+      pickOptionalDisplayString(payload?.html) ??
+      fallbackBody;
   }
 
   return {

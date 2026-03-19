@@ -114,6 +114,19 @@ export const INBOUND_EMAIL_RESULTS_SCHEMA = {
     },
     plain: { type: 'string', description: 'Plain text content of the email' },
     html: { type: 'string', description: 'HTML content of the email' },
+    isValid: {
+      type: 'boolean',
+      description:
+        'When false, the email body did not satisfy expected format checks (e.g. template markers).',
+    },
+    validation: {
+      type: 'object',
+      description: 'Structured validation outcome and human-readable reason for failures',
+      properties: {
+        isValid: { type: 'boolean' },
+        reason: { type: 'string', description: 'Why validation failed' },
+      },
+    },
   },
   required: ['from', 'subject', 'receivedAt'],
 };
