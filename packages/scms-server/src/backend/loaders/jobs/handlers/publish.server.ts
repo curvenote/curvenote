@@ -141,7 +141,7 @@ export async function publishHandler(
   const url = `${siteUrl}/articles/${slug}`;
   await ctx.sendSlackNotification({
     eventType: SlackEventType.SUBMISSION_STATUS_CHANGED,
-    message: `Submission status changed to PUBLISHED`,
+    message: `Submission status changed to PUBLISHED: ${ctx.asBaseUrl(`/app/sites/${updated.submission.site.name}/submissions/${updated.submission.id}`)}`,
     user: { id: user_id },
     metadata: {
       url,
