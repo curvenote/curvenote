@@ -64,10 +64,13 @@ export async function action(args: ActionFunctionArgs) {
 
   await ctx.sendSlackNotification({
     eventType: SlackEventType.SUBMISSION_STATUS_CHANGED,
-    message: `Submission status changed to ${status}`,
+    message: `Submission status changed to ${status}: ${ctx.asBaseUrl(`/app/sites/${ctx.site.name}/submissions/${ctx.submission.id}`)}`,
     user: { id: userId },
     metadata: {
       status,
+      site: ctx.site.name,
+      submissionId: ctx.submission.id,
+      submissionVersionId: job.SubmissionVersion.id,
     },
   });
 

@@ -19,6 +19,7 @@ export interface ExtensionTask {
   name: string;
   description: string;
   component: TaskComponent;
+  category?: string; // Optional task category used for dashboard grouping
   scopes?: string[]; // Optional list of scopes that the task is allowed to be accessed under
 }
 

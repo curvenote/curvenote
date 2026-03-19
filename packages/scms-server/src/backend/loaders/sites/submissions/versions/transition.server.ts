@@ -313,7 +313,7 @@ export default async function transitionSubmissionVersion(
     );
     await ctx.sendSlackNotification({
       eventType: SlackEventType.SUBMISSION_STATUS_CHANGED,
-      message: `Submission status changed to ${targetStateName}`,
+      message: `Submission status changed to ${targetStateName}: ${ctx.asBaseUrl(`/app/sites/${sv.submission.site.name}/submissions/${sv.submission.id}`)}`,
       user: { id: ctx.user.id },
       metadata: {
         status: targetStateName,

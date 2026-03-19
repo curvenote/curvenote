@@ -14,7 +14,6 @@ export type ClientDeploymentBranding = {
   showLoginLink?: boolean;
   poweredBy?: boolean;
   supportEmail?: string;
-  welcome?: WelcomeContent;
 };
 
 export type WelcomeContent = {
@@ -23,6 +22,21 @@ export type WelcomeContent = {
   description?: string;
   showTasks?: boolean;
   videos?: WelcomeVideo[];
+};
+
+export type DashboardTaskSection = {
+  title: string;
+  categories: string[];
+};
+
+export type DashboardTasksConfig = {
+  enabled?: boolean;
+  sections?: DashboardTaskSection[];
+};
+
+export type ClientDashboardConfig = {
+  welcome?: WelcomeContent;
+  tasks?: DashboardTasksConfig;
 };
 
 export type WelcomeVideo = {
@@ -98,6 +112,7 @@ export type ClientDeploymentConfig = {
     items: ClientDeploymentNavigation;
     helpItem?: NavigationHelpItem;
   };
+  dashboard?: ClientDashboardConfig;
   pages?: PageConfig[];
   fbClientConfig?: string;
   branding?: ClientDeploymentBranding;

@@ -105,6 +105,7 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
             Search User
           </label>
           <ui.AsyncComboBox
+            boxed
             value={selectedUser}
             onValueChange={setSelectedUser}
             onSearch={searchUsers}

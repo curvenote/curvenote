@@ -4,13 +4,14 @@ import { SearchIcon } from 'lucide-react';
 
 import { cn } from '../../utils/cn.js';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './dialog.js';
+import { InputWithAdornments } from './input-with-adornments.js';
 
 function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        'bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md',
+        'flex flex-col w-full h-full rounded-md bg-popover text-popover-foreground',
         className,
       )}
       {...props}
@@ -51,20 +52,35 @@ function CommandDialog({
 
 const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
-  React.ComponentProps<typeof CommandPrimitive.Input>
->(({ className, ...props }, ref) => {
+  React.ComponentProps<typeof CommandPrimitive.Input> & {
+    /** Optional trailing content (e.g. clear button). Rendered after the input in the wrapper. */
+    trailingAction?: React.ReactNode;
+    /** When true, wraps the input with padding and border. */
+    boxed?: boolean;
+  }
+>(({ className, trailingAction, boxed = false, ...props }, ref) => {
   return (
-    <div data-slot="command-input-wrapper" className="flex items-center gap-2 px-3 py-2 border-b">
-      <SearchIcon className="opacity-50 size-4 shrink-0" />
-      <CommandPrimitive.Input
-        ref={ref}
-        data-slot="command-input"
+    <div className={cn(boxed && 'px-3 py-2 border-b')}>
+      <InputWithAdornments
+        data-slot="command-input-wrapper"
         className={cn(
-          'placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
-          className,
+          'bg-transparent rounded-none border-0 shadow-none focus-within:ring-0 focus-within:ring-offset-0',
         )}
-        {...props}
-      />
+        leadingAdornment={<SearchIcon className="opacity-50 size-4 shrink-0" />}
+        trailingAdornment={trailingAction}
+      >
+        <CommandPrimitive.Input
+          ref={ref}
+          data-slot="command-input"
+          className={cn(
+            'flex py-3 w-full h-10 text-sm bg-transparent rounded-md placeholder:text-muted-foreground outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+            'pl-8',
+            trailingAction ? 'pr-10' : 'pr-3',
+            className,
+          )}
+          {...props}
+        />
+      </InputWithAdornments>
     </div>
   );
 });
@@ -75,7 +91,7 @@ function CommandList({ className, ...props }: React.ComponentProps<typeof Comman
   return (
     <CommandPrimitive.List
       data-slot="command-list"
-      className={cn('max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto', className)}
+      className={cn('overflow-y-auto overflow-x-hidden max-h-[300px] scroll-py-1', className)}
       {...props}
     />
   );
@@ -114,7 +130,7 @@ function CommandSeparator({
   return (
     <CommandPrimitive.Separator
       data-slot="command-separator"
-      className={cn('bg-border -mx-1 h-px', className)}
+      className={cn('-mx-1 h-px bg-border', className)}
       {...props}
     />
   );
@@ -137,7 +153,7 @@ function CommandShortcut({ className, ...props }: React.ComponentProps<'span'>) 
   return (
     <span
       data-slot="command-shortcut"
-      className={cn('text-muted-foreground ml-auto text-xs tracking-widest', className)}
+      className={cn('ml-auto text-xs tracking-widest text-muted-foreground', className)}
       {...props}
     />
   );

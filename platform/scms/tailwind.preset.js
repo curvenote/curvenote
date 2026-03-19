@@ -11,6 +11,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Roboto', ...defaultTheme.fontFamily.sans],
+        body: ['Roboto', ...defaultTheme.fontFamily.sans],
+        heading: ['Roboto', ...defaultTheme.fontFamily.sans],
       },
       typography: {
         // modify typography here

@@ -1,5 +1,21 @@
 # @curvenote/scms-server
 
+## 0.15.4
+
+### Patch Changes
+
+- [#825](https://github.com/curvenote/curvenote/pull/825) [`a29cfa7`](https://github.com/curvenote/curvenote/commit/a29cfa7938153ca8979d71e479a7c8821d046a34) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Surface inbound email processing errors and warnings
+
+- [#825](https://github.com/curvenote/curvenote/pull/825) [`a29cfa7`](https://github.com/curvenote/curvenote/commit/a29cfa7938153ca8979d71e479a7c8821d046a34) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improving content in slack pings to include clickable links
+
+- [#825](https://github.com/curvenote/curvenote/pull/825) [`a29cfa7`](https://github.com/curvenote/curvenote/commit/a29cfa7938153ca8979d71e479a7c8821d046a34) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Show html message bodies for outgoing emails
+
+- [#825](https://github.com/curvenote/curvenote/pull/825) [`a29cfa7`](https://github.com/curvenote/curvenote/commit/a29cfa7938153ca8979d71e479a7c8821d046a34) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a slack ping type for inbound emails
+
+- Updated dependencies []:
+  - @curvenote/scms-core@0.15.4
+  - @curvenote/scms-db@0.15.4
+
 ## 0.15.3
 
 ### Patch Changes

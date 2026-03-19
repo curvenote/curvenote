@@ -139,9 +139,15 @@ export async function unpublishHandler(
     where: { id: submission_version_id },
     include: { submission: { include: { site: { select: { name: true } } } } },
   });
+  const platformSubmissionUrl =
+    sv?.submission?.site?.name && sv?.submission?.id
+      ? ctx.asBaseUrl(`/app/sites/${sv.submission.site.name}/submissions/${sv.submission.id}`)
+      : null;
   await ctx.sendSlackNotification({
     eventType: SlackEventType.SUBMISSION_STATUS_CHANGED,
-    message: `Submission status changed to UNPUBLISHED`,
+    message: platformSubmissionUrl
+      ? `Submission status changed to UNPUBLISHED: ${platformSubmissionUrl}`
+      : `Submission status changed to UNPUBLISHED`,
     user: { id: user_id },
     metadata: {
       status: 'UNPUBLISHED',

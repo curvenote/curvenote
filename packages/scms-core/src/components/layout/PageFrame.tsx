@@ -11,6 +11,7 @@ interface PageFrameProps {
   description?: React.ReactNode;
   header?: React.ReactNode;
   className?: string;
+  containerClassName?: string;
   hasSecondaryNav?: boolean;
   breadcrumbs?: BreadcrumbItemConfig[];
   children: React.ReactNode;
@@ -27,6 +28,7 @@ export const PageFrame = forwardRef<HTMLDivElement, PageFrameProps>(function Pag
     header: propHeader,
     children,
     className: propClassName,
+    containerClassName: propContainerClassName,
     hasSecondaryNav: propHasSecondaryNav = true,
     breadcrumbs: propBreadcrumbs,
   },
@@ -45,6 +47,7 @@ export const PageFrame = forwardRef<HTMLDivElement, PageFrameProps>(function Pag
   const finalDescription = pageConfig?.description ?? propDescription;
   const finalHeader = propHeader;
   const finalClassName = propClassName;
+  const finalContainerClassName = propContainerClassName;
   const finalHasSecondaryNav = propHasSecondaryNav ?? true;
   const finalBreadcrumbs = propBreadcrumbs;
 
@@ -77,7 +80,7 @@ export const PageFrame = forwardRef<HTMLDivElement, PageFrameProps>(function Pag
           )}
         </div>
       )}
-      <div className="space-y-12">{children}</div>
+      <div className={cn('space-y-12', finalContainerClassName)}>{children}</div>
     </div>
   );
 });
