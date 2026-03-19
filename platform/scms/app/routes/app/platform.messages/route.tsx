@@ -39,7 +39,9 @@ export async function loader(args: Route.LoaderArgs) {
   };
 }
 
-function getStatusVariant(status: string | undefined | null): 'default' | 'secondary' | 'destructive' | 'outline' {
+function getStatusVariant(
+  status: string | undefined | null,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch ((status ?? '').toUpperCase()) {
     case 'SUCCESS':
       return 'default';
