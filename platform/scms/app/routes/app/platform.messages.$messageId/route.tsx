@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { PageFrame, ui, primitives, formatDatetime } from '@curvenote/scms-core';
 import { withAppPlatformAdminContext, dbGetMessage } from '@curvenote/scms-server';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { extractMessageEmailData } from '../platform.messages/message-utils';
+import { extractMessageEmailData, isLikelyHtmlContent } from '../platform.messages/message-utils';
 
 export const meta: Route.MetaFunction = () => {
   return [
@@ -150,7 +150,19 @@ export default function MessageDetailPage({ loaderData }: Route.ComponentProps) 
           {body && (
             <div className="border-t border-gray-200 dark:border-gray-700">
               <div className="my-2 -ml-2 text-xs font-medium">Message Body:</div>
-              <div className="font-mono text-sm whitespace-pre-wrap">{body}</div>
+              {message.type === 'outbound_email' && isLikelyHtmlContent(body) ? (
+                <div className="overflow-hidden rounded-lg border">
+                  <iframe
+                    srcDoc={body}
+                    className="w-full border-0"
+                    title="Email Preview"
+                    sandbox=""
+                    style={{ minHeight: '400px' }}
+                  />
+                </div>
+              ) : (
+                <div className="font-mono text-sm whitespace-pre-wrap">{body}</div>
+              )}
             </div>
           )}
         </primitives.Card>

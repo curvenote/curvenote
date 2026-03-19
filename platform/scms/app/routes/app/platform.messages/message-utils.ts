@@ -1,6 +1,21 @@
 import type { Message } from '@curvenote/scms-db';
 
 /**
+ * Returns true when the string looks like HTML (document or fragment), e.g. outbound email bodies.
+ * Plain text (no leading markup) returns false so callers can show monospace text instead of an iframe.
+ */
+export function isLikelyHtmlContent(body: string): boolean {
+  let t = body.trim();
+  if (!t) return false;
+  t = t.replace(/^(\s*<!--[\s\S]*?-->\s*)+/i, '').trim();
+  if (/^<!DOCTYPE\s+html/i.test(t)) return true;
+  if (/^<html[\s/>]/i.test(t)) return true;
+  // HTML element opening tag (typical email fragment: <div>, <p>, <table>, …)
+  if (/^<[a-z][a-z0-9]*(\s|\/|>)/i.test(t)) return true;
+  return false;
+}
+
+/**
  * Extracted email data from a message for display purposes
  */
 export interface MessageEmailData {
