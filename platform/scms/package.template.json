@@ -118,7 +118,7 @@
     "@app-config/main": "^2.8.7",
     "@app-config/vite": "^2.8.7",
     "@curvenote/cdn": "^0.4.0",
-    "@curvenote/check-definitions": "^0.0.29",
+    "@curvenote/check-definitions": "^0.1.2",
     "@curvenote/check-ui": "^0.6.9",
     "@curvenote/common": "^0.4.0",
     "@curvenote/icons": "^0.0.4",

@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "@codemirror/view": "^6.35.0",
-    "@curvenote/check-definitions": "^0.0.29",
+    "@curvenote/check-definitions": "^0.1.2",
     "@curvenote/common": "^0.4.0",
     "@curvenote/icons": "0.0.4",
     "@curvenote/scms-core": "0.15.4",
