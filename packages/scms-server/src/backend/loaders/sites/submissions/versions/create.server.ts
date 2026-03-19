@@ -1,5 +1,5 @@
 import type { ClientExtension } from '@curvenote/scms-core';
-import { error401, TrackEvent } from '@curvenote/scms-core';
+import { error401, TrackEvent, asSiteSubmissionUrl, asSiteWorkUrl } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import { formatSubmissionVersionDTO } from './get.server.js';
 import { formatDate } from '@curvenote/common';
@@ -144,9 +144,10 @@ export default async function (
     status: dbo.status,
   });
 
+  const submissionUrl = asSiteSubmissionUrl(ctx.asBaseUrl, ctx.site.name, dbo.submission_id);
   await ctx.sendSlackNotification({
     eventType: SlackEventType.SUBMISSION_VERSION_CREATED,
-    message: `New submission version: ${ctx.asBaseUrl(`/app/sites/${ctx.site.name}/submissions/${dbo.submission_id}`)}`,
+    message: `New submission version: ${dbo.work_version.title ?? 'Untitled'}`,
     user: ctx.user,
     metadata: {
       title: dbo.work_version.title,
@@ -156,7 +157,9 @@ export default async function (
       kind: dbo.submission.kind.name,
       submissionId: dbo.submission_id,
       submissionVersionId: dbo.id,
+      submissionUrl,
       workId: dbo.work_version.work_id,
+      workUrl: asSiteWorkUrl(ctx.asBaseUrl, ctx.site.name, dbo.work_version.work_id),
     },
   });
   return formatSubmissionVersionDTO(ctx, dbo);

@@ -9,7 +9,7 @@ import { validate } from '../../../../api.schemas.js';
 import type { PublishJobResults } from './schemas.server.js';
 import { CreatePublishJobPayloadSchema } from './schemas.server.js';
 import * as slugs from '../../../loaders/sites/submissions/slugs.server.js';
-import { httpError, KnownResendEvents } from '@curvenote/scms-core';
+import { httpError, KnownResendEvents, asSiteSubmissionUrl } from '@curvenote/scms-core';
 import { updateCdnOnWorkVersion, validateSitePublishingScopes } from './utils.server.js';
 import { SiteContext } from '../../../context.site.server.js';
 import { $updateSubmissionVersion } from '../../../db.server.js';
@@ -139,18 +139,22 @@ export async function publishHandler(
   const slug =
     updated.submission.slugs.find((s) => s.primary)?.slug ?? updated.work_version.work_id;
   const url = `${siteUrl}/articles/${slug}`;
+  const siteName = updated.submission?.site?.name;
+
   await ctx.sendSlackNotification({
     eventType: SlackEventType.SUBMISSION_STATUS_CHANGED,
-    message: `Submission status changed to PUBLISHED: ${ctx.asBaseUrl(`/app/sites/${updated.submission.site.name}/submissions/${updated.submission.id}`)}`,
+    message: 'Submission status changed to PUBLISHED',
     user: { id: user_id },
     metadata: {
       url,
       status: 'PUBLISHED',
-      site: updated.submission?.site?.name,
-      submissionId: updated.submission?.id,
-      submissionVersionId: submission_version_id,
+      site: siteName,
+      submissionId: updated.submission?.id ?? 'unknown',
+      submissionVersionId: submission_version_id ?? 'unknown',
+      submissionUrl: asSiteSubmissionUrl(ctx.asBaseUrl, siteName, updated.submission?.id),
     },
   });
+
   // Only send email if this is the only published version for the submission
   const prisma = await getPrismaClient();
   const allPublishedVersions = await prisma.submissionVersion.findMany({
