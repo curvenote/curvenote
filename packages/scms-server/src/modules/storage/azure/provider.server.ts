@@ -7,7 +7,7 @@ import {
   type ContainerClient,
   type BlockBlobClient,
 } from '@azure/storage-blob';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 import type { IStorageProvider } from '../provider.interface.js';
 import type { AzureStorageConfig, FileMetadata, SignedUploadResult } from '../types.js';
 
@@ -199,24 +199,14 @@ export class AzureStorageProvider implements IStorageProvider {
 
   // ── Object operations ──────────────────────────────────────
 
-  async copy(
-    fromBucket: string,
-    fromKey: string,
-    toBucket: string,
-    toKey: string,
-  ): Promise<void> {
+  async copy(fromBucket: string, fromKey: string, toBucket: string, toKey: string): Promise<void> {
     const sourceBlob = this.getBlob(fromBucket, fromKey);
     const destBlob = this.getBlob(toBucket, toKey);
     const poller = await destBlob.beginCopyFromURL(sourceBlob.url);
     await poller.pollUntilDone();
   }
 
-  async move(
-    fromBucket: string,
-    fromKey: string,
-    toBucket: string,
-    toKey: string,
-  ): Promise<void> {
+  async move(fromBucket: string, fromKey: string, toBucket: string, toKey: string): Promise<void> {
     await this.copy(fromBucket, fromKey, toBucket, toKey);
     await this.delete(fromBucket, fromKey);
   }
@@ -269,18 +259,12 @@ export class AzureStorageProvider implements IStorageProvider {
 
   // ── Helpers ────────────────────────────────────────────────
 
-  private normalizeMetadata(
-    props: any,
-    key: string,
-    bucket: string,
-  ): FileMetadata {
+  private normalizeMetadata(props: any, key: string, bucket: string): FileMetadata {
     return {
       name: key,
       size: props.contentLength ?? 0,
       etag: props.etag ?? '',
-      md5Hash: props.contentMD5
-        ? Buffer.from(props.contentMD5).toString('base64')
-        : '',
+      md5Hash: props.contentMD5 ? Buffer.from(props.contentMD5).toString('base64') : '',
       contentType: props.contentType ?? '',
       bucket,
       metadata: props.metadata ?? {},
