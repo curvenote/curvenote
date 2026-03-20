@@ -92,12 +92,13 @@ export async function action(args: Route.ActionArgs) {
         },
       };
 
+      const files = updatedMetadata.files ?? {};
       for (const fileEntry of fileEntries) {
         const path = fileEntry.path;
-        if (updatedMetadata.files[path]) {
+        if (files[path]) {
           throw httpError(409, `file already exists at path: ${path}`);
         }
-        const existingFilesInSlot = Object.values(updatedMetadata.files).filter(
+        const existingFilesInSlot = Object.values(files).filter(
           (f: { slot?: string }) => f.slot === fileEntry.slot,
         );
         const maxOrder =
@@ -105,8 +106,9 @@ export async function action(args: Route.ActionArgs) {
             ? Math.max(...existingFilesInSlot.map((f: { order?: number }) => f.order ?? 0))
             : 0;
         const order = fileEntry.order ?? maxOrder + 1;
-        updatedMetadata.files[path] = { ...fileEntry, order };
+        files[path] = { ...fileEntry, order };
       }
+      updatedMetadata.files = files;
       return updatedMetadata;
     },
   );
