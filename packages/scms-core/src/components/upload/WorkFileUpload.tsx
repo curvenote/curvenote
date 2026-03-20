@@ -219,15 +219,21 @@ export function WorkFileUpload({
           }));
 
           setTimeout(() => {
-            handleFileUpload(file, upload.signed_url, upload.path, (progress) => {
-              setFileState((prev) => ({
-                ...prev,
-                [upload.path]: {
-                  ...prev[upload.path],
-                  progress,
-                },
-              }));
-            })
+            handleFileUpload(
+              file,
+              upload.signed_url,
+              upload.path,
+              (progress) => {
+                setFileState((prev) => ({
+                  ...prev,
+                  [upload.path]: {
+                    ...prev[upload.path],
+                    progress,
+                  },
+                }));
+              },
+              upload.upload,
+            )
               .then(() => {
                 setFileState((prev) => ({
                   ...prev,

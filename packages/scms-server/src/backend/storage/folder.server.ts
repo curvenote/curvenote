@@ -20,39 +20,27 @@ export class Folder {
     this.bucket = bucket;
   }
 
-  get $bucket() {
-    return this.backend.buckets[this.bucket];
-  }
-
   async exists(): Promise<boolean> {
-    const [files] = await this.$bucket.getFiles({
-      prefix: this.id,
+    const files = await this.backend.provider.listObjects(this.bucket, this.id, {
       maxResults: 1,
     });
     return files.length > 0;
   }
 
   async isFolder(): Promise<boolean> {
-    const [metadata] = await this.$bucket.file(this.id).getMetadata();
+    const metadata = await this.backend.provider.getMetadata(this.bucket, this.id);
     return metadata.contentType === 'application/x-directory';
   }
 
   async contents(opts: { recursive: boolean } = { recursive: true }): Promise<string[]> {
-    const [files] = await this.$bucket.getFiles({
-      prefix: this.id,
+    return this.backend.provider.listObjects(this.bucket, this.id, {
       delimiter: opts?.recursive ? '' : '/',
     });
-
-    return files.map((file) => file.name);
   }
 
   async listFiles(): Promise<File[]> {
-    const [files] = await this.$bucket.getFiles({
-      prefix: this.id,
-      autoPaginate: false,
-    });
-
-    return files.map((googleFile) => new File(this.backend, googleFile.name, this.bucket));
+    const keys = await this.backend.provider.listObjects(this.bucket, this.id);
+    return keys.map((key) => new File(this.backend, key, this.bucket));
   }
 
   async copy(to: { bucket: KnownBuckets; path?: string }): Promise<void> {

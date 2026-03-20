@@ -63,13 +63,46 @@ function parseRangeHeader(range: string, uploadSize: number) {
   };
 }
 
-export async function uploadFileWithOptionalResume(
+/**
+ * Simple PUT upload — single request to a signed URL (Azure SAS / S3 presigned).
+ */
+async function performSimplePutUpload(session: ISession, upload: SignedFileInfo): Promise<void> {
+  const toc = tic();
+  session.log.debug(`Starting simple PUT upload of ${upload.from}`);
+
+  const readStream = fs.createReadStream(upload.from);
+  const url = upload.upload?.url ?? upload.signedUrl;
+  const headers: Record<string, string> = {
+    'Content-length': `${upload.size}`,
+    'Content-Type': upload.contentType,
+    ...(upload.upload?.headers ?? {}),
+  };
+
+  const resp = await session.fetch(url, {
+    method: 'PUT',
+    headers,
+    body: readStream,
+  });
+
+  if (!resp.ok) {
+    throw new Error(
+      `Simple PUT upload failed for ${upload.from}: ${resp.status} ${resp.statusText}`,
+    );
+  }
+
+  session.log.debug(toc(`Finished simple PUT upload of ${upload.from} in %s.`));
+}
+
+/**
+ * GCS-specific resumable upload with retry/resume support.
+ */
+async function performGcsResumableUpload(
   session: ISession,
   upload: SignedFileInfo,
   opts?: { resume?: boolean },
-) {
+): Promise<void> {
   const toc = tic();
-  session.log.debug(`Starting upload of ${upload.from}`);
+  session.log.debug(`Starting GCS resumable upload of ${upload.from}`);
   const resumableSession = await session.fetch(upload.signedUrl, {
     method: 'POST',
     headers: {
@@ -121,4 +154,24 @@ export async function uploadFileWithOptionalResume(
   session.log.debug(
     toc(`Finished upload of ${upload.from} in %s.` + (retries > 0) ? ` (${retries} retries)` : ''),
   );
+}
+
+/**
+ * Upload a file using the appropriate protocol.
+ *
+ * When upload.upload?.protocol is 'put', uses a simple PUT (Azure SAS / S3 presigned).
+ * Otherwise, uses GCS resumable upload with optional retry/resume.
+ */
+export async function uploadFileWithOptionalResume(
+  session: ISession,
+  upload: SignedFileInfo,
+  opts?: { resume?: boolean },
+) {
+  const protocol = upload.upload?.protocol ?? 'gcs-resumable';
+
+  if (protocol === 'put') {
+    await performSimplePutUpload(session, upload);
+  } else {
+    await performGcsResumableUpload(session, upload, opts);
+  }
 }

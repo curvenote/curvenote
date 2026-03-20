@@ -113,11 +113,10 @@ export interface StorageBackend {
   concurrency: number;
   /** Array of CDN URLs */
   cdns: string[];
-  /** Buckets map */
-  buckets: Record<string, any>; // Record<string, Bucket> - using any to avoid circular dependency
 
   /** Get summary of storage backend configuration */
   summarise(): {
+    providerType?: string;
     names: string[];
     cdns: string[];
     info: Record<string, any>; // Record<KnownBuckets, KnownBucketInfo>

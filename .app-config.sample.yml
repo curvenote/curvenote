@@ -6,6 +6,32 @@ api:
   databaseUrl: 'postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0'
   checkProjectId: project-1
   checkTopic: projects/project-1/topics/checks
+  # Storage provider configuration (choose one):
+  #
+  # Option 1: GCS (new style)
+  # storage:
+  #   provider: gcs
+  #   gcs:
+  #     secretKeyfile: '{"type":"service_account","project_id":"...",...}'
+  #
+  # Option 2: Azure Blob Storage
+  # storage:
+  #   provider: azure
+  #   azure:
+  #     accountName: mystorageaccount
+  #     accountKey: 'base64key=='
+  #
+  # Option 3: AWS S3
+  # storage:
+  #   provider: s3
+  #   s3:
+  #     region: us-east-1
+  #     accessKeyId: AKIA...
+  #     secretAccessKey: wJalr...
+  #
+  # Option 4: GCS (legacy style - still supported)
+  # storageSASecretKeyfile: '{"type":"service_account",...}'
+  #
   knownBucketInfoMap:
     cdn:
       uri: cdn-dev-1

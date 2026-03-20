@@ -31,6 +31,7 @@
     "clean": "turbo run clean --parallel && find . -name '.turbo' -type d -prune -exec rm -rf '{}' +",
     "lint": "turbo run lint --filter='@curvenote/*' --filter='curvenote'",
     "lint:format": "turbo run lint:format --filter='@curvenote/*' --filter='curvenote'",
+    "lint:format:fix": "turbo run lint:format:fix --filter='@curvenote/*' --filter='curvenote'",
     "lint:circular": "madge -c packages/*/src/* ee/*/src/*",
     "test": "turbo run test --filter='curvenote' --filter='@curvenote/*' --filter='!@curvenote/scms'",
     "test:scms": "cd platform/scms && npm run test:unit",
@@ -73,7 +74,8 @@
     "@prisma/client": "^7.2.0",
     "@scienceicons/react": "^0.0.13",
     "dotenv": "^17.2.3",
-    "eslint-plugin-import": "^2.32.0"
+    "eslint-plugin-import": "^2.32.0",
+    "lint": "^0.8.19"
   },
   "overrides": {
     "@types/node": "^24.6.2",

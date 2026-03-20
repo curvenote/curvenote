@@ -3,7 +3,12 @@
  * Uses types from @curvenote/common; implements resume/retry behavior aligned with CLI.
  */
 
-import type { FileUploadResponse, UploadFileInfo, UploadStagingDTO } from '@curvenote/common';
+import type {
+  FileUploadResponse,
+  SignedUploadInfo,
+  UploadFileInfo,
+  UploadStagingDTO,
+} from '@curvenote/common';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -246,10 +251,44 @@ async function performResumableUpload(
 }
 
 /**
+ * Simple PUT upload — single request to a signed URL (Azure SAS / S3 presigned).
+ * No session init or resume logic needed.
+ */
+async function performSimplePutUpload(
+  url: string,
+  localPath: string,
+  contentType: string,
+  size: number,
+  fetchFn: typeof fetch,
+  extraHeaders?: Record<string, string>,
+): Promise<void> {
+  const readStream = fs.createReadStream(localPath);
+  const webStream = Readable.toWeb(readStream) as ReadableStream;
+  const headers: Record<string, string> = {
+    'Content-Type': contentType,
+    'Content-Length': `${size}`,
+    ...(extraHeaders ?? {}),
+  };
+  const resp = await fetchFn(url, {
+    method: 'PUT',
+    headers,
+    body: webStream,
+    duplex: 'half',
+  } as RequestInit);
+  if (!resp.ok) {
+    throw new Error(`Simple PUT upload failed: ${resp.status} ${resp.statusText}`);
+  }
+}
+
+/**
  * Upload a single file to storage at {cdnKey}/{storagePath}: stage → upload → commit.
  * Requires cdn and cdnKey (e.g. from work version). Uses getAuthHeaders for API and upload start.
- * When resume is true, implements retry and resume-on-308 behavior. When loggingOnlyMode is true,
- * skips all requests and returns a synthetic path without error.
+ *
+ * Protocol-aware: uses the upload.protocol field from the staging response to decide
+ * between GCS resumable upload and simple PUT (Azure SAS / S3 presigned).
+ *
+ * When resume is true, implements retry and resume-on-308 behavior (GCS only).
+ * When loggingOnlyMode is true, skips all requests and returns a synthetic path without error.
  */
 export async function uploadSingleFileToCdn(
   baseUrl: string,
@@ -279,21 +318,34 @@ export async function uploadSingleFileToCdn(
   const staged = await stageUploadRequest(baseUrl, getAuthHeaders, stageRequest, fetchFn);
   const uploadItem = staged.upload_items.find((f) => f.md5 === md5);
   if (uploadItem) {
-    await performResumableUpload(
-      uploadItem.signed_url,
-      localPath,
-      contentType,
-      size,
-      getAuthHeaders,
-      fetchFn,
-      resume,
-    );
+    const protocol = uploadItem.upload?.protocol ?? 'gcs-resumable';
+    if (protocol === 'gcs-resumable') {
+      await performResumableUpload(
+        uploadItem.signed_url,
+        localPath,
+        contentType,
+        size,
+        getAuthHeaders,
+        fetchFn,
+        resume,
+      );
+    } else {
+      // 'put' protocol — Azure SAS or S3 presigned URL
+      await performSimplePutUpload(
+        uploadItem.upload?.url ?? uploadItem.signed_url,
+        localPath,
+        contentType,
+        size,
+        fetchFn,
+        uploadItem.upload?.headers,
+      );
+    }
   }
   const files: UploadFileInfo[] = [
     ...staged.cached_items,
     ...staged.upload_items.map((f) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omit signed_url for commit payload
-      const { signed_url, ...rest } = f;
+      const { signed_url, upload: _upload, ...rest } = f;
       return rest;
     }),
   ];

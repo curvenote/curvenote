@@ -47,6 +47,7 @@ export async function uploadNamedFilesToCdn(
   };
   const staged = await stageWithRequest(session, uploadRequest);
 
+  // Pass `upload` (protocol + URL) so performFileUploads can use GCS resumable vs single PUT (Azure/S3).
   const filesToUpload: SignedFileInfo[] = staged.upload_items
     .map((upload) => {
       const fileInfo = fileInfos.find((f) => f.md5 === upload.md5);
@@ -58,6 +59,7 @@ export async function uploadNamedFilesToCdn(
         size: fileInfo.size,
         contentType: fileInfo.contentType,
         signedUrl: upload.signed_url,
+        ...(upload.upload ? { upload: upload.upload } : {}),
       };
     })
     .filter((f): f is SignedFileInfo => f !== null);
@@ -66,11 +68,12 @@ export async function uploadNamedFilesToCdn(
     await performFileUploads(session, filesToUpload, { resume: opts.resume });
   }
 
+  // Commit only stable file metadata; signed_url and upload are upload-time secrets/protocol hints, not part of UploadFileInfo.
   const files: UploadFileInfo[] = [
     ...staged.cached_items,
     ...staged.upload_items.map((f) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { signed_url, ...rest } = f;
+      const { signed_url, upload: _upload, ...rest } = f;
       return rest as UploadFileInfo;
     }),
   ];
@@ -133,6 +136,7 @@ export async function uploadToCdn(session: ISession, cdn: string, opts?: { resum
         size: file.size,
         contentType: file.contentType,
         signedUrl: upload.signed_url,
+        ...(upload.upload ? { upload: upload.upload } : {}),
       };
     })
     .filter((f): f is SignedFileInfo => f !== null);
@@ -148,7 +152,7 @@ export async function uploadToCdn(session: ISession, cdn: string, opts?: { resum
       ...cached_items,
       ...upload_items.map((f) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { signed_url, ...rest } = f;
+        const { signed_url, upload: _upload, ...rest } = f;
         return rest as UploadFileInfo;
       }),
     ],

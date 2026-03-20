@@ -24,10 +24,14 @@ import pLimit from 'p-limit';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppAdminContext(args);
-  const backend = new StorageBackend(ctx);
-  const summary = backend.summarise();
   const sites = await sitesLoader.list(ctx);
-  return { summary, sites };
+  try {
+    const backend = new StorageBackend(ctx);
+    const summary = backend.summarise();
+    return { summary, sites, storageConfigured: true };
+  } catch (e) {
+    return { summary: null, sites, storageConfigured: false };
+  }
 }
 
 async function dbListAllSubmissions(siteName: string) {
@@ -153,10 +157,10 @@ async function actionManageSubmissions(ctx: Context, formData: FormData) {
                 },
                 locations,
                 links: {
-                  tmp: `https://console.cloud.google.com/storage/browser/${backend.$bucketInfo['tmp'].uri}/${v.work_version.cdn_key}`,
-                  cdn: `https://console.cloud.google.com/storage/browser/${backend.$bucketInfo['cdn'].uri}/${v.work_version.cdn_key}`,
-                  prv: `https://console.cloud.google.com/storage/browser/${backend.$bucketInfo['prv'].uri}/${v.work_version.cdn_key}`,
-                  pub: `https://console.cloud.google.com/storage/browser/${backend.$bucketInfo['pub'].uri}/${v.work_version.cdn_key}`,
+                  tmp: backend.consoleUrl(KnownBuckets.tmp, v.work_version.cdn_key),
+                  cdn: backend.consoleUrl(KnownBuckets.cdn, v.work_version.cdn_key),
+                  prv: backend.consoleUrl(KnownBuckets.prv, v.work_version.cdn_key),
+                  pub: backend.consoleUrl(KnownBuckets.pub, v.work_version.cdn_key),
                 },
               };
             }),
@@ -693,20 +697,43 @@ function ManageSubmissions({ sites }: { sites: Awaited<ReturnType<typeof sitesLo
 }
 
 export default function StorageAdminPanel({ loaderData }: Route.ComponentProps) {
-  const {
-    summary: { info },
-    sites,
-  } = loaderData as {
-    summary: { info: Record<KnownBuckets, KnownBucketInfo> };
+  const { summary, sites, storageConfigured } = loaderData as {
+    summary: { providerType: string; info: Record<KnownBuckets, KnownBucketInfo> } | null;
     sites: Awaited<ReturnType<typeof sitesLoader.list>>;
+    storageConfigured: boolean;
   };
+
+  if (!storageConfigured || !summary) {
+    return (
+      <PageFrame title="Storage Administration">
+        <SystemAdminBadge />
+        <div className="py-4">
+          <h2 className="text-xl font-semibold">Storage Not Configured</h2>
+          <p className="py-2 text-gray-600 dark:text-gray-400">
+            No storage provider has been configured for this deployment. Add a{' '}
+            <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-sm">
+              storage
+            </code>{' '}
+            section to your app config to enable file storage and CDN management.
+          </p>
+        </div>
+      </PageFrame>
+    );
+  }
 
   return (
     <PageFrame title="Storage Administration">
       <SystemAdminBadge />
       <div className="py-4">
-        <h2 className="text-xl font-semibold">Storage Configuration</h2>
-        <StorageInfo info={info} />
+        <h2 className="text-xl font-semibold">
+          Storage Configuration
+          <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 align-middle">
+            {summary.providerType === 'gcs' && 'Google Cloud Storage'}
+            {summary.providerType === 'azure' && 'Azure Blob Storage'}
+            {summary.providerType === 's3' && 'AWS S3'}
+          </span>
+        </h2>
+        <StorageInfo info={summary.info} />
         <QueryByKeyUI />
         <ManageSubmissions sites={sites} />
       </div>

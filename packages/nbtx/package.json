@@ -25,6 +25,7 @@
     "build": "npm-run-all -l clean -p build:cjs build:esm declarations",
     "lint": "eslint \"src/**/!(*.spec).ts\" -c ./.eslintrc.js",
     "lint:format": "npx prettier --check \"src/**/*.ts\"",
+    "lint:format:fix": "npx prettier --write \"src/**/*.ts\"",
     "test": "vitest run",
     "test:watch": "vitest watch"
   },
