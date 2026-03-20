@@ -19,15 +19,8 @@ export function Badge({
       className={className}
       style={{ fontSize: size, fontWeight: 600, color: 'var(--bluesky-blue, #0085ff)' }}
     >
-      <div className="flex items-center gap-2">
-        <img
-          src={logo}
-          alt=""
-          width={size}
-          height={size}
-          className="shrink-0"
-          aria-hidden
-        />
+      <div className="flex gap-2 items-center">
+        <img src={logo} alt="" width={size} height={size} className="shrink-0" aria-hidden />
         {showName && <span>Bluesky</span>}
       </div>
     </div>
@@ -42,8 +35,8 @@ export function ProfileCardContent({
     <ProfileContentLayout
       content={
         <div className="flex items-center space-x-6 grow">
-          <div className="flex shrink-0 w-12 h-12">
-            <img src={logo} alt="Bluesky" className="w-full h-full object-contain" />
+          <div className="flex w-12 h-12 shrink-0">
+            <img src={logo} alt="Bluesky" className="object-contain w-full h-full" />
           </div>
           <div className="flex flex-col">
             <p title="Display Name">{profile.displayName ?? profile.handle ?? 'Bluesky user'}</p>
@@ -92,7 +85,7 @@ export function LoginUI({
         overlayBusy
         className={className}
       >
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex gap-2 justify-center items-center">
           <img src={logo} alt="" width={20} height={20} className="shrink-0" aria-hidden />
           <span style={{ fontWeight: 600, color: 'var(--bluesky-blue, #0085ff)' }}>Bluesky</span>
         </div>
