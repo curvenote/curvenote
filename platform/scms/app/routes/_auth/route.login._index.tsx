@@ -1,10 +1,4 @@
-import {
-  useDeploymentConfig,
-  LoginProviderButtons,
-  firebase,
-  ui,
-  bluesky,
-} from '@curvenote/scms-core';
+import { useDeploymentConfig, LoginProviderButtons, firebase, ui } from '@curvenote/scms-core';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { OrDivider } from './OrDivider';
@@ -84,10 +78,6 @@ function AllProviderLoginArea({
   const loginAuthProviders = authProviders.filter((p) => p.allowLogin);
   const firebaseProvider = loginAuthProviders.find((p) => p.provider === 'firebase');
   const hasPasswordLogin = firebaseProvider?.allowLogin === true;
-  const orcidProvider = loginAuthProviders.find((p) => p.provider === 'orcid');
-  const googleProvider = loginAuthProviders.find((p) => p.provider === 'google');
-  const oktaProvider = loginAuthProviders.find((p) => p.provider === 'okta');
-  const blueskyProvider = loginAuthProviders.find((p) => p.provider === 'bluesky');
 
   return (
     <div className="flex flex-col items-center space-y-8 w-full">
@@ -101,9 +91,6 @@ function AllProviderLoginArea({
           setSubmitting={setSubmitting}
           className="w-full"
         />
-        {blueskyProvider && blueskyProvider.allowLogin && (
-          <bluesky.LoginUI disabled={submitting} setSubmitting={setSubmitting} className="w-full" />
-        )}
       </div>
       {hasPasswordLogin && (
         <div className="space-y-2 w-full max-w-xs">

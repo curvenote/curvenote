@@ -19,12 +19,14 @@ import {
   ProfileCardContent as GitHubProfileCardContent,
   LoginUI as GitHubLoginUI,
 } from './github/ui.js';
+import {
   Badge as BlueskyBadge,
   ProfileCardContent as BlueskyProfileCardContent,
   LoginUI as BlueskyLoginUI,
 } from './bluesky/ui.js';
 import type { FirebaseProfile } from './firebase/types.js';
 import type { OktaProfile } from '@curvenote/remix-auth-okta';
+import type { BlueskyProfile } from './bluesky/types.js';
 
 export function ProviderBadge({ provider, ...props }: { provider: string }) {
   switch (provider) {
@@ -50,12 +52,14 @@ type ORCIDProfile = any;
 export type AuthProviderComponents = {
   Badge: React.FC<{ className?: string; size?: number; showName?: boolean }>;
   ProfileCardContent: React.FC<{
-    profile: FirebaseProfile | OktaProfile | ORCIDProfile;
+    profile: FirebaseProfile | OktaProfile | ORCIDProfile | BlueskyProfile;
     children: React.ReactNode;
   }>;
   LoginUI: React.FC<{
     disabled: boolean;
     setSubmitting: (flag: boolean) => void;
+    className?: string;
+    returnTo?: string;
   }>;
 };
 
@@ -84,6 +88,7 @@ export const AuthComponentMap: Record<string, AuthProviderComponents> = {
     Badge: GitHubBadge,
     ProfileCardContent: GitHubProfileCardContent,
     LoginUI: GitHubLoginUI,
+  },
   bluesky: {
     Badge: BlueskyBadge,
     ProfileCardContent: BlueskyProfileCardContent,

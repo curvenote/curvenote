@@ -68,21 +68,25 @@ export function LoginUI({
   disabled,
   setSubmitting,
   className,
+  returnTo,
 }: {
   disabled?: boolean;
   setSubmitting: (flag: boolean) => void;
   className?: string;
+  returnTo?: string;
 }) {
   const fetcher = useFetcher();
+  const action =
+    returnTo != null ? `/auth/bluesky?returnTo=${encodeURIComponent(returnTo)}` : '/auth/bluesky';
 
   useEffect(() => {
     if (fetcher.state !== 'idle') {
       setSubmitting(true);
     } else setSubmitting(false);
-  }, [fetcher.state]);
+  }, [fetcher.state, setSubmitting]);
 
   return (
-    <fetcher.Form method="post" action="/auth/bluesky" aria-disabled={disabled} className="w-full">
+    <fetcher.Form method="post" action={action} aria-disabled={disabled} className="w-full">
       <StatefulButton
         variant="outline"
         type="submit"

@@ -77,6 +77,10 @@ auth:
       -----END EC PRIVATE KEY-----
 ```
 
+## Local development (HTTPS tunnel)
+
+For a working OAuth flow against `bsky.social`, your **client metadata** and **JWKS** must be reachable at **`https://` URLs**. See **[LOCAL_DEV.md](./LOCAL_DEV.md)** for **Cloudflare Tunnel** (`cloudflared`) setup, app config examples, and why **Cloudflare Access** should not sit in front of the app while testing Bluesky OAuth.
+
 ## In-memory state and session
 
 OAuth state and atproto session are stored in memory (no DB). Suitable for a single-instance server. For multiple instances, you would need a shared state/session store (e.g. Redis) and adapt the stores in `stores.server.ts`.

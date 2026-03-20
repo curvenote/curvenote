@@ -46,6 +46,9 @@
     "url": "https://github.com/curvenote/curvenote/issues"
   },
   "dependencies": {
+    "@atproto/api": "^0.19.4",
+    "@atproto/jwk-jose": "^0.1.11",
+    "@atproto/oauth-client-node": "^0.3.17",
     "@app-config/config": "^2.8.7",
     "@app-config/main": "^2.8.7",
     "@app-config/vite": "^2.8.7",

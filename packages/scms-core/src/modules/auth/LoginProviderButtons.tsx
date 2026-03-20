@@ -4,6 +4,7 @@ import { LoginUI as GitHubLoginUI } from './github/index.js';
 import { LoginUI as GoogleLoginUI } from './google/index.js';
 import { LoginUI as OktaLoginUI } from './okta/index.js';
 import { LoginUI as OrcidLoginUI } from './orcid/index.js';
+import { LoginUI as BlueskyLoginUI } from './bluesky/index.js';
 
 export type ProviderButtonsProps = {
   /** Auth providers from deployment config (e.g. useDeploymentConfig().authProviders). */
@@ -22,6 +23,7 @@ const PROVIDER_UIS = {
   google: GoogleLoginUI,
   firebase: FirebaseGoogleLoginUI,
   okta: OktaLoginUI,
+  bluesky: BlueskyLoginUI,
 } as const;
 
 function ProviderButtons({
