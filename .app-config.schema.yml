@@ -132,6 +132,10 @@ properties:
         required:
           - clientId
           - clientSecret
+      bluesky:
+        type: object
+        required:
+          - clientId
           - redirectUrl
         properties:
           displayName:
@@ -144,6 +148,14 @@ properties:
             secret: true
           redirectUrl:
             type: string
+            description: Full URL at which the app serves atproto client metadata JSON
+          jwksUri:
+            type: string
+            description: Full URL at which the app serves JWKS (confidential client)
+          privateKeyPem:
+            type: string
+            secret: true
+            description: PEM-encoded private key for confidential client (RS256 or ES256)
           allowLogin:
             type: boolean
             default: true
@@ -156,6 +168,10 @@ properties:
           adminLogin:
             type: boolean
             default: false
+          pdsHostname:
+            type: string
+            description: PDS hostname for login (default bsky.social)
+            default: bsky.social
   api:
     type: object
     required:
