@@ -1,3 +1,7 @@
+import { httpError } from '@curvenote/scms-core';
+import { getPrismaClient } from '../../../backend/prisma.server.js';
+import { getBlueskySessionForLinkedAccount } from './session-db.server.js';
+
 /**
  * Atproto/Bluesky publish and unpublish stubs.
  * When a site is configured with backend type "atproto", PUBLISH/UNPUBLISH jobs
@@ -22,6 +26,47 @@ export type AtprotoUnpublishParams = {
   submissionVersionId: string;
   payload: Record<string, unknown>;
 };
+
+const ATPROTO_SITE_USER_REQUIRED_ERROR =
+  'AT Protocol publishing requires a single nominated Bluesky user with an active session on this site.';
+
+/**
+ * Validate that AT Protocol publishing is configured with one valid Bluesky user
+ * who is a member of the site and has an active persisted session.
+ */
+export async function assertAtprotoPublishingUser(params: {
+  siteId: string;
+  nominatedUserLinkedAccountId: string;
+}): Promise<string> {
+  const linkedAccountId = params.nominatedUserLinkedAccountId.trim();
+  if (!linkedAccountId) {
+    throw httpError(422, ATPROTO_SITE_USER_REQUIRED_ERROR);
+  }
+
+  const prisma = await getPrismaClient();
+  const linkedAccount = await prisma.userLinkedAccount.findUnique({
+    where: { id: linkedAccountId },
+    select: { id: true, user_id: true, provider: true, pending: true },
+  });
+  if (!linkedAccount || linkedAccount.provider !== 'bluesky' || linkedAccount.pending) {
+    throw httpError(422, ATPROTO_SITE_USER_REQUIRED_ERROR);
+  }
+
+  const siteMembership = await prisma.siteUser.findFirst({
+    where: { site_id: params.siteId, user_id: linkedAccount.user_id },
+    select: { id: true },
+  });
+  if (!siteMembership) {
+    throw httpError(422, ATPROTO_SITE_USER_REQUIRED_ERROR);
+  }
+
+  const activeSession = await getBlueskySessionForLinkedAccount(linkedAccountId);
+  if (!activeSession) {
+    throw httpError(422, ATPROTO_SITE_USER_REQUIRED_ERROR);
+  }
+
+  return linkedAccountId;
+}
 
 /**
  * Stub: publish to atproto using the nominated user's Bluesky session.
