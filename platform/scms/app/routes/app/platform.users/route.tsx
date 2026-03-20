@@ -10,9 +10,9 @@ import {
   approveAndNotifyUser,
   dbCountUsers,
   dbGetUsers,
-  dbGetUserByIdForAnalytics,
   dbRejectUser,
   dbToggleUserDisabled,
+  runPlatformUserAnalytics,
 } from './db.server';
 import { handleAssignRole, handleRemoveRole } from './actionHelpers.server';
 import { PlatformUserList } from './PlatformUserList';
@@ -52,24 +52,24 @@ export async function action(args: Route.ActionArgs) {
     switch (payload.intent) {
       case 'approve-user': {
         await approveAndNotifyUser(ctx, payload.userId);
-        const updatedUser = await dbGetUserByIdForAnalytics(payload.userId);
-        await ctx.identifyEvent(updatedUser);
-        await ctx.trackEvent(TrackEvent.USER_APPROVED, {
-          targetUserId: payload.userId,
+        await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+          await ctx.trackEvent(TrackEvent.USER_APPROVED, {
+            targetUserId: payload.userId,
+          });
+          await ctx.analytics.flush();
         });
-        await ctx.analytics.flush();
         return { success: true };
       }
       case 'reject-user': {
         const user = await dbRejectUser(payload.userId, ctx.user.id);
-        const updatedUser = await dbGetUserByIdForAnalytics(payload.userId);
-        await ctx.identifyEvent(updatedUser);
-        await ctx.trackEvent(TrackEvent.USER_REJECTED, {
-          targetUserId: payload.userId,
-          targetUserEmail: user?.email,
-          targetUserDisplayName: user?.display_name,
+        await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+          await ctx.trackEvent(TrackEvent.USER_REJECTED, {
+            targetUserId: payload.userId,
+            targetUserEmail: user?.email,
+            targetUserDisplayName: user?.display_name,
+          });
+          await ctx.analytics.flush();
         });
-        await ctx.analytics.flush();
         return { success: true, user };
       }
       case 'toggle-disabled': {
@@ -77,17 +77,17 @@ export async function action(args: Route.ActionArgs) {
           throw new Error('disabled field is required for toggle-disabled intent');
         }
         const user = await dbToggleUserDisabled(payload.userId, payload.disabled, ctx.user.id);
-        const updatedUser = await dbGetUserByIdForAnalytics(payload.userId);
-        await ctx.identifyEvent(updatedUser);
-        await ctx.trackEvent(
-          payload.disabled ? TrackEvent.USER_DISABLED : TrackEvent.USER_ENABLED,
-          {
-            targetUserId: payload.userId,
-            targetUserEmail: user?.email,
-            targetUserDisplayName: user?.display_name,
-          },
-        );
-        await ctx.analytics.flush();
+        await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+          await ctx.trackEvent(
+            payload.disabled ? TrackEvent.USER_DISABLED : TrackEvent.USER_ENABLED,
+            {
+              targetUserId: payload.userId,
+              targetUserEmail: user?.email,
+              targetUserDisplayName: user?.display_name,
+            },
+          );
+          await ctx.analytics.flush();
+        });
         return { success: true, user };
       }
       case 'assign-role': {
@@ -98,9 +98,9 @@ export async function action(args: Route.ActionArgs) {
           'success' in result &&
           (result as any).success === true;
         if (success) {
-          const updatedUser = await dbGetUserByIdForAnalytics(payload.userId);
-          await ctx.identifyEvent(updatedUser);
-          await ctx.analytics.flush();
+          await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+            await ctx.analytics.flush();
+          });
         }
         return result;
       }
@@ -112,9 +112,9 @@ export async function action(args: Route.ActionArgs) {
           'success' in result &&
           (result as any).success === true;
         if (success) {
-          const updatedUser = await dbGetUserByIdForAnalytics(payload.userId);
-          await ctx.identifyEvent(updatedUser);
-          await ctx.analytics.flush();
+          await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+            await ctx.analytics.flush();
+          });
         }
         return result;
       }
