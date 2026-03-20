@@ -17,9 +17,10 @@ import { SlackEventType } from '../../../services/slack.server.js';
 import { createSiteRootUrl } from '../../../domains.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
 import type { TemplatedResendEmail } from '../../../services/emails/resend.server.js';
+import { publishToAtproto } from '../../../../modules/auth/bluesky/publish.server.js';
 
 /**
- * Publish a submission version to the public CDN
+ * Publish a submission version to the public CDN or to atproto (when site backend is AT Protocol)
  * @param ctx - The context object
  * @param data - The job creation data object containing:
  *   - id: string - UUID of the job
@@ -41,12 +42,35 @@ export async function publishHandler(
   data: CreateJob,
   storageBackend?: StorageBackend,
 ) {
-  const { submission_version_id, cdn, key, user_id, date_published, updates_slug } = validate(
-    CreatePublishJobPayloadSchema,
-    data.payload,
-  );
+  const payload = validate(CreatePublishJobPayloadSchema, data.payload);
+  const { submission_version_id, site_id, cdn, key, user_id, date_published, updates_slug } =
+    payload;
 
   await validateSitePublishingScopes(ctx, submission_version_id);
+
+  const prismaForSite = await getPrismaClient();
+  const site = await prismaForSite.site.findUnique({
+    where: { id: site_id },
+    select: { data: true },
+  });
+  const siteData = (site?.data as { backend?: { type?: string; nominatedUserLinkedAccountId?: string } } | null) ?? {};
+  const backend = siteData.backend;
+
+  if (backend?.type === 'atproto' && backend.nominatedUserLinkedAccountId) {
+    const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
+    await publishToAtproto({
+      siteId: site_id,
+      nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId,
+      submissionVersionId: submission_version_id,
+      payload: payload as Record<string, unknown>,
+    });
+    const job = await dbUpdateJob(created.id, {
+      status: JobStatus.COMPLETED,
+      message: 'Atproto publish path (stub).',
+      results: { atproto_stub: true },
+    });
+    return job;
+  }
 
   if (!storageBackend) {
     throw httpError(500, 'Storage backend is required for publish operations');
@@ -156,8 +180,8 @@ export async function publishHandler(
   });
 
   // Only send email if this is the only published version for the submission
-  const prisma = await getPrismaClient();
-  const allPublishedVersions = await prisma.submissionVersion.findMany({
+  const prismaClient = await getPrismaClient();
+  const allPublishedVersions = await prismaClient.submissionVersion.findMany({
     where: {
       submission: {
         id: updated.submission_id,

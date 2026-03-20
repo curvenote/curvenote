@@ -1,7 +1,7 @@
 import { useFetcher, useLoaderData } from 'react-router';
 import type { ActionResponse, LoaderData } from './types';
 import { TaskListStep } from './TaskListStep';
-import { ui, useDeploymentConfig, github, google, okta, orcid, cn } from '@curvenote/scms-core';
+import { ui, useDeploymentConfig, github, google, okta, orcid, bluesky, cn } from '@curvenote/scms-core';
 import { useEffect, useState } from 'react';
 import type { LinkProvidersStepData, UserData } from '@curvenote/scms-core';
 import type { AlternativePrompt } from '@/types/app-config';
@@ -78,7 +78,9 @@ export function LinkProvidersStep({
 
   let providersToShow = providers
     .filter((p) =>
-      linkableAuthProviderNames.includes(p as 'firebase' | 'github' | 'google' | 'okta' | 'orcid'),
+      linkableAuthProviderNames.includes(
+        p as 'firebase' | 'github' | 'google' | 'okta' | 'orcid' | 'bluesky',
+      ),
     )
     .filter((provider) => provider !== user.primaryProvider);
 
@@ -216,6 +218,23 @@ export function LinkProvidersStep({
                     <LinkAccountDuringSignupButton
                       provider={provider}
                       badge={<github.Badge />}
+                      disabled={submitting || skipped}
+                      submitting={submitting}
+                      setSubmitting={setSubmitting}
+                      className={cn('w-full', { 'pointer-not-allowed': skipped })}
+                    />
+                  )}
+                  {provider === 'bluesky' && linkedProviderNames.includes('bluesky') && (
+                    <div className="flex gap-2 items-center w-full">
+                      <CheckCircle className="w-5 h-5 stroke-green-700 fill-green-50" />
+                      <bluesky.Badge />
+                      <div className="pb-[2px] opacity-50">successfully linked</div>
+                    </div>
+                  )}
+                  {provider === 'bluesky' && !linkedProviderNames.includes('bluesky') && (
+                    <LinkAccountDuringSignupButton
+                      provider={provider}
+                      badge={<bluesky.Badge />}
                       disabled={submitting || skipped}
                       submitting={submitting}
                       setSubmitting={setSubmitting}
