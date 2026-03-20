@@ -44,8 +44,11 @@ import type { TemplatedResendEmail } from './services/emails/resend.server.js';
 import { $sendEmail, $sendEmailBatch, getResend } from './services/emails/resend.server.js';
 import { createUnsubscribeToken } from './sign.tokens.server.js';
 import { dbGetUnsubscribedEmail } from './loaders/unsubscribe.js';
-import { addSegmentAnalytics, AnalyticsContext } from './services/analytics/segment.server.js';
-import type { User } from '@curvenote/scms-db';
+import {
+  addSegmentAnalytics,
+  AnalyticsContext,
+  type SegmentIdentifyUser,
+} from './services/analytics/segment.server.js';
 import { getPrismaClient } from './prisma.server.js';
 
 /**
@@ -399,7 +402,7 @@ export class Context implements ContextType {
    *
    * @param user - Optional user to identify. If not provided, the current user from context will be used.
    */
-  async identifyEvent(user?: User): Promise<void> {
+  async identifyEvent(user?: SegmentIdentifyUser): Promise<void> {
     const userToIdentify = user ?? this.user;
     if (!userToIdentify) {
       console.log('identifyEvent called but no user in context');
