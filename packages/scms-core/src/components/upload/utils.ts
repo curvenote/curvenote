@@ -107,11 +107,22 @@ async function performFileUpload(
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', sessionUrl, true);
-    xhr.setRequestHeader('Content-Type', file.type);
-    if (extraHeaders) {
-      for (const [key, value] of Object.entries(extraHeaders)) {
-        xhr.setRequestHeader(key, value);
+
+    // Single Content-Type only: extraHeaders may include the signed value (S3/Azure).
+    // Calling setRequestHeader twice appends (e.g. "a/b, a/b") and breaks signature checks.
+    const remaining = { ...(extraHeaders ?? {}) };
+    let contentType = file.type;
+    for (const key of Object.keys(remaining)) {
+      if (key.toLowerCase() === 'content-type') {
+        const fromExtra = remaining[key];
+        if (fromExtra !== undefined) contentType = fromExtra;
+        delete remaining[key];
+        break;
       }
+    }
+    xhr.setRequestHeader('Content-Type', contentType);
+    for (const [key, value] of Object.entries(remaining)) {
+      xhr.setRequestHeader(key, value);
     }
 
     xhr.upload.onprogress = (event) => {

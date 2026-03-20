@@ -241,11 +241,25 @@ export class AzureStorageProvider implements IStorageProvider {
       includeMetadata?: boolean;
     } = { prefix };
 
+    const delimiter = opts?.delimiter;
+    const maxResults = opts?.maxResults;
+
+    if (delimiter) {
+      let count = 0;
+      for await (const item of container.listBlobsByHierarchy(delimiter, listOptions)) {
+        if (item.kind !== 'blob') continue;
+        names.push(item.name);
+        count++;
+        if (maxResults && count >= maxResults) break;
+      }
+      return names;
+    }
+
     let count = 0;
     for await (const blob of container.listBlobsFlat(listOptions)) {
       names.push(blob.name);
       count++;
-      if (opts?.maxResults && count >= opts.maxResults) break;
+      if (maxResults && count >= maxResults) break;
     }
     return names;
   }
