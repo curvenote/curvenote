@@ -17,7 +17,10 @@ import { SlackEventType } from '../../../services/slack.server.js';
 import { createSiteRootUrl } from '../../../domains.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
 import type { TemplatedResendEmail } from '../../../services/emails/resend.server.js';
-import { publishToAtproto } from '../../../../modules/auth/bluesky/publish.server.js';
+import {
+  assertAtprotoPublishingUser,
+  publishToAtproto,
+} from '../../../../modules/auth/bluesky/publish.server.js';
 
 /**
  * Publish a submission version to the public CDN or to atproto (when site backend is AT Protocol)
@@ -53,14 +56,20 @@ export async function publishHandler(
     where: { id: site_id },
     select: { data: true },
   });
-  const siteData = (site?.data as { backend?: { type?: string; nominatedUserLinkedAccountId?: string } } | null) ?? {};
+  const siteData =
+    (site?.data as { backend?: { type?: string; nominatedUserLinkedAccountId?: string } } | null) ??
+    {};
   const backend = siteData.backend;
 
-  if (backend?.type === 'atproto' && backend.nominatedUserLinkedAccountId) {
+  if (backend?.type === 'atproto') {
+    const nominatedUserLinkedAccountId = await assertAtprotoPublishingUser({
+      siteId: site_id,
+      nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId ?? '',
+    });
     const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
     await publishToAtproto({
       siteId: site_id,
-      nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId,
+      nominatedUserLinkedAccountId,
       submissionVersionId: submission_version_id,
       payload: payload as Record<string, unknown>,
     });

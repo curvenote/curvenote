@@ -13,7 +13,10 @@ import { $updateSubmissionVersion } from '../../../db.server.js';
 import { SlackEventType } from '../../../services/slack.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { createFolder } from '../../../storage/folder.server.js';
-import { unpublishFromAtproto } from '../../../../modules/auth/bluesky/publish.server.js';
+import {
+  assertAtprotoPublishingUser,
+  unpublishFromAtproto,
+} from '../../../../modules/auth/bluesky/publish.server.js';
 
 export async function unpublishHandler(
   ctx: Context,
@@ -30,14 +33,20 @@ export async function unpublishHandler(
     where: { id: site_id },
     select: { data: true },
   });
-  const siteData = (site?.data as { backend?: { type?: string; nominatedUserLinkedAccountId?: string } } | null) ?? {};
+  const siteData =
+    (site?.data as { backend?: { type?: string; nominatedUserLinkedAccountId?: string } } | null) ??
+    {};
   const backend = siteData.backend;
 
-  if (backend?.type === 'atproto' && backend.nominatedUserLinkedAccountId) {
+  if (backend?.type === 'atproto') {
+    const nominatedUserLinkedAccountId = await assertAtprotoPublishingUser({
+      siteId: site_id,
+      nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId ?? '',
+    });
     const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
     await unpublishFromAtproto({
       siteId: site_id,
-      nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId,
+      nominatedUserLinkedAccountId,
       submissionVersionId: submission_version_id,
       payload: payload as Record<string, unknown>,
     });
