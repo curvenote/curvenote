@@ -1,5 +1,14 @@
 # @curvenote/scms-core
 
+## 0.15.5
+
+### Patch Changes
+
+- [#803](https://github.com/curvenote/curvenote/pull/803) [`3025543`](https://github.com/curvenote/curvenote/commit/302554357f2233caad98fd9d28dfe7cad82397e1) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improving links in all slack messages
+
+- Updated dependencies []:
+  - @curvenote/scms-db@0.15.5
+
 ## 0.15.4
 
 ### Patch Changes

@@ -1,5 +1,21 @@
 # @curvenote/scms
 
+## 0.15.5
+
+### Patch Changes
+
+- [#803](https://github.com/curvenote/curvenote/pull/803) [`44a17d3`](https://github.com/curvenote/curvenote/commit/44a17d3e8c7483e8048fe4668cb5c6ef79fe6d67) Thanks [@stevejpurves](https://github.com/stevejpurves)! - clean up experimental works routes
+
+- [#828](https://github.com/curvenote/curvenote/pull/828) [`3f9d0ae`](https://github.com/curvenote/curvenote/commit/3f9d0aebde855ab9df12e020f12f01b16a52928d) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improving the package sent with the analytics.identify call to include roles and scopes. Updating the user via identify when the user's settigns are changed by the platform administrator
+
+- [#803](https://github.com/curvenote/curvenote/pull/803) [`3025543`](https://github.com/curvenote/curvenote/commit/302554357f2233caad98fd9d28dfe7cad82397e1) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improving links in all slack messages
+
+- Updated dependencies [[`3f9d0ae`](https://github.com/curvenote/curvenote/commit/3f9d0aebde855ab9df12e020f12f01b16a52928d), [`3025543`](https://github.com/curvenote/curvenote/commit/302554357f2233caad98fd9d28dfe7cad82397e1)]:
+  - @curvenote/scms-server@0.15.5
+  - @curvenote/scms-core@0.15.5
+  - @curvenote/scms-sites-ext@0.15.5
+  - @curvenote/scms-db@0.15.5
+
 ## 0.15.4
 
 ### Patch Changes
