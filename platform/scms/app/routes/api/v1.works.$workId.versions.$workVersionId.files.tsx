@@ -1,7 +1,7 @@
 import type { Route } from './+types/v1.works.$workId.versions.$workVersionId.files';
+import { z } from 'zod';
 import {
   ensureJsonBodyFromMethod,
-  AddWorkVersionFilesPatchBodySchema,
   validate,
   withAPISecureContext,
   getPrismaClient,
@@ -14,9 +14,20 @@ import {
   error405,
   httpError,
   coerceToObject,
+  FileMetadataSectionItemSchema,
   type FileMetadataSection,
 } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
+
+/** PATCH body for adding a single file entry to work version metadata.files (no signedUrl). */
+const AddWorkVersionFilePatchBodySchema = FileMetadataSectionItemSchema.omit({
+  signedUrl: true,
+});
+
+/** PATCH body for adding file entries: { files: FileEntry[] }. */
+const AddWorkVersionFilesPatchBodySchema = z.object({
+  files: z.array(AddWorkVersionFilePatchBodySchema).min(1),
+});
 
 export async function loader() {
   throw error405();

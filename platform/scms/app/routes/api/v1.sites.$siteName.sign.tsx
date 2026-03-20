@@ -1,12 +1,16 @@
 import type { Route } from './+types/v1.sites.$siteName.sign';
+import { z } from 'zod';
 import { error404, error405 } from '@curvenote/scms-core';
 import {
-  CreateSignedUrlPostBodySchema,
   validate,
   withSecureSiteContext,
   getSignedCDNQuery,
   ensureJsonBodyFromMethod,
 } from '@curvenote/scms-server';
+
+const CreateSignedUrlPostBodySchema = z.object({
+  baseUrl: z.string().url('baseUrl must be a valid url'),
+});
 
 export async function loader() {
   throw error405();

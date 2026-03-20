@@ -1,15 +1,31 @@
 import type { Route } from './+types/v1.jobs.$jobId';
+import { z } from 'zod';
 import {
   ensureJsonBodyFromMethod,
   withContext,
   jobs,
   registerExtensionJobs,
-  UpdateJobPatchBodySchema,
   validate,
 } from '@curvenote/scms-server';
 import { extensions } from '../../extensions/server';
 import { error401, error404, httpError } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
+
+const UpdateJobPatchBodySchema = z.object({
+  status: z.nativeEnum(JobStatus, {
+    error: () => `status must be ${Object.values(JobStatus).join(', ')}`,
+  }),
+  message: z
+    .string({
+      error: (issue) => (issue.code === 'invalid_type' ? `message must be a string` : undefined),
+    })
+    .optional(),
+  results: z
+    .record(z.string().min(0), z.any(), {
+      error: (issue) => (issue.code === 'invalid_type' ? 'an object is required' : undefined),
+    })
+    .optional(),
+});
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withContext(args);

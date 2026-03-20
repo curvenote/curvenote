@@ -1,13 +1,31 @@
 import type { Route } from './+types/v1.works';
+import { z } from 'zod';
 import { error405, httpError } from '@curvenote/scms-core';
 import {
   ensureJsonBodyFromMethod,
-  CreateMystWorkPostBodySchema,
   validate,
   withAPISecureContext,
   works,
   getPrismaClient,
 } from '@curvenote/scms-server';
+
+export const CreateMystWorkPostBodySchema = z.object({
+  cdn: z.url({
+    error: (issue) => (issue.input === undefined ? 'cdn is required (url)' : undefined),
+  }),
+  cdn_key: z.uuid({
+    error: (issue) => (issue.input === undefined ? 'cdn_key is required (uuid)' : undefined),
+  }),
+  key: z
+    .string({
+      error: (issue) =>
+        issue.input === undefined ? 'key is required ([a-zA-Z][a-zA-Z0-9_-])' : undefined,
+    })
+    .min(8, { error: 'key must be at least 8 characters' })
+    .max(128, { error: 'key must be less than 128 characters' })
+    .regex(/[a-zA-Z][a-zA-Z0-9_-]{7,127}/)
+    .optional(),
+});
 
 export async function loader() {
   throw error405();
