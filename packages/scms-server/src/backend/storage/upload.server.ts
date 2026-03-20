@@ -22,11 +22,12 @@ export class Upload extends File {
   }
 
   async signAsWritable(contentType: string): Promise<string> {
-    const [url] = await this.backend.buckets.main.file(this.id).getSignedUrl({
-      action: 'write',
-      expires: Date.now() + 1000 * this.backend.expiry.write,
+    const result = await this.backend.provider.signUploadUrl(
+      this.bucket,
+      this.id,
       contentType,
-    });
-    return url;
+      this.backend.expiry.write,
+    );
+    return result.url;
   }
 }

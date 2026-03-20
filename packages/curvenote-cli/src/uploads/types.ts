@@ -1,3 +1,7 @@
+import type { FileUploadResponse, SignedUploadInfo, UploadFileInfo } from '@curvenote/common';
+
+export type { FileUploadResponse, SignedUploadInfo, UploadFileInfo };
+
 export type FromTo = {
   from: string;
   to: string;
@@ -13,15 +17,6 @@ export type FileInfo = {
 
 export type SignedFileInfo = FileInfo & {
   signedUrl: string;
+  /** Protocol-aware upload info. When present, determines upload strategy. */
+  upload?: SignedUploadInfo;
 };
-
-export interface UploadFileInfo {
-  path: string;
-  content_type: string;
-  md5: string;
-  size: number;
-}
-
-export interface FileUploadResponse extends UploadFileInfo {
-  signed_url: string;
-}

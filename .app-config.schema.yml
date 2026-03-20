@@ -168,7 +168,6 @@ properties:
       - previewSigningSecret
       - jwtSigningSecret
       - checkSASecretKeyfile
-      - storageSASecretKeyfile
       - privateCDNSigningInfo
       - propertyPublicKey
       - databaseUrl
@@ -215,6 +214,53 @@ properties:
       storageSASecretKeyfile:
         type: string
         secret: true
+        description: GCS service account keyfile JSON (legacy, use storage.gcs.secretKeyfile instead)
+      storage:
+        type: object
+        description: Storage provider configuration. When not set, falls back to storageSASecretKeyfile for GCS.
+        properties:
+          provider:
+            type: string
+            enum: ['gcs', 'azure', 's3']
+            description: Storage provider to use
+          gcs:
+            type: object
+            description: Google Cloud Storage credentials
+            properties:
+              secretKeyfile:
+                type: string
+                secret: true
+                description: GCS service account JSON keyfile
+          azure:
+            type: object
+            description: Azure Blob Storage credentials
+            properties:
+              accountName:
+                type: string
+                description: Azure Storage account name
+              accountKey:
+                type: string
+                secret: true
+                description: Azure Storage account access key
+              connectionString:
+                type: string
+                secret: true
+                description: Azure Storage connection string (alternative to accountName + accountKey)
+          s3:
+            type: object
+            description: AWS S3 credentials
+            properties:
+              region:
+                type: string
+                description: AWS region (e.g., us-east-1)
+              accessKeyId:
+                type: string
+                secret: true
+                description: AWS access key ID
+              secretAccessKey:
+                type: string
+                secret: true
+                description: AWS secret access key
       privateCDNSigningInfo:
         type: object
         patternProperties:

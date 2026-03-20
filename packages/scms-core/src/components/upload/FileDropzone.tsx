@@ -147,12 +147,18 @@ export function FileDropzone({
           status: 'uploading',
           progress: 20,
         }));
-        handleFileUpload(uploadState.file, uploadItem.signed_url, uploadState.path, (progress) => {
-          setUploadState((prev) => ({
-            ...prev,
-            progress: 20 + progress * 0.65,
-          }));
-        })
+        handleFileUpload(
+          uploadState.file,
+          uploadItem.signed_url,
+          uploadState.path,
+          (progress) => {
+            setUploadState((prev) => ({
+              ...prev,
+              progress: 20 + progress * 0.65,
+            }));
+          },
+          uploadItem.upload,
+        )
           .then(() => {
             setUploadState((prev) => ({
               ...prev,

@@ -1,6 +1,6 @@
 import md5 from 'md5';
 import type { StageResponse } from './types.js';
-import type { UploadStagingDTO } from '@curvenote/common';
+import type { SignedUploadInfo, UploadStagingDTO } from '@curvenote/common';
 import type { FetcherWithComponents } from 'react-router';
 
 /**
@@ -91,21 +91,28 @@ async function initializeUploadSession(signedUrl: string, fileType: string): Pro
 }
 
 /**
- * Performs the actual file upload
- * @param sessionUrl - The session URL for the upload
+ * Performs the actual file upload via XHR PUT with progress tracking
+ * @param sessionUrl - The URL to PUT the file to
  * @param file - The file to upload
  * @param onProgress - Callback to update upload progress
+ * @param extraHeaders - Optional additional headers to set on the request
  * @returns The upload response
  */
 async function performFileUpload(
   sessionUrl: string,
   file: File,
   onProgress: (progress: number) => void,
+  extraHeaders?: Record<string, string>,
 ): Promise<Response> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', sessionUrl, true);
     xhr.setRequestHeader('Content-Type', file.type);
+    if (extraHeaders) {
+      for (const [key, value] of Object.entries(extraHeaders)) {
+        xhr.setRequestHeader(key, value);
+      }
+    }
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
@@ -139,11 +146,19 @@ async function performFileUpload(
 }
 
 /**
- * Handles the complete file upload process
+ * Handles the complete file upload process.
+ *
+ * Protocol-aware: when `upload` info is provided, uses the specified protocol.
+ * - 'gcs-resumable': GCS two-step (POST to init session, PUT to session URL)
+ * - 'put': Single PUT to the URL (Azure SAS / S3 presigned)
+ *
+ * Falls back to 'gcs-resumable' when no upload info is provided (backwards compat).
+ *
  * @param file - The file to upload
- * @param signedUrl - The signed URL for the upload
+ * @param signedUrl - The signed URL for the upload (used for backwards compat and GCS)
  * @param filePath - The path where the file will be stored
  * @param onProgress - Callback to update upload progress
+ * @param upload - Optional protocol-aware upload info from the server
  * @returns Promise that resolves with the upload response
  */
 export async function handleFileUpload(
@@ -151,15 +166,23 @@ export async function handleFileUpload(
   signedUrl: string,
   filePath: string,
   onProgress: (progress: number) => void,
+  upload?: SignedUploadInfo,
 ): Promise<Response> {
-  // Initialize upload session
-  const sessionUrl = await initializeUploadSession(signedUrl, file.type);
+  const protocol = upload?.protocol ?? 'gcs-resumable';
 
-  // Set initial progress to 0
   onProgress(0);
 
-  // Perform the upload
-  const uploadRes = await performFileUpload(sessionUrl, file, onProgress);
+  let uploadRes: Response;
+
+  if (protocol === 'gcs-resumable') {
+    // GCS: two-step — POST to init session, PUT to session URL
+    const sessionUrl = await initializeUploadSession(signedUrl, file.type);
+    uploadRes = await performFileUpload(sessionUrl, file, onProgress);
+  } else {
+    // 'put' protocol — single PUT to the URL (Azure SAS / S3 presigned)
+    const targetUrl = upload?.url ?? signedUrl;
+    uploadRes = await performFileUpload(targetUrl, file, onProgress, upload?.headers);
+  }
 
   if (!uploadRes.ok) {
     throw new Error(`Upload failed with status ${uploadRes.status}`);

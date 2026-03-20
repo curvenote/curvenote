@@ -5,6 +5,9 @@ import { Readable } from 'stream';
 import { httpError } from '@curvenote/scms-core';
 import type { StorageBackend } from './backend.server.js';
 import { KnownBuckets } from './constants.server.js';
+import type { FileMetadata, SignedUploadResult } from '../../modules/storage/types.js';
+
+export type Metadata = FileMetadata;
 
 export interface IFileObject {
   get id(): string;
@@ -14,16 +17,6 @@ export interface IFileObject {
   url(): Promise<string>;
   exists(): Promise<boolean>;
 }
-
-export type Metadata = {
-  name: string;
-  size: number; // This is transformed on the response
-  etag: string;
-  md5Hash: string;
-  contentType: string;
-  bucket: string;
-  metadata: Record<string, string>;
-};
 
 export class File implements IFileObject {
   backend: StorageBackend;
@@ -41,10 +34,6 @@ export class File implements IFileObject {
     this.bucket = bucket;
   }
 
-  get $bucket() {
-    return this.backend.buckets[this.bucket];
-  }
-
   /**
    *
    * @param prefix
@@ -55,8 +44,7 @@ export class File implements IFileObject {
   }
 
   async exists(): Promise<boolean> {
-    const [exists] = await this.$bucket.file(this.id).exists();
-    return exists;
+    return this.backend.provider.exists(this.bucket, this.id);
   }
 
   async assertExists(): Promise<void> {
@@ -64,23 +52,13 @@ export class File implements IFileObject {
     if (!exists) throw httpError(422, `File not present at this storage location: ${this.id}`);
   }
 
-  private normalizeMetadata(metadata: any): Metadata {
-    metadata.size = Number.parseInt(String(metadata.size ?? '0'), 10);
-    if (!metadata.name) metadata.name = this.id;
-    return metadata as Metadata;
-  }
-
   async metadata(): Promise<Metadata> {
     await this.assertExists();
-    const [metadata] = await this.$bucket.file(this.id).getMetadata();
-    return this.normalizeMetadata(metadata);
+    return this.backend.provider.getMetadata(this.bucket, this.id);
   }
 
   async setContentType(contentType: string): Promise<Metadata> {
-    const [metadata] = await this.$bucket.file(this.id).setMetadata({
-      contentType,
-    });
-    return this.normalizeMetadata(metadata);
+    return this.backend.provider.setMetadata(this.bucket, this.id, { contentType });
   }
 
   async copy(newPath: string, bucket?: KnownBuckets): Promise<File> {
@@ -91,11 +69,11 @@ export class File implements IFileObject {
     const nextBucket = bucket ?? this.bucket;
     await this.assertExists();
     this.backend.ensureConnection(nextBucket);
-    const next = new File(this.backend, newPath, nextBucket);
-    const from = this.$bucket.file(this.id);
-    const to = next.$bucket.file(next.id);
-    if (opts?.copy) await from.copy(to);
-    else await from.move(to);
+    if (opts?.copy) {
+      await this.backend.provider.copy(this.bucket, this.id, nextBucket, newPath);
+    } else {
+      await this.backend.provider.move(this.bucket, this.id, nextBucket, newPath);
+    }
     const newFile = new File(this.backend, newPath, nextBucket);
     return newFile;
   }
@@ -106,86 +84,77 @@ export class File implements IFileObject {
 
   async sign(): Promise<string> {
     await this.assertExists();
-    const [url] = await this.$bucket.file(this.id).getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 1000 * this.backend.expiry.read,
-    });
-    return url;
+    return this.backend.provider.signReadUrl(this.bucket, this.id, this.backend.expiry.read);
   }
 
+  /**
+   * Generate a signed upload URL with protocol info.
+   *
+   * For GCS: returns a resumable upload URL (protocol: 'gcs-resumable')
+   * For Azure: returns a SAS URL (protocol: 'put')
+   * For S3: returns a presigned PUT URL (protocol: 'put')
+   */
+  async signUpload(data: { content_type: string }): Promise<SignedUploadResult> {
+    return this.backend.provider.signUploadUrl(
+      this.bucket,
+      this.id,
+      data.content_type,
+      this.backend.expiry.write,
+    );
+  }
+
+  /**
+   * @deprecated Use signUpload() instead. Kept for backwards compatibility.
+   * Returns just the URL string (loses protocol info).
+   */
   async signResumableUpload(data: { content_type: string }): Promise<string> {
-    const [url] = await this.$bucket.file(this.id).getSignedUrl({
-      version: 'v4',
-      action: 'resumable',
-      contentType: data.content_type,
-      expires: Date.now() + 1000 * this.backend.expiry.write, // 30 mins
-    });
-    return url;
+    const result = await this.signUpload(data);
+    return result.url;
   }
 
   async download(): Promise<Buffer> {
     await this.assertExists();
-    const file = this.$bucket.file(this.id);
-    const [buffer] = await file.download();
-    return buffer;
+    return this.backend.provider.download(this.bucket, this.id);
   }
 
   async readStream() {
     await this.assertExists();
-    const file = this.$bucket.file(this.id);
-    return file.createReadStream();
+    return this.backend.provider.createReadStream(this.bucket, this.id);
   }
 
   async writeString(fullData: string, contentType: string): Promise<void> {
     const stream = Readable.from([fullData]);
-    await this._asPromised(stream, contentType);
+    await this.backend.provider.writeStream(this.bucket, this.id, stream, contentType);
   }
 
   async writeBase64(fullData: string, contentType?: string): Promise<void> {
     const [header, data] = fullData.split(';base64,');
     const buffer = Buffer.from(data, 'base64');
-    const stream = new Readable();
-    stream.push(buffer);
-    stream.push(null);
-    await this._asPromised(stream, header.replace('data:', '') ?? contentType);
+    const ct = header.replace('data:', '') ?? contentType;
+    await this.backend.provider.writeBuffer(this.bucket, this.id, buffer, ct);
   }
 
   async writeStream(stream: Readable, contentType: string): Promise<void> {
-    await this._asPromised(stream, contentType);
+    await this.backend.provider.writeStream(this.bucket, this.id, stream, contentType);
   }
 
   async writeArrayBuffer(buffer: ArrayBuffer, contentType: string) {
-    const file = this.$bucket.file(this.id);
-    await file.save(Buffer.from(buffer), { contentType });
-  }
-
-  async _asPromised(stream: Readable, contentType: string) {
-    return new Promise((resolve, reject) => {
-      const file = this.$bucket.file(this.id);
-      stream
-        .pipe(
-          file.createWriteStream({
-            metadata: { contentType },
-          }),
-        )
-        .on('error', (err) => reject(err))
-        .on('finish', () => resolve(undefined));
-    });
+    await this.backend.provider.writeBuffer(this.bucket, this.id, Buffer.from(buffer), contentType);
   }
 
   async delete() {
-    const file = this.$bucket.file(this.id);
-    if (await this.exists()) await file.delete();
+    if (await this.exists()) {
+      await this.backend.provider.delete(this.bucket, this.id);
+    }
   }
 
   async makePublic() {
-    await this.$bucket.file(this.id).makePublic();
+    await this.backend.provider.makePublic(this.bucket, this.id);
   }
 
   async setCustomTime(): Promise<Metadata> {
-    const [metadata] = await this.$bucket.file(this.id).setMetadata({
+    return this.backend.provider.setMetadata(this.bucket, this.id, {
       customTime: new Date().toISOString(),
     });
-    return this.normalizeMetadata(metadata);
   }
 }
