@@ -20,6 +20,7 @@
     "clean": "rimraf dist",
     "lint": "eslint \"src/**/!(*.spec).ts*\" -c ./.eslintrc.cjs",
     "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\"",
+    "lint:format:fix": "prettier --write \"src/**/*.{ts,tsx,md}\"",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "dev": "npm-run-all --parallel \"build:* -- --watch\"",

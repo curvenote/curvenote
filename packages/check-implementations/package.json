@@ -19,6 +19,7 @@
     "clean": "rimraf dist",
     "lint": "eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
     "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\"",
+    "lint:format:fix": "prettier --write \"src/**/*.{ts,tsx,md}\"",
     "build:esm": "tsc --outDir dist",
     "build": "npm-run-all -l clean -p build:esm",
     "test": "vitest run",
