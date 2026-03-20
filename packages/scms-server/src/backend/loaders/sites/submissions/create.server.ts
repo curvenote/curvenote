@@ -208,7 +208,7 @@ export default async function create(
   const submissionUrl = asSiteSubmissionUrl(ctx.asBaseUrl, ctx.site.name, submission.id);
   await ctx.sendSlackNotification({
     eventType: SlackEventType.SUBMISSION_VERSION_CREATED,
-    message: `New submission: ${ctx.asBaseUrl(`/app/sites/${ctx.site.name}/submissions/${submission.id}`)}`,
+    message: `New submission: ${submission.versions[0].work_version.title ?? 'Untitled'}`,
     user: ctx.user,
     metadata: {
       title: submission.versions[0].work_version.title,
