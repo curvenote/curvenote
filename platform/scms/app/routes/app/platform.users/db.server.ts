@@ -2,7 +2,7 @@ import { getPrismaClient } from '@curvenote/scms-server';
 import { KnownResendEvents } from '@curvenote/scms-core';
 import { ActivityType } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
-import type { SecureContext } from '@curvenote/scms-server';
+import type { SecureContext, withAppPlatformAdminContext } from '@curvenote/scms-server';
 
 export type UserDTO = Awaited<ReturnType<typeof dbGetUsers>>[0];
 
@@ -53,6 +53,60 @@ export async function dbGetUsers() {
       display_name: 'asc',
     },
   });
+}
+
+export async function dbGetUserByIdForAnalytics(userId: string) {
+  try {
+    const prisma = await getPrismaClient();
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        display_name: true,
+        system_role: true,
+        primaryProvider: true,
+        pending: true,
+        ready_for_approval: true,
+        disabled: true,
+        roles: {
+          include: {
+            role: {
+              select: {
+                name: true,
+                scopes: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    return user;
+  } catch (error) {
+    console.error('dbGetUserByIdForAnalytics failed:', { userId, error });
+    return null;
+  }
+}
+
+/**
+ * Best-effort analytics after a platform user mutation. Must not throw: the DB action
+ * has already succeeded; failures here should not surface as 500 or prompt retries.
+ */
+export async function runPlatformUserAnalytics(
+  ctx: Awaited<ReturnType<typeof withAppPlatformAdminContext>>,
+  userId: string,
+  run: () => Promise<void>,
+) {
+  try {
+    const updatedUser = await dbGetUserByIdForAnalytics(userId);
+    if (updatedUser) {
+      await ctx.identifyEvent(updatedUser);
+    }
+    await run();
+  } catch (error) {
+    console.error('Platform user analytics failed:', { userId, error });
+  }
 }
 
 export async function dbCountUsers() {

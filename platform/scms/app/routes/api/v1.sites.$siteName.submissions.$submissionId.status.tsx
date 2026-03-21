@@ -10,7 +10,7 @@ import {
 import { type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 import { JobStatus } from '@curvenote/scms-db';
-import { site, error401 } from '@curvenote/scms-core';
+import { site, error401, asSiteSubmissionUrl } from '@curvenote/scms-core';
 import { extensions } from '../../extensions/server';
 
 const SubmissionStatusUpdateSchema = z.object({
@@ -62,15 +62,17 @@ export async function action(args: ActionFunctionArgs) {
     jobId, // record the job.id for posterity (later this should be stashed on the activity)
   });
 
+  const submissionUrl = asSiteSubmissionUrl(ctx.asBaseUrl, ctx.site.name, ctx.submission.id);
   await ctx.sendSlackNotification({
     eventType: SlackEventType.SUBMISSION_STATUS_CHANGED,
-    message: `Submission status changed to ${status}: ${ctx.asBaseUrl(`/app/sites/${ctx.site.name}/submissions/${ctx.submission.id}`)}`,
+    message: `Submission status changed to ${status}`,
     user: { id: userId },
     metadata: {
       status,
       site: ctx.site.name,
       submissionId: ctx.submission.id,
       submissionVersionId: job.SubmissionVersion.id,
+      submissionUrl,
     },
   });
 
