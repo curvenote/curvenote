@@ -7,6 +7,7 @@ import {
   canTransitionTo,
   getValidTransition,
   getJobType,
+  asSiteSubmissionUrl,
 } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import { userHasScopes } from '../../../../scopes.helpers.server.js';
@@ -311,15 +312,21 @@ export default async function transitionSubmissionVersion(
       transition,
       datePublished,
     );
+    const submissionUrl = asSiteSubmissionUrl(
+      ctx.asBaseUrl,
+      sv.submission.site.name,
+      sv.submission.id,
+    );
     await ctx.sendSlackNotification({
       eventType: SlackEventType.SUBMISSION_STATUS_CHANGED,
-      message: `Submission status changed to ${targetStateName}: ${ctx.asBaseUrl(`/app/sites/${sv.submission.site.name}/submissions/${sv.submission.id}`)}`,
+      message: `Submission status changed to ${targetStateName}`,
       user: { id: ctx.user.id },
       metadata: {
         status: targetStateName,
         site: sv.submission.site.name,
         submissionId: sv.submission.id,
         submissionVersionId: sv.id,
+        submissionUrl,
       },
     });
     return sv;

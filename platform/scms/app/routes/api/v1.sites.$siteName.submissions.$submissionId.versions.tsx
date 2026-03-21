@@ -4,13 +4,17 @@ import { httpError, site, work } from '@curvenote/scms-core';
 import {
   ensureJsonBodyFromMethod,
   validate,
-  CreateSubmissionVersionPostBodySchema,
   withCurvenoteSubmissionContext,
   withScopedSubmissionContext,
   sites,
   works,
 } from '@curvenote/scms-server';
 import { extensions } from '../../extensions/server';
+
+const CreateSubmissionVersionPostBodySchema = z.object({
+  work_version_id: z.uuid(),
+  job_id: z.uuid(),
+});
 
 const ParamsSchema = z.object({
   limit: z.number().int().min(1).max(500).default(500),

@@ -6,7 +6,7 @@ import { CreatePublishJobPayloadSchema } from './schemas.server.js';
 import { JobStatus } from '@curvenote/scms-db';
 import type { StorageBackend } from '../../../storage/index.js';
 import { KnownBuckets } from '../../../storage/constants.server.js';
-import { httpError } from '@curvenote/scms-core';
+import { httpError, asSiteSubmissionUrl } from '@curvenote/scms-core';
 import { updateCdnOnWorkVersion, validateSitePublishingScopes } from './utils.server.js';
 import type { Context } from '../../../context.server.js';
 import { $updateSubmissionVersion } from '../../../db.server.js';
@@ -139,21 +139,18 @@ export async function unpublishHandler(
     where: { id: submission_version_id },
     include: { submission: { include: { site: { select: { name: true } } } } },
   });
-  const platformSubmissionUrl =
-    sv?.submission?.site?.name && sv?.submission?.id
-      ? ctx.asBaseUrl(`/app/sites/${sv.submission.site.name}/submissions/${sv.submission.id}`)
-      : null;
+  const siteName = sv?.submission?.site?.name;
+
   await ctx.sendSlackNotification({
     eventType: SlackEventType.SUBMISSION_STATUS_CHANGED,
-    message: platformSubmissionUrl
-      ? `Submission status changed to UNPUBLISHED: ${platformSubmissionUrl}`
-      : `Submission status changed to UNPUBLISHED`,
+    message: 'Submission status changed to UNPUBLISHED',
     user: { id: user_id },
     metadata: {
       status: 'UNPUBLISHED',
-      site: sv?.submission?.site?.name,
-      submissionId: sv?.submission?.id,
-      submissionVersionId: submission_version_id,
+      site: siteName,
+      submissionId: sv?.submission?.id ?? 'unknown',
+      submissionVersionId: submission_version_id ?? 'unknown',
+      submissionUrl: asSiteSubmissionUrl(ctx.asBaseUrl, siteName, sv?.submission?.id),
     },
   });
 

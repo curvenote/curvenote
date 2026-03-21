@@ -1,18 +1,7 @@
-export type WorkVersionCheckName = string; // 'curvenote-structure' | ...;
-
-export type WorkVersionMetadata = {
-  [key: string]: any;
-  version: 1;
-  checks?: {
-    enabled: WorkVersionCheckName[];
-  };
-};
-
-export function makeDefaultWorkVersionMetadata(): WorkVersionMetadata {
-  return {
-    version: 1,
-  };
-}
+/**
+ * WorkVersion metadata types and defaults have moved to schemas/work-version.ts
+ * and are re-exported from @curvenote/scms-server.
+ */
 
 export type SubmissionVersionMetadata = {
   [key: string]: any;

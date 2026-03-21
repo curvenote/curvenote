@@ -1,15 +1,52 @@
 import type { Route } from './+types/v1.jobs';
-import { error401, error405 } from '@curvenote/scms-core';
+import { z } from 'zod';
+import type { ClientExtension, ServerExtension } from '@curvenote/scms-core';
+import { error401, error405, createFollowOnSchemas, KnownJobTypes } from '@curvenote/scms-core';
 import {
   ensureJsonBodyFromMethod,
   jobs,
   withContext,
-  createJobPostBodySchema,
   validate,
   registerExtensionJobs,
 } from '@curvenote/scms-server';
 import { uuidv7 } from 'uuidv7';
 import { extensions } from '../../extensions/server';
+
+async function getJobTypes(exts: ServerExtension[]): Promise<readonly string[]> {
+  const coreJobTypes = [
+    KnownJobTypes.CHECK,
+    KnownJobTypes.CLI_CHECK,
+    KnownJobTypes.PUBLISH,
+    KnownJobTypes.UNPUBLISH,
+    KnownJobTypes.CONVERTER_TASK,
+  ];
+  const extensionJobTypes = registerExtensionJobs(exts).map((job) => job.jobType);
+  return [...coreJobTypes, ...extensionJobTypes] as const;
+}
+
+async function createJobPostBodySchema(exts: ClientExtension[]) {
+  const JOB_TYPES = await getJobTypes(exts);
+  const { FollowOnSchema } = createFollowOnSchemas(JOB_TYPES);
+  return z.object({
+    id: z.uuid().optional(),
+    job_type: z
+      .enum(JOB_TYPES as [string, ...string[]], {
+        error: () => `job_type must be ${JOB_TYPES.join(', ')} (case sensitive)`,
+      })
+      .default('CHECK'),
+    payload: z.record(z.string().min(0), z.any(), {
+      error: (issue) => (issue.input === undefined ? 'a payload object is required' : undefined),
+    }),
+    results: z
+      .record(z.string().min(0), z.any(), {
+        error: (issue) => (issue.code === 'invalid_type' ? 'results must be an object' : undefined),
+      })
+      .optional(),
+    follow_on: FollowOnSchema.optional(),
+    activity_type: z.string().optional(),
+    activity_data: z.record(z.string().min(0), z.any()).optional(),
+  });
+}
 
 // extend vercel timeout to maximum 10 minutes
 export const config = {

@@ -1,6 +1,6 @@
 import { ensureTrailingSlash } from '@curvenote/scms-core';
 import type { FileMetadataSectionItem } from '@curvenote/scms-core';
-import type { WorkVersionMetadata } from './metadata.js';
+import type { WorkVersionMetadata } from '../schemas/work-version/index.js';
 import type { Context } from './context.server.js';
 import { File, KnownBuckets, StorageBackend } from './storage/index.js';
 

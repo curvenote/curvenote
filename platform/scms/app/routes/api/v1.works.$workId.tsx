@@ -1,13 +1,20 @@
 import type { Route } from './+types/v1.works.$workId';
+import { z } from 'zod';
 import { work, httpError, error404 } from '@curvenote/scms-core';
 import {
   ensureJsonBodyFromMethod,
-  UpdateWorkPatchBodySchema,
   validate,
   withAPISecureContext,
   withCurvenoteWorkContext,
   works,
 } from '@curvenote/scms-server';
+
+const UpdateWorkPatchBodySchema = z.object({
+  key: z
+    .string()
+    .regex(/[a-zA-Z][a-zA-Z0-9_-]{7,49}/)
+    .describe('unique user-provided identifier for work'),
+});
 
 export async function loader(args: Route.LoaderArgs) {
   // TODO: Update this to use withAPIWorkContext when we no longer

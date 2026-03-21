@@ -1,17 +1,54 @@
 import type { Route } from './+types/v1.routers';
+import { z } from 'zod';
 import { uuidv7 as uuid } from 'uuidv7';
 import { error405, httpError } from '@curvenote/scms-core';
 import {
   ensureJsonBodyFromMethod,
-  createCurvespaceDomain,
-  CreateDnsRouterPostBodySchema,
-  getCurvespaceParts,
-  isCurvespaceDomain,
   validate,
   withAPISecureContext,
   withContext,
   getPrismaClient,
 } from '@curvenote/scms-server';
+import { isCurvespaceDomain, getCurvespaceParts, createCurvespaceDomain } from '@curvenote/blocks';
+
+/**
+ * Return true if value is (1) valid .curve.space domain or (2) unrelated subdomain
+ */
+function isCurvespaceOrSubdomain(value: string) {
+  if (isCurvespaceDomain(value)) return true;
+  if (value.toLowerCase().endsWith('.curve.space')) return false;
+  if (!value.startsWith('https://') && !value.startsWith('http://')) {
+    value = `http://${value}`;
+  }
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  const { hash, host, pathname, protocol, search } = url;
+  if (protocol !== 'http:' && protocol !== 'https:') return false;
+  if ((pathname && pathname !== '/') || hash || search) return false;
+  const numParts = host.split('.').length;
+  if (numParts < 3) return false;
+  return true;
+}
+
+const CreateDnsRouterPostBodySchema = z.object({
+  cdn: z
+    .string({
+      error: (issue) => (issue.input === undefined ? 'cdn is required (url)' : undefined),
+    })
+    .url(),
+  cdn_key: z
+    .string({
+      error: (issue) => (issue.input === undefined ? 'cdn_key is required (uuid)' : undefined),
+    })
+    .uuid(),
+  domain: z.string().refine(isCurvespaceOrSubdomain, {
+    message: 'domain must be valid .curve.space domain or a subdomain you own',
+  }),
+});
 
 export async function loader(args: Route.LoaderArgs) {
   await withContext(args);

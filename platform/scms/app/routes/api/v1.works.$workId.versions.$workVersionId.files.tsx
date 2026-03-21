@@ -1,7 +1,7 @@
 import type { Route } from './+types/v1.works.$workId.versions.$workVersionId.files';
+import { z } from 'zod';
 import {
   ensureJsonBodyFromMethod,
-  AddWorkVersionFilesPatchBodySchema,
   validate,
   withAPISecureContext,
   getPrismaClient,
@@ -14,9 +14,20 @@ import {
   error405,
   httpError,
   coerceToObject,
+  FileMetadataSectionItemSchema,
   type FileMetadataSection,
 } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
+
+/** PATCH body for adding a single file entry to work version metadata.files (no signedUrl). */
+const AddWorkVersionFilePatchBodySchema = FileMetadataSectionItemSchema.omit({
+  signedUrl: true,
+});
+
+/** PATCH body for adding file entries: { files: FileEntry[] }. */
+const AddWorkVersionFilesPatchBodySchema = z.object({
+  files: z.array(AddWorkVersionFilePatchBodySchema).min(1),
+});
 
 export async function loader() {
   throw error405();
@@ -81,12 +92,13 @@ export async function action(args: Route.ActionArgs) {
         },
       };
 
+      const files = updatedMetadata.files ?? {};
       for (const fileEntry of fileEntries) {
         const path = fileEntry.path;
-        if (updatedMetadata.files[path]) {
+        if (files[path]) {
           throw httpError(409, `file already exists at path: ${path}`);
         }
-        const existingFilesInSlot = Object.values(updatedMetadata.files).filter(
+        const existingFilesInSlot = Object.values(files).filter(
           (f: { slot?: string }) => f.slot === fileEntry.slot,
         );
         const maxOrder =
@@ -94,8 +106,9 @@ export async function action(args: Route.ActionArgs) {
             ? Math.max(...existingFilesInSlot.map((f: { order?: number }) => f.order ?? 0))
             : 0;
         const order = fileEntry.order ?? maxOrder + 1;
-        updatedMetadata.files[path] = { ...fileEntry, order };
+        files[path] = { ...fileEntry, order };
       }
+      updatedMetadata.files = files;
       return updatedMetadata;
     },
   );

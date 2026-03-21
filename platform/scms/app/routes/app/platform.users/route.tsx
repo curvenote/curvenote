@@ -12,6 +12,7 @@ import {
   dbGetUsers,
   dbRejectUser,
   dbToggleUserDisabled,
+  runPlatformUserAnalytics,
 } from './db.server';
 import { handleAssignRole, handleRemoveRole } from './actionHelpers.server';
 import { PlatformUserList } from './PlatformUserList';
@@ -48,24 +49,27 @@ export async function action(args: Route.ActionArgs) {
   const formData = await args.request.formData();
 
   return withValidFormData(PlatformUserActionSchema, formData, async (payload) => {
-    console.log('payload', payload);
     switch (payload.intent) {
       case 'approve-user': {
         await approveAndNotifyUser(ctx, payload.userId);
-        await ctx.trackEvent(TrackEvent.USER_APPROVED, {
-          targetUserId: payload.userId,
+        await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+          await ctx.trackEvent(TrackEvent.USER_APPROVED, {
+            targetUserId: payload.userId,
+          });
+          await ctx.analytics.flush();
         });
-        await ctx.analytics.flush();
         return { success: true };
       }
       case 'reject-user': {
         const user = await dbRejectUser(payload.userId, ctx.user.id);
-        await ctx.trackEvent(TrackEvent.USER_REJECTED, {
-          targetUserId: payload.userId,
-          targetUserEmail: user?.email,
-          targetUserDisplayName: user?.display_name,
+        await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+          await ctx.trackEvent(TrackEvent.USER_REJECTED, {
+            targetUserId: payload.userId,
+            targetUserEmail: user?.email,
+            targetUserDisplayName: user?.display_name,
+          });
+          await ctx.analytics.flush();
         });
-        await ctx.analytics.flush();
         return { success: true, user };
       }
       case 'toggle-disabled': {
@@ -73,22 +77,46 @@ export async function action(args: Route.ActionArgs) {
           throw new Error('disabled field is required for toggle-disabled intent');
         }
         const user = await dbToggleUserDisabled(payload.userId, payload.disabled, ctx.user.id);
-        await ctx.trackEvent(
-          payload.disabled ? TrackEvent.USER_DISABLED : TrackEvent.USER_ENABLED,
-          {
-            targetUserId: payload.userId,
-            targetUserEmail: user?.email,
-            targetUserDisplayName: user?.display_name,
-          },
-        );
-        await ctx.analytics.flush();
+        await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+          await ctx.trackEvent(
+            payload.disabled ? TrackEvent.USER_DISABLED : TrackEvent.USER_ENABLED,
+            {
+              targetUserId: payload.userId,
+              targetUserEmail: user?.email,
+              targetUserDisplayName: user?.display_name,
+            },
+          );
+          await ctx.analytics.flush();
+        });
         return { success: true, user };
       }
       case 'assign-role': {
-        return handleAssignRole(ctx, formData);
+        const result = await handleAssignRole(ctx, formData);
+        const success =
+          typeof result === 'object' &&
+          result != null &&
+          'success' in result &&
+          (result as any).success === true;
+        if (success) {
+          await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+            await ctx.analytics.flush();
+          });
+        }
+        return result;
       }
       case 'remove-role': {
-        return handleRemoveRole(ctx, formData);
+        const result = await handleRemoveRole(ctx, formData);
+        const success =
+          typeof result === 'object' &&
+          result != null &&
+          'success' in result &&
+          (result as any).success === true;
+        if (success) {
+          await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+            await ctx.analytics.flush();
+          });
+        }
+        return result;
       }
       default: {
         throw new Error('Invalid intent');

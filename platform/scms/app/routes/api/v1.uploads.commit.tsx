@@ -1,7 +1,7 @@
 import type { Route } from './+types/v1.uploads.commit';
+import { z } from 'zod';
 import {
   ensureJsonBodyFromMethod,
-  UploadCommitPostBodySchema,
   validate,
   withAPISecureContext,
   KnownBuckets,
@@ -9,6 +9,19 @@ import {
   File,
 } from '@curvenote/scms-server';
 import { httpError } from '@curvenote/scms-core';
+
+const UploadCommitPostBodySchema = z.object({
+  cdn: z.url(),
+  cdnKey: z.uuid(),
+  files: z.array(
+    z.object({
+      path: z.string(),
+      content_type: z.string(),
+      md5: z.string(),
+      size: z.number(),
+    }),
+  ),
+});
 import pLimit from 'p-limit';
 
 export const config = { maxDuration: 300 };

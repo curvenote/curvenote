@@ -1,8 +1,8 @@
+import { z } from 'zod';
 import { error401 } from '@curvenote/scms-core';
 import type { Route } from './+types/v1.uploads.stage';
 import {
   ensureJsonBodyFromMethod,
-  UploadStagePostBodySchema,
   validate,
   withAPISecureContext,
   KnownBuckets,
@@ -10,6 +10,17 @@ import {
   stageFilesForUpload,
   assertUserDefined,
 } from '@curvenote/scms-server';
+
+const UploadStagePostBodySchema = z.object({
+  files: z.array(
+    z.object({
+      path: z.string(),
+      content_type: z.string(),
+      md5: z.string(),
+      size: z.number(),
+    }),
+  ),
+});
 
 export const config = { maxDuration: 300 };
 
