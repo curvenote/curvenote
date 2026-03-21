@@ -1,5 +1,4 @@
-import type { ZodError } from 'zod';
-import { z } from 'zod';
+import type { ZodError, z } from 'zod';
 import { httpError } from '@curvenote/scms-core';
 
 /**

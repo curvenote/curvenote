@@ -12,7 +12,7 @@ import {
 import { uuidv7 } from 'uuidv7';
 import { extensions } from '../../extensions/server';
 
-async function getJobTypes(extensions: ServerExtension[]): Promise<readonly string[]> {
+async function getJobTypes(exts: ServerExtension[]): Promise<readonly string[]> {
   const coreJobTypes = [
     KnownJobTypes.CHECK,
     KnownJobTypes.CLI_CHECK,
@@ -20,12 +20,12 @@ async function getJobTypes(extensions: ServerExtension[]): Promise<readonly stri
     KnownJobTypes.UNPUBLISH,
     KnownJobTypes.CONVERTER_TASK,
   ];
-  const extensionJobTypes = registerExtensionJobs(extensions).map((job) => job.jobType);
+  const extensionJobTypes = registerExtensionJobs(exts).map((job) => job.jobType);
   return [...coreJobTypes, ...extensionJobTypes] as const;
 }
 
-async function createJobPostBodySchema(extensions: ClientExtension[]) {
-  const JOB_TYPES = await getJobTypes(extensions);
+async function createJobPostBodySchema(exts: ClientExtension[]) {
+  const JOB_TYPES = await getJobTypes(exts);
   const { FollowOnSchema } = createFollowOnSchemas(JOB_TYPES);
   return z.object({
     id: z.uuid().optional(),

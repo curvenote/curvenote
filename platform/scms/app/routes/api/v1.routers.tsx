@@ -9,11 +9,7 @@ import {
   withContext,
   getPrismaClient,
 } from '@curvenote/scms-server';
-import {
-  isCurvespaceDomain,
-  getCurvespaceParts,
-  createCurvespaceDomain,
-} from '@curvenote/blocks';
+import { isCurvespaceDomain, getCurvespaceParts, createCurvespaceDomain } from '@curvenote/blocks';
 
 /**
  * Return true if value is (1) valid .curve.space domain or (2) unrelated subdomain

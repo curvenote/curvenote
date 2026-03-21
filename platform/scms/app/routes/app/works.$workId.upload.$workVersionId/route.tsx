@@ -10,6 +10,8 @@ import {
   getPrismaClient,
   safeWorkVersionJsonUpdate,
   signFilesInMetadata,
+  workVersionCheckNameSchema,
+  ChecksMetadataSchema,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
@@ -44,7 +46,6 @@ import type {
   WorkVersionCheckName,
   WorkVersionMetadata,
 } from '@curvenote/scms-server';
-import { workVersionCheckNameSchema, ChecksMetadataSchema } from '@curvenote/scms-server';
 import { data, redirect } from 'react-router';
 import { List, Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
