@@ -14,11 +14,12 @@ export function getBlueskyClientMetadata(config: BlueskyProviderConfig): Record<
     client_uri: baseUrl,
     redirect_uris: [config.redirectUrl],
     grant_types: ['authorization_code', 'refresh_token'],
-    scope: 'atproto',
+    // `atproto` alone is not enough for AppView calls (e.g. getProfile); see @atproto/oauth-client-node README
+    scope: 'atproto transition:generic',
     response_types: ['code'],
     dpop_bound_access_tokens: true,
     token_endpoint_auth_method: 'private_key_jwt',
-    token_endpoint_auth_signing_alg: 'RS256',
+    token_endpoint_auth_signing_alg: 'ES256',
     jwks_uri: config.privateKeyPem ? jwksUri : undefined,
   };
 }

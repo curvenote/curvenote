@@ -17,30 +17,34 @@ let authenticator: AppAuthenticator | null = null;
 
 export async function authenticatorFactory() {
   if (authenticator != null) return authenticator;
-  authenticator = new Authenticator<any>();
   const config = await getConfig();
 
+  // Build into a local instance first. If Bluesky (or another async registration) throws,
+  // we must not cache an Authenticator that is missing strategies — that caused
+  // "Strategy bluesky not found" on later requests after a failed first init.
+  const next = new Authenticator<any>();
   const authProviders = config.auth;
   for (const provider in authProviders) {
     // TODO some dynamic module loading thing
     if (provider === 'github') {
-      registerGitHubStrategy(config, authenticator);
+      registerGitHubStrategy(config, next);
     }
     if (provider === 'google') {
-      registerGoogleStrategy(config, authenticator);
+      registerGoogleStrategy(config, next);
     }
     if (provider === 'firebase') {
-      registerFirebaseStrategy(config, authenticator);
+      registerFirebaseStrategy(config, next);
     }
     if (provider === 'okta') {
-      registerOktaStrategy(config, authenticator);
+      registerOktaStrategy(config, next);
     }
     if (provider === 'orcid') {
-      registerOrcidStrategy(config, authenticator);
+      registerOrcidStrategy(config, next);
     }
     if (provider === 'bluesky') {
-      await registerBlueskyStrategy(config, authenticator);
+      await registerBlueskyStrategy(config, next);
     }
   }
+  authenticator = next;
   return authenticator;
 }

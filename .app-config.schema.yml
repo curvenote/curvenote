@@ -132,6 +132,30 @@ properties:
         required:
           - clientId
           - clientSecret
+          - redirectUrl
+        properties:
+          displayName:
+            type: string
+            description: Display name for the auth provider shown in UI
+          clientId:
+            type: string
+          clientSecret:
+            type: string
+            secret: true
+          redirectUrl:
+            type: string
+          allowLogin:
+            type: boolean
+            default: true
+          provisionNewUser:
+            type: boolean
+            default: false
+          allowLinking:
+            type: boolean
+            default: false
+          adminLogin:
+            type: boolean
+            default: false
       bluesky:
         type: object
         required:
@@ -155,7 +179,7 @@ properties:
           privateKeyPem:
             type: string
             secret: true
-            description: PEM-encoded private key for confidential client (RS256 or ES256)
+            description: PEM-encoded ES256 (P-256) private key for confidential client per atproto OAuth
           allowLogin:
             type: boolean
             default: true
@@ -170,8 +194,9 @@ properties:
             default: false
           pdsHostname:
             type: string
-            description: PDS hostname for login (default bsky.social)
-            default: bsky.social
+            description: >-
+              Login hint for Atproto OAuth (handle, DID, or https PDS URL). Bare bsky.social is normalized to https://bsky.social.
+            default: https://bsky.social
   api:
     type: object
     required:

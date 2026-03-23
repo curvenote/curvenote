@@ -18,5 +18,6 @@ export interface BlueskyProviderConfig {
   provisionNewUser?: boolean;
   allowLinking?: boolean;
   adminLogin?: boolean;
+  /** Normalized login hint for OAuth `authorize()` (handle, DID, or https PDS URL). */
   pdsHostname?: string;
 }
