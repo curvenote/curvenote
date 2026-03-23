@@ -3,7 +3,7 @@ import { data as dataResponse } from 'react-router';
 import type { UploadFileInfo } from '@curvenote/common';
 import { safeWorkVersionJsonUpdate, safeSiteDataUpdate } from '../occ.server.js';
 import { TrackEvent, coerceToObject, generateUniqueFileLabel } from '@curvenote/scms-core';
-import { makeDefaultWorkVersionMetadata } from '../metadata.js';
+import { makeDefaultWorkVersionMetadata } from '../../schemas/work-version/index.js';
 import type { FileMetadataSection } from '@curvenote/scms-core';
 import pLimit from 'p-limit';
 import { File } from '../storage/file.server.js';
@@ -118,7 +118,8 @@ function finalizeFileMetadata(
 ) {
   // Collect existing labels for uniqueness check
   const existingLabels = new Set<string>();
-  Object.values(metadata.files).forEach((file: any) => {
+  const files = metadata.files ?? {};
+  Object.values(files).forEach((file: any) => {
     if (file.label) {
       existingLabels.add(file.label);
     }
@@ -127,7 +128,7 @@ function finalizeFileMetadata(
   // Only update metadata for successfully copied files
   uploadedFiles.forEach((file: UploadFileInfo & { label?: string }, index: number) => {
     const filePath = file.path;
-    if (!metadata.files[filePath]) {
+    if (!files[filePath]) {
       const fileName = filePath.split('/').pop() || '';
 
       // Use provided label if available, otherwise generate one
@@ -142,14 +143,14 @@ function finalizeFileMetadata(
       existingLabels.add(finalLabel);
 
       // Get the next order number for this slot (allowing gaps for future manual reordering)
-      const existingFilesInSlot = Object.values(metadata.files).filter((f: any) => f.slot === slot);
+      const existingFilesInSlot = Object.values(files).filter((f: any) => f.slot === slot);
       const maxOrder =
         existingFilesInSlot.length > 0
           ? Math.max(...existingFilesInSlot.map((f: any) => f.order ?? 0))
           : 0;
       const nextOrder = maxOrder + 1 + index;
 
-      metadata.files[filePath] = {
+      files[filePath] = {
         name: fileName,
         size: file.size,
         type: file.content_type,

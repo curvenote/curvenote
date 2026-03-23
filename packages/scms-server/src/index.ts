@@ -8,6 +8,7 @@ export * from './utils/index.js';
 export * from './utils.server.js';
 export * from './api.schemas.js';
 export * from './app.schemas.js';
+export * from './schemas/index.js';
 
 export * from './backend/index.js';
 export * from './modules/index.js';

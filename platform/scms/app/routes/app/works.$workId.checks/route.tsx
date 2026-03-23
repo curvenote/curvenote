@@ -1,7 +1,11 @@
 import type { Route } from './+types/route';
 import { data } from 'react-router';
 import React from 'react';
-import { withSecureWorkContext, type WorkVersionMetadata } from '@curvenote/scms-server';
+import {
+  withSecureWorkContext,
+  type WorkVersionMetadata,
+  type ChecksMetadataSection,
+} from '@curvenote/scms-server';
 import type { FileMetadataSection } from '@curvenote/scms-core';
 import {
   PageFrame,
@@ -15,7 +19,6 @@ import {
   formatDate,
 } from '@curvenote/scms-core';
 import { formatWorkVersionDTO } from './db.server';
-import type { ChecksMetadataSection } from '../works.$workId.upload.$workVersionId/checks.schema';
 import {
   dbGetCheckServiceRunsByWorkVersionIds,
   type CheckServiceRunRow,

@@ -10,6 +10,8 @@ import {
   getPrismaClient,
   safeWorkVersionJsonUpdate,
   signFilesInMetadata,
+  workVersionCheckNameSchema,
+  ChecksMetadataSchema,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
@@ -39,9 +41,11 @@ import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
 import { updateWorkVersionTitle } from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
-import type { ChecksMetadataSection } from './checks.schema';
-import { workVersionCheckNameSchema, checksMetadataSchema } from './checks.schema';
-import type { WorkVersionCheckName, WorkVersionMetadata } from '@curvenote/scms-server';
+import type {
+  ChecksMetadataSection,
+  WorkVersionCheckName,
+  WorkVersionMetadata,
+} from '@curvenote/scms-server';
 import { data, redirect } from 'react-router';
 import { List, Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
@@ -115,7 +119,7 @@ export async function loader(args: Route.LoaderArgs) {
     : { files: {} };
 
   // Validate and extract checks metadata section
-  const checksResult = checksMetadataSchema.safeParse(rawMetadata);
+  const checksResult = ChecksMetadataSchema.safeParse(rawMetadata);
   const checks =
     checksResult.success && checksResult.data.checks ? checksResult.data.checks : { enabled: [] };
 

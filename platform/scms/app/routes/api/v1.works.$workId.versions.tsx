@@ -1,13 +1,13 @@
 import type { Route } from './+types/v1.works.$workId.versions';
 import {
   ensureJsonBodyFromMethod,
-  CreateMystWorkPostBodySchema,
   validate,
   withAPISecureContext,
   checkWorkExists,
   works,
 } from '@curvenote/scms-server';
 import { error401, error404, error405, httpError } from '@curvenote/scms-core';
+import { CreateMystWorkPostBodySchema } from './v1.works';
 
 export async function loader() {
   throw error405();

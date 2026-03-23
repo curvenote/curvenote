@@ -8,7 +8,11 @@ import type { FileState, FileUpload, StageResponse } from './types.js';
 import { getFileMD5Hash, getFilePath, handleFileUpload, isUploadStagingDTO } from './utils.js';
 import { generateUniqueFileLabel } from '../../backend/uploads/utils.js';
 import type { UploadFileInfo } from '@curvenote/common';
-import type { FileMetadataSection, FileUploadConfig } from '../../backend/uploads/schema.js';
+import type {
+  FileMetadataSection,
+  FileMetadataSectionItem,
+  FileUploadConfig,
+} from '../../backend/uploads/schema.js';
 import type { GeneralError } from '../../backend/types.js';
 
 // Global state for highlighted files (simple implementation)
@@ -125,7 +129,7 @@ export function WorkFileUpload({
   const loadedFileState = useMemo(() => {
     // Get existing files from the work's metadata
     const existingFiles = Object.values(loadedFileMetadata?.files ?? {}).filter(
-      (file): file is FileMetadataSection['files'][string] => file.slot === slot,
+      (file): file is FileMetadataSectionItem => file.slot === slot,
     );
 
     return existingFiles.reduce<FileState>((acc, file) => {
@@ -144,7 +148,7 @@ export function WorkFileUpload({
       };
       return acc;
     }, {});
-  }, [loadedFileMetadata]);
+  }, [loadedFileMetadata, slot]);
 
   // State management
   const [fileState, setFileState] = useState<FileState>(loadedFileState);
