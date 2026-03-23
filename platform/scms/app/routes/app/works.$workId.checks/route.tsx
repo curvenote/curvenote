@@ -3,6 +3,7 @@ import { data } from 'react-router';
 import React from 'react';
 import {
   withSecureWorkContext,
+  makeDefaultWorkVersionMetadata,
   type WorkVersionMetadata,
   type ChecksMetadataSection,
 } from '@curvenote/scms-server';
@@ -51,9 +52,10 @@ export async function loader(args: Route.LoaderArgs) {
   }
 
   const latestVersion = nonDraftVersions[0];
-  const metadata = (latestVersion.metadata ?? {
-    version: 1,
-  }) as WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
+  const metadata = (latestVersion.metadata ??
+    makeDefaultWorkVersionMetadata()) as WorkVersionMetadata &
+    FileMetadataSection &
+    ChecksMetadataSection;
 
   const workVersionDTO = formatWorkVersionDTO(ctx, ctx.work.id, latestVersion);
 
@@ -114,7 +116,8 @@ export async function action(args: Route.ActionArgs) {
   }
 
   // Get metadata
-  const metadata = (latestVersion.metadata ?? { version: 1 }) as WorkVersionMetadata &
+  const metadata = (latestVersion.metadata ??
+    makeDefaultWorkVersionMetadata()) as WorkVersionMetadata &
     FileMetadataSection &
     ChecksMetadataSection;
 
