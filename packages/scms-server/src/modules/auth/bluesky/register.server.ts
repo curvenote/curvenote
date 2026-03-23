@@ -1,6 +1,7 @@
 import type { Authenticator } from 'remix-auth';
 import { Strategy } from 'remix-auth/strategy';
 import { NodeOAuthClient } from '@atproto/oauth-client-node';
+import type { Session } from '@atproto/oauth-client';
 import { Agent } from '@atproto/api';
 import { JoseKey } from '@atproto/jwk-jose';
 import { createPrivateKey } from 'node:crypto';
@@ -22,10 +23,11 @@ import {
   addSegmentAnalytics,
 } from '../../../backend/services/analytics/segment.server.js';
 import { TrackEvent } from '@curvenote/scms-core';
-import { blueskyStateStore, blueskySessionStore } from './stores.server.js';
+import { oauthStateStore, blueskySessionStore } from './stores.server.js';
 import { persistBlueskySessionForLinkedAccount } from './session-db.server.js';
 import type { BlueskyProfile, BlueskyProviderConfig } from './types.js';
 import { getBlueskyClientMetadata } from './metadata.server.js';
+import { extractDpopJwkForStorage } from './dpop-jwk-storage.server.js';
 
 let cachedClient: NodeOAuthClient | null = null;
 
@@ -90,7 +92,7 @@ async function createBlueskyClient(
   const client = new NodeOAuthClient({
     clientMetadata,
     keyset: keyset?.length ? keyset : undefined,
-    stateStore: blueskyStateStore as any,
+    stateStore: oauthStateStore as any,
     sessionStore: blueskySessionStore as any,
   });
 
@@ -329,19 +331,22 @@ export async function registerBlueskyStrategy(
           storedSession &&
           typeof storedSession === 'object' &&
           'tokenSet' in storedSession &&
-          'dpopJwk' in storedSession
+          ('dpopKey' in storedSession || 'dpopJwk' in storedSession)
         ) {
           try {
-            const tokenSet = (storedSession as { tokenSet: unknown }).tokenSet;
-            const dpopJwk = (storedSession as { dpopJwk: unknown }).dpopJwk;
+            const s = storedSession as Session;
             const iss =
-              typeof tokenSet === 'object' && tokenSet !== null && 'iss' in tokenSet
-                ? (tokenSet as { iss?: string }).iss
+              typeof s.tokenSet === 'object' && s.tokenSet !== null && 'iss' in s.tokenSet
+                ? (s.tokenSet as { iss?: string }).iss
                 : undefined;
             await persistBlueskySessionForLinkedAccount(
               linkedAccount.id,
               did,
-              { tokenSet, dpopJwk },
+              {
+                tokenSet: s.tokenSet,
+                dpopJwk: extractDpopJwkForStorage(s),
+                authMethod: s.authMethod,
+              },
               iss,
             );
           } catch (err) {

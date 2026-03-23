@@ -3,7 +3,7 @@
  * Session shape matches NodeSavedSession: { tokenSet, dpopJwk }.
  */
 
-import type { PrismaClient } from '@curvenote/scms-db';
+import type { Prisma, PrismaClient } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../../backend/prisma.server.js';
 import { uuidv7 } from 'uuidv7';
 
@@ -21,7 +21,7 @@ export type BlueskySessionPayload = {
 export async function persistBlueskySessionForLinkedAccount(
   linkedAccountId: string,
   sub: string,
-  sessionData: { tokenSet: unknown; dpopJwk: unknown },
+  sessionData: { tokenSet: unknown; dpopJwk: unknown; authMethod?: unknown },
   iss?: string,
 ): Promise<void> {
   const prisma = await getPrismaClient();
@@ -33,19 +33,44 @@ export async function persistBlueskySessionForLinkedAccount(
       where: { user_linked_account_id: linkedAccountId },
       data: { active: false, date_modified: now },
     });
-    await sessionTx.userLinkedAccountSession.create({
-      data: {
-        id: uuidv7(),
-        user_linked_account_id: linkedAccountId,
-        sub,
-        iss: iss ?? null,
-        token_set: sessionData.tokenSet as object,
-        dpop_jwk: sessionData.dpopJwk as object,
-        active: true,
-        date_created: now,
-        date_modified: now,
-      },
+
+    const existing = await sessionTx.userLinkedAccountSession.findFirst({
+      where: { sub, active: true },
+      orderBy: { date_modified: 'desc' },
     });
+
+    if (existing) {
+      await sessionTx.userLinkedAccountSession.update({
+        where: { id: existing.id },
+        data: {
+          user_linked_account_id: linkedAccountId,
+          iss: iss ?? null,
+          token_set: sessionData.tokenSet as object,
+          dpop_jwk: sessionData.dpopJwk as object,
+          ...(sessionData.authMethod !== undefined
+            ? { auth_method: sessionData.authMethod as Prisma.InputJsonValue }
+            : {}),
+          date_modified: now,
+        },
+      });
+    } else {
+      await sessionTx.userLinkedAccountSession.create({
+        data: {
+          id: uuidv7(),
+          user_linked_account_id: linkedAccountId,
+          sub,
+          iss: iss ?? null,
+          token_set: sessionData.tokenSet as object,
+          dpop_jwk: sessionData.dpopJwk as object,
+          ...(sessionData.authMethod !== undefined
+            ? { auth_method: sessionData.authMethod as Prisma.InputJsonValue }
+            : {}),
+          active: true,
+          date_created: now,
+          date_modified: now,
+        },
+      });
+    }
   });
 }
 
