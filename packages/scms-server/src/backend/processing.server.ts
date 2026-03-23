@@ -98,6 +98,60 @@ export async function publishCheck(attributes: CheckMessageAttributes) {
   return messageId;
 }
 
+export type DispatchMessageAttributes = {
+  handshake: string;
+  job_type: string;
+};
+
+/**
+ * Publish a job dispatch message to the centralized scmsJobDispatch Pub/Sub topic.
+ * In dev/test mode, calls the local dispatch endpoint directly.
+ *
+ * Returns the Pub/Sub messageId (or 'testPubSubId' in dev/test).
+ */
+export async function publishDispatchMessage(
+  data: Record<string, unknown>,
+  attributes: DispatchMessageAttributes,
+): Promise<string> {
+  if (process.env.NODE_ENV === 'test' || process.env.APP_CONFIG_ENV === 'test') {
+    return 'testPubSubId';
+  }
+  const config = await getConfig();
+  if (!config.api.dispatchTopic || !config.api.dispatchProjectId) {
+    throw new Error(
+      'dispatchTopic and dispatchProjectId must be set in app config to use Pub/Sub job dispatch',
+    );
+  }
+  if (process.env.NODE_ENV === 'development' && process.env.DEV_PUBSUB_DISPATCH !== 'true') {
+    const port = process.env.PORT ?? '3031';
+    const url = `http://127.0.0.1:${port}/api/v1/jobs/dispatch`;
+    console.log('[dispatch] publishing to local endpoint', url, attributes.job_type);
+    fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({
+        message: {
+          attributes,
+          data: Buffer.from(JSON.stringify(data), 'utf-8').toString('base64'),
+        },
+      }),
+      headers: { 'content-type': 'application/json' },
+    }).then(
+      (res) => console.info('[dispatch] response', res.status),
+      (err) => console.error('[dispatch] error', err),
+    );
+    return 'testPubSubId';
+  }
+  const pubSubClient = new PubSub({
+    projectId: config.api.dispatchProjectId,
+    credentials: JSON.parse(config.api.dispatchSASecretKeyfile!),
+  });
+  const messageId = await pubSubClient.topic(config.api.dispatchTopic).publishMessage({
+    data: Buffer.from(JSON.stringify(data), 'utf-8'),
+    attributes,
+  });
+  return messageId;
+}
+
 export type ConverterMessageAttributes = {
   handshake: string;
   jobUrl: string;
