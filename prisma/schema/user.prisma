@@ -56,20 +56,40 @@ model UserLinkedAccount {
   @@unique(name: "uniqueProviderUserId", [provider, user_id])
 }
 
+/// Atproto OAuth session rows: used as the shared sessionStore for @atproto/oauth-client
+/// (token refresh across serverless invocations). `user_linked_account_id` is null until
+/// login/linking completes in the Bluesky strategy verify callback.
 model UserLinkedAccountSession {
-  id                    String             @id
-  user_linked_account_id String
-  user_linked_account   UserLinkedAccount  @relation(fields: [user_linked_account_id], references: [id], onDelete: Cascade)
-  sub                   String
-  iss                   String?
-  token_set             Json
-  dpop_jwk              Json
-  active                Boolean            @default(true)
-  date_created          String
-  date_modified         String
+  id                     String             @id
+  user_linked_account_id String?
+  user_linked_account    UserLinkedAccount? @relation(fields: [user_linked_account_id], references: [id], onDelete: Cascade)
+  sub                    String
+  iss                    String?
+  token_set              Json
+  dpop_jwk               Json
+  /// ClientAuthMethod JSON — required to reconstruct Session after load (refresh).
+  auth_method            Json?
+  active                 Boolean            @default(true)
+  date_created           String
+  date_modified          String
 
   @@index([user_linked_account_id])
   @@index([user_linked_account_id, active])
+  @@index([sub, active])
+}
+
+/// Short-lived PKCE + OAuth state between authorize redirect and callback (serverless-safe).
+/// `provider` distinguishes flows (e.g. atproto, future IdPs) for ops and cleanup.
+model OAuthAuthorizationState {
+  state        String @id
+  /// e.g. `atproto` for Bluesky / AT Protocol OAuth
+  provider     String @default("atproto")
+  payload      Json
+  date_created String
+  expires_at   String
+
+  @@index([expires_at])
+  @@index([provider, expires_at])
 }
 
 model UserToken {

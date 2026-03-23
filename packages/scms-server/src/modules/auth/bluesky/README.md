@@ -94,8 +94,8 @@ Logging in with Bluesky establishes **both**. The cookie does **not** contain Bl
 ## Where OAuth state and tokens live
 
 1. **`stores.server.ts`**
-   - **`blueskyStateStore`**: short-lived OAuth **state** (PKCE/state parameters) during the redirect dance; TTL ~1 hour.
-   - **`blueskySessionStore`**: in-memory `Map` used by **`NodeOAuthClient`** as the **authoritative** store for Atproto sessions **after** the callback (token set + DPoP key per `sub`).
+   - **`oauthStateStore`**: short-lived OAuth **state** (PKCE/state parameters) during the redirect dance; persisted in **`OAuthAuthorizationState`** (`provider = atproto`); TTL ~1 hour.
+   - **`blueskySessionStore`**: Postgres-backed store used by **`NodeOAuthClient`** as the **authoritative** store for Atproto sessions **after** the callback (token set + DPoP key per `sub`).
 
 2. **Database — `UserLinkedAccountSession`** (`session-db.server.ts`, Prisma model in `user.prisma`)
    - Apply the repo migration that creates this table (see `prisma/schema/migrations/`).

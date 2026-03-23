@@ -36,7 +36,7 @@ export default defineConfig(async ({ mode }) => {
     server: {
       port: env.VITE_PORT ? parseInt(env.VITE_PORT) : undefined,
       // Cloudflare tunnel / reverse proxy: Host is the public hostname, not localhost
-      allowedHosts: ['dev.curvenote.net'],
+      allowedHosts: ['.curvenote.net'],
       // Watch package and ee source files for changes to enable hot reload
       watch: {
         // Explicitly watch all files in packages and ee directories (use ** for recursive matching)
