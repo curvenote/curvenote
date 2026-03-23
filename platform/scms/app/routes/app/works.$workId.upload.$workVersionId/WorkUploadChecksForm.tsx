@@ -1,6 +1,6 @@
 import type { ExtensionCheckService } from '@curvenote/scms-core';
 import { CheckOptionItem } from './CheckOptionItem';
-import type { ChecksObject } from './checks.schema';
+import type { ChecksObject } from '@curvenote/scms-server';
 
 interface WorkUploadChecksFormProps extends ChecksObject {
   checkServices: ExtensionCheckService[];

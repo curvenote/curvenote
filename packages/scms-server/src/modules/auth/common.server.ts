@@ -51,7 +51,19 @@ export async function dbGetUserById(id: string) {
   const prisma = await getPrismaClient();
   return prisma.user.findUnique({
     where: { id },
-    include: { linkedAccounts: true },
+    include: {
+      linkedAccounts: true,
+      roles: {
+        include: {
+          role: {
+            select: {
+              name: true,
+              scopes: true,
+            },
+          },
+        },
+      },
+    },
   });
 }
 
@@ -149,6 +161,16 @@ export async function dbGetUserByLinkedAccount(provider: string, idAtProvider: s
         where: {
           provider,
           idAtProvider,
+        },
+      },
+      roles: {
+        include: {
+          role: {
+            select: {
+              name: true,
+              scopes: true,
+            },
+          },
         },
       },
     },

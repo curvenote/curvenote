@@ -11,8 +11,30 @@ import type {
 } from '@segment/analytics-node';
 import { Analytics } from '@segment/analytics-node';
 import type { Segment as SegmentConfig } from '@/types/app-config.js';
-import type { User } from '@curvenote/scms-db';
 import type { AllTrackEvent } from '@curvenote/scms-core';
+
+/**
+ * Exact fields read by {@link AnalyticsContext.identifyEvent}. Callers may pass any
+ * object that structurally satisfies this (e.g. Prisma rows, `UserWithRolesDBO`, or
+ * partial updates).
+ */
+export type SegmentIdentifyUser = {
+  id: string;
+  email: string | null;
+  username: string | null;
+  display_name: string | null;
+  primaryProvider: string | null;
+  pending: boolean;
+  disabled: boolean;
+  ready_for_approval: boolean;
+  system_role: string;
+  roles?: Array<{
+    role?: {
+      name?: string | null;
+      scopes?: unknown;
+    } | null;
+  } | null> | null;
+};
 
 /**
  * Context for handling all analytics events.
@@ -36,20 +58,63 @@ export class AnalyticsContext {
    * Identify an event for a user. Only called if user is defined.
    * @param user - The user to identify.
    */
-  async identifyEvent(user: User): Promise<void> {
-    await this.segment?.identify({
-      userId: user.id,
-      traits: {
-        email: user.email,
-        name: user.display_name,
-        username: user.username,
-        primaryProvider: user.primaryProvider,
-        pending: user.pending,
-        disabled: user.disabled,
-        readyForApproval: user.ready_for_approval,
-        system_role: user.system_role,
-      },
-    });
+  async identifyEvent(user: SegmentIdentifyUser): Promise<void> {
+    try {
+      if (!user || typeof user !== 'object') {
+        console.error('identifyEvent called with invalid user shape');
+        return;
+      }
+
+      if (typeof user.id !== 'string' || user.id.length === 0) {
+        console.error('identifyEvent called with invalid/missing user.id:', {
+          userId: (user as any)?.id,
+        });
+        return;
+      }
+
+      const safeStringOrNull = (v: unknown): string | null => (typeof v === 'string' ? v : null);
+      const safeBoolean = (v: unknown): boolean => (typeof v === 'boolean' ? v : false);
+      const safeString = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+      const roles = Array.isArray(user.roles) ? user.roles : [];
+
+      const roleNames: string[] = [];
+      const roleScopesSet = new Set<string>();
+
+      for (const roleEntry of roles) {
+        const role = roleEntry?.role;
+        const roleName = safeString(role?.name);
+        if (roleName) roleNames.push(roleName);
+
+        const scopes = role?.scopes;
+        if (Array.isArray(scopes)) {
+          for (const scope of scopes) {
+            if (typeof scope === 'string' && scope.length > 0) roleScopesSet.add(scope);
+          }
+        }
+      }
+
+      await this.segment?.identify({
+        userId: user.id,
+        traits: {
+          email: safeStringOrNull(user.email),
+          name: safeStringOrNull(user.display_name),
+          username: safeStringOrNull(user.username),
+          primaryProvider: safeStringOrNull(user.primaryProvider),
+          pending: safeBoolean(user.pending),
+          disabled: safeBoolean(user.disabled),
+          readyForApproval: safeBoolean(user.ready_for_approval),
+          system_role: safeString(user.system_role),
+          role_names: roleNames,
+          role_scopes: Array.from(roleScopesSet),
+        },
+      });
+    } catch (error) {
+      console.error('Analytics identifyEvent failed:', {
+        userId: (user as any)?.id,
+        error,
+      });
+    }
   }
 
   async trackEvent(

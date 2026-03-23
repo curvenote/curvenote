@@ -87,6 +87,7 @@ export async function $sendSlackNotification(message: SlackMessage, slackConfig?
     attachments: [
       {
         color: message.color || 'good',
+        mrkdwn_in: ['fields'],
         fields,
       },
     ],

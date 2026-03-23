@@ -10,6 +10,12 @@ import {
   getPrismaClient,
   safeWorkVersionJsonUpdate,
   signFilesInMetadata,
+  workVersionCheckNameSchema,
+  ChecksMetadataSchema,
+  makeDefaultWorkVersionMetadata,
+  type ChecksMetadataSection,
+  type WorkVersionCheckName,
+  type WorkVersionMetadata,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
@@ -39,9 +45,6 @@ import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
 import { updateWorkVersionTitle } from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
-import type { ChecksMetadataSection } from './checks.schema';
-import { workVersionCheckNameSchema, checksMetadataSchema } from './checks.schema';
-import type { WorkVersionCheckName, WorkVersionMetadata } from '@curvenote/scms-server';
 import { data, redirect } from 'react-router';
 import { List, Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
@@ -115,13 +118,13 @@ export async function loader(args: Route.LoaderArgs) {
     : { files: {} };
 
   // Validate and extract checks metadata section
-  const checksResult = checksMetadataSchema.safeParse(rawMetadata);
+  const checksResult = ChecksMetadataSchema.safeParse(rawMetadata);
   const checks =
     checksResult.success && checksResult.data.checks ? checksResult.data.checks : { enabled: [] };
 
   // Construct properly typed metadata
   const metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection = {
-    version: 1,
+    ...makeDefaultWorkVersionMetadata(),
     ...(rawMetadata as Record<string, any>),
     ...fileMetadata,
     ...checks,
@@ -221,7 +224,7 @@ export async function action(args: Route.ActionArgs) {
           where: { id: workVersionId },
         });
 
-        const currentMetadata = (wv?.metadata as any) || { version: 1 };
+        const currentMetadata = (wv?.metadata as any) || makeDefaultWorkVersionMetadata();
         const enabledChecks = (currentMetadata.checks?.enabled as WorkVersionCheckName[]) || [];
 
         // Create check status objects for each enabled check
@@ -232,10 +235,9 @@ export async function action(args: Route.ActionArgs) {
 
         // Update metadata with check statuses
         await safeWorkVersionJsonUpdate(workVersionId, (metadata?: Prisma.JsonValue) => {
-          const meta = (metadata as Record<string, any>) || { version: 1 };
+          const meta = (metadata as Record<string, any>) || makeDefaultWorkVersionMetadata();
           return {
             ...meta,
-            version: 1,
             checks: {
               enabled: enabledChecks,
               ...checkStatuses,

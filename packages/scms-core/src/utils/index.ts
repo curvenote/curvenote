@@ -12,6 +12,7 @@ export * from './getFetcherField.js';
 export * from './metaUtils.js';
 export * from './localStorage.js';
 export * from './pagination.js';
+export * from './platformUrls.js';
 export * from './plural.js';
 export * from './sleep.js';
 export * from './status.js';

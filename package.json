@@ -13,6 +13,7 @@
     "preinstall": "rm -f ./platform/scms/package.json",
     "postinstall": "npm run generate:extensions",
     "wt:create": "bash scripts/wt-add.sh",
+    "wt:existing": "bash scripts/wt-add.sh --existing",
     "wt:remove": "bash scripts/wt-remove.sh",
     "generate:extensions": "node platform/scms/scripts/generate-extensions.js",
     "prisma:generate": "npx prisma generate --config=./prisma.config.ts",

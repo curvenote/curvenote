@@ -1,8 +1,12 @@
-import { safeWorkVersionJsonUpdate } from '@curvenote/scms-server';
+import {
+  safeWorkVersionJsonUpdate,
+  isValidCheckName,
+  ChecksMetadataSchema,
+  makeDefaultWorkVersionMetadata,
+} from '@curvenote/scms-server';
+import type { WorkVersionCheckName } from '@curvenote/scms-server';
 import { data } from 'react-router';
 import type { Prisma } from '@curvenote/scms-db';
-import type { WorkVersionCheckName } from '@curvenote/scms-server';
-import { isValidCheckName, checksMetadataSchema } from './checks.schema';
 
 /**
  * Toggle a single check in the work version metadata
@@ -29,7 +33,7 @@ export async function toggleWorkVersionCheck(
 
   try {
     await safeWorkVersionJsonUpdate(workVersionId, (metadata?: Prisma.JsonValue) => {
-      const currentMetadata = (metadata as Record<string, any>) || { version: 1 };
+      const currentMetadata = (metadata as Record<string, any>) || makeDefaultWorkVersionMetadata();
       const currentChecksObject = currentMetadata.checks as { enabled?: WorkVersionCheckName[] };
       const currentChecks = currentChecksObject?.enabled || [];
 
@@ -52,7 +56,7 @@ export async function toggleWorkVersionCheck(
       };
 
       // Validate the updated checks metadata using the schema
-      const validationResult = checksMetadataSchema.safeParse({
+      const validationResult = ChecksMetadataSchema.safeParse({
         checks: updatedChecksObject,
       });
       if (!validationResult.success) {
@@ -61,7 +65,6 @@ export async function toggleWorkVersionCheck(
 
       return {
         ...currentMetadata,
-        version: 1,
         checks: updatedChecksObject,
       } as Prisma.JsonObject;
     });

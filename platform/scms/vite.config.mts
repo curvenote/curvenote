@@ -28,13 +28,15 @@ export default defineConfig(async ({ mode }) => {
    *
    * This config enables hot module reload (HMR) for changes in local packages and ee:
    * - Watches package and ee source directories for changes
-   * - Excludes local packages from pre-bundling for faster updates
+   * - Pre-bundles @curvenote/scms-core (optimizeDeps) to avoid duplicate React in dev
    * - Processes local packages through Vite's SSR transform
    * - Restarts dev server when package configuration changes
    */
   const userConfig: UserConfig = {
     server: {
       port: env.VITE_PORT ? parseInt(env.VITE_PORT) : undefined,
+      // Cloudflare tunnel / reverse proxy: Host is the public hostname, not localhost
+      allowedHosts: ['.curvenote.net'],
       // Watch package and ee source files for changes to enable hot reload
       watch: {
         // Explicitly watch all files in packages and ee directories (use ** for recursive matching)
@@ -64,6 +66,9 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     optimizeDeps: {
+      // Pre-bundle scms-core so every `import 'react'` shares one optimized graph (avoids
+      // duplicate React / invalid hook call when deps are still warming up).
+      include: ['@curvenote/scms-core'],
       exclude: [
         '@google-cloud/storage',
         'jwa',
@@ -74,9 +79,8 @@ export default defineConfig(async ({ mode }) => {
         'google-auth-library',
         'firebase-admin',
         'crypto',
-        // Exclude all local packages from pre-bundling for faster HMR
+        // Server / DB packages only — keep out of client dep optimization
         '@curvenote/scms-server',
-        '@curvenote/scms-core',
         '@curvenote/scms-db',
       ],
     },

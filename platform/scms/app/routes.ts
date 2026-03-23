@@ -69,10 +69,17 @@ export default [
     index('routes/auth._index.tsx'),
     ...authProviderNames
       .map((providerName) => {
-        return [
+        const base = [
           route(`${providerName}`, `routes/_auth/${providerName}/auth.tsx`),
           route(`${providerName}/callback`, `routes/_auth/${providerName}/auth.callback.tsx`),
         ];
+        if (providerName === 'bluesky') {
+          base.push(
+            route('bluesky/client-metadata', 'routes/_auth/bluesky/client-metadata.tsx'),
+            route('bluesky/jwks', 'routes/_auth/bluesky/jwks.tsx'),
+          );
+        }
+        return base;
       })
       .flat(),
     route('*', 'routes/auth.$.tsx'),
@@ -136,22 +143,12 @@ export default [
     // Register extension routes at the app level
     ...getRoutesForMountPoint('app'),
 
-    ...prefix('works/v3', [index('routes/app/works._index/route.tsx', { id: 'works.v3.index' })]),
-
-    // Works Routes
-    ...prefix('works/v2', [
-      index('routes/app/works._index/route.tsx', { id: 'worksV2.index' }),
-      // V2 work detail (UX experiment: no outlet, no secondary nav)
-      route(':workId', 'routes/app/works.v2.$workId/route.tsx', { id: 'worksV2.$workId' }),
-    ]),
-
     // Works Routes
     ...prefix('works', [
       // Register extension routes at the works level
       ...getRoutesForMountPoint('app/works'),
       index('routes/app/works._index/route.tsx'),
       route('drafts', 'routes/app/works.drafts/route.tsx'),
-      route('v3/:workId', 'routes/app/works.v3.$workId/route.tsx'),
       route(':workId', 'routes/app/works.$workId/route.tsx', [
         ...getRoutesForMountPoint('app/works/:workId'),
         // index('routes/app/works.$workId._index/route.tsx'),

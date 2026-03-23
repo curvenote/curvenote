@@ -1,7 +1,7 @@
 import type { Route } from './+types/v1.sites.$siteName.submissions';
+import { z } from 'zod';
 import {
   ensureJsonBodyFromMethod,
-  CreateSubmissionPostBodySchema,
   validate,
   withSecureSiteContext,
   userHasScope,
@@ -10,6 +10,15 @@ import {
 import { error401, httpError, scopes } from '@curvenote/scms-core';
 import type { SubmissionKindDTO } from '@curvenote/common';
 import { extensions } from '../../extensions/server';
+
+const CreateSubmissionPostBodySchema = z.object({
+  work_version_id: z.uuid(),
+  kind: z.string().min(1).max(255).optional(), // TODO deprecate in favor of kind_id
+  kind_id: z.uuid().optional(),
+  draft: z.boolean().optional(),
+  job_id: z.uuid(),
+  collection_id: z.uuid().optional(),
+});
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureSiteContext(args);

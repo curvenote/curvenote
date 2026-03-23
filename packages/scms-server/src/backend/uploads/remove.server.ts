@@ -2,7 +2,10 @@ import { data as dataResponse } from 'react-router';
 import { safeWorkVersionJsonUpdate } from '../occ.server.js';
 import { TrackEvent, coerceToObject } from '@curvenote/scms-core';
 import type { FileMetadataSection } from '@curvenote/scms-core';
-import type { WorkVersionMetadata } from '../metadata.js';
+import {
+  makeDefaultWorkVersionMetadata,
+  type WorkVersionMetadata,
+} from '../../schemas/work-version/index.js';
 import { StorageBackend } from '../storage/backend.server.js';
 import { File } from '../storage/file.server.js';
 import { KnownBuckets } from '../storage/constants.server.js';
@@ -116,13 +119,13 @@ export async function workVersionUploadRemove(
       (metadata) => {
         const readMetadata = coerceToObject(metadata);
         const updatedMetadata: WorkVersionMetadata & FileMetadataSection = {
-          version: 1,
+          ...makeDefaultWorkVersionMetadata(),
           ...readMetadata,
           files: { ...(readMetadata?.files || {}) },
         };
 
         // Remove the file from metadata
-        delete updatedMetadata.files[path];
+        delete updatedMetadata.files?.[path];
 
         return updatedMetadata as any;
       },

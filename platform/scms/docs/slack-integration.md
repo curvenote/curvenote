@@ -30,7 +30,7 @@ api:
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
 | `disabled` | boolean | No | `false` | Whether Slack notifications are disabled |
-| `webhookUrl` | string | Yes* | - | Slack webhook URL for sending notifications |
+| `webhookUrl` | string | Yes* | - | Slack web hook URL for sending notifications |
 
 *Required when `disabled` is `false`
 
@@ -93,6 +93,10 @@ The following events are currently implemented and available:
 - **`SUBMISSION_VERSION_CREATED`**: Triggered when a new submission version is created
 - **`SUBMISSION_STATUS_CHANGED`**: Triggered when a submission's status changes
 
+Slack notifications enable `mrkdwn_in: ['fields']`, so any metadata field value that is a full `http://` or `https://` URL will be rendered as a clickable link by Slack.
+
+Callers are responsible for putting the actual URLs into `metadata` (typically using `@curvenote/scms-core` URL helpers like `asSiteSubmissionUrl` / `asPlatformMessageUrl`).
+
 ## Adding New Events
 
 To add notifications for new events:
@@ -141,14 +145,14 @@ The Slack integration includes robust error handling:
 - **Disabled/No Config**: Gracefully skips sending when disabled or not configured
 - **Network Errors**: Logs errors but doesn't interrupt application flow
 - **Invalid Responses**: Logs HTTP errors for debugging
-- **Missing Webhook**: Prevents sending when webhook URL is not provided
+- **Missing Web hook**: Prevents sending when web hook URL is not provided
 
 ## Security Considerations
 
-- **Webhook URLs**: Store webhook URLs as secrets in your configuration
+- **Web hook URLs**: Store web hook URLs as secrets in your configuration
 - **Sensitive Data**: Be careful not to include sensitive information in metadata
 - **Rate Limiting**: Slack has rate limits; consider batching if sending many notifications
-- **Channel Access**: Ensure the webhook has access to the specified channels
+- **Channel Access**: Ensure the web hook has access to the specified channels
 
 ## Troubleshooting
 
@@ -156,11 +160,11 @@ The Slack integration includes robust error handling:
 
 1. **Notifications not sending**
    - Check that `disabled` is set to `false` (or not set at all)
-   - Verify the webhook URL is correct and accessible
+   - Verify the web hook URL is correct and accessible
    - Check application logs for error messages
 
 2. **Messages not appearing in channel**
-   - Verify the webhook has permission to post to the channel
+   - Verify the web hook has permission to post to the channel
    - Check if the channel exists and is accessible
 
 3. **Malformed messages**
@@ -171,7 +175,7 @@ The Slack integration includes robust error handling:
 ### Debugging
 
 Enable debug logging by checking the console output for:
-- "Slack webhook URL not configured"
+- "Slack web hook URL not configured"
 - "Slack notifications disabled"
 - "Slack notification sent successfully"
 - "Failed to send Slack notification: [status] [statusText]"

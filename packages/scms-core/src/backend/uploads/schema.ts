@@ -26,7 +26,7 @@ export const FileMetadataSectionItemSchema = FileBaseSchema.extend({
  * Schema for file metadata section containing a map of files
  */
 export const FileMetadataSectionSchema = z.object({
-  files: z.record(z.string(), FileMetadataSectionItemSchema),
+  files: z.record(z.string(), FileMetadataSectionItemSchema).optional(),
 });
 
 export type FileBase = z.infer<typeof FileBaseSchema>;

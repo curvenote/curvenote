@@ -1,8 +1,7 @@
 import { useFetcher, Link, useParams } from 'react-router';
 import { ui } from '@curvenote/scms-core';
 import type { FileMetadataSection } from '@curvenote/scms-core';
-import type { WorkVersionMetadata } from '@curvenote/scms-server';
-import type { ChecksMetadataSection } from './checks.schema';
+import type { WorkVersionMetadata, ChecksMetadataSection } from '@curvenote/scms-server';
 
 interface ContinueFormProps {
   title: string;
