@@ -17,6 +17,9 @@ import {
   actionUpdateSiteByJson,
   actionUpdateSiteSettings,
 } from './actionHelper.server.js';
+import { actionUpdateBackend } from '../../bluesky/actionUpdateBackend.server.js';
+import { getSiteUsersWithBlueskySession } from '../../bluesky/backend.server.js';
+import { BackendForm } from '../../bluesky/BackendForm.js';
 import { SubmissionSettingsForm } from './SubmissionSettingsForm.js';
 import { SiteMetadataForm } from './SiteMetadataForm.js';
 import { SiteSettingsForm } from './SiteSettingsForm.js';
@@ -30,6 +33,7 @@ interface LoaderData {
   site: SiteDTO;
   siteWithAppData: SiteWithAppData;
   metadata: Prisma.JsonObject;
+  siteUsersWithBluesky: Awaited<ReturnType<typeof getSiteUsersWithBlueskySession>>;
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -41,6 +45,8 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   // Get site with app-specific data (not exposed via public API)
   const siteWithAppData = await getSiteWithAppData(ctx.site.name);
   if (!siteWithAppData) throw error404('Site not found');
+
+  const siteUsersWithBluesky = await getSiteUsersWithBlueskySession(ctx.site.id);
 
   const metadata = typeof ctx.site.metadata === 'object' ? ctx.site.metadata : {};
 
@@ -54,11 +60,11 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     ...filteredMetadata
   } = metadata as Prisma.JsonObject;
 
-  return { site: ctx.siteDTO, siteWithAppData, metadata: filteredMetadata };
+  return { site: ctx.siteDTO, siteWithAppData, metadata: filteredMetadata, siteUsersWithBluesky };
 }
 
 const FormActionSchema = zfd.formData({
-  formAction: z.enum(['update-site', 'restrict', 'update-site-settings']),
+  formAction: z.enum(['update-site', 'restrict', 'update-site-settings', 'update-backend']),
 });
 
 export async function action(args: ActionFunctionArgs) {
@@ -82,6 +88,8 @@ export async function action(args: ActionFunctionArgs) {
     return actionSaveSiteRestriction(ctx, formData);
   } else if (formAction === 'update-site-settings') {
     return actionUpdateSiteSettings(ctx, formData);
+  } else if (formAction === 'update-backend') {
+    return actionUpdateBackend(ctx, formData);
   }
 
   return data({ error: 'Invalid form action' }, { status: 400 });
@@ -114,6 +122,11 @@ export default function Settings({ loaderData }: { loaderData: LoaderData }) {
           </div>
         </primitives.Card>
         <SiteSettingsForm site={site} siteWithAppData={siteWithAppData} />
+        <BackendForm
+          siteId={site.id}
+          currentBackend={siteWithAppData.data?.backend}
+          siteUsersWithBluesky={loaderData.siteUsersWithBluesky}
+        />
         <SubmissionSettingsForm site={site} />
         <SiteMetadataForm site={site} metadata={metadata} />
       </div>

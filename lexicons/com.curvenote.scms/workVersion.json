@@ -1,0 +1,93 @@
+{
+  "lexicon": 1,
+  "id": "com.curvenote.scms.workVersion",
+  "description": "Record storing a Curvenote SCMS work version as a myst site on the PDS: config, content JSONs, zipped source, and static public assets. Published from scms.curvenote.com.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Manifest for one work version; references config blob, optional source zip, and path->blob maps for content and public files.",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": ["config", "version", "schemaVersion", "createdAt"],
+        "properties": {
+          "config": {
+            "type": "blob",
+            "description": "Primary site entrypoint (myst config.json).",
+            "accept": ["application/json"],
+            "maxSize": 1048576
+          },
+          "source": {
+            "type": "blob",
+            "description": "Zipped source material (myst, etc.).",
+            "accept": ["application/zip"],
+            "maxSize": 104857600
+          },
+          "content": {
+            "type": "array",
+            "description": "Content JSON files (e.g. content/index.json).",
+            "items": { "type": "ref", "ref": "#contentItem" }
+          },
+          "public": {
+            "type": "array",
+            "description": "Static assets (e.g. public/theme.css).",
+            "items": { "type": "ref", "ref": "#publicItem" }
+          },
+          "version": {
+            "type": "string",
+            "description": "Work version identifier (e.g. WorkVersion.id or semantic version)."
+          },
+          "schemaVersion": {
+            "type": "string",
+            "description": "Schema/lexicon version for interpreting this record (e.g. 1.0)."
+          },
+          "site": {
+            "type": "string",
+            "description": "Site id or slug on scms.curvenote.com."
+          },
+          "submission": {
+            "type": "string",
+            "description": "Submission id on scms.curvenote.com (internal linkage)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Client-declared time when this record was created."
+          }
+        }
+      }
+    },
+    "contentItem": {
+      "type": "object",
+      "description": "Path and blob ref for one content JSON file.",
+      "required": ["path", "blob"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Logical path (e.g. content/index.json)."
+        },
+        "blob": {
+          "type": "blob",
+          "accept": ["application/json"],
+          "maxSize": 10485760
+        }
+      }
+    },
+    "publicItem": {
+      "type": "object",
+      "description": "Path and blob ref for one static public file.",
+      "required": ["path", "blob"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Logical path (e.g. public/theme.css)."
+        },
+        "blob": {
+          "type": "blob",
+          "accept": ["*/*"],
+          "maxSize": 5242880
+        }
+      }
+    }
+  }
+}
