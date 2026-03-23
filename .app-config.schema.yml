@@ -156,6 +156,47 @@ properties:
           adminLogin:
             type: boolean
             default: false
+      bluesky:
+        type: object
+        required:
+          - clientId
+          - redirectUrl
+        properties:
+          displayName:
+            type: string
+            description: Display name for the auth provider shown in UI
+          clientId:
+            type: string
+          clientSecret:
+            type: string
+            secret: true
+          redirectUrl:
+            type: string
+            description: Full URL at which the app serves atproto client metadata JSON
+          jwksUri:
+            type: string
+            description: Full URL at which the app serves JWKS (confidential client)
+          privateKeyPem:
+            type: string
+            secret: true
+            description: PEM-encoded ES256 (P-256) private key for confidential client per atproto OAuth
+          allowLogin:
+            type: boolean
+            default: true
+          provisionNewUser:
+            type: boolean
+            default: false
+          allowLinking:
+            type: boolean
+            default: false
+          adminLogin:
+            type: boolean
+            default: false
+          pdsHostname:
+            type: string
+            description: >-
+              Login hint for Atproto OAuth (handle, DID, or https PDS URL). Bare bsky.social is normalized to https://bsky.social.
+            default: https://bsky.social
   api:
     type: object
     required:
