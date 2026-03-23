@@ -239,12 +239,11 @@ export async function completeSignupFlow(
       // Send email verification link (token expires in 1 day)
       const jwtKey = ctx.$config.api?.resend?.apiKey;
       if (jwtKey) {
-        const token = createEmailVerificationToken(
-          updatedUser.id,
-          updatedUser.email,
-          jwtKey,
-        );
+        const token = createEmailVerificationToken(updatedUser.id, updatedUser.email, jwtKey);
         const verifyUrl = ctx.asBaseUrl(`/verify-email?token=${token}`);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[dev] Email verification link for ${updatedUser.email}: ${verifyUrl}`);
+        }
         await ctx.sendEmail({
           eventType: KnownResendEvents.EMAIL_VERIFICATION,
           to: updatedUser.email,

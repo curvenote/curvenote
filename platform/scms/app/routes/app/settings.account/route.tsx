@@ -39,6 +39,9 @@ export async function action(args: Route.ActionArgs) {
     try {
       const token = createEmailVerificationToken(ctx.user.id, ctx.user.email, jwtKey);
       const verifyUrl = ctx.asBaseUrl(`/verify-email?token=${token}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[dev] Email verification link for ${ctx.user.email}: ${verifyUrl}`);
+      }
       await ctx.sendEmail({
         eventType: KnownResendEvents.EMAIL_VERIFICATION,
         to: ctx.user.email,
