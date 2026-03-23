@@ -3,7 +3,7 @@ import { Strategy } from 'remix-auth/strategy';
 import { NodeOAuthClient } from '@atproto/oauth-client-node';
 import { Agent } from '@atproto/api';
 import { JoseKey } from '@atproto/jwk-jose';
-import { createPrivateKey, randomBytes } from 'node:crypto';
+import { createPrivateKey } from 'node:crypto';
 import { redirect } from 'react-router';
 import {
   assertLinkedAccount,
@@ -151,10 +151,8 @@ class BlueskyStrategy extends Strategy<AuthenticatedUserWithProviderCookie, Blue
       return this.verify({ profile, did, request });
     }
 
-    const stateToken = randomBytes(32).toString('base64url');
-    await (blueskyStateStore as any).set(stateToken, { state: stateToken });
     const loginHint = this.providerConfig.pdsHostname ?? 'https://bsky.social';
-    const redirectUrl = await this.client.authorize(loginHint, { state: stateToken });
+    const redirectUrl = await this.client.authorize(loginHint);
     throw redirect(redirectUrl.toString());
   }
 }

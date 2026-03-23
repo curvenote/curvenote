@@ -2,11 +2,11 @@ import type { BlueskyProviderConfig } from './types.js';
 
 /**
  * Build the atproto client metadata JSON to be served at clientId URL.
- * Used by the platform route that serves GET .../auth/bluesky/client-metadata.json
+ * Used by the platform route that serves GET .../auth/bluesky/client-metadata
  */
 export function getBlueskyClientMetadata(config: BlueskyProviderConfig): Record<string, unknown> {
   const baseUrl = config.clientId.replace(/\/[^/]*$/, '');
-  const jwksUri = config.jwksUri ?? `${baseUrl}/jwks.json`;
+  const jwksUri = config.jwksUri ?? `${baseUrl}/jwks`;
   return {
     client_id: config.clientId,
     application_type: 'web',
