@@ -97,15 +97,6 @@ async function createBlueskyClient(
   return client;
 }
 
-async function getBlueskyClient(config: AppConfig): Promise<NodeOAuthClient | null> {
-  const providerConfig = getBlueskyConfig(config);
-  if (!providerConfig) return null;
-  if (!cachedClient) {
-    cachedClient = await createBlueskyClient(providerConfig);
-  }
-  return cachedClient;
-}
-
 /**
  * Returns the JWKS from the cached Bluesky OAuth client (for the jwks_uri route).
  * Call after registerBlueskyStrategy has been called and bluesky is configured.
