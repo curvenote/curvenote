@@ -118,7 +118,10 @@ function finalizeFileMetadata(
 ) {
   // Collect existing labels for uniqueness check
   const existingLabels = new Set<string>();
-  const files = metadata.files ?? {};
+  if (!metadata.files) {
+    metadata.files = {};
+  }
+  const files = metadata.files;
   Object.values(files).forEach((file: any) => {
     if (file.label) {
       existingLabels.add(file.label);
