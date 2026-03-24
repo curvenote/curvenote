@@ -6,4 +6,4 @@ export { default as list } from './list.server.js';
 export { default as count } from './count.server.js';
 export * from './handlers/index.js';
 export * from './dispatch.server.js';
-export * from './dispatchFactories.server.js';
+export * from './dispatch/index.js';
