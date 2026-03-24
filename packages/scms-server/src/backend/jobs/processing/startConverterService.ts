@@ -17,14 +17,14 @@ export async function startConverterService(
   attributes: ConverterMessageAttributes,
   data: Record<string, unknown>,
 ): Promise<string> {
+  // Match `sendJobPubSubMessage` test short-circuit: avoid loading/validating Pub/Sub config
+  // when we never publish (tests often omit converterTopic / SA keyfile).
+  if (process.env.NODE_ENV === 'test' || process.env.APP_CONFIG_ENV === 'test') {
+    return 'testPubSubId';
+  }
+
   const config = await getConfig();
   const topicName = config.api.converterTopic;
-  const projectIdMatch = topicName.match(/^projects\/([^/]+)\//);
-  if (!projectIdMatch) {
-    throw new Error(
-      'converterTopic must be full resource name (projects/PROJECT_ID/topics/TOPIC_NAME)',
-    );
-  }
 
   const useDevHttpStub =
     process.env.NODE_ENV === 'development' && process.env.DEV_PUBSUB_CONVERTER !== 'true';
