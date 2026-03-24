@@ -25,7 +25,9 @@ export async function action(args: Route.ActionArgs) {
     return data(
       {
         error:
-          error instanceof Error ? error.message : 'This verification link is invalid or has expired.',
+          error instanceof Error
+            ? error.message
+            : 'This verification link is invalid or has expired.',
       },
       { status: 400 },
     );
@@ -56,13 +58,13 @@ export default function VerifyEmailPage() {
 
   if (missingToken) {
     return (
-      <div className="max-w-md mx-auto mt-8">
+      <div className="mx-auto mt-8 max-w-md">
         <primitives.Card className="p-6 text-center">
-          <XCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <XCircle className="mx-auto mb-4 w-16 h-16 text-gray-400" />
           <h1 className="mb-2 text-xl font-semibold text-gray-900">Invalid link</h1>
           <p className="mb-6 text-sm text-gray-500">
-            This verification link is invalid or missing a token. Please request a new
-            verification email from your account settings.
+            This verification link is invalid or missing a token. Please request a new verification
+            email from your account settings.
           </p>
           <Link
             to="/app/settings/account"
@@ -77,9 +79,9 @@ export default function VerifyEmailPage() {
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto mt-8">
+      <div className="mx-auto mt-8 max-w-md">
         <primitives.Card className="p-6 text-center">
-          <XCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
+          <XCircle className="mx-auto mb-4 w-16 h-16 text-red-500" />
           <h1 className="mb-2 text-xl font-semibold text-gray-900">Verification Failed</h1>
           <p className="mb-6 text-sm text-gray-500">{error}</p>
           <p className="text-sm text-gray-500">
@@ -110,16 +112,13 @@ export default function VerifyEmailPage() {
 
   if (success && message) {
     return (
-      <div className="max-w-md mx-auto mt-8">
+      <div className="mx-auto mt-8 max-w-md">
         <primitives.Card className="p-6 text-center">
-          <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
+          <CheckCircle className="mx-auto mb-4 w-16 h-16 text-green-500" />
           <h1 className="mb-2 text-xl font-semibold text-gray-900">Email Verified</h1>
           <p className="mb-6 text-sm text-gray-500">{message}</p>
           <div className="mt-3">
-            <Link
-              to="/app"
-              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-            >
+            <Link to="/app" className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
               Go to dashboard
             </Link>
           </div>
@@ -139,7 +138,7 @@ export default function VerifyEmailPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-8">
+    <div className="mx-auto mt-8 max-w-md">
       <primitives.Card className="p-6 text-center">
         <h1 className="mb-2 text-xl font-semibold text-gray-900">Verifying your email</h1>
         <p className="text-sm text-gray-500">
