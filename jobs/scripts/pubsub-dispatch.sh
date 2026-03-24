@@ -6,15 +6,15 @@
 #   1. A service account for invoking the SCMS app and publishing to Pub/Sub
 #   2. The main dispatch topic (scmsJobDispatch)
 #   3. A dead letter topic (scmsJobDispatch-deadletter)
-#   4. A push subscription on the dispatch topic → /api/v1/jobs/dispatch
+#   4. A push subscription on the dispatch topic → /v1/jobs/dispatch
 #      with dead letter routing (max 5 delivery attempts)
-#   5. A push subscription on the dead letter topic → /api/v1/jobs/dispatch-dlq
+#   5. A push subscription on the dead letter topic → /v1/jobs/dispatch-dlq
 #
 # Idempotent: safe to re-run; uses existing resources if present.
 #
 # Prerequisites:
 #   - gcloud CLI installed and authenticated
-#   - The SCMS app must already be deployed (you need its URL for the push endpoint)
+#   - The SCMS app must already be deployed (you need its origin for push subscription URLs)
 #   - Cloud Run and Pub/Sub APIs enabled on the project
 #
 # Required environment variables (or set in .env in this scripts/ dir):
@@ -22,7 +22,7 @@
 #   PROJECT_NUMBER   - GCP project number (gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
 #   REGION           - Cloud Run region (e.g. us-central1)
 #   SERVICE_NAME     - Cloud Run service name (e.g. scms-app)
-#   PUSH_ENDPOINT    - Base URL of the SCMS app (e.g. https://scms-app-xxxxx-uc.a.run.app)
+#   PUSH_ORIGIN      - SCMS app origin (scheme + host, no path), e.g. https://scms-app-xxxxx-uc.a.run.app
 #
 # Optional (defaults shown):
 #   TOPIC_NAME              - Dispatch topic (default: scmsJobDispatch)
@@ -47,7 +47,7 @@ PROJECT_ID="${PROJECT_ID:-}"
 PROJECT_NUMBER="${PROJECT_NUMBER:-}"
 REGION="${REGION:-}"
 SERVICE_NAME="${SERVICE_NAME:-}"
-PUSH_ENDPOINT="${PUSH_ENDPOINT:-}"
+PUSH_ORIGIN="${PUSH_ORIGIN:-}"
 
 TOPIC_NAME="${TOPIC_NAME:-scmsJobDispatch}"
 DLQ_TOPIC_NAME="${DLQ_TOPIC_NAME:-scmsJobDispatch-deadletter}"
@@ -62,7 +62,7 @@ missing=()
 [[ -z "$PROJECT_NUMBER" ]] && missing+=(PROJECT_NUMBER)
 [[ -z "$REGION" ]]         && missing+=(REGION)
 [[ -z "$SERVICE_NAME" ]]   && missing+=(SERVICE_NAME)
-[[ -z "$PUSH_ENDPOINT" ]]  && missing+=(PUSH_ENDPOINT)
+[[ -z "$PUSH_ORIGIN" ]]  && missing+=(PUSH_ORIGIN)
 
 if [[ ${#missing[@]} -gt 0 ]]; then
   echo "Missing required environment variables: ${missing[*]}"
@@ -72,13 +72,13 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   echo "  export PROJECT_NUMBER=\$(gcloud projects describe \$PROJECT_ID --format='value(projectNumber)')"
   echo "  export REGION=us-central1"
   echo "  export SERVICE_NAME=scms-app"
-  echo "  export PUSH_ENDPOINT=https://scms-app-xxxxx-uc.a.run.app"
+  echo "  export PUSH_ORIGIN=https://scms-app-xxxxx-uc.a.run.app"
   echo "  ./pubsub-dispatch.sh"
   exit 1
 fi
 
-# Normalize: strip trailing slash from push endpoint
-PUSH_ENDPOINT="${PUSH_ENDPOINT%/}"
+# Normalize: strip trailing slash from PUSH_ORIGIN
+PUSH_ORIGIN="${PUSH_ORIGIN%/}"
 
 SA_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 PUBSUB_SA_EMAIL="service-${PROJECT_NUMBER}@gcp-sa-pubsub.iam.gserviceaccount.com"
@@ -148,7 +148,7 @@ gcloud pubsub topics add-iam-policy-binding "${DLQ_TOPIC_NAME}" \
   --role=roles/pubsub.publisher \
   --project "${PROJECT_ID}"
 
-# Main dispatch subscription → pushes to /api/v1/jobs/dispatch
+# Main dispatch subscription → pushes to /v1/jobs/dispatch
 if gcloud pubsub subscriptions describe "${SUBSCRIPTION_NAME}" --project "${PROJECT_ID}" &>/dev/null; then
   echo "Using existing subscription: ${SUBSCRIPTION_NAME}"
 else
@@ -156,14 +156,14 @@ else
   gcloud pubsub subscriptions create "${SUBSCRIPTION_NAME}" \
     --topic "${TOPIC_NAME}" \
     --ack-deadline="${ACK_DEADLINE}" \
-    --push-endpoint="${PUSH_ENDPOINT}/api/v1/jobs/dispatch" \
+    --push-endpoint="${PUSH_ORIGIN}/v1/jobs/dispatch" \
     --push-auth-service-account="${SA_EMAIL}" \
     --dead-letter-topic="${DLQ_TOPIC_NAME}" \
     --max-delivery-attempts="${MAX_DELIVERY_ATTEMPTS}" \
     --project "${PROJECT_ID}"
 fi
 
-# Dead letter subscription → pushes to /api/v1/jobs/dispatch-dlq
+# Dead letter subscription → pushes to /v1/jobs/dispatch-dlq
 if gcloud pubsub subscriptions describe "${DLQ_SUBSCRIPTION_NAME}" --project "${PROJECT_ID}" &>/dev/null; then
   echo "Using existing DLQ subscription: ${DLQ_SUBSCRIPTION_NAME}"
 else
@@ -171,7 +171,7 @@ else
   gcloud pubsub subscriptions create "${DLQ_SUBSCRIPTION_NAME}" \
     --topic "${DLQ_TOPIC_NAME}" \
     --ack-deadline="60" \
-    --push-endpoint="${PUSH_ENDPOINT}/api/v1/jobs/dispatch-dlq" \
+    --push-endpoint="${PUSH_ORIGIN}/v1/jobs/dispatch-dlq" \
     --push-auth-service-account="${SA_EMAIL}" \
     --project "${PROJECT_ID}"
 fi
@@ -192,8 +192,8 @@ echo "  Dispatch:     ${TOPIC_NAME}"
 echo "  Dead Letter:  ${DLQ_TOPIC_NAME}"
 echo ""
 echo "Subscriptions:"
-echo "  Dispatch:     ${SUBSCRIPTION_NAME} → ${PUSH_ENDPOINT}/api/v1/jobs/dispatch"
-echo "  Dead Letter:  ${DLQ_SUBSCRIPTION_NAME} → ${PUSH_ENDPOINT}/api/v1/jobs/dispatch-dlq"
+echo "  Dispatch:     ${SUBSCRIPTION_NAME} → ${PUSH_ORIGIN}/v1/jobs/dispatch"
+echo "  Dead Letter:  ${DLQ_SUBSCRIPTION_NAME} → ${PUSH_ORIGIN}/v1/jobs/dispatch-dlq"
 echo ""
 echo "Max delivery attempts: ${MAX_DELIVERY_ATTEMPTS} (then → dead letter)"
 echo "Ack deadline: ${ACK_DEADLINE}s"
