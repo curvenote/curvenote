@@ -1,5 +1,17 @@
 # @curvenote/scms-server
 
+## 0.15.6
+
+### Patch Changes
+
+- [`26a0cf2`](https://github.com/curvenote/curvenote/commit/26a0cf21061b72c8544efcad4add5d8c4f95a309) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Added dispatch endpoints and reorganised backend job handling code
+
+- [#836](https://github.com/curvenote/curvenote/pull/836) [`f9911d7`](https://github.com/curvenote/curvenote/commit/f9911d7a6fac6669d76e46850f2529d4e3280cbe) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add dispatch endpoints and setup for pubsub
+
+- Updated dependencies []:
+  - @curvenote/scms-core@0.15.6
+  - @curvenote/scms-db@0.15.6
+
 ## 0.15.5
 
 ### Patch Changes
