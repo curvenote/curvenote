@@ -1,22 +1,22 @@
-import type { Context } from '../../../context.server.js';
+import type { Context } from '../../context.server.js';
 import type { CreateJob, SubmissionPublishedEmailProps } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
 import { dbCreateJob, dbUpdateJob } from './db.server.js';
-import type { StorageBackend } from '../../../storage/backend.server.js';
-import { createFolder } from '../../../storage/folder.server.js';
-import { KnownBuckets } from '../../../storage/constants.server.js';
-import { validate } from '../../../../api.schemas.js';
+import type { StorageBackend } from '../../storage/backend.server.js';
+import { createFolder } from '../../storage/folder.server.js';
+import { KnownBuckets } from '../../storage/constants.server.js';
+import { validate } from '../../../api.schemas.js';
 import type { PublishJobResults } from './schemas.server.js';
 import { CreatePublishJobPayloadSchema } from './schemas.server.js';
-import * as slugs from '../../../loaders/sites/submissions/slugs.server.js';
+import * as slugs from '../../loaders/sites/submissions/slugs.server.js';
 import { httpError, KnownResendEvents, asSiteSubmissionUrl } from '@curvenote/scms-core';
 import { updateCdnOnWorkVersion, validateSitePublishingScopes } from './utils.server.js';
-import { SiteContext } from '../../../context.site.server.js';
-import { $updateSubmissionVersion } from '../../../db.server.js';
-import { SlackEventType } from '../../../services/slack.server.js';
-import { createSiteRootUrl } from '../../../domains.server.js';
-import { getPrismaClient } from '../../../prisma.server.js';
-import type { TemplatedResendEmail } from '../../../services/emails/resend.server.js';
+import { SiteContext } from '../../context.site.server.js';
+import { $updateSubmissionVersion } from '../../db.server.js';
+import { SlackEventType } from '../../services/slack.server.js';
+import { createSiteRootUrl } from '../../domains.server.js';
+import { getPrismaClient } from '../../prisma.server.js';
+import type { TemplatedResendEmail } from '../../services/emails/resend.server.js';
 
 /**
  * Publish a submission version to the public CDN

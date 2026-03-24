@@ -18,12 +18,12 @@ import type {
 } from '@curvenote/scms-core';
 import { redirect } from 'react-router';
 import type { ActionFunctionArgs, LoaderFunctionArgs, SessionStorage } from 'react-router';
-import { decodeTokenPayload } from './processing.server.js';
+import { decodeTokenPayload } from './jwt.context.server.js';
 import type {
   CurvenoteTokenClaims,
   HandshakeTokenClaims,
   PreviewTokenClaims,
-} from './processing.server.js';
+} from './jwt.context.server.js';
 import { hasScopeViaSystemRole } from './roles.server.js';
 import { userHasScope, getUserScopesSet, userHasScopes } from './scopes.helpers.server.js';
 import { verifyPreviewToken } from './sign.previews.server.js';

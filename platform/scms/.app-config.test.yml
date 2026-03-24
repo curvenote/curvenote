@@ -16,7 +16,7 @@ api:
   sessionTokenAudience: http://localhost:3031/v1
   sessionTokenIssuer: http://localhost:3031/v1/tokens/session
   tokenConfigUrl: http://localhost:3031/v1/config
-  checkProjectId: qwerty
+  pubsubProjectId: qwerty
   checkTopic: qwerty
   knownBucketInfoMap:
     cdn:

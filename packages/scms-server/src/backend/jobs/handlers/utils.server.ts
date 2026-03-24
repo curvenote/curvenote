@@ -1,9 +1,9 @@
 import { JobStatus } from '@curvenote/scms-db';
 import { dbUpdateJob } from './db.server.js';
 import { error401, httpError, site } from '@curvenote/scms-core';
-import { getPrismaClient } from '../../../prisma.server.js';
-import type { Context } from '../../../context.server.js';
-import { userHasScopes } from '../../../scopes.helpers.server.js';
+import { getPrismaClient } from '../../prisma.server.js';
+import type { Context } from '../../context.server.js';
+import { userHasScopes } from '../../scopes.helpers.server.js';
 
 export async function updateCdnOnWorkVersion(
   submission_version_id: string,
