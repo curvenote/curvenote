@@ -61,7 +61,7 @@ async function sendDispatchMessage(
     attributes,
     data,
     pubSub: {
-      projectId: config.api.pubsubProjectId ?? 'local-dev',
+      projectId: config.api.pubsubProjectId ?? 'curvenote-dev-1',
       credentialsJson: config.api.dispatchSASecretKeyfile ?? '{}',
       topicName: config.api.dispatchTopic ?? 'scmsJobDispatch',
     },

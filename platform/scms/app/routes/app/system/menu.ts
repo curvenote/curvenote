@@ -43,6 +43,7 @@ export function buildMenu(baseUrl: string, userScopes: string[]) {
         {
           name: 'admin.jobs',
           label: 'Jobs',
+          icon: 'square-play',
           url: `${baseUrl}/jobs`,
         },
         {

@@ -27,7 +27,7 @@ export async function startCheckProcessingService(
     attributes,
     data,
     pubSub: {
-      projectId: config.api.pubsubProjectId ?? 'local-dev',
+      projectId: config.api.pubsubProjectId ?? 'curvenote-dev-1',
       credentialsJson: config.api.checkSASecretKeyfile ?? '{}',
       topicName: config.api.checkTopic ?? 'scmsCheckTopic',
     },
