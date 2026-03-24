@@ -27,9 +27,9 @@ export async function startCheckProcessingService(
     attributes,
     data,
     pubSub: {
-      projectId: config.api.pubsubProjectId,
-      credentialsJson: config.api.checkSASecretKeyfile,
-      topicName: config.api.checkTopic,
+      projectId: config.api.pubsubProjectId ?? 'local-dev',
+      credentialsJson: config.api.checkSASecretKeyfile ?? '{}',
+      topicName: config.api.checkTopic ?? 'scmsCheckTopic',
     },
     devLocalPush: { url: 'http://127.0.0.1:8080/' },
   });

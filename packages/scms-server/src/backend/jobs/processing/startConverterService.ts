@@ -35,9 +35,9 @@ export async function startConverterService(
     attributes,
     data,
     pubSub: {
-      projectId: config.api.pubsubProjectId,
-      credentialsJson: config.api.converterSASecretKeyfile,
-      topicName: config.api.converterTopic,
+      projectId: config.api.pubsubProjectId ?? 'local-dev',
+      credentialsJson: config.api.converterSASecretKeyfile ?? '{}',
+      topicName: config.api.converterTopic ?? 'scmsTaskConverterTopic',
     },
     devLocalPush: { url: 'http://127.0.0.1:8080/' },
   });
