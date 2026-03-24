@@ -132,15 +132,19 @@ export async function action({ request, context }: { request: Request; context?:
 
   // Run handler
   try {
-    const dbo = await handlers[data.job_type](ctx, {
-      id: data.job_id,
-      job_type: data.job_type,
-      payload: data.payload,
-      follow_on: data.follow_on,
-      invoked_by_id: data.invoked_by_id,
-      activity_type: data.activity_type,
-      activity_data: data.activity_data,
-    }, storageBackend);
+    const dbo = await handlers[data.job_type](
+      ctx,
+      {
+        id: data.job_id,
+        job_type: data.job_type,
+        payload: data.payload,
+        follow_on: data.follow_on,
+        invoked_by_id: data.invoked_by_id,
+        activity_type: data.activity_type,
+        activity_data: data.activity_data,
+      },
+      storageBackend,
+    );
 
     // Create work activity if activity_type is set
     const workVersionId = data.payload?.work_version_id;

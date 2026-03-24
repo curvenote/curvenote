@@ -275,8 +275,10 @@ export default [
       ]),
     ]),
 
-    // Jobs API Routes
+    // Jobs API Routes (static paths before jobs/:jobId so "dispatch" is not a job id)
     route('jobs', 'routes/api/v1.jobs.tsx'),
+    route('jobs/dispatch', 'routes/api/v1.jobs.dispatch.tsx'),
+    route('jobs/dispatch-dlq', 'routes/api/v1.jobs.dispatch-dlq.tsx'),
     route('jobs/:jobId', 'routes/api/v1.jobs.$jobId.tsx'),
 
     route('keys', 'routes/api/v1.keys.tsx'),
