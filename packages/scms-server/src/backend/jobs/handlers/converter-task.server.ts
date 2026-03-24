@@ -1,4 +1,4 @@
-import type { Context } from '../../../context.server.js';
+import type { Context } from '../../context.server.js';
 import type { CreateJob } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
 import { httpError, KnownJobTypes, coerceToObject } from '@curvenote/scms-core';
@@ -8,12 +8,12 @@ import type {
   WorkVersionMetadataPayload,
 } from '@curvenote/common';
 import { uuidv7 } from 'uuidv7';
-import { getPrismaClient } from '../../../prisma.server.js';
-import { createHandshakeToken } from '../../../sign.handshake.server.js';
-import { publishConverterMessage } from '../../../processing.server.js';
-import { signFilesInMetadata } from '../../../files-metadata.server.js';
+import { getPrismaClient } from '../../prisma.server.js';
+import { createHandshakeToken } from '../../sign.handshake.server.js';
+import { startConverterService } from '../processing/index.js';
+import { signFilesInMetadata } from '../../files-metadata.server.js';
 import { dbCreateJob, dbUpdateJob } from './db.server.js';
-import { validate } from '../../../../api.schemas.js';
+import { validate } from '../../../api.schemas.js';
 import { CreateConverterTaskPayloadSchema } from './schemas.server.js';
 import path from 'node:path';
 
@@ -195,8 +195,7 @@ export async function converterTaskHandler(ctx: Context, data: CreateJob) {
     userId: ctx.user.id,
   };
 
-  const messageId = await publishConverterMessage(
-    ctx,
+  const messageId = await startConverterService(
     attributes,
     converterPayload as Record<string, unknown>,
   );

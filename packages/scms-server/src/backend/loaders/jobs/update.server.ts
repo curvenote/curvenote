@@ -2,7 +2,7 @@ import type { Context } from '../../context.server.js';
 import { formatJobDTO } from './get.server.js';
 import { error404 } from '@curvenote/scms-core';
 import type { JobRegistration, UpdateJob } from '@curvenote/scms-core';
-import { dbUpdateJob } from './handlers/db.server.js';
+import { dbUpdateJob } from '../../jobs/handlers/db.server.js';
 import invoke from './invoke.server.js';
 import { triggerFollowOn } from './trigger-follow-on.server.js';
 
