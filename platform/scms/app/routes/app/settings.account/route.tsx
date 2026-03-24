@@ -1,6 +1,10 @@
 import type { Route } from './+types/route';
 import { useFetcher, Link, data } from 'react-router';
-import { withAppContext } from '@curvenote/scms-server';
+import {
+  createEmailVerificationToken,
+  getEmailVerificationSigningKey,
+  withAppContext,
+} from '@curvenote/scms-server';
 import {
   PageFrame,
   primitives,
@@ -10,9 +14,9 @@ import {
   getBrandingFromMetaMatches,
   joinPageTitle,
   getFetcherField,
+  KnownResendEvents,
 } from '@curvenote/scms-core';
-import { KnownResendEvents } from '@curvenote/scms-core';
-import { createEmailVerificationToken } from '@curvenote/scms-server';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppContext(args);
@@ -32,7 +36,7 @@ export async function action(args: Route.ActionArgs) {
     if (ctx.user.email_verified) {
       return data({ error: 'Email already verified' }, { status: 400 });
     }
-    const jwtKey = ctx.$config.api?.resend?.apiKey;
+    const jwtKey = getEmailVerificationSigningKey(ctx.$config.api?.resend?.apiKey);
     if (!jwtKey) {
       return data({ error: 'Email not configured' }, { status: 500 });
     }
@@ -112,40 +116,45 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
           {user.email && (
             <>
               {user.email_verified ? (
-                <span className="inline-flex items-center rounded-md bg-green-50 px-2.5 py-0.5 text-sm font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                  Verified
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-green-700 dark:text-green-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Email verified
                 </span>
               ) : (
-                <verifyFetcher.Form method="post">
-                  <input type="hidden" name="intent" value="send-verification-email" />
-                  <ui.Button
-                    type="submit"
-                    disabled={verifyFetcher.state === 'submitting' || !!verifySuccess}
-                    className="whitespace-nowrap"
-                  >
-                    {verifyFetcher.state === 'submitting'
-                      ? 'Sending…'
-                      : verifySuccess
-                        ? 'Email sent'
-                        : 'Send verification email'}
-                  </ui.Button>
-                </verifyFetcher.Form>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-0.5 text-sm font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                    <AlertCircle className="h-4 w-4" />
+                    Email unverified
+                  </span>
+                  <verifyFetcher.Form method="post">
+                    <input type="hidden" name="intent" value="send-verification-email" />
+                    <ui.Button
+                      type="submit"
+                      disabled={verifyFetcher.state === 'submitting' || !!verifySuccess}
+                      className="whitespace-nowrap"
+                    >
+                      {verifyFetcher.state === 'submitting'
+                        ? 'Sending…'
+                        : verifySuccess
+                          ? 'Verification email sent'
+                          : 'Resend verification email'}
+                    </ui.Button>
+                  </verifyFetcher.Form>
+                </div>
               )}
             </>
           )}
-          <Link
-            to="/app/settings/emails"
-            className="text-sm text-blue-600 whitespace-nowrap hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            Manage email preferences →
-          </Link>
         </div>
         {verifySuccess && verifyMessage && (
           <p className="text-sm text-green-600 dark:text-green-400">{verifyMessage}</p>
         )}
-        {verifyError && (
-          <p className="text-sm text-red-600 dark:text-red-400">{verifyError}</p>
-        )}
+        {verifyError && <p className="text-sm text-red-600 dark:text-red-400">{verifyError}</p>}
+        <Link
+          to="/app/settings/emails"
+          className="w-fit text-sm text-blue-600 whitespace-nowrap hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+        >
+          Manage email preferences →
+        </Link>
       </primitives.Card>
       <primitives.Card lift className="flex flex-col p-8 space-y-4">
         <h2>Account ID</h2>

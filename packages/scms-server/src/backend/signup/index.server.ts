@@ -21,7 +21,10 @@ import {
 import { getServerAuth } from '../../modules/database/firebase/firebase.server.js';
 import { redirect } from 'react-router';
 import { createLogoutHeaders } from '../../session.server.js';
-import { createEmailVerificationToken } from '../sign.tokens.server.js';
+import {
+  createEmailVerificationToken,
+  getEmailVerificationSigningKey,
+} from '../sign.tokens.server.js';
 
 /**
  * Load and validate signin/signup configuration from app config
@@ -237,7 +240,7 @@ export async function completeSignupFlow(
         },
       });
       // Send email verification link (token expires in 1 day)
-      const jwtKey = ctx.$config.api?.resend?.apiKey;
+      const jwtKey = getEmailVerificationSigningKey(ctx.$config.api?.resend?.apiKey);
       if (jwtKey) {
         const token = createEmailVerificationToken(updatedUser.id, updatedUser.email, jwtKey);
         const verifyUrl = ctx.asBaseUrl(`/verify-email?token=${token}`);

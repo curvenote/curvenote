@@ -247,7 +247,7 @@ export class Context implements ContextType {
             throw httpError(401, `User not found.${name && email ? `(${name}, ${email})` : ''}`);
           }
           this.$curvenoteClaims = { aud: payload.aud as string };
-          this.user = { email_verified: false, ...user };
+          this.user = { ...user };
         } catch (err) {
           console.error('User not found', err);
           throw err;
@@ -285,7 +285,7 @@ export class Context implements ContextType {
         };
         const saUser = await getUserById(this.$config.api.submissionsServiceAccount.id);
         if (!saUser) throw httpError(500, 'Could not recover service account user');
-        this.user = { email_verified: false, ...saUser };
+        this.user = { ...saUser };
       } catch (err) {
         this.$verifiedHandshakeToken = undefined;
         this.$handshakeClaims = undefined;

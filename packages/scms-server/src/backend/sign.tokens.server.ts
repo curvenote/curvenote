@@ -185,6 +185,28 @@ export function verifyUnsubscribeToken(token: string, key: string) {
 const EMAIL_VERIFICATION_EXPIRY_SECONDS = 60 * 60 * 24;
 
 /**
+ * When `api.resend.apiKey` is unset, verification JWTs still need an HMAC secret.
+ * Non-production only: use this fallback so local/staging can sign and verify links
+ * without configuring Resend. Production must set the real API key.
+ */
+export const DEV_EMAIL_VERIFICATION_JWT_SECRET = 'dev-email-verification-secret';
+
+/**
+ * Returns the key used to sign/verify email verification tokens.
+ * Uses the Resend API key when configured (existing behavior); otherwise in
+ * non-production returns {@link DEV_EMAIL_VERIFICATION_JWT_SECRET}.
+ */
+export function getEmailVerificationSigningKey(
+  resendApiKey: string | undefined | null,
+): string | undefined {
+  if (resendApiKey) return resendApiKey;
+  if (process.env.NODE_ENV !== 'production') {
+    return DEV_EMAIL_VERIFICATION_JWT_SECRET;
+  }
+  return undefined;
+}
+
+/**
  * Creates a JWT token for email verification links.
  * Token expires in 1 day by default.
  */

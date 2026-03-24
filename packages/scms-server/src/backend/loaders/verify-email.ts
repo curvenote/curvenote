@@ -1,5 +1,8 @@
 import { getPrismaClient } from '../prisma.server.js';
-import { verifyEmailVerificationToken } from '../sign.tokens.server.js';
+import {
+  getEmailVerificationSigningKey,
+  verifyEmailVerificationToken,
+} from '../sign.tokens.server.js';
 import { getConfig } from '../../app-config.server.js';
 
 /**
@@ -8,11 +11,11 @@ import { getConfig } from '../../app-config.server.js';
  */
 export async function dbVerifyEmailWithToken(token: string) {
   const config = await getConfig();
-  const resendConfig = config.api.resend;
-  if (!resendConfig?.apiKey) {
+  const jwtKey = getEmailVerificationSigningKey(config.api.resend?.apiKey);
+  if (!jwtKey) {
     throw new Error('Resend API key not configured');
   }
-  const { user_id, email } = verifyEmailVerificationToken(token, resendConfig.apiKey);
+  const { user_id, email } = verifyEmailVerificationToken(token, jwtKey);
   const prisma = await getPrismaClient();
 
   const user = await prisma.user.findUnique({
