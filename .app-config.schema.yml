@@ -300,6 +300,16 @@ properties:
       converterSASecretKeyfile:
         type: string
         secret: true
+      dispatchTopic:
+        type: string
+        description: Pub/Sub topic name for centralized job dispatch (e.g. scmsJobDispatch)
+      dispatchProjectId:
+        type: string
+        description: GCP project ID containing the dispatch topic
+      dispatchSASecretKeyfile:
+        type: string
+        secret: true
+        description: JSON service account key with pubsub.publisher on the dispatch topic
       knownBucketInfoMap:
         type: object
         properties:
