@@ -1,10 +1,10 @@
 import { getPrismaClient, jobs } from '@curvenote/scms-server';
 import { JobStatus } from '@curvenote/scms-db';
 
-type DispatchJobParams = Parameters<typeof jobs.dispatchJob>[0];
+type DispatchJobParams = Parameters<typeof jobs.dispatchAJob>[0];
 
 /**
- * POST /api/v1/jobs/dispatch-dlq
+ * POST /v1/jobs/dispatch-dlq
  *
  * Receives dead letter messages from the scmsJobDispatch-deadletter topic.
  * These are messages that failed to be processed after the maximum number
