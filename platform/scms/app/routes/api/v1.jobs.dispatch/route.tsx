@@ -8,49 +8,16 @@ import {
   StorageBackend,
   KnownBuckets,
 } from '@curvenote/scms-server';
-import { httpError, KnownJobTypes } from '@curvenote/scms-core';
+import { KnownJobTypes } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
-import { extensions } from '../../extensions/server';
-
-type DispatchJobParams = Parameters<typeof jobs.dispatchJob>[0];
+import { extensions } from '../../../extensions/server';
+import { markPermanentDispatchFailure, tryParsePubSubMessage } from './utils.server';
 
 // Extend Vercel timeout — handlers can be long-running (e.g. PUBLISH copies files)
 export const config = {
   maxDuration: 300,
 };
-
-/**
- * Parse a Pub/Sub push message body.
- * Expected shape: { message: { attributes: { handshake, job_type }, data: "<base64>" } }
- */
-function parsePubSubMessage(body: unknown): {
-  data: DispatchJobParams;
-  attributes: { handshake: string; job_type: string };
-} {
-  if (!body || typeof body !== 'object') throw httpError(400, 'Missing request body');
-  const message = (body as Record<string, any>).message;
-  if (!message || typeof message !== 'object') throw httpError(400, 'Missing message in body');
-
-  const { attributes, data: dataBase64 } = message as Record<string, any>;
-  if (!attributes?.handshake) throw httpError(400, 'Missing handshake in message attributes');
-  if (!attributes?.job_type) throw httpError(400, 'Missing job_type in message attributes');
-  if (!dataBase64 || typeof dataBase64 !== 'string') throw httpError(400, 'Missing message data');
-
-  let data: DispatchJobParams;
-  try {
-    const decoded = Buffer.from(dataBase64, 'base64').toString('utf-8');
-    data = JSON.parse(decoded) as DispatchJobParams;
-  } catch {
-    throw httpError(400, 'Message data is not valid base64 JSON');
-  }
-
-  if (!data.job_id || !data.job_type) {
-    throw httpError(400, 'Message data must contain job_id and job_type');
-  }
-
-  return { data, attributes: { handshake: attributes.handshake, job_type: attributes.job_type } };
-}
 
 /**
  * POST /v1/jobs/dispatch
@@ -68,31 +35,57 @@ export async function action({ request, context }: { request: Request; context?:
   const args = { request, context, params: {} };
   const ctx = await withContext(args as any, { noTokens: true });
 
-  const body = await request.json();
-  const { data, attributes } = parsePubSubMessage(body);
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    console.error('[dispatch] Request body is not valid JSON');
+    return new Response(null, { status: 200 });
+  }
 
-  // Verify the handshake token
-  const claims = verifyHandshakeToken(
-    attributes.handshake,
-    ctx.$config.api.handshakeIssuer,
-    ctx.$config.api.handshakeSigningSecret,
-  );
+  const parsed = tryParsePubSubMessage(body);
+  if (!parsed.ok) {
+    await markPermanentDispatchFailure(parsed.reason, parsed.salvage);
+    return new Response(null, { status: 200 });
+  }
+  const { data, attributes } = parsed;
+
+  // Verify the handshake token (invalid JWT or jobId mismatch → permanent failure, ack 200)
+  let claims: { jobId: string };
+  try {
+    claims = verifyHandshakeToken(
+      attributes.handshake,
+      ctx.$config.api.handshakeIssuer,
+      ctx.$config.api.handshakeSigningSecret,
+    );
+  } catch {
+    await markPermanentDispatchFailure('Invalid handshake token', {
+      job_id: data.job_id,
+      job_type: data.job_type,
+      payload: data.payload,
+      invoked_by_id: data.invoked_by_id,
+    });
+    return new Response(null, { status: 200 });
+  }
   if (claims.jobId !== data.job_id) {
-    throw httpError(401, 'Handshake jobId does not match message job_id');
+    await markPermanentDispatchFailure('Handshake jobId does not match message job_id', {
+      job_id: data.job_id,
+      job_type: data.job_type,
+      payload: data.payload,
+      invoked_by_id: data.invoked_by_id,
+    });
+    return new Response(null, { status: 200 });
   }
 
   // Resolve handler
   const extensionJobs = registerExtensionJobs(extensions);
   const handlers = jobs.getHandlers(extensionJobs);
   if (!handlers[data.job_type]) {
-    // Permanent error — unknown job type. Create FAILED row, ack the message.
     console.error(`[dispatch] Unknown job type: ${data.job_type}`);
-    await jobs.dbCreateJob({
-      id: data.job_id,
+    await markPermanentDispatchFailure(`Unknown job type: ${data.job_type}`, {
+      job_id: data.job_id,
       job_type: data.job_type,
       payload: data.payload,
-      status: JobStatus.FAILED,
-      message: `Unknown job type: ${data.job_type}`,
       invoked_by_id: data.invoked_by_id,
     });
     return new Response(null, { status: 200 });
@@ -172,7 +165,7 @@ export async function action({ request, context }: { request: Request; context?:
     if (dbo?.status === JobStatus.COMPLETED && data.follow_on?.on_success) {
       const fo = data.follow_on.on_success;
       try {
-        await jobs.dispatchJob({
+        await jobs.dispatchAJob({
           job_id: fo.id ?? uuidv7(),
           job_type: fo.job_type,
           payload: fo.payload,

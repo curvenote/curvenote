@@ -8,7 +8,7 @@
 #   3. A dead letter topic (scmsJobDispatch-deadletter)
 #   4. A push subscription on the dispatch topic → /v1/jobs/dispatch
 #      with dead letter routing (max 5 delivery attempts)
-#   5. A push subscription on the dead letter topic → /v1/jobs/dispatch-dlq
+#   5. A push subscription on the dead letter topic → /v1/jobs/dispatch/dlq
 #
 # Idempotent: safe to re-run; uses existing resources if present.
 #
@@ -163,7 +163,7 @@ else
     --project "${PROJECT_ID}"
 fi
 
-# Dead letter subscription → pushes to /v1/jobs/dispatch-dlq
+# Dead letter subscription → pushes to /v1/jobs/dispatch/dlq
 if gcloud pubsub subscriptions describe "${DLQ_SUBSCRIPTION_NAME}" --project "${PROJECT_ID}" &>/dev/null; then
   echo "Using existing DLQ subscription: ${DLQ_SUBSCRIPTION_NAME}"
 else
@@ -171,7 +171,7 @@ else
   gcloud pubsub subscriptions create "${DLQ_SUBSCRIPTION_NAME}" \
     --topic "${DLQ_TOPIC_NAME}" \
     --ack-deadline="60" \
-    --push-endpoint="${PUSH_ORIGIN}/v1/jobs/dispatch-dlq" \
+    --push-endpoint="${PUSH_ORIGIN}/v1/jobs/dispatch/dlq" \
     --push-auth-service-account="${SA_EMAIL}" \
     --project "${PROJECT_ID}"
 fi
@@ -193,7 +193,7 @@ echo "  Dead Letter:  ${DLQ_TOPIC_NAME}"
 echo ""
 echo "Subscriptions:"
 echo "  Dispatch:     ${SUBSCRIPTION_NAME} → ${PUSH_ORIGIN}/v1/jobs/dispatch"
-echo "  Dead Letter:  ${DLQ_SUBSCRIPTION_NAME} → ${PUSH_ORIGIN}/v1/jobs/dispatch-dlq"
+echo "  Dead Letter:  ${DLQ_SUBSCRIPTION_NAME} → ${PUSH_ORIGIN}/v1/jobs/dispatch/dlq"
 echo ""
 echo "Max delivery attempts: ${MAX_DELIVERY_ATTEMPTS} (then → dead letter)"
 echo "Ack deadline: ${ACK_DEADLINE}s"
