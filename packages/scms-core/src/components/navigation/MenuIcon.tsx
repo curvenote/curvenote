@@ -176,7 +176,7 @@ export function MenuIcon({
       return <LayoutDashboard className={classNameWithDefaults} />;
     case 'square-library':
       return <SquareLibrary className={classNameWithDefaults} />;
-    case 'admin.jobs':
+    case 'system.jobs':
     case 'square-play':
       return <SquarePlay className={classNameWithDefaults} />;
     case 'share':
