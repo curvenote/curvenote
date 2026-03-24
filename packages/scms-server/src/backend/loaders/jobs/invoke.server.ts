@@ -2,7 +2,7 @@ import type { Context } from '../../context.server.js';
 import { httpError, KnownJobTypes } from '@curvenote/scms-core';
 import { formatJobDTO } from './get.server.js';
 import type { CreateJob, JobRegistration } from '@curvenote/scms-core';
-import { getHandlers } from './handlers/index.js';
+import { getHandlers } from '../../jobs/handlers/index.js';
 import { StorageBackend } from '../../storage/index.js';
 import { KnownBuckets } from '../../storage/constants.server.js';
 import { createWorkActivity } from '../../db.server.js';

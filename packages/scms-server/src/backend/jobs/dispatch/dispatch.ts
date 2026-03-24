@@ -1,8 +1,7 @@
-import { uuidv7 } from 'uuidv7';
 import type { FollowOnEnvelope } from '@curvenote/scms-core';
 import { getConfig } from '../../../app-config.server.js';
 import { createHandshakeToken } from '../../sign.handshake.server.js';
-import { publishDispatchMessage } from '../../processing.server.js';
+import { sendJobPubSubMessage } from '../pubsub.server.js';
 
 /**
  * Parameters for dispatching a job via the centralized Pub/Sub topic.
@@ -25,6 +24,50 @@ export interface DispatchResult {
   status: 'DISPATCHED';
 }
 
+type DispatchMessageAttributes = {
+  handshake: string;
+  job_type: string;
+};
+
+/**
+ * Publish a job dispatch message to the centralized scmsJobDispatch Pub/Sub topic.
+ * In dev/test mode, calls the local dispatch endpoint directly (unless DEV_PUBSUB_DISPATCH=true).
+ *
+ * Returns the Pub/Sub messageId (or 'testPubSubId' in dev/test).
+ */
+async function sendDispatchMessage(
+  data: Record<string, unknown>,
+  attributes: DispatchMessageAttributes,
+): Promise<string> {
+  const config = await getConfig();
+  if (!config.api.dispatchTopic || !config.api.dispatchProjectId) {
+    throw new Error(
+      'dispatchTopic and dispatchProjectId must be set in app config to use Pub/Sub job dispatch',
+    );
+  }
+
+  const port = process.env.PORT ?? '3031';
+  const useDevHttpStub =
+    process.env.NODE_ENV === 'development' && process.env.DEV_PUBSUB_DISPATCH !== 'true';
+  const dispatchDevUrl = `http://127.0.0.1:${port}/v1/jobs/dispatch`;
+  const devLocalPush = useDevHttpStub ? { url: dispatchDevUrl } : undefined;
+
+  if (useDevHttpStub) {
+    console.log('[dispatch] publishing to local endpoint', dispatchDevUrl, attributes.job_type);
+  }
+
+  return sendJobPubSubMessage({
+    attributes,
+    data,
+    pubSub: {
+      projectId: config.api.dispatchProjectId,
+      credentialsJson: config.api.dispatchSASecretKeyfile!,
+      topicName: config.api.dispatchTopic,
+    },
+    devLocalPush,
+  });
+}
+
 /**
  * Dispatch a job by publishing a message to the scmsJobDispatch Pub/Sub topic.
  *
@@ -33,7 +76,7 @@ export interface DispatchResult {
  *
  * In test mode, returns immediately without publishing.
  */
-export async function dispatchJob(params: DispatchJobParams): Promise<DispatchResult> {
+export async function dispatchAJob(params: DispatchJobParams): Promise<DispatchResult> {
   const config = await getConfig();
 
   const handshake = createHandshakeToken(
@@ -43,7 +86,7 @@ export async function dispatchJob(params: DispatchJobParams): Promise<DispatchRe
     config.api.handshakeSigningSecret,
   );
 
-  await publishDispatchMessage(
+  await sendDispatchMessage(
     {
       job_id: params.job_id,
       job_type: params.job_type,
@@ -64,12 +107,4 @@ export async function dispatchJob(params: DispatchJobParams): Promise<DispatchRe
     job_type: params.job_type,
     status: 'DISPATCHED',
   };
-}
-
-/**
- * Helper to generate a new job_id. Callers that need the ID before dispatch
- * (e.g. to store on a transition) can call this separately.
- */
-export function generateJobId(): string {
-  return uuidv7();
 }

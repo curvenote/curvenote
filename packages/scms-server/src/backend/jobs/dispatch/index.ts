@@ -6,9 +6,6 @@
  * on the returned params: `{ ...dispatchConverterTask({...}), job_id: myId }`.
  */
 
-export * from './base.js';
-export * from './converterTask.server.js';
-export * from './publish.server.js';
-export * from './unpublish.server.js';
-export * from './check.server.js';
-export * from './extensionJob.server.js';
+export * from './dispatch.js';
+export * from './utils.js';
+export * from './messages/index.js';

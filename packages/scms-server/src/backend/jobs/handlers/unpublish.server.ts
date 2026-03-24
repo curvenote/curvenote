@@ -1,18 +1,18 @@
 import type { CreateJob } from '@curvenote/scms-core';
 import { dbCreateJob, dbUpdateJob } from './db.server.js';
-import { validate } from '../../../../api.schemas.js';
+import { validate } from '../../../api.schemas.js';
 import type { PublishJobResults } from './schemas.server.js';
 import { CreatePublishJobPayloadSchema } from './schemas.server.js';
 import { JobStatus } from '@curvenote/scms-db';
-import type { StorageBackend } from '../../../storage/index.js';
-import { KnownBuckets } from '../../../storage/constants.server.js';
+import type { StorageBackend } from '../../storage/index.js';
+import { KnownBuckets } from '../../storage/constants.server.js';
 import { httpError, asSiteSubmissionUrl } from '@curvenote/scms-core';
 import { updateCdnOnWorkVersion, validateSitePublishingScopes } from './utils.server.js';
-import type { Context } from '../../../context.server.js';
-import { $updateSubmissionVersion } from '../../../db.server.js';
-import { SlackEventType } from '../../../services/slack.server.js';
-import { getPrismaClient } from '../../../prisma.server.js';
-import { createFolder } from '../../../storage/folder.server.js';
+import type { Context } from '../../context.server.js';
+import { $updateSubmissionVersion } from '../../db.server.js';
+import { SlackEventType } from '../../services/slack.server.js';
+import { getPrismaClient } from '../../prisma.server.js';
+import { createFolder } from '../../storage/folder.server.js';
 
 export async function unpublishHandler(
   ctx: Context,

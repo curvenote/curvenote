@@ -1,7 +1,7 @@
-import type { Context } from '../../../context.server.js';
+import type { Context } from '../../context.server.js';
 import type { CreateJob } from '@curvenote/scms-core';
-import { publishCheck } from '../../../processing.server.js';
-import { createHandshakeToken } from '../../../sign.handshake.server.js';
+import { startCheckProcessingService } from '../processing/index.js';
+import { createHandshakeToken } from '../../sign.handshake.server.js';
 import { dbCreateJob } from './db.server.js';
 
 export async function checkHandler(ctx: Context, data: CreateJob) {
@@ -10,16 +10,24 @@ export async function checkHandler(ctx: Context, data: CreateJob) {
     const parsedUrl = new URL(ctx.request.url);
     const job_url = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}/${id}`;
     // Besides job_type, remaining payload is passed directly to pub/sub queue and validated later
-    await publishCheck({
-      handshake: createHandshakeToken(
-        id,
+    await startCheckProcessingService(
+      {
+        handshake: createHandshakeToken(
+          id,
+          job_type,
+          ctx.$config.api.handshakeIssuer,
+          ctx.$config.api.handshakeSigningSecret,
+        ),
+        job_url,
+        job_id: id,
+        ...payload,
+      },
+      {
+        job_id: id,
         job_type,
-        ctx.$config.api.handshakeIssuer,
-        ctx.$config.api.handshakeSigningSecret,
-      ),
-      job_url,
-      ...payload,
-    });
+        payload,
+      },
+    );
     return dbCreateJob(data);
   } catch (error) {
     console.error(error);

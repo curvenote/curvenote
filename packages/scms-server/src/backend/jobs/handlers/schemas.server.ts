@@ -1,6 +1,6 @@
 /* eslint-disable import/no-named-as-default-member */
 import { z } from 'zod';
-import { KnownBuckets } from '../../../storage/constants.server.js';
+import { KnownBuckets } from '../../storage/constants.server.js';
 
 /*
  * Zod schemas for validating and typing job payload and result objects

@@ -1,7 +1,7 @@
 import { KnownJobTypes } from '@curvenote/scms-core';
 import type { FollowOnEnvelope } from '@curvenote/scms-core';
-import type { DispatchJobParams } from '../dispatch.server.js';
-import { newDispatchJobId } from './base.js';
+import type { DispatchJobParams } from '../dispatch.js';
+import { newDispatchJobId } from '../utils.js';
 
 export interface ConverterTaskParams {
   work_version_id: string;
@@ -11,7 +11,9 @@ export interface ConverterTaskParams {
   follow_on?: FollowOnEnvelope;
 }
 
-export function dispatchConverterTask(params: ConverterTaskParams): DispatchJobParams {
+export function createConverterTaskDispatchMessageBody(
+  params: ConverterTaskParams,
+): DispatchJobParams {
   const target = params.target ?? 'pdf';
   const conversion_type = params.conversion_type ?? 'docx-pandoc-myst-pdf';
   return {

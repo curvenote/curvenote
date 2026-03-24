@@ -1,6 +1,6 @@
 import type { FollowOnEnvelope } from '@curvenote/scms-core';
-import type { DispatchJobParams } from '../dispatch.server.js';
-import { newDispatchJobId } from './base.js';
+import type { DispatchJobParams } from '../dispatch.js';
+import { newDispatchJobId } from '../utils.js';
 
 export interface ExtensionJobParams {
   job_type: string;
@@ -11,7 +11,9 @@ export interface ExtensionJobParams {
   follow_on?: FollowOnEnvelope;
 }
 
-export function dispatchExtensionJob(params: ExtensionJobParams): DispatchJobParams {
+export function createExtensionJobDispatchMessageBody(
+  params: ExtensionJobParams,
+): DispatchJobParams {
   return {
     job_id: newDispatchJobId(),
     job_type: params.job_type,

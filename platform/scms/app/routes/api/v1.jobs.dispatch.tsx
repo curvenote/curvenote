@@ -53,7 +53,7 @@ function parsePubSubMessage(body: unknown): {
 }
 
 /**
- * POST /api/v1/jobs/dispatch
+ * POST /v1/jobs/dispatch
  *
  * Receives Pub/Sub push messages from the scmsJobDispatch topic.
  * Creates the DB row, resolves the handler, and runs it.

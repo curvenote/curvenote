@@ -1,6 +1,6 @@
 import { KnownJobTypes } from '@curvenote/scms-core';
-import type { DispatchJobParams } from '../dispatch.server.js';
-import { newDispatchJobId } from './base.js';
+import type { DispatchJobParams } from '../dispatch.js';
+import { newDispatchJobId } from '../utils.js';
 
 export interface CheckJobParams {
   payload: Record<string, any>;
@@ -9,7 +9,7 @@ export interface CheckJobParams {
   activity_data?: Record<string, unknown>;
 }
 
-export function dispatchCheck(params: CheckJobParams): DispatchJobParams {
+export function createCheckDispatchMessageBody(params: CheckJobParams): DispatchJobParams {
   return {
     job_id: newDispatchJobId(),
     job_type: KnownJobTypes.CHECK,
