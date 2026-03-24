@@ -7,8 +7,7 @@ import { dbCreateJob } from './db.server.js';
 export async function checkHandler(ctx: Context, data: CreateJob) {
   const { id, job_type, payload } = data;
   try {
-    const parsedUrl = new URL(ctx.request.url);
-    const job_url = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}/${id}`;
+    const job_url = ctx.asApiUrl(`/jobs/${id}`);
     // Besides job_type, remaining payload is passed directly to pub/sub queue and validated later
     await startCheckProcessingService(
       {
