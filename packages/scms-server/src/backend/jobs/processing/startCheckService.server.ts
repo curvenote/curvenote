@@ -22,7 +22,7 @@ export async function startCheckProcessingService(
     attributes,
     data,
     pubSub: {
-      projectId: config.api.checkProjectId,
+      projectId: config.api.pubsubProjectId,
       credentialsJson: config.api.checkSASecretKeyfile,
       topicName: config.api.checkTopic,
     },

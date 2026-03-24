@@ -40,9 +40,9 @@ async function sendDispatchMessage(
   attributes: DispatchMessageAttributes,
 ): Promise<string> {
   const config = await getConfig();
-  if (!config.api.dispatchTopic || !config.api.dispatchProjectId) {
+  if (!config.api.dispatchTopic || !config.api.dispatchSASecretKeyfile) {
     throw new Error(
-      'dispatchTopic and dispatchProjectId must be set in app config to use Pub/Sub job dispatch',
+      'dispatchTopic and dispatchSASecretKeyfile must be set in app config to use Pub/Sub job dispatch',
     );
   }
 
@@ -60,7 +60,7 @@ async function sendDispatchMessage(
     attributes,
     data,
     pubSub: {
-      projectId: config.api.dispatchProjectId,
+      projectId: config.api.pubsubProjectId,
       credentialsJson: config.api.dispatchSASecretKeyfile!,
       topicName: config.api.dispatchTopic,
     },

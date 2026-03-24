@@ -38,7 +38,7 @@ export async function startConverterService(
     attributes,
     data,
     pubSub: {
-      projectId: projectIdMatch[1],
+      projectId: config.api.pubsubProjectId,
       credentialsJson: config.api.converterSASecretKeyfile,
       topicName,
     },

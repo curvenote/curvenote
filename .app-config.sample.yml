@@ -4,7 +4,7 @@ api:
   previewIssuer: http://localhost:3031
   handshakeIssuer: http://localhost:3031
   databaseUrl: 'postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0'
-  checkProjectId: project-1
+  pubsubProjectId: project-1
   checkTopic: projects/project-1/topics/checks
   knownBucketInfoMap:
     cdn:

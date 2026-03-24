@@ -220,7 +220,7 @@ properties:
       - userTokenIssuer
       - sessionTokenIssuer
       - tokenConfigUrl
-      - checkProjectId
+      - pubsubProjectId
       - checkTopic
       - converterTopic
       - converterSASecretKeyfile
@@ -290,22 +290,20 @@ properties:
         type: string
       tokenConfigUrl:
         type: string
-      checkProjectId:
+      pubsubProjectId:
         type: string
+        description: GCP project ID used for all Pub/Sub clients (checks, converter, dispatch).
       checkTopic:
         type: string
       converterTopic:
         type: string
-        description: Full Pub/Sub topic resource name (e.g. projects/PROJECT_ID/topics/TOPIC_NAME). Project ID is derived from this for the client.
+        description: Pub/Sub topic for converter jobs — topic ID or full resource name (projects/PROJECT_ID/topics/TOPIC_NAME).
       converterSASecretKeyfile:
         type: string
         secret: true
       dispatchTopic:
         type: string
         description: Pub/Sub topic name for centralized job dispatch (e.g. scmsJobDispatch)
-      dispatchProjectId:
-        type: string
-        description: GCP project ID containing the dispatch topic
       dispatchSASecretKeyfile:
         type: string
         secret: true
