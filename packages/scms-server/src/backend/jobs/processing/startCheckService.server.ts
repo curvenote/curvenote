@@ -8,15 +8,20 @@ export type CheckMessageAttributes = {
 
 /**
  * Start a check job processing service via Pub/Sub.
- * `data` is the JSON body for the message (aligned with dispatch/converter); attributes may omit `job_id` — it is filled from `data.job_id` when missing.
+ * `data` is the JSON body for the message (aligned with dispatch/converter);
+ * attributes may omit `job_id` — it is filled from `data.job_id` when missing.
+ *
+ * Routing (handled by sendJobPubSubMessage):
+ *  - test → fake ID, no publish
+ *  - PUBSUB_EMULATOR_HOST set → publishes to emulator
+ *  - development (no emulator) → HTTP stub POST to localhost:8080
+ *  - production → real GCP Pub/Sub
  */
 export async function startCheckProcessingService(
   attributes: CheckMessageAttributes,
   data: Record<string, unknown>,
 ) {
   const config = await getConfig();
-  const devLocalPush =
-    process.env.NODE_ENV === 'development' ? { url: 'http://127.0.0.1:8080/' } : undefined;
 
   return sendJobPubSubMessage({
     attributes,
@@ -26,6 +31,6 @@ export async function startCheckProcessingService(
       credentialsJson: config.api.checkSASecretKeyfile,
       topicName: config.api.checkTopic,
     },
-    devLocalPush,
+    devLocalPush: { url: 'http://127.0.0.1:8080/' },
   });
 }

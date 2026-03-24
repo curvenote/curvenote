@@ -12,6 +12,12 @@ export type ConverterMessageAttributes = {
 
 /**
  * Start a converter job processing service via Pub/Sub.
+ *
+ * Routing (handled by sendJobPubSubMessage):
+ *  - test → fake ID, no publish
+ *  - PUBSUB_EMULATOR_HOST set → publishes to emulator
+ *  - development (no emulator) → HTTP stub POST to localhost:8080
+ *  - production → real GCP Pub/Sub
  */
 export async function startConverterService(
   attributes: ConverterMessageAttributes,
@@ -24,15 +30,6 @@ export async function startConverterService(
   }
 
   const config = await getConfig();
-  const topicName = config.api.converterTopic;
-
-  const useDevHttpStub =
-    process.env.NODE_ENV === 'development' && process.env.DEV_PUBSUB_CONVERTER !== 'true';
-  const devLocalPush = useDevHttpStub ? { url: 'http://127.0.0.1:8080/' } : undefined;
-
-  if (useDevHttpStub) {
-    console.log('publishing converter message to localhost', attributes.jobUrl);
-  }
 
   return sendJobPubSubMessage({
     attributes,
@@ -40,8 +37,8 @@ export async function startConverterService(
     pubSub: {
       projectId: config.api.pubsubProjectId,
       credentialsJson: config.api.converterSASecretKeyfile,
-      topicName,
+      topicName: config.api.converterTopic,
     },
-    devLocalPush,
+    devLocalPush: { url: 'http://127.0.0.1:8080/' },
   });
 }

@@ -31,40 +31,41 @@ type DispatchMessageAttributes = {
 
 /**
  * Publish a job dispatch message to the centralized scmsJobDispatch Pub/Sub topic.
- * In dev/test mode, calls the local dispatch endpoint directly (unless DEV_PUBSUB_DISPATCH=true).
  *
- * Returns the Pub/Sub messageId (or 'testPubSubId' in dev/test).
+ * Routing (handled by sendJobPubSubMessage):
+ *  - test → fake ID, no publish
+ *  - PUBSUB_EMULATOR_HOST set → publishes to emulator (real PubSub client)
+ *  - development (no emulator) → HTTP stub POST to localhost dispatch endpoint
+ *  - production → real GCP Pub/Sub
  */
 async function sendDispatchMessage(
   data: Record<string, unknown>,
   attributes: DispatchMessageAttributes,
 ): Promise<string> {
   const config = await getConfig();
-  if (!config.api.dispatchTopic || !config.api.dispatchSASecretKeyfile) {
+  if (
+    !process.env.PUBSUB_EMULATOR_HOST &&
+    process.env.NODE_ENV !== 'development' &&
+    process.env.NODE_ENV !== 'test' &&
+    (!config.api.dispatchTopic || !config.api.dispatchSASecretKeyfile)
+  ) {
     throw new Error(
       'dispatchTopic and dispatchSASecretKeyfile must be set in app config to use Pub/Sub job dispatch',
     );
   }
 
   const port = process.env.PORT ?? '3031';
-  const useDevHttpStub =
-    process.env.NODE_ENV === 'development' && process.env.DEV_PUBSUB_DISPATCH !== 'true';
-  const dispatchDevUrl = `http://127.0.0.1:${port}/v1/jobs/dispatch`;
-  const devLocalPush = useDevHttpStub ? { url: dispatchDevUrl } : undefined;
-
-  if (useDevHttpStub) {
-    console.log('[dispatch] publishing to local endpoint', dispatchDevUrl, attributes.job_type);
-  }
+  const devLocalPushUrl = `http://127.0.0.1:${port}/v1/jobs/dispatch`;
 
   return sendJobPubSubMessage({
     attributes,
     data,
     pubSub: {
-      projectId: config.api.pubsubProjectId,
-      credentialsJson: config.api.dispatchSASecretKeyfile!,
-      topicName: config.api.dispatchTopic,
+      projectId: config.api.pubsubProjectId ?? 'local-dev',
+      credentialsJson: config.api.dispatchSASecretKeyfile ?? '{}',
+      topicName: config.api.dispatchTopic ?? 'scmsJobDispatch',
     },
-    devLocalPush,
+    devLocalPush: { url: devLocalPushUrl },
   });
 }
 
