@@ -22,6 +22,7 @@
     "dev:db:reset": "npx prisma migrate reset --config=./prisma.config.ts; npm run dev:db:seed",
     "dev:db:seed": "npx prisma db seed --config=./prisma.config.ts",
     "dev:db:migrate": "npx prisma migrate dev --config=./prisma.config.ts",
+    "dev:pubsub:emulator": "gcloud beta emulators pubsub start --project=local-dev --host-port=localhost:8085",
     "test:db:reset": "dotenv -e .env.test -- npx prisma db push --force-reset --config=./prisma.config.ts; dotenv -e .env.test -- tsx ./prisma/seed.test.mts",
     "config": "npx @app-config/cli@2 generate",
     "build": "npm run config && turbo run build --filter='!@curvenote/scms'",

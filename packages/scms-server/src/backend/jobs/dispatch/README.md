@@ -13,4 +13,4 @@ Use this when you want **fire-and-forget** jobs (transitions, background steps) 
 3. **Export** — Re-export the message builder from [`index.ts`](./index.ts).
 4. **Call site** — `await dispatchAJob(createConverterTaskDispatchMessageBody({ ... }))` from [`dispatch.ts`](./dispatch.ts) (or spread params and override `job_id` if needed).
 
-Config: `pubsubProjectId`, `dispatchTopic`, `dispatchSASecretKeyfile` in app config. In dev, **`DEV_PUBSUB_DISPATCH=true`** uses real Pub/Sub; otherwise the client POSTs to the local dispatch URL.
+Config: `pubsubProjectId`, `dispatchTopic`, `dispatchSASecretKeyfile` in app config. In dev (no emulator), the client POSTs directly to the local dispatch URL. Set `PUBSUB_EMULATOR_HOST` to route through the emulator instead. See [`jobs/PUBSUB-LOCAL-DEV.md`](../../../../jobs/PUBSUB-LOCAL-DEV.md).

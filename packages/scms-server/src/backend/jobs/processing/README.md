@@ -8,4 +8,4 @@ This is a **separate Pub/Sub usage** from the **centralized dispatch** topic and
 
 Shared transport (attributes, optional JSON `data`, dev HTTP stubs vs real topics) lives in [`../pubsub.server.ts`](../pubsub.server.ts). This folder holds **per–job-type entrypoints** — [`startCheckProcessingService`](./startCheckService.server.ts) and [`startConverterService`](./startConverterService.ts) — that read app config, choose the right topic/credentials, and call into that layer.
 
-In **development**, messages may be POSTed to a local URL instead of Pub/Sub, matching the push shape the app expects—see each module and env flags like `DEV_PUBSUB_*` where relevant.
+In **development** (without an emulator), messages are POSTed to a local URL (`localhost:8080`) instead of Pub/Sub, matching the push shape workers expect. Set `PUBSUB_EMULATOR_HOST` to route through the emulator instead. See [`jobs/PUBSUB-LOCAL-DEV.md`](../../../../jobs/PUBSUB-LOCAL-DEV.md).

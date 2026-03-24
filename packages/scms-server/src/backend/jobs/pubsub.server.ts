@@ -20,8 +20,11 @@ export type PubSubMessageArgs = {
   data?: Record<string, unknown>;
   pubSub: PubSubTarget;
   /**
-   * When set and `NODE_ENV === 'development'`, POST to this URL instead of Pub/Sub.
-   * Omit in production and when you want real Pub/Sub in dev (e.g. after setting DEV_PUBSUB_*).
+   * Local HTTP endpoint to simulate a Pub/Sub push in development.
+   *
+   * Used when `NODE_ENV === 'development'` AND `PUBSUB_EMULATOR_HOST` is NOT set.
+   * When the emulator is running (`PUBSUB_EMULATOR_HOST` is set), the real PubSub
+   * client is used instead (it auto-routes to the emulator).
    */
   devLocalPush?: DevLocalPush;
 };
@@ -80,17 +83,30 @@ async function sendViaPubSub(spec: PubSubPayload): Promise<string> {
 }
 
 /**
- * Shared Pub/Sub (or optional dev HTTP stub) publisher. Callers supply `pubSub` from config;
- * optionally pass `devLocalPush` with a URL to mirror a push subscription hitting a local endpoint.
+ * Shared Pub/Sub publisher with automatic routing:
+ *
+ * 1. **Test** (`NODE_ENV=test` or `APP_CONFIG_ENV=test`) → returns fake ID, no publishing
+ * 2. **Emulator** (`PUBSUB_EMULATOR_HOST` set) → uses `@google-cloud/pubsub` client which
+ *    auto-routes to the emulator. Works in any NODE_ENV. Credentials are ignored.
+ * 3. **Dev HTTP stub** (`NODE_ENV=development`, no emulator, `devLocalPush` provided)
+ *    → POSTs a Pub/Sub-shaped envelope directly to the local URL (fire-and-forget)
+ * 4. **Production** → uses `@google-cloud/pubsub` client with real GCP credentials
  */
 export async function sendJobPubSubMessage(args: PubSubMessageArgs): Promise<string> {
   const { data, pubSub, devLocalPush } = args;
   const attributes = withJobIdInAttributes(args.attributes, data);
 
+  // 1. Test mode — no publishing
   if (process.env.NODE_ENV === 'test' || process.env.APP_CONFIG_ENV === 'test') {
     return 'testPubSubId';
   }
 
+  // 2. Emulator running — use the PubSub client (auto-routes to emulator)
+  if (process.env.PUBSUB_EMULATOR_HOST) {
+    return sendViaPubSub({ ...pubSub, attributes, data });
+  }
+
+  // 3. Dev HTTP stub — simulate push to local endpoint
   if (process.env.NODE_ENV === 'development' && devLocalPush) {
     const body = buildPubSubPushBody(attributes, data);
     fetch(devLocalPush.url, {
@@ -101,8 +117,9 @@ export async function sendJobPubSubMessage(args: PubSubMessageArgs): Promise<str
       (res) => console.info('[dev local push]', devLocalPush.url, res.status),
       (err) => console.error('[dev local push]', devLocalPush.url, err),
     );
-    return 'testPubSubId';
+    return 'devLocalPushId';
   }
 
+  // 4. Production — real GCP Pub/Sub
   return sendViaPubSub({ ...pubSub, attributes, data });
 }

@@ -66,7 +66,8 @@
     "test:e2e:api:auth-tests": "TEST_FILES=api.auth dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:e2e:api:pending": "TEST_FILES=api.pending dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:start-server": "dotenv -e .env.test -- react-router dev",
-    "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs"
+    "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs",
+    "dev:pubsub:emulator": "gcloud beta emulators pubsub start --project=local-dev --host-port=localhost:8085"
   },
   "devDependencies": {
     "@app-config/cli": "^2.8.7",
