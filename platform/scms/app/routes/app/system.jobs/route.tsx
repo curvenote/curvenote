@@ -9,7 +9,16 @@ import {
   getConfig,
 } from '@curvenote/scms-server';
 import { PageFrame, ui, KnownJobTypes } from '@curvenote/scms-core';
-import { Zap, RefreshCw, CheckCircle, XCircle, Clock, Loader2, Radio, ArrowRight } from 'lucide-react';
+import {
+  Zap,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  Radio,
+  ArrowRight,
+} from 'lucide-react';
 import { extensions as serverExtensions } from '../../../extensions/server';
 
 export const meta: Route.MetaFunction = () => {
@@ -264,7 +273,7 @@ function LoopbackTest() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex gap-3 items-center">
         <ui.Button onClick={handleDispatch} disabled={dispatching || (!!jobId && !isTerminal)}>
           <Zap className="w-4 h-4 mr-1.5" />
           {dispatching ? 'Dispatching…' : 'Dispatch Loopback Job'}
@@ -275,26 +284,27 @@ function LoopbackTest() {
       </div>
 
       {jobId && jobState && (
-        <div className="border rounded-lg p-4 bg-white space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="p-4 space-y-3 bg-white rounded-lg border">
+          <div className="flex justify-between items-center">
             <div className="space-y-1">
-              <div className="text-xs font-mono text-gray-500">{jobId}</div>
+              <div className="font-mono text-xs text-gray-500">{jobId}</div>
               <StatusBadge status={jobState.status} />
             </div>
-            {!isTerminal && (
-              <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
-            )}
+            {!isTerminal && <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />}
           </div>
 
           {/* Messages timeline */}
           {jobState.messages.length > 0 && (
             <div className="space-y-1">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <div className="text-xs font-medium tracking-wide text-gray-500 uppercase">
                 Messages
               </div>
               <div className="space-y-0.5">
                 {jobState.messages.map((msg, i) => (
-                  <div key={i} className="text-sm text-gray-700 font-mono pl-3 border-l-2 border-gray-200">
+                  <div
+                    key={i}
+                    className="pl-3 font-mono text-sm text-gray-700 border-l-2 border-gray-200"
+                  >
                     {msg}
                   </div>
                 ))}
@@ -305,10 +315,10 @@ function LoopbackTest() {
           {/* Results */}
           {jobState.results && (
             <div className="space-y-1">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <div className="text-xs font-medium tracking-wide text-gray-500 uppercase">
                 Results
               </div>
-              <pre className="text-xs bg-gray-50 rounded p-2 overflow-x-auto">
+              <pre className="overflow-x-auto p-2 text-xs bg-gray-50 rounded">
                 {JSON.stringify(jobState.results, null, 2)}
               </pre>
             </div>
@@ -369,46 +379,50 @@ function DispatchInfoPanel({
     dispatch.routingMode === 'production' && !dispatch.hasDispatchCredentials;
 
   return (
-    <section className="border rounded-lg bg-white overflow-hidden">
-      <div className="px-4 py-3 border-b bg-gray-50 flex items-center gap-2">
+    <section className="overflow-hidden bg-white rounded-lg border">
+      <div className="flex gap-2 items-center px-4 py-3 bg-gray-50 border-b">
         <Radio className="w-4 h-4 text-gray-600" />
         <h2 className="text-lg font-semibold">Dispatch topic and return path</h2>
       </div>
       <div className="p-4 space-y-4 text-sm">
         <p className="text-gray-600">
-          Internal jobs call <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">dispatchAJob()</code>
-          , which targets the centralized dispatch topic. The app receives work at{' '}
-          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">POST /v1/jobs/dispatch</code>
-          , creates the job row, then runs the handler.
+          Internal jobs call{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">dispatchAJob()</code>, which
+          targets the centralized dispatch topic. The app receives work at{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">POST /v1/jobs/dispatch</code>,
+          creates the job row, then runs the handler.
         </p>
 
         <dl className="grid gap-3 sm:grid-cols-[minmax(0,11rem)_1fr] sm:gap-x-4">
-          <dt className="text-gray-500 font-medium">Registered topic name</dt>
+          <dt className="font-medium text-gray-500">Registered topic name</dt>
           <dd className="font-mono text-gray-900 break-all">{dispatch.topicId}</dd>
 
-          <dt className="text-gray-500 font-medium">Full Pub/Sub resource</dt>
-          <dd className="font-mono text-xs text-gray-800 break-all">{dispatch.fullTopicResourceName}</dd>
+          <dt className="font-medium text-gray-500">Full Pub/Sub resource</dt>
+          <dd className="font-mono text-xs text-gray-800 break-all">
+            {dispatch.fullTopicResourceName}
+          </dd>
 
-          <dt className="text-gray-500 font-medium">Pub/Sub project</dt>
+          <dt className="font-medium text-gray-500">Pub/Sub project</dt>
           <dd className="font-mono text-gray-900 break-all">{dispatch.pubsubProjectId}</dd>
 
-          <dt className="text-gray-500 font-medium">App config</dt>
+          <dt className="font-medium text-gray-500">App config</dt>
           <dd className="text-gray-600">
             {dispatch.dispatchTopicSetInConfig ? (
               <>
-                <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">dispatchTopic</code> is set in
-                app config.
+                <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">dispatchTopic</code> is
+                set in app config.
               </>
             ) : (
               <>
                 Using default topic id{' '}
                 <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">scmsJobDispatch</code> (
-                <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">dispatchTopic</code> unset).
+                <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">dispatchTopic</code>{' '}
+                unset).
               </>
             )}
           </dd>
 
-          <dt className="text-gray-500 font-medium">Current routing</dt>
+          <dt className="font-medium text-gray-500">Current routing</dt>
           <dd>
             <span className="inline-flex items-center gap-1.5 font-medium text-gray-900">
               {routing.label}
@@ -421,7 +435,7 @@ function DispatchInfoPanel({
             )}
             {dispatch.routingMode === 'dev_http_stub' && (
               <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-gray-700">
-                <span className="inline-flex items-center gap-1 rounded border bg-amber-50 px-2 py-1 text-amber-900">
+                <span className="inline-flex gap-1 items-center px-2 py-1 text-amber-900 bg-amber-50 rounded border">
                   <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                   Stub POST
                 </span>
@@ -432,9 +446,9 @@ function DispatchInfoPanel({
         </dl>
 
         {productionNeedsCreds && (
-          <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-sm">
-            Production routing expects <code className="text-xs">dispatchSASecretKeyfile</code> in app
-            config for publishing to the topic.
+          <p className="px-3 py-2 text-sm text-amber-800 bg-amber-50 rounded-md border border-amber-200">
+            Production routing expects <code className="text-xs">dispatchSASecretKeyfile</code> in
+            app config for publishing to the topic.
           </p>
         )}
       </div>
@@ -453,19 +467,17 @@ export default function SystemJobsPage({ loaderData }: Route.ComponentProps) {
       description="View registered job types and test the dispatch mechanism."
     >
       <div className="space-y-8">
-        <DispatchInfoPanel dispatch={dispatch} />
-
         {/* Registered job types */}
         <section>
-          <h2 className="text-lg font-semibold mb-3">Registered Job Types</h2>
-          <div className="border rounded-lg overflow-hidden">
+          <h2 className="mb-3 text-lg font-semibold">Registered Job Types</h2>
+          <div className="overflow-hidden rounded-lg border">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Job Type
                   </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Source
                   </th>
                 </tr>
@@ -475,7 +487,7 @@ export default function SystemJobsPage({ loaderData }: Route.ComponentProps) {
                   const isCore = Object.values(KnownJobTypes).includes(jt as any);
                   return (
                     <tr key={jt}>
-                      <td className="px-4 py-2 text-sm font-mono">{jt}</td>
+                      <td className="px-4 py-2 font-mono text-sm">{jt}</td>
                       <td className="px-4 py-2 text-sm text-gray-500">
                         {isCore ? 'core' : 'extension'}
                       </td>
@@ -487,10 +499,12 @@ export default function SystemJobsPage({ loaderData }: Route.ComponentProps) {
           </div>
         </section>
 
+        <DispatchInfoPanel dispatch={dispatch} />
+
         {/* Dispatch test */}
         <section>
-          <h2 className="text-lg font-semibold mb-1">Dispatch Test</h2>
-          <p className="text-sm text-gray-500 mb-3">
+          <h2 className="mb-1 text-lg font-semibold">Dispatch Test</h2>
+          <p className="mb-3 text-sm text-gray-500">
             Dispatches a LOOPBACK job via Pub/Sub. The handler simulates ~8 seconds of async work,
             posting status updates along the way. Use this to verify the dispatch endpoint, Pub/Sub
             delivery, and job lifecycle.

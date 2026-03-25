@@ -23,7 +23,8 @@ export const config = {
  * POST /v1/jobs/dispatch
  *
  * Receives Pub/Sub push messages from the scmsJobDispatch topic.
- * Creates the DB row, resolves the handler, and runs it.
+ * Ensures a QUEUED DB row exists (normally created by `dispatchAJob` before publish),
+ * resolves the handler, and runs it.
  *
  * Auth: handshake JWT in message attributes (signed by the publisher with
  * the same handshakeSigningSecret). The JWT's jobId must match the message data.
@@ -91,7 +92,7 @@ export async function action({ request, context }: { request: Request; context?:
     return new Response(null, { status: 200 });
   }
 
-  // Create DB row (QUEUED) — check for existing to handle retries
+  // Ensure DB row (QUEUED) — idempotent: `dispatchAJob` usually inserts first; this covers retries and replays
   const prisma = await getPrismaClient();
   const existing = await prisma.job.findUnique({ where: { id: data.job_id } });
   if (existing) {

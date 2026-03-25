@@ -13,9 +13,8 @@ function sleep(ms: number): Promise<void> {
 /**
  * Loopback job handler — tests the dispatch mechanism end-to-end.
  *
- * This handler is designed to be called via the dispatch endpoint (which
- * creates the DB row as QUEUED before invoking the handler). It does NOT
- * create its own DB row.
+ * This handler is designed to run after a QUEUED row exists (`dispatchAJob` inserts
+ * before publish; the dispatch push handler is a fallback). It does NOT create its own DB row.
  *
  * Timeline (~8 seconds total):
  *   0s  → update to RUNNING + message "Loopback started"

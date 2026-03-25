@@ -1,12 +1,14 @@
 import type { FollowOnEnvelope } from '@curvenote/scms-core';
+import { JobStatus } from '@curvenote/scms-db';
 import { getConfig } from '../../../app-config.server.js';
+import { getPrismaClient } from '../../prisma.server.js';
 import { createHandshakeToken } from '../../sign.handshake.server.js';
+import { dbCreateJob } from '../handlers/db.server.js';
 import { sendJobPubSubMessage } from '../pubsub.server.js';
 
 /**
  * Parameters for dispatching a job via the centralized Pub/Sub topic.
- * Mirrors the shape of CreateJob but is decoupled from the DB layer —
- * the dispatch endpoint creates the row, not the caller.
+ * Mirrors the shape of CreateJob; `dispatchAJob` persists a QUEUED row before publishing.
  */
 export interface DispatchJobParams {
   job_id: string;
@@ -70,15 +72,39 @@ async function sendDispatchMessage(
 }
 
 /**
- * Dispatch a job by publishing a message to the scmsJobDispatch Pub/Sub topic.
+ * Insert QUEUED job row if absent (idempotent). Skips when a row already exists so
+ * retries and duplicate dispatches do not violate unique constraints.
+ */
+async function ensureQueuedJobRow(params: DispatchJobParams): Promise<void> {
+  const prisma = await getPrismaClient();
+  const existing = await prisma.job.findUnique({ where: { id: params.job_id } });
+  if (existing) {
+    return;
+  }
+  await dbCreateJob({
+    id: params.job_id,
+    job_type: params.job_type,
+    payload: params.payload,
+    status: JobStatus.QUEUED,
+    follow_on: params.follow_on,
+    invoked_by_id: params.invoked_by_id,
+    activity_type: params.activity_type,
+  });
+}
+
+/**
+ * Dispatch a job by publishing a message to the centralized scmsJobDispatch Pub/Sub topic.
  *
- * The caller gets back a job_id immediately. The dispatch endpoint (receiving
- * the Pub/Sub push) creates the DB row and runs the handler.
+ * Creates the DB row (QUEUED) before publishing so callers can rely on the job existing
+ * immediately (serverless-safe). The dispatch endpoint still ensures a row exists for
+ * Pub/Sub retries and any out-of-band publishes.
  *
- * In test mode, returns immediately without publishing.
+ * In test mode, the row is still created; Pub/Sub publish is skipped.
  */
 export async function dispatchAJob(params: DispatchJobParams): Promise<DispatchResult> {
   const config = await getConfig();
+
+  await ensureQueuedJobRow(params);
 
   const handshake = createHandshakeToken(
     params.job_id,
