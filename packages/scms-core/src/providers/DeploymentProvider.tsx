@@ -40,7 +40,7 @@ export type ClientDashboardConfig = {
 };
 
 export type WelcomeVideo = {
-  title: string;
+  title?: string;
   url: string;
   thumbnail?: string;
 };
