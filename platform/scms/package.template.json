@@ -67,7 +67,8 @@
     "test:e2e:api:pending": "TEST_FILES=api.pending dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:start-server": "dotenv -e .env.test -- react-router dev",
     "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs",
-    "dev:pubsub:emulator": "gcloud beta emulators pubsub start --project=local-dev --host-port=localhost:8085"
+    "dev:pubsub:emulator": "bash ../../docs/jobs/scripts/start-pubsub-emulator.sh",
+    "dev:pubsub:emulator:stop": "bash ../../docs/jobs/scripts/stop-pubsub-emulator.sh"
   },
   "devDependencies": {
     "@app-config/cli": "^2.8.7",

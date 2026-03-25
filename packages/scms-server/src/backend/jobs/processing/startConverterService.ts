@@ -35,7 +35,7 @@ export async function startConverterService(
     attributes,
     data,
     pubSub: {
-      projectId: config.api.pubsubProjectId ?? 'local-dev',
+      projectId: config.api.pubsubProjectId ?? 'curvenote-dev-1',
       credentialsJson: config.api.converterSASecretKeyfile ?? '{}',
       topicName: config.api.converterTopic ?? 'scmsTaskConverterTopic',
     },

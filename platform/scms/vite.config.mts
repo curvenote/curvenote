@@ -34,6 +34,10 @@ export default defineConfig(async ({ mode }) => {
    */
   const userConfig: UserConfig = {
     server: {
+      // Listen on all interfaces (0.0.0.0 / ::) so loopback works consistently:
+      // `curl http://localhost:…` can use IPv6 while the Pub/Sub emulator’s Java
+      // client uses 127.0.0.1 — default host-only bind often refuses one of them.
+      host: true,
       port: env.VITE_PORT ? parseInt(env.VITE_PORT) : undefined,
       // Cloudflare tunnel / reverse proxy: Host is the public hostname, not localhost
       allowedHosts: ['.curvenote.net'],

@@ -50,3 +50,7 @@ yalc.lock
 types/app-config.d.ts
 
 .claude/worktrees
+
+# local Pub/Sub emulator (docs/jobs/scripts/start-pubsub-emulator.sh)
+docs/jobs/scripts/.pubsub-emulator.pid
+docs/jobs/scripts/.pubsub-emulator.log

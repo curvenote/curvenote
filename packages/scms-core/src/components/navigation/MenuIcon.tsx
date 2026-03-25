@@ -35,6 +35,7 @@ import {
   UserCheck,
   LayoutDashboard,
   SquareLibrary,
+  SquarePlay,
   Share2,
   GraduationCap,
   HelpCircle,
@@ -175,6 +176,9 @@ export function MenuIcon({
       return <LayoutDashboard className={classNameWithDefaults} />;
     case 'square-library':
       return <SquareLibrary className={classNameWithDefaults} />;
+    case 'admin.jobs':
+    case 'square-play':
+      return <SquarePlay className={classNameWithDefaults} />;
     case 'share':
       return <Share2 className={classNameWithDefaults} />;
     case 'graduation-cap':
