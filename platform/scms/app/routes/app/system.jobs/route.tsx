@@ -208,6 +208,18 @@ function LoopbackTest() {
   } | null>(null);
 
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollSubmitRef = useRef(pollFetcher.submit);
+
+  useEffect(() => {
+    pollSubmitRef.current = pollFetcher.submit;
+  }, [pollFetcher.submit]);
+
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  }, []);
 
   // Handle dispatch response
   useEffect(() => {
@@ -231,34 +243,30 @@ function LoopbackTest() {
       });
       // Stop polling when terminal
       if (job.status === 'COMPLETED' || job.status === 'FAILED') {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-          pollIntervalRef.current = null;
-        }
+        stopPolling();
       }
     }
-  }, [pollFetcher.data]);
+  }, [pollFetcher.data, stopPolling]);
 
   // Start polling when we have a job ID
   const startPolling = useCallback(
     (id: string) => {
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = setInterval(() => {
+      stopPolling();
+      const submitPoll = () => {
         const formData = new FormData();
         formData.set('intent', 'poll-job');
         formData.set('jobId', id);
-        pollFetcher.submit(formData, { method: 'POST' });
-      }, 1000);
+        pollSubmitRef.current(formData, { method: 'POST' });
+      };
+      pollIntervalRef.current = setInterval(submitPoll, 1000);
     },
-    [pollFetcher],
+    [stopPolling],
   );
 
   useEffect(() => {
     if (jobId) startPolling(jobId);
-    return () => {
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    };
-  }, [jobId, startPolling]);
+    return stopPolling;
+  }, [jobId, startPolling, stopPolling]);
 
   const handleDispatch = () => {
     setDispatching(true);
