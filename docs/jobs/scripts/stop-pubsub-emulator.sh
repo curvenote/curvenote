@@ -8,8 +8,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PIDFILE="${SCRIPT_DIR}/.pubsub-emulator.pid"
 
 if [[ ! -f "${PIDFILE}" ]]; then
-  echo "No ${PIDFILE} — nothing to stop (if the emulator is still running, you may have started it outside this script)." >&2
-  exit 1
+  echo "No ${PIDFILE} — nothing to stop (exit 0)."
+  echo "If the emulator is still running: run npm run dev:pubsub:emulator once to recreate the PID file, or stop the listener on port 8085 manually (e.g. kill \$(lsof -tiTCP:8085 -sTCP:LISTEN))."
+  exit 0
 fi
 
 PID="$(cat "${PIDFILE}")"

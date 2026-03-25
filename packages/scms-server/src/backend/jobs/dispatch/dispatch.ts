@@ -56,8 +56,9 @@ async function sendDispatchMessage(
     );
   }
 
-  const port = process.env.PORT ?? '3031';
-  const devLocalPushUrl = `http://127.0.0.1:${port}/v1/jobs/dispatch`;
+  const port = process.env.PORT ?? process.env.VITE_PORT ?? '3031';
+  const host = process.env.SCMS_DEV_PUSH_HOST ?? 'localhost';
+  const devLocalPushUrl = `http://${host}:${port}/v1/jobs/dispatch`;
 
   return sendJobPubSubMessage({
     attributes,
@@ -79,6 +80,10 @@ async function ensureQueuedJobRow(params: DispatchJobParams): Promise<void> {
   const prisma = await getPrismaClient();
   const existing = await prisma.job.findUnique({ where: { id: params.job_id } });
   if (existing) {
+    console.log(
+      '[dispatch] dispatchAJob: QUEUED row already exists, skipping insert (idempotent)',
+      { job_id: params.job_id, job_type: params.job_type, status: existing.status },
+    );
     return;
   }
   await dbCreateJob({
@@ -89,6 +94,10 @@ async function ensureQueuedJobRow(params: DispatchJobParams): Promise<void> {
     follow_on: params.follow_on,
     invoked_by_id: params.invoked_by_id,
     activity_type: params.activity_type,
+  });
+  console.log('[dispatch] dispatchAJob: created QUEUED row', {
+    job_id: params.job_id,
+    job_type: params.job_type,
   });
 }
 
@@ -104,6 +113,14 @@ async function ensureQueuedJobRow(params: DispatchJobParams): Promise<void> {
 export async function dispatchAJob(params: DispatchJobParams): Promise<DispatchResult> {
   const config = await getConfig();
 
+  console.log('[dispatch] dispatchAJob: start', {
+    job_id: params.job_id,
+    job_type: params.job_type,
+    invoked_by_id: params.invoked_by_id,
+    activity_type: params.activity_type,
+    has_follow_on: Boolean(params.follow_on),
+  });
+
   await ensureQueuedJobRow(params);
 
   const handshake = createHandshakeToken(
@@ -113,7 +130,7 @@ export async function dispatchAJob(params: DispatchJobParams): Promise<DispatchR
     config.api.handshakeSigningSecret,
   );
 
-  await sendDispatchMessage(
+  const messageId = await sendDispatchMessage(
     {
       job_id: params.job_id,
       job_type: params.job_type,
@@ -128,6 +145,14 @@ export async function dispatchAJob(params: DispatchJobParams): Promise<DispatchR
       job_type: params.job_type,
     },
   );
+
+  console.log('[dispatch] dispatchAJob: published dispatch message', {
+    job_id: params.job_id,
+    job_type: params.job_type,
+    messageId,
+    pubsub_emulator: Boolean(process.env.PUBSUB_EMULATOR_HOST),
+    node_env: process.env.NODE_ENV,
+  });
 
   return {
     job_id: params.job_id,

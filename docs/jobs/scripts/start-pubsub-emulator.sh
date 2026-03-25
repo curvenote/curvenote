@@ -20,6 +20,30 @@ export PUBSUB_EMULATOR_HOST="${EMULATOR_HOST}"
 
 topics_url="http://${EMULATOR_HOST}/v1/projects/${PROJECT_ID}/topics"
 
+# Port segment of PUBSUB_EMULATOR_HOST (e.g. 8085 from localhost:8085)
+emulator_listen_port() {
+  echo "${EMULATOR_HOST##*:}"
+}
+
+# Write the PID of whatever is listening on the emulator port so stop-pubsub-emulator.sh
+# can kill it. Needed when: (1) this script's "already up" branch runs (no nohup PID),
+# (2) PID file was deleted while the emulator kept running, (3) gcloud's PID is a wrapper
+# and the JVM owns the port.
+refresh_emulator_pidfile() {
+  local port
+  port="$(emulator_listen_port)"
+  local detected=""
+  if command -v lsof >/dev/null 2>&1; then
+    detected=$(lsof -tiTCP:"${port}" -sTCP:LISTEN 2>/dev/null | head -n1)
+  fi
+  if [[ -n "${detected}" ]]; then
+    echo "${detected}" >"${PIDFILE}"
+    echo "Recorded emulator listener PID ${detected} in ${PIDFILE} (port ${port})."
+    return 0
+  fi
+  return 1
+}
+
 wait_for_api() {
   local max_attempts="${1:-60}"
   local attempt
@@ -40,9 +64,12 @@ run_setup() {
 # Emulator already up (this script or manual gcloud)
 if curl -sf "${topics_url}" >/dev/null 2>&1; then
   echo "Pub/Sub emulator already responding at ${EMULATOR_HOST}."
+  if ! refresh_emulator_pidfile; then
+    echo "Warning: could not detect listener PID on port $(emulator_listen_port); npm run dev:pubsub:emulator:stop may not find the process." >&2
+  fi
   run_setup
   echo ""
-  echo "Done. If this emulator was started by this script, stop with:"
+  echo "Done. Stop the emulator with:"
   echo "  npm run dev:pubsub:emulator:stop"
   exit 0
 fi
@@ -53,9 +80,10 @@ if [[ -f "${PIDFILE}" ]]; then
   if kill -0 "${old_pid}" 2>/dev/null; then
     echo "Waiting for emulator (PID ${old_pid}) to accept connections..."
     if wait_for_api 60; then
+      refresh_emulator_pidfile || true
       run_setup
       echo ""
-      echo "Done. Emulator PID ${old_pid}. Stop with: npm run dev:pubsub:emulator:stop"
+      echo "Done. Stop with: npm run dev:pubsub:emulator:stop"
       exit 0
     fi
     echo "Emulator process ${old_pid} did not become ready; remove ${PIDFILE} or run stop script." >&2
@@ -70,7 +98,6 @@ echo "Logs: ${LOGFILE}"
 nohup gcloud beta emulators pubsub start --project="${PROJECT_ID}" --host-port="${EMULATOR_HOST}" \
   >>"${LOGFILE}" 2>&1 &
 EMULATOR_PID=$!
-echo "${EMULATOR_PID}" >"${PIDFILE}"
 
 echo "Waiting for emulator HTTP API..."
 if ! wait_for_api 60; then
@@ -80,15 +107,20 @@ if ! wait_for_api 60; then
   exit 1
 fi
 
+if ! refresh_emulator_pidfile; then
+  echo "${EMULATOR_PID}" >"${PIDFILE}"
+  echo "Warning: could not detect listener PID; using gcloud parent PID ${EMULATOR_PID} in ${PIDFILE}." >&2
+fi
+
 if ! run_setup; then
   echo "Setup failed; stopping emulator." >&2
-  kill "${EMULATOR_PID}" 2>/dev/null || true
+  kill "$(cat "${PIDFILE}")" 2>/dev/null || kill "${EMULATOR_PID}" 2>/dev/null || true
   wait "${EMULATOR_PID}" 2>/dev/null || true
   rm -f "${PIDFILE}"
   exit 1
 fi
 
 echo ""
-echo "Emulator is running in the background (PID ${EMULATOR_PID})."
+echo "Emulator is running in the background (PID $(cat "${PIDFILE}"))."
 echo "Stop with: npm run dev:pubsub:emulator:stop"
 echo "Logs: ${LOGFILE}"

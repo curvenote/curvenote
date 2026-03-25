@@ -85,13 +85,14 @@ npm run dev:pubsub:emulator
 
 This runs `docs/jobs/scripts/start-pubsub-emulator.sh`, which:
 
-1. Starts `gcloud beta emulators pubsub start` **in the background** (via `nohup`) and records its PID in `docs/jobs/scripts/.pubsub-emulator.pid`
+1. If nothing is listening yet, starts `gcloud beta emulators pubsub start` **in the background** (via `nohup`)
 2. Waits until the emulator’s HTTP API responds
-3. Runs `docs/jobs/scripts/emulator-setup.sh` to create topics and subscriptions
+3. Writes `docs/jobs/scripts/.pubsub-emulator.pid` with the **process listening on the emulator port** (via `lsof`), so `dev:pubsub:emulator:stop` works even when the “emulator already up” path runs (no fresh `nohup` PID) or the PID file was deleted while the emulator kept running
+4. Runs `docs/jobs/scripts/emulator-setup.sh` to create topics and subscriptions
 
 The command **exits when setup finishes** so you can reuse the same terminal (for example for `npm run dev`). Emulator output is appended to `docs/jobs/scripts/.pubsub-emulator.log`.
 
-If the emulator is **already** listening (for example you ran the command twice, or started `gcloud` by hand), the script only re-runs `emulator-setup.sh` and exits.
+If the emulator is **already** listening (for example you ran the command twice, or started `gcloud` by hand), the script skips starting a new process, **refreshes the PID file**, re-runs `emulator-setup.sh`, and exits.
 
 Because the emulator is **in-memory**, every process restart clears topics and subscriptions — run `npm run dev:pubsub:emulator` again after stopping it, or rely on the “already listening” path to re-run setup only.
 
@@ -101,7 +102,7 @@ Because the emulator is **in-memory**, every process restart clears topics and s
 npm run dev:pubsub:emulator:stop
 ```
 
-This reads `.pubsub-emulator.pid` and stops that process. If you started the emulator outside this script, there is no PID file — stop it manually (for example find the `java` process for the emulator or the port `8085` listener).
+This reads `.pubsub-emulator.pid` and stops that process. If there is no PID file, the command exits successfully — run `npm run dev:pubsub:emulator` once to recreate the PID file, or stop the listener on port `8085` manually if the emulator is still running.
 
 ### Step 2: Set Environment Variables
 
@@ -139,8 +140,8 @@ bash docs/jobs/scripts/emulator-setup.sh --reset
 | `scmsJobDispatch-deadletter`     | Topic             | —                                         |
 | `scmsCheckTopic`                 | Topic             | —                                         |
 | `scmsTaskConverterTopic`         | Topic             | —                                         |
-| `scmsJobDispatch-sub`            | Push subscription | `http://localhost:3031/v1/jobs/dispatch`     |
-| `scmsJobDispatch-deadletter-sub` | Push subscription | `http://localhost:3031/v1/jobs/dispatch/dlq` |
+| `scmsJobDispatch-sub`            | Push subscription | `http://127.0.0.1:3031/v1/jobs/dispatch`     |
+| `scmsJobDispatch-deadletter-sub` | Push subscription | `http://127.0.0.1:3031/v1/jobs/dispatch/dlq` |
 | `scmsCheckTopic-sub`             | Pull subscription | (for local check workers)                 |
 | `scmsTaskConverterTopic-sub`     | Pull subscription | (for local converter workers)             |
 
@@ -230,12 +231,13 @@ The emulator supports push subscriptions over HTTP (not HTTPS). When a message i
 
 ### Stop command does not match how I started the emulator
 
-`dev:pubsub:emulator:stop` only stops a process recorded in `docs/jobs/scripts/.pubsub-emulator.pid` (written when you use `npm run dev:pubsub:emulator`). If you launched `gcloud beta emulators pubsub start` yourself, stop that process manually or free the port (for example find the listener on `8085`).
+`dev:pubsub:emulator:stop` reads `docs/jobs/scripts/.pubsub-emulator.pid`. Each successful `npm run dev:pubsub:emulator` run refreshes that file (including the “emulator already up” path). If the file is missing while the emulator is still running, run `npm run dev:pubsub:emulator` once to recreate it, or stop the listener on port `8085` manually.
 
 ### Push subscription not delivering
 
 - The SCMS app must be running before you publish (the emulator POSTs immediately)
-- Check the push endpoint URL matches your app's port (`localhost:3031` by default)
+- Check the push endpoint URL matches your app's port (`127.0.0.1:3031` by default in `emulator-setup.sh`; using `localhost` can fail: the Java emulator may connect to IPv6 `::1` while the dev server only listens on IPv4)
+- If `.pubsub-emulator.log` shows `Failed to push ... Connection refused`, confirm SCMS is listening and re-run `bash docs/jobs/scripts/emulator-setup.sh --reset` after changing `PORT`
 - Restart the emulator and run `npm run dev:pubsub:emulator` again, or run `bash docs/jobs/scripts/emulator-setup.sh` if the emulator is already running — subscriptions are lost when the emulator restarts (it's in-memory)
 
 ### "dispatchTopic must be set" error

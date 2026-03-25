@@ -21,8 +21,13 @@ set -euo pipefail
 
 EMULATOR_HOST="${PUBSUB_EMULATOR_HOST:-localhost:8085}"
 PROJECT_ID="${PUBSUB_PROJECT_ID:-curvenote-dev-1}"
-SCMS_PORT="${PORT:-3031}"
-SCMS_ORIGIN="http://localhost:${SCMS_PORT}"
+# Vite uses VITE_PORT from platform/scms/.env; Node dispatch code uses PORT. Match the
+# port your dev server actually prints (defaults below assume 3031 from .env.sample).
+SCMS_PORT="${PORT:-${VITE_PORT:-3031}}"
+# Push URL host: Java client uses IPv4 to 127.0.0.1. Dev server must listen on all
+# interfaces (platform/scms vite server.host) or push fails while curl to localhost works.
+SCMS_PUSH_HOST="${SCMS_PUSH_HOST:-127.0.0.1}"
+SCMS_ORIGIN="http://${SCMS_PUSH_HOST}:${SCMS_PORT}"
 
 RESET=false
 if [[ "${1:-}" == "--reset" ]]; then
