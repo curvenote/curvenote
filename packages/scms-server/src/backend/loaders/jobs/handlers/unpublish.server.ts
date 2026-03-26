@@ -37,16 +37,46 @@ export async function unpublishHandler(
 
   if (backend?.type === 'atproto' && backend.nominatedUserLinkedAccountId) {
     const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
-    await unpublishFromAtproto({
-      siteId: site_id,
-      nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId,
-      submissionVersionId: submission_version_id,
-      payload: payload as Record<string, unknown>,
-    });
+    try {
+      await unpublishFromAtproto({
+        siteId: site_id,
+        nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId,
+        submissionVersionId: submission_version_id,
+        payload: payload as Record<string, unknown>,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'AT Protocol unpublish failed';
+      console.error('[unpublish] AT Protocol unpublish error:', error);
+      await dbUpdateJob(created.id, {
+        status: JobStatus.FAILED,
+        message,
+        results: { atproto: true, error: message },
+      });
+      throw error;
+    }
+
+    // Update the submission to UNPUBLISHED
+    try {
+      await $updateSubmissionVersion(user_id, submission_version_id, {
+        status: 'UNPUBLISHED',
+        transition: undefined,
+        jobId: created.id ?? undefined,
+      });
+    } catch (error) {
+      const message = 'Error updating submission status after atproto unpublish';
+      console.log(message, error);
+      await dbUpdateJob(created.id, {
+        status: JobStatus.FAILED,
+        message,
+        results: { atproto: true },
+      });
+      throw httpError(422, message, { message, error, submission_version_id });
+    }
+
     const job = await dbUpdateJob(created.id, {
       status: JobStatus.COMPLETED,
-      message: 'Atproto unpublish path (stub).',
-      results: {},
+      message: 'Unpublished from AT Protocol.',
+      results: { atproto: true },
     });
     return job;
   }

@@ -1,0 +1,52 @@
+{
+  "lexicon": 1,
+  "id": "site.standard.publication",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["url", "name"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "name": {
+            "type": "string",
+            "maxGraphemes": 128,
+            "maxLength": 1280
+          },
+          "description": {
+            "type": "string",
+            "maxGraphemes": 300,
+            "maxLength": 3000
+          },
+          "icon": {
+            "type": "blob",
+            "accept": ["image/*"],
+            "maxSize": 1000000
+          },
+          "basicTheme": {
+            "type": "ref",
+            "ref": "site.standard.theme.basic"
+          },
+          "preferences": {
+            "type": "ref",
+            "ref": "#preferences"
+          }
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "properties": {
+        "showInDiscover": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  }
+}

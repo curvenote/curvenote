@@ -17,7 +17,7 @@ import { SlackEventType } from '../../../services/slack.server.js';
 import { createSiteRootUrl } from '../../../domains.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
 import type { TemplatedResendEmail } from '../../../services/emails/resend.server.js';
-import { publishToAtproto } from '../../../../modules/auth/bluesky/publish.server.js';
+import { publishToAtproto, type AtprotoPublishResult } from '../../../../modules/auth/bluesky/publish.server.js';
 
 /**
  * Publish a submission version to the public CDN or to atproto (when site backend is AT Protocol)
@@ -60,16 +60,55 @@ export async function publishHandler(
 
   if (backend?.type === 'atproto' && backend.nominatedUserLinkedAccountId) {
     const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
-    await publishToAtproto({
-      siteId: site_id,
-      nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId,
-      submissionVersionId: submission_version_id,
-      payload: payload as Record<string, unknown>,
+    let atprotoResult: AtprotoPublishResult;
+    try {
+      atprotoResult = await publishToAtproto({
+        siteId: site_id,
+        nominatedUserLinkedAccountId: backend.nominatedUserLinkedAccountId,
+        submissionVersionId: submission_version_id,
+        payload: payload as Record<string, unknown>,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'AT Protocol publish failed';
+      console.error('[publish] AT Protocol publish error:', error);
+      await dbUpdateJob(created.id, {
+        status: JobStatus.FAILED,
+        message,
+        results: { atproto: true, error: message },
+      });
+      throw error;
+    }
+
+    // Update submission status to PUBLISHED
+    await $updateSubmissionVersion(user_id, submission_version_id, {
+      status: 'PUBLISHED',
+      transition: undefined,
+      date_published: date_published,
+      jobId: created.id ?? undefined,
     });
+
+    // Handle slug updates
+    if (updates_slug) {
+      const prismaForSlug = await getPrismaClient();
+      const sv = await prismaForSlug.submissionVersion.findUnique({
+        where: { id: submission_version_id },
+        include: { submission: { include: { site: true } }, work_version: true },
+      });
+      if (sv) {
+        await slugs.apply(new SiteContext(ctx, sv.submission.site), sv as any);
+      }
+    }
+
     const job = await dbUpdateJob(created.id, {
       status: JobStatus.COMPLETED,
-      message: 'Atproto publish path (stub).',
-      results: { atproto_stub: true },
+      message: `Published to AT Protocol: ${atprotoResult.blobCount} blobs uploaded.`,
+      results: {
+        atproto: true,
+        publicationUri: atprotoResult.publicationUri,
+        documentUri: atprotoResult.documentUri,
+        workVersionUri: atprotoResult.workVersionUri,
+        blobCount: atprotoResult.blobCount,
+      },
     });
     return job;
   }

@@ -117,6 +117,14 @@ export function getBlueskyJwks(): Readonly<{ keys: readonly unknown[] }> | null 
 
 export { getBlueskyClientMetadata };
 
+/**
+ * Get the cached NodeOAuthClient for use outside auth flows (e.g., PDS publishing).
+ * Returns null if Bluesky auth is not configured.
+ */
+export function getCachedBlueskyClient(): NodeOAuthClient | null {
+  return cachedClient;
+}
+
 async function getProfileFromSession(session: { did: string }): Promise<BlueskyProfile> {
   const agent = new Agent(session as any);
   const res = await agent.getProfile({ actor: session.did });
