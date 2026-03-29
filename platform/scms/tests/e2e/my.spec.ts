@@ -30,6 +30,16 @@ describe('my', () => {
 
     expect(works.links.self).toContain('v1/my/works');
   });
+  test('GET /my/works?key=&cdn-key= rejects both query params', async () => {
+    const resp = await expectStatus(400, 'my/works?key=a&cdn-key=b', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const body = (await resp.json()) as { message?: string };
+    expect(body.message).toMatch(/only one of key or cdn-key/i);
+  });
   test('GET /my/submissions - 401', async () => {
     await expectStatus(401, 'my/submissions', {
       method: 'GET',
