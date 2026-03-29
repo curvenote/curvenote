@@ -2,6 +2,7 @@ import { Command, Option } from 'commander';
 import { makeYesOption } from 'myst-cli';
 import { clirun } from './clirun.js';
 import {
+  makeAtprotoOption,
   makeDraftOption,
   makeKindOption,
   makeResumeOption,
@@ -25,6 +26,7 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeResumeOption())
     .addOption(makeMaxSizeWebpOption(3))
     .addOption(makeSkipRebuildOption())
+    .addOption(makeAtprotoOption())
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }

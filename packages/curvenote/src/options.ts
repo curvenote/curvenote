@@ -144,3 +144,15 @@ export function makeSkipRebuildOption() {
     false,
   );
 }
+
+export function makeAtprotoOption() {
+  return new Option(
+    '--atproto <uri>',
+    'Submit using an at:// URI on AT Protocol (skips local build, checks, and CDN upload)',
+  ).argParser((value) => {
+    if (!value || !value.startsWith('at://')) {
+      throw new InvalidArgumentError('AT Protocol URI must start with at://');
+    }
+    return value;
+  });
+}
