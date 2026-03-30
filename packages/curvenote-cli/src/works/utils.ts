@@ -157,15 +157,32 @@ export function workKeyFromConfig(session: ISession) {
 }
 
 /**
- * Load work from transfer.yml data
+ * Load the current user's work by journals work key (`project.id`).
  *
- * Returns undefined if work for the given venue is not defined or
- * if the API request for the work fails.
+ * Returns undefined if no work exists for that key or the request fails.
  */
 export async function getWorkFromKey(session: ISession, key: string): Promise<WorkDTO | undefined> {
   try {
     session.log.debug(`GET from journals API /my/works?key=${key}`);
     const resp = await getFromJournals(session, `/my/works?key=${key}`);
+    return resp.items[0];
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Load the current user's work whose latest matching WorkVersion has this cdn_key (e.g. at://… for AT Proto submits).
+ * Query value must be URL-encoded on the wire; this helper encodes it.
+ */
+export async function getWorkByCdnKey(
+  session: ISession,
+  cdnKey: string,
+): Promise<WorkDTO | undefined> {
+  try {
+    const q = encodeURIComponent(cdnKey);
+    session.log.debug(`GET from journals API /my/works?cdn-key=…`);
+    const resp = await getFromJournals(session, `/my/works?cdn-key=${q}`);
     return resp.items[0];
   } catch {
     return undefined;

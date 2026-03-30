@@ -4,8 +4,6 @@ import { exitOnInvalidKeyOption, workKeyFromConfig } from '../works/utils.js';
 import { getAllSubmissionsUsingKey, getSubmissionToUpdate } from './submit.utils.js';
 import type { STATUS_ACTIONS } from './types.js';
 import { patchUpdateSubmissionStatus } from './utils.js';
-import { keyFromTransferFile } from './utils.transfer.js';
-
 type StatusOptions = {
   force?: boolean;
   date?: boolean | string;
@@ -34,8 +32,6 @@ async function updateStatus(
   // TODO check user scope on this venue! await checkVenueAccess(session, venue);
 
   let key = workKeyFromConfig(session);
-  // Deprecation step to handle old transfer.yml files
-  key = (await keyFromTransferFile(session, venue, key)) ?? key;
 
   if (!key) {
     session.log.error(`⛔️ No id in project config`);

@@ -11,6 +11,8 @@ export type SubmitOpts = BaseOpts & {
   draft?: boolean;
   new?: boolean;
   skipRebuild?: boolean;
+  /** at:// URI for AT Protocol–backed submission (no local build or upload) */
+  atproto?: string;
 };
 
 export type JobResponse = {

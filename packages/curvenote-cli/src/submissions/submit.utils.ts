@@ -474,6 +474,7 @@ export async function confirmUpdateToExistingSubmission(
   submission: SubmissionsListItemDTO,
   key: string,
   opts?: SubmitOpts,
+  updateConfirmMessage?: string,
 ) {
   session.log.debug('found existing submission with work');
   const lastSubDate = submission.active_version.date_created;
@@ -548,7 +549,8 @@ export async function confirmUpdateToExistingSubmission(
     }
 
     await confirmOrExit(
-      `Update your submission to "${venue}" based on the contents of your local folder?`,
+      updateConfirmMessage ??
+        `Update your submission to "${venue}" based on the contents of your local folder?`,
       opts,
     );
 
@@ -640,6 +642,7 @@ export async function updateExistingSubmission(
   session: ISession,
   submitLog: SubmitLog,
   venue: string,
+  cdn: string,
   cdnKey: string,
   existingSubmission: SubmissionsListItemDTO,
   jobId: string,
@@ -658,12 +661,7 @@ export async function updateExistingSubmission(
       throw new Error('Unable to fetch work associated with existing submission');
     }
     session.log.debug(`posting new work version...`);
-    const work = await postNewWorkVersion(
-      session,
-      workResp.links.versions,
-      cdnKey,
-      session.config.privateCdnUrl,
-    );
+    const work = await postNewWorkVersion(session, workResp.links.versions, cdnKey, cdn);
     if (!work.version_id) {
       throw new Error('Failed to create a work version');
     }
