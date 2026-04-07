@@ -29,6 +29,7 @@
     "build": "npm run config && turbo run build --filter='!@curvenote/scms'",
     "build:scms": "cd platform/scms && npm run build",
     "build:web": "turbo run build --filter=@curvespace/default",
+    "build:cli": "turbo run build --filter=curvenote",
     "dev:all": "turbo run dev --parallel",
     "dev": "turbo run dev --parallel --filter='./packages/*' --filter='./ee/*' --filter='./extensions/*/packages/*'",
     "clean": "turbo run clean --parallel && find . -name '.turbo' -type d -prune -exec rm -rf '{}' +",
