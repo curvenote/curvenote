@@ -1,5 +1,5 @@
 import { Command, Option } from 'commander';
-import { makeYesOption } from 'myst-cli';
+import { makeExecuteOption, makeYesOption } from 'myst-cli';
 import { clirun } from './clirun.js';
 import {
   makeDraftOption,
@@ -25,6 +25,7 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeResumeOption())
     .addOption(makeMaxSizeWebpOption(3))
     .addOption(makeSkipRebuildOption())
+    .addOption(makeExecuteOption('Execute Notebooks'))
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }
