@@ -214,14 +214,6 @@ export function AsyncComboBox({
     onSearchChange?.(newValue);
   };
 
-  const focusAfterClose = React.useCallback(() => {
-    if (triggerMode === 'inline') {
-      inputRef.current?.focus();
-    } else {
-      triggerRef.current?.focus();
-    }
-  }, [triggerMode]);
-
   const handleSelect = (optionValue: string) => {
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
@@ -263,7 +255,10 @@ export function AsyncComboBox({
     onErrorClear?.();
     setOpen(false);
     setSearchValue('');
-    requestAnimationFrame(() => focusAfterClose());
+    requestAnimationFrame(() => {
+      if (triggerMode === 'inline') inputRef.current?.blur();
+      else triggerRef.current?.blur();
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -413,10 +408,11 @@ export function AsyncComboBox({
                       onSelect={handleSelect}
                       role="option"
                       aria-selected={value === option.value}
+                      className="flex gap-2 items-center"
                     >
                       <Check
                         className={cn(
-                          'mr-2 h-4 w-4',
+                          'h-4 w-4 shrink-0',
                           value === option.value ? 'opacity-100 text-green-600' : 'opacity-0',
                         )}
                       />
@@ -551,10 +547,11 @@ export function AsyncComboBox({
                       onSelect={handleSelect}
                       role="option"
                       aria-selected={value === option.value}
+                      className="flex gap-2 items-center"
                     >
                       <Check
                         className={cn(
-                          'mr-2 h-4 w-4',
+                          'h-4 w-4 shrink-0',
                           value === option.value ? 'opacity-100 text-green-600' : 'opacity-0',
                         )}
                       />
