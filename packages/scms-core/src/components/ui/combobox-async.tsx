@@ -218,6 +218,8 @@ export function AsyncComboBox({
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
     }
+    // Blur the command input immediately so it loses focus before the popover closes
+    inputRef.current?.blur();
     const option = displayOptions.find((opt) => opt.value === optionValue);
     if (option) {
       onValueChange(optionValue);
