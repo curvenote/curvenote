@@ -88,6 +88,8 @@ export type TimelineItemExpandableProps = {
   /** Content rendered in the expandable tray below the row */
   children?: ReactNode;
   className?: string;
+  /** Initial open state (uncontrolled). E.g. expand latest check run on work details load. */
+  defaultExpanded?: boolean;
 };
 
 /**
@@ -102,8 +104,9 @@ export function TimelineItemExpandable({
   trailing,
   children,
   className,
+  defaultExpanded = false,
 }: TimelineItemExpandableProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const hasTray = children != null;
 
   return (

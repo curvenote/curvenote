@@ -10,6 +10,8 @@ type CheckServiceRunTimelineItemProps = {
   /** When no matching extension is registered, show a generic fallback (no extension UI). */
   checkService: ClientExtensionCheckService | null;
   basePath: string;
+  /** True when this run is the latest for its `kind` on this work version (work details timeline). */
+  isLatestRunForKind?: boolean;
 };
 
 const serviceDataFromRun = (run: CheckServiceRunRow): unknown =>
@@ -27,6 +29,7 @@ export function CheckServiceRunTimelineItem({
   run,
   checkService,
   basePath,
+  isLatestRunForKind,
 }: CheckServiceRunTimelineItemProps) {
   const date = <DateWithPopover date={run.date_modified} />;
   const serviceData = serviceDataFromRun(run);
@@ -36,6 +39,7 @@ export function CheckServiceRunTimelineItem({
     const message = <>{checkService.name} checks</>;
     const ActivityComponent = checkService.sectionActivityComponent;
     const SummaryBadgeComponent = checkService.sectionSummaryBadgeComponent;
+    const MountComponent = checkService.checkRunTimelineMountComponent;
 
     const pill =
       SummaryBadgeComponent != null ? <SummaryBadgeComponent metadata={serviceData} /> : null;
@@ -52,14 +56,31 @@ export function CheckServiceRunTimelineItem({
     );
 
     return (
-      <TimelineItemExpandable
-        icon={<ShieldCheck className="w-4 h-4" aria-hidden />}
-        message={message}
-        date={date}
-        pill={pill}
-      >
-        {tray}
-      </TimelineItemExpandable>
+      <>
+        {/*
+          Headless extension component: must be a component (not a callback) so hooks like
+          useFetcher work under the router. See ExtensionCheckService.checkRunTimelineMountComponent.
+        */}
+        {MountComponent != null ? (
+          <MountComponent
+            checkRunId={run.id}
+            workVersionId={run.work_version_id}
+            checkKind={run.kind}
+            metadata={serviceData}
+            remoteStatusActionPath={checksActionPath}
+            isLatestRunForKind={isLatestRunForKind}
+          />
+        ) : null}
+        <TimelineItemExpandable
+          icon={<ShieldCheck className="w-4 h-4" aria-hidden />}
+          message={message}
+          date={date}
+          pill={pill}
+          defaultExpanded={Boolean(isLatestRunForKind)}
+        >
+          {tray}
+        </TimelineItemExpandable>
+      </>
     );
   }
 

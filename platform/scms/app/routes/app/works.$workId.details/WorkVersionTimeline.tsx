@@ -41,6 +41,16 @@ type TimelineEntry =
       version: WorkVersionWithSubmissionVersions;
     };
 
+/** Latest run id for a given check `kind` on this work version (by `date_modified`). */
+function getLatestCheckRunIdForKind(runs: CheckServiceRunRow[], kind: string): string | undefined {
+  let best: CheckServiceRunRow | undefined;
+  for (const r of runs) {
+    if (r.kind !== kind) continue;
+    if (!best || r.date_modified > best.date_modified) best = r;
+  }
+  return best?.id;
+}
+
 /** Truncate to minute resolution for sort comparison (items in same minute are tied). */
 function toMinuteKey(dateStr: string): number {
   const d = new Date(dateStr);
@@ -225,6 +235,9 @@ export function WorkVersionTimeline({
                     run={entry.run}
                     checkService={service}
                     basePath={basePath}
+                    isLatestRunForKind={
+                      entry.run.id === getLatestCheckRunIdForKind(checkRunsForVersion, entry.run.kind)
+                    }
                   />
                 );
               }

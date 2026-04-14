@@ -100,6 +100,30 @@ export type ExtensionCheckSectionActivityProps = {
   metadata: any;
   /** POST target for extension `handleAction` intents (e.g. checks route action). */
   remoteStatusActionPath?: string;
+  /**
+   * When true, this check run is the most recently modified run for its `kind` on this work version
+   * (e.g. latest Proofig run). Used for one-shot behaviours such as hydrating remote status on
+   * work details load. Omitted on routes that do not compute it (treated as false).
+   */
+  isLatestRunForKind?: boolean;
+};
+
+/**
+ * Props for `ExtensionCheckService.checkRunTimelineMountComponent`.
+ * Rendered on work-details timelines **outside** the expandable tray so extensions can run
+ * mount-only logic (e.g. one-shot remote sync) without the user opening the panel.
+ * `metadata` is the check run’s `serviceData`; shape is extension-defined.
+ */
+export type ExtensionCheckRunTimelineMountProps = {
+  checkRunId: string;
+  workVersionId: string;
+  /** Check service id from the run row (e.g. `proofig`). */
+  checkKind: string;
+  metadata: unknown;
+  /** POST target for extension `handleAction` intents (e.g. `${basePath}/checks`). */
+  remoteStatusActionPath: string;
+  /** See `ExtensionCheckSectionActivityProps.isLatestRunForKind`. */
+  isLatestRunForKind?: boolean;
 };
 
 export interface ExtensionCheckService {
@@ -111,6 +135,18 @@ export interface ExtensionCheckService {
   sectionActivityComponent: React.ComponentType<ExtensionCheckSectionActivityProps>;
   /** Optional summary badge for timeline (e.g. "All clear", "2 problems", "Awaiting review"). Same metadata as sectionActivityComponent. */
   sectionSummaryBadgeComponent?: React.ComponentType<{ metadata: any }>;
+  /**
+   * Optional component mounted for each matching check run row on the work timeline even when the
+   * tray is collapsed. Use for extension-specific side effects keyed off loader data.
+   *
+   * **Why a component (not a plain `onMount` callback):** timeline side effects often need React
+   * Router primitives (`useFetcher`, `useRevalidator`, etc.). Those are hooks and must run inside
+   * a component rendered under the router. A registered function called from the platform’s
+   * `useEffect` cannot use those hooks unless the platform injects submit/revalidate callbacks for
+   * every extension. A small headless component (`return null`) keeps the platform generic while
+   * letting extensions own full fetch/revalidate behaviour.
+   */
+  checkRunTimelineMountComponent?: React.ComponentType<ExtensionCheckRunTimelineMountProps>;
   /** Server-side action handler. Used from upload flow (intent 'execute' + ctx + checkRunId + createJob) and checks page (intent + formData + metadata). */
   handleAction?: (
     args: ExtensionCheckHandleActionArgs,
