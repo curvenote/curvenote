@@ -42,11 +42,17 @@ export function MetadataFormCard({
     if (hasTriggeredExtractMetadata.current || extractMetadataFetcher.state !== 'idle') return;
     hasTriggeredExtractMetadata.current = true;
     extractMetadataFetcher.submit({ intent: 'extract-metadata' }, { method: 'POST' });
-  }, [shouldExtractMetadata, extractedMetadata, extractMetadataFetcher.state, extractMetadataFetcher]);
+  }, [
+    shouldExtractMetadata,
+    extractedMetadata,
+    extractMetadataFetcher.state,
+    extractMetadataFetcher,
+  ]);
 
   useEffect(() => {
-    if (extractMetadataFetcher.state === 'idle' && extractMetadataFetcher.data?.error) {
-      ui.toastError(extractMetadataFetcher.data.error.message);
+    const data = extractMetadataFetcher.data as { error: { message: string } } | undefined;
+    if (extractMetadataFetcher.state === 'idle' && data?.error) {
+      ui.toastError(data.error.message);
     }
   }, [extractMetadataFetcher.state, extractMetadataFetcher.data]);
 

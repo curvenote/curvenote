@@ -12,6 +12,13 @@ import {
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
+import { data } from 'react-router';
+import { z } from 'zod';
+import { zfd } from 'zod-form-data';
+
+const extensionActionSchema = zfd.formData({
+  intent: zfd.text(z.string().min(1, 'Intent is required')),
+});
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppPlatformAdminContext(args, { redirectTo: '/app' });
@@ -34,9 +41,12 @@ export async function loader(args: Route.LoaderArgs) {
     for (const [id, config] of Object.entries(rawExtensions)) {
       if (!config || typeof config !== 'object') continue;
       const ext = serverExtensions.find((e) => e.id.toLowerCase() === id.toLowerCase());
+      const rawConfig = ext?.getExtensionConfiguration
+        ? await ext.getExtensionConfiguration(ctx)
+        : config;
       let safe: Record<string, unknown> | undefined;
-      if (ext?.getSafeAdminConfig) {
-        safe = ext.getSafeAdminConfig(config);
+      if (rawConfig != null && ext?.getSafeAdminConfig) {
+        safe = ext.getSafeAdminConfig(rawConfig);
       }
       extensionAdminConfigs[id] =
         safe !== undefined ? sanitizeExtensionAdminConfig(safe) : undefined;
@@ -44,6 +54,29 @@ export async function loader(args: Route.LoaderArgs) {
   }
 
   return { sites, extensionAdminConfigs };
+}
+
+export async function action(args: Route.ActionArgs) {
+  const ctx = await withAppPlatformAdminContext(args, { redirectTo: '/app' });
+
+  const formData = await args.request.formData();
+  const parsed = extensionActionSchema.safeParse(formData);
+  if (!parsed.success) {
+    const message =
+      parsed.error.issues.map((issue: { message: string }) => issue.message).join('; ') ||
+      'Invalid form data';
+    return data({ error: { type: 'general', message } }, { status: 400 });
+  }
+  const { intent } = parsed.data;
+
+  const actionHandlers = serverExtensions.flatMap(
+    (e) => e.getExtensionAdminActionHandlers?.() ?? [],
+  );
+  const actionHandler = actionHandlers.find((h) => h.name === intent);
+  if (actionHandler) {
+    return actionHandler.handler(ctx, formData);
+  }
+  return data({ error: { type: 'general', message: 'Unknown intent' } }, { status: 400 });
 }
 
 export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
@@ -65,13 +98,16 @@ export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
             return (
               <primitives.Card key={name} lift>
                 <div className="p-4">
-                  {safeConfig !== undefined && (
+                  {safeConfig !== undefined && !AdminCardComponent && (
                     <ExtensionAdminCardFallback
                       name={name}
                       extension={extension}
                       record={safeConfig}
                       ExtensionIcon={ExtensionIcon}
                     />
+                  )}
+                  {safeConfig !== undefined && AdminCardComponent && (
+                    <AdminCardComponent name={name} extension={extension} record={safeConfig} />
                   )}
                 </div>
               </primitives.Card>
