@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import { withAppContext, withContext, Context } from './context.server.js';
 import { dbGetSite, formatSiteDTO, type DBO as SiteDBO } from './loaders/sites/get.server.js';
 import { SiteRole, SystemRole } from '@curvenote/scms-db';
-import type { AllTrackEvent } from '@curvenote/scms-core';
+import type { AllTrackEvent, EventOptions } from '@curvenote/scms-core';
 import { hasSiteScope } from './roles.server.js';
 import { getUserScopesSet, userHasSiteScope } from './scopes.helpers.server.js';
 import { formatDate } from '@curvenote/common';
@@ -86,7 +86,11 @@ export class SiteContext extends Context {
    * @param event - The event name to track
    * @param properties - Additional properties to include with the event
    */
-  async trackEvent(event: AllTrackEvent, properties: Record<string, any> = {}): Promise<void> {
+  async trackEvent(
+    event: AllTrackEvent,
+    properties: Record<string, any> = {},
+    opts: EventOptions = {},
+  ): Promise<void> {
     const siteProperties = {
       siteId: this.site.id,
       siteName: this.site.name,
@@ -94,7 +98,7 @@ export class SiteContext extends Context {
       siteRestricted: this.site.restricted,
       ...properties,
     };
-    await super.trackEvent(event, siteProperties);
+    await super.trackEvent(event, siteProperties, opts);
   }
 }
 
