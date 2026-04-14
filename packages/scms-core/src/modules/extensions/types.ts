@@ -61,15 +61,15 @@ export interface ExtensionCheckStatusArgs {
   checkRunId: string;
 }
 
-/** Arguments for handleAction. Used from both upload flow (execute) and checks page (form intents). */
+/** Arguments for handleAction (upload `execute` and extension-owned action routes). */
 export interface ExtensionCheckHandleActionArgs {
   intent: string;
   workVersionId: string;
   /** Server extensions allowing this extension to interact with other extensions. */
   serverExtensions: ServerExtension[];
-  /** Form data when invoked from checks page. */
+  /** Form data for multi-field intents (e.g. refresh report URL). */
   formData?: FormData;
-  /** Work version metadata when invoked from checks page. */
+  /** Work version metadata when needed by an intent (e.g. upload integration). */
   metadata?: any; // WorkVersionMetadata & ChecksMetadataSection
   /** Context when invoked from upload flow (execute). Enables job creation. */
   ctx?: Context;
@@ -102,7 +102,7 @@ export type ExtensionCheckSectionActivityProps = {
   checkRunId?: string;
   workVersionId?: string;
   metadata: any;
-  /** POST target for extension `handleAction` intents (e.g. checks route action). */
+  /** POST target for check UI mutations (extension-owned route or legacy work checks path). */
   remoteStatusActionPath?: string;
   /**
    * When true, this check run is the most recently modified run for its `kind` on this work version
@@ -124,7 +124,7 @@ export type ExtensionCheckRunTimelineMountProps = {
   /** Check service id from the run row (e.g. `proofig`). */
   checkKind: string;
   metadata: unknown;
-  /** POST target for extension `handleAction` intents (e.g. `${basePath}/checks`). */
+  /** POST target for check UI mutations. */
   remoteStatusActionPath: string;
   /** See `ExtensionCheckSectionActivityProps.isLatestRunForKind`. */
   isLatestRunForKind?: boolean;
@@ -134,6 +134,11 @@ export interface ExtensionCheckService {
   id: string; // e.g., 'curvenote-structure'
   name: string; // Display name
   description: string; // Display description
+  /**
+   * App-absolute path for extension-owned check actions (e.g. `/app/extensions/proofig/actions`).
+   * When set, the platform uses this for `remoteStatusActionPath` on the checks page and work timeline.
+   */
+  checksActionPath?: string;
   // Client-side component to render on checks screen
   sectionHeaderComponent: React.ComponentType<{ tag: React.ReactNode }>;
   sectionActivityComponent: React.ComponentType<ExtensionCheckSectionActivityProps>;
@@ -151,7 +156,7 @@ export interface ExtensionCheckService {
    * letting extensions own full fetch/revalidate behaviour.
    */
   checkRunTimelineMountComponent?: React.ComponentType<ExtensionCheckRunTimelineMountProps>;
-  /** Server-side action handler. Used from upload flow (intent 'execute' + ctx + checkRunId + createJob) and checks page (intent + formData + metadata). */
+  /** Server-side action handler. Used from upload flow (intent `execute` + job enqueue). */
   handleAction?: (
     args: ExtensionCheckHandleActionArgs,
   ) => Promise<ExtensionCheckHandleActionResult>;

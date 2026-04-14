@@ -187,6 +187,11 @@ function buildTurboBuildTaskForExtensionPackage(packageRoot) {
     }
   }
   return {
+    // Package-scoped tasks from this file merge with the root `build` task. Without an explicit
+    // `dependsOn`, Turbo can resolve `dependsOn` to [] for extension packages, so their `tsc` runs
+    // in parallel with workspace deps (e.g. @curvenote/scms-core) still building — stale or empty
+    // `dist/*.d.ts` and bogus errors like "has no exported member" / `ui` as `{}`.
+    dependsOn: ['^build'],
     inputs,
     outputs: ['dist/**'],
   };

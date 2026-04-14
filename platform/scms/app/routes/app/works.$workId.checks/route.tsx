@@ -1,5 +1,4 @@
 import type { Route } from './+types/route';
-import { data } from 'react-router';
 import React from 'react';
 import {
   withSecureWorkContext,
@@ -25,7 +24,6 @@ import {
   type CheckServiceRunRow,
 } from '../works.$workId/db.server';
 import { extensions } from '../../../extensions/client';
-import { extensions as serverExtensions } from '../../../extensions/server';
 import { Tag } from './Tag';
 import { Timeline } from '../works.$workId.details/timeline/Timeline';
 import { TimelineSection } from '../works.$workId.details/timeline/TimelineSection';
@@ -97,62 +95,6 @@ export async function loader(args: Route.LoaderArgs) {
     previousVersionsWithRunsByService,
     latestVersionNumber,
   };
-}
-
-export async function action(args: Route.ActionArgs) {
-  const ctx = await withSecureWorkContext(args, [scopes.work.checks.dispatch]);
-
-  const formData = await args.request.formData();
-  const intent = formData.get('intent') as string;
-
-  if (!ctx.work.versions || ctx.work.versions.length === 0) {
-    return data({ error: { type: 'general', message: 'No work version found' } }, { status: 404 });
-  }
-
-  const nonDraftVersions = ctx.work.versions.filter((v) => !v.draft);
-  const latestVersion = nonDraftVersions[0];
-  if (!latestVersion) {
-    return data({ error: { type: 'general', message: 'No work version found' } }, { status: 404 });
-  }
-
-  // Get metadata
-  const metadata = (latestVersion.metadata ??
-    makeDefaultWorkVersionMetadata()) as WorkVersionMetadata &
-    FileMetadataSection &
-    ChecksMetadataSection;
-
-  // Try to route action to a check service handler
-  // Use server extensions here so we see server-only fields like handleAction/status.
-  const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, serverExtensions);
-  for (const service of checkServices) {
-    if (service.handleAction) {
-      // Check if this service handles this intent
-      if (intent.startsWith(service.id) || intent.includes(service.id)) {
-        try {
-          return await service.handleAction({
-            intent,
-            formData,
-            workVersionId: latestVersion.id,
-            metadata,
-            ctx,
-            serverExtensions,
-          });
-        } catch (error) {
-          return data(
-            {
-              error: {
-                type: 'general',
-                message: error instanceof Error ? error.message : 'Action handler failed',
-              },
-            },
-            { status: 500 },
-          );
-        }
-      }
-    }
-  }
-
-  return data({ error: { type: 'general', message: 'Unknown intent' } }, { status: 400 });
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {
@@ -233,9 +175,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                       workVersionId={workVersion.id}
                       checkRunId={existingRunFromThisService?.id}
                       remoteStatusActionPath={
-                        service.id === 'proofig'
-                          ? '/app/extensions/proofig/actions'
-                          : `${basePath}/checks`
+                        service.checksActionPath ?? `${basePath}/checks`
                       }
                     />
                   </ui.CardContent>

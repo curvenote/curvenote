@@ -31,16 +31,6 @@ export function WorkUploadChecksForm({ enabled, checkServices }: WorkUploadCheck
         checked={enabled.includes('curvenote-structure')}
         disabled={true}
       />
-
-      {/* Text Integrity check (not yet implemented as extension) */}
-      {/* <CheckOptionItem
-        intent="toggle-check"
-        name="ithenticate"
-        label="Text Integrity"
-        description="Identify potential plagiarism and originality issues."
-        checked={enabled.includes('ithenticate')}
-        disabled={true}
-      /> */}
     </div>
   );
 }
