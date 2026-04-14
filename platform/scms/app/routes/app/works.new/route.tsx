@@ -114,7 +114,7 @@ export default function NewWorkPage({ loaderData }: Route.ComponentProps) {
   }, [fetcher.state, fetcher.data, navigate]);
 
   const LoadingMessage = (
-    <div className="flex flex-col justify-center items-center min-h-[40vh] gap-6 text-center">
+    <div className="flex flex-col gap-6 justify-center items-center text-center">
       <LoadingSpinner size={40} color="text-blue-600" thickness={4} />
       <p className="text-lg font-medium text-foreground text-muted-foreground">Preparing</p>
       <p className="text-sm text-muted-foreground text-mono">
@@ -127,7 +127,9 @@ export default function NewWorkPage({ loaderData }: Route.ComponentProps) {
   if (!isReady) {
     return (
       <MainWrapper>
-        <PageFrame className="mx-auto max-w-3xl h-screen">{LoadingMessage}</PageFrame>
+        <PageFrame className="flex flex-col justify-center items-center mx-auto max-w-3xl h-screen">
+          {LoadingMessage}
+        </PageFrame>
       </MainWrapper>
     );
   }
