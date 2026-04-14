@@ -605,8 +605,26 @@ properties:
         description: Page configuration for customizing page titles and descriptions
         items:
           $ref: '#/$defs/PageConfig'
+      checks:
+        type: object
+        description: Shared checks / checks-relay integration (SCMS calls relay with Bearer relayApiKey)
+        additionalProperties: false
+        properties:
+          relayBaseUrl:
+            type: string
+            description: Base URL of checks-relay (no trailing slash), e.g. https://relay.example.com
+          relayApiKey:
+            type: string
+            secret: true
+            description: API key sent as Authorization Bearer when SCMS calls checks-relay /api/v1/services/*
+          textIntegrityServiceName:
+            type: string
+            description: Relay-registered plugin name for iThenticate / text integrity (default ithenticate)
+            default: ithenticate
       extensions:
         type: object
+        description: Per-extension configuration; unknown extension keys are allowed for forward compatibility
+        additionalProperties: true
         properties:
           sites:
             $ref: './ee/sites/extension.schema.yml'

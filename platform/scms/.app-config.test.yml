@@ -46,6 +46,8 @@ app:
   adminUrl: http://qwerty.com
   editorUrl: http://qwerty.com
   renderServiceUrl: 'http://qwerty.com'
+  checks:
+    relayBaseUrl: http://localhost:9999
   branding:
     title: Curvenote Platform
     showLoginLink: true
