@@ -103,9 +103,7 @@ export class AnthropicUploadClient {
   constructor(ctx: Context) {
     const key = ctx.$config.api?.anthropic?.apiKey;
     if (!key || typeof key !== 'string' || key.trim() === '') {
-      throw new Error(
-        'AnthropicUploadClient requires api.anthropic.apiKey to be set in config',
-      );
+      throw new Error('AnthropicUploadClient requires api.anthropic.apiKey to be set in config');
     }
     this.client = new Anthropic({ apiKey: key });
     this.model = DEFAULT_METADATA_MODEL;
@@ -147,10 +145,7 @@ export class AnthropicUploadClient {
    * Returns the raw API message; parse content for <json>...</json> to get structured metadata.
    */
   async fastFindMetadata(document: string): Promise<Anthropic.Message> {
-    const userContent = FAST_FIND_METADATA_USER_TEMPLATE.replace(
-      '{{DOCUMENT}}',
-      document,
-    );
+    const userContent = FAST_FIND_METADATA_USER_TEMPLATE.replace('{{DOCUMENT}}', document);
     return this.sendMessage({
       system: FAST_FIND_METADATA_SYSTEM,
       messages: [
@@ -167,9 +162,7 @@ export class AnthropicUploadClient {
  * Create an AnthropicUploadClient when api.anthropic.apiKey is set.
  * Returns null when the key is not configured so the upload flow can skip or fallback.
  */
-export function createAnthropicUploadClient(
-  ctx: Context,
-): AnthropicUploadClient | null {
+export function createAnthropicUploadClient(ctx: Context): AnthropicUploadClient | null {
   const key = ctx.$config.api?.anthropic?.apiKey;
   if (!key || typeof key !== 'string' || key.trim() === '') return null;
   return new AnthropicUploadClient(ctx);
@@ -179,18 +172,14 @@ export function createAnthropicUploadClient(
  * Helper to get the first text block from a message's content.
  */
 export function getMessageText(message: Anthropic.Message): string {
-  const block = message.content.find(
-    (b): b is Anthropic.TextBlock => b.type === 'text',
-  );
+  const block = message.content.find((b): b is Anthropic.TextBlock => b.type === 'text');
   return block?.text ?? '';
 }
 
 /**
  * Extract JSON from a message that contains <json>...</json> in its text.
  */
-export function extractJsonFromMessage(
-  message: Anthropic.Message,
-): string | null {
+export function extractJsonFromMessage(message: Anthropic.Message): string | null {
   const text = getMessageText(message);
   const match = text.match(/<json>([\s\S]*?)<\/json>/);
   return match ? match[1].trim() : null;
@@ -265,7 +254,13 @@ export async function extractMetadataFromPreviews(
     } catch (parseErr) {
       const err = parseErr as Error;
       console.error(LOG_PREFIX, 'JSON parse failed:', err.message);
-      console.warn(LOG_PREFIX, 'Raw JSON string length:', jsonStr.length, 'preview:', jsonStr.slice(0, 300));
+      console.warn(
+        LOG_PREFIX,
+        'Raw JSON string length:',
+        jsonStr.length,
+        'preview:',
+        jsonStr.slice(0, 300),
+      );
       return null;
     }
   } catch (err) {

@@ -3,6 +3,9 @@ import type { Route } from './+types/route';
 import type {
   WorkVersionCheckName,
   WorkVersionMetadata,
+  ChecksMetadataSection,
+} from '@curvenote/scms-server';
+import {
   withAppScopedContext,
   userHasScope,
   findWorkByVersion,
@@ -17,9 +20,6 @@ import type {
   workVersionCheckNameSchema,
   ChecksMetadataSchema,
   makeDefaultWorkVersionMetadata,
-  type ChecksMetadataSection,
-  type WorkVersionCheckName,
-  type WorkVersionMetadata,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
@@ -39,6 +39,7 @@ import {
   useDeploymentConfig,
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
+  LoadingSpinner,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -48,22 +49,16 @@ import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
 import { updateWorkVersionTitle, updateWorkVersionAuthors } from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
-import { data, redirect, Await, useFetcher, useRevalidator } from 'react-router';
+import { data, redirect, useFetcher, useRevalidator } from 'react-router';
 import { handleFetchPreviewsIntent } from './fetchPreviews.server';
-import {
-  handleFetchPreviewsIntent,
-  readDocxPreviewsFromObjectTable,
-  type DocxPreviewItem,
-} from './fetchPreviews.server';
+import { readDocxPreviewsFromObjectTable, type DocxPreviewItem } from './fetchPreviews.server';
 import { extractMetadataFromPreviews } from './anthropic.server';
-import type { ChecksMetadataSection } from './checks.schema';
 import type { ExtractedMetadata } from './anthropic.server';
-import { workVersionCheckNameSchema, checksMetadataSchema } from './checks.schema';
 import { Upload, CheckSquare, Eye } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { MetadataPreviewSection } from './MetadataPreviewSection';
-import { CaptureMetadataSection } from './CaptureMetadataSection';
+import { DocxPreviewer } from './DocxPreviewer';
+import { MetadataFormCard } from './MetadataFormCard';
 
 /**
  * Zod schema for work upload form validation

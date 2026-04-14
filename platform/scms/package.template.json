@@ -117,6 +117,7 @@
   },
   "packageManager": "npm@10.9.2",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@app-config/config": "^2.8.7",
     "@app-config/main": "^2.8.7",
     "@app-config/vite": "^2.8.7",
