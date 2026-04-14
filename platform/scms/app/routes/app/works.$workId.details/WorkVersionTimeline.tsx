@@ -100,7 +100,7 @@ function getSortedSectionEntries(
     })),
     ...checkRunsForVersion.map((run) => ({
       kind: 'check-service-run' as const,
-      date: run.date_modified,
+      date: run.date_created,
       key: `check-run-${run.id}`,
       run,
       version,
@@ -166,9 +166,9 @@ function WorkVersionTimelineInner({
   const canExport = userScopes.includes(scopes.app.works.export);
   const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
 
-  // Order sections by date_modified descending (most recently modified first)
-  const versionsByModified = [...versions].sort((a, b) =>
-    a.date_modified > b.date_modified ? -1 : a.date_modified < b.date_modified ? 1 : 0,
+  // Order sections by date_created descending (most recently created first)
+  const versionsByCreated = [...versions].sort((a, b) =>
+    a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
   );
 
   const versionsByCreatedAsc = [...versions].sort((a, b) =>
@@ -186,7 +186,7 @@ function WorkVersionTimelineInner({
       titleClassName="text-sm font-medium uppercase tracking-wide"
       headerAction={<TimelineActivitiesToggle />}
     >
-      {versionsByModified.map((v) => {
+      {versionsByCreated.map((v) => {
         const submissionVersionsToShow = includeDrafts
           ? v.submissionVersions
           : v.submissionVersions.filter((sv) => sv.status !== 'DRAFT');

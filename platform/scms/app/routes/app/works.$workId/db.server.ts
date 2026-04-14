@@ -23,7 +23,7 @@ export async function dbGetCheckServiceRunsByWorkVersionIds(
   const prisma = await getPrismaClient();
   const rows = await prisma.checkServiceRun.findMany({
     where: { work_version_id: { in: workVersionIds } },
-    orderBy: { date_modified: 'desc' },
+    orderBy: { date_created: 'desc' },
     select: {
       id: true,
       kind: true,
