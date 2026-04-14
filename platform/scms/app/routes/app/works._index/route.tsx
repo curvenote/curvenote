@@ -107,9 +107,7 @@ export async function action(args: Route.ActionArgs) {
 
         // Delete each draft work
         const deleteResults = await Promise.allSettled(
-          validDrafts.map((draft) =>
-            dangerouslyDeleteDraftWork(ctx, draft.workId, ctx.user.id),
-          ),
+          validDrafts.map((draft) => dangerouslyDeleteDraftWork(ctx, draft.workId, ctx.user.id)),
         );
 
         // Count successes and failures
