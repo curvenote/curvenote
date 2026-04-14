@@ -88,3 +88,13 @@ export const PRIVATE_CACHE_OPTIONS: VercelCacheOptionsPrivate = {
   private: true,
   maxAge: 60,
 };
+
+/**
+ * Public 404 responses (unknown work, junk path segments from scans).
+ * Lets the edge absorb repeat traffic without hitting the origin/DB.
+ */
+export const NOT_FOUND_PUBLIC_BURST: VercelCacheOptionsPublic = {
+  maxAge: 60,
+  sMaxAge: 300,
+  staleWhileRevalidate: 120,
+};
