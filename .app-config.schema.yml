@@ -521,6 +521,13 @@ properties:
                 type: boolean
                 description: Whether dashboard tasks are displayed
                 default: false
+              builtins:
+                type: array
+                description: >-
+                  Built-in dashboard task ids to enable (e.g. automated-checks). See @curvenote/scms-core BUILTIN_TASK_IDS.
+                items:
+                  type: string
+                  minLength: 1
               sections:
                 type: array
                 description: Ordered list of task sections and the categories each section should include

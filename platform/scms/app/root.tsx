@@ -409,6 +409,7 @@ export const loader = async (args: Route.LoaderArgs) => {
     'dashboard.welcome.videos.*.thumbnail',
     'dashboard.tasks',
     'dashboard.tasks.enabled',
+    'dashboard.tasks.builtins',
     'dashboard.tasks.sections',
     'dashboard.tasks.sections.*.title',
     'dashboard.tasks.sections.*.categories',
