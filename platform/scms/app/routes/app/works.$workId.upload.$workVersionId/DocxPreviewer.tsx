@@ -12,7 +12,7 @@ import { CodeXml, FileText, Search } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
 import type { DocxPreviewItem } from './fetchPreviews.server';
 
-/** First-page AST from server (no toText, no attachments in response) */
+/** First-page AST from server (type, metadata, content, attachments; no toText) */
 type PreviewAst = DocxPreviewItem['ast'];
 
 /** Document metadata for style resolution (formatting + styleMap) */
@@ -209,7 +209,7 @@ const PREVIEW_CONTENT_CLASS =
 function OfficeAstRenderer({ ast }: OfficeAstRendererProps): React.ReactElement {
   const content = ast.content ?? [];
   const grouped = groupContentNodes(content);
-  const attachments: OfficeAttachment[] = [];
+  const attachments: OfficeAttachment[] = ast.attachments ?? [];
   const docMeta = ast.metadata as DocMetadata | undefined;
 
   return (
@@ -267,8 +267,69 @@ function SingleFileView({
         ) : (
           <div style={{ whiteSpace: 'pre-wrap' }}>
             <OfficeAstRenderer ast={item.ast} />
+            <p className="text-xs text-muted-foreground text-center mt-4 pt-4 border-t border-stone-200 dark:border-stone-700">
+              ------ content truncated ------
+            </p>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+const ALL_FIGURES_TAB = 'all-figures';
+
+/** Collect all image attachments across previews with source file name */
+function collectAllFigures(previews: DocxPreviewItem[]): { attachment: OfficeAttachment; sourceName: string }[] {
+  const out: { attachment: OfficeAttachment; sourceName: string }[] = [];
+  for (const item of previews) {
+    const attachments = item.ast.attachments ?? [];
+    for (const att of attachments) {
+      if (att.type === 'image') {
+        out.push({ attachment: att, sourceName: item.data.name ?? item.path });
+      }
+    }
+  }
+  return out;
+}
+
+function AllFiguresView({ figures }: { figures: { attachment: OfficeAttachment; sourceName: string }[] }) {
+  if (figures.length === 0) {
+    return (
+      <div className={PREVIEW_CONTENT_CLASS}>
+        <p className="text-sm text-muted-foreground">No figures in documents.</p>
+      </div>
+    );
+  }
+  return (
+    <div className={PREVIEW_CONTENT_CLASS}>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {figures.map(({ attachment, sourceName }, i) => {
+          const src = attachment.data
+            ? `data:${attachment.mimeType};base64,${attachment.data}`
+            : undefined;
+          return (
+            <figure key={`${sourceName}-${attachment.name}-${i}`} className="flex flex-col gap-1">
+              <div className="aspect-square bg-stone-100 dark:bg-stone-800 rounded overflow-hidden flex items-center justify-center min-h-0">
+                {src ? (
+                  <img
+                    src={src}
+                    alt={attachment.altText ?? attachment.name ?? ''}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-xs text-muted-foreground">[No data]</span>
+                )}
+              </div>
+              <figcaption className="text-xs text-muted-foreground truncate" title={attachment.altText ?? attachment.name}>
+                {attachment.altText ?? attachment.name ?? 'Figure'}
+              </figcaption>
+              <p className="text-xs text-muted-foreground/80 truncate" title={sourceName}>
+                {sourceName}
+              </p>
+            </figure>
+          );
+        })}
       </div>
     </div>
   );
@@ -290,6 +351,7 @@ export const DocxPreviewer = ({ previews }: DocxPreviewerProps) => {
     );
   }
 
+  const allFigures = collectAllFigures(previews);
   const containerClass = 'rounded-md p-4 min-h-[100px] bg-white dark:bg-white';
 
   return (
@@ -305,6 +367,12 @@ export const DocxPreviewer = ({ previews }: DocxPreviewerProps) => {
               {item.data.name}
             </ui.TabsTrigger>
           ))}
+          <ui.TabsTrigger
+            value={ALL_FIGURES_TAB}
+            className="rounded-none border-b-2 border-stone-300 dark:border-stone-600 text-stone-500 dark:text-stone-400 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent shadow-none"
+          >
+            All Figures
+          </ui.TabsTrigger>
         </ui.TabsList>
         {previews.map((item, index) => (
           <ui.TabsContent key={item.path} value={String(index)} className="mt-4">
@@ -315,6 +383,9 @@ export const DocxPreviewer = ({ previews }: DocxPreviewerProps) => {
             />
           </ui.TabsContent>
         ))}
+        <ui.TabsContent value={ALL_FIGURES_TAB} className="mt-4">
+          <AllFiguresView figures={allFigures} />
+        </ui.TabsContent>
       </ui.Tabs>
     </div>
   );
