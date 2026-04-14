@@ -32,6 +32,9 @@ api:
     id: qwerty-123456-zxcvbn-987654
 app:
   renderServiceUrl: 'http://localhost:3000'
+  # checks:
+  #   relayBaseUrl: https://checks-relay.example.com
+  #   relayApiKey: <set in secrets file>
   navigation:
     defaultRoute: works
     items:

@@ -1,32 +1,16 @@
 import { data } from 'react-router';
 import { userHasScope, jobs, getPrismaClient, registerExtensionJobs } from '@curvenote/scms-server';
 import type { WorkContext } from '@curvenote/scms-server';
-import { scopes } from '@curvenote/scms-core';
+import { hasDocxInMetadata, scopes } from '@curvenote/scms-core';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 } from 'uuidv7';
 import { extensions } from '../../../extensions/server';
 
-const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
 export const ExportToPdfActionSchema = zfd.formData({
   intent: zfd.text(z.literal('export-to-pdf')),
   workVersionId: zfd.text(z.string().uuid()),
 });
-
-function hasDocxInMetadata(metadata: unknown): boolean {
-  if (!metadata || typeof metadata !== 'object') return false;
-  const meta = metadata as Record<string, unknown>;
-  const files = meta.files;
-  if (!files || typeof files !== 'object') return false;
-  const entries = Object.values(files) as Array<{ type?: string; name?: string; path?: string }>;
-  return entries.some(
-    (f) =>
-      f?.type === DOCX_MIME ||
-      (typeof f?.name === 'string' && f.name.toLowerCase().endsWith('.docx')) ||
-      (typeof f?.path === 'string' && f.path.toLowerCase().endsWith('.docx')),
-  );
-}
 
 export async function exportToPdfAction(ctx: WorkContext, formData: FormData) {
   const parsed = ExportToPdfActionSchema.safeParse(formData);

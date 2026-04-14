@@ -19,6 +19,7 @@ export * from './status.js';
 export * from './truncate.js';
 export * from './wildcard.js';
 export * from './formatZodError.js';
+export * from './workVersionMetadata.js';
 
 export const version = 'v1';
 
