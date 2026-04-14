@@ -39,7 +39,6 @@ import {
   useDeploymentConfig,
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
-  LoadingSpinner,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -54,11 +53,11 @@ import { handleFetchPreviewsIntent } from './fetchPreviews.server';
 import { readDocxPreviewsFromObjectTable, type DocxPreviewItem } from './fetchPreviews.server';
 import { extractMetadataFromPreviews } from './anthropic.server';
 import type { ExtractedMetadata } from './anthropic.server';
-import { Upload, CheckSquare, Eye } from 'lucide-react';
+import { Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { DocxPreviewer } from './DocxPreviewer';
-import { MetadataFormCard } from './MetadataFormCard';
+import { MetadataPreviewSection } from './MetadataPreviewSection';
+import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isDocxPreviewCandidate } from './docxPreviewGuards';
 
 /**
@@ -432,6 +431,21 @@ export async function action(args: Route.ActionArgs) {
             { status: 400 },
           );
         }
+        if (
+          !userHasScope(baseCtx.user, scopes.app.works.metadataPreview, undefined, {
+            ignoreSystemAdmin: true,
+          })
+        ) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'You do not have permission to generate document previews',
+              },
+            },
+            { status: 403 },
+          );
+        }
         const { previews } = await handleFetchPreviewsIntent(workVersionId, baseCtx);
         return data({ ok: true, previewsGenerated: previews.length });
       }
@@ -442,6 +456,21 @@ export async function action(args: Route.ActionArgs) {
           return data(
             { error: { type: 'general', message: 'Work version ID is required' } },
             { status: 400 },
+          );
+        }
+        if (
+          !userHasScope(baseCtx.user, scopes.app.works.metadataPreview, undefined, {
+            ignoreSystemAdmin: true,
+          })
+        ) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'You do not have permission to extract metadata from previews',
+              },
+            },
+            { status: 403 },
           );
         }
         const work = await findWorkByVersion(workVersionId);
@@ -570,7 +599,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     .map(([path]) => path);
   const previewPaths = new Set(previewList.map((p) => p.path));
   const missingPreviewPaths = docxFilePaths.filter((p) => !previewPaths.has(p));
-  const shouldFetchPreviews = docxFilePaths.length > 0 && missingPreviewPaths.length > 0;
+  const shouldFetchPreviews =
+    hasMetadataPreviewScope && docxFilePaths.length > 0 && missingPreviewPaths.length > 0;
 
   useEffect(() => {
     if (!shouldFetchPreviews) {
@@ -618,39 +648,22 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             loadedFileMetadata={metadata as any}
           />
         </SectionWithHeading>
-        <SectionWithHeading heading="Preview" icon={<Eye className="w-5 h-5" />}>
+        {hasMetadataPreviewScope ? (
           <React.Suspense
             fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}
           >
-            <ui.Card
-              className={
-                previewList.length > 0
-                  ? 'overflow-hidden p-0 min-h-0 flex flex-col'
-                  : 'overflow-hidden p-0 min-h-0 flex flex-col max-w-xl'
-              }
-            >
-              <div className="min-h-[200px] flex-1 flex flex-col p-4 relative">
-                {isPreviewsLoading && (
-                  <div
-                    className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-md bg-background/80 backdrop-blur-[1px]"
-                    aria-busy="true"
-                    aria-live="polite"
-                  >
-                    <LoadingSpinner size={32} />
-                    <p className="text-sm text-muted-foreground">{previewOverlayMessage}</p>
-                  </div>
-                )}
-                <DocxPreviewer previews={previewList} />
-              </div>
-            </ui.Card>
-            <MetadataFormCard
+            <MetadataPreviewSection
+              previewList={previewList}
+              isPreviewsLoading={isPreviewsLoading}
+              previewOverlayMessage={previewOverlayMessage}
               extractedMetadata={extractedMetadata}
               title={title}
               authors={authors}
-              hasPreviews={previewList.length > 0}
             />
           </React.Suspense>
-        </SectionWithHeading>
+        ) : (
+          <CaptureMetadataSection title={title} authors={authors} />
+        )}
         <SectionWithHeading
           heading="Select Checks to Run"
           icon={<CheckSquare className="w-5 h-5" />}
