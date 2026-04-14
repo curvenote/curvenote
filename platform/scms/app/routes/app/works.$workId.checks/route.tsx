@@ -178,14 +178,10 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
       }
     }
   }
-  console.log('deploymentConfig', deploymentConfig);
-  console.log('extensionsConfig', extensionsConfig);
-  console.log('extensions', extensions);
   const checkServices = getExtensionCheckServicesFromServerConfig(
     { app: { extensions: extensionsConfig } } as unknown as AppConfig,
     extensions,
   );
-  console.log('checkServices', checkServices);
 
   const tag = (
     <ui.TooltipProvider delayDuration={1000}>
