@@ -62,7 +62,7 @@ model CheckServiceRun {
   date_modified   String
   kind            String
   data            Json?
-  work_version    WorkVersion @relation(fields: [work_version_id], references: [id])
+  work_version    WorkVersion @relation(fields: [work_version_id], references: [id], onDelete: Cascade)
   work_version_id String
   occ             Int         @default(0)
   created_by      User?       @relation("CheckServiceRunCreator", fields: [created_by_id], references: [id])
