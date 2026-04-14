@@ -38,7 +38,7 @@ export function CheckItemLegend({ stats }: CheckItemLegendProps) {
       {stats.map((stat, index) => (
         <div
           key={index}
-          className={`flex-1 min-w-[140px] max-w-[200px] px-4 py-6 border-l-2 ${stat.borderColor}`}
+          className={`flex-1 min-w-[140px] max-w-[240px] px-4 py-6 border-l-2 ${stat.borderColor}`}
         >
           <div className={`text-5xl font-light ${stat.textColor}`}>{stat.value}</div>
           <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
