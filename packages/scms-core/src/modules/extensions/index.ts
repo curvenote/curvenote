@@ -1,4 +1,5 @@
 export * from './analytics.js';
+export * from './ExtensionAdminCard.js';
 export * from './checks.js';
 export * from './email-templates.js';
 export * from './icons.js';
