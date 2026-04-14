@@ -24,21 +24,19 @@ function normalizeRelayBaseUrl(url: string | undefined): string | null {
   return t.replace(/\/$/, '');
 }
 
-function parseServicesList(json: unknown): { name: string; supportedActions: string[] }[] {
+/** One entry per relay service; `data` is the raw object from the API for full-field inspection. */
+function parseServicesForDisplay(json: unknown): { name: string; data: unknown }[] {
   if (!Array.isArray(json)) return [];
-  return json
-    .filter(
-      (row): row is { name: string; supportedActions?: unknown } =>
-        row !== null &&
-        typeof row === 'object' &&
-        typeof (row as { name?: unknown }).name === 'string',
-    )
-    .map((row) => ({
-      name: row.name,
-      supportedActions: Array.isArray(row.supportedActions)
-        ? row.supportedActions.filter((a): a is string => typeof a === 'string')
-        : [],
-    }));
+  return json.map((row, i) => {
+    if (
+      row !== null &&
+      typeof row === 'object' &&
+      typeof (row as { name?: unknown }).name === 'string'
+    ) {
+      return { name: (row as { name: string }).name, data: row };
+    }
+    return { name: `Service ${i + 1}`, data: row };
+  });
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {
@@ -62,7 +60,7 @@ export async function loader(args: Route.LoaderArgs) {
 
 type ActionSuccess = {
   healthOk: true;
-  services: { name: string; supportedActions: string[] }[];
+  services: { name: string; data: unknown }[];
   listError?: string;
 };
 
@@ -152,7 +150,7 @@ export async function action(args: Route.ActionArgs): Promise<ActionSuccess | Ac
       return { error: 'List services returned a non-JSON response.' };
     }
 
-    return { healthOk: true, services: parseServicesList(servicesJson) };
+    return { healthOk: true, services: parseServicesForDisplay(servicesJson) };
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
     if (e instanceof Error && e.name === 'AbortError') {
@@ -273,28 +271,20 @@ export default function SystemServices({ loaderData }: Route.ComponentProps) {
         {result?.healthOk && result.services.length > 0 && (
           <div className="pt-6 mt-6 border-t">
             <h3 className="mb-3 text-sm font-medium">Registered services</h3>
-            <ul className="space-y-4">
-              {result.services.map((svc) => (
-                <li key={svc.name}>
-                  <div className="font-mono text-sm font-medium">{svc.name}</div>
-                  {svc.supportedActions.length > 0 ? (
-                    <ul className="mt-1 ml-4 text-sm list-disc text-muted-foreground">
-                      {svc.supportedActions.map((a) => (
-                        <li key={a} className="font-mono">
-                          {a}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-sm text-muted-foreground">No actions reported.</p>
-                  )}
+            <ul className="space-y-6">
+              {result.services.map((svc, i) => (
+                <li key={`${svc.name}-${i}`}>
+                  <div className="mb-2 font-mono text-sm font-medium">{svc.name}</div>
+                  <pre className="max-h-[32rem] overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs leading-relaxed">
+                    {JSON.stringify(svc.data, null, 2)}
+                  </pre>
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        {result?.healthOk && result.services.length === 0 && (
+        {result?.healthOk && result.services.length === 0 && !result.listError && (
           <p className="pt-6 mt-6 text-sm border-t text-muted-foreground">
             Health check passed; the relay returned an empty service list.
           </p>

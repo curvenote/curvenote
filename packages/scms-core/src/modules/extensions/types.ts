@@ -85,7 +85,11 @@ export interface ExtensionCheckHandleActionArgs {
 /** Result of handleAction: success with optional status, or error (message string or object with type/message). */
 export type ExtensionCheckHandleActionResult = {
   success?: boolean;
-  error?: { type: string; message: string; status?: number };
+  error?: {
+    type: string;
+    message: string;
+    status?: number;
+  };
   status?: number;
 };
 
