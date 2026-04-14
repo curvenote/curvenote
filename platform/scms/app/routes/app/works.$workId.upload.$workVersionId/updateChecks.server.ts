@@ -49,10 +49,11 @@ export async function toggleWorkVersionCheck(
         updatedChecks = currentChecks.filter((check) => check !== checkName);
       }
 
-      // Build the updated checks object, preserving existing status objects
+      // Build the updated checks object, preserving existing status objects (spread order matters:
+      // `enabled` must come last or the stale `enabled` from currentChecksObject wins).
       const updatedChecksObject: Record<string, any> = {
-        enabled: updatedChecks,
         ...(currentChecksObject || {}),
+        enabled: updatedChecks,
       };
 
       // Validate the updated checks metadata using the schema
