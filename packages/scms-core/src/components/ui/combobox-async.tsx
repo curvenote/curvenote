@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react';
+
 import { cn } from '../../utils/cn.js';
 import { Button } from './button.js';
 import {
@@ -213,13 +214,19 @@ export function AsyncComboBox({
     onSearchChange?.(newValue);
   };
 
+  const focusAfterClose = React.useCallback(() => {
+    if (triggerMode === 'inline') {
+      inputRef.current?.focus();
+    } else {
+      triggerRef.current?.focus();
+    }
+  }, [triggerMode]);
+
   const handleSelect = (optionValue: string) => {
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
     }
-    // Blur the command input immediately so it loses focus before the popover closes
-    inputRef.current?.blur();
     const option = displayOptions.find((opt) => opt.value === optionValue);
     if (option) {
       onValueChange(optionValue);
@@ -256,10 +263,7 @@ export function AsyncComboBox({
     onErrorClear?.();
     setOpen(false);
     setSearchValue('');
-    requestAnimationFrame(() => {
-      if (triggerMode === 'inline') inputRef.current?.blur();
-      else triggerRef.current?.blur();
-    });
+    requestAnimationFrame(() => focusAfterClose());
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -409,11 +413,10 @@ export function AsyncComboBox({
                       onSelect={handleSelect}
                       role="option"
                       aria-selected={value === option.value}
-                      className="flex gap-2 items-center"
                     >
                       <Check
                         className={cn(
-                          'h-4 w-4 shrink-0',
+                          'mr-2 h-4 w-4',
                           value === option.value ? 'opacity-100 text-green-600' : 'opacity-0',
                         )}
                       />
@@ -548,11 +551,10 @@ export function AsyncComboBox({
                       onSelect={handleSelect}
                       role="option"
                       aria-selected={value === option.value}
-                      className="flex gap-2 items-center"
                     >
                       <Check
                         className={cn(
-                          'h-4 w-4 shrink-0',
+                          'mr-2 h-4 w-4',
                           value === option.value ? 'opacity-100 text-green-600' : 'opacity-0',
                         )}
                       />
