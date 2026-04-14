@@ -31,14 +31,14 @@ export function DateWithPopover({
     dateCreated != null && dateCreated !== '' && dateModified != null && dateModified !== '';
 
   const tooltipBody = hasCreatedModified ? (
-    <div className="flex flex-col gap-1 tabular-nums text-left">
+    <div className="flex flex-col gap-1 tabular-nums text-left text-popover-foreground">
       <div>
         <span className="text-muted-foreground">Created</span>{' '}
-        <span className="text-foreground">{formatFull(dateCreated)}</span>
+        <span>{formatFull(dateCreated)}</span>
       </div>
       <div>
         <span className="text-muted-foreground">Modified</span>{' '}
-        <span className="text-foreground">{formatFull(dateModified)}</span>
+        <span>{formatFull(dateModified)}</span>
       </div>
     </div>
   ) : (
