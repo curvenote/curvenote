@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFetcher } from 'react-router';
 import { Check } from 'lucide-react';
-import { ui } from '@curvenote/scms-core';
+import { cn, ui } from '@curvenote/scms-core';
 import type { Route } from './+types/route';
 import { useInlineSave } from './useInlineSave';
 
@@ -24,6 +24,13 @@ export function WorkTitleForm({
   useEffect(() => {
     setTitle(initialTitle || '');
   }, [initialTitle]);
+
+  // Show toast when action returns an error
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data && 'error' in fetcher.data) {
+      ui.toastError((fetcher.data as { error: { message: string } }).error.message);
+    }
+  }, [fetcher.state, fetcher.data]);
 
   // Trigger save function
   const triggerSave = useCallback(() => {
@@ -60,16 +67,16 @@ export function WorkTitleForm({
             onBlur={handleBlur}
             placeholder={placeholder}
             disabled={disabled}
-            className={saveState !== 'idle' ? 'pr-20' : ''}
+            className={cn(saveState !== 'idle' ? 'pr-20' : '', 'resize-none')}
             rows={3}
           />
           {saveState === 'saving' && (
-            <div className="absolute right-3 top-3 pointer-events-none">
+            <div className="absolute right-3 bottom-3 pointer-events-none">
               <p className="text-xs text-muted-foreground">Saving...</p>
             </div>
           )}
           {saveState === 'saved' && (
-            <div className="absolute right-3 top-3 pointer-events-none">
+            <div className="absolute right-3 bottom-3 pointer-events-none">
               <Check className="w-4 h-4 text-green-600" />
             </div>
           )}

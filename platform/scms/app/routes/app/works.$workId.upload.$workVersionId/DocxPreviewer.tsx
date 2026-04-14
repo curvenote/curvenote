@@ -267,13 +267,16 @@ function SingleFileView({
         ) : (
           <div className="relative overflow-hidden" style={{ whiteSpace: 'pre-wrap' }}>
             <OfficeAstRenderer ast={item.ast} />
-            <div
-              className="absolute bottom-0 left-0 right-0 h-[50px] pointer-events-none"
-              style={{
-                background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1))',
-              }}
-              aria-hidden
-            />
+            {item.ast.wasTruncated === true && (
+              <div
+                className="absolute bottom-0 left-0 right-0 h-[100px] pointer-events-none"
+                style={{
+                  background:
+                    'linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.7) 40%, rgba(255, 255, 255, 1) 70%)',
+                }}
+                aria-hidden
+              />
+            )}
           </div>
         )}
       </div>
