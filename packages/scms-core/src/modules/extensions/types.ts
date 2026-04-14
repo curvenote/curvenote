@@ -89,15 +89,26 @@ export type ExtensionCheckHandleActionResult = {
   status?: number;
 };
 
+/**
+ * Props the platform passes to `ExtensionCheckService.sectionActivityComponent`.
+ * `metadata` is extension-defined (typically derived from check run `serviceData` / work checks state).
+ * Optional fields support fetcher-based flows (e.g. manual status refresh) that need routing context.
+ */
+export type ExtensionCheckSectionActivityProps = {
+  checkRunId?: string;
+  workVersionId?: string;
+  metadata: any;
+  /** POST target for extension `handleAction` intents (e.g. checks route action). */
+  remoteStatusActionPath?: string;
+};
+
 export interface ExtensionCheckService {
   id: string; // e.g., 'curvenote-structure'
   name: string; // Display name
   description: string; // Display description
   // Client-side component to render on checks screen
   sectionHeaderComponent: React.ComponentType<{ tag: React.ReactNode }>;
-  sectionActivityComponent: React.ComponentType<{
-    metadata: any; // WorkVersionMetadata & ChecksMetadataSection
-  }>;
+  sectionActivityComponent: React.ComponentType<ExtensionCheckSectionActivityProps>;
   /** Optional summary badge for timeline (e.g. "All clear", "2 problems", "Awaiting review"). Same metadata as sectionActivityComponent. */
   sectionSummaryBadgeComponent?: React.ComponentType<{ metadata: any }>;
   /** Server-side action handler. Used from upload flow (intent 'execute' + ctx + checkRunId + createJob) and checks page (intent + formData + metadata). */

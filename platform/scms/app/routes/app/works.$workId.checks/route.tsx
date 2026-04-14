@@ -208,9 +208,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
       <div className="mt-4 space-y-6">
         {checkServices.map((service) => {
           const HeaderComponent = service.sectionHeaderComponent;
-          const ActivityComponent = service.sectionActivityComponent as React.ComponentType<{
-            metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
-          }>;
+          const ActivityComponent = service.sectionActivityComponent;
 
           const existingRunFromThisService = checkServiceRuns.find(
             (run) => run.kind === service.id,
@@ -236,6 +234,9 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                           FileMetadataSection &
                           ChecksMetadataSection
                       }
+                      workVersionId={workVersion.id}
+                      checkRunId={existingRunFromThisService?.id}
+                      remoteStatusActionPath={`${basePath}/checks`}
                     />
                   </ui.CardContent>
                 </ui.Card>

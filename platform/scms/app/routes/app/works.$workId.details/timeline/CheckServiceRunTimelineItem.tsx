@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router';
 import { ShieldCheck } from 'lucide-react';
 import { TimelineItemExpandable, TimelineItemPill } from './TimelineItem';
@@ -31,12 +30,11 @@ export function CheckServiceRunTimelineItem({
 }: CheckServiceRunTimelineItemProps) {
   const date = <DateWithPopover date={run.date_modified} />;
   const serviceData = serviceDataFromRun(run);
+  const checksActionPath = `${basePath}/checks`;
 
   if (checkService) {
     const message = <>{checkService.name} checks</>;
-    const ActivityComponent = checkService.sectionActivityComponent as React.ComponentType<{
-      metadata: unknown;
-    }>;
+    const ActivityComponent = checkService.sectionActivityComponent;
     const SummaryBadgeComponent = checkService.sectionSummaryBadgeComponent;
 
     const pill =
@@ -44,7 +42,12 @@ export function CheckServiceRunTimelineItem({
 
     const tray = (
       <div className="flex flex-col gap-3">
-        <ActivityComponent metadata={serviceData} />
+        <ActivityComponent
+          metadata={serviceData}
+          workVersionId={run.work_version_id}
+          checkRunId={run.id}
+          remoteStatusActionPath={checksActionPath}
+        />
       </div>
     );
 
