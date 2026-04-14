@@ -63,7 +63,7 @@ export function WorkDetailsTopBar({
   }>();
 
   const resumeDraft = canResumeDraft(canUpload, latestVersion);
-  const uploadButtonLabel = resumeDraft ? 'Resume Draft Version' : 'Upload New Version';
+  const uploadButtonLabel = resumeDraft ? 'Resume Draft Version' : 'Create new version';
 
   const handleUploadAction = () => {
     if (!canUpload) return;

@@ -330,7 +330,9 @@ export function ResumeDraftWorkDialog<T extends DraftWork>({
 
   const handleCreateNew = () => {
     onCreateNew();
-    onClose();
+    // Do not call onClose() here: the parent typically submits create-new-draft and
+    // navigates to the upload route on success; closing would navigate away (e.g. to
+    // My Works) before the response arrives.
   };
 
   const handleDeleteAll = () => {

@@ -1,12 +1,12 @@
-# Upload Work and Upload New Version – Flows and code reference
+# New Work and Create new version – Flows and code reference
 
 This document describes the two entry flows for starting or resuming file uploads: **Upload Work** (from the My Works listing) and **Upload New Version** (from a work’s details page). Both flows share the same resume-draft UX (check for existing drafts, show dialog or create new, then redirect to the upload form).
 
 **Contents**
 
 - [Overview](#overview)
-- [Upload Work (My Works)](#upload-work-my-works)
-- [Upload New Version (Work Details)](#upload-new-version-work-details)
+- [New Work (My Works or Dashboard)](#new-work-my-works-or-dashboard)
+- [Create new version (Work Details)](#create-new-version-work-details)
 - [Code locations reference](#code-locations-reference)
 
 ---
@@ -29,78 +29,69 @@ The upload form itself is the same for both: [`works.$workId.upload.$workVersion
 
 ---
 
-## Upload Work (My Works)
+## New Work (My Works or Dashboard)
 
-User is on **My Works** (`/app/works`). They click **Upload Work**. The app checks for any existing **draft works** (whole works that are draft-only and valid for reuse). If any exist, a resume dialog is shown; otherwise a new draft work is created and the user is sent to its upload page.
+User is on **My Works** (`/app/works`) or the **Dashboard**. They click **Create new work** (My Works) or a task that starts new work (e.g. "Run Image Integrity Checks"). The app navigates to **`/app/works/new`** ([works.new](../app/routes/app/works.new/route.tsx)). That route’s loader fetches valid draft works via a shared helper. If drafts exist, the page shows **ResumeDraftWorkDialog**; if not, it submits `create-new-draft` to `/app/works` and shows "Creating new work…", then redirects to the upload route.
 
-### Sequence diagram (Upload Work)
+### Sequence diagram (New Work)
 
 ```mermaid
 sequenceDiagram
   participant User
-  participant MyWorks as My Works page
-  participant Action as works._index action
-  participant DB as db.server / dbFindDraftFileWorksForUser
-  participant Server as scms-server dbCreateDraftFileWork
-  participant Dialog as ResumeDraftWorkDialog
+  participant Entry as My Works or Dashboard
+  participant NewRoute as works.new
+  participant Loader as getValidDraftWorksForUser
+  participant Action as POST /app/works
   participant Upload as Upload route
 
-  User->>MyWorks: Click "Upload Work"
-  MyWorks->>Action: POST intent=get-drafts
-  Action->>DB: dbFindDraftFileWorksForUser(userId)
-  DB-->>Action: draft works (filter: valid for reuse)
-  Action-->>MyWorks: { drafts: [...] }
+  User->>Entry: Click "Create new work" or task
+  Entry->>NewRoute: navigate(/app/works/new)
+  NewRoute->>Loader: loader: get drafts
+  Loader-->>NewRoute: drafts, canUpload
 
   alt drafts.length > 0
-    MyWorks->>Dialog: Open dialog (drafts list)
-    User->>Dialog: Choose "Resume" or "Create New" or delete
+    NewRoute->>User: Show ResumeDraftWorkDialog
+    User->>NewRoute: Resume or Create New or delete
     alt User: Resume
-      Dialog->>MyWorks: onResume(draft)
-      MyWorks->>Upload: navigate(/app/works/:workId/upload/:workVersionId)
+      NewRoute->>Upload: navigate(/app/works/:workId/upload/:workVersionId)
     else User: Create New
-      Dialog->>MyWorks: onCreateNew()
-      MyWorks->>Action: POST intent=create-new-draft
-      Action->>Server: dbCreateDraftFileWork(ctx, 'my-works')
-      Server-->>Action: { workId, workVersionId }
-      Action-->>MyWorks: { success, workId, workVersionId }
-      MyWorks->>Upload: navigate(/app/works/:workId/upload/:workVersionId)
+      NewRoute->>Action: POST intent=create-new-draft
+      Action-->>NewRoute: { workId, workVersionId }
+      NewRoute->>Upload: navigate(upload URL)
     end
   else drafts.length === 0
-    MyWorks->>Action: POST intent=create-new-draft
-    Action->>Server: dbCreateDraftFileWork(ctx, 'my-works')
-    Server-->>Action: { workId, workVersionId }
-    Action-->>MyWorks: { success, workId, workVersionId }
-    MyWorks->>Upload: navigate(/app/works/:workId/upload/:workVersionId)
+    NewRoute->>Action: POST intent=create-new-draft
+    NewRoute->>User: Show "Creating new work…"
+    Action-->>NewRoute: { workId, workVersionId }
+    NewRoute->>Upload: navigate(upload URL)
   end
 ```
 
-### Flow summary (My Works)
+### Flow summary (New Work)
 
-1. **Button click**  
-   [`handleUploadClick`](../app/routes/app/works._index/route.tsx) submits `intent: 'get-drafts'` to the My Works action.
+1. **Entry**  
+   My Works **"Create new work"** button or dashboard task navigates to `/app/works/new`. No dialog or fetcher logic on My Works; the [works.new](../app/routes/app/works.new/route.tsx) route owns the flow.
 
-2. **Check for drafts**  
-   Action handles `get-drafts`: calls [`dbFindDraftFileWorksForUser`](../app/routes/app/works._index/db.server.ts), then filters with [`isValidDraftForReuse`](../app/routes/app/works._index/route.tsx) (single version, `checks` in metadata). Returns `{ drafts }` to the client.
+2. **Loader**  
+   [works.new loader](../app/routes/app/works.new/route.tsx) requires `app.works.upload`; calls [`getValidDraftWorksForUser`](../app/routes/app/works._index/getDrafts.server.ts) (uses `dbFindDraftFileWorksForUser` + `isValidDraftForReuse`). Returns `{ drafts, canUpload }`.
 
-3. **Client response**  
-   In [`useEffect`](../app/routes/app/works._index/route.tsx): if `drafts.length > 0` → open [`ResumeDraftWorkDialog`](../../../packages/scms-core/src/components/ui/dialogs/ResumeDraftWorkDialog.tsx); else call `handleCreateNew()`.
+3. **Component**  
+   If `drafts.length > 0`: render [ResumeDraftWorkDialog](../../../packages/scms-core/src/components/ui/dialogs/ResumeDraftWorkDialog.tsx) (fetch/delete post to `/app/works`). On resume → navigate to upload URL. On create new → submit `create-new-draft`, then navigate on success.  
+   If no drafts: submit `create-new-draft` on mount, show centered "Creating new work…", then navigate when response returns.
 
 4. **Create new work**  
-   `handleCreateNew` submits `intent: 'create-new-draft'`. Action calls [`dbCreateDraftFileWork`](../../../packages/scms-server/src/backend/db.server.ts) (which uses [`dbCreateDraftWork`](../../../packages/scms-server/src/backend/db.server.ts)). Response includes `workId` and `workVersionId`.
+   `create-new-draft` is handled by [works._index action](../app/routes/app/works._index/route.tsx) (`POST /app/works`). It calls [`dbCreateDraftFileWork`](../../../packages/scms-server/src/backend/db.server.ts). Response includes `workId` and `workVersionId`.
 
-5. **Redirect**  
-   On success, another [`useEffect`](../app/routes/app/works._index/route.tsx) runs and navigates to `/app/works/:workId/upload/:workVersionId` (or user resumes a draft and navigates to the same pattern).
-
-6. **Activity**  
+5. **Activity**  
    `dbCreateDraftWork` creates one activity with `ActivityType.NEW_WORK` in the same transaction as the work and first version.
 
 ---
 
-## Upload New Version (Work Details)
+## Create new version (Work Details)
 
-User is on a **work’s details page** (`/app/works/:workId/details`). They click **Upload New Version**. The app checks whether the **latest version of this work** is already a draft (and valid for reuse). If yes, the resume dialog is shown; otherwise a new draft version is created and the user is sent to its upload page.
+User is on a **work’s details page** (`/app/works/:workId/details`). They click **Create new version**. The app checks whether the **latest version of this work** is already a draft (and valid for reuse). If yes, the resume dialog is shown; otherwise a new draft version is created and the user is sent to its upload page.
 
-### Sequence diagram (Upload New Version)
+### Sequence diagram (Create new version)
 
 ```mermaid
 sequenceDiagram
@@ -112,7 +103,7 @@ sequenceDiagram
   participant Dialog as ResumeDraftWorkDialog
   participant Upload as Upload route
 
-  User->>Details: Click "Upload New Version"
+  User->>Details: Click "Create new version"
   Details->>Action: POST intent=get-drafts-for-work
   Action->>DB: dbGetWorkVersionsWithSubmissionVersions(workId)
   DB-->>Action: versions (newest first)
@@ -125,7 +116,7 @@ sequenceDiagram
     alt User: Resume
       Dialog->>Details: onResume(draft)
       Details->>Upload: navigate(.../upload/:workVersionId)
-    else User: Upload New Version
+    else User: Create new version
       Dialog->>Details: onCreateNew()
       Details->>Action: POST intent=create-new-version
       Action->>Server: dbCreateDraftWorkVersion(ctx, workId, 'work-details')
@@ -171,19 +162,26 @@ sequenceDiagram
 
 Paths are relative to the repository root.
 
-### My Works (Upload Work)
+### New Work (entry: /app/works/new)
 
 | Purpose | Location |
 |--------|----------|
-| My Works page, Upload button, action intents, resume dialog wiring | [works._index/route.tsx](../app/routes/app/works._index/route.tsx) |
-| Fetch draft works for user; delete draft work | [works._index/db.server.ts](../app/routes/app/works._index/db.server.ts) |
+| New Work route: loader (drafts), dialog or "Creating new work…" then redirect | [works.new/route.tsx](../app/routes/app/works.new/route.tsx) |
+| Shared get-drafts helper (valid draft works for user) | [works._index/getDrafts.server.ts](../app/routes/app/works._index/getDrafts.server.ts) |
+
+### My Works (Create new work button)
+
+| Purpose | Location |
+|--------|----------|
+| My Works page, "Create new work" button (navigates to /app/works/new), action intents | [works._index/route.tsx](../app/routes/app/works._index/route.tsx) |
+| Fetch works list; delete draft work | [works._index/db.server.ts](../app/routes/app/works._index/db.server.ts) |
 | Create new draft work + first version; create draft file work (with checks) | [scms-server db.server.ts](../../../packages/scms-server/src/backend/db.server.ts) (`dbCreateDraftWork`, `dbCreateDraftFileWork`) |
 
-### Work Details (Upload New Version)
+### Work Details (Create new version)
 
 | Purpose | Location |
 |--------|----------|
-| Work details page, Upload New Version button, resume dialog wiring | [works.$workId.details/route.tsx](../app/routes/app/works.$workId.details/route.tsx) |
+| Work details page, "Create new version" button, resume dialog wiring | [works.$workId.details/route.tsx](../app/routes/app/works.$workId.details/route.tsx) |
 | Work route action: get-drafts-for-work, create-new-version, delete-draft | [works.$workId/route.tsx](../app/routes/app/works.$workId/route.tsx) |
 | Get versions for work; delete draft version on work | [works.$workId/db.server.ts](../app/routes/app/works.$workId/db.server.ts) |
 | Create new draft version on existing work | [scms-server db.server.ts](../../../packages/scms-server/src/backend/db.server.ts) (`dbCreateDraftWorkVersion`) |
