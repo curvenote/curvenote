@@ -1,5 +1,4 @@
 import type { Route } from './+types/route';
-import { data } from 'react-router';
 import React from 'react';
 import {
   withSecureWorkContext,
@@ -25,7 +24,6 @@ import {
   type CheckServiceRunRow,
 } from '../works.$workId/db.server';
 import { extensions } from '../../../extensions/client';
-import { extensions as serverExtensions } from '../../../extensions/server';
 import { Tag } from './Tag';
 import { Timeline } from '../works.$workId.details/timeline/Timeline';
 import { TimelineSection } from '../works.$workId.details/timeline/TimelineSection';
@@ -99,62 +97,6 @@ export async function loader(args: Route.LoaderArgs) {
   };
 }
 
-export async function action(args: Route.ActionArgs) {
-  const ctx = await withSecureWorkContext(args, [scopes.work.checks.dispatch]);
-
-  const formData = await args.request.formData();
-  const intent = formData.get('intent') as string;
-
-  if (!ctx.work.versions || ctx.work.versions.length === 0) {
-    return data({ error: { type: 'general', message: 'No work version found' } }, { status: 404 });
-  }
-
-  const nonDraftVersions = ctx.work.versions.filter((v) => !v.draft);
-  const latestVersion = nonDraftVersions[0];
-  if (!latestVersion) {
-    return data({ error: { type: 'general', message: 'No work version found' } }, { status: 404 });
-  }
-
-  // Get metadata
-  const metadata = (latestVersion.metadata ??
-    makeDefaultWorkVersionMetadata()) as WorkVersionMetadata &
-    FileMetadataSection &
-    ChecksMetadataSection;
-
-  // Try to route action to a check service handler
-  // Use server extensions here so we see server-only fields like handleAction/status.
-  const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, serverExtensions);
-  for (const service of checkServices) {
-    if (service.handleAction) {
-      // Check if this service handles this intent
-      if (intent.startsWith(service.id) || intent.includes(service.id)) {
-        try {
-          return await service.handleAction({
-            intent,
-            formData,
-            workVersionId: latestVersion.id,
-            metadata,
-            ctx,
-            serverExtensions,
-          });
-        } catch (error) {
-          return data(
-            {
-              error: {
-                type: 'general',
-                message: error instanceof Error ? error.message : 'Action handler failed',
-              },
-            },
-            { status: 500 },
-          );
-        }
-      }
-    }
-  }
-
-  return data({ error: { type: 'general', message: 'Unknown intent' } }, { status: 400 });
-}
-
 export const meta: Route.MetaFunction = ({ matches }) => {
   const branding = getBrandingFromMetaMatches(matches);
   return [{ title: joinPageTitle('Check My Work', branding.title) }];
@@ -188,7 +130,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
       <ui.Tooltip delayDuration={1000}>
         <ui.TooltipTrigger asChild>
           <span className="inline-block cursor-default">
-            <Tag tag={`v${latestVersionNumber} (latest)`} />
+            <Tag tag={`v${latestVersionNumber}`} />
           </span>
         </ui.TooltipTrigger>
         <ui.TooltipContent side="top" className="text-sm">
@@ -204,9 +146,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
       <div className="mt-4 space-y-6">
         {checkServices.map((service) => {
           const HeaderComponent = service.sectionHeaderComponent;
-          const ActivityComponent = service.sectionActivityComponent as React.ComponentType<{
-            metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
-          }>;
+          const ActivityComponent = service.sectionActivityComponent;
 
           const existingRunFromThisService = checkServiceRuns.find(
             (run) => run.kind === service.id,
@@ -231,6 +171,11 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                         serviceMetadata as WorkVersionMetadata &
                           FileMetadataSection &
                           ChecksMetadataSection
+                      }
+                      workVersionId={workVersion.id}
+                      checkRunId={existingRunFromThisService?.id}
+                      remoteStatusActionPath={
+                        service.checksActionPath ?? `${basePath}/checks`
                       }
                     />
                   </ui.CardContent>

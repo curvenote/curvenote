@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router';
 import { ShieldCheck } from 'lucide-react';
 import { TimelineItemExpandable, TimelineItemPill } from './TimelineItem';
@@ -11,6 +10,8 @@ type CheckServiceRunTimelineItemProps = {
   /** When no matching extension is registered, show a generic fallback (no extension UI). */
   checkService: ClientExtensionCheckService | null;
   basePath: string;
+  /** True when this run is the latest for its `kind` on this work version (work details timeline). */
+  isLatestRunForKind?: boolean;
 };
 
 const serviceDataFromRun = (run: CheckServiceRunRow): unknown =>
@@ -21,42 +22,84 @@ const serviceDataFromRun = (run: CheckServiceRunRow): unknown =>
 /**
  * Timeline item for a check service run (database-driven). When a matching check
  * extension exists, the tray and pill are implemented by the extension's
- * sectionActivityComponent and sectionSummaryBadgeComponent. When no matching
- * service is found, a generic fallback row and tray are shown.
+ * sectionActivityComponent and sectionSummaryBadgeComponent; an optional
+ * sectionSummaryTitleComponent replaces the default name segment before the word “checks” on the same line.
+ * When no matching service is found, a generic fallback row and tray are shown.
  */
 export function CheckServiceRunTimelineItem({
   run,
   checkService,
   basePath,
+  isLatestRunForKind,
 }: CheckServiceRunTimelineItemProps) {
-  const date = <DateWithPopover date={run.date_modified} />;
+  const date = (
+    <DateWithPopover
+      date={run.date_modified}
+      dateCreated={run.date_created}
+      dateModified={run.date_modified}
+    />
+  );
   const serviceData = serviceDataFromRun(run);
+  const checksActionPath = checkService?.checksActionPath ?? `${basePath}/checks`;
 
   if (checkService) {
-    const message = <>{checkService.name} checks</>;
-    const ActivityComponent = checkService.sectionActivityComponent as React.ComponentType<{
-      metadata: unknown;
-    }>;
+    const SummaryTitleComponent = checkService.sectionSummaryTitleComponent;
+    const message = (
+      <span className="inline-flex flex-nowrap gap-2 items-center min-w-0 max-w-full h-7">
+        <span className="flex h-full min-w-0 shrink items-center overflow-hidden [&_img]:max-h-full [&_img]:w-auto [&_img]:object-contain [&_img]:object-left [&_span]:max-h-full [&_svg]:max-h-full [&_svg]:w-auto">
+          {SummaryTitleComponent != null ? (
+            <SummaryTitleComponent metadata={serviceData} />
+          ) : (
+            <span className="leading-none truncate">{checkService.name}</span>
+          )}
+        </span>
+      </span>
+    );
+    const ActivityComponent = checkService.sectionActivityComponent;
     const SummaryBadgeComponent = checkService.sectionSummaryBadgeComponent;
+    const MountComponent = checkService.checkRunTimelineMountComponent;
 
     const pill =
       SummaryBadgeComponent != null ? <SummaryBadgeComponent metadata={serviceData} /> : null;
 
     const tray = (
       <div className="flex flex-col gap-3">
-        <ActivityComponent metadata={serviceData} />
+        <ActivityComponent
+          metadata={serviceData}
+          workVersionId={run.work_version_id}
+          checkRunId={run.id}
+          remoteStatusActionPath={checksActionPath}
+        />
       </div>
     );
 
     return (
-      <TimelineItemExpandable
-        icon={<ShieldCheck className="w-4 h-4" aria-hidden />}
-        message={message}
-        date={date}
-        pill={pill}
-      >
-        {tray}
-      </TimelineItemExpandable>
+      <>
+        {/*
+          Headless extension component: must be a component (not a callback) so hooks like
+          useFetcher work under the router. See ExtensionCheckService.checkRunTimelineMountComponent.
+        */}
+        {MountComponent != null ? (
+          <MountComponent
+            checkRunId={run.id}
+            workVersionId={run.work_version_id}
+            checkKind={run.kind}
+            metadata={serviceData}
+            remoteStatusActionPath={checksActionPath}
+            isLatestRunForKind={isLatestRunForKind}
+          />
+        ) : null}
+        <TimelineItemExpandable
+          icon={<ShieldCheck className="w-4 h-4" aria-hidden />}
+          message={message}
+          date={date}
+          pill={pill}
+          defaultExpanded={Boolean(isLatestRunForKind)}
+          className="py-2"
+        >
+          {tray}
+        </TimelineItemExpandable>
+      </>
     );
   }
 
@@ -79,6 +122,7 @@ export function CheckServiceRunTimelineItem({
       message={message}
       date={date}
       pill={<TimelineItemPill label="No details" variant="default" />}
+      className="py-2"
     >
       {tray}
     </TimelineItemExpandable>

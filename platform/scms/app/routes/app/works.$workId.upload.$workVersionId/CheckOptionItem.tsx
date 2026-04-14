@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useFetcher } from 'react-router';
 import { ui } from '@curvenote/scms-core';
 import type { Route } from './+types/route';
@@ -21,6 +22,13 @@ export function CheckOptionItem({
   disabled = false,
 }: CheckOptionItemProps) {
   const fetcher = useFetcher<Route.ComponentProps['actionData']>();
+
+  // Show toast when action returns an error
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data && 'error' in fetcher.data) {
+      ui.toastError((fetcher.data as { error: { message: string } }).error.message);
+    }
+  }, [fetcher.state, fetcher.data]);
 
   return (
     <div className="flex items-start space-x-3">

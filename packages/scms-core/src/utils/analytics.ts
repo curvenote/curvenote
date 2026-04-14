@@ -4,6 +4,11 @@ import { SystemRole } from '@curvenote/scms-db';
 export type EventOptions = {
   anonymous?: boolean;
   ignoreAdmin?: boolean;
+  /**
+   * If true, send the event even when the request looks like a client data fetch
+   * (GET/HEAD + Sec-Fetch-Dest: empty), e.g. intentional tracking from polling.
+   */
+  forceTrackPolls?: boolean;
 };
 
 /**

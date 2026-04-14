@@ -34,6 +34,9 @@ yarn-error.log*
 # turbo
 .turbo
 
+# Turborepo task overrides for gitignored extension packages (see scripts/turbo-run.mjs, generate-extensions.js)
+turbo.extensions.generated.json
+
 _build
 
 yalc.lock

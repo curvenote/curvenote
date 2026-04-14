@@ -59,6 +59,7 @@ function useHighlightedFiles() {
  * @param readonly - Whether the component is in read-only mode
  * @param icon - Icon type to display for files in this section
  * @param alert - Optional React node for custom alerts/messages
+ * @param action - Optional URL to submit to (e.g. another route's action). When set, stage/complete/remove submit here instead of the current route.
  */
 interface WorkFileUploadProps {
   cdnKey: string;
@@ -68,6 +69,7 @@ interface WorkFileUploadProps {
   readonly?: boolean;
   icon?: 'file' | 'image' | 'video' | 'table';
   alert?: React.ReactNode;
+  action?: string;
 }
 
 // Helper to detect upload complete DTO
@@ -113,6 +115,7 @@ export function WorkFileUpload({
   readonly = false,
   icon = 'file',
   alert,
+  action: actionUrl,
 }: WorkFileUploadProps) {
   // Extract config values
   const {
@@ -434,7 +437,7 @@ export function WorkFileUpload({
       formData.append('files', JSON.stringify(dto));
     });
 
-    fetcher.submit(formData, { method: 'POST' });
+    fetcher.submit(formData, { method: 'POST', ...(actionUrl ? { action: actionUrl } : {}) });
 
     // Reset the input value after processing
     e.target.value = '';
@@ -552,6 +555,7 @@ export function WorkFileUpload({
                   validateLabel={validateFileLabel}
                   showLabel={config.requireLabel}
                   isHighlighted={isHighlighted(upload.path)}
+                  action={actionUrl}
                 />
               ))}
             </div>

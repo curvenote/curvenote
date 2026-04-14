@@ -33,7 +33,13 @@ export function SubmissionTimelineItem({ submissionVersion }: SubmissionTimeline
     </>
   );
 
-  const date = <DateWithPopover date={dateStr} />;
+  const date = (
+    <DateWithPopover
+      date={dateStr}
+      dateCreated={submissionVersion.date_created}
+      dateModified={submissionVersion.date_modified}
+    />
+  );
 
   return <TimelineItemPlain icon={icon} message={message} date={date} />;
 }

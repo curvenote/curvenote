@@ -23,7 +23,13 @@ export function ActivityTimelineItem({ activity }: ActivityTimelineItemProps) {
       {by && by !== 'Someone' && <> by {by}</>}
     </>
   );
-  const date = <DateWithPopover date={activity.date_created} />;
+  const date = (
+    <DateWithPopover
+      date={activity.date_created}
+      dateCreated={activity.date_created}
+      dateModified={activity.date_modified}
+    />
+  );
 
   return (
     <TimelineItemPlain

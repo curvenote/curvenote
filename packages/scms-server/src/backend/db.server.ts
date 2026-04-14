@@ -483,15 +483,21 @@ export async function dbCreateDraftWork(
 /**
  * Helper to create a new draft file work with checks metadata
  * This is a convenience wrapper around dbCreateDraftWork specifically for file upload workflows
+ * @param authors - Optional initial authors (e.g. user display name for manuscript checks)
  */
-export async function dbCreateDraftFileWork(ctx: SecureContext, source: string = 'unknown') {
+export async function dbCreateDraftFileWork(
+  ctx: SecureContext,
+  source: string = 'unknown',
+  authors: string[] = [],
+  versionMetadata: Record<string, any> = { checks: {} },
+) {
   const newWork = await dbCreateDraftWork(
     ctx,
     '', // Empty title - indicates untouched
     '', // Empty description
-    [], // No authors yet
+    authors,
     [WorkContents.FILES], // This is a files work
-    { checks: {} }, // Initialize with checks field
+    versionMetadata,
   );
 
   await ctx.trackEvent(TrackEvent.WORK_CREATED, {
@@ -515,6 +521,7 @@ export async function dbCreateDraftWorkVersion(
   workId: string,
   source: string = 'work-details',
   defaultTitle: string = '',
+  versionMetadata: Record<string, any> = { checks: {} },
 ) {
   const date_created = new Date().toISOString();
   const prisma = await getPrismaClient();
@@ -539,7 +546,7 @@ export async function dbCreateDraftWorkVersion(
               description: '',
               draft: true,
               authors: [],
-              metadata: { checks: {} },
+              metadata: versionMetadata,
             },
           ],
         },

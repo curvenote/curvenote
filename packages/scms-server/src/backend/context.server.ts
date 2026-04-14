@@ -49,6 +49,7 @@ import {
   AnalyticsContext,
   type SegmentIdentifyUser,
 } from './services/analytics/segment.server.js';
+import { shouldSuppressTrackEventForDataFetch } from './services/analytics/suppress-for-data-fetch.server.js';
 import { getPrismaClient } from './prisma.server.js';
 
 /**
@@ -422,6 +423,9 @@ export class Context implements ContextType {
     properties: Record<string, any> = {},
     opts: EventOptions = {},
   ): Promise<void> {
+    if (!opts.forceTrackPolls && shouldSuppressTrackEventForDataFetch(this.request)) {
+      return;
+    }
     if (opts.ignoreAdmin && isAdmin(this.$user)) {
       console.log('trackEvent ignored for admin:', event);
       return;

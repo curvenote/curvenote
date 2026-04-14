@@ -41,6 +41,12 @@ export function buildMenu(baseUrl: string, userScopes: string[]) {
           url: `${baseUrl}/email-test`,
         },
         {
+          name: 'admin.services',
+          label: 'Services',
+          icon: 'network',
+          url: `${baseUrl}/services`,
+        },
+        {
           name: 'admin.jobs',
           label: 'Jobs',
           icon: 'square-play',

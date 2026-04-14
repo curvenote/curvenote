@@ -41,8 +41,8 @@ export function TimelineSection({
           nested && 'shrink-0',
         )}
       >
-        <div className="relative z-10 -ml-[7px] p-1 shrink-0">
-          {icon ?? <GitBranch className="w-5 h-5 text-foreground" />}
+        <div className="relative z-10 -ml-[8px] p-1 shrink-0">
+          {icon ?? <GitBranch className="w-5 h-5 bg-background text-foreground/60" />}
         </div>
         <div className={cn('flex flex-col min-w-0', !nested && 'flex-1')}>
           <span className="text-sm text-foreground">{label}</span>
@@ -52,7 +52,7 @@ export function TimelineSection({
       {hasChildren && (
         <div
           className={cn(
-            'overflow-hidden rounded-lg border divide-y shadow-sm divide-border/50 border-border/40',
+            'overflow-hidden rounded-lg border divide-y shadow-sm bg-card text-card-foreground divide-border border-border',
             nested ? 'flex-1 min-w-0' : 'ml-5',
           )}
         >

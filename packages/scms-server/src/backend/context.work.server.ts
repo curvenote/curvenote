@@ -12,7 +12,7 @@ import {
 import { getUserScopesSet, userHasWorkScope } from './scopes.helpers.server.js';
 import { SystemRole } from '@curvenote/scms-db';
 import type { MyUserDBO } from './db.types.js';
-import type { AllTrackEvent } from '@curvenote/scms-core';
+import type { AllTrackEvent, EventOptions } from '@curvenote/scms-core';
 
 export class WorkContext extends Context {
   work: WorkAndVersionsDBO;
@@ -49,7 +49,11 @@ export class WorkContext extends Context {
    * @param event - The event name to track
    * @param properties - Additional properties to include with the event
    */
-  async trackEvent(event: AllTrackEvent, properties: Record<string, any> = {}): Promise<void> {
+  async trackEvent(
+    event: AllTrackEvent,
+    properties: Record<string, any> = {},
+    opts: EventOptions = {},
+  ): Promise<void> {
     const workProperties = {
       workId: this.work.id,
       workKey: this.work.key,
@@ -63,7 +67,7 @@ export class WorkContext extends Context {
       contains: this.work.contains,
       ...properties,
     };
-    await super.trackEvent(event, workProperties);
+    await super.trackEvent(event, workProperties, opts);
   }
 }
 

@@ -325,12 +325,16 @@ export function ResumeDraftWorkDialog<T extends DraftWork>({
 
   const handleResume = (draft: T) => {
     onResume(draft);
-    onClose();
+    // Do not call onClose(): the parent typically navigates (e.g. to upload), and
+    // onClose() often navigates elsewhere (e.g. /app/works); that would override
+    // the intended navigation. The dialog unmounts when the parent navigates away.
   };
 
   const handleCreateNew = () => {
     onCreateNew();
-    onClose();
+    // Do not call onClose() here: the parent typically submits create-new-draft and
+    // navigates to the upload route on success; closing would navigate away (e.g. to
+    // My Works) before the response arrives.
   };
 
   const handleDeleteAll = () => {

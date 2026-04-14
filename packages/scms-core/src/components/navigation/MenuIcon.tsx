@@ -40,6 +40,7 @@ import {
   GraduationCap,
   HelpCircle,
   ClipboardList,
+  Network,
 } from 'lucide-react';
 import { cn } from '../../utils/index.js';
 import type { ClientExtension } from '../../modules/extensions/types.js';
@@ -164,6 +165,9 @@ export function MenuIcon({
     case 'admin.email-test':
     case 'settings.emails':
       return <Mail className={classNameWithDefaults} />;
+    case 'admin.services':
+    case 'network':
+      return <Network className={classNameWithDefaults} />;
     case 'platform':
     case 'ship':
       return <Ship className={classNameWithDefaults} />;

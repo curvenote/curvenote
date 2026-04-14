@@ -13,7 +13,7 @@ export function MainWrapper({
       data-name="main-wrapper"
       className={cn(
         'max-w-none',
-        'overflow-hidden flex-1 w-full h-full hide-scrollbar',
+        'flex-1 w-full h-full hide-scrollbar',
         'mx-2', // mobile padding
         'pb-6', // bottom padding for status bar (24px)
         'relative', // for absolute positioning of status bar

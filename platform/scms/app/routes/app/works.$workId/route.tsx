@@ -11,6 +11,7 @@ import {
   withSecureWorkContext,
   signFilesInMetadata,
   dbCreateDraftWorkVersion,
+  metadataForNewDraftFileWorkVersion,
   userHasScope,
   works as worksLoaders,
 } from '@curvenote/scms-server';
@@ -37,6 +38,7 @@ import { dbGetWorkUsers, dtoWorkUsers } from '../works.$workId.users/db.server';
 import { WorkDetailsCard } from './WorkDetailsCard';
 import { getUniqueSubmissions } from './utils.server';
 import { extensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
 import { exportToPdfAction } from './actionHelpers.server';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
@@ -94,7 +96,13 @@ export async function action(args: ActionFunctionArgs) {
       const workVersionsForTitle = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
       const latestNonDraft = workVersionsForTitle?.find((v) => !v.draft);
       const workTitle = latestNonDraft?.title ?? ctx.workDTO?.title ?? '';
-      const result = await dbCreateDraftWorkVersion(ctx, ctx.work.id, 'work-details', workTitle);
+      const result = await dbCreateDraftWorkVersion(
+        ctx,
+        ctx.work.id,
+        'work-details',
+        workTitle,
+        metadataForNewDraftFileWorkVersion(ctx.$config, serverExtensions),
+      );
       return {
         success: true,
         intent: 'create-new-version',

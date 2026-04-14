@@ -26,19 +26,19 @@ layer(base);
 
 @layer base {
   h1 {
-    @apply text-2xl font-heading font-semibold leading-tight;
+    @apply text-2xl font-semibold leading-tight font-heading;
   }
 
   h2 {
-    @apply text-xl font-heading font-semibold leading-snug;
+    @apply text-xl font-semibold leading-snug font-heading;
   }
 
   h3 {
-    @apply text-lg font-heading font-semibold leading-snug;
+    @apply text-lg font-semibold leading-snug font-heading;
   }
 
   h4 {
-    @apply text-lg font-heading font-medium leading-snug;
+    @apply text-lg font-medium leading-snug font-heading;
   }
 
   p {
@@ -63,6 +63,10 @@ layer(base);
     -moz-appearance: textfield;
   }
 
+  /*
+   * Theme tokens follow `html.light` / `html.dark` (see ThemeProvider). Radix popper portals
+   * also get `light`/`dark` on `[data-radix-popper-content-wrapper]` so Tailwind `dark:*` matches.
+   */
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -95,30 +99,31 @@ layer(base);
     --chart-5: 27 87% 67%;
   }
 
+  /* Warm stone neutrals — matches `dark:bg-stone-800` on `body` (root.tsx); avoids slate-hued shadcn defaults. */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --background: 12 6.5% 15.1%;
+    --foreground: 60 9.1% 97.8%;
+    --card: 12 6.5% 15.1%;
+    --card-foreground: 60 9.1% 97.8%;
+    --popover: 24 9.8% 10%;
+    --popover-foreground: 60 9.1% 97.8%;
     --primary: 201 69% 51%;
     --primary-foreground: 222.2 47.4% 5%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --secondary: 12 5% 18%;
+    --secondary-foreground: 60 9.1% 97.8%;
+    --muted: 12 5% 18%;
+    --muted-foreground: 25 5.3% 64.9%;
+    --accent: 12 5% 18%;
+    --accent-foreground: 60 9.1% 97.8%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     --warning: 36 100% 50%;
     --warning-foreground: 210 40% 98%;
     --success: 141 71% 48%;
     --success-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 25 5.3% 25.5%;
+    --input: 25 5.3% 25.5%;
+    --ring: 201 69% 51%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -192,6 +197,6 @@ layer(base);
     @apply border-border;
   }
   body {
-    @apply font-body antialiased bg-stone-100 text-foreground;
+    @apply antialiased font-body bg-stone-100 text-foreground;
   }
 }

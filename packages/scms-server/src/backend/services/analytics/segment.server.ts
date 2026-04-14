@@ -157,17 +157,24 @@ class SafeHTTPClient implements HTTPClient {
   }
 }
 
+/** Each request gets a new {@link AnalyticsContext}; warn at most once per process. */
+let warnedMissingSegmentWriteKey = false;
+
 export function addSegmentAnalytics(
   analytics: AnalyticsContext,
   config?: SegmentConfig,
 ): AnalyticsContext {
   const { disabled, writeKey } = config ?? {};
   if (disabled) return analytics;
-  if (!writeKey && !analytics.loggedMissingWriteKey) {
-    console.warn('Missing Segment write key, analytics will not be sent');
+  if (!writeKey) {
+    if (!warnedMissingSegmentWriteKey) {
+      console.warn('Missing Segment write key, analytics will not be sent');
+      warnedMissingSegmentWriteKey = true;
+    }
     analytics.loggedMissingWriteKey = true;
+    return analytics;
   }
-  if (analytics.segment || !writeKey) return analytics;
+  if (analytics.segment) return analytics;
   const httpClient = new SafeHTTPClient();
   const segmentAnalyticsInstance = new Analytics({
     writeKey,

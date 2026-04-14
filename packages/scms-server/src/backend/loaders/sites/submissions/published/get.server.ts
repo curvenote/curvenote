@@ -1,7 +1,6 @@
 import type { SiteContext } from '../../../../context.site.server.js';
 import type { HostSpec, SiteWorkDTO } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
-import { error404 } from '@curvenote/scms-core';
 import { formatDate } from '@curvenote/common';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
 import { formatCollectionSummaryDTO } from '../../get.server.js';
@@ -144,6 +143,6 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkD
 
 export default async function (ctx: SiteContext, workIdOrSlug: string) {
   const dbo = await dbGetLatestPublishedSubmissionVersion(ctx.site.name, workIdOrSlug);
-  if (!dbo) throw error404();
+  if (!dbo) return null;
   return formatSiteWorkDTO(ctx, dbo);
 }

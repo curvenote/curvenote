@@ -119,6 +119,7 @@ export default [
       route('migrate', 'routes/app/system.migrate/route.tsx'),
       route('storage', 'routes/app/route.system.storage.tsx'),
       route('email-test', 'routes/app/system.email-test/route.tsx'),
+      route('services', 'routes/app/system.services/route.tsx'),
       route('jobs', 'routes/app/system.jobs/route.tsx'),
       route('design', 'routes/app/system.design/route.tsx'),
       route('users', 'routes/app/system.users/route.tsx'),
@@ -141,6 +142,9 @@ export default [
     // Register extension task route
     ...getRoutesForMountPoint('app/task'),
 
+    // Register extension-owned app endpoints
+    ...prefix('extensions', getRoutesForMountPoint('app/extensions')),
+
     // Register extension routes at the app level
     ...getRoutesForMountPoint('app'),
 
@@ -149,6 +153,7 @@ export default [
       // Register extension routes at the works level
       ...getRoutesForMountPoint('app/works'),
       index('routes/app/works._index/route.tsx'),
+      route('new', 'routes/app/works.new/route.tsx'),
       route('drafts', 'routes/app/works.drafts/route.tsx'),
       route(':workId', 'routes/app/works.$workId/route.tsx', [
         ...getRoutesForMountPoint('app/works/:workId'),

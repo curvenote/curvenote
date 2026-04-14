@@ -56,15 +56,15 @@ No new stack; we only add new activity types and create them in the right places
 - **Suggested enum value:** `CHECK_STARTED`.
 - **Schema change:** Add to `ActivityType` in `prisma/schema/activity.prisma` and add a migration.
 
-Create **one activity per check** that is started (one per `enabledChecks` item that is actually executed), so the timeline can show “Proofig check started”, “Image integrity check started”, etc., and different extensions are represented separately.
+Create **one activity per check** that is started (one per `enabledChecks` item that is actually executed), so the timeline can show a distinct line per check (using each extension’s display name), and different extensions are represented separately.
 
 ### Representing “which check” in metadata
 
-Extensions register checks with an **id** (e.g. `'proofig'`, `'curvenote-structure'`) and a **name** (display name). We need to store which check was run so the timeline can show a sensible label.
+Extensions register checks with an **id** (e.g. `'some-extension-check'`, `'curvenote-structure'`) and a **name** (display name). We need to store which check was run so the timeline can show a sensible label.
 
 **Option A (recommended):** Use the existing **`transition`** (Json) field on `Activity`.
 
-- Convention: for `CHECK_STARTED`, set `transition` to `{ checkKind: string }` where `checkKind` is the extension check service **id** (e.g. `'proofig'`).
+- Convention: for `CHECK_STARTED`, set `transition` to `{ checkKind: string }` where `checkKind` is the extension check service **id** (e.g. `'some-extension-check'`).
 - No schema change. The timeline can resolve `checkKind` to a display name when rendering (e.g. from extension config or a small map); if unknown, fall back to “Check started” or the raw id.
 
 **Option B:** Add a dedicated **`metadata`** (or `details`) Json column to `Activity` for extension-specific payloads.
@@ -72,9 +72,9 @@ Extensions register checks with an **id** (e.g. `'proofig'`, `'curvenote-structu
 - Cleaner long-term and avoids overloading `transition` (which is used for submission version transitions).
 - Requires a Prisma migration.
 
-**Recommendation:** Use **Option A** (`transition`) for now so we don’t add a new column. If you prefer a clear separation, use Option B and set e.g. `metadata = { checkKind: 'proofig' }`.
+**Recommendation:** Use **Option A** (`transition`) for now so we don’t add a new column. If you prefer a clear separation, use Option B and set e.g. `metadata = { checkKind: 'some-extension-check' }`.
 
-**UI:** In `ActivityTimelineItem` (or a helper), when `activity_type === 'CHECK_STARTED'` and `activity.transition?.checkKind` exists, show a label like “{displayName} check started”. Display name can come from a static map (e.g. `proofig` → “Proofig”) or from the same extension config that provides `ExtensionCheckService.name` (if available in the route that renders the timeline).
+**UI:** In `ActivityTimelineItem` (or a helper), when `activity_type === 'CHECK_STARTED'` and `activity.transition?.checkKind` exists, show a label like “{displayName} check started”. Display name can come from a static map from check id to label, or from the same extension config that provides `ExtensionCheckService.name` (if available in the route that renders the timeline).
 
 ---
 
@@ -84,7 +84,7 @@ Extensions register checks with an **id** (e.g. `'proofig'`, `'curvenote-structu
 **Block:** The `confirm-work` intent handler.  
 **Location:** Inside the loop over `enabledChecks`, **after** each successful `service.handleAction(actionArgs)` (around line 271). Create one activity per check that was actually invoked (when `service?.handleAction` exists and was called).
 
-- We have: `workId` (from route params), `workVersionId`, `baseCtx.user.id`, and the loop variable `kind` (the check service id, e.g. `'proofig'`).
+- We have: `workId` (from route params), `workVersionId`, `baseCtx.user.id`, and the loop variable `kind` (the check service id, e.g. `'some-extension-check'`).
 - For each such check, create an activity with:
   - `work_id` = `workId`
   - `work_version_id` = `workVersionId`
