@@ -80,9 +80,7 @@ export async function dbFindSingleVersionDraftFileWorksForUser(userId: string) {
     },
   });
 
-  return works.filter(
-    (work) => work.versions.length === 1 && work.versions[0].draft === true,
-  );
+  return works.filter((work) => work.versions.length === 1 && work.versions[0].draft === true);
 }
 
 /**

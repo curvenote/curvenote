@@ -265,7 +265,7 @@ function SingleFileView({
             {JSON.stringify(item.ast, null, 2)}
           </pre>
         ) : (
-          <div className="relative overflow-hidden" style={{ whiteSpace: 'pre-wrap' }}>
+          <div className="overflow-hidden relative" style={{ whiteSpace: 'pre-wrap' }}>
             <OfficeAstRenderer ast={item.ast} />
             {item.ast.wasTruncated === true && (
               <div
@@ -287,7 +287,9 @@ function SingleFileView({
 const ALL_FIGURES_TAB = 'all-figures';
 
 /** Collect all image attachments across previews with source file name */
-function collectAllFigures(previews: DocxPreviewItem[]): { attachment: OfficeAttachment; sourceName: string }[] {
+function collectAllFigures(
+  previews: DocxPreviewItem[],
+): { attachment: OfficeAttachment; sourceName: string }[] {
   const out: { attachment: OfficeAttachment; sourceName: string }[] = [];
   for (const item of previews) {
     const attachments = item.ast.attachments ?? [];
@@ -300,7 +302,11 @@ function collectAllFigures(previews: DocxPreviewItem[]): { attachment: OfficeAtt
   return out;
 }
 
-function AllFiguresView({ figures }: { figures: { attachment: OfficeAttachment; sourceName: string }[] }) {
+function AllFiguresView({
+  figures,
+}: {
+  figures: { attachment: OfficeAttachment; sourceName: string }[];
+}) {
   if (figures.length === 0) {
     return (
       <div className={PREVIEW_CONTENT_CLASS}>
@@ -310,28 +316,31 @@ function AllFiguresView({ figures }: { figures: { attachment: OfficeAttachment; 
   }
   return (
     <div className={PREVIEW_CONTENT_CLASS}>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
         {figures.map(({ attachment, sourceName }, i) => {
           const src = attachment.data
             ? `data:${attachment.mimeType};base64,${attachment.data}`
             : undefined;
           return (
             <figure key={`${sourceName}-${attachment.name}-${i}`} className="flex flex-col gap-1">
-              <div className="aspect-square bg-stone-100 dark:bg-stone-800 rounded overflow-hidden flex items-center justify-center min-h-0">
+              <div className="flex overflow-hidden justify-center items-center min-h-0 rounded aspect-square bg-stone-100 dark:bg-stone-800">
                 {src ? (
                   <img
                     src={src}
                     alt={attachment.altText ?? attachment.name ?? ''}
-                    className="w-full h-full object-contain"
+                    className="object-contain w-full h-full"
                   />
                 ) : (
                   <span className="text-xs text-muted-foreground">[No data]</span>
                 )}
               </div>
-              <figcaption className="text-xs text-muted-foreground truncate" title={attachment.altText ?? attachment.name}>
+              <figcaption
+                className="text-xs truncate text-muted-foreground"
+                title={attachment.altText ?? attachment.name}
+              >
                 {attachment.altText ?? attachment.name ?? 'Figure'}
               </figcaption>
-              <p className="text-xs text-muted-foreground/80 truncate" title={sourceName}>
+              <p className="text-xs truncate text-muted-foreground/80" title={sourceName}>
                 {sourceName}
               </p>
             </figure>

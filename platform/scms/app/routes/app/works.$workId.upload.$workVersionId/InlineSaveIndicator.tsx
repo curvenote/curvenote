@@ -17,9 +17,7 @@ export function InlineSaveIndicator({ saveState, className }: InlineSaveIndicato
   if (saveState === 'idle') return null;
   return (
     <div className={cn('pointer-events-none', className)}>
-      {saveState === 'saving' && (
-        <div className="text-xs text-muted-foreground">Saving...</div>
-      )}
+      {saveState === 'saving' && <div className="text-xs text-muted-foreground">Saving...</div>}
       {saveState === 'saved' && <Check className="w-4 h-4 text-green-600" />}
     </div>
   );

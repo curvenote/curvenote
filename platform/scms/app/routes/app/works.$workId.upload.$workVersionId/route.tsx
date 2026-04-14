@@ -59,6 +59,7 @@ import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { DocxPreviewer } from './DocxPreviewer';
 import { MetadataFormCard } from './MetadataFormCard';
+import { isDocxPreviewCandidate } from './docxPreviewGuards';
 
 /**
  * Zod schema for work upload form validation
@@ -217,6 +218,41 @@ export async function action(args: Route.ActionArgs) {
       { error: { type: 'general', message: 'Work ID and version ID are required' } },
       { status: 400 },
     );
+  }
+
+  const rawIntent = String(formData.get('intent') ?? '');
+  if (rawIntent.startsWith('proofig:')) {
+    const work = await findWorkByVersion(workVersionId);
+    if (!work || work.id !== workId) {
+      return data(
+        { error: { type: 'general', message: 'Work version not found' } },
+        { status: 404 },
+      );
+    }
+    const rawMetadata = work.metadata || {};
+    const metadata = {
+      ...makeDefaultWorkVersionMetadata(),
+      ...(typeof rawMetadata === 'object' && rawMetadata !== null ? rawMetadata : {}),
+    } as WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
+    const checkServices = getExtensionCheckServicesFromServerConfig(
+      baseCtx.$config,
+      serverExtensions,
+    );
+    const proofig = checkServices.find((s) => s.id === 'proofig');
+    if (!proofig?.handleAction) {
+      return data(
+        { error: { type: 'general', message: 'Proofig check is not available' } },
+        { status: 400 },
+      );
+    }
+    return proofig.handleAction({
+      intent: rawIntent,
+      formData,
+      workVersionId,
+      metadata,
+      ctx: baseCtx,
+      serverExtensions,
+    });
   }
 
   try {
@@ -502,10 +538,6 @@ export async function action(args: Route.ActionArgs) {
   );
 }
 
-function isDocxPath(path: string): boolean {
-  return path.toLowerCase().endsWith('.docx');
-}
-
 export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const {
     cdnKey,
@@ -529,9 +561,12 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const deploymentConfig = useDeploymentConfig();
   const checkServices = getExtensionCheckServicesFromClientConfig(deploymentConfig, extensions);
 
-  const files = (metadata?.files ?? {}) as Record<string, { path?: string; name?: string }>;
+  const files = (metadata?.files ?? {}) as Record<
+    string,
+    { path?: string; name?: string; type?: string }
+  >;
   const docxFilePaths = Object.entries(files)
-    .filter(([, f]) => isDocxPath(f?.path ?? f?.name ?? ''))
+    .filter(([, f]) => isDocxPreviewCandidate(f))
     .map(([path]) => path);
   const previewPaths = new Set(previewList.map((p) => p.path));
   const missingPreviewPaths = docxFilePaths.filter((p) => !previewPaths.has(p));

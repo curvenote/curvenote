@@ -1,7 +1,7 @@
 /**
  * Server-side DOCX preview fetching for a work version.
  *
- * For the given work version: finds .docx files in metadata.files,
+ * For the given work version: finds Word OOXML files (.docx, .docm, .dotx, .dotm) in metadata.files,
  * downloads each via signed URL, parses with officeparser, and returns
  * the first "page" of content (truncated AST) per file.
  *
@@ -15,6 +15,7 @@ import type { Context } from '@curvenote/scms-server';
 import { formatDate } from '@curvenote/common';
 import { parseOffice } from 'officeparser';
 import type { OfficeParserAST, OfficeContentNode, OfficeAttachment } from 'officeparser';
+import { isDocxPreviewCandidate } from './docxPreviewGuards';
 
 /** Number of top-level content nodes to include for "first page" preview */
 const FIRST_PAGE_CONTENT_LIMIT = 10;
@@ -41,10 +42,6 @@ function isCachedAst(data: unknown): data is {
     'content' in data &&
     Array.isArray((data as { content: unknown }).content)
   );
-}
-
-function isDocxPath(path: string): boolean {
-  return path.toLowerCase().endsWith('.docx');
 }
 
 /**
@@ -133,7 +130,7 @@ export function astContentToPlainText(content: OfficeContentNode[]): string {
 }
 
 /**
- * Fetch previews for all .docx files in the work version's metadata.
+ * Fetch previews for all Word OOXML word-processing files in the work version's metadata.
  * Downloads each file via signed URL, parses with officeparser, and returns
  * file metadata plus truncated AST (first page of content).
  */
@@ -159,7 +156,7 @@ export async function fetchDocxPreviews(
   );
   const signedFiles = signedMetadata.files ?? {};
   const docxEntries = Object.entries(signedFiles).filter(([, file]) =>
-    isDocxPath(file.path ?? file.name ?? ''),
+    isDocxPreviewCandidate(file),
   );
 
   const previews: DocxPreviewItem[] = [];
@@ -274,9 +271,7 @@ export async function readDocxPreviewsFromObjectTable(metadata: {
   if (typeof files !== 'object') {
     return [];
   }
-  const docxEntries = Object.entries(files).filter(([, file]) =>
-    isDocxPath(file.path ?? file.name ?? ''),
-  );
+  const docxEntries = Object.entries(files).filter(([, file]) => isDocxPreviewCandidate(file));
   const prisma = await getPrismaClient();
   const previews: DocxPreviewItem[] = [];
   for (const [path, file] of docxEntries) {

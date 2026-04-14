@@ -15,7 +15,11 @@ export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
   const { workId } = useParams();
   const location = useLocation();
   const fromNewFlow = new URLSearchParams(location.search).get('from') === 'new';
-  const finishLaterHref = fromNewFlow ? '/app/works' : (workId ? `/app/works/${workId}/details` : '/app/works');
+  const finishLaterHref = fromNewFlow
+    ? '/app/works'
+    : workId
+      ? `/app/works/${workId}/details`
+      : '/app/works';
 
   // Show toast when action returns an error (e.g. confirm-work failed)
   useEffect(() => {
