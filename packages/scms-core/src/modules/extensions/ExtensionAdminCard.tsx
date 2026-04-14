@@ -1,3 +1,4 @@
+import { dump } from 'js-yaml';
 import type { ExtensionAdminCardProps } from './types.js';
 import * as ui from '../../components/ui/index.js';
 
@@ -12,26 +13,6 @@ const capabilityLabels: Record<string, string> = {
   workflows: 'Workflows',
   checks: 'Checks',
 };
-
-function isUrl(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
-  return /^https?:\/\//i.test(value.trim());
-}
-
-function formatRecordValue(value: unknown): React.ReactNode {
-  if (typeof value === 'object' && value !== null) {
-    return JSON.stringify(value);
-  }
-  const str = String(value);
-  if (isUrl(str)) {
-    return (
-      <a href={str} target="_blank" rel="noreferrer" className="underline break-all text-primary">
-        {str}
-      </a>
-    );
-  }
-  return str;
-}
 
 export function ExtensionAdminCardFallback({
   name,
@@ -81,18 +62,14 @@ export function ExtensionAdminCardContent({
           </div>
         </div>
       )}
-      {record &&
-        Object.entries(record)
-          .filter(
-            ([key]) =>
-              !(capabilities?.includes(key) || key in capabilityLabels),
-          )
-          .map(([key, value]) => (
-            <div key={key} className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">{key}</p>
-              <p className="text-sm text-foreground">{formatRecordValue(value)}</p>
-            </div>
-          ))}
+      {record && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Config</p>
+          <pre className="p-3 rounded-md bg-muted text-sm overflow-auto max-h-64">
+            <code className="block whitespace-pre font-mono">{dump(record)}</code>
+          </pre>
+        </div>
+      )}
       {children}
     </div>
   );
