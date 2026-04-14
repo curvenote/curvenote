@@ -7,41 +7,42 @@ export type CheckItemLegendLabels = {
 };
 
 export interface CheckItemLegendProps {
-  total: number;
-  red: number;
-  amber: number;
-  green: number;
-  labels?: CheckItemLegendLabels;
+  stats: {
+    value: number;
+    label: string;
+    textColor: string;
+    borderColor: string;
+  }[];
 }
 
-export function CheckItemLegend({ total, red, amber, green, labels }: CheckItemLegendProps) {
-  const stats = [
-    {
-      value: total,
-      label: labels?.total ?? 'Total',
-      textColor: 'text-blue-600',
-      borderColor: 'border-blue-600',
-    },
-    {
-      value: green,
-      label: labels?.green ?? 'No issues',
-      textColor: 'text-[#1B8364]',
-      borderColor: 'border-[#1B8364]',
-    },
-    {
-      value: amber,
-      label: labels?.amber ?? 'Pending review',
-      textColor: 'text-yellow-600',
-      borderColor: 'border-yellow-600',
-    },
-    {
-      value: red,
-      label: labels?.red ?? 'Flagged',
-      textColor: 'text-[#9B1E1E]',
-      borderColor: 'border-[#9B1E1E]',
-    },
-  ];
+const EXAMPLE_STATS = [
+  {
+    value: 10,
+    label: 'Total',
+    textColor: 'text-blue-600',
+    borderColor: 'border-blue-600',
+  },
+  {
+    value: 1,
+    label: 'No issues',
+    textColor: 'text-[#1B8364]',
+    borderColor: 'border-[#1B8364]',
+  },
+  {
+    value: 3,
+    label: 'Pending review',
+    textColor: 'text-yellow-600',
+    borderColor: 'border-yellow-600',
+  },
+  {
+    value: 1,
+    label: 'Flagged',
+    textColor: 'text-[#9B1E1E]',
+    borderColor: 'border-[#9B1E1E]',
+  },
+];
 
+export function CheckItemLegend({ stats }: CheckItemLegendProps) {
   return (
     <div className="flex flex-wrap">
       {stats.map((stat, index) => (

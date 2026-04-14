@@ -1,19 +1,18 @@
 import { cn } from '../../../utils/cn.js';
 
 export interface CheckItemPunchcardProps {
-  /** Total number of units (squares) to render. */
-  total: number;
-  /** Count shown as red squares. */
-  red: number;
-  /** Count shown as amber squares. */
-  amber: number;
-  /** Count shown as green squares. */
-  green: number;
+  stats: CheckItemPunchardStats[];
   /**
    * Size of each square (Tailwind size class number)
    * @default 5 (w-5 h-5 = 20px)
    */
   size?: number;
+}
+
+interface CheckItemPunchardStats {
+  className: string;
+  count: number;
+  altText: string;
 }
 
 // Size class mapping for Tailwind CSS (needed for proper purging/JIT)
@@ -28,38 +27,21 @@ const SIZE_CLASSES: Record<number, string> = {
   12: 'w-12 h-12',
 };
 
-export function CheckItemPunchcard({
-  total,
-  red,
-  amber,
-  green,
-  size = 5,
-}: CheckItemPunchcardProps) {
-  const colors: string[] = [];
+export function CheckItemPunchcard({ stats, size = 5 }: CheckItemPunchcardProps) {
+  const colors: { className: string; altText: string }[] = [];
 
-  for (let i = 0; i < red; i++) {
-    colors.push('bg-[#9B1E1E]');
-  }
-
-  for (let i = 0; i < amber; i++) {
-    colors.push('bg-yellow-600');
-  }
-
-  for (let i = 0; i < green; i++) {
-    colors.push('bg-[#1B8364]');
-  }
-
-  const remaining = total - colors.length;
-  for (let i = 0; i < remaining; i++) {
-    colors.push('bg-blue-600');
+  for (const stat of stats) {
+    for (let i = 0; i < stat.count; i++) {
+      colors.push({ className: stat.className, altText: stat.altText });
+    }
   }
 
   const sizeClass = SIZE_CLASSES[size] || SIZE_CLASSES[5];
 
   return (
     <div className="flex flex-wrap gap-[2px]">
-      {colors.map((colorClass, index) => (
-        <div key={index} className={cn(sizeClass, colorClass)} aria-hidden="true" />
+      {colors.map(({ className, altText }, index) => (
+        <div key={index} className={cn(sizeClass, className)} aria-hidden="true" title={altText} />
       ))}
     </div>
   );
