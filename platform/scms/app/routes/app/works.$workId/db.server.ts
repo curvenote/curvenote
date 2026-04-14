@@ -136,10 +136,11 @@ export async function dbGetSubmissions(submissionIds: string[]) {
   return submissions;
 }
 
-/** Activity row for work timeline: id, date, type, who, and which work version. */
+/** Activity row for work timeline: id, dates, type, who, and which work version. */
 export type WorkActivityRow = {
   id: string;
   date_created: string;
+  date_modified: string;
   activity_type: string;
   activity_by: { id: string; display_name: string | null };
   work_version_id: string | null;
@@ -164,6 +165,7 @@ export async function dbGetWorkActivities(workId: string): Promise<WorkActivityR
   return rows.map((a) => ({
     id: a.id,
     date_created: a.date_created,
+    date_modified: a.date_modified,
     activity_type: a.activity_type,
     activity_by: a.activity_by,
     work_version_id: a.work_version_id,
