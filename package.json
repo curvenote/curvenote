@@ -6,7 +6,8 @@
     "packages/*",
     "ee/*",
     "extensions/*/packages/*",
-    "platform/scms"
+    "platform/scms",
+    "platform/relay"
   ],
   "scripts": {
     "prepare": "husky",

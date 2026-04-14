@@ -3,7 +3,7 @@ import { FileCheck } from 'lucide-react';
 
 export function TextIntegrityChecksSection() {
   return (
-    <SectionWithHeading heading="Text Integrity Check (iThenticate)" icon={FileCheck}>
+    <SectionWithHeading heading="Text Integrity Checks" icon={FileCheck}>
       <primitives.Card lift className="p-6">
         <div className="flex flex-col justify-center items-center py-8 text-center">
           <FileCheck className="mb-4 w-16 h-16 text-muted-foreground" strokeWidth={1.5} />

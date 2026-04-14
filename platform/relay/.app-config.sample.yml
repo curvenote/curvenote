@@ -1,0 +1,28 @@
+# Sample non-secret relay configuration (committed).
+#
+# Copy to `.app-config.yml` for the default layer, or to a named environment file
+# such as `.app-config.development.yml` when `APP_CONFIG_ENV` / `NODE_ENV` matches.
+#
+# Top-level `apiKey` and per-instance `apiKey` / `signingSecret` are loaded from
+# `.app-config.secrets.<env>.yml`. Start from `.app-config.secrets.sample.yml`:
+#
+#   cp .app-config.secrets.sample.yml .app-config.secrets.development.yml
+#
+# Instance map keys are the `instances/:instanceId` URL segment; they must match
+# the keys under `instances` in your secrets file.
+
+port: 4041
+
+# Optional: public origin of this relay (no trailing slash). Root-relative plugin
+# logos in manifests become absolute in GET /api/v1/services responses.
+publicBaseUrl: http://localhost:4041
+
+# Optional: origin external providers should use for webhooks (tunnel, staging host).
+# webhookBaseUrl: https://relay-dev.example.com
+
+instances:
+  default:
+    serviceName: echo
+    apiUrl: https://provider.example.com
+    integrationName: my-workspace-relay
+    integrationVersion: 1.0.0

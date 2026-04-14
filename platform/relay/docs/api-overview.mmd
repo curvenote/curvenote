@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant Client
+    participant Relay
+    participant Provider as External Provider<br/>
+
+    Note over Client,Relay: Client API (authenticated)
+    Client->>Relay: POST /services/:svc/instances/:id/upload
+    Relay->>Provider: Submit file
+    Relay-->>Client: 201 { externalId }
+
+    Note over Provider,Relay: Ingest API<br/>no relay API key — plugin verifies in parseWebhook
+    Provider->>Relay: POST /ingest/:instanceId
+    Relay-->>Client: POST notifyUrl JSON body (event, check_id, payload, optional metadata)
+
+    Note over Client,Relay: Client API (authenticated)
+    Client->>Relay: POST /services/:svc/instances/:id/check/:ext/artifacts
+    Relay->>Provider: Fetch artifacts / result info
+    Relay-->>Client: 200 { status, result }

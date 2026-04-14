@@ -1,0 +1,34 @@
+{
+  "name": "@checks-relay/check-relay",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "copy-plugin-assets": "node scripts/copy-plugin-assets.mjs",
+    "dev": "npm run copy-plugin-assets && NODE_OPTIONS='--conditions=development' NODE_ENV=development tsx watch app/server.ts",
+    "start": "node dist/server.js",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npm run copy-plugin-assets && npm run typecheck && node esbuild.prod.mjs",
+    "lint": "eslint \"app/**/*.{ts,tsx}\" \"api/**/*.{ts,tsx}\" -c ./.eslintrc.cjs",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run copy-plugin-assets && vitest run",
+    "app-config:vars": "app-config vars"
+  },
+  "dependencies": {
+    "@app-config/config": "^2.8.7",
+    "@app-config/main": "^2.8.7",
+    "@app-config/node": "^2.8.7",
+    "@checks-relay/check-service-plugin-echo": "*",
+    "@checks-relay/check-plugin-types": "*",
+    "@checks-relay/check-relay-types": "*",
+    "@hono/node-server": "^1.14.0",
+    "dotenv": "^16.6.1",
+    "hono": "^4.7.0",
+    "tsx": "^4.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}

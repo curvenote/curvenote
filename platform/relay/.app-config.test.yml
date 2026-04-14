@@ -1,0 +1,23 @@
+# Test environment — Vitest sets APP_CONFIG_ENV=test (see vitest.config.ts).
+# Secret fields (apiKey, instance apiKey/signingSecret) are in
+# `.app-config.secrets.test.yml` (committed test fixtures).
+
+port: 4041
+publicBaseUrl: https://relay.example.test
+
+instances:
+  checker:
+    serviceName: checker
+    apiUrl: 'https://checker.example.test'
+    integrationName: 'checks-relay-test'
+    integrationVersion: '1.0.0'
+  detailer:
+    serviceName: detailer
+    apiUrl: 'https://detailer.example.test'
+    integrationName: 'checks-relay-test'
+    integrationVersion: '1.0.0'
+  stager:
+    serviceName: stager
+    apiUrl: 'https://stager.example.test'
+    integrationName: 'checks-relay-test'
+    integrationVersion: '1.0.0'
