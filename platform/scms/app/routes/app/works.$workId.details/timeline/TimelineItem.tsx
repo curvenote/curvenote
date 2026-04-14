@@ -27,7 +27,7 @@ export function TimelineItemPlain({
   return (
     <div
       className={cn(
-        'flex gap-3 items-center px-4 py-3 bg-white transition-colors hover:bg-muted/40',
+        'flex gap-3 items-center px-4 py-3 transition-colors bg-card text-card-foreground hover:bg-muted/50',
         className,
       )}
     >
@@ -58,7 +58,7 @@ export function TimelineItemPill({ label, onClick, variant = 'default' }: Timeli
     'shrink-0 inline-flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wide rounded-[2px] px-1.5 py-0.5 min-w-[80px]';
   const variantClass =
     variant === 'success'
-      ? 'text-teal-700 border border-teal-700 hover:bg-teal-50'
+      ? 'text-teal-700 border border-teal-700 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-400 dark:hover:bg-teal-950/40'
       : variant === 'warning'
         ? 'text-amber-700 border border-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-400 dark:hover:bg-amber-950/30'
         : variant === 'error'
@@ -114,7 +114,7 @@ export function TimelineItemExpandable({
       <div
         onClick={hasTray ? () => setExpanded((e) => !e) : undefined}
         className={cn(
-          'flex items-center gap-3 px-4 py-3 bg-white hover:bg-muted/40 transition-colors',
+          'flex items-center gap-3 px-4 py-3 bg-card text-card-foreground hover:bg-muted/50 transition-colors',
           hasTray && 'cursor-pointer',
           className,
         )}
@@ -141,7 +141,9 @@ export function TimelineItemExpandable({
         )}
       </div>
       {hasTray && expanded && (
-        <div className="px-4 py-4 bg-white border-t border-border/50">{children}</div>
+        <div className="px-4 py-4 border-t bg-muted/30 text-card-foreground border-border">
+          {children}
+        </div>
       )}
     </div>
   );

@@ -10,6 +10,11 @@ import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineIte
 import { SubmissionTimelineItem } from './timeline/SubmissionTimelineItem';
 import { ActivityTimelineItem } from './timeline/ActivityTimelineItem';
 import { CheckServiceRunTimelineItem } from './timeline/CheckServiceRunTimelineItem';
+import {
+  TimelineActivitiesToggle,
+  TimelineActivitiesVisibilityProvider,
+  useTimelineActivitiesVisibility,
+} from './timeline/TimelineActivitiesVisibility';
 
 type SubmissionVersionRow = WorkVersionWithSubmissionVersions['submissionVersions'][number];
 
@@ -136,7 +141,15 @@ type WorkVersionTimelineProps = {
  * are merged and sorted by date. Custom icons per submission/activity state could
  * be added later (e.g. different icons for published vs submitted).
  */
-export function WorkVersionTimeline({
+export function WorkVersionTimeline(props: WorkVersionTimelineProps) {
+  return (
+    <TimelineActivitiesVisibilityProvider>
+      <WorkVersionTimelineInner {...props} />
+    </TimelineActivitiesVisibilityProvider>
+  );
+}
+
+function WorkVersionTimelineInner({
   versions,
   workflows,
   workOwnerName,
@@ -147,6 +160,7 @@ export function WorkVersionTimeline({
   checkServiceRunsByWorkVersionId,
   checkServices,
 }: WorkVersionTimelineProps) {
+  const { showActivities } = useTimelineActivitiesVisibility();
   const [searchParams] = useSearchParams();
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
@@ -167,7 +181,11 @@ export function WorkVersionTimeline({
 
   // Show all versions; draft versions display only their activities (and submissions), not the "Version created" row
   return (
-    <Timeline title="Timeline">
+    <Timeline
+      title="TIMELINE"
+      titleClassName="text-sm font-medium uppercase tracking-wide"
+      headerAction={<TimelineActivitiesToggle />}
+    >
       {versionsByModified.map((v) => {
         const submissionVersionsToShow = includeDrafts
           ? v.submissionVersions
@@ -198,18 +216,22 @@ export function WorkVersionTimeline({
           activitiesForVersion,
           checkRunsForVersion,
         );
+        const visibleEntries = showActivities
+          ? sortedEntries
+          : sortedEntries.filter((e) => e.kind !== 'activity');
 
-        if (sortedEntries.length === 0) return null;
+        if (visibleEntries.length === 0) return null;
 
         return (
           <TimelineSection key={v.id} label={label}>
-            {sortedEntries.map((entry) => {
+            {visibleEntries.map((entry) => {
               if (entry.kind === 'work-version') {
                 const { version } = entry;
                 return (
                   <VersionCreatedTimelineItem
                     key={entry.key}
                     dateCreated={version.date_created}
+                    dateModified={version.date_modified}
                     ownerName={workOwnerName}
                     metadata={version.metadata}
                     workVersionId={version.id}

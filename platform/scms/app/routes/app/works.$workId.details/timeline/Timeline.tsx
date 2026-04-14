@@ -4,6 +4,8 @@ import { cn } from '@curvenote/scms-core';
 type TimelineProps = {
   /** Optional title (e.g. "Timeline") */
   title?: ReactNode;
+  /** Merged onto the title wrapper (e.g. size, casing, tracking). */
+  titleClassName?: string;
   /** Optional slot for header actions (e.g. filter dropdown) */
   headerAction?: ReactNode;
   /** When true, the vertical line extends to the top of the timeline (e.g. to touch the card above). */
@@ -18,6 +20,7 @@ type TimelineProps = {
  */
 export function Timeline({
   title,
+  titleClassName,
   headerAction,
   nested = false,
   children,
@@ -29,7 +32,9 @@ export function Timeline({
       {(title != null || headerAction != null) && (
         <div className="flex justify-between items-center mb-3">
           {title != null && (
-            <span className="text-sm font-normal text-muted-foreground">{title}</span>
+            <span className={cn('text-sm font-normal text-muted-foreground', titleClassName)}>
+              {title}
+            </span>
           )}
           {headerAction != null && <div>{headerAction}</div>}
         </div>

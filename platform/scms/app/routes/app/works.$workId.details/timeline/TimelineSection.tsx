@@ -52,7 +52,7 @@ export function TimelineSection({
       {hasChildren && (
         <div
           className={cn(
-            'overflow-hidden rounded-lg border divide-y shadow-sm divide-border/50 border-border/40',
+            'overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm divide-y divide-border border-border',
             nested ? 'flex-1 min-w-0' : 'ml-5',
           )}
         >

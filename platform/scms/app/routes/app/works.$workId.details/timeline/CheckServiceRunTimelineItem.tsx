@@ -31,7 +31,13 @@ export function CheckServiceRunTimelineItem({
   basePath,
   isLatestRunForKind,
 }: CheckServiceRunTimelineItemProps) {
-  const date = <DateWithPopover date={run.date_modified} />;
+  const date = (
+    <DateWithPopover
+      date={run.date_modified}
+      dateCreated={run.date_created}
+      dateModified={run.date_modified}
+    />
+  );
   const serviceData = serviceDataFromRun(run);
   const checksActionPath = `${basePath}/checks`;
 

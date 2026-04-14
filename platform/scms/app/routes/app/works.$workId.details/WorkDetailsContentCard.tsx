@@ -94,8 +94,8 @@ export function WorkDetailsContentCard({ version }: { version: WorkVersionForCar
                   {licenseDisplay.text}
                 </span>
               </ui.TooltipTrigger>
-              <ui.TooltipContent className="text-background">
-                <p className="text-background">{licenseDisplay.tooltip}</p>
+              <ui.TooltipContent>
+                <p>{licenseDisplay.tooltip}</p>
               </ui.TooltipContent>
             </ui.Tooltip>
           ) : (
