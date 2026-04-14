@@ -12,7 +12,7 @@ import {
 import type { DraftWork } from '@curvenote/scms-core';
 import { useEffect, useRef, useState } from 'react';
 import type { LoaderFunctionArgs, ShouldRevalidateFunctionArgs } from 'react-router';
-import { redirect, useNavigate, useFetcher } from 'react-router';
+import { redirect, useNavigate, useFetcher, useNavigation } from 'react-router';
 import { getValidDraftWorksForUser } from '../works._index/getDrafts.server';
 
 export async function loader(args: LoaderFunctionArgs) {
@@ -56,9 +56,15 @@ const INITIAL_PAUSE_MS = 500;
 export default function NewWorkPage({ loaderData }: Route.ComponentProps) {
   const { drafts } = loaderData;
   const navigate = useNavigate();
+  const navigation = useNavigation();
   const fetcher = useFetcher<CreateNewDraftResponse>();
   const [isReady, setIsReady] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Avoid showing dialog until we're idle (prevents flash from stale/cached loader data during nav)
+  const isIdle = navigation.state === 'idle';
+  const hasDrafts = Array.isArray(drafts) && drafts.length > 0;
+  const showDialogBranch = isReady && isIdle && hasDrafts;
 
   // Brief centered loading pause to avoid flash before showing modal or redirecting
   useEffect(() => {
@@ -66,10 +72,10 @@ export default function NewWorkPage({ loaderData }: Route.ComponentProps) {
     return () => clearTimeout(t);
   }, []);
 
-  // Open the dialog once we're ready and there are drafts (stays open until user closes)
+  // Open the dialog once we're ready, idle, and have drafts (stays open until user closes)
   useEffect(() => {
-    if (isReady && drafts.length > 0) setDialogOpen(true);
-  }, [isReady, drafts.length]);
+    if (showDialogBranch) setDialogOpen(true);
+  }, [showDialogBranch]);
 
   const uploadPath = (workId: string, workVersionId: string) =>
     `/app/works/${workId}/upload/${workVersionId}?from=new`;
@@ -85,14 +91,14 @@ export default function NewWorkPage({ loaderData }: Route.ComponentProps) {
   };
 
   const hasSubmittedCreate = useRef(false);
-  // When ready and there are no drafts, create one and redirect when done
+  // When ready, idle, and no drafts, create one and redirect when done (idle avoids stale data)
   useEffect(() => {
-    if (!isReady || drafts.length > 0 || hasSubmittedCreate.current) return;
+    if (!isReady || !isIdle || hasDrafts || hasSubmittedCreate.current) return;
     hasSubmittedCreate.current = true;
     const formData = new FormData();
     formData.append('intent', 'create-new-draft');
     fetcher.submit(formData, { method: 'post', action: '/app/works' });
-  }, [isReady, drafts.length]);
+  }, [isReady, isIdle, hasDrafts]);
 
   // Navigate when create-new-draft succeeds (no-drafts path or dialog "Create new")
   useEffect(() => {
@@ -123,8 +129,8 @@ export default function NewWorkPage({ loaderData }: Route.ComponentProps) {
     </div>
   );
 
-  // Initial pause: show centered loading to avoid flash, then one layout below
-  if (!isReady) {
+  // Loading: initial pause, still navigating (stale data), or no drafts (dialog never mounted)
+  if (!isReady || !isIdle || !hasDrafts) {
     return (
       <MainWrapper>
         <PageFrame className="flex flex-col justify-center items-center mx-auto max-w-3xl h-screen">
@@ -134,7 +140,7 @@ export default function NewWorkPage({ loaderData }: Route.ComponentProps) {
     );
   }
 
-  // Single render: minimal PageFrame, dialog open only when there are drafts
+  // Idle with drafts: show dialog (only branch where dialog is in the tree)
   return (
     <MainWrapper>
       <PageFrame className="mx-auto max-w-3xl"> </PageFrame>
