@@ -39,7 +39,8 @@ export function CheckServiceRunTimelineItem({
     />
   );
   const serviceData = serviceDataFromRun(run);
-  const checksActionPath = `${basePath}/checks`;
+  const checksActionPath =
+    checkService?.id === 'proofig' ? '/app/extensions/proofig/actions' : `${basePath}/checks`;
 
   if (checkService) {
     const message = <>{checkService.name} checks</>;

@@ -219,41 +219,6 @@ export async function action(args: Route.ActionArgs) {
     );
   }
 
-  const rawIntent = String(formData.get('intent') ?? '');
-  if (rawIntent.startsWith('proofig:')) {
-    const work = await findWorkByVersion(workVersionId);
-    if (!work || work.id !== workId) {
-      return data(
-        { error: { type: 'general', message: 'Work version not found' } },
-        { status: 404 },
-      );
-    }
-    const rawMetadata = work.metadata || {};
-    const metadata = {
-      ...makeDefaultWorkVersionMetadata(),
-      ...(typeof rawMetadata === 'object' && rawMetadata !== null ? rawMetadata : {}),
-    } as WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
-    const checkServices = getExtensionCheckServicesFromServerConfig(
-      baseCtx.$config,
-      serverExtensions,
-    );
-    const proofig = checkServices.find((s) => s.id === 'proofig');
-    if (!proofig?.handleAction) {
-      return data(
-        { error: { type: 'general', message: 'Proofig check is not available' } },
-        { status: 400 },
-      );
-    }
-    return proofig.handleAction({
-      intent: rawIntent,
-      formData,
-      workVersionId,
-      metadata,
-      ctx: baseCtx,
-      serverExtensions,
-    });
-  }
-
   try {
     const payload = WorkUploadActionSchema.parse(formData);
     console.log('payload', payload);

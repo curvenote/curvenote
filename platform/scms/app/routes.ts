@@ -142,6 +142,9 @@ export default [
     // Register extension task route
     ...getRoutesForMountPoint('app/task'),
 
+    // Register extension-owned app endpoints
+    ...prefix('extensions', getRoutesForMountPoint('app/extensions')),
+
     // Register extension routes at the app level
     ...getRoutesForMountPoint('app'),
 

@@ -232,7 +232,11 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                       }
                       workVersionId={workVersion.id}
                       checkRunId={existingRunFromThisService?.id}
-                      remoteStatusActionPath={`${basePath}/checks`}
+                      remoteStatusActionPath={
+                        service.id === 'proofig'
+                          ? '/app/extensions/proofig/actions'
+                          : `${basePath}/checks`
+                      }
                     />
                   </ui.CardContent>
                 </ui.Card>
