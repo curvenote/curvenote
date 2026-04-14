@@ -265,11 +265,15 @@ function SingleFileView({
             {JSON.stringify(item.ast, null, 2)}
           </pre>
         ) : (
-          <div style={{ whiteSpace: 'pre-wrap' }}>
+          <div className="relative overflow-hidden" style={{ whiteSpace: 'pre-wrap' }}>
             <OfficeAstRenderer ast={item.ast} />
-            <p className="text-xs text-muted-foreground text-center mt-4 pt-4 border-t border-stone-200 dark:border-stone-700">
-              ------ content truncated ------
-            </p>
+            <div
+              className="absolute bottom-0 left-0 right-0 h-[50px] pointer-events-none"
+              style={{
+                background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1))',
+              }}
+              aria-hidden
+            />
           </div>
         )}
       </div>

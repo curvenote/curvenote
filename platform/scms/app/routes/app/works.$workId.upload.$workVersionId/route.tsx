@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Route } from './+types/route';
 import type {
   WorkVersionCheckName,
@@ -52,7 +52,9 @@ import { toggleWorkVersionCheck } from './updateChecks.server';
 import { data, redirect, Await } from 'react-router';
 import { List, Upload, CheckSquare, Eye } from 'lucide-react';
 import { handleFetchPreviewsIntent } from './fetchPreviews.server';
+import { extractMetadataFromPreviews } from './anthropic.server';
 import type { ChecksMetadataSection } from './checks.schema';
+import type { ExtractedMetadata } from './anthropic.server';
 import { workVersionCheckNameSchema, checksMetadataSchema } from './checks.schema';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
@@ -82,6 +84,60 @@ function parseAuthorsList(authorsText: string): string[] {
     .filter((a) => a.length > 0);
 }
 
+function authorsFromExtracted(extracted: ExtractedMetadata | null): string {
+  if (!extracted?.authors?.length) return '';
+  return extracted.authors
+    .map((a) => (typeof a.name === 'string' ? a.name : ''))
+    .filter(Boolean)
+    .join(', ');
+}
+
+function MetadataCardResolved({
+  extracted,
+  loaderTitle,
+  authorsText,
+  setAuthorsText,
+}: {
+  extracted: ExtractedMetadata | null;
+  loaderTitle: string;
+  authorsText: string;
+  setAuthorsText: (v: string) => void;
+}) {
+  const displayTitle = extracted?.title ?? loaderTitle;
+
+  useEffect(() => {
+    if (extracted?.authors?.length) {
+      setAuthorsText(authorsFromExtracted(extracted));
+    }
+  }, [extracted, setAuthorsText]);
+
+  return (
+    <>
+      <WorkTitleForm title={displayTitle} />
+      <div className="space-y-1">
+        <label htmlFor="authors" className="inline-block text-sm font-medium">
+          Authors
+        </label>
+        <ui.Textarea
+          id="authors"
+          value={authorsText}
+          onChange={(e) => setAuthorsText(e.target.value)}
+          placeholder="Enter author names, comma-separated"
+          rows={3}
+        />
+      </div>
+      {extracted != null && (
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm font-medium">All metadata</summary>
+          <pre className="mt-2 text-xs overflow-auto rounded bg-muted p-3 max-h-48">
+            {JSON.stringify(extracted, null, 2)}
+          </pre>
+        </details>
+      )}
+    </>
+  );
+}
+
 // NOTE: Check service run schema is now defined and managed by each check
 // extension when they create checkServiceRun rows.
 
@@ -100,12 +156,8 @@ export async function loader(args: Route.LoaderArgs) {
     throw redirect('/app/works');
   }
 
-  const userDisplayName =
-    ctx.user?.display_name?.trim() || ctx.user?.username?.trim() || ctx.user?.email?.trim() || '';
-
-  // Note: this starts disabled/auto-populated, but we still thread it through
-  // to `confirm-work` so the server can persist it onto the work version.
-  const authorsText = work.authors?.length ? work.authors.join(', ') : userDisplayName;
+  // Authors: use work version's authors only; no default from current user
+  const authorsText = work.authors?.length ? work.authors.join(', ') : '';
 
   // Track view
   await ctx.trackEvent(TrackEvent.WORK_VIEWED, {
@@ -168,6 +220,32 @@ export async function loader(args: Route.LoaderArgs) {
 
   // Deferred: DOCX first-page previews (resolved in UI via <Await>)
   const docxPreviewsPromise = handleFetchPreviewsIntent(workVersionId, ctx);
+  const extractedMetadataPromise = (async (): Promise<ExtractedMetadata | null> => {
+    const meta = rawMetadata as Record<string, unknown> | null | undefined;
+    const existingFrontmatter =
+      meta?.myst && typeof meta.myst === 'object'
+        ? (meta.myst as Record<string, unknown>).frontmatter
+        : undefined;
+    if (existingFrontmatter != null && typeof existingFrontmatter === 'object') {
+      return existingFrontmatter as ExtractedMetadata;
+    }
+    const previews = await docxPreviewsPromise;
+    const extracted = await extractMetadataFromPreviews(previews, ctx);
+    if (extracted != null && workVersionId) {
+      await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
+        const m = (current as Record<string, unknown>) || {};
+        const existingMyst = (m.myst as Record<string, unknown>) || {};
+        return {
+          ...m,
+          myst: { ...existingMyst, frontmatter: extracted },
+        } as Prisma.JsonObject;
+      });
+    }
+    return extracted;
+  })().catch((err) => {
+    console.error('[upload loader] extractedMetadataPromise failed:', err);
+    return null;
+  });
 
   return {
     workVersionId: work.version_id,
@@ -180,6 +258,7 @@ export async function loader(args: Route.LoaderArgs) {
     pageTitle: pageCopy.title,
     pageSubtitle: pageCopy.subtitle,
     docxPreviewsPromise,
+    extractedMetadataPromise,
   };
 }
 
@@ -250,13 +329,7 @@ export async function action(args: Route.ActionArgs) {
         const prisma = await getPrismaClient();
         const timestamp = new Date().toISOString();
 
-        const userDisplayName =
-          baseCtx.user?.display_name?.trim() ||
-          baseCtx.user?.username?.trim() ||
-          baseCtx.user?.email?.trim() ||
-          '';
-
-        const authorsText = (authors ?? '').trim() || userDisplayName;
+        const authorsText = (authors ?? '').trim();
         const authorsList = authorsText ? parseAuthorsList(authorsText) : [];
 
         // Get current metadata to access enabled checks
@@ -446,19 +519,44 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
                       </div>
                     </ui.Card>
                     <ui.Card className="px-6 pt-4 pb-6 space-y-4 h-fit min-w-lg">
-                      <WorkTitleForm title={title} />
-                      <div className="space-y-1">
-                        <label htmlFor="authors" className="inline-block text-sm font-medium">
-                          Authors
-                        </label>
-                        <ui.Textarea
-                          id="authors"
-                          value={authorsText}
-                          onChange={(e) => setAuthorsText(e.target.value)}
-                          placeholder="Enter author names, comma-separated"
-                          rows={3}
-                        />
-                      </div>
+                      <React.Suspense
+                        fallback={
+                          <>
+                            <WorkTitleForm title="" disabled placeholder="thinking..." />
+                            <div className="space-y-1">
+                              <label htmlFor="authors" className="inline-block text-sm font-medium">
+                                Authors
+                              </label>
+                              <ui.Textarea
+                                id="authors"
+                                value=""
+                                readOnly
+                                disabled
+                                placeholder="thinking..."
+                                rows={3}
+                              />
+                            </div>
+                          </>
+                        }
+                      >
+                        <Await
+                          resolve={loaderData.extractedMetadataPromise}
+                          errorElement={
+                            // Shown only if the promise rejects (throws). Normal failures (no API key,
+                            // no <json> in response, parse error) resolve to null and are not errors.
+                            <p className="text-sm text-destructive">Could not extract metadata.</p>
+                          }
+                        >
+                          {(extracted) => (
+                            <MetadataCardResolved
+                              extracted={extracted}
+                              loaderTitle={title}
+                              authorsText={authorsText}
+                              setAuthorsText={setAuthorsText}
+                            />
+                          )}
+                        </Await>
+                      </React.Suspense>
                     </ui.Card>
                   </div>
                 );

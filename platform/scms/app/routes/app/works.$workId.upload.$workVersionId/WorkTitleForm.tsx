@@ -7,11 +7,18 @@ import { useInlineSave } from './useInlineSave';
 
 interface WorkTitleFormProps {
   title: string;
+  disabled?: boolean;
+  placeholder?: string;
 }
 
-export function WorkTitleForm({ title: initialTitle }: WorkTitleFormProps) {
+export function WorkTitleForm({
+  title: initialTitle,
+  disabled: disabledProp,
+  placeholder = 'Enter the article title',
+}: WorkTitleFormProps) {
   const fetcher = useFetcher<Route.ComponentProps['actionData']>();
   const [title, setTitle] = useState(initialTitle || '');
+  const disabled = disabledProp ?? fetcher.state !== 'idle';
 
   // Sync local state with title changes from loader
   useEffect(() => {
@@ -51,8 +58,8 @@ export function WorkTitleForm({ title: initialTitle }: WorkTitleFormProps) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={handleBlur}
-            placeholder="Enter the article title"
-            disabled={fetcher.state !== 'idle'}
+            placeholder={placeholder}
+            disabled={disabled}
             className={saveState !== 'idle' ? 'pr-20' : ''}
             rows={3}
           />
