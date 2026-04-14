@@ -635,12 +635,13 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
         className="space-y-16 max-w-none text-left"
       >
         <SectionWithHeading
-          heading="Upload some files"
+          heading="Upload your manuscript"
           icon={<Upload className="w-5 h-5" />}
           className="space-y-4 max-w-3xl"
         >
           <p className="text-md text-muted-foreground">
-            Let's start with your manuscript files and we will see what we can determine from them.
+            Upload a single manuscript file (up to 50 MB) and we will see what we can determine from
+            it.
           </p>
           <WorkFileUpload
             cdnKey={cdnKey}

@@ -1,6 +1,7 @@
 import type { Route } from './+types/route';
 import {
   dbCreateDraftFileWork,
+  metadataForNewDraftFileWorkVersion,
   withAppScopedContext,
   userHasScope,
   withValidFormData,
@@ -25,6 +26,7 @@ import { WorkList } from './WorkList';
 import { dbGetWorksAndSubmissionVersions, dangerouslyDeleteDraftWork } from './db.server';
 import { getValidDraftWorksForUser } from './getDrafts.server';
 import { extensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
 
 // Action schema for handling draft work intents
 const WorksActionSchema = zfd.formData({
@@ -142,7 +144,12 @@ export async function action(args: Route.ActionArgs) {
     // Handle create-new-draft intent
     if (intent === 'create-new-draft') {
       try {
-        const newWork = await dbCreateDraftFileWork(ctx, 'my-works');
+        const newWork = await dbCreateDraftFileWork(
+          ctx,
+          'my-works',
+          [],
+          metadataForNewDraftFileWorkVersion(ctx.$config, serverExtensions),
+        );
         return {
           success: true,
           intent: 'create-new-draft',
