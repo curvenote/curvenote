@@ -107,7 +107,12 @@ export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
                     />
                   )}
                   {safeConfig !== undefined && AdminCardComponent && (
-                    <AdminCardComponent name={name} extension={extension} record={safeConfig} />
+                    <AdminCardComponent
+                      name={name}
+                      extension={extension}
+                      record={safeConfig}
+                      ExtensionIcon={ExtensionIcon}
+                    />
                   )}
                 </div>
               </primitives.Card>
