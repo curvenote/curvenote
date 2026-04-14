@@ -22,8 +22,9 @@ const serviceDataFromRun = (run: CheckServiceRunRow): unknown =>
 /**
  * Timeline item for a check service run (database-driven). When a matching check
  * extension exists, the tray and pill are implemented by the extension's
- * sectionActivityComponent and sectionSummaryBadgeComponent. When no matching
- * service is found, a generic fallback row and tray are shown.
+ * sectionActivityComponent and sectionSummaryBadgeComponent; an optional
+ * sectionSummaryTitleComponent replaces the default name segment before the word “checks” on the same line.
+ * When no matching service is found, a generic fallback row and tray are shown.
  */
 export function CheckServiceRunTimelineItem({
   run,
@@ -42,7 +43,18 @@ export function CheckServiceRunTimelineItem({
   const checksActionPath = checkService?.checksActionPath ?? `${basePath}/checks`;
 
   if (checkService) {
-    const message = <>{checkService.name} checks</>;
+    const SummaryTitleComponent = checkService.sectionSummaryTitleComponent;
+    const message = (
+      <span className="inline-flex flex-nowrap gap-2 items-center min-w-0 max-w-full h-7">
+        <span className="flex h-full min-w-0 shrink items-center overflow-hidden [&_img]:max-h-full [&_img]:w-auto [&_img]:object-contain [&_img]:object-left [&_span]:max-h-full [&_svg]:max-h-full [&_svg]:w-auto">
+          {SummaryTitleComponent != null ? (
+            <SummaryTitleComponent metadata={serviceData} />
+          ) : (
+            <span className="leading-none truncate">{checkService.name}</span>
+          )}
+        </span>
+      </span>
+    );
     const ActivityComponent = checkService.sectionActivityComponent;
     const SummaryBadgeComponent = checkService.sectionSummaryBadgeComponent;
     const MountComponent = checkService.checkRunTimelineMountComponent;
@@ -83,6 +95,7 @@ export function CheckServiceRunTimelineItem({
           date={date}
           pill={pill}
           defaultExpanded={Boolean(isLatestRunForKind)}
+          className="py-2"
         >
           {tray}
         </TimelineItemExpandable>
@@ -109,6 +122,7 @@ export function CheckServiceRunTimelineItem({
       message={message}
       date={date}
       pill={<TimelineItemPill label="No details" variant="default" />}
+      className="py-2"
     >
       {tray}
     </TimelineItemExpandable>

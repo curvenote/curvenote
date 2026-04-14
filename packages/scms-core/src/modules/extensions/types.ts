@@ -130,6 +130,16 @@ export type ExtensionCheckRunTimelineMountProps = {
   isLatestRunForKind?: boolean;
 };
 
+/**
+ * Props for `ExtensionCheckService.sectionSummaryTitleComponent`.
+ * Rendered in the work-version timeline title row before the fixed “checks” label (same line);
+ * platform constrains height so overflow does not break the row layout.
+ */
+export type ExtensionCheckSectionSummaryTitleProps = {
+  /** Check run `serviceData` (extension-defined shape), same as `sectionSummaryBadgeComponent`. */
+  metadata: any;
+};
+
 export interface ExtensionCheckService {
   id: string; // e.g., 'curvenote-structure'
   name: string; // Display name
@@ -144,6 +154,11 @@ export interface ExtensionCheckService {
   sectionActivityComponent: React.ComponentType<ExtensionCheckSectionActivityProps>;
   /** Optional summary badge for timeline (e.g. "All clear", "2 problems", "Awaiting review"). Same metadata as sectionActivityComponent. */
   sectionSummaryBadgeComponent?: React.ComponentType<{ metadata: any }>;
+  /**
+   * Optional title region for the timeline row (e.g. service logo). When set, replaces the default
+   * `{name}` segment; the platform always appends the word “checks” on the same line with spacing.
+   */
+  sectionSummaryTitleComponent?: React.ComponentType<ExtensionCheckSectionSummaryTitleProps>;
   /**
    * Optional component mounted for each matching check run row on the work timeline even when the
    * tray is collapsed. Use for extension-specific side effects keyed off loader data.

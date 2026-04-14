@@ -49,7 +49,9 @@ export function DateWithPopover({
     <ui.TooltipProvider delayDuration={1000}>
       <ui.Tooltip delayDuration={1000}>
         <ui.TooltipTrigger asChild>
-          <span className={cn(className, 'cursor-default')}>{relative}</span>
+          <span className={cn(className, 'inline-flex cursor-default items-center leading-none')}>
+            {relative}
+          </span>
         </ui.TooltipTrigger>
         <ui.TooltipContent side="top" className="text-sm max-w-[min(100vw-2rem,22rem)]">
           {tooltipBody}

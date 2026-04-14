@@ -31,12 +31,18 @@ export function TimelineItemPlain({
         className,
       )}
     >
-      <div className="shrink-0 text-foreground [&>svg]:w-4 [&>svg]:h-4">{icon}</div>
-      <div className="flex-1 min-w-0">
-        <span className="text-sm text-foreground">{message}</span>
-        <span className="ml-2 text-xs text-muted-foreground">{date}</span>
+      <div className="flex size-4 shrink-0 items-center justify-center text-foreground [&>svg]:size-4">
+        {icon}
       </div>
-      {trailing != null && <div className="shrink-0">{trailing}</div>}
+      <div className="flex flex-1 gap-2 items-center min-w-0">
+        <div className="flex flex-1 items-center min-w-0 text-sm leading-none text-foreground">
+          {message}
+        </div>
+        <div className="flex items-center text-xs leading-none shrink-0 text-muted-foreground">
+          {date}
+        </div>
+      </div>
+      {trailing != null && <div className="flex items-center shrink-0">{trailing}</div>}
     </div>
   );
 }
@@ -119,25 +125,33 @@ export function TimelineItemExpandable({
           className,
         )}
       >
-        <div className="shrink-0 text-foreground [&>svg]:w-4 [&>svg]:h-4">{icon}</div>
-        <div className="flex-1 min-w-0">
-          <span className="text-sm text-foreground">{message}</span>
-          <span className="ml-2 text-xs text-muted-foreground">{date}</span>
+        <div className="flex size-4 shrink-0 items-center justify-center text-foreground [&>svg]:size-4">
+          {icon}
+        </div>
+        <div className="flex flex-1 gap-2 items-center min-w-0">
+          <div className="flex flex-1 items-center min-w-0 text-sm leading-none text-foreground">
+            {message}
+          </div>
+          <div className="flex items-center text-xs leading-none shrink-0 text-muted-foreground">
+            {date}
+          </div>
         </div>
         {trailing != null && (
-          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
             {trailing}
           </div>
         )}
-        {pill != null && <div className="shrink-0">{pill}</div>}
+        {pill != null && <div className="flex items-center shrink-0">{pill}</div>}
         {hasTray && (
-          <ChevronDown
-            className={cn(
-              'w-4 h-4 text-muted-foreground transition-transform shrink-0',
-              expanded && 'rotate-180',
-            )}
-            aria-hidden
-          />
+          <span className="flex justify-center items-center size-4 shrink-0">
+            <ChevronDown
+              className={cn(
+                'size-4 text-muted-foreground transition-transform',
+                expanded && 'rotate-180',
+              )}
+              aria-hidden
+            />
+          </span>
         )}
       </div>
       {hasTray && expanded && (
