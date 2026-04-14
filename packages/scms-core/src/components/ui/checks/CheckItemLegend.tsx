@@ -33,6 +33,7 @@ export interface CheckItemLegendProps {
  * ```
  */
 export function CheckItemLegend({ stats }: CheckItemLegendProps) {
+  if (stats.length === 0) return null;
   return (
     <div className="flex flex-wrap">
       {stats.map((stat, index) => (
