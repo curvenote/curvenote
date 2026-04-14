@@ -1,4 +1,4 @@
-import { dbFindDraftFileWorksForUser } from '../works.$workId.upload.$workVersionId/db.server';
+import { dbFindSingleVersionDraftFileWorksForUser } from '../works.$workId.upload.$workVersionId/db.server';
 
 /**
  * Draft list item shape returned by getValidDraftWorksForUser (matches DraftWork from scms-core).
@@ -13,8 +13,9 @@ export type DraftListItem = {
 };
 
 /**
- * Check if a draft work is valid for reuse.
- * Valid drafts must have exactly one work version and the 'checks' field in metadata.
+ * Check if a draft work is valid for reuse in the Resume-draft dialog.
+ * Caller must pass works that already have exactly one version and that version is draft.
+ * This only checks that the version has the 'checks' field in metadata (required for upload flow).
  */
 export function isValidDraftForReuse(work: { versions: { metadata: unknown }[] }): boolean {
   if (work.versions.length !== 1) {
@@ -25,11 +26,13 @@ export function isValidDraftForReuse(work: { versions: { metadata: unknown }[] }
 }
 
 /**
- * Get all valid draft works for a user (single version, with checks metadata).
- * Used by works._index action and works.new loader.
+ * Get draft works for the "Resume draft" dialog on My Works / New Work.
+ * Only returns works that have exactly one work version and that version is draft
+ * (so we don't show "new version" drafts that are managed from Work Details).
+ * Also requires the 'checks' field in version metadata.
  */
 export async function getValidDraftWorksForUser(userId: string): Promise<DraftListItem[]> {
-  const draftWorks = await dbFindDraftFileWorksForUser(userId);
+  const draftWorks = await dbFindSingleVersionDraftFileWorksForUser(userId);
   const validDrafts = draftWorks.filter(isValidDraftForReuse);
   return validDrafts.map((work) => ({
     workId: work.id,
