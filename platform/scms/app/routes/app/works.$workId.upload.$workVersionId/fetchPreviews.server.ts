@@ -12,8 +12,8 @@ import type { Context } from '@curvenote/scms-server';
 import { parseOffice } from 'officeparser';
 import type { OfficeParserAST, OfficeContentNode } from 'officeparser';
 
-/** Number of top-level content nodes to include for "first page" preview */
-const FIRST_PAGE_CONTENT_LIMIT = 25;
+/** Number of top-level content nodes to include for "first page" preview (~75% of original 25) */
+const FIRST_PAGE_CONTENT_LIMIT = 19;
 
 function isDocxPath(path: string): boolean {
   return path.toLowerCase().endsWith('.docx');

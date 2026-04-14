@@ -8,7 +8,7 @@ import type {
   ImageMetadata,
   TextFormatting,
 } from 'officeparser';
-import { CodeXml } from 'lucide-react';
+import { CodeXml, FileText, Search } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
 import type { DocxPreviewItem } from './fetchPreviews.server';
 
@@ -145,7 +145,7 @@ function AstNode({ node, attachments, docMeta }: AstNodeProps): React.ReactEleme
       const level = Math.min(6, Math.max(1, meta?.level ?? 1));
       const Tag = `h${level}` as keyof JSX.IntrinsicElements;
       return (
-        <Tag className="mb-2 mt-4 first:mt-0" style={formatStyle(effectiveFormatting)}>
+        <Tag className="mt-4 mb-2 first:mt-0" style={formatStyle(effectiveFormatting)}>
           {renderChildren()}
         </Tag>
       );
@@ -213,10 +213,7 @@ function OfficeAstRenderer({ ast }: OfficeAstRendererProps): React.ReactElement 
   const docMeta = ast.metadata as DocMetadata | undefined;
 
   return (
-    <div
-      className={PREVIEW_CONTENT_CLASS}
-      style={{ lineHeight: 1.6 }}
-    >
+    <div className={PREVIEW_CONTENT_CLASS} style={{ lineHeight: 1.6 }}>
       {grouped.map((item, i) => {
         if ('listType' in item && item.type === 'listGroup') {
           const ListTag = item.listType === 'ordered' ? 'ol' : 'ul';
@@ -256,11 +253,11 @@ function SingleFileView({
         type="button"
         variant={showAst ? 'secondary' : 'outline'}
         size="icon"
-        className="absolute top-0 right-0 z-10 h-8 w-8"
+        className="absolute top-0 right-0 z-10 w-8 h-8"
         onClick={onToggleAst}
         title={showAst ? 'Show preview' : 'Show AST'}
       >
-        <CodeXml className="h-4 w-4" />
+        <CodeXml className="w-4 h-4" />
       </ui.Button>
       <div className="pt-8">
         {showAst ? (
@@ -283,21 +280,22 @@ export const DocxPreviewer = ({ previews }: DocxPreviewerProps) => {
 
   if (previews.length === 0) {
     return (
-      <div className="rounded-md p-4 min-h-[100px] bg-white dark:bg-white">
-        <p className="text-sm text-muted-foreground">
-          No .docx files in this version. Upload .docx files above to see first-page previews here.
-        </p>
+      <div className="w-full aspect-square min-h-[280px] rounded-md bg-white dark:bg-white flex flex-col items-center justify-center gap-3 text-muted-foreground">
+        <div className="flex relative justify-center items-center">
+          <FileText className="w-14 h-14" strokeWidth={1.25} />
+          <Search className="absolute -right-1 -bottom-1 w-6 h-6 opacity-80" strokeWidth={2} />
+        </div>
+        <p className="text-sm">Previews will be shown here</p>
       </div>
     );
   }
 
-  const containerClass =
-    'rounded-md p-4 min-h-[100px] bg-white dark:bg-white';
+  const containerClass = 'rounded-md p-4 min-h-[100px] bg-white dark:bg-white';
 
   return (
     <div className={containerClass}>
       <ui.Tabs value={fileTab} onValueChange={setFileTab} className="w-full">
-        <ui.TabsList className="w-full justify-start h-auto p-0 bg-transparent rounded-none shadow-none border-0">
+        <ui.TabsList className="justify-start p-0 w-full h-auto bg-transparent rounded-none border-0 border-b-2 shadow-none">
           {previews.map((item, index) => (
             <ui.TabsTrigger
               key={item.path}
