@@ -40,7 +40,10 @@ export function Timeline({
         </div>
       )}
       <div className="relative">
-        <div className={cn('absolute left-0 bottom-2 w-[2px] bg-border', lineTop)} aria-hidden />
+        <div
+          className={cn('absolute left-0 bottom-1 w-[2px] bg-foreground/20', lineTop)}
+          aria-hidden
+        />
         <div className={cn('space-y-6', nested && 'pt-5')}>{children}</div>
       </div>
     </div>
