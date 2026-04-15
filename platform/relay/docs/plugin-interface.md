@@ -117,7 +117,7 @@ Unless noted, authenticated relay routes are under **`/api/v1/services/:serviceN
 
 #### `getInstanceStatus(credentials, body)`
 
-Instance-wide capabilities or health (no check id). Returns **`InstanceStatusResult`** (`JsonValue`). The relay wraps this with manifest detail for the `POST /api/v1/services/:serviceName/instances/:instanceId/status` response.
+Instance-wide capabilities or health (no check id). Returns **`InstanceStatusResult`** (a JSON object). The relay wraps this with manifest detail for the `POST /api/v1/services/:serviceName/instances/:instanceId/status` response.
 
 #### `configure(credentials, body, context?)`
 

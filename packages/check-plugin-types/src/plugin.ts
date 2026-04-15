@@ -4,16 +4,13 @@
  * These are intentionally separated from client-facing API/notify contracts.
  */
 
-import type { PluginUploadPayload, SubmitManuscriptFile } from "./relay.js";
+import type { PluginUploadPayload, SubmitManuscriptFile } from './relay.js';
 
 // ── JSON ──
 
 /** JSON-serializable value (for responses that round-trip through `JSON.stringify`). */
 export type JsonPrimitive = string | number | boolean | null;
-export type JsonValue =
-  | JsonPrimitive
-  | JsonValue[]
-  | { readonly [key: string]: JsonValue };
+export type JsonValue = JsonPrimitive | JsonValue[] | { readonly [key: string]: JsonValue };
 
 // ── Core plugin result types ──
 
@@ -21,12 +18,7 @@ export type JsonValue =
  * Canonical status strings for **`PluginOperationResult`** and related plugin outcomes
  * (upload, configure, terms, check-scoped calls, etc.).
  */
-export type PluginStatus =
-  | "submitted"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "error";
+export type PluginStatus = 'submitted' | 'processing' | 'completed' | 'failed' | 'error';
 
 /**
  * Check / ingest lifecycle — **identical to {@link PluginStatus}**.
@@ -47,13 +39,13 @@ export interface PluginOperationResult<T = unknown> {
 }
 
 /**
- * `getInstanceStatus()` returns JSON-serializable data (e.g. provider feature flags).
+ * `getInstanceStatus()` returns a JSON object (e.g. provider feature flags).
  */
-export type InstanceStatusResult = JsonValue;
+export type InstanceStatusResult = { readonly [key: string]: JsonValue };
 
 export type PluginReportResult =
-  | { kind: "json"; response: PluginOperationResult }
-  | { kind: "binary"; body: Uint8Array; contentType: string };
+  | { kind: 'json'; response: PluginOperationResult }
+  | { kind: 'binary'; body: Uint8Array; contentType: string };
 
 // ── Service discovery (manifest is produced by plugin; consumed by clients) ──
 
@@ -75,9 +67,9 @@ export interface ServiceManifest {
  * The relay maps this to **401** on ingest (not 500).
  */
 export class WebhookSignatureInvalidError extends Error {
-  override readonly name = "WebhookSignatureInvalidError";
+  override readonly name = 'WebhookSignatureInvalidError';
 
-  constructor(message = "Invalid webhook signature") {
+  constructor(message = 'Invalid webhook signature') {
     super(message);
   }
 }
@@ -175,10 +167,7 @@ export interface ServicePlugin {
    * The relay calls this **before** `JSON.parse`; throw {@link WebhookSignatureInvalidError} when
    * verification fails (mapped to HTTP 401 on ingest).
    */
-  verifyWebhook(
-    request: WebhookVerifyRequest,
-    instance: IngestInstanceConfig,
-  ): Promise<void>;
+  verifyWebhook(request: WebhookVerifyRequest, instance: IngestInstanceConfig): Promise<void>;
 
   /**
    * Map verified JSON webhook payload to a normalized update (called only after {@link verifyWebhook}
@@ -194,9 +183,7 @@ export interface ServicePlugin {
    * mapping to relay notify events). When omitted, the relay emits only the generic
    * `UPLOAD_*` envelopes from {@link WebhookParseResult.status}.
    */
-  handleIngestWebhook?: (
-    ctx: IngestWebhookContext,
-  ) => Promise<readonly IngestNotifyEnvelope[]>;
+  handleIngestWebhook?: (ctx: IngestWebhookContext) => Promise<readonly IngestNotifyEnvelope[]>;
 
   /**
    * Instance-level status / capabilities (no check id).
