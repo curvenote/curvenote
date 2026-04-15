@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { createMiddleware } from "hono/factory";
 import { relayConfig } from "../relay-config.js";
 
@@ -23,7 +24,12 @@ export const apiKeyAuth = createMiddleware(async (c, next) => {
     return c.json({ error: "Invalid Authorization header format" }, 401);
   }
 
-  if (token !== apiKey) {
+  const expected = Buffer.from(apiKey, "utf8");
+  const received = Buffer.from(token, "utf8");
+  const keyMatches =
+    expected.length === received.length &&
+    timingSafeEqual(expected, received);
+  if (!keyMatches) {
     return c.json({ error: "Invalid API key" }, 401);
   }
 

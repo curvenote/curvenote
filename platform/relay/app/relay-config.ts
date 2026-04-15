@@ -1,7 +1,7 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { loadValidatedConfig } from "@app-config/config";
-import { defaultAliases } from "@app-config/node";
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { loadValidatedConfig } from '@app-config/config';
+import { defaultAliases } from '@app-config/node';
 
 /** One configured provider binding (credentials, signing secret, target plugin). */
 export type ServiceInstanceConfig = {
@@ -18,11 +18,13 @@ export type RelayAppConfig = {
   apiKey: string;
   publicBaseUrl?: string;
   webhookBaseUrl?: string;
+  /** Allowed base URLs for notify callbacks (origin-only or origin + path prefix). */
+  notifyUrlAllowlist?: string[];
   /** Map keys are service instance ids (URL segment `instances/:instanceId`). */
   instances: Record<string, ServiceInstanceConfig>;
 };
 
-const relayRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const relayRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 let loaded: RelayAppConfig | undefined;
 
@@ -34,7 +36,7 @@ export async function loadRelayConfig(): Promise<RelayAppConfig> {
   const { fullConfig } = await loadValidatedConfig(
     {
       directory: relayRoot,
-      environmentAliases: { ...defaultAliases, stage: "staging" },
+      environmentAliases: { ...defaultAliases, stage: 'staging' },
     },
     { directory: relayRoot },
   );
@@ -44,7 +46,7 @@ export async function loadRelayConfig(): Promise<RelayAppConfig> {
 
 export function relayConfig(): RelayAppConfig {
   if (!loaded) {
-    throw new Error("Relay configuration not loaded; call loadRelayConfig() at startup");
+    throw new Error('Relay configuration not loaded; call loadRelayConfig() at startup');
   }
   return loaded;
 }

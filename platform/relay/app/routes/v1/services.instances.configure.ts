@@ -3,7 +3,10 @@
  */
 import type { Context } from "hono";
 import { relayConfig, instanceCredentials } from "../../relay-config.js";
-import { resolveInstanceForServicePost } from "./services.instances.utils.js";
+import {
+  resolveInstanceForServicePost,
+  splitBody,
+} from "./services.instances.utils.js";
 
 function ingestPublicBaseUrlFromConfig(): string {
   const cfg = relayConfig();
@@ -19,9 +22,10 @@ export async function configurePost(c: Context) {
   if (!resolution.ok) return resolution.response;
 
   const { plugin, instance, body, instanceId } = resolution;
+  const { rest } = splitBody(body);
 
   try {
-    const out = await plugin.configure(instanceCredentials(instance), body, {
+    const out = await plugin.configure(instanceCredentials(instance), rest, {
       ingestPublicBaseUrl: ingestPublicBaseUrlFromConfig(),
       signingSecret: instance.signingSecret,
       instanceId,

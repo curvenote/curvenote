@@ -1,4 +1,4 @@
-import echoPlugin from '@checks-relay/check-service-plugin-echo';
+import echoPlugin from '@curvenote/check-relay-plugin-echo';
 import { loadPlugins } from './loader.js';
 
 /**

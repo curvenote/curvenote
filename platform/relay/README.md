@@ -2,7 +2,7 @@
 
 Middleware API relay between an SCMS and external check services. It exposes a consistent REST API for the SCMS and a plugin architecture for integrating third-party providers.
 
-Package name: **`@checks-relay/check-relay`**.
+Package name: **`@curvenote/check-relay`**.
 
 ## Architecture
 
@@ -110,41 +110,39 @@ curvenote/
 │   ├── docs/
 │   └── .app-config.*.yml
 └── packages/
-    ├── check-plugin-types/      # @checks-relay/check-plugin-types
-    ├── check-relay-types/       # @checks-relay/check-relay-types
+    ├── check-plugin-types/      # @curvenote/check-plugin-types
+    ├── check-relay-types/       # @curvenote/check-relay-types
     └── check-service-plugin-echo/   # example plugin
 ```
 
 ## Adding a plugin
 
-Plugins are **workspace packages** that default-export a **`ServicePlugin`** from `@checks-relay/check-plugin-types`. The relay discovers them only after you register them in code and wire app-config instances to the plugin’s **`manifest.name`** (the `:serviceName` URL segment).
+Plugins are **workspace packages** that default-export a **`ServicePlugin`** from `@curvenote/check-plugin-types`. The relay discovers them only after you register them in code and wire app-config instances to the plugin’s **`manifest.name`** (the `:serviceName` URL segment).
 
 ### 1. Create a package
 
 Add a new workspace package under the monorepo, e.g. **`packages/check-service-plugin-<name>/`**, following the layout of **`packages/check-service-plugin-echo/`**:
 
-- **`package.json`** — name **`@checks-relay/check-service-plugin-<name>`**, `type: "module"`, dependency on **`@checks-relay/check-plugin-types`**, and **`exports`** that expose `./src/index.ts` under the `development` condition (and built `dist/` for production if you emit one).
+- **`package.json`** — name **`@curvenote/check-relay-plugin-<name>`**, `type: "module"`, dependency on **`@curvenote/check-plugin-types`**, and **`exports`** that expose `./src/index.ts` under the `development` condition (and built `dist/` for production if you emit one).
 - **`src/index.ts`** — implement **`ServicePlugin`**: `manifest` (name, title, description, version, optional logo path / metadata), `configure`, `getTerms`, `getInstanceStatus`, `upload`, check-scoped methods (`getCheckStatus`, `getCheckArtifacts`, report helpers, optional PDF/report hooks), and **`parseWebhook`** for ingest. The manifest **`name`** must match the **`serviceName`** you use in app-config and in URLs.
 
-Use **`@checks-relay/check-service-plugin-echo`** as the minimal reference implementation.
+Use **`@curvenote/check-relay-plugin-echo`** as the minimal reference implementation.
 
 ### 2. Register the plugin in the relay
 
-1. Add a **workspace dependency** on the new package to **`platform/relay/package.json`**:
+**Plugins under `extensions/plugins/`** with a package name matching **`@scope/check-relay-plugin-*`** (or unscoped `check-relay-plugin-*`) are picked up automatically: root **`postinstall`** runs **`generate:relay-plugins`**, which merges them into **`platform/relay/package.json`** (from **`package.template.json`**) and regenerates **`app/plugins/load-plugins.ts`** from **`app/plugins/load-plugins.tpl.ts`**.
+
+For plugins that live **outside** `extensions/plugins/` (e.g. **`packages/check-relay-plugin-*`**):
+
+1. Add a **workspace dependency** in **`platform/relay/package.template.json`**:
 
    ```json
-   "@checks-relay/check-service-plugin-<name>": "*"
+   "@curvenote/check-relay-plugin-<name>": "*"
    ```
 
-2. Import it and pass it to **`loadPlugins`** in **`app/plugins/load-plugins.ts`**:
+2. Import it and pass it to **`loadPlugins`** in **`app/plugins/load-plugins.tpl.ts`** (template for the generated **`load-plugins.ts`**).
 
-   ```typescript
-   import myPlugin from '@checks-relay/check-service-plugin-<name>';
-   // …
-   await loadPlugins([echoPlugin, myPlugin]);
-   ```
-
-3. Run **`npm install`** from the **monorepo root** so npm links the workspace package.
+3. Run **`npm install`** from the **monorepo root** so **`preinstall`** clears generated files and **`postinstall`** regenerates **`platform/relay/package.json`** and the loader.
 
 ### 3. Configure instances
 
@@ -156,8 +154,8 @@ If the manifest references a logo path (e.g. `/assets/<serviceName>/logo.svg`), 
 
 ### 5. Types and contracts
 
-- **Plugin implementation types:** `@checks-relay/check-plugin-types`
-- **Wire formats / notify payloads (implemented by the relay, not plugins):** `@checks-relay/check-relay-types`
+- **Plugin implementation types:** `@curvenote/check-plugin-types`
+- **Wire formats / notify payloads (implemented by the relay, not plugins):** `@curvenote/check-relay-types`
 
 ## Environment variables
 

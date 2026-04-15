@@ -137,7 +137,7 @@ export interface IngestWebhookContext {
 
 /**
  * One notify payload to forward after ingest. Runtime shape must match
- * `RelayNotifyEnvelope` from `@checks-relay/check-relay-types`.
+ * `RelayNotifyEnvelope` from `@curvenote/check-relay-types`.
  */
 export type IngestNotifyEnvelope = Record<string, unknown>;
 

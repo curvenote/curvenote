@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import type {
   PluginOperationResult,
   ServicePlugin,
-} from "@checks-relay/check-plugin-types";
+} from "@curvenote/check-plugin-types";
 import { registry } from "../../plugins/registry.js";
 import type { ServiceInstanceConfig } from "../../relay-config.js";
 import { getInstanceConfig, instanceCredentials } from "../../relay-config.js";

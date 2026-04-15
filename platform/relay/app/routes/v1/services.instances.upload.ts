@@ -2,9 +2,10 @@
  * POST /api/v1/services/:serviceName/instances/:instanceId/upload
  */
 import type { Context } from 'hono';
-import type { PluginUploadPayload, SubmitManuscriptFile } from '@checks-relay/check-plugin-types';
+import type { PluginUploadPayload, SubmitManuscriptFile } from '@curvenote/check-plugin-types';
 import { registry } from '../../plugins/registry.js';
 import { instanceCredentials } from '../../relay-config.js';
+import { validateNotifyUrl } from '../../notify-url-policy.js';
 import { readJsonBody, resolveInstanceFromParsed } from './services.instances.utils.js';
 
 function parseFiles(
@@ -70,6 +71,18 @@ export async function uploadPost(c: Context) {
       {
         status: 'error' as const,
         message: 'client_id and notify_url must be strings',
+        result: null,
+      },
+      400,
+    );
+  }
+
+  const notifyValidation = validateNotifyUrl(notifyUrl);
+  if (!notifyValidation.ok) {
+    return c.json(
+      {
+        status: 'error' as const,
+        message: notifyValidation.reason,
         result: null,
       },
       400,

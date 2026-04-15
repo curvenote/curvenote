@@ -2,14 +2,14 @@
 
 Reference for authors of **service plugins**: npm packages that implement `ServicePlugin` and are registered in the relay at deploy time.
 
-**Canonical types** live in the workspace package **`@checks-relay/check-plugin-types`**:
+**Canonical types** live in the workspace package **`@curvenote/check-plugin-types`**:
 
 | File                                                                                  | Contents                                                          |
 | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | [`packages/plugin-types/src/plugin.ts`](../../../packages/plugin-types/src/plugin.ts) | `ServicePlugin`, webhook types, manifests, operation results      |
 | [`packages/plugin-types/src/relay.ts`](../../../packages/plugin-types/src/relay.ts)   | `PluginUploadPayload`, `SubmitManuscriptFile`, upload body shapes |
 
-**Client-facing** HTTP and notify contracts are **`@checks-relay/check-relay-types`** — plugins do not define those; the relay maps plugin outcomes and webhooks into them. See [api-reference.md](api-reference.md) for REST and notify events.
+**Client-facing** HTTP and notify contracts are **`@curvenote/check-relay-types`** — plugins do not define those; the relay maps plugin outcomes and webhooks into them. See [api-reference.md](api-reference.md) for REST and notify events.
 
 ---
 
@@ -31,9 +31,9 @@ Plugins may still think in provider terms (e.g. “submission” ids); expose th
 
 1. Implement `ServicePlugin` in `packages/service-plugin-<name>/src/index.ts`.
 2. Import and register it in [`apps/relay/app/plugins/load-plugins.ts`](../app/plugins/load-plugins.ts).
-3. Add `"@checks-relay/check-service-plugin-<name>": "*"` to **`apps/relay/package.json`**.
+3. Add `"@curvenote/check-relay-plugin-<name>": "*"` to **`apps/relay/package.json`**.
 
-Examples: **`@checks-relay/check-service-plugin-echo`**
+Examples: **`@curvenote/check-relay-plugin-echo`**
 
 ---
 

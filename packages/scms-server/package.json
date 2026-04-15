@@ -87,7 +87,7 @@
     "zod-form-data": "^3.0.1"
   },
   "optionalDependencies": {
-    "@esbuild/linux-x64": "^0.25.1",
+    "@esbuild/linux-x64": "^0.28.0",
     "@rollup/rollup-linux-x64-gnu": "^4.35.0"
   },
   "devDependencies": {

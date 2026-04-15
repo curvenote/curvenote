@@ -20,6 +20,14 @@ publicBaseUrl: http://localhost:4041
 # Optional: origin external providers should use for webhooks (tunnel, staging host).
 # webhookBaseUrl: https://relay-dev.example.com
 
+# Optional: callback base URLs accepted for `notify_url`.
+# Supports origin-only entries or origin + path prefixes.
+# If unset (or set to an empty list), relay does not restrict destination hosts
+# and allows any absolute http(s) notify URL.
+# notifyUrlAllowlist:
+#   - https://scms.example.com
+#   - https://scms.example.com/api/checks/notify
+
 instances:
   default:
     serviceName: echo

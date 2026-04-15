@@ -1,4 +1,4 @@
-import type { ServicePlugin, ServiceManifest } from "@checks-relay/check-plugin-types";
+import type { ServicePlugin, ServiceManifest } from "@curvenote/check-plugin-types";
 
 class PluginRegistry {
   private plugins = new Map<string, ServicePlugin>();

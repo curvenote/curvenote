@@ -1,6 +1,6 @@
 {
-  "name": "@checks-relay/check-plugin-types",
-  "version": "0.0.1",
+  "name": "@curvenote/check-plugin-types",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "types": "./dist/index.d.ts",

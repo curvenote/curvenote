@@ -7,8 +7,9 @@
  * - app/extensions/client.ts
  * - app/extensions/server.ts
  *
- * It also scans extensions/.../packages/... for packages with a `build` script and writes
- * turbo.extensions.generated.json (gitignored) so Turborepo hashes gitignored extension sources.
+ * It also scans extensions/.../packages/... and extensions/plugins/... for packages with a
+ * `build` script and writes turbo.extensions.generated.json (gitignored) so Turborepo hashes
+ * gitignored extension / relay-plugin sources.
  * Run via npm run generate:extensions (postinstall). Use scripts/turbo-run.mjs to merge that
  * fragment with turbo.json when invoking the turbo CLI.
  */
@@ -177,6 +178,52 @@ function findNestedExtensionBuildPackages(extensionsDir) {
   }
 
   return packages.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Packages directly under extensions/plugins/* with a `build` script (relay plugins, etc.).
+ */
+function findExtensionPluginsBuildPackages(pluginsDir) {
+  const packages = [];
+
+  if (!existsSync(pluginsDir)) {
+    return packages;
+  }
+
+  const entries = readdirSync(pluginsDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const packageRoot = join(pluginsDir, entry.name);
+    const packageJsonPath = join(packageRoot, 'package.json');
+    if (!existsSync(packageJsonPath)) {
+      continue;
+    }
+    let pkg;
+    try {
+      pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    } catch {
+      continue;
+    }
+    if (!pkg.name || typeof pkg.scripts?.build !== 'string') {
+      continue;
+    }
+    packages.push({ name: pkg.name, packageRoot });
+  }
+
+  return packages.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Last writer wins; nested extensions and plugins should not share a package name. */
+function mergeExtensionBuildPackageLists(lists) {
+  const byName = new Map();
+  for (const list of lists) {
+    for (const p of list) {
+      byName.set(p.name, p);
+    }
+  }
+  return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function buildTurboBuildTaskForExtensionPackage(packageRoot) {
@@ -354,12 +401,15 @@ function main() {
   writeFileSync(PACKAGE_JSON, packageJsonContent, 'utf-8');
   console.log(`Generated package.json at ${PACKAGE_JSON}`);
 
-  const extensionBuildPackages = findNestedExtensionBuildPackages(EXTENSIONS_DIR);
+  const extensionBuildPackages = mergeExtensionBuildPackageLists([
+    findNestedExtensionBuildPackages(EXTENSIONS_DIR),
+    findExtensionPluginsBuildPackages(join(EXTENSIONS_DIR, 'plugins')),
+  ]);
   console.log('\nGenerating Turborepo extension build task overrides...');
   writeTurboExtensionsGenerated(extensionBuildPackages);
   console.log(`Generated ${TURBO_EXT_GEN}`);
   if (extensionBuildPackages.length === 0) {
-    console.log('  (no packages with build scripts under extensions/)');
+    console.log('  (no packages with build scripts under extensions/*/packages or extensions/plugins)');
   } else {
     extensionBuildPackages.forEach((p) => console.log(`  - ${p.name}`));
   }

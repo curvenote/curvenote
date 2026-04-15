@@ -6,3 +6,6 @@
 .app-config.secrets.development.yml
 app/generated/
 public/assets/
+
+# Generated from package.template.json by scripts/generate-plugin-loader.js (postinstall)
+package.json

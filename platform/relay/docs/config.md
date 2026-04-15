@@ -71,7 +71,7 @@ apiKey: your-relay-api-key
 
 instances:
   default:
-    apiKey: 'your-tca-api-key'
+    apiKey: 'your-extrnal-api-key'
     signingSecret: 'base64-encoded-signing-secret'
 ```
 

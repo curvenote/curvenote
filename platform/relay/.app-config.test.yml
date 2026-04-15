@@ -5,6 +5,9 @@
 port: 4041
 publicBaseUrl: https://relay.example.test
 
+notifyUrlAllowlist:
+  - https://client.example.test/hooks/checks
+
 instances:
   checker:
     serviceName: checker
@@ -19,5 +22,10 @@ instances:
   stager:
     serviceName: stager
     apiUrl: 'https://stager.example.test'
+    integrationName: 'checks-relay-test'
+    integrationVersion: '1.0.0'
+  echo-fixture:
+    serviceName: echo
+    apiUrl: 'https://echo.example.test'
     integrationName: 'checks-relay-test'
     integrationVersion: '1.0.0'

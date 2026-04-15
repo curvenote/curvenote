@@ -20,7 +20,7 @@ The **external provider** is outside the relay: manuscript storage, analysis, re
 
 ## 2. Lifecycle stages (client view)
 
-Think of a check moving through **coarse stages**. Exact timing depends on the provider; the relay standardizes what the client sees via **notify `event` names** (see `@checks-relay/check-relay-types`).
+Think of a check moving through **coarse stages**. Exact timing depends on the provider; the relay standardizes what the client sees via **notify `event` names** (see `@curvenote/check-relay-types`).
 
 1. **Instance readiness** — Client (or ops) confirms the service instance is configured: capabilities, legal/terms if applicable, webhook endpoint registered at the provider so ingest URLs work.
 2. **Submission** — Client uploads manuscript(s); relay returns an **`externalId`** (provider-side check id) the client keeps for all later check-scoped calls.

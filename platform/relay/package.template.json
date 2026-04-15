@@ -1,5 +1,5 @@
 {
-  "name": "@checks-relay/check-relay",
+  "name": "@curvenote/check-relay",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -18,9 +18,9 @@
     "@app-config/config": "^2.8.7",
     "@app-config/main": "^2.8.7",
     "@app-config/node": "^2.8.7",
-    "@checks-relay/check-service-plugin-echo": "*",
-    "@checks-relay/check-plugin-types": "*",
-    "@checks-relay/check-relay-types": "*",
+    "@curvenote/check-relay-plugin-echo": "*",
+    "@curvenote/check-plugin-types": "*",
+    "@curvenote/check-relay-types": "*",
     "@hono/node-server": "^1.14.0",
     "dotenv": "^16.6.1",
     "hono": "^4.7.0",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.0",
     "typescript": "^5.7.0"
   }
 }

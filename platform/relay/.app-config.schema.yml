@@ -31,6 +31,15 @@ properties:
       Optional origin external providers should use for webhooks (tunnel, staging hostname, etc.;
       no trailing path). When set, POST …/configure uses this instead of publicBaseUrl
       to build the ingest webhook URL registered with the provider.
+  notifyUrlAllowlist:
+    type: array
+    description: >
+      Optional allowlist of callback base URLs for `notify_url`. Each entry must be an
+      absolute http(s) URL and may include a path prefix. When set, upload requests and
+      recovered ingest notify URLs must match protocol + host + port + path prefix.
+    items:
+      type: string
+      minLength: 1
   instances:
     type: object
     minProperties: 1

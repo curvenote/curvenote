@@ -1,5 +1,5 @@
-import type { ServiceManifest } from "@checks-relay/check-plugin-types";
-import type { ServiceListItem, ServiceDetailResponse } from "@checks-relay/check-relay-types";
+import type { ServiceManifest } from "@curvenote/check-plugin-types";
+import type { ServiceListItem } from "@curvenote/check-relay-types";
 
 /**
  * Turn a manifest `logo` into an absolute URL when `publicBaseUrl` is configured.
@@ -21,24 +21,11 @@ export function resolvePublicLogo(
   return new URL(logo, origin).href;
 }
 
-export function manifestToListItem(
+/** Client-facing service record for list and detail endpoints (identical wire shape). */
+export function manifestToClientService(
   m: ServiceManifest,
   publicBaseUrl?: string,
 ): ServiceListItem {
-  return {
-    name: m.name,
-    title: m.title,
-    description: m.description,
-    version: m.version,
-    logo: resolvePublicLogo(m.logo, publicBaseUrl),
-    metadata: m.metadata,
-  };
-}
-
-export function manifestToDetail(
-  m: ServiceManifest,
-  publicBaseUrl?: string,
-): ServiceDetailResponse {
   return {
     name: m.name,
     title: m.title,

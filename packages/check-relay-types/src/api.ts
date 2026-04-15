@@ -4,7 +4,7 @@
  * These are standard across plugins; plugin-specific options belong under `metadata`.
  */
 
-import type { PluginStatus } from "@checks-relay/check-plugin-types";
+import type { PluginStatus } from "@curvenote/check-plugin-types";
 
 /**
  * Standard upload request body sent by clients to checks-relay (wire shape).
@@ -28,15 +28,8 @@ export interface ServiceListItem {
   metadata: Record<string, unknown>;
 }
 
-/** Service detail (GET /api/v1/services/:name). */
-export interface ServiceDetailResponse {
-  name: string;
-  title: string;
-  description: string;
-  version: string;
-  logo: string;
-  metadata: Record<string, unknown>;
-}
+/** Service detail (GET /api/v1/services/:name) — same wire shape as {@link ServiceListItem}. */
+export type ServiceDetailResponse = ServiceListItem;
 
 /** Response after a successful upload (`POST …/upload`). */
 export interface CheckResponse {

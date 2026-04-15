@@ -7,7 +7,7 @@ import type {
   WebhookParseResult,
   WebhookVerifyRequest,
   PluginUploadPayload,
-} from "@checks-relay/check-plugin-types";
+} from "@curvenote/check-plugin-types";
 
 const NI: PluginOperationResult = {
   status: "error",

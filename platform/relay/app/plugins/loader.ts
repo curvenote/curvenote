@@ -1,4 +1,4 @@
-import type { ServicePlugin } from "@checks-relay/check-plugin-types";
+import type { ServicePlugin } from "@curvenote/check-plugin-types";
 import { registry } from "./registry.js";
 
 /**
