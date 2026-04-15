@@ -151,7 +151,6 @@ export function WorkVersionTimeline(props: WorkVersionTimelineProps) {
 
 function WorkVersionTimelineInner({
   versions,
-  workflows,
   workOwnerName,
   basePath,
   userScopes,
@@ -258,7 +257,8 @@ function WorkVersionTimelineInner({
                     checkService={service}
                     basePath={basePath}
                     isLatestRunForKind={
-                      entry.run.id === getLatestCheckRunIdForKind(checkRunsForVersion, entry.run.kind)
+                      entry.run.id ===
+                      getLatestCheckRunIdForKind(checkRunsForVersion, entry.run.kind)
                     }
                   />
                 );

@@ -19,7 +19,6 @@ import {
   useDeploymentConfig,
 } from '@curvenote/scms-core';
 import type { Context, KnownBucketInfo } from '@curvenote/scms-server';
-import type { Prisma } from '@curvenote/scms-db';
 import pLimit from 'p-limit';
 
 export async function loader(args: Route.LoaderArgs) {
@@ -335,15 +334,6 @@ function Contents({ contents, limit = 50 }: { contents: string[]; limit?: number
   );
 }
 
-// type StorageLocation = {
-//   cdn: string;
-//   path: string;
-//   md5: string;
-//   isFolder: boolean;
-//   exists: boolean;
-//   contents: string[];
-// };
-
 function QueryByKeyUI() {
   const fetcher = useFetcher<typeof action>();
 
@@ -636,9 +626,18 @@ function Versions({
   );
 }
 
+type ManageSubmissionsSuccess = Extract<
+  Awaited<ReturnType<typeof actionManageSubmissions>>,
+  { submissions: unknown }
+>;
+type ManageSubmissionsRow = ManageSubmissionsSuccess['submissions'][number];
+
 function ManageSubmissions({ sites }: { sites: Awaited<ReturnType<typeof sitesLoader.list>> }) {
   const fetcher = useFetcher<typeof action>();
-  const submissions = fetcher.data && 'submissions' in fetcher.data ? fetcher.data.submissions : [];
+  const submissions: ManageSubmissionsRow[] =
+    fetcher.data && 'submissions' in fetcher.data
+      ? (fetcher.data as { submissions: ManageSubmissionsRow[] }).submissions
+      : [];
 
   return (
     <div>

@@ -174,9 +174,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                       }
                       workVersionId={workVersion.id}
                       checkRunId={existingRunFromThisService?.id}
-                      remoteStatusActionPath={
-                        service.checksActionPath ?? `${basePath}/checks`
-                      }
+                      remoteStatusActionPath={service.checksActionPath ?? `${basePath}/checks`}
                     />
                   </ui.CardContent>
                 </ui.Card>
