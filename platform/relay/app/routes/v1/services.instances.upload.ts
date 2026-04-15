@@ -112,7 +112,7 @@ export async function uploadPost(c: Context) {
     const externalId = (result.result as Record<string, unknown> | null)
       ?.externalId as string | undefined;
 
-    if (result.status === "error") {
+    if (result.status === "error" || result.status === "failed") {
       return c.json(
         {
           status: result.status,
