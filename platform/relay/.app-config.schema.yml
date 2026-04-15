@@ -1,0 +1,75 @@
+# JSON Schema expressed as YAML; keep this file as `.app-config.schema.yml` (not `.json`).
+$schema: http://json-schema.org/draft-07/schema#
+
+type: object
+additionalProperties: false
+
+required:
+  - port
+  - apiKey
+  - instances
+
+properties:
+  port:
+    type: integer
+    minimum: 1
+    maximum: 65535
+  apiKey:
+    type: string
+    minLength: 1
+  publicBaseUrl:
+    type: string
+    minLength: 1
+    description: >
+      Public origin of this relay (scheme + host, optional port; no trailing path).
+      When set, root-relative manifest logos (e.g. /assets/echo/logo.svg) are returned
+      as absolute URLs from GET /api/v1/services and GET /api/v1/services/:name.
+  webhookBaseUrl:
+    type: string
+    minLength: 1
+    description: >
+      Optional origin external providers should use for webhooks (tunnel, staging hostname, etc.;
+      no trailing path). When set, POST …/configure uses this instead of publicBaseUrl
+      to build the ingest webhook URL registered with the provider.
+  notifyUrlAllowlist:
+    type: array
+    description: >
+      Optional allowlist of callback base URLs for `notify_url`. Each entry must be an
+      absolute http(s) URL and may include a path prefix. When set, upload requests and
+      recovered ingest notify URLs must match protocol + host + port + path prefix.
+    items:
+      type: string
+      minLength: 1
+  instances:
+    type: object
+    minProperties: 1
+    additionalProperties:
+      type: object
+      required:
+        - serviceName
+        - apiKey
+        - apiUrl
+        - signingSecret
+        - integrationName
+        - integrationVersion
+      properties:
+        serviceName:
+          type: string
+          minLength: 1
+          description: Plugin name this instance routes to (must match a registered plugin).
+        apiKey:
+          type: string
+          minLength: 1
+        apiUrl:
+          type: string
+          minLength: 1
+        signingSecret:
+          type: string
+          minLength: 1
+          description: Base64-encoded webhook signing secret for HMAC verification.
+        integrationName:
+          type: string
+          minLength: 1
+        integrationVersion:
+          type: string
+          minLength: 1

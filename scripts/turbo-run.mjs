@@ -3,7 +3,8 @@
  * Merges committed turbo.json with generated extension task overrides, then runs the Turbo CLI.
  * Root turbo.json cannot use `extends` for a second file (Turborepo ignores `extends` at the root),
  * and extension sources live under paths gitignored by the main repo, so overrides are generated
- * by platform/scms/scripts/generate-extensions.js into turbo.extensions.generated.json.
+ * by platform/scms/scripts/generate-extensions.js into turbo.extensions.generated.json
+ * (extensions/ * /packages /* and extensions/plugins/* with a build script).
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';

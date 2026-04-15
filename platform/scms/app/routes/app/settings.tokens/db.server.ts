@@ -1,5 +1,4 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import type { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient, assertUserDefined } from '@curvenote/scms-server';
 import type { Context } from '@curvenote/scms-core';
 

@@ -617,10 +617,6 @@ properties:
             type: string
             secret: true
             description: API key sent as Authorization Bearer when SCMS calls checks-relay /api/v1/services/*
-          textIntegrityServiceName:
-            type: string
-            description: Relay-registered plugin name for iThenticate / text integrity (default ithenticate)
-            default: ithenticate
       extensions:
         type: object
         description: Per-extension configuration; unknown extension keys are allowed for forward compatibility

@@ -20,6 +20,7 @@ export function pathSegmentProbe404IfObvious(segment: string): Response | null {
     return probe404Response();
   }
   if (decoded.length > 200) return probe404Response();
+  // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\u007f]/.test(decoded)) return probe404Response();
   if (/[/\\]/.test(decoded)) return probe404Response();
   if (decoded.includes('..')) return probe404Response();

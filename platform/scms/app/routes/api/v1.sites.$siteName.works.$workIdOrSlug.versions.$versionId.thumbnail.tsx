@@ -35,7 +35,10 @@ export async function loader(args: Route.LoaderArgs) {
   const thumbnail = await sites.works.versions.thumbnail(ctx, versionId, query);
   if (!thumbnail) {
     const h = vercelCacheHeaders(ctx.site.private ? PRIVATE_CACHE_OPTIONS : NOT_FOUND_PUBLIC_BURST);
-    return Response.json({ status: 404, message: 'Thumbnail not found' }, { status: 404, headers: h });
+    return Response.json(
+      { status: 404, message: 'Thumbnail not found' },
+      { status: 404, headers: h },
+    );
   }
   const headers = vercelCacheHeaders({
     maxAge: 3600,
