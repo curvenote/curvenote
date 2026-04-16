@@ -8,8 +8,6 @@ import { UserMenu } from './UserMenu.js';
 import { NavHelpItem } from './NavHelpItem.js';
 import { useMyUser } from '../../providers/MyUserProvider.js';
 import type { ClientExtension } from '../../modules/extensions/types.js';
-import { Button } from '../ui/button.js';
-import { X } from 'lucide-react';
 
 function CurvenoteIconLogo({ className }: { className?: string }) {
   return (
@@ -82,7 +80,7 @@ function PrimaryNavItem({
 
 export function PrimaryNav({ extensions }: { extensions?: ClientExtension[] }) {
   const { navigation, branding } = useDeploymentConfig();
-  const { open, setMobileOpen } = useMobile();
+  const { open } = useMobile();
   const user = useMyUser();
 
   let logo = <CurvenoteIconLogo className="my-[60px]" />;
@@ -115,19 +113,6 @@ export function PrimaryNav({ extensions }: { extensions?: ClientExtension[] }) {
         { 'translate-x-0': open },
       )}
     >
-      {open && (
-        <div className="absolute top-2 right-2 xl:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg-white/10"
-            aria-label="Close menu"
-            onClick={() => setMobileOpen(false)}
-          >
-            <X className="stroke-[1.5px] w-8 h-8" />
-          </Button>
-        </div>
-      )}
       {logo}
       <div className="flex overflow-y-auto flex-col items-center pb-4 w-full scrollbar scrollbar-thin scrollbar-track-slate-700 scrollbar-thumb-slate-400 grow">
         {navigation.items.map((item) => (
