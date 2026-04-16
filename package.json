@@ -1,4 +1,5 @@
 {
+  "name": "curvenote",
   "private": true,
   "type": "module",
   "workspaces": [

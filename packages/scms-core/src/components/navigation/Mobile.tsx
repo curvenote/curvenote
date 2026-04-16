@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../ui/button.js';
 import { Menu, X } from 'lucide-react';
 
@@ -18,6 +18,26 @@ const MobileContext = React.createContext<MobileContextType>({
 export function Mobile({ children }: React.PropsWithChildren) {
   const [open, setMobileOpen] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    body.style.overscrollBehavior = 'none';
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+    };
+  }, [open]);
+
   return (
     <MobileContext.Provider value={{ open, setMobileOpen }}>{children}</MobileContext.Provider>
   );
@@ -30,22 +50,27 @@ export function useMobile() {
 export function MobileControls() {
   const { open, setMobileOpen } = useMobile();
   return (
-    <>
-      {open && (
-        <div className="absolute inset-0 z-10 xl:hidden bg-stone-50/90 dark:bg-stone-900/90" />
+    <div className="flex fixed top-2 left-1 z-30 justify-start items-center w-[110px] xl:hidden">
+      {open ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-white hover:bg-white/10 hover:text-white"
+          aria-label="Close menu"
+          onClick={() => setMobileOpen(false)}
+        >
+          <X className="stroke-[1.5px] w-12 h-12" />
+        </Button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Open menu"
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu className="stroke-[1.5px] w-12 h-12" />
+        </Button>
       )}
-      <div className="flex fixed top-2 right-2 z-30 justify-center items-center xl:hidden">
-        {!open && (
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!open)}>
-            <Menu className="stroke-[1.5px] w-12 h-12" />
-          </Button>
-        )}
-        {open && (
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!open)}>
-            <X className="stroke-[1.5px] w-12 h-12" />
-          </Button>
-        )}
-      </div>
-    </>
+    </div>
   );
 }
