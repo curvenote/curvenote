@@ -9,6 +9,7 @@ import {
   PrimaryNav,
   cn,
   getBrandingFromMetaMatches,
+  useMobile,
 } from '@curvenote/scms-core';
 import { extensions as serverExtensions } from '../../extensions/server';
 import { extensions as clientExtensions } from '../../extensions/client';
@@ -40,23 +41,38 @@ export default function App() {
   return (
     <div data-name="app-route" className="flex relative w-full min-h-screen">
       <Mobile>
-        <MobileControls />
-        <PrimaryNav extensions={clientExtensions} />
-        <div className="flex relative flex-col flex-1 w-full">
-          <div className="fixed top-0 z-50 w-full">
-            <LoadingBar />
-          </div>
-          <div
-            data-name="app-layout"
-            className={cn(
-              'flex min-h-screen mx-auto w-[calc(100%-20px)] xl:ml-[110px] md:w-[calc(100%-40px)] lg:w-[calc(100%-110px)]',
-            )}
-          >
-            <Outlet />
-          </div>
-        </div>
+        <AppShell />
       </Mobile>
     </div>
+  );
+}
+
+function AppShell() {
+  const { open, setMobileOpen } = useMobile();
+
+  return (
+    <>
+      <MobileControls />
+      <PrimaryNav extensions={clientExtensions} />
+      <div className="flex relative flex-col flex-1 w-full">
+        <div className="fixed top-0 z-50 w-full">
+          <LoadingBar />
+        </div>
+        <div
+          data-name="app-layout"
+          onPointerDown={() => {
+            if (!open) return;
+            if (window.matchMedia('(min-width: 1280px)').matches) return;
+            setMobileOpen(false);
+          }}
+          className={cn(
+            'flex min-h-screen mx-auto w-[calc(100%-20px)] xl:ml-[110px] md:w-[calc(100%-40px)] lg:w-[calc(100%-110px)]',
+          )}
+        >
+          <Outlet />
+        </div>
+      </div>
+    </>
   );
 }
 

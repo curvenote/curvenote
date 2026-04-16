@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/button.js';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 type MobileContextType = {
   open: boolean;
@@ -30,22 +30,17 @@ export function useMobile() {
 export function MobileControls() {
   const { open, setMobileOpen } = useMobile();
   return (
-    <>
-      {open && (
-        <div className="absolute inset-0 z-10 xl:hidden bg-stone-50/90 dark:bg-stone-900/90" />
+    <div className="flex fixed top-2 right-2 z-30 justify-center items-center xl:hidden">
+      {!open && (
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Open menu"
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu className="stroke-[1.5px] w-12 h-12" />
+        </Button>
       )}
-      <div className="flex fixed top-2 right-2 z-30 justify-center items-center xl:hidden">
-        {!open && (
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!open)}>
-            <Menu className="stroke-[1.5px] w-12 h-12" />
-          </Button>
-        )}
-        {open && (
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!open)}>
-            <X className="stroke-[1.5px] w-12 h-12" />
-          </Button>
-        )}
-      </div>
-    </>
+    </div>
   );
 }
