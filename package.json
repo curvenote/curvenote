@@ -31,6 +31,7 @@
     "test:db:reset": "dotenv -e .env.test -- npx prisma db push --force-reset --config=./prisma.config.ts; dotenv -e .env.test -- tsx ./prisma/seed.test.mts",
     "config": "npx @app-config/cli@2 generate",
     "build": "npm run config && node scripts/turbo-run.mjs run build --filter='!@curvenote/scms'",
+    "build:relay": "node scripts/turbo-run.mjs run build --filter='@curvenote/check-plugin-types' --filter='@curvenote/check-relay-types' --filter='@curvenote/check-relay-plugin-echo' --filter='@curvenote/check-relay'",
     "build:scms": "cd platform/scms && npm run build",
     "build:web": "node scripts/turbo-run.mjs run build --filter=@curvespace/default",
     "build:cli": "node scripts/turbo-run.mjs run build --filter=curvenote",
