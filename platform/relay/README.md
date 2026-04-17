@@ -150,7 +150,7 @@ For each deployment environment, add an entry under **`instances:`** in the non-
 
 ### 4. Optional assets
 
-If the manifest references a logo path (e.g. `/assets/<serviceName>/logo.svg`), place files under **`assets/`** in the plugin package if your workflow copies them into **`platform/relay/public/assets/`** (see **`scripts/copy-plugin-assets.mjs`**). The echo plugin is a concrete example.
+If the manifest references a logo path, use a root-relative URL under **`/api/assets/<serviceName>/…`** (for example **`/api/assets/echo/logo.svg`**). On disk, `copy-plugin-assets` still mirrors plugin packages into **`platform/relay/public/assets/<serviceName>/`** (see **`scripts/copy-plugin-assets.mjs`**); the relay serves that tree at **`GET /api/assets/<serviceName>/…`** so the same paths work behind Vercel’s **`api/[[...route]].ts`** entry without extra rewrites. The echo plugin is a concrete example.
 
 ### 5. Types and contracts
 

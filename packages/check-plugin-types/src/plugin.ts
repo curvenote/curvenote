@@ -54,7 +54,7 @@ export interface ServiceManifest {
   title: string;
   description: string;
   version: string;
-  /** Absolute URL, or path beginning with `/` (same origin as the relay). */
+  /** Absolute URL, or root-relative path on the relay (plugin static files: `/api/assets/<name>/...`). */
   logo: string;
   /** Plugin-defined service metadata (capabilities, UI hints, etc). */
   metadata: Record<string, unknown>;

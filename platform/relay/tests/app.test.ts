@@ -30,11 +30,16 @@ describe("relay app", () => {
     expect(res.status).toBe(404);
   });
 
-  it("GET /assets/:service/logo.svg serves copied plugin assets", async () => {
-    const res = await app.request("/assets/echo/logo.svg");
+  it("GET /api/assets/:service/logo.svg serves copied plugin assets", async () => {
+    const res = await app.request("/api/assets/echo/logo.svg");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toMatch(/svg/);
     const text = await res.text();
     expect(text).toContain("<svg");
+  });
+
+  it("GET /assets/:service/logo.svg is not served (use /api/assets for Vercel)", async () => {
+    const res = await app.request("/assets/echo/logo.svg");
+    expect(res.status).toBe(404);
   });
 });

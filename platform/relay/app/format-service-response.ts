@@ -3,7 +3,7 @@ import type { ServiceListItem } from "@curvenote/check-relay-types";
 
 /**
  * Turn a manifest `logo` into an absolute URL when `publicBaseUrl` is configured.
- * Already-absolute `http(s):` logos are unchanged. Root-relative paths (`/assets/...`)
+ * Already-absolute `http(s):` logos are unchanged. Root-relative paths (e.g. `/api/assets/...`)
  * are resolved against `publicBaseUrl`.
  */
 export function resolvePublicLogo(
