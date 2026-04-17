@@ -40,7 +40,7 @@ const echoPlugin: ServicePlugin = {
     title: 'Echo Check Service',
     description: 'A test plugin that echoes submissions and simulates a multi-step check workflow',
     version: '1.0.0',
-    logo: '/assets/echo/logo.svg',
+    logo: '/api/assets/echo/logo.svg',
     metadata: {
       provider: 'checks-relay',
       environment: 'development',

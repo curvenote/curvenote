@@ -1,5 +1,6 @@
 /**
  * Copies each relay plugin package's `assets/` tree into `platform/relay/public/assets/<serviceName>/`.
+ * The relay serves that directory at HTTP path `/api/assets/<serviceName>/...` (see `app/app.ts`).
  *
  * Sources (no package names hardcoded):
  * - `packages/check-relay-plugin-<serviceName>/assets/`, `packages/service-plugin-<serviceName>/assets/` (legacy)

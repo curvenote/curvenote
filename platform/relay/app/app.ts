@@ -13,11 +13,11 @@ const relayAppDir = dirname(fileURLToPath(import.meta.url));
 const assetsRoot = join(relayAppDir, "..", "public", "assets");
 
 app.use(
-  "/assets/*",
+  "/api/assets/*",
   serveStatic({
     root: assetsRoot,
     rewriteRequestPath: (path) =>
-      path.replace(/^\/assets\/?/, "").replace(/^\//, "") || ".",
+      path.replace(/^\/api\/assets\/?/, "").replace(/^\//, "") || ".",
   }),
 );
 

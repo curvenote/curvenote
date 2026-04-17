@@ -3,9 +3,13 @@ import { resolvePublicLogo } from "../app/format-service-response.js";
 
 describe("resolvePublicLogo", () => {
   it("returns logo unchanged when publicBaseUrl is missing or blank", () => {
-    expect(resolvePublicLogo("/assets/x.svg", undefined)).toBe("/assets/x.svg");
-    expect(resolvePublicLogo("/assets/x.svg", "")).toBe("/assets/x.svg");
-    expect(resolvePublicLogo("/assets/x.svg", "   ")).toBe("/assets/x.svg");
+    expect(resolvePublicLogo("/api/assets/x.svg", undefined)).toBe(
+      "/api/assets/x.svg",
+    );
+    expect(resolvePublicLogo("/api/assets/x.svg", "")).toBe("/api/assets/x.svg");
+    expect(resolvePublicLogo("/api/assets/x.svg", "   ")).toBe(
+      "/api/assets/x.svg",
+    );
   });
 
   it("leaves already-absolute http(s) logos unchanged", () => {
@@ -19,10 +23,16 @@ describe("resolvePublicLogo", () => {
 
   it("resolves root-relative paths against publicBaseUrl", () => {
     expect(
-      resolvePublicLogo("/assets/echo/logo.svg", "https://relay.example.test"),
-    ).toBe("https://relay.example.test/assets/echo/logo.svg");
+      resolvePublicLogo(
+        "/api/assets/echo/logo.svg",
+        "https://relay.example.test",
+      ),
+    ).toBe("https://relay.example.test/api/assets/echo/logo.svg");
     expect(
-      resolvePublicLogo("/assets/echo/logo.svg", "https://relay.example.test/"),
-    ).toBe("https://relay.example.test/assets/echo/logo.svg");
+      resolvePublicLogo(
+        "/api/assets/echo/logo.svg",
+        "https://relay.example.test/",
+      ),
+    ).toBe("https://relay.example.test/api/assets/echo/logo.svg");
   });
 });
