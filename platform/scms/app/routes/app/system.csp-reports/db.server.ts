@@ -1,7 +1,7 @@
 import { getPrismaClient } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 
-export type CspViolationReportDTO = Prisma.CspViolationReportGetPayload<{}>;
+export type CspViolationReportDTO = Prisma.CspViolationReportGetPayload<object>;
 
 const DEFAULT_LIMIT = 200;
 
