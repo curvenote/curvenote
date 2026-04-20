@@ -550,7 +550,7 @@ describe('root', () => {
     const userCtx = (scopes: string[]) =>
       ({
         scopes: [''],
-        user: { system_role: 'USER', roles: [{ role: { scopes } }] },
+        user: { system_role: 'ANON', roles: [{ role: { scopes } }] },
       }) as Context;
 
     test('returns null when navConfig is undefined', () => {
