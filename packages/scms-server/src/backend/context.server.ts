@@ -528,16 +528,28 @@ export class SecureContext extends Context {
   // user. Without this, assignments via `initializeFrom` (or any future
   // `secureCtx.user = ...`) would leave `scopes` at its constructor default
   // of `[]`, because setter dispatch resolves to this subclass first.
+  //
+  // The declared type matches the getter (non-null) so callers of
+  // `secureCtx.user` keep reading a defined user. The runtime `!user` guard
+  // is belt-and-braces against inherited methods (e.g. `initializeFrom`)
+  // whose body was typechecked against the base `Context` setter, which
+  // accepts `undefined`, and against any future direct assignment. Without
+  // it, `getUserScopesSet(undefined)` would throw a `TypeError` and mask
+  // the intended 401.
   set user(user: MyUserDBO & { email_verified: boolean }) {
+    if (!user) {
+      this.$user = undefined as never;
+      this.scopes = [];
+      return;
+    }
     this.$user = { ...user, email_verified: true };
     this.scopes = Array.from(getUserScopesSet(user));
   }
 
   constructor(ctx: Context) {
     super(ctx.$config, ctx.$auth, ctx.$sessionStorage, ctx.request);
-    this.initializeFrom(ctx);
     if (!ctx.user) throw error401();
-    this.user = ctx.user;
+    this.initializeFrom(ctx);
   }
 }
 
