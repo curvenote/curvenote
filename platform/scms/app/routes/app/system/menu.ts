@@ -63,6 +63,12 @@ export function buildMenu(baseUrl: string, userScopes: string[]) {
           label: 'Analytics Dashboards',
           url: `${baseUrl}/analytics-dashboards`,
         },
+        {
+          name: 'admin.csp-reports',
+          icon: 'file-text',
+          label: 'CSP Reports',
+          url: `${baseUrl}/csp-reports`,
+        },
       ],
     },
   ];

@@ -125,6 +125,7 @@ export default [
       route('design', 'routes/app/system.design/route.tsx'),
       route('users', 'routes/app/system.users/route.tsx'),
       route('analytics-dashboards', 'routes/app/system.analytics-dashboards/route.tsx'),
+      route('csp-reports', 'routes/app/system.csp-reports/route.tsx'),
       route('roles', 'routes/app/system.roles/route.tsx'),
     ]),
 

@@ -1,4 +1,7 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
+import crypto from 'node:crypto';
+import type { ActionFunctionArgs } from 'react-router';
+import { getPrismaClient } from '@curvenote/scms-server';
+import { uuidv7 as uuid } from 'uuidv7';
 
 const MAX_BODY_BYTES = 32 * 1024;
 const ACCEPTED_CONTENT_TYPES = new Set([
@@ -27,14 +30,31 @@ function asString(value: unknown, maxLength = 512) {
   return value.slice(0, maxLength);
 }
 
-function toPathOnlyUrl(value: unknown) {
+function asInt(value: unknown): number | undefined {
+  if (typeof value !== 'number') return undefined;
+  if (!Number.isFinite(value)) return undefined;
+  return Math.trunc(value);
+}
+
+function parseUrl(value: unknown) {
   if (typeof value !== 'string') return undefined;
   try {
-    const url = new URL(value);
-    return `${url.origin}${url.pathname}`.slice(0, 1024);
+    return new URL(value);
   } catch {
-    return value.slice(0, 1024);
+    return undefined;
   }
+}
+
+function originFromUri(value: unknown) {
+  const url = parseUrl(value);
+  if (!url) return typeof value === 'string' ? value.slice(0, 256) : undefined;
+  return url.origin.slice(0, 256);
+}
+
+function pathFromUri(value: unknown) {
+  const url = parseUrl(value);
+  if (!url) return undefined;
+  return url.pathname.slice(0, 1024);
 }
 
 function normalizeReports(payload: unknown): Record<string, unknown>[] {
@@ -63,25 +83,105 @@ function readContentLength(request: Request) {
   return contentLength;
 }
 
-function logCspReport(report: Record<string, unknown>, request: Request) {
-  const payload = {
-    event: 'csp_violation_report',
-    ts: new Date().toISOString(),
-    effectiveDirective:
-      asString(report['effective-directive']) ?? asString(report.effectiveDirective),
+function buildFingerprint(parts: {
+  effectiveDirective?: string;
+  blockedOrigin?: string;
+  documentPath?: string;
+  disposition?: string;
+}) {
+  const input = [
+    parts.effectiveDirective ?? '',
+    parts.blockedOrigin ?? '',
+    parts.documentPath ?? '',
+    parts.disposition ?? '',
+  ].join('|');
+  return crypto.createHash('sha256').update(input).digest('hex');
+}
+
+type ExtractedReport = {
+  fingerprint: string;
+  effectiveDirective?: string;
+  violatedDirective?: string;
+  blockedUri?: string;
+  blockedOrigin?: string;
+  documentOrigin?: string;
+  documentPath?: string;
+  disposition?: string;
+  sourceFile?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+  userAgentSample?: string;
+  latestPayload: Record<string, unknown>;
+};
+
+function extractReport(report: Record<string, unknown>, request: Request): ExtractedReport {
+  const blockedUri = asString(report['blocked-uri']) ?? asString(report.blockedUri);
+  const documentUri = asString(report['document-uri']) ?? asString(report.documentUri);
+  const effectiveDirective =
+    asString(report['effective-directive']) ?? asString(report.effectiveDirective);
+  const blockedOrigin = originFromUri(blockedUri);
+  const documentOrigin = originFromUri(documentUri);
+  const documentPath = pathFromUri(documentUri);
+  const disposition = asString(report.disposition, 32);
+  return {
+    fingerprint: buildFingerprint({
+      effectiveDirective,
+      blockedOrigin,
+      documentPath,
+      disposition,
+    }),
+    effectiveDirective,
     violatedDirective: asString(report['violated-directive']) ?? asString(report.violatedDirective),
-    blockedUri: asString(report['blocked-uri']) ?? asString(report.blockedUri),
-    documentUri: toPathOnlyUrl(report['document-uri']) ?? toPathOnlyUrl(report.documentUri),
-    disposition: asString(report.disposition, 32),
+    blockedUri: blockedUri?.slice(0, 1024),
+    blockedOrigin,
+    documentOrigin,
+    documentPath,
+    disposition,
     sourceFile: asString(report['source-file']) ?? asString(report.sourceFile),
-    lineNumber:
-      typeof report['line-number'] === 'number' ? report['line-number'] : report.lineNumber,
-    columnNumber:
-      typeof report['column-number'] === 'number' ? report['column-number'] : report.columnNumber,
-    host: new URL(request.url).host,
-    userAgent: asString(request.headers.get('user-agent'), 512),
+    lineNumber: asInt(report['line-number']) ?? asInt(report.lineNumber),
+    columnNumber: asInt(report['column-number']) ?? asInt(report.columnNumber),
+    userAgentSample: asString(request.headers.get('user-agent'), 512),
+    latestPayload: report,
   };
-  console.info(JSON.stringify(payload));
+}
+
+async function persistReport(extracted: ExtractedReport) {
+  const prisma = await getPrismaClient();
+  const now = new Date().toISOString();
+  await prisma.cspViolationReport.upsert({
+    where: { fingerprint: extracted.fingerprint },
+    create: {
+      id: uuid(),
+      fingerprint: extracted.fingerprint,
+      effective_directive: extracted.effectiveDirective,
+      violated_directive: extracted.violatedDirective,
+      blocked_uri: extracted.blockedUri,
+      blocked_origin: extracted.blockedOrigin,
+      document_origin: extracted.documentOrigin,
+      document_path: extracted.documentPath,
+      disposition: extracted.disposition,
+      source_file: extracted.sourceFile,
+      line_number: extracted.lineNumber,
+      column_number: extracted.columnNumber,
+      user_agent_sample: extracted.userAgentSample,
+      latest_payload: extracted.latestPayload as object,
+      count: 1,
+      date_first_seen: now,
+      date_last_seen: now,
+    },
+    update: {
+      count: { increment: 1 },
+      date_last_seen: now,
+      violated_directive: extracted.violatedDirective,
+      blocked_uri: extracted.blockedUri,
+      document_origin: extracted.documentOrigin,
+      source_file: extracted.sourceFile,
+      line_number: extracted.lineNumber,
+      column_number: extracted.columnNumber,
+      user_agent_sample: extracted.userAgentSample,
+      latest_payload: extracted.latestPayload as object,
+    },
+  });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -120,15 +220,17 @@ export async function action({ request }: ActionFunctionArgs) {
   if (reports.length === 0) return new Response(null, { status: 204 });
 
   for (const report of reports) {
-    logCspReport(report, request);
+    try {
+      await persistReport(extractReport(report, request));
+    } catch (err) {
+      // Never let a misbehaving report take down the endpoint or surface DB errors to the reporter.
+      console.warn('csp_violation_report_persist_failed', err);
+    }
   }
 
   return new Response(null, { status: 204 });
 }
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  if (request.method.toUpperCase() !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-  return new Response(null, { status: 204 });
+export async function loader() {
+  return new Response('Method Not Allowed', { status: 405 });
 }

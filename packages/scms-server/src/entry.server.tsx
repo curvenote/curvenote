@@ -10,16 +10,36 @@ export const streamTimeout = 30_000; // 30 seconds
 
 const CSP_REPORT_PATH = '/app/resources/csp-report';
 const ENFORCED_CSP = `frame-ancestors 'none'`;
+const IS_PROD = process.env.NODE_ENV === 'production';
+// 'unsafe-inline' is required for React Router's inline hydration script.
+// 'unsafe-eval' is only permitted in non-production builds (Vite dev uses eval).
+// 'apis.google.com' is required by the Firebase Auth popup/gapi loader.
+const SCRIPT_SRC = IS_PROD
+  ? `script-src 'self' 'unsafe-inline' https://apis.google.com`
+  : `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com`;
+// Browser-initiated connections only. Server→external calls are not covered by CSP.
+// `*.googleapis.com` covers Firebase Auth (identitytoolkit / securetoken / www).
+// `apis.google.com` is used by the Firebase Auth popup.
+// Dev also needs Vite HMR over localhost WebSocket.
+const CONNECT_SRC = IS_PROD
+  ? `connect-src 'self' https://*.googleapis.com https://apis.google.com`
+  : `connect-src 'self' https://*.googleapis.com https://apis.google.com ws://localhost:* ws://127.0.0.1:*`;
+// Firebase Auth helper iframe lives at `<authDomain>/__/auth/iframe`; default auth
+// domains are `<project>.firebaseapp.com` / `<project>.web.app`. Custom auth domains
+// are not covered by this wildcard and will need to be added explicitly.
+// `apis.google.com` covers the OAuth handler iframe used during the popup flow.
+const FRAME_SRC = `frame-src https://*.firebaseapp.com https://*.web.app https://apis.google.com`;
 const REPORT_ONLY_CSP = [
   `default-src 'self'`,
   `object-src 'none'`,
   `base-uri 'self'`,
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https:`,
-  `style-src 'self' 'unsafe-inline' https:`,
+  SCRIPT_SRC,
+  `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+  // TODO: narrow `img-src` to configured CDN origins (see $config.cdn.*) instead of bare `https:`.
   `img-src 'self' data: blob: https:`,
-  `font-src 'self' data: https:`,
-  `connect-src 'self' https: wss:`,
-  `frame-src 'none'`,
+  `font-src 'self' data: https://fonts.gstatic.com`,
+  CONNECT_SRC,
+  FRAME_SRC,
   `report-uri ${CSP_REPORT_PATH}`,
   `report-to csp-endpoint`,
 ].join('; ');
@@ -29,6 +49,9 @@ function setSecurityHeaders(responseHeaders: Headers, request: Request) {
 
   responseHeaders.set('Content-Security-Policy', ENFORCED_CSP);
   responseHeaders.set('Content-Security-Policy-Report-Only', REPORT_ONLY_CSP);
+  // Modern Reporting API (Chromium 96+). Paired with the `report-to` directive above.
+  responseHeaders.set('Reporting-Endpoints', `csp-endpoint="${cspReportUrl}"`);
+  // Legacy Reporting API v0, kept for older browsers that understand `Report-To` but not `Reporting-Endpoints`.
   responseHeaders.set(
     'Report-To',
     JSON.stringify({
@@ -43,7 +66,7 @@ function setSecurityHeaders(responseHeaders: Headers, request: Request) {
   responseHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
   const requestUrl = new URL(request.url);
-  if (process.env.NODE_ENV === 'production' && requestUrl.protocol === 'https:') {
+  if (IS_PROD && requestUrl.protocol === 'https:') {
     responseHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
 }
