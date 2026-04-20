@@ -39,13 +39,19 @@ function toPathOnlyUrl(value: unknown) {
 
 function normalizeReports(payload: unknown): Record<string, unknown>[] {
   if (!payload || typeof payload !== 'object') return [];
-  if ('csp-report' in payload && payload['csp-report'] && typeof payload['csp-report'] === 'object') {
+  if (
+    'csp-report' in payload &&
+    payload['csp-report'] &&
+    typeof payload['csp-report'] === 'object'
+  ) {
     return [payload['csp-report'] as Record<string, unknown>];
   }
   if (Array.isArray(payload)) {
     return payload
       .filter((entry): entry is CspReportToPayload[number] => !!entry && typeof entry === 'object')
-      .filter((entry) => entry.type === 'csp-violation' && !!entry.body && typeof entry.body === 'object')
+      .filter(
+        (entry) => entry.type === 'csp-violation' && !!entry.body && typeof entry.body === 'object',
+      )
       .map((entry) => entry.body!);
   }
   return [];
@@ -61,13 +67,15 @@ function logCspReport(report: Record<string, unknown>, request: Request) {
   const payload = {
     event: 'csp_violation_report',
     ts: new Date().toISOString(),
-    effectiveDirective: asString(report['effective-directive']) ?? asString(report.effectiveDirective),
+    effectiveDirective:
+      asString(report['effective-directive']) ?? asString(report.effectiveDirective),
     violatedDirective: asString(report['violated-directive']) ?? asString(report.violatedDirective),
     blockedUri: asString(report['blocked-uri']) ?? asString(report.blockedUri),
     documentUri: toPathOnlyUrl(report['document-uri']) ?? toPathOnlyUrl(report.documentUri),
     disposition: asString(report.disposition, 32),
     sourceFile: asString(report['source-file']) ?? asString(report.sourceFile),
-    lineNumber: typeof report['line-number'] === 'number' ? report['line-number'] : report.lineNumber,
+    lineNumber:
+      typeof report['line-number'] === 'number' ? report['line-number'] : report.lineNumber,
     columnNumber:
       typeof report['column-number'] === 'number' ? report['column-number'] : report.columnNumber,
     host: new URL(request.url).host,
