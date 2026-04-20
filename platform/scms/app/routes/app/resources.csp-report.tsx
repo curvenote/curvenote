@@ -115,8 +115,8 @@ type ExtractedReport = {
 };
 
 function extractReport(report: Record<string, unknown>, request: Request): ExtractedReport {
-  const blockedUri = asString(report['blocked-uri']) ?? asString(report.blockedUri);
-  const documentUri = asString(report['document-uri']) ?? asString(report.documentUri);
+  const blockedUri = asString(report['blocked-uri']) ?? asString(report.blockedURL);
+  const documentUri = asString(report['document-uri']) ?? asString(report.documentURL);
   const effectiveDirective =
     asString(report['effective-directive']) ?? asString(report.effectiveDirective);
   const blockedOrigin = originFromUri(blockedUri);
