@@ -40,10 +40,11 @@ function PrimaryNavItem({
 }) {
   const { path, label, icon, end, beta } = item;
   const iconIsImage = icon.match(/^http[s]:\/\//) != null;
+  const normalizedPath = path.replace(/^\/+|\/+$/g, '');
 
   return (
     <NavLink
-      to={`/app/${path}`}
+      to={`/app/${normalizedPath}`}
       end={end}
       className={({ isActive }) =>
         cn(
