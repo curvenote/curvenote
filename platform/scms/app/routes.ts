@@ -88,6 +88,9 @@ export default [
   // Unsubscribe Route
   route('unsubscribe', 'routes/unsubscribe/route.tsx'),
 
+  // Verify email Route
+  route('verify-email', 'routes/verify-email/route.tsx'),
+
   // Mount point for routes outside of app/api
   ...getRoutesForMountPoint(''),
 

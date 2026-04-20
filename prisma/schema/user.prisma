@@ -18,6 +18,7 @@ model User {
   pending            Boolean             @default(false)
   disabled           Boolean             @default(false)
   ready_for_approval Boolean             @default(false)
+  email_verified     Boolean             @default(false)
   data               Json?
   roles              UserRole[]          @relation("UserRoles")
   site_roles         SiteUser[]

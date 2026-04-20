@@ -1,5 +1,10 @@
 import type { Route } from './+types/route';
-import { withAppContext } from '@curvenote/scms-server';
+import { useFetcher, Link, data } from 'react-router';
+import {
+  createEmailVerificationToken,
+  getEmailVerificationSigningKey,
+  withAppContext,
+} from '@curvenote/scms-server';
 import {
   PageFrame,
   primitives,
@@ -8,12 +13,56 @@ import {
   AuthComponentMap,
   getBrandingFromMetaMatches,
   joinPageTitle,
+  getFetcherField,
+  KnownResendEvents,
 } from '@curvenote/scms-core';
-import { Link } from 'react-router';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppContext(args);
   return { user: ctx.user };
+}
+
+export async function action(args: Route.ActionArgs) {
+  const ctx = await withAppContext(args);
+  if (!ctx.user) {
+    return data({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const intent = (await args.request.formData()).get('intent');
+  if (intent === 'send-verification-email') {
+    if (!ctx.user.email) {
+      return data({ error: 'No email address on account' }, { status: 400 });
+    }
+    if (ctx.user.email_verified) {
+      return data({ error: 'Email already verified' }, { status: 400 });
+    }
+    const jwtKey = getEmailVerificationSigningKey(ctx.$config.api?.resend?.apiKey);
+    if (!jwtKey) {
+      return data({ error: 'Email not configured' }, { status: 500 });
+    }
+    try {
+      const token = createEmailVerificationToken(ctx.user.id, ctx.user.email, jwtKey);
+      const verifyUrl = ctx.asBaseUrl(`/verify-email?token=${token}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[dev] Email verification link for ${ctx.user.email}: ${verifyUrl}`);
+      }
+      await ctx.sendEmail({
+        eventType: KnownResendEvents.EMAIL_VERIFICATION,
+        to: ctx.user.email,
+        subject: 'Verify your email',
+        ignoreUnsubscribe: true,
+        templateProps: { verifyUrl },
+      });
+      return { success: true, message: 'Verification email sent. Check your inbox.' };
+    } catch (error) {
+      console.error('Send verification email error:', error);
+      return data(
+        { error: error instanceof Error ? error.message : 'Failed to send verification email' },
+        { status: 500 },
+      );
+    }
+  }
+  return data({ error: 'Invalid action' }, { status: 400 });
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {
@@ -24,6 +73,10 @@ export const meta: Route.MetaFunction = ({ matches }) => {
 export default function Profile({ loaderData }: Route.ComponentProps) {
   const { user } = loaderData;
   const { branding } = useDeploymentConfig();
+  const verifyFetcher = useFetcher<typeof action>();
+  const verifySuccess = getFetcherField(verifyFetcher.data, 'success');
+  const verifyMessage = getFetcherField(verifyFetcher.data, 'message');
+  const verifyError = getFetcherField(verifyFetcher.data, 'error');
   if (!user) return null;
 
   const Badge = user.primaryProvider ? AuthComponentMap[user.primaryProvider]?.Badge : null;
@@ -60,13 +113,48 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
             disabled
             value={user.email ?? 'none set'}
           />
-          <Link
-            to="/app/settings/emails"
-            className="text-sm text-blue-600 whitespace-nowrap hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            Manage email preferences →
-          </Link>
+          {user.email && (
+            <>
+              {user.email_verified ? (
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-green-700 dark:text-green-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Email verified
+                </span>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-0.5 text-sm font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                    <AlertCircle className="h-4 w-4" />
+                    Email unverified
+                  </span>
+                  <verifyFetcher.Form method="post">
+                    <input type="hidden" name="intent" value="send-verification-email" />
+                    <ui.Button
+                      type="submit"
+                      disabled={verifyFetcher.state === 'submitting' || !!verifySuccess}
+                      className="whitespace-nowrap"
+                    >
+                      {verifyFetcher.state === 'submitting'
+                        ? 'Sending…'
+                        : verifySuccess
+                          ? 'Verification email sent'
+                          : 'Resend verification email'}
+                    </ui.Button>
+                  </verifyFetcher.Form>
+                </div>
+              )}
+            </>
+          )}
         </div>
+        {verifySuccess && verifyMessage && (
+          <p className="text-sm text-green-600 dark:text-green-400">{verifyMessage}</p>
+        )}
+        {verifyError && <p className="text-sm text-red-600 dark:text-red-400">{verifyError}</p>}
+        <Link
+          to="/app/settings/emails"
+          className="w-fit text-sm text-blue-600 whitespace-nowrap hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+        >
+          Manage email preferences →
+        </Link>
       </primitives.Card>
       <primitives.Card lift className="flex flex-col p-8 space-y-4">
         <h2>Account ID</h2>

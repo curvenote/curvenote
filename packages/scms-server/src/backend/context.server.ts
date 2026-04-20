@@ -95,10 +95,8 @@ export class Context implements ContextType {
     return this.$user;
   }
 
-  set user(user: (MyUserDBO & { email_verified: boolean }) | undefined) {
-    // TODO: when we complete signup flow we will need to hook in email verification
-    // fully, for now we just assume our early users are verified
-    this.$user = user ? { ...user, email_verified: true } : undefined;
+  set user(user: (MyUserDBO & { email_verified?: boolean }) | undefined) {
+    this.$user = user ? { ...user, email_verified: user.email_verified ?? false } : undefined;
     this.scopes = user ? Array.from(getUserScopesSet(user)) : [];
   }
 
@@ -250,7 +248,7 @@ export class Context implements ContextType {
             throw httpError(401, `User not found.${name && email ? `(${name}, ${email})` : ''}`);
           }
           this.$curvenoteClaims = { aud: payload.aud as string };
-          this.user = { email_verified: false, ...user };
+          this.user = { ...user };
         } catch (err) {
           console.error('User not found', err);
           throw err;
@@ -288,7 +286,7 @@ export class Context implements ContextType {
         };
         const saUser = await getUserById(this.$config.api.submissionsServiceAccount.id);
         if (!saUser) throw httpError(500, 'Could not recover service account user');
-        this.user = { email_verified: false, ...saUser };
+        this.user = { ...saUser };
       } catch (err) {
         this.$verifiedHandshakeToken = undefined;
         this.$handshakeClaims = undefined;
@@ -308,8 +306,7 @@ export class Context implements ContextType {
 
         const dbUser = await getUserById(userId);
         if (!dbUser) throw httpError(401, 'Unknown user session');
-        // TODO: get email_verified into the model
-        this.user = { email_verified: false, ...dbUser };
+        this.user = dbUser;
         this.$verifiedSession = true;
       } catch (error: any) {
         console.log('Error validating token', error.statusText);
