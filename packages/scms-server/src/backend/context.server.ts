@@ -515,21 +515,29 @@ export async function getCookieContext(request: Request) {
  * is always defined.
  */
 export class SecureContext extends Context {
-  $user: NonNullable<Context['$user']>;
+  // Narrows the base type to non-null; `declare` avoids declaring a fresh
+  // class field so it inherits Context's underlying slot and `strict` mode's
+  // definite-assignment check doesn't fire for setter-based assignment below.
+  declare $user: NonNullable<Context['$user']>;
 
   get user() {
     return this.$user;
   }
 
+  // Mirror the base Context setter so `this.scopes` stays in sync with the
+  // user. Without this, assignments via `initializeFrom` (or any future
+  // `secureCtx.user = ...`) would leave `scopes` at its constructor default
+  // of `[]`, because setter dispatch resolves to this subclass first.
   set user(user: MyUserDBO & { email_verified: boolean }) {
-    this.$user = user;
+    this.$user = { ...user, email_verified: true };
+    this.scopes = Array.from(getUserScopesSet(user));
   }
 
   constructor(ctx: Context) {
     super(ctx.$config, ctx.$auth, ctx.$sessionStorage, ctx.request);
     this.initializeFrom(ctx);
     if (!ctx.user) throw error401();
-    this.$user = ctx.user;
+    this.user = ctx.user;
   }
 }
 
