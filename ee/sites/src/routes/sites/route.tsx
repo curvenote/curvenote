@@ -78,7 +78,7 @@ export const action = async (args: ActionFunctionArgs) => {
     } catch (error: any) {
       return data({ error: error.message ?? 'Invalid form data' }, { status: 400 });
     }
-  } else if (intent === 'create-site' && userHasScope(ctx.user, scopes.site.create)) {
+  } else if (intent === 'create-site') {
     if (!userHasScope(ctx.user, scopes.site.create)) {
       return data({ error: 'You are not authorized to create a site' }, { status: 403 });
     }
