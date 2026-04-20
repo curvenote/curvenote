@@ -8,6 +8,46 @@ import { renderToPipeableStream } from 'react-dom/server';
 
 export const streamTimeout = 30_000; // 30 seconds
 
+const CSP_REPORT_PATH = '/app/resources/csp-report';
+const ENFORCED_CSP = `frame-ancestors 'none'`;
+const REPORT_ONLY_CSP = [
+  `default-src 'self'`,
+  `object-src 'none'`,
+  `base-uri 'self'`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https:`,
+  `style-src 'self' 'unsafe-inline' https:`,
+  `img-src 'self' data: blob: https:`,
+  `font-src 'self' data: https:`,
+  `connect-src 'self' https: wss:`,
+  `frame-src 'none'`,
+  `report-uri ${CSP_REPORT_PATH}`,
+  `report-to csp-endpoint`,
+].join('; ');
+
+function setSecurityHeaders(responseHeaders: Headers, request: Request) {
+  const cspReportUrl = new URL(CSP_REPORT_PATH, request.url).toString();
+
+  responseHeaders.set('Content-Security-Policy', ENFORCED_CSP);
+  responseHeaders.set('Content-Security-Policy-Report-Only', REPORT_ONLY_CSP);
+  responseHeaders.set(
+    'Report-To',
+    JSON.stringify({
+      group: 'csp-endpoint',
+      max_age: 60 * 60 * 24 * 30,
+      endpoints: [{ url: cspReportUrl }],
+    }),
+  );
+  responseHeaders.set('X-Frame-Options', 'DENY');
+  responseHeaders.set('X-Content-Type-Options', 'nosniff');
+  responseHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  responseHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+  const requestUrl = new URL(request.url);
+  if (process.env.NODE_ENV === 'production' && requestUrl.protocol === 'https:') {
+    responseHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+}
+
 export default function handleRequest(
   request: Request,
   responseStatusCode: number,
@@ -50,6 +90,7 @@ export default function handleRequest(
           const stream = createReadableStreamFromReadable(body);
 
           responseHeaders.set('Content-Type', 'text/html');
+          setSecurityHeaders(responseHeaders, request);
 
           pipe(body);
 

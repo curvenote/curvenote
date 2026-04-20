@@ -33,6 +33,7 @@ function getRoutesForMountPoint(mountPoint: string): RouteConfigEntry[] {
 export default [
   // Resource Routes
   route('resources/set-theme', 'routes/resources.set-theme.tsx'),
+  route('app/resources/csp-report', 'routes/app/resources.csp-report.tsx'),
 
   // Build Routes
   route('build/:jobId', 'routes/build.$jobId.tsx'),
