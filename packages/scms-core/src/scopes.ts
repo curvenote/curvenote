@@ -85,6 +85,25 @@ export const work = {
 
 // app wide feature based scopes, to be expanded in the future
 export const app = {
+  settings: {
+    read: 'app:settings:read',
+    account: {
+      read: 'app:settings:account:read',
+      update: 'app:settings:account:update',
+    },
+    linkedAccounts: {
+      read: 'app:settings:linked-accounts:read',
+      manage: 'app:settings:linked-accounts:manage',
+    },
+    emails: {
+      read: 'app:settings:emails:read',
+      update: 'app:settings:emails:update',
+    },
+    tokens: {
+      read: 'app:settings:tokens:read',
+      manage: 'app:settings:tokens:manage',
+    },
+  },
   platform: { admin: 'app:platform:admin' },
   works: {
     feature: 'app:works:feature', // UI level feature flag

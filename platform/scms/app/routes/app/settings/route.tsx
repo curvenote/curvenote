@@ -1,17 +1,18 @@
 import type { Route } from './+types/route';
 import { redirect, Outlet } from 'react-router';
-import { withAppContext } from '@curvenote/scms-server';
+import { withAppScopedContext } from '@curvenote/scms-server';
 import {
   SecondaryNav,
   MainWrapper,
   getBrandingFromMetaMatches,
   joinPageTitle,
+  scopes,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
 import { extensions } from '../../../extensions/client';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppContext(args);
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.read]);
   const pathname = new URL(args.request.url).pathname;
   if (pathname === '/app/settings') {
     throw redirect('/app/settings/account');

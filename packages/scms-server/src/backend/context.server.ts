@@ -621,14 +621,18 @@ export async function withAppContext<T extends LoaderFunctionArgs | ActionFuncti
  */
 export async function withAppScopedContext<T extends LoaderFunctionArgs | ActionFunctionArgs>(
   args: T,
-  scopes: string[],
+  requiredScopes: string[],
+  opts?: { redirectTo?: string; redirect?: boolean },
 ): Promise<SecureContext> {
+  const mergedOpts = { redirectTo: '/app', ...opts };
   const ctx = await withAppContext<T>(args);
 
-  if (!userHasScopes(ctx.user, scopes)) {
+  if (!userHasScopes(ctx.user, requiredScopes)) {
     const pathname = new URL(args.request.url).pathname;
-    console.warn(`User does not have the required scopes (${pathname}): ${scopes.join(', ')}`);
-    throw error401();
+    console.warn(
+      `User does not have the required scopes (${pathname}): ${requiredScopes.join(', ')}`,
+    );
+    throw throwRedirectOr401(mergedOpts);
   }
 
   return ctx;
