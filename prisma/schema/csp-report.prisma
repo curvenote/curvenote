@@ -1,0 +1,23 @@
+model CspViolationReport {
+  id                  String  @id
+  fingerprint         String  @unique
+  effective_directive String?
+  violated_directive  String?
+  blocked_uri         String?
+  blocked_origin      String?
+  document_origin     String?
+  document_path       String?
+  disposition         String?
+  source_file         String?
+  line_number         Int?
+  column_number       Int?
+  user_agent_sample   String?
+  latest_payload      Json
+  count               Int     @default(1)
+  date_first_seen     String
+  date_last_seen      String
+
+  @@index([date_last_seen])
+  @@index([effective_directive])
+  @@index([disposition])
+}

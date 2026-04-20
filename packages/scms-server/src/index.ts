@@ -4,6 +4,7 @@ export * from './session.server.js';
 export * from './cookies.server.js';
 export * from './theme.server.js';
 export * from './entry.server.js';
+export { default as handleRequest } from './entry.server.js';
 export * from './utils/index.js';
 export * from './utils.server.js';
 export * from './api.schemas.js';
