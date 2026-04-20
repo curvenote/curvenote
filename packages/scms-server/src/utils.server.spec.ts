@@ -608,7 +608,7 @@ describe('root', () => {
             },
           ],
         }),
-      ).toBe('/dashboard');
+      ).toBe('dashboard');
     });
 
     test('returns the configured defaultRoute path when matched by item path (legacy)', () => {
@@ -626,7 +626,7 @@ describe('root', () => {
             },
           ],
         }),
-      ).toBe('/dashboard');
+      ).toBe('dashboard');
     });
 
     test('falls back to the first accessible item when defaultRoute matches nothing', () => {
@@ -637,7 +637,7 @@ describe('root', () => {
           { name: 'about', label: 'About', icon: 'info', path: '/about' },
         ],
       });
-      expect(result).toBe('/home');
+      expect(result).toBe('home');
     });
 
     test('falls back to first accessible item when the configured defaultRoute is gated away', () => {
@@ -661,7 +661,7 @@ describe('root', () => {
             },
           ],
         }),
-      ).toBe('/settings');
+      ).toBe('settings');
     });
 
     test('returns the first accessible item when no defaultRoute is configured', () => {
@@ -684,7 +684,7 @@ describe('root', () => {
             },
           ],
         }),
-      ).toBe('/settings');
+      ).toBe('settings');
     });
 
     test('treats items with no scopes as accessible', () => {
@@ -701,7 +701,7 @@ describe('root', () => {
             },
           ],
         }),
-      ).toBe('/home');
+      ).toBe('home');
     });
 
     test('treats items with an empty scopes array as accessible', () => {
@@ -709,7 +709,7 @@ describe('root', () => {
         resolveAccessibleDefaultRoute(userCtx([]), {
           items: [{ name: 'home', label: 'Home', icon: 'home', path: '/home', scopes: [] }],
         }),
-      ).toBe('/home');
+      ).toBe('home');
     });
 
     test('honors defaultRoute for system admins even when nav item has scopes', () => {
@@ -731,7 +731,27 @@ describe('root', () => {
             },
           ],
         }),
-      ).toBe('/dashboard');
+      ).toBe('dashboard');
+    });
+
+    test('strips leading and trailing slashes from returned paths so `/app/<path>` is well-formed', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx([]), {
+          items: [{ name: 'home', label: 'Home', icon: 'home', path: '/home/' }],
+        }),
+      ).toBe('home');
+    });
+
+    test('returns paths without a leading slash when configs omit it (sample-config style)', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx([]), {
+          defaultRoute: 'works',
+          items: [
+            { name: 'works', label: 'Works', icon: 'files', path: 'works' },
+            { name: 'settings', label: 'Settings', icon: 'settings', path: 'settings' },
+          ],
+        }),
+      ).toBe('works');
     });
   });
 });
