@@ -1,11 +1,13 @@
 import type { Route } from './+types/route';
 import { redirect, Outlet } from 'react-router';
-import { withAppContext, my } from '@curvenote/scms-server';
+import { withAppContext, my, resolveAccessibleDefaultRoute } from '@curvenote/scms-server';
 import {
   GlobalErrorBoundary,
   LoadingBar,
+  MainWrapper,
   Mobile,
   MobileControls,
+  PageFrame,
   PrimaryNav,
   cn,
   getBrandingFromMetaMatches,
@@ -22,14 +24,17 @@ export async function loader(args: Route.LoaderArgs) {
 
   const pathname = new URL(args.request.url).pathname;
   if (pathname === '/app') {
-    // Use configured default route or fallback to first navigation item
+    // Pick the first navigation item the user can access, preferring the
+    // configured defaultRoute. This also catches the case where a gated child
+    // route (e.g. /app/dashboard) bounced the user back to /app because they
+    // lack the required scopes - without this we would redirect-loop.
     const navConfig = ctx.$config.app?.navigation;
-    const defaultRoute =
-      (navConfig && 'defaultRoute' in navConfig ? navConfig.defaultRoute : undefined) || 'settings';
-    throw redirect('/app/' + defaultRoute);
+    const target = resolveAccessibleDefaultRoute(ctx, navConfig);
+    if (target) throw redirect('/app/' + target);
+    return { scopes: ctx.scopes, sites, noAccessibleRoute: true };
   }
 
-  return { scopes: ctx.scopes, sites };
+  return { scopes: ctx.scopes, sites, noAccessibleRoute: false };
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {
@@ -37,17 +42,17 @@ export const meta: Route.MetaFunction = ({ matches }) => {
   return [{ key: 'title', title: branding.title }];
 };
 
-export default function App() {
+export default function App({ loaderData }: Route.ComponentProps) {
   return (
     <div data-name="app-route" className="flex relative w-full min-h-screen">
       <Mobile>
-        <AppShell />
+        <AppShell noAccessibleRoute={loaderData?.noAccessibleRoute ?? false} />
       </Mobile>
     </div>
   );
 }
 
-function AppShell() {
+function AppShell({ noAccessibleRoute }: { noAccessibleRoute: boolean }) {
   const { open, setMobileOpen } = useMobile();
 
   return (
@@ -69,10 +74,28 @@ function AppShell() {
             'flex min-h-screen mx-auto w-[calc(100%-20px)] xl:ml-[110px] md:w-[calc(100%-40px)] lg:w-[calc(100%-110px)]',
           )}
         >
-          <Outlet />
+          {noAccessibleRoute ? <NoAccessibleRoute /> : <Outlet />}
         </div>
       </div>
     </>
+  );
+}
+
+function NoAccessibleRoute() {
+  return (
+    <MainWrapper>
+      <PageFrame hasSecondaryNav={false}>
+        <div className="py-16 mx-auto max-w-xl text-center">
+          <h1 className="mb-4 text-3xl font-light text-blue-900 dark:text-gray-100">
+            No sections available
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Your account doesn't have permission to view any sections of this app yet. If you
+            believe this is a mistake, please contact your administrator.
+          </p>
+        </div>
+      </PageFrame>
+    </MainWrapper>
   );
 }
 
