@@ -6,11 +6,12 @@ import {
   checkSiteExists,
   userHasScope,
   validateFormData,
+  withAppScopedContext,
 } from '@curvenote/scms-server';
 import SiteCard from './SiteCard.js';
 import RequestSiteCTA from './RequestSiteCTA.js';
 import PendingSiteCard from './PendingSiteCard.js';
-import { MainWrapper, PageFrame, scopes } from '@curvenote/scms-core';
+import { MainWrapper, PageFrame, scopes, clientCheckSiteScopes } from '@curvenote/scms-core';
 import type { UserSitesDTO } from '@curvenote/common';
 import type { ui } from '@curvenote/scms-core';
 import { actionCreateSite, actionRequestSite } from './actionHelpers.server.js';
@@ -20,13 +21,15 @@ import { zfd } from 'zod-form-data';
 interface LoaderData {
   video?: ui.VideoData;
   canCreateSite: boolean;
+  scopes: string[];
 }
 export const loader = async (args: LoaderFunctionArgs): Promise<LoaderData> => {
-  const ctx = await withAppContext(args);
+  const ctx = await withAppScopedContext(args, [scopes.app.sites.read], { redirect: true });
   const { video } = ctx.$config.app.extensions?.sites ?? {};
   return {
     video,
     canCreateSite: userHasScope(ctx.user, scopes.site.create),
+    scopes: ctx.scopes,
   };
 };
 
@@ -60,8 +63,14 @@ export const action = async (args: ActionFunctionArgs) => {
   }
 
   if (intent === 'request-site') {
+    if (!userHasScope(ctx.user, scopes.app.sites.request)) {
+      return data({ error: 'You are not authorized to request a site' }, { status: 403 });
+    }
     return actionRequestSite(ctx, formData);
   } else if (intent === 'check-site-name') {
+    if (!userHasScope(ctx.user, scopes.site.create)) {
+      return data({ error: 'You are not authorized to check site name' }, { status: 403 });
+    }
     try {
       const payload = validateFormData(CheckSiteNameSchema, formData);
       const exists = await checkSiteExists(payload.name);
@@ -70,6 +79,9 @@ export const action = async (args: ActionFunctionArgs) => {
       return data({ error: error.message ?? 'Invalid form data' }, { status: 400 });
     }
   } else if (intent === 'create-site' && userHasScope(ctx.user, scopes.site.create)) {
+    if (!userHasScope(ctx.user, scopes.site.create)) {
+      return data({ error: 'You are not authorized to create a site' }, { status: 403 });
+    }
     return actionCreateSite(ctx, formData);
   }
 
@@ -85,8 +97,10 @@ export default function Sites({
 }) {
   const location = useLocation();
   const appRoute = matches.find((m) => m && m.pathname === '/app');
-  const { video, canCreateSite } = loaderData;
+  const { video, canCreateSite, scopes: userScopes } = loaderData;
   const [showPendingCard, setShowPendingCard] = useState(false);
+
+  const canRequestSite = clientCheckSiteScopes(userScopes, [scopes.app.sites.request], '');
 
   const { sites } = appRoute?.loaderData as {
     scopes: string[];
@@ -114,13 +128,15 @@ export default function Sites({
           hasSecondaryNav={false}
         >
           <div className="mt-5 space-y-6">
-            <RequestSiteCTA
-              hasExistingSites={sites.items.length > 0}
-              video={video}
-              canCreateSite={canCreateSite}
-              onCreateSite={handleCreateSite}
-              showPendingCard={showPendingCard}
-            />
+            {canRequestSite && (
+              <RequestSiteCTA
+                hasExistingSites={sites.items.length > 0}
+                video={video}
+                canCreateSite={canCreateSite}
+                onCreateSite={handleCreateSite}
+                showPendingCard={showPendingCard}
+              />
+            )}
 
             {(sites.items.length > 0 || showPendingCard) && (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

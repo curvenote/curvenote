@@ -104,6 +104,10 @@ export const app = {
       manage: 'app:settings:tokens:manage',
     },
   },
+  sites: {
+    read: 'app:sites:read',
+    request: 'app:sites:request',
+  },
   platform: { admin: 'app:platform:admin' },
   works: {
     feature: 'app:works:feature', // UI level feature flag

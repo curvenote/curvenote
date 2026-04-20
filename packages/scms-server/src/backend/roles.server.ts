@@ -9,6 +9,8 @@ const SYSTEM_ROLES: Record<SystemRole, Set<string>> = {
     work.create,
     work.list,
     app.works.upload,
+    app.sites.read,
+    app.sites.request,
     app.settings.read,
     app.settings.linkedAccounts.read,
     app.settings.tokens.read,
