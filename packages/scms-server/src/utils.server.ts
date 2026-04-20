@@ -188,13 +188,10 @@ export function resolveAccessibleDefaultRoute(
     const configured =
       items.find((item) => normalize(item.name) === target) ??
       items.find((item) => normalize(item.path) === target);
-    if (!configured) {
-      console.warn(
-        `navigation.defaultRoute "${defaultRoute}" does not match any navigation item; falling back to first accessible item`,
-      );
-    } else if (userCanAccess(configured)) {
+    if (configured && userCanAccess(configured)) {
       return configured.path;
     }
+    // else fall through to the first accessible item
   }
 
   const firstAccessible = items.find(userCanAccess);

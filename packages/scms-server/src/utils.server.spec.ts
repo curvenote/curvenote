@@ -574,8 +574,20 @@ describe('root', () => {
       expect(
         resolveAccessibleDefaultRoute(userCtx([]), {
           items: [
-            { name: 'admin', label: 'Admin', icon: 'settings', path: '/admin', scopes: ['system:admin'] },
-            { name: 'platform', label: 'Platform', icon: 'settings', path: '/platform', scopes: ['app:platform:admin'] },
+            {
+              name: 'admin',
+              label: 'Admin',
+              icon: 'settings',
+              path: '/admin',
+              scopes: ['system:admin'],
+            },
+            {
+              name: 'platform',
+              label: 'Platform',
+              icon: 'settings',
+              path: '/platform',
+              scopes: ['app:platform:admin'],
+            },
           ],
         }),
       ).toBeNull();
@@ -587,7 +599,13 @@ describe('root', () => {
           defaultRoute: 'dashboard',
           items: [
             { name: 'home', label: 'Home', icon: 'home', path: '/home' },
-            { name: 'dashboard', label: 'Dashboard', icon: 'chart', path: '/dashboard', scopes: ['app:dashboard:read'] },
+            {
+              name: 'dashboard',
+              label: 'Dashboard',
+              icon: 'chart',
+              path: '/dashboard',
+              scopes: ['app:dashboard:read'],
+            },
           ],
         }),
       ).toBe('/dashboard');
@@ -599,14 +617,19 @@ describe('root', () => {
           defaultRoute: '/dashboard',
           items: [
             { name: 'home', label: 'Home', icon: 'home', path: '/home' },
-            { name: 'dashboard-page', label: 'Dashboard', icon: 'chart', path: '/dashboard', scopes: ['app:dashboard:read'] },
+            {
+              name: 'dashboard-page',
+              label: 'Dashboard',
+              icon: 'chart',
+              path: '/dashboard',
+              scopes: ['app:dashboard:read'],
+            },
           ],
         }),
       ).toBe('/dashboard');
     });
 
-    test('warns and falls back to the first accessible item when defaultRoute matches nothing', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    test('falls back to the first accessible item when defaultRoute matches nothing', () => {
       const result = resolveAccessibleDefaultRoute(userCtx([]), {
         defaultRoute: 'does-not-exist',
         items: [
@@ -615,10 +638,6 @@ describe('root', () => {
         ],
       });
       expect(result).toBe('/home');
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('navigation.defaultRoute "does-not-exist"'),
-      );
-      warnSpy.mockRestore();
     });
 
     test('falls back to first accessible item when the configured defaultRoute is gated away', () => {
@@ -626,8 +645,20 @@ describe('root', () => {
         resolveAccessibleDefaultRoute(userCtx(['app:settings:read']), {
           defaultRoute: 'dashboard',
           items: [
-            { name: 'dashboard', label: 'Dashboard', icon: 'chart', path: '/dashboard', scopes: ['app:dashboard:read'] },
-            { name: 'settings', label: 'Settings', icon: 'settings', path: '/settings', scopes: ['app:settings:read'] },
+            {
+              name: 'dashboard',
+              label: 'Dashboard',
+              icon: 'chart',
+              path: '/dashboard',
+              scopes: ['app:dashboard:read'],
+            },
+            {
+              name: 'settings',
+              label: 'Settings',
+              icon: 'settings',
+              path: '/settings',
+              scopes: ['app:settings:read'],
+            },
           ],
         }),
       ).toBe('/settings');
@@ -637,8 +668,20 @@ describe('root', () => {
       expect(
         resolveAccessibleDefaultRoute(userCtx(['app:settings:read']), {
           items: [
-            { name: 'dashboard', label: 'Dashboard', icon: 'chart', path: '/dashboard', scopes: ['app:dashboard:read'] },
-            { name: 'settings', label: 'Settings', icon: 'settings', path: '/settings', scopes: ['app:settings:read'] },
+            {
+              name: 'dashboard',
+              label: 'Dashboard',
+              icon: 'chart',
+              path: '/dashboard',
+              scopes: ['app:dashboard:read'],
+            },
+            {
+              name: 'settings',
+              label: 'Settings',
+              icon: 'settings',
+              path: '/settings',
+              scopes: ['app:settings:read'],
+            },
           ],
         }),
       ).toBe('/settings');
@@ -649,7 +692,13 @@ describe('root', () => {
         resolveAccessibleDefaultRoute(userCtx([]), {
           items: [
             { name: 'home', label: 'Home', icon: 'home', path: '/home' },
-            { name: 'admin', label: 'Admin', icon: 'settings', path: '/admin', scopes: ['system:admin'] },
+            {
+              name: 'admin',
+              label: 'Admin',
+              icon: 'settings',
+              path: '/admin',
+              scopes: ['system:admin'],
+            },
           ],
         }),
       ).toBe('/home');
@@ -673,7 +722,13 @@ describe('root', () => {
           defaultRoute: 'dashboard',
           items: [
             { name: 'home', label: 'Home', icon: 'home', path: '/home' },
-            { name: 'dashboard', label: 'Dashboard', icon: 'chart', path: '/dashboard', scopes: ['app:dashboard:read'] },
+            {
+              name: 'dashboard',
+              label: 'Dashboard',
+              icon: 'chart',
+              path: '/dashboard',
+              scopes: ['app:dashboard:read'],
+            },
           ],
         }),
       ).toBe('/dashboard');
