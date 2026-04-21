@@ -1,27 +1,18 @@
 import type { SystemRole } from '@curvenote/scms-db';
+import type { SystemRoleScopeConfig as SystemRoleScopeConfigBase } from '@curvenote/scms-server';
 import {
   getPrismaClient,
   getDefaultSystemRoleScopes,
+  isSystemRole,
   isValidScopeFormat,
+  processScopes,
+  SYSTEM_ROLES,
 } from '@curvenote/scms-server';
 import { uuidv7 } from 'uuidv7';
 
-export interface SystemRoleScopeConfig {
-  role: SystemRole;
-  scopes: string[];
+export type SystemRoleScopeConfig = SystemRoleScopeConfigBase & {
   fallback_scopes: string[];
-  date_created: string | null;
-  date_modified: string | null;
-}
-
-function isSystemRole(value: string): value is SystemRole {
-  return ['SERVICE', 'ADMIN', 'USER', 'ANON'].includes(value);
-}
-
-function processScopes(scopes: unknown): string[] {
-  if (!Array.isArray(scopes)) return [];
-  return scopes.filter((scope): scope is string => typeof scope === 'string');
-}
+};
 
 export async function getAllSystemRoleScopes(): Promise<SystemRoleScopeConfig[]> {
   const prisma = await getPrismaClient();
@@ -41,8 +32,7 @@ export async function getAllSystemRoleScopes(): Promise<SystemRoleScopeConfig[]>
     }
   }
 
-  const roles: SystemRole[] = ['SERVICE', 'ADMIN', 'USER', 'ANON'];
-  return roles.map((role) => {
+  return SYSTEM_ROLES.map((role) => {
     const row = rowByRole.get(role);
     return {
       role,
@@ -60,6 +50,7 @@ export async function updateSystemRoleScopes(
   updatedBy: string,
 ): Promise<SystemRoleScopeConfig> {
   if (!isSystemRole(role)) throw new Error(`Invalid system role: ${role}`);
+  const systemRole: SystemRole = role;
   if (scopes.length === 0) throw new Error('At least one scope is required');
 
   const invalidScopes = scopes.filter((scope) => !isValidScopeFormat(scope));
@@ -73,9 +64,9 @@ export async function updateSystemRoleScopes(
   const prisma = await getPrismaClient();
   await prisma.$transaction(async (tx) => {
     await tx.systemRoleScope.upsert({
-      where: { role },
+      where: { role: systemRole },
       create: {
-        role,
+        role: systemRole,
         date_created: now,
         date_modified: now,
         scopes,
@@ -94,7 +85,7 @@ export async function updateSystemRoleScopes(
         activity_by_id: updatedBy,
         activity_type: 'ROLE_UPDATED',
         data: {
-          role,
+          role: systemRole,
           scopes,
           system_role: true,
         },
@@ -103,7 +94,7 @@ export async function updateSystemRoleScopes(
   });
 
   const allRoles = await getAllSystemRoleScopes();
-  const updated = allRoles.find((row) => row.role === role);
+  const updated = allRoles.find((row) => row.role === systemRole);
   if (!updated) {
     throw new Error(`Failed to recover updated row for system role: ${role}`);
   }
@@ -115,12 +106,13 @@ export async function deleteSystemRoleScopes(
   deletedBy: string,
 ): Promise<SystemRoleScopeConfig> {
   if (!isSystemRole(role)) throw new Error(`Invalid system role: ${role}`);
+  const systemRole: SystemRole = role;
 
   const now = new Date().toISOString();
   const prisma = await getPrismaClient();
   await prisma.$transaction(async (tx) => {
     await tx.systemRoleScope.deleteMany({
-      where: { role },
+      where: { role: systemRole },
     });
 
     await tx.activity.create({
@@ -131,7 +123,7 @@ export async function deleteSystemRoleScopes(
         activity_by_id: deletedBy,
         activity_type: 'ROLE_UPDATED',
         data: {
-          role,
+          role: systemRole,
           system_role: true,
           deleted: true,
         },
@@ -140,9 +132,9 @@ export async function deleteSystemRoleScopes(
   });
 
   return {
-    role,
-    scopes: getDefaultSystemRoleScopes(role),
-    fallback_scopes: getDefaultSystemRoleScopes(role),
+    role: systemRole,
+    scopes: getDefaultSystemRoleScopes(systemRole),
+    fallback_scopes: getDefaultSystemRoleScopes(systemRole),
     date_created: null,
     date_modified: null,
   };

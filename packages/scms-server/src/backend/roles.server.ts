@@ -1,5 +1,4 @@
-import type { SystemRole } from '@curvenote/scms-db';
-import { SiteRole, WorkRole } from '@curvenote/scms-db';
+import { SiteRole, SystemRole, WorkRole } from '@curvenote/scms-db';
 import { site, work } from '@curvenote/scms-core';
 import { getPrismaClient } from './prisma.server.js';
 import { DEFAULT_SYSTEM_ROLE_SCOPES } from './systemRoleDefaults.js';
@@ -10,7 +9,18 @@ export function isValidScopeFormat(scope: string): boolean {
   return SCOPE_FORMAT_REGEX.test(scope);
 }
 
-function processScopes(scopes: unknown): string[] {
+const SYSTEM_ROLE_SET = new Set<string>(Object.values(SystemRole));
+
+export function isSystemRole(value: string): value is SystemRole {
+  return SYSTEM_ROLE_SET.has(value);
+}
+
+/** Runtime order follows the Prisma `SystemRole` enum definition. */
+export const SYSTEM_ROLES: readonly SystemRole[] = Object.freeze(
+  Object.values(SystemRole) as SystemRole[],
+);
+
+export function processScopes(scopes: unknown): string[] {
   if (!Array.isArray(scopes)) return [];
   return scopes.filter((scope): scope is string => typeof scope === 'string');
 }

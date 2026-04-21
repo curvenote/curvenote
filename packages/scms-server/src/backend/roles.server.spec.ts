@@ -1,7 +1,12 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from 'vitest';
 import { SystemRole } from '@curvenote/scms-db';
-import { getSystemRoleScopes, hasDefaultScopeViaSystemRole } from './roles.server.js';
+import {
+  getSystemRoleScopes,
+  hasDefaultScopeViaSystemRole,
+  isSystemRole,
+  SYSTEM_ROLES,
+} from './roles.server.js';
 import { userHasScope } from './scopes.helpers.server.js';
 
 function createUser(role: SystemRole) {
@@ -13,6 +18,24 @@ function createUser(role: SystemRole) {
     work_roles: [],
   } as any;
 }
+
+describe('isSystemRole / SYSTEM_ROLES', () => {
+  test('accepts every Prisma SystemRole value', () => {
+    for (const role of Object.values(SystemRole)) {
+      expect(isSystemRole(role)).toBe(true);
+    }
+  });
+
+  test('rejects arbitrary strings', () => {
+    expect(isSystemRole('SUPERADMIN')).toBe(false);
+    expect(isSystemRole('')).toBe(false);
+  });
+
+  test('SYSTEM_ROLES lists each enum member once', () => {
+    expect(SYSTEM_ROLES.length).toBe(Object.values(SystemRole).length);
+    expect(new Set(SYSTEM_ROLES).size).toBe(SYSTEM_ROLES.length);
+  });
+});
 
 describe('default system role scope mapping', () => {
   test('uses default hardcoded mapping by default', () => {
