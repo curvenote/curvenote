@@ -28,6 +28,9 @@ enum ActivityType {
   ACCESS_GRANTED
   ACCESS_REVOKED
   ROLE_CREATED
+  /// Custom `Role` edits and system role scope configuration changes both use this value.
+  /// System role scope updates/deletes set `data.system_role` (boolean); deletes may set `data.deleted`.
+  /// Those activities often have `role_id` null, so filters like `role_id IS NOT NULL` exclude them.
   ROLE_UPDATED
   ROLE_DELETED
   ROLE_ASSIGNED
