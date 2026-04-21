@@ -84,12 +84,11 @@ export async function action(args: Route.ActionArgs) {
       if (!workId) {
         return data({ error: 'Work ID is required for delete operation' }, { status: 400 });
       }
-      // TODO: needs to be scoped to the work
-      // if (!userHasScope(ctx.user, scopes.work.delete)) {
-      //   return data({ error: 'You do not have permission to delete drafts' }, { status: 403 });
-      // }
       try {
-        // Delete the draft work and its versions
+        // Hard-delete this draft work and its versions. The action only gates on `app:works:feature`
+        // (`withAppScopedContext` above); there is no separate `work:delete` (or per-work scope) check here.
+        // Access control lives in `dangerouslyDeleteDraftWork`: the authed user must be OWNER on the work,
+        // every version must still be a draft, and the work must have no submissions.
         await dangerouslyDeleteDraftWork(ctx, workId, ctx.user.id);
         return { success: true, intent };
       } catch (error) {
