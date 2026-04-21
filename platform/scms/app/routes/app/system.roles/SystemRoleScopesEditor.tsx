@@ -170,7 +170,7 @@ function SystemRoleRow({ role, availableScopes, extensionScopes }: EditorRowProp
 
       <div>
         <p className="mb-1 text-sm font-medium">Known scopes</p>
-        <div className="overflow-y-auto p-2 max-h-44 rounded border">
+        <div className="p-2 rounded border">
           <div className="flex flex-wrap gap-1">
             {availableScopes.map((scope) => {
               const isSelected = selectedScopesSet.has(scope);
