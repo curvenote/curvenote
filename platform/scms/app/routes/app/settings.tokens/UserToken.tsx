@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { formatDate, ui } from '@curvenote/scms-core';
 import type { dtoUserToken } from './db.server';
-import type { Route } from '../+types/route';
+import type { Route } from './+types/route';
 
 export function UserToken({
   token,
