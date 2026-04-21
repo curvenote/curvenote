@@ -5,7 +5,7 @@ export const DEFAULT_SYSTEM_ROLE_SCOPES: Record<SystemRole, string[]> = {
   [SystemRole.SERVICE]: [system.admin], // in future service accounts will have limited scope, that's the whole point
   [SystemRole.ADMIN]: [system.admin],
   [SystemRole.USER]: [
-    work.create,
+    // work.create,
     work.list,
     app.works.feature,
     app.sites.feature,

@@ -11,7 +11,7 @@ import { extensions } from '../../extensions/server';
  */
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withCurvenoteSubmissionContext(args, [
-    work.submissions.read,
+    work.id.submissions.read,
     site.submissions.read,
   ]);
   return Response.json(await ctx.submissionDTO(extensions));

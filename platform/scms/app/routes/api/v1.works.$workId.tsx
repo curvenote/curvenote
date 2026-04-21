@@ -37,7 +37,7 @@ export async function loader(args: Route.LoaderArgs) {
  * an existing key.
  */
 export async function action(args: Route.ActionArgs) {
-  const ctx = await withCurvenoteWorkContext(args, [work.update]);
+  const ctx = await withCurvenoteWorkContext(args, [work.id.update]);
   if (args.request.method === 'PATCH') {
     const body = await ensureJsonBodyFromMethod(args.request, ['PATCH']);
     const { key } = validate(UpdateWorkPatchBodySchema, body);

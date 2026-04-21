@@ -67,7 +67,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 };
 
 export async function action(args: Route.ActionArgs) {
-  const ctx = await withAppScopedContext(args, [scopes.work.list, scopes.app.works.upload]);
+  const ctx = await withAppScopedContext(args, [scopes.app.works.feature]);
   const formData = await args.request.formData();
 
   return withValidFormData(WorksActionSchema, formData, async (payload: WorksActionPayload) => {
@@ -84,9 +84,11 @@ export async function action(args: Route.ActionArgs) {
       if (!workId) {
         return data({ error: 'Work ID is required for delete operation' }, { status: 400 });
       }
-
       try {
-        // Delete the draft work and its versions
+        // Hard-delete this draft work and its versions. The action only gates on `app:works:feature`
+        // (`withAppScopedContext` above); there is no separate `work:delete` (or per-work scope) check here.
+        // Access control lives in `dangerouslyDeleteDraftWork`: the authed user must be OWNER on the work,
+        // every version must still be a draft, and the work must have no submissions.
         await dangerouslyDeleteDraftWork(ctx, workId, ctx.user.id);
         return { success: true, intent };
       } catch (error) {
@@ -104,6 +106,10 @@ export async function action(args: Route.ActionArgs) {
 
     // Handle delete-all-drafts intent (same list as the Resume-draft dialog: single-version drafts only)
     if (intent === 'delete-all-drafts') {
+      // TODO: needs to be scoped to the work, all of them!
+      // if (!userHasScope(ctx.user, scopes.work.delete)) {
+      //   return data({ error: 'You do not have permission to delete drafts' }, { status: 403 });
+      // }
       try {
         const validDrafts = await getValidDraftWorksForUser(ctx.user.id);
 
@@ -143,6 +149,9 @@ export async function action(args: Route.ActionArgs) {
 
     // Handle create-new-draft intent
     if (intent === 'create-new-draft') {
+      if (!userHasScope(ctx.user, scopes.work.create)) {
+        return data({ error: 'You do not have permission to create drafts' }, { status: 403 });
+      }
       try {
         const newWork = await dbCreateDraftFileWork(
           ctx,

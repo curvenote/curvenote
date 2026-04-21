@@ -59,27 +59,29 @@ export const site = {
 };
 
 export const work = {
-  list: 'work:list',
   create: 'work:create',
-  read: 'work:read',
-  update: 'work:update',
-  submissions: {
-    list: 'work:submissions:list',
-    read: 'work:submissions:read',
-    create: 'work:submissions:create',
-    update: 'work:submissions:update',
-    delete: 'work:submissions:delete',
-    versions: {
-      create: 'work:submissions:versions:create',
+  list: 'work:list',
+  id: {
+    read: 'work:read',
+    update: 'work:update',
+    delete: 'work:delete',
+    submissions: {
+      list: 'work:submissions:list',
+      read: 'work:submissions:read',
+      create: 'work:submissions:create',
+      update: 'work:submissions:update',
+      delete: 'work:submissions:delete',
+      versions: {
+        create: 'work:submissions:versions:create',
+      },
     },
-  },
-  users: {
-    read: 'work:users',
-    update: 'work:users:update',
-  },
-  checks: {
-    read: 'work:checks:read',
-    dispatch: 'work:checks:dispatch',
+    users: {
+      read: 'work:users',
+      update: 'work:users:update',
+    },
+    checks: {
+      read: 'work:checks:read',
+    },
   },
 };
 
@@ -116,7 +118,10 @@ export const app = {
   works: {
     feature: 'app:works:feature', // UI level feature flag
     upload: 'app:works:upload',
-    checks: 'app:works:checks',
+    checks: {
+      feature: 'app:works:checks:feature',
+      dispatch: 'app:works:checks:dispatch',
+    },
     export: 'app:works:export',
     metadataPreview: 'app:works:metadatapreview',
   },

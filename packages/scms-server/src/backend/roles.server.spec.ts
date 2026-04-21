@@ -1,9 +1,11 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from 'vitest';
-import { SystemRole } from '@curvenote/scms-db';
+import { work } from '@curvenote/scms-core';
+import { SystemRole, WorkRole } from '@curvenote/scms-db';
 import {
   getSystemRoleScopes,
   hasDefaultScopeViaSystemRole,
+  hasWorkScope,
   isSystemRole,
   SYSTEM_ROLES,
 } from './roles.server.js';
@@ -34,6 +36,14 @@ describe('isSystemRole / SYSTEM_ROLES', () => {
   test('SYSTEM_ROLES lists each enum member once', () => {
     expect(SYSTEM_ROLES.length).toBe(Object.values(SystemRole).length);
     expect(new Set(SYSTEM_ROLES).size).toBe(SYSTEM_ROLES.length);
+  });
+});
+
+describe('work role scope mapping', () => {
+  test('only OWNER may update work user assignments; CONTRIBUTORS may read', () => {
+    expect(hasWorkScope(WorkRole.OWNER, work.id.users.update)).toBe(true);
+    expect(hasWorkScope(WorkRole.CONTRIBUTOR, work.id.users.update)).toBe(false);
+    expect(hasWorkScope(WorkRole.CONTRIBUTOR, work.id.users.read)).toBe(true);
   });
 });
 

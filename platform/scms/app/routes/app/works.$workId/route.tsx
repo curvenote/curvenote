@@ -67,7 +67,7 @@ export async function action(args: ActionFunctionArgs) {
   }
 
   const { intent, workId: formWorkId } = parsed.data;
-  const ctx = await withSecureWorkContext(args, [scopes.work.read]);
+  const ctx = await withSecureWorkContext(args, [scopes.work.id.read]);
 
   if (intent === 'get-drafts-for-work') {
     const workVersions = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
@@ -156,7 +156,7 @@ export async function action(args: ActionFunctionArgs) {
 }
 
 export const loader = async (args: LoaderFunctionArgs) => {
-  const ctx = await withSecureWorkContext(args, [scopes.work.read]);
+  const ctx = await withSecureWorkContext(args, [scopes.work.id.read]);
 
   const { workId } = args.params;
   if (!workId) return redirect('/app/works');
