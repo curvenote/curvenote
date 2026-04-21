@@ -9,6 +9,9 @@ BEGIN
   END IF;
 END $$;
 
+-- Column default is typed as the old enum; PG cannot cast it when the column type changes.
+ALTER TABLE "public"."User" ALTER COLUMN "system_role" DROP DEFAULT;
+
 CREATE TYPE "public"."SystemRole_new" AS ENUM ('SERVICE', 'ADMIN', 'USER', 'ANON');
 
 ALTER TABLE "public"."User"
@@ -22,3 +25,5 @@ ALTER TABLE "public"."SystemRoleScope"
 DROP TYPE "public"."SystemRole";
 
 ALTER TYPE "public"."SystemRole_new" RENAME TO "SystemRole";
+
+ALTER TABLE "public"."User" ALTER COLUMN "system_role" SET DEFAULT 'USER'::"SystemRole";
