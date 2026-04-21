@@ -1,7 +1,7 @@
 import type { Context } from './context.server.js';
 import type { MyUserDBO } from './db.types.js';
 import { error401, scopes } from '@curvenote/scms-core';
-import { hasScopeViaSystemRole } from './roles.server.js';
+import { userHasScope } from './scopes.helpers.server.js';
 import { throwRedirectOr401 } from '../utils.server.js';
 
 export function assertUserDefined(user: any): asserts user is MyUserDBO {
@@ -54,5 +54,5 @@ export async function secureSystemAdmin(
 ) {
   await secureAnyUser(ctx, opts);
   assertUserDefined(ctx.user);
-  if (!hasScopeViaSystemRole(ctx.user?.system_role, scopes.system.admin)) throwRedirectOr401(opts);
+  if (!userHasScope(ctx.user, scopes.system.admin)) throwRedirectOr401(opts);
 }

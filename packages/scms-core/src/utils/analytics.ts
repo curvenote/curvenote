@@ -16,7 +16,7 @@ export type EventOptions = {
  */
 export function isAdmin(user?: { system_role: SystemRole | string } | null): boolean {
   if (!user) return false;
-  return user.system_role === SystemRole.ADMIN || user.system_role === SystemRole.PLATFORM_ADMIN;
+  return user.system_role === SystemRole.ADMIN;
 }
 
 /**

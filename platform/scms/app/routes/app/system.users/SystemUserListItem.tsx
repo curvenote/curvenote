@@ -91,8 +91,6 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
         return 'User';
       case 'ADMIN':
         return 'Admin';
-      case 'PLATFORM_ADMIN':
-        return 'Platform Admin';
       case 'SERVICE':
         return 'Service';
       case 'ANON':
@@ -181,7 +179,6 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
                   </ui.SelectTrigger>
                   <ui.SelectContent>
                     <ui.SelectItem value="USER">User</ui.SelectItem>
-                    <ui.SelectItem value="PLATFORM_ADMIN">Platform Admin</ui.SelectItem>
                     <ui.SelectItem value="ADMIN">Admin</ui.SelectItem>
                     <ui.SelectItem value="SERVICE">Service</ui.SelectItem>
                   </ui.SelectContent>

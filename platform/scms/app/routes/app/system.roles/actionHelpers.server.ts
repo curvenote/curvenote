@@ -1,14 +1,13 @@
 import { data as dataResponse } from 'react-router';
 import type { SecureContext } from '@curvenote/scms-server';
 import { createRole, updateRole, deleteRole, isRoleNameUnique } from '@curvenote/scms-server';
+import { getInvalidScopes, parseScopes } from './scopeValidation';
 
 /**
  * Validate scope format - must be lowercase letters separated by colons (a:b or a:b:c)
  */
 function validateScopeFormat(scope: string): boolean {
-  // Pattern: lowercase letters, colons, allowing a:b or a:b:c format
-  const scopePattern = /^[a-z]+(:[a-z]+)*$/;
-  return scopePattern.test(scope);
+  return getInvalidScopes([scope]).length === 0;
 }
 
 /**
@@ -34,12 +33,7 @@ export async function handleCreateRole(ctx: SecureContext, formData: FormData) {
   }
 
   // Parse scopes
-  const scopes = scopesString
-    ? scopesString
-        .split(/[,\n]/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : [];
+  const scopes = parseScopes(scopesString);
 
   // Validate scopes are not empty
   if (scopes.length === 0) {
@@ -61,7 +55,7 @@ export async function handleCreateRole(ctx: SecureContext, formData: FormData) {
       {
         error: {
           type: 'validation',
-          message: `Invalid scope format: ${invalidScopes.join(', ')}. Scopes must be lowercase letters separated by colons (e.g., a:b or a:b:c)`,
+          message: `Invalid scope format: ${invalidScopes.join(', ')}. Scopes must be lowercase letters, numbers, hyphens, and colon-delimited segments (e.g., app:settings:account:read or ext:plugin:action)`,
         },
       },
       { status: 400 },
@@ -129,12 +123,7 @@ export async function handleUpdateRole(ctx: SecureContext, formData: FormData) {
   }
 
   // Parse scopes
-  const scopes = scopesString
-    ? scopesString
-        .split(/[,\n]/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : [];
+  const scopes = parseScopes(scopesString);
 
   // Validate scopes are not empty
   if (scopes.length === 0) {
@@ -156,7 +145,7 @@ export async function handleUpdateRole(ctx: SecureContext, formData: FormData) {
       {
         error: {
           type: 'validation',
-          message: `Invalid scope format: ${invalidScopes.join(', ')}. Scopes must be lowercase letters separated by colons (e.g., a:b or a:b:c)`,
+          message: `Invalid scope format: ${invalidScopes.join(', ')}. Scopes must be lowercase letters, numbers, hyphens, and colon-delimited segments (e.g., app:settings:account:read or ext:plugin:action)`,
         },
       },
       { status: 400 },

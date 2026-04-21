@@ -1,29 +1,64 @@
 import { SystemRole, SiteRole, WorkRole } from '@curvenote/scms-db';
-import { system, site, work, app } from '@curvenote/scms-core';
+import { site, work } from '@curvenote/scms-core';
+import { getPrismaClient } from './prisma.server.js';
+import { DEFAULT_SYSTEM_ROLE_SCOPES } from './systemRoleDefaults.js';
 
-const SYSTEM_ROLES: Record<SystemRole, Set<string>> = {
-  [SystemRole.SERVICE]: new Set([system.admin]), // in future service accounts will have limited scope, that's the whole point
-  [SystemRole.ADMIN]: new Set([system.admin]),
-  [SystemRole.PLATFORM_ADMIN]: new Set([app.platform.admin]),
-  [SystemRole.USER]: new Set([
-    work.create,
-    work.list,
-    app.works.upload,
-    app.dashboard.read,
-    app.sites.read,
-    app.sites.request,
-    app.settings.read,
-    app.settings.linkedAccounts.read,
-    app.settings.linkedAccounts.manage,
-    app.settings.tokens.read,
-    app.settings.tokens.manage,
-    app.settings.emails.read,
-    app.settings.emails.update,
-    app.settings.account.read,
-    app.settings.account.update,
-  ]),
-  [SystemRole.ANON]: new Set([]),
-};
+export const SCOPE_FORMAT_REGEX = /^[a-z]+(?::[a-z0-9-]+)+$/;
+
+export function isValidScopeFormat(scope: string): boolean {
+  return SCOPE_FORMAT_REGEX.test(scope);
+}
+
+function isSystemRole(value: string): value is SystemRole {
+  return Object.values(SystemRole).includes(value as SystemRole);
+}
+
+function processScopes(scopes: unknown): string[] {
+  if (!Array.isArray(scopes)) return [];
+  return scopes.filter((scope): scope is string => typeof scope === 'string');
+}
+
+export interface SystemRoleScopeConfig {
+  role: SystemRole;
+  scopes: string[];
+  fallback_scopes: string[];
+  date_created: string | null;
+  date_modified: string | null;
+}
+
+export async function getSystemRoleScopeConfig(role: SystemRole): Promise<SystemRoleScopeConfig> {
+  const prisma = await getPrismaClient();
+  const row = await prisma.systemRoleScope.findUnique({
+    where: { role },
+    select: {
+      role: true,
+      scopes: true,
+      date_created: true,
+      date_modified: true,
+    },
+  });
+  if (!row) {
+    return {
+      role,
+      scopes: getDefaultSystemRoleScopes(role),
+      fallback_scopes: getDefaultSystemRoleScopes(role),
+      date_created: null,
+      date_modified: null,
+    };
+  }
+  return {
+    role,
+    scopes: processScopes(row.scopes),
+    fallback_scopes: getDefaultSystemRoleScopes(role),
+    date_created: row.date_created,
+    date_modified: row.date_modified,
+  };
+}
+
+export function getDefaultSystemRoleScopes(role: SystemRole): string[] {
+  const scopes = DEFAULT_SYSTEM_ROLE_SCOPES[role];
+  return Array.isArray(scopes) ? [...scopes] : [];
+}
 
 const SITE_ROLES: Record<SiteRole, Set<string>> = {
   [SiteRole.ADMIN]: new Set([
@@ -134,7 +169,7 @@ const WORK_ROLES: Record<WorkRole, Set<string>> = {
 };
 
 export function hasScopeViaSystemRole(role: SystemRole, scope: string): boolean {
-  return SYSTEM_ROLES[role]?.has(scope) ?? false;
+  return DEFAULT_SYSTEM_ROLE_SCOPES[role]?.includes(scope) ?? false;
 }
 
 export function hasSiteScope(role: SiteRole, scope: string): boolean {
@@ -150,7 +185,7 @@ export function hasWorkScope(role: WorkRole, scope: string): boolean {
 }
 
 export function getSystemRoleScopes(role: SystemRole): string[] {
-  return Array.from(SYSTEM_ROLES[role]);
+  return getDefaultSystemRoleScopes(role);
 }
 
 export function getSiteRoleScopes(role: SiteRole): string[] {

@@ -1,12 +1,18 @@
 import type { Route } from './+types/route';
 import { withAppPlatformAdminContext, getRoles } from '@curvenote/scms-server';
-import { PageFrame, SectionWithHeading } from '@curvenote/scms-core';
+import { PageFrame, SectionWithHeading, ui } from '@curvenote/scms-core';
 import { RolesList } from './RolesList';
 import { AddRoleForm } from './AddRoleForm';
 import { GraduationCap } from 'lucide-react';
 import { data } from 'react-router';
 import { handleCreateRole, handleUpdateRole, handleDeleteRole } from './actionHelpers.server';
+import {
+  handleDeleteSystemRoleScopes,
+  handleUpdateSystemRoleScopes,
+} from './systemRoleActionHelpers.server';
 import type { GeneralError } from '@curvenote/scms-core';
+import { SystemRoleScopesEditor } from './SystemRoleScopesEditor';
+import { getAllSystemRoleScopes } from './systemRoleScopes.server';
 
 export const meta: Route.MetaFunction = () => {
   return [
@@ -17,8 +23,27 @@ export const meta: Route.MetaFunction = () => {
 
 export async function loader(args: Route.LoaderArgs) {
   await withAppPlatformAdminContext(args);
-  const roles = await getRoles();
-  return { roles };
+  const { extensions: serverExtensions } = await import('../../../extensions/server');
+  const [roles, systemRoleScopes] = await Promise.all([getRoles(), getAllSystemRoleScopes()]);
+  const extensionScopes = serverExtensions.flatMap((extension) => {
+    const tree = extension.getScopes?.();
+    if (!tree) return [];
+    const values: string[] = [];
+    const visit = (node: unknown) => {
+      if (typeof node === 'string') {
+        values.push(node);
+        return;
+      }
+      if (node && typeof node === 'object') {
+        for (const value of Object.values(node as Record<string, unknown>)) {
+          visit(value);
+        }
+      }
+    };
+    visit(tree);
+    return values;
+  });
+  return { roles, systemRoleScopes, extensionScopes: Array.from(new Set(extensionScopes)).sort() };
 }
 
 export async function action(args: Route.ActionArgs) {
@@ -42,6 +67,10 @@ export async function action(args: Route.ActionArgs) {
         return handleUpdateRole(ctx, formData);
       case 'delete':
         return handleDeleteRole(ctx, formData);
+      case 'system-role-update':
+        return handleUpdateSystemRoleScopes(ctx, formData);
+      case 'system-role-delete':
+        return handleDeleteSystemRoleScopes(ctx, formData);
       default:
         return data(
           { error: { type: 'general', message: `Invalid intent: ${intent}` } as GeneralError },
@@ -63,7 +92,7 @@ export async function action(args: Route.ActionArgs) {
 }
 
 export default function RolesPage({ loaderData }: Route.ComponentProps) {
-  const { roles } = loaderData;
+  const { roles, systemRoleScopes, extensionScopes } = loaderData;
 
   const breadcrumbs = [
     { label: 'System Administration', href: '/app/system' },
@@ -74,16 +103,29 @@ export default function RolesPage({ loaderData }: Route.ComponentProps) {
     <PageFrame
       title="Role Management"
       subtitle="Create and manage custom roles with specific permissions"
-      className="max-w-screen-lg mx-auto"
+      className="mx-auto max-w-screen-lg"
       breadcrumbs={breadcrumbs}
     >
-      <div className="space-y-8">
-        <AddRoleForm />
+      <ui.Tabs defaultValue="custom-roles" className="space-y-2">
+        <ui.TabsList>
+          <ui.TabsTrigger value="custom-roles">Custom Roles</ui.TabsTrigger>
+          <ui.TabsTrigger value="system-roles">System Roles</ui.TabsTrigger>
+        </ui.TabsList>
 
-        <SectionWithHeading heading="Existing Roles" icon={GraduationCap}>
-          <RolesList roles={roles} />
-        </SectionWithHeading>
-      </div>
+        <ui.TabsContent value="custom-roles" className="space-y-2">
+          <AddRoleForm />
+
+          <SectionWithHeading heading="Existing Roles" icon={GraduationCap}>
+            <RolesList roles={roles} />
+          </SectionWithHeading>
+        </ui.TabsContent>
+
+        <ui.TabsContent value="system-roles">
+          <SectionWithHeading heading="System Roles">
+            <SystemRoleScopesEditor roles={systemRoleScopes} extensionScopes={extensionScopes} />
+          </SectionWithHeading>
+        </ui.TabsContent>
+      </ui.Tabs>
     </PageFrame>
   );
 }

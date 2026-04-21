@@ -24,7 +24,7 @@ import type {
   HandshakeTokenClaims,
   PreviewTokenClaims,
 } from './jwt.context.server.js';
-import { hasScopeViaSystemRole } from './roles.server.js';
+import { getSystemRoleScopeConfig } from './roles.server.js';
 import { userHasScope, getUserScopesSet, userHasScopes } from './scopes.helpers.server.js';
 import { verifyPreviewToken } from './sign.previews.server.js';
 import { verifyHandshakeToken } from './sign.handshake.server.js';
@@ -60,7 +60,7 @@ import { getPrismaClient } from './prisma.server.js';
  */
 export async function getUserById(id: string): Promise<UserWithRolesDBO | null> {
   const prisma = await getPrismaClient();
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id },
     include: {
       site_roles: {
@@ -83,6 +83,12 @@ export async function getUserById(id: string): Promise<UserWithRolesDBO | null> 
       },
     },
   });
+  if (!user) return null;
+  const systemRoleConfig = await getSystemRoleScopeConfig(user.system_role);
+  return {
+    ...user,
+    system_scopes: systemRoleConfig.scopes,
+  };
 }
 
 export class Context implements ContextType {
@@ -671,7 +677,7 @@ export async function withAppAdminContext<T extends LoaderFunctionArgs | ActionF
 ): Promise<SecureContext> {
   const ctx = await withAppContext<T>(args, opts);
 
-  if (!hasScopeViaSystemRole(ctx.user.system_role, system.admin)) {
+  if (!userHasScope(ctx.user, system.admin)) {
     console.warn(
       'withAppAdminContext',
       args.request.url,

@@ -9,7 +9,7 @@ import {
   getBrandingFromMetaMatches,
   joinPageTitle,
 } from '@curvenote/scms-core';
-import { withAppSiteContext, hasScopeViaSystemRole, my } from '@curvenote/scms-server';
+import { withAppSiteContext, my } from '@curvenote/scms-server';
 import { buildMenu } from './menu.server.js';
 import type { SiteDTO } from '@curvenote/common';
 import { extension } from '../../client.js';
@@ -32,7 +32,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData | Res
     return redirect(`/app/sites/${ctx.site.name}/inbox`);
   }
 
-  let hasMultipleSites = hasScopeViaSystemRole(ctx.user?.system_role, system.admin);
+  let hasMultipleSites = ctx.scopes.includes(system.admin);
   if (!hasMultipleSites) {
     hasMultipleSites = (await my.siteCount(ctx)) > 1;
   }

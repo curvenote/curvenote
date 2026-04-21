@@ -20,17 +20,12 @@ export function searchSystemUsers(users: SystemUserDTO[], searchTerm: string): S
  * Generate system role filters for the filter bar
  */
 export function generateSystemRoleFilters(): ui.FilterDefinition[] {
-  const systemRoles = ['USER', 'ADMIN', 'PLATFORM_ADMIN', 'SERVICE', 'ANON'];
+  const systemRoles = ['USER', 'ADMIN', 'SERVICE', 'ANON'];
 
   return systemRoles.map((role) => ({
     key: 'systemRole',
     value: role,
-    label:
-      role === 'USER'
-        ? 'User'
-        : role === 'PLATFORM_ADMIN'
-          ? 'Platform Admin'
-          : role.charAt(0) + role.slice(1).toLowerCase(),
+    label: role === 'USER' ? 'User' : role.charAt(0) + role.slice(1).toLowerCase(),
     groupKey: 'systemRole',
     default: false,
   }));

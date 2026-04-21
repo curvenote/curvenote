@@ -1,10 +1,11 @@
 import type { UserSitesDTO } from '@curvenote/common';
-import type { Prisma, User as UserDBO } from '@curvenote/scms-db';
+import type { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../prisma.server.js';
 import type { Context } from '../../context.server.js';
-import { hasSiteScope, hasScopeViaSystemRole } from '../../roles.server.js';
+import { hasSiteScope } from '../../roles.server.js';
 import { error401, scopes } from '@curvenote/scms-core';
 import { formatSiteDTO } from '../sites/get.server.js';
+import type { MyUserDBO } from '../../db.types.js';
 
 /**
  * List the sites for the user.
@@ -16,8 +17,8 @@ import { formatSiteDTO } from '../sites/get.server.js';
  * @returns
  * @see listWorksForUser
  */
-async function dbListSitesForUser(user: UserDBO) {
-  if (hasScopeViaSystemRole(user.system_role, scopes.system.admin)) {
+async function dbListSitesForUser(user: MyUserDBO) {
+  if ((user.system_scopes ?? []).includes(scopes.system.admin)) {
     // lookup across all sites
     const prisma = await getPrismaClient();
     const sites = await prisma.site.findMany({

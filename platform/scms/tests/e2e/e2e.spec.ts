@@ -176,6 +176,7 @@ type TestCase = {
   followRedirects?: boolean;
   body?: Record<string, any>;
   response?: Record<string, any>;
+  responseContains?: string;
   headers?: Record<string, string>;
 };
 
@@ -466,6 +467,7 @@ function runTestCases(tests: TestFile[]) {
                   followRedirects,
                   body,
                   response,
+                  responseContains,
                   headers,
                 },
               ) => {
@@ -493,12 +495,6 @@ function runTestCases(tests: TestFile[]) {
                   // Replace different token placeholders
                   if (processedValue.includes('${TOKEN}')) {
                     processedValue = processedValue.replace('${TOKEN}', testToken ?? '');
-                  }
-                  if (processedValue.includes('${PLATFORM_ADMIN_TOKEN}')) {
-                    processedValue = processedValue.replace(
-                      '${PLATFORM_ADMIN_TOKEN}',
-                      testToken ?? '',
-                    );
                   }
                   if (processedValue.includes('${PENDING_TOKEN}')) {
                     processedValue = processedValue.replace('${PENDING_TOKEN}', testToken ?? '');
@@ -533,6 +529,9 @@ function runTestCases(tests: TestFile[]) {
                       const responseData = JSON.parse(responseBody);
                       validateResponseStructure(responseData, response);
                     }
+                  }
+                  if (responseContains) {
+                    expect(responseBody).toContain(responseContains);
                   }
                 } catch (error) {
                   // If it's already a formatted error, just rethrow it
@@ -570,6 +569,7 @@ function runTestCases(tests: TestFile[]) {
               followRedirects,
               body,
               response,
+              responseContains,
               headers,
             } = testCase;
 
@@ -597,9 +597,6 @@ function runTestCases(tests: TestFile[]) {
               // Replace different token placeholders
               if (processedValue.includes('${TOKEN}')) {
                 processedValue = processedValue.replace('${TOKEN}', testToken ?? '');
-              }
-              if (processedValue.includes('${PLATFORM_ADMIN_TOKEN}')) {
-                processedValue = processedValue.replace('${PLATFORM_ADMIN_TOKEN}', testToken ?? '');
               }
               if (processedValue.includes('${PENDING_TOKEN}')) {
                 processedValue = processedValue.replace('${PENDING_TOKEN}', testToken ?? '');
@@ -634,6 +631,9 @@ function runTestCases(tests: TestFile[]) {
                   const responseData = JSON.parse(responseBody);
                   validateResponseStructure(responseData, response);
                 }
+              }
+              if (responseContains) {
+                expect(responseBody).toContain(responseContains);
               }
             } catch (error) {
               // If it's already a formatted error, just rethrow it

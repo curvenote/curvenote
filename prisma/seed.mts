@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { loadAllJsonFilesFromDir, seedBySites } from './seed.utils.mjs';
 import { uuidv7 } from 'uuidv7';
+import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/systemRoleDefaults.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,6 +100,27 @@ async function main() {
   summary.users++;
   console.log(`   ✓ Created user: ${mikeStaging.display_name} (${mikeStaging.email})`);
   console.log(`   Total users created: ${summary.users}\n`);
+
+  const now = new Date().toISOString();
+  for (const [role, scopes] of Object.entries(DEFAULT_SYSTEM_ROLE_SCOPES) as [
+    SystemRole,
+    string[],
+  ][]) {
+    await prisma.systemRoleScope.upsert({
+      where: { role },
+      create: {
+        role,
+        date_created: now,
+        scopes,
+        date_modified: now,
+      },
+      update: {
+        scopes,
+        date_modified: now,
+      },
+    });
+  }
+  console.log('   ✓ Seeded system role scope mappings');
 
   console.log('🔐 Creating roles...');
   // Create roles for development
