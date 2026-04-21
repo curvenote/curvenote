@@ -75,8 +75,14 @@ function SystemRoleRow({ role, availableScopes, extensionScopes }: EditorRowProp
   const extensionScopesSet = useMemo(() => new Set(extensionScopes), [extensionScopes]);
   const normalizedInitialScopes = useMemo(() => normalizeScopeList(initialScopes), [initialScopes]);
   const normalizedCurrentScopes = useMemo(() => normalizeScopeList(scopesText), [scopesText]);
-  const initialScopesSet = useMemo(() => new Set(normalizedInitialScopes), [normalizedInitialScopes]);
-  const currentScopesSet = useMemo(() => new Set(normalizedCurrentScopes), [normalizedCurrentScopes]);
+  const initialScopesSet = useMemo(
+    () => new Set(normalizedInitialScopes),
+    [normalizedInitialScopes],
+  );
+  const currentScopesSet = useMemo(
+    () => new Set(normalizedCurrentScopes),
+    [normalizedCurrentScopes],
+  );
   const newlyAddedPrivilegedScopes = useMemo(
     () =>
       PRIVILEGED_SCOPES.filter(
@@ -152,12 +158,14 @@ function SystemRoleRow({ role, availableScopes, extensionScopes }: EditorRowProp
       <div className="flex gap-4 justify-between items-center">
         <div>
           <h3 className="font-semibold">{role.role}</h3>
-          <p className="text-sm text-muted-foreground">Last updated {formatDate(role.date_modified)}</p>
+          <p className="text-sm text-muted-foreground">
+            Last updated {formatDate(role.date_modified)}
+          </p>
         </div>
       </div>
 
       {!hasDbEntry && (
-        <div className="px-3 py-2 text-sm rounded-md border border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+        <div className="px-3 py-2 text-sm text-amber-900 bg-amber-50 rounded-md border border-amber-300 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
           No database configuration exists for <strong>{role.role}</strong> yet; the{' '}
           <span className="font-bold text-blue-700 dark:text-blue-300">blue</span> scopes in{' '}
           <strong>Known scopes</strong> are the in-code fallback scopes that are currently applied.
@@ -194,19 +202,19 @@ function SystemRoleRow({ role, availableScopes, extensionScopes }: EditorRowProp
                   className={
                     isSelected
                       ? isFallbackScope
-                        ? 'px-2 py-1 text-xs rounded border border-blue-500 bg-blue-100 text-blue-900 hover:bg-blue-200 cursor-pointer dark:border-blue-500 dark:bg-blue-900/40 dark:text-blue-100'
+                        ? 'px-2 py-1 text-xs text-blue-900 bg-blue-100 rounded border border-blue-500 cursor-pointer hover:bg-blue-200 dark:border-blue-500 dark:bg-blue-900/40 dark:text-blue-100'
                         : isPrivilegedScope
-                          ? 'px-2 py-1 text-xs rounded border border-red-500 bg-red-100 text-red-900 hover:bg-red-200 cursor-pointer dark:border-red-500 dark:bg-red-900/40 dark:text-red-100'
+                          ? 'px-2 py-1 text-xs text-red-900 bg-red-100 rounded border border-red-500 cursor-pointer hover:bg-red-200 dark:border-red-500 dark:bg-red-900/40 dark:text-red-100'
                           : isExtensionScope
-                        ? 'px-2 py-1 text-xs rounded border border-amber-500 bg-amber-100 text-amber-900 hover:bg-amber-200 cursor-pointer dark:border-amber-500 dark:bg-amber-900/40 dark:text-amber-100'
-                          : 'px-2 py-1 text-xs rounded border border-gray-500 bg-gray-200 text-gray-900 hover:bg-gray-300 cursor-pointer dark:border-gray-500 dark:bg-gray-800 dark:text-gray-100'
+                            ? 'px-2 py-1 text-xs text-amber-900 bg-amber-100 rounded border border-amber-500 cursor-pointer hover:bg-amber-200 dark:border-amber-500 dark:bg-amber-900/40 dark:text-amber-100'
+                            : 'px-2 py-1 text-xs text-gray-900 bg-gray-200 rounded border border-gray-500 cursor-pointer hover:bg-gray-300 dark:border-gray-500 dark:bg-gray-800 dark:text-gray-100'
                       : isFallbackScope
-                        ? 'px-2 py-1 text-xs rounded border border-blue-500 bg-blue-100 text-blue-900 hover:bg-blue-200 cursor-pointer dark:border-blue-500 dark:bg-blue-900/40 dark:text-blue-100'
+                        ? 'px-2 py-1 text-xs text-blue-900 bg-blue-100 rounded border border-blue-500 cursor-pointer hover:bg-blue-200 dark:border-blue-500 dark:bg-blue-900/40 dark:text-blue-100'
                         : isPrivilegedScope
-                          ? 'px-2 py-1 text-xs rounded border border-red-400 bg-red-100 text-red-900 hover:bg-red-200 cursor-pointer dark:border-red-500 dark:bg-red-900/30 dark:text-red-100'
+                          ? 'px-2 py-1 text-xs text-red-900 bg-red-100 rounded border border-red-400 cursor-pointer hover:bg-red-200 dark:border-red-500 dark:bg-red-900/30 dark:text-red-100'
                           : isExtensionScope
-                        ? 'px-2 py-1 text-xs rounded border border-amber-400 bg-amber-100 text-amber-900 hover:bg-amber-200 cursor-pointer dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-100'
-                          : 'px-2 py-1 text-xs rounded border border-gray-400 bg-gray-100 text-gray-800 hover:bg-gray-200 cursor-pointer dark:border-gray-500 dark:bg-gray-900/80 dark:text-gray-100'
+                            ? 'px-2 py-1 text-xs text-amber-900 bg-amber-100 rounded border border-amber-400 cursor-pointer hover:bg-amber-200 dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-100'
+                            : 'px-2 py-1 text-xs text-gray-800 bg-gray-100 rounded border border-gray-400 cursor-pointer hover:bg-gray-200 dark:border-gray-500 dark:bg-gray-900/80 dark:text-gray-100'
                   }
                   onClick={() => {
                     setScopesText((prev) => {
@@ -239,7 +247,7 @@ function SystemRoleRow({ role, availableScopes, extensionScopes }: EditorRowProp
               {additionalScopes.map((scope) => (
                 <span
                   key={scope}
-                  className="px-2 py-1 text-xs rounded border border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+                  className="px-2 py-1 text-xs text-amber-900 bg-amber-50 rounded border border-amber-300 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
                 >
                   {scope}
                 </span>

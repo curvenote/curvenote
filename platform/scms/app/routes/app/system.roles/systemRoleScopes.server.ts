@@ -1,5 +1,9 @@
 import type { SystemRole } from '@curvenote/scms-db';
-import { getPrismaClient, getDefaultSystemRoleScopes, isValidScopeFormat } from '@curvenote/scms-server';
+import {
+  getPrismaClient,
+  getDefaultSystemRoleScopes,
+  isValidScopeFormat,
+} from '@curvenote/scms-server';
 import { uuidv7 } from 'uuidv7';
 
 export interface SystemRoleScopeConfig {
