@@ -168,7 +168,6 @@ const WORK_ROLES: Record<WorkRole, Set<string>> = {
     work.id.submissions.update,
     work.id.submissions.versions.create,
     work.id.users.read,
-    work.id.users.update,
     work.id.checks.read,
   ]),
   [WorkRole.VIEWER]: new Set([work.id.read]),
