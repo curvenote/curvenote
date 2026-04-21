@@ -24,7 +24,7 @@ interface LoaderData {
   scopes: string[];
 }
 export const loader = async (args: LoaderFunctionArgs): Promise<LoaderData> => {
-  const ctx = await withAppScopedContext(args, [scopes.app.sites.read], { redirect: true });
+  const ctx = await withAppScopedContext(args, [scopes.app.sites.feature], { redirect: true });
   const { video } = ctx.$config.app.extensions?.sites ?? {};
   return {
     video,
