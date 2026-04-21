@@ -2,14 +2,15 @@ import type { WorkRole } from '@curvenote/scms-db';
 import type { UserDBO, UserWithRolesDBO } from './db.types.js';
 import { system } from '@curvenote/scms-core';
 import {
-  hasScopeViaSystemRole,
   hasSiteScope,
   hasWorkScope,
   getDefaultSystemRoleScopes,
   getSiteRoleScopes,
 } from './roles.server.js';
 
-function getLoadedSystemScopes(user: UserWithRolesDBO): string[] {
+function getLoadedSystemScopes(
+  user: Pick<UserDBO, 'system_role'> & { system_scopes?: unknown },
+): string[] {
   const loadedScopes = user.system_scopes;
   if (Array.isArray(loadedScopes) && loadedScopes.every((scope) => typeof scope === 'string')) {
     return loadedScopes;
@@ -173,11 +174,7 @@ export function userHasWorkScope(
   workId?: string | null,
 ): boolean {
   if (!user) return false;
-  if (Array.isArray((user as UserWithRolesDBO).system_scopes)) {
-    if ((user as UserWithRolesDBO).system_scopes!.includes(system.admin)) return true;
-  } else if (hasScopeViaSystemRole(user.system_role, system.admin)) {
-    return true;
-  }
+  if (getLoadedSystemScopes(user).includes(system.admin)) return true;
   if (workId) {
     const workRoles = user.work_roles.filter((sr) => sr.work_id === workId).map(({ role }) => role);
     return !!workRoles.find((workRole) => hasWorkScope(workRole, scope));
