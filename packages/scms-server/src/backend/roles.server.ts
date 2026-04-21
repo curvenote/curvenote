@@ -49,8 +49,11 @@ export async function getSystemRoleScopeConfig(role: SystemRole): Promise<System
   };
 }
 
-export function getDefaultSystemRoleScopes(role: SystemRole): string[] {
-  return [...DEFAULT_SYSTEM_ROLE_SCOPES[role]];
+export function getDefaultSystemRoleScopes(role: SystemRole | null | undefined): string[] {
+  if (role == null) return [];
+  const scopes = DEFAULT_SYSTEM_ROLE_SCOPES[role];
+  if (!Array.isArray(scopes)) return [];
+  return [...scopes];
 }
 
 const SITE_ROLES: Record<SiteRole, Set<string>> = {
@@ -161,8 +164,11 @@ const WORK_ROLES: Record<WorkRole, Set<string>> = {
   [WorkRole.VIEWER]: new Set([work.read]),
 };
 
-export function hasDefaultScopeViaSystemRole(role: SystemRole, scope: string): boolean {
-  return DEFAULT_SYSTEM_ROLE_SCOPES[role].includes(scope);
+export function hasDefaultScopeViaSystemRole(
+  role: SystemRole | null | undefined,
+  scope: string,
+): boolean {
+  return getDefaultSystemRoleScopes(role).includes(scope);
 }
 
 export function hasSiteScope(role: SiteRole, scope: string): boolean {
