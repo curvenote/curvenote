@@ -3,6 +3,7 @@ import { useFetcher } from 'react-router';
 import { ui, scopes as scopeTree } from '@curvenote/scms-core';
 import { Check } from 'lucide-react';
 import type { GeneralError } from '@curvenote/scms-core';
+import { flattenScopeTree } from './flattenScopeTree';
 
 type EditableSystemRole = {
   role: string;
@@ -13,23 +14,6 @@ type EditableSystemRole = {
 };
 
 const PRIVILEGED_SCOPES = ['system:admin', 'app:platform:admin'] as const;
-
-function flattenScopeTree(tree: Record<string, unknown>): string[] {
-  const values: string[] = [];
-  const visit = (node: unknown) => {
-    if (typeof node === 'string') {
-      values.push(node);
-      return;
-    }
-    if (node && typeof node === 'object') {
-      for (const value of Object.values(node as Record<string, unknown>)) {
-        visit(value);
-      }
-    }
-  };
-  visit(tree);
-  return Array.from(new Set(values)).sort();
-}
 
 function formatDate(value: string | null): string {
   if (!value) return 'Not configured yet';

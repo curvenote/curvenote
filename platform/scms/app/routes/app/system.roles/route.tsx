@@ -13,6 +13,7 @@ import {
 import type { GeneralError } from '@curvenote/scms-core';
 import { SystemRoleScopesEditor } from './SystemRoleScopesEditor';
 import { getAllSystemRoleScopes } from './systemRoleScopes.server';
+import { flattenScopeTree } from './flattenScopeTree';
 
 export const meta: Route.MetaFunction = () => {
   return [
@@ -28,20 +29,7 @@ export async function loader(args: Route.LoaderArgs) {
   const extensionScopes = serverExtensions.flatMap((extension) => {
     const tree = extension.getScopes?.();
     if (!tree) return [];
-    const values: string[] = [];
-    const visit = (node: unknown) => {
-      if (typeof node === 'string') {
-        values.push(node);
-        return;
-      }
-      if (node && typeof node === 'object') {
-        for (const value of Object.values(node as Record<string, unknown>)) {
-          visit(value);
-        }
-      }
-    };
-    visit(tree);
-    return values;
+    return flattenScopeTree(tree);
   });
   return { roles, systemRoleScopes, extensionScopes: Array.from(new Set(extensionScopes)).sort() };
 }
