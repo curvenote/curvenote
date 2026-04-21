@@ -15,7 +15,9 @@ import { useState } from 'react';
 import { actionCreateUserToken } from './actionHelpers.server';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppScopedContext(args, [scopes.app.settings.tokens.read]);
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.tokens.read], {
+    redirect: true,
+  });
   const tokensDBO = await dbListUserTokens(ctx.user!.id);
   const tokens = tokensDBO.map((token) => dtoUserToken(token));
   return { tokens };

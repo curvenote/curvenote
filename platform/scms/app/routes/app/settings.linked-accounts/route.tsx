@@ -31,7 +31,9 @@ import { z } from 'zod';
 import { UnlinkAccount } from './UnlinkAccount';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppScopedContext(args, [scopes.app.settings.linkedAccounts.read]);
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.linkedAccounts.read], {
+    redirect: true,
+  });
   const accounts = await dbGetLinkedAccountsByUserId(ctx.user!.id);
   const url = new URL(args.request.url);
   const linked = url.searchParams.get('linked');

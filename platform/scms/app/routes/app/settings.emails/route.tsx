@@ -13,7 +13,9 @@ import {
 } from '@curvenote/scms-core';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppScopedContext(args, [scopes.app.settings.emails.read]);
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.emails.read], {
+    redirect: true,
+  });
   if (!ctx.user.email) {
     throw redirect('/app/settings/account');
   }

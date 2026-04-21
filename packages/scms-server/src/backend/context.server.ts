@@ -644,7 +644,11 @@ export async function withAppScopedContext<T extends LoaderFunctionArgs | Action
   requiredScopes: string[],
   opts?: { redirectTo?: string; redirect?: boolean },
 ): Promise<SecureContext> {
-  const mergedOpts = { redirectTo: '/app', ...opts };
+  // Only apply the `/app` redirect default when the caller has explicitly opted in to
+  // redirecting. Otherwise forward opts untouched so `throwRedirectOr401` throws a 401
+  // instead of silently redirecting (e.g. action handlers that want the user to see
+  // an error, not a navigation, when they lack the required scope).
+  const mergedOpts = opts?.redirect ? { redirectTo: '/app', ...opts } : (opts ?? {});
   const ctx = await withAppContext<T>(args);
 
   if (!userHasScopes(ctx.user, requiredScopes)) {

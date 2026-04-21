@@ -16,7 +16,7 @@ import { redirect, useNavigate, useFetcher, useNavigation } from 'react-router';
 import { getValidDraftWorksForUser } from '../works._index/getDrafts.server';
 
 export async function loader(args: LoaderFunctionArgs) {
-  const ctx = await withAppScopedContext(args, [scopes.app.works.upload]);
+  const ctx = await withAppScopedContext(args, [scopes.app.works.upload], { redirect: true });
   const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
   if (!canUpload) {
     throw redirect('/app/works');

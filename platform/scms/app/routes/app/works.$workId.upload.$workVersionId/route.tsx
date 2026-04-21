@@ -99,7 +99,7 @@ function parseAuthorsList(authorsText: string): string[] {
 // extension when they create checkServiceRun rows.
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppScopedContext(args, [scopes.app.works.upload]);
+  const ctx = await withAppScopedContext(args, [scopes.app.works.upload], { redirect: true });
   const { workId, workVersionId } = args.params;
 
   if (!workId || !workVersionId) {
