@@ -86,10 +86,10 @@ export const work = {
 // app wide feature based scopes, to be expanded in the future
 export const app = {
   dashboard: {
-    read: 'app:dashboard:read',
+    feature: 'app:dashboard:feature',
   },
   settings: {
-    read: 'app:settings:read',
+    feature: 'app:settings:feature',
     account: {
       read: 'app:settings:account:read',
       update: 'app:settings:account:update',
@@ -108,6 +108,7 @@ export const app = {
     },
   },
   sites: {
+    feature: 'app:sites:feature',
     read: 'app:sites:read',
     request: 'app:sites:request',
   },

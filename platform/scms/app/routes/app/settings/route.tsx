@@ -13,7 +13,7 @@ import { buildMenu } from './menu';
 import { extensions } from '../../../extensions/client';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppScopedContext(args, [scopes.app.settings.read], { redirect: true });
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.feature], { redirect: true });
   const menu = buildMenu(`/app/settings`, ctx.scopes);
   const pathname = new URL(args.request.url).pathname;
   if (pathname === '/app/settings') {

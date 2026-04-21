@@ -1,7 +1,6 @@
 enum SystemRole {
   SERVICE
   ADMIN
-  PLATFORM_ADMIN
   USER
   ANON
 }

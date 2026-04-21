@@ -22,7 +22,7 @@ import { extensions as serverExtensions } from '../../../extensions/server';
 import type { Extensions } from 'types/app-config';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppScopedContext(args, [scopes.app.dashboard.read], { redirect: true });
+  const ctx = await withAppScopedContext(args, [scopes.app.dashboard.feature], { redirect: true });
   const extensionConfigs: Extensions = ctx.$config?.app?.extensions || {};
   const reducedExtensionConfigs = Object.fromEntries(
     Object.entries(extensionConfigs).map(([key, value]) => [key, { task: value.task ?? false }]),

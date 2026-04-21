@@ -13,3 +13,10 @@ model Role {
 
   @@index([name])
 }
+
+model SystemRoleScope {
+  role          SystemRole @id
+  date_created  String
+  date_modified String
+  scopes        Json       // Array of scope strings
+}
