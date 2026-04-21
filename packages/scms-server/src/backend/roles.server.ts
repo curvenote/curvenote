@@ -1,4 +1,5 @@
-import { SystemRole, SiteRole, WorkRole } from '@curvenote/scms-db';
+import type { SystemRole } from '@curvenote/scms-db';
+import { SiteRole, WorkRole } from '@curvenote/scms-db';
 import { site, work } from '@curvenote/scms-core';
 import { getPrismaClient } from './prisma.server.js';
 import { DEFAULT_SYSTEM_ROLE_SCOPES } from './systemRoleDefaults.js';
@@ -9,10 +10,6 @@ export function isValidScopeFormat(scope: string): boolean {
   return SCOPE_FORMAT_REGEX.test(scope);
 }
 
-function isSystemRole(value: string): value is SystemRole {
-  return Object.values(SystemRole).includes(value as SystemRole);
-}
-
 function processScopes(scopes: unknown): string[] {
   if (!Array.isArray(scopes)) return [];
   return scopes.filter((scope): scope is string => typeof scope === 'string');
@@ -21,7 +18,6 @@ function processScopes(scopes: unknown): string[] {
 export interface SystemRoleScopeConfig {
   role: SystemRole;
   scopes: string[];
-  fallback_scopes: string[];
   date_created: string | null;
   date_modified: string | null;
 }
@@ -41,7 +37,6 @@ export async function getSystemRoleScopeConfig(role: SystemRole): Promise<System
     return {
       role,
       scopes: getDefaultSystemRoleScopes(role),
-      fallback_scopes: getDefaultSystemRoleScopes(role),
       date_created: null,
       date_modified: null,
     };
@@ -49,7 +44,6 @@ export async function getSystemRoleScopeConfig(role: SystemRole): Promise<System
   return {
     role,
     scopes: processScopes(row.scopes),
-    fallback_scopes: getDefaultSystemRoleScopes(role),
     date_created: row.date_created,
     date_modified: row.date_modified,
   };
