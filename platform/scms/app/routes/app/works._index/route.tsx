@@ -37,7 +37,7 @@ const WorksActionSchema = zfd.formData({
 type WorksActionPayload = z.infer<typeof WorksActionSchema>;
 
 export const loader = async (args: LoaderFunctionArgs) => {
-  const ctx = await withAppScopedContext(args, [scopes.work.list]); // app:works:feature
+  const ctx = await withAppScopedContext(args, [scopes.work.list], { redirect: true }); // app:works:feature
   try {
     // Create promise for deferred loading
     const worksPromise = dbGetWorksAndSubmissionVersions(ctx.user.id).then((items) => {

@@ -1,7 +1,7 @@
 import type { Route } from './+types/route';
 import { redirect, useFetcher } from 'react-router';
 import { useState } from 'react';
-import { withAppContext, unsubscribe } from '@curvenote/scms-server';
+import { withAppContext, withAppScopedContext, unsubscribe } from '@curvenote/scms-server';
 import {
   PageFrame,
   primitives,
@@ -9,10 +9,13 @@ import {
   getBrandingFromMetaMatches,
   joinPageTitle,
   TrackEvent,
+  scopes,
 } from '@curvenote/scms-core';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppContext(args);
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.emails.read], {
+    redirect: true,
+  });
   if (!ctx.user.email) {
     throw redirect('/app/settings/account');
   }
@@ -21,7 +24,7 @@ export async function loader(args: Route.LoaderArgs) {
 }
 
 export async function action(args: Route.ActionArgs) {
-  const ctx = await withAppContext(args);
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.emails.update]);
   if (!ctx.user.email) {
     throw redirect('/app/settings/account');
   }

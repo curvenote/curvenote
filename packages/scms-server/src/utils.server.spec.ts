@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { vi, describe, test, expect } from 'vitest';
-import { buildClientNavigation } from './utils.server.js';
+import { buildClientNavigation, resolveAccessibleDefaultRoute } from './utils.server.js';
 import type { Context } from './backend/context.server.js';
 
 vi.mock('./backend/loaders', async () => {
@@ -543,6 +543,215 @@ describe('root', () => {
       // All items filtered out, but structure should still be correct
       expect(result.items).toEqual([]);
       expect(result.helpItem).toBeUndefined();
+    });
+  });
+
+  describe('resolveAccessibleDefaultRoute', () => {
+    const userCtx = (scopes: string[]) =>
+      ({
+        scopes: [''],
+        user: { system_role: 'ANON', roles: [{ role: { scopes } }] },
+      }) as Context;
+
+    test('returns null when navConfig is undefined', () => {
+      expect(resolveAccessibleDefaultRoute(userCtx(['work:create']))).toBeNull();
+    });
+
+    test('returns null when ctx has no user', () => {
+      const ctx = { scopes: [] as string[] } as Context;
+      expect(
+        resolveAccessibleDefaultRoute(ctx, {
+          items: [{ name: 'home', label: 'Home', icon: 'home', path: '/' }],
+        }),
+      ).toBeNull();
+    });
+
+    test('returns null when items array is empty', () => {
+      expect(resolveAccessibleDefaultRoute(userCtx([]), { items: [] })).toBeNull();
+    });
+
+    test('returns null when no item is accessible to the user', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx([]), {
+          items: [
+            {
+              name: 'admin',
+              label: 'Admin',
+              icon: 'settings',
+              path: '/admin',
+              scopes: ['system:admin'],
+            },
+            {
+              name: 'platform',
+              label: 'Platform',
+              icon: 'settings',
+              path: '/platform',
+              scopes: ['app:platform:admin'],
+            },
+          ],
+        }),
+      ).toBeNull();
+    });
+
+    test('returns the configured defaultRoute path when matched by item name', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx(['app:dashboard:read']), {
+          defaultRoute: 'dashboard',
+          items: [
+            { name: 'home', label: 'Home', icon: 'home', path: '/home' },
+            {
+              name: 'dashboard',
+              label: 'Dashboard',
+              icon: 'chart',
+              path: '/dashboard',
+              scopes: ['app:dashboard:read'],
+            },
+          ],
+        }),
+      ).toBe('dashboard');
+    });
+
+    test('returns the configured defaultRoute path when matched by item path (legacy)', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx(['app:dashboard:read']), {
+          defaultRoute: '/dashboard',
+          items: [
+            { name: 'home', label: 'Home', icon: 'home', path: '/home' },
+            {
+              name: 'dashboard-page',
+              label: 'Dashboard',
+              icon: 'chart',
+              path: '/dashboard',
+              scopes: ['app:dashboard:read'],
+            },
+          ],
+        }),
+      ).toBe('dashboard');
+    });
+
+    test('falls back to the first accessible item when defaultRoute matches nothing', () => {
+      const result = resolveAccessibleDefaultRoute(userCtx([]), {
+        defaultRoute: 'does-not-exist',
+        items: [
+          { name: 'home', label: 'Home', icon: 'home', path: '/home' },
+          { name: 'about', label: 'About', icon: 'info', path: '/about' },
+        ],
+      });
+      expect(result).toBe('home');
+    });
+
+    test('falls back to first accessible item when the configured defaultRoute is gated away', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx(['app:settings:read']), {
+          defaultRoute: 'dashboard',
+          items: [
+            {
+              name: 'dashboard',
+              label: 'Dashboard',
+              icon: 'chart',
+              path: '/dashboard',
+              scopes: ['app:dashboard:read'],
+            },
+            {
+              name: 'settings',
+              label: 'Settings',
+              icon: 'settings',
+              path: '/settings',
+              scopes: ['app:settings:read'],
+            },
+          ],
+        }),
+      ).toBe('settings');
+    });
+
+    test('returns the first accessible item when no defaultRoute is configured', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx(['app:settings:read']), {
+          items: [
+            {
+              name: 'dashboard',
+              label: 'Dashboard',
+              icon: 'chart',
+              path: '/dashboard',
+              scopes: ['app:dashboard:read'],
+            },
+            {
+              name: 'settings',
+              label: 'Settings',
+              icon: 'settings',
+              path: '/settings',
+              scopes: ['app:settings:read'],
+            },
+          ],
+        }),
+      ).toBe('settings');
+    });
+
+    test('treats items with no scopes as accessible', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx([]), {
+          items: [
+            { name: 'home', label: 'Home', icon: 'home', path: '/home' },
+            {
+              name: 'admin',
+              label: 'Admin',
+              icon: 'settings',
+              path: '/admin',
+              scopes: ['system:admin'],
+            },
+          ],
+        }),
+      ).toBe('home');
+    });
+
+    test('treats items with an empty scopes array as accessible', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx([]), {
+          items: [{ name: 'home', label: 'Home', icon: 'home', path: '/home', scopes: [] }],
+        }),
+      ).toBe('home');
+    });
+
+    test('honors defaultRoute for system admins even when nav item has scopes', () => {
+      const adminCtx = {
+        scopes: ['system:admin'],
+        user: { system_role: 'ADMIN' },
+      } as Context;
+      expect(
+        resolveAccessibleDefaultRoute(adminCtx, {
+          defaultRoute: 'dashboard',
+          items: [
+            { name: 'home', label: 'Home', icon: 'home', path: '/home' },
+            {
+              name: 'dashboard',
+              label: 'Dashboard',
+              icon: 'chart',
+              path: '/dashboard',
+              scopes: ['app:dashboard:read'],
+            },
+          ],
+        }),
+      ).toBe('dashboard');
+    });
+
+    test('strips leading and trailing slashes from returned paths so `/app/<path>` is well-formed', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx([]), {
+          items: [{ name: 'home', label: 'Home', icon: 'home', path: '/home/' }],
+        }),
+      ).toBe('home');
+    });
+
+    test('returns paths without a leading slash when configs omit it (sample-config style)', () => {
+      expect(
+        resolveAccessibleDefaultRoute(userCtx([]), {
+          defaultRoute: 'works',
+          items: [
+            { name: 'works', label: 'Works', icon: 'files', path: 'works' },
+            { name: 'settings', label: 'Settings', icon: 'settings', path: 'settings' },
+          ],
+        }),
+      ).toBe('works');
     });
   });
 });

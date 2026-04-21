@@ -515,21 +515,41 @@ export async function getCookieContext(request: Request) {
  * is always defined.
  */
 export class SecureContext extends Context {
-  $user: NonNullable<Context['$user']>;
+  // Narrows the base type to non-null; `declare` avoids declaring a fresh
+  // class field so it inherits Context's underlying slot and `strict` mode's
+  // definite-assignment check doesn't fire for setter-based assignment below.
+  declare $user: NonNullable<Context['$user']>;
 
   get user() {
     return this.$user;
   }
 
+  // Mirror the base Context setter so `this.scopes` stays in sync with the
+  // user. Without this, assignments via `initializeFrom` (or any future
+  // `secureCtx.user = ...`) would leave `scopes` at its constructor default
+  // of `[]`, because setter dispatch resolves to this subclass first.
+  //
+  // The declared type matches the getter (non-null) so callers of
+  // `secureCtx.user` keep reading a defined user. The runtime `!user` guard
+  // is belt-and-braces against inherited methods (e.g. `initializeFrom`)
+  // whose body was typechecked against the base `Context` setter, which
+  // accepts `undefined`, and against any future direct assignment. Without
+  // it, `getUserScopesSet(undefined)` would throw a `TypeError` and mask
+  // the intended 401.
   set user(user: MyUserDBO & { email_verified: boolean }) {
-    this.$user = user;
+    if (!user) {
+      this.$user = undefined as never;
+      this.scopes = [];
+      return;
+    }
+    this.$user = { ...user, email_verified: true };
+    this.scopes = Array.from(getUserScopesSet(user));
   }
 
   constructor(ctx: Context) {
     super(ctx.$config, ctx.$auth, ctx.$sessionStorage, ctx.request);
-    this.initializeFrom(ctx);
     if (!ctx.user) throw error401();
-    this.$user = ctx.user;
+    this.initializeFrom(ctx);
   }
 }
 
@@ -621,14 +641,22 @@ export async function withAppContext<T extends LoaderFunctionArgs | ActionFuncti
  */
 export async function withAppScopedContext<T extends LoaderFunctionArgs | ActionFunctionArgs>(
   args: T,
-  scopes: string[],
+  requiredScopes: string[],
+  opts?: { redirectTo?: string; redirect?: boolean },
 ): Promise<SecureContext> {
+  // Only apply the `/app` redirect default when the caller has explicitly opted in to
+  // redirecting. Otherwise forward opts untouched so `throwRedirectOr401` throws a 401
+  // instead of silently redirecting (e.g. action handlers that want the user to see
+  // an error, not a navigation, when they lack the required scope).
+  const mergedOpts = opts?.redirect ? { redirectTo: '/app', ...opts } : (opts ?? {});
   const ctx = await withAppContext<T>(args);
 
-  if (!userHasScopes(ctx.user, scopes)) {
+  if (!userHasScopes(ctx.user, requiredScopes)) {
     const pathname = new URL(args.request.url).pathname;
-    console.warn(`User does not have the required scopes (${pathname}): ${scopes.join(', ')}`);
-    throw error401();
+    console.warn(
+      `User does not have the required scopes (${pathname}): ${requiredScopes.join(', ')}`,
+    );
+    throw throwRedirectOr401(mergedOpts);
   }
 
   return ctx;

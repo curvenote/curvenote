@@ -85,6 +85,32 @@ export const work = {
 
 // app wide feature based scopes, to be expanded in the future
 export const app = {
+  dashboard: {
+    read: 'app:dashboard:read',
+  },
+  settings: {
+    read: 'app:settings:read',
+    account: {
+      read: 'app:settings:account:read',
+      update: 'app:settings:account:update',
+    },
+    linkedAccounts: {
+      read: 'app:settings:linked-accounts:read',
+      manage: 'app:settings:linked-accounts:manage',
+    },
+    emails: {
+      read: 'app:settings:emails:read',
+      update: 'app:settings:emails:update',
+    },
+    tokens: {
+      read: 'app:settings:tokens:read',
+      manage: 'app:settings:tokens:manage',
+    },
+  },
+  sites: {
+    read: 'app:sites:read',
+    request: 'app:sites:request',
+  },
   platform: { admin: 'app:platform:admin' },
   works: {
     feature: 'app:works:feature', // UI level feature flag
@@ -96,6 +122,16 @@ export const app = {
 };
 
 export const scopes = { system, site, work, app };
+
+/**
+ * Recursive tree of scope strings. Matches the shape of the exported
+ * `system`/`site`/`work`/`app` objects: leaves are scope string literals and
+ * branches are nested groupings. Extensions advertise which scopes they
+ * implement by exporting a (usually partial) tree of this shape; by
+ * convention every leaf must start with the `ext:` prefix so extension
+ * scopes are disjoint from the platform's core namespaces.
+ */
+export type ScopeTree = { [key: string]: string | ScopeTree };
 
 /**
  * Clientside function to check if a user has any of the scopes included in the list

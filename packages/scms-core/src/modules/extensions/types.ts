@@ -3,6 +3,7 @@ import type { MenuContents } from '../../components/navigation/types.js';
 import type { Context, ExtensionEmailTemplate, StorageBackend } from '../../backend/types.js';
 import type { CreateJob } from '../../backend/loaders/jobs/types.js';
 import type { WorkflowRegistration } from '../../workflow/types.js';
+import type { ScopeTree } from '../../scopes.js';
 
 export type TaskComponent = React.ComponentType<any>;
 export type IconComponent = React.ComponentType<{ className?: string }>;
@@ -228,6 +229,18 @@ export interface ServerExtension extends ClientExtension {
   /** Returns safe admin config for platform UI; must obfuscate secrets. Only called server-side. */
   getSafeAdminConfig?: (config: Record<string, unknown>) => Record<string, unknown>;
   getExtensionAdminActionHandlers?: () => ExtensionAdminActionHandler[];
+  /**
+   * Advertise the scopes this extension defines. Returns a (usually nested)
+   * tree of scope strings whose leaves are the concrete scope identifiers the
+   * extension owns, e.g. `{ app: { sites: { read: 'ext:app:sites:read' } } }`.
+   *
+   * All extension-defined scope strings MUST start with the `ext:` prefix so
+   * they are disjoint from the platform's core `system:` / `site:` / `work:`
+   * / `app:` namespaces. The platform uses this to discover which scopes are
+   * backed by an enabled extension without consumers having to know about
+   * specific extension identifiers.
+   */
+  getScopes?: () => ScopeTree;
 }
 
 export type RouteRegistration = {

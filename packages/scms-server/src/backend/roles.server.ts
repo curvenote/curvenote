@@ -5,7 +5,23 @@ const SYSTEM_ROLES: Record<SystemRole, Set<string>> = {
   [SystemRole.SERVICE]: new Set([system.admin]), // in future service accounts will have limited scope, that's the whole point
   [SystemRole.ADMIN]: new Set([system.admin]),
   [SystemRole.PLATFORM_ADMIN]: new Set([app.platform.admin]),
-  [SystemRole.USER]: new Set([work.create, work.list]),
+  [SystemRole.USER]: new Set([
+    work.create,
+    work.list,
+    app.works.upload,
+    app.dashboard.read,
+    app.sites.read,
+    app.sites.request,
+    app.settings.read,
+    app.settings.linkedAccounts.read,
+    app.settings.linkedAccounts.manage,
+    app.settings.tokens.read,
+    app.settings.tokens.manage,
+    app.settings.emails.read,
+    app.settings.emails.update,
+    app.settings.account.read,
+    app.settings.account.update,
+  ]),
   [SystemRole.ANON]: new Set([]),
 };
 

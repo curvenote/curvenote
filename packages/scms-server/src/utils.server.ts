@@ -146,6 +146,66 @@ export async function buildClientNavigation(
 }
 
 /**
+ * Resolves the path of a navigation item the user can access, used by the
+ * `/app` landing loader to avoid redirect loops when the configured
+ * `defaultRoute` is gated by scopes the user does not have.
+ *
+ * Resolution order:
+ * 1. If `navConfig.defaultRoute` is set, look up the item by `name` first, then
+ *    by `path` (for legacy configs that put the path segment in `defaultRoute`).
+ *    If the user has the item's `scopes` (or the item has no scopes), return
+ *    its `path`.
+ * 2. Otherwise walk `navConfig.items` in declared order and return the `path`
+ *    of the first item the user can access.
+ * 3. Returns `null` when no nav item is accessible; the caller is expected to
+ *    render a fallback (e.g. an access-denied placeholder).
+ *
+ * The returned path is normalized to have no leading or trailing slashes so
+ * callers can safely concatenate it as `/app/<path>` without producing
+ * malformed URLs like `/app//dashboard` when a config author writes the path
+ * with a leading slash.
+ *
+ * @param ctx - Context with the resolved user used for scope checks.
+ * @param navConfig - Optional navigation configuration. MUST be the raw server
+ *   config (e.g. `ctx.$config.app.navigation`) and NOT the output of
+ *   `buildClientNavigation`. The client-facing navigation is already filtered
+ *   and has its `scopes` field stripped, so passing it here would make every
+ *   remaining item look ungated and silently bypass the access check.
+ * @returns The relative nav path (without the `/app/` prefix and without any
+ *          leading/trailing slashes) to redirect to, or `null` if no
+ *          accessible nav item exists.
+ */
+export function resolveAccessibleDefaultRoute(
+  ctx: Context,
+  navConfig?: Config['app']['navigation'],
+): string | null {
+  if (!navConfig || !ctx.user) return null;
+
+  const items: SimpleNavItemType[] = navConfig.items ?? [];
+  if (items.length === 0) return null;
+
+  const normalize = (value: string) => value.replace(/^\/+|\/+$/g, '');
+
+  const userCanAccess = (item: SimpleNavItemType) =>
+    !item.scopes || item.scopes.length === 0 || userHasScopes(ctx.user, item.scopes);
+
+  const defaultRoute = navConfig.defaultRoute;
+  if (defaultRoute) {
+    const target = normalize(defaultRoute);
+    const configured =
+      items.find((item) => normalize(item.name) === target) ??
+      items.find((item) => normalize(item.path) === target);
+    if (configured && userCanAccess(configured)) {
+      return normalize(configured.path);
+    }
+    // else fall through to the first accessible item
+  }
+
+  const firstAccessible = items.find(userCanAccess);
+  return firstAccessible ? normalize(firstAccessible.path) : null;
+}
+
+/**
  * Sanitizes user input by removing HTML tags and limiting length
  * @param text - The text to sanitize
  * @param maxLength - Maximum allowed length (default: 2000)

@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { useMyUser } from '../../providers/MyUserProvider.js';
 import { Caption } from '../primitives/Caption.js';
 import { CircleUserRound, User, Link2, KeyRound, Mail, LogOut } from 'lucide-react';
+import { scopes as scopeIds } from '../../scopes.js';
 
 import {
   Menu,
@@ -17,6 +18,17 @@ function UserMenuPanel() {
 
   if (!user) return null;
 
+  const userScopes = user.scopes ?? [];
+  const isAdmin = userScopes.includes(scopeIds.system.admin);
+  const hasScope = (scope: string) => isAdmin || userScopes.includes(scope);
+
+  const canSeeAccount = hasScope(scopeIds.app.settings.account.read);
+  const canSeeLinkedAccounts = hasScope(scopeIds.app.settings.linkedAccounts.read);
+  const canSeeTokens = hasScope(scopeIds.app.settings.tokens.read);
+  const canSeeEmails = hasScope(scopeIds.app.settings.emails.read);
+
+  const hasAnySettings = canSeeAccount || canSeeLinkedAccounts || canSeeTokens || canSeeEmails;
+
   return (
     <>
       {/* User Info Header */}
@@ -28,33 +40,41 @@ function UserMenuPanel() {
       </div>
 
       {/* Settings Options */}
-      <MenuItem asChild>
-        <Link to="/app/settings/account" className="flex items-center cursor-pointer">
-          <User className="w-4 h-4 mr-3" />
-          Account Settings
-        </Link>
-      </MenuItem>
-      <MenuItem asChild>
-        <Link to="/app/settings/linked-accounts" className="flex items-center cursor-pointer">
-          <Link2 className="w-4 h-4 mr-3" />
-          Linked Accounts
-        </Link>
-      </MenuItem>
-      <MenuItem asChild>
-        <Link to="/app/settings/tokens" className="flex items-center cursor-pointer">
-          <KeyRound className="w-4 h-4 mr-3" />
-          My Tokens
-        </Link>
-      </MenuItem>
-      <MenuItem asChild>
-        <Link to="/app/settings/emails" className="flex items-center cursor-pointer">
-          <Mail className="w-4 h-4 mr-3" />
-          Email Preferences
-        </Link>
-      </MenuItem>
+      {canSeeAccount && (
+        <MenuItem asChild>
+          <Link to="/app/settings/account" className="flex items-center cursor-pointer">
+            <User className="w-4 h-4 mr-3" />
+            Account Settings
+          </Link>
+        </MenuItem>
+      )}
+      {canSeeLinkedAccounts && (
+        <MenuItem asChild>
+          <Link to="/app/settings/linked-accounts" className="flex items-center cursor-pointer">
+            <Link2 className="w-4 h-4 mr-3" />
+            Linked Accounts
+          </Link>
+        </MenuItem>
+      )}
+      {canSeeTokens && (
+        <MenuItem asChild>
+          <Link to="/app/settings/tokens" className="flex items-center cursor-pointer">
+            <KeyRound className="w-4 h-4 mr-3" />
+            My Tokens
+          </Link>
+        </MenuItem>
+      )}
+      {canSeeEmails && (
+        <MenuItem asChild>
+          <Link to="/app/settings/emails" className="flex items-center cursor-pointer">
+            <Mail className="w-4 h-4 mr-3" />
+            Email Preferences
+          </Link>
+        </MenuItem>
+      )}
 
       {/* Separator */}
-      <MenuSeparator />
+      {hasAnySettings && <MenuSeparator />}
 
       {/* Logout */}
       <MenuItem

@@ -1,6 +1,6 @@
 import type { Route } from './+types/route';
 import React from 'react';
-import { withAppContext, getUserScopesSet } from '@curvenote/scms-server';
+import { getUserScopesSet, withAppScopedContext } from '@curvenote/scms-server';
 import {
   MainWrapper,
   PageFrame,
@@ -15,13 +15,14 @@ import {
   getAvailableScopedTasks,
   getAllowedBuiltinTaskIds,
   getBuiltinTasksWithComponents,
+  scopes,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import type { Extensions } from 'types/app-config';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppContext(args);
+  const ctx = await withAppScopedContext(args, [scopes.app.dashboard.read], { redirect: true });
   const extensionConfigs: Extensions = ctx.$config?.app?.extensions || {};
   const reducedExtensionConfigs = Object.fromEntries(
     Object.entries(extensionConfigs).map(([key, value]) => [key, { task: value.task ?? false }]),

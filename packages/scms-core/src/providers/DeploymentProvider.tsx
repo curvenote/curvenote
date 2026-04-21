@@ -55,6 +55,7 @@ export type SimpleNavItemType = {
   hidden?: boolean;
   end?: boolean;
   beta?: boolean;
+  scopes?: string[];
 };
 
 export type NavigationHelpItem = {

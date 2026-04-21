@@ -1,5 +1,5 @@
 import type { Route } from './+types/route';
-import { withAppContext } from '@curvenote/scms-server';
+import { withAppScopedContext } from '@curvenote/scms-server';
 import {
   PageFrame,
   primitives,
@@ -8,11 +8,16 @@ import {
   AuthComponentMap,
   getBrandingFromMetaMatches,
   joinPageTitle,
+  scopes,
 } from '@curvenote/scms-core';
 import { Link } from 'react-router';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppContext(args);
+  const requiredScopes = [scopes.app.settings.account.read];
+  const ctx = await withAppScopedContext(args, requiredScopes, {
+    redirect: true,
+    redirectTo: '/app',
+  });
   return { user: ctx.user };
 }
 
@@ -80,7 +85,7 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
           {user.primaryProvider == null && <div className="opacity-80">None set.</div>}
           {user.primaryProvider && (
             <Link to="/app/settings/linked-accounts" className="cursor-pointer">
-              <div className="flex items-center p-1 px-2 space-x-4 border border-gray-200 rounded-lg shadow-xs w-max">
+              <div className="flex items-center p-1 px-2 space-x-4 w-max rounded-lg border border-gray-200 shadow-xs">
                 {Badge && <Badge showName />}
                 {!Badge && <div className="first-letter:uppercase">{user.primaryProvider}</div>}
               </div>

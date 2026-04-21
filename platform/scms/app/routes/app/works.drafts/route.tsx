@@ -15,7 +15,7 @@ import type { DraftWorkItem } from './db.server';
 import { FileEdit } from 'lucide-react';
 
 export const loader = async (args: LoaderFunctionArgs) => {
-  const ctx = await withAppScopedContext(args, [scopes.work.list]);
+  const ctx = await withAppScopedContext(args, [scopes.work.list], { redirect: true });
   try {
     const items = await dbGetDraftWorks(ctx.user.id);
     return { items };
