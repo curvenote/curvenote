@@ -3,7 +3,7 @@ import { useFetcher } from 'react-router';
 import { ui, scopes as scopeTree } from '@curvenote/scms-core';
 import { Check } from 'lucide-react';
 import type { GeneralError } from '@curvenote/scms-core';
-import { flattenScopeTree } from './flattenScopeTree';
+import { flattenScopeTree, flattenWorkRootScopesForSystemRoles } from './flattenScopeTree';
 
 type EditableSystemRole = {
   role: string;
@@ -336,18 +336,19 @@ export function SystemRoleScopesEditor({ roles, extensionScopes }: SystemRoleSco
     });
   }, [roles, roleOrder]);
 
-  const availableScopes = useMemo(
-    () =>
-      Array.from(
-        new Set([
-          ...flattenScopeTree(scopeTree).filter(
-            (scope) => !scope.startsWith('site:') && !scope.startsWith('work:'),
-          ),
-          ...extensionScopes,
-        ]),
-      ).sort(),
-    [extensionScopes],
-  );
+  const availableScopes = useMemo(() => {
+    const knownRootWorkScopes = new Set(flattenWorkRootScopesForSystemRoles());
+    return Array.from(
+      new Set([
+        ...flattenScopeTree(scopeTree).filter((scope) => {
+          if (scope.startsWith('site:')) return false;
+          if (scope.startsWith('work:')) return knownRootWorkScopes.has(scope);
+          return true;
+        }),
+        ...extensionScopes,
+      ]),
+    ).sort();
+  }, [extensionScopes]);
   return (
     <div className="space-y-4">
       {orderedRoles.map((role) => (

@@ -9,7 +9,7 @@ import { withCurvenoteSubmissionContext, sites } from '@curvenote/scms-server';
  */
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withCurvenoteSubmissionContext(args, [
-    work.submissions.read,
+    work.id.submissions.read,
     site.submissions.read,
   ]);
   const { versionId } = args.params;

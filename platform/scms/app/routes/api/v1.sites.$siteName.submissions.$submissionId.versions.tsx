@@ -23,7 +23,7 @@ const ParamsSchema = z.object({
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withCurvenoteSubmissionContext(args, [
-    work.submissions.list,
+    work.id.submissions.list,
     site.submissions.list,
   ]);
   const params = new URL(ctx.request.url).searchParams;
@@ -41,7 +41,7 @@ export async function loader(args: Route.LoaderArgs) {
 export async function action(args: Route.ActionArgs) {
   const ctx = await withScopedSubmissionContext(args, [
     site.submissions.versions.create,
-    work.submissions.versions.create,
+    work.id.submissions.versions.create,
   ]);
   if (args.request.method !== 'POST') {
     throw httpError(405, 'Method Not Allowed');

@@ -344,7 +344,7 @@ export async function action(args: Route.ActionArgs) {
         // responsible for creating its own checkServiceRun rows and jobs.
         // Require work:checks:dispatch scope before dispatching (same as work-integrity action).
         if (enabledChecks.length > 0) {
-          if (!userHasScope(baseCtx.user, scopes.work.checks.dispatch)) {
+          if (!userHasScope(baseCtx.user, scopes.app.works.checks.dispatch)) {
             return data(
               {
                 error: {

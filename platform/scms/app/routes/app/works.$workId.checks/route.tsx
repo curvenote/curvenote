@@ -38,7 +38,7 @@ export type PreviousVersionWithRun = {
 };
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withSecureWorkContext(args, [scopes.work.checks.read]);
+  const ctx = await withSecureWorkContext(args, [scopes.work.id.checks.read]);
 
   if (!ctx.work.versions || ctx.work.versions.length === 0) {
     throw httpError(404, 'No work version found');

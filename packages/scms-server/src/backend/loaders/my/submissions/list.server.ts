@@ -52,7 +52,7 @@ export default async function (ctx: Context, extensions: ClientExtension[], key?
   if (!dbo) throw error404();
   const siteCtxCache: Record<string, SiteContext> = {};
   const filteredDbo = dbo.filter((submission) => {
-    return userHasWorkScope(ctx.user, work.submissions.list, submission.work_id);
+    return userHasWorkScope(ctx.user, work.id.submissions.list, submission.work_id);
   });
   return formatMySubmissionListDTO(ctx, filteredDbo, extensions, siteCtxCache);
 }

@@ -4,7 +4,7 @@ import { error404, work } from '@curvenote/scms-core';
 import { withSecureWorkContext, sortSignedUrlQuery } from '@curvenote/scms-server';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withSecureWorkContext(args, [work.read]);
+  const ctx = await withSecureWorkContext(args, [work.id.read]);
   const query = sortSignedUrlQuery(args.request.url);
   const { cdn, cdn_key } = ctx.workDTO;
   if (!cdn || !cdn_key) throw error404();
