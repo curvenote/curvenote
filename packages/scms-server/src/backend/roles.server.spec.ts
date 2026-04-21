@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from 'vitest';
 import { SystemRole } from '@curvenote/scms-db';
-import { getSystemRoleScopes, hasScopeViaSystemRole } from './roles.server.js';
+import { getSystemRoleScopes, hasDefaultScopeViaSystemRole } from './roles.server.js';
 import { userHasScope } from './scopes.helpers.server.js';
 
 function createUser(role: SystemRole) {
@@ -14,15 +14,15 @@ function createUser(role: SystemRole) {
   } as any;
 }
 
-describe('dynamic system role scope cache', () => {
+describe('default system role scope mapping', () => {
   test('uses default hardcoded mapping by default', () => {
-    expect(hasScopeViaSystemRole(SystemRole.ADMIN, 'system:admin')).toBe(true);
-    expect(hasScopeViaSystemRole(SystemRole.ADMIN, 'app:settings:read')).toBe(false);
+    expect(hasDefaultScopeViaSystemRole(SystemRole.ADMIN, 'system:admin')).toBe(true);
+    expect(hasDefaultScopeViaSystemRole(SystemRole.ADMIN, 'app:settings:read')).toBe(false);
   });
 
   test('returns default system scopes', () => {
     expect(getSystemRoleScopes(SystemRole.ADMIN)).toContain('system:admin');
-    expect(hasScopeViaSystemRole(SystemRole.ADMIN, 'system:admin')).toBe(true);
+    expect(hasDefaultScopeViaSystemRole(SystemRole.ADMIN, 'system:admin')).toBe(true);
   });
 
   test('userHasScope resolves against loaded user.system_scopes', () => {

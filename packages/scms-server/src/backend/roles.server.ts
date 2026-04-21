@@ -161,7 +161,7 @@ const WORK_ROLES: Record<WorkRole, Set<string>> = {
   [WorkRole.VIEWER]: new Set([work.read]),
 };
 
-export function hasScopeViaSystemRole(role: SystemRole, scope: string): boolean {
+export function hasDefaultScopeViaSystemRole(role: SystemRole, scope: string): boolean {
   return DEFAULT_SYSTEM_ROLE_SCOPES[role].includes(scope);
 }
 
