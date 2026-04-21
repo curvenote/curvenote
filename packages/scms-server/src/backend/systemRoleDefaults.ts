@@ -1,7 +1,7 @@
 import { SystemRole } from '@curvenote/scms-db';
 import { app, system, work } from '@curvenote/scms-core';
 
-export const DEFAULT_SYSTEM_ROLE_SCOPES: Partial<Record<SystemRole, string[]>> = {
+export const DEFAULT_SYSTEM_ROLE_SCOPES: Record<SystemRole, string[]> = {
   [SystemRole.SERVICE]: [system.admin], // in future service accounts will have limited scope, that's the whole point
   [SystemRole.ADMIN]: [system.admin],
   [SystemRole.USER]: [
