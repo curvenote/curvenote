@@ -380,10 +380,16 @@ export async function action(args: Route.ActionArgs) {
           }
         }
 
-        // Redirect to work details unless redirect=false (e.g. when called from manuscript-checks dialog)
+        // Redirect unless redirect=false (e.g. when called from manuscript-checks dialog).
+        // If at least one check was selected during upload, redirect to /checks so the
+        // user can see check progress; otherwise redirect to /details.
         const shouldRedirect = redirectParam !== 'false';
         if (shouldRedirect) {
-          return redirect(`/app/works/${workId}/details`);
+          const target =
+            enabledChecks.length > 0
+              ? `/app/works/${workId}/checks`
+              : `/app/works/${workId}/details`;
+          return redirect(target);
         }
         return data({ success: true });
       }

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useFetcher, Link, useParams, useLocation } from 'react-router';
+import { useFetcher, useFetchers, Link, useParams, useLocation } from 'react-router';
 import { ui } from '@curvenote/scms-core';
 import type { FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata, ChecksMetadataSection } from '@curvenote/scms-server';
@@ -12,6 +12,7 @@ interface ContinueFormProps {
 
 export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
   const fetcher = useFetcher();
+  const fetchers = useFetchers();
   const { workId } = useParams();
   const location = useLocation();
   const fromNewFlow = new URLSearchParams(location.search).get('from') === 'new';
@@ -34,8 +35,15 @@ export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
   // Check if at least one file is uploaded
   const hasFiles = true; //'files' in metadata && metadata.files && Object.keys(metadata.files).length > 0;
 
-  // Button is only enabled if both conditions are met
-  const disabled = !hasTitle || !hasFiles;
+  // Block continue while any `toggle-check` fetcher is in flight. Otherwise the
+  // server-side `confirm-work` action may read stale `checks.enabled` metadata,
+  // causing the wrong redirect target and — worse — failing to dispatch a check
+  // that the user just selected. See confirm-work in ./route.tsx.
+  const hasPendingToggleCheck = fetchers.some(
+    (f) => f.state !== 'idle' && f.formData?.get('intent') === 'toggle-check',
+  );
+
+  const disabled = !hasTitle || !hasFiles || hasPendingToggleCheck;
 
   const handleContinue = () => {
     const formData = new FormData();
