@@ -11,6 +11,29 @@ import { getServerFirestore } from '../database/firebase/firebase.server.js';
 import { randomBytes } from 'node:crypto';
 
 /**
+ * System roles that may be assigned to a freshly-provisioned pending user.
+ * Intentionally excludes ADMIN and SERVICE to prevent self-serve signups from
+ * gaining elevated privileges via configuration.
+ */
+export type PendingUserSystemRole = 'USER' | 'ANON';
+
+/**
+ * Resolve the system role to assign to newly-created pending users based on the
+ * deployment configuration. Defaults to 'USER' when unset or invalid.
+ *
+ * Manual approval (when enabled) still applies regardless of the resolved role.
+ */
+export function getPendingUserSystemRole(config: {
+  app?: { signup?: { defaultUserType?: string } };
+}): PendingUserSystemRole {
+  const configured = config.app?.signup?.defaultUserType;
+  if (configured === 'ANON' || configured === 'USER') {
+    return configured;
+  }
+  return 'USER';
+}
+
+/**
  * Error thrown when an Editor user already exists.
  */
 export class EditorUserExistsError extends Error {
@@ -210,6 +233,8 @@ export async function dbGetUserByEmails(emails: string[]) {
  * @param editorUserNoPendingOverride - If true, creates the user without pending status (default: false).
  *   This is used when provisioning users from the editor API who should bypass the pending state.
  *   NOTE: This parameter will likely be removed once we have closer and editor integrations.
+ * @param systemRole - The system role assigned to the new user. Defaults to 'USER'.
+ *   Restricted to 'USER' or 'ANON' to prevent self-serve signups from receiving elevated roles.
  * @returns The new user record
  */
 export async function dbCreateUserWithPrimaryLinkedAccount<
@@ -222,6 +247,7 @@ export async function dbCreateUserWithPrimaryLinkedAccount<
   displayName,
   profile,
   editorUserNoPendingOverride = false,
+  systemRole = 'USER',
 }: {
   id?: string;
   email?: string;
@@ -230,6 +256,7 @@ export async function dbCreateUserWithPrimaryLinkedAccount<
   displayName?: string;
   profile: T;
   editorUserNoPendingOverride?: boolean;
+  systemRole?: PendingUserSystemRole;
 }) {
   const prisma = await getPrismaClient();
   const timestamp = formatDate();
@@ -260,7 +287,7 @@ export async function dbCreateUserWithPrimaryLinkedAccount<
       email,
       username,
       display_name: displayName,
-      system_role: 'USER',
+      system_role: systemRole,
       primaryProvider,
       pending: editorUserNoPendingOverride ? false : true, // this function create new users, who by definition are pending unless we are provisioning a user from the editor API
       ready_for_approval: false,
@@ -326,6 +353,7 @@ export async function dbCreateUser({
   readyForApproval = false,
   signupData = null,
   externalTimestamp,
+  systemRole = 'USER',
 }: {
   id?: string;
   email?: string;
@@ -336,6 +364,7 @@ export async function dbCreateUser({
   readyForApproval?: boolean;
   signupData?: any;
   externalTimestamp?: string;
+  systemRole?: PendingUserSystemRole;
 }) {
   const prisma = await getPrismaClient();
   const timestamp = externalTimestamp ?? new Date().toISOString();
@@ -348,7 +377,7 @@ export async function dbCreateUser({
       email,
       username,
       display_name: displayName,
-      system_role: 'USER',
+      system_role: systemRole,
       primaryProvider,
       pending,
       ready_for_approval: readyForApproval,
@@ -701,6 +730,8 @@ export async function provisionNewUserFromEditorAPI(
   // Always create SCMS user, whether or not they exist in Editor API
   let user: Awaited<ReturnType<typeof dbCreateUser>>;
 
+  const systemRole = getPendingUserSystemRole(config);
+
   // For Google login via Firebase, create a Google-linked user
   if (providerData && data.provider === 'google') {
     user = await dbCreateUserWithPrimaryLinkedAccount<Exclude<typeof providerData, undefined>>({
@@ -712,6 +743,7 @@ export async function provisionNewUserFromEditorAPI(
       profile: providerData,
       // Only skip signup flow if user was found in Editor API (existing user)
       editorUserNoPendingOverride: !!editorUserProfile,
+      systemRole,
     });
   } else {
     // Email/password login - create non-linked user
@@ -725,6 +757,7 @@ export async function provisionNewUserFromEditorAPI(
       // Only skip signup flow if user was found in Editor API
       pending: !editorUserProfile,
       readyForApproval: false,
+      systemRole,
       signupData: editorUserProfile
         ? {
             completedAt: timestamp,

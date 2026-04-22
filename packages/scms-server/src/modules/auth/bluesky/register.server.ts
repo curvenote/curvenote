@@ -12,6 +12,7 @@ import {
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
+  getPendingUserSystemRole,
   handleAccountLinking,
 } from '../common.server.js';
 import { getSetProviderCookie } from '../../../cookies.server.js';
@@ -276,6 +277,7 @@ export async function registerBlueskyStrategy(
             displayName,
             primaryProvider: 'bluesky',
             profile: profileForDb,
+            systemRole: getPendingUserSystemRole(config),
           });
           console.log(
             `Bluesky provider - provisioned new user (${displayName}, ${idAtProvider}, ${dbUserViaBluesky.id})`,

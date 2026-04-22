@@ -27,6 +27,11 @@ export type SignupConfig = {
   progressMessage?: string;
   steps?: Step[];
   approval?: ApprovalConfig;
+  /**
+   * System role assigned to newly created pending users. Defaults to 'USER'.
+   * Restricted to 'USER' or 'ANON' — manual approval (when enabled) still applies.
+   */
+  defaultUserType?: 'USER' | 'ANON';
 };
 
 export type ApprovalConfig = {

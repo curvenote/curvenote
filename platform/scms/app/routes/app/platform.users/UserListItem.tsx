@@ -7,6 +7,7 @@ import { UserToggleDisabledButton } from './UserToggleDisabledButton';
 import { UserApproveRejectControls } from './UserApproveRejectControls';
 import { AssignRoleDialog } from './AssignRoleDialog';
 import { RoleBadge } from './RoleBadge';
+import { UserSystemRoleToggle } from './UserSystemRoleToggle';
 
 interface UserCardProps {
   user: UserDTO;
@@ -212,13 +213,19 @@ export function UserListItem({ user, availableRoles }: UserCardProps) {
         })()}
 
         {/* System role */}
-        <div className="flex flex-wrap items-center gap-1">
-          <span className="flex-shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">
-            System Role:
-          </span>
-          {user.system_role !== 'USER' && <ui.Badge variant="outline">{user.system_role}</ui.Badge>}
-          {user.system_role === 'USER' && (
-            <span className="text-xs text-gray-500 dark:text-gray-500">User</span>
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="flex-shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">
+              System Role:
+            </span>
+            {user.system_role === 'USER' ? (
+              <span className="text-xs text-gray-500 dark:text-gray-500">User</span>
+            ) : (
+              <ui.Badge variant="outline">{user.system_role}</ui.Badge>
+            )}
+          </div>
+          {(user.system_role === 'USER' || user.system_role === 'ANON') && (
+            <UserSystemRoleToggle user={user} />
           )}
         </div>
       </div>

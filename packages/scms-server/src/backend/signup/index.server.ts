@@ -432,6 +432,15 @@ function validateSigninSignupConfig(
     }
   }
 
+  // Validate default user type for new pending users. Belt-and-braces check —
+  // the JSON schema already restricts this, but we guard against runtime drift.
+  const defaultUserType = config?.signup?.defaultUserType;
+  if (defaultUserType != null && defaultUserType !== 'USER' && defaultUserType !== 'ANON') {
+    throw new Error(
+      `Configuration error - signup.defaultUserType must be "USER" or "ANON", got "${defaultUserType}"`,
+    );
+  }
+
   // Validate step providers
   const steps = config?.signup?.steps ?? [];
   for (const step of steps) {

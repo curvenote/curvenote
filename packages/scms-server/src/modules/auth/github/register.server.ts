@@ -7,6 +7,7 @@ import {
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
+  getPendingUserSystemRole,
   getProviderDisplayName,
   handleAccountLinking,
 } from '../common.server.js';
@@ -241,6 +242,7 @@ export function registerGitHubStrategy(
               displayName: profile.name ?? profile.login,
               primaryProvider: 'github',
               profile: profileForDb,
+              systemRole: getPendingUserSystemRole(config),
             });
             console.log(
               `GITHUB provider - provisioned new user (${profile.name ?? profile.login}, ${idAtProvider}, ${dbUserViaGithub.id})`,

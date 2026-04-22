@@ -10,6 +10,7 @@ import {
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
+  getPendingUserSystemRole,
   handleAccountLinking,
 } from '../common.server.js';
 import { getSetProviderCookie } from '../../../cookies.server.js';
@@ -178,6 +179,7 @@ export function registerOktaStrategy(
               displayName: profile.name,
               primaryProvider: 'okta',
               profile,
+              systemRole: getPendingUserSystemRole(config),
             });
             console.log(
               `OKTA provider - provisioned new user (${profile.name}, ${profile.id}, ${dbUserViaOkta.id})`,

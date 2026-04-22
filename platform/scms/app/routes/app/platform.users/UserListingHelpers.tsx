@@ -88,7 +88,7 @@ export const STATUS_FILTERS: ui.FilterDefinition[] = [
  * Generate system role filters with groupKey for mutual exclusivity
  */
 export function generateSystemRoleFilters(): ui.FilterDefinition[] {
-  const systemRoles = ['USER', 'ADMIN', 'SERVICE'];
+  const systemRoles = ['USER', 'ANON', 'ADMIN', 'SERVICE'];
 
   return systemRoles.map((role) => ({
     key: 'systemRole',

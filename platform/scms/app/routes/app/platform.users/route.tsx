@@ -8,24 +8,36 @@ import {
 } from '@curvenote/scms-core';
 import {
   approveAndNotifyUser,
+  dbChangeUserSystemRoleBetweenUserAndAnon,
   dbCountUsers,
   dbGetUsers,
   dbRejectUser,
   dbToggleUserDisabled,
+  InvalidSystemRoleTransitionError,
   runPlatformUserAnalytics,
 } from './db.server';
 import { handleAssignRole, handleRemoveRole } from './actionHelpers.server';
 import { PlatformUserList } from './PlatformUserList';
+import { data as dataResponse } from 'react-router';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 
 // Zod schema for form validation
 const PlatformUserActionSchema = zfd.formData({
-  intent: z.enum(['toggle-disabled', 'approve-user', 'reject-user', 'assign-role', 'remove-role']),
+  intent: z.enum([
+    'toggle-disabled',
+    'approve-user',
+    'reject-user',
+    'assign-role',
+    'remove-role',
+    'change-system-role',
+  ]),
   userId: zfd.text(z.string()),
   disabled: zfd.text(z.string().transform((val) => val === 'true')).optional(),
   roleId: zfd.text(z.string()).optional(),
   userRoleId: zfd.text(z.string()).optional(),
+  // Client-side narrow: the DB layer does strict server-side validation.
+  systemRole: zfd.text(z.enum(['USER', 'ANON'])).optional(),
 });
 
 export async function loader(args: Route.LoaderArgs) {
@@ -117,6 +129,38 @@ export async function action(args: Route.ActionArgs) {
           });
         }
         return result;
+      }
+      case 'change-system-role': {
+        if (!payload.systemRole) {
+          return dataResponse(
+            {
+              error: {
+                type: 'validation',
+                message: 'systemRole is required for change-system-role intent',
+              },
+            },
+            { status: 400 },
+          );
+        }
+        try {
+          const user = await dbChangeUserSystemRoleBetweenUserAndAnon(
+            payload.userId,
+            payload.systemRole,
+            ctx.user.id,
+          );
+          await runPlatformUserAnalytics(ctx, payload.userId, async () => {
+            await ctx.analytics.flush();
+          });
+          return { success: true, user };
+        } catch (error) {
+          if (error instanceof InvalidSystemRoleTransitionError) {
+            return dataResponse(
+              { error: { type: 'validation', message: error.message } },
+              { status: 400 },
+            );
+          }
+          throw error;
+        }
       }
       default: {
         throw new Error('Invalid intent');

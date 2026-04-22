@@ -8,6 +8,7 @@ import {
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
+  getPendingUserSystemRole,
   handleAccountLinking,
 } from '../common.server.js';
 import type { firebase } from '@curvenote/scms-core';
@@ -171,6 +172,7 @@ export function registerGoogleStrategy(
               displayName: profile.name,
               primaryProvider: 'google',
               profile,
+              systemRole: getPendingUserSystemRole(config),
             });
             console.log(
               `GOOGLE provider - provisioned new user (${profile.name}, ${profile.uid}, ${dbUserViaGoogle.id})`,

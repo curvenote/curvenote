@@ -9,6 +9,7 @@ import {
   dbGetUserByLinkedAccount,
   dbUpdateUserLinkedAccountProfile,
   failureRedirectUrl,
+  getPendingUserSystemRole,
   getProviderDisplayName,
   handleAccountLinking,
 } from '../common.server.js';
@@ -278,6 +279,7 @@ export function registerOrcidStrategy(config: AppConfig, auth: Authenticator<Aut
               displayName: profile.name,
               primaryProvider: 'orcid',
               profile,
+              systemRole: getPendingUserSystemRole(config),
             });
             console.log(
               `ORCID provider - provisioned new user (${profile.name}, ${profile.id}, ${dbUserViaOrcid.id})`,

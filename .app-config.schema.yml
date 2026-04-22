@@ -682,6 +682,14 @@ properties:
                   type: string
                 default: []
                 description: Provider names that skip manual approval
+          defaultUserType:
+            type: string
+            enum: ['USER', 'ANON']
+            default: 'USER'
+            description: |
+              System role assigned to newly created pending users. Defaults to USER.
+              Restricted to USER or ANON to prevent self-serve signups from receiving
+              elevated (ADMIN/SERVICE) roles. Manual approval, when enabled, still applies.
           steps:
             type: array
             description: Signup flow steps
