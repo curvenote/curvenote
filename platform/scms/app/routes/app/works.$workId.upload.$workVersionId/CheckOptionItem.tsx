@@ -47,14 +47,10 @@ export function CheckOptionItem({
       />
       <label
         htmlFor={name}
-        className={`flex flex-col space-y-1 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+        className={`flex flex-col space-y-1 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       >
-        <span className="text-sm font-medium leading-none">
-          {label}
-        </span>
-        <span className="text-sm text-muted-foreground">
-          {description}
-        </span>
+        <span className="text-sm font-medium leading-none">{label}</span>
+        <span className="text-sm text-muted-foreground">{description}</span>
       </label>
     </div>
   );
