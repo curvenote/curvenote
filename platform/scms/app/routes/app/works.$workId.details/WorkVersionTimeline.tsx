@@ -46,14 +46,32 @@ type TimelineEntry =
       version: WorkVersionWithSubmissionVersions;
     };
 
-/** Latest run id for a given check `kind` on this work version (by `date_modified`). */
-function getLatestCheckRunIdForKind(runs: CheckServiceRunRow[], kind: string): string | undefined {
-  let best: CheckServiceRunRow | undefined;
-  for (const r of runs) {
-    if (r.kind !== kind) continue;
-    if (!best || r.date_modified > best.date_modified) best = r;
+/** Latest run id for each check `kind` across all versions (by `date_created`). */
+function getLatestCheckRunIdByKind(
+  checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>,
+): Record<string, string> {
+  const latestRunByKind: Record<string, CheckServiceRunRow> = {};
+  for (const runs of Object.values(checkServiceRunsByWorkVersionId)) {
+    for (const run of runs) {
+      const currentBest = latestRunByKind[run.kind];
+      if (!currentBest || run.date_created > currentBest.date_created) {
+        latestRunByKind[run.kind] = run;
+      }
+    }
   }
-  return best?.id;
+  return Object.fromEntries(Object.entries(latestRunByKind).map(([kind, run]) => [kind, run.id]));
+}
+
+/** Single entrypoint for timeline auto-expand behavior (easy to A/B later). */
+function shouldExpandByDefault(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  run: CheckServiceRunRow,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>,
+): boolean {
+  return false; // disable for now
+  // const latestRunIdByKind = getLatestCheckRunIdByKind(checkServiceRunsByWorkVersionId);
+  // return run.id === latestRunIdByKind[run.kind];
 }
 
 /** Truncate to minute resolution for sort comparison (items in same minute are tied). */
@@ -256,10 +274,10 @@ function WorkVersionTimelineInner({
                     run={entry.run}
                     checkService={service}
                     basePath={basePath}
-                    isLatestRunForKind={
-                      entry.run.id ===
-                      getLatestCheckRunIdForKind(checkRunsForVersion, entry.run.kind)
-                    }
+                    defaultExpanded={shouldExpandByDefault(
+                      entry.run,
+                      checkServiceRunsByWorkVersionId,
+                    )}
                   />
                 );
               }

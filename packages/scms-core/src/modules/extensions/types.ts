@@ -106,11 +106,11 @@ export type ExtensionCheckSectionActivityProps = {
   /** POST target for check UI mutations (extension-owned route or legacy work checks path). */
   remoteStatusActionPath?: string;
   /**
-   * When true, this check run is the most recently modified run for its `kind` on this work version
-   * (e.g. latest Proofig run). Used for one-shot behaviours such as hydrating remote status on
-   * work details load. Omitted on routes that do not compute it (treated as false).
+   * When true, this check run's UI should be expanded/open by default on initial render.
+   * Used for one-shot behaviours such as hydrating remote status on work details load.
+   * Omitted on routes that do not compute it (treated as false).
    */
-  isLatestRunForKind?: boolean;
+  defaultExpanded?: boolean;
 };
 
 /**
@@ -127,8 +127,8 @@ export type ExtensionCheckRunTimelineMountProps = {
   metadata: unknown;
   /** POST target for check UI mutations. */
   remoteStatusActionPath: string;
-  /** See `ExtensionCheckSectionActivityProps.isLatestRunForKind`. */
-  isLatestRunForKind?: boolean;
+  /** See `ExtensionCheckSectionActivityProps.defaultExpanded`. */
+  defaultExpanded?: boolean;
 };
 
 /**

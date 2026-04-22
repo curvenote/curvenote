@@ -10,8 +10,8 @@ type CheckServiceRunTimelineItemProps = {
   /** When no matching extension is registered, show a generic fallback (no extension UI). */
   checkService: ClientExtensionCheckService | null;
   basePath: string;
-  /** True when this run is the latest for its `kind` on this work version (work details timeline). */
-  isLatestRunForKind?: boolean;
+  /** Controls default expanded state of this timeline row. */
+  defaultExpanded?: boolean;
 };
 
 const serviceDataFromRun = (run: CheckServiceRunRow): unknown =>
@@ -30,7 +30,7 @@ export function CheckServiceRunTimelineItem({
   run,
   checkService,
   basePath,
-  isLatestRunForKind,
+  defaultExpanded,
 }: CheckServiceRunTimelineItemProps) {
   const date = (
     <DateWithPopover
@@ -86,7 +86,7 @@ export function CheckServiceRunTimelineItem({
             checkKind={run.kind}
             metadata={serviceData}
             remoteStatusActionPath={checksActionPath}
-            isLatestRunForKind={isLatestRunForKind}
+            defaultExpanded={defaultExpanded}
           />
         ) : null}
         <TimelineItemExpandable
@@ -94,7 +94,7 @@ export function CheckServiceRunTimelineItem({
           message={message}
           date={date}
           pill={pill}
-          defaultExpanded={Boolean(isLatestRunForKind)}
+          defaultExpanded={Boolean(defaultExpanded)}
           className="py-2"
         >
           {tray}
