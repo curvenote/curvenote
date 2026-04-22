@@ -124,6 +124,31 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     { app: { extensions: extensionsConfig } } as unknown as AppConfig,
     extensions,
   );
+  const sortedCheckServices = checkServices
+    .map((service, index) => {
+      const latestRunDateCreated = [
+        ...checkServiceRuns,
+        ...(previousVersionsWithRunsByService[service.id] ?? []).map((entry) => entry.run),
+      ]
+        .filter((run) => run.kind === service.id)
+        .reduce<number | null>((latest, run) => {
+          const runTime = Date.parse(run.date_created);
+          if (Number.isNaN(runTime)) return latest;
+          if (latest == null) return runTime;
+          return Math.max(latest, runTime);
+        }, null);
+
+      return { service, index, latestRunDateCreated };
+    })
+    .sort((a, b) => {
+      if (a.latestRunDateCreated != null && b.latestRunDateCreated != null) {
+        return b.latestRunDateCreated - a.latestRunDateCreated;
+      }
+      if (a.latestRunDateCreated != null) return -1;
+      if (b.latestRunDateCreated != null) return 1;
+      return a.index - b.index;
+    })
+    .map(({ service }) => service);
 
   const tag = (
     <ui.TooltipProvider delayDuration={1000}>
@@ -142,9 +167,12 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   const basePath = `/app/works/${work.id}`;
 
   return (
-    <PageFrame title="Check My Work">
+    <PageFrame
+      title="Checks"
+      description="View the status and results of check services that have been run on your work. The page below shows the most recent run for each available check service"
+    >
       <div className="mt-4 space-y-6">
-        {checkServices.map((service) => {
+        {sortedCheckServices.map((service) => {
           const HeaderComponent = service.sectionHeaderComponent;
           const ActivityComponent = service.sectionActivityComponent;
 
