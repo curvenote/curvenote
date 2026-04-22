@@ -26,7 +26,7 @@ export function buildMenu(
     if (userScopes.includes(scopes.app.works.checks.feature)) {
       menus.push({
         name: 'work.checks',
-        label: 'Check My Work',
+        label: 'Checks',
         url: `${baseUrl}/checks`,
       });
     }

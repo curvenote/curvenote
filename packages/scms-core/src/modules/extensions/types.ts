@@ -106,11 +106,11 @@ export type ExtensionCheckSectionActivityProps = {
   /** POST target for check UI mutations (extension-owned route or legacy work checks path). */
   remoteStatusActionPath?: string;
   /**
-   * When true, this check run is the most recently modified run for its `kind` on this work version
-   * (e.g. latest Proofig run). Used for one-shot behaviours such as hydrating remote status on
-   * work details load. Omitted on routes that do not compute it (treated as false).
+   * When true, this check run's UI should be expanded/open by default on initial render.
+   * Used for one-shot behaviours such as hydrating remote status on work details load.
+   * Omitted on routes that do not compute it (treated as false).
    */
-  isLatestRunForKind?: boolean;
+  defaultExpanded?: boolean;
 };
 
 /**
@@ -127,8 +127,8 @@ export type ExtensionCheckRunTimelineMountProps = {
   metadata: unknown;
   /** POST target for check UI mutations. */
   remoteStatusActionPath: string;
-  /** See `ExtensionCheckSectionActivityProps.isLatestRunForKind`. */
-  isLatestRunForKind?: boolean;
+  /** See `ExtensionCheckSectionActivityProps.defaultExpanded`. */
+  defaultExpanded?: boolean;
 };
 
 /**
@@ -151,7 +151,22 @@ export interface ExtensionCheckService {
    */
   checksActionPath?: string;
   // Client-side component to render on checks screen
-  sectionHeaderComponent: React.ComponentType<{ tag: React.ReactNode }>;
+  sectionHeaderComponent: React.ComponentType<{
+    tag: React.ReactNode;
+    /**
+     * Optional action slot (e.g. "Run on latest version" button) justified to the far right of
+     * the header. Supplied by the platform when contextually appropriate; extensions should render
+     * it in their header layout.
+     */
+    action?: React.ReactNode;
+    /**
+     * Same shape as {@link ExtensionCheckSectionActivityProps.metadata} — the `serviceData`
+     * of the run being displayed at the top card. Extensions can read run-stamped branding
+     * (e.g. a service manifest snapshot) from here without needing admin config access.
+     * `undefined` when no run exists yet for this service.
+     */
+    metadata?: any;
+  }>;
   sectionActivityComponent: React.ComponentType<ExtensionCheckSectionActivityProps>;
   /** Optional summary badge for timeline (e.g. "All clear", "2 problems", "Awaiting review"). Same metadata as sectionActivityComponent. */
   sectionSummaryBadgeComponent?: React.ComponentType<{ metadata: any }>;
