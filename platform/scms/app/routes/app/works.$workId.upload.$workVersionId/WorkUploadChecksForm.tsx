@@ -26,7 +26,11 @@ export function WorkUploadChecksForm({ enabled, checkServices }: WorkUploadCheck
       <CheckOptionItem
         intent="toggle-check"
         name="curvenote-structure"
-        label="Article Structure"
+        label={
+          <span>
+            Article Structure <sup className="text-xs font-light">(coming soon)</sup>
+          </span>
+        }
         description="Validate document structure, metadata, and formatting."
         checked={enabled.includes('curvenote-structure')}
         disabled={true}
