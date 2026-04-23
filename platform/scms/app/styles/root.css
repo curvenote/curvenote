@@ -199,4 +199,18 @@ layer(base);
   body {
     @apply antialiased font-body bg-stone-100 text-foreground;
   }
+
+  /*
+   * Global transition-off. Theme toggling used to trigger every element with
+   * `transition-colors` / `transition-all` to stagger-fade its new theme
+   * colors over 200-300ms, producing visible text flicker. Disabling all CSS
+   * transitions globally removes that flicker; keyframe animations (loading
+   * spinners, progress bars, etc.) are unaffected because those use
+   * `animation`, not `transition`.
+   */
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
 }
