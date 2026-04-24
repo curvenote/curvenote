@@ -1,5 +1,20 @@
 # curvenote
 
+## 0.15.0
+
+### Minor Changes
+
+- [#865](https://github.com/curvenote/curvenote/pull/865) [`b2d32b4`](https://github.com/curvenote/curvenote/commit/b2d32b429fec3433c515de8a2f75da1f51673d05) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add websocket logger
+
+### Patch Changes
+
+- [#844](https://github.com/curvenote/curvenote/pull/844) [`0f0a11a`](https://github.com/curvenote/curvenote/commit/0f0a11a35e0d54e1eee3052021d30d8833572775) Thanks [@rowanc1](https://github.com/rowanc1)! - Remove the duplicate hero directive
+
+- [#846](https://github.com/curvenote/curvenote/pull/846) [`3d25d74`](https://github.com/curvenote/curvenote/commit/3d25d7435bc0898c19a17c5535995b88ee570040) Thanks [@rowanc1](https://github.com/rowanc1)! - Execute option for submit
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.15.0
+
 ## 0.14.3
 
 ### Patch Changes

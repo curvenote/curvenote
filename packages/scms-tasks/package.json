@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/scms-tasks",
-  "version": "0.15.6",
+  "version": "0.16.0",
   "description": "SCMS tasks library: job client and helpers for cloud runners",
   "type": "module",
   "engines": {
