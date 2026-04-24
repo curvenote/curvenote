@@ -34,7 +34,6 @@ export function compositeLoggerFactory(
   cwd?: string,
   sendJson?: SendJsonFn,
 ): Logger {
-  console.log('COMPOSITE LOGGER FACTORY', levels, cwd, sendJson);
   const logChalk = chalkLogger(levels.terminal, cwd);
   const logWebsocket = sendJson ? websocketLogger(sendJson, levels.websocket, cwd) : silentLogger();
   return {
@@ -108,7 +107,6 @@ function replaceCwd(cwd: string | undefined, args: any[]): any[] {
  *          publish styled log messages over the websocket.
  */
 export function websocketLogger(sendJson: SendJsonFn, level: LogLevel, cwd?: string): Logger {
-  console.log('WEBSOCKET LOGGER', sendJson, level, cwd);
   return {
     debug(...args: any) {
       if (level > LogLevel.debug) return;
