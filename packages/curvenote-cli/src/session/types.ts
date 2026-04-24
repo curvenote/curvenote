@@ -1,4 +1,4 @@
-import type { AppServer, ISession as IMystSession } from 'myst-cli';
+import type { ServerInfo, ISession as IMystSession } from 'myst-cli';
 import type { Store } from 'redux';
 import type { RootState } from '../store/index.js';
 import type { MystPlugin } from 'myst-common';
@@ -75,7 +75,7 @@ export type ISession = IMystSession & {
   config: CLIConfigData;
   activeTokens: TokenPair;
   plugins: ValidatedCurvenotePlugin | undefined;
-  server: AppServer | undefined;
+  server: ServerInfo | undefined;
 
   refreshSessionToken(opts?: { checkStatusOnFailure: boolean }): Promise<void>;
   getHeaders(): Promise<Record<string, string>>;

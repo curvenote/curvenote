@@ -1,10 +1,10 @@
 import chalk from 'chalk';
-import type { AppServer } from 'myst-cli';
+import type { ServerInfo } from 'myst-cli';
 import type { Logger } from 'myst-cli-utils';
 import { LogLevel, chalkLogger, silentLogger } from 'myst-cli-utils';
 import { sep } from 'node:path';
 
-type SendJsonFn = AppServer['contentServer']['sendJson'];
+type SendJsonFn = ServerInfo['contentServer']['sendJson'];
 
 /**
  * Builds a composite {@link Logger} that fans out each log call to both a
