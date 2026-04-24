@@ -8,7 +8,7 @@ import { default as nodeFetch } from 'node-fetch';
 import type { Limit } from 'p-limit';
 import pLimit from 'p-limit';
 import { Semaphore } from 'async-mutex';
-import type { BuildWarning } from 'myst-cli';
+import type { AppServer, BuildWarning } from 'myst-cli';
 import latestVersion from 'latest-version';
 import {
   findCurrentProjectAndLoad,
@@ -53,6 +53,7 @@ import {
 import jwt from 'jsonwebtoken';
 import { getLogLevel } from './utils/getLogLevel.js';
 import { checkUserTokenStatus } from './auth/checkUserTokenStatus.js';
+import { compositeLoggerFactory } from './logger.js';
 
 const LOCALHOSTS = ['localhost', '127.0.0.1', '::1'];
 
@@ -77,6 +78,7 @@ export class Session implements ISession {
   doiLimiter: Limit;
   executionSemaphore: Semaphore;
   plugins: ValidatedCurvenotePlugin | undefined = combinePlugins([getBuiltInPlugins()]);
+  server: AppServer | undefined;
 
   proxyAgent?: HttpsProxyAgent<string>;
   _shownUpgrade = false;
@@ -556,6 +558,7 @@ export class Session implements ISession {
 export async function anonSession(opts?: SessionOpts): Promise<ISession> {
   const logger = chalkLogger(getLogLevel(opts?.debug), process.cwd());
   const session = await Session.create(undefined, { logger });
+  session.$logger = compositeLoggerFactory(getLogLevel(opts?.debug), process.cwd());
   return session;
 }
 
@@ -574,6 +577,7 @@ export async function getSession(
   let session;
   try {
     session = await Session.create(data.current, { logger });
+    session.$logger = compositeLoggerFactory(getLogLevel(opts?.debug), process.cwd());
     if (data.environment) {
       logger.warn('Checking user token...');
       await checkUserTokenStatus(session);

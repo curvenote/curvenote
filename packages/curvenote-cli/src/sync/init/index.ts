@@ -271,6 +271,10 @@ export async function init(session: ISession, opts: Options) {
   await pullProcess;
   if (start) {
     session.log.info(chalk.dim('\nStarting local server with: '), chalk.bold('curvenote start'));
-    await startServer(session, addTransformersToOpts(session, opts));
+    const server = await startServer(session, addTransformersToOpts(session, opts));
+    if (server) {
+      // Initial change here, potential for upstreaming to myst-cli
+      session.server = server;
+    }
   }
 }
