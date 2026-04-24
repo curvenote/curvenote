@@ -1,6 +1,6 @@
 import inquirer from 'inquirer';
 import path from 'node:path';
-import { writeFileToFolder } from 'myst-cli-utils';
+import { LogLevel, writeFileToFolder } from 'myst-cli-utils';
 import type { VersionId } from '@curvenote/blocks';
 import type { ISession } from '../session/types.js';
 import {
@@ -8,6 +8,8 @@ import {
   OxaTransformer,
   transformOxalinkStore,
 } from '../transforms/links/index.js';
+import { startServer } from 'myst-cli';
+import { compositeLoggerFactory } from '../session/logger.js';
 
 export function resolvePath(optionalPath: string | undefined, filename: string) {
   if (optionalPath) return path.join(optionalPath, filename);
@@ -49,4 +51,19 @@ export function addTransformersToOpts(session: ISession, opts: Record<string, an
 
 export function writeJsonLogs(session: ISession, name: string, logData: Record<string, any>) {
   writeFileToFolder(path.join(session.buildPath(), 'logs', name), JSON.stringify(logData, null, 2));
+}
+
+export async function startServerWithLoggers(session: ISession, opts: Record<string, any>) {
+  const server = await startServer(session, addTransformersToOpts(session, opts));
+  if (server) {
+    // Initial change here, potential for upstreaming to myst-cli
+    session.server = server;
+    session.setLogger(
+      compositeLoggerFactory(
+        { websocket: LogLevel.debug, terminal: LogLevel.info },
+        process.cwd(),
+        server.contentServer.sendJson,
+      ),
+    );
+  }
 }

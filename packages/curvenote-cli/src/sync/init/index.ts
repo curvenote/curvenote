@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import fs from 'node:fs';
 import inquirer from 'inquirer';
 import { basename, resolve, join } from 'node:path';
-import { config, findProjectsOnPath, selectors, writeConfigs, startServer } from 'myst-cli';
+import { config, findProjectsOnPath, selectors, writeConfigs } from 'myst-cli';
 import { LogLevel, writeFileToFolder } from 'myst-cli-utils';
 import type { ProjectConfig } from 'myst-config';
 import { LOGO } from '../../docs.js';
@@ -11,7 +11,7 @@ import type { ISession } from '../../session/types.js';
 import { pullProjects } from '../pull/project.js';
 import questions from '../questions.js';
 import { getDefaultSiteConfig, INIT_LOGO_PATH } from '../utils.js';
-import { addTransformersToOpts } from '../../utils/utils.js';
+import { startServerWithLoggers } from '../../utils/utils.js';
 import type { Options } from './types.js';
 import { CURVENOTE_YML } from './types.js';
 import { WELCOME, FINISHED } from './messages.js';
@@ -271,10 +271,6 @@ export async function init(session: ISession, opts: Options) {
   await pullProcess;
   if (start) {
     session.log.info(chalk.dim('\nStarting local server with: '), chalk.bold('curvenote start'));
-    const server = await startServer(session, addTransformersToOpts(session, opts));
-    if (server) {
-      // Initial change here, potential for upstreaming to myst-cli
-      session.server = server;
-    }
+    await startServerWithLoggers(session, opts);
   }
 }

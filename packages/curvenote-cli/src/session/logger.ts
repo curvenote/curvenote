@@ -27,30 +27,30 @@ type SendJsonFn = AppServer['contentServer']['sendJson'];
  *          (when configured) to websocket clients.
  */
 export function compositeLoggerFactory(
-  level: LogLevel,
+  levels: { websocket: LogLevel; terminal: LogLevel } = {
+    websocket: LogLevel.debug,
+    terminal: LogLevel.info,
+  },
   cwd?: string,
   sendJson?: SendJsonFn,
 ): Logger {
-  const logChalk = chalkLogger(level, cwd);
-  const logWebsocket = sendJson ? websocketLogger(sendJson, level, cwd) : silentLogger();
+  console.log('COMPOSITE LOGGER FACTORY', levels, cwd, sendJson);
+  const logChalk = chalkLogger(levels.terminal, cwd);
+  const logWebsocket = sendJson ? websocketLogger(sendJson, levels.websocket, cwd) : silentLogger();
   return {
     debug(...args: any) {
-      if (level > LogLevel.debug) return;
       logChalk.debug(...args);
       logWebsocket.debug(...args);
     },
     info(...args: any) {
-      if (level > LogLevel.info) return;
       logChalk.info(...args);
       logWebsocket.info(...args);
     },
     warn(...args: any) {
-      if (level > LogLevel.warn) return;
       logChalk.warn(...args);
       logWebsocket.warn(...args);
     },
     error(...args: any) {
-      if (level > LogLevel.error) return;
       logChalk.error(...args);
       logWebsocket.error(...args);
     },
@@ -108,6 +108,7 @@ function replaceCwd(cwd: string | undefined, args: any[]): any[] {
  *          publish styled log messages over the websocket.
  */
 export function websocketLogger(sendJson: SendJsonFn, level: LogLevel, cwd?: string): Logger {
+  console.log('WEBSOCKET LOGGER', sendJson, level, cwd);
   return {
     debug(...args: any) {
       if (level > LogLevel.debug) return;

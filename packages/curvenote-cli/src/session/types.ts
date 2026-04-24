@@ -3,6 +3,7 @@ import type { Store } from 'redux';
 import type { RootState } from '../store/index.js';
 import type { MystPlugin } from 'myst-common';
 import type { CheckInterface } from '@curvenote/check-implementations';
+import type { Logger } from 'myst-cli-utils';
 
 export type SessionOpts = {
   debug?: boolean;
@@ -86,4 +87,5 @@ export type ISession = IMystSession & {
   patch<T extends Record<string, any> = any>(url: string, data: unknown): Response<T>;
   reload(): Promise<ISession>;
   clone(): Promise<ISession>;
+  setLogger(logger: Logger): void;
 };
