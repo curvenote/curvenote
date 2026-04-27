@@ -8,6 +8,9 @@
 #   3. Grants that account roles/pubsub.publisher on the project
 #   4. Grants the GCP Pub/Sub service agent roles/iam.serviceAccountTokenCreator (required for push + auth)
 #   5. Creates a Pub/Sub topic and a push subscription that delivers to your Cloud Run URL (or uses existing)
+#   6. Sets the subscription expiration policy to 'never' so it does not auto-delete
+#      after 31 days of inactivity (GCP Pub/Sub default). Applied on every run, so
+#      existing subscriptions created without this flag are also fixed.
 #
 # Idempotent: safe to re-run; uses existing service account, topic, and subscription if present.
 #
@@ -127,10 +130,19 @@ else
   gcloud pubsub subscriptions create "${SUBSCRIPTION_NAME}" \
     --topic "${TOPIC_NAME}" \
     --ack-deadline="${ACK_DEADLINE}" \
+    --expiration-period=never \
     --push-endpoint="${PUSH_ENDPOINT}" \
     --push-auth-service-account="${SA_EMAIL}" \
     --project "${PROJECT_ID}"
 fi
+
+# Ensure existing or freshly created subscription never expires (idempotent).
+# GCP Pub/Sub subscriptions default to 31-day inactivity expiry; without this they
+# can silently disappear and traffic stops arriving at Cloud Run.
+echo "Ensuring subscription expiration policy is 'never': ${SUBSCRIPTION_NAME}"
+gcloud pubsub subscriptions update "${SUBSCRIPTION_NAME}" \
+  --expiration-period=never \
+  --project "${PROJECT_ID}"
 
 echo ""
 echo "Done. Add to your app config:"
