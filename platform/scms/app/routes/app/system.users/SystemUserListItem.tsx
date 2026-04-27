@@ -97,7 +97,7 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
       case 'SERVICE':
         return 'Service';
       case 'ANON':
-        return 'Anonymous';
+        return 'Guest';
       default:
         return role;
     }
