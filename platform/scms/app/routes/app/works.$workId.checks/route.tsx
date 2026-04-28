@@ -287,6 +287,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                       workVersionId={workVersionIdForActivity}
                       checkRunId={latest?.run.id}
                       remoteStatusActionPath={service.checksActionPath ?? `${basePath}/checks`}
+                      checkRunDateModified={latest?.run.date_modified}
                     />
                   </ui.CardContent>
                 </ui.Card>
