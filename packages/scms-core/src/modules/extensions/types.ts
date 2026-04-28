@@ -225,6 +225,13 @@ export interface ClientExtension {
   registerNavigation: NavigationRegistrationFn;
   /** Optional component to render extension admin card content; receives sanitized config. */
   getExtensionAdminCard?: () => React.ComponentType<ExtensionAdminCardProps>;
+  /**
+   * Optional component to render on the system Design page as an extension-owned tab.
+   * The platform shows one tab per extension that returns a component, using the
+   * extension's `name` as the tab label. Extensions can use this surface to showcase
+   * their own UI components and various visual states.
+   */
+  getDesigns?: () => React.ComponentType;
 }
 
 export interface ExtensionAdminActionHandler {
