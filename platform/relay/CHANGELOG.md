@@ -1,5 +1,11 @@
 # @curvenote/check-relay
 
+## 0.0.2
+
+### Patch Changes
+
+- [#869](https://github.com/curvenote/curvenote/pull/869) [`1269078`](https://github.com/curvenote/curvenote/commit/126907871fe3aee4e93e197780cec22f2c36c1d6) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add aggresive caching on logos
+
 ## 0.1.0
 
 ### Minor Changes
