@@ -14,6 +14,7 @@ interface FrameHeaderProps {
   actionIcon?: React.ReactNode;
   onAction?: () => void;
   actionDisabled?: boolean;
+  actionAlign?: 'inline' | 'right';
 }
 
 export function FrameHeader({
@@ -26,6 +27,7 @@ export function FrameHeader({
   actionDisabled,
   actionIcon,
   onAction,
+  actionAlign = 'inline',
 }: FrameHeaderProps) {
   const location = useLocation();
   const deploymentConfig = useDeploymentConfig();
@@ -57,7 +59,7 @@ export function FrameHeader({
           {subtitle && <div className="py-1 text-base">{subtitle}</div>}
         </div>
         {actionLabel && (
-          <div>
+          <div className={cn(actionAlign === 'right' && 'ml-auto')}>
             <StatefulButton onClick={onAction} disabled={actionDisabled}>
               <div className="flex flex-row gap-2 items-center">
                 {actionIcon && <div className="flex flex-shrink-0 items-center">{actionIcon}</div>}

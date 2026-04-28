@@ -10,7 +10,6 @@ import {
   MainWrapper,
   PageFrame,
   FrameHeader,
-  ui,
   getBrandingFromMetaMatches,
   joinPageTitle,
   getWorkflows,
@@ -223,6 +222,7 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
           header={
             <FrameHeader
               className="max-w-4xl"
+              actionAlign="right"
               title="My Works"
               subtitle="Manage your works and submissions"
               actionLabel="Create new work"
