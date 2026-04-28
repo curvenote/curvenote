@@ -70,6 +70,8 @@ interface WorkFileUploadProps {
   icon?: 'file' | 'image' | 'video' | 'table';
   alert?: React.ReactNode;
   action?: string;
+  /** Called after duplicate filtering when the user selects one or more files (before staging upload). */
+  onFilesSelected?: (files: File[]) => void;
 }
 
 // Helper to detect upload complete DTO
@@ -116,6 +118,7 @@ export function WorkFileUpload({
   icon = 'file',
   alert,
   action: actionUrl,
+  onFilesSelected,
 }: WorkFileUploadProps) {
   // Extract config values
   const {
@@ -357,6 +360,8 @@ export function WorkFileUpload({
       e.target.value = '';
       return;
     }
+
+    onFilesSelected?.(nonDuplicateFiles);
 
     // Show notification if some files were skipped
     if (nonDuplicateFiles.length < filesToProcess.length) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import type { Route } from './+types/route';
 import type {
   WorkVersionCheckName,
@@ -87,6 +87,14 @@ const WorkUploadActionSchema = zfd.formData({
 });
 
 type WorkUploadActionPayload = z.infer<typeof WorkUploadActionSchema>;
+
+/** Article title from an uploaded file name (path segments stripped, extension removed). */
+function titleFromUploadedFileName(filename: string): string {
+  const base = filename.replace(/^.*[/\\]/, '');
+  const dot = base.lastIndexOf('.');
+  if (dot <= 0) return base.trim();
+  return base.slice(0, dot).trim();
+}
 
 function parseAuthorsList(authorsText: string): string[] {
   return authorsText
@@ -554,7 +562,28 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
   const revalidator = useRevalidator();
   const fetchPreviewsFetcher = useFetcher();
+  const autoTitleFromFilenameFetcher = useFetcher();
   const hasTriggeredFetchPreviews = useRef(false);
+
+  const suggestArticleTitleFromSelectedFiles = useCallback(
+    (files: File[]) => {
+      const first = files[0];
+      if (!first?.name) return;
+
+      const hasStoredTitle = Boolean(title?.trim());
+      const hasExtractedTitle = Boolean(extractedMetadata?.title?.trim());
+      if (hasStoredTitle || hasExtractedTitle) return;
+
+      const suggested = titleFromUploadedFileName(first.name);
+      if (!suggested) return;
+
+      autoTitleFromFilenameFetcher.submit(
+        { intent: 'update-title', title: suggested },
+        { method: 'post' },
+      );
+    },
+    [title, extractedMetadata, autoTitleFromFilenameFetcher.submit],
+  );
 
   // Resolve check services at render time to avoid serialization issues
   // Construct minimal AppConfig from ClientDeploymentConfig
@@ -611,13 +640,14 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           className="space-y-4 max-w-3xl"
         >
           <p className="text-md text-muted-foreground">
-            Upload a single manuscript file (up to 50 MB) and we will see what we can determine from
-            it.
+            Upload a single manuscript file (up to 50 MB). Microsoft Word and PDF formats are
+            supported—we will see what we can determine from it.
           </p>
           <WorkFileUpload
             cdnKey={cdnKey}
             config={uploadConfig['manuscript']}
             loadedFileMetadata={metadata as any}
+            onFilesSelected={suggestArticleTitleFromSelectedFiles}
           />
         </SectionWithHeading>
         {hasMetadataPreviewScope ? (

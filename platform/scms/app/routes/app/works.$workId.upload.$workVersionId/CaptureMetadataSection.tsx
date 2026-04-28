@@ -20,8 +20,8 @@ export function CaptureMetadataSection({ title, authors }: CaptureMetadataSectio
       className="space-y-4 max-w-3xl"
     >
       <p className="text-muted-foreground">
-        We'll need the following metadata about your work, we've tried to guess some of it for you
-        but please check and adjust as needed.
+        We'll need some metadata about your work, we have started with the filename but please
+        adjust as needed.
       </p>
       <ui.Card className="px-6 pt-4 pb-6 space-y-4">
         <WorkTitleForm title={title} />

@@ -5,6 +5,9 @@ import type { Route } from './+types/route';
 import { useInlineSave } from './useInlineSave';
 import { InlineSaveIndicator } from './InlineSaveIndicator';
 
+/** Set to true to show the authors field on upload metadata forms again. */
+const SHOW_AUTHORS_FIELD_ON_UPLOAD = false;
+
 interface AuthorsFormProps {
   /** Initial authors string (comma-separated); prefer wv.authors over extracted */
   initialAuthors: string;
@@ -51,7 +54,7 @@ export function AuthorsForm({
   });
 
   return (
-    <div className="space-y-1">
+    <div className={cn('space-y-1', !SHOW_AUTHORS_FIELD_ON_UPLOAD && 'hidden')}>
       <label htmlFor="authors" className="inline-block text-sm font-medium">
         Authors{' '}
         <span className="text-xs text-muted-foreground">(optional, comma-separated list)</span>
