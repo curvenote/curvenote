@@ -168,11 +168,11 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   const url = new URL(args.request.url);
   const pathname = url.pathname;
+  const isOnUploadRoute = pathname.includes(`/app/works/${workId}/upload/`);
   const includeDraftSubmissions = url.searchParams.get('drafts') === 'true';
 
   // Draft-only works should route users into the upload flow, not the details pages.
   if (isDraftOnlyWork) {
-    const isUploadPath = pathname.includes(`/app/works/${workId}/upload/`);
     const isDetailsLikePath =
       pathname === `/app/works/${workId}` ||
       pathname === `/app/works/${workId}/` ||
@@ -181,7 +181,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
       pathname.startsWith(`/app/works/${workId}/work-integrity`) ||
       pathname.startsWith(`/app/works/${workId}/site/`);
 
-    if (!isUploadPath && isDetailsLikePath) {
+    if (!isOnUploadRoute && isDetailsLikePath) {
       throw redirect(`/app/works/${workId}/upload/${workVersions[0].id}`);
     }
   }
@@ -257,6 +257,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     checkServiceRunsByWorkVersionId,
     canUpload,
     users,
+    isOnUploadRoute,
   };
 };
 
@@ -281,14 +282,15 @@ export function shouldRevalidate({
 }
 
 export default function WorkLayout({ loaderData }: Route.ComponentProps) {
-  const { work, versions, submissions, userScopes } = loaderData;
+  const { work, versions, submissions, userScopes, isOnUploadRoute } = loaderData;
 
   const isDrafting = versions.length > 0 && versions.every((v) => v.draft);
+  const showSecondaryNav = !isDrafting && !isOnUploadRoute;
   const menu = buildMenu(`/app/works/${work.id}`, isDrafting, submissions, userScopes);
 
   return (
     <>
-      {!isDrafting && (
+      {showSecondaryNav && (
         <SecondaryNav
           contents={menu}
           title={isDrafting ? 'Work Details' : undefined}
@@ -304,7 +306,7 @@ export default function WorkLayout({ loaderData }: Route.ComponentProps) {
           }
         />
       )}
-      <MainWrapper hasSecondaryNav={!isDrafting}>
+      <MainWrapper hasSecondaryNav={showSecondaryNav}>
         <Outlet />
       </MainWrapper>
     </>
