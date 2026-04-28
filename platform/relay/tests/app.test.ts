@@ -38,6 +38,17 @@ describe("relay app", () => {
     expect(text).toContain("<svg");
   });
 
+  it("GET /api/assets/:service/logo.svg sets a long-lived Cache-Control header", async () => {
+    const res = await app.request("/api/assets/echo/logo.svg");
+    expect(res.status).toBe(200);
+    const cacheControl = res.headers.get("cache-control");
+    expect(cacheControl).toBeTruthy();
+    expect(cacheControl).toContain("public");
+    // 7 days = 604800 seconds
+    expect(cacheControl).toMatch(/max-age=604800/);
+    expect(cacheControl).toMatch(/s-maxage=604800/);
+  });
+
   it("GET /assets/:service/logo.svg is not served (use /api/assets for Vercel)", async () => {
     const res = await app.request("/assets/echo/logo.svg");
     expect(res.status).toBe(404);
