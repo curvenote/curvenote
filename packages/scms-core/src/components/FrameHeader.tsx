@@ -50,7 +50,7 @@ export function FrameHeader({
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      <div className="flex flex-row gap-4 justify-between items-center">
+      <div className="flex flex-row gap-4 items-center">
         {iconWithProps && <div className="flex flex-shrink-0 items-center">{iconWithProps}</div>}
         <div className="flex flex-col justify-center">
           <h1 className="text-2xl font-normal tracking-tight">{title}</h1>
