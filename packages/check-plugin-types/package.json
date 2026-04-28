@@ -16,6 +16,9 @@
     "build": "rm -rf dist && tsc",
     "lint": "eslint \"src/**/*.ts\" -c ./.eslintrc.cjs"
   },
+  "dependencies": {
+    "@curvenote/check-relay-types": "*"
+  },
   "devDependencies": {
     "typescript": "^5.7.0"
   }

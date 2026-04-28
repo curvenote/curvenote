@@ -34,7 +34,10 @@ export async function checkStatusPost(c: Context) {
       externalId,
       rest,
     );
-    return c.json(result ?? { status: "unknown", result: null });
+    if (result == null) {
+      return c.json({ envelopes: [] });
+    }
+    return c.json(result);
   } catch (error) {
     return c.json(
       {

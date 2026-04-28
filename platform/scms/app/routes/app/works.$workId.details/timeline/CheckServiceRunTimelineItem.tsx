@@ -69,6 +69,7 @@ export function CheckServiceRunTimelineItem({
           workVersionId={run.work_version_id}
           checkRunId={run.id}
           remoteStatusActionPath={checksActionPath}
+          checkRunDateModified={run.date_modified}
         />
       </div>
     );

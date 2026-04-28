@@ -45,7 +45,7 @@ export function makeTestPlugin(
       status: "submitted",
       result: { externalId: `ext-${payload.clientId ?? "123"}` },
     }),
-    getCheckStatus: async () => null,
+    getCheckStatus: async () => ({ envelopes: [] }),
     getReportViewerUrl: async () => NI,
     getCheckArtifacts: async () => NI,
     startReportGeneration: async () => ({

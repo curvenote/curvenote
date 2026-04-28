@@ -10,6 +10,7 @@ import {
   type WebhookVerifyRequest,
   type PluginUploadPayload,
 } from '@curvenote/check-plugin-types';
+import type { RelayCheckStatusResponse } from '@curvenote/check-relay-types';
 
 const ECHO_OPERATIONS = [
   'instanceStatus',
@@ -98,8 +99,8 @@ const echoPlugin: ServicePlugin = {
     _credentials: Record<string, unknown>,
     _externalId: string,
     _body: Record<string, unknown>,
-  ): Promise<PluginOperationResult | null> {
-    return null;
+  ): Promise<RelayCheckStatusResponse | null> {
+    return { envelopes: [] };
   },
 
   async getReportViewerUrl(

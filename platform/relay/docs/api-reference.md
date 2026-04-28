@@ -321,9 +321,9 @@ The relay sends `POST` requests to the `notifyUrl` you provided in `POST /api/v1
 | `UPLOAD_ACCEPTED`            | `{ "upload_status": "ACCEPTED" }`                                | Provider accepted the manuscript (e.g. submission-complete without error) |
 | `UPLOAD_COMPLETE`            | `{ "upload_status": "COMPLETE" }`                                | Provider signaled completion for this status update (generic fallback)    |
 | `UPLOAD_FAILED`              | `{ "upload_status": "ERROR", "error_code?", "error_message?" }`  | Submission / ingest failed (upload lane, not report phases)               |
-| `PROCESSING_PHASE_STARTED`   | `{ "phase": "<phase>", "started": true }`                        | A named processing phase began                                            |
-| `PROCESSING_PHASE_COMPLETE`  | `{ "phase": "<phase>", "completed": true, "provider_payload?" }` | Phase finished                                                            |
-| `PROCESSING_PHASE_FAILED`    | `{ "phase": "<phase>", "failed": true, "error_message?" }`       | Phase failed                                                              |
+| `PROCESSING_PHASE_STARTED`   | `{ "started": true }`                                              | Processing phase began (semantic detail via event name / extension state) |
+| `PROCESSING_PHASE_COMPLETE`  | `{ "completed": true, "similarity_report?", "provider_payload?" }` | Phase finished                                                            |
+| `PROCESSING_PHASE_FAILED`    | `{ "failed": true, "error_code?", "error_message?" }`             | Phase failed                                                              |
 | `REPORT_GENERATION_STARTED`  | `{ "status": "PROCESSING", "report?" }`                          | Report generation began                                                   |
 | `REPORT_GENERATION_COMPLETE` | `{ "status": "SUCCESS", "report?" }`                             | Report ready                                                              |
 | `REPORT_GENERATION_FAILED`   | `{ "status": "FAILED", "error_message?" }`                       | Report generation failed                                                  |
