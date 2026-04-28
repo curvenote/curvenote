@@ -4,6 +4,7 @@
  * These are intentionally separated from client-facing API/notify contracts.
  */
 
+import type { RelayCheckStatusResponse } from '@curvenote/check-relay-types';
 import type { PluginUploadPayload, SubmitManuscriptFile } from './relay.js';
 
 // ── JSON ──
@@ -217,12 +218,15 @@ export interface ServicePlugin {
 
   /**
    * Check-scoped methods take **`externalId`** (same value as the URL segment and client `externalId`).
+   *
+   * Returns **`RelayCheckStatusResponse`** — ordered notify envelopes (same JSON relay POSTs to `notify_url`).
+   * Return **`null`** only for legacy adapters; preferred: `{ envelopes: [] }` when there is nothing new.
    */
   getCheckStatus(
     credentials: Record<string, unknown>,
     externalId: string,
     body: Record<string, unknown>,
-  ): Promise<PluginOperationResult | null>;
+  ): Promise<RelayCheckStatusResponse | null>;
 
   getReportViewerUrl(
     credentials: Record<string, unknown>,

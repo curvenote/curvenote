@@ -16,9 +16,7 @@
     "build": "rm -rf dist && tsc",
     "lint": "eslint \"src/**/*.ts\" -c ./.eslintrc.cjs"
   },
-  "dependencies": {
-    "@curvenote/check-plugin-types": "*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "typescript": "^5.7.0"
   }

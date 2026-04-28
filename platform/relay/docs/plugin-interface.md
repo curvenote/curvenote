@@ -149,7 +149,7 @@ All take **`externalId: string`** (same value as the URL segment **`externalId`*
 
 | Method                   | Returns                         | Notes                                                                                             |
 | ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `getCheckStatus`         | `PluginOperationResult \| null` | Relay JSON-defaults if `null`.                                                                    |
+| `getCheckStatus`         | `RelayCheckStatusResponse \| null` | **`RelayCheckStatusResponse`** = `{ envelopes: RelayNotifyEnvelope[] }` — same JSON relay POSTs to `notify_url`. Relay defaults missing/`null` to `{ envelopes: [] }`. |
 | `getReportViewerUrl`     | `PluginOperationResult`         |                                                                                                   |
 | `getCheckArtifacts`      | `PluginOperationResult`         |                                                                                                   |
 | `triggerProcessingStage` | `PluginOperationResult`         | Relay requires **`phase`** (non-empty string). Use for stages not driven only by ingest webhooks. |

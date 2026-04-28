@@ -106,6 +106,11 @@ export type ExtensionCheckSectionActivityProps = {
   /** POST target for check UI mutations (extension-owned route or legacy work checks path). */
   remoteStatusActionPath?: string;
   /**
+   * ISO timestamp from **check_service_run.date_modified** when displaying an existing run.
+   * Extensions may use this (vs mount timers) to decide when to offer refresh / stale hints.
+   */
+  checkRunDateModified?: string;
+  /**
    * When true, this check run's UI should be expanded/open by default on initial render.
    * Used for one-shot behaviours such as hydrating remote status on work details load.
    * Omitted on routes that do not compute it (treated as false).

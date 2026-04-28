@@ -74,17 +74,46 @@ export type UploadFailedPayload = {
 };
 
 /**
- * Processing phases are plugin-dependent and may repeat.
- * Examples: "upload_and_similarity", "queue_similarity", "fetch_report".
+ * Plugin-local names for **`POST …/trigger-stage`** request bodies only (relay routing).
+ * Not used on notify envelopes — distinguish workflow steps via {@link NotifyEventName}.
  */
 export type ProcessingPhaseName = string;
 
+/** Canonical similarity top match (snake_case wire — vendor-neutral). */
+export interface SimilarityTopMatchWire {
+  percentage: number;
+  submission_id?: string;
+  source_type: string;
+  matched_word_count_total: number;
+  submitted_date?: string;
+  institution_name?: string;
+  name: string;
+}
+
+/**
+ * Canonical similarity report snapshot (snake_case wire).
+ * Maps any vendor’s similarity outcome into one SCMS-facing shape.
+ */
+export interface SimilarityReportWire {
+  submission_id: string;
+  overall_match_percentage: number;
+  internet_match_percentage?: number | null;
+  publication_match_percentage?: number | null;
+  submitted_works_match_percentage?: number | null;
+  status: 'PROCESSING' | 'COMPLETE';
+  time_requested: string;
+  time_generated?: string;
+  top_source_largest_matched_word_count?: number;
+  top_matches?: SimilarityTopMatchWire[];
+}
+
 export interface ProcessingPhasePayloadBase {
-  /** Name of the processing phase (plugin-defined, stable string). */
-  phase: ProcessingPhaseName;
   /**
-   * Provider payload or a safely-redacted subset relevant to this phase.
-   * Optional; include when it helps debugging without leaking secrets.
+   * Similarity report when this phase completes with similarity data (preferred over legacy blobs).
+   */
+  similarity_report?: SimilarityReportWire;
+  /**
+   * @deprecated Prefer {@link similarity_report}. Raw vendor JSON must not be required by SCMS.
    */
   provider_payload?: Record<string, unknown>;
   /**

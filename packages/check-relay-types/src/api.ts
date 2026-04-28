@@ -4,7 +4,8 @@
  * These are standard across plugins; plugin-specific options belong under `metadata`.
  */
 
-import type { PluginStatus } from "@curvenote/check-plugin-types";
+/** Mirrors @curvenote/check-plugin-types PluginStatus — kept local to avoid circular package deps */
+export type PluginStatus = 'submitted' | 'processing' | 'completed' | 'failed' | 'error';
 
 /**
  * Standard upload request body sent by clients to checks-relay (wire shape).
