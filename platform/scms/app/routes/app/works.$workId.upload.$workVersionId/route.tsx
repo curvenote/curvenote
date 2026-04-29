@@ -50,6 +50,8 @@ import { validateUploadParams } from './validateUpload.server';
 import { updateWorkVersionTitle, updateWorkVersionAuthors } from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
 import { data, redirect, useFetcher, useRevalidator } from 'react-router';
+// eslint-disable-next-line import/no-extraneous-dependencies -- available via the SCMS server runtime on Vercel; used to avoid blocking the upload response.
+import { waitUntil } from '@vercel/functions';
 import { handleFetchPreviewsIntent } from './fetchPreviews.server';
 import { readDocxPreviewsFromObjectTable, type DocxPreviewItem } from './fetchPreviews.server';
 import { extractMetadataFromPreviews } from './anthropic.server';
@@ -106,6 +108,54 @@ function parseAuthorsList(authorsText: string): string[] {
 
 // NOTE: Check service run schema is now defined and managed by each check
 // extension when they create checkServiceRun rows.
+
+async function dispatchEnabledChecksAfterUpload({
+  enabledChecks,
+  workVersionId,
+  ctx,
+}: {
+  enabledChecks: WorkVersionCheckName[];
+  workVersionId: string;
+  ctx: NonNullable<ExtensionCheckHandleActionArgs['ctx']>;
+}) {
+  const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, serverExtensions);
+  const results = await Promise.allSettled(
+    enabledChecks.map(async (kind) => {
+      const service = checkServices.find((s) => s.id === kind);
+      if (!service?.handleAction) {
+        console.warn(`[work-upload] no check service handleAction found for kind=${kind}`);
+        return;
+      }
+      const actionArgs: ExtensionCheckHandleActionArgs = {
+        intent: 'execute',
+        workVersionId,
+        ctx,
+        serverExtensions,
+      };
+      const { success, error, status } = await service.handleAction(actionArgs);
+      if (!success || error) {
+        throw new Error(
+          `[work-upload] check dispatch failed for kind=${kind} status=${status ?? 'unknown'}: ${
+            error?.message ?? 'Check execution failed'
+          }`,
+        );
+      }
+      // Check-start activities are created when jobs are invoked (invoke.server.ts),
+      // including for follow-on jobs, so we do not create them here.
+    }),
+  );
+  const failures = results.filter((result) => result.status === 'rejected');
+  if (failures.length > 0) {
+    failures.forEach((failure) => {
+      console.error('[work-upload] background check dispatch failed', failure.reason);
+    });
+    throw new Error(
+      `[work-upload] ${failures.length} check dispatch${
+        failures.length === 1 ? '' : 'es'
+      } failed; see prior logs for details`,
+    );
+  }
+}
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppScopedContext(args, [scopes.app.works.upload], { redirect: true });
@@ -353,7 +403,7 @@ export async function action(args: Route.ActionArgs) {
           },
         });
 
-        // Execute each enabled check via its extension. Each check service is
+        // Schedule each enabled check via its extension. Each check service is
         // responsible for creating its own checkServiceRun rows and jobs.
         // Require work:checks:dispatch scope before dispatching (same as work-integrity action).
         if (enabledChecks.length > 0) {
@@ -368,29 +418,20 @@ export async function action(args: Route.ActionArgs) {
               { status: 403 },
             );
           }
-          const checkServices = getExtensionCheckServicesFromServerConfig(
-            baseCtx.$config,
-            serverExtensions,
-          );
-          for (const kind of enabledChecks) {
-            const service = checkServices.find((s) => s.id === kind);
-            if (!service?.handleAction) continue;
-            const actionArgs: ExtensionCheckHandleActionArgs = {
-              intent: 'execute',
+          waitUntil(
+            dispatchEnabledChecksAfterUpload({
+              enabledChecks,
               workVersionId,
               ctx: baseCtx,
-              serverExtensions,
-            };
-            const { success, error, status } = await service.handleAction(actionArgs);
-            if (!success || error) {
-              return data(
-                { error: { type: 'general', message: error?.message ?? 'Check execution failed' } },
-                { status: status ?? 500 },
-              );
-            }
-            // Check-start activities are created when jobs are invoked (invoke.server.ts),
-            // including for follow-on jobs, so we do not create them here.
-          }
+            }).catch((error) => {
+              console.error('[work-upload] background check dispatch failed', {
+                workId,
+                workVersionId,
+                enabledChecks,
+                error,
+              });
+            }),
+          );
         }
 
         // Redirect unless redirect=false (e.g. when called from manuscript-checks dialog).
@@ -400,7 +441,7 @@ export async function action(args: Route.ActionArgs) {
         if (shouldRedirect) {
           const target =
             enabledChecks.length > 0
-              ? `/app/works/${workId}/checks`
+              ? `/app/works/${workId}/checks?dispatching=1`
               : `/app/works/${workId}/details`;
           return redirect(target);
         }
