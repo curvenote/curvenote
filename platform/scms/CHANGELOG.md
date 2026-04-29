@@ -1,5 +1,19 @@
 # @curvenote/scms
 
+## 0.16.1
+
+### Patch Changes
+
+- [#866](https://github.com/curvenote/curvenote/pull/866) [`06b4530`](https://github.com/curvenote/curvenote/commit/06b4530d9b105f8419c957bebccbda5a4ee30002) Thanks [@stevejpurves](https://github.com/stevejpurves)! - System admin can set users to anonymous via the UI. Added confirmation dialogs for changes to sensitive roles.
+
+- [#868](https://github.com/curvenote/curvenote/pull/868) [`cb2bd34`](https://github.com/curvenote/curvenote/commit/cb2bd348a95271abc22fc381277b6b4c3cb0e331) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Extended system/design page and provided an interface point for extensions to export design components, sinplifying extension development, testing and review
+
+- Updated dependencies [[`cb2bd34`](https://github.com/curvenote/curvenote/commit/cb2bd348a95271abc22fc381277b6b4c3cb0e331)]:
+  - @curvenote/scms-core@0.16.1
+  - @curvenote/scms-sites-ext@0.16.1
+  - @curvenote/scms-server@0.16.1
+  - @curvenote/scms-db@0.16.1
+
 ## 0.16.0
 
 ### Minor Changes
