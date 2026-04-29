@@ -13,12 +13,14 @@ interface AuthorsFormProps {
   initialAuthors: string;
   disabled?: boolean;
   placeholder?: string;
+  show?: boolean;
 }
 
 export function AuthorsForm({
   initialAuthors,
   disabled: disabledProp,
   placeholder = 'Enter author names, comma-separated',
+  show = SHOW_AUTHORS_FIELD_ON_UPLOAD,
 }: AuthorsFormProps) {
   const fetcher = useFetcher<Route.ComponentProps['actionData']>();
   const [authors, setAuthors] = useState(initialAuthors || '');
@@ -54,7 +56,7 @@ export function AuthorsForm({
   });
 
   return (
-    <div className={cn('space-y-1', !SHOW_AUTHORS_FIELD_ON_UPLOAD && 'hidden')}>
+    <div className={cn('space-y-1', !show && 'hidden')}>
       <label htmlFor="authors" className="inline-block text-sm font-medium">
         Authors{' '}
         <span className="text-xs text-muted-foreground">(optional, comma-separated list)</span>

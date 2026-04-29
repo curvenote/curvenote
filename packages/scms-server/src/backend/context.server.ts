@@ -7,6 +7,7 @@ import {
   isAdmin,
   system,
   app,
+  sanitizeStringReplacements,
 } from '@curvenote/scms-core';
 import type {
   Context as ContextType,
@@ -159,6 +160,10 @@ export class Context implements ContextType {
   $verifiedSession: boolean;
   $resend?: Resend;
   $analytics: AnalyticsContext;
+
+  getStringReplacements() {
+    return sanitizeStringReplacements(this.$config.app?.stringReplacements);
+  }
 
   constructor(
     public $config: Awaited<ReturnType<typeof getConfig>>,

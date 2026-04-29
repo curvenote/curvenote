@@ -62,6 +62,8 @@ export interface Context {
 
   /** Initialize context from another context instance */
   initializeFrom(ctx: Context): void;
+  /** Get client-safe configured string replacements */
+  getStringReplacements(): Record<'work', string>;
   /** Get set of private CDN URLs */
   privateCdnUrls(): Set<string>;
   /** Verify a preview token */

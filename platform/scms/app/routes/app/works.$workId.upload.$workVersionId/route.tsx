@@ -39,6 +39,7 @@ import {
   useDeploymentConfig,
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
+  capitalize,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -158,17 +159,20 @@ export async function loader(args: Route.LoaderArgs) {
 
   // Customise title/subtitle by where the user arrived from (from= search param)
   const from = new URL(args.request.url).searchParams.get('from') ?? '';
+  const stringReplacements = ctx.getStringReplacements();
+  const workLabel = stringReplacements.work;
+  const workTitle = capitalize(workLabel);
   const pageCopy: { title: string; subtitle: string } = (() => {
     switch (from) {
       case 'new':
         return {
-          title: 'Upload a New Work',
-          subtitle: 'Start a new work by uploading your files',
+          title: `Upload a New ${workTitle}`,
+          subtitle: `Start a new ${workLabel} by uploading your files`,
         };
       case 'details':
         return {
           title: 'Upload a New Version',
-          subtitle: 'Add a new version of this work by uploading your files',
+          subtitle: `Add a new version of this ${workLabel} by uploading your files`,
         };
       case 'drafts':
         return {
@@ -177,8 +181,8 @@ export async function loader(args: Route.LoaderArgs) {
         };
       default:
         return {
-          title: 'Upload a New Work',
-          subtitle: 'Start a new work by uploading your files',
+          title: `Upload a New ${workTitle}`,
+          subtitle: `Start a new ${workLabel} by uploading your files`,
         };
     }
   })();
@@ -209,6 +213,7 @@ export async function loader(args: Route.LoaderArgs) {
     uploadConfig: WORK_UPLOAD_CONFIGURATION,
     pageTitle: pageCopy.title,
     pageSubtitle: pageCopy.subtitle,
+    stringReplacements,
     previews,
     extractedMetadata,
     hasMetadataPreviewScope,
@@ -230,7 +235,7 @@ export async function action(args: Route.ActionArgs) {
   try {
     const payload = WorkUploadActionSchema.parse(formData);
     console.log('payload', payload);
-  } catch (error) {
+  } catch {
     return data({ error: { type: 'general', message: 'Invalid form data' } }, { status: 400 });
   }
 
@@ -640,8 +645,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           className="space-y-4 max-w-3xl"
         >
           <p className="text-md text-muted-foreground">
-            Upload a single manuscript file (up to 50 MB). Microsoft Word and PDF formats are
-            supported—we will see what we can determine from it.
+            Upload a single manuscript file (up to 50 MB). DOCX and PDF formats are supported.
           </p>
           <WorkFileUpload
             cdnKey={cdnKey}

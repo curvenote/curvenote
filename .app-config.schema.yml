@@ -600,11 +600,14 @@ properties:
                 description: Properties matching RequestHelpProperties. If not provided or partially provided, defaults will be applied at runtime.
         additionalProperties: false
         description: Navigation configuration with items array, optional defaultRoute, and optional helpItem
-      pages:
-        type: array
-        description: Page configuration for customizing page titles and descriptions
-        items:
-          $ref: '#/$defs/PageConfig'
+      stringReplacements:
+        type: object
+        description: Known singular nouns used to customize application copy
+        additionalProperties: false
+        properties:
+          work:
+            type: string
+            description: Singular replacement for "work"
       checks:
         type: object
         description: Shared checks / checks-relay integration (SCMS calls relay with Bearer relayApiKey)
@@ -789,24 +792,6 @@ $defs:
         type: boolean
         default: false
         description: Show a beta indicator overlay on the navigation item
-  PageConfig:
-    type: object
-    additionalProperties: false
-    required:
-      - path
-    properties:
-      path:
-        type: string
-        description: The exact path to match (e.g., "/app/works")
-      title:
-        type: string
-        description: Optional title for the page
-      subtitle:
-        type: string
-        description: Optional subtitle for the page
-      description:
-        type: string
-        description: Optional description for the page
   VenuesNavItem:
     type: object
     additionalProperties: false

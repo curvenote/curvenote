@@ -1,9 +1,7 @@
 import { forwardRef } from 'react';
-import { useLocation } from 'react-router';
 import { cn } from '../../utils/index.js';
 import { FrameHeader } from '../FrameHeader.js';
 import { ConfigurableBreadcrumb, type BreadcrumbItemConfig } from '../ui/ConfigurableBreadcrumb.js';
-import { useDeploymentConfig } from '../../providers/DeploymentProvider.js';
 
 interface PageFrameProps {
   title?: React.ReactNode;
@@ -17,9 +15,6 @@ interface PageFrameProps {
   children: React.ReactNode;
 }
 
-/**
- * PageFrame component that can use page configuration from app config
- */
 export const PageFrame = forwardRef<HTMLDivElement, PageFrameProps>(function PageFrame(
   {
     title: propTitle,
@@ -34,17 +29,9 @@ export const PageFrame = forwardRef<HTMLDivElement, PageFrameProps>(function Pag
   },
   ref,
 ) {
-  const location = useLocation();
-  const deploymentConfig = useDeploymentConfig();
-
-  // Look up current path in pages config
-  const pageConfig = deploymentConfig.pages?.find((page) => page.path === location.pathname);
-
-  // Use page config if found, otherwise use props
-  // Props take precedence if both are provided
-  const finalTitle = pageConfig?.title ?? propTitle;
-  const finalSubtitle = pageConfig?.subtitle ?? propSubtitle;
-  const finalDescription = pageConfig?.description ?? propDescription;
+  const finalTitle = propTitle;
+  const finalSubtitle = propSubtitle;
+  const finalDescription = propDescription;
   const finalHeader = propHeader;
   const finalClassName = propClassName;
   const finalContainerClassName = propContainerClassName;
