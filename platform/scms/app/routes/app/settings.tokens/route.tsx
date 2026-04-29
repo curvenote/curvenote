@@ -1,24 +1,66 @@
 import type { Route } from './+types/route';
-import { withAppContext } from '@curvenote/scms-server';
+import { SlackEventType, withAppScopedContext } from '@curvenote/scms-server';
 import {
   PageFrame,
   primitives,
   getBrandingFromMetaMatches,
   joinPageTitle,
+  scopes,
+  TrackEvent,
 } from '@curvenote/scms-core';
-import { dbListUserTokens, dtoUserToken } from './db.server';
+import { dbDeleteUserToken, dbListUserTokens, dtoUserToken } from './db.server';
 import { UserToken } from './UserToken';
 import { CreateUserToken } from './CreateUserToken';
 import { useState } from 'react';
+import { actionCreateUserToken } from './actionHelpers.server';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppContext(args);
-  const tokensDBO = await dbListUserTokens(ctx.user.id);
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.tokens.read], {
+    redirect: true,
+  });
+  const tokensDBO = await dbListUserTokens(ctx.user!.id);
   const tokens = tokensDBO.map((token) => dtoUserToken(token));
   return { tokens };
 }
 
-export { action } from './actionHelpers.server';
+export async function action(args: Route.ActionArgs) {
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.tokens.manage]);
+  const formData = await args.request.formData();
+  const formAction = formData.get('formAction');
+
+  if (typeof formAction !== 'string') throw new Error('Invalid form action');
+
+  if (formAction === 'delete') {
+    const tokenId = formData.get('tokenId');
+    if (typeof tokenId === 'string') {
+      const result = await dbDeleteUserToken(ctx, tokenId);
+
+      if (result.count > 0) {
+        await ctx.sendSlackNotification({
+          eventType: SlackEventType.USER_TOKEN_DELETED,
+          message: `User token deleted by ${ctx.user.display_name || ctx.user.id}`,
+          user: ctx.user,
+          metadata: {
+            tokenId,
+          },
+        });
+
+        await ctx.trackEvent(TrackEvent.USER_TOKEN_DELETED, {
+          tokenId: tokenId,
+        });
+
+        await ctx.analytics.flush();
+      }
+
+      return result;
+    }
+  } else if (formAction === 'create') {
+    const result = await actionCreateUserToken(ctx, formData);
+    return result;
+  }
+
+  throw new Error('Unknown form action');
+}
 
 export const meta: Route.MetaFunction = ({ matches }) => {
   const branding = getBrandingFromMetaMatches(matches);

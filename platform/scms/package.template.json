@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms",
   "private": true,
-  "version": "0.15.6",
+  "version": "0.16.1",
   "description": "Curvenote SCMS application and API",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",
@@ -66,7 +66,9 @@
     "test:e2e:api:auth-tests": "TEST_FILES=api.auth dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:e2e:api:pending": "TEST_FILES=api.pending dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:start-server": "dotenv -e .env.test -- react-router dev",
-    "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs"
+    "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs",
+    "dev:pubsub:emulator": "bash ../../docs/jobs/scripts/start-pubsub-emulator.sh",
+    "dev:pubsub:emulator:stop": "bash ../../docs/jobs/scripts/stop-pubsub-emulator.sh"
   },
   "devDependencies": {
     "@app-config/cli": "^2.8.7",
@@ -88,7 +90,8 @@
     "@typescript-eslint/eslint-plugin": "^8.46.3",
     "concurrently": "^9.1.2",
     "dotenv-cli": "^11.0.0",
-    "esbuild": "^0.15.12",
+    "docx": "^7.8.2",
+    "esbuild": "^0.28.0",
     "eslint-config-curvenote": "^0.0.4",
     "glob": "^11.1.0",
     "madge": "^8.0.0",
@@ -104,7 +107,7 @@
     "vitest": "^4.0.6"
   },
   "optionalDependencies": {
-    "@esbuild/linux-x64": "^0.25.1",
+    "@esbuild/linux-x64": "^0.28.0",
     "@rollup/rollup-linux-x64-gnu": "^4.35.0",
     "@tailwindcss/oxide-linux-x64-gnu": "4.2.1"
   },
@@ -114,6 +117,7 @@
   },
   "packageManager": "npm@10.9.2",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@app-config/config": "^2.8.7",
     "@app-config/main": "^2.8.7",
     "@app-config/vite": "^2.8.7",
@@ -140,6 +144,7 @@
     "@vercel/react-router": "^1.2.3",
     "classnames": "^2.5.1",
     "date-fns": "3.6.0",
+    "officeparser": "^6.0.4",
     "fuse.js": "^7.1.0",
     "isbot": "^5",
     "js-yaml": "^4.1.1",

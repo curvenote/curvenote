@@ -27,16 +27,22 @@ export function TimelineItemPlain({
   return (
     <div
       className={cn(
-        'flex gap-3 items-center px-4 py-3 bg-white transition-colors hover:bg-muted/40',
+        'flex gap-3 items-center px-4 py-3 transition-colors bg-card text-card-foreground hover:bg-muted/50',
         className,
       )}
     >
-      <div className="shrink-0 text-foreground [&>svg]:w-4 [&>svg]:h-4">{icon}</div>
-      <div className="flex-1 min-w-0">
-        <span className="text-sm text-foreground">{message}</span>
-        <span className="ml-2 text-xs text-muted-foreground">{date}</span>
+      <div className="flex size-4 shrink-0 items-center justify-center text-foreground [&>svg]:size-4">
+        {icon}
       </div>
-      {trailing != null && <div className="shrink-0">{trailing}</div>}
+      <div className="flex flex-1 gap-2 items-center min-w-0">
+        <div className="flex flex-1 items-center min-w-0 text-sm leading-none text-foreground">
+          {message}
+        </div>
+        <div className="flex items-center text-xs leading-none shrink-0 text-muted-foreground">
+          {date}
+        </div>
+      </div>
+      {trailing != null && <div className="flex items-center shrink-0">{trailing}</div>}
     </div>
   );
 }
@@ -58,7 +64,7 @@ export function TimelineItemPill({ label, onClick, variant = 'default' }: Timeli
     'shrink-0 inline-flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wide rounded-[2px] px-1.5 py-0.5 min-w-[80px]';
   const variantClass =
     variant === 'success'
-      ? 'text-teal-700 border border-teal-700 hover:bg-teal-50'
+      ? 'text-teal-700 border border-teal-700 hover:bg-teal-50 dark:text-teal-400 dark:border-teal-400 dark:hover:bg-teal-950/40'
       : variant === 'warning'
         ? 'text-amber-700 border border-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-400 dark:hover:bg-amber-950/30'
         : variant === 'error'
@@ -88,6 +94,8 @@ export type TimelineItemExpandableProps = {
   /** Content rendered in the expandable tray below the row */
   children?: ReactNode;
   className?: string;
+  /** Initial open state (uncontrolled). E.g. expand latest check run on work details load. */
+  defaultExpanded?: boolean;
 };
 
 /**
@@ -102,8 +110,9 @@ export function TimelineItemExpandable({
   trailing,
   children,
   className,
+  defaultExpanded = false,
 }: TimelineItemExpandableProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const hasTray = children != null;
 
   return (
@@ -111,34 +120,44 @@ export function TimelineItemExpandable({
       <div
         onClick={hasTray ? () => setExpanded((e) => !e) : undefined}
         className={cn(
-          'flex items-center gap-3 px-4 py-3 bg-white hover:bg-muted/40 transition-colors',
+          'flex items-center gap-3 px-4 py-3 bg-card text-card-foreground hover:bg-muted/50 transition-colors',
           hasTray && 'cursor-pointer',
           className,
         )}
       >
-        <div className="shrink-0 text-foreground [&>svg]:w-4 [&>svg]:h-4">{icon}</div>
-        <div className="flex-1 min-w-0">
-          <span className="text-sm text-foreground">{message}</span>
-          <span className="ml-2 text-xs text-muted-foreground">{date}</span>
+        <div className="flex size-4 shrink-0 items-center justify-center text-foreground [&>svg]:size-4">
+          {icon}
+        </div>
+        <div className="flex flex-1 gap-2 items-center min-w-0">
+          <div className="flex flex-1 items-center min-w-0 text-sm leading-none text-foreground">
+            {message}
+          </div>
+          <div className="flex items-center text-xs leading-none shrink-0 text-muted-foreground">
+            {date}
+          </div>
         </div>
         {trailing != null && (
-          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
             {trailing}
           </div>
         )}
-        {pill != null && <div className="shrink-0">{pill}</div>}
+        {pill != null && <div className="flex items-center shrink-0">{pill}</div>}
         {hasTray && (
-          <ChevronDown
-            className={cn(
-              'w-4 h-4 text-muted-foreground transition-transform shrink-0',
-              expanded && 'rotate-180',
-            )}
-            aria-hidden
-          />
+          <span className="flex justify-center items-center size-4 shrink-0">
+            <ChevronDown
+              className={cn(
+                'size-4 text-muted-foreground transition-transform',
+                expanded && 'rotate-180',
+              )}
+              aria-hidden
+            />
+          </span>
         )}
       </div>
       {hasTray && expanded && (
-        <div className="px-4 py-4 bg-white border-t border-border/50">{children}</div>
+        <div className="px-4 py-4 border-t bg-muted/30 text-card-foreground border-border">
+          {children}
+        </div>
       )}
     </div>
   );

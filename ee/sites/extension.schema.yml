@@ -25,12 +25,11 @@ properties:
     type: object
     additionalProperties: false
     required:
-      - title
       - url
     properties:
       title:
         type: string
-        description: Title of the video
+        description: Optional heading shown above the video player
       url:
         type: string
         description: URL to the video file

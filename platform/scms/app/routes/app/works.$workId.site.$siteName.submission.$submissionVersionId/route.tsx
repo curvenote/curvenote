@@ -28,7 +28,7 @@ import { extensions } from '../../../extensions/client';
  */
 
 export const loader = async (args: Route.LoaderArgs) => {
-  const ctx = await withSecureWorkContext(args, [workScopes.submissions.read]);
+  const ctx = await withSecureWorkContext(args, [workScopes.id.submissions.read]);
 
   const { workId, siteName, submissionVersionId } = args.params as {
     workId: string;

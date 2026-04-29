@@ -1,11 +1,10 @@
-import type { Route } from './+types/route';
 import { data } from 'react-router';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { dbCreateUserToken, dbDeleteUserToken, dtoUserToken } from './db.server';
+import { dbCreateUserToken, dtoUserToken } from './db.server';
 import { TrackEvent } from '@curvenote/scms-core';
 import { createUserToken, SlackEventType } from '@curvenote/scms-server';
-import { withAppContext, type SecureContext } from '@curvenote/scms-server';
+import { type SecureContext } from '@curvenote/scms-server';
 
 const CreateUserTokenObject = {
   description: zfd.text(z.string().trim()),
@@ -99,43 +98,4 @@ export async function actionCreateUserToken(ctx: SecureContext, formData: FormDa
   const dto = dtoUserToken(token);
 
   return { token: signedToken, ...dto };
-}
-
-export async function action(args: Route.ActionArgs) {
-  const ctx = await withAppContext(args);
-  const formData = await args.request.formData();
-  const formAction = formData.get('formAction');
-
-  if (typeof formAction !== 'string') throw new Error('Invalid form action');
-
-  if (formAction === 'delete') {
-    const tokenId = formData.get('tokenId');
-    if (typeof tokenId === 'string') {
-      const result = await dbDeleteUserToken(ctx, tokenId);
-
-      if (result.count > 0) {
-        await ctx.sendSlackNotification({
-          eventType: SlackEventType.USER_TOKEN_DELETED,
-          message: `User token deleted by ${ctx.user.display_name || ctx.user.id}`,
-          user: ctx.user,
-          metadata: {
-            tokenId,
-          },
-        });
-
-        await ctx.trackEvent(TrackEvent.USER_TOKEN_DELETED, {
-          tokenId: tokenId,
-        });
-
-        await ctx.analytics.flush();
-      }
-
-      return result;
-    }
-  } else if (formAction === 'create') {
-    const result = await actionCreateUserToken(ctx, formData);
-    return result;
-  }
-
-  throw new Error('Unknown form action');
 }

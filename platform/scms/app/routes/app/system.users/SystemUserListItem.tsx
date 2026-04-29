@@ -72,9 +72,12 @@ type ActionResponse = {
   user?: SystemUserDTO;
 };
 
+const ROLES_REQUIRING_CONFIRMATION: SystemRole[] = ['ADMIN', 'SERVICE'];
+
 export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps) {
   const fetcher = useFetcher<ActionResponse>();
   const [selectedRole, setSelectedRole] = useState<SystemRole>(user.system_role);
+  const [pendingRole, setPendingRole] = useState<SystemRole | null>(null);
 
   const isCurrentUser = user.id === currentUserId;
   const isLoading = fetcher.state !== 'idle';
@@ -91,12 +94,10 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
         return 'User';
       case 'ADMIN':
         return 'Admin';
-      case 'PLATFORM_ADMIN':
-        return 'Platform Admin';
       case 'SERVICE':
         return 'Service';
       case 'ANON':
-        return 'Anonymous';
+        return 'Guest';
       default:
         return role;
     }
@@ -114,16 +115,41 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
     }
   }, [fetcher.data, selectedRole, getDisplayName, getRoleDisplayName]);
 
-  const handleRoleChange = (newRole: string) => {
-    const roleValue = newRole as SystemRole;
+  const submitRoleChange = (roleValue: SystemRole) => {
     setSelectedRole(roleValue);
 
     const formData = new FormData();
     formData.append('intent', 'updateSystemRole');
     formData.append('userId', user.id);
-    formData.append('systemRole', newRole);
+    formData.append('systemRole', roleValue);
 
     fetcher.submit(formData, { method: 'post' });
+  };
+
+  const handleRoleChange = (newRole: string) => {
+    const roleValue = newRole as SystemRole;
+
+    // No-op when the value hasn't actually changed
+    if (roleValue === selectedRole) return;
+
+    // Privileged roles require explicit confirmation before applying
+    if (ROLES_REQUIRING_CONFIRMATION.includes(roleValue)) {
+      setPendingRole(roleValue);
+      return;
+    }
+
+    submitRoleChange(roleValue);
+  };
+
+  const handleConfirmRoleChange = () => {
+    if (pendingRole) {
+      submitRoleChange(pendingRole);
+    }
+    setPendingRole(null);
+  };
+
+  const handleCancelRoleChange = () => {
+    setPendingRole(null);
   };
 
   return (
@@ -181,9 +207,9 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
                   </ui.SelectTrigger>
                   <ui.SelectContent>
                     <ui.SelectItem value="USER">User</ui.SelectItem>
-                    <ui.SelectItem value="PLATFORM_ADMIN">Platform Admin</ui.SelectItem>
                     <ui.SelectItem value="ADMIN">Admin</ui.SelectItem>
                     <ui.SelectItem value="SERVICE">Service</ui.SelectItem>
+                    <ui.SelectItem value="ANON">Anonymous</ui.SelectItem>
                   </ui.SelectContent>
                 </ui.Select>
               </div>
@@ -191,6 +217,38 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
           </div>
         </div>
       </div>
+
+      <ui.Dialog
+        open={pendingRole !== null}
+        onOpenChange={(open) => {
+          if (!open) handleCancelRoleChange();
+        }}
+      >
+        <ui.DialogContent>
+          <ui.DialogHeader>
+            <ui.DialogTitle>Confirm role change</ui.DialogTitle>
+            <ui.DialogDescription>
+              Are you sure you want to change the system role of "{getDisplayName()}" to{' '}
+              <span className="font-medium">
+                {pendingRole ? getRoleDisplayName(pendingRole) : ''}
+              </span>
+              ?
+              <span className="block mt-2 font-medium text-amber-600">
+                Warning: The {pendingRole ? getRoleDisplayName(pendingRole) : ''} role grants
+                elevated privileges. Please proceed with caution.
+              </span>
+            </ui.DialogDescription>
+          </ui.DialogHeader>
+          <ui.DialogFooter>
+            <ui.Button variant="outline" onClick={handleCancelRoleChange}>
+              Cancel
+            </ui.Button>
+            <ui.Button variant="destructive" onClick={handleConfirmRoleChange}>
+              Confirm
+            </ui.Button>
+          </ui.DialogFooter>
+        </ui.DialogContent>
+      </ui.Dialog>
     </div>
   );
 }

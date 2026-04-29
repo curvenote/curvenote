@@ -14,7 +14,7 @@ const badgeVariants = cva(
         secondary:
           'border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
         destructive:
-          'border-destructive bg-destructive/10 text-destructive [a&]:hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 dark:text-destructive dark:border-destructive',
+          'border-destructive bg-destructive/10 text-destructive [a&]:hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:border-destructive dark:bg-destructive dark:text-destructive-foreground dark:[a&]:hover:bg-destructive/90',
         // Customized for higher contrast: darker borders/text, lighter backgrounds
         outline:
           'border-gray-700 text-gray-800 bg-white dark:border-gray-300 dark:text-gray-200 dark:bg-gray-900 [a&]:hover:bg-gray-50 dark:[a&]:hover:bg-gray-700',
@@ -62,5 +62,6 @@ function Badge({
 }
 
 type BadgeSize = VariantProps<typeof badgeVariants>['size'];
+type BadgeVariant = VariantProps<typeof badgeVariants>['variant'];
 
-export { Badge, badgeVariants, type BadgeSize };
+export { Badge, badgeVariants, type BadgeSize, type BadgeVariant };

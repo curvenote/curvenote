@@ -59,42 +59,85 @@ export const site = {
 };
 
 export const work = {
-  list: 'work:list',
   create: 'work:create',
-  read: 'work:read',
-  update: 'work:update',
-  submissions: {
-    list: 'work:submissions:list',
-    read: 'work:submissions:read',
-    create: 'work:submissions:create',
-    update: 'work:submissions:update',
-    delete: 'work:submissions:delete',
-    versions: {
-      create: 'work:submissions:versions:create',
+  list: 'work:list',
+  id: {
+    read: 'work:read',
+    update: 'work:update',
+    delete: 'work:delete',
+    submissions: {
+      list: 'work:submissions:list',
+      read: 'work:submissions:read',
+      create: 'work:submissions:create',
+      update: 'work:submissions:update',
+      delete: 'work:submissions:delete',
+      versions: {
+        create: 'work:submissions:versions:create',
+      },
     },
-  },
-  users: {
-    read: 'work:users',
-    update: 'work:users:update',
-  },
-  checks: {
-    read: 'work:checks:read',
-    dispatch: 'work:checks:dispatch',
+    users: {
+      read: 'work:users',
+      update: 'work:users:update',
+    },
+    checks: {
+      read: 'work:checks:read',
+    },
   },
 };
 
 // app wide feature based scopes, to be expanded in the future
 export const app = {
+  dashboard: {
+    feature: 'app:dashboard:feature',
+  },
+  settings: {
+    feature: 'app:settings:feature',
+    account: {
+      read: 'app:settings:account:read',
+      update: 'app:settings:account:update',
+    },
+    linkedAccounts: {
+      read: 'app:settings:linked-accounts:read',
+      manage: 'app:settings:linked-accounts:manage',
+    },
+    emails: {
+      read: 'app:settings:emails:read',
+      update: 'app:settings:emails:update',
+    },
+    tokens: {
+      read: 'app:settings:tokens:read',
+      manage: 'app:settings:tokens:manage',
+    },
+  },
+  sites: {
+    feature: 'app:sites:feature',
+    read: 'app:sites:read',
+    request: 'app:sites:request',
+  },
   platform: { admin: 'app:platform:admin' },
   works: {
     feature: 'app:works:feature', // UI level feature flag
     upload: 'app:works:upload',
-    checks: 'app:works:checks',
+    checks: {
+      feature: 'app:works:checks:feature',
+      dispatch: 'app:works:checks:dispatch',
+    },
     export: 'app:works:export',
+    metadataPreview: 'app:works:metadatapreview',
   },
 };
 
 export const scopes = { system, site, work, app };
+
+/**
+ * Recursive tree of scope strings. Matches the shape of the exported
+ * `system`/`site`/`work`/`app` objects: leaves are scope string literals and
+ * branches are nested groupings. Extensions advertise which scopes they
+ * implement by exporting a (usually partial) tree of this shape; by
+ * convention every leaf must start with the `ext:` prefix so extension
+ * scopes are disjoint from the platform's core namespaces.
+ */
+export type ScopeTree = { [key: string]: string | ScopeTree };
 
 /**
  * Clientside function to check if a user has any of the scopes included in the list

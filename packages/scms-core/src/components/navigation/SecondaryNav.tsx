@@ -21,12 +21,13 @@ export function SecondaryNav({
   subtitle?: string;
   extensions?: ClientExtension[];
 }) {
-  const { open } = useMobile();
+  const { open, setMobileOpen } = useMobile();
 
   const displayUrl = branding?.url?.replace(/^https?:\/\//i, '') ?? '';
 
   return (
     <aside
+      onPointerDown={(event) => event.stopPropagation()}
       className={cn(
         'fixed z-20 flex-col space-y-2 h-full duration-500 left-[110px] xl:shadow-lg bg-stone-100 xl:dark:shadow-dark-visible dark:bg-stone-800',
         'transition-transform duration-150 ease-in-out transform',
@@ -95,7 +96,12 @@ export function SecondaryNav({
                   </div>
                 </li>
               )}
-              <MenuItem menus={menus} open={open} extensions={extensions} />
+              <MenuItem
+                menus={menus}
+                open={open}
+                onMobileSidebarOpened={() => setMobileOpen(false)}
+                extensions={extensions}
+              />
             </>
           </ul>
         ))}

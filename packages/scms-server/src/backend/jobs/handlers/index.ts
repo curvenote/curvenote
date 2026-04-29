@@ -1,5 +1,6 @@
 import { checkCLIHandler, checkHandler } from './check.server.js';
 import { converterTaskHandler } from './converter-task.server.js';
+import { loopbackHandler } from './loopback.server.js';
 import { publishHandler } from './publish.server.js';
 import { unpublishHandler } from './unpublish.server.js';
 import type { Context } from '../../context.server.js';
@@ -19,6 +20,7 @@ export const coreHandlers: Record<string, JobHandler> = {
   [KnownJobTypes.PUBLISH]: publishHandler,
   [KnownJobTypes.UNPUBLISH]: unpublishHandler,
   [KnownJobTypes.CONVERTER_TASK]: converterTaskHandler,
+  [KnownJobTypes.LOOPBACK]: loopbackHandler,
 };
 
 export function getHandlers(extensionJobs: JobRegistration[]): Record<string, JobHandler> {

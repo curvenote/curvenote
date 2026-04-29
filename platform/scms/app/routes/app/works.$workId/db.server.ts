@@ -4,13 +4,15 @@ import type { WorkVersion } from '@curvenote/scms-db';
 
 export type LinkedJobWithStatus = { id: string; status: string };
 
-/** Check service run row for timeline (id, kind, date_created, date_modified, data). */
+/** Check service run row for timeline (id, work_version_id, kind, dates, data, created_by_id). */
 export type CheckServiceRunRow = {
   id: string;
+  work_version_id: string;
   kind: string;
   date_created: string;
   date_modified: string;
   data: unknown;
+  created_by_id: string | null;
 };
 
 /** Check service runs grouped by work_version_id (for work details timeline). */
@@ -21,7 +23,7 @@ export async function dbGetCheckServiceRunsByWorkVersionIds(
   const prisma = await getPrismaClient();
   const rows = await prisma.checkServiceRun.findMany({
     where: { work_version_id: { in: workVersionIds } },
-    orderBy: { date_modified: 'desc' },
+    orderBy: { date_created: 'desc' },
     select: {
       id: true,
       kind: true,
@@ -29,6 +31,7 @@ export async function dbGetCheckServiceRunsByWorkVersionIds(
       date_modified: true,
       data: true,
       work_version_id: true,
+      created_by_id: true,
     },
   });
   const map: Record<string, CheckServiceRunRow[]> = {};
@@ -36,10 +39,12 @@ export async function dbGetCheckServiceRunsByWorkVersionIds(
     const list = map[row.work_version_id] ?? [];
     list.push({
       id: row.id,
+      work_version_id: row.work_version_id,
       kind: row.kind,
       date_created: row.date_created,
       date_modified: row.date_modified,
       data: row.data,
+      created_by_id: row.created_by_id,
     });
     map[row.work_version_id] = list;
   }
@@ -131,10 +136,11 @@ export async function dbGetSubmissions(submissionIds: string[]) {
   return submissions;
 }
 
-/** Activity row for work timeline: id, date, type, who, and which work version. */
+/** Activity row for work timeline: id, dates, type, who, and which work version. */
 export type WorkActivityRow = {
   id: string;
   date_created: string;
+  date_modified: string;
   activity_type: string;
   activity_by: { id: string; display_name: string | null };
   work_version_id: string | null;
@@ -159,6 +165,7 @@ export async function dbGetWorkActivities(workId: string): Promise<WorkActivityR
   return rows.map((a) => ({
     id: a.id,
     date_created: a.date_created,
+    date_modified: a.date_modified,
     activity_type: a.activity_type,
     activity_by: a.activity_by,
     work_version_id: a.work_version_id,

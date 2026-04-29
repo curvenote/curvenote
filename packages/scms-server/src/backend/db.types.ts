@@ -29,7 +29,9 @@ export type UserWithRolesDBO = Prisma.UserGetPayload<{
       };
     };
   };
-}>;
+}> & {
+  system_scopes?: string[];
+};
 
 export type SubmissionActivityDBO = Prisma.ActivityGetPayload<{
   include: {

@@ -14,9 +14,8 @@ import { userHasSiteScope, userHasWorkScope } from './scopes.helpers.server.js';
 import { SiteContextWithUser } from './context.site.server.js';
 import { dbGetSite, dbGetUserSiteRoles, type DBO as SiteDBO } from './loaders/sites/get.server.js';
 import { dbGetSubmission, formatSubmissionDTO } from './loaders/sites/submissions/get.server.js';
-import type { Prisma } from '@curvenote/scms-db';
 import { formatSubmissionVersionDTO } from './loaders/sites/submissions/versions/get.server.js';
-import type { AllTrackEvent, ClientExtension } from '@curvenote/scms-core';
+import type { AllTrackEvent, ClientExtension, EventOptions } from '@curvenote/scms-core';
 
 type SubmissionAndVersionsDBO = Exclude<Awaited<ReturnType<typeof dbGetSubmission>>, null>;
 
@@ -59,7 +58,11 @@ export class SubmissionContext extends SiteContextWithUser {
    * @param event - The event name to track
    * @param properties - Additional properties to include with the event
    */
-  async trackEvent(event: AllTrackEvent, properties: Record<string, any> = {}): Promise<void> {
+  async trackEvent(
+    event: AllTrackEvent,
+    properties: Record<string, any> = {},
+    opts: EventOptions = {},
+  ): Promise<void> {
     const submissionProperties = {
       submissionId: this.submission.id,
       submissionKindId: this.submission.kind.id,
@@ -79,7 +82,7 @@ export class SubmissionContext extends SiteContextWithUser {
       doi: this.workDTO.doi,
       ...properties,
     };
-    await super.trackEvent(event, submissionProperties);
+    await super.trackEvent(event, submissionProperties, opts);
   }
 }
 

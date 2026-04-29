@@ -28,12 +28,18 @@ export default defineConfig(async ({ mode }) => {
    *
    * This config enables hot module reload (HMR) for changes in local packages and ee:
    * - Watches package and ee source directories for changes
-   * - Pre-bundles @curvenote/scms-core (optimizeDeps) to avoid duplicate React in dev
+   * - Does not pre-bundle @curvenote/scms-core (see optimizeDeps.exclude): dist/ can change
+   *   without a version bump; a stale .vite deps cache would otherwise serve old UI code.
+   *   React is still deduped via resolve.dedupe and scms-core’s externalized peer deps.
    * - Processes local packages through Vite's SSR transform
    * - Restarts dev server when package configuration changes
    */
   const userConfig: UserConfig = {
     server: {
+      // Listen on all interfaces (0.0.0.0 / ::) so loopback works consistently:
+      // `curl http://localhost:…` can use IPv6 while the Pub/Sub emulator’s Java
+      // client uses 127.0.0.1 — default host-only bind often refuses one of them.
+      host: true,
       port: env.VITE_PORT ? parseInt(env.VITE_PORT) : undefined,
       // Cloudflare tunnel / reverse proxy: Host is the public hostname, not localhost
       allowedHosts: ['.curvenote.net'],
@@ -66,10 +72,10 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     optimizeDeps: {
-      // Pre-bundle scms-core so every `import 'react'` shares one optimized graph (avoids
-      // duplicate React / invalid hook call when deps are still warming up).
-      include: ['@curvenote/scms-core'],
       exclude: [
+        // Never pre-bundle scms-core: `dist/` updates from `npm run build` in packages/scms-core
+        // would be ignored until node_modules/.vite is cleared; dev would keep old class strings.
+        '@curvenote/scms-core',
         '@google-cloud/storage',
         'jwa',
         'jsonwebtoken',

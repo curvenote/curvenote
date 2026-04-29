@@ -1,6 +1,7 @@
 import type { Route } from './+types/route';
 import {
   dbCreateDraftFileWork,
+  metadataForNewDraftFileWorkVersion,
   withAppScopedContext,
   userHasScope,
   withValidFormData,
@@ -9,24 +10,22 @@ import {
   MainWrapper,
   PageFrame,
   FrameHeader,
-  ui,
   getBrandingFromMetaMatches,
   joinPageTitle,
   getWorkflows,
   registerExtensionWorkflows,
   scopes,
 } from '@curvenote/scms-core';
-import type { DraftWork } from '@curvenote/scms-core';
-import { useState, useEffect } from 'react';
 import type { LoaderFunctionArgs, ShouldRevalidateFunctionArgs } from 'react-router';
-import { useNavigate, useFetcher, data } from 'react-router';
-import { Upload } from 'lucide-react';
+import { useNavigate, data } from 'react-router';
+import { PlusCircle } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { WorkList } from './WorkList';
 import { dbGetWorksAndSubmissionVersions, dangerouslyDeleteDraftWork } from './db.server';
-import { dbFindDraftFileWorksForUser } from '../works.$workId.upload.$workVersionId/db.server';
+import { getValidDraftWorksForUser } from './getDrafts.server';
 import { extensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
 
 // Action schema for handling draft work intents
 const WorksActionSchema = zfd.formData({
@@ -36,26 +35,8 @@ const WorksActionSchema = zfd.formData({
 
 type WorksActionPayload = z.infer<typeof WorksActionSchema>;
 
-/**
- * Check if a draft work is valid for reuse
- * Valid drafts must:
- * - Have exactly one work version
- * - Have the 'checks' field in metadata
- */
-function isValidDraftForReuse(work: { versions: { metadata: any }[] }): boolean {
-  // Must have exactly one version
-  if (work.versions.length !== 1) {
-    return false;
-  }
-
-  const metadata = work.versions[0].metadata as any;
-
-  // Must have the checks field (even if empty)
-  return metadata && 'checks' in metadata;
-}
-
 export const loader = async (args: LoaderFunctionArgs) => {
-  const ctx = await withAppScopedContext(args, [scopes.work.list]); // app:works:feature
+  const ctx = await withAppScopedContext(args, [scopes.work.list], { redirect: true }); // app:works:feature
   try {
     // Create promise for deferred loading
     const worksPromise = dbGetWorksAndSubmissionVersions(ctx.user.id).then((items) => {
@@ -85,7 +66,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 };
 
 export async function action(args: Route.ActionArgs) {
-  const ctx = await withAppScopedContext(args, [scopes.work.list, scopes.app.works.upload]);
+  const ctx = await withAppScopedContext(args, [scopes.app.works.feature]);
   const formData = await args.request.formData();
 
   return withValidFormData(WorksActionSchema, formData, async (payload: WorksActionPayload) => {
@@ -93,19 +74,7 @@ export async function action(args: Route.ActionArgs) {
 
     // Handle get-drafts intent
     if (intent === 'get-drafts') {
-      const draftWorks = await dbFindDraftFileWorksForUser(ctx.user.id);
-
-      // Filter to only valid drafts (single version with checks field)
-      const validDrafts = draftWorks.filter(isValidDraftForReuse);
-
-      const drafts = validDrafts.map((work) => ({
-        workId: work.id,
-        workVersionId: work.versions[0].id,
-        workTitle: work.versions[0].title || 'Untitled Work',
-        dateModified: work.date_modified,
-        dateCreated: work.date_created,
-        metadata: work.versions[0].metadata,
-      }));
+      const drafts = await getValidDraftWorksForUser(ctx.user.id);
       return { success: true, intent, drafts };
     }
 
@@ -114,9 +83,11 @@ export async function action(args: Route.ActionArgs) {
       if (!workId) {
         return data({ error: 'Work ID is required for delete operation' }, { status: 400 });
       }
-
       try {
-        // Delete the draft work and its versions
+        // Hard-delete this draft work and its versions. The action only gates on `app:works:feature`
+        // (`withAppScopedContext` above); there is no separate `work:delete` (or per-work scope) check here.
+        // Access control lives in `dangerouslyDeleteDraftWork`: the authed user must be OWNER on the work,
+        // every version must still be a draft, and the work must have no submissions.
         await dangerouslyDeleteDraftWork(ctx, workId, ctx.user.id);
         return { success: true, intent };
       } catch (error) {
@@ -132,16 +103,18 @@ export async function action(args: Route.ActionArgs) {
       }
     }
 
-    // Handle delete-all-drafts intent
+    // Handle delete-all-drafts intent (same list as the Resume-draft dialog: single-version drafts only)
     if (intent === 'delete-all-drafts') {
+      // TODO: needs to be scoped to the work, all of them!
+      // if (!userHasScope(ctx.user, scopes.work.delete)) {
+      //   return data({ error: 'You do not have permission to delete drafts' }, { status: 403 });
+      // }
       try {
-        // Get all valid drafts
-        const draftWorks = await dbFindDraftFileWorksForUser(ctx.user.id);
-        const validDrafts = draftWorks.filter(isValidDraftForReuse);
+        const validDrafts = await getValidDraftWorksForUser(ctx.user.id);
 
-        // Delete each draft
+        // Delete each draft work
         const deleteResults = await Promise.allSettled(
-          validDrafts.map((work) => dangerouslyDeleteDraftWork(ctx, work.id, ctx.user.id)),
+          validDrafts.map((draft) => dangerouslyDeleteDraftWork(ctx, draft.workId, ctx.user.id)),
         );
 
         // Count successes and failures
@@ -149,7 +122,9 @@ export async function action(args: Route.ActionArgs) {
         const failed = deleteResults.filter((r) => r.status === 'rejected').length;
 
         if (failed > 0) {
-          console.warn(`Failed to delete ${failed} out of ${validDrafts.length} drafts`);
+          console.warn(
+            `Failed to delete ${failed} out of ${validDrafts.length} single-version drafts`,
+          );
         }
 
         return {
@@ -173,8 +148,16 @@ export async function action(args: Route.ActionArgs) {
 
     // Handle create-new-draft intent
     if (intent === 'create-new-draft') {
+      if (!userHasScope(ctx.user, scopes.work.create)) {
+        return data({ error: 'You do not have permission to create drafts' }, { status: 403 });
+      }
       try {
-        const newWork = await dbCreateDraftFileWork(ctx, 'my-works');
+        const newWork = await dbCreateDraftFileWork(
+          ctx,
+          'my-works',
+          [],
+          metadataForNewDraftFileWorkVersion(ctx.$config, serverExtensions),
+        );
         return {
           success: true,
           intent: 'create-new-draft',
@@ -223,79 +206,6 @@ export function shouldRevalidate({
 export default function MyWorks({ loaderData }: Route.ComponentProps) {
   const { items, workflows, error, canUpload } = loaderData;
   const navigate = useNavigate();
-  const fetcher = useFetcher<Route.ComponentProps['actionData']>();
-  const [showResumeDialog, setShowResumeDialog] = useState(false);
-  // const [isCheckingDrafts, setIsCheckingDrafts] = useState(false);
-  // const [isCreatingDraft, setIsCreatingDraft] = useState(false);
-
-  const handleUploadClick = () => {
-    if (!canUpload) return;
-    //
-    // Check for existing drafts first
-    // setIsCheckingDrafts(true);
-    const formData = new FormData();
-    formData.append('intent', 'get-drafts');
-
-    fetcher.submit(formData, {
-      method: 'post',
-    });
-  };
-
-  // Handle the response from checking drafts
-  useEffect(() => {
-    if (
-      fetcher.data &&
-      'intent' in fetcher.data &&
-      fetcher.data.intent === 'get-drafts' &&
-      fetcher.state === 'idle'
-    ) {
-      if ('drafts' in fetcher.data && fetcher.data.drafts && fetcher.data.drafts.length > 0) {
-        // Show resume dialog if drafts exist
-        setShowResumeDialog(true);
-      } else {
-        // No drafts exist, create a new draft
-        handleCreateNew();
-      }
-    }
-  }, [fetcher.state, fetcher.data]);
-
-  // Handle the response from creating a new draft
-  useEffect(() => {
-    if (
-      fetcher.data &&
-      'intent' in fetcher.data &&
-      fetcher.data.intent === 'create-new-draft' &&
-      fetcher.state === 'idle'
-    ) {
-      if (
-        'success' in fetcher.data &&
-        fetcher.data.success &&
-        'workId' in fetcher.data &&
-        fetcher.data.workId &&
-        'workVersionId' in fetcher.data &&
-        fetcher.data.workVersionId
-      ) {
-        handleResumeDraft({
-          workId: fetcher.data.workId,
-          workVersionId: fetcher.data.workVersionId,
-        });
-      }
-    }
-  }, [fetcher.state, fetcher.data, navigate]);
-
-  const handleResumeDraft = (draft: Pick<DraftWork, 'workId' | 'workVersionId'>) => {
-    // Navigate to the specific work version
-    navigate(`/app/works/${draft.workId}/upload/${draft.workVersionId}`);
-  };
-
-  const handleCreateNew = () => {
-    // Create a new draft work via action
-    const formData = new FormData();
-    formData.append('intent', 'create-new-draft');
-    fetcher.submit(formData, {
-      method: 'post',
-    });
-  };
 
   const worksList = (
     <div className="max-w-[900px]">
@@ -312,13 +222,14 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
           header={
             <FrameHeader
               className="max-w-4xl"
+              actionAlign="right"
               title="My Works"
               subtitle="Manage your works and submissions"
-              actionLabel="Upload Work"
-              actionIcon={<Upload className="w-4 h-4" />}
+              actionLabel="Create new work"
+              actionIcon={<PlusCircle className="w-4 h-4" />}
               onAction={
                 canUpload
-                  ? handleUploadClick
+                  ? () => navigate('/app/works/new')
                   : () => alert('For early access to upload features, please contact support')
               }
             />
@@ -329,28 +240,6 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
           {worksList}
         </PageFrame>
       </MainWrapper>
-
-      <ui.ResumeDraftWorkDialog<DraftWork>
-        isOpen={showResumeDialog}
-        onClose={() => setShowResumeDialog(false)}
-        onCreateNew={handleCreateNew}
-        onResume={handleResumeDraft}
-        fetchAction="/app/works"
-        fetchIntent="get-drafts"
-        deleteAction="/app/works"
-        deleteIntent="delete-draft"
-        title="Resume Previous Work"
-        createButtonLabel="Create New Work"
-        resumeButtonLabel="Resume uploading"
-        renderItemDetails={(draft) => {
-          const fileCount = Object.keys(draft.metadata?.files ?? {}).length;
-          return fileCount > 0 ? (
-            <div>{fileCount} file(s) uploaded</div>
-          ) : (
-            <div className="text-muted-foreground">No files uploaded yet</div>
-          );
-        }}
-      />
     </>
   );
 }

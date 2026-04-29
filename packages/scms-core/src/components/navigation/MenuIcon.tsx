@@ -35,10 +35,12 @@ import {
   UserCheck,
   LayoutDashboard,
   SquareLibrary,
+  SquarePlay,
   Share2,
   GraduationCap,
   HelpCircle,
   ClipboardList,
+  Network,
 } from 'lucide-react';
 import { cn } from '../../utils/index.js';
 import type { ClientExtension } from '../../modules/extensions/types.js';
@@ -163,6 +165,9 @@ export function MenuIcon({
     case 'admin.email-test':
     case 'settings.emails':
       return <Mail className={classNameWithDefaults} />;
+    case 'admin.services':
+    case 'network':
+      return <Network className={classNameWithDefaults} />;
     case 'platform':
     case 'ship':
       return <Ship className={classNameWithDefaults} />;
@@ -175,6 +180,9 @@ export function MenuIcon({
       return <LayoutDashboard className={classNameWithDefaults} />;
     case 'square-library':
       return <SquareLibrary className={classNameWithDefaults} />;
+    case 'admin.jobs':
+    case 'square-play':
+      return <SquarePlay className={classNameWithDefaults} />;
     case 'share':
       return <Share2 className={classNameWithDefaults} />;
     case 'graduation-cap':

@@ -40,7 +40,7 @@ export type ClientDashboardConfig = {
 };
 
 export type WelcomeVideo = {
-  title: string;
+  title?: string;
   url: string;
   thumbnail?: string;
 };
@@ -55,6 +55,7 @@ export type SimpleNavItemType = {
   hidden?: boolean;
   end?: boolean;
   beta?: boolean;
+  scopes?: string[];
 };
 
 export type NavigationHelpItem = {

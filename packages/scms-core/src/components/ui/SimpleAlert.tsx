@@ -95,7 +95,7 @@ export function SimpleAlert({ type, message, size = 'normal', numbered, classNam
         </div>
       ) : (
         <Icon
-          className={cn('w-6 h-6 flex-shrink-0 self-start mt-[2px]', style.iconColor, {
+          className={cn('w-6 h-6 flex-shrink-0 mt-[2px]', style.iconColor, {
             'w-4 h-4': size === 'compact',
           })}
           aria-hidden="true"

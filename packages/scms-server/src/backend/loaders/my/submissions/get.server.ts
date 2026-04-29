@@ -26,6 +26,6 @@ export default async function (
 
   if (!submission) throw error404();
   const siteCtx = new SiteContext(ctx, submission.site);
-  userHasWorkScope(ctx.user, work.submissions.read, submission.work_id);
+  userHasWorkScope(ctx.user, work.id.submissions.read, submission.work_id);
   return formatSubmissionDTO(siteCtx, submission, extensions);
 }

@@ -4,6 +4,11 @@ import { SystemRole } from '@curvenote/scms-db';
 export type EventOptions = {
   anonymous?: boolean;
   ignoreAdmin?: boolean;
+  /**
+   * If true, send the event even when the request looks like a client data fetch
+   * (GET/HEAD + Sec-Fetch-Dest: empty), e.g. intentional tracking from polling.
+   */
+  forceTrackPolls?: boolean;
 };
 
 /**
@@ -11,7 +16,7 @@ export type EventOptions = {
  */
 export function isAdmin(user?: { system_role: SystemRole | string } | null): boolean {
   if (!user) return false;
-  return user.system_role === SystemRole.ADMIN || user.system_role === SystemRole.PLATFORM_ADMIN;
+  return user.system_role === SystemRole.ADMIN;
 }
 
 /**

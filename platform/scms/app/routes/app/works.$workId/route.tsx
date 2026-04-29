@@ -11,6 +11,7 @@ import {
   withSecureWorkContext,
   signFilesInMetadata,
   dbCreateDraftWorkVersion,
+  metadataForNewDraftFileWorkVersion,
   userHasScope,
   works as worksLoaders,
 } from '@curvenote/scms-server';
@@ -37,6 +38,7 @@ import { dbGetWorkUsers, dtoWorkUsers } from '../works.$workId.users/db.server';
 import { WorkDetailsCard } from './WorkDetailsCard';
 import { getUniqueSubmissions } from './utils.server';
 import { extensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
 import { exportToPdfAction } from './actionHelpers.server';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
@@ -65,7 +67,7 @@ export async function action(args: ActionFunctionArgs) {
   }
 
   const { intent, workId: formWorkId } = parsed.data;
-  const ctx = await withSecureWorkContext(args, [scopes.work.read]);
+  const ctx = await withSecureWorkContext(args, [scopes.work.id.read]);
 
   if (intent === 'get-drafts-for-work') {
     const workVersions = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
@@ -94,7 +96,13 @@ export async function action(args: ActionFunctionArgs) {
       const workVersionsForTitle = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
       const latestNonDraft = workVersionsForTitle?.find((v) => !v.draft);
       const workTitle = latestNonDraft?.title ?? ctx.workDTO?.title ?? '';
-      const result = await dbCreateDraftWorkVersion(ctx, ctx.work.id, 'work-details', workTitle);
+      const result = await dbCreateDraftWorkVersion(
+        ctx,
+        ctx.work.id,
+        'work-details',
+        workTitle,
+        metadataForNewDraftFileWorkVersion(ctx.$config, serverExtensions),
+      );
       return {
         success: true,
         intent: 'create-new-version',
@@ -148,7 +156,7 @@ export async function action(args: ActionFunctionArgs) {
 }
 
 export const loader = async (args: LoaderFunctionArgs) => {
-  const ctx = await withSecureWorkContext(args, [scopes.work.read]);
+  const ctx = await withSecureWorkContext(args, [scopes.work.id.read]);
 
   const { workId } = args.params;
   if (!workId) return redirect('/app/works');
@@ -160,19 +168,20 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   const url = new URL(args.request.url);
   const pathname = url.pathname;
+  const isOnUploadRoute = pathname.includes(`/app/works/${workId}/upload/`);
   const includeDraftSubmissions = url.searchParams.get('drafts') === 'true';
 
   // Draft-only works should route users into the upload flow, not the details pages.
   if (isDraftOnlyWork) {
-    const isUploadPath = pathname.includes(`/app/works/${workId}/upload/`);
     const isDetailsLikePath =
       pathname === `/app/works/${workId}` ||
       pathname === `/app/works/${workId}/` ||
       pathname.startsWith(`/app/works/${workId}/details`) ||
       pathname.startsWith(`/app/works/${workId}/users`) ||
-      pathname.startsWith(`/app/works/${workId}/work-integrity`);
+      pathname.startsWith(`/app/works/${workId}/work-integrity`) ||
+      pathname.startsWith(`/app/works/${workId}/site/`);
 
-    if (!isUploadPath && isDetailsLikePath) {
+    if (!isOnUploadRoute && isDetailsLikePath) {
       throw redirect(`/app/works/${workId}/upload/${workVersions[0].id}`);
     }
   }
@@ -248,6 +257,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     checkServiceRunsByWorkVersionId,
     canUpload,
     users,
+    isOnUploadRoute,
   };
 };
 
@@ -272,14 +282,15 @@ export function shouldRevalidate({
 }
 
 export default function WorkLayout({ loaderData }: Route.ComponentProps) {
-  const { work, versions, submissions, userScopes } = loaderData;
+  const { work, versions, submissions, userScopes, isOnUploadRoute } = loaderData;
 
   const isDrafting = versions.length > 0 && versions.every((v) => v.draft);
+  const showSecondaryNav = !isDrafting && !isOnUploadRoute;
   const menu = buildMenu(`/app/works/${work.id}`, isDrafting, submissions, userScopes);
 
   return (
     <>
-      {!isDrafting && (
+      {showSecondaryNav && (
         <SecondaryNav
           contents={menu}
           title={isDrafting ? 'Work Details' : undefined}
@@ -295,7 +306,7 @@ export default function WorkLayout({ loaderData }: Route.ComponentProps) {
           }
         />
       )}
-      <MainWrapper hasSecondaryNav={!isDrafting}>
+      <MainWrapper hasSecondaryNav={showSecondaryNav}>
         <Outlet />
       </MainWrapper>
     </>

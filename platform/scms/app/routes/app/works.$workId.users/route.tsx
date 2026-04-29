@@ -16,7 +16,7 @@ import type { GeneralError } from '@curvenote/scms-core';
 import { actionGrantUserRole, actionRevokeUserRole } from './actionHelpers.server';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withSecureWorkContext(args, [scopes.work.users.read]);
+  const ctx = await withSecureWorkContext(args, [scopes.work.id.users.read]);
   const dbo = await dbGetWorkUsers(ctx.work.id);
   if (!dbo) return { work: ctx.workDTO, error: 'Failed to get work users', users: [] };
   const users = dtoWorkUsers(dbo);
@@ -29,7 +29,7 @@ export const meta: Route.MetaFunction = ({ matches }) => {
 };
 
 export async function action(args: Route.ActionArgs) {
-  const ctx = await withSecureWorkContext(args, [scopes.work.users.update]);
+  const ctx = await withSecureWorkContext(args, [scopes.work.id.users.update]);
 
   const formData = await args.request.formData();
   const intent = formData.get('intent');

@@ -8,7 +8,7 @@ import { default as nodeFetch } from 'node-fetch';
 import type { Limit } from 'p-limit';
 import pLimit from 'p-limit';
 import { Semaphore } from 'async-mutex';
-import type { BuildWarning } from 'myst-cli';
+import type { ServerInfo, BuildWarning } from 'myst-cli';
 import latestVersion from 'latest-version';
 import {
   findCurrentProjectAndLoad,
@@ -77,6 +77,7 @@ export class Session implements ISession {
   doiLimiter: Limit;
   executionSemaphore: Semaphore;
   plugins: ValidatedCurvenotePlugin | undefined = combinePlugins([getBuiltInPlugins()]);
+  server: ServerInfo | undefined;
 
   proxyAgent?: HttpsProxyAgent<string>;
   _shownUpgrade = false;
@@ -144,6 +145,10 @@ export class Session implements ISession {
         this._latestVersion = latest;
       })
       .catch(() => null);
+  }
+
+  setLogger(logger: Logger) {
+    this.$logger = logger;
   }
 
   setUserToken(token: Token) {

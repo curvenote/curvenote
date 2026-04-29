@@ -1,7 +1,6 @@
 enum SystemRole {
   SERVICE
   ADMIN
-  PLATFORM_ADMIN
   USER
   ANON
 }
@@ -37,6 +36,7 @@ model User {
   magicLinks         MagicLink[]
   jobsInvoked        Job[]
   objects            Object[]
+  checkServiceRunsCreated CheckServiceRun[]   @relation("CheckServiceRunCreator")
 }
 
 model UserLinkedAccount {

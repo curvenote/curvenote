@@ -48,11 +48,11 @@ export function AddRoleForm() {
   }, [fetcher.state, fetcher.data, formRef]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-0">
       {!isExpanded && (
-        <div>
+        <div className="flex justify-end">
           <ui.Button onClick={expand} variant="default" disabled={isSubmitting}>
-            <PlusCircle className="w-4 h-4 mr-2" />
+            <PlusCircle className="mr-2 w-4 h-4" />
             Add New Role
           </ui.Button>
         </div>
@@ -68,8 +68,8 @@ export function AddRoleForm() {
           >
             <input type="hidden" name="intent" value="create" />
 
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Add New Role</h3>
+            <div className="flex justify-between items-center">
+              <div className="text-lg font-semibold">Add New Role</div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -132,7 +132,7 @@ export function AddRoleForm() {
               </p>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex gap-2 justify-end">
               <ui.Button type="button" variant="ghost" onClick={handleCancel}>
                 Cancel
               </ui.Button>
@@ -142,7 +142,7 @@ export function AddRoleForm() {
                 busy={isSubmitting}
                 disabled={isSubmitting}
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="mr-2 w-4 h-4" />
                 Create Role
               </ui.StatefulButton>
             </div>

@@ -2,12 +2,21 @@ import type { WorkRole } from '@curvenote/scms-db';
 import type { UserDBO, UserWithRolesDBO } from './db.types.js';
 import { system } from '@curvenote/scms-core';
 import {
-  hasScopeViaSystemRole,
   hasSiteScope,
   hasWorkScope,
-  getSystemRoleScopes,
+  getDefaultSystemRoleScopes,
   getSiteRoleScopes,
 } from './roles.server.js';
+
+function getLoadedSystemScopes(
+  user: Pick<UserDBO, 'system_role'> & { system_scopes?: unknown },
+): string[] {
+  const loadedScopes = user.system_scopes;
+  if (Array.isArray(loadedScopes) && loadedScopes.every((scope) => typeof scope === 'string')) {
+    return loadedScopes;
+  }
+  return getDefaultSystemRoleScopes(user.system_role);
+}
 
 /**
  * Return true if user exists and has specified scope on the site or
@@ -21,7 +30,7 @@ export function userHasSiteScope(
   siteId: string,
 ): boolean {
   if (!user) return false;
-  if (hasScopeViaSystemRole(user.system_role, system.admin)) return true;
+  if (getLoadedSystemScopes(user).includes(system.admin)) return true;
   const siteRoles = user.site_roles.filter((sr) => sr.site_id === siteId).map(({ role }) => role);
   const rolesWithScope = siteRoles.filter((siteRole) => hasSiteScope(siteRole, scope));
   return rolesWithScope.length > 0;
@@ -56,12 +65,16 @@ export function userHasScope(
   user: UserWithRolesDBO | undefined,
   scope: string,
   siteName?: string,
+  opts: {
+    ignoreSystemAdmin?: boolean;
+  } = {},
 ): boolean {
   if (!user) return false;
   // System admins can do anything
-  if (hasScopeViaSystemRole(user.system_role, system.admin)) return true;
+  const systemScopes = getLoadedSystemScopes(user);
+  if (!opts.ignoreSystemAdmin && systemScopes.includes(system.admin)) return true;
   // System roles may grant app-level scopes
-  if (hasScopeViaSystemRole(user.system_role, scope)) return true;
+  if (systemScopes.includes(scope)) return true;
 
   // Check for required scopes via the UserRole/Role assignment
   const userRoleScopes = getUserRoleScopes(user);
@@ -137,7 +150,7 @@ function getUserRoleScopes(user: UserWithRolesDBO): string[] {
  * @returns
  */
 export function getUserScopesSet(user: UserWithRolesDBO): Set<string> {
-  const systemScopes = getSystemRoleScopes(user.system_role);
+  const systemScopes = getLoadedSystemScopes(user);
   const siteScopes = user.site_roles.flatMap((sr) => {
     return getSiteRoleScopes(sr.role).map((scope) => `${scope}:${sr.site.name}`);
   });
@@ -161,7 +174,7 @@ export function userHasWorkScope(
   workId?: string | null,
 ): boolean {
   if (!user) return false;
-  if (hasScopeViaSystemRole(user.system_role, system.admin)) return true;
+  if (getLoadedSystemScopes(user).includes(system.admin)) return true;
   if (workId) {
     const workRoles = user.work_roles.filter((sr) => sr.work_id === workId).map(({ role }) => role);
     return !!workRoles.find((workRole) => hasWorkScope(workRole, scope));

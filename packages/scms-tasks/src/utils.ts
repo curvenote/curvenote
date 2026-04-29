@@ -88,9 +88,13 @@ export function apiUrlFromJobUrl(url: string): string {
   return `${parsedUrl.protocol}//${parsedUrl.host}/v1/`;
 }
 
-export function removeFolder(folder?: string) {
-  if (folder && fs.existsSync(folder)) {
-    fs.rmSync(folder, { recursive: true });
+export async function removeFolder(folder?: string): Promise<void> {
+  if (!folder) return;
+  try {
+    await fs.promises.rm(folder, { recursive: true });
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code !== 'ENOENT') throw err;
   }
 }
 

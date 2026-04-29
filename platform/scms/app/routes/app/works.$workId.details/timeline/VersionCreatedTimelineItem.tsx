@@ -36,6 +36,7 @@ function isPdfFile(file: MetadataFileItem): boolean {
 
 type VersionCreatedTimelineItemProps = {
   dateCreated: string;
+  dateModified: string;
   /** Work owner/creator display name; if not set, shown as "owner" */
   ownerName?: string | null;
   /** Work version metadata; if it contains files, the row is expandable with a downloadable file list */
@@ -53,6 +54,7 @@ type VersionCreatedTimelineItemProps = {
  */
 export function VersionCreatedTimelineItem({
   dateCreated,
+  dateModified,
   ownerName,
   metadata,
   workVersionId,
@@ -74,7 +76,9 @@ export function VersionCreatedTimelineItem({
 
   const by = ownerName?.trim() ? ownerName : 'owner';
   const message = <>New Version created by {by}</>;
-  const date = <DateWithPopover date={dateCreated} />;
+  const date = (
+    <DateWithPopover date={dateCreated} dateCreated={dateCreated} dateModified={dateModified} />
+  );
 
   const files =
     metadata != null && typeof metadata === 'object' && 'files' in metadata

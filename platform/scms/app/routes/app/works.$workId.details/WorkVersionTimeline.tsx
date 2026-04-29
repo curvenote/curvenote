@@ -10,6 +10,11 @@ import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineIte
 import { SubmissionTimelineItem } from './timeline/SubmissionTimelineItem';
 import { ActivityTimelineItem } from './timeline/ActivityTimelineItem';
 import { CheckServiceRunTimelineItem } from './timeline/CheckServiceRunTimelineItem';
+import {
+  TimelineActivitiesToggle,
+  TimelineActivitiesVisibilityProvider,
+  useTimelineActivitiesVisibility,
+} from './timeline/TimelineActivitiesVisibility';
 
 type SubmissionVersionRow = WorkVersionWithSubmissionVersions['submissionVersions'][number];
 
@@ -40,6 +45,34 @@ type TimelineEntry =
       run: CheckServiceRunRow;
       version: WorkVersionWithSubmissionVersions;
     };
+
+/** Latest run id for each check `kind` across all versions (by `date_created`). */
+function getLatestCheckRunIdByKind(
+  checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>,
+): Record<string, string> {
+  const latestRunByKind: Record<string, CheckServiceRunRow> = {};
+  for (const runs of Object.values(checkServiceRunsByWorkVersionId)) {
+    for (const run of runs) {
+      const currentBest = latestRunByKind[run.kind];
+      if (!currentBest || run.date_created > currentBest.date_created) {
+        latestRunByKind[run.kind] = run;
+      }
+    }
+  }
+  return Object.fromEntries(Object.entries(latestRunByKind).map(([kind, run]) => [kind, run.id]));
+}
+
+/** Single entrypoint for timeline auto-expand behavior (easy to A/B later). */
+function shouldExpandByDefault(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  run: CheckServiceRunRow,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>,
+): boolean {
+  return false; // disable for now
+  // const latestRunIdByKind = getLatestCheckRunIdByKind(checkServiceRunsByWorkVersionId);
+  // return run.id === latestRunIdByKind[run.kind];
+}
 
 /** Truncate to minute resolution for sort comparison (items in same minute are tied). */
 function toMinuteKey(dateStr: string): number {
@@ -85,7 +118,7 @@ function getSortedSectionEntries(
     })),
     ...checkRunsForVersion.map((run) => ({
       kind: 'check-service-run' as const,
-      date: run.date_modified,
+      date: run.date_created,
       key: `check-run-${run.id}`,
       run,
       version,
@@ -126,9 +159,16 @@ type WorkVersionTimelineProps = {
  * are merged and sorted by date. Custom icons per submission/activity state could
  * be added later (e.g. different icons for published vs submitted).
  */
-export function WorkVersionTimeline({
+export function WorkVersionTimeline(props: WorkVersionTimelineProps) {
+  return (
+    <TimelineActivitiesVisibilityProvider>
+      <WorkVersionTimelineInner {...props} />
+    </TimelineActivitiesVisibilityProvider>
+  );
+}
+
+function WorkVersionTimelineInner({
   versions,
-  workflows,
   workOwnerName,
   basePath,
   userScopes,
@@ -137,14 +177,15 @@ export function WorkVersionTimeline({
   checkServiceRunsByWorkVersionId,
   checkServices,
 }: WorkVersionTimelineProps) {
+  const { showActivities } = useTimelineActivitiesVisibility();
   const [searchParams] = useSearchParams();
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
   const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
 
-  // Order sections by date_modified descending (most recently modified first)
-  const versionsByModified = [...versions].sort((a, b) =>
-    a.date_modified > b.date_modified ? -1 : a.date_modified < b.date_modified ? 1 : 0,
+  // Order sections by date_created descending (most recently created first)
+  const versionsByCreated = [...versions].sort((a, b) =>
+    a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
   );
 
   const versionsByCreatedAsc = [...versions].sort((a, b) =>
@@ -157,8 +198,12 @@ export function WorkVersionTimeline({
 
   // Show all versions; draft versions display only their activities (and submissions), not the "Version created" row
   return (
-    <Timeline title="Timeline">
-      {versionsByModified.map((v) => {
+    <Timeline
+      title="TIMELINE"
+      titleClassName="text-sm font-medium uppercase tracking-wide"
+      headerAction={<TimelineActivitiesToggle />}
+    >
+      {versionsByCreated.map((v) => {
         const submissionVersionsToShow = includeDrafts
           ? v.submissionVersions
           : v.submissionVersions.filter((sv) => sv.status !== 'DRAFT');
@@ -188,18 +233,22 @@ export function WorkVersionTimeline({
           activitiesForVersion,
           checkRunsForVersion,
         );
+        const visibleEntries = showActivities
+          ? sortedEntries
+          : sortedEntries.filter((e) => e.kind !== 'activity');
 
-        if (sortedEntries.length === 0) return null;
+        if (visibleEntries.length === 0) return null;
 
         return (
           <TimelineSection key={v.id} label={label}>
-            {sortedEntries.map((entry) => {
+            {visibleEntries.map((entry) => {
               if (entry.kind === 'work-version') {
                 const { version } = entry;
                 return (
                   <VersionCreatedTimelineItem
                     key={entry.key}
                     dateCreated={version.date_created}
+                    dateModified={version.date_modified}
                     ownerName={workOwnerName}
                     metadata={version.metadata}
                     workVersionId={version.id}
@@ -225,6 +274,10 @@ export function WorkVersionTimeline({
                     run={entry.run}
                     checkService={service}
                     basePath={basePath}
+                    defaultExpanded={shouldExpandByDefault(
+                      entry.run,
+                      checkServiceRunsByWorkVersionId,
+                    )}
                   />
                 );
               }

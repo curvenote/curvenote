@@ -40,10 +40,11 @@ function PrimaryNavItem({
 }) {
   const { path, label, icon, end, beta } = item;
   const iconIsImage = icon.match(/^http[s]:\/\//) != null;
+  const normalizedPath = path.replace(/^\/+|\/+$/g, '');
 
   return (
     <NavLink
-      to={`/app/${path}`}
+      to={`/app/${normalizedPath}`}
       end={end}
       className={({ isActive }) =>
         cn(
@@ -106,6 +107,7 @@ export function PrimaryNav({ extensions }: { extensions?: ClientExtension[] }) {
 
   return (
     <nav
+      onPointerDown={(event) => event.stopPropagation()}
       className={cn(
         'flex fixed z-20 flex-col items-center py-1 space-y-2 h-full text-white bg-blue-900 transition-transform duration-150 ease-in-out transform w-[110px]',
         { '-translate-x-full xl:translate-x-0': !open },

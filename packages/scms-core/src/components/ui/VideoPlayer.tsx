@@ -8,7 +8,7 @@ import { usePingEvent } from '../../utils/analytics.js';
 import type { TrackEvent } from '../../backend/services/analytics/events.js';
 
 export interface VideoData {
-  title: string;
+  title?: string;
   url: string;
   thumbnail?: string;
 }
@@ -43,8 +43,9 @@ export function VideoPlayer({ video, playEventType, className }: VideoPlayerProp
 
   const handlePlay = () => {
     if (playEventType) {
+      const trimmedTitle = video.title?.trim();
       pingEvent(playEventType, {
-        videoTitle: video.title,
+        ...(trimmedTitle ? { videoTitle: trimmedTitle } : {}),
         videoUrl: video.url,
       });
     }
@@ -141,16 +142,19 @@ export function VideoPlayerCard({
   className,
   size = 'default',
 }: VideoPlayerCardProps) {
+  const heading = video.title?.trim();
   return (
     <Card className={cn('overflow-hidden p-0', className)}>
       <div className="p-4">
-        <h3
-          className={cn('mb-3 font-semibold text-gray-900 text-md dark:text-gray-100', {
-            'text-sm font-medium mb-2': size === 'compact',
-          })}
-        >
-          {video.title}
-        </h3>
+        {heading ? (
+          <h3
+            className={cn('mb-3 font-semibold text-gray-900 text-md dark:text-gray-100', {
+              'text-sm font-medium mb-2': size === 'compact',
+            })}
+          >
+            {heading}
+          </h3>
+        ) : null}
         <VideoPlayer video={video} playEventType={playEventType} />
       </div>
     </Card>

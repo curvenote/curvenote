@@ -165,6 +165,7 @@ cases:
       - title: System Roles Management Endpoint
         url: /app/system/roles
         status: 200
+        responseContains: System Roles
 
   # Discovery Routes Group
   - title: Discovery Routes

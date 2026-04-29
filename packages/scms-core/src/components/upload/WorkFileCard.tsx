@@ -142,9 +142,17 @@ interface RemoveButtonProps {
       error?: GeneralError;
     }>
   >;
+  action?: string;
 }
 
-function RemoveButton({ slot, upload, onSetFileState, onError, fetcher }: RemoveButtonProps) {
+function RemoveButton({
+  slot,
+  upload,
+  onSetFileState,
+  onError,
+  fetcher,
+  action: actionUrl,
+}: RemoveButtonProps) {
   useEffect(() => {
     if (fetcher.data && 'error' in fetcher.data) {
       onError(fetcher.data.error);
@@ -172,11 +180,16 @@ function RemoveButton({ slot, upload, onSetFileState, onError, fetcher }: Remove
     formData.append('intent', 'remove');
     formData.append('slot', slot);
     formData.append('path', upload.path);
-    fetcher.submit(formData, { method: 'post' });
+    fetcher.submit(formData, { method: 'post', ...(actionUrl ? { action: actionUrl } : {}) });
   };
 
   return (
-    <fetcher.Form method="POST" onSubmit={removeFile} className="absolute -top-2 -right-2">
+    <fetcher.Form
+      method="POST"
+      {...(actionUrl ? { action: actionUrl } : {})}
+      onSubmit={removeFile}
+      className="absolute -top-2 -right-2"
+    >
       <SimpleTooltip title="Delete file" side="right" sideOffset={10} delayDuration={250}>
         <button
           type="submit"
@@ -200,6 +213,8 @@ interface WorkFileCardProps {
   validateLabel?: (label: string, path: string) => string | null;
   showLabel?: boolean;
   isHighlighted?: boolean; // NEW: prop to trigger pulse animation
+  /** When set, form submissions (complete, remove) target this URL instead of the current route */
+  action?: string;
 }
 
 /*
@@ -219,6 +234,7 @@ export function WorkFileCard({
   validateLabel,
   showLabel = true,
   isHighlighted,
+  action: actionUrl,
 }: WorkFileCardProps) {
   const [hideStatus, setHideStatus] = useState(upload.status === 'completed');
   const [hasSeenNonCompleted, setHasSeenNonCompleted] = useState(upload.status !== 'completed');
@@ -257,13 +273,18 @@ export function WorkFileCard({
   useEffect(() => {
     // Submit completed file when status is uploaded
     if (upload.status === 'uploaded') {
-      submitCompletedFile(fetcher, slot, {
-        path: upload.path,
-        content_type: upload.type,
-        size: upload.size,
-        md5: upload.md5,
-        label: upload.label,
-      });
+      submitCompletedFile(
+        fetcher,
+        slot,
+        {
+          path: upload.path,
+          content_type: upload.type,
+          size: upload.size,
+          md5: upload.md5,
+          label: upload.label,
+        },
+        actionUrl,
+      );
     }
   }, [upload]);
 
@@ -424,6 +445,7 @@ export function WorkFileCard({
           upload={upload}
           onSetFileState={onSetFileState}
           onError={onError}
+          action={actionUrl}
           fetcher={removeFetcher}
         />
       )}

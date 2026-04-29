@@ -4,6 +4,7 @@ import path from 'node:path';
 import { loadAllJsonFilesFromDir, seedBySites } from './seed.utils.mjs';
 import idPool from './ids.json';
 import { uuidv7 } from 'uuidv7';
+import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/systemRoleDefaults.js';
 
 const QUIET = true; // Set to true to suppress console output
 
@@ -67,6 +68,25 @@ async function main() {
       system_role: SystemRole.USER,
     },
   });
+
+  for (const [role, scopes] of Object.entries(DEFAULT_SYSTEM_ROLE_SCOPES) as [
+    SystemRole,
+    string[],
+  ][]) {
+    await prisma.systemRoleScope.upsert({
+      where: { role },
+      create: {
+        role,
+        date_created: dateOneString,
+        scopes,
+        date_modified: dateOneString,
+      },
+      update: {
+        scopes,
+        date_modified: dateOneString,
+      },
+    });
+  }
 
   // Create platform admin role for testing
   const platformAdminRole = await prisma.role.create({

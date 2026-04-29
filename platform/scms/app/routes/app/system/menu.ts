@@ -41,6 +41,18 @@ export function buildMenu(baseUrl: string, userScopes: string[]) {
           url: `${baseUrl}/email-test`,
         },
         {
+          name: 'admin.services',
+          label: 'Services',
+          icon: 'network',
+          url: `${baseUrl}/services`,
+        },
+        {
+          name: 'admin.jobs',
+          label: 'Jobs',
+          icon: 'square-play',
+          url: `${baseUrl}/jobs`,
+        },
+        {
           name: 'admin.design',
           label: 'Design',
           url: `${baseUrl}/design`,
@@ -50,6 +62,12 @@ export function buildMenu(baseUrl: string, userScopes: string[]) {
           icon: 'layout-dashboard',
           label: 'Analytics Dashboards',
           url: `${baseUrl}/analytics-dashboards`,
+        },
+        {
+          name: 'admin.csp-reports',
+          icon: 'file-text',
+          label: 'CSP Reports',
+          url: `${baseUrl}/csp-reports`,
         },
       ],
     },

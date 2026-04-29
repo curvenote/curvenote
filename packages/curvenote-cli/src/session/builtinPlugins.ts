@@ -3,7 +3,6 @@ import cliPlugins from '@curvenote/cli-plugin';
 import extPerson from '@curvenote/ext-person';
 import extTemplate from '@curvenote/ext-template';
 import extBlog from '@curvenote/ext-blog';
-import extLanding from '@curvenote/ext-landing';
 import extFooter from '@curvenote/ext-footer';
 import extScienceicons from '@scienceicons/myst';
 
@@ -24,13 +23,5 @@ export function combinePlugins(plugins: CurvenotePlugin[]): ValidatedCurvenotePl
 }
 
 export function getBuiltInPlugins() {
-  return combinePlugins([
-    cliPlugins,
-    extPerson,
-    extTemplate,
-    extBlog,
-    extLanding,
-    extScienceicons,
-    extFooter,
-  ]);
+  return combinePlugins([cliPlugins, extPerson, extTemplate, extBlog, extScienceicons, extFooter]);
 }

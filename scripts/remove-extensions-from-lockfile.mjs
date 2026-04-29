@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
-// Script to remove all packages starting with "extensions/" from package-lock.json files
-// 
+// Script to remove extension-related package entries from package-lock.json files
+//
 // This script processes both:
 // - Root package-lock.json
 // - platform/scms/package-lock.json
-// 
+//
 // For each lockfile, it:
 // 1. Removes all package entries in the "packages" object that start with "extensions/"
 // 2. Removes any node_modules entries that have "resolved" pointing to extensions/
 // Note: The workspaces array in packages is NOT modified
-// 
+//
 // Usage:
 //   node remove-extensions-from-lockfile.mjs [--dry-run] [--quiet]
-// 
+//
 // Options:
 //   --dry-run: Show what would be removed without actually modifying the file
 //   --quiet:   Suppress verbose output (useful for pre-commit hooks)
@@ -46,19 +46,34 @@ function extractPackageName(key, pkg) {
     // Handle unscoped packages: node_modules/package
     return parts.length >= 2 ? parts[1] : null;
   }
-  
+
   // If the package has a name field, use that
   if (pkg && pkg.name) {
     return pkg.name;
   }
-  
+
   // Try to extract from path like "extensions/.../packages/package-name"
-  const match = key.match(/(?:extensions\/[^/]+\/packages\/|\.\.\/\.\.\/extensions\/[^/]+\/packages\/)([^/]+)$/);
+  const match = key.match(
+    /(?:extensions\/[^/]+\/packages\/|\.\.\/\.\.\/extensions\/[^/]+\/packages\/)([^/]+)$/,
+  );
   if (match) {
     return match[1];
   }
-  
+
+  // Try to extract from plugin paths like "extensions/plugins/plugin-name"
+  const pluginMatch = key.match(
+    /(?:extensions\/plugins\/|\.\.\/\.\.\/extensions\/plugins\/)([^/]+)$/,
+  );
+  if (pluginMatch) {
+    return pluginMatch[1];
+  }
+
   return null;
+}
+
+function isExtensionFolderPath(pathValue) {
+  if (typeof pathValue !== 'string') return false;
+  return pathValue.startsWith('extensions/') || pathValue.includes('/extensions/');
 }
 
 function removeExtensionsFromLockfile(lockfilePath) {
@@ -84,16 +99,16 @@ function removeExtensionsFromLockfile(lockfilePath) {
   // But exclude npm packages like "@app-config/extensions" - only match actual extension folder paths
   const packagesToRemove = [];
   for (const key of Object.keys(lockfile.packages || {})) {
+    const pkg = lockfile.packages[key];
+    const pkgName = extractPackageName(key, pkg);
+
     // Match:
     // - "extensions/..." (root-level extensions)
     // - "../../extensions/..." (relative paths to extensions)
     // - Any path containing "/extensions/" that's not an npm package name
     // Exclude: "@scope/extensions" or "node_modules/@scope/extensions" (npm packages)
-    if (key.startsWith('extensions/') || 
-        key.includes('/extensions/') && !key.match(/node_modules\/@[^/]+\/extensions$/)) {
+    if (isExtensionFolderPath(key) && !key.match(/node_modules\/@[^/]+\/extensions$/)) {
       packagesToRemove.push(key);
-      const pkg = lockfile.packages[key];
-      const pkgName = extractPackageName(key, pkg);
       if (pkgName) {
         packageNames.add(pkgName);
       }
@@ -103,17 +118,18 @@ function removeExtensionsFromLockfile(lockfilePath) {
   // Step 2: Remove node_modules entries that link to extensions/ folder paths
   for (const key of Object.keys(lockfile.packages || {})) {
     const pkg = lockfile.packages[key];
+    const pkgName = extractPackageName(key, pkg);
     if (pkg && typeof pkg.resolved === 'string') {
       // Match resolved paths that point to extensions/ folder (not npm packages)
       // Match: "extensions/..." or "../../extensions/..." or any path ending with "/extensions/..."
-      if ((pkg.resolved.startsWith('extensions/') || 
-           pkg.resolved.includes('/extensions/')) &&
-          // Exclude npm registry URLs that happen to contain "extensions"
-          !pkg.resolved.startsWith('https://') &&
-          !pkg.resolved.startsWith('http://')) {
+      if (
+        isExtensionFolderPath(pkg.resolved) &&
+        // Exclude npm registry URLs that happen to contain "extensions"
+        !pkg.resolved.startsWith('https://') &&
+        !pkg.resolved.startsWith('http://')
+      ) {
         packagesToRemove.push(key);
         removedLinks.push(key);
-        const pkgName = extractPackageName(key, pkg);
         if (pkgName) {
           packageNames.add(pkgName);
         }
@@ -160,7 +176,10 @@ function removeExtensionsFromLockfile(lockfilePath) {
   }
 
   // Step 3: Remove package names from dependencies/devDependencies in all lockfile entries
-  const dependencyRemovals = removePackagesFromLockfileDependencies(lockfile, Array.from(packageNames));
+  const dependencyRemovals = removePackagesFromLockfileDependencies(
+    lockfile,
+    Array.from(packageNames),
+  );
 
   // Write the updated lockfile
   if (!QUIET && (removedCount > 0 || dependencyRemovals.removed.length > 0)) {
@@ -172,7 +191,9 @@ function removeExtensionsFromLockfile(lockfilePath) {
   }
 
   if (!QUIET && dependencyRemovals.removed.length > 0) {
-    console.log(`  - Removed ${dependencyRemovals.removed.length} dependency reference(s) from lockfile entries`);
+    console.log(
+      `  - Removed ${dependencyRemovals.removed.length} dependency reference(s) from lockfile entries`,
+    );
     dependencyRemovals.removed.slice(0, 5).forEach(({ package: pkgKey, name, from }) => {
       const shortKey = pkgKey.length > 50 ? '...' + pkgKey.slice(-47) : pkgKey;
       console.log(`    - ${name} from ${from} in ${shortKey}`);
@@ -181,8 +202,14 @@ function removeExtensionsFromLockfile(lockfilePath) {
       console.log(`    ... and ${dependencyRemovals.removed.length - 5} more`);
     }
   }
-  
-  return { removedCount, removedKeys, removedLinks, packageNames: Array.from(packageNames), dependencyRemovals: dependencyRemovals.removed };
+
+  return {
+    removedCount,
+    removedKeys,
+    removedLinks,
+    packageNames: Array.from(packageNames),
+    dependencyRemovals: dependencyRemovals.removed,
+  };
 }
 
 function removePackagesFromLockfileDependencies(lockfile, packageNames) {
@@ -238,7 +265,9 @@ function main() {
       console.log('\n=== DRY RUN MODE - No changes made ===');
       console.log(`\nTotal packages that would be removed across all lockfiles: ${totalRemoved}`);
       if (totalDependencyRemovals > 0) {
-        console.log(`Total dependency references that would be removed: ${totalDependencyRemovals}`);
+        console.log(
+          `Total dependency references that would be removed: ${totalDependencyRemovals}`,
+        );
       }
     }
     return;
@@ -246,7 +275,9 @@ function main() {
 
   // Summary in quiet mode
   if (QUIET && (totalRemoved > 0 || totalDependencyRemovals > 0)) {
-    const filesModified = results.filter(r => r.removedCount > 0 || (r.dependencyRemovals?.length || 0) > 0).length;
+    const filesModified = results.filter(
+      (r) => r.removedCount > 0 || (r.dependencyRemovals?.length || 0) > 0,
+    ).length;
     let msg = `✓ Removed ${totalRemoved} extension-related package entries from ${filesModified} lockfile(s)`;
     if (totalDependencyRemovals > 0) {
       msg += `, removed ${totalDependencyRemovals} dependency reference(s)`;
@@ -260,7 +291,9 @@ function main() {
       }
       console.log(msg);
     } else {
-      console.log(`\n✓ Processed ${results.length} lockfile(s), no extension-related packages found`);
+      console.log(
+        `\n✓ Processed ${results.length} lockfile(s), no extension-related packages found`,
+      );
     }
   }
 }
@@ -271,4 +304,3 @@ try {
   console.error('Error:', error.message);
   process.exit(1);
 }
-

@@ -1,6 +1,6 @@
 import type { Route } from './+types/route';
 import React from 'react';
-import { withAppContext, getUserScopesSet } from '@curvenote/scms-server';
+import { getUserScopesSet, withAppScopedContext } from '@curvenote/scms-server';
 import {
   MainWrapper,
   PageFrame,
@@ -13,13 +13,16 @@ import {
   ClientOnly,
   getAvailableTasksWithComponents,
   getAvailableScopedTasks,
+  getAllowedBuiltinTaskIds,
+  getBuiltinTasksWithComponents,
+  scopes,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import type { Extensions } from 'types/app-config';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppContext(args);
+  const ctx = await withAppScopedContext(args, [scopes.app.dashboard.feature], { redirect: true });
   const extensionConfigs: Extensions = ctx.$config?.app?.extensions || {};
   const reducedExtensionConfigs = Object.fromEntries(
     Object.entries(extensionConfigs).map(([key, value]) => [key, { task: value.task ?? false }]),
@@ -33,7 +36,11 @@ export async function loader(args: Route.LoaderArgs) {
     Array.from(getUserScopesSet(ctx.user)), // TODO: We cannot rely on this being on context yet
   );
 
-  return { taskConfig };
+  const userScopes = Array.from(getUserScopesSet(ctx.user));
+  const builtinsConfig = ctx.$config?.app?.dashboard?.tasks?.builtins;
+  const allowedBuiltinTaskIds = getAllowedBuiltinTaskIds(builtinsConfig, userScopes);
+
+  return { taskConfig, allowedBuiltinTaskIds };
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {
@@ -94,7 +101,7 @@ function renderDescriptionWithBoldMarkers(text: string): React.ReactNode[] {
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { taskConfig } = loaderData;
+  const { taskConfig, allowedBuiltinTaskIds } = loaderData;
   const deployment = useDeploymentConfig();
   const { title, tagline, description } = deployment.dashboard?.welcome ?? {};
   const welcomeVideos = deployment.dashboard?.welcome?.videos || [];
@@ -103,7 +110,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const shouldRenderTasks = dashboardTasksConfig?.enabled === true;
 
   // Get filtered tasks with components (client-side only, using task config from loader)
-  const tasksWithComponents = getAvailableTasksWithComponents(extensions, taskConfig);
+  const extensionTasks = getAvailableTasksWithComponents(extensions, taskConfig);
+  const builtinTasks = getBuiltinTasksWithComponents(allowedBuiltinTaskIds);
+  const tasksWithComponents = [...extensionTasks, ...builtinTasks];
   const configuredSections = dashboardTasksConfig?.sections ?? [];
 
   const tasksByCategory = new Map<string, TaskWithComponent[]>();

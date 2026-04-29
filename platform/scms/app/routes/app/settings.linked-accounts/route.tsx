@@ -4,6 +4,7 @@ import {
   withAppContext,
   withValidFormData,
   dbUpsertPendingLinkedAccount,
+  withAppScopedContext,
 } from '@curvenote/scms-server';
 import {
   PageFrame,
@@ -19,6 +20,7 @@ import {
   TrackEvent,
   useHydrated,
   formatAuthProviderDisplayName,
+  scopes,
 } from '@curvenote/scms-core';
 import { dbDeleteLinkedAccount, dbGetLinkedAccountsByUserId } from './db.server';
 import { LinkAccount } from './LinkAccount';
@@ -29,7 +31,9 @@ import { z } from 'zod';
 import { UnlinkAccount } from './UnlinkAccount';
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withAppContext(args);
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.linkedAccounts.read], {
+    redirect: true,
+  });
   const accounts = await dbGetLinkedAccountsByUserId(ctx.user!.id);
   const url = new URL(args.request.url);
   const linked = url.searchParams.get('linked');
@@ -62,7 +66,7 @@ const LinkResultSchema = zfd.formData({
 });
 
 export async function action(args: Route.ActionArgs) {
-  const ctx = await withAppContext(args);
+  const ctx = await withAppScopedContext(args, [scopes.app.settings.linkedAccounts.manage]);
   const formData = await args.request.formData();
 
   const formIntent = formData.get('intent');

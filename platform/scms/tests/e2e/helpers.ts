@@ -430,7 +430,7 @@ export async function createTestUser(
 
 /**
  * Helper function to create a test user with platform admin role
- * This replaces the old SystemRole.PLATFORM_ADMIN approach
+ * Uses role assignment rather than legacy system-role enum values
  */
 export async function createTestUserWithPlatformAdminRole(
   options: {

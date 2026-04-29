@@ -34,6 +34,9 @@ yarn-error.log*
 # turbo
 .turbo
 
+# Turborepo task overrides for gitignored extension packages (see scripts/turbo-run.mjs, generate-extensions.js)
+turbo.extensions.generated.json
+
 _build
 
 yalc.lock
@@ -50,3 +53,7 @@ yalc.lock
 types/app-config.d.ts
 
 .claude/worktrees
+
+# local Pub/Sub emulator (docs/jobs/scripts/start-pubsub-emulator.sh)
+docs/jobs/scripts/.pubsub-emulator.pid
+docs/jobs/scripts/.pubsub-emulator.log
