@@ -23,7 +23,7 @@ export function CaptureMetadataSection({ title, authors }: CaptureMetadataSectio
       className="space-y-4 max-w-3xl"
     >
       <p className="text-muted-foreground">
-        Using a meaningful title, will help you find this paper again later, please add one now.
+        Using a meaningful title will help you find this paper again later, please add one.
       </p>
       <ui.Card className="px-6 pt-4 pb-6 space-y-4">
         <WorkTitleForm title={title} />
