@@ -37,3 +37,38 @@ properties:
       thumbnail:
         type: string
         description: URL to the video thumbnail image
+  featured:
+    description: Optional featured sites content to display on the sites page
+    type: object
+    additionalProperties: false
+    required:
+      - title
+      - description
+      - sites
+    properties:
+      title:
+        type: string
+        description: Featured section title
+      description:
+        type: string
+        description: Featured section description
+      sites:
+        type: array
+        description: List of featured sites to display as mini cards
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - title
+            - url
+            - thumbnail
+          properties:
+            title:
+              type: string
+              description: Caption shown under the featured site thumbnail
+            url:
+              type: string
+              description: Featured site URL
+            thumbnail:
+              type: string
+              description: Featured site thumbnail URL

@@ -9,6 +9,7 @@ import {
 } from '@curvenote/scms-server';
 import SiteCard from './SiteCard.js';
 import RequestSiteCTA from './RequestSiteCTA.js';
+import type { FeaturedSitesData } from './RequestSiteCTA.js';
 import PendingSiteCard from './PendingSiteCard.js';
 import { MainWrapper, PageFrame, scopes } from '@curvenote/scms-core';
 import type { UserSitesDTO } from '@curvenote/common';
@@ -19,13 +20,15 @@ import { zfd } from 'zod-form-data';
 
 interface LoaderData {
   video?: ui.VideoData;
+  featured?: FeaturedSitesData;
   canCreateSite: boolean;
 }
 export const loader = async (args: LoaderFunctionArgs): Promise<LoaderData> => {
   const ctx = await withAppContext(args);
-  const { video } = ctx.$config.app.extensions?.sites ?? {};
+  const { video, featured } = ctx.$config.app.extensions?.sites ?? {};
   return {
     video,
+    featured,
     canCreateSite: userHasScope(ctx.user, scopes.site.create),
   };
 };
@@ -85,7 +88,7 @@ export default function Sites({
 }) {
   const location = useLocation();
   const appRoute = matches.find((m) => m && m.pathname === '/app');
-  const { video, canCreateSite } = loaderData;
+  const { video, featured, canCreateSite } = loaderData;
   const [showPendingCard, setShowPendingCard] = useState(false);
 
   const { sites } = appRoute?.loaderData as {
@@ -113,10 +116,11 @@ export default function Sites({
           subtitle="Manage your sites and publishing venues"
           hasSecondaryNav={false}
         >
-          <div className="mt-5 space-y-6">
+          <div className="mt-0 space-y-6">
             <RequestSiteCTA
               hasExistingSites={sites.items.length > 0}
               video={video}
+              featured={featured}
               canCreateSite={canCreateSite}
               onCreateSite={handleCreateSite}
               showPendingCard={showPendingCard}
