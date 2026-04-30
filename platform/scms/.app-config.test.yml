@@ -93,6 +93,19 @@ app:
         title: 'Curvenote Sites'
         url: https://curvenote.com/videos/demo-1.mp4
         thumbnail: https://cdn.curvenote.com/static/welcome-video.png
+      featured:
+        title: 'Featured Sites'
+        description: 'Explore selected site experiences and publishing destinations.'
+        sites:
+          - title: 'Community Showcase'
+            url: https://curvenote.com
+            thumbnail: https://cdn.curvenote.com/static/welcome-video.png
+          - title: 'Methods Collection'
+            url: https://curvenote.com
+            thumbnail: https://cdn.curvenote.com/static/welcome-video.png
+          - title: 'Research Hub'
+            url: https://curvenote.com
+            thumbnail: https://cdn.curvenote.com/static/welcome-video.png
   navigation:
     defaultRoute: dashboard
     items:

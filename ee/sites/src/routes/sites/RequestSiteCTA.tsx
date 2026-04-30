@@ -6,8 +6,21 @@ interface RequestSiteCTAProps {
   hasExistingSites: boolean;
   canCreateSite: boolean;
   video?: ui.VideoData;
+  featured?: FeaturedSitesData;
   onCreateSite: () => void;
   showPendingCard: boolean;
+}
+
+export interface FeaturedSiteItem {
+  title: string;
+  url: string;
+  thumbnail: string;
+}
+
+export interface FeaturedSitesData {
+  title: string;
+  description: string;
+  sites: FeaturedSiteItem[];
 }
 
 const CTA_CONTENT = {
@@ -20,6 +33,7 @@ export default function RequestSiteCTA({
   hasExistingSites,
   canCreateSite,
   video,
+  featured,
   onCreateSite,
   showPendingCard,
 }: RequestSiteCTAProps) {
@@ -41,33 +55,36 @@ export default function RequestSiteCTA({
     onCreateSite();
   };
 
-  if (hasExistingSites) {
-    // Horizontal row version when sites exist
+  const hasFeaturedConfig = !!featured;
+  const useCompactLayout = hasExistingSites || hasFeaturedConfig;
+
+  if (useCompactLayout) {
+    // Horizontal row version when sites exist or featured content is configured
     return (
       <>
-        <primitives.Card className="p-6" lift>
-          <div className="flex items-center gap-8">
-            {video && (
-              <div className="flex-shrink-0">
+        <primitives.Card className="p-6 space-y-8" lift>
+          <div className="flex flex-col gap-8 xl:flex-row xl:items-center">
+            {video ? (
+              <div className="flex-shrink-0 xl:w-96">
                 <ui.VideoPlayer
                   video={video}
                   playEventType={TrackEvent.SITE_REQUEST_VIDEO_PLAYED}
-                  className="w-96"
+                  className="w-full"
                 />
               </div>
-            )}
+            ) : null}
 
             <div className="flex-1 space-y-4">
               <div>
                 <h3 className="mb-2 text-3xl font-light tracking-tight">{CTA_CONTENT.title}</h3>
                 <p className="text-normal text-muted-foreground">{CTA_CONTENT.description}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex gap-2 items-center">
                 {canCreateSite && (
                   <ui.Button
                     onClick={handleCreateSite}
                     variant="default"
-                    className="flex items-center gap-2"
+                    className="flex gap-2 items-center"
                     disabled={showPendingCard}
                   >
                     Create a site
@@ -77,7 +94,7 @@ export default function RequestSiteCTA({
                   <ui.Button
                     onClick={handleOpenModal}
                     variant="outline"
-                    className="flex items-center gap-2"
+                    className="flex gap-2 items-center"
                   >
                     Request help
                   </ui.Button>
@@ -85,7 +102,7 @@ export default function RequestSiteCTA({
                   <ui.Button
                     onClick={handleOpenModal}
                     variant="default"
-                    className="flex items-center gap-2"
+                    className="flex gap-2 items-center"
                   >
                     Request a site
                   </ui.Button>
@@ -93,6 +110,36 @@ export default function RequestSiteCTA({
               </div>
             </div>
           </div>
+
+          {hasFeaturedConfig ? (
+            <section className="pt-4 border-t border-border">
+              <h4 className="text-2xl font-light tracking-tight">{featured?.title}</h4>
+              <p className="mt-2 text-normal text-muted-foreground">{featured?.description}</p>
+              <div className="grid grid-cols-1 gap-8 mt-3 sm:grid-cols-2 lg:grid-cols-3">
+                {featured?.sites.map((site) => (
+                  <a
+                    key={`${site.url}-${site.title}`}
+                    href={site.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block no-underline opacity-90 transition-opacity hover:opacity-100"
+                  >
+                    <div className="overflow-hidden rounded-md border transition-all duration-200 border-border bg-card hover:border-foreground/30 hover:shadow-sm">
+                      <img
+                        src={site.thumbnail}
+                        alt={site.title}
+                        className="object-cover w-full aspect-video"
+                        loading="lazy"
+                      />
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground hover:underline hover:text-foreground">
+                      {site.title}
+                    </p>
+                  </a>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </primitives.Card>
 
         <RequestSiteModal isOpen={isModalOpen} onClose={handleCloseModal} />
@@ -104,7 +151,7 @@ export default function RequestSiteCTA({
   return (
     <>
       <primitives.Card className="p-8 text-center" lift>
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="mx-auto space-y-8 max-w-4xl">
           <div>
             <h2 className="mb-4 text-3xl font-light tracking-tight">{CTA_CONTENT.title}</h2>
             <p className="text-normal text-muted-foreground">{CTA_CONTENT.description}</p>
@@ -114,16 +161,16 @@ export default function RequestSiteCTA({
             <ui.VideoPlayer
               video={video}
               playEventType={TrackEvent.SITE_REQUEST_VIDEO_PLAYED}
-              className="w-full max-w-4xl mx-auto"
+              className="mx-auto w-full max-w-4xl"
             />
           )}
 
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex gap-2 justify-center items-center">
             {canCreateSite && (
               <ui.Button
                 onClick={handleCreateSite}
                 size="lg"
-                className="flex items-center gap-2"
+                className="flex gap-2 items-center"
                 disabled={showPendingCard}
               >
                 Create a site
@@ -134,12 +181,12 @@ export default function RequestSiteCTA({
                 onClick={handleOpenModal}
                 size="lg"
                 variant="outline"
-                className="flex items-center gap-2"
+                className="flex gap-2 items-center"
               >
                 Request help
               </ui.Button>
             ) : (
-              <ui.Button onClick={handleOpenModal} size="lg" className="flex items-center gap-2">
+              <ui.Button onClick={handleOpenModal} size="lg" className="flex gap-2 items-center">
                 Request a site
               </ui.Button>
             )}
