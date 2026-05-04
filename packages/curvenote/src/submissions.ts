@@ -65,6 +65,12 @@ function makeSubmissionPublishCLI(program: Command) {
         'Set different publish date than today. If no argument is provided for this option, frontmatter date will be used.',
       ),
     )
+    .addOption(
+      new Option(
+        '--doi <doi>',
+        'Resolve submission by work DOI (use for works registered with --key doi; avoids key mismatch)',
+      ),
+    )
     .action(clirun(submissions.publish, { program, requireSiteConfig: true }));
   return command;
 }
@@ -78,6 +84,12 @@ function makeSubmissionUnpublishCLI(program: Command) {
         '-f, --force',
         'If the unpublish action is not available, do not throw an error',
       ).default(false),
+    )
+    .addOption(
+      new Option(
+        '--doi <doi>',
+        'Resolve submission by work DOI (use for works registered with --key doi; avoids key mismatch)',
+      ),
     )
     .action(clirun(submissions.unpublish, { program, requireSiteConfig: true }));
   return command;
