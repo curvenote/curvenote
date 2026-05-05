@@ -1,5 +1,15 @@
 # @curvenote/scms-sites-ext
 
+## 0.16.3
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.15.1
+  - @curvenote/scms-core@0.16.3
+  - @curvenote/scms-server@0.16.3
+  - @curvenote/scms-db@0.16.3
+
 ## 0.16.2
 
 ### Patch Changes

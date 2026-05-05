@@ -1,5 +1,12 @@
 # @curvenote/check-implementations
 
+## 0.15.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.15.1
+
 ## 0.1.3
 
 ### Patch Changes
