@@ -1,5 +1,14 @@
 # @curvenote/check-implementations
 
+## 0.1.3
+
+### Patch Changes
+
+- [`a28efe5`](https://github.com/curvenote/curvenote/commit/a28efe58b1941be0a1176643e45684f49efa5aa6) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Only check cards as links when a url field is defined fixing a fatal crash during `curvenote check`.
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes

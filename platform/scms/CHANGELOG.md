@@ -1,5 +1,20 @@
 # @curvenote/scms
 
+## 0.16.2
+
+### Patch Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`026be1d`](https://github.com/curvenote/curvenote/commit/026be1d82b01d1621ab9fb9b4b49eee572c80876) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Update text on uploads page and make header configurable
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`d3978f1`](https://github.com/curvenote/curvenote/commit/d3978f16d4b0a839fa3476eec2b90ff2543b01f9) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Removed the `pages` configuration options in favor of a `stringReplacement` dict for term replacement that can work with other dynamic content changes in the client more easily
+
+- Updated dependencies [[`05f08a7`](https://github.com/curvenote/curvenote/commit/05f08a7606a53b2ee10e48b131177f0015c4f5c6), [`d3978f1`](https://github.com/curvenote/curvenote/commit/d3978f16d4b0a839fa3476eec2b90ff2543b01f9)]:
+  - @curvenote/scms-sites-ext@0.16.2
+  - @curvenote/scms-server@0.16.2
+  - @curvenote/scms-core@0.16.2
+  - @curvenote/check-definitions@0.1.3
+  - @curvenote/scms-db@0.16.2
+
 ## 0.16.1
 
 ### Patch Changes
