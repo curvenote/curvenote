@@ -26,9 +26,12 @@ export const linksResolve: CheckInterface = {
     const error_rules = config?.error_rules?.filter((rule) => {
       return [RULE_ID, ...RULE_ALIASES].includes(rule.id);
     });
-    const linkNodes = (selectAll('link,linkBlock,card', mdast) as GenericNode[]).filter(
-      (link) => !(link.internal || link.static),
-    );
+    const linkNodes = (selectAll('link,linkBlock,card', mdast) as GenericNode[]).filter((link) => {
+      if (link.internal || link.static) return false;
+      // Cards are allowed to omit URLs; only resolve cards that explicitly provide one.
+      if (link.type === 'card' && !link.url) return false;
+      return true;
+    });
     if (linkNodes.length === 0) return [];
     const linkResults = await Promise.all(
       linkNodes.map(async (node) =>
