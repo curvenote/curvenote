@@ -101,7 +101,7 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.users.delete,
     site.users.admin,
   ]),
-  [SiteRole.SUBMITTER]: new Set([
+  [SiteRole.MEMBER]: new Set([
     site.list,
     site.read,
     site.details,

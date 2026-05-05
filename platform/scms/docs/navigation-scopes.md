@@ -11,7 +11,7 @@ When a user logs in, the system automatically computes their scopes using `getUs
 1. **System scopes**: Global permissions like `system:admin`, `platform:admin`
 2. **Site-specific scopes**: Site roles get transformed into site-qualified scopes
    - User with `ADMIN` role on `abc` site gets scope: `site:admin:abc`
-   - User with `SUBMITTER` role on `scipy` site gets scope: `site:submissions:create:scipy`
+   - User with `MEMBER` role on `scipy` site gets scope: `site:submissions:create:scipy`
 
 ## Navigation Configuration Examples
 
@@ -129,7 +129,7 @@ The system automatically maps site roles to scopes:
 | Site Role | Gets These Scopes |
 |-----------|-------------------|
 | `ADMIN` | All site scopes (full access) |
-| `SUBMITTER` | Read, create submissions and versions |
+| `MEMBER` | Read, create submissions and versions |
 | `REVIEWER` | Read-only access |
 | `AUTHOR` | Read-only access |
 | `PUBLIC` | Read-only access |

@@ -65,7 +65,7 @@ describe('userHasScope', () => {
 
   test('returns true for site: scope (inferred) when matching site role has raw scope', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.SUBMITTER)],
+      site_roles: [siteRole('mysite', SiteRole.MEMBER)],
     });
     expect(userHasScope(user, `${site.read}:mysite`)).toBe(true);
   });
@@ -80,14 +80,14 @@ describe('userHasScope', () => {
 
   test('handles malformed site: scopes (no site suffix) by returning false', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.SUBMITTER)],
+      site_roles: [siteRole('mysite', SiteRole.MEMBER)],
     });
     expect(userHasScope(user, site.read)).toBe(false);
   });
 
   test('returns true for site override branch when siteName is provided and raw scope matches', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.SUBMITTER)],
+      site_roles: [siteRole('mysite', SiteRole.MEMBER)],
     });
     // siteName override provided; scope is treated as raw
     expect(userHasScope(user, site.read, 'mysite')).toBe(true);
@@ -102,7 +102,7 @@ describe('userHasScope', () => {
 
   test('does not strip suffix in override branch; passing suffixed scope with override returns false', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.SUBMITTER)],
+      site_roles: [siteRole('mysite', SiteRole.MEMBER)],
     });
     // We pass a suffixed scope while also providing a siteName; code treats scope as raw
     expect(userHasScope(user, `${site.read}:othersite`, 'mysite')).toBe(false);
@@ -113,7 +113,7 @@ describe('userHasScopes', () => {
   test('returns true when all requested scopes are satisfied', () => {
     const user = createUser({
       roles: [roleWithScopes(['x', 'y'])],
-      site_roles: [siteRole('mysite', SiteRole.SUBMITTER)],
+      site_roles: [siteRole('mysite', SiteRole.MEMBER)],
     });
     expect(userHasScopes(user, ['x', `${site.read}:mysite`])).toBe(true);
   });

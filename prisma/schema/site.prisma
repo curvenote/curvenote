@@ -1,6 +1,6 @@
 enum SiteRole {
   ADMIN
-  SUBMITTER
+  MEMBER
   REVIEWER
   AUTHOR
   PUBLIC // Role granted to all users for public sites

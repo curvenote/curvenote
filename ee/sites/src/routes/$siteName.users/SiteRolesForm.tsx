@@ -2,10 +2,19 @@ import { useFetcher } from 'react-router';
 import { ui, type GeneralError } from '@curvenote/scms-core';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  ADMIN: 'Full access: manage all site settings, users, submissions and publishing.',
+  MEMBER:
+    'A member of the site team: can view site, make new submissions and submit new versions to any existing submission.',
+};
+
 export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolean }) {
   const form = useRef<HTMLFormElement>(null);
   const fetcher = useFetcher<{ error?: GeneralError; message?: string; info?: string }>();
   const [selectedUser, setSelectedUser] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<'ADMIN' | 'MEMBER'>(() =>
+    canGrantAdminRole ? 'ADMIN' : 'MEMBER',
+  );
 
   // Handle toast notifications
   useEffect(() => {
@@ -20,10 +29,11 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
         ui.toastSuccess(fetcher.data.info);
         // Reset form on success
         setSelectedUser('');
+        setSelectedRole(canGrantAdminRole ? 'ADMIN' : 'MEMBER');
         form.current?.reset();
       }
     }
-  }, [fetcher.state, fetcher.data]);
+  }, [fetcher.state, fetcher.data, canGrantAdminRole]);
 
   // Search function for AsyncComboBox using plain fetch
   const searchUsers = useCallback(async (query: string): Promise<ui.ComboBoxOption[]> => {
@@ -98,8 +108,29 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
         <h3 className="font-medium text-md">Add a New User or Grant a Role</h3>
       </div>
 
-      {/* Single row layout on md+ breakpoints */}
+      {/* Main controls row */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end">
+        <div className="flex-none md:min-w-[220px]">
+          <label
+            htmlFor="invite.role"
+            className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Role
+          </label>
+          <select
+            className="px-3 py-2 w-full text-sm bg-white rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+            id="invite.role"
+            name="role"
+            required
+            disabled={fetcher.state === 'submitting'}
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value as 'ADMIN' | 'MEMBER')}
+          >
+            {canGrantAdminRole && <option value="ADMIN">Admin</option>}
+            <option value="MEMBER">Member</option>
+          </select>
+        </div>
+
         <div className="flex-1">
           <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
             Search User
@@ -118,25 +149,6 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
           />
         </div>
 
-        <div className="flex-none md:min-w-[200px]">
-          <label
-            htmlFor="invite.role"
-            className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Role
-          </label>
-          <select
-            className="px-3 py-2 w-full text-sm bg-white rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-            id="invite.role"
-            name="role"
-            required
-            disabled={fetcher.state === 'submitting'}
-          >
-            {canGrantAdminRole && <option value="ADMIN">Admin</option>}
-            <option value="SUBMITTER">Submitter</option>
-          </select>
-        </div>
-
         <div className="flex-none pb-[1px]">
           <ui.StatefulButton
             type="submit"
@@ -148,6 +160,8 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
           </ui.StatefulButton>
         </div>
       </div>
+
+      <div className="text-xs text-muted-foreground">{ROLE_DESCRIPTIONS[selectedRole] ?? ''}</div>
     </form>
   );
 }
