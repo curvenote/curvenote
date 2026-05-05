@@ -1,5 +1,17 @@
 # @curvenote/scms-sites-ext
 
+## 0.16.2
+
+### Patch Changes
+
+- [#872](https://github.com/curvenote/curvenote/pull/872) [`05f08a7`](https://github.com/curvenote/curvenote/commit/05f08a7606a53b2ee10e48b131177f0015c4f5c6) Thanks [@github-actions](https://github.com/apps/github-actions)! - Added featured sites section
+
+- Updated dependencies [[`d3978f1`](https://github.com/curvenote/curvenote/commit/d3978f16d4b0a839fa3476eec2b90ff2543b01f9)]:
+  - @curvenote/scms-server@0.16.2
+  - @curvenote/scms-core@0.16.2
+  - @curvenote/check-definitions@0.1.3
+  - @curvenote/scms-db@0.16.2
+
 ## 0.16.1
 
 ### Patch Changes
