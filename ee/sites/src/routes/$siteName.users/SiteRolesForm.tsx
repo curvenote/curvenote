@@ -133,7 +133,6 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
             disabled={fetcher.state === 'submitting'}
           >
             {canGrantAdminRole && <option value="ADMIN">Admin</option>}
-            <option value="EDITOR">Editor</option>
             <option value="SUBMITTER">Submitter</option>
           </select>
         </div>
