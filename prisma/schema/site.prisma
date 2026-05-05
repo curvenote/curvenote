@@ -1,6 +1,5 @@
 enum SiteRole {
   ADMIN
-  EDITOR
   SUBMITTER
   REVIEWER
   AUTHOR
