@@ -1,5 +1,13 @@
 # @curvenote/scms-core
 
+## 0.16.3
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.15.1
+  - @curvenote/scms-db@0.16.3
+
 ## 0.16.2
 
 ### Patch Changes
