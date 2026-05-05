@@ -3,9 +3,14 @@
   "changelog": ["@changesets/changelog-github", { "repo": "curvenote/curvenote" }],
   "commit": false,
   "fixed": [
-    ["curvenote", "@curvenote/cli", "@curvenote/cli-plugin"],
+    [
+      "curvenote",
+      "@curvenote/cli",
+      "@curvenote/cli-plugin",
+      "@curvenote/check-definitions",
+      "@curvenote/check-implementations"
+    ],
     ["@curvenote/cdn", "@curvenote/common"],
-    ["@curvenote/check-definitions", "@curvenote/check-implementations"],
     [
       "@curvenote/scms-core",
       "@curvenote/scms-server",
