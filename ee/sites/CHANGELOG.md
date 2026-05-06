@@ -1,5 +1,24 @@
 # @curvenote/scms-sites-ext
 
+## 0.17.0
+
+### Minor Changes
+
+- [#878](https://github.com/curvenote/curvenote/pull/878) [`8e59ea2`](https://github.com/curvenote/curvenote/commit/8e59ea2a96d2512619a5628aacb62fb7a05fd7fd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Removed redundant REVIEWER and AUTHOR site roles
+
+- [#878](https://github.com/curvenote/curvenote/pull/878) [`8e59ea2`](https://github.com/curvenote/curvenote/commit/8e59ea2a96d2512619a5628aacb62fb7a05fd7fd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Adding MEMBER site role and moving SUBMITTER to a more restricted scope set only allowing new submissions and submission updates
+
+- [#875](https://github.com/curvenote/curvenote/pull/875) [`47bd2a2`](https://github.com/curvenote/curvenote/commit/47bd2a24fb02cd16264263f97aeb34f32586df89) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Removal of EDITOR role
+
+### Patch Changes
+
+- [#877](https://github.com/curvenote/curvenote/pull/877) [`a385414`](https://github.com/curvenote/curvenote/commit/a385414be7c8985c5b393cf5d509bbcf73f1097e) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Fix misleading text in collections UI
+
+- Updated dependencies [[`8e59ea2`](https://github.com/curvenote/curvenote/commit/8e59ea2a96d2512619a5628aacb62fb7a05fd7fd), [`8e59ea2`](https://github.com/curvenote/curvenote/commit/8e59ea2a96d2512619a5628aacb62fb7a05fd7fd), [`47bd2a2`](https://github.com/curvenote/curvenote/commit/47bd2a24fb02cd16264263f97aeb34f32586df89)]:
+  - @curvenote/scms-server@0.17.0
+  - @curvenote/scms-core@0.17.0
+  - @curvenote/scms-db@0.17.0
+
 ## 0.16.3
 
 ### Patch Changes
