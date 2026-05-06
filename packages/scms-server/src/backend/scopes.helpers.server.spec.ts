@@ -65,15 +65,15 @@ describe('userHasScope', () => {
 
   test('returns true for site: scope (inferred) when matching site role has raw scope', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.SUBMITTER)],
+      site_roles: [siteRole('mysite', SiteRole.MEMBER)],
     });
     expect(userHasScope(user, `${site.read}:mysite`)).toBe(true);
   });
 
   test('returns false for site: scope (inferred) when matching site role lacks raw scope', () => {
     const user = createUser({
-      // REVIEWER only has site.read, so choose a scope they don't have, e.g., site.update
-      site_roles: [siteRole('mysite', SiteRole.REVIEWER)],
+      // PUBLIC only has site.read, so choose a scope they don't have, e.g., site.update
+      site_roles: [siteRole('mysite', SiteRole.PUBLIC)],
     });
     expect(userHasScope(user, `${site.update}:mysite`)).toBe(false);
   });
@@ -87,7 +87,7 @@ describe('userHasScope', () => {
 
   test('returns true for site override branch when siteName is provided and raw scope matches', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.SUBMITTER)],
+      site_roles: [siteRole('mysite', SiteRole.PUBLIC)],
     });
     // siteName override provided; scope is treated as raw
     expect(userHasScope(user, site.read, 'mysite')).toBe(true);
@@ -95,7 +95,7 @@ describe('userHasScope', () => {
 
   test('returns false for site override branch when raw scope does not match', () => {
     const user = createUser({
-      site_roles: [siteRole('mysite', SiteRole.REVIEWER)],
+      site_roles: [siteRole('mysite', SiteRole.PUBLIC)],
     });
     expect(userHasScope(user, site.update, 'mysite')).toBe(false);
   });
@@ -113,7 +113,7 @@ describe('userHasScopes', () => {
   test('returns true when all requested scopes are satisfied', () => {
     const user = createUser({
       roles: [roleWithScopes(['x', 'y'])],
-      site_roles: [siteRole('mysite', SiteRole.SUBMITTER)],
+      site_roles: [siteRole('mysite', SiteRole.PUBLIC)],
     });
     expect(userHasScopes(user, ['x', `${site.read}:mysite`])).toBe(true);
   });

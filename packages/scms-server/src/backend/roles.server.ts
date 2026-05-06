@@ -101,7 +101,8 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.users.delete,
     site.users.admin,
   ]),
-  [SiteRole.SUBMITTER]: new Set([
+  [SiteRole.SUBMITTER]: new Set([site.submissions.create, site.submissions.versions.create]),
+  [SiteRole.MEMBER]: new Set([
     site.list,
     site.read,
     site.details,
@@ -114,8 +115,6 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.submissions.create,
     site.submissions.versions.create,
   ]),
-  [SiteRole.REVIEWER]: new Set([site.read]),
-  [SiteRole.AUTHOR]: new Set([site.read]),
   [SiteRole.PUBLIC]: new Set([site.read]),
   [SiteRole.UNRESTRICTED]: new Set([
     site.read,
