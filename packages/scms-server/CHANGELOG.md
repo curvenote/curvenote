@@ -1,5 +1,41 @@
 # @curvenote/scms-server
 
+## 0.17.0
+
+### Minor Changes
+
+- [#878](https://github.com/curvenote/curvenote/pull/878) [`8e59ea2`](https://github.com/curvenote/curvenote/commit/8e59ea2a96d2512619a5628aacb62fb7a05fd7fd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Removed redundant REVIEWER and AUTHOR site roles
+
+- [#878](https://github.com/curvenote/curvenote/pull/878) [`8e59ea2`](https://github.com/curvenote/curvenote/commit/8e59ea2a96d2512619a5628aacb62fb7a05fd7fd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Adding MEMBER site role and moving SUBMITTER to a more restricted scope set only allowing new submissions and submission updates
+
+- [#875](https://github.com/curvenote/curvenote/pull/875) [`47bd2a2`](https://github.com/curvenote/curvenote/commit/47bd2a24fb02cd16264263f97aeb34f32586df89) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Removal of EDITOR role
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/scms-core@0.17.0
+  - @curvenote/scms-db@0.17.0
+
+## 0.16.3
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.15.1
+  - @curvenote/scms-core@0.16.3
+  - @curvenote/scms-db@0.16.3
+
+## 0.16.2
+
+### Patch Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`d3978f1`](https://github.com/curvenote/curvenote/commit/d3978f16d4b0a839fa3476eec2b90ff2543b01f9) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Removed the `pages` configuration options in favor of a `stringReplacement` dict for term replacement that can work with other dynamic content changes in the client more easily
+
+- Updated dependencies [[`d3978f1`](https://github.com/curvenote/curvenote/commit/d3978f16d4b0a839fa3476eec2b90ff2543b01f9)]:
+  - @curvenote/scms-core@0.16.2
+  - @curvenote/check-definitions@0.1.3
+  - @curvenote/scms-db@0.16.2
+
 ## 0.16.1
 
 ### Patch Changes

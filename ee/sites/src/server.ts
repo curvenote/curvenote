@@ -3,6 +3,11 @@ import { registerRoutes } from './routes.js';
 import { extension as clientExtension } from './client.js';
 
 function getSafeAdminConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const featuredConfig =
+    config.featured && typeof config.featured === 'object'
+      ? (config.featured as Record<string, unknown>)
+      : undefined;
+
   return {
     task: config.task,
     routes: config.routes,
@@ -17,6 +22,19 @@ function getSafeAdminConfig(config: Record<string, unknown>): Record<string, unk
             thumbnail: (config.video as Record<string, unknown>).thumbnail,
           }
         : undefined,
+    featured: featuredConfig
+      ? {
+          title: featuredConfig.title,
+          description: featuredConfig.description,
+          sites: Array.isArray(featuredConfig.sites)
+            ? (featuredConfig.sites as Record<string, unknown>[]).map((site) => ({
+                title: site.title,
+                url: site.url,
+                thumbnail: site.thumbnail,
+              }))
+            : undefined,
+        }
+      : undefined,
   };
 }
 

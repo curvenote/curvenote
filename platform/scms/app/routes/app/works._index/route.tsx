@@ -15,6 +15,8 @@ import {
   getWorkflows,
   registerExtensionWorkflows,
   scopes,
+  capitalize,
+  plural,
 } from '@curvenote/scms-core';
 import type { LoaderFunctionArgs, ShouldRevalidateFunctionArgs } from 'react-router';
 import { useNavigate, data } from 'react-router';
@@ -47,6 +49,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
       return nonDraftItems;
     });
 
+    const stringReplacements = ctx.getStringReplacements();
     const workflows = getWorkflows(ctx.$config, registerExtensionWorkflows(extensions));
 
     const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
@@ -55,12 +58,14 @@ export const loader = async (args: LoaderFunctionArgs) => {
       items: worksPromise,
       workflows,
       canUpload,
+      stringReplacements,
     };
   } catch {
     return {
       items: Promise.resolve([]),
       error: 'Error fetching works',
       workflows: getWorkflows(ctx.$config, registerExtensionWorkflows(extensions)),
+      stringReplacements: ctx.getStringReplacements(),
     };
   }
 };
@@ -181,9 +186,11 @@ export async function action(args: Route.ActionArgs) {
   });
 }
 
-export const meta: Route.MetaFunction = ({ matches }) => {
+export const meta: Route.MetaFunction = ({ matches, loaderData }) => {
   const branding = getBrandingFromMetaMatches(matches);
-  return [{ title: joinPageTitle('My Works', branding.title) }];
+  const workLabel = loaderData?.stringReplacements?.work ?? 'work';
+  const worksTitle = capitalize(plural(`${workLabel}(s)`, 2));
+  return [{ title: joinPageTitle(`My ${worksTitle}`, branding.title) }];
 };
 
 export function shouldRevalidate({
@@ -204,8 +211,11 @@ export function shouldRevalidate({
 }
 
 export default function MyWorks({ loaderData }: Route.ComponentProps) {
-  const { items, workflows, error, canUpload } = loaderData;
+  const { items, workflows, error, canUpload, stringReplacements } = loaderData;
   const navigate = useNavigate();
+  const workLabel = stringReplacements.work;
+  const worksLabel = plural(`${workLabel}(s)`, 2);
+  const worksTitle = capitalize(worksLabel);
 
   const worksList = (
     <div className="max-w-[900px]">
@@ -223,9 +233,9 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
             <FrameHeader
               className="max-w-4xl"
               actionAlign="right"
-              title="My Works"
-              subtitle="Manage your works and submissions"
-              actionLabel="Create new work"
+              title={`My ${worksTitle}`}
+              subtitle={`Manage your ${worksLabel}`}
+              actionLabel={`Create new ${workLabel}`}
               actionIcon={<PlusCircle className="w-4 h-4" />}
               onAction={
                 canUpload

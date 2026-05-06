@@ -328,7 +328,6 @@ export const loader = async (args: Route.LoaderArgs) => {
       items: ctx.$config.app?.statusBar?.items as ClientStatusBarItem[] | undefined,
     },
     navigation: clientNavigation as unknown as ClientDeploymentConfig['navigation'],
-    pages: ctx.$config.app?.pages,
     strings: {
       app: {
         signupAdvice: ctx.$config.app?.strings?.signupAdvice,
@@ -449,11 +448,6 @@ export const loader = async (args: Route.LoaderArgs) => {
     'navigation.helpItem.properties.title',
     'navigation.helpItem.properties.description',
     'navigation.helpItem.properties.successMessage',
-    'pages',
-    'pages.*.path',
-    'pages.*.title',
-    'pages.*.subtitle',
-    'pages.*.description',
     'strings.app.signupAdvice',
     'strings.app.signupUrl',
     'strings.app.signupUrlText',

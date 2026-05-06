@@ -2,10 +2,23 @@ import { useFetcher } from 'react-router';
 import { ui, type GeneralError } from '@curvenote/scms-core';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
+type GrantSiteRole = 'ADMIN' | 'MEMBER' | 'SUBMITTER';
+
+const ROLE_DESCRIPTIONS: Record<GrantSiteRole, string> = {
+  ADMIN: 'Full access: manage site settings, users, submissions and publishing.',
+  MEMBER:
+    'Site/Lab Member: Can browse the site, kinds, collections, and submissions, and create new and update existig submissions. Members cannot publish submissions.',
+  SUBMITTER:
+    'Submit only: Can start new and update existing submissions on sites with restricted submissions. People with this role cannot list or view submissions or other site settings.',
+};
+
 export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolean }) {
   const form = useRef<HTMLFormElement>(null);
   const fetcher = useFetcher<{ error?: GeneralError; message?: string; info?: string }>();
   const [selectedUser, setSelectedUser] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<GrantSiteRole>(() =>
+    canGrantAdminRole ? 'ADMIN' : 'MEMBER',
+  );
 
   // Handle toast notifications
   useEffect(() => {
@@ -20,10 +33,11 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
         ui.toastSuccess(fetcher.data.info);
         // Reset form on success
         setSelectedUser('');
+        setSelectedRole(canGrantAdminRole ? 'ADMIN' : 'MEMBER');
         form.current?.reset();
       }
     }
-  }, [fetcher.state, fetcher.data]);
+  }, [fetcher.state, fetcher.data, canGrantAdminRole]);
 
   // Search function for AsyncComboBox using plain fetch
   const searchUsers = useCallback(async (query: string): Promise<ui.ComboBoxOption[]> => {
@@ -98,8 +112,30 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
         <h3 className="font-medium text-md">Add a New User or Grant a Role</h3>
       </div>
 
-      {/* Single row layout on md+ breakpoints */}
+      {/* Role first (left), user search, then Grant */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end">
+        <div className="flex-none md:min-w-[220px]">
+          <label
+            htmlFor="invite.role"
+            className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Role
+          </label>
+          <select
+            className="px-3 py-2 w-full text-sm bg-white rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+            id="invite.role"
+            name="role"
+            required
+            disabled={fetcher.state === 'submitting'}
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value as GrantSiteRole)}
+          >
+            {canGrantAdminRole && <option value="ADMIN">Admin</option>}
+            <option value="MEMBER">Member</option>
+            <option value="SUBMITTER">Submitter</option>
+          </select>
+        </div>
+
         <div className="flex-1">
           <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
             Search User
@@ -118,26 +154,6 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
           />
         </div>
 
-        <div className="flex-none md:min-w-[200px]">
-          <label
-            htmlFor="invite.role"
-            className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Role
-          </label>
-          <select
-            className="px-3 py-2 w-full text-sm bg-white rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-            id="invite.role"
-            name="role"
-            required
-            disabled={fetcher.state === 'submitting'}
-          >
-            {canGrantAdminRole && <option value="ADMIN">Admin</option>}
-            <option value="EDITOR">Editor</option>
-            <option value="SUBMITTER">Submitter</option>
-          </select>
-        </div>
-
         <div className="flex-none pb-[1px]">
           <ui.StatefulButton
             type="submit"
@@ -149,6 +165,8 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
           </ui.StatefulButton>
         </div>
       </div>
+
+      <div className="text-xs text-muted-foreground">{ROLE_DESCRIPTIONS[selectedRole] ?? ''}</div>
     </form>
   );
 }

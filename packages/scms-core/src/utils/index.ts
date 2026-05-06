@@ -16,6 +16,7 @@ export * from './platformUrls.js';
 export * from './plural.js';
 export * from './sleep.js';
 export * from './status.js';
+export * from './stringReplacements.js';
 export * from './truncate.js';
 export * from './wildcard.js';
 export * from './formatZodError.js';

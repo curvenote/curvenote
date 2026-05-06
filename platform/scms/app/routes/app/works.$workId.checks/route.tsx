@@ -1,5 +1,6 @@
 import type { Route } from './+types/route';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useRevalidator } from 'react-router';
 import {
   withSecureWorkContext,
   makeDefaultWorkVersionMetadata,
@@ -30,6 +31,8 @@ import { Timeline } from '../works.$workId.details/timeline/Timeline';
 import { TimelineSection } from '../works.$workId.details/timeline/TimelineSection';
 import { CheckServiceRunTimelineItem } from '../works.$workId.details/timeline/CheckServiceRunTimelineItem';
 import { DateWithPopover } from '../works.$workId.details/timeline/DateWithPopover';
+
+const DISPATCHING_SKELETON_MS = 1500;
 
 /** A check service run paired with the version context needed for display. */
 export type ServiceRunEntry = {
@@ -175,10 +178,15 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   const {
     work,
     latestNonDraftWorkVersion,
+    metadata,
     latestRunByServiceKind,
     previousRunsByServiceKind,
     manifestByServiceKind,
   } = loaderData;
+  const location = useLocation();
+  const revalidator = useRevalidator();
+  const dispatchingFromUpload = new URLSearchParams(location.search).get('dispatching') === '1';
+  const [showDispatchingSkeletons, setShowDispatchingSkeletons] = useState(dispatchingFromUpload);
 
   const deploymentConfig = useDeploymentConfig();
   const extensionsConfig: Record<string, { checks?: boolean }> = {};
@@ -217,6 +225,35 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     .map(({ service }) => service);
 
   const basePath = `/app/works/${work.id}`;
+  const enabledCheckKinds = metadata.checks?.enabled ?? [];
+  const enabledCheckKindSet = new Set<string>(enabledCheckKinds);
+  const hasPendingLatestRun = enabledCheckKinds.some(
+    (kind) => latestRunByServiceKind[kind]?.workVersionId !== latestNonDraftWorkVersion.id,
+  );
+  const showDispatchingState = dispatchingFromUpload && hasPendingLatestRun;
+
+  useEffect(() => {
+    if (!dispatchingFromUpload) {
+      setShowDispatchingSkeletons(false);
+      return;
+    }
+    setShowDispatchingSkeletons(true);
+    const timeout = window.setTimeout(() => {
+      setShowDispatchingSkeletons(false);
+      revalidator.revalidate();
+    }, DISPATCHING_SKELETON_MS);
+    return () => window.clearTimeout(timeout);
+  }, [dispatchingFromUpload, location.search, revalidator]);
+
+  useEffect(() => {
+    if (!showDispatchingState) return;
+    const interval = window.setInterval(() => {
+      if (revalidator.state === 'idle') {
+        revalidator.revalidate();
+      }
+    }, 2500);
+    return () => window.clearInterval(interval);
+  }, [showDispatchingState, revalidator]);
 
   const renderVersionTag = (entry: ServiceRunEntry) => {
     const variant = entry.workVersionId === latestNonDraftWorkVersion.id ? 'latest' : 'previous';
@@ -238,6 +275,17 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
       title="Checks"
       description="Results of all check services run on the work are shown below. Each type of check is shown in a separate section and the most recent run is shown at the top. Where checks have been run on mulitple versions use the timeline to explore the history."
     >
+      {showDispatchingState ? (
+        <ui.Card className="mt-4 border-primary/30 bg-primary/5">
+          <ui.CardContent className="py-4">
+            <p className="text-sm font-medium">Checks are starting</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your work has been confirmed and the selected checks are being dispatched. Results
+              will appear here as soon as each check service creates its run.
+            </p>
+          </ui.CardContent>
+        </ui.Card>
+      ) : null}
       <div className="mt-4 space-y-12">
         {sortedCheckServices.map((service) => {
           const HeaderComponent = service.sectionHeaderComponent;
@@ -245,6 +293,31 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
 
           const latest = latestRunByServiceKind[service.id];
           const previous = previousRunsByServiceKind[service.id] ?? [];
+          const isSelectedPendingService =
+            enabledCheckKindSet.has(service.id) &&
+            latest?.workVersionId !== latestNonDraftWorkVersion.id;
+
+          if (showDispatchingSkeletons && isSelectedPendingService) {
+            return (
+              <div key={service.id} className="space-y-4">
+                <ui.Card className="border-dashed">
+                  <ui.CardContent className="py-6">
+                    <div className="animate-pulse space-y-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="space-y-2">
+                          <div className="h-4 w-40 rounded bg-muted" />
+                          <div className="h-3 w-64 rounded bg-muted" />
+                        </div>
+                        <div className="h-8 w-28 rounded bg-muted" />
+                      </div>
+                      <div className="h-20 rounded bg-muted/70" />
+                    </div>
+                    <p className="mt-4 text-sm text-muted-foreground">Starting {service.name}...</p>
+                  </ui.CardContent>
+                </ui.Card>
+              </div>
+            );
+          }
 
           const runData = latest?.run.data;
           const runServiceData =

@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.15.1
+
+### Patch Changes
+
+- Updated dependencies [[`14d52df`](https://github.com/curvenote/curvenote/commit/14d52dfcf8cc6257af65c7d029cf7bd88c1b8599)]:
+  - @curvenote/cli@0.15.1
+
 ## 0.15.0
 
 ### Patch Changes

@@ -1,5 +1,30 @@
 # @curvenote/scms-core
 
+## 0.17.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/scms-db@0.17.0
+
+## 0.16.3
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.15.1
+  - @curvenote/scms-db@0.16.3
+
+## 0.16.2
+
+### Patch Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`d3978f1`](https://github.com/curvenote/curvenote/commit/d3978f16d4b0a839fa3476eec2b90ff2543b01f9) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Removed the `pages` configuration options in favor of a `stringReplacement` dict for term replacement that can work with other dynamic content changes in the client more easily
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.1.3
+  - @curvenote/scms-db@0.16.2
+
 ## 0.16.1
 
 ### Patch Changes

@@ -81,7 +81,7 @@ export default function NewWorkPage({ loaderData }: Route.ComponentProps) {
     `/app/works/${workId}/upload/${workVersionId}?from=new`;
 
   const handleResumeDraft = (draft: Pick<DraftWork, 'workId' | 'workVersionId'>) => {
-    navigate(uploadPath(draft.workId, draft.workVersionId));
+    navigate(uploadPath(draft.workId, draft.workVersionId), { replace: true });
   };
 
   const handleCreateNew = () => {
@@ -114,7 +114,7 @@ export default function NewWorkPage({ loaderData }: Route.ComponentProps) {
         fetcher.data.workId &&
         fetcher.data.workVersionId
       ) {
-        navigate(uploadPath(fetcher.data.workId, fetcher.data.workVersionId));
+        navigate(uploadPath(fetcher.data.workId, fetcher.data.workVersionId), { replace: true });
       }
     }
   }, [fetcher.state, fetcher.data, navigate]);

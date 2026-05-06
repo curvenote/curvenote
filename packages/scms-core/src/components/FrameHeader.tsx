@@ -1,8 +1,6 @@
 import React from 'react';
-import { useLocation } from 'react-router';
 import { StatefulButton } from './ui/StatefulButton.js';
 import { cn } from '../utils/cn.js';
-import { useDeploymentConfig } from '../providers/DeploymentProvider.js';
 
 interface FrameHeaderProps {
   className?: string;
@@ -29,17 +27,9 @@ export function FrameHeader({
   onAction,
   actionAlign = 'inline',
 }: FrameHeaderProps) {
-  const location = useLocation();
-  const deploymentConfig = useDeploymentConfig();
-
-  // Look up current path in pages config
-  const pageConfig = deploymentConfig.pages?.find((page) => page.path === location.pathname);
-
-  // Use page config if found, otherwise use props
-  // Page config takes precedence if both are provided
-  const title = pageConfig?.title ?? propTitle;
-  const subtitle = pageConfig?.subtitle ?? propSubtitle;
-  const description = pageConfig?.description ?? propDescription;
+  const title = propTitle;
+  const subtitle = propSubtitle;
+  const description = propDescription;
   // Apply default icon classes, allow override
   const iconWithProps =
     icon && React.isValidElement(icon)

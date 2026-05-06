@@ -1,9 +1,7 @@
 enum SiteRole {
   ADMIN
-  EDITOR
   SUBMITTER
-  REVIEWER
-  AUTHOR
+  MEMBER
   PUBLIC // Role granted to all users for public sites
   UNRESTRICTED // Role granted to all users for sites without restricted submissions
 }
@@ -12,7 +10,7 @@ model SiteUser {
   id            String   @id
   date_created  String
   date_modified String
-  role          SiteRole @default(AUTHOR)
+  role          SiteRole @default(SUBMITTER)
   site          Site     @relation(fields: [site_id], references: [id])
   site_id       String
   user          User     @relation(fields: [user_id], references: [id])
