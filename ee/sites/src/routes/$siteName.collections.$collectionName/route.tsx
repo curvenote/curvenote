@@ -226,7 +226,7 @@ export default function CollectionDetails({ loaderData }: { loaderData: LoaderDa
       <primitives.Card className="flex flex-col gap-0 p-0 mb-8" lift>
         <CollectionToggleItem
           intent="update-collection-open"
-          title="Can anyone submit to this collection?"
+          title="Can submissions be made to this collection?"
           yesText="Yes, collection is open for submissions"
           noText="No, collection is closed for submissions"
           checked={collection.open}
