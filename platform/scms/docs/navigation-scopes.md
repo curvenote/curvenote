@@ -129,9 +129,8 @@ The system automatically maps site roles to scopes:
 | Site Role | Gets These Scopes |
 |-----------|-------------------|
 | `ADMIN` | All site scopes (full access) |
-| `SUBMITTER` | Read, create submissions and versions |
-| `REVIEWER` | Read-only access |
-| `AUTHOR` | Read-only access |
+| `SUBMITTER` | Create submissions and submission versions only |
+| `MEMBER` | List/read site, kinds, collections, submissions; create submissions and versions |
 | `PUBLIC` | Read-only access |
 | `UNRESTRICTED` | Read, browse, create submissions |
 
