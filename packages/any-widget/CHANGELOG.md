@@ -1,5 +1,11 @@
 # @curvenote/any-widget
 
+## 0.2.3
+
+### Patch Changes
+
+- [#881](https://github.com/curvenote/curvenote/pull/881) [`bfb48cc`](https://github.com/curvenote/curvenote/commit/bfb48cc7ae25d98236e2443dd014c8a887b3b0a0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bump myst to v1.9.0
+
 ## 0.2.2
 
 ### Patch Changes

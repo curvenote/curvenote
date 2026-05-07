@@ -1,5 +1,12 @@
 # @curvenote/scms-tasks
 
+## 0.17.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/common@0.4.3
+
 ## 0.17.0
 
 ## 0.16.3

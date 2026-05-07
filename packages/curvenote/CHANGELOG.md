@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.15.2
+
+### Patch Changes
+
+- [#881](https://github.com/curvenote/curvenote/pull/881) [`bfb48cc`](https://github.com/curvenote/curvenote/commit/bfb48cc7ae25d98236e2443dd014c8a887b3b0a0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bump myst to v1.9.0
+
+- Updated dependencies [[`bfb48cc`](https://github.com/curvenote/curvenote/commit/bfb48cc7ae25d98236e2443dd014c8a887b3b0a0)]:
+  - @curvenote/cli@0.15.2
+
 ## 0.15.1
 
 ### Patch Changes
