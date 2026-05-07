@@ -30,7 +30,7 @@
     "lodash.isequal": "^4.5.0",
     "p-limit": "^3.1.0",
     "unist-util-select": "^4.0.3",
-    "myst-cli": "^1.8.2",
+    "myst-cli": "^1.9.0",
     "myst-common": "^1.9.5",
     "myst-frontmatter": "^1.9.5",
     "node-fetch": "^3.3.2",
