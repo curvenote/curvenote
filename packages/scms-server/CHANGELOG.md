@@ -1,5 +1,16 @@
 # @curvenote/scms-server
 
+## 0.17.1
+
+### Patch Changes
+
+- Updated dependencies [[`bfb48cc`](https://github.com/curvenote/curvenote/commit/bfb48cc7ae25d98236e2443dd014c8a887b3b0a0)]:
+  - @curvenote/scms-core@0.17.1
+  - @curvenote/cdn@0.4.3
+  - @curvenote/check-definitions@0.15.2
+  - @curvenote/common@0.4.3
+  - @curvenote/scms-db@0.17.1
+
 ## 0.17.0
 
 ### Minor Changes

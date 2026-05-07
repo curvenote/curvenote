@@ -1,5 +1,12 @@
 # @curvenote/cli-plugin
 
+## 0.15.2
+
+### Patch Changes
+
+- Updated dependencies [[`bfb48cc`](https://github.com/curvenote/curvenote/commit/bfb48cc7ae25d98236e2443dd014c8a887b3b0a0)]:
+  - @curvenote/any-widget@0.2.3
+
 ## 0.15.1
 
 ## 0.15.0
