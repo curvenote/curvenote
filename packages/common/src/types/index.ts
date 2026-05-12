@@ -133,6 +133,7 @@ export type WorkVersion = {
   doi?: string;
   collection: Pick<CollectionDTO, 'id' | 'name' | 'slug' | 'content' | 'open' | 'workflow'>;
   canonical?: boolean;
+  tags?: string[];
 };
 
 /**
@@ -244,6 +245,7 @@ export type SubmissionVersionDTO = {
   site_name: string;
   site_work: SiteWorkDTO;
   job_id?: string;
+  tags?: string[];
   links: {
     self: string;
     site: string;

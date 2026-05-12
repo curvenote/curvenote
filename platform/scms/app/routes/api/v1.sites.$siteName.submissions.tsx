@@ -24,6 +24,7 @@ const CreateSubmissionPostBodySchema = z.object({
   job_id: z.uuid().optional(),
   collection_id: z.uuid().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
+  tags: z.array(z.string().min(1).max(255)).max(64).optional(),
 });
 
 export async function loader(args: Route.LoaderArgs) {
@@ -79,6 +80,7 @@ export async function action(args: Route.ActionArgs) {
     job_id,
     collection_id,
     metadata,
+    tags,
   } = validate(CreateSubmissionPostBodySchema, body);
 
   // validate that the requested kind is included in the collection specific or the default collection
@@ -128,6 +130,7 @@ export async function action(args: Route.ActionArgs) {
       job_id,
       collection.id,
       metadata,
+      tags,
     );
     return Response.json(dto, { status: 201 });
   } catch (error: any) {

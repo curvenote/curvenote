@@ -566,22 +566,23 @@ export async function createNewSubmission(
   opts?: SubmitOpts,
   existingWork?: WorkDTO,
 ) {
+  const tags = opts?.tags && opts.tags.length > 0 ? opts.tags : undefined;
   const workResp = existingWork ?? (await getMyWorkFromKey(session, key));
   let work: WorkDTO;
   if (workResp) {
     session.log.debug(`posting new work version...`);
-    work = await postNewWorkVersion(session, workResp.links.versions, cdnKey, cdn);
+    work = await postNewWorkVersion(session, workResp.links.versions, cdnKey, cdn, { tags });
     session.log.debug(`new work posted with version id ${work.version_id}`);
   } else {
     session.log.debug(`posting new work...`);
     try {
-      work = await postNewWork(session, cdnKey, cdn, key);
+      work = await postNewWork(session, cdnKey, cdn, key, tags ? { tags } : undefined);
     } catch (err) {
       if (opts?.draft) {
         session.log.debug(
           `unable to create a work with key ${key} - attempting to create un-keyed work for draft submission`,
         );
-        work = await postNewWork(session, cdnKey, cdn);
+        work = await postNewWork(session, cdnKey, cdn, undefined, tags ? { tags } : undefined);
       } else {
         throw err;
       }
@@ -600,6 +601,8 @@ export async function createNewSubmission(
     work.version_id,
     opts?.draft ?? false,
     jobId,
+    undefined,
+    tags,
   );
 
   session.log.debug(`new submission posted with id ${submission.id}`);
@@ -635,7 +638,9 @@ export async function updateExistingSubmission(
   cdnKey: string,
   existingSubmission: SubmissionsListItemDTO,
   jobId: string,
+  opts?: SubmitOpts,
 ) {
+  const tags = opts?.tags && opts.tags.length > 0 ? opts.tags : undefined;
   session.log.debug(`existing submission - upload & post`);
   try {
     if (!existingSubmission.links.work) {
@@ -655,6 +660,7 @@ export async function updateExistingSubmission(
       workResp.links.versions,
       cdnKey,
       session.config.privateCdnUrl,
+      { tags },
     );
     if (!work.version_id) {
       throw new Error('Failed to create a work version');
@@ -668,6 +674,8 @@ export async function updateExistingSubmission(
       existingSubmission.links.versions,
       work.version_id,
       jobId,
+      undefined,
+      tags,
     );
 
     session.log.debug(`submission version posted with id ${submissionVersion.id}`);

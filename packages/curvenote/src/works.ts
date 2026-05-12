@@ -9,6 +9,7 @@ import {
   makeDraftOption,
   makeKindOption,
   makeLookupKeyOption,
+  makeTagsOption,
 } from './options.js';
 
 function makeWorksCLI() {
@@ -30,6 +31,7 @@ function makeWorksPushCLI(program: Command) {
     .addOption(makeYesOption())
     .addOption(makeResumeOption())
     .addOption(makeMaxSizeWebpOption(3))
+    .addOption(makeTagsOption())
     .action(clirun(works.push, { program, requireSiteConfig: true }));
   return command;
 }
@@ -53,6 +55,7 @@ function makeWorksRegisterCLI(program: Command) {
         'Inline JSON object or path to JSON metadata file (stored on submission version)',
       ),
     )
+    .addOption(makeTagsOption())
     .addOption(makeYesOption())
     .action(clirun(works.register, { program, skipProjectLoading: true }));
   return command;

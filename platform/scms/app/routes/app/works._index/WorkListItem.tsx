@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { formatDate, formatToNow, primitives, ui } from '@curvenote/scms-core';
+import { getTagsFromMetadata } from '@curvenote/common';
 import { ExternalLink } from 'lucide-react';
 import type { dbGetWorksAndSubmissionVersions } from './db.server';
 
@@ -63,7 +64,7 @@ export function WorkListItem({
           </div>
 
           {/* DOI Links as Badges */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             {work.doi && work.doi !== latestVersion?.doi && (
               <ui.Badge variant="outline-muted" asChild>
                 <a
@@ -102,6 +103,11 @@ export function WorkListItem({
                 Slug
               </primitives.Chip>
             )}
+            <ui.TagChips
+              tags={getTagsFromMetadata(latestVersion?.metadata ?? latestWorkVersion?.metadata)}
+              limit={6}
+              titlePrefix="Tag"
+            />
           </div>
           {/* Show SubmissionVersionBadge for each submission with latest version */}
           <div className="flex flex-wrap gap-2 mt-2">

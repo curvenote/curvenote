@@ -13,6 +13,7 @@ export type SubmitOpts = BaseOpts & {
   new?: boolean;
   skipRebuild?: boolean;
   execute?: boolean;
+  tags?: string[];
 };
 
 export type JobResponse = {
@@ -58,12 +59,14 @@ export interface CreateSubmissionBody {
   draft: boolean;
   job_id?: string;
   metadata?: Record<string, any>;
+  tags?: string[];
 }
 
 export interface UpdateSubmissionBody {
   work_version_id: string;
   job_id?: string;
   metadata?: Record<string, any>;
+  tags?: string[];
 }
 
 export interface CreateCliCheckJobPostBody {

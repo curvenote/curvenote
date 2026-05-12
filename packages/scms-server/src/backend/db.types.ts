@@ -173,6 +173,7 @@ export type CreateWorkVersion = {
   cdn?: string | null;
   cdn_key?: string | null;
   metadata?: Record<string, any> | null;
+  tags?: string[];
   contains?: string[];
 };
 

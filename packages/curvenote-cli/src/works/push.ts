@@ -33,12 +33,15 @@ export async function postNewWork(
     cdn?: string;
     cdn_key?: string;
     metadata?: Record<string, any>;
+    tags?: string[];
   },
 ): Promise<WorkDTO> {
   const toc = tic();
 
   session.log.debug(
-    `POST to ${session.config?.apiUrl}/works with cdnKey: ${cdnKey}, cdn: ${cdn}${key ? `, key: ${key}` : ''}...`,
+    `POST to ${session.config?.apiUrl}/works with cdnKey: ${cdnKey}, cdn: ${cdn}${
+      key ? `, key: ${key}` : ''
+    }...`,
   );
   const body = {
     ...(cdnKey ? { cdn_key: cdnKey } : {}),
@@ -67,6 +70,10 @@ export async function postNewWorkVersion(
   versionsUrl: string,
   cdnKey: string,
   cdn: string,
+  extra?: {
+    metadata?: Record<string, any>;
+    tags?: string[];
+  },
 ): Promise<WorkDTO> {
   const toc = tic();
 
@@ -75,6 +82,8 @@ export async function postNewWorkVersion(
     cdn_key: cdnKey,
     cdn,
     contains: ['myst'],
+    ...(extra?.metadata ? { metadata: extra.metadata } : {}),
+    ...(extra?.tags && extra.tags.length > 0 ? { tags: extra.tags } : {}),
   });
   session.log.debug(`${resp.status} ${resp.statusText}`);
 
@@ -106,6 +115,7 @@ export async function postNewWorkVersionFromMetadata(
     contains?: string[];
     cdn?: string;
     cdn_key?: string;
+    tags?: string[];
   },
 ): Promise<WorkDTO> {
   const toc = tic();
@@ -164,15 +174,16 @@ export async function push(session: ISession, opts?: PushOpts) {
     const cdn = opts?.public ? session.config.publicCdnUrl : session.config.privateCdnUrl;
     const cdnKey = await uploadAndGetCdnKey(session, cdn, opts);
 
+    const tags = opts?.tags && opts.tags.length > 0 ? opts.tags : undefined;
     const workResp = await getMyWorkFromKey(session, key);
     let work: WorkDTO;
     if (workResp) {
       session.log.debug(`posting new work version...`);
-      work = await postNewWorkVersion(session, workResp.links.versions, cdnKey, cdn);
+      work = await postNewWorkVersion(session, workResp.links.versions, cdnKey, cdn, { tags });
       session.log.debug(`new work posted with version id ${work.version_id}`);
     } else {
       session.log.debug(`posting new work...`);
-      work = await postNewWork(session, cdnKey, cdn, key);
+      work = await postNewWork(session, cdnKey, cdn, key, tags ? { tags } : undefined);
       session.log.debug(`new work posted with id ${work.id}`);
     }
     if (!work.version_id) {
@@ -188,7 +199,9 @@ export async function push(session: ISession, opts?: PushOpts) {
     };
     session.log.info(
       chalk.bold.green(
-        `📄 ${opts?.public ? 'Public' : 'Private'} work ${workResp ? 'updated' : 'created'} for key ${key}!`,
+        `📄 ${opts?.public ? 'Public' : 'Private'} work ${
+          workResp ? 'updated' : 'created'
+        } for key ${key}!`,
       ),
     );
     writeJsonLogs(session, 'curvenote.push.json', pushLog);

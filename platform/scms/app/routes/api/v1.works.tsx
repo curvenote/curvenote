@@ -8,7 +8,7 @@ import {
   works,
   getPrismaClient,
 } from '@curvenote/scms-server';
-import { formatDate } from '@curvenote/common';
+import { formatDate, setTagsOnMetadata } from '@curvenote/common';
 import { ActivityType, WorkRole } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 
@@ -51,6 +51,7 @@ export const CreateWorkPostBodySchema = z
     canonical: z.boolean().optional(),
     contains: z.array(z.string().min(1)).optional(),
     metadata: z.record(z.string(), z.any()).optional(),
+    tags: z.array(z.string().min(1).max(255)).max(64).optional(),
   })
   .superRefine((body, ctx) => {
     const hasCdnPair = !!body.cdn && !!body.cdn_key;
@@ -86,6 +87,7 @@ async function dbCreateManualWorkAndVersion(
     cdn?: string;
     cdn_key?: string;
     metadata?: Record<string, any>;
+    tags?: string[];
   },
   key?: string,
   contains: string[] = [],
@@ -119,7 +121,7 @@ async function dbCreateManualWorkAndVersion(
               canonical: data.canonical ?? null,
               cdn: data.cdn ?? null,
               cdn_key: data.cdn_key ?? null,
-              metadata: data.metadata ?? undefined,
+              metadata: setTagsOnMetadata(data.metadata, data.tags) ?? undefined,
             },
           ],
         },

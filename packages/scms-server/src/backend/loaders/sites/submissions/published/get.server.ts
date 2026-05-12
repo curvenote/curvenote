@@ -1,7 +1,7 @@
 import type { SiteContext } from '../../../../context.site.server.js';
 import type { HostSpec, SiteWorkDTO } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
-import { formatDate } from '@curvenote/common';
+import { formatDate, getTagsFromMetadata } from '@curvenote/common';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
 import { formatCollectionSummaryDTO } from '../../get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../../kinds/get.server.js';
@@ -70,7 +70,9 @@ export type ModifiedSiteWorkDTO = Omit<SiteWorkDTO, 'links' | 'cdn' | 'cdn_key'>
   cdn_key?: string;
 };
 export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkDTO {
-  const { cdn_key, cdn, title, description, canonical, authors, date_created } = dbo.work_version;
+  const { cdn_key, cdn, title, description, canonical, authors, date_created, metadata } =
+    dbo.work_version;
+  const tags = getTagsFromMetadata(metadata);
   const submission_version_id = dbo.id;
   const version_id = dbo.work_version.id;
   const work_id = dbo.work_version.work_id;
@@ -119,6 +121,7 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkD
     description: description || undefined,
     authors: authors.map((a) => ({ name: a })),
     canonical: canonical ? true : false,
+    tags,
     date_created: formatDate(date_created),
     date: dbo.submission.date_published ?? undefined,
     date_published: dbo.submission.date_published ?? undefined,

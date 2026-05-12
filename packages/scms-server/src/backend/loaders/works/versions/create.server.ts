@@ -1,5 +1,5 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import { formatDate } from '@curvenote/common';
+import { formatDate, setTagsOnMetadata } from '@curvenote/common';
 import type { Context } from '../../../context.server.js';
 import type { CreateWorkVersion } from '../../../db.types.js';
 import { getPrismaClient } from '../../../prisma.server.js';
@@ -47,7 +47,7 @@ export async function dbCreateWorkVersionAndUpdateWork(
               date: data.date,
               doi: data.doi,
               canonical: data.canonical,
-              metadata: data.metadata ?? undefined,
+              metadata: setTagsOnMetadata(data.metadata, data.tags) ?? undefined,
             },
           ],
         },

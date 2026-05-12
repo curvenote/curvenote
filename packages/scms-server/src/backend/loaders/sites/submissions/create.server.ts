@@ -2,7 +2,7 @@ import type { ClientExtension } from '@curvenote/scms-core';
 import { error401, TrackEvent, asSiteSubmissionUrl } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { formatSubmissionDTO } from './get.server.js';
-import { formatDate } from '@curvenote/common';
+import { formatDate, setTagsOnMetadata } from '@curvenote/common';
 import type { UserDBO } from '../../../db.types.js';
 import { ActivityType } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
@@ -27,6 +27,7 @@ export async function dbCreateNewSubmission(
   jobId?: string,
   collectionId?: string,
   metadata?: Record<string, any>,
+  tags?: string[],
 ) {
   // creating a new submission entry as a nested query in a submissionHistory
   // means it will be created in the same transaction
@@ -49,7 +50,7 @@ export async function dbCreateNewSubmission(
           },
         },
         status: draft ? 'DRAFT' : 'PENDING',
-        metadata: metadata ?? undefined,
+        metadata: setTagsOnMetadata(metadata, tags) ?? undefined,
         work_version: {
           connect: {
             id: workVersionId,
@@ -182,6 +183,7 @@ export default async function create(
   jobId?: string,
   collectionId?: string,
   metadata?: Record<string, any>,
+  tags?: string[],
 ) {
   if (!ctx.user) throw error401(); // ctx.secure()
   // TODO - check does site allow anonymous submissions?
@@ -196,6 +198,7 @@ export default async function create(
     jobId,
     collectionId,
     metadata,
+    tags,
   );
 
   await ctx.trackEvent(TrackEvent.SUBMISSION_CREATED, {

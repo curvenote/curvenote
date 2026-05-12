@@ -1,4 +1,6 @@
 import { Globe, Send } from 'lucide-react';
+import { ui } from '@curvenote/scms-core';
+import { getTagsFromMetadata } from '@curvenote/common';
 import { TimelineItemPlain } from './TimelineItem';
 import { DateWithPopover } from './DateWithPopover';
 import type { WorkVersionWithSubmissionVersions } from '../../works.$workId/types';
@@ -41,5 +43,11 @@ export function SubmissionTimelineItem({ submissionVersion }: SubmissionTimeline
     />
   );
 
-  return <TimelineItemPlain icon={icon} message={message} date={date} />;
+  const tags = getTagsFromMetadata(submissionVersion.metadata);
+  const trailing =
+    tags.length > 0 ? (
+      <ui.TagChips tags={tags} limit={4} titlePrefix="Submission tag" />
+    ) : undefined;
+
+  return <TimelineItemPlain icon={icon} message={message} date={date} trailing={trailing} />;
 }

@@ -2,7 +2,7 @@ import type { ClientExtension } from '@curvenote/scms-core';
 import { error401, TrackEvent, asSiteSubmissionUrl, asSiteWorkUrl } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import { formatSubmissionVersionDTO } from './get.server.js';
-import { formatDate } from '@curvenote/common';
+import { formatDate, setTagsOnMetadata } from '@curvenote/common';
 import { ActivityType } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 import type { SiteContext } from '../../../../context.site.server.js';
@@ -25,6 +25,7 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
   workVersionId: string,
   jobId?: string,
   metadata?: Record<string, any>,
+  tags?: string[],
 ) {
   if (!ctx.user) throw error401();
   const user = ctx.user;
@@ -47,7 +48,7 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
           },
         },
         status: workflow.initialState,
-        metadata: metadata ?? undefined,
+        metadata: setTagsOnMetadata(metadata, tags) ?? undefined,
         work_version: {
           connect: {
             id: workVersionId,
@@ -125,6 +126,7 @@ export default async function (
   workVersionId: string,
   jobId?: string,
   metadata?: Record<string, any>,
+  tags?: string[],
 ) {
   if (!ctx.user) throw error401();
   const dbo = await dbCreateNewSubmissionVersionOnExistingSubmission(
@@ -134,6 +136,7 @@ export default async function (
     workVersionId,
     jobId,
     metadata,
+    tags,
   );
 
   await ctx.trackEvent(TrackEvent.SUBMISSION_VERSION_CREATED, {

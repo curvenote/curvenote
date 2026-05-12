@@ -15,6 +15,7 @@ const CreateSubmissionVersionPostBodySchema = z.object({
   work_version_id: z.uuid(),
   job_id: z.uuid().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
+  tags: z.array(z.string().min(1).max(255)).max(64).optional(),
 });
 
 const ParamsSchema = z.object({
@@ -48,7 +49,7 @@ export async function action(args: Route.ActionArgs) {
     throw httpError(405, 'Method Not Allowed');
   }
   const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
-  const { work_version_id, job_id, metadata } = validate(
+  const { work_version_id, job_id, metadata, tags } = validate(
     CreateSubmissionVersionPostBodySchema,
     body,
   );
@@ -67,6 +68,7 @@ export async function action(args: Route.ActionArgs) {
     work_version_id,
     job_id,
     metadata,
+    tags,
   );
   return Response.json(dto, { status: 201 });
 }

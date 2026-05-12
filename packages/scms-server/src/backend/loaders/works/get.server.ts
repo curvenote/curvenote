@@ -1,5 +1,5 @@
 import { doi } from 'doi-utils';
-import { formatDate, type WorkDTO } from '@curvenote/common';
+import { formatDate, getTagsFromMetadata, type WorkDTO } from '@curvenote/common';
 import type { Context } from '../../context.server.js';
 import type { UserDBO, WorkVersionDBO, WorkDBO } from '../../db.types.js';
 import { formatAuthorDTO } from '../../format.server.js';
@@ -55,6 +55,7 @@ export function formatWorkDTO(
     authors: version.authors.map((a) => formatAuthorDTO(a)),
     date: version.date ? formatDate(version.date) : undefined,
     canonical: version.canonical ?? undefined,
+    tags: getTagsFromMetadata(version.metadata),
     links: {
       self: `${ctx.asApiUrl(`/works/${work.id}`)}${query}`,
       versions: `${ctx.asApiUrl(`/works/${work.id}/versions`)}${query}`,
