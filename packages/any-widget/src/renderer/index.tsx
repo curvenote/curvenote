@@ -1,6 +1,7 @@
 import type { NodeRenderers } from '@myst-theme/providers';
 import { AnyWidgetRenderer } from './renderers.js';
 
+export * from './analytics.js';
 export * from './models.js';
 export * from '../types.js';
 
