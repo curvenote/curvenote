@@ -28,7 +28,7 @@ export async function loader(args: Route.LoaderArgs) {
     const backend = new StorageBackend(ctx);
     const summary = backend.summarise();
     return { summary, sites, storageConfigured: true };
-  } catch (e) {
+  } catch {
     return { summary: null, sites, storageConfigured: false };
   }
 }
@@ -131,6 +131,7 @@ async function actionManageSubmissions(ctx: Context, formData: FormData) {
                 pub: await pub.exists(),
               };
 
+              const cdnKey = v.work_version.cdn_key;
               return {
                 ...v,
                 reference_cdn_warning:
@@ -155,12 +156,19 @@ async function actionManageSubmissions(ctx: Context, formData: FormData) {
                     backend.knownBucketFromCDN(v.work_version.cdn) !== KnownBuckets.pub,
                 },
                 locations,
-                links: {
-                  tmp: backend.consoleUrl(KnownBuckets.tmp, v.work_version.cdn_key),
-                  cdn: backend.consoleUrl(KnownBuckets.cdn, v.work_version.cdn_key),
-                  prv: backend.consoleUrl(KnownBuckets.prv, v.work_version.cdn_key),
-                  pub: backend.consoleUrl(KnownBuckets.pub, v.work_version.cdn_key),
-                },
+                links: cdnKey
+                  ? {
+                      tmp: backend.consoleUrl(KnownBuckets.tmp, cdnKey),
+                      cdn: backend.consoleUrl(KnownBuckets.cdn, cdnKey),
+                      prv: backend.consoleUrl(KnownBuckets.prv, cdnKey),
+                      pub: backend.consoleUrl(KnownBuckets.pub, cdnKey),
+                    }
+                  : {
+                      tmp: null,
+                      cdn: null,
+                      prv: null,
+                      pub: null,
+                    },
               };
             }),
           ),
@@ -518,10 +526,10 @@ function Versions({
       pub: boolean;
     };
     links: {
-      tmp: string;
-      cdn: string;
-      prv: string;
-      pub: string;
+      tmp: string | null;
+      cdn: string | null;
+      prv: string | null;
+      pub: string | null;
     };
   })[];
   site: Awaited<ReturnType<typeof sitesLoader.list>>['items'][0];
@@ -564,34 +572,40 @@ function Versions({
               </td>
               <td className="px-2 py-1 text-bold">{v.status}</td>
               <td className="px-2 py-1 text-center">
-                {v.locations.tmp ? (
+                {v.locations.tmp && v.links.tmp ? (
                   <span className="font-bold text-green-600 underline">
                     <a href={v.links.tmp} target="_blank">
                       found
                     </a>
                   </span>
+                ) : v.locations.tmp ? (
+                  <span className="font-bold text-green-600">found</span>
                 ) : (
                   '-'
                 )}
               </td>
               <td className="px-2 py-1 text-center">
-                {v.locations.cdn ? (
+                {v.locations.cdn && v.links.cdn ? (
                   <span className="font-bold text-green-600 underline">
                     <a href={v.links.cdn} target="_blank">
                       found
                     </a>
                   </span>
+                ) : v.locations.cdn ? (
+                  <span className="font-bold text-green-600">found</span>
                 ) : (
                   '-'
                 )}
               </td>
               <td className="px-2 py-1 text-center">
-                {v.locations.prv ? (
+                {v.locations.prv && v.links.prv ? (
                   <span className="font-bold text-green-600 underline">
                     <a href={v.links.prv} target="_blank">
                       found
                     </a>
                   </span>
+                ) : v.locations.prv ? (
+                  <span className="font-bold text-green-600">found</span>
                 ) : v.can_publish.prv ? (
                   <CopyToCDN workVersion={v.work_version} fromBucket={fromBucket} toBucket="prv" />
                 ) : (
@@ -599,12 +613,14 @@ function Versions({
                 )}
               </td>
               <td className="px-2 py-1 text-center">
-                {v.locations.pub ? (
+                {v.locations.pub && v.links.pub ? (
                   <span className="font-bold text-green-600 underline">
                     <a href={v.links.pub} target="_blank">
                       found
                     </a>
                   </span>
+                ) : v.locations.pub ? (
+                  <span className="font-bold text-green-600">found</span>
                 ) : v.can_publish.pub ? (
                   <CopyToCDN workVersion={v.work_version} fromBucket={fromBucket} toBucket="pub" />
                 ) : (

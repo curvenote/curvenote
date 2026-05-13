@@ -133,7 +133,11 @@ export async function $actionEditLogo(ctx: SiteContext, formData: FormData) {
     if (intent === INTENTS.logoUpdate) {
       const logoPath = formData.get('logoPath') as string;
       const publicCdn = ctx.$config.api.knownBucketInfoMap.pub.cdn;
-      updatedMetadata.logo = `${publicCdn}/${logoPath}`;
+      if (publicCdn) {
+        updatedMetadata.logo = `${publicCdn.replace(/\/+$/, '')}/${logoPath.replace(/^\/+/, '')}`;
+      } else {
+        updatedMetadata.logo = logoPath;
+      }
     } else if (intent === INTENTS.logoRemove) {
       delete updatedMetadata.logo;
     }
