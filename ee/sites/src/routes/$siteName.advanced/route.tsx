@@ -366,6 +366,7 @@ function ServiceAccountTokens({ tokens }: { tokens: TokenDTO[] }) {
                 disabled={createFetcher.state === 'submitting'}
               >
                 <option value="NEVER">Never expires</option>
+                <option value="ONE_YEAR">1 year</option>
                 <option value="NINETY_DAYS">90 days</option>
                 <option value="SIXTY_DAYS">60 days</option>
                 <option value="THIRTY_DAYS">30 days</option>
