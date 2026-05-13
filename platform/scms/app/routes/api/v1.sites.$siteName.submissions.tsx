@@ -43,14 +43,20 @@ export async function loader(args: Route.LoaderArgs) {
     limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!) : undefined,
     page: url.searchParams.get('page') ? parseInt(url.searchParams.get('page')!) : undefined,
   });
-  const dto = await sites.submissions.list(ctx, extensions, {
-    work: key ? { is: { key } } : undefined,
-    collection: collectionIdOrSlug
-      ? {
-          OR: [{ id: collectionIdOrSlug }, { slug: collectionIdOrSlug }],
-        }
-      : undefined,
-  }, (page ?? 0) * limit, limit);
+  const dto = await sites.submissions.list(
+    ctx,
+    extensions,
+    {
+      work: key ? { is: { key } } : undefined,
+      collection: collectionIdOrSlug
+        ? {
+            OR: [{ id: collectionIdOrSlug }, { slug: collectionIdOrSlug }],
+          }
+        : undefined,
+    },
+    (page ?? 0) * limit,
+    limit,
+  );
 
   return Response.json(dto);
 }

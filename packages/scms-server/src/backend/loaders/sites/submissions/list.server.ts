@@ -74,7 +74,10 @@ export async function dbListSubmissions(
   });
 }
 
-async function dbCountSubmissions(where: Prisma.SubmissionWhereInput, tx?: Prisma.TransactionClient) {
+async function dbCountSubmissions(
+  where: Prisma.SubmissionWhereInput,
+  tx?: Prisma.TransactionClient,
+) {
   const prisma = await getPrismaClient();
   return (tx ?? prisma).submission.count({
     where: withHasVersions(where),

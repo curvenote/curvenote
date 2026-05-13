@@ -48,7 +48,10 @@ export async function action(args: Route.ActionArgs) {
     throw httpError(405, 'Method Not Allowed');
   }
   const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
-  const { work_version_id, job_id, metadata } = validate(CreateSubmissionVersionPostBodySchema, body);
+  const { work_version_id, job_id, metadata } = validate(
+    CreateSubmissionVersionPostBodySchema,
+    body,
+  );
   // Ensure new work version is on the same work as previous submissions
   const workVersion = await works.versions.dbGetWorkVersion(ctx.work.id, work_version_id);
   if (!workVersion) {
