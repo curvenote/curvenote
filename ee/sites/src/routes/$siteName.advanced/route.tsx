@@ -305,8 +305,8 @@ type TokenDTO = LoaderData['serviceAccount']['tokens'][number];
 
 type TokenResponse = { error: string } | ({ token: string } & TokenDTO) | { count: number };
 
-function isTokenSuccess(data: TokenResponse): data is { token: string } & TokenDTO {
-  return typeof data === 'object' && data != null && 'token' in data;
+function isTokenSuccess(resp: TokenResponse): resp is { token: string } & TokenDTO {
+  return typeof resp === 'object' && resp != null && 'token' in resp;
 }
 
 function ServiceAccountTokens({ tokens }: { tokens: TokenDTO[] }) {
