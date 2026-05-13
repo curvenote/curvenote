@@ -16,9 +16,11 @@ export const CreateMystWorkPostBodySchema = z.object({
   cdn: z.url({
     error: (issue) => (issue.input === undefined ? 'cdn is required (url)' : undefined),
   }),
-  cdn_key: z.uuid({
-    error: (issue) => (issue.input === undefined ? 'cdn_key is required (uuid)' : undefined),
-  }),
+  cdn_key: z
+    .string({
+      error: (issue) => (issue.input === undefined ? 'cdn_key is required (string)' : undefined),
+    })
+    .min(1, { error: 'cdn_key must be a non-empty string' }),
   key: z
     .string({
       error: (issue) =>
@@ -33,7 +35,7 @@ export const CreateMystWorkPostBodySchema = z.object({
 export const CreateWorkPostBodySchema = z
   .object({
     cdn: z.url().optional(),
-    cdn_key: z.uuid().optional(),
+    cdn_key: z.string().min(1).optional(),
     key: z
       .string()
       .min(8, { error: 'key must be at least 8 characters' })
