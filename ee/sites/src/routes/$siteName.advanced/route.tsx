@@ -1,6 +1,11 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { data, useFetcher } from 'react-router';
-import { withAppSiteContext, userHasSiteScope, validateFormData } from '@curvenote/scms-server';
+import {
+  withAppSiteContext,
+  userHasSiteScope,
+  validateFormData,
+  createUserToken,
+} from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import {
   SystemAdminBadge,
@@ -13,7 +18,6 @@ import {
   joinPageTitle,
   error404,
 } from '@curvenote/scms-core';
-import { createUserToken } from '@curvenote/scms-server';
 import {
   actionSaveSiteRestriction,
   actionUpdateSiteByJson,
@@ -27,7 +31,7 @@ import { getSiteWithAppData } from '../../backend/db.server.js';
 import type { SiteWithAppData } from '../../backend/db.server.js';
 import { formatDistanceToNow } from 'date-fns';
 import type { FormEvent } from 'react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import {
@@ -298,10 +302,7 @@ export default function Settings({ loaderData }: { loaderData: LoaderData }) {
 
 type TokenDTO = LoaderData['serviceAccount']['tokens'][number];
 
-type TokenResponse =
-  | { error: string }
-  | ({ token: string } & TokenDTO)
-  | { count: number };
+type TokenResponse = { error: string } | ({ token: string } & TokenDTO) | { count: number };
 
 function isTokenSuccess(data: TokenResponse): data is { token: string } & TokenDTO {
   return typeof data === 'object' && data != null && 'token' in data;
@@ -310,9 +311,14 @@ function isTokenSuccess(data: TokenResponse): data is { token: string } & TokenD
 function ServiceAccountTokens({ tokens }: { tokens: TokenDTO[] }) {
   const createFetcher = useFetcher<TokenResponse>();
   const deleteFetcher = useFetcher<TokenResponse>();
+  const [deletingTokenId, setDeletingTokenId] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const preRef = useRef<HTMLPreElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (deleteFetcher.state === 'idle') setDeletingTokenId(null);
+  }, [deleteFetcher.state]);
 
   const copyToClipboard = useCallback(() => {
     if (!createFetcher.data || !isTokenSuccess(createFetcher.data)) return;
@@ -347,7 +353,7 @@ function ServiceAccountTokens({ tokens }: { tokens: TokenDTO[] }) {
                 name="description"
                 label=""
                 placeholder="Token description"
-                  disabled={createFetcher.state === 'submitting'}
+                disabled={createFetcher.state === 'submitting'}
                 required
               />
             </div>
@@ -385,44 +391,44 @@ function ServiceAccountTokens({ tokens }: { tokens: TokenDTO[] }) {
           createFetcher.state === 'idle' &&
           createFetcher.data &&
           isTokenSuccess(createFetcher.data) && (
-          <primitives.Card className="mt-4 py-4 space-y-4 text-green-900 bg-green-100 border border-green-600 dark:bg-green-950 dark:text-green-200">
-            <h4 className="font-bold">Copy Token Now</h4>
-            <p className="mb-2">
-              Make sure to copy your <strong>"{createFetcher.data.description}"</strong> token now.
-              You won't be able to see it again.
-            </p>
-            <pre
-              className="p-4 font-mono break-words border border-green-900 dark:border-green-100 text-wrap"
-              ref={preRef}
-              onClick={handleSelectText}
-            >
-              {createFetcher.data.token}
-            </pre>
-            <div className="flex justify-end gap-2">
-              <ui.Button
-                variant="outline"
-                type="button"
-                onClick={() => {
-                  formRef.current?.reset();
-                  setDone(true);
-                }}
+            <primitives.Card className="py-4 mt-4 space-y-4 text-green-900 bg-green-100 border border-green-600 dark:bg-green-950 dark:text-green-200">
+              <h4 className="font-bold">Copy Token Now</h4>
+              <p className="mb-2">
+                Make sure to copy your <strong>"{createFetcher.data.description}"</strong> token
+                now. You won't be able to see it again.
+              </p>
+              <pre
+                className="p-4 font-mono break-words border border-green-900 dark:border-green-100 text-wrap"
+                ref={preRef}
+                onClick={handleSelectText}
               >
-                Done
-              </ui.Button>
-              <ui.Button type="button" onClick={copyToClipboard}>
-                Copy
-              </ui.Button>
-            </div>
-          </primitives.Card>
-        )}
+                {createFetcher.data.token}
+              </pre>
+              <div className="flex gap-2 justify-end">
+                <ui.Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => {
+                    formRef.current?.reset();
+                    setDone(true);
+                  }}
+                >
+                  Done
+                </ui.Button>
+                <ui.Button type="button" onClick={copyToClipboard}>
+                  Copy
+                </ui.Button>
+              </div>
+            </primitives.Card>
+          )}
       </primitives.Card>
 
       {tokens.length > 0 && (
         <primitives.Card lift>
           <ul className="divide-y divide-stone-600 dark:divide-stone-300">
             {tokens.map((token) => (
-              <li key={token.id} className="py-4 px-4">
-                <div className="flex items-center justify-between">
+              <li key={token.id} className="px-4 py-4">
+                <div className="flex justify-between items-center">
                   <div>
                     <h4 className="m-0">{token.description}</h4>
                     <p
@@ -435,7 +441,7 @@ function ServiceAccountTokens({ tokens }: { tokens: TokenDTO[] }) {
                     >
                       <span>
                         {token.expired && token.date_expires && (
-                          <span className="font-medium text-red-400 ">
+                          <span className="font-medium text-red-400">
                             Expired: {formatDate(token.date_expires)}
                           </span>
                         )}
@@ -458,6 +464,7 @@ function ServiceAccountTokens({ tokens }: { tokens: TokenDTO[] }) {
                       method="POST"
                       onSubmit={(e: FormEvent<HTMLFormElement>) => {
                         e.preventDefault();
+                        if (deleteFetcher.state === 'submitting') return;
                         const formData = {
                           formAction: 'delete-service-token',
                           tokenId: token.id,
@@ -466,6 +473,7 @@ function ServiceAccountTokens({ tokens }: { tokens: TokenDTO[] }) {
                           token.expired ||
                           confirm(`Are you sure you want to delete "${token.description}" token?`)
                         ) {
+                          setDeletingTokenId(token.id);
                           deleteFetcher.submit(formData, { method: 'POST' });
                         }
                       }}
@@ -473,7 +481,8 @@ function ServiceAccountTokens({ tokens }: { tokens: TokenDTO[] }) {
                       <ui.StatefulButton
                         type="submit"
                         variant="outline"
-                        busy={deleteFetcher.state === 'submitting'}
+                        busy={deleteFetcher.state === 'submitting' && deletingTokenId === token.id}
+                        disabled={deleteFetcher.state === 'submitting'}
                         busyMessage="Deleting..."
                       >
                         Delete
