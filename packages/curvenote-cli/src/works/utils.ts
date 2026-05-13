@@ -172,6 +172,16 @@ export async function getWorkFromKey(session: ISession, key: string): Promise<Wo
   }
 }
 
+export async function getWorksFromDoi(session: ISession, doi: string): Promise<WorkDTO[]> {
+  try {
+    session.log.debug(`GET from journals API /my/works?doi=${doi}`);
+    const resp = await getFromJournals(session, `/my/works?doi=${encodeURIComponent(doi)}`);
+    return resp.items ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Prompt user for a new work key
  *

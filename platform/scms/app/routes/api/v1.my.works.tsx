@@ -5,7 +5,8 @@ export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAPISecureContext(args);
   const url = new URL(args.request.url);
   const key = url.searchParams.get('key');
-  const where = key ? { key } : {};
+  const doi = url.searchParams.get('doi');
+  const where = key ? { key } : doi ? { doi } : {};
   const dto = await my.works.list(ctx, where);
   return Response.json(dto);
 }

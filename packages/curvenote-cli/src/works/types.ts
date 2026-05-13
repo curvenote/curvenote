@@ -13,6 +13,7 @@ export type RegisterWorkOpts = BaseOpts & {
   draft?: boolean;
   metadata?: string;
   source?: string;
+  new?: boolean;
 };
 
 export type WorkPushLog = BaseLog & {

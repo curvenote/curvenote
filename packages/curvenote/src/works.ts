@@ -42,6 +42,7 @@ function makeWorksRegisterCLI(program: Command) {
     .addOption(makeCollectionOption())
     .addOption(makeDraftOption())
     .addOption(new Option('--key <string>', 'Optional stable work key'))
+    .addOption(new Option('--new', 'Create a new work even if a DOI match exists'))
     .addOption(new Option('--source <string>', 'Source label that is written to work.contains'))
     .addOption(
       new Option('--metadata <json-or-file>', 'Inline JSON object or path to JSON metadata file'),

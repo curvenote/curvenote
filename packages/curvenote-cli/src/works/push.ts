@@ -85,6 +85,36 @@ export async function postNewWorkVersion(
   }
 }
 
+export async function postNewWorkVersionFromMetadata(
+  session: ISession,
+  versionsUrl: string,
+  metadata: {
+    title?: string;
+    description?: string;
+    authors?: string[];
+    author_details?: Record<string, any>[];
+    doi?: string;
+    date?: string;
+    canonical?: boolean;
+    metadata?: Record<string, any>;
+    contains?: string[];
+  },
+): Promise<WorkDTO> {
+  const toc = tic();
+  session.log.debug(`POST to ${versionsUrl} with metadata-only work version...`);
+  const resp = await postToUrl(session, `${versionsUrl}`, metadata);
+  session.log.debug(`${resp.status} ${resp.statusText}`);
+  if (resp.ok) {
+    const json = (await resp.json()) as WorkDTO;
+    const { id, version_id } = json;
+    session.log.info(toc(`🚀 Created a new work version in %s.`));
+    session.log.debug(`Work Id: ${id}`);
+    session.log.debug(`Work Version Id: ${version_id}`);
+    return json;
+  }
+  throw new Error('Posting new version of the work failed');
+}
+
 /**
  * Push a new work or new version of work based on myst contents in a folder
  *

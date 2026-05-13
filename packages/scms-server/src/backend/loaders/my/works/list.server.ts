@@ -34,7 +34,7 @@ async function dbListWorksForUser(user: UserDBO, where: Prisma.WorkWhereInput = 
 type DBO = Exclude<Awaited<ReturnType<typeof dbListWorksForUser>>, null>;
 
 export function formatMyWorksDTO(ctx: Context, dbo: DBO, where?: Prisma.WorkWhereInput): WorksDTO {
-  const selfQuery = where?.key ? `?key=${where.key}` : '';
+  const selfQuery = where?.key ? `?key=${where.key}` : where?.doi ? `?doi=${where.doi}` : '';
   return {
     items: dbo.map((work) => formatWorkDTO(ctx, work, getCanonicalOrLatestVersion(work.versions))),
     links: {

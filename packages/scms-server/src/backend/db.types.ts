@@ -172,6 +172,8 @@ export type CreateWorkVersion = {
   canonical?: boolean | null;
   cdn?: string | null;
   cdn_key?: string | null;
+  metadata?: Record<string, any> | null;
+  contains?: string[];
 };
 
 export type MystWorkVersion = CreateWorkVersion & {

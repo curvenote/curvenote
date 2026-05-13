@@ -17,10 +17,21 @@ export async function dbCreateWorkVersionAndUpdateWork(
   const prisma = await getPrismaClient();
   const workVersionId = uuid();
   return prisma.$transaction(async (tx) => {
+    const existing = await tx.work.findUnique({
+      where: { id: workId },
+      select: { doi: true, contains: true },
+    });
+    if (!existing) throw error404();
+    const contains =
+      data.contains && data.contains.length
+        ? Array.from(new Set([...(existing.contains ?? []), ...data.contains]))
+        : undefined;
     const work = await tx.work.update({
       where: { id: workId },
       data: {
         date_modified: date_created,
+        doi: existing.doi ?? data.doi ?? undefined,
+        contains: contains ? { set: contains } : undefined,
         versions: {
           create: [
             {
@@ -36,6 +47,7 @@ export async function dbCreateWorkVersionAndUpdateWork(
               date: data.date,
               doi: data.doi,
               canonical: data.canonical,
+              metadata: data.metadata ?? undefined,
             },
           ],
         },
