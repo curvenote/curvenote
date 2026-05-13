@@ -66,10 +66,7 @@ function parseRangeHeader(range: string, uploadSize: number) {
 /**
  * Simple PUT upload — single request to a signed URL (Azure SAS / S3 presigned).
  */
-async function performSimplePutUpload(
-  session: ISession,
-  upload: SignedFileInfo,
-): Promise<void> {
+async function performSimplePutUpload(session: ISession, upload: SignedFileInfo): Promise<void> {
   const toc = tic();
   session.log.debug(`Starting simple PUT upload of ${upload.from}`);
 
@@ -155,9 +152,7 @@ async function performGcsResumableUpload(
   }
 
   session.log.debug(
-    toc(
-      `Finished upload of ${upload.from} in %s.` + (retries > 0) ? ` (${retries} retries)` : '',
-    ),
+    toc(`Finished upload of ${upload.from} in %s.` + (retries > 0) ? ` (${retries} retries)` : ''),
   );
 }
 
