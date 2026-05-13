@@ -1,5 +1,4 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import { formatDate } from '@curvenote/common';
 import { SystemRole, SiteRole } from '@curvenote/scms-db';
 import { getPrismaClient } from '@curvenote/scms-server';
 
@@ -25,7 +24,7 @@ export async function dbCreateSiteServiceAccount(site: {
   title: string;
 }) {
   const prisma = await getPrismaClient();
-  const timestamp = formatDate();
+  const timestamp = new Date().toISOString();
   const userId = uuid();
   const displayName = `${site.title} Service Account`;
 
