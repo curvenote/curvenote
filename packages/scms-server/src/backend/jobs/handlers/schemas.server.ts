@@ -13,7 +13,8 @@ export const CreatePublishJobPayloadSchema = z.object({
   user_id: z.string().min(1),
   submission_version_id: z.uuid(),
   cdn: z.url(),
-  key: z.uuid(),
+  // `key` is a CDN/storage path prefix (historically a UUID, now relaxed)
+  key: z.string().min(1),
   date_published: z.iso.date('Date must be in YYYY-MM-DD format').optional(),
   updates_slug: z.boolean().optional(),
 });
@@ -28,7 +29,7 @@ export const PublishJobResultsSchema = z
     slug_updated: z.boolean().optional(),
     date_published_updated: z.boolean().optional(),
     cdn: z.url().optional(),
-    key: z.uuid().optional(),
+    key: z.string().min(1).optional(),
   })
   .refine((input) => {
     if (input.files_transfered) return input.cdn && input.key;
