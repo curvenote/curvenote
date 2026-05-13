@@ -144,3 +144,9 @@ export function makeSkipRebuildOption() {
     false,
   );
 }
+
+export function makeLookupKeyOption() {
+  return new Option('--key <mode>', 'Lookup route for existing work: "id" (project.id) or "doi"')
+    .choices(['id', 'doi'])
+    .default('id');
+}

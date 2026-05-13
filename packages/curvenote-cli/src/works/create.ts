@@ -8,10 +8,9 @@ import { writeJsonLogs } from 'myst-cli';
 import fs from 'node:fs';
 import path from 'node:path';
 import { load as yamlLoad } from 'js-yaml';
-import inquirer from 'inquirer';
 import { getFromJournals } from '../utils/api.js';
 import type { MySubmissionsListingDTO, WorkDTO } from '@curvenote/common';
-import { getWorksFromDoi } from './utils.js';
+import { resolveExistingWork } from './resolveExistingWork.js';
 
 function detectContentYamlPath() {
   const cwd = process.cwd();
@@ -46,6 +45,8 @@ function parseContentYaml(session: ISession, filePath?: string) {
 
   session.log.debug(`Loaded content metadata from ${filePath}`);
   return {
+    raw: parsed as Record<string, any>,
+    id: typeof root.id === 'string' ? root.id : undefined,
     title: typeof root.title === 'string' ? root.title : undefined,
     description: typeof root.description === 'string' ? root.description : undefined,
     authors,
@@ -86,8 +87,19 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
   if (!opts?.venue) {
     throw new Error('venue is required');
   }
+  if ((opts.cdn && !opts.cdnKey) || (!opts.cdn && opts.cdnKey)) {
+    throw new Error('cdn and cdnKey must be provided together');
+  }
+  if (opts.cdn && !opts.source) {
+    throw new Error('source is required when cdn/cdnKey are provided');
+  }
   const yamlMetadata = parseContentYaml(session, detectContentYamlPath());
-  const metadata = parseMetadataJson(opts.metadata);
+  const submissionMetadata = parseMetadataJson(opts.metadata);
+  const workVersionMetadata = yamlMetadata?.raw
+    ? {
+        'frontmatter.myst': yamlMetadata.raw,
+      }
+    : undefined;
   const title = opts.title ?? yamlMetadata?.title;
   if (!title) {
     throw new Error('title is required (pass --title or set title in myst.yml/curvenote.yml)');
@@ -99,71 +111,18 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
   const doi = yamlMetadata?.doi;
   let work: WorkDTO;
   let workVersionId: string;
+  const existingWork = await resolveExistingWork(session, {
+    mode: opts.key ?? 'id',
+    key: yamlMetadata?.id,
+    doi,
+    fallbackCreateKey: yamlMetadata?.id,
+    yes: opts.yes,
+    forceNew: opts.new,
+    contextLabel: 'register',
+  });
 
-  let existingWorks: WorkDTO[] = [];
-  if (doi && !opts.new) {
-    existingWorks = await getWorksFromDoi(session, doi);
-  }
-
-  if (existingWorks.length > 0) {
-    let selected: WorkDTO = existingWorks[0];
-    if (existingWorks.length > 1 && !opts.yes) {
-      const { workId } = await inquirer.prompt([
-        {
-          name: 'workId',
-          type: 'list',
-          message: `Multiple works found for DOI "${doi}". Which work should receive a new version?`,
-          choices: existingWorks.map((w) => ({
-            name: `${w.title || 'Untitled'} (${w.id})`,
-            value: w.id,
-          })),
-        },
-      ]);
-      selected = existingWorks.find((w) => w.id === workId) ?? selected;
-    } else if (!opts.yes) {
-      const { confirm } = await inquirer.prompt([
-        {
-          name: 'confirm',
-          type: 'confirm',
-          default: true,
-          message: `A work you own already exists for DOI "${doi}". Register a new version on that work?`,
-        },
-      ]);
-      if (!confirm) {
-        existingWorks = [];
-      }
-    }
-
-    if (existingWorks.length > 0) {
-      // Create a new work version (metadata-only) on the existing work
-      const updated = await postNewWorkVersionFromMetadata(session, selected.links.versions, {
-        title,
-        description: yamlMetadata?.description,
-        authors: yamlMetadata?.authors,
-        author_details: yamlMetadata?.author_details,
-        doi,
-        date: yamlMetadata?.date,
-        contains: opts.source ? [opts.source] : undefined,
-        metadata,
-      });
-      work = updated;
-      workVersionId = updated.version_id as string;
-    } else {
-      // fallthrough to new work
-      work = await postNewWork(session, '', '', opts.key, {
-        title,
-        description: yamlMetadata?.description,
-        authors: yamlMetadata?.authors,
-        author_details: yamlMetadata?.author_details,
-        doi,
-        date: yamlMetadata?.date,
-        contains: opts.source ? [opts.source] : undefined,
-        metadata,
-      });
-      workVersionId = work.version_id as string;
-    }
-  } else {
-    work = await postNewWork(session, '', '', opts.key, {
+  if (existingWork) {
+    const updated = await postNewWorkVersionFromMetadata(session, existingWork.links.versions, {
       title,
       description: yamlMetadata?.description,
       authors: yamlMetadata?.authors,
@@ -171,7 +130,24 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
       doi,
       date: yamlMetadata?.date,
       contains: opts.source ? [opts.source] : undefined,
-      metadata,
+      cdn: opts.cdn,
+      cdn_key: opts.cdnKey,
+      metadata: workVersionMetadata,
+    });
+    work = updated;
+    workVersionId = updated.version_id as string;
+  } else {
+    work = await postNewWork(session, '', '', yamlMetadata?.id, {
+      title,
+      description: yamlMetadata?.description,
+      authors: yamlMetadata?.authors,
+      author_details: yamlMetadata?.author_details,
+      doi,
+      date: yamlMetadata?.date,
+      contains: opts.source ? [opts.source] : undefined,
+      cdn: opts.cdn,
+      cdn_key: opts.cdnKey,
+      metadata: workVersionMetadata,
     });
     workVersionId = work.version_id as string;
   }
@@ -203,6 +179,8 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
       venue,
       existingSubmission.links.versions,
       workVersionId,
+      undefined,
+      submissionMetadata,
     );
     submissionId = existingSubmission.id;
     submissionDateCreated = existingSubmission.date_created;
@@ -216,6 +194,8 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
       kind.id,
       workVersionId,
       opts.draft ?? false,
+      undefined,
+      submissionMetadata,
     );
     submissionId = submission.id;
     submissionDateCreated = submission.date_created;
@@ -231,9 +211,10 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
     submissionVersion: { id: submissionVersionId, date_created: submissionVersionDateCreated },
   });
 
-  session.log.info('✅ Blank work and submission records created.');
-  session.log.info(`work=${work.id}`);
-  session.log.info(`workVersion=${workVersionId}`);
-  session.log.info(`submission=${submissionId}`);
-  session.log.info(`submissionVersion=${submissionVersionId}`);
+  const workAction = existingWork ? 'Updated existing work' : 'Registered new work';
+  session.log.info(`✅ ${workAction} with "${venue}"`);
+  session.log.debug(`Work ID: ${work.id}`);
+  session.log.debug(`Work Version ID: ${workVersionId}`);
+  session.log.debug(`Submission ID: ${submissionId}`);
+  session.log.debug(`Submission Version ID: ${submissionVersionId}`);
 }

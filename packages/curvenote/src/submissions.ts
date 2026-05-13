@@ -10,6 +10,7 @@ import {
   makeCollectionOption,
   makeNewOption,
   makeSkipRebuildOption,
+  makeLookupKeyOption,
 } from './options.js';
 import { submissions } from '@curvenote/cli';
 
@@ -20,6 +21,7 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeKindOption())
     .addOption(makeCollectionOption())
     .addOption(makeDraftOption())
+    .addOption(makeLookupKeyOption())
     .addOption(makeNewOption())
     .addOption(makeYesOption())
     .addOption(makeResumeOption())

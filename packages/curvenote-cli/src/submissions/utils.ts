@@ -78,6 +78,7 @@ export async function postNewSubmission(
   work_version_id: string,
   draft: boolean,
   job_id?: string,
+  metadata?: Record<string, any>,
 ): Promise<SubmissionDTO> {
   const toc = tic();
   const submissionRequest: CreateSubmissionBody = {
@@ -86,6 +87,7 @@ export async function postNewSubmission(
     kind_id,
     draft,
     job_id,
+    metadata,
   };
   session.log.debug(`POST to ${session.config?.apiUrl}/sites/${venue}/submissions...`);
   const resp = await postToJournals(session, `/sites/${venue}/submissions`, submissionRequest);
@@ -107,9 +109,10 @@ export async function postUpdateSubmissionWorkVersion(
   versionsUrl: string,
   work_version_id: string,
   job_id?: string,
+  metadata?: Record<string, any>,
 ): Promise<SubmissionVersionDTO> {
   const toc = tic();
-  const submissionRequest: UpdateSubmissionBody = { work_version_id, job_id };
+  const submissionRequest: UpdateSubmissionBody = { work_version_id, job_id, metadata };
   session.log.debug(`POST to ${versionsUrl}...`);
   const resp = await postToUrl(session, versionsUrl, submissionRequest);
   session.log.debug(`${resp.status} ${resp.statusText}`);

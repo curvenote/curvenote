@@ -8,6 +8,7 @@ import {
   makeCollectionOption,
   makeDraftOption,
   makeKindOption,
+  makeLookupKeyOption,
 } from './options.js';
 
 function makeWorksCLI() {
@@ -37,15 +38,20 @@ function makeWorksRegisterCLI(program: Command) {
   const command = new Command('register')
     .description('Register a work/submission without build/upload')
     .option('--title <string>', 'Title for the work version')
+    .option('--cdn <url>', 'CDN base URL for this work version content')
+    .option('--cdn-key <uuid>', 'CDN key for this work version content')
     .requiredOption('--venue <string>', 'Venue to create the submission under')
+    .addOption(makeLookupKeyOption())
     .addOption(makeKindOption())
     .addOption(makeCollectionOption())
     .addOption(makeDraftOption())
-    .addOption(new Option('--key <string>', 'Optional stable work key'))
     .addOption(new Option('--new', 'Create a new work even if a DOI match exists'))
     .addOption(new Option('--source <string>', 'Source label that is written to work.contains'))
     .addOption(
-      new Option('--metadata <json-or-file>', 'Inline JSON object or path to JSON metadata file'),
+      new Option(
+        '--metadata <json-or-file>',
+        'Inline JSON object or path to JSON metadata file (stored on submission version)',
+      ),
     )
     .addOption(makeYesOption())
     .action(clirun(works.register, { program, skipProjectLoading: true }));

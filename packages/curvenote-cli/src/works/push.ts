@@ -30,6 +30,8 @@ export async function postNewWork(
     date?: string;
     canonical?: boolean;
     contains?: string[];
+    cdn?: string;
+    cdn_key?: string;
     metadata?: Record<string, any>;
   },
 ): Promise<WorkDTO> {
@@ -69,7 +71,11 @@ export async function postNewWorkVersion(
   const toc = tic();
 
   session.log.debug(`POST to ${versionsUrl} with cdnKey: ${cdnKey} and cdn: ${cdn}...`);
-  const resp = await postToUrl(session, `${versionsUrl}`, { cdn_key: cdnKey, cdn });
+  const resp = await postToUrl(session, `${versionsUrl}`, {
+    cdn_key: cdnKey,
+    cdn,
+    contains: ['myst'],
+  });
   session.log.debug(`${resp.status} ${resp.statusText}`);
 
   if (resp.ok) {
@@ -98,6 +104,8 @@ export async function postNewWorkVersionFromMetadata(
     canonical?: boolean;
     metadata?: Record<string, any>;
     contains?: string[];
+    cdn?: string;
+    cdn_key?: string;
   },
 ): Promise<WorkDTO> {
   const toc = tic();

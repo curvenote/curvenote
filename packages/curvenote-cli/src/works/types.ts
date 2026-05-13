@@ -6,10 +6,12 @@ export type PushOpts = BaseOpts & {
 
 export type RegisterWorkOpts = BaseOpts & {
   venue: string;
+  key?: 'id' | 'doi';
   kind?: string;
   collection?: string;
-  key?: string;
   title?: string;
+  cdn?: string;
+  cdnKey?: string;
   draft?: boolean;
   metadata?: string;
   source?: string;
