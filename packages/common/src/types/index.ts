@@ -1,5 +1,5 @@
 import type { FileUploadResponse, UploadFileInfo } from '@curvenote/blocks';
-export type { UploadFileInfo, FileUploadResponse } from '@curvenote/blocks';
+export type { UploadFileInfo, FileUploadResponse, SignedUploadInfo } from '@curvenote/blocks';
 import type { CheckDTO } from './checks.js';
 import type { JournalThemeConfig } from './journal.js';
 import type { MystPlugin } from 'myst-common';
