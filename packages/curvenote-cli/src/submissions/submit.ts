@@ -26,13 +26,21 @@ import {
   performCleanRebuild,
   promptForNewKey,
   uploadAndGetCdnKey,
+  workDoiFromConfig,
   workKeyFromConfig,
   writeKeyToConfig,
 } from '../works/utils.js';
-import type { CollectionDTO, SubmissionKindDTO, SubmissionsListItemDTO } from '@curvenote/common';
+import type {
+  CollectionDTO,
+  SubmissionKindDTO,
+  SubmissionsListItemDTO,
+  WorkDTO,
+} from '@curvenote/common';
 import type { SubmitLog, SubmitOpts } from './types.js';
 import { addSourceToLogs } from '../logs/index.js';
 import { checkVenueExists, ensureVenue } from '../sites/utils.js';
+import { resolveExistingWork } from '../works/resolveExistingWork.js';
+import { getFromJournals } from '../utils/api.js';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: SubmitLog = {
@@ -70,32 +78,56 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   const key = inputKey;
   submitLog.key = key;
   session.log.info(`📍 Submitting using key: ${chalk.bold(key)}`);
+  const lookupMode = opts?.key ?? 'id';
+  const doi = workDoiFromConfig(session);
 
   await addSourceToLogs(submitLog);
 
   let existing: SubmissionsListItemDTO | undefined;
+  let existingWork: WorkDTO | undefined;
   // Only check for submissions to update if we are not creating a new draft
   if (!opts?.draft && !opts?.new) {
     session.log.info(`📡 Checking submission status...`);
-    const allExisting = await getAllSubmissionsUsingKey(session, venue, key);
-    if (!allExisting?.length) {
-      const exists = await checkForSubmissionKeyInUse(session, venue, key);
-      if (exists) {
-        session.log.warn(
-          `⛔️ This work has already been submitted to a Curvenote site, but you don't have permission to access that submission.`,
-        );
-        session.log.info(
-          'If you still want to make a new submission, you may explicitly add flag "--new"',
-        );
-        process.exit(1);
+    if (lookupMode === 'id') {
+      const allExisting = await getAllSubmissionsUsingKey(session, venue, key);
+      if (!allExisting?.length) {
+        const exists = await checkForSubmissionKeyInUse(session, venue, key);
+        if (exists) {
+          session.log.warn(
+            `⛔️ This work has already been submitted to a Curvenote site, but you don't have permission to access that submission.`,
+          );
+          session.log.info(
+            'If you still want to make a new submission, you may explicitly add flag "--new"',
+          );
+          process.exit(1);
+        } else {
+          session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
+        }
       } else {
-        session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
+        existing = await getSubmissionToUpdate(session, allExisting);
+        session.log.info(
+          `🔍 Found an existing submission using this key, the existing submission will be updated.`,
+        );
       }
     } else {
-      existing = await getSubmissionToUpdate(session, allExisting);
-      session.log.info(
-        `🔍 Found an existing submission using this key, the existing submission will be updated.`,
-      );
+      existingWork = await resolveExistingWork(session, {
+        mode: 'doi',
+        doi,
+        fallbackCreateKey: key,
+        yes: opts?.yes,
+        forceNew: opts?.new,
+        contextLabel: 'submit',
+      });
+      if (existingWork) {
+        const mine = await getFromJournals(
+          session,
+          `/my/submissions/?work_id=${encodeURIComponent(existingWork.id)}&site=${encodeURIComponent(
+            venue,
+          )}`,
+        );
+        const allExisting = (mine?.items ?? []) as SubmissionsListItemDTO[];
+        existing = await getSubmissionToUpdate(session, allExisting);
+      }
     }
   }
 
@@ -262,6 +294,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         job.id,
         key,
         opts,
+        existingWork,
       );
     }
     session.log.debug(`generating a build artifact for the submission...`);

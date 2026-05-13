@@ -1,8 +1,15 @@
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { works } from '@curvenote/cli';
 import { clirun } from './clirun.js';
 import { makeYesOption } from 'myst-cli';
-import { makeResumeOption, makeMaxSizeWebpOption } from './options.js';
+import {
+  makeResumeOption,
+  makeMaxSizeWebpOption,
+  makeCollectionOption,
+  makeDraftOption,
+  makeKindOption,
+  makeLookupKeyOption,
+} from './options.js';
 
 function makeWorksCLI() {
   const command = new Command('work').description('Create and manage your Works').alias('works');
@@ -27,9 +34,34 @@ function makeWorksPushCLI(program: Command) {
   return command;
 }
 
+function makeWorksRegisterCLI(program: Command) {
+  const command = new Command('register')
+    .description('Register a work/submission without build/upload')
+    .option('--title <string>', 'Title for the work version')
+    .option('--cdn <url>', 'CDN base URL for this work version content')
+    .option('--cdn-key <uuid>', 'CDN key for this work version content')
+    .requiredOption('--venue <string>', 'Venue to create the submission under')
+    .addOption(makeLookupKeyOption())
+    .addOption(makeKindOption())
+    .addOption(makeCollectionOption())
+    .addOption(makeDraftOption())
+    .addOption(new Option('--new', 'Create a new work even if a DOI match exists'))
+    .addOption(new Option('--source <string>', 'Source label that is written to work.contains'))
+    .addOption(
+      new Option(
+        '--metadata <json-or-file>',
+        'Inline JSON object or path to JSON metadata file (stored on submission version)',
+      ),
+    )
+    .addOption(makeYesOption())
+    .action(clirun(works.register, { program, skipProjectLoading: true }));
+  return command;
+}
+
 export function addWorksCLI(program: Command): void {
   const worksProgram = makeWorksCLI();
   worksProgram.addCommand(makeWorksListCLI(program));
   worksProgram.addCommand(makeWorksPushCLI(program));
+  worksProgram.addCommand(makeWorksRegisterCLI(program));
   program.addCommand(worksProgram);
 }

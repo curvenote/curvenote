@@ -22,10 +22,15 @@ export async function stageFilesForUpload(
         if (await stored.exists()) {
           return info;
         } else {
-          const signed_url = await stored.signResumableUpload({ content_type: info.content_type });
+          const uploadResult = await stored.signUpload({ content_type: info.content_type });
           return {
             ...info,
-            signed_url,
+            signed_url: uploadResult.url,
+            upload: {
+              url: uploadResult.url,
+              protocol: uploadResult.protocol,
+              ...(uploadResult.headers ? { headers: uploadResult.headers } : {}),
+            },
           };
         }
       }),

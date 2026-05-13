@@ -24,6 +24,7 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
   submissionId: string,
   workVersionId: string,
   jobId?: string,
+  metadata?: Record<string, any>,
 ) {
   if (!ctx.user) throw error401();
   const user = ctx.user;
@@ -46,6 +47,7 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
           },
         },
         status: workflow.initialState,
+        metadata: metadata ?? undefined,
         work_version: {
           connect: {
             id: workVersionId,
@@ -122,6 +124,7 @@ export default async function (
   submissionId: string,
   workVersionId: string,
   jobId?: string,
+  metadata?: Record<string, any>,
 ) {
   if (!ctx.user) throw error401();
   const dbo = await dbCreateNewSubmissionVersionOnExistingSubmission(
@@ -130,6 +133,7 @@ export default async function (
     submissionId,
     workVersionId,
     jobId,
+    metadata,
   );
 
   await ctx.trackEvent(TrackEvent.SUBMISSION_VERSION_CREATED, {

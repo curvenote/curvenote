@@ -17,7 +17,8 @@
     "ensure-typst-plain": "bash scripts/ensure-typst-plain.sh",
     "dev": "npm run ensure-typst-plain && npm run clean && npm run build && NODE_ENV=development concurrently \"npm run build:watch\" \"nodemon\"",
     "lint": "eslint \"src/**/*.ts\" -c ./.eslintrc.cjs",
-    "lint:format": "npx prettier --check \"src/**/*.ts\""
+    "lint:format": "npx prettier --check \"src/**/*.ts\"",
+    "lint:format:fix": "npx prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
     "@curvenote/common": "^0.4.2",

@@ -156,6 +156,18 @@ export function workKeyFromConfig(session: ISession) {
   return projectConfig?.id;
 }
 
+export function workDoiFromConfig(session: ISession) {
+  session.log.debug('Looking for doi from config file');
+  const state = session.store.getState();
+  const projectConfigFile = selectors.selectCurrentProjectFile(state);
+  if (!projectConfigFile) {
+    session.log.error('No project configuration found');
+    process.exit(1);
+  }
+  const projectConfig = selectors.selectCurrentProjectConfig(state);
+  return projectConfig?.doi;
+}
+
 /**
  * Load work from transfer.yml data
  *
@@ -169,6 +181,25 @@ export async function getWorkFromKey(session: ISession, key: string): Promise<Wo
     return resp.items[0];
   } catch {
     return undefined;
+  }
+}
+
+export async function getWorksFromDoi(session: ISession, doi: string): Promise<WorkDTO[]> {
+  try {
+    session.log.debug(`GET from journals API /my/works?doi=${doi}`);
+    const resp = await getFromJournals(session, `/my/works?doi=${encodeURIComponent(doi)}`);
+    return resp.items ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function workKeyExists(session: ISession, key: string): Promise<boolean> {
+  try {
+    const resp = await getFromJournals(session, `/works/key/${key}`);
+    return !!resp?.exists;
+  } catch {
+    return false;
   }
 }
 

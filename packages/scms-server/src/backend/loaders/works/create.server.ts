@@ -99,6 +99,7 @@ export async function dbCreateWorkAndVersion(
         id: workId,
         key,
         contains,
+        doi: data.doi ?? null,
         created_by: {
           connect: {
             id: owner.id,

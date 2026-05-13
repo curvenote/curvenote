@@ -3,7 +3,7 @@ import { formatDate } from '@curvenote/common';
 import type { Context } from '../../../context.server.js';
 import type { CreateWorkVersion } from '../../../db.types.js';
 import { getPrismaClient } from '../../../prisma.server.js';
-import { error401, error404, site } from '@curvenote/scms-core';
+import { error401, error404, isMystCdnContentSource, site } from '@curvenote/scms-core';
 import { dbGetWorkForUser, formatWorkDTO, getWorkFromSubmission } from '../get.server.js';
 import { getCreateWorkVersionDataFromMyst } from '../create.server.js';
 import { ActivityType } from '@curvenote/scms-db';
@@ -17,10 +17,21 @@ export async function dbCreateWorkVersionAndUpdateWork(
   const prisma = await getPrismaClient();
   const workVersionId = uuid();
   return prisma.$transaction(async (tx) => {
+    const existing = await tx.work.findUnique({
+      where: { id: workId },
+      select: { doi: true, contains: true },
+    });
+    if (!existing) throw error404();
+    const contains =
+      data.contains && data.contains.length
+        ? Array.from(new Set([...(existing.contains ?? []), ...data.contains]))
+        : undefined;
     const work = await tx.work.update({
       where: { id: workId },
       data: {
         date_modified: date_created,
+        doi: existing.doi ?? data.doi ?? undefined,
+        contains: contains ? { set: contains } : undefined,
         versions: {
           create: [
             {
@@ -36,6 +47,7 @@ export async function dbCreateWorkVersionAndUpdateWork(
               date: data.date,
               doi: data.doi,
               canonical: data.canonical,
+              metadata: data.metadata ?? undefined,
             },
           ],
         },
@@ -97,10 +109,16 @@ export default async function (
   if (!existingWork) throw error404();
 
   let mergedData = data;
-  if (data.cdn && data.cdn_key) {
+  const cdn = data.cdn;
+  const cdnKey = data.cdn_key;
+  if (
+    typeof cdn === 'string' &&
+    typeof cdnKey === 'string' &&
+    isMystCdnContentSource(data.contains)
+  ) {
     const mystData = await getCreateWorkVersionDataFromMyst(
       ctx,
-      { cdn: data.cdn, key: data.cdn_key },
+      { cdn, key: cdnKey },
       {
         canonical: true,
       },

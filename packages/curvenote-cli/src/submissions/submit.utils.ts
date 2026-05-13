@@ -573,8 +573,9 @@ export async function createNewSubmission(
   jobId: string,
   key: string,
   opts?: SubmitOpts,
+  existingWork?: WorkDTO,
 ) {
-  const workResp = await getWorkFromKey(session, key);
+  const workResp = existingWork ?? (await getWorkFromKey(session, key));
   let work: WorkDTO;
   if (workResp) {
     session.log.debug(`posting new work version...`);

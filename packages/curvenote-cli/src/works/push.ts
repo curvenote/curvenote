@@ -21,13 +21,32 @@ export async function postNewWork(
   cdnKey: string,
   cdn: string,
   key?: string,
+  metadata?: {
+    title?: string;
+    description?: string;
+    authors?: string[];
+    author_details?: Record<string, any>[];
+    doi?: string;
+    date?: string;
+    canonical?: boolean;
+    contains?: string[];
+    cdn?: string;
+    cdn_key?: string;
+    metadata?: Record<string, any>;
+  },
 ): Promise<WorkDTO> {
   const toc = tic();
 
   session.log.debug(
     `POST to ${session.config?.apiUrl}/works with cdnKey: ${cdnKey}, cdn: ${cdn}${key ? `, key: ${key}` : ''}...`,
   );
-  const resp = await postToJournals(session, '/works', { cdn_key: cdnKey, cdn, key });
+  const body = {
+    ...(cdnKey ? { cdn_key: cdnKey } : {}),
+    ...(cdn ? { cdn } : {}),
+    ...(key ? { key } : {}),
+    ...(metadata ?? {}),
+  };
+  const resp = await postToJournals(session, '/works', body);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as WorkDTO;
@@ -52,7 +71,11 @@ export async function postNewWorkVersion(
   const toc = tic();
 
   session.log.debug(`POST to ${versionsUrl} with cdnKey: ${cdnKey} and cdn: ${cdn}...`);
-  const resp = await postToUrl(session, `${versionsUrl}`, { cdn_key: cdnKey, cdn });
+  const resp = await postToUrl(session, `${versionsUrl}`, {
+    cdn_key: cdnKey,
+    cdn,
+    contains: ['myst'],
+  });
   session.log.debug(`${resp.status} ${resp.statusText}`);
 
   if (resp.ok) {
@@ -66,6 +89,38 @@ export async function postNewWorkVersion(
   } else {
     throw new Error('Posting new version of the work failed');
   }
+}
+
+export async function postNewWorkVersionFromMetadata(
+  session: ISession,
+  versionsUrl: string,
+  metadata: {
+    title?: string;
+    description?: string;
+    authors?: string[];
+    author_details?: Record<string, any>[];
+    doi?: string;
+    date?: string;
+    canonical?: boolean;
+    metadata?: Record<string, any>;
+    contains?: string[];
+    cdn?: string;
+    cdn_key?: string;
+  },
+): Promise<WorkDTO> {
+  const toc = tic();
+  session.log.debug(`POST to ${versionsUrl} with metadata-only work version...`);
+  const resp = await postToUrl(session, `${versionsUrl}`, metadata);
+  session.log.debug(`${resp.status} ${resp.statusText}`);
+  if (resp.ok) {
+    const json = (await resp.json()) as WorkDTO;
+    const { id, version_id } = json;
+    session.log.info(toc(`🚀 Created a new work version in %s.`));
+    session.log.debug(`Work Id: ${id}`);
+    session.log.debug(`Work Version Id: ${version_id}`);
+    return json;
+  }
+  throw new Error('Posting new version of the work failed');
 }
 
 /**

@@ -11,13 +11,19 @@ import { error401, httpError, scopes } from '@curvenote/scms-core';
 import type { SubmissionKindDTO } from '@curvenote/common';
 import { extensions } from '../../extensions/server';
 
+const ListParamsSchema = z.object({
+  limit: z.number().int().min(1).max(500).default(500),
+  page: z.number().int().min(0).optional(),
+});
+
 const CreateSubmissionPostBodySchema = z.object({
   work_version_id: z.uuid(),
   kind: z.string().min(1).max(255).optional(), // TODO deprecate in favor of kind_id
   kind_id: z.uuid().optional(),
   draft: z.boolean().optional(),
-  job_id: z.uuid(),
+  job_id: z.uuid().optional(),
   collection_id: z.uuid().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export async function loader(args: Route.LoaderArgs) {
@@ -33,16 +39,25 @@ export async function loader(args: Route.LoaderArgs) {
   const url = new URL(args.request.url);
   const key = url.searchParams.get('key');
   const collectionIdOrSlug = url.searchParams.get('collection');
-  const dto = await sites.submissions.list(ctx, extensions, {
-    work: key ? { is: { key } } : undefined,
-    collection: collectionIdOrSlug
-      ? {
-          OR: [{ id: collectionIdOrSlug }, { slug: collectionIdOrSlug }],
-        }
-      : undefined,
+  const { limit, page } = validate(ListParamsSchema, {
+    limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!) : undefined,
+    page: url.searchParams.get('page') ? parseInt(url.searchParams.get('page')!) : undefined,
   });
+  const dto = await sites.submissions.list(
+    ctx,
+    extensions,
+    {
+      work: key ? { is: { key } } : undefined,
+      collection: collectionIdOrSlug
+        ? {
+            OR: [{ id: collectionIdOrSlug }, { slug: collectionIdOrSlug }],
+          }
+        : undefined,
+    },
+    (page ?? 0) * limit,
+    limit,
+  );
 
-  dto.links.self = url.toString();
   return Response.json(dto);
 }
 
@@ -63,6 +78,7 @@ export async function action(args: Route.ActionArgs) {
     draft,
     job_id,
     collection_id,
+    metadata,
   } = validate(CreateSubmissionPostBodySchema, body);
 
   // validate that the requested kind is included in the collection specific or the default collection
@@ -111,6 +127,7 @@ export async function action(args: Route.ActionArgs) {
       draft ?? false,
       job_id,
       collection.id,
+      metadata,
     );
     return Response.json(dto, { status: 201 });
   } catch (error: any) {

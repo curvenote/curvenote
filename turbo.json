@@ -21,6 +21,9 @@
     "lint:format": {
       "outputs": []
     },
+    "lint:format:fix": {
+      "outputs": []
+    },
     "test": {
       "dependsOn": ["build"],
       "outputs": []

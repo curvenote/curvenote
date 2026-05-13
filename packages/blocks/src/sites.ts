@@ -24,8 +24,23 @@ export interface SiteUploadRequest {
   files: UploadFileInfo[];
 }
 
+/**
+ * Upload protocol info returned by the server.
+ * Tells the client HOW to use the signed URL.
+ *
+ * - 'gcs-resumable': GCS two-step (POST to init session, PUT to session URL)
+ * - 'put': Single PUT to the URL (Azure SAS / S3 presigned)
+ */
+export interface SignedUploadInfo {
+  url: string;
+  protocol: 'gcs-resumable' | 'put';
+  headers?: Record<string, string>;
+}
+
 export interface FileUploadResponse extends UploadFileInfo {
   signed_url: string;
+  /** Protocol-aware upload info. When present, use this instead of signed_url directly. */
+  upload?: SignedUploadInfo;
 }
 
 export interface SiteUploadResponse {

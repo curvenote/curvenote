@@ -48,34 +48,20 @@ export async function publishHandler(
 
   await validateSitePublishingScopes(ctx, submission_version_id);
 
-  if (!storageBackend) {
-    throw httpError(500, 'Storage backend is required for publish operations');
-  }
-
   const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
   // currently implemented as a long running task in the job response handler
   // must complete before a response is sent, could be moved to another endpoint if needed
   // as we create a job to start with clients/callers can fire-and-forget if they choose
 
-  const sourceBucket = storageBackend.knownBucketFromCDN(cdn);
-  storageBackend.ensureConnection(sourceBucket);
-
-  // check source file location
-  const folder = createFolder(storageBackend, key, sourceBucket);
-  const exists = await folder.exists();
-  if (!exists) {
-    // TODO: on failures we need to clear transitions, and log an activity indicating failure and preserving the jobId
-    const message = `Folder does not exist ${cdn}/${key}`;
-    console.warn(message);
-    await dbUpdateJob(created.id, {
-      status: JobStatus.FAILED,
-      message,
-      results: { files_transfered: false },
-    });
-    throw httpError(422, message);
+  // Some workflows (e.g. "register" where content lives outside SCMS storage) may point at an
+  // external CDN that is not one of our managed buckets. In that case, we skip all storage moves
+  // and only update submission/work-version state.
+  const sourceBucket = storageBackend?.knownBucketFromCDN(cdn) ?? null;
+  const shouldMoveFiles = Boolean(storageBackend && sourceBucket);
+  if (shouldMoveFiles) {
+    storageBackend!.ensureConnection(sourceBucket as any);
   }
 
-  // copy files to new location
   let results: PublishJobResults = {
     cdn,
     key,
@@ -83,28 +69,50 @@ export async function publishHandler(
     date_published_updated: false,
     slug_updated: false,
   };
-  try {
-    await folder.copy({ bucket: KnownBuckets.pub, path: key });
-    results = { files_transfered: true };
-    await dbUpdateJob(created.id, {
-      status: JobStatus.RUNNING,
-      message: 'Files transferred to new location',
-      results,
-    });
-  } catch (error) {
-    const message = 'Error copying folder';
-    console.log(message, error);
-    await dbUpdateJob(created.id, {
-      status: JobStatus.FAILED,
-      message,
-      results,
-    });
-    throw httpError(422, message, { message, error });
+  if (shouldMoveFiles) {
+    // check source file location
+    const folder = createFolder(storageBackend!, key, sourceBucket as any);
+    const exists = await folder.exists();
+    if (!exists) {
+      // TODO: on failures we need to clear transitions, and log an activity indicating failure and preserving the jobId
+      const message = `Folder does not exist ${cdn}/${key}`;
+      console.warn(message);
+      await dbUpdateJob(created.id, {
+        status: JobStatus.FAILED,
+        message,
+        results: { files_transfered: false },
+      });
+      throw httpError(422, message);
+    }
+
+    // copy files to new location
+    try {
+      await folder.copy({ bucket: KnownBuckets.pub, path: key });
+      results = { files_transfered: true };
+      await dbUpdateJob(created.id, {
+        status: JobStatus.RUNNING,
+        message: 'Files transferred to new location',
+        results,
+      });
+    } catch (error) {
+      const message = 'Error copying folder';
+      console.log(message, error);
+      await dbUpdateJob(created.id, {
+        status: JobStatus.FAILED,
+        message,
+        results,
+      });
+      throw httpError(422, message, { message, error });
+    }
   }
 
-  let newCdn = storageBackend.cdnFromKnownBucket(KnownBuckets.pub);
-  if (!newCdn) throw httpError(500, 'Public CDN not registered');
-  if (!newCdn?.endsWith('/')) newCdn += '/';
+  // If we moved files, point at the public bucket CDN; otherwise keep the existing CDN (external).
+  let newCdn = cdn;
+  if (shouldMoveFiles) {
+    newCdn = storageBackend!.cdnFromKnownBucket(KnownBuckets.pub) ?? '';
+    if (!newCdn) throw httpError(500, 'Public CDN not registered');
+  }
+  if (!newCdn.endsWith('/')) newCdn += '/';
 
   // update submission's work version with new cdn details
   await updateCdnOnWorkVersion(submission_version_id, newCdn, created.id, results);

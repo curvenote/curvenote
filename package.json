@@ -40,6 +40,7 @@
     "clean": "node scripts/turbo-run.mjs run clean --parallel && find . -name '.turbo' -type d -prune -exec rm -rf '{}' +",
     "lint": "node scripts/turbo-run.mjs run lint --filter='@curvenote/*' --filter='curvenote'",
     "lint:format": "node scripts/turbo-run.mjs run lint:format --filter='@curvenote/*' --filter='curvenote'",
+    "lint:format:fix": "node scripts/turbo-run.mjs run lint:format:fix --filter='@curvenote/*' --filter='curvenote'",
     "lint:circular": "madge -c packages/*/src/* ee/*/src/*",
     "test": "node scripts/turbo-run.mjs run test --filter='curvenote' --filter='@curvenote/*' --filter='!@curvenote/scms'",
     "test:scms": "cd platform/scms && npm run test:unit",
