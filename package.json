@@ -84,8 +84,7 @@
     "@prisma/client": "^7.2.0",
     "@scienceicons/react": "^0.0.13",
     "dotenv": "^17.2.3",
-    "eslint-plugin-import": "^2.32.0",
-    "lint": "^0.8.19"
+    "eslint-plugin-import": "^2.32.0"
   },
   "overrides": {
     "@types/node": "^24.6.2",
