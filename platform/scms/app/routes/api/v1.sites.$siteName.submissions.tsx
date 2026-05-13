@@ -11,6 +11,11 @@ import { error401, httpError, scopes } from '@curvenote/scms-core';
 import type { SubmissionKindDTO } from '@curvenote/common';
 import { extensions } from '../../extensions/server';
 
+const ListParamsSchema = z.object({
+  limit: z.number().int().min(1).max(500).default(500),
+  page: z.number().int().min(0).optional(),
+});
+
 const CreateSubmissionPostBodySchema = z.object({
   work_version_id: z.uuid(),
   kind: z.string().min(1).max(255).optional(), // TODO deprecate in favor of kind_id
@@ -34,6 +39,10 @@ export async function loader(args: Route.LoaderArgs) {
   const url = new URL(args.request.url);
   const key = url.searchParams.get('key');
   const collectionIdOrSlug = url.searchParams.get('collection');
+  const { limit, page } = validate(ListParamsSchema, {
+    limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!) : undefined,
+    page: url.searchParams.get('page') ? parseInt(url.searchParams.get('page')!) : undefined,
+  });
   const dto = await sites.submissions.list(ctx, extensions, {
     work: key ? { is: { key } } : undefined,
     collection: collectionIdOrSlug
@@ -41,9 +50,8 @@ export async function loader(args: Route.LoaderArgs) {
           OR: [{ id: collectionIdOrSlug }, { slug: collectionIdOrSlug }],
         }
       : undefined,
-  });
+  }, (page ?? 0) * limit, limit);
 
-  dto.links.self = url.toString();
   return Response.json(dto);
 }
 

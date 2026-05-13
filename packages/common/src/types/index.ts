@@ -346,9 +346,12 @@ export type SubmissionsListItemDTO = {
 
 export type SubmissionsListingDTO = {
   items: SubmissionsListItemDTO[];
+  total: number;
   links: {
     self: string;
     site: string;
+    prev?: string;
+    next?: string;
   };
 };
 

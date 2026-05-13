@@ -1,12 +1,18 @@
 import type { SiteContext } from '../../../context.site.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
-import { coerceToObject, error404 } from '@curvenote/scms-core';
+import { coerceToObject, error404, makePaginationLinks } from '@curvenote/scms-core';
 import type { Prisma } from '@curvenote/scms-db';
 import { formatAuthorDTO } from '../../../format.server.js';
 import { findImportantVersions } from './utils.server.js';
 import { formatSubmissionLinksDTO } from './get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../kinds/get.server.js';
 import type { ClientExtension, WorkflowTransition } from '@curvenote/scms-core';
+
+function withHasVersions(where: Prisma.SubmissionWhereInput): Prisma.SubmissionWhereInput {
+  return {
+    AND: [where, { versions: { some: {} } }],
+  };
+}
 
 export async function dbListSubmissions(
   where: Prisma.SubmissionWhereInput,
@@ -65,6 +71,13 @@ export async function dbListSubmissions(
         date_created: 'desc',
       },
     ],
+  });
+}
+
+async function dbCountSubmissions(where: Prisma.SubmissionWhereInput, tx?: Prisma.TransactionClient) {
+  const prisma = await getPrismaClient();
+  return (tx ?? prisma).submission.count({
+    where: withHasVersions(where),
   });
 }
 
@@ -169,6 +182,8 @@ async function formatSubmissionListingDTO(
   ctx: SiteContext,
   dbo: DBO,
   extensions: ClientExtension[],
+  opts?: { page?: number; limit?: number },
+  total?: number,
 ) {
   const items = (
     await Promise.all(
@@ -177,15 +192,17 @@ async function formatSubmissionListingDTO(
       }),
     )
   ).filter((s) => s != null);
-  const dto = {
-    items,
-    links: {
+
+  const links = makePaginationLinks(
+    {
       self: ctx.request.url,
       site: ctx.asApiUrl(`/sites/${ctx.site.name}`),
     },
-  };
+    total ?? items.length,
+    opts ?? {},
+  );
 
-  return dto;
+  return { items, total: total ?? items.length, links };
 }
 
 export default async function (
@@ -195,7 +212,26 @@ export default async function (
   skip?: number,
   take?: number,
 ) {
-  const dbo = await dbListSiteSubmissions(ctx.site.name, where, skip, take);
-  if (!dbo) throw error404();
-  return formatSubmissionListingDTO(ctx, dbo, extensions);
+  const normalizedWhere = {
+    site: { is: { name: ctx.site.name } },
+    ...(where ?? {}),
+  };
+  const opts =
+    take === undefined && skip === undefined
+      ? undefined
+      : {
+          limit: take,
+          page: take ? Math.floor((skip ?? 0) / take) : undefined,
+        };
+
+  const prisma = await getPrismaClient();
+  const result = await prisma.$transaction(async (tx) => {
+    const [items, total] = await Promise.all([
+      dbListSubmissions(withHasVersions(normalizedWhere), skip, take),
+      dbCountSubmissions(normalizedWhere, tx),
+    ]);
+    return { items, total };
+  });
+  if (!result) throw error404();
+  return formatSubmissionListingDTO(ctx, result.items, extensions, opts, result.total);
 }
