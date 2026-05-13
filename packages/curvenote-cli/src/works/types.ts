@@ -4,6 +4,17 @@ export type PushOpts = BaseOpts & {
   public?: boolean;
 };
 
+export type RegisterWorkOpts = BaseOpts & {
+  venue: string;
+  kind?: string;
+  collection?: string;
+  key?: string;
+  title?: string;
+  draft?: boolean;
+  metadata?: string;
+  source?: string;
+};
+
 export type WorkPushLog = BaseLog & {
   work?: IdAndDate;
   workVersion?: IdAndDate;

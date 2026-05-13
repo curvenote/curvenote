@@ -21,13 +21,30 @@ export async function postNewWork(
   cdnKey: string,
   cdn: string,
   key?: string,
+  metadata?: {
+    title?: string;
+    description?: string;
+    authors?: string[];
+    author_details?: Record<string, any>[];
+    doi?: string;
+    date?: string;
+    canonical?: boolean;
+    contains?: string[];
+    metadata?: Record<string, any>;
+  },
 ): Promise<WorkDTO> {
   const toc = tic();
 
   session.log.debug(
     `POST to ${session.config?.apiUrl}/works with cdnKey: ${cdnKey}, cdn: ${cdn}${key ? `, key: ${key}` : ''}...`,
   );
-  const resp = await postToJournals(session, '/works', { cdn_key: cdnKey, cdn, key });
+  const body = {
+    ...(cdnKey ? { cdn_key: cdnKey } : {}),
+    ...(cdn ? { cdn } : {}),
+    ...(key ? { key } : {}),
+    ...(metadata ?? {}),
+  };
+  const resp = await postToJournals(session, '/works', body);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as WorkDTO;

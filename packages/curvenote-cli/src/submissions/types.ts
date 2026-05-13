@@ -55,12 +55,12 @@ export interface CreateSubmissionBody {
   collection_id: string;
   kind_id: string;
   draft: boolean;
-  job_id: string;
+  job_id?: string;
 }
 
 export interface UpdateSubmissionBody {
   work_version_id: string;
-  job_id: string;
+  job_id?: string;
 }
 
 export interface CreateCliCheckJobPostBody {

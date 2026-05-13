@@ -16,7 +16,7 @@ const CreateSubmissionPostBodySchema = z.object({
   kind: z.string().min(1).max(255).optional(), // TODO deprecate in favor of kind_id
   kind_id: z.uuid().optional(),
   draft: z.boolean().optional(),
-  job_id: z.uuid(),
+  job_id: z.uuid().optional(),
   collection_id: z.uuid().optional(),
 });
 

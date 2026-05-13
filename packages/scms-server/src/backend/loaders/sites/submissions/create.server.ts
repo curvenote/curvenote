@@ -53,11 +53,13 @@ export async function dbCreateNewSubmission(
             id: workVersionId,
           },
         },
-        job: {
-          connect: {
-            id: jobId,
-          },
-        },
+        job: jobId
+          ? {
+              connect: {
+                id: jobId,
+              },
+            }
+          : undefined,
         submission: {
           create: {
             id: uuid(),

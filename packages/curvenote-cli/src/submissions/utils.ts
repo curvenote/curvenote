@@ -77,7 +77,7 @@ export async function postNewSubmission(
   kind_id: string,
   work_version_id: string,
   draft: boolean,
-  job_id: string,
+  job_id?: string,
 ): Promise<SubmissionDTO> {
   const toc = tic();
   const submissionRequest: CreateSubmissionBody = {
@@ -106,7 +106,7 @@ export async function postUpdateSubmissionWorkVersion(
   venue: string,
   versionsUrl: string,
   work_version_id: string,
-  job_id: string,
+  job_id?: string,
 ): Promise<SubmissionVersionDTO> {
   const toc = tic();
   const submissionRequest: UpdateSubmissionBody = { work_version_id, job_id };

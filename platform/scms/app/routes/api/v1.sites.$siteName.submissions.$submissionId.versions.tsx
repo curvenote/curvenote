@@ -13,7 +13,7 @@ import { extensions } from '../../extensions/server';
 
 const CreateSubmissionVersionPostBodySchema = z.object({
   work_version_id: z.uuid(),
-  job_id: z.uuid(),
+  job_id: z.uuid().optional(),
 });
 
 const ParamsSchema = z.object({
