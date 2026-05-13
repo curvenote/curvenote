@@ -9,7 +9,7 @@ import {
   PutObjectAclCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 import type { IStorageProvider } from '../provider.interface.js';
 import type { FileMetadata, S3StorageConfig, SignedUploadResult } from '../types.js';
 
@@ -200,12 +200,7 @@ export class S3StorageProvider implements IStorageProvider {
 
   // ── Object operations ──────────────────────────────────────
 
-  async copy(
-    fromBucket: string,
-    fromKey: string,
-    toBucket: string,
-    toKey: string,
-  ): Promise<void> {
+  async copy(fromBucket: string, fromKey: string, toBucket: string, toKey: string): Promise<void> {
     await this.client.send(
       new CopyObjectCommand({
         Bucket: this.getBucketName(toBucket),
@@ -215,12 +210,7 @@ export class S3StorageProvider implements IStorageProvider {
     );
   }
 
-  async move(
-    fromBucket: string,
-    fromKey: string,
-    toBucket: string,
-    toKey: string,
-  ): Promise<void> {
+  async move(fromBucket: string, fromKey: string, toBucket: string, toKey: string): Promise<void> {
     await this.copy(fromBucket, fromKey, toBucket, toKey);
     await this.delete(fromBucket, fromKey);
   }

@@ -1,6 +1,6 @@
 import type { Bucket } from '@google-cloud/storage';
 import { Storage } from '@google-cloud/storage';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 import type { IStorageProvider } from '../provider.interface.js';
 import type { FileMetadata, GcsStorageConfig, SignedUploadResult } from '../types.js';
 
@@ -81,10 +81,12 @@ export class GcsStorageProvider implements IStorageProvider {
   // ── Signed URLs ────────────────────────────────────────────
 
   async signReadUrl(bucket: string, key: string, expiresInSeconds: number): Promise<string> {
-    const [url] = await this.getBucket(bucket).file(key).getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 1000 * expiresInSeconds,
-    });
+    const [url] = await this.getBucket(bucket)
+      .file(key)
+      .getSignedUrl({
+        action: 'read',
+        expires: Date.now() + 1000 * expiresInSeconds,
+      });
     return url;
   }
 
@@ -94,12 +96,14 @@ export class GcsStorageProvider implements IStorageProvider {
     contentType: string,
     expiresInSeconds: number,
   ): Promise<SignedUploadResult> {
-    const [url] = await this.getBucket(bucket).file(key).getSignedUrl({
-      version: 'v4',
-      action: 'resumable',
-      contentType,
-      expires: Date.now() + 1000 * expiresInSeconds,
-    });
+    const [url] = await this.getBucket(bucket)
+      .file(key)
+      .getSignedUrl({
+        version: 'v4',
+        action: 'resumable',
+        contentType,
+        expires: Date.now() + 1000 * expiresInSeconds,
+      });
     return {
       url,
       protocol: 'gcs-resumable',
@@ -148,23 +152,13 @@ export class GcsStorageProvider implements IStorageProvider {
 
   // ── Object operations ──────────────────────────────────────
 
-  async copy(
-    fromBucket: string,
-    fromKey: string,
-    toBucket: string,
-    toKey: string,
-  ): Promise<void> {
+  async copy(fromBucket: string, fromKey: string, toBucket: string, toKey: string): Promise<void> {
     const from = this.getBucket(fromBucket).file(fromKey);
     const to = this.getBucket(toBucket).file(toKey);
     await from.copy(to);
   }
 
-  async move(
-    fromBucket: string,
-    fromKey: string,
-    toBucket: string,
-    toKey: string,
-  ): Promise<void> {
+  async move(fromBucket: string, fromKey: string, toBucket: string, toKey: string): Promise<void> {
     const from = this.getBucket(fromBucket).file(fromKey);
     const to = this.getBucket(toBucket).file(toKey);
     await from.move(to);
