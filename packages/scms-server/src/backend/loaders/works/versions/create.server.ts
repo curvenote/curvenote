@@ -3,7 +3,7 @@ import { formatDate } from '@curvenote/common';
 import type { Context } from '../../../context.server.js';
 import type { CreateWorkVersion } from '../../../db.types.js';
 import { getPrismaClient } from '../../../prisma.server.js';
-import { error401, error404, site } from '@curvenote/scms-core';
+import { error401, error404, isMystCdnContentSource, site } from '@curvenote/scms-core';
 import { dbGetWorkForUser, formatWorkDTO, getWorkFromSubmission } from '../get.server.js';
 import { getCreateWorkVersionDataFromMyst } from '../create.server.js';
 import { ActivityType } from '@curvenote/scms-db';
@@ -109,10 +109,16 @@ export default async function (
   if (!existingWork) throw error404();
 
   let mergedData = data;
-  if (data.cdn && data.cdn_key) {
+  const cdn = data.cdn;
+  const cdnKey = data.cdn_key;
+  if (
+    typeof cdn === 'string' &&
+    typeof cdnKey === 'string' &&
+    isMystCdnContentSource(data.contains)
+  ) {
     const mystData = await getCreateWorkVersionDataFromMyst(
       ctx,
-      { cdn: data.cdn, key: data.cdn_key },
+      { cdn, key: cdnKey },
       {
         canonical: true,
       },

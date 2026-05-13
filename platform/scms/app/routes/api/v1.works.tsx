@@ -1,6 +1,6 @@
 import type { Route } from './+types/v1.works';
 import { z } from 'zod';
-import { error401, error405, httpError } from '@curvenote/scms-core';
+import { error401, error405, httpError, isMystCdnContentSource } from '@curvenote/scms-core';
 import {
   ensureJsonBodyFromMethod,
   validate,
@@ -81,6 +81,8 @@ async function dbCreateManualWorkAndVersion(
     date?: string;
     doi?: string;
     canonical?: boolean;
+    cdn?: string;
+    cdn_key?: string;
     metadata?: Record<string, any>;
   },
   key?: string,
@@ -113,6 +115,8 @@ async function dbCreateManualWorkAndVersion(
               date: data.date ?? null,
               doi: data.doi ?? null,
               canonical: data.canonical ?? null,
+              cdn: data.cdn ?? null,
+              cdn_key: data.cdn_key ?? null,
               metadata: data.metadata ?? undefined,
             },
           ],
@@ -159,13 +163,14 @@ export async function action(args: Route.ActionArgs) {
     }
   }
   let dto;
-  if (cdn && cdn_key) {
+  const loadMystFromCdn = !!cdn && !!cdn_key && isMystCdnContentSource(contains);
+  if (loadMystFromCdn) {
     dto = await works.create(ctx, cdn, cdn_key, key);
   } else {
     if (!ctx.user) throw error401();
     const work = await dbCreateManualWorkAndVersion(
       ctx.user.id,
-      { ...metadata, title: metadata.title ?? 'Untitled' },
+      { ...metadata, title: metadata.title ?? 'Untitled', cdn, cdn_key },
       key,
       contains,
     );

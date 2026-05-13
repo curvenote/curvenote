@@ -26,6 +26,7 @@ export async function dbCreateNewSubmission(
   draft: boolean,
   jobId?: string,
   collectionId?: string,
+  metadata?: Record<string, any>,
 ) {
   // creating a new submission entry as a nested query in a submissionHistory
   // means it will be created in the same transaction
@@ -48,6 +49,7 @@ export async function dbCreateNewSubmission(
           },
         },
         status: draft ? 'DRAFT' : 'PENDING',
+        metadata: metadata ?? undefined,
         work_version: {
           connect: {
             id: workVersionId,
@@ -179,6 +181,7 @@ export default async function create(
   draft: boolean,
   jobId?: string,
   collectionId?: string,
+  metadata?: Record<string, any>,
 ) {
   if (!ctx.user) throw error401(); // ctx.secure()
   // TODO - check does site allow anonymous submissions?
@@ -192,6 +195,7 @@ export default async function create(
     draft,
     jobId,
     collectionId,
+    metadata,
   );
 
   await ctx.trackEvent(TrackEvent.SUBMISSION_CREATED, {

@@ -18,6 +18,7 @@ const CreateSubmissionPostBodySchema = z.object({
   draft: z.boolean().optional(),
   job_id: z.uuid().optional(),
   collection_id: z.uuid().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export async function loader(args: Route.LoaderArgs) {
@@ -63,6 +64,7 @@ export async function action(args: Route.ActionArgs) {
     draft,
     job_id,
     collection_id,
+    metadata,
   } = validate(CreateSubmissionPostBodySchema, body);
 
   // validate that the requested kind is included in the collection specific or the default collection
@@ -111,6 +113,7 @@ export async function action(args: Route.ActionArgs) {
       draft ?? false,
       job_id,
       collection.id,
+      metadata,
     );
     return Response.json(dto, { status: 201 });
   } catch (error: any) {
