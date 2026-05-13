@@ -33,12 +33,15 @@ export async function unpublishHandler(
   const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
 
   // setup storage
-  const sourceBucket = storageBackend.knownBucketFromCDN(cdn);
-  storageBackend.ensureConnection(sourceBucket);
+  const sourceBucket = storageBackend?.knownBucketFromCDN(cdn) ?? null;
+  const isManagedCdn = Boolean(storageBackend && sourceBucket);
+  if (isManagedCdn) {
+    storageBackend!.ensureConnection(sourceBucket as any);
+  }
 
   let results: PublishJobResults = { key, files_transfered: false };
   // check current location, if is in the pub bucket, then we should remove it
-  if (storageBackend.knownBucketFromCDN(cdn) === KnownBuckets.pub) {
+  if (isManagedCdn && sourceBucket === KnownBuckets.pub) {
     // we think it is in the pub bucket, let's check that it is
     const pubFolder = createFolder(storageBackend, key, KnownBuckets.pub);
     const pubExists = await pubFolder.exists();
@@ -110,7 +113,7 @@ export async function unpublishHandler(
     }
 
     // update the work version to point to the prv bucket
-    let prvCdn = storageBackend.cdnFromKnownBucket(KnownBuckets.prv);
+    let prvCdn = storageBackend!.cdnFromKnownBucket(KnownBuckets.prv);
     if (!prvCdn) throw httpError(500, 'Private CDN not registered');
     if (!prvCdn?.endsWith('/')) prvCdn += '/';
 
