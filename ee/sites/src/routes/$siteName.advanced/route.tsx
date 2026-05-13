@@ -236,7 +236,8 @@ export async function action(args: ActionFunctionArgs) {
     if (!serviceUser) return data({ error: 'Service account not found' }, { status: 404 });
     const tokenId = formData.get('tokenId');
     if (typeof tokenId !== 'string') return data({ error: 'Invalid token id' }, { status: 400 });
-    return dbDeleteTokenForUser(serviceUser.id, tokenId);
+    const result = await dbDeleteTokenForUser(serviceUser.id, tokenId);
+    return data(result);
   }
 
   return data({ error: 'Invalid form action' }, { status: 400 });
