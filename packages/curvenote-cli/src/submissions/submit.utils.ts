@@ -13,7 +13,7 @@ import type {
 import { plural } from 'myst-common';
 import type { ISession } from '../session/types.js';
 import { confirmOrExit } from '../utils/utils.js';
-import { getWorkFromKey } from '../works/utils.js';
+import { getMyWorkFromKey } from '../works/utils.js';
 import type { SubmitLog, SubmitOpts } from './types.js';
 import { getFromJournals, getFromUrl } from '../utils/api.js';
 import { postNewWork, postNewWorkVersion } from '../works/push.js';
@@ -395,17 +395,19 @@ export async function chooseSubmission(
   throw new Error('Using non-latest submission not yet supported...');
 }
 
-export async function getAllSubmissionsUsingKey(
+export async function getAllSubmissionsThatICanSeeUsingKey(
   session: ISession,
   venue: string,
   key: string,
+  opts?: { includeDrafts?: boolean },
 ): Promise<SubmissionsListItemDTO[] | undefined> {
   session.log.debug(`checking for existing submission using key "${key}"`);
   const submissions: SubmissionsListItemDTO[] = [];
   try {
+    // will only contain submissions is the user has scopes on the site
     const siteSubmissions: SubmissionsListingDTO = await getFromJournals(
       session,
-      `/sites/${venue}/submissions?key=${key}`,
+      `/sites/${venue}/submissions?${new URLSearchParams({ key }).toString()}`,
     );
     submissions.push(...siteSubmissions.items);
   } catch (err) {
@@ -414,56 +416,45 @@ export async function getAllSubmissionsUsingKey(
   try {
     const mySubmissions: SubmissionsListingDTO = await getFromJournals(
       session,
-      `/my/submissions?key=${key}`,
-    );
-    // These extra fetches are required for the old version of the API where
-    // the 'key' query parameter is not respected on /my/submissions.
-    // This may be removed (along with the 'correctKey' check below) once
-    // the API is updated.
-    const works = await Promise.all(
-      mySubmissions.items.map((sub) => {
-        return getFromUrl(session, sub.links.work);
-      }),
+      `/my/submissions?${new URLSearchParams({ key }).toString()}`,
     );
     submissions.push(
-      ...mySubmissions.items.filter((submission, ind) => {
+      ...mySubmissions.items.filter((submission) => {
         const correctVenue = submission.site_name === venue;
-        const correctKey = works[ind].key === key;
         const submissionIsDuplicate = submissions.map(({ id }) => id).includes(submission.id);
-        return correctVenue && correctKey && !submissionIsDuplicate;
+        return correctVenue && !submissionIsDuplicate;
       }),
     );
   } catch (err) {
     session.log.debug(err);
   }
-  return submissions;
+
+  if (opts?.includeDrafts) {
+    return submissions;
+  }
+
+  // TODO we can remove this additional filtering once the `/my/submissions?key=` API endpoint filters out drafts by default
+  const draftSubmissions = submissions.filter((submission) => submission.status === 'DRAFT');
+  if (draftSubmissions.length > 0) {
+    session.log.debug(`Ignoring ${plural('%s draft submission(s)', draftSubmissions)}`);
+  }
+  return submissions.filter((submission) => submission.status !== 'DRAFT');
 }
 
 export async function getSubmissionToUpdate(
   session: ISession,
   submissions: SubmissionsListItemDTO[],
 ) {
-  const draftSubmissions = submissions.filter((submission) => {
-    return submission.status === 'DRAFT';
-  });
-  const nonDraftSubmissions = submissions.filter((submission) => {
-    return submission.status !== 'DRAFT';
-  });
-  if (draftSubmissions.length > 0) {
-    session.log.debug(`Ignoring ${plural('%s draft submission(s)', draftSubmissions)}`);
-  }
-  if (nonDraftSubmissions.length === 0) {
+  if (submissions.length === 0) {
     session.log.debug('existing submission not found');
     return;
   }
-  if (nonDraftSubmissions.length === 1) {
+  if (submissions.length === 1) {
     session.log.debug(`${chalk.bold(`🔍 Found one existing submission`)}`);
-    return nonDraftSubmissions[0];
+    return submissions[0];
   }
-  session.log.info(
-    `🔍 Found ${plural('%s existing submission(s)', nonDraftSubmissions)} for this work`,
-  );
-  const submission = await chooseSubmission(session, nonDraftSubmissions);
+  session.log.info(`🔍 Found ${plural('%s existing submission(s)', submissions)} for this work`);
+  const submission = await chooseSubmission(session, submissions);
   return submission;
 }
 
@@ -516,7 +507,7 @@ export async function confirmUpdateToExistingSubmission(
       process.exit(1);
     }
 
-    const work = await getWorkFromKey(session, key);
+    const work = await getMyWorkFromKey(session, key);
     if (!work) {
       session.log.info(
         `${chalk.yellow(
@@ -575,7 +566,7 @@ export async function createNewSubmission(
   opts?: SubmitOpts,
   existingWork?: WorkDTO,
 ) {
-  const workResp = existingWork ?? (await getWorkFromKey(session, key));
+  const workResp = existingWork ?? (await getMyWorkFromKey(session, key));
   let work: WorkDTO;
   if (workResp) {
     session.log.debug(`posting new work version...`);

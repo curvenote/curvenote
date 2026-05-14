@@ -8,20 +8,46 @@ import { formatSubmissionLinksDTO } from './get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../kinds/get.server.js';
 import type { ClientExtension, WorkflowTransition } from '@curvenote/scms-core';
 
-function withHasVersions(where: Prisma.SubmissionWhereInput): Prisma.SubmissionWhereInput {
-  return {
-    AND: [where, { versions: { some: {} } }],
-  };
+export type DbListSubmissionsOpts = {
+  /**
+   * When true (e.g. /my/submissions?drafts=true), include submissions whose versions are all DRAFT.
+   * @default false
+   */
+  includeDraftOnlySubmissions?: boolean;
+};
+
+/** Submissions whose every version is DRAFT — excluded from list queries unless opted out. */
+const submissionWhereDraftOnlyExclusion: Prisma.SubmissionWhereInput = {
+  NOT: {
+    versions: {
+      every: {
+        status: 'DRAFT',
+      },
+    },
+  },
+};
+
+function withHasVersions(
+  where: Prisma.SubmissionWhereInput,
+  opts?: Pick<DbListSubmissionsOpts, 'includeDraftOnlySubmissions'>,
+): Prisma.SubmissionWhereInput {
+  const applyDraftOnlyExclusion = opts?.includeDraftOnlySubmissions !== true;
+  const andClauses: Prisma.SubmissionWhereInput[] = [where, { versions: { some: {} } }];
+  if (applyDraftOnlyExclusion) {
+    andClauses.push(submissionWhereDraftOnlyExclusion);
+  }
+  return { AND: andClauses };
 }
 
 export async function dbListSubmissions(
   where: Prisma.SubmissionWhereInput,
   skip?: number,
   take?: number,
+  opts?: DbListSubmissionsOpts,
 ) {
   const prisma = await getPrismaClient();
   return prisma.submission.findMany({
-    where,
+    where: withHasVersions(where, opts),
     skip,
     take,
     include: {
@@ -77,10 +103,11 @@ export async function dbListSubmissions(
 async function dbCountSubmissions(
   where: Prisma.SubmissionWhereInput,
   tx?: Prisma.TransactionClient,
+  opts?: Pick<DbListSubmissionsOpts, 'includeDraftOnlySubmissions'>,
 ) {
   const prisma = await getPrismaClient();
   return (tx ?? prisma).submission.count({
-    where: withHasVersions(where),
+    where: withHasVersions(where, opts),
   });
 }
 
@@ -230,7 +257,7 @@ export default async function (
   const prisma = await getPrismaClient();
   const result = await prisma.$transaction(async (tx) => {
     const [items, total] = await Promise.all([
-      dbListSubmissions(withHasVersions(normalizedWhere), skip, take),
+      dbListSubmissions(normalizedWhere, skip, take),
       dbCountSubmissions(normalizedWhere, tx),
     ]);
     return { items, total };

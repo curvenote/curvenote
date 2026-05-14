@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import type { WorkDTO } from '@curvenote/common';
 import type { ISession } from '../session/types.js';
-import { getWorkFromKey, getWorksFromDoi, workKeyExists } from './utils.js';
+import { getMyWorkFromKey, getMyWorksFromDoi, workKeyExists } from './utils.js';
 
 export type LookupKeyMode = 'id' | 'doi';
 
@@ -22,7 +22,7 @@ export async function resolveExistingWork(
   if (opts.mode === 'id') {
     if (opts.forceNew) return undefined;
     if (!opts.key) return undefined;
-    return getWorkFromKey(session, opts.key);
+    return getMyWorkFromKey(session, opts.key);
   }
 
   const doi =
@@ -35,13 +35,13 @@ export async function resolveExistingWork(
 
   let works: WorkDTO[] = [];
   if (!opts.forceNew) {
-    works = await getWorksFromDoi(session, doi);
+    works = await getMyWorksFromDoi(session, doi);
   }
   if (works.length === 0) {
     // In DOI mode, creating a new work can still fail if the project.id/work key
     // is already taken by an inaccessible work. Preflight this consistently.
     if (opts.fallbackCreateKey) {
-      const owned = await getWorkFromKey(session, opts.fallbackCreateKey);
+      const owned = await getMyWorkFromKey(session, opts.fallbackCreateKey);
       if (!owned) {
         const taken = await workKeyExists(session, opts.fallbackCreateKey);
         if (taken) {

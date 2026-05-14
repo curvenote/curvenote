@@ -1,4 +1,3 @@
-import type { Prisma } from '@curvenote/scms-db';
 import type { Context } from '../../../context.server.js';
 import { SiteContext } from '../../../context.site.server.js';
 import type { ClientExtension } from '@curvenote/scms-core';
@@ -8,20 +7,25 @@ import { userHasWorkScope } from '../../../scopes.helpers.server.js';
 
 export async function dbListUserSubmissions(
   userId: string,
-  opts: { key?: string; workId?: string; siteName?: string } = {},
+  opts: { key?: string; workId?: string; siteName?: string; includeDrafts?: boolean } = {},
 ) {
-  return dbListSubmissions({
-    ...(opts.siteName ? { site: { name: opts.siteName } } : {}),
-    work: {
-      ...(opts.key ? { key: opts.key } : {}),
-      ...(opts.workId ? { id: opts.workId } : {}),
-      work_users: {
-        some: {
-          user_id: userId,
+  return dbListSubmissions(
+    {
+      ...(opts.siteName ? { site: { name: opts.siteName } } : {}),
+      work: {
+        ...(opts.key ? { key: opts.key } : {}),
+        ...(opts.workId ? { id: opts.workId } : {}),
+        work_users: {
+          some: {
+            user_id: userId,
+          },
         },
       },
     },
-  });
+    undefined,
+    undefined,
+    { includeDraftOnlySubmissions: opts.includeDrafts },
+  );
 }
 
 type DBO = Exclude<Awaited<ReturnType<typeof dbListUserSubmissions>>, null>;
@@ -60,13 +64,18 @@ export async function formatMySubmissionListDTO(
 export default async function (
   ctx: Context,
   extensions: ClientExtension[],
-  opts?: string | { key?: string; workId?: string; siteName?: string },
+  opts?: string | { key?: string; workId?: string; siteName?: string; includeDrafts?: boolean },
 ) {
   if (!ctx.user) throw error401();
   const normalized =
     typeof opts === 'string'
       ? { key: opts }
-      : { key: opts?.key, workId: opts?.workId, siteName: opts?.siteName };
+      : {
+          key: opts?.key,
+          workId: opts?.workId,
+          siteName: opts?.siteName,
+          includeDrafts: opts?.includeDrafts,
+        };
   const dbo = await dbListUserSubmissions(ctx.user.id, normalized);
   if (!dbo) throw error404();
   const siteCtxCache: Record<string, SiteContext> = {};
