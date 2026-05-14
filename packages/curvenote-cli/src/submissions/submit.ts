@@ -7,7 +7,7 @@ import {
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
   createNewSubmission,
-  checkForSubmissionKeyInUse,
+  checkForSubmissionKeyInUse as checkIfWorkKeyIsInUseOnAnySubmissionOnThisSite,
   determineCollectionAndKind,
   collectionMoniker,
   getAllSubmissionsUsingKey,
@@ -91,7 +91,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     if (lookupMode === 'id') {
       const allExisting = await getAllSubmissionsUsingKey(session, venue, key);
       if (!allExisting?.length) {
-        const exists = await checkForSubmissionKeyInUse(session, venue, key);
+        const exists = await checkIfWorkKeyIsInUseOnAnySubmissionOnThisSite(session, venue, key);
         if (exists) {
           session.log.warn(
             `⛔️ This work has already been submitted to a Curvenote site, but you don't have permission to access that submission.`,

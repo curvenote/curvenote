@@ -399,6 +399,7 @@ export async function getAllSubmissionsUsingKey(
   session: ISession,
   venue: string,
   key: string,
+  opts?: { includeDrafts?: boolean },
 ): Promise<SubmissionsListItemDTO[] | undefined> {
   session.log.debug(`checking for existing submission using key "${key}"`);
   const submissions: SubmissionsListItemDTO[] = [];
@@ -412,58 +413,51 @@ export async function getAllSubmissionsUsingKey(
     session.log.debug(err);
   }
   try {
+    const searchParams = new URLSearchParams({ key });
+    if (opts?.includeDrafts) {
+      searchParams.set('drafts', 'true');
+    }
     const mySubmissions: SubmissionsListingDTO = await getFromJournals(
       session,
-      `/my/submissions?key=${key}`,
-    );
-    // These extra fetches are required for the old version of the API where
-    // the 'key' query parameter is not respected on /my/submissions.
-    // This may be removed (along with the 'correctKey' check below) once
-    // the API is updated.
-    const works = await Promise.all(
-      mySubmissions.items.map((sub) => {
-        return getFromUrl(session, sub.links.work);
-      }),
+      `/my/submissions?${searchParams.toString()}`,
     );
     submissions.push(
-      ...mySubmissions.items.filter((submission, ind) => {
+      ...mySubmissions.items.filter((submission) => {
         const correctVenue = submission.site_name === venue;
-        const correctKey = works[ind].key === key;
         const submissionIsDuplicate = submissions.map(({ id }) => id).includes(submission.id);
-        return correctVenue && correctKey && !submissionIsDuplicate;
+        return correctVenue && !submissionIsDuplicate;
       }),
     );
   } catch (err) {
-    session.log.debug(err);
+    session.log.error(err);
+    throw err;
   }
-  return submissions;
+
+  // TODO we can remove this additional filtering once the `/my/submissions?key=` API endpoint filters out drafts by default
+  if (opts?.includeDrafts) {
+    return submissions;
+  }
+  const draftSubmissions = submissions.filter((submission) => submission.status === 'DRAFT');
+  if (draftSubmissions.length > 0) {
+    session.log.debug(`Ignoring ${plural('%s draft submission(s)', draftSubmissions)}`);
+  }
+  return submissions.filter((submission) => submission.status !== 'DRAFT');
 }
 
 export async function getSubmissionToUpdate(
   session: ISession,
   submissions: SubmissionsListItemDTO[],
 ) {
-  const draftSubmissions = submissions.filter((submission) => {
-    return submission.status === 'DRAFT';
-  });
-  const nonDraftSubmissions = submissions.filter((submission) => {
-    return submission.status !== 'DRAFT';
-  });
-  if (draftSubmissions.length > 0) {
-    session.log.debug(`Ignoring ${plural('%s draft submission(s)', draftSubmissions)}`);
-  }
-  if (nonDraftSubmissions.length === 0) {
+  if (submissions.length === 0) {
     session.log.debug('existing submission not found');
     return;
   }
-  if (nonDraftSubmissions.length === 1) {
+  if (submissions.length === 1) {
     session.log.debug(`${chalk.bold(`🔍 Found one existing submission`)}`);
-    return nonDraftSubmissions[0];
+    return submissions[0];
   }
-  session.log.info(
-    `🔍 Found ${plural('%s existing submission(s)', nonDraftSubmissions)} for this work`,
-  );
-  const submission = await chooseSubmission(session, nonDraftSubmissions);
+  session.log.info(`🔍 Found ${plural('%s existing submission(s)', submissions)} for this work`);
+  const submission = await chooseSubmission(session, submissions);
   return submission;
 }
 
