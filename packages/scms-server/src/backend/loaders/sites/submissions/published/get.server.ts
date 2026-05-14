@@ -130,11 +130,14 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkD
       dbo.submission.collection != null
         ? formatCollectionSummaryDTO(dbo.submission.collection)
         : undefined,
+    submission_id: dbo.submission.id,
     links: {
       // TODO canonical access should work if PUBLISHED - this endpoint simply doesn't exist yet
       self: ctx.asApiUrl(`/sites/${ctx.site.name}/works/${work_id}/versions/${version_id}`),
       site: ctx.asApiUrl(`/sites/${ctx.site.name}`),
       work: ctx.asApiUrl(`/works/${work_id}`),
+      submission: ctx.asApiUrl(`/sites/${ctx.site.name}/submissions/${dbo.submission.id}`),
+      versions: ctx.asApiUrl(`/sites/${ctx.site.name}/submissions/${dbo.submission.id}/versions`),
       html: htmlUrl,
       thumbnail,
       social,

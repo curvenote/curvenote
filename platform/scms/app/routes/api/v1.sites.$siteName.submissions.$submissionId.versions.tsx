@@ -4,8 +4,8 @@ import { httpError, site, work } from '@curvenote/scms-core';
 import {
   ensureJsonBodyFromMethod,
   validate,
-  withCurvenoteSubmissionContext,
   withScopedSubmissionContext,
+  withSecureSiteContext,
   sites,
   works,
 } from '@curvenote/scms-server';
@@ -24,16 +24,25 @@ const ParamsSchema = z.object({
 });
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withCurvenoteSubmissionContext(args, [
-    work.id.submissions.list,
-    site.submissions.list,
-  ]);
+  const ctx = await withSecureSiteContext(args);
+  if (ctx.site.external) {
+    throw httpError(405, 'External sites do not accept submissions');
+  }
+
+  const submissionId = args.params.submissionId;
+  if (!submissionId) throw httpError(400, 'Missing submission id');
+
+  const submission = await sites.submissions.dbGetSubmission({ id: submissionId });
+  if (!submission || submission.site.name !== ctx.site.name) {
+    throw httpError(404, 'Submission not found');
+  }
+
   const params = new URL(ctx.request.url).searchParams;
   const { limit, page } = validate(ParamsSchema, {
     limit: params.get('limit') ? parseInt(params.get('limit')!) : undefined,
     page: params.get('page') ? parseInt(params.get('page')!) : undefined,
   });
-  const dto = await sites.submissions.versions.list(ctx, ctx.submission.id, { page, limit });
+  const dto = await sites.submissions.versions.list(ctx, submissionId, { page, limit });
   return Response.json(dto);
 }
 

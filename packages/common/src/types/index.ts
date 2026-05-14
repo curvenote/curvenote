@@ -145,10 +145,13 @@ export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind' | 'date_published'
     /** @deprecated - date_published is favored over date */
     date?: string;
     submission_version_id: string;
+    submission_id: string;
     links: {
       self: string;
       site: string;
       work: string;
+      submission: string;
+      versions: string;
       config?: string;
       thumbnail?: string;
       social?: string;
