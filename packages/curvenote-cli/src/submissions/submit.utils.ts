@@ -13,7 +13,7 @@ import type {
 import { plural } from 'myst-common';
 import type { ISession } from '../session/types.js';
 import { confirmOrExit } from '../utils/utils.js';
-import { getWorkFromKey } from '../works/utils.js';
+import { getMyWorkFromKey } from '../works/utils.js';
 import type { SubmitLog, SubmitOpts } from './types.js';
 import { getFromJournals, getFromUrl } from '../utils/api.js';
 import { postNewWork, postNewWorkVersion } from '../works/push.js';
@@ -395,14 +395,16 @@ export async function chooseSubmission(
   throw new Error('Using non-latest submission not yet supported...');
 }
 
-export async function getAllSubmissionsUsingKey(
+export async function getAllSubmissionsThatICanSeeUsingKey(
   session: ISession,
   venue: string,
   key: string,
+  opts?: { includeDrafts?: boolean },
 ): Promise<SubmissionsListItemDTO[] | undefined> {
   session.log.debug(`checking for existing submission using key "${key}"`);
   const submissions: SubmissionsListItemDTO[] = [];
   try {
+    // will only contain submissions is the user has scopes on the site
     const siteSubmissions: SubmissionsListingDTO = await getFromJournals(
       session,
       `/sites/${venue}/submissions?${new URLSearchParams({ key }).toString()}`,
@@ -424,8 +426,11 @@ export async function getAllSubmissionsUsingKey(
       }),
     );
   } catch (err) {
-    session.log.error(err);
-    throw err;
+    session.log.debug(err);
+  }
+
+  if (opts?.includeDrafts) {
+    return submissions;
   }
 
   // TODO we can remove this additional filtering once the `/my/submissions?key=` API endpoint filters out drafts by default
@@ -502,7 +507,7 @@ export async function confirmUpdateToExistingSubmission(
       process.exit(1);
     }
 
-    const work = await getWorkFromKey(session, key);
+    const work = await getMyWorkFromKey(session, key);
     if (!work) {
       session.log.info(
         `${chalk.yellow(
@@ -561,7 +566,7 @@ export async function createNewSubmission(
   opts?: SubmitOpts,
   existingWork?: WorkDTO,
 ) {
-  const workResp = existingWork ?? (await getWorkFromKey(session, key));
+  const workResp = existingWork ?? (await getMyWorkFromKey(session, key));
   let work: WorkDTO;
   if (workResp) {
     session.log.debug(`posting new work version...`);

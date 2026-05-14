@@ -10,7 +10,7 @@ import {
   checkForSubmissionKeyInUse as checkIfWorkKeyIsInUseOnAnySubmissionOnThisSite,
   determineCollectionAndKind,
   collectionMoniker,
-  getAllSubmissionsUsingKey,
+  getAllSubmissionsThatICanSeeUsingKey,
   getSubmissionToUpdate,
   checkVenueSubmitAccess,
   getVenueCollections,
@@ -90,15 +90,20 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   if (!opts?.draft && !opts?.new) {
     session.log.info(`📡 Checking submission status...`);
     if (lookupMode === 'id') {
-      const allExisting = await getAllSubmissionsUsingKey(session, venue, key);
-      if (!allExisting?.length) {
+      const allExisting = await getAllSubmissionsThatICanSeeUsingKey(session, venue, key, {
+        includeDrafts: true,
+      });
+
+      const isEmpty = !allExisting || allExisting.length === 0;
+      if (isEmpty) {
+        // check if the work key is in use on any submission on this site just to give a better error message
         const alreadySubmittedToThisSite = await checkIfWorkKeyIsInUseOnAnySubmissionOnThisSite(
           session,
           venue,
           key,
         );
         if (alreadySubmittedToThisSite) {
-          session.log.warn(
+          session.log.error(
             `⛔️ This work has already been submitted to "${venue}", but you don't have permission to access that submission.`,
           );
           session.log.info(
@@ -109,13 +114,11 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
           session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
         }
 
+        // Before anyting, am I able to do something with the work?
         const { owned, taken } = await checkMyWorkAccess(session, key);
         if (!owned && taken) {
-          session.log.warn(
-            `⛔️ This work has already been submitted to a Curvenote site, but you don't have permission to access that submission.`,
-          );
-          session.log.info(
-            'If you still want to make a new submission, you may explicitly add flag "--new"',
+          session.log.error(
+            `⛔️ This work exists but you don't have permission submit it to a site.`,
           );
           process.exit(1);
         }

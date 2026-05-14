@@ -174,7 +174,10 @@ export function workDoiFromConfig(session: ISession) {
  * Returns undefined if work for the given venue is not defined or
  * if the API request for the work fails.
  */
-export async function getWorkFromKey(session: ISession, key: string): Promise<WorkDTO | undefined> {
+export async function getMyWorkFromKey(
+  session: ISession,
+  key: string,
+): Promise<WorkDTO | undefined> {
   try {
     session.log.debug(`GET from journals API /my/works?key=${key}`);
     const resp = await getFromJournals(session, `/my/works?key=${key}`);
@@ -184,7 +187,7 @@ export async function getWorkFromKey(session: ISession, key: string): Promise<Wo
   }
 }
 
-export async function getWorksFromDoi(session: ISession, doi: string): Promise<WorkDTO[]> {
+export async function getMyWorksFromDoi(session: ISession, doi: string): Promise<WorkDTO[]> {
   try {
     session.log.debug(`GET from journals API /my/works?doi=${doi}`);
     const resp = await getFromJournals(session, `/my/works?doi=${encodeURIComponent(doi)}`);
@@ -207,7 +210,7 @@ export async function checkMyWorkAccess(
   session: ISession,
   key: string,
 ): Promise<{ owned: WorkDTO | undefined; taken: boolean }> {
-  const owned = await getWorkFromKey(session, key);
+  const owned = await getMyWorkFromKey(session, key);
   const taken = await workKeyExists(session, key);
   return { owned, taken };
 }

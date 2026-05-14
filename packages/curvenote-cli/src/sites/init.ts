@@ -5,7 +5,7 @@ import { checkVenueExists, ensureVenue } from './utils.js';
 import type { SiteWithContentDTO } from '@curvenote/common';
 import { postToJournals } from '../utils/api.js';
 import { tic } from 'myst-cli-utils';
-import { getWorkFromKey, workKeyFromConfig } from '../works/utils.js';
+import { getMyWorkFromKey, workKeyFromConfig } from '../works/utils.js';
 
 export async function patchSiteWithContent(
   session: ISession,
@@ -46,7 +46,7 @@ export async function init(session: ISession, name: string, opts?: SiteInitOpts)
   let content: string | undefined;
   const key = workKeyFromConfig(session);
   if (key) {
-    const work = await getWorkFromKey(session, key);
+    const work = await getMyWorkFromKey(session, key);
     content = work?.id;
   }
   if (!content) {

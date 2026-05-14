@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import {
   exitOnInvalidKeyOption,
-  getWorkFromKey,
+  getMyWorkFromKey,
   performCleanRebuild,
   promptForNewKey,
   uploadAndGetCdnKey,
@@ -164,7 +164,7 @@ export async function push(session: ISession, opts?: PushOpts) {
     const cdn = opts?.public ? session.config.publicCdnUrl : session.config.privateCdnUrl;
     const cdnKey = await uploadAndGetCdnKey(session, cdn, opts);
 
-    const workResp = await getWorkFromKey(session, key);
+    const workResp = await getMyWorkFromKey(session, key);
     let work: WorkDTO;
     if (workResp) {
       session.log.debug(`posting new work version...`);
