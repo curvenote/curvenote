@@ -1,5 +1,18 @@
 # @curvenote/scms-sites-ext
 
+## 0.18.0
+
+### Patch Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Works register CLI path and related API routes/loaders; submission listing and version flows; site advanced settings for service accounts and personal access tokens.
+
+- Updated dependencies [[`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56), [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56), [`3e4de74`](https://github.com/curvenote/curvenote/commit/3e4de74556aaacbec9908bc05eb27d6323261e9f), [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56)]:
+  - @curvenote/check-definitions@0.16.0
+  - @curvenote/common@0.5.0
+  - @curvenote/scms-core@0.18.0
+  - @curvenote/scms-server@0.18.0
+  - @curvenote/scms-db@0.18.0
+
 ## 0.17.1
 
 ### Patch Changes

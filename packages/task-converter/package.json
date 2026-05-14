@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/task-converter",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Node.js server for the task converter service (Cloud Run style, local build and run)",
   "type": "module",
   "main": "dist/index.js",
@@ -21,9 +21,9 @@
     "lint:format:fix": "npx prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
-    "@curvenote/common": "^0.4.2",
-    "@curvenote/scms-core": "^0.17.0",
-    "@curvenote/scms-tasks": "^0.17.0",
+    "@curvenote/common": "^0.5.0",
+    "@curvenote/scms-core": "^0.18.0",
+    "@curvenote/scms-tasks": "^0.18.0",
     "express": "^4.18.1"
   },
   "devDependencies": {

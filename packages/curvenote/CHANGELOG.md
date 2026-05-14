@@ -1,5 +1,18 @@
 # curvenote
 
+## 0.16.0
+
+### Minor Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Introduce `IStorageProvider` with GCS, Azure Blob, and S3 implementations; refactor storage backend and uploads; signed uploads expose `protocol` (`gcs-resumable` | `put`) for browser, tasks, and CLI; add `api.storage` config (legacy GCS keyfile still supported).
+
+### Patch Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Works register CLI path and related API routes/loaders; submission listing and version flows; site advanced settings for service accounts and personal access tokens.
+
+- Updated dependencies [[`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56), [`3e4de74`](https://github.com/curvenote/curvenote/commit/3e4de74556aaacbec9908bc05eb27d6323261e9f), [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56)]:
+  - @curvenote/cli@0.16.0
+
 ## 0.15.2
 
 ### Patch Changes
