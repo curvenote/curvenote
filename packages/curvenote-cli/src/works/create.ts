@@ -134,7 +134,6 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
       cdn: opts.cdn,
       cdn_key: opts.cdnKey,
       metadata: workVersionMetadata,
-      tags,
     });
     work = updated;
     workVersionId = updated.version_id as string;
@@ -150,7 +149,6 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
       cdn: opts.cdn,
       cdn_key: opts.cdnKey,
       metadata: workVersionMetadata,
-      tags,
     });
     workVersionId = work.version_id as string;
   }

@@ -571,18 +571,18 @@ export async function createNewSubmission(
   let work: WorkDTO;
   if (workResp) {
     session.log.debug(`posting new work version...`);
-    work = await postNewWorkVersion(session, workResp.links.versions, cdnKey, cdn, { tags });
+    work = await postNewWorkVersion(session, workResp.links.versions, cdnKey, cdn);
     session.log.debug(`new work posted with version id ${work.version_id}`);
   } else {
     session.log.debug(`posting new work...`);
     try {
-      work = await postNewWork(session, cdnKey, cdn, key, tags ? { tags } : undefined);
+      work = await postNewWork(session, cdnKey, cdn, key);
     } catch (err) {
       if (opts?.draft) {
         session.log.debug(
           `unable to create a work with key ${key} - attempting to create un-keyed work for draft submission`,
         );
-        work = await postNewWork(session, cdnKey, cdn, undefined, tags ? { tags } : undefined);
+        work = await postNewWork(session, cdnKey, cdn, undefined);
       } else {
         throw err;
       }
@@ -660,7 +660,6 @@ export async function updateExistingSubmission(
       workResp.links.versions,
       cdnKey,
       session.config.privateCdnUrl,
-      { tags },
     );
     if (!work.version_id) {
       throw new Error('Failed to create a work version');

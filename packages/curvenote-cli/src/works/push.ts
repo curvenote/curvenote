@@ -174,16 +174,15 @@ export async function push(session: ISession, opts?: PushOpts) {
     const cdn = opts?.public ? session.config.publicCdnUrl : session.config.privateCdnUrl;
     const cdnKey = await uploadAndGetCdnKey(session, cdn, opts);
 
-    const tags = opts?.tags && opts.tags.length > 0 ? opts.tags : undefined;
     const workResp = await getMyWorkFromKey(session, key);
     let work: WorkDTO;
     if (workResp) {
       session.log.debug(`posting new work version...`);
-      work = await postNewWorkVersion(session, workResp.links.versions, cdnKey, cdn, { tags });
+      work = await postNewWorkVersion(session, workResp.links.versions, cdnKey, cdn);
       session.log.debug(`new work posted with version id ${work.version_id}`);
     } else {
       session.log.debug(`posting new work...`);
-      work = await postNewWork(session, cdnKey, cdn, key, tags ? { tags } : undefined);
+      work = await postNewWork(session, cdnKey, cdn, key);
       session.log.debug(`new work posted with id ${work.id}`);
     }
     if (!work.version_id) {

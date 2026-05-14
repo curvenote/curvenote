@@ -154,7 +154,7 @@ export function makeLookupKeyOption() {
 export function makeTagsOption() {
   return new Option(
     '--tags <tags>',
-    'Comma-separated list of tags applied to the new work and submission version (e.g. "v1,preprint"). Repeat the flag to append.',
+    'Comma-separated list of tags applied to the new submission version (e.g. "v1,preprint"). Repeat the flag to append.',
   ).argParser((value, previous?: string[]) => {
     const items = value
       .split(',')

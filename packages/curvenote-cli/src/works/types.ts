@@ -2,7 +2,6 @@ import type { BaseLog, IdAndDate, BaseOpts } from '../logs/types.js';
 
 export type PushOpts = BaseOpts & {
   public?: boolean;
-  tags?: string[];
 };
 
 export type RegisterWorkOpts = BaseOpts & {

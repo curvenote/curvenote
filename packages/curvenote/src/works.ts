@@ -31,7 +31,6 @@ function makeWorksPushCLI(program: Command) {
     .addOption(makeYesOption())
     .addOption(makeResumeOption())
     .addOption(makeMaxSizeWebpOption(3))
-    .addOption(makeTagsOption())
     .action(clirun(works.push, { program, requireSiteConfig: true }));
   return command;
 }
