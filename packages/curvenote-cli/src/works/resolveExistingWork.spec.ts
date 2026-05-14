@@ -10,8 +10,8 @@ vi.mock('inquirer', () => ({
 }));
 
 vi.mock('./utils.js', () => ({
-  getWorkFromKey: vi.fn(),
-  getWorksFromDoi: vi.fn(),
+  getMyWorkFromKey: vi.fn(),
+  getMyWorksFromDoi: vi.fn(),
   workKeyExists: vi.fn(),
 }));
 
@@ -22,7 +22,7 @@ describe('resolveExistingWork', () => {
 
   it('returns work by id lookup mode', async () => {
     const expected = { id: 'w1' } as any;
-    vi.mocked(workUtils.getWorkFromKey).mockResolvedValueOnce(expected);
+    vi.mocked(workUtils.getMyWorkFromKey).mockResolvedValueOnce(expected);
     const result = await resolveExistingWork({} as any, {
       mode: 'id',
       key: 'project-id',
@@ -48,7 +48,7 @@ describe('resolveExistingWork', () => {
   });
 
   it('returns undefined for doi mode with no matches', async () => {
-    vi.mocked(workUtils.getWorksFromDoi).mockResolvedValueOnce([]);
+    vi.mocked(workUtils.getMyWorksFromDoi).mockResolvedValueOnce([]);
     const result = await resolveExistingWork({} as any, {
       mode: 'doi',
       doi: '10.1000/test',
@@ -59,7 +59,7 @@ describe('resolveExistingWork', () => {
 
   it('auto-selects latest match when yes=true', async () => {
     const expected = { id: 'w1' } as any;
-    vi.mocked(workUtils.getWorksFromDoi).mockResolvedValueOnce([expected, { id: 'w2' } as any]);
+    vi.mocked(workUtils.getMyWorksFromDoi).mockResolvedValueOnce([expected, { id: 'w2' } as any]);
     const result = await resolveExistingWork({} as any, {
       mode: 'doi',
       doi: '10.1000/test',
@@ -71,7 +71,7 @@ describe('resolveExistingWork', () => {
 
   it('prompts for specific work when multiple DOI matches', async () => {
     const works = [{ id: 'w1' }, { id: 'w2' }] as any[];
-    vi.mocked(workUtils.getWorksFromDoi).mockResolvedValueOnce(works as any);
+    vi.mocked(workUtils.getMyWorksFromDoi).mockResolvedValueOnce(works as any);
     vi.mocked(inquirer.prompt as any).mockResolvedValueOnce({ workId: 'w2' });
     const result = await resolveExistingWork({} as any, {
       mode: 'doi',
@@ -82,7 +82,7 @@ describe('resolveExistingWork', () => {
   });
 
   it('returns undefined when single DOI match is rejected', async () => {
-    vi.mocked(workUtils.getWorksFromDoi).mockResolvedValueOnce([{ id: 'w1' } as any]);
+    vi.mocked(workUtils.getMyWorksFromDoi).mockResolvedValueOnce([{ id: 'w1' } as any]);
     vi.mocked(inquirer.prompt as any).mockResolvedValueOnce({ confirm: false });
     const result = await resolveExistingWork({} as any, {
       mode: 'doi',
@@ -93,8 +93,8 @@ describe('resolveExistingWork', () => {
   });
 
   it('throws on DOI mode when fallback key collides', async () => {
-    vi.mocked(workUtils.getWorksFromDoi).mockResolvedValueOnce([]);
-    vi.mocked(workUtils.getWorkFromKey).mockResolvedValueOnce(undefined);
+    vi.mocked(workUtils.getMyWorksFromDoi).mockResolvedValueOnce([]);
+    vi.mocked(workUtils.getMyWorkFromKey).mockResolvedValueOnce(undefined);
     vi.mocked(workUtils.workKeyExists as any).mockResolvedValueOnce(true);
     await expect(
       resolveExistingWork({} as any, {
