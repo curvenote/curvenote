@@ -203,6 +203,15 @@ export async function workKeyExists(session: ISession, key: string): Promise<boo
   }
 }
 
+export async function checkMyWorkAccess(
+  session: ISession,
+  key: string,
+): Promise<{ owned: WorkDTO | undefined; taken: boolean }> {
+  const owned = await getWorkFromKey(session, key);
+  const taken = await workKeyExists(session, key);
+  return { owned, taken };
+}
+
 /**
  * Prompt user for a new work key
  *

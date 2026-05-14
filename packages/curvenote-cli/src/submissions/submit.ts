@@ -22,6 +22,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { prepareChecksForSubmission } from './check.js';
 import {
+  checkMyWorkAccess,
   exitOnInvalidKeyOption,
   performCleanRebuild,
   promptForNewKey,
@@ -91,10 +92,14 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     if (lookupMode === 'id') {
       const allExisting = await getAllSubmissionsUsingKey(session, venue, key);
       if (!allExisting?.length) {
-        const exists = await checkIfWorkKeyIsInUseOnAnySubmissionOnThisSite(session, venue, key);
-        if (exists) {
+        const alreadySubmittedToThisSite = await checkIfWorkKeyIsInUseOnAnySubmissionOnThisSite(
+          session,
+          venue,
+          key,
+        );
+        if (alreadySubmittedToThisSite) {
           session.log.warn(
-            `⛔️ This work has already been submitted to a Curvenote site, but you don't have permission to access that submission.`,
+            `⛔️ This work has already been submitted to "${venue}", but you don't have permission to access that submission.`,
           );
           session.log.info(
             'If you still want to make a new submission, you may explicitly add flag "--new"',
@@ -102,6 +107,17 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
           process.exit(1);
         } else {
           session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
+        }
+
+        const { owned, taken } = await checkMyWorkAccess(session, key);
+        if (!owned && taken) {
+          session.log.warn(
+            `⛔️ This work has already been submitted to a Curvenote site, but you don't have permission to access that submission.`,
+          );
+          session.log.info(
+            'If you still want to make a new submission, you may explicitly add flag "--new"',
+          );
+          process.exit(1);
         }
       } else {
         existing = await getSubmissionToUpdate(session, allExisting);

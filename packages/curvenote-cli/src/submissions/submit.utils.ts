@@ -399,27 +399,22 @@ export async function getAllSubmissionsUsingKey(
   session: ISession,
   venue: string,
   key: string,
-  opts?: { includeDrafts?: boolean },
 ): Promise<SubmissionsListItemDTO[] | undefined> {
   session.log.debug(`checking for existing submission using key "${key}"`);
   const submissions: SubmissionsListItemDTO[] = [];
   try {
     const siteSubmissions: SubmissionsListingDTO = await getFromJournals(
       session,
-      `/sites/${venue}/submissions?key=${key}`,
+      `/sites/${venue}/submissions?${new URLSearchParams({ key }).toString()}`,
     );
     submissions.push(...siteSubmissions.items);
   } catch (err) {
     session.log.debug(err);
   }
   try {
-    const searchParams = new URLSearchParams({ key });
-    if (opts?.includeDrafts) {
-      searchParams.set('drafts', 'true');
-    }
     const mySubmissions: SubmissionsListingDTO = await getFromJournals(
       session,
-      `/my/submissions?${searchParams.toString()}`,
+      `/my/submissions?${new URLSearchParams({ key }).toString()}`,
     );
     submissions.push(
       ...mySubmissions.items.filter((submission) => {
@@ -434,9 +429,6 @@ export async function getAllSubmissionsUsingKey(
   }
 
   // TODO we can remove this additional filtering once the `/my/submissions?key=` API endpoint filters out drafts by default
-  if (opts?.includeDrafts) {
-    return submissions;
-  }
   const draftSubmissions = submissions.filter((submission) => submission.status === 'DRAFT');
   if (draftSubmissions.length > 0) {
     session.log.debug(`Ignoring ${plural('%s draft submission(s)', draftSubmissions)}`);
