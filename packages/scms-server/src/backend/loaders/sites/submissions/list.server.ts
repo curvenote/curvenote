@@ -13,15 +13,44 @@ function withHasVersions(where: Prisma.SubmissionWhereInput): Prisma.SubmissionW
     AND: [where, { versions: { some: {} } }],
   };
 }
+/** Submissions whose every version is DRAFT — excluded from list queries unless opted out. */
+const submissionWhereDraftOnlyExclusion: Prisma.SubmissionWhereInput = {
+  NOT: {
+    versions: {
+      every: {
+        status: 'DRAFT',
+      },
+    },
+  },
+};
+
+export type DbListSubmissionsOpts = {
+  /**
+   * When true (e.g. /my/submissions?drafts=true), include submissions whose versions are all DRAFT.
+   * @default false
+   */
+  includeDraftOnlySubmissions?: boolean;
+};
 
 export async function dbListSubmissions(
   where: Prisma.SubmissionWhereInput,
   skip?: number,
   take?: number,
+  opts?: DbListSubmissionsOpts,
 ) {
+  const applyDraftOnlyExclusion = opts?.includeDraftOnlySubmissions !== true;
+  const mergedWhere: Prisma.SubmissionWhereInput = applyDraftOnlyExclusion
+    ? {
+        AND: [
+          ...(where != null && Object.keys(where).length > 0 ? [where] : []),
+          submissionWhereDraftOnlyExclusion,
+        ],
+      }
+    : where;
+
   const prisma = await getPrismaClient();
   return prisma.submission.findMany({
-    where,
+    where: mergedWhere,
     skip,
     take,
     include: {

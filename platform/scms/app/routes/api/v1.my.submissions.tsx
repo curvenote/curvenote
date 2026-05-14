@@ -8,10 +8,12 @@ export async function loader(args: Route.LoaderArgs) {
   const key = url.searchParams.get('key');
   const workId = url.searchParams.get('work_id');
   const site = url.searchParams.get('site') ?? url.searchParams.get('site_name');
+  const includeDrafts = url.searchParams.get('drafts') ? true : false;
   const dto = await my.submissions.list(ctx, extensions, {
     key: key ?? undefined,
     workId: workId ?? undefined,
     siteName: site ?? undefined,
+    includeDrafts,
   });
   return Response.json(dto);
 }
