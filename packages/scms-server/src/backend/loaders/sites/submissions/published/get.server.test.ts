@@ -28,9 +28,13 @@ vi.mock('../../get.server', () => ({
   formatCollectionSummaryDTO: vi.fn(() => ({ id: 'collection1', name: 'Articles' })),
 }));
 
-vi.mock('@curvenote/common', () => ({
-  formatDate: vi.fn((date) => date),
-}));
+vi.mock('@curvenote/common', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@curvenote/common')>();
+  return {
+    ...actual,
+    formatDate: vi.fn((date) => date),
+  };
+});
 
 // Mock SiteContext
 const createMockSiteContext = (siteDomains: any[] = []): SiteContext =>
