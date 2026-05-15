@@ -29,9 +29,9 @@ vi.mock('../../get.server', () => ({
 }));
 
 vi.mock('@curvenote/common', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@curvenote/common')>();
+  const actual = await importOriginal();
   return {
-    ...actual,
+    ...(actual as Record<string, unknown>),
     formatDate: vi.fn((date) => date),
   };
 });

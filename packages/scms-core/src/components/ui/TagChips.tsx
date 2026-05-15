@@ -22,24 +22,13 @@ export type TagChipsProps = {
  * so tags blend with DOI/Slug/etc. badges. Renders nothing when `tags` is
  * empty so callers can drop it in unconditionally.
  */
-export function TagChips({
-  tags,
-  hideIcon = false,
-  limit,
-  titlePrefix,
-  className,
-}: TagChipsProps) {
+export function TagChips({ tags, hideIcon = false, limit, titlePrefix, className }: TagChipsProps) {
   if (!tags || tags.length === 0) return null;
   const visible = limit != null ? tags.slice(0, limit) : tags;
   const overflow = limit != null ? Math.max(0, tags.length - limit) : 0;
   return (
     <div className={cn('flex flex-wrap gap-1 items-center', className)}>
-      {!hideIcon && (
-        <TagIcon
-          className="size-3 text-muted-foreground shrink-0"
-          aria-hidden
-        />
-      )}
+      {!hideIcon && <TagIcon className="size-3 text-muted-foreground shrink-0" aria-hidden />}
       {visible.map((tag) => (
         <Badge
           key={tag}
