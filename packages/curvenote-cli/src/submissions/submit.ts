@@ -291,7 +291,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     // Create work and submission
     //
     if (existing) {
-      await updateExistingSubmission(session, submitLog, venue, cdnKey, existing, job.id);
+      await updateExistingSubmission(session, submitLog, venue, cdnKey, existing, job.id, opts);
     } else {
       if (opts?.draft) {
         session.log.info(`${chalk.bold(`🖐  Making a draft submission`)}`);

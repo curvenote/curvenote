@@ -16,6 +16,7 @@ export type RegisterWorkOpts = BaseOpts & {
   metadata?: string;
   source?: string;
   new?: boolean;
+  tags?: string[];
 };
 
 export type WorkPushLog = BaseLog & {

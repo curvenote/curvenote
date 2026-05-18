@@ -4,8 +4,8 @@ import { httpError, site, work } from '@curvenote/scms-core';
 import {
   ensureJsonBodyFromMethod,
   validate,
-  withCurvenoteSubmissionContext,
   withScopedSubmissionContext,
+  withSecureSiteContext,
   sites,
   works,
 } from '@curvenote/scms-server';
@@ -15,6 +15,7 @@ const CreateSubmissionVersionPostBodySchema = z.object({
   work_version_id: z.uuid(),
   job_id: z.uuid().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
+  tags: z.array(z.string().min(1).max(255)).max(64).optional(),
 });
 
 const ParamsSchema = z.object({
@@ -23,16 +24,25 @@ const ParamsSchema = z.object({
 });
 
 export async function loader(args: Route.LoaderArgs) {
-  const ctx = await withCurvenoteSubmissionContext(args, [
-    work.id.submissions.list,
-    site.submissions.list,
-  ]);
+  const ctx = await withSecureSiteContext(args);
+  if (ctx.site.external) {
+    throw httpError(405, 'External sites do not accept submissions');
+  }
+
+  const submissionId = args.params.submissionId;
+  if (!submissionId) throw httpError(400, 'Missing submission id');
+
+  const submission = await sites.submissions.dbGetSubmission({ id: submissionId });
+  if (!submission || submission.site.name !== ctx.site.name) {
+    throw httpError(404, 'Submission not found');
+  }
+
   const params = new URL(ctx.request.url).searchParams;
   const { limit, page } = validate(ParamsSchema, {
     limit: params.get('limit') ? parseInt(params.get('limit')!) : undefined,
     page: params.get('page') ? parseInt(params.get('page')!) : undefined,
   });
-  const dto = await sites.submissions.versions.list(ctx, ctx.submission.id, { page, limit });
+  const dto = await sites.submissions.versions.list(ctx, submissionId, { page, limit });
   return Response.json(dto);
 }
 
@@ -48,7 +58,7 @@ export async function action(args: Route.ActionArgs) {
     throw httpError(405, 'Method Not Allowed');
   }
   const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
-  const { work_version_id, job_id, metadata } = validate(
+  const { work_version_id, job_id, metadata, tags } = validate(
     CreateSubmissionVersionPostBodySchema,
     body,
   );
@@ -67,6 +77,7 @@ export async function action(args: Route.ActionArgs) {
     work_version_id,
     job_id,
     metadata,
+    tags,
   );
   return Response.json(dto, { status: 201 });
 }

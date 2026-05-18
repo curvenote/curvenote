@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, type ReactNode } from 'react';
 import { Await, useFetcher } from 'react-router';
 import { FilePlus, Loader2 } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
@@ -39,8 +39,13 @@ type VersionCreatedTimelineItemProps = {
   dateModified: string;
   /** Work owner/creator display name; if not set, shown as "owner" */
   ownerName?: string | null;
-  /** Work version metadata; if it contains files, the row is expandable with a downloadable file list */
+  /**
+   * Work version metadata. Drives:
+   * - File list tray when `metadata.files` is present.
+   */
   metadata?: unknown;
+  /** Tags on the work version (first-class column). */
+  tags?: string[];
   workVersionId?: string;
   basePath?: string;
   canExport?: boolean;
@@ -57,11 +62,13 @@ export function VersionCreatedTimelineItem({
   dateModified,
   ownerName,
   metadata,
+  tags = [],
   workVersionId,
   basePath,
   canExport,
   linkedJobsByWorkVersionIdPromise,
 }: VersionCreatedTimelineItemProps) {
+  const tagList = tags;
   const fetcher = useFetcher<{
     success?: boolean;
     jobId?: string;
@@ -169,13 +176,30 @@ export function VersionCreatedTimelineItem({
     </div>
   ) : null;
 
+  const trailing: ReactNode | undefined =
+    tagList.length > 0 ? (
+      <ui.TagChips tags={tagList} limit={4} titlePrefix="Work version tag" />
+    ) : undefined;
+
   if (hasFiles) {
     return (
-      <TimelineItemExpandable icon={<FilePlus aria-hidden />} message={message} date={date}>
+      <TimelineItemExpandable
+        icon={<FilePlus aria-hidden />}
+        message={message}
+        date={date}
+        trailing={trailing}
+      >
         {fileListTray}
       </TimelineItemExpandable>
     );
   }
 
-  return <TimelineItemPlain icon={<FilePlus aria-hidden />} message={message} date={date} />;
+  return (
+    <TimelineItemPlain
+      icon={<FilePlus aria-hidden />}
+      message={message}
+      date={date}
+      trailing={trailing}
+    />
+  );
 }

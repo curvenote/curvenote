@@ -1,7 +1,7 @@
 import type { SiteContext } from '../../../../context.site.server.js';
 import type { HostSpec, SiteWorkDTO } from '@curvenote/common';
+import { formatDate, concatSiteWorkTags } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
-import { formatDate } from '@curvenote/common';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
 import { formatCollectionSummaryDTO } from '../../get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../../kinds/get.server.js';
@@ -71,6 +71,7 @@ export type ModifiedSiteWorkDTO = Omit<SiteWorkDTO, 'links' | 'cdn' | 'cdn_key'>
 };
 export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkDTO {
   const { cdn_key, cdn, title, description, canonical, authors, date_created } = dbo.work_version;
+  const tags = concatSiteWorkTags(dbo.tags ?? [], dbo.work_version.tags ?? []);
   const submission_version_id = dbo.id;
   const version_id = dbo.work_version.id;
   const work_id = dbo.work_version.work_id;
@@ -119,6 +120,7 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkD
     description: description || undefined,
     authors: authors.map((a) => ({ name: a })),
     canonical: canonical ? true : false,
+    tags,
     date_created: formatDate(date_created),
     date: dbo.submission.date_published ?? undefined,
     date_published: dbo.submission.date_published ?? undefined,
@@ -127,11 +129,14 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkD
       dbo.submission.collection != null
         ? formatCollectionSummaryDTO(dbo.submission.collection)
         : undefined,
+    submission_id: dbo.submission.id,
     links: {
       // TODO canonical access should work if PUBLISHED - this endpoint simply doesn't exist yet
       self: ctx.asApiUrl(`/sites/${ctx.site.name}/works/${work_id}/versions/${version_id}`),
       site: ctx.asApiUrl(`/sites/${ctx.site.name}`),
       work: ctx.asApiUrl(`/works/${work_id}`),
+      submission: ctx.asApiUrl(`/sites/${ctx.site.name}/submissions/${dbo.submission.id}`),
+      versions: ctx.asApiUrl(`/sites/${ctx.site.name}/submissions/${dbo.submission.id}/versions`),
       html: htmlUrl,
       thumbnail,
       social,

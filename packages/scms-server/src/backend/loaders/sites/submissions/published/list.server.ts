@@ -147,25 +147,11 @@ export async function dbListLatestPublishedSubmissions(
 
   // if we have both limit and page, pagination has been requested
   if (opts?.limit && opts?.page) {
-    const prisma = await getPrismaClient();
-    return prisma.$transaction(async (tx) => {
-      const items = await dbQuerySubmissions(
-        ctx.site.name,
-        collectionName,
-        status,
-        where?.kind,
-        opts,
-        tx,
-      );
-      const total = await dbCountSubmissions(
-        ctx.site.name,
-        collectionName,
-        status,
-        where?.kind,
-        tx,
-      );
-      return { items, total };
-    });
+    const [items, total] = await Promise.all([
+      dbQuerySubmissions(ctx.site.name, collectionName, status, where?.kind, opts),
+      dbCountSubmissions(ctx.site.name, collectionName, status, where?.kind),
+    ]);
+    return { items, total };
   }
 
   // no pagination if limit and page are not provided

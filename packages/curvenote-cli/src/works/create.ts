@@ -121,6 +121,7 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
     contextLabel: 'register',
   });
 
+  const tags = opts.tags && opts.tags.length > 0 ? opts.tags : undefined;
   if (existingWork) {
     const updated = await postNewWorkVersionFromMetadata(session, existingWork.links.versions, {
       title,
@@ -181,6 +182,7 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
       workVersionId,
       undefined,
       submissionMetadata,
+      tags,
     );
     submissionId = existingSubmission.id;
     submissionDateCreated = existingSubmission.date_created;
@@ -196,6 +198,7 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
       opts.draft ?? false,
       undefined,
       submissionMetadata,
+      tags,
     );
     submissionId = submission.id;
     submissionDateCreated = submission.date_created;

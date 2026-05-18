@@ -52,7 +52,8 @@ function makeClient(connectionString?: string, dbCACertificate?: string): Prisma
     errorFormat: process.env.NODE_ENV !== 'production' ? 'pretty' : 'colorless',
     transactionOptions: {
       maxWait: 5000, // wait for a pooled backend slot
-      timeout: 10000, // long transaction guard
+      // Interactive txs (writes) can span several queries; 10s was too tight for slow dev DBs / large reads mistaken for txs.
+      timeout: 30000,
     },
   };
 

@@ -1,6 +1,6 @@
 import { uuidv7 as uuid } from 'uuidv7';
 import { getCdnLocation, getCdnBaseUrl, getPage, getConfig } from '@curvenote/cdn';
-import { formatDate } from '@curvenote/common';
+import { formatDate, normalizeExplicitTags } from '@curvenote/common';
 import type { HostSpec } from '@curvenote/common';
 import type { Context } from '../../context.server.js';
 import type {
@@ -91,6 +91,7 @@ export async function dbCreateWorkAndVersion(
   const prisma = await getPrismaClient();
   const workId = uuid();
   const workVersionId = uuid();
+  const versionTags = normalizeExplicitTags(data.tags);
   return prisma.$transaction(async (tx) => {
     const work = await tx.work.create({
       data: {
@@ -120,6 +121,8 @@ export async function dbCreateWorkAndVersion(
               date: data.date ?? null,
               doi: data.doi ?? null,
               canonical: data.canonical ?? null,
+              tags: versionTags,
+              metadata: data.metadata ?? undefined,
             } as Prisma.WorkVersionCreateInput,
           ],
         },

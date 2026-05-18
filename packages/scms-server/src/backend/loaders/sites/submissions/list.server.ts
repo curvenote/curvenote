@@ -1,6 +1,6 @@
 import type { SiteContext } from '../../../context.site.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
-import { coerceToObject, error404, makePaginationLinks } from '@curvenote/scms-core';
+import { coerceToObject, makePaginationLinks } from '@curvenote/scms-core';
 import type { Prisma } from '@curvenote/scms-db';
 import { formatAuthorDTO } from '../../../format.server.js';
 import { findImportantVersions } from './utils.server.js';
@@ -254,14 +254,9 @@ export default async function (
           page: take ? Math.floor((skip ?? 0) / take) : undefined,
         };
 
-  const prisma = await getPrismaClient();
-  const result = await prisma.$transaction(async (tx) => {
-    const [items, total] = await Promise.all([
-      dbListSubmissions(normalizedWhere, skip, take),
-      dbCountSubmissions(normalizedWhere, tx),
-    ]);
-    return { items, total };
-  });
-  if (!result) throw error404();
-  return formatSubmissionListingDTO(ctx, result.items, extensions, opts, result.total);
+  const [items, total] = await Promise.all([
+    dbListSubmissions(normalizedWhere, skip, take),
+    dbCountSubmissions(normalizedWhere),
+  ]);
+  return formatSubmissionListingDTO(ctx, items, extensions, opts, total);
 }

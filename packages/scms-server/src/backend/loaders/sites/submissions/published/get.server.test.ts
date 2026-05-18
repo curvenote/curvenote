@@ -28,9 +28,13 @@ vi.mock('../../get.server', () => ({
   formatCollectionSummaryDTO: vi.fn(() => ({ id: 'collection1', name: 'Articles' })),
 }));
 
-vi.mock('@curvenote/common', () => ({
-  formatDate: vi.fn((date) => date),
-}));
+vi.mock('@curvenote/common', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as Record<string, unknown>),
+    formatDate: vi.fn((date) => date),
+  };
+});
 
 // Mock SiteContext
 const createMockSiteContext = (siteDomains: any[] = []): SiteContext =>
@@ -53,6 +57,7 @@ describe('formatSiteWorkDTO', () => {
 
     const dbo = {
       id: 'version1',
+      tags: [] as string[],
       work_version: {
         id: 'work-version-1',
         work_id: 'work-123',
@@ -64,6 +69,7 @@ describe('formatSiteWorkDTO', () => {
         cdn: 'https://cdn.example.com/',
         cdn_key: 'test-key',
         doi: '10.1234/test',
+        tags: [] as string[],
       },
       submission: {
         kind: { id: 'kind1', name: 'Article' },
@@ -100,6 +106,7 @@ describe('formatSiteWorkDTO', () => {
 
     const dbo = {
       id: 'version1',
+      tags: [] as string[],
       work_version: {
         id: 'work-version-1',
         work_id: 'work-123',
@@ -111,6 +118,7 @@ describe('formatSiteWorkDTO', () => {
         cdn: null,
         cdn_key: null,
         doi: null,
+        tags: [] as string[],
       },
       submission: {
         kind: { id: 'kind1', name: 'Article' },
@@ -131,6 +139,7 @@ describe('formatSiteWorkDTO', () => {
 
     const dbo = {
       id: 'version1',
+      tags: [] as string[],
       work_version: {
         id: 'work-version-1',
         work_id: 'work-123',
@@ -142,6 +151,7 @@ describe('formatSiteWorkDTO', () => {
         cdn: null,
         cdn_key: null,
         doi: null,
+        tags: [] as string[],
       },
       submission: {
         kind: { id: 'kind1', name: 'Article' },
@@ -167,6 +177,7 @@ describe('formatSiteWorkDTO', () => {
 
     const dbo = {
       id: 'version1',
+      tags: [] as string[],
       work_version: {
         id: 'work-version-1',
         work_id: 'work-123',
@@ -178,6 +189,7 @@ describe('formatSiteWorkDTO', () => {
         cdn: null,
         cdn_key: null,
         doi: '10.1234/test',
+        tags: [] as string[],
       },
       submission: {
         kind: { id: 'kind1', name: 'Article' },
@@ -193,5 +205,38 @@ describe('formatSiteWorkDTO', () => {
     expect(result.doi).toBe('10.1234/test');
     expect(result.links.doi).toBe('https://doi.org/10.1234/test');
     expect(result.links.html).toBe('https://journal.com/articles/work-123');
+  });
+
+  test('should concatenate submission tags before work version tags, deduped', () => {
+    const ctx = createMockSiteContext([{ id: 'domain1', hostname: 'journal.com', default: true }]);
+
+    const dbo = {
+      id: 'version1',
+      tags: ['a', 'c'],
+      work_version: {
+        id: 'work-version-1',
+        work_id: 'work-123',
+        title: 'Test Article',
+        description: 'Test description',
+        authors: [{ name: 'John Doe' }],
+        date_created: '2024-01-01',
+        canonical: true,
+        cdn: null,
+        cdn_key: null,
+        doi: '10.1234/test',
+        tags: ['b', 'a'],
+      },
+      submission: {
+        kind: { id: 'kind1', name: 'Article' },
+        collection: { id: 'collection1', name: 'Articles' },
+        slugs: [],
+        work: { key: null, doi: null },
+        date_published: '2024-01-01',
+      },
+    };
+
+    const result = formatSiteWorkDTO(ctx, dbo as any);
+
+    expect(result.tags).toEqual(['a', 'c', 'b']);
   });
 });

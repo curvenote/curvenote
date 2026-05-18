@@ -9,6 +9,7 @@ import {
   makeDraftOption,
   makeKindOption,
   makeLookupKeyOption,
+  makeTagsOption,
 } from './options.js';
 
 function makeWorksCLI() {
@@ -53,6 +54,7 @@ function makeWorksRegisterCLI(program: Command) {
         'Inline JSON object or path to JSON metadata file (stored on submission version)',
       ),
     )
+    .addOption(makeTagsOption())
     .addOption(makeYesOption())
     .action(clirun(works.register, { program, skipProjectLoading: true }));
   return command;

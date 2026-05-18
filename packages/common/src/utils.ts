@@ -56,3 +56,41 @@ export function combinePlugins(plugins: CurvenotePlugin[]): ValidatedCurvenotePl
     plugins[0],
   ) as ValidatedCurvenotePlugin;
 }
+
+/**
+ * Normalize top-level `tags` on API bodies: trim, non-empty, dedupe, preserve first-seen order.
+ */
+export function normalizeExplicitTags(tags: string[] | undefined): string[] {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of tags) {
+    if (typeof v !== 'string') continue;
+    const t = v.trim();
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+  }
+  return out;
+}
+
+/**
+ * Site work DTO: submission tags first, then work-version tags, deduped (submission order first).
+ */
+export function concatSiteWorkTags(submissionTags: string[], workVersionTags: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of submissionTags) {
+    if (!seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
+  }
+  for (const t of workVersionTags) {
+    if (!seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
+  }
+  return out;
+}
