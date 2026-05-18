@@ -4,6 +4,29 @@ import type { Readable } from 'stream';
 import type { IStorageProvider } from '../provider.interface.js';
 import type { FileMetadata, GcsStorageConfig, SignedUploadResult } from '../types.js';
 
+/** When using fake-gcs-server, signed URLs still point at storage.googleapis.com unless rewritten. */
+function rewriteSignedUrlForLocalEmulator(url: string): string {
+  const origin = process.env.GCS_SIGNED_URL_ORIGIN?.trim();
+  if (!origin) return url;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+
+  const isGoogleStorage =
+    parsed.hostname === 'storage.googleapis.com' || parsed.hostname.endsWith('.storage.googleapis.com');
+  if (!isGoogleStorage) return url;
+
+  const target = new URL(origin);
+  parsed.protocol = target.protocol;
+  parsed.hostname = target.hostname;
+  parsed.port = target.port;
+  return parsed.toString();
+}
+
 type GcsKeyFile = {
   type: string;
   project_id: string;
@@ -87,7 +110,7 @@ export class GcsStorageProvider implements IStorageProvider {
         action: 'read',
         expires: Date.now() + 1000 * expiresInSeconds,
       });
-    return url;
+    return rewriteSignedUrlForLocalEmulator(url);
   }
 
   async signUploadUrl(
@@ -105,7 +128,7 @@ export class GcsStorageProvider implements IStorageProvider {
         expires: Date.now() + 1000 * expiresInSeconds,
       });
     return {
-      url,
+      url: rewriteSignedUrlForLocalEmulator(url),
       protocol: 'gcs-resumable',
     };
   }

@@ -1,0 +1,18 @@
+# Local Google Cloud Storage emulator for SCMS development.
+# Start: docker compose -f docker-compose.gcs.yml up -d
+# Buckets are seeded from ./dev/fake-gcs-data (folder name = bucket name).
+# See docs/storage/dx-local-gcs.md
+services:
+  fake-gcs-server:
+    image: fsouza/fake-gcs-server:latest
+    command:
+      - -scheme
+      - http
+      - -port
+      - "4443"
+      - -external-url
+      - http://127.0.0.1:4443
+    ports:
+      - "4443:4443"
+    volumes:
+      - ./dev/fake-gcs-data:/data
