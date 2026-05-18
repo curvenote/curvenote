@@ -58,17 +58,13 @@ export function combinePlugins(plugins: CurvenotePlugin[]): ValidatedCurvenotePl
 }
 
 /**
- * Read tags out of a `metadata` JSON blob.
- *
- * Returns a deduplicated array of trimmed, non-empty strings.
+ * Normalize top-level `tags` on API bodies: trim, non-empty, dedupe, preserve first-seen order.
  */
-export function getTagsFromMetadata(metadata: unknown): string[] {
-  if (metadata == null || typeof metadata !== 'object' || Array.isArray(metadata)) return [];
-  const raw = (metadata as { tags?: unknown }).tags;
-  if (!Array.isArray(raw)) return [];
+export function normalizeExplicitTags(tags: string[] | undefined): string[] {
+  if (!Array.isArray(tags)) return [];
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const v of raw) {
+  for (const v of tags) {
     if (typeof v !== 'string') continue;
     const t = v.trim();
     if (!t || seen.has(t)) continue;
@@ -79,38 +75,22 @@ export function getTagsFromMetadata(metadata: unknown): string[] {
 }
 
 /**
- * Merge the provided `tags` into a `metadata` JSON blob under the `tags` key.
- *
- * - `tags` is trimmed, deduplicated, non-empty strings
- * - Returns `undefined` if the resulting object is empty (no metadata, no
- *   tags)
- * - Existing top-level fields on `metadata` are preserved; only `tags` is
- *   replaced.
+ * Site work DTO: submission tags first, then work-version tags, deduped (submission order first).
  */
-export function setTagsOnMetadata(
-  metadata: unknown,
-  tags: string[] | undefined,
-): Record<string, any> | undefined {
-  const base: Record<string, any> =
-    metadata != null && typeof metadata === 'object' && !Array.isArray(metadata)
-      ? { ...(metadata as Record<string, any>) }
-      : {};
-  const cleaned: string[] = [];
-  if (Array.isArray(tags)) {
-    const seen = new Set<string>();
-    for (const v of tags) {
-      if (typeof v !== 'string') continue;
-      const t = v.trim();
-      if (!t || seen.has(t)) continue;
+export function concatSiteWorkTags(submissionTags: string[], workVersionTags: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of submissionTags) {
+    if (!seen.has(t)) {
       seen.add(t);
-      cleaned.push(t);
+      out.push(t);
     }
   }
-  if (cleaned.length > 0) {
-    base.tags = cleaned;
-  } else {
-    delete base.tags;
+  for (const t of workVersionTags) {
+    if (!seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
   }
-  if (Object.keys(base).length === 0) return undefined;
-  return base;
+  return out;
 }

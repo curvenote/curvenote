@@ -5,7 +5,7 @@ import { withSecureSiteContext, sites } from '@curvenote/scms-server';
 /**
  * `GET …/sites/:siteName/doi/:first/:second` → DOI `:first/:second` (e.g. `10.1101` / `711317`).
  * Optional query `tag` — same JSON shape, but resolves to the latest *published* submission version
- * whose `metadata.tags` contains that string (exact match after trim).
+ * whose `tags` array contains that string (PostgreSQL array `has`, exact string after trim in query param).
  */
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureSiteContext(args);

@@ -1,12 +1,11 @@
 import { doi } from 'doi-utils';
-import { getTagsFromMetadata } from '@curvenote/common';
 import { getPrismaClient } from '../../prisma.server.js';
 import { error404 } from '@curvenote/scms-core';
 import { formatSiteWorkDTO } from './submissions/published/get.server.js';
 import type { SiteContext } from '../../context.site.server.js';
 
 export type SiteDoiResolveOptions = {
-  /** If set, pick the latest *published* submission version for this DOI whose `metadata.tags` contains this string */
+  /** If set, pick the latest *published* submission version for this DOI whose `tags` contains this string */
   tag?: string;
 };
 
@@ -58,9 +57,10 @@ async function dbGetPublishedSubmissionVersionByDoiAndTag(
   tag: string,
 ) {
   const prisma = await getPrismaClient();
-  const versions = await prisma.submissionVersion.findMany({
+  return prisma.submissionVersion.findFirst({
     where: {
       status: 'PUBLISHED',
+      tags: { has: tag },
       submission: { site: { name: siteName } },
       OR: [
         { work_version: { doi: doiNormalized } },
@@ -68,7 +68,6 @@ async function dbGetPublishedSubmissionVersionByDoiAndTag(
       ],
     },
     orderBy: { date_created: 'desc' },
-    take: 250,
     include: {
       submitted_by: true,
       submission: {
@@ -83,10 +82,6 @@ async function dbGetPublishedSubmissionVersionByDoiAndTag(
       work_version: true,
     },
   });
-  for (const sv of versions) {
-    if (getTagsFromMetadata(sv.metadata).includes(tag)) return sv;
-  }
-  return null;
 }
 
 export default async function (ctx: SiteContext, maybeDoi: string, opts?: SiteDoiResolveOptions) {

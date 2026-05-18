@@ -95,7 +95,10 @@ model SubmissionVersion {
   job                 Job?        @relation(fields: [job_id], references: [id])
   job_id              String?     @unique
   metadata            Json? // JSON metadata field for extensible data
+  tags                String[]    @default([])
   occ                 Int         @default(0) // Optimistic concurrency control
+
+  @@index([tags], type: Gin)
 }
 
 model Submission {

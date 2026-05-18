@@ -1,6 +1,5 @@
 import { Link } from 'react-router';
 import { formatDate, formatToNow, primitives, ui } from '@curvenote/scms-core';
-import { getTagsFromMetadata } from '@curvenote/common';
 import { ExternalLink } from 'lucide-react';
 import type { dbGetWorksAndSubmissionVersions } from './db.server';
 
@@ -104,7 +103,7 @@ export function WorkListItem({
               </primitives.Chip>
             )}
             <ui.TagChips
-              tags={getTagsFromMetadata(latestVersion?.metadata ?? latestWorkVersion?.metadata)}
+              tags={[...(latestVersion?.tags ?? latestWorkVersion?.tags ?? [])]}
               limit={6}
               titlePrefix="Tag"
             />

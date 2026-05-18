@@ -2,7 +2,7 @@ import type { ClientExtension } from '@curvenote/scms-core';
 import { error401, TrackEvent, asSiteSubmissionUrl } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { formatSubmissionDTO } from './get.server.js';
-import { formatDate, setTagsOnMetadata } from '@curvenote/common';
+import { formatDate, normalizeExplicitTags } from '@curvenote/common';
 import type { UserDBO } from '../../../db.types.js';
 import { ActivityType } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
@@ -38,6 +38,7 @@ export async function dbCreateNewSubmission(
       id: workVersionId,
     },
   });
+  const submissionTags = normalizeExplicitTags(tags);
   return prisma.$transaction(async (tx) => {
     const sv = await tx.submissionVersion.create({
       data: {
@@ -50,7 +51,8 @@ export async function dbCreateNewSubmission(
           },
         },
         status: draft ? 'DRAFT' : 'PENDING',
-        metadata: setTagsOnMetadata(metadata, tags) ?? undefined,
+        tags: submissionTags,
+        metadata: metadata ?? undefined,
         work_version: {
           connect: {
             id: workVersionId,

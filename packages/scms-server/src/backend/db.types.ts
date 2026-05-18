@@ -157,6 +157,7 @@ export type WorkVersionDBO = Prisma.WorkVersionGetPayload<{
     canonical: true;
     work_id: true;
     occ: true;
+    tags: true;
   };
 }> & {
   metadata?: Prisma.JsonValue | null;

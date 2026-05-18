@@ -8,7 +8,7 @@ import {
   works,
   getPrismaClient,
 } from '@curvenote/scms-server';
-import { formatDate, setTagsOnMetadata } from '@curvenote/common';
+import { formatDate, normalizeExplicitTags } from '@curvenote/common';
 import { ActivityType, WorkRole } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 
@@ -95,6 +95,7 @@ async function dbCreateManualWorkAndVersion(
   const date_created = formatDate();
   const workId = uuid();
   const workVersionId = uuid();
+  const versionTags = normalizeExplicitTags(data.tags);
   const prisma = await getPrismaClient();
   return prisma.$transaction(async (tx) => {
     const work = await tx.work.create({
@@ -121,7 +122,8 @@ async function dbCreateManualWorkAndVersion(
               canonical: data.canonical ?? null,
               cdn: data.cdn ?? null,
               cdn_key: data.cdn_key ?? null,
-              metadata: setTagsOnMetadata(data.metadata, data.tags) ?? undefined,
+              tags: versionTags,
+              metadata: data.metadata ?? undefined,
             },
           ],
         },

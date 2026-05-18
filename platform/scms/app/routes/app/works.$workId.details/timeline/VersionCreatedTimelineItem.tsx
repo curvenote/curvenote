@@ -2,7 +2,6 @@ import { Suspense, useEffect, type ReactNode } from 'react';
 import { Await, useFetcher } from 'react-router';
 import { FilePlus, Loader2 } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
-import { getTagsFromMetadata } from '@curvenote/common';
 import { TimelineItemPlain, TimelineItemExpandable } from './TimelineItem';
 import { DateWithPopover } from './DateWithPopover';
 import type { LinkedJobsByWorkVersionId } from '../types';
@@ -43,9 +42,10 @@ type VersionCreatedTimelineItemProps = {
   /**
    * Work version metadata. Drives:
    * - File list tray when `metadata.files` is present.
-   * - Tag chips when `metadata.tags` is present.
    */
   metadata?: unknown;
+  /** Tags on the work version (first-class column). */
+  tags?: string[];
   workVersionId?: string;
   basePath?: string;
   canExport?: boolean;
@@ -62,12 +62,13 @@ export function VersionCreatedTimelineItem({
   dateModified,
   ownerName,
   metadata,
+  tags = [],
   workVersionId,
   basePath,
   canExport,
   linkedJobsByWorkVersionIdPromise,
 }: VersionCreatedTimelineItemProps) {
-  const tags = getTagsFromMetadata(metadata);
+  const tagList = tags;
   const fetcher = useFetcher<{
     success?: boolean;
     jobId?: string;
@@ -176,8 +177,8 @@ export function VersionCreatedTimelineItem({
   ) : null;
 
   const trailing: ReactNode | undefined =
-    tags.length > 0 ? (
-      <ui.TagChips tags={tags} limit={4} titlePrefix="Work version tag" />
+    tagList.length > 0 ? (
+      <ui.TagChips tags={tagList} limit={4} titlePrefix="Work version tag" />
     ) : undefined;
 
   if (hasFiles) {

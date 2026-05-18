@@ -1,5 +1,5 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import { formatDate, setTagsOnMetadata } from '@curvenote/common';
+import { formatDate, normalizeExplicitTags } from '@curvenote/common';
 import type { Context } from '../../../context.server.js';
 import type { CreateWorkVersion } from '../../../db.types.js';
 import { getPrismaClient } from '../../../prisma.server.js';
@@ -16,6 +16,7 @@ export async function dbCreateWorkVersionAndUpdateWork(
   const date_created = formatDate();
   const prisma = await getPrismaClient();
   const workVersionId = uuid();
+  const versionTags = normalizeExplicitTags(data.tags);
   return prisma.$transaction(async (tx) => {
     const existing = await tx.work.findUnique({
       where: { id: workId },
@@ -47,7 +48,8 @@ export async function dbCreateWorkVersionAndUpdateWork(
               date: data.date,
               doi: data.doi,
               canonical: data.canonical,
-              metadata: setTagsOnMetadata(data.metadata, data.tags) ?? undefined,
+              tags: versionTags,
+              metadata: data.metadata ?? undefined,
             },
           ],
         },

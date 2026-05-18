@@ -1,4 +1,4 @@
-import { formatDate, getTagsFromMetadata } from '@curvenote/common';
+import { formatDate } from '@curvenote/common';
 import type { SubmissionVersionDTO } from '@curvenote/common';
 import type { Prisma } from '@curvenote/scms-db';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
@@ -74,7 +74,7 @@ export function formatSubmissionVersionDTO(
       content: coerceToObject(version.submission.collection.content),
     },
     job_id: version.job_id ?? undefined,
-    tags: getTagsFromMetadata(version.metadata),
+    tags: [...version.tags],
     links: {
       self: ctx.asApiUrl(
         `/sites/${ctx.site.name}/submissions/${version.submission.id}/versions/${version.id}`,
