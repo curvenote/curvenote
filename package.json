@@ -83,7 +83,7 @@
     "@changesets/changelog-github": "^0.5.1",
     "@prisma/client": "^7.2.0",
     "@scienceicons/react": "^0.0.13",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.4.2",
     "eslint-plugin-import": "^2.32.0"
   },
   "overrides": {
