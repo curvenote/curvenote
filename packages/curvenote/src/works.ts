@@ -39,6 +39,10 @@ function makeWorksRegisterCLI(program: Command) {
   const command = new Command('register')
     .description('Register a work/submission without build/upload')
     .option('--title <string>', 'Title for the work version')
+    .option(
+      '--content-yaml <path>',
+      'Path to myst.yml or curvenote.yml (default: detect in current working directory)',
+    )
     .option('--cdn <url>', 'CDN base URL for this work version content')
     .option('--cdn-key <uuid>', 'CDN key for this work version content')
     .requiredOption('--venue <string>', 'Venue to create the submission under')

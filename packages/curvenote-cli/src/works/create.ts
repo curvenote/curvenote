@@ -21,6 +21,18 @@ function detectContentYamlPath() {
   return undefined;
 }
 
+function resolveContentYamlPath(opts?: RegisterWorkOpts): string | undefined {
+  const explicit = opts?.contentYaml?.trim();
+  if (explicit) {
+    const resolved = path.resolve(explicit);
+    if (!fs.existsSync(resolved)) {
+      throw new Error(`content yaml file not found: ${resolved}`);
+    }
+    return resolved;
+  }
+  return detectContentYamlPath();
+}
+
 function parseContentYaml(session: ISession, filePath?: string) {
   if (!filePath) return undefined;
   if (!fs.existsSync(filePath)) {
@@ -106,7 +118,7 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
   if (opts.cdn && !opts.source) {
     throw new Error('source is required when cdn/cdnKey are provided');
   }
-  const yamlMetadata = parseContentYaml(session, detectContentYamlPath());
+  const yamlMetadata = parseContentYaml(session, resolveContentYamlPath(opts));
   const submissionMetadata = parseMetadataJson(opts.submissionMetadata, 'submission-metadata');
   const workVersionMetadata = buildWorkVersionMetadata(yamlMetadata, opts.workMetadata);
   const title = opts.title ?? yamlMetadata?.title;
