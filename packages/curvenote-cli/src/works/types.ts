@@ -13,7 +13,8 @@ export type RegisterWorkOpts = BaseOpts & {
   cdn?: string;
   cdnKey?: string;
   draft?: boolean;
-  metadata?: string;
+  workMetadata?: string;
+  submissionMetadata?: string;
   source?: string;
   new?: boolean;
   tags?: string[];

@@ -61,7 +61,7 @@ function parseContentYaml(session: ISession, filePath?: string) {
   };
 }
 
-function parseMetadataJson(metadataInput?: string) {
+function parseMetadataJson(metadataInput?: string, label = 'metadata') {
   if (!metadataInput) return undefined;
   const raw = fs.existsSync(metadataInput)
     ? fs.readFileSync(metadataInput, 'utf-8')
@@ -70,12 +70,25 @@ function parseMetadataJson(metadataInput?: string) {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(`invalid metadata json (provide inline JSON or a JSON file path)`);
+    throw new Error(`invalid ${label} json (provide inline JSON or a JSON file path)`);
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(`invalid metadata json: expected an object`);
+    throw new Error(`invalid ${label} json: expected an object`);
   }
   return parsed as Record<string, any>;
+}
+
+function buildWorkVersionMetadata(
+  yamlMetadata: ReturnType<typeof parseContentYaml>,
+  workMetadataInput?: string,
+): Record<string, any> | undefined {
+  const workMetadata = parseMetadataJson(workMetadataInput, 'work-metadata');
+  const mystRaw = yamlMetadata?.raw;
+  if (!mystRaw && !workMetadata) return undefined;
+  return {
+    ...(mystRaw ? { 'frontmatter.myst': mystRaw } : {}),
+    ...workMetadata,
+  };
 }
 
 export async function register(session: ISession, opts?: RegisterWorkOpts) {
@@ -94,12 +107,8 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
     throw new Error('source is required when cdn/cdnKey are provided');
   }
   const yamlMetadata = parseContentYaml(session, detectContentYamlPath());
-  const submissionMetadata = parseMetadataJson(opts.metadata);
-  const workVersionMetadata = yamlMetadata?.raw
-    ? {
-        'frontmatter.myst': yamlMetadata.raw,
-      }
-    : undefined;
+  const submissionMetadata = parseMetadataJson(opts.submissionMetadata, 'submission-metadata');
+  const workVersionMetadata = buildWorkVersionMetadata(yamlMetadata, opts.workMetadata);
   const title = opts.title ?? yamlMetadata?.title;
   if (!title) {
     throw new Error('title is required (pass --title or set title in myst.yml/curvenote.yml)');

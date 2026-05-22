@@ -50,7 +50,13 @@ function makeWorksRegisterCLI(program: Command) {
     .addOption(new Option('--source <string>', 'Source label that is written to work.contains'))
     .addOption(
       new Option(
-        '--metadata <json-or-file>',
+        '--work-metadata <json-or-file>',
+        'Inline JSON object or path to JSON metadata file (stored on work version; merged after frontmatter.myst from myst.yml)',
+      ),
+    )
+    .addOption(
+      new Option(
+        '--submission-metadata <json-or-file>',
         'Inline JSON object or path to JSON metadata file (stored on submission version)',
       ),
     )
