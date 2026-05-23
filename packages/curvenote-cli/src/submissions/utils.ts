@@ -10,7 +10,7 @@ import type {
   NewCheckJobResults,
 } from './types.js';
 import { tic } from 'myst-cli-utils';
-import format from 'date-fns/format';
+import { format } from 'date-fns';
 import type { SubmissionDTO, SubmissionVersionDTO } from '@curvenote/common';
 import { getFromUrl, postToJournals, postToUrl } from '../utils/api.js';
 
