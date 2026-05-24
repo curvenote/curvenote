@@ -9,7 +9,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { load as yamlLoad } from 'js-yaml';
 import { getFromJournals } from '../utils/api.js';
-import type { MySubmissionsListingDTO, WorkDTO } from '@curvenote/common';
+import type {
+  CollectionDTO,
+  MySubmissionsListingDTO,
+  SubmissionKindDTO,
+  WorkDTO,
+} from '@curvenote/common';
 import { resolveExistingWork } from './resolveExistingWork.js';
 
 function detectContentYamlPath() {
@@ -103,6 +108,40 @@ function buildWorkVersionMetadata(
   };
 }
 
+const registrationTargetsCache = new Map<
+  string,
+  { collection: CollectionDTO; kind: SubmissionKindDTO }
+>();
+
+function registrationTargetsCacheKey(
+  venue: string,
+  opts?: Pick<RegisterWorkOpts, 'collection' | 'kind'>,
+): string {
+  return `${venue}\0${opts?.collection ?? ''}\0${opts?.kind ?? ''}`;
+}
+
+async function resolveRegistrationTargets(
+  session: ISession,
+  venue: string,
+  opts?: RegisterWorkOpts,
+): Promise<{ collection: CollectionDTO; kind: SubmissionKindDTO }> {
+  const cacheKey = registrationTargetsCacheKey(venue, opts);
+  const cached = registrationTargetsCache.get(cacheKey);
+  if (cached) return cached;
+
+  const collections = await getVenueCollections(session, venue);
+  const resolved = await determineCollectionAndKind(session, venue, collections, {
+    kind: opts?.kind,
+    collection: opts?.collection,
+    yes: opts?.yes,
+  });
+  registrationTargetsCache.set(cacheKey, {
+    collection: resolved.collection,
+    kind: resolved.kind,
+  });
+  return registrationTargetsCache.get(cacheKey)!;
+}
+
 export async function register(session: ISession, opts?: RegisterWorkOpts) {
   if (session.isAnon) {
     throw new Error(
@@ -128,6 +167,7 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
 
   const venue = await ensureVenue(session, opts.venue, opts);
   await checkVenueExists(session, venue);
+  const { collection, kind } = await resolveRegistrationTargets(session, venue, opts);
 
   const doi = yamlMetadata?.doi;
   let work: WorkDTO;
@@ -175,13 +215,6 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
   }
 
   if (!workVersionId) throw new Error('Failed to create a work version');
-
-  const collections = await getVenueCollections(session, venue);
-  const { kind, collection } = await determineCollectionAndKind(session, venue, collections, {
-    kind: opts.kind,
-    collection: opts.collection,
-    yes: opts.yes,
-  });
 
   // If a submission already exists for this work at this venue, create a new submission version
   const mine = (await getFromJournals(
