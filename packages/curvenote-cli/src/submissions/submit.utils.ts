@@ -433,16 +433,19 @@ export async function getSubmissionToUpdate(
   session: ISession,
   submissions: SubmissionsListItemDTO[],
 ) {
-  if (submissions.length === 0) {
+  const nonDraftSubmissions = submissions.filter((submission) => submission.status !== 'DRAFT');
+  if (nonDraftSubmissions.length === 0) {
     session.log.debug('existing submission not found');
     return;
   }
-  if (submissions.length === 1) {
+  if (nonDraftSubmissions.length === 1) {
     session.log.debug(`${chalk.bold(`🔍 Found one existing submission`)}`);
-    return submissions[0];
+    return nonDraftSubmissions[0];
   }
-  session.log.info(`🔍 Found ${plural('%s existing submission(s)', submissions)} for this work`);
-  const submission = await chooseSubmission(session, submissions);
+  session.log.info(
+    `🔍 Found ${plural('%s existing submission(s)', nonDraftSubmissions)} for this work`,
+  );
+  const submission = await chooseSubmission(session, nonDraftSubmissions);
   return submission;
 }
 
