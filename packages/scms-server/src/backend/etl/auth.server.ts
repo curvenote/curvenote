@@ -27,7 +27,7 @@ function bearerToken(request: Request): string | undefined {
   return (match?.[1] ?? header).trim() || undefined;
 }
 
-async function verifyEtlBearerUserId(request: Request): Promise<string> {
+export async function verifyEtlBearerUserId(request: Request): Promise<string> {
   const token = bearerToken(request);
   if (!token) throw error401('Missing bearer token');
 

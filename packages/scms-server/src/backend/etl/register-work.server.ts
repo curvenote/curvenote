@@ -4,7 +4,7 @@ import { ActivityType, WorkRole } from '@curvenote/scms-db';
 import type { Prisma } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 import { getPrismaClient } from '../prisma.server.js';
-import { authorizeEtlSite, type EtlAuth } from './auth.server.js';
+import { authorizeEtlSite, verifyEtlBearerUserId, type EtlAuth } from './auth.server.js';
 
 export type EtlRegisterWorkInput = {
   site: string;
@@ -180,6 +180,7 @@ async function registerWorkInDb(
             ],
           },
         },
+        select: { id: true },
       });
       await tx.activity.create({
         data: {
@@ -191,6 +192,7 @@ async function registerWorkInDb(
           work: { connect: { id: workId } },
           work_version: { connect: { id: workVersionId } },
         },
+        select: { id: true },
       });
     } else {
       workId = uuid();
@@ -225,6 +227,7 @@ async function registerWorkInDb(
             ],
           },
         },
+        select: { id: true },
       });
       await tx.activity.create({
         data: {
@@ -236,6 +239,7 @@ async function registerWorkInDb(
           work: { connect: { id: workId } },
           work_version: { connect: { id: workVersionId } },
         },
+        select: { id: true },
       });
     }
 
@@ -261,6 +265,7 @@ async function registerWorkInDb(
           work_version: { connect: { id: workVersionId } },
           submission: { connect: { id: existingSubmission.id } },
         },
+        select: { id: true },
       });
       await tx.activity.create({
         data: {
@@ -274,10 +279,12 @@ async function registerWorkInDb(
           status: 'PENDING',
           work_version: { connect: { id: workVersionId } },
         },
+        select: { id: true },
       });
       await tx.submission.update({
         where: { id: existingSubmission.id },
         data: { date_modified: date_created },
+        select: { id: true },
       });
     } else {
       const submissionId = uuid();
@@ -305,6 +312,7 @@ async function registerWorkInDb(
             },
           },
         },
+        select: { id: true },
       });
       await tx.activity.create({
         data: {
@@ -319,6 +327,7 @@ async function registerWorkInDb(
           work_version: { connect: { id: workVersionId } },
           kind: kindConnect(siteId, kindName),
         },
+        select: { id: true },
       });
     }
   });
@@ -349,6 +358,9 @@ export async function etlRegisterWork(
 
 export async function etlRegisterWorkFromRequest(request: Request): Promise<Response> {
   if (request.method !== 'POST') throw httpError(405, 'Method Not Allowed');
+  // early token validation
+  const userId = await verifyEtlBearerUserId(request);
+  if (!userId) throw httpError(401, 'Unauthorized');
 
   let body: unknown;
   try {
