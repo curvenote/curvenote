@@ -27,7 +27,7 @@ const submissionVersionForTransitionSelect = {
   transition: true,
   job_id: true,
   work_version_id: true,
-  submitted_by: { select: { id: true, display_name: true } },
+  submitted_by: { select: { id: true, display_name: true, email: true } },
   work_version: { select: siteWorkWorkVersionWithWorkSelect },
   submission: {
     select: {
@@ -39,6 +39,16 @@ const submissionVersionForTransitionSelect = {
     },
   },
 } satisfies Prisma.SubmissionVersionSelect;
+
+export async function dbGetSubmissionVersionForTransition(
+  where: Prisma.SubmissionVersionFindUniqueArgs['where'],
+) {
+  const prisma = await getPrismaClient();
+  return prisma.submissionVersion.findUnique({
+    where,
+    select: submissionVersionForTransitionSelect,
+  });
+}
 
 const submissionTransitionReturnSubmissionSelect = {
   id: true,

@@ -82,6 +82,6 @@ export async function action(args: Route.ActionArgs) {
     date, // Already an ISO string from the validated schema
   );
 
-  const dto = await sites.submissions.formatSubmissionDTO(ctx, updated.submission, extensions);
+  const dto = await sites.submissions.get(ctx, updated.submission.id, extensions);
   return dto;
 }
