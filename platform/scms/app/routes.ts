@@ -269,6 +269,9 @@ export default [
       ]),
     ]),
 
+    // ETL API Routes
+    route('etl/register-work', 'routes/api/v1.etl.register-work.tsx'),
+
     // Works API Routes
     route('works', 'routes/api/v1.works.tsx', [
       route('key/:keyName', 'routes/api/v1.works.key.$keyName.tsx'),
