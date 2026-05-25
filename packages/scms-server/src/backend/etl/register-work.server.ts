@@ -361,9 +361,6 @@ export async function etlRegisterWorkFromRequest(request: Request): Promise<Resp
   if (!doi) throw httpError(400, 'doi is required');
   if (!title) throw httpError(400, 'title is required');
   if (!cdn || !cdn_key) throw httpError(400, 'cdn and cdn_key are required');
-  if (raw.tags !== undefined) {
-    throw httpError(400, 'tags is not supported; use version_tag');
-  }
 
   const input: EtlRegisterWorkInput = {
     site,
