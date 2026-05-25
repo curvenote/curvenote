@@ -1,9 +1,9 @@
 import { useFetcher } from 'react-router';
 import { SquarePen, SquareCheckBig, Replace } from 'lucide-react';
 import classNames from 'classnames';
-import type { sites } from '@curvenote/scms-server';
 import { primitives, cn } from '@curvenote/scms-core';
 import { useRef } from 'react';
+import type { SubmissionEditorCollection } from './types.js';
 
 export function Kinds({
   submissionId,
@@ -13,7 +13,7 @@ export function Kinds({
   canUpdate,
 }: {
   submissionId: string;
-  collection: Awaited<ReturnType<typeof sites.collections.list>>['items'][0];
+  collection: SubmissionEditorCollection;
   kindId: string;
   kindNameOrTitle: string;
   canUpdate: boolean;

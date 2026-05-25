@@ -2,7 +2,6 @@ import React from 'react';
 import { useFetcher } from 'react-router';
 import { X } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
-import type { SiteDTO } from '@curvenote/common';
 import { WorkRole } from '@curvenote/scms-db';
 
 interface WorkInfoProps {
@@ -138,7 +137,7 @@ export function SiteSelect({
   disabled,
   onChange,
 }: {
-  sites: SiteDTO[];
+  sites: { id: string; name: string }[];
   disabled: boolean;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {

@@ -5,19 +5,17 @@ import {
   SecondaryNav,
   MainWrapper,
   site as siteScope,
-  system,
   getBrandingFromMetaMatches,
   joinPageTitle,
 } from '@curvenote/scms-core';
-import { withAppSiteContext, my } from '@curvenote/scms-server';
+import { withAppSiteContext } from '@curvenote/scms-server';
 import { buildMenu } from './menu.server.js';
-import type { SiteDTO } from '@curvenote/common';
+import { formatSiteLayoutSite, type SiteLayoutSite } from './layout.format.server.js';
 import { extension } from '../../client.js';
 
 interface LoaderData {
   scopes: string[];
-  site: SiteDTO;
-  hasMultipleSites: boolean;
+  site: SiteLayoutSite;
   menu: MenuContents;
 }
 
@@ -32,16 +30,9 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData | Res
     return redirect(`/app/sites/${ctx.site.name}/inbox`);
   }
 
-  let hasMultipleSites = ctx.scopes.includes(system.admin);
-  if (!hasMultipleSites) {
-    hasMultipleSites = (await my.siteCount(ctx)) > 1;
-  }
-
-  await my.siteCount(ctx);
-
   const menu = await buildMenu(ctx);
 
-  return { scopes: ctx.scopes, site: ctx.siteDTO, hasMultipleSites, menu };
+  return { scopes: ctx.scopes, site: formatSiteLayoutSite(ctx), menu };
 }
 
 export const meta: MetaFunction = ({ matches, loaderData }) => {

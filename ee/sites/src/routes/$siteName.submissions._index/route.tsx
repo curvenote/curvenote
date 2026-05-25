@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { useFetcher, useNavigate, useSearchParams, data } from 'react-router';
-import { withAppSiteContext, sites } from '@curvenote/scms-server';
+import { withAppSiteContext } from '@curvenote/scms-server';
 import {
   PageFrame,
   formatZodError,
@@ -14,21 +14,24 @@ import { useEffect, useState, useCallback } from 'react';
 import { zfd } from 'zod-form-data';
 import { z } from 'zod';
 import { dbListSignedSubmissions, dbQueryJobs } from './db.server.js';
-import type { AugmentedSubmissionsListWithPagination } from './types.js';
+import type { AugmentedSubmissionListingItem, SubmissionListingPage } from './types.js';
 import { CollectionSelect } from './CollectionSelect.js';
+import { formatCollectionFilterOptions } from './collections.format.server.js';
+import type { CollectionFilterOption } from './collections.format.server.js';
+import { formatSubmissionListingSiteContext } from './site-context.format.server.js';
+import type { SubmissionListingSiteContext } from './site-context.format.server.js';
 import { SiteTrackEvent } from '../../analytics/events.js';
 import { SubmissionList } from '../../components/SubmissionList.js';
-import type { CollectionSummaryDTO, SiteDTO } from '@curvenote/common';
 
 interface LoaderData {
   scopes: string[];
-  site: SiteDTO;
-  submissions: AugmentedSubmissionsListWithPagination;
-  collections: CollectionSummaryDTO[];
+  site: SubmissionListingSiteContext;
+  submissions: SubmissionListingPage;
+  collections: CollectionFilterOption[];
   defaultCollectionOnly: boolean;
 }
 
-type SubmissionWithJob = AugmentedSubmissionsListWithPagination['items'][number];
+type SubmissionWithJob = AugmentedSubmissionListingItem;
 
 const SubmissionListingSchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
@@ -71,7 +74,6 @@ export const loader = async (args: LoaderFunctionArgs): Promise<LoaderData> => {
     siteName: ctx.site.name,
     siteType: ctx.site.private ? 'private' : 'public',
     userRole: userSiteRole,
-    submissionCount: submissions.total,
     pageType: 'submissions_list',
     collectionFilter: collection || 'all',
   });
@@ -80,9 +82,9 @@ export const loader = async (args: LoaderFunctionArgs): Promise<LoaderData> => {
 
   return {
     scopes: ctx.scopes,
-    site: ctx.siteDTO,
+    site: formatSubmissionListingSiteContext(ctx),
     submissions,
-    collections: ctx.site.collections.map((c) => sites.formatCollectionSummaryDTO(c)),
+    collections: formatCollectionFilterOptions(ctx),
     defaultCollectionOnly: ctx.site.collections.length === 1 && ctx.site.collections[0].default,
   };
 };
@@ -145,12 +147,10 @@ export default function AllSubmissionsPage({ loaderData }: { loaderData: LoaderD
 
   const navigate = useNavigate();
   const [urlSearchParams] = useSearchParams();
-  const [items, setItems] = useState<AugmentedSubmissionsListWithPagination['items']>(
-    submissions.items,
-  );
+  const [items, setItems] = useState<AugmentedSubmissionListingItem[]>(submissions.items);
 
   const fetcher = useFetcher<{
-    submissions?: AugmentedSubmissionsListWithPagination;
+    submissions?: SubmissionListingPage;
     error?: string;
     reload: boolean;
   }>();
@@ -213,8 +213,7 @@ export default function AllSubmissionsPage({ loaderData }: { loaderData: LoaderD
   useEffect(() => {
     if (fetcher.data?.submissions?.items) {
       // Type assertion to handle the serialized data
-      const newItems = fetcher.data.submissions
-        .items as AugmentedSubmissionsListWithPagination['items'];
+      const newItems = fetcher.data.submissions.items;
 
       setItems((prev) => {
         if (fetcher.data?.reload) {
@@ -252,7 +251,7 @@ export default function AllSubmissionsPage({ loaderData }: { loaderData: LoaderD
           <SubmissionList
             scopes={scopes}
             site={site}
-            items={items as AugmentedSubmissionsListWithPagination['items']}
+            items={items}
             to={(id: string) => id}
             revalidate={() => false}
             showCollectionChip={!defaultCollectionOnly}

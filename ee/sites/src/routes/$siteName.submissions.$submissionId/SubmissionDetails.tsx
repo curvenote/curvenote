@@ -5,13 +5,17 @@ import {
   SectionWithHeading,
   scopes,
 } from '@curvenote/scms-core';
-import type { sites, SiteContext } from '@curvenote/scms-server';
+import type { SiteContext } from '@curvenote/scms-server';
 import { SquareCheckBig, ExternalLink, Eye, FileText } from 'lucide-react';
 import classNames from 'classnames';
-import type { SubmissionDTO, SubmissionVersionDTO } from '@curvenote/common';
-import type { SlugsDTO } from './types.server.js';
+import type {
+  SubmissionDetailSlugRow,
+  SubmissionDetailSiteContext,
+  SubmissionDetailSubmission,
+  SubmissionDetailVersion,
+  SubmissionEditorCollection,
+} from './types.js';
 import { Slugs, getSlugSuggestion } from './Slugs.js';
-import type { Prisma } from '@curvenote/scms-db';
 import { Kinds } from './Kinds.js';
 import { buildUrl } from 'doi-utils';
 import { useLoaderData } from 'react-router';
@@ -32,12 +36,12 @@ export function SubmissionDetails({ baseUrl }: { baseUrl?: string }) {
   } = useLoaderData() as {
     user: SiteContext['user'];
     userScopes: string[];
-    submission: SubmissionDTO;
-    submissionVersions: SubmissionVersionDTO[];
-    site: ReturnType<typeof sites.formatSiteDTO>;
+    submission: SubmissionDetailSubmission;
+    submissionVersions: SubmissionDetailVersion[];
+    site: SubmissionDetailSiteContext;
     signature: string;
-    slugs: SlugsDTO;
-    collections: Awaited<ReturnType<typeof sites.collections.list>>;
+    slugs: SubmissionDetailSlugRow[];
+    collections: SubmissionEditorCollection[];
     workflow: Workflow;
     poll: boolean;
   };
@@ -65,11 +69,9 @@ export function SubmissionDetails({ baseUrl }: { baseUrl?: string }) {
 
   const doi = activeVersion.site_work.doi;
 
-  const submissionCollectionMatch = collections.items.some(
-    (c) => c.id === submission.collection.id,
-  );
+  const submissionCollectionMatch = collections.some((c) => c.id === submission.collection.id);
 
-  const referenceCollection = collections.items.find((c) => c.id === submission.collection.id);
+  const referenceCollection = collections.find((c) => c.id === submission.collection.id);
 
   const slugSuggestion = getSlugSuggestion(site, activeVersion.site_work.doi);
 
@@ -143,7 +145,7 @@ export function SubmissionDetails({ baseUrl }: { baseUrl?: string }) {
             <Collections
               submissionId={submission.id}
               collectionId={submission.collection.id}
-              collections={collections.items}
+              collections={collections}
               canUpdate={canUpdate}
             />
           </div>

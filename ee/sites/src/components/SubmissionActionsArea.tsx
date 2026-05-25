@@ -4,13 +4,14 @@ import {
   getValidTransition,
   useDeploymentConfig,
 } from '@curvenote/scms-core';
-import type { SiteDTO } from '@curvenote/common';
+import type { SubmissionListingSiteContext } from '../routes/$siteName.submissions._index/site-context.format.server.js';
 import type { WorkflowTransition } from '@curvenote/scms-core';
 import { useOptimisticTransition, useJobPolling, useTransitionFetcher } from '../hooks/index.js';
+import type { AugmentedSubmissionListingItem } from '../routes/$siteName.submissions._index/types.js';
 
 interface SubmissionActionsAreaProps {
-  site: SiteDTO;
-  item: any; //AugmentedSubmissionsListWithPagination['items'][0];
+  site: SubmissionListingSiteContext;
+  item: AugmentedSubmissionListingItem;
   canUpdateStatus: boolean;
   onActivityUpdate?: (activity: { date: string; by: { id: string; name: string } }) => void;
 }

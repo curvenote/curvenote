@@ -1,4 +1,4 @@
-import type { SiteDTO } from '@curvenote/common';
+import type { SubmissionListingSiteContext } from '../routes/$siteName.submissions._index/site-context.format.server.js';
 import { Link } from 'react-router';
 import { clientCheckSiteScopes, formatDate, formatToNow, primitives } from '@curvenote/scms-core';
 import {
@@ -9,7 +9,7 @@ import {
   SubmissionKind,
   Slug,
 } from './Chips.js';
-import type { AugmentedSubmissionsListWithPagination } from '../routes/$siteName.submissions._index/types.js';
+import type { AugmentedSubmissionListingItem } from '../routes/$siteName.submissions._index/types.js';
 import { SubmissionActionsArea } from './SubmissionActionsArea.js';
 
 export function SubmissionListItem({
@@ -19,9 +19,9 @@ export function SubmissionListItem({
   to,
   showCollectionChip,
 }: {
-  site: SiteDTO;
+  site: SubmissionListingSiteContext;
   scopes: string[];
-  item: AugmentedSubmissionsListWithPagination['items'][0];
+  item: AugmentedSubmissionListingItem;
   to: (to: string) => string;
   revalidate: () => void;
   showCollectionChip?: boolean;

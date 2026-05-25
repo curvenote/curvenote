@@ -247,18 +247,24 @@ async function formatSubmissionListingDTO(
   return { items, total: total ?? items.length, links };
 }
 
+export type ListSiteSubmissionsOpts = {
+  /** When false, skips COUNT(*) — use for paginated UI that infers hasMore from page size. Default: true only when not paginating. */
+  includeTotalCount?: boolean;
+};
+
 export default async function (
   ctx: SiteContext,
   extensions: ClientExtension[],
   where?: Prisma.SubmissionWhereInput,
   skip?: number,
   take?: number,
+  listOpts?: ListSiteSubmissionsOpts,
 ) {
   const normalizedWhere = {
     site: { is: { name: ctx.site.name } },
     ...(where ?? {}),
   };
-  const opts =
+  const paginationOpts =
     take === undefined && skip === undefined
       ? undefined
       : {
@@ -266,9 +272,12 @@ export default async function (
           page: take ? Math.floor((skip ?? 0) / take) : undefined,
         };
 
+  const includeTotalCount =
+    listOpts?.includeTotalCount ?? (take === undefined && skip === undefined);
+
   const [items, total] = await Promise.all([
     dbListSubmissions(normalizedWhere, skip, take),
-    dbCountSubmissions(normalizedWhere),
+    includeTotalCount ? dbCountSubmissions(normalizedWhere) : Promise.resolve(undefined),
   ]);
-  return formatSubmissionListingDTO(ctx, items, extensions, opts, total);
+  return formatSubmissionListingDTO(ctx, items, extensions, paginationOpts, total);
 }

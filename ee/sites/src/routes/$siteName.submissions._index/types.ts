@@ -1,19 +1,71 @@
-import type { sites, jobs } from '@curvenote/scms-server';
-import type { getWorkflow } from '@curvenote/scms-core';
+import type { jobs } from '@curvenote/scms-server';
+import type { getWorkflow, WorkflowTransition } from '@curvenote/scms-core';
 
 export type ArrayOfJobs = Awaited<ReturnType<typeof jobs.list>>;
 
-export type AugmentedSubmissionsList = {
-  items: (Awaited<ReturnType<typeof sites.submissions.list>>['items'][0] & {
-    signature: string;
-    workflow: ReturnType<typeof getWorkflow>;
-  })[];
+/** Narrow kind shape for collection chips (not full SubmissionKindSummaryDTO). */
+export type SubmissionListingKind = {
+  id: string;
+  name: string;
+  content: { title?: string; [key: string]: unknown };
 };
 
-export type AugmentedSubmissionsListWithPagination = {
-  items: AugmentedSubmissionsList['items'][0][];
+/** Narrow collection shape for listing chips. */
+export type SubmissionListingCollection = {
+  id: string;
+  name: string;
+  slug: string;
+  workflow: string;
+  open: boolean;
+  content: { title?: string; [key: string]: unknown };
+};
+
+export type SubmissionListingVersionChip = {
+  date_created: string;
+  work_id?: string;
+};
+
+/**
+ * App submissions listing card — intentionally smaller than API SubmissionsListItemDTO.
+ */
+export type SubmissionListingItem = {
+  id: string;
+  date_created: string;
+  date_published?: string;
+  title: string;
+  authors: { name: string }[];
+  description?: string;
+  date?: string;
+  doi?: string;
+  slug?: string;
+  status: string;
+  transition?: WorkflowTransition;
+  version_id: string;
+  job_id?: string;
+  kind: SubmissionListingKind;
+  collection: SubmissionListingCollection;
+  published_version?: SubmissionListingVersionChip;
+  retracted_version?: SubmissionListingVersionChip;
+  last_activity: {
+    date: string;
+    by: { id: string; name: string };
+  };
+  links: { build?: string };
+  num_versions: number;
+};
+
+export type AugmentedSubmissionListingItem = SubmissionListingItem & {
+  workflow: ReturnType<typeof getWorkflow>;
+  signature: string;
+  job?: ArrayOfJobs['items'][number];
+};
+
+export type SubmissionListingPage = {
+  items: AugmentedSubmissionListingItem[];
   page?: number;
   perPage?: number;
-  total?: number;
   hasMore?: boolean;
 };
+
+/** @deprecated Use SubmissionListingPage */
+export type AugmentedSubmissionsListWithPagination = SubmissionListingPage;

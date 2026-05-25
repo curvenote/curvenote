@@ -3,7 +3,6 @@ import { withAppAdminContext, getPrismaClient } from '@curvenote/scms-server';
 import {
   PageFrame,
   SystemAdminBadge,
-  useSites,
   formatDate,
   formatDatetime,
   formatToNow,
@@ -25,21 +24,25 @@ import { WorkRole } from '@curvenote/scms-db';
 import { firstPublishedVersionDateCreated, lastPublishedVersionWorkDate } from './utils';
 import { SiteSelect, WorkInfo } from './ui';
 import { uuidv7 } from 'uuidv7';
+import { dbListSitesForSelect } from './sites-select.server.js';
 
 export async function loader(args: Route.LoaderArgs) {
-  await withAppAdminContext(args);
+  const ctx = await withAppAdminContext(args);
   const prisma = await getPrismaClient();
-  const users = await prisma?.user.findMany({
-    select: {
-      id: true,
-      display_name: true,
-      email: true,
-    },
-    orderBy: {
-      display_name: 'asc',
-    },
-  });
-  return { users };
+  const [users, sites] = await Promise.all([
+    prisma?.user.findMany({
+      select: {
+        id: true,
+        display_name: true,
+        email: true,
+      },
+      orderBy: {
+        display_name: 'asc',
+      },
+    }),
+    dbListSitesForSelect(ctx),
+  ]);
+  return { users, sites };
 }
 
 export async function action(args: Route.ActionArgs) {
@@ -157,9 +160,8 @@ function filterNoDateAndPublished(items?: SubmissionTreeDBO) {
 
 export default function SubmissionAdmin({ loaderData }: Route.ComponentProps) {
   const fetcher = useFetcher<typeof action>();
-  const { users } = loaderData;
+  const { users, sites } = loaderData;
   const [site_name, setSiteName] = useState<string | undefined>();
-  const { sites } = useSites();
   const siteName =
     fetcher.data && 'siteName' in fetcher.data && fetcher.data.siteName != null
       ? fetcher.data.siteName
@@ -175,7 +177,7 @@ export default function SubmissionAdmin({ loaderData }: Route.ComponentProps) {
           <primitives.Card className="p-6">
             <fetcher.Form method="post" className="flex items-center space-x-4">
               <SiteSelect
-                sites={sites.items}
+                sites={sites}
                 disabled={fetcher.state !== 'idle'}
                 onChange={(e) => {
                   const formData = new FormData(e.target.form ?? undefined);
