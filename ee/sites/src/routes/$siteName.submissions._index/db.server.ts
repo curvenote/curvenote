@@ -183,18 +183,6 @@ export async function dbListSignedSubmissions(
   };
 }
 
-/** Load listing cards for a bounded set of submission ids (e.g. inbox). */
-export async function dbListSignedSubmissionsByIds(
-  ctx: SiteContext,
-  submissionIds: string[],
-): Promise<AugmentedSubmissionListingItem[]> {
-  if (submissionIds.length === 0) {
-    return [];
-  }
-  const rows = await dbListSubmissionRows(ctx.site.id, { id: { in: submissionIds } });
-  return dbBuildAugmentedListingItems(ctx, rows);
-}
-
 export async function dbQueryJobs(ctx: SiteContext) {
   return jobs.list(
     ctx,

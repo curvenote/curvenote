@@ -26,10 +26,6 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
               index(resolveRoutePath(import.meta.url, 'routes/$siteName._index.tsx')),
               route('inbox', resolveRoutePath(import.meta.url, 'routes/$siteName.inbox/route.tsx')),
               route(
-                'inbox-classic',
-                resolveRoutePath(import.meta.url, 'routes/$siteName.inbox-classic/route.tsx'),
-              ),
-              route(
                 'kinds-classic',
                 resolveRoutePath(import.meta.url, 'routes/$siteName.kinds-classic/route.tsx'),
               ),

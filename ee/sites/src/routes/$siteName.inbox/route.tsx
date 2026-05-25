@@ -8,7 +8,6 @@ import {
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { formatSubmissionListingSiteContext } from '../$siteName.submissions._index/site-context.format.server.js';
 import type { SubmissionListingSiteContext } from '../$siteName.submissions._index/site-context.format.server.js';
-import { ClassicInboxRedirect } from './ClassicInboxRedirect.js';
 import { InboxComingSoon } from './InboxComingSoon.js';
 
 interface LoaderData {
@@ -46,7 +45,6 @@ export default function Inbox({ loaderData }: { loaderData: LoaderData }) {
       breadcrumbs={breadcrumbs}
     >
       <InboxComingSoon siteName={site.name} />
-      <ClassicInboxRedirect siteName={site.name} />
     </PageFrame>
   );
 }
