@@ -8,12 +8,15 @@ import {
   vercelCacheHeaders,
 } from 'app/lib/vercel-cache';
 
+/** Default page size when the client omits `limit` / `page` (offset pagination is always applied). */
+const DEFAULT_WORKS_LIMIT = 10;
+
 const ParamsSchema = z.object({
   collection: z.string().min(1).max(64).optional(),
   kind: z.string().min(1).max(64).optional(), // TODO kind name should be url-safe
   status: z.union([z.literal('published'), z.literal('in-review')]).optional(),
-  limit: z.number().int().min(1).max(500).default(500),
-  page: z.number().int().min(0).optional(),
+  limit: z.number().int().min(1).max(500).default(DEFAULT_WORKS_LIMIT),
+  page: z.number().int().min(0).default(0),
 });
 
 export async function loader(args: Route.LoaderArgs) {
@@ -32,11 +35,10 @@ export async function loader(args: Route.LoaderArgs) {
     collection: params.get('collection') ?? undefined,
     kind: params.get('kind') ?? undefined,
     status: params.get('status') ?? undefined,
-    limit: params.get('limit') ? parseInt(params.get('limit')!) : undefined,
-    page: params.get('page') ? parseInt(params.get('page')!) : undefined,
+    limit: params.has('limit') ? parseInt(params.get('limit')!, 10) : undefined,
+    page: params.has('page') ? parseInt(params.get('page')!, 10) : undefined,
   });
 
-  // offset based pagination
   const dto = await sites.submissions.published.list(ctx, extensions, where, { page, limit });
   const headers = vercelCacheHeaders(
     ctx.site.private ? PRIVATE_CACHE_OPTIONS : SEMI_STATIC_BURST_PROTECTION,
