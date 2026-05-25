@@ -1,4 +1,4 @@
-import { formatDate, normalizeExplicitTags } from '@curvenote/common';
+import { formatDate } from '@curvenote/common';
 import { httpError, WorkContents } from '@curvenote/scms-core';
 import { ActivityType, WorkRole } from '@curvenote/scms-db';
 import type { Prisma } from '@curvenote/scms-db';
@@ -12,7 +12,6 @@ export type EtlRegisterWorkInput = {
   kind?: string;
   doi: string;
   version_tag?: string;
-  tags?: string[];
   source?: string;
   cdn: string;
   cdn_key: string;
@@ -30,13 +29,6 @@ export type EtlRegisterWorkInput = {
 export type EtlRegisterWorkResult = {
   status: 'skipped' | 'created';
 };
-
-function normalizeDoiForCompare(doi: string): string {
-  return doi
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
-}
 
 function buildWorkVersionMetadata(
   input: EtlRegisterWorkInput,
@@ -118,8 +110,8 @@ async function registerWorkInDb(
 ): Promise<void> {
   const prisma = await getPrismaClient();
   const date_created = formatDate();
-  const versionTags = normalizeExplicitTags(input.tags);
-  const submissionTags = normalizeExplicitTags(input.tags);
+  const versionTag = input.version_tag?.trim();
+  const submissionTags = versionTag ? [versionTag] : [];
   const workVersionMetadata = buildWorkVersionMetadata(input);
   const submissionMetadata = input.submission_metadata;
   const contains = input.contains?.length
@@ -142,10 +134,8 @@ async function registerWorkInDb(
       author_details: (input.author_details ?? []) as Prisma.InputJsonValue[],
       date: input.date ?? null,
       doi: input.doi,
-      canonical: true,
       cdn,
       cdn_key: input.cdn_key,
-      tags: versionTags,
       metadata: workVersionMetadata as Prisma.InputJsonValue | undefined,
     };
 
@@ -332,7 +322,7 @@ export async function etlRegisterWork(
   const kindName = input.kind?.trim() || 'article';
 
   const ownedWorkId = await findOwnedWorkIdByDoi(auth.userId, input.doi);
-  const versionTag = input.version_tag?.trim() || input.tags?.[0]?.trim();
+  const versionTag = input.version_tag?.trim();
   if (
     versionTag &&
     ownedWorkId &&
@@ -371,6 +361,9 @@ export async function etlRegisterWorkFromRequest(request: Request): Promise<Resp
   if (!doi) throw httpError(400, 'doi is required');
   if (!title) throw httpError(400, 'title is required');
   if (!cdn || !cdn_key) throw httpError(400, 'cdn and cdn_key are required');
+  if (raw.tags !== undefined) {
+    throw httpError(400, 'tags is not supported; use version_tag');
+  }
 
   const input: EtlRegisterWorkInput = {
     site,
@@ -381,9 +374,6 @@ export async function etlRegisterWorkFromRequest(request: Request): Promise<Resp
     collection: typeof raw.collection === 'string' ? raw.collection : undefined,
     kind: typeof raw.kind === 'string' ? raw.kind : undefined,
     version_tag: typeof raw.version_tag === 'string' ? raw.version_tag : undefined,
-    tags: Array.isArray(raw.tags)
-      ? raw.tags.filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
-      : undefined,
     source: typeof raw.source === 'string' ? raw.source : undefined,
     contains: Array.isArray(raw.contains)
       ? raw.contains.filter((t): t is string => typeof t === 'string' && t.length > 0)

@@ -69,7 +69,6 @@ type RegisterPayload = {
   collection?: string;
   kind?: string;
   version_tag?: string;
-  tags?: string[];
   source?: string;
   contains?: string[];
   description?: string;
@@ -405,7 +404,6 @@ function buildPayload(
     collection: opts.collection,
     kind: opts.kind,
     version_tag: versionTag,
-    tags: [versionTag],
     source: 'myst',
     contains: ['myst'],
     description: metadata.description,
