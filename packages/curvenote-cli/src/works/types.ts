@@ -6,6 +6,8 @@ export type PushOpts = BaseOpts & {
 
 export type RegisterWorkOpts = BaseOpts & {
   venue: string;
+  /** Absolute or relative path to myst.yml / curvenote.yml (default: detect in cwd). */
+  contentYaml?: string;
   key?: 'id' | 'doi';
   kind?: string;
   collection?: string;
@@ -13,7 +15,8 @@ export type RegisterWorkOpts = BaseOpts & {
   cdn?: string;
   cdnKey?: string;
   draft?: boolean;
-  metadata?: string;
+  workMetadata?: string;
+  submissionMetadata?: string;
   source?: string;
   new?: boolean;
   tags?: string[];

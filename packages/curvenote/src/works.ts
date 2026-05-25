@@ -39,6 +39,10 @@ function makeWorksRegisterCLI(program: Command) {
   const command = new Command('register')
     .description('Register a work/submission without build/upload')
     .option('--title <string>', 'Title for the work version')
+    .option(
+      '--content-yaml <path>',
+      'Path to myst.yml or curvenote.yml (default: detect in current working directory)',
+    )
     .option('--cdn <url>', 'CDN base URL for this work version content')
     .option('--cdn-key <uuid>', 'CDN key for this work version content')
     .requiredOption('--venue <string>', 'Venue to create the submission under')
@@ -50,7 +54,13 @@ function makeWorksRegisterCLI(program: Command) {
     .addOption(new Option('--source <string>', 'Source label that is written to work.contains'))
     .addOption(
       new Option(
-        '--metadata <json-or-file>',
+        '--work-metadata <json-or-file>',
+        'Inline JSON object or path to JSON metadata file (stored on work version; merged after frontmatter.myst from myst.yml)',
+      ),
+    )
+    .addOption(
+      new Option(
+        '--submission-metadata <json-or-file>',
         'Inline JSON object or path to JSON metadata file (stored on submission version)',
       ),
     )

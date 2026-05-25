@@ -39,17 +39,14 @@ export function venueQuestion(session: ISession, action = 'submit') {
 
 /**
  * Ensure that a `site` exists by performing a basic request to the Site
- *
- * If Site does not exist, fails with `process.exit(1)`.
  */
 export async function checkVenueExists(session: ISession, venue: string) {
   try {
     session.log.debug(`GET from journals API /sites/${venue}`);
     await getFromJournals(session, `/sites/${venue}`);
     session.log.debug(`found Site "${venue}"`);
-  } catch (err) {
-    session.log.debug(err);
+  } catch {
     session.log.error(`${chalk.red(`😟 Site "${venue}" not found.`)}`);
-    process.exit(1);
+    throw new Error(`Site "${venue}" not found.`);
   }
 }

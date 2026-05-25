@@ -416,6 +416,7 @@ export async function seedBySites(
     await prisma.collection.createMany({
       data: collectionData.map((c: any) => ({
         ...c,
+        id: c.id ?? uuid(),
         date_created: startDateString,
         date_modified: startDateString,
         site_id: siteData.id,

@@ -9,7 +9,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { load as yamlLoad } from 'js-yaml';
 import { getFromJournals } from '../utils/api.js';
-import type { MySubmissionsListingDTO, WorkDTO } from '@curvenote/common';
+import type {
+  CollectionDTO,
+  MySubmissionsListingDTO,
+  SubmissionKindDTO,
+  WorkDTO,
+} from '@curvenote/common';
 import { resolveExistingWork } from './resolveExistingWork.js';
 
 function detectContentYamlPath() {
@@ -19,6 +24,18 @@ function detectContentYamlPath() {
   const mystConfig = path.join(cwd, 'myst.yml');
   if (fs.existsSync(mystConfig)) return mystConfig;
   return undefined;
+}
+
+function resolveContentYamlPath(opts?: RegisterWorkOpts): string | undefined {
+  const explicit = opts?.contentYaml?.trim();
+  if (explicit) {
+    const resolved = path.resolve(explicit);
+    if (!fs.existsSync(resolved)) {
+      throw new Error(`content yaml file not found: ${resolved}`);
+    }
+    return resolved;
+  }
+  return detectContentYamlPath();
 }
 
 function parseContentYaml(session: ISession, filePath?: string) {
@@ -61,7 +78,7 @@ function parseContentYaml(session: ISession, filePath?: string) {
   };
 }
 
-function parseMetadataJson(metadataInput?: string) {
+function parseMetadataJson(metadataInput?: string, label = 'metadata') {
   if (!metadataInput) return undefined;
   const raw = fs.existsSync(metadataInput)
     ? fs.readFileSync(metadataInput, 'utf-8')
@@ -70,12 +87,59 @@ function parseMetadataJson(metadataInput?: string) {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(`invalid metadata json (provide inline JSON or a JSON file path)`);
+    throw new Error(`invalid ${label} json (provide inline JSON or a JSON file path)`);
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(`invalid metadata json: expected an object`);
+    throw new Error(`invalid ${label} json: expected an object`);
   }
   return parsed as Record<string, any>;
+}
+
+function buildWorkVersionMetadata(
+  yamlMetadata: ReturnType<typeof parseContentYaml>,
+  workMetadataInput?: string,
+): Record<string, any> | undefined {
+  const workMetadata = parseMetadataJson(workMetadataInput, 'work-metadata');
+  const mystRaw = yamlMetadata?.raw;
+  if (!mystRaw && !workMetadata) return undefined;
+  return {
+    ...(mystRaw ? { 'frontmatter.myst': mystRaw } : {}),
+    ...workMetadata,
+  };
+}
+
+const registrationTargetsCache = new Map<
+  string,
+  { collection: CollectionDTO; kind: SubmissionKindDTO }
+>();
+
+function registrationTargetsCacheKey(
+  venue: string,
+  opts?: Pick<RegisterWorkOpts, 'collection' | 'kind'>,
+): string {
+  return `${venue}\0${opts?.collection ?? ''}\0${opts?.kind ?? ''}`;
+}
+
+async function resolveRegistrationTargets(
+  session: ISession,
+  venue: string,
+  opts?: RegisterWorkOpts,
+): Promise<{ collection: CollectionDTO; kind: SubmissionKindDTO }> {
+  const cacheKey = registrationTargetsCacheKey(venue, opts);
+  const cached = registrationTargetsCache.get(cacheKey);
+  if (cached) return cached;
+
+  const collections = await getVenueCollections(session, venue);
+  const resolved = await determineCollectionAndKind(session, venue, collections, {
+    kind: opts?.kind,
+    collection: opts?.collection,
+    yes: opts?.yes,
+  });
+  registrationTargetsCache.set(cacheKey, {
+    collection: resolved.collection,
+    kind: resolved.kind,
+  });
+  return registrationTargetsCache.get(cacheKey)!;
 }
 
 export async function register(session: ISession, opts?: RegisterWorkOpts) {
@@ -93,13 +157,9 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
   if (opts.cdn && !opts.source) {
     throw new Error('source is required when cdn/cdnKey are provided');
   }
-  const yamlMetadata = parseContentYaml(session, detectContentYamlPath());
-  const submissionMetadata = parseMetadataJson(opts.metadata);
-  const workVersionMetadata = yamlMetadata?.raw
-    ? {
-        'frontmatter.myst': yamlMetadata.raw,
-      }
-    : undefined;
+  const yamlMetadata = parseContentYaml(session, resolveContentYamlPath(opts));
+  const submissionMetadata = parseMetadataJson(opts.submissionMetadata, 'submission-metadata');
+  const workVersionMetadata = buildWorkVersionMetadata(yamlMetadata, opts.workMetadata);
   const title = opts.title ?? yamlMetadata?.title;
   if (!title) {
     throw new Error('title is required (pass --title or set title in myst.yml/curvenote.yml)');
@@ -107,6 +167,7 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
 
   const venue = await ensureVenue(session, opts.venue, opts);
   await checkVenueExists(session, venue);
+  const { collection, kind } = await resolveRegistrationTargets(session, venue, opts);
 
   const doi = yamlMetadata?.doi;
   let work: WorkDTO;
@@ -154,13 +215,6 @@ export async function register(session: ISession, opts?: RegisterWorkOpts) {
   }
 
   if (!workVersionId) throw new Error('Failed to create a work version');
-
-  const collections = await getVenueCollections(session, venue);
-  const { kind, collection } = await determineCollectionAndKind(session, venue, collections, {
-    kind: opts.kind,
-    collection: opts.collection,
-    yes: opts.yes,
-  });
 
   // If a submission already exists for this work at this venue, create a new submission version
   const mine = (await getFromJournals(
