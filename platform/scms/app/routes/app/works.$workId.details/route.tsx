@@ -14,7 +14,8 @@ import { WorkDetailsContentCard } from './WorkDetailsContentCard';
 import { SubmittedToBar } from './SubmittedToBar';
 import type {
   SubmissionWithVersionsAndSite,
-  WorkVersionWithSubmissionVersions,
+  WorkVersionContentCardData,
+  WorkVersionForDetailsClient,
 } from '../works.$workId/types';
 import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
 import type { LinkedJobsByWorkVersionId } from './types';
@@ -31,13 +32,16 @@ type LoaderData = {
   userScopes: string[];
   workflows: Record<string, Workflow>;
   work: WorkDTO;
-  versions: WorkVersionWithSubmissionVersions[];
+  versions: WorkVersionForDetailsClient[];
   submissions: SubmissionWithVersionsAndSite[];
   linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
   workOwnerName: string | null;
   activities: WorkActivityRow[];
   checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>;
   canUpload: boolean;
+  canResumeDraft: boolean;
+  resumeDraftVersionId?: string;
+  latestNonDraftContentCard: WorkVersionContentCardData | null;
   users: WorkUser[];
 };
 
@@ -58,6 +62,9 @@ export default function WorkDetailRoute() {
     activities,
     checkServiceRunsByWorkVersionId,
     canUpload,
+    canResumeDraft,
+    resumeDraftVersionId,
+    latestNonDraftContentCard,
     users,
   } = useRouteLoaderData('routes/app/works.$workId/route') as LoaderData;
 
@@ -78,14 +85,6 @@ export default function WorkDetailRoute() {
   );
 
   const workBasePath = `/app/works/${work.id}`;
-  // Versions are ordered by date_modified desc; latest is first.
-  const latestVersion = versions[0];
-
-  // Prefer the latest non-draft work version for user-facing "Last updated" copy.
-  const latestNonDraftWorkVersion = versions.find((v) => !v.draft);
-  const lastUpdatedDate =
-    latestNonDraftWorkVersion?.date_modified ?? versions[0]?.date_modified ?? undefined;
-
   const basePath = `/app/works/${work.id}`;
 
   return (
@@ -97,10 +96,15 @@ export default function WorkDetailRoute() {
         <WorkDetailsTopBar
           workId={work.id}
           users={users}
-          uploadProps={{ canUpload, workBasePath, latestVersion }}
+          uploadProps={{
+            canUpload,
+            workBasePath,
+            canResumeDraft,
+            resumeDraftVersionId,
+          }}
         />
         <div className="space-y-1">
-          <WorkDetailsContentCard version={latestNonDraftWorkVersion ?? null} />
+          <WorkDetailsContentCard version={latestNonDraftContentCard} />
           <SubmittedToBar submissions={submissions} workflows={workflows} basePath={basePath} />
         </div>
         <div>

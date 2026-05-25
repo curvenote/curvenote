@@ -14,6 +14,7 @@ export async function updateWorkVersionTitle(workVersionId: string, title: strin
         title,
         date_modified: new Date().toISOString(),
       },
+      select: { id: true },
     });
 
     return { success: true };
@@ -49,6 +50,7 @@ export async function updateWorkVersionAuthors(workVersionId: string, authorsTex
         authors,
         date_modified: new Date().toISOString(),
       },
+      select: { id: true },
     });
 
     return { success: true };

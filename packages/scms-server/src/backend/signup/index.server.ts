@@ -343,6 +343,7 @@ export async function updateSignupStep(
         },
       },
     },
+    select: { id: true },
   });
 }
 
@@ -383,6 +384,7 @@ export async function completeSignupStep(
         },
       },
     },
+    select: { id: true },
   });
 }
 

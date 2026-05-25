@@ -3,6 +3,7 @@ import { getPrismaClient } from '../../prisma.server.js';
 import { error404 } from '@curvenote/scms-core';
 import { formatSiteWorkDTO } from './submissions/published/get.server.js';
 import type { SiteContext } from '../../context.site.server.js';
+import { siteWorkWorkVersionSelect } from '../../prisma.selects.server.js';
 
 export type SiteDoiResolveOptions = {
   /** If set, pick the latest *published* submission version for this DOI whose `tags` contains this string */
@@ -24,8 +25,9 @@ async function dbGetLatestPublishedWorkByDoi(doiNormalized: string) {
       date_created: 'desc',
     },
     take: 1,
-    include: {
-      work: true,
+    select: {
+      ...siteWorkWorkVersionSelect,
+      work: { select: { id: true, doi: true, key: true } },
       submissionVersions: {
         where: {
           status: 'PUBLISHED',
@@ -79,7 +81,7 @@ async function dbGetPublishedSubmissionVersionByDoiAndTag(
           work: true,
         },
       },
-      work_version: true,
+      work_version: { select: siteWorkWorkVersionSelect },
     },
   });
 }

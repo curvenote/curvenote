@@ -18,7 +18,7 @@ import {
   useDeploymentConfig,
   ui,
 } from '@curvenote/scms-core';
-import { formatWorkVersionDTO } from './db.server';
+import { dbGetLatestNonDraftWorkVersion, formatWorkVersionDTO } from './db.server';
 import {
   dbGetCheckServiceRunsByWorkVersionIds,
   type CheckServiceRunRow,
@@ -56,7 +56,11 @@ export async function loader(args: Route.LoaderArgs) {
     throw httpError(404, 'No finalized work version found');
   }
 
-  const latestVersion = nonDraftVersions[0];
+  const latestVersion = await dbGetLatestNonDraftWorkVersion(ctx.work.id);
+  if (!latestVersion) {
+    throw httpError(404, 'No finalized work version found');
+  }
+
   const metadata = (latestVersion.metadata ??
     makeDefaultWorkVersionMetadata()) as WorkVersionMetadata &
     FileMetadataSection &

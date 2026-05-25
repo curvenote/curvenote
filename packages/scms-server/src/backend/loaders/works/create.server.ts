@@ -171,6 +171,7 @@ export async function dbCreateWorkAndVersion(
           },
         },
       },
+      select: { id: true },
     });
 
     return work;

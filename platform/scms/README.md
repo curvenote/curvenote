@@ -62,6 +62,16 @@ Make two copies of the `.env.sample` file, called `.env.development` and `.env.t
 
 Add your firebase config and secrets to both.
 
+#### Prisma query logging (optional)
+
+To log every Prisma SQL query to the dev server console (useful when tuning loaders or checking N+1 queries), uncomment or add this to your local env file (e.g. `.env.development`):
+
+```
+PRISMA_DEBUG_QUERIES=true
+```
+
+Accepted values are `true`, `1`, or `yes`. Each query is printed with duration, SQL, and parameters. This flag is **ignored in production** (`NODE_ENV=production`), so it is safe to leave in a local env file.
+
 ### Seed
 
 To reset and seed the database for **initial** development work. This needs to be run from the top level.

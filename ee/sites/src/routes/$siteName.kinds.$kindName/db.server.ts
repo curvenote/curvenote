@@ -45,7 +45,7 @@ export async function safeKindContentUpdate(
             date_modified: timestamp,
           },
         });
-        tx.activity.create({
+        await tx.activity.create({
           data: {
             id: uuid(),
             date_created: timestamp,
@@ -62,6 +62,7 @@ export async function safeKindContentUpdate(
               },
             },
           },
+          select: { id: true },
         });
         return kind;
       });
@@ -114,6 +115,7 @@ export async function dbUpdateKindName(name: string, kindId: string, userId: str
           },
         },
       },
+      select: { id: true },
     });
     return kind;
   });
@@ -155,6 +157,7 @@ export async function dbUpdateKindDefault(
           },
         },
       },
+      select: { id: true },
     });
     if (value) {
       const otherKinds = await tx.submissionKind.findMany({
@@ -178,6 +181,7 @@ export async function dbUpdateKindDefault(
               default: false,
               date_modified: timestamp,
             },
+            select: { id: true },
           });
           await tx.activity.create({
             data: {
@@ -196,6 +200,7 @@ export async function dbUpdateKindDefault(
                 },
               },
             },
+            select: { id: true },
           });
         }),
       );
@@ -247,7 +252,7 @@ export async function safeKindChecksUpdate(
             date_modified: timestamp,
           },
         });
-        tx.activity.create({
+        await tx.activity.create({
           data: {
             id: uuid(),
             date_created: timestamp,
@@ -264,6 +269,7 @@ export async function safeKindChecksUpdate(
               },
             },
           },
+          select: { id: true },
         });
         return kind;
       });

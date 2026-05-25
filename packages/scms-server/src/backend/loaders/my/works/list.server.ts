@@ -5,6 +5,12 @@ import { getPrismaClient } from '../../../prisma.server.js';
 import type { UserDBO } from '../../../db.types.js';
 import { error401, error404 } from '@curvenote/scms-core';
 import { formatWorkDTO, getCanonicalOrLatestVersion } from '../../works/get.server.js';
+import { siteWorkWorkVersionSelect } from '../../../prisma.selects.server.js';
+
+const myWorksVersionSelect = {
+  ...siteWorkWorkVersionSelect,
+  date_modified: true,
+} satisfies Prisma.WorkVersionSelect;
 
 async function dbListWorksForUser(user: UserDBO, where: Prisma.WorkWhereInput = {}) {
   const prisma = await getPrismaClient();
@@ -22,6 +28,7 @@ async function dbListWorksForUser(user: UserDBO, where: Prisma.WorkWhereInput = 
         orderBy: {
           date_created: 'desc',
         },
+        select: myWorksVersionSelect,
       },
     },
     orderBy: {

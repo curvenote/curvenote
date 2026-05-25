@@ -99,6 +99,7 @@ export async function dbDeletePendingUser(userId: string): Promise<void> {
     // Delete the pending user
     await tx.user.delete({
       where: { id: userId },
+      select: { id: true },
     });
   });
 }

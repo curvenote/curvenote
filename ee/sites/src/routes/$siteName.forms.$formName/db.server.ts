@@ -98,6 +98,7 @@ export async function safeFormDataUpdate(
               },
             },
           },
+          select: { id: true },
         });
         return form;
       });
@@ -149,6 +150,7 @@ export async function dbUpdateFormName(name: string, formId: string, userId: str
           },
         },
       },
+      select: { id: true },
     });
     return form;
   });
@@ -251,6 +253,7 @@ export async function dbUpdateFormKind(kindId: string, formId: string, userId: s
           },
         },
       },
+      select: { id: true },
     });
     return form;
   });
@@ -300,6 +303,7 @@ export async function dbCreateFormCollection(collectionId: string, formId: strin
           },
         },
       },
+      select: { id: true },
     });
 
     return collectionInForm;
@@ -335,6 +339,7 @@ export async function dbDeleteFormCollection(collectionId: string, formId: strin
           },
         },
       },
+      select: { id: true },
     });
 
     return deleted;
@@ -362,6 +367,7 @@ export async function dbDeleteForm(formId: string, userId: string) {
           },
         },
       },
+      select: { id: true },
     });
     // Clean up CollectionsInForms
     await tx.collectionsInForms.deleteMany({

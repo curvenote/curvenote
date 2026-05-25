@@ -4,6 +4,7 @@ import type { Prisma } from '@curvenote/scms-db';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
 import { getPrismaClient } from '../../../../prisma.server.js';
+import { siteWorkWorkVersionWithWorkSelect } from '../../../../prisma.selects.server.js';
 import { coerceToObject, error404 } from '@curvenote/scms-core';
 import type { ModifiedSiteWorkDTO } from '../published/get.server.js';
 import { formatSiteWorkDTO } from '../published/get.server.js';
@@ -19,9 +20,7 @@ export async function dbGetSubmissionVersion(
     include: {
       submitted_by: true,
       work_version: {
-        include: {
-          work: true,
-        },
+        select: siteWorkWorkVersionWithWorkSelect,
       },
       submission: {
         include: {

@@ -1,6 +1,6 @@
 import { getPrismaClient, StorageBackend, KnownBuckets, Folder } from '@curvenote/scms-server';
 import type { SecureContext } from '@curvenote/scms-server';
-import type { WorkVersion } from '@curvenote/scms-db';
+import type { Prisma, WorkVersion } from '@curvenote/scms-db';
 
 export type LinkedJobWithStatus = { id: string; status: string };
 
@@ -79,24 +79,112 @@ export async function dbGetWorkOwnerName(workId: string): Promise<string | null>
   return work?.created_by?.display_name ?? null;
 }
 
-export async function dbGetWorkVersionsWithSubmissionVersions(workId: string) {
+/** Batch-fetch metadata JSON for work versions (separate from the submission graph query). */
+export async function dbAttachMetadataToWorkVersions<T extends { id: string }>(
+  versions: T[],
+): Promise<(T & { metadata: Prisma.JsonValue | null })[]> {
+  if (versions.length === 0) return [];
+  const prisma = await getPrismaClient();
+  const rows = await prisma.workVersion.findMany({
+    where: { id: { in: versions.map((v) => v.id) } },
+    select: { id: true, metadata: true },
+  });
+  const metadataById = new Map(rows.map((row) => [row.id, row.metadata]));
+  return versions.map((version) => ({
+    ...version,
+    metadata: metadataById.get(version.id) ?? null,
+  }));
+}
+
+/** Latest work version row — used by actions that only need the head version (+ metadata). */
+export async function dbGetLatestWorkVersionForWork(workId: string) {
+  const prisma = await getPrismaClient();
+  return prisma.workVersion.findFirst({
+    where: { work_id: workId },
+    orderBy: { date_created: 'desc' },
+    select: {
+      id: true,
+      draft: true,
+      title: true,
+      date_created: true,
+      date_modified: true,
+      metadata: true,
+    },
+  });
+}
+
+const workDetailsSubmissionVersionSelect = {
+  id: true,
+  submission_id: true,
+  date_created: true,
+  date_modified: true,
+  date_published: true,
+  status: true,
+  transition: true,
+  job_id: true,
+  tags: true,
+  submitted_by: { select: { id: true, display_name: true } },
+  submission: {
+    include: {
+      collection: true,
+      site: true,
+    },
+  },
+} satisfies Prisma.SubmissionVersionSelect;
+
+/** Slim work version row returned by dbGetWorkVersionsWithSubmissionVersions. */
+export type WorkVersionWithSubmissionVersions = Prisma.WorkVersionGetPayload<{
+  select: {
+    id: true;
+    work_id: true;
+    cdn: true;
+    cdn_key: true;
+    title: true;
+    description: true;
+    authors: true;
+    tags: true;
+    doi: true;
+    canonical: true;
+    date_created: true;
+    date: true;
+    draft: true;
+    occ: true;
+    date_modified: true;
+    author_details: true;
+    submissionVersions: {
+      select: typeof workDetailsSubmissionVersionSelect;
+    };
+  };
+}>;
+
+export async function dbGetWorkVersionsWithSubmissionVersions(
+  workId: string,
+): Promise<WorkVersionWithSubmissionVersions[]> {
   const prisma = await getPrismaClient();
   const workVersions = await prisma.workVersion.findMany({
     where: { work_id: workId },
     orderBy: {
       date_created: 'desc',
     },
-    include: {
+    select: {
+      id: true,
+      work_id: true,
+      cdn: true,
+      cdn_key: true,
+      title: true,
+      description: true,
+      authors: true,
+      tags: true,
+      doi: true,
+      canonical: true,
+      date_created: true,
+      date: true,
+      draft: true,
+      occ: true,
+      date_modified: true,
+      author_details: true,
       submissionVersions: {
-        include: {
-          submitted_by: { select: { id: true, display_name: true } },
-          submission: {
-            include: {
-              collection: true,
-              site: true,
-            },
-          },
-        },
+        select: workDetailsSubmissionVersionSelect,
         orderBy: {
           date_created: 'desc',
         },
@@ -180,7 +268,10 @@ export async function dbGetWorkActivities(workId: string): Promise<WorkActivityR
 /**
  * Delete storage files for a single work version (used when deleting a draft version).
  */
-async function deleteWorkVersionStorage(ctx: SecureContext, version: WorkVersion) {
+async function deleteWorkVersionStorage(
+  ctx: SecureContext,
+  version: Pick<WorkVersion, 'id' | 'cdn' | 'cdn_key'>,
+) {
   if (!version.cdn || !version.cdn_key) return;
   const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub, KnownBuckets.tmp]);
   const bucket = backend.knownBucketFromCDN(version.cdn);
@@ -201,7 +292,13 @@ export async function dbDeleteDraftVersionOnWork(
   const versions = await prisma.workVersion.findMany({
     where: { work_id: workId },
     orderBy: { date_created: 'desc' },
-    include: { submissionVersions: { take: 1 } },
+    select: {
+      id: true,
+      draft: true,
+      cdn: true,
+      cdn_key: true,
+      submissionVersions: { select: { id: true }, take: 1 },
+    },
     take: 1,
   });
   const latest = versions[0];
@@ -215,7 +312,7 @@ export async function dbDeleteDraftVersionOnWork(
         : 'No versions found',
     };
   }
-  await prisma.workVersion.delete({ where: { id: latest.id } });
+  await prisma.workVersion.delete({ where: { id: latest.id }, select: { id: true } });
   await deleteWorkVersionStorage(ctx, latest);
   return { deleted: true };
 }

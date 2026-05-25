@@ -165,7 +165,7 @@ export async function publishHandler(
 
   // Only send email if this is the only published version for the submission
   const prisma = await getPrismaClient();
-  const allPublishedVersions = await prisma.submissionVersion.findMany({
+  const publishedVersionCount = await prisma.submissionVersion.count({
     where: {
       submission: {
         id: updated.submission_id,
@@ -173,7 +173,7 @@ export async function publishHandler(
       status: 'PUBLISHED',
     },
   });
-  if (allPublishedVersions.length === 1) {
+  if (publishedVersionCount === 1) {
     const emails: TemplatedResendEmail<
       typeof KnownResendEvents.SUBMISSION_PUBLISHED,
       SubmissionPublishedEmailProps

@@ -305,6 +305,7 @@ export async function dbCreateSite(ctx: Context, siteData: CreateSiteData) {
               })),
             },
           },
+          select: { id: true },
         });
       }
       return created;

@@ -28,6 +28,7 @@ export async function createDraftObject(
       occ: 0,
       ...(createdById && { created_by: { connect: { id: createdById } } }),
     },
+    select: { id: true },
   });
   return id;
 }
@@ -190,6 +191,7 @@ export async function dbCreateWorkAndSubmission(
           },
         },
       },
+      select: { id: true },
     });
 
     const sv = await tx.submissionVersion.create({
@@ -279,6 +281,7 @@ export async function dbCreateWorkAndSubmission(
           },
         },
       },
+      select: { id: true },
     });
 
     await tx.activity.create({
@@ -318,6 +321,7 @@ export async function dbCreateWorkAndSubmission(
           },
         },
       },
+      select: { id: true },
     });
 
     if (draftObjectId) {

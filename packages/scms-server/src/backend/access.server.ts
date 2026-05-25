@@ -53,6 +53,7 @@ export async function createAccess(params: CreateAccessParams): Promise<Access> 
         access_id: access.id,
         user_id: params.receiverId,
       },
+      select: { id: true },
     });
 
     return access;
@@ -182,6 +183,7 @@ export async function revokeAccess(accessId: string, performedByUserId?: string)
         access_id: accessId,
         user_id: access.receiver_id, // The user who had access revoked
       },
+      select: { id: true },
     });
 
     return updatedAccess;

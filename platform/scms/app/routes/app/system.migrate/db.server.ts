@@ -134,7 +134,7 @@ export async function dbAddWorkToSubmission(id: string) {
     include: {
       versions: {
         include: {
-          work_version: true,
+          work_version: { select: { work_id: true } },
         },
         orderBy: {
           date_created: 'desc',
@@ -202,6 +202,7 @@ export async function dbSetDefaultDomain(domainId: string): Promise<void> {
     await tx.domain.update({
       where: { id: domainId },
       data: { default: true },
+      select: { id: true },
     });
   });
 }

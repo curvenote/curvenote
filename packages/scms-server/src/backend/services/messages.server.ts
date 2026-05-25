@@ -93,5 +93,9 @@ export async function updateMessageStatus(
       ...(results as any),
     };
   }
-  await prisma.message.update({ where: { id: messageId }, data });
+  await prisma.message.update({
+    where: { id: messageId },
+    data,
+    select: { id: true },
+  });
 }

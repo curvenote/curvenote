@@ -50,6 +50,7 @@ export async function logActivity(data: LogActivityData): Promise<void> {
       transition: data.transition,
       date_published: data.datePublished,
     },
+    select: { id: true },
   });
 }
 

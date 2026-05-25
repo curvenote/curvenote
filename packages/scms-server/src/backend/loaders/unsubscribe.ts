@@ -33,6 +33,7 @@ export async function dbToggleUnsubscribe(email: string, unsubscribe: boolean) {
         email,
         date_created: new Date().toISOString(),
       },
+      select: { id: true },
     });
   } else {
     // Remove from unsubscribe list

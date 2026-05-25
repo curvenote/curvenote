@@ -1,6 +1,7 @@
 import type { SiteContext } from '../../../../context.site.server.js';
 import { error401, error404 } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../../prisma.server.js';
+import { cdnWorkVersionSelect } from '../../../../prisma.selects.server.js';
 import * as cdnlib from '@curvenote/cdn';
 
 async function dbGetWorkVersion(siteName: string, versionId: string) {
@@ -9,6 +10,7 @@ async function dbGetWorkVersion(siteName: string, versionId: string) {
     where: {
       id: versionId,
     },
+    select: cdnWorkVersionSelect,
   });
 }
 

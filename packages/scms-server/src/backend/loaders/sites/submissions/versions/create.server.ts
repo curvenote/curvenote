@@ -109,12 +109,7 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
           },
         },
       },
-      include: {
-        activity_by: true,
-        kind: true,
-        submission_version: true,
-        work_version: { include: { work: true } },
-      },
+      select: { id: true },
     });
 
     return sv;

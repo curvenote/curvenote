@@ -181,6 +181,7 @@ async function persistReport(extracted: ExtractedReport) {
       user_agent_sample: extracted.userAgentSample,
       latest_payload: extracted.latestPayload as object,
     },
+    select: { id: true },
   });
 }
 

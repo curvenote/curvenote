@@ -1,4 +1,5 @@
 import { getPrismaClient } from '../../prisma.server.js';
+import { siteWorkWorkVersionSelect } from '../../prisma.selects.server.js';
 import type { SubmissionVersionDTO } from '@curvenote/common';
 import type { Context } from '../../context.server.js';
 import { error401, error404, scopes } from '@curvenote/scms-core';
@@ -30,7 +31,7 @@ export async function dbGetSubmissionVersion(id: string) {
           work: true,
         },
       },
-      work_version: true,
+      work_version: { select: siteWorkWorkVersionSelect },
     },
   });
 }

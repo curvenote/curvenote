@@ -1,6 +1,11 @@
 import type { ClientExtension } from '@curvenote/scms-core';
 import { error401, TrackEvent, asSiteSubmissionUrl } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../prisma.server.js';
+import {
+  activitySubmissionVersionRefSelect,
+  activityWorkVersionRefSelect,
+  siteWorkWorkVersionWithWorkSelect,
+} from '../../../prisma.selects.server.js';
 import { formatSubmissionDTO } from './get.server.js';
 import { formatDate, normalizeExplicitTags } from '@curvenote/common';
 import type { UserDBO } from '../../../db.types.js';
@@ -37,6 +42,7 @@ export async function dbCreateNewSubmission(
     where: {
       id: workVersionId,
     },
+    select: { work_id: true },
   });
   const submissionTags = normalizeExplicitTags(tags);
   return prisma.$transaction(async (tx) => {
@@ -117,9 +123,7 @@ export async function dbCreateNewSubmission(
               include: {
                 submitted_by: true,
                 work_version: {
-                  include: {
-                    work: true,
-                  },
+                  select: siteWorkWorkVersionWithWorkSelect,
                 },
               },
               orderBy: {
@@ -167,8 +171,8 @@ export async function dbCreateNewSubmission(
       include: {
         kind: true,
         activity_by: true,
-        submission_version: true,
-        work_version: { include: { work: true } },
+        submission_version: { select: activitySubmissionVersionRefSelect },
+        work_version: { select: activityWorkVersionRefSelect },
       },
     });
 

@@ -8,6 +8,7 @@ import {
   getPrismaClient,
   StorageBackend,
   sites as sitesLoader,
+  cdnWorkVersionSelect,
 } from '@curvenote/scms-server';
 import {
   KnownBuckets,
@@ -44,7 +45,7 @@ async function dbListAllSubmissions(siteName: string) {
       site: { include: { submissionKinds: true } },
       versions: {
         include: {
-          work_version: true,
+          work_version: { select: cdnWorkVersionSelect },
         },
         orderBy: {
           date_created: 'desc',
@@ -281,6 +282,7 @@ async function actionUpdateCdnReference(ctx: Context, formData: FormData) {
       cdn: new_cdn,
       date_modified: new Date().toISOString(),
     },
+    select: { id: true },
   });
 
   return { cdn: new_cdn, warning };

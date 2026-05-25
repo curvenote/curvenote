@@ -23,6 +23,15 @@ export async function dbGetLatestWorkVersion(workId: string) {
   return latestVersion;
 }
 
+/** Latest finalized version including metadata (checks page only — not loaded on WorkContext). */
+export async function dbGetLatestNonDraftWorkVersion(workId: string) {
+  const prisma = await getPrismaClient();
+  return prisma.workVersion.findFirst({
+    where: { work_id: workId, draft: false },
+    orderBy: { date_created: 'desc' },
+  });
+}
+
 /**
  * Format a work version as a DTO
  */
