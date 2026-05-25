@@ -230,7 +230,15 @@ export async function $updateSubmissionVersion(
         job_id: data.jobId,
       },
       include: {
-        work_version: true,
+        work_version: {
+          select: {
+            id: true,
+            work_id: true,
+            title: true,
+            doi: true,
+            author_details: true,
+          },
+        },
         submission: {
           include: {
             slugs: true,
@@ -332,8 +340,9 @@ export async function updateSubmissionKind(
         submitted_by: true,
         site: true,
         versions: {
-          include: {
-            work_version: true,
+          select: {
+            id: true,
+            work_version: { select: { id: true } },
           },
         },
       },
@@ -880,7 +889,9 @@ export async function dangerouslyHardDeleteDraftSubmissionVersions(
         include: {
           versions: {
             include: {
-              work_version: true, // only include work versions related to this submission version
+              work_version: {
+                select: { id: true, draft: true, cdn: true, cdn_key: true },
+              },
             },
           },
         },

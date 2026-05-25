@@ -1,4 +1,5 @@
 import { getPrismaClient } from '../../../../prisma.server.js';
+import { siteWorkWorkVersionSelect } from '../../../../prisma.selects.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
 import type { SiteWorkListingDTO } from '@curvenote/common';
 import type { ClientExtension } from '@curvenote/scms-core';
@@ -83,7 +84,7 @@ async function dbQuerySubmissions(
         },
       },
       submitted_by: true,
-      work_version: true,
+      work_version: { select: siteWorkWorkVersionSelect },
     },
     orderBy: [
       {

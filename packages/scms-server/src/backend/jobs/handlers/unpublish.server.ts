@@ -140,7 +140,16 @@ export async function unpublishHandler(
   const prisma = await getPrismaClient();
   const sv = await prisma.submissionVersion.findFirst({
     where: { id: submission_version_id },
-    include: { submission: { include: { site: { select: { name: true } } } } },
+    select: {
+      id: true,
+      submission_id: true,
+      submission: {
+        select: {
+          id: true,
+          site: { select: { name: true } },
+        },
+      },
+    },
   });
   const siteName = sv?.submission?.site?.name;
 

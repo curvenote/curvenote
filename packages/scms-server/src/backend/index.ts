@@ -13,6 +13,7 @@ export * from './middleware.server.js';
 export * from './minimumClient.server.js';
 export * from './occ.server.js';
 export * from './prisma.server.js';
+export * from './prisma.selects.server.js';
 export * from './jwt.context.server.js';
 export * from './jobs/processing/index.js';
 export * from './roles.server.js';

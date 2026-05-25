@@ -1,5 +1,9 @@
 import type { SiteContext } from '../../../context.site.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
+import {
+  activitySubmissionVersionRefSelect,
+  activityWorkVersionRefSelect,
+} from '../../../prisma.selects.server.js';
 import { coerceToObject, makePaginationLinks } from '@curvenote/scms-core';
 import type { Prisma } from '@curvenote/scms-db';
 import { formatAuthorDTO } from '../../../format.server.js';
@@ -67,8 +71,16 @@ export async function dbListSubmissions(
         include: {
           submitted_by: true,
           work_version: {
-            include: {
-              work: true,
+            select: {
+              id: true,
+              work_id: true,
+              metadata: true,
+              title: true,
+              description: true,
+              authors: true,
+              date: true,
+              doi: true,
+              work: { select: { id: true, doi: true } },
             },
           },
         },
@@ -80,8 +92,8 @@ export async function dbListSubmissions(
         include: {
           activity_by: true,
           kind: true,
-          submission_version: true,
-          work_version: true,
+          submission_version: { select: activitySubmissionVersionRefSelect },
+          work_version: { select: activityWorkVersionRefSelect },
         },
         orderBy: {
           date_created: 'desc',

@@ -88,7 +88,16 @@ export async function dbGetWorkVersionsWithSubmissionVersions(workId: string) {
     },
     include: {
       submissionVersions: {
-        include: {
+        select: {
+          id: true,
+          submission_id: true,
+          date_created: true,
+          date_modified: true,
+          date_published: true,
+          status: true,
+          transition: true,
+          job_id: true,
+          tags: true,
           submitted_by: { select: { id: true, display_name: true } },
           submission: {
             include: {
@@ -180,7 +189,10 @@ export async function dbGetWorkActivities(workId: string): Promise<WorkActivityR
 /**
  * Delete storage files for a single work version (used when deleting a draft version).
  */
-async function deleteWorkVersionStorage(ctx: SecureContext, version: WorkVersion) {
+async function deleteWorkVersionStorage(
+  ctx: SecureContext,
+  version: Pick<WorkVersion, 'id' | 'cdn' | 'cdn_key'>,
+) {
   if (!version.cdn || !version.cdn_key) return;
   const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub, KnownBuckets.tmp]);
   const bucket = backend.knownBucketFromCDN(version.cdn);
@@ -201,7 +213,13 @@ export async function dbDeleteDraftVersionOnWork(
   const versions = await prisma.workVersion.findMany({
     where: { work_id: workId },
     orderBy: { date_created: 'desc' },
-    include: { submissionVersions: { take: 1 } },
+    select: {
+      id: true,
+      draft: true,
+      cdn: true,
+      cdn_key: true,
+      submissionVersions: { select: { id: true }, take: 1 },
+    },
     take: 1,
   });
   const latest = versions[0];

@@ -1,4 +1,4 @@
-import { getPrismaClient } from '@curvenote/scms-server';
+import { getPrismaClient, cdnWorkVersionSelect } from '@curvenote/scms-server';
 import type { WorkRole } from '@curvenote/scms-db';
 
 /**
@@ -50,7 +50,7 @@ export async function dbGetDraftWorks(userId: string) {
                   collection: true,
                 },
               },
-              work_version: true,
+              work_version: { select: cdnWorkVersionSelect },
             },
             orderBy: {
               date_created: 'desc',

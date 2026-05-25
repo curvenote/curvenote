@@ -10,6 +10,11 @@ import {
   asSiteSubmissionUrl,
 } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../../prisma.server.js';
+import {
+  activitySubmissionVersionRefSelect,
+  activityWorkVersionRefSelect,
+  siteWorkWorkVersionWithWorkSelect,
+} from '../../../../prisma.selects.server.js';
 import { userHasScopes } from '../../../../scopes.helpers.server.js';
 import * as slugs from '../slugs.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
@@ -52,9 +57,7 @@ export async function dbGetLatestSubmissionVersionFromSubmission(
         },
       },
       work_version: {
-        include: {
-          work: true,
-        },
+        select: siteWorkWorkVersionWithWorkSelect,
       },
     },
   });
@@ -75,8 +78,8 @@ const include = {
       activity: {
         include: {
           activity_by: true,
-          submission_version: true,
-          work_version: true,
+          submission_version: { select: activitySubmissionVersionRefSelect },
+          work_version: { select: activityWorkVersionRefSelect },
           kind: true,
         },
       },
@@ -84,9 +87,7 @@ const include = {
       versions: {
         include: {
           work_version: {
-            include: {
-              work: true,
-            },
+            select: siteWorkWorkVersionWithWorkSelect,
           },
           submitted_by: true,
         },
@@ -96,9 +97,7 @@ const include = {
     },
   },
   work_version: {
-    include: {
-      work: true,
-    },
+    select: siteWorkWorkVersionWithWorkSelect,
   },
   submitted_by: true,
 };

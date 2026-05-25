@@ -3,6 +3,11 @@ import type { SubmissionActivityDTO, SubmissionDTO, SubmissionLinksDTO } from '@
 import type { Prisma } from '@curvenote/scms-db';
 import type { SiteContext } from '../../../context.site.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
+import {
+  activitySubmissionVersionRefSelect,
+  activityWorkVersionRefSelect,
+  siteWorkWorkVersionWithWorkSelect,
+} from '../../../prisma.selects.server.js';
 import { signPrivateUrls } from '../../../sign.private.server.js';
 import type { ClientExtension } from '@curvenote/scms-core';
 import {
@@ -36,9 +41,7 @@ export async function dbGetSubmission(where: Prisma.SubmissionFindUniqueArgs['wh
         include: {
           submitted_by: true,
           work_version: {
-            include: {
-              work: true,
-            },
+            select: siteWorkWorkVersionWithWorkSelect,
           },
         },
         orderBy: {
@@ -49,8 +52,8 @@ export async function dbGetSubmission(where: Prisma.SubmissionFindUniqueArgs['wh
         include: {
           activity_by: true,
           kind: true,
-          submission_version: true,
-          work_version: true,
+          submission_version: { select: activitySubmissionVersionRefSelect },
+          work_version: { select: activityWorkVersionRefSelect },
         },
         orderBy: {
           date_created: 'desc',

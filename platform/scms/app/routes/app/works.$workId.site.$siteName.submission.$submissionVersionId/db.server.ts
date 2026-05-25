@@ -1,4 +1,8 @@
-import { getPrismaClient } from '@curvenote/scms-server';
+import {
+  getPrismaClient,
+  siteWorkWorkVersionWithWorkSelect,
+  cdnWorkVersionSelect,
+} from '@curvenote/scms-server';
 
 export async function getSubmissionVersionsForWorkAndSite(workId: string, siteName: string) {
   const prisma = await getPrismaClient();
@@ -18,7 +22,7 @@ export async function getSubmissionVersionsForWorkAndSite(workId: string, siteNa
       },
     },
     include: {
-      work_version: true,
+      work_version: { select: cdnWorkVersionSelect },
       submission: {
         include: {
           site: true,
@@ -68,9 +72,7 @@ export async function getSubmissionVersion(submissionVersionId: string) {
     },
     include: {
       work_version: {
-        include: {
-          work: true,
-        },
+        select: siteWorkWorkVersionWithWorkSelect,
       },
       submission: {
         include: {

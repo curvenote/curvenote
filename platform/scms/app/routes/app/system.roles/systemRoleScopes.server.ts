@@ -75,7 +75,7 @@ export async function updateSystemRoleScopes(
         date_modified: now,
         scopes,
       },
-      select: { id: true },
+      select: { role: true },
     });
 
     await tx.activity.create({

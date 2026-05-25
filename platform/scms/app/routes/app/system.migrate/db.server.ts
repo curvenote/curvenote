@@ -134,7 +134,7 @@ export async function dbAddWorkToSubmission(id: string) {
     include: {
       versions: {
         include: {
-          work_version: true,
+          work_version: { select: { work_id: true } },
         },
         orderBy: {
           date_created: 'desc',
