@@ -13,8 +13,71 @@ import { getPrismaClient } from '../../../../prisma.server.js';
 import {
   activitySubmissionVersionRefSelect,
   activityWorkVersionRefSelect,
+  submissionVersionForListSelect,
   siteWorkWorkVersionWithWorkSelect,
 } from '../../../../prisma.selects.server.js';
+import type { Prisma } from '@curvenote/scms-db';
+
+/** Publish/unpublish pre-transition load (excludes submission-version metadata). */
+const submissionVersionForTransitionSelect = {
+  id: true,
+  date_created: true,
+  date_published: true,
+  status: true,
+  transition: true,
+  job_id: true,
+  work_version_id: true,
+  submitted_by: { select: { id: true, display_name: true } },
+  work_version: { select: siteWorkWorkVersionWithWorkSelect },
+  submission: {
+    select: {
+      id: true,
+      site_id: true,
+      kind: true,
+      collection: true,
+      work: true,
+    },
+  },
+} satisfies Prisma.SubmissionVersionSelect;
+
+const submissionTransitionReturnSubmissionSelect = {
+  id: true,
+  date_created: true,
+  date_published: true,
+  kind: true,
+  collection: true,
+  submitted_by: true,
+  slugs: true,
+  work: true,
+  versions: {
+    select: submissionVersionForListSelect,
+    orderBy: { date_created: 'desc' },
+  },
+  activity: {
+    select: {
+      id: true,
+      date_created: true,
+      activity_type: true,
+      status: true,
+      date_published: true,
+      activity_by: { select: { id: true, display_name: true } },
+      kind: { select: { name: true } },
+      submission_version: { select: activitySubmissionVersionRefSelect },
+      work_version: { select: activityWorkVersionRefSelect },
+    },
+    orderBy: { date_created: 'desc' },
+  },
+} satisfies Prisma.SubmissionSelect;
+
+const submissionVersionTransitionUpdateSelect = {
+  id: true,
+  status: true,
+  job_id: true,
+  transition: true,
+  work_version_id: true,
+  submission: { select: submissionTransitionReturnSubmissionSelect },
+  work_version: { select: siteWorkWorkVersionWithWorkSelect },
+} satisfies Prisma.SubmissionVersionSelect;
 import { userHasScopes } from '../../../../scopes.helpers.server.js';
 import * as slugs from '../slugs.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
@@ -47,60 +110,13 @@ export async function dbGetLatestSubmissionVersionFromSubmission(
     orderBy: {
       date_created: 'desc',
     },
-    include: {
-      submitted_by: true,
-      submission: {
-        include: {
-          kind: true,
-          collection: true,
-          work: true,
-        },
-      },
-      work_version: {
-        select: siteWorkWorkVersionWithWorkSelect,
-      },
-    },
+    select: submissionVersionForTransitionSelect,
   });
 }
 
-type LatestSubmissionVersionDBO = NonNullable<
-  Awaited<ReturnType<typeof dbGetLatestSubmissionVersionFromSubmission>>
->;
-
-// TODO tighten up the final DTO on the publish/unpublish endpoints in order to
-// reduce the scale of this query
-const include = {
-  submission: {
-    include: {
-      kind: true,
-      collection: true,
-      work: true,
-      activity: {
-        include: {
-          activity_by: true,
-          submission_version: { select: activitySubmissionVersionRefSelect },
-          work_version: { select: activityWorkVersionRefSelect },
-          kind: true,
-        },
-      },
-      site: { include: { submissionKinds: true, domains: true, collections: true } },
-      versions: {
-        include: {
-          work_version: {
-            select: siteWorkWorkVersionWithWorkSelect,
-          },
-          submitted_by: true,
-        },
-      },
-      slugs: true,
-      submitted_by: true,
-    },
-  },
-  work_version: {
-    select: siteWorkWorkVersionWithWorkSelect,
-  },
-  submitted_by: true,
-};
+type LatestSubmissionVersionDBO = Prisma.SubmissionVersionGetPayload<{
+  select: typeof submissionVersionForTransitionSelect;
+}>;
 
 async function startJobBasedTransition(
   ctx: SiteContext,
@@ -127,7 +143,7 @@ async function startJobBasedTransition(
         transition: statefulTransition,
         date_modified: timestamp,
       },
-      include,
+      select: submissionVersionTransitionUpdateSelect,
     });
 
     await tx.activity.create({
@@ -207,7 +223,7 @@ async function performSimpleTransition(
         date_published: transition.options?.setsPublishedDate ? datePublished : undefined,
         date_modified: timestamp,
       },
-      include,
+      select: submissionVersionTransitionUpdateSelect,
     });
 
     // Handle slug updates based on transition properties
@@ -313,18 +329,14 @@ export default async function transitionSubmissionVersion(
       transition,
       datePublished,
     );
-    const submissionUrl = asSiteSubmissionUrl(
-      ctx.asBaseUrl,
-      sv.submission.site.name,
-      sv.submission.id,
-    );
+    const submissionUrl = asSiteSubmissionUrl(ctx.asBaseUrl, ctx.site.name, sv.submission.id);
     await ctx.sendSlackNotification({
       eventType: SlackEventType.SUBMISSION_STATUS_CHANGED,
       message: `Submission status changed to ${targetStateName}`,
       user: { id: ctx.user.id },
       metadata: {
         status: targetStateName,
-        site: sv.submission.site.name,
+        site: ctx.site.name,
         submissionId: sv.submission.id,
         submissionVersionId: sv.id,
         submissionUrl,

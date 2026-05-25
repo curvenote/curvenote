@@ -1,5 +1,5 @@
 import { getPrismaClient } from '../../../../prisma.server.js';
-import { siteWorkWorkVersionSelect } from '../../../../prisma.selects.server.js';
+import { submissionVersionForSiteWorkSelect } from '../../../../prisma.selects.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
 import type { SiteWorkListingDTO } from '@curvenote/common';
 import type { ClientExtension } from '@curvenote/scms-core';
@@ -73,19 +73,7 @@ async function dbQuerySubmissions(
       },
       status,
     },
-    include: {
-      submission: {
-        include: {
-          kind: true,
-          collection: true,
-          submitted_by: true,
-          slugs: true,
-          work: true,
-        },
-      },
-      submitted_by: true,
-      work_version: { select: siteWorkWorkVersionSelect },
-    },
+    select: submissionVersionForSiteWorkSelect,
     orderBy: [
       {
         submission: {

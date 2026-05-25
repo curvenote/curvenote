@@ -3,6 +3,7 @@ import { getPrismaClient } from '../../../prisma.server.js';
 import {
   activitySubmissionVersionRefSelect,
   activityWorkVersionRefSelect,
+  submissionVersionForListSelect,
 } from '../../../prisma.selects.server.js';
 import { coerceToObject, makePaginationLinks } from '@curvenote/scms-core';
 import type { Prisma } from '@curvenote/scms-db';
@@ -68,21 +69,7 @@ export async function dbListSubmissions(
         },
       },
       versions: {
-        include: {
-          submitted_by: true,
-          work_version: {
-            select: {
-              id: true,
-              work_id: true,
-              title: true,
-              description: true,
-              authors: true,
-              date: true,
-              doi: true,
-              work: { select: { id: true, doi: true } },
-            },
-          },
-        },
+        select: submissionVersionForListSelect,
         orderBy: {
           date_created: 'desc',
         },

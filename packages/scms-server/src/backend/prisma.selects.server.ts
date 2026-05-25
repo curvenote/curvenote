@@ -18,13 +18,6 @@ export const siteWorkWorkVersionSelect = {
   occ: true,
 } satisfies Prisma.WorkVersionSelect;
 
-/** Work details route: version scalars + submission graph (excludes metadata JSON). */
-export const workDetailsWorkVersionSelect = {
-  ...siteWorkWorkVersionSelect,
-  date_modified: true,
-  author_details: true,
-} satisfies Prisma.WorkVersionSelect;
-
 /** WorkVersion + work for site-work DTOs that fall back to work.doi/key. */
 export const siteWorkWorkVersionWithWorkSelect = {
   ...siteWorkWorkVersionSelect,
@@ -49,3 +42,46 @@ export const activityWorkVersionRefSelect = {
   id: true,
   date_created: true,
 } satisfies Prisma.WorkVersionSelect;
+
+/**
+ * Submission versions on list/get submission APIs (excludes submission-version metadata JSON).
+ */
+export const submissionVersionForListSelect = {
+  id: true,
+  date_created: true,
+  date_published: true,
+  status: true,
+  job_id: true,
+  transition: true,
+  tags: true,
+  work_version_id: true,
+  submitted_by: { select: { id: true, display_name: true } },
+  work_version: { select: siteWorkWorkVersionWithWorkSelect },
+} satisfies Prisma.SubmissionVersionSelect;
+
+/**
+ * Submission version rows formatted as SiteWorkDTO / SubmissionVersionDTO
+ * (excludes submission-version metadata JSON).
+ */
+export const submissionVersionForSiteWorkSelect = {
+  id: true,
+  date_created: true,
+  date_published: true,
+  status: true,
+  transition: true,
+  job_id: true,
+  work_version_id: true,
+  tags: true,
+  submitted_by: { select: { id: true, display_name: true } },
+  work_version: { select: siteWorkWorkVersionSelect },
+  submission: {
+    select: {
+      id: true,
+      date_published: true,
+      kind: true,
+      collection: true,
+      slugs: true,
+      work: true,
+    },
+  },
+} satisfies Prisma.SubmissionVersionSelect;
