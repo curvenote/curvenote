@@ -9,6 +9,7 @@ import { dbGetSubmission } from '../sites/submissions/get.server.js';
 import { signPrivateUrls } from '../../sign.private.server.js';
 import type { WorkRole } from '@curvenote/scms-db';
 import { userHasSiteScope } from '../../scopes.helpers.server.js';
+import { siteWorkWorkVersionSelect } from '../../prisma.selects.server.js';
 
 export type WorkAndVersionsDBO = WorkDBO & { versions?: WorkVersionDBO[] };
 export type WorkUserDBO = { work_id: string; user_id: string; role: WorkRole };
@@ -98,6 +99,7 @@ export async function dbGetWorkForUser(
     },
     include: {
       versions: {
+        select: siteWorkWorkVersionSelect,
         orderBy: {
           date_created: 'desc',
         },
@@ -116,6 +118,7 @@ export async function dbGetWork(workId: string): Promise<WorkAndVersionsDBO | nu
     },
     include: {
       versions: {
+        select: siteWorkWorkVersionSelect,
         orderBy: {
           date_created: 'desc',
         },

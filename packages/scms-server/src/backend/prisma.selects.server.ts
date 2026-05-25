@@ -1,6 +1,6 @@
 import type { Prisma } from '@curvenote/scms-db';
 
-/** WorkVersion scalars used by formatSiteWorkDTO and formatWorkDTO (excludes metadata). */
+/** WorkVersion scalars used by formatSiteWorkDTO, formatWorkDTO, and WorkContext (excludes metadata). */
 export const siteWorkWorkVersionSelect = {
   id: true,
   work_id: true,
