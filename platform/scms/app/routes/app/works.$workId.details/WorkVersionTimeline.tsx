@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router';
 import { formatDate, scopes, ui } from '@curvenote/scms-core';
-import type { WorkVersionWithSubmissionVersions } from '../works.$workId/types';
+import type { WorkVersionForDetailsClient } from '../works.$workId/types';
 import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
 import type { Workflow, ClientExtensionCheckService } from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from './types';
@@ -16,7 +16,7 @@ import {
   useTimelineActivitiesVisibility,
 } from './timeline/TimelineActivitiesVisibility';
 
-type SubmissionVersionRow = WorkVersionWithSubmissionVersions['submissionVersions'][number];
+type SubmissionVersionRow = WorkVersionForDetailsClient['submissionVersions'][number];
 
 /** Unified timeline entry for chronological sorting. Date is ISO-like for sort order (newest first). */
 type TimelineEntry =
@@ -24,7 +24,7 @@ type TimelineEntry =
       kind: 'work-version';
       date: string;
       key: string;
-      version: WorkVersionWithSubmissionVersions;
+      version: WorkVersionForDetailsClient;
     }
   | {
       kind: 'submission';
@@ -43,7 +43,7 @@ type TimelineEntry =
       date: string;
       key: string;
       run: CheckServiceRunRow;
-      version: WorkVersionWithSubmissionVersions;
+      version: WorkVersionForDetailsClient;
     };
 
 /** Latest run id for each check `kind` across all versions (by `date_created`). */
@@ -83,7 +83,7 @@ function toMinuteKey(dateStr: string): number {
 
 /** Build section entries and sort by date descending (most recent first). */
 function getSortedSectionEntries(
-  version: WorkVersionWithSubmissionVersions,
+  version: WorkVersionForDetailsClient,
   submissionVersionsToShow: SubmissionVersionRow[],
   activitiesForVersion: WorkActivityRow[],
   checkRunsForVersion: CheckServiceRunRow[],
@@ -138,7 +138,7 @@ function getSortedSectionEntries(
 }
 
 type WorkVersionTimelineProps = {
-  versions: WorkVersionWithSubmissionVersions[];
+  versions: WorkVersionForDetailsClient[];
   workflows: Record<string, Workflow>;
   /** Work owner display name; used for "Work version created by" */
   workOwnerName?: string | null;

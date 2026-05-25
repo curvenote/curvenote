@@ -1,18 +1,10 @@
 import { ExternalLink } from 'lucide-react';
 import { primitives, summarizeAuthors, ui } from '@curvenote/scms-core';
+import type { WorkVersionContentCardData } from '../works.$workId/types';
 
 type AuthorLike = { name?: string; family?: string; given?: string };
 
-type WorkVersionForCard = {
-  title: string;
-  authors: string[];
-  author_details?: unknown[];
-  doi?: string | null;
-  /** Accepts Prisma JsonValue (string | number | boolean | object | array | null) and other shapes */
-  metadata?: unknown;
-};
-
-function getAuthorsForDisplay(version: WorkVersionForCard): AuthorLike[] {
+function getAuthorsForDisplay(version: WorkVersionContentCardData): AuthorLike[] {
   const details = version.author_details;
   if (Array.isArray(details) && details.length > 0) {
     return details.map((d) => {
@@ -29,24 +21,7 @@ function getAuthorsForDisplay(version: WorkVersionForCard): AuthorLike[] {
   return (version.authors ?? []).map((name) => ({ name }));
 }
 
-function getLicenseDisplay(version: WorkVersionForCard): { text: string; tooltip?: string } {
-  const meta = version.metadata;
-  if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
-    const record = meta as Record<string, unknown>;
-    const license = record.license;
-    if (license != null && license !== '') {
-      if (typeof license === 'string') return { text: license };
-      if (typeof license === 'object' && license !== null && 'content' in license) {
-        const content = (license as { content?: { id?: string; name?: string } }).content;
-        const id = content?.id ?? content?.name;
-        if (id) return { text: String(id) };
-      }
-    }
-  }
-  return { text: 'unknown', tooltip: 'No license has been set.' };
-}
-
-export function WorkDetailsContentCard({ version }: { version: WorkVersionForCard | null }) {
+export function WorkDetailsContentCard({ version }: { version: WorkVersionContentCardData | null }) {
   if (!version) {
     return (
       <primitives.Card className="p-6">
@@ -57,7 +32,7 @@ export function WorkDetailsContentCard({ version }: { version: WorkVersionForCar
 
   const authorsForDisplay = getAuthorsForDisplay(version);
   const authorSummary = summarizeAuthors(authorsForDisplay, { maxDisplay: 5 }) || 'Unknown authors';
-  const licenseDisplay = getLicenseDisplay(version);
+  const licenseDisplay = version.license;
   const hasDoi = version.doi != null && String(version.doi).trim() !== '';
   const doiValue = hasDoi ? String(version.doi).trim() : 'none';
   const doiHref = hasDoi ? `https://doi.org/${encodeURIComponent(doiValue)}` : null;

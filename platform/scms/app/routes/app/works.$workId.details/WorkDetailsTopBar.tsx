@@ -10,12 +10,12 @@ type WorkUser = {
   work_roles: string[];
 };
 
-/** Minimal shape for latest version used for resume-draft vs upload-new. */
 export type WorkDetailsUploadProps = {
   canUpload: boolean;
   workBasePath: string;
-  /** Latest work version (versions[0]); used to decide resume vs create and for resume target. */
-  latestVersion: { id: string; draft?: boolean; metadata?: unknown } | null | undefined;
+  /** Computed on the server from latest draft metadata.checks. */
+  canResumeDraft: boolean;
+  resumeDraftVersionId?: string;
 };
 
 function getInitials(displayName: string | null): string {
@@ -29,20 +29,6 @@ function getInitials(displayName: string | null): string {
   return displayName.slice(0, 2).toUpperCase();
 }
 
-/** True when the latest version is a draft with checks metadata (resumable). */
-export function canResumeDraft(
-  canUpload: boolean,
-  latestVersion: WorkDetailsUploadProps['latestVersion'],
-): boolean {
-  return (
-    canUpload === true &&
-    latestVersion?.draft === true &&
-    latestVersion.metadata != null &&
-    typeof latestVersion.metadata === 'object' &&
-    'checks' in latestVersion.metadata
-  );
-}
-
 export function WorkDetailsTopBar({
   workId,
   users,
@@ -53,7 +39,7 @@ export function WorkDetailsTopBar({
   /** When provided, the top bar owns the upload button and resume vs create-new-version logic. */
   uploadProps: WorkDetailsUploadProps;
 }) {
-  const { canUpload, workBasePath, latestVersion } = uploadProps;
+  const { canUpload, workBasePath, canResumeDraft, resumeDraftVersionId } = uploadProps;
   const navigate = useNavigate();
   const fetcher = useFetcher<{
     intent?: string;
@@ -62,13 +48,12 @@ export function WorkDetailsTopBar({
     workVersionId?: string;
   }>();
 
-  const resumeDraft = canResumeDraft(canUpload, latestVersion);
-  const uploadButtonLabel = resumeDraft ? 'Resume Draft Version' : 'Create new version';
+  const uploadButtonLabel = canResumeDraft ? 'Resume Draft Version' : 'Create new version';
 
   const handleUploadAction = () => {
     if (!canUpload) return;
-    if (resumeDraft && latestVersion) {
-      navigate(`${workBasePath}/upload/${latestVersion.id}?from=details`);
+    if (canResumeDraft && resumeDraftVersionId) {
+      navigate(`${workBasePath}/upload/${resumeDraftVersionId}?from=details`);
       return;
     }
     const formData = new FormData();

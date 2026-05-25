@@ -9,7 +9,6 @@ import {
 import { Outlet } from 'react-router';
 import {
   withSecureWorkContext,
-  signFilesInMetadata,
   dbCreateDraftWorkVersion,
   metadataForNewDraftFileWorkVersion,
   userHasScope,
@@ -27,8 +26,10 @@ import {
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
 import {
+  dbAttachMetadataToWorkVersions,
   dbGetCheckServiceRunsByWorkVersionIds,
   dbGetLinkedJobsByWorkVersionIds,
+  dbGetLatestWorkVersionForWork,
   dbGetWorkActivities,
   dbGetWorkOwnerName,
   dbGetWorkVersionsWithSubmissionVersions,
@@ -37,6 +38,13 @@ import {
 import { dbGetWorkUsers, dtoWorkUsers } from '../works.$workId.users/db.server';
 import { WorkDetailsCard } from './WorkDetailsCard';
 import { getUniqueSubmissions } from './utils.server';
+import {
+  computeCanResumeDraftUpload,
+  getLicenseDisplayFromMetadata,
+  isDraftVersionValidForReuse,
+  signVersionFilesForClient,
+} from './metadata.server';
+import type { WorkVersionContentCardData, WorkVersionForDetailsClient } from './types';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { exportToPdfAction } from './actionHelpers.server';
@@ -49,12 +57,6 @@ const WorkActionIntentSchema = zfd.formData({
   ),
   workId: zfd.text(z.string().optional()),
 });
-
-/** Draft version is valid for resume if it has the checks field in metadata (same as My Works). */
-function isDraftVersionValidForReuse(version: { metadata: unknown }): boolean {
-  const meta = version.metadata as Record<string, unknown> | null;
-  return Boolean(meta && 'checks' in meta);
-}
 
 export async function action(args: ActionFunctionArgs) {
   const formData = await args.request.formData();
@@ -70,10 +72,9 @@ export async function action(args: ActionFunctionArgs) {
   const ctx = await withSecureWorkContext(args, [scopes.work.id.read]);
 
   if (intent === 'get-drafts-for-work') {
-    const workVersions = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
-    const latest = workVersions[0];
+    const latest = await dbGetLatestWorkVersionForWork(ctx.work.id);
     const drafts =
-      latest?.draft && isDraftVersionValidForReuse(latest)
+      latest?.draft && isDraftVersionValidForReuse(latest.metadata)
         ? [
             {
               workId: ctx.work.id,
@@ -81,7 +82,6 @@ export async function action(args: ActionFunctionArgs) {
               workTitle: latest.title || 'Untitled Work',
               dateModified: latest.date_modified,
               dateCreated: latest.date_created,
-              metadata: latest.metadata,
             },
           ]
         : [];
@@ -93,8 +93,7 @@ export async function action(args: ActionFunctionArgs) {
       return data({ success: false, intent, error: 'Upload scope required' }, { status: 403 });
     }
     try {
-      const workVersionsForTitle = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
-      const latestNonDraft = workVersionsForTitle?.find((v) => !v.draft);
+      const latestNonDraft = ctx.work.versions?.find((v) => !v.draft);
       const workTitle = latestNonDraft?.title ?? ctx.workDTO?.title ?? '';
       const result = await dbCreateDraftWorkVersion(
         ctx,
@@ -164,7 +163,10 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const workVersions = await dbGetWorkVersionsWithSubmissionVersions(ctx.work.id);
   if (!workVersions) throw redirect('/app/works');
 
-  const isDraftOnlyWork = workVersions.length > 0 && workVersions.every((v) => v.draft);
+  const workVersionsWithMetadata = await dbAttachMetadataToWorkVersions(workVersions);
+
+  const isDraftOnlyWork =
+    workVersionsWithMetadata.length > 0 && workVersionsWithMetadata.every((v) => v.draft);
 
   const url = new URL(args.request.url);
   const pathname = url.pathname;
@@ -182,7 +184,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
       pathname.startsWith(`/app/works/${workId}/site/`);
 
     if (!isOnUploadRoute && isDetailsLikePath) {
-      throw redirect(`/app/works/${workId}/upload/${workVersions[0].id}`);
+      throw redirect(`/app/works/${workId}/upload/${workVersionsWithMetadata[0].id}`);
     }
   }
 
@@ -191,7 +193,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     throw redirect(`/app/works/${workId}/details${url.search}`);
   }
 
-  const submissions = getUniqueSubmissions(workVersions, {
+  const submissions = getUniqueSubmissions(workVersionsWithMetadata, {
     includeDrafts: includeDraftSubmissions,
   });
   const workflowNames = submissions.map((s) => s.collection.workflow);
@@ -206,41 +208,52 @@ export const loader = async (args: LoaderFunctionArgs) => {
   await ctx.trackEvent(TrackEvent.WORK_VIEWED, {
     workId: ctx.work.id,
     workTitle: ctx.workDTO.title,
-    versionCount: workVersions.length,
+    versionCount: workVersionsWithMetadata.length,
     submissionCount: submissions.length,
-    isDraft: workVersions.length === 1 && workVersions[0].draft,
+    isDraft: workVersionsWithMetadata.length === 1 && workVersionsWithMetadata[0].draft,
   });
 
   await ctx.analytics.flush();
 
-  const versionIds = workVersions.map((v) => v.id);
+  const versionIds = workVersionsWithMetadata.map((v) => v.id);
+  const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
 
-  // Sign file URLs for versions that have metadata.files (for download links on details page).
-  const versionsWithSignedFileMetadata = await Promise.all(
-    workVersions.map(async (v) => {
-      const meta =
-        v.metadata != null && typeof v.metadata === 'object'
-          ? (v.metadata as Record<string, unknown>)
-          : null;
-      if (!meta?.files || typeof meta.files !== 'object') return v;
-      const signed = await signFilesInMetadata(
-        meta as Parameters<typeof signFilesInMetadata>[0],
-        v.cdn ?? '',
-        ctx,
-      );
-      return { ...v, metadata: signed };
+  const latestVersion = workVersionsWithMetadata[0];
+  const latestNonDraftWithMetadata = workVersionsWithMetadata.find((v) => !v.draft);
+
+  const canResumeDraft = computeCanResumeDraftUpload(
+    canUpload,
+    latestVersion,
+    latestVersion?.metadata,
+  );
+  const resumeDraftVersionId = canResumeDraft ? latestVersion?.id : undefined;
+
+  const latestNonDraftContentCard: WorkVersionContentCardData | null = latestNonDraftWithMetadata
+    ? {
+        title: latestNonDraftWithMetadata.title,
+        authors: latestNonDraftWithMetadata.authors,
+        author_details: latestNonDraftWithMetadata.author_details,
+        doi: latestNonDraftWithMetadata.doi,
+        license: getLicenseDisplayFromMetadata(latestNonDraftWithMetadata.metadata),
+      }
+    : null;
+
+  // Sign file URLs for versions that have metadata.files (timeline download links only).
+  const versionsForClient: WorkVersionForDetailsClient[] = await Promise.all(
+    workVersionsWithMetadata.map(async (version) => {
+      const { metadata, ...rest } = version;
+      const fileMetadata = await signVersionFilesForClient(version, metadata, ctx);
+      return fileMetadata ? { ...rest, metadata: fileMetadata } : rest;
     }),
   );
 
   const workOwnerName = await dbGetWorkOwnerName(ctx.work.id);
   const activities = await dbGetWorkActivities(ctx.work.id);
   const checkServiceRunsByWorkVersionId = await dbGetCheckServiceRunsByWorkVersionIds(versionIds);
-  const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
 
-  // Use latest non-draft work version for card and details metadata; fall back to ctx.workDTO if all are drafts
-  const latestNonDraftVersion = versionsWithSignedFileMetadata.find((v) => !v.draft);
-  const work = latestNonDraftVersion
-    ? worksLoaders.formatWorkDTO(ctx, ctx.work, latestNonDraftVersion)
+  const latestNonDraftVersion = versionsForClient.find((v) => !v.draft);
+  const work = latestNonDraftWithMetadata
+    ? worksLoaders.formatWorkDTO(ctx, ctx.work, latestNonDraftWithMetadata)
     : ctx.workDTO;
   const usersDbo = await dbGetWorkUsers(ctx.work.id);
   const users = usersDbo ? dtoWorkUsers(usersDbo) : [];
@@ -249,13 +262,16 @@ export const loader = async (args: LoaderFunctionArgs) => {
     userScopes: ctx.scopes,
     workflows,
     work,
-    versions: versionsWithSignedFileMetadata,
+    versions: versionsForClient,
     submissions: submissions ?? [],
     linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
     workOwnerName,
     activities,
     checkServiceRunsByWorkVersionId,
     canUpload,
+    canResumeDraft,
+    resumeDraftVersionId,
+    latestNonDraftContentCard,
     users,
     isOnUploadRoute,
   };

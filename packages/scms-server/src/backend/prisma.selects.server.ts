@@ -18,6 +18,13 @@ export const siteWorkWorkVersionSelect = {
   occ: true,
 } satisfies Prisma.WorkVersionSelect;
 
+/** Work details route: version scalars + submission graph (excludes metadata JSON). */
+export const workDetailsWorkVersionSelect = {
+  ...siteWorkWorkVersionSelect,
+  date_modified: true,
+  author_details: true,
+} satisfies Prisma.WorkVersionSelect;
+
 /** WorkVersion + work for site-work DTOs that fall back to work.doi/key. */
 export const siteWorkWorkVersionWithWorkSelect = {
   ...siteWorkWorkVersionSelect,
