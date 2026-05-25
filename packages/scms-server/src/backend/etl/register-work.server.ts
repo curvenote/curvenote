@@ -82,22 +82,11 @@ async function findOwnedWorkIdByDoi(userId: string, doi: string): Promise<string
       },
     },
   };
-  const exact = await prisma.work.findFirst({
+  const match = await prisma.work.findFirst({
     where: { doi, ...ownerFilter },
     select: { id: true },
   });
-  if (exact) return exact.id;
-
-  const norm = normalizeDoiForCompare(doi);
-  const candidates = await prisma.work.findMany({
-    where: {
-      doi: { not: null },
-      ...ownerFilter,
-    },
-    select: { id: true, doi: true },
-    take: 4,
-  });
-  return candidates.find((w) => w.doi && normalizeDoiForCompare(w.doi) === norm)?.id;
+  return match?.id;
 }
 
 async function submissionVersionHasTag(
