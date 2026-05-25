@@ -7,6 +7,7 @@ import {
   error404,
   httpError,
   makePaginationLinks,
+  isOffsetPaginationRequested,
   getWorkflows,
   registerExtensionWorkflows,
 } from '@curvenote/scms-core';
@@ -134,8 +135,7 @@ export async function dbListLatestPublishedSubmissions(
     }
   }
 
-  // if we have both limit and page, pagination has been requested
-  if (opts?.limit && opts?.page) {
+  if (isOffsetPaginationRequested(opts ?? {})) {
     const [items, total] = await Promise.all([
       dbQuerySubmissions(ctx.site.name, collectionName, status, where?.kind, opts),
       dbCountSubmissions(ctx.site.name, collectionName, status, where?.kind),
@@ -146,7 +146,7 @@ export async function dbListLatestPublishedSubmissions(
   // no pagination if limit and page are not provided
   // we can still limit, but in this branch we avoid
   // the extra count query
-  if (!opts?.page) {
+  if (opts?.page === undefined) {
     const items = await dbQuerySubmissions(
       ctx.site.name,
       collectionName,
