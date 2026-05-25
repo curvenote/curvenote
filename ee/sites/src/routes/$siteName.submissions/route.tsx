@@ -50,10 +50,9 @@ export const action = async (args: ActionFunctionArgs) => {
     }
 
     // Get the current submission version to check its status
-    const submissionVersion =
-      await sites.submissions.versions.dbGetSubmissionVersionForTransition({
-        id: submissionVersionId,
-      });
+    const submissionVersion = await sites.submissions.versions.dbGetSubmissionVersionForTransition({
+      id: submissionVersionId,
+    });
     if (!submissionVersion) {
       return data(
         {
