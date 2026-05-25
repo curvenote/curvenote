@@ -1,10 +1,9 @@
 import { useFetcher } from 'react-router';
 import { Replace, SquarePen, SquareCheckBig } from 'lucide-react';
 import classNames from 'classnames';
-import type { sites } from '@curvenote/scms-server';
 import { primitives } from '@curvenote/scms-core';
-import type { Prisma } from '@curvenote/scms-db';
 import { useRef } from 'react';
+import type { SubmissionEditorCollection } from './types.js';
 
 export function Collections({
   submissionId,
@@ -14,7 +13,7 @@ export function Collections({
 }: {
   submissionId: string;
   collectionId: string;
-  collections: Awaited<ReturnType<typeof sites.collections.list>>['items'];
+  collections: SubmissionEditorCollection[];
   canUpdate: boolean;
 }) {
   const fetcher = useFetcher<{ error?: string }>();

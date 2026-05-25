@@ -1,5 +1,5 @@
 import { Outlet, useLocation, data } from 'react-router';
-import type { LoaderFunctionArgs, ActionFunctionArgs, useMatches } from 'react-router';
+import type { LoaderFunctionArgs, ActionFunctionArgs } from 'react-router';
 import { useState } from 'react';
 import {
   withAppContext,
@@ -13,9 +13,10 @@ import RequestSiteCTA from './RequestSiteCTA.js';
 import type { FeaturedSitesData } from './RequestSiteCTA.js';
 import PendingSiteCard from './PendingSiteCard.js';
 import { MainWrapper, PageFrame, scopes, clientCheckSiteScopes } from '@curvenote/scms-core';
-import type { UserSitesDTO } from '@curvenote/common';
 import type { ui } from '@curvenote/scms-core';
 import { actionCreateSite, actionRequestSite } from './actionHelpers.server.js';
+import { dbListSiteCards } from './db.server.js';
+import type { SiteCardListing } from './types.js';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 
@@ -24,15 +25,20 @@ interface LoaderData {
   featured?: FeaturedSitesData;
   canCreateSite: boolean;
   scopes: string[];
+  sites: SiteCardListing;
 }
+
 export const loader = async (args: LoaderFunctionArgs): Promise<LoaderData> => {
   const ctx = await withAppScopedContext(args, [scopes.app.sites.feature], { redirect: true });
   const { video, featured } = ctx.$config.app.extensions?.sites ?? {};
+  const sites = await dbListSiteCards(ctx);
+
   return {
     video,
     featured,
     canCreateSite: userHasScope(ctx.user, scopes.site.create),
     scopes: ctx.scopes,
+    sites,
   };
 };
 
@@ -56,7 +62,6 @@ export const action = async (args: ActionFunctionArgs) => {
 
   const formData = await args.request.formData();
 
-  // Validate intent
   let intent: 'request-site' | 'check-site-name' | 'create-site';
   try {
     const validated = validateFormData(IntentSchema, formData);
@@ -91,24 +96,12 @@ export const action = async (args: ActionFunctionArgs) => {
   return data({ error: 'Invalid action' }, { status: 400 });
 };
 
-export default function Sites({
-  matches,
-  loaderData,
-}: {
-  matches: ReturnType<typeof useMatches>;
-  loaderData: LoaderData;
-}) {
+export default function Sites({ loaderData }: { loaderData: LoaderData }) {
   const location = useLocation();
-  const appRoute = matches.find((m) => m && m.pathname === '/app');
-  const { video, featured, canCreateSite, scopes: userScopes } = loaderData;
+  const { video, featured, canCreateSite, scopes: userScopes, sites } = loaderData;
   const [showPendingCard, setShowPendingCard] = useState(false);
 
   const canRequestSite = clientCheckSiteScopes(userScopes, [scopes.app.sites.request], '');
-
-  const { sites } = appRoute?.loaderData as {
-    scopes: string[];
-    sites: UserSitesDTO;
-  };
 
   if (location.pathname !== '/app/sites') {
     return <Outlet />;
@@ -145,8 +138,8 @@ export default function Sites({
             {(sites.items.length > 0 || showPendingCard) && (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {showPendingCard && <PendingSiteCard onCancel={handleCancelPendingCard} />}
-                {sites.items.map((s: any) => (
-                  <SiteCard key={s.id} site={s} />
+                {sites.items.map((site) => (
+                  <SiteCard key={site.id} site={site} />
                 ))}
               </div>
             )}

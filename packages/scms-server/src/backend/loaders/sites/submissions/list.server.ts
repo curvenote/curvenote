@@ -3,6 +3,7 @@ import { getPrismaClient } from '../../../prisma.server.js';
 import {
   activitySubmissionVersionRefSelect,
   activityWorkVersionRefSelect,
+  submissionVersionForListSelect,
 } from '../../../prisma.selects.server.js';
 import { coerceToObject, makePaginationLinks } from '@curvenote/scms-core';
 import type { Prisma } from '@curvenote/scms-db';
@@ -68,22 +69,7 @@ export async function dbListSubmissions(
         },
       },
       versions: {
-        include: {
-          submitted_by: true,
-          work_version: {
-            select: {
-              id: true,
-              work_id: true,
-              metadata: true,
-              title: true,
-              description: true,
-              authors: true,
-              date: true,
-              doi: true,
-              work: { select: { id: true, doi: true } },
-            },
-          },
-        },
+        select: submissionVersionForListSelect,
         orderBy: {
           date_created: 'desc',
         },
@@ -145,7 +131,6 @@ type SubmissionVersionDBOFragment = {
   work_version: {
     id: string;
     work_id: string;
-    metadata: Prisma.JsonValue;
   };
   job_id: string | null;
 };
@@ -161,7 +146,6 @@ export function formatVersionSummaryDTO(ctx: SiteContext, dbo: SubmissionVersion
     },
     work_id: dbo.work_version.work_id,
     work_version_id: dbo.work_version.id,
-    work_version_metadata: dbo.work_version.metadata,
     job_id: dbo.job_id ?? undefined,
   };
 }
@@ -247,18 +231,24 @@ async function formatSubmissionListingDTO(
   return { items, total: total ?? items.length, links };
 }
 
+export type ListSiteSubmissionsOpts = {
+  /** When false, skips COUNT(*) — use for paginated UI that infers hasMore from page size. Default: true only when not paginating. */
+  includeTotalCount?: boolean;
+};
+
 export default async function (
   ctx: SiteContext,
   extensions: ClientExtension[],
   where?: Prisma.SubmissionWhereInput,
   skip?: number,
   take?: number,
+  listOpts?: ListSiteSubmissionsOpts,
 ) {
   const normalizedWhere = {
     site: { is: { name: ctx.site.name } },
     ...(where ?? {}),
   };
-  const opts =
+  const paginationOpts =
     take === undefined && skip === undefined
       ? undefined
       : {
@@ -266,9 +256,12 @@ export default async function (
           page: take ? Math.floor((skip ?? 0) / take) : undefined,
         };
 
+  const includeTotalCount =
+    listOpts?.includeTotalCount ?? (take === undefined && skip === undefined);
+
   const [items, total] = await Promise.all([
     dbListSubmissions(normalizedWhere, skip, take),
-    dbCountSubmissions(normalizedWhere),
+    includeTotalCount ? dbCountSubmissions(normalizedWhere) : Promise.resolve(undefined),
   ]);
-  return formatSubmissionListingDTO(ctx, items, extensions, opts, total);
+  return formatSubmissionListingDTO(ctx, items, extensions, paginationOpts, total);
 }

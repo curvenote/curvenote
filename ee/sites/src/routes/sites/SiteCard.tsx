@@ -1,9 +1,9 @@
 import { Link } from 'react-router';
-import type { UserSiteDTO } from '@curvenote/common';
 import { primitives, SiteLogo } from '@curvenote/scms-core';
 import { Server } from 'lucide-react';
+import type { SiteCardItem } from './types.js';
 
-export default function SiteCard({ site }: { site: UserSiteDTO }) {
+export default function SiteCard({ site }: { site: SiteCardItem }) {
   return (
     <primitives.Card className="space-y-1 h-auto lg:p-6" lift>
       <Link className="block" prefetch="none" to={`/app/sites/${site.name}`}>

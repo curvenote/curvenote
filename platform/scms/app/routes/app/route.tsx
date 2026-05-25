@@ -1,6 +1,6 @@
 import type { Route } from './+types/route';
 import { redirect, Outlet } from 'react-router';
-import { withAppContext, my, resolveAccessibleDefaultRoute } from '@curvenote/scms-server';
+import { withAppContext, resolveAccessibleDefaultRoute } from '@curvenote/scms-server';
 import {
   GlobalErrorBoundary,
   LoadingBar,
@@ -13,15 +13,10 @@ import {
   getBrandingFromMetaMatches,
   useMobile,
 } from '@curvenote/scms-core';
-import { extensions as serverExtensions } from '../../extensions/server';
 import { extensions as clientExtensions } from '../../extensions/client';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppContext(args);
-  const hasSitesExtension = serverExtensions.some((ext) => ext.id === 'sites');
-
-  const sites = hasSitesExtension ? await my.sites(ctx) : { items: [] };
-
   const pathname = new URL(args.request.url).pathname;
   if (pathname === '/app') {
     // Pick the first navigation item the user can access, preferring the
@@ -31,10 +26,10 @@ export async function loader(args: Route.LoaderArgs) {
     const navConfig = ctx.$config.app?.navigation;
     const target = resolveAccessibleDefaultRoute(ctx, navConfig);
     if (target) throw redirect('/app/' + target);
-    return { scopes: ctx.scopes, sites, noAccessibleRoute: true };
+    return { scopes: ctx.scopes, noAccessibleRoute: true };
   }
 
-  return { scopes: ctx.scopes, sites, noAccessibleRoute: false };
+  return { scopes: ctx.scopes, noAccessibleRoute: false };
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {

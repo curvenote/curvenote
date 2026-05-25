@@ -1,5 +1,4 @@
-import type { getPrismaClient } from '@curvenote/scms-server';
+import type { SubmissionDetailSlugRow } from './types.js';
 
-export type SlugsDTO = Awaited<
-  ReturnType<Awaited<ReturnType<typeof getPrismaClient>>['slug']['findMany']>
->;
+/** @deprecated Use SubmissionDetailSlugRow[] from ./types.js */
+export type SlugsDTO = SubmissionDetailSlugRow[];

@@ -2,6 +2,7 @@ import { SectionWithHeading, VersionsListing, primitives } from '@curvenote/scms
 import { GalleryHorizontalEnd } from 'lucide-react';
 import type { SiteDTO, SubmissionVersionDTO } from '@curvenote/common';
 import type { Workflow, WorkflowTransition } from '@curvenote/scms-core';
+import type { SubmissionDetailSiteContext, SubmissionDetailVersion } from './types.js';
 
 export function Versions({
   workflow,
@@ -11,9 +12,9 @@ export function Versions({
   signature,
 }: {
   workflow: Workflow;
-  submissionVersions: (SubmissionVersionDTO & { transition?: WorkflowTransition })[];
+  submissionVersions: SubmissionDetailVersion[];
   canUpdateStatus: boolean;
-  site: SiteDTO;
+  site: SubmissionDetailSiteContext;
   signature: string;
 }) {
   return (
@@ -21,9 +22,13 @@ export function Versions({
       <primitives.Card lift className="p-8">
         <VersionsListing
           workflow={workflow}
-          items={submissionVersions}
+          items={
+            submissionVersions as (SubmissionVersionDTO & {
+              transition?: WorkflowTransition;
+            })[]
+          }
           canUpdateStatus={canUpdateStatus}
-          site={site}
+          site={site as SiteDTO}
           signature={signature}
         />
       </primitives.Card>

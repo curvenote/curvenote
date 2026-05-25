@@ -6,7 +6,7 @@ import { getPrismaClient } from '../../../prisma.server.js';
 import {
   activitySubmissionVersionRefSelect,
   activityWorkVersionRefSelect,
-  siteWorkWorkVersionWithWorkSelect,
+  submissionVersionForListSelect,
 } from '../../../prisma.selects.server.js';
 import { signPrivateUrls } from '../../../sign.private.server.js';
 import type { ClientExtension } from '@curvenote/scms-core';
@@ -38,12 +38,7 @@ export async function dbGetSubmission(where: Prisma.SubmissionFindUniqueArgs['wh
         },
       },
       versions: {
-        include: {
-          submitted_by: true,
-          work_version: {
-            select: siteWorkWorkVersionWithWorkSelect,
-          },
-        },
+        select: submissionVersionForListSelect,
         orderBy: {
           date_created: 'desc',
         },
@@ -153,7 +148,7 @@ export async function formatSubmissionLinksDTO(
       ctx,
       { cdn: dboActive.work_version.cdn, key: dboActive.work_version.cdn_key },
       ctx.asApiUrl(
-        `/sites/${ctx.site.name}/works/${dboActive.work_version.work_id}/versions/${dboActive.work_version_id}/thumbnail`,
+        `/sites/${ctx.site.name}/works/${dboActive.work_version.work_id}/versions/${dboActive.work_version.id}/thumbnail`,
       ),
       'no-social',
     );

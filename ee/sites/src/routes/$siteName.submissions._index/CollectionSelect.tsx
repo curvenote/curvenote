@@ -1,8 +1,9 @@
 import type { FetcherWithComponents } from 'react-router';
 import { useNavigate } from 'react-router';
-import type { CollectionSummaryDTO, JobDTO } from '@curvenote/common';
+import type { JobDTO } from '@curvenote/common';
 import { primitives } from '@curvenote/scms-core';
-import type { AugmentedSubmissionsListWithPagination } from './types.js';
+import type { SubmissionListingPage } from './types.js';
+import type { CollectionFilterOption } from './collections.format.server.js';
 
 export function CollectionSelect({
   collections,
@@ -10,11 +11,11 @@ export function CollectionSelect({
   defaultValue,
 }: {
   fetcher: FetcherWithComponents<{
-    submissions?: AugmentedSubmissionsListWithPagination;
+    submissions?: SubmissionListingPage;
     error?: string;
     jobs: { items: JobDTO[] };
   }>;
-  collections: CollectionSummaryDTO[];
+  collections: CollectionFilterOption[];
   defaultValue?: string;
 }) {
   const navigate = useNavigate();
