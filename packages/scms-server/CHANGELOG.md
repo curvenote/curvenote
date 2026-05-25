@@ -1,5 +1,30 @@
 # @curvenote/scms-server
 
+## 0.19.0
+
+### Patch Changes
+
+- [#904](https://github.com/curvenote/curvenote/pull/904) [`64a3746`](https://github.com/curvenote/curvenote/commit/64a37464b4883123090e4310c5d6e2a6c69c36b8) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Significant overhaul of the sites UI, and data access patterns. Remove the sites inbox and added a placeholder pending new UI/UX.
+
+- [#901](https://github.com/curvenote/curvenote/pull/901) [`b21ff7d`](https://github.com/curvenote/curvenote/commit/b21ff7d0970dd4b5e5fba64278a014ebdeb39b8f) Thanks [@fwkoch](https://github.com/fwkoch)! - ELT endpoint for work registration
+
+- [#907](https://github.com/curvenote/curvenote/pull/907) [`03834a3`](https://github.com/curvenote/curvenote/commit/03834a326320818fdc071bc0d4ef1e853038f441) Thanks [@stevejpurves](https://github.com/stevejpurves)! - small fix to pagination
+
+- [#893](https://github.com/curvenote/curvenote/pull/893) [`790d919`](https://github.com/curvenote/curvenote/commit/790d919e1d7a8d0ec881eff9c2a5ca03e28732f3) Thanks [@fwkoch](https://github.com/fwkoch)! - Add tags to work and submission version metadata
+
+- [#906](https://github.com/curvenote/curvenote/pull/906) [`3439f63`](https://github.com/curvenote/curvenote/commit/3439f63cb5ae73ee8ac7b7f7c5d8c03783cd34af) Thanks [@fwkoch](https://github.com/fwkoch)! - Remove work tags and canonical from etl
+
+- [#903](https://github.com/curvenote/curvenote/pull/903) [`d9cf56a`](https://github.com/curvenote/curvenote/commit/d9cf56a8c9a40c0d70b56c46e67cde8c91e55714) Thanks [@fwkoch](https://github.com/fwkoch)! - Remove unnecessary extra query with take:4 from etl endpoint
+
+- [#902](https://github.com/curvenote/curvenote/pull/902) [`e3070f2`](https://github.com/curvenote/curvenote/commit/e3070f2cf1a661a23481ab3183e4e8415eda065e) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Minimise db returns bu explicit minimal selects
+
+- Updated dependencies [[`03834a3`](https://github.com/curvenote/curvenote/commit/03834a326320818fdc071bc0d4ef1e853038f441), [`790d919`](https://github.com/curvenote/curvenote/commit/790d919e1d7a8d0ec881eff9c2a5ca03e28732f3)]:
+  - @curvenote/scms-core@0.19.0
+  - @curvenote/common@0.5.1
+  - @curvenote/check-definitions@0.16.1
+  - @curvenote/cdn@0.5.1
+  - @curvenote/scms-db@0.19.0
+
 ## 0.18.0
 
 ### Minor Changes

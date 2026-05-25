@@ -1,5 +1,17 @@
 # @curvenote/scms-core
 
+## 0.19.0
+
+### Patch Changes
+
+- [#907](https://github.com/curvenote/curvenote/pull/907) [`03834a3`](https://github.com/curvenote/curvenote/commit/03834a326320818fdc071bc0d4ef1e853038f441) Thanks [@stevejpurves](https://github.com/stevejpurves)! - small fix to pagination
+
+- Updated dependencies [[`790d919`](https://github.com/curvenote/curvenote/commit/790d919e1d7a8d0ec881eff9c2a5ca03e28732f3)]:
+  - @curvenote/common@0.5.1
+  - @curvenote/check-definitions@0.16.1
+  - @curvenote/cdn@0.5.1
+  - @curvenote/scms-db@0.19.0
+
 ## 0.18.0
 
 ### Minor Changes

@@ -1,5 +1,23 @@
 # curvenote
 
+## 0.16.1
+
+### Patch Changes
+
+- [#901](https://github.com/curvenote/curvenote/pull/901) [`b21ff7d`](https://github.com/curvenote/curvenote/commit/b21ff7d0970dd4b5e5fba64278a014ebdeb39b8f) Thanks [@fwkoch](https://github.com/fwkoch)! - Allow explicit yaml path for work register
+
+- [#905](https://github.com/curvenote/curvenote/pull/905) [`8a5c49d`](https://github.com/curvenote/curvenote/commit/8a5c49d73eb3409b6b4c6eb59aa03d29e4c43505) Thanks [@fwkoch](https://github.com/fwkoch)! - Prevent draft -> submission conversions
+
+- [#893](https://github.com/curvenote/curvenote/pull/893) [`790d919`](https://github.com/curvenote/curvenote/commit/790d919e1d7a8d0ec881eff9c2a5ca03e28732f3) Thanks [@fwkoch](https://github.com/fwkoch)! - Add tags to work and submission version metadata
+
+- [#901](https://github.com/curvenote/curvenote/pull/901) [`b21ff7d`](https://github.com/curvenote/curvenote/commit/b21ff7d0970dd4b5e5fba64278a014ebdeb39b8f) Thanks [@fwkoch](https://github.com/fwkoch)! - Expose work-metadata and submission-metadata on register
+
+- Updated dependencies [[`790d919`](https://github.com/curvenote/curvenote/commit/790d919e1d7a8d0ec881eff9c2a5ca03e28732f3)]:
+  - @curvenote/common@0.5.1
+  - @curvenote/cli-plugin@0.16.1
+  - @curvenote/check-definitions@0.16.1
+  - @curvenote/check-implementations@0.16.1
+
 ## 0.16.0
 
 ### Minor Changes
