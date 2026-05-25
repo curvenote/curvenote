@@ -21,7 +21,11 @@ function getAuthorsForDisplay(version: WorkVersionContentCardData): AuthorLike[]
   return (version.authors ?? []).map((name) => ({ name }));
 }
 
-export function WorkDetailsContentCard({ version }: { version: WorkVersionContentCardData | null }) {
+export function WorkDetailsContentCard({
+  version,
+}: {
+  version: WorkVersionContentCardData | null;
+}) {
   if (!version) {
     return (
       <primitives.Card className="p-6">

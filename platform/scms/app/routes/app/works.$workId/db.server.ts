@@ -1,9 +1,4 @@
-import {
-  getPrismaClient,
-  StorageBackend,
-  KnownBuckets,
-  Folder,
-} from '@curvenote/scms-server';
+import { getPrismaClient, StorageBackend, KnownBuckets, Folder } from '@curvenote/scms-server';
 import type { SecureContext } from '@curvenote/scms-server';
 import type { Prisma, WorkVersion } from '@curvenote/scms-db';
 

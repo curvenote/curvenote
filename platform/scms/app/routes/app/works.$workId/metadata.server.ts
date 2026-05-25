@@ -44,9 +44,7 @@ export async function signVersionFilesForClient(
   ctx: Context,
 ): Promise<{ files: Record<string, unknown> } | undefined> {
   const meta =
-    metadata != null && typeof metadata === 'object'
-      ? (metadata as Record<string, unknown>)
-      : null;
+    metadata != null && typeof metadata === 'object' ? (metadata as Record<string, unknown>) : null;
   if (!meta?.files || typeof meta.files !== 'object') return undefined;
   const signed = await signFilesInMetadata(
     meta as Parameters<typeof signFilesInMetadata>[0],
