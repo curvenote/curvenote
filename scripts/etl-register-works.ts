@@ -19,6 +19,7 @@ import { randomBytes, randomInt } from 'node:crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_METADATA = join(__dirname, 'fixtures/workversion.json');
+const DEFAULT_SUBMISSION_METADATA = join(__dirname, 'fixtures/submissionversion.json');
 
 type WorkVersionFixture = {
   extract?: Record<string, unknown>;
@@ -51,8 +52,11 @@ type CliOptions = {
   collection?: string;
   kind?: string;
   metadataPath: string;
+  submissionMetadataPath: string;
   prefix: string;
   runId?: string;
+  progressEvery: number;
+  progressIntervalSec: number;
   dryRun: boolean;
 };
 
@@ -74,6 +78,7 @@ type RegisterPayload = {
   date?: string;
   myst_metadata?: Record<string, unknown>;
   work_metadata?: Record<string, unknown>;
+  submission_metadata?: Record<string, unknown>;
 };
 
 function usage(): never {
@@ -94,12 +99,15 @@ Behaviour:
   --prefix <string>      DOI prefix base (default: 10.5072/etl-bench)
   --run-id <string>      Run segment appended to prefix (default: auto-generated)
   --no-randomize-prefix   Use --prefix as-is (reruns may skip existing DOIs)
+  --progress-every <n>   Log every N completions (default: scales with job size)
+  --progress-interval <sec>  Min seconds between progress logs for large jobs (default: 15)
 
 Payload:
   --cdn <url>            CDN base URL (default: https://prv.curvenote.dev/)
   --collection <name>    Submission collection (default: articles)
   --kind <name>          Submission kind (default: article)
   --metadata <path>      Work version metadata JSON (default: scripts/fixtures/workversion.json)
+  --submission-metadata <path>  Submission version metadata JSON (default: scripts/fixtures/submissionversion.json)
 
 Other:
   --dry-run              Print planned distribution only
@@ -123,6 +131,30 @@ function resolveDoiPrefix(
   }
   const runId = options.runId?.trim() || createRunId();
   return { prefix: `${base}/${runId}`, runId };
+}
+
+function defaultProgressEvery(total: number): number {
+  if (total <= 100) return Math.max(1, Math.floor(total / 10));
+  if (total <= 1000) return Math.max(1, Math.floor(total / 20));
+  return Math.max(50, Math.floor(total / 40));
+}
+
+function parseProgressEvery(raw: string | undefined, total: number): number {
+  if (!raw) return defaultProgressEvery(total);
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 1) {
+    throw new Error('--progress-every must be a positive integer');
+  }
+  return Math.floor(value);
+}
+
+function parseProgressIntervalSec(raw: string | undefined): number {
+  if (!raw) return 15;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error('--progress-interval must be a non-negative number');
+  }
+  return value;
 }
 
 function parseArgs(argv: string[]): CliOptions {
@@ -184,6 +216,13 @@ function parseArgs(argv: string[]): CliOptions {
     runId: runIdArg,
     randomize: randomizePrefix,
   });
+  const progressEvery = parseProgressEvery(
+    args.get('progress-every') ?? process.env.ETL_PROGRESS_EVERY,
+    registrations,
+  );
+  const progressIntervalSec = parseProgressIntervalSec(
+    args.get('progress-interval') ?? process.env.ETL_PROGRESS_INTERVAL,
+  );
 
   return {
     baseUrl,
@@ -196,9 +235,16 @@ function parseArgs(argv: string[]): CliOptions {
     cdn: args.get('cdn') ?? 'https://prv.curvenote.dev/',
     collection: args.get('collection'),
     kind: args.get('kind'),
-    metadataPath: resolve(args.get('metadata') ?? DEFAULT_METADATA),
+    metadataPath: resolve(args.get('metadata') ?? process.env.ETL_METADATA ?? DEFAULT_METADATA),
+    submissionMetadataPath: resolve(
+      args.get('submission-metadata') ??
+        process.env.ETL_SUBMISSION_METADATA ??
+        DEFAULT_SUBMISSION_METADATA,
+    ),
     prefix,
     runId,
+    progressEvery,
+    progressIntervalSec,
     dryRun: flags.has('dry-run'),
   };
 }
@@ -236,6 +282,14 @@ function loadMetadata(path: string): {
   };
 }
 
+function loadSubmissionMetadata(path: string): Record<string, unknown> {
+  const raw = JSON.parse(readFileSync(path, 'utf-8')) as unknown;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error(`Submission metadata file must contain a JSON object: ${path}`);
+  }
+  return structuredClone(raw) as Record<string, unknown>;
+}
+
 function removeAvailable(available: number[], entries: DoiEntry[], entry: DoiEntry) {
   if (entry.availablePos < 0) return;
   const pos = entry.availablePos;
@@ -258,20 +312,30 @@ function pickReuseEntry(entries: DoiEntry[], available: number[]): DoiEntry | un
   return entries[available[randomInt(0, available.length)]!]!;
 }
 
-function planRegistrations(opts: CliOptions): {
-  plan: PlannedRegistration[];
+type PlanSummary = {
   histogram: Map<number, number>;
+  newDois: number;
+  versionAdds: number;
+  uniqueDois: number;
+};
+
+function createRegistrationPlan(opts: CliOptions): {
+  next: () => PlannedRegistration | undefined;
+  summary: () => PlanSummary;
 } {
   const entries: DoiEntry[] = [];
   const available: number[] = [];
-  const plan: PlannedRegistration[] = [];
   let nextRootIndex = 0;
+  let produced = 0;
+  let newDois = 0;
+  let versionAdds = 0;
 
-  for (let i = 0; i < opts.registrations; i += 1) {
+  function next(): PlannedRegistration | undefined {
+    if (produced >= opts.registrations) return undefined;
+
     const canCreate = entries.length < opts.roots;
     const reuseEntry = pickReuseEntry(entries, available);
-    const shouldReuse =
-      reuseEntry && (!canCreate || Math.random() < opts.reuseRate);
+    const shouldReuse = reuseEntry && (!canCreate || Math.random() < opts.reuseRate);
 
     let entry: DoiEntry;
     let isNewDoi = false;
@@ -301,22 +365,31 @@ function planRegistrations(opts: CliOptions): {
 
     entry.versions += 1;
     if (entry.versions >= 5) removeAvailable(available, entries, entry);
-    plan.push({ doi: entry.doi, version: entry.versions, isNewDoi });
+    produced += 1;
+    if (isNewDoi) newDois += 1;
+    else versionAdds += 1;
+
+    return { doi: entry.doi, version: entry.versions, isNewDoi };
   }
 
-  const histogram = new Map<number, number>();
-  for (const entry of entries) {
-    if (entry.versions > 0) {
-      histogram.set(entry.versions, (histogram.get(entry.versions) ?? 0) + 1);
+  function summary(): PlanSummary {
+    const histogram = new Map<number, number>();
+    for (const entry of entries) {
+      if (entry.versions > 0) {
+        histogram.set(entry.versions, (histogram.get(entry.versions) ?? 0) + 1);
+      }
     }
+    const uniqueDois = [...histogram.values()].reduce((sum, count) => sum + count, 0);
+    return { histogram, newDois, versionAdds, uniqueDois };
   }
 
-  return { plan, histogram };
+  return { next, summary };
 }
 
 function buildPayload(
   opts: CliOptions,
   metadata: ReturnType<typeof loadMetadata>,
+  submissionMetadata: Record<string, unknown>,
   doi: string,
   version: number,
 ): RegisterPayload {
@@ -341,7 +414,16 @@ function buildPayload(
     date: metadata.date,
     myst_metadata: metadata.myst_metadata,
     work_metadata: metadata.work_metadata,
+    submission_metadata: submissionMetadata,
   };
+}
+
+async function drainResponse(response: Response): Promise<void> {
+  try {
+    await response.arrayBuffer();
+  } catch {
+    await response.body?.cancel().catch(() => undefined);
+  }
 }
 
 async function registerWork(
@@ -357,35 +439,74 @@ async function registerWork(
     body: JSON.stringify(payload),
   });
 
-  if (response.status === 201) return 'created';
-  if (response.status === 200) return 'skipped';
+  if (response.status === 201) {
+    await drainResponse(response);
+    return 'created';
+  }
+  if (response.status === 200) {
+    await drainResponse(response);
+    return 'skipped';
+  }
 
-  const body = await response.text().catch(() => '');
+  const body = (await response.text().catch(() => '')).slice(0, 500);
   throw new Error(`HTTP ${response.status}${body ? `: ${body}` : ''}`);
 }
 
-async function runPool<T>(
-  items: T[],
+async function runPool(
+  total: number,
   concurrency: number,
-  worker: (item: T) => Promise<void>,
+  nextItem: () => PlannedRegistration | undefined,
+  worker: (item: PlannedRegistration) => Promise<void>,
 ): Promise<void> {
   let nextIndex = 0;
+  let planLock: Promise<void> = Promise.resolve();
+
+  function takeNext(): Promise<PlannedRegistration | undefined> {
+    const itemPromise = planLock.then(() => {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= total) return undefined;
+      return nextItem();
+    });
+    planLock = itemPromise.then(() => undefined);
+    return itemPromise;
+  }
 
   async function runner() {
     while (true) {
-      const index = nextIndex;
-      nextIndex += 1;
-      if (index >= items.length) return;
-      await worker(items[index]!);
+      const item = await takeNext();
+      if (!item) return;
+      await worker(item);
     }
   }
 
-  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => runner()));
+  await Promise.all(Array.from({ length: Math.min(concurrency, total) }, () => runner()));
+}
+
+type RunStats = {
+  created: number;
+  skipped: number;
+  failed: number;
+};
+
+function logProgress(completed: number, total: number, startedMs: number, stats: RunStats): void {
+  const elapsedSec = (Date.now() - startedMs) / 1000;
+  const rate = elapsedSec > 0 ? completed / elapsedSec : 0;
+  const remaining = total - completed;
+  const etaSec = rate > 0 ? remaining / rate : 0;
+  const pct = total > 0 ? ((completed / total) * 100).toFixed(1) : '100.0';
+
+  console.log(
+    `Progress ${completed}/${total} (${pct}%) | ${elapsedSec.toFixed(0)}s elapsed | ${rate.toFixed(1)}/s` +
+      (completed < total ? ` | ETA ${etaSec.toFixed(0)}s` : '') +
+      ` | created=${stats.created} skipped=${stats.skipped} failed=${stats.failed}`,
+  );
 }
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const metadata = loadMetadata(opts.metadataPath);
+  const submissionMetadata = loadSubmissionMetadata(opts.submissionMetadataPath);
 
   if (opts.runId) {
     console.log(`DOI prefix: ${opts.prefix} (run ${opts.runId})`);
@@ -394,38 +515,52 @@ async function main() {
   }
   console.log(`Planning ${opts.registrations} registrations (max ${opts.roots} roots)...`);
   const planStarted = Date.now();
-  const { plan, histogram } = planRegistrations(opts);
-  const uniqueDois = [...histogram.values()].reduce((sum, count) => sum + count, 0);
-  console.log(
-    `Planned in ${((Date.now() - planStarted) / 1000).toFixed(1)}s: ${plan.length} registrations across ${uniqueDois} DOIs`,
-  );
-  console.log(
-    'Versions per DOI:',
-    [...histogram.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([versions, count]) => `${versions}:${count}`)
-      .join(', '),
-  );
+  const plan = createRegistrationPlan(opts);
 
   if (opts.dryRun) {
+    while (plan.next()) {
+      // Consume the plan without storing registrations in memory.
+    }
+    const { histogram, uniqueDois } = plan.summary();
+    console.log(
+      `Planned in ${((Date.now() - planStarted) / 1000).toFixed(1)}s: ${opts.registrations} registrations across ${uniqueDois} DOIs`,
+    );
+    console.log(
+      'Versions per DOI:',
+      [...histogram.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([versions, count]) => `${versions}:${count}`)
+        .join(', '),
+    );
     console.log('Dry run only — no requests sent.');
     return;
   }
 
-  const stats = {
+  const stats: RunStats = {
     created: 0,
     skipped: 0,
     failed: 0,
-    newDois: plan.filter((item) => item.isNewDoi).length,
-    versionAdds: plan.filter((item) => !item.isNewDoi).length,
   };
 
   const started = Date.now();
   let completed = 0;
-  const logEvery = Math.max(1, Math.floor(plan.length / 20));
+  let lastProgressAt = started;
+  const progressIntervalMs = opts.registrations > 1000 ? opts.progressIntervalSec * 1000 : 0;
 
-  await runPool(plan, opts.concurrency, async (item) => {
-    const payload = buildPayload(opts, metadata, item.doi, item.version);
+  console.log(
+    `Registering ${opts.registrations} works (max ${opts.roots} unique DOIs, concurrency ${opts.concurrency})...`,
+  );
+
+  if (opts.registrations > 1000) {
+    console.log(
+      `Progress updates every ~${opts.progressEvery} registrations or ${opts.progressIntervalSec}s`,
+    );
+  }
+
+  logProgress(0, opts.registrations, started, stats);
+
+  await runPool(opts.registrations, opts.concurrency, plan.next, async (item) => {
+    const payload = buildPayload(opts, metadata, submissionMetadata, item.doi, item.version);
     try {
       const result = await registerWork(opts, payload);
       if (result === 'created') stats.created += 1;
@@ -433,25 +568,29 @@ async function main() {
     } catch (error) {
       stats.failed += 1;
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`Failed ${item.doi} ${payload.version_tag}: ${message}`);
+      console.error(`Failed ${item.doi} v${item.version}: ${message}`);
     } finally {
       completed += 1;
-      if (completed % logEvery === 0 || completed === plan.length) {
-        const elapsed = ((Date.now() - started) / 1000).toFixed(1);
-        console.log(
-          `Progress ${completed}/${plan.length} (${elapsed}s) created=${stats.created} skipped=${stats.skipped} failed=${stats.failed}`,
-        );
+      const now = Date.now();
+      const countMilestone = completed % opts.progressEvery === 0;
+      const timeMilestone = progressIntervalMs > 0 && now - lastProgressAt >= progressIntervalMs;
+      const finished = completed === opts.registrations;
+
+      if (countMilestone || timeMilestone || finished) {
+        lastProgressAt = now;
+        logProgress(completed, opts.registrations, started, stats);
       }
     }
   });
 
+  const { newDois, versionAdds } = plan.summary();
   const elapsed = ((Date.now() - started) / 1000).toFixed(1);
   console.log('\nDone.');
   console.log(`  created:  ${stats.created}`);
   console.log(`  skipped:  ${stats.skipped}`);
   console.log(`  failed:   ${stats.failed}`);
-  console.log(`  new DOIs: ${stats.newDois}`);
-  console.log(`  adds:     ${stats.versionAdds}`);
+  console.log(`  new DOIs: ${newDois}`);
+  console.log(`  adds:     ${versionAdds}`);
   console.log(`  elapsed:  ${elapsed}s`);
   if (stats.failed > 0) process.exit(1);
 }

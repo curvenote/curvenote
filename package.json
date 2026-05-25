@@ -23,7 +23,7 @@
     "prisma:generate": "npx prisma generate --config=./prisma.config.ts",
     "prisma:format": "npx prisma format --config=./prisma.config.ts",
     "db:studio": "prisma studio --config=./prisma.config.ts",
-    "dev:db:reset": "npx prisma migrate reset --config=./prisma.config.ts; npm run dev:db:seed",
+    "dev:db:reset": "npx prisma migrate reset --config=./prisma.config.ts && npm run dev:db:seed",
     "dev:db:seed": "npx prisma db seed --config=./prisma.config.ts",
     "dev:db:migrate": "npx prisma migrate dev --config=./prisma.config.ts",
     "dev:pubsub:emulator": "bash docs/jobs/scripts/start-pubsub-emulator.sh",

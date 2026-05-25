@@ -191,11 +191,16 @@ pg_traffic_monitor_stop() {
         return 0
       fi
 
-      local report
-      report="$(python3 "${PG_TRAFFIC_MONITOR_PY}" stats "${PG_TRAFFIC_PCAP}" "${port}")"
+      local report packets bytes_in bytes_out bytes_total
+      report="$(python3 "${PG_TRAFFIC_MONITOR_PY}" stats "${PG_TRAFFIC_PCAP}" "${port}" || true)"
       rm -f "${PG_TRAFFIC_PCAP}"
+      PG_TRAFFIC_PCAP=""
 
-      local packets bytes_in bytes_out bytes_total
+      if [[ -z "${report}" ]]; then
+        echo "Postgres traffic monitor: failed to parse capture file." >&2
+        return 0
+      fi
+
       packets="$(printf '%s\n' "${report}" | awk -F= '/^packets=/{print $2}')"
       bytes_in="$(printf '%s\n' "${report}" | awk -F= '/^bytes_in=/{print $2}')"
       bytes_out="$(printf '%s\n' "${report}" | awk -F= '/^bytes_out=/{print $2}')"

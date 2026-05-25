@@ -27,12 +27,15 @@ ETL_CONCURRENCY="${ETL_CONCURRENCY:-20}"
 ETL_PREFIX="${ETL_PREFIX:-10.5072/etl-bench}"
 ETL_RUN_ID="${ETL_RUN_ID:-}"
 ETL_RANDOMIZE_PREFIX="${ETL_RANDOMIZE_PREFIX:-1}"
+ETL_PROGRESS_EVERY="${ETL_PROGRESS_EVERY:-}"
+ETL_PROGRESS_INTERVAL="${ETL_PROGRESS_INTERVAL:-15}"
 
 # Payload
 ETL_CDN="${ETL_CDN:-https://not-real.curvenote.dev/}"
 ETL_COLLECTION="${ETL_COLLECTION:-articles}"
 ETL_KIND="${ETL_KIND:-article}"
 ETL_METADATA="${ETL_METADATA:-${SCRIPT_DIR}/fixtures/workversion.json}"
+ETL_SUBMISSION_METADATA="${ETL_SUBMISSION_METADATA:-${SCRIPT_DIR}/fixtures/submissionversion.json}"
 
 # Other (set to 1 for a dry run)
 ETL_DRY_RUN="${ETL_DRY_RUN:-0}"
@@ -70,10 +73,19 @@ ARGS=(
   --collection "${ETL_COLLECTION}"
   --kind "${ETL_KIND}"
   --metadata "${ETL_METADATA}"
+  --submission-metadata "${ETL_SUBMISSION_METADATA}"
 )
 
 if [[ -n "${ETL_RUN_ID}" ]]; then
   ARGS+=(--run-id "${ETL_RUN_ID}")
+fi
+
+if [[ -n "${ETL_PROGRESS_EVERY}" ]]; then
+  ARGS+=(--progress-every "${ETL_PROGRESS_EVERY}")
+fi
+
+if [[ -n "${ETL_PROGRESS_INTERVAL}" ]]; then
+  ARGS+=(--progress-interval "${ETL_PROGRESS_INTERVAL}")
 fi
 
 if [[ "${ETL_RANDOMIZE_PREFIX}" == "0" ]]; then
@@ -86,6 +98,10 @@ fi
 
 if [[ "${ETL_MONITOR_PG_TRAFFIC}" == "1" && "${ETL_DRY_RUN}" != "1" ]]; then
   pg_traffic_monitor_start "${ETL_PG_PORT}"
+  cleanup_pg_traffic_monitor() {
+    pg_traffic_monitor_stop "${ETL_PG_PORT}"
+  }
+  trap cleanup_pg_traffic_monitor EXIT INT TERM
 elif [[ "${ETL_DRY_RUN}" == "1" ]]; then
   echo "Postgres traffic monitor: skipped (dry run)."
 elif [[ "${ETL_MONITOR_PG_TRAFFIC}" != "1" ]]; then
@@ -101,9 +117,5 @@ else
 fi
 exit_code=$?
 set -e
-
-if [[ "${ETL_MONITOR_PG_TRAFFIC}" == "1" && "${ETL_DRY_RUN}" != "1" ]]; then
-  pg_traffic_monitor_stop "${ETL_PG_PORT}"
-fi
 
 exit "${exit_code}"
