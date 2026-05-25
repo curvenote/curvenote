@@ -45,7 +45,7 @@ export async function safeKindContentUpdate(
             date_modified: timestamp,
           },
         });
-        tx.activity.create({
+        await tx.activity.create({
           data: {
             id: uuid(),
             date_created: timestamp,
@@ -252,7 +252,7 @@ export async function safeKindChecksUpdate(
             date_modified: timestamp,
           },
         });
-        tx.activity.create({
+        await tx.activity.create({
           data: {
             id: uuid(),
             date_created: timestamp,

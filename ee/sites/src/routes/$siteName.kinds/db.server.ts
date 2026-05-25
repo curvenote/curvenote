@@ -122,7 +122,7 @@ export async function dbCreateKind(
         date_modified: timestamp,
       },
     });
-    tx.activity.create({
+    await tx.activity.create({
       data: {
         id: uuid(),
         date_created: timestamp,

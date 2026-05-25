@@ -44,7 +44,7 @@ export async function safeCollectionContentUpdate(
             date_modified: timestamp,
           },
         });
-        tx.activity.create({
+        await tx.activity.create({
           data: {
             id: uuid(),
             date_created: timestamp,
