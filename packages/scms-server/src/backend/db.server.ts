@@ -912,6 +912,7 @@ export async function dangerouslyHardDeleteDraftSubmissionVersions(
     for (const submissionVersion of draftSubmissionVersions) {
       await tx.submissionVersion.delete({
         where: { id: submissionVersion.id },
+        select: { id: true },
       });
     }
 
@@ -952,6 +953,7 @@ export async function dangerouslyHardDeleteDraftSubmissionVersions(
         // Then delete the work
         await tx.work.delete({
           where: { id: workId },
+          select: { id: true },
         });
       }
     }

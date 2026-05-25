@@ -257,6 +257,7 @@ export async function dangerouslyDeleteDraftWork(
     // Delete the work itself
     await tx.work.delete({
       where: { id: workId },
+      select: { id: true },
     });
   });
 

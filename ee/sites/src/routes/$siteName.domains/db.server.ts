@@ -58,6 +58,7 @@ export async function dbDeleteDomain(domainId: string): Promise<void> {
 
   await prisma.domain.delete({
     where: { id: domainId },
+    select: { id: true },
   });
 }
 

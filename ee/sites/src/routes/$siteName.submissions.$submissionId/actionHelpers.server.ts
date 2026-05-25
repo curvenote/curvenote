@@ -91,6 +91,7 @@ export async function actionDeleteSlug(
     await prisma.$transaction(async (tx) => {
       await tx.slug.delete({
         where: { id: slug_id },
+        select: { id: true },
       });
 
       if (dbo.primary) {

@@ -215,6 +215,7 @@ export async function deleteMagicLink(linkId: string): Promise<void> {
   // Access logs are preserved for audit history (FK constraint removed to allow this)
   await prisma.magicLink.delete({
     where: { id: linkId },
+    select: { id: true },
   });
 }
 

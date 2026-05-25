@@ -215,7 +215,7 @@ export async function dbDeleteDraftVersionOnWork(
         : 'No versions found',
     };
   }
-  await prisma.workVersion.delete({ where: { id: latest.id } });
+  await prisma.workVersion.delete({ where: { id: latest.id }, select: { id: true } });
   await deleteWorkVersionStorage(ctx, latest);
   return { deleted: true };
 }

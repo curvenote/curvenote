@@ -232,6 +232,7 @@ export async function deleteRole(
 
       await tx.role.delete({
         where: { id },
+        select: { id: true },
       });
 
       return { success: true };

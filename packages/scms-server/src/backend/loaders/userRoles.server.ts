@@ -228,6 +228,7 @@ export async function removeRoleFromUser(
       // Delete the user role after logging the activity
       await tx.userRole.delete({
         where: { id: userRoleId },
+        select: { id: true },
       });
 
       return { success: true };
