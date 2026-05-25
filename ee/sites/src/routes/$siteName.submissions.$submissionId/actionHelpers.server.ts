@@ -32,6 +32,7 @@ export async function actionSetPrimarySlug(
           primary: true,
           date_modified: timestamp,
         },
+        select: { id: true },
       });
 
       await tx.slug.updateMany({
@@ -99,6 +100,7 @@ export async function actionDeleteSlug(
           await tx.slug.update({
             where: { id: mostRecent?.id },
             data: { primary: true, date_modified: new Date().toISOString() },
+            select: { id: true },
           });
         } // else there are no more slugs
       }
@@ -215,6 +217,7 @@ export async function actionAddSlug(
         },
         primary: true,
       },
+      select: { id: true },
     });
 
     await tx.slug.updateMany({
@@ -412,10 +415,7 @@ export async function actionUpdateDatePublished(
         activity_type: ActivityType.SUBMISSION_DATE_CHANGE,
         date_published,
       },
-      include: {
-        activity_by: true,
-        kind: true,
-      },
+      select: { id: true },
     });
 
     return sub;

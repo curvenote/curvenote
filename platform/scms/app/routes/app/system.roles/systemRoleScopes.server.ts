@@ -75,6 +75,7 @@ export async function updateSystemRoleScopes(
         date_modified: now,
         scopes,
       },
+      select: { id: true },
     });
 
     await tx.activity.create({
@@ -90,6 +91,7 @@ export async function updateSystemRoleScopes(
           system_role: true,
         },
       },
+      select: { id: true },
     });
   });
 
@@ -128,6 +130,7 @@ export async function deleteSystemRoleScopes(
           deleted: true,
         },
       },
+      select: { id: true },
     });
   });
 

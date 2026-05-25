@@ -49,7 +49,7 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
     if (description) data.description = description;
     data.date_modified = new Date().toISOString();
     const prisma = await getPrismaClient();
-    await prisma.site.update({ where: { id: ctx.site.id }, data });
+    await prisma.site.update({ where: { id: ctx.site.id }, data, select: { id: true } });
   }
 
   await ctx.trackEvent(TrackEvent.SITE_DESIGN_UPDATED, {

@@ -202,6 +202,7 @@ export async function dbSetDefaultDomain(domainId: string): Promise<void> {
     await tx.domain.update({
       where: { id: domainId },
       data: { default: true },
+      select: { id: true },
     });
   });
 }

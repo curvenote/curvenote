@@ -24,6 +24,7 @@ export async function dbDeleteKind(kindId: string, siteId: string, userId: strin
           },
         },
       },
+      select: { id: true },
     });
     const deleted = await tx.submissionKind.delete({
       where: {
@@ -47,6 +48,7 @@ export async function dbDeleteKind(kindId: string, siteId: string, userId: strin
             default: true,
             date_modified: timestamp,
           },
+          select: { id: true },
         });
         await tx.activity.create({
           data: {
@@ -65,6 +67,7 @@ export async function dbDeleteKind(kindId: string, siteId: string, userId: strin
               },
             },
           },
+          select: { id: true },
         });
       }
     }
@@ -136,6 +139,7 @@ export async function dbCreateKind(
           },
         },
       },
+      select: { id: true },
     });
     return kind;
   });

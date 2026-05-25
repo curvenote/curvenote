@@ -67,6 +67,7 @@ export const oauthAuthorizationStateStore = {
         payload,
         expires_at: expiresAt,
       },
+      select: { state: true },
     });
   },
 

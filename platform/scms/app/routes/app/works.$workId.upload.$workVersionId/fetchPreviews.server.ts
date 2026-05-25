@@ -211,6 +211,7 @@ export async function fetchDocxPreviews(
                 occ: 0,
                 ...(ctx.user?.id ? { created_by_id: ctx.user.id } : {}),
               },
+              select: { id: true },
             });
           } catch (createErr: unknown) {
             const code = (createErr as { code?: string })?.code;

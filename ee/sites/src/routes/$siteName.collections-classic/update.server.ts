@@ -65,6 +65,7 @@ async function dbEditCollection(
             }
           : undefined,
       },
+      select: { id: true },
     });
 
     const existingKICs = await tx.kindsInCollections.findMany({

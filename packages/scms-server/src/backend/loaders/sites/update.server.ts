@@ -54,6 +54,7 @@ export async function dbUpdateSiteContent(userId: string, name: string, content:
         },
         activity_type: ActivityType.SITE_CONTENT_UPDATED,
       },
+      select: { id: true },
     });
     return updated.content?.versions[0];
   });

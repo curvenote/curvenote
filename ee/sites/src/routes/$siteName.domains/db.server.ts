@@ -39,6 +39,7 @@ export async function dbCreateDomain(
         date_created: timestamp,
         date_modified: timestamp,
       },
+      select: { id: true },
     });
   });
 }
@@ -88,6 +89,7 @@ export async function dbSetDefaultDomain(domainId: string): Promise<void> {
     await tx.domain.update({
       where: { id: domainId },
       data: { default: true, date_modified: new Date().toISOString() },
+      select: { id: true },
     });
   });
 }

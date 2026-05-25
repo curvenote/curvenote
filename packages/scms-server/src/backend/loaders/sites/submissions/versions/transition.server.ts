@@ -142,6 +142,7 @@ async function startJobBasedTransition(
         submission_version_id: existing.id,
         transition,
       },
+      select: { id: true },
     });
 
     // Handle job creation based on transition properties
@@ -227,6 +228,7 @@ async function performSimpleTransition(
         status: targetStateName,
         transition,
       },
+      select: { id: true },
     });
 
     return updated;

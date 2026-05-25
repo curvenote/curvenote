@@ -151,6 +151,7 @@ async function dbCreateManualWorkAndVersion(
         work: { connect: { id: workId } },
         work_version: { connect: { id: workVersionId } },
       },
+      select: { id: true },
     });
     return { work, version };
   });

@@ -281,6 +281,7 @@ async function actionUpdateCdnReference(ctx: Context, formData: FormData) {
       cdn: new_cdn,
       date_modified: new Date().toISOString(),
     },
+    select: { id: true },
   });
 
   return { cdn: new_cdn, warning };

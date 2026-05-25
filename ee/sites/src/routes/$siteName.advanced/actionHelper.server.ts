@@ -43,6 +43,7 @@ export async function actionUpdateSiteByJson(ctx: SiteContext, formData: FormDat
         metadata: filteredMetadata,
         date_modified: new Date().toISOString(),
       },
+      select: { id: true },
     });
 
     return { info: 'Site metadata updated successfully' };
@@ -107,6 +108,7 @@ export async function actionUpdateSiteSettings(ctx: SiteContext, formData: FormD
           data: updatedData,
           date_modified: new Date().toISOString(),
         },
+        select: { id: true },
       });
 
       return { info: 'Site settings updated successfully' };

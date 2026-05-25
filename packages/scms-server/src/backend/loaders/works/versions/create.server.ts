@@ -86,6 +86,7 @@ export async function dbCreateWorkVersionAndUpdateWork(
           },
         },
       },
+      select: { id: true },
     });
     return work;
   });

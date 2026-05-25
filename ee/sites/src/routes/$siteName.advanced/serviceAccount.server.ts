@@ -53,6 +53,7 @@ export async function dbCreateSiteServiceAccount(site: {
         user_id: userId,
         role: SiteRole.ADMIN,
       },
+      select: { id: true },
     });
 
     return user;

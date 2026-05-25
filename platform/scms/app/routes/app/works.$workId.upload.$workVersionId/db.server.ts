@@ -120,10 +120,12 @@ export async function dbUpdateWorkAndVersionTimestamps(workId: string, versionId
     prisma.work.update({
       where: { id: workId },
       data: { date_modified: now },
+      select: { id: true },
     }),
     prisma.workVersion.update({
       where: { id: versionId },
       data: { date_modified: now },
+      select: { id: true },
     }),
   ]);
 }

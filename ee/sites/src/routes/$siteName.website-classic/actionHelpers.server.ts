@@ -48,6 +48,7 @@ export async function $actionEditNavLinks(ctx: SiteContext, formData: FormData) 
   await prisma.site.update({
     where: { id: ctx.site.id },
     data: { metadata, date_modified: new Date().toISOString() },
+    select: { id: true },
   });
 
   return { metadata };
@@ -120,6 +121,7 @@ export async function $actionEditCTAs(ctx: SiteContext, formData: FormData) {
   await prisma.site.update({
     where: { id: ctx.site.id },
     data: { metadata: updated, date_modified: new Date().toISOString() },
+    select: { id: true },
   });
 
   return null;

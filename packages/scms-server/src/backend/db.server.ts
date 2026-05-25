@@ -255,6 +255,7 @@ export async function $updateSubmissionVersion(
         data: {
           date_published: data.date_published,
         },
+        select: { id: true },
       });
     }
 
@@ -282,12 +283,7 @@ export async function $updateSubmissionVersion(
         status: data.status,
         activity_type: ActivityType.SUBMISSION_VERSION_STATUS_CHANGE,
       },
-      include: {
-        kind: true,
-        activity_by: true,
-        work_version: { include: { work: true } },
-        submission_version: true,
-      },
+      select: { id: true },
     });
 
     return updated;
@@ -371,10 +367,7 @@ export async function updateSubmissionKind(
           },
         },
       },
-      include: {
-        activity_by: true,
-        kind: true,
-      },
+      select: { id: true },
     });
 
     return updated;
@@ -474,6 +467,7 @@ export async function dbCreateDraftWork(
           },
         },
       },
+      select: { id: true },
     });
 
     return newWork;
@@ -575,6 +569,7 @@ export async function dbCreateDraftWorkVersion(
           connect: { id: workVersionId },
         },
       },
+      select: { id: true },
     });
 
     return { workId, workVersionId, work };
@@ -608,6 +603,7 @@ export async function createWorkActivity(params: {
       ...(params.transition != null ? { transition: params.transition as object } : {}),
       ...(params.data != null ? { data: params.data as object } : {}),
     },
+    select: { id: true },
   });
 }
 
@@ -722,6 +718,7 @@ export async function dbCreateDraftSubmission(
           },
         },
       },
+      select: { id: true },
     });
 
     return submission;

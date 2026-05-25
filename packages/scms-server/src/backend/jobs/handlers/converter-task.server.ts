@@ -156,6 +156,7 @@ export async function converterTaskHandler(ctx: Context, data: CreateJob) {
       job_id: job.id,
       work_version_id: payload.work_version_id,
     },
+    select: { id: true },
   });
 
   const workVersionPayload = workVersionToPayload(workVersionRow);

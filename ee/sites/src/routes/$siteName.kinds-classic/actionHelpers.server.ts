@@ -116,6 +116,7 @@ export async function $actionKindEdit(ctx: SiteContext, formData: FormData) {
         name: payload.name,
         date_modified: new Date().toISOString(),
       },
+      select: { id: true },
     });
 
     if (payload.default) {
@@ -189,6 +190,7 @@ export async function $actionKindDelete(ctx: SiteContext, formData: FormData) {
             default: true,
             date_modified: new Date().toISOString(),
           },
+          select: { id: true },
         });
       }
     }

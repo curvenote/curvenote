@@ -39,6 +39,7 @@ export const blueskyOAuthSessionStore = {
           date_created: now,
           date_modified: now,
         },
+        select: { id: true },
       });
     });
   },
