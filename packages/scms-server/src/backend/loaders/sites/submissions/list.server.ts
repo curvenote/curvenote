@@ -74,7 +74,6 @@ export async function dbListSubmissions(
             select: {
               id: true,
               work_id: true,
-              metadata: true,
               title: true,
               description: true,
               authors: true,
@@ -145,7 +144,6 @@ type SubmissionVersionDBOFragment = {
   work_version: {
     id: string;
     work_id: string;
-    metadata: Prisma.JsonValue;
   };
   job_id: string | null;
 };
@@ -161,7 +159,6 @@ export function formatVersionSummaryDTO(ctx: SiteContext, dbo: SubmissionVersion
     },
     work_id: dbo.work_version.work_id,
     work_version_id: dbo.work_version.id,
-    work_version_metadata: dbo.work_version.metadata,
     job_id: dbo.job_id ?? undefined,
   };
 }
