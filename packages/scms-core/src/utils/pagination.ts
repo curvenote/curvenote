@@ -1,3 +1,8 @@
+/** True when the caller requested offset pagination (both `limit` and `page`, including `page: 0`). */
+export function isOffsetPaginationRequested(opts: { page?: number; limit?: number }): boolean {
+  return opts.limit !== undefined && opts.page !== undefined;
+}
+
 /**
  * Calculate the page values for the given total and options for previous and next pages.
  * Will return the previous and next page numbers only if they are in range.
@@ -9,8 +14,8 @@
 export function getPageValues(total: number, opts: { page?: number; limit?: number }) {
   let prev, next;
   if (opts?.limit) {
-    if (opts.page) {
-      const prevPage = Math.max(0, opts.page - 1);
+    if (opts.page !== undefined && opts.page > 0) {
+      const prevPage = opts.page - 1;
       if (prevPage * opts.limit < total) {
         prev = prevPage;
       } else {
@@ -38,7 +43,7 @@ export function makePaginationLinks<T extends { self: string; [key: string]: str
   links: T,
   total: number,
   opts: { page?: number; limit?: number },
-) {
+): T & { prev?: string; next?: string } {
   const updated: T & { prev?: string; next?: string } = { ...links };
 
   // no pagination if limit and page are not provided
@@ -46,10 +51,10 @@ export function makePaginationLinks<T extends { self: string; [key: string]: str
     return links;
   }
 
-  if (opts.limit || opts.page) {
+  if (opts.limit !== undefined || opts.page !== undefined) {
     const selfUrl = new URL(links.self);
-    if (opts.page) selfUrl.searchParams.set('page', opts.page.toString());
-    if (opts.limit && (opts.page || opts.limit < total)) {
+    if (opts.page !== undefined) selfUrl.searchParams.set('page', opts.page.toString());
+    if (opts.limit !== undefined && (opts.page !== undefined || opts.limit < total)) {
       selfUrl.searchParams.set('limit', opts.limit.toString());
     }
     updated.self = selfUrl.toString();
