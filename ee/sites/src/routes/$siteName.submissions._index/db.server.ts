@@ -1,7 +1,7 @@
 import type { SiteContext } from '@curvenote/scms-server';
 import { getPrismaClient } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
-import { dbLoadIndexVersionDates } from './index.versions.server.js';
+import { dbLoadIndexVersionDates, firstVersionTag } from './index.versions.server.js';
 
 /**
  * Route-local data access for the new submissions index listing.
@@ -41,7 +41,11 @@ export type IndexListingRow = {
     content: Prisma.JsonValue;
     workflow: string;
   };
-  versions: { status: string; work_version: WorkVersionMinimal }[];
+  versions: {
+    status: string;
+    tags: string[];
+    work_version: WorkVersionMinimal;
+  }[];
   publishedVersion?: { date_created: string };
   retractedVersion?: { date_created: string };
   versionTag?: string;
@@ -88,6 +92,7 @@ export async function dbListSubmissionsForIndex(
         orderBy: { date_created: 'desc' },
         select: {
           status: true,
+          tags: true,
           work_version: { select: { title: true, authors: true, doi: true } },
         },
       },
@@ -103,11 +108,12 @@ export async function dbListSubmissionsForIndex(
 
   return rows.map((row) => {
     const dates = versionDates.get(row.id);
+    const newestVersion = row.versions[0];
     return {
       ...row,
       publishedVersion: dates?.publishedVersion,
       retractedVersion: dates?.retractedVersion,
-      versionTag: dates?.versionTag,
+      versionTag: newestVersion ? firstVersionTag(newestVersion) : undefined,
     };
   });
 }

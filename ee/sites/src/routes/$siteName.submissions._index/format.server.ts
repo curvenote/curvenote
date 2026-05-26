@@ -5,7 +5,7 @@ import type { IndexListingRow } from './db.server.js';
 import type { SubmissionsIndexItem } from './types.js';
 
 /**
- * The listing card uses the newest version's title and authors.
+ * The listing card uses the newest version's title, authors, status, and version tag.
  *
  * `is_listed = true` guarantees that the newest version is not DRAFT/INCOMPLETE,
  * so the card never surfaces unfinished content. Submissions whose newest
