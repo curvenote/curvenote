@@ -8,6 +8,7 @@ import {
   formatDatetime,
   formatToNow,
   getStatusButtonClasses,
+  getStatusDotClasses,
   ui,
 } from '@curvenote/scms-core';
 import type { VersionTimelineEntry } from '../$siteName.submissions.$submissionId.versions/db.server.js';
@@ -49,7 +50,10 @@ function TimelineRow({ entry }: { entry: VersionTimelineEntry }) {
   return (
     <div className="relative flex gap-3">
       <span
-        className="relative z-10 mt-[3px] size-2.5 shrink-0 rounded-full bg-muted-foreground/60 ring-2 ring-popover"
+        className={cn(
+          'relative z-10 mt-[3px] size-2.5 shrink-0 rounded-full border border-gray-300 ring-2 ring-popover dark:border-gray-600',
+          getStatusDotClasses(entry.status),
+        )}
         aria-hidden
       />
       <div className="min-w-0 flex-1 space-y-1">
