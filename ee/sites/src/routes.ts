@@ -57,10 +57,7 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
               ),
               route(
                 'submissions-classic',
-                resolveRoutePath(
-                  import.meta.url,
-                  'routes/$siteName.submissions-classic/route.tsx',
-                ),
+                resolveRoutePath(import.meta.url, 'routes/$siteName.submissions-classic/route.tsx'),
               ),
               route(
                 'submissions',
