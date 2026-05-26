@@ -36,6 +36,7 @@ export function formatSubmissionsIndexItems(
       dateFirstSubmitted: row.date_created,
       dateLastUpdated: row.activity[0]?.date_created ?? row.date_created,
       doi: doiUtils.normalize(work?.doi ?? row.work?.doi),
+      versionTag: row.versionTag,
       status,
       statusLabel: workflow.states[status]?.label ?? status,
       publishedVersion: row.publishedVersion,

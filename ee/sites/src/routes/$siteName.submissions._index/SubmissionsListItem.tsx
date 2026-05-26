@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { summarizeAuthors } from '@curvenote/scms-core';
+import { summarizeAuthors, ui } from '@curvenote/scms-core';
 import {
   Collection,
   HasPublishedVersion,
@@ -31,7 +31,7 @@ export function SubmissionsListItem({
 
   return (
     <div className="border-b border-gray-200 px-5 py-4 last:border-b-0 dark:border-gray-700">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
         <div className="flex min-w-0 grow flex-col gap-0">
           <Link
             to={`/app/sites/${siteName}/submissions/${item.id}`}
@@ -65,6 +65,7 @@ export function SubmissionsListItem({
             {!item.publishedVersion && item.retractedVersion ? (
               <HasRetractedVersion date={item.retractedVersion.date_created} />
             ) : null}
+            {item.versionTag ? <ui.VersionTagBadge tag={item.versionTag} /> : null}
             {item.doi ? <DoiBadge doi={item.doi} /> : null}
           </div>
         </div>

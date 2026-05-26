@@ -1,6 +1,6 @@
-import { Tag as TagIcon } from 'lucide-react';
 import { Badge } from './badge.js';
 import { cn } from '../../utils/cn.js';
+import { VersionTagBadge } from './VersionTagBadge.js';
 
 export type TagChipsProps = {
   tags?: string[] | null;
@@ -18,9 +18,8 @@ export type TagChipsProps = {
 /**
  * Read-only display of work-version / submission-version tags as chips.
  *
- * Mirrors the existing `outline-muted` badge styling used elsewhere on cards
- * so tags blend with DOI/Slug/etc. badges. Renders nothing when `tags` is
- * empty so callers can drop it in unconditionally.
+ * Composes {@link VersionTagBadge} so tag styling matches listing metadata badges
+ * (DOI, version tag, etc.). Renders nothing when `tags` is empty.
  */
 export function TagChips({ tags, hideIcon = false, limit, titlePrefix, className }: TagChipsProps) {
   if (!tags || tags.length === 0) return null;
@@ -28,17 +27,8 @@ export function TagChips({ tags, hideIcon = false, limit, titlePrefix, className
   const overflow = limit != null ? Math.max(0, tags.length - limit) : 0;
   return (
     <div className={cn('flex flex-wrap gap-1 items-center', className)}>
-      {!hideIcon && <TagIcon className="size-3 text-muted-foreground shrink-0" aria-hidden />}
       {visible.map((tag) => (
-        <Badge
-          key={tag}
-          variant="outline-muted"
-          size="xs"
-          className="font-normal px-1.5 py-0"
-          title={titlePrefix ? `${titlePrefix}: ${tag}` : tag}
-        >
-          {tag}
-        </Badge>
+        <VersionTagBadge key={tag} tag={tag} titlePrefix={titlePrefix} hideIcon={hideIcon} />
       ))}
       {overflow > 0 && (
         <Badge

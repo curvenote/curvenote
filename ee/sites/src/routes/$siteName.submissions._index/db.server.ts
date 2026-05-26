@@ -44,6 +44,7 @@ export type IndexListingRow = {
   versions: { status: string; work_version: WorkVersionMinimal }[];
   publishedVersion?: { date_created: string };
   retractedVersion?: { date_created: string };
+  versionTag?: string;
   activity: { date_created: string }[];
 };
 
@@ -106,6 +107,7 @@ export async function dbListSubmissionsForIndex(
       ...row,
       publishedVersion: dates?.publishedVersion,
       retractedVersion: dates?.retractedVersion,
+      versionTag: dates?.versionTag,
     };
   });
 }

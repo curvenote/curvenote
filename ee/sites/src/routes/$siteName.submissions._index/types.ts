@@ -11,6 +11,7 @@ export type SubmissionsIndexItem = {
   dateFirstSubmitted: string;
   dateLastUpdated: string;
   doi?: string;
+  versionTag?: string;
   status: string;
   statusLabel: string;
   publishedVersion?: { date_created: string };
