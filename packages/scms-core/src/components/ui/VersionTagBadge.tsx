@@ -1,16 +1,23 @@
+import type { ComponentType, SVGProps } from 'react';
 import { GitBranch } from 'lucide-react';
 import { Badge } from './badge.js';
 import { cn } from '../../utils/cn.js';
 
 export type VersionTagBadgeEmphasis = 'outline' | 'solid' | 'latest' | 'previous';
 
+type VersionTagBadgeIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
 export type VersionTagBadgeProps = {
   tag: string;
   /** Tooltip text; defaults to `titlePrefix: tag` or the tag value. */
   title?: string;
   titlePrefix?: string;
-  /** Hide the GitBranch icon. */
+  /** Hide the leading icon. */
   hideIcon?: boolean;
+  /** Override the leading icon (defaults to `GitBranch`). */
+  icon?: VersionTagBadgeIcon;
+  /** Suppress the native title tooltip (use when wrapped in a popover/hover card). */
+  disableTooltip?: boolean;
   /**
    * `outline` — muted outline badge (listings, timelines, DOI-adjacent metadata).
    * `solid` / `latest` / `previous` — filled badges for version emphasis (e.g. checks timeline).
@@ -32,7 +39,7 @@ function versionTagTitle(tag: string, title?: string, titlePrefix?: string) {
 }
 
 /**
- * Single work/submission version tag — GitBranch icon plus tag label.
+ * Single work/submission version tag — leading icon plus tag label.
  * Used on listing rows and as the building block for {@link TagChips}.
  */
 export function VersionTagBadge({
@@ -40,10 +47,12 @@ export function VersionTagBadge({
   title,
   titlePrefix,
   hideIcon = false,
+  icon: Icon = GitBranch,
+  disableTooltip = false,
   emphasis = 'outline',
   className,
 }: VersionTagBadgeProps) {
-  const label = versionTagTitle(tag, title, titlePrefix);
+  const label = disableTooltip ? undefined : versionTagTitle(tag, title, titlePrefix);
 
   if (emphasis === 'outline') {
     return (
@@ -53,7 +62,7 @@ export function VersionTagBadge({
         className={cn('font-normal px-1.5 py-0 font-mono', className)}
         title={label}
       >
-        {!hideIcon ? <GitBranch className="size-3" aria-hidden /> : null}
+        {!hideIcon ? <Icon className="size-3" aria-hidden /> : null}
         {tag}
       </Badge>
     );
@@ -68,7 +77,7 @@ export function VersionTagBadge({
       )}
       title={label}
     >
-      {!hideIcon ? <GitBranch className="size-3 shrink-0" aria-hidden /> : null}
+      {!hideIcon ? <Icon className="size-3 shrink-0" aria-hidden /> : null}
       {tag}
     </span>
   );

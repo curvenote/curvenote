@@ -2,14 +2,20 @@ import { formatDate, formatToNow, primitives } from '@curvenote/scms-core';
 import type { SubmissionsListItemDTO } from '@curvenote/common';
 import { LockOpen, Lock, History } from 'lucide-react';
 
-export function HasPublishedVersion({ date }: { date?: string }) {
+export function HasPublishedVersion({
+  date,
+  disableTooltip,
+}: {
+  date?: string;
+  disableTooltip?: boolean;
+}) {
   return (
     <primitives.Chip
       className="border border-green-700 bg-green-50 text-green-700 dark:border-green-600 dark:bg-green-950/30 dark:text-green-300"
       title={
-        date
-          ? `latest published version was created on ${formatDate(date, 'yyyy-MM-dd')}`
-          : undefined
+        disableTooltip || !date
+          ? undefined
+          : `latest published version was created on ${formatDate(date, 'yyyy-MM-dd')}`
       }
     >
       Published
@@ -17,12 +23,20 @@ export function HasPublishedVersion({ date }: { date?: string }) {
   );
 }
 
-export function HasRetractedVersion({ date }: { date?: string }) {
+export function HasRetractedVersion({
+  date,
+  disableTooltip,
+}: {
+  date?: string;
+  disableTooltip?: boolean;
+}) {
   return (
     <primitives.Chip
       className="text-white bg-red-800 dark:bg-red-500"
       title={
-        date ? `This submission was retracted on ${formatDate(date, 'yyyy-MM-dd')}` : undefined
+        disableTooltip || !date
+          ? undefined
+          : `This submission was retracted on ${formatDate(date, 'yyyy-MM-dd')}`
       }
     >
       Retracted
