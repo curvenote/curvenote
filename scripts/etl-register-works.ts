@@ -584,11 +584,7 @@ function buildPayload(
 }
 
 async function drainResponse(response: Response): Promise<void> {
-  try {
-    await response.arrayBuffer();
-  } catch {
-    await response.body?.cancel().catch(() => undefined);
-  }
+  await response.body?.cancel().catch(() => undefined);
 }
 
 async function registerWork(
@@ -624,22 +620,18 @@ async function runPool(
   worker: (item: PlannedRegistration) => Promise<void>,
 ): Promise<void> {
   let nextIndex = 0;
-  let planLock: Promise<void> = Promise.resolve();
 
-  function takeNext(): Promise<PlannedRegistration | undefined> {
-    const itemPromise = planLock.then(() => {
-      const index = nextIndex;
-      nextIndex += 1;
-      if (index >= total) return undefined;
-      return nextItem();
-    });
-    planLock = itemPromise.then(() => undefined);
-    return itemPromise;
+  // Synchronous dequeue: plan.next() is sync, and Node won't interleave other
+  // tasks until we await worker(), so no promise-chain lock is needed.
+  function takeNext(): PlannedRegistration | undefined {
+    if (nextIndex >= total) return undefined;
+    nextIndex += 1;
+    return nextItem();
   }
 
   async function runner() {
     while (true) {
-      const item = await takeNext();
+      const item = takeNext();
       if (!item) return;
       await worker(item);
     }
