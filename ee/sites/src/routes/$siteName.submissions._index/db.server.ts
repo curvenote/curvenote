@@ -1,6 +1,7 @@
 import type { SiteContext } from '@curvenote/scms-server';
 import { getPrismaClient } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
+import { dbLoadIndexVersionDates } from './index.versions.server.js';
 
 /**
  * Route-local data access for the new submissions index listing.
@@ -28,9 +29,22 @@ type WorkVersionMinimal = {
 
 export type IndexListingRow = {
   id: string;
+  date_created: string;
   date_published: string | null;
   work: { doi: string | null } | null;
-  versions: { work_version: WorkVersionMinimal }[];
+  kind: { id: string; name: string; content: Prisma.JsonValue };
+  collection: {
+    id: string;
+    name: string;
+    slug: string;
+    open: boolean;
+    content: Prisma.JsonValue;
+    workflow: string;
+  };
+  versions: { status: string; work_version: WorkVersionMinimal }[];
+  publishedVersion?: { date_created: string };
+  retractedVersion?: { date_created: string };
+  activity: { date_created: string }[];
 };
 
 function buildIndexListingWhere(siteId: string): Prisma.SubmissionWhereInput {
@@ -47,22 +61,51 @@ export async function dbListSubmissionsForIndex(
   { page, perPage }: { page: number; perPage: number },
 ): Promise<IndexListingRow[]> {
   const prisma = await getPrismaClient();
-  return prisma.submission.findMany({
+  const rows = await prisma.submission.findMany({
     where: buildIndexListingWhere(ctx.site.id),
     orderBy: [{ date_published: 'desc' }, { date_created: 'desc' }],
     skip: (page - 1) * perPage,
     take: perPage,
     select: {
       id: true,
+      date_created: true,
       date_published: true,
       work: { select: { doi: true } },
+      kind: { select: { id: true, name: true, content: true } },
+      collection: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          open: true,
+          content: true,
+          workflow: true,
+        },
+      },
       versions: {
         take: 1,
         orderBy: { date_created: 'desc' },
         select: {
+          status: true,
           work_version: { select: { title: true, authors: true, doi: true } },
         },
       },
+      activity: {
+        take: 1,
+        orderBy: { date_created: 'desc' },
+        select: { date_created: true },
+      },
     },
+  });
+
+  const versionDates = await dbLoadIndexVersionDates(rows.map((row) => row.id));
+
+  return rows.map((row) => {
+    const dates = versionDates.get(row.id);
+    return {
+      ...row,
+      publishedVersion: dates?.publishedVersion,
+      retractedVersion: dates?.retractedVersion,
+    };
   });
 }

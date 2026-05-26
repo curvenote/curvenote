@@ -37,6 +37,8 @@ const PaginationSchema = z.object({
 interface LoaderData {
   site: SubmissionListingSiteContext;
   submissions: SubmissionsIndexPage;
+  defaultCollectionOnly: boolean;
+  singleKindOnly: boolean;
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -56,11 +58,13 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   return {
     site: formatSubmissionListingSiteContext(ctx),
     submissions: {
-      items: formatSubmissionsIndexItems(rows),
+      items: formatSubmissionsIndexItems(ctx, rows),
       page,
       perPage,
       total,
     },
+    defaultCollectionOnly: ctx.site.collections.length === 1 && ctx.site.collections[0].default,
+    singleKindOnly: (ctx.site.submissionKinds ?? []).length === 1,
   };
 }
 
@@ -70,7 +74,7 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 };
 
 export default function Submissions({ loaderData }: { loaderData: LoaderData }) {
-  const { site, submissions } = loaderData;
+  const { site, submissions, defaultCollectionOnly, singleKindOnly } = loaderData;
 
   const breadcrumbs = [
     { label: 'Sites', href: '/app/sites' },
@@ -90,7 +94,12 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
           perPage={submissions.perPage}
           total={submissions.total}
         />
-        <SubmissionsList siteName={site.name} items={submissions.items} />
+        <SubmissionsList
+          siteName={site.name}
+          items={submissions.items}
+          showCollectionChip={!defaultCollectionOnly}
+          showKindChip={!singleKindOnly}
+        />
         <SubmissionsPagination
           page={submissions.page}
           perPage={submissions.perPage}
