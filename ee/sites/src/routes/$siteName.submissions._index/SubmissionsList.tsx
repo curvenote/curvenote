@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { formatDate, summarizeAuthors } from '@curvenote/scms-core';
 import type { SubmissionsIndexItem } from './types.js';
+import { DoiBadge } from './DoiBadge.js';
 
 const AUTHORS_MAX_DISPLAY = 5;
 
@@ -20,41 +21,45 @@ export function SubmissionsList({ siteName, items }: SubmissionsListProps) {
 
   return (
     <div className="container mx-auto max-w-6xl">
-      <div className="overflow-hidden rounded-sm border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+      <div className="overflow-hidden bg-white rounded-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-900">
         {items.map((item) => {
           const authorSummary = summarizeAuthors(item.authors, { maxDisplay: AUTHORS_MAX_DISPLAY });
           const fullAuthorList = item.authors.map((author) => author.name).join(', ');
 
           return (
-          <div
-            key={item.id}
-            className="border-b border-gray-200 px-5 py-4 last:border-b-0 dark:border-gray-700"
-          >
-            <div className="flex min-w-0 flex-col gap-0">
-              <Link
-                to={`/app/sites/${siteName}/submissions/${item.id}`}
-                className="text-base font-medium leading-snug text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                {item.title || 'Untitled submission'}
-              </Link>
-              {authorSummary ? (
-                <p
-                  className="text-sm font-light text-gray-600 dark:text-gray-400"
-                  title={fullAuthorList}
+            <div
+              key={item.id}
+              className="px-5 py-4 border-b border-gray-200 last:border-b-0 dark:border-gray-700"
+            >
+              <div className="flex flex-col gap-0 min-w-0">
+                <Link
+                  to={`/app/sites/${siteName}/submissions/${item.id}`}
+                  className="text-base font-medium leading-snug text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  {authorSummary}
+                  {item.title || 'Untitled submission'}
+                </Link>
+                {authorSummary ? (
+                  <p
+                    className="text-sm font-light text-gray-600 dark:text-gray-400"
+                    title={fullAuthorList}
+                  >
+                    {authorSummary}
+                  </p>
+                ) : (
+                  <p className="text-sm italic font-light text-gray-600 dark:text-gray-400">
+                    No authors listed
+                  </p>
+                )}
+                <p className="text-sm font-light text-gray-600 dark:text-gray-400">
+                  Publication Date: {item.datePublished ? formatDate(item.datePublished) : 'n/a'}
                 </p>
-              ) : (
-                <p className="text-sm font-light italic text-gray-600 dark:text-gray-400">
-                  No authors listed
-                </p>
-              )}
-              <p className="text-sm font-light text-gray-600 dark:text-gray-400">
-                Publication Date:{' '}
-                {item.datePublished ? formatDate(item.datePublished) : 'n/a'}
-              </p>
+                {item.doi ? (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <DoiBadge doi={item.doi} />
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
           );
         })}
       </div>

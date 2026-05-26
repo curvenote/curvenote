@@ -3,6 +3,7 @@ export type SubmissionsIndexItem = {
   title: string;
   authors: { name: string }[];
   datePublished?: string;
+  doi?: string;
 };
 
 export type SubmissionsIndexPage = {

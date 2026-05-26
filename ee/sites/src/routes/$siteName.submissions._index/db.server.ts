@@ -23,11 +23,13 @@ import type { Prisma } from '@curvenote/scms-db';
 type WorkVersionMinimal = {
   title: string;
   authors: string[];
+  doi: string | null;
 };
 
 export type IndexListingRow = {
   id: string;
   date_published: string | null;
+  work: { doi: string | null } | null;
   versions: { work_version: WorkVersionMinimal }[];
 };
 
@@ -53,11 +55,12 @@ export async function dbListSubmissionsForIndex(
     select: {
       id: true,
       date_published: true,
+      work: { select: { doi: true } },
       versions: {
         take: 1,
         orderBy: { date_created: 'desc' },
         select: {
-          work_version: { select: { title: true, authors: true } },
+          work_version: { select: { title: true, authors: true, doi: true } },
         },
       },
     },

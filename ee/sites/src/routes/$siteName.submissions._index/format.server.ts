@@ -1,3 +1,4 @@
+import { doi as doiUtils } from 'doi-utils';
 import type { IndexListingRow } from './db.server.js';
 import type { SubmissionsIndexItem } from './types.js';
 
@@ -21,6 +22,7 @@ export function formatSubmissionsIndexItems(rows: IndexListingRow[]): Submission
         .filter((name) => typeof name === 'string' && name.trim().length > 0)
         .map((name) => ({ name })),
       datePublished: row.date_published ?? undefined,
+      doi: doiUtils.normalize(work?.doi ?? row.work?.doi),
     };
   });
 }
