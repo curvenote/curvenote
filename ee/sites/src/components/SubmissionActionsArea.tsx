@@ -4,10 +4,10 @@ import {
   getValidTransition,
   useDeploymentConfig,
 } from '@curvenote/scms-core';
-import type { SubmissionListingSiteContext } from '../routes/$siteName.submissions._index/site-context.format.server.js';
+import type { SubmissionListingSiteContext } from '../routes/$siteName.submissions-classic/site-context.format.server.js';
 import type { WorkflowTransition } from '@curvenote/scms-core';
 import { useOptimisticTransition, useJobPolling, useTransitionFetcher } from '../hooks/index.js';
-import type { AugmentedSubmissionListingItem } from '../routes/$siteName.submissions._index/types.js';
+import type { AugmentedSubmissionListingItem } from '../routes/$siteName.submissions-classic/types.js';
 
 interface SubmissionActionsAreaProps {
   site: SubmissionListingSiteContext;

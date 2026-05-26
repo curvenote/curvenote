@@ -3,7 +3,7 @@ import type { SiteContext } from '@curvenote/scms-server';
 import { signPrivateUrls } from '@curvenote/scms-server';
 import { coerceToObject, type WorkflowTransition } from '@curvenote/scms-core';
 import { formatSiteLayoutSite } from '../$siteName/layout.format.server.js';
-import { findImportantVersions } from '../$siteName.submissions._index/listing.utils.server.js';
+import { findImportantVersions } from '../$siteName.submissions-classic/listing.utils.server.js';
 import type {
   SubmissionDetailActivity,
   SubmissionDetailSiteContext,
