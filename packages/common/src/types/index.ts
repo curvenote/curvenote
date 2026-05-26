@@ -1,5 +1,5 @@
 import type { FileUploadResponse, UploadFileInfo } from '@curvenote/blocks';
-export type { UploadFileInfo, FileUploadResponse } from '@curvenote/blocks';
+export type { UploadFileInfo, FileUploadResponse, SignedUploadInfo } from '@curvenote/blocks';
 import type { CheckDTO } from './checks.js';
 import type { JournalThemeConfig } from './journal.js';
 import type { MystPlugin } from 'myst-common';
@@ -133,6 +133,7 @@ export type WorkVersion = {
   doi?: string;
   collection: Pick<CollectionDTO, 'id' | 'name' | 'slug' | 'content' | 'open' | 'workflow'>;
   canonical?: boolean;
+  tags?: string[];
 };
 
 /**
@@ -144,10 +145,13 @@ export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind' | 'date_published'
     /** @deprecated - date_published is favored over date */
     date?: string;
     submission_version_id: string;
+    submission_id: string;
     links: {
       self: string;
       site: string;
       work: string;
+      submission: string;
+      versions: string;
       config?: string;
       thumbnail?: string;
       social?: string;
@@ -244,6 +248,7 @@ export type SubmissionVersionDTO = {
   site_name: string;
   site_work: SiteWorkDTO;
   job_id?: string;
+  tags?: string[];
   links: {
     self: string;
     site: string;
@@ -346,9 +351,12 @@ export type SubmissionsListItemDTO = {
 
 export type SubmissionsListingDTO = {
   items: SubmissionsListItemDTO[];
+  total: number;
   links: {
     self: string;
     site: string;
+    prev?: string;
+    next?: string;
   };
 };
 

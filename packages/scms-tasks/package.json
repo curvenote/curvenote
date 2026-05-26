@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/scms-tasks",
-  "version": "0.17.0",
+  "version": "0.19.0",
   "description": "SCMS tasks library: job client and helpers for cloud runners",
   "type": "module",
   "engines": {
@@ -29,12 +29,13 @@
     "dev": "npm-run-all -l -p dev:esm",
     "lint": "eslint \"src/**/*.ts\" -c ./.eslintrc.cjs",
     "lint:format": "prettier --check \"src/**/*.ts\"",
+    "lint:format:fix": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@curvenote/common": "^0.4.2"
+    "@curvenote/common": "^0.5.1"
   },
   "peerDependencies": {
     "express": ">=4"

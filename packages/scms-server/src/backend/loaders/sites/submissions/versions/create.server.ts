@@ -2,7 +2,7 @@ import type { ClientExtension } from '@curvenote/scms-core';
 import { error401, TrackEvent, asSiteSubmissionUrl, asSiteWorkUrl } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import { formatSubmissionVersionDTO } from './get.server.js';
-import { formatDate } from '@curvenote/common';
+import { formatDate, normalizeExplicitTags } from '@curvenote/common';
 import { ActivityType } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 import type { SiteContext } from '../../../../context.site.server.js';
@@ -24,6 +24,8 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
   submissionId: string,
   workVersionId: string,
   jobId?: string,
+  metadata?: Record<string, any>,
+  tags?: string[],
 ) {
   if (!ctx.user) throw error401();
   const user = ctx.user;
@@ -33,6 +35,7 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
 
   // Get the workflow for the submission
   const workflow = await dbGetWorkflowForSubmission(ctx, submissionId, extensions);
+  const submissionTags = normalizeExplicitTags(tags);
 
   return prisma.$transaction(async (tx) => {
     const sv = await tx.submissionVersion.create({
@@ -46,6 +49,8 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
           },
         },
         status: workflow.initialState,
+        tags: submissionTags,
+        metadata: metadata ?? undefined,
         work_version: {
           connect: {
             id: workVersionId,
@@ -104,12 +109,7 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
           },
         },
       },
-      include: {
-        activity_by: true,
-        kind: true,
-        submission_version: true,
-        work_version: { include: { work: true } },
-      },
+      select: { id: true },
     });
 
     return sv;
@@ -122,6 +122,8 @@ export default async function (
   submissionId: string,
   workVersionId: string,
   jobId?: string,
+  metadata?: Record<string, any>,
+  tags?: string[],
 ) {
   if (!ctx.user) throw error401();
   const dbo = await dbCreateNewSubmissionVersionOnExistingSubmission(
@@ -130,6 +132,8 @@ export default async function (
     submissionId,
     workVersionId,
     jobId,
+    metadata,
+    tags,
   );
 
   await ctx.trackEvent(TrackEvent.SUBMISSION_VERSION_CREATED, {

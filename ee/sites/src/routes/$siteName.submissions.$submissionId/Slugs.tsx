@@ -3,10 +3,9 @@ import { SquarePen, SquareCheckBig, Trash2, CirclePlus } from 'lucide-react';
 import classNames from 'classnames';
 import { formatDistanceToNow } from 'date-fns';
 import type { SlugsDTO } from './types.server.js';
-import type { SiteDTO } from '@curvenote/common';
 import { primitives } from '@curvenote/scms-core';
 
-export function getSlugSuggestion(site: SiteDTO, doi?: string) {
+export function getSlugSuggestion(site: { name: string }, doi?: string) {
   const secondPartOfDoi = doi?.split('/')[1];
   return secondPartOfDoi ?? `${site.name}-`;
 }

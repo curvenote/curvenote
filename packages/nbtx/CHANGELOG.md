@@ -1,5 +1,20 @@
 # @curvenote/nbtx
 
+## 1.0.2
+
+### Patch Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add `lint:format:fix` where missing and refresh internal dependency ranges (no API changes).
+
+- Updated dependencies [[`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56)]:
+  - @curvenote/blocks@1.6.3
+
+## 1.0.1
+
+### Patch Changes
+
+- [#881](https://github.com/curvenote/curvenote/pull/881) [`bfb48cc`](https://github.com/curvenote/curvenote/commit/bfb48cc7ae25d98236e2443dd014c8a887b3b0a0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bump myst to v1.9.0
+
 ## 1.0.0
 
 ### Minor Changes

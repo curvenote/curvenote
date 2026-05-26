@@ -8,5 +8,6 @@ export * from './list.server.js';
 export { default as get } from './get.server.js';
 export * from './get.server.js';
 export { default as doi } from './doi.server.js';
+export type { SiteDoiResolveOptions } from './doi.server.js';
 export { default as update } from './update.server.js';
 export * from './create.server.js';

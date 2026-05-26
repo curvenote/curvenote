@@ -178,6 +178,7 @@ export async function assignRoleToUser(data: AssignRoleData): Promise<UserRoleWi
         user_id: data.userId,
         role_id: data.roleId,
       },
+      select: { id: true },
     });
 
     return userRole;
@@ -221,11 +222,13 @@ export async function removeRoleFromUser(
           user_id: userRole.user_id,
           role_id: userRole.role_id,
         },
+        select: { id: true },
       });
 
       // Delete the user role after logging the activity
       await tx.userRole.delete({
         where: { id: userRoleId },
+        select: { id: true },
       });
 
       return { success: true };

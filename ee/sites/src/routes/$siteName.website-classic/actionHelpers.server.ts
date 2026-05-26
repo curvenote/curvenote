@@ -48,6 +48,7 @@ export async function $actionEditNavLinks(ctx: SiteContext, formData: FormData) 
   await prisma.site.update({
     where: { id: ctx.site.id },
     data: { metadata, date_modified: new Date().toISOString() },
+    select: { id: true },
   });
 
   return { metadata };
@@ -120,6 +121,7 @@ export async function $actionEditCTAs(ctx: SiteContext, formData: FormData) {
   await prisma.site.update({
     where: { id: ctx.site.id },
     data: { metadata: updated, date_modified: new Date().toISOString() },
+    select: { id: true },
   });
 
   return null;
@@ -133,7 +135,11 @@ export async function $actionEditLogo(ctx: SiteContext, formData: FormData) {
     if (intent === INTENTS.logoUpdate) {
       const logoPath = formData.get('logoPath') as string;
       const publicCdn = ctx.$config.api.knownBucketInfoMap.pub.cdn;
-      updatedMetadata.logo = `${publicCdn}/${logoPath}`;
+      if (publicCdn) {
+        updatedMetadata.logo = `${publicCdn.replace(/\/+$/, '')}/${logoPath.replace(/^\/+/, '')}`;
+      } else {
+        updatedMetadata.logo = logoPath;
+      }
     } else if (intent === INTENTS.logoRemove) {
       delete updatedMetadata.logo;
     }

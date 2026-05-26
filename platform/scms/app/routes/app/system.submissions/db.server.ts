@@ -18,12 +18,36 @@ export async function dbGetSiteSubmission(siteName: string) {
         },
         include: {
           work_version: {
-            include: {
+            select: {
+              id: true,
+              work_id: true,
+              date_created: true,
+              date: true,
+              title: true,
+              description: true,
+              authors: true,
+              doi: true,
+              cdn: true,
+              cdn_key: true,
+              draft: true,
+              canonical: true,
+              tags: true,
               work: {
-                include: {
+                select: {
+                  id: true,
+                  doi: true,
+                  key: true,
                   work_users: {
-                    include: {
-                      user: true,
+                    select: {
+                      id: true,
+                      role: true,
+                      user: {
+                        select: {
+                          id: true,
+                          display_name: true,
+                          email: true,
+                        },
+                      },
                     },
                   },
                 },

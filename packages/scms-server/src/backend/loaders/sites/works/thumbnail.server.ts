@@ -5,6 +5,7 @@ import {
 } from '../submissions/published/get.server.js';
 import { error401, error404 } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../prisma.server.js';
+import { submissionVersionForSiteWorkSelect } from '../../../prisma.selects.server.js';
 import * as cdnlib from '@curvenote/cdn';
 
 async function dbGetLatestSubmissionVersion(siteName: string, workIdOrSlug: string) {
@@ -36,9 +37,7 @@ async function dbGetLatestSubmissionVersion(siteName: string, workIdOrSlug: stri
     orderBy: {
       date_created: 'desc',
     },
-    include: {
-      work_version: true,
-    },
+    select: submissionVersionForSiteWorkSelect,
   });
 }
 

@@ -144,3 +144,22 @@ export function makeSkipRebuildOption() {
     false,
   );
 }
+
+export function makeLookupKeyOption() {
+  return new Option('--key <mode>', 'Lookup route for existing work: "id" (project.id) or "doi"')
+    .choices(['id', 'doi'])
+    .default('id');
+}
+
+export function makeTagsOption() {
+  return new Option(
+    '--tags <tags>',
+    'Comma-separated list of tags applied to the new submission version (e.g. "v1,preprint"). Repeat the flag to append.',
+  ).argParser((value, previous?: string[]) => {
+    const items = value
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+    return [...(previous ?? []), ...items];
+  });
+}

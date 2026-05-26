@@ -1,5 +1,25 @@
 # @curvenote/task-converter
 
+## 0.3.3
+
+### Patch Changes
+
+- Updated dependencies [[`03834a3`](https://github.com/curvenote/curvenote/commit/03834a326320818fdc071bc0d4ef1e853038f441), [`790d919`](https://github.com/curvenote/curvenote/commit/790d919e1d7a8d0ec881eff9c2a5ca03e28732f3)]:
+  - @curvenote/scms-core@0.19.0
+  - @curvenote/common@0.5.1
+  - @curvenote/scms-tasks@0.19.0
+
+## 0.3.2
+
+### Patch Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add `lint:format:fix` where missing and refresh internal dependency ranges (no API changes).
+
+- Updated dependencies [[`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56), [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56)]:
+  - @curvenote/common@0.5.0
+  - @curvenote/scms-core@0.18.0
+  - @curvenote/scms-tasks@0.18.0
+
 ## 0.3.1
 
 ### Patch Changes

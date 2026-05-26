@@ -10,24 +10,18 @@ import {
 } from '@curvenote/scms-core';
 import { Link2, Copy, XCircle, Plus, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 import classNames from 'classnames';
-import type { MagicLink } from '@curvenote/scms-db';
 import { DeleteMagicLinkDialog } from './DeleteMagicLinkDialog.js';
 import { ConfirmMagicLinkActionDialog } from './ConfirmMagicLinkActionDialog.js';
-import type { SiteWithAppData } from '../../backend/db.server.js';
-
-interface MagicLinkWithCount extends MagicLink {
-  access_count: number;
-}
-
-interface LoaderData {
-  userScopes: string[];
-  site: { name: string };
-  siteWithAppData: SiteWithAppData;
-  magicLinks?: MagicLinkWithCount[];
-}
+import type { SubmissionDetailPageData } from './loader.server.js';
+import type { MagicLinkWithAccessCount } from './types.js';
 
 export function MagicLinks() {
-  const { userScopes, site, siteWithAppData, magicLinks = [] } = useLoaderData() as LoaderData;
+  const {
+    userScopes,
+    site,
+    siteWithAppData,
+    magicLinks = [],
+  } = useLoaderData() as SubmissionDetailPageData;
   const apiBaseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const fetcher = useFetcher();
   const [showForm, setShowForm] = useState(false);
@@ -105,7 +99,7 @@ export function MagicLinks() {
     // Don't close form immediately - wait for success/error response
   };
 
-  const getLinkStatus = (link: MagicLinkWithCount) => {
+  const getLinkStatus = (link: MagicLinkWithAccessCount) => {
     if (link.revoked) {
       return { label: 'Revoked', color: 'text-red-600', icon: XCircle };
     }

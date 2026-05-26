@@ -6,7 +6,6 @@ import {
   revokeMagicLink,
   reactivateMagicLink,
   deleteMagicLink,
-  getMagicLinksForSubmission,
   getMagicLink,
 } from '@curvenote/scms-server';
 import { TrackEvent, formatZodError } from '@curvenote/scms-core';
@@ -299,8 +298,4 @@ export async function actionDeleteMagicLink(
     console.error('Error deleting magic link:', error);
     return data({ error: 'Failed to delete magic link' }, { status: 500 });
   }
-}
-
-export async function loadMagicLinks(submissionId: string) {
-  return getMagicLinksForSubmission(submissionId);
 }

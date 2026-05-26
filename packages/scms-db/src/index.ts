@@ -12,7 +12,8 @@
  * ```
  */
 
-import { PrismaClient, Prisma } from './generated/client.js';
+import type { Prisma } from './generated/client.js';
+import { PrismaClient } from './generated/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
@@ -21,6 +22,34 @@ const g = globalThis as unknown as {
   __prisma?: PrismaClient;
   __prismaInit?: Promise<PrismaClient>;
 };
+
+function isPrismaQueryDebugEnabled(): boolean {
+  if (process.env.NODE_ENV === 'production') return false;
+  const flag = process.env.PRISMA_DEBUG_QUERIES?.toLowerCase();
+  return flag === '1' || flag === 'true' || flag === 'yes';
+}
+
+type PrismaQueryEvent = {
+  timestamp: Date;
+  query: string;
+  params: string;
+  duration: number;
+  target: string;
+};
+
+function attachQueryDebugLogging(client: PrismaClient): void {
+  (
+    client as unknown as { $on(event: 'query', callback: (event: PrismaQueryEvent) => void): void }
+  ).$on('query', (event) => {
+    console.log('\n' + '─'.repeat(80));
+    console.log(`[prisma:query] ${event.duration}ms`);
+    console.log(event.query);
+    if (event.params !== '[]') {
+      console.log('Params:', event.params);
+    }
+    console.log('─'.repeat(80) + '\n');
+  });
+}
 
 /**
  * Creates a PrismaClient instance with the PostgreSQL adapter.
@@ -45,18 +74,34 @@ function makeClient(connectionString?: string, dbCACertificate?: string): Prisma
   });
 
   const adapter = new PrismaPg(pool);
+  const debugQueries = isPrismaQueryDebugEnabled();
 
   const opts: Prisma.PrismaClientOptions = {
     adapter,
-    log: process.env.NODE_ENV !== 'production' ? ['warn', 'error'] : ['error'],
+    log: debugQueries
+      ? [
+          { level: 'query', emit: 'event' },
+          { level: 'warn', emit: 'stdout' },
+          { level: 'error', emit: 'stdout' },
+        ]
+      : process.env.NODE_ENV !== 'production'
+        ? ['warn', 'error']
+        : ['error'],
     errorFormat: process.env.NODE_ENV !== 'production' ? 'pretty' : 'colorless',
     transactionOptions: {
       maxWait: 5000, // wait for a pooled backend slot
-      timeout: 10000, // long transaction guard
+      // Interactive txs (writes) can span several queries; 10s was too tight for slow dev DBs / large reads mistaken for txs.
+      timeout: 30000,
     },
   };
 
-  return new PrismaClient(opts);
+  const client = new PrismaClient(opts);
+
+  if (debugQueries) {
+    attachQueryDebugLogging(client);
+  }
+
+  return client;
 }
 
 /**
@@ -75,7 +120,10 @@ function makeClient(connectionString?: string, dbCACertificate?: string): Prisma
 
  * 
  */
-export async function getLowLevelPrismaClient(connectionString?: string, dbCACertificate?: string): Promise<PrismaClient> {
+export async function getLowLevelPrismaClient(
+  connectionString?: string,
+  dbCACertificate?: string,
+): Promise<PrismaClient> {
   if (g.__prisma) return g.__prisma;
   if (g.__prismaInit) return g.__prismaInit;
 

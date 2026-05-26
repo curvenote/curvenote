@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/task-converter",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "Node.js server for the task converter service (Cloud Run style, local build and run)",
   "type": "module",
   "main": "dist/index.js",
@@ -17,12 +17,13 @@
     "ensure-typst-plain": "bash scripts/ensure-typst-plain.sh",
     "dev": "npm run ensure-typst-plain && npm run clean && npm run build && NODE_ENV=development concurrently \"npm run build:watch\" \"nodemon\"",
     "lint": "eslint \"src/**/*.ts\" -c ./.eslintrc.cjs",
-    "lint:format": "npx prettier --check \"src/**/*.ts\""
+    "lint:format": "npx prettier --check \"src/**/*.ts\"",
+    "lint:format:fix": "npx prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
-    "@curvenote/common": "^0.4.2",
-    "@curvenote/scms-core": "^0.17.0",
-    "@curvenote/scms-tasks": "^0.17.0",
+    "@curvenote/common": "^0.5.1",
+    "@curvenote/scms-core": "^0.19.0",
+    "@curvenote/scms-tasks": "^0.19.0",
     "express": "^4.18.1"
   },
   "devDependencies": {

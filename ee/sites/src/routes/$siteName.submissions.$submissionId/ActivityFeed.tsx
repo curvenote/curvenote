@@ -1,6 +1,6 @@
 import { formatDistance } from 'date-fns';
 import { Activity } from 'lucide-react';
-import type { SubmissionDTO, SubmissionActivityDTO } from '@curvenote/common';
+import type { SubmissionDetailActivity } from './types.js';
 import {
   SectionWithHeading,
   primitives,
@@ -8,7 +8,7 @@ import {
   getActivityTypeLabel,
 } from '@curvenote/scms-core';
 
-function ActivityItemBody({ activity }: { activity: SubmissionActivityDTO }) {
+function ActivityItemBody({ activity }: { activity: SubmissionDetailActivity }) {
   const { activity_type, activity_by, status, kind, submission_version, date_published } = activity;
 
   let tagColor = 'before:bg-green-600';
@@ -47,7 +47,7 @@ function ActivityItemBody({ activity }: { activity: SubmissionActivityDTO }) {
   );
 }
 
-export default function ActivityTable({ activities }: { activities: SubmissionActivityDTO[] }) {
+export default function ActivityTable({ activities }: { activities: SubmissionDetailActivity[] }) {
   return (
     <div className="space-y-4">
       {activities.map((a) => (
@@ -69,11 +69,11 @@ export default function ActivityTable({ activities }: { activities: SubmissionAc
   );
 }
 
-export function ActivityFeed({ submission }: { submission: SubmissionDTO }) {
+export function ActivityFeed({ activities }: { activities: SubmissionDetailActivity[] }) {
   return (
     <SectionWithHeading heading="Activity Feed" icon={Activity}>
       <primitives.Card lift className="p-8">
-        <ActivityTable activities={submission.activity} />
+        <ActivityTable activities={activities} />
       </primitives.Card>
     </SectionWithHeading>
   );

@@ -98,6 +98,7 @@ async function logEmailToMessages(
         payload,
         results,
       },
+      select: { id: true },
     });
   } catch (error) {
     // Don't fail email send if logging fails

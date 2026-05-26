@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import {
   exitOnInvalidKeyOption,
-  getWorkFromKey,
+  getMyWorkFromKey,
   performCleanRebuild,
   promptForNewKey,
   uploadAndGetCdnKey,
@@ -21,13 +21,35 @@ export async function postNewWork(
   cdnKey: string,
   cdn: string,
   key?: string,
+  metadata?: {
+    title?: string;
+    description?: string;
+    authors?: string[];
+    author_details?: Record<string, any>[];
+    doi?: string;
+    date?: string;
+    canonical?: boolean;
+    contains?: string[];
+    cdn?: string;
+    cdn_key?: string;
+    metadata?: Record<string, any>;
+    tags?: string[];
+  },
 ): Promise<WorkDTO> {
   const toc = tic();
 
   session.log.debug(
-    `POST to ${session.config?.apiUrl}/works with cdnKey: ${cdnKey}, cdn: ${cdn}${key ? `, key: ${key}` : ''}...`,
+    `POST to ${session.config?.apiUrl}/works with cdnKey: ${cdnKey}, cdn: ${cdn}${
+      key ? `, key: ${key}` : ''
+    }...`,
   );
-  const resp = await postToJournals(session, '/works', { cdn_key: cdnKey, cdn, key });
+  const body = {
+    ...(cdnKey ? { cdn_key: cdnKey } : {}),
+    ...(cdn ? { cdn } : {}),
+    ...(key ? { key } : {}),
+    ...(metadata ?? {}),
+  };
+  const resp = await postToJournals(session, '/works', body);
   session.log.debug(`${resp.status} ${resp.statusText}`);
   if (resp.ok) {
     const json = (await resp.json()) as WorkDTO;
@@ -48,11 +70,21 @@ export async function postNewWorkVersion(
   versionsUrl: string,
   cdnKey: string,
   cdn: string,
+  extra?: {
+    metadata?: Record<string, any>;
+    tags?: string[];
+  },
 ): Promise<WorkDTO> {
   const toc = tic();
 
   session.log.debug(`POST to ${versionsUrl} with cdnKey: ${cdnKey} and cdn: ${cdn}...`);
-  const resp = await postToUrl(session, `${versionsUrl}`, { cdn_key: cdnKey, cdn });
+  const resp = await postToUrl(session, `${versionsUrl}`, {
+    cdn_key: cdnKey,
+    cdn,
+    contains: ['myst'],
+    ...(extra?.metadata ? { metadata: extra.metadata } : {}),
+    ...(extra?.tags && extra.tags.length > 0 ? { tags: extra.tags } : {}),
+  });
   session.log.debug(`${resp.status} ${resp.statusText}`);
 
   if (resp.ok) {
@@ -66,6 +98,39 @@ export async function postNewWorkVersion(
   } else {
     throw new Error('Posting new version of the work failed');
   }
+}
+
+export async function postNewWorkVersionFromMetadata(
+  session: ISession,
+  versionsUrl: string,
+  metadata: {
+    title?: string;
+    description?: string;
+    authors?: string[];
+    author_details?: Record<string, any>[];
+    doi?: string;
+    date?: string;
+    canonical?: boolean;
+    metadata?: Record<string, any>;
+    contains?: string[];
+    cdn?: string;
+    cdn_key?: string;
+    tags?: string[];
+  },
+): Promise<WorkDTO> {
+  const toc = tic();
+  session.log.debug(`POST to ${versionsUrl} with metadata-only work version...`);
+  const resp = await postToUrl(session, `${versionsUrl}`, metadata);
+  session.log.debug(`${resp.status} ${resp.statusText}`);
+  if (resp.ok) {
+    const json = (await resp.json()) as WorkDTO;
+    const { id, version_id } = json;
+    session.log.info(toc(`🚀 Created a new work version in %s.`));
+    session.log.debug(`Work Id: ${id}`);
+    session.log.debug(`Work Version Id: ${version_id}`);
+    return json;
+  }
+  throw new Error('Posting new version of the work failed');
 }
 
 /**
@@ -109,7 +174,7 @@ export async function push(session: ISession, opts?: PushOpts) {
     const cdn = opts?.public ? session.config.publicCdnUrl : session.config.privateCdnUrl;
     const cdnKey = await uploadAndGetCdnKey(session, cdn, opts);
 
-    const workResp = await getWorkFromKey(session, key);
+    const workResp = await getMyWorkFromKey(session, key);
     let work: WorkDTO;
     if (workResp) {
       session.log.debug(`posting new work version...`);
@@ -133,7 +198,9 @@ export async function push(session: ISession, opts?: PushOpts) {
     };
     session.log.info(
       chalk.bold.green(
-        `📄 ${opts?.public ? 'Public' : 'Private'} work ${workResp ? 'updated' : 'created'} for key ${key}!`,
+        `📄 ${opts?.public ? 'Public' : 'Private'} work ${
+          workResp ? 'updated' : 'created'
+        } for key ${key}!`,
       ),
     );
     writeJsonLogs(session, 'curvenote.push.json', pushLog);

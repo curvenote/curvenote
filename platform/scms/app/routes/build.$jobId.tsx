@@ -8,6 +8,7 @@ import {
   signPrivateUrls,
   sites,
   jobs,
+  siteWorkWorkVersionWithWorkSelect,
 } from '@curvenote/scms-server';
 import {
   primitives,
@@ -53,7 +54,9 @@ async function dbGetSubmissionVersion(submissionVersionId: string) {
           site: { include: { submissionKinds: true, collections: true, domains: true } },
         },
       },
-      work_version: { include: { work: true } },
+      work_version: {
+        select: { ...siteWorkWorkVersionWithWorkSelect, date: true },
+      },
     },
   });
 }

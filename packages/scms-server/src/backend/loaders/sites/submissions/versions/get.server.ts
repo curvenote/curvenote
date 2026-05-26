@@ -4,6 +4,7 @@ import type { Prisma } from '@curvenote/scms-db';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
 import { getPrismaClient } from '../../../../prisma.server.js';
+import { submissionVersionForSiteWorkSelect } from '../../../../prisma.selects.server.js';
 import { coerceToObject, error404 } from '@curvenote/scms-core';
 import type { ModifiedSiteWorkDTO } from '../published/get.server.js';
 import { formatSiteWorkDTO } from '../published/get.server.js';
@@ -16,26 +17,13 @@ export async function dbGetSubmissionVersion(
   const prisma = await getPrismaClient();
   return prisma.submissionVersion.findUnique({
     where,
-    include: {
-      submitted_by: true,
-      work_version: {
-        include: {
-          work: true,
-        },
-      },
-      submission: {
-        include: {
-          kind: true,
-          collection: true,
-          slugs: true,
-          work: true,
-        },
-      },
-    },
+    select: submissionVersionForSiteWorkSelect,
   });
 }
 
-type DBO = Exclude<Awaited<ReturnType<typeof dbGetSubmissionVersion>>, null>;
+type DBO = Prisma.SubmissionVersionGetPayload<{
+  select: typeof submissionVersionForSiteWorkSelect;
+}>;
 
 export function formatSubmissionVersionDTO(
   ctx: SiteContext,
@@ -74,6 +62,7 @@ export function formatSubmissionVersionDTO(
       content: coerceToObject(version.submission.collection.content),
     },
     job_id: version.job_id ?? undefined,
+    tags: [...version.tags],
     links: {
       self: ctx.asApiUrl(
         `/sites/${ctx.site.name}/submissions/${version.submission.id}/versions/${version.id}`,

@@ -6,12 +6,14 @@ import type { WorkPushLog } from '../works/types.js';
 export type STATUS_ACTIONS = 'publish' | 'unpublish';
 
 export type SubmitOpts = BaseOpts & {
+  key?: 'id' | 'doi';
   kind?: string;
   collection?: string;
   draft?: boolean;
   new?: boolean;
   skipRebuild?: boolean;
   execute?: boolean;
+  tags?: string[];
 };
 
 export type JobResponse = {
@@ -55,12 +57,16 @@ export interface CreateSubmissionBody {
   collection_id: string;
   kind_id: string;
   draft: boolean;
-  job_id: string;
+  job_id?: string;
+  metadata?: Record<string, any>;
+  tags?: string[];
 }
 
 export interface UpdateSubmissionBody {
   work_version_id: string;
-  job_id: string;
+  job_id?: string;
+  metadata?: Record<string, any>;
+  tags?: string[];
 }
 
 export interface CreateCliCheckJobPostBody {

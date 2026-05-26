@@ -1,8 +1,13 @@
 import type { ClientExtension } from '@curvenote/scms-core';
 import { error401, TrackEvent, asSiteSubmissionUrl } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../prisma.server.js';
+import {
+  activitySubmissionVersionRefSelect,
+  activityWorkVersionRefSelect,
+  siteWorkWorkVersionWithWorkSelect,
+} from '../../../prisma.selects.server.js';
 import { formatSubmissionDTO } from './get.server.js';
-import { formatDate } from '@curvenote/common';
+import { formatDate, normalizeExplicitTags } from '@curvenote/common';
 import type { UserDBO } from '../../../db.types.js';
 import { ActivityType } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
@@ -26,6 +31,8 @@ export async function dbCreateNewSubmission(
   draft: boolean,
   jobId?: string,
   collectionId?: string,
+  metadata?: Record<string, any>,
+  tags?: string[],
 ) {
   // creating a new submission entry as a nested query in a submissionHistory
   // means it will be created in the same transaction
@@ -35,7 +42,9 @@ export async function dbCreateNewSubmission(
     where: {
       id: workVersionId,
     },
+    select: { work_id: true },
   });
+  const submissionTags = normalizeExplicitTags(tags);
   return prisma.$transaction(async (tx) => {
     const sv = await tx.submissionVersion.create({
       data: {
@@ -48,16 +57,20 @@ export async function dbCreateNewSubmission(
           },
         },
         status: draft ? 'DRAFT' : 'PENDING',
+        tags: submissionTags,
+        metadata: metadata ?? undefined,
         work_version: {
           connect: {
             id: workVersionId,
           },
         },
-        job: {
-          connect: {
-            id: jobId,
-          },
-        },
+        job: jobId
+          ? {
+              connect: {
+                id: jobId,
+              },
+            }
+          : undefined,
         submission: {
           create: {
             id: uuid(),
@@ -110,9 +123,7 @@ export async function dbCreateNewSubmission(
               include: {
                 submitted_by: true,
                 work_version: {
-                  include: {
-                    work: true,
-                  },
+                  select: siteWorkWorkVersionWithWorkSelect,
                 },
               },
               orderBy: {
@@ -160,8 +171,8 @@ export async function dbCreateNewSubmission(
       include: {
         kind: true,
         activity_by: true,
-        submission_version: true,
-        work_version: { include: { work: true } },
+        submission_version: { select: activitySubmissionVersionRefSelect },
+        work_version: { select: activityWorkVersionRefSelect },
       },
     });
 
@@ -177,6 +188,8 @@ export default async function create(
   draft: boolean,
   jobId?: string,
   collectionId?: string,
+  metadata?: Record<string, any>,
+  tags?: string[],
 ) {
   if (!ctx.user) throw error401(); // ctx.secure()
   // TODO - check does site allow anonymous submissions?
@@ -190,6 +203,8 @@ export default async function create(
     draft,
     jobId,
     collectionId,
+    metadata,
+    tags,
   );
 
   await ctx.trackEvent(TrackEvent.SUBMISSION_CREATED, {

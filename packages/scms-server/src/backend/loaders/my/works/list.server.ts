@@ -5,6 +5,12 @@ import { getPrismaClient } from '../../../prisma.server.js';
 import type { UserDBO } from '../../../db.types.js';
 import { error401, error404 } from '@curvenote/scms-core';
 import { formatWorkDTO, getCanonicalOrLatestVersion } from '../../works/get.server.js';
+import { siteWorkWorkVersionSelect } from '../../../prisma.selects.server.js';
+
+const myWorksVersionSelect = {
+  ...siteWorkWorkVersionSelect,
+  date_modified: true,
+} satisfies Prisma.WorkVersionSelect;
 
 async function dbListWorksForUser(user: UserDBO, where: Prisma.WorkWhereInput = {}) {
   const prisma = await getPrismaClient();
@@ -22,6 +28,7 @@ async function dbListWorksForUser(user: UserDBO, where: Prisma.WorkWhereInput = 
         orderBy: {
           date_created: 'desc',
         },
+        select: myWorksVersionSelect,
       },
     },
     orderBy: {
@@ -34,7 +41,7 @@ async function dbListWorksForUser(user: UserDBO, where: Prisma.WorkWhereInput = 
 type DBO = Exclude<Awaited<ReturnType<typeof dbListWorksForUser>>, null>;
 
 export function formatMyWorksDTO(ctx: Context, dbo: DBO, where?: Prisma.WorkWhereInput): WorksDTO {
-  const selfQuery = where?.key ? `?key=${where.key}` : '';
+  const selfQuery = where?.key ? `?key=${where.key}` : where?.doi ? `?doi=${where.doi}` : '';
   return {
     items: dbo.map((work) => formatWorkDTO(ctx, work, getCanonicalOrLatestVersion(work.versions))),
     links: {

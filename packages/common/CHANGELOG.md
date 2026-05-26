@@ -1,5 +1,24 @@
 # @curvenote/common
 
+## 0.5.1
+
+### Patch Changes
+
+- [#893](https://github.com/curvenote/curvenote/pull/893) [`790d919`](https://github.com/curvenote/curvenote/commit/790d919e1d7a8d0ec881eff9c2a5ca03e28732f3) Thanks [@fwkoch](https://github.com/fwkoch)! - Add tags to work and submission version metadata
+
+## 0.5.0
+
+### Minor Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Introduce `IStorageProvider` with GCS, Azure Blob, and S3 implementations; refactor storage backend and uploads; signed uploads expose `protocol` (`gcs-resumable` | `put`) for browser, tasks, and CLI; add `api.storage` config (legacy GCS keyfile still supported).
+
+### Patch Changes
+
+- Updated dependencies [[`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56)]:
+  - @curvenote/blocks@1.6.3
+
+## 0.4.3
+
 ## 0.4.2
 
 ## 0.4.1

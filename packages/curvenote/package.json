@@ -1,6 +1,6 @@
 {
   "name": "curvenote",
-  "version": "0.15.1",
+  "version": "0.16.1",
   "description": "Command line tools for using Curvenote",
   "author": "Curvenote Inc. <support@curvenote.com>",
   "license": "MIT",
@@ -37,6 +37,7 @@
     "dev": "npm run link && esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --watch",
     "lint": "npm run copy:version; eslint \"src/**/!(*.spec).ts\" -c ./.eslintrc.cjs",
     "lint:format": "npm run copy:version; prettier --check \"src/**/*.ts\"",
+    "lint:format:fix": "npm run copy:version; prettier --write \"src/**/*.ts\"",
     "compile": "tsc --noEmit",
     "test:vitest": "npm run link; npm run copy:version; vitest run",
     "test": "npm-run-all -l copy:version -p compile test:vitest",
@@ -45,13 +46,13 @@
     "build": "npm-run-all -l clean copy:version -p build:cli"
   },
   "dependencies": {
-    "@curvenote/cli": "^0.15.1",
+    "@curvenote/cli": "^0.16.1",
     "chalk": "^5.2.0",
     "commander": "^10.0.1",
     "core-js": "^3.31.1",
     "jsdom": "^19.0.0",
-    "myst-cli": "^1.8.2",
-    "myst-to-tex": "^1.0.45"
+    "myst-cli": "^1.9.0",
+    "myst-to-tex": "^1.0.46"
   },
   "devDependencies": {
     "js-yaml": "^4.1.0"

@@ -1,6 +1,6 @@
-import type { SiteDTO } from '@curvenote/common';
+import type { SubmissionListingSiteContext } from '../routes/$siteName.submissions._index/site-context.format.server.js';
 import { SubmissionListItem } from './SubmissionListItem.js';
-import type { AugmentedSubmissionsListWithPagination } from '../routes/$siteName.submissions._index/types.js';
+import type { AugmentedSubmissionListingItem } from '../routes/$siteName.submissions._index/types.js';
 
 export function SubmissionList({
   site,
@@ -10,9 +10,9 @@ export function SubmissionList({
   showCollectionChip,
   revalidate,
 }: {
-  site: SiteDTO;
+  site: SubmissionListingSiteContext;
   scopes: string[];
-  items: AugmentedSubmissionsListWithPagination['items'];
+  items: AugmentedSubmissionListingItem[];
   to: (id: string) => string;
   showCollectionChip?: boolean;
   revalidate: () => void;

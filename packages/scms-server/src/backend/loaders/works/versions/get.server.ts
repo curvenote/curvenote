@@ -7,6 +7,7 @@ export async function dbGetWorkVersion(workId: string, workVersionId: string) {
       id: workVersionId,
       work_id: workId,
     },
+    select: { id: true },
   });
   return workVersion;
 }

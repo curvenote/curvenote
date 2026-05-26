@@ -63,7 +63,7 @@ export function WorkListItem({
           </div>
 
           {/* DOI Links as Badges */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             {work.doi && work.doi !== latestVersion?.doi && (
               <ui.Badge variant="outline-muted" asChild>
                 <a
@@ -102,6 +102,11 @@ export function WorkListItem({
                 Slug
               </primitives.Chip>
             )}
+            <ui.TagChips
+              tags={[...(latestVersion?.tags ?? latestWorkVersion?.tags ?? [])]}
+              limit={6}
+              titlePrefix="Tag"
+            />
           </div>
           {/* Show SubmissionVersionBadge for each submission with latest version */}
           <div className="flex flex-wrap gap-2 mt-2">

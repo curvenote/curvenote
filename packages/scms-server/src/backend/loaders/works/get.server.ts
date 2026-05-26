@@ -1,5 +1,5 @@
 import { doi } from 'doi-utils';
-import { formatDate, type WorkDTO } from '@curvenote/common';
+import { formatDate, concatSiteWorkTags, type WorkDTO } from '@curvenote/common';
 import type { Context } from '../../context.server.js';
 import type { UserDBO, WorkVersionDBO, WorkDBO } from '../../db.types.js';
 import { formatAuthorDTO } from '../../format.server.js';
@@ -9,6 +9,7 @@ import { dbGetSubmission } from '../sites/submissions/get.server.js';
 import { signPrivateUrls } from '../../sign.private.server.js';
 import type { WorkRole } from '@curvenote/scms-db';
 import { userHasSiteScope } from '../../scopes.helpers.server.js';
+import { siteWorkWorkVersionSelect } from '../../prisma.selects.server.js';
 
 export type WorkAndVersionsDBO = WorkDBO & { versions?: WorkVersionDBO[] };
 export type WorkUserDBO = { work_id: string; user_id: string; role: WorkRole };
@@ -55,6 +56,7 @@ export function formatWorkDTO(
     authors: version.authors.map((a) => formatAuthorDTO(a)),
     date: version.date ? formatDate(version.date) : undefined,
     canonical: version.canonical ?? undefined,
+    tags: [...version.tags],
     links: {
       self: `${ctx.asApiUrl(`/works/${work.id}`)}${query}`,
       versions: `${ctx.asApiUrl(`/works/${work.id}/versions`)}${query}`,
@@ -97,6 +99,7 @@ export async function dbGetWorkForUser(
     },
     include: {
       versions: {
+        select: siteWorkWorkVersionSelect,
         orderBy: {
           date_created: 'desc',
         },
@@ -115,6 +118,7 @@ export async function dbGetWork(workId: string): Promise<WorkAndVersionsDBO | nu
     },
     include: {
       versions: {
+        select: siteWorkWorkVersionSelect,
         orderBy: {
           date_created: 'desc',
         },

@@ -170,6 +170,7 @@ export async function dbToggleUserDisabled(
         user_id: id,
         status: disabled ? 'DISABLED' : 'ENABLED',
       },
+      select: { id: true },
     });
 
     return user;
@@ -200,6 +201,7 @@ export async function dbApproveUser(userId: string, activityByUserId: string) {
         user_id: userId,
         status: 'APPROVED',
       },
+      select: { id: true },
     });
 
     return user;
@@ -231,6 +233,7 @@ export async function dbRejectUser(userId: string, activityByUserId: string) {
         user_id: userId,
         status: 'REJECTED',
       },
+      select: { id: true },
     });
 
     return user;

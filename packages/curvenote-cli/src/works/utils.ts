@@ -156,13 +156,28 @@ export function workKeyFromConfig(session: ISession) {
   return projectConfig?.id;
 }
 
+export function workDoiFromConfig(session: ISession) {
+  session.log.debug('Looking for doi from config file');
+  const state = session.store.getState();
+  const projectConfigFile = selectors.selectCurrentProjectFile(state);
+  if (!projectConfigFile) {
+    session.log.error('No project configuration found');
+    process.exit(1);
+  }
+  const projectConfig = selectors.selectCurrentProjectConfig(state);
+  return projectConfig?.doi;
+}
+
 /**
  * Load work from transfer.yml data
  *
  * Returns undefined if work for the given venue is not defined or
  * if the API request for the work fails.
  */
-export async function getWorkFromKey(session: ISession, key: string): Promise<WorkDTO | undefined> {
+export async function getMyWorkFromKey(
+  session: ISession,
+  key: string,
+): Promise<WorkDTO | undefined> {
   try {
     session.log.debug(`GET from journals API /my/works?key=${key}`);
     const resp = await getFromJournals(session, `/my/works?key=${key}`);
@@ -170,6 +185,34 @@ export async function getWorkFromKey(session: ISession, key: string): Promise<Wo
   } catch {
     return undefined;
   }
+}
+
+export async function getMyWorksFromDoi(session: ISession, doi: string): Promise<WorkDTO[]> {
+  try {
+    session.log.debug(`GET from journals API /my/works?doi=${doi}`);
+    const resp = await getFromJournals(session, `/my/works?doi=${encodeURIComponent(doi)}`);
+    return resp.items ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function workKeyExists(session: ISession, key: string): Promise<boolean> {
+  try {
+    const resp = await getFromJournals(session, `/works/key/${key}`);
+    return !!resp?.exists;
+  } catch {
+    return false;
+  }
+}
+
+export async function checkMyWorkAccess(
+  session: ISession,
+  key: string,
+): Promise<{ owned: WorkDTO | undefined; taken: boolean }> {
+  const owned = await getMyWorkFromKey(session, key);
+  const taken = await workKeyExists(session, key);
+  return { owned, taken };
 }
 
 /**

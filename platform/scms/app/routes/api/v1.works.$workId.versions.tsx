@@ -7,7 +7,7 @@ import {
   works,
 } from '@curvenote/scms-server';
 import { error401, error404, error405, httpError } from '@curvenote/scms-core';
-import { CreateMystWorkPostBodySchema } from './v1.works';
+import { CreateWorkPostBodySchema } from './v1.works';
 
 export async function loader() {
   throw error405();
@@ -28,12 +28,12 @@ export async function action(args: Route.ActionArgs) {
     if (!exists) throw httpError(404, 'work not found');
 
     const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
-    const { cdn, cdn_key } = validate(CreateMystWorkPostBodySchema, body);
+    const { cdn, cdn_key, ...metadata } = validate(CreateWorkPostBodySchema, body);
     const { url } = args.request;
     const query = new URL(url).search.slice(1);
     const searchParams = new URLSearchParams(query);
     const submission = searchParams.get('submission') ?? undefined;
-    const dto = await works.versions.create(ctx, workId, { cdn, cdn_key }, submission);
+    const dto = await works.versions.create(ctx, workId, { cdn, cdn_key, ...metadata }, submission);
     return Response.json(dto, { status: 201 });
   }
   throw error404();

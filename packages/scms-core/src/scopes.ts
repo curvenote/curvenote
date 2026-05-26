@@ -56,6 +56,13 @@ export const site = {
     delete: 'site:users:delete',
     admin: 'site:users:admin',
   },
+  serviceAccount: {
+    create: 'site:service-account:create',
+    tokens: {
+      create: 'site:service-account:tokens:create',
+      delete: 'site:service-account:tokens:delete',
+    },
+  },
 };
 
 export const work = {

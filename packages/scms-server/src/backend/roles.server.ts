@@ -100,6 +100,9 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.users.update,
     site.users.delete,
     site.users.admin,
+    site.serviceAccount.create,
+    site.serviceAccount.tokens.create,
+    site.serviceAccount.tokens.delete,
   ]),
   [SiteRole.SUBMITTER]: new Set([site.submissions.create, site.submissions.versions.create]),
   [SiteRole.MEMBER]: new Set([

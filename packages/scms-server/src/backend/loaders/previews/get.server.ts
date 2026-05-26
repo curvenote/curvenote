@@ -1,4 +1,28 @@
 import { getPrismaClient } from '../../prisma.server.js';
+import { submissionVersionForSiteWorkSelect } from '../../prisma.selects.server.js';
+import type { Prisma } from '@curvenote/scms-db';
+
+/** Preview route only — extends site-work select with site graph for SiteContext. */
+const submissionVersionForPreviewSelect = {
+  ...submissionVersionForSiteWorkSelect,
+  submission: {
+    select: {
+      id: true,
+      date_published: true,
+      kind: true,
+      collection: true,
+      slugs: true,
+      work: true,
+      site: {
+        include: {
+          submissionKinds: true,
+          collections: { orderBy: { date_created: 'desc' } },
+          domains: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.SubmissionVersionSelect;
 import type { SubmissionVersionDTO } from '@curvenote/common';
 import type { Context } from '../../context.server.js';
 import { error401, error404, scopes } from '@curvenote/scms-core';
@@ -13,35 +37,19 @@ export async function dbGetSubmissionVersion(id: string) {
   const prisma = await getPrismaClient();
   return prisma.submissionVersion.findUnique({
     where: { id },
-    include: {
-      submitted_by: true,
-      submission: {
-        include: {
-          kind: true,
-          slugs: true,
-          collection: true,
-          site: {
-            include: {
-              submissionKinds: true,
-              collections: { orderBy: { date_created: 'desc' } },
-              domains: true,
-            },
-          },
-          work: true,
-        },
-      },
-      work_version: true,
-    },
+    select: submissionVersionForPreviewSelect,
   });
 }
 
-type DBO = Exclude<Awaited<ReturnType<typeof dbGetSubmissionVersion>>, null>;
+type PreviewDBO = Prisma.SubmissionVersionGetPayload<{
+  select: typeof submissionVersionForPreviewSelect;
+}>;
 
 export type ModifiedSubmissionVersionDTO = Omit<SubmissionVersionDTO, 'site_work'> & {
   site_work: ModifiedSiteWorkDTO;
 };
 
-function formatPreviewDTO(ctx: Context, dbo: DBO): ModifiedSubmissionVersionDTO {
+function formatPreviewDTO(ctx: Context, dbo: PreviewDBO): ModifiedSubmissionVersionDTO {
   return {
     id: dbo.id,
     date_created: dbo.date_created,

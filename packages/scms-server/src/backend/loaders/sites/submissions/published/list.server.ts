@@ -1,4 +1,5 @@
 import { getPrismaClient } from '../../../../prisma.server.js';
+import { submissionVersionForSiteWorkSelect } from '../../../../prisma.selects.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
 import type { SiteWorkListingDTO } from '@curvenote/common';
 import type { ClientExtension } from '@curvenote/scms-core';
@@ -6,6 +7,7 @@ import {
   error404,
   httpError,
   makePaginationLinks,
+  isOffsetPaginationRequested,
   getWorkflows,
   registerExtensionWorkflows,
 } from '@curvenote/scms-core';
@@ -72,19 +74,7 @@ async function dbQuerySubmissions(
       },
       status,
     },
-    include: {
-      submission: {
-        include: {
-          kind: true,
-          collection: true,
-          submitted_by: true,
-          slugs: true,
-          work: true,
-        },
-      },
-      submitted_by: true,
-      work_version: true,
-    },
+    select: submissionVersionForSiteWorkSelect,
     orderBy: [
       {
         submission: {
@@ -145,33 +135,18 @@ export async function dbListLatestPublishedSubmissions(
     }
   }
 
-  // if we have both limit and page, pagination has been requested
-  if (opts?.limit && opts?.page) {
-    const prisma = await getPrismaClient();
-    return prisma.$transaction(async (tx) => {
-      const items = await dbQuerySubmissions(
-        ctx.site.name,
-        collectionName,
-        status,
-        where?.kind,
-        opts,
-        tx,
-      );
-      const total = await dbCountSubmissions(
-        ctx.site.name,
-        collectionName,
-        status,
-        where?.kind,
-        tx,
-      );
-      return { items, total };
-    });
+  if (isOffsetPaginationRequested(opts ?? {})) {
+    const [items, total] = await Promise.all([
+      dbQuerySubmissions(ctx.site.name, collectionName, status, where?.kind, opts),
+      dbCountSubmissions(ctx.site.name, collectionName, status, where?.kind),
+    ]);
+    return { items, total };
   }
 
   // no pagination if limit and page are not provided
   // we can still limit, but in this branch we avoid
   // the extra count query
-  if (!opts?.page) {
+  if (opts?.page === undefined) {
     const items = await dbQuerySubmissions(
       ctx.site.name,
       collectionName,

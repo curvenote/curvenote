@@ -44,7 +44,7 @@ export async function safeCollectionContentUpdate(
             date_modified: timestamp,
           },
         });
-        tx.activity.create({
+        await tx.activity.create({
           data: {
             id: uuid(),
             date_created: timestamp,
@@ -61,6 +61,7 @@ export async function safeCollectionContentUpdate(
               },
             },
           },
+          select: { id: true },
         });
         return collection;
       });
@@ -113,6 +114,7 @@ export async function dbUpdateCollectionName(name: string, collectionId: string,
           },
         },
       },
+      select: { id: true },
     });
     return collection;
   });
@@ -153,6 +155,7 @@ export async function dbUpdateCollectionDefault(
           },
         },
       },
+      select: { id: true },
     });
     if (value) {
       const otherCollections = await tx.collection.findMany({
@@ -176,6 +179,7 @@ export async function dbUpdateCollectionDefault(
               default: false,
               date_modified: timestamp,
             },
+            select: { id: true },
           });
           await tx.activity.create({
             data: {
@@ -194,6 +198,7 @@ export async function dbUpdateCollectionDefault(
                 },
               },
             },
+            select: { id: true },
           });
         }),
       );
@@ -239,6 +244,7 @@ export async function dbCreateCollectionKind(kindId: string, collectionId: strin
           },
         },
       },
+      select: { id: true },
     });
 
     return kindInCollection;
@@ -279,6 +285,7 @@ export async function dbDeleteCollectionKind(kindId: string, collectionId: strin
           },
         },
       },
+      select: { id: true },
     });
 
     return deleted;
@@ -316,6 +323,7 @@ export async function dbUpdateCollectionOpen(value: boolean, collectionId: strin
           },
         },
       },
+      select: { id: true },
     });
 
     return collection;
@@ -343,6 +351,7 @@ export async function dbDeleteCollection(collectionId: string, userId: string) {
           },
         },
       },
+      select: { id: true },
     });
     await tx.kindsInCollections.deleteMany({
       where: {
@@ -393,6 +402,7 @@ export async function dbUpdateCollectionParent(
           },
         },
       },
+      select: { id: true },
     });
     return collection;
   });

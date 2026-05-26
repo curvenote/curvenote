@@ -76,6 +76,22 @@ async function uploadsComplete(
     await updateMetadata(successfullyCopied, slot);
 
     const errorItems = copyErrors.map(({ path, error }) => ({ path, error, details: {} }));
+    if (errorItems.length > 0) {
+      console.warn('uploadsComplete: one or more file copies failed', {
+        slot,
+        targetBucket,
+        attemptedCount: completedFiles.length,
+        successCount: successfullyCopied.length,
+        errorCount: errorItems.length,
+        errors: errorItems,
+      });
+    } else {
+      console.info('uploadsComplete: all files copied successfully', {
+        slot,
+        targetBucket,
+        copiedCount: successfullyCopied.length,
+      });
+    }
 
     await ctx.trackEvent(TrackEvent.FILES_UPLOADED, {
       slot,

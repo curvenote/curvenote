@@ -39,6 +39,7 @@ export async function dbCreateDomain(
         date_created: timestamp,
         date_modified: timestamp,
       },
+      select: { id: true },
     });
   });
 }
@@ -57,6 +58,7 @@ export async function dbDeleteDomain(domainId: string): Promise<void> {
 
   await prisma.domain.delete({
     where: { id: domainId },
+    select: { id: true },
   });
 }
 
@@ -88,6 +90,7 @@ export async function dbSetDefaultDomain(domainId: string): Promise<void> {
     await tx.domain.update({
       where: { id: domainId },
       data: { default: true, date_modified: new Date().toISOString() },
+      select: { id: true },
     });
   });
 }

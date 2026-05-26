@@ -1,6 +1,7 @@
 import type { Prisma } from '@curvenote/scms-db';
 import type { SubmissionVersionListingDTO } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
+import { submissionVersionForSiteWorkSelect } from '../../../../prisma.selects.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
 import { error404, makePaginationLinks } from '@curvenote/scms-core';
 import { formatSubmissionVersionDTO } from './get.server.js';
@@ -42,23 +43,7 @@ async function dbQuerySubmissionVersions(
         id: submissionId,
       },
     },
-    include: {
-      submission: {
-        include: {
-          kind: true,
-          collection: true,
-          submitted_by: true,
-          slugs: true,
-          work: true,
-        },
-      },
-      submitted_by: true,
-      work_version: {
-        include: {
-          work: true,
-        },
-      },
-    },
+    select: submissionVersionForSiteWorkSelect,
     orderBy: [
       {
         date_created: 'desc',

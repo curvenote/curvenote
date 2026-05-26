@@ -69,6 +69,6 @@ export async function action(args: Route.ActionArgs) {
     targetState.name,
   );
 
-  const dto = await sites.submissions.formatSubmissionDTO(ctx, updated.submission, extensions);
+  const dto = await sites.submissions.get(ctx, updated.submission.id, extensions);
   return dto;
 }

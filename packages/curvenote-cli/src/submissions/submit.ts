@@ -7,10 +7,10 @@ import {
   confirmUpdateToExistingSubmission,
   updateExistingSubmission,
   createNewSubmission,
-  checkForSubmissionKeyInUse,
+  checkForSubmissionKeyInUse as checkIfWorkKeyIsInUseOnAnySubmissionOnThisSite,
   determineCollectionAndKind,
   collectionMoniker,
-  getAllSubmissionsUsingKey,
+  getAllSubmissionsThatICanSeeUsingKey,
   getSubmissionToUpdate,
   checkVenueSubmitAccess,
   getVenueCollections,
@@ -22,17 +22,26 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { prepareChecksForSubmission } from './check.js';
 import {
+  checkMyWorkAccess,
   exitOnInvalidKeyOption,
   performCleanRebuild,
   promptForNewKey,
   uploadAndGetCdnKey,
+  workDoiFromConfig,
   workKeyFromConfig,
   writeKeyToConfig,
 } from '../works/utils.js';
-import type { CollectionDTO, SubmissionKindDTO, SubmissionsListItemDTO } from '@curvenote/common';
+import type {
+  CollectionDTO,
+  SubmissionKindDTO,
+  SubmissionsListItemDTO,
+  WorkDTO,
+} from '@curvenote/common';
 import type { SubmitLog, SubmitOpts } from './types.js';
 import { addSourceToLogs } from '../logs/index.js';
 import { checkVenueExists, ensureVenue } from '../sites/utils.js';
+import { resolveExistingWork } from '../works/resolveExistingWork.js';
+import { getFromJournals } from '../utils/api.js';
 
 export async function submit(session: ISession, venue: string, opts?: SubmitOpts) {
   const submitLog: SubmitLog = {
@@ -70,32 +79,74 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
   const key = inputKey;
   submitLog.key = key;
   session.log.info(`📍 Submitting using key: ${chalk.bold(key)}`);
+  const lookupMode = opts?.key ?? 'id';
+  const doi = workDoiFromConfig(session);
 
   await addSourceToLogs(submitLog);
 
   let existing: SubmissionsListItemDTO | undefined;
+  let existingWork: WorkDTO | undefined;
   // Only check for submissions to update if we are not creating a new draft
   if (!opts?.draft && !opts?.new) {
     session.log.info(`📡 Checking submission status...`);
-    const allExisting = await getAllSubmissionsUsingKey(session, venue, key);
-    if (!allExisting?.length) {
-      const exists = await checkForSubmissionKeyInUse(session, venue, key);
-      if (exists) {
-        session.log.warn(
-          `⛔️ This work has already been submitted to a Curvenote site, but you don't have permission to access that submission.`,
+    if (lookupMode === 'id') {
+      const allExisting = await getAllSubmissionsThatICanSeeUsingKey(session, venue, key, {
+        includeDrafts: true,
+      });
+
+      const isEmpty = !allExisting || allExisting.length === 0;
+      if (isEmpty) {
+        // check if the work key is in use on any submission on this site just to give a better error message
+        const alreadySubmittedToThisSite = await checkIfWorkKeyIsInUseOnAnySubmissionOnThisSite(
+          session,
+          venue,
+          key,
         );
-        session.log.info(
-          'If you still want to make a new submission, you may explicitly add flag "--new"',
-        );
-        process.exit(1);
+        if (alreadySubmittedToThisSite) {
+          session.log.error(
+            `⛔️ This work has already been submitted to "${venue}", but you don't have permission to access that submission.`,
+          );
+          session.log.info(
+            'If you still want to make a new submission, you may explicitly add flag "--new"',
+          );
+          process.exit(1);
+        } else {
+          session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
+        }
+
+        // Before anyting, am I able to do something with the work?
+        const { owned, taken } = await checkMyWorkAccess(session, key);
+        if (!owned && taken) {
+          session.log.error(
+            `⛔️ This work exists but you don't have permission submit it to a site.`,
+          );
+          process.exit(1);
+        }
       } else {
-        session.log.info(`🔍 No existing submission found at "${venue}" using the key "${key}"`);
+        existing = await getSubmissionToUpdate(session, allExisting);
+        session.log.info(
+          `🔍 Found an existing submission using this key, the existing submission will be updated.`,
+        );
       }
     } else {
-      existing = await getSubmissionToUpdate(session, allExisting);
-      session.log.info(
-        `🔍 Found an existing submission using this key, the existing submission will be updated.`,
-      );
+      existingWork = await resolveExistingWork(session, {
+        mode: 'doi',
+        doi,
+        fallbackCreateKey: key,
+        yes: opts?.yes,
+        forceNew: opts?.new,
+        contextLabel: 'submit',
+      });
+      if (existingWork) {
+        const mine = await getFromJournals(
+          session,
+          `/my/submissions/?work_id=${encodeURIComponent(existingWork.id)}&site=${encodeURIComponent(
+            venue,
+          )}`,
+        );
+        const allExisting = (mine?.items ?? []) as SubmissionsListItemDTO[];
+        existing = await getSubmissionToUpdate(session, allExisting);
+      }
     }
   }
 
@@ -240,7 +291,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
     // Create work and submission
     //
     if (existing) {
-      await updateExistingSubmission(session, submitLog, venue, cdnKey, existing, job.id);
+      await updateExistingSubmission(session, submitLog, venue, cdnKey, existing, job.id, opts);
     } else {
       if (opts?.draft) {
         session.log.info(`${chalk.bold(`🖐  Making a draft submission`)}`);
@@ -262,6 +313,7 @@ export async function submit(session: ISession, venue: string, opts?: SubmitOpts
         job.id,
         key,
         opts,
+        existingWork,
       );
     }
     session.log.debug(`generating a build artifact for the submission...`);

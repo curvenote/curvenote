@@ -1,6 +1,11 @@
 import type { SiteContext } from '../../../context.site.server.js';
 import { getPrismaClient } from '../../../prisma.server.js';
-import { coerceToObject, error404 } from '@curvenote/scms-core';
+import {
+  activitySubmissionVersionRefSelect,
+  activityWorkVersionRefSelect,
+  submissionVersionForListSelect,
+} from '../../../prisma.selects.server.js';
+import { coerceToObject, makePaginationLinks } from '@curvenote/scms-core';
 import type { Prisma } from '@curvenote/scms-db';
 import { formatAuthorDTO } from '../../../format.server.js';
 import { findImportantVersions } from './utils.server.js';
@@ -8,14 +13,46 @@ import { formatSubmissionLinksDTO } from './get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../kinds/get.server.js';
 import type { ClientExtension, WorkflowTransition } from '@curvenote/scms-core';
 
+export type DbListSubmissionsOpts = {
+  /**
+   * When true (e.g. /my/submissions?drafts=true), include submissions whose versions are all DRAFT.
+   * @default false
+   */
+  includeDraftOnlySubmissions?: boolean;
+};
+
+/** Submissions whose every version is DRAFT — excluded from list queries unless opted out. */
+const submissionWhereDraftOnlyExclusion: Prisma.SubmissionWhereInput = {
+  NOT: {
+    versions: {
+      every: {
+        status: 'DRAFT',
+      },
+    },
+  },
+};
+
+function withHasVersions(
+  where: Prisma.SubmissionWhereInput,
+  opts?: Pick<DbListSubmissionsOpts, 'includeDraftOnlySubmissions'>,
+): Prisma.SubmissionWhereInput {
+  const applyDraftOnlyExclusion = opts?.includeDraftOnlySubmissions !== true;
+  const andClauses: Prisma.SubmissionWhereInput[] = [where, { versions: { some: {} } }];
+  if (applyDraftOnlyExclusion) {
+    andClauses.push(submissionWhereDraftOnlyExclusion);
+  }
+  return { AND: andClauses };
+}
+
 export async function dbListSubmissions(
   where: Prisma.SubmissionWhereInput,
   skip?: number,
   take?: number,
+  opts?: DbListSubmissionsOpts,
 ) {
   const prisma = await getPrismaClient();
   return prisma.submission.findMany({
-    where,
+    where: withHasVersions(where, opts),
     skip,
     take,
     include: {
@@ -32,14 +69,7 @@ export async function dbListSubmissions(
         },
       },
       versions: {
-        include: {
-          submitted_by: true,
-          work_version: {
-            include: {
-              work: true,
-            },
-          },
-        },
+        select: submissionVersionForListSelect,
         orderBy: {
           date_created: 'desc',
         },
@@ -48,8 +78,8 @@ export async function dbListSubmissions(
         include: {
           activity_by: true,
           kind: true,
-          submission_version: true,
-          work_version: true,
+          submission_version: { select: activitySubmissionVersionRefSelect },
+          work_version: { select: activityWorkVersionRefSelect },
         },
         orderBy: {
           date_created: 'desc',
@@ -65,6 +95,17 @@ export async function dbListSubmissions(
         date_created: 'desc',
       },
     ],
+  });
+}
+
+async function dbCountSubmissions(
+  where: Prisma.SubmissionWhereInput,
+  tx?: Prisma.TransactionClient,
+  opts?: Pick<DbListSubmissionsOpts, 'includeDraftOnlySubmissions'>,
+) {
+  const prisma = await getPrismaClient();
+  return (tx ?? prisma).submission.count({
+    where: withHasVersions(where, opts),
   });
 }
 
@@ -90,7 +131,6 @@ type SubmissionVersionDBOFragment = {
   work_version: {
     id: string;
     work_id: string;
-    metadata: Prisma.JsonValue;
   };
   job_id: string | null;
 };
@@ -106,7 +146,6 @@ export function formatVersionSummaryDTO(ctx: SiteContext, dbo: SubmissionVersion
     },
     work_id: dbo.work_version.work_id,
     work_version_id: dbo.work_version.id,
-    work_version_metadata: dbo.work_version.metadata,
     job_id: dbo.job_id ?? undefined,
   };
 }
@@ -169,6 +208,8 @@ async function formatSubmissionListingDTO(
   ctx: SiteContext,
   dbo: DBO,
   extensions: ClientExtension[],
+  opts?: { page?: number; limit?: number },
+  total?: number,
 ) {
   const items = (
     await Promise.all(
@@ -177,16 +218,23 @@ async function formatSubmissionListingDTO(
       }),
     )
   ).filter((s) => s != null);
-  const dto = {
-    items,
-    links: {
+
+  const links = makePaginationLinks(
+    {
       self: ctx.request.url,
       site: ctx.asApiUrl(`/sites/${ctx.site.name}`),
     },
-  };
+    total ?? items.length,
+    opts ?? {},
+  );
 
-  return dto;
+  return { items, total: total ?? items.length, links };
 }
+
+export type ListSiteSubmissionsOpts = {
+  /** When false, skips COUNT(*) — use for paginated UI that infers hasMore from page size. Default: true only when not paginating. */
+  includeTotalCount?: boolean;
+};
 
 export default async function (
   ctx: SiteContext,
@@ -194,8 +242,26 @@ export default async function (
   where?: Prisma.SubmissionWhereInput,
   skip?: number,
   take?: number,
+  listOpts?: ListSiteSubmissionsOpts,
 ) {
-  const dbo = await dbListSiteSubmissions(ctx.site.name, where, skip, take);
-  if (!dbo) throw error404();
-  return formatSubmissionListingDTO(ctx, dbo, extensions);
+  const normalizedWhere = {
+    site: { is: { name: ctx.site.name } },
+    ...(where ?? {}),
+  };
+  const paginationOpts =
+    take === undefined && skip === undefined
+      ? undefined
+      : {
+          limit: take,
+          page: take ? Math.floor((skip ?? 0) / take) : undefined,
+        };
+
+  const includeTotalCount =
+    listOpts?.includeTotalCount ?? (take === undefined && skip === undefined);
+
+  const [items, total] = await Promise.all([
+    dbListSubmissions(normalizedWhere, skip, take),
+    includeTotalCount ? dbCountSubmissions(normalizedWhere) : Promise.resolve(undefined),
+  ]);
+  return formatSubmissionListingDTO(ctx, items, extensions, paginationOpts, total);
 }

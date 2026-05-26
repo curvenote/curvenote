@@ -10,6 +10,7 @@ import { StorageBackend } from '../storage/backend.server.js';
 import { File } from '../storage/file.server.js';
 import { KnownBuckets } from '../storage/constants.server.js';
 import type { WorkContext } from '../context.work.server.js';
+import { getPrismaClient } from '../prisma.server.js';
 
 export async function workVersionUploadRemove(
   ctx: WorkContext,
@@ -58,8 +59,13 @@ export async function workVersionUploadRemove(
   // Check if we're operating on the latest work version (versions are already sorted by date_created desc)
   const isLatestVersion = ctx.work.versions[0].id === workVersionId;
 
-  // Get the file metadata from the current work version
-  const workVersionMetadata = currentWorkVersion.metadata as FileMetadataSection | null;
+  // Metadata is not loaded on WorkContext; fetch only what we need for storage deletion checks.
+  const prisma = await getPrismaClient();
+  const versionWithMetadata = await prisma.workVersion.findUnique({
+    where: { id: workVersionId },
+    select: { metadata: true },
+  });
+  const workVersionMetadata = versionWithMetadata?.metadata as FileMetadataSection | null;
   const fileMetadata = workVersionMetadata?.files?.[path];
   if (!fileMetadata) {
     console.warn(`File ${path} not found in metadata, skipping storage deletion`);

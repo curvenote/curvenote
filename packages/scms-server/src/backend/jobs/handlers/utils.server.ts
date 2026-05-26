@@ -27,6 +27,7 @@ export async function updateCdnOnWorkVersion(
           },
         },
       },
+      select: { id: true },
     });
     if (!wv) throw Error('Work Version not updated');
     results = { ...results, work_version_updated: true, cdn: newCdn };
@@ -59,7 +60,14 @@ export async function validateSitePublishingScopes(ctx: Context, submission_vers
   const prisma = await getPrismaClient();
   const sv = await prisma.submissionVersion.findFirst({
     where: { id: submission_version_id },
-    include: { submission: { include: { site: { select: { name: true } } } } },
+    select: {
+      id: true,
+      submission: {
+        select: {
+          site: { select: { name: true } },
+        },
+      },
+    },
   });
   if (!sv) throw httpError(404, 'Submission version not found');
   if (

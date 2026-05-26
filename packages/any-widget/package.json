@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/any-widget",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "Extension interface and NodeRenderer following the `any-widget` interfaces",
   "type": "module",
   "files": [
@@ -45,7 +45,7 @@
     "unist-builder": "^4.0.0"
   },
   "devDependencies": {
-    "@myst-theme/providers": "^1.1.4",
+    "@myst-theme/providers": "^1.3.0",
     "tsup": "^8.1.0",
     "cpx": "^1.5.0"
   }

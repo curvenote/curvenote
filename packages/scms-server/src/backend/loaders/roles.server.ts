@@ -134,6 +134,7 @@ export async function createRole(data: CreateRoleData): Promise<RoleWithCreator>
         activity_type: 'ROLE_CREATED',
         role_id: role.id,
       },
+      select: { id: true },
     });
 
     // Process scopes to ensure clean string array
@@ -186,6 +187,7 @@ export async function updateRole(
         activity_type: 'ROLE_UPDATED',
         role_id: role.id,
       },
+      select: { id: true },
     });
 
     // Process scopes to ensure clean string array
@@ -225,10 +227,12 @@ export async function deleteRole(
           activity_type: 'ROLE_DELETED',
           role_id: id,
         },
+        select: { id: true },
       });
 
       await tx.role.delete({
         where: { id },
+        select: { id: true },
       });
 
       return { success: true };

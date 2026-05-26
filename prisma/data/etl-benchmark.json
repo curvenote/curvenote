@@ -1,0 +1,23 @@
+{
+  "url": "https://etl-benchmark.curve.space",
+  "private": false,
+  "site": {
+    "id": "8f3c2a1b-4d5e-6f70-8a9b-0c1d2e3f4a5b",
+    "name": "etl-benchmark",
+    "default_workflow": "SIMPLE",
+    "title": "ETL Benchmark",
+    "description": "Local development site for ETL registration benchmarks.",
+    "restricted": false,
+    "kinds": [
+      {
+        "name": "article",
+        "content": {
+          "title": "Article",
+          "description": "A research article"
+        },
+        "default": true
+      }
+    ]
+  },
+  "works": []
+}

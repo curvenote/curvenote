@@ -13,7 +13,7 @@ import type {
 import { plural } from 'myst-common';
 import type { ISession } from '../session/types.js';
 import { confirmOrExit } from '../utils/utils.js';
-import { getWorkFromKey } from '../works/utils.js';
+import { getMyWorkFromKey } from '../works/utils.js';
 import type { SubmitLog, SubmitOpts } from './types.js';
 import { getFromJournals, getFromUrl } from '../utils/api.js';
 import { postNewWork, postNewWorkVersion } from '../works/push.js';
@@ -67,7 +67,7 @@ export function collectionQuestions(
  * - `opts.yes` is `true` and the `venue` has a default, "open" `collection`
  * - user interactively selects one of the available `collections` on the `venue`
  *
- * On failure, this function will `process.exit(1)`. Failure cases include:
+ * On failure, throws. Failure cases include:
  * - No "open" collections
  * - Provided `collection` is invalid or not "open"
  * - `opts.yes` is `true` but there is no default, "open" `collection`
@@ -85,10 +85,9 @@ export async function determineCollectionAndKind(
     ...collections.items.filter((c) => c.open && !c.default),
   ];
   if (!opts?.allowClosedCollection && openCollections.length === 0) {
-    session.log.info(
-      `${chalk.red(`⛔️ no collections are open for submissions at venue "${venue}"`)}`,
-    );
-    process.exit(1);
+    const message = `No collections are open for submissions at venue "${venue}"`;
+    session.log.info(`${chalk.red(`⛔️ ${message}`)}`);
+    throw new Error(message);
   }
 
   if (opts?.collection) session.log.debug(`Explicit collection provided: ${opts?.collection}`);
@@ -98,25 +97,19 @@ export async function determineCollectionAndKind(
 
   if (opts?.collection) {
     if (!selectedCollection) {
-      session.log.info(
-        `${chalk.bold.red(
-          `⛔️ collection "${opts?.collection}" does not exist at venue "${venue}"`,
-        )}`,
-      );
+      const message = `Collection "${opts?.collection}" does not exist at venue "${venue}"`;
+      session.log.info(`${chalk.bold.red(`⛔️ ${message}`)}`);
       session.log.info(
         `${chalk.bold(
           `🗂  open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`,
         )}`,
       );
-      process.exit(1);
+      throw new Error(message);
     }
 
     if (selectedCollection && !selectedCollection?.open) {
-      session.log.info(
-        `${chalk.bold.red(
-          `⛔️ collection "${opts?.collection}" is not open for submissions at venue "${venue}"`,
-        )}`,
-      );
+      const message = `Collection "${opts?.collection}" is not open for submissions at venue "${venue}"`;
+      session.log.info(`${chalk.bold.red(`⛔️ ${message}`)}`);
       if (!opts?.allowClosedCollection) {
         session.log.info(
           `${chalk.bold(
@@ -125,7 +118,7 @@ export async function determineCollectionAndKind(
               .join(', ')}`,
           )}`,
         );
-        process.exit(1);
+        throw new Error(message);
       }
     }
   }
@@ -150,8 +143,9 @@ export async function determineCollectionAndKind(
     ) {
       selectedCollection = defaultCollection;
     } else if (opts?.yes) {
-      session.log.info(`${chalk.red(`⛔️ collection must be specified to continue submission`)}`);
-      process.exit(1);
+      const message = 'Collection must be specified to continue submission';
+      session.log.info(`${chalk.red(`⛔️ ${message}`)}`);
+      throw new Error(message);
     } else {
       const response = await inquirer.prompt([
         collectionQuestions(
@@ -205,7 +199,7 @@ export async function getSubmissionKind(
  * - `opts.yes` is `true` and the `collection` has a default `kind`, which is returned
  * - user interactively selects one of the available `kinds` on the `collection`
  *
- * On failure, this function will `process.exit(1)`. Failure cases include:
+ * On failure, throws. Failure cases include:
  * - Invalid `kind` is provided
  * - `opts.yes` is `true` but there is no default `kind`
  * - API fetch for selected kind fails (user is not authorized, venue does not exist, etc)
@@ -225,17 +219,12 @@ export async function determineKindFromCollection(
       ({ name }: { name: string }) => name.toLowerCase() === opts.kind?.toLowerCase(),
     );
     if (!match) {
-      session.log.info(
-        `${chalk.bold.red(
-          `⛔️ submission kind "${
-            opts.kind
-          }" is not accepted in the collection "${collectionMoniker(collection)}"`,
-        )}`,
-      );
+      const message = `Submission kind "${opts.kind}" is not accepted in the collection "${collectionMoniker(collection)}"`;
+      session.log.info(`${chalk.bold.red(`⛔️ ${message}`)}`);
       session.log.info(
         `${chalk.bold(`📚 accepted kinds are: ${kinds.map((k) => k.name).join(', ')}`)}`,
       );
-      process.exit(1);
+      throw new Error(message);
     }
     // Return the actual kind (including case)
     kindId = match.id;
@@ -249,8 +238,9 @@ export async function determineKindFromCollection(
       session.log.debug(`kindId from default kind`);
       kindId = defaultKind.id;
     } else {
-      session.log.info(`${chalk.red(`⛔️ kind must be specified to continue submission`)}`);
-      process.exit(1);
+      const message = 'Kind must be specified to continue submission';
+      session.log.info(`${chalk.red(`⛔️ ${message}`)}`);
+      throw new Error(message);
     }
   } else {
     const response = await inquirer.prompt([kindQuestions(kinds)]);
@@ -265,10 +255,9 @@ export async function determineKindFromCollection(
   try {
     kind = await getSubmissionKind(session, venue, kindId);
   } catch (err: any) {
-    session.log.info(
-      `${chalk.red(`🚨 could not get submission kind details "${kindId}" from venue ${venue}`)}`,
-    );
-    process.exit(1);
+    const message = `Could not get submission kind details "${kindId}" from venue ${venue}`;
+    session.log.info(`${chalk.red(`🚨 ${message}`)}`);
+    throw new Error(message, { cause: err });
   }
 
   return { kind, prompted };
@@ -294,10 +283,11 @@ export async function checkVenueSubmitAccess(session: ISession, venue: string) {
     session.log.debug('You do not have permission to submit to this venue.');
     throw new Error('You do not have permission to submit to this venue.');
   } catch (err: any) {
-    session.log.info(`${chalk.red(`🚦 venue "${venue}" is not accepting submissions.`)}`);
+    const message = `Venue "${venue}" is not accepting submissions.`;
+    session.log.info(`${chalk.red(`🚦 ${message}`)}`);
     session.log.info(`${chalk.gray(`🤖 API Response: ${err.message}`)}`);
     session.log.debug(JSON.stringify(err, null, 2));
-    process.exit(1);
+    throw new Error(message, { cause: err });
   }
 }
 
@@ -314,8 +304,8 @@ export async function listCollections(
 /**
  * Get collections from `venue` and log information about open collections
  *
- * This will fail with `process.exit(1)` if the fetch for venue collections fails.
- * By default, it also fails if there are no open collections.
+ * Throws if the fetch for venue collections fails.
+ * By default, it also throws if there are no open collections.
  *
  * If `requireOpenCollections` is false, this function will not fail if there are
  * only closed collections or no collections at all.
@@ -329,19 +319,17 @@ export async function getVenueCollections(
   try {
     collections = await listCollections(session, venue);
   } catch (err) {
-    session.log.info(
-      `${chalk.red(
-        `🚦 venue "${venue}" is unavailable; make sure the name is correct and you have permission to access`,
-      )}`,
-    );
-    process.exit(1);
+    const message = `Venue "${venue}" is unavailable; make sure the name is correct and you have permission to access it`;
+    session.log.info(`${chalk.red(`🚦 ${message}`)}`);
+    throw new Error(message, { cause: err });
   }
 
   const openCollections = collections.items.filter((c) => c.open);
 
   if (openCollections.length === 0) {
-    session.log.info(`${chalk.red(`🚦 venue "${venue}" has no open collections.`)}`);
-    if (requireOpenCollections) process.exit(1);
+    const message = `Venue "${venue}" has no open collections.`;
+    session.log.info(`${chalk.red(`🚦 ${message}`)}`);
+    if (requireOpenCollections) throw new Error(message);
   } else if (openCollections.length > 1) {
     session.log.info(
       `${chalk.green(
@@ -395,17 +383,19 @@ export async function chooseSubmission(
   throw new Error('Using non-latest submission not yet supported...');
 }
 
-export async function getAllSubmissionsUsingKey(
+export async function getAllSubmissionsThatICanSeeUsingKey(
   session: ISession,
   venue: string,
   key: string,
+  opts?: { includeDrafts?: boolean },
 ): Promise<SubmissionsListItemDTO[] | undefined> {
   session.log.debug(`checking for existing submission using key "${key}"`);
   const submissions: SubmissionsListItemDTO[] = [];
   try {
+    // will only contain submissions is the user has scopes on the site
     const siteSubmissions: SubmissionsListingDTO = await getFromJournals(
       session,
-      `/sites/${venue}/submissions?key=${key}`,
+      `/sites/${venue}/submissions?${new URLSearchParams({ key }).toString()}`,
     );
     submissions.push(...siteSubmissions.items);
   } catch (err) {
@@ -414,44 +404,36 @@ export async function getAllSubmissionsUsingKey(
   try {
     const mySubmissions: SubmissionsListingDTO = await getFromJournals(
       session,
-      `/my/submissions?key=${key}`,
-    );
-    // These extra fetches are required for the old version of the API where
-    // the 'key' query parameter is not respected on /my/submissions.
-    // This may be removed (along with the 'correctKey' check below) once
-    // the API is updated.
-    const works = await Promise.all(
-      mySubmissions.items.map((sub) => {
-        return getFromUrl(session, sub.links.work);
-      }),
+      `/my/submissions?${new URLSearchParams({ key }).toString()}`,
     );
     submissions.push(
-      ...mySubmissions.items.filter((submission, ind) => {
+      ...mySubmissions.items.filter((submission) => {
         const correctVenue = submission.site_name === venue;
-        const correctKey = works[ind].key === key;
         const submissionIsDuplicate = submissions.map(({ id }) => id).includes(submission.id);
-        return correctVenue && correctKey && !submissionIsDuplicate;
+        return correctVenue && !submissionIsDuplicate;
       }),
     );
   } catch (err) {
     session.log.debug(err);
   }
-  return submissions;
+
+  if (opts?.includeDrafts) {
+    return submissions;
+  }
+
+  // TODO we can remove this additional filtering once the `/my/submissions?key=` API endpoint filters out drafts by default
+  const draftSubmissions = submissions.filter((submission) => submission.status === 'DRAFT');
+  if (draftSubmissions.length > 0) {
+    session.log.debug(`Ignoring ${plural('%s draft submission(s)', draftSubmissions)}`);
+  }
+  return submissions.filter((submission) => submission.status !== 'DRAFT');
 }
 
 export async function getSubmissionToUpdate(
   session: ISession,
   submissions: SubmissionsListItemDTO[],
 ) {
-  const draftSubmissions = submissions.filter((submission) => {
-    return submission.status === 'DRAFT';
-  });
-  const nonDraftSubmissions = submissions.filter((submission) => {
-    return submission.status !== 'DRAFT';
-  });
-  if (draftSubmissions.length > 0) {
-    session.log.debug(`Ignoring ${plural('%s draft submission(s)', draftSubmissions)}`);
-  }
+  const nonDraftSubmissions = submissions.filter((submission) => submission.status !== 'DRAFT');
   if (nonDraftSubmissions.length === 0) {
     session.log.debug('existing submission not found');
     return;
@@ -505,18 +487,17 @@ export async function confirmUpdateToExistingSubmission(
     );
 
     if (!collection?.open) {
-      session.log.error(
-        chalk.bold.red('⛔️ The collection for this submission is not accepting submissions'),
-      );
+      const message = 'The collection for this submission is not accepting submissions';
+      session.log.error(chalk.bold.red(`⛔️ ${message}`));
       session.log.info(
         `${chalk.bold(
           `📚 Open collections are: ${openCollections.map((c) => collectionMoniker(c)).join(', ')}`,
         )}`,
       );
-      process.exit(1);
+      throw new Error(message);
     }
 
-    const work = await getWorkFromKey(session, key);
+    const work = await getMyWorkFromKey(session, key);
     if (!work) {
       session.log.info(
         `${chalk.yellow(
@@ -537,14 +518,9 @@ export async function confirmUpdateToExistingSubmission(
     const kind = await getSubmissionKind(session, venue, kindId);
 
     if (!collection.kinds.find((k) => k.id === kindId)) {
-      session.log.error(
-        `${chalk.red(
-          `⛔️ The kind "${kind.name}" is not accepted in the collection "${collectionMoniker(
-            collection,
-          )}". This indicates a problem with your previous submission, please contact support@curvenote.com.`,
-        )}`,
-      );
-      process.exit(1);
+      const message = `The kind "${kind.name}" is not accepted in the collection "${collectionMoniker(collection)}". This indicates a problem with your previous submission, please contact support@curvenote.com.`;
+      session.log.error(`${chalk.red(`⛔️ ${message}`)}`);
+      throw new Error(message);
     }
 
     await confirmOrExit(
@@ -555,10 +531,9 @@ export async function confirmUpdateToExistingSubmission(
     return { kind, collection };
   } catch (err: any) {
     session.log.debug(err);
-    session.log.info(
-      `${chalk.red(`🚨 Submission not found, or you do not have permission to update it`)}`,
-    );
-    process.exit(1);
+    const message = 'Submission not found, or you do not have permission to update it';
+    session.log.info(`${chalk.red(`🚨 ${message}`)}`);
+    throw new Error(message, { cause: err });
   }
 }
 
@@ -573,8 +548,10 @@ export async function createNewSubmission(
   jobId: string,
   key: string,
   opts?: SubmitOpts,
+  existingWork?: WorkDTO,
 ) {
-  const workResp = await getWorkFromKey(session, key);
+  const tags = opts?.tags && opts.tags.length > 0 ? opts.tags : undefined;
+  const workResp = existingWork ?? (await getMyWorkFromKey(session, key));
   let work: WorkDTO;
   if (workResp) {
     session.log.debug(`posting new work version...`);
@@ -589,7 +566,7 @@ export async function createNewSubmission(
         session.log.debug(
           `unable to create a work with key ${key} - attempting to create un-keyed work for draft submission`,
         );
-        work = await postNewWork(session, cdnKey, cdn);
+        work = await postNewWork(session, cdnKey, cdn, undefined);
       } else {
         throw err;
       }
@@ -608,6 +585,8 @@ export async function createNewSubmission(
     work.version_id,
     opts?.draft ?? false,
     jobId,
+    undefined,
+    tags,
   );
 
   session.log.debug(`new submission posted with id ${submission.id}`);
@@ -643,7 +622,9 @@ export async function updateExistingSubmission(
   cdnKey: string,
   existingSubmission: SubmissionsListItemDTO,
   jobId: string,
+  opts?: SubmitOpts,
 ) {
+  const tags = opts?.tags && opts.tags.length > 0 ? opts.tags : undefined;
   session.log.debug(`existing submission - upload & post`);
   try {
     if (!existingSubmission.links.work) {
@@ -676,6 +657,8 @@ export async function updateExistingSubmission(
       existingSubmission.links.versions,
       work.version_id,
       jobId,
+      undefined,
+      tags,
     );
 
     session.log.debug(`submission version posted with id ${submissionVersion.id}`);

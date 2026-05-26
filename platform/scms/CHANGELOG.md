@@ -1,5 +1,59 @@
 # @curvenote/scms
 
+## 0.18.1
+
+### Patch Changes
+
+- [#904](https://github.com/curvenote/curvenote/pull/904) [`64a3746`](https://github.com/curvenote/curvenote/commit/64a37464b4883123090e4310c5d6e2a6c69c36b8) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Significant overhaul of the sites UI, and data access patterns. Remove the sites inbox and added a placeholder pending new UI/UX.
+
+- [#908](https://github.com/curvenote/curvenote/pull/908) [`6a2db33`](https://github.com/curvenote/curvenote/commit/6a2db33c8e52dc12b558e492ce69faa21e160679) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Enforce strict paginaton on v1/sites/{site}/works route
+
+- [#902](https://github.com/curvenote/curvenote/pull/902) [`e3070f2`](https://github.com/curvenote/curvenote/commit/e3070f2cf1a661a23481ab3183e4e8415eda065e) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Minimise db returns bu explicit minimal selects
+
+- Updated dependencies [[`64a3746`](https://github.com/curvenote/curvenote/commit/64a37464b4883123090e4310c5d6e2a6c69c36b8), [`b21ff7d`](https://github.com/curvenote/curvenote/commit/b21ff7d0970dd4b5e5fba64278a014ebdeb39b8f), [`03834a3`](https://github.com/curvenote/curvenote/commit/03834a326320818fdc071bc0d4ef1e853038f441), [`790d919`](https://github.com/curvenote/curvenote/commit/790d919e1d7a8d0ec881eff9c2a5ca03e28732f3), [`3439f63`](https://github.com/curvenote/curvenote/commit/3439f63cb5ae73ee8ac7b7f7c5d8c03783cd34af), [`d9cf56a`](https://github.com/curvenote/curvenote/commit/d9cf56a8c9a40c0d70b56c46e67cde8c91e55714), [`e3070f2`](https://github.com/curvenote/curvenote/commit/e3070f2cf1a661a23481ab3183e4e8415eda065e)]:
+  - @curvenote/scms-sites-ext@0.19.0
+  - @curvenote/scms-server@0.19.0
+  - @curvenote/scms-core@0.19.0
+  - @curvenote/common@0.5.1
+  - @curvenote/check-definitions@0.16.1
+  - @curvenote/cdn@0.5.1
+  - @curvenote/scms-db@0.19.0
+
+## 0.18.0
+
+### Minor Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Introduce `IStorageProvider` with GCS, Azure Blob, and S3 implementations; refactor storage backend and uploads; signed uploads expose `protocol` (`gcs-resumable` | `put`) for browser, tasks, and CLI; add `api.storage` config (legacy GCS keyfile still supported).
+
+### Patch Changes
+
+- [#891](https://github.com/curvenote/curvenote/pull/891) [`3e4de74`](https://github.com/curvenote/curvenote/commit/3e4de74556aaacbec9908bc05eb27d6323261e9f) Thanks [@stevejpurves](https://github.com/stevejpurves)! - By default, draft submissions are not listed
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Works register CLI path and related API routes/loaders; submission listing and version flows; site advanced settings for service accounts and personal access tokens.
+
+- Updated dependencies [[`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56), [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56), [`3e4de74`](https://github.com/curvenote/curvenote/commit/3e4de74556aaacbec9908bc05eb27d6323261e9f), [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56)]:
+  - @curvenote/check-definitions@0.16.0
+  - @curvenote/blocks@1.6.3
+  - @curvenote/common@0.5.0
+  - @curvenote/cdn@0.5.0
+  - @curvenote/scms-core@0.18.0
+  - @curvenote/scms-server@0.18.0
+  - @curvenote/scms-db@0.18.0
+  - @curvenote/scms-sites-ext@0.18.0
+
+## 0.17.1
+
+### Patch Changes
+
+- Updated dependencies [[`bfb48cc`](https://github.com/curvenote/curvenote/commit/bfb48cc7ae25d98236e2443dd014c8a887b3b0a0)]:
+  - @curvenote/scms-core@0.17.1
+  - @curvenote/cdn@0.4.3
+  - @curvenote/scms-sites-ext@0.17.1
+  - @curvenote/scms-server@0.17.1
+  - @curvenote/check-definitions@0.15.2
+  - @curvenote/common@0.4.3
+  - @curvenote/scms-db@0.17.1
+
 ## 0.17.0
 
 ### Minor Changes

@@ -86,6 +86,10 @@ export async function action(args: ActionFunctionArgs) {
 export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderData }) {
   const { scopes, site, themeConfig, logoUrl, logoDarkUrl, publicCdn } = loaderData;
   const fetcher = useFetcher();
+  const toPublicAssetUrl = (uploadedPath: string) => {
+    if (!publicCdn) return uploadedPath;
+    return `${publicCdn.replace(/\/+$/, '')}/${uploadedPath.replace(/^\/+/, '')}`;
+  };
 
   const [currentTitle, setCurrentTitle] = useState(site.title);
   const [currentDescription, setCurrentDescription] = useState(site.description || '');
@@ -288,7 +292,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         readonly={!canEdit}
                         height="80px"
                         onUploadComplete={(uploadedPath) => {
-                          setCurrentLogoUrl(`${publicCdn}/${uploadedPath}`);
+                          setCurrentLogoUrl(toPublicAssetUrl(uploadedPath));
                           setDirty(true);
                         }}
                       />
@@ -320,7 +324,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         readonly={!canEdit}
                         height="80px"
                         onUploadComplete={(uploadedPath) => {
-                          setCurrentLogoDarkUrl(`${publicCdn}/${uploadedPath}`);
+                          setCurrentLogoDarkUrl(toPublicAssetUrl(uploadedPath));
                           setDirty(true);
                         }}
                       />

@@ -79,6 +79,7 @@ export async function setNextStep(ctx: Context) {
         },
       },
     },
+    select: { id: true },
   });
 
   return nextStepName;

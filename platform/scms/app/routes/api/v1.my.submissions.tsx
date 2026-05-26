@@ -6,6 +6,14 @@ export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAPISecureContext(args);
   const url = new URL(args.request.url);
   const key = url.searchParams.get('key');
-  const dto = await my.submissions.list(ctx, extensions, key ?? undefined);
+  const workId = url.searchParams.get('work_id');
+  const site = url.searchParams.get('site') ?? url.searchParams.get('site_name');
+  const includeDrafts = url.searchParams.get('drafts') === 'true';
+  const dto = await my.submissions.list(ctx, extensions, {
+    key: key ?? undefined,
+    workId: workId ?? undefined,
+    siteName: site ?? undefined,
+    includeDrafts,
+  });
   return Response.json(dto);
 }

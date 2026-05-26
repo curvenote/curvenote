@@ -12,6 +12,9 @@ export async function loader(args: Route.LoaderArgs) {
       versions: {
         some: {
           work_version: { is: { work: { is: { key: keyName } } } },
+          NOT: {
+            status: 'DRAFT',
+          },
         },
       },
     },

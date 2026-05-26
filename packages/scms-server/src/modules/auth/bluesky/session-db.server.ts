@@ -52,6 +52,7 @@ export async function persistBlueskySessionForLinkedAccount(
             : {}),
           date_modified: now,
         },
+        select: { id: true },
       });
     } else {
       await sessionTx.userLinkedAccountSession.create({
@@ -69,6 +70,7 @@ export async function persistBlueskySessionForLinkedAccount(
           date_created: now,
           date_modified: now,
         },
+        select: { id: true },
       });
     }
   });

@@ -108,6 +108,7 @@ export async function dbCreateForm(
           },
         },
       },
+      select: { id: true },
     });
 
     return form;

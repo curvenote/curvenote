@@ -1,5 +1,40 @@
 # curvenote
 
+## 0.16.1
+
+### Patch Changes
+
+- [#901](https://github.com/curvenote/curvenote/pull/901) [`b21ff7d`](https://github.com/curvenote/curvenote/commit/b21ff7d0970dd4b5e5fba64278a014ebdeb39b8f) Thanks [@fwkoch](https://github.com/fwkoch)! - Allow explicit yaml path for work register
+
+- [#893](https://github.com/curvenote/curvenote/pull/893) [`790d919`](https://github.com/curvenote/curvenote/commit/790d919e1d7a8d0ec881eff9c2a5ca03e28732f3) Thanks [@fwkoch](https://github.com/fwkoch)! - Add tags to work and submission version metadata
+
+- [#901](https://github.com/curvenote/curvenote/pull/901) [`b21ff7d`](https://github.com/curvenote/curvenote/commit/b21ff7d0970dd4b5e5fba64278a014ebdeb39b8f) Thanks [@fwkoch](https://github.com/fwkoch)! - Expose work-metadata and submission-metadata on register
+
+- Updated dependencies [[`b21ff7d`](https://github.com/curvenote/curvenote/commit/b21ff7d0970dd4b5e5fba64278a014ebdeb39b8f), [`8a5c49d`](https://github.com/curvenote/curvenote/commit/8a5c49d73eb3409b6b4c6eb59aa03d29e4c43505), [`790d919`](https://github.com/curvenote/curvenote/commit/790d919e1d7a8d0ec881eff9c2a5ca03e28732f3), [`b21ff7d`](https://github.com/curvenote/curvenote/commit/b21ff7d0970dd4b5e5fba64278a014ebdeb39b8f)]:
+  - @curvenote/cli@0.16.1
+
+## 0.16.0
+
+### Minor Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Introduce `IStorageProvider` with GCS, Azure Blob, and S3 implementations; refactor storage backend and uploads; signed uploads expose `protocol` (`gcs-resumable` | `put`) for browser, tasks, and CLI; add `api.storage` config (legacy GCS keyfile still supported).
+
+### Patch Changes
+
+- [#830](https://github.com/curvenote/curvenote/pull/830) [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Works register CLI path and related API routes/loaders; submission listing and version flows; site advanced settings for service accounts and personal access tokens.
+
+- Updated dependencies [[`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56), [`3e4de74`](https://github.com/curvenote/curvenote/commit/3e4de74556aaacbec9908bc05eb27d6323261e9f), [`172c4f1`](https://github.com/curvenote/curvenote/commit/172c4f16d506a785e30071ee4d9f538008790a56)]:
+  - @curvenote/cli@0.16.0
+
+## 0.15.2
+
+### Patch Changes
+
+- [#881](https://github.com/curvenote/curvenote/pull/881) [`bfb48cc`](https://github.com/curvenote/curvenote/commit/bfb48cc7ae25d98236e2443dd014c8a887b3b0a0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Bump myst to v1.9.0
+
+- Updated dependencies [[`bfb48cc`](https://github.com/curvenote/curvenote/commit/bfb48cc7ae25d98236e2443dd014c8a887b3b0a0)]:
+  - @curvenote/cli@0.15.2
+
 ## 0.15.1
 
 ### Patch Changes

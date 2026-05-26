@@ -10,6 +10,8 @@ import {
   makeCollectionOption,
   makeNewOption,
   makeSkipRebuildOption,
+  makeLookupKeyOption,
+  makeTagsOption,
 } from './options.js';
 import { submissions } from '@curvenote/cli';
 
@@ -20,12 +22,14 @@ function makeSubmitCLI(program: Command) {
     .addOption(makeKindOption())
     .addOption(makeCollectionOption())
     .addOption(makeDraftOption())
+    .addOption(makeLookupKeyOption())
     .addOption(makeNewOption())
     .addOption(makeYesOption())
     .addOption(makeResumeOption())
     .addOption(makeMaxSizeWebpOption(3))
     .addOption(makeSkipRebuildOption())
     .addOption(makeExecuteOption('Execute Notebooks'))
+    .addOption(makeTagsOption())
     .action(clirun(submissions.submit, { program, requireSiteConfig: true }));
   return command;
 }
@@ -63,6 +67,12 @@ function makeSubmissionPublishCLI(program: Command) {
         'Set different publish date than today. If no argument is provided for this option, frontmatter date will be used.',
       ),
     )
+    .addOption(
+      new Option(
+        '--doi <doi>',
+        'Resolve submission by work DOI (use for works registered with --key doi; avoids key mismatch)',
+      ),
+    )
     .action(clirun(submissions.publish, { program, requireSiteConfig: true }));
   return command;
 }
@@ -76,6 +86,12 @@ function makeSubmissionUnpublishCLI(program: Command) {
         '-f, --force',
         'If the unpublish action is not available, do not throw an error',
       ).default(false),
+    )
+    .addOption(
+      new Option(
+        '--doi <doi>',
+        'Resolve submission by work DOI (use for works registered with --key doi; avoids key mismatch)',
+      ),
     )
     .action(clirun(submissions.unpublish, { program, requireSiteConfig: true }));
   return command;

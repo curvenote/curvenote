@@ -65,6 +65,7 @@ export async function $actionCollectionDelete(ctx: SiteContext, formData: FormDa
             default: true,
             date_modified: new Date().toISOString(),
           },
+          select: { id: true },
         });
       }
     }
