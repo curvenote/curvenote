@@ -163,6 +163,19 @@ async function dbBuildAugmentedListingItems(
 /**
  * Site app submissions listing — optimized Prisma access local to this route (not API loaders).
  */
+export async function dbCountSignedSubmissions(
+  ctx: SiteContext,
+  moreWhere?: Prisma.SubmissionWhereInput,
+): Promise<number> {
+  const prisma = await getPrismaClient();
+  return prisma.submission.count({
+    where: buildListingWhere(ctx.site.id, moreWhere ?? {}),
+  });
+}
+
+/**
+ * Site app submissions listing — optimized Prisma access local to this route (not API loaders).
+ */
 export async function dbListSignedSubmissions(
   ctx: SiteContext,
   moreWhere?: Prisma.SubmissionWhereInput,

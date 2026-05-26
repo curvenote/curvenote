@@ -1,3 +1,4 @@
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { withAppSiteContext } from '@curvenote/scms-server';
 import {
   PageFrame,
@@ -5,13 +6,53 @@ import {
   joinPageTitle,
   site as siteScopes,
 } from '@curvenote/scms-core';
-import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
+import { z } from 'zod';
+import {
+  dbCountSignedSubmissions,
+  dbListSignedSubmissions,
+} from '../$siteName.submissions-classic/db.server.js';
 import { formatSubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
 import type { SubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
-import { SubmissionsComingSoon } from './SubmissionsComingSoon.js';
+import { ClassicSubmissionsRedirect } from './ClassicSubmissionsRedirect.js';
+import { SubmissionsListingToolbar } from './SubmissionsListingToolbar.js';
+import { SubmissionsList } from './SubmissionsList.js';
+import {
+  DEFAULT_SUBMISSIONS_PER_PAGE,
+  SUBMISSIONS_PER_PAGE_OPTIONS,
+  SubmissionsPagination,
+} from './SubmissionsPagination.js';
+import type { SubmissionsIndexItem, SubmissionsIndexPage } from './types.js';
+
+const PaginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  perPage: z.coerce
+    .number()
+    .int()
+    .default(DEFAULT_SUBMISSIONS_PER_PAGE)
+    .transform((value) =>
+      (SUBMISSIONS_PER_PAGE_OPTIONS as readonly number[]).includes(value)
+        ? value
+        : DEFAULT_SUBMISSIONS_PER_PAGE,
+    ),
+});
 
 interface LoaderData {
   site: SubmissionListingSiteContext;
+  submissions: SubmissionsIndexPage;
+}
+
+function toIndexItem(item: {
+  id: string;
+  title: string;
+  authors: { name: string }[];
+  date_published?: string;
+}): SubmissionsIndexItem {
+  return {
+    id: item.id,
+    title: item.title,
+    authors: item.authors.filter((author) => author.name?.trim()),
+    datePublished: item.date_published,
+  };
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -20,8 +61,22 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     redirect: true,
   });
 
+  const url = new URL(args.request.url);
+  const { page, perPage } = PaginationSchema.parse(Object.fromEntries(url.searchParams));
+
+  const [listing, total] = await Promise.all([
+    dbListSignedSubmissions(ctx, {}, page, perPage),
+    dbCountSignedSubmissions(ctx),
+  ]);
+
   return {
     site: formatSubmissionListingSiteContext(ctx),
+    submissions: {
+      items: listing.items.map(toIndexItem),
+      page,
+      perPage,
+      total,
+    },
   };
 }
 
@@ -31,7 +86,7 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 };
 
 export default function Submissions({ loaderData }: { loaderData: LoaderData }) {
-  const { site } = loaderData;
+  const { site, submissions } = loaderData;
 
   const breadcrumbs = [
     { label: 'Sites', href: '/app/sites' },
@@ -40,11 +95,25 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
 
   return (
     <PageFrame
-      title="Submissions"
-      subtitle={`Manage submissions for ${site.title}`}
+      title="All Submissions"
+      subtitle={<span>List, filter, search and view all submissions.</span>}
       breadcrumbs={breadcrumbs}
     >
-      <SubmissionsComingSoon siteName={site.name} />
+      <SubmissionsListingToolbar className="mb-5" />
+      <div className="flex flex-col gap-2">
+        <SubmissionsPagination
+          page={submissions.page}
+          perPage={submissions.perPage}
+          total={submissions.total}
+        />
+        <SubmissionsList siteName={site.name} items={submissions.items} />
+        <SubmissionsPagination
+          page={submissions.page}
+          perPage={submissions.perPage}
+          total={submissions.total}
+        />
+      </div>
+      <ClassicSubmissionsRedirect siteName={site.name} />
     </PageFrame>
   );
 }
