@@ -7,10 +7,8 @@ import {
   site as siteScopes,
 } from '@curvenote/scms-core';
 import { z } from 'zod';
-import {
-  dbCountSignedSubmissions,
-  dbListSignedSubmissions,
-} from '../$siteName.submissions-classic/db.server.js';
+import { dbCountSubmissionsForIndex, dbListSubmissionsForIndex } from './db.server.js';
+import { formatSubmissionsIndexItems } from './format.server.js';
 import { formatSubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
 import type { SubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
 import { ClassicSubmissionsRedirect } from './ClassicSubmissionsRedirect.js';
@@ -21,7 +19,7 @@ import {
   SUBMISSIONS_PER_PAGE_OPTIONS,
   SubmissionsPagination,
 } from './SubmissionsPagination.js';
-import type { SubmissionsIndexItem, SubmissionsIndexPage } from './types.js';
+import type { SubmissionsIndexPage } from './types.js';
 
 const PaginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -41,20 +39,6 @@ interface LoaderData {
   submissions: SubmissionsIndexPage;
 }
 
-function toIndexItem(item: {
-  id: string;
-  title: string;
-  authors: { name: string }[];
-  date_published?: string;
-}): SubmissionsIndexItem {
-  return {
-    id: item.id,
-    title: item.title,
-    authors: item.authors.filter((author) => author.name?.trim()),
-    datePublished: item.date_published,
-  };
-}
-
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   const ctx = await withAppSiteContext(args, [siteScopes.submissions.list], {
     redirectTo: '/app',
@@ -64,15 +48,15 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   const url = new URL(args.request.url);
   const { page, perPage } = PaginationSchema.parse(Object.fromEntries(url.searchParams));
 
-  const [listing, total] = await Promise.all([
-    dbListSignedSubmissions(ctx, {}, page, perPage),
-    dbCountSignedSubmissions(ctx),
+  const [rows, total] = await Promise.all([
+    dbListSubmissionsForIndex(ctx, { page, perPage }),
+    dbCountSubmissionsForIndex(ctx),
   ]);
 
   return {
     site: formatSubmissionListingSiteContext(ctx),
     submissions: {
-      items: listing.items.map(toIndexItem),
+      items: formatSubmissionsIndexItems(rows),
       page,
       perPage,
       total,
