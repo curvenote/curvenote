@@ -138,7 +138,9 @@ export function VersionTimelineHoverCard({
   return (
     <HoverCard.Root open={open} onOpenChange={setOpen} openDelay={400} closeDelay={100}>
       <HoverCard.Trigger asChild>
-        <span className="inline-flex cursor-default">{children}</span>
+        <span className="inline-flex cursor-default transition-[filter] duration-150 hover:brightness-[0.97] dark:hover:brightness-[1.06]">
+          {children}
+        </span>
       </HoverCard.Trigger>
       <HoverCard.Portal>
         <HoverCard.Content
