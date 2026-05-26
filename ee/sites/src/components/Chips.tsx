@@ -5,7 +5,7 @@ import { LockOpen, Lock, History } from 'lucide-react';
 export function HasPublishedVersion({ date }: { date?: string }) {
   return (
     <primitives.Chip
-      className="text-white bg-green-600"
+      className="border border-green-700 bg-green-50 text-green-700 dark:border-green-600 dark:bg-green-950/30 dark:text-green-300"
       title={
         date
           ? `latest published version was created on ${formatDate(date, 'yyyy-MM-dd')}`

@@ -413,10 +413,12 @@ function CoreDesigns() {
 
         <ComponentCard
           component={
-            <primitives.Chip className="text-white bg-green-600">Published</primitives.Chip>
+            <primitives.Chip className="border border-green-700 bg-green-50 text-green-700 dark:border-green-600 dark:bg-green-950/30 dark:text-green-300">
+              Published
+            </primitives.Chip>
           }
           title="Published"
-          metadata="text-white bg-green-600"
+          metadata="border border-green-700 bg-green-50 text-green-700 dark:border-green-600 dark:bg-green-950/30 dark:text-green-300"
           sourceUrl="https://github.com/curvenote/curvenote/blob/dev/ee/sites/src/components/Chips.tsx#L6-L19"
         />
 
