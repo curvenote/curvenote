@@ -12,6 +12,9 @@
  * gitignored extension / relay-plugin sources.
  * Run via npm run generate:extensions (postinstall). Use scripts/turbo-run.mjs to merge that
  * fragment with turbo.json when invoking the turbo CLI.
+ *
+ * Extension packages with a "./client" export should also declare "development" conditions
+ * pointing at src/ so Vite HMR resolves source in dev (see ee/sites/package.json).
  */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';

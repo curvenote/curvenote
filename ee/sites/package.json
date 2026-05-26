@@ -11,10 +11,12 @@
   "browser": false,
   "exports": {
     ".": {
+      "development": "./src/index.ts",
       "node": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./client": {
+      "development": "./src/client.ts",
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js",
       "require": "./dist/client.js",
