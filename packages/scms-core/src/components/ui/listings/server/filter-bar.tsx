@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { CheckSquare, Square } from 'lucide-react';
 import { Button } from '../../button.js';
-import type { FilterDefinition } from './types.js';
+import type { FilterDefinition } from '../common/types.js';
 
 export interface FilterBarProps<TQuery> {
   filters: FilterDefinition[];
