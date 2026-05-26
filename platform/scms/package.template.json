@@ -33,7 +33,7 @@
     "build:prod": "react-router typegen; tsc; react-router build",
     "build:test": "react-router typegen; tsc; react-router build",
     "build:dev": "NODE_ENV=development react-router typegen; tsc; NODE_ENV=development react-router build",
-    "dev": "npx concurrently \"tsc -w\" \"react-router dev\"",
+    "dev": "react-router dev",
     "lint": "npx eslint -c .eslintrc.cjs \"app/**/*.{ts,tsx}\"",
     "lint:format": "prettier --check \"app/**/*.{ts,tsx}\"",
     "lint:circular": "madge -c app/*",

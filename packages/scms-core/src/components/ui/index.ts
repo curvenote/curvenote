@@ -29,6 +29,7 @@ export * from './limited-textarea.js';
 export * from './listings/index.js';
 export * from './menu.js';
 export * from './MermaidDiagram.js';
+export * from './pagination.js';
 export * from './popover.js';
 export * from './radio-group.js';
 export * from './RoleBadge.js';

@@ -19,7 +19,7 @@ const CreateSubmissionVersionPostBodySchema = z.object({
 });
 
 const ParamsSchema = z.object({
-  limit: z.number().int().min(1).max(500).default(500),
+  limit: z.number().int().min(1).max(500).default(10),
   page: z.number().int().min(0).optional(),
 });
 
@@ -32,8 +32,8 @@ export async function loader(args: Route.LoaderArgs) {
   const submissionId = args.params.submissionId;
   if (!submissionId) throw httpError(400, 'Missing submission id');
 
-  const submission = await sites.submissions.dbGetSubmission({ id: submissionId });
-  if (!submission || submission.site.name !== ctx.site.name) {
+  const submissionExists = await sites.submissions.exists(ctx, submissionId);
+  if (!submissionExists) {
     throw httpError(404, 'Submission not found');
   }
 

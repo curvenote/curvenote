@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CheckSquare, Square } from 'lucide-react';
 import { Button } from '../../button.js';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../Accordion.js';
-import type { FilterDefinition } from './types.js';
+import type { FilterDefinition } from '../common/types.js';
 import { cn } from '../../../../utils/cn.js';
 import {
   isFilterActive,
@@ -12,7 +12,7 @@ import {
   createAllFiltersState,
   ALL_FILTERS_KEY,
   getFilterId,
-} from './filter-utils.js';
+} from '../common/filter-utils.js';
 
 export interface ClientFilterBarWithAdvancedProps<T> {
   items: T[] | Promise<T[]>;

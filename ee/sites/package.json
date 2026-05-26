@@ -11,10 +11,12 @@
   "browser": false,
   "exports": {
     ".": {
+      "development": "./src/index.ts",
       "node": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./client": {
+      "development": "./src/client.ts",
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js",
       "require": "./dist/client.js",
@@ -68,6 +70,7 @@
     "classnames": "^2.5.1",
     "color": "^5.0.2",
     "date-fns": "3.6.0",
+    "doi-utils": "^2.0.5",
     "js-yaml": "^4.1.1",
     "lucide-react": "^0.552.0",
     "myst-common": "^1.9.3",

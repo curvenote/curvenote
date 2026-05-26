@@ -27,6 +27,7 @@ ETL_CONCURRENCY="${ETL_CONCURRENCY:-20}"
 ETL_PREFIX="${ETL_PREFIX:-10.5072/etl-bench}"
 ETL_RUN_ID="${ETL_RUN_ID:-}"
 ETL_RANDOMIZE_PREFIX="${ETL_RANDOMIZE_PREFIX:-1}"
+ETL_RANDOMIZE_METADATA="${ETL_RANDOMIZE_METADATA:-1}"
 ETL_PROGRESS_EVERY="${ETL_PROGRESS_EVERY:-}"
 ETL_PROGRESS_INTERVAL="${ETL_PROGRESS_INTERVAL:-15}"
 
@@ -90,6 +91,10 @@ fi
 
 if [[ "${ETL_RANDOMIZE_PREFIX}" == "0" ]]; then
   ARGS+=(--no-randomize-prefix)
+fi
+
+if [[ "${ETL_RANDOMIZE_METADATA}" == "0" ]]; then
+  ARGS+=(--no-randomize-metadata)
 fi
 
 if [[ "${ETL_DRY_RUN}" == "1" ]]; then
