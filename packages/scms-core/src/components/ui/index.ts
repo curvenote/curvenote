@@ -42,6 +42,7 @@ export * from './SubmissionVersionBadge.js';
 export * from './switch.js';
 export * from './tags.js';
 export * from './TagChips.js';
+export * from './VersionTagBadge.js';
 export * from './tabs.js';
 export * from './text-field.js';
 export * from './textarea.js';

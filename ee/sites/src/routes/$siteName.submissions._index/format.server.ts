@@ -5,7 +5,7 @@ import type { IndexListingRow } from './db.server.js';
 import type { SubmissionsIndexItem } from './types.js';
 
 /**
- * The listing card uses the newest version's title and authors.
+ * The listing card uses the newest version's title, authors, status, and version tag.
  *
  * `is_listed = true` guarantees that the newest version is not DRAFT/INCOMPLETE,
  * so the card never surfaces unfinished content. Submissions whose newest
@@ -36,6 +36,7 @@ export function formatSubmissionsIndexItems(
       dateFirstSubmitted: row.date_created,
       dateLastUpdated: row.activity[0]?.date_created ?? row.date_created,
       doi: doiUtils.normalize(work?.doi ?? row.work?.doi),
+      versionTag: row.versionTag,
       status,
       statusLabel: workflow.states[status]?.label ?? status,
       publishedVersion: row.publishedVersion,

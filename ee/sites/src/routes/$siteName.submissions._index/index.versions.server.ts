@@ -38,6 +38,19 @@ export type IndexVersionDates = {
   retractedVersion?: { date_created: string };
 };
 
+type VersionTagSource = {
+  tags: string[];
+};
+
+/**
+ * First tag on the submission version — same source as title/status on the listing card.
+ * Intentionally ignores `work_version.tags`: the listing badge reflects the tag chosen
+ * for this submission, not tags inherited from the underlying work version.
+ */
+export function firstVersionTag(row: VersionTagSource): string | undefined {
+  return row.tags?.[0];
+}
+
 /**
  * Latest published / retracted version dates per submission — enough for listing chips.
  */

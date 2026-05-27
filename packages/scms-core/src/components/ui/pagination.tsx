@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
 
 const paginationLinkBase =
-  'inline-flex items-center justify-center gap-0.5 whitespace-nowrap rounded-md text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3.5 [&_svg]:shrink-0';
+  'inline-flex items-center justify-center gap-0.5 whitespace-nowrap rounded-md text-xs font-medium tabular-nums transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3.5 [&_svg]:shrink-0';
 
 function Pagination({ className, ...props }: React.ComponentProps<'nav'>) {
   return (
@@ -23,7 +23,7 @@ function PaginationContent({ className, ...props }: React.ComponentProps<'ul'>) 
   return (
     <ul
       data-slot="pagination-content"
-      className={cn('flex flex-row items-center gap-0.5', className)}
+      className={cn('flex flex-row items-center gap-1', className)}
       {...props}
     />
   );
@@ -42,7 +42,7 @@ type PaginationLinkProps = {
 function PaginationLink({
   className,
   isActive,
-  size = 'icon',
+  size = 'default',
   asChild = false,
   ...props
 }: PaginationLinkProps) {
@@ -55,8 +55,8 @@ function PaginationLink({
       data-active={isActive}
       className={cn(
         paginationLinkBase,
-        size === 'icon' && 'size-8',
-        size === 'default' && 'h-8 px-2',
+        size === 'icon' && 'size-8 shrink-0',
+        size === 'default' && 'h-8 min-w-8 px-2',
         isActive
           ? 'border border-input bg-background text-foreground'
           : 'border border-transparent text-foreground hover:bg-accent hover:text-accent-foreground',

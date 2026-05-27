@@ -99,6 +99,11 @@ model SubmissionVersion {
   occ                 Int         @default(0) // Optimistic concurrency control
 
   @@index([tags], type: Gin)
+  /// Powers the submissions-index listing hot path:
+  ///   - newest-version subselect (`versions: { take: 1, orderBy: { date_created: 'desc' } }`)
+  ///   - DISTINCT ON (submission_id) ORDER BY submission_id, date_created DESC
+  ///     used by `dbDistinctVersionDates` for published/retracted dates.
+  @@index([submission_id, date_created(sort: Desc)])
 }
 
 model Submission {
