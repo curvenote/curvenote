@@ -229,6 +229,44 @@ describe('listingParams: date math', () => {
     expect(range).toEqual({ from: '2025-05-15', to: '2026-05-15' });
   });
 
+  it('computeDatePresetRange("past_month") clamps the day when the target month is shorter', () => {
+    // Regression: a naive `setMonth(getMonth() - 1)` on May 31 tries to
+    // build April 31, which JS Date silently rolls forward to May 1 —
+    // putting `from` *after* the start of the current month. The correct
+    // behaviour is to clamp to the last day of the target month
+    // (2026-04-30 here).
+    const may31 = new Date(2026, 4, 31); // local May 31 2026
+    expect(computeDatePresetRange('past_month', may31)).toEqual({
+      from: '2026-04-30',
+      to: '2026-05-31',
+    });
+
+    // March 31 → February (28 days in 2026)
+    const mar31 = new Date(2026, 2, 31);
+    expect(computeDatePresetRange('past_month', mar31)).toEqual({
+      from: '2026-02-28',
+      to: '2026-03-31',
+    });
+
+    // March 31 in a leap year → February 29
+    const mar31Leap = new Date(2024, 2, 31);
+    expect(computeDatePresetRange('past_month', mar31Leap)).toEqual({
+      from: '2024-02-29',
+      to: '2024-03-31',
+    });
+  });
+
+  it('computeDatePresetRange("past_year") clamps Feb 29 of a leap year to Feb 28 of the prior year', () => {
+    // Regression: a naive `setFullYear(getFullYear() - 1)` on Feb 29 of a
+    // leap year tries to build Feb 29 of the prior (non-leap) year, which
+    // JS Date silently rolls forward to March 1.
+    const feb29 = new Date(2024, 1, 29); // local Feb 29 2024 (leap)
+    expect(computeDatePresetRange('past_year', feb29)).toEqual({
+      from: '2023-02-28',
+      to: '2024-02-29',
+    });
+  });
+
   it('matchPresetForRange returns "anytime" when neither bound is set', () => {
     expect(matchPresetForRange(undefined, undefined, false, fixedNow)).toBe('anytime');
   });

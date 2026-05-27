@@ -14,6 +14,8 @@
  * controls).
  */
 
+import { subDays, subMonths, subYears } from 'date-fns';
+
 /* -----------------------------------------------------------------------------
  * Sort
  * -------------------------------------------------------------------------- */
@@ -197,24 +199,30 @@ function isoDate(d: Date): string {
  * URLs store the resolved dates (not the preset name) so shared links remain
  * stable: a "Past week" link sent today shows the same window when opened
  * tomorrow.
+ *
+ * The month and year arithmetic deliberately delegates to `date-fns` so the
+ * day-of-month is clamped to the last valid day of the target month rather
+ * than overflowing forward — `Date.setMonth(n)` on May 31 would otherwise
+ * land on May 1 (since April 31 doesn't exist), and `Date.setFullYear(y - 1)`
+ * on Feb 29 of a leap year would land on March 1 of the prior year.
  */
 export function computeDatePresetRange(
   preset: ListingDateRangePresetId,
   now: Date = new Date(),
 ): { from: string; to: string } {
   const to = isoDate(now);
-  const fromDate = new Date(now);
+  let fromDate = new Date(now);
   switch (preset) {
     case 'today':
       break;
     case 'past_week':
-      fromDate.setDate(fromDate.getDate() - 7);
+      fromDate = subDays(fromDate, 7);
       break;
     case 'past_month':
-      fromDate.setMonth(fromDate.getMonth() - 1);
+      fromDate = subMonths(fromDate, 1);
       break;
     case 'past_year':
-      fromDate.setFullYear(fromDate.getFullYear() - 1);
+      fromDate = subYears(fromDate, 1);
       break;
   }
   return { from: isoDate(fromDate), to };
