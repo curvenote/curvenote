@@ -197,11 +197,16 @@ function buildListingPrismaWhere(siteId: string, query: ListingQuery): Prisma.Su
 function buildListingPrismaOrderBy(
   query: ListingQuery,
 ): Prisma.SubmissionOrderByWithRelationInput[] {
+  // Every sort appends `{ id: 'asc' }` as the final tie-breaker so LIMIT/OFFSET
+  // pagination is deterministic across separate queries — without it, rows that
+  // tie on the leading sort keys (common after bulk imports / bulk publishes)
+  // can shift between pages, producing duplicates or holes as users scroll.
+  // Mirrors the raw SQL path, which already pins `s.id ASC` last.
   switch (query.sort) {
     case 'recent_published':
-      return [{ date_published: 'desc' }, { date_created: 'desc' }];
+      return [{ date_published: 'desc' }, { date_created: 'desc' }, { id: 'asc' }];
     case 'recent_created':
-      return [{ date_created: 'desc' }];
+      return [{ date_created: 'desc' }, { id: 'asc' }];
     case 'recent_activity':
     case 'title_az':
     case 'author_az':

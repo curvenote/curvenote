@@ -446,8 +446,10 @@ New tests required for the slice:
 
 ## Open product questions
 
-These are the reasons this is parked. Each needs an answer before the
-migration ships.
+These are the reasons this is parked. Each (except §4, which has been
+resolved against the established sort pattern) needs an answer before the
+migration ships. Numbering is preserved so external references stay
+stable; resolved questions stay in place with a "resolved" note.
 
 ### 1. `active_status` definition
 
@@ -494,12 +496,22 @@ Three options:
 The current trigger is fast (single-row UPDATE keyed by `submission_id`).
 Option 2 is the safer choice if `WorkVersion` mutation is real.
 
-### 4. Tie-breakers for the new sorts
+### 4. Tie-breakers for the new sorts — **resolved**
 
-All three new sorts should specify a stable secondary key. Proposed: append
-`id ASC` so pagination is deterministic across page boundaries. Confirm
-that matches the existing `recent_published` behaviour, which uses
-`date_created DESC` as its secondary key.
+All three new sorts append `id ASC` as the final tie-breaker so LIMIT/OFFSET
+pagination is deterministic across separate queries. This matches the
+established pattern in `buildListingPrismaOrderBy` and
+`buildListingRawSqlOrderBy`, which both pin the existing sorts to:
+
+- `recent_published`: `date_published DESC, date_created DESC, id ASC`
+- `recent_created`: `date_created DESC, id ASC`
+
+The `id ASC` suffix was added to the Prisma fast path after the initial
+listing slice shipped, to bring it in line with the raw SQL path (which had
+shipped with the tie-breaker from day one). The migration template above
+already reflects this — every partial index that backs a parked sort
+includes `id` as a trailing column so the indexed ORDER BY can satisfy the
+secondary key without a Sort step.
 
 ### 5. NULL placement for `cached_first_author`
 
