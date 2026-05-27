@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import * as HoverCard from '@radix-ui/react-hover-card';
 import { GitBranch, Tag } from 'lucide-react';
 import {
   cn,
@@ -13,9 +12,6 @@ import {
 } from '@curvenote/scms-core';
 import type { VersionTimelineEntry } from '../$siteName.submissions.$submissionId.versions/db.server.js';
 import { useSubmissionVersionTimeline } from './versionTimeline.js';
-
-const floatingPanelShadowClass =
-  'shadow-[0_1px_3px_rgba(27,31,36,0.08),0_8px_24px_rgba(140,149,159,0.2)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.5)]';
 
 function TimelineRail() {
   // `w-px` renders to the right of its anchor; `-translate-x-1/2` shifts it
@@ -31,14 +27,14 @@ function TimelineRail() {
 
 function TimelineSkeleton() {
   return (
-    <div className="relative space-y-4 pt-1 pb-2">
+    <div className="relative pt-1 pb-2 space-y-4">
       <TimelineRail />
       {[0, 1, 2].map((i) => (
-        <div key={i} className="relative flex gap-3">
+        <div key={i} className="flex relative gap-3">
           <span className="relative z-10 mt-[3px] size-2.5 shrink-0 rounded-full bg-muted ring-2 ring-popover animate-pulse" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-3 w-24 rounded bg-muted animate-pulse" />
-            <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+          <div className="flex-1 space-y-2 min-w-0">
+            <div className="w-24 h-3 rounded animate-pulse bg-muted" />
+            <div className="w-16 h-3 rounded animate-pulse bg-muted" />
           </div>
         </div>
       ))}
@@ -48,7 +44,7 @@ function TimelineSkeleton() {
 
 function TimelineRow({ entry }: { entry: VersionTimelineEntry }) {
   return (
-    <div className="relative flex gap-3">
+    <div className="flex relative gap-3">
       <span
         className={cn(
           'relative z-10 mt-[3px] size-2.5 shrink-0 rounded-full border border-gray-300 ring-2 ring-popover dark:border-gray-600',
@@ -56,8 +52,8 @@ function TimelineRow({ entry }: { entry: VersionTimelineEntry }) {
         )}
         aria-hidden
       />
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <div className="flex-1 space-y-1 min-w-0">
+        <div className="flex flex-wrap gap-y-1 gap-x-2 items-center">
           <time
             className="text-xs font-medium text-foreground"
             dateTime={entry.date_created}
@@ -66,12 +62,7 @@ function TimelineRow({ entry }: { entry: VersionTimelineEntry }) {
             {formatDate(entry.date_created)}
           </time>
           {entry.tag ? (
-            <ui.VersionTagBadge
-              tag={entry.tag}
-              icon={Tag}
-              disableTooltip
-              className="shrink-0"
-            />
+            <ui.VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
           ) : null}
           <span
             className={cn(
@@ -114,7 +105,7 @@ function VersionTimelineContent({
   }
 
   return (
-    <div className="relative max-h-72 space-y-4 overflow-y-auto pt-1 pb-2">
+    <div className="overflow-y-auto relative pt-1 pb-2 space-y-4 max-h-72">
       <TimelineRail />
       {data.map((entry) => (
         <TimelineRow key={entry.id} entry={entry} />
@@ -140,38 +131,23 @@ export function VersionTimelineHoverCard({
   const { data, loading, error } = useSubmissionVersionTimeline(siteName, submissionId, { open });
 
   return (
-    <HoverCard.Root open={open} onOpenChange={setOpen} openDelay={400} closeDelay={100}>
-      <HoverCard.Trigger asChild>
+    <ui.HoverCard open={open} onOpenChange={setOpen} openDelay={400} closeDelay={100}>
+      <ui.HoverCardTrigger asChild>
         <span className="inline-flex cursor-default transition-[filter] duration-150 hover:brightness-[0.97] dark:hover:brightness-[1.06]">
           {children}
         </span>
-      </HoverCard.Trigger>
-      <HoverCard.Portal>
-        <HoverCard.Content
-          align={align}
-          side={side}
-          sideOffset={8}
-          className={cn(
-            'z-50 w-80 rounded-md border border-border bg-popover p-3 text-popover-foreground outline-hidden',
-            'data-[state=open]:animate-in data-[state=closed]:animate-out',
-            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-            'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2',
-            'data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-            floatingPanelShadowClass,
-          )}
-        >
-          <div className="mb-2 flex items-center gap-1.5 border-b border-border pb-2 text-xs font-semibold text-foreground">
-            <GitBranch className="size-3.5 shrink-0" aria-hidden />
-            <span>Versions</span>
-            {data?.length != null && !loading ? (
-              <span className="font-normal text-muted-foreground">({data.length})</span>
-            ) : null}
-          </div>
-          <VersionTimelineContent data={data} loading={loading} error={error} />
-          <HoverCard.Arrow className="fill-popover" />
-        </HoverCard.Content>
-      </HoverCard.Portal>
-    </HoverCard.Root>
+      </ui.HoverCardTrigger>
+      <ui.HoverCardContent align={align} side={side} sideOffset={8} className="w-80 p-3">
+        <div className="mb-2 flex items-center gap-1.5 border-b border-border pb-2 text-xs font-semibold text-foreground">
+          <GitBranch className="size-3.5 shrink-0" aria-hidden />
+          <span>Versions</span>
+          {data?.length != null && !loading ? (
+            <span className="font-normal text-muted-foreground">({data.length})</span>
+          ) : null}
+        </div>
+        <VersionTimelineContent data={data} loading={loading} error={error} />
+        <ui.HoverCardArrow className="fill-popover" />
+      </ui.HoverCardContent>
+    </ui.HoverCard>
   );
 }

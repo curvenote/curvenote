@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { cn, ui } from '@curvenote/scms-core';
 
 export const SUBMISSIONS_PER_PAGE_OPTIONS = [15, 30, 50, 100] as const;
@@ -13,13 +13,23 @@ interface SubmissionsPaginationProps {
   className?: string;
 }
 
-function pageHref(page: number, perPage: number) {
-  const params = new URLSearchParams();
+/**
+ * Build a page-change URL that preserves every other listing param (search
+ * query, filters, sort, ...). Cloning `current` is what keeps the user on the
+ * same filtered view when paginating — building from `new URLSearchParams()`
+ * would silently drop them.
+ */
+function pageHref(current: URLSearchParams, page: number, perPage: number) {
+  const params = new URLSearchParams(current);
   if (page > 1) {
     params.set('page', page.toString());
+  } else {
+    params.delete('page');
   }
   if (perPage !== DEFAULT_SUBMISSIONS_PER_PAGE) {
     params.set('perPage', perPage.toString());
+  } else {
+    params.delete('perPage');
   }
   const query = params.toString();
   return query ? `?${query}` : '';
@@ -85,6 +95,7 @@ function ItemsPerPageSelect({
   total: number;
 }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const selectId = useId();
 
   return (
@@ -97,7 +108,9 @@ function ItemsPerPageSelect({
         onValueChange={(value) => {
           const newPerPage = Number(value);
           const newPage = pageForPerPageChange(page, perPage, newPerPage, total);
-          navigate(pageHref(newPage, newPerPage) || '.');
+          navigate(pageHref(searchParams, newPage, newPerPage) || '.', {
+            preventScrollReset: true,
+          });
         }}
       >
         <ui.SelectTrigger id={selectId} size="sm" className="h-8 min-w-[4.75rem] text-xs">
@@ -121,6 +134,7 @@ export function SubmissionsPagination({
   total,
   className,
 }: SubmissionsPaginationProps) {
+  const [searchParams] = useSearchParams();
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const safePage = Math.min(page, totalPages);
   const pageItems = buildPageItems(safePage, totalPages);
@@ -144,7 +158,7 @@ export function SubmissionsPagination({
             <ui.PaginationItem>
               {safePage > 1 ? (
                 <ui.PaginationLink asChild size="icon" aria-label="Go to previous page">
-                  <Link to={pageHref(safePage - 1, perPage)}>
+                  <Link to={pageHref(searchParams, safePage - 1, perPage)} preventScrollReset>
                     <ChevronLeft />
                   </Link>
                 </ui.PaginationLink>
@@ -169,7 +183,9 @@ export function SubmissionsPagination({
               ) : (
                 <ui.PaginationItem key={item}>
                   <ui.PaginationLink asChild isActive={item === safePage}>
-                    <Link to={pageHref(item, perPage)}>{item}</Link>
+                    <Link to={pageHref(searchParams, item, perPage)} preventScrollReset>
+                      {item}
+                    </Link>
                   </ui.PaginationLink>
                 </ui.PaginationItem>
               ),
@@ -178,7 +194,7 @@ export function SubmissionsPagination({
             <ui.PaginationItem>
               {safePage < totalPages ? (
                 <ui.PaginationLink asChild size="icon" aria-label="Go to next page">
-                  <Link to={pageHref(safePage + 1, perPage)}>
+                  <Link to={pageHref(searchParams, safePage + 1, perPage)} preventScrollReset>
                     <ChevronRight />
                   </Link>
                 </ui.PaginationLink>

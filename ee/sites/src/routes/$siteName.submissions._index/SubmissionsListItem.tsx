@@ -62,18 +62,12 @@ export function SubmissionsListItem({
             ) : null}
             {item.publishedVersion ? (
               <VersionTimelineHoverCard siteName={siteName} submissionId={item.id}>
-                <HasPublishedVersion
-                  date={item.publishedVersion.date_created}
-                  disableTooltip
-                />
+                <HasPublishedVersion date={item.publishedVersion.date_created} disableTooltip />
               </VersionTimelineHoverCard>
             ) : null}
             {!item.publishedVersion && item.retractedVersion ? (
               <VersionTimelineHoverCard siteName={siteName} submissionId={item.id}>
-                <HasRetractedVersion
-                  date={item.retractedVersion.date_created}
-                  disableTooltip
-                />
+                <HasRetractedVersion date={item.retractedVersion.date_created} disableTooltip />
               </VersionTimelineHoverCard>
             ) : null}
             {item.versionTag ? (

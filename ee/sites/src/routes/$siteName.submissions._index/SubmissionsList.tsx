@@ -1,5 +1,9 @@
+import { useSearchParams } from 'react-router';
+import { SearchX } from 'lucide-react';
+import { ui } from '@curvenote/scms-core';
 import type { SubmissionsIndexItem } from './types.js';
 import { SubmissionsListItem } from './SubmissionsListItem.js';
+import { clearListingFilters, hasActiveListingFilters } from './listingParams.js';
 
 interface SubmissionsListProps {
   siteName: string;
@@ -14,7 +18,40 @@ export function SubmissionsList({
   showCollectionChip,
   showKindChip,
 }: SubmissionsListProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   if (items.length === 0) {
+    const isFilteredEmpty = hasActiveListingFilters(searchParams);
+    if (isFilteredEmpty) {
+      const searchTerm = searchParams.get('q');
+      return (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <SearchX className="size-10 text-muted-foreground/60" aria-hidden />
+          <div className="flex flex-col gap-1">
+            <p className="font-medium text-foreground">
+              {searchTerm
+                ? `No submissions match “${searchTerm}”.`
+                : 'No submissions match the current filters.'}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Try a different search or remove some filters.
+            </p>
+          </div>
+          <ui.Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              setSearchParams((prev) => clearListingFilters(prev), {
+                preventScrollReset: true,
+              })
+            }
+          >
+            Clear filters
+          </ui.Button>
+        </div>
+      );
+    }
     return (
       <div className="py-12 text-center">
         <p className="text-gray-500 dark:text-gray-400">No submissions found.</p>

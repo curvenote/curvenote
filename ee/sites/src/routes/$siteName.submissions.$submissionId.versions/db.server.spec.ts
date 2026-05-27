@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-imports */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { SiteContext } from '@curvenote/scms-server';
