@@ -28,9 +28,7 @@ describe('listingParams: sort taxonomy', () => {
 
   it('keeps the disabled sorts in sync with the database builders', () => {
     // If this changes, also update the cases in db.server.ts buildListing*OrderBy.
-    expect(LISTING_SORTS_AWAITING_DENORMALISATION).toEqual(
-      new Set(['recent_activity', 'title_az', 'author_az']),
-    );
+    expect(LISTING_SORTS_AWAITING_DENORMALISATION).toEqual(new Set(['recent_activity']));
   });
 });
 

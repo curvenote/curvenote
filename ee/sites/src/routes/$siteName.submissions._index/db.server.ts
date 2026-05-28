@@ -61,10 +61,6 @@ import { toExclusiveDateUpperBound, type ListingQuery } from './listingParams.js
  *                          filter to leave the raw SQL path.
  *   last_activity_at     — max(Activity.date_created) for the submission;
  *                          unlocks the `recent_activity` sort.
- *   cached_title         — denormalised newest-version title; unlocks the
- *                          `title_az` sort.
- *   cached_first_author  — denormalised newest-version first author; unlocks
- *                          the `author_az` sort.
  *
  * For each sort, the relevant builder switch below throws (currently
  * unreachable because `ListingQuerySchema` in `route.tsx` coerces disabled
@@ -208,12 +204,10 @@ function buildListingPrismaOrderBy(
     case 'recent_created':
       return [{ date_created: 'desc' }, { id: 'asc' }];
     case 'recent_activity':
-    case 'title_az':
-    case 'author_az':
-      // Unreachable: ListingQuerySchema coerces these to the default until the
+      // Unreachable: ListingQuerySchema coerces this to the default until the
       // denormalisation slice lands. Throw loudly so a future regression that
-      // exposes one of these sorts fails in tests instead of producing a
-      // silent Prisma error.
+      // exposes this sort fails in tests instead of producing a silent
+      // Prisma error.
       throw new Error(
         `buildListingPrismaOrderBy: sort '${query.sort}' awaits denormalisation slice`,
       );
@@ -296,8 +290,6 @@ function buildListingRawSqlOrderBy(query: ListingQuery): Prisma.Sql {
     case 'recent_created':
       return Prisma.sql`s.date_created DESC, s.id ASC`;
     case 'recent_activity':
-    case 'title_az':
-    case 'author_az':
       throw new Error(
         `buildListingRawSqlOrderBy: sort '${query.sort}' awaits denormalisation slice`,
       );
