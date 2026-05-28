@@ -483,7 +483,7 @@ export default function Users({ loaderData }: { loaderData: LoaderData }) {
         <ui.Tabs defaultValue="users" className="space-y-6">
           <ui.TabsList>
             <ui.TabsTrigger value="users">Users</ui.TabsTrigger>
-            <ui.TabsTrigger value="service-accounts">Service Accounts</ui.TabsTrigger>
+            <ui.TabsTrigger value="service-accounts">Service Account</ui.TabsTrigger>
           </ui.TabsList>
 
           <ui.TabsContent value="users">{usersTab}</ui.TabsContent>
