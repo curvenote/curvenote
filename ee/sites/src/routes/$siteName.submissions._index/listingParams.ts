@@ -20,11 +20,7 @@ import { subDays, subMonths, subYears } from 'date-fns';
  * Sort
  * -------------------------------------------------------------------------- */
 
-export const LISTING_SORTS = [
-  'recent_published',
-  'recent_created',
-  'recent_activity',
-] as const;
+export const LISTING_SORTS = ['recent_published', 'recent_created', 'recent_activity'] as const;
 
 export type ListingSort = (typeof LISTING_SORTS)[number];
 
@@ -38,9 +34,7 @@ export const LISTING_SORT_DEFAULT: ListingSort = 'recent_published';
  *
  *  - `recent_activity`  → Submission.last_activity_at
  */
-export const LISTING_SORTS_AWAITING_DENORMALISATION = new Set<ListingSort>([
-  'recent_activity',
-]);
+export const LISTING_SORTS_AWAITING_DENORMALISATION = new Set<ListingSort>(['recent_activity']);
 
 export const LISTING_SORT_LABEL: Record<ListingSort, string> = {
   recent_published: 'Most recently published',

@@ -94,10 +94,10 @@ export function SitesSearchInput({
     if (trailingTimerRef.current) return;
     trailingTimerRef.current = setTimeout(() => {
       trailingTimerRef.current = null;
-      const value = pendingValueRef.current;
+      const pendingValue = pendingValueRef.current;
       pendingValueRef.current = null;
-      if (value !== null) {
-        flushQuery(value);
+      if (pendingValue !== null) {
+        flushQuery(pendingValue);
       }
     }, SEARCH_THROTTLE_MS - elapsed);
   };
@@ -133,15 +133,15 @@ export function SitesSearchInput({
   return (
     <div
       className={cn(
-        'max-w-lg rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900',
+        'p-3 max-w-lg bg-white rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-900',
         className,
       )}
     >
       <ui.InputWithAdornments
-        className="border-0 bg-stone-100 shadow-none focus-within:ring-1 dark:bg-stone-900/60"
+        className="border-0 shadow-none bg-stone-100 focus-within:ring-1 dark:bg-stone-900/60"
         leadingAdornment={
           isPending ? (
-            <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
+            <Loader2 className="animate-spin size-4 text-muted-foreground" aria-hidden />
           ) : (
             <Search className="size-4 text-muted-foreground" aria-hidden />
           )
@@ -152,7 +152,7 @@ export function SitesSearchInput({
               type="button"
               onClick={handleClear}
               aria-label="Clear search"
-              className="mr-1 inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:bg-stone-200 hover:text-foreground dark:hover:bg-stone-800"
+              className="inline-flex justify-center items-center mr-1 rounded-sm size-6 text-muted-foreground hover:bg-stone-200 hover:text-foreground dark:hover:bg-stone-800"
             >
               <X className="size-3.5" />
             </button>
@@ -177,7 +177,7 @@ export function SitesSearchInput({
           )}
         />
       </ui.InputWithAdornments>
-      <p className="mt-1 text-right text-xs text-muted-foreground">{sitesShownLabel}</p>
+      <p className="mt-1 text-xs text-right text-muted-foreground">{sitesShownLabel}</p>
     </div>
   );
 }

@@ -21,13 +21,8 @@ import type { SiteCardListing } from './types.js';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 
-/**
- * Minimum number of sites in the grid before the client-side search input is
- * rendered. Below this the grid is short enough to scan visually.
- *
- * TODO: temporarily lowered from 8 to 3 for testing — revert before merging.
- */
-const SITES_SEARCH_VISIBILITY_THRESHOLD = 3;
+/** Minimum number of sites before the client-side filter is shown. */
+const SITES_SEARCH_VISIBILITY_THRESHOLD = 8;
 
 interface LoaderData {
   video?: ui.VideoData;
