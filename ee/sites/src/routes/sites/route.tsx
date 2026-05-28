@@ -1,6 +1,6 @@
 import { Outlet, useLocation, data } from 'react-router';
 import type { LoaderFunctionArgs, ActionFunctionArgs } from 'react-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   withAppContext,
   checkSiteExists,
@@ -12,6 +12,7 @@ import SiteCard from './SiteCard.js';
 import RequestSiteCTA from './RequestSiteCTA.js';
 import type { FeaturedSitesData } from './RequestSiteCTA.js';
 import PendingSiteCard from './PendingSiteCard.js';
+import { SitesSearchInput } from './SitesSearchInput.js';
 import { MainWrapper, PageFrame, scopes, clientCheckSiteScopes } from '@curvenote/scms-core';
 import type { ui } from '@curvenote/scms-core';
 import { actionCreateSite, actionRequestSite } from './actionHelpers.server.js';
@@ -19,6 +20,14 @@ import { dbListSiteCards } from './db.server.js';
 import type { SiteCardListing } from './types.js';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
+
+/**
+ * Minimum number of sites in the grid before the client-side search input is
+ * rendered. Below this the grid is short enough to scan visually.
+ *
+ * TODO: temporarily lowered from 8 to 3 for testing — revert before merging.
+ */
+const SITES_SEARCH_VISIBILITY_THRESHOLD = 3;
 
 interface LoaderData {
   video?: ui.VideoData;
@@ -100,8 +109,25 @@ export default function Sites({ loaderData }: { loaderData: LoaderData }) {
   const location = useLocation();
   const { video, featured, canCreateSite, scopes: userScopes, sites } = loaderData;
   const [showPendingCard, setShowPendingCard] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const canRequestSite = clientCheckSiteScopes(userScopes, [scopes.app.sites.request], '');
+
+  const showSearch = sites.items.length > SITES_SEARCH_VISIBILITY_THRESHOLD;
+  const hasActiveSearch = searchQuery.length > 0;
+
+  const filteredSites = useMemo(() => {
+    if (!hasActiveSearch) return sites.items;
+    const q = searchQuery.toLowerCase();
+    return sites.items.filter(
+      (site) =>
+        site.name.toLowerCase().includes(q) ||
+        site.title.toLowerCase().includes(q) ||
+        site.url.toLowerCase().includes(q),
+    );
+  }, [sites.items, searchQuery, hasActiveSearch]);
+
+  const hasNoMatches = hasActiveSearch && filteredSites.length === 0;
 
   if (location.pathname !== '/app/sites') {
     return <Outlet />;
@@ -135,12 +161,27 @@ export default function Sites({ loaderData }: { loaderData: LoaderData }) {
               />
             )}
 
-            {(sites.items.length > 0 || showPendingCard) && (
+            {showSearch && (
+              <SitesSearchInput
+                onQueryChange={setSearchQuery}
+                sitesShownCount={filteredSites.length}
+              />
+            )}
+
+            {(filteredSites.length > 0 || showPendingCard) && (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {showPendingCard && <PendingSiteCard onCancel={handleCancelPendingCard} />}
-                {sites.items.map((site) => (
+                {filteredSites.map((site) => (
                   <SiteCard key={site.id} site={site} />
                 ))}
+              </div>
+            )}
+
+            {hasNoMatches && (
+              <div className="rounded-md border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-muted-foreground dark:border-gray-700">
+                No sites match &ldquo;
+                <span className="font-medium text-foreground">{searchQuery}</span>
+                &rdquo;.
               </div>
             )}
           </div>

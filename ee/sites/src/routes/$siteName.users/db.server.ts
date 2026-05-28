@@ -1,5 +1,5 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import type { SiteRole } from '@curvenote/scms-db';
+import { SystemRole, type SiteRole } from '@curvenote/scms-db';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '@curvenote/scms-server';
 
@@ -70,6 +70,7 @@ export async function dbGetSiteUsers(siteName: string) {
   const prisma = await getPrismaClient();
   return prisma.user.findMany({
     where: {
+      system_role: { not: SystemRole.SERVICE },
       site_roles: {
         some: {
           site: {
