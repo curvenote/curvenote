@@ -41,6 +41,7 @@ import {
   HelpCircle,
   ClipboardList,
   Network,
+  UserKey,
 } from 'lucide-react';
 import { cn } from '../../utils/index.js';
 import type { ClientExtension } from '../../modules/extensions/types.js';
@@ -91,8 +92,9 @@ export function MenuIcon({
     case 'submissions':
     case 'store':
       return <Store className={classNameWithDefaults} />;
-    case 'system.users':
     case 'admin.users':
+      return <UserKey className={classNameWithDefaults} />;
+    case 'system.users':
     case 'work.users':
     case 'platform.users':
     case 'users':

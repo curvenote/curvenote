@@ -3,6 +3,8 @@ export type SiteCardItem = {
   id: string;
   name: string;
   title: string;
+  /** Public site URL from the primary domain, when configured. */
+  url: string;
   external: boolean;
   logo: string;
   logo_dark?: string;

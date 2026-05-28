@@ -20,13 +20,7 @@ import { subDays, subMonths, subYears } from 'date-fns';
  * Sort
  * -------------------------------------------------------------------------- */
 
-export const LISTING_SORTS = [
-  'recent_published',
-  'recent_created',
-  'recent_activity',
-  'title_az',
-  'author_az',
-] as const;
+export const LISTING_SORTS = ['recent_published', 'recent_created', 'recent_activity'] as const;
 
 export type ListingSort = (typeof LISTING_SORTS)[number];
 
@@ -39,21 +33,13 @@ export const LISTING_SORT_DEFAULT: ListingSort = 'recent_published';
  * UI regression fails loudly rather than silently.
  *
  *  - `recent_activity`  → Submission.last_activity_at
- *  - `title_az`         → Submission.cached_title
- *  - `author_az`        → Submission.cached_first_author
  */
-export const LISTING_SORTS_AWAITING_DENORMALISATION = new Set<ListingSort>([
-  'recent_activity',
-  'title_az',
-  'author_az',
-]);
+export const LISTING_SORTS_AWAITING_DENORMALISATION = new Set<ListingSort>(['recent_activity']);
 
 export const LISTING_SORT_LABEL: Record<ListingSort, string> = {
   recent_published: 'Most recently published',
   recent_created: 'Most recently created',
   recent_activity: 'Most recent activity',
-  title_az: 'Title A–Z',
-  author_az: 'First author A–Z',
 };
 
 /* -----------------------------------------------------------------------------

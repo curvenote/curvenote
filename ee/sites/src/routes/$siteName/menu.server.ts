@@ -51,7 +51,7 @@ export async function buildMenu(ctx: SiteContextWithUser): Promise<MenuContents>
         },
         {
           name: 'admin.users',
-          label: 'Users',
+          label: 'Users & Access',
           url: `${baseUrl}/users`,
           scope: scopes.site.users.list,
         },

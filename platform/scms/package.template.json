@@ -149,7 +149,7 @@
     "isbot": "^5",
     "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.3",
-    "lucide-react": "^0.552.0",
+    "lucide-react": "^0.564.0",
     "myst-to-react": "^0.17.1",
     "nprogress": "^0.2.0",
     "p-limit": "^3.1.0",

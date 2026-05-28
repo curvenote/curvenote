@@ -1,6 +1,11 @@
 import { uuidv7 as uuid } from 'uuidv7';
-import { SystemRole, SiteRole } from '@curvenote/scms-db';
+import { SystemRole } from '@curvenote/scms-db';
+import type { SiteRole } from '@curvenote/scms-db';
 import { getPrismaClient } from '@curvenote/scms-server';
+
+export function formatDefaultServiceAccountDisplayName(siteTitle: string) {
+  return `${siteTitle} Service Account`;
+}
 
 export async function dbGetSiteServiceAccount(siteId: string) {
   const prisma = await getPrismaClient();
@@ -14,19 +19,28 @@ export async function dbGetSiteServiceAccount(siteId: string) {
         },
       },
     },
+    include: {
+      // Only pull the role record(s) that apply to *this* site.
+      site_roles: {
+        where: { site_id: siteId },
+      },
+    },
     orderBy: { date_created: 'asc' },
   });
 }
 
-export async function dbCreateSiteServiceAccount(site: {
-  id: string;
-  name: string;
-  title: string;
-}) {
+export async function dbCreateSiteServiceAccount(
+  site: {
+    id: string;
+    name: string;
+    title: string;
+  },
+  role: SiteRole,
+) {
   const prisma = await getPrismaClient();
   const timestamp = new Date().toISOString();
   const userId = uuid();
-  const displayName = `${site.title} Service Account`;
+  const displayName = formatDefaultServiceAccountDisplayName(site.title);
 
   // Prevent duplicates (best-effort; no unique constraint at DB level).
   const existing = await dbGetSiteServiceAccount(site.id);
@@ -51,12 +65,30 @@ export async function dbCreateSiteServiceAccount(site: {
         date_modified: timestamp,
         site_id: site.id,
         user_id: userId,
-        role: SiteRole.ADMIN,
+        role,
       },
       select: { id: true },
     });
 
     return user;
+  });
+}
+
+/**
+ * Revoke a site-scoped service account.
+ *
+ * Deletes all tokens belonging to the service account user and removes the
+ * SiteUser linkage so the account loses access to this site. The underlying
+ * User row is preserved to keep any audit trail intact and to leave room for
+ * a future "soft restore"; subsequent calls to {@link dbGetSiteServiceAccount}
+ * will report no service account because that lookup requires a site_role
+ * association on the requested site.
+ */
+export async function dbDeleteSiteServiceAccount(siteId: string, userId: string) {
+  const prisma = await getPrismaClient();
+  return prisma.$transaction(async (tx) => {
+    await tx.userToken.deleteMany({ where: { user_id: userId } });
+    await tx.siteUser.deleteMany({ where: { user_id: userId, site_id: siteId } });
   });
 }
 

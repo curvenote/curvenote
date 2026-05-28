@@ -15,6 +15,12 @@ const siteCardSelect = {
   title: true,
   external: true,
   metadata: true,
+  domains: {
+    select: {
+      default: true,
+      hostname: true,
+    },
+  },
 } as const;
 
 async function dbListAllSiteCardRows(): Promise<SiteCardRow[]> {
