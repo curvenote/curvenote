@@ -23,6 +23,7 @@ provably behaviour-preserving:
 | 2   | Unified the tag / no-tag paths into one `SubmissionVersion.findFirst` over a shared `buildPublishedByDoiWhere` | one code path, `date_created DESC` + LIMIT 1 short-circuits at the first match                           |
 | 3   | **Correctness:** the no-tag path is now site-scoped                                                            | a DOI published only on _another_ site no longer resolves                                                |
 | 4   | Narrow `siteWorkDtoSelect` for this flow                                                                       | drops the `submitted_by` → `User` join and the SubmissionVersion bookkeeping columns the DTO never reads |
+| 5   | Edge caching on the route (success + 404)                                                                      | DOI→work mappings and junk-DOI scans are absorbed by the CDN instead of the origin/DB                    |
 
 ### 1. Indexes
 
@@ -81,6 +82,31 @@ importantly, `submitted_by`, which otherwise pulls a whole `User` row.
 `SiteWorkDtoInput` derived from the narrow select. The broad payload is a
 structural superset, so the other callers (`published/get`, `versions/get`,
 `previews/get`) that pass a wider row still satisfy it unchanged.
+
+### 5. Edge caching
+
+The route ([`v1.sites.$siteName.doi.$first.$second.tsx`](../../platform/scms/app/routes/api/v1.sites.$siteName.doi.$first.$second.tsx))
+previously returned a bare `Response.json(dto)` with no cache directives — every
+hit, including scanner traffic probing unknown DOIs, reached the origin/DB. It
+now applies the same `vercelCacheHeaders` pattern as the works listing and the
+`published/` endpoint:
+
+- **Success:** `SEMI_STATIC_BURST_PROTECTION` (public sites) / `PRIVATE_CACHE_OPTIONS`
+  (private sites). A DOI→work mapping is stable and identical for every caller.
+- **404:** `sites.doi` signals not-found by throwing a 404 `Response`, so the
+  loader catches it and re-emits with `NOT_FOUND_PUBLIC_BURST` headers — the
+  preset written for "unknown work / junk path segments from scans" — preserving
+  the original body and `statusText` (the distinct 404 messages the e2e asserts).
+
+**Freshness cost:** a newly published DOI may 404 (or a just-superseded version
+may resolve) at the edge until the TTL lapses (`s-maxage` 60s success / 300s
+404, with `stale-while-revalidate`). Tune the presets if DOI propagation needs
+to be faster.
+
+> Not verified against a live server — the SCMS API was not running locally and
+> e2e needs a populated fixture DB. The change is lint-clean and mirrors the
+> established pattern in `published.tsx` and the thumbnail/social routes; the
+> package-level integration spec is route-independent and still green.
 
 ## Remaining / optional work
 
