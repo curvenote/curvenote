@@ -16,4 +16,9 @@ describe('sites doi API', () => {
   test('find work by doi', async () => {
     await expectSuccess('sites/science/doi/10.5281/zenodo.5634114');
   });
+  test('find work by doi, incorrect site', async () => {
+    // The work is published on `science`; resolving the same DOI on another
+    // site must 404. Guards the site-scoping of the no-tag DOI path.
+    await expectStatus(404, 'sites/newscience/doi/10.5281/zenodo.5634114');
+  });
 });

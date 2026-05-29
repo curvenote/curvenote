@@ -2,6 +2,7 @@ import type { SiteContext } from '../../../../context.site.server.js';
 import type { HostSpec, SiteWorkDTO } from '@curvenote/common';
 import { formatDate, concatSiteWorkTags } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
+import type { siteWorkDtoSelect } from '../../../../prisma.selects.server.js';
 import { submissionVersionForSiteWorkSelect } from '../../../../prisma.selects.server.js';
 import type { Prisma } from '@curvenote/scms-db';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
@@ -50,6 +51,16 @@ export type DBO = Prisma.SubmissionVersionGetPayload<{
   select: typeof submissionVersionForSiteWorkSelect;
 }>;
 
+/**
+ * The minimal input `formatSiteWorkDTO` actually reads. Derived from the narrow
+ * `siteWorkDtoSelect`; the broader `DBO` (and any other site-work payload) is a
+ * structural superset, so existing callers that pass a wider row still satisfy
+ * this type.
+ */
+export type SiteWorkDtoInput = Prisma.SubmissionVersionGetPayload<{
+  select: typeof siteWorkDtoSelect;
+}>;
+
 type ModifiedSiteWorkLinksDTO = Omit<SiteWorkDTO['links'], 'thumbnail' | 'social' | 'config'> & {
   thumbnail?: string;
   social?: string;
@@ -62,7 +73,7 @@ export type ModifiedSiteWorkDTO = Omit<SiteWorkDTO, 'links' | 'cdn' | 'cdn_key'>
   cdn?: string;
   cdn_key?: string;
 };
-export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkDTO {
+export function formatSiteWorkDTO(ctx: SiteContext, dbo: SiteWorkDtoInput): ModifiedSiteWorkDTO {
   const { cdn_key, cdn, title, description, canonical, authors, date_created } = dbo.work_version;
   const tags = concatSiteWorkTags(dbo.tags ?? [], dbo.work_version.tags ?? []);
   const submission_version_id = dbo.id;

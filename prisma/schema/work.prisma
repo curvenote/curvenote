@@ -30,6 +30,11 @@ model Work {
   submissions        Submission[]
   landingContentSite Site[]
   access             Access[]
+
+  /// Equality lookup for DOI resolution (`GET /v1/sites/:siteName/doi/...`).
+  /// The `Work_doi_trgm_idx` GIN index (migration 20260526223800) only serves
+  /// `LIKE`/search; a btree is required for `doi = ?`.
+  @@index([doi])
 }
 
 model WorkVersion {
@@ -55,6 +60,11 @@ model WorkVersion {
   checkServiceRuns   CheckServiceRun[]
   linkedJobs         LinkedJob[]
   occ                Int                 @default(0)
+
+  /// Equality lookup for DOI resolution (`GET /v1/sites/:siteName/doi/...`).
+  /// The `WorkVersion_doi_trgm_idx` GIN index (migration 20260526223800) only
+  /// serves `LIKE`/search; a btree is required for `doi = ?`.
+  @@index([doi])
 }
 
 model CheckServiceRun {

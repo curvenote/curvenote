@@ -60,6 +60,34 @@ export const submissionVersionForListSelect = {
 } satisfies Prisma.SubmissionVersionSelect;
 
 /**
+ * Minimal select for rows formatted *only* by `formatSiteWorkDTO` (the public
+ * site-work DTO). Same relation shape as `submissionVersionForSiteWorkSelect`
+ * so the nested summary formatters still type-check, but drops the
+ * SubmissionVersion-level bookkeeping the DTO never reads — `status`,
+ * `transition`, `job_id`, `work_version_id`, the version-level `date_*`, and
+ * crucially `submitted_by` (which otherwise pulls a whole `User` row).
+ *
+ * Use this for endpoints that resolve a single site-work and run it straight
+ * through `formatSiteWorkDTO` (e.g. `sites.doi`). Endpoints that also build a
+ * `SubmissionVersionDTO` (versions list/get) need the broader select above.
+ */
+export const siteWorkDtoSelect = {
+  id: true,
+  tags: true,
+  work_version: { select: siteWorkWorkVersionSelect },
+  submission: {
+    select: {
+      id: true,
+      date_published: true,
+      kind: true,
+      collection: true,
+      slugs: true,
+      work: true,
+    },
+  },
+} satisfies Prisma.SubmissionVersionSelect;
+
+/**
  * Submission version rows formatted as SiteWorkDTO / SubmissionVersionDTO
  * (excludes submission-version metadata JSON).
  */
