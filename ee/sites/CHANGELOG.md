@@ -1,5 +1,24 @@
 # @curvenote/scms-sites-ext
 
+## 0.19.1
+
+### Patch Changes
+
+- [#915](https://github.com/curvenote/curvenote/pull/915) [`f7a1741`](https://github.com/curvenote/curvenote/commit/f7a1741c0a6061fae719c6b6dc5808ebf7bbff1f) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Site service account beta
+
+- [#914](https://github.com/curvenote/curvenote/pull/914) [`b83e516`](https://github.com/curvenote/curvenote/commit/b83e516d5a41f81ddb5ee68d9b03503c48b64c23) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Search, filter and sort on the submissions listing
+
+- [#916](https://github.com/curvenote/curvenote/pull/916) [`b92ffac`](https://github.com/curvenote/curvenote/commit/b92ffac686c8ed0fe4eb79101fbae4259e843d94) Thanks [@fwkoch](https://github.com/fwkoch)! - Fix kind creation in dashboard
+
+- [#910](https://github.com/curvenote/curvenote/pull/910) [`20a6bea`](https://github.com/curvenote/curvenote/commit/20a6beae8abd86a5ae2c9c22d25435e23157c8df) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improvements to HMR/DX
+
+- [#910](https://github.com/curvenote/curvenote/pull/910) [`20a6bea`](https://github.com/curvenote/curvenote/commit/20a6beae8abd86a5ae2c9c22d25435e23157c8df) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Rework of submissions listing for better performance over large listings
+
+- Updated dependencies [[`f7a1741`](https://github.com/curvenote/curvenote/commit/f7a1741c0a6061fae719c6b6dc5808ebf7bbff1f), [`b83e516`](https://github.com/curvenote/curvenote/commit/b83e516d5a41f81ddb5ee68d9b03503c48b64c23), [`20a6bea`](https://github.com/curvenote/curvenote/commit/20a6beae8abd86a5ae2c9c22d25435e23157c8df), [`20a6bea`](https://github.com/curvenote/curvenote/commit/20a6beae8abd86a5ae2c9c22d25435e23157c8df)]:
+  - @curvenote/scms-server@0.19.1
+  - @curvenote/scms-core@0.19.1
+  - @curvenote/scms-db@0.19.1
+
 ## 0.19.0
 
 ### Minor Changes
