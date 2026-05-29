@@ -218,7 +218,14 @@ async function dbQuerySubmissions(
 export async function dbListLatestPublishedSubmissions(
   ctx: SiteContext,
   extensions: ClientExtension[],
-  where?: { collection?: string; kind?: string; status?: string; q?: string; from?: string; to?: string },
+  where?: {
+    collection?: string;
+    kind?: string;
+    status?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+  },
   opts?: { page?: number; limit?: number; sort?: WorksSort },
 ): Promise<ListDBO | undefined> {
   // only allow lookup on status if collection is also provided
@@ -302,7 +309,14 @@ export async function dbListLatestPublishedSubmissions(
 export async function listPublishedWorks(
   ctx: SiteContext,
   extensions: ClientExtension[],
-  where?: { collection?: string; kind?: string; status?: string; q?: string; from?: string; to?: string },
+  where?: {
+    collection?: string;
+    kind?: string;
+    status?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+  },
   opts?: { page?: number; limit?: number; sort?: WorksSort },
 ) {
   const dbo = await dbListLatestPublishedSubmissions(ctx, extensions, where, opts);
