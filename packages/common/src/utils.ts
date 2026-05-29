@@ -75,6 +75,26 @@ export function normalizeExplicitTags(tags: string[] | undefined): string[] {
 }
 
 /**
+ * Pick the highest `v{number}` tag from a tag list (e.g. `['v1', 'preprint', 'v3']` → `v3`),
+ * normalized to lower case. Returns `null` when no version tag is present.
+ */
+export function pickVersionTag(tags: readonly string[] | undefined | null): string | null {
+  let best: string | null = null;
+  let bestNumeric = -1;
+  for (const raw of tags ?? []) {
+    if (typeof raw !== 'string') continue;
+    const m = /^v(\d+)$/i.exec(raw.trim());
+    if (!m) continue;
+    const n = parseInt(m[1], 10);
+    if (n > bestNumeric) {
+      bestNumeric = n;
+      best = `v${n}`;
+    }
+  }
+  return best;
+}
+
+/**
  * Site work DTO: submission tags first, then work-version tags, deduped (submission order first).
  */
 export function concatSiteWorkTags(submissionTags: string[], workVersionTags: string[]): string[] {

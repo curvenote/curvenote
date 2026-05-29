@@ -104,6 +104,10 @@ model SubmissionVersion {
   ///   - DISTINCT ON (submission_id) ORDER BY submission_id, date_created DESC
   ///     used by `dbDistinctVersionDates` for published/retracted dates.
   @@index([submission_id, date_created(sort: Desc)])
+  /// Makes the `EXISTS (... status = ?)` semijoin used by the public works
+  /// listing (count + page query in `v1.sites.$siteName.works/db.server.ts`)
+  /// an index-only probe instead of reading version rows to test status.
+  @@index([submission_id, status])
 }
 
 model Submission {
@@ -133,6 +137,15 @@ model Submission {
   is_listed       Boolean             @default(false)
 
   @@index([site_id])
+  /// Powers the public works listing (`GET /v1/sites/:siteName/works`) hot
+  /// path: filter by `site_id`, ordered by `date_published DESC, date_created
+  /// DESC`, with LIMIT/OFFSET pushed into an index range scan. This is the
+  /// non-partial twin of `Submission_is_listed_listing_idx` (migration
+  /// `20260526120000`): the public endpoint keys on "has a PUBLISHED version"
+  /// rather than `is_listed`, so it cannot use the partial index (a published
+  /// work with an in-progress draft has `is_listed = FALSE` but must still be
+  /// listed).
+  @@index([site_id, date_published(sort: Desc), date_created(sort: Desc)])
 }
 
 model Slug {

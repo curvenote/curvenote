@@ -243,7 +243,7 @@ export default [
         route('kinds', 'routes/api/v1.sites.$siteName.kinds.tsx', [
           route(':kindIdOrName', 'routes/api/v1.sites.$siteName.kinds.$kindIdOrName.tsx'),
         ]),
-        route('works', 'routes/api/v1.sites.$siteName.works.tsx', [
+        route('works', 'routes/api/v1.sites.$siteName.works/route.tsx', [
           route(
             ':workIdOrSlug/versions/:versionId/thumbnail',
             'routes/api/v1.sites.$siteName.works.$workIdOrSlug.versions.$versionId.thumbnail.tsx',
