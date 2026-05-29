@@ -21,6 +21,40 @@ const WORKS_SEARCH_MIN_LENGTH = 3;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * True only when `v` is a real calendar date in strict `yyyy-mm-dd` form. The
+ * shape regex alone admits impossible dates (`2024-13-45`, `2024-02-30`); we
+ * confirm by parsing as UTC and round-tripping back to the same string. The
+ * round-trip is what rejects both out-of-range components (which parse to
+ * `Invalid Date`) and overflow that `Date` would otherwise silently normalize
+ * (`2024-02-30` → `2024-03-01`). Without this, an invalid `to` flows into
+ * `toExclusiveDateUpperBound` and yields `"NaN-NaN-NaN"`, which sorts after every
+ * digit and silently disables the upper bound instead of erroring.
+ */
+function isValidIsoCalendarDate(v: string): boolean {
+  if (!ISO_DATE.test(v)) return false;
+  const parsed = new Date(`${v}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return false;
+  return parsed.toISOString().slice(0, 10) === v;
+}
+
+/**
+ * Optional inclusive `yyyy-mm-dd` bound on `date_published`. Rejects
+ * calendar-invalid input with a 400 (via `validate`) rather than letting it
+ * degrade the filter silently.
+ */
+const IsoCalendarDateParam = z.preprocess(
+  // An absent or empty/whitespace-only param is treated as "no bound"; a
+  // non-empty value must be a valid calendar date or `refine` rejects it (400).
+  (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+  z
+    .string()
+    .refine(isValidIsoCalendarDate, {
+      message: 'Expected a valid calendar date in yyyy-mm-dd form',
+    })
+    .optional(),
+);
+
 const ParamsSchema = z.object({
   collection: z.string().min(1).max(64).optional(),
   kind: z.string().min(1).max(64).optional(), // TODO kind name should be url-safe
@@ -34,15 +68,9 @@ const ParamsSchema = z.object({
   /** Publication-date sort direction; defaults to newest first. */
   sort: z.enum(['published_desc', 'published_asc']).default('published_desc'),
   /** Inclusive ISO `yyyy-mm-dd` lower bound on `date_published`. */
-  from: z.preprocess(
-    (v) => (typeof v === 'string' && ISO_DATE.test(v) ? v : undefined),
-    z.string().optional(),
-  ),
+  from: IsoCalendarDateParam,
   /** Inclusive ISO `yyyy-mm-dd` upper bound on `date_published`. */
-  to: z.preprocess(
-    (v) => (typeof v === 'string' && ISO_DATE.test(v) ? v : undefined),
-    z.string().optional(),
-  ),
+  to: IsoCalendarDateParam,
   limit: z.number().int().min(1).max(500).default(DEFAULT_WORKS_LIMIT),
   page: z.number().int().min(0).default(0),
 });

@@ -332,6 +332,16 @@ describe('site works listing — search / sort / date filters', () => {
       new Set([seeds[4].workId, seeds[5].workId, seeds[6].workId]),
     );
   });
+
+  // A calendar-invalid `to` parses to `Invalid Date` → "NaN-NaN-NaN", which
+  // sorts after every digit and would silently disable the upper bound (match
+  // all rows). The db-layer guard must reject it instead. (The route schema is
+  // the primary gate; this locks the lower-layer defense-in-depth.)
+  test('a calendar-invalid `to` is rejected, not silently ignored', async () => {
+    await expect(
+      listPublishedWorks(testData.context, [], { to: '2024-13-45' }, { page: 0, limit: 500 }),
+    ).rejects.toThrow();
+  });
 });
 
 /* ---------------------------------------------------------------------------

@@ -56,6 +56,12 @@ function escapeIlikePattern(q: string): string {
  */
 function toExclusiveDateUpperBound(toIsoDate: string): string {
   const next = new Date(`${toIsoDate}T00:00:00Z`);
+  // Defense-in-depth: the route schema rejects calendar-invalid dates, but an
+  // invalid `Date` here would serialize to "NaN-NaN-NaN" and (sorting after
+  // every digit) silently match all rows, disabling the bound. Fail loudly.
+  if (Number.isNaN(next.getTime())) {
+    throw httpError(400, `Invalid date for upper bound: ${toIsoDate}`);
+  }
   next.setUTCDate(next.getUTCDate() + 1);
   const y = next.getUTCFullYear();
   const m = String(next.getUTCMonth() + 1).padStart(2, '0');
