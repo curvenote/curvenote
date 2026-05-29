@@ -140,12 +140,33 @@ export type WorkVersion = {
  * A "SiteWork" is a representation of a version of a work that is associated with a specific site and submission
  * It blends the information from the work and the work version, adding in the site and submission specific fields
  */
+/**
+ * Lightweight summary of a single published version of a work, suitable for building
+ * version navigation without an extra request. Returned by the DOI endpoint.
+ */
+export type SiteWorkVersionDTO = {
+  /** Submission version id this summary refers to. */
+  submission_version_id: string;
+  /** Primary version tag (highest `v{n}` tag found), if any. */
+  version?: string;
+  /** date_published, falling back to date_created. */
+  date?: string;
+  /** All tags on this published submission version. */
+  tags: string[];
+};
+
 export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind' | 'date_published'> &
   Omit<Work, 'date'> & {
     /** @deprecated - date_published is favored over date */
     date?: string;
     submission_version_id: string;
     submission_id: string;
+    /**
+     * Published version summaries for this work, newest first. Populated by the DOI
+     * endpoint so clients can render version navigation without a second request; omitted
+     * by listing endpoints to avoid per-work fan-out.
+     */
+    versions?: SiteWorkVersionDTO[];
     links: {
       self: string;
       site: string;

@@ -1,12 +1,13 @@
-import type { Route } from './+types/v1.sites.$siteName.works';
+import type { Route } from './+types/route';
 import { z } from 'zod';
-import { validate, withSecureSiteContext, sites } from '@curvenote/scms-server';
-import { extensions } from '../../extensions/server';
+import { validate, withSecureSiteContext } from '@curvenote/scms-server';
+import { extensions } from '../../../extensions/server';
 import {
   PRIVATE_CACHE_OPTIONS,
   SEMI_STATIC_BURST_PROTECTION,
   vercelCacheHeaders,
 } from 'app/lib/vercel-cache';
+import { listPublishedWorks } from './db.server';
 
 /** Default page size when the client omits `limit` / `page` (offset pagination is always applied). */
 const DEFAULT_WORKS_LIMIT = 10;
@@ -39,7 +40,7 @@ export async function loader(args: Route.LoaderArgs) {
     page: params.has('page') ? parseInt(params.get('page')!, 10) : undefined,
   });
 
-  const dto = await sites.submissions.published.list(ctx, extensions, where, { page, limit });
+  const dto = await listPublishedWorks(ctx, extensions, where, { page, limit });
   const headers = vercelCacheHeaders(
     ctx.site.private ? PRIVATE_CACHE_OPTIONS : SEMI_STATIC_BURST_PROTECTION,
   );
