@@ -1,5 +1,11 @@
 import { withAppSiteContext } from '@curvenote/scms-server';
-import { PageFrame, ui, getBrandingFromMetaMatches, joinPageTitle } from '@curvenote/scms-core';
+import {
+  PageFrame,
+  ui,
+  getBrandingFromMetaMatches,
+  joinPageTitle,
+  scopes,
+} from '@curvenote/scms-core';
 import { ExternalLink } from 'lucide-react';
 import { dbGetSiteAnalyticsDashboards, dbGetSiteSubmissionStats } from './db.server.js';
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
@@ -13,7 +19,10 @@ interface LoaderData {
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
-  const ctx = await withAppSiteContext(args, [], { redirectTo: '/app', redirect: true });
+  const ctx = await withAppSiteContext(args, [scopes.site.analytics.list], {
+    redirectTo: '/app',
+    redirect: true,
+  });
 
   const [analyticsDashboards, submissionStats] = await Promise.all([
     dbGetSiteAnalyticsDashboards(ctx.site.id),
