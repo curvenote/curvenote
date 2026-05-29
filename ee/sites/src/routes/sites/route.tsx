@@ -1,5 +1,9 @@
 import { Outlet, useLocation, useSearchParams, data } from 'react-router';
-import type { LoaderFunctionArgs, ActionFunctionArgs } from 'react-router';
+import type {
+  LoaderFunctionArgs,
+  ActionFunctionArgs,
+  ShouldRevalidateFunctionArgs,
+} from 'react-router';
 import { useMemo, useState } from 'react';
 import {
   withAppContext,
@@ -12,7 +16,7 @@ import SiteCard from './SiteCard.js';
 import RequestSiteCTA from './RequestSiteCTA.js';
 import type { FeaturedSitesData } from './RequestSiteCTA.js';
 import PendingSiteCard from './PendingSiteCard.js';
-import { readSitesSearchQuery, SitesSearchInput } from './SitesSearchInput.js';
+import { readSitesSearchQuery, SITES_SEARCH_PARAM, SitesSearchInput } from './SitesSearchInput.js';
 import { MainWrapper, PageFrame, scopes, clientCheckSiteScopes } from '@curvenote/scms-core';
 import type { ui } from '@curvenote/scms-core';
 import { actionCreateSite, actionRequestSite } from './actionHelpers.server.js';
@@ -45,6 +49,35 @@ export const loader = async (args: LoaderFunctionArgs): Promise<LoaderData> => {
     sites,
   };
 };
+
+/**
+ * The loader ignores `?q=` — filtering is client-side — so skip revalidation when
+ * only that param changes. Without this, each throttled `setSearchParams` call
+ * while typing re-runs auth checks and `dbListSiteCards`.
+ */
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  formData,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  if (formData?.get('intent') === 'check-site-name') {
+    return false;
+  }
+
+  if (currentUrl.pathname === nextUrl.pathname) {
+    const currentParams = new URLSearchParams(currentUrl.searchParams);
+    const nextParams = new URLSearchParams(nextUrl.searchParams);
+    if (currentParams.get(SITES_SEARCH_PARAM) !== nextParams.get(SITES_SEARCH_PARAM)) {
+      currentParams.delete(SITES_SEARCH_PARAM);
+      nextParams.delete(SITES_SEARCH_PARAM);
+      if (currentParams.toString() === nextParams.toString()) {
+        return false;
+      }
+    }
+  }
+  return defaultShouldRevalidate;
+}
 
 const IntentSchema = zfd.formData({
   intent: z.enum(['request-site', 'check-site-name', 'create-site']),
