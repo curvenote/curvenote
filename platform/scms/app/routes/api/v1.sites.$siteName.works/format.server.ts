@@ -181,13 +181,25 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: RowDBO): ModifiedSiteWo
 export function formatSiteWorkDTOFromSubmissions(
   ctx: SiteContext,
   dbo: ListDBO,
-  where?: { collection?: string; kind?: string; status?: string },
-  opts?: { page?: number; limit?: number },
+  where?: {
+    collection?: string;
+    kind?: string;
+    status?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+  },
+  opts?: { page?: number; limit?: number; sort?: 'published_desc' | 'published_asc' },
 ): Omit<SiteWorkListingDTO, 'items'> & { items: ModifiedSiteWorkDTO[] } {
   const selfUrl = new URL(ctx.asApiUrl(`/sites/${ctx.site.name}/works`));
   if (where?.collection) selfUrl.searchParams.set('collection', where?.collection ?? '');
   if (where?.kind) selfUrl.searchParams.set('kind', where?.kind ?? '');
   if (where?.status) selfUrl.searchParams.set('status', where?.status ?? '');
+  if (where?.q) selfUrl.searchParams.set('q', where.q);
+  if (where?.from) selfUrl.searchParams.set('from', where.from);
+  if (where?.to) selfUrl.searchParams.set('to', where.to);
+  // Only emit a non-default sort so default listings keep clean, cache-friendly URLs.
+  if (opts?.sort && opts.sort !== 'published_desc') selfUrl.searchParams.set('sort', opts.sort);
 
   const links = makePaginationLinks(
     {

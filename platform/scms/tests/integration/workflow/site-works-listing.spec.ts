@@ -145,8 +145,18 @@ describe('site works listing — delivered package (limit=10)', () => {
   });
 
   test('the second offset page returns the remaining works, disjoint and correctly ordered', async () => {
-    const page0 = await listPublishedWorks(testData.context, [], {}, { page: 0, limit: PAGE_LIMIT });
-    const page1 = await listPublishedWorks(testData.context, [], {}, { page: 1, limit: PAGE_LIMIT });
+    const page0 = await listPublishedWorks(
+      testData.context,
+      [],
+      {},
+      { page: 0, limit: PAGE_LIMIT },
+    );
+    const page1 = await listPublishedWorks(
+      testData.context,
+      [],
+      {},
+      { page: 1, limit: PAGE_LIMIT },
+    );
 
     // total is stable across pages; the second page holds the remainder.
     expect(page0.total).toBe(TOTAL_PUBLISHED);
@@ -238,6 +248,89 @@ describe('site works listing — delivered package (limit=10)', () => {
       `/sites/${testData.siteName}/works/${newest.workId}/versions/${newest.workVersionId}/social`,
     );
     expect(item.cdn_query).toBeUndefined();
+  });
+});
+
+describe('site works listing — search / sort / date filters', () => {
+  let testData: TestData;
+  let seeds: SeedWork[];
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+    await attachDefaultDomain(testData);
+    seeds = await seedPublishedWorks(testData, TOTAL_PUBLISHED);
+    await seedDraftWorks(testData, 2);
+  });
+
+  test('q matches a title substring', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'work 03' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].title).toBe('Benchmark work 03');
+  });
+
+  test('q matches an author substring (text[] column)', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'Author 5A' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[5].workId);
+  });
+
+  test('q matches a DOI substring', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'bench-work-07' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[7].workId);
+  });
+
+  test('q with no matches returns an empty listing', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'no-such-work-zzz' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+    expect(dto.items).toHaveLength(0);
+  });
+
+  test('sort published_asc reverses the default ordering', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      {},
+      { page: 0, limit: 500, sort: 'published_asc' },
+    );
+    const expectedOrder = [...seeds]
+      .sort((a, b) => (a.datePublished < b.datePublished ? -1 : 1))
+      .map((s) => s.workId);
+    expect(dto.items.map((i) => i.id)).toEqual(expectedOrder);
+  });
+
+  test('from/to filters to an inclusive date_published window', async () => {
+    // seeds[i].datePublished === 2024-01-(i+1); window 2024-01-05..2024-01-07
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { from: '2024-01-05', to: '2024-01-07' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(3);
+    expect(new Set(dto.items.map((i) => i.id))).toEqual(
+      new Set([seeds[4].workId, seeds[5].workId, seeds[6].workId]),
+    );
   });
 });
 
