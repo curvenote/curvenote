@@ -6,66 +6,51 @@ import type { SiteWorkVersionDTO } from '@curvenote/common';
 import { formatSiteWorkDTO } from './submissions/published/get.server.js';
 import type { ModifiedSiteWorkDTO } from './submissions/published/get.server.js';
 import type { SiteContext } from '../../context.site.server.js';
-import {
-  siteWorkWorkVersionSelect,
-  submissionVersionForSiteWorkSelect,
-} from '../../prisma.selects.server.js';
+import type { Prisma } from '@curvenote/scms-db';
+import { siteWorkDtoSelect } from '../../prisma.selects.server.js';
 
 export type SiteDoiResolveOptions = {
   /** If set, pick the latest *published* submission version for this DOI whose `tags` contains this string */
   tag?: string;
 };
 
-async function dbGetLatestPublishedWorkByDoi(doiNormalized: string) {
-  const prisma = await getPrismaClient();
-  return await prisma.workVersion.findMany({
-    where: {
-      OR: [{ doi: doiNormalized }, { work: { doi: doiNormalized } }],
-      submissionVersions: {
-        some: {
-          status: 'PUBLISHED',
-        },
-      },
-    },
-    orderBy: {
-      date_created: 'desc',
-    },
-    take: 1,
-    select: {
-      ...siteWorkWorkVersionSelect,
-      work: { select: { id: true, doi: true, key: true } },
-      submissionVersions: {
-        where: {
-          status: 'PUBLISHED',
-        },
-        orderBy: {
-          date_created: 'desc',
-        },
-        take: 1,
-        select: submissionVersionForSiteWorkSelect,
-      },
-    },
-  });
-}
-
-async function dbGetPublishedSubmissionVersionByDoiAndTag(
+/**
+ * Filter for the latest *published* submission version of a DOI on this site.
+ *
+ * Rooting at `SubmissionVersion` (rather than `WorkVersion`) makes the tag and
+ * no-tag paths a single query and lets the `date_created DESC` + LIMIT 1
+ * short-circuit at the first match. The DOI is matched against either the
+ * version's own `doi` or the parent work's `doi` — both now backed by btree
+ * indexes (migration `20260529130000`) so the equality lookup no longer
+ * sequential-scans.
+ *
+ * Crucially this is always scoped to `siteName`. The previous no-tag path
+ * (`WorkVersion`-rooted) omitted the site filter and could resolve a DOI that
+ * was only published on a *different* site; the tag path already scoped
+ * correctly, and the regression spec pins this down.
+ */
+function buildPublishedByDoiWhere(
   siteName: string,
   doiNormalized: string,
-  tag: string,
-) {
+  tag?: string,
+): Prisma.SubmissionVersionWhereInput {
+  return {
+    status: 'PUBLISHED',
+    submission: { site: { name: siteName } },
+    ...(tag ? { tags: { has: tag } } : {}),
+    OR: [
+      { work_version: { doi: doiNormalized } },
+      { work_version: { work: { doi: doiNormalized } } },
+    ],
+  };
+}
+
+async function dbGetPublishedSiteWorkByDoi(siteName: string, doiNormalized: string, tag?: string) {
   const prisma = await getPrismaClient();
   return prisma.submissionVersion.findFirst({
-    where: {
-      status: 'PUBLISHED',
-      tags: { has: tag },
-      submission: { site: { name: siteName } },
-      OR: [
-        { work_version: { doi: doiNormalized } },
-        { work_version: { work: { doi: doiNormalized } } },
-      ],
-    },
+    where: buildPublishedByDoiWhere(siteName, doiNormalized, tag),
     orderBy: { date_created: 'desc' },
-    select: submissionVersionForSiteWorkSelect,
+    select: siteWorkDtoSelect,
   });
 }
 
@@ -113,24 +98,15 @@ export default async function (
   if (!doiNormalized) throw error404('Not Found - Invalid DOI');
 
   const tag = opts?.tag?.trim();
-  let siteWork: ModifiedSiteWorkDTO;
-  if (tag) {
-    const sv = await dbGetPublishedSubmissionVersionByDoiAndTag(ctx.site.name, doiNormalized, tag);
-    if (!sv) {
-      throw error404(
-        'Not Found - No published submission version with that tag for this DOI on this site',
-      );
-    }
-    siteWork = formatSiteWorkDTO(ctx, { ...sv, work_version: sv.work_version });
-  } else {
-    const dbo = await dbGetLatestPublishedWorkByDoi(doiNormalized);
-    if (!dbo || dbo.length === 0)
-      throw error404('Not Found - No work with that DOI exists in database');
-
-    const { submissionVersions, ...work_version } = dbo[0];
-    const sv = submissionVersions[0];
-    siteWork = formatSiteWorkDTO(ctx, { ...sv, work_version });
+  const sv = await dbGetPublishedSiteWorkByDoi(ctx.site.name, doiNormalized, tag);
+  if (!sv) {
+    throw error404(
+      tag
+        ? 'Not Found - No published submission version with that tag for this DOI on this site'
+        : 'Not Found - No work with that DOI exists in database',
+    );
   }
+  const siteWork = formatSiteWorkDTO(ctx, sv);
 
   // One indexed query for the work's published versions, replacing a second
   // client round-trip to the submission `versions` listing.

@@ -108,6 +108,10 @@ model SubmissionVersion {
   /// listing (count + page query in `v1.sites.$siteName.works/db.server.ts`)
   /// an index-only probe instead of reading version rows to test status.
   @@index([submission_id, status])
+  /// Backs the DOI → published-version join in the DOI resolution endpoint
+  /// (`sites.doi`). `work_version_id` is an FK with no implicit index in
+  /// Postgres, so the lookup walked it unindexed.
+  @@index([work_version_id])
 }
 
 model Submission {
