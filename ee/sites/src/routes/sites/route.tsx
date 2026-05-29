@@ -1,4 +1,4 @@
-import { Outlet, useLocation, data } from 'react-router';
+import { Outlet, useLocation, useSearchParams, data } from 'react-router';
 import type { LoaderFunctionArgs, ActionFunctionArgs } from 'react-router';
 import { useMemo, useState } from 'react';
 import {
@@ -12,7 +12,7 @@ import SiteCard from './SiteCard.js';
 import RequestSiteCTA from './RequestSiteCTA.js';
 import type { FeaturedSitesData } from './RequestSiteCTA.js';
 import PendingSiteCard from './PendingSiteCard.js';
-import { SitesSearchInput } from './SitesSearchInput.js';
+import { readSitesSearchQuery, SitesSearchInput } from './SitesSearchInput.js';
 import { MainWrapper, PageFrame, scopes, clientCheckSiteScopes } from '@curvenote/scms-core';
 import type { ui } from '@curvenote/scms-core';
 import { actionCreateSite, actionRequestSite } from './actionHelpers.server.js';
@@ -21,8 +21,8 @@ import type { SiteCardListing } from './types.js';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 
-/** Minimum number of sites before the client-side filter is shown. */
-const SITES_SEARCH_VISIBILITY_THRESHOLD = 8;
+/** Show the client-side filter when the user has at least this many sites. */
+const SITES_SEARCH_VISIBILITY_THRESHOLD = 2;
 
 interface LoaderData {
   video?: ui.VideoData;
@@ -102,13 +102,14 @@ export const action = async (args: ActionFunctionArgs) => {
 
 export default function Sites({ loaderData }: { loaderData: LoaderData }) {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { video, featured, canCreateSite, scopes: userScopes, sites } = loaderData;
   const [showPendingCard, setShowPendingCard] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const searchQuery = readSitesSearchQuery(searchParams);
 
   const canRequestSite = clientCheckSiteScopes(userScopes, [scopes.app.sites.request], '');
 
-  const showSearch = sites.items.length > SITES_SEARCH_VISIBILITY_THRESHOLD;
+  const showSearch = sites.items.length >= SITES_SEARCH_VISIBILITY_THRESHOLD;
   const hasActiveSearch = searchQuery.length > 0;
 
   const filteredSites = useMemo(() => {
@@ -156,12 +157,7 @@ export default function Sites({ loaderData }: { loaderData: LoaderData }) {
               />
             )}
 
-            {showSearch && (
-              <SitesSearchInput
-                onQueryChange={setSearchQuery}
-                sitesShownCount={filteredSites.length}
-              />
-            )}
+            {showSearch && <SitesSearchInput sitesShownCount={filteredSites.length} />}
 
             {(filteredSites.length > 0 || showPendingCard) && (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
