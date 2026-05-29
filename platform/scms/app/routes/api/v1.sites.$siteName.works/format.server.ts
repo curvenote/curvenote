@@ -7,21 +7,58 @@ import type {
 } from '@curvenote/common';
 import { concatSiteWorkTags, formatDate } from '@curvenote/common';
 import { coerceToObject, makePaginationLinks } from '@curvenote/scms-core';
-import type {
-  submissionVersionForSiteWorkSelect,
-  createArticleUrl,
-  signPrivateUrls,
-  type SiteContext,
-} from '@curvenote/scms-server';
+// Value imports: called at runtime — must NOT be converted to `import type`
+// (doing so elides them and yields a `ReferenceError` at call time).
+import { createArticleUrl, signPrivateUrls } from '@curvenote/scms-server';
+import type { SiteContext } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 
 /**
- * A single submission-version row, as selected by the listing query.
- * Co-located here (rather than imported from scms-server) so the select
- * shape and its formatting can be optimized together in this folder.
+ * The exact set of columns/relations this endpoint's formatter reads — nothing
+ * more. Narrower than the shared `submissionVersionForSiteWorkSelect`: it drops
+ * `submitted_by` (unused → removes a whole query), version bookkeeping columns
+ * (`status`, `transition`, `job_id`, `date_*`), `kind.checks`, `work.contains`,
+ * and `work_version.{draft,occ,date}`, and fetches only the primary slug. Kept
+ * co-located so the select and the formatting that consumes it evolve together.
+ */
+export const siteWorkListingSelect = {
+  id: true,
+  tags: true,
+  work_version: {
+    select: {
+      id: true,
+      work_id: true,
+      cdn: true,
+      cdn_key: true,
+      title: true,
+      description: true,
+      authors: true,
+      tags: true,
+      doi: true,
+      canonical: true,
+      date_created: true,
+    },
+  },
+  submission: {
+    select: {
+      id: true,
+      date_published: true,
+      kind: { select: { id: true, name: true, content: true, default: true } },
+      collection: {
+        select: { id: true, name: true, slug: true, workflow: true, content: true, open: true },
+      },
+      slugs: { where: { primary: true }, select: { slug: true, primary: true }, take: 1 },
+      work: { select: { doi: true, key: true } },
+    },
+  },
+} satisfies Prisma.SubmissionVersionSelect;
+
+/**
+ * A single listing row, as selected by `siteWorkListingSelect` and consumed by
+ * the formatter.
  */
 export type RowDBO = Prisma.SubmissionVersionGetPayload<{
-  select: typeof submissionVersionForSiteWorkSelect;
+  select: typeof siteWorkListingSelect;
 }>;
 
 /** The shape returned by the listing DB layer in `db.server.ts`. */

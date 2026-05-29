@@ -1,8 +1,4 @@
-import {
-  getPrismaClient,
-  submissionVersionForSiteWorkSelect,
-  type SiteContext,
-} from '@curvenote/scms-server';
+import { getPrismaClient, type SiteContext } from '@curvenote/scms-server';
 import {
   error404,
   httpError,
@@ -12,88 +8,110 @@ import {
   type ClientExtension,
 } from '@curvenote/scms-core';
 import type { Prisma } from '@curvenote/scms-db';
-import { formatSiteWorkDTOFromSubmissions, type ListDBO } from './format.server';
+import { formatSiteWorkDTOFromSubmissions, siteWorkListingSelect } from './format.server';
+import type { ListDBO, RowDBO } from './format.server';
 
 /**
- * NOTE we can not just count() here because of the distinct field.
- * Writing a raw query would be an option but that is complex for this query,
- * especially with multiple parameters and ensuring safety from sql injection,
- * so this is a workaround that should be replaced if performance is an issue.
+ * Splits the co-located narrow site-work select into the parts needed when the
+ * query is rooted at `Submission`:
+ *  - `submission` relations + scalars (kind, collection, slugs, work, …)
+ *  - the SubmissionVersion fields, minus the nested `submission` (which we
+ *    re-attach from the outer query).
+ */
+function getListingSelects() {
+  const { submission, ...submissionVersionSelect } = siteWorkListingSelect;
+  return { submissionInnerSelect: submission.select, submissionVersionSelect };
+}
+
+/**
+ * Shared filter for the listing: submissions on this site (optionally scoped to
+ * a collection / kind) that have at least one version in the requested status.
+ * Mirrors the previous `submissionVersion.status` + `distinct` semantics.
  *
- * (Co-located here so the count strategy can be optimized alongside the page query.)
+ * Filters on `site_id` directly (the caller already resolved the site) rather
+ * than joining `Site` by name, so the planner can use the
+ * `(site_id, date_published DESC, date_created DESC)` index for both the
+ * ordered page scan and the COUNT.
+ */
+function buildListingWhere(
+  siteId: string,
+  collectionName: string | undefined,
+  status: string,
+  kind: string | undefined,
+): Prisma.SubmissionWhereInput {
+  return {
+    site_id: siteId,
+    collection: { name: collectionName },
+    kind: { name: kind },
+    versions: { some: { status } },
+  };
+}
+
+/**
+ * Count submissions that have at least one version in the requested status.
+ *
+ * Rooted at `Submission` (already one row per listing entry) so this is a
+ * single SQL COUNT over a semijoin — no longer materialising every matching
+ * version id into Node just to read `.length`.
  */
 async function dbCountSubmissions(
-  siteName: string,
+  siteId: string,
   collectionName: string | undefined,
   status: string,
   kind?: string,
   tx?: Prisma.TransactionClient,
 ) {
   const prisma = await getPrismaClient();
-  const records = await (tx ?? prisma).submissionVersion.findMany({
-    where: {
-      submission: {
-        site: { is: { name: siteName } },
-        collection: {
-          name: collectionName,
-        },
-        kind: {
-          name: kind,
-        },
-      },
-      status,
-    },
-    select: {
-      id: true,
-    },
-    distinct: ['submission_id'],
+  return (tx ?? prisma).submission.count({
+    where: buildListingWhere(siteId, collectionName, status, kind),
   });
-
-  return records.length;
 }
 
+/**
+ * List submissions (the latest version in the requested status per submission),
+ * ordered by publication date.
+ *
+ * Rooted at `Submission` rather than `SubmissionVersion`, so there is no
+ * `distinct` step: the table already has one row per listing entry, which lets
+ * Postgres push LIMIT/OFFSET into an index range scan instead of sorting the
+ * full matching set in memory. The latest matching version is pulled via a
+ * constrained `take: 1` relation and re-shaped into the RowDBO the formatter
+ * expects, so the delivered payload is unchanged.
+ */
 async function dbQuerySubmissions(
-  siteName: string,
+  siteId: string,
   collectionName: string | undefined,
   status: string,
   kind?: string,
   opts?: { page?: number; limit?: number },
   tx?: Prisma.TransactionClient,
-) {
+): Promise<RowDBO[]> {
   const skip = opts?.limit ? (opts?.page ?? 0) * opts?.limit : undefined;
   const take = opts?.limit;
+  const { submissionInnerSelect, submissionVersionSelect } = getListingSelects();
   const prisma = await getPrismaClient();
-  return (tx ?? prisma).submissionVersion.findMany({
+  const submissions = await (tx ?? prisma).submission.findMany({
     skip,
     take,
-    where: {
-      submission: {
-        site: { is: { name: siteName } },
-        collection: { name: collectionName },
-        kind: {
-          name: kind,
-        },
+    where: buildListingWhere(siteId, collectionName, status, kind),
+    orderBy: [{ date_published: 'desc' }, { date_created: 'desc' }],
+    select: {
+      ...submissionInnerSelect,
+      versions: {
+        where: { status },
+        orderBy: [{ date_created: 'desc' }],
+        take: 1,
+        select: submissionVersionSelect,
       },
-      status,
     },
-    select: submissionVersionForSiteWorkSelect,
-    orderBy: [
-      {
-        submission: {
-          date_published: 'desc',
-        },
-      },
-      {
-        submission: {
-          date_created: 'desc',
-        },
-      },
-      {
-        date_created: 'desc',
-      },
-    ],
-    distinct: ['submission_id'],
   });
+
+  return submissions
+    .filter((s) => s.versions.length > 0)
+    .map((s) => {
+      const { versions, ...submission } = s;
+      return { ...versions[0], submission } as RowDBO;
+    });
 }
 
 export async function dbListLatestPublishedSubmissions(
@@ -139,8 +157,8 @@ export async function dbListLatestPublishedSubmissions(
 
   if (isOffsetPaginationRequested(opts ?? {})) {
     const [items, total] = await Promise.all([
-      dbQuerySubmissions(ctx.site.name, collectionName, status, where?.kind, opts),
-      dbCountSubmissions(ctx.site.name, collectionName, status, where?.kind),
+      dbQuerySubmissions(ctx.site.id, collectionName, status, where?.kind, opts),
+      dbCountSubmissions(ctx.site.id, collectionName, status, where?.kind),
     ]);
     return { items, total };
   }
@@ -149,13 +167,7 @@ export async function dbListLatestPublishedSubmissions(
   // we can still limit, but in this branch we avoid
   // the extra count query
   if (opts?.page === undefined) {
-    const items = await dbQuerySubmissions(
-      ctx.site.name,
-      collectionName,
-      status,
-      where?.kind,
-      opts,
-    );
+    const items = await dbQuerySubmissions(ctx.site.id, collectionName, status, where?.kind, opts);
     return { items, total: items.length };
   }
 
