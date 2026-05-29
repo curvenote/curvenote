@@ -1,12 +1,32 @@
 import type { UserConfig } from 'vite';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, searchForWorkspaceRoot } from 'vite';
 import { reactRouter } from '@react-router/dev/vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import appConfigVite from '@app-config/vite';
 import path from 'path';
+import { readFileSync } from 'fs';
 import ViteRestart from 'vite-plugin-restart';
 import { loadConfig } from '@app-config/main';
 import tailwindcss from '@tailwindcss/vite';
+
+const WORKSPACE_ROOT = path.resolve(process.cwd(), '../..');
+
+/** Workspace UI packages resolve to source in dev via package.json "development" exports. */
+const WORKSPACE_UI_PATTERNS = [/^@curvenote\//, /^@hhmi\//];
+
+const SERVER_WORKSPACE_PACKAGES = ['@curvenote/scms-server', '@curvenote/scms-db'];
+
+/** optimizeDeps.exclude requires exact package name strings, not RegExp. */
+function getWorkspacePackageNames(): string[] {
+  const pkg = JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8')) as {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  };
+  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+  return Object.keys(deps).filter(
+    (name) => name.startsWith('@curvenote/') || name.startsWith('@hhmi/'),
+  );
+}
 
 export default defineConfig(async ({ mode }) => {
   // Load env file based on `mode` in the current working directory.
@@ -18,22 +38,10 @@ export default defineConfig(async ({ mode }) => {
       directory: path.resolve(process.cwd(), '.'),
     },
     {
-      directory: path.resolve(process.cwd(), '../../'),
+      directory: WORKSPACE_ROOT,
     },
   );
-  // TODO need to respect the allowLogin flag whilst allowing linking
 
-  /**
-   * Monorepo-optimized Vite configuration
-   *
-   * This config enables hot module reload (HMR) for changes in local packages and ee:
-   * - Watches package and ee source directories for changes
-   * - Does not pre-bundle @curvenote/scms-core (see optimizeDeps.exclude): dist/ can change
-   *   without a version bump; a stale .vite deps cache would otherwise serve old UI code.
-   *   React is still deduped via resolve.dedupe and scms-core’s externalized peer deps.
-   * - Processes local packages through Vite's SSR transform
-   * - Restarts dev server when package configuration changes
-   */
   const userConfig: UserConfig = {
     server: {
       // Listen on all interfaces (0.0.0.0 / ::) so loopback works consistently:
@@ -43,39 +51,19 @@ export default defineConfig(async ({ mode }) => {
       port: env.VITE_PORT ? parseInt(env.VITE_PORT) : undefined,
       // Cloudflare tunnel / reverse proxy: Host is the public hostname, not localhost
       allowedHosts: ['.curvenote.net'],
-      // Watch package and ee source files for changes to enable hot reload
       watch: {
-        // Explicitly watch all files in packages and ee directories (use ** for recursive matching)
-        // The negation pattern (!) means "don't ignore this"
-        ignored: [
-          // Don't ignore any files in packages - watch everything recursively
-          '!**/packages/**',
-          // Don't ignore any files in ee - watch everything recursively
-          '!**/ee/**',
-        ],
-        // Use polling for better reliability with TypeScript file changes
-        // This ensures enum/type changes are picked up immediately
-        usePolling: false, // Set to true if file watching is unreliable
-        // Increase interval for polling if enabled
+        // Polling watches every file under fs.allow and can hit EMFILE on large monorepos.
+        usePolling: false,
+        ignored: ['**/node_modules/**'],
         interval: 100,
       },
-      // Allow Vite to serve files from the workspace root, packages, and ee
       fs: {
-        allow: [
-          // Workspace root (current directory when running from platform/scms)
-          process.cwd(),
-          // Allow access to all packages (go up to workspace root, then into packages)
-          path.resolve(process.cwd(), '../../packages'),
-          // Allow access to ee folder (go up to workspace root, then into ee)
-          path.resolve(process.cwd(), '../../ee'),
-        ],
+        allow: [searchForWorkspaceRoot(process.cwd()), WORKSPACE_ROOT],
       },
     },
     optimizeDeps: {
       exclude: [
-        // Never pre-bundle scms-core: `dist/` updates from `npm run build` in packages/scms-core
-        // would be ignored until node_modules/.vite is cleared; dev would keep old class strings.
-        '@curvenote/scms-core',
+        ...getWorkspacePackageNames(),
         '@google-cloud/storage',
         'jwa',
         'jsonwebtoken',
@@ -85,23 +73,18 @@ export default defineConfig(async ({ mode }) => {
         'google-auth-library',
         'firebase-admin',
         'crypto',
-        // Server / DB packages only — keep out of client dep optimization
-        '@curvenote/scms-server',
-        '@curvenote/scms-db',
       ],
     },
     ssr: {
-      external: ['crypto', '@curvenote/scms-server', '@curvenote/scms-db'],
+      external: ['crypto', ...SERVER_WORKSPACE_PACKAGES],
       noExternal: [
+        ...WORKSPACE_UI_PATTERNS,
         'lucide-react',
         'clsx',
         /@codemirror\/.*/,
         /@radix-ui\/.*/,
         /@heroicons\/.*/,
         /@headlessui\/.*/,
-        // Include local packages so they're processed by Vite's SSR transform
-        // This enables hot reload for changes in these packages
-        '@curvenote/scms-core',
       ],
     },
     plugins: [
@@ -134,56 +117,21 @@ export default defineConfig(async ({ mode }) => {
       ViteRestart({
         restart: [
           '.app-config.*',
-          // Restart when package.json files change in any package
-          'packages/*/package.json',
-          // Restart when tsconfig files change in packages (affects types)
-          'packages/*/tsconfig.json',
-          // Restart when package.json or tsconfig files change in ee
-          'ee/*/package.json',
-          'ee/*/tsconfig.json',
+          '../../packages/*/package.json',
+          '../../packages/*/tsconfig.json',
+          '../../ee/*/package.json',
+          '../../ee/*/tsconfig.json',
+          '../../extensions/*/packages/*/package.json',
+          '../../extensions/*/packages/*/tsconfig.json',
         ],
       }),
-      // Plugin to invalidate modules when TypeScript files change (e.g., enum updates)
-      // This ensures enum/type changes in packages and ee are picked up immediately without rebuild
-      {
-        name: 'invalidate-on-typescript-changes',
-        configureServer(server) {
-          // Watch TypeScript files in packages and ee, trigger HMR when they change
-          server.watcher.on('change', (file) => {
-            if (
-              (file.includes('packages/') || file.includes('ee/')) &&
-              (file.endsWith('.ts') || file.endsWith('.tsx'))
-            ) {
-              // Find the module and invalidate it along with all dependents
-              const module = server.moduleGraph.getModuleById(file);
-              if (module) {
-                // Invalidate the module itself
-                server.moduleGraph.invalidateModule(module);
-                // Invalidate all modules that import this one (to pick up type changes)
-                module.importers.forEach((importer) => {
-                  server.moduleGraph.invalidateModule(importer);
-                });
-                // Send HMR update to clients
-                server.ws.send({
-                  type: 'update',
-                  updates: [
-                    {
-                      type: 'js-update',
-                      path: file,
-                      acceptedPath: file,
-                      timestamp: Date.now(),
-                    },
-                  ],
-                });
-              }
-            }
-          });
-        },
-      },
     ],
     resolve: {
-      // Dedupe these packages to avoid multiple instances
-      dedupe: ['react', 'react-dom', 'react-router'],
+      conditions:
+        mode === 'development'
+          ? ['development', 'import', 'module', 'default']
+          : ['import', 'module', 'default'],
+      dedupe: ['react', 'react-dom', 'react-router', '@curvenote/scms-core'],
     },
   };
   return userConfig;

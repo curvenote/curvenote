@@ -1,268 +1,252 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react-router';
-import { useFetcher, useNavigate, useSearchParams, data } from 'react-router';
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { withAppSiteContext } from '@curvenote/scms-server';
 import {
   PageFrame,
-  formatZodError,
-  site as siteScopes,
   getBrandingFromMetaMatches,
   joinPageTitle,
-  useInfiniteScroll,
+  site as siteScopes,
 } from '@curvenote/scms-core';
-import type { Prisma } from '@curvenote/scms-db';
-import { useEffect, useState, useCallback } from 'react';
-import { zfd } from 'zod-form-data';
 import { z } from 'zod';
-import { dbListSignedSubmissions, dbQueryJobs } from './db.server.js';
-import type { AugmentedSubmissionListingItem, SubmissionListingPage } from './types.js';
-import { CollectionSelect } from './CollectionSelect.js';
-import { formatCollectionFilterOptions } from './collections.format.server.js';
-import type { CollectionFilterOption } from './collections.format.server.js';
-import { formatSubmissionListingSiteContext } from './site-context.format.server.js';
-import type { SubmissionListingSiteContext } from './site-context.format.server.js';
-import { SiteTrackEvent } from '../../analytics/events.js';
-import { SubmissionList } from '../../components/SubmissionList.js';
+import { dbCountSubmissionsForIndex, dbListSubmissionsForIndex } from './db.server.js';
+import { formatSubmissionsIndexItems } from './format.server.js';
+import { formatSubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
+import type { SubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
+import { ClassicSubmissionsRedirect } from './ClassicSubmissionsRedirect.js';
+import { SubmissionsListingToolbar } from './SubmissionsListingToolbar.js';
+import { SubmissionsList } from './SubmissionsList.js';
+import {
+  DEFAULT_SUBMISSIONS_PER_PAGE,
+  SUBMISSIONS_PER_PAGE_OPTIONS,
+  SubmissionsPagination,
+} from './SubmissionsPagination.js';
+import type { SubmissionsIndexPage } from './types.js';
+import {
+  LISTING_SEARCH_MIN_LENGTH,
+  LISTING_SORTS,
+  LISTING_SORT_DEFAULT,
+  LISTING_SORTS_AWAITING_DENORMALISATION,
+  LISTING_STATUS_IDS,
+  type ListingQuery,
+  type ListingSort,
+} from './listingParams.js';
 
-interface LoaderData {
-  scopes: string[];
-  site: SubmissionListingSiteContext;
-  submissions: SubmissionListingPage;
-  collections: CollectionFilterOption[];
-  defaultCollectionOnly: boolean;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Search-query preprocessor. Trims whitespace and drops the value entirely if
+ * the trimmed length is below `LISTING_SEARCH_MIN_LENGTH` (3) — see the
+ * comment by that constant for the rationale. The search input also enforces
+ * this floor before pushing to the URL, but we re-check here as defense in
+ * depth in case someone hand-crafts or bookmarks a `?q=ab` URL.
+ */
+const searchQuery = z.preprocess((v) => {
+  if (typeof v !== 'string') return undefined;
+  const trimmed = v.trim();
+  if (trimmed.length < LISTING_SEARCH_MIN_LENGTH) return undefined;
+  return trimmed;
+}, z.string().min(LISTING_SEARCH_MIN_LENGTH).max(200).optional());
+
+const csvIds = z.preprocess(
+  (v) => (typeof v === 'string' ? v : undefined),
+  z
+    .string()
+    .optional()
+    .transform((s) => (s ? s.split(',').filter(Boolean) : [])),
+);
+
+const optionalDateString = z.preprocess(
+  (v) => (typeof v === 'string' && ISO_DATE.test(v) ? v : undefined),
+  z.string().optional(),
+);
+
+/**
+ * Boolean URL param. Only `?unpublishedOnly=1` flips this on — any other
+ * value (including `true`, `0`, empty, missing) is treated as false. Keeps
+ * the URL contract trivial and the boolean comparison side-effect free.
+ */
+const boolFlag = z.preprocess((v) => v === '1', z.boolean());
+
+const csvStatusIds = z.preprocess(
+  (v) => (typeof v === 'string' ? v : undefined),
+  z
+    .string()
+    .optional()
+    .transform((s) =>
+      s
+        ? s
+            .split(',')
+            .filter(Boolean)
+            .filter((id) => LISTING_STATUS_IDS.has(id))
+        : [],
+    ),
+);
+
+/**
+ * Canonical URL contract for the submissions index listing.
+ *
+ *   page, perPage  — pagination
+ *   q              — debounced search text (matches title / authors / DOI)
+ *   sort           — one of LISTING_SORTS; disabled values silently coerce
+ *                    to the default until the denormalisation slice lands
+ *   kindIds        — CSV of SubmissionKind ids (multi-select chip)
+ *   collectionIds  — CSV of Collection ids (multi-select chip)
+ *   statuses       — CSV of newest-version statuses (LISTING_STATUS_OPTIONS).
+ *                    Unknown ids are dropped silently so links survive enum
+ *                    additions/removals.
+ *   from, to       — ISO yyyy-mm-dd window applied strictly to date_published.
+ *                    Submissions whose date_published is NULL are excluded
+ *                    when any window is active.
+ *   unpublishedOnly  `?unpublishedOnly=1` returns only submissions with
+ *                    date_published IS NULL. Mutually exclusive with
+ *                    `from` / `to` (any range is ignored when set).
+ */
+const ListingQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  perPage: z.coerce
+    .number()
+    .int()
+    .default(DEFAULT_SUBMISSIONS_PER_PAGE)
+    .transform((value) =>
+      (SUBMISSIONS_PER_PAGE_OPTIONS as readonly number[]).includes(value)
+        ? value
+        : DEFAULT_SUBMISSIONS_PER_PAGE,
+    ),
+  q: searchQuery,
+  sort: z
+    .enum(LISTING_SORTS)
+    .catch(LISTING_SORT_DEFAULT)
+    .default(LISTING_SORT_DEFAULT)
+    .transform(
+      (value): ListingSort =>
+        LISTING_SORTS_AWAITING_DENORMALISATION.has(value) ? LISTING_SORT_DEFAULT : value,
+    ),
+  kindIds: csvIds,
+  collectionIds: csvIds,
+  statuses: csvStatusIds,
+  from: optionalDateString,
+  to: optionalDateString,
+  unpublishedOnly: boolFlag,
+});
+
+// Compile-time check that the schema produces a value assignable to the
+// canonical ListingQuery shape (defined in listingParams.ts so the type stays
+// free of the zod dep and reusable from client components).
+type SchemaListingQuery = z.infer<typeof ListingQuerySchema>;
+const _assertListingQueryShape: SchemaListingQuery extends ListingQuery ? true : false = true;
+void _assertListingQueryShape;
+
+export interface ToolbarKindOption {
+  id: string;
+  name: string;
 }
 
-type SubmissionWithJob = AugmentedSubmissionListingItem;
+export interface ToolbarCollectionOption {
+  id: string;
+  name: string;
+  default: boolean;
+}
 
-const SubmissionListingSchema = z.object({
-  page: z.coerce.number().int().min(1).optional(),
-  perPage: z.coerce.number().int().min(1).max(100).optional(),
-  collection: z.string().optional(),
-});
+interface LoaderData {
+  site: SubmissionListingSiteContext;
+  submissions: SubmissionsIndexPage;
+  defaultCollectionOnly: boolean;
+  singleKindOnly: boolean;
+  availableKinds: ToolbarKindOption[];
+  availableCollections: ToolbarCollectionOption[];
+}
 
-const SubmissionListingFormSchema = zfd.formData({
-  intent: zfd.text(z.enum(['scroll', 'filter-collection'])),
-  collection: zfd.text(z.string()).optional(),
-  page: zfd.text(z.coerce.number().int().positive()).optional(),
-  perPage: zfd.text(z.coerce.number().int().positive()).optional(),
-});
-
-const DEFAULT_PER_PAGE = 30;
-
-export const loader = async (args: LoaderFunctionArgs): Promise<LoaderData> => {
+export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   const ctx = await withAppSiteContext(args, [siteScopes.submissions.list], {
     redirectTo: '/app',
     redirect: true,
   });
 
   const url = new URL(args.request.url);
-  const params = Object.fromEntries(url.searchParams);
-  const { perPage, collection } = SubmissionListingSchema.parse(params);
+  const query = ListingQuerySchema.parse(Object.fromEntries(url.searchParams));
 
-  const where: Prisma.SubmissionWhereInput = {};
-  if (collection) {
-    where.collection = { name: collection };
-  }
+  const [rows, total] = await Promise.all([
+    dbListSubmissionsForIndex(ctx, query),
+    dbCountSubmissionsForIndex(ctx, query),
+  ]);
 
-  // TODO can defer jobs, need to have suspense/await on the ui to handle that
-  const submissions = await dbListSignedSubmissions(ctx, where, 1, perPage ?? DEFAULT_PER_PAGE);
-
-  // Get user's role on this site
-  const userSiteRole =
-    ctx.user?.site_roles.find((sr) => sr.site_id === ctx.site.id)?.role || 'none';
-
-  await ctx.trackEvent(SiteTrackEvent.SITE_VIEWED, {
-    siteName: ctx.site.name,
-    siteType: ctx.site.private ? 'private' : 'public',
-    userRole: userSiteRole,
-    pageType: 'submissions_list',
-    collectionFilter: collection || 'all',
-  });
-
-  await ctx.analytics.flush();
+  const availableKinds: ToolbarKindOption[] = (ctx.site.submissionKinds ?? []).map((kind) => ({
+    id: kind.id,
+    name: kind.name,
+  }));
+  const availableCollections: ToolbarCollectionOption[] = (ctx.site.collections ?? []).map(
+    (collection) => ({
+      id: collection.id,
+      name: collection.name,
+      default: collection.default,
+    }),
+  );
 
   return {
-    scopes: ctx.scopes,
     site: formatSubmissionListingSiteContext(ctx),
-    submissions,
-    collections: formatCollectionFilterOptions(ctx),
-    defaultCollectionOnly: ctx.site.collections.length === 1 && ctx.site.collections[0].default,
+    submissions: {
+      items: formatSubmissionsIndexItems(ctx, rows),
+      page: query.page,
+      perPage: query.perPage,
+      total,
+    },
+    defaultCollectionOnly: availableCollections.length === 1 && availableCollections[0].default,
+    singleKindOnly: availableKinds.length === 1,
+    availableKinds,
+    availableCollections,
   };
-};
+}
 
 export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
   const branding = getBrandingFromMetaMatches(matches);
   return [{ title: joinPageTitle('Submissions', loaderData?.site?.title, branding.title) }];
 };
 
-export function shouldRevalidate() {
-  return false;
-}
-
-export const action = async (args: ActionFunctionArgs) => {
-  const ctx = await withAppSiteContext(args, [siteScopes.submissions.update]);
-
-  const where: Prisma.SubmissionWhereInput = {};
-
-  let page: number | undefined;
-  let perPage: number | undefined;
-  let intent: 'scroll' | 'filter-collection' = 'scroll';
-  try {
-    const formData = await ctx.request.formData();
-    const payload = SubmissionListingFormSchema.parse(formData);
-    if (payload.collection !== 'all') {
-      where.collection = { name: payload.collection };
-    }
-    page = payload.page;
-    perPage = payload.perPage;
-    intent = payload.intent;
-  } catch (e: any) {
-    console.error(`Invalid form data ${e}`);
-    console.error(e);
-    return data({ error: formatZodError(e) }, { status: 400 });
-  }
-
-  const [submissions, jobs] = await Promise.all([
-    dbListSignedSubmissions(ctx, where, page, perPage ?? DEFAULT_PER_PAGE),
-    dbQueryJobs(ctx),
-  ]);
-
-  submissions.items = submissions.items.map((s: SubmissionWithJob) => {
-    const job = jobs.items?.find((j) => (j.payload as any).submission_version_id === s.version_id);
-    return {
-      ...s,
-      job,
-    };
-  });
-
-  if (intent === 'filter-collection') {
-    return data({ submissions, jobs, page: perPage ? 1 : undefined, perPage, reload: true });
-  }
-
-  // else intent == 'scroll'
-  return data({ submissions, jobs, page, perPage });
-};
-
-export default function AllSubmissionsPage({ loaderData }: { loaderData: LoaderData }) {
-  const { scopes, site, submissions, collections, defaultCollectionOnly } = loaderData;
-
-  const navigate = useNavigate();
-  const [urlSearchParams] = useSearchParams();
-  const [items, setItems] = useState<AugmentedSubmissionListingItem[]>(submissions.items);
-
-  const fetcher = useFetcher<{
-    submissions?: SubmissionListingPage;
-    error?: string;
-    reload: boolean;
-  }>();
-
-  const hasNextPage = fetcher.data?.submissions
-    ? (fetcher.data.submissions.hasMore ?? false)
-    : (submissions.hasMore ?? false);
-
-  const handleLoadMore = useCallback(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : undefined;
-    const perPage = searchParams.get('perPage')
-      ? parseInt(searchParams.get('perPage')!)
-      : undefined;
-
-    if (page === undefined || perPage === undefined) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('intent', 'scroll');
-    formData.append('page', (page + 1).toString());
-    if (fetcher.data?.submissions?.perPage) {
-      formData.append('perPage', fetcher.data.submissions.perPage.toString());
-    } else {
-      formData.append('perPage', DEFAULT_PER_PAGE.toString());
-    }
-    formData.append('collection', urlSearchParams.get('collection') ?? 'all');
-
-    fetcher.submit(formData, { method: 'post' });
-  }, [fetcher, urlSearchParams]);
-
-  const { infiniteRef, rootRef } = useInfiniteScroll({
-    loading: fetcher.state !== 'idle',
-    hasNextPage,
-    onLoadMore: handleLoadMore,
-  });
-
-  // Update URL with pagination parameters when they are defined
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    let hasChanges = false;
-
-    if (fetcher.data?.submissions?.page !== undefined || submissions.page !== undefined) {
-      const page = fetcher.data?.submissions?.page ?? submissions.page;
-      searchParams.set('page', page!.toString());
-      hasChanges = true;
-    }
-    if (fetcher.data?.submissions?.perPage !== undefined || submissions.perPage !== undefined) {
-      const perPage = fetcher.data?.submissions?.perPage ?? submissions.perPage;
-      searchParams.set('perPage', perPage!.toString());
-      hasChanges = true;
-    }
-
-    if (hasChanges) {
-      navigate(`?${searchParams.toString()}`, { replace: true });
-    }
-  }, [navigate, submissions.page, submissions.perPage, fetcher.data]);
-
-  useEffect(() => {
-    if (fetcher.data?.submissions?.items) {
-      // Type assertion to handle the serialized data
-      const newItems = fetcher.data.submissions.items;
-
-      setItems((prev) => {
-        if (fetcher.data?.reload) {
-          return newItems;
-        }
-        return [...prev, ...newItems];
-      });
-    }
-  }, [fetcher.data]);
+export default function Submissions({ loaderData }: { loaderData: LoaderData }) {
+  const {
+    site,
+    submissions,
+    defaultCollectionOnly,
+    singleKindOnly,
+    availableKinds,
+    availableCollections,
+  } = loaderData;
 
   const breadcrumbs = [
     { label: 'Sites', href: '/app/sites' },
-    { label: site.title || site.name, href: `/app/sites/${site.name}/inbox` },
-    { label: 'Submissions', isCurrentPage: true },
+    { label: site.title || site.name, isCurrentPage: true },
   ];
 
   return (
     <PageFrame
-      ref={rootRef}
-      className="overflow-y-scroll relative h-screen"
-      title="Submitted Articles"
-      subtitle={`List and view all article submissions for ${site.title}`}
+      title="All Submissions"
+      subtitle={<span>List, filter, search and view all submissions.</span>}
       breadcrumbs={breadcrumbs}
     >
-      {!defaultCollectionOnly && (
-        <CollectionSelect
-          fetcher={fetcher as any}
-          collections={collections}
-          defaultValue={urlSearchParams.get('collection') ?? 'all'}
+      <SubmissionsListingToolbar
+        className="mb-5"
+        availableKinds={singleKindOnly ? [] : availableKinds}
+        availableCollections={defaultCollectionOnly ? [] : availableCollections}
+        totalResults={submissions.total}
+      />
+      <div className="flex flex-col gap-2">
+        <SubmissionsPagination
+          page={submissions.page}
+          perPage={submissions.perPage}
+          total={submissions.total}
         />
-      )}
-      {items.length === 0 && <div className="mt-8 font-medium">No submitted articles found</div>}
-      {items.length > 0 && (
-        <div className="flex overflow-y-scroll flex-col gap-4 w-full sm:gap-2">
-          <SubmissionList
-            scopes={scopes}
-            site={site}
-            items={items}
-            to={(id: string) => id}
-            revalidate={() => false}
-            showCollectionChip={!defaultCollectionOnly}
-          />
-        </div>
-      )}
-      {hasNextPage && (
-        <div ref={infiniteRef} className="flex justify-center items-center">
-          <div className="text-sm text-gray-500 animate-pulse">Loading more...</div>
-        </div>
-      )}
+        <SubmissionsList
+          siteName={site.name}
+          items={submissions.items}
+          showCollectionChip={!defaultCollectionOnly}
+          showKindChip={!singleKindOnly}
+        />
+        <SubmissionsPagination
+          page={submissions.page}
+          perPage={submissions.perPage}
+          total={submissions.total}
+        />
+      </div>
+      <ClassicSubmissionsRedirect siteName={site.name} />
     </PageFrame>
   );
 }

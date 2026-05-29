@@ -21,6 +21,24 @@ export async function dbGetSubmissionVersion(
   });
 }
 
+export async function dbGetSubmissionVersionOnSubmission(
+  siteName: string,
+  submissionId: string,
+  versionId: string,
+) {
+  const prisma = await getPrismaClient();
+  return prisma.submissionVersion.findFirst({
+    where: {
+      id: versionId,
+      submission: {
+        id: submissionId,
+        site: { name: siteName },
+      },
+    },
+    select: submissionVersionForSiteWorkSelect,
+  });
+}
+
 type DBO = Prisma.SubmissionVersionGetPayload<{
   select: typeof submissionVersionForSiteWorkSelect;
 }>;
@@ -78,6 +96,20 @@ export function formatSubmissionVersionDTO(
 
 export default async function (ctx: SiteContext, submissionVersionId: string) {
   const dbo = await dbGetSubmissionVersion({ id: submissionVersionId });
+  if (!dbo) throw error404();
+  return formatSubmissionVersionDTO(ctx, dbo);
+}
+
+export async function getOnSubmission(
+  ctx: SiteContext,
+  submissionId: string,
+  submissionVersionId: string,
+) {
+  const dbo = await dbGetSubmissionVersionOnSubmission(
+    ctx.site.name,
+    submissionId,
+    submissionVersionId,
+  );
   if (!dbo) throw error404();
   return formatSubmissionVersionDTO(ctx, dbo);
 }

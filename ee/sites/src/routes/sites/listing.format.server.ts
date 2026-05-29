@@ -1,4 +1,5 @@
 import type { SiteConfig } from '@curvenote/common';
+import { createSiteRootUrl } from '@curvenote/scms-server';
 import type { SiteCardItem } from './types.js';
 
 export type SiteCardRow = {
@@ -7,6 +8,7 @@ export type SiteCardRow = {
   title: string | null;
   external: boolean | null;
   metadata: unknown;
+  domains: { default: boolean; hostname: string }[];
 };
 
 function logosFromMetadata(metadata: unknown): Pick<SiteCardItem, 'logo' | 'logo_dark'> {
@@ -23,6 +25,7 @@ export function formatSiteCardItem(row: SiteCardRow): SiteCardItem {
     id: row.id,
     name: row.name,
     title: row.title ?? row.name,
+    url: createSiteRootUrl(row) ?? '',
     external: row.external ?? false,
     logo,
     logo_dark,

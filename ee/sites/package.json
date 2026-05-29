@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms-sites-ext",
   "private": true,
-  "version": "0.19.0",
+  "version": "0.19.1",
   "description": "Sites extension for Curvenote SCMS applications",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",
@@ -11,10 +11,12 @@
   "browser": false,
   "exports": {
     ".": {
+      "development": "./src/index.ts",
       "node": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./client": {
+      "development": "./src/client.ts",
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js",
       "require": "./dist/client.js",
@@ -56,9 +58,9 @@
     "@curvenote/check-definitions": "^0.16.1",
     "@curvenote/common": "^0.5.1",
     "@curvenote/icons": "0.0.4",
-    "@curvenote/scms-core": "0.19.0",
-    "@curvenote/scms-server": "0.19.0",
-    "@curvenote/scms-db": "0.19.0",
+    "@curvenote/scms-core": "0.19.1",
+    "@curvenote/scms-server": "0.19.1",
+    "@curvenote/scms-db": "0.19.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -68,8 +70,9 @@
     "classnames": "^2.5.1",
     "color": "^5.0.2",
     "date-fns": "3.6.0",
+    "doi-utils": "^2.0.5",
     "js-yaml": "^4.1.1",
-    "lucide-react": "^0.552.0",
+    "lucide-react": "^0.564.0",
     "myst-common": "^1.9.3",
     "myst-config": "^1.9.3",
     "myst-to-react": "^1.0.0",

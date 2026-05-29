@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router';
-import type { FilterDefinition } from './types.js';
-import { buildDefaultFilters } from './filter-utils.js';
+import type { FilterDefinition } from '../common/types.js';
+import { buildDefaultFilters } from '../common/filter-utils.js';
 import { getInitialStateFromURL, updateURLWithState } from './url-state-utils.js';
 
 // Global state store for persistent filter state across navigation

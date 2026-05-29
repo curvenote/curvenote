@@ -13,7 +13,7 @@ export function InboxComingSoon({ siteName }: { siteName: string }) {
       <p className="mt-4 text-sm text-muted-foreground">
         Meanwhile,{' '}
         <Link
-          to={`/app/sites/${siteName}/submissions`}
+          to={`/app/sites/${siteName}/submissions-classic`}
           className="text-blue-600 underline hover:text-blue-800"
         >
           browse all submissions

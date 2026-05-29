@@ -17,7 +17,7 @@ export function getStatusButtonClasses(status: string | undefined) {
     case 'PUBLISHING':
       return 'text-lime-700 bg-lime-200 stroke-lime-700 focus:shadow-lime-400 border border-lime-700';
     case 'PUBLISHED':
-      return 'text-green-700 bg-green-200 stroke-green-700 focus:shadow-green-400 border border-green-700';
+      return 'text-green-700 bg-green-50 stroke-green-700 focus:shadow-green-400 border border-green-700 dark:text-green-300 dark:bg-green-950/30 dark:stroke-green-300 dark:border-green-600';
     case 'UNPUBLISHING':
       return 'text-cyan-700 bg-cyan-200 stroke-cyan-700 focus:shadow-cyan-400 border border-cyan-700';
     case 'REJECTED':

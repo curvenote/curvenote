@@ -57,7 +57,10 @@ export const site = {
     admin: 'site:users:admin',
   },
   serviceAccount: {
+    list: 'site:service-account:list',
+    read: 'site:service-account:read',
     create: 'site:service-account:create',
+    delete: 'site:service-account:delete',
     tokens: {
       create: 'site:service-account:tokens:create',
       delete: 'site:service-account:tokens:delete',

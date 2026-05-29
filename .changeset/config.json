@@ -16,7 +16,8 @@
       "@curvenote/scms-server",
       "@curvenote/scms-db",
       "@curvenote/scms-sites-ext",
-      "@curvenote/scms-tasks"
+      "@curvenote/scms-tasks",
+      "@curvenote/scms"
     ]
   ],
   "linked": [],

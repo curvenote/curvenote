@@ -4,6 +4,10 @@ layer(base);
 @import 'tailwindcss';
 @plugin 'tailwind-scrollbar';
 
+@source "../../packages";
+@source "../../ee";
+@source "../../extensions";
+
 @config '../../tailwind.config.js';
 
 /*

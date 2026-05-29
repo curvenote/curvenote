@@ -25,7 +25,6 @@ import {
 } from '../works.$workId/db.server';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
-import { Tag } from './Tag';
 import { RunCheckOnLatestVersionButton } from './RunCheckOnLatestVersionButton';
 import { Timeline } from '../works.$workId.details/timeline/Timeline';
 import { TimelineSection } from '../works.$workId.details/timeline/TimelineSection';
@@ -260,10 +259,10 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   }, [showDispatchingState, revalidator]);
 
   const renderVersionTag = (entry: ServiceRunEntry) => {
-    const variant = entry.workVersionId === latestNonDraftWorkVersion.id ? 'latest' : 'previous';
+    const emphasis = entry.workVersionId === latestNonDraftWorkVersion.id ? 'latest' : 'previous';
     return (
       <span className="inline-flex gap-2 items-center">
-        <Tag tag={`v${entry.versionNumber}`} variant={variant} />
+        <ui.VersionTagBadge tag={`v${entry.versionNumber}`} emphasis={emphasis} />
         <DateWithPopover
           date={entry.run.date_modified}
           dateCreated={entry.run.date_created}
@@ -306,13 +305,13 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
               <div key={service.id} className="space-y-4">
                 <ui.Card className="border-dashed">
                   <ui.CardContent className="py-6">
-                    <div className="animate-pulse space-y-4">
-                      <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-4 animate-pulse">
+                      <div className="flex gap-4 justify-between items-center">
                         <div className="space-y-2">
-                          <div className="h-4 w-40 rounded bg-muted" />
-                          <div className="h-3 w-64 rounded bg-muted" />
+                          <div className="w-40 h-4 rounded bg-muted" />
+                          <div className="w-64 h-3 rounded bg-muted" />
                         </div>
-                        <div className="h-8 w-28 rounded bg-muted" />
+                        <div className="w-28 h-8 rounded bg-muted" />
                       </div>
                       <div className="h-20 rounded bg-muted/70" />
                     </div>

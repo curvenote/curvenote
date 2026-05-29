@@ -26,18 +26,30 @@ type WorkVersionFixture = {
   'frontmatter.myst'?: Record<string, unknown>;
 };
 
+type DoiMetadata = {
+  title: string;
+  authors: string[];
+  author_details: Record<string, unknown>[];
+};
+
 type DoiEntry = {
   index: number;
   doi: string;
   versions: number;
   targetVersions: number;
   availablePos: number;
+  title: string;
+  authors: string[];
+  author_details: Record<string, unknown>[];
 };
 
 type PlannedRegistration = {
   doi: string;
   version: number;
   isNewDoi: boolean;
+  title: string;
+  authors: string[];
+  author_details: Record<string, unknown>[];
 };
 
 type CliOptions = {
@@ -55,6 +67,7 @@ type CliOptions = {
   submissionMetadataPath: string;
   prefix: string;
   runId?: string;
+  randomizeMetadata: boolean;
   progressEvery: number;
   progressIntervalSec: number;
   dryRun: boolean;
@@ -98,6 +111,7 @@ Behaviour:
   --prefix <string>      DOI prefix base (default: 10.5072/etl-bench)
   --run-id <string>      Run segment appended to prefix (default: auto-generated)
   --no-randomize-prefix   Use --prefix as-is (reruns may skip existing DOIs)
+  --no-randomize-metadata  Use fixture title/authors for every registration
   --progress-every <n>   Log every N completions (default: scales with job size)
   --progress-interval <sec>  Min seconds between progress logs for large jobs (default: 15)
 
@@ -222,6 +236,8 @@ function parseArgs(argv: string[]): CliOptions {
   const progressIntervalSec = parseProgressIntervalSec(
     args.get('progress-interval') ?? process.env.ETL_PROGRESS_INTERVAL,
   );
+  const randomizeMetadata =
+    !flags.has('no-randomize-metadata') && process.env.ETL_RANDOMIZE_METADATA !== '0';
 
   return {
     baseUrl,
@@ -242,10 +258,137 @@ function parseArgs(argv: string[]): CliOptions {
     ),
     prefix,
     runId,
+    randomizeMetadata,
     progressEvery,
     progressIntervalSec,
     dryRun: flags.has('dry-run'),
   };
+}
+
+const TITLE_SUBJECTS = [
+  'Spatial',
+  'Temporal',
+  'Bayesian',
+  'Neural',
+  'Genomic',
+  'Structural',
+  'Computational',
+  'Stochastic',
+];
+const TITLE_ADJECTIVES = [
+  'dynamics',
+  'inference',
+  'modeling',
+  'analysis',
+  'mapping',
+  'simulation',
+  'characterization',
+  'integration',
+];
+const TITLE_NOUNS = [
+  'cohorts',
+  'networks',
+  'pathways',
+  'signals',
+  'ensembles',
+  'landscapes',
+  'regimes',
+  'workflows',
+];
+const TITLE_CONTEXTS = [
+  'synthetic benchmarks',
+  'high-throughput assays',
+  'multi-omic panels',
+  'reproducible pipelines',
+  'controlled experiments',
+];
+
+const GIVEN_NAMES = [
+  'Taylor',
+  'Robin',
+  'Jordan',
+  'Alex',
+  'Sam',
+  'Casey',
+  'Morgan',
+  'Riley',
+  'Quinn',
+  'Avery',
+];
+const FAMILY_NAMES = [
+  'Morgan',
+  'Patel',
+  'Chen',
+  'Nguyen',
+  'Brooks',
+  'Singh',
+  'Kim',
+  'Rivera',
+  'Okafor',
+  'Hayes',
+];
+const AFFILIATIONS = [
+  'Center for Synthetic Data Engineering',
+  'Department of Example Analytics, North Example University',
+  'Institute for Benchmark Studies',
+  'Laboratory of Computational Methods',
+  'School of Applied Statistics',
+];
+
+function pickOne<T>(items: readonly T[]): T {
+  return items[randomInt(0, items.length)]!;
+}
+
+function randomTitle(): string {
+  const pattern = randomInt(0, 2);
+  if (pattern === 0) {
+    return `${pickOne(TITLE_SUBJECTS)} ${pickOne(TITLE_ADJECTIVES)} of ${pickOne(TITLE_NOUNS)} in ${pickOne(TITLE_CONTEXTS)}`;
+  }
+  if (pattern === 1) {
+    return `${pickOne(TITLE_ADJECTIVES)} ${pickOne(TITLE_NOUNS)} for ${pickOne(TITLE_CONTEXTS)}`;
+  }
+  return `${pickOne(TITLE_SUBJECTS)} ${pickOne(TITLE_NOUNS)} under ${pickOne(TITLE_ADJECTIVES)} constraints`;
+}
+
+function randomAffiliation(): string {
+  return pickOne(AFFILIATIONS);
+}
+
+function randomAuthors(): DoiMetadata {
+  const count = randomInt(1, 4);
+  const author_details: Record<string, unknown>[] = [];
+  const authors: string[] = [];
+
+  for (let i = 0; i < count; i += 1) {
+    const given = pickOne(GIVEN_NAMES);
+    const family = pickOne(FAMILY_NAMES);
+    const name = `${given} ${family}`;
+    const detail: Record<string, unknown> = {
+      id: `contributors-etl-${randomBytes(4).toString('hex')}`,
+      name,
+      affiliation: randomAffiliation(),
+      nameParsed: { given, family, literal: name },
+    };
+    if (randomInt(0, 10) < 3) {
+      detail.orcid = `0000-0000-0000-${String(randomInt(0, 10000)).padStart(4, '0')}`;
+    }
+    author_details.push(detail);
+    authors.push(name);
+  }
+
+  return { title: randomTitle(), authors, author_details };
+}
+
+function fixtureDoiMetadata(metadata: ReturnType<typeof loadMetadata>): DoiMetadata {
+  return {
+    title: metadata.title,
+    authors: metadata.authors ?? [],
+    author_details: structuredClone(metadata.author_details ?? []),
+  };
+}
+
+function titleForVersion(baseTitle: string, version: number): string {
+  return version === 1 ? baseTitle : `${baseTitle} (revision ${version})`;
 }
 
 function loadMetadata(path: string): {
@@ -318,7 +461,10 @@ type PlanSummary = {
   uniqueDois: number;
 };
 
-function createRegistrationPlan(opts: CliOptions): {
+function createRegistrationPlan(
+  opts: CliOptions,
+  fixtureMetadata: DoiMetadata,
+): {
   next: () => PlannedRegistration | undefined;
   summary: () => PlanSummary;
 } {
@@ -344,12 +490,22 @@ function createRegistrationPlan(opts: CliOptions): {
     } else if (canCreate) {
       const doi = `${opts.prefix}/${String(nextRootIndex).padStart(8, '0')}`;
       nextRootIndex += 1;
+      const doiMeta = opts.randomizeMetadata
+        ? randomAuthors()
+        : {
+            title: fixtureMetadata.title,
+            authors: [...fixtureMetadata.authors],
+            author_details: structuredClone(fixtureMetadata.author_details),
+          };
       entry = {
         index: entries.length,
         doi,
         versions: 0,
         targetVersions: randomInt(1, 6),
         availablePos: available.length,
+        title: doiMeta.title,
+        authors: doiMeta.authors,
+        author_details: doiMeta.author_details,
       };
       entries.push(entry);
       available.push(entry.index);
@@ -368,7 +524,15 @@ function createRegistrationPlan(opts: CliOptions): {
     if (isNewDoi) newDois += 1;
     else versionAdds += 1;
 
-    return { doi: entry.doi, version: entry.versions, isNewDoi };
+    const title = titleForVersion(entry.title, entry.versions);
+    return {
+      doi: entry.doi,
+      version: entry.versions,
+      isNewDoi,
+      title,
+      authors: entry.authors,
+      author_details: entry.author_details,
+    };
   }
 
   function summary(): PlanSummary {
@@ -389,16 +553,19 @@ function buildPayload(
   opts: CliOptions,
   metadata: ReturnType<typeof loadMetadata>,
   submissionMetadata: Record<string, unknown>,
-  doi: string,
-  version: number,
+  item: PlannedRegistration,
 ): RegisterPayload {
-  const versionTag = `v${version}`;
-  const title = version === 1 ? metadata.title : `${metadata.title} (revision ${version})`;
+  const versionTag = `v${item.version}`;
+  const myst_metadata = structuredClone(metadata.myst_metadata) as Record<string, unknown>;
+  const project = (myst_metadata.project ?? {}) as Record<string, unknown>;
+  project.title = item.title;
+  project.authors = structuredClone(item.author_details);
+  myst_metadata.project = project;
 
   return {
     site: opts.site,
-    doi,
-    title,
+    doi: item.doi,
+    title: item.title,
     cdn: opts.cdn,
     cdn_key: crypto.randomUUID(),
     collection: opts.collection,
@@ -407,21 +574,17 @@ function buildPayload(
     source: 'myst',
     contains: ['myst'],
     description: metadata.description,
-    authors: metadata.authors,
-    author_details: metadata.author_details,
+    authors: item.authors,
+    author_details: structuredClone(item.author_details),
     date: metadata.date,
-    myst_metadata: metadata.myst_metadata,
+    myst_metadata,
     work_metadata: metadata.work_metadata,
     submission_metadata: submissionMetadata,
   };
 }
 
 async function drainResponse(response: Response): Promise<void> {
-  try {
-    await response.arrayBuffer();
-  } catch {
-    await response.body?.cancel().catch(() => undefined);
-  }
+  await response.body?.cancel().catch(() => undefined);
 }
 
 async function registerWork(
@@ -457,22 +620,18 @@ async function runPool(
   worker: (item: PlannedRegistration) => Promise<void>,
 ): Promise<void> {
   let nextIndex = 0;
-  let planLock: Promise<void> = Promise.resolve();
 
-  function takeNext(): Promise<PlannedRegistration | undefined> {
-    const itemPromise = planLock.then(() => {
-      const index = nextIndex;
-      nextIndex += 1;
-      if (index >= total) return undefined;
-      return nextItem();
-    });
-    planLock = itemPromise.then(() => undefined);
-    return itemPromise;
+  // Synchronous dequeue: plan.next() is sync, and Node won't interleave other
+  // tasks until we await worker(), so no promise-chain lock is needed.
+  function takeNext(): PlannedRegistration | undefined {
+    if (nextIndex >= total) return undefined;
+    nextIndex += 1;
+    return nextItem();
   }
 
   async function runner() {
     while (true) {
-      const item = await takeNext();
+      const item = takeNext();
       if (!item) return;
       await worker(item);
     }
@@ -511,9 +670,15 @@ async function main() {
   } else {
     console.log(`DOI prefix: ${opts.prefix}`);
   }
+  if (opts.randomizeMetadata) {
+    const sample = randomAuthors();
+    console.log(`Metadata: randomized per DOI (sample title: "${sample.title}", authors: ${sample.authors.join(', ')})`);
+  } else {
+    console.log('Metadata: using fixture title/authors for all registrations');
+  }
   console.log(`Planning ${opts.registrations} registrations (max ${opts.roots} roots)...`);
   const planStarted = Date.now();
-  const plan = createRegistrationPlan(opts);
+  const plan = createRegistrationPlan(opts, fixtureDoiMetadata(metadata));
 
   if (opts.dryRun) {
     while (plan.next()) {
@@ -558,7 +723,7 @@ async function main() {
   logProgress(0, opts.registrations, started, stats);
 
   await runPool(opts.registrations, opts.concurrency, plan.next, async (item) => {
-    const payload = buildPayload(opts, metadata, submissionMetadata, item.doi, item.version);
+    const payload = buildPayload(opts, metadata, submissionMetadata, item);
     try {
       const result = await registerWork(opts, payload);
       if (result === 'created') stats.created += 1;

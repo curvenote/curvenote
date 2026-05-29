@@ -42,7 +42,7 @@ export const CreateWorkPostBodySchema = z
       .max(128, { error: 'key must be less than 128 characters' })
       .regex(/[a-zA-Z][a-zA-Z0-9_-]{7,127}/)
       .optional(),
-    title: z.string().min(1).max(255).optional(),
+    title: z.string().min(1).max(500).optional(),
     description: z.string().max(5000).optional(),
     authors: z.array(z.string()).optional(),
     author_details: z.array(z.record(z.string(), z.any())).optional(),

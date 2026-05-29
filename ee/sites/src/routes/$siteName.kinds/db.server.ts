@@ -103,7 +103,7 @@ export async function dbCreateKind(
         },
       });
     }
-    const kind = tx.submissionKind.create({
+    const kind = await tx.submissionKind.create({
       data: {
         id: kindId,
         site: {

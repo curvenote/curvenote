@@ -99,6 +99,11 @@ model SubmissionVersion {
   occ                 Int         @default(0) // Optimistic concurrency control
 
   @@index([tags], type: Gin)
+  /// Powers the submissions-index listing hot path:
+  ///   - newest-version subselect (`versions: { take: 1, orderBy: { date_created: 'desc' } }`)
+  ///   - DISTINCT ON (submission_id) ORDER BY submission_id, date_created DESC
+  ///     used by `dbDistinctVersionDates` for published/retracted dates.
+  @@index([submission_id, date_created(sort: Desc)])
 }
 
 model Submission {
@@ -119,6 +124,15 @@ model Submission {
   collection_id   String
   work            Work?               @relation(fields: [work_id], references: [id])
   work_id         String?
+  /// True iff the submission has at least one version and none are DRAFT/INCOMPLETE.
+  /// Maintained by Postgres trigger function `submission_recompute_listing_fields`
+  /// — see migration `20260526120000_add_submission_is_listed`. The function name
+  /// is intentionally generic so future denormalised listing columns (e.g.
+  /// `cached_title`, `active_status`, `last_activity_at`) can be added by
+  /// extending the same function rather than introducing new triggers.
+  is_listed       Boolean             @default(false)
+
+  @@index([site_id])
 }
 
 model Slug {
