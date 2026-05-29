@@ -2,10 +2,8 @@ import type { SiteContext } from '../../../../context.site.server.js';
 import type { HostSpec, SiteWorkDTO } from '@curvenote/common';
 import { formatDate, concatSiteWorkTags } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
-import {
-  siteWorkDtoSelect,
-  submissionVersionForSiteWorkSelect,
-} from '../../../../prisma.selects.server.js';
+import type { siteWorkDtoSelect } from '../../../../prisma.selects.server.js';
+import { submissionVersionForSiteWorkSelect } from '../../../../prisma.selects.server.js';
 import type { Prisma } from '@curvenote/scms-db';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
 import { formatCollectionSummaryDTO } from '../../get.server.js';
