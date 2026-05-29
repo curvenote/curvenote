@@ -32,6 +32,7 @@ const ITEM_KEYS = [
   'cdn_query',
   'title',
   'description',
+  'subject',
   'authors',
   'canonical',
   'tags',

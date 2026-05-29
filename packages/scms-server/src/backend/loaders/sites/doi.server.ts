@@ -8,6 +8,7 @@ import type { ModifiedSiteWorkDTO } from './submissions/published/get.server.js'
 import type { SiteContext } from '../../context.site.server.js';
 import type { Prisma } from '@curvenote/scms-db';
 import { siteWorkDtoSelect } from '../../prisma.selects.server.js';
+import { fetchWorkVersionSubjects } from '../../work-version-subject.server.js';
 
 export type SiteDoiResolveOptions = {
   /** If set, pick the latest *published* submission version for this DOI whose `tags` contains this string */
@@ -106,7 +107,9 @@ export default async function (
         : 'Not Found - No work with that DOI exists in database',
     );
   }
-  const siteWork = formatSiteWorkDTO(ctx, sv);
+  const siteWork = formatSiteWorkDTO(ctx, sv, {
+    subject: (await fetchWorkVersionSubjects([sv.work_version.id])).get(sv.work_version.id),
+  });
 
   // One indexed query for the work's published versions, replacing a second
   // client round-trip to the submission `versions` listing.

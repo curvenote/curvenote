@@ -32,6 +32,7 @@ import { formatSiteWorkDTO } from '../sites/submissions/published/get.server.js'
 import { SiteContext } from '../../context.site.server.js';
 import { formatSubmissionKindSummaryDTO } from '../sites/kinds/get.server.js';
 import { formatCollectionSummaryDTO } from '../sites/get.server.js';
+import { fetchWorkVersionSubjects } from '../../work-version-subject.server.js';
 
 export async function dbGetSubmissionVersion(id: string) {
   const prisma = await getPrismaClient();
@@ -49,14 +50,18 @@ export type ModifiedSubmissionVersionDTO = Omit<SubmissionVersionDTO, 'site_work
   site_work: ModifiedSiteWorkDTO;
 };
 
-function formatPreviewDTO(ctx: Context, dbo: PreviewDBO): ModifiedSubmissionVersionDTO {
+function formatPreviewDTO(
+  ctx: Context,
+  dbo: PreviewDBO,
+  opts?: { subject?: string },
+): ModifiedSubmissionVersionDTO {
   return {
     id: dbo.id,
     date_created: dbo.date_created,
     status: dbo.status,
     submission_id: dbo.submission.id,
     site_name: dbo.submission.site.name,
-    site_work: formatSiteWorkDTO(new SiteContext(ctx, dbo.submission.site), dbo),
+    site_work: formatSiteWorkDTO(new SiteContext(ctx, dbo.submission.site), dbo, opts),
     submitted_by: {
       id: dbo.submitted_by.id,
       name: dbo.submitted_by.display_name ?? '',
@@ -100,5 +105,6 @@ export default async function (
   )
     throw error401('bad submission scope');
 
-  return formatPreviewDTO(ctx, dbo);
+  const subjects = await fetchWorkVersionSubjects([dbo.work_version.id]);
+  return formatPreviewDTO(ctx, dbo, { subject: subjects.get(dbo.work_version.id) });
 }

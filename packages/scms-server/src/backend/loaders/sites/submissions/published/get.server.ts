@@ -9,6 +9,7 @@ import { signPrivateUrls } from '../../../../sign.private.server.js';
 import { formatCollectionSummaryDTO } from '../../get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../../kinds/get.server.js';
 import { createArticleUrl } from '../../../../domains.server.js';
+import { fetchWorkVersionSubjects } from '../../../../work-version-subject.server.js';
 
 export async function dbGetLatestPublishedSubmissionVersion(
   siteName: string,
@@ -73,7 +74,11 @@ export type ModifiedSiteWorkDTO = Omit<SiteWorkDTO, 'links' | 'cdn' | 'cdn_key'>
   cdn?: string;
   cdn_key?: string;
 };
-export function formatSiteWorkDTO(ctx: SiteContext, dbo: SiteWorkDtoInput): ModifiedSiteWorkDTO {
+export function formatSiteWorkDTO(
+  ctx: SiteContext,
+  dbo: SiteWorkDtoInput,
+  opts?: { subject?: string },
+): ModifiedSiteWorkDTO {
   const { cdn_key, cdn, title, description, canonical, authors, date_created } = dbo.work_version;
   const tags = concatSiteWorkTags(dbo.tags ?? [], dbo.work_version.tags ?? []);
   const submission_version_id = dbo.id;
@@ -122,6 +127,7 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: SiteWorkDtoInput): Modi
     cdn_query: host?.query,
     title: title ?? '',
     description: description || undefined,
+    subject: opts?.subject,
     authors: authors.map((a) => ({ name: a })),
     canonical: canonical ? true : false,
     tags,
@@ -153,5 +159,8 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: SiteWorkDtoInput): Modi
 export default async function (ctx: SiteContext, workIdOrSlug: string) {
   const dbo = await dbGetLatestPublishedSubmissionVersion(ctx.site.name, workIdOrSlug);
   if (!dbo) return null;
-  return formatSiteWorkDTO(ctx, dbo);
+  const subjects = await fetchWorkVersionSubjects([dbo.work_version.id]);
+  return formatSiteWorkDTO(ctx, dbo, {
+    subject: subjects.get(dbo.work_version.id),
+  });
 }

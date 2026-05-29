@@ -1,4 +1,8 @@
-import { getPrismaClient, type SiteContext } from '@curvenote/scms-server';
+import {
+  getPrismaClient,
+  fetchWorkVersionSubjects,
+  type SiteContext,
+} from '@curvenote/scms-server';
 import {
   error404,
   httpError,
@@ -327,5 +331,6 @@ export async function listPublishedWorks(
 ) {
   const dbo = await dbListLatestPublishedSubmissions(ctx, extensions, where, opts);
   if (!dbo) throw error404();
-  return formatSiteWorkDTOFromSubmissions(ctx, dbo, where, opts);
+  const subjects = await fetchWorkVersionSubjects(dbo.items.map((row) => row.work_version.id));
+  return formatSiteWorkDTOFromSubmissions(ctx, dbo, where, { ...opts, subjects });
 }

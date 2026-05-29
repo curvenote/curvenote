@@ -5,6 +5,7 @@ import type { SiteContext } from '../../../../context.site.server.js';
 import { error404, makePaginationLinks } from '@curvenote/scms-core';
 import { formatSubmissionVersionDTO } from './get.server.js';
 import type { ModifiedSubmissionVersionDTO } from '../../../previews/get.server.js';
+import { fetchWorkVersionSubjects } from '../../../../work-version-subject.server.js';
 
 async function dbCountSubmissionVersions(siteName: string, submissionId: string) {
   const prisma = await getPrismaClient();
@@ -64,7 +65,7 @@ export function formatSubmissionVersionListingDTO(
   ctx: SiteContext,
   submissionId: string,
   dbo: DBO,
-  opts?: { page?: number; limit?: number },
+  opts?: { page?: number; limit?: number; subjects?: Map<string, string> },
 ): Omit<SubmissionVersionListingDTO, 'items'> & { items: ModifiedSubmissionVersionDTO[] } {
   const selfUrl = new URL(
     ctx.asApiUrl(`/sites/${ctx.site.name}/submissions/${submissionId}/versions`),
@@ -82,7 +83,9 @@ export function formatSubmissionVersionListingDTO(
 
   return {
     items: dbo.items.map((v: DBO['items'][0]) => {
-      return formatSubmissionVersionDTO(ctx, v);
+      return formatSubmissionVersionDTO(ctx, v, {
+        subject: opts?.subjects?.get(v.work_version.id),
+      });
     }),
     total: dbo.total,
     links,
@@ -96,5 +99,6 @@ export default async function (
 ) {
   const dbo = await dbListSubmissionVersions(ctx, submissionId, opts);
   if (!dbo) throw error404();
-  return formatSubmissionVersionListingDTO(ctx, submissionId, dbo, opts);
+  const subjects = await fetchWorkVersionSubjects(dbo.items.map((row) => row.work_version.id));
+  return formatSubmissionVersionListingDTO(ctx, submissionId, dbo, { ...opts, subjects });
 }

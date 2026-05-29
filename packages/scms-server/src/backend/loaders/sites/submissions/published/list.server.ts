@@ -14,6 +14,7 @@ import {
 import type { Prisma } from '@curvenote/scms-db';
 import type { ModifiedSiteWorkDTO } from './get.server.js';
 import { formatSiteWorkDTO } from './get.server.js';
+import { fetchWorkVersionSubjects } from '../../../../work-version-subject.server.js';
 
 /** NOTE we can not just count() here because of the distinct field
 // writing a raw query would be an option but that is complex for this query
@@ -166,7 +167,7 @@ export function formatSiteWorkDTOFromSubmissions(
   ctx: SiteContext,
   dbo: DBO,
   where?: { collection?: string; kind?: string; status?: string },
-  opts?: { page?: number; limit?: number },
+  opts?: { page?: number; limit?: number; subjects?: Map<string, string> },
 ): Omit<SiteWorkListingDTO, 'items'> & { items: ModifiedSiteWorkDTO[] } {
   const selfUrl = new URL(ctx.asApiUrl(`/sites/${ctx.site.name}/works`));
   if (where?.collection) selfUrl.searchParams.set('collection', where?.collection ?? '');
@@ -185,7 +186,7 @@ export function formatSiteWorkDTOFromSubmissions(
   return {
     items: dbo.items.map((v: DBO['items'][0]) => {
       // note: we know there is at least one version
-      return formatSiteWorkDTO(ctx, v);
+      return formatSiteWorkDTO(ctx, v, { subject: opts?.subjects?.get(v.work_version.id) });
     }),
     total: dbo.total,
     links,
@@ -200,5 +201,6 @@ export default async function (
 ) {
   const dbo = await dbListLatestPublishedSubmissions(ctx, extensions, where, opts);
   if (!dbo) throw error404();
-  return formatSiteWorkDTOFromSubmissions(ctx, dbo, where, opts);
+  const subjects = await fetchWorkVersionSubjects(dbo.items.map((row) => row.work_version.id));
+  return formatSiteWorkDTOFromSubmissions(ctx, dbo, where, { ...opts, subjects });
 }

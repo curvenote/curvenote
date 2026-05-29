@@ -43,6 +43,7 @@ const ITEM_KEYS = [
   'cdn_query',
   'title',
   'description',
+  'subject',
   'authors',
   'canonical',
   'tags',
@@ -78,6 +79,7 @@ interface SeedWork {
   title: string;
   description: string;
   authors: string[];
+  subject?: string;
   workDoi: string;
   workKey: string;
   workVersionTags: string[];
@@ -212,6 +214,7 @@ describe('site works listing — delivered package (limit=10)', () => {
     expect(item.slug).toBe(`${newest.slug}-${testData.siteId}`);
     expect(item.canonical).toBe(newest.canonical);
     expect(item.tags).toEqual(concatSiteWorkTags([], newest.workVersionTags));
+    expect(item.subject).toBe(newest.subject);
     expect(item.cdn).toBe('https://test-cdn.com');
     expect(item.cdn_key).toBe(`cdn-key-${newest.slug}`);
     expect(item.date).toBe(newest.datePublished);
@@ -391,6 +394,7 @@ async function seedPublishedWorks(testData: TestData, count: number): Promise<Se
       title: `Benchmark work ${i.toString().padStart(2, '0')}`,
       description: `Description for work ${i}`,
       authors: [`Author ${i}A`, `Author ${i}B`],
+      subject: i === 0 ? 'Neuroscience' : undefined,
       workDoi: `10.9999/bench-${slug}-${testData.siteId}`,
       workKey: `key-${slug}-${testData.siteId}`,
       workVersionTags: [`tag-${i}`],
@@ -423,6 +427,14 @@ async function seedPublishedWorks(testData: TestData, count: number): Promise<Se
         tags: seed.workVersionTags,
         cdn: 'https://test-cdn.com',
         cdn_key: `cdn-key-${seed.slug}`,
+        metadata:
+          seed.subject != null
+            ? {
+                'frontmatter.myst': {
+                  project: { subject: seed.subject },
+                },
+              }
+            : undefined,
         work: { connect: { id: seed.workId } },
       },
     });
