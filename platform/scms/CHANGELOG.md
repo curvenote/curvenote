@@ -1,5 +1,31 @@
 # @curvenote/scms
 
+## 0.20.0
+
+### Minor Changes
+
+- [#920](https://github.com/curvenote/curvenote/pull/920) [`211c288`](https://github.com/curvenote/curvenote/commit/211c288d3b369b0713cd982735e20fea58c99f12) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add `q`, `sort`, `from`, and `to` query params to the public works listing endpoint (`GET /v1/sites/:siteName/works`). `q` runs a case-insensitive substring search across each work version's title, authors, and DOI (backed by the existing pg_trgm indexes); `sort` toggles publication-date ordering (`published_desc` default / `published_asc`); `from`/`to` apply an inclusive `date_published` window. Pagination links now preserve these params.
+
+### Patch Changes
+
+- [#922](https://github.com/curvenote/curvenote/pull/922) [`3546673`](https://github.com/curvenote/curvenote/commit/3546673f19e16c07ac3f229bb5144b54ae9f5548) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Date picker improvements
+
+- [#921](https://github.com/curvenote/curvenote/pull/921) [`260dfd7`](https://github.com/curvenote/curvenote/commit/260dfd72a767833a3c76b3b7b21b0f15b9f61568) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Optimise the site DOI endpoint (`GET /v1/sites/:site/doi/:first/:second`).
+  - **Correctness:** the no-tag path is now scoped to the requesting site. Previously it resolved a DOI published on _any_ site, so a DOI could leak a work from a different site; it now 404s like the tag path.
+  - **Indexes:** added btree indexes on `Work.doi`, `WorkVersion.doi`, and `SubmissionVersion.work_version_id` (the existing trigram GIN indexes only serve `LIKE`/search, and the FK was unindexed), so DOI equality lookups and the DOI→published-version join no longer sequential-scan.
+  - **Query:** unified the tag and no-tag paths into a single `SubmissionVersion`-rooted lookup over a shared `where` builder, letting `ORDER BY date_created DESC` + `LIMIT 1` short-circuit at the first match.
+  - **Payload:** a narrower select (`siteWorkDtoSelect`) drops the `submitted_by` → `User` join and the submission-version bookkeeping columns the DTO never reads; `formatSiteWorkDTO` now accepts the narrower `SiteWorkDtoInput` (existing callers pass a structural superset and are unaffected).
+  - **Caching:** the route now sets Vercel cache headers — semi-static for successful lookups and a burst-protection preset for 404s — so the CDN absorbs repeat traffic (including DOI-scanner probes) instead of the origin/DB.
+
+- Updated dependencies [[`93b9d35`](https://github.com/curvenote/curvenote/commit/93b9d35d3f9a33b97cbaca5ed6a86baa25ee54c4), [`3546673`](https://github.com/curvenote/curvenote/commit/3546673f19e16c07ac3f229bb5144b54ae9f5548), [`260dfd7`](https://github.com/curvenote/curvenote/commit/260dfd72a767833a3c76b3b7b21b0f15b9f61568), [`d3c9203`](https://github.com/curvenote/curvenote/commit/d3c92030cfd718b60d695f7510570a121819499c)]:
+  - @curvenote/common@0.6.0
+  - @curvenote/scms-server@0.20.0
+  - @curvenote/scms-core@0.20.0
+  - @curvenote/scms-sites-ext@0.20.0
+  - @curvenote/scms-db@0.20.0
+  - @curvenote/cdn@0.6.0
+  - @curvenote/check-definitions@0.16.2
+
 ## 0.18.2
 
 ### Patch Changes
