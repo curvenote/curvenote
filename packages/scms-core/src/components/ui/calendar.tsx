@@ -67,8 +67,7 @@ function Calendar({
   components: componentsProp,
   ...props
 }: CalendarProps) {
-  const captionUsesDropdown =
-    captionLayout === 'dropdown' || captionLayout === 'dropdown-buttons';
+  const captionUsesDropdown = captionLayout === 'dropdown' || captionLayout === 'dropdown-buttons';
   const multiMonth = (numberOfMonths ?? 1) > 1;
 
   return (
@@ -105,20 +104,25 @@ function Calendar({
         day_disabled: 'text-muted-foreground opacity-50',
         day_range_middle: 'aria-selected:bg-accent aria-selected:text-accent-foreground',
         day_hidden: 'invisible',
-        ...(captionUsesDropdown ? dropdownCaptionClassNames(multiMonth) : defaultCaptionClassNames()),
+        ...(captionUsesDropdown
+          ? dropdownCaptionClassNames(multiMonth)
+          : defaultCaptionClassNames()),
         ...classNames,
       }}
       components={{
         IconLeft: ({ className: chevronClassName, ...chevronProps }) => (
-          <ChevronLeft className={cn('h-4 w-4', chevronClassName)} {...chevronProps} />
+          <ChevronLeft className={cn('w-4 h-4', chevronClassName)} {...chevronProps} />
         ),
         IconRight: ({ className: chevronClassName, ...chevronProps }) => (
-          <ChevronRight className={cn('h-4 w-4', chevronClassName)} {...chevronProps} />
+          <ChevronRight className={cn('w-4 h-4', chevronClassName)} {...chevronProps} />
         ),
         ...(captionUsesDropdown
           ? {
               IconDropdown: ({ className: iconClassName, ...iconProps }) => (
-                <ChevronDown className={cn('size-3.5 shrink-0 opacity-50', iconClassName)} {...iconProps} />
+                <ChevronDown
+                  className={cn('size-3.5 shrink-0 opacity-50', iconClassName)}
+                  {...iconProps}
+                />
               ),
             }
           : {}),
