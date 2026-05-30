@@ -136,6 +136,27 @@ describe('site doi resolve — delivered package', () => {
     expect(dto.versions[0].tags).toEqual(['v2']);
   });
 
+  test('versions array includes published versions without v{n} tags and excludes in-review', async () => {
+    const seed = await seedPublishedWorkWithDoi(testData, {
+      datePublished: '2024-01-01',
+      svTags: ['preprint'],
+    });
+    const tagged = await addPublishedVersion(testData, seed, {
+      datePublished: '2024-06-01',
+      svTags: ['v2'],
+    });
+    await addInReviewVersion(testData, seed, { datePublished: '2024-07-01', svTags: ['v3'] });
+
+    const dto = await sites.doi(testData.context, seed.rawDoi);
+
+    expect(dto.versions.map((v) => v.submission_version_id)).toEqual([tagged.svId, seed.svId]);
+    expect(dto.versions.find((v) => v.submission_version_id === seed.svId)).toMatchObject({
+      version: undefined,
+      tags: ['preprint'],
+    });
+    expect(dto.versions.find((v) => v.submission_version_id === tagged.svId)?.version).toBe('v2');
+  });
+
   test('tag path resolves the tagged version; an absent tag is a 404', async () => {
     const seed = await seedPublishedWorkWithDoi(testData, { svTags: ['hhmi'] });
 
@@ -381,6 +402,47 @@ async function addPublishedVersion(
       date_modified: now,
       date_published: opts.datePublished,
       status: 'PUBLISHED',
+      tags: opts.svTags ?? [],
+      submission: { connect: { id: seed.submissionId } },
+      work_version: { connect: { id: workVersionId } },
+      submitted_by: { connect: { id: testData.userId } },
+    },
+  });
+  return { svId, workVersionId };
+}
+
+/** Adds an in-review submission version (must not appear in DOI `versions`). */
+async function addInReviewVersion(
+  testData: TestData,
+  seed: DoiSeed,
+  opts: { datePublished: string; svTags?: string[] },
+): Promise<{ svId: string; workVersionId: string }> {
+  const prisma = await getPrismaClient();
+  const now = new Date().toISOString();
+  const workVersionId = uuidv7();
+  const svId = uuidv7();
+  await prisma.workVersion.create({
+    data: {
+      id: workVersionId,
+      date_created: now,
+      date_modified: now,
+      title: seed.title,
+      doi: seed.normDoi,
+      authors: seed.authors,
+      canonical: true,
+      tags: [],
+      cdn: 'https://test-cdn.com',
+      cdn_key: `cdn-key-${workVersionId}`,
+      work: { connect: { id: seed.workId } },
+    },
+  });
+  await prisma.submissionVersion.create({
+    data: {
+      id: svId,
+      date_created: now,
+      date_modified: now,
+      date_published: opts.datePublished,
+      status: 'IN_REVIEW',
       tags: opts.svTags ?? [],
       submission: { connect: { id: seed.submissionId } },
       work_version: { connect: { id: workVersionId } },

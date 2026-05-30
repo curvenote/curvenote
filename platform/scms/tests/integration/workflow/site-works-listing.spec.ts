@@ -119,6 +119,50 @@ describe('site works listing — delivered package (limit=10)', () => {
     for (const item of dto.items) expect(seededIds.has(item.id)).toBe(true);
   });
 
+  test('lists the latest published version even when it has no v{n} tags', async () => {
+    const prisma = await getPrismaClient();
+    const seed = seeds[0];
+    const now = new Date().toISOString();
+    const newerWorkVersionId = uuidv7();
+    const newerSvId = uuidv7();
+
+    await prisma.workVersion.create({
+      data: {
+        id: newerWorkVersionId,
+        date_created: now,
+        date_modified: now,
+        title: `${seed.title} (untagged)`,
+        doi: seed.workDoi,
+        authors: seed.authors,
+        canonical: true,
+        tags: [],
+        cdn: 'https://test-cdn.com',
+        cdn_key: `cdn-key-untagged-${seed.workId}`,
+        work: { connect: { id: seed.workId } },
+      },
+    });
+    await prisma.submissionVersion.create({
+      data: {
+        id: newerSvId,
+        date_created: now,
+        date_modified: now,
+        date_published: '2025-06-01',
+        status: 'PUBLISHED',
+        tags: ['preprint'],
+        submission: { connect: { id: seed.submissionId } },
+        work_version: { connect: { id: newerWorkVersionId } },
+        submitted_by: { connect: { id: testData.userId } },
+      },
+    });
+
+    const dto = await listPublishedWorks(testData.context, [], {}, { page: 0, limit: 500 });
+    const item = dto.items.find((i) => i.id === seed.workId);
+    expect(item).toBeTruthy();
+    expect(item!.version_id).toBe(newerWorkVersionId);
+    expect(item!.tags).toEqual(['preprint']);
+    expect(item!.versions).toBeUndefined();
+  });
+
   test('orders by date_published descending', async () => {
     const dto = await listPublishedWorks(testData.context, [], {}, { page: 0, limit: PAGE_LIMIT });
     const expectedOrder = [...seeds]
