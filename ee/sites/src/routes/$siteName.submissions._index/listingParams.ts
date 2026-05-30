@@ -135,6 +135,11 @@ export function hasActiveListingFiltersInQuery(query: ListingQuery): boolean {
  * Date range
  * -------------------------------------------------------------------------- */
 
+export {
+  PUBLICATION_DATE_CALENDAR_FROM_YEAR as LISTING_PUBLISHED_CALENDAR_FROM_YEAR,
+  publicationDateCalendarBounds as listingPublishedCalendarBounds,
+} from '../../publicationDateCalendar.js';
+
 export type ListingDatePresetId =
   | 'anytime'
   | 'today'

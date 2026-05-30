@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { Calendar as CalendarIcon, ChevronDown, X } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
@@ -6,6 +6,7 @@ import { cn, ui } from '@curvenote/scms-core';
 import {
   LISTING_DATE_PRESETS,
   computeDatePresetRange,
+  listingPublishedCalendarBounds,
   matchPresetForRange,
   setListingParam,
   type ListingDatePresetId,
@@ -13,6 +14,23 @@ import {
 
 interface SubmissionsDateFilterProps {
   className?: string;
+}
+
+function isoToDate(iso: string): Date {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
+function dateToIso(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function rangeFromUrl(from: string | undefined, to: string | undefined): DateRange | undefined {
+  if (!from) return undefined;
+  return { from: isoToDate(from), to: to ? isoToDate(to) : undefined };
 }
 
 /**
@@ -33,9 +51,20 @@ export function SubmissionsDateFilter({ className }: SubmissionsDateFilterProps)
   const to = searchParams.get('to') ?? undefined;
   const unpublishedOnly = searchParams.get('unpublishedOnly') === '1';
   const [open, setOpen] = useState(false);
+  /** In-popover range; URL updates only once both ends are chosen. */
+  const [draftRange, setDraftRange] = useState<DateRange | undefined>(undefined);
+  const [visibleMonth, setVisibleMonth] = useState<Date>(() => new Date());
 
+  const calendarBounds = listingPublishedCalendarBounds();
   const activePreset = matchPresetForRange(from, to, unpublishedOnly);
   const hasSelection = Boolean(from || to || unpublishedOnly);
+
+  useEffect(() => {
+    if (!open) return;
+    const committed = rangeFromUrl(from, to);
+    setDraftRange(committed);
+    setVisibleMonth(committed?.from ?? new Date());
+  }, [open, from, to]);
 
   /**
    * Writes a coherent date-mode state in one go. Range and `unpublishedOnly`
@@ -62,7 +91,8 @@ export function SubmissionsDateFilter({ className }: SubmissionsDateFilterProps)
       return;
     }
     if (preset === 'custom') {
-      // Don't close; let the user pick on the calendar.
+      setDraftRange(undefined);
+      setVisibleMonth(new Date());
       return;
     }
     if (preset === 'no_published_date') {
@@ -77,13 +107,17 @@ export function SubmissionsDateFilter({ className }: SubmissionsDateFilterProps)
 
   const handleCalendarSelect = (range: DateRange | undefined) => {
     if (!range || (!range.from && !range.to)) {
-      applyDateMode({});
+      setDraftRange(undefined);
       return;
     }
-    applyDateMode({
-      from: range.from ? dateToIso(range.from) : undefined,
-      to: range.to ? dateToIso(range.to) : range.from ? dateToIso(range.from) : undefined,
-    });
+    setDraftRange(range);
+    if (range.from && range.to) {
+      applyDateMode({
+        from: dateToIso(range.from),
+        to: dateToIso(range.to),
+      });
+      setOpen(false);
+    }
   };
 
   const handleClear = () => {
@@ -96,9 +130,6 @@ export function SubmissionsDateFilter({ className }: SubmissionsDateFilterProps)
   // user has picked "No Published Date" so the popover doesn't suggest a
   // range is in play.
   const showCalendar = activePreset !== 'no_published_date';
-  const calendarSelected: DateRange | undefined = from
-    ? { from: isoToDate(from), to: to ? isoToDate(to) : undefined }
-    : undefined;
 
   return (
     <ui.Popover open={open} onOpenChange={setOpen}>
@@ -177,10 +208,14 @@ export function SubmissionsDateFilter({ className }: SubmissionsDateFilterProps)
           {showCalendar ? (
             <ui.Calendar
               mode="range"
-              selected={calendarSelected}
+              captionLayout="dropdown-buttons"
+              {...calendarBounds}
+              selected={draftRange}
               onSelect={handleCalendarSelect}
               numberOfMonths={2}
-              defaultMonth={calendarSelected?.from}
+              month={visibleMonth}
+              onMonthChange={setVisibleMonth}
+              initialFocus
             />
           ) : (
             <div className="flex items-center px-4 py-6 max-w-xs text-xs text-muted-foreground">
@@ -227,16 +262,4 @@ function formatShortDate(iso: string): string {
     day: 'numeric',
     year: '2-digit',
   });
-}
-
-function isoToDate(iso: string): Date {
-  const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year, (month ?? 1) - 1, day ?? 1);
-}
-
-function dateToIso(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }
