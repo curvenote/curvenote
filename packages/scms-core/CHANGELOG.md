@@ -1,5 +1,17 @@
 # @curvenote/scms-core
 
+## 0.20.0
+
+### Patch Changes
+
+- [#922](https://github.com/curvenote/curvenote/pull/922) [`3546673`](https://github.com/curvenote/curvenote/commit/3546673f19e16c07ac3f229bb5144b54ae9f5548) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Date picker improvements
+
+- Updated dependencies [[`93b9d35`](https://github.com/curvenote/curvenote/commit/93b9d35d3f9a33b97cbaca5ed6a86baa25ee54c4), [`260dfd7`](https://github.com/curvenote/curvenote/commit/260dfd72a767833a3c76b3b7b21b0f15b9f61568), [`d3c9203`](https://github.com/curvenote/curvenote/commit/d3c92030cfd718b60d695f7510570a121819499c)]:
+  - @curvenote/common@0.6.0
+  - @curvenote/scms-db@0.20.0
+  - @curvenote/cdn@0.6.0
+  - @curvenote/check-definitions@0.16.2
+
 ## 0.19.1
 
 ### Patch Changes
