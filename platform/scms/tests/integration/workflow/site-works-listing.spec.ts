@@ -309,6 +309,61 @@ describe('site works listing — search / sort / date filters', () => {
     expect(dto.items).toHaveLength(0);
   });
 
+  test('subject filters to an exact case-insensitive metadata match', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { subject: 'neuroscience' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[0].workId);
+    expect(dto.items[0].subject).toBe('Neuroscience');
+  });
+
+  test('subject with no matches returns an empty listing', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { subject: 'no-such-subject' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+    expect(dto.items).toHaveLength(0);
+  });
+
+  test('subject combines with q by intersection', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { subject: 'Genomics', q: 'work 05' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[5].workId);
+  });
+
+  test('subject and q with disjoint matches returns an empty listing', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { subject: 'Neuroscience', q: 'work 05' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+    expect(dto.items).toHaveLength(0);
+  });
+
+  test('pagination links preserve subject', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { subject: 'Genomics' },
+      { page: 0, limit: 10 },
+    );
+    expect(dto.links.self).toContain('subject=Genomics');
+  });
+
   test('sort published_asc reverses the default ordering', async () => {
     const dto = await listPublishedWorks(
       testData.context,
@@ -394,7 +449,7 @@ async function seedPublishedWorks(testData: TestData, count: number): Promise<Se
       title: `Benchmark work ${i.toString().padStart(2, '0')}`,
       description: `Description for work ${i}`,
       authors: [`Author ${i}A`, `Author ${i}B`],
-      subject: i === 0 ? 'Neuroscience' : undefined,
+      subject: i === 0 ? 'Neuroscience' : i === 5 ? 'Genomics' : undefined,
       workDoi: `10.9999/bench-${slug}-${testData.siteId}`,
       workKey: `key-${slug}-${testData.siteId}`,
       workVersionTags: [`tag-${i}`],

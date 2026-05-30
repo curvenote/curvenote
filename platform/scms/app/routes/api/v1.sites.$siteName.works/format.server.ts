@@ -191,6 +191,7 @@ export function formatSiteWorkDTOFromSubmissions(
     kind?: string;
     status?: string;
     q?: string;
+    subject?: string;
     from?: string;
     to?: string;
   },
@@ -206,6 +207,7 @@ export function formatSiteWorkDTOFromSubmissions(
   if (where?.kind) selfUrl.searchParams.set('kind', where?.kind ?? '');
   if (where?.status) selfUrl.searchParams.set('status', where?.status ?? '');
   if (where?.q) selfUrl.searchParams.set('q', where.q);
+  if (where?.subject) selfUrl.searchParams.set('subject', where.subject);
   if (where?.from) selfUrl.searchParams.set('from', where.from);
   if (where?.to) selfUrl.searchParams.set('to', where.to);
   // Only emit a non-default sort so default listings keep clean, cache-friendly URLs.
