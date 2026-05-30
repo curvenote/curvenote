@@ -65,6 +65,12 @@ const ParamsSchema = z.object({
     const trimmed = v.trim();
     return trimmed.length >= WORKS_SEARCH_MIN_LENGTH ? trimmed : undefined;
   }, z.string().min(WORKS_SEARCH_MIN_LENGTH).max(200).optional()),
+  /** Case-insensitive exact match on MyST `project.subject` (whitespace-trimmed). */
+  subject: z.preprocess((v) => {
+    if (typeof v !== 'string') return undefined;
+    const trimmed = v.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }, z.string().min(1).max(40).optional()),
   /** Publication-date sort direction; defaults to newest first. */
   sort: z.enum(['published_desc', 'published_asc']).default('published_desc'),
   /** Inclusive ISO `yyyy-mm-dd` lower bound on `date_published`. */
@@ -92,6 +98,7 @@ export async function loader(args: Route.LoaderArgs) {
     kind: params.get('kind') ?? undefined,
     status: params.get('status') ?? undefined,
     q: params.get('q') ?? undefined,
+    subject: params.get('subject') ?? undefined,
     sort: params.get('sort') ?? undefined,
     from: params.get('from') ?? undefined,
     to: params.get('to') ?? undefined,

@@ -43,6 +43,7 @@ const ITEM_KEYS = [
   'cdn_query',
   'title',
   'description',
+  'subject',
   'authors',
   'canonical',
   'tags',
@@ -78,6 +79,7 @@ interface SeedWork {
   title: string;
   description: string;
   authors: string[];
+  subject?: string;
   workDoi: string;
   workKey: string;
   workVersionTags: string[];
@@ -115,6 +117,50 @@ describe('site works listing — delivered package (limit=10)', () => {
     expect(dto.items).toHaveLength(TOTAL_PUBLISHED);
     const seededIds = new Set(seeds.map((s) => s.workId));
     for (const item of dto.items) expect(seededIds.has(item.id)).toBe(true);
+  });
+
+  test('lists the latest published version even when it has no v{n} tags', async () => {
+    const prisma = await getPrismaClient();
+    const seed = seeds[0];
+    const now = new Date().toISOString();
+    const newerWorkVersionId = uuidv7();
+    const newerSvId = uuidv7();
+
+    await prisma.workVersion.create({
+      data: {
+        id: newerWorkVersionId,
+        date_created: now,
+        date_modified: now,
+        title: `${seed.title} (untagged)`,
+        doi: seed.workDoi,
+        authors: seed.authors,
+        canonical: true,
+        tags: [],
+        cdn: 'https://test-cdn.com',
+        cdn_key: `cdn-key-untagged-${seed.workId}`,
+        work: { connect: { id: seed.workId } },
+      },
+    });
+    await prisma.submissionVersion.create({
+      data: {
+        id: newerSvId,
+        date_created: now,
+        date_modified: now,
+        date_published: '2025-06-01',
+        status: 'PUBLISHED',
+        tags: ['preprint'],
+        submission: { connect: { id: seed.submissionId } },
+        work_version: { connect: { id: newerWorkVersionId } },
+        submitted_by: { connect: { id: testData.userId } },
+      },
+    });
+
+    const dto = await listPublishedWorks(testData.context, [], {}, { page: 0, limit: 500 });
+    const item = dto.items.find((i) => i.id === seed.workId);
+    expect(item).toBeTruthy();
+    expect(item!.version_id).toBe(newerWorkVersionId);
+    expect(item!.tags).toEqual(['preprint']);
+    expect(item!.versions).toBeUndefined();
   });
 
   test('orders by date_published descending', async () => {
@@ -212,6 +258,7 @@ describe('site works listing — delivered package (limit=10)', () => {
     expect(item.slug).toBe(`${newest.slug}-${testData.siteId}`);
     expect(item.canonical).toBe(newest.canonical);
     expect(item.tags).toEqual(concatSiteWorkTags([], newest.workVersionTags));
+    expect(item.subject).toBe(newest.subject);
     expect(item.cdn).toBe('https://test-cdn.com');
     expect(item.cdn_key).toBe(`cdn-key-${newest.slug}`);
     expect(item.date).toBe(newest.datePublished);
@@ -306,6 +353,61 @@ describe('site works listing — search / sort / date filters', () => {
     expect(dto.items).toHaveLength(0);
   });
 
+  test('subject filters to an exact case-insensitive metadata match', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { subject: 'neuroscience' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[0].workId);
+    expect(dto.items[0].subject).toBe('Neuroscience');
+  });
+
+  test('subject with no matches returns an empty listing', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { subject: 'no-such-subject' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+    expect(dto.items).toHaveLength(0);
+  });
+
+  test('subject combines with q by intersection', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { subject: 'Genomics', q: 'work 05' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[5].workId);
+  });
+
+  test('subject and q with disjoint matches returns an empty listing', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { subject: 'Neuroscience', q: 'work 05' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+    expect(dto.items).toHaveLength(0);
+  });
+
+  test('pagination links preserve subject', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { subject: 'Genomics' },
+      { page: 0, limit: 10 },
+    );
+    expect(dto.links.self).toContain('subject=Genomics');
+  });
+
   test('sort published_asc reverses the default ordering', async () => {
     const dto = await listPublishedWorks(
       testData.context,
@@ -391,6 +493,7 @@ async function seedPublishedWorks(testData: TestData, count: number): Promise<Se
       title: `Benchmark work ${i.toString().padStart(2, '0')}`,
       description: `Description for work ${i}`,
       authors: [`Author ${i}A`, `Author ${i}B`],
+      subject: i === 0 ? 'Neuroscience' : i === 5 ? 'Genomics' : undefined,
       workDoi: `10.9999/bench-${slug}-${testData.siteId}`,
       workKey: `key-${slug}-${testData.siteId}`,
       workVersionTags: [`tag-${i}`],
@@ -423,6 +526,14 @@ async function seedPublishedWorks(testData: TestData, count: number): Promise<Se
         tags: seed.workVersionTags,
         cdn: 'https://test-cdn.com',
         cdn_key: `cdn-key-${seed.slug}`,
+        metadata:
+          seed.subject != null
+            ? {
+                'frontmatter.myst': {
+                  project: { subject: seed.subject },
+                },
+              }
+            : undefined,
         work: { connect: { id: seed.workId } },
       },
     });

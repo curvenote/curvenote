@@ -1,4 +1,9 @@
-import { getPrismaClient, type SiteContext } from '@curvenote/scms-server';
+import {
+  getPrismaClient,
+  fetchWorkVersionSubjects,
+  fetchSubmissionIdsBySubject,
+  type SiteContext,
+} from '@curvenote/scms-server';
 import {
   error404,
   httpError,
@@ -45,6 +50,22 @@ type ListingExtras = {
  */
 function escapeIlikePattern(q: string): string {
   return q.replace(/\\/g, '\\\\');
+}
+
+/** Narrow a listing to submissions present in every supplied id set. */
+function intersectSubmissionIds(...idSets: Array<string[] | undefined>): string[] | undefined {
+  const present = idSets.filter((ids): ids is string[] => ids != null);
+  if (present.length === 0) return undefined;
+  let acc = new Set(present[0]);
+  for (const ids of present.slice(1)) {
+    const next = new Set<string>();
+    for (const id of ids) {
+      if (acc.has(id)) next.add(id);
+    }
+    acc = next;
+    if (acc.size === 0) return [];
+  }
+  return [...acc];
 }
 
 /**
@@ -229,6 +250,7 @@ export async function dbListLatestPublishedSubmissions(
     kind?: string;
     status?: string;
     q?: string;
+    subject?: string;
     from?: string;
     to?: string;
   },
@@ -244,17 +266,22 @@ export async function dbListLatestPublishedSubmissions(
     );
   }
 
-  // Search narrows to a pre-resolved id set via raw SQL (covers the authors
-  // text[] substring match Prisma can't express); the select/count then run
-  // through the shared Prisma filter. An empty match short-circuits.
+  // Search and subject filters narrow to pre-resolved id sets via raw SQL; the
+  // select/count then run through the shared Prisma filter. An empty intersection
+  // short-circuits.
   let searchIds: string[] | undefined;
   if (where?.q) {
     searchIds = await dbSearchSubmissionIds(ctx.site.id, where.q);
-    if (searchIds.length === 0) {
-      return { items: [], total: 0 };
-    }
   }
-  const extras: ListingExtras = { from: where?.from, to: where?.to, ids: searchIds };
+  let subjectIds: string[] | undefined;
+  if (where?.subject) {
+    subjectIds = await fetchSubmissionIdsBySubject(ctx.site.id, where.subject, status);
+  }
+  const filteredIds = intersectSubmissionIds(searchIds, subjectIds);
+  if (filteredIds?.length === 0) {
+    return { items: [], total: 0 };
+  }
+  const extras: ListingExtras = { from: where?.from, to: where?.to, ids: filteredIds };
   const queryOpts = { ...opts, extras };
 
   const workflows = getWorkflows(ctx.$config, registerExtensionWorkflows(extensions));
@@ -320,6 +347,7 @@ export async function listPublishedWorks(
     kind?: string;
     status?: string;
     q?: string;
+    subject?: string;
     from?: string;
     to?: string;
   },
@@ -327,5 +355,6 @@ export async function listPublishedWorks(
 ) {
   const dbo = await dbListLatestPublishedSubmissions(ctx, extensions, where, opts);
   if (!dbo) throw error404();
-  return formatSiteWorkDTOFromSubmissions(ctx, dbo, where, opts);
+  const subjects = await fetchWorkVersionSubjects(dbo.items.map((row) => row.work_version.id));
+  return formatSiteWorkDTOFromSubmissions(ctx, dbo, where, { ...opts, subjects });
 }

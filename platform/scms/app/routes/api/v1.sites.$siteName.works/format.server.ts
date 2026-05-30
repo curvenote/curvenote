@@ -101,7 +101,11 @@ function formatCollectionSummaryDTO(
   };
 }
 
-export function formatSiteWorkDTO(ctx: SiteContext, dbo: RowDBO): ModifiedSiteWorkDTO {
+export function formatSiteWorkDTO(
+  ctx: SiteContext,
+  dbo: RowDBO,
+  opts?: { subject?: string },
+): ModifiedSiteWorkDTO {
   const { cdn_key, cdn, title, description, canonical, authors, date_created } = dbo.work_version;
   const tags = concatSiteWorkTags(dbo.tags ?? [], dbo.work_version.tags ?? []);
   const submission_version_id = dbo.id;
@@ -150,6 +154,7 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: RowDBO): ModifiedSiteWo
     cdn_query: host?.query,
     title: title ?? '',
     description: description || undefined,
+    subject: opts?.subject,
     authors: authors.map((a) => ({ name: a })),
     canonical: canonical ? true : false,
     tags,
@@ -186,16 +191,23 @@ export function formatSiteWorkDTOFromSubmissions(
     kind?: string;
     status?: string;
     q?: string;
+    subject?: string;
     from?: string;
     to?: string;
   },
-  opts?: { page?: number; limit?: number; sort?: 'published_desc' | 'published_asc' },
+  opts?: {
+    page?: number;
+    limit?: number;
+    sort?: 'published_desc' | 'published_asc';
+    subjects?: Map<string, string>;
+  },
 ): Omit<SiteWorkListingDTO, 'items'> & { items: ModifiedSiteWorkDTO[] } {
   const selfUrl = new URL(ctx.asApiUrl(`/sites/${ctx.site.name}/works`));
   if (where?.collection) selfUrl.searchParams.set('collection', where?.collection ?? '');
   if (where?.kind) selfUrl.searchParams.set('kind', where?.kind ?? '');
   if (where?.status) selfUrl.searchParams.set('status', where?.status ?? '');
   if (where?.q) selfUrl.searchParams.set('q', where.q);
+  if (where?.subject) selfUrl.searchParams.set('subject', where.subject);
   if (where?.from) selfUrl.searchParams.set('from', where.from);
   if (where?.to) selfUrl.searchParams.set('to', where.to);
   // Only emit a non-default sort so default listings keep clean, cache-friendly URLs.
@@ -211,7 +223,9 @@ export function formatSiteWorkDTOFromSubmissions(
   );
 
   return {
-    items: dbo.items.map((v) => formatSiteWorkDTO(ctx, v)),
+    items: dbo.items.map((v) =>
+      formatSiteWorkDTO(ctx, v, { subject: opts?.subjects?.get(v.work_version.id) }),
+    ),
     total: dbo.total,
     links,
   };
