@@ -1,15 +1,13 @@
 import { doi } from 'doi-utils';
 import { getPrismaClient } from '../../prisma.server.js';
 import { error404 } from '@curvenote/scms-core';
-import { formatDate, pickVersionTag } from '@curvenote/common';
-import type { SiteWorkVersionDTO } from '@curvenote/common';
-import { formatSiteWorkDTO } from './submissions/published/get.server.js';
-import type { ModifiedSiteWorkDTO } from './submissions/published/get.server.js';
+import {
+  formatPublishedSiteWorkWithVersions,
+  type PublishedSiteWorkDTO,
+} from './submissions/published/get.server.js';
 import type { SiteContext } from '../../context.site.server.js';
 import type { Prisma } from '@curvenote/scms-db';
 import { siteWorkDtoSelect } from '../../prisma.selects.server.js';
-import { fetchWorkVersionSubjects } from '../../work-version-subject.server.js';
-
 export type SiteDoiResolveOptions = {
   /** If set, pick the latest *published* submission version for this DOI whose `tags` contains this string */
   tag?: string;
@@ -55,44 +53,11 @@ async function dbGetPublishedSiteWorkByDoi(siteName: string, doiNormalized: stri
   });
 }
 
-/**
- * All *published* submission versions for a submission, newest first. Used to build the
- * `versions` summary array so clients can render version navigation from the DOI response
- * without a second request to `links.versions`.
- */
-async function dbGetPublishedVersionsForSubmission(siteName: string, submissionId: string) {
-  const prisma = await getPrismaClient();
-  return prisma.submissionVersion.findMany({
-    where: {
-      status: 'PUBLISHED',
-      submission: { id: submissionId, site: { name: siteName } },
-    },
-    orderBy: { date_created: 'desc' },
-    select: {
-      id: true,
-      tags: true,
-      date_published: true,
-      date_created: true,
-    },
-  });
-}
-
-type PublishedVersionsDBO = Awaited<ReturnType<typeof dbGetPublishedVersionsForSubmission>>;
-
-function formatSiteWorkVersions(rows: PublishedVersionsDBO): SiteWorkVersionDTO[] {
-  return rows.map((row) => ({
-    submission_version_id: row.id,
-    version: pickVersionTag(row.tags) ?? undefined,
-    date: row.date_published ?? formatDate(row.date_created),
-    tags: [...row.tags],
-  }));
-}
-
 export default async function (
   ctx: SiteContext,
   maybeDoi: string,
   opts?: SiteDoiResolveOptions,
-): Promise<ModifiedSiteWorkDTO & { versions: SiteWorkVersionDTO[] }> {
+): Promise<PublishedSiteWorkDTO> {
   if (!ctx.site) throw error404('Not Found - No site found');
 
   const doiNormalized = doi.normalize(maybeDoi);
@@ -107,16 +72,5 @@ export default async function (
         : 'Not Found - No work with that DOI exists in database',
     );
   }
-  const siteWork = formatSiteWorkDTO(ctx, sv, {
-    subject: (await fetchWorkVersionSubjects([sv.work_version.id])).get(sv.work_version.id),
-  });
-
-  // One indexed query for the work's published versions, replacing a second
-  // client round-trip to the submission `versions` listing.
-  const versionRows = await dbGetPublishedVersionsForSubmission(
-    ctx.site.name,
-    siteWork.submission_id,
-  );
-
-  return { ...siteWork, versions: formatSiteWorkVersions(versionRows) };
+  return formatPublishedSiteWorkWithVersions(ctx, sv);
 }

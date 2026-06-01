@@ -186,6 +186,54 @@ describe('site doi resolve — delivered package', () => {
   });
 });
 
+describe('sites.submissions.published.get — delivered package', () => {
+  let testData: TestData;
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+    await attachDefaultDomain(testData);
+  });
+
+  test('returns the same DTO shape as doi resolve, including a versions array', async () => {
+    const seed = await seedPublishedWorkWithDoi(testData, {});
+    const dto = await sites.submissions.published.get(testData.context, seed.workId);
+
+    expect(dto).not.toBeNull();
+    expect(Object.keys(dto!).sort()).toEqual([...ITEM_KEYS].sort());
+    expect(Array.isArray(dto!.versions)).toBe(true);
+    expect(dto!.versions).toHaveLength(1);
+    expect(Object.keys(dto!.versions[0]).sort()).toEqual([...VERSION_KEYS].sort());
+  });
+
+  test('embeds every published version, newest first, and resolves to the newest', async () => {
+    const seed = await seedPublishedWorkWithDoi(testData, { datePublished: '2024-01-01' });
+    const newer = await addPublishedVersion(testData, seed, {
+      datePublished: '2024-06-01',
+      svTags: ['v2'],
+    });
+
+    const dto = await sites.submissions.published.get(testData.context, seed.workId);
+
+    expect(dto!.submission_version_id).toBe(newer.svId);
+    expect(dto!.versions.map((v) => v.submission_version_id)).toEqual([newer.svId, seed.svId]);
+  });
+
+  test('resolves by slug as well as work id', async () => {
+    const seed = await seedPublishedWorkWithDoi(testData, {});
+    const slug = `${seed.slug}-${testData.siteId}`;
+
+    const byId = await sites.submissions.published.get(testData.context, seed.workId);
+    const bySlug = await sites.submissions.published.get(testData.context, slug);
+
+    expect(bySlug).toEqual(byId);
+  });
+
+  test('returns null when no published work matches', async () => {
+    const dto = await sites.submissions.published.get(testData.context, uuidv7());
+    expect(dto).toBeNull();
+  });
+});
+
 /* ---------------------------------------------------------------------------
  * Helpers
  * ------------------------------------------------------------------------ */

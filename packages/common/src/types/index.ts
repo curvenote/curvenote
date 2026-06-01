@@ -149,7 +149,7 @@ export type SiteWorkVersionDTO = {
   submission_version_id: string;
   /** Primary version tag (highest `v{n}` tag found), if any. */
   version?: string;
-  /** date_published, falling back to date_created. */
+  /** date_published, falling back to date_modified. */
   date?: string;
   /** All tags on this published submission version. */
   tags: string[];
@@ -165,8 +165,8 @@ export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind' | 'date_published'
     submission_id: string;
     /**
      * Published version summaries for this work, newest first. Populated by the DOI
-     * endpoint so clients can render version navigation without a second request; omitted
-     * by listing endpoints to avoid per-work fan-out.
+     * and published-work endpoints so clients can render version navigation without a
+     * second request; omitted by listing endpoints to avoid per-work fan-out.
      */
     versions?: SiteWorkVersionDTO[];
     links: {
