@@ -530,7 +530,7 @@ async function seedPublishedWorks(testData: TestData, count: number): Promise<Se
           seed.subject != null
             ? {
                 'frontmatter.myst': {
-                  project: { subject: seed.subject },
+                  subject: seed.subject,
                 },
               }
             : undefined,

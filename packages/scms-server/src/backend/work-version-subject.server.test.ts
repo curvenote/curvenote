@@ -3,11 +3,11 @@ import { describe, test, expect } from 'vitest';
 import { extractWorkVersionSubjectFromMetadata } from './work-version-subject.server.js';
 
 describe('extractWorkVersionSubjectFromMetadata', () => {
-  test('reads frontmatter.myst.project.subject', () => {
+  test('reads frontmatter.myst.subject', () => {
     expect(
       extractWorkVersionSubjectFromMetadata({
         'frontmatter.myst': {
-          project: { subject: ' Neuroscience ' },
+          subject: ' Neuroscience ',
         },
       }),
     ).toBe('Neuroscience');
@@ -18,7 +18,7 @@ describe('extractWorkVersionSubjectFromMetadata', () => {
     expect(extractWorkVersionSubjectFromMetadata({})).toBeUndefined();
     expect(
       extractWorkVersionSubjectFromMetadata({
-        'frontmatter.myst': { project: { subject: '   ' } },
+        'frontmatter.myst': { subject: '   ' },
       }),
     ).toBeUndefined();
     expect(
