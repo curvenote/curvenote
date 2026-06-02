@@ -1,8 +1,8 @@
 import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from './prisma.server.js';
 
-/** Postgres `#>>` path for `metadata['frontmatter.myst'].subject`. */
-export const WORK_VERSION_SUBJECT_JSON_PATH = '{frontmatter.myst,subject}';
+/** Postgres `#>>` text-array literal for `metadata['frontmatter.myst'].subject`. */
+export const WORK_VERSION_SUBJECT_JSON_PATH = "'{frontmatter.myst,subject}'";
 
 /**
  * Read `subject` from `metadata['frontmatter.myst'].subject`.

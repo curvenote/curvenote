@@ -1,6 +1,15 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, test, expect } from 'vitest';
-import { extractWorkVersionSubjectFromMetadata } from './work-version-subject.server.js';
+import {
+  WORK_VERSION_SUBJECT_JSON_PATH,
+  extractWorkVersionSubjectFromMetadata,
+} from './work-version-subject.server.js';
+
+describe('WORK_VERSION_SUBJECT_JSON_PATH', () => {
+  test('is a quoted SQL text-array literal for Prisma.raw()', () => {
+    expect(WORK_VERSION_SUBJECT_JSON_PATH).toBe("'{frontmatter.myst,subject}'");
+  });
+});
 
 describe('extractWorkVersionSubjectFromMetadata', () => {
   test('reads frontmatter.myst.subject', () => {
