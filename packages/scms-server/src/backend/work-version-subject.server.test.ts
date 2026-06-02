@@ -1,13 +1,22 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, test, expect } from 'vitest';
-import { extractWorkVersionSubjectFromMetadata } from './work-version-subject.server.js';
+import {
+  WORK_VERSION_SUBJECT_JSON_PATH,
+  extractWorkVersionSubjectFromMetadata,
+} from './work-version-subject.server.js';
+
+describe('WORK_VERSION_SUBJECT_JSON_PATH', () => {
+  test('is a quoted SQL text-array literal for Prisma.raw()', () => {
+    expect(WORK_VERSION_SUBJECT_JSON_PATH).toBe("'{frontmatter.myst,subject}'");
+  });
+});
 
 describe('extractWorkVersionSubjectFromMetadata', () => {
-  test('reads frontmatter.myst.project.subject', () => {
+  test('reads frontmatter.myst.subject', () => {
     expect(
       extractWorkVersionSubjectFromMetadata({
         'frontmatter.myst': {
-          project: { subject: ' Neuroscience ' },
+          subject: ' Neuroscience ',
         },
       }),
     ).toBe('Neuroscience');
@@ -18,7 +27,7 @@ describe('extractWorkVersionSubjectFromMetadata', () => {
     expect(extractWorkVersionSubjectFromMetadata({})).toBeUndefined();
     expect(
       extractWorkVersionSubjectFromMetadata({
-        'frontmatter.myst': { project: { subject: '   ' } },
+        'frontmatter.myst': { subject: '   ' },
       }),
     ).toBeUndefined();
     expect(

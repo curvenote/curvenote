@@ -159,7 +159,7 @@ export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind' | 'date_published'
   Omit<Work, 'date'> & {
     /** @deprecated - date_published is favored over date */
     date?: string;
-    /** MyST project subject from `metadata['frontmatter.myst'].project.subject`. */
+    /** MyST subject from `metadata['frontmatter.myst'].subject`. */
     subject?: string;
     submission_version_id: string;
     submission_id: string;

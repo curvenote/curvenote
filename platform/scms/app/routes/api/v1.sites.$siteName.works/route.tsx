@@ -65,7 +65,7 @@ const ParamsSchema = z.object({
     const trimmed = v.trim();
     return trimmed.length >= WORKS_SEARCH_MIN_LENGTH ? trimmed : undefined;
   }, z.string().min(WORKS_SEARCH_MIN_LENGTH).max(200).optional()),
-  /** Case-insensitive exact match on MyST `project.subject` (whitespace-trimmed). */
+  /** Case-insensitive exact match on MyST `subject` (whitespace-trimmed). */
   subject: z.preprocess((v) => {
     if (typeof v !== 'string') return undefined;
     const trimmed = v.trim();
