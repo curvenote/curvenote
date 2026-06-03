@@ -666,6 +666,13 @@ properties:
             type: string
             secret: true
             description: API key sent as Authorization Bearer when SCMS calls checks-relay /api/v1/services/*
+          eulaCronSecret:
+            type: string
+            secret: true
+            description: >-
+              Optional shared Bearer token for text-integrity EULA cache cron webhook
+              (POST/GET /v1/hooks/text-integrity/eula-cache/refresh). Prefer
+              app.extensions.checks-text-integrity.eulaCronSecret when set.
       extensions:
         type: object
         description: Per-extension configuration; unknown extension keys are allowed for forward compatibility

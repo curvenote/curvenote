@@ -92,6 +92,13 @@ export type ExtensionCheckHandleActionResult = {
     status?: number;
   };
   status?: number;
+  /** EULA gating (e.g. text integrity `eula-status` / `execute`). */
+  requireEula?: boolean;
+  requiresEula?: boolean;
+  accepted?: boolean;
+  version?: string;
+  acceptedAt?: string;
+  eula?: { version?: string; html?: string; url?: string };
 };
 
 /**
@@ -146,6 +153,17 @@ export type ExtensionCheckSectionSummaryTitleProps = {
   metadata: any;
 };
 
+/** Props for per-check upload option cards on the work upload page. */
+export interface UploadCheckOptionProps {
+  workVersionId: string;
+  enabled: boolean;
+  disabled?: boolean;
+  /** Service manifest logo URL when available (e.g. text integrity Object config). */
+  logoUrl?: string;
+  /** Platform persists selection via `toggle-check` on the upload route. */
+  setEnabled: (enabled: boolean) => Promise<void>;
+}
+
 export interface ExtensionCheckService {
   id: string; // e.g., 'curvenote-structure'
   name: string; // Display name
@@ -192,6 +210,11 @@ export interface ExtensionCheckService {
    * letting extensions own full fetch/revalidate behaviour.
    */
   checkRunTimelineMountComponent?: React.ComponentType<ExtensionCheckRunTimelineMountProps>;
+  /**
+   * Optional upload-page check card body (platform `UploadCheckOptionCard` supplies border + toggle-off).
+   * When omitted, platform uses default name + description layout.
+   */
+  uploadCheckOptionComponent?: React.ComponentType<UploadCheckOptionProps>;
   /** Server-side action handler. Used from upload flow (intent `execute` + job enqueue). */
   handleAction?: (
     args: ExtensionCheckHandleActionArgs,

@@ -1,40 +1,36 @@
 import type { ExtensionCheckService } from '@curvenote/scms-core';
-import { CheckOptionItem } from './CheckOptionItem';
+import { UploadCheckOptionCard } from '@curvenote/scms-core';
 import type { ChecksObject } from '@curvenote/scms-server';
+import { ArticleStructureUploadCheckCard } from './ArticleStructureUploadCheckCard';
 
 interface WorkUploadChecksFormProps extends ChecksObject {
   checkServices: ExtensionCheckService[];
+  workVersionId: string;
+  /** Manifest logo URL for text integrity (from Object store), when configured. */
+  textIntegrityLogoUrl?: string;
 }
 
-export function WorkUploadChecksForm({ enabled, checkServices }: WorkUploadChecksFormProps) {
+export function WorkUploadChecksForm({
+  enabled,
+  checkServices,
+  workVersionId,
+  textIntegrityLogoUrl,
+}: WorkUploadChecksFormProps) {
   return (
-    <div className="space-y-4">
-      {/* Dynamically render check options from extension check services */}
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {checkServices.map((service) => (
-        <CheckOptionItem
+        <UploadCheckOptionCard
           key={service.id}
-          intent="toggle-check"
-          name={service.id as any}
-          label={service.name}
-          description={service.description}
-          checked={enabled.includes(service.id as any)}
-          disabled={false}
+          service={service}
+          workVersionId={workVersionId}
+          enabled={enabled.includes(service.id as (typeof enabled)[number])}
+          logoUrl={
+            service.id === 'checks-text-integrity' ? textIntegrityLogoUrl : undefined
+          }
         />
       ))}
 
-      {/* Always show core Curvenote structure check */}
-      <CheckOptionItem
-        intent="toggle-check"
-        name="curvenote-structure"
-        label={
-          <span>
-            Article Structure <sup className="text-xs font-light">(coming soon)</sup>
-          </span>
-        }
-        description="Validate document structure, metadata, and formatting."
-        checked={enabled.includes('curvenote-structure')}
-        disabled={true}
-      />
+      <ArticleStructureUploadCheckCard />
     </div>
   );
 }

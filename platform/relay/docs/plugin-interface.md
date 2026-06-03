@@ -83,7 +83,8 @@ Unless noted, authenticated relay routes are under **`/api/v1/services/:serviceN
 | -------------------------------------------------------------------- | ------------------- |
 | `POST /api/v1/services/:serviceName/instances/:instanceId/status`    | `getInstanceStatus` |
 | `POST /api/v1/services/:serviceName/instances/:instanceId/configure` | `configure`         |
-| `POST /api/v1/services/:serviceName/instances/:instanceId/terms`     | `getTerms`          |
+| `POST /api/v1/services/:serviceName/instances/:instanceId/terms`        | `getTerms`     |
+| `POST /api/v1/services/:serviceName/instances/:instanceId/terms/accept` | `acceptTerms` _(optional)_ |
 
 ### Upload (manuscript)
 

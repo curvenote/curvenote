@@ -10,6 +10,7 @@ import { checkTriggerStagePost } from "./services.instances.check.trigger-stage.
 import { checkReportViewerUrlPost } from "./services.instances.check.report.viewer-url.js";
 import { uploadPost } from "./services.instances.upload.js";
 import { termsPost } from "./services.instances.terms.js";
+import { termsAcceptPost } from "./services.instances.terms.accept.js";
 
 const pluginPost = new Hono({ strict: false });
 
@@ -18,6 +19,7 @@ pluginPost.post("/check/:externalId/status", checkStatusPost);
 
 pluginPost.post("/configure", configurePost);
 pluginPost.post("/terms", termsPost);
+pluginPost.post("/terms/accept", termsAcceptPost);
 pluginPost.post("/upload", uploadPost);
 
 pluginPost.post("/check/:externalId/artifacts", checkArtifactsPost);

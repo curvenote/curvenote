@@ -44,12 +44,13 @@ import {
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { WorkUploadChecksForm } from './WorkUploadChecksForm';
+import { getTextIntegrityLogoUrlFromObjectStore } from './textIntegrityLogo.server';
 import { ContinueForm } from './ContinueForm';
 import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
 import { updateWorkVersionTitle, updateWorkVersionAuthors } from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
-import { data, redirect, useFetcher, useRevalidator } from 'react-router';
+import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
 // eslint-disable-next-line import/no-extraneous-dependencies -- available via the SCMS server runtime on Vercel; used to avoid blocking the upload response.
 import { waitUntil } from '@vercel/functions';
 import { handleFetchPreviewsIntent } from './fetchPreviews.server';
@@ -253,6 +254,8 @@ export async function loader(args: Route.LoaderArgs) {
     { ignoreSystemAdmin: true },
   );
 
+  const textIntegrityLogoUrl = await getTextIntegrityLogoUrlFromObjectStore();
+
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
@@ -267,6 +270,7 @@ export async function loader(args: Route.LoaderArgs) {
     previews,
     extractedMetadata,
     hasMetadataPreviewScope,
+    textIntegrityLogoUrl,
   };
 }
 
@@ -604,7 +608,9 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     previews = [],
     extractedMetadata,
     hasMetadataPreviewScope,
+    textIntegrityLogoUrl,
   } = loaderData;
+  const { workVersionId } = useParams();
   const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
   const revalidator = useRevalidator();
   const fetchPreviewsFetcher = useFetcher();
@@ -686,7 +692,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           className="space-y-4 max-w-3xl"
         >
           <p className="text-md text-muted-foreground">
-            Upload a single manuscript file (up to 50 MB). DOCX and PDF formats are supported.
+            Upload your manuscripts, you can upload mulitple files (DOCX and/or PDF). See individual
+            check services for file size limitations.
           </p>
           <WorkFileUpload
             cdnKey={cdnKey}
@@ -714,17 +721,17 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
         <SectionWithHeading
           heading="Select Checks to Run"
           icon={<CheckSquare className="w-5 h-5" />}
-          className="space-y-4 max-w-3xl"
+          className="space-y-4 max-w-5xl"
         >
           <p className="text-muted-foreground">
             Choose which checks you'd like to run on your work.
           </p>
-          <ui.Card className="p-6 space-y-4">
-            <WorkUploadChecksForm
-              enabled={metadata.checks?.enabled || []}
-              checkServices={checkServices as ExtensionCheckService[]}
-            />
-          </ui.Card>
+          <WorkUploadChecksForm
+            enabled={metadata.checks?.enabled || []}
+            checkServices={checkServices as ExtensionCheckService[]}
+            workVersionId={workVersionId!}
+            textIntegrityLogoUrl={loaderData.textIntegrityLogoUrl}
+          />
         </SectionWithHeading>
         <ContinueForm title={title} authors={authors} metadata={metadata} />
       </PageFrame>
