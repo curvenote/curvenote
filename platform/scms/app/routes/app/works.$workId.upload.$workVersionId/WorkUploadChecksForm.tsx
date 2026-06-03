@@ -4,6 +4,7 @@ import {
   UploadCheckOptionCard,
   UploadCheckCardPlaceholder,
   UPLOAD_CHECKS_GRID_CLASS,
+  resolveUploadCheckCardState,
 } from '@curvenote/scms-core';
 import type { ChecksObject } from '@curvenote/scms-server';
 import { ArticleStructureUploadCheckCard } from './ArticleStructureUploadCheckCard';
@@ -13,6 +14,8 @@ interface WorkUploadChecksFormProps extends ChecksObject {
   uploadCheckCards: UploadCheckCardMeta[];
   checkServices: ExtensionCheckService[];
   workVersionId: string;
+  /** Signed work version metadata (files + checks) for upload eligibility. */
+  metadata: unknown;
   /** Manifest logo URL for text integrity (from Object store), when configured. */
   textIntegrityLogoUrl?: string;
 }
@@ -22,6 +25,7 @@ export function WorkUploadChecksForm({
   uploadCheckCards,
   checkServices,
   workVersionId,
+  metadata,
   textIntegrityLogoUrl,
 }: WorkUploadChecksFormProps) {
   const servicesById = new Map(checkServices.map((s) => [s.id, s]));
@@ -31,12 +35,20 @@ export function WorkUploadChecksForm({
       {uploadCheckCards.map((meta) => {
         const service = servicesById.get(meta.id);
         if (service) {
+          const isEnabled = enabled.includes(service.id as (typeof enabled)[number]);
+          const eligible = service.isUploadEligible?.(metadata) ?? true;
+          const { disabled, invalid } = resolveUploadCheckCardState({
+            eligible,
+            enabled: isEnabled,
+          });
           return (
             <UploadCheckOptionCard
               key={service.id}
               service={service}
               workVersionId={workVersionId}
-              enabled={enabled.includes(service.id as (typeof enabled)[number])}
+              enabled={isEnabled}
+              disabled={disabled}
+              invalid={invalid}
               logoUrl={
                 service.id === 'checks-text-integrity' ? textIntegrityLogoUrl : undefined
               }

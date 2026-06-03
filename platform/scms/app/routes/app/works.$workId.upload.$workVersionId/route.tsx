@@ -39,6 +39,7 @@ import {
   useDeploymentConfig,
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
+  hasInvalidEnabledUploadChecks,
   capitalize,
   type UploadCheckCardMeta,
 } from '@curvenote/scms-core';
@@ -385,6 +386,29 @@ export async function action(args: Route.ActionArgs) {
         const currentMetadata = (wv?.metadata as any) || makeDefaultWorkVersionMetadata();
         const enabledChecks = (currentMetadata.checks?.enabled as WorkVersionCheckName[]) || [];
 
+        const uploadCheckServices = getExtensionCheckServicesFromServerConfig(
+          baseCtx.$config,
+          serverExtensions,
+        );
+        if (
+          hasInvalidEnabledUploadChecks(
+            currentMetadata,
+            enabledChecks,
+            uploadCheckServices,
+          )
+        ) {
+          return data(
+            {
+              error: {
+                type: 'validation',
+                message:
+                  'One or more selected checks are not compatible with your uploaded files. Deselect them or adjust your uploads before continuing.',
+              },
+            },
+            { status: 400 },
+          );
+        }
+
         // Create check status objects for each enabled check
         const checkStatuses: Record<string, any> = {};
         enabledChecks.forEach((name) => {
@@ -701,8 +725,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           className="space-y-4 max-w-3xl"
         >
           <p className="text-md text-muted-foreground">
-            Upload your manuscripts: mulitple files, DOCX and/or PDFs are accepted but individual
-            check services may have limitations.
+            Upload one or more manuscript files (DOCX or PDF), up to 200 MB total. Individual check
+            services may have stricter limits.
           </p>
           <WorkFileUpload
             cdnKey={cdnKey}
@@ -740,10 +764,16 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             uploadCheckCards={uploadCheckCards}
             checkServices={checkServices}
             workVersionId={workVersionId!}
+            metadata={metadata}
             textIntegrityLogoUrl={loaderData.textIntegrityLogoUrl}
           />
         </SectionWithHeading>
-        <ContinueForm title={title} authors={authors} metadata={metadata} />
+        <ContinueForm
+          title={title}
+          authors={authors}
+          metadata={metadata}
+          checkServices={checkServices}
+        />
       </PageFrame>
     </MainWrapper>
   );

@@ -157,7 +157,10 @@ export type ExtensionCheckSectionSummaryTitleProps = {
 export interface UploadCheckOptionProps {
   workVersionId: string;
   enabled: boolean;
+  /** Files on the draft do not meet this check's requirements; card cannot be enabled. */
   disabled?: boolean;
+  /** Check is selected but uploaded files no longer meet requirements. */
+  invalid?: boolean;
   /** Service manifest logo URL when available (e.g. text integrity Object config). */
   logoUrl?: string;
   /** Platform persists selection via `toggle-check` on the upload route. */
@@ -215,6 +218,11 @@ export interface ExtensionCheckService {
    * When omitted, platform uses default name + description layout.
    */
   uploadCheckOptionComponent?: React.ComponentType<UploadCheckOptionProps>;
+  /**
+   * True when current work-version metadata satisfies this check's upload file requirements.
+   * Used on the upload page to enable, disable, or mark check cards invalid.
+   */
+  isUploadEligible?: (metadata: unknown) => boolean;
   /** Server-side action handler. Used from upload flow (intent `execute` + job enqueue). */
   handleAction?: (
     args: ExtensionCheckHandleActionArgs,

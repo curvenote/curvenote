@@ -51,7 +51,7 @@ export function getExtensionCheckServicesFromServerConfig(
  */
 export function getExtensionCheckServiceFromServerConfig(
   serverConfig: AppConfig,
-  extensions: ClientExtension[],
+  extensions: ServerExtension[],
   checkServiceId: string,
 ): ExtensionCheckService | undefined {
   const services = getExtensionCheckServicesFromServerConfig(serverConfig, extensions);

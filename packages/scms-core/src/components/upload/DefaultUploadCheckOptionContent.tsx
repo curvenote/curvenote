@@ -10,6 +10,8 @@ type DefaultUploadCheckOptionContentProps = UploadCheckOptionProps & {
 
 export function DefaultUploadCheckOptionContent({
   enabled,
+  disabled,
+  invalid,
   setEnabled,
   name,
   description,
@@ -19,6 +21,8 @@ export function DefaultUploadCheckOptionContent({
       title={name}
       description={description}
       enabled={enabled}
+      disabled={disabled}
+      invalid={invalid}
       onRequestEnable={() => {
         void setEnabled(true);
       }}

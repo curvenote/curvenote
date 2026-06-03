@@ -25,6 +25,7 @@ export interface UploadCheckCardContentProps {
   infoLine?: string;
   enabled: boolean;
   disabled?: boolean;
+  invalid?: boolean;
   busy?: boolean;
   /** When true and `busy`, show a corner spinner instead of the checkbox (e.g. EULA status fetch). */
   spinnerWhenBusy?: boolean;
@@ -41,6 +42,7 @@ export function UploadCheckCardContent({
   infoLine,
   enabled,
   disabled = false,
+  invalid = false,
   busy = false,
   spinnerWhenBusy = false,
   onRequestEnable,
@@ -65,7 +67,11 @@ export function UploadCheckCardContent({
       className={cn(
         CORNER_CONTROL_CLASS,
         enabled &&
+          !invalid &&
           'border-green-400 bg-green-50 data-[state=checked]:border-green-500 data-[state=checked]:bg-green-500 dark:data-[state=checked]:border-green-600 dark:data-[state=checked]:bg-green-600',
+        enabled &&
+          invalid &&
+          'border-red-400 bg-red-50 data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500 dark:data-[state=checked]:border-red-600 dark:data-[state=checked]:bg-red-600',
       )}
     />
   );
@@ -90,7 +96,13 @@ export function UploadCheckCardContent({
           )}
         >
           {infoLine ? (
-            <p className={cn('flex-1 min-w-0 text-xs text-muted-foreground', TEXT_BLOCK_CLASS)}>
+            <p
+              className={cn(
+                'flex-1 min-w-0 text-xs',
+                TEXT_BLOCK_CLASS,
+                invalid ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground',
+              )}
+            >
               {infoLine}
             </p>
           ) : null}
