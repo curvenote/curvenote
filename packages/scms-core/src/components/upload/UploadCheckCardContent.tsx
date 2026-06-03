@@ -11,6 +11,9 @@ const CORNER_CONTROL_SIZE_PX = 20;
 const CORNER_CONTROL_CLASS =
   'pointer-events-none absolute top-2.5 right-2 z-10 shrink-0 sm:top-3 sm:right-4';
 
+/** Title, description, and info line are not separate click targets (card/button handles interaction). */
+const TEXT_BLOCK_CLASS = 'cursor-default pointer-events-none select-none';
+
 /** Logo slot size (+10% vs prior h-5 / max-w-[72px]). */
 const LOGO_IMG_CLASS =
   '[&_img]:h-[22px] [&_img]:w-auto [&_img]:max-w-[79px] [&_img]:object-contain [&_svg]:h-[22px] [&_svg]:w-[22px]';
@@ -75,7 +78,7 @@ export function UploadCheckCardContent({
       )}
     >
       {cornerControl}
-      <div className="min-w-0 pr-8">
+      <div className={cn('min-w-0 pr-8', TEXT_BLOCK_CLASS)}>
         <h3 className="text-base font-medium leading-snug">{title}</h3>
         <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
       </div>
@@ -87,7 +90,9 @@ export function UploadCheckCardContent({
           )}
         >
           {infoLine ? (
-            <p className="flex-1 min-w-0 text-xs text-muted-foreground">{infoLine}</p>
+            <p className={cn('flex-1 min-w-0 text-xs text-muted-foreground', TEXT_BLOCK_CLASS)}>
+              {infoLine}
+            </p>
           ) : null}
           {logo ? (
             <div

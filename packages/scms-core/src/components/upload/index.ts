@@ -4,6 +4,7 @@ export * from './utils.js';
 export * from './WorkFileCard.js';
 export * from './WorkFileUpload.js';
 export * from './UploadCheckOptionCard.js';
+export * from './UploadCheckCardPlaceholder.js';
 export * from './UploadCheckCardContent.js';
 export * from './uploadCheckCardStyles.js';
 export * from './DefaultUploadCheckOptionContent.js';

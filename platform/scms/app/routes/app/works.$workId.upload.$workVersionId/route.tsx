@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { Route } from './+types/route';
 import type {
   WorkVersionCheckName,
@@ -40,6 +40,7 @@ import {
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
   capitalize,
+  type UploadCheckCardMeta,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -51,8 +52,6 @@ import { validateUploadParams } from './validateUpload.server';
 import { updateWorkVersionTitle, updateWorkVersionAuthors } from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
-// eslint-disable-next-line import/no-extraneous-dependencies -- available via the SCMS server runtime on Vercel; used to avoid blocking the upload response.
-import { waitUntil } from '@vercel/functions';
 import { handleFetchPreviewsIntent } from './fetchPreviews.server';
 import { readDocxPreviewsFromObjectTable, type DocxPreviewItem } from './fetchPreviews.server';
 import { extractMetadataFromPreviews } from './anthropic.server';
@@ -63,6 +62,7 @@ import { zfd } from 'zod-form-data';
 import { MetadataPreviewSection } from './MetadataPreviewSection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isDocxPreviewCandidate } from './docxPreviewGuards';
+import { waitUntil } from '@vercel/functions';
 
 /**
  * Zod schema for work upload form validation
@@ -256,6 +256,11 @@ export async function loader(args: Route.LoaderArgs) {
 
   const textIntegrityLogoUrl = await getTextIntegrityLogoUrlFromObjectStore();
 
+  const uploadCheckCards: UploadCheckCardMeta[] = getExtensionCheckServicesFromServerConfig(
+    ctx.$config,
+    serverExtensions,
+  ).map(({ id, name, description }) => ({ id, name, description }));
+
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
@@ -271,6 +276,7 @@ export async function loader(args: Route.LoaderArgs) {
     extractedMetadata,
     hasMetadataPreviewScope,
     textIntegrityLogoUrl,
+    uploadCheckCards,
   };
 }
 
@@ -608,7 +614,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     previews = [],
     extractedMetadata,
     hasMetadataPreviewScope,
-    textIntegrityLogoUrl,
+    uploadCheckCards,
   } = loaderData;
   const { workVersionId } = useParams();
   const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
@@ -637,10 +643,13 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     [title, extractedMetadata, autoTitleFromFilenameFetcher.submit],
   );
 
-  // Resolve check services at render time to avoid serialization issues
-  // Construct minimal AppConfig from ClientDeploymentConfig
   const deploymentConfig = useDeploymentConfig();
-  const checkServices = getExtensionCheckServicesFromClientConfig(deploymentConfig, extensions);
+  const checkServices = useMemo(() => {
+    const client = getExtensionCheckServicesFromClientConfig(deploymentConfig, extensions);
+    return uploadCheckCards
+      .map((meta) => client.find((s) => s.id === meta.id))
+      .filter((s): s is ExtensionCheckService => s != null);
+  }, [deploymentConfig, uploadCheckCards]);
 
   const files = (metadata?.files ?? {}) as Record<
     string,
@@ -692,8 +701,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           className="space-y-4 max-w-3xl"
         >
           <p className="text-md text-muted-foreground">
-            Upload your manuscripts, you can upload mulitple files (DOCX and/or PDF). See individual
-            check services for file size limitations.
+            Upload your manuscripts: mulitple files, DOCX and/or PDFs are accepted but individual
+            check services may have limitations.
           </p>
           <WorkFileUpload
             cdnKey={cdnKey}
@@ -728,7 +737,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           </p>
           <WorkUploadChecksForm
             enabled={metadata.checks?.enabled || []}
-            checkServices={checkServices as ExtensionCheckService[]}
+            uploadCheckCards={uploadCheckCards}
+            checkServices={checkServices}
             workVersionId={workVersionId!}
             textIntegrityLogoUrl={loaderData.textIntegrityLogoUrl}
           />

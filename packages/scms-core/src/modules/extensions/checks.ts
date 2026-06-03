@@ -2,6 +2,13 @@ import type { ClientDeploymentConfig } from '../../providers/DeploymentProvider.
 import type { ClientExtension, ExtensionCheckService, ServerExtension } from './types.js';
 import { getExtensionConfig } from './utils.js';
 
+/** Serializable check card fields for upload-page SSR (components resolved client-side). */
+export type UploadCheckCardMeta = {
+  id: string;
+  name: string;
+  description: string;
+};
+
 /**
  * Get all check services from enabled extensions from a ClientDeploymentConfig, used client-side.
  */
