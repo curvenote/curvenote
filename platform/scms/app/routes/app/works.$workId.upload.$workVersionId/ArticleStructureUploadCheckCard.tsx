@@ -1,4 +1,9 @@
-import { primitives, UploadCheckCardContent, uploadCheckCardClassName } from '@curvenote/scms-core';
+import {
+  cn,
+  primitives,
+  UploadCheckCardContent,
+  uploadCheckCardClassName,
+} from '@curvenote/scms-core';
 import { CurvenoteText } from '@curvenote/icons';
 
 /**
@@ -6,7 +11,9 @@ import { CurvenoteText } from '@curvenote/icons';
  */
 export function ArticleStructureUploadCheckCard() {
   return (
-    <primitives.Card className={uploadCheckCardClassName({ enabled: false, disabled: true })}>
+    <primitives.Card
+      className={cn('h-full', uploadCheckCardClassName({ enabled: false, disabled: true }))}
+    >
       <UploadCheckCardContent
         logo={
           <CurvenoteText

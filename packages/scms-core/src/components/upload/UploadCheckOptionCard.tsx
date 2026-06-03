@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { useFetcher } from 'react-router';
+import { cn } from '../../utils/cn.js';
 import { Card } from '../primitives/Card.js';
 import { toastError } from '../ui/toast.js';
 import type { ClientExtensionCheckService } from '../../modules/extensions/types.js';
@@ -53,7 +54,7 @@ export function UploadCheckOptionCard({
   return (
     <Card
       lift
-      className={uploadCheckCardClassName({ enabled, disabled, invalid, busy: isBusy })}
+      className={cn('h-full', uploadCheckCardClassName({ enabled, disabled, invalid, busy: isBusy }))}
       onClick={() => {
         if (enabled) {
           void setEnabled(false);
@@ -66,6 +67,7 @@ export function UploadCheckOptionCard({
         disabled={disabled}
         invalid={invalid}
         setEnabled={setEnabled}
+        toggleBusy={isBusy}
         name={service.name}
         description={service.description}
         logoUrl={logoUrl}

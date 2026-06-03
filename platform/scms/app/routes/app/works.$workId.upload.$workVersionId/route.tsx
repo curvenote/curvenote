@@ -52,6 +52,7 @@ import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
 import { updateWorkVersionTitle, updateWorkVersionAuthors } from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
+import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
 import { handleFetchPreviewsIntent } from './fetchPreviews.server';
 import { readDocxPreviewsFromObjectTable, type DocxPreviewItem } from './fetchPreviews.server';
@@ -177,13 +178,14 @@ export async function loader(args: Route.LoaderArgs) {
   // Authors: use work version's authors only; no default from current user
   const authorsText = work.authors?.length ? work.authors.join(', ') : '';
 
-  // Track view
-  await ctx.trackEvent(TrackEvent.WORK_VIEWED, {
-    workId: work.id,
-    workVersionId: work.version_id,
-    isDraft: work.draft,
-    source: 'work-version-upload',
-  });
+  if (shouldTrackWorkViewedOnLoader(args.request)) {
+    await ctx.trackEvent(TrackEvent.WORK_VIEWED, {
+      workId: work.id,
+      workVersionId: work.version_id,
+      isDraft: work.draft,
+      source: 'work-version-upload',
+    });
+  }
 
   // Extract and validate metadata structure
   const rawMetadata = work.metadata || {};
@@ -344,7 +346,6 @@ export async function action(args: Route.ActionArgs) {
 
       // Handle check toggle intent (toggles a single check in metadata)
       if (uploadIntent === 'toggle-check') {
-        console.log('toggleWorkVersionCheck', workVersionId, checkName, checked);
         if (!workVersionId) {
           return data(
             { error: { type: 'general', message: 'Work version ID is required' } },
@@ -725,7 +726,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           className="space-y-4 max-w-3xl"
         >
           <p className="text-md text-muted-foreground">
-            Upload one or more manuscript files (DOCX or PDF), up to 200 MB total. Individual check
+            Upload one or more manuscript files (DOCX or PDF), up to 100 MB total. Individual check
             services may have stricter limits.
           </p>
           <WorkFileUpload

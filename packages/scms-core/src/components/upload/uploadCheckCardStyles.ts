@@ -1,7 +1,7 @@
 import { cn } from '../../utils/cn.js';
 
 /** Upload checks section: two columns at all breakpoints (section is wide; avoids md: SSR flash). */
-export const UPLOAD_CHECKS_GRID_CLASS = 'grid grid-cols-2 gap-4';
+export const UPLOAD_CHECKS_GRID_CLASS = 'grid grid-cols-2 items-stretch gap-4';
 
 /** Selected / unselected card chrome aligned with wizard option cards. */
 export function uploadCheckCardClassName({
@@ -16,7 +16,7 @@ export function uploadCheckCardClassName({
   busy?: boolean;
 }) {
   return cn(
-    'p-0 transition-all duration-100 border bg-white dark:bg-stone-900',
+    'flex h-full flex-col p-0 transition-all duration-100 border bg-white dark:bg-stone-900',
     'border-stone-200 dark:border-stone-500',
     !disabled && !busy && !invalid && 'hover:border-stone-400 dark:hover:border-stone-400',
     enabled &&

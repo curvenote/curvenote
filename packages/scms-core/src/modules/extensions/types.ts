@@ -165,6 +165,8 @@ export interface UploadCheckOptionProps {
   logoUrl?: string;
   /** Platform persists selection via `toggle-check` on the upload route. */
   setEnabled: (enabled: boolean) => Promise<void>;
+  /** True while this check's `toggle-check` action is in flight. */
+  toggleBusy?: boolean;
 }
 
 export interface ExtensionCheckService {

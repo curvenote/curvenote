@@ -5,7 +5,7 @@ export const WORK_UPLOAD_CONFIGURATION: Record<string, FileUploadConfig> = {
     slot: 'manuscript',
     label: 'Manuscript',
     icon: 'file',
-    description: 'Upload one or more manuscript files (.docx or .pdf), up to 200 MB total',
+    description: 'Upload one or more manuscript files (.docx or .pdf), up to 100 MB total',
     optional: false,
     multiple: true,
     accept:
@@ -14,7 +14,7 @@ export const WORK_UPLOAD_CONFIGURATION: Record<string, FileUploadConfig> = {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/pdf',
     ],
-    maxTotalSize: 200 * 1024 * 1024, // 200 MB total across slot
+    maxTotalSize: 100 * 1024 * 1024, // 100 MB total across slot
     hideFileCount: false,
     requireLabel: false,
   },

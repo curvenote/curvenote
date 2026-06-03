@@ -13,6 +13,7 @@ export function DefaultUploadCheckOptionContent({
   disabled,
   invalid,
   setEnabled,
+  toggleBusy = false,
   name,
   description,
 }: DefaultUploadCheckOptionContentProps) {
@@ -23,6 +24,8 @@ export function DefaultUploadCheckOptionContent({
       enabled={enabled}
       disabled={disabled}
       invalid={invalid}
+      busy={toggleBusy}
+      spinnerWhenBusy
       onRequestEnable={() => {
         void setEnabled(true);
       }}

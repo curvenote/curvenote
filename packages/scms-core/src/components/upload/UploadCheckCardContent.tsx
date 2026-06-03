@@ -18,6 +18,11 @@ const TEXT_BLOCK_CLASS = 'cursor-default pointer-events-none select-none';
 const LOGO_IMG_CLASS =
   '[&_img]:h-[22px] [&_img]:w-auto [&_img]:max-w-[79px] [&_img]:object-contain [&_svg]:h-[22px] [&_svg]:w-[22px]';
 
+/** Reserve two lines for info text so card footers align across the upload checks grid. */
+const FOOTER_MIN_HEIGHT_CLASS = 'min-h-[2.75rem]';
+
+const CARD_CONTENT_SHELL_CLASS = 'flex h-full min-h-0 w-full flex-1 flex-col';
+
 export interface UploadCheckCardContentProps {
   logo?: ReactNode;
   title: ReactNode;
@@ -79,39 +84,42 @@ export function UploadCheckCardContent({
   const body = (
     <div
       className={cn(
-        'relative px-2 py-3 text-left sm:px-4',
+        'relative flex h-full min-h-0 flex-col px-2 py-3 text-left sm:px-4',
         showCornerSpinner && 'cursor-wait',
       )}
     >
       {cornerControl}
-      <div className={cn('min-w-0 pr-8', TEXT_BLOCK_CLASS)}>
+      <div className={cn('min-w-0 flex-1 pr-8', TEXT_BLOCK_CLASS)}>
         <h3 className="text-base font-medium leading-snug">{title}</h3>
         <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
       </div>
       {showFooter ? (
         <div
           className={cn(
-            'flex gap-3 items-center mt-2',
+            'mt-2 flex shrink-0 gap-3 items-end',
+            FOOTER_MIN_HEIGHT_CLASS,
             infoLine ? 'justify-between' : 'justify-end',
           )}
         >
           {infoLine ? (
             <p
               className={cn(
-                'flex-1 min-w-0 text-xs',
+                'flex flex-1 min-w-0 items-end self-stretch text-xs leading-snug',
                 TEXT_BLOCK_CLASS,
                 invalid ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground',
               )}
             >
               {infoLine}
             </p>
-          ) : null}
+          ) : (
+            <span className="flex-1 min-w-0" aria-hidden />
+          )}
           {logo ? (
             <div
               className={cn(
-                'flex flex-shrink-0 items-center justify-end',
+                'flex h-[22px] shrink-0 items-end justify-end',
                 LOGO_IMG_CLASS,
-                '[&>span]:flex [&>span]:items-center [&>span]:justify-end',
+                '[&>span]:flex [&>span]:h-full [&>span]:items-end [&>span]:justify-end',
               )}
             >
               {logo}
@@ -123,13 +131,17 @@ export function UploadCheckCardContent({
   );
 
   if (disabled || enabled) {
-    return body;
+    return <div className={CARD_CONTENT_SHELL_CLASS}>{body}</div>;
   }
 
   return (
     <button
       type="button"
-      className={cn('w-full text-left cursor-pointer', busy && 'opacity-50 cursor-wait')}
+      className={cn(
+        CARD_CONTENT_SHELL_CLASS,
+        'text-left cursor-pointer',
+        busy && 'opacity-50 cursor-wait',
+      )}
       disabled={busy}
       onClick={(e) => {
         e.stopPropagation();
