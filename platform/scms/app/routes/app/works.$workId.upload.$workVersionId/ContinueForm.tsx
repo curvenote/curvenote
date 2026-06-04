@@ -1,16 +1,17 @@
 import { useEffect } from 'react';
 import { useFetcher, useFetchers, Link, useParams, useLocation } from 'react-router';
-import { ui } from '@curvenote/scms-core';
-import type { FileMetadataSection } from '@curvenote/scms-core';
+import { ui, hasInvalidEnabledUploadChecks } from '@curvenote/scms-core';
+import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata, ChecksMetadataSection } from '@curvenote/scms-server';
 
 interface ContinueFormProps {
   title: string;
   authors: string;
   metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
+  checkServices: ExtensionCheckService[];
 }
 
-export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
+export function ContinueForm({ title, authors, metadata, checkServices }: ContinueFormProps) {
   const fetcher = useFetcher();
   const fetchers = useFetchers();
   const { workId } = useParams();
@@ -29,21 +30,24 @@ export function ContinueForm({ title, authors, metadata }: ContinueFormProps) {
     }
   }, [fetcher.state, fetcher.data]);
 
-  // Check if title is non-empty
-  const hasTitle = title && title.trim().length > 0;
+  const hasTitle = Boolean(title?.trim());
+  const hasFiles =
+    metadata.files != null &&
+    typeof metadata.files === 'object' &&
+    Object.keys(metadata.files).length > 0;
 
-  // Check if at least one file is uploaded
-  const hasFiles = true; //'files' in metadata && metadata.files && Object.keys(metadata.files).length > 0;
+  const enabledChecks = metadata.checks?.enabled ?? [];
+  const hasInvalidSelectedChecks = hasInvalidEnabledUploadChecks(
+    metadata,
+    enabledChecks,
+    checkServices,
+  );
 
-  // Block continue while any `toggle-check` fetcher is in flight. Otherwise the
-  // server-side `confirm-work` action may read stale `checks.enabled` metadata,
-  // causing the wrong redirect target and — worse — failing to dispatch a check
-  // that the user just selected. See confirm-work in ./route.tsx.
   const hasPendingToggleCheck = fetchers.some(
     (f) => f.state !== 'idle' && f.formData?.get('intent') === 'toggle-check',
   );
 
-  const disabled = !hasTitle || !hasFiles || hasPendingToggleCheck;
+  const disabled = !hasTitle || !hasFiles || hasPendingToggleCheck || hasInvalidSelectedChecks;
 
   const handleContinue = () => {
     const formData = new FormData();

@@ -161,7 +161,7 @@ export async function action(args: Route.ActionArgs) {
           ctx,
           'my-works',
           [],
-          metadataForNewDraftFileWorkVersion(ctx.$config, serverExtensions),
+          metadataForNewDraftFileWorkVersion(),
         );
         return {
           success: true,

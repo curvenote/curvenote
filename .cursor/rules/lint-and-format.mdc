@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+after every turn run `npm run lint` and fix any issues, run `npm run list:format:fix` and then `npm run lint:format` to check for remaining issues to fix manually, fix these if necessary

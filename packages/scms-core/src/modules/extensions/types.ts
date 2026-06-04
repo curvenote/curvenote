@@ -92,6 +92,13 @@ export type ExtensionCheckHandleActionResult = {
     status?: number;
   };
   status?: number;
+  /** EULA gating (e.g. text integrity `eula-status` / `execute`). */
+  requireEula?: boolean;
+  requiresEula?: boolean;
+  accepted?: boolean;
+  version?: string;
+  acceptedAt?: string;
+  eula?: { version?: string; html?: string; url?: string };
 };
 
 /**
@@ -146,6 +153,22 @@ export type ExtensionCheckSectionSummaryTitleProps = {
   metadata: any;
 };
 
+/** Props for per-check upload option cards on the work upload page. */
+export interface UploadCheckOptionProps {
+  workVersionId: string;
+  enabled: boolean;
+  /** Files on the draft do not meet this check's requirements; card cannot be enabled. */
+  disabled?: boolean;
+  /** Check is selected but uploaded files no longer meet requirements. */
+  invalid?: boolean;
+  /** Service manifest logo URL when available (e.g. text integrity Object config). */
+  logoUrl?: string;
+  /** Platform persists selection via `toggle-check` on the upload route. */
+  setEnabled: (enabled: boolean) => Promise<void>;
+  /** True while this check's `toggle-check` action is in flight. */
+  toggleBusy?: boolean;
+}
+
 export interface ExtensionCheckService {
   id: string; // e.g., 'curvenote-structure'
   name: string; // Display name
@@ -192,6 +215,16 @@ export interface ExtensionCheckService {
    * letting extensions own full fetch/revalidate behaviour.
    */
   checkRunTimelineMountComponent?: React.ComponentType<ExtensionCheckRunTimelineMountProps>;
+  /**
+   * Optional upload-page check card body (platform `UploadCheckOptionCard` supplies border + toggle-off).
+   * When omitted, platform uses default name + description layout.
+   */
+  uploadCheckOptionComponent?: React.ComponentType<UploadCheckOptionProps>;
+  /**
+   * True when current work-version metadata satisfies this check's upload file requirements.
+   * Used on the upload page to enable, disable, or mark check cards invalid.
+   */
+  isUploadEligible?: (metadata: unknown) => boolean;
   /** Server-side action handler. Used from upload flow (intent `execute` + job enqueue). */
   handleAction?: (
     args: ExtensionCheckHandleActionArgs,

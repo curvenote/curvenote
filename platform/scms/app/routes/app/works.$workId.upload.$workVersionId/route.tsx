@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { Route } from './+types/route';
 import type {
   WorkVersionCheckName,
@@ -22,11 +22,7 @@ import {
   makeDefaultWorkVersionMetadata,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
-import type {
-  ExtensionCheckService,
-  ExtensionCheckHandleActionArgs,
-  FileMetadataSection,
-} from '@curvenote/scms-core';
+import type { ExtensionCheckHandleActionArgs, FileMetadataSection } from '@curvenote/scms-core';
 import {
   MainWrapper,
   PageFrame,
@@ -35,23 +31,24 @@ import {
   TrackEvent,
   ui,
   FileMetadataSectionSchema,
-  scopes,
   useDeploymentConfig,
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
+  hasInvalidEnabledUploadChecks,
   capitalize,
+  scopes,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { WorkUploadChecksForm } from './WorkUploadChecksForm';
+import { getTextIntegrityLogoUrlFromObjectStore } from './textIntegrityLogo.server';
 import { ContinueForm } from './ContinueForm';
 import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
 import { updateWorkVersionTitle, updateWorkVersionAuthors } from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
-import { data, redirect, useFetcher, useRevalidator } from 'react-router';
-// eslint-disable-next-line import/no-extraneous-dependencies -- available via the SCMS server runtime on Vercel; used to avoid blocking the upload response.
-import { waitUntil } from '@vercel/functions';
+import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
+import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
 import { handleFetchPreviewsIntent } from './fetchPreviews.server';
 import { readDocxPreviewsFromObjectTable, type DocxPreviewItem } from './fetchPreviews.server';
 import { extractMetadataFromPreviews } from './anthropic.server';
@@ -62,6 +59,8 @@ import { zfd } from 'zod-form-data';
 import { MetadataPreviewSection } from './MetadataPreviewSection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isDocxPreviewCandidate } from './docxPreviewGuards';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { waitUntil } from '@vercel/functions';
 
 /**
  * Zod schema for work upload form validation
@@ -175,13 +174,14 @@ export async function loader(args: Route.LoaderArgs) {
   // Authors: use work version's authors only; no default from current user
   const authorsText = work.authors?.length ? work.authors.join(', ') : '';
 
-  // Track view
-  await ctx.trackEvent(TrackEvent.WORK_VIEWED, {
-    workId: work.id,
-    workVersionId: work.version_id,
-    isDraft: work.draft,
-    source: 'work-version-upload',
-  });
+  if (shouldTrackWorkViewedOnLoader(args.request)) {
+    await ctx.trackEvent(TrackEvent.WORK_VIEWED, {
+      workId: work.id,
+      workVersionId: work.version_id,
+      isDraft: work.draft,
+      source: 'work-version-upload',
+    });
+  }
 
   // Extract and validate metadata structure
   const rawMetadata = work.metadata || {};
@@ -253,6 +253,8 @@ export async function loader(args: Route.LoaderArgs) {
     { ignoreSystemAdmin: true },
   );
 
+  const textIntegrityLogoUrl = await getTextIntegrityLogoUrlFromObjectStore();
+
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
@@ -267,6 +269,7 @@ export async function loader(args: Route.LoaderArgs) {
     previews,
     extractedMetadata,
     hasMetadataPreviewScope,
+    textIntegrityLogoUrl,
   };
 }
 
@@ -333,7 +336,6 @@ export async function action(args: Route.ActionArgs) {
 
       // Handle check toggle intent (toggles a single check in metadata)
       if (uploadIntent === 'toggle-check') {
-        console.log('toggleWorkVersionCheck', workVersionId, checkName, checked);
         if (!workVersionId) {
           return data(
             { error: { type: 'general', message: 'Work version ID is required' } },
@@ -374,6 +376,23 @@ export async function action(args: Route.ActionArgs) {
 
         const currentMetadata = (wv?.metadata as any) || makeDefaultWorkVersionMetadata();
         const enabledChecks = (currentMetadata.checks?.enabled as WorkVersionCheckName[]) || [];
+
+        const uploadCheckServices = getExtensionCheckServicesFromServerConfig(
+          baseCtx.$config,
+          serverExtensions,
+        );
+        if (hasInvalidEnabledUploadChecks(currentMetadata, enabledChecks, uploadCheckServices)) {
+          return data(
+            {
+              error: {
+                type: 'validation',
+                message:
+                  'One or more selected checks are not compatible with your uploaded files. Deselect them or adjust your uploads before continuing.',
+              },
+            },
+            { status: 400 },
+          );
+        }
 
         // Create check status objects for each enabled check
         const checkStatuses: Record<string, any> = {};
@@ -605,6 +624,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     extractedMetadata,
     hasMetadataPreviewScope,
   } = loaderData;
+  const { workVersionId } = useParams();
   const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
   const revalidator = useRevalidator();
   const fetchPreviewsFetcher = useFetcher();
@@ -631,10 +651,11 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     [title, extractedMetadata, autoTitleFromFilenameFetcher.submit],
   );
 
-  // Resolve check services at render time to avoid serialization issues
-  // Construct minimal AppConfig from ClientDeploymentConfig
   const deploymentConfig = useDeploymentConfig();
-  const checkServices = getExtensionCheckServicesFromClientConfig(deploymentConfig, extensions);
+  const checkServices = useMemo(
+    () => getExtensionCheckServicesFromClientConfig(deploymentConfig, extensions),
+    [deploymentConfig],
+  );
 
   const files = (metadata?.files ?? {}) as Record<
     string,
@@ -686,7 +707,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           className="space-y-4 max-w-3xl"
         >
           <p className="text-md text-muted-foreground">
-            Upload a single manuscript file (up to 50 MB). DOCX and PDF formats are supported.
+            Upload one or more manuscript files (DOCX or PDF), up to 100 MB total. Individual check
+            services may have stricter limits.
           </p>
           <WorkFileUpload
             cdnKey={cdnKey}
@@ -714,19 +736,25 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
         <SectionWithHeading
           heading="Select Checks to Run"
           icon={<CheckSquare className="w-5 h-5" />}
-          className="space-y-4 max-w-3xl"
+          className="space-y-4 max-w-5xl"
         >
           <p className="text-muted-foreground">
             Choose which checks you'd like to run on your work.
           </p>
-          <ui.Card className="p-6 space-y-4">
-            <WorkUploadChecksForm
-              enabled={metadata.checks?.enabled || []}
-              checkServices={checkServices as ExtensionCheckService[]}
-            />
-          </ui.Card>
+          <WorkUploadChecksForm
+            enabled={metadata.checks?.enabled || []}
+            checkServices={checkServices}
+            workVersionId={workVersionId!}
+            metadata={metadata}
+            textIntegrityLogoUrl={loaderData.textIntegrityLogoUrl}
+          />
         </SectionWithHeading>
-        <ContinueForm title={title} authors={authors} metadata={metadata} />
+        <ContinueForm
+          title={title}
+          authors={authors}
+          metadata={metadata}
+          checkServices={checkServices}
+        />
       </PageFrame>
     </MainWrapper>
   );

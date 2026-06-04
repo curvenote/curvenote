@@ -84,6 +84,19 @@ const echoPlugin: ServicePlugin = {
     };
   },
 
+  async acceptTerms(
+    _credentials: Record<string, unknown>,
+    _body: Record<string, unknown>,
+  ): Promise<PluginOperationResult> {
+    return {
+      status: 'completed',
+      result: {
+        type: 'none',
+        message: 'Echo has no provider EULA acceptance.',
+      },
+    };
+  },
+
   async upload(
     _credentials: Record<string, unknown>,
     payload: PluginUploadPayload,
