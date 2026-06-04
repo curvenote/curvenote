@@ -59,6 +59,7 @@ import { zfd } from 'zod-form-data';
 import { MetadataPreviewSection } from './MetadataPreviewSection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isDocxPreviewCandidate } from './docxPreviewGuards';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { waitUntil } from '@vercel/functions';
 
 /**
