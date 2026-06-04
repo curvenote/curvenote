@@ -23,7 +23,6 @@ import {
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
-  ExtensionCheckService,
   ExtensionCheckHandleActionArgs,
   FileMetadataSection,
   MainWrapper,
@@ -38,7 +37,6 @@ import type {
   getExtensionCheckServicesFromServerConfig,
   hasInvalidEnabledUploadChecks,
   capitalize,
-  UploadCheckCardMeta,
 } from '@curvenote/scms-core';
 import { scopes } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
@@ -257,11 +255,6 @@ export async function loader(args: Route.LoaderArgs) {
 
   const textIntegrityLogoUrl = await getTextIntegrityLogoUrlFromObjectStore();
 
-  const uploadCheckCards: UploadCheckCardMeta[] = getExtensionCheckServicesFromServerConfig(
-    ctx.$config,
-    serverExtensions,
-  ).map(({ id, name, description }) => ({ id, name, description }));
-
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
@@ -277,7 +270,6 @@ export async function loader(args: Route.LoaderArgs) {
     extractedMetadata,
     hasMetadataPreviewScope,
     textIntegrityLogoUrl,
-    uploadCheckCards,
   };
 }
 
@@ -631,7 +623,6 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     previews = [],
     extractedMetadata,
     hasMetadataPreviewScope,
-    uploadCheckCards,
   } = loaderData;
   const { workVersionId } = useParams();
   const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
@@ -661,12 +652,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   );
 
   const deploymentConfig = useDeploymentConfig();
-  const checkServices = useMemo(() => {
-    const client = getExtensionCheckServicesFromClientConfig(deploymentConfig, extensions);
-    return uploadCheckCards
-      .map((meta) => client.find((s) => s.id === meta.id))
-      .filter((s): s is ExtensionCheckService => s != null);
-  }, [deploymentConfig, uploadCheckCards]);
+  const checkServices = useMemo(
+    () => getExtensionCheckServicesFromClientConfig(deploymentConfig, extensions),
+    [deploymentConfig],
+  );
 
   const files = (metadata?.files ?? {}) as Record<
     string,
@@ -754,7 +743,6 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           </p>
           <WorkUploadChecksForm
             enabled={metadata.checks?.enabled || []}
-            uploadCheckCards={uploadCheckCards}
             checkServices={checkServices}
             workVersionId={workVersionId!}
             metadata={metadata}
