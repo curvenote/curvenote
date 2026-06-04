@@ -1,5 +1,24 @@
 # @curvenote/scms
 
+## 0.20.1
+
+### Patch Changes
+
+- [#895](https://github.com/curvenote/curvenote/pull/895) [`ca501fc`](https://github.com/curvenote/curvenote/commit/ca501fc7a5da98692d483db8a5bc98d6f50d4ea2) Thanks [@dependabot](https://github.com/apps/dependabot)! - Uniformly return version on public SiteWork endpoints
+
+- [#926](https://github.com/curvenote/curvenote/pull/926) [`94e9078`](https://github.com/curvenote/curvenote/commit/94e90780c1bd5fdcff575f5c06bacfef4ef26a13) Thanks [@stevejpurves](https://github.com/stevejpurves)! - WorkVersion `subject` read from new frontmatter location
+
+- [#932](https://github.com/curvenote/curvenote/pull/932) [`0594630`](https://github.com/curvenote/curvenote/commit/05946301f9dcf369cef12870ea79022aafb069a8) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Upload form and flow improvements
+
+- Updated dependencies [[`ca501fc`](https://github.com/curvenote/curvenote/commit/ca501fc7a5da98692d483db8a5bc98d6f50d4ea2), [`94e9078`](https://github.com/curvenote/curvenote/commit/94e90780c1bd5fdcff575f5c06bacfef4ef26a13), [`0594630`](https://github.com/curvenote/curvenote/commit/05946301f9dcf369cef12870ea79022aafb069a8), [`8cb7468`](https://github.com/curvenote/curvenote/commit/8cb74684248ba8ad05e8b15d455e475360bf5f89)]:
+  - @curvenote/scms-server@0.20.1
+  - @curvenote/common@0.6.1
+  - @curvenote/scms-core@0.20.1
+  - @curvenote/scms-sites-ext@0.20.1
+  - @curvenote/check-definitions@0.16.3
+  - @curvenote/cdn@0.6.1
+  - @curvenote/scms-db@0.20.1
+
 ## 0.20.0
 
 ### Minor Changes

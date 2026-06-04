@@ -1,5 +1,12 @@
 # @curvenote/cdn
 
+## 0.6.1
+
+### Patch Changes
+
+- Updated dependencies [[`ca501fc`](https://github.com/curvenote/curvenote/commit/ca501fc7a5da98692d483db8a5bc98d6f50d4ea2), [`94e9078`](https://github.com/curvenote/curvenote/commit/94e90780c1bd5fdcff575f5c06bacfef4ef26a13)]:
+  - @curvenote/common@0.6.1
+
 ## 0.6.0
 
 ### Patch Changes
