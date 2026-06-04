@@ -8,16 +8,23 @@ import {
 } from './checks.js';
 import type { ClientExtension, ServerExtension } from './types.js';
 
+/** Minimal React stubs — tests only assert service ids from getChecks(). */
+function noopCheckComponent() {
+  return null;
+}
+
 const mockCheckExtension = {
   id: 'mock-checks',
   name: 'Mock Checks',
   description: 'Test',
-  registerNavigation: () => {},
+  registerNavigation: () => [],
   getChecks: () => [
     {
       id: 'mock-service',
       name: 'Mock Service',
       description: 'Runs mock checks',
+      sectionHeaderComponent: noopCheckComponent,
+      sectionActivityComponent: noopCheckComponent,
     },
   ],
 } satisfies ClientExtension;
