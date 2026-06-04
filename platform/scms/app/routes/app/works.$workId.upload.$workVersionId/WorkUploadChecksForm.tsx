@@ -49,9 +49,7 @@ export function WorkUploadChecksForm({
               enabled={isEnabled}
               disabled={disabled}
               invalid={invalid}
-              logoUrl={
-                service.id === 'checks-text-integrity' ? textIntegrityLogoUrl : undefined
-              }
+              logoUrl={service.id === 'checks-text-integrity' ? textIntegrityLogoUrl : undefined}
             />
           );
         }

@@ -54,7 +54,10 @@ export function UploadCheckOptionCard({
   return (
     <Card
       lift
-      className={cn('h-full', uploadCheckCardClassName({ enabled, disabled, invalid, busy: isBusy }))}
+      className={cn(
+        'h-full',
+        uploadCheckCardClassName({ enabled, disabled, invalid, busy: isBusy }),
+      )}
       onClick={() => {
         if (enabled) {
           void setEnabled(false);

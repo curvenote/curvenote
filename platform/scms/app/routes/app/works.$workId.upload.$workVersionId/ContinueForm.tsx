@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { useFetcher, useFetchers, Link, useParams, useLocation } from 'react-router';
-import {
+import type {
+  FileMetadataSection,
   ui,
   hasInvalidEnabledUploadChecks,
   type ExtensionCheckService,
 } from '@curvenote/scms-core';
-import type { FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata, ChecksMetadataSection } from '@curvenote/scms-server';
 
 interface ContinueFormProps {
@@ -51,8 +51,7 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
     (f) => f.state !== 'idle' && f.formData?.get('intent') === 'toggle-check',
   );
 
-  const disabled =
-    !hasTitle || !hasFiles || hasPendingToggleCheck || hasInvalidSelectedChecks;
+  const disabled = !hasTitle || !hasFiles || hasPendingToggleCheck || hasInvalidSelectedChecks;
 
   const handleContinue = () => {
     const formData = new FormData();

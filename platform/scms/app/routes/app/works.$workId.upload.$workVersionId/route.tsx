@@ -26,8 +26,6 @@ import type {
   ExtensionCheckService,
   ExtensionCheckHandleActionArgs,
   FileMetadataSection,
-} from '@curvenote/scms-core';
-import {
   MainWrapper,
   PageFrame,
   SectionWithHeading,
@@ -35,14 +33,14 @@ import {
   TrackEvent,
   ui,
   FileMetadataSectionSchema,
-  scopes,
   useDeploymentConfig,
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
   hasInvalidEnabledUploadChecks,
   capitalize,
-  type UploadCheckCardMeta,
+  UploadCheckCardMeta,
 } from '@curvenote/scms-core';
+import { scopes } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { WorkUploadChecksForm } from './WorkUploadChecksForm';
@@ -391,13 +389,7 @@ export async function action(args: Route.ActionArgs) {
           baseCtx.$config,
           serverExtensions,
         );
-        if (
-          hasInvalidEnabledUploadChecks(
-            currentMetadata,
-            enabledChecks,
-            uploadCheckServices,
-          )
-        ) {
+        if (hasInvalidEnabledUploadChecks(currentMetadata, enabledChecks, uploadCheckServices)) {
           return data(
             {
               error: {

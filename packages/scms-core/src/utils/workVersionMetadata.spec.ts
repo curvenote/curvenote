@@ -73,17 +73,10 @@ describe('workVersionMetadata', () => {
     const services = [
       {
         id: 'proofig',
-        isUploadEligible: (m: unknown) =>
-          getFilesForSlot(m, 'manuscript').length === 1,
+        isUploadEligible: (m: unknown) => getFilesForSlot(m, 'manuscript').length === 1,
       },
     ];
-    expect(
-      hasInvalidEnabledUploadChecks(
-        { files: {} },
-        ['proofig'],
-        services,
-      ),
-    ).toBe(true);
+    expect(hasInvalidEnabledUploadChecks({ files: {} }, ['proofig'], services)).toBe(true);
     expect(
       hasInvalidEnabledUploadChecks(
         {
