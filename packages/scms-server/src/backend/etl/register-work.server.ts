@@ -64,10 +64,10 @@ function kindConnect(siteId: string, name: string) {
   };
 }
 
-function earlierPublishedDate(a: string | null, b: string | null): string | null {
+function laterPublishedDate(a: string | null, b: string | null): string | null {
   if (!a) return b;
   if (!b) return a;
-  return a <= b ? a : b;
+  return a >= b ? a : b;
 }
 
 async function findOwnedWorkIdByDoi(userId: string, doi: string): Promise<string | undefined> {
@@ -269,7 +269,7 @@ async function registerWorkInDb(
         },
         select: { id: true },
       });
-      const submissionDatePublished = earlierPublishedDate(
+      const submissionDatePublished = laterPublishedDate(
         existingSubmission.date_published,
         datePublished,
       );
