@@ -50,7 +50,6 @@
     "@curvenote/ext-template": "^0.8.0",
     "@curvenote/schema": "0.12.18",
     "@google-cloud/storage": "^5.18.2",
-    "@jupyterlab/services": "7.5.8",
     "@reduxjs/toolkit": "^1.7.2",
     "@scienceicons/myst": "^1.0.4",
     "@wordpress/wordcount": "3.40.0",

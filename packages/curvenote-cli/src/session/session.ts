@@ -8,7 +8,7 @@ import { default as nodeFetch } from 'node-fetch';
 import type { Limit } from 'p-limit';
 import pLimit from 'p-limit';
 import { Semaphore } from 'async-mutex';
-import type { ServerInfo, BuildWarning } from 'myst-cli';
+import type { ServerInfo, BuildWarning, ISession as IMystSession } from 'myst-cli';
 import latestVersion from 'latest-version';
 import {
   findCurrentProjectAndLoad,
@@ -21,6 +21,8 @@ import type { Logger } from 'myst-cli-utils';
 import { LogLevel, basicLogger, chalkLogger } from 'myst-cli-utils';
 import type { RuleId } from 'myst-common';
 import type { PluginInfo } from 'myst-config';
+// Resolved via myst-cli at runtime; types come from IMystSession below.
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { KernelManager, ServerConnection, SessionManager } from '@jupyterlab/services';
 import type { JupyterServerSettings } from 'myst-execute';
 import { findExistingJupyterServer, launchJupyterServer } from 'myst-execute';
@@ -56,6 +58,8 @@ const LOCALHOSTS = ['localhost', '127.0.0.1', '::1'];
 
 const CONFIG_FILES = ['curvenote.yml', 'myst.yml'];
 
+type JupyterSessionManager = Awaited<ReturnType<IMystSession['jupyterSessionManager']>>;
+
 export type SessionOptions = {
   logger?: Logger;
   doiLimiter?: Limit;
@@ -80,7 +84,7 @@ export class Session implements ISession {
   proxyAgent?: HttpsProxyAgent<string>;
   _shownUpgrade = false;
   _latestVersion?: string;
-  _jupyterSessionManagerPromise?: Promise<SessionManager | undefined>;
+  _jupyterSessionManagerPromise?: Promise<JupyterSessionManager>;
 
   get log(): Logger {
     return this.$logger;
@@ -315,7 +319,7 @@ export class Session implements ISession {
 
   _clones: ISession[] = [];
 
-  async clone() {
+  async clone(): Promise<ISession> {
     const cloneSession = await Session.create(this.$activeTokens.user?.token, {
       logger: this.$logger,
       doiLimiter: this.doiLimiter,
@@ -346,7 +350,7 @@ export class Session implements ISession {
     return warnings;
   }
 
-  async reload() {
+  async reload(): Promise<ISession> {
     await findCurrentProjectAndLoad(this, '.');
     await findCurrentSiteAndLoad(this, '.');
     if (selectors.selectCurrentSitePath(this.store.getState())) {
@@ -499,14 +503,14 @@ export class Session implements ISession {
     return path.join(this.sitePath(), 'public');
   }
 
-  jupyterSessionManager(): Promise<SessionManager | undefined> {
+  jupyterSessionManager(): Promise<JupyterSessionManager> {
     if (this._jupyterSessionManagerPromise === undefined) {
       this._jupyterSessionManagerPromise = this.createJupyterSessionManager();
     }
     return this._jupyterSessionManagerPromise;
   }
 
-  private async createJupyterSessionManager(): Promise<SessionManager | undefined> {
+  private async createJupyterSessionManager(): Promise<JupyterSessionManager> {
     try {
       let partialServerSettings: JupyterServerSettings | undefined;
       // Load from environment
@@ -537,7 +541,7 @@ export class Session implements ISession {
         kernelManager.dispose();
         partialServerSettings?.dispose?.();
       });
-      return manager;
+      return manager as JupyterSessionManager;
     } catch (err) {
       this.log.error('Unable to instantiate connection to Jupyter Server', err);
       return undefined;
