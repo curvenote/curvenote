@@ -22,9 +22,8 @@ import {
   makeDefaultWorkVersionMetadata,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
-import type {
-  ExtensionCheckHandleActionArgs,
-  FileMetadataSection,
+import type { ExtensionCheckHandleActionArgs, FileMetadataSection } from '@curvenote/scms-core';
+import {
   MainWrapper,
   PageFrame,
   SectionWithHeading,
@@ -37,8 +36,8 @@ import type {
   getExtensionCheckServicesFromServerConfig,
   hasInvalidEnabledUploadChecks,
   capitalize,
+  scopes,
 } from '@curvenote/scms-core';
-import { scopes } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { WorkUploadChecksForm } from './WorkUploadChecksForm';

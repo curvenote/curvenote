@@ -1,11 +1,7 @@
 import { useEffect } from 'react';
 import { useFetcher, useFetchers, Link, useParams, useLocation } from 'react-router';
-import type {
-  FileMetadataSection,
-  ui,
-  hasInvalidEnabledUploadChecks,
-  type ExtensionCheckService,
-} from '@curvenote/scms-core';
+import { ui, hasInvalidEnabledUploadChecks } from '@curvenote/scms-core';
+import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata, ChecksMetadataSection } from '@curvenote/scms-server';
 
 interface ContinueFormProps {
