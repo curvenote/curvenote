@@ -64,6 +64,12 @@ function kindConnect(siteId: string, name: string) {
   };
 }
 
+function earlierPublishedDate(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return a <= b ? a : b;
+}
+
 async function findOwnedWorkIdByDoi(userId: string, doi: string): Promise<string | undefined> {
   const prisma = await getPrismaClient();
   const ownerFilter = {
@@ -112,6 +118,7 @@ async function registerWorkInDb(
   const date_created = formatDate();
   const versionTag = input.version_tag?.trim();
   const submissionTags = versionTag ? [versionTag] : [];
+  const datePublished = input.date ?? null;
   const workVersionMetadata = buildWorkVersionMetadata(input);
   const submissionMetadata = input.submission_metadata;
   const contains = input.contains?.length
@@ -227,7 +234,7 @@ async function registerWorkInDb(
         site_id: siteId,
         work_id: workId,
       },
-      select: { id: true },
+      select: { id: true, date_published: true },
     });
 
     if (existingSubmission) {
@@ -237,7 +244,8 @@ async function registerWorkInDb(
           id: svId,
           date_created,
           date_modified: date_created,
-          status: 'PENDING',
+          status: 'PUBLISHED',
+          date_published: datePublished,
           tags: submissionTags,
           metadata: submissionMetadata as Prisma.InputJsonValue | undefined,
           submitted_by: { connect: { id: auth.userId } },
@@ -255,14 +263,25 @@ async function registerWorkInDb(
           activity_by: { connect: { id: auth.userId } },
           submission: { connect: { id: existingSubmission.id } },
           submission_version: { connect: { id: svId } },
-          status: 'PENDING',
+          status: 'PUBLISHED',
+          date_published: datePublished,
           work_version: { connect: { id: workVersionId } },
         },
         select: { id: true },
       });
+      const submissionDatePublished = earlierPublishedDate(
+        existingSubmission.date_published,
+        datePublished,
+      );
       await tx.submission.update({
         where: { id: existingSubmission.id },
-        data: { date_modified: date_created },
+        data: {
+          date_modified: date_created,
+          ...(submissionDatePublished !== null &&
+          submissionDatePublished !== existingSubmission.date_published
+            ? { date_published: submissionDatePublished }
+            : {}),
+        },
         select: { id: true },
       });
     } else {
@@ -273,7 +292,8 @@ async function registerWorkInDb(
           id: svId,
           date_created,
           date_modified: date_created,
-          status: 'PENDING',
+          status: 'PUBLISHED',
+          date_published: datePublished,
           tags: submissionTags,
           metadata: submissionMetadata as Prisma.InputJsonValue | undefined,
           submitted_by: { connect: { id: auth.userId } },
@@ -283,6 +303,7 @@ async function registerWorkInDb(
               id: submissionId,
               date_created,
               date_modified: date_created,
+              date_published: datePublished,
               submitted_by: { connect: { id: auth.userId } },
               kind: kindConnect(siteId, kindName),
               collection: collectionConnect(siteId, collectionName),
@@ -302,7 +323,8 @@ async function registerWorkInDb(
           activity_by: { connect: { id: auth.userId } },
           submission: { connect: { id: submissionId } },
           submission_version: { connect: { id: svId } },
-          status: 'PENDING',
+          status: 'PUBLISHED',
+          date_published: datePublished,
           work_version: { connect: { id: workVersionId } },
           kind: kindConnect(siteId, kindName),
         },
