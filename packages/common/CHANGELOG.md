@@ -1,5 +1,13 @@
 # @curvenote/common
 
+## 0.6.1
+
+### Patch Changes
+
+- [#895](https://github.com/curvenote/curvenote/pull/895) [`ca501fc`](https://github.com/curvenote/curvenote/commit/ca501fc7a5da98692d483db8a5bc98d6f50d4ea2) Thanks [@dependabot](https://github.com/apps/dependabot)! - Uniformly return version on public SiteWork endpoints
+
+- [#926](https://github.com/curvenote/curvenote/pull/926) [`94e9078`](https://github.com/curvenote/curvenote/commit/94e90780c1bd5fdcff575f5c06bacfef4ef26a13) Thanks [@stevejpurves](https://github.com/stevejpurves)! - WorkVersion `subject` read from new frontmatter location
+
 ## 0.6.0
 
 ### Minor Changes

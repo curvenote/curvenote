@@ -1,5 +1,17 @@
 # curvenote
 
+## 0.16.3
+
+### Patch Changes
+
+- [#895](https://github.com/curvenote/curvenote/pull/895) [`02f2020`](https://github.com/curvenote/curvenote/commit/02f2020815c0a75ea01ab7bd07f631b44af95e18) Thanks [@dependabot](https://github.com/apps/dependabot)! - Update to latest `mystmd` - with figure > grid fix (`v1.9.1+`)
+
+- Updated dependencies [[`ca501fc`](https://github.com/curvenote/curvenote/commit/ca501fc7a5da98692d483db8a5bc98d6f50d4ea2), [`94e9078`](https://github.com/curvenote/curvenote/commit/94e90780c1bd5fdcff575f5c06bacfef4ef26a13)]:
+  - @curvenote/common@0.6.1
+  - @curvenote/cli-plugin@0.16.3
+  - @curvenote/check-definitions@0.16.3
+  - @curvenote/check-implementations@0.16.3
+
 ## 0.16.2
 
 ### Patch Changes
