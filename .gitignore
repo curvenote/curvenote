@@ -57,3 +57,5 @@ types/app-config.d.ts
 # local Pub/Sub emulator (docs/jobs/scripts/start-pubsub-emulator.sh)
 docs/jobs/scripts/.pubsub-emulator.pid
 docs/jobs/scripts/.pubsub-emulator.log
+# roborev snapshots
+/.roborev/
