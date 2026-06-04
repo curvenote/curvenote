@@ -7,13 +7,6 @@ import type {
 } from './types.js';
 import { getExtensionConfig } from './utils.js';
 
-/** Serializable check card fields for upload-page SSR (components resolved client-side). */
-export type UploadCheckCardMeta = {
-  id: string;
-  name: string;
-  description: string;
-};
-
 /**
  * Whether an extension exposes check services in app config (server).
  * Must stay aligned with `platform/scms/app/root.tsx` capability extraction (`checks === true`).
@@ -32,12 +25,6 @@ export function extensionChecksEnabledFromClientConfig(
   extCfg: { capabilities: string[] } | undefined,
 ): boolean {
   return extCfg?.capabilities?.includes('checks') === true;
-}
-
-export function toUploadCheckCardMetas(
-  services: Pick<ExtensionCheckService, 'id' | 'name' | 'description'>[],
-): UploadCheckCardMeta[] {
-  return services.map(({ id, name, description }) => ({ id, name, description }));
 }
 
 /**
