@@ -64,6 +64,11 @@ model WorkVersion {
   /// Equality lookup for DOI resolution (`GET /v1/sites/:siteName/doi/...`).
   /// The `WorkVersion_doi_trgm_idx` GIN index (migration 20260526223800) only
   /// serves `LIKE`/search; a btree is required for `doi = ?`.
+  ///
+  /// Exact subject filter on the public works listing uses
+  /// `WorkVersion_subject_normalized_idx` (migration
+  /// `20260609120000_add_work_version_subject_normalized_index`) over
+  /// `work_version_subject_normalized(metadata)` — not expressible in Prisma.
   @@index([doi])
 }
 

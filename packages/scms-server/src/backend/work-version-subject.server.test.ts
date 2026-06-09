@@ -2,12 +2,19 @@
 import { describe, test, expect } from 'vitest';
 import {
   WORK_VERSION_SUBJECT_JSON_PATH,
+  WORK_VERSION_SUBJECT_NORMALIZED_FN,
   extractWorkVersionSubjectFromMetadata,
 } from './work-version-subject.server.js';
 
 describe('WORK_VERSION_SUBJECT_JSON_PATH', () => {
   test('is a quoted SQL text-array literal for Prisma.raw()', () => {
     expect(WORK_VERSION_SUBJECT_JSON_PATH).toBe("'{frontmatter.myst,subject}'");
+  });
+});
+
+describe('WORK_VERSION_SUBJECT_NORMALIZED_FN', () => {
+  test('matches the Postgres function backing WorkVersion_subject_normalized_idx', () => {
+    expect(WORK_VERSION_SUBJECT_NORMALIZED_FN).toBe('work_version_subject_normalized');
   });
 });
 
