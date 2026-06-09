@@ -4,6 +4,30 @@
 > **Branch context:** `feat/global-submissions-by-doi` — endpoints landed; performance slice not yet implemented  
 > **Related plans:** [site-works-listing-performance.md](./site-works-listing-performance.md), [site-doi-resolve-performance.md](./site-doi-resolve-performance.md), [submissions-listing-denormalisation.md](./submissions-listing-denormalisation.md)
 
+## Rollout principle — assess Phase 1 first
+
+**Phase 1 is expected to be already performant** for our current deployment shape
+(a handful of public sites — e.g. three — and submission counts well below the
+500k stress case). It should be **implemented and measured before committing to
+Phase 2**.
+
+| Phase | When | Why |
+| ----- | ---- | --- |
+| **Phase 1** (bespoke SQL, **no new table**) | **Do this first** | Forks catalog queries off the shared `/works` layer, fixes the worst patterns (two-phase search, DOI resolve shape), and keeps full API parity. With few sites, `?site=` single-site and small multi-site federation stay on the same `(site_id, date_published)` index path as `/works` — not materially slower in practice. |
+| **Phase 2** (`PublicCatalogEntry` + triggers) | **Only if Phase 1 measurement says so** | Needed for **unfiltered global listing at very large scale** (500k+ submissions). Higher operational cost (multiple triggers, backfill, drift tests). Do not jump here preemptively. |
+
+**Phase 1 gate (before Phase 2 planning locks):**
+
+1. Ship bespoke `catalog-listing.db.server.ts` + DOI-first resolve.
+2. Run `EXPLAIN (ANALYZE, BUFFERS)` on staging for: no `?site=`, `?site=one`, `?site=a&site=b`, plus `q` / `subject` / paginated shapes.
+3. Compare p95 to site-scoped `/works` on the same site and data volume.
+4. Proceed to Phase 2 only if unfiltered global listing or `COUNT` at target row counts fails SLOs — or if 500k is on a fixed near-term roadmap.
+
+Phase 2 remains fully specified in this document for team review, but it is a
+**follow-up scale path**, not a prerequisite for launching the catalog API.
+
+---
+
 ## Summary
 
 The global public catalog adds two endpoints that sit *beside* the existing
@@ -18,8 +42,10 @@ site-scoped listing and DOI routes:
 
 Today both global routes reuse the site-works listing DB layer
 (`dbListLatestPublishedSubmissions`) or a Prisma variant of the site DOI query.
-That was correct for shipping API parity quickly, but it constrains performance
-at scale (500k+ submissions), especially for **unfiltered** global listing.
+That was correct for shipping API parity quickly. It becomes a constraint mainly
+at **very large scale** (500k+ submissions), especially for **unfiltered** global
+listing — the problem Phase 2 solves. Phase 1 addresses code ownership and
+moderate optimisations without schema change.
 
 **Decision for this plan:**
 
@@ -29,11 +55,12 @@ at scale (500k+ submissions), especially for **unfiltered** global listing.
    single-site fast path; `/works` remains the canonical single-site route).
 3. **Preserve full filter / pagination API parity** with `/works` (see
    [API contract](#api-contract-parity-with-v1sitessitenameworks)).
-4. **Phase 1:** bespoke SQL on existing tables (quick wins, no schema change).
-5. **Phase 2:** new trigger-maintained read model `PublicCatalogEntry` (scale path),
-   kept correct by **multiple triggers** (not only `SubmissionVersion`) — see
-   [§2.2](#22-trigger-maintenance--multiple-triggers-required) and
-   [edge cases](#edge-cases-and-correctness-matrix).
+4. **Phase 1 first:** bespoke SQL on existing tables — ship, profile, **assess**
+   (see [Rollout principle](#rollout-principle--assess-phase-1-first)).
+5. **Phase 2 if needed:** new trigger-maintained read model `PublicCatalogEntry`
+   (scale path), kept correct by **multiple triggers** (not only
+   `SubmissionVersion`) — see [§2.2](#22-trigger-maintenance--multiple-triggers-required)
+   and [edge cases](#edge-cases-and-correctness-matrix).
 
 ---
 
@@ -623,10 +650,15 @@ updated, or deleted.
 
 ## Execution options (after team approval)
 
-1. **Phase 1 only** — bespoke SQL fork, tests, profile; revisit Phase 2 with data.
-2. **Phase 1 + 2 in one programme** — projection migration in same release train
-   as catalog query flip.
-3. **Phase 2 first** — if schema team capacity exists and 500k is a hard deadline.
+**Default (recommended):** **Phase 1 only** → measure → decide on Phase 2.
+
+1. **Phase 1 only** *(recommended first step)* — bespoke SQL fork, tests,
+   `EXPLAIN ANALYZE` + p95 vs `/works`; revisit Phase 2 only if SLOs fail or
+   500k is imminent.
+2. **Phase 1 then 2** — second programme after Phase 1 assessment documents the
+   gap (typical if unfiltered global listing at 500k is required).
+3. **Phase 1 + 2 in one programme** — only if measurement is impossible on
+   staging and 500k is a hard near-term deadline (higher risk; not default).
 
 Once approved, implementation should use bite-sized PRs:
 
