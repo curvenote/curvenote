@@ -78,6 +78,7 @@ export const siteWorkDtoSelect = {
   submission: {
     select: {
       id: true,
+      site_id: true,
       date_published: true,
       kind: true,
       collection: true,
@@ -105,6 +106,7 @@ export const submissionVersionForSiteWorkSelect = {
   submission: {
     select: {
       id: true,
+      site_id: true,
       date_published: true,
       kind: true,
       collection: true,

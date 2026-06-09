@@ -9,8 +9,12 @@ import { concatSiteWorkTags, formatDate } from '@curvenote/common';
 import { coerceToObject, makePaginationLinks } from '@curvenote/scms-core';
 // Value imports: called at runtime — must NOT be converted to `import type`
 // (doing so elides them and yields a `ReferenceError` at call time).
-import { createArticleUrl, signPrivateUrls } from '@curvenote/scms-server';
-import type { SiteContext } from '@curvenote/scms-server';
+import {
+  createArticleUrl,
+  signPrivateUrls,
+  type SiteContext,
+  type SubmissionListingDBO,
+} from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 
 /**
@@ -185,7 +189,7 @@ export function formatSiteWorkDTO(
 
 export function formatSiteWorkDTOFromSubmissions(
   ctx: SiteContext,
-  dbo: ListDBO,
+  dbo: SubmissionListingDBO,
   where?: {
     collection?: string;
     kind?: string;

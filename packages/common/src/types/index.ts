@@ -193,6 +193,37 @@ export type SiteWorkListingDTO = {
   };
 };
 
+/** Lightweight site summary on cross-site catalog responses. */
+export type CatalogSiteSummaryDTO = {
+  name: string;
+  title: string;
+  links: { self: string };
+};
+
+/** Public cross-site catalog item — SiteWorkDTO plus site context and DOI resolve link. */
+export type SubmissionCatalogItemDTO = SiteWorkDTO & {
+  site: CatalogSiteSummaryDTO;
+  links: SiteWorkDTO['links'] & {
+    resolve?: string;
+  };
+};
+
+export type SubmissionCatalogListingDTO = {
+  items: SubmissionCatalogItemDTO[];
+  total: number;
+  links: {
+    self: string;
+    prev?: string;
+    next?: string;
+  };
+};
+
+/** Global DOI resolve response — published site-work payload plus site summary. */
+export type DoiResolvedSubmissionDTO = SiteWorkDTO & {
+  versions: SiteWorkVersionDTO[];
+  site: CatalogSiteSummaryDTO;
+};
+
 export type WorkDTO = Work & {
   links: {
     self: string;
