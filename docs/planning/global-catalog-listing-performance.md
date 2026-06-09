@@ -30,7 +30,10 @@ at scale (500k+ submissions), especially for **unfiltered** global listing.
 3. **Preserve full filter / pagination API parity** with `/works` (see
    [API contract](#api-contract-parity-with-v1sitessitenameworks)).
 4. **Phase 1:** bespoke SQL on existing tables (quick wins, no schema change).
-5. **Phase 2:** new trigger-maintained read model `PublicCatalogEntry` (scale path).
+5. **Phase 2:** new trigger-maintained read model `PublicCatalogEntry` (scale path),
+   kept correct by **multiple triggers** (not only `SubmissionVersion`) — see
+   [§2.2](#22-trigger-maintenance--multiple-triggers-required) and
+   [edge cases](#edge-cases-and-correctness-matrix).
 
 ---
 
@@ -298,41 +301,114 @@ CREATE INDEX "PublicCatalogEntry_search_text_trgm_idx"
   ON "PublicCatalogEntry" USING GIN (search_text gin_trgm_ops);
 ```
 
-### 2.2 Trigger maintenance
+### 2.2 Trigger maintenance — **multiple triggers required**
 
-Extend the existing **`submission_recompute_listing_fields`** pattern
-(migration [`20260526120000_add_submission_is_listed`](../../prisma/schema/migrations/20260526120000_add_submission_is_listed/migration.sql))
-rather than inventing a parallel trigger chain.
+> **Review highlight:** A single trigger on `SubmissionVersion` is **not
+> sufficient**. Catalog visibility depends on facts spread across **Site**,
+> **Submission**, **SubmissionVersion**, **WorkVersion**, and **Work**. If we
+> only extend the existing `SubmissionVersion` trigger (as `is_listed` does),
+> the projection will **drift** when site visibility, sort keys, DOI, or search
+> fields change without a version status transition.
 
-#### On `SubmissionVersion` (already fires today)
+Follow the existing *pattern* from
+[`20260526120000_add_submission_is_listed`](../../prisma/schema/migrations/20260526120000_add_submission_is_listed/migration.sql)
+— one idempotent recompute **function** per `submission_id` (or per `site_id`
+for bulk site visibility) — but attach it via **multiple triggers** on different
+tables. Name the catalog function distinctly, e.g.
+`public_catalog_recompute_for_submission(submission_id)`, and call it from each
+trigger site below.
 
-`AFTER INSERT OR DELETE` and `AFTER UPDATE OF status` → recompute catalog row for
-`submission_id`:
+#### Why one trigger is not enough (failure modes)
+
+| Change | Fires `SubmissionVersion` trigger? | Without other triggers |
+| ------ | ---------------------------------- | ---------------------- |
+| Site `private: false → true` | ❌ | Stale rows remain in catalog |
+| Site `external: true → false` | ❌ | Missing rows until manual backfill |
+| `Submission.date_published` updated | ❌ | Wrong global sort order |
+| `WorkVersion.doi` / title / authors edited | ❌ | Stale `doi`, `search_text`, `links.resolve` |
+| `Work.doi` set (version DOI null) | ❌ | DOI resolve / `links.resolve` wrong |
+| `Submission.kind_id` / `collection_id` changed | ❌ | Wrong `?kind=` / `?collection=` membership |
+| `Submission.site_id` changed (if ever allowed) | ❌ | Row under wrong site or orphaned |
+| ETL / admin SQL updates metadata | ❌ | Subject / search drift |
+
+#### Required trigger inventory
+
+| # | Table | Trigger timing | Columns / events | Action |
+| - | ----- | -------------- | ---------------- | ------ |
+| **T1** | `SubmissionVersion` | `AFTER INSERT OR DELETE`; `AFTER UPDATE OF status` | Same as `is_listed` today | `public_catalog_recompute_for_submission(submission_id)` — UPSERT if a published version remains, else DELETE |
+| **T2** | `Site` | `AFTER UPDATE OF private, external` | `WHEN (OLD.private IS DISTINCT FROM NEW.private OR OLD.external IS DISTINCT FROM NEW.external)` | Site became catalog-eligible → **backfill** all qualifying submissions on site; became ineligible → **DELETE** all rows for `site_id` |
+| **T3** | `Submission` | `AFTER UPDATE OF date_published, date_created, kind_id, collection_id`; `AFTER UPDATE OF site_id` if moves are possible | Sort + filter columns | Recompute row if still catalog-eligible |
+| **T4** | `Submission` | `AFTER DELETE` | Submission removed | **DELETE** catalog row |
+| **T5** | `WorkVersion` | `AFTER UPDATE OF title, authors, doi, metadata, work_id` | Denormalised display + search | Recompute all catalog rows whose `submission_version_id` points at this WV (usually one; handle version promotion) |
+| **T6** | `Work` | `AFTER UPDATE OF doi` | Work-level DOI fallback | Recompute catalog rows for submissions whose listed published version uses this work |
+
+**T1 + T2 are mandatory for correctness.** T3–T6 are mandatory if denormalised
+columns (`date_published`, `doi`, `search_text`, `subject_normalized`, kind/collection
+names) live on `PublicCatalogEntry` — which they should for the performance goal.
+
+Optional **T7** (team decision): `AFTER INSERT ON Submission` — usually a no-op
+until a published version exists (T1 handles that), but documents intent.
+
+#### T1 — `SubmissionVersion` (published predicate)
 
 | Event | Catalog action |
 | ----- | -------------- |
-| New / remaining `PUBLISHED` version | **UPSERT** row (latest published version, denormalised fields) |
-| Last `PUBLISHED` version gone | **DELETE** row |
-| Published v1 + draft v2 on top | **KEEP** row pointing at latest **published** version (same as `/works`) |
+| First `PUBLISHED` version created | **INSERT** row (latest published SV + denormalised fields) |
+| Newer `PUBLISHED` version supersedes older | **UPDATE** `submission_version_id`, `work_version_id`, denormalised fields |
+| Last `PUBLISHED` version → `UNPUBLISHED` / `RETRACTED` / `IN_REVIEW` / deleted | **DELETE** row (if no other `PUBLISHED` version remains) |
+| `PUBLISHED` v1 + `DRAFT` / `INCOMPLETE` v2 on top | **UNCHANGED** — still points at v1 published (same as `/works`; differs from `is_listed`) |
+| `PUBLISHED` v1 + newer `PUBLISHED` v2 | **UPDATE** to v2 |
 
-#### On `Site` (new — required)
+Statuses that remove the row when **no** published version remains include at
+minimum: `UNPUBLISHED`, `RETRACTED`, and version **DELETE**. Any transition away
+from `PUBLISHED` on the *last* published version must re-run the “any published
+left?” probe.
 
-`AFTER UPDATE OF private, external` → recompute all rows for `site_id`:
+#### T2 — `Site` (visibility predicate) — **cannot be folded into T1**
 
 | Event | Catalog action |
 | ----- | -------------- |
-| Site becomes `private` or `external` | **DELETE** all `PublicCatalogEntry` for `site_id` |
-| Site becomes public and non-external | **BACKFILL** rows for submissions with a published version |
+| `private → true` or `external → true` | **DELETE** all `PublicCatalogEntry WHERE site_id = …` |
+| `private → false` and `external → false` | **BACKFILL** — insert rows for every submission on site with a published version |
+| Site already private; submission published | No row (T1 may run but function must check site eligibility and no-op / delete) |
 
-**Underlying `Submission` / `SubmissionVersion` data is never deleted** — only
-the catalog projection row.
+Every T1 recompute **must** guard: `Site.private = false AND Site.external = false`
+before INSERT/UPSERT. That makes T1 alone safe on private sites, but **does not**
+remove existing rows when the **site** flips — only T2 does that in bulk.
 
-#### Other recomputes (extend same function or sibling triggers)
+#### T3–T6 — denormalised field freshness
 
-- `Submission.date_published` / `date_created` change → update sort keys.
-- `WorkVersion` title / authors / doi / metadata subject change → update
-  denormalised search/subject/doi fields (trigger on `WorkVersion` or lazy
-  refresh — team to choose; document in migration).
+Without these, the API contract (search, subject, sort, DOI links) can lie while
+status stays `PUBLISHED`. Prefer **synchronous** triggers in the write transaction;
+a nightly repair job is a **supplement**, not a substitute (document repair query
+in runbook for drift detection).
+
+#### Shared recompute function contract
+
+```sql
+-- Conceptual — one function, many callers
+public_catalog_recompute_for_submission(p_submission_id TEXT) RETURNS void
+```
+
+Must be **idempotent**: call N times → same row state. Steps:
+
+1. Load submission + site; if site not catalog-eligible → DELETE row; return.
+2. Find latest `SubmissionVersion` where `status = 'PUBLISHED'` (order `date_created DESC`).
+3. If none → DELETE row; return.
+4. Resolve denormalised fields from linked `WorkVersion` / `Work` / `Submission`.
+5. INSERT … ON CONFLICT (submission_id) DO UPDATE.
+
+Bulk helper for T2:
+
+```sql
+public_catalog_backfill_for_site(p_site_id TEXT) RETURNS void
+public_catalog_purge_for_site(p_site_id TEXT) RETURNS void  -- DELETE all rows
+```
+
+#### Testing triggers (Phase 2 gate)
+
+Integration tests must cover **each trigger path independently** — not only
+“publish then list”. See [Edge cases matrix](#edge-cases-and-correctness-matrix).
 
 ### 2.3 Catalog listing reads projection only
 
@@ -358,17 +434,101 @@ Enrichment query (optional second round trip): load full formatter payload for
 
 ---
 
-## Lifecycle examples (team review scenarios)
+## Edge cases and correctness matrix
 
-| Scenario | `Submission` table | `PublicCatalogEntry` | Visible on `/v1/submissions` |
-| -------- | ------------------ | -------------------- | ---------------------------- |
-| Publish first version | unchanged | INSERT | yes |
-| Unpublish last published version | unchanged | DELETE | no |
-| Publish v2 while v1 stays published | unchanged | UPDATE (points to v2) | yes |
-| Add draft on top of published | unchanged | unchanged (still v1 published) | yes |
-| Site toggled to `private` | unchanged | DELETE all for site | no |
-| Site toggled back to public | unchanged | BACKFILL published rows | yes (republished works) |
-| Work on private site | unchanged | never inserted | no (also blocked by `?site=`) |
+Use this table in team review and as the acceptance checklist for Phase 2
+trigger tests. “Visible” means appears in default `?status=published` listing
+(ignoring `?site=` filter for clarity).
+
+### Visibility and site eligibility
+
+| # | Scenario | Expected catalog row | Trigger(s) |
+| - | -------- | -------------------- | ---------- |
+| E1 | First publish on public site | INSERT | T1 |
+| E2 | Publish on private site | No row | T1 (guard deletes / skips) |
+| E3 | Site `private: false → true` with published works | DELETE all for site | **T2** |
+| E4 | Site `private: true → false` with published works | BACKFILL | **T2** |
+| E5 | Site `external: false → true` | DELETE all for site | **T2** |
+| E6 | Site `external: true → false` | BACKFILL | **T2** |
+| E7 | `?site=private-name` on API | 400 (no query) | app layer |
+| E8 | Submission on public site, then site made private mid-session | Row gone after T2 | **T2** |
+
+### Published version lifecycle
+
+| # | Scenario | Expected catalog row | Trigger(s) |
+| - | -------- | -------------------- | ---------- |
+| E9 | Last published version unpublished | DELETE | T1 |
+| E10 | Published version **deleted** (no published left) | DELETE | T1 |
+| E11 | Published → `RETRACTED` (last published) | DELETE | T1 |
+| E12 | Two published versions; newer unpublished, older still published | Row points at **older** published | T1 |
+| E13 | Two published versions; v2 published after v1 | Row points at **v2** | T1 |
+| E14 | Published v1 + `DRAFT` / `INCOMPLETE` v2 | Row still v1 published | T1 |
+| E15 | `date_published` NULL on submission | Row excluded from date-filtered queries; sort behaviour matches `/works` (NULL sorts out of `from`/`to`) | T3 |
+| E16 | `Submission.date_published` corrected after publish | Row sort key updates | **T3** |
+| E17 | Submission deleted entirely | DELETE | **T4** |
+
+### Kind, collection, and `in-review` API branch
+
+| # | Scenario | Expected behaviour | Notes |
+| - | -------- | ------------------ | ----- |
+| E18 | `?kind=` filter | Uses denormalised `kind_name` on row | T3 on kind change |
+| E19 | `?collection=` + `?status=in-review` | Live query or extended projection — **not** default published row | See open questions; default projection is published-only |
+| E20 | Collection workflow hides `IN_REVIEW` for listing | Empty list for that filter (same as today) | App/workflow layer |
+| E21 | `kind_id` / `collection_id` changed on submission | Row filter columns update | **T3** |
+
+### Work / version metadata (DOI, search, subject)
+
+| # | Scenario | Expected catalogue / API | Trigger(s) |
+| - | -------- | ------------------------ | ---------- |
+| E22 | DOI only on `Work`, not `WorkVersion` | Row `doi` = work DOI; resolve works | **T6** / T5 |
+| E23 | DOI added to `WorkVersion` after publish | Row + `links.resolve` update | **T5** |
+| E24 | DOI changed on published work | Old DOI gone from index; new DOI indexed | **T5** / **T6** |
+| E25 | Same DOI on two public sites | Two rows; global `/v1/doi` picks deterministic winner (newest `date_published`) | T1; DOI query |
+| E26 | Same DOI on two sites; `?site=` on DOI | Site-scoped resolve | app layer |
+| E27 | Title / authors change on listed `WorkVersion` | `?q=` matches new text after recompute | **T5** |
+| E28 | MyST `subject` in metadata changed | `?subject=` + response `subject` update | **T5** |
+| E29 | New `WorkVersion` created but not yet on a published SV | No catalog change until publish | T1 only on publish |
+
+### API / pagination edge cases (Phase 1 + 2)
+
+| # | Scenario | Expected behaviour |
+| - | -------- | ------------------ |
+| E30 | `?site=a&site=b` (multi-site) | Union of eligible rows; both sites’ published works |
+| E31 | Omit `?site=` | All public non-external sites |
+| E32 | `q` shorter than 3 chars | Ignored (not error) |
+| E33 | Invalid `from` / `to` date | 400 |
+| E34 | `?status=in-review` without `?collection=` | 400 |
+| E35 | Deep `page` + large `limit` | Correct but slow without cursor pagination (known) |
+| E36 | Empty catalog (no public sites / no published works) | `{ items: [], total: 0 }` |
+
+### Operational and drift edge cases
+
+| # | Scenario | Mitigation |
+| - | -------- | ---------- |
+| E37 | ETL / `register-work` publishes without app code | T1 fires on `SubmissionVersion` INSERT — covered if DB write path used |
+| E38 | Raw SQL admin fix on `WorkVersion` | **T5** must fire; runbook repair if bypassed |
+| E39 | Backfill migration interrupted | Re-run idempotent backfill; compare counts vs live query |
+| E40 | Trigger throws mid-transaction | Publish transaction rolls back — catalog stays consistent |
+| E41 | `is_listed = false` but published version exists | **Still listed** in catalog (same as `/works`; `is_listed` ≠ published predicate) |
+
+---
+
+## Lifecycle examples (quick reference)
+
+| Scenario | `Submission` data | `PublicCatalogEntry` | Visible |
+| -------- | ----------------- | -------------------- | ------- |
+| Publish first version | unchanged | INSERT (T1) | yes |
+| Unpublish last published version | unchanged | DELETE (T1) | no |
+| Publish v2 while v1 stays published | unchanged | UPDATE → v2 (T1) | yes |
+| Add draft on top of published | unchanged | unchanged (T1) | yes |
+| Site toggled to `private` | unchanged | DELETE all (T2) | no |
+| Site toggled back to public | unchanged | BACKFILL (T2) | yes |
+| DOI edited on published work | unchanged | UPDATE doi (T5/T6) | yes, new DOI |
+| Work on private site | unchanged | never inserted | no |
+
+**Underlying `Submission` / `SubmissionVersion` / `Work` rows are never deleted by
+catalog maintenance** — only `PublicCatalogEntry` projection rows are inserted,
+updated, or deleted.
 
 ---
 
@@ -398,11 +558,14 @@ Enrichment query (optional second round trip): load full formatter payload for
 ### Phase 2
 
 - [ ] Migration: `PublicCatalogEntry` table + indexes
-- [ ] Extend `submission_recompute_listing_fields` + `Site` visibility trigger
-- [ ] Backfill script in migration
+- [ ] Implement `public_catalog_recompute_for_submission` + site backfill/purge helpers
+- [ ] Attach **all required triggers T1–T6** (see [§2.2](#22-trigger-maintenance--multiple-triggers-required)); do not ship with T1 only
+- [ ] Integration test per trigger path (matrix rows E1–E41)
+- [ ] Backfill script in migration + count reconciliation query
 - [ ] Switch `catalog-listing.db.server.ts` to projection reads
 - [ ] Switch catalog DOI to projection when `doi` present
 - [ ] Re-run golden + e2e + explain gates at 500k-scale seed
+- [ ] Runbook: repair job for metadata drift if T5/T6 bypassed in admin ops
 
 ### Explicitly out of scope
 
@@ -430,11 +593,17 @@ Enrichment query (optional second round trip): load full formatter payload for
 5. **Search denormalisation:** Store `search_text` on projection vs continue trgm
    on `WorkVersion` with narrower join from projection ids?
 
-6. **`WorkVersion` metadata changes:** Synchronous trigger vs nightly repair job
-   for `subject_normalized` / `search_text` drift?
+6. **`WorkVersion` / `Work` triggers (T5/T6):** Confirm synchronous triggers on
+   every metadata write path; agree nightly repair as safety net only.
 
 7. **Multi-site `?site=a&site=b`:** Document as supported but recommend `/works`
    for single-site consumers?
+
+8. **`Submission.site_id` moves:** Are they possible in production? If yes, T3
+   must handle; if no, document as invariant.
+
+9. **Trigger consolidation:** Single PL/pgSQL function vs separate per-table
+   functions — preference for maintainability?
 
 ---
 
@@ -459,5 +628,13 @@ Enrichment query (optional second round trip): load full formatter payload for
    as catalog query flip.
 3. **Phase 2 first** — if schema team capacity exists and 500k is a hard deadline.
 
-Once approved, implementation should use bite-sized PRs: schema → triggers +
-backfill → catalog query flip → DOI flip → test port → docs update.
+Once approved, implementation should use bite-sized PRs:
+
+1. Schema + recompute functions  
+2. **Triggers T1–T6** (separate PR acceptable per table if each ships with tests)  
+3. Backfill + reconciliation  
+4. Catalog query flip → DOI flip → test port → docs update  
+
+**Do not** flip catalog reads to `PublicCatalogEntry` until T1 **and** T2 at
+minimum are live — otherwise site visibility changes will leave stale or missing
+rows.
