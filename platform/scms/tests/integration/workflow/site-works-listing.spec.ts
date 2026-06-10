@@ -394,6 +394,51 @@ describe('site works listing — search / sort / date filters', () => {
     expect(dto.items[0].id).toBe(seeds[8].workId);
   });
 
+  test('q skips affiliation-only matches for stopword-only queries', async () => {
+    const prisma = await getPrismaClient();
+    await prisma.workVersion.update({
+      where: { id: seeds[4].workVersionId },
+      data: {
+        metadata: {
+          'frontmatter.myst': {
+            affiliations: [{ id: 'a1', name: 'Example University Research Center' }],
+          },
+        },
+      },
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'University' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+  });
+
+  test('q still matches a distinctive affiliation token when stopwords are present', async () => {
+    const prisma = await getPrismaClient();
+    await prisma.workVersion.update({
+      where: { id: seeds[4].workVersionId },
+      data: {
+        metadata: {
+          'frontmatter.myst': {
+            affiliations: [{ id: 'a1', name: 'Example University Research Center' }],
+          },
+        },
+      },
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'Example' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[4].workId);
+  });
+
   test('q with no matches returns an empty listing', async () => {
     const dto = await listPublishedWorks(
       testData.context,
