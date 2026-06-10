@@ -29,6 +29,7 @@ export * from './utils.server.js';
 export * from './domains.server.js';
 export * from './workDraftChecksMetadata.server.js';
 export * from './work-version-subject.server.js';
+export * from './work-version-affiliations.server.js';
 
 export * from './etl/index.js';
 export * from './loaders/index.js';

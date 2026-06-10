@@ -2,6 +2,8 @@ import {
   getPrismaClient,
   fetchWorkVersionSubjects,
   fetchSubmissionIdsBySubject,
+  isAffiliationSearchEnabled,
+  WORK_VERSION_AFFILIATIONS_SEARCH_TEXT_FN,
   type SiteContext,
 } from '@curvenote/scms-server';
 import {
@@ -12,7 +14,7 @@ import {
   registerExtensionWorkflows,
   type ClientExtension,
 } from '@curvenote/scms-core';
-import type { Prisma } from '@curvenote/scms-db';
+import { Prisma } from '@curvenote/scms-db';
 import { formatSiteWorkDTOFromSubmissions, siteWorkListingSelect } from './format.server';
 import type { ListDBO, RowDBO } from './format.server';
 
@@ -140,12 +142,16 @@ function buildListingWhere(
 
 /**
  * Resolve the submission ids matching a free-text query via a single raw SQL
- * EXISTS subquery that ILIKE-substrings the newest work versions' title /
- * authors / DOI and the underlying work's DOI. The pg_trgm GIN indexes from
- * `20260526223800_add_submission_search_trgm_indexes` serve these predicates.
+ * EXISTS subquery that ILIKE-substrings work versions' title / authors / DOI,
+ * affiliation names from `metadata['frontmatter.myst'].affiliations` (when
+ * {@link isAffiliationSearchEnabled} allows), and the underlying work's DOI. The pg_trgm GIN indexes
+ * from `20260526223800_add_submission_search_trgm_indexes` and
+ * `20260610120000_add_work_version_affiliations_trgm_index` serve these
+ * predicates.
  *
- * `immutable_array_to_string(authors, ' ')` MUST match the expression index
- * exactly for the planner to use it.
+ * `immutable_array_to_string(authors, ' ')` and
+ * `work_version_affiliations_search_text(metadata)` MUST match their
+ * expression indexes exactly for the planner to use them.
  */
 async function dbSearchSubmissionIds(
   siteId: string,
@@ -154,6 +160,17 @@ async function dbSearchSubmissionIds(
 ): Promise<string[]> {
   const prisma = await getPrismaClient();
   const pattern = `%${escapeIlikePattern(q)}%`;
+  const matchPredicates: Prisma.Sql[] = [
+    Prisma.sql`wv.title ILIKE ${pattern}`,
+    Prisma.sql`wv.doi ILIKE ${pattern}`,
+    Prisma.sql`w.doi ILIKE ${pattern}`,
+    Prisma.sql`immutable_array_to_string(wv.authors, ' ') ILIKE ${pattern}`,
+  ];
+  if (isAffiliationSearchEnabled(q)) {
+    matchPredicates.push(
+      Prisma.sql`${Prisma.raw(WORK_VERSION_AFFILIATIONS_SEARCH_TEXT_FN)}(wv.metadata) ILIKE ${pattern}`,
+    );
+  }
   const rows = await (tx ?? prisma).$queryRaw<{ id: string }[]>`
     SELECT s.id FROM "Submission" s
     WHERE s.site_id = ${siteId}
@@ -163,12 +180,7 @@ async function dbSearchSubmissionIds(
         JOIN "WorkVersion" wv ON wv.id = sv.work_version_id
         LEFT JOIN "Work" w ON w.id = wv.work_id
         WHERE sv.submission_id = s.id
-          AND (
-            wv.title ILIKE ${pattern}
-            OR wv.doi ILIKE ${pattern}
-            OR w.doi ILIKE ${pattern}
-            OR immutable_array_to_string(wv.authors, ' ') ILIKE ${pattern}
-          )
+          AND (${Prisma.join(matchPredicates, ' OR ')})
       )
   `;
   return rows.map((r) => r.id);

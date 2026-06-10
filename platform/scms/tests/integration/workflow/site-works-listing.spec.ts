@@ -342,6 +342,105 @@ describe('site works listing — search / sort / date filters', () => {
     expect(dto.items[0].id).toBe(seeds[7].workId);
   });
 
+  test('q matches an affiliation name from work version metadata', async () => {
+    const prisma = await getPrismaClient();
+    await prisma.workVersion.update({
+      where: { id: seeds[3].workVersionId },
+      data: {
+        metadata: {
+          'frontmatter.myst': {
+            affiliations: [
+              { id: 'a1', name: 'Systems Biology Department, Harvard Medical School' },
+              {
+                id: 'a2',
+                name: 'Wyss Institute for Biologically Inspired Engineering, Harvard University',
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'Harvard Medical School' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[3].workId);
+  });
+
+  test('q matches a second affiliation name on the same work', async () => {
+    const prisma = await getPrismaClient();
+    await prisma.workVersion.update({
+      where: { id: seeds[8].workVersionId },
+      data: {
+        metadata: {
+          'frontmatter.myst': {
+            affiliations: [
+              { id: 'a1', name: 'Wyss Institute for Biologically Inspired Engineering' },
+            ],
+          },
+        },
+      },
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'Wyss Institute' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[8].workId);
+  });
+
+  test('q skips affiliation-only matches for stopword-only queries', async () => {
+    const prisma = await getPrismaClient();
+    await prisma.workVersion.update({
+      where: { id: seeds[4].workVersionId },
+      data: {
+        metadata: {
+          'frontmatter.myst': {
+            affiliations: [{ id: 'a1', name: 'Example University Research Center' }],
+          },
+        },
+      },
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'University' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+  });
+
+  test('q still matches a distinctive affiliation token when stopwords are present', async () => {
+    const prisma = await getPrismaClient();
+    await prisma.workVersion.update({
+      where: { id: seeds[4].workVersionId },
+      data: {
+        metadata: {
+          'frontmatter.myst': {
+            affiliations: [{ id: 'a1', name: 'Example University Research Center' }],
+          },
+        },
+      },
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'Example' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[4].workId);
+  });
+
   test('q with no matches returns an empty listing', async () => {
     const dto = await listPublishedWorks(
       testData.context,

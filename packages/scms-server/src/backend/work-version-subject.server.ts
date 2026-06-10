@@ -62,6 +62,9 @@ export async function fetchWorkVersionSubjects(
  * Starts from `WorkVersion` rows matching the subject (index-backed via
  * `WorkVersion_subject_normalized_idx`) and joins back to submissions on the
  * site rather than scanning every submission with an EXISTS subquery.
+ *
+ * `wv.metadata IS NOT NULL` is required so the planner can use the partial
+ * index (`WHERE metadata IS NOT NULL` on `WorkVersion_subject_normalized_idx`).
  */
 export async function fetchSubmissionIdsBySubject(
   siteId: string,
@@ -82,7 +85,8 @@ export async function fetchSubmissionIdsBySubject(
     INNER JOIN "Submission" s
       ON s.id = sv.submission_id
      AND s.site_id = ${siteId}
-    WHERE ${Prisma.raw(WORK_VERSION_SUBJECT_NORMALIZED_FN)}(wv.metadata) = LOWER(${normalized})
+    WHERE wv.metadata IS NOT NULL
+      AND ${Prisma.raw(WORK_VERSION_SUBJECT_NORMALIZED_FN)}(wv.metadata) = LOWER(${normalized})
   `;
   return rows.map((row) => row.id);
 }
