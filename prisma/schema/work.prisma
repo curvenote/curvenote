@@ -13,6 +13,12 @@ model WorkUser {
   work_id       String
   user          User     @relation(fields: [user_id], references: [id])
   user_id       String
+
+  /// Backs lookups and deletes keyed by work (`WorkUser.work_id` FK has no
+  /// implicit Postgres index). Used when resolving a work (e.g. DOI lookup via
+  /// `Work_doi_idx`) and loading `work_users`, and by work teardown
+  /// (`workUser.deleteMany({ work_id })`).
+  @@index([work_id])
 }
 
 model Work {
