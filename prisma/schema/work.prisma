@@ -80,6 +80,11 @@ model WorkVersion {
   /// `WorkVersion_authors_trgm_idx` (expression on `authors`) and
   /// `WorkVersion_subject_normalized_idx` / `WorkVersion_affiliations_trgm_idx`
   /// remain raw-SQL-only — not expressible in Prisma.
+  ///
+  /// Backs Work → versions joins and work-scoped version lookups (`work_id` FK
+  /// has no implicit Postgres index). Large table; used by work pages, DOI
+  /// resolution, listings, and work teardown `workVersion.deleteMany`.
+  @@index([work_id])
   @@index([doi])
   @@index([doi(ops: raw("gin_trgm_ops"))], type: Gin, map: "WorkVersion_doi_trgm_idx")
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "WorkVersion_title_trgm_idx")
