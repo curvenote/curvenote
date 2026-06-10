@@ -141,17 +141,20 @@ function buildListingWhere(
 }
 
 /**
- * Resolve the submission ids matching a free-text query via a single raw SQL
- * EXISTS subquery that ILIKE-substrings work versions' title / authors / DOI,
- * affiliation names from `metadata['frontmatter.myst'].affiliations` (when
- * {@link isAffiliationSearchEnabled} allows), and the underlying work's DOI. The pg_trgm GIN indexes
- * from `20260526223800_add_submission_search_trgm_indexes` and
- * `20260610120000_add_work_version_affiliations_trgm_index` serve these
- * predicates.
+ * Resolve submission ids matching a free-text `q` by ILIKE-substring across
+ * work-version title / authors / DOI, work-level DOI, and (when
+ * {@link isAffiliationSearchEnabled} allows) affiliation names in metadata.
+ *
+ * Roots at `WorkVersion` via a UNION of single-predicate branches so each arm
+ * can use its pg_trgm GIN index (`20260526223800`,
+ * `20260610120000_add_work_version_affiliations_trgm_index`), then joins back
+ * through `SubmissionVersion` to `Submission` scoped by `site_id`. The previous
+ * correlated `EXISTS (… WHERE sv.submission_id = s.id …)` looped once per
+ * submission on large sites (e.g. biorxiv) and dominated CPU under search load.
  *
  * `immutable_array_to_string(authors, ' ')` and
- * `work_version_affiliations_search_text(metadata)` MUST match their
- * expression indexes exactly for the planner to use them.
+ * `work_version_affiliations_search_text(metadata)` MUST match their expression
+ * indexes exactly for the planner to use them.
  */
 async function dbSearchSubmissionIds(
   siteId: string,
@@ -160,28 +163,32 @@ async function dbSearchSubmissionIds(
 ): Promise<string[]> {
   const prisma = await getPrismaClient();
   const pattern = `%${escapeIlikePattern(q)}%`;
-  const matchPredicates: Prisma.Sql[] = [
-    Prisma.sql`wv.title ILIKE ${pattern}`,
-    Prisma.sql`wv.doi ILIKE ${pattern}`,
-    Prisma.sql`w.doi ILIKE ${pattern}`,
-    Prisma.sql`immutable_array_to_string(wv.authors, ' ') ILIKE ${pattern}`,
+  const matchingWorkVersionBranches: Prisma.Sql[] = [
+    Prisma.sql`SELECT wv.id FROM "WorkVersion" wv WHERE wv.title ILIKE ${pattern}`,
+    Prisma.sql`SELECT wv.id FROM "WorkVersion" wv WHERE wv.doi ILIKE ${pattern}`,
+    Prisma.sql`SELECT wv.id FROM "WorkVersion" wv WHERE immutable_array_to_string(wv.authors, ' ') ILIKE ${pattern}`,
+    Prisma.sql`
+      SELECT wv.id
+      FROM "WorkVersion" wv
+      INNER JOIN "Work" w ON w.id = wv.work_id
+      WHERE w.doi ILIKE ${pattern}
+    `,
   ];
   if (isAffiliationSearchEnabled(q)) {
-    matchPredicates.push(
-      Prisma.sql`${Prisma.raw(WORK_VERSION_AFFILIATIONS_SEARCH_TEXT_FN)}(wv.metadata) ILIKE ${pattern}`,
+    matchingWorkVersionBranches.push(
+      Prisma.sql`
+        SELECT wv.id
+        FROM "WorkVersion" wv
+        WHERE ${Prisma.raw(WORK_VERSION_AFFILIATIONS_SEARCH_TEXT_FN)}(wv.metadata) ILIKE ${pattern}
+      `,
     );
   }
+  const matchingWorkVersions = Prisma.join(matchingWorkVersionBranches, ' UNION ');
   const rows = await (tx ?? prisma).$queryRaw<{ id: string }[]>`
-    SELECT s.id FROM "Submission" s
-    WHERE s.site_id = ${siteId}
-      AND EXISTS (
-        SELECT 1
-        FROM "SubmissionVersion" sv
-        JOIN "WorkVersion" wv ON wv.id = sv.work_version_id
-        LEFT JOIN "Work" w ON w.id = wv.work_id
-        WHERE sv.submission_id = s.id
-          AND (${Prisma.join(matchPredicates, ' OR ')})
-      )
+    SELECT DISTINCT s.id
+    FROM (${matchingWorkVersions}) matching_wv
+    INNER JOIN "SubmissionVersion" sv ON sv.work_version_id = matching_wv.id
+    INNER JOIN "Submission" s ON s.id = sv.submission_id AND s.site_id = ${siteId}
   `;
   return rows.map((r) => r.id);
 }
