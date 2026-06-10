@@ -141,6 +141,11 @@ model Submission {
   is_listed       Boolean             @default(false)
 
   @@index([site_id])
+  /// Backs lookups and deletes keyed by work (`Submission.work_id` FK has no
+  /// implicit Postgres index). Used by `/my/submissions?work_id=…`, ETL
+  /// register-work (`site_id` + `work_id`), and work teardown
+  /// (`submission.deleteMany({ work_id })`).
+  @@index([work_id])
   /// Powers the public works listing (`GET /v1/sites/:siteName/works`) hot
   /// path: filter by `site_id`, ordered by `date_published DESC, date_created
   /// DESC`, with LIMIT/OFFSET pushed into an index range scan. This is the
