@@ -23,6 +23,12 @@ describe('work-version-affiliations', () => {
       expect(isAffiliationSearchEnabled('medical school')).toBe(false);
     });
 
+    test('is false for punctuated stopword-only queries', () => {
+      expect(isAffiliationSearchEnabled('University,')).toBe(false);
+      expect(isAffiliationSearchEnabled('school.')).toBe(false);
+      expect(isAffiliationSearchEnabled('Department;')).toBe(false);
+    });
+
     test('is false when every token is shorter than the minimum length', () => {
       expect(isAffiliationSearchEnabled('ab cd')).toBe(false);
     });

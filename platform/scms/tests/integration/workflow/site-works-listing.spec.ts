@@ -378,7 +378,9 @@ describe('site works listing — search / sort / date filters', () => {
       data: {
         metadata: {
           'frontmatter.myst': {
-            affiliations: [{ id: 'a1', name: 'Wyss Institute for Biologically Inspired Engineering' }],
+            affiliations: [
+              { id: 'a1', name: 'Wyss Institute for Biologically Inspired Engineering' },
+            ],
           },
         },
       },

@@ -33,12 +33,13 @@ export const AFFILIATION_SEARCH_STOP_TERMS = new Set([
 /** Minimum token length required to treat a word as affiliation-significant. */
 export const AFFILIATION_SEARCH_MIN_TOKEN_LENGTH = 3;
 
+/** Strip punctuation so stopword checks treat `University,` like `University`. */
+function normalizeAffiliationSearchToken(token: string): string {
+  return token.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+}
+
 function tokenizeAffiliationSearchQuery(q: string): string[] {
-  return q
-    .trim()
-    .split(/\s+/)
-    .map((token) => token.toLowerCase())
-    .filter(Boolean);
+  return q.trim().split(/\s+/).map(normalizeAffiliationSearchToken).filter(Boolean);
 }
 
 /**
