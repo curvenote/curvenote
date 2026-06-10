@@ -8,3 +8,4 @@ Add Supabase advisor btree indexes for FK columns that Postgres does not index a
 - **WorkUser** `work_id` — work → `work_users` joins after DOI/work resolution, work teardown
 - **WorkUser** `user_id` — `/my/works`, `/my/submissions` membership filter, `dbGetUserWorkRoles`
 - **SubmissionVersion** `submission_id` — Submission → versions nested-loop joins
+- **Schema** — declare `Work`/`WorkVersion` GIN trgm indexes in Prisma so `migrate dev` does not generate spurious DROP migrations
