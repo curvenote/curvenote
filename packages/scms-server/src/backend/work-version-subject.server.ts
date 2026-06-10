@@ -5,6 +5,13 @@ import { getPrismaClient } from './prisma.server.js';
 export const WORK_VERSION_SUBJECT_JSON_PATH = "'{frontmatter.myst,subject}'";
 
 /**
+ * Postgres normalizer for subject equality filters. Must match
+ * `work_version_subject_normalized()` and `WorkVersion_subject_normalized_idx`
+ * (migration `20260609120000_add_work_version_subject_normalized_index`).
+ */
+export const WORK_VERSION_SUBJECT_NORMALIZED_FN = 'work_version_subject_normalized';
+
+/**
  * Read `subject` from `metadata['frontmatter.myst'].subject`.
  */
 export function extractWorkVersionSubjectFromMetadata(metadata: unknown): string | undefined {
@@ -51,6 +58,10 @@ export async function fetchWorkVersionSubjects(
  * Resolve submission ids whose work metadata subject matches exactly (case- and
  * whitespace-insensitive). Scoped to versions in the requested listing status,
  * mirroring the public works listing semijoin.
+ *
+ * Starts from `WorkVersion` rows matching the subject (index-backed via
+ * `WorkVersion_subject_normalized_idx`) and joins back to submissions on the
+ * site rather than scanning every submission with an EXISTS subquery.
  */
 export async function fetchSubmissionIdsBySubject(
   siteId: string,
@@ -63,17 +74,15 @@ export async function fetchSubmissionIdsBySubject(
 
   const prisma = await getPrismaClient();
   const rows = await (tx ?? prisma).$queryRaw<{ id: string }[]>`
-    SELECT s.id
-    FROM "Submission" s
-    WHERE s.site_id = ${siteId}
-      AND EXISTS (
-        SELECT 1
-        FROM "SubmissionVersion" sv
-        JOIN "WorkVersion" wv ON wv.id = sv.work_version_id
-        WHERE sv.submission_id = s.id
-          AND sv.status = ${status}
-          AND LOWER(TRIM(wv.metadata #>> ${Prisma.raw(WORK_VERSION_SUBJECT_JSON_PATH)})) = LOWER(${normalized})
-      )
+    SELECT DISTINCT s.id
+    FROM "WorkVersion" wv
+    INNER JOIN "SubmissionVersion" sv
+      ON sv.work_version_id = wv.id
+     AND sv.status = ${status}
+    INNER JOIN "Submission" s
+      ON s.id = sv.submission_id
+     AND s.site_id = ${siteId}
+    WHERE ${Prisma.raw(WORK_VERSION_SUBJECT_NORMALIZED_FN)}(wv.metadata) = LOWER(${normalized})
   `;
   return rows.map((row) => row.id);
 }
