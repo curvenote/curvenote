@@ -1,4 +1,5 @@
 import { doi } from 'doi-utils';
+import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../prisma.server.js';
 import { error404 } from '@curvenote/scms-core';
 import {
@@ -6,49 +7,83 @@ import {
   type PublishedSiteWorkDTO,
 } from './submissions/published/get.server.js';
 import type { SiteContext } from '../../context.site.server.js';
-import type { Prisma } from '@curvenote/scms-db';
 import { siteWorkDtoSelect } from '../../prisma.selects.server.js';
+
 export type SiteDoiResolveOptions = {
   /** If set, pick the latest *published* submission version for this DOI whose `tags` contains this string */
   tag?: string;
 };
 
 /**
- * Filter for the latest *published* submission version of a DOI on this site.
+ * Resolve the id of the latest *published* submission version for a DOI on a site.
  *
- * Rooting at `SubmissionVersion` (rather than `WorkVersion`) makes the tag and
- * no-tag paths a single query and lets the `date_created DESC` + LIMIT 1
- * short-circuit at the first match. The DOI is matched against either the
- * version's own `doi` or the parent work's `doi` — both now backed by btree
- * indexes (migration `20260529130000`) so the equality lookup no longer
- * sequential-scans.
+ * Starts from btree-backed DOI equality on `WorkVersion` / `Work` (migration
+ * `20260529130000`), unions the matching work-version ids, then joins to
+ * `SubmissionVersion` filtered by `status = PUBLISHED` and `Submission.site_id`.
+ * This avoids Prisma's `OR` on nested relations, which duplicates `WorkVersion`
+ * joins and roots the plan at `SubmissionVersion` so Postgres cannot short-circuit
+ * at the DOI index under load.
  *
- * Crucially this is always scoped to `siteName`. The previous no-tag path
- * (`WorkVersion`-rooted) omitted the site filter and could resolve a DOI that
- * was only published on a *different* site; the tag path already scoped
- * correctly, and the regression spec pins this down.
+ * Optional `tag` uses the GIN index on `SubmissionVersion.tags` (`@>`).
+ * Latest match uses `date_created DESC LIMIT 1`, backed by
+ * `SubmissionVersion_published_work_version_date_created_idx` (migration
+ * `20260610150000`).
  */
-function buildPublishedByDoiWhere(
-  siteName: string,
+async function fetchPublishedSubmissionVersionIdByDoi(
+  siteId: string,
   doiNormalized: string,
   tag?: string,
-): Prisma.SubmissionVersionWhereInput {
-  return {
-    status: 'PUBLISHED',
-    submission: { site: { name: siteName } },
-    ...(tag ? { tags: { has: tag } } : {}),
-    OR: [
-      { work_version: { doi: doiNormalized } },
-      { work_version: { work: { doi: doiNormalized } } },
-    ],
-  };
+): Promise<string | null> {
+  const prisma = await getPrismaClient();
+
+  const doiWorkVersions = Prisma.sql`
+    SELECT wv.id AS work_version_id
+    FROM "WorkVersion" wv
+    WHERE wv.doi = ${doiNormalized}
+    UNION
+    SELECT wv.id
+    FROM "Work" w
+    INNER JOIN "WorkVersion" wv ON wv.work_id = w.id
+    WHERE w.doi = ${doiNormalized}
+  `;
+
+  const rows = tag
+    ? await prisma.$queryRaw<{ id: string }[]>`
+        SELECT sv.id
+        FROM (${doiWorkVersions}) doi_wv
+        INNER JOIN "SubmissionVersion" sv
+          ON sv.work_version_id = doi_wv.work_version_id
+         AND sv.status = 'PUBLISHED'
+         AND sv.tags @> ARRAY[${tag}]::varchar[]
+        INNER JOIN "Submission" s
+          ON s.id = sv.submission_id
+         AND s.site_id = ${siteId}
+        ORDER BY sv.date_created DESC
+        LIMIT 1
+      `
+    : await prisma.$queryRaw<{ id: string }[]>`
+        SELECT sv.id
+        FROM (${doiWorkVersions}) doi_wv
+        INNER JOIN "SubmissionVersion" sv
+          ON sv.work_version_id = doi_wv.work_version_id
+         AND sv.status = 'PUBLISHED'
+        INNER JOIN "Submission" s
+          ON s.id = sv.submission_id
+         AND s.site_id = ${siteId}
+        ORDER BY sv.date_created DESC
+        LIMIT 1
+      `;
+
+  return rows[0]?.id ?? null;
 }
 
-async function dbGetPublishedSiteWorkByDoi(siteName: string, doiNormalized: string, tag?: string) {
+async function dbGetPublishedSiteWorkByDoi(siteId: string, doiNormalized: string, tag?: string) {
+  const id = await fetchPublishedSubmissionVersionIdByDoi(siteId, doiNormalized, tag);
+  if (!id) return null;
+
   const prisma = await getPrismaClient();
-  return prisma.submissionVersion.findFirst({
-    where: buildPublishedByDoiWhere(siteName, doiNormalized, tag),
-    orderBy: { date_created: 'desc' },
+  return prisma.submissionVersion.findUnique({
+    where: { id },
     select: siteWorkDtoSelect,
   });
 }
@@ -64,7 +99,7 @@ export default async function (
   if (!doiNormalized) throw error404('Not Found - Invalid DOI');
 
   const tag = opts?.tag?.trim();
-  const sv = await dbGetPublishedSiteWorkByDoi(ctx.site.name, doiNormalized, tag);
+  const sv = await dbGetPublishedSiteWorkByDoi(ctx.site.id, doiNormalized, tag);
   if (!sv) {
     throw error404(
       tag

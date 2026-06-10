@@ -24,6 +24,7 @@ provably behaviour-preserving:
 | 3   | **Correctness:** the no-tag path is now site-scoped                                                            | a DOI published only on _another_ site no longer resolves                                                |
 | 4   | Narrow `siteWorkDtoSelect` for this flow                                                                       | drops the `submitted_by` → `User` join and the SubmissionVersion bookkeeping columns the DTO never reads |
 | 5   | Edge caching on the route (success + 404)                                                                      | DOI→work mappings and junk-DOI scans are absorbed by the CDN instead of the origin/DB                    |
+| 6   | DOI-index-first raw SQL + partial published-version index (`20260610150000`)                                   | avoids Prisma `OR` duplicate `WorkVersion` joins; scopes by `site_id` not `Site.name`                    |
 
 ### 1. Indexes
 
@@ -107,6 +108,25 @@ to be faster.
 > e2e needs a populated fixture DB. The change is lint-clean and mirrors the
 > established pattern in `published.tsx` and the thumbnail/social routes; the
 > package-level integration spec is route-independent and still green.
+
+### 7. DOI-index-first query (load-test hot path)
+
+Prisma `findFirst` with `OR` on `work_version.doi` vs `work_version.work.doi` rooted
+the plan at `SubmissionVersion` and emitted duplicate `WorkVersion` joins — under
+load-test traffic the query maxed CPU even with btree DOI indexes.
+
+`fetchPublishedSubmissionVersionIdByDoi` now:
+
+1. Unions work-version ids from `WorkVersion.doi = ?` and `Work.doi = ?` (both
+   btree-backed).
+2. Joins to `SubmissionVersion` (`status = PUBLISHED`, optional `tags @>`) and
+   `Submission` (`site_id = ?` — no `Site` join).
+3. `ORDER BY date_created DESC LIMIT 1`.
+4. Hydrates the row with `findUnique` + `siteWorkDtoSelect`.
+
+Migration
+[`20260610150000_add_doi_resolve_hot_path_index`](../../prisma/schema/migrations/20260610150000_add_doi_resolve_hot_path_index/migration.sql)
+adds partial `(work_version_id, date_created DESC) WHERE status = 'PUBLISHED'`.
 
 ## Remaining / optional work
 
