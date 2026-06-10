@@ -2,8 +2,9 @@
 '@curvenote/scms-db': patch
 ---
 
-Speed up FK lookups flagged by Supabase advisor.
+Add Supabase advisor btree indexes for FK columns that Postgres does not index automatically (migration `20260610140000_add_db_performance_indexes`).
 
-- **Submission:** btree `Submission_work_id_idx` on `work_id` for `/my/submissions?work_id=…`, ETL register-work, and work teardown.
-- **WorkUser:** btree `WorkUser_work_id_idx` on `work_id` for work → `work_users` joins (e.g. after DOI resolution) and work teardown; btree `WorkUser_user_id_idx` on `user_id` for user-scoped work membership lookups.
-- **SubmissionVersion:** btree `SubmissionVersion_submission_id_idx` on `submission_id` for Submission → versions nested-loop joins.
+- **Submission** `work_id` — `/my/submissions?work_id=…`, ETL register-work, work teardown
+- **WorkUser** `work_id` — work → `work_users` joins after DOI/work resolution, work teardown
+- **WorkUser** `user_id` — `/my/works`, `/my/submissions` membership filter, `dbGetUserWorkRoles`
+- **SubmissionVersion** `submission_id` — Submission → versions nested-loop joins
