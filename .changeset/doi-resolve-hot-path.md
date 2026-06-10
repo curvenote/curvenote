@@ -8,3 +8,5 @@ Speed up site DOI resolution under load (`GET /v1/sites/:siteName/doi/:first/:se
 
 - **Query:** start from btree-backed `WorkVersion.doi` / `Work.doi` equality, join to published `SubmissionVersion` rows scoped by `site_id`, then hydrate the DTO by primary key — avoids Prisma `OR` duplicating `WorkVersion` joins and rooting the plan at `SubmissionVersion`.
 - **Index:** partial `(work_version_id, date_created DESC) WHERE status = 'PUBLISHED'` via `CREATE INDEX CONCURRENTLY` for the latest-published probe after DOI lookup.
+- **Index:** `WorkVersion.work_id` btree (`20260610160000`) so the Work-level DOI fallback probes versions by FK instead of seq-scanning the table.
+- **Query:** Work-level DOI branch uses `work_id IN (SELECT … FROM Work WHERE doi = ?)` so the planner can use `WorkVersion_work_id_idx`.

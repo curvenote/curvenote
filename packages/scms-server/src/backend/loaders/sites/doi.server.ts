@@ -36,15 +36,17 @@ async function fetchPublishedSubmissionVersionIdByDoi(
 ): Promise<string | null> {
   const prisma = await getPrismaClient();
 
+  // Prefer `work_id IN (SELECT …)` over joining Work → WorkVersion so Postgres
+  // can probe `WorkVersion_work_id_idx` (migration `20260610160000`) instead of
+  // hash-joining a parallel seq scan over the whole WorkVersion table.
   const doiWorkVersions = Prisma.sql`
     SELECT wv.id AS work_version_id
     FROM "WorkVersion" wv
     WHERE wv.doi = ${doiNormalized}
     UNION
     SELECT wv.id
-    FROM "Work" w
-    INNER JOIN "WorkVersion" wv ON wv.work_id = w.id
-    WHERE w.doi = ${doiNormalized}
+    FROM "WorkVersion" wv
+    WHERE wv.work_id IN (SELECT w.id FROM "Work" w WHERE w.doi = ${doiNormalized})
   `;
 
   const rows = tag
