@@ -41,9 +41,11 @@ model Work {
   access             Access[]
 
   /// Equality lookup for DOI resolution (`GET /v1/sites/:siteName/doi/...`).
-  /// The `Work_doi_trgm_idx` GIN index (migration 20260526223800) only serves
-  /// `LIKE`/search; a btree is required for `doi = ?`.
+  /// Btree for `doi = ?`; GIN trgm for submissions search ILIKE (migration
+  /// `20260526223800`). Both must be declared here so `migrate dev` does not
+  /// treat the trgm index as drift and generate a DROP migration.
   @@index([doi])
+  @@index([doi(ops: raw("gin_trgm_ops"))], type: Gin, map: "Work_doi_trgm_idx")
 }
 
 model WorkVersion {
@@ -71,14 +73,16 @@ model WorkVersion {
   occ                Int                 @default(0)
 
   /// Equality lookup for DOI resolution (`GET /v1/sites/:siteName/doi/...`).
-  /// The `WorkVersion_doi_trgm_idx` GIN index (migration 20260526223800) only
-  /// serves `LIKE`/search; a btree is required for `doi = ?`.
+  /// Btree for `doi = ?`; GIN trgm indexes for submissions search ILIKE
+  /// (migration `20260526223800`). Declared in schema so `migrate dev` does not
+  /// generate spurious DROP migrations for indexes created in raw SQL.
   ///
-  /// Exact subject filter on the public works listing uses
-  /// `WorkVersion_subject_normalized_idx` (migration
-  /// `20260609120000_add_work_version_subject_normalized_index`) over
-  /// `work_version_subject_normalized(metadata)` — not expressible in Prisma.
+  /// `WorkVersion_authors_trgm_idx` (expression on `authors`) and
+  /// `WorkVersion_subject_normalized_idx` / `WorkVersion_affiliations_trgm_idx`
+  /// remain raw-SQL-only — not expressible in Prisma.
   @@index([doi])
+  @@index([doi(ops: raw("gin_trgm_ops"))], type: Gin, map: "WorkVersion_doi_trgm_idx")
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "WorkVersion_title_trgm_idx")
 }
 
 model CheckServiceRun {
