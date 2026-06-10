@@ -8,8 +8,10 @@
 -- `WorkVersion` rows (usually a tiny set) and join back through
 -- `SubmissionVersion` (status) to `Submission` (site_id).
 --
--- The normalizer MUST match the WHERE clause exactly for the planner to use
--- the index — same contract as `immutable_array_to_string` for trgm search.
+-- The normalizer and partial-index predicate MUST match the WHERE clause
+-- exactly for the planner to use the index — same contract as
+-- `immutable_array_to_string` for trgm search. The query adds
+-- `wv.metadata IS NOT NULL` alongside the normalizer equality check.
 --
 -- Cannot be expressed in schema.prisma (expression index + helper function);
 -- same pattern as `20260526223800_add_submission_search_trgm_indexes`.
