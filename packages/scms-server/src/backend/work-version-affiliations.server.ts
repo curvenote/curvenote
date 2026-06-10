@@ -6,24 +6,12 @@
  */
 export const WORK_VERSION_AFFILIATIONS_SEARCH_TEXT_FN = 'work_version_affiliations_search_text';
 
-const AFFILIATION_TEXT_FIELDS = [
-  'name',
-  'institution',
-  'department',
-  'city',
-  'state',
-  'country',
-] as const;
+function affiliationObjectToSearchFragment(aff: Record<string, unknown>): string | undefined {
+  const name = typeof aff.name === 'string' ? aff.name.trim() : '';
+  if (name) return name;
 
-function affiliationObjectToSearchFragment(aff: Record<string, unknown>): string {
-  const parts: string[] = [];
-  for (const field of AFFILIATION_TEXT_FIELDS) {
-    const value = aff[field];
-    if (typeof value !== 'string') continue;
-    const trimmed = value.trim();
-    if (trimmed) parts.push(trimmed);
-  }
-  return parts.join(' ').trim();
+  const institution = typeof aff.institution === 'string' ? aff.institution.trim() : '';
+  return institution || undefined;
 }
 
 /**

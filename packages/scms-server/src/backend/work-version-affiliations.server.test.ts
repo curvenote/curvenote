@@ -10,17 +10,32 @@ describe('work-version-affiliations', () => {
     expect(WORK_VERSION_AFFILIATIONS_SEARCH_TEXT_FN).toBe('work_version_affiliations_search_text');
   });
 
-  test('concatenates affiliation text fields', () => {
+  test('concatenates affiliation names from frontmatter.myst', () => {
     expect(
       extractWorkVersionAffiliationsSearchTextFromMetadata({
         'frontmatter.myst': {
           affiliations: [
-            { name: 'Curvenote Labs', city: 'Halifax', country: 'Canada' },
-            { institution: 'MIT', department: 'CS', state: 'MA' },
+            { id: 'a1', name: 'Systems Biology Department, Harvard Medical School' },
+            {
+              id: 'a2',
+              name: 'Wyss Institute for Biologically Inspired Engineering, Harvard University',
+            },
           ],
         },
       }),
-    ).toBe('Curvenote Labs Halifax Canada MIT CS MA');
+    ).toBe(
+      'Systems Biology Department, Harvard Medical School Wyss Institute for Biologically Inspired Engineering, Harvard University',
+    );
+  });
+
+  test('falls back to institution when name is absent', () => {
+    expect(
+      extractWorkVersionAffiliationsSearchTextFromMetadata({
+        'frontmatter.myst': {
+          affiliations: [{ id: 'a1', institution: 'MIT' }],
+        },
+      }),
+    ).toBe('MIT');
   });
 
   test('returns empty string when affiliations are absent', () => {

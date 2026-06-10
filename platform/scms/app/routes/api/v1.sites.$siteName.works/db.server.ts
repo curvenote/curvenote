@@ -142,7 +142,7 @@ function buildListingWhere(
 /**
  * Resolve the submission ids matching a free-text query via a single raw SQL
  * EXISTS subquery that ILIKE-substrings work versions' title / authors / DOI,
- * affiliation metadata, and the underlying work's DOI. The pg_trgm GIN indexes
+ * affiliation names from `metadata['frontmatter.myst'].affiliations`, and the underlying work's DOI. The pg_trgm GIN indexes
  * from `20260526223800_add_submission_search_trgm_indexes` and
  * `20260610120000_add_work_version_affiliations_trgm_index` serve these
  * predicates.

@@ -349,7 +349,13 @@ describe('site works listing — search / sort / date filters', () => {
       data: {
         metadata: {
           'frontmatter.myst': {
-            affiliations: [{ id: 'curvenote', name: 'Curvenote Labs', city: 'Halifax' }],
+            affiliations: [
+              { id: 'a1', name: 'Systems Biology Department, Harvard Medical School' },
+              {
+                id: 'a2',
+                name: 'Wyss Institute for Biologically Inspired Engineering, Harvard University',
+              },
+            ],
           },
         },
       },
@@ -358,21 +364,21 @@ describe('site works listing — search / sort / date filters', () => {
     const dto = await listPublishedWorks(
       testData.context,
       [],
-      { q: 'Curvenote Labs' },
+      { q: 'Harvard Medical School' },
       { page: 0, limit: 500 },
     );
     expect(dto.total).toBe(1);
     expect(dto.items[0].id).toBe(seeds[3].workId);
   });
 
-  test('q matches an affiliation city substring', async () => {
+  test('q matches a second affiliation name on the same work', async () => {
     const prisma = await getPrismaClient();
     await prisma.workVersion.update({
       where: { id: seeds[8].workVersionId },
       data: {
         metadata: {
           'frontmatter.myst': {
-            affiliations: [{ institution: 'MIT', department: 'CS', city: 'Cambridge' }],
+            affiliations: [{ id: 'a1', name: 'Wyss Institute for Biologically Inspired Engineering' }],
           },
         },
       },
@@ -381,7 +387,7 @@ describe('site works listing — search / sort / date filters', () => {
     const dto = await listPublishedWorks(
       testData.context,
       [],
-      { q: 'Cambridge' },
+      { q: 'Wyss Institute' },
       { page: 0, limit: 500 },
     );
     expect(dto.total).toBe(1);
