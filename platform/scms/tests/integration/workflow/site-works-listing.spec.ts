@@ -342,6 +342,52 @@ describe('site works listing — search / sort / date filters', () => {
     expect(dto.items[0].id).toBe(seeds[7].workId);
   });
 
+  test('q matches an affiliation name from work version metadata', async () => {
+    const prisma = await getPrismaClient();
+    await prisma.workVersion.update({
+      where: { id: seeds[3].workVersionId },
+      data: {
+        metadata: {
+          'frontmatter.myst': {
+            affiliations: [{ id: 'curvenote', name: 'Curvenote Labs', city: 'Halifax' }],
+          },
+        },
+      },
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'Curvenote Labs' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[3].workId);
+  });
+
+  test('q matches an affiliation city substring', async () => {
+    const prisma = await getPrismaClient();
+    await prisma.workVersion.update({
+      where: { id: seeds[8].workVersionId },
+      data: {
+        metadata: {
+          'frontmatter.myst': {
+            affiliations: [{ institution: 'MIT', department: 'CS', city: 'Cambridge' }],
+          },
+        },
+      },
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'Cambridge' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(seeds[8].workId);
+  });
+
   test('q with no matches returns an empty listing', async () => {
     const dto = await listPublishedWorks(
       testData.context,

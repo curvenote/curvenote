@@ -59,7 +59,7 @@ const ParamsSchema = z.object({
   collection: z.string().min(1).max(64).optional(),
   kind: z.string().min(1).max(64).optional(), // TODO kind name should be url-safe
   status: z.union([z.literal('published'), z.literal('in-review')]).optional(),
-  /** Case-insensitive substring search across title / authors / DOI. */
+  /** Case-insensitive substring search across title / authors / DOI / affiliations. */
   q: z.preprocess((v) => {
     if (typeof v !== 'string') return undefined;
     const trimmed = v.trim();

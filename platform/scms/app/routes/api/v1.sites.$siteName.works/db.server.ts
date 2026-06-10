@@ -2,6 +2,7 @@ import {
   getPrismaClient,
   fetchWorkVersionSubjects,
   fetchSubmissionIdsBySubject,
+  WORK_VERSION_AFFILIATIONS_SEARCH_TEXT_FN,
   type SiteContext,
 } from '@curvenote/scms-server';
 import {
@@ -12,7 +13,7 @@ import {
   registerExtensionWorkflows,
   type ClientExtension,
 } from '@curvenote/scms-core';
-import type { Prisma } from '@curvenote/scms-db';
+import { Prisma } from '@curvenote/scms-db';
 import { formatSiteWorkDTOFromSubmissions, siteWorkListingSelect } from './format.server';
 import type { ListDBO, RowDBO } from './format.server';
 
@@ -140,12 +141,15 @@ function buildListingWhere(
 
 /**
  * Resolve the submission ids matching a free-text query via a single raw SQL
- * EXISTS subquery that ILIKE-substrings the newest work versions' title /
- * authors / DOI and the underlying work's DOI. The pg_trgm GIN indexes from
- * `20260526223800_add_submission_search_trgm_indexes` serve these predicates.
+ * EXISTS subquery that ILIKE-substrings work versions' title / authors / DOI,
+ * affiliation metadata, and the underlying work's DOI. The pg_trgm GIN indexes
+ * from `20260526223800_add_submission_search_trgm_indexes` and
+ * `20260610120000_add_work_version_affiliations_trgm_index` serve these
+ * predicates.
  *
- * `immutable_array_to_string(authors, ' ')` MUST match the expression index
- * exactly for the planner to use it.
+ * `immutable_array_to_string(authors, ' ')` and
+ * `work_version_affiliations_search_text(metadata)` MUST match their
+ * expression indexes exactly for the planner to use them.
  */
 async function dbSearchSubmissionIds(
   siteId: string,
@@ -168,6 +172,7 @@ async function dbSearchSubmissionIds(
             OR wv.doi ILIKE ${pattern}
             OR w.doi ILIKE ${pattern}
             OR immutable_array_to_string(wv.authors, ' ') ILIKE ${pattern}
+            OR ${Prisma.raw(WORK_VERSION_AFFILIATIONS_SEARCH_TEXT_FN)}(wv.metadata) ILIKE ${pattern}
           )
       )
   `;
