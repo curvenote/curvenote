@@ -196,9 +196,11 @@ async function dbSearchSubmissionIds(
 /**
  * Count submissions that have at least one version in the requested status.
  *
- * Rooted at `Submission` (already one row per listing entry) so this is a
- * single SQL COUNT over a semijoin — no longer materialising every matching
- * version id into Node just to read `.length`.
+ * Uses a single `COUNT(DISTINCT s.id)` over an inner join to
+ * `SubmissionVersion` rather than Prisma's correlated `EXISTS` wrapper (which
+ * showed up in logs as a slow `COUNT(*)` subquery over every site submission
+ * on large sites). Optional collection / kind / date / search-id filters mirror
+ * {@link buildListingWhere}.
  */
 async function dbCountSubmissions(
   siteId: string,
@@ -207,11 +209,44 @@ async function dbCountSubmissions(
   kind?: string,
   extras?: ListingExtras,
   tx?: Prisma.TransactionClient,
-) {
+): Promise<number> {
   const prisma = await getPrismaClient();
-  return (tx ?? prisma).submission.count({
-    where: buildListingWhere(siteId, collectionName, status, kind, extras),
-  });
+  const joins: Prisma.Sql[] = [
+    Prisma.sql`
+      INNER JOIN "SubmissionVersion" sv
+        ON sv.submission_id = s.id
+       AND sv.status = ${status}
+    `,
+  ];
+  const conditions: Prisma.Sql[] = [Prisma.sql`s.site_id = ${siteId}`];
+
+  if (collectionName) {
+    joins.push(Prisma.sql`INNER JOIN "Collection" c ON c.id = s.collection_id`);
+    conditions.push(Prisma.sql`c.name = ${collectionName}`);
+  }
+  if (kind) {
+    joins.push(Prisma.sql`INNER JOIN "SubmissionKind" k ON k.id = s.kind_id`);
+    conditions.push(Prisma.sql`k.name = ${kind}`);
+  }
+
+  const toExclusive = extras?.to ? toExclusiveDateUpperBound(extras.to) : undefined;
+  if (extras?.from) {
+    conditions.push(Prisma.sql`s.date_published >= ${extras.from}`);
+  }
+  if (toExclusive) {
+    conditions.push(Prisma.sql`s.date_published < ${toExclusive}`);
+  }
+  if (extras?.ids) {
+    conditions.push(Prisma.sql`s.id IN (${Prisma.join(extras.ids)})`);
+  }
+
+  const [{ count }] = await (tx ?? prisma).$queryRaw<[{ count: bigint }]>`
+    SELECT COUNT(DISTINCT s.id) AS count
+    FROM "Submission" s
+    ${Prisma.join(joins, ' ')}
+    WHERE ${Prisma.join(conditions, ' AND ')}
+  `;
+  return Number(count);
 }
 
 /**
