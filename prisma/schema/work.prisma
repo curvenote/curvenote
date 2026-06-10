@@ -19,6 +19,9 @@ model WorkUser {
   /// `Work_doi_idx`) and loading `work_users`, and by work teardown
   /// (`workUser.deleteMany({ work_id })`).
   @@index([work_id])
+  /// Backs user-scoped work membership lookups (`/my/works`, `/my/submissions`
+  /// `work_users.some({ user_id })`, `dbGetUserWorkRoles`).
+  @@index([user_id])
 }
 
 model Work {
