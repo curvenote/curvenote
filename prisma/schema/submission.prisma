@@ -99,6 +99,10 @@ model SubmissionVersion {
   occ                 Int         @default(0) // Optimistic concurrency control
 
   @@index([tags], type: Gin)
+  /// Dedicated FK index for Submission → versions joins. Composite indexes on
+  /// `(submission_id, …)` cover prefix lookups but a single-column btree is
+  /// smaller and what Supabase advisor recommends for the nested-loop path.
+  @@index([submission_id])
   /// Powers the submissions-index listing hot path:
   ///   - newest-version subselect (`versions: { take: 1, orderBy: { date_created: 'desc' } }`)
   ///   - DISTINCT ON (submission_id) ORDER BY submission_id, date_created DESC
@@ -141,6 +145,11 @@ model Submission {
   is_listed       Boolean             @default(false)
 
   @@index([site_id])
+  /// Backs lookups and deletes keyed by work (`Submission.work_id` FK has no
+  /// implicit Postgres index). Used by `/my/submissions?work_id=…`, ETL
+  /// register-work (`site_id` + `work_id`), and work teardown
+  /// (`submission.deleteMany({ work_id })`).
+  @@index([work_id])
   /// Powers the public works listing (`GET /v1/sites/:siteName/works`) hot
   /// path: filter by `site_id`, ordered by `date_published DESC, date_created
   /// DESC`, with LIMIT/OFFSET pushed into an index range scan. This is the
