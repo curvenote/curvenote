@@ -12,3 +12,10 @@ CREATE INDEX IF NOT EXISTS "Submission_work_id_idx" ON "Submission" (work_id);
 -- Work resolution (e.g. DOI via `Work_doi_idx`) → `work_users` join,
 -- `dbGetWorkUsers`, work teardown `workUser.deleteMany({ work_id })`.
 CREATE INDEX IF NOT EXISTS "WorkUser_work_id_idx" ON "WorkUser" (work_id);
+
+-- SubmissionVersion.submission_id (~99.94% cost reduction, paired with
+-- Submission.work_id above). FK join from Submission → versions; composite
+-- `(submission_id, …)` indexes exist but a single-column btree is smaller for
+-- the nested-loop probe.
+CREATE INDEX IF NOT EXISTS "SubmissionVersion_submission_id_idx"
+  ON "SubmissionVersion" (submission_id);

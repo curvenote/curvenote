@@ -99,6 +99,10 @@ model SubmissionVersion {
   occ                 Int         @default(0) // Optimistic concurrency control
 
   @@index([tags], type: Gin)
+  /// Dedicated FK index for Submission → versions joins. Composite indexes on
+  /// `(submission_id, …)` cover prefix lookups but a single-column btree is
+  /// smaller and what Supabase advisor recommends for the nested-loop path.
+  @@index([submission_id])
   /// Powers the submissions-index listing hot path:
   ///   - newest-version subselect (`versions: { take: 1, orderBy: { date_created: 'desc' } }`)
   ///   - DISTINCT ON (submission_id) ORDER BY submission_id, date_created DESC
