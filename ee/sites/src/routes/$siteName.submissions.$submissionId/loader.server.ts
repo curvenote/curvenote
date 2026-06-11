@@ -1,7 +1,9 @@
 import type { Context, Workflow } from '@curvenote/scms-core';
-import { getWorkflow } from '@curvenote/scms-core';
-import type { SiteContext } from '@curvenote/scms-server';
-import { createPreviewToken } from '@curvenote/scms-server';
+import {
+  createPreviewToken,
+  getConfiguredWorkflow,
+  type SiteContext,
+} from '@curvenote/scms-server';
 import {
   dbGetSiteAppData,
   dbListMagicLinksForSubmission,
@@ -79,7 +81,7 @@ export async function loadSubmissionDetailPage(
     return null;
   }
 
-  const workflow = getWorkflow(ctx.$config, [], submission.collection.workflow);
+  const workflow = getConfiguredWorkflow(ctx, submission.collection.workflow);
 
   let activeVersionIndex = submissionVersions.findIndex(
     (version) => version.id === submission.active_version_id,

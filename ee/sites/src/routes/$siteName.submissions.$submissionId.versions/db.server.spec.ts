@@ -8,14 +8,7 @@ vi.mock('@curvenote/scms-server', async (importOriginal) => {
   return {
     ...actual,
     getPrismaClient: vi.fn(),
-  };
-});
-
-vi.mock('@curvenote/scms-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@curvenote/scms-core')>();
-  return {
-    ...actual,
-    getWorkflow: vi.fn(() => ({
+    getConfiguredWorkflow: vi.fn(() => ({
       states: {
         PUBLISHED: { label: 'Published' },
         IN_REVIEW: { label: 'In review' },

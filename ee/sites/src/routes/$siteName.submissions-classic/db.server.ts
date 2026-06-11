@@ -1,8 +1,13 @@
-import type { SiteContext } from '@curvenote/scms-server';
-import { createPreviewToken, getPrismaClient, jobs } from '@curvenote/scms-server';
+import {
+  createPreviewToken,
+  getConfiguredWorkflow,
+  getPrismaClient,
+  jobs,
+  type SiteContext,
+} from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import { JobStatus } from '@curvenote/scms-db';
-import { getWorkflow, KnownJobTypes } from '@curvenote/scms-core';
+import { KnownJobTypes } from '@curvenote/scms-core';
 import { pickListingActiveVersionId } from './listing.utils.server.js';
 import { dbLoadListingVersionSnapshots } from './listing.versions.server.js';
 import {
@@ -145,7 +150,7 @@ async function dbBuildAugmentedListingItems(
       const activeWork = activeId ? workByVersionId.get(activeId) : undefined;
       const item = formatSubmissionListingItem(ctx, row, activeWork);
       if (!item) return null;
-      const workflow = getWorkflow(ctx.$config, [], row.collection.workflow);
+      const workflow = getConfiguredWorkflow(ctx, row.collection.workflow);
       return {
         ...item,
         workflow,
