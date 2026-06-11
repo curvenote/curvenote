@@ -1,6 +1,6 @@
-import { coerceToObject, getWorkflow } from '@curvenote/scms-core';
+import { coerceToObject } from '@curvenote/scms-core';
 import { doi as doiUtils } from 'doi-utils';
-import type { SiteContext } from '@curvenote/scms-server';
+import { getConfiguredWorkflow, type SiteContext } from '@curvenote/scms-server';
 import type { IndexListingRow } from './db.server.js';
 import type { SubmissionsIndexItem } from './types.js';
 
@@ -24,8 +24,7 @@ export function formatSubmissionsIndexItems(
     const kindContent = coerceToObject(row.kind.content);
     const collectionContent = coerceToObject(row.collection.content);
     const status = newestVersion?.status ?? 'UNKNOWN';
-    const workflow = getWorkflow(ctx.$config, [], row.collection.workflow);
-
+    const workflow = getConfiguredWorkflow(ctx, row.collection.workflow);
     return {
       id: row.id,
       title: work?.title ?? '',
