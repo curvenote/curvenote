@@ -66,11 +66,13 @@ function makeClient(connectionString?: string, dbCACertificate?: string): Prisma
     );
   }
 
-  // Create a connection pool for the adapter
+  // One connection per process — matches Supabase/PgBouncer transaction pooler limits on serverless.
   const pool = new Pool({
     connectionString: dbUrl,
     ssl: dbCACertificate ? { ca: dbCACertificate } : undefined,
-    max: process.env.NODE_ENV !== 'production' ? 1 : undefined,
+    max: 1,
+    idleTimeoutMillis: 20_000,
+    connectionTimeoutMillis: 10_000,
   });
 
   const adapter = new PrismaPg(pool);
