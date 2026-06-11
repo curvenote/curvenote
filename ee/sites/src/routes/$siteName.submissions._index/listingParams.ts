@@ -109,6 +109,8 @@ export interface ListingQuery {
   kindIds: string[];
   collectionIds: string[];
   statuses: string[];
+  /** Queue names from `metadata.queue.name` on the newest SubmissionVersion (OR semantics). */
+  queues: string[];
   from?: string;
   to?: string;
   /**
@@ -125,6 +127,7 @@ export function hasActiveListingFiltersInQuery(query: ListingQuery): boolean {
     query.kindIds.length ||
     query.collectionIds.length ||
     query.statuses.length ||
+    query.queues.length ||
     query.from ||
     query.to ||
     query.unpublishedOnly,
@@ -277,6 +280,7 @@ export type ListingParamKey =
   | 'kindIds'
   | 'collectionIds'
   | 'statuses'
+  | 'queues'
   | 'from'
   | 'to'
   | 'unpublishedOnly';
@@ -287,6 +291,7 @@ const CLEARABLE_PARAMS: readonly ListingParamKey[] = [
   'kindIds',
   'collectionIds',
   'statuses',
+  'queues',
   'from',
   'to',
   'unpublishedOnly',

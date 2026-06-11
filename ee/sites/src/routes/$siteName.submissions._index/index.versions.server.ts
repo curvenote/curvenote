@@ -42,6 +42,53 @@ type VersionTagSource = {
   tags: string[];
 };
 
+type SubmissionVersionMetadata = {
+  queue?: {
+    name?: unknown;
+    staff?: unknown;
+  } | null;
+};
+
+export type ParsedQueueMetadata = {
+  name: string;
+  staff: boolean;
+};
+
+function readQueueRecord(
+  metadata: unknown,
+): NonNullable<SubmissionVersionMetadata['queue']> | undefined {
+  if (metadata == null || typeof metadata !== 'object') return undefined;
+  const queue = (metadata as SubmissionVersionMetadata).queue;
+  if (queue == null || typeof queue !== 'object' || Array.isArray(queue)) return undefined;
+  return queue;
+}
+
+/**
+ * Parsed queue on a submission version, or undefined when `metadata.queue` is
+ * missing, not an object, or has no non-empty `name`.
+ */
+export function queueFromMetadata(metadata: unknown): ParsedQueueMetadata | undefined {
+  const queue = readQueueRecord(metadata);
+  if (!queue) return undefined;
+  if (typeof queue.name !== 'string') return undefined;
+  const name = queue.name.trim();
+  if (!name) return undefined;
+  return { name, staff: queue.staff === true };
+}
+
+/**
+ * Queue slug from submission version metadata (`metadata.queue.name`).
+ * Returns undefined when queue metadata is absent or name is empty.
+ */
+export function queueNameFromMetadata(metadata: unknown): string | undefined {
+  return queueFromMetadata(metadata)?.name;
+}
+
+/** Whether the submission's queue is staff-only (`metadata.queue.staff`). */
+export function staffQueueFromMetadata(metadata: unknown): boolean {
+  return queueFromMetadata(metadata)?.staff ?? false;
+}
+
 /**
  * First tag on the submission version — same source as title/status on the listing card.
  * Intentionally ignores `work_version.tags`: the listing badge reflects the tag chosen

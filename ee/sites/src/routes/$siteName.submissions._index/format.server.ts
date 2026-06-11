@@ -36,6 +36,8 @@ export function formatSubmissionsIndexItems(
       dateLastUpdated: row.activity[0]?.date_created ?? row.date_created,
       doi: doiUtils.normalize(work?.doi ?? row.work?.doi),
       versionTag: row.versionTag,
+      queue: row.queueName,
+      queueStaff: row.queueName ? row.queueStaff : undefined,
       status,
       statusLabel: workflow.states[status]?.label ?? status,
       publishedVersion: row.publishedVersion,

@@ -86,13 +86,14 @@ describe('listingParams: URL helpers', () => {
 
   it('clearListingFilters wipes only the filter / search params and page', () => {
     const before = new URLSearchParams(
-      'q=foo&kindIds=a&collectionIds=b&statuses=PENDING&from=2024-01-01&to=2024-01-31&unpublishedOnly=1&page=4&sort=recent_created&perPage=30',
+      'q=foo&kindIds=a&collectionIds=b&statuses=PENDING&queues=staff&from=2024-01-01&to=2024-01-31&unpublishedOnly=1&page=4&sort=recent_created&perPage=30',
     );
     const after = clearListingFilters(before);
     expect(after.get('q')).toBeNull();
     expect(after.get('kindIds')).toBeNull();
     expect(after.get('collectionIds')).toBeNull();
     expect(after.get('statuses')).toBeNull();
+    expect(after.get('queues')).toBeNull();
     expect(after.get('from')).toBeNull();
     expect(after.get('to')).toBeNull();
     expect(after.get('unpublishedOnly')).toBeNull();
@@ -109,6 +110,7 @@ describe('listingParams: URL helpers', () => {
     expect(hasActiveListingFilters(new URLSearchParams('kindIds=a'))).toBe(true);
     expect(hasActiveListingFilters(new URLSearchParams('collectionIds=b'))).toBe(true);
     expect(hasActiveListingFilters(new URLSearchParams('statuses=PENDING'))).toBe(true);
+    expect(hasActiveListingFilters(new URLSearchParams('queues=staff'))).toBe(true);
     expect(hasActiveListingFilters(new URLSearchParams('from=2024-01-01'))).toBe(true);
     expect(hasActiveListingFilters(new URLSearchParams('to=2024-01-31'))).toBe(true);
     expect(hasActiveListingFilters(new URLSearchParams('unpublishedOnly=1'))).toBe(true);
@@ -122,11 +124,13 @@ describe('listingParams: URL helpers', () => {
       kindIds: [] as string[],
       collectionIds: [] as string[],
       statuses: [] as string[],
+      queues: [] as string[],
       unpublishedOnly: false,
     };
     expect(hasActiveListingFiltersInQuery(base)).toBe(false);
     expect(hasActiveListingFiltersInQuery({ ...base, kindIds: ['k'] })).toBe(true);
     expect(hasActiveListingFiltersInQuery({ ...base, statuses: ['PENDING'] })).toBe(true);
+    expect(hasActiveListingFiltersInQuery({ ...base, queues: ['staff'] })).toBe(true);
     expect(hasActiveListingFiltersInQuery({ ...base, q: 'photo' })).toBe(true);
     expect(hasActiveListingFiltersInQuery({ ...base, unpublishedOnly: true })).toBe(true);
   });

@@ -7,10 +7,16 @@ import {
   site as siteScopes,
 } from '@curvenote/scms-core';
 import { z } from 'zod';
-import { dbCountSubmissionsForIndex, dbListSubmissionsForIndex } from './db.server.js';
+import {
+  dbCountSubmissionsForIndex,
+  dbListDistinctQueuesForSite,
+  dbListSubmissionsForIndex,
+  type SiteQueueInfo,
+} from './db.server.js';
 import { formatSubmissionsIndexItems } from './format.server.js';
 import { formatSubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
 import type { SubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
+import { getSiteWithAppData } from '../../backend/db.server.js';
 import { ClassicSubmissionsRedirect } from './ClassicSubmissionsRedirect.js';
 import { SubmissionsListingToolbar } from './SubmissionsListingToolbar.js';
 import { SubmissionsList } from './SubmissionsList.js';
@@ -93,6 +99,9 @@ const csvStatusIds = z.preprocess(
  *   statuses       — CSV of newest-version statuses (LISTING_STATUS_OPTIONS).
  *                    Unknown ids are dropped silently so links survive enum
  *                    additions/removals.
+ *   queues         — CSV of queue names from metadata.queue.name on the
+ *                    newest version. Only honoured when queues are enabled
+ *                    for the site; unknown names are dropped against inventory.
  *   from, to       — ISO yyyy-mm-dd window applied strictly to date_published.
  *                    Submissions whose date_published is NULL are excluded
  *                    when any window is active.
@@ -123,6 +132,7 @@ const ListingQuerySchema = z.object({
   kindIds: csvIds,
   collectionIds: csvIds,
   statuses: csvStatusIds,
+  queues: csvIds,
   from: optionalDateString,
   to: optionalDateString,
   unpublishedOnly: boolFlag,
@@ -153,6 +163,8 @@ interface LoaderData {
   singleKindOnly: boolean;
   availableKinds: ToolbarKindOption[];
   availableCollections: ToolbarCollectionOption[];
+  queuesEnabled: boolean;
+  availableQueues: SiteQueueInfo[];
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -162,7 +174,16 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   });
 
   const url = new URL(args.request.url);
-  const query = ListingQuerySchema.parse(Object.fromEntries(url.searchParams));
+  const parsed = ListingQuerySchema.parse(Object.fromEntries(url.searchParams));
+
+  const siteWithAppData = await getSiteWithAppData(ctx.site.name);
+  const queuesEnabled = siteWithAppData?.data?.queuesEnabled ?? false;
+  const availableQueues = queuesEnabled ? await dbListDistinctQueuesForSite(ctx) : [];
+  const allowedQueues = new Set(availableQueues.map((q) => q.name));
+  const query: ListingQuery = {
+    ...parsed,
+    queues: queuesEnabled ? parsed.queues.filter((q) => allowedQueues.has(q)).slice(0, 1) : [],
+  };
 
   const [rows, total] = await Promise.all([
     dbListSubmissionsForIndex(ctx, query),
@@ -193,6 +214,8 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     singleKindOnly: availableKinds.length === 1,
     availableKinds,
     availableCollections,
+    queuesEnabled,
+    availableQueues,
   };
 }
 
@@ -209,6 +232,8 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
     singleKindOnly,
     availableKinds,
     availableCollections,
+    queuesEnabled,
+    availableQueues,
   } = loaderData;
 
   const breadcrumbs = [
@@ -224,8 +249,11 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
     >
       <SubmissionsListingToolbar
         className="mb-5"
+        siteName={site.name}
         availableKinds={singleKindOnly ? [] : availableKinds}
         availableCollections={defaultCollectionOnly ? [] : availableCollections}
+        queuesEnabled={queuesEnabled}
+        availableQueues={availableQueues}
         totalResults={submissions.total}
       />
       <div className="flex flex-col gap-2">
@@ -239,6 +267,7 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
           items={submissions.items}
           showCollectionChip={!defaultCollectionOnly}
           showKindChip={!singleKindOnly}
+          queuesEnabled={queuesEnabled}
         />
         <SubmissionsPagination
           page={submissions.page}

@@ -13,6 +13,7 @@ export function SiteSettingsForm({
 }) {
   const fetcher = useFetcher<{ error?: string; info?: string }>();
   const magicLinksEnabled = siteWithAppData.data?.magicLinksEnabled ?? false;
+  const queuesEnabled = siteWithAppData.data?.queuesEnabled ?? false;
 
   return (
     <primitives.Card lift className="max-w-4xl px-6 py-4 space-y-4" validateUsing={fetcher}>
@@ -99,6 +100,33 @@ export function SiteSettingsForm({
                   Enable the creation of secure, time-limited magic links for sharing submissions
                   with reviewers or collaborators. When disabled, the Access Links UI will be hidden
                   from submission detail pages.
+                </p>
+                <ui.TooltipArrow className="fill-blue-600" />
+              </ui.TooltipContent>
+            </ui.Tooltip>
+          </ui.TooltipProvider>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <ui.Checkbox
+            id="queuesEnabled"
+            name="queuesEnabled"
+            value="queuesEnabled"
+            defaultChecked={queuesEnabled}
+            disabled={fetcher.state === 'submitting'}
+          />
+          <label htmlFor="queuesEnabled" className="text-sm font-medium">
+            Enable Queues
+          </label>
+          <ui.TooltipProvider>
+            <ui.Tooltip>
+              <ui.TooltipTrigger asChild>
+                <InfoIcon className="w-4 h-4 text-muted-foreground" />
+              </ui.TooltipTrigger>
+              <ui.TooltipContent sideOffset={5} className="max-w-sm bg-blue-600">
+                <p className="text-blue-50">
+                  Enable submission queue assignment and queue-based filtering on the submissions
+                  listing. When disabled, queue metadata and queue UI will be hidden.
                 </p>
                 <ui.TooltipArrow className="fill-blue-600" />
               </ui.TooltipContent>

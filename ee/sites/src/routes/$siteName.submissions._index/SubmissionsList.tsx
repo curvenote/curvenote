@@ -10,6 +10,7 @@ interface SubmissionsListProps {
   items: SubmissionsIndexItem[];
   showCollectionChip?: boolean;
   showKindChip?: boolean;
+  queuesEnabled?: boolean;
 }
 
 export function SubmissionsList({
@@ -17,6 +18,7 @@ export function SubmissionsList({
   items,
   showCollectionChip,
   showKindChip,
+  queuesEnabled,
 }: SubmissionsListProps) {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -69,6 +71,7 @@ export function SubmissionsList({
             item={item}
             showCollectionChip={showCollectionChip}
             showKindChip={showKindChip}
+            queuesEnabled={queuesEnabled}
           />
         ))}
       </div>

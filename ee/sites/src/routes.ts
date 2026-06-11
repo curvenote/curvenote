@@ -24,7 +24,19 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
             route(':siteName', resolveRoutePath(import.meta.url, 'routes/$siteName/route.tsx'), [
               // ...getRoutesForMountPoint('app/sites/:siteName'),
               index(resolveRoutePath(import.meta.url, 'routes/$siteName._index.tsx')),
-              route('inbox', resolveRoutePath(import.meta.url, 'routes/$siteName.inbox/route.tsx')),
+              route(
+                'inbox',
+                resolveRoutePath(import.meta.url, 'routes/$siteName.inbox/route.tsx'),
+                [
+                  route(
+                    'queue-stats',
+                    resolveRoutePath(
+                      import.meta.url,
+                      'routes/$siteName.inbox.queue-stats/route.ts',
+                    ),
+                  ),
+                ],
+              ),
               route(
                 'kinds-classic',
                 resolveRoutePath(import.meta.url, 'routes/$siteName.kinds-classic/route.tsx'),
@@ -68,6 +80,13 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
                     resolveRoutePath(
                       import.meta.url,
                       'routes/$siteName.submissions._index/route.tsx',
+                    ),
+                  ),
+                  route(
+                    'queue-counts',
+                    resolveRoutePath(
+                      import.meta.url,
+                      'routes/$siteName.submissions.queue-counts/route.ts',
                     ),
                   ),
                   route(

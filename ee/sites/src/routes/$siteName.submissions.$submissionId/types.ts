@@ -93,6 +93,7 @@ export type SubmissionDetailSlugRow = {
 
 export type SiteAppData = {
   magicLinksEnabled?: boolean;
+  queuesEnabled?: boolean;
 };
 
 /** Site fields for magic links UI — not public SiteDTO. */

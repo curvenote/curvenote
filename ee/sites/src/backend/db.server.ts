@@ -6,7 +6,7 @@ import { getPrismaClient } from '@curvenote/scms-server';
  */
 export type SiteAppData = {
   magicLinksEnabled?: boolean;
-  // Add other app-specific site data fields here as needed
+  queuesEnabled?: boolean;
 };
 
 /**

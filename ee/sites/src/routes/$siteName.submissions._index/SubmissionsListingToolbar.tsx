@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router';
 import { cn } from '@curvenote/scms-core';
 import { clearListingFilters, hasActiveListingFilters } from './listingParams.js';
 import type { ToolbarCollectionOption, ToolbarKindOption } from './route.js';
+import type { SiteQueueInfo } from './db.server.js';
 import { SubmissionsSearchInput } from './SubmissionsSearchInput.js';
 import { SubmissionsSearchHelp } from './SubmissionsSearchHelp.js';
 import { SubmissionsSortButton } from './SubmissionsSortButton.js';
@@ -9,12 +10,18 @@ import { SubmissionsKindFilter } from './SubmissionsKindFilter.js';
 import { SubmissionsCollectionFilter } from './SubmissionsCollectionFilter.js';
 import { SubmissionsDateFilter } from './SubmissionsDateFilter.js';
 import { SubmissionsStatusFilter } from './SubmissionsStatusFilter.js';
+import { SubmissionsQueueFilter } from './SubmissionsQueueFilter.js';
 
 interface SubmissionsListingToolbarProps {
+  siteName: string;
   /** Kinds the user can filter by. Empty -> kind chip hidden (single-kind site). */
   availableKinds: ToolbarKindOption[];
   /** Collections the user can filter by. Empty -> collection chip hidden. */
   availableCollections: ToolbarCollectionOption[];
+  /** When true, show the queue dropdown (left of status). */
+  queuesEnabled: boolean;
+  /** Distinct queues present on listed submissions (newest version). */
+  availableQueues: readonly SiteQueueInfo[];
   /** Loader-provided total after applying current filters/search. */
   totalResults: number;
   className?: string;
@@ -25,7 +32,7 @@ interface SubmissionsListingToolbarProps {
  *
  *   ┌─ Search input ──────────────────────────────────────── (i) ┐
  *   ├────────────────────────────────────────────────────────────┤
- *   │  [Kind ▾] [Collection ▾] [Status ▾] [Published ▾]   Sort ▾ │
+ *   │  [Kind ▾] [Collection ▾] [Queue ▾] [Status ▾] [Published ▾]  Sort ▾ │
  *   └────────────────────────────────────────────────────────────┘
  *   "12 results matching 'photo'  ·  Clear filters"
  *
@@ -38,8 +45,11 @@ interface SubmissionsListingToolbarProps {
  * belongs to, rather than competing with the search input for top-row space.
  */
 export function SubmissionsListingToolbar({
+  siteName,
   availableKinds,
   availableCollections,
+  queuesEnabled,
+  availableQueues,
   totalResults,
   className,
 }: SubmissionsListingToolbarProps) {
@@ -69,6 +79,9 @@ export function SubmissionsListingToolbar({
       <div className="flex min-h-11 flex-wrap items-center gap-2 px-3 py-2">
         <SubmissionsKindFilter kinds={availableKinds} />
         <SubmissionsCollectionFilter collections={availableCollections} />
+        {queuesEnabled && availableQueues.length > 0 ? (
+          <SubmissionsQueueFilter siteName={siteName} queues={availableQueues} />
+        ) : null}
         <SubmissionsStatusFilter />
         <SubmissionsDateFilter />
         <SubmissionsSortButton className="ml-auto" />

@@ -80,6 +80,7 @@ const UpdateSiteSettingsSchema = zfd.formData({
   description: zfd.text(z.string().optional()),
   private: zfd.checkbox({ trueValue: 'private' }),
   magicLinksEnabled: zfd.checkbox({ trueValue: 'magicLinksEnabled' }),
+  queuesEnabled: zfd.checkbox({ trueValue: 'queuesEnabled' }),
 });
 
 export async function actionUpdateSiteSettings(ctx: SiteContext, formData: FormData) {
@@ -97,6 +98,7 @@ export async function actionUpdateSiteSettings(ctx: SiteContext, formData: FormD
       const updatedData = {
         ...existingData,
         magicLinksEnabled: payload.magicLinksEnabled,
+        queuesEnabled: payload.queuesEnabled,
       };
 
       await prisma.site.update({

@@ -1,7 +1,11 @@
 import type { SiteContext } from '@curvenote/scms-server';
 import { getPrismaClient } from '@curvenote/scms-server';
 import { Prisma } from '@curvenote/scms-db';
-import { dbLoadIndexVersionDates, firstVersionTag } from './index.versions.server.js';
+import {
+  dbLoadIndexVersionDates,
+  firstVersionTag,
+  queueFromMetadata,
+} from './index.versions.server.js';
 import { toExclusiveDateUpperBound, type ListingQuery } from './listingParams.js';
 
 /**
@@ -33,8 +37,8 @@ import { toExclusiveDateUpperBound, type ListingQuery } from './listingParams.js
  *    select shape is identical to the fast path. Order is re-applied client
  *    side to preserve the raw query's ORDER BY.
  *
- * Filters (kindIds, collectionIds, statuses, date range, unpublishedOnly)
- * and sort (recent_published, recent_created) flow through the four
+ * Filters (kindIds, collectionIds, statuses, queues, date range,
+ * unpublishedOnly) and sort (recent_published, recent_created) flow through the four
  * composable builders below and apply to both paths.
  *
  * Date filter semantics: the `from` / `to` window applies strictly to
@@ -93,12 +97,20 @@ export type IndexListingRow = {
   versions: {
     status: string;
     tags: string[];
+    metadata: Prisma.JsonValue;
     work_version: WorkVersionMinimal;
   }[];
   publishedVersion?: { date_created: string };
   retractedVersion?: { date_created: string };
   versionTag?: string;
+  queueName?: string;
+  queueStaff?: boolean;
   activity: { date_created: string }[];
+};
+
+export type SiteQueueInfo = {
+  name: string;
+  staff: boolean;
 };
 
 /**
@@ -129,6 +141,7 @@ const INDEX_LISTING_SELECT = {
     select: {
       status: true,
       tags: true,
+      metadata: true,
       work_version: { select: { title: true, authors: true, doi: true } },
     },
   },
@@ -144,12 +157,12 @@ const INDEX_LISTING_SELECT = {
  * -------------------------------------------------------------------------- */
 
 function needsRawSqlPath(query: ListingQuery): boolean {
-  // `q` (search) joins SubmissionVersion -> WorkVersion and `statuses` runs a
-  // correlated subquery against the newest SubmissionVersion. Prisma can't
-  // express either efficiently, so both force the raw SQL path. The remaining
+  // `q` (search) joins SubmissionVersion -> WorkVersion; `statuses` and `queues`
+  // run correlated subqueries against the newest SubmissionVersion. Prisma can't
+  // express those efficiently, so all three force the raw SQL path. The remaining
   // filters (kindIds, collectionIds, date range) and the supported sorts live
   // on `Submission` directly.
-  return Boolean(query.q) || query.statuses.length > 0;
+  return Boolean(query.q) || query.statuses.length > 0 || query.queues.length > 0;
 }
 
 /* -----------------------------------------------------------------------------
@@ -250,6 +263,20 @@ function buildListingRawSqlWhere(siteId: string, query: ListingQuery): Prisma.Sq
       LIMIT 1
     ) IN (${Prisma.join(query.statuses)})`);
   }
+  if (query.queues.length) {
+    conds.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "SubmissionVersion" sv
+      WHERE sv.submission_id = s.id
+        AND ${sqlSubmissionVersionHasQueueName()}
+        AND sv.metadata->'queue'->>'name' IN (${Prisma.join(query.queues)})
+        AND sv.id = (
+          SELECT sv2.id FROM "SubmissionVersion" sv2
+          WHERE sv2.submission_id = s.id
+          ORDER BY sv2.date_created DESC
+          LIMIT 1
+        )
+    )`);
+  }
   if (query.q) {
     // Substring match across the newest version's title / authors / DOI and
     // the underlying work's DOI. Searches all versions of the submission, not
@@ -306,9 +333,78 @@ function escapeIlikePattern(q: string): string {
   return q.replace(/\\/g, '\\\\');
 }
 
+/** `sv` has a json object `metadata.queue` with a non-empty trimmed `name`. */
+function sqlSubmissionVersionHasQueueName(): Prisma.Sql {
+  return Prisma.sql`
+    jsonb_typeof(sv.metadata->'queue') = 'object'
+    AND NULLIF(TRIM(sv.metadata->'queue'->>'name'), '') IS NOT NULL
+  `;
+}
+
 /* -----------------------------------------------------------------------------
  * Public API
  * -------------------------------------------------------------------------- */
+
+/** Distinct queue names on the newest version of listed submissions. */
+export async function dbListDistinctQueuesForSite(ctx: SiteContext): Promise<SiteQueueInfo[]> {
+  const prisma = await getPrismaClient();
+  const rows = await prisma.$queryRaw<{ queue: string; staff: boolean }[]>`
+    SELECT
+      sv.metadata->'queue'->>'name' AS queue,
+      bool_or(COALESCE((sv.metadata->'queue'->>'staff')::boolean, false)) AS staff
+    FROM "Submission" s
+    JOIN "SubmissionVersion" sv ON sv.submission_id = s.id
+    WHERE s.site_id = ${ctx.site.id}
+      AND s.is_listed = TRUE
+      AND ${sqlSubmissionVersionHasQueueName()}
+      AND sv.id = (
+        SELECT sv2.id
+        FROM "SubmissionVersion" sv2
+        WHERE sv2.submission_id = s.id
+        ORDER BY sv2.date_created DESC
+        LIMIT 1
+      )
+    GROUP BY queue
+    ORDER BY queue ASC
+  `;
+  return rows.map((row) => ({ name: row.queue, staff: row.staff }));
+}
+
+export type QueueSubmissionCounts = {
+  /** Listed submissions per queue (newest version metadata.queue.name). */
+  byQueue: Record<string, number>;
+};
+
+/** Per-queue totals for listed submissions (newest version queue). */
+export async function dbCountSubmissionsByQueueForSite(
+  ctx: SiteContext,
+): Promise<QueueSubmissionCounts> {
+  const prisma = await getPrismaClient();
+  const queueRows = await prisma.$queryRaw<{ queue: string; count: bigint }[]>`
+    SELECT sv.metadata->'queue'->>'name' AS queue, COUNT(*)::bigint AS count
+    FROM "Submission" s
+    JOIN "SubmissionVersion" sv ON sv.submission_id = s.id
+    WHERE s.site_id = ${ctx.site.id}
+      AND s.is_listed = TRUE
+      AND ${sqlSubmissionVersionHasQueueName()}
+      AND sv.id = (
+        SELECT sv2.id
+        FROM "SubmissionVersion" sv2
+        WHERE sv2.submission_id = s.id
+        ORDER BY sv2.date_created DESC
+        LIMIT 1
+      )
+    GROUP BY queue
+    ORDER BY queue ASC
+  `;
+
+  const byQueue: Record<string, number> = {};
+  for (const row of queueRows) {
+    byQueue[row.queue] = Number(row.count);
+  }
+
+  return { byQueue };
+}
 
 export async function dbCountSubmissionsForIndex(
   ctx: SiteContext,
@@ -360,11 +456,14 @@ export async function dbListSubmissionsForIndex(
   return rows.map((row) => {
     const dates = versionDates.get(row.id);
     const newestVersion = row.versions[0];
+    const queue = newestVersion ? queueFromMetadata(newestVersion.metadata) : undefined;
     return {
       ...row,
       publishedVersion: dates?.publishedVersion,
       retractedVersion: dates?.retractedVersion,
       versionTag: newestVersion ? firstVersionTag(newestVersion) : undefined,
+      queueName: queue?.name,
+      queueStaff: queue?.staff,
     };
   });
 }

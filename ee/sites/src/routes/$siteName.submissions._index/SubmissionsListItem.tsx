@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { summarizeAuthors, ui } from '@curvenote/scms-core';
+import { CategoryTagBadge } from './CategoryTagBadge.js';
 import {
   Collection,
   HasPublishedVersion,
@@ -19,6 +20,7 @@ interface SubmissionsListItemProps {
   item: SubmissionsIndexItem;
   showCollectionChip?: boolean;
   showKindChip?: boolean;
+  queuesEnabled?: boolean;
 }
 
 export function SubmissionsListItem({
@@ -26,6 +28,7 @@ export function SubmissionsListItem({
   item,
   showCollectionChip,
   showKindChip,
+  queuesEnabled = false,
 }: SubmissionsListItemProps) {
   const authorSummary = summarizeAuthors(item.authors, { maxDisplay: AUTHORS_MAX_DISPLAY });
   const fullAuthorList = item.authors.map((author) => author.name).join(', ');
@@ -78,7 +81,10 @@ export function SubmissionsListItem({
             {item.doi ? <DoiBadge doi={item.doi} /> : null}
           </div>
         </div>
-        <div className="flex shrink-0 items-center justify-start sm:w-[200px] sm:justify-center">
+        <div className="flex shrink-0 flex-col items-end gap-2 sm:w-[200px] sm:items-center">
+          {queuesEnabled && item.queue ? (
+            <CategoryTagBadge tag={item.queue} staff={item.queueStaff} />
+          ) : null}
           <VersionTimelineHoverCard siteName={siteName} submissionId={item.id} align="end">
             <SubmissionStatusBadge status={item.status} label={item.statusLabel} />
           </VersionTimelineHoverCard>
