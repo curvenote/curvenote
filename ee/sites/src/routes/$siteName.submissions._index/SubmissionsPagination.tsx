@@ -104,7 +104,7 @@ function ItemsPerPageSelect({
         Show
       </ui.Label>
       <ui.Select
-        value={perPage.toString()}
+        value={String(perPage)}
         onValueChange={(value) => {
           const newPerPage = Number(value);
           const newPage = pageForPerPageChange(page, perPage, newPerPage, total);
@@ -113,8 +113,12 @@ function ItemsPerPageSelect({
           });
         }}
       >
-        <ui.SelectTrigger id={selectId} size="sm" className="h-8 min-w-[4.75rem] text-xs">
-          <ui.SelectValue />
+        <ui.SelectTrigger
+          id={selectId}
+          size="sm"
+          className="h-8 min-w-[4.75rem] text-xs text-foreground"
+        >
+          <ui.SelectValue placeholder={String(perPage)}>{perPage}</ui.SelectValue>
         </ui.SelectTrigger>
         <ui.SelectContent>
           {SUBMISSIONS_PER_PAGE_OPTIONS.map((option) => (
