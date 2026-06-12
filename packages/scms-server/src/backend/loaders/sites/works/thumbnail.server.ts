@@ -1,8 +1,8 @@
 import type { SiteContext } from '../../../context.site.server.js';
 import {
-  dbGetLatestPublishedSubmissionVersion,
-  type DBO as PublishedDBO,
-} from '../submissions/published/get.server.js';
+  dbGetPublishedThumbnailRow,
+  type PublishedThumbnailRow,
+} from '../submissions/published/resolve.server.js';
 import { error401, error404 } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { submissionVersionForSiteWorkSelect } from '../../../prisma.selects.server.js';
@@ -41,7 +41,12 @@ async function dbGetLatestSubmissionVersion(siteName: string, workIdOrSlug: stri
   });
 }
 
-type DBO = Exclude<Awaited<ReturnType<typeof dbGetLatestSubmissionVersion>>, null>;
+type UnpublishedThumbnailRow = Exclude<
+  Awaited<ReturnType<typeof dbGetLatestSubmissionVersion>>,
+  null
+>;
+
+type ThumbnailRow = PublishedThumbnailRow | UnpublishedThumbnailRow;
 
 export default async function loadSiteWorkThumbnail(
   ctx: SiteContext,
@@ -49,10 +54,7 @@ export default async function loadSiteWorkThumbnail(
   query?: string,
 ) {
   // TODO get a specific work version when versionId is provided
-  let dbo: DBO | PublishedDBO | null = await dbGetLatestPublishedSubmissionVersion(
-    ctx.site.name,
-    workIdOrSlug,
-  );
+  let dbo: ThumbnailRow | null = await dbGetPublishedThumbnailRow(ctx.site.id, workIdOrSlug);
   if (!dbo) {
     // there is no published version of this work
     // if the user is authorized, or we have a preview signature - then we can show them the thumbnail

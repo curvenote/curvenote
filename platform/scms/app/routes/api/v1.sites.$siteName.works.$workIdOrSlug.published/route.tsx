@@ -1,4 +1,4 @@
-import type { Route } from './+types/v1.sites.$siteName.works.$workIdOrSlug.published';
+import type { Route } from './+types/route';
 import { httpError, MESSAGE_404 } from '@curvenote/scms-core';
 import { withSecureSiteContext, sites } from '@curvenote/scms-server';
 import {

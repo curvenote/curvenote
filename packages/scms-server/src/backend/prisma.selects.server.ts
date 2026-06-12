@@ -93,6 +93,12 @@ export const siteWorkDtoSelect = {
   submission: { select: siteWorkSubmissionSelect },
 } satisfies Prisma.SubmissionVersionSelect;
 
+/** Published thumbnail/social hot path — CDN fields only. */
+export const publishedThumbnailSelect = {
+  id: true,
+  work_version: { select: { id: true, work_id: true, cdn: true, cdn_key: true } },
+} satisfies Prisma.SubmissionVersionSelect;
+
 /**
  * Submission version rows formatted as SiteWorkDTO / SubmissionVersionDTO
  * (excludes submission-version metadata JSON).
