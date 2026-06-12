@@ -51,7 +51,7 @@ export function SubmissionsDateFilter({ className }: SubmissionsDateFilterProps)
   const to = searchParams.get('to') ?? undefined;
   const unpublishedOnly = searchParams.get('unpublishedOnly') === '1';
   const [open, setOpen] = useState(false);
-  /** In-popover range; URL updates only once both ends are chosen. */
+  /** In-popover range while the user is picking; URL syncs on complete range or popover close. */
   const [draftRange, setDraftRange] = useState<DateRange | undefined>(undefined);
   const [visibleMonth, setVisibleMonth] = useState<Date>(() => new Date());
 
@@ -105,17 +105,28 @@ export function SubmissionsDateFilter({ className }: SubmissionsDateFilterProps)
     setOpen(false);
   };
 
+  const applyDraftRange = (range: DateRange) => {
+    const fromIso = dateToIso(range.from!);
+    const toIso = range.to ? dateToIso(range.to) : fromIso;
+    applyDateMode({ from: fromIso, to: toIso });
+  };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && draftRange?.from && !draftRange.to) {
+      applyDraftRange(draftRange);
+    }
+    setOpen(nextOpen);
+  };
+
   const handleCalendarSelect = (range: DateRange | undefined) => {
     if (!range || (!range.from && !range.to)) {
       setDraftRange(undefined);
+      applyDateMode({});
       return;
     }
     setDraftRange(range);
     if (range.from && range.to) {
-      applyDateMode({
-        from: dateToIso(range.from),
-        to: dateToIso(range.to),
-      });
+      applyDraftRange(range);
       setOpen(false);
     }
   };
@@ -132,7 +143,7 @@ export function SubmissionsDateFilter({ className }: SubmissionsDateFilterProps)
   const showCalendar = activePreset !== 'no_published_date';
 
   return (
-    <ui.Popover open={open} onOpenChange={setOpen}>
+    <ui.Popover open={open} onOpenChange={handleOpenChange}>
       <ui.PopoverTrigger asChild>
         <ui.Button
           variant="action"
