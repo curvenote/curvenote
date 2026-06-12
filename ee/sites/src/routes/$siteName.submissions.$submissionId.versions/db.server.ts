@@ -1,6 +1,4 @@
-import type { SiteContext } from '@curvenote/scms-server';
-import { getPrismaClient } from '@curvenote/scms-server';
-import { getWorkflow } from '@curvenote/scms-core';
+import { getConfiguredWorkflow, getPrismaClient, type SiteContext } from '@curvenote/scms-server';
 import { firstVersionTag } from '../$siteName.submissions._index/index.versions.server.js';
 
 export type VersionTimelineEntry = {
@@ -53,7 +51,7 @@ export async function dbLoadSubmissionVersionsTimeline(
     return null;
   }
 
-  const workflow = getWorkflow(ctx.$config, [], submission.collection.workflow);
+  const workflow = getConfiguredWorkflow(ctx, submission.collection.workflow);
 
   return submission.versions.map((row) => ({
     id: row.id,

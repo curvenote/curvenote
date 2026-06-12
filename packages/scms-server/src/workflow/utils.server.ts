@@ -1,7 +1,15 @@
 import type { Workflow, ClientExtension } from '@curvenote/scms-core';
-import { getWorkflows, registerExtensionWorkflows } from '@curvenote/scms-core';
+import { getWorkflow, getWorkflows, registerExtensionWorkflows } from '@curvenote/scms-core';
 import { getPrismaClient } from '../backend/prisma.server.js';
 import type { SiteContext } from '../backend/context.site.server.js';
+import { getAppExtensions } from '../extensions/registry.server.js';
+
+/**
+ * Resolves a workflow using extension definitions registered at app bootstrap.
+ */
+export function getConfiguredWorkflow(ctx: SiteContext, workflowName: string): Workflow {
+  return getWorkflow(ctx.$config, registerExtensionWorkflows(getAppExtensions()), workflowName);
+}
 
 /**
  * Given the submission ID, we need to determine the workflow in use based on the collection.

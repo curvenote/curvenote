@@ -85,7 +85,7 @@ const csvStatusIds = z.preprocess(
  * Canonical URL contract for the submissions index listing.
  *
  *   page, perPage  — pagination
- *   q              — debounced search text (matches title / authors / DOI)
+ *   q              — search text (matches title / authors / DOI); committed on Enter or blur
  *   sort           — one of LISTING_SORTS; disabled values silently coerce
  *                    to the default until the denormalisation slice lands
  *   kindIds        — CSV of SubmissionKind ids (multi-select chip)

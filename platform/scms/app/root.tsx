@@ -7,6 +7,7 @@ import {
   formatMyUserDTO,
   buildClientNavigation,
   loadAndValidateSigninSignupConfig,
+  setAppExtensions,
 } from '@curvenote/scms-server';
 import {
   ui,
@@ -115,6 +116,7 @@ export const loader = async (args: Route.LoaderArgs) => {
   const ctx = await withContext(args);
 
   registerExtensionsForNavigation(clientExtensions);
+  setAppExtensions(extensions);
 
   // Validate that all expected workflows are registered (pass extensions for proper missing detection)
   const extensionWorkflows = registerExtensionWorkflows(extensions);
