@@ -452,6 +452,53 @@ describe('site works listing — search / sort / date filters', () => {
     expect(dto.items).toHaveLength(0);
   });
 
+  test('q on a published listing ignores draft-only submission versions', async () => {
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'Draft work' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+    expect(dto.items).toHaveLength(0);
+  });
+
+  test('q on a published listing ignores unpublished version text on a resubmission', async () => {
+    const prisma = await getPrismaClient();
+    const now = new Date().toISOString();
+    const draftWorkVersionId = uuidv7();
+    await prisma.workVersion.create({
+      data: {
+        id: draftWorkVersionId,
+        date_created: now,
+        date_modified: now,
+        title: 'Unpublished resubmit title unique-xyz',
+        authors: [],
+        work: { connect: { id: seeds[0].workId } },
+      },
+    });
+    await prisma.submissionVersion.create({
+      data: {
+        id: uuidv7(),
+        date_created: now,
+        date_modified: now,
+        status: 'DRAFT',
+        submission: { connect: { id: seeds[0].submissionId } },
+        work_version: { connect: { id: draftWorkVersionId } },
+        submitted_by: { connect: { id: testData.userId } },
+      },
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'unique-xyz' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+    expect(dto.items).toHaveLength(0);
+  });
+
   test('subject filters to an exact case-insensitive metadata match', async () => {
     const dto = await listPublishedWorks(
       testData.context,
