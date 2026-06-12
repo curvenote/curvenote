@@ -1,5 +1,14 @@
 # @curvenote/scms-core
 
+## 0.20.2
+
+### Patch Changes
+
+- [#943](https://github.com/curvenote/curvenote/pull/943) [`202f5b7`](https://github.com/curvenote/curvenote/commit/202f5b7a1b913e64e54e545099d2e1886032708a) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Sites UI improvements
+
+- Updated dependencies [[`f3f91b8`](https://github.com/curvenote/curvenote/commit/f3f91b80cde2486071abdc21f7f2cdd288526985), [`bbdb72b`](https://github.com/curvenote/curvenote/commit/bbdb72b024095408a010b97172010ac45fecba36), [`e871c3d`](https://github.com/curvenote/curvenote/commit/e871c3d918b09180684d732b6fcee245514d9cda), [`dc9e4cd`](https://github.com/curvenote/curvenote/commit/dc9e4cded4d91502fa9a09e676adfe7f05655a2c), [`e871c3d`](https://github.com/curvenote/curvenote/commit/e871c3d918b09180684d732b6fcee245514d9cda)]:
+  - @curvenote/scms-db@0.20.2
+
 ## 0.20.1
 
 ### Patch Changes
