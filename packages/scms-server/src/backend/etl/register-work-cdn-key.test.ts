@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from 'vitest';
 import { cdnKeyUnderArticle } from './register-work-cdn-key.js';
 import { resolveEtlRegisterDecision } from './register-work.server.js';
