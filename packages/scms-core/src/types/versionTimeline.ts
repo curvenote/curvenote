@@ -13,8 +13,6 @@ export type WorkVersionTimelineEntry = {
   date_created: string;
   date_modified: string;
   draft: boolean;
-  /** Display label, e.g. `v2` or `Draft`. */
-  label: string;
   tag?: string;
 };
 

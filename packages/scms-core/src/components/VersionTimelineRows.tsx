@@ -104,16 +104,6 @@ export function WorkVersionTimelineRow({ entry }: { entry: WorkVersionTimelineEn
         {entry.tag ? (
           <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
         ) : null}
-        <span
-          className={cn(
-            entry.draft
-              ? 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
-              : 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
-            'inline-flex items-center rounded-full px-2 py-[1px] text-[11px] leading-tight',
-          )}
-        >
-          {entry.label}
-        </span>
       </div>
       <p className="text-[11px] text-muted-foreground" title={formatDatetime(entry.date_modified)}>
         Modified: {formatDate(entry.date_modified)}

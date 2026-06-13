@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { GitBranch } from 'lucide-react';
+import { Timeline } from 'lucide-react';
 import type { VersionTimelineEntry, WorkVersionTimelineEntry } from '../types/versionTimeline.js';
 import { useVersionTimeline } from '../hooks/useVersionTimeline.js';
 import { SubmissionVersionTimelineRow, WorkVersionTimelineRow } from './VersionTimelineRows.js';
@@ -87,7 +87,7 @@ export function VersionTimelineHoverCard<T extends { id: string }>({
       </HoverCardTrigger>
       <HoverCardContent align={align} side={side} sideOffset={8} className="w-80 p-3">
         <div className="mb-2 flex items-center gap-1.5 border-b border-border pb-2 text-xs font-semibold text-foreground">
-          <GitBranch className="size-3.5 shrink-0" aria-hidden />
+          <Timeline className="size-3.5 shrink-0" aria-hidden />
           <span>{title}</span>
           {data?.length != null && !loading ? (
             <span className="font-normal text-muted-foreground">({data.length})</span>

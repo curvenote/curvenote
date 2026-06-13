@@ -21,22 +21,11 @@ export async function dbLoadWorkVersionsTimeline(
     },
   });
 
-  const finalizedAsc = rows
-    .filter((row) => !row.draft)
-    .slice()
-    .sort((a, b) => Date.parse(a.date_created) - Date.parse(b.date_created));
-
-  const labelById = new Map<string, string>();
-  finalizedAsc.forEach((row, index) => {
-    labelById.set(row.id, `v${index + 1}`);
-  });
-
   return rows.map((row) => ({
     id: row.id,
     date_created: row.date_created,
     date_modified: row.date_modified,
     draft: row.draft,
-    label: row.draft ? 'Draft' : (labelById.get(row.id) ?? 'Version'),
     tag: row.tags[0],
   }));
 }
