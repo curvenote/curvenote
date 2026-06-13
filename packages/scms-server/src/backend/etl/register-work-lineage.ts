@@ -22,32 +22,6 @@ export function buildSubmissionMetadataWithSupersedes(
       ? { ...submissionMetadata }
       : {};
   const venueBlock = venueBlockFromMetadata(base, venueKey);
-  venueBlock.supersedes_submission_version_id = supersedesSubmissionVersionId;
+  venueBlock.supersedes = supersedesSubmissionVersionId;
   return { ...base, [venueKey]: venueBlock };
-}
-
-/**
- * Old submission version metadata after tag migration.
- * Strips nothing from `version`; adds backward lineage fields only.
- */
-export function applySupersededToSubmissionMetadata(
-  metadata: unknown,
-  venueKey: string,
-  supersededBySubmissionVersionId: string,
-  supersededAt: string,
-): Record<string, unknown> {
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-    return {
-      [venueKey]: {
-        superseded_by_submission_version_id: supersededBySubmissionVersionId,
-        superseded_at: supersededAt,
-      },
-    };
-  }
-  const record = { ...(metadata as Record<string, unknown>) };
-  const venueBlock = venueBlockFromMetadata(record, venueKey);
-  venueBlock.superseded_by_submission_version_id = supersededBySubmissionVersionId;
-  venueBlock.superseded_at = supersededAt;
-  record[venueKey] = venueBlock;
-  return record;
 }

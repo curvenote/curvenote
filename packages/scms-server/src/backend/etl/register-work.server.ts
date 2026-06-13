@@ -6,10 +6,7 @@ import { uuidv7 as uuid } from 'uuidv7';
 import { getPrismaClient } from '../prisma.server.js';
 import { authorizeEtlSite, verifyEtlBearerUserId, type EtlAuth } from './auth.server.js';
 import { cdnKeyUnderArticle } from './register-work-cdn-key.js';
-import {
-  applySupersededToSubmissionMetadata,
-  buildSubmissionMetadataWithSupersedes,
-} from './register-work-lineage.js';
+import { buildSubmissionMetadataWithSupersedes } from './register-work-lineage.js';
 
 export type EtlRegisterWorkInput = {
   site: string;
@@ -184,32 +181,21 @@ async function findTaggedSubmissionVersionIds(
   return versions.map((sv) => sv.id);
 }
 
-async function markSubmissionVersionsSuperseded(
+async function stripVersionTagFromSubmissionVersions(
   tx: Prisma.TransactionClient,
   supersededIds: string[],
   versionTag: string,
-  newSubmissionVersionId: string,
-  supersededAt: string,
-  venueKey: string,
 ): Promise<void> {
   for (const id of supersededIds) {
     const sv = await tx.submissionVersion.findUnique({
       where: { id },
-      select: { tags: true, metadata: true },
+      select: { tags: true },
     });
     if (!sv) continue;
     const newTags = sv.tags.filter((tag) => tag !== versionTag);
     await tx.submissionVersion.update({
       where: { id },
-      data: {
-        tags: newTags,
-        metadata: applySupersededToSubmissionMetadata(
-          sv.metadata,
-          venueKey,
-          newSubmissionVersionId,
-          supersededAt,
-        ) as Prisma.InputJsonValue,
-      },
+      data: { tags: newTags },
     });
   }
 }
@@ -382,14 +368,28 @@ async function registerWorkInDb(
         select: { id: true },
       });
       if (supersededSubmissionVersionIds.length > 0) {
-        await markSubmissionVersionsSuperseded(
+        await stripVersionTagFromSubmissionVersions(
           tx,
           supersededSubmissionVersionIds,
           versionTag!,
-          svId,
-          date_created,
-          venueKey,
         );
+        await tx.activity.create({
+          data: {
+            id: uuid(),
+            date_created,
+            date_modified: date_created,
+            activity_type: ActivityType.SUBMISSION_VERSION_TAG_CHANGE,
+            activity_by: { connect: { id: auth.userId } },
+            submission: { connect: { id: existingSubmission.id } },
+            submission_version: { connect: { id: svId } },
+            work_version: { connect: { id: workVersionId } },
+            data: {
+              tag: versionTag,
+              supersedes: supersededSubmissionVersionIds,
+            } as Prisma.InputJsonValue,
+          },
+          select: { id: true },
+        });
       }
       await tx.activity.create({
         data: {

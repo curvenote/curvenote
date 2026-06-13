@@ -7,6 +7,7 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   SUBMISSION_KIND_CHANGE: 'Submission kind changed',
   SUBMISSION_DATE_CHANGE: 'Submission publication date changed',
   SUBMISSION_VERSION_ADDED: 'New submission version',
+  SUBMISSION_VERSION_TAG_CHANGE: 'Submission version tag changed',
   SUBMISSION_VERSION_STATUS_CHANGE: 'Submission version status changed',
   SUBMISSION_VERSION_TRANSITION_STARTED: 'Submission version transition started',
   NEW_WORK: 'New Work',
