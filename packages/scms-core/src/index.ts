@@ -13,6 +13,8 @@ export type {
   WorkVersionTimelineEntry,
   WorkVersionTimelineSubmissionVersion,
   VersionTimelineResponse,
+  TrimmedVersionTimeline,
+  VersionTimelineDisplayItem,
 } from './types/versionTimeline.js';
 
 // Re-export commonly used types from ui components

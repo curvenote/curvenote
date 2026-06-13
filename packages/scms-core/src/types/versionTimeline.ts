@@ -34,6 +34,16 @@ export type WorkVersionTimelineEntry = {
   submissionVersions?: WorkVersionTimelineSubmissionVersion[];
 };
 
-export type VersionTimelineResponse<T = VersionTimelineEntry> = {
-  versions: T[];
+export type VersionTimelineDisplayItem<T> =
+  | { type: 'version'; version: T }
+  | { type: 'gap'; hiddenCount: number };
+
+/** Compact lazy-load payload for version timeline hover cards (trimmed server-side). */
+export type TrimmedVersionTimeline<T = VersionTimelineEntry> = {
+  total: number;
+  hidden: number;
+  seeAllHref: string;
+  items: VersionTimelineDisplayItem<T>[];
 };
+
+export type VersionTimelineResponse<T = VersionTimelineEntry> = TrimmedVersionTimeline<T>;

@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import type { VersionTimelineResponse } from '../types/versionTimeline.js';
+import type { TrimmedVersionTimeline, VersionTimelineResponse } from '../types/versionTimeline.js';
 
-const timelineCache = new Map<string, unknown[]>();
-const inFlight = new Map<string, Promise<unknown[]>>();
+const timelineCache = new Map<string, TrimmedVersionTimeline<{ id: string }>>();
+const inFlight = new Map<string, Promise<TrimmedVersionTimeline<{ id: string }>>>();
 
 export async function loadVersionTimeline<T extends { id: string }>(
   versionsUrl: string,
-): Promise<T[]> {
+): Promise<TrimmedVersionTimeline<T>> {
   const existing = inFlight.get(versionsUrl);
   if (existing) {
-    return existing as Promise<T[]>;
+    return existing as Promise<TrimmedVersionTimeline<T>>;
   }
 
   const promise = (async () => {
@@ -22,19 +22,25 @@ export async function loadVersionTimeline<T extends { id: string }>(
     }
 
     const body = (await response.json()) as VersionTimelineResponse<T>;
-    const versions = body.versions;
-    if (!Array.isArray(versions)) {
+    if (!Array.isArray(body.items) || typeof body.total !== 'number') {
       throw new Error('Invalid versions response');
     }
 
-    timelineCache.set(versionsUrl, versions);
-    return versions;
+    const timeline: TrimmedVersionTimeline<T> = {
+      total: body.total,
+      hidden: body.hidden ?? 0,
+      seeAllHref: body.seeAllHref ?? '',
+      items: body.items,
+    };
+
+    timelineCache.set(versionsUrl, timeline as TrimmedVersionTimeline<{ id: string }>);
+    return timeline;
   })();
 
   inFlight.set(versionsUrl, promise);
 
   try {
-    return (await promise) as T[];
+    return (await promise) as TrimmedVersionTimeline<T>;
   } finally {
     inFlight.delete(versionsUrl);
   }
@@ -42,15 +48,17 @@ export async function loadVersionTimeline<T extends { id: string }>(
 
 export function getCachedVersionTimeline<T extends { id: string }>(
   versionsUrl: string,
-): T[] | undefined {
-  return timelineCache.get(versionsUrl) as T[] | undefined;
+): TrimmedVersionTimeline<T> | undefined {
+  return timelineCache.get(versionsUrl) as TrimmedVersionTimeline<T> | undefined;
 }
 
 export function useVersionTimeline<T extends { id: string }>(
   versionsUrl: string,
   { open }: { open: boolean },
 ) {
-  const [data, setData] = useState<T[] | undefined>(() => getCachedVersionTimeline<T>(versionsUrl));
+  const [data, setData] = useState<TrimmedVersionTimeline<T> | undefined>(() =>
+    getCachedVersionTimeline<T>(versionsUrl),
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const mountedRef = useRef(true);
@@ -74,9 +82,9 @@ export function useVersionTimeline<T extends { id: string }>(
       setError(undefined);
 
       void loadVersionTimeline<T>(versionsUrl)
-        .then((versions) => {
+        .then((timeline) => {
           if (!mountedRef.current) return;
-          setData(versions);
+          setData(timeline);
         })
         .catch(() => {
           // Keep showing stale cache on background revalidate failure.
@@ -88,9 +96,9 @@ export function useVersionTimeline<T extends { id: string }>(
     setError(undefined);
 
     void loadVersionTimeline<T>(versionsUrl)
-      .then((versions) => {
+      .then((timeline) => {
         if (!mountedRef.current) return;
-        setData(versions);
+        setData(timeline);
         setLoading(false);
       })
       .catch((err: unknown) => {
