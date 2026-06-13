@@ -8,6 +8,16 @@ export type VersionTimelineEntry = {
   tag?: string;
 };
 
-export type VersionTimelineResponse = {
-  versions: VersionTimelineEntry[];
+export type WorkVersionTimelineEntry = {
+  id: string;
+  date_created: string;
+  date_modified: string;
+  draft: boolean;
+  /** Display label, e.g. `v2` or `Draft`. */
+  label: string;
+  tag?: string;
+};
+
+export type VersionTimelineResponse<T = VersionTimelineEntry> = {
+  versions: T[];
 };

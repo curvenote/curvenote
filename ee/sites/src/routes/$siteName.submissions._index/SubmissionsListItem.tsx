@@ -1,5 +1,10 @@
 import { Link } from 'react-router';
-import { summarizeAuthors, ui, VersionTimelineHoverCard } from '@curvenote/scms-core';
+import {
+  summarizeAuthors,
+  ui,
+  SubmissionVersionTimelineHoverCard,
+  submissionVersionsTimelineUrl,
+} from '@curvenote/scms-core';
 import {
   Collection,
   HasPublishedVersion,
@@ -10,7 +15,6 @@ import type { SubmissionsIndexItem } from './types.js';
 import { DoiBadge } from './DoiBadge.js';
 import { SubmissionListingDates } from './SubmissionListingDates.js';
 import { SubmissionStatusBadge } from './SubmissionStatusBadge.js';
-import { submissionVersionsTimelineUrl } from '../../submissionVersionsTimelineUrl.js';
 
 const AUTHORS_MAX_DISPLAY = 5;
 
@@ -62,27 +66,27 @@ export function SubmissionsListItem({
               />
             ) : null}
             {item.publishedVersion ? (
-              <VersionTimelineHoverCard versionsUrl={versionsUrl}>
+              <SubmissionVersionTimelineHoverCard versionsUrl={versionsUrl}>
                 <HasPublishedVersion date={item.publishedVersion.date_created} disableTooltip />
-              </VersionTimelineHoverCard>
+              </SubmissionVersionTimelineHoverCard>
             ) : null}
             {!item.publishedVersion && item.retractedVersion ? (
-              <VersionTimelineHoverCard versionsUrl={versionsUrl}>
+              <SubmissionVersionTimelineHoverCard versionsUrl={versionsUrl}>
                 <HasRetractedVersion date={item.retractedVersion.date_created} disableTooltip />
-              </VersionTimelineHoverCard>
+              </SubmissionVersionTimelineHoverCard>
             ) : null}
             {item.versionTag ? (
-              <VersionTimelineHoverCard versionsUrl={versionsUrl}>
+              <SubmissionVersionTimelineHoverCard versionsUrl={versionsUrl}>
                 <ui.VersionTagBadge tag={item.versionTag} disableTooltip />
-              </VersionTimelineHoverCard>
+              </SubmissionVersionTimelineHoverCard>
             ) : null}
             {item.doi ? <DoiBadge doi={item.doi} /> : null}
           </div>
         </div>
         <div className="flex shrink-0 items-center justify-start sm:w-[200px] sm:justify-center">
-          <VersionTimelineHoverCard versionsUrl={versionsUrl} align="end">
+          <SubmissionVersionTimelineHoverCard versionsUrl={versionsUrl} align="end">
             <SubmissionStatusBadge status={item.status} label={item.statusLabel} />
-          </VersionTimelineHoverCard>
+          </SubmissionVersionTimelineHoverCard>
         </div>
       </div>
       <SubmissionListingDates

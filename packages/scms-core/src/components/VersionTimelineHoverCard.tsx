@@ -1,21 +1,14 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { GitBranch, Tag } from 'lucide-react';
-import type { VersionTimelineEntry } from '../types/versionTimeline.js';
+import { GitBranch } from 'lucide-react';
+import type { VersionTimelineEntry, WorkVersionTimelineEntry } from '../types/versionTimeline.js';
 import { useVersionTimeline } from '../hooks/useVersionTimeline.js';
-import { formatDate, formatDatetime } from '../utils/formatDate.js';
-import { getStatusButtonClasses, getStatusDotClasses } from '../utils/status.js';
-import { cn } from '../utils/cn.js';
+import { SubmissionVersionTimelineRow, WorkVersionTimelineRow } from './VersionTimelineRows.js';
 import { HoverCard, HoverCardArrow, HoverCardContent, HoverCardTrigger } from './ui/hover-card.js';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
-import { VersionTagBadge } from './ui/VersionTagBadge.js';
 
-export type { VersionTimelineEntry } from '../types/versionTimeline.js';
+export type { VersionTimelineEntry, WorkVersionTimelineEntry } from '../types/versionTimeline.js';
 
 function TimelineRail() {
-  // `w-px` renders to the right of its anchor; `-translate-x-1/2` shifts it
-  // a half-pixel left so the rail's visual center sits exactly on the dot
-  // center (dots are size-2.5 → center at left+5px).
   return (
     <span
       className="absolute left-[5px] top-2 bottom-0 w-px -translate-x-1/2 bg-border"
@@ -41,78 +34,16 @@ function TimelineSkeleton() {
   );
 }
 
-function PublishedDate({ datePublished }: { datePublished?: string }) {
-  if (datePublished) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <time className="text-xs font-medium text-foreground" dateTime={datePublished}>
-            {formatDate(datePublished)}
-          </time>
-        </TooltipTrigger>
-        <TooltipContent sideOffset={4}>
-          Publication date · {formatDatetime(datePublished)}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="text-xs font-normal text-muted-foreground">no publication date</span>
-      </TooltipTrigger>
-      <TooltipContent sideOffset={4}>
-        Publication date — no publication date for this version
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-function TimelineRow({ entry }: { entry: VersionTimelineEntry }) {
-  const activityDate = entry.date_modified ?? entry.date_created;
-  const activityPrefix = entry.date_modified ? 'Updated' : 'Created';
-
-  return (
-    <div className="flex relative gap-3">
-      <span
-        className={cn(
-          'relative z-10 mt-[3px] size-2.5 shrink-0 rounded-full border border-gray-300 ring-2 ring-popover dark:border-gray-600',
-          getStatusDotClasses(entry.status),
-        )}
-        aria-hidden
-      />
-      <div className="flex-1 space-y-1 min-w-0">
-        <div className="flex flex-wrap gap-y-1 gap-x-2 items-center">
-          <PublishedDate datePublished={entry.date_published} />
-          {entry.tag ? (
-            <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
-          ) : null}
-          <span
-            className={cn(
-              getStatusButtonClasses(entry.status),
-              'inline-flex items-center rounded-full px-2 py-[1px] text-[11px] leading-tight',
-            )}
-          >
-            {entry.statusLabel}
-          </span>
-        </div>
-        <p className="text-[11px] text-muted-foreground" title={formatDatetime(activityDate)}>
-          {activityPrefix}: {formatDate(activityDate)}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-export function VersionTimelineContent({
+export function VersionTimelineContent<T extends { id: string }>({
   data,
   loading,
   error,
+  renderRow,
 }: {
-  data?: VersionTimelineEntry[];
+  data?: T[];
   loading: boolean;
   error?: string;
+  renderRow: (entry: T) => ReactNode;
 }) {
   if (loading && !data?.length) {
     return <TimelineSkeleton />;
@@ -130,28 +61,30 @@ export function VersionTimelineContent({
     <div className="overflow-y-auto relative pt-1 pb-2 space-y-4 max-h-72">
       <TimelineRail />
       {data.map((entry) => (
-        <TimelineRow key={entry.id} entry={entry} />
+        <div key={entry.id}>{renderRow(entry)}</div>
       ))}
     </div>
   );
 }
 
-export function VersionTimelineHoverCard({
+export function VersionTimelineHoverCard<T extends { id: string }>({
   versionsUrl,
   children,
+  renderRow,
   align = 'start',
   side = 'top',
   title = 'Versions',
 }: {
-  /** JSON resource URL returning `{ versions: VersionTimelineEntry[] }`. */
+  /** JSON resource URL returning `{ versions: T[] }`. */
   versionsUrl: string;
   children: ReactNode;
+  renderRow: (entry: T) => ReactNode;
   align?: 'start' | 'center' | 'end';
   side?: 'top' | 'right' | 'bottom' | 'left';
   title?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const { data, loading, error } = useVersionTimeline(versionsUrl, { open });
+  const { data, loading, error } = useVersionTimeline<T>(versionsUrl, { open });
 
   return (
     <HoverCard open={open} onOpenChange={setOpen} openDelay={400} closeDelay={100}>
@@ -168,9 +101,34 @@ export function VersionTimelineHoverCard({
             <span className="font-normal text-muted-foreground">({data.length})</span>
           ) : null}
         </div>
-        <VersionTimelineContent data={data} loading={loading} error={error} />
+        <VersionTimelineContent data={data} loading={loading} error={error} renderRow={renderRow} />
         <HoverCardArrow className="fill-popover" />
       </HoverCardContent>
     </HoverCard>
+  );
+}
+
+export function SubmissionVersionTimelineHoverCard(
+  props: Omit<Parameters<typeof VersionTimelineHoverCard<VersionTimelineEntry>>[0], 'renderRow'>,
+) {
+  return (
+    <VersionTimelineHoverCard
+      {...props}
+      renderRow={(entry) => <SubmissionVersionTimelineRow entry={entry} />}
+    />
+  );
+}
+
+export function WorkVersionTimelineHoverCard(
+  props: Omit<
+    Parameters<typeof VersionTimelineHoverCard<WorkVersionTimelineEntry>>[0],
+    'renderRow'
+  >,
+) {
+  return (
+    <VersionTimelineHoverCard
+      {...props}
+      renderRow={(entry) => <WorkVersionTimelineRow entry={entry} />}
+    />
   );
 }

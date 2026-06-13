@@ -157,6 +157,7 @@ export default [
       index('routes/app/works._index/route.tsx'),
       route('new', 'routes/app/works.new/route.tsx'),
       route('drafts', 'routes/app/works.drafts/route.tsx'),
+      route(':workId/versions', 'routes/app/works.$workId.versions/route.ts'),
       route(':workId', 'routes/app/works.$workId/route.tsx', [
         ...getRoutesForMountPoint('app/works/:workId'),
         // index('routes/app/works.$workId._index/route.tsx'),

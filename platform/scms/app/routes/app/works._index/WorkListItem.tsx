@@ -1,5 +1,14 @@
 import { Link } from 'react-router';
-import { formatDate, formatToNow, primitives, ui } from '@curvenote/scms-core';
+import {
+  formatDate,
+  formatToNow,
+  primitives,
+  ui,
+  WorkVersionTimelineHoverCard,
+  SubmissionVersionTimelineHoverCard,
+  workVersionsTimelineUrl,
+  submissionVersionsTimelineUrl,
+} from '@curvenote/scms-core';
 import { ExternalLink } from 'lucide-react';
 import type { dbGetWorksAndSubmissionVersions } from './db.server';
 
@@ -34,6 +43,8 @@ export function WorkListItem({
   const hasSlug = work.submissions.some(
     (submission) => submission.slugs && submission.slugs.length > 0,
   );
+
+  const workVersionsUrl = workVersionsTimelineUrl(work.id);
 
   return (
     <div className="px-6 py-4">
@@ -124,32 +135,36 @@ export function WorkListItem({
                 if (!latestNonDraftSubmissionVersion || !workflow) return null;
 
                 return (
-                  <ui.SubmissionVersionBadge
+                  <SubmissionVersionTimelineHoverCard
                     key={`submission-badge-${submission.id}`}
-                    submissionVersion={{
-                      id: latestNonDraftSubmissionVersion.id,
-                      status: latestNonDraftSubmissionVersion.status,
-                      submission: {
-                        id: submission.id,
-                        collection: {
-                          workflow: submission.collection.workflow,
+                    versionsUrl={submissionVersionsTimelineUrl(submission.site.name, submission.id)}
+                  >
+                    <ui.SubmissionVersionBadge
+                      submissionVersion={{
+                        id: latestNonDraftSubmissionVersion.id,
+                        status: latestNonDraftSubmissionVersion.status,
+                        submission: {
+                          id: submission.id,
+                          collection: {
+                            workflow: submission.collection.workflow,
+                          },
+                          site: {
+                            name: submission.site.name,
+                            title: submission.site.title,
+                            metadata: submission.site.metadata,
+                          },
                         },
-                        site: {
-                          name: submission.site.name,
-                          title: submission.site.title,
-                          metadata: submission.site.metadata,
-                        },
-                      },
-                    }}
-                    workflows={{ [submission.collection.workflow]: workflow }}
-                    basePath={`/app/works/${work.id}`}
-                    workVersionId={
-                      latestNonDraftSubmissionVersion.work_version?.id || latestVersion?.id || ''
-                    }
-                    showSite
-                    showLink={false}
-                    variant="outline"
-                  />
+                      }}
+                      workflows={{ [submission.collection.workflow]: workflow }}
+                      basePath={`/app/works/${work.id}`}
+                      workVersionId={
+                        latestNonDraftSubmissionVersion.work_version?.id || latestVersion?.id || ''
+                      }
+                      showSite
+                      showLink={false}
+                      variant="outline"
+                    />
+                  </SubmissionVersionTimelineHoverCard>
                 );
               })}
           </div>
@@ -159,25 +174,31 @@ export function WorkListItem({
         <div className="flex flex-col flex-shrink-0 items-center self-stretch w-48 pt-[1px]">
           <div className="flex flex-wrap gap-2 justify-center mb-2 w-full">
             {activityTime && (
-              <primitives.Chip
-                className="text-gray-500 border-[1px] border-gray-200 dark:border-gray-500 dark:text-gray-500"
-                title={`Last activity was ${activityTime}`}
-              >
-                Activity {activityTime}
-              </primitives.Chip>
+              <WorkVersionTimelineHoverCard versionsUrl={workVersionsUrl} align="end">
+                <primitives.Chip
+                  className="text-gray-500 border-[1px] border-gray-200 dark:border-gray-500 dark:text-gray-500"
+                  title={`Last activity was ${activityTime}`}
+                >
+                  Activity {activityTime}
+                </primitives.Chip>
+              </WorkVersionTimelineHoverCard>
             )}
           </div>
 
           {/* Published Date */}
           {publishedDate && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Published: {formatDate(publishedDate)}
-            </div>
+            <WorkVersionTimelineHoverCard versionsUrl={workVersionsUrl} align="end">
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Published: {formatDate(publishedDate)}
+              </div>
+            </WorkVersionTimelineHoverCard>
           )}
           {!publishedDate && latestVersion && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Created: {formatDate(latestVersion.date_created)}
-            </div>
+            <WorkVersionTimelineHoverCard versionsUrl={workVersionsUrl} align="end">
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Created: {formatDate(latestVersion.date_created)}
+              </div>
+            </WorkVersionTimelineHoverCard>
           )}
         </div>
       </div>

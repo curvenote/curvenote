@@ -20,6 +20,7 @@ export * from './stringReplacements.js';
 export * from './truncate.js';
 export * from './wildcard.js';
 export * from './formatZodError.js';
+export * from './versionTimelineUrls.js';
 export * from './workVersionMetadata.js';
 
 export const version = 'v1';

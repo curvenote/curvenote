@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import type { VersionTimelineEntry } from '../types/versionTimeline.js';
+import type { VersionTimelineResponse } from '../types/versionTimeline.js';
 
-const timelineCache = new Map<string, VersionTimelineEntry[]>();
-const inFlight = new Map<string, Promise<VersionTimelineEntry[]>>();
+const timelineCache = new Map<string, unknown[]>();
+const inFlight = new Map<string, Promise<unknown[]>>();
 
-export async function loadVersionTimeline(versionsUrl: string): Promise<VersionTimelineEntry[]> {
+export async function loadVersionTimeline<T extends { id: string }>(
+  versionsUrl: string,
+): Promise<T[]> {
   const existing = inFlight.get(versionsUrl);
   if (existing) {
-    return existing;
+    return existing as Promise<T[]>;
   }
 
   const promise = (async () => {
@@ -19,7 +21,7 @@ export async function loadVersionTimeline(versionsUrl: string): Promise<VersionT
       throw new Error(`Failed to load versions (${response.status})`);
     }
 
-    const body = (await response.json()) as { versions?: VersionTimelineEntry[] };
+    const body = (await response.json()) as VersionTimelineResponse<T>;
     const versions = body.versions;
     if (!Array.isArray(versions)) {
       throw new Error('Invalid versions response');
@@ -32,20 +34,23 @@ export async function loadVersionTimeline(versionsUrl: string): Promise<VersionT
   inFlight.set(versionsUrl, promise);
 
   try {
-    return await promise;
+    return (await promise) as T[];
   } finally {
     inFlight.delete(versionsUrl);
   }
 }
 
-export function getCachedVersionTimeline(versionsUrl: string): VersionTimelineEntry[] | undefined {
-  return timelineCache.get(versionsUrl);
+export function getCachedVersionTimeline<T extends { id: string }>(
+  versionsUrl: string,
+): T[] | undefined {
+  return timelineCache.get(versionsUrl) as T[] | undefined;
 }
 
-export function useVersionTimeline(versionsUrl: string, { open }: { open: boolean }) {
-  const [data, setData] = useState<VersionTimelineEntry[] | undefined>(() =>
-    getCachedVersionTimeline(versionsUrl),
-  );
+export function useVersionTimeline<T extends { id: string }>(
+  versionsUrl: string,
+  { open }: { open: boolean },
+) {
+  const [data, setData] = useState<T[] | undefined>(() => getCachedVersionTimeline<T>(versionsUrl));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const mountedRef = useRef(true);
@@ -62,13 +67,13 @@ export function useVersionTimeline(versionsUrl: string, { open }: { open: boolea
       return;
     }
 
-    const cached = getCachedVersionTimeline(versionsUrl);
+    const cached = getCachedVersionTimeline<T>(versionsUrl);
     if (cached) {
       setData(cached);
       setLoading(false);
       setError(undefined);
 
-      void loadVersionTimeline(versionsUrl)
+      void loadVersionTimeline<T>(versionsUrl)
         .then((versions) => {
           if (!mountedRef.current) return;
           setData(versions);
@@ -82,7 +87,7 @@ export function useVersionTimeline(versionsUrl: string, { open }: { open: boolea
     setLoading(true);
     setError(undefined);
 
-    void loadVersionTimeline(versionsUrl)
+    void loadVersionTimeline<T>(versionsUrl)
       .then((versions) => {
         if (!mountedRef.current) return;
         setData(versions);
