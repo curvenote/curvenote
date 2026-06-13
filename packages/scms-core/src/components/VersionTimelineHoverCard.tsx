@@ -74,15 +74,7 @@ export function VersionTimelineHoverCard<T extends { id: string }>({
   align = 'start',
   side = 'top',
   title = 'Versions',
-}: {
-  /** JSON resource URL returning `{ versions: T[] }`. */
-  versionsUrl: string;
-  children: ReactNode;
-  renderRow: (entry: T) => ReactNode;
-  align?: 'start' | 'center' | 'end';
-  side?: 'top' | 'right' | 'bottom' | 'left';
-  title?: string;
-}) {
+}: VersionTimelineHoverCardProps<T>) {
   const [open, setOpen] = useState(false);
   const { data, loading, error } = useVersionTimeline<T>(versionsUrl, { open });
 
@@ -108,11 +100,21 @@ export function VersionTimelineHoverCard<T extends { id: string }>({
   );
 }
 
+export type VersionTimelineHoverCardProps<T extends { id: string }> = {
+  /** JSON resource URL returning `{ versions: T[] }`. */
+  versionsUrl: string;
+  children: ReactNode;
+  renderRow: (entry: T) => ReactNode;
+  align?: 'start' | 'center' | 'end';
+  side?: 'top' | 'right' | 'bottom' | 'left';
+  title?: string;
+};
+
 export function SubmissionVersionTimelineHoverCard(
-  props: Omit<Parameters<typeof VersionTimelineHoverCard<VersionTimelineEntry>>[0], 'renderRow'>,
+  props: Omit<VersionTimelineHoverCardProps<VersionTimelineEntry>, 'renderRow'>,
 ) {
   return (
-    <VersionTimelineHoverCard
+    <VersionTimelineHoverCard<VersionTimelineEntry>
       {...props}
       renderRow={(entry) => <SubmissionVersionTimelineRow entry={entry} />}
     />
@@ -120,13 +122,10 @@ export function SubmissionVersionTimelineHoverCard(
 }
 
 export function WorkVersionTimelineHoverCard(
-  props: Omit<
-    Parameters<typeof VersionTimelineHoverCard<WorkVersionTimelineEntry>>[0],
-    'renderRow'
-  >,
+  props: Omit<VersionTimelineHoverCardProps<WorkVersionTimelineEntry>, 'renderRow'>,
 ) {
   return (
-    <VersionTimelineHoverCard
+    <VersionTimelineHoverCard<WorkVersionTimelineEntry>
       {...props}
       renderRow={(entry) => <WorkVersionTimelineRow entry={entry} />}
     />
