@@ -194,7 +194,12 @@ export function WorkListItem({
             </div>
           )}
 
-          <WorkVersionTimelineHoverCard versionsUrl={workVersionsUrl} align="end" side="left">
+          <WorkVersionTimelineHoverCard
+            versionsUrl={workVersionsUrl}
+            workId={work.id}
+            align="end"
+            side="left"
+          >
             <button
               type="button"
               className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"

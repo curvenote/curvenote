@@ -11,6 +11,7 @@ export * from './workflow/index.js';
 export type {
   VersionTimelineEntry,
   WorkVersionTimelineEntry,
+  WorkVersionTimelineSubmissionVersion,
   VersionTimelineResponse,
 } from './types/versionTimeline.js';
 

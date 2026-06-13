@@ -6,6 +6,7 @@ import { getStatusButtonClasses, getStatusDotClasses } from '../utils/status.js'
 import { cn } from '../utils/cn.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
 import { VersionTagBadge } from './ui/VersionTagBadge.js';
+import { SubmissionVersionSiteChip } from './SubmissionVersionSiteChip.js';
 
 export function VersionTimelineRowShell({
   dotStatus,
@@ -96,7 +97,15 @@ export function SubmissionVersionTimelineRow({ entry }: { entry: VersionTimeline
   );
 }
 
-export function WorkVersionTimelineRow({ entry }: { entry: WorkVersionTimelineEntry }) {
+export function WorkVersionTimelineRow({
+  entry,
+  workId,
+}: {
+  entry: WorkVersionTimelineEntry;
+  workId?: string;
+}) {
+  const submissionVersions = entry.submissionVersions ?? [];
+
   return (
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
       <div className="flex flex-wrap gap-y-1 gap-x-2 items-center">
@@ -104,6 +113,13 @@ export function WorkVersionTimelineRow({ entry }: { entry: WorkVersionTimelineEn
         {entry.tag ? (
           <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
         ) : null}
+        {submissionVersions.map((submissionVersion) => (
+          <SubmissionVersionSiteChip
+            key={submissionVersion.id}
+            submissionVersion={submissionVersion}
+            workId={workId}
+          />
+        ))}
       </div>
       <p className="text-[11px] text-muted-foreground" title={formatDatetime(entry.date_modified)}>
         Modified: {formatDate(entry.date_modified)}

@@ -121,13 +121,16 @@ export function SubmissionVersionTimelineHoverCard(
   );
 }
 
-export function WorkVersionTimelineHoverCard(
-  props: Omit<VersionTimelineHoverCardProps<WorkVersionTimelineEntry>, 'renderRow'>,
-) {
+export function WorkVersionTimelineHoverCard({
+  workId,
+  ...props
+}: Omit<VersionTimelineHoverCardProps<WorkVersionTimelineEntry>, 'renderRow'> & {
+  workId?: string;
+}) {
   return (
     <VersionTimelineHoverCard<WorkVersionTimelineEntry>
       {...props}
-      renderRow={(entry) => <WorkVersionTimelineRow entry={entry} />}
+      renderRow={(entry) => <WorkVersionTimelineRow entry={entry} workId={workId} />}
     />
   );
 }

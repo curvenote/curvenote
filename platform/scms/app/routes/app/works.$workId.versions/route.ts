@@ -1,7 +1,8 @@
 import type { LoaderFunctionArgs } from 'react-router';
 import { data } from 'react-router';
 import { withAppWorkContext } from '@curvenote/scms-server';
-import { scopes } from '@curvenote/scms-core';
+import { getWorkflows, registerExtensionWorkflows, scopes } from '@curvenote/scms-core';
+import { extensions } from '../../../extensions/client.js';
 import { dbLoadWorkVersionsTimeline } from './db.server.js';
 
 /**
@@ -14,6 +15,7 @@ import { dbLoadWorkVersionsTimeline } from './db.server.js';
 export async function loader(args: LoaderFunctionArgs) {
   const ctx = await withAppWorkContext(args, [scopes.work.id.read], { redirect: false });
 
-  const versions = await dbLoadWorkVersionsTimeline(ctx.work.id);
+  const workflows = getWorkflows(ctx.$config, registerExtensionWorkflows(extensions));
+  const versions = await dbLoadWorkVersionsTimeline(ctx.work.id, workflows);
   return data({ versions });
 }
