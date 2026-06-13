@@ -5,7 +5,9 @@ import {
   primitives,
   ui,
   WorkVersionTimelineHoverCard,
+  SubmissionVersionTimelineHoverCard,
   workVersionsTimelineUrl,
+  submissionVersionsTimelineUrl,
 } from '@curvenote/scms-core';
 import { ExternalLink, History } from 'lucide-react';
 import type { dbGetWorksAndSubmissionVersions } from './db.server';
@@ -133,32 +135,39 @@ export function WorkListItem({
                 if (!latestNonDraftSubmissionVersion || !workflow) return null;
 
                 return (
-                  <ui.SubmissionVersionBadge
+                  <SubmissionVersionTimelineHoverCard
                     key={`submission-badge-${submission.id}`}
-                    submissionVersion={{
-                      id: latestNonDraftSubmissionVersion.id,
-                      status: latestNonDraftSubmissionVersion.status,
-                      submission: {
-                        id: submission.id,
-                        collection: {
-                          workflow: submission.collection.workflow,
+                    versionsUrl={submissionVersionsTimelineUrl(
+                      submission.site.name,
+                      submission.id,
+                    )}
+                  >
+                    <ui.SubmissionVersionBadge
+                      submissionVersion={{
+                        id: latestNonDraftSubmissionVersion.id,
+                        status: latestNonDraftSubmissionVersion.status,
+                        submission: {
+                          id: submission.id,
+                          collection: {
+                            workflow: submission.collection.workflow,
+                          },
+                          site: {
+                            name: submission.site.name,
+                            title: submission.site.title,
+                            metadata: submission.site.metadata,
+                          },
                         },
-                        site: {
-                          name: submission.site.name,
-                          title: submission.site.title,
-                          metadata: submission.site.metadata,
-                        },
-                      },
-                    }}
-                    workflows={{ [submission.collection.workflow]: workflow }}
-                    basePath={`/app/works/${work.id}`}
-                    workVersionId={
-                      latestNonDraftSubmissionVersion.work_version?.id || latestVersion?.id || ''
-                    }
-                    showSite
-                    showLink={false}
-                    variant="outline"
-                  />
+                      }}
+                      workflows={{ [submission.collection.workflow]: workflow }}
+                      basePath={`/app/works/${work.id}`}
+                      workVersionId={
+                        latestNonDraftSubmissionVersion.work_version?.id || latestVersion?.id || ''
+                      }
+                      showSite
+                      showLink={false}
+                      variant="outline"
+                    />
+                  </SubmissionVersionTimelineHoverCard>
                 );
               })}
           </div>
