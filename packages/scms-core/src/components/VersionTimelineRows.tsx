@@ -60,9 +60,9 @@ function CreatedDate({ dateCreated }: { dateCreated: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <time className="text-xs font-medium text-foreground" dateTime={dateCreated}>
-          {formatDate(dateCreated)}
-        </time>
+        <span className="text-xs font-medium text-foreground">
+          Created: <time dateTime={dateCreated}>{formatDate(dateCreated)}</time>
+        </span>
       </TooltipTrigger>
       <TooltipContent sideOffset={4}>Created · {formatDatetime(dateCreated)}</TooltipContent>
     </Tooltip>
