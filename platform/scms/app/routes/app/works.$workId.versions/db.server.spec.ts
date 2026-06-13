@@ -40,6 +40,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
           {
             id: 'sv-2',
             status: 'PUBLISHED',
+            tags: ['v2'],
             submission: {
               id: 'sub-1',
               site: {
@@ -77,6 +78,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
             submissionId: 'sub-1',
             status: 'PUBLISHED',
             statusLabel: 'Published',
+            tag: 'v2',
             statusTags: ['ok', 'end'],
             site: {
               name: 'demo',

@@ -13,6 +13,7 @@ function mapSubmissionVersions(
   submissionVersions: Array<{
     id: string;
     status: string;
+    tags: string[];
     submission: {
       id: string;
       site: { name: string; title: string | null; metadata: unknown };
@@ -32,6 +33,7 @@ function mapSubmissionVersions(
         submissionId: sv.submission.id,
         status: sv.status,
         statusLabel: state?.label ?? sv.status,
+        tag: sv.tags[0],
         statusTags: state?.tags,
         site: {
           name: site.name,
@@ -65,6 +67,7 @@ export async function dbLoadWorkVersionsTimeline(
         select: {
           id: true,
           status: true,
+          tags: true,
           submission: {
             select: {
               id: true,

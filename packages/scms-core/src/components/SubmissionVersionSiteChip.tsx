@@ -83,6 +83,9 @@ export function SubmissionVersionSiteChip({
       <TooltipContent sideOffset={4}>
         <span className="font-medium">{siteLabel}</span>
         <span className="text-muted-foreground"> · {submissionVersion.statusLabel}</span>
+        {submissionVersion.tag ? (
+          <span className="text-muted-foreground"> · {submissionVersion.tag}</span>
+        ) : null}
       </TooltipContent>
     </Tooltip>
   );

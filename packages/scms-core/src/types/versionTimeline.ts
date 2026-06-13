@@ -13,6 +13,8 @@ export type WorkVersionTimelineSubmissionVersion = {
   submissionId: string;
   status: string;
   statusLabel: string;
+  /** First submission-version tag (e.g. v2), not workflow status tags. */
+  tag?: string;
   /** Workflow state tags — used for status accent on compact site chips. */
   statusTags?: string[];
   site: {
