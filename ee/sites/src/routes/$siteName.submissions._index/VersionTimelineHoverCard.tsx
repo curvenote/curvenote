@@ -5,7 +5,6 @@ import {
   cn,
   formatDate,
   formatDatetime,
-  formatToNow,
   getStatusButtonClasses,
   getStatusDotClasses,
   ui,
@@ -42,7 +41,38 @@ function TimelineSkeleton() {
   );
 }
 
+function PublishedDate({ datePublished }: { datePublished?: string }) {
+  if (datePublished) {
+    return (
+      <ui.Tooltip>
+        <ui.TooltipTrigger asChild>
+          <time className="text-xs font-medium text-foreground" dateTime={datePublished}>
+            {formatDate(datePublished)}
+          </time>
+        </ui.TooltipTrigger>
+        <ui.TooltipContent sideOffset={4}>
+          Publication date · {formatDatetime(datePublished)}
+        </ui.TooltipContent>
+      </ui.Tooltip>
+    );
+  }
+
+  return (
+    <ui.Tooltip>
+      <ui.TooltipTrigger asChild>
+        <span className="text-xs font-normal text-muted-foreground">no publication date</span>
+      </ui.TooltipTrigger>
+      <ui.TooltipContent sideOffset={4}>
+        Publication date — no publication date for this version
+      </ui.TooltipContent>
+    </ui.Tooltip>
+  );
+}
+
 function TimelineRow({ entry }: { entry: VersionTimelineEntry }) {
+  const activityDate = entry.date_modified ?? entry.date_created;
+  const activityPrefix = entry.date_modified ? 'Updated' : 'Created';
+
   return (
     <div className="flex relative gap-3">
       <span
@@ -54,13 +84,7 @@ function TimelineRow({ entry }: { entry: VersionTimelineEntry }) {
       />
       <div className="flex-1 space-y-1 min-w-0">
         <div className="flex flex-wrap gap-y-1 gap-x-2 items-center">
-          <time
-            className="text-xs font-medium text-foreground"
-            dateTime={entry.date_created}
-            title={formatDatetime(entry.date_created)}
-          >
-            {formatDate(entry.date_created)}
-          </time>
+          <PublishedDate datePublished={entry.date_published} />
           {entry.tag ? (
             <ui.VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
           ) : null}
@@ -73,11 +97,9 @@ function TimelineRow({ entry }: { entry: VersionTimelineEntry }) {
             {entry.statusLabel}
           </span>
         </div>
-        {entry.date_published ? (
-          <p className="text-[11px] text-muted-foreground">
-            Published {formatToNow(entry.date_published, { addSuffix: true })}
-          </p>
-        ) : null}
+        <p className="text-[11px] text-muted-foreground" title={formatDatetime(activityDate)}>
+          {activityPrefix}: {formatDate(activityDate)}
+        </p>
       </div>
     </div>
   );

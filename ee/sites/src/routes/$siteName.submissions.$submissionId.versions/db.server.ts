@@ -4,6 +4,7 @@ import { firstVersionTag } from '../$siteName.submissions._index/index.versions.
 export type VersionTimelineEntry = {
   id: string;
   date_created: string;
+  date_modified: string;
   date_published?: string;
   status: string;
   statusLabel: string;
@@ -39,6 +40,7 @@ export async function dbLoadSubmissionVersionsTimeline(
         select: {
           id: true,
           date_created: true,
+          date_modified: true,
           date_published: true,
           status: true,
           tags: true,
@@ -56,6 +58,7 @@ export async function dbLoadSubmissionVersionsTimeline(
   return submission.versions.map((row) => ({
     id: row.id,
     date_created: row.date_created,
+    date_modified: row.date_modified,
     date_published: row.date_published ?? undefined,
     status: row.status,
     statusLabel: workflow.states[row.status]?.label ?? row.status,
