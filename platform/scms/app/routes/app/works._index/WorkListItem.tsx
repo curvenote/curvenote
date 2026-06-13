@@ -137,10 +137,7 @@ export function WorkListItem({
                 return (
                   <SubmissionVersionTimelineHoverCard
                     key={`submission-badge-${submission.id}`}
-                    versionsUrl={submissionVersionsTimelineUrl(
-                      submission.site.name,
-                      submission.id,
-                    )}
+                    versionsUrl={submissionVersionsTimelineUrl(submission.site.name, submission.id)}
                   >
                     <ui.SubmissionVersionBadge
                       submissionVersion={{
