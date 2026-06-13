@@ -14,6 +14,7 @@ function mapSubmissionVersions(
     id: string;
     status: string;
     tags: string[];
+    date_published: string | null;
     submission: {
       id: string;
       site: { name: string; title: string | null; metadata: unknown };
@@ -33,6 +34,7 @@ function mapSubmissionVersions(
         submissionId: sv.submission.id,
         status: sv.status,
         statusLabel: state?.label ?? sv.status,
+        date_published: sv.date_published ?? undefined,
         tag: sv.tags[0],
         statusTags: state?.tags,
         site: {
@@ -68,6 +70,7 @@ export async function dbLoadWorkVersionsTimeline(
           id: true,
           status: true,
           tags: true,
+          date_published: true,
           submission: {
             select: {
               id: true,

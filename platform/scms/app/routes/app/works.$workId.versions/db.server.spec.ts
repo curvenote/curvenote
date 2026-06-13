@@ -41,6 +41,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
             id: 'sv-2',
             status: 'PUBLISHED',
             tags: ['v2'],
+            date_published: '2026-05-02T08:00:00.000Z',
             submission: {
               id: 'sub-1',
               site: {
@@ -78,6 +79,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
             submissionId: 'sub-1',
             status: 'PUBLISHED',
             statusLabel: 'Published',
+            date_published: '2026-05-02T08:00:00.000Z',
             tag: 'v2',
             statusTags: ['ok', 'end'],
             site: {

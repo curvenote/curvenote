@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import type { WorkVersionTimelineSubmissionVersion } from '../types/versionTimeline.js';
+import { formatDatetime } from '../utils/formatDate.js';
 import { cn } from '../utils/cn.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
 
@@ -100,6 +101,12 @@ export function SubmissionVersionSiteChip({
         <span className="font-medium">{siteLabel}</span>
         <span className="text-muted-foreground"> · {submissionVersion.statusLabel}</span>
         {tag ? <span className="text-muted-foreground"> · {tag}</span> : null}
+        {submissionVersion.date_published ? (
+          <span className="text-muted-foreground">
+            {' '}
+            · Publication date · {formatDatetime(submissionVersion.date_published)}
+          </span>
+        ) : null}
       </TooltipContent>
     </Tooltip>
   );
