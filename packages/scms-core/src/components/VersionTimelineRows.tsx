@@ -16,7 +16,7 @@ export function VersionTimelineRowShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex relative gap-3">
+    <div className="flex relative gap-3 items-start">
       <span
         className={cn(
           'relative z-10 mt-[3px] size-2.5 shrink-0 rounded-full border border-gray-300 ring-2 ring-popover dark:border-gray-600',
@@ -24,7 +24,7 @@ export function VersionTimelineRowShell({
         )}
         aria-hidden
       />
-      <div className="flex-1 space-y-1 min-w-0">{children}</div>
+      <div className="flex-1 space-y-1 min-w-0 pt-px">{children}</div>
     </div>
   );
 }
@@ -34,7 +34,7 @@ function PublishedDate({ datePublished }: { datePublished?: string }) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <time className="text-xs font-medium text-foreground" dateTime={datePublished}>
+          <time className="text-xs font-medium leading-4 text-foreground" dateTime={datePublished}>
             {formatDate(datePublished)}
           </time>
         </TooltipTrigger>
@@ -48,7 +48,9 @@ function PublishedDate({ datePublished }: { datePublished?: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-xs font-normal text-muted-foreground">no publication date</span>
+        <span className="text-xs font-normal leading-4 text-muted-foreground">
+          no publication date
+        </span>
       </TooltipTrigger>
       <TooltipContent sideOffset={4}>
         Publication date — no publication date for this version
@@ -61,7 +63,7 @@ function CreatedDate({ dateCreated }: { dateCreated: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-xs font-medium text-foreground">
+        <span className="inline-flex items-center text-xs font-medium leading-4 text-foreground">
           Created: <time dateTime={dateCreated}>{formatDate(dateCreated)}</time>
         </span>
       </TooltipTrigger>
@@ -76,7 +78,7 @@ export function SubmissionVersionTimelineRow({ entry }: { entry: VersionTimeline
 
   return (
     <VersionTimelineRowShell dotStatus={entry.status}>
-      <div className="flex flex-wrap gap-y-1 gap-x-2 items-center">
+      <div className="flex flex-wrap gap-x-2 gap-y-1 items-center min-h-4">
         <PublishedDate datePublished={entry.date_published} />
         {entry.tag ? (
           <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
@@ -108,7 +110,7 @@ export function WorkVersionTimelineRow({
 
   return (
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
-      <div className="flex flex-wrap gap-y-1 gap-x-2 items-center">
+      <div className="flex flex-wrap gap-x-2 gap-y-1 items-center min-h-4">
         <CreatedDate dateCreated={entry.date_created} />
         {entry.tag ? (
           <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />

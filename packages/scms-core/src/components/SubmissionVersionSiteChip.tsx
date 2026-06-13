@@ -59,8 +59,8 @@ export function SubmissionVersionSiteChip({
   const chip = (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center justify-center gap-1 rounded-md ring-2 ring-offset-1 ring-offset-popover',
-        tag ? 'px-1 py-0.5' : 'p-1',
+        'inline-flex h-4 shrink-0 items-center justify-center gap-0.5 rounded-md ring-2',
+        tag ? 'px-1' : 'px-0.5',
         getStatusRingClasses(submissionVersion.statusTags),
         href && 'transition-opacity hover:opacity-80',
       )}
@@ -68,10 +68,8 @@ export function SubmissionVersionSiteChip({
       <SiteMark site={submissionVersion.site} />
       {tag ? (
         <>
-          <span className="w-px self-stretch my-0.5 bg-border/80 shrink-0" aria-hidden />
-          <span className="text-[10px] font-mono leading-none text-foreground/90 pr-0.5">
-            {tag}
-          </span>
+          <span className="w-px h-3 bg-border/80 shrink-0" aria-hidden />
+          <span className="text-[10px] font-mono leading-4 text-foreground/90">{tag}</span>
         </>
       ) : null}
     </span>
@@ -87,14 +85,14 @@ export function SubmissionVersionSiteChip({
         {href ? (
           <Link
             to={href}
-            className="inline-flex"
+            className="inline-flex items-center"
             aria-label={ariaLabel}
             onClick={(event) => event.stopPropagation()}
           >
             {chip}
           </Link>
         ) : (
-          <span className="inline-flex cursor-default">{chip}</span>
+          <span className="inline-flex items-center cursor-default">{chip}</span>
         )}
       </TooltipTrigger>
       <TooltipContent sideOffset={4}>
