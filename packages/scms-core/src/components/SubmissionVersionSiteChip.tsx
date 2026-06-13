@@ -27,12 +27,14 @@ function getStatusRingClasses(statusTags?: string[]) {
 
 function SiteMark({ site }: { site: WorkVersionTimelineSubmissionVersion['site'] }) {
   if (site.logo) {
-    return <img src={site.logo} alt="" className="object-contain rounded-sm size-4" aria-hidden />;
+    return (
+      <img src={site.logo} alt="" className="object-contain size-4 max-w-4 max-h-4" aria-hidden />
+    );
   }
 
   return (
     <span
-      className="flex justify-center items-center rounded-sm size-4 text-[9px] font-semibold uppercase bg-background text-muted-foreground"
+      className="flex justify-center items-center size-4 text-[9px] font-semibold uppercase text-muted-foreground"
       aria-hidden
     >
       {site.name.slice(0, 1)}
@@ -48,6 +50,7 @@ export function SubmissionVersionSiteChip({
   workId?: string;
 }) {
   const siteLabel = submissionVersion.site.title || submissionVersion.site.name;
+  const tag = submissionVersion.tag;
   const href = workId
     ? `/app/works/${workId}/site/${submissionVersion.site.name}/submission/${submissionVersion.id}`
     : undefined;
@@ -55,14 +58,27 @@ export function SubmissionVersionSiteChip({
   const chip = (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full p-0.5 ring-2 ring-offset-1 ring-offset-popover',
+        'inline-flex shrink-0 items-center justify-center gap-1 rounded-md ring-2 ring-offset-1 ring-offset-popover',
+        tag ? 'px-1 py-0.5' : 'p-1',
         getStatusRingClasses(submissionVersion.statusTags),
         href && 'transition-opacity hover:opacity-80',
       )}
     >
       <SiteMark site={submissionVersion.site} />
+      {tag ? (
+        <>
+          <span className="w-px self-stretch my-0.5 bg-border/80 shrink-0" aria-hidden />
+          <span className="text-[10px] font-mono leading-none text-foreground/90 pr-0.5">
+            {tag}
+          </span>
+        </>
+      ) : null}
     </span>
   );
+
+  const ariaLabel = tag
+    ? `${siteLabel}: ${submissionVersion.statusLabel}, ${tag}`
+    : `${siteLabel}: ${submissionVersion.statusLabel}`;
 
   return (
     <Tooltip>
@@ -71,7 +87,7 @@ export function SubmissionVersionSiteChip({
           <Link
             to={href}
             className="inline-flex"
-            aria-label={`${siteLabel}: ${submissionVersion.statusLabel}`}
+            aria-label={ariaLabel}
             onClick={(event) => event.stopPropagation()}
           >
             {chip}
@@ -83,9 +99,7 @@ export function SubmissionVersionSiteChip({
       <TooltipContent sideOffset={4}>
         <span className="font-medium">{siteLabel}</span>
         <span className="text-muted-foreground"> · {submissionVersion.statusLabel}</span>
-        {submissionVersion.tag ? (
-          <span className="text-muted-foreground"> · {submissionVersion.tag}</span>
-        ) : null}
+        {tag ? <span className="text-muted-foreground"> · {tag}</span> : null}
       </TooltipContent>
     </Tooltip>
   );

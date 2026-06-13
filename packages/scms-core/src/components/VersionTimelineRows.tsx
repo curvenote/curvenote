@@ -114,12 +114,11 @@ export function WorkVersionTimelineRow({
           <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
         ) : null}
         {submissionVersions.map((submissionVersion) => (
-          <span key={submissionVersion.id} className="inline-flex gap-1 items-center">
-            <SubmissionVersionSiteChip submissionVersion={submissionVersion} workId={workId} />
-            {submissionVersion.tag ? (
-              <VersionTagBadge tag={submissionVersion.tag} disableTooltip className="shrink-0" />
-            ) : null}
-          </span>
+          <SubmissionVersionSiteChip
+            key={submissionVersion.id}
+            submissionVersion={submissionVersion}
+            workId={workId}
+          />
         ))}
       </div>
       <p className="text-[11px] text-muted-foreground" title={formatDatetime(entry.date_modified)}>
