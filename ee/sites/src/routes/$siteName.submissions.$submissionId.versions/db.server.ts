@@ -1,15 +1,7 @@
 import { getConfiguredWorkflow, getPrismaClient, type SiteContext } from '@curvenote/scms-server';
 import { firstVersionTag } from '../$siteName.submissions._index/index.versions.server.js';
 
-export type VersionTimelineEntry = {
-  id: string;
-  date_created: string;
-  date_modified: string;
-  date_published?: string;
-  status: string;
-  statusLabel: string;
-  tag?: string;
-};
+import type { VersionTimelineEntry } from '@curvenote/scms-core';
 
 /**
  * All submission versions for the version-timeline hover card (newest first).

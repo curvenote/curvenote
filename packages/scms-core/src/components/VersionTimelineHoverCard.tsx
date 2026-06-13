@@ -1,16 +1,16 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { GitBranch, Tag } from 'lucide-react';
-import {
-  cn,
-  formatDate,
-  formatDatetime,
-  getStatusButtonClasses,
-  getStatusDotClasses,
-  ui,
-} from '@curvenote/scms-core';
-import type { VersionTimelineEntry } from '../$siteName.submissions.$submissionId.versions/db.server.js';
-import { useSubmissionVersionTimeline } from './versionTimeline.js';
+import type { VersionTimelineEntry } from '../types/versionTimeline.js';
+import { useVersionTimeline } from '../hooks/useVersionTimeline.js';
+import { formatDate, formatDatetime } from '../utils/formatDate.js';
+import { getStatusButtonClasses, getStatusDotClasses } from '../utils/status.js';
+import { cn } from '../utils/cn.js';
+import { HoverCard, HoverCardArrow, HoverCardContent, HoverCardTrigger } from './ui/hover-card.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
+import { VersionTagBadge } from './ui/VersionTagBadge.js';
+
+export type { VersionTimelineEntry } from '../types/versionTimeline.js';
 
 function TimelineRail() {
   // `w-px` renders to the right of its anchor; `-translate-x-1/2` shifts it
@@ -44,28 +44,28 @@ function TimelineSkeleton() {
 function PublishedDate({ datePublished }: { datePublished?: string }) {
   if (datePublished) {
     return (
-      <ui.Tooltip>
-        <ui.TooltipTrigger asChild>
+      <Tooltip>
+        <TooltipTrigger asChild>
           <time className="text-xs font-medium text-foreground" dateTime={datePublished}>
             {formatDate(datePublished)}
           </time>
-        </ui.TooltipTrigger>
-        <ui.TooltipContent sideOffset={4}>
+        </TooltipTrigger>
+        <TooltipContent sideOffset={4}>
           Publication date · {formatDatetime(datePublished)}
-        </ui.TooltipContent>
-      </ui.Tooltip>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
   return (
-    <ui.Tooltip>
-      <ui.TooltipTrigger asChild>
+    <Tooltip>
+      <TooltipTrigger asChild>
         <span className="text-xs font-normal text-muted-foreground">no publication date</span>
-      </ui.TooltipTrigger>
-      <ui.TooltipContent sideOffset={4}>
+      </TooltipTrigger>
+      <TooltipContent sideOffset={4}>
         Publication date — no publication date for this version
-      </ui.TooltipContent>
-    </ui.Tooltip>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -86,7 +86,7 @@ function TimelineRow({ entry }: { entry: VersionTimelineEntry }) {
         <div className="flex flex-wrap gap-y-1 gap-x-2 items-center">
           <PublishedDate datePublished={entry.date_published} />
           {entry.tag ? (
-            <ui.VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
+            <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
           ) : null}
           <span
             className={cn(
@@ -105,7 +105,7 @@ function TimelineRow({ entry }: { entry: VersionTimelineEntry }) {
   );
 }
 
-function VersionTimelineContent({
+export function VersionTimelineContent({
   data,
   loading,
   error,
@@ -137,39 +137,40 @@ function VersionTimelineContent({
 }
 
 export function VersionTimelineHoverCard({
-  siteName,
-  submissionId,
+  versionsUrl,
   children,
   align = 'start',
   side = 'top',
+  title = 'Versions',
 }: {
-  siteName: string;
-  submissionId: string;
+  /** JSON resource URL returning `{ versions: VersionTimelineEntry[] }`. */
+  versionsUrl: string;
   children: ReactNode;
   align?: 'start' | 'center' | 'end';
   side?: 'top' | 'right' | 'bottom' | 'left';
+  title?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const { data, loading, error } = useSubmissionVersionTimeline(siteName, submissionId, { open });
+  const { data, loading, error } = useVersionTimeline(versionsUrl, { open });
 
   return (
-    <ui.HoverCard open={open} onOpenChange={setOpen} openDelay={400} closeDelay={100}>
-      <ui.HoverCardTrigger asChild>
+    <HoverCard open={open} onOpenChange={setOpen} openDelay={400} closeDelay={100}>
+      <HoverCardTrigger asChild>
         <span className="inline-flex cursor-default transition-[filter] duration-150 hover:brightness-[0.97] dark:hover:brightness-[1.06]">
           {children}
         </span>
-      </ui.HoverCardTrigger>
-      <ui.HoverCardContent align={align} side={side} sideOffset={8} className="w-80 p-3">
+      </HoverCardTrigger>
+      <HoverCardContent align={align} side={side} sideOffset={8} className="w-80 p-3">
         <div className="mb-2 flex items-center gap-1.5 border-b border-border pb-2 text-xs font-semibold text-foreground">
           <GitBranch className="size-3.5 shrink-0" aria-hidden />
-          <span>Versions</span>
+          <span>{title}</span>
           {data?.length != null && !loading ? (
             <span className="font-normal text-muted-foreground">({data.length})</span>
           ) : null}
         </div>
         <VersionTimelineContent data={data} loading={loading} error={error} />
-        <ui.HoverCardArrow className="fill-popover" />
-      </ui.HoverCardContent>
-    </ui.HoverCard>
+        <HoverCardArrow className="fill-popover" />
+      </HoverCardContent>
+    </HoverCard>
   );
 }

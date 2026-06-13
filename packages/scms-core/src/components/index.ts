@@ -13,6 +13,7 @@ export * from './SlugLike.js';
 export * from './StatsSection.js';
 export * from './SubmissionActionsDropdown.js';
 export * from './SubmissionVersionsTable.js';
+export * from './VersionTimelineHoverCard.js';
 export * from './SystemAdminBadge.js';
 export * from './ThemeSwitcher.js';
 export * from './UserCard.js';

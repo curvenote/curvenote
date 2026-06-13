@@ -1,29 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import type { VersionTimelineEntry } from '../$siteName.submissions.$submissionId.versions/db.server.js';
+import type { VersionTimelineEntry } from '../types/versionTimeline.js';
 
 const timelineCache = new Map<string, VersionTimelineEntry[]>();
 const inFlight = new Map<string, Promise<VersionTimelineEntry[]>>();
 
-function cacheKey(siteName: string, submissionId: string) {
-  return `${siteName}:${submissionId}`;
-}
-
-function versionsUrl(siteName: string, submissionId: string) {
-  return `/app/sites/${encodeURIComponent(siteName)}/submissions/${encodeURIComponent(submissionId)}/versions`;
-}
-
-export async function loadSubmissionVersionTimeline(
-  siteName: string,
-  submissionId: string,
-): Promise<VersionTimelineEntry[]> {
-  const key = cacheKey(siteName, submissionId);
-  const existing = inFlight.get(key);
+export async function loadVersionTimeline(versionsUrl: string): Promise<VersionTimelineEntry[]> {
+  const existing = inFlight.get(versionsUrl);
   if (existing) {
     return existing;
   }
 
   const promise = (async () => {
-    const response = await fetch(versionsUrl(siteName, submissionId), {
+    const response = await fetch(versionsUrl, {
       headers: { Accept: 'application/json' },
     });
 
@@ -37,33 +25,26 @@ export async function loadSubmissionVersionTimeline(
       throw new Error('Invalid versions response');
     }
 
-    timelineCache.set(key, versions);
+    timelineCache.set(versionsUrl, versions);
     return versions;
   })();
 
-  inFlight.set(key, promise);
+  inFlight.set(versionsUrl, promise);
 
   try {
     return await promise;
   } finally {
-    inFlight.delete(key);
+    inFlight.delete(versionsUrl);
   }
 }
 
-export function getCachedSubmissionVersionTimeline(
-  siteName: string,
-  submissionId: string,
-): VersionTimelineEntry[] | undefined {
-  return timelineCache.get(cacheKey(siteName, submissionId));
+export function getCachedVersionTimeline(versionsUrl: string): VersionTimelineEntry[] | undefined {
+  return timelineCache.get(versionsUrl);
 }
 
-export function useSubmissionVersionTimeline(
-  siteName: string,
-  submissionId: string,
-  { open }: { open: boolean },
-) {
+export function useVersionTimeline(versionsUrl: string, { open }: { open: boolean }) {
   const [data, setData] = useState<VersionTimelineEntry[] | undefined>(() =>
-    getCachedSubmissionVersionTimeline(siteName, submissionId),
+    getCachedVersionTimeline(versionsUrl),
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -81,13 +62,13 @@ export function useSubmissionVersionTimeline(
       return;
     }
 
-    const cached = getCachedSubmissionVersionTimeline(siteName, submissionId);
+    const cached = getCachedVersionTimeline(versionsUrl);
     if (cached) {
       setData(cached);
       setLoading(false);
       setError(undefined);
 
-      void loadSubmissionVersionTimeline(siteName, submissionId)
+      void loadVersionTimeline(versionsUrl)
         .then((versions) => {
           if (!mountedRef.current) return;
           setData(versions);
@@ -101,7 +82,7 @@ export function useSubmissionVersionTimeline(
     setLoading(true);
     setError(undefined);
 
-    void loadSubmissionVersionTimeline(siteName, submissionId)
+    void loadVersionTimeline(versionsUrl)
       .then((versions) => {
         if (!mountedRef.current) return;
         setData(versions);
@@ -112,7 +93,7 @@ export function useSubmissionVersionTimeline(
         setError(err instanceof Error ? err.message : 'Could not load versions');
         setLoading(false);
       });
-  }, [open, siteName, submissionId]);
+  }, [open, versionsUrl]);
 
   return { data, loading, error };
 }
