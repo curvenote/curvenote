@@ -4,7 +4,6 @@ import { formatDate, formatDatetime } from '../utils/formatDate.js';
 import { getStatusDotClasses, getStatusRingClasses } from '../utils/status.js';
 import { cn } from '../utils/cn.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
-import { VersionTagBadge } from './ui/VersionTagBadge.js';
 import { SubmissionVersionSiteChip } from './SubmissionVersionSiteChip.js';
 
 export function VersionTimelineRowShell({
@@ -59,20 +58,28 @@ function PublishedDate({ datePublished }: { datePublished?: string }) {
   );
 }
 
-function SubmissionVersionTimelineStatusChip({
+function SubmissionVersionTimelineChip({
+  tag,
   statusLabel,
   statusTags,
 }: {
+  tag?: string;
   statusLabel: string;
   statusTags?: string[];
 }) {
   return (
     <span
       className={cn(
-        'inline-flex h-4 shrink-0 items-center justify-center rounded-md ring-2 px-1.5',
+        'inline-flex h-4 shrink-0 items-center justify-center gap-0.5 rounded-md ring-2 px-1',
         getStatusRingClasses(statusTags),
       )}
     >
+      {tag ? (
+        <>
+          <span className="text-[10px] font-mono leading-none text-foreground/90">{tag}</span>
+          <span className="w-px h-3 bg-border/80 shrink-0" aria-hidden />
+        </>
+      ) : null}
       <span className="text-[10px] leading-none text-foreground/90">{statusLabel}</span>
     </span>
   );
@@ -99,10 +106,8 @@ export function SubmissionVersionTimelineRow({ entry }: { entry: VersionTimeline
     <VersionTimelineRowShell dotStatus={entry.status}>
       <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
         <PublishedDate datePublished={entry.date_published} />
-        {entry.tag ? (
-          <VersionTagBadge tag={entry.tag} disableTooltip className="shrink-0" />
-        ) : null}
-        <SubmissionVersionTimelineStatusChip
+        <SubmissionVersionTimelineChip
+          tag={entry.tag}
           statusLabel={entry.statusLabel}
           statusTags={entry.statusTags}
         />
