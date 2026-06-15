@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { Tag } from 'lucide-react';
 import type { VersionTimelineEntry, WorkVersionTimelineEntry } from '../types/versionTimeline.js';
 import { formatDate, formatDatetime } from '../utils/formatDate.js';
 import { getStatusDotClasses, getStatusRingClasses } from '../utils/status.js';
@@ -101,7 +100,7 @@ export function SubmissionVersionTimelineRow({ entry }: { entry: VersionTimeline
       <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
         <PublishedDate datePublished={entry.date_published} />
         {entry.tag ? (
-          <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
+          <VersionTagBadge tag={entry.tag} disableTooltip className="shrink-0" />
         ) : null}
         <SubmissionVersionTimelineStatusChip
           statusLabel={entry.statusLabel}
