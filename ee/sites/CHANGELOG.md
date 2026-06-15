@@ -1,5 +1,25 @@
 # @curvenote/scms-sites-ext
 
+## 0.21.0
+
+### Minor Changes
+
+- [#951](https://github.com/curvenote/curvenote/pull/951) [`0f7463a`](https://github.com/curvenote/curvenote/commit/0f7463a14ad30824def89d97259a1b4289b04baa) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add version timeline hover popovers on works and submissions listings.
+  - **Works listing** — a Timeline control opens a lazy-loaded work-version timeline with created/modified dates, work version tags, and compact site chips for linked submission versions (status ring + inline tag).
+  - **Submissions listing** — status badges, version tags, and published/retracted chips open the submission-version timeline (publication date, tag, status, activity line).
+  - **Shared `@curvenote/scms-core` UI** — `VersionTimelineHoverCard`, row renderers, client cache/revalidate hook, and JSON URL helpers reused by both surfaces.
+  - **Trimmed API payloads** — `/app/works/:workId/versions` and `/app/sites/:siteName/submissions/:submissionId/versions` return at most eight visible entries plus dashed gap markers when versions are omitted; a footer link opens the full timeline on the work details or submission detail page.
+  - **Selection rules** — submission timelines prioritise published versions and the first significant (oldest published, else inaugural) version; work timelines always show the first work version and prefer versions with submission versions, then published submission versions.
+
+### Patch Changes
+
+- [#948](https://github.com/curvenote/curvenote/pull/948) [`83d0a94`](https://github.com/curvenote/curvenote/commit/83d0a949d5ed4fd693ba9e39af4d1b63230072ed) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Optimizing query on main published article API route
+
+- Updated dependencies [[`71a32de`](https://github.com/curvenote/curvenote/commit/71a32de6e318642bad1e02cc616d59ef0b51e878), [`83d0a94`](https://github.com/curvenote/curvenote/commit/83d0a949d5ed4fd693ba9e39af4d1b63230072ed), [`0f7463a`](https://github.com/curvenote/curvenote/commit/0f7463a14ad30824def89d97259a1b4289b04baa)]:
+  - @curvenote/scms-server@0.21.0
+  - @curvenote/scms-core@0.21.0
+  - @curvenote/scms-db@0.21.0
+
 ## 0.20.2
 
 ### Patch Changes
