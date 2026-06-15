@@ -1,8 +1,6 @@
 import type { SiteContext } from '../../../context.site.server.js';
-import {
-  formatSiteWorkDTO,
-  dbGetLatestPublishedSubmissionVersion,
-} from '../submissions/published/get.server.js';
+import { formatSiteWorkDTO } from '../submissions/published/get.server.js';
+import { dbGetPublishedSiteWorkDto } from '../submissions/published/resolve.server.js';
 import { withApiBaseUrl } from '@curvenote/scms-core';
 
 const OG_API = 'https://og.curvenote.com/';
@@ -30,7 +28,7 @@ export default async function (ctx: SiteContext, workIdOrSlug: string, versionId
   console.log('🎑 - Generating social image for', workIdOrSlug, versionId);
 
   // TODO get a specific work version when versionId is provided
-  const dbo = await dbGetLatestPublishedSubmissionVersion(ctx.site.name, workIdOrSlug);
+  const dbo = await dbGetPublishedSiteWorkDto(ctx.site.id, workIdOrSlug);
   if (!dbo) return;
 
   if (!dbo.work_version.cdn || !dbo.work_version.cdn_key) return;

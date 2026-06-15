@@ -148,9 +148,11 @@ function buildListingWhere(
  * Roots at `WorkVersion` via a UNION of single-predicate branches so each arm
  * can use its pg_trgm GIN index (`20260526223800`,
  * `20260610120000_add_work_version_affiliations_trgm_index`), then joins back
- * through `SubmissionVersion` to `Submission` scoped by `site_id`. The previous
- * correlated `EXISTS (… WHERE sv.submission_id = s.id …)` looped once per
- * submission on large sites (e.g. biorxiv) and dominated CPU under search load.
+ * through `SubmissionVersion` to `Submission` scoped by `site_id`. Only
+ * submission versions in the listing's requested `status` are considered (same
+ * as {@link fetchSubmissionIdsBySubject} and {@link buildListingWhere}), which
+ * avoids join fan-out on draft/unpublished history and keeps search aligned with
+ * the version shown in results.
  *
  * `immutable_array_to_string(authors, ' ')` and
  * `work_version_affiliations_search_text(metadata)` MUST match their expression
@@ -158,6 +160,7 @@ function buildListingWhere(
  */
 async function dbSearchSubmissionIds(
   siteId: string,
+  status: string,
   q: string,
   tx?: Prisma.TransactionClient,
 ): Promise<string[]> {
@@ -187,7 +190,9 @@ async function dbSearchSubmissionIds(
   const rows = await (tx ?? prisma).$queryRaw<{ id: string }[]>`
     SELECT DISTINCT s.id
     FROM (${matchingWorkVersions}) matching_wv
-    INNER JOIN "SubmissionVersion" sv ON sv.work_version_id = matching_wv.id
+    INNER JOIN "SubmissionVersion" sv
+      ON sv.work_version_id = matching_wv.id
+     AND sv.status = ${status}
     INNER JOIN "Submission" s ON s.id = sv.submission_id AND s.site_id = ${siteId}
   `;
   return rows.map((r) => r.id);
@@ -325,7 +330,7 @@ export async function dbListLatestPublishedSubmissions(
   // short-circuits.
   let searchIds: string[] | undefined;
   if (where?.q) {
-    searchIds = await dbSearchSubmissionIds(ctx.site.id, where.q);
+    searchIds = await dbSearchSubmissionIds(ctx.site.id, status, where.q);
   }
   let subjectIds: string[] | undefined;
   if (where?.subject) {

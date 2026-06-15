@@ -2,50 +2,21 @@ import type { SiteContext } from '../../../../context.site.server.js';
 import type { HostSpec, SiteWorkDTO, SiteWorkVersionDTO } from '@curvenote/common';
 import { formatDate, concatSiteWorkTags, pickVersionTag } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
-import type { siteWorkDtoSelect } from '../../../../prisma.selects.server.js';
-import { submissionVersionForSiteWorkSelect } from '../../../../prisma.selects.server.js';
 import type { Prisma } from '@curvenote/scms-db';
+import type {
+  siteWorkDtoSelect,
+  submissionVersionForSiteWorkSelect,
+} from '../../../../prisma.selects.server.js';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
 import { formatCollectionSummaryDTO } from '../../get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../../kinds/get.server.js';
 import { createArticleUrl } from '../../../../domains.server.js';
 import { fetchWorkVersionSubjects } from '../../../../work-version-subject.server.js';
+import { dbGetPublishedSiteWorkDto } from './resolve.server.js';
 
-export async function dbGetLatestPublishedSubmissionVersion(
-  siteName: string,
-  workIdOrSlug: string,
-) {
-  const prisma = await getPrismaClient();
-  return prisma.submissionVersion.findFirst({
-    where: {
-      status: 'PUBLISHED',
-      submission: {
-        site: {
-          name: siteName,
-        },
-      },
-      OR: [
-        {
-          work_version: {
-            work_id: workIdOrSlug,
-          },
-        },
-        {
-          submission: {
-            slugs: {
-              some: {
-                slug: workIdOrSlug,
-              },
-            },
-          },
-        },
-      ],
-    },
-    orderBy: {
-      date_created: 'desc',
-    },
-    select: submissionVersionForSiteWorkSelect,
-  });
+/** @deprecated Prefer `dbGetPublishedSiteWorkDto(siteId, …)` — kept for callers expecting the old name. */
+export async function dbGetLatestPublishedSubmissionVersion(siteId: string, workIdOrSlug: string) {
+  return dbGetPublishedSiteWorkDto(siteId, workIdOrSlug);
 }
 
 export type DBO = Prisma.SubmissionVersionGetPayload<{
@@ -82,12 +53,13 @@ export type PublishedSiteWorkDTO = ModifiedSiteWorkDTO & { versions: SiteWorkVer
  * `versions` summary array so clients can render version navigation without a second
  * request to `links.versions`.
  */
-export async function dbGetPublishedVersionsForSubmission(siteName: string, submissionId: string) {
+export async function dbGetPublishedVersionsForSubmission(siteId: string, submissionId: string) {
   const prisma = await getPrismaClient();
   return prisma.submissionVersion.findMany({
     where: {
       status: 'PUBLISHED',
-      submission: { id: submissionId, site: { name: siteName } },
+      submission_id: submissionId,
+      submission: { site_id: siteId },
     },
     orderBy: { date_created: 'desc' },
     select: {
@@ -119,7 +91,7 @@ export async function formatPublishedSiteWorkWithVersions(
     subject: subjects.get(dbo.work_version.id),
   });
   const versionRows = await dbGetPublishedVersionsForSubmission(
-    ctx.site.name,
+    ctx.site.id,
     siteWork.submission_id,
   );
   return { ...siteWork, versions: formatSiteWorkVersions(versionRows) };
@@ -210,7 +182,7 @@ export default async function (
   ctx: SiteContext,
   workIdOrSlug: string,
 ): Promise<PublishedSiteWorkDTO | null> {
-  const dbo = await dbGetLatestPublishedSubmissionVersion(ctx.site.name, workIdOrSlug);
+  const dbo = await dbGetPublishedSiteWorkDto(ctx.site.id, workIdOrSlug);
   if (!dbo) return null;
   return formatPublishedSiteWorkWithVersions(ctx, dbo);
 }

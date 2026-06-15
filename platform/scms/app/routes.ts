@@ -255,7 +255,7 @@ export default [
           ),
           route(
             ':workIdOrSlug/published',
-            'routes/api/v1.sites.$siteName.works.$workIdOrSlug.published.tsx',
+            'routes/api/v1.sites.$siteName.works.$workIdOrSlug.published/route.tsx',
           ),
           route(
             ':workIdOrSlug/thumbnail',

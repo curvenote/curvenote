@@ -232,6 +232,14 @@ describe('sites.submissions.published.get — delivered package', () => {
     const dto = await sites.submissions.published.get(testData.context, uuidv7());
     expect(dto).toBeNull();
   });
+
+  test('does not resolve a work published on another site', async () => {
+    const otherSiteId = await createBareSite();
+    const seed = await seedPublishedWorkWithDoi(testData, { siteId: otherSiteId });
+
+    const dto = await sites.submissions.published.get(testData.context, seed.workId);
+    expect(dto).toBeNull();
+  });
 });
 
 /* ---------------------------------------------------------------------------
