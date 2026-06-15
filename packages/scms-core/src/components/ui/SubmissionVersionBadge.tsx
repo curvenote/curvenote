@@ -110,7 +110,6 @@ export function SubmissionVersionBadge({
         'cursor-pointer': shouldShowLink,
       })}
       asChild={shouldShowLink}
-      title={`SID: ${sv.submission.id}\nSVID: ${sv.id}`}
     >
       {shouldShowLink ? (
         <Link
