@@ -18,6 +18,8 @@ import { SubmissionStatusBadge } from './SubmissionStatusBadge.js';
 
 const AUTHORS_MAX_DISPLAY = 5;
 
+const SUBMISSION_TIMELINE_TITLE = 'Submissions';
+
 interface SubmissionsListItemProps {
   siteName: string;
   item: SubmissionsIndexItem;
@@ -66,17 +68,26 @@ export function SubmissionsListItem({
               />
             ) : null}
             {item.publishedVersion ? (
-              <SubmissionVersionTimelineHoverCard versionsUrl={versionsUrl}>
+              <SubmissionVersionTimelineHoverCard
+                versionsUrl={versionsUrl}
+                title={SUBMISSION_TIMELINE_TITLE}
+              >
                 <HasPublishedVersion date={item.publishedVersion.date_created} disableTooltip />
               </SubmissionVersionTimelineHoverCard>
             ) : null}
             {!item.publishedVersion && item.retractedVersion ? (
-              <SubmissionVersionTimelineHoverCard versionsUrl={versionsUrl}>
+              <SubmissionVersionTimelineHoverCard
+                versionsUrl={versionsUrl}
+                title={SUBMISSION_TIMELINE_TITLE}
+              >
                 <HasRetractedVersion date={item.retractedVersion.date_created} disableTooltip />
               </SubmissionVersionTimelineHoverCard>
             ) : null}
             {item.versionTag ? (
-              <SubmissionVersionTimelineHoverCard versionsUrl={versionsUrl}>
+              <SubmissionVersionTimelineHoverCard
+                versionsUrl={versionsUrl}
+                title={SUBMISSION_TIMELINE_TITLE}
+              >
                 <ui.VersionTagBadge tag={item.versionTag} disableTooltip />
               </SubmissionVersionTimelineHoverCard>
             ) : null}
@@ -84,7 +95,11 @@ export function SubmissionsListItem({
           </div>
         </div>
         <div className="flex shrink-0 items-center justify-start sm:w-[200px] sm:justify-center">
-          <SubmissionVersionTimelineHoverCard versionsUrl={versionsUrl} align="end">
+          <SubmissionVersionTimelineHoverCard
+            versionsUrl={versionsUrl}
+            align="end"
+            title={SUBMISSION_TIMELINE_TITLE}
+          >
             <SubmissionStatusBadge status={item.status} label={item.statusLabel} />
           </SubmissionVersionTimelineHoverCard>
         </div>
