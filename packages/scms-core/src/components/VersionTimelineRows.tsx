@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
+import { Tag } from 'lucide-react';
 import type { VersionTimelineEntry, WorkVersionTimelineEntry } from '../types/versionTimeline.js';
 import { formatDate, formatDatetime } from '../utils/formatDate.js';
 import { getStatusDotClasses, getStatusRingClasses } from '../utils/status.js';
 import { cn } from '../utils/cn.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
+import { VersionTagBadge } from './ui/VersionTagBadge.js';
 import { SubmissionVersionSiteChip } from './SubmissionVersionSiteChip.js';
 
 export function VersionTimelineRowShell({
@@ -58,18 +60,6 @@ function PublishedDate({ datePublished }: { datePublished?: string }) {
   );
 }
 
-function SubmissionVersionTimelineTag({ tag }: { tag?: string }) {
-  if (!tag) {
-    return <span className="w-7 shrink-0" aria-hidden />;
-  }
-
-  return (
-    <span className="inline-flex h-4 w-7 shrink-0 items-center justify-center text-[10px] font-mono leading-none text-foreground/90">
-      {tag}
-    </span>
-  );
-}
-
 function SubmissionVersionTimelineStatusChip({
   statusLabel,
   statusTags,
@@ -80,61 +70,12 @@ function SubmissionVersionTimelineStatusChip({
   return (
     <span
       className={cn(
-        'inline-flex h-4 shrink-0 items-center justify-center rounded-md ring-2 px-1.5 justify-self-end',
+        'inline-flex h-4 shrink-0 items-center justify-center rounded-md ring-2 px-1.5',
         getStatusRingClasses(statusTags),
       )}
     >
       <span className="text-[10px] leading-none text-foreground/90">{statusLabel}</span>
     </span>
-  );
-}
-
-function TimelineRowMetaGrid({
-  date,
-  tag,
-  status,
-  wideDate = false,
-}: {
-  date: ReactNode;
-  tag?: ReactNode;
-  status: ReactNode;
-  wideDate?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        'grid min-h-4 items-center gap-x-2',
-        wideDate
-          ? 'grid-cols-[7.5rem_1.75rem_minmax(0,1fr)]'
-          : 'grid-cols-[5.25rem_1.75rem_minmax(0,1fr)]',
-      )}
-    >
-      <div className="min-w-0">{date}</div>
-      {tag ?? <span className="w-7 shrink-0" aria-hidden />}
-      <div className="flex min-w-0 justify-end">{status}</div>
-    </div>
-  );
-}
-
-function TimelineRowChipGrid({
-  date,
-  chips,
-  wideDate = false,
-}: {
-  date: ReactNode;
-  chips: ReactNode;
-  wideDate?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        'grid min-h-4 items-center gap-x-2',
-        wideDate ? 'grid-cols-[7.5rem_minmax(0,1fr)]' : 'grid-cols-[5.25rem_minmax(0,1fr)]',
-      )}
-    >
-      <div className="min-w-0">{date}</div>
-      <div className="flex min-w-0 flex-wrap justify-end gap-1">{chips}</div>
-    </div>
   );
 }
 
@@ -157,16 +98,16 @@ export function SubmissionVersionTimelineRow({ entry }: { entry: VersionTimeline
 
   return (
     <VersionTimelineRowShell dotStatus={entry.status}>
-      <TimelineRowMetaGrid
-        date={<PublishedDate datePublished={entry.date_published} />}
-        tag={<SubmissionVersionTimelineTag tag={entry.tag} />}
-        status={
-          <SubmissionVersionTimelineStatusChip
-            statusLabel={entry.statusLabel}
-            statusTags={entry.statusTags}
-          />
-        }
-      />
+      <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
+        <PublishedDate datePublished={entry.date_published} />
+        {entry.tag ? (
+          <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
+        ) : null}
+        <SubmissionVersionTimelineStatusChip
+          statusLabel={entry.statusLabel}
+          statusTags={entry.statusTags}
+        />
+      </div>
       <p className="text-[11px] text-muted-foreground" title={formatDatetime(activityDate)}>
         {activityPrefix}: {formatDate(activityDate)}
       </p>
@@ -185,17 +126,16 @@ export function WorkVersionTimelineRow({
 
   return (
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
-      <TimelineRowChipGrid
-        date={<CreatedDate dateCreated={entry.date_created} />}
-        wideDate
-        chips={submissionVersions.map((submissionVersion) => (
+      <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
+        <CreatedDate dateCreated={entry.date_created} />
+        {submissionVersions.map((submissionVersion) => (
           <SubmissionVersionSiteChip
             key={submissionVersion.id}
             submissionVersion={submissionVersion}
             workId={workId}
           />
         ))}
-      />
+      </div>
       <p className="text-[11px] text-muted-foreground" title={formatDatetime(entry.date_modified)}>
         Modified: {formatDate(entry.date_modified)}
       </p>
