@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import type { WorkVersionTimelineSubmissionVersion } from '../types/versionTimeline.js';
-import { formatDatetime } from '../utils/formatDate.js';
+import { formatDate, formatDatetime } from '../utils/formatDate.js';
 import { getStatusRingClasses } from '../utils/status.js';
 import { cn } from '../utils/cn.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
@@ -22,6 +22,19 @@ function SiteMark({ site }: { site: WorkVersionTimelineSubmissionVersion['site']
   );
 }
 
+function chipDetailLabel(submissionVersion: WorkVersionTimelineSubmissionVersion): {
+  label: string;
+  kind: 'tag' | 'date' | 'status';
+} {
+  if (submissionVersion.tag) {
+    return { label: submissionVersion.tag, kind: 'tag' };
+  }
+  if (submissionVersion.date_published) {
+    return { label: formatDate(submissionVersion.date_published), kind: 'date' };
+  }
+  return { label: submissionVersion.statusLabel, kind: 'status' };
+}
+
 export function SubmissionVersionSiteChip({
   submissionVersion,
   workId,
@@ -30,7 +43,7 @@ export function SubmissionVersionSiteChip({
   workId?: string;
 }) {
   const siteLabel = submissionVersion.site.title || submissionVersion.site.name;
-  const tag = submissionVersion.tag;
+  const { label: detailLabel, kind: detailKind } = chipDetailLabel(submissionVersion);
   const href = workId
     ? `/app/works/${workId}/site/${submissionVersion.site.name}/submission/${submissionVersion.id}`
     : undefined;
@@ -38,25 +51,27 @@ export function SubmissionVersionSiteChip({
   const chip = (
     <span
       className={cn(
-        'inline-flex h-4 shrink-0 items-center justify-center gap-0.5 rounded-md ring-2',
-        tag ? 'px-1' : 'px-0.5',
+        'inline-flex h-4 shrink-0 items-center justify-center gap-0.5 rounded-md ring-2 px-1',
         getStatusRingClasses(submissionVersion.statusTags),
         href && 'transition-opacity hover:opacity-80',
       )}
     >
       <SiteMark site={submissionVersion.site} />
-      {tag ? (
-        <>
-          <span className="w-px h-3 bg-border/80 shrink-0" aria-hidden />
-          <span className="text-[10px] font-mono leading-4 text-foreground/90">{tag}</span>
-        </>
-      ) : null}
+      <span className="w-px h-3 bg-border/80 shrink-0" aria-hidden />
+      <span
+        className={cn(
+          'text-[10px] leading-4 text-foreground/90',
+          detailKind === 'tag' && 'font-mono',
+        )}
+      >
+        {detailLabel}
+      </span>
     </span>
   );
 
-  const ariaLabel = tag
-    ? `${siteLabel}: ${submissionVersion.statusLabel}, ${tag}`
-    : `${siteLabel}: ${submissionVersion.statusLabel}`;
+  const ariaLabel = `${siteLabel}: ${submissionVersion.statusLabel}${
+    submissionVersion.tag ? `, ${submissionVersion.tag}` : ''
+  }`;
 
   return (
     <Tooltip>
@@ -77,7 +92,9 @@ export function SubmissionVersionSiteChip({
       <TooltipContent sideOffset={4}>
         <span className="font-medium">{siteLabel}</span>
         <span className="text-muted-foreground"> · {submissionVersion.statusLabel}</span>
-        {tag ? <span className="text-muted-foreground"> · {tag}</span> : null}
+        {submissionVersion.tag ? (
+          <span className="text-muted-foreground"> · {submissionVersion.tag}</span>
+        ) : null}
         {submissionVersion.date_published ? (
           <span className="text-muted-foreground">
             {' '}
