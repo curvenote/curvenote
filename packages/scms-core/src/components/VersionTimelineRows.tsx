@@ -58,30 +58,83 @@ function PublishedDate({ datePublished }: { datePublished?: string }) {
   );
 }
 
-function SubmissionVersionTimelineChip({
-  tag,
+function SubmissionVersionTimelineTag({ tag }: { tag?: string }) {
+  if (!tag) {
+    return <span className="w-7 shrink-0" aria-hidden />;
+  }
+
+  return (
+    <span className="inline-flex h-4 w-7 shrink-0 items-center justify-center text-[10px] font-mono leading-none text-foreground/90">
+      {tag}
+    </span>
+  );
+}
+
+function SubmissionVersionTimelineStatusChip({
   statusLabel,
   statusTags,
 }: {
-  tag?: string;
   statusLabel: string;
   statusTags?: string[];
 }) {
   return (
     <span
       className={cn(
-        'inline-flex h-4 shrink-0 items-center justify-center gap-0.5 rounded-md ring-2 px-1',
+        'inline-flex h-4 shrink-0 items-center justify-center rounded-md ring-2 px-1.5 justify-self-end',
         getStatusRingClasses(statusTags),
       )}
     >
-      {tag ? (
-        <>
-          <span className="text-[10px] font-mono leading-none text-foreground/90">{tag}</span>
-          <span className="w-px h-3 bg-border/80 shrink-0" aria-hidden />
-        </>
-      ) : null}
       <span className="text-[10px] leading-none text-foreground/90">{statusLabel}</span>
     </span>
+  );
+}
+
+function TimelineRowMetaGrid({
+  date,
+  tag,
+  status,
+  wideDate = false,
+}: {
+  date: ReactNode;
+  tag?: ReactNode;
+  status: ReactNode;
+  wideDate?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'grid min-h-4 items-center gap-x-2',
+        wideDate
+          ? 'grid-cols-[7.5rem_1.75rem_minmax(0,1fr)]'
+          : 'grid-cols-[5.25rem_1.75rem_minmax(0,1fr)]',
+      )}
+    >
+      <div className="min-w-0">{date}</div>
+      {tag ?? <span className="w-7 shrink-0" aria-hidden />}
+      <div className="flex min-w-0 justify-end">{status}</div>
+    </div>
+  );
+}
+
+function TimelineRowChipGrid({
+  date,
+  chips,
+  wideDate = false,
+}: {
+  date: ReactNode;
+  chips: ReactNode;
+  wideDate?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'grid min-h-4 items-center gap-x-2',
+        wideDate ? 'grid-cols-[7.5rem_minmax(0,1fr)]' : 'grid-cols-[5.25rem_minmax(0,1fr)]',
+      )}
+    >
+      <div className="min-w-0">{date}</div>
+      <div className="flex min-w-0 flex-wrap justify-end gap-1">{chips}</div>
+    </div>
   );
 }
 
@@ -104,14 +157,16 @@ export function SubmissionVersionTimelineRow({ entry }: { entry: VersionTimeline
 
   return (
     <VersionTimelineRowShell dotStatus={entry.status}>
-      <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
-        <PublishedDate datePublished={entry.date_published} />
-        <SubmissionVersionTimelineChip
-          tag={entry.tag}
-          statusLabel={entry.statusLabel}
-          statusTags={entry.statusTags}
-        />
-      </div>
+      <TimelineRowMetaGrid
+        date={<PublishedDate datePublished={entry.date_published} />}
+        tag={<SubmissionVersionTimelineTag tag={entry.tag} />}
+        status={
+          <SubmissionVersionTimelineStatusChip
+            statusLabel={entry.statusLabel}
+            statusTags={entry.statusTags}
+          />
+        }
+      />
       <p className="text-[11px] text-muted-foreground" title={formatDatetime(activityDate)}>
         {activityPrefix}: {formatDate(activityDate)}
       </p>
@@ -130,16 +185,17 @@ export function WorkVersionTimelineRow({
 
   return (
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
-      <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
-        <CreatedDate dateCreated={entry.date_created} />
-        {submissionVersions.map((submissionVersion) => (
+      <TimelineRowChipGrid
+        date={<CreatedDate dateCreated={entry.date_created} />}
+        wideDate
+        chips={submissionVersions.map((submissionVersion) => (
           <SubmissionVersionSiteChip
             key={submissionVersion.id}
             submissionVersion={submissionVersion}
             workId={workId}
           />
         ))}
-      </div>
+      />
       <p className="text-[11px] text-muted-foreground" title={formatDatetime(entry.date_modified)}>
         Modified: {formatDate(entry.date_modified)}
       </p>
