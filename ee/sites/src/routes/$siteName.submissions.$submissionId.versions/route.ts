@@ -1,7 +1,11 @@
 import type { LoaderFunctionArgs } from 'react-router';
 import { data } from 'react-router';
 import { withAppSiteContext } from '@curvenote/scms-server';
-import { site as siteScopes } from '@curvenote/scms-core';
+import {
+  site as siteScopes,
+  submissionVersionsSeeAllUrl,
+  trimSubmissionVersionTimeline,
+} from '@curvenote/scms-core';
 import { dbLoadSubmissionVersionsTimeline } from './db.server.js';
 
 /**
@@ -9,7 +13,7 @@ import { dbLoadSubmissionVersionsTimeline } from './db.server.js';
  *
  * JSON-only, no default export. Contract:
  *   GET /app/sites/:siteName/submissions/:submissionId/versions
- *     200 -> { versions: VersionTimelineEntry[] }   (newest first)
+ *     200 -> TrimmedVersionTimeline<VersionTimelineEntry>   (newest first, max 8 visible)
  *     400 -> { error }                              (missing route param)
  *     401/403 -> auth/scope failure (NOT a redirect — see below)
  *     404 -> { error: 'Submission not found' }      (cross-site or unknown id)
@@ -25,8 +29,9 @@ import { dbLoadSubmissionVersionsTimeline } from './db.server.js';
 export async function loader(args: LoaderFunctionArgs) {
   const ctx = await withAppSiteContext(args, [siteScopes.submissions.list]);
 
+  const siteName = args.params.siteName;
   const submissionId = args.params.submissionId;
-  if (!submissionId) {
+  if (!siteName || !submissionId) {
     return data({ error: 'Missing submission id' }, { status: 400 });
   }
 
@@ -35,5 +40,7 @@ export async function loader(args: LoaderFunctionArgs) {
     return data({ error: 'Submission not found' }, { status: 404 });
   }
 
-  return data({ versions });
+  return data(
+    trimSubmissionVersionTimeline(versions, submissionVersionsSeeAllUrl(siteName, submissionId)),
+  );
 }

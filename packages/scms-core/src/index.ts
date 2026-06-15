@@ -8,5 +8,14 @@ export * from './services/index.js';
 export * from './utils/index.js';
 export * from './workflow/index.js';
 
+export type {
+  VersionTimelineEntry,
+  WorkVersionTimelineEntry,
+  WorkVersionTimelineSubmissionVersion,
+  VersionTimelineResponse,
+  TrimmedVersionTimeline,
+  VersionTimelineDisplayItem,
+} from './types/versionTimeline.js';
+
 // Re-export commonly used types from ui components
 export type { DraftWork } from './components/ui/dialogs/types.js';
