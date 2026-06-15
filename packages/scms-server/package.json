@@ -79,7 +79,7 @@
     "node-cache": "^5.1.2",
     "p-limit": "^3.1.0",
     "react-dom": "^18.3.1",
-    "react-router": "7.9.5",
+    "react-router": "7.15.0",
     "remix-auth": "^4.0.0",
     "remix-auth-oauth2": "^3.1.0",
     "resend": "^6.2.0-preview-contacts.0",
