@@ -55,3 +55,26 @@ export function getStatusDotClasses(status: JobStatus | string) {
 
   return 'bg-neutral-400';
 }
+
+/** Ring/background accent for compact timeline chips (site badges, submission rows). */
+export function getStatusRingClasses(statusTags?: string[]) {
+  if (!statusTags?.length) {
+    return 'ring-border bg-muted/40';
+  }
+
+  const hasEnd = statusTags.includes('end');
+  const hasError = statusTags.includes('error');
+  const hasWarning = statusTags.includes('warning');
+
+  if (hasError) {
+    return 'ring-red-500 bg-red-50 dark:bg-red-950/40 dark:ring-red-400';
+  }
+  if (hasWarning) {
+    return 'ring-orange-500 bg-orange-50 dark:bg-orange-950/40 dark:ring-orange-400';
+  }
+  if (hasEnd && !hasError && !hasWarning) {
+    return 'ring-green-600 bg-green-50 dark:bg-green-950/40 dark:ring-green-500';
+  }
+
+  return 'ring-border bg-muted/40';
+}

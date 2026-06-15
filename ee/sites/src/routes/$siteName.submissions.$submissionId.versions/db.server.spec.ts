@@ -10,7 +10,7 @@ vi.mock('@curvenote/scms-server', async (importOriginal) => {
     getPrismaClient: vi.fn(),
     getConfiguredWorkflow: vi.fn(() => ({
       states: {
-        PUBLISHED: { label: 'Published' },
+        PUBLISHED: { label: 'Published', tags: ['end'] },
         IN_REVIEW: { label: 'In review' },
       },
     })),
@@ -79,6 +79,7 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
         date_published: '2026-05-03T00:00:00.000Z',
         status: 'PUBLISHED',
         statusLabel: 'Published',
+        statusTags: ['end'],
         tag: 'v2',
       },
       {
@@ -88,6 +89,7 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
         date_published: undefined,
         status: 'IN_REVIEW',
         statusLabel: 'In review',
+        statusTags: undefined,
         tag: 'v1',
       },
     ]);

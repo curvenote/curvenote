@@ -5,6 +5,8 @@ export type VersionTimelineEntry = {
   date_published?: string;
   status: string;
   statusLabel: string;
+  /** Workflow state tags — used for status accent on compact timeline chips. */
+  statusTags?: string[];
   tag?: string;
 };
 

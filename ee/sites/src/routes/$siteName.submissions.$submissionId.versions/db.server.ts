@@ -54,6 +54,7 @@ export async function dbLoadSubmissionVersionsTimeline(
     date_published: row.date_published ?? undefined,
     status: row.status,
     statusLabel: workflow.states[row.status]?.label ?? row.status,
+    statusTags: workflow.states[row.status]?.tags,
     tag: firstVersionTag(row),
   }));
 }

@@ -1,11 +1,9 @@
 import type { ReactNode } from 'react';
-import { Tag } from 'lucide-react';
 import type { VersionTimelineEntry, WorkVersionTimelineEntry } from '../types/versionTimeline.js';
 import { formatDate, formatDatetime } from '../utils/formatDate.js';
-import { getStatusButtonClasses, getStatusDotClasses } from '../utils/status.js';
+import { getStatusDotClasses, getStatusRingClasses } from '../utils/status.js';
 import { cn } from '../utils/cn.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
-import { VersionTagBadge } from './ui/VersionTagBadge.js';
 import { SubmissionVersionSiteChip } from './SubmissionVersionSiteChip.js';
 
 export function VersionTimelineRowShell({
@@ -34,7 +32,10 @@ function PublishedDate({ datePublished }: { datePublished?: string }) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <time className="text-xs font-medium leading-4 text-foreground" dateTime={datePublished}>
+          <time
+            className="inline-flex h-4 items-center text-xs font-medium leading-none text-foreground"
+            dateTime={datePublished}
+          >
             {formatDate(datePublished)}
           </time>
         </TooltipTrigger>
@@ -48,14 +49,39 @@ function PublishedDate({ datePublished }: { datePublished?: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-xs font-normal leading-4 text-muted-foreground">
-          no publication date
+        <span className="inline-flex h-4 items-center text-xs font-normal leading-none text-muted-foreground">
+          no date
         </span>
       </TooltipTrigger>
-      <TooltipContent sideOffset={4}>
-        Publication date — no publication date for this version
-      </TooltipContent>
+      <TooltipContent sideOffset={4}>Publication date — no date for this version</TooltipContent>
     </Tooltip>
+  );
+}
+
+function SubmissionVersionTimelineChip({
+  tag,
+  statusLabel,
+  statusTags,
+}: {
+  tag?: string;
+  statusLabel: string;
+  statusTags?: string[];
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex h-4 shrink-0 items-center justify-center gap-0.5 rounded-md ring-2 px-1',
+        getStatusRingClasses(statusTags),
+      )}
+    >
+      {tag ? (
+        <>
+          <span className="text-[10px] font-mono leading-none text-foreground/90">{tag}</span>
+          <span className="w-px h-3 bg-border/80 shrink-0" aria-hidden />
+        </>
+      ) : null}
+      <span className="text-[10px] leading-none text-foreground/90">{statusLabel}</span>
+    </span>
   );
 }
 
@@ -63,7 +89,7 @@ function CreatedDate({ dateCreated }: { dateCreated: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex items-center text-xs font-medium leading-4 text-foreground">
+        <span className="inline-flex h-4 items-center text-xs font-medium leading-none text-foreground">
           Created: <time dateTime={dateCreated}>{formatDate(dateCreated)}</time>
         </span>
       </TooltipTrigger>
@@ -78,19 +104,13 @@ export function SubmissionVersionTimelineRow({ entry }: { entry: VersionTimeline
 
   return (
     <VersionTimelineRowShell dotStatus={entry.status}>
-      <div className="flex flex-wrap gap-x-2 gap-y-1 items-center min-h-4">
+      <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
         <PublishedDate datePublished={entry.date_published} />
-        {entry.tag ? (
-          <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
-        ) : null}
-        <span
-          className={cn(
-            getStatusButtonClasses(entry.status),
-            'inline-flex items-center rounded-full px-2 py-[1px] text-[11px] leading-tight',
-          )}
-        >
-          {entry.statusLabel}
-        </span>
+        <SubmissionVersionTimelineChip
+          tag={entry.tag}
+          statusLabel={entry.statusLabel}
+          statusTags={entry.statusTags}
+        />
       </div>
       <p className="text-[11px] text-muted-foreground" title={formatDatetime(activityDate)}>
         {activityPrefix}: {formatDate(activityDate)}
@@ -110,7 +130,7 @@ export function WorkVersionTimelineRow({
 
   return (
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
-      <div className="flex flex-wrap gap-x-2 gap-y-1 items-center min-h-4">
+      <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
         <CreatedDate dateCreated={entry.date_created} />
         {submissionVersions.map((submissionVersion) => (
           <SubmissionVersionSiteChip
