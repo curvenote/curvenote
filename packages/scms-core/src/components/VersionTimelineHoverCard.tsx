@@ -194,27 +194,45 @@ export type VersionTimelineHoverCardProps<T extends { id: string }> = {
   title?: string;
 };
 
-export function SubmissionVersionTimelineHoverCard(
-  props: Omit<VersionTimelineHoverCardProps<VersionTimelineEntry>, 'renderRow'>,
-) {
+export function SubmissionVersionTimelineHoverCard({
+  versionsUrl,
+  children,
+  align,
+  side,
+  title,
+}: Omit<VersionTimelineHoverCardProps<VersionTimelineEntry>, 'renderRow'>) {
   return (
     <VersionTimelineHoverCard<VersionTimelineEntry>
-      {...props}
+      versionsUrl={versionsUrl}
+      align={align}
+      side={side}
+      title={title}
       renderRow={(entry) => <SubmissionVersionTimelineRow entry={entry} />}
-    />
+    >
+      {children}
+    </VersionTimelineHoverCard>
   );
 }
 
 export function WorkVersionTimelineHoverCard({
   workId,
-  ...props
+  versionsUrl,
+  children,
+  align,
+  side,
+  title,
 }: Omit<VersionTimelineHoverCardProps<WorkVersionTimelineEntry>, 'renderRow'> & {
   workId?: string;
 }) {
   return (
     <VersionTimelineHoverCard<WorkVersionTimelineEntry>
-      {...props}
+      versionsUrl={versionsUrl}
+      align={align}
+      side={side}
+      title={title}
       renderRow={(entry) => <WorkVersionTimelineRow entry={entry} workId={workId} />}
-    />
+    >
+      {children}
+    </VersionTimelineHoverCard>
   );
 }
