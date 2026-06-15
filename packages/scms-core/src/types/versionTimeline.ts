@@ -30,7 +30,6 @@ export type WorkVersionTimelineEntry = {
   date_created: string;
   date_modified: string;
   draft: boolean;
-  tag?: string;
   submissionVersions?: WorkVersionTimelineSubmissionVersion[];
 };
 

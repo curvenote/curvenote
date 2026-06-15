@@ -112,9 +112,6 @@ export function WorkVersionTimelineRow({
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
       <div className="flex flex-wrap gap-x-2 gap-y-1 items-center min-h-4">
         <CreatedDate dateCreated={entry.date_created} />
-        {entry.tag ? (
-          <VersionTagBadge tag={entry.tag} icon={Tag} disableTooltip className="shrink-0" />
-        ) : null}
         {submissionVersions.map((submissionVersion) => (
           <SubmissionVersionSiteChip
             key={submissionVersion.id}

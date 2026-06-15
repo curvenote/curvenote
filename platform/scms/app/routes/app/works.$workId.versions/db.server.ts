@@ -64,7 +64,6 @@ export async function dbLoadWorkVersionsTimeline(
       date_created: true,
       date_modified: true,
       draft: true,
-      tags: true,
       submissionVersions: {
         select: {
           id: true,
@@ -98,7 +97,6 @@ export async function dbLoadWorkVersionsTimeline(
     date_created: row.date_created,
     date_modified: row.date_modified,
     draft: row.draft,
-    tag: row.tags[0],
     submissionVersions: mapSubmissionVersions(row.submissionVersions, workflows),
   }));
 }

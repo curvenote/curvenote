@@ -69,7 +69,7 @@ for (let index = 0; index < TOTAL_WORK_VERSIONS; index += 1) {
         date_modified: dateCreated,
         canonical: true,
         draft: false,
-        tags: ['v20'],
+        tags: [],
       },
     });
     continue;
@@ -90,7 +90,7 @@ for (let index = 0; index < TOTAL_WORK_VERSIONS; index += 1) {
       cdn: template.cdn,
       cdn_key: template.cdn_key,
       canonical: false,
-      tags: [`v${index + 1}`],
+      tags: [],
     },
   });
 }

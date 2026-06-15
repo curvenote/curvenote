@@ -27,7 +27,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
     vi.mocked(getPrismaClient).mockResolvedValue(mockPrisma as never);
   });
 
-  it('returns versions newest-first with tags and linked submission versions', async () => {
+  it('returns versions newest-first with linked submission versions', async () => {
     const { dbLoadWorkVersionsTimeline } = await import('./db.server.js');
     mockPrisma.workVersion.findMany.mockResolvedValue([
       {
@@ -35,7 +35,6 @@ describe('dbLoadWorkVersionsTimeline', () => {
         date_created: '2026-05-02T00:00:00.000Z',
         date_modified: '2026-05-02T12:00:00.000Z',
         draft: false,
-        tags: ['v2'],
         submissionVersions: [
           {
             id: 'sv-2',
@@ -59,7 +58,6 @@ describe('dbLoadWorkVersionsTimeline', () => {
         date_created: '2026-05-01T00:00:00.000Z',
         date_modified: '2026-05-01T00:00:00.000Z',
         draft: false,
-        tags: [],
         submissionVersions: [],
       },
     ]);
@@ -72,7 +70,6 @@ describe('dbLoadWorkVersionsTimeline', () => {
         date_created: '2026-05-02T00:00:00.000Z',
         date_modified: '2026-05-02T12:00:00.000Z',
         draft: false,
-        tag: 'v2',
         submissionVersions: [
           {
             id: 'sv-2',
@@ -95,7 +92,6 @@ describe('dbLoadWorkVersionsTimeline', () => {
         date_created: '2026-05-01T00:00:00.000Z',
         date_modified: '2026-05-01T00:00:00.000Z',
         draft: false,
-        tag: undefined,
         submissionVersions: [],
       },
     ]);
