@@ -42,6 +42,13 @@ export type SubmissionDetailVersion = {
   links: { build?: string };
 };
 
+export type SubmissionDetailJobFailure = {
+  error: string;
+  job_id?: string;
+  job_type?: string;
+  build_url?: string;
+};
+
 export type SubmissionDetailActivity = {
   id: string;
   date_created: string;
@@ -51,6 +58,7 @@ export type SubmissionDetailActivity = {
   kind?: string;
   submission_version?: { id: string; date_created: string };
   date_published?: string;
+  job_failure?: SubmissionDetailJobFailure;
 };
 
 export type SubmissionDetailSubmission = {

@@ -65,6 +65,7 @@ export type SubmissionDetailRow = {
     activity_type: string;
     status: string | null;
     date_published: string | null;
+    data: Prisma.JsonValue;
     activity_by: { id: string; display_name: string | null };
     kind: { name: string } | null;
     submission_version: { id: string; date_created: string } | null;
@@ -119,6 +120,7 @@ export async function dbLoadSubmissionDetail(
             activity_type: true,
             status: true,
             date_published: true,
+            data: true,
             activity_by: { select: { id: true, display_name: true } },
             kind: { select: { name: true } },
             submission_version: { select: activitySubmissionVersionRefSelect },

@@ -11,6 +11,8 @@ export type TimelineItemPlainProps = {
   date: ReactNode;
   /** Optional trailing content (e.g. kebab menu) */
   trailing?: ReactNode;
+  /** When true, icon and message use muted foreground (e.g. activity audit rows). */
+  muted?: boolean;
   className?: string;
 };
 
@@ -22,8 +24,11 @@ export function TimelineItemPlain({
   message,
   date,
   trailing,
+  muted = false,
   className,
 }: TimelineItemPlainProps) {
+  const foregroundClass = muted ? 'text-muted-foreground' : 'text-foreground';
+
   return (
     <div
       className={cn(
@@ -31,11 +36,18 @@ export function TimelineItemPlain({
         className,
       )}
     >
-      <div className="flex size-4 shrink-0 items-center justify-center text-foreground [&>svg]:size-4">
+      <div
+        className={cn(
+          'flex size-4 shrink-0 items-center justify-center [&>svg]:size-4',
+          foregroundClass,
+        )}
+      >
         {icon}
       </div>
       <div className="flex flex-1 gap-2 items-center min-w-0">
-        <div className="flex flex-1 items-center min-w-0 text-sm leading-none text-foreground">
+        <div
+          className={cn('flex flex-1 items-center min-w-0 text-sm leading-none', foregroundClass)}
+        >
           {message}
         </div>
         <div className="flex items-center text-xs leading-none shrink-0 text-muted-foreground">

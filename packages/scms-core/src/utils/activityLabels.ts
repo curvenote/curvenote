@@ -14,6 +14,8 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   WORK_VERSION_ADDED: 'New work version',
   DRAFT_WORK_VERSION_STARTED: 'Draft work version started',
   CONVERTER_TASK_STARTED: 'Converter task started',
+  CONVERTER_TASK_COMPLETED: 'Converter task completed',
+  CONVERTER_TASK_FAILED: 'Converter task failed',
   CHECK_STARTED: 'Check started',
   KIND_CREATED: 'New submission kind',
   KIND_DELETED: 'Submission kind deleted',
@@ -50,6 +52,7 @@ export function formatCheckKind(checkKind: string): string {
  * Use this in activity feeds and timelines so labels stay in one place.
  * CHECK_STARTED: use options.data?.check?.kind for check kind.
  * CONVERTER_TASK_STARTED: use options.data?.converter?.target and options.data?.converter?.type.
+ * CONVERTER_TASK_COMPLETED / CONVERTER_TASK_FAILED: same converter fields; FAILED may include data.error.
  */
 export function getActivityTypeLabel(
   activityType: string,
@@ -69,11 +72,29 @@ export function getActivityTypeLabel(
     return `${formatCheckKind(checkKind)} check started`;
   }
   const converter = options?.data?.converter as { target?: string; type?: string } | undefined;
-  if (activityType === 'CONVERTER_TASK_STARTED' && converter) {
+  if (
+    (activityType === 'CONVERTER_TASK_STARTED' ||
+      activityType === 'CONVERTER_TASK_COMPLETED' ||
+      activityType === 'CONVERTER_TASK_FAILED') &&
+    converter
+  ) {
     const target = converter.target ?? 'document';
     const type = converter.type ?? '';
     const suffix = type ? ` (${type})` : '';
-    return `${target} conversion${suffix} started`;
+    if (activityType === 'CONVERTER_TASK_STARTED') {
+      return `${target} conversion${suffix} started`;
+    }
+    if (activityType === 'CONVERTER_TASK_COMPLETED') {
+      return `${target} conversion${suffix} completed`;
+    }
+    return `${target} conversion${suffix} failed`;
+  }
+  if (options?.data?.transition_cancelled === true) {
+    const jobType = options.data.job_type;
+    if (jobType === 'PUBLISH') return 'Publish failed';
+    if (jobType === 'UNPUBLISH') return 'Unpublish failed';
+    if (typeof jobType === 'string') return `${jobType.replace(/_/g, ' ').toLowerCase()} failed`;
+    return 'Background job failed';
   }
   return ACTIVITY_TYPE_LABELS[activityType] ?? activityType.replace(/_/g, ' ').toLowerCase();
 }
