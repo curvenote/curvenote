@@ -181,22 +181,45 @@ async function findTaggedSubmissionVersionIds(
   return versions.map((sv) => sv.id);
 }
 
-async function stripVersionTagFromSubmissionVersions(
+async function supersedeTaggedSubmissionVersions(
   tx: Prisma.TransactionClient,
+  auth: EtlAuth,
+  submissionId: string,
   supersededIds: string[],
   versionTag: string,
+  dateModified: string,
 ): Promise<void> {
   for (const id of supersededIds) {
     const sv = await tx.submissionVersion.findUnique({
       where: { id },
-      select: { tags: true },
+      select: { tags: true, status: true },
     });
     if (!sv) continue;
     const newTags = sv.tags.filter((tag) => tag !== versionTag);
+    const wasPublished = sv.status === 'PUBLISHED';
     await tx.submissionVersion.update({
       where: { id },
-      data: { tags: newTags },
+      data: {
+        tags: newTags,
+        date_modified: dateModified,
+        ...(wasPublished ? { status: 'UNPUBLISHED' } : {}),
+      },
     });
+    if (wasPublished) {
+      await tx.activity.create({
+        data: {
+          id: uuid(),
+          date_created: dateModified,
+          date_modified: dateModified,
+          activity_type: ActivityType.SUBMISSION_VERSION_STATUS_CHANGE,
+          activity_by: { connect: { id: auth.userId } },
+          submission: { connect: { id: submissionId } },
+          submission_version: { connect: { id } },
+          status: 'UNPUBLISHED',
+        },
+        select: { id: true },
+      });
+    }
   }
 }
 
@@ -368,10 +391,13 @@ async function registerWorkInDb(
         select: { id: true },
       });
       if (supersededSubmissionVersionIds.length > 0) {
-        await stripVersionTagFromSubmissionVersions(
+        await supersedeTaggedSubmissionVersions(
           tx,
+          auth,
+          existingSubmission.id,
           supersededSubmissionVersionIds,
           versionTag!,
+          date_created,
         );
         await tx.activity.create({
           data: {
