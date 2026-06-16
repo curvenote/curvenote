@@ -10,6 +10,7 @@ import { KnownBuckets } from '../../storage/constants.server.js';
 import { getHandlers } from '../handlers/index.js';
 import { onJobTerminal } from './onJobTerminal.server.js';
 import { lastJobMessage } from './jobMessages.server.js';
+import { workActivityDataForJob } from './workActivityDataForJob.server.js';
 
 export type RunHandlerOptions = {
   /** Verified handshake binding for this invocation (required for all async job runs). */
@@ -187,6 +188,7 @@ export async function runHandler(jobId: string, options: RunHandlerOptions) {
           workVersionId,
           activityById: job.invoked_by_id,
           activityType: job.activity_type as 'CONVERTER_TASK_STARTED' | 'CHECK_STARTED',
+          data: workActivityDataForJob(job.activity_type, job.payload),
         });
       }
     } catch (err) {

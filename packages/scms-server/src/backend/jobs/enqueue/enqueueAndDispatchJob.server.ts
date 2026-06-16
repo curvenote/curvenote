@@ -21,6 +21,13 @@ export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<E
   const config = await getConfig();
   const prisma = await getPrismaClient();
 
+  if (params.job_type === KnownJobTypes.CONVERTER_TASK && !params.activity_type) {
+    params = {
+      ...params,
+      activity_type: 'CONVERTER_TASK_STARTED',
+    };
+  }
+
   const dependents =
     params.dependents ?? (params.follow_on ? followOnFromEnvelope(params.follow_on) : []);
 

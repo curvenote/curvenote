@@ -4,6 +4,7 @@ import { createWorkActivity } from '../../db.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
 import { createHandshakeToken } from '../../sign.handshake.server.js';
 import { dispatchJob } from './dispatchJob.server.js';
+import { workActivityDataForJob } from '../run/workActivityDataForJob.server.js';
 
 const HANDSHAKE_EXPIRY_SECONDS = 4 * 60 * 60;
 
@@ -62,6 +63,7 @@ export async function promoteAndDispatchJob(jobId: string): Promise<void> {
           workVersionId,
           activityById: job.invoked_by_id,
           activityType: job.activity_type as 'CONVERTER_TASK_STARTED' | 'CHECK_STARTED',
+          data: workActivityDataForJob(job.activity_type, job.payload),
         });
       }
     } catch (err) {
