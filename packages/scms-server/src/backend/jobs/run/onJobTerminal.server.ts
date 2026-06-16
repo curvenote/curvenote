@@ -10,6 +10,11 @@ export type OnJobTerminalOptions = {
   extensionJobs?: JobRegistration[];
   /** Suppress JOB_FAILED_DEFAULT when cascading cancellation through dependent chains. */
   skipFailedDefault?: boolean;
+  /**
+   * Cancel every blocked dependent (SUCCESS and FAILURE) without promoting failure-path jobs.
+   * Used when an ancestor success or upstream drop makes the subtree moot.
+   */
+  tearDownSubtree?: boolean;
 };
 
 type ParentTerminalStatus =
@@ -42,7 +47,17 @@ export async function onJobTerminal(
       where: { id: depId },
       data: { status: JobStatus.CANCELLED },
     });
-    await onJobTerminal(depId, JobStatus.CANCELLED, { skipFailedDefault: true });
+    await onJobTerminal(depId, JobStatus.CANCELLED, {
+      skipFailedDefault: true,
+      tearDownSubtree: true,
+    });
+  }
+
+  if (options?.tearDownSubtree) {
+    for (const dep of blockedDependents) {
+      await cancelDependent(dep.id);
+    }
+    return;
   }
 
   if (status === JobStatus.COMPLETED) {

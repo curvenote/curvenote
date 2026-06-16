@@ -131,7 +131,70 @@ describe('onJobTerminal', () => {
       where: { id: 'grandchild-success' },
       data: { status: JobStatus.CANCELLED },
     });
+    expect(mockPromoteAndDispatchJob).not.toHaveBeenCalled();
     expect(mockEnqueueAndDispatchJob).toHaveBeenCalledOnce();
+  });
+
+  test('tears down FAILURE grandchildren when a COMPLETED parent cancels a FAILURE dependent', async () => {
+    mockFindUnique.mockImplementation(async ({ where }: { where: { id: string } }) => ({
+      id: where.id,
+      job_type: KnownJobTypes.PUBLISH,
+      invoked_by_id: 'user-1',
+      messages: [],
+    }));
+    mockFindMany.mockImplementation(async ({ where }: { where: { depends_on_job_id: string } }) => {
+      if (where.depends_on_job_id === 'parent-completed') {
+        return [{ id: 'failure-child', trigger_on: 'FAILURE' }];
+      }
+      if (where.depends_on_job_id === 'failure-child') {
+        return [{ id: 'failure-grandchild', trigger_on: 'FAILURE' }];
+      }
+      return [];
+    });
+
+    await onJobTerminal('parent-completed', JobStatus.COMPLETED);
+
+    expect(mockJobUpdate).toHaveBeenCalledTimes(2);
+    expect(mockJobUpdate).toHaveBeenNthCalledWith(1, {
+      where: { id: 'failure-child' },
+      data: { status: JobStatus.CANCELLED },
+    });
+    expect(mockJobUpdate).toHaveBeenNthCalledWith(2, {
+      where: { id: 'failure-grandchild' },
+      data: { status: JobStatus.CANCELLED },
+    });
+    expect(mockPromoteAndDispatchJob).not.toHaveBeenCalled();
+  });
+
+  test('tears down FAILURE grandchildren when a dropped SUCCESS dependent is cancelled', async () => {
+    mockFindUnique.mockImplementation(async ({ where }: { where: { id: string } }) => ({
+      id: where.id,
+      job_type: KnownJobTypes.PUBLISH,
+      invoked_by_id: 'user-1',
+      messages: [],
+    }));
+    mockFindMany.mockImplementation(async ({ where }: { where: { depends_on_job_id: string } }) => {
+      if (where.depends_on_job_id === 'parent-failed') {
+        return [{ id: 'child-success', trigger_on: 'SUCCESS' }];
+      }
+      if (where.depends_on_job_id === 'child-success') {
+        return [{ id: 'failure-grandchild', trigger_on: 'FAILURE' }];
+      }
+      return [];
+    });
+
+    await onJobTerminal('parent-failed', JobStatus.FAILED);
+
+    expect(mockJobUpdate).toHaveBeenCalledTimes(2);
+    expect(mockJobUpdate).toHaveBeenNthCalledWith(1, {
+      where: { id: 'child-success' },
+      data: { status: JobStatus.CANCELLED },
+    });
+    expect(mockJobUpdate).toHaveBeenNthCalledWith(2, {
+      where: { id: 'failure-grandchild' },
+      data: { status: JobStatus.CANCELLED },
+    });
+    expect(mockPromoteAndDispatchJob).not.toHaveBeenCalled();
   });
 
   test('does not enqueue JOB_FAILED_DEFAULT when cascading cancellation from a dependent', async () => {
