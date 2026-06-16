@@ -1,4 +1,4 @@
-import { ActivityType } from '@curvenote/scms-db';
+import { ActivityType, Prisma } from '@curvenote/scms-db';
 import {
   error401,
   error403,
@@ -16,8 +16,6 @@ import {
   submissionVersionForListSelect,
   siteWorkWorkVersionWithWorkSelect,
 } from '../../../../prisma.selects.server.js';
-import type { Prisma } from '@curvenote/scms-db';
-
 /** Publish/unpublish pre-transition load (excludes submission-version metadata). */
 const submissionVersionForTransitionSelect = {
   id: true,
@@ -204,7 +202,10 @@ async function startJobBasedTransition(
       await prisma.submissionVersion.update({
         where: { id: existing.id },
         data: {
-          transition: existing.transition ?? undefined,
+          transition:
+            existing.transition == null
+              ? Prisma.JsonNull
+              : (existing.transition as Prisma.InputJsonValue),
           date_modified: new Date().toISOString(),
         },
       });

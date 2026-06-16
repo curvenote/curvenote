@@ -30,11 +30,9 @@ export default async function (
   const dbo = await dbUpdateJob(jobId, data);
   if (!dbo) throw error404();
 
-  if (isTerminalStatus(dbo.status)) {
+  if (isTerminalStatus(dbo.status) && !isTerminalStatus(prior.status)) {
     await onJobTerminal(jobId, dbo.status);
-    if (!isTerminalStatus(prior.status)) {
-      await recordConverterTaskTerminalActivity(dbo, dbo.status);
-    }
+    await recordConverterTaskTerminalActivity(dbo, dbo.status);
   }
 
   return formatJobDTO(ctx, dbo);

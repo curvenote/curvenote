@@ -57,7 +57,7 @@ export async function onJobTerminal(
     }
   }
 
-  if (!promotedFailureDependent) {
+  if (!promotedFailureDependent && parent.job_type !== KnownJobTypes.JOB_FAILED_DEFAULT) {
     const failedParent = await prisma.job.findUnique({ where: { id: parentJobId } });
     const lastError = lastJobMessage(failedParent?.messages);
     const cleanupJobId = uuidv7();
