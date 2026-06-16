@@ -1,7 +1,7 @@
 import type { Context } from '../../context.server.js';
 import type { CreateJob, SubmissionPublishedEmailProps } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
-import { dbCreateJob, dbUpdateJob } from './db.server.js';
+import { dbStartJob, dbUpdateJob } from './db.server.js';
 import type { StorageBackend } from '../../storage/backend.server.js';
 import { createFolder } from '../../storage/folder.server.js';
 import { KnownBuckets } from '../../storage/constants.server.js';
@@ -9,7 +9,13 @@ import { validate } from '../../../api.schemas.js';
 import type { PublishJobResults } from './schemas.server.js';
 import { CreatePublishJobPayloadSchema } from './schemas.server.js';
 import * as slugs from '../../loaders/sites/submissions/slugs.server.js';
-import { httpError, KnownResendEvents, asSiteSubmissionUrl } from '@curvenote/scms-core';
+import {
+  httpError,
+  KnownResendEvents,
+  asSiteSubmissionUrl,
+  ensureTrailingSlash,
+} from '@curvenote/scms-core';
+import { cancelSubmissionVersionTransitionOnJobFailure } from './cancelSubmissionVersionTransition.server.js';
 import { updateCdnOnWorkVersion, validateSitePublishingScopes } from './utils.server.js';
 import { SiteContext } from '../../context.site.server.js';
 import { $updateSubmissionVersion } from '../../db.server.js';
@@ -46,9 +52,21 @@ export async function publishHandler(
     data.payload,
   );
 
+  console.log('[publishHandler] start', {
+    job_id: data.id,
+    submission_version_id,
+    user_id,
+    cdn,
+    key,
+    date_published,
+    updates_slug,
+    has_storage_backend: Boolean(storageBackend),
+  });
+
   await validateSitePublishingScopes(ctx, submission_version_id);
 
-  const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
+  const jobId = data.id;
+  await dbStartJob({ ...data, status: JobStatus.RUNNING });
   // currently implemented as a long running task in the job response handler
   // must complete before a response is sent, could be moved to another endpoint if needed
   // as we create a job to start with clients/callers can fire-and-forget if they choose
@@ -58,6 +76,13 @@ export async function publishHandler(
   // and only update submission/work-version state.
   const sourceBucket = storageBackend?.knownBucketFromCDN(cdn) ?? null;
   const shouldMoveFiles = Boolean(storageBackend && sourceBucket);
+  console.log('[publishHandler] storage plan', {
+    job_id: data.id,
+    source_bucket: sourceBucket,
+    should_move_files: shouldMoveFiles,
+    cdn,
+    key,
+  });
   if (shouldMoveFiles) {
     storageBackend!.ensureConnection(sourceBucket as any);
   }
@@ -70,14 +95,41 @@ export async function publishHandler(
     slug_updated: false,
   };
   if (shouldMoveFiles) {
-    // check source file location
     const folder = createFolder(storageBackend!, key, sourceBucket as any);
-    const exists = await folder.exists();
+    let exists: boolean;
+    try {
+      exists = await folder.exists();
+    } catch (error) {
+      console.error('[publishHandler] source folder exists() failed', {
+        job_id: data.id,
+        bucket: sourceBucket,
+        key,
+        error,
+      });
+      throw error;
+    }
+    console.log('[publishHandler] source folder check', {
+      job_id: data.id,
+      bucket: sourceBucket,
+      key,
+      exists,
+    });
     if (!exists) {
-      // TODO: on failures we need to clear transitions, and log an activity indicating failure and preserving the jobId
-      const message = `Folder does not exist ${cdn}/${key}`;
-      console.warn(message);
-      await dbUpdateJob(created.id, {
+      const message = `Folder does not exist ${ensureTrailingSlash(cdn)}${key}`;
+      console.warn('[publishHandler] source missing', {
+        job_id: data.id,
+        cdn,
+        key,
+        bucket: sourceBucket,
+      });
+      await cancelSubmissionVersionTransitionOnJobFailure({
+        submission_version_id,
+        job_id: jobId,
+        user_id,
+        error: message,
+        job_type: data.job_type,
+      });
+      await dbUpdateJob(jobId, {
         status: JobStatus.FAILED,
         message,
         results: { files_transfered: false },
@@ -87,17 +139,29 @@ export async function publishHandler(
 
     // copy files to new location
     try {
+      console.log('[publishHandler] copying to pub bucket', {
+        job_id: data.id,
+        from_bucket: sourceBucket,
+        to_bucket: KnownBuckets.pub,
+        key,
+      });
       await folder.copy({ bucket: KnownBuckets.pub, path: key });
       results = { files_transfered: true };
-      await dbUpdateJob(created.id, {
+      await dbUpdateJob(jobId, {
         status: JobStatus.RUNNING,
         message: 'Files transferred to new location',
         results,
       });
     } catch (error) {
       const message = 'Error copying folder';
-      console.log(message, error);
-      await dbUpdateJob(created.id, {
+      console.warn('[publishHandler] copy failed', {
+        job_id: data.id,
+        from_bucket: sourceBucket,
+        to_bucket: KnownBuckets.pub,
+        key,
+        error,
+      });
+      await dbUpdateJob(jobId, {
         status: JobStatus.FAILED,
         message,
         results,
@@ -113,9 +177,15 @@ export async function publishHandler(
     if (!newCdn) throw httpError(500, 'Public CDN not registered');
   }
   if (!newCdn.endsWith('/')) newCdn += '/';
+  console.log('[publishHandler] updating work version cdn', {
+    job_id: data.id,
+    submission_version_id,
+    new_cdn: newCdn,
+    moved_files: shouldMoveFiles,
+  });
 
   // update submission's work version with new cdn details
-  await updateCdnOnWorkVersion(submission_version_id, newCdn, created.id, results);
+  await updateCdnOnWorkVersion(submission_version_id, newCdn, jobId, results);
 
   // update submission status to PUBLISHED
   let updated: Awaited<ReturnType<typeof $updateSubmissionVersion>>;
@@ -124,12 +194,12 @@ export async function publishHandler(
       status: 'PUBLISHED',
       transition: undefined, // clear the transition
       date_published: date_published,
-      jobId: created.id ?? undefined, // clear the jobId
+      jobId: jobId ?? undefined, // clear the jobId
     });
   } catch (error) {
     const message = 'Error updating submission status';
     console.log(message, error);
-    await dbUpdateJob(created.id, {
+    await dbUpdateJob(jobId, {
       status: JobStatus.FAILED,
       message,
       results,
@@ -140,8 +210,13 @@ export async function publishHandler(
   // TODO: update from job
   // Handle slug updates based on transition properties
   if (updates_slug) {
-    await slugs.apply(new SiteContext(ctx, updated.submission.site), updated);
-    results = { ...results, slug_updated: true };
+    const slugResult = await slugs.apply(new SiteContext(ctx, updated.submission.site), updated);
+    if (slugResult instanceof Response) {
+      throw slugResult;
+    }
+    if (slugResult) {
+      results = { ...results, slug_updated: true };
+    }
   }
   const siteUrl = ctx.$config.app?.renderServiceUrl ?? createSiteRootUrl(updated.submission.site);
   const slug =
@@ -201,9 +276,15 @@ export async function publishHandler(
     await ctx.sendEmailBatch(emails);
   }
   results = { ...results, submission_updated: true, date_published_updated: !!date_published };
-  const job = await dbUpdateJob(created.id, {
+  const job = await dbUpdateJob(jobId, {
     status: JobStatus.COMPLETED,
     message: 'Publishing complete.',
+    results,
+  });
+
+  console.log('[publishHandler] complete', {
+    job_id: data.id,
+    submission_version_id,
     results,
   });
 

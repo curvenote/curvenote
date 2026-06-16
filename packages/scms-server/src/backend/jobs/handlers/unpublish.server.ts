@@ -1,5 +1,5 @@
 import type { CreateJob } from '@curvenote/scms-core';
-import { dbCreateJob, dbUpdateJob } from './db.server.js';
+import { dbStartJob, dbUpdateJob } from './db.server.js';
 import { validate } from '../../../api.schemas.js';
 import type { PublishJobResults } from './schemas.server.js';
 import { CreatePublishJobPayloadSchema } from './schemas.server.js';
@@ -24,17 +24,34 @@ export async function unpublishHandler(
     data.payload,
   );
 
+  console.log('[unpublishHandler] start', {
+    job_id: data.id,
+    submission_version_id,
+    user_id,
+    cdn,
+    key,
+    has_storage_backend: Boolean(storageBackend),
+  });
+
   await validateSitePublishingScopes(ctx, submission_version_id);
 
   if (!storageBackend) {
     throw httpError(500, 'Storage backend is required for unpublish operations');
   }
 
-  const created = await dbCreateJob({ ...data, status: JobStatus.RUNNING });
+  const jobId = data.id;
+  await dbStartJob({ ...data, status: JobStatus.RUNNING });
 
   // setup storage
   const sourceBucket = storageBackend?.knownBucketFromCDN(cdn) ?? null;
   const isManagedCdn = Boolean(storageBackend && sourceBucket);
+  console.log('[unpublishHandler] storage plan', {
+    job_id: data.id,
+    source_bucket: sourceBucket,
+    is_managed_cdn: isManagedCdn,
+    cdn,
+    key,
+  });
   if (isManagedCdn) {
     storageBackend!.ensureConnection(sourceBucket as any);
   }
@@ -45,22 +62,35 @@ export async function unpublishHandler(
     // we think it is in the pub bucket, let's check that it is
     const pubFolder = createFolder(storageBackend, key, KnownBuckets.pub);
     const pubExists = await pubFolder.exists();
+    const prvFolder = createFolder(storageBackend, key, KnownBuckets.prv);
+    const prvExistsBefore = await prvFolder.exists();
+    console.log('[unpublishHandler] pub bucket branch', {
+      job_id: data.id,
+      key,
+      pub_exists: pubExists,
+      prv_exists: prvExistsBefore,
+    });
     if (pubExists) {
-      await dbUpdateJob(created.id, {
+      await dbUpdateJob(jobId, {
         status: JobStatus.RUNNING,
         message: 'Found the work version in the pub bucket',
         results,
       });
       // if there is a copy on the prv bucket, remove it from pub
-      const prvFolder = createFolder(storageBackend, key, KnownBuckets.prv);
-      const prvExists = await prvFolder.exists();
-      if (prvExists) {
+      if (prvExistsBefore) {
         try {
-          // remove public copy
+          console.log('[unpublishHandler] deleting pub copy (prv already exists)', {
+            job_id: data.id,
+            key,
+          });
           await pubFolder.delete();
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
-          return dbUpdateJob(created.id, {
+          console.warn('[unpublishHandler] delete pub copy failed', {
+            job_id: data.id,
+            key,
+            error,
+          });
+          return dbUpdateJob(jobId, {
             status: JobStatus.FAILED,
             message: 'Error removing public copy',
             results,
@@ -68,11 +98,15 @@ export async function unpublishHandler(
         }
       } else {
         try {
-          // else move it to the prv bucket
+          console.log('[unpublishHandler] moving pub copy to prv', { job_id: data.id, key });
           await pubFolder.move({ bucket: KnownBuckets.prv, path: key });
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
-          return dbUpdateJob(created.id, {
+          console.warn('[unpublishHandler] move pub to prv failed', {
+            job_id: data.id,
+            key,
+            error,
+          });
+          return dbUpdateJob(jobId, {
             status: JobStatus.FAILED,
             message: 'Error moving public copy to prv bucket',
             results,
@@ -80,24 +114,34 @@ export async function unpublishHandler(
         }
       }
       results.files_transfered = true;
-      await dbUpdateJob(created.id, {
+      await dbUpdateJob(jobId, {
         status: JobStatus.RUNNING,
         message: 'Files transferred to new location',
         results,
       });
     } else {
-      await dbUpdateJob(created.id, {
+      await dbUpdateJob(jobId, {
         status: JobStatus.RUNNING,
         message: 'No work version found in the pub bucket',
         results,
       });
       // check for a copy in the prv bucket, if no copy then error!
-      const prvFolder = createFolder(storageBackend, key, KnownBuckets.prv);
-      const prvExists = await prvFolder.exists();
+      const prvExists = prvExistsBefore;
+      console.log('[unpublishHandler] no pub copy; checking prv only', {
+        job_id: data.id,
+        key,
+        prv_exists: prvExists,
+      });
       if (!prvExists) {
         const message =
           'Cannot Unpublish - No copy of the work version exists in the pub or prv bucket';
-        await dbUpdateJob(created.id, {
+        console.warn('[unpublishHandler] no storage copy', {
+          job_id: data.id,
+          key,
+          pub_bucket: KnownBuckets.pub,
+          prv_bucket: KnownBuckets.prv,
+        });
+        await dbUpdateJob(jobId, {
           status: JobStatus.FAILED,
           message,
           results,
@@ -105,7 +149,7 @@ export async function unpublishHandler(
         throw httpError(422, message);
       }
       results.files_transfered = true;
-      await dbUpdateJob(created.id, {
+      await dbUpdateJob(jobId, {
         status: JobStatus.RUNNING,
         message: 'Work version found in prv bucket',
         results,
@@ -117,7 +161,18 @@ export async function unpublishHandler(
     if (!prvCdn) throw httpError(500, 'Private CDN not registered');
     if (!prvCdn?.endsWith('/')) prvCdn += '/';
 
-    await updateCdnOnWorkVersion(submission_version_id, prvCdn, created.id, results);
+    console.log('[unpublishHandler] updating work version cdn', {
+      job_id: data.id,
+      submission_version_id,
+      prv_cdn: prvCdn,
+    });
+    await updateCdnOnWorkVersion(submission_version_id, prvCdn, jobId, results);
+  } else if (isManagedCdn) {
+    console.log('[unpublishHandler] skipping file moves (cdn not on pub bucket)', {
+      job_id: data.id,
+      source_bucket: sourceBucket,
+      cdn,
+    });
   }
 
   // update the submission to UNPUBLISHED
@@ -125,12 +180,12 @@ export async function unpublishHandler(
     await $updateSubmissionVersion(user_id, submission_version_id, {
       status: 'UNPUBLISHED',
       transition: undefined, // clear the transition
-      jobId: created.id ?? undefined, // clear the jobId
+      jobId: jobId ?? undefined, // clear the jobId
     });
   } catch (error) {
     const message = 'Error updating submission status';
     console.log(message, error);
-    await dbUpdateJob(created.id, {
+    await dbUpdateJob(jobId, {
       status: JobStatus.FAILED,
       message,
       results,
@@ -167,7 +222,12 @@ export async function unpublishHandler(
   });
 
   results = { ...results, submission_updated: true };
-  return dbUpdateJob(created.id, {
+  console.log('[unpublishHandler] complete', {
+    job_id: data.id,
+    submission_version_id,
+    results,
+  });
+  return dbUpdateJob(jobId, {
     status: JobStatus.COMPLETED,
     message: 'Unpublishing complete.',
     results,

@@ -1,9 +1,15 @@
 enum JobStatus {
+  BLOCKED
   QUEUED
   RUNNING
   COMPLETED
   FAILED
   CANCELLED
+}
+
+enum JobTriggerOn {
+  SUCCESS
+  FAILURE
 }
 
 model Job {
@@ -18,9 +24,15 @@ model Job {
   follow_on         Json?
   invoked_by_id     String?
   activity_type     String?
+  depends_on_job_id String?
+  trigger_on        JobTriggerOn?
+  depends_on        Job?               @relation("JobDependencies", fields: [depends_on_job_id], references: [id], onDelete: SetNull)
+  dependents        Job[]              @relation("JobDependencies")
   invoked_by        User?              @relation(fields: [invoked_by_id], references: [id], onDelete: SetNull)
   SubmissionVersion SubmissionVersion?
   linkedJobs        LinkedJob[]
+
+  @@index([depends_on_job_id, status, trigger_on])
 }
 
 model LinkedJob {

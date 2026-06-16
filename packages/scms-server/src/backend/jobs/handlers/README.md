@@ -1,6 +1,6 @@
 # Jobs: handlers
 
-**Job handlers** run when the API accepts a job request—typically **`POST /v1/jobs`** (create job) or the flow fed by **`POST /v1/jobs/dispatch`** (centralized dispatch). Each handler is keyed by **`job_type`** and receives a `CreateJob`-shaped payload plus request context.
+**Job handlers** run when the queue consumer delivers a job message—via **`POST /v1/jobs/vercel-push`** (Vercel Queues) or the in-process mock provider in development. Each handler is keyed by **`job_type`** and receives a `CreateJob`-shaped payload plus request context.
 
 A handler may:
 
@@ -9,7 +9,7 @@ A handler may:
 
 So “async” here means either **awaiting work in the handler** or **handing off** to another system and returning after the job row / side effects are in the right state.
 
-[`index.ts`](./index.ts) registers **core** handlers (`CHECK`, `PUBLISH`, `UNPUBLISH`, `CONVERTER_TASK`, etc.) and merges in **extension** handlers from the app. The **`POST /v1/jobs`** route goes through [`invoke`](../../loaders/jobs/invoke.server.ts), which uses that registry. **`POST /v1/jobs/dispatch`** is separate: it does **not** use `invoke`; it resolves handlers with `getHandlers`, creates the job row, then calls the handler for that `job_type` directly.
+[`index.ts`](./index.ts) registers **core** handlers (`CHECK`, `PUBLISH`, `UNPUBLISH`, `CONVERTER_TASK`, etc.) and merges in **extension** handlers from the app. **`enqueueAndDispatchJob`** inserts a QUEUED row and publishes to the queue; **`processJobMessage`** resolves handlers via `getHandlers` and runs the handler for that `job_type`.
 
 ## Adding a new job type
 
@@ -27,4 +27,4 @@ So “async” here means either **awaiting work in the handler** or **handing o
 1. Return a **`JobRegistration`** (or array) from the extension’s **`getJobs()`**—see [`modules/extensions/jobs.ts`](../../../modules/extensions/jobs.ts) (`registerExtensionJobs`).
 2. No `coreHandlers` entry in this repo; the extension’s `jobType` is merged in `getHandlers(extensionJobs)`.
 
-**Dispatch** (Pub/Sub / `dispatchAJob`) still uses the **same handler map**; the dispatch route creates the job row then calls the handler for that `job_type`.
+**Queue delivery** uses the **same handler map**; `enqueueAndDispatchJob` creates the job row then the consumer calls the handler for that `job_type`.

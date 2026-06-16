@@ -7,6 +7,7 @@ import { StorageBackend } from '../../storage/index.js';
 import { KnownBuckets } from '../../storage/constants.server.js';
 import { createWorkActivity } from '../../db.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
+import { converterActivityFromPayload } from '../../jobs/converterActivityFromPayload.server.js';
 
 export default async function (ctx: Context, data: CreateJob, extensionJobs: JobRegistration[]) {
   const { job_type } = data;
@@ -33,10 +34,7 @@ export default async function (ctx: Context, data: CreateJob, extensionJobs: Job
       ...data,
       activity_type: 'CONVERTER_TASK_STARTED',
       activity_data: {
-        converter: {
-          target: data.payload.target ?? 'pdf',
-          type: data.payload.conversion_type ?? 'docx-pandoc-myst-pdf',
-        },
+        converter: converterActivityFromPayload(data.payload),
       },
     };
   }

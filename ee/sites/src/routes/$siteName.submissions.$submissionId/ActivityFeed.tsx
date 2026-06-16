@@ -9,17 +9,52 @@ import {
 } from '@curvenote/scms-core';
 
 function ActivityItemBody({ activity }: { activity: SubmissionDetailActivity }) {
-  const { activity_type, activity_by, status, kind, submission_version, date_published } = activity;
+  const {
+    activity_type,
+    activity_by,
+    status,
+    kind,
+    submission_version,
+    date_published,
+    job_failure,
+  } = activity;
+
+  const activityData = job_failure
+    ? {
+        transition_cancelled: true,
+        job_type: job_failure.job_type,
+        error: job_failure.error,
+        job_id: job_failure.job_id,
+      }
+    : undefined;
 
   let tagColor = 'before:bg-green-600';
   let additionalInfo = null;
-  if (activity_type === 'SUBMISSION_KIND_CHANGE') {
+
+  if (job_failure) {
+    tagColor = 'before:bg-red-600';
+    additionalInfo = (
+      <div className="space-y-1">
+        <p className="text-sm text-red-700 dark:text-red-300">{job_failure.error}</p>
+        {job_failure.build_url && (
+          <a
+            href={job_failure.build_url}
+            className="text-sm underline text-red-800 dark:text-red-200"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View job details
+          </a>
+        )}
+      </div>
+    );
+  } else if (activity_type === 'SUBMISSION_KIND_CHANGE') {
     tagColor = 'before:bg-yellow-800';
     additionalInfo = <p>new kind: {kind}</p>;
   } else if (activity_type === 'SUBMISSION_DATE_CHANGE') {
     tagColor = 'before:bg-gray-200';
     additionalInfo = <p>new date: {date_published}</p>;
-  } else if (activity_type === 'VERSION_STATUS_CHANGE') {
+  } else if (activity_type === 'SUBMISSION_VERSION_STATUS_CHANGE') {
     if (status === 'ACCEPTED') tagColor = 'before:bg-green-600';
     else if (status === 'REJECTED' || status === 'REMOVED') tagColor = 'before:bg-red-600';
     else if (status === 'PENDING') tagColor = 'before:bg-yellow-600';
@@ -32,6 +67,8 @@ function ActivityItemBody({ activity }: { activity: SubmissionDetailActivity }) 
         </primitives.Caption>
       </div>
     );
+  } else if (activity_type === 'SUBMISSION_VERSION_TRANSITION_STARTED') {
+    tagColor = 'before:bg-yellow-600';
   }
 
   return (
@@ -39,7 +76,7 @@ function ActivityItemBody({ activity }: { activity: SubmissionDetailActivity }) 
       className={`flex col-span-3 whitespace-nowrap before:block before:h-full before:w-1 before:rounded-full ${tagColor} before:content-['']`}
     >
       <div className="pl-2">
-        <p className="font-medium">{getActivityTypeLabel(activity_type)}</p>
+        <p className="font-medium">{getActivityTypeLabel(activity_type, { data: activityData })}</p>
         {additionalInfo}
         <primitives.Caption>{activity_by.name}</primitives.Caption>
       </div>

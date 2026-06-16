@@ -26,8 +26,6 @@
     "dev:db:reset": "npx prisma migrate reset --config=./prisma.config.ts && npm run dev:db:seed",
     "dev:db:seed": "npx prisma db seed --config=./prisma.config.ts",
     "dev:db:migrate": "npx prisma migrate dev --config=./prisma.config.ts",
-    "dev:pubsub:emulator": "bash docs/jobs/scripts/start-pubsub-emulator.sh",
-    "dev:pubsub:emulator:stop": "bash docs/jobs/scripts/stop-pubsub-emulator.sh",
     "test:db:reset": "dotenv -e .env.test -- npx prisma migrate reset --force --config=./prisma.test.config.ts",
     "config": "npx @app-config/cli@2 generate",
     "build": "npm run config && node scripts/turbo-run.mjs run build --filter='!@curvenote/scms'",

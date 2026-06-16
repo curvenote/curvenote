@@ -77,8 +77,21 @@ function formatDetailVersion(
 }
 
 function formatDetailActivity(
+  ctx: SiteContext,
   activity: SubmissionDetailRow['activity'][number],
 ): SubmissionDetailActivity {
+  const data = coerceToObject(activity.data);
+  const jobFailure =
+    data?.transition_cancelled === true && typeof data.error === 'string'
+      ? {
+          error: data.error,
+          job_id: typeof data.job_id === 'string' ? data.job_id : undefined,
+          job_type: typeof data.job_type === 'string' ? data.job_type : undefined,
+          build_url:
+            typeof data.job_id === 'string' ? ctx.asBaseUrl(`/build/${data.job_id}`) : undefined,
+        }
+      : undefined;
+
   return {
     id: activity.id,
     date_created: formatDate(activity.date_created),
@@ -93,6 +106,7 @@ function formatDetailActivity(
         }
       : undefined,
     date_published: activity.date_published ?? undefined,
+    job_failure: jobFailure,
   };
 }
 
@@ -132,7 +146,7 @@ export function formatSubmissionDetailSubmission(
     active_version_id: activeVersion?.id,
     published_version_id: publishedVersion?.id,
     retracted_version_id: retractedVersion?.id,
-    activity: row.activity.map(formatDetailActivity),
+    activity: row.activity.map((activity) => formatDetailActivity(ctx, activity)),
   };
 
   const versions = row.versions.map((v) => formatDetailVersion(ctx, v, row));

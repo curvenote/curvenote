@@ -38,6 +38,18 @@ export async function dbCreateJob({
 }
 
 /**
+ * Mark a job RUNNING. Updates an existing row (async enqueue / runHandler) or creates one (legacy invoke).
+ */
+export async function dbStartJob(data: CreateJob, status = JobStatus.RUNNING) {
+  const prisma = await getPrismaClient();
+  const existing = await prisma.job.findUnique({ where: { id: data.id } });
+  if (existing) {
+    return dbUpdateJob(data.id, { status });
+  }
+  return dbCreateJob({ ...data, status });
+}
+
+/**
  * Updates a job by id with the given fields (status, results, message).
  *
  * @param id - Job id.
@@ -52,9 +64,7 @@ export async function dbUpdateJob(id: string, data: UpdateJob) {
       date_modified: formatDate(),
       status: data.status ?? undefined,
       results: data.results ?? undefined,
-      messages: {
-        push: data.message ?? [],
-      },
+      messages: data.message ? { push: data.message } : undefined,
     },
   });
 }

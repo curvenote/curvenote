@@ -1,11 +1,10 @@
 import { data } from 'react-router';
-import { userHasScope, jobs, getPrismaClient, registerExtensionJobs } from '@curvenote/scms-server';
+import { userHasScope, enqueueAndDispatchJob, getPrismaClient } from '@curvenote/scms-server';
 import type { WorkContext } from '@curvenote/scms-server';
 import { hasDocxInMetadata, scopes } from '@curvenote/scms-core';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 } from 'uuidv7';
-import { extensions } from '../../../extensions/server';
 
 export const ExportToPdfActionSchema = zfd.formData({
   intent: zfd.text(z.literal('export-to-pdf')),
@@ -55,22 +54,18 @@ export async function exportToPdfAction(ctx: WorkContext, formData: FormData) {
   }
 
   try {
-    const dto = await jobs.invoke(
-      ctx,
-      {
-        id: uuidv7(),
-        job_type: 'CONVERTER_TASK',
-        payload: {
-          work_version_id: workVersionId,
-          target: 'pdf',
-          conversion_type: 'docx-pandoc-myst-pdf',
-        },
-        results: undefined,
-        invoked_by_id: ctx.user?.id,
+    const jobId = uuidv7();
+    const result = await enqueueAndDispatchJob({
+      job_id: jobId,
+      job_type: 'CONVERTER_TASK',
+      payload: {
+        work_version_id: workVersionId,
+        target: 'pdf',
+        conversion_type: 'docx-pandoc-myst-pdf',
       },
-      registerExtensionJobs(extensions),
-    );
-    return data({ success: true, jobId: dto.id });
+      invoked_by_id: ctx.user?.id,
+    });
+    return data({ success: true, jobId: result.job_id });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Export to PDF failed.';
     return data({ error: { type: 'general' as const, message } }, { status: 500 });

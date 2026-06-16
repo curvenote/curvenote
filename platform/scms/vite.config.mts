@@ -49,8 +49,9 @@ export default defineConfig(async ({ mode }) => {
       // client uses 127.0.0.1 — default host-only bind often refuses one of them.
       host: true,
       port: env.VITE_PORT ? parseInt(env.VITE_PORT) : undefined,
-      // Cloudflare tunnel / reverse proxy: Host is the public hostname, not localhost
-      allowedHosts: ['.curvenote.net'],
+      // Cloudflare tunnel / reverse proxy: Host is the public hostname, not localhost.
+      // host.docker.internal: async workers in Docker PATCH job status back to the host SCMS.
+      allowedHosts: ['.curvenote.net', 'host.docker.internal', 'localhost'],
       watch: {
         // Polling watches every file under fs.allow and can hit EMFILE on large monorepos.
         usePolling: false,
@@ -119,6 +120,7 @@ export default defineConfig(async ({ mode }) => {
           '.app-config.*',
           '../../packages/*/package.json',
           '../../packages/*/tsconfig.json',
+          '../../packages/scms-server/dist/index.js',
           '../../ee/*/package.json',
           '../../ee/*/tsconfig.json',
           '../../extensions/*/packages/*/package.json',

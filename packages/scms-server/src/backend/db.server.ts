@@ -594,7 +594,12 @@ export async function createWorkActivity(params: {
   workId: string;
   workVersionId: string;
   activityById: string;
-  activityType: ActivityType | 'CONVERTER_TASK_STARTED' | 'CHECK_STARTED';
+  activityType:
+    | ActivityType
+    | 'CONVERTER_TASK_STARTED'
+    | 'CONVERTER_TASK_COMPLETED'
+    | 'CONVERTER_TASK_FAILED'
+    | 'CHECK_STARTED';
   transition?: Record<string, unknown> | null;
   data?: Record<string, unknown> | null;
 }): Promise<void> {

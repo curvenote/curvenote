@@ -66,9 +66,7 @@
     "test:e2e:api:auth-tests": "TEST_FILES=api.auth dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:e2e:api:pending": "TEST_FILES=api.pending dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:start-server": "dotenv -e .env.test -- react-router dev",
-    "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs",
-    "dev:pubsub:emulator": "bash ../../docs/jobs/scripts/start-pubsub-emulator.sh",
-    "dev:pubsub:emulator:stop": "bash ../../docs/jobs/scripts/stop-pubsub-emulator.sh"
+    "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs"
   },
   "devDependencies": {
     "@app-config/cli": "^2.8.7",
@@ -141,6 +139,8 @@
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.18",
+    "@vercel/config": "^0.5.2",
+    "@vercel/queue": "^0.1.0",
     "@vercel/react-router": "^1.2.3",
     "classnames": "^2.5.1",
     "date-fns": "3.6.0",
@@ -156,6 +156,7 @@
     "react": "^18.3.1",
     "react-router": "7.9.5",
     "tailwindcss-animate": "^1.0.7",
+    "ts-morph": "^12.0.0",
     "uuidv7": "^1.0.2",
     "vite": "^7.1.12",
     "vite-plugin-restart": "^2.0.0",

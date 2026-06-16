@@ -1,5 +1,7 @@
 # Plan: Centralized Pub/Sub Job Dispatch
 
+> **Superseded:** Internal job dispatch is implemented with **Vercel Queues**, not a Pub/Sub `scmsJobDispatch` topic. See [`docs/superpowers/specs/2026-06-15-job-manager-vercel-queues-design.md`](../superpowers/specs/2026-06-15-job-manager-vercel-queues-design.md) and [`docs/superpowers/plans/2026-06-15-job-manager-vercel-queues.md`](../superpowers/plans/2026-06-15-job-manager-vercel-queues.md). The app-config schema never added `dispatchTopic` or `dispatchSASecretKeyfile`; worker callbacks use optional `api.tasksCallbackUrl` instead.
+
 ## Goal
 
 Replace direct `jobs.invoke()` calls and the `waitUntil(fetch('/api/v1/jobs'))` self-call pattern with a centralized Pub/Sub dispatch topic (`scmsJobDispatch`). All internal job creation flows through this topic, decoupling callers from handlers and enabling true background execution on Vercel.
@@ -14,7 +16,7 @@ See `jobs/before/` and `jobs/after/` for before/after flow diagrams.
 | External/CLI dispatch | `POST /api/v1/jobs` stays as-is |
 | DB row creation | Option B — dispatch endpoint creates the row (not the caller) |
 | Caller return value | `{ job_id, job_type, status: 'DISPATCHED' }` (no DB row yet) |
-| Handler-specific worker topics | Unchanged — two-hop for CHECK, CONVERTER_TASK, PROOFIG_SUBMIT, PMC_DEPOSIT_FTP |
+| Handler-specific worker topics | Unchanged — two-hop for CHECK, CONVERTER_TASK, PMC_DEPOSIT_FTP |
 | Follow-on trigger | Publishes to `scmsJobDispatch` topic (no request chaining) |
 | Auth on dispatch messages | Handshake JWT in message attributes |
 | Error handling | Dead letter topic + job reaper for stuck RUNNING jobs |
@@ -80,14 +82,16 @@ Key differences from the existing `pubsub.sh`:
 
 **File:** `types/app-config.d.ts`
 
-Add to the `api` section:
+Add to the `api` section (as implemented today — not the original `dispatchTopic` proposal):
 ```typescript
-/** GCP project ID for all Pub/Sub clients */
+/** GCP project ID for Pub/Sub clients (checks, converter workers) */
 pubsubProjectId: string;
-/** Pub/Sub topic for centralized job dispatch (e.g. scmsJobDispatch) */
-dispatchTopic: string;
-/** Service account JSON keyfile for publishing to dispatch topic */
-dispatchSASecretKeyfile: string;
+/** Pub/Sub topic for check worker jobs */
+checkTopic: string;
+/** Pub/Sub topic for converter worker jobs */
+converterTopic: string;
+/** Optional v1 API base for async worker PATCH callbacks (e.g. http://host.docker.internal:3031/v1) */
+tasksCallbackUrl?: string;
 ```
 
 #### 1.3 Create the `dispatchJob()` helper
@@ -284,7 +288,7 @@ Two paths:
 // After:
 await dispatchJob({
   job_id: uuid(),
-  job_type: jobType,  // PROOFIG_SUBMIT or PROOFIG_SUBMIT_STREAM
+  job_type: jobType,  // PROOFIG_SUBMIT_STREAM
   payload: { work_version_id: workVersionId, proofig_run_id: checkRunId },
   invoked_by_id: ctx.user?.id,
   activity_type: 'CHECK_STARTED',
@@ -518,7 +522,7 @@ No longer needed.
 
 | File | Change |
 |---|---|
-| `types/app-config.d.ts` | Add `pubsubProjectId`, `dispatchTopic`, `dispatchSASecretKeyfile` |
+| `types/app-config.d.ts` | `pubsubProjectId`, worker topics (`checkTopic`, `converterTopic`); optional `tasksCallbackUrl` for Docker callbacks — not `dispatchTopic` / `dispatchSASecretKeyfile` (superseded by Vercel Queues) |
 | `packages/scms-server/src/backend/loaders/jobs/trigger-follow-on.server.ts` | Publish to topic instead of calling `invoke()` |
 | `packages/scms-server/src/backend/loaders/jobs/update.server.ts` | Simplify — remove `extensionJobs` param |
 | `packages/scms-server/src/backend/loaders/jobs/handlers/db.server.ts` | `dbCreateJob` → upsert for idempotency |

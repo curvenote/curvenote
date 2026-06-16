@@ -33,6 +33,7 @@ export function ActivityTimelineItem({ activity }: ActivityTimelineItemProps) {
 
   return (
     <TimelineItemPlain
+      muted
       icon={<Activity className="w-4 h-4" aria-hidden />}
       message={message}
       date={date}
