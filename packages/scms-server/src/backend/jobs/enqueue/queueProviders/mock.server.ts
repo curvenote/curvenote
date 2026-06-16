@@ -9,7 +9,7 @@ import type {
   JobQueueSendResult,
 } from './types.js';
 
-/** Loopback header — mock queue POSTs to /v1/jobs/vercel-push with this set when provider is mock. */
+/** Loopback header — mock queue POSTs to /v1/jobs/mock-push with this set when provider is mock. */
 export const LOCAL_MOCK_QUEUE_HEADER = 'x-local-mock-queue';
 
 const DEFAULT_RETRY_DELAY_MS = Number(process.env.MOCK_QUEUE_RETRY_DELAY_MS ?? 1000);
@@ -30,7 +30,7 @@ export function resolveMockQueueConsumerUrl(): string {
     return process.env.MOCK_QUEUE_CONSUMER_URL;
   }
   const port = process.env.VITE_PORT ?? process.env.PORT ?? '3031';
-  return `http://localhost:${port}/v1/jobs/vercel-push`;
+  return `http://localhost:${port}/v1/jobs/mock-push`;
 }
 
 async function postToConsumer(entry: MockQueueEntry): Promise<void> {

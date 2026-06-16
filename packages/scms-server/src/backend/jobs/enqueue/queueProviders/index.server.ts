@@ -21,7 +21,7 @@ export function resolveQueueProviderName(): QueueProviderName {
   return 'vercel';
 }
 
-/** True when mock queue loopback delivery to /v1/jobs/vercel-push is enabled. */
+/** True when mock queue loopback delivery to /v1/jobs/mock-push is enabled. */
 export function isLocalMockQueueDeliveryEnabled(): boolean {
   return resolveQueueProviderName() === 'mock';
 }

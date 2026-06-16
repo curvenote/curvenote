@@ -15,7 +15,7 @@ describe('mockQueueProvider', () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ status: 'success' }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    process.env.MOCK_QUEUE_CONSUMER_URL = 'http://localhost:3031/v1/jobs/vercel-push';
+    process.env.MOCK_QUEUE_CONSUMER_URL = 'http://localhost:3031/v1/jobs/mock-push';
   });
 
   afterEach(() => {
@@ -37,7 +37,7 @@ describe('mockQueueProvider', () => {
     expect(second.messageId).toMatch(/^mock-dedupe-/);
   });
 
-  test('POSTs to the vercel-push consumer route with local mock header', async () => {
+  test('POSTs to the mock-push consumer route with local mock header', async () => {
     const message = {
       job_id: 'job-2',
       job_type: 'PROOFIG_SUBMIT_STREAM',

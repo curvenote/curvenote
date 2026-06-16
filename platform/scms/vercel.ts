@@ -2,9 +2,10 @@ import type { VercelConfig } from '@vercel/config/v1';
 
 export const config: VercelConfig = {
   functions: {
-    // Source route path (same convention as Next.js `app/api/.../route.ts` in queue docs).
-    // Do not use `api/...` here — that only matches standalone files under project-root `api/`.
-    'app/routes/api/v1.jobs.vercel-push/route.tsx': {
+    // Production queue consumer — must live under project-root `api/` (see api/v1/jobs/vercel-push.ts).
+    // Local dev uses POST /v1/jobs/mock-push via the mock queue provider instead.
+    'api/v1/jobs/vercel-push.ts': {
+      maxDuration: 300,
       experimentalTriggers: [
         {
           type: 'queue/v2beta',

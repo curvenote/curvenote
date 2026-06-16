@@ -4,35 +4,22 @@ import type { JobQueueDeliveryMetadata, JobQueueMessage } from '@curvenote/scms-
 
 const LOCAL_MOCK_QUEUE_HEADER = 'x-local-mock-queue';
 
-const {
-  processJobMessage,
-  registerExtensionJobs,
-  isLocalMockQueueDeliveryEnabled,
-  vercelPushHandler,
-} = vi.hoisted(() => ({
-  processJobMessage: vi.fn(),
-  registerExtensionJobs: vi.fn(() => [{ jobType: 'TEST_JOB' }]),
+const { consumeJobQueueMessage, isLocalMockQueueDeliveryEnabled } = vi.hoisted(() => ({
+  consumeJobQueueMessage: vi.fn(),
   isLocalMockQueueDeliveryEnabled: vi.fn(() => true),
-  vercelPushHandler: vi.fn(async () => Response.json({ handler: 'vercel' })),
+}));
+
+vi.mock('../../../lib/job-queue-consumer.server', () => ({
+  consumeJobQueueMessage,
 }));
 
 vi.mock('@curvenote/scms-server', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as object),
-    processJobMessage,
-    registerExtensionJobs,
     isLocalMockQueueDeliveryEnabled,
   };
 });
-
-vi.mock('@vercel/queue', () => ({
-  handleCallback: () => vercelPushHandler,
-}));
-
-vi.mock('../../../extensions/server', () => ({
-  extensions: [],
-}));
 
 const { action } = await import('./route');
 
@@ -40,7 +27,7 @@ function createMockRequest(
   body: { message: JobQueueMessage; metadata: JobQueueDeliveryMetadata },
   headers: Record<string, string> = {},
 ): Request {
-  return new Request('http://localhost/v1/jobs/vercel-push', {
+  return new Request('http://localhost/v1/jobs/mock-push', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -50,7 +37,7 @@ function createMockRequest(
   });
 }
 
-describe('vercel-push action', () => {
+describe('mock-push action', () => {
   const message: JobQueueMessage = {
     job_id: 'job-1',
     job_type: 'LOOPBACK',
@@ -64,7 +51,7 @@ describe('vercel-push action', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isLocalMockQueueDeliveryEnabled.mockReturnValue(true);
-    processJobMessage.mockResolvedValue(undefined);
+    consumeJobQueueMessage.mockResolvedValue(undefined);
   });
 
   it('processes local mock queue delivery when provider and header match', async () => {
@@ -74,38 +61,30 @@ describe('vercel-push action', () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ status: 'success' });
-    expect(registerExtensionJobs).toHaveBeenCalledTimes(1);
-    expect(processJobMessage).toHaveBeenCalledWith(message, metadata, {
-      extensionJobs: [{ jobType: 'TEST_JOB' }],
-    });
-    expect(vercelPushHandler).not.toHaveBeenCalled();
+    expect(consumeJobQueueMessage).toHaveBeenCalledWith(message, metadata);
   });
 
-  it('falls through to vercelPushHandler when local mock header is missing', async () => {
+  it('returns 400 when local mock header is missing', async () => {
     const request = createMockRequest({ message, metadata });
 
     const response = await action({ request } as never);
 
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ handler: 'vercel' });
-    expect(processJobMessage).not.toHaveBeenCalled();
-    expect(vercelPushHandler).toHaveBeenCalledWith(request);
+    expect(response.status).toBe(400);
+    expect(consumeJobQueueMessage).not.toHaveBeenCalled();
   });
 
-  it('falls through to vercelPushHandler when mock queue delivery is disabled', async () => {
+  it('returns 404 when mock queue delivery is disabled', async () => {
     isLocalMockQueueDeliveryEnabled.mockReturnValue(false);
     const request = createMockRequest({ message, metadata }, { [LOCAL_MOCK_QUEUE_HEADER]: '1' });
 
     const response = await action({ request } as never);
 
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ handler: 'vercel' });
-    expect(processJobMessage).not.toHaveBeenCalled();
-    expect(vercelPushHandler).toHaveBeenCalledWith(request);
+    expect(response.status).toBe(404);
+    expect(consumeJobQueueMessage).not.toHaveBeenCalled();
   });
 
   it('returns 500 when local mock delivery processing fails', async () => {
-    processJobMessage.mockRejectedValue(new Error('handler failed'));
+    consumeJobQueueMessage.mockRejectedValue(new Error('handler failed'));
     const request = createMockRequest({ message, metadata }, { [LOCAL_MOCK_QUEUE_HEADER]: '1' });
 
     const response = await action({ request } as never);

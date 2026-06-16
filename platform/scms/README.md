@@ -30,7 +30,9 @@ npm run dev
 
 ### Job queue local development
 
-By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`). Jobs enqueued via `enqueueAndDispatchJob` are delivered asynchronously via **HTTP POST to `/v1/jobs/vercel-push`** (same route as production, with a dev-only loopback header) — no Vercel account, OIDC token, or second terminal required.
+By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`). Jobs enqueued via `enqueueAndDispatchJob` are delivered asynchronously via **HTTP POST to `/v1/jobs/mock-push`** (dev-only loopback route) — no Vercel account, OIDC token, or second terminal required.
+
+On Vercel preview/production, the queue consumer is **`api/v1/jobs/vercel-push.ts`** (configured in `vercel.ts`), not the mock-push route.
 
 | Mode | When to use | Setup |
 |---|---|---|
@@ -55,7 +57,7 @@ vercel env pull .env.local   # OIDC + project env for @vercel/queue send()
 QUEUES_PROVIDER=vercel npm run dev
 ```
 
-**Important:** with `QUEUES_PROVIDER=vercel`, `send()` enqueues to Vercel's cloud queue. The push consumer (`POST /v1/jobs/vercel-push`) runs on your **linked Vercel deployment**, not on plain `localhost`. Local `npm run dev` exercises the enqueue path; handlers execute on preview/production unless you use `vercel dev` (see [Queues quickstart](https://vercel.com/docs/queues/quickstart)).
+**Important:** with `QUEUES_PROVIDER=vercel`, `send()` enqueues to Vercel's cloud queue. The push consumer (`api/v1/jobs/vercel-push.ts`) runs on your **linked Vercel deployment**, not on plain `localhost`. Local `npm run dev` exercises the enqueue path; handlers execute on preview/production unless you use `vercel dev` (see [Queues quickstart](https://vercel.com/docs/queues/quickstart)).
 
 For full E2E against real queues, prefer a **preview deployment** (where `VERCEL=1` selects the vercel provider automatically) or trigger jobs from the **System → Jobs** admin page and watch them in the Vercel Queues dashboard.
 
