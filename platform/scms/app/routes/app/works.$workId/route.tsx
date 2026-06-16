@@ -22,6 +22,9 @@ import {
   TrackEvent,
   getWorkflows,
   registerExtensionWorkflows,
+  getExtensionCheckServicesFromServerConfig,
+  loadCheckMaintenanceByServiceIds,
+  CheckMaintenanceProvider,
   scopes,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
@@ -258,6 +261,13 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const usersDbo = await dbGetWorkUsers(ctx.work.id);
   const users = usersDbo ? dtoWorkUsers(usersDbo) : [];
 
+  const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, serverExtensions);
+  const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
+    ctx,
+    serverExtensions,
+    checkServices.map((service) => service.id),
+  );
+
   return {
     userScopes: ctx.scopes,
     workflows,
@@ -274,6 +284,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     latestNonDraftContentCard,
     users,
     isOnUploadRoute,
+    maintenanceByServiceId,
   };
 };
 
@@ -298,33 +309,36 @@ export function shouldRevalidate({
 }
 
 export default function WorkLayout({ loaderData }: Route.ComponentProps) {
-  const { work, versions, submissions, userScopes, isOnUploadRoute } = loaderData;
+  const { work, versions, submissions, userScopes, isOnUploadRoute, maintenanceByServiceId } =
+    loaderData;
 
   const isDrafting = versions.length > 0 && versions.every((v) => v.draft);
   const showSecondaryNav = !isDrafting && !isOnUploadRoute;
   const menu = buildMenu(`/app/works/${work.id}`, isDrafting, submissions, userScopes);
 
   return (
-    <>
-      {showSecondaryNav && (
-        <SecondaryNav
-          contents={menu}
-          title={isDrafting ? 'Work Details' : undefined}
-          extensions={extensions}
-          detailsCard={
-            !isDrafting ? (
-              <WorkDetailsCard
-                title={work.title ?? ''}
-                authors={work.authors}
-                thumbnail={work.links.thumbnail}
-              />
-            ) : undefined
-          }
-        />
-      )}
-      <MainWrapper hasSecondaryNav={showSecondaryNav}>
-        <Outlet />
-      </MainWrapper>
-    </>
+    <CheckMaintenanceProvider maintenanceByServiceId={maintenanceByServiceId}>
+      <>
+        {showSecondaryNav && (
+          <SecondaryNav
+            contents={menu}
+            title={isDrafting ? 'Work Details' : undefined}
+            extensions={extensions}
+            detailsCard={
+              !isDrafting ? (
+                <WorkDetailsCard
+                  title={work.title ?? ''}
+                  authors={work.authors}
+                  thumbnail={work.links.thumbnail}
+                />
+              ) : undefined
+            }
+          />
+        )}
+        <MainWrapper hasSecondaryNav={showSecondaryNav}>
+          <Outlet />
+        </MainWrapper>
+      </>
+    </CheckMaintenanceProvider>
   );
 }

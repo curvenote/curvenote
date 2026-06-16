@@ -5,6 +5,7 @@ import { useFetcher } from 'react-router';
 import { cn } from '../../utils/cn.js';
 import { Card } from '../primitives/Card.js';
 import { toastError } from '../ui/toast.js';
+import { MaintenanceTooltip } from '../ui/checks/index.js';
 import type { ClientExtensionCheckService } from '../../modules/extensions/types.js';
 import { DefaultUploadCheckOptionContent } from './DefaultUploadCheckOptionContent.js';
 import { uploadCheckCardClassName } from './uploadCheckCardStyles.js';
@@ -15,6 +16,8 @@ export interface UploadCheckOptionCardProps {
   enabled: boolean;
   disabled?: boolean;
   invalid?: boolean;
+  /** When set, the card is wrapped in a maintenance tooltip. */
+  maintenanceMessage?: string;
   /** Optional service logo URL (e.g. text integrity manifest from Object store). */
   logoUrl?: string;
 }
@@ -25,6 +28,7 @@ export function UploadCheckOptionCard({
   enabled,
   disabled = false,
   invalid = false,
+  maintenanceMessage,
   logoUrl,
 }: UploadCheckOptionCardProps) {
   const fetcher = useFetcher();
@@ -52,29 +56,32 @@ export function UploadCheckOptionCard({
   }, [fetcher.state, fetcher.data]);
 
   return (
-    <Card
-      lift
-      className={cn(
-        'h-full',
-        uploadCheckCardClassName({ enabled, disabled, invalid, busy: isBusy }),
-      )}
-      onClick={() => {
-        if (enabled) {
-          void setEnabled(false);
-        }
-      }}
-    >
-      <Inner
-        workVersionId={workVersionId}
-        enabled={enabled}
-        disabled={disabled}
-        invalid={invalid}
-        setEnabled={setEnabled}
-        toggleBusy={isBusy}
-        name={service.name}
-        description={service.description}
-        logoUrl={logoUrl}
-      />
-    </Card>
+    <MaintenanceTooltip enabled={Boolean(maintenanceMessage)} message={maintenanceMessage ?? ''}>
+      <Card
+        lift
+        className={cn(
+          'h-full',
+          uploadCheckCardClassName({ enabled, disabled, invalid, busy: isBusy }),
+        )}
+        onClick={() => {
+          if (maintenanceMessage) return;
+          if (enabled) {
+            void setEnabled(false);
+          }
+        }}
+      >
+        <Inner
+          workVersionId={workVersionId}
+          enabled={enabled}
+          disabled={disabled}
+          invalid={invalid}
+          setEnabled={setEnabled}
+          toggleBusy={isBusy}
+          name={service.name}
+          description={service.description}
+          logoUrl={logoUrl}
+        />
+      </Card>
+    </MaintenanceTooltip>
   );
 }

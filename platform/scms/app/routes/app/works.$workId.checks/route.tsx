@@ -345,6 +345,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
               <RunCheckOnLatestVersionButton
                 actionPath={service.checksActionPath ?? `${basePath}/checks`}
                 workVersionId={latestNonDraftWorkVersion.id}
+                checkServiceId={service.id}
               />
             ) : null;
 

@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
 import { useFetcher, useFetchers, Link, useParams, useLocation } from 'react-router';
-import { ui, hasInvalidEnabledUploadChecks } from '@curvenote/scms-core';
+import {
+  ui,
+  hasInvalidEnabledUploadChecks,
+  useAnyCheckMaintenanceBlocked,
+} from '@curvenote/scms-core';
 import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata, ChecksMetadataSection } from '@curvenote/scms-server';
 
@@ -42,12 +46,19 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
     enabledChecks,
     checkServices,
   );
+  const { blocked: maintenanceBlocked, message: maintenanceMessage } =
+    useAnyCheckMaintenanceBlocked(enabledChecks);
 
   const hasPendingToggleCheck = fetchers.some(
     (f) => f.state !== 'idle' && f.formData?.get('intent') === 'toggle-check',
   );
 
-  const disabled = !hasTitle || !hasFiles || hasPendingToggleCheck || hasInvalidSelectedChecks;
+  const disabled =
+    !hasTitle ||
+    !hasFiles ||
+    hasPendingToggleCheck ||
+    hasInvalidSelectedChecks ||
+    maintenanceBlocked;
 
   const handleContinue = () => {
     const formData = new FormData();
@@ -60,14 +71,16 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
 
   return (
     <div className="flex gap-4 items-center mt-6">
-      <ui.StatefulButton
-        type="button"
-        busy={fetcher.state !== 'idle'}
-        disabled={disabled}
-        onClick={handleContinue}
-      >
-        Continue
-      </ui.StatefulButton>
+      <ui.MaintenanceTooltip enabled={maintenanceBlocked} message={maintenanceMessage}>
+        <ui.StatefulButton
+          type="button"
+          busy={fetcher.state !== 'idle'}
+          disabled={disabled}
+          onClick={handleContinue}
+        >
+          Continue
+        </ui.StatefulButton>
+      </ui.MaintenanceTooltip>
       <ui.Button variant="link" asChild>
         <Link to={finishLaterHref}>Come back and finish this later</Link>
       </ui.Button>

@@ -8,6 +8,7 @@ import {
   hasPdfInMetadata,
   isDocxOrPdfFile,
   resolveUploadCheckCardState,
+  hasMaintenanceEnabledUploadChecks,
 } from './workVersionMetadata.js';
 
 describe('workVersionMetadata', () => {
@@ -107,5 +108,24 @@ describe('workVersionMetadata', () => {
       disabled: false,
       invalid: true,
     });
+    expect(
+      resolveUploadCheckCardState({ eligible: true, enabled: false, underMaintenance: true }),
+    ).toEqual({
+      disabled: true,
+      invalid: false,
+    });
+  });
+
+  it('hasMaintenanceEnabledUploadChecks detects enabled services under maintenance', () => {
+    expect(
+      hasMaintenanceEnabledUploadChecks(['checks-text-integrity'], {
+        'checks-text-integrity': { underMaintenance: true, message: 'Down' },
+      }),
+    ).toBe(true);
+    expect(
+      hasMaintenanceEnabledUploadChecks(['checks-text-integrity'], {
+        proofig: { underMaintenance: true, message: 'Down' },
+      }),
+    ).toBe(false);
   });
 });
