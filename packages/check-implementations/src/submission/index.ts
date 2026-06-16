@@ -1,6 +1,7 @@
 export * from './abstract.js';
 export * from './authors.js';
 export * from './data-availability.js';
+export * from './exports-exist.js';
 export * from './figure-count.js';
 export * from './keywords.js';
 export * from './links.js';
@@ -9,6 +10,7 @@ import { abstractRules } from './abstract.js';
 import { authorRules } from './authors.js';
 import { dataAvailabilityRules } from './data-availability.js';
 import { doiCheckRules } from './doi.js';
+import { exportsExistRules } from './exports-exist.js';
 import { figureCountRules } from './figure-count.js';
 import { keywordsRules } from './keywords.js';
 import { linksRules } from './links.js';
@@ -23,4 +25,5 @@ export const submissionRuleChecks = [
   ...doiCheckRules,
   ...wordCountRules,
   ...figureCountRules,
+  ...exportsExistRules,
 ];
