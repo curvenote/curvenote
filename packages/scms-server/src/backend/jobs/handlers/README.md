@@ -1,6 +1,6 @@
 # Jobs: handlers
 
-**Job handlers** run when the queue consumer delivers a job message—via **`api/v1/jobs/vercel-push.ts`** on Vercel or **`POST /v1/jobs/mock-push`** (mock provider) in development. Each handler is keyed by **`job_type`** and receives a `CreateJob`-shaped payload plus request context.
+**Job handlers** run when the queue consumer delivers a job message—via **`api/job-queue-consumer.ts`** (Vercel queue push) on preview/production or **`POST /v1/jobs/mock-push`** (mock provider) in development. Each handler is keyed by **`job_type`** and receives a `CreateJob`-shaped payload plus request context.
 
 A handler may:
 

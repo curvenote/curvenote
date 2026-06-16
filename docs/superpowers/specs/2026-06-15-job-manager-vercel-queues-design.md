@@ -33,38 +33,16 @@
 
 ---
 
-## Deployment constraint: `vercel.ts` not `vercel.json`
+## Deployment constraint: deploy-curvenote prebuilt + flat `api/`
 
-SCMS deploys from a **public submodule** layout where `vercel.json` is not reliably in place until the build starts. Use **[`vercel.ts`](https://vercel.com/docs/project-configuration/vercel-ts)** at the **Vercel project root** (`platform/scms/vercel.ts`) so queue consumer triggers are emitted at build time.
+SCMS production deploys from **deploy-curvenote** with Vercel Root Directory `curvenote/platform/scms` and a **local prebuilt** flow (`vercel build --prod` → `vercel --prebuilt --prod`) because the curvenote submodule is private. The submodule is checked out before build, so queue config lives in this repo:
 
-React Router v7 already uses `@vercel/react-router` (`vercelPreset()` in `react-router.config.ts`).
+- **`platform/scms/api/job-queue-consumer.ts`** — flat project-root api function (push consumer)
+- **`platform/scms/vercel.ts`** — `experimentalTriggers` for topic `job`
 
-### Queue configuration (single topic, single consumer)
+Use **[`vercel.ts`](https://vercel.com/docs/project-configuration/vercel-ts)** (not static `vercel.json`) so triggers are emitted at build time. Nested paths like `api/v1/jobs/...` are not detected with the React Router framework preset — use flat `api/job-queue-consumer.ts` only.
 
-```typescript
-// platform/scms/vercel.ts
-import type { VercelConfig } from '@vercel/config/v1';
-
-export const config: VercelConfig = {
-  functions: {
-    // Source route file path (not compiled output, not project-root `api/`)
-    'app/routes/api/v1.jobs.vercel-push/route.tsx': {
-      experimentalTriggers: [
-        {
-          type: 'queue/v2beta',
-          topic: 'job',
-          retryAfterSeconds: 60,
-          initialDelaySeconds: 0,
-        },
-      ],
-    },
-  },
-};
-```
-
-**Note:** React Router route file is `app/routes/api/v1.jobs.vercel-push/route.tsx` → URL `/v1/jobs/vercel-push`. The `functions` key is the **source route file path** (same convention as Next.js `app/api/.../route.ts` in the Queues quickstart), not a compiled `api/.../route.js` path under project-root `api/`.
-
-The consumer route becomes **private** — only Vercel Queues can invoke it ([quickstart](https://vercel.com/docs/queues/quickstart)).
+See `platform/scms/deploy/deploy-curvenote.md` for release steps.
 
 ---
 

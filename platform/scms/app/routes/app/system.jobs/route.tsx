@@ -33,9 +33,7 @@ export async function loader(args: Route.LoaderArgs) {
     queue: {
       provider: queueProvider,
       consumerRoute:
-        queueProvider === 'mock'
-          ? '/v1/jobs/mock-push'
-          : 'api/v1/jobs/vercel-push.ts (Vercel Queue trigger)',
+        queueProvider === 'mock' ? '/v1/jobs/mock-push' : 'api/job-queue-consumer.ts (queue push)',
       topicName: 'job',
       queuesProviderEnv: process.env.QUEUES_PROVIDER ?? null,
     },
@@ -286,7 +284,7 @@ function queueProviderCopy(provider: string): { label: string; detail: string } 
       return {
         label: 'Vercel Queues',
         detail:
-          'Jobs publish to the Vercel Queue topic and are consumed by api/v1/jobs/vercel-push.ts (queue trigger).',
+          'Jobs publish to the Vercel Queue topic and are consumed by api/job-queue-consumer.ts (queue push).',
       };
     default:
       return { label: provider, detail: 'Unknown queue provider.' };

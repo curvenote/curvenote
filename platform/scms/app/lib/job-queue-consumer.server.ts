@@ -16,7 +16,7 @@ export async function consumeJobQueueMessage(
   await processJobMessage(message, metadata, { extensionJobs });
 }
 
-/** Retry / visibility settings for @vercel/queue consumers (api function). */
+/** Retry / visibility settings for @vercel/queue push consumers. */
 export const jobQueueConsumerCallbackOptions = {
   visibilityTimeoutSeconds: 300,
   retry: (_error: unknown, metadata: { deliveryCount: number }) => {

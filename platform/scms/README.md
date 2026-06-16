@@ -32,7 +32,7 @@ npm run dev
 
 By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`). Jobs enqueued via `enqueueAndDispatchJob` are delivered asynchronously via **HTTP POST to `/v1/jobs/mock-push`** (dev-only loopback route) — no Vercel account, OIDC token, or second terminal required.
 
-On Vercel preview/production, the queue consumer is **`api/v1/jobs/vercel-push.ts`** (configured in `vercel.ts`), not the mock-push route.
+On Vercel preview/production, the queue consumer is **`api/job-queue-consumer.ts`** (push trigger in `vercel.ts`), not the mock-push route. deploy-curvenote notes: `deploy/deploy-curvenote.md`.
 
 | Mode | When to use | Setup |
 |---|---|---|
@@ -47,7 +47,7 @@ Prerequisites:
 
 1. SCMS project linked to Vercel (`cd platform/scms && vercel link`)
 2. **Vercel Queues** enabled on that project/team ([docs](https://vercel.com/docs/queues))
-3. A deployment with the `job` topic consumer configured in `vercel.ts` (preview or production)
+3. deploy-curvenote submodule bumped and prebuilt deploy run (`vercel build --prod` → `vercel --prebuilt --prod`)
 
 Steps:
 
@@ -57,7 +57,7 @@ vercel env pull .env.local   # OIDC + project env for @vercel/queue send()
 QUEUES_PROVIDER=vercel npm run dev
 ```
 
-**Important:** with `QUEUES_PROVIDER=vercel`, `send()` enqueues to Vercel's cloud queue. The push consumer (`api/v1/jobs/vercel-push.ts`) runs on your **linked Vercel deployment**, not on plain `localhost`. Local `npm run dev` exercises the enqueue path; handlers execute on preview/production unless you use `vercel dev` (see [Queues quickstart](https://vercel.com/docs/queues/quickstart)).
+**Important:** with `QUEUES_PROVIDER=vercel`, `send()` enqueues to Vercel's cloud queue. The push consumer (`api/job-queue-consumer.ts`) runs on your **linked Vercel deployment**, not on plain `localhost`. Local `npm run dev` exercises the enqueue path; handlers execute on preview/production unless you use `vercel dev` (see [Queues quickstart](https://vercel.com/docs/queues/quickstart)).
 
 For full E2E against real queues, prefer a **preview deployment** (where `VERCEL=1` selects the vercel provider automatically) or trigger jobs from the **System → Jobs** admin page and watch them in the Vercel Queues dashboard.
 

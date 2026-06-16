@@ -22,7 +22,7 @@ export function loader() {
  * The in-process mock queue provider (`QUEUES_PROVIDER=mock`) POSTs here with
  * `x-local-mock-queue: 1` so handlers run locally without Vercel Queues.
  *
- * Production/preview on Vercel uses `api/v1/jobs/vercel-push.ts` (queue trigger), not this route.
+ * Production/preview on Vercel uses `api/job-queue-consumer.ts` (queue push trigger), not this route.
  */
 export async function action(args: Route.ActionArgs) {
   if (!isLocalMockQueueDeliveryEnabled()) {

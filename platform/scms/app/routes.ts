@@ -287,9 +287,8 @@ export default [
       ]),
     ]),
 
-    // Jobs API Routes (static paths before jobs/:jobId so "mock-push" is not a job id)
+    // Jobs API Routes (static paths before jobs/:jobId so mock-push is not a job id)
     route('jobs', 'routes/api/v1.jobs.tsx'),
-    // Dev/test mock queue loopback only — production consumer is api/v1/jobs/vercel-push.ts
     route('jobs/mock-push', 'routes/api/v1.jobs.mock-push/route.tsx'),
     route('jobs/:jobId', 'routes/api/v1.jobs.$jobId.tsx'),
 
