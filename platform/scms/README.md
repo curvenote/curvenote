@@ -28,6 +28,39 @@ npm run build
 npm run dev
 ```
 
+### Job queue local development
+
+By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`). Jobs enqueued via `enqueueAndDispatchJob` are delivered asynchronously via **HTTP POST to `/v1/jobs/vercel-push`** (same route as production, with a dev-only loopback header) — no Vercel account, OIDC token, or second terminal required.
+
+| Mode | When to use | Setup |
+|---|---|---|
+| **Mock (default)** | Everyday local dev — full job handler pipeline | `npm run dev` (automatic when `NODE_ENV=development`) |
+| **Real Vercel Queues** | Test enqueue against Vercel's queue API, or E2E on a deployment | See below |
+
+**Mock is the right default.** Use real queues only when you explicitly need to validate Vercel's transport (OIDC, idempotency keys, dashboard metrics) or run handlers on a preview deployment.
+
+#### Real Vercel Queues (opt-in)
+
+Prerequisites:
+
+1. SCMS project linked to Vercel (`cd platform/scms && vercel link`)
+2. **Vercel Queues** enabled on that project/team ([docs](https://vercel.com/docs/queues))
+3. A deployment with the `job` topic consumer configured in `vercel.ts` (preview or production)
+
+Steps:
+
+```bash
+cd platform/scms
+vercel env pull .env.local   # OIDC + project env for @vercel/queue send()
+QUEUES_PROVIDER=vercel npm run dev
+```
+
+**Important:** with `QUEUES_PROVIDER=vercel`, `send()` enqueues to Vercel's cloud queue. The push consumer (`POST /v1/jobs/vercel-push`) runs on your **linked Vercel deployment**, not on plain `localhost`. Local `npm run dev` exercises the enqueue path; handlers execute on preview/production unless you use `vercel dev` (see [Queues quickstart](https://vercel.com/docs/queues/quickstart)).
+
+For full E2E against real queues, prefer a **preview deployment** (where `VERCEL=1` selects the vercel provider automatically) or trigger jobs from the **System → Jobs** admin page and watch them in the Vercel Queues dashboard.
+
+See also: `docs/superpowers/specs/2026-06-15-job-manager-vercel-queues-design.md` (local development summary).
+
 ### First-time setup
 
 A local Postgres database is used for local development. This enabled flexible seeding, migration and mutation without affecting other developers.

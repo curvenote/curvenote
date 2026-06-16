@@ -2,12 +2,13 @@ import type { Route } from './+types/v1.jobs';
 import { z } from 'zod';
 import type { ClientExtension, ServerExtension } from '@curvenote/scms-core';
 import { error401, error405, createFollowOnSchemas, KnownJobTypes } from '@curvenote/scms-core';
+import { JobStatus } from '@curvenote/scms-db';
 import {
   ensureJsonBodyFromMethod,
-  jobs,
   withContext,
   validate,
   registerExtensionJobs,
+  enqueueAndDispatchJob,
 } from '@curvenote/scms-server';
 import { uuidv7 } from 'uuidv7';
 import { extensions } from '../../extensions/server';
@@ -70,23 +71,34 @@ export async function action(args: Route.ActionArgs) {
   if (!ctx.user) throw error401('Unauthorized - jobs must be created on behalf of a user');
   const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
   const schema = await createJobPostBodySchema(extensions);
-  const { id, job_type, payload, results, follow_on, activity_type, activity_data } = validate(
+  const { id, job_type, payload, follow_on, activity_type, activity_data, results } = validate(
     schema,
     body,
   );
-  const dto = await jobs.invoke(
-    ctx,
+
+  const jobId = id ?? uuidv7();
+  const result = await enqueueAndDispatchJob({
+    job_id: jobId,
+    job_type,
+    payload,
+    invoked_by_id: ctx.user?.id,
+    activity_type,
+    activity_data,
+    follow_on,
+    results,
+  });
+
+  const responseStatus = job_type === KnownJobTypes.CLI_CHECK ? JobStatus.QUEUED : result.status;
+
+  return Response.json(
     {
-      payload,
-      job_type,
-      id: id ?? uuidv7(),
-      results,
-      follow_on,
-      invoked_by_id: ctx.user?.id,
-      activity_type,
-      activity_data,
+      id: result.job_id,
+      job_id: result.job_id,
+      job_type: result.job_type,
+      status: responseStatus,
+      results: results ?? undefined,
+      dependent_job_ids: result.dependent_job_ids,
     },
-    registerExtensionJobs(extensions),
+    { status: 201 },
   );
-  return Response.json(dto, { status: 201 });
 }
