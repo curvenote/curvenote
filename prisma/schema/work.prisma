@@ -13,6 +13,15 @@ model WorkUser {
   work_id       String
   user          User     @relation(fields: [user_id], references: [id])
   user_id       String
+
+  /// Backs lookups and deletes keyed by work (`WorkUser.work_id` FK has no
+  /// implicit Postgres index). Used when resolving a work (e.g. DOI lookup via
+  /// `Work_doi_idx`) and loading `work_users`, and by work teardown
+  /// (`workUser.deleteMany({ work_id })`).
+  @@index([work_id])
+  /// Backs user-scoped work membership lookups (`/my/works`, `/my/submissions`
+  /// `work_users.some({ user_id })`, `dbGetUserWorkRoles`).
+  @@index([user_id])
 }
 
 model Work {
@@ -30,6 +39,13 @@ model Work {
   submissions        Submission[]
   landingContentSite Site[]
   access             Access[]
+
+  /// Equality lookup for DOI resolution (`GET /v1/sites/:siteName/doi/...`).
+  /// Btree for `doi = ?`; GIN trgm for submissions search ILIKE (migration
+  /// `20260526223800`). Both must be declared here so `migrate dev` does not
+  /// treat the trgm index as drift and generate a DROP migration.
+  @@index([doi])
+  @@index([doi(ops: raw("gin_trgm_ops"))], type: Gin, map: "Work_doi_trgm_idx")
 }
 
 model WorkVersion {
@@ -55,6 +71,23 @@ model WorkVersion {
   checkServiceRuns   CheckServiceRun[]
   linkedJobs         LinkedJob[]
   occ                Int                 @default(0)
+
+  /// Equality lookup for DOI resolution (`GET /v1/sites/:siteName/doi/...`).
+  /// Btree for `doi = ?`; GIN trgm indexes for submissions search ILIKE
+  /// (migration `20260526223800`). Declared in schema so `migrate dev` does not
+  /// generate spurious DROP migrations for indexes created in raw SQL.
+  ///
+  /// `WorkVersion_authors_trgm_idx` (expression on `authors`) and
+  /// `WorkVersion_subject_normalized_idx` / `WorkVersion_affiliations_trgm_idx`
+  /// remain raw-SQL-only — not expressible in Prisma.
+  ///
+  /// Backs Work → versions joins and work-scoped version lookups (`work_id` FK
+  /// has no implicit Postgres index). Large table; used by work pages, DOI
+  /// resolution, listings, and work teardown `workVersion.deleteMany`.
+  @@index([work_id])
+  @@index([doi])
+  @@index([doi(ops: raw("gin_trgm_ops"))], type: Gin, map: "WorkVersion_doi_trgm_idx")
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "WorkVersion_title_trgm_idx")
 }
 
 model CheckServiceRun {

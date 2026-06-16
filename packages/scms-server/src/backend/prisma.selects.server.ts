@@ -32,6 +32,21 @@ export const cdnWorkVersionSelect = {
   cdn_key: true,
 } satisfies Prisma.WorkVersionSelect;
 
+/**
+ * Submission relation fields read by `formatSiteWorkDTO` (excludes site graph and
+ * large kind/collection columns such as `checks` and unused scalars).
+ */
+export const siteWorkSubmissionSelect = {
+  id: true,
+  date_published: true,
+  kind: { select: { id: true, name: true, content: true, default: true } },
+  collection: {
+    select: { id: true, name: true, slug: true, workflow: true, content: true, open: true },
+  },
+  slugs: { where: { primary: true }, select: { slug: true, primary: true }, take: 1 },
+  work: { select: { doi: true, key: true } },
+} satisfies Prisma.SubmissionSelect;
+
 /** Activity feed refs — avoid full version payloads. */
 export const activitySubmissionVersionRefSelect = {
   id: true,
@@ -60,6 +75,31 @@ export const submissionVersionForListSelect = {
 } satisfies Prisma.SubmissionVersionSelect;
 
 /**
+ * Minimal select for rows formatted *only* by `formatSiteWorkDTO` (the public
+ * site-work DTO). Same relation shape as `submissionVersionForSiteWorkSelect`
+ * so the nested summary formatters still type-check, but drops the
+ * SubmissionVersion-level bookkeeping the DTO never reads — `status`,
+ * `transition`, `job_id`, `work_version_id`, the version-level `date_*`, and
+ * crucially `submitted_by` (which otherwise pulls a whole `User` row).
+ *
+ * Use this for endpoints that resolve a single site-work and run it straight
+ * through `formatSiteWorkDTO` (e.g. `sites.doi`). Endpoints that also build a
+ * `SubmissionVersionDTO` (versions list/get) need the broader select above.
+ */
+export const siteWorkDtoSelect = {
+  id: true,
+  tags: true,
+  work_version: { select: siteWorkWorkVersionSelect },
+  submission: { select: siteWorkSubmissionSelect },
+} satisfies Prisma.SubmissionVersionSelect;
+
+/** Published thumbnail/social hot path — CDN fields only. */
+export const publishedThumbnailSelect = {
+  id: true,
+  work_version: { select: { id: true, work_id: true, cdn: true, cdn_key: true } },
+} satisfies Prisma.SubmissionVersionSelect;
+
+/**
  * Submission version rows formatted as SiteWorkDTO / SubmissionVersionDTO
  * (excludes submission-version metadata JSON).
  */
@@ -74,14 +114,5 @@ export const submissionVersionForSiteWorkSelect = {
   tags: true,
   submitted_by: { select: { id: true, display_name: true } },
   work_version: { select: siteWorkWorkVersionSelect },
-  submission: {
-    select: {
-      id: true,
-      date_published: true,
-      kind: true,
-      collection: true,
-      slugs: true,
-      work: true,
-    },
-  },
+  submission: { select: siteWorkSubmissionSelect },
 } satisfies Prisma.SubmissionVersionSelect;

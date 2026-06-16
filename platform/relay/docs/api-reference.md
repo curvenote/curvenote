@@ -68,7 +68,8 @@ Client API routes (except discovery) are under **`/api/v1/services/:serviceName/
 | Method | Path                                                            | Description                              |
 | ------ | --------------------------------------------------------------- | ---------------------------------------- |
 | `POST` | `/api/v1/services/:serviceName/instances/:instanceId/configure` | Register webhooks for a service instance |
-| `POST` | `/api/v1/services/:serviceName/instances/:instanceId/terms`     | Get provider EULA / terms                |
+| `POST` | `/api/v1/services/:serviceName/instances/:instanceId/terms`        | Get provider EULA / terms                |
+| `POST` | `/api/v1/services/:serviceName/instances/:instanceId/terms/accept` | Record EULA acceptance at provider     |
 | `POST` | `/api/v1/services/:serviceName/instances/:instanceId/status`    | Service-level status & capabilities      |
 
 #### Check Lifecycle
@@ -165,9 +166,40 @@ Retrieve EULA / terms of service for the provider.
 
 **Body**
 
-Optional; plugin-specific fields only.
+Optional; plugin-specific fields only. iThenticate plugins support `mode`:
+
+| Field    | Type   | Description |
+| -------- | ------ | ----------- |
+| `mode`   | string | Omit for version metadata; `"page"` for EULA HTML |
+| `version`| string | EULA version (default `latest`) |
+| `language` | string | Language code (default `en-US`) |
 
 **Response** `200` — terms payload (service-specific)
+
+### `POST /api/v1/services/:serviceName/instances/:instanceId/terms/accept`
+
+Record EULA acceptance at the provider for a user (e.g. Turnitin Accept EULA). Requires a plugin that implements `acceptTerms`.
+
+**Body**
+
+| Field       | Type   | Required | Description |
+| ----------- | ------ | -------- | ----------- |
+| `userId`    | string | yes      | Provider user id (typically SCMS user id) |
+| `version`   | string | yes      | EULA version accepted |
+| `language`  | string | no       | Language code (default `en-US`) |
+| `acceptedTimestamp` | string | no | ISO timestamp (plugin may default to server time) |
+
+**Response** `200`
+
+```json
+{ "status": "completed", "result": { "<serviceSpecific>": "<value>" } }
+```
+
+**Errors**
+
+| Status | When |
+| ------ | ---- |
+| `501`  | Plugin does not implement `acceptTerms` |
 
 ### `POST /api/v1/services/:serviceName/instances/:instanceId/status`
 

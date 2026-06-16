@@ -87,6 +87,7 @@
     "eslint-plugin-import": "^2.32.0"
   },
   "overrides": {
+    "@jupyterlab/services": "7.5.8",
     "@types/node": "^24.6.2",
     "ws": "^8.18.1",
     "@types/ws": "^8.18.1",

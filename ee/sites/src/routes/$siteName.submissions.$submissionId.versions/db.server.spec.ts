@@ -8,16 +8,9 @@ vi.mock('@curvenote/scms-server', async (importOriginal) => {
   return {
     ...actual,
     getPrismaClient: vi.fn(),
-  };
-});
-
-vi.mock('@curvenote/scms-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@curvenote/scms-core')>();
-  return {
-    ...actual,
-    getWorkflow: vi.fn(() => ({
+    getConfiguredWorkflow: vi.fn(() => ({
       states: {
-        PUBLISHED: { label: 'Published' },
+        PUBLISHED: { label: 'Published', tags: ['end'] },
         IN_REVIEW: { label: 'In review' },
       },
     })),
@@ -60,6 +53,7 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
         {
           id: 'v-new',
           date_created: '2026-05-02T00:00:00.000Z',
+          date_modified: '2026-05-02T12:00:00.000Z',
           date_published: '2026-05-03T00:00:00.000Z',
           status: 'PUBLISHED',
           tags: ['v2'],
@@ -67,6 +61,7 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
         {
           id: 'v-old',
           date_created: '2026-05-01T00:00:00.000Z',
+          date_modified: '2026-05-01T00:00:00.000Z',
           date_published: null,
           status: 'IN_REVIEW',
           tags: ['v1'],
@@ -80,17 +75,21 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
       {
         id: 'v-new',
         date_created: '2026-05-02T00:00:00.000Z',
+        date_modified: '2026-05-02T12:00:00.000Z',
         date_published: '2026-05-03T00:00:00.000Z',
         status: 'PUBLISHED',
         statusLabel: 'Published',
+        statusTags: ['end'],
         tag: 'v2',
       },
       {
         id: 'v-old',
         date_created: '2026-05-01T00:00:00.000Z',
+        date_modified: '2026-05-01T00:00:00.000Z',
         date_published: undefined,
         status: 'IN_REVIEW',
         statusLabel: 'In review',
+        statusTags: undefined,
         tag: 'v1',
       },
     ]);
@@ -115,6 +114,7 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
           select: {
             id: true,
             date_created: true,
+            date_modified: true,
             date_published: true,
             status: true,
             tags: true,

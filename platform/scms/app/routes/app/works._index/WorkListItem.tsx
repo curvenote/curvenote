@@ -1,6 +1,15 @@
 import { Link } from 'react-router';
-import { formatDate, formatToNow, primitives, ui } from '@curvenote/scms-core';
-import { ExternalLink } from 'lucide-react';
+import {
+  formatDate,
+  formatToNow,
+  primitives,
+  ui,
+  WorkVersionTimelineHoverCard,
+  SubmissionVersionTimelineHoverCard,
+  workVersionsTimelineUrl,
+  submissionVersionsTimelineUrl,
+} from '@curvenote/scms-core';
+import { ExternalLink, Timeline } from 'lucide-react';
 import type { dbGetWorksAndSubmissionVersions } from './db.server';
 
 export type WorkCardDBO = Awaited<ReturnType<typeof dbGetWorksAndSubmissionVersions>>[0];
@@ -34,6 +43,8 @@ export function WorkListItem({
   const hasSlug = work.submissions.some(
     (submission) => submission.slugs && submission.slugs.length > 0,
   );
+
+  const workVersionsUrl = workVersionsTimelineUrl(work.id);
 
   return (
     <div className="px-6 py-4">
@@ -124,32 +135,37 @@ export function WorkListItem({
                 if (!latestNonDraftSubmissionVersion || !workflow) return null;
 
                 return (
-                  <ui.SubmissionVersionBadge
+                  <SubmissionVersionTimelineHoverCard
                     key={`submission-badge-${submission.id}`}
-                    submissionVersion={{
-                      id: latestNonDraftSubmissionVersion.id,
-                      status: latestNonDraftSubmissionVersion.status,
-                      submission: {
-                        id: submission.id,
-                        collection: {
-                          workflow: submission.collection.workflow,
+                    versionsUrl={submissionVersionsTimelineUrl(submission.site.name, submission.id)}
+                    title={`Submissions at ${submission.site.title || submission.site.name}`}
+                  >
+                    <ui.SubmissionVersionBadge
+                      submissionVersion={{
+                        id: latestNonDraftSubmissionVersion.id,
+                        status: latestNonDraftSubmissionVersion.status,
+                        submission: {
+                          id: submission.id,
+                          collection: {
+                            workflow: submission.collection.workflow,
+                          },
+                          site: {
+                            name: submission.site.name,
+                            title: submission.site.title,
+                            metadata: submission.site.metadata,
+                          },
                         },
-                        site: {
-                          name: submission.site.name,
-                          title: submission.site.title,
-                          metadata: submission.site.metadata,
-                        },
-                      },
-                    }}
-                    workflows={{ [submission.collection.workflow]: workflow }}
-                    basePath={`/app/works/${work.id}`}
-                    workVersionId={
-                      latestNonDraftSubmissionVersion.work_version?.id || latestVersion?.id || ''
-                    }
-                    showSite
-                    showLink={false}
-                    variant="outline"
-                  />
+                      }}
+                      workflows={{ [submission.collection.workflow]: workflow }}
+                      basePath={`/app/works/${work.id}`}
+                      workVersionId={
+                        latestNonDraftSubmissionVersion.work_version?.id || latestVersion?.id || ''
+                      }
+                      showSite
+                      showLink={false}
+                      variant="outline"
+                    />
+                  </SubmissionVersionTimelineHoverCard>
                 );
               })}
           </div>
@@ -168,7 +184,6 @@ export function WorkListItem({
             )}
           </div>
 
-          {/* Published Date */}
           {publishedDate && (
             <div className="text-xs text-gray-600 dark:text-gray-400">
               Published: {formatDate(publishedDate)}
@@ -179,6 +194,22 @@ export function WorkListItem({
               Created: {formatDate(latestVersion.date_created)}
             </div>
           )}
+
+          <WorkVersionTimelineHoverCard
+            versionsUrl={workVersionsUrl}
+            workId={work.id}
+            align="end"
+            side="left"
+            title="Work Timeline"
+          >
+            <button
+              type="button"
+              className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"
+            >
+              <Timeline className="size-3.5 shrink-0" aria-hidden />
+              Timeline
+            </button>
+          </WorkVersionTimelineHoverCard>
         </div>
       </div>
     </div>

@@ -69,7 +69,13 @@ export async function dbGetUserSiteRoles(userId: string, siteId: string) {
   return siteUsers;
 }
 
-export function formatCollectionSummaryDTO(dbo: Collection): CollectionSummaryDTO {
+/** Fields read by {@link formatCollectionSummaryDTO}. */
+export type CollectionSummaryInput = Pick<
+  Collection,
+  'id' | 'name' | 'slug' | 'workflow' | 'content' | 'open'
+>;
+
+export function formatCollectionSummaryDTO(dbo: CollectionSummaryInput): CollectionSummaryDTO {
   return {
     id: dbo.id,
     name: dbo.name,

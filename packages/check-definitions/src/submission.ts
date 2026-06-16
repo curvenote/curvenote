@@ -179,4 +179,10 @@ export const submissionRuleChecks: CheckDefinition[] = [
     ],
     tags: [CheckTags.content],
   },
+  {
+    id: 'exports-exist',
+    title: 'Exports Exist',
+    purpose: 'ensure all declared export output files exist after build',
+    tags: [CheckTags.build, CheckTags.export],
+  },
 ];

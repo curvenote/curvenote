@@ -61,6 +61,8 @@ app:
   # checks:
   #   relayBaseUrl: https://checks-relay.example.com
   #   relayApiKey: <set in secrets file>
+  #   # Optional: Bearer for cron EULA cache refresh (or use extensions.checks-text-integrity.eulaCronSecret)
+  #   eulaCronSecret: <set in secrets file>
   navigation:
     defaultRoute: works
     items:

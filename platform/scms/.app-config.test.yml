@@ -18,6 +18,7 @@ api:
   tokenConfigUrl: http://localhost:3031/v1/config
   pubsubProjectId: qwerty
   checkTopic: qwerty
+  converterTopic: qwerty
   knownBucketInfoMap:
     cdn:
       uri: qwerty

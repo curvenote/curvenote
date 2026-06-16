@@ -10,6 +10,7 @@ import type { ModifiedSiteWorkDTO } from '../published/get.server.js';
 import { formatSiteWorkDTO } from '../published/get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../../kinds/get.server.js';
 import type { WorkflowTransition } from '@curvenote/scms-core';
+import { fetchWorkVersionSubjects } from '../../../../work-version-subject.server.js';
 
 export async function dbGetSubmissionVersion(
   where: Prisma.SubmissionVersionFindUniqueArgs['where'],
@@ -46,6 +47,7 @@ type DBO = Prisma.SubmissionVersionGetPayload<{
 export function formatSubmissionVersionDTO(
   ctx: SiteContext,
   version: DBO,
+  opts?: { subject?: string },
 ): Omit<SubmissionVersionDTO, 'site_work'> & { site_work: ModifiedSiteWorkDTO } & {
   transition?: WorkflowTransition;
 } {
@@ -73,7 +75,7 @@ export function formatSubmissionVersionDTO(
     },
     submission_id: version.submission.id,
     site_name: ctx.site.name,
-    site_work: formatSiteWorkDTO(ctx, { ...version, submission: version.submission }),
+    site_work: formatSiteWorkDTO(ctx, { ...version, submission: version.submission }, opts),
     kind: formatSubmissionKindSummaryDTO(version.submission.kind),
     collection: {
       ...version.submission.collection,
@@ -97,7 +99,10 @@ export function formatSubmissionVersionDTO(
 export default async function (ctx: SiteContext, submissionVersionId: string) {
   const dbo = await dbGetSubmissionVersion({ id: submissionVersionId });
   if (!dbo) throw error404();
-  return formatSubmissionVersionDTO(ctx, dbo);
+  const subjects = await fetchWorkVersionSubjects([dbo.work_version.id]);
+  return formatSubmissionVersionDTO(ctx, dbo, {
+    subject: subjects.get(dbo.work_version.id),
+  });
 }
 
 export async function getOnSubmission(
@@ -111,5 +116,8 @@ export async function getOnSubmission(
     submissionVersionId,
   );
   if (!dbo) throw error404();
-  return formatSubmissionVersionDTO(ctx, dbo);
+  const subjects = await fetchWorkVersionSubjects([dbo.work_version.id]);
+  return formatSubmissionVersionDTO(ctx, dbo, {
+    subject: subjects.get(dbo.work_version.id),
+  });
 }

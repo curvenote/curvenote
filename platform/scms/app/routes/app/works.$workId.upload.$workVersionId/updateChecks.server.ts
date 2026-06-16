@@ -17,7 +17,6 @@ export async function toggleWorkVersionCheck(
   checkName: WorkVersionCheckName,
   checked: boolean,
 ) {
-  // Validate the check name using the schema
   if (!isValidCheckName(checkName)) {
     return data(
       {
@@ -37,26 +36,20 @@ export async function toggleWorkVersionCheck(
       const currentChecksObject = currentMetadata.checks as { enabled?: WorkVersionCheckName[] };
       const currentChecks = currentChecksObject?.enabled || [];
 
-      // Mutate the checks array based on the checked state
       let updatedChecks: WorkVersionCheckName[];
       if (checked) {
-        // Add check if not already present
         updatedChecks = currentChecks.includes(checkName)
           ? currentChecks
           : [...currentChecks, checkName];
       } else {
-        // Remove check if present
         updatedChecks = currentChecks.filter((check) => check !== checkName);
       }
 
-      // Build the updated checks object, preserving existing status objects (spread order matters:
-      // `enabled` must come last or the stale `enabled` from currentChecksObject wins).
       const updatedChecksObject: Record<string, any> = {
         ...(currentChecksObject || {}),
         enabled: updatedChecks,
       };
 
-      // Validate the updated checks metadata using the schema
       const validationResult = ChecksMetadataSchema.safeParse({
         checks: updatedChecksObject,
       });
@@ -71,14 +64,15 @@ export async function toggleWorkVersionCheck(
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Failed to toggle work version check:', error);
     return data(
       {
         error: {
           type: 'general',
           message: 'Failed to toggle check',
-          details: { workVersionId, checkName, checked, error: error.message },
+          details: { workVersionId, checkName, checked, error: message },
         },
       },
       { status: 500 },

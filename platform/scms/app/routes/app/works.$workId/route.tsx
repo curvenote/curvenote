@@ -100,7 +100,7 @@ export async function action(args: ActionFunctionArgs) {
         ctx.work.id,
         'work-details',
         workTitle,
-        metadataForNewDraftFileWorkVersion(ctx.$config, serverExtensions),
+        metadataForNewDraftFileWorkVersion(),
       );
       return {
         success: true,

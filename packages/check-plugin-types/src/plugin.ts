@@ -207,6 +207,15 @@ export interface ServicePlugin {
   ): Promise<PluginOperationResult>;
 
   /**
+   * Record provider-side acceptance of legal terms (e.g. Turnitin Accept EULA).
+   * Optional — relay returns 501 when omitted.
+   */
+  acceptTerms?(
+    credentials: Record<string, unknown>,
+    body: Record<string, unknown>,
+  ): Promise<PluginOperationResult>;
+
+  /**
    * Upload manuscript(s) and create a check at the provider.
    * On success, `result` should include **`externalId`** (provider id); the relay exposes it to the client.
    * {@link PluginUploadPayload} is built by the relay from the HTTP body.

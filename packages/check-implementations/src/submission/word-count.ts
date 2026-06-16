@@ -83,28 +83,33 @@ export const wordCount: CheckInterface = {
       });
     }
     const length = count(toWordCountText(content, { figures, footnotes }), 'words', {});
+    const filename = path.basename(file);
     if (length > max) {
-      return fail(`${upper(part ?? 'document')} is too long: ${length}/${max} words`, {
+      const message = part
+        ? `Shorten your ${part} from "${filename}" to less than ${max} words`
+        : `Shorten your document "${filename}" to less than ${max} words`;
+      return fail(message, {
         file,
         position: content.position,
         help: `Shorten your ${part ?? 'document'} to less than ${max} words`,
       });
     }
     if (length < min) {
-      return fail(`${upper(part ?? 'document')} is too short: ${length}/${min} words`, {
+      const message = part
+        ? `Increase the length of your ${part} from "${filename}" to more than ${min} words`
+        : `Increase the length of your document "${filename}" to more than ${min} words`;
+      return fail(message, {
         file,
         position: content.position,
         help: `Increase the length of your ${part ?? 'document'} to more than ${min} words`,
       });
     }
-    return pass(
-      `${upper(part ?? 'document')} is correct length (${length}${max == null ? '' : `/${max}`} words)`,
-      {
-        file,
-        position: content.position,
-        nice: `${upper(part ?? 'document')} is a good length 🔢`,
-      },
-    );
+    const subject = part ? `${upper(part)} from "${filename}"` : `Document "${filename}"`;
+    return pass(`${subject} is correct length (${length}${max == null ? '' : `/${max}`} words)`, {
+      file,
+      position: content.position,
+      nice: `${upper(part ?? 'document')} is a good length 🔢`,
+    });
   },
 };
 

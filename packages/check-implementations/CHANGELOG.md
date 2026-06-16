@@ -1,5 +1,30 @@
 # @curvenote/check-implementations
 
+## 0.16.4
+
+### Patch Changes
+
+- [#953](https://github.com/curvenote/curvenote/pull/953) [`90b68fe`](https://github.com/curvenote/curvenote/commit/90b68fe472ba87ef1dee276c92ffdf1128ae0d03) Thanks [@fwkoch](https://github.com/fwkoch)! - Add exports-exist check
+
+- [#953](https://github.com/curvenote/curvenote/pull/953) [`90b68fe`](https://github.com/curvenote/curvenote/commit/90b68fe472ba87ef1dee276c92ffdf1128ae0d03) Thanks [@fwkoch](https://github.com/fwkoch)! - Add filename to word-count check message
+
+- Updated dependencies [[`90b68fe`](https://github.com/curvenote/curvenote/commit/90b68fe472ba87ef1dee276c92ffdf1128ae0d03)]:
+  - @curvenote/check-definitions@0.16.4
+
+## 0.16.3
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.16.3
+
+## 0.16.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.16.2
+
 ## 0.16.1
 
 ### Patch Changes

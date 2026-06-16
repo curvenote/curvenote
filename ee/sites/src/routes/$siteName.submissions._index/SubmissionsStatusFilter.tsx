@@ -25,6 +25,7 @@ export function SubmissionsStatusFilter({ className }: SubmissionsStatusFilterPr
     <ListingMultiSelectChip
       paramKey="statuses"
       label="Status"
+      defaultValueLabel="All"
       searchable={false}
       options={[...LISTING_STATUS_OPTIONS]}
       className={className}

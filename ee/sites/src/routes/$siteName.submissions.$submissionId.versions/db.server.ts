@@ -1,16 +1,7 @@
-import type { SiteContext } from '@curvenote/scms-server';
-import { getPrismaClient } from '@curvenote/scms-server';
-import { getWorkflow } from '@curvenote/scms-core';
+import { getConfiguredWorkflow, getPrismaClient, type SiteContext } from '@curvenote/scms-server';
 import { firstVersionTag } from '../$siteName.submissions._index/index.versions.server.js';
 
-export type VersionTimelineEntry = {
-  id: string;
-  date_created: string;
-  date_published?: string;
-  status: string;
-  statusLabel: string;
-  tag?: string;
-};
+import type { VersionTimelineEntry } from '@curvenote/scms-core';
 
 /**
  * All submission versions for the version-timeline hover card (newest first).
@@ -41,6 +32,7 @@ export async function dbLoadSubmissionVersionsTimeline(
         select: {
           id: true,
           date_created: true,
+          date_modified: true,
           date_published: true,
           status: true,
           tags: true,
@@ -53,14 +45,16 @@ export async function dbLoadSubmissionVersionsTimeline(
     return null;
   }
 
-  const workflow = getWorkflow(ctx.$config, [], submission.collection.workflow);
+  const workflow = getConfiguredWorkflow(ctx, submission.collection.workflow);
 
   return submission.versions.map((row) => ({
     id: row.id,
     date_created: row.date_created,
+    date_modified: row.date_modified,
     date_published: row.date_published ?? undefined,
     status: row.status,
     statusLabel: workflow.states[row.status]?.label ?? row.status,
+    statusTags: workflow.states[row.status]?.tags,
     tag: firstVersionTag(row),
   }));
 }

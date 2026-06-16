@@ -2,8 +2,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   WORK_VERSION_DOCX_MIME,
+  getFilesForSlot,
   hasDocxInMetadata,
+  hasInvalidEnabledUploadChecks,
   hasPdfInMetadata,
+  isDocxOrPdfFile,
+  resolveUploadCheckCardState,
 } from './workVersionMetadata.js';
 
 describe('workVersionMetadata', () => {
@@ -44,5 +48,64 @@ describe('workVersionMetadata', () => {
         files: { a: { path: 'word/file.docx' } },
       }),
     ).toBe(true);
+  });
+
+  it('getFilesForSlot returns only entries for the slot', () => {
+    const metadata = {
+      files: {
+        a: { slot: 'manuscript', name: 'a.pdf', size: 1 },
+        b: { slot: 'figures', name: 'b.png', size: 2 },
+        c: { slot: 'manuscript', name: 'c.docx', size: 3 },
+      },
+    };
+    expect(getFilesForSlot(metadata, 'manuscript')).toHaveLength(2);
+    expect(getFilesForSlot(metadata, 'figures')).toHaveLength(1);
+    expect(getFilesForSlot(undefined, 'manuscript')).toEqual([]);
+  });
+
+  it('isDocxOrPdfFile accepts pdf and docx by type or extension', () => {
+    expect(isDocxOrPdfFile({ type: 'application/pdf' })).toBe(true);
+    expect(isDocxOrPdfFile({ name: 'x.docx' })).toBe(true);
+    expect(isDocxOrPdfFile({ name: 'x.png' })).toBe(false);
+  });
+
+  it('hasInvalidEnabledUploadChecks detects ineligible enabled services', () => {
+    const services = [
+      {
+        id: 'proofig',
+        isUploadEligible: (m: unknown) => getFilesForSlot(m, 'manuscript').length === 1,
+      },
+    ];
+    expect(hasInvalidEnabledUploadChecks({ files: {} }, ['proofig'], services)).toBe(true);
+    expect(
+      hasInvalidEnabledUploadChecks(
+        {
+          files: {
+            a: { slot: 'manuscript', type: 'application/pdf', size: 1 },
+          },
+        },
+        ['proofig'],
+        services,
+      ),
+    ).toBe(false);
+  });
+
+  it('resolveUploadCheckCardState maps eligible + enabled to card modes', () => {
+    expect(resolveUploadCheckCardState({ eligible: true, enabled: false })).toEqual({
+      disabled: false,
+      invalid: false,
+    });
+    expect(resolveUploadCheckCardState({ eligible: true, enabled: true })).toEqual({
+      disabled: false,
+      invalid: false,
+    });
+    expect(resolveUploadCheckCardState({ eligible: false, enabled: false })).toEqual({
+      disabled: false,
+      invalid: false,
+    });
+    expect(resolveUploadCheckCardState({ eligible: false, enabled: true })).toEqual({
+      disabled: false,
+      invalid: true,
+    });
   });
 });

@@ -1,5 +1,106 @@
 # @curvenote/scms
 
+## 0.21.0
+
+### Minor Changes
+
+- [#951](https://github.com/curvenote/curvenote/pull/951) [`0f7463a`](https://github.com/curvenote/curvenote/commit/0f7463a14ad30824def89d97259a1b4289b04baa) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add version timeline hover popovers on works and submissions listings.
+  - **Works listing** — a Timeline control opens a lazy-loaded work-version timeline with created/modified dates, work version tags, and compact site chips for linked submission versions (status ring + inline tag).
+  - **Submissions listing** — status badges, version tags, and published/retracted chips open the submission-version timeline (publication date, tag, status, activity line).
+  - **Shared `@curvenote/scms-core` UI** — `VersionTimelineHoverCard`, row renderers, client cache/revalidate hook, and JSON URL helpers reused by both surfaces.
+  - **Trimmed API payloads** — `/app/works/:workId/versions` and `/app/sites/:siteName/submissions/:submissionId/versions` return at most eight visible entries plus dashed gap markers when versions are omitted; a footer link opens the full timeline on the work details or submission detail page.
+  - **Selection rules** — submission timelines prioritise published versions and the first significant (oldest published, else inaugural) version; work timelines always show the first work version and prefer versions with submission versions, then published submission versions.
+
+### Patch Changes
+
+- [#948](https://github.com/curvenote/curvenote/pull/948) [`83d0a94`](https://github.com/curvenote/curvenote/commit/83d0a949d5ed4fd693ba9e39af4d1b63230072ed) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Optimizing query on main published article API route
+
+- Updated dependencies [[`71a32de`](https://github.com/curvenote/curvenote/commit/71a32de6e318642bad1e02cc616d59ef0b51e878), [`83d0a94`](https://github.com/curvenote/curvenote/commit/83d0a949d5ed4fd693ba9e39af4d1b63230072ed), [`0f7463a`](https://github.com/curvenote/curvenote/commit/0f7463a14ad30824def89d97259a1b4289b04baa)]:
+  - @curvenote/scms-server@0.21.0
+  - @curvenote/scms-sites-ext@0.21.0
+  - @curvenote/scms-core@0.21.0
+  - @curvenote/scms-db@0.21.0
+
+## 0.20.2
+
+### Patch Changes
+
+- [#938](https://github.com/curvenote/curvenote/pull/938) [`f3f91b8`](https://github.com/curvenote/curvenote/commit/f3f91b80cde2486071abdc21f7f2cdd288526985) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Extend free-text search on the public works listing (`GET /v1/sites/:siteName/works?q=...`) to match affiliation names from `WorkVersion.metadata['frontmatter.myst'].affiliations`.
+  - **Index:** add `work_version_affiliations_search_text(metadata)` GIN trigram index on `WorkVersion` via `CREATE INDEX CONCURRENTLY` (large-table safe), extracting each affiliation's `name` (with `institution` fallback).
+  - **Query:** add an `OR` branch to `dbSearchSubmissionIds` alongside existing title, author, and DOI predicates; omit the affiliation branch when every query token is a common boilerplate stopword (university, department, school, etc.).
+  - **Tests:** integration coverage for Harvard/Wyss-style affiliation metadata; unit tests for the extractor and stopword gate.
+
+  ***
+
+- [#940](https://github.com/curvenote/curvenote/pull/940) [`e871c3d`](https://github.com/curvenote/curvenote/commit/e871c3d918b09180684d732b6fcee245514d9cda) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Speed up site DOI resolution under load (`GET /v1/sites/:siteName/doi/:first/:second`).
+  - **Query:** start from btree-backed `WorkVersion.doi` / `Work.doi` equality, join to published `SubmissionVersion` rows scoped by `site_id`, then hydrate the DTO by primary key — avoids Prisma `OR` duplicating `WorkVersion` joins and rooting the plan at `SubmissionVersion`.
+  - **Index:** partial `(work_version_id, date_created DESC) WHERE status = 'PUBLISHED'` via `CREATE INDEX CONCURRENTLY` for the latest-published probe after DOI lookup.
+  - **Index:** `WorkVersion.work_id` btree (`20260610160000`) so the Work-level DOI fallback probes versions by FK instead of seq-scanning the table.
+  - **Query:** Work-level DOI branch uses `work_id IN (SELECT … FROM Work WHERE doi = ?)` so the planner can use `WorkVersion_work_id_idx`.
+
+- [#943](https://github.com/curvenote/curvenote/pull/943) [`202f5b7`](https://github.com/curvenote/curvenote/commit/202f5b7a1b913e64e54e545099d2e1886032708a) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Sites UI improvements
+
+- [#936](https://github.com/curvenote/curvenote/pull/936) [`dc9e4cd`](https://github.com/curvenote/curvenote/commit/dc9e4cded4d91502fa9a09e676adfe7f05655a2c) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Speed up exact subject filtering on the public works listing (`GET /v1/sites/:siteName/works?subject=...`).
+  - **Index:** add `work_version_subject_normalized(metadata)` expression index on `WorkVersion` via `CREATE INDEX CONCURRENTLY` (large-table safe) for case- and whitespace-insensitive equality on `metadata['frontmatter.myst'].subject`.
+  - **Query:** rewrite `fetchSubmissionIdsBySubject` to start from matching work versions and join back through `SubmissionVersion` (status) to `Submission` (site), instead of scanning every submission on the site with an `EXISTS` subquery that evaluates JSON extraction per row.
+
+- [#937](https://github.com/curvenote/curvenote/pull/937) [`45d6209`](https://github.com/curvenote/curvenote/commit/45d6209573a6e5c6c60d4312c1185585a0377c43) Thanks [@github-actions](https://github.com/apps/github-actions)! - Speed up free-text search on the public works listing (`GET /v1/sites/:siteName/works?q=...`).
+
+  Rewrite `dbSearchSubmissionIds` to UNION single-field trigram probes on `WorkVersion` / `Work`, then join back to submissions by `site_id`, instead of a correlated `EXISTS` that looped once per submission on large sites.
+
+  Replace Prisma `submission.count()` (correlated `EXISTS` + `COUNT(*)` subquery) with raw `COUNT(DISTINCT …)` over an inner join to `SubmissionVersion` for the listing `total` field.
+
+- Updated dependencies [[`f3f91b8`](https://github.com/curvenote/curvenote/commit/f3f91b80cde2486071abdc21f7f2cdd288526985), [`bbdb72b`](https://github.com/curvenote/curvenote/commit/bbdb72b024095408a010b97172010ac45fecba36), [`e871c3d`](https://github.com/curvenote/curvenote/commit/e871c3d918b09180684d732b6fcee245514d9cda), [`202f5b7`](https://github.com/curvenote/curvenote/commit/202f5b7a1b913e64e54e545099d2e1886032708a), [`dc9e4cd`](https://github.com/curvenote/curvenote/commit/dc9e4cded4d91502fa9a09e676adfe7f05655a2c), [`e871c3d`](https://github.com/curvenote/curvenote/commit/e871c3d918b09180684d732b6fcee245514d9cda)]:
+  - @curvenote/scms-server@0.20.2
+  - @curvenote/scms-db@0.20.2
+  - @curvenote/scms-core@0.20.2
+  - @curvenote/scms-sites-ext@0.20.2
+
+## 0.20.1
+
+### Patch Changes
+
+- [#895](https://github.com/curvenote/curvenote/pull/895) [`ca501fc`](https://github.com/curvenote/curvenote/commit/ca501fc7a5da98692d483db8a5bc98d6f50d4ea2) Thanks [@dependabot](https://github.com/apps/dependabot)! - Uniformly return version on public SiteWork endpoints
+
+- [#926](https://github.com/curvenote/curvenote/pull/926) [`94e9078`](https://github.com/curvenote/curvenote/commit/94e90780c1bd5fdcff575f5c06bacfef4ef26a13) Thanks [@stevejpurves](https://github.com/stevejpurves)! - WorkVersion `subject` read from new frontmatter location
+
+- [#932](https://github.com/curvenote/curvenote/pull/932) [`0594630`](https://github.com/curvenote/curvenote/commit/05946301f9dcf369cef12870ea79022aafb069a8) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Upload form and flow improvements
+
+- Updated dependencies [[`ca501fc`](https://github.com/curvenote/curvenote/commit/ca501fc7a5da98692d483db8a5bc98d6f50d4ea2), [`94e9078`](https://github.com/curvenote/curvenote/commit/94e90780c1bd5fdcff575f5c06bacfef4ef26a13), [`0594630`](https://github.com/curvenote/curvenote/commit/05946301f9dcf369cef12870ea79022aafb069a8), [`8cb7468`](https://github.com/curvenote/curvenote/commit/8cb74684248ba8ad05e8b15d455e475360bf5f89)]:
+  - @curvenote/scms-server@0.20.1
+  - @curvenote/common@0.6.1
+  - @curvenote/scms-core@0.20.1
+  - @curvenote/scms-sites-ext@0.20.1
+  - @curvenote/check-definitions@0.16.3
+  - @curvenote/cdn@0.6.1
+  - @curvenote/scms-db@0.20.1
+
+## 0.20.0
+
+### Minor Changes
+
+- [#920](https://github.com/curvenote/curvenote/pull/920) [`211c288`](https://github.com/curvenote/curvenote/commit/211c288d3b369b0713cd982735e20fea58c99f12) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add `q`, `sort`, `from`, and `to` query params to the public works listing endpoint (`GET /v1/sites/:siteName/works`). `q` runs a case-insensitive substring search across each work version's title, authors, and DOI (backed by the existing pg_trgm indexes); `sort` toggles publication-date ordering (`published_desc` default / `published_asc`); `from`/`to` apply an inclusive `date_published` window. Pagination links now preserve these params.
+
+### Patch Changes
+
+- [#922](https://github.com/curvenote/curvenote/pull/922) [`3546673`](https://github.com/curvenote/curvenote/commit/3546673f19e16c07ac3f229bb5144b54ae9f5548) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Date picker improvements
+
+- [#921](https://github.com/curvenote/curvenote/pull/921) [`260dfd7`](https://github.com/curvenote/curvenote/commit/260dfd72a767833a3c76b3b7b21b0f15b9f61568) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Optimise the site DOI endpoint (`GET /v1/sites/:site/doi/:first/:second`).
+  - **Correctness:** the no-tag path is now scoped to the requesting site. Previously it resolved a DOI published on _any_ site, so a DOI could leak a work from a different site; it now 404s like the tag path.
+  - **Indexes:** added btree indexes on `Work.doi`, `WorkVersion.doi`, and `SubmissionVersion.work_version_id` (the existing trigram GIN indexes only serve `LIKE`/search, and the FK was unindexed), so DOI equality lookups and the DOI→published-version join no longer sequential-scan.
+  - **Query:** unified the tag and no-tag paths into a single `SubmissionVersion`-rooted lookup over a shared `where` builder, letting `ORDER BY date_created DESC` + `LIMIT 1` short-circuit at the first match.
+  - **Payload:** a narrower select (`siteWorkDtoSelect`) drops the `submitted_by` → `User` join and the submission-version bookkeeping columns the DTO never reads; `formatSiteWorkDTO` now accepts the narrower `SiteWorkDtoInput` (existing callers pass a structural superset and are unaffected).
+  - **Caching:** the route now sets Vercel cache headers — semi-static for successful lookups and a burst-protection preset for 404s — so the CDN absorbs repeat traffic (including DOI-scanner probes) instead of the origin/DB.
+
+- Updated dependencies [[`93b9d35`](https://github.com/curvenote/curvenote/commit/93b9d35d3f9a33b97cbaca5ed6a86baa25ee54c4), [`3546673`](https://github.com/curvenote/curvenote/commit/3546673f19e16c07ac3f229bb5144b54ae9f5548), [`260dfd7`](https://github.com/curvenote/curvenote/commit/260dfd72a767833a3c76b3b7b21b0f15b9f61568), [`d3c9203`](https://github.com/curvenote/curvenote/commit/d3c92030cfd718b60d695f7510570a121819499c)]:
+  - @curvenote/common@0.6.0
+  - @curvenote/scms-server@0.20.0
+  - @curvenote/scms-core@0.20.0
+  - @curvenote/scms-sites-ext@0.20.0
+  - @curvenote/scms-db@0.20.0
+  - @curvenote/cdn@0.6.0
+  - @curvenote/check-definitions@0.16.2
+
 ## 0.18.2
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs } from 'react-router';
 import { data, Outlet } from 'react-router';
-import { sites, withAppSiteContext } from '@curvenote/scms-server';
-import { getValidTransition, getWorkflow, TrackEvent, scopes } from '@curvenote/scms-core';
+import { getConfiguredWorkflow, sites, withAppSiteContext } from '@curvenote/scms-server';
+import { getValidTransition, TrackEvent, scopes } from '@curvenote/scms-core';
 import type { WorkflowTransition } from '@curvenote/scms-core';
 
 // Helper function to get specific transition event names
@@ -66,7 +66,7 @@ export const action = async (args: ActionFunctionArgs) => {
 
     // Get the workflow for the current status
     const workflowName = submissionVersion.submission.collection.workflow;
-    const workflow = getWorkflow(ctx.$config, [], workflowName);
+    const workflow = getConfiguredWorkflow(ctx, workflowName);
     if (!workflow) {
       return data(
         {

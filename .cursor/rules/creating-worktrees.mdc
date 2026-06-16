@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+---
+
+To create a new worktree with a working environment use the script `npm run wt:create <branch-name>`
+
+Always create worktrees from the `dev` branch, if the working folder is not on `dev` use `npm run wt:create <branch-name> dev`
+
+If you need to create a workspace on an existing branch use `npm run wt:create <branch-name> --existing`

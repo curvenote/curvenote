@@ -33,8 +33,8 @@ interface SubmissionsListingToolbarProps {
  * the toolbar itself only composes them and renders the result summary.
  *
  * The (i) help icon next to the search field documents the ILIKE-backed
- * matching behaviour (including the `%` and `_` wildcards). Sort lives at
- * the right end of the filter row so it sits beside the chips it conceptually
+ * matching behaviour (including the `%` and `_` wildcards). Search commits on
+ * Enter or blur — see `SubmissionsSearchInput`. Sort lives at the right end of the filter row so it sits beside the chips it conceptually
  * belongs to, rather than competing with the search input for top-row space.
  */
 export function SubmissionsListingToolbar({

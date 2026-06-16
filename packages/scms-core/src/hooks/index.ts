@@ -12,3 +12,4 @@ export * from './usePrevious.js';
 export * from './useRevalidate.js';
 export * from './useSites.js';
 export * from './useToggle.js';
+export * from './useVersionTimeline.js';

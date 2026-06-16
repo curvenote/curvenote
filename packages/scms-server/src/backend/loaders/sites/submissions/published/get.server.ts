@@ -1,53 +1,36 @@
 import type { SiteContext } from '../../../../context.site.server.js';
-import type { HostSpec, SiteWorkDTO } from '@curvenote/common';
-import { formatDate, concatSiteWorkTags } from '@curvenote/common';
+import type { HostSpec, SiteWorkDTO, SiteWorkVersionDTO } from '@curvenote/common';
+import { formatDate, concatSiteWorkTags, pickVersionTag } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
-import { submissionVersionForSiteWorkSelect } from '../../../../prisma.selects.server.js';
 import type { Prisma } from '@curvenote/scms-db';
+import type {
+  siteWorkDtoSelect,
+  submissionVersionForSiteWorkSelect,
+} from '../../../../prisma.selects.server.js';
 import { signPrivateUrls } from '../../../../sign.private.server.js';
 import { formatCollectionSummaryDTO } from '../../get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../../kinds/get.server.js';
 import { createArticleUrl } from '../../../../domains.server.js';
+import { fetchWorkVersionSubjects } from '../../../../work-version-subject.server.js';
+import { dbGetPublishedSiteWorkDto } from './resolve.server.js';
 
-export async function dbGetLatestPublishedSubmissionVersion(
-  siteName: string,
-  workIdOrSlug: string,
-) {
-  const prisma = await getPrismaClient();
-  return prisma.submissionVersion.findFirst({
-    where: {
-      status: 'PUBLISHED',
-      submission: {
-        site: {
-          name: siteName,
-        },
-      },
-      OR: [
-        {
-          work_version: {
-            work_id: workIdOrSlug,
-          },
-        },
-        {
-          submission: {
-            slugs: {
-              some: {
-                slug: workIdOrSlug,
-              },
-            },
-          },
-        },
-      ],
-    },
-    orderBy: {
-      date_created: 'desc',
-    },
-    select: submissionVersionForSiteWorkSelect,
-  });
+/** @deprecated Prefer `dbGetPublishedSiteWorkDto(siteId, …)` — kept for callers expecting the old name. */
+export async function dbGetLatestPublishedSubmissionVersion(siteId: string, workIdOrSlug: string) {
+  return dbGetPublishedSiteWorkDto(siteId, workIdOrSlug);
 }
 
 export type DBO = Prisma.SubmissionVersionGetPayload<{
   select: typeof submissionVersionForSiteWorkSelect;
+}>;
+
+/**
+ * The minimal input `formatSiteWorkDTO` actually reads. Derived from the narrow
+ * `siteWorkDtoSelect`; the broader `DBO` (and any other site-work payload) is a
+ * structural superset, so existing callers that pass a wider row still satisfy
+ * this type.
+ */
+export type SiteWorkDtoInput = Prisma.SubmissionVersionGetPayload<{
+  select: typeof siteWorkDtoSelect;
 }>;
 
 type ModifiedSiteWorkLinksDTO = Omit<SiteWorkDTO['links'], 'thumbnail' | 'social' | 'config'> & {
@@ -62,7 +45,62 @@ export type ModifiedSiteWorkDTO = Omit<SiteWorkDTO, 'links' | 'cdn' | 'cdn_key'>
   cdn?: string;
   cdn_key?: string;
 };
-export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkDTO {
+
+export type PublishedSiteWorkDTO = ModifiedSiteWorkDTO & { versions: SiteWorkVersionDTO[] };
+
+/**
+ * All *published* submission versions for a submission, newest first. Used to build the
+ * `versions` summary array so clients can render version navigation without a second
+ * request to `links.versions`.
+ */
+export async function dbGetPublishedVersionsForSubmission(siteId: string, submissionId: string) {
+  const prisma = await getPrismaClient();
+  return prisma.submissionVersion.findMany({
+    where: {
+      status: 'PUBLISHED',
+      submission_id: submissionId,
+      submission: { site_id: siteId },
+    },
+    orderBy: { date_created: 'desc' },
+    select: {
+      id: true,
+      tags: true,
+      date_published: true,
+      date_modified: true,
+    },
+  });
+}
+
+type PublishedVersionsDBO = Awaited<ReturnType<typeof dbGetPublishedVersionsForSubmission>>;
+
+export function formatSiteWorkVersions(rows: PublishedVersionsDBO): SiteWorkVersionDTO[] {
+  return rows.map((row) => ({
+    submission_version_id: row.id,
+    version: pickVersionTag(row.tags) ?? undefined,
+    date: row.date_published ?? formatDate(row.date_modified),
+    tags: [...row.tags],
+  }));
+}
+
+export async function formatPublishedSiteWorkWithVersions(
+  ctx: SiteContext,
+  dbo: SiteWorkDtoInput,
+): Promise<PublishedSiteWorkDTO> {
+  const subjects = await fetchWorkVersionSubjects([dbo.work_version.id]);
+  const siteWork = formatSiteWorkDTO(ctx, dbo, {
+    subject: subjects.get(dbo.work_version.id),
+  });
+  const versionRows = await dbGetPublishedVersionsForSubmission(
+    ctx.site.id,
+    siteWork.submission_id,
+  );
+  return { ...siteWork, versions: formatSiteWorkVersions(versionRows) };
+}
+export function formatSiteWorkDTO(
+  ctx: SiteContext,
+  dbo: SiteWorkDtoInput,
+  opts?: { subject?: string },
+): ModifiedSiteWorkDTO {
   const { cdn_key, cdn, title, description, canonical, authors, date_created } = dbo.work_version;
   const tags = concatSiteWorkTags(dbo.tags ?? [], dbo.work_version.tags ?? []);
   const submission_version_id = dbo.id;
@@ -111,6 +149,7 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkD
     cdn_query: host?.query,
     title: title ?? '',
     description: description || undefined,
+    subject: opts?.subject,
     authors: authors.map((a) => ({ name: a })),
     canonical: canonical ? true : false,
     tags,
@@ -139,8 +178,11 @@ export function formatSiteWorkDTO(ctx: SiteContext, dbo: DBO): ModifiedSiteWorkD
   };
 }
 
-export default async function (ctx: SiteContext, workIdOrSlug: string) {
-  const dbo = await dbGetLatestPublishedSubmissionVersion(ctx.site.name, workIdOrSlug);
+export default async function (
+  ctx: SiteContext,
+  workIdOrSlug: string,
+): Promise<PublishedSiteWorkDTO | null> {
+  const dbo = await dbGetPublishedSiteWorkDto(ctx.site.id, workIdOrSlug);
   if (!dbo) return null;
-  return formatSiteWorkDTO(ctx, dbo);
+  return formatPublishedSiteWorkWithVersions(ctx, dbo);
 }

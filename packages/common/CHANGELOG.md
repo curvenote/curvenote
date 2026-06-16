@@ -1,5 +1,21 @@
 # @curvenote/common
 
+## 0.6.1
+
+### Patch Changes
+
+- [#895](https://github.com/curvenote/curvenote/pull/895) [`ca501fc`](https://github.com/curvenote/curvenote/commit/ca501fc7a5da98692d483db8a5bc98d6f50d4ea2) Thanks [@dependabot](https://github.com/apps/dependabot)! - Uniformly return version on public SiteWork endpoints
+
+- [#926](https://github.com/curvenote/curvenote/pull/926) [`94e9078`](https://github.com/curvenote/curvenote/commit/94e90780c1bd5fdcff575f5c06bacfef4ef26a13) Thanks [@stevejpurves](https://github.com/stevejpurves)! - WorkVersion `subject` read from new frontmatter location
+
+## 0.6.0
+
+### Minor Changes
+
+- [#918](https://github.com/curvenote/curvenote/pull/918) [`93b9d35`](https://github.com/curvenote/curvenote/commit/93b9d35d3f9a33b97cbaca5ed6a86baa25ee54c4) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Return a `versions` summary array (submission version id, primary `v{n}` tag, date, and all tags) from the site DOI endpoint (`GET /v1/sites/:site/doi/:first/:second`). This lets clients render version navigation from a single request instead of a follow-up call to the submission `links.versions` listing. Adds a `pickVersionTag` helper and `SiteWorkVersionDTO` type to `@curvenote/common`.
+
+- [#923](https://github.com/curvenote/curvenote/pull/923) [`d3c9203`](https://github.com/curvenote/curvenote/commit/d3c92030cfd718b60d695f7510570a121819499c) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add optional `subject` to `SiteWorkDTO`, populated from `WorkVersion.metadata['frontmatter.myst'].project.subject`. Exposed on all SiteWork API responses (works listing, DOI resolve, published work get, submission version get/list, previews). Subject is batch-fetched via a Postgres JSON-path query so the full metadata blob is not loaded into Node. The public works listing (`GET /v1/sites/:siteName/works`) accepts a `subject` query param for case-insensitive exact filtering; pagination links preserve it.
+
 ## 0.5.1
 
 ### Patch Changes

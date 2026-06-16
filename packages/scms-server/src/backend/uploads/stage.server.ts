@@ -145,6 +145,32 @@ export async function uploadsStage(
     });
   }
 
+  // Validate combined slot size (existing files in slot + this batch)
+  if (uploadConfig.maxTotalSize !== undefined) {
+    const existingSlotSize = Object.values(data?.files ?? {})
+      .filter((file) => file.slot === slot)
+      .reduce((sum, file) => sum + file.size, 0);
+    const batchSize = files.reduce((sum, file) => sum + file.size, 0);
+    const projectedTotal = existingSlotSize + batchSize;
+    if (projectedTotal > uploadConfig.maxTotalSize) {
+      return dataResponse(
+        {
+          error: {
+            type: 'general',
+            message: 'Slot total size exceeded',
+            details: {
+              maxTotalSize: uploadConfig.maxTotalSize,
+              currentTotal: existingSlotSize,
+              attemptedTotal: batchSize,
+              projectedTotal,
+            },
+          },
+        },
+        { status: 400 },
+      );
+    }
+  }
+
   // Check for duplicate files across ALL slots
   const allExistingFiles = Object.values(data?.files || {});
 

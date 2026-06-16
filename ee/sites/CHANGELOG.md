@@ -1,5 +1,60 @@
 # @curvenote/scms-sites-ext
 
+## 0.21.0
+
+### Minor Changes
+
+- [#951](https://github.com/curvenote/curvenote/pull/951) [`0f7463a`](https://github.com/curvenote/curvenote/commit/0f7463a14ad30824def89d97259a1b4289b04baa) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add version timeline hover popovers on works and submissions listings.
+  - **Works listing** — a Timeline control opens a lazy-loaded work-version timeline with created/modified dates, work version tags, and compact site chips for linked submission versions (status ring + inline tag).
+  - **Submissions listing** — status badges, version tags, and published/retracted chips open the submission-version timeline (publication date, tag, status, activity line).
+  - **Shared `@curvenote/scms-core` UI** — `VersionTimelineHoverCard`, row renderers, client cache/revalidate hook, and JSON URL helpers reused by both surfaces.
+  - **Trimmed API payloads** — `/app/works/:workId/versions` and `/app/sites/:siteName/submissions/:submissionId/versions` return at most eight visible entries plus dashed gap markers when versions are omitted; a footer link opens the full timeline on the work details or submission detail page.
+  - **Selection rules** — submission timelines prioritise published versions and the first significant (oldest published, else inaugural) version; work timelines always show the first work version and prefer versions with submission versions, then published submission versions.
+
+### Patch Changes
+
+- [#948](https://github.com/curvenote/curvenote/pull/948) [`83d0a94`](https://github.com/curvenote/curvenote/commit/83d0a949d5ed4fd693ba9e39af4d1b63230072ed) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Optimizing query on main published article API route
+
+- Updated dependencies [[`71a32de`](https://github.com/curvenote/curvenote/commit/71a32de6e318642bad1e02cc616d59ef0b51e878), [`83d0a94`](https://github.com/curvenote/curvenote/commit/83d0a949d5ed4fd693ba9e39af4d1b63230072ed), [`0f7463a`](https://github.com/curvenote/curvenote/commit/0f7463a14ad30824def89d97259a1b4289b04baa)]:
+  - @curvenote/scms-server@0.21.0
+  - @curvenote/scms-core@0.21.0
+  - @curvenote/scms-db@0.21.0
+
+## 0.20.2
+
+### Patch Changes
+
+- [#943](https://github.com/curvenote/curvenote/pull/943) [`202f5b7`](https://github.com/curvenote/curvenote/commit/202f5b7a1b913e64e54e545099d2e1886032708a) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Sites UI improvements
+
+- Updated dependencies [[`f3f91b8`](https://github.com/curvenote/curvenote/commit/f3f91b80cde2486071abdc21f7f2cdd288526985), [`bbdb72b`](https://github.com/curvenote/curvenote/commit/bbdb72b024095408a010b97172010ac45fecba36), [`e871c3d`](https://github.com/curvenote/curvenote/commit/e871c3d918b09180684d732b6fcee245514d9cda), [`202f5b7`](https://github.com/curvenote/curvenote/commit/202f5b7a1b913e64e54e545099d2e1886032708a), [`dc9e4cd`](https://github.com/curvenote/curvenote/commit/dc9e4cded4d91502fa9a09e676adfe7f05655a2c), [`e871c3d`](https://github.com/curvenote/curvenote/commit/e871c3d918b09180684d732b6fcee245514d9cda)]:
+  - @curvenote/scms-server@0.20.2
+  - @curvenote/scms-db@0.20.2
+  - @curvenote/scms-core@0.20.2
+
+## 0.20.1
+
+### Patch Changes
+
+- Updated dependencies [[`ca501fc`](https://github.com/curvenote/curvenote/commit/ca501fc7a5da98692d483db8a5bc98d6f50d4ea2), [`94e9078`](https://github.com/curvenote/curvenote/commit/94e90780c1bd5fdcff575f5c06bacfef4ef26a13), [`0594630`](https://github.com/curvenote/curvenote/commit/05946301f9dcf369cef12870ea79022aafb069a8), [`8cb7468`](https://github.com/curvenote/curvenote/commit/8cb74684248ba8ad05e8b15d455e475360bf5f89)]:
+  - @curvenote/scms-server@0.20.1
+  - @curvenote/common@0.6.1
+  - @curvenote/scms-core@0.20.1
+  - @curvenote/check-definitions@0.16.3
+  - @curvenote/scms-db@0.20.1
+
+## 0.20.0
+
+### Patch Changes
+
+- [#922](https://github.com/curvenote/curvenote/pull/922) [`3546673`](https://github.com/curvenote/curvenote/commit/3546673f19e16c07ac3f229bb5144b54ae9f5548) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Date picker improvements
+
+- Updated dependencies [[`93b9d35`](https://github.com/curvenote/curvenote/commit/93b9d35d3f9a33b97cbaca5ed6a86baa25ee54c4), [`3546673`](https://github.com/curvenote/curvenote/commit/3546673f19e16c07ac3f229bb5144b54ae9f5548), [`260dfd7`](https://github.com/curvenote/curvenote/commit/260dfd72a767833a3c76b3b7b21b0f15b9f61568), [`d3c9203`](https://github.com/curvenote/curvenote/commit/d3c92030cfd718b60d695f7510570a121819499c)]:
+  - @curvenote/common@0.6.0
+  - @curvenote/scms-server@0.20.0
+  - @curvenote/scms-core@0.20.0
+  - @curvenote/scms-db@0.20.0
+  - @curvenote/check-definitions@0.16.2
+
 ## 0.19.1
 
 ### Patch Changes

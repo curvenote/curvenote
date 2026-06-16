@@ -215,10 +215,10 @@ function WorkVersionTimelineInner({
             <ui.TooltipProvider delayDuration={1000}>
               <ui.Tooltip delayDuration={1000}>
                 <ui.TooltipTrigger asChild>
-                  <span className="cursor-default">v{versionNumber}</span>
+                  <span className="cursor-default">r{versionNumber}</span>
                 </ui.TooltipTrigger>
                 <ui.TooltipContent side="top" className="text-sm">
-                  {formatDate(v.date_created, 'MMM d, yyyy h:mm:ss a')}
+                  Revision {versionNumber}
                 </ui.TooltipContent>
               </ui.Tooltip>
             </ui.TooltipProvider>

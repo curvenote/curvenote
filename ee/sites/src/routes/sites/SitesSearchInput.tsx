@@ -1,49 +1,60 @@
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
+import { useSearchParams } from 'react-router';
 import { Loader2, Search, X } from 'lucide-react';
 import { cn, ui } from '@curvenote/scms-core';
 
 /**
  * Throttle interval for the client-side filter. Short enough that the list
  * visibly refreshes while the user is still typing, long enough that we don't
- * thrash the parent transition on every keystroke.
+ * thrash the URL update on every keystroke.
  */
 const SEARCH_THROTTLE_MS = 200;
 
+export const SITES_SEARCH_PARAM = 'q';
+
 export const SITES_SEARCH_MIN_LENGTH = 1;
 
+export function readSitesSearchQuery(searchParams: URLSearchParams): string {
+  return searchParams.get(SITES_SEARCH_PARAM) ?? '';
+}
+
+export function setSitesSearchQuery(
+  searchParams: URLSearchParams,
+  query: string | undefined,
+): URLSearchParams {
+  const next = new URLSearchParams(searchParams);
+  if (query === undefined || query === '') {
+    next.delete(SITES_SEARCH_PARAM);
+  } else {
+    next.set(SITES_SEARCH_PARAM, query);
+  }
+  return next;
+}
+
 interface SitesSearchInputProps {
-  /**
-   * Called with the effective query — the trimmed input once it reaches
-   * `SITES_SEARCH_MIN_LENGTH`, or `''` to clear the filter. The parent owns
-   * the filter state; this component only handles the throttle + min-length
-   * gate so the typing thread stays responsive.
-   */
-  onQueryChange: (query: string) => void;
   /** Number of sites currently visible after filtering. */
   sitesShownCount: number;
   className?: string;
 }
 
 /**
- * Local, throttled search box for the My Sites grid.
+ * URL-bound, throttled search box for the My Sites grid.
  *
- * Unlike the submissions listing search this one is purely client-side — the
- * URL is never touched. Local state mirrors the input. A leading-and-trailing
- * throttle (200ms) pushes the effective query up to the parent inside a
- * transition, so the list visibly refreshes while the user is still typing
- * without thrashing the parent on every keystroke.
+ * Filtering is purely client-side — the loader never reads `?q=` — but the URL
+ * is the source of truth so back/forward and remounts stay in sync with the
+ * input. Updates use `replace: true` so typing does not push history entries.
  *
- * The trailing × clears in one click; Esc clears via the keyboard; Enter
- * flushes immediately (bypassing the throttle) so power users don't wait.
+ * Local state mirrors the input. A leading-and-trailing throttle (200ms) writes
+ * the effective query to `?q=` inside a transition. The trailing × clears in
+ * one click; Esc clears via the keyboard; Enter flushes immediately.
  */
-export function SitesSearchInput({
-  onQueryChange,
-  sitesShownCount,
-  className,
-}: SitesSearchInputProps) {
+export function SitesSearchInput({ sitesShownCount, className }: SitesSearchInputProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const inputId = useId();
-  const [value, setValue] = useState('');
+  const initialValue = readSitesSearchQuery(searchParams);
+  const [value, setValue] = useState(initialValue);
   const [isPending, startTransition] = useTransition();
+  const lastPushedRef = useRef(initialValue);
 
   // Throttle bookkeeping. `lastFireAtRef` is the timestamp of the last actual
   // flush; `trailingTimerRef` is the scheduled trailing fire (if any);
@@ -53,6 +64,16 @@ export function SitesSearchInput({
   const lastFireAtRef = useRef(0);
   const trailingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingValueRef = useRef<string | null>(null);
+
+  // Resync local state when the URL changes from outside (browser back/forward,
+  // clear button on a stale mount). Avoid clobbering an in-flight edit.
+  useEffect(() => {
+    const urlValue = readSitesSearchQuery(searchParams);
+    if (urlValue !== lastPushedRef.current) {
+      lastPushedRef.current = urlValue;
+      setValue(urlValue);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     return () => {
@@ -68,13 +89,21 @@ export function SitesSearchInput({
     pendingValueRef.current = null;
   };
 
-  const flushQuery = (next: string) => {
+  const pushToUrl = (next: string) => {
     const trimmed = next.trim();
     const effective = trimmed.length >= SITES_SEARCH_MIN_LENGTH ? trimmed : '';
-    lastFireAtRef.current = Date.now();
+    lastPushedRef.current = effective;
     startTransition(() => {
-      onQueryChange(effective);
+      setSearchParams((prev) => setSitesSearchQuery(prev, effective || undefined), {
+        replace: true,
+        preventScrollReset: true,
+      });
     });
+  };
+
+  const flushQuery = (next: string) => {
+    lastFireAtRef.current = Date.now();
+    pushToUrl(next);
   };
 
   const scheduleThrottledFlush = (next: string) => {

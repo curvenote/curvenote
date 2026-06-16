@@ -11,7 +11,12 @@ export async function dbGetKind(ctx: SiteContext, where: Prisma.SubmissionKindWh
 
 export type DBO = Exclude<Awaited<ReturnType<typeof dbGetKind>>, null>;
 
-export function formatSubmissionKindSummaryDTO(dbo: DBO): SubmissionKindSummaryDTO {
+/** Fields read by {@link formatSubmissionKindSummaryDTO}. */
+export type SubmissionKindSummaryInput = Pick<DBO, 'id' | 'name' | 'content' | 'default'>;
+
+export function formatSubmissionKindSummaryDTO(
+  dbo: SubmissionKindSummaryInput,
+): SubmissionKindSummaryDTO {
   return {
     id: dbo.id,
     name: dbo.name,

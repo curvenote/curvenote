@@ -29,6 +29,11 @@ interface ListingMultiSelectChipProps {
   searchPlaceholder?: string;
   /** Empty-state copy when no options match the search query (only when `searchable`). */
   noResultsLabel?: string;
+  /**
+   * Value shown when nothing is selected (e.g. `"All"`). When set, the trigger
+   * reads `{label}: {defaultValueLabel}` and an option to clear is offered.
+   */
+  defaultValueLabel?: string;
   options: ListingMultiSelectOption[];
   className?: string;
 }
@@ -47,6 +52,7 @@ export function ListingMultiSelectChip({
   searchable = true,
   searchPlaceholder = 'Search...',
   noResultsLabel = 'No matches.',
+  defaultValueLabel,
   options,
   className,
 }: ListingMultiSelectChipProps) {
@@ -69,8 +75,10 @@ export function ListingMultiSelectChip({
     });
   };
 
-  const summary = formatSelectionSummary(label, options, selected);
+  const summary = formatSelectionSummary(label, options, selected, defaultValueLabel);
   const hasSelection = selected.length > 0;
+  const ariaLabel =
+    summary.kind === 'label-only' ? summary.text : `${summary.prefix}: ${summary.value}`;
 
   return (
     <ui.Popover open={open} onOpenChange={setOpen}>
@@ -84,9 +92,15 @@ export function ListingMultiSelectChip({
               'border-primary/40 bg-primary/5 dark:border-primary/40 dark:bg-primary/10',
             className,
           )}
-          aria-label={summary}
+          aria-label={ariaLabel}
         >
-          <span>{summary}</span>
+          {summary.kind === 'label-only' ? (
+            <span>{summary.text}</span>
+          ) : (
+            <span>
+              {summary.prefix}: <span className="font-medium">{summary.value}</span>
+            </span>
+          )}
           {hasSelection ? (
             <span
               role="button"
@@ -119,6 +133,18 @@ export function ListingMultiSelectChip({
           <ui.CommandList>
             {searchable ? <ui.CommandEmpty>{noResultsLabel}</ui.CommandEmpty> : null}
             <ui.CommandGroup>
+              {defaultValueLabel ? (
+                <ui.CommandItem value={`${defaultValueLabel} all`} onSelect={handleClear}>
+                  <Check
+                    className={cn(
+                      'size-3.5 shrink-0',
+                      selected.length === 0 ? 'opacity-100' : 'opacity-0',
+                    )}
+                    aria-hidden
+                  />
+                  <span className="flex-1 truncate">{defaultValueLabel}</span>
+                </ui.CommandItem>
+              ) : null}
               {options.map((option) => {
                 const isSelected = selectedSet.has(option.id);
                 return (
@@ -147,11 +173,21 @@ function formatSelectionSummary(
   label: string,
   options: ListingMultiSelectOption[],
   selectedIds: readonly string[],
-): string {
-  if (selectedIds.length === 0) return label;
+  defaultValueLabel?: string,
+): { kind: 'label-only'; text: string } | { kind: 'label-value'; prefix: string; value: string } {
+  if (selectedIds.length === 0) {
+    if (defaultValueLabel) {
+      return { kind: 'label-value', prefix: label, value: defaultValueLabel };
+    }
+    return { kind: 'label-only', text: label };
+  }
   if (selectedIds.length === 1) {
     const match = options.find((option) => option.id === selectedIds[0]);
-    return match ? `${label}: ${match.name}` : `${label}: 1`;
+    return {
+      kind: 'label-value',
+      prefix: label,
+      value: match ? match.name : '1',
+    };
   }
-  return `${label}: ${selectedIds.length}`;
+  return { kind: 'label-value', prefix: label, value: String(selectedIds.length) };
 }

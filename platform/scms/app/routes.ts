@@ -157,6 +157,7 @@ export default [
       index('routes/app/works._index/route.tsx'),
       route('new', 'routes/app/works.new/route.tsx'),
       route('drafts', 'routes/app/works.drafts/route.tsx'),
+      route(':workId/versions', 'routes/app/works.$workId.versions/route.ts'),
       route(':workId', 'routes/app/works.$workId/route.tsx', [
         ...getRoutesForMountPoint('app/works/:workId'),
         // index('routes/app/works.$workId._index/route.tsx'),
@@ -243,7 +244,7 @@ export default [
         route('kinds', 'routes/api/v1.sites.$siteName.kinds.tsx', [
           route(':kindIdOrName', 'routes/api/v1.sites.$siteName.kinds.$kindIdOrName.tsx'),
         ]),
-        route('works', 'routes/api/v1.sites.$siteName.works.tsx', [
+        route('works', 'routes/api/v1.sites.$siteName.works/route.tsx', [
           route(
             ':workIdOrSlug/versions/:versionId/thumbnail',
             'routes/api/v1.sites.$siteName.works.$workIdOrSlug.versions.$versionId.thumbnail.tsx',
@@ -254,7 +255,7 @@ export default [
           ),
           route(
             ':workIdOrSlug/published',
-            'routes/api/v1.sites.$siteName.works.$workIdOrSlug.published.tsx',
+            'routes/api/v1.sites.$siteName.works.$workIdOrSlug.published/route.tsx',
           ),
           route(
             ':workIdOrSlug/thumbnail',
