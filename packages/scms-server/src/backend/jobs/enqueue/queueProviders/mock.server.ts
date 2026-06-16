@@ -1,5 +1,6 @@
 import { uuidv7 } from 'uuidv7';
-import { MAX_JOB_QUEUE_DELIVERY_ATTEMPTS } from '../../run/processJobMessage.server.js';
+import { MAX_JOB_QUEUE_DELIVERY_ATTEMPTS } from '../../jobQueueConstants.server.js';
+import { terminalizeTransportFailure } from '../../run/terminalizeTransportFailure.server.js';
 import type {
   JobQueueDeliveryMetadata,
   JobQueueMessage,
@@ -75,10 +76,8 @@ async function deliverEntry(entry: MockQueueEntry): Promise<void> {
     });
 
     if (entry.deliveryCount >= MAX_JOB_QUEUE_DELIVERY_ATTEMPTS) {
-      const { handleTransportFailure } = await import('../../run/handleTransportFailure.server.js');
-      await handleTransportFailure(entry.message.job_id, {
+      await terminalizeTransportFailure(entry.message.job_id, {
         reason: 'transport_exhausted',
-        source: 'dead_letter',
         last_error: errMessage,
       });
       return;
