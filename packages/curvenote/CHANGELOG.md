@@ -1,5 +1,12 @@
 # curvenote
 
+## 0.16.4
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/cli@0.16.4
+
 ## 0.16.3
 
 ### Patch Changes
