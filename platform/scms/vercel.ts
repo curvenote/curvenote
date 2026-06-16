@@ -2,8 +2,9 @@ import type { VercelConfig } from '@vercel/config/v1';
 
 export const config: VercelConfig = {
   functions: {
-    // Verify this key against post-build output after deploy (`find .vercel/output -name '*vercel-push*'`)
-    'api/v1/jobs/vercel-push/route.js': {
+    // Source route path (same convention as Next.js `app/api/.../route.ts` in queue docs).
+    // Do not use `api/...` here — that only matches standalone files under project-root `api/`.
+    'app/routes/api/v1.jobs.vercel-push/route.tsx': {
       experimentalTriggers: [
         {
           type: 'queue/v2beta',

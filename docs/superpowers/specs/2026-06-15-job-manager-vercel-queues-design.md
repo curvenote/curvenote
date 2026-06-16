@@ -47,8 +47,8 @@ import type { VercelConfig } from '@vercel/config/v1';
 
 export const config: VercelConfig = {
   functions: {
-    // Exact key MUST match post-build server function path — verify with `vercel build` output
-    'api/v1/jobs/vercel-push/route.js': {
+    // Source route file path (not compiled output, not project-root `api/`)
+    'app/routes/api/v1.jobs.vercel-push/route.tsx': {
       experimentalTriggers: [
         {
           type: 'queue/v2beta',
@@ -62,7 +62,7 @@ export const config: VercelConfig = {
 };
 ```
 
-**Note:** React Router route file is `app/routes/api/v1.jobs.vercel-push/route.tsx` → URL `/v1/jobs/vercel-push`. The `functions` key is the **compiled output path**, not the source path. Task 1 in the implementation plan verifies this mapping.
+**Note:** React Router route file is `app/routes/api/v1.jobs.vercel-push/route.tsx` → URL `/v1/jobs/vercel-push`. The `functions` key is the **source route file path** (same convention as Next.js `app/api/.../route.ts` in the Queues quickstart), not a compiled `api/.../route.js` path under project-root `api/`.
 
 The consumer route becomes **private** — only Vercel Queues can invoke it ([quickstart](https://vercel.com/docs/queues/quickstart)).
 
