@@ -5,6 +5,7 @@ import { KnownJobTypes } from '@curvenote/scms-core';
 
 const mockFindUnique = vi.fn();
 const mockFindMany = vi.fn();
+const mockJobUpdate = vi.fn();
 const mockEnqueueAndDispatchJob = vi.fn();
 const mockPromoteAndDispatchJob = vi.fn();
 
@@ -13,7 +14,7 @@ vi.mock('../../src/backend/prisma.server.js', () => ({
     job: {
       findUnique: mockFindUnique,
       findMany: mockFindMany,
-      update: vi.fn(),
+      update: mockJobUpdate,
     },
   })),
 }));
@@ -32,9 +33,11 @@ describe('onJobTerminal', () => {
   beforeEach(() => {
     mockFindUnique.mockReset();
     mockFindMany.mockReset();
+    mockJobUpdate.mockReset();
     mockEnqueueAndDispatchJob.mockReset();
     mockPromoteAndDispatchJob.mockReset();
     mockFindMany.mockResolvedValue([]);
+    mockJobUpdate.mockResolvedValue({});
     mockEnqueueAndDispatchJob.mockResolvedValue({ job_id: 'cleanup-1', status: 'DISPATCHED' });
   });
 
@@ -79,15 +82,78 @@ describe('onJobTerminal', () => {
       invoked_by_id: 'user-1',
       messages: [],
     });
-    mockFindMany.mockResolvedValue([
-      { id: 'failure-dep', trigger_on: 'FAILURE' },
-      { id: 'success-dep', trigger_on: 'SUCCESS' },
-    ]);
+    mockFindMany.mockImplementation(async ({ where }: { where: { depends_on_job_id: string } }) => {
+      if (where.depends_on_job_id === 'parent-cancelled') {
+        return [
+          { id: 'failure-dep', trigger_on: 'FAILURE' },
+          { id: 'success-dep', trigger_on: 'SUCCESS' },
+        ];
+      }
+      return [];
+    });
 
     await onJobTerminal('parent-cancelled', JobStatus.CANCELLED);
 
     expect(mockPromoteAndDispatchJob).toHaveBeenCalledOnce();
     expect(mockPromoteAndDispatchJob).toHaveBeenCalledWith('failure-dep');
+    expect(mockJobUpdate).toHaveBeenCalledWith({
+      where: { id: 'success-dep' },
+      data: { status: JobStatus.CANCELLED },
+    });
     expect(mockEnqueueAndDispatchJob).not.toHaveBeenCalled();
+  });
+
+  test('cascades cancellation to grandchildren when a SUCCESS dependent is dropped', async () => {
+    mockFindUnique.mockImplementation(async ({ where }: { where: { id: string } }) => ({
+      id: where.id,
+      job_type: KnownJobTypes.PUBLISH,
+      invoked_by_id: 'user-1',
+      messages: [],
+    }));
+    mockFindMany.mockImplementation(async ({ where }: { where: { depends_on_job_id: string } }) => {
+      if (where.depends_on_job_id === 'parent-failed') {
+        return [{ id: 'child-success', trigger_on: 'SUCCESS' }];
+      }
+      if (where.depends_on_job_id === 'child-success') {
+        return [{ id: 'grandchild-success', trigger_on: 'SUCCESS' }];
+      }
+      return [];
+    });
+
+    await onJobTerminal('parent-failed', JobStatus.FAILED);
+
+    expect(mockJobUpdate).toHaveBeenCalledTimes(2);
+    expect(mockJobUpdate).toHaveBeenNthCalledWith(1, {
+      where: { id: 'child-success' },
+      data: { status: JobStatus.CANCELLED },
+    });
+    expect(mockJobUpdate).toHaveBeenNthCalledWith(2, {
+      where: { id: 'grandchild-success' },
+      data: { status: JobStatus.CANCELLED },
+    });
+    expect(mockEnqueueAndDispatchJob).toHaveBeenCalledOnce();
+  });
+
+  test('does not enqueue JOB_FAILED_DEFAULT when cascading cancellation from a dependent', async () => {
+    mockFindUnique.mockImplementation(async ({ where }: { where: { id: string } }) => ({
+      id: where.id,
+      job_type: KnownJobTypes.CHECK,
+      invoked_by_id: 'user-1',
+      messages: [],
+    }));
+    mockFindMany.mockImplementation(async ({ where }: { where: { depends_on_job_id: string } }) => {
+      if (where.depends_on_job_id === 'parent-failed') {
+        return [{ id: 'child-success', trigger_on: 'SUCCESS' }];
+      }
+      return [];
+    });
+
+    await onJobTerminal('parent-failed', JobStatus.FAILED);
+
+    expect(mockJobUpdate).toHaveBeenCalledOnce();
+    expect(mockEnqueueAndDispatchJob).toHaveBeenCalledOnce();
+    expect(mockEnqueueAndDispatchJob.mock.calls[0][0]).toMatchObject({
+      payload: { failed_job_id: 'parent-failed' },
+    });
   });
 });

@@ -8,6 +8,8 @@ import { lastJobMessage } from './jobMessages.server.js';
 
 export type OnJobTerminalOptions = {
   extensionJobs?: JobRegistration[];
+  /** Suppress JOB_FAILED_DEFAULT when cascading cancellation through dependent chains. */
+  skipFailedDefault?: boolean;
 };
 
 type ParentTerminalStatus =
@@ -22,6 +24,7 @@ type ParentTerminalStatus =
 export async function onJobTerminal(
   parentJobId: string,
   status: ParentTerminalStatus,
+  options?: OnJobTerminalOptions,
 ): Promise<void> {
   const prisma = await getPrismaClient();
   const parent = await prisma.job.findUnique({ where: { id: parentJobId } });
@@ -34,15 +37,20 @@ export async function onJobTerminal(
     },
   });
 
+  async function cancelDependent(depId: string): Promise<void> {
+    await prisma.job.update({
+      where: { id: depId },
+      data: { status: JobStatus.CANCELLED },
+    });
+    await onJobTerminal(depId, JobStatus.CANCELLED, { skipFailedDefault: true });
+  }
+
   if (status === JobStatus.COMPLETED) {
     for (const dep of blockedDependents) {
       if (dep.trigger_on === 'SUCCESS') {
         await promoteAndDispatchJob(dep.id);
       } else if (dep.trigger_on === 'FAILURE') {
-        await prisma.job.update({
-          where: { id: dep.id },
-          data: { status: JobStatus.CANCELLED },
-        });
+        await cancelDependent(dep.id);
       }
     }
     return;
@@ -55,14 +63,15 @@ export async function onJobTerminal(
       await promoteAndDispatchJob(dep.id);
       promotedFailureDependent = true;
     } else if (dep.trigger_on === 'SUCCESS') {
-      await prisma.job.update({
-        where: { id: dep.id },
-        data: { status: JobStatus.CANCELLED },
-      });
+      await cancelDependent(dep.id);
     }
   }
 
-  if (!promotedFailureDependent && parent.job_type !== KnownJobTypes.JOB_FAILED_DEFAULT) {
+  if (
+    !options?.skipFailedDefault &&
+    !promotedFailureDependent &&
+    parent.job_type !== KnownJobTypes.JOB_FAILED_DEFAULT
+  ) {
     const failedParent = await prisma.job.findUnique({ where: { id: parentJobId } });
     const lastError = lastJobMessage(failedParent?.messages);
     const cleanupJobId = uuidv7();
