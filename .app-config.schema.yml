@@ -206,6 +206,7 @@ properties:
       - sessionSecret
       - analyticsSecret
       - handshakeSigningSecret
+      - queueConsumerSecret
       - previewSigningSecret
       - jwtSigningSecret
       - checkSASecretKeyfile
@@ -243,6 +244,13 @@ properties:
       handshakeSigningSecret:
         type: string
         secret: true
+      queueConsumerSecret:
+        type: string
+        secret: true
+        description: >-
+          Bearer token secret for POST /v1/jobs/push-to-drain. The app sends this
+          when waking the queue drain handler after enqueue; the route rejects
+          requests without a matching Authorization header.
       previewSigningSecret:
         type: string
         secret: true

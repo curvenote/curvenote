@@ -30,7 +30,9 @@ npm run dev
 
 ### Job queue local development
 
-By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`). Jobs enqueued via `enqueueAndDispatchJob` are delivered asynchronously via **HTTP POST to `/v1/jobs/mock-push`** (dev-only loopback route) — no Vercel account, OIDC token, or second terminal required.
+By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`, set via `.env` only — not app-config). Jobs enqueued via `enqueueAndDispatchJob` are delivered asynchronously via **HTTP POST to `/v1/jobs/mock-push`** (dev-only loopback route) — no Vercel account or second terminal required.
+
+**Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, deploy-curvenote secrets YAML on staging/prod) secures the unified **`POST /v1/jobs/push-to-drain`** wake-up route. Job execution still uses the **handshake JWT** inside the queue message.
 
 On Vercel preview/production, the queue consumer is **`api/job-queue-consumer.ts`** (push trigger in `vercel.ts`), not the mock-push route. deploy-curvenote notes: `deploy/deploy-curvenote.md`.
 

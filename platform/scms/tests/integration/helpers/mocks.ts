@@ -21,6 +21,7 @@ export function createMockConfig() {
       previewSigningSecret: 'test-secret',
       handshakeIssuer: 'test-issuer',
       handshakeSigningSecret: 'test-secret',
+      queueConsumerSecret: 'test-secret',
       submissionsServiceAccount: { id: 'test-id' },
     },
   };
