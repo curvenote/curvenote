@@ -3,7 +3,7 @@ import type { ExtensionCheckHandleActionResult, ServerExtension } from './types.
 import { getExtensionCheckServicesFromServerConfig } from './checks.js';
 
 export const DEFAULT_CHECK_MAINTENANCE_MESSAGE =
-  'This service is temporarily unavailable for maintenance.';
+  'Service is temporarily down for maintenance';
 
 export type CheckMaintenanceRecord = {
   enabled: boolean;

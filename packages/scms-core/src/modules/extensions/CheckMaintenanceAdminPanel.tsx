@@ -75,7 +75,7 @@ export function CheckMaintenanceAdminPanel({ intent, maintenance, serviceLabel }
             id={`${intent}-maintenance-message`}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="This service is temporarily unavailable for maintenance."
+            placeholder="Service is temporarily down for maintenance"
             disabled={isSubmitting}
             className="w-full"
           />
