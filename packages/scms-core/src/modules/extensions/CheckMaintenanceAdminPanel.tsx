@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useFetcher } from 'react-router';
-import { ui } from '../../components/ui/index.js';
+import * as ui from '../../components/ui/index.js';
 import type { CheckMaintenanceRecord } from './check-maintenance.js';
 
 type ActionData = {

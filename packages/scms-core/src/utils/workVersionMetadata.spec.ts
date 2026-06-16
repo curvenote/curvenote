@@ -119,12 +119,12 @@ describe('workVersionMetadata', () => {
   it('hasMaintenanceEnabledUploadChecks detects enabled services under maintenance', () => {
     expect(
       hasMaintenanceEnabledUploadChecks(['checks-text-integrity'], {
-        'checks-text-integrity': { underMaintenance: true, message: 'Down' },
+        'checks-text-integrity': { underMaintenance: true },
       }),
     ).toBe(true);
     expect(
       hasMaintenanceEnabledUploadChecks(['checks-text-integrity'], {
-        proofig: { underMaintenance: true, message: 'Down' },
+        proofig: { underMaintenance: true },
       }),
     ).toBe(false);
   });

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, use, useMemo } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import {
   DEFAULT_CHECK_MAINTENANCE_MESSAGE,
   type CheckMaintenanceState,
@@ -18,11 +18,13 @@ export function CheckMaintenanceProvider({
   children: React.ReactNode;
 }) {
   const value = useMemo(() => maintenanceByServiceId, [maintenanceByServiceId]);
-  return <CheckMaintenanceContext value={value}>{children}</CheckMaintenanceContext>;
+  return (
+    <CheckMaintenanceContext.Provider value={value}>{children}</CheckMaintenanceContext.Provider>
+  );
 }
 
 export function useCheckMaintenance(checkServiceId: string): CheckMaintenanceState | undefined {
-  const context = use(CheckMaintenanceContext);
+  const context = useContext(CheckMaintenanceContext);
   return context?.[checkServiceId];
 }
 
@@ -41,7 +43,7 @@ export function useAnyCheckMaintenanceBlocked(checkServiceIds: string[]): {
   blocked: boolean;
   message: string;
 } {
-  const context = use(CheckMaintenanceContext);
+  const context = useContext(CheckMaintenanceContext);
   for (const id of checkServiceIds) {
     const state = context?.[id];
     if (state?.underMaintenance) {
