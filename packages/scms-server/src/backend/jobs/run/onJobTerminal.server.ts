@@ -10,13 +10,18 @@ export type OnJobTerminalOptions = {
   extensionJobs?: JobRegistration[];
 };
 
+type ParentTerminalStatus =
+  | typeof JobStatus.COMPLETED
+  | typeof JobStatus.FAILED
+  | typeof JobStatus.CANCELLED;
+
 /**
  * When a parent job reaches a terminal status, promote or cancel BLOCKED dependents.
- * Enqueues JOB_FAILED_DEFAULT when parent FAILED with no failure dependents.
+ * Enqueues JOB_FAILED_DEFAULT when parent FAILED or CANCELLED with no failure dependents.
  */
 export async function onJobTerminal(
   parentJobId: string,
-  status: typeof JobStatus.COMPLETED | typeof JobStatus.FAILED,
+  status: ParentTerminalStatus,
 ): Promise<void> {
   const prisma = await getPrismaClient();
   const parent = await prisma.job.findUnique({ where: { id: parentJobId } });
@@ -43,7 +48,7 @@ export async function onJobTerminal(
     return;
   }
 
-  // Parent FAILED
+  // Parent FAILED or CANCELLED — failure-path dependents run; success-path dependents are dropped.
   let promotedFailureDependent = false;
   for (const dep of blockedDependents) {
     if (dep.trigger_on === 'FAILURE') {

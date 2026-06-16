@@ -197,7 +197,11 @@ export async function runHandler(jobId: string, options: RunHandlerOptions) {
   }
 
   const terminalStatus = dbo?.status ?? job.status;
-  if (terminalStatus === JobStatus.COMPLETED || terminalStatus === JobStatus.FAILED) {
+  if (
+    terminalStatus === JobStatus.COMPLETED ||
+    terminalStatus === JobStatus.FAILED ||
+    terminalStatus === JobStatus.CANCELLED
+  ) {
     await onJobTerminal(jobId, terminalStatus);
   }
 

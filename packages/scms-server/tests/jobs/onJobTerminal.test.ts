@@ -71,4 +71,23 @@ describe('onJobTerminal', () => {
 
     expect(mockEnqueueAndDispatchJob).not.toHaveBeenCalled();
   });
+
+  test('promotes FAILURE dependents when parent is CANCELLED', async () => {
+    mockFindUnique.mockResolvedValue({
+      id: 'parent-cancelled',
+      job_type: KnownJobTypes.CONVERTER_TASK,
+      invoked_by_id: 'user-1',
+      messages: [],
+    });
+    mockFindMany.mockResolvedValue([
+      { id: 'failure-dep', trigger_on: 'FAILURE' },
+      { id: 'success-dep', trigger_on: 'SUCCESS' },
+    ]);
+
+    await onJobTerminal('parent-cancelled', JobStatus.CANCELLED);
+
+    expect(mockPromoteAndDispatchJob).toHaveBeenCalledOnce();
+    expect(mockPromoteAndDispatchJob).toHaveBeenCalledWith('failure-dep');
+    expect(mockEnqueueAndDispatchJob).not.toHaveBeenCalled();
+  });
 });

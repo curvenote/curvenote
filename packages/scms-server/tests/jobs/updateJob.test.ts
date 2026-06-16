@@ -1,6 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { JobStatus } from '@curvenote/scms-db';
+import { KnownJobTypes } from '@curvenote/scms-core';
 
 const mockFindUnique = vi.fn();
 const mockDbUpdateJob = vi.fn();
@@ -74,6 +75,22 @@ describe('updateJob terminal handling', () => {
 
     expect(mockOnJobTerminal).toHaveBeenCalledOnce();
     expect(mockOnJobTerminal).toHaveBeenCalledWith('job-1', JobStatus.FAILED);
+    expect(mockRecordConverterTaskTerminalActivity).toHaveBeenCalledOnce();
+  });
+
+  test('invokes onJobTerminal when status newly becomes CANCELLED', async () => {
+    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING });
+    const dbo = {
+      id: 'job-1',
+      status: JobStatus.CANCELLED,
+      job_type: KnownJobTypes.CONVERTER_TASK,
+    };
+    mockDbUpdateJob.mockResolvedValue(dbo);
+
+    await updateJob({} as never, 'job-1', { status: JobStatus.CANCELLED });
+
+    expect(mockOnJobTerminal).toHaveBeenCalledOnce();
+    expect(mockOnJobTerminal).toHaveBeenCalledWith('job-1', JobStatus.CANCELLED);
     expect(mockRecordConverterTaskTerminalActivity).toHaveBeenCalledOnce();
   });
 });

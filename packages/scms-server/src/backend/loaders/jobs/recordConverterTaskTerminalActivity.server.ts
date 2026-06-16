@@ -1,10 +1,14 @@
 import { JobStatus } from '@curvenote/scms-db';
 import type { Job } from '@curvenote/scms-db';
 import { KnownJobTypes, coerceToObject } from '@curvenote/scms-core';
+import { converterActivityFromPayload } from '../../jobs/converterActivityFromPayload.server.js';
 import { createWorkActivity } from '../../db.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
 
-type TerminalStatus = typeof JobStatus.COMPLETED | typeof JobStatus.FAILED;
+type TerminalStatus =
+  | typeof JobStatus.COMPLETED
+  | typeof JobStatus.FAILED
+  | typeof JobStatus.CANCELLED;
 
 function payloadRecord(payload: unknown): Record<string, unknown> | null {
   const obj = coerceToObject(payload);
@@ -66,14 +70,16 @@ export async function recordConverterTaskTerminalActivity(
     const lastMessage = messages.length > 0 ? String(messages[messages.length - 1]) : undefined;
 
     const data: Record<string, unknown> = {
-      converter: {
-        target: payload?.target ?? 'pdf',
-        type: payload?.conversion_type ?? 'docx-pandoc-myst-pdf',
-      },
+      converter: converterActivityFromPayload(payload),
       job_id: job.id,
     };
-    if (status === JobStatus.FAILED) {
-      data.error = lastMessage ?? results?.error ?? 'Conversion failed';
+    if (status === JobStatus.FAILED || status === JobStatus.CANCELLED) {
+      data.error =
+        lastMessage ??
+        results?.error ??
+        (status === JobStatus.CANCELLED
+          ? 'Document conversion was cancelled.'
+          : 'Conversion failed');
     }
 
     await createWorkActivity({

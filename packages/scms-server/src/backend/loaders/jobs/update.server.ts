@@ -8,10 +8,15 @@ import { onJobTerminal } from '../../jobs/run/onJobTerminal.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
 import { recordConverterTaskTerminalActivity } from './recordConverterTaskTerminalActivity.server.js';
 
-type TerminalStatus = typeof JobStatus.COMPLETED | typeof JobStatus.FAILED;
+type TerminalStatus =
+  | typeof JobStatus.COMPLETED
+  | typeof JobStatus.FAILED
+  | typeof JobStatus.CANCELLED;
 
 function isTerminalStatus(status: string): status is TerminalStatus {
-  return status === JobStatus.COMPLETED || status === JobStatus.FAILED;
+  return (
+    status === JobStatus.COMPLETED || status === JobStatus.FAILED || status === JobStatus.CANCELLED
+  );
 }
 
 export default async function (

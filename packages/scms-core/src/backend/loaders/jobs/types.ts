@@ -44,6 +44,7 @@ export type UpdateJob = {
   results?: Record<string, any>;
 };
 
+/** When parent completes successfully (`SUCCESS`) or unsuccessfully (`FAILURE`, including parent `CANCELLED`). */
 export type JobTriggerOn = 'success' | 'failure';
 
 export type DependentJobSpec = {

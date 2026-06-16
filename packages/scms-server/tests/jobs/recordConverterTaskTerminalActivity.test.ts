@@ -144,6 +144,17 @@ describe('recordConverterTaskTerminalActivity', () => {
     );
   });
 
+  test('CANCELLED uses cancellation default when no message', async () => {
+    await recordConverterTaskTerminalActivity(makeJob({ messages: [] }), JobStatus.CANCELLED);
+
+    expect(mockCreateWorkActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activityType: 'CONVERTER_TASK_FAILED',
+        data: expect.objectContaining({ error: 'Document conversion was cancelled.' }),
+      }),
+    );
+  });
+
   test('skips create when work version is missing', async () => {
     mockWorkVersionFindUnique.mockResolvedValue(null);
 
