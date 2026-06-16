@@ -43,3 +43,35 @@ export type UpdateJob = {
   message?: string;
   results?: Record<string, any>;
 };
+
+export type JobTriggerOn = 'success' | 'failure';
+
+export type DependentJobSpec = {
+  job_id: string;
+  job_type: string;
+  payload: Record<string, unknown>;
+  trigger_on: JobTriggerOn;
+  activity_type?: string;
+  activity_data?: Record<string, unknown>;
+};
+
+export type EnqueueJobParams = {
+  job_id: string;
+  job_type: string;
+  payload: Record<string, unknown>;
+  invoked_by_id?: string;
+  activity_type?: string;
+  activity_data?: Record<string, unknown>;
+  /** Initial results (e.g. CLI_CHECK check report at POST). */
+  results?: Record<string, unknown>;
+  dependents?: DependentJobSpec[];
+  /** @deprecated transition only — converted to dependents[] */
+  follow_on?: FollowOnEnvelope;
+};
+
+export type EnqueueJobResult = {
+  job_id: string;
+  job_type: string;
+  status: 'DISPATCHED';
+  dependent_job_ids?: string[];
+};

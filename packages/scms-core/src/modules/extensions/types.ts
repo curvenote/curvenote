@@ -76,11 +76,6 @@ export interface ExtensionCheckHandleActionArgs {
   ctx?: Context;
   /** Check run id when invoked from upload flow (execute). */
   checkRunId?: string;
-  /**
-   * Optional transport / submit mode for checks that support multiple backends
-   * (e.g. 'service' for external container, 'stream' for in-process streaming job).
-   */
-  submitMode?: 'service' | 'stream';
 }
 
 /** Result of handleAction: success with optional status, or error (message string or object with type/message). */
@@ -92,6 +87,8 @@ export type ExtensionCheckHandleActionResult = {
     status?: number;
   };
   status?: number;
+  /** True when a hydrate/sync intent mutated check run data (skip revalidation when false). */
+  updated?: boolean;
   /** EULA gating (e.g. text integrity `eula-status` / `execute`). */
   requireEula?: boolean;
   requiresEula?: boolean;

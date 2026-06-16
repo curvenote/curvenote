@@ -11,8 +11,9 @@ import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../../prisma.server.js';
 import { createHandshakeToken } from '../../sign.handshake.server.js';
 import { startConverterService } from '../processing/index.js';
+import { workerJobUrl } from '../workerJobUrl.server.js';
 import { signFilesInMetadata } from '../../files-metadata.server.js';
-import { dbCreateJob, dbUpdateJob } from './db.server.js';
+import { dbUpdateJob } from './db.server.js';
 import { validate } from '../../../api.schemas.js';
 import { CreateConverterTaskPayloadSchema } from './schemas.server.js';
 import path from 'node:path';
@@ -123,8 +124,8 @@ function deriveExportFilenameFromMetadata(
  * Payload specifies target (e.g. pdf) and conversion_type; this implementation
  * handles PDF export (Docx → PDF).
  *
- * 1. Validates payload; loads work version (if not found, returns error without creating job).
- * 2. Creates job in DB (QUEUED).
+ * 1. Validates payload; loads work version (if not found, returns error).
+ * 2. Assumes QUEUED job row already exists (created by enqueueAndDispatchJob).
  * 3. Builds converter payload (snake_case workVersion) and publishes to converter Pub/Sub.
  * 4. Updates job with rollingLog and messageId; returns job DBO.
  * Worker later PATCHes the job (status/results) using the handshake token.
@@ -146,8 +147,11 @@ export async function converterTaskHandler(ctx: Context, data: CreateJob) {
   }
   rollingLog.push(rollingLogEntry('work version loaded', workVersionRow.id));
 
-  const job = await dbCreateJob({ ...data, status: JobStatus.QUEUED });
-  rollingLog.push(rollingLogEntry('job created', job.id));
+  const job = await prisma.job.findUnique({ where: { id: data.id } });
+  if (!job) {
+    throw httpError(404, `Job ${data.id} not found`);
+  }
+  rollingLog.push(rollingLogEntry('job loaded', job.id));
 
   await prisma.linkedJob.create({
     data: {
@@ -186,7 +190,7 @@ export async function converterTaskHandler(ctx: Context, data: CreateJob) {
     ctx.$config.api.handshakeIssuer,
     ctx.$config.api.handshakeSigningSecret,
   );
-  const jobUrl = ctx.asApiUrl(`/jobs/${job.id}`);
+  const jobUrl = workerJobUrl(ctx, `/jobs/${job.id}`);
   if (!ctx.user?.id) {
     throw httpError(401, 'Converter task job requires an authenticated user');
   }

@@ -16,6 +16,7 @@ export * from './prisma.server.js';
 export * from './prisma.selects.server.js';
 export * from './jwt.context.server.js';
 export * from './jobs/processing/index.js';
+export * from './jobs/index.js';
 export * from './roles.server.js';
 export * from './scopes.helpers.server.js';
 export * from './secure.server.js';

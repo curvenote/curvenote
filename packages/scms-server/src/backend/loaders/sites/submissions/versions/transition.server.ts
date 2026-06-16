@@ -91,7 +91,7 @@ const submissionVersionTransitionUpdateSelect = {
 import { userHasScopes } from '../../../../scopes.helpers.server.js';
 import * as slugs from '../slugs.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
-import { waitUntil } from '@vercel/functions';
+import { enqueueAndDispatchJob } from '../../../../jobs/enqueue/enqueueAndDispatchJob.server.js';
 import { uuidv7 } from 'uuidv7';
 import type { Workflow, WorkflowTransition } from '@curvenote/scms-core';
 import { SlackEventType } from '../../../../services/slack.server.js';
@@ -134,11 +134,20 @@ async function startJobBasedTransition(
   transition: WorkflowTransition,
   datePublished: string,
 ) {
+  const jobType = getJobType(transition);
+  if (!ctx.user) {
+    throw error401(
+      jobType
+        ? `Unauthorized - cannot start ${jobType} job without user credentials`
+        : 'User is not authenticated',
+    );
+  }
+
   const prisma = await getPrismaClient();
-  // within a prisma transaction
-  return prisma.$transaction(async (tx) => {
-    // Update the submission version with the transition information
-    const jobId = uuidv7();
+  const jobId = uuidv7();
+  const userId = ctx.user.id;
+
+  const updated = await prisma.$transaction(async (tx) => {
     const statefulTransition = {
       ...transition,
       state: {
@@ -147,7 +156,7 @@ async function startJobBasedTransition(
       },
     };
     const timestamp = new Date().toISOString();
-    const updated = await tx.submissionVersion.update({
+    const row = await tx.submissionVersion.update({
       where: { id: existing.id },
       data: {
         transition: statefulTransition,
@@ -161,7 +170,7 @@ async function startJobBasedTransition(
         id: uuidv7(),
         date_created: timestamp,
         date_modified: timestamp,
-        activity_by_id: ctx.user!.id,
+        activity_by_id: userId,
         activity_type: ActivityType.SUBMISSION_VERSION_TRANSITION_STARTED,
         submission_id: existing.submission.id,
         submission_version_id: existing.id,
@@ -170,47 +179,40 @@ async function startJobBasedTransition(
       select: { id: true },
     });
 
-    // Handle job creation based on transition properties
-    const jobType = getJobType(transition);
-    if (jobType) {
-      const headers = new Headers();
-      headers.set('Content-Type', 'application/json');
-
-      if (ctx.authorized.curvenote && ctx.$verifiedCurvenoteToken) {
-        headers.set('Authorization', ctx.$verifiedCurvenoteToken);
-      } else if (ctx.authorized.handshake && ctx.$verifiedHandshakeToken) {
-        headers.set('Authorization', ctx.$verifiedHandshakeToken);
-      } else if (ctx.$verifiedSession && ctx.user) {
-        headers.append('Cookie', ctx.request.headers.get('Cookie') ?? '');
-      } else {
-        throw error401(`Unauthorized - cannot start ${jobType} job without user credentials`);
-      }
-
-      // TODO: this is not a background on on vercel! might as well call the handler and lock down /v1/jobs
-      waitUntil(
-        fetch(ctx.asApiUrl('/jobs'), {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            id: jobId,
-            job_type: jobType.toUpperCase(),
-            payload: {
-              site_id: existing.submission.site_id,
-              user_id: ctx.user!.id,
-              submission_version_id: updated.id,
-              cdn: existing.work_version.cdn,
-              key: existing.work_version.cdn_key,
-              ...transition.options,
-              date_published: transition.options?.setsPublishedDate ? datePublished : undefined,
-              updates_slug: transition.options?.updatesSlug,
-            },
-          }),
-        }),
-      );
-    }
-
-    return updated;
+    return row;
   });
+
+  if (jobType) {
+    try {
+      await enqueueAndDispatchJob({
+        job_id: jobId,
+        job_type: jobType.toUpperCase(),
+        payload: {
+          site_id: existing.submission.site_id,
+          user_id: userId,
+          submission_version_id: updated.id,
+          cdn: existing.work_version.cdn,
+          key: existing.work_version.cdn_key,
+          ...transition.options,
+          date_published: transition.options?.setsPublishedDate ? datePublished : undefined,
+          updates_slug: transition.options?.updatesSlug,
+        },
+        invoked_by_id: userId,
+      });
+    } catch (err) {
+      // Revert transitioning state so the submission is not stuck if dispatch fails.
+      await prisma.submissionVersion.update({
+        where: { id: existing.id },
+        data: {
+          transition: existing.transition ?? undefined,
+          date_modified: new Date().toISOString(),
+        },
+      });
+      throw err;
+    }
+  }
+
+  return updated;
 }
 
 async function performSimpleTransition(
