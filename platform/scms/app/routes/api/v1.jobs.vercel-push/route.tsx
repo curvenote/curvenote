@@ -39,12 +39,8 @@ const vercelPushHandler = handleCallback(
   },
   {
     visibilityTimeoutSeconds: 300,
-    retry: (_error, metadata) => {
-      if (metadata.deliveryCount > 5) {
-        return { acknowledge: true };
-      }
-      return { afterSeconds: 60 };
-    },
+    // Fail once: processJobMessage terminalizes thrown handler errors before ack.
+    retry: () => ({ acknowledge: true }),
   },
 );
 

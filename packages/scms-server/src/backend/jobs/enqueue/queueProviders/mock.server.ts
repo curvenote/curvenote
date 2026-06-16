@@ -10,9 +10,6 @@ import type {
 /** Loopback header — mock queue POSTs to /v1/jobs/vercel-push with this set when provider is mock. */
 export const LOCAL_MOCK_QUEUE_HEADER = 'x-local-mock-queue';
 
-const MAX_DELIVERY_ATTEMPTS = 5;
-const DEFAULT_RETRY_DELAY_MS = Number(process.env.MOCK_QUEUE_RETRY_DELAY_MS ?? 1000);
-
 type MockQueueEntry = {
   message: JobQueueMessage;
   idempotencyKey: string;
@@ -74,23 +71,12 @@ async function deliverEntry(entry: MockQueueEntry): Promise<void> {
       errMessage,
     });
 
-    if (entry.deliveryCount >= MAX_DELIVERY_ATTEMPTS) {
-      const { handleTransportFailure } = await import('../../run/handleTransportFailure.server.js');
-      await handleTransportFailure(entry.message.job_id, {
-        reason: 'transport_exhausted',
-        source: 'dead_letter',
-        last_error: errMessage,
-      });
-      return;
-    }
-
-    setTimeout(() => {
-      queue.push({
-        ...entry,
-        deliveryCount: entry.deliveryCount + 1,
-      });
-      void drainQueue();
-    }, DEFAULT_RETRY_DELAY_MS);
+    const { handleTransportFailure } = await import('../../run/handleTransportFailure.server.js');
+    await handleTransportFailure(entry.message.job_id, {
+      reason: 'domain_failed',
+      source: 'dead_letter',
+      last_error: errMessage,
+    });
   }
 }
 

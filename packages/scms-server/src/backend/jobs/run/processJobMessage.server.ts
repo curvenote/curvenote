@@ -5,13 +5,11 @@ import type { JobQueueDeliveryMetadata, JobQueueMessage } from '../enqueue/queue
 import { handleTransportFailure } from './handleTransportFailure.server.js';
 import { runHandler, type RunHandlerOptions } from './runHandler.server.js';
 
-const MAX_DELIVERY_ATTEMPTS = 5;
-
 export type ProcessJobMessageOptions = Omit<RunHandlerOptions, 'handshakeJob'>;
 
 /**
  * Verify handshake JWT, then run the job handler.
- * Auth failures are permanent (no retry). Handler throws at max attempts → handleTransportFailure.
+ * Auth failures are permanent (no retry). Handler throws → handleTransportFailure (no queue retry).
  */
 export async function processJobMessage(
   message: JobQueueMessage,
@@ -101,15 +99,10 @@ export async function processJobMessage(
       errMessage,
     });
 
-    if (metadata.deliveryCount >= MAX_DELIVERY_ATTEMPTS) {
-      await handleTransportFailure(message.job_id, {
-        reason: 'transport_exhausted',
-        source: 'dead_letter',
-        last_error: errMessage,
-      });
-      return;
-    }
-
-    throw err;
+    await handleTransportFailure(message.job_id, {
+      reason: 'domain_failed',
+      source: 'dead_letter',
+      last_error: errMessage,
+    });
   }
 }

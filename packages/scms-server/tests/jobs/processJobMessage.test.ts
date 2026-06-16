@@ -98,4 +98,19 @@ describe('processJobMessage handshake validation', () => {
     });
     expect(mockHandleTransportFailure).not.toHaveBeenCalled();
   });
+
+  test('terminalizes handler throws without retry', async () => {
+    mockVerifyHandshakeToken.mockReturnValue({ jobId: 'job-1', aud: 'LOOPBACK' });
+    mockRunHandler.mockRejectedValue(new Error('ECONNREFUSED'));
+
+    await processJobMessage(message, metadata);
+
+    expect(mockHandleTransportFailure).toHaveBeenCalledWith(
+      'job-1',
+      expect.objectContaining({
+        reason: 'domain_failed',
+        last_error: 'ECONNREFUSED',
+      }),
+    );
+  });
 });
