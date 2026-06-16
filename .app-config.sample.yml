@@ -6,6 +6,8 @@ api:
   databaseUrl: 'postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0'
   pubsubProjectId: project-1
   checkTopic: projects/project-1/topics/checks
+  # Workers in Docker cannot reach http://localhost on the host; use host.docker.internal.
+  tasksCallbackUrl: http://host.docker.internal:3031/v1
   # Storage provider configuration (choose one):
   #
   # Option 1: GCS (new style)
