@@ -1,10 +1,8 @@
 import { JobStatus } from '@curvenote/scms-db';
 import { getConfig } from '../../../app-config.server.js';
-import { createWorkActivity } from '../../db.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
 import { createHandshakeToken } from '../../sign.handshake.server.js';
 import { dispatchJob } from './dispatchJob.server.js';
-import { workActivityDataForJob } from '../run/workActivityDataForJob.server.js';
 
 const HANDSHAKE_EXPIRY_SECONDS = 4 * 60 * 60;
 
@@ -48,32 +46,6 @@ export async function promoteAndDispatchJob(jobId: string): Promise<void> {
     job_type: job.job_type,
     handshake,
   });
-
-  const payload = job.payload as Record<string, unknown> | null;
-  const workVersionId = payload?.work_version_id;
-  if (job.activity_type && job.invoked_by_id && typeof workVersionId === 'string') {
-    try {
-      const wv = await prisma.workVersion.findUnique({
-        where: { id: workVersionId },
-        select: { work_id: true },
-      });
-      if (wv) {
-        await createWorkActivity({
-          workId: wv.work_id,
-          workVersionId,
-          activityById: job.invoked_by_id,
-          activityType: job.activity_type as 'CONVERTER_TASK_STARTED' | 'CHECK_STARTED',
-          data: workActivityDataForJob(job.activity_type, job.payload),
-        });
-      }
-    } catch (err) {
-      console.error(
-        '[promoteAndDispatchJob] Failed to create work activity',
-        job.activity_type,
-        err,
-      );
-    }
-  }
 
   console.log('[promoteAndDispatchJob] promoted and dispatched', {
     job_id: jobId,
