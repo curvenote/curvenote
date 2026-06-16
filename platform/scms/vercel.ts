@@ -8,6 +8,7 @@ export const config: VercelConfig = {
         {
           type: 'queue/v2beta',
           topic: 'job',
+          retryAfterSeconds: 60,
           initialDelaySeconds: 0,
         },
       ],

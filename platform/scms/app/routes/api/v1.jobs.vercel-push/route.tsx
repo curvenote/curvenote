@@ -5,6 +5,7 @@ import {
   LOCAL_MOCK_QUEUE_HEADER,
   processJobMessage,
   registerExtensionJobs,
+  MAX_JOB_QUEUE_DELIVERY_ATTEMPTS,
   type JobQueueDeliveryMetadata,
   type JobQueueMessage,
 } from '@curvenote/scms-server';
@@ -39,8 +40,12 @@ const vercelPushHandler = handleCallback(
   },
   {
     visibilityTimeoutSeconds: 300,
-    // Fail once: processJobMessage terminalizes thrown handler errors before ack.
-    retry: () => ({ acknowledge: true }),
+    retry: (_error, metadata) => {
+      if (metadata.deliveryCount > MAX_JOB_QUEUE_DELIVERY_ATTEMPTS) {
+        return { acknowledge: true };
+      }
+      return { afterSeconds: 60 };
+    },
   },
 );
 

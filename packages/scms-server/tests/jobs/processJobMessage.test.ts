@@ -99,16 +99,24 @@ describe('processJobMessage handshake validation', () => {
     expect(mockHandleTransportFailure).not.toHaveBeenCalled();
   });
 
-  test('terminalizes handler throws without retry', async () => {
+  test('rethrows handler errors while delivery attempts remain', async () => {
     mockVerifyHandshakeToken.mockReturnValue({ jobId: 'job-1', aud: 'LOOPBACK' });
     mockRunHandler.mockRejectedValue(new Error('ECONNREFUSED'));
 
-    await processJobMessage(message, metadata);
+    await expect(processJobMessage(message, metadata)).rejects.toThrow('ECONNREFUSED');
+    expect(mockHandleTransportFailure).not.toHaveBeenCalled();
+  });
+
+  test('terminalizes handler throws after max delivery attempts', async () => {
+    mockVerifyHandshakeToken.mockReturnValue({ jobId: 'job-1', aud: 'LOOPBACK' });
+    mockRunHandler.mockRejectedValue(new Error('ECONNREFUSED'));
+
+    await processJobMessage(message, { ...metadata, deliveryCount: 3 });
 
     expect(mockHandleTransportFailure).toHaveBeenCalledWith(
       'job-1',
       expect.objectContaining({
-        reason: 'domain_failed',
+        reason: 'transport_exhausted',
         last_error: 'ECONNREFUSED',
       }),
     );
