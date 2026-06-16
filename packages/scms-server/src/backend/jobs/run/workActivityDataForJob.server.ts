@@ -1,4 +1,5 @@
 import { coerceToObject } from '@curvenote/scms-core';
+import { converterActivityFromPayload } from '../converterActivityFromPayload.server.js';
 
 /**
  * Activity.data payload for work timeline "started" events, derived from the job row.
@@ -11,15 +12,7 @@ export function workActivityDataForJob(
   if (!record || !activityType) return undefined;
 
   if (activityType === 'CONVERTER_TASK_STARTED') {
-    return {
-      converter: {
-        target: typeof record.target === 'string' ? record.target : 'pdf',
-        type:
-          typeof record.conversion_type === 'string'
-            ? record.conversion_type
-            : 'docx-pandoc-myst-pdf',
-      },
-    };
+    return { converter: converterActivityFromPayload(payload) };
   }
 
   if (activityType === 'CHECK_STARTED' && record.check != null) {
