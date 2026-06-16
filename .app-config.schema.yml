@@ -346,22 +346,20 @@ properties:
         type: string
       pubsubProjectId:
         type: string
-        description: GCP project ID used for all Pub/Sub clients (checks, converter, dispatch).
+        description: GCP project ID used for Pub/Sub clients (checks, converter).
       checkTopic:
         type: string
       converterTopic:
         type: string
         description: Pub/Sub topic for converter jobs — topic ID or full resource name (projects/PROJECT_ID/topics/TOPIC_NAME).
+      tasksCallbackUrl:
+        type: string
+        description: >-
+          Optional v1 API base for async worker callbacks (e.g. http://host.docker.internal:3031/v1).
+          Use when workers run in Docker and SCMS runs on the host; overrides request-derived jobUrl in Pub/Sub attributes.
       converterSASecretKeyfile:
         type: string
         secret: true
-      dispatchTopic:
-        type: string
-        description: Pub/Sub topic name for centralized job dispatch (e.g. scmsJobDispatch)
-      dispatchSASecretKeyfile:
-        type: string
-        secret: true
-        description: JSON service account key with pubsub.publisher on the dispatch topic
       knownBucketInfoMap:
         type: object
         properties:

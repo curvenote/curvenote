@@ -32,6 +32,7 @@ if [ -f ".env" ]; then
     source .env
     echo "Starting container with .env..."
     docker run -p "${PORT:-8080}:8080" \
+      --add-host=host.docker.internal:host-gateway \
       --name task-converter-local \
       --rm \
       task-converter-local

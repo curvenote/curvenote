@@ -66,6 +66,18 @@ cp .env.sample .env
 
 Cloud Run sets `PORT` at runtime; no need to pass it in deploy.
 
+## Local dev: SCMS callbacks from Docker
+
+When SCMS runs on the host (`npm run dev` on port 3031) and the converter runs in Docker, Pub/Sub job attributes must use a host-reachable API URL — not `http://localhost`, which inside the container refers to the container itself.
+
+1. In `platform/scms/.app-config.development.yml`, set `api.tasksCallbackUrl` to `http://host.docker.internal:3031/v1` (included by default).
+2. Run the container with host gateway mapping ( `./local.sh` adds `--add-host=host.docker.internal:host-gateway` ).
+3. Ensure SCMS is listening on `3031` (not only via Caddy on port 80).
+
+The converter PATCHes `jobUrl` from the Pub/Sub message (e.g. `http://host.docker.internal:3031/v1/jobs/<id>`). No extra env vars are required in the converter container.
+
+SCMS dev server must allow the `host.docker.internal` Host header (`platform/scms/vite.config.mts` `server.allowedHosts`); otherwise Vite returns 403 to container callbacks.
+
 ## package-lock.json
 
 This directory has its own `package-lock.json` for reproducible installs in the container (`npm ci`). To regenerate it after changing `package.json`:

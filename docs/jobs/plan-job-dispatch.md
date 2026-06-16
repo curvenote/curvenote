@@ -14,7 +14,7 @@ See `jobs/before/` and `jobs/after/` for before/after flow diagrams.
 | External/CLI dispatch | `POST /api/v1/jobs` stays as-is |
 | DB row creation | Option B — dispatch endpoint creates the row (not the caller) |
 | Caller return value | `{ job_id, job_type, status: 'DISPATCHED' }` (no DB row yet) |
-| Handler-specific worker topics | Unchanged — two-hop for CHECK, CONVERTER_TASK, PROOFIG_SUBMIT, PMC_DEPOSIT_FTP |
+| Handler-specific worker topics | Unchanged — two-hop for CHECK, CONVERTER_TASK, PMC_DEPOSIT_FTP |
 | Follow-on trigger | Publishes to `scmsJobDispatch` topic (no request chaining) |
 | Auth on dispatch messages | Handshake JWT in message attributes |
 | Error handling | Dead letter topic + job reaper for stuck RUNNING jobs |
@@ -284,7 +284,7 @@ Two paths:
 // After:
 await dispatchJob({
   job_id: uuid(),
-  job_type: jobType,  // PROOFIG_SUBMIT or PROOFIG_SUBMIT_STREAM
+  job_type: jobType,  // PROOFIG_SUBMIT_STREAM
   payload: { work_version_id: workVersionId, proofig_run_id: checkRunId },
   invoked_by_id: ctx.user?.id,
   activity_type: 'CHECK_STARTED',
