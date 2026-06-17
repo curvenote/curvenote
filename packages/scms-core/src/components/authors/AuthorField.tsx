@@ -19,19 +19,24 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import type { Author, Affiliation, AuthorOption } from '../types.js';
+import * as ui from '../ui/index.js';
+import { useSaveField } from '../../hooks/useSaveField.js';
+import type {
+  Affiliation,
+  Author,
+  AuthorFieldSchema,
+  OrcidSearchHit,
+  RorSearchHit,
+} from './types.js';
 import {
   extractOrcidId,
   getAuthorFieldErrors,
   isValidOrcid,
   normalizeOrcidForCompare,
-} from '../validationUtils.js';
-import { useSaveField } from '../useSaveField.js';
-import type { OrcidSearchHit, RorSearchHit } from './authorTypes.js';
+} from './validation.js';
 import { AuthorCard } from './AuthorCard.js';
 import { AddAuthorPlaceholderCard } from './AddAuthorPlaceholderCard.js';
 import { AffiliationListItem } from './AffiliationListItem.js';
-import { ui } from '@curvenote/scms-core';
 
 export type ContactDetailsForAuthor = {
   name: string;
@@ -43,7 +48,7 @@ export type ContactDetailsForAuthor = {
 };
 
 export type AuthorFieldProps = {
-  schema: AuthorOption;
+  schema: AuthorFieldSchema;
   value: Author[];
   onChange: (value: Author[]) => void;
   affiliationList?: Affiliation[];
@@ -53,7 +58,77 @@ export type AuthorFieldProps = {
   initialOpenAuthorIndex?: number;
   initialOpenAffiliationIndex?: number;
   contactDetails?: ContactDetailsForAuthor;
+  onSaveFetcherStateChange?: (id: string, state: string) => void;
 };
+
+type OrcidFetcherData = {
+  name?: string;
+  orcid?: string;
+  email?: string;
+  affiliations?: {
+    name: string;
+    city?: string;
+    region?: string;
+    country?: string;
+    ror?: string;
+  }[];
+  error?: { message?: string };
+};
+
+function applyOrcidAffiliations(
+  author: Author,
+  data: OrcidFetcherData,
+  affiliationList: Affiliation[],
+): { updates: Partial<Author>; affiliationList: Affiliation[]; listModified: boolean } {
+  const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
+  let nextList = [...affiliationList];
+  let listModified = false;
+  const newAffiliationIds: string[] = [...(author.affiliationIds ?? [])];
+
+  for (const aff of affiliationsFromOrcid) {
+    const trimmed = String(aff?.name ?? '').trim();
+    if (!trimmed) continue;
+    const existingExact = nextList.find(
+      (a) =>
+        (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase() &&
+        (a.city ?? '') === (aff?.city ?? '') &&
+        (a.country ?? '') === (aff?.country ?? ''),
+    );
+    const existing =
+      existingExact ||
+      nextList.find((a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      if (!newAffiliationIds.includes(existing.id)) newAffiliationIds.push(existing.id);
+      if (aff?.ror && !(existing.ror ?? '').trim()) {
+        nextList = nextList.map((a) => (a.id === existing.id ? { ...a, ror: aff.ror } : a));
+        listModified = true;
+      }
+    } else {
+      const newAff: Affiliation = {
+        id: uuid(),
+        name: trimmed,
+        ...(aff?.city && { city: aff.city }),
+        ...(aff?.country && { country: aff.country }),
+        ...(aff?.ror && { ror: aff.ror }),
+      };
+      nextList = [...nextList, newAff];
+      newAffiliationIds.push(newAff.id);
+      listModified = true;
+    }
+  }
+
+  const nameFromOrcid =
+    data?.name && data?.orcid ? String(data.name).trim() || undefined : undefined;
+  const emailFromOrcid = data?.orcid && data?.email?.trim() ? data.email?.trim() : undefined;
+  const updates: Partial<Author> = {};
+  if (nameFromOrcid && (!(author.name ?? '').trim() || author.name === 'Author')) {
+    updates.name = nameFromOrcid;
+  }
+  if (emailFromOrcid && !(author.email ?? '').trim()) updates.email = emailFromOrcid;
+  if (newAffiliationIds.length > 0) updates.affiliationIds = newAffiliationIds;
+
+  return { updates, affiliationList: nextList, listModified };
+}
 
 export function AuthorField({
   schema,
@@ -66,6 +141,7 @@ export function AuthorField({
   initialOpenAuthorIndex,
   initialOpenAffiliationIndex,
   contactDetails,
+  onSaveFetcherStateChange,
 }: AuthorFieldProps) {
   const [addAuthorSearchValue, setAddAuthorSearchValue] = useState('');
   const lastOrcidResultsRef = useRef<OrcidSearchHit[]>([]);
@@ -124,12 +200,20 @@ export function AuthorField({
 
   const authorErrors = getAuthorFieldErrors(value);
   const isValid = value.length > 0 && authorErrors.length === 0;
-
   const [authorOrder, setAuthorOrder] = useState<string[]>(() => value.map((a) => a.id));
 
   useEffect(() => {
     setAuthorOrder(value.map((a) => a.id));
   }, [value]);
+
+  const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated, {
+    onFetcherStateChange: onSaveFetcherStateChange,
+  });
+
+  const handleChange = (newAuthors: Author[]) => {
+    onChange(newAuthors);
+    save(newAuthors);
+  };
 
   const appendAuthor = (newAuthor: Author) => {
     const newAuthors = [...valueRef.current, newAuthor];
@@ -169,8 +253,9 @@ export function AuthorField({
       initialOpenAuthorIndex == null ||
       initialOpenAuthorIndex < 0 ||
       initialOpenAuthorIndex >= value.length
-    )
+    ) {
       return;
+    }
     initialExpandAppliedRef.current.author = true;
     setOpenIndex(initialOpenAuthorIndex);
   }, [initialOpenAuthorIndex, value.length]);
@@ -181,8 +266,9 @@ export function AuthorField({
       initialOpenAffiliationIndex == null ||
       initialOpenAffiliationIndex < 0 ||
       !affiliationList[initialOpenAffiliationIndex]
-    )
+    ) {
       return;
+    }
     initialExpandAppliedRef.current.affiliation = true;
     setAdvancedOpen(true);
     setOpenAffiliationId(affiliationList[initialOpenAffiliationIndex].id);
@@ -194,12 +280,6 @@ export function AuthorField({
     }
     authorCountRef.current = value.length;
   }, [value.length]);
-  const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated);
-
-  const handleChange = (newAuthors: Author[]) => {
-    onChange(newAuthors);
-    save(newAuthors);
-  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -273,135 +353,33 @@ export function AuthorField({
 
   useEffect(() => {
     if (orcidFetcher.state !== 'idle' || !orcidFetcher.data) return;
-    const data = orcidFetcher.data as {
-      name?: string;
-      orcid?: string;
-      email?: string;
-      affiliations?: {
-        name: string;
-        city?: string;
-        region?: string;
-        country?: string;
-        ror?: string;
-      }[];
-      error?: { message?: string };
-    };
+    const data = orcidFetcher.data as OrcidFetcherData;
 
-    if (addMeOrcidAuthorIdRef.current) {
-      const targetId = addMeOrcidAuthorIdRef.current;
-      addMeOrcidAuthorIdRef.current = null;
+    const updateExistingAuthor = (targetId: string) => {
       if (data?.error) return;
       const currentAuthors = valueRef.current;
       const idx = currentAuthors.findIndex((a) => a.id === targetId);
       if (idx === -1) return;
       const author = currentAuthors[idx];
-      const nameFromOrcid =
-        data?.name && data?.orcid ? String(data.name).trim() || undefined : undefined;
-      const emailFromOrcid = data?.orcid && data?.email?.trim() ? data.email?.trim() : undefined;
-      const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
-      let nextList = [...affiliationList];
-      let listModified = false;
-      const newAffiliationIds: string[] = [...(author.affiliationIds ?? [])];
-      for (const aff of affiliationsFromOrcid) {
-        const trimmed = String(aff?.name ?? '').trim();
-        if (!trimmed) continue;
-        const existingExact = nextList.find(
-          (a) =>
-            (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase() &&
-            (a.city ?? '') === (aff?.city ?? '') &&
-            (a.country ?? '') === (aff?.country ?? ''),
-        );
-        const existing =
-          existingExact ||
-          nextList.find((a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
-        if (existing) {
-          if (!newAffiliationIds.includes(existing.id)) newAffiliationIds.push(existing.id);
-          if (aff?.ror && !(existing.ror ?? '').trim()) {
-            nextList = nextList.map((a) => (a.id === existing.id ? { ...a, ror: aff.ror } : a));
-            listModified = true;
-          }
-        } else {
-          const newAff: Affiliation = {
-            id: uuid(),
-            name: trimmed,
-            ...(aff?.city && { city: aff.city }),
-            ...(aff?.country && { country: aff.country }),
-            ...(aff?.ror && { ror: aff.ror }),
-          };
-          nextList = [...nextList, newAff];
-          newAffiliationIds.push(newAff.id);
-          listModified = true;
-        }
-      }
-      if (listModified) onAffiliationListChange?.(nextList);
-      const updates: Partial<Author> = {};
-      if (nameFromOrcid && (!(author.name ?? '').trim() || author.name === 'Author'))
-        updates.name = nameFromOrcid;
-      if (emailFromOrcid && !(author.email ?? '').trim()) updates.email = emailFromOrcid;
-      if (newAffiliationIds.length > 0) updates.affiliationIds = newAffiliationIds;
-      if (Object.keys(updates).length > 0) {
-        const next = currentAuthors.map((a, i) => (i === idx ? { ...a, ...updates } : a));
+      const result = applyOrcidAffiliations(author, data, affiliationList);
+      if (result.listModified) onAffiliationListChange?.(result.affiliationList);
+      if (Object.keys(result.updates).length > 0) {
+        const next = currentAuthors.map((a, i) => (i === idx ? { ...a, ...result.updates } : a));
         handleChange(next);
       }
+    };
+
+    if (addMeOrcidAuthorIdRef.current) {
+      const targetId = addMeOrcidAuthorIdRef.current;
+      addMeOrcidAuthorIdRef.current = null;
+      updateExistingAuthor(targetId);
       return;
     }
 
     if (suggestionOrcidAuthorIdRef.current) {
       const targetId = suggestionOrcidAuthorIdRef.current;
       suggestionOrcidAuthorIdRef.current = null;
-      if (data?.error) return;
-      const currentAuthors = valueRef.current;
-      const idx = currentAuthors.findIndex((a) => a.id === targetId);
-      if (idx === -1) return;
-      const author = currentAuthors[idx];
-      const nameFromOrcid =
-        data?.name && data?.orcid ? String(data.name).trim() || undefined : undefined;
-      const emailFromOrcid = data?.orcid && data?.email?.trim() ? data.email?.trim() : undefined;
-      const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
-      let nextList = [...affiliationList];
-      let listModified = false;
-      const newAffiliationIds: string[] = [...(author.affiliationIds ?? [])];
-      for (const aff of affiliationsFromOrcid) {
-        const trimmed = String(aff?.name ?? '').trim();
-        if (!trimmed) continue;
-        const existingExact = nextList.find(
-          (a) =>
-            (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase() &&
-            (a.city ?? '') === (aff?.city ?? '') &&
-            (a.country ?? '') === (aff?.country ?? ''),
-        );
-        const existing =
-          existingExact ||
-          nextList.find((a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
-        if (existing) {
-          if (!newAffiliationIds.includes(existing.id)) newAffiliationIds.push(existing.id);
-          if (aff?.ror && !(existing.ror ?? '').trim()) {
-            nextList = nextList.map((a) => (a.id === existing.id ? { ...a, ror: aff.ror } : a));
-            listModified = true;
-          }
-        } else {
-          const newAff: Affiliation = {
-            id: uuid(),
-            name: trimmed,
-            ...(aff?.city && { city: aff.city }),
-            ...(aff?.country && { country: aff.country }),
-            ...(aff?.ror && { ror: aff.ror }),
-          };
-          nextList = [...nextList, newAff];
-          newAffiliationIds.push(newAff.id);
-          listModified = true;
-        }
-      }
-      if (listModified) onAffiliationListChange?.(nextList);
-      const updates: Partial<Author> = {};
-      if (nameFromOrcid && (!(author.name ?? '').trim() || author.name === 'Author'))
-        updates.name = nameFromOrcid;
-      if (emailFromOrcid && !(author.email ?? '').trim()) updates.email = emailFromOrcid;
-      if (newAffiliationIds.length > 0) updates.affiliationIds = newAffiliationIds;
-      if (Object.keys(updates).length > 0) {
-        const next = currentAuthors.map((a, i) => (i === idx ? { ...a, ...updates } : a));
-        handleChange(next);
-      }
+      updateExistingAuthor(targetId);
       return;
     }
 
@@ -412,48 +390,15 @@ export function AuthorField({
       data?.error || !data?.name || !data?.orcid ? orcid : String(data.name).trim() || orcid;
     const email =
       data?.error || !data?.orcid ? undefined : (data.email?.trim() && data.email) || undefined;
-    const affiliationsFromOrcid = Array.isArray(data?.affiliations) ? data.affiliations : [];
-    let nextList = [...affiliationList];
-    let listModified = false;
-    const affiliationIds: string[] = [];
-    for (const aff of affiliationsFromOrcid) {
-      const trimmed = String(aff?.name ?? '').trim();
-      if (!trimmed) continue;
-      const existingExact = nextList.find(
-        (a) =>
-          (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase() &&
-          (a.city ?? '') === (aff?.city ?? '') &&
-          (a.country ?? '') === (aff?.country ?? ''),
-      );
-      const existing =
-        existingExact ||
-        nextList.find((a) => (a.name ?? '').trim().toLowerCase() === trimmed.toLowerCase());
-      if (existing) {
-        affiliationIds.push(existing.id);
-        if (aff?.ror && !(existing.ror ?? '').trim()) {
-          nextList = nextList.map((a) => (a.id === existing.id ? { ...a, ror: aff.ror } : a));
-          listModified = true;
-        }
-      } else {
-        const newAff: Affiliation = {
-          id: uuid(),
-          name: trimmed,
-          ...(aff?.city && { city: aff.city }),
-          ...(aff?.country && { country: aff.country }),
-          ...(aff?.ror && { ror: aff.ror }),
-        };
-        nextList = [...nextList, newAff];
-        affiliationIds.push(newAff.id);
-        listModified = true;
-      }
-    }
-    if (listModified) onAffiliationListChange?.(nextList);
+    const seedAuthor: Author = { id: '', name, affiliationIds: [] };
+    const result = applyOrcidAffiliations(seedAuthor, data, affiliationList);
+    if (result.listModified) onAffiliationListChange?.(result.affiliationList);
     const newAuthor: Author = {
       id: uuid(),
       name,
       orcid: data?.orcid ?? orcid,
       ...(email && { email }),
-      affiliationIds,
+      affiliationIds: result.updates.affiliationIds ?? [],
     };
     appendAuthor(newAuthor);
     setAddAuthorSearchValue('');
@@ -826,10 +771,10 @@ export function AuthorField({
                   externalOptions={addAffiliationRorOptions ?? []}
                   externalLoading={addAffiliationRorLoading}
                   placeholder="Affiliation name (search ROR)"
-                  searchPlaceholder="Search ROR…"
+                  searchPlaceholder="Search ROR..."
                   minSearchLength={1}
                   emptyMessage="No ROR matches."
-                  loadingMessage="Searching ROR…"
+                  loadingMessage="Searching ROR..."
                   className="w-full"
                 />
               </div>

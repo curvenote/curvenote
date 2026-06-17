@@ -7,7 +7,7 @@
  */
 
 import { orcid } from '@curvenote/scms-core';
-import { getConfig } from '@curvenote/scms-server';
+import { getConfig } from '../app-config.server.js';
 
 const ORCID_PUB_BASE = 'https://pub.orcid.org';
 
@@ -58,7 +58,7 @@ async function orcidFetch(
 ): Promise<unknown> {
   const url = `${base}/v3.0${path}`;
   const headers: Record<string, string> = { Accept: accept };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(url, { method: 'GET', headers });
   if (!res.ok) return null;
   return res.json();
@@ -80,7 +80,6 @@ export async function searchOrcid(query: string): Promise<OrcidSearchHit[]> {
   if (trimmed.length < 2) return [];
 
   const token = await getOrcidAccessToken();
-  console.log('[ORCID search] searchOrcid: token present=', !!token);
   if (!token) return [];
   // Use Public API base (pub.orcid.org); token from orcid.org OAuth is valid there, not on api.orcid.org (Member API).
   const base = ORCID_PUB_BASE;
@@ -89,7 +88,6 @@ export async function searchOrcid(query: string): Promise<OrcidSearchHit[]> {
   const json = await orcidFetch(base, path, token, 'application/vnd.orcid+json');
   if (!json || typeof json !== 'object') return [];
 
-  // Public API (pub.orcid.org) expanded-search: orcid-id and names are direct strings; institution-name and email are arrays
   const raw = json as {
     'expanded-result'?: Array<{
       'orcid-id'?: string;
@@ -117,7 +115,7 @@ export async function searchOrcid(query: string): Promise<OrcidSearchHit[]> {
       Array.isArray(inst) && inst.length > 0 && typeof inst[0] === 'string'
         ? inst[0].trim()
         : undefined;
-    const em = r['email'];
+    const em = r.email;
     const email =
       Array.isArray(em) && em.length > 0 && typeof em[0] === 'string' ? em[0].trim() : undefined;
     hits.push({
@@ -127,7 +125,6 @@ export async function searchOrcid(query: string): Promise<OrcidSearchHit[]> {
       ...(email && { email }),
     });
   }
-  console.log('[ORCID search] searchOrcid: parsed hits count=', hits.length);
   return hits;
 }
 
@@ -139,7 +136,6 @@ export async function fetchOrcidPerson(orcidId: string): Promise<OrcidPersonResu
   if (!/^\d{4}-\d{4}-\d{4}-\d{4}$/.test(trimmed)) return null;
 
   const token = await getOrcidAccessToken();
-  // Use Public API (pub.orcid.org) for both authenticated and unauthenticated; token from orcid.org OAuth is valid there only.
   const base = ORCID_PUB_BASE;
   const pathPrefix = `/${trimmed}`;
 

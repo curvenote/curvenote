@@ -1,5 +1,5 @@
 import { Plus, CornerDownLeft } from 'lucide-react';
-import { ui } from '@curvenote/scms-core';
+import * as ui from '../ui/index.js';
 
 export type AddAuthorPlaceholderCardProps = {
   orcidSearchExternalOptions?: { value: string; label: string; description?: string }[];
@@ -59,10 +59,10 @@ export function AddAuthorPlaceholderCard({
               externalOptions={orcidSearchExternalOptions ?? []}
               externalLoading={orcidSearchLoading}
               placeholder="Name or ORCID (e.g. 0000-0002-1825-0097)"
-              searchPlaceholder="Search ORCID…"
+              searchPlaceholder="Search ORCID..."
               minSearchLength={1}
               emptyMessage="No ORCID matches."
-              loadingMessage="Searching ORCID…"
+              loadingMessage="Searching ORCID..."
               className="w-full"
             />
           </div>
@@ -73,7 +73,7 @@ export function AddAuthorPlaceholderCard({
             className="cursor-pointer shrink-0"
           >
             {orcidFetcher.state !== 'idle' ? (
-              'Looking up…'
+              'Looking up...'
             ) : (
               <>
                 Add Author

@@ -1,4 +1,4 @@
-import type { Affiliation } from '../types.js';
+import type { Affiliation } from './types.js';
 
 export function getAffiliationName(list: Affiliation[], id: string): string {
   const name = list.find((a) => a.id === id)?.name;

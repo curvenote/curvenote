@@ -16,12 +16,11 @@ import {
 import { OrcidIcon } from '@scienceicons/react/24/solid';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Author, Affiliation } from '../types.js';
-import { isValidEmail, isValidOrcid } from '../validationUtils.js';
+import * as ui from '../ui/index.js';
+import type { Author, Affiliation, RorSearchHit } from './types.js';
+import { isValidEmail, isValidOrcid } from './validation.js';
 import { getAffiliationName } from './affiliationHelpers.js';
 import { AffiliationSortableList } from './AffiliationSortableList.js';
-import type { RorSearchHit } from './authorTypes.js';
-import { ui } from '@curvenote/scms-core';
 
 export type AuthorCardProps = {
   value: Author;
@@ -166,6 +165,115 @@ export function AuthorCard({
 
   const emailValid = editEmail.trim() === '' ? null : isValidEmail(editEmail);
   const orcidValid = editOrcid.trim() === '' ? null : isValidOrcid(editOrcid);
+  const displayOrcid = (value.orcid ?? editOrcid).trim();
+
+  const addTypedAffiliation = (mode: 'edit' | 'view') => {
+    const trimmed = newAffiliationInput.trim();
+    if (!trimmed) return;
+    const aff: Affiliation = { id: uuid(), name: trimmed };
+    if (mode === 'edit') addAffiliation(aff);
+    else addAffiliationInViewMode(aff);
+    setNewAffiliationInput('');
+  };
+
+  const renderAddDetailsPrompt = (otherOptions: Affiliation[], mode: 'edit' | 'view') => {
+    const typed = (newAffiliationInput ?? '').trim();
+    const hasTypedNonMatching =
+      typed !== '' &&
+      !otherOptions.some((a) => (a.name ?? '').trim().toLowerCase() === typed.toLowerCase());
+    const showAddDetailsPrompt = typed !== '' && (otherOptions.length === 0 || hasTypedNonMatching);
+
+    if (showAddDetailsPrompt) {
+      return (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setExpandAddDetails((e) => !e);
+                if (!expandAddDetails) setAddDetailsName(typed || '');
+              }}
+              className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
+              aria-expanded={expandAddDetails}
+            >
+              {expandAddDetails ? (
+                <Minus className="w-3 h-3 shrink-0" aria-hidden />
+              ) : (
+                <Plus className="w-3 h-3 shrink-0" aria-hidden />
+              )}
+              <span>Add department or location</span>
+            </button>
+          </div>
+          {expandAddDetails && (
+            <div className="pl-6 space-y-3 border-l-2 border-border">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Name</label>
+                <ui.Input
+                  type="text"
+                  autoComplete="off"
+                  value={addDetailsName}
+                  onChange={(e) => setAddDetailsName(e.target.value)}
+                  placeholder="Affiliation name"
+                  className="w-full h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Department</label>
+                <ui.Input
+                  type="text"
+                  autoComplete="off"
+                  value={addDetailsDepartment}
+                  onChange={(e) => setAddDetailsDepartment(e.target.value)}
+                  placeholder="Department"
+                  className="w-full h-9 text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">City</label>
+                  <ui.Input
+                    type="text"
+                    autoComplete="off"
+                    value={addDetailsCity}
+                    onChange={(e) => setAddDetailsCity(e.target.value)}
+                    placeholder="City"
+                    className="w-full h-9 text-sm"
+                  />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Country</label>
+                  <ui.Input
+                    type="text"
+                    autoComplete="off"
+                    value={addDetailsCountry}
+                    onChange={(e) => setAddDetailsCountry(e.target.value)}
+                    placeholder="Country"
+                    className="w-full h-9 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {otherOptions.map((aff) => (
+          <button
+            key={aff.id}
+            type="button"
+            onClick={() => (mode === 'edit' ? addAffiliation(aff) : addAffiliationInViewMode(aff))}
+            className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
+          >
+            <Plus className="w-3 h-3 shrink-0" />
+            {aff.name}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -219,12 +327,12 @@ export function AuthorCard({
                 >
                   {editName.trim() || 'Author Name'}
                 </span>
-                {orcidValid === true && (value.orcid ?? editOrcid)?.trim() && (
+                {orcidValid === true && displayOrcid && (
                   <a
                     href={
-                      (value.orcid ?? editOrcid)!.trim().startsWith('http')
-                        ? (value.orcid ?? editOrcid)!.trim()
-                        : `https://orcid.org/${(value.orcid ?? editOrcid)!.trim()}`
+                      displayOrcid.startsWith('http')
+                        ? displayOrcid
+                        : `https://orcid.org/${displayOrcid}`
                     }
                     target="_blank"
                     rel="noopener noreferrer"
@@ -386,10 +494,10 @@ export function AuthorCard({
                     externalOptions={rorSearchOptions ?? []}
                     externalLoading={rorSearchLoading}
                     placeholder="Add affiliation (search ROR)"
-                    searchPlaceholder="Search ROR…"
+                    searchPlaceholder="Search ROR..."
                     minSearchLength={1}
                     emptyMessage="No ROR matches."
-                    loadingMessage="Searching ROR…"
+                    loadingMessage="Searching ROR..."
                     className="w-full"
                   />
                 </div>
@@ -398,128 +506,15 @@ export function AuthorCard({
                   variant="default"
                   disabled={!newAffiliationInput.trim()}
                   className="cursor-pointer shrink-0"
-                  onClick={() => {
-                    const trimmed = newAffiliationInput.trim();
-                    if (trimmed) {
-                      addAffiliation({ id: uuid(), name: trimmed });
-                      setNewAffiliationInput('');
-                    }
-                  }}
+                  onClick={() => addTypedAffiliation('edit')}
                 >
                   Add
                 </ui.Button>
               </div>
-              {(() => {
-                const otherOptions = affiliationList.filter(
-                  (a) => !editAffiliationIds.includes(a.id),
-                );
-                const typed = (newAffiliationInput ?? '').trim();
-                const hasTypedNonMatching =
-                  typed !== '' &&
-                  !otherOptions.some(
-                    (a) => (a.name ?? '').trim().toLowerCase() === typed.toLowerCase(),
-                  );
-                const showAddDetailsPrompt =
-                  typed !== '' && (otherOptions.length === 0 || hasTypedNonMatching);
-
-                if (showAddDetailsPrompt) {
-                  return (
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setExpandAddDetails((e) => !e);
-                            if (!expandAddDetails) setAddDetailsName(typed || '');
-                          }}
-                          className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
-                          aria-expanded={expandAddDetails}
-                        >
-                          {expandAddDetails ? (
-                            <Minus className="w-3 h-3 shrink-0" aria-hidden />
-                          ) : (
-                            <Plus className="w-3 h-3 shrink-0" aria-hidden />
-                          )}
-                          <span>Add department or location</span>
-                        </button>
-                      </div>
-                      {expandAddDetails && (
-                        <div className="pl-6 space-y-3 border-l-2 border-border">
-                          <div className="space-y-1">
-                            <label className="text-xs font-medium text-muted-foreground">
-                              Name
-                            </label>
-                            <ui.Input
-                              type="text"
-                              autoComplete="off"
-                              value={addDetailsName}
-                              onChange={(e) => setAddDetailsName(e.target.value)}
-                              placeholder="Affiliation name"
-                              className="w-full h-9 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-xs font-medium text-muted-foreground">
-                              Department
-                            </label>
-                            <ui.Input
-                              type="text"
-                              autoComplete="off"
-                              value={addDetailsDepartment}
-                              onChange={(e) => setAddDetailsDepartment(e.target.value)}
-                              placeholder="Department"
-                              className="w-full h-9 text-sm"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <div className="flex-1 space-y-1">
-                              <label className="text-xs font-medium text-muted-foreground">
-                                City
-                              </label>
-                              <ui.Input
-                                type="text"
-                                autoComplete="off"
-                                value={addDetailsCity}
-                                onChange={(e) => setAddDetailsCity(e.target.value)}
-                                placeholder="City"
-                                className="w-full h-9 text-sm"
-                              />
-                            </div>
-                            <div className="flex-1 space-y-1">
-                              <label className="text-xs font-medium text-muted-foreground">
-                                Country
-                              </label>
-                              <ui.Input
-                                type="text"
-                                autoComplete="off"
-                                value={addDetailsCountry}
-                                onChange={(e) => setAddDetailsCountry(e.target.value)}
-                                placeholder="Country"
-                                className="w-full h-9 text-sm"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-                return (
-                  <div className="flex flex-wrap gap-1.5">
-                    {otherOptions.map((aff) => (
-                      <button
-                        key={aff.id}
-                        type="button"
-                        onClick={() => addAffiliation(aff)}
-                        className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
-                      >
-                        <Plus className="w-3 h-3 shrink-0" />
-                        {aff.name}
-                      </button>
-                    ))}
-                  </div>
-                );
-              })()}
+              {renderAddDetailsPrompt(
+                affiliationList.filter((a) => !editAffiliationIds.includes(a.id)),
+                'edit',
+              )}
             </div>
           </div>
         ) : (
@@ -591,10 +586,10 @@ export function AuthorCard({
                       externalOptions={rorSearchOptions ?? []}
                       externalLoading={rorSearchLoading}
                       placeholder="Add affiliation (search ROR)"
-                      searchPlaceholder="Search ROR…"
+                      searchPlaceholder="Search ROR..."
                       minSearchLength={1}
                       emptyMessage="No ROR matches."
-                      loadingMessage="Searching ROR…"
+                      loadingMessage="Searching ROR..."
                       className="w-full"
                     />
                   </div>
@@ -603,128 +598,15 @@ export function AuthorCard({
                     variant="default"
                     disabled={!newAffiliationInput.trim()}
                     className="cursor-pointer shrink-0"
-                    onClick={() => {
-                      const trimmed = newAffiliationInput.trim();
-                      if (trimmed) {
-                        addAffiliationInViewMode({ id: uuid(), name: trimmed });
-                        setNewAffiliationInput('');
-                      }
-                    }}
+                    onClick={() => addTypedAffiliation('view')}
                   >
                     Add
                   </ui.Button>
                 </div>
-                {(() => {
-                  const otherOptions = affiliationList.filter(
-                    (a) => !(value.affiliationIds ?? []).includes(a.id),
-                  );
-                  const typed = (newAffiliationInput ?? '').trim();
-                  const hasTypedNonMatching =
-                    typed !== '' &&
-                    !otherOptions.some(
-                      (a) => (a.name ?? '').trim().toLowerCase() === typed.toLowerCase(),
-                    );
-                  const showAddDetailsPrompt =
-                    typed !== '' && (otherOptions.length === 0 || hasTypedNonMatching);
-
-                  if (showAddDetailsPrompt) {
-                    return (
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setExpandAddDetails((e) => !e);
-                              if (!expandAddDetails) setAddDetailsName(typed || '');
-                            }}
-                            className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
-                            aria-expanded={expandAddDetails}
-                          >
-                            {expandAddDetails ? (
-                              <Minus className="w-3 h-3 shrink-0" aria-hidden />
-                            ) : (
-                              <Plus className="w-3 h-3 shrink-0" aria-hidden />
-                            )}
-                            <span>Add department or location</span>
-                          </button>
-                        </div>
-                        {expandAddDetails && (
-                          <div className="pl-6 space-y-3 border-l-2 border-border">
-                            <div className="space-y-1">
-                              <label className="text-xs font-medium text-muted-foreground">
-                                Name
-                              </label>
-                              <ui.Input
-                                type="text"
-                                autoComplete="off"
-                                value={addDetailsName}
-                                onChange={(e) => setAddDetailsName(e.target.value)}
-                                placeholder="Affiliation name"
-                                className="w-full h-9 text-sm"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-xs font-medium text-muted-foreground">
-                                Department
-                              </label>
-                              <ui.Input
-                                type="text"
-                                autoComplete="off"
-                                value={addDetailsDepartment}
-                                onChange={(e) => setAddDetailsDepartment(e.target.value)}
-                                placeholder="Department"
-                                className="w-full h-9 text-sm"
-                              />
-                            </div>
-                            <div className="flex gap-2">
-                              <div className="flex-1 space-y-1">
-                                <label className="text-xs font-medium text-muted-foreground">
-                                  City
-                                </label>
-                                <ui.Input
-                                  type="text"
-                                  autoComplete="off"
-                                  value={addDetailsCity}
-                                  onChange={(e) => setAddDetailsCity(e.target.value)}
-                                  placeholder="City"
-                                  className="w-full h-9 text-sm"
-                                />
-                              </div>
-                              <div className="flex-1 space-y-1">
-                                <label className="text-xs font-medium text-muted-foreground">
-                                  Country
-                                </label>
-                                <ui.Input
-                                  type="text"
-                                  autoComplete="off"
-                                  value={addDetailsCountry}
-                                  onChange={(e) => setAddDetailsCountry(e.target.value)}
-                                  placeholder="Country"
-                                  className="w-full h-9 text-sm"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="flex flex-wrap gap-1.5">
-                      {otherOptions.map((aff) => (
-                        <button
-                          key={aff.id}
-                          type="button"
-                          onClick={() => addAffiliationInViewMode(aff)}
-                          className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] text-muted-foreground bg-background cursor-pointer hover:text-foreground hover:bg-muted/50 border-0 outline-none"
-                        >
-                          <Plus className="w-3 h-3 shrink-0" />
-                          {aff.name}
-                        </button>
-                      ))}
-                    </div>
-                  );
-                })()}
+                {renderAddDetailsPrompt(
+                  affiliationList.filter((a) => !(value.affiliationIds ?? []).includes(a.id)),
+                  'view',
+                )}
               </div>
             )}
           </>

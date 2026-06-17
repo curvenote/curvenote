@@ -16,7 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import type { Affiliation } from '../types.js';
+import type { Affiliation } from './types.js';
 import { getAffiliationName, getAffiliationSubtitle } from './affiliationHelpers.js';
 import { SortableAffiliationRow } from './SortableAffiliationRow.js';
 

@@ -19,6 +19,7 @@ export * from './SystemAdminBadge.js';
 export * from './ThemeSwitcher.js';
 export * from './UserCard.js';
 export * from './VersionsListing.js';
+export * from './authors/index.js';
 export * from './layout/index.js';
 export * from './navigation/index.js';
 export * from './upload/index.js';

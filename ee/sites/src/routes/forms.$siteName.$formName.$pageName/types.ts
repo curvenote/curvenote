@@ -96,25 +96,4 @@ export type FormSubmission = {
   pages: Record<string, { completed: boolean }>;
 };
 
-export type Author = {
-  id: string;
-  name: string;
-  email?: string;
-  corresponding?: boolean;
-  orcid?: string;
-  /** IDs referencing the global affiliations list. */
-  affiliationIds: string[];
-};
-
-export type Affiliation = {
-  id: string;
-  name: string;
-  ror?: string;
-  /** Fields that came from ROR API (read-only). Array of field names like ['name', 'city', 'country']. */
-  rorFields?: string[];
-  department?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-  email?: string;
-};
+export type { Author, Affiliation } from '@curvenote/scms-core';
