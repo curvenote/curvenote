@@ -155,6 +155,7 @@
     "p-limit": "^3.1.0",
     "react": "^18.3.1",
     "react-router": "7.9.5",
+    "sharp": "^0.35.1",
     "tailwindcss-animate": "^1.0.7",
     "ts-morph": "^12.0.0",
     "uuidv7": "^1.0.2",

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Route } from './+types/route';
 import type {
   WorkVersionCheckName,
@@ -63,6 +63,7 @@ import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
 import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
+import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isPreviewCandidate } from './metadata-extract/previewGuards';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -90,6 +91,7 @@ const WorkUploadActionSchema = zfd.formData({
   force: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'extract-metadata' to bypass the cache
   title: zfd.text(z.string().default('')), // Used by 'update-title' intent - allows empty strings
   authors: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent
+  thumbnail: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent - selected thumbnail locator
   redirect: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'confirm-work' intent; default true
   checkName: zfd.text(workVersionCheckNameSchema).optional(), // Used by 'toggle-check' intent
   checked: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'toggle-check' intent
@@ -360,6 +362,7 @@ export async function action(args: Route.ActionArgs) {
         slot,
         title,
         authors,
+        thumbnail: thumbnailLocator,
         redirect: redirectParam,
         checkName,
         checked,
@@ -517,6 +520,30 @@ export async function action(args: Route.ActionArgs) {
             ...(authorsList.length > 0 ? { authors: authorsList } : {}),
           },
         });
+
+        // Materialise the selected thumbnail (best-effort: never blocks submission).
+        if (thumbnailLocator && wv.cdn) {
+          try {
+            const thumbnailKey = await materializeSelectedThumbnail({
+              ctx: baseCtx,
+              workVersionId,
+              cdn: wv.cdn,
+              locator: thumbnailLocator,
+            });
+            if (thumbnailKey) {
+              await prisma.workVersion.update({
+                where: { id: workVersionId },
+                data: { thumbnail: thumbnailKey },
+              });
+            }
+          } catch (error) {
+            console.error('[work-upload] thumbnail materialization failed', {
+              workId,
+              workVersionId,
+              error,
+            });
+          }
+        }
 
         // Schedule each enabled check via its extension. Each check service is
         // responsible for creating its own checkServiceRun rows and jobs.
@@ -755,6 +782,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   } = loaderData;
   const { workVersionId } = useParams();
   const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
+  const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
   const revalidator = useRevalidator();
   const fetchPreviewsFetcher = useFetcher();
   const autoTitleFromFilenameFetcher = useFetcher();
@@ -868,7 +896,13 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           ) : (
             <CaptureMetadataSection title={title} authors={authors} />
           )}
-          {hasMetadataExtractScope ? <ChooseThumbnailSection previewList={previewList} /> : null}
+          {hasMetadataExtractScope ? (
+            <ChooseThumbnailSection
+              previewList={previewList}
+              value={selectedThumbnail}
+              onChange={setSelectedThumbnail}
+            />
+          ) : null}
           <SectionWithHeading
             heading="Select Checks to Run"
             icon={<CheckSquare className="w-5 h-5" />}
@@ -890,6 +924,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             authors={authors}
             metadata={metadata}
             checkServices={checkServices}
+            selectedThumbnail={selectedThumbnail}
           />
         </PageFrame>
       </MainWrapper>

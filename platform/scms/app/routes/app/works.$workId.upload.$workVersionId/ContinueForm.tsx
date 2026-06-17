@@ -14,9 +14,17 @@ interface ContinueFormProps {
   authors: string;
   metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
   checkServices: ExtensionCheckService[];
+  /** Selected thumbnail locator (see thumbnailSelection.ts); materialised on submit. */
+  selectedThumbnail?: string | null;
 }
 
-export function ContinueForm({ title, authors, metadata, checkServices }: ContinueFormProps) {
+export function ContinueForm({
+  title,
+  authors,
+  metadata,
+  checkServices,
+  selectedThumbnail,
+}: ContinueFormProps) {
   const fetcher = useFetcher();
   const fetchers = useFetchers();
   const { workId } = useParams();
@@ -67,6 +75,9 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
     formData.append('intent', 'confirm-work');
     if (authors?.trim()) {
       formData.append('authors', authors);
+    }
+    if (selectedThumbnail) {
+      formData.append('thumbnail', selectedThumbnail);
     }
     fetcher.submit(formData, { method: 'post' });
   };
