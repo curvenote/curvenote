@@ -145,6 +145,23 @@ Link/URL builders (gate on `hasResolvableThumbnail`):
 Selecting the column is cheap; the resolver only needs `cdn`, `cdn_key`, and
 `thumbnail` for the common case, and `metadata` only when falling through to layer (2).
 
+## Runtime impact of the resize
+
+- **Frequency:** once per submit, on a single selected image — not a per-request render
+  path (reads serve a pre-made file from storage). Cost is paid once per upload.
+- **Latency:** ~10–50ms for a typical embedded image (decode-dominated); ~100–300ms for
+  a pathologically large figure. Source bytes are already in memory (cached preview
+  AST), so there's no extra download. Small next to the `writeBuffer` upload and the
+  existing check dispatch in the same action, and far lighter than the `officeparser`
+  parse already done at preview.
+- **Event loop:** `sharp`/libvips runs encode/decode on the libuv threadpool (native
+  threads), so it does not block the JS main thread; concurrent requests are unaffected.
+- **Cold start / memory:** first `await import('sharp')` loads the native binary once
+  per process (deferred, so off the cold-start path). Steady-state memory for occasional
+  single-image work is negligible; `sharp.cache(false)` available if needed.
+- **Tail guard:** cap input size and set `sharp({ limitInputPixels })` to bound memory
+  and time for oversized images.
+
 ## Open questions / risks
 
 - **Preview AST truncation:** previews are truncated to `FIRST_PAGE_CONTENT_LIMIT`
