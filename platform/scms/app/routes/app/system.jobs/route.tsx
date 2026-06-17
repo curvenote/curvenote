@@ -32,8 +32,7 @@ export async function loader(args: Route.LoaderArgs) {
     jobTypes: allJobTypes,
     queue: {
       provider: queueProvider,
-      consumerRoute:
-        queueProvider === 'mock' ? '/v1/jobs/mock-push' : 'api/job-queue-consumer.ts (queue push)',
+      consumerRoute: '/v1/jobs/push-to-drain',
       topicName: 'job',
       queuesProviderEnv: process.env.QUEUES_PROVIDER ?? null,
     },

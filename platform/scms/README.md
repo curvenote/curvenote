@@ -30,40 +30,26 @@ npm run dev
 
 ### Job queue local development
 
-By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`, set via `.env` only — not app-config). Jobs enqueued via `enqueueAndDispatchJob` are delivered asynchronously via **HTTP POST to `/v1/jobs/mock-push`** (dev-only loopback route) — no Vercel account or second terminal required.
+By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`, set via `.env` only — not app-config). Jobs enqueued via `enqueueAndDispatchJob` are written to the mock queue and wake **`POST /v1/jobs/push-to-drain`**, which drains **one message per invocation** (202 + background `waitUntil`) — no second terminal required.
 
-**Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, deploy-curvenote secrets YAML on staging/prod) secures the unified **`POST /v1/jobs/push-to-drain`** wake-up route. Job execution still uses the **handshake JWT** inside the queue message.
+**Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, deploy-curvenote secrets YAML on staging/prod) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
 
-On Vercel preview/production, the queue consumer is **`api/job-queue-consumer.ts`** (push trigger in `vercel.ts`), not the mock-push route. deploy-curvenote notes: `deploy/deploy-curvenote.md`.
+On Vercel preview/production, `QUEUES_PROVIDER=supabase` (auto when `VERCEL=1`) stores messages in **Supabase pgmq** and uses the same push-to-drain route. A **pg_cron** backup (every minute) calls push-to-drain if a self-wake is missed.
 
-| Mode | When to use | Setup |
+| Mode | When | Transport |
 |---|---|---|
-| **Mock (default)** | Everyday local dev — full job handler pipeline | `npm run dev` (automatic when `NODE_ENV=development`) |
-| **Real Vercel Queues** | Test enqueue against Vercel's queue API, or E2E on a deployment | See below |
+| **Mock (default)** | Local dev / tests | In-memory queue + loopback push-to-drain |
+| **Supabase** | Vercel deployments | pgmq + self-HTTP wake + pg_cron backup |
 
-**Mock is the right default.** Use real queues only when you explicitly need to validate Vercel's transport (OIDC, idempotency keys, dashboard metrics) or run handlers on a preview deployment.
+**After deploy (staging/prod once per database):** populate the pg_cron backup config so missed wakes are recovered:
 
-#### Real Vercel Queues (opt-in)
-
-Prerequisites:
-
-1. SCMS project linked to Vercel (`cd platform/scms && vercel link`)
-2. **Vercel Queues** enabled on that project/team ([docs](https://vercel.com/docs/queues))
-3. deploy-curvenote submodule bumped and prebuilt deploy run (`vercel build --prod` → `vercel --prebuilt --prod`)
-
-Steps:
-
-```bash
-cd platform/scms
-vercel env pull .env.local   # OIDC + project env for @vercel/queue send()
-QUEUES_PROVIDER=vercel npm run dev
+```sql
+INSERT INTO "_JobQueueDrainConfig" (id, drain_url, drain_secret)
+VALUES (1, 'https://your-scms-host/v1/jobs/push-to-drain', 'your-queueConsumerSecret')
+ON CONFLICT (id) DO UPDATE SET drain_url = EXCLUDED.drain_url, drain_secret = EXCLUDED.drain_secret;
 ```
 
-**Important:** with `QUEUES_PROVIDER=vercel`, `send()` enqueues to Vercel's cloud queue. The push consumer (`api/job-queue-consumer.ts`) runs on your **linked Vercel deployment**, not on plain `localhost`. Local `npm run dev` exercises the enqueue path; handlers execute on preview/production unless you use `vercel dev` (see [Queues quickstart](https://vercel.com/docs/queues/quickstart)).
-
-For full E2E against real queues, prefer a **preview deployment** (where `VERCEL=1` selects the vercel provider automatically) or trigger jobs from the **System → Jobs** admin page and watch them in the Vercel Queues dashboard.
-
-See also: `docs/superpowers/specs/2026-06-15-job-manager-vercel-queues-design.md` (local development summary).
+Enable **pgmq** in Supabase Dashboard → Integrations → Queues if `CREATE EXTENSION pgmq` fails during migration.
 
 ### First-time setup
 

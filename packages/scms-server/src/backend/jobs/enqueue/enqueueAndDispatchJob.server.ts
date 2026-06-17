@@ -35,7 +35,7 @@ export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<E
     job_id: params.job_id,
     job_type: params.job_type,
     dependent_count: dependents.length,
-    provider: process.env.QUEUES_PROVIDER ?? (process.env.VERCEL === '1' ? 'vercel' : 'mock'),
+    provider: process.env.QUEUES_PROVIDER ?? (process.env.VERCEL === '1' ? 'supabase' : 'mock'),
   });
 
   await validateEnqueuePublishingScopes(params);

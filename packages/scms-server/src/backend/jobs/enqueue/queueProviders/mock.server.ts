@@ -2,15 +2,13 @@ import { uuidv7 } from 'uuidv7';
 import { MAX_JOB_QUEUE_DELIVERY_ATTEMPTS } from '../../jobQueueConstants.server.js';
 import { terminalizeTransportFailure } from '../../run/terminalizeTransportFailure.server.js';
 import type {
-  JobQueueDeliveryMetadata,
   JobQueueMessage,
   JobQueueProvider,
   JobQueueSendOptions,
   JobQueueSendResult,
+  QueueReadReceipt,
+  QueueReadResult,
 } from './types.js';
-
-/** Loopback header — mock queue POSTs to /v1/jobs/mock-push with this set when provider is mock. */
-export const LOCAL_MOCK_QUEUE_HEADER = 'x-local-mock-queue';
 
 const DEFAULT_RETRY_DELAY_MS = Number(process.env.MOCK_QUEUE_RETRY_DELAY_MS ?? 1000);
 
@@ -23,93 +21,24 @@ type MockQueueEntry = {
 
 const dispatchedKeys = new Set<string>();
 const queue: MockQueueEntry[] = [];
-let processing = false;
+let drainInProgress = false;
 
-export function resolveMockQueueConsumerUrl(): string {
+export function resolveMockQueueDrainUrl(): string {
   if (process.env.MOCK_QUEUE_CONSUMER_URL) {
     return process.env.MOCK_QUEUE_CONSUMER_URL;
   }
+  if (process.env.MOCK_QUEUE_DRAIN_URL) {
+    return process.env.MOCK_QUEUE_DRAIN_URL;
+  }
   const port = process.env.VITE_PORT ?? process.env.PORT ?? '3031';
-  return `http://localhost:${port}/v1/jobs/mock-push`;
+  return `http://localhost:${port}/v1/jobs/push-to-drain`;
 }
 
-async function postToConsumer(entry: MockQueueEntry): Promise<void> {
-  const metadata: JobQueueDeliveryMetadata = {
-    deliveryCount: entry.deliveryCount,
-    messageId: entry.messageId,
-  };
+/** @deprecated Use resolveMockQueueDrainUrl */
+export const resolveMockQueueConsumerUrl = resolveMockQueueDrainUrl;
 
-  const response = await fetch(resolveMockQueueConsumerUrl(), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      [LOCAL_MOCK_QUEUE_HEADER]: '1',
-    },
-    body: JSON.stringify({ message: entry.message, metadata }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => response.statusText);
-    throw new Error(
-      `Mock queue consumer POST failed (${response.status}): ${errorText || 'unknown error'}`,
-    );
-  }
-}
-
-async function deliverEntry(entry: MockQueueEntry): Promise<void> {
-  console.log('[mock-queue] delivering', {
-    job_id: entry.message.job_id,
-    job_type: entry.message.job_type,
-    deliveryCount: entry.deliveryCount,
-    messageId: entry.messageId,
-    consumerUrl: resolveMockQueueConsumerUrl(),
-  });
-
-  try {
-    await postToConsumer(entry);
-  } catch (err) {
-    const errMessage = err instanceof Error ? err.message : String(err);
-    console.warn('[mock-queue] delivery failed', {
-      job_id: entry.message.job_id,
-      deliveryCount: entry.deliveryCount,
-      errMessage,
-    });
-
-    if (entry.deliveryCount >= MAX_JOB_QUEUE_DELIVERY_ATTEMPTS) {
-      await terminalizeTransportFailure(entry.message.job_id, {
-        reason: 'transport_exhausted',
-        last_error: errMessage,
-      });
-      return;
-    }
-
-    setTimeout(() => {
-      queue.push({
-        ...entry,
-        deliveryCount: entry.deliveryCount + 1,
-      });
-      void drainQueue();
-    }, DEFAULT_RETRY_DELAY_MS);
-  }
-}
-
-async function drainQueue(): Promise<void> {
-  if (processing) return;
-  processing = true;
-  try {
-    while (queue.length > 0) {
-      const entry = queue.shift()!;
-      await deliverEntry(entry);
-    }
-  } finally {
-    processing = false;
-  }
-}
-
-function scheduleDrain(): void {
-  setImmediate(() => {
-    void drainQueue();
-  });
+function entryAtHead(): MockQueueEntry | undefined {
+  return queue[0];
 }
 
 export const mockQueueProvider: JobQueueProvider = {
@@ -130,8 +59,71 @@ export const mockQueueProvider: JobQueueProvider = {
       deliveryCount: 1,
       messageId,
     });
-    scheduleDrain();
+
+    console.log('[mock-queue] enqueued', {
+      job_id: message.job_id,
+      job_type: message.job_type,
+      messageId,
+      depth: queue.length,
+    });
+
     return { messageId };
+  },
+
+  async readOne(): Promise<QueueReadResult | null> {
+    if (drainInProgress) {
+      return null;
+    }
+    const entry = entryAtHead();
+    if (!entry) {
+      return null;
+    }
+    drainInProgress = true;
+    return {
+      message: entry.message,
+      metadata: {
+        deliveryCount: entry.deliveryCount,
+        messageId: entry.messageId,
+      },
+      receipt: entry,
+    };
+  },
+
+  async ack(receipt: QueueReadReceipt): Promise<void> {
+    const entry = receipt as MockQueueEntry;
+    const idx = queue.indexOf(entry);
+    if (idx >= 0) {
+      queue.splice(idx, 1);
+    }
+    drainInProgress = false;
+  },
+
+  async nack(receipt: QueueReadReceipt): Promise<void> {
+    const entry = receipt as MockQueueEntry;
+    drainInProgress = false;
+
+    if (entry.deliveryCount >= MAX_JOB_QUEUE_DELIVERY_ATTEMPTS) {
+      const idx = queue.indexOf(entry);
+      if (idx >= 0) {
+        queue.splice(idx, 1);
+      }
+      await terminalizeTransportFailure(entry.message.job_id, {
+        reason: 'transport_exhausted',
+        last_error: 'Mock queue delivery retries exhausted',
+      });
+      return;
+    }
+
+    entry.deliveryCount += 1;
+    setTimeout(() => {
+      void import('../notifyQueueConsumer.server.js').then(({ notifyQueueConsumer }) =>
+        notifyQueueConsumer(),
+      );
+    }, DEFAULT_RETRY_DELAY_MS);
+  },
+
+  async getDepth(): Promise<number> {
+    return queue.length;
   },
 };
 
@@ -139,5 +131,5 @@ export const mockQueueProvider: JobQueueProvider = {
 export function resetMockQueueState(): void {
   dispatchedKeys.clear();
   queue.length = 0;
-  processing = false;
+  drainInProgress = false;
 }

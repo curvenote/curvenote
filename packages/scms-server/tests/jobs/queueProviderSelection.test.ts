@@ -1,7 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
-  isLocalMockQueueDeliveryEnabled,
   resetJobQueueProviderCache,
   resolveQueueProviderName,
 } from '../../src/backend/jobs/enqueue/queueProviders/index.server.js';
@@ -18,21 +17,26 @@ describe('queue provider selection', () => {
     resetJobQueueProviderCache();
   });
 
-  test('mock provider enables local loopback delivery regardless of NODE_ENV', () => {
+  test('mock provider in explicit mock mode', () => {
     process.env.QUEUES_PROVIDER = 'mock';
     process.env.NODE_ENV = 'production';
     delete process.env.VERCEL;
 
     expect(resolveQueueProviderName()).toBe('mock');
-    expect(isLocalMockQueueDeliveryEnabled()).toBe(true);
   });
 
-  test('vercel provider disables local loopback delivery', () => {
-    process.env.QUEUES_PROVIDER = 'vercel';
+  test('supabase provider when VERCEL=1', () => {
+    process.env.QUEUES_PROVIDER = 'supabase';
     process.env.NODE_ENV = 'development';
     delete process.env.VERCEL;
 
-    expect(resolveQueueProviderName()).toBe('vercel');
-    expect(isLocalMockQueueDeliveryEnabled()).toBe(false);
+    expect(resolveQueueProviderName()).toBe('supabase');
+  });
+
+  test('defaults to supabase on Vercel', () => {
+    delete process.env.QUEUES_PROVIDER;
+    process.env.VERCEL = '1';
+
+    expect(resolveQueueProviderName()).toBe('supabase');
   });
 });

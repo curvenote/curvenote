@@ -1,16 +1,16 @@
 import type { JobQueueProvider } from './types.js';
 import { mockQueueProvider } from './mock.server.js';
-import { vercelQueueProvider } from './vercel.server.js';
+import { supabaseQueueProvider } from './supabase.server.js';
 
-export type QueueProviderName = 'mock' | 'vercel';
+export type QueueProviderName = 'mock' | 'supabase';
 
 export function resolveQueueProviderName(): QueueProviderName {
   const explicit = process.env.QUEUES_PROVIDER as QueueProviderName | undefined;
-  if (explicit === 'mock' || explicit === 'vercel') {
+  if (explicit === 'mock' || explicit === 'supabase') {
     return explicit;
   }
   if (process.env.VERCEL === '1') {
-    return 'vercel';
+    return 'supabase';
   }
   if (process.env.NODE_ENV === 'test') {
     return 'mock';
@@ -18,12 +18,7 @@ export function resolveQueueProviderName(): QueueProviderName {
   if (process.env.NODE_ENV === 'development') {
     return 'mock';
   }
-  return 'vercel';
-}
-
-/** True when mock queue loopback delivery to /v1/jobs/mock-push is enabled. */
-export function isLocalMockQueueDeliveryEnabled(): boolean {
-  return resolveQueueProviderName() === 'mock';
+  return 'supabase';
 }
 
 let cachedProvider: JobQueueProvider | null = null;
@@ -36,8 +31,8 @@ export function getJobQueueProvider(): JobQueueProvider {
   }
 
   switch (name) {
-    case 'vercel':
-      cachedProvider = vercelQueueProvider;
+    case 'supabase':
+      cachedProvider = supabaseQueueProvider;
       break;
     default:
       cachedProvider = mockQueueProvider;
@@ -55,8 +50,5 @@ export function resetJobQueueProviderCache(): void {
 }
 
 export * from './types.js';
-export {
-  LOCAL_MOCK_QUEUE_HEADER,
-  resetMockQueueState,
-  resolveMockQueueConsumerUrl,
-} from './mock.server.js';
+export { resolveMockQueueDrainUrl, resetMockQueueState } from './mock.server.js';
+export { PGMQ_JOB_QUEUE_NAME, PGMQ_VISIBILITY_TIMEOUT_SECONDS } from './supabase.server.js';
