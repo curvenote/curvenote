@@ -686,6 +686,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
 
   const suggestArticleTitleFromSelectedFiles = useCallback(
     (files: File[]) => {
+      // When the metadata-extract feature is enabled the title is sourced from
+      // the extracted document metadata, so don't fall back to the file name.
+      if (hasMetadataExtractScope) return;
+
       const first = files[0];
       if (!first?.name) return;
 
@@ -701,7 +705,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
         { method: 'post' },
       );
     },
-    [title, extractedMetadata, autoTitleFromFilenameFetcher.submit],
+    [title, extractedMetadata, hasMetadataExtractScope, autoTitleFromFilenameFetcher.submit],
   );
 
   const deploymentConfig = useDeploymentConfig();
