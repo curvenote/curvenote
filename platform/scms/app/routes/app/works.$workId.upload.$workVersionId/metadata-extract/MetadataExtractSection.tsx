@@ -9,6 +9,8 @@ import type { DocxPreviewItem } from './fetchPreviews.server';
 import type { ExtractedMetadata } from './anthropic.server';
 import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
 
+const EMPTY_AUTHOR_METADATA: AuthorFieldMetadata = { authors: [], affiliations: [] };
+
 export interface MetadataExtractSectionProps {
   previewList: DocxPreviewItem[];
   isPreviewsLoading: boolean;
@@ -38,12 +40,18 @@ export function MetadataExtractSection({
   const [autoExtractionSuppressedFor, setAutoExtractionSuppressedFor] = useState<string | null>(
     null,
   );
+  const [hasLocallyClearedExtraction, setHasLocallyClearedExtraction] = useState(false);
 
   const hasPreviews = previewList.length > 0;
   const previewSourceKey = previewList.map((preview) => preview.path).join('|');
+  const visibleExtractedMetadata = hasLocallyClearedExtraction ? null : extractedMetadata;
+  const visibleTitle = hasLocallyClearedExtraction ? '' : title;
+  const visibleAuthorMetadata = hasLocallyClearedExtraction
+    ? EMPTY_AUTHOR_METADATA
+    : authorMetadata;
   // Extract when there is no cached metadata yet, or when the cache is stale
   // because the manuscript file(s) changed since the last extraction.
-  const needsExtraction = !extractedMetadata || isExtractionStale;
+  const needsExtraction = !visibleExtractedMetadata || isExtractionStale;
   const shouldExtractMetadata =
     needsExtraction &&
     hasPreviews &&
@@ -102,6 +110,7 @@ export function MetadataExtractSection({
   const handleReRunExtraction = () => {
     if (!activeFilePath) return;
     setAutoExtractionSuppressedFor(null);
+    setHasLocallyClearedExtraction(false);
     extractMetadataFetcher.submit(
       { intent: 'extract-metadata', force: 'true', path: activeFilePath },
       { method: 'POST' },
@@ -110,6 +119,8 @@ export function MetadataExtractSection({
 
   const handleClearExtraction = () => {
     setAutoExtractionSuppressedFor(previewSourceKey);
+    setHasLocallyClearedExtraction(true);
+    onAuthorMetadataChange(EMPTY_AUTHOR_METADATA);
     clearMetadataFetcher.submit({ intent: 'clear-extracted-metadata' }, { method: 'POST' });
   };
 
@@ -152,10 +163,10 @@ export function MetadataExtractSection({
           </div>
         </ui.Card>
         <MetadataFormCard
-          extractedMetadata={extractedMetadata}
+          extractedMetadata={visibleExtractedMetadata}
           isExtractingMetadata={isExtractingMetadata}
-          title={title}
-          authorMetadata={authorMetadata}
+          title={visibleTitle}
+          authorMetadata={visibleAuthorMetadata}
           onAuthorMetadataChange={onAuthorMetadataChange}
           reRunFileName={activeFile && activeFilePath ? activeFileName : undefined}
           onReRunExtraction={handleReRunExtraction}

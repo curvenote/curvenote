@@ -63,7 +63,7 @@ export function MetadataFormCard({
               disabled={isExtractingMetadata || isClearingExtraction}
               title="Clear extracted metadata"
             >
-              <X className="mr-1.5 w-3.5 h-3.5" />
+              <X className="mr-0.5 w-3.5 h-3.5" />
               {isClearingExtraction ? 'clearing...' : 'clear'}
             </ui.Button>
           ) : (

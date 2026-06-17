@@ -762,6 +762,17 @@ export async function action(args: Route.ActionArgs) {
           delete next[METADATA_EXTRACT_SOURCE_KEY];
           return next as Prisma.JsonObject;
         });
+        const prisma = await getPrismaClient();
+        await prisma.workVersion.update({
+          where: { id: workVersionId },
+          data: {
+            title: '',
+            authors: [],
+            author_details: [],
+            date_modified: new Date().toISOString(),
+          },
+          select: { id: true },
+        });
         return data({ ok: true });
       }
 
