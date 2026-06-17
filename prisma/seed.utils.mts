@@ -2,7 +2,10 @@ import type { Prisma } from '@curvenote/scms-db';
 import { getLowLevelPrismaClient, SiteRole, ActivityType, WorkRole } from '@curvenote/scms-db';
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
 import { uuidv7 as uuid } from 'uuidv7';
+import { getConfig } from '../packages/scms-server/src/app-config.server.js';
+import { resolveQueueDrainUrl } from '../packages/scms-server/src/backend/jobs/enqueue/notifyQueueConsumer.server.js';
 
 const DEFAULT_CHECKS: string[] = [];
 const QUIET = true; // Set to true to suppress console output
@@ -91,7 +94,10 @@ function generateWorkVersions(
   const doubleIdx = shuffled[0];
   const draftOnlyIndices = [shuffled[1], shuffled[2], shuffled[3]];
   const publishedOnlyIdx = shuffled[4];
-  const submissionVersionEntries: Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }> = [
+  const submissionVersionEntries: Array<{
+    workVersionIndex: number;
+    status: 'DRAFT' | 'PUBLISHED';
+  }> = [
     { workVersionIndex: doubleIdx, status: 'DRAFT' },
     { workVersionIndex: doubleIdx, status: 'PUBLISHED' },
     { workVersionIndex: draftOnlyIndices[0], status: 'DRAFT' },
@@ -274,7 +280,7 @@ export async function seedBySites(
           workIndex,
           id: uuid(),
           date_created: version.date_created,
-          date_published: status === 'PUBLISHED' ? (version.date || version.date_created) : undefined,
+          date_published: status === 'PUBLISHED' ? version.date || version.date_created : undefined,
           status,
           submitted_by: {
             connect: { id: users.support.id },
@@ -292,7 +298,7 @@ export async function seedBySites(
               },
               date_created: version.date_created,
               date_published:
-                status === 'PUBLISHED' ? (version.date || version.date_created) : undefined,
+                status === 'PUBLISHED' ? version.date || version.date_created : undefined,
               kind: work.kind,
               site: {
                 connect: {
@@ -533,9 +539,8 @@ export async function seedBySites(
                   collection: {
                     connect: {
                       id:
-                        collections.find(
-                          (c) => c.name === item.works[sv.workIndex]?.collection,
-                        )?.id ?? collections[0].id,
+                        collections.find((c) => c.name === item.works[sv.workIndex]?.collection)
+                          ?.id ?? collections[0].id,
                     },
                   },
                   kind: {
@@ -618,4 +623,53 @@ export async function seedBySites(
   }
 
   return summary;
+}
+
+const seedUtilsDir = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Seed/refresh the `_JobQueueDrainConfig` row from app-config so local + test
+ * environments don't need a manual trip to System → Jobs → Queues after every
+ * database reset. The drain url and secret are taken from the resolved
+ * app-config for the given environment; on conflict the secret is realigned
+ * with app-config while preserving any custom drain url.
+ *
+ * Only meaningful for the supabase provider (pg_net trigger + pg_cron backup);
+ * harmless when the mock provider is active, which ignores this row. Failures
+ * (e.g. missing config or table) are logged and skipped so seeding continues.
+ */
+export async function seedJobQueueDrainConfig(
+  environmentOverride: 'development' | 'test',
+): Promise<void> {
+  let secret = '';
+  let drainUrl = '';
+  try {
+    const config = await getConfig(
+      { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
+      { directory: path.resolve(seedUtilsDir, '..') },
+    );
+    secret = config.api?.queueConsumerSecret ?? '';
+    drainUrl = resolveQueueDrainUrl(config.api.url);
+  } catch (err) {
+    console.warn(
+      `   ⚠️  Skipped _JobQueueDrainConfig seed: could not load app-config (${(err as Error).message})`,
+    );
+    return;
+  }
+
+  if (!secret) {
+    console.warn('   ⚠️  Skipped _JobQueueDrainConfig seed: api.queueConsumerSecret is empty');
+    return;
+  }
+
+  try {
+    await prisma.$executeRaw`
+      INSERT INTO "_JobQueueDrainConfig" (id, drain_url, drain_secret)
+      VALUES (1, ${drainUrl}, ${secret})
+      ON CONFLICT (id) DO UPDATE SET drain_secret = EXCLUDED.drain_secret
+    `;
+    console.log(`   ✓ Seeded _JobQueueDrainConfig (drain_url=${drainUrl}, secret from app-config)`);
+  } catch (err) {
+    console.warn(`   ⚠️  Skipped _JobQueueDrainConfig seed: ${(err as Error).message}`);
+  }
 }

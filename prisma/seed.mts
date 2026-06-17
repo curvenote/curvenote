@@ -1,7 +1,7 @@
 import { SystemRole, getLowLevelPrismaClient } from '@curvenote/scms-db';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadAllJsonFilesFromDir, seedBySites } from './seed.utils.mjs';
+import { loadAllJsonFilesFromDir, seedBySites, seedJobQueueDrainConfig } from './seed.utils.mjs';
 import { uuidv7 } from 'uuidv7';
 import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/systemRoleDefaults.js';
 
@@ -210,6 +210,9 @@ async function main() {
   summary.works += siteSummary.works;
   summary.submissions += siteSummary.submissions;
   summary.collections += siteSummary.collections;
+
+  console.log('\n📮 Seeding job queue drain config...');
+  await seedJobQueueDrainConfig('development');
 }
 
 main()

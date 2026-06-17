@@ -10,11 +10,11 @@ Do these steps **once per Supabase project** (staging and production are separat
 
 ## What you configure (three places)
 
-| Where | What |
-|---|---|
-| **Supabase Postgres** | pgmq extension, queue `job`, pg_cron backup row |
+| Where                            | What                                                    |
+| -------------------------------- | ------------------------------------------------------- |
+| **Supabase Postgres**            | pgmq extension, queue `job`, pg_cron backup row         |
 | **App-config secrets** (per env) | `api.url`, `api.databaseUrl`, `api.queueConsumerSecret` |
-| **Vercel** (optional) | `QUEUES_PROVIDER` — usually **not needed** (see below) |
+| **Vercel** (optional)            | `QUEUES_PROVIDER` — usually **not needed** (see below)  |
 
 ---
 
@@ -110,9 +110,9 @@ Add under `api:` in secrets YAML:
 
 ```yaml
 api:
-  url: 'https://scms.curvenote.dev'   # example — use your env’s host
+  url: 'https://scms.curvenote.dev' # example — use your env’s host
   queueConsumerSecret: '<paste generated secret here>'
-  databaseUrl: 'postgresql://...'     # existing Supabase URL
+  databaseUrl: 'postgresql://...' # existing Supabase URL
   # ... other required api fields unchanged
 ```
 
@@ -127,6 +127,8 @@ This table tells the **database** how to call push-to-drain. It is used by **bot
 > **This step is mandatory, not optional.** The app no longer self-wakes push-to-drain on enqueue when using the supabase provider — the database does. If this row is missing/empty, enqueued jobs will not drain (the trigger and cron both no-op).
 
 > **Easiest option: use the admin UI.** Once SCMS is deployed, system admins can open **System → Jobs → Queues tab** (`/app/system/jobs?tab=queues`) and use **Push secret from app-config** (writes `api.queueConsumerSecret` into the row) and **Save endpoint** (sets `drain_url`). That tab also shows whether the stored secret matches app-config and a live tail of pending/in-flight pgmq messages. The SQL below remains available for first-time setup or environments without UI access.
+
+> **Local dev / test:** the database seeds auto-populate this row from app-config, so `npm run dev:db:reset` and `npm run test:db:reset` leave it set (no Queues-tab trip needed after a reset). The seed pulls `api.url` + `api.queueConsumerSecret` from the resolved `development`/`test` app-config and realigns the secret on each run. This only matters if you force `QUEUES_PROVIDER=supabase` locally; the default `mock` provider ignores the row.
 
 1. Supabase Dashboard → **SQL Editor** → **New query**.
 2. Replace the placeholders below with **this environment’s** values:
@@ -214,9 +216,9 @@ If the app runs the **supabase** provider against a database that has **not** ha
 
 It selects which queue backend `dispatchJob` uses:
 
-| Value | Behavior |
-|---|---|
-| `mock` | In-memory queue (local dev / tests) |
+| Value      | Behavior                                   |
+| ---------- | ------------------------------------------ |
+| `mock`     | In-memory queue (local dev / tests)        |
 | `supabase` | `pgmq.send` / `pgmq.read` against Postgres |
 
 **Resolution order** (see `queueProviders/index.server.ts`):
@@ -234,7 +236,7 @@ Why keep the env var?
 - **Override:** force `QUEUES_PROVIDER=supabase` on a non-Vercel host or to test pgmq locally.
 - **Emergency:** force `QUEUES_PROVIDER=mock` on a deployment (not recommended for prod).
 
-The old doc line *“Deploy app code that sets `QUEUES_PROVIDER=supabase` before the pgmq migration…”* means:
+The old doc line _“Deploy app code that sets `QUEUES_PROVIDER=supabase` before the pgmq migration…”_ means:
 
 > Do **not** deploy a build that will **use the supabase provider** (whether via `QUEUES_PROVIDER=supabase` **or** via `VERCEL=1`) until the **database** has pgmq installed.
 
@@ -263,12 +265,12 @@ Primary path is the **database enqueue trigger** (`pg_net`). pg_cron is a safety
 
 ## Troubleshooting
 
-| Symptom | Likely cause |
-|---|---|
-| Migration fails on `CREATE EXTENSION pgmq` | Enable pgmq in Supabase Dashboard (Step 1) |
-| Jobs stuck QUEUED, no handler logs | Empty `"_JobQueueDrainConfig"` (Step 4) — the DB trigger/cron can't wake push-to-drain; or trigger missing (check `pg_trigger`), or secret/url wrong |
-| push-to-drain returns 401 | `drain_secret` in `"_JobQueueDrainConfig"` ≠ app `queueConsumerSecret`, or app-config not redeployed |
-| Cron never wakes / trigger never wakes | Empty `"_JobQueueDrainConfig"` — complete Step 4 |
-| `pgmq.send` error in logs | Migration not applied on **this** database, or wrong `databaseUrl` |
+| Symptom                                    | Likely cause                                                                                                                                         |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Migration fails on `CREATE EXTENSION pgmq` | Enable pgmq in Supabase Dashboard (Step 1)                                                                                                           |
+| Jobs stuck QUEUED, no handler logs         | Empty `"_JobQueueDrainConfig"` (Step 4) — the DB trigger/cron can't wake push-to-drain; or trigger missing (check `pg_trigger`), or secret/url wrong |
+| push-to-drain returns 401                  | `drain_secret` in `"_JobQueueDrainConfig"` ≠ app `queueConsumerSecret`, or app-config not redeployed                                                 |
+| Cron never wakes / trigger never wakes     | Empty `"_JobQueueDrainConfig"` — complete Step 4                                                                                                     |
+| `pgmq.send` error in logs                  | Migration not applied on **this** database, or wrong `databaseUrl`                                                                                   |
 
 Further design detail: [`docs/superpowers/specs/2026-06-16-job-manager-pgmq-design.md`](../../../docs/superpowers/specs/2026-06-16-job-manager-pgmq-design.md).
