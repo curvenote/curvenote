@@ -604,6 +604,22 @@ export async function action(args: Route.ActionArgs) {
                 'frontmatter.myst': extracted,
               } as Prisma.JsonObject;
             });
+
+            // Seed the work version title/authors from the extracted metadata when the
+            // author hasn't provided them yet. The Continue button requires a stored
+            // title, so without this the upload can't be confirmed after extraction.
+            // Existing author-entered values are left untouched so we never clobber them.
+            const extractedTitle = extracted.title?.trim() ?? '';
+            if (extractedTitle && !work.title?.trim()) {
+              await updateWorkVersionTitle(workVersionId, extractedTitle);
+            }
+            const extractedAuthors = (extracted.authors ?? [])
+              .map((a) => (typeof a?.name === 'string' ? a.name.trim() : ''))
+              .filter(Boolean)
+              .join(', ');
+            if (extractedAuthors && !work.authors?.length) {
+              await updateWorkVersionAuthors(workVersionId, extractedAuthors);
+            }
           }
           return data({ ok: true });
         } catch (err) {
