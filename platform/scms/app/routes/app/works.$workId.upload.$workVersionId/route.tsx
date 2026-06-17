@@ -99,6 +99,7 @@ const WorkUploadActionSchema = zfd.formData({
     'confirm-work',
     'fetch-previews',
     'extract-metadata',
+    'clear-extracted-metadata',
   ]),
   slot: zfd.text(z.string().min(1)).optional(),
   // Optional fields used by specific intents
@@ -730,6 +731,38 @@ export async function action(args: Route.ActionArgs) {
         }
         const { previews } = await handleFetchPreviewsIntent(workVersionId, baseCtx);
         return data({ ok: true, previewsGenerated: previews.length });
+      }
+
+      if (uploadIntent === 'clear-extracted-metadata') {
+        if (!workVersionId) {
+          return data(
+            { error: { type: 'general', message: 'Work version ID is required' } },
+            { status: 400 },
+          );
+        }
+        if (
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
+            ignoreSystemAdmin: true,
+          })
+        ) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'You do not have permission to clear extracted metadata',
+              },
+            },
+            { status: 403 },
+          );
+        }
+        await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
+          const meta = (current as Record<string, unknown>) || {};
+          const next = { ...meta };
+          delete next['frontmatter.myst'];
+          delete next[METADATA_EXTRACT_SOURCE_KEY];
+          return next as Prisma.JsonObject;
+        });
+        return data({ ok: true });
       }
 
       // Extract metadata from first document preview via Claude (only when no frontmatter and we have previews)

@@ -32,15 +32,23 @@ export function MetadataExtractSection({
   onAuthorMetadataChange,
 }: MetadataExtractSectionProps) {
   const extractMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
+  const clearMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
   const hasTriggeredExtractMetadata = useRef(false);
   const [activeTab, setActiveTab] = useState('0');
+  const [autoExtractionSuppressedFor, setAutoExtractionSuppressedFor] = useState<string | null>(
+    null,
+  );
 
   const hasPreviews = previewList.length > 0;
+  const previewSourceKey = previewList.map((preview) => preview.path).join('|');
   // Extract when there is no cached metadata yet, or when the cache is stale
   // because the manuscript file(s) changed since the last extraction.
   const needsExtraction = !extractedMetadata || isExtractionStale;
   const shouldExtractMetadata =
-    needsExtraction && hasPreviews && extractMetadataFetcher.state === 'idle';
+    needsExtraction &&
+    hasPreviews &&
+    autoExtractionSuppressedFor !== previewSourceKey &&
+    extractMetadataFetcher.state === 'idle';
 
   useEffect(() => {
     if (!shouldExtractMetadata) {
@@ -53,6 +61,8 @@ export function MetadataExtractSection({
   }, [
     shouldExtractMetadata,
     needsExtraction,
+    autoExtractionSuppressedFor,
+    previewSourceKey,
     extractMetadataFetcher.state,
     extractMetadataFetcher,
   ]);
@@ -64,8 +74,17 @@ export function MetadataExtractSection({
     }
   }, [extractMetadataFetcher.state, extractMetadataFetcher.data]);
 
+  useEffect(() => {
+    const result = clearMetadataFetcher.data as { error?: { message: string } } | undefined;
+    if (clearMetadataFetcher.state === 'idle' && result?.error) {
+      ui.toastError(result.error.message);
+    }
+  }, [clearMetadataFetcher.state, clearMetadataFetcher.data]);
+
   const isExtractingMetadata =
     extractMetadataFetcher.state === 'loading' || extractMetadataFetcher.state === 'submitting';
+  const isClearingExtraction =
+    clearMetadataFetcher.state === 'loading' || clearMetadataFetcher.state === 'submitting';
 
   // Resolve the file backing the active tab; non-file tabs (e.g. All Figures)
   // fall back to the first file.
@@ -82,10 +101,16 @@ export function MetadataExtractSection({
 
   const handleReRunExtraction = () => {
     if (!activeFilePath) return;
+    setAutoExtractionSuppressedFor(null);
     extractMetadataFetcher.submit(
       { intent: 'extract-metadata', force: 'true', path: activeFilePath },
       { method: 'POST' },
     );
+  };
+
+  const handleClearExtraction = () => {
+    setAutoExtractionSuppressedFor(previewSourceKey);
+    clearMetadataFetcher.submit({ intent: 'clear-extracted-metadata' }, { method: 'POST' });
   };
 
   return (
@@ -134,6 +159,8 @@ export function MetadataExtractSection({
           onAuthorMetadataChange={onAuthorMetadataChange}
           reRunFileName={activeFile && activeFilePath ? activeFileName : undefined}
           onReRunExtraction={handleReRunExtraction}
+          onClearExtraction={handleClearExtraction}
+          isClearingExtraction={isClearingExtraction}
         />
       </div>
     </SectionWithHeading>
