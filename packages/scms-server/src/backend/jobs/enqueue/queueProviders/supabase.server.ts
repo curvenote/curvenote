@@ -69,6 +69,10 @@ async function getPgmqDepth(): Promise<number> {
 }
 
 export const supabaseQueueProvider: JobQueueProvider = {
+  // A pg_net trigger on pgmq.q_job (migration 20260617120000) fires the enqueue
+  // wake from Postgres, so dispatchJob does not self-call push-to-drain.
+  wakesOnEnqueue: true,
+
   async send(message: JobQueueMessage, options: JobQueueSendOptions): Promise<JobQueueSendResult> {
     const prisma = await getPrismaClient();
     const rows = await prisma.$queryRaw<Array<{ send: bigint }>>(

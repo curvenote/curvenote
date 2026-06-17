@@ -42,6 +42,9 @@ function entryAtHead(): MockQueueEntry | undefined {
 }
 
 export const mockQueueProvider: JobQueueProvider = {
+  // No database/pg_net locally — the app must self-wake push-to-drain on enqueue.
+  wakesOnEnqueue: false,
+
   async send(message: JobQueueMessage, options: JobQueueSendOptions): Promise<JobQueueSendResult> {
     if (dispatchedKeys.has(options.idempotencyKey)) {
       console.log('[mock-queue] skipping duplicate idempotencyKey', {

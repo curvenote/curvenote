@@ -7,7 +7,12 @@ export function resolveQueueDrainUrl(apiUrl: string): string {
 }
 
 /**
- * Fire-and-forget wake of POST /v1/jobs/push-to-drain after enqueue.
+ * Fire-and-forget wake of POST /v1/jobs/push-to-drain.
+ *
+ * Used for the app-driven wake paths: enqueue under the mock provider (no
+ * database/pg_net locally) and the drain chain wake when backlog remains. The
+ * supabase provider instead wakes via a pg_net trigger on enqueue
+ * (`wakesOnEnqueue`), so dispatchJob does not call this for that path.
  *
  * This does NOT await the wake request. The returned promise resolves once the
  * request has been started (config loaded), not when the 202 is received. The

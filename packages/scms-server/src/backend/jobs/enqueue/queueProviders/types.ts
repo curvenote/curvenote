@@ -27,6 +27,12 @@ export type QueueReadResult = {
 };
 
 export interface JobQueueProvider {
+  /**
+   * True when the provider guarantees a drain wake on enqueue without the
+   * caller self-calling push-to-drain (e.g. a Postgres pg_net trigger on the
+   * pgmq queue table). When true, `dispatchJob` skips the app-side wake.
+   */
+  wakesOnEnqueue?: boolean;
   send(message: JobQueueMessage, options: JobQueueSendOptions): Promise<JobQueueSendResult>;
   readOne(): Promise<QueueReadResult | null>;
   ack(receipt: QueueReadReceipt): Promise<void>;

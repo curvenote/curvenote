@@ -1,6 +1,8 @@
 # Supabase job queue setup (pgmq)
 
-SCMS job dispatch stores messages in **Postgres** using the **pgmq** extension (queue name: `job`). After enqueue, the app wakes **`POST /v1/jobs/push-to-drain`** over HTTP. A **pg_cron** job in the database calls the same URL once per minute if a wake was missed.
+SCMS job dispatch stores messages in **Postgres** using the **pgmq** extension (queue name: `job`). On enqueue, a **`pg_net` database trigger** on the queue table wakes **`POST /v1/jobs/push-to-drain`** over HTTP — the wake is fired by Postgres, not the app. A **pg_cron** job in the database calls the same URL once per minute as a backup.
+
+> **Important:** because the wake comes from the database, **`"_JobQueueDrainConfig"` (Step 4) is required** — not just for the backup. If it is empty, neither the enqueue trigger nor pg_cron will wake the consumer and jobs will sit in the queue. (Local dev uses the `mock` provider, which self-wakes from the app and does not need this.)
 
 Do these steps **once per Supabase project** (staging and production are separate projects → repeat everything for each).
 
@@ -28,11 +30,17 @@ If you skip this, `CREATE EXTENSION pgmq` in the Prisma migration may fail.
 
 ## Step 2 — Run the database migration
 
-The migration `20260616190000_add_pgmq_job_queue` creates:
+Two migrations set this up:
+
+`20260616190000_add_pgmq_job_queue` creates:
 
 - `pgmq` extension + queue `job`
-- `"_JobQueueDrainConfig"` table (for pg_cron backup)
-- `pg_cron` / `pg_net` extensions and the `job-queue-drain-backup` schedule (if available)
+- `"_JobQueueDrainConfig"` table (drain URL + secret)
+- `pg_cron` / `pg_net` extensions, `job_queue_cron_drain()`, and the `job-queue-drain-backup` schedule (if available)
+
+`20260617120000_add_pgmq_enqueue_wake_trigger` creates:
+
+- an `AFTER INSERT` trigger on `pgmq.q_job` that calls `job_queue_cron_drain()` so **enqueue wakes are fired by the database** via `pg_net` (skipped if pgmq / pg_net are unavailable)
 
 **Normal path:** CI runs `prisma migrate deploy` when you push to `dev` (staging DB) or `main` (prod DB). Confirm that workflow succeeded for your deploy.
 
@@ -55,6 +63,9 @@ SELECT * FROM pgmq.metrics('job');
 
 -- Backup cron scheduled? (may be empty until Step 4 config row exists; job row should exist)
 SELECT jobid, jobname, schedule, command FROM cron.job WHERE jobname = 'job-queue-drain-backup';
+
+-- Enqueue wake trigger present? (returns one row)
+SELECT tgname FROM pg_trigger WHERE tgname = 'pgmq_job_enqueue_wake_trigger';
 ```
 
 Expected:
@@ -62,6 +73,7 @@ Expected:
 - `pgmq` in the extension list
 - `pgmq.metrics('job')` returns a row (queue length may be `0`)
 - `job-queue-drain-backup` appears under `cron.job` on Supabase (if `pg_cron` installed)
+- `pgmq_job_enqueue_wake_trigger` appears under `pg_trigger`
 
 ---
 
@@ -108,9 +120,11 @@ Redeploy SCMS after changing secrets so the running app picks them up.
 
 ---
 
-## Step 4 — Populate `"_JobQueueDrainConfig"` (pg_cron backup)
+## Step 4 — Populate `"_JobQueueDrainConfig"` (REQUIRED — primary wake)
 
-This table tells the **database** how to call push-to-drain when the once-per-minute backup cron runs. It is **not** app-config; it lives only in Postgres.
+This table tells the **database** how to call push-to-drain. It is used by **both** the enqueue trigger (primary wake) and the once-per-minute backup cron. It is **not** app-config; it lives only in Postgres.
+
+> **This step is mandatory, not optional.** The app no longer self-wakes push-to-drain on enqueue when using the supabase provider — the database does. If this row is missing/empty, enqueued jobs will not drain (the trigger and cron both no-op).
 
 1. Supabase Dashboard → **SQL Editor** → **New query**.
 2. Replace the placeholders below with **this environment’s** values:
@@ -230,16 +244,18 @@ The variable name is incidental — **any** configuration that makes the app cal
 
 ```
 enqueueAndDispatchJob
-  → pgmq.send('job', { job_id, job_type, handshake })
-  → POST {api.url}/v1/jobs/push-to-drain  (Bearer queueConsumerSecret)
+  → pgmq.send('job', { job_id, job_type, handshake })       -- INSERT into pgmq.q_job
+  → pgmq_job_enqueue_wake_trigger → job_queue_cron_drain()  -- DB-fired wake
+  → net.http_post(drain_url)  POST /v1/jobs/push-to-drain  (Bearer drain_secret)
   → 202 + background drain of one message
-  → if queue depth > 0, wake again
+  → if queue depth > 0, app wakes again (notifyQueueConsumer)
 
 Backup (every minute): pg_cron → job_queue_cron_drain() → net.http_post(drain_url)
-  (no-op until "_JobQueueDrainConfig" row exists)
+
+Both the trigger and cron no-op until "_JobQueueDrainConfig" row exists (Step 4).
 ```
 
-Primary path is **self-HTTP wake on enqueue**. pg_cron is a safety net only — do not rely on it as the main drain mechanism.
+Primary path is the **database enqueue trigger** (`pg_net`). pg_cron is a safety net only — do not rely on it as the main drain mechanism. (Local dev’s `mock` provider self-wakes from the app instead.)
 
 ---
 
@@ -248,9 +264,9 @@ Primary path is **self-HTTP wake on enqueue**. pg_cron is a safety net only — 
 | Symptom | Likely cause |
 |---|---|
 | Migration fails on `CREATE EXTENSION pgmq` | Enable pgmq in Supabase Dashboard (Step 1) |
-| Jobs stuck QUEUED, no handler logs | push-to-drain not reached — check `api.url`, secret, deploy |
-| push-to-drain returns 401 | `queueConsumerSecret` mismatch or app-config not redeployed |
-| Cron never wakes | Empty `"_JobQueueDrainConfig"` — complete Step 4 |
+| Jobs stuck QUEUED, no handler logs | Empty `"_JobQueueDrainConfig"` (Step 4) — the DB trigger/cron can't wake push-to-drain; or trigger missing (check `pg_trigger`), or secret/url wrong |
+| push-to-drain returns 401 | `drain_secret` in `"_JobQueueDrainConfig"` ≠ app `queueConsumerSecret`, or app-config not redeployed |
+| Cron never wakes / trigger never wakes | Empty `"_JobQueueDrainConfig"` — complete Step 4 |
 | `pgmq.send` error in logs | Migration not applied on **this** database, or wrong `databaseUrl` |
 
 Further design detail: [`docs/superpowers/specs/2026-06-16-job-manager-pgmq-design.md`](../../../docs/superpowers/specs/2026-06-16-job-manager-pgmq-design.md).
