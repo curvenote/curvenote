@@ -59,10 +59,10 @@ export function ChooseThumbnailSection({
               aria-pressed={isSelected}
               title={attachment.altText ?? attachment.name ?? 'Figure'}
               className={cn(
-                'group relative flex flex-col gap-1 rounded-md border-2 p-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                'group relative flex flex-col gap-1 rounded-md border p-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500',
                 isSelected
-                  ? 'border-primary'
-                  : 'border-transparent hover:border-stone-300 dark:hover:border-stone-600',
+                  ? 'border-green-400 bg-green-50 hover:border-green-400 dark:border-green-600 dark:bg-green-800 dark:hover:border-green-600'
+                  : 'border-stone-200 bg-white hover:border-stone-400 dark:border-stone-500 dark:bg-stone-900 dark:hover:border-stone-400',
               )}
             >
               <div className="flex overflow-hidden justify-center items-center min-h-0 rounded aspect-square bg-stone-100 dark:bg-stone-800">
@@ -83,10 +83,15 @@ export function ChooseThumbnailSection({
                 {attachment.altText ?? attachment.name ?? 'Figure'}
               </p>
               {isSelected ? (
-                <span className="absolute top-1.5 right-1.5 flex justify-center items-center w-5 h-5 rounded-full text-primary-foreground bg-primary">
+                <span className="absolute top-1.5 right-1.5 flex justify-center items-center w-5 h-5 text-white bg-green-500 rounded-full border border-green-500 dark:bg-green-600 dark:border-green-600">
                   <Check className="w-3.5 h-3.5" />
                 </span>
-              ) : null}
+              ) : (
+                <span
+                  className="absolute top-1.5 right-1.5 w-5 h-5 bg-white rounded-full border border-stone-300 shadow-sm dark:bg-stone-900 dark:border-stone-500"
+                  aria-hidden
+                />
+              )}
             </button>
           );
         })}
