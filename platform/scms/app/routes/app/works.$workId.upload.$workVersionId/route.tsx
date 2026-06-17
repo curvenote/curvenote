@@ -248,7 +248,9 @@ export async function loader(args: Route.LoaderArgs) {
   // Stored under the same key as the ETL register-work endpoint: metadata["frontmatter.myst"].
   const mystFrontmatter = (rawMetadata as Record<string, unknown>)?.['frontmatter.myst'];
   const extractedMetadata: ExtractedMetadata | null =
-    mystFrontmatter != null && typeof mystFrontmatter === 'object'
+    mystFrontmatter != null &&
+    typeof mystFrontmatter === 'object' &&
+    !Array.isArray(mystFrontmatter)
       ? (mystFrontmatter as ExtractedMetadata)
       : null;
 
