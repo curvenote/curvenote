@@ -67,17 +67,30 @@ persistence path until/unless a build produces a manifest.
 
 - **Storage location (revised):** add a first-class **`thumbnail String?` column on
   `WorkVersion`** as the _preferred/override_ slot (holds the storage path/key of the
-  user-selected, materialised image — not a signed URL, which would expire). Resolution
-  falls back in layers:
+  user-selected, materialised image — not a signed URL, which would expire). The cascade
+  is **two layers only**:
   1. `workVersion.thumbnail` (column — the user's explicit selection) — preferred
-  2. `metadata['frontmatter.myst'].thumbnail` (MyST-authored) — JSON fallback
-  3. published CDN manifest via `getThumbnailBuffer` (current behaviour)
+  2. published CDN manifest via `getThumbnailBuffer` (current behaviour)
+
+  The `metadata['frontmatter.myst'].thumbnail` layer is intentionally **dropped**: when
+  that key is set on a published work, the MyST build has already uploaded the image and
+  the manifest's `config.thumbnail` points at it, so layer 2 resolves it anyway. The only
+  uncovered case — `frontmatter.myst.thumbnail` set but not yet built/published — is
+  covered for our flow because the upload form writes the column directly. This means the
+  resolver **never reads the `metadata` JSON blob**, so the lean selects stay lean (no
+  lazy metadata fetch needed).
 
   This supersedes the earlier "dedicated `metadata.thumbnail` JSON key" idea. A nullable
   scalar keeps hot read paths lean (no need to select/parse the whole `metadata` blob to
   know if a thumbnail exists), is queryable/indexable, and avoids the shared-JSON-key
   write race between the upload flow and the ETL `frontmatter.myst` writer (flagged in
   the PR #312 review). Migration is non-breaking (nullable, no backfill).
+
+- **Efficiency:** the column path is strictly cheaper than the manifest path. The manifest
+  path is two network ops (fetch+parse `config.json`, then fetch the image URL); the column
+  path signs the storage URL locally (HMAC, no network) and either redirects the client to
+  it (0 server-side fetches) or proxies a single fetch — skipping the `config.json`
+  round-trip and parse entirely.
 
 - **Materialise timing:** on final form submission / Continue (not eagerly on select),
   to match "upload as part of the form submission" and avoid orphaned assets from idle
@@ -116,14 +129,14 @@ In the `confirm-work` (Continue) action:
 
 All thumbnail reads currently funnel through `cdnlib.getThumbnailBuffer({ cdn, cdn_key })`
 (manifest-only). Introduce one scms-server resolver,
-`resolveWorkVersionThumbnail(ctx, workVersion, { query })`, applying the cascade:
+`resolveWorkVersionThumbnail(ctx, workVersion, { query })`, applying the two-layer cascade:
 
-1. `workVersion.thumbnail` (column) → sign against `work.cdn` and serve.
-2. `metadata['frontmatter.myst'].thumbnail` → sign/serve.
-3. `getThumbnailBuffer({ cdn, cdn_key })` when a published manifest exists.
+1. `workVersion.thumbnail` (column) → sign against `work.cdn` and serve/redirect
+   (skips the manifest round-trip).
+2. `getThumbnailBuffer({ cdn, cdn_key })` when a published manifest exists.
 
 Plus a companion `hasResolvableThumbnail(workVersion)` predicate for link builders so
-`links.thumbnail` is emitted when (1) or (2) exist **even without `cdn_key`** — the key
+`links.thumbnail` is emitted when the column is set **even without `cdn_key`** — the key
 change that lets draft uploads surface in the work-details secondary nav.
 
 **Read surface to update (every call site must go through the resolver):**
@@ -142,8 +155,10 @@ Link/URL builders (gate on `hasResolvableThumbnail`):
 - submissions `get.server.ts` variants
 - `signPrivateUrls` (appends the signing query to the resolved URL)
 
-Selecting the column is cheap; the resolver only needs `cdn`, `cdn_key`, and
-`thumbnail` for the common case, and `metadata` only when falling through to layer (2).
+Selecting the column is cheap; the resolver only needs `cdn`, `cdn_key`, and `thumbnail`.
+The `metadata` JSON blob is never read by the resolver (the cascade has no
+`frontmatter.myst` layer), so the lean selects (`cdnWorkVersionSelect` et al.) stay
+metadata-free — just add the `thumbnail` scalar.
 
 ## Runtime impact of the resize
 
