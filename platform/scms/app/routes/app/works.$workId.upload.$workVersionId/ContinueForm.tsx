@@ -53,12 +53,10 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
     (f) => f.state !== 'idle' && f.formData?.get('intent') === 'toggle-check',
   );
 
+  // A selected check whose service is under maintenance does not block submission;
+  // it is simply skipped (not initiated) and the work is created without it.
   const disabled =
-    !hasTitle ||
-    !hasFiles ||
-    hasPendingToggleCheck ||
-    hasInvalidSelectedChecks ||
-    maintenanceBlocked;
+    !hasTitle || !hasFiles || hasPendingToggleCheck || hasInvalidSelectedChecks;
 
   const handleContinue = () => {
     const formData = new FormData();
@@ -70,8 +68,8 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
   };
 
   return (
-    <div className="flex gap-4 items-center mt-6">
-      <ui.MaintenanceTooltip enabled={maintenanceBlocked} message={maintenanceMessage}>
+    <div className="mt-6 space-y-2">
+      <div className="flex gap-4 items-center">
         <ui.StatefulButton
           type="button"
           busy={fetcher.state !== 'idle'}
@@ -80,10 +78,15 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
         >
           Continue
         </ui.StatefulButton>
-      </ui.MaintenanceTooltip>
-      <ui.Button variant="link" asChild>
-        <Link to={finishLaterHref}>Come back and finish this later</Link>
-      </ui.Button>
+        <ui.Button variant="link" asChild>
+          <Link to={finishLaterHref}>Come back and finish this later</Link>
+        </ui.Button>
+      </div>
+      {maintenanceBlocked ? (
+        <p className="text-sm text-muted-foreground">
+          {maintenanceMessage} This check will be skipped and can be run later.
+        </p>
+      ) : null}
     </div>
   );
 }

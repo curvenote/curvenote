@@ -35,7 +35,6 @@ import {
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
   hasInvalidEnabledUploadChecks,
-  hasMaintenanceEnabledUploadChecks,
   loadCheckMaintenanceByServiceIds,
   CheckMaintenanceProvider,
   capitalize,
@@ -416,7 +415,22 @@ export async function action(args: Route.ActionArgs) {
           baseCtx.$config,
           serverExtensions,
         );
-        if (hasInvalidEnabledUploadChecks(currentMetadata, enabledChecks, uploadCheckServices)) {
+
+        // Checks whose service is under maintenance are not initiated. The work is
+        // created as though those checks were never selected; they can be run later
+        // once the service is back online.
+        const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
+          baseCtx,
+          serverExtensions,
+          enabledChecks,
+        );
+        const dispatchableChecks = enabledChecks.filter(
+          (name) => !maintenanceByServiceId[name]?.underMaintenance,
+        );
+
+        if (
+          hasInvalidEnabledUploadChecks(currentMetadata, dispatchableChecks, uploadCheckServices)
+        ) {
           return data(
             {
               error: {
@@ -429,40 +443,19 @@ export async function action(args: Route.ActionArgs) {
           );
         }
 
-        const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
-          baseCtx,
-          serverExtensions,
-          enabledChecks,
-        );
-        if (hasMaintenanceEnabledUploadChecks(enabledChecks, maintenanceByServiceId)) {
-          const blockedMessage =
-            Object.values(maintenanceByServiceId).find((state) => state.underMaintenance)
-              ?.message ??
-            'One or more selected checks are temporarily unavailable for maintenance.';
-          return data(
-            {
-              error: {
-                type: 'maintenance',
-                message: blockedMessage,
-              },
-            },
-            { status: 503 },
-          );
-        }
-
-        // Create check status objects for each enabled check
+        // Create check status objects for each dispatchable check
         const checkStatuses: Record<string, any> = {};
-        enabledChecks.forEach((name) => {
+        dispatchableChecks.forEach((name) => {
           checkStatuses[name] = {};
         });
 
-        // Update metadata with check statuses
+        // Update metadata with check statuses (maintenance checks are dropped)
         await safeWorkVersionJsonUpdate(workVersionId, (metadata?: Prisma.JsonValue) => {
           const meta = (metadata as Record<string, any>) || makeDefaultWorkVersionMetadata();
           return {
             ...meta,
             checks: {
-              enabled: enabledChecks,
+              enabled: dispatchableChecks,
               ...checkStatuses,
             },
           } as Prisma.JsonObject;
@@ -481,7 +474,7 @@ export async function action(args: Route.ActionArgs) {
         // Schedule each enabled check via its extension. Each check service is
         // responsible for creating its own checkServiceRun rows and jobs.
         // Require work:checks:dispatch scope before dispatching (same as work-integrity action).
-        if (enabledChecks.length > 0) {
+        if (dispatchableChecks.length > 0) {
           if (!userHasScope(baseCtx.user, scopes.app.works.checks.dispatch)) {
             return data(
               {
@@ -495,14 +488,14 @@ export async function action(args: Route.ActionArgs) {
           }
           waitUntil(
             dispatchEnabledChecksAfterUpload({
-              enabledChecks,
+              enabledChecks: dispatchableChecks,
               workVersionId,
               ctx: baseCtx,
             }).catch((error) => {
               console.error('[work-upload] background check dispatch failed', {
                 workId,
                 workVersionId,
-                enabledChecks,
+                enabledChecks: dispatchableChecks,
                 error,
               });
             }),
@@ -515,7 +508,7 @@ export async function action(args: Route.ActionArgs) {
         const shouldRedirect = redirectParam !== 'false';
         if (shouldRedirect) {
           const target =
-            enabledChecks.length > 0
+            dispatchableChecks.length > 0
               ? `/app/works/${workId}/checks?dispatching=1`
               : `/app/works/${workId}/details`;
           return redirect(target);
