@@ -13,7 +13,6 @@ import { findWorkByVersion, getPrismaClient, signFilesInMetadata } from '@curven
 import type { FileMetadataSectionItem } from '@curvenote/scms-core';
 import type { Context } from '@curvenote/scms-server';
 import { formatDate } from '@curvenote/common';
-import { parseOffice } from 'officeparser';
 import type { OfficeParserAST, OfficeContentNode, OfficeAttachment } from 'officeparser';
 import { isDocxPreviewCandidate } from './docxPreviewGuards';
 
@@ -192,6 +191,10 @@ export async function fetchDocxPreviews(
           continue;
         }
         const arrayBuffer = await response.arrayBuffer();
+        // Defer loading officeparser (and its heavy transitive deps: tesseract.js,
+        // pdfjs-dist) until a DOCX actually needs parsing, keeping the route's
+        // server module light on cold start.
+        const { parseOffice } = await import('officeparser');
         const fullAst = await parseOffice(arrayBuffer, {
           extractAttachments: true,
           newlineDelimiter: '\n',
