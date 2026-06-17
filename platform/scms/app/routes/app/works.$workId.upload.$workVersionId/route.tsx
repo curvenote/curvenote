@@ -64,7 +64,7 @@ import { zfd } from 'zod-form-data';
 import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
 import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
-import { isDocxPreviewCandidate } from './metadata-extract/docxPreviewGuards';
+import { isPreviewCandidate } from './metadata-extract/previewGuards';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { waitUntil } from '@vercel/functions';
 
@@ -113,16 +113,16 @@ function parseAuthorsList(authorsText: string): string[] {
 }
 
 /**
- * Stable signature of the manuscript DOCX file(s) that feed metadata extraction.
- * Built from each candidate file's md5 (falling back to its path), sorted and
- * joined, so it changes whenever a manuscript file is added, removed, or replaced.
- * Used to detect when a cached extraction is stale and must be regenerated.
+ * Stable signature of the manuscript file(s) that feed metadata extraction.
+ * Built from each preview-candidate file's md5 (falling back to its path), sorted
+ * and joined, so it changes whenever a manuscript file is added, removed, or
+ * replaced. Used to detect when a cached extraction is stale and must be regenerated.
  */
-function computeDocxSourceSignature(
+function computeManuscriptSourceSignature(
   files: Record<string, { path?: string; name?: string; type?: string; md5?: string }>,
 ): string {
   return Object.entries(files)
-    .filter(([, f]) => isDocxPreviewCandidate(f))
+    .filter(([, f]) => isPreviewCandidate(f))
     .map(([path, f]) => (typeof f?.md5 === 'string' && f.md5 ? f.md5 : path))
     .filter(Boolean)
     .sort()
@@ -264,7 +264,7 @@ export async function loader(args: Route.LoaderArgs) {
     }
   })();
 
-  // Read only cached DOCX previews from Object table (no generation in loader)
+  // Read only cached document previews from Object table (no generation in loader)
 
   const previews = await readDocxPreviewsFromObjectTable(signedMetadata);
   // Stored under the same key as the ETL register-work endpoint: metadata["frontmatter.myst"].
@@ -276,9 +276,9 @@ export async function loader(args: Route.LoaderArgs) {
       ? (mystFrontmatter as ExtractedMetadata)
       : null;
   // The cached extraction is stale when the current manuscript file(s) no longer
-  // match the source that produced it (e.g. the author replaced the DOCX). In
+  // match the source that produced it (e.g. the author replaced the document). In
   // that case the UI should re-trigger extraction rather than show stale metadata.
-  const docxSourceSignature = computeDocxSourceSignature(
+  const manuscriptSourceSignature = computeManuscriptSourceSignature(
     ((rawMetadata as Record<string, unknown>)?.files ?? {}) as Record<
       string,
       { path?: string; name?: string; type?: string; md5?: string }
@@ -289,8 +289,8 @@ export async function loader(args: Route.LoaderArgs) {
   ];
   const isExtractionStale =
     extractedMetadata != null &&
-    docxSourceSignature !== '' &&
-    storedExtractionSource !== docxSourceSignature;
+    manuscriptSourceSignature !== '' &&
+    storedExtractionSource !== manuscriptSourceSignature;
 
   const hasMetadataExtractScope = userHasScope(
     ctx.user,
@@ -563,7 +563,7 @@ export async function action(args: Route.ActionArgs) {
         return data({ success: true });
       }
 
-      // Fetch DOCX previews (generate + write to Object table only)
+      // Fetch document previews (generate + write to Object table only)
       if (uploadIntent === 'fetch-previews') {
         if (!workVersionId) {
           return data(
@@ -590,7 +590,7 @@ export async function action(args: Route.ActionArgs) {
         return data({ ok: true, previewsGenerated: previews.length });
       }
 
-      // Extract metadata from first DOCX via Claude (only when no frontmatter and we have previews)
+      // Extract metadata from first document preview via Claude (only when no frontmatter and we have previews)
       if (uploadIntent === 'extract-metadata') {
         if (!workVersionId) {
           return data(
@@ -622,7 +622,7 @@ export async function action(args: Route.ActionArgs) {
         }
         const currentMeta = (work.metadata as Record<string, unknown>) ?? {};
         const hasMystFrontmatter = currentMeta['frontmatter.myst'] != null;
-        const currentSourceSignature = computeDocxSourceSignature(
+        const currentSourceSignature = computeManuscriptSourceSignature(
           (currentMeta.files ?? {}) as Record<
             string,
             { path?: string; name?: string; type?: string; md5?: string }
@@ -631,8 +631,8 @@ export async function action(args: Route.ActionArgs) {
         const cachedSourceSignature = currentMeta[METADATA_EXTRACT_SOURCE_KEY];
         // `force` is set by the manual "re-run extraction" control and always
         // re-extracts. Otherwise skip when a cached result exists AND it was
-        // produced from the current manuscript file(s); a changed/replaced DOCX
-        // invalidates the cache.
+        // produced from the current manuscript file(s); a changed/replaced
+        // document invalidates the cache.
         const forceReextract = force === 'true';
         if (
           !forceReextract &&
@@ -794,13 +794,13 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     string,
     { path?: string; name?: string; type?: string }
   >;
-  const docxFilePaths = Object.entries(files)
-    .filter(([, f]) => isDocxPreviewCandidate(f))
+  const previewFilePaths = Object.entries(files)
+    .filter(([, f]) => isPreviewCandidate(f))
     .map(([path]) => path);
   const previewPaths = new Set(previewList.map((p) => p.path));
-  const missingPreviewPaths = docxFilePaths.filter((p) => !previewPaths.has(p));
+  const missingPreviewPaths = previewFilePaths.filter((p) => !previewPaths.has(p));
   const shouldFetchPreviews =
-    hasMetadataExtractScope && docxFilePaths.length > 0 && missingPreviewPaths.length > 0;
+    hasMetadataExtractScope && previewFilePaths.length > 0 && missingPreviewPaths.length > 0;
 
   useEffect(() => {
     if (!shouldFetchPreviews) {
@@ -853,7 +853,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           </SectionWithHeading>
           {hasMetadataExtractScope ? (
             <React.Suspense
-              fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}
+              fallback={<p className="text-sm text-muted-foreground">Loading document previews…</p>}
             >
               <MetadataExtractSection
                 previewList={previewList}
