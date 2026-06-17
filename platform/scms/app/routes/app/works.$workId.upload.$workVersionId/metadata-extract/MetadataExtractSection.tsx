@@ -91,7 +91,6 @@ export function MetadataExtractSection({
       icon={<Eye className="w-5 h-5" />}
       className="space-y-4"
     >
-      <p className="text-muted-foreground">Review your document metadata</p>
       <div
         className={
           previewList.length > 0
