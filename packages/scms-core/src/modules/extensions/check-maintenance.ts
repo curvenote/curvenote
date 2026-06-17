@@ -1,9 +1,7 @@
 import type { Context } from '../../backend/types.js';
 import type { ExtensionCheckHandleActionResult, ServerExtension } from './types.js';
-import { getExtensionCheckServicesFromServerConfig } from './checks.js';
 
-export const DEFAULT_CHECK_MAINTENANCE_MESSAGE =
-  'Service is temporarily down for maintenance';
+export const DEFAULT_CHECK_MAINTENANCE_MESSAGE = 'Service is temporarily down for maintenance';
 
 export type CheckMaintenanceRecord = {
   enabled: boolean;
@@ -65,11 +63,35 @@ export function maintenanceGuardFromConfig(
   return checkMaintenanceActionError(state.message);
 }
 
-export function getConfiguredCheckServiceIds(
-  serverConfig: AppConfig,
+export async function loadCheckMaintenanceByServiceIds(
+  ctx: Context,
   extensions: ServerExtension[],
-): string[] {
-  return getExtensionCheckServicesFromServerConfig(serverConfig, extensions).map((s) => s.id);
+  checkServiceIds: string[],
+): Promise<Record<string, CheckMaintenanceState>> {
+  const requested = new Set(checkServiceIds);
+  if (requested.size === 0) return {};
+
+  const result: Record<string, CheckMaintenanceState> = {};
+
+  await Promise.all(
+    extensions.map(async (ext) => {
+      const services = ext.getChecks?.() ?? [];
+      const matchingIds = services.map((service) => service.id).filter((id) => requested.has(id));
+      if (matchingIds.length === 0) return;
+
+      const config = ext.getExtensionConfiguration
+        ? await ext.getExtensionConfiguration(ctx)
+        : undefined;
+      const state = parseCheckMaintenanceFromConfig(config);
+      if (!state) return;
+
+      for (const id of matchingIds) {
+        result[id] = state;
+      }
+    }),
+  );
+
+  return result;
 }
 
 export async function loadCheckMaintenanceByServiceId(
@@ -77,29 +99,6 @@ export async function loadCheckMaintenanceByServiceId(
   extensions: ServerExtension[],
   checkServiceId: string,
 ): Promise<CheckMaintenanceState | undefined> {
-  for (const ext of extensions) {
-    const services = ext.getChecks?.() ?? [];
-    if (!services.some((service) => service.id === checkServiceId)) continue;
-    const config = ext.getExtensionConfiguration
-      ? await ext.getExtensionConfiguration(ctx)
-      : undefined;
-    return parseCheckMaintenanceFromConfig(config);
-  }
-  return undefined;
-}
-
-export async function loadCheckMaintenanceByServiceIds(
-  ctx: Context,
-  extensions: ServerExtension[],
-  checkServiceIds: string[],
-): Promise<Record<string, CheckMaintenanceState>> {
-  const entries = await Promise.all(
-    checkServiceIds.map(async (id) => {
-      const state = await loadCheckMaintenanceByServiceId(ctx, extensions, id);
-      return state ? ([id, state] as const) : null;
-    }),
-  );
-  return Object.fromEntries(
-    entries.filter((entry): entry is [string, CheckMaintenanceState] => !!entry),
-  );
+  const byId = await loadCheckMaintenanceByServiceIds(ctx, extensions, [checkServiceId]);
+  return byId[checkServiceId];
 }
