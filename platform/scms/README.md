@@ -80,8 +80,17 @@ If you previously installed Postgres directly on macOS (Homebrew, Postgres.app, 
 
 **1. Check what is using port 5432**
 
+`brew services` only lists Homebrew-managed daemons — it will **not** show Postgres from the [EnterpriseDB installer](https://www.postgresql.org/download/macosx/) (the one that installs pgAdmin under `/Library/PostgreSQL/…`).
+
 ```bash
+# Often empty for non-Homebrew installs (server runs as system user "postgres")
 lsof -i :5432
+
+# More reliable — shows listeners even when lsof does not
+netstat -an | grep 5432
+
+# See the server process (look for /Library/PostgreSQL/… or postgres -D …)
+ps aux | grep '[p]ostgres'
 ```
 
 **2. Stop your existing Postgres**
@@ -99,14 +108,31 @@ _Postgres.app:_
 
 Quit the app (menu bar → Postgres → Quit). To avoid autostart, open Postgres.app preferences and disable “Start at login”.
 
-_EnterpriseDB / other installers:_
+_EnterpriseDB installer (pgAdmin in `/Library/PostgreSQL/17/pgAdmin 4.app`):_
 
-Use that product’s control panel or `pg_ctl stop`, or uninstall if you no longer need it.
+This is a **launchd** service, not Homebrew. It starts at boot (`RunAtLoad`) and pgAdmin connects to it on `localhost:5432`.
+
+```bash
+# Stop the server now
+sudo launchctl bootout system /Library/LaunchDaemons/postgresql-17.plist
+
+# Optional: prevent it starting again on reboot (adjust version if not 17)
+sudo launchctl disable system/postgresql-17
+```
+
+To start it again later (e.g. if you need pgAdmin against the old data):
+
+```bash
+sudo launchctl enable system/postgresql-17
+sudo launchctl bootstrap system /Library/LaunchDaemons/postgresql-17.plist
+```
+
+To remove the install entirely (after Docker dev works): open `/Library/PostgreSQL/17/uninstall-postgresql.app`.
 
 **3. Confirm the port is free**
 
 ```bash
-lsof -i :5432
+netstat -an | grep '\.5432.*LISTEN'
 # should print nothing
 ```
 
@@ -130,6 +156,9 @@ Only after Docker dev is working:
 # Homebrew example — adjust version
 brew services stop postgresql@16
 brew uninstall postgresql@16
+
+# EnterpriseDB example — use the bundled uninstaller
+open /Library/PostgreSQL/17/uninstall-postgresql.app
 ```
 
 You do **not** need native `psql` for day-to-day dev; use `npm run db:logs`, Prisma Studio (`npm run db:studio`), or `docker compose exec postgres psql -U journals -d journals`.
