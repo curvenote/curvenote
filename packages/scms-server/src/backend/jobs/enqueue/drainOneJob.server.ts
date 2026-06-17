@@ -27,7 +27,7 @@ export async function drainOneJob(consume: DrainJobConsumer): Promise<boolean> {
 
   const remaining = await provider.getDepth();
   if (remaining > 0) {
-    await notifyQueueConsumer();
+    notifyQueueConsumer();
   }
 
   return true;

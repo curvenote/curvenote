@@ -5,6 +5,6 @@ import type { JobQueueMessage } from './queueProviders/types.js';
 export async function dispatchJob(message: JobQueueMessage) {
   const provider = getJobQueueProvider();
   const result = await provider.send(message, { idempotencyKey: message.job_id });
-  await notifyQueueConsumer();
+  notifyQueueConsumer();
   return result;
 }
