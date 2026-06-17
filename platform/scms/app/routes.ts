@@ -122,7 +122,6 @@ export default [
       route('email-test', 'routes/app/system.email-test/route.tsx'),
       route('services', 'routes/app/system.services/route.tsx'),
       route('jobs', 'routes/app/system.jobs/route.tsx'),
-      route('queues', 'routes/app/system.queues/route.tsx'),
       route('design', 'routes/app/system.design/route.tsx'),
       route('users', 'routes/app/system.users/route.tsx'),
       route('analytics-dashboards', 'routes/app/system.analytics-dashboards/route.tsx'),

@@ -126,7 +126,7 @@ This table tells the **database** how to call push-to-drain. It is used by **bot
 
 > **This step is mandatory, not optional.** The app no longer self-wakes push-to-drain on enqueue when using the supabase provider — the database does. If this row is missing/empty, enqueued jobs will not drain (the trigger and cron both no-op).
 
-> **Easiest option: use the admin UI.** Once SCMS is deployed, system admins can open **System → Queues** (`/app/system/queues`) and use **Push secret from app-config** (writes `api.queueConsumerSecret` into the row) and **Save endpoint** (sets `drain_url`). That page also shows whether the stored secret matches app-config and a live tail of pending/in-flight pgmq messages. The SQL below remains available for first-time setup or environments without UI access.
+> **Easiest option: use the admin UI.** Once SCMS is deployed, system admins can open **System → Jobs → Queues tab** (`/app/system/jobs?tab=queues`) and use **Push secret from app-config** (writes `api.queueConsumerSecret` into the row) and **Save endpoint** (sets `drain_url`). That tab also shows whether the stored secret matches app-config and a live tail of pending/in-flight pgmq messages. The SQL below remains available for first-time setup or environments without UI access.
 
 1. Supabase Dashboard → **SQL Editor** → **New query**.
 2. Replace the placeholders below with **this environment’s** values:
