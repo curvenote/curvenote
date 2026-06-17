@@ -62,6 +62,7 @@ import { Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
+import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isDocxPreviewCandidate } from './metadata-extract/docxPreviewGuards';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -867,6 +868,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           ) : (
             <CaptureMetadataSection title={title} authors={authors} />
           )}
+          {hasMetadataExtractScope ? <ChooseThumbnailSection previewList={previewList} /> : null}
           <SectionWithHeading
             heading="Select Checks to Run"
             icon={<CheckSquare className="w-5 h-5" />}
