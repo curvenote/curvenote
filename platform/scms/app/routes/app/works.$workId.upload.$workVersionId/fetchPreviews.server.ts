@@ -226,6 +226,7 @@ export async function fetchDocxPreviews(
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { signedUrl: _drop, ...fileMeta } = file;
     previews.push({
       path,
@@ -284,6 +285,7 @@ export async function readDocxPreviewsFromObjectTable(metadata: {
       select: { data: true },
     });
     if (cached?.data == null || !isCachedAst(cached.data)) continue;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { signedUrl: _drop, ...fileMeta } = file;
     previews.push({
       path,

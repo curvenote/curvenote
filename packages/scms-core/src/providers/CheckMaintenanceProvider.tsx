@@ -52,3 +52,16 @@ export function useAnyCheckMaintenanceBlocked(checkServiceIds: string[]): {
   }
   return { blocked: false, message: DEFAULT_CHECK_MAINTENANCE_MESSAGE };
 }
+
+/**
+ * Filter a list of check service ids down to those that are not under
+ * maintenance. Mirrors the server's `dispatchableChecks`: checks under
+ * maintenance are dropped (not initiated) rather than blocking submission.
+ */
+export function useChecksNotUnderMaintenance(checkServiceIds: string[]): string[] {
+  const context = useContext(CheckMaintenanceContext);
+  return useMemo(
+    () => checkServiceIds.filter((id) => context?.[id]?.underMaintenance !== true),
+    [checkServiceIds, context],
+  );
+}

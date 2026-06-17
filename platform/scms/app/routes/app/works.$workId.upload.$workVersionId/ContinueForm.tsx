@@ -4,6 +4,7 @@ import {
   ui,
   hasInvalidEnabledUploadChecks,
   useAnyCheckMaintenanceBlocked,
+  useChecksNotUnderMaintenance,
 } from '@curvenote/scms-core';
 import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata, ChecksMetadataSection } from '@curvenote/scms-server';
@@ -41,9 +42,14 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
     Object.keys(metadata.files).length > 0;
 
   const enabledChecks = metadata.checks?.enabled ?? [];
+  // Mirror the server's `confirm-work`: checks under maintenance are dropped
+  // (not initiated), so only validate compatibility for the dispatchable ones.
+  // A check that is both incompatible and under maintenance must not block
+  // submission, since the server would drop it and accept the work.
+  const dispatchableChecks = useChecksNotUnderMaintenance(enabledChecks);
   const hasInvalidSelectedChecks = hasInvalidEnabledUploadChecks(
     metadata,
-    enabledChecks,
+    dispatchableChecks,
     checkServices,
   );
   const { blocked: maintenanceBlocked } = useAnyCheckMaintenanceBlocked(enabledChecks);
@@ -54,8 +60,7 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
 
   // A selected check whose service is under maintenance does not block submission;
   // it is simply skipped (not initiated) and the work is created without it.
-  const disabled =
-    !hasTitle || !hasFiles || hasPendingToggleCheck || hasInvalidSelectedChecks;
+  const disabled = !hasTitle || !hasFiles || hasPendingToggleCheck || hasInvalidSelectedChecks;
 
   const handleContinue = () => {
     const formData = new FormData();

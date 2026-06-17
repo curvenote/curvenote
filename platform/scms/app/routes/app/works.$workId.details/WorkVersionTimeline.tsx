@@ -46,22 +46,6 @@ type TimelineEntry =
       version: WorkVersionForDetailsClient;
     };
 
-/** Latest run id for each check `kind` across all versions (by `date_created`). */
-function getLatestCheckRunIdByKind(
-  checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>,
-): Record<string, string> {
-  const latestRunByKind: Record<string, CheckServiceRunRow> = {};
-  for (const runs of Object.values(checkServiceRunsByWorkVersionId)) {
-    for (const run of runs) {
-      const currentBest = latestRunByKind[run.kind];
-      if (!currentBest || run.date_created > currentBest.date_created) {
-        latestRunByKind[run.kind] = run;
-      }
-    }
-  }
-  return Object.fromEntries(Object.entries(latestRunByKind).map(([kind, run]) => [kind, run.id]));
-}
-
 /** Single entrypoint for timeline auto-expand behavior (easy to A/B later). */
 function shouldExpandByDefault(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

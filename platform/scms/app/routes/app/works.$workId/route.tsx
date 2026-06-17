@@ -254,7 +254,6 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const activities = await dbGetWorkActivities(ctx.work.id);
   const checkServiceRunsByWorkVersionId = await dbGetCheckServiceRunsByWorkVersionIds(versionIds);
 
-  const latestNonDraftVersion = versionsForClient.find((v) => !v.draft);
   const work = latestNonDraftWithMetadata
     ? worksLoaders.formatWorkDTO(ctx, ctx.work, latestNonDraftWithMetadata)
     : ctx.workDTO;
