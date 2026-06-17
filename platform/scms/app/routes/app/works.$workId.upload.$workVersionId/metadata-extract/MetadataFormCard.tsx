@@ -1,7 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { useFetcher } from 'react-router';
 import { ui, LoadingSpinner } from '@curvenote/scms-core';
-import type { Route } from '../+types/route';
 import type { ExtractedMetadata } from './anthropic.server';
 import { WorkTitleForm } from '../WorkTitleForm';
 import { AuthorsForm } from '../AuthorsForm';
@@ -16,55 +13,18 @@ function authorsFromExtracted(extracted: ExtractedMetadata | null): string {
 
 export interface MetadataFormCardProps {
   extractedMetadata: ExtractedMetadata | null;
-  /** True when the cached extraction no longer matches the current manuscript file(s). */
-  isExtractionStale: boolean;
+  /** True while an extraction request is in flight (drives the overlay). */
+  isExtractingMetadata: boolean;
   title: string;
   authors: string;
-  /** True when there is at least one DOCX preview (enables extract-metadata trigger) */
-  hasPreviews: boolean;
 }
 
 export function MetadataFormCard({
   extractedMetadata,
-  isExtractionStale,
+  isExtractingMetadata,
   title,
   authors,
-  hasPreviews,
 }: MetadataFormCardProps) {
-  const extractMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
-  const hasTriggeredExtractMetadata = useRef(false);
-
-  // Extract when there is no cached metadata yet, or when the cache is stale
-  // because the manuscript file(s) changed since the last extraction.
-  const needsExtraction = !extractedMetadata || isExtractionStale;
-  const shouldExtractMetadata =
-    needsExtraction && hasPreviews && extractMetadataFetcher.state === 'idle';
-
-  useEffect(() => {
-    if (!shouldExtractMetadata) {
-      if (!needsExtraction) hasTriggeredExtractMetadata.current = false;
-      return;
-    }
-    if (hasTriggeredExtractMetadata.current || extractMetadataFetcher.state !== 'idle') return;
-    hasTriggeredExtractMetadata.current = true;
-    extractMetadataFetcher.submit({ intent: 'extract-metadata' }, { method: 'POST' });
-  }, [
-    shouldExtractMetadata,
-    needsExtraction,
-    extractMetadataFetcher.state,
-    extractMetadataFetcher,
-  ]);
-
-  useEffect(() => {
-    const data = extractMetadataFetcher.data as { error: { message: string } } | undefined;
-    if (extractMetadataFetcher.state === 'idle' && data?.error) {
-      ui.toastError(data.error.message);
-    }
-  }, [extractMetadataFetcher.state, extractMetadataFetcher.data]);
-
-  const isExtractingMetadata =
-    extractMetadataFetcher.state === 'loading' || extractMetadataFetcher.state === 'submitting';
-
   const displayTitle = (title?.trim() ? title : extractedMetadata?.title) ?? '';
   const initialAuthors = authors?.trim() ? authors : authorsFromExtracted(extractedMetadata);
 

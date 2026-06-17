@@ -201,16 +201,20 @@ const LOG_PREFIX = '[extractMetadataFromPreviews]';
 export async function extractMetadataFromPreviews(
   previewsResult: FetchPreviewsResult,
   ctx: Context,
+  /** Optional path of the preview to extract from; falls back to the first preview. */
+  targetPath?: string,
 ): Promise<ExtractedMetadata | null> {
   try {
     if (!previewsResult.previews?.length) {
       console.warn(LOG_PREFIX, 'No DOCX previews available');
       return null;
     }
-    const first = previewsResult.previews[0];
-    const documentText = astContentToPlainText(first.ast.content ?? []);
+    const selected =
+      (targetPath && previewsResult.previews.find((p) => p.path === targetPath)) ||
+      previewsResult.previews[0];
+    const documentText = astContentToPlainText(selected.ast.content ?? []);
     if (!documentText.trim()) {
-      console.warn(LOG_PREFIX, 'First preview has no extractable text');
+      console.warn(LOG_PREFIX, 'Selected preview has no extractable text');
       return null;
     }
 

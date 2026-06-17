@@ -85,7 +85,8 @@ const WorkUploadActionSchema = zfd.formData({
   slot: zfd.text(z.string().min(1)).optional(),
   // Optional fields used by specific intents
   completedFiles: zfd.text(z.string()).optional(), // Used by 'complete' intent
-  path: zfd.text(z.string()).optional(), // Used by 'remove' intent
+  path: zfd.text(z.string()).optional(), // Used by 'remove' and 'extract-metadata' (target file) intents
+  force: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'extract-metadata' to bypass the cache
   title: zfd.text(z.string().default('')), // Used by 'update-title' intent - allows empty strings
   authors: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent
   redirect: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'confirm-work' intent; default true
@@ -361,6 +362,8 @@ export async function action(args: Route.ActionArgs) {
         redirect: redirectParam,
         checkName,
         checked,
+        path: targetPath,
+        force,
       } = payload;
 
       // Handle title update intent (updates title field)
@@ -625,9 +628,16 @@ export async function action(args: Route.ActionArgs) {
           >,
         );
         const cachedSourceSignature = currentMeta[METADATA_EXTRACT_SOURCE_KEY];
-        // Skip extraction only when a cached result exists AND it was produced from
-        // the current manuscript file(s). A changed/replaced DOCX invalidates the cache.
-        if (hasMystFrontmatter && cachedSourceSignature === currentSourceSignature) {
+        // `force` is set by the manual "re-run extraction" control and always
+        // re-extracts. Otherwise skip when a cached result exists AND it was
+        // produced from the current manuscript file(s); a changed/replaced DOCX
+        // invalidates the cache.
+        const forceReextract = force === 'true';
+        if (
+          !forceReextract &&
+          hasMystFrontmatter &&
+          cachedSourceSignature === currentSourceSignature
+        ) {
           return data({ ok: true });
         }
         const signedMetadata = await signFilesInMetadata(
@@ -640,7 +650,7 @@ export async function action(args: Route.ActionArgs) {
           return data({ ok: true });
         }
         try {
-          const extracted = await extractMetadataFromPreviews({ previews }, baseCtx);
+          const extracted = await extractMetadataFromPreviews({ previews }, baseCtx, targetPath);
           if (extracted != null) {
             await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
               const m = (current as Record<string, unknown>) || {};
@@ -653,19 +663,19 @@ export async function action(args: Route.ActionArgs) {
               } as Prisma.JsonObject;
             });
 
-            // Seed the work version title/authors from the extracted metadata when the
-            // author hasn't provided them yet. The Continue button requires a stored
-            // title, so without this the upload can't be confirmed after extraction.
-            // Existing author-entered values are left untouched so we never clobber them.
+            // Seed the work version title/authors from the extracted metadata. On an
+            // automatic extraction we only fill empty fields (so we never clobber an
+            // author's edits, and the Continue button gets a title). A manual re-run
+            // is an explicit request to refresh, so it overwrites title/authors.
             const extractedTitle = extracted.title?.trim() ?? '';
-            if (extractedTitle && !work.title?.trim()) {
+            if (extractedTitle && (forceReextract || !work.title?.trim())) {
               await updateWorkVersionTitle(workVersionId, extractedTitle);
             }
             const extractedAuthors = (extracted.authors ?? [])
               .map((a) => (typeof a?.name === 'string' ? a.name.trim() : ''))
               .filter(Boolean)
               .join(', ');
-            if (extractedAuthors && !work.authors?.length) {
+            if (extractedAuthors && (forceReextract || !work.authors?.length)) {
               await updateWorkVersionAuthors(workVersionId, extractedAuthors);
             }
           }
