@@ -53,6 +53,12 @@ export function buildMenu(baseUrl: string, userScopes: string[]) {
           url: `${baseUrl}/jobs`,
         },
         {
+          name: 'admin.queues',
+          label: 'Queues',
+          icon: 'radio',
+          url: `${baseUrl}/queues`,
+        },
+        {
           name: 'admin.design',
           label: 'Design',
           url: `${baseUrl}/design`,

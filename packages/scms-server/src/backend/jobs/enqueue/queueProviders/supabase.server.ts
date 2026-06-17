@@ -5,6 +5,7 @@ import type {
   JobQueueProvider,
   JobQueueSendOptions,
   JobQueueSendResult,
+  QueuePeekEntry,
   QueueReadReceipt,
   QueueReadResult,
 } from './types.js';
@@ -57,6 +58,37 @@ async function deleteFromPgmq(receipt: QueueReadReceipt): Promise<void> {
   );
 }
 
+type PgmqQueueRow = {
+  msg_id: bigint;
+  read_ct: number;
+  enqueued_at: Date | null;
+  vt: Date | null;
+  message: JobQueueMessage;
+  in_flight: boolean;
+};
+
+async function peekPgmq(limit: number): Promise<QueuePeekEntry[]> {
+  const prisma = await getPrismaClient();
+  // Read directly from the pgmq queue table (q_<queue>) so in-flight/unacked
+  // messages (vt in the future) are visible without consuming them.
+  const rows = await prisma.$queryRaw<PgmqQueueRow[]>(
+    Prisma.sql`SELECT msg_id, read_ct, enqueued_at, vt, message, (vt > now()) AS in_flight
+               FROM pgmq.q_job
+               ORDER BY msg_id DESC
+               LIMIT ${limit}`,
+  );
+
+  return rows.map((row) => ({
+    messageId: String(row.msg_id),
+    jobId: row.message?.job_id ?? 'unknown',
+    jobType: row.message?.job_type ?? 'unknown',
+    deliveryCount: row.read_ct,
+    enqueuedAt: row.enqueued_at ? row.enqueued_at.toISOString() : null,
+    visibleAt: row.vt ? row.vt.toISOString() : null,
+    inFlight: row.in_flight,
+  }));
+}
+
 async function getPgmqDepth(): Promise<number> {
   const prisma = await getPrismaClient();
   const rows = await prisma.$queryRaw<PgmqMetricsRow[]>(
@@ -93,4 +125,6 @@ export const supabaseQueueProvider: JobQueueProvider = {
   },
 
   getDepth: getPgmqDepth,
+
+  peek: peekPgmq,
 };

@@ -6,6 +6,7 @@ import type {
   JobQueueProvider,
   JobQueueSendOptions,
   JobQueueSendResult,
+  QueuePeekEntry,
   QueueReadReceipt,
   QueueReadResult,
 } from './types.js';
@@ -127,6 +128,23 @@ export const mockQueueProvider: JobQueueProvider = {
 
   async getDepth(): Promise<number> {
     return queue.length;
+  },
+
+  async peek(limit: number): Promise<QueuePeekEntry[]> {
+    const head = entryAtHead();
+    // Most recent first; the head is in-flight while a drain is running.
+    return queue
+      .slice(-limit)
+      .reverse()
+      .map((entry) => ({
+        messageId: entry.messageId,
+        jobId: entry.message.job_id,
+        jobType: entry.message.job_type,
+        deliveryCount: entry.deliveryCount,
+        enqueuedAt: null,
+        visibleAt: null,
+        inFlight: drainInProgress && entry === head,
+      }));
   },
 };
 

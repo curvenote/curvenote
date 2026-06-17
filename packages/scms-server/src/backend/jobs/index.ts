@@ -3,6 +3,7 @@ export * from './handlers/index.js';
 export * from './enqueue/dispatchJob.server.js';
 export * from './enqueue/drainOneJob.server.js';
 export * from './enqueue/notifyQueueConsumer.server.js';
+export * from './enqueue/jobQueueAdmin.server.js';
 export * from './enqueue/ensureJobRow.server.js';
 export * from './enqueue/enqueueAndDispatchJob.server.js';
 export * from './enqueue/promoteAndDispatchJob.server.js';
