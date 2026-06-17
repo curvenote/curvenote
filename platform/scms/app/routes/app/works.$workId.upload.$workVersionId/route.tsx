@@ -242,10 +242,11 @@ export async function loader(args: Route.LoaderArgs) {
   // Read only cached DOCX previews from Object table (no generation in loader)
 
   const previews = await readDocxPreviewsFromObjectTable(signedMetadata);
-  const myst = (rawMetadata as Record<string, unknown>)?.myst;
+  // Stored under the same key as the ETL register-work endpoint: metadata["frontmatter.myst"].
+  const mystFrontmatter = (rawMetadata as Record<string, unknown>)?.['frontmatter.myst'];
   const extractedMetadata: ExtractedMetadata | null =
-    myst != null && typeof myst === 'object' && 'frontmatter' in myst
-      ? ((myst as { frontmatter: ExtractedMetadata }).frontmatter as ExtractedMetadata)
+    mystFrontmatter != null && typeof mystFrontmatter === 'object'
+      ? (mystFrontmatter as ExtractedMetadata)
       : null;
 
   const hasMetadataPreviewScope = userHasScope(
@@ -574,10 +575,7 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         const currentMeta = (work.metadata as Record<string, unknown>) ?? {};
-        const hasMystFrontmatter =
-          currentMeta.myst != null &&
-          typeof currentMeta.myst === 'object' &&
-          (currentMeta.myst as Record<string, unknown>).frontmatter != null;
+        const hasMystFrontmatter = currentMeta['frontmatter.myst'] != null;
         if (hasMystFrontmatter) {
           return data({ ok: true });
         }
@@ -595,10 +593,10 @@ export async function action(args: Route.ActionArgs) {
           if (extracted != null) {
             await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
               const m = (current as Record<string, unknown>) || {};
-              const existingMyst = (m.myst as Record<string, unknown>) || {};
+              // Align with the ETL register-work endpoint: store at metadata["frontmatter.myst"].
               return {
                 ...m,
-                myst: { ...existingMyst, frontmatter: extracted },
+                'frontmatter.myst': extracted,
               } as Prisma.JsonObject;
             });
           }
