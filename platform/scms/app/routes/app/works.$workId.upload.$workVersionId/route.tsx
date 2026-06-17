@@ -35,6 +35,8 @@ import {
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
   hasInvalidEnabledUploadChecks,
+  loadCheckMaintenanceByServiceIds,
+  CheckMaintenanceProvider,
   capitalize,
   scopes,
 } from '@curvenote/scms-core';
@@ -255,6 +257,16 @@ export async function loader(args: Route.LoaderArgs) {
 
   const textIntegrityLogoUrl = await getTextIntegrityLogoUrlFromObjectStore();
 
+  const uploadCheckServices = getExtensionCheckServicesFromServerConfig(
+    ctx.$config,
+    serverExtensions,
+  );
+  const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
+    ctx,
+    serverExtensions,
+    uploadCheckServices.map((service) => service.id),
+  );
+
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
@@ -270,6 +282,7 @@ export async function loader(args: Route.LoaderArgs) {
     extractedMetadata,
     hasMetadataPreviewScope,
     textIntegrityLogoUrl,
+    maintenanceByServiceId,
   };
 }
 
@@ -351,6 +364,27 @@ export async function action(args: Route.ActionArgs) {
         }
 
         const isChecked = checked === 'true';
+
+        if (isChecked) {
+          const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
+            baseCtx,
+            serverExtensions,
+            [checkName],
+          );
+          const maintenance = maintenanceByServiceId[checkName];
+          if (maintenance?.underMaintenance) {
+            return data(
+              {
+                error: {
+                  type: 'maintenance',
+                  message: maintenance.message,
+                },
+              },
+              { status: 503 },
+            );
+          }
+        }
+
         return toggleWorkVersionCheck(workVersionId, checkName, isChecked);
       }
 
@@ -381,7 +415,22 @@ export async function action(args: Route.ActionArgs) {
           baseCtx.$config,
           serverExtensions,
         );
-        if (hasInvalidEnabledUploadChecks(currentMetadata, enabledChecks, uploadCheckServices)) {
+
+        // Checks whose service is under maintenance are not initiated. The work is
+        // created as though those checks were never selected; they can be run later
+        // once the service is back online.
+        const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
+          baseCtx,
+          serverExtensions,
+          enabledChecks,
+        );
+        const dispatchableChecks = enabledChecks.filter(
+          (name) => !maintenanceByServiceId[name]?.underMaintenance,
+        );
+
+        if (
+          hasInvalidEnabledUploadChecks(currentMetadata, dispatchableChecks, uploadCheckServices)
+        ) {
           return data(
             {
               error: {
@@ -394,19 +443,19 @@ export async function action(args: Route.ActionArgs) {
           );
         }
 
-        // Create check status objects for each enabled check
+        // Create check status objects for each dispatchable check
         const checkStatuses: Record<string, any> = {};
-        enabledChecks.forEach((name) => {
+        dispatchableChecks.forEach((name) => {
           checkStatuses[name] = {};
         });
 
-        // Update metadata with check statuses
+        // Update metadata with check statuses (maintenance checks are dropped)
         await safeWorkVersionJsonUpdate(workVersionId, (metadata?: Prisma.JsonValue) => {
           const meta = (metadata as Record<string, any>) || makeDefaultWorkVersionMetadata();
           return {
             ...meta,
             checks: {
-              enabled: enabledChecks,
+              enabled: dispatchableChecks,
               ...checkStatuses,
             },
           } as Prisma.JsonObject;
@@ -425,7 +474,7 @@ export async function action(args: Route.ActionArgs) {
         // Schedule each enabled check via its extension. Each check service is
         // responsible for creating its own checkServiceRun rows and jobs.
         // Require work:checks:dispatch scope before dispatching (same as work-integrity action).
-        if (enabledChecks.length > 0) {
+        if (dispatchableChecks.length > 0) {
           if (!userHasScope(baseCtx.user, scopes.app.works.checks.dispatch)) {
             return data(
               {
@@ -439,14 +488,14 @@ export async function action(args: Route.ActionArgs) {
           }
           waitUntil(
             dispatchEnabledChecksAfterUpload({
-              enabledChecks,
+              enabledChecks: dispatchableChecks,
               workVersionId,
               ctx: baseCtx,
             }).catch((error) => {
               console.error('[work-upload] background check dispatch failed', {
                 workId,
                 workVersionId,
-                enabledChecks,
+                enabledChecks: dispatchableChecks,
                 error,
               });
             }),
@@ -459,7 +508,7 @@ export async function action(args: Route.ActionArgs) {
         const shouldRedirect = redirectParam !== 'false';
         if (shouldRedirect) {
           const target =
-            enabledChecks.length > 0
+            dispatchableChecks.length > 0
               ? `/app/works/${workId}/checks?dispatching=1`
               : `/app/works/${workId}/details`;
           return redirect(target);
@@ -623,6 +672,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     previews = [],
     extractedMetadata,
     hasMetadataPreviewScope,
+    maintenanceByServiceId,
   } = loaderData;
   const { workVersionId } = useParams();
   const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
@@ -694,68 +744,70 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     : 'Refreshing previews…';
 
   return (
-    <MainWrapper>
-      <PageFrame
-        title={pageTitle}
-        subtitle={pageSubtitle}
-        hasSecondaryNav={false}
-        className="space-y-16 max-w-none text-left"
-      >
-        <SectionWithHeading
-          heading="Upload your manuscript"
-          icon={<Upload className="w-5 h-5" />}
-          className="space-y-4 max-w-3xl"
+    <CheckMaintenanceProvider maintenanceByServiceId={maintenanceByServiceId}>
+      <MainWrapper>
+        <PageFrame
+          title={pageTitle}
+          subtitle={pageSubtitle}
+          hasSecondaryNav={false}
+          className="space-y-16 max-w-none text-left"
         >
-          <p className="text-md text-muted-foreground">
-            Upload one or more manuscript files (DOCX or PDF), up to 100 MB total. Individual check
-            services may have stricter limits.
-          </p>
-          <WorkFileUpload
-            cdnKey={cdnKey}
-            config={uploadConfig['manuscript']}
-            loadedFileMetadata={metadata as any}
-            onFilesSelected={suggestArticleTitleFromSelectedFiles}
-          />
-        </SectionWithHeading>
-        {hasMetadataPreviewScope ? (
-          <React.Suspense
-            fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}
+          <SectionWithHeading
+            heading="Upload your manuscript"
+            icon={<Upload className="w-5 h-5" />}
+            className="space-y-4 max-w-3xl"
           >
-            <MetadataPreviewSection
-              previewList={previewList}
-              isPreviewsLoading={isPreviewsLoading}
-              previewOverlayMessage={previewOverlayMessage}
-              extractedMetadata={extractedMetadata}
-              title={title}
-              authors={authors}
+            <p className="text-md text-muted-foreground">
+              Upload one or more manuscript files (DOCX or PDF), up to 100 MB total. Individual
+              check services may have stricter limits.
+            </p>
+            <WorkFileUpload
+              cdnKey={cdnKey}
+              config={uploadConfig['manuscript']}
+              loadedFileMetadata={metadata as any}
+              onFilesSelected={suggestArticleTitleFromSelectedFiles}
             />
-          </React.Suspense>
-        ) : (
-          <CaptureMetadataSection title={title} authors={authors} />
-        )}
-        <SectionWithHeading
-          heading="Select Checks to Run"
-          icon={<CheckSquare className="w-5 h-5" />}
-          className="space-y-4 max-w-5xl"
-        >
-          <p className="text-muted-foreground">
-            Choose which checks you'd like to run on your work.
-          </p>
-          <WorkUploadChecksForm
-            enabled={metadata.checks?.enabled || []}
-            checkServices={checkServices}
-            workVersionId={workVersionId!}
+          </SectionWithHeading>
+          {hasMetadataPreviewScope ? (
+            <React.Suspense
+              fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}
+            >
+              <MetadataPreviewSection
+                previewList={previewList}
+                isPreviewsLoading={isPreviewsLoading}
+                previewOverlayMessage={previewOverlayMessage}
+                extractedMetadata={extractedMetadata}
+                title={title}
+                authors={authors}
+              />
+            </React.Suspense>
+          ) : (
+            <CaptureMetadataSection title={title} authors={authors} />
+          )}
+          <SectionWithHeading
+            heading="Select Checks to Run"
+            icon={<CheckSquare className="w-5 h-5" />}
+            className="space-y-4 max-w-5xl"
+          >
+            <p className="text-muted-foreground">
+              Choose which checks you'd like to run on your work.
+            </p>
+            <WorkUploadChecksForm
+              enabled={metadata.checks?.enabled || []}
+              checkServices={checkServices}
+              workVersionId={workVersionId!}
+              metadata={metadata}
+              textIntegrityLogoUrl={loaderData.textIntegrityLogoUrl}
+            />
+          </SectionWithHeading>
+          <ContinueForm
+            title={title}
+            authors={authors}
             metadata={metadata}
-            textIntegrityLogoUrl={loaderData.textIntegrityLogoUrl}
+            checkServices={checkServices}
           />
-        </SectionWithHeading>
-        <ContinueForm
-          title={title}
-          authors={authors}
-          metadata={metadata}
-          checkServices={checkServices}
-        />
-      </PageFrame>
-    </MainWrapper>
+        </PageFrame>
+      </MainWrapper>
+    </CheckMaintenanceProvider>
   );
 }

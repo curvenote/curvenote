@@ -54,7 +54,7 @@ export async function action(args: Route.ActionArgs) {
 }
 
 export default function Users({ loaderData }: Route.ComponentProps) {
-  const { work, users } = loaderData;
+  const { users } = loaderData;
 
   return (
     <PageFrame title="Users" subtitle="Who can access this work?">

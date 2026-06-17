@@ -47,10 +47,15 @@ export function isDocxOrPdfFile(entry: FileEntryLike): boolean {
 export function resolveUploadCheckCardState({
   eligible,
   enabled,
+  underMaintenance = false,
 }: {
   eligible: boolean;
   enabled: boolean;
+  underMaintenance?: boolean;
 }): { disabled: boolean; invalid: boolean } {
+  if (underMaintenance) {
+    return { disabled: true, invalid: false };
+  }
   if (eligible) {
     return { disabled: false, invalid: false };
   }
@@ -78,6 +83,14 @@ export function hasInvalidEnabledUploadChecks(
     }
   }
   return false;
+}
+
+/** True when any enabled check is under maintenance. */
+export function hasMaintenanceEnabledUploadChecks(
+  enabledCheckIds: string[],
+  maintenanceByServiceId: Record<string, { underMaintenance?: boolean }>,
+): boolean {
+  return enabledCheckIds.some((id) => maintenanceByServiceId[id]?.underMaintenance === true);
 }
 
 /**
