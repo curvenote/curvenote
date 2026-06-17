@@ -44,6 +44,7 @@ yalc.lock
 
 /extensions/
 !/extensions/README.md
+!/extensions/plugins/README.md
 
 .app-config.*
 !.app-config.meta.yml
