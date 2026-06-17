@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Image as ImageIcon, Check } from 'lucide-react';
 import { SectionWithHeading, cn } from '@curvenote/scms-core';
-import { collectAllFigures } from './DocxPreviewer';
+import { collectAllFigures } from './DocumentPreviewer';
 import { encodeFigureLocator } from './thumbnailSelection';
 import type { DocxPreviewItem } from './fetchPreviews.server';
 

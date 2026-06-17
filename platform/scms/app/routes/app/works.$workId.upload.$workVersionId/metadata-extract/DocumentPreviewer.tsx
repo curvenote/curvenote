@@ -44,7 +44,7 @@ function resolveFormatting(
   return { ...defaultF, ...styleF, ...nodeF } as TextFormatting;
 }
 
-interface DocxPreviewerProps {
+interface DocumentPreviewerProps {
   previews: DocxPreviewItem[];
   /** Controlled active tab value (file index as string, or ALL_FIGURES_TAB). */
   activeTab?: string;
@@ -296,7 +296,7 @@ export const ALL_FIGURES_TAB = 'all-figures';
  * is keyed by md5, so the index of an image within that file does not drift unless
  * the file itself is re-uploaded. The server uses this to find the exact bytes.
  */
-export type DocxFigure = {
+export type DocumentFigure = {
   attachment: OfficeAttachment;
   sourceName: string;
   sourcePath: string;
@@ -304,8 +304,8 @@ export type DocxFigure = {
 };
 
 /** Collect all image attachments across previews with source file name */
-export function collectAllFigures(previews: DocxPreviewItem[]): DocxFigure[] {
-  const out: DocxFigure[] = [];
+export function collectAllFigures(previews: DocxPreviewItem[]): DocumentFigure[] {
+  const out: DocumentFigure[] = [];
   for (const item of previews) {
     const attachments = item.ast.attachments ?? [];
     let figureIndex = 0;
@@ -373,7 +373,11 @@ function AllFiguresView({
   );
 }
 
-export const DocxPreviewer = ({ previews, activeTab, onActiveTabChange }: DocxPreviewerProps) => {
+export const DocumentPreviewer = ({
+  previews,
+  activeTab,
+  onActiveTabChange,
+}: DocumentPreviewerProps) => {
   const [showAst, setShowAst] = useState(false);
   const [internalTab, setInternalTab] = useState('0');
   const fileTab = activeTab ?? internalTab;

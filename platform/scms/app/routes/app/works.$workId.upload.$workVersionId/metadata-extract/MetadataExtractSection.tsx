@@ -3,7 +3,7 @@ import { useFetcher } from 'react-router';
 import { Eye } from 'lucide-react';
 import { SectionWithHeading, ui, LoadingSpinner } from '@curvenote/scms-core';
 import type { Route } from '../+types/route';
-import { DocxPreviewer, ALL_FIGURES_TAB } from './DocxPreviewer';
+import { DocumentPreviewer, ALL_FIGURES_TAB } from './DocumentPreviewer';
 import { MetadataFormCard } from './MetadataFormCard';
 import type { DocxPreviewItem } from './fetchPreviews.server';
 import type { ExtractedMetadata } from './anthropic.server';
@@ -155,7 +155,7 @@ export function MetadataExtractSection({
                 <p className="text-sm text-muted-foreground">{previewOverlayMessage}</p>
               </div>
             )}
-            <DocxPreviewer
+            <DocumentPreviewer
               previews={previewList}
               activeTab={activeTab}
               onActiveTabChange={setActiveTab}
