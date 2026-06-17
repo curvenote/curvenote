@@ -5,7 +5,7 @@ import { MetadataFormCard } from './MetadataFormCard';
 import type { DocxPreviewItem } from './fetchPreviews.server';
 import type { ExtractedMetadata } from './anthropic.server';
 
-export interface MetadataPreviewSectionProps {
+export interface MetadataExtractSectionProps {
   previewList: DocxPreviewItem[];
   isPreviewsLoading: boolean;
   previewOverlayMessage: string;
@@ -14,14 +14,14 @@ export interface MetadataPreviewSectionProps {
   authors: string;
 }
 
-export function MetadataPreviewSection({
+export function MetadataExtractSection({
   previewList,
   isPreviewsLoading,
   previewOverlayMessage,
   extractedMetadata,
   title,
   authors,
-}: MetadataPreviewSectionProps) {
+}: MetadataExtractSectionProps) {
   return (
     <SectionWithHeading
       heading="Metadata Preview"

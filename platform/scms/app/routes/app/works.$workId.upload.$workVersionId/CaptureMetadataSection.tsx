@@ -11,7 +11,7 @@ export interface CaptureMetadataSectionProps {
 
 /**
  * Simplified metadata section (legacy): title + authors form.
- * Shown when the user does not have the app:works:metadata-preview scope.
+ * Shown when the user does not have the app:works:metadata-extract scope.
  */
 export function CaptureMetadataSection({ title, authors }: CaptureMetadataSectionProps) {
   const [showAuthorsForm, setShowAuthorsForm] = useState(authors.trim().length > 0);

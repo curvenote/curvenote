@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useFetcher } from 'react-router';
 import { ui, LoadingSpinner } from '@curvenote/scms-core';
-import type { Route } from './+types/route';
+import type { Route } from '../+types/route';
 import type { ExtractedMetadata } from './anthropic.server';
-import { WorkTitleForm } from './WorkTitleForm';
-import { AuthorsForm } from './AuthorsForm';
+import { WorkTitleForm } from '../WorkTitleForm';
+import { AuthorsForm } from '../AuthorsForm';
 
 function authorsFromExtracted(extracted: ExtractedMetadata | null): string {
   if (!extracted?.authors?.length) return '';

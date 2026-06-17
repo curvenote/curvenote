@@ -51,16 +51,19 @@ import { updateWorkVersionTitle, updateWorkVersionAuthors } from './updateMetada
 import { toggleWorkVersionCheck } from './updateChecks.server';
 import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
-import { handleFetchPreviewsIntent } from './fetchPreviews.server';
-import { readDocxPreviewsFromObjectTable, type DocxPreviewItem } from './fetchPreviews.server';
-import { extractMetadataFromPreviews } from './anthropic.server';
-import type { ExtractedMetadata } from './anthropic.server';
+import { handleFetchPreviewsIntent } from './metadata-extract/fetchPreviews.server';
+import {
+  readDocxPreviewsFromObjectTable,
+  type DocxPreviewItem,
+} from './metadata-extract/fetchPreviews.server';
+import { extractMetadataFromPreviews } from './metadata-extract/anthropic.server';
+import type { ExtractedMetadata } from './metadata-extract/anthropic.server';
 import { Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { MetadataPreviewSection } from './MetadataPreviewSection';
+import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
-import { isDocxPreviewCandidate } from './docxPreviewGuards';
+import { isDocxPreviewCandidate } from './metadata-extract/docxPreviewGuards';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { waitUntil } from '@vercel/functions';
 
@@ -249,9 +252,9 @@ export async function loader(args: Route.LoaderArgs) {
       ? (mystFrontmatter as ExtractedMetadata)
       : null;
 
-  const hasMetadataPreviewScope = userHasScope(
+  const hasMetadataExtractScope = userHasScope(
     ctx.user,
-    scopes.app.works.metadataPreview,
+    scopes.app.works.metadataExtract,
     undefined,
     { ignoreSystemAdmin: true },
   );
@@ -281,7 +284,7 @@ export async function loader(args: Route.LoaderArgs) {
     stringReplacements,
     previews,
     extractedMetadata,
-    hasMetadataPreviewScope,
+    hasMetadataExtractScope,
     textIntegrityLogoUrl,
     maintenanceByServiceId,
   };
@@ -526,7 +529,7 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         if (
-          !userHasScope(baseCtx.user, scopes.app.works.metadataPreview, undefined, {
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
             ignoreSystemAdmin: true,
           })
         ) {
@@ -553,7 +556,7 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         if (
-          !userHasScope(baseCtx.user, scopes.app.works.metadataPreview, undefined, {
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
             ignoreSystemAdmin: true,
           })
         ) {
@@ -669,8 +672,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     pageSubtitle,
     previews = [],
     extractedMetadata,
-    hasMetadataPreviewScope,
     maintenanceByServiceId,
+    hasMetadataExtractScope,
   } = loaderData;
   const { workVersionId } = useParams();
   const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
@@ -715,7 +718,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const previewPaths = new Set(previewList.map((p) => p.path));
   const missingPreviewPaths = docxFilePaths.filter((p) => !previewPaths.has(p));
   const shouldFetchPreviews =
-    hasMetadataPreviewScope && docxFilePaths.length > 0 && missingPreviewPaths.length > 0;
+    hasMetadataExtractScope && docxFilePaths.length > 0 && missingPreviewPaths.length > 0;
 
   useEffect(() => {
     if (!shouldFetchPreviews) {
@@ -766,11 +769,11 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               onFilesSelected={suggestArticleTitleFromSelectedFiles}
             />
           </SectionWithHeading>
-          {hasMetadataPreviewScope ? (
+          {hasMetadataExtractScope ? (
             <React.Suspense
               fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}
             >
-              <MetadataPreviewSection
+              <MetadataExtractSection
                 previewList={previewList}
                 isPreviewsLoading={isPreviewsLoading}
                 previewOverlayMessage={previewOverlayMessage}
