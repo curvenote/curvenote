@@ -74,6 +74,12 @@ export function ChooseThumbnailSection({
                     : 'border-stone-200 bg-white hover:border-stone-400 dark:border-stone-500 dark:bg-stone-900 dark:hover:border-stone-400',
                 )}
               >
+                <p
+                  className="pr-6 text-xs truncate text-muted-foreground/80"
+                  title={attachment.altText ?? attachment.name}
+                >
+                  {attachment.altText ?? attachment.name ?? 'Figure'}
+                </p>
                 <div className="flex overflow-hidden justify-center items-center min-h-0 rounded aspect-square bg-stone-100 dark:bg-stone-800">
                   {src ? (
                     <img
@@ -85,12 +91,6 @@ export function ChooseThumbnailSection({
                     <span className="text-xs text-muted-foreground">[No data]</span>
                   )}
                 </div>
-                <p
-                  className="text-xs truncate text-muted-foreground/80"
-                  title={attachment.altText ?? attachment.name}
-                >
-                  {attachment.altText ?? attachment.name ?? 'Figure'}
-                </p>
                 {isSelected ? (
                   <span className="absolute top-1.5 right-1.5 flex justify-center items-center w-5 h-5 text-white bg-green-500 rounded-full border border-green-500 dark:bg-green-600 dark:border-green-600">
                     <Check className="w-3.5 h-3.5" />
