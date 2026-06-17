@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
-import { Eye, RefreshCw } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { SectionWithHeading, ui, LoadingSpinner } from '@curvenote/scms-core';
 import type { Route } from '../+types/route';
 import { DocxPreviewer, ALL_FIGURES_TAB } from './DocxPreviewer';
@@ -17,12 +17,6 @@ export interface MetadataExtractSectionProps {
   isExtractionStale: boolean;
   title: string;
   authors: string;
-}
-
-/** Shorten a file name for the re-run label, keeping the extension where possible. */
-function shortenFileName(name: string, max = 32): string {
-  if (name.length <= max) return name;
-  return `${name.slice(0, max - 1).trimEnd()}…`;
 }
 
 export function MetadataExtractSection({
@@ -135,24 +129,10 @@ export function MetadataExtractSection({
           isExtractingMetadata={isExtractingMetadata}
           title={title}
           authors={authors}
+          reRunFileName={activeFile && activeFilePath ? activeFileName : undefined}
+          onReRunExtraction={handleReRunExtraction}
         />
       </div>
-      {activeFile ? (
-        <div className="flex justify-end">
-          <ui.Button
-            type="button"
-            variant="link"
-            size="sm"
-            className="h-auto p-0 text-sm text-muted-foreground hover:text-primary"
-            onClick={handleReRunExtraction}
-            disabled={isExtractingMetadata || !activeFilePath}
-            title={activeFileName ? `Re-run extraction on ${activeFileName}` : undefined}
-          >
-            <RefreshCw className="mr-1.5 w-3.5 h-3.5" />
-            {`re-run extraction on ${shortenFileName(activeFileName)}`}
-          </ui.Button>
-        </div>
-      ) : null}
     </SectionWithHeading>
   );
 }
