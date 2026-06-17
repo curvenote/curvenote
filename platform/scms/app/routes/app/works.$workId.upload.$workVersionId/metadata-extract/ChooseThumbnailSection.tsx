@@ -35,7 +35,7 @@ export function ChooseThumbnailSection({
 
   const emptyMessage =
     previewList.length === 0
-      ? 'Upload a manuscript to choose a thumbnail.'
+      ? 'No images yet'
       : 'No figures were found in the current document previews.';
 
   return (
