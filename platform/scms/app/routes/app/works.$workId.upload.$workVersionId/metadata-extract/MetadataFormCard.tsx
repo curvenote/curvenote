@@ -16,6 +16,8 @@ function authorsFromExtracted(extracted: ExtractedMetadata | null): string {
 
 export interface MetadataFormCardProps {
   extractedMetadata: ExtractedMetadata | null;
+  /** True when the cached extraction no longer matches the current manuscript file(s). */
+  isExtractionStale: boolean;
   title: string;
   authors: string;
   /** True when there is at least one DOCX preview (enables extract-metadata trigger) */
@@ -24,6 +26,7 @@ export interface MetadataFormCardProps {
 
 export function MetadataFormCard({
   extractedMetadata,
+  isExtractionStale,
   title,
   authors,
   hasPreviews,
@@ -31,12 +34,15 @@ export function MetadataFormCard({
   const extractMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
   const hasTriggeredExtractMetadata = useRef(false);
 
+  // Extract when there is no cached metadata yet, or when the cache is stale
+  // because the manuscript file(s) changed since the last extraction.
+  const needsExtraction = !extractedMetadata || isExtractionStale;
   const shouldExtractMetadata =
-    !extractedMetadata && hasPreviews && extractMetadataFetcher.state === 'idle';
+    needsExtraction && hasPreviews && extractMetadataFetcher.state === 'idle';
 
   useEffect(() => {
     if (!shouldExtractMetadata) {
-      if (extractedMetadata) hasTriggeredExtractMetadata.current = false;
+      if (!needsExtraction) hasTriggeredExtractMetadata.current = false;
       return;
     }
     if (hasTriggeredExtractMetadata.current || extractMetadataFetcher.state !== 'idle') return;
@@ -44,7 +50,7 @@ export function MetadataFormCard({
     extractMetadataFetcher.submit({ intent: 'extract-metadata' }, { method: 'POST' });
   }, [
     shouldExtractMetadata,
-    extractedMetadata,
+    needsExtraction,
     extractMetadataFetcher.state,
     extractMetadataFetcher,
   ]);

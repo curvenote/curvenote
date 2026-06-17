@@ -110,6 +110,26 @@ function parseAuthorsList(authorsText: string): string[] {
     .filter((a) => a.length > 0);
 }
 
+/**
+ * Stable signature of the manuscript DOCX file(s) that feed metadata extraction.
+ * Built from each candidate file's md5 (falling back to its path), sorted and
+ * joined, so it changes whenever a manuscript file is added, removed, or replaced.
+ * Used to detect when a cached extraction is stale and must be regenerated.
+ */
+function computeDocxSourceSignature(
+  files: Record<string, { path?: string; name?: string; type?: string; md5?: string }>,
+): string {
+  return Object.entries(files)
+    .filter(([, f]) => isDocxPreviewCandidate(f))
+    .map(([path, f]) => (typeof f?.md5 === 'string' && f.md5 ? f.md5 : path))
+    .filter(Boolean)
+    .sort()
+    .join(',');
+}
+
+/** Metadata key holding the source signature of the cached `frontmatter.myst` extraction. */
+const METADATA_EXTRACT_SOURCE_KEY = 'frontmatter.myst.source';
+
 // NOTE: Check service run schema is now defined and managed by each check
 // extension when they create checkServiceRun rows.
 
@@ -253,6 +273,22 @@ export async function loader(args: Route.LoaderArgs) {
     !Array.isArray(mystFrontmatter)
       ? (mystFrontmatter as ExtractedMetadata)
       : null;
+  // The cached extraction is stale when the current manuscript file(s) no longer
+  // match the source that produced it (e.g. the author replaced the DOCX). In
+  // that case the UI should re-trigger extraction rather than show stale metadata.
+  const docxSourceSignature = computeDocxSourceSignature(
+    ((rawMetadata as Record<string, unknown>)?.files ?? {}) as Record<
+      string,
+      { path?: string; name?: string; type?: string; md5?: string }
+    >,
+  );
+  const storedExtractionSource = (rawMetadata as Record<string, unknown>)?.[
+    METADATA_EXTRACT_SOURCE_KEY
+  ];
+  const isExtractionStale =
+    extractedMetadata != null &&
+    docxSourceSignature !== '' &&
+    storedExtractionSource !== docxSourceSignature;
 
   const hasMetadataExtractScope = userHasScope(
     ctx.user,
@@ -286,6 +322,7 @@ export async function loader(args: Route.LoaderArgs) {
     stringReplacements,
     previews,
     extractedMetadata,
+    isExtractionStale,
     hasMetadataExtractScope,
     textIntegrityLogoUrl,
     maintenanceByServiceId,
@@ -581,7 +618,16 @@ export async function action(args: Route.ActionArgs) {
         }
         const currentMeta = (work.metadata as Record<string, unknown>) ?? {};
         const hasMystFrontmatter = currentMeta['frontmatter.myst'] != null;
-        if (hasMystFrontmatter) {
+        const currentSourceSignature = computeDocxSourceSignature(
+          (currentMeta.files ?? {}) as Record<
+            string,
+            { path?: string; name?: string; type?: string; md5?: string }
+          >,
+        );
+        const cachedSourceSignature = currentMeta[METADATA_EXTRACT_SOURCE_KEY];
+        // Skip extraction only when a cached result exists AND it was produced from
+        // the current manuscript file(s). A changed/replaced DOCX invalidates the cache.
+        if (hasMystFrontmatter && cachedSourceSignature === currentSourceSignature) {
           return data({ ok: true });
         }
         const signedMetadata = await signFilesInMetadata(
@@ -599,9 +645,11 @@ export async function action(args: Route.ActionArgs) {
             await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
               const m = (current as Record<string, unknown>) || {};
               // Align with the ETL register-work endpoint: store at metadata["frontmatter.myst"].
+              // Record the source signature so we can detect when this cache goes stale.
               return {
                 ...m,
                 'frontmatter.myst': extracted,
+                [METADATA_EXTRACT_SOURCE_KEY]: currentSourceSignature,
               } as Prisma.JsonObject;
             });
 
@@ -690,6 +738,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     pageSubtitle,
     previews = [],
     extractedMetadata,
+    isExtractionStale,
     maintenanceByServiceId,
     hasMetadataExtractScope,
   } = loaderData;
@@ -800,6 +849,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
                 isPreviewsLoading={isPreviewsLoading}
                 previewOverlayMessage={previewOverlayMessage}
                 extractedMetadata={extractedMetadata}
+                isExtractionStale={isExtractionStale}
                 title={title}
                 authors={authors}
               />
