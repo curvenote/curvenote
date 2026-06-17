@@ -60,6 +60,19 @@ export async function loader(args: Route.LoaderArgs) {
 
   const tail = await getJobQueueTail();
 
+  const prisma = await getPrismaClient();
+  const recentJobsRows = await prisma.job.findMany({
+    orderBy: { date_created: 'desc' },
+    take: 25,
+    select: {
+      id: true,
+      job_type: true,
+      status: true,
+      date_created: true,
+      date_modified: true,
+    },
+  });
+
   return {
     jobTypes: allJobTypes,
     queue: {
@@ -70,6 +83,7 @@ export async function loader(args: Route.LoaderArgs) {
     },
     drainStatus,
     tail,
+    recentJobs: recentJobsRows,
   };
 }
 
@@ -604,10 +618,88 @@ function QueueTailPanel({ tail }: { tail: JobQueueTail }) {
   );
 }
 
+// ─── Recent jobs ─────────────────────────────────────────────────────
+
+type RecentJob = {
+  id: string;
+  job_type: string;
+  status: string;
+  date_created: string;
+  date_modified: string;
+};
+
+function RecentJobsPanel({ jobs }: { jobs: RecentJob[] }) {
+  const revalidator = useRevalidator();
+  const refreshing = revalidator.state !== 'idle';
+
+  return (
+    <section className="overflow-hidden bg-white rounded-lg border">
+      <div className="flex gap-2 justify-between items-center px-4 py-3 bg-gray-50 border-b">
+        <div className="flex gap-2 items-center">
+          <Clock className="w-4 h-4 text-gray-600" />
+          <h2 className="text-lg font-semibold">Recent jobs</h2>
+          <span className="font-mono text-xs text-gray-500">latest {jobs.length}</span>
+        </div>
+        <ui.Button variant="ghost" onClick={() => revalidator.revalidate()} disabled={refreshing}>
+          <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </ui.Button>
+      </div>
+
+      <div className="p-4 text-sm">
+        {jobs.length === 0 ? (
+          <p className="text-gray-500">No jobs yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                    Job id
+                  </th>
+                  <th className="px-3 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                    Type
+                  </th>
+                  <th className="px-3 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-3 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                    Created
+                  </th>
+                  <th className="px-3 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                    Modified
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {jobs.map((job) => (
+                  <tr key={job.id}>
+                    <td className="px-3 py-2 font-mono text-xs text-gray-500">{job.id}</td>
+                    <td className="px-3 py-2 font-mono text-sm">{job.job_type}</td>
+                    <td className="px-3 py-2">
+                      <StatusBadge status={job.status} />
+                    </td>
+                    <td className="px-3 py-2 text-xs text-gray-500">
+                      {formatTimestamp(job.date_created)}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-gray-500">
+                      {formatTimestamp(job.date_modified)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Page ────────────────────────────────────────────────────────────
 
 export default function SystemJobsPage({ loaderData }: Route.ComponentProps) {
-  const { jobTypes, queue, drainStatus, tail } = loaderData;
+  const { jobTypes, queue, drainStatus, tail, recentJobs } = loaderData;
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') === 'queues' ? 'queues' : 'jobs';
 
@@ -678,6 +770,8 @@ export default function SystemJobsPage({ loaderData }: Route.ComponentProps) {
             </p>
             <LoopbackTest />
           </section>
+
+          <RecentJobsPanel jobs={recentJobs} />
         </ui.TabsContent>
 
         <ui.TabsContent value="queues" className="space-y-8">
