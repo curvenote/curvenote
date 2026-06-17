@@ -43,7 +43,7 @@ export function MetadataFormCard({
           aria-live="polite"
         >
           <LoadingSpinner size={32} />
-          <p className="text-sm text-muted-foreground">Extracting metadata…</p>
+          <p className="text-sm text-muted-foreground">waiting on extraction</p>
         </div>
       )}
       <div className="flex gap-2 items-center">
