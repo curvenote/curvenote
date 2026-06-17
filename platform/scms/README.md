@@ -32,7 +32,7 @@ npm run dev
 
 By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`, set via `.env` only — not app-config). Jobs enqueued via `enqueueAndDispatchJob` are written to the mock queue and wake **`POST /v1/jobs/push-to-drain`**, which drains **one message per invocation** (202 + background `waitUntil`) — no second terminal required.
 
-**Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, deploy-curvenote secrets YAML on staging/prod) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
+**Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, staging/prod secrets YAML on deployed envs) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
 
 On deployed environments (`QUEUES_PROVIDER=supabase`, auto when `VERCEL=1`), messages are stored in **Supabase pgmq** and use the same push-to-drain route. A **pg_cron** backup (every minute) calls push-to-drain if a self-wake is missed.
 
@@ -41,15 +41,9 @@ On deployed environments (`QUEUES_PROVIDER=supabase`, auto when `VERCEL=1`), mes
 | **Mock (default)** | Local dev / tests | In-memory queue + loopback push-to-drain |
 | **Supabase** | Deployed SCMS (e.g. staging/prod) | pgmq + self-HTTP wake + pg_cron backup |
 
-**After deploy (staging/prod once per database):** populate the pg_cron backup config so missed wakes are recovered:
+**Staging/prod Supabase setup:** see [`platform/scms/deploy/supabase-job-queue-setup.md`](deploy/supabase-job-queue-setup.md) (pgmq migration, app-config secrets, `_JobQueueDrainConfig`, smoke tests).
 
-```sql
-INSERT INTO "_JobQueueDrainConfig" (id, drain_url, drain_secret)
-VALUES (1, 'https://your-scms-host/v1/jobs/push-to-drain', 'your-queueConsumerSecret')
-ON CONFLICT (id) DO UPDATE SET drain_url = EXCLUDED.drain_url, drain_secret = EXCLUDED.drain_secret;
-```
-
-Enable **pgmq** in Supabase Dashboard → Integrations → Queues if `CREATE EXTENSION pgmq` fails during migration.
+**Local optional:** enable pgmq in Docker and set `QUEUES_PROVIDER=supabase` to match prod queue behavior; default mock does not require pgmq.
 
 ### First-time setup
 

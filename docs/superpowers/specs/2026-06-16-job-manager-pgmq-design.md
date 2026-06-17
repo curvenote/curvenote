@@ -51,7 +51,7 @@ Migration creates `_JobQueueDrainConfig` (drain URL + secret) and `job_queue_cro
 ## Deploy notes
 
 - Migration: `20260616190000_add_pgmq_job_queue`
-- deploy-curvenote: `platform/scms/deploy/deploy-curvenote.md`
+- Supabase setup: `platform/scms/deploy/supabase-job-queue-setup.md`
 - Enable pgmq in Supabase Dashboard if `CREATE EXTENSION` fails
 
 ## Key files
