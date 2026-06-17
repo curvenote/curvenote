@@ -386,7 +386,6 @@ export const DocxPreviewer = ({ previews, activeTab, onActiveTabChange }: DocxPr
           <FileText className="w-14 h-14" strokeWidth={1.25} />
           <Search className="absolute -right-1 -bottom-1 w-6 h-6 opacity-80" strokeWidth={2} />
         </div>
-        <p className="text-sm">Previews will be shown here</p>
       </div>
     );
   }
