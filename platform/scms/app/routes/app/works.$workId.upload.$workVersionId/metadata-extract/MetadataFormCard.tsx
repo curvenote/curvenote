@@ -15,6 +15,7 @@ export interface MetadataFormCardProps {
   extractedMetadata: ExtractedMetadata | null;
   /** True while an extraction request is in flight (drives the overlay). */
   isExtractingMetadata: boolean;
+  extractingMetadataMessage?: string;
   title: string;
   authorMetadata: AuthorFieldMetadata;
   onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
@@ -28,6 +29,7 @@ export interface MetadataFormCardProps {
 export function MetadataFormCard({
   extractedMetadata,
   isExtractingMetadata,
+  extractingMetadataMessage = 'waiting on extraction',
   title,
   authorMetadata,
   onAuthorMetadataChange,
@@ -48,7 +50,7 @@ export function MetadataFormCard({
           aria-live="polite"
         >
           <LoadingSpinner size={32} />
-          <p className="text-sm text-muted-foreground">waiting on extraction</p>
+          <p className="text-sm text-muted-foreground">{extractingMetadataMessage}</p>
         </div>
       )}
       {(canClearExtraction || (reRunFileName && onReRunExtraction)) && (

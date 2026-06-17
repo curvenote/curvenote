@@ -91,6 +91,10 @@ export function MetadataExtractSection({
 
   const isExtractingMetadata =
     extractMetadataFetcher.state === 'loading' || extractMetadataFetcher.state === 'submitting';
+  const extractingMetadataMessage =
+    extractMetadataFetcher.state === 'submitting'
+      ? 'extracting work details...'
+      : 'waiting on extraction';
   const isClearingExtraction =
     clearMetadataFetcher.state === 'loading' || clearMetadataFetcher.state === 'submitting';
 
@@ -165,6 +169,7 @@ export function MetadataExtractSection({
         <MetadataFormCard
           extractedMetadata={visibleExtractedMetadata}
           isExtractingMetadata={isExtractingMetadata}
+          extractingMetadataMessage={extractingMetadataMessage}
           title={visibleTitle}
           authorMetadata={visibleAuthorMetadata}
           onAuthorMetadataChange={onAuthorMetadataChange}
