@@ -33,7 +33,7 @@ export async function loader(args: Route.LoaderArgs) {
     queue: {
       provider: queueProvider,
       consumerRoute: '/v1/jobs/push-to-drain',
-      topicName: 'job',
+      queueName: 'job',
       queuesProviderEnv: process.env.QUEUES_PROVIDER ?? null,
     },
   };
@@ -277,13 +277,13 @@ function queueProviderCopy(provider: string): { label: string; detail: string } 
       return {
         label: 'Mock (in-process)',
         detail:
-          'Jobs are delivered in-process via processJobMessage — no external queue. Used in development and tests.',
+          'Jobs enqueue to an in-memory queue and wake POST /v1/jobs/push-to-drain locally. Used in development and tests.',
       };
-    case 'vercel':
+    case 'supabase':
       return {
-        label: 'Vercel Queues',
+        label: 'Supabase pgmq',
         detail:
-          'Jobs publish to the Vercel Queue topic and are consumed by api/job-queue-consumer.ts (queue push).',
+          'Jobs enqueue to the pgmq job queue in Postgres, wake POST /v1/jobs/push-to-drain (self-HTTP), with pg_cron backup if a wake is missed.',
       };
     default:
       return { label: provider, detail: 'Unknown queue provider.' };
@@ -296,7 +296,7 @@ function QueueInfoPanel({
   queue: {
     provider: string;
     consumerRoute: string;
-    topicName: string;
+    queueName: string;
     queuesProviderEnv: string | null;
   };
 }) {
@@ -319,8 +319,8 @@ function QueueInfoPanel({
         </p>
 
         <dl className="grid gap-3 sm:grid-cols-[minmax(0,11rem)_1fr] sm:gap-x-4">
-          <dt className="font-medium text-gray-500">Queue topic</dt>
-          <dd className="font-mono text-gray-900">{queue.topicName}</dd>
+          <dt className="font-medium text-gray-500">pgmq queue</dt>
+          <dd className="font-mono text-gray-900">{queue.queueName}</dd>
 
           <dt className="font-medium text-gray-500">Active provider</dt>
           <dd>

@@ -1,6 +1,6 @@
 # Plan: Centralized Pub/Sub Job Dispatch
 
-> **Superseded:** Internal job dispatch is implemented with **Vercel Queues**, not a Pub/Sub `scmsJobDispatch` topic. See [`docs/superpowers/specs/2026-06-15-job-manager-vercel-queues-design.md`](../superpowers/specs/2026-06-15-job-manager-vercel-queues-design.md) and [`docs/superpowers/plans/2026-06-15-job-manager-vercel-queues.md`](../superpowers/plans/2026-06-15-job-manager-vercel-queues.md). The app-config schema never added `dispatchTopic` or `dispatchSASecretKeyfile`; worker callbacks use optional `api.tasksCallbackUrl` instead.
+> **Superseded:** Internal job dispatch uses **Supabase pgmq** + self-HTTP drain, not a Pub/Sub `scmsJobDispatch` topic. See [`docs/superpowers/specs/2026-06-16-job-manager-pgmq-design.md`](../superpowers/specs/2026-06-16-job-manager-pgmq-design.md). The app-config schema never added `dispatchTopic` or `dispatchSASecretKeyfile`; worker callbacks use optional `api.tasksCallbackUrl` instead.
 
 ## Goal
 
@@ -522,7 +522,7 @@ No longer needed.
 
 | File | Change |
 |---|---|
-| `types/app-config.d.ts` | `pubsubProjectId`, worker topics (`checkTopic`, `converterTopic`); optional `tasksCallbackUrl` for Docker callbacks — not `dispatchTopic` / `dispatchSASecretKeyfile` (superseded by Vercel Queues) |
+| `types/app-config.d.ts` | `pubsubProjectId`, worker topics (`checkTopic`, `converterTopic`); optional `tasksCallbackUrl` for Docker callbacks — not `dispatchTopic` / `dispatchSASecretKeyfile` (superseded by pgmq job dispatch) |
 | `packages/scms-server/src/backend/loaders/jobs/trigger-follow-on.server.ts` | Publish to topic instead of calling `invoke()` |
 | `packages/scms-server/src/backend/loaders/jobs/update.server.ts` | Simplify — remove `extensionJobs` param |
 | `packages/scms-server/src/backend/loaders/jobs/handlers/db.server.ts` | `dbCreateJob` → upsert for idempotency |

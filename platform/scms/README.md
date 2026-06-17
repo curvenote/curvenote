@@ -34,12 +34,12 @@ By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDE
 
 **Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, deploy-curvenote secrets YAML on staging/prod) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
 
-On Vercel preview/production, `QUEUES_PROVIDER=supabase` (auto when `VERCEL=1`) stores messages in **Supabase pgmq** and uses the same push-to-drain route. A **pg_cron** backup (every minute) calls push-to-drain if a self-wake is missed.
+On deployed environments (`QUEUES_PROVIDER=supabase`, auto when `VERCEL=1`), messages are stored in **Supabase pgmq** and use the same push-to-drain route. A **pg_cron** backup (every minute) calls push-to-drain if a self-wake is missed.
 
 | Mode | When | Transport |
 |---|---|---|
 | **Mock (default)** | Local dev / tests | In-memory queue + loopback push-to-drain |
-| **Supabase** | Vercel deployments | pgmq + self-HTTP wake + pg_cron backup |
+| **Supabase** | Deployed SCMS (e.g. staging/prod) | pgmq + self-HTTP wake + pg_cron backup |
 
 **After deploy (staging/prod once per database):** populate the pg_cron backup config so missed wakes are recovered:
 

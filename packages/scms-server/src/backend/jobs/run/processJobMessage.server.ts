@@ -26,7 +26,7 @@ export async function processJobMessage(
     job_type: message.job_type,
     deliveryCount: metadata.deliveryCount,
     messageId: metadata.messageId,
-    topicName: 'job',
+    queueName: 'job',
   });
 
   let claims: { jobId: string; aud: string };
