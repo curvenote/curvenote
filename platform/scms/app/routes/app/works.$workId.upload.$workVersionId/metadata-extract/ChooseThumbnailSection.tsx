@@ -42,7 +42,7 @@ export function ChooseThumbnailSection({
     <SectionWithHeading
       heading="Choose a Thumbnail"
       icon={<ImageIcon className="w-5 h-5" />}
-      className="space-y-4 max-w-5xl"
+      className={cn('space-y-4', figures.length === 0 ? 'max-w-3xl' : 'max-w-5xl')}
     >
       <p className="text-muted-foreground">
         Select an image from your document to use as the thumbnail.
