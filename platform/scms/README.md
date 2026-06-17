@@ -47,26 +47,101 @@ On deployed environments (`QUEUES_PROVIDER=supabase`, auto when `VERCEL=1`), mes
 
 ### First-time setup
 
-A local Postgres database is used for local development. This enabled flexible seeding, migration and mutation without affecting other developers.
+Local development uses **Postgres in Docker** (recommended). The container creates `journals` and `journals_test` with user `journals` / password `curvenote` on port **5432**.
 
-- [Setup Postgres on MacOS](https://www.prisma.io/dataguide/postgresql/setting-up-a-local-postgresql-database#setting-up-postgresql-on-macos)
+**Requirements:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose v2).
 
-Note: downloading and running the installer gets you the server, cli tools and admin tools.
+From the **monorepo root**:
 
-#### DB Creation and Setup
-
-Only needed first time around.
-
+```bash
+npm run db:up
+npm run dev:db:reset
 ```
+
+`db:up` starts Postgres and waits until it is healthy. `dev:db:reset` runs migrations and seeds the dev database.
+
+Useful commands:
+
+| Command | Purpose |
+|---|---|
+| `npm run db:up` | Start Postgres container |
+| `npm run db:down` | Stop container (keep data volume) |
+| `npm run db:down:clean` | Stop and **delete** all DB data |
+| `npm run db:logs` | Follow Postgres logs |
+
+Connection strings (same as before):
+
+- Dev: `postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0`
+- Test: `postgresql://journals:curvenote@localhost:5432/journals_test?statement_cache_size=0`
+
+#### Moving from local Postgres to Docker-based Postgres
+
+If you previously installed Postgres directly on macOS (Homebrew, Postgres.app, or the EnterpriseDB installer), **stop it before starting Docker** — both default to port **5432** and only one can bind it.
+
+**1. Check what is using port 5432**
+
+```bash
+lsof -i :5432
+```
+
+**2. Stop your existing Postgres**
+
+_Homebrew:_
+
+```bash
+brew services list
+brew services stop postgresql@16   # use your version, e.g. postgresql@14 or postgresql
+```
+
+To prevent Homebrew Postgres from starting on login, leave it stopped (`brew services stop` disables the launch agent).
+
+_Postgres.app:_
+
+Quit the app (menu bar → Postgres → Quit). To avoid autostart, open Postgres.app preferences and disable “Start at login”.
+
+_EnterpriseDB / other installers:_
+
+Use that product’s control panel or `pg_ctl stop`, or uninstall if you no longer need it.
+
+**3. Confirm the port is free**
+
+```bash
+lsof -i :5432
+# should print nothing
+```
+
+**4. Start Docker Postgres and reset schemas**
+
+From the monorepo root:
+
+```bash
+npm run db:up
+npm run dev:db:reset
+npm run test:db:reset   # optional: reset test DB too
+```
+
+Your `.env.development` / `.env.test` and app-config database URLs can stay the same (`localhost:5432`, user `journals`, password `curvenote`).
+
+**5. Optional: remove the old native install**
+
+Only after Docker dev is working:
+
+```bash
+# Homebrew example — adjust version
+brew services stop postgresql@16
+brew uninstall postgresql@16
+```
+
+You do **not** need native `psql` for day-to-day dev; use `npm run db:logs`, Prisma Studio (`npm run db:studio`), or `docker compose exec postgres psql -U journals -d journals`.
+
+#### Legacy: native Postgres on macOS
+
+If you cannot use Docker, you can still install Postgres locally ([Prisma macOS guide](https://www.prisma.io/dataguide/postgresql/setting-up-a-local-postgresql-database#setting-up-postgresql-on-macos)) and run:
+
+```bash
 sudo -u postgres createuser journals
-```
-
-```
 sudo -u postgres createdb journals
 sudo -u postgres createdb journals_test
-```
-
-```
 psql -U postgres -d journals -a -f ./prisma/setup-dev-db.sql
 psql -U postgres -d journals_test -a -f ./prisma/setup-test-db.sql
 ```

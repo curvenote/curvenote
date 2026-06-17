@@ -1,9 +1,17 @@
 -- pgmq job queue for SCMS async job dispatch (Supabase Postgres).
--- Enable pgmq in Supabase Dashboard → Integrations → Queues if CREATE EXTENSION fails.
+-- On local Docker Postgres, pgmq is not installed; skip when unavailable (use QUEUES_PROVIDER=mock).
+-- Enable pgmq in Supabase Dashboard → Integrations → Queues if CREATE EXTENSION fails on Supabase.
 
-CREATE EXTENSION IF NOT EXISTS pgmq;
-
-SELECT pgmq.create('job');
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pgmq') THEN
+    CREATE EXTENSION IF NOT EXISTS pgmq;
+    PERFORM pgmq.create('job');
+  ELSE
+    RAISE NOTICE 'pgmq extension not available — skipping job queue setup (local dev: use QUEUES_PROVIDER=mock)';
+  END IF;
+END;
+$$;
 
 -- Per-environment drain wake URL + secret for pg_cron backup (populated after deploy).
 CREATE TABLE IF NOT EXISTS "_JobQueueDrainConfig" (
@@ -12,16 +20,26 @@ CREATE TABLE IF NOT EXISTS "_JobQueueDrainConfig" (
   drain_secret TEXT NOT NULL
 );
 
--- pg_cron + pg_net backup wake (safety net if self-HTTP wake is missed).
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-CREATE EXTENSION IF NOT EXISTS pg_net;
+-- pg_cron + pg_net backup wake (Supabase only; skipped on standard Docker/local Postgres).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_net') THEN
+    RAISE NOTICE 'pg_net not available — skipping cron drain backup setup';
+    RETURN;
+  END IF;
 
+  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
+    CREATE EXTENSION IF NOT EXISTS pg_cron;
+  END IF;
+  CREATE EXTENSION IF NOT EXISTS pg_net;
+
+  EXECUTE $fn$
 CREATE OR REPLACE FUNCTION public.job_queue_cron_drain()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $$
+AS $body$
 DECLARE
   cfg RECORD;
 BEGIN
@@ -39,16 +57,15 @@ BEGIN
     body := '{}'::jsonb
   );
 END;
-$$;
+$body$;
+$fn$;
 
-DO $$
-BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'job-queue-drain-backup') THEN
       PERFORM cron.schedule(
         'job-queue-drain-backup',
         '* * * * *',
-        $$SELECT public.job_queue_cron_drain()$$
+        $cron$SELECT public.job_queue_cron_drain()$cron$
       );
     END IF;
   END IF;
