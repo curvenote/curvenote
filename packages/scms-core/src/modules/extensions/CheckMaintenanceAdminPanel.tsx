@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import * as ui from '../../components/ui/index.js';
 import type { CheckMaintenanceRecord } from './check-maintenance.js';
@@ -21,6 +21,7 @@ export function CheckMaintenanceAdminPanel({ intent, maintenance, serviceLabel }
   const [enabled, setEnabled] = useState(maintenance?.enabled === true);
   const [message, setMessage] = useState(maintenance?.message ?? '');
   const isSubmitting = fetcher.state !== 'idle';
+  const handledDataRef = useRef<ActionData | null>(null);
 
   useEffect(() => {
     setEnabled(maintenance?.enabled === true);
@@ -29,6 +30,8 @@ export function CheckMaintenanceAdminPanel({ intent, maintenance, serviceLabel }
 
   useEffect(() => {
     if (fetcher.state !== 'idle' || !fetcher.data) return;
+    if (handledDataRef.current === fetcher.data) return;
+    handledDataRef.current = fetcher.data;
     if (fetcher.data.error?.message) {
       ui.toastError(fetcher.data.error.message);
       return;
