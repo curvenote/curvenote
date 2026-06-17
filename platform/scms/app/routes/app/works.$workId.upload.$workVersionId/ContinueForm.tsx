@@ -46,8 +46,7 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
     enabledChecks,
     checkServices,
   );
-  const { blocked: maintenanceBlocked, message: maintenanceMessage } =
-    useAnyCheckMaintenanceBlocked(enabledChecks);
+  const { blocked: maintenanceBlocked } = useAnyCheckMaintenanceBlocked(enabledChecks);
 
   const hasPendingToggleCheck = fetchers.some(
     (f) => f.state !== 'idle' && f.formData?.get('intent') === 'toggle-check',
@@ -84,7 +83,8 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
       </div>
       {maintenanceBlocked ? (
         <p className="text-sm text-muted-foreground">
-          {maintenanceMessage} This check will be skipped and can be run later.
+          At least one service is temporarily down for maintenance. The affected check will be
+          skipped and can be run later.
         </p>
       ) : null}
     </div>
