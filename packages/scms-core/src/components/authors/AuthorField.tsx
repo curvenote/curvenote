@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import * as ui from '../ui/index.js';
-import { useSaveField } from '../../hooks/useSaveField.js';
+import { useSaveField, type SaveFieldOptions } from '../../hooks/useSaveField.js';
 import type {
   Affiliation,
   Author,
@@ -59,6 +59,8 @@ export type AuthorFieldProps = {
   initialOpenAffiliationIndex?: number;
   contactDetails?: ContactDetailsForAuthor;
   onSaveFetcherStateChange?: (id: string, state: string) => void;
+  autoSave?: boolean;
+  saveFieldOptions?: SaveFieldOptions;
 };
 
 type OrcidFetcherData = {
@@ -142,6 +144,8 @@ export function AuthorField({
   initialOpenAffiliationIndex,
   contactDetails,
   onSaveFetcherStateChange,
+  autoSave = true,
+  saveFieldOptions,
 }: AuthorFieldProps) {
   const [addAuthorSearchValue, setAddAuthorSearchValue] = useState('');
   const lastOrcidResultsRef = useRef<OrcidSearchHit[]>([]);
@@ -208,11 +212,12 @@ export function AuthorField({
 
   const save = useSaveField(draftObjectId ?? null, schema.name, onDraftCreated, {
     onFetcherStateChange: onSaveFetcherStateChange,
+    ...saveFieldOptions,
   });
 
   const handleChange = (newAuthors: Author[]) => {
     onChange(newAuthors);
-    save(newAuthors);
+    if (autoSave) save(newAuthors);
   };
 
   const appendAuthor = (newAuthor: Author) => {

@@ -2,15 +2,8 @@ import { Bot, RefreshCw } from 'lucide-react';
 import { ui, LoadingSpinner } from '@curvenote/scms-core';
 import type { ExtractedMetadata } from './anthropic.server';
 import { WorkTitleForm } from '../WorkTitleForm';
-import { AuthorsForm } from '../AuthorsForm';
-
-function authorsFromExtracted(extracted: ExtractedMetadata | null): string {
-  if (!extracted?.authors?.length) return '';
-  return extracted.authors
-    .map((a) => (typeof a.name === 'string' ? a.name : ''))
-    .filter(Boolean)
-    .join(', ');
-}
+import { AuthorMetadataForm } from '../AuthorMetadataForm';
+import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
 
 /** Shorten a file name for the re-run label. */
 function shortenFileName(name: string, max = 32): string {
@@ -23,7 +16,8 @@ export interface MetadataFormCardProps {
   /** True while an extraction request is in flight (drives the overlay). */
   isExtractingMetadata: boolean;
   title: string;
-  authors: string;
+  authorMetadata: AuthorFieldMetadata;
+  onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
   /** Name of the file the re-run control targets; hides the control when undefined. */
   reRunFileName?: string;
   onReRunExtraction?: () => void;
@@ -33,12 +27,12 @@ export function MetadataFormCard({
   extractedMetadata,
   isExtractingMetadata,
   title,
-  authors,
+  authorMetadata,
+  onAuthorMetadataChange,
   reRunFileName,
   onReRunExtraction,
 }: MetadataFormCardProps) {
   const displayTitle = (title?.trim() ? title : extractedMetadata?.title) ?? '';
-  const initialAuthors = authors?.trim() ? authors : authorsFromExtracted(extractedMetadata);
 
   return (
     <ui.Card className="relative px-6 pt-4 pb-6 space-y-4 h-fit min-w-lg">
@@ -57,15 +51,7 @@ export function MetadataFormCard({
         <h3 className="text-base font-semibold">Work Details</h3>
       </div>
       <WorkTitleForm title={displayTitle} />
-      <AuthorsForm initialAuthors={initialAuthors} />
-      {extractedMetadata != null && (
-        <details className="mt-4">
-          <summary className="text-sm font-medium cursor-pointer">All metadata</summary>
-          <pre className="overflow-auto p-3 mt-2 max-h-48 text-xs rounded bg-muted">
-            {JSON.stringify(extractedMetadata, null, 2)}
-          </pre>
-        </details>
-      )}
+      <AuthorMetadataForm value={authorMetadata} onChange={onAuthorMetadataChange} />
       {reRunFileName && onReRunExtraction ? (
         <div className="flex justify-end">
           <ui.Button

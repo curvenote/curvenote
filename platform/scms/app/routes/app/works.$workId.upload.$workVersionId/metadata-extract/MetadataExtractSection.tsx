@@ -7,6 +7,7 @@ import { DocxPreviewer, ALL_FIGURES_TAB } from './DocxPreviewer';
 import { MetadataFormCard } from './MetadataFormCard';
 import type { DocxPreviewItem } from './fetchPreviews.server';
 import type { ExtractedMetadata } from './anthropic.server';
+import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
 
 export interface MetadataExtractSectionProps {
   previewList: DocxPreviewItem[];
@@ -16,7 +17,8 @@ export interface MetadataExtractSectionProps {
   /** True when the cached extraction no longer matches the current manuscript file(s). */
   isExtractionStale: boolean;
   title: string;
-  authors: string;
+  authorMetadata: AuthorFieldMetadata;
+  onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
 }
 
 export function MetadataExtractSection({
@@ -26,7 +28,8 @@ export function MetadataExtractSection({
   extractedMetadata,
   isExtractionStale,
   title,
-  authors,
+  authorMetadata,
+  onAuthorMetadataChange,
 }: MetadataExtractSectionProps) {
   const extractMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
   const hasTriggeredExtractMetadata = useRef(false);
@@ -127,7 +130,8 @@ export function MetadataExtractSection({
           extractedMetadata={extractedMetadata}
           isExtractingMetadata={isExtractingMetadata}
           title={title}
-          authors={authors}
+          authorMetadata={authorMetadata}
+          onAuthorMetadataChange={onAuthorMetadataChange}
           reRunFileName={activeFile && activeFilePath ? activeFileName : undefined}
           onReRunExtraction={handleReRunExtraction}
         />

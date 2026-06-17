@@ -1,21 +1,24 @@
-import { useState } from 'react';
 import { List } from 'lucide-react';
 import { SectionWithHeading, ui } from '@curvenote/scms-core';
 import { WorkTitleForm } from './WorkTitleForm';
-import { AuthorsForm } from './AuthorsForm';
+import { AuthorMetadataForm } from './AuthorMetadataForm';
+import type { AuthorFieldMetadata } from './mystAuthorAdapters';
 
 export interface CaptureMetadataSectionProps {
   title: string;
-  authors: string;
+  authorMetadata: AuthorFieldMetadata;
+  onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
 }
 
 /**
- * Simplified metadata section (legacy): title + authors form.
+ * Simplified metadata section (legacy): title + structured authors form.
  * Shown when the user does not have the app:works:metadata-extract scope.
  */
-export function CaptureMetadataSection({ title, authors }: CaptureMetadataSectionProps) {
-  const [showAuthorsForm, setShowAuthorsForm] = useState(authors.trim().length > 0);
-
+export function CaptureMetadataSection({
+  title,
+  authorMetadata,
+  onAuthorMetadataChange,
+}: CaptureMetadataSectionProps) {
   return (
     <SectionWithHeading
       heading="Add a Title"
@@ -27,19 +30,7 @@ export function CaptureMetadataSection({ title, authors }: CaptureMetadataSectio
       </p>
       <ui.Card className="px-6 pt-4 pb-6 space-y-4">
         <WorkTitleForm title={title} />
-        <AuthorsForm initialAuthors={authors} show={showAuthorsForm} />
-        {!showAuthorsForm ? (
-          <div className="flex justify-end">
-            <ui.Button
-              type="button"
-              variant="link"
-              className="px-0 py-0 h-auto text-xs font-normal"
-              onClick={() => setShowAuthorsForm(true)}
-            >
-              + Add Authors
-            </ui.Button>
-          </div>
-        ) : null}
+        <AuthorMetadataForm value={authorMetadata} onChange={onAuthorMetadataChange} />
       </ui.Card>
     </SectionWithHeading>
   );
