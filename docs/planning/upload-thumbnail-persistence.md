@@ -177,6 +177,22 @@ metadata-free — just add the `thumbnail` scalar.
 - **Tail guard:** cap input size and set `sharp({ limitInputPixels })` to bound memory
   and time for oversized images.
 
+## TODO (this changeset)
+
+- **ETL: populate `wv.thumbnail` from MyST frontmatter (optimization).** Update
+  `register-work.server.ts` so that when `myst_metadata.thumbnail` is present it also
+  writes the storage key to the new `thumbnail` column (alongside the existing
+  `metadata['frontmatter.myst']` write). This is an _optimization_, not correctness:
+  ETL-registered works already resolve via layer 2 (manifest), so this just lets them
+  skip the `config.json` round-trip.
+  - Small change (~15-20 lines + test): add a `thumbnail` field to `versionData` plus a
+    helper to derive the value.
+  - **Subtlety:** MyST `thumbnail` is a path relative to the article/`cdn_key` base
+    (what `getThumbnailBuffer` + `updateUrl` resolve against), whereas the column must
+    hold a key the resolver signs against `work.cdn` the same way upload-written keys
+    are. Join `cdn_key`'s path with the relative MyST thumbnail path so layer 1 signs
+    the correct URL.
+
 ## Open questions / risks
 
 - **Preview AST truncation:** previews are truncated to `FIRST_PAGE_CONTENT_LIMIT`
