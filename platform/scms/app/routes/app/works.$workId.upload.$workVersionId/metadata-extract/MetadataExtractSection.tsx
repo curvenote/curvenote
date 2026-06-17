@@ -93,7 +93,7 @@ export function MetadataExtractSection({
 
   return (
     <SectionWithHeading
-      heading="Metadata Preview"
+      heading="Add Some Details About This Work"
       icon={<Eye className="w-5 h-5" />}
       className="space-y-4"
     >
