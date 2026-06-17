@@ -65,7 +65,7 @@ export function MetadataFormCard({
               disabled={isExtractingMetadata || isClearingExtraction}
               title="Clear extracted metadata"
             >
-              <X className="mr-0.5 w-3.5 h-3.5" />
+              <X className="mr-px w-3.5 h-3.5" />
               {isClearingExtraction ? 'clearing...' : 'clear'}
             </ui.Button>
           ) : (
@@ -81,7 +81,7 @@ export function MetadataFormCard({
               disabled={isExtractingMetadata || isClearingExtraction}
               title={`Re-run extraction on ${reRunFileName}`}
             >
-              <RefreshCw className="mr-1.5 w-3.5 h-3.5" />
+              <RefreshCw className="mr-px w-3.5 h-3.5" />
               {`re-run on ${shortenFileName(reRunFileName)}`}
             </ui.Button>
           ) : null}
