@@ -953,6 +953,39 @@ export async function action(args: Route.ActionArgs) {
   );
 }
 
+/** Rotating busy messages shown while previews are being generated. */
+const PREVIEW_BUSY_MESSAGES = [
+  'Extracting document contents…',
+  'Building structured data…',
+  'Generating thumbnails…',
+] as const;
+
+/** Interval (ms) between rotating busy messages. */
+const PREVIEW_BUSY_MESSAGE_INTERVAL_MS = 3000;
+
+/**
+ * Cycle through `messages` on a fixed cadence while `active`, resetting to the first
+ * message whenever it becomes inactive. Returns the message to display now.
+ */
+function useRotatingMessage(
+  messages: readonly string[],
+  active: boolean,
+  intervalMs = PREVIEW_BUSY_MESSAGE_INTERVAL_MS,
+): string {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (!active) {
+      setIndex(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setIndex((curr) => (curr + 1) % messages.length);
+    }, intervalMs);
+    return () => clearInterval(id);
+  }, [active, intervalMs, messages.length]);
+  return messages[index] ?? messages[0];
+}
+
 export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const {
     cdnKey,
@@ -1039,8 +1072,9 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const isGeneratingPreviews =
     fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
   const isPreviewsLoading = revalidator.state === 'loading' || isGeneratingPreviews;
+  const rotatingPreviewMessage = useRotatingMessage(PREVIEW_BUSY_MESSAGES, isGeneratingPreviews);
   const previewOverlayMessage = isGeneratingPreviews
-    ? 'Generating previews…'
+    ? rotatingPreviewMessage
     : 'Refreshing previews…';
 
   useEffect(() => {
