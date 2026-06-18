@@ -68,7 +68,7 @@ export function ChooseThumbnailSection({
                 aria-pressed={isSelected}
                 title={attachment.altText ?? attachment.name ?? 'Figure'}
                 className={cn(
-                  'group relative flex flex-col gap-1 rounded-md border p-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500',
+                  'group relative flex flex-col gap-1 rounded-md border px-2 py-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500',
                   isSelected
                     ? 'border-green-400 bg-green-50 hover:border-green-400 dark:border-green-600 dark:bg-green-800 dark:hover:border-green-600'
                     : 'border-stone-200 bg-white hover:border-stone-400 dark:border-stone-500 dark:bg-stone-900 dark:hover:border-stone-400',
