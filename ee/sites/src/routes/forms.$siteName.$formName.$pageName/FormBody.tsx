@@ -8,8 +8,9 @@ import { AbstractField } from './AbstractField.js';
 import { KeywordsField, normalizeKeywords } from './KeywordsField.js';
 import { RadioField } from './RadioField.js';
 import { ContactDetails } from './ContactDetails.js';
-import { AuthorField, type ContactDetailsForAuthor } from './authors/index.js';
+import { AuthorField, type ContactDetailsForAuthor } from '@curvenote/scms-core';
 import { useSaveField } from './useSaveField.js';
+import { useFormSyncContext } from './formSyncContext.js';
 
 export type { ContactDetailsForAuthor };
 
@@ -62,6 +63,7 @@ export function FormBody({
 }: FormBodyProps) {
   const [values, setValues] = useState<Record<string, any>>(submission.fields);
   const [attemptedContinue, setAttemptedContinue] = useState(false);
+  const formSync = useFormSyncContext();
   const dp = draftProps(draftObjectId, onDraftCreated);
   const saveAffiliationChoices = useSaveField(
     draftObjectId ?? null,
@@ -193,6 +195,7 @@ export function FormBody({
                 emailReadOnly: !!(user && user.email != null && user.email !== ''),
                 orcidReadOnly: !!(user && user.orcid != null && user.orcid !== ''),
               }}
+              onSaveFetcherStateChange={formSync?.reportFetcherState}
               {...dp}
             />
           </div>

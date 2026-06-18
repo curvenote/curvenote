@@ -3,20 +3,24 @@ import { useFetcher } from 'react-router';
 import { Eye } from 'lucide-react';
 import { SectionWithHeading, ui, LoadingSpinner } from '@curvenote/scms-core';
 import type { Route } from '../+types/route';
-import { DocxPreviewer, ALL_FIGURES_TAB } from './DocxPreviewer';
+import { DocumentPreviewer, ALL_FIGURES_TAB } from './DocumentPreviewer';
 import { MetadataFormCard } from './MetadataFormCard';
-import type { DocxPreviewItem } from './fetchPreviews.server';
+import type { DocumentPreviewItem } from './fetchPreviews.server';
 import type { ExtractedMetadata } from './anthropic.server';
+import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
+
+const EMPTY_AUTHOR_METADATA: AuthorFieldMetadata = { authors: [], affiliations: [] };
 
 export interface MetadataExtractSectionProps {
-  previewList: DocxPreviewItem[];
+  previewList: DocumentPreviewItem[];
   isPreviewsLoading: boolean;
   previewOverlayMessage: string;
   extractedMetadata: ExtractedMetadata | null;
   /** True when the cached extraction no longer matches the current manuscript file(s). */
   isExtractionStale: boolean;
   title: string;
-  authors: string;
+  authorMetadata: AuthorFieldMetadata;
+  onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
 }
 
 export function MetadataExtractSection({
@@ -26,18 +30,33 @@ export function MetadataExtractSection({
   extractedMetadata,
   isExtractionStale,
   title,
-  authors,
+  authorMetadata,
+  onAuthorMetadataChange,
 }: MetadataExtractSectionProps) {
   const extractMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
+  const clearMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
   const hasTriggeredExtractMetadata = useRef(false);
   const [activeTab, setActiveTab] = useState('0');
+  const [autoExtractionSuppressedFor, setAutoExtractionSuppressedFor] = useState<string | null>(
+    null,
+  );
+  const [hasLocallyClearedExtraction, setHasLocallyClearedExtraction] = useState(false);
 
   const hasPreviews = previewList.length > 0;
+  const previewSourceKey = previewList.map((preview) => preview.path).join('|');
+  const visibleExtractedMetadata = hasLocallyClearedExtraction ? null : extractedMetadata;
+  const visibleTitle = hasLocallyClearedExtraction ? '' : title;
+  const visibleAuthorMetadata = hasLocallyClearedExtraction
+    ? EMPTY_AUTHOR_METADATA
+    : authorMetadata;
   // Extract when there is no cached metadata yet, or when the cache is stale
   // because the manuscript file(s) changed since the last extraction.
-  const needsExtraction = !extractedMetadata || isExtractionStale;
+  const needsExtraction = !visibleExtractedMetadata || isExtractionStale;
   const shouldExtractMetadata =
-    needsExtraction && hasPreviews && extractMetadataFetcher.state === 'idle';
+    needsExtraction &&
+    hasPreviews &&
+    autoExtractionSuppressedFor !== previewSourceKey &&
+    extractMetadataFetcher.state === 'idle';
 
   useEffect(() => {
     if (!shouldExtractMetadata) {
@@ -50,6 +69,8 @@ export function MetadataExtractSection({
   }, [
     shouldExtractMetadata,
     needsExtraction,
+    autoExtractionSuppressedFor,
+    previewSourceKey,
     extractMetadataFetcher.state,
     extractMetadataFetcher,
   ]);
@@ -61,8 +82,31 @@ export function MetadataExtractSection({
     }
   }, [extractMetadataFetcher.state, extractMetadataFetcher.data]);
 
-  const isExtractingMetadata =
+  useEffect(() => {
+    const result = clearMetadataFetcher.data as { error?: { message: string } } | undefined;
+    if (clearMetadataFetcher.state === 'idle' && result?.error) {
+      ui.toastError(result.error.message);
+    }
+  }, [clearMetadataFetcher.state, clearMetadataFetcher.data]);
+
+  const isExtractionInFlight =
     extractMetadataFetcher.state === 'loading' || extractMetadataFetcher.state === 'submitting';
+  // Bridge the busy state across the whole "until results are in" window rather than only
+  // while the AI request is in flight: show it while previews are still being generated
+  // (extraction can't start yet) and while extraction is pending/about to fire. This keeps
+  // the metadata card busy continuously from preview processing through the AI call,
+  // avoiding an idle flash in the gap between previews finishing and extraction starting.
+  const isAwaitingExtraction =
+    needsExtraction &&
+    autoExtractionSuppressedFor !== previewSourceKey &&
+    (isPreviewsLoading || shouldExtractMetadata);
+  const isExtractingMetadata = isExtractionInFlight || isAwaitingExtraction;
+  const extractingMetadataMessage =
+    extractMetadataFetcher.state === 'submitting'
+      ? 'extracting work details...'
+      : 'Waiting on document to unpack...';
+  const isClearingExtraction =
+    clearMetadataFetcher.state === 'loading' || clearMetadataFetcher.state === 'submitting';
 
   // Resolve the file backing the active tab; non-file tabs (e.g. All Figures)
   // fall back to the first file.
@@ -79,10 +123,19 @@ export function MetadataExtractSection({
 
   const handleReRunExtraction = () => {
     if (!activeFilePath) return;
+    setAutoExtractionSuppressedFor(null);
+    setHasLocallyClearedExtraction(false);
     extractMetadataFetcher.submit(
       { intent: 'extract-metadata', force: 'true', path: activeFilePath },
       { method: 'POST' },
     );
+  };
+
+  const handleClearExtraction = () => {
+    setAutoExtractionSuppressedFor(previewSourceKey);
+    setHasLocallyClearedExtraction(true);
+    onAuthorMetadataChange(EMPTY_AUTHOR_METADATA);
+    clearMetadataFetcher.submit({ intent: 'clear-extracted-metadata' }, { method: 'POST' });
   };
 
   return (
@@ -116,7 +169,7 @@ export function MetadataExtractSection({
                 <p className="text-sm text-muted-foreground">{previewOverlayMessage}</p>
               </div>
             )}
-            <DocxPreviewer
+            <DocumentPreviewer
               previews={previewList}
               activeTab={activeTab}
               onActiveTabChange={setActiveTab}
@@ -124,12 +177,16 @@ export function MetadataExtractSection({
           </div>
         </ui.Card>
         <MetadataFormCard
-          extractedMetadata={extractedMetadata}
+          extractedMetadata={visibleExtractedMetadata}
           isExtractingMetadata={isExtractingMetadata}
-          title={title}
-          authors={authors}
+          extractingMetadataMessage={extractingMetadataMessage}
+          title={visibleTitle}
+          authorMetadata={visibleAuthorMetadata}
+          onAuthorMetadataChange={onAuthorMetadataChange}
           reRunFileName={activeFile && activeFilePath ? activeFileName : undefined}
           onReRunExtraction={handleReRunExtraction}
+          onClearExtraction={handleClearExtraction}
+          isClearingExtraction={isClearingExtraction}
         />
       </div>
     </SectionWithHeading>

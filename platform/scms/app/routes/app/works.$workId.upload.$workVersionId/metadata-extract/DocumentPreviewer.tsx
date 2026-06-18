@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type {
   OfficeContentNode,
-  OfficeAttachment,
   ListMetadata,
   HeadingMetadata,
   CellMetadata,
@@ -10,10 +9,21 @@ import type {
 } from 'officeparser';
 import { CodeXml, FileText, Search } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
-import type { DocxPreviewItem } from './fetchPreviews.server';
+import type { DocumentPreviewItem, PreviewFigure } from './fetchPreviews.server';
 
-/** First-page AST from server (type, metadata, content, attachments; no toText) */
-type PreviewAst = DocxPreviewItem['ast'];
+/** First-page AST from server (type, metadata, content; no base64 attachments) */
+type PreviewAst = DocumentPreviewItem['ast'];
+
+/** Map of attachment name -> signed thumbnail URL, used to resolve inline image nodes. */
+type FigureUrlByName = Map<string, string>;
+
+function buildFigureUrlByName(figures: PreviewFigure[]): FigureUrlByName {
+  const map: FigureUrlByName = new Map();
+  for (const fig of figures) {
+    if (fig.name && fig.signedUrl) map.set(fig.name, fig.signedUrl);
+  }
+  return map;
+}
 
 /** Document metadata for style resolution (formatting + styleMap) */
 type PartialFormatting = Partial<TextFormatting>;
@@ -44,8 +54,8 @@ function resolveFormatting(
   return { ...defaultF, ...styleF, ...nodeF } as TextFormatting;
 }
 
-interface DocxPreviewerProps {
-  previews: DocxPreviewItem[];
+interface DocumentPreviewerProps {
+  previews: DocumentPreviewItem[];
   /** Controlled active tab value (file index as string, or ALL_FIGURES_TAB). */
   activeTab?: string;
   onActiveTabChange?: (tab: string) => void;
@@ -87,26 +97,19 @@ function groupContentNodes(nodes: OfficeContentNode[]): Array<OfficeContentNode 
   return result;
 }
 
-function getAttachmentByName(
-  attachments: OfficeAttachment[],
-  name: string,
-): OfficeAttachment | undefined {
-  return attachments.find((a) => a.name === name);
-}
-
 interface AstNodeProps {
   node: OfficeContentNode;
-  attachments: OfficeAttachment[];
+  figureUrlByName: FigureUrlByName;
   docMeta?: DocMetadata;
 }
 
-function AstNode({ node, attachments, docMeta }: AstNodeProps): React.ReactElement {
+function AstNode({ node, figureUrlByName, docMeta }: AstNodeProps): React.ReactElement {
   const nodeStyleName = (node.metadata as { style?: string } | undefined)?.style;
   const effectiveFormatting = resolveFormatting(docMeta, nodeStyleName, node.formatting);
 
   const renderChildren = () =>
     node.children?.map((child: OfficeContentNode, i: number) => (
-      <AstNode key={i} node={child} attachments={attachments} docMeta={docMeta} />
+      <AstNode key={i} node={child} figureUrlByName={figureUrlByName} docMeta={docMeta} />
     ));
 
   const formatStyle = (f?: TextFormatting): React.CSSProperties => {
@@ -175,15 +178,10 @@ function AstNode({ node, attachments, docMeta }: AstNodeProps): React.ReactEleme
     case 'image': {
       const meta = node.metadata as ImageMetadata | undefined;
       const name = meta?.attachmentName;
-      const attachment = name ? getAttachmentByName(attachments, name) : undefined;
-      if (attachment?.data) {
-        const src = `data:${attachment.mimeType};base64,${attachment.data}`;
+      const url = name ? figureUrlByName.get(name) : undefined;
+      if (url) {
         return (
-          <img
-            src={src}
-            alt={meta?.altText ?? attachment.altText ?? ''}
-            style={{ maxWidth: '100%', height: 'auto' }}
-          />
+          <img src={url} alt={meta?.altText ?? ''} style={{ maxWidth: '100%', height: 'auto' }} />
         );
       }
       return <span className="docx-preview-image-placeholder">[Image: {name ?? 'unknown'}]</span>;
@@ -204,15 +202,15 @@ function AstNode({ node, attachments, docMeta }: AstNodeProps): React.ReactEleme
 
 interface OfficeAstRendererProps {
   ast: PreviewAst;
+  figureUrlByName: FigureUrlByName;
 }
 
 const PREVIEW_CONTENT_CLASS =
   'docx-preview-content bg-white dark:bg-white text-stone-900 rounded p-4';
 
-function OfficeAstRenderer({ ast }: OfficeAstRendererProps): React.ReactElement {
+function OfficeAstRenderer({ ast, figureUrlByName }: OfficeAstRendererProps): React.ReactElement {
   const content = ast.content ?? [];
   const grouped = groupContentNodes(content);
-  const attachments: OfficeAttachment[] = ast.attachments ?? [];
   const docMeta = ast.metadata as DocMetadata | undefined;
 
   return (
@@ -223,7 +221,7 @@ function OfficeAstRenderer({ ast }: OfficeAstRendererProps): React.ReactElement 
           return (
             <ListTag key={i} className="my-3">
               {item.items.map((node: OfficeContentNode, j: number) => (
-                <AstNode key={j} node={node} attachments={attachments} docMeta={docMeta} />
+                <AstNode key={j} node={node} figureUrlByName={figureUrlByName} docMeta={docMeta} />
               ))}
             </ListTag>
           );
@@ -232,7 +230,7 @@ function OfficeAstRenderer({ ast }: OfficeAstRendererProps): React.ReactElement 
           <AstNode
             key={i}
             node={item as OfficeContentNode}
-            attachments={attachments}
+            figureUrlByName={figureUrlByName}
             docMeta={docMeta}
           />
         );
@@ -246,10 +244,11 @@ function SingleFileView({
   showAst,
   onToggleAst,
 }: {
-  item: DocxPreviewItem;
+  item: DocumentPreviewItem;
   showAst: boolean;
   onToggleAst: () => void;
 }) {
+  const figureUrlByName = useMemo(() => buildFigureUrlByName(item.figures), [item.figures]);
   return (
     <div className="relative w-full">
       <ui.Button
@@ -267,9 +266,14 @@ function SingleFileView({
           <pre className="text-xs overflow-auto max-h-[400px] bg-stone-50 dark:bg-stone-900 p-3 rounded border border-stone-200 dark:border-stone-700">
             {JSON.stringify(item.ast, null, 2)}
           </pre>
+        ) : item.previewUnavailable ? (
+          <div className="flex min-h-36 items-center justify-center rounded-md border border-dashed border-stone-300 px-6 py-8 text-center text-sm text-muted-foreground">
+            Preview unavailable for this file (it may be too large). You can still pick a thumbnail
+            from other files or upload one manually.
+          </div>
         ) : (
           <div className="overflow-hidden relative" style={{ whiteSpace: 'pre-wrap' }}>
-            <OfficeAstRenderer ast={item.ast} />
+            <OfficeAstRenderer ast={item.ast} figureUrlByName={figureUrlByName} />
             {item.ast.wasTruncated === true && (
               <div
                 className="absolute bottom-0 left-0 right-0 h-[100px] pointer-events-none"
@@ -290,45 +294,34 @@ function SingleFileView({
 export const ALL_FIGURES_TAB = 'all-figures';
 
 /**
- * A single extracted figure (image attachment) with the file it came from.
+ * A single candidate figure with the file it came from.
  *
- * `sourcePath` + `figureIndex` form a stable locator: the source file's cached AST
- * is keyed by md5, so the index of an image within that file does not drift unless
- * the file itself is re-uploaded. The server uses this to find the exact bytes.
+ * The figure's storage `key` is the stable locator: candidate figures are downscaled
+ * and persisted to storage at parse time, so selection and materialisation deal purely
+ * in storage paths.
  */
-export type DocxFigure = {
-  attachment: OfficeAttachment;
+export type DocumentFigure = {
+  figure: PreviewFigure;
   sourceName: string;
   sourcePath: string;
-  figureIndex: number;
 };
 
-/** Collect all image attachments across previews with source file name */
-export function collectAllFigures(previews: DocxPreviewItem[]): DocxFigure[] {
-  const out: DocxFigure[] = [];
+/** Collect all candidate figures across previews with their source file name. */
+export function collectAllFigures(previews: DocumentPreviewItem[]): DocumentFigure[] {
+  const out: DocumentFigure[] = [];
   for (const item of previews) {
-    const attachments = item.ast.attachments ?? [];
-    let figureIndex = 0;
-    for (const att of attachments) {
-      if (att.type === 'image') {
-        out.push({
-          attachment: att,
-          sourceName: item.data.name ?? item.path,
-          sourcePath: item.path,
-          figureIndex,
-        });
-        figureIndex += 1;
-      }
+    for (const figure of item.figures) {
+      out.push({
+        figure,
+        sourceName: item.data.name ?? item.path,
+        sourcePath: item.path,
+      });
     }
   }
   return out;
 }
 
-function AllFiguresView({
-  figures,
-}: {
-  figures: { attachment: OfficeAttachment; sourceName: string }[];
-}) {
+function AllFiguresView({ figures }: { figures: DocumentFigure[] }) {
   if (figures.length === 0) {
     return (
       <div className={PREVIEW_CONTENT_CLASS}>
@@ -339,17 +332,15 @@ function AllFiguresView({
   return (
     <div className={PREVIEW_CONTENT_CLASS}>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-        {figures.map(({ attachment, sourceName }, i) => {
-          const src = attachment.data
-            ? `data:${attachment.mimeType};base64,${attachment.data}`
-            : undefined;
+        {figures.map(({ figure, sourceName }) => {
+          const label = figure.altText ?? figure.name ?? 'Figure';
           return (
-            <figure key={`${sourceName}-${attachment.name}-${i}`} className="flex flex-col gap-1">
+            <figure key={figure.key} className="flex flex-col gap-1">
               <div className="flex overflow-hidden justify-center items-center min-h-0 rounded aspect-square bg-stone-100 dark:bg-stone-800">
-                {src ? (
+                {figure.signedUrl ? (
                   <img
-                    src={src}
-                    alt={attachment.altText ?? attachment.name ?? ''}
+                    src={figure.signedUrl}
+                    alt={label}
                     className="object-contain w-full h-full"
                   />
                 ) : (
@@ -358,9 +349,9 @@ function AllFiguresView({
               </div>
               <figcaption
                 className="text-xs truncate text-muted-foreground"
-                title={attachment.altText ?? attachment.name}
+                title={figure.altText ?? figure.name}
               >
-                {attachment.altText ?? attachment.name ?? 'Figure'}
+                {label}
               </figcaption>
               <p className="text-xs truncate text-muted-foreground/80" title={sourceName}>
                 {sourceName}
@@ -373,7 +364,11 @@ function AllFiguresView({
   );
 }
 
-export const DocxPreviewer = ({ previews, activeTab, onActiveTabChange }: DocxPreviewerProps) => {
+export const DocumentPreviewer = ({
+  previews,
+  activeTab,
+  onActiveTabChange,
+}: DocumentPreviewerProps) => {
   const [showAst, setShowAst] = useState(false);
   const [internalTab, setInternalTab] = useState('0');
   const fileTab = activeTab ?? internalTab;
@@ -386,7 +381,6 @@ export const DocxPreviewer = ({ previews, activeTab, onActiveTabChange }: DocxPr
           <FileText className="w-14 h-14" strokeWidth={1.25} />
           <Search className="absolute -right-1 -bottom-1 w-6 h-6 opacity-80" strokeWidth={2} />
         </div>
-        <p className="text-sm">Previews will be shown here</p>
       </div>
     );
   }

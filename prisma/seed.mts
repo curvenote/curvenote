@@ -161,6 +161,28 @@ async function main() {
   console.log(
     `   ✓ Created/updated role: ${myWorksPreviewRole.title} (${myWorksPreviewRole.name})`,
   );
+  const extractMetadataScopes = ['app:works:metadata-extract'];
+  const extractMetadataRole = await prisma.role.upsert({
+    where: { name: 'extract-metadata' },
+    create: {
+      id: 'extract-metadata-role',
+      name: 'extract-metadata',
+      title: 'Extract Metadata',
+      description: 'Access to document preview metadata extraction during work upload',
+      scopes: extractMetadataScopes,
+      createdBy: franklin.id,
+      date_created: startDateString,
+      date_modified: startDateString,
+    },
+    update: {
+      scopes: extractMetadataScopes,
+      date_modified: startDateString,
+    },
+  });
+  summary.roles++;
+  console.log(
+    `   ✓ Created/updated role: ${extractMetadataRole.title} (${extractMetadataRole.name})`,
+  );
   console.log(`   Total roles created: ${summary.roles}\n`);
 
   console.log('🔗 Assigning roles to users...');
@@ -196,6 +218,21 @@ async function main() {
     });
     summary.userRoles++;
     console.log(`   ✓ Assigned ${myWorksPreviewRole.title} to ${user.display_name}`);
+  }
+
+  // Assign Extract Metadata role to ALL users including support
+  for (const user of allUsers) {
+    await prisma.userRole.create({
+      data: {
+        id: uuidv7(),
+        user_id: user.id,
+        role_id: extractMetadataRole.id,
+        date_created: startDateString,
+        date_modified: startDateString,
+      },
+    });
+    summary.userRoles++;
+    console.log(`   ✓ Assigned ${extractMetadataRole.title} to ${user.display_name}`);
   }
   console.log(`   Total role assignments: ${summary.userRoles}\n`);
 

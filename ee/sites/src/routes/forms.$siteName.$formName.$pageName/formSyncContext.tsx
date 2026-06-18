@@ -1,5 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { Fetcher } from 'react-router';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 type FormSyncContextValue = {
   reportFetcherState: (id: string, state: string) => void;
@@ -39,13 +38,4 @@ export function FormSyncProvider({ children }: { children: React.ReactNode }) {
 
 export function useFormSyncContext(): FormSyncContextValue | null {
   return useContext(FormSyncContext);
-}
-
-export function useReportFetcherState(fetcher: Fetcher, id: string) {
-  const ctx = useFormSyncContext();
-  useEffect(() => {
-    if (!ctx) return;
-    ctx.reportFetcherState(id, fetcher.state);
-    return () => ctx.reportFetcherState(id, 'idle');
-  }, [ctx, id, fetcher.state]);
 }

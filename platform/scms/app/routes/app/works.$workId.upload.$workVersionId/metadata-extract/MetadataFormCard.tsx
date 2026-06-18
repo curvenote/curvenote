@@ -1,16 +1,9 @@
-import { Bot, RefreshCw } from 'lucide-react';
+import { Bot, RefreshCw, X } from 'lucide-react';
 import { ui, LoadingSpinner } from '@curvenote/scms-core';
 import type { ExtractedMetadata } from './anthropic.server';
 import { WorkTitleForm } from '../WorkTitleForm';
-import { AuthorsForm } from '../AuthorsForm';
-
-function authorsFromExtracted(extracted: ExtractedMetadata | null): string {
-  if (!extracted?.authors?.length) return '';
-  return extracted.authors
-    .map((a) => (typeof a.name === 'string' ? a.name : ''))
-    .filter(Boolean)
-    .join(', ');
-}
+import { AuthorMetadataForm } from '../AuthorMetadataForm';
+import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
 
 /** Shorten a file name for the re-run label. */
 function shortenFileName(name: string, max = 32): string {
@@ -22,23 +15,31 @@ export interface MetadataFormCardProps {
   extractedMetadata: ExtractedMetadata | null;
   /** True while an extraction request is in flight (drives the overlay). */
   isExtractingMetadata: boolean;
+  extractingMetadataMessage?: string;
   title: string;
-  authors: string;
+  authorMetadata: AuthorFieldMetadata;
+  onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
   /** Name of the file the re-run control targets; hides the control when undefined. */
   reRunFileName?: string;
   onReRunExtraction?: () => void;
+  onClearExtraction?: () => void;
+  isClearingExtraction?: boolean;
 }
 
 export function MetadataFormCard({
   extractedMetadata,
   isExtractingMetadata,
+  extractingMetadataMessage = 'Waiting on document to unpack...',
   title,
-  authors,
+  authorMetadata,
+  onAuthorMetadataChange,
   reRunFileName,
   onReRunExtraction,
+  onClearExtraction,
+  isClearingExtraction = false,
 }: MetadataFormCardProps) {
   const displayTitle = (title?.trim() ? title : extractedMetadata?.title) ?? '';
-  const initialAuthors = authors?.trim() ? authors : authorsFromExtracted(extractedMetadata);
+  const canClearExtraction = extractedMetadata != null && onClearExtraction != null;
 
   return (
     <ui.Card className="relative px-6 pt-4 pb-6 space-y-4 h-fit min-w-lg">
@@ -49,36 +50,44 @@ export function MetadataFormCard({
           aria-live="polite"
         >
           <LoadingSpinner size={32} />
-          <p className="text-sm text-muted-foreground">Extracting metadata…</p>
+          <p className="text-sm text-muted-foreground">{extractingMetadataMessage}</p>
         </div>
       )}
-      <div className="flex gap-2 items-center">
-        <Bot className="w-5 h-5 text-muted-foreground" />
-        <h3 className="text-base font-semibold">Work Details</h3>
+      <div className="flex gap-3 justify-between items-center">
+        <div className="flex gap-2 items-center">
+          <Bot className="w-5 h-5 text-muted-foreground" />
+          <h3 className="text-base font-semibold">Work Details</h3>
+        </div>
+        {canClearExtraction ? (
+          <ui.Button
+            type="button"
+            variant="link"
+            size="sm"
+            className="p-0 h-auto text-xs"
+            onClick={onClearExtraction}
+            disabled={isExtractingMetadata || isClearingExtraction}
+            title="Clear extracted metadata"
+          >
+            <X className="mr-px w-3.5 h-3.5" />
+            {isClearingExtraction ? 'clearing...' : 'clear'}
+          </ui.Button>
+        ) : null}
       </div>
       <WorkTitleForm title={displayTitle} />
-      <AuthorsForm initialAuthors={initialAuthors} />
-      {extractedMetadata != null && (
-        <details className="mt-4">
-          <summary className="text-sm font-medium cursor-pointer">All metadata</summary>
-          <pre className="overflow-auto p-3 mt-2 max-h-48 text-xs rounded bg-muted">
-            {JSON.stringify(extractedMetadata, null, 2)}
-          </pre>
-        </details>
-      )}
+      <AuthorMetadataForm value={authorMetadata} onChange={onAuthorMetadataChange} />
       {reRunFileName && onReRunExtraction ? (
         <div className="flex justify-end">
           <ui.Button
             type="button"
             variant="link"
             size="sm"
-            className="p-0 h-auto"
+            className="p-0 h-auto text-xs"
             onClick={onReRunExtraction}
-            disabled={isExtractingMetadata}
+            disabled={isExtractingMetadata || isClearingExtraction}
             title={`Re-run extraction on ${reRunFileName}`}
           >
-            <RefreshCw className="mr-1.5 w-3.5 h-3.5" />
-            {`re-run extraction on ${shortenFileName(reRunFileName)}`}
+            <RefreshCw className="mr-px w-3.5 h-3.5" />
+            {`re-run on ${shortenFileName(reRunFileName)}`}
           </ui.Button>
         </div>
       ) : null}

@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { GripVertical, Pencil, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Affiliation } from '../types.js';
+import * as ui from '../ui/index.js';
+import type { Affiliation } from './types.js';
 import { getAffiliationSubtitle } from './affiliationHelpers.js';
-import { ui } from '@curvenote/scms-core';
 
 export type SortableAffiliationRowProps = {
   authorId: string;

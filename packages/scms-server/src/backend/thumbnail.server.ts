@@ -24,7 +24,11 @@ export function hasResolvableThumbnail(wv: ThumbnailSource): boolean {
   return Boolean(wv.thumbnail && wv.cdn) || Boolean(wv.cdn && wv.cdn_key);
 }
 
-function resolveBucket(ctx: Context, backend: StorageBackend, cdn: string): KnownBuckets {
+export function resolveThumbnailBucket(
+  ctx: Context,
+  backend: StorageBackend,
+  cdn: string,
+): KnownBuckets {
   return (
     backend.knownBucketFromCDN(cdn) ??
     (ctx.privateCdnUrls().has(ensureTrailingSlash(cdn)) ? KnownBuckets.prv : KnownBuckets.pub)
@@ -49,7 +53,7 @@ export async function resolveWorkVersionThumbnail(
   if (wv.thumbnail && wv.cdn) {
     try {
       const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
-      const bucket = resolveBucket(ctx, backend, wv.cdn);
+      const bucket = resolveThumbnailBucket(ctx, backend, wv.cdn);
       const file = new File(backend, wv.thumbnail, bucket);
       const buffer = await file.download();
       return buffer.buffer.slice(

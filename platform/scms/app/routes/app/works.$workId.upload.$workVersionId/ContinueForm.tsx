@@ -8,10 +8,11 @@ import {
 } from '@curvenote/scms-core';
 import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata, ChecksMetadataSection } from '@curvenote/scms-server';
+import type { AuthorFieldMetadata } from './mystAuthorAdapters';
 
 interface ContinueFormProps {
   title: string;
-  authors: string;
+  authorMetadata: AuthorFieldMetadata;
   metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
   checkServices: ExtensionCheckService[];
   /** Selected thumbnail locator (see thumbnailSelection.ts); materialised on submit. */
@@ -20,7 +21,7 @@ interface ContinueFormProps {
 
 export function ContinueForm({
   title,
-  authors,
+  authorMetadata,
   metadata,
   checkServices,
   selectedThumbnail,
@@ -65,17 +66,23 @@ export function ContinueForm({
   const hasPendingToggleCheck = fetchers.some(
     (f) => f.state !== 'idle' && f.formData?.get('intent') === 'toggle-check',
   );
+  const hasPendingAuthorMetadata = fetchers.some(
+    (f) => f.state !== 'idle' && f.formData?.get('intent') === 'update-author-metadata',
+  );
 
   // A selected check whose service is under maintenance does not block submission;
   // it is simply skipped (not initiated) and the work is created without it.
-  const disabled = !hasTitle || !hasFiles || hasPendingToggleCheck || hasInvalidSelectedChecks;
+  const disabled =
+    !hasTitle ||
+    !hasFiles ||
+    hasPendingToggleCheck ||
+    hasPendingAuthorMetadata ||
+    hasInvalidSelectedChecks;
 
   const handleContinue = () => {
     const formData = new FormData();
     formData.append('intent', 'confirm-work');
-    if (authors?.trim()) {
-      formData.append('authors', authors);
-    }
+    formData.append('authorMetadata', JSON.stringify(authorMetadata));
     if (selectedThumbnail) {
       formData.append('thumbnail', selectedThumbnail);
     }
