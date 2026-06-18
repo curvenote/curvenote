@@ -29,7 +29,7 @@ export interface MetadataFormCardProps {
 export function MetadataFormCard({
   extractedMetadata,
   isExtractingMetadata,
-  extractingMetadataMessage = 'Waiting on document to unpack...',
+  extractingMetadataMessage = 'Waiting for document to unpack...',
   title,
   authorMetadata,
   onAuthorMetadataChange,

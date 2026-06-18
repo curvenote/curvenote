@@ -10,6 +10,9 @@ import type { ExtractedMetadata } from './anthropic.server';
 import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
 
 const EMPTY_AUTHOR_METADATA: AuthorFieldMetadata = { authors: [], affiliations: [] };
+const WAITING_FOR_UNPACK_MESSAGE = 'Waiting for document to unpack...';
+const EXTRACTING_WORK_DETAILS_MESSAGE = 'Extracting work details...';
+const FINALIZING_EXTRACTION_MESSAGE = 'Finalizing...';
 
 export interface MetadataExtractSectionProps {
   previewList: DocumentPreviewItem[];
@@ -101,10 +104,13 @@ export function MetadataExtractSection({
     autoExtractionSuppressedFor !== previewSourceKey &&
     (isPreviewsLoading || shouldExtractMetadata);
   const isExtractingMetadata = isExtractionInFlight || isAwaitingExtraction;
-  const extractingMetadataMessage =
-    extractMetadataFetcher.state === 'submitting'
-      ? 'extracting work details...'
-      : 'Waiting on document to unpack...';
+  const extractingMetadataMessage = (() => {
+    if (extractMetadataFetcher.state === 'submitting') return EXTRACTING_WORK_DETAILS_MESSAGE;
+    if (extractMetadataFetcher.state === 'loading') return FINALIZING_EXTRACTION_MESSAGE;
+    if (hasTriggeredExtractMetadata.current && needsExtraction)
+      return FINALIZING_EXTRACTION_MESSAGE;
+    return WAITING_FOR_UNPACK_MESSAGE;
+  })();
   const isClearingExtraction =
     clearMetadataFetcher.state === 'loading' || clearMetadataFetcher.state === 'submitting';
 
