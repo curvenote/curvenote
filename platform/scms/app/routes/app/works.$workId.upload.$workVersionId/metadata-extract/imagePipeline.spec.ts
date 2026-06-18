@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import sharp from 'sharp';
-import { createSharpPipeline } from './materializeThumbnail.server';
+import { createSharpPipeline, downscaleToWebp } from './imagePipeline.server';
 
 /**
  * Build a minimal uncompressed 24-bit BMP (bottom-up, BGR rows padded to 4 bytes).
@@ -13,17 +13,15 @@ function makeBmp(width: number, height: number, pixels: Array<[number, number, n
   const fileSize = 54 + pixelDataSize;
 
   const buf = Buffer.alloc(fileSize);
-  // BITMAPFILEHEADER
   buf.write('BM', 0, 'ascii');
   buf.writeUInt32LE(fileSize, 2);
-  buf.writeUInt32LE(54, 10); // pixel data offset
-  // BITMAPINFOHEADER
+  buf.writeUInt32LE(54, 10);
   buf.writeUInt32LE(40, 14);
   buf.writeInt32LE(width, 18);
   buf.writeInt32LE(height, 22); // positive => bottom-up
-  buf.writeUInt16LE(1, 26); // planes
-  buf.writeUInt16LE(24, 28); // bits per pixel
-  buf.writeUInt32LE(0, 30); // BI_RGB (no compression)
+  buf.writeUInt16LE(1, 26);
+  buf.writeUInt16LE(24, 28);
+  buf.writeUInt32LE(0, 30);
   buf.writeUInt32LE(pixelDataSize, 34);
 
   for (let y = 0; y < height; y++) {
@@ -74,25 +72,6 @@ describe('createSharpPipeline BMP handling', () => {
     }
   });
 
-  it('produces a valid webp thumbnail from a BMP figure', async () => {
-    const bmp = makeBmp(2, 1, [
-      [10, 20, 30],
-      [40, 50, 60],
-    ]);
-
-    const pipeline = await createSharpPipeline(bmp, 'image/bmp');
-    const webp = await pipeline.webp({ quality: 80 }).toBuffer();
-
-    // WEBP container: "RIFF"...."WEBP"
-    expect(webp.subarray(0, 4).toString('ascii')).toBe('RIFF');
-    expect(webp.subarray(8, 12).toString('ascii')).toBe('WEBP');
-
-    const meta = await sharp(webp).metadata();
-    expect(meta.format).toBe('webp');
-    expect(meta.width).toBe(2);
-    expect(meta.height).toBe(1);
-  });
-
   it('passes sharp-native formats (png) straight through', async () => {
     const png = await sharp({
       create: { width: 3, height: 2, channels: 3, background: { r: 1, g: 2, b: 3 } },
@@ -106,5 +85,40 @@ describe('createSharpPipeline BMP handling', () => {
     expect(meta.format).toBe('png');
     expect(meta.width).toBe(3);
     expect(meta.height).toBe(2);
+  });
+});
+
+describe('downscaleToWebp', () => {
+  it('produces a compact webp capped to maxEdge from a BMP figure', async () => {
+    const width = 100;
+    const height = 40;
+    const pixels: Array<[number, number, number]> = Array.from({ length: width * height }, () => [
+      120, 30, 200,
+    ]);
+    const bmp = makeBmp(width, height, pixels);
+
+    const webp = await downscaleToWebp(bmp, 'image/bmp', { maxEdge: 32, quality: 70 });
+
+    expect(webp.subarray(0, 4).toString('ascii')).toBe('RIFF');
+    expect(webp.subarray(8, 12).toString('ascii')).toBe('WEBP');
+
+    const meta = await sharp(webp).metadata();
+    expect(meta.format).toBe('webp');
+    // Longest edge capped at 32, aspect ratio preserved (100x40 -> 32x~13).
+    expect(meta.width).toBe(32);
+    expect(meta.height).toBeLessThanOrEqual(32);
+  });
+
+  it('does not enlarge images smaller than maxEdge', async () => {
+    const png = await sharp({
+      create: { width: 10, height: 10, channels: 3, background: { r: 5, g: 5, b: 5 } },
+    })
+      .png()
+      .toBuffer();
+
+    const webp = await downscaleToWebp(png, 'image/png', { maxEdge: 512, quality: 70 });
+    const meta = await sharp(webp).metadata();
+    expect(meta.width).toBe(10);
+    expect(meta.height).toBe(10);
   });
 });

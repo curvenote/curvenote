@@ -62,7 +62,8 @@ import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
 import {
   handleFetchPreviewsIntent,
-  deleteDocumentPreviewCacheForVersion,
+  deletePreviewArtifactsForVersion,
+  signPreviewFigures,
 } from './metadata-extract/fetchPreviews.server';
 import {
   readDocumentPreviewsFromObjectTable,
@@ -302,9 +303,10 @@ export async function loader(args: Route.LoaderArgs) {
     }
   })();
 
-  // Read only cached document previews from Object table (no generation in loader)
-
-  const previews = await readDocumentPreviewsFromObjectTable(signedMetadata);
+  // Read only cached document previews from Object table (no generation in loader),
+  // then attach signed URLs to candidate figures so the picker never ships base64.
+  const cachedPreviews = await readDocumentPreviewsFromObjectTable(signedMetadata);
+  const previews = await signPreviewFigures(cachedPreviews, work.cdn ?? '', ctx);
   // Stored under the same key as the ETL register-work endpoint: metadata["frontmatter.myst"].
   const mystFrontmatter = (rawMetadata as Record<string, unknown>)?.['frontmatter.myst'];
   const extractedMetadata: ExtractedMetadata | null =
@@ -644,18 +646,21 @@ export async function action(args: Route.ActionArgs) {
         });
 
         // Materialise the selected thumbnail (best-effort: never blocks submission).
+        // The locator is the candidate figure's storage key; materialisation validates
+        // it and we point the thumbnail column straight at that already-stored webp.
+        let materializedThumbnailKey: string | null = null;
         if (thumbnailLocator && wv.cdn) {
           try {
-            const thumbnailKey = await materializeSelectedThumbnail({
+            materializedThumbnailKey = await materializeSelectedThumbnail({
               ctx: baseCtx,
               workVersionId,
               cdn: wv.cdn,
               locator: thumbnailLocator,
             });
-            if (thumbnailKey) {
+            if (materializedThumbnailKey) {
               await prisma.workVersion.update({
                 where: { id: workVersionId },
-                data: { thumbnail: thumbnailKey },
+                data: { thumbnail: materializedThumbnailKey },
               });
             }
           } catch (error) {
@@ -667,12 +672,15 @@ export async function action(args: Route.ActionArgs) {
           }
         }
 
-        // Reclaim the (potentially large, base64-image-laden) document-preview cache
-        // rows now that previews have served their purpose. Runs after the response so
-        // it never delays submission; cleanup is best-effort and self-regenerating.
+        // Reclaim preview artifacts now that they have served their purpose: delete the
+        // unselected candidate figure files and the cached preview rows (which hold figure
+        // keys). Keep the selected thumbnail. Runs after the response so it never delays
+        // submission; cleanup is best-effort and self-regenerating.
         waitUntil(
-          deleteDocumentPreviewCacheForVersion(workVersionId, baseCtx).catch((error) => {
-            console.warn('[work-upload] preview cache cleanup failed', {
+          deletePreviewArtifactsForVersion(workVersionId, baseCtx, {
+            keepKey: materializedThumbnailKey,
+          }).catch((error) => {
+            console.warn('[work-upload] preview artifact cleanup failed', {
               workId,
               workVersionId,
               error,

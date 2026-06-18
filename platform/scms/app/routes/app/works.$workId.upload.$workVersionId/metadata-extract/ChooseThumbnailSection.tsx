@@ -19,7 +19,7 @@ export function ChooseThumbnailSection({
   onChange,
 }: ChooseThumbnailSectionProps) {
   const figures = useMemo(() => collectAllFigures(previewList), [previewList]);
-  const locators = useMemo(() => figures.map((f) => encodeFigureLocator(f)), [figures]);
+  const locators = useMemo(() => figures.map((f) => encodeFigureLocator(f.figure.key)), [figures]);
 
   // Default to the first figure; reset if the current selection is no longer valid
   // (e.g. previews changed after a re-upload).
@@ -54,10 +54,8 @@ export function ChooseThumbnailSection({
       ) : null}
       {figures.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {figures.map(({ attachment }, index) => {
-            const src = attachment.data
-              ? `data:${attachment.mimeType};base64,${attachment.data}`
-              : undefined;
+          {figures.map(({ figure }, index) => {
+            const src = figure.signedUrl;
             const locator = locators[index];
             const isSelected = locator === value;
             return (
@@ -66,7 +64,7 @@ export function ChooseThumbnailSection({
                 key={locator}
                 onClick={() => onChange(locator)}
                 aria-pressed={isSelected}
-                title={attachment.altText ?? attachment.name ?? 'Figure'}
+                title={figure.altText ?? figure.name ?? 'Figure'}
                 className={cn(
                   'group relative flex flex-col gap-1 rounded-md border px-2 py-1 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500',
                   isSelected
@@ -76,15 +74,15 @@ export function ChooseThumbnailSection({
               >
                 <p
                   className="pr-6 text-xs truncate text-muted-foreground/80"
-                  title={attachment.altText ?? attachment.name}
+                  title={figure.altText ?? figure.name}
                 >
-                  {attachment.altText ?? attachment.name ?? 'Figure'}
+                  {figure.altText ?? figure.name ?? 'Figure'}
                 </p>
                 <div className="flex overflow-hidden justify-center items-center min-h-0 rounded aspect-square bg-stone-100 dark:bg-stone-800">
                   {src ? (
                     <img
                       src={src}
-                      alt={attachment.altText ?? attachment.name ?? ''}
+                      alt={figure.altText ?? figure.name ?? ''}
                       className="object-contain w-full h-full"
                     />
                   ) : (
