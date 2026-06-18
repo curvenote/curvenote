@@ -289,17 +289,35 @@ function SingleFileView({
 
 export const ALL_FIGURES_TAB = 'all-figures';
 
-/** A single extracted figure (image attachment) with the file it came from. */
-export type DocxFigure = { attachment: OfficeAttachment; sourceName: string };
+/**
+ * A single extracted figure (image attachment) with the file it came from.
+ *
+ * `sourcePath` + `figureIndex` form a stable locator: the source file's cached AST
+ * is keyed by md5, so the index of an image within that file does not drift unless
+ * the file itself is re-uploaded. The server uses this to find the exact bytes.
+ */
+export type DocxFigure = {
+  attachment: OfficeAttachment;
+  sourceName: string;
+  sourcePath: string;
+  figureIndex: number;
+};
 
 /** Collect all image attachments across previews with source file name */
 export function collectAllFigures(previews: DocxPreviewItem[]): DocxFigure[] {
   const out: DocxFigure[] = [];
   for (const item of previews) {
     const attachments = item.ast.attachments ?? [];
+    let figureIndex = 0;
     for (const att of attachments) {
       if (att.type === 'image') {
-        out.push({ attachment: att, sourceName: item.data.name ?? item.path });
+        out.push({
+          attachment: att,
+          sourceName: item.data.name ?? item.path,
+          sourcePath: item.path,
+          figureIndex,
+        });
+        figureIndex += 1;
       }
     }
   }

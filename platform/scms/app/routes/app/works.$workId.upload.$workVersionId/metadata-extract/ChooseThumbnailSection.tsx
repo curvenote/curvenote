@@ -1,17 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Image as ImageIcon, Check } from 'lucide-react';
 import { SectionWithHeading, cn } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocxPreviewer';
+import { encodeFigureLocator } from './thumbnailSelection';
 import type { DocxPreviewItem } from './fetchPreviews.server';
 
 export interface ChooseThumbnailSectionProps {
   previewList: DocxPreviewItem[];
+  /** Currently selected thumbnail locator (see thumbnailSelection.ts), or null. */
+  value: string | null;
+  /** Report the selected thumbnail locator to the parent (drives the submit field). */
+  onChange: (locator: string | null) => void;
 }
 
-export function ChooseThumbnailSection({ previewList }: ChooseThumbnailSectionProps) {
-  const figures = collectAllFigures(previewList);
-  // Default selection is the first figure in the list.
-  const [selectedIndex, setSelectedIndex] = useState(0);
+export function ChooseThumbnailSection({
+  previewList,
+  value,
+  onChange,
+}: ChooseThumbnailSectionProps) {
+  const figures = useMemo(() => collectAllFigures(previewList), [previewList]);
+  const locators = useMemo(() => figures.map((f) => encodeFigureLocator(f)), [figures]);
+
+  // Default to the first figure; reset if the current selection is no longer valid
+  // (e.g. previews changed after a re-upload).
+  useEffect(() => {
+    if (locators.length === 0) {
+      if (value !== null) onChange(null);
+      return;
+    }
+    if (value == null || !locators.includes(value)) {
+      onChange(locators[0]);
+    }
+  }, [locators, value, onChange]);
 
   if (figures.length === 0) return null;
 
@@ -25,16 +45,17 @@ export function ChooseThumbnailSection({ previewList }: ChooseThumbnailSectionPr
         Select an image from your document to use as the thumbnail.
       </p>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {figures.map(({ attachment, sourceName }, index) => {
+        {figures.map(({ attachment }, index) => {
           const src = attachment.data
             ? `data:${attachment.mimeType};base64,${attachment.data}`
             : undefined;
-          const isSelected = index === selectedIndex;
+          const locator = locators[index];
+          const isSelected = locator === value;
           return (
             <button
               type="button"
-              key={`${sourceName}-${attachment.name}-${index}`}
-              onClick={() => setSelectedIndex(index)}
+              key={locator}
+              onClick={() => onChange(locator)}
               aria-pressed={isSelected}
               title={attachment.altText ?? attachment.name ?? 'Figure'}
               className={cn(

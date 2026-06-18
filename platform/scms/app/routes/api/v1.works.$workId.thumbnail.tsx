@@ -1,18 +1,19 @@
 import type { Route } from './+types/v1.works.$workId.thumbnail';
-import * as cdnlib from '@curvenote/cdn';
 import { error404, work } from '@curvenote/scms-core';
-import { withSecureWorkContext, sortSignedUrlQuery } from '@curvenote/scms-server';
+import {
+  withSecureWorkContext,
+  sortSignedUrlQuery,
+  works,
+  resolveWorkVersionThumbnail,
+} from '@curvenote/scms-server';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureWorkContext(args, [work.id.read]);
   const query = sortSignedUrlQuery(args.request.url);
-  const { cdn, cdn_key } = ctx.workDTO;
-  if (!cdn || !cdn_key) throw error404();
-  const location = await cdnlib.getCdnLocation({ cdn, key: cdn_key });
-  const thumbnail = await cdnlib.getThumbnailBuffer({
-    ...location,
-    query,
-  });
+  const version = works.getCanonicalOrLatestVersion(ctx.work.versions ?? []);
+  if (!version?.cdn || (!version.cdn_key && !version.thumbnail)) throw error404();
+  const thumbnail = await resolveWorkVersionThumbnail(ctx, version, { query });
+  if (!thumbnail) throw error404();
   return new Response(thumbnail, {
     headers: {
       'Cache-Control': 'max-age=3600',

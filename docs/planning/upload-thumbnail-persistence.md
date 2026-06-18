@@ -1,5 +1,24 @@
 # Plan: Upload Thumbnail Persistence
 
+> **Status (implemented):** The core thumbnail persistence is now in place:
+>
+> - `WorkVersion.thumbnail` nullable column + migration
+>   (`20260617120000_add_work_version_thumbnail`).
+> - `thumbnail` added to the lean WorkVersion selects and `WorkVersionDBO`.
+> - `resolveWorkVersionThumbnail` + `hasResolvableThumbnail` cascade
+>   (`packages/scms-server/src/backend/thumbnail.server.ts`): column (read direct from
+>   storage) → published CDN manifest. The resolver never reads the `metadata` blob.
+> - The 3 thumbnail buffer endpoints (internal work, site work, site work version) and
+>   the `formatWorkDTO` link builder route through the cascade.
+> - On `confirm-work`, the selected figure is resized/normalised with `sharp`
+>   (≤512px, webp) and written to the work version's bucket; the storage key is saved
+>   to `WorkVersion.thumbnail` (best-effort, never blocks submission).
+> - The picker submits a stable `sourcePath\u0000figureIndex` locator (not a flattened
+>   global index) via `thumbnailSelection.ts`.
+>
+> **Remaining TODO:** ETL endpoint optimisation (write `wv.thumbnail` from MyST
+> frontmatter) — see "TODO" section below.
+
 ## Goal
 
 Persist the thumbnail a user selects in the work upload form's "Choose a Thumbnail"

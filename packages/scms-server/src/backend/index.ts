@@ -26,6 +26,7 @@ export * from './sign.previews.server.js';
 export * from './sign.private.server.js';
 export * from './sign.tokens.server.js';
 export * from './submission-version-metadata.server.js';
+export * from './thumbnail.server.js';
 export * from './utils.server.js';
 export * from './domains.server.js';
 export * from './workDraftChecksMetadata.server.js';

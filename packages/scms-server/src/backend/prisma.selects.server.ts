@@ -6,6 +6,7 @@ export const siteWorkWorkVersionSelect = {
   work_id: true,
   cdn: true,
   cdn_key: true,
+  thumbnail: true,
   title: true,
   description: true,
   authors: true,
@@ -30,6 +31,7 @@ export const cdnWorkVersionSelect = {
   work_id: true,
   cdn: true,
   cdn_key: true,
+  thumbnail: true,
 } satisfies Prisma.WorkVersionSelect;
 
 /**
@@ -96,7 +98,9 @@ export const siteWorkDtoSelect = {
 /** Published thumbnail/social hot path — CDN fields only. */
 export const publishedThumbnailSelect = {
   id: true,
-  work_version: { select: { id: true, work_id: true, cdn: true, cdn_key: true } },
+  work_version: {
+    select: { id: true, work_id: true, cdn: true, cdn_key: true, thumbnail: true },
+  },
 } satisfies Prisma.SubmissionVersionSelect;
 
 /**

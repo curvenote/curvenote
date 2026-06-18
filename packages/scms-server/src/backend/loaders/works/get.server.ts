@@ -43,6 +43,10 @@ export function formatWorkDTO(
       'no-social',
     );
     thumbnail = thumbnailUrl;
+  } else if (version.thumbnail && version.cdn) {
+    // Draft / pre-publish: preferred thumbnail column is set but no manifest yet.
+    // The thumbnail endpoint resolves the column directly (signs storage itself).
+    thumbnail = ctx.asApiUrl(`/works/${work.id}/thumbnail`);
   }
   return {
     id: work.id,
