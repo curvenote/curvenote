@@ -58,11 +58,20 @@ describe('createSharpPipeline BMP handling', () => {
       const i = (y * info.width + x) * channels;
       return [data[i], data[i + 1], data[i + 2]];
     };
+    const alphaAt = (x: number, y: number) => data[(y * info.width + x) * channels + 3];
 
     expect(pixelAt(0, 0)).toEqual([255, 0, 0]); // red
     expect(pixelAt(1, 0)).toEqual([0, 255, 0]); // green
     expect(pixelAt(0, 1)).toEqual([0, 0, 255]); // blue
     expect(pixelAt(1, 1)).toEqual([255, 255, 255]); // white
+
+    // 24-bit BMPs carry no alpha; pixels must be opaque, not transparent (blank).
+    if (channels === 4) {
+      expect(alphaAt(0, 0)).toBe(255);
+      expect(alphaAt(1, 0)).toBe(255);
+      expect(alphaAt(0, 1)).toBe(255);
+      expect(alphaAt(1, 1)).toBe(255);
+    }
   });
 
   it('produces a valid webp thumbnail from a BMP figure', async () => {

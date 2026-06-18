@@ -42,13 +42,17 @@ export async function createSharpPipeline(buffer: Buffer, mimeType: string) {
     const { decode } = await import('bmp-js');
     const decoded = decode(buffer);
     // bmp-js returns pixels as ABGR (4 bytes/pixel); sharp raw input expects RGBA.
-    const { data, width, height } = decoded;
+    // Note: bmp-js only writes a real alpha byte for 32-bit BMPs — for lower bit
+    // depths it leaves alpha as 0, which sharp would treat as fully transparent
+    // (producing a blank thumbnail). Force opaque unless the source is 32-bit.
+    const { data, width, height, bitPP } = decoded;
+    const hasAlpha = bitPP === 32;
     const rgba = Buffer.allocUnsafe(data.length);
     for (let i = 0; i < data.length; i += 4) {
       rgba[i] = data[i + 3]; // R
       rgba[i + 1] = data[i + 2]; // G
       rgba[i + 2] = data[i + 1]; // B
-      rgba[i + 3] = data[i]; // A
+      rgba[i + 3] = hasAlpha ? data[i] : 0xff; // A
     }
     return sharp(rgba, { raw: { width, height, channels: 4 } });
   }
