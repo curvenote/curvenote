@@ -15,9 +15,13 @@ export function AuthorMetadataForm({ value, onChange }: AuthorMetadataFormProps)
   const fetcher = useFetcher<Route.ComponentProps['actionData']>();
   const [authors, setAuthors] = useState<Author[]>(value.authors);
   const [affiliations, setAffiliations] = useState<Affiliation[]>(value.affiliations);
+  const authorsRef = useRef<Author[]>(value.authors);
+  const affiliationsRef = useRef<Affiliation[]>(value.affiliations);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    authorsRef.current = value.authors;
+    affiliationsRef.current = value.affiliations;
     setAuthors(value.authors);
     setAffiliations(value.affiliations);
   }, [value]);
@@ -43,6 +47,8 @@ export function AuthorMetadataForm({ value, onChange }: AuthorMetadataFormProps)
 
   const update = useCallback(
     (next: AuthorFieldMetadata) => {
+      authorsRef.current = next.authors;
+      affiliationsRef.current = next.affiliations;
       setAuthors(next.authors);
       setAffiliations(next.affiliations);
       onChange(next);
@@ -51,16 +57,28 @@ export function AuthorMetadataForm({ value, onChange }: AuthorMetadataFormProps)
     [onChange, submit],
   );
 
+  const updateAuthors = useCallback(
+    (nextAuthors: Author[]) => {
+      update({ authors: nextAuthors, affiliations: affiliationsRef.current });
+    },
+    [update],
+  );
+
+  const updateAffiliations = useCallback(
+    (nextAffiliations: Affiliation[]) => {
+      update({ authors: authorsRef.current, affiliations: nextAffiliations });
+    },
+    [update],
+  );
+
   return (
     <div className="space-y-2">
       <AuthorField
         schema={{ name: 'authors', title: 'Authors', required: false }}
         value={authors}
-        onChange={(nextAuthors) => update({ authors: nextAuthors, affiliations })}
+        onChange={updateAuthors}
         affiliationList={affiliations}
-        onAffiliationListChange={(nextAffiliations) =>
-          update({ authors, affiliations: nextAffiliations })
-        }
+        onAffiliationListChange={updateAffiliations}
         autoSave={false}
       />
       {fetcher.state !== 'idle' ? (

@@ -165,4 +165,39 @@ describe('myst author adapters', () => {
     });
     expect(deriveWorkVersionAuthors(updated.authors ?? [])).toEqual(['Tiago Paixao Jr']);
   });
+
+  it('removes affiliations omitted by the AuthorField payload', () => {
+    const existing = {
+      authors: [
+        {
+          id: 'contributors-generated-uid-0',
+          name: 'Tiago Paixao',
+          affiliations: ['a1', 'a2'],
+        },
+      ],
+      affiliations: [
+        { id: 'a1', name: 'Department of Biology and Biochemistry' },
+        { id: 'a2', name: 'Institute of Science and Technology Austria' },
+      ],
+    };
+
+    const updated = authorFieldToMystFrontmatter(
+      {
+        authors: [
+          {
+            id: 'contributors-generated-uid-0',
+            name: 'Tiago Paixao',
+            affiliationIds: ['a1'],
+          },
+        ],
+        affiliations: [{ id: 'a1', name: 'Department of Biology and Biochemistry' }],
+      },
+      existing,
+    );
+
+    expect(updated.authors?.[0]?.affiliations).toEqual(['a1']);
+    expect(updated.affiliations).toEqual([
+      { id: 'a1', name: 'Department of Biology and Biochemistry' },
+    ]);
+  });
 });
