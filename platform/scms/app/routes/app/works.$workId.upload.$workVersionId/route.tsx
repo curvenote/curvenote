@@ -323,9 +323,12 @@ export async function loader(args: Route.LoaderArgs) {
   const storedExtractionSource = (rawMetadata as Record<string, unknown>)?.[
     METADATA_EXTRACT_SOURCE_KEY
   ];
+  const hasStoredExtractionSource =
+    typeof storedExtractionSource === 'string' && storedExtractionSource !== '';
   const isExtractionStale =
     extractedMetadata != null &&
     manuscriptSourceSignature !== '' &&
+    hasStoredExtractionSource &&
     storedExtractionSource !== manuscriptSourceSignature;
 
   const hasMetadataExtractScope = userHasScope(
@@ -816,14 +819,16 @@ export async function action(args: Route.ActionArgs) {
         );
         const cachedSourceSignature = currentMeta[METADATA_EXTRACT_SOURCE_KEY];
         // `force` is set by the manual "re-run extraction" control and always
-        // re-extracts. Otherwise skip when a cached result exists AND it was
-        // produced from the current manuscript file(s); a changed/replaced
-        // document invalidates the cache.
+        // re-extracts. Otherwise skip when a cached result exists with no source
+        // marker (legacy/ETL metadata), or when the marker matches the current
+        // manuscript file(s); a changed/replaced document invalidates the cache.
         const forceReextract = force === 'true';
+        const hasCachedSourceSignature =
+          typeof cachedSourceSignature === 'string' && cachedSourceSignature !== '';
         if (
           !forceReextract &&
           hasMystFrontmatter &&
-          cachedSourceSignature === currentSourceSignature
+          (!hasCachedSourceSignature || cachedSourceSignature === currentSourceSignature)
         ) {
           return data({ ok: true });
         }

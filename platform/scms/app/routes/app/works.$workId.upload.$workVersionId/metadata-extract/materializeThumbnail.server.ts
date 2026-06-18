@@ -12,7 +12,7 @@
  */
 import { createHash } from 'node:crypto';
 import type { Context } from '@curvenote/scms-server';
-import { File, KnownBuckets, StorageBackend } from '@curvenote/scms-server';
+import { File, KnownBuckets, resolveThumbnailBucket, StorageBackend } from '@curvenote/scms-server';
 import { fetchDocumentPreviews } from './fetchPreviews.server';
 import { decodeFigureLocator } from './thumbnailSelection';
 
@@ -72,7 +72,7 @@ export async function materializeSelectedThumbnail({
   const key = storageKeyForThumbnail(parts.sourcePath, hash);
 
   const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
-  const bucket = backend.knownBucketFromCDN(cdn) ?? KnownBuckets.pub;
+  const bucket = resolveThumbnailBucket(ctx, backend, cdn);
   const file = new File(backend, key, bucket);
   await file.writeArrayBuffer(
     processed.buffer.slice(
