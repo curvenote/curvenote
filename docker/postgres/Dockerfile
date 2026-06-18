@@ -31,8 +31,11 @@ RUN set -eux; \
     apt-get purge -y --auto-remove build-essential git postgresql-server-dev-16; \
     rm -rf /tmp/pgmq /tmp/pg_net /var/lib/apt/lists/*
 
-# pg_cron must be preloaded and is bound to a single database; point it at the
-# dev database. pg_net's background worker also starts via shared_preload_libraries.
+# pg_cron and pg_net each run a single background worker bound to ONE database
+# (cron.database_name / pg_net.database_name, both default 'postgres'). Our app
+# uses the `journals` db, so point both workers there — otherwise the workers
+# attach to `postgres` and never see the queue/cron jobs created in `journals`.
 RUN set -eux; \
     echo "shared_preload_libraries = 'pg_cron,pg_net'" >> /usr/share/postgresql/postgresql.conf.sample; \
-    echo "cron.database_name = 'journals'" >> /usr/share/postgresql/postgresql.conf.sample
+    echo "cron.database_name = 'journals'" >> /usr/share/postgresql/postgresql.conf.sample; \
+    echo "pg_net.database_name = 'journals'" >> /usr/share/postgresql/postgresql.conf.sample
