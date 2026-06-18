@@ -25,10 +25,12 @@ import {
   findWorkByVersion,
   getPrismaClient,
   resolveThumbnailBucket,
+  safeWorkVersionJsonUpdate,
   signFilesInMetadata,
 } from '@curvenote/scms-server';
 import type { FileMetadataSectionItem } from '@curvenote/scms-core';
 import type { Context } from '@curvenote/scms-server';
+import type { Prisma } from '@curvenote/scms-db';
 import { formatDate } from '@curvenote/common';
 import type { OfficeParserAST, OfficeContentNode, OfficeAttachment } from 'officeparser';
 import { isPreviewCandidate } from './previewGuards';
@@ -82,6 +84,28 @@ export interface PreviewFigure {
   altText?: string;
   /** Signed read URL — populated at loader time (see signPreviewFigures), never persisted. */
   signedUrl?: string;
+}
+
+/** Top-level WorkVersion.metadata key holding the durable thumbnail listing. */
+export const METADATA_THUMBNAILS_KEY = 'thumbnails';
+
+/**
+ * A thumbnail generated during preview extraction and retained in storage for the work
+ * version's lifetime. Persisted under metadata.thumbnails on confirm-work so the full
+ * set of generated thumbnails can be discovered later (the cached preview rows that also
+ * hold these keys are cleaned up on confirm; this listing is the durable record).
+ */
+export interface StoredThumbnail {
+  /** Storage key (path) of the downscaled webp thumbnail. */
+  key: string;
+  /** Source file path (key in metadata.files) the thumbnail was extracted from. */
+  sourcePath: string;
+  /** md5 of the source file, correlating the thumbnail with its source in metadata.files. */
+  md5: string;
+  /** Original attachment name, if available. */
+  name?: string;
+  /** Original attachment alt text, if available. */
+  altText?: string;
 }
 
 /** First-page AST (text/content only — no base64 attachments). */
@@ -530,77 +554,126 @@ export async function readPreviewFigureKeysForVersion(workVersionId: string): Pr
 }
 
 /**
- * Remove preview artifacts for a work version: the candidate figure webp files in
- * storage (except `keepKey`, typically the selected thumbnail) and the cached preview
- * rows in the Object table (current + legacy prefixes).
+ * Collect the full set of generated thumbnails for a work version from the cached
+ * preview rows, as rich {@link StoredThumbnail} entries (storage key + source
+ * correlation + names). De-duplicated by storage key.
+ */
+export async function collectStoredThumbnailsForVersion(
+  workVersionId: string,
+): Promise<StoredThumbnail[]> {
+  const work = await findWorkByVersion(workVersionId);
+  const rawMetadata = work?.metadata as Record<string, unknown> | undefined;
+  const files = rawMetadata?.files as Record<string, FileMetadataSectionItem> | undefined;
+  if (!files || typeof files !== 'object') return [];
+
+  // Map each candidate file's cache id back to its md5 + source path so every cached
+  // figure can record where it came from.
+  const metaByCacheId = new Map<string, { md5: string; sourcePath: string }>();
+  for (const [sourcePath, file] of Object.entries(files)) {
+    if (!isPreviewCandidate(file)) continue;
+    const md5 = file.md5;
+    if (typeof md5 === 'string' && md5.length > 0) {
+      metaByCacheId.set(documentPreviewCacheId(md5), { md5, sourcePath });
+    }
+  }
+  if (metaByCacheId.size === 0) return [];
+
+  const prisma = await getPrismaClient();
+  const rows = await prisma.object.findMany({
+    where: { id: { in: Array.from(metaByCacheId.keys()) } },
+    select: { id: true, data: true },
+  });
+
+  const thumbnails: StoredThumbnail[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    if (!isCachedPreview(row.data)) continue;
+    const meta = metaByCacheId.get(row.id);
+    if (!meta) continue;
+    for (const fig of row.data.figures) {
+      if (!fig.key || seen.has(fig.key)) continue;
+      seen.add(fig.key);
+      thumbnails.push({
+        key: fig.key,
+        sourcePath: meta.sourcePath,
+        md5: meta.md5,
+        ...(fig.name ? { name: fig.name } : {}),
+        ...(fig.altText ? { altText: fig.altText } : {}),
+      });
+    }
+  }
+  return thumbnails;
+}
+
+/**
+ * Persist the full thumbnail listing to metadata.thumbnails (union by storage key with
+ * any existing entries). Called on confirm-work so generated thumbnails remain
+ * discoverable after the preview cache rows are cleaned up. Best-effort: never throws.
+ */
+export async function persistThumbnailListingForVersion(
+  workVersionId: string,
+): Promise<StoredThumbnail[]> {
+  try {
+    const thumbnails = await collectStoredThumbnailsForVersion(workVersionId);
+    if (thumbnails.length === 0) return [];
+    await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
+      const meta = (current as Record<string, unknown>) ?? {};
+      const existingRaw = meta[METADATA_THUMBNAILS_KEY];
+      const existing = Array.isArray(existingRaw) ? (existingRaw as StoredThumbnail[]) : [];
+      const byKey = new Map<string, StoredThumbnail>();
+      for (const t of existing) if (t?.key) byKey.set(t.key, t);
+      for (const t of thumbnails) byKey.set(t.key, t);
+      return {
+        ...meta,
+        [METADATA_THUMBNAILS_KEY]: Array.from(byKey.values()),
+      } as unknown as Prisma.JsonObject;
+    });
+    return thumbnails;
+  } catch (err) {
+    console.warn('persistThumbnailListingForVersion: failed', workVersionId, err);
+    return [];
+  }
+}
+
+/**
+ * Remove the cached preview rows for a work version from the Object table (current +
+ * legacy prefixes) after a successful `confirm-work`.
  *
- * Called after a successful `confirm-work`. Best-effort: never throws.
+ * The generated thumbnail webp files are intentionally retained in storage — they are
+ * recorded under metadata.thumbnails (see {@link persistThumbnailListingForVersion}) so
+ * they stay discoverable for the work version's lifetime. Only the regenerable parse
+ * cache rows are dropped here.
  *
- * The cache is content-addressed by md5, so in the rare case another draft uploaded
- * the byte-identical file, its cache is dropped too — that's fine, it regenerates.
+ * Best-effort: never throws. The cache is content-addressed by md5, so in the rare case
+ * another draft uploaded the byte-identical file, its cache row is dropped too — that's
+ * fine, it regenerates.
  */
 export async function deletePreviewArtifactsForVersion(
   workVersionId: string,
-  ctx: Context,
-  opts?: { keepKey?: string | null },
-): Promise<{ rows: number; files: number }> {
+): Promise<{ rows: number }> {
   try {
     const work = await findWorkByVersion(workVersionId);
     const rawMetadata = work?.metadata as Record<string, unknown> | undefined;
     const files = rawMetadata?.files as Record<string, FileMetadataSectionItem> | undefined;
-    if (!files || typeof files !== 'object') return { rows: 0, files: 0 };
+    if (!files || typeof files !== 'object') return { rows: 0 };
 
     const md5s = Object.values(files)
       .filter((file) => isPreviewCandidate(file))
       .map((file) => file.md5)
       .filter((md5): md5 is string => typeof md5 === 'string' && md5.length > 0);
-    if (md5s.length === 0) return { rows: 0, files: 0 };
+    if (md5s.length === 0) return { rows: 0 };
 
     const prisma = await getPrismaClient();
-    const currentIds = md5s.map((md5) => documentPreviewCacheId(md5));
-
-    // Remove unselected candidate figure files from storage (current-format rows only).
-    let filesDeleted = 0;
-    const cdn = work?.cdn ?? '';
-    if (cdn) {
-      const rows = await prisma.object.findMany({
-        where: { id: { in: currentIds } },
-        select: { data: true },
-      });
-      const keep = opts?.keepKey ?? null;
-      const keysToDelete = new Set<string>();
-      for (const row of rows) {
-        if (!isCachedPreview(row.data)) continue;
-        for (const fig of row.data.figures) {
-          if (fig.key && fig.key !== keep) keysToDelete.add(fig.key);
-        }
-      }
-      if (keysToDelete.size > 0) {
-        const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
-        const bucket = resolveThumbnailBucket(ctx, backend, cdn);
-        await Promise.all(
-          Array.from(keysToDelete).map(async (key) => {
-            try {
-              await new File(backend, key, bucket).delete();
-              filesDeleted += 1;
-            } catch (err) {
-              console.warn('deletePreviewArtifactsForVersion: failed to delete figure', key, err);
-            }
-          }),
-        );
-      }
-    }
-
     const cacheIds = Array.from(
       new Set([
-        ...currentIds,
+        ...md5s.map((md5) => documentPreviewCacheId(md5)),
         ...md5s.flatMap((md5) => LEGACY_PREVIEW_CACHE_PREFIXES.map((prefix) => `${prefix}${md5}`)),
       ]),
     );
     const { count } = await prisma.object.deleteMany({ where: { id: { in: cacheIds } } });
-    return { rows: count, files: filesDeleted };
+    return { rows: count };
   } catch (err) {
     console.warn('deletePreviewArtifactsForVersion: cleanup failed', workVersionId, err);
-    return { rows: 0, files: 0 };
+    return { rows: 0 };
   }
 }

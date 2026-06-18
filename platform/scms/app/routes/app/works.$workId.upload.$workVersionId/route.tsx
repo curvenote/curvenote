@@ -63,6 +63,7 @@ import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-rou
 import {
   handleFetchPreviewsIntent,
   deletePreviewArtifactsForVersion,
+  persistThumbnailListingForVersion,
   signPreviewFigures,
 } from './metadata-extract/fetchPreviews.server';
 import {
@@ -672,20 +673,22 @@ export async function action(args: Route.ActionArgs) {
           }
         }
 
-        // Reclaim preview artifacts now that they have served their purpose: delete the
-        // unselected candidate figure files and the cached preview rows (which hold figure
-        // keys). Keep the selected thumbnail. Runs after the response so it never delays
-        // submission; cleanup is best-effort and self-regenerating.
+        // Finalise preview artifacts now that they have served their purpose: first record
+        // every generated thumbnail under metadata.thumbnails (the durable listing — the
+        // thumbnail files themselves are retained in storage), then drop the regenerable
+        // cached preview rows. Order matters: the listing is collected from those rows
+        // before they are deleted. Runs after the response so it never delays submission;
+        // best-effort and self-regenerating.
         waitUntil(
-          deletePreviewArtifactsForVersion(workVersionId, baseCtx, {
-            keepKey: materializedThumbnailKey,
-          }).catch((error) => {
-            console.warn('[work-upload] preview artifact cleanup failed', {
-              workId,
-              workVersionId,
-              error,
-            });
-          }),
+          persistThumbnailListingForVersion(workVersionId)
+            .then(() => deletePreviewArtifactsForVersion(workVersionId))
+            .catch((error) => {
+              console.warn('[work-upload] preview artifact finalisation failed', {
+                workId,
+                workVersionId,
+                error,
+              });
+            }),
         );
 
         // Schedule each enabled check via its extension. Each check service is
