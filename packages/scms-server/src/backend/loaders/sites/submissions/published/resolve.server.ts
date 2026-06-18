@@ -61,9 +61,13 @@ export async function fetchPublishedSubmissionVersionId(
   workIdOrSlug: string,
 ): Promise<string | null> {
   if (looksLikeUUID(workIdOrSlug)) {
-    return fetchPublishedSubmissionVersionIdByWorkId(siteId, workIdOrSlug);
+    const id = await fetchPublishedSubmissionVersionIdByWorkId(siteId, workIdOrSlug);
+    if (id) return id;
+    return fetchPublishedSubmissionVersionIdBySlug(siteId, workIdOrSlug);
   }
-  return fetchPublishedSubmissionVersionIdBySlug(siteId, workIdOrSlug);
+  const id = await fetchPublishedSubmissionVersionIdBySlug(siteId, workIdOrSlug);
+  if (id) return id;
+  return fetchPublishedSubmissionVersionIdByWorkId(siteId, workIdOrSlug);
 }
 
 export async function hydratePublishedSubmissionVersion<
