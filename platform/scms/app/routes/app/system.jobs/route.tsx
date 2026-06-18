@@ -34,7 +34,7 @@ import { consumeJobQueueMessage } from '../../../lib/job-queue-consumer.server';
 import { uuidv7 } from 'uuidv7';
 
 /** Max messages a single "Drain now" click will process in-process before returning. */
-const MAX_MANUAL_DRAIN = 25;
+const MAX_MANUAL_DRAIN = 10;
 
 export const meta: Route.MetaFunction = () => {
   return [
