@@ -107,11 +107,45 @@ export const supabaseQueueProvider: JobQueueProvider = {
 
   async send(message: JobQueueMessage, options: JobQueueSendOptions): Promise<JobQueueSendResult> {
     const prisma = await getPrismaClient();
-    const rows = await prisma.$queryRaw<Array<{ send: bigint }>>(
-      Prisma.sql`SELECT pgmq.send(${PGMQ_JOB_QUEUE_NAME}, ${message}::jsonb) AS send`,
-    );
-    const msgId = rows[0]?.send;
-    return { messageId: msgId != null ? String(msgId) : options.idempotencyKey };
+    // Honor idempotencyKey (the job_id). pgmq has no native idempotency, so skip
+    // the enqueue when a message for the same job is already pending or in-flight
+    // in pgmq.q_job. Without this, a retried enqueue (e.g. a client retry of
+    // POST /v1/jobs with the same id, where ensureJobRow already skipped the
+    // insert) would add a second message and two drains could run the same job
+    // concurrently. A transaction-scoped advisory lock keyed on the job id
+    // serializes concurrent sends for the same job, making the check-then-insert
+    // atomic; different jobs hash to different keys and never contend.
+    return prisma.$transaction(async (tx) => {
+      await tx.$executeRaw(
+        Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${options.idempotencyKey}))`,
+      );
+      const rows = await tx.$queryRaw<Array<{ send: bigint }>>(
+        Prisma.sql`SELECT pgmq.send(${PGMQ_JOB_QUEUE_NAME}, ${message}::jsonb) AS send
+                   WHERE NOT EXISTS (
+                     SELECT 1 FROM pgmq.q_job WHERE message ->> 'job_id' = ${options.idempotencyKey}
+                   )`,
+      );
+      const msgId = rows[0]?.send;
+      if (msgId != null) {
+        return { messageId: String(msgId) };
+      }
+
+      // A message for this job is already queued/in-flight: return its id so the
+      // caller still gets a stable handle, but do not enqueue a duplicate.
+      const existing = await tx.$queryRaw<Array<{ msg_id: bigint }>>(
+        Prisma.sql`SELECT msg_id FROM pgmq.q_job
+                   WHERE message ->> 'job_id' = ${options.idempotencyKey}
+                   ORDER BY msg_id ASC
+                   LIMIT 1`,
+      );
+      const existingId = existing[0]?.msg_id;
+      console.log('[supabase-queue] skipping duplicate enqueue; job already in queue', {
+        job_id: message.job_id,
+        idempotencyKey: options.idempotencyKey,
+        existingMessageId: existingId != null ? String(existingId) : null,
+      });
+      return { messageId: existingId != null ? String(existingId) : options.idempotencyKey };
+    });
   },
 
   readOne: readOneFromPgmq,
