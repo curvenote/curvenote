@@ -30,7 +30,9 @@ npm run dev
 
 ### Job queue local development
 
-By default, local development now uses the **supabase provider** (real **pgmq** + **pg_net**) against the Docker Postgres, matching staging/prod. The local Postgres image bundles pgmq, pg_net, and pg_cron (see [`docker/postgres/Dockerfile`](../../docker/postgres/Dockerfile)). On enqueue, a `pg_net` trigger on `pgmq.q_job` wakes **`POST /v1/jobs/push-to-drain`**; the drain config is auto-seeded so the wake (fired from inside the container) reaches the dev server at `host.docker.internal`. Set `QUEUES_PROVIDER=mock` (`.env` only — not app-config) to fall back to the **in-process mock queue** (no pgmq required).
+By default, local development now uses the **supabase provider** (real **pgmq** + **pg_net**) against the Docker Postgres, matching staging/prod. The local Postgres image bundles pgmq, pg_net, and pg_cron (see [`docker/postgres/Dockerfile`](../../docker/postgres/Dockerfile)), and binds the `pg_net` + `pg_cron` workers to the `journals` db (`pg_net.database_name` / `cron.database_name`) so they actually drain the local queue. On enqueue, a `pg_net` trigger on `pgmq.q_job` wakes **`POST /v1/jobs/push-to-drain`**; the drain config is auto-seeded so the wake (fired from inside the container) reaches the dev server at `host.docker.internal`. Set `QUEUES_PROVIDER=mock` (`.env` only — not app-config) to fall back to the **in-process mock queue** (no pgmq required).
+
+If a backlog gets stuck (e.g. the dev server was down when wakes fired), the **Queues** tab (`/app/system/jobs?tab=queues`) has a **Drain now** button that processes up to 10 messages in-process without relying on the `pg_net` wake.
 
 **Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, staging/prod secrets YAML on deployed envs) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
 

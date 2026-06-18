@@ -7,7 +7,7 @@
 
 **Async-only** job architecture: `enqueueAndDispatchJob`, `dispatchJob`, `runHandler`, dependency rows (`BLOCKED` / `depends_on_job_id` / `trigger_on`), and `onJobTerminal`.
 
-**Transport:** [Supabase pgmq](https://github.com/tembo-io/pgmq) queue `job` in Postgres. The enqueue wake is **database-fired**: a `pg_net` `AFTER INSERT` trigger on `pgmq.q_job` calls `POST /v1/jobs/push-to-drain`. **pg_cron** + `pg_net` provides a once-per-minute backup wake. The mock provider (local dev) self-HTTP wakes from the app since there is no database trigger.
+**Transport:** [Supabase pgmq](https://github.com/tembo-io/pgmq) queue `job` in Postgres. The enqueue wake is **database-fired**: a `pg_net` `AFTER INSERT` trigger on `pgmq.q_job` calls `POST /v1/jobs/push-to-drain`. **pg_cron** + `pg_net` provides a once-per-minute backup wake. Local dev defaults to this same pgmq + `pg_net` stack (the `pg_net`/`pg_cron` workers are bound to the `journals` db). The mock provider (tests, or `QUEUES_PROVIDER=mock`) self-HTTP wakes from the app since there is no database trigger.
 
 No separate queue service. The consumer runs inside SCMS on the same deployment.
 
@@ -28,12 +28,12 @@ enqueueAndDispatchJob
 
 ## Providers
 
-| `QUEUES_PROVIDER` | When | Storage |
-|---|---|---|
-| `mock` | `NODE_ENV=development`, `NODE_ENV=test`, or explicit | In-memory array |
-| `supabase` | `VERCEL=1` or explicit | pgmq queue `job` |
+| `QUEUES_PROVIDER` | When                                       | Storage          |
+| ----------------- | ------------------------------------------ | ---------------- |
+| `mock`            | `NODE_ENV=test`, or explicit               | In-memory array  |
+| `supabase`        | local dev default, `VERCEL=1`, or explicit | pgmq queue `job` |
 
-Env: `QUEUES_PROVIDER=mock|supabase`. Default **`mock`** in development/test; **`supabase`** when `VERCEL=1`.
+Env: `QUEUES_PROVIDER=mock|supabase`. Default **`supabase`** in local development (and when `VERCEL=1`); **`mock`** only when `NODE_ENV=test`.
 
 ## Auth
 
@@ -61,14 +61,14 @@ Because the supabase enqueue wake now comes only from the database, **`_JobQueue
 
 ## Key files
 
-| Path | Role |
-|---|---|
-| `packages/scms-server/.../queueProviders/supabase.server.ts` | pgmq send/read/ack |
-| `packages/scms-server/.../queueProviders/mock.server.ts` | Local in-memory queue |
-| `packages/scms-server/.../notifyQueueConsumer.server.ts` | Self-HTTP wake |
-| `packages/scms-server/.../drainOneJob.server.ts` | qty=1 drain + chain |
-| `platform/scms/app/routes/api/v1.jobs.push-to-drain/route.tsx` | 202 + waitUntil consumer |
-| `platform/scms/vercel.ts` | `maxDuration` for drain route |
+| Path                                                           | Role                          |
+| -------------------------------------------------------------- | ----------------------------- |
+| `packages/scms-server/.../queueProviders/supabase.server.ts`   | pgmq send/read/ack            |
+| `packages/scms-server/.../queueProviders/mock.server.ts`       | Local in-memory queue         |
+| `packages/scms-server/.../notifyQueueConsumer.server.ts`       | Self-HTTP wake                |
+| `packages/scms-server/.../drainOneJob.server.ts`               | qty=1 drain + chain           |
+| `platform/scms/app/routes/api/v1.jobs.push-to-drain/route.tsx` | 202 + waitUntil consumer      |
+| `platform/scms/vercel.ts`                                      | `maxDuration` for drain route |
 
 ## References
 
