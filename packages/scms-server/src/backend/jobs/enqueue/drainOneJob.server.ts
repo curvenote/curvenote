@@ -1,5 +1,5 @@
-import type { JobQueueDeliveryMetadata, JobQueueMessage } from './queueProviders/types.js';
-import { getJobQueueProvider } from './queueProviders/index.server.js';
+import type { JobQueueDeliveryMetadata, JobQueueMessage } from './pgmq/types.js';
+import { ackJobMessage, getJobQueueDepth, readOneJobMessage } from './pgmq/jobQueue.server.js';
 import { notifyQueueConsumer } from './notifyQueueConsumer.server.js';
 
 export type DrainJobConsumer = (
@@ -9,23 +9,21 @@ export type DrainJobConsumer = (
 
 /**
  * Read and process one queue message (qty=1), then chain another wake if backlog remains.
+ *
+ * On consumer failure the message is left leased; it becomes visible again after
+ * the pgmq visibility timeout and is redelivered (read_ct increments). Once
+ * read_ct exceeds the max attempts, `readOneJobMessage` dead-letters it.
  */
 export async function drainOneJob(consume: DrainJobConsumer): Promise<boolean> {
-  const provider = getJobQueueProvider();
-  const entry = await provider.readOne();
+  const entry = await readOneJobMessage();
   if (!entry) {
     return false;
   }
 
-  try {
-    await consume(entry.message, entry.metadata);
-    await provider.ack(entry.receipt);
-  } catch (err) {
-    await provider.nack(entry.receipt);
-    throw err;
-  }
+  await consume(entry.message, entry.metadata);
+  await ackJobMessage(entry.msgId);
 
-  const remaining = await provider.getDepth();
+  const remaining = await getJobQueueDepth();
   if (remaining > 0) {
     notifyQueueConsumer();
   }

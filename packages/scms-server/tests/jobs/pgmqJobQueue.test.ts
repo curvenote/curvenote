@@ -27,12 +27,13 @@ vi.mock('../../src/backend/prisma.server.js', () => ({
   getPrismaClient: vi.fn(async () => prisma),
 }));
 
-const { supabaseQueueProvider } =
-  await import('../../src/backend/jobs/enqueue/queueProviders/supabase.server.js');
+const { sendJobMessage } = await import(
+  '../../src/backend/jobs/enqueue/pgmq/jobQueue.server.js'
+);
 
 const message = { job_id: 'job-1', job_type: 'LOOPBACK', handshake: 'token' };
 
-describe('supabaseQueueProvider.send', () => {
+describe('sendJobMessage', () => {
   beforeEach(() => {
     executeRaw.mockReset();
     queryRaw.mockReset();
@@ -43,7 +44,7 @@ describe('supabaseQueueProvider.send', () => {
     // Conditional pgmq.send returns a row (a new message was inserted).
     queryRaw.mockResolvedValueOnce([{ send: 42n }]);
 
-    const result = await supabaseQueueProvider.send(message, { idempotencyKey: 'job-1' });
+    const result = await sendJobMessage(message, { idempotencyKey: 'job-1' });
 
     expect(result.messageId).toBe('42');
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
@@ -64,7 +65,7 @@ describe('supabaseQueueProvider.send', () => {
     // then the existing-message lookup returns its msg_id.
     queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([{ msg_id: 7n }]);
 
-    const result = await supabaseQueueProvider.send(message, { idempotencyKey: 'job-1' });
+    const result = await sendJobMessage(message, { idempotencyKey: 'job-1' });
 
     expect(result.messageId).toBe('7');
     expect(queryRaw).toHaveBeenCalledTimes(2);
@@ -76,7 +77,7 @@ describe('supabaseQueueProvider.send', () => {
   test('falls back to the idempotencyKey when the existing message id is unknown', async () => {
     queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
 
-    const result = await supabaseQueueProvider.send(message, { idempotencyKey: 'job-1' });
+    const result = await sendJobMessage(message, { idempotencyKey: 'job-1' });
 
     expect(result.messageId).toBe('job-1');
   });

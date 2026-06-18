@@ -14,7 +14,6 @@ Do these steps **once per Supabase project** (staging and production are separat
 | -------------------------------- | ------------------------------------------------------- |
 | **Supabase Postgres**            | pgmq extension, queue `job`, pg_cron backup row         |
 | **App-config secrets** (per env) | `api.url`, `api.databaseUrl`, `api.queueConsumerSecret` |
-| **Vercel** (optional)            | `QUEUES_PROVIDER` — usually **not needed** (see below)  |
 
 ---
 
@@ -30,17 +29,14 @@ If you skip this, `CREATE EXTENSION pgmq` in the Prisma migration may fail.
 
 ## Step 2 — Run the database migration
 
-Two migrations set this up:
+One migration sets this up:
 
 `20260616190000_add_pgmq_job_queue` creates:
 
 - `pgmq` extension + queue `job`
 - `"_JobQueueDrainConfig"` table (drain URL + secret)
-- `pg_cron` / `pg_net` extensions, `job_queue_cron_drain()`, and the `job-queue-drain-backup` schedule (if available)
-
-`20260617120000_add_pgmq_enqueue_wake_trigger` creates:
-
-- an `AFTER INSERT` trigger on `pgmq.q_job` that calls `job_queue_cron_drain()` so **enqueue wakes are fired by the database** via `pg_net` (skipped if pgmq / pg_net are unavailable)
+- `pg_net` extension, `job_queue_cron_drain()`, and an `AFTER INSERT` trigger on `pgmq.q_job` that calls it so **enqueue wakes are fired by the database**
+- `pg_cron` extension and the `job-queue-drain-backup` schedule when available
 
 **Normal path:** CI runs `prisma migrate deploy` when you push to `dev` (staging DB) or `main` (prod DB). Confirm that workflow succeeded for your deploy.
 
@@ -124,11 +120,11 @@ Redeploy SCMS after changing secrets so the running app picks them up.
 
 This table tells the **database** how to call push-to-drain. It is used by **both** the enqueue trigger (primary wake) and the once-per-minute backup cron. It is **not** app-config; it lives only in Postgres.
 
-> **This step is mandatory, not optional.** The app no longer self-wakes push-to-drain on enqueue when using the supabase provider — the database does. If this row is missing/empty, enqueued jobs will not drain (the trigger and cron both no-op).
+> **This step is mandatory, not optional.** The app does not self-wake push-to-drain on enqueue — the database does. If this row is missing/empty, enqueued jobs will not drain (the trigger and cron both no-op).
 
 > **Easiest option: use the admin UI.** Once SCMS is deployed, system admins can open **System → Jobs → Queues tab** (`/app/system/jobs?tab=queues`) and use **Push secret from app-config** (writes `api.queueConsumerSecret` into the row) and **Save endpoint** (sets `drain_url`). That tab also shows whether the stored secret matches app-config and a live tail of pending/in-flight pgmq messages. It also has a **Drain now** button that processes up to 10 queued messages **in-process** (no `pg_net`/HTTP wake required) — handy to flush a backlog or confirm draining when the wake is misconfigured. The SQL below remains available for first-time setup or environments without UI access.
 
-> **Local dev / test:** the database seeds auto-populate this row from app-config, so `npm run dev:db:reset` and `npm run test:db:reset` leave it set (no Queues-tab trip needed after a reset). The dev seed uses `api.tasksCallbackUrl` (`http://host.docker.internal:3031/v1/...`) so the `pg_net` wake fired inside the Postgres container can reach the dev server on the host, and realigns the secret on each run. Local dev now defaults to the **supabase** provider (real pgmq + pg_net), so this row matters by default; set `QUEUES_PROVIDER=mock` to fall back to the in-memory queue (which ignores the row).
+> **Local dev / test:** the database seeds auto-populate this row from app-config, so `npm run dev:db:reset` and `npm run test:db:reset` leave it set (no Queues-tab trip needed after a reset). The dev seed uses `api.tasksCallbackUrl` (`http://host.docker.internal:3031/v1/...`) so the `pg_net` wake fired inside the Postgres container can reach the dev server on the host, and realigns the secret on each run. Local dev runs the same pgmq + pg_net stack, so this row matters by default.
 
 1. Supabase Dashboard → **SQL Editor** → **New query**.
 2. Replace the placeholders below with **this environment’s** values:
@@ -204,43 +200,9 @@ Queue length should return to `0` after the job runs. Check app logs for `[proce
 
 1. **Migration on the database first** (Step 1–2) — pgmq extension and queue `job` must exist.
 2. **App-config + `_JobQueueDrainConfig`** (Step 3–4).
-3. **Deploy application code** that uses the Supabase queue provider.
+3. **Deploy application code.**
 
-If the app runs the **supabase** provider against a database that has **not** had the migration applied, **`pgmq.send` will fail** at enqueue time and jobs will not dispatch.
-
----
-
-## What is `QUEUES_PROVIDER`? Why is it an env var?
-
-`QUEUES_PROVIDER` is a **runtime environment variable** (`.env` locally, Vercel **Environment Variables** in the dashboard). It is **not** in app-config.
-
-It selects which queue backend `dispatchJob` uses:
-
-| Value      | Behavior                                   |
-| ---------- | ------------------------------------------ |
-| `mock`     | In-memory queue (tests; opt-in for local)  |
-| `supabase` | `pgmq.send` / `pgmq.read` against Postgres |
-
-**Resolution order** (see `queueProviders/index.server.ts`):
-
-1. If `QUEUES_PROVIDER` is set to `mock` or `supabase` → use that.
-2. Else if `VERCEL=1` (automatic on Vercel) → **`supabase`**.
-3. Else if `NODE_ENV` is `test` → **`mock`** (CI has no pgmq/pg_net).
-4. Else (incl. local `development`) → **`supabase`**.
-
-So on **Vercel staging/production you usually do not set `QUEUES_PROVIDER` at all** — Vercel sets `VERCEL=1`, and the app picks `supabase` automatically.
-
-Why keep the env var?
-
-- **Local dev:** defaults to `supabase` (the Docker Postgres ships pgmq + pg_net + pg_cron — see `docker/postgres/Dockerfile`).
-- **Override:** force `QUEUES_PROVIDER=mock` to use the in-memory queue locally (e.g. a container without pgmq).
-- **Emergency:** force `QUEUES_PROVIDER=mock` on a deployment (not recommended for prod).
-
-The old doc line _“Deploy app code that sets `QUEUES_PROVIDER=supabase` before the pgmq migration…”_ means:
-
-> Do **not** deploy a build that will **use the supabase provider** (whether via `QUEUES_PROVIDER=supabase` **or** via `VERCEL=1`) until the **database** has pgmq installed.
-
-The variable name is incidental — **any** configuration that makes the app call `pgmq.*` before migration is the problem, not the env var itself.
+The app always uses pgmq. If it runs against a database that has **not** had the migration applied, **`pgmq.send` will fail** at enqueue time and jobs will not dispatch — so apply the migration before (or with) the deploy.
 
 ---
 

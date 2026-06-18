@@ -2,12 +2,8 @@ import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../prisma.server.js';
 import { getConfig } from '../../../app-config.server.js';
 import { resolveStoredQueueDrainUrl } from './notifyQueueConsumer.server.js';
-import {
-  getJobQueueProvider,
-  resolveQueueProviderName,
-  type QueueProviderName,
-} from './queueProviders/index.server.js';
-import type { QueuePeekEntry } from './queueProviders/types.js';
+import { getJobQueueDepth, peekJobQueue } from './pgmq/jobQueue.server.js';
+import type { QueuePeekEntry } from './pgmq/types.js';
 
 /**
  * Admin helpers for the pgmq job queue: read/update the `_JobQueueDrainConfig`
@@ -130,9 +126,6 @@ export async function pushJobQueueDrainSecretFromConfig(): Promise<void> {
 }
 
 export type JobQueueTail = {
-  provider: QueueProviderName;
-  /** True when the active provider exposes a queue peek. */
-  supported: boolean;
   /** Current queue depth, or null when unavailable. */
   depth: number | null;
   entries: QueuePeekEntry[];
@@ -141,18 +134,11 @@ export type JobQueueTail = {
 };
 
 export async function getJobQueueTail(limit = 25): Promise<JobQueueTail> {
-  const provider = getJobQueueProvider();
-  const providerName = resolveQueueProviderName();
-
-  if (!provider.peek) {
-    return { provider: providerName, supported: false, depth: null, entries: [], error: null };
-  }
-
   try {
-    const [entries, depth] = await Promise.all([provider.peek(limit), provider.getDepth()]);
-    return { provider: providerName, supported: true, depth, entries, error: null };
+    const [entries, depth] = await Promise.all([peekJobQueue(limit), getJobQueueDepth()]);
+    return { depth, entries, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to read queue tail';
-    return { provider: providerName, supported: true, depth: null, entries: [], error: message };
+    return { depth: null, entries: [], error: message };
   }
 }

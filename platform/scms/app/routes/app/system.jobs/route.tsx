@@ -7,7 +7,6 @@ import {
   getPrismaClient,
   enqueueAndDispatchJob,
   drainOneJob,
-  resolveQueueProviderName,
   getJobQueueDrainStatus,
   getJobQueueTail,
   setJobQueueDrainUrl,
@@ -51,7 +50,6 @@ export async function loader(args: Route.LoaderArgs) {
   const coreJobTypes = Object.values(KnownJobTypes);
   const extensionJobTypes = registerExtensionJobs(serverExtensions).map((j) => j.jobType);
   const allJobTypes = [...coreJobTypes, ...extensionJobTypes];
-  const queueProvider = resolveQueueProviderName();
 
   let drainStatus: DrainStatusResult;
   try {
@@ -81,10 +79,8 @@ export async function loader(args: Route.LoaderArgs) {
   return {
     jobTypes: allJobTypes,
     queue: {
-      provider: queueProvider,
       consumerRoute: '/v1/jobs/push-to-drain',
       queueName: 'job',
-      queuesProviderEnv: process.env.QUEUES_PROVIDER ?? null,
     },
     drainStatus,
     tail,
@@ -358,50 +354,29 @@ function LoopbackTest() {
 
 // ─── Queue info ────────────────────────────────────────────────────
 
-function queueProviderCopy(provider: string): { label: string; detail: string } {
-  switch (provider) {
-    case 'mock':
-      return {
-        label: 'Mock (in-process)',
-        detail:
-          'Jobs enqueue to an in-memory queue and wake POST /v1/jobs/push-to-drain locally. Used in development and tests.',
-      };
-    case 'supabase':
-      return {
-        label: 'Supabase pgmq',
-        detail:
-          'Jobs enqueue to the pgmq job queue in Postgres, wake POST /v1/jobs/push-to-drain (self-HTTP), with pg_cron backup if a wake is missed.',
-      };
-    default:
-      return { label: provider, detail: 'Unknown queue provider.' };
-  }
-}
-
 function QueueInfoPanel({
   queue,
 }: {
   queue: {
-    provider: string;
     consumerRoute: string;
     queueName: string;
-    queuesProviderEnv: string | null;
   };
 }) {
-  const routing = queueProviderCopy(queue.provider);
-
   return (
     <section className="overflow-hidden bg-white rounded-lg border">
       <div className="flex gap-2 items-center px-4 py-3 bg-gray-50 border-b">
         <Radio className="w-4 h-4 text-gray-600" />
-        <h2 className="text-lg font-semibold">Queue provider</h2>
+        <h2 className="text-lg font-semibold">Queue</h2>
       </div>
       <div className="p-4 space-y-4 text-sm">
         <p className="text-gray-600">
           Internal jobs call{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">enqueueAndDispatchJob()</code>,
-          which inserts a QUEUED row and publishes to the configured queue. The consumer at{' '}
-          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.consumerRoute}</code>{' '}
-          runs the handler via{' '}
+          which inserts a QUEUED row and publishes to the Supabase pgmq{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.queueName}</code> queue.
+          A pg_net trigger on enqueue (pg_cron backup) wakes the consumer at{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.consumerRoute}</code>,
+          which runs the handler via{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">processJobMessage</code>.
         </p>
 
@@ -409,18 +384,8 @@ function QueueInfoPanel({
           <dt className="font-medium text-gray-500">pgmq queue</dt>
           <dd className="font-mono text-gray-900">{queue.queueName}</dd>
 
-          <dt className="font-medium text-gray-500">Active provider</dt>
-          <dd>
-            <span className="inline-flex items-center gap-1.5 font-medium text-gray-900">
-              {routing.label}
-            </span>
-            <p className="mt-1 text-gray-600">{routing.detail}</p>
-            {queue.queuesProviderEnv && (
-              <p className="mt-1 font-mono text-xs text-gray-700">
-                QUEUES_PROVIDER={queue.queuesProviderEnv}
-              </p>
-            )}
-          </dd>
+          <dt className="font-medium text-gray-500">Consumer</dt>
+          <dd className="font-mono text-gray-900">{queue.consumerRoute}</dd>
         </dl>
       </div>
     </section>
@@ -573,8 +538,7 @@ function QueueTailPanel({ tail }: { tail: JobQueueTail }) {
           <Radio className="w-4 h-4 text-gray-600" />
           <h2 className="text-lg font-semibold">Queue tail</h2>
           <span className="font-mono text-xs text-gray-500">
-            provider {tail.provider}
-            {tail.depth != null ? ` · depth ${tail.depth}` : ''}
+            pgmq{tail.depth != null ? ` · depth ${tail.depth}` : ''}
           </span>
         </div>
         <div className="flex gap-2 items-center">
@@ -609,20 +573,15 @@ function QueueTailPanel({ tail }: { tail: JobQueueTail }) {
         ))}
 
       <div className="p-4 text-sm">
-        {!tail.supported && (
-          <p className="text-gray-500">
-            The active provider ({tail.provider}) does not expose a queue tail.
-          </p>
-        )}
         {tail.error && (
           <p className="text-red-600">
             Could not read the queue: <span className="font-mono text-xs">{tail.error}</span>
           </p>
         )}
-        {tail.supported && !tail.error && tail.entries.length === 0 && (
+        {!tail.error && tail.entries.length === 0 && (
           <p className="text-gray-500">Queue is empty — no pending or in-flight messages.</p>
         )}
-        {tail.supported && tail.entries.length > 0 && (
+        {!tail.error && tail.entries.length > 0 && (
           <div className="overflow-x-auto rounded-lg border">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">

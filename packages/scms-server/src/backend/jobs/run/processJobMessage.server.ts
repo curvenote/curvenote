@@ -1,7 +1,7 @@
 import { getConfig } from '../../../app-config.server.js';
 import { verifyHandshakeToken } from '../../sign.handshake.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
-import type { JobQueueDeliveryMetadata, JobQueueMessage } from '../enqueue/queueProviders/types.js';
+import type { JobQueueDeliveryMetadata, JobQueueMessage } from '../enqueue/pgmq/types.js';
 import { MAX_JOB_QUEUE_DELIVERY_ATTEMPTS } from '../jobQueueConstants.server.js';
 import { handleTransportFailure } from './handleTransportFailure.server.js';
 import { runHandler, type RunHandlerOptions } from './runHandler.server.js';

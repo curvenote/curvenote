@@ -1,14 +1,14 @@
-import { getJobQueueProvider } from './queueProviders/index.server.js';
-import { notifyQueueConsumer } from './notifyQueueConsumer.server.js';
-import type { JobQueueMessage } from './queueProviders/types.js';
+import { sendJobMessage } from './pgmq/jobQueue.server.js';
+import type { JobQueueMessage } from './pgmq/types.js';
 
+/**
+ * Enqueue a job message onto the pgmq job queue.
+ *
+ * The drain wake is fired by Postgres itself — a pg_net AFTER INSERT trigger on
+ * pgmq.q_job calls POST /v1/jobs/push-to-drain (migration 20260616190000), with
+ * pg_cron as a once-per-minute backup — so the app does not self-call
+ * push-to-drain after enqueue.
+ */
 export async function dispatchJob(message: JobQueueMessage) {
-  const provider = getJobQueueProvider();
-  const result = await provider.send(message, { idempotencyKey: message.job_id });
-  // When the provider wakes the consumer on enqueue itself (e.g. supabase's
-  // pg_net trigger on pgmq.q_job), skip the redundant app-side self-HTTP wake.
-  if (!provider.wakesOnEnqueue) {
-    notifyQueueConsumer();
-  }
-  return result;
+  return sendJobMessage(message, { idempotencyKey: message.job_id });
 }

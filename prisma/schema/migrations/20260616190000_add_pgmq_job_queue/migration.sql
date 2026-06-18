@@ -1,14 +1,22 @@
 -- pgmq job queue for SCMS async job dispatch (Supabase Postgres).
--- On local Docker Postgres, pgmq is not installed; skip when unavailable (use QUEUES_PROVIDER=mock).
+-- pgmq and pg_net are required. The local Docker Postgres image bundles pgmq,
+-- pg_net, and pg_cron (docker/postgres/Dockerfile).
 -- Enable pgmq in Supabase Dashboard → Integrations → Queues if CREATE EXTENSION fails on Supabase.
 
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pgmq') THEN
-    CREATE EXTENSION IF NOT EXISTS pgmq;
+  CREATE EXTENSION IF NOT EXISTS pgmq;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_tables WHERE schemaname = 'pgmq' AND tablename = 'q_job'
+  ) THEN
     PERFORM pgmq.create('job');
-  ELSE
-    RAISE NOTICE 'pgmq extension not available — skipping job queue setup (local dev: use QUEUES_PROVIDER=mock)';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_tables WHERE schemaname = 'pgmq' AND tablename = 'q_job'
+  ) THEN
+    RAISE EXCEPTION 'pgmq job queue table pgmq.q_job was not created';
   END IF;
 END;
 $$;
@@ -20,13 +28,10 @@ CREATE TABLE IF NOT EXISTS "_JobQueueDrainConfig" (
   drain_secret TEXT NOT NULL
 );
 
--- pg_cron + pg_net backup wake (Supabase only; skipped on standard Docker/local Postgres).
+-- pg_net-backed wake implementation (required) + pg_cron backup wake (optional).
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_net') THEN
-    RAISE NOTICE 'pg_net not available — skipping cron drain backup setup';
-    RETURN;
-  END IF;
+  CREATE EXTENSION IF NOT EXISTS pg_net;
 
   -- pg_cron is bound to a single database (cron.database_name). CREATE EXTENSION
   -- raises in any other DB (e.g. journals_test locally), so swallow that error —
@@ -38,7 +43,6 @@ BEGIN
       RAISE NOTICE 'pg_cron not creatable in this database (%) — skipping cron backup wake', SQLERRM;
     END;
   END IF;
-  CREATE EXTENSION IF NOT EXISTS pg_net;
 
   EXECUTE $fn$
 CREATE OR REPLACE FUNCTION public.job_queue_cron_drain()
@@ -76,5 +80,29 @@ $fn$;
       );
     END IF;
   END IF;
+
+  EXECUTE $fn$
+CREATE OR REPLACE FUNCTION public.pgmq_job_enqueue_wake()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $body$
+BEGIN
+  -- Reuse the single wake implementation: reads "_JobQueueDrainConfig" and
+  -- net.http_post()s push-to-drain. Statement-level, so one wake per pgmq.send
+  -- (and one per batch send). The net.http_post request commits with the enqueue
+  -- transaction and is delivered by the pg_net background worker after commit.
+  PERFORM public.job_queue_cron_drain();
+  RETURN NULL;
+END;
+$body$;
+$fn$;
+
+  DROP TRIGGER IF EXISTS pgmq_job_enqueue_wake_trigger ON pgmq.q_job;
+  CREATE TRIGGER pgmq_job_enqueue_wake_trigger
+    AFTER INSERT ON pgmq.q_job
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION public.pgmq_job_enqueue_wake();
 END;
 $$;

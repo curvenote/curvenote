@@ -16,7 +16,7 @@ export function resolveQueueDrainUrl(apiUrl: string): string {
  *
  * This intentionally differs from `resolveQueueDrainUrl`/`notifyQueueConsumer`,
  * which use `api.url` directly because that path is the app calling its own
- * endpoint (the mock-provider self-wake), where `localhost` is correct.
+ * endpoint (the drain chain wake), where `localhost` is correct.
  */
 export function resolveStoredQueueDrainUrl(api: {
   url: string;
@@ -31,10 +31,9 @@ export function resolveStoredQueueDrainUrl(api: {
 /**
  * Fire-and-forget wake of POST /v1/jobs/push-to-drain.
  *
- * Used for the app-driven wake paths: enqueue under the mock provider (no
- * database/pg_net locally) and the drain chain wake when backlog remains. The
- * supabase provider instead wakes via a pg_net trigger on enqueue
- * (`wakesOnEnqueue`), so dispatchJob does not call this for that path.
+ * Used for the drain chain wake when backlog remains after draining one message
+ * (the app calling its own endpoint). The enqueue wake itself is fired by
+ * Postgres — a pg_net trigger on pgmq.q_job — so dispatchJob does not call this.
  *
  * This does NOT await the wake request. The returned promise resolves once the
  * request has been started (config loaded), not when the 202 is received. The

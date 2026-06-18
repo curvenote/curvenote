@@ -17,7 +17,7 @@ function unauthorized(): Response {
 }
 
 /**
- * POST /v1/jobs/push-to-drain — queue drain wake-up (mock + Supabase pgmq).
+ * POST /v1/jobs/push-to-drain — Supabase pgmq queue drain wake-up.
  *
  * Returns 202 immediately; processes one message (qty=1) in the background via waitUntil.
  * Chains another wake when backlog remains. Secured with Bearer api.queueConsumerSecret.

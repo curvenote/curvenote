@@ -30,20 +30,15 @@ npm run dev
 
 ### Job queue local development
 
-By default, local development now uses the **supabase provider** (real **pgmq** + **pg_net**) against the Docker Postgres, matching staging/prod. The local Postgres image bundles pgmq, pg_net, and pg_cron (see [`docker/postgres/Dockerfile`](../../docker/postgres/Dockerfile)), and binds the `pg_net` + `pg_cron` workers to the `journals` db (`pg_net.database_name` / `cron.database_name`) so they actually drain the local queue. On enqueue, a `pg_net` trigger on `pgmq.q_job` wakes **`POST /v1/jobs/push-to-drain`**; the drain config is auto-seeded so the wake (fired from inside the container) reaches the dev server at `host.docker.internal`. Set `QUEUES_PROVIDER=mock` (`.env` only — not app-config) to fall back to the **in-process mock queue** (no pgmq required).
+The job queue is **Supabase pgmq** everywhere — local dev runs the same real **pgmq** + **pg_net** stack as staging/prod, against the Docker Postgres. The local Postgres image bundles pgmq, pg_net, and pg_cron (see [`docker/postgres/Dockerfile`](../../docker/postgres/Dockerfile)), and binds the `pg_net` + `pg_cron` workers to the `journals` db (`pg_net.database_name` / `cron.database_name`) so they actually drain the local queue. On enqueue, a `pg_net` trigger on `pgmq.q_job` wakes **`POST /v1/jobs/push-to-drain`**; the drain config is auto-seeded so the wake (fired from inside the container) reaches the dev server at `host.docker.internal`. A **pg_cron** backup (every minute) calls push-to-drain if the enqueue trigger is missed.
+
+A message that fails its handler past `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS` is **dead-lettered**: archived to `pgmq.a_job` and the job marked `FAILED`, so a poison message never blocks the queue.
 
 If a backlog gets stuck (e.g. the dev server was down when wakes fired), the **Queues** tab (`/app/system/jobs?tab=queues`) has a **Drain now** button that processes up to 10 messages in-process without relying on the `pg_net` wake.
 
 **Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, staging/prod secrets YAML on deployed envs) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
 
-On deployed environments (`QUEUES_PROVIDER=supabase`, auto when `VERCEL=1`), messages are stored in **Supabase pgmq** and use the same push-to-drain route. A **pg_cron** backup (every minute) calls push-to-drain if the enqueue trigger is missed.
-
-| Mode                   | When                                           | Transport                                             |
-| ---------------------- | ---------------------------------------------- | ----------------------------------------------------- |
-| **Supabase (default)** | Local dev + deployed SCMS (staging/prod)       | pgmq + `pg_net` enqueue-wake trigger + pg_cron backup |
-| **Mock**               | Tests; opt-in locally (`QUEUES_PROVIDER=mock`) | In-memory queue + loopback push-to-drain              |
-
-> After switching to this image you must rebuild the Postgres container: `npm run db:rebuild` (wipes the volume, rebuilds from the Dockerfile, re-runs init), then `npm run dev:db:reset`.
+> The local Postgres image is required (it provides pgmq/pg_net/pg_cron). After pulling these changes you must rebuild the container: `npm run db:rebuild` (wipes the volume, rebuilds from the Dockerfile, re-runs init), then `npm run dev:db:reset`.
 
 **Staging/prod Supabase setup:** see [`platform/scms/deploy/supabase-job-queue-setup.md`](deploy/supabase-job-queue-setup.md) (pgmq migration, app-config secrets, `_JobQueueDrainConfig`, smoke tests).
 
