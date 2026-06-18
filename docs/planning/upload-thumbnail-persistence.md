@@ -196,21 +196,23 @@ metadata-free — just add the `thumbnail` scalar.
 - **Tail guard:** cap input size and set `sharp({ limitInputPixels })` to bound memory
   and time for oversized images.
 
-## TODO (this changeset)
+## Done (this changeset)
 
-- **ETL: populate `wv.thumbnail` from MyST frontmatter (optimization).** Update
-  `register-work.server.ts` so that when `myst_metadata.thumbnail` is present it also
-  writes the storage key to the new `thumbnail` column (alongside the existing
+- **ETL: populate `wv.thumbnail` from MyST frontmatter (optimization).** ✅ Implemented in
+  `register-work.server.ts`: when `myst_metadata.thumbnail` (or `thumbnailOptimized`) is
+  present, `deriveEtlThumbnailStorageKey` derives the storage key and it is written to the
+  new `thumbnail` column on the created `WorkVersion` (alongside the existing
   `metadata['frontmatter.myst']` write). This is an _optimization_, not correctness:
-  ETL-registered works already resolve via layer 2 (manifest), so this just lets them
-  skip the `config.json` round-trip.
-  - Small change (~15-20 lines + test): add a `thumbnail` field to `versionData` plus a
-    helper to derive the value.
-  - **Subtlety:** MyST `thumbnail` is a path relative to the article/`cdn_key` base
-    (what `getThumbnailBuffer` + `updateUrl` resolve against), whereas the column must
-    hold a key the resolver signs against `work.cdn` the same way upload-written keys
-    are. Join `cdn_key`'s path with the relative MyST thumbnail path so layer 1 signs
-    the correct URL.
+  ETL-registered works already resolve via layer 2 (manifest), so this just lets them skip
+  the `config.json` round-trip.
+  - Derivation helper: `register-work-thumbnail.ts` (pure, unit-tested in
+    `register-work-thumbnail.test.ts`).
+  - **Subtlety handled:** MyST `thumbnail` is a path relative to the article/`cdn_key`
+    base (what `getThumbnailBuffer` + `updateUrl` resolve against). The manifest rewrites
+    it to `${cdn}${cdnKeyPath}/public/${thumbnail}`, so the column stores the bucket key
+    `${cdnKeyPath}/public/${thumbnail}` (dots in `cdn_key` → `/`, leading slashes on the
+    thumbnail normalized) — exactly what the layer-1 resolver signs against `work.cdn`.
+    Absolute URLs / data URIs are skipped (column left null; layer 2 still resolves them).
 
 ## Open questions / risks
 

@@ -6,6 +6,7 @@ import { uuidv7 as uuid } from 'uuidv7';
 import { getPrismaClient } from '../prisma.server.js';
 import { authorizeEtlSite, verifyEtlBearerUserId, type EtlAuth } from './auth.server.js';
 import { cdnKeyUnderArticle } from './register-work-cdn-key.js';
+import { deriveEtlThumbnailStorageKey } from './register-work-thumbnail.js';
 import { buildSubmissionMetadataWithSupersedes } from './register-work-lineage.js';
 
 export type EtlRegisterWorkInput = {
@@ -250,6 +251,7 @@ async function registerWorkInDb(
       ? [input.source]
       : [WorkContents.MYST];
   const cdn = input.cdn.endsWith('/') ? input.cdn : `${input.cdn}/`;
+  const thumbnail = deriveEtlThumbnailStorageKey(input.cdn_key, input.myst_metadata) ?? null;
 
   const existingWorkId = ownedWorkId ?? (await findOwnedWorkIdByDoi(auth.userId, input.doi));
 
@@ -279,6 +281,7 @@ async function registerWorkInDb(
       doi: input.doi,
       cdn,
       cdn_key: input.cdn_key,
+      thumbnail,
       metadata: workVersionMetadata as Prisma.InputJsonValue | undefined,
     };
 
