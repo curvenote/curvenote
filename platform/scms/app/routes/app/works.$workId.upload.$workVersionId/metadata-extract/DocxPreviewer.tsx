@@ -46,6 +46,9 @@ function resolveFormatting(
 
 interface DocxPreviewerProps {
   previews: DocxPreviewItem[];
+  /** Controlled active tab value (file index as string, or ALL_FIGURES_TAB). */
+  activeTab?: string;
+  onActiveTabChange?: (tab: string) => void;
 }
 
 type ListGroup = {
@@ -284,7 +287,7 @@ function SingleFileView({
   );
 }
 
-const ALL_FIGURES_TAB = 'all-figures';
+export const ALL_FIGURES_TAB = 'all-figures';
 
 /** Collect all image attachments across previews with source file name */
 function collectAllFigures(
@@ -351,9 +354,11 @@ function AllFiguresView({
   );
 }
 
-export const DocxPreviewer = ({ previews }: DocxPreviewerProps) => {
+export const DocxPreviewer = ({ previews, activeTab, onActiveTabChange }: DocxPreviewerProps) => {
   const [showAst, setShowAst] = useState(false);
-  const [fileTab, setFileTab] = useState('0');
+  const [internalTab, setInternalTab] = useState('0');
+  const fileTab = activeTab ?? internalTab;
+  const setFileTab = onActiveTabChange ?? setInternalTab;
 
   if (previews.length === 0) {
     return (
