@@ -306,7 +306,7 @@ export async function loader(args: Route.LoaderArgs) {
 
   // Read only cached document previews from Object table (no generation in loader),
   // then attach signed URLs to candidate figures so the picker never ships base64.
-  const cachedPreviews = await readDocumentPreviewsFromObjectTable(signedMetadata);
+  const cachedPreviews = await readDocumentPreviewsFromObjectTable(workVersionId, signedMetadata);
   const previews = await signPreviewFigures(cachedPreviews, work.cdn ?? '', ctx);
   // Stored under the same key as the ETL register-work endpoint: metadata["frontmatter.myst"].
   const mystFrontmatter = (rawMetadata as Record<string, unknown>)?.['frontmatter.myst'];
@@ -864,7 +864,7 @@ export async function action(args: Route.ActionArgs) {
           work.cdn ?? '',
           baseCtx,
         );
-        const previews = await readDocumentPreviewsFromObjectTable(signedMetadata);
+        const previews = await readDocumentPreviewsFromObjectTable(workVersionId, signedMetadata);
         if (previews.length === 0) {
           return data({ ok: true });
         }

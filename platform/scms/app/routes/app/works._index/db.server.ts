@@ -7,6 +7,7 @@ import {
 } from '@curvenote/scms-server';
 import type { WorkRole, WorkVersion } from '@curvenote/scms-db';
 import type { SecureContext } from '@curvenote/scms-server';
+import { previewCacheObjectIds } from '../works.$workId.upload.$workVersionId/metadata-extract/previewCache';
 
 export async function dbGetWorksAndSubmissionVersions(userId: string) {
   const prisma = await getPrismaClient();
@@ -248,6 +249,16 @@ export async function dangerouslyDeleteDraftWork(
   // Store versions for file deletion after transaction
   const workVersions = work.versions;
 
+  // Version-scoped document-preview cache rows (Object table) for these versions. These
+  // aren't reachable via foreign keys (they're keyed by work-version id + file md5), so
+  // they must be cleaned up explicitly or they leak when a draft is deleted before
+  // confirm-work would have reclaimed them. Strictly version-scoped: never touches rows
+  // belonging to another work/version (e.g. a byte-identical file in someone else's
+  // still-open upload screen).
+  const previewCacheIds = Array.from(
+    new Set(workVersions.flatMap((version) => previewCacheObjectIds(version.id, version.metadata))),
+  );
+
   // Delete in the correct order to handle foreign key constraints
   await prisma.$transaction(async (tx) => {
     // Delete all work versions
@@ -259,6 +270,13 @@ export async function dangerouslyDeleteDraftWork(
     await tx.workUser.deleteMany({
       where: { work_id: workId },
     });
+
+    // Delete the version-scoped preview cache rows.
+    if (previewCacheIds.length > 0) {
+      await tx.object.deleteMany({
+        where: { id: { in: previewCacheIds } },
+      });
+    }
 
     // Delete the work itself
     await tx.work.delete({

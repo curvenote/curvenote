@@ -13,9 +13,10 @@
  * references signed URLs (see signPreviewFigures), so base64 image bytes never hit the
  * Object table, the loader payload, or client memory.
  *
- * Parsed previews are cached in the Object table as type/id
- * "docx:preview:v2:${file.md5}" so repeated loads skip re-parsing. The prefix is
- * versioned: bumping it invalidates older cache shapes.
+ * Parsed previews are cached in the Object table keyed per work version AND source-file
+ * md5 (see documentPreviewCacheId in ./previewCache) so repeated loads skip re-parsing
+ * while each version's cache stays isolated. The prefix is versioned: bumping it
+ * invalidates older cache shapes.
  */
 
 import {
@@ -35,6 +36,11 @@ import { formatDate } from '@curvenote/common';
 import type { OfficeParserAST, OfficeContentNode, OfficeAttachment } from 'officeparser';
 import { isPreviewCandidate } from './previewGuards';
 import { downscaleToWebp, isRenderableFigureMime } from './imagePipeline.server';
+import {
+  documentPreviewCacheId,
+  legacyPreviewCacheIds,
+  previewCacheObjectIds,
+} from './previewCache';
 
 /** Number of top-level content nodes to include for "first page" preview */
 const FIRST_PAGE_CONTENT_LIMIT = 10;
@@ -44,12 +50,6 @@ const FIRST_PAGE_MIN_TEXT_LENGTH = 500;
 
 /** Page two must be this much larger than a sparse first page before we include it. */
 const SECOND_PAGE_SIGNIFICANTLY_LARGER_RATIO = 1.5;
-
-/** Object table type/id prefix for cached document preview entries (versioned). */
-const DOCUMENT_PREVIEW_CACHE_PREFIX = 'docx:preview:v2:';
-
-/** Older cache prefixes whose rows should be removed during cleanup. */
-const LEGACY_PREVIEW_CACHE_PREFIXES = ['docx:preview:'];
 
 /** Longest edge (px) of a downscaled candidate figure thumbnail. */
 const PREVIEW_FIGURE_MAX_EDGE = 384;
@@ -62,10 +62,6 @@ const MAX_PREVIEW_FIGURES = 24;
 
 /** Skip preview generation for source files larger than this (protects against OOM). */
 const MAX_PREVIEW_SOURCE_BYTES = 100 * 1024 * 1024;
-
-function documentPreviewCacheId(md5: string): string {
-  return `${DOCUMENT_PREVIEW_CACHE_PREFIX}${md5}`;
-}
 
 /** Storage key for a downscaled candidate figure, under the source file's thumbnails/ dir. */
 function thumbnailKeyForFigure(sourcePath: string, md5: string, index: number): string {
@@ -359,7 +355,8 @@ export async function fetchDocumentPreviews(
 
   for (const [path, file] of previewEntries) {
     const md5 = file.md5;
-    const cacheId = typeof md5 === 'string' && md5 ? documentPreviewCacheId(md5) : null;
+    const cacheId =
+      typeof md5 === 'string' && md5 ? documentPreviewCacheId(workVersionId, md5) : null;
 
     let cached: CachedPreview | null = null;
 
@@ -472,13 +469,17 @@ export async function handleFetchPreviewsIntent(
 /**
  * Read document previews from the Object table only (no download/parse).
  * Used by the loader to return whatever previews are already cached.
- * Caller must pass metadata that includes .files (e.g. signed metadata).
+ * Caller must pass the work version id (cache rows are version-scoped) and metadata that
+ * includes .files (e.g. signed metadata).
  *
  * Figures are returned without signedUrl; call signPreviewFigures to add them.
  */
-export async function readDocumentPreviewsFromObjectTable(metadata: {
-  files?: Record<string, FileMetadataSectionItem & { signedUrl?: string }>;
-}): Promise<DocumentPreviewItem[]> {
+export async function readDocumentPreviewsFromObjectTable(
+  workVersionId: string,
+  metadata: {
+    files?: Record<string, FileMetadataSectionItem & { signedUrl?: string }>;
+  },
+): Promise<DocumentPreviewItem[]> {
   const files = metadata.files ?? {};
   if (typeof files !== 'object') {
     return [];
@@ -488,7 +489,8 @@ export async function readDocumentPreviewsFromObjectTable(metadata: {
   const previews: DocumentPreviewItem[] = [];
   for (const [path, file] of previewEntries) {
     const md5 = file.md5;
-    const cacheId = typeof md5 === 'string' && md5 ? documentPreviewCacheId(md5) : null;
+    const cacheId =
+      typeof md5 === 'string' && md5 ? documentPreviewCacheId(workVersionId, md5) : null;
     if (!cacheId) continue;
     const row = await prisma.object.findUnique({
       where: { id: cacheId },
@@ -557,7 +559,7 @@ export async function readPreviewFigureKeysForVersion(workVersionId: string): Pr
 
   const prisma = await getPrismaClient();
   const rows = await prisma.object.findMany({
-    where: { id: { in: md5s.map((md5) => documentPreviewCacheId(md5)) } },
+    where: { id: { in: md5s.map((md5) => documentPreviewCacheId(workVersionId, md5)) } },
     select: { data: true },
   });
   for (const row of rows) {
@@ -589,7 +591,7 @@ export async function collectStoredThumbnailsForVersion(
     if (!isPreviewCandidate(file)) continue;
     const md5 = file.md5;
     if (typeof md5 === 'string' && md5.length > 0) {
-      metaByCacheId.set(documentPreviewCacheId(md5), { md5, sourcePath });
+      metaByCacheId.set(documentPreviewCacheId(workVersionId, md5), { md5, sourcePath });
     }
   }
   if (metaByCacheId.size === 0) return [];
@@ -652,40 +654,33 @@ export async function persistThumbnailListingForVersion(
 }
 
 /**
- * Remove the cached preview rows for a work version from the Object table (current +
- * legacy prefixes) after a successful `confirm-work`.
+ * Remove the cached preview rows for a work version from the Object table after a
+ * successful `confirm-work`. Deletes this version's scoped rows plus any legacy md5-only
+ * rows for the same files (the latter predate version scoping and may be shared across
+ * works — that's the documented, accepted trade-off here; they regenerate on demand).
  *
  * The generated thumbnail webp files are intentionally retained in storage — they are
  * recorded under metadata.thumbnails (see {@link persistThumbnailListingForVersion}) so
  * they stay discoverable for the work version's lifetime. Only the regenerable parse
  * cache rows are dropped here.
  *
- * Best-effort: never throws. The cache is content-addressed by md5, so in the rare case
- * another draft uploaded the byte-identical file, its cache row is dropped too — that's
- * fine, it regenerates.
+ * Best-effort: never throws.
  */
 export async function deletePreviewArtifactsForVersion(
   workVersionId: string,
 ): Promise<{ rows: number }> {
   try {
     const work = await findWorkByVersion(workVersionId);
-    const rawMetadata = work?.metadata as Record<string, unknown> | undefined;
-    const files = rawMetadata?.files as Record<string, FileMetadataSectionItem> | undefined;
-    if (!files || typeof files !== 'object') return { rows: 0 };
-
-    const md5s = Object.values(files)
-      .filter((file) => isPreviewCandidate(file))
-      .map((file) => file.md5)
-      .filter((md5): md5 is string => typeof md5 === 'string' && md5.length > 0);
-    if (md5s.length === 0) return { rows: 0 };
-
-    const prisma = await getPrismaClient();
+    const metadata = work?.metadata as Record<string, unknown> | undefined;
     const cacheIds = Array.from(
       new Set([
-        ...md5s.map((md5) => documentPreviewCacheId(md5)),
-        ...md5s.flatMap((md5) => LEGACY_PREVIEW_CACHE_PREFIXES.map((prefix) => `${prefix}${md5}`)),
+        ...previewCacheObjectIds(workVersionId, metadata),
+        ...legacyPreviewCacheIds(metadata),
       ]),
     );
+    if (cacheIds.length === 0) return { rows: 0 };
+
+    const prisma = await getPrismaClient();
     const { count } = await prisma.object.deleteMany({ where: { id: { in: cacheIds } } });
     return { rows: count };
   } catch (err) {
