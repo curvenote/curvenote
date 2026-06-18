@@ -27,6 +27,35 @@ function storageKeyForThumbnail(sourcePath: string, hash: string): string {
   return dir ? `${dir}/thumbnails/${fileName}` : `thumbnails/${fileName}`;
 }
 
+/**
+ * Build a `sharp` pipeline from a decoded figure, handling formats that sharp's
+ * prebuilt (libvips) binary cannot decode directly.
+ *
+ * sharp natively decodes JPEG/PNG/WebP/GIF/TIFF/SVG/AVIF, but NOT BMP. PDF figures
+ * extracted by officeparser (via pdfjs) are emitted as `image/bmp`, so we decode
+ * those to raw pixels with `bmp-js` and feed sharp via its raw input.
+ */
+export async function createSharpPipeline(buffer: Buffer, mimeType: string) {
+  const sharp = (await import('sharp')).default;
+
+  if (mimeType === 'image/bmp') {
+    const { decode } = await import('bmp-js');
+    const decoded = decode(buffer);
+    // bmp-js returns pixels as ABGR (4 bytes/pixel); sharp raw input expects RGBA.
+    const { data, width, height } = decoded;
+    const rgba = Buffer.allocUnsafe(data.length);
+    for (let i = 0; i < data.length; i += 4) {
+      rgba[i] = data[i + 3]; // R
+      rgba[i + 1] = data[i + 2]; // G
+      rgba[i + 2] = data[i + 1]; // B
+      rgba[i + 3] = data[i]; // A
+    }
+    return sharp(rgba, { raw: { width, height, channels: 4 } });
+  }
+
+  return sharp(buffer);
+}
+
 export async function materializeSelectedThumbnail({
   ctx,
   workVersionId,
@@ -60,10 +89,10 @@ export async function materializeSelectedThumbnail({
 
   const sourceBuffer = Buffer.from(attachment.data, 'base64');
 
-  // Defer loading sharp (a native addon) until a thumbnail is actually being produced,
-  // keeping the action's server module light on cold start.
-  const sharp = (await import('sharp')).default;
-  const processed = await sharp(sourceBuffer)
+  // Defer loading sharp (a native addon) and the BMP decoder until a thumbnail is
+  // actually being produced, keeping the action's server module light on cold start.
+  const pipeline = await createSharpPipeline(sourceBuffer, attachment.mimeType);
+  const processed = await pipeline
     .resize(THUMBNAIL_MAX_EDGE, THUMBNAIL_MAX_EDGE, { fit: 'inside', withoutEnlargement: true })
     .webp({ quality: 80 })
     .toBuffer();
