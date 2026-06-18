@@ -63,16 +63,29 @@ A draft work version in the upload form has file storage (`work.cdn` is set —
 existing thumbnail mechanism cannot serve a draft's thumbnail. We need a parallel
 persistence path until/unless a build produces a manifest.
 
-## Decisions (confirmed)
+## Decisions
 
-- **Storage location:** a dedicated `metadata.thumbnail` key holds the _preferred_
-  thumbnail (path + content hash + source path). Resolution falls back in layers:
-  1. `metadata.thumbnail` (the user's explicit selection) — preferred
-  2. `frontmatter.myst.thumbnail` (MyST-authored)
+- **Storage location (revised):** add a first-class **`thumbnail String?` column on
+  `WorkVersion`** as the _preferred/override_ slot (holds the storage path/key of the
+  user-selected, materialised image — not a signed URL, which would expire). Resolution
+  falls back in layers:
+  1. `workVersion.thumbnail` (column — the user's explicit selection) — preferred
+  2. `metadata['frontmatter.myst'].thumbnail` (MyST-authored) — JSON fallback
   3. published CDN manifest via `getThumbnailBuffer` (current behaviour)
+
+  This supersedes the earlier "dedicated `metadata.thumbnail` JSON key" idea. A nullable
+  scalar keeps hot read paths lean (no need to select/parse the whole `metadata` blob to
+  know if a thumbnail exists), is queryable/indexable, and avoids the shared-JSON-key
+  write race between the upload flow and the ETL `frontmatter.myst` writer (flagged in
+  the PR #312 review). Migration is non-breaking (nullable, no backfill).
+
 - **Materialise timing:** on final form submission / Continue (not eagerly on select),
   to match "upload as part of the form submission" and avoid orphaned assets from idle
   selection changes.
+- **Image processing:** resize/normalise with `sharp` before upload (see implementation
+  step 2). SCMS runs on a Node server (`@react-router/express` / `@react-router/node`),
+  so the native `sharp` addon is viable; import it dynamically to keep it off the route
+  cold-start path (same pattern as the deferred `officeparser` import).
 
 ## Proposed implementation
 
@@ -82,42 +95,55 @@ persistence path until/unless a build produces a manifest.
 submit the derived `thumbnailId` (content hash) of the selected figure, included in
 the Continue/confirm submission payload.
 
-### 2. Server — materialise on submit
+### 2. Server — materialise on submit (with `sharp`)
 
 In the `confirm-work` (Continue) action:
 
 1. Resolve the selected `thumbnailId` back to its base64 `data` from the cached
    preview AST (`docx:preview:${md5}` rows; note the AST is truncated to the first
    page, so the thumbnail candidates must come from data the picker actually had).
-2. Decode and upload the image into the **same storage prefix as the work's other
-   files**, keyed by content hash, e.g. `thumbnails/${imageHash}.${ext}`.
-3. Record it in `workVersion.metadata.thumbnail`:
+2. Decode to a `Buffer`, then normalise with `sharp` (dynamic import):
+   resize to fit inside ~512px (preserve aspect), strip EXIF, output webp (~80%).
+   Cap excessively large inputs.
+3. Upload the processed buffer into the **same storage prefix as the work's other
+   files** via `IStorageProvider.writeBuffer(bucket, key, buffer, contentType)`,
+   keyed by content hash, e.g. `thumbnails/${imageHash}.webp` (no presigned
+   round-trip required — this is a server-side write).
+4. Persist the storage path to the new `workVersion.thumbnail` column (typed update,
+   not a JSON merge).
 
-```jsonc
-{
-  "thumbnail": {
-    "path": "thumbnails/<imageHash>.png",
-    "contentHash": "<imageHash>",
-    "sourcePath": "<docx path in metadata.files>",
-    "mimeType": "image/png",
-  },
-}
-```
+### 3. Read/display — single centralized resolver across app + API
 
-Use `safeWorkVersionJsonUpdate` (optimistic locking) for the metadata write, matching
-the metadata-extract action.
+All thumbnail reads currently funnel through `cdnlib.getThumbnailBuffer({ cdn, cdn_key })`
+(manifest-only). Introduce one scms-server resolver,
+`resolveWorkVersionThumbnail(ctx, workVersion, { query })`, applying the cascade:
 
-### 3. Read/display — layered resolver
-
-Add a resolver (used by the work thumbnail loader and `get.server.ts` link builder)
-that prefers, in order:
-
-1. `metadata.thumbnail.path` → sign against `work.cdn` and serve.
+1. `workVersion.thumbnail` (column) → sign against `work.cdn` and serve.
 2. `metadata['frontmatter.myst'].thumbnail` → sign/serve.
-3. Existing `getThumbnailBuffer({ cdn, cdn_key })` when a published manifest exists.
+3. `getThumbnailBuffer({ cdn, cdn_key })` when a published manifest exists.
 
-`work.links.thumbnail` must be populated when (1) or (2) is present even if `cdn_key`
-is absent, so draft uploads surface their thumbnail in the secondary nav.
+Plus a companion `hasResolvableThumbnail(workVersion)` predicate for link builders so
+`links.thumbnail` is emitted when (1) or (2) exist **even without `cdn_key`** — the key
+change that lets draft uploads surface in the work-details secondary nav.
+
+**Read surface to update (every call site must go through the resolver):**
+
+Buffer-serving endpoints:
+
+- `platform/scms/app/routes/api/v1.works.$workId.thumbnail.tsx`
+- `packages/scms-server/.../loaders/sites/works/thumbnail.server.ts`
+- `packages/scms-server/.../loaders/sites/works/versions/thumbnail.server.ts`
+- `packages/scms-server/.../loaders/sites/works/social.server.ts`
+
+Link/URL builders (gate on `hasResolvableThumbnail`):
+
+- `packages/scms-server/.../loaders/works/get.server.ts` (`work.links.thumbnail`)
+- sites works `format.server.ts` (listing)
+- submissions `get.server.ts` variants
+- `signPrivateUrls` (appends the signing query to the resolved URL)
+
+Selecting the column is cheap; the resolver only needs `cdn`, `cdn_key`, and
+`thumbnail` for the common case, and `metadata` only when falling through to layer (2).
 
 ## Open questions / risks
 
@@ -125,9 +151,11 @@ is absent, so draft uploads surface their thumbnail in the secondary nav.
   nodes, but `attachments` are stored in full on the cached AST. Confirm the selected
   image's bytes are always retrievable from the cache at submit time (or re-parse the
   source on submit if not).
-- **Image size:** base64 attachments can be large; consider a max size / optional
-  downscaling when materialising, to keep thumbnails lightweight.
+- **`sharp` in CI/deploy:** native addon — ensure the target-platform prebuilt binary
+  is installed in CI and the deploy image (don't strip optional deps). Dynamic-import
+  it so it stays off the route cold-start path.
 - **Cleanup:** content-hash keying naturally dedupes; decide whether to prune
   superseded thumbnail assets when the selection changes between submissions.
-- **Validation:** when formal schema validation lands, include `metadata.thumbnail`
-  in the schema under `schemas/`.
+- **Migration:** `thumbnail String?` on `WorkVersion` is additive/nullable; no backfill
+  needed. Add to the relevant prisma selects (`cdnWorkVersionSelect` and the listing
+  selects) so the resolver can read it without widening to the full `metadata` blob.
