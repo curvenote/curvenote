@@ -89,8 +89,18 @@ export function MetadataExtractSection({
     }
   }, [clearMetadataFetcher.state, clearMetadataFetcher.data]);
 
-  const isExtractingMetadata =
+  const isExtractionInFlight =
     extractMetadataFetcher.state === 'loading' || extractMetadataFetcher.state === 'submitting';
+  // Bridge the busy state across the whole "until results are in" window rather than only
+  // while the AI request is in flight: show it while previews are still being generated
+  // (extraction can't start yet) and while extraction is pending/about to fire. This keeps
+  // the metadata card busy continuously from preview processing through the AI call,
+  // avoiding an idle flash in the gap between previews finishing and extraction starting.
+  const isAwaitingExtraction =
+    needsExtraction &&
+    autoExtractionSuppressedFor !== previewSourceKey &&
+    (isPreviewsLoading || shouldExtractMetadata);
+  const isExtractingMetadata = isExtractionInFlight || isAwaitingExtraction;
   const extractingMetadataMessage =
     extractMetadataFetcher.state === 'submitting'
       ? 'extracting work details...'
