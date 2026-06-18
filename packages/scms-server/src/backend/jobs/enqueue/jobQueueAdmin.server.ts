@@ -1,7 +1,7 @@
 import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../prisma.server.js';
 import { getConfig } from '../../../app-config.server.js';
-import { resolveQueueDrainUrl } from './notifyQueueConsumer.server.js';
+import { resolveStoredQueueDrainUrl } from './notifyQueueConsumer.server.js';
 import {
   getJobQueueProvider,
   resolveQueueProviderName,
@@ -23,7 +23,7 @@ export type JobQueueDrainStatus = {
   configured: boolean;
   /** The currently stored drain url, if any. */
   drainUrl: string | null;
-  /** Default url derived from app-config `api.url`. */
+  /** Default url derived from app-config (`api.tasksCallbackUrl` if set, else `api.url`). */
   defaultDrainUrl: string;
   /** Whether a secret is stored (non-empty). */
   hasSecret: boolean;
@@ -50,13 +50,13 @@ async function readDrainConfigRow(): Promise<DrainConfigRow | null> {
 
 export async function resolveDefaultQueueDrainUrl(): Promise<string> {
   const config = await getConfig();
-  return resolveQueueDrainUrl(config.api.url);
+  return resolveStoredQueueDrainUrl(config.api);
 }
 
 export async function getJobQueueDrainStatus(): Promise<JobQueueDrainStatus> {
   const config = await getConfig();
   const appSecret = config.api.queueConsumerSecret ?? '';
-  const defaultDrainUrl = resolveQueueDrainUrl(config.api.url);
+  const defaultDrainUrl = resolveStoredQueueDrainUrl(config.api);
 
   const row = await readDrainConfigRow();
   const drainUrl = row?.drain_url ?? null;
@@ -117,7 +117,7 @@ export async function pushJobQueueDrainSecretFromConfig(): Promise<void> {
   if (!appSecret) {
     throw new Error('app-config api.queueConsumerSecret is empty — nothing to push');
   }
-  const defaultUrl = resolveQueueDrainUrl(config.api.url);
+  const defaultUrl = resolveStoredQueueDrainUrl(config.api);
 
   const prisma = await getPrismaClient();
   await prisma.$executeRaw(

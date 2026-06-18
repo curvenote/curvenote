@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'node:url';
 import { uuidv7 as uuid } from 'uuidv7';
 import { getConfig } from '../packages/scms-server/src/app-config.server.js';
-import { resolveQueueDrainUrl } from '../packages/scms-server/src/backend/jobs/enqueue/notifyQueueConsumer.server.js';
+import { resolveStoredQueueDrainUrl } from '../packages/scms-server/src/backend/jobs/enqueue/notifyQueueConsumer.server.js';
 
 const DEFAULT_CHECKS: string[] = [];
 const QUIET = true; // Set to true to suppress console output
@@ -669,12 +669,11 @@ export async function seedJobQueueDrainConfig(
   }
 
   // pg_net fires the wake from inside the Postgres container, so the drain url
-  // must be reachable from there. Prefer api.tasksCallbackUrl (host.docker.internal,
-  // already includes /v1) which exists for this exact "worker in Docker → host"
-  // case; fall back to api.url for non-Docker setups.
-  const drainUrl = api.tasksCallbackUrl
-    ? `${api.tasksCallbackUrl.replace(/\/$/, '')}/jobs/push-to-drain`
-    : resolveQueueDrainUrl(api.url);
+  // must be reachable from there. resolveStoredQueueDrainUrl prefers
+  // api.tasksCallbackUrl (host.docker.internal, already includes /v1) for the
+  // "worker in Docker → host" case and falls back to api.url otherwise. Shared
+  // with the System → Jobs → Queues admin helpers so seed + UI stay in lockstep.
+  const drainUrl = resolveStoredQueueDrainUrl(api);
 
   try {
     await prisma.$executeRaw`
