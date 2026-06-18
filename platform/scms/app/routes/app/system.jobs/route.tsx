@@ -6,6 +6,7 @@ import {
   registerExtensionJobs,
   getPrismaClient,
   enqueueAndDispatchJob,
+  drainOneJob,
   resolveQueueProviderName,
   getJobQueueDrainStatus,
   getJobQueueTail,
@@ -29,7 +30,11 @@ import {
   PlayCircle,
 } from 'lucide-react';
 import { extensions as serverExtensions } from '../../../extensions/server';
+import { consumeJobQueueMessage } from '../../../lib/job-queue-consumer.server';
 import { uuidv7 } from 'uuidv7';
+
+/** Max messages a single "Drain now" click will process in-process before returning. */
+const MAX_MANUAL_DRAIN = 25;
 
 export const meta: Route.MetaFunction = () => {
   return [
@@ -105,6 +110,24 @@ export async function action(args: Route.ActionArgs) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Enqueue failed';
       return data({ ok: false, error: message }, { status: 500 });
+    }
+  }
+
+  if (intent === 'drain-now') {
+    // Drain messages in-process (no pg_net / HTTP wake). This guarantees the
+    // backlog clears even when the enqueue wake is misconfigured. Bounded so a
+    // single click can't block the request indefinitely; click again to continue.
+    let processed = 0;
+    try {
+      while (processed < MAX_MANUAL_DRAIN) {
+        const didWork = await drainOneJob(consumeJobQueueMessage);
+        if (!didWork) break;
+        processed += 1;
+      }
+      return data({ ok: true, intent, processed, capped: processed >= MAX_MANUAL_DRAIN });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Drain failed';
+      return data({ ok: false, intent, processed, error: message }, { status: 500 });
     }
   }
 
@@ -535,6 +558,13 @@ function formatTimestamp(iso: string | null): string {
 function QueueTailPanel({ tail }: { tail: JobQueueTail }) {
   const revalidator = useRevalidator();
   const refreshing = revalidator.state !== 'idle';
+  const drainFetcher = useFetcher<{
+    ok: boolean;
+    processed?: number;
+    capped?: boolean;
+    error?: string;
+  }>();
+  const draining = drainFetcher.state !== 'idle';
 
   return (
     <section className="overflow-hidden bg-white rounded-lg border">
@@ -547,11 +577,36 @@ function QueueTailPanel({ tail }: { tail: JobQueueTail }) {
             {tail.depth != null ? ` · depth ${tail.depth}` : ''}
           </span>
         </div>
-        <ui.Button variant="ghost" onClick={() => revalidator.revalidate()} disabled={refreshing}>
-          <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </ui.Button>
+        <div className="flex gap-2 items-center">
+          <drainFetcher.Form method="post">
+            <input type="hidden" name="intent" value="drain-now" />
+            <ui.Button type="submit" variant="outline" disabled={draining}>
+              <PlayCircle className={`w-4 h-4 mr-1.5 ${draining ? 'animate-pulse' : ''}`} />
+              {draining ? 'Draining…' : 'Drain now'}
+            </ui.Button>
+          </drainFetcher.Form>
+          <ui.Button variant="ghost" onClick={() => revalidator.revalidate()} disabled={refreshing}>
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </ui.Button>
+        </div>
       </div>
+
+      {drainFetcher.data &&
+        (drainFetcher.data.ok ? (
+          <div className="px-4 py-2 text-xs text-green-700 bg-green-50 border-b">
+            Drained {drainFetcher.data.processed} message
+            {drainFetcher.data.processed === 1 ? '' : 's'} in-process.
+            {drainFetcher.data.capped
+              ? ' Stopped at the batch limit — click “Drain now” again to continue.'
+              : ''}
+          </div>
+        ) : (
+          <div className="px-4 py-2 text-xs text-red-700 bg-red-50 border-b">
+            Drain failed after {drainFetcher.data.processed ?? 0}:{' '}
+            <span className="font-mono">{drainFetcher.data.error}</span>
+          </div>
+        ))}
 
       <div className="p-4 text-sm">
         {!tail.supported && (
