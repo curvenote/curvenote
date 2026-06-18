@@ -12,6 +12,7 @@ function sqlText(arg: RawArg): string {
 
 const executeRaw = vi.fn();
 const queryRaw = vi.fn();
+const mockHandleTransportFailure = vi.fn();
 
 const tx = {
   $executeRaw: executeRaw,
@@ -21,13 +22,19 @@ const tx = {
 const prisma = {
   // Run the callback with a transaction client, mirroring prisma.$transaction.
   $transaction: vi.fn(async (cb: (client: typeof tx) => unknown) => cb(tx)),
+  $executeRaw: executeRaw,
+  $queryRaw: queryRaw,
 };
 
 vi.mock('../../src/backend/prisma.server.js', () => ({
   getPrismaClient: vi.fn(async () => prisma),
 }));
 
-const { sendJobMessage } = await import(
+vi.mock('../../src/backend/jobs/run/handleTransportFailure.server.js', () => ({
+  handleTransportFailure: (...args: unknown[]) => mockHandleTransportFailure(...args),
+}));
+
+const { readOneJobMessage, sendJobMessage } = await import(
   '../../src/backend/jobs/enqueue/pgmq/jobQueue.server.js'
 );
 
@@ -37,6 +44,7 @@ describe('sendJobMessage', () => {
   beforeEach(() => {
     executeRaw.mockReset();
     queryRaw.mockReset();
+    mockHandleTransportFailure.mockReset();
     prisma.$transaction.mockClear();
   });
 
@@ -80,5 +88,36 @@ describe('sendJobMessage', () => {
     const result = await sendJobMessage(message, { idempotencyKey: 'job-1' });
 
     expect(result.messageId).toBe('job-1');
+  });
+});
+
+describe('readOneJobMessage', () => {
+  beforeEach(() => {
+    executeRaw.mockReset();
+    queryRaw.mockReset();
+    mockHandleTransportFailure.mockReset();
+    prisma.$transaction.mockClear();
+  });
+
+  test('dead-letters exhausted messages and enqueues default failure cleanup', async () => {
+    queryRaw.mockResolvedValueOnce([
+      {
+        msg_id: 99n,
+        read_ct: 4,
+        message,
+      },
+    ]);
+    queryRaw.mockResolvedValueOnce([]);
+
+    const result = await readOneJobMessage();
+
+    expect(result).toBeNull();
+    expect(executeRaw).toHaveBeenCalledTimes(1);
+    expect(sqlText(executeRaw.mock.calls[0]![0])).toContain('pgmq.archive');
+    expect(mockHandleTransportFailure).toHaveBeenCalledWith('job-1', {
+      reason: 'transport_exhausted',
+      source: 'dead_letter',
+      last_error: 'Job dispatch failed after 3 delivery attempts',
+    });
   });
 });

@@ -60,7 +60,7 @@ Prisma.sql`SELECT pgmq.send(${PGMQ_JOB_QUEUE_NAME}, ${message}::jsonb) AS send
 
 ### 2b. Read + dead-letter
 
-`readOneJobMessage` uses `pgmq.read(queue, 300, 1)` (visibility `300s`, `qty=1`) in a loop. When a message's `read_ct` exceeds `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS`, it is **dead-lettered** (archived to `pgmq.a_job` via `pgmq.archive`, then the job is marked `FAILED` via `terminalizeTransportFailure`) and skipped, so a poison message can never block the queue or be redelivered forever. `ackJobMessage` = `pgmq.delete`. There is no `nack`: on consumer failure the message is simply left leased and redelivered after the visibility timeout (incrementing `read_ct`).
+`readOneJobMessage` uses `pgmq.read(queue, 300, 1)` (visibility `300s`, `qty=1`) in a loop. When a message's `read_ct` exceeds `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS`, it is **dead-lettered** (archived to `pgmq.a_job` via `pgmq.archive`, then handled via `handleTransportFailure`, including `JOB_FAILED_DEFAULT` cleanup when appropriate) and skipped, so a poison message can never block the queue or be redelivered forever. `ackJobMessage` = `pgmq.delete`. There is no `nack`: on consumer failure the message is simply left leased and redelivered after the visibility timeout (incrementing `read_ct`).
 
 ### 2c. Peek (monitoring)
 
@@ -303,7 +303,7 @@ Route registration updated in [`platform/scms/app/routes.ts`](../../platform/scm
 
 3. **Idempotency is app-enforced, not native.** pgmq has no dedup; the advisory lock + `WHERE NOT EXISTS` on `pgmq.q_job` is the guard. Confirm the semantics: it only blocks a duplicate **while a message is still queued/in-flight** — a completed job can be re-enqueued. Also confirm `hashtext` collisions are acceptable (different jobs could theoretically share an advisory-lock key; worst case is brief serialization, not incorrectness).
 
-4. **Dead-lettering lives in `readOneJobMessage`.** There is no `nack`. A failing consumer leaves the message leased; it redelivers after the 300s visibility timeout (incrementing `read_ct`). Once `read_ct` exceeds `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS` the read path archives it to `pgmq.a_job` and marks the job `FAILED` (`terminalizeTransportFailure`). Confirm the max-attempts value and that `FAILED` is the right terminal state.
+4. **Dead-lettering lives in `readOneJobMessage`.** There is no `nack`. A failing consumer leaves the message leased; it redelivers after the 300s visibility timeout (incrementing `read_ct`). Once `read_ct` exceeds `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS` the read path archives it to `pgmq.a_job` and handles terminal transport failure (`handleTransportFailure`, including default cleanup when appropriate). Confirm the max-attempts value and that `FAILED` is the right terminal state.
 
 5. **Single transport, real pgmq everywhere.** There is no mock/in-memory queue and no `QUEUES_PROVIDER` selection. `npm run dev` requires the Docker Postgres image with pgmq/pg_net/pg_cron (`db:rebuild` is a one-time requirement) — there is no fallback. Confirm the team/README messaging is clear (it is in the changeset).
 

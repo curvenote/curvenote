@@ -5,7 +5,7 @@
 
 Replace the internal job dispatch transport with **Supabase pgmq** as the single queue (no provider abstraction / mock queue): enqueue via `pgmq.send`, drain via `POST /v1/jobs/push-to-drain`. The enqueue wake is fired by Postgres itself — a `pg_net` `AFTER INSERT` trigger on `pgmq.q_job` calls push-to-drain — so the app does not self-call push-to-drain after enqueue; `pg_cron` remains the once-per-minute backup. Because the wake comes from the database, `"_JobQueueDrainConfig"` must be populated for jobs to drain promptly.
 
-Add pgmq **dead-lettering**: when a message's `read_ct` exceeds `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS`, the drain archives it to `pgmq.a_job` and marks the job `FAILED` (via `terminalizeTransportFailure`) instead of redelivering forever, so a poison message can never block the queue.
+Add pgmq **dead-lettering**: when a message's `read_ct` exceeds `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS`, the drain archives it to `pgmq.a_job`, handles the terminal transport failure (including `JOB_FAILED_DEFAULT` cleanup when appropriate), and stops redelivering it, so a poison message can never block the queue.
 
 Add a **Queues** tab to the **System → Jobs** admin page (`/app/system/jobs?tab=queues`) to manage the drain config without raw SQL: save the drain endpoint, push `api.queueConsumerSecret` into `"_JobQueueDrainConfig"`, see whether the stored secret matches app-config, and view a live tail of pending/in-flight pgmq messages. Backed by `peekJobQueue()` and server helpers (`getJobQueueDrainStatus`, `setJobQueueDrainUrl`, `pushJobQueueDrainSecretFromConfig`, `getJobQueueTail`). The tab also gains a **Drain now** button that processes up to 10 messages in-process (bypassing the `pg_net`/HTTP wake) for manual backlog recovery and testing.
 

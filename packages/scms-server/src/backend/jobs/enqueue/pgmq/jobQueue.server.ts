@@ -1,7 +1,7 @@
 import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { MAX_JOB_QUEUE_DELIVERY_ATTEMPTS } from '../../jobQueueConstants.server.js';
-import { terminalizeTransportFailure } from '../../run/terminalizeTransportFailure.server.js';
+import { handleTransportFailure } from '../../run/handleTransportFailure.server.js';
 import type {
   JobQueueMessage,
   JobQueueSendOptions,
@@ -105,8 +105,9 @@ async function deadLetterMessage(row: PgmqReadRow): Promise<void> {
     readCount: row.read_ct,
     maxAttempts: MAX_JOB_QUEUE_DELIVERY_ATTEMPTS,
   });
-  await terminalizeTransportFailure(row.message.job_id, {
+  await handleTransportFailure(row.message.job_id, {
     reason: 'transport_exhausted',
+    source: 'dead_letter',
     last_error: `Job dispatch failed after ${MAX_JOB_QUEUE_DELIVERY_ATTEMPTS} delivery attempts`,
   });
 }
