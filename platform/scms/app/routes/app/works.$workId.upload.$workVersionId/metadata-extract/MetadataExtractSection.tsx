@@ -10,6 +10,8 @@ export interface MetadataExtractSectionProps {
   isPreviewsLoading: boolean;
   previewOverlayMessage: string;
   extractedMetadata: ExtractedMetadata | null;
+  /** True when the cached extraction no longer matches the current manuscript file(s). */
+  isExtractionStale: boolean;
   title: string;
   authors: string;
 }
@@ -19,6 +21,7 @@ export function MetadataExtractSection({
   isPreviewsLoading,
   previewOverlayMessage,
   extractedMetadata,
+  isExtractionStale,
   title,
   authors,
 }: MetadataExtractSectionProps) {
@@ -59,6 +62,7 @@ export function MetadataExtractSection({
         </ui.Card>
         <MetadataFormCard
           extractedMetadata={extractedMetadata}
+          isExtractionStale={isExtractionStale}
           title={title}
           authors={authors}
           hasPreviews={previewList.length > 0}
