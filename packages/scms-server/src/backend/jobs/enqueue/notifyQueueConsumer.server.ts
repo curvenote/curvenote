@@ -35,10 +35,9 @@ export function resolveStoredQueueDrainUrl(api: {
  * (the app calling its own endpoint). The enqueue wake itself is fired by
  * Postgres — a pg_net trigger on pgmq.q_job — so dispatchJob does not call this.
  *
- * This does NOT await the wake request. The returned promise resolves once the
- * request has been started (config loaded), not when the 202 is received. The
- * actual wake fetch is handed to `waitUntil` so it survives the current
- * invocation, and its outcome is only logged.
+ * This returns `void` and does NOT await anything. The wake work (config load +
+ * fetch) is handed to `waitUntil` so it survives the current invocation, and its
+ * outcome is only logged — there is nothing for callers to await.
  *
  * A failed or slow wake does not surface to the caller: the enqueued job stays
  * in pgmq and runs when the pg_cron backup drains it (up to ~1 minute later).
@@ -46,17 +45,16 @@ export function resolveStoredQueueDrainUrl(api: {
  * with a stable marker so systematic breakage (bad secret, wrong url, network)
  * is detectable via log alerts.
  *
- * Callers should treat this as fire-and-forget (`void notifyQueueConsumer()`);
- * awaiting it only blocks on `getConfig()` and gives a false impression of
- * delivery confirmation.
+ * Callers should treat this as fire-and-forget (`notifyQueueConsumer()`).
  */
 export function notifyQueueConsumer(): void {
   const promise = (async () => {
-    const config = await getConfig();
-    const url = resolveQueueDrainUrl(config.api.url);
-    const secret = config.api.queueConsumerSecret;
-
+    let url: string | undefined;
     try {
+      const config = await getConfig();
+      url = resolveQueueDrainUrl(config.api.url);
+      const secret = config.api.queueConsumerSecret;
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -72,6 +70,10 @@ export function notifyQueueConsumer(): void {
         });
       }
     } catch (err) {
+      // Covers getConfig() rejecting as well as fetch errors — without this the
+      // promise handed to waitUntil would surface as an unhandled rejection, and
+      // a config-load failure (the one mode that prevents even forming the url)
+      // would go unlogged.
       console.error('[queue] push-to-drain wake failed: request error', { url, err });
     }
   })();
