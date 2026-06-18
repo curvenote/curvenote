@@ -34,7 +34,7 @@ import type { Prisma } from '@curvenote/scms-db';
 import { formatDate } from '@curvenote/common';
 import type { OfficeParserAST, OfficeContentNode, OfficeAttachment } from 'officeparser';
 import { isPreviewCandidate } from './previewGuards';
-import { downscaleToWebp } from './imagePipeline.server';
+import { downscaleToWebp, isRenderableFigureMime } from './imagePipeline.server';
 
 /** Number of top-level content nodes to include for "first page" preview */
 const FIRST_PAGE_CONTENT_LIMIT = 10;
@@ -231,7 +231,15 @@ async function extractAndStoreFigures(
   opts: { sourcePath: string; md5: string; backend: StorageBackend; bucket: KnownBuckets },
 ): Promise<PreviewFigure[]> {
   const images = attachments
-    .filter((att) => att.type === 'image' && typeof att.data === 'string' && att.data.length > 0)
+    .filter(
+      (att) =>
+        att.type === 'image' &&
+        typeof att.data === 'string' &&
+        att.data.length > 0 &&
+        // Skip EMF/WMF/PICT metafiles up front: sharp can't decode them, so attempting
+        // would throw and also waste a slot against MAX_PREVIEW_FIGURES.
+        isRenderableFigureMime(att.mimeType),
+    )
     .slice(0, MAX_PREVIEW_FIGURES);
 
   const figures: PreviewFigure[] = [];
@@ -252,7 +260,15 @@ async function extractAndStoreFigures(
       figures.push({ key, name: att.name, altText: att.altText });
       index += 1;
     } catch (err) {
-      console.warn('extractAndStoreFigures: failed to process figure', opts.sourcePath, err);
+      // Best-effort: a single undecodable figure shouldn't abort the document. Log the
+      // message (not the full stack) plus the mime type so noisy formats are diagnosable.
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(
+        'extractAndStoreFigures: skipped figure (decode failed)',
+        opts.sourcePath,
+        att.mimeType,
+        message,
+      );
     }
   }
   return figures;

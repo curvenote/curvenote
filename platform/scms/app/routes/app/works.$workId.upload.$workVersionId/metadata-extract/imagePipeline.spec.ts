@@ -1,7 +1,11 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import sharp from 'sharp';
-import { createSharpPipeline, downscaleToWebp } from './imagePipeline.server';
+import {
+  createSharpPipeline,
+  downscaleToWebp,
+  isRenderableFigureMime,
+} from './imagePipeline.server';
 
 /**
  * Build a minimal uncompressed 24-bit BMP (bottom-up, BGR rows padded to 4 bytes).
@@ -85,6 +89,32 @@ describe('createSharpPipeline BMP handling', () => {
     expect(meta.format).toBe('png');
     expect(meta.width).toBe(3);
     expect(meta.height).toBe(2);
+  });
+});
+
+describe('isRenderableFigureMime', () => {
+  it('rejects EMF/WMF/PICT metafile formats (any vendor prefix)', () => {
+    for (const mime of [
+      'image/emf',
+      'image/x-emf',
+      'image/wmf',
+      'image/x-wmf',
+      'image/pict',
+      'image/x-pict',
+    ]) {
+      expect(isRenderableFigureMime(mime)).toBe(false);
+    }
+  });
+
+  it('accepts sharp/bmp-js decodable formats', () => {
+    for (const mime of ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp']) {
+      expect(isRenderableFigureMime(mime)).toBe(true);
+    }
+  });
+
+  it('accepts unknown/empty mime types so sharp can sniff the bytes', () => {
+    expect(isRenderableFigureMime(undefined)).toBe(true);
+    expect(isRenderableFigureMime('')).toBe(true);
   });
 });
 

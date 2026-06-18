@@ -7,6 +7,25 @@
  */
 
 /**
+ * Vector metafile / legacy formats that neither sharp (libvips) nor bmp-js can decode.
+ * Word documents frequently embed EMF/WMF (and occasionally Mac PICT) for pasted or
+ * vector graphics; there is no pure-JS rasteriser for them available here, so we skip
+ * them rather than throwing.
+ */
+const UNRENDERABLE_FIGURE_MIME_HINTS = ['emf', 'wmf', 'pict'];
+
+/**
+ * Whether an extracted figure's mime type is one we can rasterise to a thumbnail.
+ * Unknown/empty mime types return `true` so sharp can still sniff the bytes; only the
+ * known-unrenderable metafile formats are rejected.
+ */
+export function isRenderableFigureMime(mimeType: string | undefined): boolean {
+  if (!mimeType) return true;
+  const normalized = mimeType.toLowerCase();
+  return !UNRENDERABLE_FIGURE_MIME_HINTS.some((hint) => normalized.includes(hint));
+}
+
+/**
  * Build a `sharp` pipeline from raw image bytes, handling formats that sharp's
  * prebuilt (libvips) binary cannot decode directly.
  *
