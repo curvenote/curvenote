@@ -104,7 +104,7 @@ export function MetadataExtractSection({
   const extractingMetadataMessage =
     extractMetadataFetcher.state === 'submitting'
       ? 'extracting work details...'
-      : 'waiting on extraction';
+      : 'Waiting on document to unpack...';
   const isClearingExtraction =
     clearMetadataFetcher.state === 'loading' || clearMetadataFetcher.state === 'submitting';
 
