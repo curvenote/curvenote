@@ -289,11 +289,12 @@ function SingleFileView({
 
 export const ALL_FIGURES_TAB = 'all-figures';
 
+/** A single extracted figure (image attachment) with the file it came from. */
+export type DocxFigure = { attachment: OfficeAttachment; sourceName: string };
+
 /** Collect all image attachments across previews with source file name */
-function collectAllFigures(
-  previews: DocxPreviewItem[],
-): { attachment: OfficeAttachment; sourceName: string }[] {
-  const out: { attachment: OfficeAttachment; sourceName: string }[] = [];
+export function collectAllFigures(previews: DocxPreviewItem[]): DocxFigure[] {
+  const out: DocxFigure[] = [];
   for (const item of previews) {
     const attachments = item.ast.attachments ?? [];
     for (const att of attachments) {
