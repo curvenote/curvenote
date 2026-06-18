@@ -215,8 +215,8 @@ function LoopbackTest() {
       status: string;
       messages: string[];
       results: Record<string, unknown> | null;
-      date_created: string;
-      date_modified: string;
+      date_created: string | Date;
+      date_modified: string | Date;
     } | null;
   }>();
 
@@ -514,9 +514,11 @@ function StateBadge({ inFlight }: { inFlight: boolean }) {
   );
 }
 
-function formatTimestamp(iso: string | null): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
+type TimestampValue = string | Date | null;
+
+function formatTimestamp(value: TimestampValue): string {
+  if (!value) return '—';
+  const d = new Date(value);
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
 }
 
@@ -638,8 +640,8 @@ type RecentJob = {
   id: string;
   job_type: string;
   status: string;
-  date_created: string;
-  date_modified: string;
+  date_created: string | Date;
+  date_modified: string | Date;
 };
 
 function RecentJobsPanel({ jobs }: { jobs: RecentJob[] }) {
