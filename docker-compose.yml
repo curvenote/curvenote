@@ -1,5 +1,9 @@
 # Local Postgres for SCMS development (journals + journals_test).
 # Start: npm run db:up   Stop: npm run db:down   Wipe data: npm run db:down:clean
+#
+# `name` sets the Compose project name so Docker Desktop groups this stack as
+# "scms-dev" instead of defaulting to the working-directory name ("dev").
+name: scms-dev
 services:
   postgres:
     # Custom image: postgres:16 + pgmq + pg_net + pg_cron (see docker/postgres/Dockerfile)
