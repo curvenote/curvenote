@@ -668,7 +668,13 @@ export async function seedJobQueueDrainConfig(
     return;
   }
 
-  const drainUrl = resolveQueueDrainUrl(api.url);
+  // pg_net fires the wake from inside the Postgres container, so the drain url
+  // must be reachable from there. Prefer api.tasksCallbackUrl (host.docker.internal,
+  // already includes /v1) which exists for this exact "worker in Docker → host"
+  // case; fall back to api.url for non-Docker setups.
+  const drainUrl = api.tasksCallbackUrl
+    ? `${api.tasksCallbackUrl.replace(/\/$/, '')}/jobs/push-to-drain`
+    : resolveQueueDrainUrl(api.url);
 
   try {
     await prisma.$executeRaw`

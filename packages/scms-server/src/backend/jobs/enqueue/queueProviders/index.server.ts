@@ -12,12 +12,13 @@ export function resolveQueueProviderName(): QueueProviderName {
   if (process.env.VERCEL === '1') {
     return 'supabase';
   }
+  // Tests use the in-process mock queue (no Postgres pgmq/pg_net in CI).
   if (process.env.NODE_ENV === 'test') {
     return 'mock';
   }
-  if (process.env.NODE_ENV === 'development') {
-    return 'mock';
-  }
+  // Local dev now runs the real pgmq + pg_net stack against the Docker
+  // Postgres (parity with staging/prod). Set QUEUES_PROVIDER=mock to opt back
+  // into the in-memory queue (e.g. when the local container lacks pgmq).
   return 'supabase';
 }
 

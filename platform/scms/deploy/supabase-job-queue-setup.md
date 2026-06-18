@@ -2,7 +2,7 @@
 
 SCMS job dispatch stores messages in **Postgres** using the **pgmq** extension (queue name: `job`). On enqueue, a **`pg_net` database trigger** on the queue table wakes **`POST /v1/jobs/push-to-drain`** over HTTP — the wake is fired by Postgres, not the app. A **pg_cron** job in the database calls the same URL once per minute as a backup.
 
-> **Important:** because the wake comes from the database, **`"_JobQueueDrainConfig"` (Step 4) is required** — not just for the backup. If it is empty, neither the enqueue trigger nor pg_cron will wake the consumer and jobs will sit in the queue. (Local dev uses the `mock` provider, which self-wakes from the app and does not need this.)
+> **Important:** because the wake comes from the database, **`"_JobQueueDrainConfig"` (Step 4) is required** — not just for the backup. If it is empty, neither the enqueue trigger nor pg_cron will wake the consumer and jobs will sit in the queue. (Local dev now runs the same supabase provider; the db seeds auto-populate this row — see Step 4.)
 
 Do these steps **once per Supabase project** (staging and production are separate projects → repeat everything for each).
 
@@ -128,7 +128,7 @@ This table tells the **database** how to call push-to-drain. It is used by **bot
 
 > **Easiest option: use the admin UI.** Once SCMS is deployed, system admins can open **System → Jobs → Queues tab** (`/app/system/jobs?tab=queues`) and use **Push secret from app-config** (writes `api.queueConsumerSecret` into the row) and **Save endpoint** (sets `drain_url`). That tab also shows whether the stored secret matches app-config and a live tail of pending/in-flight pgmq messages. The SQL below remains available for first-time setup or environments without UI access.
 
-> **Local dev / test:** the database seeds auto-populate this row from app-config, so `npm run dev:db:reset` and `npm run test:db:reset` leave it set (no Queues-tab trip needed after a reset). The seed pulls `api.url` + `api.queueConsumerSecret` from the resolved `development`/`test` app-config and realigns the secret on each run. This only matters if you force `QUEUES_PROVIDER=supabase` locally; the default `mock` provider ignores the row.
+> **Local dev / test:** the database seeds auto-populate this row from app-config, so `npm run dev:db:reset` and `npm run test:db:reset` leave it set (no Queues-tab trip needed after a reset). The dev seed uses `api.tasksCallbackUrl` (`http://host.docker.internal:3031/v1/...`) so the `pg_net` wake fired inside the Postgres container can reach the dev server on the host, and realigns the secret on each run. Local dev now defaults to the **supabase** provider (real pgmq + pg_net), so this row matters by default; set `QUEUES_PROVIDER=mock` to fall back to the in-memory queue (which ignores the row).
 
 1. Supabase Dashboard → **SQL Editor** → **New query**.
 2. Replace the placeholders below with **this environment’s** values:
@@ -218,22 +218,22 @@ It selects which queue backend `dispatchJob` uses:
 
 | Value      | Behavior                                   |
 | ---------- | ------------------------------------------ |
-| `mock`     | In-memory queue (local dev / tests)        |
+| `mock`     | In-memory queue (tests; opt-in for local)  |
 | `supabase` | `pgmq.send` / `pgmq.read` against Postgres |
 
 **Resolution order** (see `queueProviders/index.server.ts`):
 
 1. If `QUEUES_PROVIDER` is set to `mock` or `supabase` → use that.
 2. Else if `VERCEL=1` (automatic on Vercel) → **`supabase`**.
-3. Else if `NODE_ENV` is `development` or `test` → **`mock`**.
-4. Else → **`supabase`**.
+3. Else if `NODE_ENV` is `test` → **`mock`** (CI has no pgmq/pg_net).
+4. Else (incl. local `development`) → **`supabase`**.
 
 So on **Vercel staging/production you usually do not set `QUEUES_PROVIDER` at all** — Vercel sets `VERCEL=1`, and the app picks `supabase` automatically.
 
 Why keep the env var?
 
-- **Local dev:** default `mock` without Supabase/pgmq installed.
-- **Override:** force `QUEUES_PROVIDER=supabase` on a non-Vercel host or to test pgmq locally.
+- **Local dev:** defaults to `supabase` (the Docker Postgres ships pgmq + pg_net + pg_cron — see `docker/postgres/Dockerfile`).
+- **Override:** force `QUEUES_PROVIDER=mock` to use the in-memory queue locally (e.g. a container without pgmq).
 - **Emergency:** force `QUEUES_PROVIDER=mock` on a deployment (not recommended for prod).
 
 The old doc line _“Deploy app code that sets `QUEUES_PROVIDER=supabase` before the pgmq migration…”_ means:
@@ -259,7 +259,7 @@ Backup (every minute): pg_cron → job_queue_cron_drain() → net.http_post(drai
 Both the trigger and cron no-op until "_JobQueueDrainConfig" row exists (Step 4).
 ```
 
-Primary path is the **database enqueue trigger** (`pg_net`). pg_cron is a safety net only — do not rely on it as the main drain mechanism. (Local dev’s `mock` provider self-wakes from the app instead.)
+Primary path is the **database enqueue trigger** (`pg_net`). pg_cron is a safety net only — do not rely on it as the main drain mechanism. (Local dev runs the same trigger; its `pg_net` wake targets `host.docker.internal` so it reaches the dev server on the host. pg_cron’s backup is bound to the `journals` db locally and is best-effort.)
 
 ---
 

@@ -30,20 +30,20 @@ npm run dev
 
 ### Job queue local development
 
-By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`, set via `.env` only — not app-config). Jobs enqueued via `enqueueAndDispatchJob` are written to the mock queue and wake **`POST /v1/jobs/push-to-drain`**, which drains **one message per invocation** (202 + background `waitUntil`) — no second terminal required.
+By default, local development now uses the **supabase provider** (real **pgmq** + **pg_net**) against the Docker Postgres, matching staging/prod. The local Postgres image bundles pgmq, pg_net, and pg_cron (see [`docker/postgres/Dockerfile`](../../docker/postgres/Dockerfile)). On enqueue, a `pg_net` trigger on `pgmq.q_job` wakes **`POST /v1/jobs/push-to-drain`**; the drain config is auto-seeded so the wake (fired from inside the container) reaches the dev server at `host.docker.internal`. Set `QUEUES_PROVIDER=mock` (`.env` only — not app-config) to fall back to the **in-process mock queue** (no pgmq required).
 
 **Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, staging/prod secrets YAML on deployed envs) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
 
-On deployed environments (`QUEUES_PROVIDER=supabase`, auto when `VERCEL=1`), messages are stored in **Supabase pgmq** and use the same push-to-drain route. A **pg_cron** backup (every minute) calls push-to-drain if a self-wake is missed.
+On deployed environments (`QUEUES_PROVIDER=supabase`, auto when `VERCEL=1`), messages are stored in **Supabase pgmq** and use the same push-to-drain route. A **pg_cron** backup (every minute) calls push-to-drain if the enqueue trigger is missed.
 
-| Mode | When | Transport |
-|---|---|---|
-| **Mock (default)** | Local dev / tests | In-memory queue + loopback push-to-drain |
-| **Supabase** | Deployed SCMS (e.g. staging/prod) | pgmq + self-HTTP wake + pg_cron backup |
+| Mode                   | When                                           | Transport                                             |
+| ---------------------- | ---------------------------------------------- | ----------------------------------------------------- |
+| **Supabase (default)** | Local dev + deployed SCMS (staging/prod)       | pgmq + `pg_net` enqueue-wake trigger + pg_cron backup |
+| **Mock**               | Tests; opt-in locally (`QUEUES_PROVIDER=mock`) | In-memory queue + loopback push-to-drain              |
+
+> After switching to this image you must rebuild the Postgres container: `npm run db:rebuild` (wipes the volume, rebuilds from the Dockerfile, re-runs init), then `npm run dev:db:reset`.
 
 **Staging/prod Supabase setup:** see [`platform/scms/deploy/supabase-job-queue-setup.md`](deploy/supabase-job-queue-setup.md) (pgmq migration, app-config secrets, `_JobQueueDrainConfig`, smoke tests).
-
-**Local optional:** enable pgmq in Docker and set `QUEUES_PROVIDER=supabase` to match prod queue behavior; default mock does not require pgmq.
 
 ### First-time setup
 
@@ -62,12 +62,12 @@ npm run dev:db:reset
 
 Useful commands:
 
-| Command | Purpose |
-|---|---|
-| `npm run db:up` | Start Postgres container |
-| `npm run db:down` | Stop container (keep data volume) |
-| `npm run db:down:clean` | Stop and **delete** all DB data |
-| `npm run db:logs` | Follow Postgres logs |
+| Command                 | Purpose                           |
+| ----------------------- | --------------------------------- |
+| `npm run db:up`         | Start Postgres container          |
+| `npm run db:down`       | Stop container (keep data volume) |
+| `npm run db:down:clean` | Stop and **delete** all DB data   |
+| `npm run db:logs`       | Follow Postgres logs              |
 
 Connection strings (same as before):
 

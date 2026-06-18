@@ -39,4 +39,20 @@ describe('queue provider selection', () => {
 
     expect(resolveQueueProviderName()).toBe('supabase');
   });
+
+  test('defaults to supabase in local development', () => {
+    delete process.env.QUEUES_PROVIDER;
+    delete process.env.VERCEL;
+    process.env.NODE_ENV = 'development';
+
+    expect(resolveQueueProviderName()).toBe('supabase');
+  });
+
+  test('defaults to mock in test (no pgmq/pg_net in CI)', () => {
+    delete process.env.QUEUES_PROVIDER;
+    delete process.env.VERCEL;
+    process.env.NODE_ENV = 'test';
+
+    expect(resolveQueueProviderName()).toBe('mock');
+  });
 });

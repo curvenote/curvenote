@@ -3,7 +3,9 @@
 set -eu
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-	CREATE USER journals WITH ENCRYPTED PASSWORD 'curvenote' CREATEDB;
+	-- SUPERUSER (local dev only) so Prisma migrations can run CREATE EXTENSION
+	-- pgmq / pg_net / pg_cron without a separate privileged bootstrap step.
+	CREATE USER journals WITH ENCRYPTED PASSWORD 'curvenote' CREATEDB SUPERUSER;
 	CREATE DATABASE journals OWNER journals;
 	CREATE DATABASE journals_test OWNER journals;
 EOSQL

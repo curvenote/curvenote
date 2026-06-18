@@ -28,8 +28,15 @@ BEGIN
     RETURN;
   END IF;
 
+  -- pg_cron is bound to a single database (cron.database_name). CREATE EXTENSION
+  -- raises in any other DB (e.g. journals_test locally), so swallow that error —
+  -- the pg_net enqueue-wake trigger is the primary wake; pg_cron is only a backup.
   IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
-    CREATE EXTENSION IF NOT EXISTS pg_cron;
+    BEGIN
+      CREATE EXTENSION IF NOT EXISTS pg_cron;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'pg_cron not creatable in this database (%) — skipping cron backup wake', SQLERRM;
+    END;
   END IF;
   CREATE EXTENSION IF NOT EXISTS pg_net;
 

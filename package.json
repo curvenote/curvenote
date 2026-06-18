@@ -23,6 +23,8 @@
     "prisma:generate": "npx prisma generate --config=./prisma.config.ts",
     "prisma:format": "npx prisma format --config=./prisma.config.ts",
     "db:up": "docker compose up -d --wait postgres",
+    "db:build": "docker compose build postgres",
+    "db:rebuild": "docker compose down -v && docker compose build postgres && docker compose up -d --wait postgres",
     "db:down": "docker compose down",
     "db:down:clean": "docker compose down -v",
     "db:logs": "docker compose logs -f postgres",
