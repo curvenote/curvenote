@@ -290,6 +290,49 @@ export async function fetchDocumentPreviews(
 }
 
 /**
+ * Delete cached document-preview rows from the Object table for a work version's
+ * preview-candidate files.
+ *
+ * Called after a successful `confirm-work` to reclaim the (potentially multi-MB,
+ * base64-image-laden) cache rows once the thumbnail has been materialised and the
+ * previews are no longer needed. Best-effort: never throws.
+ *
+ * The cache is content-addressed by md5, so in the rare case another draft uploaded
+ * the byte-identical file, its preview cache is dropped too — that's fine, it is a
+ * cache and regenerates on demand.
+ *
+ * Returns the number of rows deleted.
+ */
+export async function deleteDocumentPreviewCacheForVersion(
+  workVersionId: string,
+  _ctx: Context,
+): Promise<number> {
+  try {
+    const work = await findWorkByVersion(workVersionId);
+    const rawMetadata = work?.metadata as Record<string, unknown> | undefined;
+    const files = rawMetadata?.files as Record<string, FileMetadataSectionItem> | undefined;
+    if (!files || typeof files !== 'object') return 0;
+
+    const cacheIds = Object.values(files)
+      .filter((file) => isPreviewCandidate(file))
+      .map((file) => file.md5)
+      .filter((md5): md5 is string => typeof md5 === 'string' && md5.length > 0)
+      .map((md5) => documentPreviewCacheId(md5));
+
+    if (cacheIds.length === 0) return 0;
+
+    const prisma = await getPrismaClient();
+    const { count } = await prisma.object.deleteMany({
+      where: { id: { in: Array.from(new Set(cacheIds)) } },
+    });
+    return count;
+  } catch (err) {
+    console.warn('deleteDocumentPreviewCacheForVersion: cleanup failed', workVersionId, err);
+    return 0;
+  }
+}
+
+/**
  * Single entry point for the fetch-previews intent (action).
  * Generates previews (and writes to Object table), returns previews.
  * Throws if workVersionId is missing (caller can map to 400).

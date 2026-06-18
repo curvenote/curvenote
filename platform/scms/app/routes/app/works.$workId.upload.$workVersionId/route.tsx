@@ -60,7 +60,10 @@ import {
 import { toggleWorkVersionCheck } from './updateChecks.server';
 import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
-import { handleFetchPreviewsIntent } from './metadata-extract/fetchPreviews.server';
+import {
+  handleFetchPreviewsIntent,
+  deleteDocumentPreviewCacheForVersion,
+} from './metadata-extract/fetchPreviews.server';
 import {
   readDocumentPreviewsFromObjectTable,
   type DocumentPreviewItem,
@@ -663,6 +666,19 @@ export async function action(args: Route.ActionArgs) {
             });
           }
         }
+
+        // Reclaim the (potentially large, base64-image-laden) document-preview cache
+        // rows now that previews have served their purpose. Runs after the response so
+        // it never delays submission; cleanup is best-effort and self-regenerating.
+        waitUntil(
+          deleteDocumentPreviewCacheForVersion(workVersionId, baseCtx).catch((error) => {
+            console.warn('[work-upload] preview cache cleanup failed', {
+              workId,
+              workVersionId,
+              error,
+            });
+          }),
+        );
 
         // Schedule each enabled check via its extension. Each check service is
         // responsible for creating its own checkServiceRun rows and jobs.
