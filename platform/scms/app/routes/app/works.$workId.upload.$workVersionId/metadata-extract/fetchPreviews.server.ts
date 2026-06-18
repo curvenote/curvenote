@@ -9,6 +9,8 @@
  *
  * Parsed first-page AST is cached in the Object table as
  * type/id "docx:preview:${file.md5}" so repeated loads skip re-parsing.
+ * The legacy prefix is kept for cache compatibility across the DOCX-to-document
+ * preview workflow rename.
  */
 
 import { findWorkByVersion, getPrismaClient, signFilesInMetadata } from '@curvenote/scms-server';
@@ -27,11 +29,11 @@ const FIRST_PAGE_MIN_TEXT_LENGTH = 500;
 /** Page two must be this much larger than a sparse first page before we include it. */
 const SECOND_PAGE_SIGNIFICANTLY_LARGER_RATIO = 1.5;
 
-/** Object table type/id prefix for DOCX preview cache entries */
-const DOCX_PREVIEW_CACHE_PREFIX = 'docx:preview:';
+/** Object table type/id prefix for cached document preview entries */
+const DOCUMENT_PREVIEW_CACHE_PREFIX = 'docx:preview:';
 
-function docxPreviewCacheId(md5: string): string {
-  return `${DOCX_PREVIEW_CACHE_PREFIX}${md5}`;
+function documentPreviewCacheId(md5: string): string {
+  return `${DOCUMENT_PREVIEW_CACHE_PREFIX}${md5}`;
 }
 
 /** Shape of cached AST stored in Object.data (must match truncateAstToFirstPage return) */
@@ -128,7 +130,7 @@ export function truncateAstToFirstPage(ast: OfficeParserAST): {
   };
 }
 
-export interface DocxPreviewItem {
+export interface DocumentPreviewItem {
   /** File path (key in metadata.files) */
   path: string;
   /** File metadata (name, size, type, path, etc.) */
@@ -138,7 +140,7 @@ export interface DocxPreviewItem {
 }
 
 export interface FetchPreviewsResult {
-  previews: DocxPreviewItem[];
+  previews: DocumentPreviewItem[];
 }
 
 /**
@@ -174,7 +176,7 @@ export function astContentToPlainText(content: OfficeContentNode[]): string {
  * (see isPreviewCandidate). Downloads each file via signed URL, parses with
  * officeparser, and returns file metadata plus truncated AST (first page of content).
  */
-export async function fetchDocxPreviews(
+export async function fetchDocumentPreviews(
   workVersionId: string,
   ctx: Context,
 ): Promise<FetchPreviewsResult> {
@@ -197,18 +199,18 @@ export async function fetchDocxPreviews(
   const signedFiles = signedMetadata.files ?? {};
   const previewEntries = Object.entries(signedFiles).filter(([, file]) => isPreviewCandidate(file));
 
-  const previews: DocxPreviewItem[] = [];
+  const previews: DocumentPreviewItem[] = [];
   const prisma = await getPrismaClient();
 
   for (const [path, file] of previewEntries) {
     const signedUrl = file.signedUrl;
     if (!signedUrl || typeof signedUrl !== 'string') {
-      console.warn('fetchDocxPreviews: no signedUrl for docx', path);
+      console.warn('fetchDocumentPreviews: no signedUrl for preview candidate', path);
       continue;
     }
 
     const md5 = file.md5;
-    const cacheId = typeof md5 === 'string' && md5 ? docxPreviewCacheId(md5) : null;
+    const cacheId = typeof md5 === 'string' && md5 ? documentPreviewCacheId(md5) : null;
 
     let ast: ReturnType<typeof truncateAstToFirstPage> | null = null;
 
@@ -226,12 +228,12 @@ export async function fetchDocxPreviews(
       try {
         const response = await fetch(signedUrl);
         if (!response.ok) {
-          console.warn('fetchDocxPreviews: download failed', path, response.status);
+          console.warn('fetchDocumentPreviews: download failed', path, response.status);
           continue;
         }
         const arrayBuffer = await response.arrayBuffer();
         // Defer loading officeparser (and its heavy transitive deps: tesseract.js,
-        // pdfjs-dist) until a DOCX actually needs parsing, keeping the route's
+        // pdfjs-dist) until a document actually needs parsing, keeping the route's
         // server module light on cold start.
         const { parseOffice } = await import('officeparser');
         const fullAst = await parseOffice(arrayBuffer, {
@@ -258,12 +260,12 @@ export async function fetchDocxPreviews(
           } catch (createErr: unknown) {
             const code = (createErr as { code?: string })?.code;
             if (code !== 'P2002') {
-              console.warn('fetchDocxPreviews: failed to cache preview', path, createErr);
+              console.warn('fetchDocumentPreviews: failed to cache preview', path, createErr);
             }
           }
         }
       } catch (err) {
-        console.warn('fetchDocxPreviews: parse failed', path, err);
+        console.warn('fetchDocumentPreviews: parse failed', path, err);
         continue;
       }
     }
@@ -295,32 +297,32 @@ export async function fetchDocxPreviews(
 export async function handleFetchPreviewsIntent(
   workVersionId: string | undefined,
   ctx: Context,
-): Promise<{ previews: DocxPreviewItem[] }> {
+): Promise<{ previews: DocumentPreviewItem[] }> {
   if (!workVersionId) {
     throw new Error('Work version ID is required');
   }
-  const result = await fetchDocxPreviews(workVersionId, ctx);
+  const result = await fetchDocumentPreviews(workVersionId, ctx);
   return { previews: result.previews };
 }
 
 /**
- * Read DOCX previews from the Object table only (no download/parse).
+ * Read document previews from the Object table only (no download/parse).
  * Used by the loader to return whatever previews are already cached.
  * Caller must pass metadata that includes .files (e.g. signed metadata).
  */
-export async function readDocxPreviewsFromObjectTable(metadata: {
+export async function readDocumentPreviewsFromObjectTable(metadata: {
   files?: Record<string, FileMetadataSectionItem & { signedUrl?: string }>;
-}): Promise<DocxPreviewItem[]> {
+}): Promise<DocumentPreviewItem[]> {
   const files = metadata.files ?? {};
   if (typeof files !== 'object') {
     return [];
   }
   const previewEntries = Object.entries(files).filter(([, file]) => isPreviewCandidate(file));
   const prisma = await getPrismaClient();
-  const previews: DocxPreviewItem[] = [];
+  const previews: DocumentPreviewItem[] = [];
   for (const [path, file] of previewEntries) {
     const md5 = file.md5;
-    const cacheId = typeof md5 === 'string' && md5 ? docxPreviewCacheId(md5) : null;
+    const cacheId = typeof md5 === 'string' && md5 ? documentPreviewCacheId(md5) : null;
     if (!cacheId) continue;
     const cached = await prisma.object.findUnique({
       where: { id: cacheId },

@@ -2,7 +2,7 @@
  * Materialise a user-selected document figure into a persisted thumbnail.
  *
  * Runs on final upload submission (the `confirm-work` intent). Resolves the selected
- * figure's bytes from the cached DOCX previews, normalises/resizes it with `sharp`,
+ * figure's bytes from the cached document previews, normalises/resizes it with `sharp`,
  * writes it to the work version's storage bucket, and returns the storage key to store
  * in `WorkVersion.thumbnail` (layer 1 of the thumbnail cascade).
  *
@@ -13,7 +13,7 @@
 import { createHash } from 'node:crypto';
 import type { Context } from '@curvenote/scms-server';
 import { File, KnownBuckets, StorageBackend } from '@curvenote/scms-server';
-import { fetchDocxPreviews } from './fetchPreviews.server';
+import { fetchDocumentPreviews } from './fetchPreviews.server';
 import { decodeFigureLocator } from './thumbnailSelection';
 
 /** Longest edge of the generated thumbnail, in pixels. */
@@ -44,7 +44,7 @@ export async function materializeSelectedThumbnail({
     return null;
   }
 
-  const { previews } = await fetchDocxPreviews(workVersionId, ctx);
+  const { previews } = await fetchDocumentPreviews(workVersionId, ctx);
   const preview = previews.find((p) => p.path === parts.sourcePath);
   if (!preview) {
     console.warn('materializeSelectedThumbnail: source preview not found', parts.sourcePath);

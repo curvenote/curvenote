@@ -390,7 +390,7 @@ async function extractViaPrompt(
 }
 
 /**
- * Extract title/author metadata from the first DOCX preview via Anthropic.
+ * Extract title/author metadata from the first document preview via Anthropic.
  * Uses the selected preview's AST content as plain text (no attachments). The
  * extraction strategy is chosen by {@link METADATA_EXTRACT_STRATEGY}. On any
  * failure returns null. Never throws; logs details on failure.
@@ -403,7 +403,7 @@ export async function extractMetadataFromPreviews(
 ): Promise<ExtractedMetadata | null> {
   try {
     if (!previewsResult.previews?.length) {
-      console.warn(LOG_PREFIX, 'No DOCX previews available');
+      console.warn(LOG_PREFIX, 'No document previews available');
       return null;
     }
     const selected =

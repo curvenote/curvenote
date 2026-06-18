@@ -3,10 +3,10 @@ import { Image as ImageIcon, Check } from 'lucide-react';
 import { SectionWithHeading, cn } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocumentPreviewer';
 import { encodeFigureLocator } from './thumbnailSelection';
-import type { DocxPreviewItem } from './fetchPreviews.server';
+import type { DocumentPreviewItem } from './fetchPreviews.server';
 
 export interface ChooseThumbnailSectionProps {
-  previewList: DocxPreviewItem[];
+  previewList: DocumentPreviewItem[];
   /** Currently selected thumbnail locator (see thumbnailSelection.ts), or null. */
   value: string | null;
   /** Report the selected thumbnail locator to the parent (drives the submit field). */

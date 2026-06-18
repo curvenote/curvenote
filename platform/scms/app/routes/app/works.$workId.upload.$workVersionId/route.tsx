@@ -62,8 +62,8 @@ import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
 import { handleFetchPreviewsIntent } from './metadata-extract/fetchPreviews.server';
 import {
-  readDocxPreviewsFromObjectTable,
-  type DocxPreviewItem,
+  readDocumentPreviewsFromObjectTable,
+  type DocumentPreviewItem,
 } from './metadata-extract/fetchPreviews.server';
 import { extractMetadataFromPreviews } from './metadata-extract/anthropic.server';
 import type { ExtractedMetadata } from './metadata-extract/anthropic.server';
@@ -301,7 +301,7 @@ export async function loader(args: Route.LoaderArgs) {
 
   // Read only cached document previews from Object table (no generation in loader)
 
-  const previews = await readDocxPreviewsFromObjectTable(signedMetadata);
+  const previews = await readDocumentPreviewsFromObjectTable(signedMetadata);
   // Stored under the same key as the ETL register-work endpoint: metadata["frontmatter.myst"].
   const mystFrontmatter = (rawMetadata as Record<string, unknown>)?.['frontmatter.myst'];
   const extractedMetadata: ExtractedMetadata | null =
@@ -832,7 +832,7 @@ export async function action(args: Route.ActionArgs) {
           work.cdn ?? '',
           baseCtx,
         );
-        const previews = await readDocxPreviewsFromObjectTable(signedMetadata);
+        const previews = await readDocumentPreviewsFromObjectTable(signedMetadata);
         if (previews.length === 0) {
           return data({ ok: true });
         }
@@ -940,7 +940,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     hasMetadataExtractScope,
   } = loaderData;
   const { workVersionId } = useParams();
-  const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
+  const previewList: DocumentPreviewItem[] = Array.isArray(previews) ? previews : [];
   const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
   const [authorMetadata, setAuthorMetadata] = useState<AuthorFieldMetadata>(authorFieldMetadata);
   const revalidator = useRevalidator();

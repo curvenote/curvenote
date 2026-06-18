@@ -10,10 +10,10 @@ import type {
 } from 'officeparser';
 import { CodeXml, FileText, Search } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
-import type { DocxPreviewItem } from './fetchPreviews.server';
+import type { DocumentPreviewItem } from './fetchPreviews.server';
 
 /** First-page AST from server (type, metadata, content, attachments; no toText) */
-type PreviewAst = DocxPreviewItem['ast'];
+type PreviewAst = DocumentPreviewItem['ast'];
 
 /** Document metadata for style resolution (formatting + styleMap) */
 type PartialFormatting = Partial<TextFormatting>;
@@ -45,7 +45,7 @@ function resolveFormatting(
 }
 
 interface DocumentPreviewerProps {
-  previews: DocxPreviewItem[];
+  previews: DocumentPreviewItem[];
   /** Controlled active tab value (file index as string, or ALL_FIGURES_TAB). */
   activeTab?: string;
   onActiveTabChange?: (tab: string) => void;
@@ -246,7 +246,7 @@ function SingleFileView({
   showAst,
   onToggleAst,
 }: {
-  item: DocxPreviewItem;
+  item: DocumentPreviewItem;
   showAst: boolean;
   onToggleAst: () => void;
 }) {
@@ -304,7 +304,7 @@ export type DocumentFigure = {
 };
 
 /** Collect all image attachments across previews with source file name */
-export function collectAllFigures(previews: DocxPreviewItem[]): DocumentFigure[] {
+export function collectAllFigures(previews: DocumentPreviewItem[]): DocumentFigure[] {
   const out: DocumentFigure[] = [];
   for (const item of previews) {
     const attachments = item.ast.attachments ?? [];

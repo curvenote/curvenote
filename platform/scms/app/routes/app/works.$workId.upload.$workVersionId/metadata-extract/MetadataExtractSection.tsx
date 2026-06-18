@@ -5,14 +5,14 @@ import { SectionWithHeading, ui, LoadingSpinner } from '@curvenote/scms-core';
 import type { Route } from '../+types/route';
 import { DocumentPreviewer, ALL_FIGURES_TAB } from './DocumentPreviewer';
 import { MetadataFormCard } from './MetadataFormCard';
-import type { DocxPreviewItem } from './fetchPreviews.server';
+import type { DocumentPreviewItem } from './fetchPreviews.server';
 import type { ExtractedMetadata } from './anthropic.server';
 import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
 
 const EMPTY_AUTHOR_METADATA: AuthorFieldMetadata = { authors: [], affiliations: [] };
 
 export interface MetadataExtractSectionProps {
-  previewList: DocxPreviewItem[];
+  previewList: DocumentPreviewItem[];
   isPreviewsLoading: boolean;
   previewOverlayMessage: string;
   extractedMetadata: ExtractedMetadata | null;
