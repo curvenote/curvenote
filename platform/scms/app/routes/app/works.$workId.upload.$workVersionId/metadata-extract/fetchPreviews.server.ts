@@ -21,6 +21,12 @@ import { isPreviewCandidate } from './previewGuards';
 /** Number of top-level content nodes to include for "first page" preview */
 const FIRST_PAGE_CONTENT_LIMIT = 10;
 
+/** A first page with this much text is enough for metadata extraction on its own. */
+const FIRST_PAGE_MIN_TEXT_LENGTH = 500;
+
+/** Page two must be this much larger than a sparse first page before we include it. */
+const SECOND_PAGE_SIGNIFICANTLY_LARGER_RATIO = 1.5;
+
 /** Object table type/id prefix for DOCX preview cache entries */
 const DOCX_PREVIEW_CACHE_PREFIX = 'docx:preview:';
 
@@ -46,12 +52,57 @@ function isCachedAst(data: unknown): data is {
 }
 
 /**
- * Truncate AST content to first N nodes (first "page").
+ * Recursively extract plain text from AST content nodes for sending to LLM.
+ * Skips image/attachment content (no binary); uses placeholder for images.
+ */
+function nodeToPlainText(node: OfficeContentNode): string {
+  if (node.type === 'text') {
+    return (node as { text?: string }).text ?? '';
+  }
+  if (node.type === 'image' || node.type === 'chart' || node.type === 'drawing') {
+    return '';
+  }
+  const children = (node as { children?: OfficeContentNode[] }).children;
+  if (!children?.length) {
+    const direct = (node as { text?: string }).text;
+    return direct != null ? String(direct) : '';
+  }
+  return children.map(nodeToPlainText).join('');
+}
+
+function extractableTextLength(nodes: OfficeContentNode[]): number {
+  return astContentToPlainText(nodes).length;
+}
+
+function isPageNode(node: OfficeContentNode): boolean {
+  return node.type === 'page';
+}
+
+function shouldIncludeSecondPage(
+  firstPage: OfficeContentNode,
+  secondPage?: OfficeContentNode,
+): boolean {
+  if (!secondPage) return false;
+  const firstPageLength = extractableTextLength([firstPage]);
+  if (firstPageLength >= FIRST_PAGE_MIN_TEXT_LENGTH) return false;
+  const secondPageLength = extractableTextLength([secondPage]);
+  if (secondPageLength === 0) return false;
+  return (
+    secondPageLength >=
+    Math.max(FIRST_PAGE_MIN_TEXT_LENGTH, firstPageLength * SECOND_PAGE_SIGNIFICANTLY_LARGER_RATIO)
+  );
+}
+
+/**
+ * Truncate AST content to the first page when officeparser exposes page nodes.
+ *
+ * Some formats (notably PDF) parse into page nodes, where a single top-level
+ * node can contain a full page. Others (notably DOCX) parse into paragraph-like
+ * nodes, so we keep the historical node-count fallback for non-paged ASTs.
  * Returns a serializable object (no toText method).
  * Includes attachments so image nodes in the truncated content can be resolved.
- * wasTruncated is true when the original content had more than FIRST_PAGE_CONTENT_LIMIT nodes.
  */
-function truncateAstToFirstPage(ast: OfficeParserAST): {
+export function truncateAstToFirstPage(ast: OfficeParserAST): {
   type: OfficeParserAST['type'];
   metadata: OfficeParserAST['metadata'];
   content: OfficeContentNode[];
@@ -59,8 +110,15 @@ function truncateAstToFirstPage(ast: OfficeParserAST): {
   wasTruncated: boolean;
 } {
   const fullContent = ast.content ?? [];
-  const content = fullContent.slice(0, FIRST_PAGE_CONTENT_LIMIT);
-  const wasTruncated = fullContent.length > FIRST_PAGE_CONTENT_LIMIT;
+  const pageNodes = fullContent.filter(isPageNode);
+  const content =
+    pageNodes.length > 0
+      ? pageNodes.slice(0, shouldIncludeSecondPage(pageNodes[0], pageNodes[1]) ? 2 : 1)
+      : fullContent.slice(0, FIRST_PAGE_CONTENT_LIMIT);
+  const wasTruncated =
+    pageNodes.length > 0
+      ? content.length < pageNodes.length
+      : fullContent.length > FIRST_PAGE_CONTENT_LIMIT;
   return {
     type: ast.type,
     metadata: ast.metadata,
@@ -81,25 +139,6 @@ export interface DocxPreviewItem {
 
 export interface FetchPreviewsResult {
   previews: DocxPreviewItem[];
-}
-
-/**
- * Recursively extract plain text from AST content nodes for sending to LLM.
- * Skips image/attachment content (no binary); uses placeholder for images.
- */
-function nodeToPlainText(node: OfficeContentNode): string {
-  if (node.type === 'text') {
-    return (node as { text?: string }).text ?? '';
-  }
-  if (node.type === 'image' || node.type === 'chart' || node.type === 'drawing') {
-    return '';
-  }
-  const children = (node as { children?: OfficeContentNode[] }).children;
-  if (!children?.length) {
-    const direct = (node as { text?: string }).text;
-    return direct != null ? String(direct) : '';
-  }
-  return children.map(nodeToPlainText).join('');
 }
 
 /**
