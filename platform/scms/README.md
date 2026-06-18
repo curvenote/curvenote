@@ -32,6 +32,8 @@ npm run dev
 
 The job queue is **Supabase pgmq** everywhere — local dev runs the same real **pgmq** + **pg_net** stack as staging/prod, against the Docker Postgres. The local Postgres image bundles pgmq, pg_net, and pg_cron (see [`docker/postgres/Dockerfile`](../../docker/postgres/Dockerfile)), and binds the `pg_net` + `pg_cron` workers to the `journals` db (`pg_net.database_name` / `cron.database_name`) so they actually drain the local queue. On enqueue, a `pg_net` trigger on `pgmq.q_job` wakes **`POST /v1/jobs/push-to-drain`**; the drain config is auto-seeded so the wake (fired from inside the container) reaches the dev server at `host.docker.internal`. A **pg_cron** backup (every minute) calls push-to-drain if the enqueue trigger is missed.
 
+For the complete developer-facing architecture, including diagrams and example cases, see [`docs/jobs/queues-and-jobs.md`](../../docs/jobs/queues-and-jobs.md).
+
 A message that fails its handler past `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS` is **dead-lettered**: archived to `pgmq.a_job` and the job marked `FAILED`, so a poison message never blocks the queue.
 
 If a backlog gets stuck (e.g. the dev server was down when wakes fired), the **Queues** tab (`/app/system/jobs?tab=queues`) has a **Drain now** button that processes up to 10 messages in-process without relying on the `pg_net` wake.

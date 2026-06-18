@@ -2,6 +2,8 @@
 
 SCMS job dispatch stores messages in **Postgres** using the **pgmq** extension (queue name: `job`). On enqueue, a **`pg_net` database trigger** on the queue table wakes **`POST /v1/jobs/push-to-drain`** over HTTP — the wake is fired by Postgres, not the app. A **pg_cron** job in the database calls the same URL once per minute as a backup.
 
+For the complete developer-facing architecture, including diagrams and example cases, see [`docs/jobs/queues-and-jobs.md`](../../../docs/jobs/queues-and-jobs.md).
+
 > **Important:** because the wake comes from the database, **`"_JobQueueDrainConfig"` (Step 4) is required** — not just for the backup. If it is empty, neither the enqueue trigger nor pg_cron will wake the consumer and jobs will sit in the queue. (Local dev now runs the same supabase provider; the db seeds auto-populate this row — see Step 4.)
 
 Do these steps **once per Supabase project** (staging and production are separate projects → repeat everything for each).
