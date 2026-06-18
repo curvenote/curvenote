@@ -1,9 +1,11 @@
 /**
- * Server-side DOCX preview fetching for a work version.
+ * Server-side document preview fetching for a work version.
  *
- * For the given work version: finds Word OOXML files (.docx, .docm, .dotx, .dotm) in metadata.files,
- * downloads each via signed URL, parses with officeparser, and returns
- * the first "page" of content (truncated AST) per file.
+ * For the given work version: finds preview-candidate files in metadata.files
+ * (the intersection of officeparser-supported formats and the manuscript dropzone
+ * MIME types — see isPreviewCandidate; today {docx, pdf}), downloads each via
+ * signed URL, parses with officeparser, and returns the first "page" of content
+ * (truncated AST) per file.
  *
  * Parsed first-page AST is cached in the Object table as
  * type/id "docx:preview:${file.md5}" so repeated loads skip re-parsing.
@@ -14,7 +16,7 @@ import type { FileMetadataSectionItem } from '@curvenote/scms-core';
 import type { Context } from '@curvenote/scms-server';
 import { formatDate } from '@curvenote/common';
 import type { OfficeParserAST, OfficeContentNode, OfficeAttachment } from 'officeparser';
-import { isDocxPreviewCandidate } from './docxPreviewGuards';
+import { isPreviewCandidate } from './previewGuards';
 
 /** Number of top-level content nodes to include for "first page" preview */
 const FIRST_PAGE_CONTENT_LIMIT = 10;
@@ -129,9 +131,9 @@ export function astContentToPlainText(content: OfficeContentNode[]): string {
 }
 
 /**
- * Fetch previews for all Word OOXML word-processing files in the work version's metadata.
- * Downloads each file via signed URL, parses with officeparser, and returns
- * file metadata plus truncated AST (first page of content).
+ * Fetch previews for all preview-candidate files in the work version's metadata
+ * (see isPreviewCandidate). Downloads each file via signed URL, parses with
+ * officeparser, and returns file metadata plus truncated AST (first page of content).
  */
 export async function fetchDocxPreviews(
   workVersionId: string,
@@ -154,14 +156,12 @@ export async function fetchDocxPreviews(
     ctx,
   );
   const signedFiles = signedMetadata.files ?? {};
-  const docxEntries = Object.entries(signedFiles).filter(([, file]) =>
-    isDocxPreviewCandidate(file),
-  );
+  const previewEntries = Object.entries(signedFiles).filter(([, file]) => isPreviewCandidate(file));
 
   const previews: DocxPreviewItem[] = [];
   const prisma = await getPrismaClient();
 
-  for (const [path, file] of docxEntries) {
+  for (const [path, file] of previewEntries) {
     const signedUrl = file.signedUrl;
     if (!signedUrl || typeof signedUrl !== 'string') {
       console.warn('fetchDocxPreviews: no signedUrl for docx', path);
@@ -276,10 +276,10 @@ export async function readDocxPreviewsFromObjectTable(metadata: {
   if (typeof files !== 'object') {
     return [];
   }
-  const docxEntries = Object.entries(files).filter(([, file]) => isDocxPreviewCandidate(file));
+  const previewEntries = Object.entries(files).filter(([, file]) => isPreviewCandidate(file));
   const prisma = await getPrismaClient();
   const previews: DocxPreviewItem[] = [];
-  for (const [path, file] of docxEntries) {
+  for (const [path, file] of previewEntries) {
     const md5 = file.md5;
     const cacheId = typeof md5 === 'string' && md5 ? docxPreviewCacheId(md5) : null;
     if (!cacheId) continue;
