@@ -641,15 +641,13 @@ const seedUtilsDir = path.dirname(fileURLToPath(import.meta.url));
 export async function seedJobQueueDrainConfig(
   environmentOverride: 'development' | 'test',
 ): Promise<void> {
-  let secret = '';
-  let drainUrl = '';
+  let api: Awaited<ReturnType<typeof getConfig>>['api'] | undefined;
   try {
     const config = await getConfig(
       { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
       { directory: path.resolve(seedUtilsDir, '..') },
     );
-    secret = config.api?.queueConsumerSecret ?? '';
-    drainUrl = resolveQueueDrainUrl(config.api.url);
+    api = config.api;
   } catch (err) {
     console.warn(
       `   ⚠️  Skipped _JobQueueDrainConfig seed: could not load app-config (${(err as Error).message})`,
@@ -657,10 +655,20 @@ export async function seedJobQueueDrainConfig(
     return;
   }
 
+  if (!api?.url) {
+    console.warn(
+      '   ⚠️  Skipped _JobQueueDrainConfig seed: api section missing/incomplete in app-config',
+    );
+    return;
+  }
+
+  const secret = api.queueConsumerSecret ?? '';
   if (!secret) {
     console.warn('   ⚠️  Skipped _JobQueueDrainConfig seed: api.queueConsumerSecret is empty');
     return;
   }
+
+  const drainUrl = resolveQueueDrainUrl(api.url);
 
   try {
     await prisma.$executeRaw`
