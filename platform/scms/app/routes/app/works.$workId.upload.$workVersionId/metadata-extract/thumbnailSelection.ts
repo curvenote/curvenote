@@ -17,3 +17,12 @@ export function decodeFigureLocator(locator: string): string | null {
   const key = locator.trim();
   return key.length > 0 ? key : null;
 }
+
+export function resolveThumbnailSelection(
+  locators: string[],
+  selectedLocator: string | null | undefined,
+): string | null {
+  if (locators.length === 0) return null;
+  if (selectedLocator && locators.includes(selectedLocator)) return selectedLocator;
+  return locators[0];
+}

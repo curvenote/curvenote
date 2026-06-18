@@ -1,8 +1,8 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Image as ImageIcon, Check } from 'lucide-react';
 import { SectionWithHeading, cn } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocumentPreviewer';
-import { encodeFigureLocator } from './thumbnailSelection';
+import { encodeFigureLocator, resolveThumbnailSelection } from './thumbnailSelection';
 import type { DocumentPreviewItem } from './fetchPreviews.server';
 
 export interface ChooseThumbnailSectionProps {
@@ -20,18 +20,7 @@ export function ChooseThumbnailSection({
 }: ChooseThumbnailSectionProps) {
   const figures = useMemo(() => collectAllFigures(previewList), [previewList]);
   const locators = useMemo(() => figures.map((f) => encodeFigureLocator(f.figure.key)), [figures]);
-
-  // Default to the first figure; reset if the current selection is no longer valid
-  // (e.g. previews changed after a re-upload).
-  useEffect(() => {
-    if (locators.length === 0) {
-      if (value !== null) onChange(null);
-      return;
-    }
-    if (value == null || !locators.includes(value)) {
-      onChange(locators[0]);
-    }
-  }, [locators, value, onChange]);
+  const selectedLocator = resolveThumbnailSelection(locators, value);
 
   const emptyMessage =
     previewList.length === 0
@@ -57,7 +46,7 @@ export function ChooseThumbnailSection({
           {figures.map(({ figure }, index) => {
             const src = figure.signedUrl;
             const locator = locators[index];
-            const isSelected = locator === value;
+            const isSelected = locator === selectedLocator;
             return (
               <button
                 type="button"

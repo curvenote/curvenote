@@ -77,7 +77,12 @@ import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
 import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
+import { collectAllFigures } from './metadata-extract/DocumentPreviewer';
 import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
+import {
+  encodeFigureLocator,
+  resolveThumbnailSelection,
+} from './metadata-extract/thumbnailSelection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isPreviewCandidate } from './metadata-extract/previewGuards';
 import type { AuthorFieldMetadata } from './mystAuthorAdapters';
@@ -1079,6 +1084,14 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const previewOverlayMessage = isGeneratingPreviews
     ? rotatingPreviewMessage
     : 'Refreshing previews…';
+  const thumbnailLocators = useMemo(
+    () => collectAllFigures(previewList).map(({ figure }) => encodeFigureLocator(figure.key)),
+    [previewList],
+  );
+  const effectiveSelectedThumbnail = useMemo(
+    () => resolveThumbnailSelection(thumbnailLocators, selectedThumbnail),
+    [thumbnailLocators, selectedThumbnail],
+  );
 
   useEffect(() => {
     setAuthorMetadata(authorFieldMetadata);
@@ -1134,7 +1147,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           {hasMetadataExtractScope ? (
             <ChooseThumbnailSection
               previewList={previewList}
-              value={selectedThumbnail}
+              value={effectiveSelectedThumbnail}
               onChange={setSelectedThumbnail}
             />
           ) : null}
@@ -1159,7 +1172,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             authorMetadata={authorMetadata}
             metadata={metadata}
             checkServices={checkServices}
-            selectedThumbnail={selectedThumbnail}
+            selectedThumbnail={effectiveSelectedThumbnail}
           />
         </PageFrame>
       </MainWrapper>
