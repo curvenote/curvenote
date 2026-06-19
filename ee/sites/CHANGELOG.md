@@ -1,5 +1,17 @@
 # @curvenote/scms-sites-ext
 
+## 0.22.0
+
+### Patch Changes
+
+- [#962](https://github.com/curvenote/curvenote/pull/962) [`30c5a87`](https://github.com/curvenote/curvenote/commit/30c5a87dc709d388ade8c01ecb6a5733076b4a6e) Thanks [@rowanc1](https://github.com/rowanc1)! - Fix navigation into a kind with the same slug as its site
+
+- Updated dependencies [[`5bf11b9`](https://github.com/curvenote/curvenote/commit/5bf11b9b65b9b623675994a73571b03fa2eeb945), [`1ca8aa0`](https://github.com/curvenote/curvenote/commit/1ca8aa083aad3aca0ac922c75dbaa994f2f4fbc9), [`e8c6279`](https://github.com/curvenote/curvenote/commit/e8c6279b4fd9e194223ffae53b807efade98798d), [`b344f8b`](https://github.com/curvenote/curvenote/commit/b344f8b6ac8c9ea88fc48906f0774a5b4b979937)]:
+  - @curvenote/scms-core@0.22.0
+  - @curvenote/scms-server@0.22.0
+  - @curvenote/check-definitions@0.16.5
+  - @curvenote/scms-db@0.22.0
+
 ## 0.21.0
 
 ### Minor Changes

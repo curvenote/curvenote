@@ -1,5 +1,16 @@
 # curvenote
 
+## 0.16.5
+
+### Patch Changes
+
+- [#966](https://github.com/curvenote/curvenote/pull/966) [`5059a87`](https://github.com/curvenote/curvenote/commit/5059a87952831cfcdb37ef7fd14d65aa89f5cd95) Thanks [@fwkoch](https://github.com/fwkoch)! - Relax overaggressive DOI coercion
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.16.5
+  - @curvenote/check-definitions@0.16.5
+  - @curvenote/check-implementations@0.16.5
+
 ## 0.16.4
 
 ### Patch Changes
