@@ -56,7 +56,7 @@
     "@types/node": "^24.6.2",
     "@types/pg": "^8.16.0",
     "@typescript-eslint/parser": "^8.50.0",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "eslint-config-curvenote": "^0.0.4",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.1",
