@@ -1,5 +1,19 @@
 # @curvenote/scms-core
 
+## 0.22.0
+
+### Minor Changes
+
+- [#959](https://github.com/curvenote/curvenote/pull/959) [`5bf11b9`](https://github.com/curvenote/curvenote/commit/5bf11b9b65b9b623675994a73571b03fa2eeb945) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add check service maintenance mode. Admins can toggle a per-service maintenance state (stored on the extension config Object row) that blocks outbound check actions and new job starts while leaving webhooks and in-flight jobs running. Provides shared building blocks: maintenance types/parsers, server guards, a `CheckMaintenanceProvider` with `useCheckMaintenanceBlocked`/`useAnyCheckMaintenanceBlocked` hooks, a `CheckMaintenanceAdminPanel`, and a `MaintenanceTooltip` that surfaces over disabled controls.
+
+  On the work upload flow, a selected check whose service is under maintenance no longer blocks submission: it is skipped (not initiated) and the work is created as though it was never selected, with an informational note shown next to Continue.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.16.5
+  - @curvenote/scms-db@0.22.0
+
 ## 0.21.0
 
 ### Minor Changes
