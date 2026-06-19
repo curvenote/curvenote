@@ -34,9 +34,8 @@ vi.mock('../../src/backend/jobs/run/handleTransportFailure.server.js', () => ({
   handleTransportFailure: (...args: unknown[]) => mockHandleTransportFailure(...args),
 }));
 
-const { readOneJobMessage, sendJobMessage } = await import(
-  '../../src/backend/jobs/enqueue/pgmq/jobQueue.server.js'
-);
+const { sendJobMessage } = await import('../../src/backend/jobs/enqueue/pgmq/jobQueue.server.js');
+const { drainOneJob } = await import('../../src/backend/jobs/enqueue/drainOneJob.server.js');
 
 const message = { job_id: 'job-1', job_type: 'LOOPBACK', handshake: 'token' };
 
@@ -91,7 +90,7 @@ describe('sendJobMessage', () => {
   });
 });
 
-describe('readOneJobMessage', () => {
+describe('drainOneJob', () => {
   beforeEach(() => {
     executeRaw.mockReset();
     queryRaw.mockReset();
@@ -109,9 +108,11 @@ describe('readOneJobMessage', () => {
     ]);
     queryRaw.mockResolvedValueOnce([]);
 
-    const result = await readOneJobMessage();
+    const consume = vi.fn();
+    const result = await drainOneJob(consume);
 
-    expect(result).toBeNull();
+    expect(result).toBe(false);
+    expect(consume).not.toHaveBeenCalled();
     expect(executeRaw).toHaveBeenCalledTimes(1);
     expect(sqlText(executeRaw.mock.calls[0]![0])).toContain('pgmq.archive');
     expect(mockHandleTransportFailure).toHaveBeenCalledWith('job-1', {
