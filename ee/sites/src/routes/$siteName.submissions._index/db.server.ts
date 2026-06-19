@@ -67,7 +67,7 @@ import { toExclusiveDateUpperBound, type ListingQuery } from './listingParams.js
  * sorts to the default). Once the column lands, flip the throw to the new
  * ORDER BY clause.
  *
- * This file imports nothing from `submissions-classic`.
+ * This file keeps the index query self-contained.
  */
 
 type WorkVersionMinimal = {

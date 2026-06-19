@@ -9,9 +9,8 @@ import {
 import { z } from 'zod';
 import { dbCountSubmissionsForIndex, dbListSubmissionsForIndex } from './db.server.js';
 import { formatSubmissionsIndexItems } from './format.server.js';
-import { formatSubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
-import type { SubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
-import { ClassicSubmissionsRedirect } from './ClassicSubmissionsRedirect.js';
+import { formatSubmissionListingSiteContext } from './site-context.format.server.js';
+import type { SubmissionListingSiteContext } from './site-context.format.server.js';
 import { SubmissionsListingToolbar } from './SubmissionsListingToolbar.js';
 import { SubmissionsList } from './SubmissionsList.js';
 import {
@@ -246,7 +245,6 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
           total={submissions.total}
         />
       </div>
-      <ClassicSubmissionsRedirect siteName={site.name} />
     </PageFrame>
   );
 }
