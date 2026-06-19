@@ -67,6 +67,13 @@ export function VersionsListing({
                     </span>
                     <ExternalLink className="inline-block w-4 h-4 align-middle ml-[2px] mb-[3px]" />
                   </div>
+                  {item.tags?.length ? (
+                    <div className="flex flex-wrap gap-1">
+                      {item.tags.map((tag) => (
+                        <VersionTagBadge key={tag} tag={tag} titlePrefix="Version tag" />
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="text-sm text-gray-500 dark:text-gray-400 w-max">
                     <span
                       className="inline-block mr-2"
