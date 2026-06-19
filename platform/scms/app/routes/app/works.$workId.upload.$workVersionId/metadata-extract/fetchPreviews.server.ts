@@ -626,31 +626,29 @@ export async function collectStoredThumbnailsForVersion(
 /**
  * Persist the full thumbnail listing to metadata.thumbnails (union by storage key with
  * any existing entries). Called on confirm-work so generated thumbnails remain
- * discoverable after the preview cache rows are cleaned up. Best-effort: never throws.
+ * discoverable after the preview cache rows are cleaned up.
+ *
+ * Throws on collection or metadata-write failure so callers can preserve the preview
+ * cache rows rather than deleting the only remaining thumbnail listing source.
  */
 export async function persistThumbnailListingForVersion(
   workVersionId: string,
 ): Promise<StoredThumbnail[]> {
-  try {
-    const thumbnails = await collectStoredThumbnailsForVersion(workVersionId);
-    if (thumbnails.length === 0) return [];
-    await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
-      const meta = (current as Record<string, unknown>) ?? {};
-      const existingRaw = meta[METADATA_THUMBNAILS_KEY];
-      const existing = Array.isArray(existingRaw) ? (existingRaw as StoredThumbnail[]) : [];
-      const byKey = new Map<string, StoredThumbnail>();
-      for (const t of existing) if (t?.key) byKey.set(t.key, t);
-      for (const t of thumbnails) byKey.set(t.key, t);
-      return {
-        ...meta,
-        [METADATA_THUMBNAILS_KEY]: Array.from(byKey.values()),
-      } as unknown as Prisma.JsonObject;
-    });
-    return thumbnails;
-  } catch (err) {
-    console.warn('persistThumbnailListingForVersion: failed', workVersionId, err);
-    return [];
-  }
+  const thumbnails = await collectStoredThumbnailsForVersion(workVersionId);
+  if (thumbnails.length === 0) return [];
+  await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
+    const meta = (current as Record<string, unknown>) ?? {};
+    const existingRaw = meta[METADATA_THUMBNAILS_KEY];
+    const existing = Array.isArray(existingRaw) ? (existingRaw as StoredThumbnail[]) : [];
+    const byKey = new Map<string, StoredThumbnail>();
+    for (const t of existing) if (t?.key) byKey.set(t.key, t);
+    for (const t of thumbnails) byKey.set(t.key, t);
+    return {
+      ...meta,
+      [METADATA_THUMBNAILS_KEY]: Array.from(byKey.values()),
+    } as unknown as Prisma.JsonObject;
+  });
+  return thumbnails;
 }
 
 /**
