@@ -2,7 +2,7 @@ import { waitUntil } from '@vercel/functions';
 import { getConfig } from '../../../app-config.server.js';
 
 export function resolveQueueDrainUrl(apiUrl: string): string {
-  const base = apiUrl.replace(/\/$/, '');
+  const base = apiUrl.replace(/\/+$/, '').replace(/(?:\/v1)+$/, '');
   return `${base}/v1/jobs/push-to-drain`;
 }
 
@@ -10,9 +10,10 @@ export function resolveQueueDrainUrl(apiUrl: string): string {
  * Resolve the drain url to persist in `_JobQueueDrainConfig` — the url that
  * `pg_net` calls from INSIDE the Postgres container (supabase provider).
  *
- * Prefers `api.tasksCallbackUrl` (e.g. `http://host.docker.internal:3031/v1`,
- * which already includes `/v1`) so the wake fired from the container reaches the
- * dev server on the host; falls back to `api.url` for non-Docker setups.
+ * Prefers `api.tasksCallbackUrl` (e.g. `http://host.docker.internal:3031/v1`)
+ * so the wake fired from the container reaches the dev server on the host; falls
+ * back to `api.url` for non-Docker setups. Both values may be configured as an
+ * origin or as a `/v1` API base.
  *
  * This intentionally differs from `resolveQueueDrainUrl`/`notifyQueueConsumer`,
  * which use `api.url` directly because that path is the app calling its own
@@ -23,7 +24,7 @@ export function resolveStoredQueueDrainUrl(api: {
   tasksCallbackUrl?: string;
 }): string {
   if (api.tasksCallbackUrl) {
-    return `${api.tasksCallbackUrl.replace(/\/$/, '')}/jobs/push-to-drain`;
+    return resolveQueueDrainUrl(api.tasksCallbackUrl);
   }
   return resolveQueueDrainUrl(api.url);
 }

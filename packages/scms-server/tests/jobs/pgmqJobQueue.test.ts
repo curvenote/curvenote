@@ -36,8 +36,34 @@ vi.mock('../../src/backend/jobs/run/handleTransportFailure.server.js', () => ({
 
 const { sendJobMessage } = await import('../../src/backend/jobs/enqueue/pgmq/jobQueue.server.js');
 const { drainOneJob } = await import('../../src/backend/jobs/enqueue/drainOneJob.server.js');
+const { resolveQueueDrainUrl, resolveStoredQueueDrainUrl } = await import(
+  '../../src/backend/jobs/enqueue/notifyQueueConsumer.server.js'
+);
 
 const message = { job_id: 'job-1', job_type: 'LOOPBACK', handshake: 'token' };
+
+describe('queue drain url resolution', () => {
+  test('appends the drain route to an origin base', () => {
+    expect(resolveQueueDrainUrl('https://scms.curvenote.dev')).toBe(
+      'https://scms.curvenote.dev/v1/jobs/push-to-drain',
+    );
+  });
+
+  test('does not duplicate v1 when api.url is already a v1 base', () => {
+    expect(resolveQueueDrainUrl('https://scms.curvenote.dev/v1')).toBe(
+      'https://scms.curvenote.dev/v1/jobs/push-to-drain',
+    );
+  });
+
+  test('uses tasksCallbackUrl with the same v1 normalization', () => {
+    expect(
+      resolveStoredQueueDrainUrl({
+        url: 'https://scms.curvenote.dev/v1',
+        tasksCallbackUrl: 'http://host.docker.internal:3031/v1/',
+      }),
+    ).toBe('http://host.docker.internal:3031/v1/jobs/push-to-drain');
+  });
+});
 
 describe('sendJobMessage', () => {
   beforeEach(() => {
