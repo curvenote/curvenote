@@ -133,7 +133,7 @@ export const app = {
       dispatch: 'app:works:checks:dispatch',
     },
     export: 'app:works:export',
-    metadataPreview: 'app:works:metadatapreview',
+    metadataExtract: 'app:works:metadata-extract',
   },
 };
 

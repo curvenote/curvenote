@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Route } from './+types/route';
 import type {
   WorkVersionCheckName,
@@ -20,6 +20,10 @@ import {
   workVersionCheckNameSchema,
   ChecksMetadataSchema,
   makeDefaultWorkVersionMetadata,
+  fetchOrcidPerson,
+  searchOrcid,
+  searchOrcidById,
+  searchRor,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type { ExtensionCheckHandleActionArgs, FileMetadataSection } from '@curvenote/scms-core';
@@ -39,6 +43,7 @@ import {
   CheckMaintenanceProvider,
   capitalize,
   scopes,
+  isValidOrcid,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -47,20 +52,41 @@ import { getTextIntegrityLogoUrlFromObjectStore } from './textIntegrityLogo.serv
 import { ContinueForm } from './ContinueForm';
 import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
-import { updateWorkVersionTitle, updateWorkVersionAuthors } from './updateMetadata.server';
+import {
+  updateWorkVersionTitle,
+  updateWorkVersionAuthors,
+  updateWorkVersionAuthorMetadata,
+} from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
 import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
-import { handleFetchPreviewsIntent } from './fetchPreviews.server';
-import { readDocxPreviewsFromObjectTable, type DocxPreviewItem } from './fetchPreviews.server';
-import { extractMetadataFromPreviews } from './anthropic.server';
-import type { ExtractedMetadata } from './anthropic.server';
+import {
+  handleFetchPreviewsIntent,
+  deletePreviewArtifactsForVersion,
+  persistThumbnailListingForVersion,
+  signPreviewFigures,
+} from './metadata-extract/fetchPreviews.server';
+import {
+  readDocumentPreviewsFromObjectTable,
+  type DocumentPreviewItem,
+} from './metadata-extract/fetchPreviews.server';
+import { extractMetadataFromPreviews } from './metadata-extract/anthropic.server';
+import type { ExtractedMetadata } from './metadata-extract/anthropic.server';
 import { Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { MetadataPreviewSection } from './MetadataPreviewSection';
+import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
+import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
+import { collectAllFigures } from './metadata-extract/DocumentPreviewer';
+import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
+import {
+  encodeFigureLocator,
+  resolveThumbnailSelection,
+} from './metadata-extract/thumbnailSelection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
-import { isDocxPreviewCandidate } from './docxPreviewGuards';
+import { isPreviewCandidate } from './metadata-extract/previewGuards';
+import type { AuthorFieldMetadata } from './mystAuthorAdapters';
+import { mystFrontmatterToAuthorField } from './mystAuthorAdapters';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { waitUntil } from '@vercel/functions';
 
@@ -74,17 +100,28 @@ const WorkUploadActionSchema = zfd.formData({
     'remove',
     'update-title',
     'update-authors',
+    'update-author-metadata',
+    'search-orcid',
+    'search-orcid-by-id',
+    'fetch-orcid',
+    'search-ror',
     'toggle-check',
     'confirm-work',
     'fetch-previews',
     'extract-metadata',
+    'clear-extracted-metadata',
   ]),
   slot: zfd.text(z.string().min(1)).optional(),
   // Optional fields used by specific intents
   completedFiles: zfd.text(z.string()).optional(), // Used by 'complete' intent
-  path: zfd.text(z.string()).optional(), // Used by 'remove' intent
+  path: zfd.text(z.string()).optional(), // Used by 'remove' and 'extract-metadata' (target file) intents
+  force: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'extract-metadata' to bypass the cache
   title: zfd.text(z.string().default('')), // Used by 'update-title' intent - allows empty strings
   authors: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent
+  authorMetadata: zfd.text(z.string()).optional(), // Used by 'update-author-metadata' intent
+  q: zfd.text(z.string()).optional(), // Used by search intents
+  orcid: zfd.text(z.string()).optional(), // Used by ORCID lookup intents
+  thumbnail: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent - selected thumbnail locator
   redirect: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'confirm-work' intent; default true
   checkName: zfd.text(workVersionCheckNameSchema).optional(), // Used by 'toggle-check' intent
   checked: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'toggle-check' intent
@@ -106,6 +143,39 @@ function parseAuthorsList(authorsText: string): string[] {
     .map((a) => a.trim())
     .filter((a) => a.length > 0);
 }
+
+function parseAuthorFieldMetadata(raw: string | undefined): AuthorFieldMetadata | null {
+  if (!raw?.trim()) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<AuthorFieldMetadata>;
+    return {
+      authors: Array.isArray(parsed.authors) ? parsed.authors : [],
+      affiliations: Array.isArray(parsed.affiliations) ? parsed.affiliations : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stable signature of the manuscript file(s) that feed metadata extraction.
+ * Built from each preview-candidate file's md5 (falling back to its path), sorted
+ * and joined, so it changes whenever a manuscript file is added, removed, or
+ * replaced. Used to detect when a cached extraction is stale and must be regenerated.
+ */
+function computeManuscriptSourceSignature(
+  files: Record<string, { path?: string; name?: string; type?: string; md5?: string }>,
+): string {
+  return Object.entries(files)
+    .filter(([, f]) => isPreviewCandidate(f))
+    .map(([path, f]) => (typeof f?.md5 === 'string' && f.md5 ? f.md5 : path))
+    .filter(Boolean)
+    .sort()
+    .join(',');
+}
+
+/** Metadata key holding the source signature of the cached `frontmatter.myst` extraction. */
+const METADATA_EXTRACT_SOURCE_KEY = 'frontmatter.myst.source';
 
 // NOTE: Check service run schema is now defined and managed by each check
 // extension when they create checkServiceRun rows.
@@ -239,18 +309,42 @@ export async function loader(args: Route.LoaderArgs) {
     }
   })();
 
-  // Read only cached DOCX previews from Object table (no generation in loader)
-
-  const previews = await readDocxPreviewsFromObjectTable(signedMetadata);
-  const myst = (rawMetadata as Record<string, unknown>)?.myst;
+  // Read only cached document previews from Object table (no generation in loader),
+  // then attach signed URLs to candidate figures so the picker never ships base64.
+  const cachedPreviews = await readDocumentPreviewsFromObjectTable(workVersionId, signedMetadata);
+  const previews = await signPreviewFigures(cachedPreviews, work.cdn ?? '', ctx);
+  // Stored under the same key as the ETL register-work endpoint: metadata["frontmatter.myst"].
+  const mystFrontmatter = (rawMetadata as Record<string, unknown>)?.['frontmatter.myst'];
   const extractedMetadata: ExtractedMetadata | null =
-    myst != null && typeof myst === 'object' && 'frontmatter' in myst
-      ? ((myst as { frontmatter: ExtractedMetadata }).frontmatter as ExtractedMetadata)
+    mystFrontmatter != null &&
+    typeof mystFrontmatter === 'object' &&
+    !Array.isArray(mystFrontmatter)
+      ? (mystFrontmatter as ExtractedMetadata)
       : null;
+  const authorFieldMetadata = mystFrontmatterToAuthorField(extractedMetadata, work.authors ?? []);
+  // The cached extraction is stale when the current manuscript file(s) no longer
+  // match the source that produced it (e.g. the author replaced the document). In
+  // that case the UI should re-trigger extraction rather than show stale metadata.
+  const manuscriptSourceSignature = computeManuscriptSourceSignature(
+    ((rawMetadata as Record<string, unknown>)?.files ?? {}) as Record<
+      string,
+      { path?: string; name?: string; type?: string; md5?: string }
+    >,
+  );
+  const storedExtractionSource = (rawMetadata as Record<string, unknown>)?.[
+    METADATA_EXTRACT_SOURCE_KEY
+  ];
+  const hasStoredExtractionSource =
+    typeof storedExtractionSource === 'string' && storedExtractionSource !== '';
+  const isExtractionStale =
+    extractedMetadata != null &&
+    manuscriptSourceSignature !== '' &&
+    hasStoredExtractionSource &&
+    storedExtractionSource !== manuscriptSourceSignature;
 
-  const hasMetadataPreviewScope = userHasScope(
+  const hasMetadataExtractScope = userHasScope(
     ctx.user,
-    scopes.app.works.metadataPreview,
+    scopes.app.works.metadataExtract,
     undefined,
     { ignoreSystemAdmin: true },
   );
@@ -280,7 +374,9 @@ export async function loader(args: Route.LoaderArgs) {
     stringReplacements,
     previews,
     extractedMetadata,
-    hasMetadataPreviewScope,
+    authorFieldMetadata,
+    isExtractionStale,
+    hasMetadataExtractScope,
     textIntegrityLogoUrl,
     maintenanceByServiceId,
   };
@@ -315,10 +411,63 @@ export async function action(args: Route.ActionArgs) {
         slot,
         title,
         authors,
+        authorMetadata,
+        thumbnail: thumbnailLocator,
         redirect: redirectParam,
         checkName,
         checked,
+        path: targetPath,
+        force,
+        q,
+        orcid,
       } = payload;
+
+      if (uploadIntent === 'fetch-orcid') {
+        const orcidValue = (orcid ?? '').trim();
+        if (!isValidOrcid(orcidValue)) {
+          return data(
+            { error: { type: 'general', message: 'Invalid ORCID format.' } },
+            { status: 400 },
+          );
+        }
+        const person = await fetchOrcidPerson(orcidValue);
+        if (!person) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'Could not find this ORCID or fetch public record.',
+              },
+            },
+            { status: 404 },
+          );
+        }
+        return data({
+          name: person.name,
+          orcid: person.orcid,
+          ...(person.email && { email: person.email }),
+          affiliations: person.affiliations ?? [],
+        });
+      }
+
+      if (uploadIntent === 'search-orcid') {
+        return data({ results: await searchOrcid((q ?? '').trim()) });
+      }
+
+      if (uploadIntent === 'search-orcid-by-id') {
+        const orcidValue = (orcid ?? '').trim();
+        if (!isValidOrcid(orcidValue)) {
+          return data(
+            { error: { type: 'general', message: 'Invalid ORCID format.' } },
+            { status: 400 },
+          );
+        }
+        return data({ results: await searchOrcidById(orcidValue) });
+      }
+
+      if (uploadIntent === 'search-ror') {
+        return data({ results: await searchRor((q ?? '').trim()) });
+      }
 
       // Handle title update intent (updates title field)
       if (uploadIntent === 'update-title') {
@@ -345,6 +494,23 @@ export async function action(args: Route.ActionArgs) {
         }
         const authorsValue = authors ?? '';
         return updateWorkVersionAuthors(workVersionId, authorsValue);
+      }
+
+      if (uploadIntent === 'update-author-metadata') {
+        if (!workVersionId) {
+          return data(
+            { error: { type: 'general', message: 'Work version ID is required' } },
+            { status: 400 },
+          );
+        }
+        const parsed = parseAuthorFieldMetadata(authorMetadata);
+        if (!parsed) {
+          return data(
+            { error: { type: 'general', message: 'Invalid author metadata payload' } },
+            { status: 400 },
+          );
+        }
+        return updateWorkVersionAuthorMetadata(workVersionId, parsed);
       }
 
       // Handle check toggle intent (toggles a single check in metadata)
@@ -400,7 +566,14 @@ export async function action(args: Route.ActionArgs) {
         const prisma = await getPrismaClient();
         const timestamp = new Date().toISOString();
 
-        const authorsText = (authors ?? '').trim();
+        const submittedAuthorMetadata = parseAuthorFieldMetadata(authorMetadata);
+        if (authorMetadata && !submittedAuthorMetadata) {
+          return data(
+            { error: { type: 'general', message: 'Invalid author metadata payload' } },
+            { status: 400 },
+          );
+        }
+        const authorsText = !submittedAuthorMetadata ? (authors ?? '').trim() : '';
         const authorsList = authorsText ? parseAuthorsList(authorsText) : [];
 
         // Get current metadata to access enabled checks
@@ -443,6 +616,31 @@ export async function action(args: Route.ActionArgs) {
           );
         }
 
+        // Require dispatch permission before any confirm-work mutations. Otherwise
+        // a failed dispatch gate could still leave the work version confirmed.
+        if (
+          dispatchableChecks.length > 0 &&
+          !userHasScope(baseCtx.user, scopes.app.works.checks.dispatch)
+        ) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'You do not have permission to dispatch checks for this work',
+              },
+            },
+            { status: 403 },
+          );
+        }
+
+        if (submittedAuthorMetadata) {
+          const result = await updateWorkVersionAuthorMetadata(
+            workVersionId,
+            submittedAuthorMetadata,
+          );
+          if (!('success' in result)) return result;
+        }
+
         // Create check status objects for each dispatchable check
         const checkStatuses: Record<string, any> = {};
         dispatchableChecks.forEach((name) => {
@@ -471,21 +669,54 @@ export async function action(args: Route.ActionArgs) {
           },
         });
 
+        // Materialise the selected thumbnail (best-effort: never blocks submission).
+        // The locator is the candidate figure's storage key; materialisation validates
+        // it and we point the thumbnail column straight at that already-stored webp.
+        let materializedThumbnailKey: string | null = null;
+        if (thumbnailLocator && wv.cdn) {
+          try {
+            materializedThumbnailKey = await materializeSelectedThumbnail({
+              ctx: baseCtx,
+              workVersionId,
+              cdn: wv.cdn,
+              locator: thumbnailLocator,
+            });
+            if (materializedThumbnailKey) {
+              await prisma.workVersion.update({
+                where: { id: workVersionId },
+                data: { thumbnail: materializedThumbnailKey },
+              });
+            }
+          } catch (error) {
+            console.error('[work-upload] thumbnail materialization failed', {
+              workId,
+              workVersionId,
+              error,
+            });
+          }
+        }
+
+        // Finalise preview artifacts now that they have served their purpose: first record
+        // every generated thumbnail under metadata.thumbnails (the durable listing — the
+        // thumbnail files themselves are retained in storage), then drop the regenerable
+        // cached preview rows. Order matters: the listing is collected from those rows
+        // before they are deleted. Runs after the response so it never delays submission;
+        // best-effort and self-regenerating.
+        waitUntil(
+          persistThumbnailListingForVersion(workVersionId)
+            .then(() => deletePreviewArtifactsForVersion(workVersionId))
+            .catch((error) => {
+              console.warn('[work-upload] preview artifact finalisation failed', {
+                workId,
+                workVersionId,
+                error,
+              });
+            }),
+        );
+
         // Schedule each enabled check via its extension. Each check service is
         // responsible for creating its own checkServiceRun rows and jobs.
-        // Require work:checks:dispatch scope before dispatching (same as work-integrity action).
         if (dispatchableChecks.length > 0) {
-          if (!userHasScope(baseCtx.user, scopes.app.works.checks.dispatch)) {
-            return data(
-              {
-                error: {
-                  type: 'general',
-                  message: 'You do not have permission to dispatch checks for this work',
-                },
-              },
-              { status: 403 },
-            );
-          }
           waitUntil(
             dispatchEnabledChecksAfterUpload({
               enabledChecks: dispatchableChecks,
@@ -516,7 +747,7 @@ export async function action(args: Route.ActionArgs) {
         return data({ success: true });
       }
 
-      // Fetch DOCX previews (generate + write to Object table only)
+      // Fetch document previews (generate + write to Object table only)
       if (uploadIntent === 'fetch-previews') {
         if (!workVersionId) {
           return data(
@@ -525,7 +756,7 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         if (
-          !userHasScope(baseCtx.user, scopes.app.works.metadataPreview, undefined, {
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
             ignoreSystemAdmin: true,
           })
         ) {
@@ -543,7 +774,50 @@ export async function action(args: Route.ActionArgs) {
         return data({ ok: true, previewsGenerated: previews.length });
       }
 
-      // Extract metadata from first DOCX via Claude (only when no frontmatter and we have previews)
+      if (uploadIntent === 'clear-extracted-metadata') {
+        if (!workVersionId) {
+          return data(
+            { error: { type: 'general', message: 'Work version ID is required' } },
+            { status: 400 },
+          );
+        }
+        if (
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
+            ignoreSystemAdmin: true,
+          })
+        ) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'You do not have permission to clear extracted metadata',
+              },
+            },
+            { status: 403 },
+          );
+        }
+        await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
+          const meta = (current as Record<string, unknown>) || {};
+          const next = { ...meta };
+          delete next['frontmatter.myst'];
+          delete next[METADATA_EXTRACT_SOURCE_KEY];
+          return next as Prisma.JsonObject;
+        });
+        const prisma = await getPrismaClient();
+        await prisma.workVersion.update({
+          where: { id: workVersionId },
+          data: {
+            title: '',
+            authors: [],
+            author_details: [],
+            date_modified: new Date().toISOString(),
+          },
+          select: { id: true },
+        });
+        return data({ ok: true });
+      }
+
+      // Extract metadata from first document preview via Claude (only when no frontmatter and we have previews)
       if (uploadIntent === 'extract-metadata') {
         if (!workVersionId) {
           return data(
@@ -552,7 +826,7 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         if (
-          !userHasScope(baseCtx.user, scopes.app.works.metadataPreview, undefined, {
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
             ignoreSystemAdmin: true,
           })
         ) {
@@ -574,11 +848,26 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         const currentMeta = (work.metadata as Record<string, unknown>) ?? {};
-        const hasMystFrontmatter =
-          currentMeta.myst != null &&
-          typeof currentMeta.myst === 'object' &&
-          (currentMeta.myst as Record<string, unknown>).frontmatter != null;
-        if (hasMystFrontmatter) {
+        const hasMystFrontmatter = currentMeta['frontmatter.myst'] != null;
+        const currentSourceSignature = computeManuscriptSourceSignature(
+          (currentMeta.files ?? {}) as Record<
+            string,
+            { path?: string; name?: string; type?: string; md5?: string }
+          >,
+        );
+        const cachedSourceSignature = currentMeta[METADATA_EXTRACT_SOURCE_KEY];
+        // `force` is set by the manual "re-run extraction" control and always
+        // re-extracts. Otherwise skip when a cached result exists with no source
+        // marker (legacy/ETL metadata), or when the marker matches the current
+        // manuscript file(s); a changed/replaced document invalidates the cache.
+        const forceReextract = force === 'true';
+        const hasCachedSourceSignature =
+          typeof cachedSourceSignature === 'string' && cachedSourceSignature !== '';
+        if (
+          !forceReextract &&
+          hasMystFrontmatter &&
+          (!hasCachedSourceSignature || cachedSourceSignature === currentSourceSignature)
+        ) {
           return data({ ok: true });
         }
         const signedMetadata = await signFilesInMetadata(
@@ -586,21 +875,39 @@ export async function action(args: Route.ActionArgs) {
           work.cdn ?? '',
           baseCtx,
         );
-        const previews = await readDocxPreviewsFromObjectTable(signedMetadata);
+        const previews = await readDocumentPreviewsFromObjectTable(workVersionId, signedMetadata);
         if (previews.length === 0) {
           return data({ ok: true });
         }
         try {
-          const extracted = await extractMetadataFromPreviews({ previews }, baseCtx);
+          const extracted = await extractMetadataFromPreviews({ previews }, baseCtx, targetPath);
           if (extracted != null) {
             await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
               const m = (current as Record<string, unknown>) || {};
-              const existingMyst = (m.myst as Record<string, unknown>) || {};
+              // Align with the ETL register-work endpoint: store at metadata["frontmatter.myst"].
+              // Record the source signature so we can detect when this cache goes stale.
               return {
                 ...m,
-                myst: { ...existingMyst, frontmatter: extracted },
+                'frontmatter.myst': extracted,
+                [METADATA_EXTRACT_SOURCE_KEY]: currentSourceSignature,
               } as Prisma.JsonObject;
             });
+
+            // Seed the work version title/authors from the extracted metadata. On an
+            // automatic extraction we only fill empty fields (so we never clobber an
+            // author's edits, and the Continue button gets a title). A manual re-run
+            // is an explicit request to refresh, so it overwrites title/authors.
+            const extractedTitle = extracted.title?.trim() ?? '';
+            if (extractedTitle && (forceReextract || !work.title?.trim())) {
+              await updateWorkVersionTitle(workVersionId, extractedTitle);
+            }
+            const extractedAuthorMetadata = mystFrontmatterToAuthorField(extracted);
+            if (
+              extractedAuthorMetadata.authors.length > 0 &&
+              (forceReextract || !work.authors?.length)
+            ) {
+              await updateWorkVersionAuthorMetadata(workVersionId, extractedAuthorMetadata);
+            }
           }
           return data({ ok: true });
         } catch (err) {
@@ -660,22 +967,58 @@ export async function action(args: Route.ActionArgs) {
   );
 }
 
+/** Rotating busy messages shown while previews are being generated. */
+const PREVIEW_BUSY_MESSAGES = [
+  'Extracting document contents…',
+  'Building structured data…',
+  'Generating thumbnails…',
+] as const;
+
+/** Interval (ms) between rotating busy messages. */
+const PREVIEW_BUSY_MESSAGE_INTERVAL_MS = 3000;
+
+/**
+ * Cycle through `messages` on a fixed cadence while `active`, resetting to the first
+ * message whenever it becomes inactive. Returns the message to display now.
+ */
+function useRotatingMessage(
+  messages: readonly string[],
+  active: boolean,
+  intervalMs = PREVIEW_BUSY_MESSAGE_INTERVAL_MS,
+): string {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (!active) {
+      setIndex(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setIndex((curr) => (curr + 1) % messages.length);
+    }, intervalMs);
+    return () => clearInterval(id);
+  }, [active, intervalMs, messages.length]);
+  return messages[index] ?? messages[0];
+}
+
 export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const {
     cdnKey,
     uploadConfig,
     metadata,
     title,
-    authors,
     pageTitle,
     pageSubtitle,
     previews = [],
     extractedMetadata,
-    hasMetadataPreviewScope,
+    authorFieldMetadata,
+    isExtractionStale,
     maintenanceByServiceId,
+    hasMetadataExtractScope,
   } = loaderData;
   const { workVersionId } = useParams();
-  const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
+  const previewList: DocumentPreviewItem[] = Array.isArray(previews) ? previews : [];
+  const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
+  const [authorMetadata, setAuthorMetadata] = useState<AuthorFieldMetadata>(authorFieldMetadata);
   const revalidator = useRevalidator();
   const fetchPreviewsFetcher = useFetcher();
   const autoTitleFromFilenameFetcher = useFetcher();
@@ -683,6 +1026,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
 
   const suggestArticleTitleFromSelectedFiles = useCallback(
     (files: File[]) => {
+      // When the metadata-extract feature is enabled the title is sourced from
+      // the extracted document metadata, so don't fall back to the file name.
+      if (hasMetadataExtractScope) return;
+
       const first = files[0];
       if (!first?.name) return;
 
@@ -698,7 +1045,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
         { method: 'post' },
       );
     },
-    [title, extractedMetadata, autoTitleFromFilenameFetcher.submit],
+    [title, extractedMetadata, hasMetadataExtractScope, autoTitleFromFilenameFetcher.submit],
   );
 
   const deploymentConfig = useDeploymentConfig();
@@ -711,13 +1058,13 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     string,
     { path?: string; name?: string; type?: string }
   >;
-  const docxFilePaths = Object.entries(files)
-    .filter(([, f]) => isDocxPreviewCandidate(f))
+  const previewFilePaths = Object.entries(files)
+    .filter(([, f]) => isPreviewCandidate(f))
     .map(([path]) => path);
   const previewPaths = new Set(previewList.map((p) => p.path));
-  const missingPreviewPaths = docxFilePaths.filter((p) => !previewPaths.has(p));
+  const missingPreviewPaths = previewFilePaths.filter((p) => !previewPaths.has(p));
   const shouldFetchPreviews =
-    hasMetadataPreviewScope && docxFilePaths.length > 0 && missingPreviewPaths.length > 0;
+    hasMetadataExtractScope && previewFilePaths.length > 0 && missingPreviewPaths.length > 0;
 
   useEffect(() => {
     if (!shouldFetchPreviews) {
@@ -739,9 +1086,22 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const isGeneratingPreviews =
     fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
   const isPreviewsLoading = revalidator.state === 'loading' || isGeneratingPreviews;
+  const rotatingPreviewMessage = useRotatingMessage(PREVIEW_BUSY_MESSAGES, isGeneratingPreviews);
   const previewOverlayMessage = isGeneratingPreviews
-    ? 'Generating previews…'
+    ? rotatingPreviewMessage
     : 'Refreshing previews…';
+  const thumbnailLocators = useMemo(
+    () => collectAllFigures(previewList).map(({ figure }) => encodeFigureLocator(figure.key)),
+    [previewList],
+  );
+  const effectiveSelectedThumbnail = useMemo(
+    () => resolveThumbnailSelection(thumbnailLocators, selectedThumbnail),
+    [thumbnailLocators, selectedThumbnail],
+  );
+
+  useEffect(() => {
+    setAuthorMetadata(authorFieldMetadata);
+  }, [authorFieldMetadata]);
 
   return (
     <CheckMaintenanceProvider maintenanceByServiceId={maintenanceByServiceId}>
@@ -768,22 +1128,35 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               onFilesSelected={suggestArticleTitleFromSelectedFiles}
             />
           </SectionWithHeading>
-          {hasMetadataPreviewScope ? (
+          {hasMetadataExtractScope ? (
             <React.Suspense
-              fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}
+              fallback={<p className="text-sm text-muted-foreground">Loading document previews…</p>}
             >
-              <MetadataPreviewSection
+              <MetadataExtractSection
                 previewList={previewList}
                 isPreviewsLoading={isPreviewsLoading}
                 previewOverlayMessage={previewOverlayMessage}
                 extractedMetadata={extractedMetadata}
+                isExtractionStale={isExtractionStale}
                 title={title}
-                authors={authors}
+                authorMetadata={authorMetadata}
+                onAuthorMetadataChange={setAuthorMetadata}
               />
             </React.Suspense>
           ) : (
-            <CaptureMetadataSection title={title} authors={authors} />
+            <CaptureMetadataSection
+              title={title}
+              authorMetadata={authorMetadata}
+              onAuthorMetadataChange={setAuthorMetadata}
+            />
           )}
+          {hasMetadataExtractScope ? (
+            <ChooseThumbnailSection
+              previewList={previewList}
+              value={effectiveSelectedThumbnail}
+              onChange={setSelectedThumbnail}
+            />
+          ) : null}
           <SectionWithHeading
             heading="Select Checks to Run"
             icon={<CheckSquare className="w-5 h-5" />}
@@ -802,9 +1175,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
           </SectionWithHeading>
           <ContinueForm
             title={title}
-            authors={authors}
+            authorMetadata={authorMetadata}
             metadata={metadata}
             checkServices={checkServices}
+            selectedThumbnail={effectiveSelectedThumbnail}
           />
         </PageFrame>
       </MainWrapper>

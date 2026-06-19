@@ -139,6 +139,7 @@ export type WorkVersionWithSubmissionVersions = Prisma.WorkVersionGetPayload<{
     work_id: true;
     cdn: true;
     cdn_key: true;
+    thumbnail: true;
     title: true;
     description: true;
     authors: true;
@@ -171,6 +172,7 @@ export async function dbGetWorkVersionsWithSubmissionVersions(
       work_id: true,
       cdn: true,
       cdn_key: true,
+      thumbnail: true,
       title: true,
       description: true,
       authors: true,

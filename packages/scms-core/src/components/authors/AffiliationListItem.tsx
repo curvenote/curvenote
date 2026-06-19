@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Building2, Pencil, Trash2, ChevronUp } from 'lucide-react';
 import { RorIcon } from '@scienceicons/react/24/solid';
-import type { Affiliation } from '../types.js';
-import { ui } from '@curvenote/scms-core';
+import * as ui from '../ui/index.js';
+import type { Affiliation } from './types.js';
 
 export type AffiliationListItemProps = {
   affiliation: Affiliation;
@@ -62,6 +62,7 @@ export function AffiliationListItem({
   const nameFromRor = rorFields.includes('name');
   const cityFromRor = rorFields.includes('city');
   const countryFromRor = rorFields.includes('country');
+  const ror = (affiliation.ror ?? '').trim();
 
   return (
     <li className="flex gap-2 items-start p-4 rounded-sm border border-border bg-background">
@@ -76,13 +77,13 @@ export function AffiliationListItem({
             >
               {nameDisplay || 'Affiliation name'}
             </span>
-            {(affiliation.ror ?? '').trim() && (
+            {ror && (
               <a
-                href={affiliation.ror!}
+                href={ror}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex no-underline cursor-pointer shrink-0"
-                title={affiliation.ror}
+                title={ror}
                 aria-label="View ROR profile"
               >
                 <RorIcon className="h-4 w-[22px] shrink-0 text-muted-foreground" />
@@ -94,7 +95,7 @@ export function AffiliationListItem({
           </span>
           {(deptDisplay || cityDisplay || countryDisplay) && (
             <span className="text-sm truncate text-muted-foreground">
-              {[deptDisplay, cityDisplay, countryDisplay].filter(Boolean).join(' · ')}
+              {[deptDisplay, cityDisplay, countryDisplay].filter(Boolean).join(' - ')}
             </span>
           )}
         </div>
@@ -173,16 +174,16 @@ export function AffiliationListItem({
                   />
                 </div>
               </div>
-              {(affiliation.ror ?? '').trim() && (
+              {ror && (
                 <p className="pt-1 font-mono text-sm truncate text-muted-foreground">
                   ROR:{' '}
                   <a
-                    href={affiliation.ror!}
+                    href={ror}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="no-underline cursor-pointer text-muted-foreground hover:text-muted-foreground"
                   >
-                    {affiliation.ror}
+                    {ror}
                   </a>
                 </p>
               )}
