@@ -1,0 +1,38 @@
+# Local Postgres for SCMS development (journals + journals_test).
+# Start: npm run db:up   Stop: npm run db:down   Wipe data: npm run db:down:clean
+#
+# `name` sets the Compose project name so Docker Desktop groups this stack as
+# "scms-dev" instead of defaulting to the working-directory name ("dev").
+name: scms-dev
+services:
+  postgres:
+    # Custom image: postgres:16 + pgmq + pg_net + pg_cron (see docker/postgres/Dockerfile)
+    # so local dev runs the same supabase queue stack as staging/prod.
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    image: scms-postgres:16-pgmq
+    container_name: scms-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: curvenote
+    # Lets pg_net (running inside the container) reach the dev server on the host
+    # for push-to-drain wakes — works on Docker Desktop and Linux (host-gateway).
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - scms_postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  scms_postgres_data:
+    name: scms_postgres_data

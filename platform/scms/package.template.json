@@ -140,7 +140,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.18",
     "@vercel/config": "^0.5.2",
-    "@vercel/queue": "^0.1.0",
+    "@vercel/functions": "^3.1.4",
     "@vercel/react-router": "^1.2.3",
     "classnames": "^2.5.1",
     "date-fns": "3.6.0",

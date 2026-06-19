@@ -1,6 +1,6 @@
 # Jobs: handlers
 
-**Job handlers** run when the queue consumer delivers a job message—via **`api/job-queue-consumer.ts`** (Vercel queue push) on preview/production or **`POST /v1/jobs/mock-push`** (mock provider) in development. Each handler is keyed by **`job_type`** and receives a `CreateJob`-shaped payload plus request context.
+**Job handlers** run when the queue drain delivers a job message—via **`POST /v1/jobs/push-to-drain`** (pgmq + self-wake on Supabase, in-memory mock locally). Each handler is keyed by **`job_type`** and receives a `CreateJob`-shaped payload plus request context.
 
 A handler may:
 

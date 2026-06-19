@@ -287,9 +287,9 @@ export default [
       ]),
     ]),
 
-    // Jobs API Routes (static paths before jobs/:jobId so mock-push is not a job id)
+    // Jobs API Routes (static paths before jobs/:jobId so push-to-drain is not a job id)
     route('jobs', 'routes/api/v1.jobs.tsx'),
-    route('jobs/mock-push', 'routes/api/v1.jobs.mock-push/route.tsx'),
+    route('jobs/push-to-drain', 'routes/api/v1.jobs.push-to-drain/route.tsx'),
     route('jobs/:jobId', 'routes/api/v1.jobs.$jobId.tsx'),
 
     route('keys', 'routes/api/v1.keys.tsx'),

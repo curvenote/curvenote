@@ -30,63 +30,146 @@ npm run dev
 
 ### Job queue local development
 
-By default, local development uses an **in-process mock queue** (`QUEUES_PROVIDER=mock`, set via `.env` only — not app-config). Jobs enqueued via `enqueueAndDispatchJob` are delivered asynchronously via **HTTP POST to `/v1/jobs/mock-push`** (dev-only loopback route) — no Vercel account or second terminal required.
+The job queue is **Supabase pgmq** everywhere — local dev runs the same real **pgmq** + **pg_net** stack as staging/prod, against the Docker Postgres. The local Postgres image bundles pgmq, pg_net, and pg_cron (see [`docker/postgres/Dockerfile`](../../docker/postgres/Dockerfile)), and binds the `pg_net` + `pg_cron` workers to the `journals` db (`pg_net.database_name` / `cron.database_name`) so they actually drain the local queue. On enqueue, a `pg_net` trigger on `pgmq.q_job` wakes **`POST /v1/jobs/push-to-drain`**; the drain config is auto-seeded so the wake (fired from inside the container) reaches the dev server at `host.docker.internal`. A **pg_cron** backup (every 30 seconds) calls push-to-drain if the enqueue trigger is missed.
 
-**Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, deploy-curvenote secrets YAML on staging/prod) secures the unified **`POST /v1/jobs/push-to-drain`** wake-up route. Job execution still uses the **handshake JWT** inside the queue message.
+For the complete developer-facing architecture, including diagrams and example cases, see [`docs/jobs/queues-and-jobs.md`](../../docs/jobs/queues-and-jobs.md).
 
-On Vercel preview/production, the queue consumer is **`api/job-queue-consumer.ts`** (push trigger in `vercel.ts`), not the mock-push route. deploy-curvenote notes: `deploy/deploy-curvenote.md`.
+A message that fails its handler past `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS` is **dead-lettered**: archived to `pgmq.a_job` and the job marked `FAILED`, so a poison message never blocks the queue.
 
-| Mode | When to use | Setup |
-|---|---|---|
-| **Mock (default)** | Everyday local dev — full job handler pipeline | `npm run dev` (automatic when `NODE_ENV=development`) |
-| **Real Vercel Queues** | Test enqueue against Vercel's queue API, or E2E on a deployment | See below |
+If a backlog gets stuck (e.g. the dev server was down when wakes fired), the **Queues** tab (`/app/system/jobs?tab=queues`) has a **Drain now** button that processes up to 10 messages in-process without relying on the `pg_net` wake.
 
-**Mock is the right default.** Use real queues only when you explicitly need to validate Vercel's transport (OIDC, idempotency keys, dashboard metrics) or run handlers on a preview deployment.
+**Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, staging/prod secrets YAML on deployed envs) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
 
-#### Real Vercel Queues (opt-in)
+> The local Postgres image is required (it provides pgmq/pg_net/pg_cron). After pulling these changes you must rebuild the container: `npm run db:rebuild` (wipes the volume, rebuilds from the Dockerfile, re-runs init), then `npm run dev:db:reset`.
 
-Prerequisites:
-
-1. SCMS project linked to Vercel (`cd platform/scms && vercel link`)
-2. **Vercel Queues** enabled on that project/team ([docs](https://vercel.com/docs/queues))
-3. deploy-curvenote submodule bumped and prebuilt deploy run (`vercel build --prod` → `vercel --prebuilt --prod`)
-
-Steps:
-
-```bash
-cd platform/scms
-vercel env pull .env.local   # OIDC + project env for @vercel/queue send()
-QUEUES_PROVIDER=vercel npm run dev
-```
-
-**Important:** with `QUEUES_PROVIDER=vercel`, `send()` enqueues to Vercel's cloud queue. The push consumer (`api/job-queue-consumer.ts`) runs on your **linked Vercel deployment**, not on plain `localhost`. Local `npm run dev` exercises the enqueue path; handlers execute on preview/production unless you use `vercel dev` (see [Queues quickstart](https://vercel.com/docs/queues/quickstart)).
-
-For full E2E against real queues, prefer a **preview deployment** (where `VERCEL=1` selects the vercel provider automatically) or trigger jobs from the **System → Jobs** admin page and watch them in the Vercel Queues dashboard.
-
-See also: `docs/superpowers/specs/2026-06-15-job-manager-vercel-queues-design.md` (local development summary).
+**Staging/prod Supabase setup:** see [`platform/scms/deploy/supabase-job-queue-setup.md`](deploy/supabase-job-queue-setup.md) (pgmq migration, app-config secrets, `_JobQueueDrainConfig`, smoke tests).
 
 ### First-time setup
 
-A local Postgres database is used for local development. This enabled flexible seeding, migration and mutation without affecting other developers.
+Local development uses **Postgres in Docker** (recommended). The container creates `journals` and `journals_test` with user `journals` / password `curvenote` on port **5432**.
 
-- [Setup Postgres on MacOS](https://www.prisma.io/dataguide/postgresql/setting-up-a-local-postgresql-database#setting-up-postgresql-on-macos)
+**Requirements:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose v2).
 
-Note: downloading and running the installer gets you the server, cli tools and admin tools.
+From the **monorepo root**:
 
-#### DB Creation and Setup
-
-Only needed first time around.
-
+```bash
+npm run db:up
+npm run dev:db:reset
 ```
+
+`db:up` starts Postgres and waits until it is healthy. `dev:db:reset` runs migrations and seeds the dev database.
+
+Useful commands:
+
+| Command                 | Purpose                           |
+| ----------------------- | --------------------------------- |
+| `npm run db:up`         | Start Postgres container          |
+| `npm run db:down`       | Stop container (keep data volume) |
+| `npm run db:down:clean` | Stop and **delete** all DB data   |
+| `npm run db:logs`       | Follow Postgres logs              |
+
+Connection strings (same as before):
+
+- Dev: `postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0`
+- Test: `postgresql://journals:curvenote@localhost:5432/journals_test?statement_cache_size=0`
+
+#### Moving from local Postgres to Docker-based Postgres
+
+If you previously installed Postgres directly on macOS (Homebrew, Postgres.app, or the EnterpriseDB installer), **stop it before starting Docker** — both default to port **5432** and only one can bind it.
+
+**1. Check what is using port 5432**
+
+`brew services` only lists Homebrew-managed daemons — it will **not** show Postgres from the [EnterpriseDB installer](https://www.postgresql.org/download/macosx/) (the one that installs pgAdmin under `/Library/PostgreSQL/…`).
+
+```bash
+# Often empty for non-Homebrew installs (server runs as system user "postgres")
+lsof -i :5432
+
+# More reliable — shows listeners even when lsof does not
+netstat -an | grep 5432
+
+# See the server process (look for /Library/PostgreSQL/… or postgres -D …)
+ps aux | grep '[p]ostgres'
+```
+
+**2. Stop your existing Postgres**
+
+_Homebrew:_
+
+```bash
+brew services list
+brew services stop postgresql@16   # use your version, e.g. postgresql@14 or postgresql
+```
+
+To prevent Homebrew Postgres from starting on login, leave it stopped (`brew services stop` disables the launch agent).
+
+_Postgres.app:_
+
+Quit the app (menu bar → Postgres → Quit). To avoid autostart, open Postgres.app preferences and disable “Start at login”.
+
+_EnterpriseDB installer (pgAdmin in `/Library/PostgreSQL/17/pgAdmin 4.app`):_
+
+This is a **launchd** service, not Homebrew. It starts at boot (`RunAtLoad`) and pgAdmin connects to it on `localhost:5432`.
+
+```bash
+# Stop the server now
+sudo launchctl bootout system /Library/LaunchDaemons/postgresql-17.plist
+
+# Optional: prevent it starting again on reboot (adjust version if not 17)
+sudo launchctl disable system/postgresql-17
+```
+
+To start it again later (e.g. if you need pgAdmin against the old data):
+
+```bash
+sudo launchctl enable system/postgresql-17
+sudo launchctl bootstrap system /Library/LaunchDaemons/postgresql-17.plist
+```
+
+To remove the install entirely (after Docker dev works): open `/Library/PostgreSQL/17/uninstall-postgresql.app`.
+
+**3. Confirm the port is free**
+
+```bash
+netstat -an | grep '\.5432.*LISTEN'
+# should print nothing
+```
+
+**4. Start Docker Postgres and reset schemas**
+
+From the monorepo root:
+
+```bash
+npm run db:up
+npm run dev:db:reset
+npm run test:db:reset   # optional: reset test DB too
+```
+
+Your `.env.development` / `.env.test` and app-config database URLs can stay the same (`localhost:5432`, user `journals`, password `curvenote`).
+
+**5. Optional: remove the old native install**
+
+Only after Docker dev is working:
+
+```bash
+# Homebrew example — adjust version
+brew services stop postgresql@16
+brew uninstall postgresql@16
+
+# EnterpriseDB example — use the bundled uninstaller
+open /Library/PostgreSQL/17/uninstall-postgresql.app
+```
+
+You do **not** need native `psql` for day-to-day dev; use `npm run db:logs`, Prisma Studio (`npm run db:studio`), or `docker compose exec postgres psql -U journals -d journals`.
+
+#### Legacy: native Postgres on macOS
+
+If you cannot use Docker, you can still install Postgres locally ([Prisma macOS guide](https://www.prisma.io/dataguide/postgresql/setting-up-a-local-postgresql-database#setting-up-postgresql-on-macos)) and run:
+
+```bash
 sudo -u postgres createuser journals
-```
-
-```
 sudo -u postgres createdb journals
 sudo -u postgres createdb journals_test
-```
-
-```
 psql -U postgres -d journals -a -f ./prisma/setup-dev-db.sql
 psql -U postgres -d journals_test -a -f ./prisma/setup-test-db.sql
 ```
