@@ -6,7 +6,7 @@ import type { JobQueueMessage } from './pgmq/types.js';
  *
  * The drain wake is fired by Postgres itself — a pg_net AFTER INSERT trigger on
  * pgmq.q_job calls POST /v1/jobs/push-to-drain (migration 20260616190000), with
- * pg_cron as a once-per-minute backup — so the app does not self-call
+ * pg_cron as a 30-second backup — so the app does not self-call
  * push-to-drain after enqueue.
  */
 export async function dispatchJob(message: JobQueueMessage) {

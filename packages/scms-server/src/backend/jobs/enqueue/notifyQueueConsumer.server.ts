@@ -40,7 +40,7 @@ export function resolveStoredQueueDrainUrl(api: {
  * outcome is only logged — there is nothing for callers to await.
  *
  * A failed or slow wake does not surface to the caller: the enqueued job stays
- * in pgmq and runs when the pg_cron backup drains it (up to ~1 minute later).
+ * in pgmq and runs when the pg_cron backup drains it (up to ~30 seconds later).
  * Because of that silent fallback, wake failures are logged at `error` level
  * with a stable marker so systematic breakage (bad secret, wrong url, network)
  * is detectable via log alerts.

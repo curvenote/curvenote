@@ -7,7 +7,7 @@
 
 **Async-only** job architecture: `enqueueAndDispatchJob`, `dispatchJob`, `runHandler`, dependency rows (`BLOCKED` / `depends_on_job_id` / `trigger_on`), and `onJobTerminal`.
 
-**Transport:** [Supabase pgmq](https://github.com/tembo-io/pgmq) queue `job` in Postgres — the single transport everywhere (no provider abstraction / mock queue). The enqueue wake is **database-fired**: a `pg_net` `AFTER INSERT` trigger on `pgmq.q_job` calls `POST /v1/jobs/push-to-drain`. **pg_cron** + `pg_net` provides a once-per-minute backup wake. Local dev runs this same pgmq + `pg_net` stack (the `pg_net`/`pg_cron` workers are bound to the `journals` db).
+**Transport:** [Supabase pgmq](https://github.com/tembo-io/pgmq) queue `job` in Postgres — the single transport everywhere (no provider abstraction / mock queue). The enqueue wake is **database-fired**: a `pg_net` `AFTER INSERT` trigger on `pgmq.q_job` calls `POST /v1/jobs/push-to-drain`. **pg_cron** + `pg_net` provides a 30-second backup wake. Local dev runs this same pgmq + `pg_net` stack (the `pg_net`/`pg_cron` workers are bound to the `journals` db).
 
 No separate queue service. The consumer runs inside SCMS on the same deployment.
 

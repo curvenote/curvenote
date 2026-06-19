@@ -3,7 +3,7 @@
 '@curvenote/scms': patch
 ---
 
-Replace the internal job dispatch transport with **Supabase pgmq** as the single queue (no provider abstraction / mock queue): enqueue via `pgmq.send`, drain via `POST /v1/jobs/push-to-drain`. The enqueue wake is fired by Postgres itself — a `pg_net` `AFTER INSERT` trigger on `pgmq.q_job` calls push-to-drain — so the app does not self-call push-to-drain after enqueue; `pg_cron` remains the once-per-minute backup. Because the wake comes from the database, `"_JobQueueDrainConfig"` must be populated for jobs to drain promptly.
+Replace the internal job dispatch transport with **Supabase pgmq** as the single queue (no provider abstraction / mock queue): enqueue via `pgmq.send`, drain via `POST /v1/jobs/push-to-drain`. The enqueue wake is fired by Postgres itself — a `pg_net` `AFTER INSERT` trigger on `pgmq.q_job` calls push-to-drain — so the app does not self-call push-to-drain after enqueue; `pg_cron` remains the 30-second backup. Because the wake comes from the database, `"_JobQueueDrainConfig"` must be populated for jobs to drain promptly.
 
 Add pgmq **dead-lettering**: when a message's `read_ct` exceeds `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS`, the drain archives it to `pgmq.a_job`, handles the terminal transport failure (including `JOB_FAILED_DEFAULT` cleanup when appropriate), and stops redelivering it, so a poison message can never block the queue.
 

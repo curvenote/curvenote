@@ -30,7 +30,7 @@ npm run dev
 
 ### Job queue local development
 
-The job queue is **Supabase pgmq** everywhere — local dev runs the same real **pgmq** + **pg_net** stack as staging/prod, against the Docker Postgres. The local Postgres image bundles pgmq, pg_net, and pg_cron (see [`docker/postgres/Dockerfile`](../../docker/postgres/Dockerfile)), and binds the `pg_net` + `pg_cron` workers to the `journals` db (`pg_net.database_name` / `cron.database_name`) so they actually drain the local queue. On enqueue, a `pg_net` trigger on `pgmq.q_job` wakes **`POST /v1/jobs/push-to-drain`**; the drain config is auto-seeded so the wake (fired from inside the container) reaches the dev server at `host.docker.internal`. A **pg_cron** backup (every minute) calls push-to-drain if the enqueue trigger is missed.
+The job queue is **Supabase pgmq** everywhere — local dev runs the same real **pgmq** + **pg_net** stack as staging/prod, against the Docker Postgres. The local Postgres image bundles pgmq, pg_net, and pg_cron (see [`docker/postgres/Dockerfile`](../../docker/postgres/Dockerfile)), and binds the `pg_net` + `pg_cron` workers to the `journals` db (`pg_net.database_name` / `cron.database_name`) so they actually drain the local queue. On enqueue, a `pg_net` trigger on `pgmq.q_job` wakes **`POST /v1/jobs/push-to-drain`**; the drain config is auto-seeded so the wake (fired from inside the container) reaches the dev server at `host.docker.internal`. A **pg_cron** backup (every 30 seconds) calls push-to-drain if the enqueue trigger is missed.
 
 For the complete developer-facing architecture, including diagrams and example cases, see [`docs/jobs/queues-and-jobs.md`](../../docs/jobs/queues-and-jobs.md).
 

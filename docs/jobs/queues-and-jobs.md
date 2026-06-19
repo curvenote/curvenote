@@ -93,7 +93,7 @@ flowchart TD
   Send[pgmq.send inserts into pgmq.q_job] --> Trigger[AFTER INSERT trigger]
   Trigger --> Config[Read _JobQueueDrainConfig]
   Config --> Net[net.http_post drain_url]
-  Cron[pg_cron every minute] --> Config
+  Cron[pg_cron every 30 seconds] --> Config
   Net --> Route[POST /v1/jobs/push-to-drain]
   Route --> Read[pgmq.read qty=1 vt=300s]
   Read --> Run[Run one job]
@@ -218,7 +218,7 @@ contains runnable work.
    drain URL.
 2. If the local dev server is down, the HTTP wake fails.
 3. The message remains in `pgmq.q_job`.
-4. When the server comes back, the once-per-minute `pg_cron` backup can wake the
+4. When the server comes back, the 30-second `pg_cron` backup can wake the
    route, or an admin can open `/app/system/jobs?tab=queues` and click
    **Drain now**.
 

@@ -18,7 +18,7 @@ draining happens via `POST /v1/jobs/push-to-drain` which reads **one** message
 and runs it in the background. The big architectural shift is the **wake**:
 Postgres itself fires it — an `AFTER INSERT` `pg_net` trigger on `pgmq.q_job`
 calls push-to-drain, so the app does not self-call after enqueue. `pg_cron` is a
-once-per-minute backup. Messages that exhaust their delivery attempts are
+30-second backup. Messages that exhaust their delivery attempts are
 **dead-lettered** (archived to `pgmq.a_job` + job marked `FAILED`). Local dev
 runs the **real** pgmq/pg_net stack via a custom Docker Postgres image (required,
 no fallback). A **Queues** admin tab manages the DB-side drain config
@@ -91,7 +91,7 @@ This is the crux: the app **never self-wakes on enqueue** — it depends entirel
 [`enqueue/notifyQueueConsumer.server.ts`](../../packages/scms-server/src/backend/jobs/enqueue/notifyQueueConsumer.server.ts#L54-L81)
 
 - Fire-and-forget POST to push-to-drain with `Authorization: Bearer api.queueConsumerSecret`, wrapped in `waitUntil`.
-- Failures are logged at **error** level (with a stable marker) because the only fallback is the once-per-minute `pg_cron` — so a silently-broken wake is a real (just delayed) problem.
+- Failures are logged at **error** level (with a stable marker) because the only fallback is the 30-second `pg_cron` backup — so a silently-broken wake is a real (just delayed) problem.
 - Note the two URL resolvers: [`resolveQueueDrainUrl`](../../packages/scms-server/src/backend/jobs/enqueue/notifyQueueConsumer.server.ts#L4-L7) (app→itself, uses `api.url`) vs [`resolveStoredQueueDrainUrl`](../../packages/scms-server/src/backend/jobs/enqueue/notifyQueueConsumer.server.ts#L21-L29) (the URL stored for `pg_net` to call from **inside** the container — prefers `api.tasksCallbackUrl` / `host.docker.internal`). This distinction matters and is easy to get wrong.
 
 ---
@@ -297,7 +297,7 @@ Route registration updated in [`platform/scms/app/routes.ts`](../../platform/scm
 
 ## Key takeaways — review these thoroughly
 
-1. **The wake is database-fired — always.** `dispatchJob` only enqueues; it never self-wakes. If `_JobQueueDrainConfig` is empty/wrong for an environment, **jobs still enqueue but only drain via the 1-min `pg_cron` backup** (or not at all if cron is also off). This is the single biggest operational risk — verify the post-deploy population step is part of the runbook (`supabase-job-queue-setup.md`).
+1. **The wake is database-fired — always.** `dispatchJob` only enqueues; it never self-wakes. If `_JobQueueDrainConfig` is empty/wrong for an environment, **jobs still enqueue but only drain via the 30-second `pg_cron` backup** (or not at all if cron is also off). This is the single biggest operational risk — verify the post-deploy population step is part of the runbook (`supabase-job-queue-setup.md`).
 
 2. **Two different drain URLs.** `api.url` (app chain-wake self-call) vs `api.tasksCallbackUrl`/`host.docker.internal` (what `pg_net` calls from inside Postgres). `resolveStoredQueueDrainUrl` is used for the DB row + seed; `resolveQueueDrainUrl` for the app chain-wake. Mixing these up = silent local failures.
 

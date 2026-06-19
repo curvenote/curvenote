@@ -1,6 +1,6 @@
 # Supabase job queue setup (pgmq)
 
-SCMS job dispatch stores messages in **Postgres** using the **pgmq** extension (queue name: `job`). On enqueue, a **`pg_net` database trigger** on the queue table wakes **`POST /v1/jobs/push-to-drain`** over HTTP — the wake is fired by Postgres, not the app. A **pg_cron** job in the database calls the same URL once per minute as a backup.
+SCMS job dispatch stores messages in **Postgres** using the **pgmq** extension (queue name: `job`). On enqueue, a **`pg_net` database trigger** on the queue table wakes **`POST /v1/jobs/push-to-drain`** over HTTP — the wake is fired by Postgres, not the app. A **pg_cron** job in the database calls the same URL every 30 seconds as a backup.
 
 For the complete developer-facing architecture, including diagrams and example cases, see [`docs/jobs/queues-and-jobs.md`](../../../docs/jobs/queues-and-jobs.md).
 
@@ -96,7 +96,7 @@ The Supabase Postgres connection string the app uses at runtime (pooler URL with
 
 ### `api.queueConsumerSecret`
 
-A long random secret (e.g. 64+ hex chars from `openssl rand -hex 32`). **Same value** must be used in Step 4 for the pg_cron backup.
+A long random secret (e.g. 64+ hex chars from `openssl rand -hex 32`). **Same value** must be used in Step 4 for the database-fired wake and pg_cron backup.
 
 Generate one:
 
@@ -120,7 +120,7 @@ Redeploy SCMS after changing secrets so the running app picks them up.
 
 ## Step 4 — Populate `"_JobQueueDrainConfig"` (REQUIRED — primary wake)
 
-This table tells the **database** how to call push-to-drain. It is used by **both** the enqueue trigger (primary wake) and the once-per-minute backup cron. It is **not** app-config; it lives only in Postgres.
+This table tells the **database** how to call push-to-drain. It is used by **both** the enqueue trigger (primary wake) and the 30-second backup cron. It is **not** app-config; it lives only in Postgres.
 
 > **This step is mandatory, not optional.** The app does not self-wake push-to-drain on enqueue — the database does. If this row is missing/empty, enqueued jobs will not drain (the trigger and cron both no-op).
 
@@ -218,7 +218,7 @@ enqueueAndDispatchJob
   → 202 + background drain of one message
   → if queue depth > 0, app wakes again (notifyQueueConsumer)
 
-Backup (every minute): pg_cron → job_queue_cron_drain() → net.http_post(drain_url)
+Backup (every 30 seconds): pg_cron → job_queue_cron_drain() → net.http_post(drain_url)
 
 Both the trigger and cron no-op until "_JobQueueDrainConfig" row exists (Step 4).
 ```

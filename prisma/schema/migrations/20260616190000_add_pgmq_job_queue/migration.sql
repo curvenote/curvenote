@@ -75,7 +75,7 @@ $fn$;
     IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'job-queue-drain-backup') THEN
       PERFORM cron.schedule(
         'job-queue-drain-backup',
-        '* * * * *',
+        '30 seconds',
         $cron$SELECT public.job_queue_cron_drain()$cron$
       );
     END IF;
