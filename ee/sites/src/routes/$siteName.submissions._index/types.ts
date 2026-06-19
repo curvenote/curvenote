@@ -25,6 +25,9 @@ export type SubmissionListingVersionChip = {
   work_id?: string;
 };
 
+// TODO: Remove these legacy augmented listing types if the orphaned
+// SubmissionList component tree stays unused after the upcoming submission
+// details and inbox changes settle.
 /**
  * App submissions listing card — intentionally smaller than API SubmissionsListItemDTO.
  */

@@ -2,6 +2,9 @@ import type { SubmissionListingSiteContext } from '../routes/$siteName.submissio
 import { SubmissionListItem } from './SubmissionListItem.js';
 import type { AugmentedSubmissionListingItem } from '../routes/$siteName.submissions._index/types.js';
 
+// TODO: Remove this legacy listing component tree (SubmissionList,
+// SubmissionListItem, SubmissionActionsArea) if it remains unused after the
+// upcoming submission details and inbox changes settle.
 export function SubmissionList({
   site,
   scopes,
