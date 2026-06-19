@@ -24,6 +24,8 @@ export type QueueReadResult = {
   msgId: bigint;
 };
 
+export type QueueDeadLetterHandler = (entry: QueueReadResult) => Promise<void>;
+
 /** A read-only view of a queued message for admin/monitoring (not a consume). */
 export type QueuePeekEntry = {
   messageId: string;

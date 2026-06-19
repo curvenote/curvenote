@@ -1,11 +1,11 @@
 import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { MAX_JOB_QUEUE_DELIVERY_ATTEMPTS } from '../../jobQueueConstants.server.js';
-import { handleTransportFailure } from '../../run/handleTransportFailure.server.js';
 import type {
   JobQueueMessage,
   JobQueueSendOptions,
   JobQueueSendResult,
+  QueueDeadLetterHandler,
   QueuePeekEntry,
   QueueReadResult,
 } from './types.js';
@@ -37,6 +37,17 @@ type PgmqQueueRow = {
   message: JobQueueMessage;
   in_flight: boolean;
 };
+
+function toQueueReadResult(row: PgmqReadRow): QueueReadResult {
+  return {
+    message: row.message,
+    metadata: {
+      deliveryCount: row.read_ct,
+      messageId: String(row.msg_id),
+    },
+    msgId: row.msg_id,
+  };
+}
 
 /**
  * Enqueue a job message, honoring the idempotency key (the job_id).
@@ -90,10 +101,10 @@ export async function sendJobMessage(
 
 /**
  * Dead-letter a message that has exhausted its delivery attempts: archive it to
- * pgmq.a_job (forensics) and mark the job FAILED. Archiving removes the row from
- * the active queue so it is never re-delivered.
+ * pgmq.a_job (forensics). Archiving removes the row from the active queue so it
+ * is never re-delivered.
  */
-async function deadLetterMessage(row: PgmqReadRow): Promise<void> {
+async function archiveDeadLetterMessage(row: PgmqReadRow): Promise<void> {
   const prisma = await getPrismaClient();
   await prisma.$executeRaw(
     Prisma.sql`SELECT pgmq.archive(${PGMQ_JOB_QUEUE_NAME}, ${row.msg_id}::bigint)`,
@@ -105,20 +116,17 @@ async function deadLetterMessage(row: PgmqReadRow): Promise<void> {
     readCount: row.read_ct,
     maxAttempts: MAX_JOB_QUEUE_DELIVERY_ATTEMPTS,
   });
-  await handleTransportFailure(row.message.job_id, {
-    reason: 'transport_exhausted',
-    source: 'dead_letter',
-    last_error: `Job dispatch failed after ${MAX_JOB_QUEUE_DELIVERY_ATTEMPTS} delivery attempts`,
-  });
 }
 
 /**
  * Read and lease one message (qty=1, vt=300s). Messages whose read_ct has
- * exceeded MAX_JOB_QUEUE_DELIVERY_ATTEMPTS are dead-lettered here (archived +
- * job marked FAILED) and skipped, so a poison message can never block the queue
- * or be handed to the consumer indefinitely.
+ * exceeded MAX_JOB_QUEUE_DELIVERY_ATTEMPTS are archived here and reported to
+ * `onDeadLetter`, so a poison message can never block the queue or be handed to
+ * the consumer indefinitely.
  */
-export async function readOneJobMessage(): Promise<QueueReadResult | null> {
+export async function readOneJobMessage(
+  onDeadLetter?: QueueDeadLetterHandler,
+): Promise<QueueReadResult | null> {
   const prisma = await getPrismaClient();
   // Loop to skip + dead-letter poison messages until we find a deliverable one
   // or the queue is empty. archive() removes the dead-lettered row, so the next
@@ -136,18 +144,12 @@ export async function readOneJobMessage(): Promise<QueueReadResult | null> {
     // read_ct increments on each read. read_ct > MAX means the message has
     // already been delivered MAX times and still not acked — dead-letter it.
     if (row.read_ct > MAX_JOB_QUEUE_DELIVERY_ATTEMPTS) {
-      await deadLetterMessage(row);
+      await archiveDeadLetterMessage(row);
+      await onDeadLetter?.(toQueueReadResult(row));
       continue;
     }
 
-    return {
-      message: row.message,
-      metadata: {
-        deliveryCount: row.read_ct,
-        messageId: String(row.msg_id),
-      },
-      msgId: row.msg_id,
-    };
+    return toQueueReadResult(row);
   }
 }
 

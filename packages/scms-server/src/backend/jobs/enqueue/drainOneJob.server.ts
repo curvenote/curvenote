@@ -1,5 +1,7 @@
 import type { JobQueueDeliveryMetadata, JobQueueMessage } from './pgmq/types.js';
 import { ackJobMessage, getJobQueueDepth, readOneJobMessage } from './pgmq/jobQueue.server.js';
+import { MAX_JOB_QUEUE_DELIVERY_ATTEMPTS } from '../jobQueueConstants.server.js';
+import { handleTransportFailure } from '../run/handleTransportFailure.server.js';
 import { notifyQueueConsumer } from './notifyQueueConsumer.server.js';
 
 export type DrainJobConsumer = (
@@ -15,7 +17,13 @@ export type DrainJobConsumer = (
  * read_ct exceeds the max attempts, `readOneJobMessage` dead-letters it.
  */
 export async function drainOneJob(consume: DrainJobConsumer): Promise<boolean> {
-  const entry = await readOneJobMessage();
+  const entry = await readOneJobMessage(async ({ message }) => {
+    await handleTransportFailure(message.job_id, {
+      reason: 'transport_exhausted',
+      source: 'dead_letter',
+      last_error: `Job dispatch failed after ${MAX_JOB_QUEUE_DELIVERY_ATTEMPTS} delivery attempts`,
+    });
+  });
   if (!entry) {
     return false;
   }
