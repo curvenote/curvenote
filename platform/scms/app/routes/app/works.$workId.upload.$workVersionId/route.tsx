@@ -573,13 +573,6 @@ export async function action(args: Route.ActionArgs) {
             { status: 400 },
           );
         }
-        if (submittedAuthorMetadata) {
-          const result = await updateWorkVersionAuthorMetadata(
-            workVersionId,
-            submittedAuthorMetadata,
-          );
-          if (!('success' in result)) return result;
-        }
         const authorsText = !submittedAuthorMetadata ? (authors ?? '').trim() : '';
         const authorsList = authorsText ? parseAuthorsList(authorsText) : [];
 
@@ -621,6 +614,31 @@ export async function action(args: Route.ActionArgs) {
             },
             { status: 400 },
           );
+        }
+
+        // Require dispatch permission before any confirm-work mutations. Otherwise
+        // a failed dispatch gate could still leave the work version confirmed.
+        if (
+          dispatchableChecks.length > 0 &&
+          !userHasScope(baseCtx.user, scopes.app.works.checks.dispatch)
+        ) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'You do not have permission to dispatch checks for this work',
+              },
+            },
+            { status: 403 },
+          );
+        }
+
+        if (submittedAuthorMetadata) {
+          const result = await updateWorkVersionAuthorMetadata(
+            workVersionId,
+            submittedAuthorMetadata,
+          );
+          if (!('success' in result)) return result;
         }
 
         // Create check status objects for each dispatchable check
@@ -698,19 +716,7 @@ export async function action(args: Route.ActionArgs) {
 
         // Schedule each enabled check via its extension. Each check service is
         // responsible for creating its own checkServiceRun rows and jobs.
-        // Require work:checks:dispatch scope before dispatching (same as work-integrity action).
         if (dispatchableChecks.length > 0) {
-          if (!userHasScope(baseCtx.user, scopes.app.works.checks.dispatch)) {
-            return data(
-              {
-                error: {
-                  type: 'general',
-                  message: 'You do not have permission to dispatch checks for this work',
-                },
-              },
-              { status: 403 },
-            );
-          }
           waitUntil(
             dispatchEnabledChecksAfterUpload({
               enabledChecks: dispatchableChecks,
