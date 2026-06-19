@@ -172,12 +172,9 @@ function WorkVersionTimelineInner({
     a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
   );
 
-  const versionsByCreatedAsc = [...versions].sort((a, b) =>
-    a.date_created < b.date_created ? -1 : a.date_created > b.date_created ? 1 : 0,
-  );
   const versionNumberByVersionId: Record<string, number> = {};
-  versionsByCreatedAsc.forEach((ver, i) => {
-    versionNumberByVersionId[ver.id] = i + 1;
+  versionsByCreated.forEach((ver, i) => {
+    versionNumberByVersionId[ver.id] = versionsByCreated.length - i;
   });
 
   // Show all versions; draft versions display only their activities (and submissions), not the "Version created" row
@@ -194,18 +191,10 @@ function WorkVersionTimelineInner({
         const activitiesForVersion = activities.filter((a) => a.work_version_id === v.id);
         const checkRunsForVersion = checkServiceRunsByWorkVersionId[v.id] ?? [];
         const versionNumber = versionNumberByVersionId[v.id] ?? 0;
+        const versionTag = `v${versionNumber}`;
         const label = (
           <span className="flex gap-2 items-center">
-            <ui.TooltipProvider delayDuration={1000}>
-              <ui.Tooltip delayDuration={1000}>
-                <ui.TooltipTrigger asChild>
-                  <span className="cursor-default">r{versionNumber}</span>
-                </ui.TooltipTrigger>
-                <ui.TooltipContent side="top" className="text-sm">
-                  Revision {versionNumber}
-                </ui.TooltipContent>
-              </ui.Tooltip>
-            </ui.TooltipProvider>
+            <ui.VersionTagBadge tag={versionTag} title={`Version ${versionNumber}`} />
             <span className="text-sm text-muted-foreground">
               {formatDate(v.date_created, 'MMM d, yyyy HH:mm')}
             </span>
