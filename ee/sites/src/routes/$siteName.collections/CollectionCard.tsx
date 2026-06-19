@@ -6,7 +6,7 @@ import { plural } from 'myst-common';
 export function CollectionCard({ collection, siteName }: { collection: any; siteName: string }) {
   const title = collection.content?.title ?? collection.name;
   const description = collection.content?.description ?? 'No description';
-  const submissionsUrl = `/app/sites/${siteName}/submissions-classic?page=1&perPage=30&collection=${collection.name}`;
+  const submissionsUrl = `/app/sites/${siteName}/submissions?page=1&perPage=30&collectionIds=${encodeURIComponent(collection.id)}`;
   const fetcher = useFetcher();
   const submissionsCount = collection._count.submissions;
 
