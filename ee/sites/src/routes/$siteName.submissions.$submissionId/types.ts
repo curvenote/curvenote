@@ -36,6 +36,7 @@ export type SubmissionDetailVersion = {
   date_created: string;
   date_published?: string;
   status: string;
+  tags?: string[];
   transition?: WorkflowTransition;
   submitted_by: { id: string; name: string };
   site_work: SubmissionDetailSiteWork;
