@@ -17,6 +17,7 @@ import type {
 const submissionDetailVersionSelect = {
   id: true,
   status: true,
+  tags: true,
   date_created: true,
   date_published: true,
   job_id: true,
@@ -42,6 +43,7 @@ export type SubmissionDetailRow = {
   versions: {
     id: string;
     status: string;
+    tags: string[];
     date_created: string;
     date_published: string | null;
     job_id: string | null;

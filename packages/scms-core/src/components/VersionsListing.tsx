@@ -7,6 +7,7 @@ import { useFetcher } from 'react-router';
 import { SubmissionActionsDropdown } from './SubmissionActionsDropdown.js';
 import { ExternalLink } from 'lucide-react';
 import { useDeploymentConfig } from '../providers/DeploymentProvider.js';
+import { VersionTagBadge } from './ui/VersionTagBadge.js';
 
 export function VersionsListing({
   workflow,
@@ -57,7 +58,10 @@ export function VersionsListing({
                 title="open a preview of this version"
               >
                 <div className="space-y-2 grow">
-                  <div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {item.tags?.map((tag) => (
+                      <VersionTagBadge key={tag} tag={tag} titlePrefix="Version tag" />
+                    ))}
                     <span className="font-medium group-hover:underline">
                       {formatDistance(new Date(item.date_created), new Date(), { addSuffix: true })}
                     </span>

@@ -66,6 +66,7 @@ function formatDetailVersion(
     date_created: formatDate(version.date_created),
     date_published: version.date_published ?? undefined,
     status: version.status,
+    tags: [...version.tags],
     transition: version.transition == null ? undefined : (version.transition as WorkflowTransition),
     submitted_by: {
       id: version.submitted_by.id,
