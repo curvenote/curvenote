@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '@curvenote/scms-core';
+import { cn } from '../../utils/cn.js';
 
 type TimelineProps = {
   /** Optional title (e.g. "Timeline") */

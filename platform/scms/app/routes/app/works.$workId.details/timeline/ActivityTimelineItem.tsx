@@ -1,7 +1,5 @@
 import { Activity } from 'lucide-react';
-import { TimelineItemPlain } from './TimelineItem';
-import { DateWithPopover } from './DateWithPopover';
-import { getActivityTypeLabel } from '@curvenote/scms-core';
+import { DateWithPopover, getActivityTypeLabel, TimelineItemPlain } from '@curvenote/scms-core';
 import type { WorkActivityRow } from '../../works.$workId/db.server';
 
 type ActivityTimelineItemProps = {

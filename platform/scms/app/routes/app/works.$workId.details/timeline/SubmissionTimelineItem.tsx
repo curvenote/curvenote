@@ -1,7 +1,5 @@
 import { Globe, Send } from 'lucide-react';
-import { ui } from '@curvenote/scms-core';
-import { TimelineItemPlain } from './TimelineItem';
-import { DateWithPopover } from './DateWithPopover';
+import { DateWithPopover, TimelineItemPlain, ui } from '@curvenote/scms-core';
 import type { WorkVersionWithSubmissionVersions } from '../../works.$workId/types';
 
 type SubmissionVersionRow = WorkVersionWithSubmissionVersions['submissionVersions'][number];

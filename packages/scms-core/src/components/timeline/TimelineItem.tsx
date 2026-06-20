@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { cn } from '@curvenote/scms-core';
 import { ChevronDown } from 'lucide-react';
+import { cn } from '../../utils/cn.js';
 
 /** Props for a plain timeline row: icon, message, date. No expand, no pill. */
 export type TimelineItemPlainProps = {

@@ -33,7 +33,6 @@ import {
   actionDeleteMagicLink,
 } from './magicLinks.server.js';
 import { useEffect, useState } from 'react';
-import { ActivityFeed } from './ActivityFeed.js';
 import { Versions } from './Versions.js';
 import { SubmissionDetails } from './SubmissionDetails.js';
 import { MagicLinks } from './MagicLinks.js';
@@ -231,11 +230,11 @@ export default function SubmissionDetailRoute({
         <Versions
           workflow={workflow}
           submissionVersions={submissionVersions}
+          activities={submission.activity}
           canUpdateStatus={canUpdateStatus}
           site={site}
           signature={signature}
         />
-        <ActivityFeed activities={submission.activity} />
       </div>
     </PageFrame>
   );

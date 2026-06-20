@@ -15,6 +15,9 @@ import {
   httpError,
   scopes,
   getExtensionCheckServicesFromServerConfig,
+  DateWithPopover,
+  Timeline,
+  TimelineSection,
   useDeploymentConfig,
   ui,
 } from '@curvenote/scms-core';
@@ -26,10 +29,7 @@ import {
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { RunCheckOnLatestVersionButton } from './RunCheckOnLatestVersionButton';
-import { Timeline } from '../works.$workId.details/timeline/Timeline';
-import { TimelineSection } from '../works.$workId.details/timeline/TimelineSection';
 import { CheckServiceRunTimelineItem } from '../works.$workId.details/timeline/CheckServiceRunTimelineItem';
-import { DateWithPopover } from '../works.$workId.details/timeline/DateWithPopover';
 
 const DISPATCHING_SKELETON_MS = 1500;
 

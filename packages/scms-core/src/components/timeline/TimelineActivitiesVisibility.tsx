@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import { ui } from '@curvenote/scms-core';
+import * as ui from '../ui/index.js';
 
 type TimelineActivitiesVisibilityValue = {
   showActivities: boolean;
@@ -11,7 +11,7 @@ const TimelineActivitiesVisibilityContext = createContext<TimelineActivitiesVisi
 );
 
 /**
- * Holds whether work-activity rows are visible on the version timeline.
+ * Holds whether activity rows are visible on a timeline.
  * Activities are hidden by default; use {@link TimelineActivitiesToggle} in the timeline header.
  */
 export function TimelineActivitiesVisibilityProvider({ children }: { children: ReactNode }) {

@@ -58,6 +58,7 @@ export type SubmissionDetailActivity = {
   status?: string;
   kind?: string;
   submission_version?: { id: string; date_created: string };
+  work_version?: { id: string; date_created: string };
   date_published?: string;
   job_failure?: SubmissionDetailJobFailure;
 };

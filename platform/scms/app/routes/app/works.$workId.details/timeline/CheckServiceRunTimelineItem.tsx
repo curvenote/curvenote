@@ -1,8 +1,11 @@
 import { Link } from 'react-router';
 import { ShieldCheck } from 'lucide-react';
-import { TimelineItemExpandable, TimelineItemPill } from './TimelineItem';
-import { DateWithPopover } from './DateWithPopover';
-import type { ClientExtensionCheckService } from '@curvenote/scms-core';
+import {
+  DateWithPopover,
+  TimelineItemExpandable,
+  TimelineItemPill,
+  type ClientExtensionCheckService,
+} from '@curvenote/scms-core';
 import type { CheckServiceRunRow } from '../../works.$workId/db.server';
 
 type CheckServiceRunTimelineItemProps = {

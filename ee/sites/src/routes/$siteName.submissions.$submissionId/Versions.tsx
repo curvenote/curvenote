@@ -1,34 +1,37 @@
-import { SectionWithHeading, VersionsListing, primitives } from '@curvenote/scms-core';
+import { SectionWithHeading, primitives } from '@curvenote/scms-core';
 import { GalleryHorizontalEnd } from 'lucide-react';
-import type { SiteDTO, SubmissionVersionDTO } from '@curvenote/common';
-import type { Workflow, WorkflowTransition } from '@curvenote/scms-core';
-import type { SubmissionDetailSiteContext, SubmissionDetailVersion } from './types.js';
+import type { Workflow } from '@curvenote/scms-core';
+import type {
+  SubmissionDetailActivity,
+  SubmissionDetailSiteContext,
+  SubmissionDetailVersion,
+} from './types.js';
+import { SubmissionVersionTimeline } from './SubmissionVersionTimeline.js';
 
 export function Versions({
   workflow,
   submissionVersions,
+  activities,
   canUpdateStatus,
   site,
   signature,
 }: {
   workflow: Workflow;
   submissionVersions: SubmissionDetailVersion[];
+  activities: SubmissionDetailActivity[];
   canUpdateStatus: boolean;
   site: SubmissionDetailSiteContext;
   signature: string;
 }) {
   return (
-    <SectionWithHeading heading="Versions" icon={GalleryHorizontalEnd}>
+    <SectionWithHeading heading="Timeline" icon={GalleryHorizontalEnd}>
       <primitives.Card lift className="p-8">
-        <VersionsListing
+        <SubmissionVersionTimeline
           workflow={workflow}
-          items={
-            submissionVersions as (SubmissionVersionDTO & {
-              transition?: WorkflowTransition;
-            })[]
-          }
+          submissionVersions={submissionVersions}
+          activities={activities}
           canUpdateStatus={canUpdateStatus}
-          site={site as SiteDTO}
+          site={site}
           signature={signature}
         />
       </primitives.Card>

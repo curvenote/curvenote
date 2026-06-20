@@ -43,6 +43,7 @@ export function SubmissionActionsDropdown({
   buildUrl,
   canUpdateStatus,
   onClickAction,
+  compact = false,
 }: {
   workflow: Workflow;
   workflowStateName: string;
@@ -53,6 +54,7 @@ export function SubmissionActionsDropdown({
   buildUrl?: string;
   canUpdateStatus?: boolean;
   onClickAction: (status: string) => any;
+  compact?: boolean;
 }) {
   const transitions = canUpdateStatus
     ? workflow.transitions.filter((t) => t.sourceStateName === workflowStateName && t.userTriggered)
@@ -90,7 +92,8 @@ export function SubmissionActionsDropdown({
         <button
           className={cn(
             { [statusClasses]: !transition, [transitionClasses]: !!transition },
-            'rounded-sm inline-flex items-center px-2 py-[2px] text-sm opacity-90 justify-center outline-hidden focus:shadow-[0_0_0_2px] cursor-default',
+            'rounded-sm inline-flex items-center opacity-90 justify-center outline-hidden focus:shadow-[0_0_0_2px] cursor-default',
+            compact ? 'px-1.5 py-[1px] text-xs' : 'px-2 py-[2px] text-sm',
             { 'pointer-events-none': transitions.length === 0 },
           )}
           aria-label="Change the status of the submission"
