@@ -33,10 +33,10 @@ import {
   actionDeleteMagicLink,
 } from './magicLinks.server.js';
 import { useEffect, useState } from 'react';
-import { Versions } from './Versions.js';
 import { SubmissionDetails } from './SubmissionDetails.js';
 import { MagicLinks } from './MagicLinks.js';
-import { Info, MonitorPlay } from 'lucide-react';
+import { GalleryHorizontalEnd, Info, MonitorPlay } from 'lucide-react';
+import { SubmissionVersionTimeline } from './SubmissionVersionTimeline.js';
 
 export const loader = async (args: LoaderFunctionArgs): Promise<SubmissionDetailPageData> => {
   const ctx = await withAppSiteContext(args, [scopes.site.submissions.read], {
@@ -228,15 +228,19 @@ export default function SubmissionDetailRoute({
         </SectionWithHeading>
         <SubmissionDetails baseUrl={config.renderServiceUrl ?? site.links.html} />
         <MagicLinks />
-        <Versions
-          workflow={workflow}
-          submissionVersions={submissionVersions}
-          activities={submission.activity}
-          checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
-          canUpdateStatus={canUpdateStatus}
-          site={site}
-          signature={signature}
-        />
+        <SectionWithHeading heading="Timeline" icon={GalleryHorizontalEnd}>
+          <primitives.Card lift className="p-8">
+            <SubmissionVersionTimeline
+              workflow={workflow}
+              submissionVersions={submissionVersions}
+              activities={submission.activity}
+              checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
+              canUpdateStatus={canUpdateStatus}
+              site={site}
+              signature={signature}
+            />
+          </primitives.Card>
+        </SectionWithHeading>
       </div>
     </PageFrame>
   );
