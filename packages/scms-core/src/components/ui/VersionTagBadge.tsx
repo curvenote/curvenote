@@ -59,7 +59,7 @@ export function VersionTagBadge({
       <Badge
         variant="outline-muted"
         size="xs"
-        className={cn('font-normal px-1.5 py-0 font-mono', className)}
+        className={cn('font-normal px-1 py-0.5 font-mono', className)}
         title={label}
       >
         {!hideIcon ? <Icon className="size-3" aria-hidden /> : null}
