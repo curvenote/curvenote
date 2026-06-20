@@ -3,6 +3,7 @@ import { getStatusButtonClasses } from '../utils/status.js';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ArrowTopRightOnSquareIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import type { Workflow, WorkflowTransition } from '../workflow/types.js';
+import { LoadingSpinner } from './LoadingSpinner.js';
 
 // TODO lucide icons
 export function HistoryDraftIcon({ className, size }: { className?: string; size?: number }) {
@@ -64,6 +65,11 @@ export function SubmissionActionsDropdown({
 
   const label = (
     <>
+      {transition ? (
+        <span className="animate-pulse">
+          <LoadingSpinner color="text-gray-600" className="w-4 h-4 mr-1" />
+        </span>
+      ) : null}
       <span className="inline-flex mx-1">
         {transition
           ? (transition?.labels?.inProgress ?? 'Eeeekk...')
