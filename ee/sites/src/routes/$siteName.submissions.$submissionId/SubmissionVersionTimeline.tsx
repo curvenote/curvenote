@@ -70,14 +70,23 @@ function sortEntriesNewestFirst(entries: TimelineEntry[]) {
 }
 
 function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
+  const versionDate = activity.submission_version?.date_created;
+
   if (activity.job_failure) {
     return (
-      <div className="space-y-2">
-        <p className="text-sm text-red-700 dark:text-red-300">{activity.job_failure.error}</p>
+      <div className="space-y-3 text-sm">
+        <ActivityDetailRow label="Error" value={activity.job_failure.error} />
+        {activity.job_failure.job_type ? (
+          <ActivityDetailRow label="Job type" value={activity.job_failure.job_type} />
+        ) : null}
+        {activity.job_failure.job_id ? (
+          <ActivityDetailRow label="Job" value={activity.job_failure.job_id} />
+        ) : null}
+        {versionDate ? <ActivityDetailRow label="Version date" value={versionDate} /> : null}
         {activity.job_failure.build_url ? (
           <a
             href={activity.job_failure.build_url}
-            className="text-sm underline text-red-800 dark:text-red-200"
+            className="inline-flex text-primary hover:underline"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -89,18 +98,50 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
   }
 
   if (activity.activity_type === 'SUBMISSION_KIND_CHANGE' && activity.kind) {
-    return <p className="text-sm text-muted-foreground">New kind: {activity.kind}</p>;
+    return <ActivityDetailRows rows={[['New kind', activity.kind]]} />;
   }
 
   if (activity.activity_type === 'SUBMISSION_DATE_CHANGE' && activity.date_published) {
-    return <p className="text-sm text-muted-foreground">New date: {activity.date_published}</p>;
+    return <ActivityDetailRows rows={[['New date', activity.date_published]]} />;
   }
 
   if (activity.activity_type === 'SUBMISSION_VERSION_STATUS_CHANGE' && activity.status) {
-    return <p className="text-sm text-muted-foreground">New status: {activity.status}</p>;
+    return (
+      <ActivityDetailRows
+        rows={[
+          ['New status', activity.status],
+          ['Version date', versionDate],
+        ]}
+      />
+    );
+  }
+
+  if (activity.activity_type === 'SUBMISSION_VERSION_TRANSITION_STARTED' && versionDate) {
+    return <ActivityDetailRows rows={[['Version date', versionDate]]} />;
   }
 
   return null;
+}
+
+function ActivityDetailRows({ rows }: { rows: [string, ReactNode | undefined][] }) {
+  const visibleRows = rows.filter(([, value]) => value != null && value !== '');
+  if (visibleRows.length === 0) return null;
+  return (
+    <div className="space-y-2 text-sm">
+      {visibleRows.map(([label, value]) => (
+        <ActivityDetailRow key={label} label={label} value={value} />
+      ))}
+    </div>
+  );
+}
+
+function ActivityDetailRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="grid gap-1 sm:grid-cols-[8rem_1fr]">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-foreground">{value}</span>
+    </div>
+  );
 }
 
 function getActivityLabelData(activity: SubmissionDetailActivity) {
