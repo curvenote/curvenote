@@ -5,6 +5,34 @@ export type SubmissionActivitiesByVersion = {
   submissionLevel: SubmissionDetailActivity[];
 };
 
+export type SubmissionTimelineSection =
+  | {
+      kind: 'version';
+      key: string;
+      date: string;
+      version: SubmissionDetailVersion;
+      versionNumber: number;
+    }
+  | {
+      kind: 'submission-activity';
+      key: string;
+      date: string;
+      activity: SubmissionDetailActivity;
+    };
+
+const SUBMISSION_TIMELINE_SECTION_KIND_RANK: Record<SubmissionTimelineSection['kind'], number> = {
+  version: 0,
+  'submission-activity': 1,
+};
+
+function compareNewestFirst(a: SubmissionTimelineSection, b: SubmissionTimelineSection) {
+  if (a.date > b.date) return -1;
+  if (a.date < b.date) return 1;
+  return (
+    SUBMISSION_TIMELINE_SECTION_KIND_RANK[a.kind] - SUBMISSION_TIMELINE_SECTION_KIND_RANK[b.kind]
+  );
+}
+
 export function groupSubmissionActivitiesByVersion(
   activities: SubmissionDetailActivity[],
   submissionVersions: SubmissionDetailVersion[],
@@ -45,4 +73,25 @@ export function groupSubmissionActivitiesByVersion(
   );
 
   return { grouped, submissionLevel };
+}
+
+export function getSubmissionTimelineSections(
+  submissionVersions: SubmissionDetailVersion[],
+  submissionLevelActivities: SubmissionDetailActivity[],
+): SubmissionTimelineSection[] {
+  return [
+    ...submissionVersions.map((version, index) => ({
+      kind: 'version' as const,
+      key: `version-${version.id}`,
+      date: version.date_created,
+      version,
+      versionNumber: submissionVersions.length - index,
+    })),
+    ...submissionLevelActivities.map((activity) => ({
+      kind: 'submission-activity' as const,
+      key: `submission-activity-${activity.id}`,
+      date: activity.date_created,
+      activity,
+    })),
+  ].sort(compareNewestFirst);
 }

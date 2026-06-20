@@ -25,7 +25,10 @@ import type {
   SubmissionDetailSiteContext,
   SubmissionDetailVersion,
 } from './types.js';
-import { groupSubmissionActivitiesByVersion } from './SubmissionVersionTimeline.utils.js';
+import {
+  getSubmissionTimelineSections,
+  groupSubmissionActivitiesByVersion,
+} from './SubmissionVersionTimeline.utils.js';
 
 type SubmissionVersionTimelineProps = {
   workflow: Workflow;
@@ -38,7 +41,7 @@ type SubmissionVersionTimelineProps = {
   signature: string;
 };
 
-type TimelineEntry =
+export type TimelineEntry =
   | {
       kind: 'version';
       key: string;
@@ -60,14 +63,22 @@ type TimelineEntry =
       version: SubmissionDetailVersion;
     };
 
+const TIMELINE_ENTRY_KIND_RANK: Record<TimelineEntry['kind'], number> = {
+  version: 0,
+  'check-service-run': 1,
+  activity: 2,
+};
+
 function getPreviewUrl(baseUrl: string, versionId: string, signature: string) {
   return `${baseUrl}/previews/${versionId}?preview=${signature}`;
 }
 
-function sortEntriesNewestFirst(entries: TimelineEntry[]) {
-  return [...entries].sort((a, b) =>
-    a.date > b.date ? -1 : a.date < b.date ? 1 : a.kind === 'version' ? -1 : 1,
-  );
+export function sortEntriesNewestFirst(entries: TimelineEntry[]) {
+  return [...entries].sort((a, b) => {
+    if (a.date > b.date) return -1;
+    if (a.date < b.date) return 1;
+    return TIMELINE_ENTRY_KIND_RANK[a.kind] - TIMELINE_ENTRY_KIND_RANK[b.kind];
+  });
 }
 
 function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
@@ -240,6 +251,14 @@ function SubmissionVersionTimelineInner({
     () => groupSubmissionActivitiesByVersion(activities, submissionVersions),
     [activities, submissionVersions],
   );
+  const timelineSections = useMemo(
+    () =>
+      getSubmissionTimelineSections(
+        submissionVersions,
+        showActivities ? activitiesByVersionId.submissionLevel : [],
+      ),
+    [activitiesByVersionId.submissionLevel, showActivities, submissionVersions],
+  );
 
   function handleUpdateStatusSubmit(version: SubmissionDetailVersion, nextStatus: string) {
     if (!canUpdateStatus) return;
@@ -260,23 +279,24 @@ function SubmissionVersionTimelineInner({
       titleClassName="text-sm font-medium uppercase tracking-wide"
       headerAction={<TimelineActivitiesToggle />}
     >
-      {showActivities && activitiesByVersionId.submissionLevel.length > 0 ? (
-        <TimelineSection
-          label={<span className="text-sm text-muted-foreground">Submission activity</span>}
-          icon={<Activity className="w-5 h-5 bg-background text-foreground/60" aria-hidden />}
-        >
-          {activitiesByVersionId.submissionLevel.map((activity) => (
-            <ActivityTimelineItem
-              key={activity.id}
-              activity={activity}
-              labelData={getActivityLabelData(activity)}
-              details={getActivityDetails(activity)}
-            />
-          ))}
-        </TimelineSection>
-      ) : null}
-      {submissionVersions.map((version, index) => {
-        const versionNumber = submissionVersions.length - index;
+      {timelineSections.map((section) => {
+        if (section.kind === 'submission-activity') {
+          return (
+            <TimelineSection
+              key={section.key}
+              label={<span className="text-sm text-muted-foreground">Submission activity</span>}
+              icon={<Activity className="w-5 h-5 bg-background text-foreground/60" aria-hidden />}
+            >
+              <ActivityTimelineItem
+                activity={section.activity}
+                labelData={getActivityLabelData(section.activity)}
+                details={getActivityDetails(section.activity)}
+              />
+            </TimelineSection>
+          );
+        }
+
+        const { version, versionNumber } = section;
         const previewUrl = getPreviewUrl(baseUrl, version.id, signature);
         const versionEntries: TimelineEntry[] = [
           {
@@ -315,7 +335,7 @@ function SubmissionVersionTimelineInner({
         );
 
         return (
-          <TimelineSection key={version.id} label={label}>
+          <TimelineSection key={section.key} label={label}>
             {sortEntriesNewestFirst(versionEntries).map((entry) => {
               if (entry.kind === 'activity') {
                 return (
