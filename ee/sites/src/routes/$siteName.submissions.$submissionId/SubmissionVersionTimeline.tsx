@@ -25,6 +25,7 @@ import type {
   SubmissionDetailSiteContext,
   SubmissionDetailVersion,
 } from './types.js';
+import { groupSubmissionActivitiesByVersion } from './SubmissionVersionTimeline.utils.js';
 
 type SubmissionVersionTimelineProps = {
   workflow: Workflow;
@@ -71,6 +72,7 @@ function sortEntriesNewestFirst(entries: TimelineEntry[]) {
 
 function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
   const versionDate = activity.submission_version?.date_created;
+  const versionDateNode = versionDate ? <DateWithPopover date={versionDate} /> : undefined;
 
   if (activity.job_failure) {
     return (
@@ -82,7 +84,9 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
         {activity.job_failure.job_id ? (
           <ActivityDetailRow label="Job" value={activity.job_failure.job_id} />
         ) : null}
-        {versionDate ? <ActivityDetailRow label="Version date" value={versionDate} /> : null}
+        {versionDateNode ? (
+          <ActivityDetailRow label="Version date" value={versionDateNode} />
+        ) : null}
         {activity.job_failure.build_url ? (
           <a
             href={activity.job_failure.build_url}
@@ -102,7 +106,11 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
   }
 
   if (activity.activity_type === 'SUBMISSION_DATE_CHANGE' && activity.date_published) {
-    return <ActivityDetailRows rows={[['New date', activity.date_published]]} />;
+    return (
+      <ActivityDetailRows
+        rows={[['New date', <DateWithPopover date={activity.date_published} />]]}
+      />
+    );
   }
 
   if (activity.activity_type === 'SUBMISSION_VERSION_STATUS_CHANGE' && activity.status) {
@@ -110,14 +118,14 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
       <ActivityDetailRows
         rows={[
           ['New status', activity.status],
-          ['Version date', versionDate],
+          ['Version date', versionDateNode],
         ]}
       />
     );
   }
 
-  if (activity.activity_type === 'SUBMISSION_VERSION_TRANSITION_STARTED' && versionDate) {
-    return <ActivityDetailRows rows={[['Version date', versionDate]]} />;
+  if (activity.activity_type === 'SUBMISSION_VERSION_TRANSITION_STARTED' && versionDateNode) {
+    return <ActivityDetailRows rows={[['Version date', versionDateNode]]} />;
   }
 
   return null;
@@ -228,45 +236,10 @@ function SubmissionVersionTimelineInner({
     [checkServices],
   );
 
-  const activitiesByVersionId = useMemo(() => {
-    const grouped = new Map<string, SubmissionDetailActivity[]>();
-    const submissionLevel: SubmissionDetailActivity[] = [];
-    const versionIdSet = new Set(submissionVersions.map((version) => version.id));
-    const workVersionIdToSubmissionVersionId = new Map(
-      submissionVersions.map((version) => [version.site_work.version_id, version.id]),
-    );
-
-    for (const activity of activities) {
-      const directVersionId = activity.submission_version?.id;
-      const workVersionId = directVersionId ? undefined : activity.work_version?.id;
-      const versionId =
-        directVersionId && versionIdSet.has(directVersionId)
-          ? directVersionId
-          : workVersionId
-            ? workVersionIdToSubmissionVersionId.get(workVersionId)
-            : undefined;
-
-      if (!versionId) {
-        submissionLevel.push(activity);
-        continue;
-      }
-
-      const list = grouped.get(versionId) ?? [];
-      list.push(activity);
-      grouped.set(versionId, list);
-    }
-
-    for (const list of grouped.values()) {
-      list.sort((a, b) =>
-        a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
-      );
-    }
-    submissionLevel.sort((a, b) =>
-      a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
-    );
-
-    return { grouped, submissionLevel };
-  }, [activities, submissionVersions]);
+  const activitiesByVersionId = useMemo(
+    () => groupSubmissionActivitiesByVersion(activities, submissionVersions),
+    [activities, submissionVersions],
+  );
 
   function handleUpdateStatusSubmit(version: SubmissionDetailVersion, nextStatus: string) {
     if (!canUpdateStatus) return;
