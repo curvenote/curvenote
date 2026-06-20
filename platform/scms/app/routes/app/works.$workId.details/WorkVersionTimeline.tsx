@@ -6,6 +6,8 @@ import {
   Timeline,
   TimelineActivitiesToggle,
   TimelineActivitiesVisibilityProvider,
+  ActivityTimelineItem,
+  CheckServiceRunTimelineItem,
   TimelineSection,
   useTimelineActivitiesVisibility,
 } from '@curvenote/scms-core';
@@ -15,8 +17,6 @@ import type { Workflow, ClientExtensionCheckService } from '@curvenote/scms-core
 import type { LinkedJobsByWorkVersionId } from './types';
 import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineItem';
 import { SubmissionTimelineItem } from './timeline/SubmissionTimelineItem';
-import { ActivityTimelineItem } from './timeline/ActivityTimelineItem';
-import { CheckServiceRunTimelineItem } from './timeline/CheckServiceRunTimelineItem';
 
 type SubmissionVersionRow = WorkVersionForDetailsClient['submissionVersions'][number];
 

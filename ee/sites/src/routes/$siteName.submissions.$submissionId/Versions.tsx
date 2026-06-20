@@ -1,6 +1,6 @@
 import { SectionWithHeading, primitives } from '@curvenote/scms-core';
 import { GalleryHorizontalEnd } from 'lucide-react';
-import type { Workflow } from '@curvenote/scms-core';
+import type { TimelineCheckServiceRunRow, Workflow } from '@curvenote/scms-core';
 import type {
   SubmissionDetailActivity,
   SubmissionDetailSiteContext,
@@ -12,6 +12,7 @@ export function Versions({
   workflow,
   submissionVersions,
   activities,
+  checkServiceRunsByWorkVersionId,
   canUpdateStatus,
   site,
   signature,
@@ -19,6 +20,7 @@ export function Versions({
   workflow: Workflow;
   submissionVersions: SubmissionDetailVersion[];
   activities: SubmissionDetailActivity[];
+  checkServiceRunsByWorkVersionId: Record<string, TimelineCheckServiceRunRow[]>;
   canUpdateStatus: boolean;
   site: SubmissionDetailSiteContext;
   signature: string;
@@ -30,6 +32,7 @@ export function Versions({
           workflow={workflow}
           submissionVersions={submissionVersions}
           activities={activities}
+          checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
           canUpdateStatus={canUpdateStatus}
           site={site}
           signature={signature}

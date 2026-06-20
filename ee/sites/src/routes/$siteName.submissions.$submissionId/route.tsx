@@ -145,6 +145,7 @@ export default function SubmissionDetailRoute({
     poll,
     activeVersion,
     activeVersionNumber,
+    checkServiceRunsByWorkVersionId,
   } = loaderData;
 
   const { kind, submitted_by, date_created, date_published } = submission;
@@ -231,6 +232,7 @@ export default function SubmissionDetailRoute({
           workflow={workflow}
           submissionVersions={submissionVersions}
           activities={submission.activity}
+          checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
           canUpdateStatus={canUpdateStatus}
           site={site}
           signature={signature}

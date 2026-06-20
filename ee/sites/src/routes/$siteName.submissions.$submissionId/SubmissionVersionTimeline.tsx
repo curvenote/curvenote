@@ -2,20 +2,24 @@ import { useMemo, type ReactNode } from 'react';
 import { useFetcher } from 'react-router';
 import { Activity, ExternalLink, FileText } from 'lucide-react';
 import {
+  ActivityTimelineItem,
+  CheckServiceRunTimelineItem,
   DateWithPopover,
-  getActivityTypeLabel,
   Timeline,
   TimelineActivitiesToggle,
   TimelineActivitiesVisibilityProvider,
   TimelineItemExpandable,
-  TimelineItemPlain,
   TimelineSection,
   SubmissionActionsDropdown,
   useDeploymentConfig,
   useTimelineActivitiesVisibility,
   ui,
 } from '@curvenote/scms-core';
-import type { Workflow } from '@curvenote/scms-core';
+import type {
+  ClientExtensionCheckService,
+  TimelineCheckServiceRunRow,
+  Workflow,
+} from '@curvenote/scms-core';
 import type {
   SubmissionDetailActivity,
   SubmissionDetailSiteContext,
@@ -26,6 +30,8 @@ type SubmissionVersionTimelineProps = {
   workflow: Workflow;
   submissionVersions: SubmissionDetailVersion[];
   activities: SubmissionDetailActivity[];
+  checkServiceRunsByWorkVersionId: Record<string, TimelineCheckServiceRunRow[]>;
+  checkServices?: ClientExtensionCheckService[];
   canUpdateStatus: boolean;
   site: SubmissionDetailSiteContext;
   signature: string;
@@ -44,6 +50,13 @@ type TimelineEntry =
       key: string;
       date: string;
       activity: SubmissionDetailActivity;
+    }
+  | {
+      kind: 'check-service-run';
+      key: string;
+      date: string;
+      run: TimelineCheckServiceRunRow;
+      version: SubmissionDetailVersion;
     };
 
 function getPreviewUrl(baseUrl: string, versionId: string, signature: string) {
@@ -53,25 +66,6 @@ function getPreviewUrl(baseUrl: string, versionId: string, signature: string) {
 function sortEntriesNewestFirst(entries: TimelineEntry[]) {
   return [...entries].sort((a, b) =>
     a.date > b.date ? -1 : a.date < b.date ? 1 : a.kind === 'version' ? -1 : 1,
-  );
-}
-
-function getActivityMessage(activity: SubmissionDetailActivity) {
-  const activityData = activity.job_failure
-    ? {
-        transition_cancelled: true,
-        job_type: activity.job_failure.job_type,
-        error: activity.job_failure.error,
-        job_id: activity.job_failure.job_id,
-      }
-    : undefined;
-  const by = activity.activity_by.name?.trim();
-  const label = getActivityTypeLabel(activity.activity_type, { data: activityData });
-  return (
-    <>
-      {label}
-      {by ? <> by {by}</> : null}
-    </>
   );
 }
 
@@ -109,37 +103,15 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
   return null;
 }
 
-function SubmissionActivityTimelineItem({ activity }: { activity: SubmissionDetailActivity }) {
-  const date = (
-    <DateWithPopover
-      date={activity.date_created}
-      dateCreated={activity.date_created}
-      dateModified={activity.date_created}
-    />
-  );
-  const details = getActivityDetails(activity);
-
-  if (details == null) {
-    return (
-      <TimelineItemPlain
-        muted
-        icon={<Activity aria-hidden />}
-        message={getActivityMessage(activity)}
-        date={date}
-      />
-    );
-  }
-
-  return (
-    <TimelineItemExpandable
-      icon={<Activity aria-hidden />}
-      message={getActivityMessage(activity)}
-      date={date}
-      className="text-muted-foreground"
-    >
-      {details}
-    </TimelineItemExpandable>
-  );
+function getActivityLabelData(activity: SubmissionDetailActivity) {
+  return activity.job_failure
+    ? {
+        transition_cancelled: true,
+        job_type: activity.job_failure.job_type,
+        error: activity.job_failure.error,
+        job_id: activity.job_failure.job_id,
+      }
+    : undefined;
 }
 
 function SubmissionVersionTimelineItem({
@@ -237,6 +209,8 @@ function SubmissionVersionTimelineInner({
   workflow,
   submissionVersions,
   activities,
+  checkServiceRunsByWorkVersionId,
+  checkServices = [],
   canUpdateStatus,
   site,
   signature,
@@ -245,6 +219,10 @@ function SubmissionVersionTimelineInner({
   const config = useDeploymentConfig();
   const { showActivities } = useTimelineActivitiesVisibility();
   const baseUrl = config.renderServiceUrl || site.links.html || '';
+  const checkServiceById = useMemo(
+    () => Object.fromEntries(checkServices.map((service) => [service.id, service])),
+    [checkServices],
+  );
 
   const activitiesByVersionId = useMemo(() => {
     const grouped = new Map<string, SubmissionDetailActivity[]>();
@@ -311,7 +289,12 @@ function SubmissionVersionTimelineInner({
           icon={<Activity className="w-5 h-5 bg-background text-foreground/60" aria-hidden />}
         >
           {activitiesByVersionId.submissionLevel.map((activity) => (
-            <SubmissionActivityTimelineItem key={activity.id} activity={activity} />
+            <ActivityTimelineItem
+              key={activity.id}
+              activity={activity}
+              labelData={getActivityLabelData(activity)}
+              details={getActivityDetails(activity)}
+            />
           ))}
         </TimelineSection>
       ) : null}
@@ -334,6 +317,13 @@ function SubmissionVersionTimelineInner({
                 activity,
               }))
             : []),
+          ...(checkServiceRunsByWorkVersionId[version.site_work.version_id] ?? []).map((run) => ({
+            kind: 'check-service-run' as const,
+            key: `check-run-${run.id}`,
+            date: run.date_created,
+            run,
+            version,
+          })),
         ];
         const label = (
           <span className="flex flex-wrap gap-2 items-center">
@@ -351,7 +341,26 @@ function SubmissionVersionTimelineInner({
           <TimelineSection key={version.id} label={label}>
             {sortEntriesNewestFirst(versionEntries).map((entry) => {
               if (entry.kind === 'activity') {
-                return <SubmissionActivityTimelineItem key={entry.key} activity={entry.activity} />;
+                return (
+                  <ActivityTimelineItem
+                    key={entry.key}
+                    activity={entry.activity}
+                    labelData={getActivityLabelData(entry.activity)}
+                    details={getActivityDetails(entry.activity)}
+                  />
+                );
+              }
+
+              if (entry.kind === 'check-service-run') {
+                return (
+                  <CheckServiceRunTimelineItem
+                    key={entry.key}
+                    run={entry.run}
+                    checkService={checkServiceById[entry.run.kind] ?? null}
+                    basePath={`/app/works/${entry.version.site_work.id}`}
+                    fallbackDetailsHref={`/app/works/${entry.version.site_work.id}/work-integrity`}
+                  />
+                );
               }
 
               return (
