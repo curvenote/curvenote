@@ -33,11 +33,10 @@ import {
   actionDeleteMagicLink,
 } from './magicLinks.server.js';
 import { useEffect, useState } from 'react';
-import { ActivityFeed } from './ActivityFeed.js';
-import { Versions } from './Versions.js';
 import { SubmissionDetails } from './SubmissionDetails.js';
 import { MagicLinks } from './MagicLinks.js';
 import { Info, MonitorPlay } from 'lucide-react';
+import { SubmissionVersionTimeline } from './SubmissionVersionTimeline.js';
 
 export const loader = async (args: LoaderFunctionArgs): Promise<SubmissionDetailPageData> => {
   const ctx = await withAppSiteContext(args, [scopes.site.submissions.read], {
@@ -146,6 +145,7 @@ export default function SubmissionDetailRoute({
     poll,
     activeVersion,
     activeVersionNumber,
+    checkServiceRunsByWorkVersionId,
   } = loaderData;
 
   const { kind, submitted_by, date_created, date_published } = submission;
@@ -228,14 +228,15 @@ export default function SubmissionDetailRoute({
         </SectionWithHeading>
         <SubmissionDetails baseUrl={config.renderServiceUrl ?? site.links.html} />
         <MagicLinks />
-        <Versions
+        <SubmissionVersionTimeline
           workflow={workflow}
           submissionVersions={submissionVersions}
+          activities={submission.activity}
+          checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
           canUpdateStatus={canUpdateStatus}
           site={site}
           signature={signature}
         />
-        <ActivityFeed activities={submission.activity} />
       </div>
     </PageFrame>
   );

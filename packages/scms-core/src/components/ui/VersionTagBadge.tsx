@@ -1,5 +1,5 @@
 import type { ComponentType, SVGProps } from 'react';
-import { GitBranch } from 'lucide-react';
+import { Tag } from 'lucide-react';
 import { Badge } from './badge.js';
 import { cn } from '../../utils/cn.js';
 
@@ -14,7 +14,7 @@ export type VersionTagBadgeProps = {
   titlePrefix?: string;
   /** Hide the leading icon. */
   hideIcon?: boolean;
-  /** Override the leading icon (defaults to `GitBranch`). */
+  /** Override the leading icon (defaults to `Tag`). */
   icon?: VersionTagBadgeIcon;
   /** Suppress the native title tooltip (use when wrapped in a popover/hover card). */
   disableTooltip?: boolean;
@@ -47,7 +47,7 @@ export function VersionTagBadge({
   title,
   titlePrefix,
   hideIcon = false,
-  icon: Icon = GitBranch,
+  icon: Icon = Tag,
   disableTooltip = false,
   emphasis = 'outline',
   className,
@@ -59,7 +59,7 @@ export function VersionTagBadge({
       <Badge
         variant="outline-muted"
         size="xs"
-        className={cn('font-normal px-1.5 py-0 font-mono', className)}
+        className={cn('font-normal px-1 py-0.5 font-mono', className)}
         title={label}
       >
         {!hideIcon ? <Icon className="size-3" aria-hidden /> : null}

@@ -1,10 +1,11 @@
-import type { Context, Workflow } from '@curvenote/scms-core';
+import type { Context, TimelineCheckServiceRunRow, Workflow } from '@curvenote/scms-core';
 import {
   createPreviewToken,
   getConfiguredWorkflow,
   type SiteContext,
 } from '@curvenote/scms-server';
 import {
+  dbGetSubmissionCheckServiceRunsByWorkVersionIds,
   dbGetSiteAppData,
   dbListMagicLinksForSubmission,
   dbListSubmissionSlugRows,
@@ -41,6 +42,7 @@ export type SubmissionDetailPageData = {
   activeVersion: SubmissionDetailVersion;
   activeVersionNumber: number;
   magicLinks: MagicLinkWithAccessCount[];
+  checkServiceRunsByWorkVersionId: Record<string, TimelineCheckServiceRunRow[]>;
 };
 
 export async function loadSubmissionDetailPage(
@@ -67,15 +69,19 @@ export async function loadSubmissionDetailPage(
     ctx.$config.api.previewSigningSecret,
   );
 
-  const [siteWithAppData, slugs, poll, magicLinks] = await Promise.all([
-    dbGetSiteAppData(siteName),
-    dbListSubmissionSlugRows(submissionId),
-    dbShouldPollSubmissionVersions(
-      ctx.site.id,
-      submissionVersions.map((v) => v.id),
-    ),
-    dbListMagicLinksForSubmission(submissionId),
-  ]);
+  const [siteWithAppData, slugs, poll, magicLinks, checkServiceRunsByWorkVersionId] =
+    await Promise.all([
+      dbGetSiteAppData(siteName),
+      dbListSubmissionSlugRows(submissionId),
+      dbShouldPollSubmissionVersions(
+        ctx.site.id,
+        submissionVersions.map((v) => v.id),
+      ),
+      dbListMagicLinksForSubmission(submissionId),
+      dbGetSubmissionCheckServiceRunsByWorkVersionIds(
+        submissionVersions.map((version) => version.site_work.version_id),
+      ),
+    ]);
 
   if (!siteWithAppData) {
     return null;
@@ -109,5 +115,6 @@ export async function loadSubmissionDetailPage(
     activeVersion,
     activeVersionNumber,
     magicLinks,
+    checkServiceRunsByWorkVersionId,
   };
 }

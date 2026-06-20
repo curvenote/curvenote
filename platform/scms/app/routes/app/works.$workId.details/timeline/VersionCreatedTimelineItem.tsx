@@ -1,9 +1,12 @@
 import { Suspense, useEffect, type ReactNode } from 'react';
 import { Await, useFetcher } from 'react-router';
 import { FilePlus, Loader2 } from 'lucide-react';
-import { ui } from '@curvenote/scms-core';
-import { TimelineItemPlain, TimelineItemExpandable } from './TimelineItem';
-import { DateWithPopover } from './DateWithPopover';
+import {
+  DateWithPopover,
+  TimelineItemExpandable,
+  TimelineItemPlain,
+  ui,
+} from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from '../types';
 
 /** File entry in work version metadata.files (may include signedUrl when loaded for details). */

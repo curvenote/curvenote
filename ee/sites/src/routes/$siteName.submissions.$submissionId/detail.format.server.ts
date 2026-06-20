@@ -106,6 +106,12 @@ function formatDetailActivity(
           date_created: formatDate(activity.submission_version.date_created),
         }
       : undefined,
+    work_version: activity.work_version
+      ? {
+          id: activity.work_version.id,
+          date_created: formatDate(activity.work_version.date_created),
+        }
+      : undefined,
     date_published: activity.date_published ?? undefined,
     job_failure: jobFailure,
   };

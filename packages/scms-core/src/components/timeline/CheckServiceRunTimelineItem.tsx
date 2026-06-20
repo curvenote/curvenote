@@ -1,36 +1,46 @@
 import { Link } from 'react-router';
 import { ShieldCheck } from 'lucide-react';
-import { TimelineItemExpandable, TimelineItemPill } from './TimelineItem';
-import { DateWithPopover } from './DateWithPopover';
-import type { ClientExtensionCheckService } from '@curvenote/scms-core';
-import type { CheckServiceRunRow } from '../../works.$workId/db.server';
+import type { ClientExtensionCheckService } from '../../modules/extensions/types.js';
+import { DateWithPopover } from './DateWithPopover.js';
+import { TimelineItemExpandable, TimelineItemPill } from './TimelineItem.js';
+
+export type TimelineCheckServiceRunRow = {
+  id: string;
+  work_version_id: string;
+  kind: string;
+  date_created: string;
+  date_modified: string;
+  data: unknown;
+  created_by_id: string | null;
+};
 
 type CheckServiceRunTimelineItemProps = {
-  run: CheckServiceRunRow;
+  run: TimelineCheckServiceRunRow;
   /** When no matching extension is registered, show a generic fallback (no extension UI). */
   checkService: ClientExtensionCheckService | null;
   basePath: string;
   /** Controls default expanded state of this timeline row. */
   defaultExpanded?: boolean;
+  /** Optional route for fallback detail copy; defaults to `${basePath}/work-integrity`. */
+  fallbackDetailsHref?: string;
 };
 
-const serviceDataFromRun = (run: CheckServiceRunRow): unknown =>
+const serviceDataFromRun = (run: TimelineCheckServiceRunRow): unknown =>
   (run.data != null && typeof run.data === 'object' && 'serviceData' in run.data
     ? (run.data as { serviceData?: unknown }).serviceData
     : undefined) ?? undefined;
 
 /**
- * Timeline item for a check service run (database-driven). When a matching check
- * extension exists, the tray and pill are implemented by the extension's
- * sectionActivityComponent and sectionSummaryBadgeComponent; an optional
- * sectionSummaryTitleComponent replaces the default name segment before the word “checks” on the same line.
- * When no matching service is found, a generic fallback row and tray are shown.
+ * Timeline item for a check service run. When a matching check extension exists,
+ * the tray and badge are implemented by that extension; otherwise a generic
+ * fallback row keeps the check-run event visible.
  */
 export function CheckServiceRunTimelineItem({
   run,
   checkService,
   basePath,
   defaultExpanded,
+  fallbackDetailsHref,
 }: CheckServiceRunTimelineItemProps) {
   const date = (
     <DateWithPopover
@@ -104,13 +114,13 @@ export function CheckServiceRunTimelineItem({
     );
   }
 
-  // Generic fallback when no extension is registered for run.kind
   const message = <>Check run{run.kind ? ` (${run.kind})` : ''} completed</>;
+  const detailsHref = fallbackDetailsHref ?? `${basePath}/work-integrity`;
   const tray = (
     <p className="text-sm text-muted-foreground">
       Detailed results are not available for this check. The check extension for this run may not be
       enabled. You can view work integrity from the{' '}
-      <Link to={`${basePath}/work-integrity`} className="text-primary hover:underline">
+      <Link to={detailsHref} className="text-primary hover:underline">
         Work Integrity
       </Link>{' '}
       page.

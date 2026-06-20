@@ -22,6 +22,7 @@ export * from './VersionsListing.js';
 export * from './authors/index.js';
 export * from './layout/index.js';
 export * from './navigation/index.js';
+export * from './timeline/index.js';
 export * from './upload/index.js';
 export * from './wizard/index.js';
 

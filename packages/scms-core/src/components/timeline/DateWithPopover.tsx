@@ -1,7 +1,9 @@
-import { cn, formatToNow, formatDate, ui } from '@curvenote/scms-core';
+import { formatDate, formatToNow } from '../../utils/formatDate.js';
+import { cn } from '../../utils/cn.js';
+import * as ui from '../ui/index.js';
 
 type DateWithPopoverProps = {
-  /** ISO or parseable date string — drives the relative “X ago” text (may differ from created/modified, e.g. published date). */
+  /** ISO or parseable date string - drives the relative "X ago" text (may differ from created/modified, e.g. published date). */
   date: string;
   /** When both are set, tooltip lists Created and Modified on separate rows. */
   dateCreated?: string;

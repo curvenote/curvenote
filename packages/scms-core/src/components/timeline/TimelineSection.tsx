@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { cn } from '@curvenote/scms-core';
 import { GitBranch } from 'lucide-react';
+import { cn } from '../../utils/cn.js';
 
 type TimelineSectionProps = {
   /** Section header label (e.g. date or "Version 1") */

@@ -1,20 +1,22 @@
 import { useSearchParams } from 'react-router';
-import { formatDate, scopes, ui } from '@curvenote/scms-core';
+import {
+  formatDate,
+  scopes,
+  ui,
+  Timeline,
+  TimelineActivitiesToggle,
+  TimelineActivitiesVisibilityProvider,
+  ActivityTimelineItem,
+  CheckServiceRunTimelineItem,
+  TimelineSection,
+  useTimelineActivitiesVisibility,
+} from '@curvenote/scms-core';
 import type { WorkVersionForDetailsClient } from '../works.$workId/types';
 import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
 import type { Workflow, ClientExtensionCheckService } from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from './types';
-import { Timeline } from './timeline/Timeline';
-import { TimelineSection } from './timeline/TimelineSection';
 import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineItem';
 import { SubmissionTimelineItem } from './timeline/SubmissionTimelineItem';
-import { ActivityTimelineItem } from './timeline/ActivityTimelineItem';
-import { CheckServiceRunTimelineItem } from './timeline/CheckServiceRunTimelineItem';
-import {
-  TimelineActivitiesToggle,
-  TimelineActivitiesVisibilityProvider,
-  useTimelineActivitiesVisibility,
-} from './timeline/TimelineActivitiesVisibility';
 
 type SubmissionVersionRow = WorkVersionForDetailsClient['submissionVersions'][number];
 
