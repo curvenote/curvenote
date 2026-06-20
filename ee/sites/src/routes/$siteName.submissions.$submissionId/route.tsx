@@ -35,7 +35,7 @@ import {
 import { useEffect, useState } from 'react';
 import { SubmissionDetails } from './SubmissionDetails.js';
 import { MagicLinks } from './MagicLinks.js';
-import { GalleryHorizontalEnd, Info, MonitorPlay } from 'lucide-react';
+import { Info, MonitorPlay } from 'lucide-react';
 import { SubmissionVersionTimeline } from './SubmissionVersionTimeline.js';
 
 export const loader = async (args: LoaderFunctionArgs): Promise<SubmissionDetailPageData> => {
@@ -228,19 +228,15 @@ export default function SubmissionDetailRoute({
         </SectionWithHeading>
         <SubmissionDetails baseUrl={config.renderServiceUrl ?? site.links.html} />
         <MagicLinks />
-        <SectionWithHeading heading="Timeline" icon={GalleryHorizontalEnd}>
-          <primitives.Card lift className="p-8">
-            <SubmissionVersionTimeline
-              workflow={workflow}
-              submissionVersions={submissionVersions}
-              activities={submission.activity}
-              checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
-              canUpdateStatus={canUpdateStatus}
-              site={site}
-              signature={signature}
-            />
-          </primitives.Card>
-        </SectionWithHeading>
+        <SubmissionVersionTimeline
+          workflow={workflow}
+          submissionVersions={submissionVersions}
+          activities={submission.activity}
+          checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
+          canUpdateStatus={canUpdateStatus}
+          site={site}
+          signature={signature}
+        />
       </div>
     </PageFrame>
   );
