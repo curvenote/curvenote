@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { useFetcher } from 'react-router';
-import { Activity, ExternalLink, FileText } from 'lucide-react';
+import { Activity, FileText } from 'lucide-react';
 import {
   ActivityTimelineItem,
   CheckServiceRunTimelineItem,
@@ -8,7 +8,7 @@ import {
   Timeline,
   TimelineActivitiesToggle,
   TimelineActivitiesVisibilityProvider,
-  TimelineItemExpandable,
+  TimelineItemPlain,
   TimelineSection,
   SubmissionActionsDropdown,
   useDeploymentConfig,
@@ -200,49 +200,12 @@ function SubmissionVersionTimelineItem({
   );
 
   return (
-    <TimelineItemExpandable
+    <TimelineItemPlain
       icon={<FileText aria-hidden />}
       message={message}
       date={date}
       trailing={trailing}
-    >
-      <div className="grid gap-3 text-sm sm:grid-cols-2">
-        <div>
-          <div className="font-medium">{version.site_work.title}</div>
-          {version.site_work.description ? (
-            <p className="mt-1 text-muted-foreground">{version.site_work.description}</p>
-          ) : null}
-          {version.site_work.authors.length > 0 ? (
-            <p className="mt-1 text-muted-foreground">
-              {version.site_work.authors.map((author) => author.name).join(', ')}
-            </p>
-          ) : null}
-        </div>
-        <div className="flex flex-col gap-1 sm:items-end">
-          <a
-            href={previewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex gap-1 items-center text-primary hover:underline"
-          >
-            Preview version <ExternalLink className="size-3" aria-hidden />
-          </a>
-          {version.links.build ? (
-            <a
-              href={version.links.build}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex gap-1 items-center text-primary hover:underline"
-            >
-              Build details <ExternalLink className="size-3" aria-hidden />
-            </a>
-          ) : null}
-          {version.date_published ? (
-            <span className="text-muted-foreground">Published {version.date_published}</span>
-          ) : null}
-        </div>
-      </div>
-    </TimelineItemExpandable>
+    />
   );
 }
 
