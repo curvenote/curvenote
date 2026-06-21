@@ -95,3 +95,7 @@ export function getSubmissionTimelineSections(
     })),
   ].sort(compareNewestFirst);
 }
+
+export function getSubmissionVersionBadgeTags(version: SubmissionDetailVersion): string[] {
+  return version.tags ?? [];
+}

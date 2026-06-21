@@ -27,6 +27,7 @@ import type {
 } from './types.js';
 import {
   getSubmissionTimelineSections,
+  getSubmissionVersionBadgeTags,
   groupSubmissionActivitiesByVersion,
 } from './SubmissionVersionTimeline.utils.js';
 
@@ -324,8 +325,7 @@ function SubmissionVersionTimelineInner({
         ];
         const label = (
           <span className="flex flex-wrap gap-2 items-center">
-            <ui.VersionTagBadge tag={`v${versionNumber}`} titlePrefix="Submission version" />
-            {version.tags?.map((tag) => (
+            {getSubmissionVersionBadgeTags(version).map((tag) => (
               <ui.VersionTagBadge key={tag} tag={tag} titlePrefix="Version tag" />
             ))}
             <span className="text-sm text-muted-foreground">

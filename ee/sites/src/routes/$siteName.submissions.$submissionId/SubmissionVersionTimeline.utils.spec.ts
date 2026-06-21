@@ -95,6 +95,20 @@ describe('getSubmissionTimelineSections', () => {
   });
 });
 
+describe('getSubmissionVersionBadgeTags', () => {
+  it('returns only persisted version tags and never derives a vN badge', () => {
+    expect(
+      timelineUtils.getSubmissionVersionBadgeTags(version('version-a', 'work-version-a')),
+    ).toEqual([]);
+    expect(
+      timelineUtils.getSubmissionVersionBadgeTags({
+        ...version('version-b', 'work-version-b'),
+        tags: ['v1', 'accepted'],
+      }),
+    ).toEqual(['v1', 'accepted']);
+  });
+});
+
 describe('sortEntriesNewestFirst', () => {
   function entry(kind: TimelineEntry['kind'], key: string, date: string): TimelineEntry {
     return { kind, key, date } as TimelineEntry;
