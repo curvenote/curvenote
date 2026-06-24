@@ -49,7 +49,10 @@
         "kind": "twitter",
         "url": "https://twitter.com/theAGU"
       },
-      { "kind": "github", "url": "https://github.com/notebooks-now" }
+      {
+        "kind": "github",
+        "url": "https://github.com/notebooks-now"
+      }
     ],
     "kinds": [
       {
@@ -71,10 +74,13 @@
   },
   "works": [
     {
-      "id": "NN00000",
+      "id": "c1b0cc6a-4e90-4219-a071-dcb0f7710a7e",
       "title": "La Palma Seismicity 2021",
       "description": "In September 2021, a significant jump in seismic activity on the island of La Palma (Canary Islands, Spain) signaled the start of a volcanic crisis that still continues at the time of writing. This article is an example for the Notebooks Now submission guide.",
-      "authors": ["Steve Purves", "Rowan Cockett"],
+      "authors": [
+        "Steve Purves",
+        "Rowan Cockett"
+      ],
       "date": "2022-05-11T00:00:00.000Z",
       "kind": "example",
       "version_count": 15,
@@ -82,7 +88,8 @@
       "version_template": {
         "cdn_key": "59b16f70-255b-4b2b-bb7a-8e0db22b1832",
         "cdn": "https://prv.curvenote.dev/"
-      }
+      },
+      "slug": "NN00000"
     }
   ]
 }

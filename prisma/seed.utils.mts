@@ -12,6 +12,15 @@ const QUIET = true; // Set to true to suppress console output
 
 const prisma = await getLowLevelPrismaClient();
 
+function looksLikeUUID(maybeUuid: string) {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(maybeUuid);
+}
+
+function isSafeSlug(slug: string) {
+  return /^[a-zA-Z0-9-_.]+$/.test(slug);
+}
+
 /** Seeded RNG (mulberry32) for deterministic version dates and submission indices. */
 function createSeededRng(seed: string): () => number {
   let h = 0;
@@ -186,6 +195,17 @@ export async function seedBySites(
       console.log(
         `   📄 Creating work ${workCount}/${item.works.length}: ${work.title || work.id}`,
       );
+      if (!looksLikeUUID(work.id)) {
+        throw new Error(`Seed work "${work.title || work.id}" must use a UUID id`);
+      }
+      if (work.slug !== undefined) {
+        if (looksLikeUUID(work.slug)) {
+          throw new Error(`Seed work "${work.id}" has UUID-looking slug "${work.slug}"`);
+        }
+        if (!isSafeSlug(work.slug)) {
+          throw new Error(`Seed work "${work.id}" has invalid slug "${work.slug}"`);
+        }
+      }
 
       let submissionVersionEntries:
         | Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }>
@@ -576,6 +596,28 @@ export async function seedBySites(
       });
       if (isFirstForWork) {
         submissionIdsByWorkIndex[sv.workIndex] = subVersion.submission_id;
+        const slug = item.works[sv.workIndex]?.slug;
+        if (slug) {
+          await prisma.slug.create({
+            data: {
+              id: uuid(),
+              date_created: sv.date_created,
+              date_modified: sv.date_created,
+              slug,
+              primary: true,
+              site: {
+                connect: {
+                  id: siteData.id,
+                },
+              },
+              submission: {
+                connect: {
+                  id: subVersion.submission_id,
+                },
+              },
+            },
+          });
+        }
       }
       subData.push(subVersion);
 
