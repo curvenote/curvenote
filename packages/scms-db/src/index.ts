@@ -74,6 +74,9 @@ function makeClient(connectionString?: string, dbCACertificate?: string): Prisma
     idleTimeoutMillis: 20_000,
     connectionTimeoutMillis: 30_000,
   });
+  pool.on('error', (error) => {
+    console.error('[db:pool:error]', error);
+  });
 
   const adapter = new PrismaPg(pool);
   const debugQueries = isPrismaQueryDebugEnabled();
