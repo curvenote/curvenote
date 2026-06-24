@@ -72,6 +72,23 @@ const ITEM_LINK_KEYS = [
 const KIND_SUMMARY_KEYS = ['id', 'name', 'content', 'default'] as const;
 const COLLECTION_SUMMARY_KEYS = ['id', 'name', 'slug', 'workflow', 'content', 'open'] as const;
 
+describe('site works listing — abort handling', () => {
+  test('q search short-circuits when the request is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      listPublishedWorks(
+        {} as TestData['context'],
+        [],
+        { q: 'work 03' },
+        { page: 0, limit: 500 },
+        controller.signal,
+      ),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
 interface SeedWork {
   workId: string;
   workVersionId: string;

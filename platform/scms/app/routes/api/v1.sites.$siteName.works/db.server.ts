@@ -45,6 +45,12 @@ type ListingExtras = {
   ids?: string[];
 };
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  if (signal.reason instanceof Error) throw signal.reason;
+  throw new DOMException('Request aborted', 'AbortError');
+}
+
 /**
  * Escape only the ILIKE escape character itself (`\`) so a user-supplied
  * backslash matches literally. `%` and `_` are intentionally passed through to
@@ -163,8 +169,11 @@ async function dbSearchSubmissionIds(
   status: string,
   q: string,
   tx?: Prisma.TransactionClient,
+  signal?: AbortSignal,
 ): Promise<string[]> {
+  throwIfAborted(signal);
   const prisma = await getPrismaClient();
+  throwIfAborted(signal);
   const pattern = `%${escapeIlikePattern(q)}%`;
   const matchingWorkVersionBranches: Prisma.Sql[] = [
     Prisma.sql`SELECT wv.id FROM "WorkVersion" wv WHERE wv.title ILIKE ${pattern}`,
@@ -195,6 +204,7 @@ async function dbSearchSubmissionIds(
      AND sv.status = ${status}
     INNER JOIN "Submission" s ON s.id = sv.submission_id AND s.site_id = ${siteId}
   `;
+  throwIfAborted(signal);
   return rows.map((r) => r.id);
 }
 
@@ -214,8 +224,11 @@ async function dbCountSubmissions(
   kind?: string,
   extras?: ListingExtras,
   tx?: Prisma.TransactionClient,
+  signal?: AbortSignal,
 ): Promise<number> {
+  throwIfAborted(signal);
   const prisma = await getPrismaClient();
+  throwIfAborted(signal);
   const joins: Prisma.Sql[] = [
     Prisma.sql`
       INNER JOIN "SubmissionVersion" sv
@@ -251,6 +264,7 @@ async function dbCountSubmissions(
     ${Prisma.join(joins, ' ')}
     WHERE ${Prisma.join(conditions, ' AND ')}
   `;
+  throwIfAborted(signal);
   return Number(count);
 }
 
@@ -272,11 +286,14 @@ async function dbQuerySubmissions(
   kind?: string,
   opts?: { page?: number; limit?: number; sort?: WorksSort; extras?: ListingExtras },
   tx?: Prisma.TransactionClient,
+  signal?: AbortSignal,
 ): Promise<RowDBO[]> {
+  throwIfAborted(signal);
   const skip = opts?.limit ? (opts?.page ?? 0) * opts?.limit : undefined;
   const take = opts?.limit;
   const { submissionInnerSelect, submissionVersionSelect } = getListingSelects();
   const prisma = await getPrismaClient();
+  throwIfAborted(signal);
   const submissions = await (tx ?? prisma).submission.findMany({
     skip,
     take,
@@ -292,6 +309,7 @@ async function dbQuerySubmissions(
       },
     },
   });
+  throwIfAborted(signal);
 
   return submissions
     .filter((s) => s.versions.length > 0)
@@ -314,7 +332,9 @@ export async function dbListLatestPublishedSubmissions(
     to?: string;
   },
   opts?: { page?: number; limit?: number; sort?: WorksSort },
+  signal?: AbortSignal,
 ): Promise<ListDBO | undefined> {
+  throwIfAborted(signal);
   // only allow lookup on status if collection is also provided
   // and limit to allowed statuses for now
   const status: string = where?.status === 'in-review' ? 'IN_REVIEW' : 'PUBLISHED';
@@ -330,12 +350,14 @@ export async function dbListLatestPublishedSubmissions(
   // short-circuits.
   let searchIds: string[] | undefined;
   if (where?.q) {
-    searchIds = await dbSearchSubmissionIds(ctx.site.id, status, where.q);
+    searchIds = await dbSearchSubmissionIds(ctx.site.id, status, where.q, undefined, signal);
   }
+  throwIfAborted(signal);
   let subjectIds: string[] | undefined;
   if (where?.subject) {
     subjectIds = await fetchSubmissionIdsBySubject(ctx.site.id, where.subject, status);
   }
+  throwIfAborted(signal);
   const filteredIds = intersectSubmissionIds(searchIds, subjectIds);
   if (filteredIds?.length === 0) {
     return { items: [], total: 0 };
@@ -348,13 +370,16 @@ export async function dbListLatestPublishedSubmissions(
   if (where?.collection) {
     // when filtering on collection, we need to first check if the workflow
     // on the collection is visible for the state[status] being queried
+    throwIfAborted(signal);
     const prisma = await getPrismaClient();
+    throwIfAborted(signal);
     const collection = await prisma.collection.findFirst({
       where: {
         name: where.collection,
         site: { name: ctx.site.name },
       },
     });
+    throwIfAborted(signal);
 
     if (!collection) {
       return { items: [], total: 0 };
@@ -369,10 +394,28 @@ export async function dbListLatestPublishedSubmissions(
   }
 
   if (isOffsetPaginationRequested(opts ?? {})) {
+    throwIfAborted(signal);
     const [items, total] = await Promise.all([
-      dbQuerySubmissions(ctx.site.id, collectionName, status, where?.kind, queryOpts),
-      dbCountSubmissions(ctx.site.id, collectionName, status, where?.kind, extras),
+      dbQuerySubmissions(
+        ctx.site.id,
+        collectionName,
+        status,
+        where?.kind,
+        queryOpts,
+        undefined,
+        signal,
+      ),
+      dbCountSubmissions(
+        ctx.site.id,
+        collectionName,
+        status,
+        where?.kind,
+        extras,
+        undefined,
+        signal,
+      ),
     ]);
+    throwIfAborted(signal);
     return { items, total };
   }
 
@@ -380,13 +423,17 @@ export async function dbListLatestPublishedSubmissions(
   // we can still limit, but in this branch we avoid
   // the extra count query
   if (opts?.page === undefined) {
+    throwIfAborted(signal);
     const items = await dbQuerySubmissions(
       ctx.site.id,
       collectionName,
       status,
       where?.kind,
       queryOpts,
+      undefined,
+      signal,
     );
+    throwIfAborted(signal);
     return { items, total: items.length };
   }
 
@@ -411,9 +458,14 @@ export async function listPublishedWorks(
     to?: string;
   },
   opts?: { page?: number; limit?: number; sort?: WorksSort },
+  signal?: AbortSignal,
 ) {
-  const dbo = await dbListLatestPublishedSubmissions(ctx, extensions, where, opts);
+  throwIfAborted(signal);
+  const dbo = await dbListLatestPublishedSubmissions(ctx, extensions, where, opts, signal);
+  throwIfAborted(signal);
   if (!dbo) throw error404();
+  throwIfAborted(signal);
   const subjects = await fetchWorkVersionSubjects(dbo.items.map((row) => row.work_version.id));
+  throwIfAborted(signal);
   return formatSiteWorkDTOFromSubmissions(ctx, dbo, where, { ...opts, subjects });
 }
