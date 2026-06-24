@@ -66,13 +66,13 @@ function makeClient(connectionString?: string, dbCACertificate?: string): Prisma
     );
   }
 
-  // One connection per process — matches Supabase/PgBouncer transaction pooler limits on serverless.
+  // Small per-process pool for Vercel warm-instance concurrency; Supabase still handles backend pooling.
   const pool = new Pool({
     connectionString: dbUrl,
     ssl: dbCACertificate ? { ca: dbCACertificate } : undefined,
-    max: 1,
+    max: 5,
     idleTimeoutMillis: 20_000,
-    connectionTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 30_000,
   });
 
   const adapter = new PrismaPg(pool);
