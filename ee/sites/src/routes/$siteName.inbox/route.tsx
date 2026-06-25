@@ -6,12 +6,12 @@ import {
   site as siteScopes,
 } from '@curvenote/scms-core';
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
-import { formatSubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
-import type { SubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
+import { formatSiteLayoutSite } from '../$siteName/layout.format.server.js';
+import type { SiteLayoutSite } from '../$siteName/layout.format.server.js';
 import { InboxComingSoon } from './InboxComingSoon.js';
 
 interface LoaderData {
-  site: SubmissionListingSiteContext;
+  site: SiteLayoutSite;
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -21,7 +21,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   });
 
   return {
-    site: formatSubmissionListingSiteContext(ctx),
+    site: formatSiteLayoutSite(ctx),
   };
 }
 

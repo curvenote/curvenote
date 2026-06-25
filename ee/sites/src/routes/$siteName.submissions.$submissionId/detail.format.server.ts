@@ -3,7 +3,6 @@ import type { SiteContext } from '@curvenote/scms-server';
 import { signPrivateUrls } from '@curvenote/scms-server';
 import { coerceToObject, type WorkflowTransition } from '@curvenote/scms-core';
 import { formatSiteLayoutSite } from '../$siteName/layout.format.server.js';
-import { findImportantVersions } from '../$siteName.submissions-classic/listing.utils.server.js';
 import type {
   SubmissionDetailActivity,
   SubmissionDetailSiteContext,
@@ -13,6 +12,42 @@ import type {
   SubmissionEditorCollection,
 } from './types.js';
 import type { SubmissionDetailRow, SubmissionEditorCollectionRow } from './db.server.js';
+
+/** Version statuses only — used to pick active / published / retracted rows for the detail page. */
+function findImportantVersions(versions: { status: string }[]): {
+  published?: number;
+  retracted?: number;
+  active?: number;
+} {
+  const idxs: {
+    published?: number;
+    retracted?: number;
+    active?: number;
+  } = {
+    published: undefined,
+    retracted: undefined,
+    active: undefined,
+  };
+  const statuses = versions.map((v) => v.status);
+
+  for (let i = 0; i < statuses.length; i++) {
+    if (
+      idxs.published === undefined &&
+      idxs.active === undefined &&
+      (statuses[i] === 'PENDING' || statuses[i] === 'APPROVED')
+    ) {
+      idxs.active = i;
+    }
+    if (idxs.published === undefined && statuses[i] === 'PUBLISHED') {
+      idxs.published = i;
+    }
+    if (idxs.retracted === undefined && statuses[i] === 'RETRACTED') {
+      idxs.retracted = i;
+    }
+  }
+
+  return idxs;
+}
 
 export function formatSubmissionDetailSiteContext(ctx: SiteContext): SubmissionDetailSiteContext {
   return {

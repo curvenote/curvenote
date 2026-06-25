@@ -1,7 +1,19 @@
-import type {
-  SubmissionListingCollection,
-  SubmissionListingKind,
-} from '../$siteName.submissions-classic/types.js';
+/** Narrow kind shape for listing chips. */
+export type SubmissionListingKind = {
+  id: string;
+  name: string;
+  content: { title?: string; [key: string]: unknown };
+};
+
+/** Narrow collection shape for listing chips. */
+export type SubmissionListingCollection = {
+  id: string;
+  name: string;
+  slug: string;
+  workflow: string;
+  open: boolean;
+  content: { title?: string; [key: string]: unknown };
+};
 
 export type SubmissionsIndexItem = {
   id: string;

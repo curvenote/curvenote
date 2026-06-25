@@ -9,9 +9,8 @@ import {
 import { z } from 'zod';
 import { dbCountSubmissionsForIndex, dbListSubmissionsForIndex } from './db.server.js';
 import { formatSubmissionsIndexItems } from './format.server.js';
-import { formatSubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
-import type { SubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
-import { ClassicSubmissionsRedirect } from './ClassicSubmissionsRedirect.js';
+import { formatSiteLayoutSite } from '../$siteName/layout.format.server.js';
+import type { SiteLayoutSite } from '../$siteName/layout.format.server.js';
 import { SubmissionsListingToolbar } from './SubmissionsListingToolbar.js';
 import { SubmissionsList } from './SubmissionsList.js';
 import {
@@ -147,7 +146,7 @@ export interface ToolbarCollectionOption {
 }
 
 interface LoaderData {
-  site: SubmissionListingSiteContext;
+  site: SiteLayoutSite;
   submissions: SubmissionsIndexPage;
   defaultCollectionOnly: boolean;
   singleKindOnly: boolean;
@@ -182,7 +181,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   );
 
   return {
-    site: formatSubmissionListingSiteContext(ctx),
+    site: formatSiteLayoutSite(ctx),
     submissions: {
       items: formatSubmissionsIndexItems(ctx, rows),
       page: query.page,
@@ -246,7 +245,6 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
           total={submissions.total}
         />
       </div>
-      <ClassicSubmissionsRedirect siteName={site.name} />
     </PageFrame>
   );
 }
