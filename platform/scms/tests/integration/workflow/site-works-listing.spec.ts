@@ -1,5 +1,5 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach, afterAll } from 'vitest';
 import type { SiteRole } from '@curvenote/scms-db';
 import { getPrismaClient } from '@curvenote/scms-server';
 import { concatSiteWorkTags } from '@curvenote/common';
@@ -315,15 +315,33 @@ describe('site works listing — delivered package (limit=10)', () => {
   });
 });
 
-describe('site works listing — search / sort / date filters', () => {
+/**
+ * Legacy UNION/ILIKE search path, pinned on via the
+ * `WORKS_SEARCH_PROJECTION_DISABLED` kill-switch.
+ *
+ * The projection is the default search path (see the block below); this guards
+ * the fallback that the kill-switch restores. These cases rely on exact
+ * substring semantics over a set of near-identical seeds (`Benchmark work NN`,
+ * `Author NA`), which the projection's fuzzy trigram clause would broaden, so
+ * they belong to the legacy path. The non-search `sort` / `date` / `subject`
+ * filters here are path-independent and exercised under the fallback too.
+ */
+describe('site works listing — legacy search (kill-switch) / sort / date filters', () => {
   let testData: TestData;
   let seeds: SeedWork[];
+  const PRIOR_FLAG = process.env.WORKS_SEARCH_PROJECTION_DISABLED;
 
   beforeEach(async () => {
+    process.env.WORKS_SEARCH_PROJECTION_DISABLED = 'true';
     testData = await createTestData('ADMIN' as SiteRole);
     await attachDefaultDomain(testData);
     seeds = await seedPublishedWorks(testData, TOTAL_PUBLISHED);
     await seedDraftWorks(testData, 2);
+  });
+
+  afterAll(() => {
+    if (PRIOR_FLAG === undefined) delete process.env.WORKS_SEARCH_PROJECTION_DISABLED;
+    else process.env.WORKS_SEARCH_PROJECTION_DISABLED = PRIOR_FLAG;
   });
 
   test('q matches a title substring', async () => {
@@ -606,6 +624,234 @@ describe('site works listing — search / sort / date filters', () => {
     await expect(
       listPublishedWorks(testData.context, [], { to: '2024-13-45' }, { page: 0, limit: 500 }),
     ).rejects.toThrow();
+  });
+});
+
+/**
+ * Search via the `SubmissionSearch` projection (full-text + pg_trgm fuzzy,
+ * unaccent-normalised) — the default search path.
+ *
+ * The kill-switch (`WORKS_SEARCH_PROJECTION_DISABLED`) is explicitly cleared so
+ * this block always runs the default path regardless of test ordering. These
+ * assert the wins the projection is built for over the legacy ILIKE path:
+ * token/word-gap recall (middle initials), diacritic-insensitive matching, and
+ * the same site/status scoping. The projection rows are maintained by the DB
+ * triggers from migration `20260625120000`, so plain Prisma seeds populate it.
+ */
+describe('site works listing — search via projection (default)', () => {
+  let testData: TestData;
+  const PRIOR_FLAG = process.env.WORKS_SEARCH_PROJECTION_DISABLED;
+
+  beforeEach(async () => {
+    delete process.env.WORKS_SEARCH_PROJECTION_DISABLED;
+    testData = await createTestData('ADMIN' as SiteRole);
+  });
+
+  afterAll(() => {
+    if (PRIOR_FLAG === undefined) delete process.env.WORKS_SEARCH_PROJECTION_DISABLED;
+    else process.env.WORKS_SEARCH_PROJECTION_DISABLED = PRIOR_FLAG;
+  });
+
+  async function seedSearchWork(
+    data: TestData,
+    opts: {
+      title: string;
+      authors: string[];
+      status?: string;
+      doi?: string;
+      affiliations?: string[];
+    },
+  ): Promise<{ workId: string }> {
+    const prisma = await getPrismaClient();
+    const now = new Date().toISOString();
+    const workId = uuidv7();
+    const workVersionId = uuidv7();
+    const submissionId = uuidv7();
+    await prisma.work.create({
+      data: {
+        id: workId,
+        date_created: now,
+        date_modified: now,
+        doi: opts.doi,
+        created_by: { connect: { id: data.userId } },
+      },
+    });
+    await prisma.workVersion.create({
+      data: {
+        id: workVersionId,
+        date_created: now,
+        date_modified: now,
+        title: opts.title,
+        authors: opts.authors,
+        doi: opts.doi,
+        metadata: opts.affiliations
+          ? {
+              'frontmatter.myst': {
+                affiliations: opts.affiliations.map((name, i) => ({ id: `a${i}`, name })),
+              },
+            }
+          : undefined,
+        work: { connect: { id: workId } },
+      },
+    });
+    await prisma.submission.create({
+      data: {
+        id: submissionId,
+        date_created: now,
+        date_modified: now,
+        date_published: '2024-02-01',
+        site: { connect: { id: data.siteId } },
+        work: { connect: { id: workId } },
+        kind: { connect: { id: data.kindId } },
+        collection: { connect: { id: data.collectionId } },
+        submitted_by: { connect: { id: data.userId } },
+      },
+    });
+    await prisma.submissionVersion.create({
+      data: {
+        id: uuidv7(),
+        date_created: now,
+        date_modified: now,
+        date_published: '2024-02-01',
+        status: opts.status ?? 'PUBLISHED',
+        submission: { connect: { id: submissionId } },
+        work_version: { connect: { id: workVersionId } },
+        submitted_by: { connect: { id: data.userId } },
+      },
+    });
+    return { workId };
+  }
+
+  test('matches across a middle-initial gap ("alice schmeul" -> "Alice N. Schmeul")', async () => {
+    const { workId } = await seedSearchWork(testData, {
+      title: 'A study of things',
+      authors: ['Alice N. Schmeul', 'Bob Jones'],
+    });
+    await seedSearchWork(testData, {
+      title: 'An unrelated paper',
+      authors: ['Carol Danvers'],
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'alice schmeul' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(workId);
+  });
+
+  test('matches diacritics insensitively ("jose muller" -> "José Müller")', async () => {
+    const { workId } = await seedSearchWork(testData, {
+      title: 'Accented authors',
+      authors: ['José Müller'],
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'jose muller' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(workId);
+  });
+
+  test('matches a title token', async () => {
+    const { workId } = await seedSearchWork(testData, {
+      title: 'Quantum entanglement in birds',
+      authors: ['Dana Scully'],
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'entanglement' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(workId);
+  });
+
+  test('a published listing ignores draft-only versions in the projection', async () => {
+    await seedSearchWork(testData, {
+      title: 'Hidden draft work zzz-unique',
+      authors: ['Erik Lehnsherr'],
+      status: 'DRAFT',
+    });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'zzz-unique' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+    expect(dto.items).toHaveLength(0);
+  });
+
+  test('matches a DOI token', async () => {
+    const { workId } = await seedSearchWork(testData, {
+      title: 'Paper with a doi',
+      authors: ['Frank Castle'],
+      doi: '10.5555/projection-doi-xyz',
+    });
+    await seedSearchWork(testData, { title: 'No doi here', authors: ['Jean Grey'] });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'projection-doi-xyz' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(workId);
+  });
+
+  test('matches an affiliation name from work version metadata', async () => {
+    const { workId } = await seedSearchWork(testData, {
+      title: 'Affiliated work',
+      authors: ['Ororo Munroe'],
+      affiliations: ['Xavier Institute for Higher Learning'],
+    });
+    await seedSearchWork(testData, { title: 'Unaffiliated', authors: ['Logan Howlett'] });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'Xavier Institute' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(workId);
+  });
+
+  test('returns empty for a non-matching query', async () => {
+    await seedSearchWork(testData, { title: 'Something', authors: ['Someone'] });
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'no-such-term-qqq' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(0);
+  });
+
+  test('unfiltered browse total counts listed submissions via the projection', async () => {
+    await seedSearchWork(testData, { title: 'Listed one', authors: ['Aa Bb'] });
+    await seedSearchWork(testData, { title: 'Listed two', authors: ['Cc Dd'] });
+    await seedSearchWork(testData, { title: 'Listed three', authors: ['Ee Ff'] });
+    // A draft-only submission must not be counted.
+    await seedSearchWork(testData, {
+      title: 'Draft only',
+      authors: ['Gg Hh'],
+      status: 'DRAFT',
+    });
+
+    const dto = await listPublishedWorks(testData.context, [], {}, { page: 0, limit: 10 });
+    expect(dto.total).toBe(3);
+    expect(dto.items).toHaveLength(3);
   });
 });
 
