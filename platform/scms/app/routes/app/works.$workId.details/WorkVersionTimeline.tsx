@@ -174,11 +174,6 @@ function WorkVersionTimelineInner({
     a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
   );
 
-  const versionNumberByVersionId: Record<string, number> = {};
-  versionsByCreated.forEach((ver, i) => {
-    versionNumberByVersionId[ver.id] = versionsByCreated.length - i;
-  });
-
   // Show all versions; draft versions display only their activities (and submissions), not the "Version created" row
   return (
     <Timeline
@@ -192,11 +187,9 @@ function WorkVersionTimelineInner({
           : v.submissionVersions.filter((sv) => sv.status !== 'DRAFT');
         const activitiesForVersion = activities.filter((a) => a.work_version_id === v.id);
         const checkRunsForVersion = checkServiceRunsByWorkVersionId[v.id] ?? [];
-        const versionNumber = versionNumberByVersionId[v.id] ?? 0;
-        const versionTag = `v${versionNumber}`;
         const label = (
           <span className="flex gap-2 items-center">
-            <ui.VersionTagBadge tag={versionTag} title={`Version ${versionNumber}`} />
+            <ui.TagChips tags={v.tags} titlePrefix="Work version tag" />
             <span className="text-sm text-muted-foreground">
               {formatDate(v.date_created, 'MMM d, yyyy HH:mm')}
             </span>
@@ -226,7 +219,6 @@ function WorkVersionTimelineInner({
                     dateModified={version.date_modified}
                     ownerName={workOwnerName}
                     metadata={version.metadata}
-                    tags={version.tags}
                     workVersionId={version.id}
                     basePath={basePath}
                     canExport={canExport}
