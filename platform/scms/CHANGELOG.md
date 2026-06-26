@@ -1,5 +1,19 @@
 # @curvenote/scms
 
+## 0.22.1
+
+### Patch Changes
+
+- [#971](https://github.com/curvenote/curvenote/pull/971) [`30620e8`](https://github.com/curvenote/curvenote/commit/30620e8d66a2c77d0792ca9dab3eeaebc1f226fc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Switch to the version timeline in place of the versions table and activities listing
+
+- [#969](https://github.com/curvenote/curvenote/pull/969) [`a6c0f96`](https://github.com/curvenote/curvenote/commit/a6c0f961c9df73d5135a14293b893d7bd812f673) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Added version chip to Version Timeline
+
+- Updated dependencies [[`30620e8`](https://github.com/curvenote/curvenote/commit/30620e8d66a2c77d0792ca9dab3eeaebc1f226fc), [`ea5d68d`](https://github.com/curvenote/curvenote/commit/ea5d68df2ff79898db2e0feaea6c82788cf0bacb), [`8aede38`](https://github.com/curvenote/curvenote/commit/8aede38e3193b1b1664f402cdf8c4400e76ed944), [`2faf9f0`](https://github.com/curvenote/curvenote/commit/2faf9f02ef08f2e21542f7e88b1af2c4da8084a7), [`0e03393`](https://github.com/curvenote/curvenote/commit/0e03393d823fd60a244023c24f4f557e85a00b82), [`c58eaef`](https://github.com/curvenote/curvenote/commit/c58eaefad764aa995aaf46736241e6c46dc91d74)]:
+  - @curvenote/scms-core@0.22.1
+  - @curvenote/scms-sites-ext@0.22.1
+  - @curvenote/scms-db@0.22.1
+  - @curvenote/scms-server@0.22.1
+
 ## 0.22.0
 
 ### Patch Changes

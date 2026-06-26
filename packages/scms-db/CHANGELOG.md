@@ -1,5 +1,13 @@
 # @curvenote/scms-db
 
+## 0.22.1
+
+### Patch Changes
+
+- [#973](https://github.com/curvenote/curvenote/pull/973) [`2faf9f0`](https://github.com/curvenote/curvenote/commit/2faf9f02ef08f2e21542f7e88b1af2c4da8084a7) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Tune the Prisma PostgreSQL pool for Vercel function concurrency.
+
+- [#968](https://github.com/curvenote/curvenote/pull/968) [`0e03393`](https://github.com/curvenote/curvenote/commit/0e03393d823fd60a244023c24f4f557e85a00b82) Thanks [@github-actions](https://github.com/apps/github-actions)! - Log PostgreSQL pool errors for production database monitoring.
+
 ## 0.22.0
 
 ## 0.21.0
