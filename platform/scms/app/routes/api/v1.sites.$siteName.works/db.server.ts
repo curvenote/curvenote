@@ -147,22 +147,38 @@ function buildListingWhere(
 }
 
 /**
- * Resolve submission ids matching a free-text `q` by ILIKE-substring across
- * work-version title / authors / DOI, work-level DOI, and (when
- * {@link isAffiliationSearchEnabled} allows) affiliation names in metadata.
+ * Whether the works search resolves ids via the `SubmissionSearch` projection
+ * or the legacy global UNION/ILIKE path.
  *
- * Roots at `WorkVersion` via a UNION of single-predicate branches so each arm
- * can use its pg_trgm GIN index (`20260526223800`,
- * `20260610120000_add_work_version_affiliations_trgm_index`), then joins back
- * through `SubmissionVersion` to `Submission` scoped by `site_id`. Only
- * submission versions in the listing's requested `status` are considered (same
- * as {@link fetchSubmissionIdsBySubject} and {@link buildListingWhere}), which
- * avoids join fan-out on draft/unpublished history and keeps search aligned with
- * the version shown in results.
+ * Defaults OFF so the code ships dormant: existing behaviour is unchanged until
+ * `WORKS_SEARCH_PROJECTION` is set to `true` / `1` / `on` in a target
+ * environment. This is the rollout/benchmark control - enable it in staging to
+ * run the benchmark gate, then in production once the in-DB ceiling is proven.
+ */
+function useSearchProjection(): boolean {
+  const flag = process.env.WORKS_SEARCH_PROJECTION?.toLowerCase();
+  return flag === 'true' || flag === '1' || flag === 'on';
+}
+
+/**
+ * Resolve submission ids matching a free-text `q`.
  *
- * `immutable_array_to_string(authors, ' ')` and
- * `work_version_affiliations_search_text(metadata)` MUST match their expression
- * indexes exactly for the planner to use them.
+ * Default path queries the `SubmissionSearch` projection (migration
+ * `20260625120000`), which co-locates `site_id` + `status` + `submission_id`
+ * with `unaccent`-normalised searchable text. The scoped filter is applied
+ * first, then matching is full-text (`@@`, token / word-gap correct, handles
+ * "alice schmeul" -> "alice n. schmeul") OR pg_trgm word_similarity (`<%`, typo
+ * tolerance). The query term is normalised with the same `immutable_unaccent`
+ * wrapper used to build the stored columns so accents match symmetrically.
+ *
+ * Legacy path (behind {@link useSearchProjection}) roots at `WorkVersion` via a
+ * UNION of single-predicate ILIKE branches, each using its pg_trgm GIN index
+ * (`20260526223800`, `20260610120000`), then joins back through
+ * `SubmissionVersion` to `Submission` scoped by `site_id`.
+ *
+ * Either way only submission versions in the requested `status` are considered
+ * (same as {@link fetchSubmissionIdsBySubject} and {@link buildListingWhere}),
+ * keeping search aligned with the version shown in results.
  */
 async function dbSearchSubmissionIds(
   siteId: string,
@@ -174,6 +190,22 @@ async function dbSearchSubmissionIds(
   throwIfAborted(signal);
   const prisma = await getPrismaClient();
   throwIfAborted(signal);
+
+  if (useSearchProjection()) {
+    const rows = await (tx ?? prisma).$queryRaw<{ submission_id: string }[]>`
+      SELECT DISTINCT submission_id
+      FROM "SubmissionSearch"
+      WHERE site_id = ${siteId}
+        AND status = ${status}
+        AND (
+          search_tsv @@ websearch_to_tsquery('simple', immutable_unaccent(${q}))
+          OR immutable_unaccent(${q}) <% search_text
+        )
+    `;
+    throwIfAborted(signal);
+    return rows.map((r) => r.submission_id);
+  }
+
   const pattern = `%${escapeIlikePattern(q)}%`;
   const matchingWorkVersionBranches: Prisma.Sql[] = [
     Prisma.sql`SELECT wv.id FROM "WorkVersion" wv WHERE wv.title ILIKE ${pattern}`,

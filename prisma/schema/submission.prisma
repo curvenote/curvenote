@@ -97,6 +97,7 @@ model SubmissionVersion {
   metadata            Json? // JSON metadata field for extensible data
   tags                String[]    @default([])
   occ                 Int         @default(0) // Optimistic concurrency control
+  searchProjection    SubmissionSearch?
 
   @@index([tags], type: Gin)
   /// Dedicated FK index for Submission → versions joins. Composite indexes on
@@ -116,6 +117,30 @@ model SubmissionVersion {
   /// (`sites.doi`). `work_version_id` is an FK with no implicit index in
   /// Postgres, so the lookup walked it unindexed.
   @@index([work_version_id])
+}
+
+/// Denormalised search projection for the public works listing free-text search
+/// (`dbSearchSubmissionIds` in `v1.sites.$siteName.works/db.server.ts`). One row
+/// per LISTED submission version (PUBLISHED / IN_REVIEW), co-locating the
+/// selective keys (`site_id`, `status`, `submission_id`) with the searchable
+/// text so the site/status filter is applied before the text match.
+///
+/// Created and maintained entirely in raw SQL (migration
+/// `20260625120000_add_submission_search_projection`): `search_text` /
+/// `search_tsv` are `unaccent`-normalised and kept fresh by triggers on
+/// `SubmissionVersion` / `WorkVersion` / `Work`. The compound GIN indexes
+/// `SubmissionSearch_site_status_tsv_idx` and `SubmissionSearch_site_status_trgm_idx`
+/// (btree_gin + gin_trgm_ops, CONCURRENTLY) are declared in migration
+/// `20260625120100_add_submission_search_indexes` and cannot be expressed here.
+/// The model exists so `migrate dev` does not treat the table as drift.
+model SubmissionSearch {
+  submission_version_id String                  @id
+  submission_id         String
+  site_id               String
+  status                String
+  search_text           String                  @default("")
+  search_tsv            Unsupported("tsvector")
+  submissionVersion     SubmissionVersion       @relation(fields: [submission_version_id], references: [id], onDelete: Cascade)
 }
 
 model Submission {
