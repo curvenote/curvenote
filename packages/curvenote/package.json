@@ -51,7 +51,7 @@
     "commander": "^10.0.1",
     "core-js": "^3.31.1",
     "jsdom": "^19.0.0",
-    "myst-cli": "^1.9.0",
+    "myst-cli": "^1.10.1",
     "myst-to-tex": "^1.0.46"
   },
   "devDependencies": {
