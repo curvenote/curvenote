@@ -17,11 +17,16 @@ import { PrismaClient } from './generated/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
-// Type-safe global cache (dev hot-reload & serverless runtime reuse)
+// Type-safe global cache (dev hot-reload & serverless runtime reuse). Keyed by
+// pool name so the process can hold more than one isolated client/pool (e.g. a
+// dedicated pool for a hot endpoint, see `getNamedLowLevelPrismaClient`).
 const g = globalThis as unknown as {
-  __prisma?: PrismaClient;
-  __prismaInit?: Promise<PrismaClient>;
+  __prismaClients?: Map<string, PrismaClient>;
+  __prismaInits?: Map<string, Promise<PrismaClient>>;
 };
+
+/** Cache key for the shared, app-wide default client/pool. */
+const DEFAULT_CLIENT_NAME = 'default';
 
 function isPrismaQueryDebugEnabled(): boolean {
   if (process.env.NODE_ENV === 'production') return false;
@@ -129,10 +134,43 @@ export async function getLowLevelPrismaClient(
   connectionString?: string,
   dbCACertificate?: string,
 ): Promise<PrismaClient> {
-  if (g.__prisma) return g.__prisma;
-  if (g.__prismaInit) return g.__prismaInit;
+  return getNamedLowLevelPrismaClient(DEFAULT_CLIENT_NAME, connectionString, dbCACertificate);
+}
 
-  g.__prismaInit = (async () => {
+/**
+ * Gets or creates a NAMED singleton PrismaClient instance, each backed by its
+ * own `pg.Pool`.
+ *
+ * Distinct names yield distinct clients/pools that do not share connections, so
+ * a heavy endpoint can be given a dedicated pool that cannot starve the shared
+ * `default` pool (and vice versa). Same name returns the same cached instance.
+ *
+ * All names built from the same `connectionString` talk to the same database
+ * with the same per-pool tuning (see `makeClient`); isolation is at the pool
+ * (connection-budget) level only. NOTE: each named pool adds up to its own `max`
+ * connections to the backend, so the total connection budget is the sum across
+ * names — size accordingly against the database / pooler limits.
+ *
+ * @param name - Cache key identifying the pool (e.g. `'default'`, `'works-listing'`).
+ * @param connectionString - Optional database connection string. Only used on
+ *                           the first call for a given `name`.
+ * @param dbCACertificate - Optional CA certificate. Only used on the first call
+ *                          for a given `name`.
+ */
+export async function getNamedLowLevelPrismaClient(
+  name: string,
+  connectionString?: string,
+  dbCACertificate?: string,
+): Promise<PrismaClient> {
+  const clients = (g.__prismaClients ??= new Map());
+  const inits = (g.__prismaInits ??= new Map());
+
+  const existing = clients.get(name);
+  if (existing) return existing;
+  const pending = inits.get(name);
+  if (pending) return pending;
+
+  const init = (async () => {
     try {
       const client = makeClient(connectionString, dbCACertificate);
 
@@ -141,16 +179,17 @@ export async function getLowLevelPrismaClient(
         await client.$connect();
       }
 
-      g.__prisma = client;
+      clients.set(name, client);
       return client;
     } catch (error) {
       // Clear the cached promise on failure to allow retries
-      g.__prismaInit = undefined;
+      inits.delete(name);
       throw error;
     }
   })();
 
-  return g.__prismaInit;
+  inits.set(name, init);
+  return init;
 }
 
 // Re-export types and the Prisma namespace from the generated client for server-side usage

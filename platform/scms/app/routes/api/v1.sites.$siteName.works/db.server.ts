@@ -1,5 +1,5 @@
 import {
-  getPrismaClient,
+  getWorksListingPrismaClient,
   fetchWorkVersionSubjects,
   fetchSubmissionIdsBySubject,
   isAffiliationSearchEnabled,
@@ -189,7 +189,7 @@ async function dbSearchSubmissionIds(
   signal?: AbortSignal,
 ): Promise<string[]> {
   throwIfAborted(signal);
-  const prisma = await getPrismaClient();
+  const prisma = await getWorksListingPrismaClient();
   throwIfAborted(signal);
 
   if (useSearchProjection()) {
@@ -260,7 +260,7 @@ async function dbCountSubmissions(
   signal?: AbortSignal,
 ): Promise<number> {
   throwIfAborted(signal);
-  const prisma = await getPrismaClient();
+  const prisma = await getWorksListingPrismaClient();
   throwIfAborted(signal);
   const joins: Prisma.Sql[] = [
     Prisma.sql`
@@ -323,7 +323,7 @@ async function dbCountListedFromProjection(
   signal?: AbortSignal,
 ): Promise<number> {
   throwIfAborted(signal);
-  const prisma = await getPrismaClient();
+  const prisma = await getWorksListingPrismaClient();
   throwIfAborted(signal);
   const [{ count }] = await (tx ?? prisma).$queryRaw<[{ count: bigint }]>`
     SELECT COUNT(DISTINCT submission_id) AS count
@@ -359,7 +359,7 @@ async function dbQuerySubmissions(
   const skip = opts?.limit ? (opts?.page ?? 0) * opts?.limit : undefined;
   const take = opts?.limit;
   const { submissionInnerSelect, submissionVersionSelect } = getListingSelects();
-  const prisma = await getPrismaClient();
+  const prisma = await getWorksListingPrismaClient();
   throwIfAborted(signal);
   const submissions = await (tx ?? prisma).submission.findMany({
     skip,
@@ -422,7 +422,10 @@ export async function dbListLatestPublishedSubmissions(
   throwIfAborted(signal);
   let subjectIds: string[] | undefined;
   if (where?.subject) {
-    subjectIds = await fetchSubmissionIdsBySubject(ctx.site.id, where.subject, status);
+    // Route the shared subject lookup through this endpoint's dedicated pool too,
+    // so the whole request path stays isolated from the default pool.
+    const worksClient = await getWorksListingPrismaClient();
+    subjectIds = await fetchSubmissionIdsBySubject(ctx.site.id, where.subject, status, worksClient);
   }
   throwIfAborted(signal);
   const filteredIds = intersectSubmissionIds(searchIds, subjectIds);
@@ -438,7 +441,7 @@ export async function dbListLatestPublishedSubmissions(
     // when filtering on collection, we need to first check if the workflow
     // on the collection is visible for the state[status] being queried
     throwIfAborted(signal);
-    const prisma = await getPrismaClient();
+    const prisma = await getWorksListingPrismaClient();
     throwIfAborted(signal);
     const collection = await prisma.collection.findFirst({
       where: {
@@ -550,7 +553,11 @@ export async function listPublishedWorks(
   throwIfAborted(signal);
   if (!dbo) throw error404();
   throwIfAborted(signal);
-  const subjects = await fetchWorkVersionSubjects(dbo.items.map((row) => row.work_version.id));
+  const worksClient = await getWorksListingPrismaClient();
+  const subjects = await fetchWorkVersionSubjects(
+    dbo.items.map((row) => row.work_version.id),
+    worksClient,
+  );
   throwIfAborted(signal);
   return formatSiteWorkDTOFromSubmissions(ctx, dbo, where, { ...opts, subjects });
 }
