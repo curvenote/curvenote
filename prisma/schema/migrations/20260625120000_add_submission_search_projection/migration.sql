@@ -19,10 +19,21 @@
 -- `unaccent`-normalised so accented and unaccented spellings match symmetrically
 -- (e.g. "muller" <-> "Müller").
 --
--- The compound GIN indexes (needing `btree_gin` for the scalar leading keys and
--- `gin_trgm_ops` for fuzzy text) are created CONCURRENTLY in the follow-on
--- migration `20260625120100_add_submission_search_indexes` so the large index
--- builds do not hold a long lock inside this migration's transaction.
+-- This migration installs DDL ONLY (extensions, helper functions, the
+-- `SubmissionSearch` table and its maintenance triggers). It is intentionally
+-- atomic and fast so it can be rolled back cleanly. The one-time backfill of
+-- existing rows lives in the follow-on migration
+-- `20260625120050_backfill_submission_search`, and the compound GIN indexes
+-- (needing `btree_gin` for the scalar leading keys and `gin_trgm_ops` for fuzzy
+-- text) are created CONCURRENTLY in `20260625120100_add_submission_search_indexes`
+-- so neither the large backfill nor the large index builds hold a long lock
+-- inside this migration's transaction.
+--
+-- Ordering rationale (DDL -> backfill -> indexes): backfilling before the GIN
+-- indexes exist means the bulk insert does not pay per-row index maintenance,
+-- and if the backfill times out the operator completes it on an unindexed table
+-- (see the runbook in the backfill migration) before the indexes are built once
+-- over the full table.
 
 SET statement_timeout = 0;
 
@@ -193,33 +204,6 @@ AFTER UPDATE OF doi ON "Work"
 FOR EACH ROW WHEN (OLD.doi IS DISTINCT FROM NEW.doi)
 EXECUTE FUNCTION submission_search_tg_work();
 
--- Backfill existing listed submission versions. statement_timeout is disabled
--- above; on very large tables run this in id-ranged batches instead if it risks
--- a long lock.
-INSERT INTO "SubmissionSearch" (
-  submission_version_id, submission_id, site_id, status, search_text, search_tsv
-)
-SELECT
-  sv.id,
-  sv.submission_id,
-  s.site_id,
-  sv.status,
-  txt.search_text,
-  to_tsvector('simple', txt.search_text)
-FROM "SubmissionVersion" sv
-JOIN "Submission" s ON s.id = sv.submission_id
-JOIN "WorkVersion" wv ON wv.id = sv.work_version_id
-JOIN "Work" w ON w.id = wv.work_id
-CROSS JOIN LATERAL (
-  SELECT immutable_unaccent(
-    concat_ws(
-      ' ',
-      wv.title,
-      immutable_array_to_string(wv.authors, ' '),
-      COALESCE(wv.doi, w.doi),
-      work_version_affiliations_search_text(wv.metadata)
-    )
-  ) AS search_text
-) txt
-WHERE sv.status IN ('PUBLISHED', 'IN_REVIEW')
-ON CONFLICT (submission_version_id) DO NOTHING;
+-- Backfill of existing rows is performed in the follow-on migration
+-- `20260625120050_backfill_submission_search` (kept separate so a slow backfill
+-- can be completed manually via psql without re-running this DDL).
