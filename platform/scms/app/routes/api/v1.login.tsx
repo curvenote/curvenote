@@ -1,6 +1,10 @@
 import type { Route } from './+types/v1.login';
-import { error401, httpError } from '@curvenote/scms-core';
+import { error401, error405, httpError } from '@curvenote/scms-core';
 import { withContext, tokens } from '@curvenote/scms-server';
+
+export async function loader() {
+  throw error405();
+}
 
 export async function action(args: Route.ActionArgs) {
   const ctx = await withContext(args, { noTokens: true }); // context will not try to validate incoming tokens
