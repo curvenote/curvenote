@@ -31,3 +31,11 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "SubmissionSearch_site_status_tsv_idx"
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "SubmissionSearch_site_status_trgm_idx"
   ON "SubmissionSearch" USING GIN (site_id, status, search_text gin_trgm_ops);
+
+-- Plain btree to serve the unfiltered browse count
+-- (`COUNT(DISTINCT submission_id) WHERE site_id = ? AND status = ?`) as an
+-- index-only scan, avoiding the `Submission` ⋈ `SubmissionVersion` join + DISTINCT
+-- on large sites. `submission_id` is included so the distinct count never touches
+-- the heap.
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "SubmissionSearch_site_status_submission_idx"
+  ON "SubmissionSearch" (site_id, status, submission_id);

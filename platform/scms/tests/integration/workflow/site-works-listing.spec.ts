@@ -315,15 +315,33 @@ describe('site works listing — delivered package (limit=10)', () => {
   });
 });
 
-describe('site works listing — search / sort / date filters', () => {
+/**
+ * Legacy UNION/ILIKE search path, pinned on via the
+ * `WORKS_SEARCH_PROJECTION_DISABLED` kill-switch.
+ *
+ * The projection is the default search path (see the block below); this guards
+ * the fallback that the kill-switch restores. These cases rely on exact
+ * substring semantics over a set of near-identical seeds (`Benchmark work NN`,
+ * `Author NA`), which the projection's fuzzy trigram clause would broaden, so
+ * they belong to the legacy path. The non-search `sort` / `date` / `subject`
+ * filters here are path-independent and exercised under the fallback too.
+ */
+describe('site works listing — legacy search (kill-switch) / sort / date filters', () => {
   let testData: TestData;
   let seeds: SeedWork[];
+  const PRIOR_FLAG = process.env.WORKS_SEARCH_PROJECTION_DISABLED;
 
   beforeEach(async () => {
+    process.env.WORKS_SEARCH_PROJECTION_DISABLED = 'true';
     testData = await createTestData('ADMIN' as SiteRole);
     await attachDefaultDomain(testData);
     seeds = await seedPublishedWorks(testData, TOTAL_PUBLISHED);
     await seedDraftWorks(testData, 2);
+  });
+
+  afterAll(() => {
+    if (PRIOR_FLAG === undefined) delete process.env.WORKS_SEARCH_PROJECTION_DISABLED;
+    else process.env.WORKS_SEARCH_PROJECTION_DISABLED = PRIOR_FLAG;
   });
 
   test('q matches a title substring', async () => {
@@ -610,31 +628,39 @@ describe('site works listing — search / sort / date filters', () => {
 });
 
 /**
- * Search via the `SubmissionSearch` projection (model A: full-text + pg_trgm
- * fuzzy, unaccent-normalised), enabled with `WORKS_SEARCH_PROJECTION=true`.
+ * Search via the `SubmissionSearch` projection (full-text + pg_trgm fuzzy,
+ * unaccent-normalised) — the default search path.
  *
- * These assert the wins the projection is built for over the legacy ILIKE path:
+ * The kill-switch (`WORKS_SEARCH_PROJECTION_DISABLED`) is explicitly cleared so
+ * this block always runs the default path regardless of test ordering. These
+ * assert the wins the projection is built for over the legacy ILIKE path:
  * token/word-gap recall (middle initials), diacritic-insensitive matching, and
  * the same site/status scoping. The projection rows are maintained by the DB
  * triggers from migration `20260625120000`, so plain Prisma seeds populate it.
  */
-describe('site works listing — search via projection', () => {
+describe('site works listing — search via projection (default)', () => {
   let testData: TestData;
-  const PRIOR_FLAG = process.env.WORKS_SEARCH_PROJECTION;
+  const PRIOR_FLAG = process.env.WORKS_SEARCH_PROJECTION_DISABLED;
 
   beforeEach(async () => {
-    process.env.WORKS_SEARCH_PROJECTION = 'true';
+    delete process.env.WORKS_SEARCH_PROJECTION_DISABLED;
     testData = await createTestData('ADMIN' as SiteRole);
   });
 
   afterAll(() => {
-    if (PRIOR_FLAG === undefined) delete process.env.WORKS_SEARCH_PROJECTION;
-    else process.env.WORKS_SEARCH_PROJECTION = PRIOR_FLAG;
+    if (PRIOR_FLAG === undefined) delete process.env.WORKS_SEARCH_PROJECTION_DISABLED;
+    else process.env.WORKS_SEARCH_PROJECTION_DISABLED = PRIOR_FLAG;
   });
 
   async function seedSearchWork(
     data: TestData,
-    opts: { title: string; authors: string[]; status?: string },
+    opts: {
+      title: string;
+      authors: string[];
+      status?: string;
+      doi?: string;
+      affiliations?: string[];
+    },
   ): Promise<{ workId: string }> {
     const prisma = await getPrismaClient();
     const now = new Date().toISOString();
@@ -646,6 +672,7 @@ describe('site works listing — search via projection', () => {
         id: workId,
         date_created: now,
         date_modified: now,
+        doi: opts.doi,
         created_by: { connect: { id: data.userId } },
       },
     });
@@ -656,6 +683,14 @@ describe('site works listing — search via projection', () => {
         date_modified: now,
         title: opts.title,
         authors: opts.authors,
+        doi: opts.doi,
+        metadata: opts.affiliations
+          ? {
+              'frontmatter.myst': {
+                affiliations: opts.affiliations.map((name, i) => ({ id: `a${i}`, name })),
+              },
+            }
+          : undefined,
         work: { connect: { id: workId } },
       },
     });
@@ -756,6 +791,42 @@ describe('site works listing — search via projection', () => {
     expect(dto.items).toHaveLength(0);
   });
 
+  test('matches a DOI token', async () => {
+    const { workId } = await seedSearchWork(testData, {
+      title: 'Paper with a doi',
+      authors: ['Frank Castle'],
+      doi: '10.5555/projection-doi-xyz',
+    });
+    await seedSearchWork(testData, { title: 'No doi here', authors: ['Jean Grey'] });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'projection-doi-xyz' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(workId);
+  });
+
+  test('matches an affiliation name from work version metadata', async () => {
+    const { workId } = await seedSearchWork(testData, {
+      title: 'Affiliated work',
+      authors: ['Ororo Munroe'],
+      affiliations: ['Xavier Institute for Higher Learning'],
+    });
+    await seedSearchWork(testData, { title: 'Unaffiliated', authors: ['Logan Howlett'] });
+
+    const dto = await listPublishedWorks(
+      testData.context,
+      [],
+      { q: 'Xavier Institute' },
+      { page: 0, limit: 500 },
+    );
+    expect(dto.total).toBe(1);
+    expect(dto.items[0].id).toBe(workId);
+  });
+
   test('returns empty for a non-matching query', async () => {
     await seedSearchWork(testData, { title: 'Something', authors: ['Someone'] });
     const dto = await listPublishedWorks(
@@ -765,6 +836,22 @@ describe('site works listing — search via projection', () => {
       { page: 0, limit: 500 },
     );
     expect(dto.total).toBe(0);
+  });
+
+  test('unfiltered browse total counts listed submissions via the projection', async () => {
+    await seedSearchWork(testData, { title: 'Listed one', authors: ['Aa Bb'] });
+    await seedSearchWork(testData, { title: 'Listed two', authors: ['Cc Dd'] });
+    await seedSearchWork(testData, { title: 'Listed three', authors: ['Ee Ff'] });
+    // A draft-only submission must not be counted.
+    await seedSearchWork(testData, {
+      title: 'Draft only',
+      authors: ['Gg Hh'],
+      status: 'DRAFT',
+    });
+
+    const dto = await listPublishedWorks(testData.context, [], {}, { page: 0, limit: 10 });
+    expect(dto.total).toBe(3);
+    expect(dto.items).toHaveLength(3);
   });
 });
 

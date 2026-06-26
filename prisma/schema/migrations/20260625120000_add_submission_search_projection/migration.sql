@@ -14,9 +14,10 @@
 -- text match (FTS + pg_trgm fuzzy) runs only within a single site's rows.
 --
 -- Searchable text is built from the same sources as the old ILIKE branches
--- (WorkVersion.title / authors / doi, Work.doi, affiliation names from
--- WorkVersion.metadata) and is `unaccent`-normalised so accented and
--- unaccented spellings match symmetrically (e.g. "muller" <-> "Müller").
+-- (WorkVersion.title / authors, the work's DOI as WorkVersion.doi falling back
+-- to Work.doi, and affiliation names from WorkVersion.metadata) and is
+-- `unaccent`-normalised so accented and unaccented spellings match symmetrically
+-- (e.g. "muller" <-> "Müller").
 --
 -- The compound GIN indexes (needing `btree_gin` for the scalar leading keys and
 -- `gin_trgm_ops` for fuzzy text) are created CONCURRENTLY in the follow-on
@@ -55,8 +56,7 @@ AS $$
       ' ',
       wv.title,
       immutable_array_to_string(wv.authors, ' '),
-      wv.doi,
-      w.doi,
+      COALESCE(wv.doi, w.doi),
       work_version_affiliations_search_text(wv.metadata)
     )
   )
@@ -216,8 +216,7 @@ CROSS JOIN LATERAL (
       ' ',
       wv.title,
       immutable_array_to_string(wv.authors, ' '),
-      wv.doi,
-      w.doi,
+      COALESCE(wv.doi, w.doi),
       work_version_affiliations_search_text(wv.metadata)
     )
   ) AS search_text

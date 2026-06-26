@@ -150,14 +150,15 @@ function buildListingWhere(
  * Whether the works search resolves ids via the `SubmissionSearch` projection
  * or the legacy global UNION/ILIKE path.
  *
- * Defaults OFF so the code ships dormant: existing behaviour is unchanged until
- * `WORKS_SEARCH_PROJECTION` is set to `true` / `1` / `on` in a target
- * environment. This is the rollout/benchmark control - enable it in staging to
- * run the benchmark gate, then in production once the in-DB ceiling is proven.
+ * Defaults ON: the projection is the shipped, tested, production path. The
+ * `WORKS_SEARCH_PROJECTION_DISABLED` env var is a kill-switch - set it to
+ * `true` / `1` / `on` to fall back to the legacy UNION/ILIKE search instantly
+ * (no redeploy) if the projection path misbehaves in a given environment.
  */
 function useSearchProjection(): boolean {
-  const flag = process.env.WORKS_SEARCH_PROJECTION?.toLowerCase();
-  return flag === 'true' || flag === '1' || flag === 'on';
+  const flag = process.env.WORKS_SEARCH_PROJECTION_DISABLED?.toLowerCase();
+  const disabled = flag === 'true' || flag === '1' || flag === 'on';
+  return !disabled;
 }
 
 /**
@@ -301,6 +302,40 @@ async function dbCountSubmissions(
 }
 
 /**
+ * Count listed submissions for a site/status directly from the
+ * `SubmissionSearch` projection.
+ *
+ * The projection holds one row per listed (PUBLISHED / IN_REVIEW) submission
+ * version with `(site_id, status, submission_id)` co-located, so
+ * `COUNT(DISTINCT submission_id)` over the narrow, pre-scoped table (served by
+ * the `SubmissionSearch_site_status_submission_idx` btree) equals the
+ * `COUNT(DISTINCT s.id)` that {@link dbCountSubmissions} computes over the
+ * `Submission` ⋈ `SubmissionVersion` join — without the join or the heap reads.
+ *
+ * Only valid for the unfiltered browse count (no collection / kind / date /
+ * search filters, which the projection does not carry) and only when the
+ * projection is the active search source ({@link useSearchProjection}).
+ */
+async function dbCountListedFromProjection(
+  siteId: string,
+  status: string,
+  tx?: Prisma.TransactionClient,
+  signal?: AbortSignal,
+): Promise<number> {
+  throwIfAborted(signal);
+  const prisma = await getPrismaClient();
+  throwIfAborted(signal);
+  const [{ count }] = await (tx ?? prisma).$queryRaw<[{ count: bigint }]>`
+    SELECT COUNT(DISTINCT submission_id) AS count
+    FROM "SubmissionSearch"
+    WHERE site_id = ${siteId}
+      AND status = ${status}
+  `;
+  throwIfAborted(signal);
+  return Number(count);
+}
+
+/**
  * List submissions (the latest version in the requested status per submission),
  * ordered by publication date.
  *
@@ -427,6 +462,32 @@ export async function dbListLatestPublishedSubmissions(
 
   if (isOffsetPaginationRequested(opts ?? {})) {
     throwIfAborted(signal);
+    // Pick the cheapest correct count strategy and run it alongside the page
+    // query (collection / kind / date are the only filters not already encoded
+    // in `filteredIds` or the projection, so their presence forces the join
+    // count):
+    //  1. result set already fully resolved (search / subject, no other filter)
+    //     -> the id-set size is the count, no DB round-trip.
+    //  2. unfiltered browse with the projection active -> count the narrow
+    //     `SubmissionSearch` table instead of the Submission/version join.
+    //  3. otherwise -> the join count with the same filters as the page query.
+    const hasJoinOnlyFilter = Boolean(where?.collection || where?.kind || where?.from || where?.to);
+    let countPromise: Promise<number>;
+    if (filteredIds != null && !hasJoinOnlyFilter) {
+      countPromise = Promise.resolve(filteredIds.length);
+    } else if (filteredIds == null && !hasJoinOnlyFilter && useSearchProjection()) {
+      countPromise = dbCountListedFromProjection(ctx.site.id, status, undefined, signal);
+    } else {
+      countPromise = dbCountSubmissions(
+        ctx.site.id,
+        collectionName,
+        status,
+        where?.kind,
+        extras,
+        undefined,
+        signal,
+      );
+    }
     const [items, total] = await Promise.all([
       dbQuerySubmissions(
         ctx.site.id,
@@ -437,15 +498,7 @@ export async function dbListLatestPublishedSubmissions(
         undefined,
         signal,
       ),
-      dbCountSubmissions(
-        ctx.site.id,
-        collectionName,
-        status,
-        where?.kind,
-        extras,
-        undefined,
-        signal,
-      ),
+      countPromise,
     ]);
     throwIfAborted(signal);
     return { items, total };
