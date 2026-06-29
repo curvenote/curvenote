@@ -2,4 +2,9 @@
 alwaysApply: true
 ---
 
-after every turn run `npm run lint` and fix any issues, run `npm run list:format:fix` and then `npm run lint:format` to check for remaining issues to fix manually, fix these if necessary
+# Lint And Format Checks
+
+- After edits, run the narrowest relevant package/workspace checks first, including lint, format fix/check, compile, and focused tests where available.
+- For package-only edits, prefer scoped workspace commands such as `npm run lint --workspace <package>`, `npm run lint:format:fix --workspace <package>`, and `npm run lint:format --workspace <package>`.
+- Run top-level `npm run lint`, `npm run lint:format:fix`, and `npm run lint:format` when changes touch root/shared files, generated workspace metadata, multiple packages, or before final handoff for broad repo work.
+- Fix issues introduced by the current changes. If broad top-level checks report unrelated pre-existing warnings or dirty files, report them separately instead of folding them into the current work.
