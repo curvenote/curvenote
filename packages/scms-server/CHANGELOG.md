@@ -1,5 +1,26 @@
 # @curvenote/scms-server
 
+## 0.22.2
+
+### Patch Changes
+
+- [#975](https://github.com/curvenote/curvenote/pull/975) [`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Give the public works listing/search endpoint (`/api/v1/sites/:siteName/works`)
+  its own dedicated database connection pool so its heavy listing/search/count
+  queries draw from a separate connection budget and cannot exhaust the shared
+  app-wide pool (and vice versa). `scms-db` now exposes
+  `getNamedLowLevelPrismaClient(name, …)` for per-name isolated clients/pools, and
+  `scms-server` adds `getWorksListingPrismaClient()` which uses the same database
+  and identical per-pool tuning as the default client. The whole endpoint path,
+  including the shared subject lookups, is routed through the dedicated pool.
+
+  Note: each named pool adds up to its own `max` connections to the backend, so
+  the total connection budget is now the sum across pools — size accordingly
+  against the database / pooler limits.
+
+- Updated dependencies [[`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc), [`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc)]:
+  - @curvenote/scms-db@0.22.2
+  - @curvenote/scms-core@0.22.2
+
 ## 0.22.1
 
 ### Patch Changes
