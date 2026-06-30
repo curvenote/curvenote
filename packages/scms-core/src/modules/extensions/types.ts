@@ -224,6 +224,11 @@ export interface ExtensionCheckService {
    */
   workListSummaryComponent?: React.ComponentType<ExtensionCheckWorkListSummaryProps>;
   /**
+   * Optional visibility predicate for My Works list summaries. Return false for states that
+   * should not appear in the listing, such as failed/error runs.
+   */
+  isWorkListSummaryVisible?: (metadata: any) => boolean;
+  /**
    * Optional component mounted for each matching check run row on the work timeline even when the
    * tray is collapsed. Use for extension-specific side effects keyed off loader data.
    *

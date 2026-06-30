@@ -15,6 +15,7 @@ type WorkListSummaryComponentProps = {
 
 export type WorkListCheckService = ClientExtensionCheckService & {
   workListSummaryComponent?: ComponentType<WorkListSummaryComponentProps>;
+  isWorkListSummaryVisible?: (metadata: unknown) => boolean;
 };
 
 type WorkCheckSummariesProps = {
@@ -82,10 +83,20 @@ export function WorkCheckSummaries({
 
   const serviceById = new Map(checkServices.map((service) => [service.id, service]));
   const summaries = Object.values(latestCheckRunsByServiceKind)
-    .map((entry) => ({ entry, service: serviceById.get(entry.run.kind) }))
+    .map((entry) => {
+      const service = serviceById.get(entry.run.kind);
+      return { entry, service, metadata: serviceDataFromRun(entry) };
+    })
     .filter(
-      (summary): summary is { entry: ServiceRunEntry; service: WorkListCheckService } =>
-        summary.service != null,
+      (
+        summary,
+      ): summary is {
+        entry: ServiceRunEntry;
+        service: WorkListCheckService;
+        metadata: unknown;
+      } =>
+        summary.service != null &&
+        (summary.service.isWorkListSummaryVisible?.(summary.metadata) ?? true),
     )
     .sort((a, b) =>
       a.entry.run.date_created > b.entry.run.date_created
