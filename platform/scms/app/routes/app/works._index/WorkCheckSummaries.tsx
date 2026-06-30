@@ -100,8 +100,8 @@ export function WorkCheckSummaries({
   }
 
   return (
-    <div className="flex justify-end mt-2">
-      <div className="flex flex-wrap gap-2 justify-end items-center">
+    <div className="flex justify-start mt-2">
+      <div className="flex flex-wrap gap-2 justify-start items-center">
         {summaries.map(({ entry, service }) => {
           return (
             <Link
