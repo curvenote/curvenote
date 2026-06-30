@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import type { ComponentType } from 'react';
 import type { ClientExtensionCheckService } from '@curvenote/scms-core';
-import { formatDate } from '@curvenote/scms-core';
+import { formatDate, ui } from '@curvenote/scms-core';
 import type { ServiceRunEntry } from '../works.$workId/checkServiceRunSummaries';
 
 type WorkListSummaryComponentProps = {
@@ -104,16 +104,23 @@ export function WorkCheckSummaries({
       <div className="flex flex-wrap gap-2 justify-start items-center">
         {summaries.map(({ entry, service }) => {
           return (
-            <Link
+            <ui.SimpleTooltip
               key={entry.run.id}
-              to={`${workId}/checks`}
-              className="inline-flex gap-2 items-center px-2 py-1 max-w-full text-xs rounded-sm border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-300"
-              title={`${service.name} check run on work version created ${formatDate(entry.versionDateCreated)}`}
+              title={`${service.name} check run on work version created ${formatDate(
+                entry.versionDateCreated,
+              )}`}
+              side="top"
+              sideOffset={6}
             >
-              <span className="inline-flex gap-1.5 items-center min-w-0">
-                <WorkCheckSummaryContent service={service} entry={entry} />
-              </span>
-            </Link>
+              <Link
+                to={`${workId}/checks`}
+                className="inline-flex gap-2 items-center px-2 py-1 max-w-full text-xs rounded-sm border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-300"
+              >
+                <span className="inline-flex gap-1.5 items-center min-w-0">
+                  <WorkCheckSummaryContent service={service} entry={entry} />
+                </span>
+              </Link>
+            </ui.SimpleTooltip>
           );
         })}
       </div>
