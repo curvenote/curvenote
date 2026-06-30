@@ -8,6 +8,7 @@ import type {
   VersionTimelineEntry,
   WorkVersionTimelineEntry,
 } from '../types/versionTimeline.js';
+import type { ClientExtensionCheckService as ExtensionCheckService } from '../modules/extensions/types.js';
 import { useVersionTimeline } from '../hooks/useVersionTimeline.js';
 import { SubmissionVersionTimelineRow, WorkVersionTimelineRow } from './VersionTimelineRows.js';
 import { cn } from '../utils/cn.js';
@@ -150,6 +151,7 @@ export function VersionTimelineHoverCard<T extends { id: string }>({
   align = 'start',
   side = 'top',
   title = 'Versions',
+  contentClassName,
 }: VersionTimelineHoverCardProps<T>) {
   const [open, setOpen] = useState(false);
   const { data, loading, error } = useVersionTimeline<T>(versionsUrl, { open });
@@ -161,7 +163,12 @@ export function VersionTimelineHoverCard<T extends { id: string }>({
           {children}
         </span>
       </HoverCardTrigger>
-      <HoverCardContent align={align} side={side} sideOffset={8} className="w-80 p-3">
+      <HoverCardContent
+        align={align}
+        side={side}
+        sideOffset={8}
+        className={cn(contentClassName ?? 'w-80', 'p-3')}
+      >
         <div className="mb-2 flex items-center gap-1.5 border-b border-border pb-2 text-xs font-semibold text-foreground">
           <Timeline className="size-3.5 shrink-0" aria-hidden />
           <span>{title}</span>
@@ -192,6 +199,7 @@ export type VersionTimelineHoverCardProps<T extends { id: string }> = {
   align?: 'start' | 'center' | 'end';
   side?: 'top' | 'right' | 'bottom' | 'left';
   title?: string;
+  contentClassName?: string;
 };
 
 export function SubmissionVersionTimelineHoverCard({
@@ -221,8 +229,10 @@ export function WorkVersionTimelineHoverCard({
   align,
   side,
   title,
+  checkServices,
 }: Omit<VersionTimelineHoverCardProps<WorkVersionTimelineEntry>, 'renderRow'> & {
   workId?: string;
+  checkServices?: ExtensionCheckService[];
 }) {
   return (
     <VersionTimelineHoverCard<WorkVersionTimelineEntry>
@@ -230,7 +240,10 @@ export function WorkVersionTimelineHoverCard({
       align={align}
       side={side}
       title={title}
-      renderRow={(entry) => <WorkVersionTimelineRow entry={entry} workId={workId} />}
+      contentClassName="w-[calc(100vw-2rem)] max-w-[32rem]"
+      renderRow={(entry) => (
+        <WorkVersionTimelineRow entry={entry} workId={workId} checkServices={checkServices} />
+      )}
     >
       {children}
     </VersionTimelineHoverCard>

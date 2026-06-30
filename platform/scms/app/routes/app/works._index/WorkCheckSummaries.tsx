@@ -11,6 +11,7 @@ type WorkListSummaryComponentProps = {
   checkServiceId: string;
   checkServiceName: string;
   checkRunDateModified: string;
+  compact?: boolean;
 };
 
 export type WorkListCheckService = ClientExtensionCheckService & {

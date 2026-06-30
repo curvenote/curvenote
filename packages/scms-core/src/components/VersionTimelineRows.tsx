@@ -1,10 +1,22 @@
 import type { ReactNode } from 'react';
-import type { VersionTimelineEntry, WorkVersionTimelineEntry } from '../types/versionTimeline.js';
+import { Link } from 'react-router';
+import type {
+  VersionTimelineEntry,
+  WorkVersionTimelineCheckRun,
+  WorkVersionTimelineEntry,
+} from '../types/versionTimeline.js';
+import type { ClientExtensionCheckService } from '../modules/extensions/types.js';
 import { formatDate, formatDatetime } from '../utils/formatDate.js';
 import { getStatusDotClasses, getStatusRingClasses } from '../utils/status.js';
 import { cn } from '../utils/cn.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
 import { SubmissionVersionSiteChip } from './SubmissionVersionSiteChip.js';
+
+function serviceDataFromRun(run: WorkVersionTimelineCheckRun): unknown {
+  return run.data != null && typeof run.data === 'object' && 'serviceData' in run.data
+    ? (run.data as { serviceData?: unknown }).serviceData
+    : undefined;
+}
 
 export function VersionTimelineRowShell({
   dotStatus,
@@ -122,11 +134,27 @@ export function SubmissionVersionTimelineRow({ entry }: { entry: VersionTimeline
 export function WorkVersionTimelineRow({
   entry,
   workId,
+  checkServices = [],
 }: {
   entry: WorkVersionTimelineEntry;
   workId?: string;
+  checkServices?: ClientExtensionCheckService[];
 }) {
   const submissionVersions = entry.submissionVersions ?? [];
+  const serviceById = new Map(checkServices.map((service) => [service.id, service]));
+  const checkRuns = (entry.checkRuns ?? [])
+    .map((run) => ({ run, service: serviceById.get(run.kind), metadata: serviceDataFromRun(run) }))
+    .filter(
+      (
+        summary,
+      ): summary is {
+        run: WorkVersionTimelineCheckRun;
+        service: ClientExtensionCheckService;
+        metadata: unknown;
+      } =>
+        summary.service != null &&
+        (summary.service.isWorkListSummaryVisible?.(summary.metadata) ?? true),
+    );
 
   return (
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
@@ -139,6 +167,48 @@ export function WorkVersionTimelineRow({
             workId={workId}
           />
         ))}
+        {checkRuns.map(({ run, service, metadata }) => {
+          const SummaryComponent = service.workListSummaryComponent;
+          if (!SummaryComponent) return null;
+          const chip = (
+            <span className="inline-flex h-5 max-w-full shrink-0 items-center gap-1 rounded-md border border-border bg-background px-1.5 text-[10px] text-foreground shadow-sm">
+              <SummaryComponent
+                compact
+                metadata={metadata}
+                checkRunId={run.id}
+                workVersionId={run.work_version_id}
+                checkServiceId={service.id}
+                checkServiceName={service.name}
+                checkRunDateModified={run.date_modified}
+              />
+            </span>
+          );
+          return (
+            <Tooltip key={run.id}>
+              <TooltipTrigger asChild>
+                {workId ? (
+                  <Link
+                    to={`/app/works/${workId}/checks`}
+                    className="inline-flex min-w-0 items-center transition-opacity hover:opacity-80"
+                    aria-label={`${service.name} check summary`}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {chip}
+                  </Link>
+                ) : (
+                  <span className="inline-flex min-w-0 items-center cursor-default">{chip}</span>
+                )}
+              </TooltipTrigger>
+              <TooltipContent sideOffset={4}>
+                <span className="font-medium">{service.name}</span>
+                <span className="text-muted-foreground">
+                  {' '}
+                  · Check run · {formatDatetime(run.date_created)}
+                </span>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
       </div>
       <p className="text-[11px] text-muted-foreground" title={formatDatetime(entry.date_modified)}>
         Modified: {formatDate(entry.date_modified)}

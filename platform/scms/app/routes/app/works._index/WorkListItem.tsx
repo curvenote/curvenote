@@ -195,6 +195,7 @@ export function WorkListItem({
           <WorkVersionTimelineHoverCard
             versionsUrl={workVersionsUrl}
             workId={work.id}
+            checkServices={checkServices}
             align="end"
             side="left"
             title="Work Timeline"

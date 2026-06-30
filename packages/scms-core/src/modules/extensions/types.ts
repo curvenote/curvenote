@@ -166,6 +166,8 @@ export type ExtensionCheckWorkListSummaryProps = {
   checkServiceName: string;
   /** ISO timestamp from **check_service_run.date_modified**. */
   checkRunDateModified: string;
+  /** Render a smaller version for compact contexts like timeline popovers. */
+  compact?: boolean;
 };
 
 /** Props for per-check upload option cards on the work upload page. */

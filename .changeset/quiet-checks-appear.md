@@ -3,4 +3,4 @@
 '@curvenote/scms-core': patch
 ---
 
-Show latest check run summaries on the My Works listing and add an extension slot for compact work list check summary content.
+Show latest check run summaries on the My Works listing and Work Timeline popover, and add an extension slot for compact work list check summary content.

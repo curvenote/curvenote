@@ -16,12 +16,14 @@ const workflows = { SIMPLE: SIMPLE_PUBLIC_WORKFLOW };
 describe('dbLoadWorkVersionsTimeline', () => {
   let mockPrisma: {
     workVersion: { findMany: ReturnType<typeof vi.fn> };
+    checkServiceRun: { findMany: ReturnType<typeof vi.fn> };
   };
 
   beforeEach(async () => {
     vi.clearAllMocks();
     mockPrisma = {
       workVersion: { findMany: vi.fn() },
+      checkServiceRun: { findMany: vi.fn() },
     };
     const { getPrismaClient } = await import('@curvenote/scms-server');
     vi.mocked(getPrismaClient).mockResolvedValue(mockPrisma as never);
@@ -61,6 +63,35 @@ describe('dbLoadWorkVersionsTimeline', () => {
         submissionVersions: [],
       },
     ]);
+    mockPrisma.checkServiceRun.findMany.mockResolvedValue([
+      {
+        id: 'run-2',
+        kind: 'proofig',
+        date_created: '2026-05-02T10:00:00.000Z',
+        date_modified: '2026-05-02T10:05:00.000Z',
+        data: { serviceData: { status: 'latest' } },
+        work_version_id: 'wv-2',
+        created_by_id: null,
+      },
+      {
+        id: 'run-1',
+        kind: 'proofig',
+        date_created: '2026-05-02T09:00:00.000Z',
+        date_modified: '2026-05-02T09:05:00.000Z',
+        data: { serviceData: { status: 'older' } },
+        work_version_id: 'wv-2',
+        created_by_id: null,
+      },
+      {
+        id: 'run-3',
+        kind: 'checks-text-integrity',
+        date_created: '2026-05-01T10:00:00.000Z',
+        date_modified: '2026-05-01T10:05:00.000Z',
+        data: { serviceData: { status: 'text' } },
+        work_version_id: 'wv-1',
+        created_by_id: null,
+      },
+    ]);
 
     const result = await dbLoadWorkVersionsTimeline('work-1', workflows);
 
@@ -86,6 +117,16 @@ describe('dbLoadWorkVersionsTimeline', () => {
             },
           },
         ],
+        checkRuns: [
+          {
+            id: 'run-2',
+            work_version_id: 'wv-2',
+            kind: 'proofig',
+            date_created: '2026-05-02T10:00:00.000Z',
+            date_modified: '2026-05-02T10:05:00.000Z',
+            data: { serviceData: { status: 'latest' } },
+          },
+        ],
       },
       {
         id: 'wv-1',
@@ -93,6 +134,16 @@ describe('dbLoadWorkVersionsTimeline', () => {
         date_modified: '2026-05-01T00:00:00.000Z',
         draft: false,
         submissionVersions: [],
+        checkRuns: [
+          {
+            id: 'run-3',
+            work_version_id: 'wv-1',
+            kind: 'checks-text-integrity',
+            date_created: '2026-05-01T10:00:00.000Z',
+            date_modified: '2026-05-01T10:05:00.000Z',
+            data: { serviceData: { status: 'text' } },
+          },
+        ],
       },
     ]);
   });
