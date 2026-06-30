@@ -150,6 +150,24 @@ export type ExtensionCheckSectionSummaryTitleProps = {
   metadata: any;
 };
 
+/**
+ * Props for compact check summary content rendered inside platform-owned work-list rows.
+ * Extensions should render only the service-specific content (logo, score, status text/chip).
+ * The platform owns row layout, link behaviour, spacing, and version tags.
+ */
+export type ExtensionCheckWorkListSummaryProps = {
+  /** Check run `serviceData` (extension-defined shape). */
+  metadata: any;
+  checkRunId: string;
+  workVersionId: string;
+  /** Check service id from the run row (e.g. `proofig`). */
+  checkServiceId: string;
+  /** Display name from the registered check service. */
+  checkServiceName: string;
+  /** ISO timestamp from **check_service_run.date_modified**. */
+  checkRunDateModified: string;
+};
+
 /** Props for per-check upload option cards on the work upload page. */
 export interface UploadCheckOptionProps {
   workVersionId: string;
@@ -200,6 +218,11 @@ export interface ExtensionCheckService {
    * `{name}` segment; the platform always appends the word “checks” on the same line with spacing.
    */
   sectionSummaryTitleComponent?: React.ComponentType<ExtensionCheckSectionSummaryTitleProps>;
+  /**
+   * Optional compact content for My Works list rows. Platform supplies the containing row,
+   * right-alignment, link target, and version tag; extensions supply only the inner content.
+   */
+  workListSummaryComponent?: React.ComponentType<ExtensionCheckWorkListSummaryProps>;
   /**
    * Optional component mounted for each matching check run row on the work timeline even when the
    * tray is collapsed. Use for extension-specific side effects keyed off loader data.

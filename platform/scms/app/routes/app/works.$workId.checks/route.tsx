@@ -23,25 +23,16 @@ import {
   ui,
 } from '@curvenote/scms-core';
 import { dbGetLatestNonDraftWorkVersion, formatWorkVersionDTO } from './db.server';
+import { dbGetCheckServiceRunsByWorkVersionIds } from '../works.$workId/db.server';
 import {
-  dbGetCheckServiceRunsByWorkVersionIds,
-  type CheckServiceRunRow,
-} from '../works.$workId/db.server';
+  getCheckRunSummaryByKind,
+  type ServiceRunEntry,
+} from '../works.$workId/checkServiceRunSummaries';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { RunCheckOnLatestVersionButton } from './RunCheckOnLatestVersionButton';
 
 const DISPATCHING_SKELETON_MS = 1500;
-
-/** A check service run paired with the version context needed for display. */
-export type ServiceRunEntry = {
-  run: CheckServiceRunRow;
-  workVersionId: string;
-  /** Version number by date_created order (v1 = oldest). */
-  versionNumber: number;
-  /** ISO date for the work version (used for tooltip on the version tag). */
-  versionDateCreated: string;
-};
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureWorkContext(args, [scopes.work.id.checks.read]);
@@ -69,50 +60,10 @@ export async function loader(args: Route.LoaderArgs) {
 
   const nonDraftVersionIds = nonDraftVersions.map((v) => v.id);
   const runsByVersionId = await dbGetCheckServiceRunsByWorkVersionIds(nonDraftVersionIds);
-
-  // Version numbering: v1 = oldest (by date_created).
-  // `nonDraftVersions` is ordered desc by date_created (latest first), so the highest number is first.
-  const versionNumberByWorkVersionId: Record<string, number> = {};
-  nonDraftVersions.forEach((v, i) => {
-    versionNumberByWorkVersionId[v.id] = nonDraftVersions.length - i;
-  });
-
-  // Build per-kind entries: for each version (newest → oldest) dedupe to that version's latest run
-  // of that kind, then sort each kind's list desc by run.date_created.
-  const entriesByKind: Record<string, ServiceRunEntry[]> = {};
-  for (const version of nonDraftVersions) {
-    const runs = runsByVersionId[version.id] ?? [];
-    const seenKind = new Set<string>();
-    for (const run of runs) {
-      if (seenKind.has(run.kind)) continue;
-      seenKind.add(run.kind);
-      const list = entriesByKind[run.kind] ?? [];
-      list.push({
-        run,
-        workVersionId: version.id,
-        versionNumber: versionNumberByWorkVersionId[version.id] ?? 0,
-        versionDateCreated: version.date_created,
-      });
-      entriesByKind[run.kind] = list;
-    }
-  }
-  for (const kind of Object.keys(entriesByKind)) {
-    entriesByKind[kind].sort((a, b) =>
-      a.run.date_created > b.run.date_created
-        ? -1
-        : a.run.date_created < b.run.date_created
-          ? 1
-          : 0,
-    );
-  }
-
-  const latestRunByServiceKind: Record<string, ServiceRunEntry> = {};
-  const previousRunsByServiceKind: Record<string, ServiceRunEntry[]> = {};
-  for (const [kind, list] of Object.entries(entriesByKind)) {
-    const [head, ...rest] = list;
-    latestRunByServiceKind[kind] = head;
-    previousRunsByServiceKind[kind] = rest;
-  }
+  const { latestRunByServiceKind, previousRunsByServiceKind } = getCheckRunSummaryByKind(
+    nonDraftVersions,
+    runsByVersionId,
+  );
 
   // -------------------------------------------------------------------------
   // TEMPORARY (stepping-stone): service-manifest fallback for kinds with no run.

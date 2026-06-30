@@ -11,15 +11,19 @@ import {
 } from '@curvenote/scms-core';
 import { ExternalLink, Timeline } from 'lucide-react';
 import type { dbGetWorksAndSubmissionVersions } from './db.server';
+import type { WorkListCheckService } from './WorkCheckSummaries';
+import { WorkCheckSummaries } from './WorkCheckSummaries';
 
 export type WorkCardDBO = Awaited<ReturnType<typeof dbGetWorksAndSubmissionVersions>>[0];
 
 export function WorkListItem({
   work,
   workflows,
+  checkServices,
 }: {
   work: WorkCardDBO;
   workflows: Record<string, any>;
+  checkServices: WorkListCheckService[];
 }) {
   const lastActivity = work.submissions
     .map((submission) => submission.activity?.[0])
@@ -38,11 +42,6 @@ export function WorkListItem({
   // Get the latest non-draft version info for title/authors/published
   const latestVersion = work.versions.find((version) => !version.draft);
   const publishedDate = latestVersion?.date;
-
-  // Check if work has submissions with slugs
-  const hasSlug = work.submissions.some(
-    (submission) => submission.slugs && submission.slugs.length > 0,
-  );
 
   const workVersionsUrl = workVersionsTimelineUrl(work.id);
 
@@ -73,8 +72,8 @@ export function WorkListItem({
             )}
           </div>
 
-          {/* DOI Links as Badges */}
-          <div className="flex flex-wrap gap-2 items-center">
+          {/* Show SubmissionVersionBadge for each submission with latest version */}
+          <div className="flex flex-wrap gap-2 items-center mt-2">
             {work.doi && work.doi !== latestVersion?.doi && (
               <ui.Badge variant="outline-muted" asChild>
                 <a
@@ -105,22 +104,6 @@ export function WorkListItem({
                 </a>
               </ui.Badge>
             )}
-            {hasSlug && (
-              <primitives.Chip
-                className="text-sky-700 border-[1px] border-sky-700 dark:border-sky-300 dark:text-sky-300"
-                title="Work has slug"
-              >
-                Slug
-              </primitives.Chip>
-            )}
-            <ui.TagChips
-              tags={[...(latestVersion?.tags ?? latestWorkVersion?.tags ?? [])]}
-              limit={6}
-              titlePrefix="Tag"
-            />
-          </div>
-          {/* Show SubmissionVersionBadge for each submission with latest version */}
-          <div className="flex flex-wrap gap-2 mt-2">
             {work.submissions
               .filter((submission) => submission.versions && submission.versions.length > 0)
               .map((submission) => {
@@ -169,6 +152,12 @@ export function WorkListItem({
                 );
               })}
           </div>
+          <WorkCheckSummaries
+            workId={work.id}
+            latestNonDraftWorkVersionId={latestVersion?.id}
+            latestCheckRunsByServiceKind={work.latestCheckRunsByServiceKind}
+            checkServices={checkServices}
+          />
         </div>
 
         {/* Column 2: Activity and Date */}

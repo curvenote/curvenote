@@ -8,6 +8,8 @@ import {
 import type { WorkRole, WorkVersion } from '@curvenote/scms-db';
 import type { SecureContext } from '@curvenote/scms-server';
 import { previewCacheObjectIds } from '../works.$workId.upload.$workVersionId/metadata-extract/previewCache';
+import { dbGetCheckServiceRunsByWorkVersionIds } from '../works.$workId/db.server';
+import { getCheckRunSummaryByKind } from '../works.$workId/checkServiceRunSummaries';
 
 export async function dbGetWorksAndSubmissionVersions(userId: string) {
   const prisma = await getPrismaClient();
@@ -118,9 +120,27 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
   });
 
   // Drop works that are single-version + single DRAFT-only submission (no visible submissions)
-  return mapped
+  const visibleWorks = mapped
     .filter((w) => !w.excludeAsSingleDraftSubmissionWork)
-    .map(({ excludeAsSingleDraftSubmissionWork: _dropped, ...w }) => w);
+    .map((work) => {
+      const { excludeAsSingleDraftSubmissionWork, ...visibleWork } = work;
+      void excludeAsSingleDraftSubmissionWork;
+      return visibleWork;
+    });
+
+  const nonDraftVersionIds = visibleWorks.flatMap((work) =>
+    work.versions.filter((version) => !version.draft).map((version) => version.id),
+  );
+  const runsByVersionId = await dbGetCheckServiceRunsByWorkVersionIds(nonDraftVersionIds);
+
+  return visibleWorks.map((work) => {
+    const nonDraftVersions = work.versions.filter((version) => !version.draft);
+    const { latestRunByServiceKind } = getCheckRunSummaryByKind(nonDraftVersions, runsByVersionId);
+    return {
+      ...work,
+      latestCheckRunsByServiceKind: latestRunByServiceKind,
+    };
+  });
 }
 
 /**
