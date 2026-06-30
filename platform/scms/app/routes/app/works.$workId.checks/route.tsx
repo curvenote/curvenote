@@ -16,6 +16,7 @@ import {
   scopes,
   getExtensionCheckServicesFromServerConfig,
   DateWithPopover,
+  formatDate,
   Timeline,
   TimelineSection,
   CheckServiceRunTimelineItem,
@@ -213,7 +214,12 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     const emphasis = entry.workVersionId === latestNonDraftWorkVersion.id ? 'latest' : 'previous';
     return (
       <span className="inline-flex gap-2 items-center">
-        <ui.VersionTagBadge tag={`v${entry.versionNumber}`} emphasis={emphasis} />
+        <ui.VersionTagBadge
+          tag={formatDate(entry.versionDateCreated)}
+          titlePrefix="Work version created"
+          hideIcon
+          emphasis={emphasis}
+        />
         <DateWithPopover
           date={entry.run.date_modified}
           dateCreated={entry.run.date_created}
