@@ -249,6 +249,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   // Draft-only works should route users into the upload flow, not the details pages.
   if (isDraftOnlyWork) {
+    const isPmcDepositPath = pathname.startsWith(`/app/works/${workId}/site/pmc/`);
     const isDetailsLikePath =
       pathname === `/app/works/${workId}` ||
       pathname === `/app/works/${workId}/` ||
@@ -257,7 +258,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
       pathname.startsWith(`/app/works/${workId}/work-integrity`) ||
       pathname.startsWith(`/app/works/${workId}/site/`);
 
-    if (!isOnUploadRoute && isDetailsLikePath) {
+    if (!isOnUploadRoute && isDetailsLikePath && !isPmcDepositPath) {
       throw redirect(`/app/works/${workId}/upload/${workVersionsWithMetadata[0].id}`);
     }
   }
