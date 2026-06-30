@@ -1,3 +1,4 @@
+import { FileText } from 'lucide-react';
 import type { WorkCreateOption } from '../extensions/types.js';
 
 export const BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID = 'article';
@@ -6,7 +7,8 @@ export const BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID = 'article';
 export const BUILTIN_ARTICLE_WORK_CREATE_OPTION: WorkCreateOption = {
   id: BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
   label: 'Article',
-  description: 'Upload a manuscript for checks and publishing',
+  description: 'upload files for a long form article',
+  icon: FileText,
   metadataKey: 'frontmatter.myst',
   startPath: '/app/works/new',
   mode: 'composite',

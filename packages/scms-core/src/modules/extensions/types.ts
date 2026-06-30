@@ -31,6 +31,8 @@ export interface WorkCreateOption {
   id: string;
   label: string;
   description?: string;
+  /** Optional icon shown in create-work dropdown menu items. */
+  icon?: IconComponent;
   /** Top-level workVersion.metadata key that identifies this flow on existing works. */
   metadataKey: string;
   /** App-absolute path that starts the create flow (e.g. `/app/works/new`). */
