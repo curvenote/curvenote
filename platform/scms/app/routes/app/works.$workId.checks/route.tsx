@@ -18,6 +18,7 @@ import {
   getExtensionCheckServicesFromServerConfig,
   DateWithPopover,
   formatDate,
+  formatDatetime,
   Timeline,
   TimelineSection,
   CheckServiceRunTimelineItem,
@@ -211,20 +212,15 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     return () => window.clearInterval(interval);
   }, [showDispatchingState, revalidator]);
 
-  const renderVersionTag = (entry: ServiceRunEntry) => {
+  const renderWorkVersionDate = (entry: ServiceRunEntry) => {
+    const versionDate = formatDate(entry.versionDateCreated, 'MMM dd, y HH:mm');
     return (
-      <span className="inline-flex gap-2 items-center">
-        <ui.VersionTagBadge
-          tag={formatDate(entry.versionDateCreated, 'MMM dd, y HH:mm')}
-          titlePrefix="Work version created"
-          icon={GitBranch}
-        />
-        <DateWithPopover
-          date={entry.run.date_modified}
-          dateCreated={entry.run.date_created}
-          dateModified={entry.run.date_modified}
-          className="text-xs text-muted-foreground"
-        />
+      <span
+        className="inline-flex gap-1.5 items-center text-[11px] text-muted-foreground"
+        title={formatDatetime(entry.versionDateCreated)}
+      >
+        <GitBranch className="size-3 shrink-0" aria-hidden />
+        <span>Work version: {versionDate}</span>
       </span>
     );
   };
@@ -293,7 +289,6 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
             (fallbackManifest ? ({ manifest: fallbackManifest } as any) : undefined);
 
           const workVersionIdForActivity = latest?.workVersionId ?? latestNonDraftWorkVersion.id;
-          const tag = latest ? renderVersionTag(latest) : null;
           const isLatestRunOnLatestVersion =
             latest != null && latest.workVersionId === latestNonDraftWorkVersion.id;
           const headerAction =
@@ -307,7 +302,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
 
           return (
             <div key={service.id} className="space-y-4">
-              <HeaderComponent tag={tag} action={headerAction} metadata={serviceMetadata} />
+              <HeaderComponent tag={null} action={headerAction} metadata={serviceMetadata} />
               <div className="space-y-0">
                 <ui.Card>
                   <ui.CardContent className="pt-6">
@@ -323,13 +318,28 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                       checkRunDateModified={latest?.run.date_modified}
                     />
                   </ui.CardContent>
+                  {latest ? (
+                    <div className="flex justify-start px-6 py-2 border-t border-border">
+                      {renderWorkVersionDate(latest)}
+                    </div>
+                  ) : null}
                 </ui.Card>
                 {previous.length > 0 && (
                   <Timeline className="ml-3" nested>
                     {previous.map((entry) => (
                       <TimelineSection
                         key={entry.workVersionId}
-                        label={renderVersionTag(entry)}
+                        label={
+                          <span className="inline-flex gap-2 items-center">
+                            {renderWorkVersionDate(entry)}
+                            <DateWithPopover
+                              date={entry.run.date_modified}
+                              dateCreated={entry.run.date_created}
+                              dateModified={entry.run.date_modified}
+                              className="text-xs text-muted-foreground"
+                            />
+                          </span>
+                        }
                         nested
                       >
                         <CheckServiceRunTimelineItem
