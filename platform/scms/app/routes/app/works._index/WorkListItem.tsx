@@ -44,6 +44,18 @@ export function WorkListItem({
   const publishedDate = latestVersion?.date;
 
   const workVersionsUrl = workVersionsTimelineUrl(work.id);
+  const showWorkDoi = Boolean(work.doi && work.doi !== latestVersion?.doi);
+  const showVersionDoi = Boolean(latestVersion?.doi);
+  const submissionsWithBadges = work.submissions
+    .map((submission) => {
+      const latestNonDraftSubmissionVersion = submission.versions?.[0];
+      const workflowKey = submission.collection?.workflow;
+      const workflow = workflowKey ? workflows[workflowKey] : undefined;
+      if (!latestNonDraftSubmissionVersion || !workflowKey || !workflow) return null;
+      return { submission, latestNonDraftSubmissionVersion, workflowKey, workflow };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry != null);
+  const showBadgeRow = showWorkDoi || showVersionDoi || submissionsWithBadges.length > 0;
 
   return (
     <div className="px-6 py-4">
@@ -72,86 +84,83 @@ export function WorkListItem({
             )}
           </div>
 
-          {/* Show SubmissionVersionBadge for each submission with latest version */}
-          <div className="flex flex-wrap gap-2 items-center mt-2">
-            {work.doi && work.doi !== latestVersion?.doi && (
-              <ui.Badge variant="outline-muted" asChild>
-                <a
-                  href={work.doi.startsWith('http') ? work.doi : `https://doi.org/${work.doi}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex gap-1 items-center text-xs"
-                >
-                  Work DOI: {work.doi.replace('https://doi.org/', '')}
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-              </ui.Badge>
-            )}
-            {latestVersion?.doi && (
-              <ui.Badge variant="outline-muted" asChild>
-                <a
-                  href={
-                    latestVersion.doi.startsWith('http')
-                      ? latestVersion.doi
-                      : `https://doi.org/${latestVersion.doi}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex gap-1 items-center text-xs"
-                >
-                  DOI: {latestVersion.doi.replace('https://doi.org/', '')}
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-              </ui.Badge>
-            )}
-            {work.submissions
-              .filter((submission) => submission.versions && submission.versions.length > 0)
-              .map((submission) => {
-                // `dbGetWorksAndSubmissionVersions` already filters out DRAFT submission versions.
-                const latestNonDraftSubmissionVersion = submission.versions[0];
-
-                // Guard against null/undefined collection
-                if (!submission.collection?.workflow) return null;
-
-                const workflow = workflows[submission.collection.workflow];
-
-                if (!latestNonDraftSubmissionVersion || !workflow) return null;
-
-                return (
-                  <SubmissionVersionTimelineHoverCard
-                    key={`submission-badge-${submission.id}`}
-                    versionsUrl={submissionVersionsTimelineUrl(submission.site.name, submission.id)}
-                    title={`Submissions at ${submission.site.title || submission.site.name}`}
+          {showBadgeRow && (
+            <div className="flex flex-wrap gap-2 items-center mt-2">
+              {work.doi && work.doi !== latestVersion?.doi && (
+                <ui.Badge variant="outline-muted" asChild>
+                  <a
+                    href={work.doi.startsWith('http') ? work.doi : `https://doi.org/${work.doi}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex gap-1 items-center text-xs"
                   >
-                    <ui.SubmissionVersionBadge
-                      submissionVersion={{
-                        id: latestNonDraftSubmissionVersion.id,
-                        status: latestNonDraftSubmissionVersion.status,
-                        submission: {
-                          id: submission.id,
-                          collection: {
-                            workflow: submission.collection.workflow,
+                    Work DOI: {work.doi.replace('https://doi.org/', '')}
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </ui.Badge>
+              )}
+              {latestVersion?.doi && (
+                <ui.Badge variant="outline-muted" asChild>
+                  <a
+                    href={
+                      latestVersion.doi.startsWith('http')
+                        ? latestVersion.doi
+                        : `https://doi.org/${latestVersion.doi}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex gap-1 items-center text-xs"
+                  >
+                    DOI: {latestVersion.doi.replace('https://doi.org/', '')}
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </ui.Badge>
+              )}
+              {submissionsWithBadges.map(
+                ({ submission, latestNonDraftSubmissionVersion, workflowKey, workflow }) => {
+                  // `dbGetWorksAndSubmissionVersions` already filters out DRAFT submission versions.
+                  return (
+                    <SubmissionVersionTimelineHoverCard
+                      key={`submission-badge-${submission.id}`}
+                      versionsUrl={submissionVersionsTimelineUrl(
+                        submission.site.name,
+                        submission.id,
+                      )}
+                      title={`Submissions at ${submission.site.title || submission.site.name}`}
+                    >
+                      <ui.SubmissionVersionBadge
+                        submissionVersion={{
+                          id: latestNonDraftSubmissionVersion.id,
+                          status: latestNonDraftSubmissionVersion.status,
+                          submission: {
+                            id: submission.id,
+                            collection: {
+                              workflow: workflowKey,
+                            },
+                            site: {
+                              name: submission.site.name,
+                              title: submission.site.title,
+                              metadata: submission.site.metadata,
+                            },
                           },
-                          site: {
-                            name: submission.site.name,
-                            title: submission.site.title,
-                            metadata: submission.site.metadata,
-                          },
-                        },
-                      }}
-                      workflows={{ [submission.collection.workflow]: workflow }}
-                      basePath={`/app/works/${work.id}`}
-                      workVersionId={
-                        latestNonDraftSubmissionVersion.work_version?.id || latestVersion?.id || ''
-                      }
-                      showSite
-                      showLink={false}
-                      variant="outline"
-                    />
-                  </SubmissionVersionTimelineHoverCard>
-                );
-              })}
-          </div>
+                        }}
+                        workflows={{ [workflowKey]: workflow }}
+                        basePath={`/app/works/${work.id}`}
+                        workVersionId={
+                          latestNonDraftSubmissionVersion.work_version?.id ||
+                          latestVersion?.id ||
+                          ''
+                        }
+                        showSite
+                        showLink={false}
+                        variant="outline"
+                      />
+                    </SubmissionVersionTimelineHoverCard>
+                  );
+                },
+              )}
+            </div>
+          )}
           <WorkCheckSummaries
             workId={work.id}
             latestCheckRunsByServiceKind={work.latestCheckRunsByServiceKind}
