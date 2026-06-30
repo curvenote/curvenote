@@ -1,6 +1,8 @@
 # New Work and Create new version – Flows and code reference
 
-This document describes the two entry flows for starting or resuming file uploads: **Upload Work** (from the My Works listing) and **Upload New Version** (from a work’s details page). Both flows share the same resume-draft UX (check for existing drafts, show dialog or create new, then redirect to the upload form).
+> **See also:** [create-work-flows.md](./create-work-flows.md) for the full multi-flow architecture (Article + PMC + extension registry, My Works dropdown, metadata-based create-new-version routing, and diagrams). This document remains an Article/upload-focused code reference.
+
+This document describes the two entry flows for starting or resuming **Article** file uploads: **Upload Work** (from the My Works listing) and **Upload New Version** (from a work’s details page). Both flows share the same resume-draft UX (check for existing drafts, show dialog or create new, then redirect to the upload form).
 
 **Contents**
 
