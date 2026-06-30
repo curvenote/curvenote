@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import type { ComponentType } from 'react';
 import type { ClientExtensionCheckService } from '@curvenote/scms-core';
-import { ui } from '@curvenote/scms-core';
+import { formatDate } from '@curvenote/scms-core';
 import type { ServiceRunEntry } from '../works.$workId/checkServiceRunSummaries';
 
 type WorkListSummaryComponentProps = {
@@ -19,7 +19,6 @@ export type WorkListCheckService = ClientExtensionCheckService & {
 
 type WorkCheckSummariesProps = {
   workId: string;
-  latestNonDraftWorkVersionId?: string;
   latestCheckRunsByServiceKind?: Record<string, ServiceRunEntry>;
   checkServices: WorkListCheckService[];
 };
@@ -74,7 +73,6 @@ function WorkCheckSummaryContent({
 
 export function WorkCheckSummaries({
   workId,
-  latestNonDraftWorkVersionId,
   latestCheckRunsByServiceKind,
   checkServices,
 }: WorkCheckSummariesProps) {
@@ -105,23 +103,16 @@ export function WorkCheckSummaries({
     <div className="flex justify-end mt-2">
       <div className="flex flex-wrap gap-2 justify-end items-center">
         {summaries.map(({ entry, service }) => {
-          const isLatestRunOnLatestVersion = entry.workVersionId === latestNonDraftWorkVersionId;
           return (
             <Link
               key={entry.run.id}
               to={`${workId}/checks`}
               className="inline-flex gap-2 items-center px-2 py-1 max-w-full text-xs rounded-sm border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-300"
-              title={`${service.name} check run on version v${entry.versionNumber}`}
+              title={`${service.name} check run on work version created ${formatDate(entry.versionDateCreated)}`}
             >
               <span className="inline-flex gap-1.5 items-center min-w-0">
                 <WorkCheckSummaryContent service={service} entry={entry} />
               </span>
-              <ui.VersionTagBadge
-                tag={`v${entry.versionNumber}`}
-                emphasis={isLatestRunOnLatestVersion ? 'latest' : 'previous'}
-                hideIcon
-                className="py-0.5"
-              />
             </Link>
           );
         })}

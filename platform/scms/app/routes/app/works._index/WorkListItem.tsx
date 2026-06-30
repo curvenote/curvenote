@@ -154,7 +154,6 @@ export function WorkListItem({
           </div>
           <WorkCheckSummaries
             workId={work.id}
-            latestNonDraftWorkVersionId={latestVersion?.id}
             latestCheckRunsByServiceKind={work.latestCheckRunsByServiceKind}
             checkServices={checkServices}
           />
