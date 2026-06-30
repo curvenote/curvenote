@@ -1,5 +1,6 @@
 import { ui } from '@curvenote/scms-core';
 import { WorkListItem } from './WorkListItem';
+import type { WorkListCheckService } from './WorkCheckSummaries';
 import { WorksClientSearch } from './WorksClientSearch';
 import {
   filterWorks,
@@ -15,13 +16,15 @@ import type { WorkWithRole } from './ClientListingHelpers';
 export function WorkList({
   items,
   workflows,
+  checkServices,
 }: {
   items: Promise<WorkWithRole[]>;
   workflows: Record<string, any>;
+  checkServices: WorkListCheckService[];
 }) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderItem = (work: WorkWithRole, _globalIndex: number, _localIndex?: number) => (
-    <WorkListItem work={work} workflows={workflows} />
+    <WorkListItem work={work} workflows={workflows} checkServices={checkServices} />
   );
 
   const renderGroup = (

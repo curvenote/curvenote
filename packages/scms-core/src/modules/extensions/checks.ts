@@ -1,5 +1,6 @@
 import type { ClientDeploymentConfig } from '../../providers/DeploymentProvider.js';
 import type {
+  ClientExtensionCheckService,
   ClientExtension,
   ExtensionCheckService,
   ExtensionConfig,
@@ -41,6 +42,23 @@ export function getExtensionCheckServicesFromClientConfig(
     services.push(...ext.getChecks());
   }
   return services;
+}
+
+export type CheckRunWithServiceData = {
+  data?: unknown | null;
+};
+
+export function getCheckServiceRunServiceData(run: CheckRunWithServiceData): unknown {
+  return run.data != null && typeof run.data === 'object' && 'serviceData' in run.data
+    ? (run.data as { serviceData?: unknown }).serviceData
+    : undefined;
+}
+
+export function isCheckWorkListSummaryVisible(
+  service: Pick<ClientExtensionCheckService, 'isWorkListSummaryVisible'>,
+  metadata: unknown,
+): boolean {
+  return service.isWorkListSummaryVisible?.(metadata) ?? true;
 }
 
 /**

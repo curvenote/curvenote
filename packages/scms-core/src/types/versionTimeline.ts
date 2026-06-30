@@ -27,12 +27,22 @@ export type WorkVersionTimelineSubmissionVersion = {
   };
 };
 
+export type WorkVersionTimelineCheckRun = {
+  id: string;
+  work_version_id: string;
+  kind: string;
+  date_created: string;
+  date_modified: string;
+  data: unknown;
+};
+
 export type WorkVersionTimelineEntry = {
   id: string;
   date_created: string;
   date_modified: string;
   draft: boolean;
   submissionVersions?: WorkVersionTimelineSubmissionVersion[];
+  checkRuns?: WorkVersionTimelineCheckRun[];
 };
 
 export type VersionTimelineDisplayItem<T> =

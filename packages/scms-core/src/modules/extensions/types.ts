@@ -89,7 +89,7 @@ export type ExtensionCheckHandleActionResult = {
   status?: number;
   /** True when a hydrate/sync intent mutated check run data (skip revalidation when false). */
   updated?: boolean;
-  /** EULA gating (e.g. text integrity `eula-status` / `execute`). */
+  /** Optional acceptance gating for check execution flows. */
   requireEula?: boolean;
   requiresEula?: boolean;
   accepted?: boolean;
@@ -131,7 +131,7 @@ export type ExtensionCheckSectionActivityProps = {
 export type ExtensionCheckRunTimelineMountProps = {
   checkRunId: string;
   workVersionId: string;
-  /** Check service id from the run row (e.g. `proofig`). */
+  /** Check service id from the run row. */
   checkKind: string;
   metadata: unknown;
   /** POST target for check UI mutations. */
@@ -150,6 +150,26 @@ export type ExtensionCheckSectionSummaryTitleProps = {
   metadata: any;
 };
 
+/**
+ * Props for compact check summary content rendered inside platform-owned work-list rows.
+ * Extensions should render only the service-specific content (logo, score, status text/chip).
+ * The platform owns row layout, link behaviour, spacing, and version tags.
+ */
+export type ExtensionCheckWorkListSummaryProps = {
+  /** Check run `serviceData` (extension-defined shape). */
+  metadata: any;
+  checkRunId: string;
+  workVersionId: string;
+  /** Check service id from the run row. */
+  checkServiceId: string;
+  /** Display name from the registered check service. */
+  checkServiceName: string;
+  /** ISO timestamp from **check_service_run.date_modified**. */
+  checkRunDateModified: string;
+  /** Render a smaller version for compact contexts like timeline popovers. */
+  compact?: boolean;
+};
+
 /** Props for per-check upload option cards on the work upload page. */
 export interface UploadCheckOptionProps {
   workVersionId: string;
@@ -158,7 +178,7 @@ export interface UploadCheckOptionProps {
   disabled?: boolean;
   /** Check is selected but uploaded files no longer meet requirements. */
   invalid?: boolean;
-  /** Service manifest logo URL when available (e.g. text integrity Object config). */
+  /** Service manifest logo URL when available. */
   logoUrl?: string;
   /** Platform persists selection via `toggle-check` on the upload route. */
   setEnabled: (enabled: boolean) => Promise<void>;
@@ -171,7 +191,7 @@ export interface ExtensionCheckService {
   name: string; // Display name
   description: string; // Display description
   /**
-   * App-absolute path for extension-owned check actions (e.g. `/app/extensions/proofig/actions`).
+   * App-absolute path for extension-owned check actions.
    * When set, the platform uses this for `remoteStatusActionPath` on the checks page and work timeline.
    */
   checksActionPath?: string;
@@ -200,6 +220,16 @@ export interface ExtensionCheckService {
    * `{name}` segment; the platform always appends the word “checks” on the same line with spacing.
    */
   sectionSummaryTitleComponent?: React.ComponentType<ExtensionCheckSectionSummaryTitleProps>;
+  /**
+   * Optional compact content for My Works list rows. Platform supplies the containing row,
+   * right-alignment, link target, and version tag; extensions supply only the inner content.
+   */
+  workListSummaryComponent?: React.ComponentType<ExtensionCheckWorkListSummaryProps>;
+  /**
+   * Optional visibility predicate for My Works list summaries. Return false for states that
+   * should not appear in the listing, such as failed/error runs.
+   */
+  isWorkListSummaryVisible?: (metadata: any) => boolean;
   /**
    * Optional component mounted for each matching check run row on the work timeline even when the
    * tray is collapsed. Use for extension-specific side effects keyed off loader data.

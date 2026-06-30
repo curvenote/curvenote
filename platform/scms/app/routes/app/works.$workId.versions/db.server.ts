@@ -1,5 +1,6 @@
 import { getPrismaClient } from '@curvenote/scms-server';
 import type { WorkVersionTimelineEntry, Workflow } from '@curvenote/scms-core';
+import { dbGetCheckServiceRunsByWorkVersionIds } from '../works.$workId/db.server.js';
 
 function siteLogoFromMetadata(metadata: unknown): string | undefined {
   if (!metadata || typeof metadata !== 'object' || !('logo' in metadata)) {
@@ -47,6 +48,26 @@ function mapSubmissionVersions(
     .sort((a, b) => a.site.name.localeCompare(b.site.name));
 }
 
+function latestCheckRunsByKind(
+  runs: Awaited<ReturnType<typeof dbGetCheckServiceRunsByWorkVersionIds>>[string] = [],
+): WorkVersionTimelineEntry['checkRuns'] {
+  const seenKinds = new Set<string>();
+  return runs
+    .filter((run) => {
+      if (seenKinds.has(run.kind)) return false;
+      seenKinds.add(run.kind);
+      return true;
+    })
+    .map((run) => ({
+      id: run.id,
+      work_version_id: run.work_version_id,
+      kind: run.kind,
+      date_created: run.date_created,
+      date_modified: run.date_modified,
+      data: run.data,
+    }));
+}
+
 /**
  * All work versions for the version-timeline hover card (newest first).
  */
@@ -91,6 +112,8 @@ export async function dbLoadWorkVersionsTimeline(
       },
     },
   });
+  const workVersionIds = rows.map((row) => row.id);
+  const runsByVersionId = await dbGetCheckServiceRunsByWorkVersionIds(workVersionIds);
 
   return rows.map((row) => ({
     id: row.id,
@@ -98,5 +121,6 @@ export async function dbLoadWorkVersionsTimeline(
     date_modified: row.date_modified,
     draft: row.draft,
     submissionVersions: mapSubmissionVersions(row.submissionVersions, workflows),
+    checkRuns: latestCheckRunsByKind(runsByVersionId[row.id]),
   }));
 }

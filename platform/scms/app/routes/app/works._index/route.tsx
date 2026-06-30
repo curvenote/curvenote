@@ -14,6 +14,8 @@ import {
   joinPageTitle,
   getWorkflows,
   registerExtensionWorkflows,
+  getExtensionCheckServicesFromClientConfig,
+  useDeploymentConfig,
   scopes,
   capitalize,
   plural,
@@ -24,10 +26,10 @@ import { PlusCircle } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { WorkList } from './WorkList';
+import type { WorkListCheckService } from './WorkCheckSummaries';
 import { dbGetWorksAndSubmissionVersions, dangerouslyDeleteDraftWork } from './db.server';
 import { getValidDraftWorksForUser } from './getDrafts.server';
 import { extensions } from '../../../extensions/client';
-import { extensions as serverExtensions } from '../../../extensions/server';
 
 // Action schema for handling draft work intents
 const WorksActionSchema = zfd.formData({
@@ -213,6 +215,11 @@ export function shouldRevalidate({
 export default function MyWorks({ loaderData }: Route.ComponentProps) {
   const { items, workflows, error, canUpload, stringReplacements } = loaderData;
   const navigate = useNavigate();
+  const deploymentConfig = useDeploymentConfig();
+  const checkServices = getExtensionCheckServicesFromClientConfig(
+    deploymentConfig,
+    extensions,
+  ) as WorkListCheckService[];
   const workLabel = stringReplacements.work;
   const worksLabel = plural(`${workLabel}(s)`, 2);
   const worksTitle = capitalize(worksLabel);
@@ -221,7 +228,7 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
     <div className="max-w-[900px]">
       {/* Works List Section without title when no tasks */}
       {error && <div className="p-2 my-2 text-red-600 bg-red-50">{error}</div>}
-      {items && <WorkList items={items} workflows={workflows} />}
+      {items && <WorkList items={items} workflows={workflows} checkServices={checkServices} />}
     </div>
   );
 
