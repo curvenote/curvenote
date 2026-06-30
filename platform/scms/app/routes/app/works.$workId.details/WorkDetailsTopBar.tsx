@@ -46,6 +46,7 @@ export function WorkDetailsTopBar({
     success?: boolean;
     workId?: string;
     workVersionId?: string;
+    redirectPath?: string;
   }>();
 
   const uploadButtonLabel = canResumeDraft ? 'Resume Draft Version' : 'Create new version';
@@ -68,13 +69,14 @@ export function WorkDetailsTopBar({
       fetcher.data.intent === 'create-new-version' &&
       fetcher.state === 'idle'
     ) {
-      if (
-        'success' in fetcher.data &&
-        fetcher.data.success &&
-        fetcher.data.workId &&
-        fetcher.data.workVersionId
-      ) {
-        navigate(`${workBasePath}/upload/${fetcher.data.workVersionId}?from=details`);
+      if ('success' in fetcher.data && fetcher.data.success && fetcher.data.workId) {
+        if (fetcher.data.redirectPath) {
+          navigate(fetcher.data.redirectPath);
+          return;
+        }
+        if (fetcher.data.workVersionId) {
+          navigate(`${workBasePath}/upload/${fetcher.data.workVersionId}?from=details`);
+        }
       }
     }
   }, [fetcher.state, fetcher.data, navigate, workBasePath]);

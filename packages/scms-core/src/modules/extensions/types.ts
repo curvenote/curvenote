@@ -24,6 +24,41 @@ export interface ExtensionTask {
   scopes?: string[]; // Optional list of scopes that the task is allowed to be accessed under
 }
 
+export type WorkCreateFormMode = 'standalone' | 'composite';
+
+/** Declarative create-work entry registered by the platform or an extension. */
+export interface WorkCreateOption {
+  id: string;
+  label: string;
+  description?: string;
+  /** Top-level workVersion.metadata key that identifies this flow on existing works. */
+  metadataKey: string;
+  /** App-absolute path that starts the create flow (e.g. `/app/works/new`). */
+  startPath: string;
+  mode?: WorkCreateFormMode;
+  scopes?: string[];
+  /** Present when the option is supplied by an extension. */
+  extensionId?: string;
+  order?: number;
+}
+
+/** @deprecated Use WorkCreateOption */
+export type ExtensionWorkCreateOption = WorkCreateOption;
+
+export interface ExtensionCreateWorkVersionArgs {
+  ctx: Context;
+  workId: string;
+  sourceVersionMetadata: Record<string, unknown>;
+  defaultTitle: string;
+}
+
+export interface ExtensionCreateWorkVersionResult {
+  success: boolean;
+  redirectPath?: string;
+  workVersionId?: string;
+  error?: string;
+}
+
 export interface ExtensionIcon {
   id: string;
   component: IconComponent;
@@ -282,6 +317,8 @@ export interface ClientExtension {
   name: string;
   description: string;
   getTasks?: () => ExtensionTask[];
+  /** Optional create-work menu entries keyed by work-version metadata. */
+  getWorkCreateOptions?: () => WorkCreateOption[];
   getIcons?: () => ExtensionIcon[];
   getAnalyticsEvents?: () => ExtensionAnalyticsEvents;
   getEmailTemplates?: () => ExtensionEmailTemplate[];
@@ -306,6 +343,13 @@ export interface ExtensionAdminActionHandler {
 
 export interface ServerExtension extends ClientExtension {
   registerRoutes?: (appConfig: AppConfig) => Promise<RouteRegistration[]>;
+  /**
+   * Create a new draft work version for an existing work when the resolved create option
+   * belongs to this extension. Return null when this extension does not handle the request.
+   */
+  createWorkVersion?: (
+    args: ExtensionCreateWorkVersionArgs,
+  ) => Promise<ExtensionCreateWorkVersionResult | null>;
   getJobs?: () => JobRegistration[];
   /**
    * Returns the effective configuration for this extension.
