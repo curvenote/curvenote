@@ -61,59 +61,44 @@ export function CreateWorkDropdown({
     );
   }
 
-  const primary = options[0];
-
   return (
-    <div className={cn('flex rounded-md shadow-sm', className)} role="group">
-      <Button
-        type="button"
-        size="lg"
-        variant="default"
-        className="inline-flex flex-1 gap-2 items-center min-w-0 rounded-r-none border-r border-white/30"
-        onClick={() => navigate(primary.startPath)}
-      >
-        <PlusCircle className="w-4 h-4 shrink-0" />
-        {triggerLabel}
-      </Button>
-      <Menu open={open} onOpenChange={setOpen}>
-        <MenuTrigger asChild>
-          <Button
-            type="button"
-            size="lg"
-            variant="default"
-            className={cn(
-              'px-2 rounded-l-none border-l-0 border-white/30 transition-colors',
-              open && 'bg-primary/60',
-            )}
-            aria-label="Choose work type to create"
-          >
-            {open ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-          </Button>
-        </MenuTrigger>
-        <MenuContent className="min-w-[14rem] p-1" align="end" sideOffset={4}>
-          {options.map((option) => {
-            const Icon = option.icon;
-            return (
-              <MenuItem
-                key={option.id}
-                className="flex gap-3 items-start px-3 py-2 text-sm"
-                onSelect={(e) => {
-                  e.preventDefault();
-                  handleSelect(option);
-                }}
-              >
-                {Icon ? <Icon className="mt-0.5 w-5 h-5 shrink-0 text-muted-foreground" /> : null}
-                <div className="flex flex-col gap-0.5 items-start min-w-0">
-                  <span className="font-medium">{option.label}</span>
-                  {option.description ? (
-                    <span className="text-xs text-muted-foreground">{option.description}</span>
-                  ) : null}
-                </div>
-              </MenuItem>
-            );
-          })}
-        </MenuContent>
-      </Menu>
-    </div>
+    <Menu open={open} onOpenChange={setOpen}>
+      <MenuTrigger asChild>
+        <Button
+          type="button"
+          size="lg"
+          variant="default"
+          className={cn('inline-flex gap-2 items-center', className)}
+          aria-label="Choose work type to create"
+        >
+          <PlusCircle className="w-4 h-4 shrink-0" />
+          {triggerLabel}
+          {open ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+        </Button>
+      </MenuTrigger>
+      <MenuContent className="min-w-[14rem] p-1" align="end" sideOffset={4}>
+        {options.map((option) => {
+          const Icon = option.icon;
+          return (
+            <MenuItem
+              key={option.id}
+              className="flex gap-3 items-start px-3 py-2 text-sm"
+              onSelect={(e) => {
+                e.preventDefault();
+                handleSelect(option);
+              }}
+            >
+              {Icon ? <Icon className="mt-0.5 w-5 h-5 shrink-0 text-muted-foreground" /> : null}
+              <div className="flex flex-col gap-0.5 items-start min-w-0">
+                <span className="font-medium">{option.label}</span>
+                {option.description ? (
+                  <span className="text-xs text-muted-foreground">{option.description}</span>
+                ) : null}
+              </div>
+            </MenuItem>
+          );
+        })}
+      </MenuContent>
+    </Menu>
   );
 }
