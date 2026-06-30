@@ -172,7 +172,7 @@ export function WorkVersionTimelineRow({
           const SummaryComponent = service.workListSummaryComponent;
           if (!SummaryComponent) return null;
           const chip = (
-            <span className="inline-flex h-5 max-w-full shrink-0 items-center gap-1 rounded-md border border-border bg-background px-1.5 text-[10px] text-foreground shadow-sm">
+            <span className="inline-flex h-5 max-w-full shrink-0 items-center gap-1 rounded-md border border-border bg-background px-1.5 text-[10px] text-foreground">
               <SummaryComponent
                 compact
                 metadata={metadata}
