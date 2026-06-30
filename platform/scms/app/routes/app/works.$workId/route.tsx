@@ -27,8 +27,7 @@ import {
   loadCheckMaintenanceByServiceIds,
   CheckMaintenanceProvider,
   scopes,
-  getAvailableWorkCreateOptions,
-  resolveWorkCreateOptionFromMetadata,
+  resolveCreateNewVersionOption,
   invokeExtensionCreateWorkVersion,
   BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
 } from '@curvenote/scms-core';
@@ -111,12 +110,16 @@ export async function action(args: ActionFunctionArgs) {
           { routes: value?.routes ?? false },
         ]),
       );
-      const availableOptions = getAvailableWorkCreateOptions(
+      const resolved = resolveCreateNewVersionOption(
+        sourceMetadata,
         extensionConfigs,
         serverExtensions,
         userScopes,
       );
-      const resolvedOption = resolveWorkCreateOptionFromMetadata(sourceMetadata, availableOptions);
+      if (!resolved.ok) {
+        return data({ success: false, intent, error: resolved.error }, { status: resolved.status });
+      }
+      const resolvedOption = resolved.option;
 
       if (resolvedOption.extensionId) {
         const extResult = await invokeExtensionCreateWorkVersion(

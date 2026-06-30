@@ -64,13 +64,17 @@ export const loader = async (args: LoaderFunctionArgs) => {
         { routes: value?.routes ?? false },
       ]),
     );
+    const createWorkOptions = getAvailableWorkCreateOptions(
+      extensionConfigs,
+      extensions,
+      userScopes,
+    );
 
     return {
       items: worksPromise,
       workflows,
       canUpload,
-      userScopes,
-      extensionConfigs,
+      createWorkOptions,
       stringReplacements,
     };
   } catch {
@@ -224,8 +228,7 @@ export function shouldRevalidate({
 }
 
 export default function MyWorks({ loaderData }: Route.ComponentProps) {
-  const { items, workflows, error, canUpload, userScopes, extensionConfigs, stringReplacements } =
-    loaderData;
+  const { items, workflows, error, canUpload, createWorkOptions, stringReplacements } = loaderData;
   const deploymentConfig = useDeploymentConfig();
   const checkServices = getExtensionCheckServicesFromClientConfig(
     deploymentConfig,
@@ -234,11 +237,6 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
   const workLabel = stringReplacements.work;
   const worksLabel = plural(`${workLabel}(s)`, 2);
   const worksTitle = capitalize(worksLabel);
-  const createWorkOptions = getAvailableWorkCreateOptions(
-    extensionConfigs ?? {},
-    extensions,
-    userScopes ?? [],
-  );
 
   const worksList = (
     <div className="max-w-[900px]">
@@ -260,7 +258,7 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
               subtitle={`Manage your ${worksLabel}`}
               action={
                 <CreateWorkDropdown
-                  options={createWorkOptions}
+                  options={createWorkOptions ?? []}
                   triggerLabel={`Create new ${workLabel}`}
                   disabled={!canUpload}
                   onDisabledClick={() =>

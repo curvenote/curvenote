@@ -7,6 +7,13 @@ import type {
 } from '../extensions/types.js';
 import { scopes } from '../../scopes.js';
 import { BUILTIN_ARTICLE_WORK_CREATE_OPTION } from './builtinArticleOption.js';
+import { resolveWorkCreateOptionFromMetadata } from './resolveWorkCreateOption.js';
+
+function sortWorkCreateOptions(options: WorkCreateOption[]): WorkCreateOption[] {
+  return options.sort(
+    (a, b) => (a.order ?? 100) - (b.order ?? 100) || a.label.localeCompare(b.label),
+  );
+}
 
 function userHasAllScopes(userScopes: string[], requiredScopes: string[]): boolean {
   if (userScopes.includes(scopes.system.admin)) return true;
@@ -40,9 +47,7 @@ export function getExtensionWorkCreateOptions(
     }
   }
 
-  return options.sort(
-    (a, b) => (a.order ?? 100) - (b.order ?? 100) || a.label.localeCompare(b.label),
-  );
+  return sortWorkCreateOptions(options);
 }
 
 /**
@@ -57,6 +62,69 @@ export function getAvailableWorkCreateOptions(
   const extensionOptions = getExtensionWorkCreateOptions(config, clientExtensions, userScopes);
   const articleOption = includeArticle ? [BUILTIN_ARTICLE_WORK_CREATE_OPTION] : [];
   return [...articleOption, ...extensionOptions];
+}
+
+/**
+ * All extension create-work options from registered extensions, without config or scope filtering.
+ * Used to detect a work's intended flow when create-new-version may not expose that flow to the user.
+ */
+export function getAllRegisteredWorkCreateOptions(
+  clientExtensions: ClientExtension[],
+): WorkCreateOption[] {
+  const options: WorkCreateOption[] = [];
+
+  for (const ext of clientExtensions) {
+    if (!ext.getWorkCreateOptions) continue;
+
+    for (const option of ext.getWorkCreateOptions()) {
+      options.push({ ...option, extensionId: ext.id });
+    }
+  }
+
+  return sortWorkCreateOptions(options);
+}
+
+export type ResolveCreateNewVersionOptionResult =
+  | { ok: true; option: WorkCreateOption }
+  | { ok: false; error: string; status: 403 };
+
+/**
+ * Resolve which create flow to use for an existing work, failing clearly when metadata implies
+ * an extension flow that is disabled or unavailable to the current user.
+ */
+export function resolveCreateNewVersionOption(
+  sourceMetadata: Record<string, unknown>,
+  config: Record<string, { routes?: boolean }>,
+  extensions: ClientExtension[],
+  userScopes: string[],
+): ResolveCreateNewVersionOptionResult {
+  const allRegisteredOptions = getAllRegisteredWorkCreateOptions(extensions);
+  const intendedOption = resolveWorkCreateOptionFromMetadata(sourceMetadata, [
+    BUILTIN_ARTICLE_WORK_CREATE_OPTION,
+    ...allRegisteredOptions,
+  ]);
+
+  const availableOptions = getAvailableWorkCreateOptions(config, extensions, userScopes);
+
+  if (intendedOption.extensionId) {
+    const availableOption = availableOptions.find(
+      (option) =>
+        option.id === intendedOption.id && option.extensionId === intendedOption.extensionId,
+    );
+    if (!availableOption) {
+      return {
+        ok: false,
+        error: `The "${intendedOption.label}" create flow is not available.`,
+        status: 403,
+      };
+    }
+    return { ok: true, option: availableOption };
+  }
+
+  return {
+    ok: true,
+    option: resolveWorkCreateOptionFromMetadata(sourceMetadata, availableOptions),
+  };
 }
 
 export async function invokeExtensionCreateWorkVersion(
