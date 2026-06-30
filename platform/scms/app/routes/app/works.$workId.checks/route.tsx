@@ -216,11 +216,11 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     const versionDate = formatDate(entry.versionDateCreated, 'MMM dd, y HH:mm');
     return (
       <span
-        className="inline-flex gap-1.5 items-center text-[11px] text-muted-foreground"
+        className="inline-flex gap-1.5 items-center text-xs text-muted-foreground"
         title={formatDatetime(entry.versionDateCreated)}
       >
-        <GitBranch className="size-3 shrink-0" aria-hidden />
-        <span>Work version: {versionDate}</span>
+        <GitBranch className="size-3.5 shrink-0" aria-hidden />
+        <span>{versionDate}</span>
       </span>
     );
   };
@@ -319,7 +319,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                     />
                   </ui.CardContent>
                   {latest ? (
-                    <div className="flex justify-start px-6 py-2 border-t border-border">
+                    <div className="flex justify-start py-1.5 pr-6 pl-3 border-t border-border">
                       {renderWorkVersionDate(latest)}
                     </div>
                   ) : null}
