@@ -8,6 +8,7 @@ import {
   type ChecksMetadataSection,
 } from '@curvenote/scms-server';
 import type { FileMetadataSection } from '@curvenote/scms-core';
+import { Calendar } from 'lucide-react';
 import {
   PageFrame,
   getBrandingFromMetaMatches,
@@ -211,14 +212,12 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   }, [showDispatchingState, revalidator]);
 
   const renderVersionTag = (entry: ServiceRunEntry) => {
-    const emphasis = entry.workVersionId === latestNonDraftWorkVersion.id ? 'latest' : 'previous';
     return (
       <span className="inline-flex gap-2 items-center">
         <ui.VersionTagBadge
           tag={formatDate(entry.versionDateCreated)}
           titlePrefix="Work version created"
-          hideIcon
-          emphasis={emphasis}
+          icon={Calendar}
         />
         <DateWithPopover
           date={entry.run.date_modified}
