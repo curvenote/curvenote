@@ -169,8 +169,8 @@ export function WorkListItem({
         </div>
 
         {/* Column 2: Activity and Date */}
-        <div className="flex flex-col flex-shrink-0 items-center self-stretch w-48 pt-[1px]">
-          <div className="flex flex-wrap gap-2 justify-center mb-2 w-full">
+        <div className="flex flex-col flex-shrink-0 items-start self-stretch w-48 pt-[1px]">
+          <div className="flex flex-wrap gap-2 justify-start mb-2 w-full">
             {activityTime && (
               <primitives.Chip
                 className="text-gray-500 border-[1px] border-gray-200 dark:border-gray-500 dark:text-gray-500"
