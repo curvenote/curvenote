@@ -29,24 +29,20 @@ describe('getCheckRunSummaryByKind', () => {
         { id: 'wv-1', date_created: '2026-01-01T00:00:00.000Z' },
       ],
       {
-        'wv-3': [run('proofig-new', 'proofig', 'wv-3', '2026-01-05T00:00:00.000Z')],
-        'wv-2': [
-          run('text-integrity-new', 'checks-text-integrity', 'wv-2', '2026-01-04T00:00:00.000Z'),
-        ],
+        'wv-3': [run('service-a-new', 'service-a', 'wv-3', '2026-01-05T00:00:00.000Z')],
+        'wv-2': [run('service-b-new', 'service-b', 'wv-2', '2026-01-04T00:00:00.000Z')],
         'wv-1': [
-          run('proofig-old', 'proofig', 'wv-1', '2026-01-02T12:00:00.000Z'),
-          run('text-integrity-old', 'checks-text-integrity', 'wv-1', '2026-01-01T12:00:00.000Z'),
+          run('service-a-old', 'service-a', 'wv-1', '2026-01-02T12:00:00.000Z'),
+          run('service-b-old', 'service-b', 'wv-1', '2026-01-01T12:00:00.000Z'),
         ],
       },
     );
 
-    expect(summary.latestRunByServiceKind.proofig.run.id).toBe('proofig-new');
-    expect(summary.latestRunByServiceKind.proofig.versionNumber).toBe(3);
-    expect(summary.latestRunByServiceKind['checks-text-integrity'].run.id).toBe(
-      'text-integrity-new',
-    );
-    expect(summary.latestRunByServiceKind['checks-text-integrity'].versionNumber).toBe(2);
-    expect(summary.previousRunsByServiceKind.proofig).toHaveLength(1);
+    expect(summary.latestRunByServiceKind['service-a'].run.id).toBe('service-a-new');
+    expect(summary.latestRunByServiceKind['service-a'].versionNumber).toBe(3);
+    expect(summary.latestRunByServiceKind['service-b'].run.id).toBe('service-b-new');
+    expect(summary.latestRunByServiceKind['service-b'].versionNumber).toBe(2);
+    expect(summary.previousRunsByServiceKind['service-a']).toHaveLength(1);
   });
 
   it('dedupes multiple same-kind runs on a version to the first row supplied', () => {
@@ -57,15 +53,15 @@ describe('getCheckRunSummaryByKind', () => {
       ],
       {
         'wv-2': [
-          run('latest-on-version', 'proofig', 'wv-2', '2026-01-03T00:00:00.000Z'),
-          run('older-on-version', 'proofig', 'wv-2', '2026-01-02T12:00:00.000Z'),
+          run('latest-on-version', 'service-a', 'wv-2', '2026-01-03T00:00:00.000Z'),
+          run('older-on-version', 'service-a', 'wv-2', '2026-01-02T12:00:00.000Z'),
         ],
-        'wv-1': [run('older-version', 'proofig', 'wv-1', '2026-01-01T12:00:00.000Z')],
+        'wv-1': [run('older-version', 'service-a', 'wv-1', '2026-01-01T12:00:00.000Z')],
       },
     );
 
-    expect(summary.latestRunByServiceKind.proofig.run.id).toBe('latest-on-version');
-    expect(summary.previousRunsByServiceKind.proofig.map((entry) => entry.run.id)).toEqual([
+    expect(summary.latestRunByServiceKind['service-a'].run.id).toBe('latest-on-version');
+    expect(summary.previousRunsByServiceKind['service-a'].map((entry) => entry.run.id)).toEqual([
       'older-version',
     ]);
   });

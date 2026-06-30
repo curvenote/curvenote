@@ -66,7 +66,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
     mockPrisma.checkServiceRun.findMany.mockResolvedValue([
       {
         id: 'run-2',
-        kind: 'proofig',
+        kind: 'service-a',
         date_created: '2026-05-02T10:00:00.000Z',
         date_modified: '2026-05-02T10:05:00.000Z',
         data: { serviceData: { status: 'latest' } },
@@ -75,7 +75,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
       },
       {
         id: 'run-1',
-        kind: 'proofig',
+        kind: 'service-a',
         date_created: '2026-05-02T09:00:00.000Z',
         date_modified: '2026-05-02T09:05:00.000Z',
         data: { serviceData: { status: 'older' } },
@@ -84,7 +84,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
       },
       {
         id: 'run-3',
-        kind: 'checks-text-integrity',
+        kind: 'service-b',
         date_created: '2026-05-01T10:00:00.000Z',
         date_modified: '2026-05-01T10:05:00.000Z',
         data: { serviceData: { status: 'text' } },
@@ -121,7 +121,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
           {
             id: 'run-2',
             work_version_id: 'wv-2',
-            kind: 'proofig',
+            kind: 'service-a',
             date_created: '2026-05-02T10:00:00.000Z',
             date_modified: '2026-05-02T10:05:00.000Z',
             data: { serviceData: { status: 'latest' } },
@@ -138,7 +138,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
           {
             id: 'run-3',
             work_version_id: 'wv-1',
-            kind: 'checks-text-integrity',
+            kind: 'service-b',
             date_created: '2026-05-01T10:00:00.000Z',
             date_modified: '2026-05-01T10:05:00.000Z',
             data: { serviceData: { status: 'text' } },

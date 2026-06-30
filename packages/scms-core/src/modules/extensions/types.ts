@@ -89,7 +89,7 @@ export type ExtensionCheckHandleActionResult = {
   status?: number;
   /** True when a hydrate/sync intent mutated check run data (skip revalidation when false). */
   updated?: boolean;
-  /** EULA gating (e.g. text integrity `eula-status` / `execute`). */
+  /** Optional acceptance gating for check execution flows. */
   requireEula?: boolean;
   requiresEula?: boolean;
   accepted?: boolean;
@@ -131,7 +131,7 @@ export type ExtensionCheckSectionActivityProps = {
 export type ExtensionCheckRunTimelineMountProps = {
   checkRunId: string;
   workVersionId: string;
-  /** Check service id from the run row (e.g. `proofig`). */
+  /** Check service id from the run row. */
   checkKind: string;
   metadata: unknown;
   /** POST target for check UI mutations. */
@@ -160,7 +160,7 @@ export type ExtensionCheckWorkListSummaryProps = {
   metadata: any;
   checkRunId: string;
   workVersionId: string;
-  /** Check service id from the run row (e.g. `proofig`). */
+  /** Check service id from the run row. */
   checkServiceId: string;
   /** Display name from the registered check service. */
   checkServiceName: string;
@@ -178,7 +178,7 @@ export interface UploadCheckOptionProps {
   disabled?: boolean;
   /** Check is selected but uploaded files no longer meet requirements. */
   invalid?: boolean;
-  /** Service manifest logo URL when available (e.g. text integrity Object config). */
+  /** Service manifest logo URL when available. */
   logoUrl?: string;
   /** Platform persists selection via `toggle-check` on the upload route. */
   setEnabled: (enabled: boolean) => Promise<void>;
@@ -191,7 +191,7 @@ export interface ExtensionCheckService {
   name: string; // Display name
   description: string; // Display description
   /**
-   * App-absolute path for extension-owned check actions (e.g. `/app/extensions/proofig/actions`).
+   * App-absolute path for extension-owned check actions.
    * When set, the platform uses this for `remoteStatusActionPath` on the checks page and work timeline.
    */
   checksActionPath?: string;
