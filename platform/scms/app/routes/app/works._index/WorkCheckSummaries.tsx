@@ -117,7 +117,9 @@ export function WorkCheckSummaries({
           return (
             <ui.SimpleTooltip
               key={entry.run.id}
-              title={`${service.name} check was run on ${formatDate(entry.run.date_created)}`}
+              title={`${service.name} check was run on ${formatDate(
+                entry.run.date_created,
+              )} on the work version dated ${formatDate(entry.versionDateCreated)}`}
               side="top"
               sideOffset={6}
             >
