@@ -6,17 +6,15 @@ import type {
   WorkVersionTimelineEntry,
 } from '../types/versionTimeline.js';
 import type { ClientExtensionCheckService } from '../modules/extensions/types.js';
+import {
+  getCheckServiceRunServiceData,
+  isCheckWorkListSummaryVisible,
+} from '../modules/extensions/checks.js';
 import { formatDate, formatDatetime } from '../utils/formatDate.js';
 import { getStatusDotClasses, getStatusRingClasses } from '../utils/status.js';
 import { cn } from '../utils/cn.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
 import { SubmissionVersionSiteChip } from './SubmissionVersionSiteChip.js';
-
-function serviceDataFromRun(run: WorkVersionTimelineCheckRun): unknown {
-  return run.data != null && typeof run.data === 'object' && 'serviceData' in run.data
-    ? (run.data as { serviceData?: unknown }).serviceData
-    : undefined;
-}
 
 export function VersionTimelineRowShell({
   dotStatus,
@@ -143,7 +141,11 @@ export function WorkVersionTimelineRow({
   const submissionVersions = entry.submissionVersions ?? [];
   const serviceById = new Map(checkServices.map((service) => [service.id, service]));
   const checkRuns = (entry.checkRuns ?? [])
-    .map((run) => ({ run, service: serviceById.get(run.kind), metadata: serviceDataFromRun(run) }))
+    .map((run) => ({
+      run,
+      service: serviceById.get(run.kind),
+      metadata: getCheckServiceRunServiceData(run),
+    }))
     .filter(
       (
         summary,
@@ -152,8 +154,7 @@ export function WorkVersionTimelineRow({
         service: ClientExtensionCheckService;
         metadata: unknown;
       } =>
-        summary.service != null &&
-        (summary.service.isWorkListSummaryVisible?.(summary.metadata) ?? true),
+        summary.service != null && isCheckWorkListSummaryVisible(summary.service, summary.metadata),
     );
 
   return (

@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   extensionChecksEnabledFromClientConfig,
   extensionChecksEnabledFromServerConfig,
+  getCheckServiceRunServiceData,
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
+  isCheckWorkListSummaryVisible,
 } from './checks.js';
 import type { ClientExtension, ServerExtension } from './types.js';
 
@@ -79,5 +81,35 @@ describe('extension checks config gates', () => {
       mockCheckExtension as ServerExtension,
     ]);
     expect(services).toEqual([]);
+  });
+});
+
+describe('check work-list summary helpers', () => {
+  it('extracts extension serviceData from check run data', () => {
+    const serviceData = { score: 73 };
+
+    expect(getCheckServiceRunServiceData({ data: { serviceData } })).toBe(serviceData);
+  });
+
+  it('returns undefined when check run data does not contain serviceData', () => {
+    expect(getCheckServiceRunServiceData({ data: null })).toBeUndefined();
+    expect(getCheckServiceRunServiceData({ data: 'ready' })).toBeUndefined();
+    expect(getCheckServiceRunServiceData({ data: { status: 'completed' } })).toBeUndefined();
+  });
+
+  it('defaults work-list summaries to visible unless the service predicate hides them', () => {
+    expect(isCheckWorkListSummaryVisible({}, { status: 'completed' })).toBe(true);
+    expect(
+      isCheckWorkListSummaryVisible(
+        { isWorkListSummaryVisible: (metadata) => metadata !== 'hide' },
+        'show',
+      ),
+    ).toBe(true);
+    expect(
+      isCheckWorkListSummaryVisible(
+        { isWorkListSummaryVisible: (metadata) => metadata !== 'hide' },
+        'hide',
+      ),
+    ).toBe(false);
   });
 });

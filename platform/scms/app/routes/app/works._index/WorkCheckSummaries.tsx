@@ -1,7 +1,12 @@
 import { Link } from 'react-router';
 import type { ComponentType } from 'react';
 import type { ClientExtensionCheckService } from '@curvenote/scms-core';
-import { formatDate, ui } from '@curvenote/scms-core';
+import {
+  formatDate,
+  getCheckServiceRunServiceData,
+  isCheckWorkListSummaryVisible,
+  ui,
+} from '@curvenote/scms-core';
 import type { ServiceRunEntry } from '../works.$workId/checkServiceRunSummaries';
 
 type WorkListSummaryComponentProps = {
@@ -25,14 +30,6 @@ type WorkCheckSummariesProps = {
   checkServices: WorkListCheckService[];
 };
 
-function serviceDataFromRun(entry: ServiceRunEntry): unknown {
-  return entry.run.data != null &&
-    typeof entry.run.data === 'object' &&
-    'serviceData' in entry.run.data
-    ? (entry.run.data as { serviceData?: unknown }).serviceData
-    : undefined;
-}
-
 function WorkCheckSummaryContent({
   service,
   entry,
@@ -41,7 +38,7 @@ function WorkCheckSummaryContent({
   entry: ServiceRunEntry;
 }) {
   const SummaryComponent = service.workListSummaryComponent;
-  const metadata = serviceDataFromRun(entry);
+  const metadata = getCheckServiceRunServiceData(entry.run);
 
   if (SummaryComponent) {
     return (
@@ -86,7 +83,7 @@ export function WorkCheckSummaries({
   const summaries = Object.values(latestCheckRunsByServiceKind)
     .map((entry) => {
       const service = serviceById.get(entry.run.kind);
-      return { entry, service, metadata: serviceDataFromRun(entry) };
+      return { entry, service, metadata: getCheckServiceRunServiceData(entry.run) };
     })
     .filter(
       (
@@ -96,8 +93,7 @@ export function WorkCheckSummaries({
         service: WorkListCheckService;
         metadata: unknown;
       } =>
-        summary.service != null &&
-        (summary.service.isWorkListSummaryVisible?.(summary.metadata) ?? true),
+        summary.service != null && isCheckWorkListSummaryVisible(summary.service, summary.metadata),
     )
     .sort((a, b) =>
       a.entry.run.date_created > b.entry.run.date_created
