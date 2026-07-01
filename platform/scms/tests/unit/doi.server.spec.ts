@@ -51,11 +51,27 @@ describe('checkDoiReachability', () => {
   });
 
   it('returns ok when HEAD succeeds', async () => {
-    fetchMock.mockResolvedValue({ status: 302 });
+    fetchMock.mockResolvedValueOnce({ status: 302 });
 
     await expect(checkDoiReachability('10.1234/example')).resolves.toEqual({ ok: true });
     expect(fetchMock).toHaveBeenCalledWith('https://doi.org/10.1234/example', {
       method: 'HEAD',
+      redirect: 'manual',
+    });
+  });
+
+  it('falls back to GET when HEAD is not reachable', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ status: 404 })
+      .mockResolvedValueOnce({ status: 302 });
+
+    await expect(checkDoiReachability('10.1234/example')).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenNthCalledWith(1, 'https://doi.org/10.1234/example', {
+      method: 'HEAD',
+      redirect: 'manual',
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://doi.org/10.1234/example', {
+      method: 'GET',
       redirect: 'manual',
     });
   });

@@ -4,7 +4,8 @@ import { parseDoiFormat, type ParseDoiFormatResult } from './doiFormat.js';
 export type { ParseDoiFormatResult as ValidateDoiResult };
 
 function isDoiReachableStatus(status: number): boolean {
-  return status === 301 || status === 302 || (status >= 200 && status < 300);
+  // doi.org may respond with redirects or allow GET-style success codes; some registrars return 405 for HEAD.
+  return status === 301 || status === 302 || status === 405 || (status >= 200 && status < 300);
 }
 
 /** Persisted save: valid format only; reachability is not required. */
@@ -27,7 +28,10 @@ export async function checkDoiReachability(raw: string): Promise<CheckDoiReachab
   }
 
   try {
-    const resp = await fetch(url, { method: 'HEAD', redirect: 'manual' });
+    let resp = await fetch(url, { method: 'HEAD', redirect: 'manual' });
+    if (!isDoiReachableStatus(resp.status)) {
+      resp = await fetch(url, { method: 'GET', redirect: 'manual' });
+    }
     if (!isDoiReachableStatus(resp.status)) {
       return { ok: false, error: 'DOI does not resolve to a reachable URL' };
     }

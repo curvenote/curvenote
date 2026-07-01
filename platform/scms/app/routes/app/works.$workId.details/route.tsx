@@ -80,13 +80,23 @@ export async function action(args: Route.ActionArgs) {
 
   if (intent === 'validate-doi') {
     const raw = rawDoi?.trim() ?? '';
-    const reach = await checkDoiReachability(raw);
-    return {
-      success: true,
-      intent,
-      reachable: reach.ok,
-      reachabilityError: reach.ok ? undefined : reach.error,
-    };
+    try {
+      const reach = await checkDoiReachability(raw);
+      return {
+        success: true,
+        intent,
+        reachable: reach.ok,
+        reachabilityError: reach.ok ? undefined : reach.error,
+      };
+    } catch (error) {
+      console.error('validate-doi failed', error);
+      return {
+        success: true,
+        intent,
+        reachable: false,
+        reachabilityError: 'DOI lookup failed',
+      };
+    }
   }
 
   if (intent === 'set-doi') {
