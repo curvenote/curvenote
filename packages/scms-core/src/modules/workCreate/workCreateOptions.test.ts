@@ -79,12 +79,12 @@ describe('getAvailableWorkCreateOptions', () => {
     expect(options.map((o) => o.id)).toEqual(['article', 'pmc-deposit']);
   });
 
-  it('includes Check a Work when checks feature scope is present', () => {
+  it('includes Check My Work when checks feature scope is present', () => {
     const options = getAvailableWorkCreateOptions({}, [], ['app:works:checks:feature']);
     expect(options.map((o) => o.id)).toEqual(['article', 'check']);
   });
 
-  it('omits Check a Work without checks feature scope', () => {
+  it('omits Check My Work without checks feature scope', () => {
     const options = getAvailableWorkCreateOptions({}, [], ['app:works:upload']);
     expect(options.map((o) => o.id)).toEqual(['article']);
   });

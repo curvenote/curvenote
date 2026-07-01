@@ -7,7 +7,7 @@ export const BUILTIN_CHECK_WORK_CREATE_OPTION_ID = 'check';
 /** Built-in checks upload flow (same launcher as legacy Check My Work task). */
 export const BUILTIN_CHECK_WORK_CREATE_OPTION: WorkCreateOption = {
   id: BUILTIN_CHECK_WORK_CREATE_OPTION_ID,
-  label: 'Check a Work',
+  label: 'Check My Work',
   description: 'Upload files and run integrity checks',
   icon: ShieldCheck,
   /** Entry-point label for the checks upload launcher; not used for create-new-version resolution. */
