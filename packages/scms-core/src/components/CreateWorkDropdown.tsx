@@ -36,7 +36,7 @@ export function CreateWorkDropdown({
         type="button"
         size="lg"
         variant="default"
-        className={cn('inline-flex gap-2 items-center', className)}
+        className={cn('inline-flex gap-1.5 items-center w-fit shrink-0 px-4', className)}
         onClick={onDisabledClick}
       >
         <PlusCircle className="w-4 h-4" />
@@ -52,7 +52,7 @@ export function CreateWorkDropdown({
         type="button"
         size="lg"
         variant="default"
-        className={cn('inline-flex gap-2 items-center', className)}
+        className={cn('inline-flex gap-1.5 items-center w-fit shrink-0 px-4', className)}
         onClick={() => (only ? navigate(only.startPath) : undefined)}
       >
         <PlusCircle className="w-4 h-4" />
@@ -68,7 +68,7 @@ export function CreateWorkDropdown({
           type="button"
           size="lg"
           variant="default"
-          className={cn('inline-flex gap-2 items-center', className)}
+          className={cn('inline-flex gap-1.5 items-center w-fit shrink-0 px-4', className)}
           aria-label="Choose work type to create"
         >
           <PlusCircle className="w-4 h-4 shrink-0" />
@@ -76,7 +76,7 @@ export function CreateWorkDropdown({
           {open ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
         </Button>
       </MenuTrigger>
-      <MenuContent className="min-w-[14rem] p-1" align="end" sideOffset={4}>
+      <MenuContent className="min-w-[20rem] max-w-[24rem] p-1" align="end" sideOffset={4}>
         {options.map((option) => {
           const Icon = option.icon;
           return (

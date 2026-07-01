@@ -11,15 +11,14 @@ function metadataHasKey(metadata: Record<string, unknown>, key: string): boolean
 /**
  * Pick the create-work option that best matches an existing work version's metadata.
  * Extension options win when their metadata key is present; otherwise Article is the fallback.
+ * Built-in Check is an entry-point only (same launcher as Article) and is excluded here.
  */
 export function resolveWorkCreateOptionFromMetadata(
   metadata: Record<string, unknown> | null | undefined,
   availableOptions: WorkCreateOption[],
 ): WorkCreateOption {
   const meta = metadata ?? {};
-  const extensionOptions = availableOptions.filter(
-    (option) => option.id !== BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
-  );
+  const extensionOptions = availableOptions.filter((option) => option.extensionId);
 
   for (const option of extensionOptions) {
     if (metadataHasKey(meta, option.metadataKey)) {

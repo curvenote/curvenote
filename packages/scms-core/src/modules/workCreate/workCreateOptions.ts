@@ -12,6 +12,10 @@ import {
   BUILTIN_ARTICLE_WORK_CREATE_OPTION,
   BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
 } from './builtinArticleOption.js';
+import {
+  BUILTIN_CHECK_WORK_CREATE_OPTION,
+  BUILTIN_CHECK_WORK_CREATE_OPTION_ID,
+} from './builtinCheckWorkOption.js';
 import { resolveWorkCreateOptionFromMetadata } from './resolveWorkCreateOption.js';
 
 /** Loader-safe create-work option (no React component references). */
@@ -33,6 +37,9 @@ function iconForSerializableOption(
 ): IconComponent | undefined {
   if (option.id === BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID) {
     return BUILTIN_ARTICLE_WORK_CREATE_OPTION.icon;
+  }
+  if (option.id === BUILTIN_CHECK_WORK_CREATE_OPTION_ID) {
+    return BUILTIN_CHECK_WORK_CREATE_OPTION.icon;
   }
   if (!option.extensionId) return undefined;
 
@@ -105,8 +112,12 @@ export function getAvailableWorkCreateOptions(
   { includeArticle = true }: { includeArticle?: boolean } = {},
 ): WorkCreateOption[] {
   const extensionOptions = getExtensionWorkCreateOptions(config, clientExtensions, userScopes);
-  const articleOption = includeArticle ? [BUILTIN_ARTICLE_WORK_CREATE_OPTION] : [];
-  return [...articleOption, ...extensionOptions];
+  const builtinOptions: WorkCreateOption[] = [];
+  if (includeArticle) builtinOptions.push(BUILTIN_ARTICLE_WORK_CREATE_OPTION);
+  if (filterOptionByScopes(BUILTIN_CHECK_WORK_CREATE_OPTION, userScopes)) {
+    builtinOptions.push(BUILTIN_CHECK_WORK_CREATE_OPTION);
+  }
+  return sortWorkCreateOptions([...builtinOptions, ...extensionOptions]);
 }
 
 /**

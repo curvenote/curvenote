@@ -6,6 +6,10 @@ import {
   BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
 } from './builtinArticleOption.js';
 import {
+  BUILTIN_CHECK_WORK_CREATE_OPTION,
+  BUILTIN_CHECK_WORK_CREATE_OPTION_ID,
+} from './builtinCheckWorkOption.js';
+import {
   getAllRegisteredWorkCreateOptions,
   getAvailableWorkCreateOptions,
   getExtensionWorkCreateOptions,
@@ -74,12 +78,23 @@ describe('getAvailableWorkCreateOptions', () => {
     const options = getAvailableWorkCreateOptions({ pmc: { routes: true } }, mockExtensions, []);
     expect(options.map((o) => o.id)).toEqual(['article', 'pmc-deposit']);
   });
+
+  it('includes Check a Work when checks feature scope is present', () => {
+    const options = getAvailableWorkCreateOptions({}, [], ['app:works:checks:feature']);
+    expect(options.map((o) => o.id)).toEqual(['article', 'check']);
+  });
+
+  it('omits Check a Work without checks feature scope', () => {
+    const options = getAvailableWorkCreateOptions({}, [], ['app:works:upload']);
+    expect(options.map((o) => o.id)).toEqual(['article']);
+  });
 });
 
 describe('resolveWorkCreateOptionFromMetadata', () => {
   it('falls back to Article when no extension metadata key is present', () => {
     const resolved = resolveWorkCreateOptionFromMetadata({ checks: { enabled: [] } }, [
       BUILTIN_ARTICLE_WORK_CREATE_OPTION,
+      BUILTIN_CHECK_WORK_CREATE_OPTION,
       pmcOption,
     ]);
     expect(resolved.id).toBe(BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID);
