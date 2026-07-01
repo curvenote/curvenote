@@ -101,8 +101,14 @@ export async function action(args: ActionFunctionArgs) {
     }
     try {
       const latestNonDraft = ctx.work.versions?.find((v) => !v.draft);
+      const [latestNonDraftWithMetadata] = latestNonDraft
+        ? await dbAttachMetadataToWorkVersions([latestNonDraft])
+        : [];
       const workTitle = latestNonDraft?.title ?? ctx.workDTO?.title ?? '';
-      const sourceMetadata = (latestNonDraft?.metadata ?? {}) as Record<string, unknown>;
+      const sourceMetadata = (latestNonDraftWithMetadata?.metadata ?? {}) as Record<
+        string,
+        unknown
+      >;
       const userScopes = Array.from(getUserScopesSet(ctx.user));
       const extensionConfigs = Object.fromEntries(
         Object.entries(ctx.$config?.app?.extensions ?? {}).map(([key, value]) => [
