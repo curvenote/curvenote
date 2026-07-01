@@ -19,6 +19,8 @@ import {
   getExtensionCheckServicesFromClientConfig,
   useDeploymentConfig,
   getAvailableWorkCreateOptions,
+  hydrateWorkCreateOptions,
+  toSerializableWorkCreateOptions,
   scopes,
   capitalize,
   plural,
@@ -64,10 +66,8 @@ export const loader = async (args: LoaderFunctionArgs) => {
         { routes: value?.routes ?? false },
       ]),
     );
-    const createWorkOptions = getAvailableWorkCreateOptions(
-      extensionConfigs,
-      extensions,
-      userScopes,
+    const createWorkOptions = toSerializableWorkCreateOptions(
+      getAvailableWorkCreateOptions(extensionConfigs, extensions, userScopes),
     );
 
     return {
@@ -229,6 +229,7 @@ export function shouldRevalidate({
 
 export default function MyWorks({ loaderData }: Route.ComponentProps) {
   const { items, workflows, error, canUpload, createWorkOptions, stringReplacements } = loaderData;
+  const hydratedCreateWorkOptions = hydrateWorkCreateOptions(createWorkOptions ?? [], extensions);
   const deploymentConfig = useDeploymentConfig();
   const checkServices = getExtensionCheckServicesFromClientConfig(
     deploymentConfig,
@@ -258,7 +259,7 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
               subtitle={`Manage your ${worksLabel}`}
               action={
                 <CreateWorkDropdown
-                  options={createWorkOptions ?? []}
+                  options={hydratedCreateWorkOptions}
                   triggerLabel={`Create new ${workLabel}`}
                   disabled={!canUpload}
                   onDisabledClick={() =>

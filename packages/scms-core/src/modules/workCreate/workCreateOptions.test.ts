@@ -9,8 +9,10 @@ import {
   getAllRegisteredWorkCreateOptions,
   getAvailableWorkCreateOptions,
   getExtensionWorkCreateOptions,
+  hydrateWorkCreateOptions,
   invokeExtensionCreateWorkVersion,
   resolveCreateNewVersionOption,
+  toSerializableWorkCreateOptions,
 } from './workCreateOptions.js';
 import { resolveWorkCreateOptionFromMetadata } from './resolveWorkCreateOption.js';
 
@@ -22,6 +24,8 @@ const pmcOption: WorkCreateOption = {
   mode: 'standalone',
   extensionId: 'pmc',
 };
+
+const MockPmcIcon = () => null;
 
 const mockExtensions: ClientExtension[] = [
   {
@@ -35,8 +39,10 @@ const mockExtensions: ClientExtension[] = [
         label: 'PMC Deposit',
         metadataKey: 'pmc',
         startPath: '/app/works/pmc',
+        icon: MockPmcIcon,
       },
     ],
+    getIcons: () => [{ id: 'pmc', component: MockPmcIcon, tags: ['default'] }],
   },
 ];
 
@@ -190,5 +196,47 @@ describe('invokeExtensionCreateWorkVersion', () => {
       redirectPath: '/deposit',
     });
     expect(createWorkVersion).toHaveBeenCalledWith(args);
+  });
+});
+
+describe('toSerializableWorkCreateOptions / hydrateWorkCreateOptions', () => {
+  it('strips icon from loader payload and re-attaches from client extension registry', () => {
+    const full = getAvailableWorkCreateOptions({ pmc: { routes: true } }, mockExtensions, []);
+    const serialized = toSerializableWorkCreateOptions(full);
+
+    expect(serialized.every((option) => !('icon' in option))).toBe(true);
+
+    const hydrated = hydrateWorkCreateOptions(serialized, mockExtensions);
+    expect(hydrated.find((o) => o.id === 'article')?.icon).toBe(
+      BUILTIN_ARTICLE_WORK_CREATE_OPTION.icon,
+    );
+    expect(hydrated.find((o) => o.id === 'pmc-deposit')?.icon).toBe(MockPmcIcon);
+  });
+
+  it('falls back to extension default icon when option omits icon in getWorkCreateOptions', () => {
+    const extensionsWithoutOptionIcon: ClientExtension[] = [
+      {
+        ...mockExtensions[0]!,
+        getWorkCreateOptions: () => [
+          {
+            id: 'pmc-deposit',
+            label: 'PMC Deposit',
+            metadataKey: 'pmc',
+            startPath: '/app/works/pmc',
+          },
+        ],
+      },
+    ];
+    const serialized = toSerializableWorkCreateOptions([
+      {
+        id: 'pmc-deposit',
+        label: 'PMC Deposit',
+        metadataKey: 'pmc',
+        startPath: '/app/works/pmc',
+        extensionId: 'pmc',
+      },
+    ]);
+    const hydrated = hydrateWorkCreateOptions(serialized, extensionsWithoutOptionIcon);
+    expect(hydrated[0]?.icon).toBe(MockPmcIcon);
   });
 });

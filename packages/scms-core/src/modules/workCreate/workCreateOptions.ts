@@ -2,12 +2,57 @@ import type {
   ClientExtension,
   ExtensionCreateWorkVersionArgs,
   ExtensionCreateWorkVersionResult,
+  IconComponent,
   ServerExtension,
   WorkCreateOption,
 } from '../extensions/types.js';
+import { getExtensionIcon } from '../extensions/icons.js';
 import { scopes } from '../../scopes.js';
-import { BUILTIN_ARTICLE_WORK_CREATE_OPTION } from './builtinArticleOption.js';
+import {
+  BUILTIN_ARTICLE_WORK_CREATE_OPTION,
+  BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
+} from './builtinArticleOption.js';
 import { resolveWorkCreateOptionFromMetadata } from './resolveWorkCreateOption.js';
+
+/** Loader-safe create-work option (no React component references). */
+export type SerializableWorkCreateOption = Omit<WorkCreateOption, 'icon'>;
+
+export function toSerializableWorkCreateOptions(
+  options: WorkCreateOption[],
+): SerializableWorkCreateOption[] {
+  return options.map((option) => {
+    const { icon, ...rest } = option;
+    void icon;
+    return rest;
+  });
+}
+
+function iconForSerializableOption(
+  option: SerializableWorkCreateOption,
+  clientExtensions: ClientExtension[],
+): IconComponent | undefined {
+  if (option.id === BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID) {
+    return BUILTIN_ARTICLE_WORK_CREATE_OPTION.icon;
+  }
+  if (!option.extensionId) return undefined;
+
+  const ext = clientExtensions.find((e) => e.id === option.extensionId);
+  const registered = ext?.getWorkCreateOptions?.().find((o) => o.id === option.id);
+  if (registered?.icon) return registered.icon;
+
+  return getExtensionIcon(clientExtensions, option.extensionId);
+}
+
+/** Re-attach icons from the client extension registry after loader deserialization. */
+export function hydrateWorkCreateOptions(
+  options: SerializableWorkCreateOption[],
+  clientExtensions: ClientExtension[],
+): WorkCreateOption[] {
+  return options.map((option) => {
+    const icon = iconForSerializableOption(option, clientExtensions);
+    return icon ? { ...option, icon } : option;
+  });
+}
 
 function sortWorkCreateOptions(options: WorkCreateOption[]): WorkCreateOption[] {
   return options.sort(
