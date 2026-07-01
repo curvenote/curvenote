@@ -42,6 +42,12 @@ First-priority documentation targets: **SCMS** and the **Curvenote CLI**.
 - Documenting every package in the monorepo (scope is SCMS + CLI first).
 - A hosted multi-tenant "docs SaaS" — this is an internal factory first.
 - Replacing human technical writers — this augments and drafts for them.
+- Reproducing **GCS Cloud CDN URL-prefix signing** locally (decision A above).
+- Fixing the **production** AWS/CloudFront edge-signing gap — that is a real
+  storage/CDN concern (`getSignedCDNQuery` has no CloudFront-RSA equivalent, so a
+  hypothetical AWS deployment would return an empty signature and private assets
+  could 403), but it is **out of scope** for the docs factory and belongs in its
+  own ticket.
 
 ## 4. Current repo assets we build on
 
@@ -99,8 +105,20 @@ disposable, fully local backing stack.
   the compose Postgres.
 - A single entrypoint (e.g. `npm run factory:up`) that: starts compose → migrates
   → seeds → builds/links CLI → starts SCMS. Optionally pinned to a ref/worktree.
-- **Key decisions:** MinIO vs LocalStack (recommend MinIO — matches S3 provider,
-  lighter); one compose stack vs per-environment (dev/test/docs) stacks.
+- **Decided:** use **MinIO** (S3 API) for local origin/blob storage — it matches
+  the existing S3 provider and is lighter than LocalStack.
+- **Storage layers are decoupled.** `IStorageProvider` covers **origin/blob**
+  (upload, download, `signReadUrl`); this is what MinIO exercises. **Edge private
+  CDN URL-prefix signing** (`getSignedCDNQuery` in `sign.private.server.ts`) is a
+  storage-agnostic HMAC over a *Google Cloud CDN* policy string, driven purely by
+  `api.privateCDNSigningInfo` — it does not touch the storage provider and is not
+  exercised by any provider locally. **Decision (A):** the local/docs env does
+  **not** reproduce GCS Cloud CDN URL-prefix signing; those flows are marked
+  production-only. A local HMAC-validating proxy (option B) or hybrid capture
+  against real dev GCS + Cloud CDN (option C) is a documented later add-on, only
+  if a first-priority doc page genuinely needs a signed private-CDN screenshot.
+- **Key decisions (open):** one compose stack vs per-environment (dev/test/docs)
+  stacks.
 
 ### Subsystem 2 — Golden scenarios & seeds (FOUNDATION)
 
