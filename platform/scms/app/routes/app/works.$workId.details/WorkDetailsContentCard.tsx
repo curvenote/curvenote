@@ -92,7 +92,7 @@ export function WorkDetailsContentCard({
               className="inline p-0 h-auto text-xs text-muted-foreground"
               onClick={() => setDoiDialogOpen(true)}
             >
-              + doi
+              + Add DOI
             </ui.Button>
           ) : null}
           {licenseDisplay != null ? (

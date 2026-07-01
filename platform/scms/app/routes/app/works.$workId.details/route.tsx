@@ -27,7 +27,7 @@ import type {
 import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
 import type { LinkedJobsByWorkVersionId } from './types';
 import { dbUpdateWorkDoi } from './db.server';
-import { validateAndNormalizeDoi } from './doi.server';
+import { validateAndNormalizeDoi, checkDoiReachability } from './doi.server';
 import { extensions } from '../../../extensions/client';
 
 type WorkUser = {
@@ -55,7 +55,7 @@ type LoaderData = {
 };
 
 const DoiActionSchema = zfd.formData({
-  intent: zfd.text(z.enum(['set-doi', 'clear-doi'])),
+  intent: zfd.text(z.enum(['set-doi', 'clear-doi', 'validate-doi'])),
   doi: zfd.text(z.string().optional()),
 });
 
@@ -75,12 +75,23 @@ export async function action(args: Route.ActionArgs) {
 
   if (intent === 'clear-doi') {
     await dbUpdateWorkDoi(ctx.work.id, null);
-    return { success: true, doi: null };
+    return { success: true, intent, doi: null };
+  }
+
+  if (intent === 'validate-doi') {
+    const raw = rawDoi?.trim() ?? '';
+    const reach = await checkDoiReachability(raw);
+    return {
+      success: true,
+      intent,
+      reachable: reach.ok,
+      reachabilityError: reach.ok ? undefined : reach.error,
+    };
   }
 
   if (intent === 'set-doi') {
     const raw = rawDoi?.trim() ?? '';
-    const result = await validateAndNormalizeDoi(raw);
+    const result = validateAndNormalizeDoi(raw);
     if (!result.ok) {
       return data(
         { error: { type: 'general', message: result.error } as GeneralError },
@@ -89,7 +100,7 @@ export async function action(args: Route.ActionArgs) {
     }
 
     await dbUpdateWorkDoi(ctx.work.id, result.normalized);
-    return { success: true, doi: result.normalized };
+    return { success: true, intent, doi: result.normalized };
   }
 
   return data(
@@ -103,6 +114,9 @@ export function shouldRevalidate({
   defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs) {
   const intent = formData?.get('intent');
+  if (intent === 'validate-doi') {
+    return false;
+  }
   if (intent === 'set-doi' || intent === 'clear-doi') {
     return true;
   }
