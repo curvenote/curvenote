@@ -8,6 +8,8 @@ interface FrameHeaderProps {
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
   description?: React.ReactNode;
+  /** Custom action node (e.g. create-work dropdown). Takes precedence over actionLabel/onAction. */
+  action?: React.ReactNode;
   actionLabel?: string;
   actionIcon?: React.ReactNode;
   onAction?: () => void;
@@ -21,6 +23,7 @@ export function FrameHeader({
   title: propTitle,
   subtitle: propSubtitle,
   description: propDescription,
+  action,
   actionLabel,
   actionDisabled,
   actionIcon,
@@ -48,7 +51,9 @@ export function FrameHeader({
           <h1 className="text-2xl font-normal tracking-tight">{title}</h1>
           {subtitle && <div className="py-1 text-base">{subtitle}</div>}
         </div>
-        {actionLabel && (
+        {action ? (
+          <div className={cn(actionAlign === 'right' && 'ml-auto')}>{action}</div>
+        ) : actionLabel ? (
           <div className={cn(actionAlign === 'right' && 'ml-auto')}>
             <StatefulButton onClick={onAction} disabled={actionDisabled}>
               <div className="flex flex-row gap-2 items-center">
@@ -57,7 +62,7 @@ export function FrameHeader({
               </div>
             </StatefulButton>
           </div>
-        )}
+        ) : null}
       </div>
       {description && (
         <div className="text-base leading-relaxed text-muted-foreground">{description}</div>

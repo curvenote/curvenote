@@ -5,24 +5,28 @@ import {
   withAppScopedContext,
   userHasScope,
   withValidFormData,
+  getUserScopesSet,
 } from '@curvenote/scms-server';
 import {
   MainWrapper,
   PageFrame,
   FrameHeader,
+  CreateWorkDropdown,
   getBrandingFromMetaMatches,
   joinPageTitle,
   getWorkflows,
   registerExtensionWorkflows,
   getExtensionCheckServicesFromClientConfig,
   useDeploymentConfig,
+  getAvailableWorkCreateOptions,
+  hydrateWorkCreateOptions,
+  toSerializableWorkCreateOptions,
   scopes,
   capitalize,
   plural,
 } from '@curvenote/scms-core';
 import type { LoaderFunctionArgs, ShouldRevalidateFunctionArgs } from 'react-router';
-import { useNavigate, data } from 'react-router';
-import { PlusCircle } from 'lucide-react';
+import { data } from 'react-router';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { WorkList } from './WorkList';
@@ -55,11 +59,22 @@ export const loader = async (args: LoaderFunctionArgs) => {
     const workflows = getWorkflows(ctx.$config, registerExtensionWorkflows(extensions));
 
     const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
+    const userScopes = Array.from(getUserScopesSet(ctx.user));
+    const extensionConfigs = Object.fromEntries(
+      Object.entries(ctx.$config?.app?.extensions ?? {}).map(([key, value]) => [
+        key,
+        { routes: value?.routes ?? false },
+      ]),
+    );
+    const createWorkOptions = toSerializableWorkCreateOptions(
+      getAvailableWorkCreateOptions(extensionConfigs, extensions, userScopes),
+    );
 
     return {
       items: worksPromise,
       workflows,
       canUpload,
+      createWorkOptions,
       stringReplacements,
     };
   } catch {
@@ -213,8 +228,8 @@ export function shouldRevalidate({
 }
 
 export default function MyWorks({ loaderData }: Route.ComponentProps) {
-  const { items, workflows, error, canUpload, stringReplacements } = loaderData;
-  const navigate = useNavigate();
+  const { items, workflows, error, canUpload, createWorkOptions, stringReplacements } = loaderData;
+  const hydratedCreateWorkOptions = hydrateWorkCreateOptions(createWorkOptions ?? [], extensions);
   const deploymentConfig = useDeploymentConfig();
   const checkServices = getExtensionCheckServicesFromClientConfig(
     deploymentConfig,
@@ -242,12 +257,15 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
               actionAlign="right"
               title={`My ${worksTitle}`}
               subtitle={`Manage your ${worksLabel}`}
-              actionLabel={`Create new ${workLabel}`}
-              actionIcon={<PlusCircle className="w-4 h-4" />}
-              onAction={
-                canUpload
-                  ? () => navigate('/app/works/new')
-                  : () => alert('For early access to upload features, please contact support')
+              action={
+                <CreateWorkDropdown
+                  options={hydratedCreateWorkOptions}
+                  triggerLabel={`Create new ${workLabel}`}
+                  disabled={!canUpload}
+                  onDisabledClick={() =>
+                    alert('For early access to upload features, please contact support')
+                  }
+                />
               }
             />
           }

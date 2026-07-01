@@ -1,4 +1,5 @@
 export * from './ClientOnly.js';
+export * from './CreateWorkDropdown.js';
 export * from './EmptyMessage.js';
 export * from './FrameHeader.js';
 export * from './GlobalErrorBoundary.js';

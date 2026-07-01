@@ -13,6 +13,7 @@ import {
   metadataForNewDraftFileWorkVersion,
   userHasScope,
   works as worksLoaders,
+  getUserScopesSet,
 } from '@curvenote/scms-server';
 import {
   MainWrapper,
@@ -26,6 +27,9 @@ import {
   loadCheckMaintenanceByServiceIds,
   CheckMaintenanceProvider,
   scopes,
+  resolveCreateNewVersionOption,
+  invokeExtensionCreateWorkVersion,
+  BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
 import {
@@ -97,7 +101,83 @@ export async function action(args: ActionFunctionArgs) {
     }
     try {
       const latestNonDraft = ctx.work.versions?.find((v) => !v.draft);
+      const [latestNonDraftWithMetadata] = latestNonDraft
+        ? await dbAttachMetadataToWorkVersions([latestNonDraft])
+        : [];
       const workTitle = latestNonDraft?.title ?? ctx.workDTO?.title ?? '';
+      const sourceMetadata = (latestNonDraftWithMetadata?.metadata ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const userScopes = Array.from(getUserScopesSet(ctx.user));
+      const extensionConfigs = Object.fromEntries(
+        Object.entries(ctx.$config?.app?.extensions ?? {}).map(([key, value]) => [
+          key,
+          { routes: value?.routes ?? false },
+        ]),
+      );
+      const resolved = resolveCreateNewVersionOption(
+        sourceMetadata,
+        extensionConfigs,
+        serverExtensions,
+        userScopes,
+      );
+      if (!resolved.ok) {
+        return data({ success: false, intent, error: resolved.error }, { status: resolved.status });
+      }
+      const resolvedOption = resolved.option;
+
+      if (resolvedOption.extensionId) {
+        const extResult = await invokeExtensionCreateWorkVersion(
+          serverExtensions,
+          resolvedOption.extensionId,
+          {
+            ctx,
+            workId: ctx.work.id,
+            sourceVersionMetadata: sourceMetadata,
+            defaultTitle: workTitle,
+          },
+        );
+        if (!extResult) {
+          return data(
+            {
+              success: false,
+              intent,
+              error: `No handler registered for create option "${resolvedOption.id}"`,
+            },
+            { status: 500 },
+          );
+        }
+        if (!extResult.success) {
+          return data(
+            {
+              success: false,
+              intent,
+              error: extResult.error ?? 'Failed to create new version',
+            },
+            { status: 500 },
+          );
+        }
+        return {
+          success: true,
+          intent: 'create-new-version',
+          workId: ctx.work.id,
+          workVersionId: extResult.workVersionId,
+          redirectPath: extResult.redirectPath,
+        };
+      }
+
+      if (resolvedOption.id !== BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID) {
+        return data(
+          {
+            success: false,
+            intent,
+            error: `Unsupported create option "${resolvedOption.id}"`,
+          },
+          { status: 500 },
+        );
+      }
+
       const result = await dbCreateDraftWorkVersion(
         ctx,
         ctx.work.id,
@@ -178,6 +258,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   // Draft-only works should route users into the upload flow, not the details pages.
   if (isDraftOnlyWork) {
+    const isPmcDepositPath = pathname.startsWith(`/app/works/${workId}/site/pmc/`);
     const isDetailsLikePath =
       pathname === `/app/works/${workId}` ||
       pathname === `/app/works/${workId}/` ||
@@ -186,7 +267,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
       pathname.startsWith(`/app/works/${workId}/work-integrity`) ||
       pathname.startsWith(`/app/works/${workId}/site/`);
 
-    if (!isOnUploadRoute && isDetailsLikePath) {
+    if (!isOnUploadRoute && isDetailsLikePath && !isPmcDepositPath) {
       throw redirect(`/app/works/${workId}/upload/${workVersionsWithMetadata[0].id}`);
     }
   }

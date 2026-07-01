@@ -37,7 +37,6 @@ export function WorkListItem({
 
   // Get the latest work version (versions are ordered date_created desc)
   const latestWorkVersion = work.versions[0];
-  const isDraft = latestWorkVersion?.draft === true;
 
   // Get the latest non-draft version info for title/authors/published
   const latestVersion = work.versions.find((version) => !version.draft);
@@ -71,11 +70,6 @@ export function WorkListItem({
                 {latestVersion?.title || latestWorkVersion?.title || 'Untitled Work'}
               </Link>
             </h3>
-            {isDraft && (
-              <ui.Badge variant="secondary" className="font-normal shrink-0">
-                Draft
-              </ui.Badge>
-            )}
           </div>
 
           <div className="flex flex-wrap gap-1 text-sm text-gray-600 dark:text-gray-400">
