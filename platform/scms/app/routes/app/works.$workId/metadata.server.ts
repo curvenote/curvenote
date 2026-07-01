@@ -8,7 +8,7 @@ export function isDraftVersionValidForReuse(metadata: unknown): boolean {
   return Boolean(meta && 'checks' in meta);
 }
 
-export function getLicenseDisplayFromMetadata(metadata: unknown): LicenseDisplay {
+export function getLicenseDisplayFromMetadata(metadata: unknown): LicenseDisplay | null {
   const meta = metadata;
   if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
     const record = meta as Record<string, unknown>;
@@ -22,7 +22,7 @@ export function getLicenseDisplayFromMetadata(metadata: unknown): LicenseDisplay
       }
     }
   }
-  return { text: 'unknown', tooltip: 'No license has been set.' };
+  return null;
 }
 
 export function computeCanResumeDraftUpload(

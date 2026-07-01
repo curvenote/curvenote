@@ -16,8 +16,12 @@ export type WorkVersionContentCardData = {
   title: string;
   authors: string[];
   author_details?: unknown[];
+  /** Latest non-draft version DOI */
   doi?: string | null;
-  license: LicenseDisplay;
+  /** Work-level DOI (persisted via details dialog) */
+  workDoi?: string | null;
+  canEditDoi: boolean;
+  license: LicenseDisplay | null;
 };
 
 export type SubmissionWithVersionsAndSite =
