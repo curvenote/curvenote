@@ -221,79 +221,79 @@ export function WorkDoiDialog({ open, onOpenChange, workDoi }: WorkDoiDialogProp
         title="DOI"
         description="Enter an existing DOI for this work. You can paste a DOI prefix/suffix or a full doi.org URL."
         footer={
-          <>
-            {hasWorkDoi && !isClosing ? (
+          <div className="flex flex-col gap-4 w-full">
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              {hasWorkDoi && !isClosing ? (
+                <ui.StatefulButton
+                  type="button"
+                  variant="outline"
+                  onClick={handleClear}
+                  busy={submitBusy && pendingAction === 'clear-doi'}
+                  overlayBusy
+                >
+                  Clear DOI
+                </ui.StatefulButton>
+              ) : null}
+              <ui.Button variant="outline" onClick={() => onOpenChange(false)} disabled={dialogBusy}>
+                Cancel
+              </ui.Button>
               <ui.StatefulButton
                 type="button"
-                variant="outline"
-                onClick={handleClear}
-                busy={submitBusy && pendingAction === 'clear-doi'}
+                onClick={handleSave}
+                disabled={!formatValid}
+                busy={submitBusy && pendingAction === 'set-doi'}
                 overlayBusy
               >
-                Clear DOI
+                Save
               </ui.StatefulButton>
-            ) : null}
-            <ui.Button variant="outline" onClick={() => onOpenChange(false)} disabled={dialogBusy}>
-              Cancel
-            </ui.Button>
-            <ui.StatefulButton
-              type="button"
-              onClick={handleSave}
-              disabled={!formatValid}
-              busy={submitBusy && pendingAction === 'set-doi'}
-              overlayBusy
-            >
-              Save
-            </ui.StatefulButton>
-          </>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Looking to create a new DOI for your work?{' '}
+              <ui.Button
+                type="button"
+                variant="link"
+                className="inline h-auto p-0 text-xs"
+                onClick={() => setSupportOpen(true)}
+                disabled={dialogBusy}
+              >
+                contact support
+              </ui.Button>{' '}
+              for early access.
+            </p>
+          </div>
         }
       >
-        <div className="space-y-4">
-          <div>
-            <ui.Label htmlFor="work-doi-input" className="text-sm font-medium">
-              DOI
-            </ui.Label>
-            <ui.Input
-              id="work-doi-input"
-              value={doiInput}
-              onChange={(e) => {
-                setDoiInput(e.target.value);
-                if (reachability.status !== 'idle') {
-                  setReachability({ status: 'idle' });
-                }
-              }}
-              onBlur={handleBlur}
-              placeholder="10.1234/example or https://doi.org/10.1234/example"
-              className="mt-2 font-mono"
-              disabled={dialogBusy}
-              aria-invalid={formatInvalid ? true : undefined}
+        <div>
+          <ui.Label htmlFor="work-doi-input" className="text-sm font-medium">
+            DOI
+          </ui.Label>
+          <ui.Input
+            id="work-doi-input"
+            value={doiInput}
+            onChange={(e) => {
+              setDoiInput(e.target.value);
+              if (reachability.status !== 'idle') {
+                setReachability({ status: 'idle' });
+              }
+            }}
+            onBlur={handleBlur}
+            placeholder="10.1234/example or https://doi.org/10.1234/example"
+            className="mt-2 font-mono"
+            disabled={dialogBusy}
+            aria-invalid={formatInvalid ? true : undefined}
+          />
+          <div className="mt-3 space-y-1">
+            <ValidationRow
+              label="Valid DOI format"
+              state={formatValidationState}
+              error={formatResult && !formatResult.ok ? formatResult.error : undefined}
             />
-            <div className="mt-3 space-y-1">
-              <ValidationRow
-                label="Valid DOI format"
-                state={formatValidationState}
-                error={formatResult && !formatResult.ok ? formatResult.error : undefined}
-              />
-              <ValidationRow
-                label="DOI is reachable"
-                state={formatValid ? reachabilityValidationState : 'idle'}
-                error={reachability.status === 'unreachable' ? reachability.error : undefined}
-              />
-            </div>
+            <ValidationRow
+              label="DOI is reachable"
+              state={formatValid ? reachabilityValidationState : 'idle'}
+              error={reachability.status === 'unreachable' ? reachability.error : undefined}
+            />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Looking to create a new DOI for your work?{' '}
-            <ui.Button
-              type="button"
-              variant="link"
-              className="inline h-auto p-0 text-xs"
-              onClick={() => setSupportOpen(true)}
-              disabled={dialogBusy}
-            >
-              contact support
-            </ui.Button>{' '}
-            for early access.
-          </p>
         </div>
       </ui.SimpleDialog>
 
