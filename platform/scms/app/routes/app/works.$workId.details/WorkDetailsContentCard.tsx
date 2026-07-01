@@ -50,7 +50,6 @@ export function WorkDetailsContentCard({
   const licenseDisplay = version.license;
   const displayDoi = resolveDisplayDoi(version);
   const doiHref = displayDoi ? `https://doi.org/${encodeURIComponent(displayDoi)}` : null;
-  const showDoiRow = displayDoi != null || version.canEditDoi;
 
   return (
     <>
@@ -60,45 +59,41 @@ export function WorkDetailsContentCard({
         </h2>
         <div className="text-base text-muted-foreground">{authorSummary}</div>
         <div className="flex flex-wrap gap-y-2 gap-x-6 text-sm">
-          {showDoiRow ? (
+          {displayDoi != null ? (
             <div>
               <span className="font-medium text-foreground">DOI </span>
-              {doiHref ? (
+              <a
+                href={doiHref!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex gap-1 items-center font-mono text-muted-foreground hover:text-foreground hover:underline"
+              >
+                {displayDoi}
+                <ExternalLink className="w-3 h-3 shrink-0" aria-hidden />
+              </a>
+              {version.canEditDoi ? (
                 <>
-                  <a
-                    href={doiHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex gap-1 items-center font-mono text-muted-foreground hover:text-foreground hover:underline"
+                  {' '}
+                  <ui.Button
+                    type="button"
+                    variant="link"
+                    className="inline p-0 h-auto text-sm"
+                    onClick={() => setDoiDialogOpen(true)}
                   >
-                    {displayDoi}
-                    <ExternalLink className="w-3 h-3 shrink-0" aria-hidden />
-                  </a>
-                  {version.canEditDoi ? (
-                    <>
-                      {' '}
-                      <ui.Button
-                        type="button"
-                        variant="link"
-                        className="inline h-auto p-0 text-sm"
-                        onClick={() => setDoiDialogOpen(true)}
-                      >
-                        Edit
-                      </ui.Button>
-                    </>
-                  ) : null}
+                    Edit
+                  </ui.Button>
                 </>
-              ) : (
-                <ui.Button
-                  type="button"
-                  variant="link"
-                  className="inline h-auto p-0 font-mono text-sm"
-                  onClick={() => setDoiDialogOpen(true)}
-                >
-                  + DOI
-                </ui.Button>
-              )}
+              ) : null}
             </div>
+          ) : version.canEditDoi ? (
+            <ui.Button
+              type="button"
+              variant="link"
+              className="inline p-0 h-auto text-xs text-muted-foreground"
+              onClick={() => setDoiDialogOpen(true)}
+            >
+              + doi
+            </ui.Button>
           ) : null}
           {licenseDisplay != null ? (
             <div>
