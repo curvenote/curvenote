@@ -391,8 +391,7 @@ export function shouldRevalidate({
   if (
     intent === 'get-drafts-for-work' ||
     intent === 'create-new-version' ||
-    intent === 'delete-draft' ||
-    intent === 'validate-doi'
+    intent === 'delete-draft'
   ) {
     return false;
   }

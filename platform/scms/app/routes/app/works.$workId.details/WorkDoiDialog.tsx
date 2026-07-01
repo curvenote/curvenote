@@ -1,15 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useFetcher, useLocation } from 'react-router';
 import { Check, X } from 'lucide-react';
-import { LoadingSpinner, RequestHelpDialog, ui, type GeneralError } from '@curvenote/scms-core';
+import { RequestHelpDialog, ui, type GeneralError } from '@curvenote/scms-core';
 import { parseDoiFormat } from './doiFormat.js';
 
 type DoiActionResponse = {
   success?: boolean;
   intent?: string;
   doi?: string | null;
-  reachable?: boolean;
-  reachabilityError?: string;
   error?: GeneralError | string;
 };
 
@@ -19,49 +17,29 @@ type WorkDoiDialogProps = {
   workDoi: string | null | undefined;
 };
 
-type ReachabilityState =
-  | { status: 'idle' }
-  | { status: 'checking' }
-  | { status: 'reachable' }
-  | { status: 'unreachable'; error: string };
-
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debounced;
-}
-
 function ValidationRow({
   label,
   state,
   error,
 }: {
   label: string;
-  state: 'idle' | 'valid' | 'invalid' | 'checking';
+  state: 'idle' | 'valid' | 'invalid';
   error?: string;
 }) {
   if (state === 'idle') return null;
 
-  const isChecking = state === 'checking';
   const isValid = state === 'valid';
 
   return (
     <div className="flex gap-2 items-start text-sm">
-      {isChecking ? (
-        <LoadingSpinner className="mt-0.5 w-4 h-4 shrink-0" />
-      ) : isValid ? (
+      {isValid ? (
         <Check className="mt-0.5 w-4 h-4 shrink-0 text-green-600" aria-hidden />
       ) : (
         <X className="mt-0.5 w-4 h-4 shrink-0 text-destructive" aria-hidden />
       )}
       <span className={isValid ? 'text-green-700 dark:text-green-500' : 'text-destructive'}>
         {label}
-        {!isChecking && !isValid && error ? `: ${error}` : null}
+        {!isValid && error ? `: ${error}` : null}
       </span>
     </div>
   );
@@ -75,19 +53,9 @@ export function WorkDoiDialog({ open, onOpenChange, workDoi }: WorkDoiDialogProp
   const [isClosing, setIsClosing] = useState(false);
   const submitBusy = pendingAction != null;
   const [supportOpen, setSupportOpen] = useState(false);
-  const [reachability, setReachability] = useState<ReachabilityState>({ status: 'idle' });
-  const debouncedInput = useDebouncedValue(doiInput, 2000);
-  const doiInputRef = useRef(doiInput);
-  const reachabilityRequestIdRef = useRef(0);
-  const lastCheckedDoiRef = useRef<string | null>(null);
-
-  doiInputRef.current = doiInput;
 
   const resetFormState = useCallback(() => {
     setDoiInput(workDoi?.trim() ?? '');
-    setReachability({ status: 'idle' });
-    lastCheckedDoiRef.current = null;
-    reachabilityRequestIdRef.current += 1;
     setPendingAction(null);
     setIsClosing(false);
   }, [workDoi]);
@@ -99,92 +67,7 @@ export function WorkDoiDialog({ open, onOpenChange, workDoi }: WorkDoiDialogProp
     }
     if (isClosing) return;
     setDoiInput(workDoi?.trim() ?? '');
-    setReachability({ status: 'idle' });
-    lastCheckedDoiRef.current = null;
   }, [open, workDoi, isClosing, resetFormState]);
-
-  const runReachabilityCheck = useCallback(
-    async (value: string) => {
-      const trimmed = value.trim();
-      const format = parseDoiFormat(trimmed);
-      if (!format.ok) {
-        setReachability({ status: 'idle' });
-        lastCheckedDoiRef.current = null;
-        return;
-      }
-
-      const requestId = ++reachabilityRequestIdRef.current;
-      setReachability({ status: 'checking' });
-
-      try {
-        const formData = new FormData();
-        formData.append('intent', 'validate-doi');
-        formData.append('doi', trimmed);
-
-        const response = await fetch(location.pathname, {
-          method: 'POST',
-          body: formData,
-          headers: { Accept: 'application/json' },
-        });
-
-        if (requestId !== reachabilityRequestIdRef.current) return;
-        if (doiInputRef.current.trim() !== trimmed) return;
-
-        let data: DoiActionResponse | null = null;
-        try {
-          data = (await response.json()) as DoiActionResponse;
-        } catch {
-          setReachability({ status: 'unreachable', error: 'DOI lookup failed' });
-          lastCheckedDoiRef.current = trimmed;
-          return;
-        }
-
-        if (data.error) {
-          const message = typeof data.error === 'string' ? data.error : data.error.message;
-          setReachability({ status: 'unreachable', error: message });
-          lastCheckedDoiRef.current = trimmed;
-          return;
-        }
-
-        lastCheckedDoiRef.current = trimmed;
-
-        if (data.reachable) {
-          setReachability({ status: 'reachable' });
-          return;
-        }
-
-        setReachability({
-          status: 'unreachable',
-          error: data.reachabilityError ?? 'DOI is not reachable',
-        });
-      } catch {
-        if (requestId !== reachabilityRequestIdRef.current) return;
-        if (doiInputRef.current.trim() !== trimmed) return;
-        setReachability({ status: 'unreachable', error: 'DOI lookup failed' });
-        lastCheckedDoiRef.current = trimmed;
-      }
-    },
-    [location.pathname],
-  );
-
-  useEffect(() => {
-    if (!open || isClosing || submitBusy) return;
-
-    const trimmed = debouncedInput.trim();
-    if (!trimmed) {
-      setReachability({ status: 'idle' });
-      lastCheckedDoiRef.current = null;
-      return;
-    }
-
-    if (!parseDoiFormat(trimmed).ok) {
-      setReachability({ status: 'idle' });
-      lastCheckedDoiRef.current = null;
-      return;
-    }
-
-    void runReachabilityCheck(trimmed);
-  }, [debouncedInput, open, isClosing, submitBusy, runReachabilityCheck]);
 
   useEffect(() => {
     if (actionFetcher.state !== 'idle' || !actionFetcher.data) return;
@@ -219,15 +102,6 @@ export function WorkDoiDialog({ open, onOpenChange, workDoi }: WorkDoiDialogProp
         ? 'invalid'
         : 'idle';
 
-  const reachabilityValidationState =
-    reachability.status === 'checking'
-      ? 'checking'
-      : reachability.status === 'reachable'
-        ? 'valid'
-        : reachability.status === 'unreachable'
-          ? 'invalid'
-          : 'idle';
-
   const handleSave = () => {
     if (!formatValid) return;
     setPendingAction('set-doi');
@@ -244,22 +118,6 @@ export function WorkDoiDialog({ open, onOpenChange, workDoi }: WorkDoiDialogProp
     const formData = new FormData();
     formData.append('intent', 'clear-doi');
     actionFetcher.submit(formData, { method: 'post' });
-  };
-
-  const handleBlur = () => {
-    if (!open || isClosing || submitBusy) return;
-    const trimmed = doiInput.trim();
-    if (!trimmed || !parseDoiFormat(trimmed).ok) return;
-    lastCheckedDoiRef.current = null;
-    void runReachabilityCheck(trimmed);
-  };
-
-  const handleInputChange = (value: string) => {
-    setDoiInput(value);
-    lastCheckedDoiRef.current = null;
-    if (reachability.status !== 'idle') {
-      setReachability({ status: 'idle' });
-    }
   };
 
   const hasWorkDoi = workDoi != null && workDoi.trim() !== '';
@@ -329,8 +187,7 @@ export function WorkDoiDialog({ open, onOpenChange, workDoi }: WorkDoiDialogProp
           <ui.Input
             id="work-doi-input"
             value={doiInput}
-            onChange={(e) => handleInputChange(e.target.value)}
-            onBlur={handleBlur}
+            onChange={(e) => setDoiInput(e.target.value)}
             placeholder="10.1234/example or https://doi.org/10.1234/example"
             className="mt-2 font-mono"
             disabled={dialogBusy}
@@ -341,11 +198,6 @@ export function WorkDoiDialog({ open, onOpenChange, workDoi }: WorkDoiDialogProp
               label="Valid DOI format"
               state={formatValidationState}
               error={formatResult && !formatResult.ok ? formatResult.error : undefined}
-            />
-            <ValidationRow
-              label="DOI is reachable"
-              state={formatValid ? reachabilityValidationState : 'idle'}
-              error={reachability.status === 'unreachable' ? reachability.error : undefined}
             />
           </div>
         </div>

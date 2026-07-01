@@ -27,7 +27,7 @@ import type {
 import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
 import type { LinkedJobsByWorkVersionId } from './types';
 import { dbUpdateWorkDoi } from './db.server';
-import { validateAndNormalizeDoi, checkDoiReachability } from './doi.server';
+import { validateAndNormalizeDoi } from './doi.server';
 import { extensions } from '../../../extensions/client';
 
 type WorkUser = {
@@ -55,7 +55,7 @@ type LoaderData = {
 };
 
 const DoiActionSchema = zfd.formData({
-  intent: zfd.text(z.enum(['set-doi', 'clear-doi', 'validate-doi'])),
+  intent: zfd.text(z.enum(['set-doi', 'clear-doi'])),
   doi: zfd.text(z.string().optional()),
 });
 
@@ -76,27 +76,6 @@ export async function action(args: Route.ActionArgs) {
   if (intent === 'clear-doi') {
     await dbUpdateWorkDoi(ctx.work.id, null);
     return { success: true, intent, doi: null };
-  }
-
-  if (intent === 'validate-doi') {
-    const raw = rawDoi?.trim() ?? '';
-    try {
-      const reach = await checkDoiReachability(raw);
-      return {
-        success: true,
-        intent,
-        reachable: reach.ok,
-        reachabilityError: reach.ok ? undefined : reach.error,
-      };
-    } catch (error) {
-      console.error('validate-doi failed', error);
-      return {
-        success: true,
-        intent,
-        reachable: false,
-        reachabilityError: 'DOI lookup failed',
-      };
-    }
   }
 
   if (intent === 'set-doi') {
@@ -124,9 +103,6 @@ export function shouldRevalidate({
   defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs) {
   const intent = formData?.get('intent');
-  if (intent === 'validate-doi') {
-    return false;
-  }
   if (intent === 'set-doi' || intent === 'clear-doi') {
     return true;
   }
