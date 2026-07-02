@@ -16,8 +16,9 @@ export type WorkVersionContentCardData = {
   title: string;
   authors: string[];
   author_details?: unknown[];
+  /** Resolved DOI (version ?? work) for display */
   doi?: string | null;
-  license: LicenseDisplay;
+  license: LicenseDisplay | null;
 };
 
 export type SubmissionWithVersionsAndSite =

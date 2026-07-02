@@ -12,7 +12,7 @@ import {
   dbCreateDraftWorkVersion,
   metadataForNewDraftFileWorkVersion,
   userHasScope,
-  works as worksLoaders,
+  works,
   getUserScopesSet,
 } from '@curvenote/scms-server';
 import {
@@ -317,7 +317,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
         title: latestNonDraftWithMetadata.title,
         authors: latestNonDraftWithMetadata.authors,
         author_details: latestNonDraftWithMetadata.author_details,
-        doi: latestNonDraftWithMetadata.doi,
+        doi: latestNonDraftWithMetadata.doi ?? ctx.work.doi ?? null,
         license: getLicenseDisplayFromMetadata(latestNonDraftWithMetadata.metadata),
       }
     : null;
@@ -336,7 +336,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const checkServiceRunsByWorkVersionId = await dbGetCheckServiceRunsByWorkVersionIds(versionIds);
 
   const work = latestNonDraftWithMetadata
-    ? worksLoaders.formatWorkDTO(ctx, ctx.work, latestNonDraftWithMetadata)
+    ? works.formatWorkDTO(ctx, ctx.work, latestNonDraftWithMetadata)
     : ctx.workDTO;
   const usersDbo = await dbGetWorkUsers(ctx.work.id);
   const users = usersDbo ? dtoWorkUsers(usersDbo) : [];

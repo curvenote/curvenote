@@ -21,6 +21,11 @@ function getAuthorsForDisplay(version: WorkVersionContentCardData): AuthorLike[]
   return (version.authors ?? []).map((name) => ({ name }));
 }
 
+function resolveDisplayDoi(version: WorkVersionContentCardData): string | null {
+  const doi = version.doi != null ? String(version.doi).trim() : '';
+  return doi || null;
+}
+
 export function WorkDetailsContentCard({
   version,
 }: {
@@ -37,9 +42,8 @@ export function WorkDetailsContentCard({
   const authorsForDisplay = getAuthorsForDisplay(version);
   const authorSummary = summarizeAuthors(authorsForDisplay, { maxDisplay: 5 }) || 'Unknown authors';
   const licenseDisplay = version.license;
-  const hasDoi = version.doi != null && String(version.doi).trim() !== '';
-  const doiValue = hasDoi ? String(version.doi).trim() : 'none';
-  const doiHref = hasDoi ? `https://doi.org/${encodeURIComponent(doiValue)}` : null;
+  const displayDoi = resolveDisplayDoi(version);
+  const doiHref = displayDoi ? `https://doi.org/${encodeURIComponent(displayDoi)}` : null;
 
   return (
     <primitives.Card lift className="px-4 pt-6 pb-4 space-y-2">
@@ -48,39 +52,39 @@ export function WorkDetailsContentCard({
       </h2>
       <div className="text-base text-muted-foreground">{authorSummary}</div>
       <div className="flex flex-wrap gap-y-2 gap-x-6 text-sm">
-        <div>
-          <span className="font-medium text-foreground">DOI </span>
-          {doiHref ? (
+        {displayDoi != null ? (
+          <div>
+            <span className="font-medium text-foreground">DOI </span>
             <a
-              href={doiHref}
+              href={doiHref!}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex gap-1 items-center font-mono text-muted-foreground hover:text-foreground hover:underline"
             >
-              {doiValue}
+              {displayDoi}
               <ExternalLink className="w-3 h-3 shrink-0" aria-hidden />
             </a>
-          ) : (
-            <span className="font-mono text-muted-foreground">{doiValue}</span>
-          )}
-        </div>
-        <div>
-          <span className="font-medium text-foreground">License </span>
-          {licenseDisplay.tooltip ? (
-            <ui.Tooltip>
-              <ui.TooltipTrigger asChild>
-                <span className="underline cursor-help text-muted-foreground decoration-dotted decoration-muted-foreground">
-                  {licenseDisplay.text}
-                </span>
-              </ui.TooltipTrigger>
-              <ui.TooltipContent>
-                <p>{licenseDisplay.tooltip}</p>
-              </ui.TooltipContent>
-            </ui.Tooltip>
-          ) : (
-            <span className="text-muted-foreground">{licenseDisplay.text}</span>
-          )}
-        </div>
+          </div>
+        ) : null}
+        {licenseDisplay != null ? (
+          <div>
+            <span className="font-medium text-foreground">License </span>
+            {licenseDisplay.tooltip ? (
+              <ui.Tooltip>
+                <ui.TooltipTrigger asChild>
+                  <span className="underline cursor-help text-muted-foreground decoration-dotted decoration-muted-foreground">
+                    {licenseDisplay.text}
+                  </span>
+                </ui.TooltipTrigger>
+                <ui.TooltipContent>
+                  <p>{licenseDisplay.tooltip}</p>
+                </ui.TooltipContent>
+              </ui.Tooltip>
+            ) : (
+              <span className="text-muted-foreground">{licenseDisplay.text}</span>
+            )}
+          </div>
+        ) : null}
       </div>
     </primitives.Card>
   );
