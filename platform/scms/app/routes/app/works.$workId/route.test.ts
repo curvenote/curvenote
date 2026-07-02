@@ -165,6 +165,21 @@ vi.mock('./actionHelpers.server', () => ({
 }));
 
 const { action, loader } = await import('./route');
+const { getUniqueSubmissions } = await import('./utils.server');
+
+function submitReadySiteFields() {
+  return {
+    submissionKinds: [{ id: 'kind-1', default: true }],
+    collections: [
+      {
+        id: 'collection-1',
+        default: true,
+        open: true,
+        kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+      },
+    ],
+  };
+}
 
 function createSubmitToSiteRequest(siteName = 'private-site', workVersionId = 'wv-1'): Request {
   const formData = new FormData();
@@ -290,6 +305,7 @@ describe('work submit-to-site route', () => {
         external: true,
         private: false,
         restricted: false,
+        ...submitReadySiteFields(),
       },
       {
         id: 'site-public',
@@ -300,6 +316,7 @@ describe('work submit-to-site route', () => {
         external: false,
         private: false,
         restricted: false,
+        ...submitReadySiteFields(),
       },
       {
         id: 'site-private',
@@ -310,6 +327,10 @@ describe('work submit-to-site route', () => {
         external: false,
         private: true,
         restricted: false,
+        submissionKinds: [],
+        collections: [
+          { id: 'collection-closed', default: true, open: false, kindsInCollection: [] },
+        ],
       },
       {
         id: 'site-allowed',
@@ -320,6 +341,26 @@ describe('work submit-to-site route', () => {
         external: false,
         private: true,
         restricted: false,
+        ...submitReadySiteFields(),
+      },
+      {
+        id: 'site-no-kind',
+        name: 'no-kind-site',
+        title: 'No Kind Site',
+        description: null,
+        metadata: { logo: 'no-kind.png' },
+        external: false,
+        private: false,
+        restricted: false,
+        submissionKinds: [],
+        collections: [
+          {
+            id: 'collection-open',
+            default: true,
+            open: true,
+            kindsInCollection: [],
+          },
+        ],
       },
     ]);
 
@@ -340,6 +381,41 @@ describe('work submit-to-site route', () => {
     ]);
     expect(result.availableSites[0]).not.toHaveProperty('private');
     expect(result.availableSites[0]).not.toHaveProperty('restricted');
+  });
+
+  it('keeps sites with an existing work submission even when collections are closed', async () => {
+    vi.mocked(getUniqueSubmissions).mockReturnValueOnce([
+      {
+        id: 'submission-1',
+        site_id: 'site-existing',
+        site: { id: 'site-existing', name: 'existing-site', title: 'Existing Site' },
+        collection: { workflow: 'SIMPLE' },
+        versions: [{ id: 'sv-1', status: 'PUBLISHED' }],
+      },
+    ] as never);
+    findManySites.mockResolvedValue([
+      {
+        id: 'site-existing',
+        name: 'existing-site',
+        title: 'Existing Site',
+        description: null,
+        metadata: {},
+        external: false,
+        private: false,
+        restricted: false,
+        submissionKinds: [],
+        collections: [
+          { id: 'collection-closed', default: true, open: false, kindsInCollection: [] },
+        ],
+      },
+    ]);
+
+    const result = await loader({
+      request: new Request('http://localhost/app/works/work-1/details'),
+      params: { workId: 'work-1' },
+    } as never);
+
+    expect(result.availableSites.map((site) => site.name)).toEqual(['existing-site']);
   });
 
   it('returns the existing submission version when the selected version is already submitted', async () => {

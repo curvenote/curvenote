@@ -59,6 +59,12 @@ import type { WorkVersionContentCardData, WorkVersionForDetailsClient } from './
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { exportToPdfAction } from './actionHelpers.server';
+import {
+  canUserSubmitToSite,
+  isSiteAvailableForWorkSubmit,
+  resolveOpenCollection,
+  resolveSubmissionKind,
+} from './submitToSite.server';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 
@@ -76,21 +82,6 @@ const WorkActionIntentSchema = zfd.formData({
   siteName: zfd.text(z.string().optional()),
   workVersionId: zfd.text(z.string().optional()),
 });
-
-type SubmitTargetSite = {
-  name: string;
-  external: boolean;
-  private: boolean;
-  restricted: boolean;
-};
-
-function canUserSubmitToSite(
-  user: Parameters<typeof userHasScope>[0],
-  site: SubmitTargetSite,
-): boolean {
-  if (!site.private && !site.restricted) return true;
-  return userHasScope(user, scopes.site.submissions.create, site.name);
-}
 
 export async function action(args: ActionFunctionArgs) {
   const formData = await args.request.formData();
@@ -342,9 +333,7 @@ export async function action(args: ActionFunctionArgs) {
         };
       }
 
-      const collection =
-        site.collections.find((item) => item.default && item.open) ??
-        site.collections.find((item) => item.open);
+      const collection = resolveOpenCollection(site.collections);
       if (!collection) {
         return data(
           { success: false, intent, error: 'Selected site has no open collection' },
@@ -352,12 +341,7 @@ export async function action(args: ActionFunctionArgs) {
         );
       }
 
-      const collectionKinds = collection.kindsInCollection.map((item) => item.kind);
-      const kind =
-        collectionKinds.find((item) => item.default) ??
-        collectionKinds[0] ??
-        site.submissionKinds.find((item) => item.default) ??
-        site.submissionKinds[0];
+      const kind = resolveSubmissionKind(collection, site.submissionKinds);
       if (!kind) {
         return data(
           { success: false, intent, error: 'Selected site has no submission kind' },
@@ -511,6 +495,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     serverExtensions,
     checkServices.map((service) => service.id),
   );
+  const workSubmittedSiteIds = new Set(submissions.map((submission) => submission.site_id));
   const availableSites = canSubmitToSite
     ? (
         await (
@@ -526,10 +511,21 @@ export const loader = async (args: LoaderFunctionArgs) => {
             external: true,
             private: true,
             restricted: true,
+            submissionKinds: { select: { id: true, default: true } },
+            collections: {
+              select: {
+                id: true,
+                default: true,
+                open: true,
+                kindsInCollection: {
+                  select: { kind: { select: { id: true, default: true } } },
+                },
+              },
+            },
           },
         })
       )
-        .filter((site) => canUserSubmitToSite(ctx.user, site))
+        .filter((site) => isSiteAvailableForWorkSubmit(ctx.user, site, workSubmittedSiteIds))
         .map((site) => ({
           id: site.id,
           name: site.name,
