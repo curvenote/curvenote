@@ -19,7 +19,7 @@ import {
   scopes,
 } from '@curvenote/scms-core';
 import { userHasScope } from './scopes.helpers.server.js';
-import { mergeWorkContains, resolveVersionContains } from './loaders/works/contains.server.js';
+import { draftUploadVersionContains, mergeWorkContains } from './loaders/works/contains.server.js';
 import { uuidv7 } from 'uuidv7';
 import { KnownBuckets } from './storage/constants.server.js';
 import { Folder, StorageBackend } from './storage/index.js';
@@ -544,13 +544,18 @@ export async function dbCreateDraftWorkVersion(
   return prisma.$transaction(async (tx) => {
     const existing = await tx.work.findUnique({
       where: { id: workId },
-      select: { contains: true },
+      select: {
+        contains: true,
+        versions: {
+          orderBy: { date_created: 'desc' },
+          take: 1,
+          select: { contains: true },
+        },
+      },
     });
     if (!existing) throw error404();
-    const versionContains = resolveVersionContains(
-      undefined,
-      existing.contains.length > 0 ? existing.contains : [WorkContents.FILES],
-    );
+    const previousVersionContains = existing.versions[0]?.contains ?? [];
+    const versionContains = draftUploadVersionContains(previousVersionContains);
     const workContains = mergeWorkContains(existing.contains, versionContains);
 
     const work = await tx.work.update({

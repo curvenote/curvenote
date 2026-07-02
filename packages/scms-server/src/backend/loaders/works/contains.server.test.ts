@@ -1,7 +1,11 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import { WorkContents } from '@curvenote/scms-core';
-import { mergeWorkContains, resolveVersionContains } from './contains.server.js';
+import {
+  draftUploadVersionContains,
+  mergeWorkContains,
+  resolveVersionContains,
+} from './contains.server.js';
 
 describe('resolveVersionContains', () => {
   it('defaults undefined to myst', () => {
@@ -18,6 +22,20 @@ describe('resolveVersionContains', () => {
 
   it('dedupes requested values', () => {
     expect(resolveVersionContains(['myst', 'myst', 'files'])).toEqual(['myst', 'files']);
+  });
+});
+
+describe('draftUploadVersionContains', () => {
+  it('inherits prior version labels and adds files when missing', () => {
+    expect(draftUploadVersionContains(['myst'])).toEqual(['myst', 'files']);
+  });
+
+  it('does not duplicate files when already present', () => {
+    expect(draftUploadVersionContains(['myst', 'files'])).toEqual(['myst', 'files']);
+  });
+
+  it('adds files to an empty prior version', () => {
+    expect(draftUploadVersionContains([])).toEqual(['files']);
   });
 });
 
