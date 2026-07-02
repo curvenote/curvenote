@@ -8,6 +8,7 @@ import { authorizeEtlSite, verifyEtlBearerUserId, type EtlAuth } from './auth.se
 import { cdnKeyUnderArticle } from './register-work-cdn-key.js';
 import { deriveEtlThumbnailStorageKey } from './register-work-thumbnail.js';
 import { buildSubmissionMetadataWithSupersedes } from './register-work-lineage.js';
+import { mergeWorkContains } from '../loaders/works/contains.server.js';
 
 export type EtlRegisterWorkInput = {
   site: string;
@@ -282,18 +283,23 @@ async function registerWorkInDb(
       cdn,
       cdn_key: input.cdn_key,
       thumbnail,
+      contains,
       metadata: workVersionMetadata as Prisma.InputJsonValue | undefined,
     };
 
     if (existingWorkId) {
       workId = existingWorkId;
       workVersionId = uuid();
+      const existingWork = await tx.work.findUniqueOrThrow({
+        where: { id: workId },
+        select: { contains: true },
+      });
       await tx.work.update({
         where: { id: workId },
         data: {
           date_modified: date_created,
           doi: input.doi,
-          contains: { set: contains },
+          contains: { set: mergeWorkContains(existingWork.contains, contains) },
           versions: {
             create: [
               {

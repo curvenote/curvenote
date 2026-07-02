@@ -6,6 +6,7 @@ import { getPrismaClient } from '../../../prisma.server.js';
 import { error401, error404, isMystCdnContentSource, site } from '@curvenote/scms-core';
 import { dbGetWorkForUser, formatWorkDTO, getWorkFromSubmission } from '../get.server.js';
 import { getCreateWorkVersionDataFromMyst } from '../create.server.js';
+import { mergeWorkContains, resolveVersionContains } from '../contains.server.js';
 import { ActivityType } from '@curvenote/scms-db';
 
 export async function dbCreateWorkVersionAndUpdateWork(
@@ -23,16 +24,14 @@ export async function dbCreateWorkVersionAndUpdateWork(
       select: { doi: true, contains: true },
     });
     if (!existing) throw error404();
-    const contains =
-      data.contains && data.contains.length
-        ? Array.from(new Set([...(existing.contains ?? []), ...data.contains]))
-        : undefined;
+    const versionContains = resolveVersionContains(data.contains);
+    const workContains = mergeWorkContains(existing.contains, versionContains);
     const work = await tx.work.update({
       where: { id: workId },
       data: {
         date_modified: date_created,
         doi: existing.doi ?? data.doi ?? undefined,
-        contains: contains ? { set: contains } : undefined,
+        contains: { set: workContains },
         versions: {
           create: [
             {
@@ -49,6 +48,7 @@ export async function dbCreateWorkVersionAndUpdateWork(
               doi: data.doi,
               canonical: data.canonical,
               tags: versionTags,
+              contains: versionContains,
               metadata: data.metadata ?? undefined,
             },
           ],
