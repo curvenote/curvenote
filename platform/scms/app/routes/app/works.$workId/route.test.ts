@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
-  createSubmission,
+  createReturningVersion,
   createSubmissionVersion,
   dbAttachMetadataToWorkVersions,
   dbGetCheckServiceRunsByWorkVersionIds,
@@ -18,7 +18,7 @@ const {
   userHasScope,
   withSecureWorkContext,
 } = vi.hoisted(() => ({
-  createSubmission: vi.fn(),
+  createReturningVersion: vi.fn(),
   createSubmissionVersion: vi.fn(),
   dbAttachMetadataToWorkVersions: vi.fn(),
   dbGetCheckServiceRunsByWorkVersionIds: vi.fn(),
@@ -57,7 +57,7 @@ vi.mock('@curvenote/scms-server', () => ({
   }),
   sites: {
     submissions: {
-      create: createSubmission,
+      createReturningVersion,
       versions: {
         create: createSubmissionVersion,
       },
@@ -216,7 +216,7 @@ describe('work submit-to-site route', () => {
     });
     findFirstSubmission.mockResolvedValue(null);
     findFirstWorkVersion.mockResolvedValue({ id: 'wv-1' });
-    createSubmission.mockResolvedValue({ versions: [{ id: 'sv-1' }] });
+    createReturningVersion.mockResolvedValue({ id: 'sv-1' });
     createSubmissionVersion.mockResolvedValue({ id: 'sv-2' });
     dbAttachMetadataToWorkVersions.mockImplementation(async (versions) => versions);
     dbGetWorkOwnerName.mockResolvedValue('Owner');
@@ -240,7 +240,7 @@ describe('work submit-to-site route', () => {
       success: false,
       intent: 'submit-to-site',
     });
-    expect(createSubmission).not.toHaveBeenCalled();
+    expect(createReturningVersion).not.toHaveBeenCalled();
   });
 
   it('allows submissions to public external sites', async () => {
@@ -276,7 +276,7 @@ describe('work submit-to-site route', () => {
       siteName: 'external-site',
       submissionVersionId: 'sv-1',
     });
-    expect(createSubmission).toHaveBeenCalled();
+    expect(createReturningVersion).toHaveBeenCalled();
   });
 
   it('exposes external sites first when the user can submit to them', async () => {
@@ -379,7 +379,7 @@ describe('work submit-to-site route', () => {
       alreadySubmitted: true,
     });
     expect(createSubmissionVersion).not.toHaveBeenCalled();
-    expect(createSubmission).not.toHaveBeenCalled();
+    expect(createReturningVersion).not.toHaveBeenCalled();
   });
 
   it('creates a new submission version when an already-submitted site receives a newer version', async () => {
@@ -425,6 +425,6 @@ describe('work submit-to-site route', () => {
       'submission-1',
       'wv-2',
     );
-    expect(createSubmission).not.toHaveBeenCalled();
+    expect(createReturningVersion).not.toHaveBeenCalled();
   });
 });

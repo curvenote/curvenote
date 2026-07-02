@@ -317,7 +317,7 @@ export async function action(args: ActionFunctionArgs) {
       }
 
       const siteCtx = new SiteContextWithUser(ctx, site);
-      const existingVersion = existingSubmission?.versions[0];
+      const existingVersion = existingSubmission?.versions?.[0];
       if (existingSubmission) {
         if (existingVersion?.work_version_id === selectedVersion.id) {
           return {
@@ -365,7 +365,7 @@ export async function action(args: ActionFunctionArgs) {
         );
       }
 
-      const submission = await siteLoaders.submissions.create(
+      const submissionVersion = await siteLoaders.submissions.createReturningVersion(
         siteCtx,
         serverExtensions,
         selectedVersion.id,
@@ -378,7 +378,7 @@ export async function action(args: ActionFunctionArgs) {
         success: true,
         intent,
         siteName,
-        submissionVersionId: submission.versions[0]?.id,
+        submissionVersionId: submissionVersion.id,
       };
     } catch (error) {
       console.error('Failed to submit work to site:', error);
