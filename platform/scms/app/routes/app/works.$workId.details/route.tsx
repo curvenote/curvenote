@@ -7,7 +7,7 @@ import {
 } from '@curvenote/scms-core';
 import type { MetaFunction } from 'react-router';
 import type { WorkDTO } from '@curvenote/common';
-import type { ClientExtensionCheckService, Workflow } from '@curvenote/scms-core';
+import type { Workflow } from '@curvenote/scms-core';
 import { WorkVersionTimeline } from './WorkVersionTimeline';
 import { WorkDetailsTopBar } from './WorkDetailsTopBar';
 import { WorkDetailsContentCard } from './WorkDetailsContentCard';
@@ -54,7 +54,6 @@ type LoaderData = {
   users: WorkUser[];
   canSubmitToSite: boolean;
   availableSites: SubmissionTargetSite[];
-  checkServices: ClientExtensionCheckService[];
 };
 
 export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
@@ -80,7 +79,6 @@ export default function WorkDetailRoute() {
     users,
     canSubmitToSite,
     availableSites,
-    checkServices,
   } = useRouteLoaderData('routes/app/works.$workId/route') as LoaderData;
 
   const deploymentConfig = useDeploymentConfig();
@@ -92,14 +90,12 @@ export default function WorkDetailRoute() {
       }
     }
   }
-  const routeCheckServices =
-    checkServices ??
-    getExtensionCheckServicesFromServerConfig(
-      { app: { extensions: extensionsConfig } } as unknown as Parameters<
-        typeof getExtensionCheckServicesFromServerConfig
-      >[0],
-      extensions,
-    );
+  const checkServices = getExtensionCheckServicesFromServerConfig(
+    { app: { extensions: extensionsConfig } } as unknown as Parameters<
+      typeof getExtensionCheckServicesFromServerConfig
+    >[0],
+    extensions,
+  );
 
   const workBasePath = `/app/works/${work.id}`;
   const basePath = `/app/works/${work.id}`;
@@ -130,7 +126,7 @@ export default function WorkDetailRoute() {
             availableSites={availableSites}
             versions={versions}
             checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
-            checkServices={routeCheckServices}
+            checkServices={checkServices}
           />
         </div>
         <div>
@@ -143,7 +139,7 @@ export default function WorkDetailRoute() {
             linkedJobsByWorkVersionId={linkedJobsByWorkVersionId}
             activities={activities}
             checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
-            checkServices={routeCheckServices}
+            checkServices={checkServices}
           />
         </div>
       </div>

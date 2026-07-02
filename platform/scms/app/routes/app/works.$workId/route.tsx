@@ -518,7 +518,6 @@ export const loader = async (args: LoaderFunctionArgs) => {
     users,
     canSubmitToSite,
     availableSites,
-    checkServices,
     isOnUploadRoute,
     maintenanceByServiceId,
   };
