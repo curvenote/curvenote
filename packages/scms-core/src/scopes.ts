@@ -128,6 +128,7 @@ export const app = {
   works: {
     feature: 'app:works:feature', // UI level feature flag
     upload: 'app:works:upload',
+    submitToSite: 'app:works:submit-to-site',
     checks: {
       feature: 'app:works:checks:feature',
       dispatch: 'app:works:checks:dispatch',
