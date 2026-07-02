@@ -10,6 +10,7 @@ export type { WorkVersionWithSubmissionVersions };
 /** Parent loader serializes versions with signed file metadata only (no myst/checks/license). */
 export type WorkVersionForDetailsClient = WorkVersionWithSubmissionVersions & {
   metadata?: { files?: Record<string, unknown> };
+  metadataSummary?: { keys: string[] };
 };
 
 export type WorkVersionContentCardData = {

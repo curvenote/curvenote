@@ -74,6 +74,7 @@ const WorkActionIntentSchema = zfd.formData({
   ),
   workId: zfd.text(z.string().optional()),
   siteName: zfd.text(z.string().optional()),
+  workVersionId: zfd.text(z.string().optional()),
 });
 
 export async function action(args: ActionFunctionArgs) {
@@ -86,7 +87,7 @@ export async function action(args: ActionFunctionArgs) {
     );
   }
 
-  const { intent, workId: formWorkId, siteName } = parsed.data;
+  const { intent, workId: formWorkId, siteName, workVersionId } = parsed.data;
   const ctx = await withSecureWorkContext(args, [scopes.work.id.read]);
 
   if (intent === 'get-drafts-for-work') {
@@ -287,12 +288,17 @@ export async function action(args: ActionFunctionArgs) {
         };
       }
 
-      const latestNonDraftVersion = await prisma.workVersion.findFirst({
-        where: { work_id: ctx.work.id, draft: false },
-        orderBy: { date_created: 'desc' },
-        select: { id: true },
-      });
-      if (!latestNonDraftVersion) {
+      const selectedVersion = workVersionId
+        ? await prisma.workVersion.findFirst({
+            where: { id: workVersionId, work_id: ctx.work.id, draft: false },
+            select: { id: true },
+          })
+        : await prisma.workVersion.findFirst({
+            where: { work_id: ctx.work.id, draft: false },
+            orderBy: { date_created: 'desc' },
+            select: { id: true },
+          });
+      if (!selectedVersion) {
         return data(
           { success: false, intent, error: 'No completed work version is available to submit' },
           { status: 400 },
@@ -326,7 +332,7 @@ export async function action(args: ActionFunctionArgs) {
       const submission = await siteLoaders.submissions.create(
         siteCtx,
         serverExtensions,
-        latestNonDraftVersion.id,
+        selectedVersion.id,
         kind.id,
         false,
         undefined,
@@ -448,8 +454,18 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const versionsForClient: WorkVersionForDetailsClient[] = await Promise.all(
     workVersionsWithMetadata.map(async (version) => {
       const { metadata, ...rest } = version;
+      const metadataSummary =
+        metadata != null && typeof metadata === 'object' && !Array.isArray(metadata)
+          ? {
+              keys: Object.keys(metadata as Record<string, unknown>).filter(
+                (key) => key !== 'files',
+              ),
+            }
+          : undefined;
       const fileMetadata = await signVersionFilesForClient(version, metadata, ctx);
-      return fileMetadata ? { ...rest, metadata: fileMetadata } : rest;
+      return fileMetadata || metadataSummary
+        ? { ...rest, metadata: fileMetadata, metadataSummary }
+        : rest;
     }),
   );
 

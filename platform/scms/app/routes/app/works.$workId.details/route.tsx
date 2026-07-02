@@ -124,6 +124,8 @@ export default function WorkDetailRoute() {
             basePath={basePath}
             canSubmitToSite={canSubmitToSite}
             availableSites={availableSites}
+            versions={versions}
+            checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
           />
         </div>
         <div>
