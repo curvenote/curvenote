@@ -1,5 +1,13 @@
-import { Link, useFetcher, useNavigate } from 'react-router';
-import { primitives, SiteLogo, cn, ui } from '@curvenote/scms-core';
+import { Link, useFetcher, useLocation, useNavigate } from 'react-router';
+import {
+  primitives,
+  SiteLogo,
+  cn,
+  ui,
+  RequestHelpDialog,
+  useDeploymentConfig,
+  useMyUser,
+} from '@curvenote/scms-core';
 import type { ClientExtensionCheckService, Workflow } from '@curvenote/scms-core';
 import type {
   SubmissionWithVersionsAndSite,
@@ -123,6 +131,53 @@ function getFileLabel(key: string, value: unknown): string {
     (typeof file?.filename === 'string' && file.filename) ||
     (typeof file?.name === 'string' && file.name) ||
     key
+  );
+}
+
+function SubmitToSiteEarlyAccessMessage() {
+  const [supportOpen, setSupportOpen] = useState(false);
+  const location = useLocation();
+  const user = useMyUser();
+  const config = useDeploymentConfig();
+  const helpConfig = config.statusBar?.items?.find((item) => item.type === 'request-help');
+  const helpProps = helpConfig?.type === 'request-help' ? helpConfig.properties : undefined;
+
+  const orcidAccount = user?.linkedAccounts?.find(
+    (account) => account.provider === 'orcid' && !account.pending,
+  );
+  const orcid = orcidAccount?.idAtProvider || 'unknown';
+  const currentPage = `${location.pathname}${location.search}${location.hash}`;
+
+  return (
+    <>
+      <p className="leading-relaxed">
+        To submit new works at the moment, use the Curvenote CLI or GitHub integrations. If you are
+        interested in early access to the direct submission feature, please{' '}
+        <ui.Button
+          type="button"
+          variant="link"
+          className="inline h-auto p-0 align-baseline"
+          onClick={() => setSupportOpen(true)}
+        >
+          contact support
+        </ui.Button>
+        .
+      </p>
+      <RequestHelpDialog
+        orcid={orcid}
+        open={supportOpen}
+        onOpenChange={setSupportOpen}
+        prompt={
+          helpProps?.prompt ??
+          'I am interested in early access to the direct submission feature from the work details page.'
+        }
+        title={helpProps?.title ?? helpProps?.label ?? 'Request help from the support team'}
+        description={helpProps?.description}
+        actionUrl="/app/request-help"
+        successMessage={helpProps?.successMessage}
+        currentPage={currentPage}
+      />
+    </>
   );
 }
 
@@ -285,10 +340,13 @@ export function SubmittedToBar({
           <Plus className="w-4 h-4" />
         </ui.PopoverTrigger>
         <ui.PopoverContent
-          className="p-0 w-[760px] text-sm border shadow-lg bg-background text-foreground border-border"
-          align="start"
-          side="right"
-          sideOffset={8}
+          className={cn(
+            'text-sm border shadow-lg bg-background text-foreground border-border',
+            canSubmitToSite ? 'p-0 w-[760px]' : 'p-4 w-80',
+          )}
+          align={canSubmitToSite ? 'start' : 'end'}
+          side={canSubmitToSite ? 'right' : 'bottom'}
+          sideOffset={canSubmitToSite ? 8 : undefined}
         >
           {canSubmitToSite ? (
             <fetcher.Form method="post" action={basePath} className="grid grid-cols-[300px_1fr]">
@@ -514,10 +572,7 @@ export function SubmittedToBar({
               </div>
             </fetcher.Form>
           ) : (
-            <p className="p-2 leading-relaxed">
-              Coming soon. To submit new works at the moment, use the Curvenote CLI or GitHub
-              integrations.
-            </p>
+            <SubmitToSiteEarlyAccessMessage />
           )}
         </ui.PopoverContent>
       </ui.Popover>
