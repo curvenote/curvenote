@@ -7,6 +7,7 @@ import {
   siteWorkWorkVersionWithWorkSelect,
 } from '../../../prisma.selects.server.js';
 import { formatSubmissionDTO } from './get.server.js';
+import getSubmissionVersion from './versions/get.server.js';
 import { formatDate, normalizeExplicitTags } from '@curvenote/common';
 import type { UserDBO } from '../../../db.types.js';
 import { ActivityType } from '@curvenote/scms-db';
@@ -180,6 +181,79 @@ export async function dbCreateNewSubmission(
   });
 }
 
+type CreateSubmissionArgs = {
+  ctx: SiteContext;
+  workVersionId: string;
+  kindId: string;
+  draft: boolean;
+  jobId?: string;
+  collectionId?: string;
+  metadata?: Record<string, any>;
+  tags?: string[];
+};
+
+async function createSubmissionRecord({
+  ctx,
+  workVersionId,
+  kindId,
+  draft,
+  jobId,
+  collectionId,
+  metadata,
+  tags,
+}: CreateSubmissionArgs) {
+  if (!ctx.user) throw error401();
+  return dbCreateNewSubmission(
+    ctx.user,
+    ctx.site.name,
+    workVersionId,
+    kindId,
+    draft,
+    jobId,
+    collectionId,
+    metadata,
+    tags,
+  );
+}
+
+async function notifyNewSubmissionCreated(
+  ctx: SiteContext,
+  submission: Awaited<ReturnType<typeof dbCreateNewSubmission>>,
+  draft: boolean,
+) {
+  const createdVersion = submission.versions[0];
+  await ctx.trackEvent(TrackEvent.SUBMISSION_CREATED, {
+    submissionId: submission.id,
+    submissionVersionId: createdVersion.id,
+    workId: createdVersion.work_version.work_id,
+    workTitle: createdVersion.work_version.title,
+    kindId: submission.kind.id,
+    kindName: submission.kind.name,
+    collectionId: submission.collection.id,
+    collectionName: submission.collection.name,
+    isDraft: draft,
+    status: createdVersion.status,
+  });
+
+  const submissionUrl = asSiteSubmissionUrl(ctx.asBaseUrl, ctx.site.name, submission.id);
+  await ctx.sendSlackNotification({
+    eventType: SlackEventType.SUBMISSION_VERSION_CREATED,
+    message: `New submission: ${createdVersion.work_version.title ?? 'Untitled'}`,
+    user: ctx.user,
+    metadata: {
+      title: createdVersion.work_version.title,
+      status: createdVersion.status,
+      site: ctx.site.name,
+      collection: submission.collection.name,
+      kind: submission.kind.name,
+      submissionId: submission.id,
+      submissionVersionId: createdVersion.id,
+      submissionUrl,
+      workId: createdVersion.work_version.work_id,
+    },
+  });
+}
+
 export default async function create(
   ctx: SiteContext,
   extensions: ClientExtension[],
@@ -191,51 +265,47 @@ export default async function create(
   metadata?: Record<string, any>,
   tags?: string[],
 ) {
-  if (!ctx.user) throw error401(); // ctx.secure()
   // TODO - check does site allow anonymous submissions?
   // TODO - check does site allow submissions from this user?
   // TODO - rate limit the user?
-  const submission = await dbCreateNewSubmission(
-    ctx.user,
-    ctx.site.name,
-    workId,
+  const submission = await createSubmissionRecord({
+    ctx,
+    workVersionId: workId,
     kindId,
     draft,
     jobId,
     collectionId,
     metadata,
     tags,
-  );
-
-  await ctx.trackEvent(TrackEvent.SUBMISSION_CREATED, {
-    submissionId: submission.id,
-    submissionVersionId: submission.versions[0].id,
-    workId: submission.versions[0].work_version.work_id,
-    workTitle: submission.versions[0].work_version.title,
-    kindId: submission.kind.id,
-    kindName: submission.kind.name,
-    collectionId: submission.collection.id,
-    collectionName: submission.collection.name,
-    isDraft: draft,
-    status: submission.versions[0].status,
   });
 
-  const submissionUrl = asSiteSubmissionUrl(ctx.asBaseUrl, ctx.site.name, submission.id);
-  await ctx.sendSlackNotification({
-    eventType: SlackEventType.SUBMISSION_VERSION_CREATED,
-    message: `New submission: ${submission.versions[0].work_version.title ?? 'Untitled'}`,
-    user: ctx.user,
-    metadata: {
-      title: submission.versions[0].work_version.title,
-      status: submission.versions[0].status,
-      site: ctx.site.name,
-      collection: submission.collection.name,
-      kind: submission.kind.name,
-      submissionId: submission.id,
-      submissionVersionId: submission.versions[0].id,
-      submissionUrl,
-      workId: submission.versions[0].work_version.work_id,
-    },
-  });
+  await notifyNewSubmissionCreated(ctx, submission, draft);
   return formatSubmissionDTO(ctx, submission, extensions);
+}
+
+/** Like `create`, but returns the created submission version DTO (same shape as `versions.create`). */
+export async function createReturningVersion(
+  ctx: SiteContext,
+  extensions: ClientExtension[],
+  workVersionId: string,
+  kindId: string,
+  draft: boolean,
+  jobId?: string,
+  collectionId?: string,
+  metadata?: Record<string, any>,
+  tags?: string[],
+) {
+  const submission = await createSubmissionRecord({
+    ctx,
+    workVersionId,
+    kindId,
+    draft,
+    jobId,
+    collectionId,
+    metadata,
+    tags,
+  });
+
+  await notifyNewSubmissionCreated(ctx, submission, draft);
+  return getSubmissionVersion(ctx, submission.versions[0].id);
 }

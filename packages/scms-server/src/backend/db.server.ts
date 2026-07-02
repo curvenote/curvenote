@@ -10,8 +10,16 @@ import type {
 } from './db.types.js';
 import type { SubmissionVersion, WorkVersion } from '@curvenote/scms-db';
 import { Prisma, ActivityType, WorkRole } from '@curvenote/scms-db';
-import { error401, httpError, WorkContents, TrackEvent, scopes } from '@curvenote/scms-core';
+import {
+  error401,
+  error404,
+  httpError,
+  WorkContents,
+  TrackEvent,
+  scopes,
+} from '@curvenote/scms-core';
 import { userHasScope } from './scopes.helpers.server.js';
+import { draftUploadVersionContains, mergeWorkContains } from './loaders/works/contains.server.js';
 import { uuidv7 } from 'uuidv7';
 import { KnownBuckets } from './storage/constants.server.js';
 import { Folder, StorageBackend } from './storage/index.js';
@@ -432,6 +440,7 @@ export async function dbCreateDraftWork(
               description,
               draft: true,
               authors,
+              contains,
               metadata: metadata ?? {},
             },
           ],
@@ -533,10 +542,27 @@ export async function dbCreateDraftWorkVersion(
   const cdnKey = uuidv7();
 
   return prisma.$transaction(async (tx) => {
+    const existing = await tx.work.findUnique({
+      where: { id: workId },
+      select: {
+        contains: true,
+        versions: {
+          orderBy: { date_created: 'desc' },
+          take: 1,
+          select: { contains: true },
+        },
+      },
+    });
+    if (!existing) throw error404();
+    const previousVersionContains = existing.versions[0]?.contains ?? [];
+    const versionContains = draftUploadVersionContains(previousVersionContains);
+    const workContains = mergeWorkContains(existing.contains, versionContains);
+
     const work = await tx.work.update({
       where: { id: workId },
       data: {
         date_modified: date_created,
+        contains: { set: workContains },
         versions: {
           create: [
             {
@@ -549,6 +575,7 @@ export async function dbCreateDraftWorkVersion(
               description: '',
               draft: true,
               authors: [],
+              contains: versionContains,
               metadata: versionMetadata,
             },
           ],

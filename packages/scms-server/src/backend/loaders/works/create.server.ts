@@ -122,6 +122,7 @@ export async function dbCreateWorkAndVersion(
               doi: data.doi ?? null,
               canonical: data.canonical ?? null,
               tags: versionTags,
+              contains,
               metadata: data.metadata ?? undefined,
             } as Prisma.WorkVersionCreateInput,
           ],
