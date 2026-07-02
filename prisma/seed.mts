@@ -208,6 +208,29 @@ async function main() {
   console.log(
     `   ✓ Created/updated role: ${extractMetadataRole.title} (${extractMetadataRole.name})`,
   );
+
+  const submitToSiteScopes = ['app:works:submit-to-site'];
+  const submitToSiteRole = await prisma.role.upsert({
+    where: { name: 'submit-to-site' },
+    create: {
+      id: 'submit-to-site-role',
+      name: 'submit-to-site',
+      title: 'Submit to Site',
+      description: 'Submit works to SCMS sites directly from the work details page',
+      scopes: submitToSiteScopes,
+      createdBy: franklin.id,
+      date_created: startDateString,
+      date_modified: startDateString,
+    },
+    update: {
+      scopes: submitToSiteScopes,
+      date_modified: startDateString,
+    },
+  });
+  summary.roles++;
+  console.log(
+    `   ✓ Created/updated role: ${submitToSiteRole.title} (${submitToSiteRole.name})`,
+  );
   console.log(`   Total roles created: ${summary.roles}\n`);
 
   console.log('🔗 Assigning roles to users...');
@@ -259,6 +282,21 @@ async function main() {
       });
       summary.userRoles++;
       console.log(`   ✓ Assigned ${checksPreviewRole.title} to ${user.display_name}`);
+    }
+
+    // Enable direct submit-to-site from work details for local development.
+    for (const user of allUsers) {
+      await prisma.userRole.create({
+        data: {
+          id: uuidv7(),
+          user_id: user.id,
+          role_id: submitToSiteRole.id,
+          date_created: startDateString,
+          date_modified: startDateString,
+        },
+      });
+      summary.userRoles++;
+      console.log(`   ✓ Assigned ${submitToSiteRole.title} to ${user.display_name}`);
     }
   }
 
