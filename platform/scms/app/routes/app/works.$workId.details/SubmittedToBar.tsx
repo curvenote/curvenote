@@ -342,235 +342,248 @@ export function SubmittedToBar({
         <ui.PopoverContent
           className={cn(
             'text-sm border shadow-lg bg-background text-foreground border-border',
-            canSubmitToSite ? 'p-0 w-[760px]' : 'p-4 w-80',
+            canSubmitToSite
+              ? 'p-0 w-[min(760px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]'
+              : 'p-4 w-80 max-w-[calc(100vw-2rem)]',
           )}
-          align={canSubmitToSite ? 'start' : 'end'}
-          side={canSubmitToSite ? 'right' : 'bottom'}
-          sideOffset={canSubmitToSite ? 8 : undefined}
+          side="bottom"
+          align="center"
+          sideOffset={8}
+          collisionPadding={16}
         >
           {canSubmitToSite ? (
-            <fetcher.Form method="post" action={basePath} className="grid grid-cols-[300px_1fr]">
-              <input type="hidden" name="workVersionId" value={selectedVersion?.id ?? ''} />
-              <div className="p-4 space-y-4 border-r border-border bg-muted/20">
-                <div>
-                  <p className="text-sm font-medium">Choose the version to submit</p>
-                  <p className="text-xs text-muted-foreground">
-                    Review available files, metadata, and checks before choosing a venue.
-                  </p>
+            <>
+              <ui.PopoverArrow className="fill-background stroke-border stroke-[1px]" />
+              <fetcher.Form method="post" action={basePath} className="grid grid-cols-[300px_1fr]">
+                <input type="hidden" name="workVersionId" value={selectedVersion?.id ?? ''} />
+                <div className="p-4 space-y-4 border-r border-border bg-muted/20">
+                  <div>
+                    <p className="text-sm font-medium">Choose the version to submit</p>
+                    <p className="text-xs text-muted-foreground">
+                      Review available files, metadata, and checks before choosing a venue.
+                    </p>
+                  </div>
+
+                  <ui.Popover open={versionDropdownOpen} onOpenChange={setVersionDropdownOpen}>
+                    <ui.PopoverTrigger asChild>
+                      <button
+                        id="submit-version-select"
+                        type="button"
+                        className={cn(
+                          'flex h-16 w-full items-center justify-between gap-3 rounded-md border border-input bg-white px-3 py-2 text-left shadow-xs transition-colors',
+                          'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                        )}
+                      >
+                        {selectedVersion ? (
+                          <span className="flex min-w-0 flex-col items-start">
+                            <span className="truncate font-medium">
+                              Version {selectedVersionLabel}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(
+                                selectedVersion.date_modified ?? selectedVersion.date_created,
+                              ).toLocaleDateString()}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Select a version</span>
+                        )}
+                        <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                      </button>
+                    </ui.PopoverTrigger>
+                    <ui.PopoverContent
+                      align="start"
+                      side="bottom"
+                      sideOffset={6}
+                      className="p-1 w-[268px]"
+                    >
+                      <div className="space-y-1">
+                        {versionOptions.map(({ version, label }) => {
+                          const selected = version.id === selectedVersionId;
+                          return (
+                            <button
+                              key={version.id}
+                              type="button"
+                              className={cn(
+                                'flex w-full items-center justify-between gap-3 rounded-sm px-3 py-2 text-left transition-colors',
+                                'hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                                selected && 'bg-accent',
+                              )}
+                              onClick={() => {
+                                setSelectedVersionId(version.id);
+                                setVersionDropdownOpen(false);
+                              }}
+                            >
+                              <span className="flex min-w-0 flex-col items-start">
+                                <span className="truncate font-medium">Version {label}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(
+                                    version.date_modified ?? version.date_created,
+                                  ).toLocaleDateString()}
+                                </span>
+                              </span>
+                              {selected ? (
+                                <Check className="w-4 h-4 text-primary shrink-0" />
+                              ) : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </ui.PopoverContent>
+                  </ui.Popover>
+
+                  {selectedVersion ? (
+                    <>
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+                          Checks
+                        </p>
+                        <div className="space-y-1.5">
+                          {checkRows.length > 0 ? (
+                            checkRows.map((row) => {
+                              const SummaryTitleComponent =
+                                row.service?.sectionSummaryTitleComponent;
+                              const SummaryBadgeComponent =
+                                row.service?.sectionSummaryBadgeComponent;
+                              const metadata = serviceDataFromRun(row.run);
+                              const fallbackScore = row.run ? getCheckScore(row.run) : null;
+                              return (
+                                <div
+                                  key={row.id}
+                                  className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
+                                >
+                                  <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto">
+                                    {SummaryTitleComponent && row.run ? (
+                                      <SummaryTitleComponent metadata={metadata} />
+                                    ) : (
+                                      <span className="text-xs font-medium truncate">
+                                        {row.name}
+                                      </span>
+                                    )}
+                                  </span>
+                                  {row.run ? (
+                                    SummaryBadgeComponent ? (
+                                      <SummaryBadgeComponent metadata={metadata} />
+                                    ) : (
+                                      <ui.Badge variant="success">
+                                        {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
+                                      </ui.Badge>
+                                    )
+                                  ) : (
+                                    <ui.Badge variant="outline-muted">Not run</ui.Badge>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              No check services available.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+                          Files
+                        </p>
+                        {fileLabels.length > 0 ? (
+                          <ul className="space-y-1 text-[11px] leading-4 text-muted-foreground">
+                            {Object.entries(selectedFiles).map(([key, value]) => (
+                              <li key={key} className="truncate">
+                                {getFileLabel(key, value)}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-[11px] leading-4 text-muted-foreground">
+                            No files are available for this version.
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  ) : null}
                 </div>
 
-                <ui.Popover open={versionDropdownOpen} onOpenChange={setVersionDropdownOpen}>
-                  <ui.PopoverTrigger asChild>
-                    <button
-                      id="submit-version-select"
-                      type="button"
-                      className={cn(
-                        'flex h-16 w-full items-center justify-between gap-3 rounded-md border border-input bg-white px-3 py-2 text-left shadow-xs transition-colors',
-                        'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-                      )}
-                    >
-                      {selectedVersion ? (
-                        <span className="flex min-w-0 flex-col items-start">
-                          <span className="truncate font-medium">
-                            Version {selectedVersionLabel}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(
-                              selectedVersion.date_modified ?? selectedVersion.date_created,
-                            ).toLocaleDateString()}
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">Select a version</span>
-                      )}
-                      <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-                    </button>
-                  </ui.PopoverTrigger>
-                  <ui.PopoverContent
-                    align="start"
-                    side="bottom"
-                    sideOffset={6}
-                    className="p-1 w-[268px]"
-                  >
+                <div className="p-2 space-y-2">
+                  <div className="px-2 py-1">
+                    <p className="text-sm font-medium">Submit to site</p>
+                    <p className="text-xs text-muted-foreground">
+                      Choose an SCMS site to receive this work. External sites are listed first.
+                    </p>
+                  </div>
+                  {availableSites.length > 0 ? (
                     <div className="space-y-1">
-                      {versionOptions.map(({ version, label }) => {
-                        const selected = version.id === selectedVersionId;
+                      <input type="hidden" name="intent" value="submit-to-site" />
+                      {availableSites.map((site) => {
+                        const siteTitle = site.title ?? site.name;
+                        const abbr =
+                          abbreviateTitle(siteTitle) || siteTitle.charAt(0).toUpperCase();
+                        const metadata = site.metadata as SiteVisualMetadata | undefined;
+                        const isCurrentSiteSubmitting = submittingSiteName === site.name;
+                        const alreadySubmitted = submittedSiteNames.has(site.name);
                         return (
                           <button
-                            key={version.id}
-                            type="button"
+                            key={site.id}
+                            type="submit"
+                            name="siteName"
+                            value={site.name}
+                            disabled={isSubmitting}
                             className={cn(
-                              'flex w-full items-center justify-between gap-3 rounded-sm px-3 py-2 text-left transition-colors',
+                              'flex gap-3 items-start p-2 w-full text-left rounded-md transition-colors',
                               'hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                              selected && 'bg-accent',
+                              isSubmitting && 'opacity-70',
                             )}
-                            onClick={() => {
-                              setSelectedVersionId(version.id);
-                              setVersionDropdownOpen(false);
-                            }}
                           >
-                            <span className="flex min-w-0 flex-col items-start">
-                              <span className="truncate font-medium">Version {label}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(
-                                  version.date_modified ?? version.date_created,
-                                ).toLocaleDateString()}
+                            <span className="flex overflow-hidden justify-center items-center w-9 h-9 rounded border bg-muted shrink-0 border-border">
+                              {metadata?.logo != null || metadata?.logo_dark != null ? (
+                                <SiteLogo
+                                  className="object-contain w-8 h-8"
+                                  alt={siteTitle}
+                                  logo={metadata?.logo}
+                                  logo_dark={metadata?.logo_dark}
+                                />
+                              ) : (
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {abbr}
+                                </span>
+                              )}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex gap-2 items-center">
+                                {metadata?.favicon ? (
+                                  <img
+                                    src={metadata.favicon}
+                                    alt=""
+                                    className="object-contain w-4 h-4 shrink-0"
+                                  />
+                                ) : null}
+                                <span className="font-medium truncate">{siteTitle}</span>
+                              </span>
+                              <span className="block text-xs leading-snug whitespace-normal text-muted-foreground">
+                                {site.description ?? site.name}
                               </span>
                             </span>
-                            {selected ? <Check className="w-4 h-4 text-primary shrink-0" /> : null}
+                            <span className="flex gap-2 items-center shrink-0">
+                              {alreadySubmitted ? (
+                                <ui.Badge variant="secondary">Submitted</ui.Badge>
+                              ) : null}
+                              {isCurrentSiteSubmitting ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                              ) : null}
+                            </span>
                           </button>
                         );
                       })}
                     </div>
-                  </ui.PopoverContent>
-                </ui.Popover>
-
-                {selectedVersion ? (
-                  <>
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                        Checks
-                      </p>
-                      <div className="space-y-1.5">
-                        {checkRows.length > 0 ? (
-                          checkRows.map((row) => {
-                            const SummaryTitleComponent = row.service?.sectionSummaryTitleComponent;
-                            const SummaryBadgeComponent = row.service?.sectionSummaryBadgeComponent;
-                            const metadata = serviceDataFromRun(row.run);
-                            const fallbackScore = row.run ? getCheckScore(row.run) : null;
-                            return (
-                              <div
-                                key={row.id}
-                                className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
-                              >
-                                <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto">
-                                  {SummaryTitleComponent && row.run ? (
-                                    <SummaryTitleComponent metadata={metadata} />
-                                  ) : (
-                                    <span className="text-xs font-medium truncate">{row.name}</span>
-                                  )}
-                                </span>
-                                {row.run ? (
-                                  SummaryBadgeComponent ? (
-                                    <SummaryBadgeComponent metadata={metadata} />
-                                  ) : (
-                                    <ui.Badge variant="success">
-                                      {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
-                                    </ui.Badge>
-                                  )
-                                ) : (
-                                  <ui.Badge variant="outline-muted">Not run</ui.Badge>
-                                )}
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <p className="text-xs text-muted-foreground">
-                            No check services available.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                        Files
-                      </p>
-                      {fileLabels.length > 0 ? (
-                        <ul className="space-y-1 text-[11px] leading-4 text-muted-foreground">
-                          {Object.entries(selectedFiles).map(([key, value]) => (
-                            <li key={key} className="truncate">
-                              {getFileLabel(key, value)}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-[11px] leading-4 text-muted-foreground">
-                          No files are available for this version.
-                        </p>
-                      )}
-                    </div>
-                  </>
-                ) : null}
-              </div>
-
-              <div className="p-2 space-y-2">
-                <div className="px-2 py-1">
-                  <p className="text-sm font-medium">Submit to site</p>
-                  <p className="text-xs text-muted-foreground">
-                    Choose an SCMS site to receive this work. External sites are listed first.
-                  </p>
+                  ) : (
+                    <p className="px-2 py-3 text-sm text-muted-foreground">
+                      No SCMS sites are available for submission.
+                    </p>
+                  )}
                 </div>
-                {availableSites.length > 0 ? (
-                  <div className="space-y-1">
-                    <input type="hidden" name="intent" value="submit-to-site" />
-                    {availableSites.map((site) => {
-                      const siteTitle = site.title ?? site.name;
-                      const abbr = abbreviateTitle(siteTitle) || siteTitle.charAt(0).toUpperCase();
-                      const metadata = site.metadata as SiteVisualMetadata | undefined;
-                      const isCurrentSiteSubmitting = submittingSiteName === site.name;
-                      const alreadySubmitted = submittedSiteNames.has(site.name);
-                      return (
-                        <button
-                          key={site.id}
-                          type="submit"
-                          name="siteName"
-                          value={site.name}
-                          disabled={isSubmitting}
-                          className={cn(
-                            'flex gap-3 items-start p-2 w-full text-left rounded-md transition-colors',
-                            'hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                            isSubmitting && 'opacity-70',
-                          )}
-                        >
-                          <span className="flex overflow-hidden justify-center items-center w-9 h-9 rounded border bg-muted shrink-0 border-border">
-                            {metadata?.logo != null || metadata?.logo_dark != null ? (
-                              <SiteLogo
-                                className="object-contain w-8 h-8"
-                                alt={siteTitle}
-                                logo={metadata?.logo}
-                                logo_dark={metadata?.logo_dark}
-                              />
-                            ) : (
-                              <span className="text-xs font-medium text-muted-foreground">
-                                {abbr}
-                              </span>
-                            )}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="flex gap-2 items-center">
-                              {metadata?.favicon ? (
-                                <img
-                                  src={metadata.favicon}
-                                  alt=""
-                                  className="object-contain w-4 h-4 shrink-0"
-                                />
-                              ) : null}
-                              <span className="font-medium truncate">{siteTitle}</span>
-                            </span>
-                            <span className="block text-xs leading-snug whitespace-normal text-muted-foreground">
-                              {site.description ?? site.name}
-                            </span>
-                          </span>
-                          <span className="flex gap-2 items-center shrink-0">
-                            {alreadySubmitted ? (
-                              <ui.Badge variant="secondary">Submitted</ui.Badge>
-                            ) : null}
-                            {isCurrentSiteSubmitting ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                            ) : null}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="px-2 py-3 text-sm text-muted-foreground">
-                    No SCMS sites are available for submission.
-                  </p>
-                )}
-              </div>
-            </fetcher.Form>
+              </fetcher.Form>
+            </>
           ) : (
             <SubmitToSiteEarlyAccessMessage />
           )}
