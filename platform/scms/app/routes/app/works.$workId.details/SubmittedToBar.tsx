@@ -301,10 +301,13 @@ export function SubmittedToBar({
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <ui.Label htmlFor="submit-version-select">Version</ui.Label>
+                <div>
                   <ui.Select value={selectedVersionId} onValueChange={setSelectedVersionId}>
-                    <ui.SelectTrigger id="submit-version-select" size="sm" className="w-full">
+                    <ui.SelectTrigger
+                      id="submit-version-select"
+                      size="sm"
+                      className="w-full h-16 py-2"
+                    >
                       {selectedVersion ? (
                         <span className="flex flex-col items-start min-w-0 text-left">
                           <span className="font-medium truncate">
