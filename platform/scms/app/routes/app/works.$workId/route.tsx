@@ -299,16 +299,6 @@ export async function action(args: ActionFunctionArgs) {
         where: { work_id: ctx.work.id, site_id: site.id },
         include: { versions: { orderBy: { date_created: 'desc' }, take: 1 } },
       });
-      const existingVersion = existingSubmission?.versions[0];
-      if (existingVersion) {
-        return {
-          success: true,
-          intent,
-          siteName,
-          submissionVersionId: existingVersion.id,
-          alreadySubmitted: true,
-        };
-      }
 
       const selectedVersion = workVersionId
         ? await prisma.workVersion.findFirst({
@@ -325,6 +315,32 @@ export async function action(args: ActionFunctionArgs) {
           { success: false, intent, error: 'No completed work version is available to submit' },
           { status: 400 },
         );
+      }
+
+      const siteCtx = new SiteContextWithUser(ctx, site);
+      const existingVersion = existingSubmission?.versions[0];
+      if (existingSubmission) {
+        if (existingVersion?.work_version_id === selectedVersion.id) {
+          return {
+            success: true,
+            intent,
+            siteName,
+            submissionVersionId: existingVersion.id,
+            alreadySubmitted: true,
+          };
+        }
+        const submissionVersion = await siteLoaders.submissions.versions.create(
+          siteCtx,
+          serverExtensions,
+          existingSubmission.id,
+          selectedVersion.id,
+        );
+        return {
+          success: true,
+          intent,
+          siteName,
+          submissionVersionId: submissionVersion.id,
+        };
       }
 
       const collection =
@@ -350,7 +366,6 @@ export async function action(args: ActionFunctionArgs) {
         );
       }
 
-      const siteCtx = new SiteContextWithUser(ctx, site);
       const submission = await siteLoaders.submissions.create(
         siteCtx,
         serverExtensions,
