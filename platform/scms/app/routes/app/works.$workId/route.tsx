@@ -49,6 +49,7 @@ import {
   computeCanResumeDraftUpload,
   getLicenseDisplayFromMetadata,
   isDraftVersionValidForReuse,
+  resolveWorkVersionDoi,
   signVersionFilesForClient,
 } from './metadata.server';
 import type { WorkVersionContentCardData, WorkVersionForDetailsClient } from './types';
@@ -317,7 +318,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
         title: latestNonDraftWithMetadata.title,
         authors: latestNonDraftWithMetadata.authors,
         author_details: latestNonDraftWithMetadata.author_details,
-        doi: latestNonDraftWithMetadata.doi ?? ctx.work.doi ?? null,
+        doi: resolveWorkVersionDoi(latestNonDraftWithMetadata.doi, ctx.work.doi),
         license: getLicenseDisplayFromMetadata(latestNonDraftWithMetadata.metadata),
       }
     : null;

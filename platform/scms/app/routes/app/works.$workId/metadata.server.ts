@@ -8,6 +8,17 @@ export function isDraftVersionValidForReuse(metadata: unknown): boolean {
   return Boolean(meta && 'checks' in meta);
 }
 
+/** Prefer version DOI when non-empty after trim; otherwise work-level DOI. */
+export function resolveWorkVersionDoi(
+  versionDoi: string | null | undefined,
+  workDoi: string | null | undefined,
+): string | null {
+  const trimmedVersion = versionDoi != null ? String(versionDoi).trim() : '';
+  if (trimmedVersion) return trimmedVersion;
+  const trimmedWork = workDoi != null ? String(workDoi).trim() : '';
+  return trimmedWork || null;
+}
+
 export function getLicenseDisplayFromMetadata(metadata: unknown): LicenseDisplay | null {
   const meta = metadata;
   if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
