@@ -242,7 +242,43 @@ describe('work submit-to-site route', () => {
     expect(createSubmission).not.toHaveBeenCalled();
   });
 
-  it('only exposes non-external sites the user can submit to', async () => {
+  it('allows submissions to public external sites', async () => {
+    findUniqueSite.mockResolvedValue({
+      id: 'site-external',
+      name: 'external-site',
+      title: 'External Site',
+      private: false,
+      restricted: false,
+      external: true,
+      domains: [],
+      submissionKinds: [{ id: 'kind-1', default: true }],
+      collections: [
+        {
+          id: 'collection-1',
+          default: true,
+          open: true,
+          kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+        },
+      ],
+    });
+
+    const response = await action({
+      request: createSubmitToSiteRequest('external-site'),
+      params: { workId: 'work-1' },
+    } as never);
+
+    const body = 'data' in response ? response.data : response;
+
+    expect(body).toMatchObject({
+      success: true,
+      intent: 'submit-to-site',
+      siteName: 'external-site',
+      submissionVersionId: 'sv-1',
+    });
+    expect(createSubmission).toHaveBeenCalled();
+  });
+
+  it('exposes external sites first when the user can submit to them', async () => {
     findManySites.mockResolvedValue([
       {
         id: 'site-external',
@@ -291,7 +327,16 @@ describe('work submit-to-site route', () => {
       params: { workId: 'work-1' },
     } as never);
 
-    expect(result.availableSites.map((site) => site.name)).toEqual(['public-site', 'allowed-site']);
+    expect(findManySites).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ external: 'desc' }, { title: 'asc' }, { name: 'asc' }],
+      }),
+    );
+    expect(result.availableSites.map((site) => site.name)).toEqual([
+      'external-site',
+      'public-site',
+      'allowed-site',
+    ]);
     expect(result.availableSites[0]).not.toHaveProperty('private');
     expect(result.availableSites[0]).not.toHaveProperty('restricted');
   });

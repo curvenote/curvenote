@@ -88,7 +88,6 @@ function canUserSubmitToSite(
   user: Parameters<typeof userHasScope>[0],
   site: SubmitTargetSite,
 ): boolean {
-  if (site.external) return false;
   if (!site.private && !site.restricted) return true;
   return userHasScope(user, scopes.site.submissions.create, site.name);
 }
@@ -527,8 +526,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
         await (
           await getPrismaClient()
         ).site.findMany({
-          where: { external: false },
-          orderBy: [{ title: 'asc' }, { name: 'asc' }],
+          orderBy: [{ external: 'desc' }, { title: 'asc' }, { name: 'asc' }],
           select: {
             id: true,
             name: true,
