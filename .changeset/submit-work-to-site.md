@@ -1,5 +1,6 @@
 ---
 '@curvenote/scms-core': minor
+'@curvenote/scms-server': minor
 '@curvenote/scms': minor
 ---
 
