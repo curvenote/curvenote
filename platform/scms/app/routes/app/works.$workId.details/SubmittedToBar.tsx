@@ -432,7 +432,7 @@ export function SubmittedToBar({
                           value={site.name}
                           disabled={isSubmitting}
                           className={cn(
-                            'flex gap-3 items-center p-2 w-full text-left rounded-md transition-colors',
+                            'flex gap-3 items-start p-2 w-full text-left rounded-md transition-colors',
                             'hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                             isSubmitting && 'opacity-70',
                           )}
@@ -462,7 +462,7 @@ export function SubmittedToBar({
                               ) : null}
                               <span className="font-medium truncate">{siteTitle}</span>
                             </span>
-                            <span className="block text-xs truncate text-muted-foreground">
+                            <span className="block text-xs leading-snug whitespace-normal text-muted-foreground">
                               {site.description ?? site.name}
                             </span>
                           </span>
