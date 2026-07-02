@@ -163,8 +163,9 @@ export function SubmittedToBar({
         </ui.PopoverTrigger>
         <ui.PopoverContent
           className="p-2 w-96 text-sm border shadow-lg bg-background text-foreground border-border"
-          align="end"
-          side="bottom"
+          align="start"
+          side="right"
+          sideOffset={8}
         >
           {canSubmitToSite ? (
             <div className="space-y-2">
@@ -228,11 +229,7 @@ export function SubmittedToBar({
                         <span className="flex gap-2 items-center shrink-0">
                           {alreadySubmitted ? (
                             <ui.Badge variant="secondary">Submitted</ui.Badge>
-                          ) : (
-                            <ui.Badge variant="outline">
-                              {site.external ? 'External' : 'Internal'}
-                            </ui.Badge>
-                          )}
+                          ) : null}
                           {isCurrentSiteSubmitting ? (
                             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                           ) : null}
