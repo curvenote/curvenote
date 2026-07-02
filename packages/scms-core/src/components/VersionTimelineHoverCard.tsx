@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { Ellipsis, Timeline } from 'lucide-react';
+import { Ellipsis, History } from 'lucide-react';
 import type {
   TrimmedVersionTimeline,
   VersionTimelineDisplayItem,
@@ -170,7 +170,7 @@ export function VersionTimelineHoverCard<T extends { id: string }>({
         className={cn(contentClassName ?? 'w-80', 'p-3')}
       >
         <div className="mb-2 flex items-center gap-1.5 border-b border-border pb-2 text-xs font-semibold text-foreground">
-          <Timeline className="size-3.5 shrink-0" aria-hidden />
+          <History className="size-3.5 shrink-0" aria-hidden />
           <span>{title}</span>
           {data?.total != null && !loading ? (
             <span className="font-normal text-muted-foreground">({data.total})</span>

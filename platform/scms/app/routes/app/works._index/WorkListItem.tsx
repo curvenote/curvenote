@@ -9,7 +9,7 @@ import {
   workVersionsTimelineUrl,
   submissionVersionsTimelineUrl,
 } from '@curvenote/scms-core';
-import { ExternalLink, Timeline } from 'lucide-react';
+import { ExternalLink, History } from 'lucide-react';
 import type { dbGetWorksAndSubmissionVersions } from './db.server';
 import type { WorkListCheckService } from './WorkCheckSummaries';
 import { WorkCheckSummaries } from './WorkCheckSummaries';
@@ -198,7 +198,7 @@ export function WorkListItem({
               type="button"
               className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"
             >
-              <Timeline className="size-3.5 shrink-0" aria-hidden />
+              <History className="size-3.5 shrink-0" aria-hidden />
               Timeline
             </button>
           </WorkVersionTimelineHoverCard>
