@@ -28,6 +28,9 @@ export function canUserSubmitToSite(user: UserWithScopes, site: SubmitTargetSite
   return userHasScope(user, scopes.site.submissions.create, site.name);
 }
 
+// TODO(submit-to-site): When a site has multiple open collections (or kinds), let the
+// user choose in SubmittedToBar instead of auto-picking here. For now: default-open
+// collection, else first open; then default/first kind on that collection, else site kind.
 export function resolveOpenCollection(collections: SubmitSiteCollection[]) {
   return (
     collections.find((item) => item.default && item.open) ?? collections.find((item) => item.open)
