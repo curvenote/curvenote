@@ -1,6 +1,6 @@
 import { Link, useFetcher, useNavigate } from 'react-router';
 import { primitives, SiteLogo, cn, ui } from '@curvenote/scms-core';
-import type { Workflow } from '@curvenote/scms-core';
+import type { ClientExtensionCheckService, Workflow } from '@curvenote/scms-core';
 import type {
   SubmissionWithVersionsAndSite,
   WorkVersionForDetailsClient,
@@ -107,6 +107,12 @@ function getCheckScore(run: CheckServiceRunRow): string | null {
   );
 }
 
+function serviceDataFromRun(run: CheckServiceRunRow | undefined): unknown {
+  if (!run) return undefined;
+  const data = asRecord(run.data);
+  return data?.serviceData ?? undefined;
+}
+
 function getVersionFiles(version: WorkVersionForDetailsClient): Record<string, unknown> {
   return asRecord(version.metadata?.files) ?? {};
 }
@@ -129,6 +135,7 @@ export function SubmittedToBar({
   availableSites,
   versions,
   checkServiceRunsByWorkVersionId,
+  checkServices,
 }: {
   submissions: SubmissionWithVersionsAndSite[];
   workflows: Record<string, Workflow>;
@@ -137,6 +144,7 @@ export function SubmittedToBar({
   availableSites: SubmissionTargetSite[];
   versions: WorkVersionForDetailsClient[];
   checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>;
+  checkServices: ClientExtensionCheckService[];
 }) {
   const navigate = useNavigate();
   const fetcher = useFetcher<SubmitToSiteFetcherData>();
@@ -170,11 +178,26 @@ export function SubmittedToBar({
     : [];
   const selectedFiles = selectedVersion ? getVersionFiles(selectedVersion) : {};
   const fileLabels = Object.entries(selectedFiles).map(([key, value]) => getFileLabel(key, value));
-  const metadataKeys = selectedVersion?.metadataSummary?.keys ?? [];
-  const checkKinds = Array.from(new Set(selectedCheckRuns.map((run) => run.kind))).filter(Boolean);
-  const score = selectedCheckRuns
-    .map(getCheckScore)
-    .find((value): value is string => Boolean(value));
+  const selectedCheckRunByKind = new Map<string, CheckServiceRunRow>();
+  [...selectedCheckRuns]
+    .sort((a, b) =>
+      a.date_modified > b.date_modified ? -1 : a.date_modified < b.date_modified ? 1 : 0,
+    )
+    .forEach((run) => {
+      if (!selectedCheckRunByKind.has(run.kind)) selectedCheckRunByKind.set(run.kind, run);
+    });
+  const fallbackCheckRows = selectedCheckRuns
+    .filter((run) => !checkServices.some((service) => service.id === run.kind))
+    .map((run) => ({ id: run.kind, name: run.kind, run }));
+  const checkRows = [
+    ...checkServices.map((service) => ({
+      id: service.id,
+      name: service.name,
+      run: selectedCheckRunByKind.get(service.id),
+      service,
+    })),
+    ...fallbackCheckRows,
+  ];
   const submittingSiteName = fetcher.formData?.get('siteName');
   const isSubmitting = fetcher.state !== 'idle';
   const submittedSiteNames = new Set(submissions.map((sub) => sub.site.name));
@@ -278,58 +301,86 @@ export function SubmittedToBar({
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <ui.Label htmlFor="submit-version-select">Version</ui.Label>
+                  <ui.Select value={selectedVersionId} onValueChange={setSelectedVersionId}>
+                    <ui.SelectTrigger id="submit-version-select" size="sm" className="w-full">
+                      {selectedVersion ? (
+                        <span className="flex flex-col items-start min-w-0 text-left">
+                          <span className="font-medium truncate">
+                            Version {selectedVersionLabel}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(
+                              selectedVersion.date_modified ?? selectedVersion.date_created,
+                            ).toLocaleDateString()}
+                          </span>
+                        </span>
+                      ) : (
+                        <ui.SelectValue placeholder="Select a version" />
+                      )}
+                    </ui.SelectTrigger>
+                    <ui.SelectContent>
+                      {versionOptions.map(({ version, label }) => (
+                        <ui.SelectItem key={version.id} value={version.id}>
+                          <span className="flex flex-col items-start">
+                            <span>Version {label}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(
+                                version.date_modified ?? version.date_created,
+                              ).toLocaleDateString()}
+                            </span>
+                          </span>
+                        </ui.SelectItem>
+                      ))}
+                    </ui.SelectContent>
+                  </ui.Select>
+                </div>
+
                 {selectedVersion ? (
-                  <div className="space-y-3">
+                  <>
                     <div className="space-y-2">
                       <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                        Version summary
+                        Checks
                       </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        <ui.Badge variant="primary">{selectedVersionLabel}</ui.Badge>
-                        <ui.Badge variant="outline-muted">
-                          {selectedCheckRuns.length} checks
-                        </ui.Badge>
-                        {score ? <ui.Badge variant="success">Score {score}</ui.Badge> : null}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                        Checks run
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {checkKinds.length > 0 ? (
-                          checkKinds.slice(0, 4).map((kind) => (
-                            <ui.Badge key={kind} variant="outline-muted">
-                              {kind}
-                            </ui.Badge>
-                          ))
+                      <div className="space-y-1.5">
+                        {checkRows.length > 0 ? (
+                          checkRows.map((row) => {
+                            const SummaryTitleComponent = row.service?.sectionSummaryTitleComponent;
+                            const SummaryBadgeComponent = row.service?.sectionSummaryBadgeComponent;
+                            const metadata = serviceDataFromRun(row.run);
+                            const fallbackScore = row.run ? getCheckScore(row.run) : null;
+                            return (
+                              <div
+                                key={row.id}
+                                className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
+                              >
+                                <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto">
+                                  {SummaryTitleComponent && row.run ? (
+                                    <SummaryTitleComponent metadata={metadata} />
+                                  ) : (
+                                    <span className="text-xs font-medium truncate">{row.name}</span>
+                                  )}
+                                </span>
+                                {row.run ? (
+                                  SummaryBadgeComponent ? (
+                                    <SummaryBadgeComponent metadata={metadata} />
+                                  ) : (
+                                    <ui.Badge variant="success">
+                                      {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
+                                    </ui.Badge>
+                                  )
+                                ) : (
+                                  <ui.Badge variant="outline-muted">Not run</ui.Badge>
+                                )}
+                              </div>
+                            );
+                          })
                         ) : (
-                          <ui.Badge variant="outline-muted">No checks</ui.Badge>
+                          <p className="text-xs text-muted-foreground">
+                            No check services available.
+                          </p>
                         )}
-                        {checkKinds.length > 4 ? (
-                          <ui.Badge variant="outline-muted">+{checkKinds.length - 4}</ui.Badge>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                        Metadata
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {metadataKeys.length > 0 ? (
-                          metadataKeys.slice(0, 4).map((key) => (
-                            <ui.Badge key={key} variant="outline-muted">
-                              {key}
-                            </ui.Badge>
-                          ))
-                        ) : (
-                          <ui.Badge variant="outline-muted">No metadata</ui.Badge>
-                        )}
-                        {metadataKeys.length > 4 ? (
-                          <ui.Badge variant="outline-muted">+{metadataKeys.length - 4}</ui.Badge>
-                        ) : null}
                       </div>
                     </div>
 
@@ -337,39 +388,22 @@ export function SubmittedToBar({
                       <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
                         Files
                       </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {fileLabels.length > 0 ? (
-                          fileLabels.slice(0, 4).map((label, index) => (
-                            <ui.Badge key={`${label}-${index}`} variant="outline-muted">
-                              {label}
-                            </ui.Badge>
-                          ))
-                        ) : (
-                          <ui.Badge variant="outline-muted">No files</ui.Badge>
-                        )}
-                        {fileLabels.length > 4 ? (
-                          <ui.Badge variant="outline-muted">+{fileLabels.length - 4}</ui.Badge>
-                        ) : null}
-                      </div>
+                      {fileLabels.length > 0 ? (
+                        <ul className="space-y-1 text-[11px] leading-4 text-muted-foreground">
+                          {Object.entries(selectedFiles).map(([key, value]) => (
+                            <li key={key} className="truncate">
+                              {getFileLabel(key, value)}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-[11px] leading-4 text-muted-foreground">
+                          No files are available for this version.
+                        </p>
+                      )}
                     </div>
-                  </div>
+                  </>
                 ) : null}
-
-                <div className="space-y-2">
-                  <ui.Label htmlFor="submit-version-select">Version</ui.Label>
-                  <ui.Select value={selectedVersionId} onValueChange={setSelectedVersionId}>
-                    <ui.SelectTrigger id="submit-version-select" size="sm" className="w-full">
-                      <ui.SelectValue placeholder="Select a version" />
-                    </ui.SelectTrigger>
-                    <ui.SelectContent>
-                      {versionOptions.map(({ version, label }) => (
-                        <ui.SelectItem key={version.id} value={version.id}>
-                          {label} · {new Date(version.date_created).toLocaleDateString()}
-                        </ui.SelectItem>
-                      ))}
-                    </ui.SelectContent>
-                  </ui.Select>
-                </div>
               </div>
 
               <div className="p-2 space-y-2">
