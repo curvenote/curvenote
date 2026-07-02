@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canSiteAcceptNewSubmission,
+  isAlreadySubmittedVersion,
   isSiteAvailableForWorkSubmit,
   resolveOpenCollection,
   resolveSubmissionKind,
@@ -83,5 +84,12 @@ describe('submitToSite.server', () => {
         new Set(['site-1']),
       ),
     ).toBe(true);
+  });
+
+  it('treats only non-draft submission versions as already submitted', () => {
+    const version = { id: 'sv-1', work_version_id: 'wv-1', status: 'PENDING' };
+    expect(isAlreadySubmittedVersion(version, 'wv-1')).toBe(true);
+    expect(isAlreadySubmittedVersion({ ...version, status: 'DRAFT' }, 'wv-1')).toBe(false);
+    expect(isAlreadySubmittedVersion(version, 'wv-2')).toBe(false);
   });
 });

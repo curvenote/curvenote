@@ -15,6 +15,7 @@ const {
   findManySites,
   findUniqueSite,
   loadCheckMaintenanceByServiceIds,
+  promoteDraftSubmissionVersionToPending,
   userHasScope,
   withSecureWorkContext,
 } = vi.hoisted(() => ({
@@ -31,9 +32,18 @@ const {
   findManySites: vi.fn(),
   findUniqueSite: vi.fn(),
   loadCheckMaintenanceByServiceIds: vi.fn(),
+  promoteDraftSubmissionVersionToPending: vi.fn(),
   userHasScope: vi.fn(),
   withSecureWorkContext: vi.fn(),
 }));
+
+vi.mock('./submitToSite.server', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as object),
+    promoteDraftSubmissionVersionToPending,
+  };
+});
 
 vi.mock('@curvenote/scms-server', () => ({
   withSecureWorkContext,
@@ -439,7 +449,7 @@ describe('work submit-to-site route', () => {
     });
     findFirstSubmission.mockResolvedValue({
       id: 'submission-1',
-      versions: [{ id: 'sv-1', work_version_id: 'wv-1' }],
+      versions: [{ id: 'sv-1', work_version_id: 'wv-1', status: 'PENDING' }],
     });
 
     const response = await action({
@@ -479,7 +489,7 @@ describe('work submit-to-site route', () => {
     });
     findFirstSubmission.mockResolvedValue({
       id: 'submission-1',
-      versions: [{ id: 'sv-1', work_version_id: 'wv-1' }],
+      versions: [{ id: 'sv-1', work_version_id: 'wv-1', status: 'PENDING' }],
     });
     findFirstWorkVersion.mockResolvedValue({ id: 'wv-2' });
     createSubmissionVersion.mockResolvedValue({ id: 'sv-2' });
@@ -501,6 +511,51 @@ describe('work submit-to-site route', () => {
       'submission-1',
       'wv-2',
     );
+    expect(createReturningVersion).not.toHaveBeenCalled();
+  });
+
+  it('promotes a draft submission version when resubmitting the same work version', async () => {
+    findUniqueSite.mockResolvedValue({
+      id: 'site-public',
+      name: 'public-site',
+      title: 'Public Site',
+      private: false,
+      restricted: false,
+      external: false,
+      domains: [],
+      submissionKinds: [{ id: 'kind-1', default: true }],
+      collections: [
+        {
+          id: 'collection-1',
+          default: true,
+          open: true,
+          kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+        },
+      ],
+    });
+    findFirstSubmission.mockResolvedValue({
+      id: 'submission-1',
+      versions: [{ id: 'sv-draft', work_version_id: 'wv-1', status: 'DRAFT' }],
+    });
+
+    const response = await action({
+      request: createSubmitToSiteRequest('public-site', 'wv-1'),
+      params: { workId: 'work-1' },
+    } as never);
+
+    expect(response).toMatchObject({
+      success: true,
+      intent: 'submit-to-site',
+      siteName: 'public-site',
+      submissionVersionId: 'sv-draft',
+    });
+    expect(response).not.toHaveProperty('alreadySubmitted');
+    expect(promoteDraftSubmissionVersionToPending).toHaveBeenCalledWith('user-1', 'submission-1', {
+      id: 'sv-draft',
+      work_version_id: 'wv-1',
+      status: 'DRAFT',
+    });
+    expect(createSubmissionVersion).not.toHaveBeenCalled();
     expect(createReturningVersion).not.toHaveBeenCalled();
   });
 });

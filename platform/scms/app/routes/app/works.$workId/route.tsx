@@ -61,7 +61,9 @@ import { extensions as serverExtensions } from '../../../extensions/server';
 import { exportToPdfAction } from './actionHelpers.server';
 import {
   canUserSubmitToSite,
+  isAlreadySubmittedVersion,
   isSiteAvailableForWorkSubmit,
+  promoteDraftSubmissionVersionToPending,
   resolveOpenCollection,
   resolveSubmissionKind,
 } from './submitToSite.server';
@@ -287,7 +289,13 @@ export async function action(args: ActionFunctionArgs) {
 
       const existingSubmission = await prisma.submission.findFirst({
         where: { work_id: ctx.work.id, site_id: site.id },
-        include: { versions: { orderBy: { date_created: 'desc' }, take: 1 } },
+        include: {
+          versions: {
+            orderBy: { date_created: 'desc' },
+            take: 1,
+            select: { id: true, work_version_id: true, status: true },
+          },
+        },
       });
 
       const selectedVersion = workVersionId
@@ -311,12 +319,25 @@ export async function action(args: ActionFunctionArgs) {
       const existingVersion = existingSubmission?.versions?.[0];
       if (existingSubmission) {
         if (existingVersion?.work_version_id === selectedVersion.id) {
+          if (isAlreadySubmittedVersion(existingVersion, selectedVersion.id)) {
+            return {
+              success: true,
+              intent,
+              siteName,
+              submissionVersionId: existingVersion.id,
+              alreadySubmitted: true,
+            };
+          }
+          await promoteDraftSubmissionVersionToPending(
+            ctx.user.id,
+            existingSubmission.id,
+            existingVersion,
+          );
           return {
             success: true,
             intent,
             siteName,
             submissionVersionId: existingVersion.id,
-            alreadySubmitted: true,
           };
         }
         const submissionVersion = await siteLoaders.submissions.versions.create(

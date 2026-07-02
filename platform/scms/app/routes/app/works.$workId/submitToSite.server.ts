@@ -1,5 +1,8 @@
-import { userHasScope } from '@curvenote/scms-server';
+import { getPrismaClient, userHasScope } from '@curvenote/scms-server';
 import { scopes } from '@curvenote/scms-core';
+import { formatDate } from '@curvenote/common';
+import { ActivityType } from '@curvenote/scms-db';
+import { uuidv7 as uuid } from 'uuidv7';
 
 type UserWithScopes = Parameters<typeof userHasScope>[0];
 
@@ -22,6 +25,54 @@ export type SubmitSiteWithCollections = SubmitTargetSite & {
   collections: SubmitSiteCollection[];
   submissionKinds: { id: string; default: boolean }[];
 };
+
+export type ExistingSubmissionVersionForSubmit = {
+  id: string;
+  work_version_id: string;
+  status: string;
+};
+
+/** True when this work version is already submitted to the site (non-draft). */
+export function isAlreadySubmittedVersion(
+  existingVersion: ExistingSubmissionVersionForSubmit | undefined,
+  selectedWorkVersionId: string,
+): boolean {
+  if (!existingVersion || existingVersion.work_version_id !== selectedWorkVersionId) {
+    return false;
+  }
+  return existingVersion.status !== 'DRAFT';
+}
+
+export async function promoteDraftSubmissionVersionToPending(
+  userId: string,
+  submissionId: string,
+  submissionVersion: ExistingSubmissionVersionForSubmit,
+) {
+  const timestamp = formatDate();
+  const prisma = await getPrismaClient();
+  await prisma.$transaction(async (tx) => {
+    await tx.submissionVersion.update({
+      where: { id: submissionVersion.id },
+      data: {
+        status: 'PENDING',
+        date_modified: timestamp,
+      },
+    });
+    await tx.activity.create({
+      data: {
+        id: uuid(),
+        date_created: timestamp,
+        date_modified: timestamp,
+        activity_by_id: userId,
+        activity_type: ActivityType.SUBMISSION_VERSION_STATUS_CHANGE,
+        submission_id: submissionId,
+        submission_version_id: submissionVersion.id,
+        status: 'PENDING',
+        work_version_id: submissionVersion.work_version_id,
+      },
+    });
+  });
+}
 
 export function canUserSubmitToSite(user: UserWithScopes, site: SubmitTargetSite): boolean {
   if (!site.private && !site.restricted) return true;
