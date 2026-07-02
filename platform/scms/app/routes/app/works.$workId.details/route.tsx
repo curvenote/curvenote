@@ -28,6 +28,15 @@ type WorkUser = {
   work_roles: string[];
 };
 
+type SubmissionTargetSite = {
+  id: string;
+  name: string;
+  title: string;
+  description: string | null;
+  metadata: unknown;
+  external: boolean;
+};
+
 type LoaderData = {
   userScopes: string[];
   workflows: Record<string, Workflow>;
@@ -43,6 +52,8 @@ type LoaderData = {
   resumeDraftVersionId?: string;
   latestNonDraftContentCard: WorkVersionContentCardData | null;
   users: WorkUser[];
+  canSubmitToSite: boolean;
+  availableSites: SubmissionTargetSite[];
 };
 
 export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
@@ -66,6 +77,8 @@ export default function WorkDetailRoute() {
     resumeDraftVersionId,
     latestNonDraftContentCard,
     users,
+    canSubmitToSite,
+    availableSites,
   } = useRouteLoaderData('routes/app/works.$workId/route') as LoaderData;
 
   const deploymentConfig = useDeploymentConfig();
@@ -105,7 +118,13 @@ export default function WorkDetailRoute() {
         />
         <div className="space-y-1">
           <WorkDetailsContentCard version={latestNonDraftContentCard} />
-          <SubmittedToBar submissions={submissions} workflows={workflows} basePath={basePath} />
+          <SubmittedToBar
+            submissions={submissions}
+            workflows={workflows}
+            basePath={basePath}
+            canSubmitToSite={canSubmitToSite}
+            availableSites={availableSites}
+          />
         </div>
         <div>
           <WorkVersionTimeline

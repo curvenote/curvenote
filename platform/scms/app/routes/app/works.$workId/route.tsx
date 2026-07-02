@@ -14,6 +14,9 @@ import {
   userHasScope,
   works,
   getUserScopesSet,
+  getPrismaClient,
+  SiteContextWithUser,
+  sites as siteLoaders,
 } from '@curvenote/scms-server';
 import {
   MainWrapper,
@@ -61,9 +64,16 @@ import { zfd } from 'zod-form-data';
 
 const WorkActionIntentSchema = zfd.formData({
   intent: zfd.text(
-    z.enum(['export-to-pdf', 'get-drafts-for-work', 'create-new-version', 'delete-draft']),
+    z.enum([
+      'export-to-pdf',
+      'get-drafts-for-work',
+      'create-new-version',
+      'delete-draft',
+      'submit-to-site',
+    ]),
   ),
   workId: zfd.text(z.string().optional()),
+  siteName: zfd.text(z.string().optional()),
 });
 
 export async function action(args: ActionFunctionArgs) {
@@ -76,7 +86,7 @@ export async function action(args: ActionFunctionArgs) {
     );
   }
 
-  const { intent, workId: formWorkId } = parsed.data;
+  const { intent, workId: formWorkId, siteName } = parsed.data;
   const ctx = await withSecureWorkContext(args, [scopes.work.id.read]);
 
   if (intent === 'get-drafts-for-work') {
@@ -231,6 +241,116 @@ export async function action(args: ActionFunctionArgs) {
     }
   }
 
+  if (intent === 'submit-to-site') {
+    if (!userHasScope(ctx.user, scopes.app.works.submitToSite)) {
+      return data(
+        { success: false, intent, error: 'Submit to site scope required' },
+        { status: 403 },
+      );
+    }
+    if (!siteName) {
+      return data({ success: false, intent, error: 'Site is required' }, { status: 400 });
+    }
+
+    try {
+      const prisma = await getPrismaClient();
+      const site = await prisma.site.findUnique({
+        where: { name: siteName },
+        include: {
+          domains: true,
+          submissionKinds: true,
+          collections: {
+            orderBy: [{ default: 'desc' }, { date_created: 'desc' }],
+            include: { kindsInCollection: { include: { kind: true } } },
+          },
+        },
+      });
+      if (!site) {
+        return data(
+          { success: false, intent, error: 'Selected site does not exist' },
+          { status: 400 },
+        );
+      }
+
+      const existingSubmission = await prisma.submission.findFirst({
+        where: { work_id: ctx.work.id, site_id: site.id },
+        include: { versions: { orderBy: { date_created: 'desc' }, take: 1 } },
+      });
+      const existingVersion = existingSubmission?.versions[0];
+      if (existingVersion) {
+        return {
+          success: true,
+          intent,
+          siteName,
+          submissionVersionId: existingVersion.id,
+          alreadySubmitted: true,
+        };
+      }
+
+      const latestNonDraftVersion = await prisma.workVersion.findFirst({
+        where: { work_id: ctx.work.id, draft: false },
+        orderBy: { date_created: 'desc' },
+        select: { id: true },
+      });
+      if (!latestNonDraftVersion) {
+        return data(
+          { success: false, intent, error: 'No completed work version is available to submit' },
+          { status: 400 },
+        );
+      }
+
+      const collection =
+        site.collections.find((item) => item.default && item.open) ??
+        site.collections.find((item) => item.open);
+      if (!collection) {
+        return data(
+          { success: false, intent, error: 'Selected site has no open collection' },
+          { status: 400 },
+        );
+      }
+
+      const collectionKinds = collection.kindsInCollection.map((item) => item.kind);
+      const kind =
+        collectionKinds.find((item) => item.default) ??
+        collectionKinds[0] ??
+        site.submissionKinds.find((item) => item.default) ??
+        site.submissionKinds[0];
+      if (!kind) {
+        return data(
+          { success: false, intent, error: 'Selected site has no submission kind' },
+          { status: 400 },
+        );
+      }
+
+      const siteCtx = new SiteContextWithUser(ctx, site);
+      const submission = await siteLoaders.submissions.create(
+        siteCtx,
+        serverExtensions,
+        latestNonDraftVersion.id,
+        kind.id,
+        false,
+        undefined,
+        collection.id,
+      );
+      return {
+        success: true,
+        intent,
+        siteName,
+        submissionVersionId: submission.versions[0]?.id,
+      };
+    } catch (error) {
+      console.error('Failed to submit work to site:', error);
+      return data(
+        {
+          success: false,
+          intent,
+          error: error instanceof Error ? error.message : 'Failed to submit work to site',
+        },
+        { status: 500 },
+      );
+    }
+  }
+
   if (intent === 'export-to-pdf') {
     return exportToPdfAction(ctx, formData);
   }
@@ -302,6 +422,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   const versionIds = workVersionsWithMetadata.map((v) => v.id);
   const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
+  const canSubmitToSite = userHasScope(ctx.user, scopes.app.works.submitToSite);
 
   const latestVersion = workVersionsWithMetadata[0];
   const latestNonDraftWithMetadata = workVersionsWithMetadata.find((v) => !v.draft);
@@ -348,6 +469,21 @@ export const loader = async (args: LoaderFunctionArgs) => {
     serverExtensions,
     checkServices.map((service) => service.id),
   );
+  const availableSites = canSubmitToSite
+    ? await (
+        await getPrismaClient()
+      ).site.findMany({
+        orderBy: [{ external: 'desc' }, { title: 'asc' }, { name: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          title: true,
+          description: true,
+          metadata: true,
+          external: true,
+        },
+      })
+    : [];
 
   return {
     userScopes: ctx.scopes,
@@ -364,6 +500,8 @@ export const loader = async (args: LoaderFunctionArgs) => {
     resumeDraftVersionId,
     latestNonDraftContentCard,
     users,
+    canSubmitToSite,
+    availableSites,
     isOnUploadRoute,
     maintenanceByServiceId,
   };
