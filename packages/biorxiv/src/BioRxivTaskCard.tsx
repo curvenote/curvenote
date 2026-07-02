@@ -1,5 +1,5 @@
 import { primitives, usePingEvent } from '@curvenote/scms-core';
-import bioRxivGraphic from './assets/biorxiv-mark.svg';
+import bioRxivGraphic from './assets/bioRxiv-favicon.svg';
 import { BioRxivTrackEvent } from './analytics.js';
 
 const BIORXIV_SUBMISSION_URL = 'https://www.biorxiv.org/submit-a-manuscript';
