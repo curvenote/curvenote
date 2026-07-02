@@ -205,8 +205,7 @@ export function SubmittedToBar({
   const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
   const versionOptions = useMemo(() => {
     const completedVersions = versions.filter((version) => !version.draft);
-    const selectableVersions = completedVersions.length > 0 ? completedVersions : versions;
-    const sorted = [...selectableVersions].sort((a, b) =>
+    const sorted = [...completedVersions].sort((a, b) =>
       a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
     );
     const versionNumberByVersionId: Record<string, number> = {};
@@ -253,6 +252,7 @@ export function SubmittedToBar({
     })),
     ...fallbackCheckRows,
   ];
+  const hasCompletedVersions = versionOptions.length > 0;
   const submittingSiteName = fetcher.formData?.get('siteName');
   const isSubmitting = fetcher.state !== 'idle';
   const submittedSiteNames = new Set(submissions.map((sub) => sub.site.name));
@@ -364,73 +364,80 @@ export function SubmittedToBar({
                     </p>
                   </div>
 
-                  <ui.Popover open={versionDropdownOpen} onOpenChange={setVersionDropdownOpen}>
-                    <ui.PopoverTrigger asChild>
-                      <button
-                        id="submit-version-select"
-                        type="button"
-                        className={cn(
-                          'flex h-16 w-full items-center justify-between gap-3 rounded-md border border-input bg-white px-3 py-2 text-left shadow-xs transition-colors',
-                          'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-                        )}
-                      >
-                        {selectedVersion ? (
-                          <span className="flex min-w-0 flex-col items-start">
-                            <span className="truncate font-medium">
-                              Version {selectedVersionLabel}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(
-                                selectedVersion.date_modified ?? selectedVersion.date_created,
-                              ).toLocaleDateString()}
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">Select a version</span>
-                        )}
-                        <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-                      </button>
-                    </ui.PopoverTrigger>
-                    <ui.PopoverContent
-                      align="start"
-                      side="bottom"
-                      sideOffset={6}
-                      className="p-1 w-[268px]"
-                    >
-                      <div className="space-y-1">
-                        {versionOptions.map(({ version, label }) => {
-                          const selected = version.id === selectedVersionId;
-                          return (
-                            <button
-                              key={version.id}
-                              type="button"
-                              className={cn(
-                                'flex w-full items-center justify-between gap-3 rounded-sm px-3 py-2 text-left transition-colors',
-                                'hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                                selected && 'bg-accent',
-                              )}
-                              onClick={() => {
-                                setSelectedVersionId(version.id);
-                                setVersionDropdownOpen(false);
-                              }}
-                            >
-                              <span className="flex min-w-0 flex-col items-start">
-                                <span className="truncate font-medium">Version {label}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(
-                                    version.date_modified ?? version.date_created,
-                                  ).toLocaleDateString()}
-                                </span>
+                  {hasCompletedVersions ? (
+                    <ui.Popover open={versionDropdownOpen} onOpenChange={setVersionDropdownOpen}>
+                      <ui.PopoverTrigger asChild>
+                        <button
+                          id="submit-version-select"
+                          type="button"
+                          className={cn(
+                            'flex h-16 w-full items-center justify-between gap-3 rounded-md border border-input bg-white px-3 py-2 text-left shadow-xs transition-colors',
+                            'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                          )}
+                        >
+                          {selectedVersion ? (
+                            <span className="flex min-w-0 flex-col items-start">
+                              <span className="truncate font-medium">
+                                Version {selectedVersionLabel}
                               </span>
-                              {selected ? (
-                                <Check className="w-4 h-4 text-primary shrink-0" />
-                              ) : null}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </ui.PopoverContent>
-                  </ui.Popover>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(
+                                  selectedVersion.date_modified ?? selectedVersion.date_created,
+                                ).toLocaleDateString()}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">Select a version</span>
+                          )}
+                          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                        </button>
+                      </ui.PopoverTrigger>
+                      <ui.PopoverContent
+                        align="start"
+                        side="bottom"
+                        sideOffset={6}
+                        className="p-1 w-[268px]"
+                      >
+                        <div className="space-y-1">
+                          {versionOptions.map(({ version, label }) => {
+                            const selected = version.id === selectedVersionId;
+                            return (
+                              <button
+                                key={version.id}
+                                type="button"
+                                className={cn(
+                                  'flex w-full items-center justify-between gap-3 rounded-sm px-3 py-2 text-left transition-colors',
+                                  'hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                                  selected && 'bg-accent',
+                                )}
+                                onClick={() => {
+                                  setSelectedVersionId(version.id);
+                                  setVersionDropdownOpen(false);
+                                }}
+                              >
+                                <span className="flex min-w-0 flex-col items-start">
+                                  <span className="truncate font-medium">Version {label}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(
+                                      version.date_modified ?? version.date_created,
+                                    ).toLocaleDateString()}
+                                  </span>
+                                </span>
+                                {selected ? (
+                                  <Check className="w-4 h-4 text-primary shrink-0" />
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </ui.PopoverContent>
+                    </ui.Popover>
+                  ) : (
+                    <p className="rounded-md border border-dashed border-muted-foreground/40 bg-background px-3 py-4 text-xs leading-relaxed text-muted-foreground">
+                      No completed version is available to submit. Finish creating a version before
+                      submitting to a site.
+                    </p>
+                  )}
 
                   {selectedVersion ? (
                     <>
@@ -528,7 +535,7 @@ export function SubmittedToBar({
                             type="submit"
                             name="siteName"
                             value={site.name}
-                            disabled={isSubmitting}
+                            disabled={!hasCompletedVersions || isSubmitting}
                             className={cn(
                               'flex gap-3 items-start p-2 w-full text-left rounded-md transition-colors',
                               'hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
