@@ -67,6 +67,7 @@ model WorkVersion {
   canonical          Boolean?
   metadata           Json?
   tags               String[]            @default([])
+  contains           String[]            @default([])
   work               Work                @relation(fields: [work_id], references: [id])
   work_id            String
   submissionVersions SubmissionVersion[]
