@@ -77,6 +77,22 @@ const WorkActionIntentSchema = zfd.formData({
   workVersionId: zfd.text(z.string().optional()),
 });
 
+type SubmitTargetSite = {
+  name: string;
+  external: boolean;
+  private: boolean;
+  restricted: boolean;
+};
+
+function canUserSubmitToSite(
+  user: Parameters<typeof userHasScope>[0],
+  site: SubmitTargetSite,
+): boolean {
+  if (site.external) return false;
+  if (!site.private && !site.restricted) return true;
+  return userHasScope(user, scopes.site.submissions.create, site.name);
+}
+
 export async function action(args: ActionFunctionArgs) {
   const formData = await args.request.formData();
   const parsed = WorkActionIntentSchema.safeParse(formData);
@@ -270,6 +286,12 @@ export async function action(args: ActionFunctionArgs) {
         return data(
           { success: false, intent, error: 'Selected site does not exist' },
           { status: 400 },
+        );
+      }
+      if (!canUserSubmitToSite(ctx.user, site)) {
+        return data(
+          { success: false, intent, error: 'You do not have permission to submit to this site' },
+          { status: 403 },
         );
       }
 
@@ -486,19 +508,33 @@ export const loader = async (args: LoaderFunctionArgs) => {
     checkServices.map((service) => service.id),
   );
   const availableSites = canSubmitToSite
-    ? await (
-        await getPrismaClient()
-      ).site.findMany({
-        orderBy: [{ external: 'desc' }, { title: 'asc' }, { name: 'asc' }],
-        select: {
-          id: true,
-          name: true,
-          title: true,
-          description: true,
-          metadata: true,
-          external: true,
-        },
-      })
+    ? (
+        await (
+          await getPrismaClient()
+        ).site.findMany({
+          where: { external: false },
+          orderBy: [{ title: 'asc' }, { name: 'asc' }],
+          select: {
+            id: true,
+            name: true,
+            title: true,
+            description: true,
+            metadata: true,
+            external: true,
+            private: true,
+            restricted: true,
+          },
+        })
+      )
+        .filter((site) => canUserSubmitToSite(ctx.user, site))
+        .map((site) => ({
+          id: site.id,
+          name: site.name,
+          title: site.title,
+          description: site.description,
+          metadata: site.metadata,
+          external: site.external,
+        }))
     : [];
 
   return {
