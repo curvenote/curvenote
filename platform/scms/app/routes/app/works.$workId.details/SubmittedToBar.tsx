@@ -134,6 +134,15 @@ function getFileLabel(key: string, value: unknown): string {
   );
 }
 
+function getSubmittedSiteNamesForWorkVersion(version: WorkVersionForDetailsClient | undefined) {
+  if (!version) return new Set<string>();
+  return new Set(
+    version.submissionVersions
+      .filter((submissionVersion) => submissionVersion.status !== 'DRAFT')
+      .map((submissionVersion) => submissionVersion.submission.site.name),
+  );
+}
+
 function SubmitToSiteEarlyAccessMessage() {
   const [supportOpen, setSupportOpen] = useState(false);
   const location = useLocation();
@@ -255,7 +264,10 @@ export function SubmittedToBar({
   const hasCompletedVersions = versionOptions.length > 0;
   const submittingSiteName = fetcher.formData?.get('siteName');
   const isSubmitting = fetcher.state !== 'idle';
-  const submittedSiteNames = new Set(submissions.map((sub) => sub.site.name));
+  const submittedSiteNamesForSelectedVersion = useMemo(
+    () => getSubmittedSiteNamesForWorkVersion(selectedVersion),
+    [selectedVersion],
+  );
 
   useEffect(() => {
     if (fetcher.state !== 'idle' || fetcher.data?.intent !== 'submit-to-site') return;
@@ -528,17 +540,23 @@ export function SubmittedToBar({
                           abbreviateTitle(siteTitle) || siteTitle.charAt(0).toUpperCase();
                         const metadata = site.metadata as SiteVisualMetadata | undefined;
                         const isCurrentSiteSubmitting = submittingSiteName === site.name;
-                        const alreadySubmitted = submittedSiteNames.has(site.name);
+                        const alreadySubmitted = submittedSiteNamesForSelectedVersion.has(
+                          site.name,
+                        );
+                        const isDisabled =
+                          !hasCompletedVersions || isSubmitting || alreadySubmitted;
                         return (
                           <button
                             key={site.id}
                             type="submit"
                             name="siteName"
                             value={site.name}
-                            disabled={!hasCompletedVersions || isSubmitting}
+                            disabled={isDisabled}
                             className={cn(
                               'flex gap-3 items-start p-2 w-full text-left rounded-md transition-colors',
-                              'hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                              'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                              'disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent',
+                              !isDisabled && 'hover:bg-accent',
                               isSubmitting && 'opacity-70',
                             )}
                           >
