@@ -1,0 +1,65 @@
+{
+  "name": "@curvenote/biorxiv",
+  "private": true,
+  "version": "0.1.0",
+  "description": "bioRxiv task extension for Curvenote SCMS applications",
+  "author": "Curvenote <support@curvenote.com>",
+  "homepage": "https://github.com/curvenote/curvenote",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "browser": false,
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "node": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "development": "./src/client.ts",
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "require": "./dist/client.js",
+      "default": "./dist/client.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/curvenote/curvenote.git"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "lint": "npx eslint -c .eslintrc.cjs \"src/**/*.{ts,tsx}\"",
+    "lint:format": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "lint:format:fix": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "tsc --project tsconfig.json",
+    "build:client": "tsup",
+    "compile": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@curvenote/scms-core": "*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router": "7.9.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "eslint-config-curvenote": "^0.0.4",
+    "prettier": "^3.5.3",
+    "rimraf": "^3.0.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "npm": ">=10.0.0",
+    "node": ">=18"
+  },
+  "packageManager": "npm@10.9.2"
+}

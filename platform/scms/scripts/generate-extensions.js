@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Script to generate extension list files from packages in ee/ and extensions/
+ * Script to generate extension list files from packages in packages/, ee/ and extensions/
  *
  * This script scans for packages with a "./client" export and generates:
  * - app/extensions/client.ts
@@ -26,6 +26,7 @@ const __dirname = dirname(__filename);
 
 // From platform/scms/scripts/, go up to curvenote root
 const ROOT_DIR = join(__dirname, '..', '..', '..');
+const PACKAGES_DIR = join(ROOT_DIR, 'packages');
 const EE_DIR = join(ROOT_DIR, 'ee');
 const EXTENSIONS_DIR = join(ROOT_DIR, 'extensions');
 const OUTPUT_DIR = join(__dirname, '..', 'app', 'extensions');
@@ -280,13 +281,15 @@ function generateClientFile(packages) {
 
   const exports = packages
     .map((pkg) => {
-      return folderNameToVarName(pkg.folderName) + 'Client';
+      return `  ${folderNameToVarName(pkg.folderName)}Client,`;
     })
-    .join(', ');
+    .join('\n');
 
   return `${imports}
 
-export const extensions = [${exports}];
+export const extensions = [
+${exports}
+];
 `;
 }
 
@@ -360,14 +363,15 @@ function generatePackageJson(packages) {
 function main() {
   console.log('Scanning for extension packages...');
 
-  // Find packages in both directories
+  // Find packages in root packages/, ee/, and nested extension directories.
+  const rootPackages = findExtensionPackages(PACKAGES_DIR);
   // ee/* contains packages directly
   const eePackages = findExtensionPackages(EE_DIR);
   // extensions/*/packages/* contains nested packages
   const extensionPackages = findNestedExtensionPackages(EXTENSIONS_DIR);
 
   // Combine and sort by package name for consistent output
-  const allPackages = [...eePackages, ...extensionPackages].sort((a, b) =>
+  const allPackages = [...rootPackages, ...eePackages, ...extensionPackages].sort((a, b) =>
     a.name.localeCompare(b.name),
   );
 
