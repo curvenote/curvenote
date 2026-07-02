@@ -95,6 +95,30 @@ describe('submitToSite.server', () => {
     expect(isAlreadySubmittedVersion(version, 'wv-2')).toBe(false);
   });
 
+  it('returns an existing submission version for an older work version after a newer one was submitted', async () => {
+    const createSubmissionVersion = vi.fn(async () => ({ id: 'sv-duplicate' }));
+    const result = await submitWorkVersionToSite(
+      {
+        findExistingSubmission: async () => ({
+          id: 'submission-1',
+          versions: [{ id: 'sv-old', work_version_id: 'wv-1', status: 'PENDING' }],
+        }),
+        createSubmissionVersion,
+        createNewSubmissionReturningVersion: vi.fn(),
+      },
+      'wv-1',
+      'public-site',
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      siteName: 'public-site',
+      submissionVersionId: 'sv-old',
+      alreadySubmitted: true,
+    });
+    expect(createSubmissionVersion).not.toHaveBeenCalled();
+  });
+
   it('detects submission work/site unique constraint violations', () => {
     expect(
       isSubmissionWorkSiteUniqueViolation({

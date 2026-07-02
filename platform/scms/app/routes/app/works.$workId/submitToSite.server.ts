@@ -55,6 +55,14 @@ export class SubmitToSiteConfigError extends Error {
   }
 }
 
+/** Pick the submission version for a work version, if any. */
+export function findSubmissionVersionForWorkVersion(
+  versions: ExistingSubmissionVersionForSubmit[],
+  selectedWorkVersionId: string,
+): ExistingSubmissionVersionForSubmit | undefined {
+  return versions.find((version) => version.work_version_id === selectedWorkVersionId);
+}
+
 /** True when this work version is already submitted to the site (non-draft). */
 export function isAlreadySubmittedVersion(
   existingVersion: ExistingSubmissionVersionForSubmit | undefined,
@@ -86,7 +94,10 @@ async function finishSubmitOnExistingSubmission(
   siteName: string,
   createSubmissionVersion: SubmitWorkVersionToSiteDeps['createSubmissionVersion'],
 ): Promise<SubmitToSiteActionResult> {
-  const existingVersion = existingSubmission.versions[0];
+  const existingVersion = findSubmissionVersionForWorkVersion(
+    existingSubmission.versions,
+    selectedWorkVersionId,
+  );
   if (isAlreadySubmittedVersion(existingVersion, selectedWorkVersionId)) {
     return {
       success: true,

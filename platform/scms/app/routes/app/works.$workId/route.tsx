@@ -310,6 +310,7 @@ export async function action(args: ActionFunctionArgs) {
           where: { work_id: ctx.work.id, site_id: site.id },
           include: {
             versions: {
+              where: { work_version_id: selectedVersion.id },
               orderBy: { date_created: 'desc' },
               take: 1,
               select: { id: true, work_version_id: true, status: true },
