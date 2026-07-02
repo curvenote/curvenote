@@ -29,6 +29,32 @@ export type ExistingSubmissionVersionForSubmit = {
   status: string;
 };
 
+export type SubmitToSiteActionResult = {
+  success: true;
+  intent: 'submit-to-site';
+  siteName: string;
+  submissionVersionId: string;
+  alreadySubmitted?: true;
+};
+
+type ExistingSubmissionForSubmit = {
+  id: string;
+  versions: ExistingSubmissionVersionForSubmit[];
+};
+
+type SubmitWorkVersionToSiteDeps = {
+  findExistingSubmission: () => Promise<ExistingSubmissionForSubmit | null>;
+  createSubmissionVersion: (submissionId: string) => Promise<{ id: string }>;
+  createNewSubmissionReturningVersion: () => Promise<{ id: string }>;
+};
+
+export class SubmitToSiteConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SubmitToSiteConfigError';
+  }
+}
+
 /** True when this work version is already submitted to the site (non-draft). */
 export function isAlreadySubmittedVersion(
   existingVersion: ExistingSubmissionVersionForSubmit | undefined,
@@ -38,6 +64,86 @@ export function isAlreadySubmittedVersion(
     return false;
   }
   return existingVersion.status !== 'DRAFT';
+}
+
+export function isSubmissionWorkSiteUniqueViolation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return false;
+  }
+  if ((error as { code?: string }).code !== 'P2002') {
+    return false;
+  }
+  const target = (error as { meta?: { target?: unknown } }).meta?.target;
+  if (Array.isArray(target)) {
+    return target.includes('work_id') && target.includes('site_id');
+  }
+  return typeof target === 'string' && target.includes('work_id') && target.includes('site_id');
+}
+
+async function finishSubmitOnExistingSubmission(
+  existingSubmission: ExistingSubmissionForSubmit,
+  selectedWorkVersionId: string,
+  siteName: string,
+  createSubmissionVersion: SubmitWorkVersionToSiteDeps['createSubmissionVersion'],
+): Promise<SubmitToSiteActionResult> {
+  const existingVersion = existingSubmission.versions[0];
+  if (isAlreadySubmittedVersion(existingVersion, selectedWorkVersionId)) {
+    return {
+      success: true,
+      intent: 'submit-to-site',
+      siteName,
+      submissionVersionId: existingVersion.id,
+      alreadySubmitted: true,
+    };
+  }
+  const submissionVersion = await createSubmissionVersion(existingSubmission.id);
+  return {
+    success: true,
+    intent: 'submit-to-site',
+    siteName,
+    submissionVersionId: submissionVersion.id,
+  };
+}
+
+/** Idempotent submit: reuse an existing submission or create one, with race-safe retry. */
+export async function submitWorkVersionToSite(
+  deps: SubmitWorkVersionToSiteDeps,
+  selectedWorkVersionId: string,
+  siteName: string,
+): Promise<SubmitToSiteActionResult> {
+  const existingSubmission = await deps.findExistingSubmission();
+  if (existingSubmission) {
+    return finishSubmitOnExistingSubmission(
+      existingSubmission,
+      selectedWorkVersionId,
+      siteName,
+      deps.createSubmissionVersion,
+    );
+  }
+
+  try {
+    const submissionVersion = await deps.createNewSubmissionReturningVersion();
+    return {
+      success: true,
+      intent: 'submit-to-site',
+      siteName,
+      submissionVersionId: submissionVersion.id,
+    };
+  } catch (error) {
+    if (!isSubmissionWorkSiteUniqueViolation(error)) {
+      throw error;
+    }
+    const racedSubmission = await deps.findExistingSubmission();
+    if (!racedSubmission) {
+      throw error;
+    }
+    return finishSubmitOnExistingSubmission(
+      racedSubmission,
+      selectedWorkVersionId,
+      siteName,
+      deps.createSubmissionVersion,
+    );
+  }
 }
 
 export function canUserSubmitToSite(user: UserWithScopes, site: SubmitTargetSite): boolean {

@@ -1,11 +1,13 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   canSiteAcceptNewSubmission,
   isAlreadySubmittedVersion,
   isSiteAvailableForWorkSubmit,
+  isSubmissionWorkSiteUniqueViolation,
   resolveOpenCollection,
   resolveSubmissionKind,
+  submitWorkVersionToSite,
 } from './submitToSite.server';
 
 const baseSite = {
@@ -91,5 +93,46 @@ describe('submitToSite.server', () => {
     expect(isAlreadySubmittedVersion(version, 'wv-1')).toBe(true);
     expect(isAlreadySubmittedVersion({ ...version, status: 'DRAFT' }, 'wv-1')).toBe(false);
     expect(isAlreadySubmittedVersion(version, 'wv-2')).toBe(false);
+  });
+
+  it('detects submission work/site unique constraint violations', () => {
+    expect(
+      isSubmissionWorkSiteUniqueViolation({
+        code: 'P2002',
+        meta: { target: ['work_id', 'site_id'] },
+      }),
+    ).toBe(true);
+    expect(isSubmissionWorkSiteUniqueViolation({ code: 'P2002', meta: { target: ['id'] } })).toBe(
+      false,
+    );
+  });
+
+  it('retries on a concurrent create by adding a version to the existing submission', async () => {
+    let lookupCount = 0;
+    const result = await submitWorkVersionToSite(
+      {
+        findExistingSubmission: async () => {
+          lookupCount += 1;
+          if (lookupCount === 1) return null;
+          return {
+            id: 'submission-1',
+            versions: [{ id: 'sv-draft', work_version_id: 'wv-1', status: 'DRAFT' }],
+          };
+        },
+        createSubmissionVersion: vi.fn(async () => ({ id: 'sv-pending' })),
+        createNewSubmissionReturningVersion: vi.fn(async () => {
+          throw { code: 'P2002', meta: { target: ['work_id', 'site_id'] } };
+        }),
+      },
+      'wv-1',
+      'public-site',
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      siteName: 'public-site',
+      submissionVersionId: 'sv-pending',
+    });
+    expect(lookupCount).toBe(2);
   });
 });

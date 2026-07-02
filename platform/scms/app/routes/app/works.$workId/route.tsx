@@ -61,10 +61,11 @@ import { extensions as serverExtensions } from '../../../extensions/server';
 import { exportToPdfAction } from './actionHelpers.server';
 import {
   canUserSubmitToSite,
-  isAlreadySubmittedVersion,
   isSiteAvailableForWorkSubmit,
   resolveOpenCollection,
   resolveSubmissionKind,
+  SubmitToSiteConfigError,
+  submitWorkVersionToSite,
 } from './submitToSite.server';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
@@ -286,17 +287,6 @@ export async function action(args: ActionFunctionArgs) {
         );
       }
 
-      const existingSubmission = await prisma.submission.findFirst({
-        where: { work_id: ctx.work.id, site_id: site.id },
-        include: {
-          versions: {
-            orderBy: { date_created: 'desc' },
-            take: 1,
-            select: { id: true, work_version_id: true, status: true },
-          },
-        },
-      });
-
       const selectedVersion = workVersionId
         ? await prisma.workVersion.findFirst({
             where: { id: workVersionId, work_id: ctx.work.id, draft: false },
@@ -315,63 +305,55 @@ export async function action(args: ActionFunctionArgs) {
       }
 
       const siteCtx = new SiteContextWithUser(ctx, site);
-      const existingVersion = existingSubmission?.versions?.[0];
-      if (existingSubmission) {
-        if (isAlreadySubmittedVersion(existingVersion, selectedVersion.id)) {
-          return {
-            success: true,
-            intent,
-            siteName,
-            submissionVersionId: existingVersion!.id,
-            alreadySubmitted: true,
-          };
-        }
-        const submissionVersion = await siteLoaders.submissions.versions.create(
-          siteCtx,
-          serverExtensions,
-          existingSubmission.id,
-          selectedVersion.id,
-        );
-        return {
-          success: true,
-          intent,
-          siteName,
-          submissionVersionId: submissionVersion.id,
-        };
-      }
+      const findExistingSubmission = () =>
+        prisma.submission.findFirst({
+          where: { work_id: ctx.work.id, site_id: site.id },
+          include: {
+            versions: {
+              orderBy: { date_created: 'desc' },
+              take: 1,
+              select: { id: true, work_version_id: true, status: true },
+            },
+          },
+        });
 
-      const collection = resolveOpenCollection(site.collections);
-      if (!collection) {
-        return data(
-          { success: false, intent, error: 'Selected site has no open collection' },
-          { status: 400 },
-        );
-      }
-
-      const kind = resolveSubmissionKind(collection, site.submissionKinds);
-      if (!kind) {
-        return data(
-          { success: false, intent, error: 'Selected site has no submission kind' },
-          { status: 400 },
-        );
-      }
-
-      const submissionVersion = await siteLoaders.submissions.createReturningVersion(
-        siteCtx,
-        serverExtensions,
+      return submitWorkVersionToSite(
+        {
+          findExistingSubmission,
+          createSubmissionVersion: (submissionId) =>
+            siteLoaders.submissions.versions.create(
+              siteCtx,
+              serverExtensions,
+              submissionId,
+              selectedVersion.id,
+            ),
+          createNewSubmissionReturningVersion: async () => {
+            const collection = resolveOpenCollection(site.collections);
+            if (!collection) {
+              throw new SubmitToSiteConfigError('Selected site has no open collection');
+            }
+            const kind = resolveSubmissionKind(collection, site.submissionKinds);
+            if (!kind) {
+              throw new SubmitToSiteConfigError('Selected site has no submission kind');
+            }
+            return siteLoaders.submissions.createReturningVersion(
+              siteCtx,
+              serverExtensions,
+              selectedVersion.id,
+              kind.id,
+              false,
+              undefined,
+              collection.id,
+            );
+          },
+        },
         selectedVersion.id,
-        kind.id,
-        false,
-        undefined,
-        collection.id,
-      );
-      return {
-        success: true,
-        intent,
         siteName,
-        submissionVersionId: submissionVersion.id,
-      };
+      );
     } catch (error) {
+      if (error instanceof SubmitToSiteConfigError) {
+        return data({ success: false, intent, error: error.message }, { status: 400 });
+      }
       console.error('Failed to submit work to site:', error);
       return data(
         {
