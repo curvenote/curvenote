@@ -119,12 +119,11 @@ function getVersionFiles(version: WorkVersionForDetailsClient): Record<string, u
 
 function getFileLabel(key: string, value: unknown): string {
   const file = asRecord(value);
-  const label =
+  return (
     (typeof file?.filename === 'string' && file.filename) ||
     (typeof file?.name === 'string' && file.name) ||
-    key;
-  const extension = label.split('.').pop();
-  return extension && extension !== label ? extension.toUpperCase() : label;
+    key
+  );
 }
 
 export function SubmittedToBar({
