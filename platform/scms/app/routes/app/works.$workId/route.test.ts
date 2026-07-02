@@ -15,7 +15,6 @@ const {
   findManySites,
   findUniqueSite,
   loadCheckMaintenanceByServiceIds,
-  promoteDraftSubmissionVersionToPending,
   userHasScope,
   withSecureWorkContext,
 } = vi.hoisted(() => ({
@@ -32,18 +31,9 @@ const {
   findManySites: vi.fn(),
   findUniqueSite: vi.fn(),
   loadCheckMaintenanceByServiceIds: vi.fn(),
-  promoteDraftSubmissionVersionToPending: vi.fn(),
   userHasScope: vi.fn(),
   withSecureWorkContext: vi.fn(),
 }));
-
-vi.mock('./submitToSite.server', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...(actual as object),
-    promoteDraftSubmissionVersionToPending,
-  };
-});
 
 vi.mock('@curvenote/scms-server', () => ({
   withSecureWorkContext,
@@ -514,7 +504,7 @@ describe('work submit-to-site route', () => {
     expect(createReturningVersion).not.toHaveBeenCalled();
   });
 
-  it('promotes a draft submission version when resubmitting the same work version', async () => {
+  it('creates a new submission version when the latest version for the work version is draft', async () => {
     findUniqueSite.mockResolvedValue({
       id: 'site-public',
       name: 'public-site',
@@ -537,6 +527,7 @@ describe('work submit-to-site route', () => {
       id: 'submission-1',
       versions: [{ id: 'sv-draft', work_version_id: 'wv-1', status: 'DRAFT' }],
     });
+    createSubmissionVersion.mockResolvedValue({ id: 'sv-pending' });
 
     const response = await action({
       request: createSubmitToSiteRequest('public-site', 'wv-1'),
@@ -547,15 +538,15 @@ describe('work submit-to-site route', () => {
       success: true,
       intent: 'submit-to-site',
       siteName: 'public-site',
-      submissionVersionId: 'sv-draft',
+      submissionVersionId: 'sv-pending',
     });
     expect(response).not.toHaveProperty('alreadySubmitted');
-    expect(promoteDraftSubmissionVersionToPending).toHaveBeenCalledWith('user-1', 'submission-1', {
-      id: 'sv-draft',
-      work_version_id: 'wv-1',
-      status: 'DRAFT',
-    });
-    expect(createSubmissionVersion).not.toHaveBeenCalled();
+    expect(createSubmissionVersion).toHaveBeenCalledWith(
+      expect.objectContaining({ site: expect.objectContaining({ name: 'public-site' }) }),
+      expect.any(Array),
+      'submission-1',
+      'wv-1',
+    );
     expect(createReturningVersion).not.toHaveBeenCalled();
   });
 });

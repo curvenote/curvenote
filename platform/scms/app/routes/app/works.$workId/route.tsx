@@ -63,7 +63,6 @@ import {
   canUserSubmitToSite,
   isAlreadySubmittedVersion,
   isSiteAvailableForWorkSubmit,
-  promoteDraftSubmissionVersionToPending,
   resolveOpenCollection,
   resolveSubmissionKind,
 } from './submitToSite.server';
@@ -318,26 +317,13 @@ export async function action(args: ActionFunctionArgs) {
       const siteCtx = new SiteContextWithUser(ctx, site);
       const existingVersion = existingSubmission?.versions?.[0];
       if (existingSubmission) {
-        if (existingVersion?.work_version_id === selectedVersion.id) {
-          if (isAlreadySubmittedVersion(existingVersion, selectedVersion.id)) {
-            return {
-              success: true,
-              intent,
-              siteName,
-              submissionVersionId: existingVersion.id,
-              alreadySubmitted: true,
-            };
-          }
-          await promoteDraftSubmissionVersionToPending(
-            ctx.user.id,
-            existingSubmission.id,
-            existingVersion,
-          );
+        if (isAlreadySubmittedVersion(existingVersion, selectedVersion.id)) {
           return {
             success: true,
             intent,
             siteName,
-            submissionVersionId: existingVersion.id,
+            submissionVersionId: existingVersion!.id,
+            alreadySubmitted: true,
           };
         }
         const submissionVersion = await siteLoaders.submissions.versions.create(
