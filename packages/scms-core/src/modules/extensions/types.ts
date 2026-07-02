@@ -54,6 +54,13 @@ export interface ExtensionCreateWorkVersionArgs {
   defaultTitle: string;
 }
 
+/**
+ * Result of an extension-owned "create new work version" flow.
+ *
+ * When `createWorkVersion` creates a `WorkVersion` directly (via Prisma or a server helper),
+ * it must set `WorkVersion.contains` for that version and merge those labels into `Work.contains`.
+ * Use `resolveVersionContains` and `mergeWorkContains` from `@curvenote/scms-server`.
+ */
 export interface ExtensionCreateWorkVersionResult {
   success: boolean;
   redirectPath?: string;
@@ -348,6 +355,8 @@ export interface ServerExtension extends ClientExtension {
   /**
    * Create a new draft work version for an existing work when the resolved create option
    * belongs to this extension. Return null when this extension does not handle the request.
+   * Implementations must set `WorkVersion.contains` and merge into `Work.contains` (see
+   * `ExtensionCreateWorkVersionResult`).
    */
   createWorkVersion?: (
     args: ExtensionCreateWorkVersionArgs,
