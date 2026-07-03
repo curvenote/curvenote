@@ -35,6 +35,8 @@ model CronJob {
   last_status   CronJobLastStatus?
   last_error    String?
   last_run_ms   Int?
+  /// Set while a claim (tick or manual "Run now") is executing this job; cleared on completion.
+  running_since String?
   created_by    String?
   date_created  String
   date_modified String

@@ -17,6 +17,8 @@ import type { DueCronJobRow } from './computeNextRunAt.server.js';
 const CRON_TICK_ADVISORY_LOCK_KEY = 734827601;
 const DEFAULT_CLAIM_LIMIT = 50;
 const SCOPED_HANDSHAKE_EXPIRY_SECONDS = 60 * 15;
+/** A running_since older than this is treated as a stale lease from a crashed run, not a live one. */
+const STALE_RUNNING_LEASE_MS = 30 * 60 * 1000;
 
 export type RunDueCronJobsResult = {
   claimed: number;
@@ -24,9 +26,14 @@ export type RunDueCronJobsResult = {
   failed: number;
 };
 
+function staleRunningCutoffIso(nowIso: string): string {
+  return new Date(new Date(nowIso).getTime() - STALE_RUNNING_LEASE_MS).toISOString();
+}
+
 async function claimDueCronJobs(nowIso: string, limit: number): Promise<DueCronJobRow[]> {
   const prisma = await getPrismaClient();
   const claimTime = new Date(nowIso);
+  const staleCutoff = staleRunningCutoffIso(nowIso);
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(${CRON_TICK_ADVISORY_LOCK_KEY})`);
     const due = await tx.$queryRaw<DueCronJobRow[]>(
@@ -35,6 +42,7 @@ async function claimDueCronJobs(nowIso: string, limit: number): Promise<DueCronJ
         WHERE enabled = true
           AND next_run_at IS NOT NULL
           AND next_run_at <= ${nowIso}
+          AND (running_since IS NULL OR running_since < ${staleCutoff})
         ORDER BY next_run_at
         LIMIT ${limit}
         FOR UPDATE SKIP LOCKED
@@ -48,6 +56,7 @@ async function claimDueCronJobs(nowIso: string, limit: number): Promise<DueCronJ
         where: { id: job.id },
         data: {
           next_run_at: nextRunAt,
+          running_since: nowIso,
           date_modified: nowIso,
         },
       });
@@ -155,6 +164,7 @@ async function recordCronRun(
       last_status: result.ok ? CronJobLastStatus.SUCCESS : CronJobLastStatus.FAILED,
       last_error: result.ok ? null : (result.error ?? 'Unknown error'),
       last_run_ms: result.durationMs,
+      running_since: null,
       date_modified: nowIso,
     },
   });
@@ -183,13 +193,35 @@ export async function runDueCronJobs(limit = DEFAULT_CLAIM_LIMIT): Promise<RunDu
   return { claimed: due.length, succeeded, failed };
 }
 
-/** Run a single cron immediately (admin Run-now), regardless of next_run_at. */
+/**
+ * Run a single cron immediately (admin Run-now), regardless of next_run_at.
+ * Claims the same `running_since` lease the tick uses, so a manual run can't
+ * overlap a concurrent tick execution or another manual run of the same job.
+ */
 export async function runCronJobNow(jobId: string): Promise<void> {
   const prisma = await getPrismaClient();
-  const job = await prisma.cronJob.findUnique({ where: { id: jobId } });
+  const nowIso = new Date().toISOString();
+  const staleCutoff = staleRunningCutoffIso(nowIso);
+
+  const claimed = await prisma.$queryRaw<DueCronJobRow[]>(
+    Prisma.sql`
+      UPDATE "CronJob"
+      SET running_since = ${nowIso}, date_modified = ${nowIso}
+      WHERE id = ${jobId}
+        AND (running_since IS NULL OR running_since < ${staleCutoff})
+      RETURNING *
+    `,
+  );
+
+  const job = claimed[0];
   if (!job) {
-    throw new Error('Cron job not found');
+    const existing = await prisma.cronJob.findUnique({ where: { id: jobId } });
+    if (!existing) {
+      throw new Error('Cron job not found');
+    }
+    throw new Error('Cron job is already running');
   }
+
   const started = Date.now();
   try {
     await executeCronJob(job);
