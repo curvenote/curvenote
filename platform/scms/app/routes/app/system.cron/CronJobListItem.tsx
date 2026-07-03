@@ -1,6 +1,7 @@
 import { formatDatetime, ui } from '@curvenote/scms-core';
 import { CronJobTargetType } from '@curvenote/scms-server';
-import { useFetcher } from 'react-router';
+import { useEffect, useRef } from 'react';
+import { useFetcher, useRevalidator } from 'react-router';
 import type { CronJobListRow } from './types';
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -14,22 +15,20 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-function LastRunSummary({ job }: { job: CronJobListRow }) {
-  if (!job.last_run_at && !job.last_status) {
+function LastResultSummary({ job }: { job: CronJobListRow }) {
+  if (!job.last_status && !job.last_error && job.last_run_ms == null) {
     return <span className="text-xs text-gray-500">—</span>;
   }
 
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
-      {job.last_run_at ? (
-        <span className="text-xs text-gray-600 dark:text-gray-400">
-          {formatDatetime(job.last_run_at)}
-        </span>
-      ) : null}
       {job.last_status ? (
         <ui.Badge variant={job.last_status === 'SUCCESS' ? 'default' : 'destructive'}>
           {job.last_status}
         </ui.Badge>
+      ) : null}
+      {job.last_run_ms != null ? (
+        <span className="text-xs text-gray-500">{job.last_run_ms} ms</span>
       ) : null}
       {job.last_error ? (
         <span className="text-xs text-red-600 dark:text-red-400" title={job.last_error}>
@@ -41,9 +40,34 @@ function LastRunSummary({ job }: { job: CronJobListRow }) {
 }
 
 export function CronJobListItem({ job }: { job: CronJobListRow }) {
+  const revalidator = useRevalidator();
   const runFetcher = useFetcher();
   const toggleFetcher = useFetcher();
   const deleteFetcher = useFetcher();
+  const prevFetcherStates = useRef({
+    run: runFetcher.state,
+    toggle: toggleFetcher.state,
+    delete: deleteFetcher.state,
+  });
+
+  useEffect(() => {
+    let shouldRevalidate = false;
+    const pairs = [
+      ['run', runFetcher] as const,
+      ['toggle', toggleFetcher] as const,
+      ['delete', deleteFetcher] as const,
+    ];
+    for (const [key, fetcher] of pairs) {
+      const prev = prevFetcherStates.current[key];
+      if (prev !== 'idle' && fetcher.state === 'idle') {
+        shouldRevalidate = true;
+      }
+      prevFetcherStates.current[key] = fetcher.state;
+    }
+    if (shouldRevalidate) {
+      revalidator.revalidate();
+    }
+  }, [runFetcher.state, toggleFetcher.state, deleteFetcher.state, revalidator]);
 
   const isRunning = runFetcher.state === 'submitting' && runFetcher.formData?.get('id') === job.id;
   const isToggling =
@@ -82,8 +106,17 @@ export function CronJobListItem({ job }: { job: CronJobListRow }) {
               <span className="text-xs text-gray-500">—</span>
             )}
           </DetailRow>
-          <DetailRow label="Last run">
-            <LastRunSummary job={job} />
+          <DetailRow label="Last run at">
+            {job.last_run_at ? (
+              <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                {formatDatetime(job.last_run_at)}
+              </span>
+            ) : (
+              <span className="text-xs text-gray-500">—</span>
+            )}
+          </DetailRow>
+          <DetailRow label="Last result">
+            <LastResultSummary job={job} />
           </DetailRow>
           <DetailRow label="Target type">{job.target_type}</DetailRow>
           {job.target_type === CronJobTargetType.HTTP ? (
