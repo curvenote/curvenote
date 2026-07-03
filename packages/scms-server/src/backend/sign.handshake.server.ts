@@ -1,11 +1,12 @@
 import jwt from 'jsonwebtoken';
 import { error401 } from '@curvenote/scms-core';
 
-interface HandshakeTokenClaims {
+export interface HandshakeTokenClaims {
   iss: string;
   exp: number;
-  aud: string;
-  jobId: string;
+  aud?: string;
+  jobId?: string;
+  endpoint_scope?: string;
 }
 
 export function createHandshakeToken(
@@ -20,6 +21,24 @@ export function createHandshakeToken(
     exp: expiry ?? Math.floor(Date.now() / 1000) + 60 * 60 * 1, // 1 hours
     aud: audience,
     jobId,
+  };
+
+  return jwt.sign(claims, key, {
+    algorithm: 'HS256',
+  });
+}
+
+/** Cron/internal endpoint token — carries endpoint_scope only (no aud/jobId). */
+export function createScopedHandshakeToken(
+  endpointScope: string,
+  issuer: string,
+  key: string,
+  expiry?: number,
+) {
+  const claims: HandshakeTokenClaims = {
+    iss: issuer,
+    exp: expiry ?? Math.floor(Date.now() / 1000) + 60 * 60 * 1,
+    endpoint_scope: endpointScope,
   };
 
   return jwt.sign(claims, key, {
