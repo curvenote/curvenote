@@ -78,6 +78,7 @@ export async function loader(args: Route.LoaderArgs) {
       status: true,
       date_created: true,
       date_modified: true,
+      scheduled_at: true,
     },
   });
 
@@ -776,6 +777,7 @@ type RecentJob = {
   status: string;
   date_created: string | Date;
   date_modified: string | Date;
+  scheduled_at: string | null;
 };
 
 function isStaleQueuedJob(job: RecentJob): boolean {
@@ -871,7 +873,7 @@ function RecentJobsPanel({ jobs, limit }: { jobs: RecentJob[]; limit: number }) 
                     Created
                   </th>
                   <th className="px-3 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                    Modified
+                    Scheduled
                   </th>
                   <th className="px-3 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Repair
@@ -890,7 +892,7 @@ function RecentJobsPanel({ jobs, limit }: { jobs: RecentJob[]; limit: number }) 
                       {formatTimestamp(job.date_created)}
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-500">
-                      {formatTimestamp(job.date_modified)}
+                      {formatTimestamp(job.scheduled_at)}
                     </td>
                     <td className="px-3 py-2">
                       <RedispatchQueuedJobButton job={job} />
