@@ -213,12 +213,16 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   const renderWorkVersionDate = (entry: ServiceRunEntry) => {
     const versionDate = formatDateWithRecentTime(entry.versionDateCreated);
     return (
-      <span
-        className="inline-flex items-center text-xs text-muted-foreground"
-        title={formatDatetime(entry.versionDateCreated)}
+      <ui.SimpleTooltip
+        title={`Created at: ${formatDatetime(entry.versionDateCreated)}`}
+        side="top"
+        sideOffset={6}
+        delayDuration={1000}
       >
-        {versionDate}
-      </span>
+        <span className="inline-flex items-center text-xs cursor-default text-muted-foreground">
+          {versionDate}
+        </span>
+      </ui.SimpleTooltip>
     );
   };
 
