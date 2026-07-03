@@ -1,9 +1,12 @@
 import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../prisma.server.js';
 import { getConfig } from '../../../app-config.server.js';
+import { collectAllowedCronTickHosts } from '../../cron/resolveCronTickUrl.server.js';
 import { resolveStoredQueueDrainUrl } from './notifyQueueConsumer.server.js';
 import { getJobQueueDepth, peekJobQueue } from './pgmq/jobQueue.server.js';
 import type { QueuePeekEntry } from './pgmq/types.js';
+
+const DRAIN_URL_PATH = '/v1/jobs/push-to-drain';
 
 /**
  * Admin helpers for the pgmq job queue: read/update the `_JobQueueDrainConfig`
@@ -69,7 +72,22 @@ export async function getJobQueueDrainStatus(): Promise<JobQueueDrainStatus> {
   };
 }
 
-function assertValidDrainUrl(url: string): string {
+function normalizeDrainPathname(pathname: string): string {
+  const trimmed = pathname.replace(/\/+$/, '') || '/';
+  return trimmed === '' ? '/' : trimmed;
+}
+
+/**
+ * Validate a drain url before storing in `_JobQueueDrainConfig`. Restricts
+ * host to app-config API bases and path to `/v1/jobs/push-to-drain` — the
+ * SECURITY DEFINER `job_queue_cron_drain()` function sends a live bearer
+ * secret to this url on every pg_cron tick, so an unrestricted host would
+ * let anyone able to set it exfiltrate that secret to an arbitrary host.
+ */
+export function assertValidDrainUrl(
+  url: string,
+  api: Parameters<typeof collectAllowedCronTickHosts>[0],
+): string {
   const trimmed = url.trim();
   let parsed: URL;
   try {
@@ -80,6 +98,15 @@ function assertValidDrainUrl(url: string): string {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('Drain url must use http or https');
   }
+  if (normalizeDrainPathname(parsed.pathname) !== DRAIN_URL_PATH) {
+    throw new Error(`Drain url path must be ${DRAIN_URL_PATH}`);
+  }
+  const allowedHosts = collectAllowedCronTickHosts(api);
+  if (!allowedHosts.has(parsed.host)) {
+    throw new Error(
+      `Drain url host must match app-config API host (${[...allowedHosts].join(', ')})`,
+    );
+  }
   return trimmed;
 }
 
@@ -89,8 +116,8 @@ function assertValidDrainUrl(url: string): string {
  * satisfied (equivalent to also pushing the secret).
  */
 export async function setJobQueueDrainUrl(url: string): Promise<void> {
-  const validUrl = assertValidDrainUrl(url);
   const config = await getConfig();
+  const validUrl = assertValidDrainUrl(url, config.api);
   const appSecret = config.api.queueConsumerSecret ?? '';
 
   const prisma = await getPrismaClient();
