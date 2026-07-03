@@ -265,19 +265,67 @@ function JobsTab({ jobs }: { jobs: CronJobListRow[] }) {
         )}
       </section>
 
-      <section className="p-4 bg-white rounded-lg border">
+      <section className="p-4 bg-white rounded-lg border dark:bg-gray-900 dark:border-gray-700">
         <h3 className="mb-3 font-semibold">Create HTTP cron (HANDSHAKE)</h3>
-        <createFetcher.Form method="post" className="grid gap-3 max-w-xl">
+        <createFetcher.Form method="post" className="grid gap-4 max-w-xl">
           <input type="hidden" name="intent" value="create" />
-          <ui.Input name="name" placeholder="name (unique)" required />
-          <ui.Input name="schedule" placeholder="cron expr e.g. * * * * *" required />
-          <ui.Input name="http_method" placeholder="POST" defaultValue="POST" />
-          <ui.Input name="target_url" placeholder="https://host/v1/..." required />
-          <ui.Input
-            name="target_scope"
-            placeholder={`scope (default: ${CronEndpointScopes.JOB_QUEUE_DRAIN})`}
-          />
-          <ui.Button type="submit">Create</ui.Button>
+          <div>
+            <ui.Label htmlFor="cron-name">Name *</ui.Label>
+            <ui.Input
+              id="cron-name"
+              name="name"
+              placeholder="my-cron-job"
+              required
+              className="mt-1"
+            />
+            <p className="mt-1 text-sm text-muted-foreground">Unique identifier for this cron job</p>
+          </div>
+          <div>
+            <ui.Label htmlFor="cron-schedule">Schedule *</ui.Label>
+            <ui.Input
+              id="cron-schedule"
+              name="schedule"
+              placeholder="* * * * *"
+              required
+              className="mt-1 font-mono"
+            />
+            <p className="mt-1 text-sm text-muted-foreground">Standard cron expression</p>
+          </div>
+          <div>
+            <ui.Label htmlFor="cron-http-method">HTTP method</ui.Label>
+            <ui.Input
+              id="cron-http-method"
+              name="http_method"
+              defaultValue="POST"
+              className="mt-1 font-mono"
+            />
+          </div>
+          <div>
+            <ui.Label htmlFor="cron-target-url">Target URL *</ui.Label>
+            <ui.Input
+              id="cron-target-url"
+              name="target_url"
+              placeholder="https://host/v1/..."
+              required
+              className="mt-1 font-mono text-xs"
+            />
+          </div>
+          <div>
+            <ui.Label htmlFor="cron-target-scope">Scope</ui.Label>
+            <ui.Input
+              id="cron-target-scope"
+              name="target_scope"
+              placeholder={CronEndpointScopes.JOB_QUEUE_DRAIN}
+              className="mt-1 font-mono text-xs"
+            />
+            <p className="mt-1 text-sm text-muted-foreground">
+              Optional. Defaults to {CronEndpointScopes.JOB_QUEUE_DRAIN} when left blank and a
+              target URL is provided.
+            </p>
+          </div>
+          <ui.Button type="submit" className="w-fit">
+            Create
+          </ui.Button>
         </createFetcher.Form>
       </section>
     </div>
