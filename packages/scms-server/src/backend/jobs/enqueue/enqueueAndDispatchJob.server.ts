@@ -1,14 +1,10 @@
 import type { EnqueueJobParams, EnqueueJobResult } from '@curvenote/scms-core';
 import { KnownJobTypes } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
-import { getConfig } from '../../../app-config.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
-import { createHandshakeToken } from '../../sign.handshake.server.js';
-import { dispatchJob } from './dispatchJob.server.js';
+import { dispatchJobWithHandshake } from './dispatchJob.server.js';
 import { ensureJobRow } from './ensureJobRow.server.js';
 import { validateEnqueuePublishingScopes } from './validateEnqueuePublishingScopes.server.js';
-
-const HANDSHAKE_EXPIRY_SECONDS = 4 * 60 * 60;
 
 /** CLI drives lifecycle via PATCH with API token; no queue consumer work. */
 const CLI_TRACKED_JOB_TYPES: ReadonlySet<string> = new Set([KnownJobTypes.CLI_CHECK]);
@@ -17,7 +13,6 @@ const CLI_TRACKED_JOB_TYPES: ReadonlySet<string> = new Set([KnownJobTypes.CLI_CH
  * Insert parent (QUEUED) + optional BLOCKED dependents, mint handshake, dispatch parent only.
  */
 export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<EnqueueJobResult> {
-  const config = await getConfig();
   const prisma = await getPrismaClient();
 
   if (params.job_type === KnownJobTypes.CONVERTER_TASK && !params.activity_type) {
@@ -100,18 +95,9 @@ export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<E
     };
   }
 
-  const handshake = createHandshakeToken(
-    params.job_id,
-    params.job_type,
-    config.api.handshakeIssuer,
-    config.api.handshakeSigningSecret,
-    Math.floor(Date.now() / 1000) + HANDSHAKE_EXPIRY_SECONDS,
-  );
-
-  const { messageId } = await dispatchJob({
-    job_id: params.job_id,
+  const { messageId } = await dispatchJobWithHandshake({
+    id: params.job_id,
     job_type: params.job_type,
-    handshake,
   });
 
   console.log('[enqueue] enqueueAndDispatchJob: dispatched', {
