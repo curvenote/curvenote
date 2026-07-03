@@ -21,6 +21,7 @@ import {
   Timeline,
   TimelineSection,
   CheckServiceRunTimelineItem,
+  DateWithPopover,
   useDeploymentConfig,
   ui,
 } from '@curvenote/scms-core';
@@ -231,6 +232,18 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     );
   };
 
+  const renderTimelineVersionLabel = (entry: ServiceRunEntry) => (
+    <span className="inline-flex flex-wrap gap-x-2 gap-y-1 items-center">
+      {renderWorkVersionDate(entry)}
+      <DateWithPopover
+        date={entry.run.date_modified}
+        dateCreated={entry.run.date_created}
+        dateModified={entry.run.date_modified}
+        className="text-xs text-muted-foreground"
+      />
+    </span>
+  );
+
   return (
     <PageFrame
       title="Checks"
@@ -336,14 +349,15 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                     {previous.map((entry) => (
                       <TimelineSection
                         key={entry.workVersionId}
-                        label={renderWorkVersionDate(entry)}
-                        nested
+                        label={renderTimelineVersionLabel(entry)}
+                        stacked
                       >
                         <CheckServiceRunTimelineItem
                           run={entry.run}
                           checkService={service}
                           basePath={basePath}
                           hideDate
+                          hideIcon
                         />
                       </TimelineSection>
                     ))}
