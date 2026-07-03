@@ -29,7 +29,7 @@ export async function processJobMessage(
     queueName: 'job',
   });
 
-  let claims: { jobId: string; aud: string };
+  let claims: { jobId?: string; aud?: string };
   try {
     claims = verifyHandshakeToken(
       message.handshake,

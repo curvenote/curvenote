@@ -1,9 +1,9 @@
 import { waitUntil } from '@vercel/functions';
 import { getConfig } from '../../../app-config.server.js';
+import { resolveApiPath } from '../../utils.server.js';
 
 export function resolveQueueDrainUrl(apiUrl: string): string {
-  const base = apiUrl.replace(/\/+$/, '').replace(/(?:\/v1)+$/, '');
-  return `${base}/v1/jobs/push-to-drain`;
+  return resolveApiPath(apiUrl, '/v1/jobs/push-to-drain');
 }
 
 /**

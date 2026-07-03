@@ -11,6 +11,9 @@ import {
   getJobQueueTail,
   setJobQueueDrainUrl,
   pushJobQueueDrainSecretFromConfig,
+  dispatchJobWithHandshake,
+  setJobQueueDrainPaused,
+  notifyQueueConsumer,
   type JobQueueDrainStatus,
   type JobQueueTail,
 } from '@curvenote/scms-server';
@@ -34,6 +37,8 @@ import { uuidv7 } from 'uuidv7';
 
 /** Max messages a single "Drain now" click will process in-process before returning. */
 const MAX_MANUAL_DRAIN = 10;
+const STALE_QUEUED_JOB_REPAIR_MS = 2 * 60 * 1000;
+const RECENT_JOBS_LIMIT = 25;
 
 export const meta: Route.MetaFunction = () => {
   return [
@@ -66,13 +71,14 @@ export async function loader(args: Route.LoaderArgs) {
   const prisma = await getPrismaClient();
   const recentJobsRows = await prisma.job.findMany({
     orderBy: { date_created: 'desc' },
-    take: 25,
+    take: RECENT_JOBS_LIMIT,
     select: {
       id: true,
       job_type: true,
       status: true,
       date_created: true,
       date_modified: true,
+      scheduled_at: true,
     },
   });
 
@@ -115,6 +121,10 @@ export async function action(args: Route.ActionArgs) {
     // single click can't block the request indefinitely; click again to continue.
     let processed = 0;
     try {
+      const drainStatus = await getJobQueueDrainStatus();
+      if (drainStatus.paused) {
+        return data({ ok: true, intent, processed, capped: false, paused: true });
+      }
       while (processed < MAX_MANUAL_DRAIN) {
         const didWork = await drainOneJob(consumeJobQueueMessage);
         if (!didWork) break;
@@ -124,6 +134,50 @@ export async function action(args: Route.ActionArgs) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Drain failed';
       return data({ ok: false, intent, processed, error: message }, { status: 500 });
+    }
+  }
+
+  if (intent === 'redispatch-queued-job') {
+    const jobId = formData.get('jobId') as string;
+    if (!jobId) return data({ ok: false, intent, error: 'Missing jobId' }, { status: 400 });
+
+    const prisma = await getPrismaClient();
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      select: { id: true, job_type: true, status: true, date_modified: true },
+    });
+    if (!job) return data({ ok: false, intent, error: 'Job not found' }, { status: 404 });
+    if (job.status !== 'QUEUED') {
+      return data(
+        { ok: false, intent, error: `Job is ${job.status}, not QUEUED` },
+        { status: 400 },
+      );
+    }
+    if (job.job_type === KnownJobTypes.CLI_CHECK) {
+      return data(
+        {
+          ok: false,
+          intent,
+          error: 'CLI_CHECK jobs are tracked externally and cannot be redispatched',
+        },
+        { status: 400 },
+      );
+    }
+
+    const modifiedAt = new Date(job.date_modified).getTime();
+    if (Number.isNaN(modifiedAt) || Date.now() - modifiedAt < STALE_QUEUED_JOB_REPAIR_MS) {
+      return data(
+        { ok: false, intent, error: 'Queued job must be older than 2 minutes to redispatch' },
+        { status: 400 },
+      );
+    }
+
+    try {
+      const { messageId } = await dispatchJobWithHandshake(job);
+      return data({ ok: true, intent, job_id: job.id, messageId });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Redispatch failed';
+      return data({ ok: false, intent, error: message }, { status: 500 });
     }
   }
 
@@ -156,6 +210,17 @@ export async function action(args: Route.ActionArgs) {
 
     if (intent === 'push-secret') {
       await pushJobQueueDrainSecretFromConfig();
+      return data({ ok: true, intent });
+    }
+
+    if (intent === 'pause-drain') {
+      await setJobQueueDrainPaused(true);
+      return data({ ok: true, intent });
+    }
+
+    if (intent === 'resume-drain') {
+      await setJobQueueDrainPaused(false);
+      notifyQueueConsumer();
       return data({ ok: true, intent });
     }
   } catch (err) {
@@ -192,6 +257,12 @@ function StatusBadge({ status }: { status: string }) {
       return (
         <span className="inline-flex items-center gap-1 text-sm font-medium text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded">
           <Clock className="w-3.5 h-3.5" /> QUEUED
+        </span>
+      );
+    case 'SCHEDULED':
+      return (
+        <span className="inline-flex items-center gap-1 text-sm font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
+          <Clock className="w-3.5 h-3.5" /> SCHEDULED
         </span>
       );
     default:
@@ -372,11 +443,13 @@ function QueueInfoPanel({
         <p className="text-gray-600">
           Internal jobs call{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">enqueueAndDispatchJob()</code>,
-          which inserts a QUEUED row and publishes to the Supabase pgmq{' '}
+          which inserts a QUEUED row and publishes to the pgmq{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.queueName}</code> queue.
-          A pg_net trigger on enqueue (pg_cron backup) wakes the consumer at{' '}
-          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.consumerRoute}</code>,
-          which runs the handler via{' '}
+          A pg_net trigger on each enqueue wakes the consumer at{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.consumerRoute}</code>;
+          the builtin{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">job-queue-drain</code> cron job
+          (via cron tick) is the backup if a wake is missed. The handler runs via{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">processJobMessage</code>.
         </p>
 
@@ -416,13 +489,30 @@ function SecretStatus({ status }: { status: JobQueueDrainStatus }) {
   );
 }
 
+function PauseStatus({ paused }: { paused: boolean }) {
+  if (paused) {
+    return (
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded">
+        <AlertTriangle className="w-3.5 h-3.5" /> Paused
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-sm font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded">
+      <CheckCircle className="w-3.5 h-3.5" /> Draining
+    </span>
+  );
+}
+
 function DrainConfigPanel({ status }: { status: JobQueueDrainStatus }) {
   const urlFetcher = useFetcher<{ ok: boolean; intent?: string; error?: string }>();
   const secretFetcher = useFetcher<{ ok: boolean; intent?: string; error?: string }>();
+  const pauseFetcher = useFetcher<{ ok: boolean; intent?: string; error?: string }>();
   const [url, setUrl] = useState(status.drainUrl ?? status.defaultDrainUrl);
 
   const urlBusy = urlFetcher.state !== 'idle';
   const secretBusy = secretFetcher.state !== 'idle';
+  const pauseBusy = pauseFetcher.state !== 'idle';
 
   return (
     <section className="overflow-hidden bg-white rounded-lg border">
@@ -433,9 +523,13 @@ function DrainConfigPanel({ status }: { status: JobQueueDrainStatus }) {
       <div className="p-4 space-y-5 text-sm">
         <p className="text-gray-600">
           The <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">_JobQueueDrainConfig</code>{' '}
-          row tells the Postgres enqueue trigger (pg_net) and the pg_cron backup where to wake the
-          consumer and which secret to send. It must be populated for jobs to drain promptly under
-          the <span className="font-medium">supabase</span> provider.
+          row is read by the pg_net enqueue trigger inside Postgres — it supplies the push-to-drain
+          URL and bearer secret for wakes fired on insert. Populate it so jobs drain promptly;
+          backup draining is handled by the{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">job-queue-drain</code> cron job
+          (System → Cron). In local dev the URL should use{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">host.docker.internal</code> so
+          Postgres in Docker can reach the dev server on the host.
         </p>
 
         {/* Endpoint */}
@@ -492,6 +586,40 @@ function DrainConfigPanel({ status }: { status: JobQueueDrainStatus }) {
             <p className="text-xs text-green-600">Secret pushed from app-config.</p>
           )}
         </div>
+
+        <div className="space-y-2 pt-2 border-t">
+          <div className="flex gap-2 items-center">
+            <span className="font-medium text-gray-500">Queue drain</span>
+            <PauseStatus paused={status.paused} />
+          </div>
+          <p className="text-xs text-gray-500">
+            Pausing leaves jobs and pgmq messages queued but makes automatic wakes, cron drain, and
+            manual drain no-op. Resuming sends one normal drain wake to start clearing backlog.
+          </p>
+          <pauseFetcher.Form method="post">
+            <input
+              type="hidden"
+              name="intent"
+              value={status.paused ? 'resume-drain' : 'pause-drain'}
+            />
+            <ui.Button
+              type="submit"
+              variant={status.paused ? 'default' : 'outline'}
+              disabled={pauseBusy}
+            >
+              {pauseBusy ? 'Updating…' : status.paused ? 'Resume queue' : 'Pause queue'}
+            </ui.Button>
+          </pauseFetcher.Form>
+          {pauseFetcher.data && !pauseFetcher.data.ok && (
+            <p className="text-xs text-red-600">{pauseFetcher.data.error}</p>
+          )}
+          {pauseFetcher.data?.ok && pauseFetcher.data.intent === 'pause-drain' && (
+            <p className="text-xs text-yellow-700">Queue drain paused.</p>
+          )}
+          {pauseFetcher.data?.ok && pauseFetcher.data.intent === 'resume-drain' && (
+            <p className="text-xs text-green-700">Queue drain resumed and wake requested.</p>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -529,6 +657,7 @@ function QueueTailPanel({ tail }: { tail: JobQueueTail }) {
     ok: boolean;
     processed?: number;
     capped?: boolean;
+    paused?: boolean;
     error?: string;
   }>();
   const draining = drainFetcher.state !== 'idle';
@@ -561,11 +690,17 @@ function QueueTailPanel({ tail }: { tail: JobQueueTail }) {
       {drainFetcher.data &&
         (drainFetcher.data.ok ? (
           <div className="px-4 py-2 text-xs text-green-700 bg-green-50 border-b">
-            Drained {drainFetcher.data.processed} message
-            {drainFetcher.data.processed === 1 ? '' : 's'} in-process.
-            {drainFetcher.data.capped
-              ? ' Stopped at the batch limit — click “Drain now” again to continue.'
-              : ''}
+            {drainFetcher.data.paused ? (
+              <>Queue drain is paused; no messages were processed.</>
+            ) : (
+              <>
+                Drained {drainFetcher.data.processed} message
+                {drainFetcher.data.processed === 1 ? '' : 's'} in-process.
+                {drainFetcher.data.capped
+                  ? ' Stopped at the batch limit — click “Drain now” again to continue.'
+                  : ''}
+              </>
+            )}
           </div>
         ) : (
           <div className="px-4 py-2 text-xs text-red-700 bg-red-50 border-b">
@@ -642,9 +777,64 @@ type RecentJob = {
   status: string;
   date_created: string | Date;
   date_modified: string | Date;
+  scheduled_at: string | null;
 };
 
-function RecentJobsPanel({ jobs }: { jobs: RecentJob[] }) {
+function isStaleQueuedJob(job: RecentJob): boolean {
+  if (job.status !== 'QUEUED') return false;
+  if (job.job_type === KnownJobTypes.CLI_CHECK) return false;
+  const modifiedAt = new Date(job.date_modified).getTime();
+  return !Number.isNaN(modifiedAt) && Date.now() - modifiedAt >= STALE_QUEUED_JOB_REPAIR_MS;
+}
+
+function RedispatchQueuedJobButton({ job }: { job: RecentJob }) {
+  const fetcher = useFetcher<{
+    ok: boolean;
+    intent?: string;
+    job_id?: string;
+    messageId?: number;
+    error?: string;
+  }>();
+  const revalidator = useRevalidator();
+  const busy = fetcher.state !== 'idle';
+  const repairable = isStaleQueuedJob(job);
+
+  useEffect(() => {
+    if (fetcher.data?.ok && fetcher.data.intent === 'redispatch-queued-job') {
+      revalidator.revalidate();
+    }
+  }, [fetcher.data, revalidator]);
+
+  if (job.status !== 'QUEUED') {
+    return <span className="text-xs text-gray-400">—</span>;
+  }
+
+  if (job.job_type === KnownJobTypes.CLI_CHECK) {
+    return <span className="text-xs text-gray-500">Externally tracked</span>;
+  }
+
+  return (
+    <div className="space-y-1">
+      <fetcher.Form method="post">
+        <input type="hidden" name="intent" value="redispatch-queued-job" />
+        <input type="hidden" name="jobId" value={job.id} />
+        <ui.Button type="submit" variant="outline" size="sm" disabled={busy || !repairable}>
+          <PlayCircle className={`w-3.5 h-3.5 mr-1 ${busy ? 'animate-pulse' : ''}`} />
+          {busy ? 'Redispatching…' : 'Redispatch'}
+        </ui.Button>
+      </fetcher.Form>
+      {!repairable && <p className="text-xs text-gray-500">Available after 2 min queued.</p>}
+      {fetcher.data?.ok && fetcher.data.intent === 'redispatch-queued-job' && (
+        <p className="text-xs text-green-700">Redispatched as message {fetcher.data.messageId}.</p>
+      )}
+      {fetcher.data && !fetcher.data.ok && (
+        <p className="text-xs text-red-700">{fetcher.data.error}</p>
+      )}
+    </div>
+  );
+}
+
+function RecentJobsPanel({ jobs, limit }: { jobs: RecentJob[]; limit: number }) {
   const revalidator = useRevalidator();
   const refreshing = revalidator.state !== 'idle';
 
@@ -654,7 +844,7 @@ function RecentJobsPanel({ jobs }: { jobs: RecentJob[] }) {
         <div className="flex gap-2 items-center">
           <Clock className="w-4 h-4 text-gray-600" />
           <h2 className="text-lg font-semibold">Recent jobs</h2>
-          <span className="font-mono text-xs text-gray-500">latest {jobs.length}</span>
+          <span className="font-mono text-xs text-gray-500">latest up to {limit}</span>
         </div>
         <ui.Button variant="ghost" onClick={() => revalidator.revalidate()} disabled={refreshing}>
           <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
@@ -683,7 +873,10 @@ function RecentJobsPanel({ jobs }: { jobs: RecentJob[] }) {
                     Created
                   </th>
                   <th className="px-3 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                    Modified
+                    Scheduled
+                  </th>
+                  <th className="px-3 py-2 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                    Repair
                   </th>
                 </tr>
               </thead>
@@ -699,7 +892,10 @@ function RecentJobsPanel({ jobs }: { jobs: RecentJob[] }) {
                       {formatTimestamp(job.date_created)}
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-500">
-                      {formatTimestamp(job.date_modified)}
+                      {formatTimestamp(job.scheduled_at)}
+                    </td>
+                    <td className="px-3 py-2">
+                      <RedispatchQueuedJobButton job={job} />
                     </td>
                   </tr>
                 ))}
@@ -787,7 +983,7 @@ export default function SystemJobsPage({ loaderData }: Route.ComponentProps) {
             <LoopbackTest />
           </section>
 
-          <RecentJobsPanel jobs={recentJobs} />
+          <RecentJobsPanel jobs={recentJobs} limit={RECENT_JOBS_LIMIT} />
         </ui.TabsContent>
 
         <ui.TabsContent value="queues" className="space-y-8">

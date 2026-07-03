@@ -34,7 +34,9 @@ vi.mock('../../src/backend/jobs/run/handleTransportFailure.server.js', () => ({
   handleTransportFailure: (...args: unknown[]) => mockHandleTransportFailure(...args),
 }));
 
-const { sendJobMessage } = await import('../../src/backend/jobs/enqueue/pgmq/jobQueue.server.js');
+const { sendJobMessage, readOneJobMessage } = await import(
+  '../../src/backend/jobs/enqueue/pgmq/jobQueue.server.js'
+);
 const { drainOneJob } = await import('../../src/backend/jobs/enqueue/drainOneJob.server.js');
 const { resolveQueueDrainUrl, resolveStoredQueueDrainUrl } = await import(
   '../../src/backend/jobs/enqueue/notifyQueueConsumer.server.js'
@@ -146,5 +148,40 @@ describe('drainOneJob', () => {
       source: 'dead_letter',
       last_error: 'Job dispatch failed after 3 delivery attempts',
     });
+  });
+});
+
+describe('readOneJobMessage poison-message cap', () => {
+  beforeEach(() => {
+    executeRaw.mockReset();
+    queryRaw.mockReset();
+  });
+
+  test('stops after MAX_POISON_MESSAGES_PER_READ and defers the remainder', async () => {
+    const MAX_POISON_MESSAGES_PER_READ = 25;
+    // Every read returns another over-delivered (poisoned) message — never empty,
+    // never deliverable — so without a cap this would loop forever.
+    for (let i = 0; i < MAX_POISON_MESSAGES_PER_READ; i += 1) {
+      queryRaw.mockResolvedValueOnce([{ msg_id: BigInt(i), read_ct: 4, message }]);
+    }
+
+    const onDeadLetter = vi.fn();
+    const result = await readOneJobMessage(onDeadLetter);
+
+    expect(result).toBeNull();
+    expect(queryRaw).toHaveBeenCalledTimes(MAX_POISON_MESSAGES_PER_READ);
+    expect(executeRaw).toHaveBeenCalledTimes(MAX_POISON_MESSAGES_PER_READ);
+    expect(onDeadLetter).toHaveBeenCalledTimes(MAX_POISON_MESSAGES_PER_READ);
+  });
+
+  test('returns a deliverable message found before the cap without hitting it', async () => {
+    queryRaw
+      .mockResolvedValueOnce([{ msg_id: 1n, read_ct: 4, message }])
+      .mockResolvedValueOnce([{ msg_id: 2n, read_ct: 1, message }]);
+
+    const result = await readOneJobMessage(vi.fn());
+
+    expect(result?.msgId).toBe(2n);
+    expect(queryRaw).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,4 +1,5 @@
 import type { CheckServiceRunRow } from './db.server';
+import { isCheckServiceRunSupersededByRetry } from './db.server';
 
 export type WorkVersionForCheckRunSummary = {
   id: string;
@@ -38,6 +39,7 @@ export function getCheckRunSummaryByKind(
     const runs = runsByVersionId[version.id] ?? [];
     const seenKind = new Set<string>();
     for (const run of runs) {
+      if (isCheckServiceRunSupersededByRetry(run)) continue;
       if (seenKind.has(run.kind)) continue;
       seenKind.add(run.kind);
       const list = entriesByKind[run.kind] ?? [];

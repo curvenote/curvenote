@@ -119,6 +119,15 @@ async function archiveDeadLetterMessage(row: PgmqReadRow): Promise<void> {
 }
 
 /**
+ * Bound on poison messages archived within a single readOneJobMessage call. A
+ * burst of simultaneously-poisoned messages must not turn one invocation into
+ * an unbounded archive loop against the caller's time budget (e.g. Vercel's
+ * maxDuration on push-to-drain). Any remainder is picked up by the next
+ * invocation — a fresh enqueue wake or the pg_cron drain-backup sweep.
+ */
+const MAX_POISON_MESSAGES_PER_READ = 25;
+
+/**
  * Read and lease one message (qty=1, vt=300s). Messages whose read_ct has
  * exceeded MAX_JOB_QUEUE_DELIVERY_ATTEMPTS are archived here and reported to
  * `onDeadLetter`, so a poison message can never block the queue or be handed to
@@ -128,10 +137,10 @@ export async function readOneJobMessage(
   onDeadLetter?: QueueDeadLetterHandler,
 ): Promise<QueueReadResult | null> {
   const prisma = await getPrismaClient();
-  // Loop to skip + dead-letter poison messages until we find a deliverable one
-  // or the queue is empty. archive() removes the dead-lettered row, so the next
-  // read returns a different message (no infinite loop).
-  for (;;) {
+  // Loop to skip + dead-letter poison messages until we find a deliverable one,
+  // the queue is empty, or the poison cap is hit. archive() removes the
+  // dead-lettered row, so the next read returns a different message.
+  for (let i = 0; i < MAX_POISON_MESSAGES_PER_READ; i += 1) {
     const rows = await prisma.$queryRaw<PgmqReadRow[]>(
       Prisma.sql`SELECT msg_id, read_ct, message FROM pgmq.read(${PGMQ_JOB_QUEUE_NAME}, ${PGMQ_VISIBILITY_TIMEOUT_SECONDS}, 1)`,
     );
@@ -151,6 +160,11 @@ export async function readOneJobMessage(
 
     return toQueueReadResult(row);
   }
+
+  console.error('[pgmq-queue] poison-message cap reached; deferring remainder to next invocation', {
+    maxPoisonMessagesPerRead: MAX_POISON_MESSAGES_PER_READ,
+  });
+  return null;
 }
 
 /** Acknowledge (delete) a successfully processed message. */
