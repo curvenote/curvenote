@@ -9,9 +9,16 @@ import type { WorkRole, WorkVersion } from '@curvenote/scms-db';
 import type { SecureContext } from '@curvenote/scms-server';
 import { previewCacheObjectIds } from '../works.$workId.upload.$workVersionId/metadata-extract/previewCache';
 import { dbGetCheckServiceRunsByWorkVersionIds } from '../works.$workId/db.server';
-import { getCheckRunSummaryByKind } from '../works.$workId/checkServiceRunSummaries';
+import {
+  getCheckRunSummaryByKind,
+  selectWorkListVisibleRunsByServiceKind,
+} from '../works.$workId/checkServiceRunSummaries';
+import {
+  getWorkListCheckServices,
+  isWorkListCheckRunVisible,
+} from './getWorkListCheckServices.server';
 
-export async function dbGetWorksAndSubmissionVersions(userId: string) {
+export async function dbGetWorksAndSubmissionVersions(userId: string, config: AppConfig) {
   const prisma = await getPrismaClient();
   const works = await prisma.work.findMany({
     where: {
@@ -132,13 +139,18 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
     work.versions.filter((version) => !version.draft).map((version) => version.id),
   );
   const runsByVersionId = await dbGetCheckServiceRunsByWorkVersionIds(nonDraftVersionIds);
+  const workListCheckServices = getWorkListCheckServices(config);
 
   return visibleWorks.map((work) => {
     const nonDraftVersions = work.versions.filter((version) => !version.draft);
     const checkRunSummary = getCheckRunSummaryByKind(nonDraftVersions, runsByVersionId);
+    const workListCheckRunsByServiceKind = selectWorkListVisibleRunsByServiceKind(
+      checkRunSummary,
+      (kind, metadata) => isWorkListCheckRunVisible(workListCheckServices, kind, metadata),
+    );
     return {
       ...work,
-      checkRunSummary,
+      workListCheckRunsByServiceKind,
     };
   });
 }

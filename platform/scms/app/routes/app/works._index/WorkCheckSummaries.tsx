@@ -1,17 +1,8 @@
 import { Link } from 'react-router';
 import type { ComponentType } from 'react';
 import type { ClientExtensionCheckService } from '@curvenote/scms-core';
-import {
-  formatDate,
-  getCheckServiceRunServiceData,
-  isCheckWorkListSummaryVisible,
-  ui,
-} from '@curvenote/scms-core';
-import type {
-  CheckRunSummaryByKind,
-  ServiceRunEntry,
-} from '../works.$workId/checkServiceRunSummaries';
-import { selectWorkListVisibleRunsByServiceKind } from '../works.$workId/checkServiceRunSummaries';
+import { formatDate, getCheckServiceRunServiceData, ui } from '@curvenote/scms-core';
+import type { ServiceRunEntry } from '../works.$workId/checkServiceRunSummaries';
 
 type WorkListSummaryComponentProps = {
   metadata: any;
@@ -30,7 +21,7 @@ export type WorkListCheckService = ClientExtensionCheckService & {
 
 type WorkCheckSummariesProps = {
   workId: string;
-  checkRunSummary?: CheckRunSummaryByKind;
+  workListCheckRunsByServiceKind?: Record<string, ServiceRunEntry>;
   checkServices: WorkListCheckService[];
 };
 
@@ -76,30 +67,21 @@ function WorkCheckSummaryContent({
 
 export function WorkCheckSummaries({
   workId,
-  checkRunSummary,
+  workListCheckRunsByServiceKind,
   checkServices,
 }: WorkCheckSummariesProps) {
-  if (!checkRunSummary || Object.keys(checkRunSummary.latestRunByServiceKind).length === 0) {
+  if (
+    !workListCheckRunsByServiceKind ||
+    Object.keys(workListCheckRunsByServiceKind).length === 0
+  ) {
     return null;
   }
 
   const serviceById = new Map(checkServices.map((service) => [service.id, service]));
-  const visibleRunsByServiceKind = selectWorkListVisibleRunsByServiceKind(
-    checkRunSummary,
-    (kind, metadata) => {
-      const service = serviceById.get(kind);
-      return service != null && isCheckWorkListSummaryVisible(service, metadata);
-    },
-  );
-
-  if (Object.keys(visibleRunsByServiceKind).length === 0) {
-    return null;
-  }
-
-  const summaries = Object.values(visibleRunsByServiceKind)
+  const summaries = Object.values(workListCheckRunsByServiceKind)
     .map((entry) => {
       const service = serviceById.get(entry.run.kind);
-      return { entry, service, metadata: getCheckServiceRunServiceData(entry.run) };
+      return { entry, service };
     })
     .filter(
       (
@@ -107,7 +89,6 @@ export function WorkCheckSummaries({
       ): summary is {
         entry: ServiceRunEntry;
         service: WorkListCheckService;
-        metadata: unknown;
       } => summary.service != null,
     )
     .sort((a, b) =>

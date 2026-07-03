@@ -157,7 +157,7 @@ export function WorkListItem({
           )}
           <WorkCheckSummaries
             workId={work.id}
-            checkRunSummary={work.checkRunSummary}
+            workListCheckRunsByServiceKind={work.workListCheckRunsByServiceKind}
             checkServices={checkServices}
           />
         </div>
