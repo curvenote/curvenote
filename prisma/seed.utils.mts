@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { uuidv7 as uuid } from 'uuidv7';
 import { getConfig } from '../packages/scms-server/src/app-config.server.js';
 import { resolveStoredQueueDrainUrl } from '../packages/scms-server/src/backend/jobs/enqueue/notifyQueueConsumer.server.js';
+import { resolveStoredCronTickUrl } from '../packages/scms-server/src/backend/cron/resolveCronTickUrl.server.js';
 
 const DEFAULT_CHECKS: string[] = [];
 const QUIET = true; // Set to true to suppress console output
@@ -726,5 +727,54 @@ export async function seedJobQueueDrainConfig(
     console.log(`   ✓ Seeded _JobQueueDrainConfig (drain_url=${drainUrl}, secret from app-config)`);
   } catch (err) {
     console.warn(`   ⚠️  Skipped _JobQueueDrainConfig seed: ${(err as Error).message}`);
+  }
+}
+
+/**
+ * Seed/refresh the `_CronTickConfig` row from app-config so local + test
+ * environments don't need a manual trip to System → Cron → Config after every
+ * database reset. pg_cron's cron_tick() no-ops until this row exists.
+ */
+export async function seedCronTickConfig(
+  environmentOverride: 'development' | 'test',
+): Promise<void> {
+  let api: Awaited<ReturnType<typeof getConfig>>['api'] | undefined;
+  try {
+    const config = await getConfig(
+      { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
+      { directory: path.resolve(seedUtilsDir, '..') },
+    );
+    api = config.api;
+  } catch (err) {
+    console.warn(
+      `   ⚠️  Skipped _CronTickConfig seed: could not load app-config (${(err as Error).message})`,
+    );
+    return;
+  }
+
+  if (!api?.url) {
+    console.warn(
+      '   ⚠️  Skipped _CronTickConfig seed: api section missing/incomplete in app-config',
+    );
+    return;
+  }
+
+  const secret = api.cron?.secret ?? '';
+  if (!secret) {
+    console.warn('   ⚠️  Skipped _CronTickConfig seed: api.cron.secret is empty');
+    return;
+  }
+
+  const tickUrl = resolveStoredCronTickUrl(api);
+
+  try {
+    await prisma.$executeRaw`
+      INSERT INTO "_CronTickConfig" (id, tick_url, tick_secret)
+      VALUES (1, ${tickUrl}, ${secret})
+      ON CONFLICT (id) DO UPDATE SET tick_secret = EXCLUDED.tick_secret
+    `;
+    console.log(`   ✓ Seeded _CronTickConfig (tick_url=${tickUrl}, secret from app-config)`);
+  } catch (err) {
+    console.warn(`   ⚠️  Skipped _CronTickConfig seed: ${(err as Error).message}`);
   }
 }
