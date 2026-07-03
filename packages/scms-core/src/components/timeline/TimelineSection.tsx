@@ -67,7 +67,7 @@ export function TimelineSection({
 
   if (stacked && hasChildren) {
     return (
-      <div className={cn('grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-2 items-center', className)}>
+      <div className={cn('grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-1 items-center', className)}>
         <div className="relative z-10 -ml-[8px] p-1 shrink-0 self-start">
           {icon ?? <GitBranch className="w-5 h-5 bg-background text-foreground/60" />}
         </div>
