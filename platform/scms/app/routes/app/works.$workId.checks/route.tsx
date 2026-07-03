@@ -15,7 +15,7 @@ import {
   httpError,
   scopes,
   getExtensionCheckServicesFromServerConfig,
-  formatDate,
+  formatDateWithRecentTime,
   formatDatetime,
   Timeline,
   TimelineSection,
@@ -211,7 +211,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   }, [showDispatchingState, revalidator]);
 
   const renderWorkVersionDate = (entry: ServiceRunEntry) => {
-    const versionDate = formatDate(entry.versionDateCreated, 'MMM dd, y HH:mm');
+    const versionDate = formatDateWithRecentTime(entry.versionDateCreated);
     return (
       <span
         className="inline-flex items-center text-xs text-muted-foreground"
