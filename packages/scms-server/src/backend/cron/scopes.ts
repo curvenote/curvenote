@@ -1,5 +1,5 @@
 import { error401 } from '@curvenote/scms-core';
-import { type HandshakeTokenClaims, verifyHandshakeToken } from '../sign.handshake.server.js';
+import { type SignHandshakeTokenClaims, verifyHandshakeToken } from '../sign.handshake.server.js';
 
 export type CronHandshakeConfig = {
   api: {
@@ -23,7 +23,7 @@ export function cronEndpointScope(method: string, path: string): string {
 }
 
 export function assertEndpointScope(
-  claims: HandshakeTokenClaims | undefined,
+  claims: SignHandshakeTokenClaims | undefined,
   expected: string,
 ): void {
   if (claims?.endpoint_scope !== expected) {
@@ -45,7 +45,7 @@ export function verifyEndpointScopedHandshake(
   authHeader: string | null,
   config: CronHandshakeConfig,
   expected: CronEndpointScope | string,
-): HandshakeTokenClaims {
+): SignHandshakeTokenClaims {
   const token = parseBearerToken(authHeader);
   if (!token) {
     throw error401('Missing bearer token');

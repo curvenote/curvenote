@@ -95,7 +95,8 @@ export interface ExtensionCheckExecuteResult {
 }
 
 export type CheckServiceRunData<T extends object> = {
-  status: string;
+  /** @deprecated Use CheckServiceRun.status column. */
+  status?: string;
   serviceData?: T;
   serviceDataSchema?: Record<string, any>;
 };

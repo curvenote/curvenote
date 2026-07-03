@@ -2,6 +2,7 @@ enum JobStatus {
   BLOCKED
   QUEUED
   RUNNING
+  SCHEDULED
   COMPLETED
   FAILED
   CANCELLED
@@ -19,6 +20,7 @@ model Job {
   job_type          String
   status            JobStatus
   payload           Json
+  scheduled_at      String?
   results           Json?
   messages          String[]
   follow_on         Json?
@@ -33,6 +35,7 @@ model Job {
   linkedJobs        LinkedJob[]
 
   @@index([depends_on_job_id, status, trigger_on])
+  @@index([status, scheduled_at])
 }
 
 model LinkedJob {

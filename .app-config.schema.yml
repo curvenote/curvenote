@@ -251,6 +251,21 @@ properties:
           Bearer token secret for POST /v1/jobs/push-to-drain. The app sends this
           when waking the queue drain handler after enqueue; the route rejects
           requests without a matching Authorization header.
+      cron:
+        type: object
+        description: Cron tick configuration (Postgres pg_cron → POST /v1/cron/tick).
+        properties:
+          secret:
+            type: string
+            secret: true
+            description: >-
+              Bearer token secret for POST /v1/cron/tick only. Postgres sends this
+              via public.cron_tick(); the endpoint verifies against this value.
+          tickUrl:
+            type: string
+            description: >-
+              Optional override URL for Postgres to call for cron ticks. When unset,
+              derived from tasksCallbackUrl or api.url.
       previewSigningSecret:
         type: string
         secret: true

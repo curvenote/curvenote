@@ -14,6 +14,7 @@ export type EnsureJobRowParams = {
   depends_on_job_id?: string;
   trigger_on?: JobTriggerOnType;
   results?: Record<string, unknown>;
+  scheduled_at?: string;
 };
 
 function toPrismaTriggerOn(triggerOn?: JobTriggerOnType): JobTriggerOn | undefined {
@@ -24,7 +25,7 @@ function toPrismaTriggerOn(triggerOn?: JobTriggerOnType): JobTriggerOn | undefin
 
 export async function ensureJobRow(
   params: EnsureJobRowParams,
-  status: Extract<JobStatus, 'QUEUED' | 'BLOCKED'>,
+  status: Extract<JobStatus, 'QUEUED' | 'BLOCKED' | 'SCHEDULED'>,
   prismaClient?: PrismaClient | Prisma.TransactionClient,
 ) {
   const prisma = prismaClient ?? (await getPrismaClient());
@@ -56,6 +57,7 @@ export async function ensureJobRow(
       activity_type: params.activity_type ?? undefined,
       depends_on_job_id: params.depends_on_job_id ?? undefined,
       trigger_on: toPrismaTriggerOn(params.trigger_on),
+      scheduled_at: params.scheduled_at ?? undefined,
     },
   });
 }

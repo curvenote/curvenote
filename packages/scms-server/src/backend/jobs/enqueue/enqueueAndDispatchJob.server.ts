@@ -39,6 +39,10 @@ export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<E
 
   await validateEnqueuePublishingScopes(params);
 
+  const nowIso = new Date().toISOString();
+  const isFutureScheduled = Boolean(params.scheduled_at && params.scheduled_at > nowIso);
+  const parentStatus = isFutureScheduled ? JobStatus.SCHEDULED : JobStatus.QUEUED;
+
   await prisma.$transaction(async (tx) => {
     await ensureJobRow(
       {
@@ -49,8 +53,9 @@ export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<E
         activity_type: params.activity_type,
         follow_on: params.follow_on,
         results: params.results,
+        scheduled_at: isFutureScheduled ? params.scheduled_at : undefined,
       },
-      JobStatus.QUEUED,
+      parentStatus,
       tx,
     );
 
@@ -79,7 +84,21 @@ export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<E
     return {
       job_id: params.job_id,
       job_type: params.job_type,
-      status: 'DISPATCHED',
+      status: isFutureScheduled ? 'SCHEDULED' : 'DISPATCHED',
+      dependent_job_ids: dependents.length > 0 ? dependents.map((d) => d.job_id) : undefined,
+    };
+  }
+
+  if (isFutureScheduled) {
+    console.log('[enqueue] enqueueAndDispatchJob: scheduled for future — row only, no dispatch', {
+      job_id: params.job_id,
+      job_type: params.job_type,
+      scheduled_at: params.scheduled_at,
+    });
+    return {
+      job_id: params.job_id,
+      job_type: params.job_type,
+      status: 'SCHEDULED',
       dependent_job_ids: dependents.length > 0 ? dependents.map((d) => d.job_id) : undefined,
     };
   }

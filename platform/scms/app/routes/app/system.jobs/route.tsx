@@ -194,6 +194,12 @@ function StatusBadge({ status }: { status: string }) {
           <Clock className="w-3.5 h-3.5" /> QUEUED
         </span>
       );
+    case 'SCHEDULED':
+      return (
+        <span className="inline-flex items-center gap-1 text-sm font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
+          <Clock className="w-3.5 h-3.5" /> SCHEDULED
+        </span>
+      );
     default:
       return (
         <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">

@@ -1,13 +1,15 @@
 import jwt from 'jsonwebtoken';
 import { error401 } from '@curvenote/scms-core';
 
-export interface HandshakeTokenClaims {
+interface SignHandshakeTokenClaims {
   iss: string;
   exp: number;
   aud?: string;
   jobId?: string;
   endpoint_scope?: string;
 }
+
+export type { SignHandshakeTokenClaims };
 
 export function createHandshakeToken(
   jobId: string,
@@ -16,7 +18,7 @@ export function createHandshakeToken(
   key: string,
   expiry?: number,
 ) {
-  const claims: HandshakeTokenClaims = {
+  const claims: SignHandshakeTokenClaims = {
     iss: issuer,
     exp: expiry ?? Math.floor(Date.now() / 1000) + 60 * 60 * 1, // 1 hours
     aud: audience,
@@ -35,7 +37,7 @@ export function createScopedHandshakeToken(
   key: string,
   expiry?: number,
 ) {
-  const claims: HandshakeTokenClaims = {
+  const claims: SignHandshakeTokenClaims = {
     iss: issuer,
     exp: expiry ?? Math.floor(Date.now() / 1000) + 60 * 60 * 1,
     endpoint_scope: endpointScope,
@@ -51,7 +53,7 @@ export function verifyHandshakeToken(token: string, issuer: string, key: string)
     return jwt.verify(token, key, {
       algorithms: ['HS256'],
       issuer,
-    }) as HandshakeTokenClaims;
+    }) as SignHandshakeTokenClaims;
   } catch (err) {
     console.error('Invalid handshake token', err);
     throw error401();

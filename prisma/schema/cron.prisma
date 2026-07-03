@@ -1,0 +1,43 @@
+enum CronJobTargetType {
+  HTTP
+  JOB
+}
+
+enum CronJobTargetAuth {
+  HANDSHAKE
+  NONE
+  CUSTOM
+}
+
+enum CronJobLastStatus {
+  SUCCESS
+  FAILED
+}
+
+model CronJob {
+  id            String              @id
+  name          String              @unique
+  description   String?
+  schedule      String
+  timezone      String              @default("UTC")
+  enabled       Boolean             @default(true)
+  target_type   CronJobTargetType
+  target_url    String?
+  http_method   String?             @default("POST")
+  target_auth   CronJobTargetAuth   @default(HANDSHAKE)
+  target_scope  String?
+  headers       Json?
+  payload       Json?
+  job_type      String?
+  job_payload   Json?
+  last_run_at   String?
+  next_run_at   String?
+  last_status   CronJobLastStatus?
+  last_error    String?
+  last_run_ms   Int?
+  created_by    String?
+  date_created  String
+  date_modified String
+
+  @@index([enabled, next_run_at])
+}

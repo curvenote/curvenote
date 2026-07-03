@@ -63,6 +63,8 @@ export type EnqueueJobParams = {
   invoked_by_id?: string;
   activity_type?: string;
   activity_data?: Record<string, unknown>;
+  /** When set in the future, job is inserted SCHEDULED and not dispatched until promoted. */
+  scheduled_at?: string;
   /** Initial results (e.g. CLI_CHECK check report at POST). */
   results?: Record<string, unknown>;
   dependents?: DependentJobSpec[];
@@ -73,6 +75,6 @@ export type EnqueueJobParams = {
 export type EnqueueJobResult = {
   job_id: string;
   job_type: string;
-  status: 'DISPATCHED';
+  status: 'DISPATCHED' | 'SCHEDULED';
   dependent_job_ids?: string[];
 };
