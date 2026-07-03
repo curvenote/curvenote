@@ -119,6 +119,48 @@ describe('runDueCronJobs claim', () => {
     expect(result.claimed).toBe(0);
     expect(mockTxSelectQueryRaw).toHaveBeenCalledTimes(1);
   });
+
+  it('disables a due job with an invalid schedule and still claims other due jobs', async () => {
+    const goodJob = jobRow({ id: 'cron-good', name: 'good' });
+    const badJob = jobRow({
+      id: 'cron-bad',
+      name: 'bad',
+      schedule: 'not a cron',
+    });
+    mockTxSelectQueryRaw
+      .mockResolvedValueOnce([badJob, goodJob])
+      .mockResolvedValueOnce([{ ...goodJob, running_since: '2026-07-03T12:00:00.000Z' }]);
+    mockTxCronJobUpdate.mockResolvedValue({});
+
+    const result = await runDueCronJobs(10);
+
+    expect(result.claimed).toBe(1);
+    expect(mockTxCronJobUpdate).toHaveBeenCalledWith({
+      where: { id: 'cron-bad' },
+      data: expect.objectContaining({
+        enabled: false,
+        next_run_at: null,
+        running_since: null,
+        last_status: 'FAILED',
+        last_error: expect.stringMatching(/^Invalid schedule:/),
+      }),
+    });
+    expect(mockTxSelectQueryRaw).toHaveBeenCalledTimes(2);
+    expect(mockEnqueueAndDispatchJob).toHaveBeenCalledOnce();
+  });
+
+  it('disables invalid-schedule jobs without a bulk claim UPDATE when none are claimable', async () => {
+    const badJob = jobRow({ id: 'cron-bad', name: 'bad', schedule: 'not a cron' });
+    mockTxSelectQueryRaw.mockResolvedValueOnce([badJob]);
+    mockTxCronJobUpdate.mockResolvedValue({});
+
+    const result = await runDueCronJobs(10);
+
+    expect(result).toEqual({ claimed: 0, succeeded: 0, failed: 0 });
+    expect(mockTxSelectQueryRaw).toHaveBeenCalledTimes(1);
+    expect(mockTxCronJobUpdate).toHaveBeenCalledOnce();
+    expect(mockEnqueueAndDispatchJob).not.toHaveBeenCalled();
+  });
 });
 
 describe('runDueCronJobs execution', () => {

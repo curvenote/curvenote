@@ -29,6 +29,55 @@ function staleRunningCutoffIso(nowIso: string): string {
   return new Date(new Date(nowIso).getTime() - STALE_RUNNING_LEASE_MS).toISOString();
 }
 
+type ClaimableCronJob = { job: DueCronJobRow; nextRunAt: string };
+type InvalidScheduleCronJob = { job: DueCronJobRow; error: string };
+
+function partitionDueCronJobsBySchedule(
+  due: DueCronJobRow[],
+  claimTime: Date,
+): { claimable: ClaimableCronJob[]; invalid: InvalidScheduleCronJob[] } {
+  const claimable: ClaimableCronJob[] = [];
+  const invalid: InvalidScheduleCronJob[] = [];
+  for (const job of due) {
+    try {
+      claimable.push({
+        job,
+        nextRunAt: computeNextRunAt(job.schedule, job.timezone, claimTime),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Invalid cron schedule';
+      invalid.push({ job, error: message });
+    }
+  }
+  return { claimable, invalid };
+}
+
+async function disableInvalidScheduleCronJobs(
+  tx: Pick<Awaited<ReturnType<typeof getPrismaClient>>, 'cronJob'>,
+  invalid: InvalidScheduleCronJob[],
+  nowIso: string,
+): Promise<void> {
+  for (const { job, error } of invalid) {
+    console.error('[runDueCronJobs] disabling cron with invalid schedule', {
+      id: job.id,
+      name: job.name,
+      schedule: job.schedule,
+      error,
+    });
+    await tx.cronJob.update({
+      where: { id: job.id },
+      data: {
+        enabled: false,
+        next_run_at: null,
+        running_since: null,
+        last_status: CronJobLastStatus.FAILED,
+        last_error: `Invalid schedule: ${error}`,
+        date_modified: nowIso,
+      },
+    });
+  }
+}
+
 async function claimDueCronJobs(nowIso: string, limit: number): Promise<DueCronJobRow[]> {
   const prisma = await getPrismaClient();
   const claimTime = new Date(nowIso);
@@ -52,13 +101,17 @@ async function claimDueCronJobs(nowIso: string, limit: number): Promise<DueCronJ
       return [];
     }
 
+    const { claimable, invalid } = partitionDueCronJobsBySchedule(due, claimTime);
+    await disableInvalidScheduleCronJobs(tx, invalid, nowIso);
+
+    if (claimable.length === 0) {
+      return [];
+    }
+
     // Each row's next_run_at is computed from its own schedule/timezone, so this
     // is a single bulk UPDATE keyed by a VALUES list rather than N per-row UPDATEs.
     const values = Prisma.join(
-      due.map(
-        (job) =>
-          Prisma.sql`(${job.id}::text, ${computeNextRunAt(job.schedule, job.timezone, claimTime)}::text)`,
-      ),
+      claimable.map(({ job, nextRunAt }) => Prisma.sql`(${job.id}::text, ${nextRunAt}::text)`),
     );
     return tx.$queryRaw<DueCronJobRow[]>(
       Prisma.sql`
