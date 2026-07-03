@@ -10,6 +10,8 @@ type TimelineProps = {
   headerAction?: ReactNode;
   /** When true, the vertical line extends to the top of the timeline (e.g. to touch the card above). */
   nested?: boolean;
+  /** Bottom inset/offset for the vertical line (default `bottom-1`). Use e.g. `-bottom-2` to extend past the last item. */
+  lineBottomClassName?: string;
   children: ReactNode;
   className?: string;
 };
@@ -23,10 +25,12 @@ export function Timeline({
   titleClassName,
   headerAction,
   nested = false,
+  lineBottomClassName,
   children,
   className,
 }: TimelineProps) {
   const lineTop = nested ? 'top-0' : 'top-2';
+  const lineBottom = lineBottomClassName ?? 'bottom-1';
   return (
     <div className={cn('', className)}>
       {(title != null || headerAction != null) && (
@@ -41,7 +45,7 @@ export function Timeline({
       )}
       <div className="relative">
         <div
-          className={cn('absolute left-0 bottom-1 w-[2px] bg-foreground/20', lineTop)}
+          className={cn('absolute left-0 w-[2px] bg-foreground/20', lineTop, lineBottom)}
           aria-hidden
         />
         <div className={cn('space-y-6', nested && 'pt-5')}>{children}</div>

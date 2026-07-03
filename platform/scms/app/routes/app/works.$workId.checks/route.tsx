@@ -345,7 +345,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                   ) : null}
                 </ui.Card>
                 {previous.length > 0 && (
-                  <Timeline className="ml-3" nested>
+                  <Timeline className="ml-3" nested lineBottomClassName="-bottom-2">
                     {previous.map((entry) => (
                       <TimelineSection
                         key={entry.workVersionId}
