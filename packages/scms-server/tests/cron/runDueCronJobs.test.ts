@@ -116,6 +116,31 @@ describe('runDueCronJobs claim', () => {
   });
 });
 
+describe('runDueCronJobs execution', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCronJobUpdate.mockResolvedValue({});
+  });
+
+  it('runs independent due jobs concurrently and aggregates succeeded/failed correctly', async () => {
+    const jobA = jobRow({ id: 'cron-a', name: 'job-a' });
+    const jobB = jobRow({ id: 'cron-b', name: 'job-b' });
+    mockTxSelectQueryRaw
+      .mockResolvedValueOnce([jobA, jobB])
+      .mockResolvedValueOnce([jobA, jobB]);
+    mockEnqueueAndDispatchJob
+      .mockResolvedValueOnce({ job_id: 'dispatched-a', status: 'DISPATCHED' })
+      .mockRejectedValueOnce(new Error('dispatch failed for job-b'));
+
+    const result = await runDueCronJobs(10);
+
+    expect(result).toEqual({ claimed: 2, succeeded: 1, failed: 1 });
+    expect(mockEnqueueAndDispatchJob).toHaveBeenCalledTimes(2);
+    // Both jobs get their run recorded regardless of which one failed.
+    expect(mockCronJobUpdate).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('runCronJobNow', () => {
   beforeEach(() => {
     vi.clearAllMocks();

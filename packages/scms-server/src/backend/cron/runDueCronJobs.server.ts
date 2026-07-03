@@ -177,25 +177,32 @@ async function recordCronRun(
   });
 }
 
+async function executeAndRecordCronJob(job: DueCronJobRow): Promise<boolean> {
+  const started = Date.now();
+  try {
+    await executeCronJob(job);
+    await recordCronRun(job, { ok: true, durationMs: Date.now() - started });
+    return true;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Cron execution failed';
+    console.error('[runDueCronJobs] job failed', { name: job.name, error: message });
+    await recordCronRun(job, { ok: false, error: message, durationMs: Date.now() - started });
+    return false;
+  }
+}
+
 export async function runDueCronJobs(limit = DEFAULT_CLAIM_LIMIT): Promise<RunDueCronJobsResult> {
   const nowIso = new Date().toISOString();
   const due = await claimDueCronJobs(nowIso, limit);
-  let succeeded = 0;
-  let failed = 0;
 
-  for (const job of due) {
-    const started = Date.now();
-    try {
-      await executeCronJob(job);
-      await recordCronRun(job, { ok: true, durationMs: Date.now() - started });
-      succeeded += 1;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Cron execution failed';
-      console.error('[runDueCronJobs] job failed', { name: job.name, error: message });
-      await recordCronRun(job, { ok: false, error: message, durationMs: Date.now() - started });
-      failed += 1;
-    }
-  }
+  // Claimed jobs are independent — no shared lock is held past the claim
+  // transaction — so run them concurrently rather than one at a time.
+  // allSettled (not all): executeAndRecordCronJob already catches its own
+  // errors, but a fulfilled/rejected split still protects the aggregation
+  // below if recordCronRun itself ever throws unexpectedly.
+  const results = await Promise.allSettled(due.map((job) => executeAndRecordCronJob(job)));
+  const succeeded = results.filter((r) => r.status === 'fulfilled' && r.value).length;
+  const failed = due.length - succeeded;
 
   return { claimed: due.length, succeeded, failed };
 }
