@@ -23,11 +23,22 @@ async function dispatchPromotedJob(job: { id: string; job_type: string }): Promi
   });
 }
 
+async function revertPromotedJobToScheduled(jobId: string, nowIso: string): Promise<void> {
+  const prisma = await getPrismaClient();
+  await prisma.job.updateMany({
+    where: { id: jobId, status: JobStatus.QUEUED },
+    data: { status: JobStatus.SCHEDULED, date_modified: nowIso },
+  });
+}
+
 /**
  * Claim due SCHEDULED jobs, promote to QUEUED, and dispatch to pgmq.
+ * On dispatch failure the row is reverted to SCHEDULED so the next sweep can retry.
  */
 export async function promoteScheduledJobs(limit = DEFAULT_PROMOTE_LIMIT): Promise<{
-  promoted: number;
+  claimed: number;
+  dispatched: number;
+  dispatchFailed: number;
 }> {
   const prisma = await getPrismaClient();
   const nowIso = new Date().toISOString();
@@ -52,12 +63,31 @@ export async function promoteScheduledJobs(limit = DEFAULT_PROMOTE_LIMIT): Promi
     return rows;
   });
 
+  let dispatched = 0;
+  let dispatchFailed = 0;
+
   for (const row of promoted) {
-    await dispatchPromotedJob(row);
+    try {
+      await dispatchPromotedJob(row);
+      dispatched += 1;
+    } catch (err) {
+      dispatchFailed += 1;
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[promoteScheduledJobs] dispatch failed; reverting to SCHEDULED', {
+        job_id: row.id,
+        job_type: row.job_type,
+        error: message,
+      });
+      await revertPromotedJobToScheduled(row.id, nowIso);
+    }
   }
 
-  console.log('[promoteScheduledJobs] promoted', { count: promoted.length });
-  return { promoted: promoted.length };
+  console.log('[promoteScheduledJobs] done', {
+    claimed: promoted.length,
+    dispatched,
+    dispatchFailed,
+  });
+  return { claimed: promoted.length, dispatched, dispatchFailed };
 }
 
 export { dispatchPromotedJob };
