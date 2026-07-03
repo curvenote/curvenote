@@ -102,7 +102,7 @@ export default function WorkDetailRoute() {
 
   return (
     <div
-      className="relative w-full py-16 pr-4 xl:mt-0 xl:py-[56px] xl:pr-8 2xl:pr-16 xl:pl-10 2xl:pl-16 max-w-[1400px]"
+      className="relative w-full py-16 pr-4 xl:mt-0 xl:py-[56px] xl:pr-8 2xl:pr-16 xl:pl-10 2xl:pl-16"
       data-name="page-frame"
     >
       <div className="space-y-12">

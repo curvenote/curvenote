@@ -235,6 +235,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     <PageFrame
       title="Checks"
       description="Results of all check services run on the work are shown below. Each type of check is shown in a separate section and the most recent run is shown at the top. Where checks have been run on mulitple versions use the timeline to explore the history."
+      className="max-w-none"
     >
       {showDispatchingState ? (
         <ui.Card className="mt-4 border-primary/30 bg-primary/5">

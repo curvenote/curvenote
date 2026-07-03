@@ -58,6 +58,7 @@ import {
 import type { WorkVersionContentCardData, WorkVersionForDetailsClient } from './types';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
+import { WORK_ROUTE_CONTENT_CLASS } from './workRouteLayout';
 import { exportToPdfAction } from './actionHelpers.server';
 import {
   canUserSubmitToSite,
@@ -596,7 +597,9 @@ export default function WorkLayout({ loaderData }: Route.ComponentProps) {
           />
         )}
         <MainWrapper hasSecondaryNav={showSecondaryNav}>
-          <Outlet />
+          <div className={WORK_ROUTE_CONTENT_CLASS}>
+            <Outlet />
+          </div>
         </MainWrapper>
       </>
     </CheckMaintenanceProvider>

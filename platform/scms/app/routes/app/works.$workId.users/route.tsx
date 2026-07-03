@@ -57,7 +57,7 @@ export default function Users({ loaderData }: Route.ComponentProps) {
   const { users } = loaderData;
 
   return (
-    <PageFrame title="Users" subtitle="Who can access this work?">
+    <PageFrame title="Users" subtitle="Who can access this work?" className="max-w-none">
       <div className="flex flex-col space-y-5">
         <div>
           <WorkRolesForm />
