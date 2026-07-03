@@ -2,6 +2,7 @@ import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../prisma.server.js';
 import { getConfig } from '../../../app-config.server.js';
 import { collectAllowedCronTickHosts } from '../../cron/resolveCronTickUrl.server.js';
+import { buildSecretUrlConfigStatus } from '../../utils.server.js';
 import { resolveStoredQueueDrainUrl } from './notifyQueueConsumer.server.js';
 import { getJobQueueDepth, peekJobQueue } from './pgmq/jobQueue.server.js';
 import type { QueuePeekEntry } from './pgmq/types.js';
@@ -58,18 +59,13 @@ export async function getJobQueueDrainStatus(): Promise<JobQueueDrainStatus> {
   const defaultDrainUrl = resolveStoredQueueDrainUrl(config.api);
 
   const row = await readDrainConfigRow();
-  const drainUrl = row?.drain_url ?? null;
-  const storedSecret = row?.drain_secret ?? '';
-
-  return {
-    configured: Boolean(drainUrl && storedSecret),
-    drainUrl,
+  const { url, defaultUrl, ...status } = buildSecretUrlConfigStatus(
+    row ? { url: row.drain_url, secret: row.drain_secret } : null,
     defaultDrainUrl,
-    hasSecret: storedSecret.length > 0,
-    secretLength: storedSecret.length,
-    appConfigSecretLength: appSecret.length,
-    secretMatchesAppConfig: storedSecret.length > 0 && storedSecret === appSecret,
-  };
+    appSecret,
+  );
+
+  return { ...status, drainUrl: url, defaultDrainUrl: defaultUrl };
 }
 
 function normalizeDrainPathname(pathname: string): string {

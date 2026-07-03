@@ -1,6 +1,7 @@
 import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../prisma.server.js';
 import { getConfig } from '../../app-config.server.js';
+import { buildSecretUrlConfigStatus } from '../utils.server.js';
 import { resolveStoredCronTickUrl, assertAllowedCronTickUrl } from './resolveCronTickUrl.server.js';
 
 export type CronTickStatus = {
@@ -45,18 +46,13 @@ export async function getCronTickStatus(): Promise<CronTickStatus> {
   const appSecret = config.api.cron?.secret ?? '';
   const defaultTickUrl = resolveStoredCronTickUrl(config.api);
   const row = await readTickConfigRow();
-  const tickUrl = row?.tick_url ?? null;
-  const storedSecret = row?.tick_secret ?? '';
-
-  return {
-    configured: Boolean(tickUrl && storedSecret),
-    tickUrl,
+  const { url, defaultUrl, ...status } = buildSecretUrlConfigStatus(
+    row ? { url: row.tick_url, secret: row.tick_secret } : null,
     defaultTickUrl,
-    hasSecret: storedSecret.length > 0,
-    secretLength: storedSecret.length,
-    appConfigSecretLength: appSecret.length,
-    secretMatchesAppConfig: storedSecret.length > 0 && storedSecret === appSecret,
-  };
+    appSecret,
+  );
+
+  return { ...status, tickUrl: url, defaultTickUrl: defaultUrl };
 }
 
 export async function setCronTickUrl(url: string): Promise<void> {
