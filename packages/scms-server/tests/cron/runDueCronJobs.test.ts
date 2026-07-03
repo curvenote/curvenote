@@ -1,6 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CronJobTargetType } from '@curvenote/scms-db';
+import { CronEndpointScopes } from '@curvenote/scms-core';
+import { CronJobTargetAuth, CronJobTargetType } from '@curvenote/scms-db';
 
 function sqlText(arg: unknown): string {
   const candidate = arg as { sql?: string; strings?: string[] };
@@ -16,6 +17,7 @@ const mockClaimQueryRaw = vi.fn();
 const mockFindUnique = vi.fn();
 const mockCronJobUpdate = vi.fn();
 const mockEnqueueAndDispatchJob = vi.fn();
+const mockFetch = vi.fn();
 
 const tx = {
   $executeRaw: mockTxExecuteRaw,
@@ -47,6 +49,8 @@ vi.mock('../../src/backend/prisma.server.js', () => ({
 vi.mock('../../src/backend/jobs/enqueue/enqueueAndDispatchJob.server.js', () => ({
   enqueueAndDispatchJob: (...args: unknown[]) => mockEnqueueAndDispatchJob(...args),
 }));
+
+vi.stubGlobal('fetch', (...args: unknown[]) => mockFetch(...args));
 
 const { runDueCronJobs, runCronJobNow } = await import('../../src/backend/cron/runDueCronJobs.server.js');
 
@@ -138,6 +142,61 @@ describe('runDueCronJobs execution', () => {
     expect(mockEnqueueAndDispatchJob).toHaveBeenCalledTimes(2);
     // Both jobs get their run recorded regardless of which one failed.
     expect(mockCronJobUpdate).toHaveBeenCalledTimes(2);
+  });
+
+  it('executes HTTP crons with scope-resolved target_url', async () => {
+    const httpJob = jobRow({
+      id: 'cron-http',
+      name: 'retry-sweep',
+      target_type: CronJobTargetType.HTTP,
+      target_url: null,
+      target_auth: CronJobTargetAuth.HANDSHAKE,
+      target_scope: CronEndpointScopes.TEXT_INTEGRITY_RETRY_SWEEP,
+      job_type: null,
+      job_payload: null,
+    });
+    mockTxSelectQueryRaw.mockResolvedValueOnce([httpJob]).mockResolvedValueOnce([httpJob]);
+    mockFetch.mockResolvedValue({ status: 200, text: async () => '' });
+
+    const result = await runDueCronJobs(10);
+
+    expect(result).toEqual({ claimed: 1, succeeded: 1, failed: 0 });
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://localhost:3031/v1/hooks/text-integrity/retry-sweep',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: expect.stringMatching(/^Bearer /),
+        }),
+      }),
+    );
+  });
+
+  it('records failure when scope-resolved HTTP cron has no target_scope', async () => {
+    const httpJob = jobRow({
+      id: 'cron-http',
+      name: 'missing-scope',
+      target_type: CronJobTargetType.HTTP,
+      target_url: null,
+      target_auth: CronJobTargetAuth.NONE,
+      target_scope: null,
+      job_type: null,
+      job_payload: null,
+    });
+    mockTxSelectQueryRaw.mockResolvedValueOnce([httpJob]).mockResolvedValueOnce([httpJob]);
+
+    const result = await runDueCronJobs(10);
+
+    expect(result).toEqual({ claimed: 1, succeeded: 0, failed: 1 });
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockCronJobUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          last_status: 'FAILED',
+          last_error: 'HTTP cron missing target_url',
+        }),
+      }),
+    );
   });
 });
 

@@ -71,7 +71,20 @@ describe('cronJobDb target_url validation', () => {
       target_type: CronJobTargetType.HTTP,
       target_url: null,
       target_auth: CronJobTargetAuth.HANDSHAKE,
-      target_scope: 'job-queue-drain',
+      target_scope: 'POST:/v1/jobs/push-to-drain',
+    });
+
+    expect(mockCronJobCreate).toHaveBeenCalledOnce();
+  });
+
+  it('allows text-integrity retry sweep without target_url', async () => {
+    await dbCreateCronJob('cron-2', {
+      name: 'retry-sweep',
+      schedule: '*/5 * * * *',
+      target_type: CronJobTargetType.HTTP,
+      target_url: null,
+      target_auth: CronJobTargetAuth.HANDSHAKE,
+      target_scope: 'POST:/v1/hooks/text-integrity/retry-sweep',
     });
 
     expect(mockCronJobCreate).toHaveBeenCalledOnce();

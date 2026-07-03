@@ -1,6 +1,7 @@
 export * from './scopes.js';
 export * from './resolveCronTickUrl.server.js';
 export * from './assertAllowedCronTargetUrl.server.js';
+export * from './resolveScopedCronTargetUrl.server.js';
 export * from './cronTickAdmin.server.js';
 export * from './verifyBearerSecret.server.js';
 export * from './computeNextRunAt.server.js';
