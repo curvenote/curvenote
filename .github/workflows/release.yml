@@ -11,6 +11,7 @@ permissions:
   id-token: write # Required for OIDC
   pull-requests: write
   contents: write
+  packages: write
 
 jobs:
   release:
@@ -51,3 +52,74 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Check if curvenote CLI was published
+        id: curvenote
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          VERSION="$(
+            echo '${{ steps.changesets.outputs.publishedPackages }}' \
+              | jq -r '.[] | select(.name == "curvenote") | .version'
+          )"
+          if [ -n "${VERSION}" ] && [ "${VERSION}" != "null" ]; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            MINOR="$(echo "${VERSION}" | cut -d. -f1-2)"
+            MAJOR="$(echo "${VERSION}" | cut -d. -f1)"
+            echo "minor=${MINOR}" >> "$GITHUB_OUTPUT"
+            echo "major=${MAJOR}" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Wait for curvenote on npm
+        if: steps.curvenote.outputs.published == 'true'
+        run: |
+          VERSION="${{ steps.curvenote.outputs.version }}"
+          for i in 1 2 3 4 5 6 7 8; do
+            if npm view "curvenote@${VERSION}" version; then
+              exit 0
+            fi
+            echo "curvenote@${VERSION} not visible yet (attempt ${i}); retrying..."
+            sleep $((i * 5))
+          done
+          echo "curvenote@${VERSION} not available on npm" >&2
+          exit 1
+      - name: Set up Docker Buildx
+        if: steps.curvenote.outputs.published == 'true'
+        uses: docker/setup-buildx-action@v3
+      - name: Login to GitHub Container Registry
+        if: steps.curvenote.outputs.published == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push full CLI image
+        if: steps.curvenote.outputs.published == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker/cli
+          file: ./docker/cli/Dockerfile
+          target: full
+          push: true
+          build-args: |
+            CURVENOTE_VERSION=${{ steps.curvenote.outputs.version }}
+          tags: |
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.version }}
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.minor }}
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.major }}
+            ghcr.io/curvenote/cli:latest
+      - name: Build and push slim CLI image
+        if: steps.curvenote.outputs.published == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker/cli
+          file: ./docker/cli/Dockerfile
+          target: slim
+          push: true
+          build-args: |
+            CURVENOTE_VERSION=${{ steps.curvenote.outputs.version }}
+          tags: |
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.version }}-slim
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.minor }}-slim
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.major }}-slim
+            ghcr.io/curvenote/cli:latest-slim
