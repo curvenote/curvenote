@@ -8,7 +8,6 @@ import {
   type ChecksMetadataSection,
 } from '@curvenote/scms-server';
 import type { FileMetadataSection } from '@curvenote/scms-core';
-import { GitBranch } from 'lucide-react';
 import {
   PageFrame,
   getBrandingFromMetaMatches,
@@ -16,7 +15,6 @@ import {
   httpError,
   scopes,
   getExtensionCheckServicesFromServerConfig,
-  DateWithPopover,
   formatDate,
   formatDatetime,
   Timeline,
@@ -216,11 +214,10 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     const versionDate = formatDate(entry.versionDateCreated, 'MMM dd, y HH:mm');
     return (
       <span
-        className="inline-flex gap-1.5 items-center text-xs text-muted-foreground"
+        className="inline-flex items-center text-xs text-muted-foreground"
         title={formatDatetime(entry.versionDateCreated)}
       >
-        <GitBranch className="size-3.5 shrink-0" aria-hidden />
-        <span>{versionDate}</span>
+        {versionDate}
       </span>
     );
   };
@@ -329,23 +326,14 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                     {previous.map((entry) => (
                       <TimelineSection
                         key={entry.workVersionId}
-                        label={
-                          <span className="inline-flex gap-2 items-center">
-                            {renderWorkVersionDate(entry)}
-                            <DateWithPopover
-                              date={entry.run.date_modified}
-                              dateCreated={entry.run.date_created}
-                              dateModified={entry.run.date_modified}
-                              className="text-xs text-muted-foreground"
-                            />
-                          </span>
-                        }
+                        label={renderWorkVersionDate(entry)}
                         nested
                       >
                         <CheckServiceRunTimelineItem
                           run={entry.run}
                           checkService={service}
                           basePath={basePath}
+                          hideDate
                         />
                       </TimelineSection>
                     ))}

@@ -23,6 +23,8 @@ type CheckServiceRunTimelineItemProps = {
   defaultExpanded?: boolean;
   /** Optional route for fallback detail copy; defaults to `${basePath}/work-integrity`. */
   fallbackDetailsHref?: string;
+  /** When true, omit the relative run timestamp on the row (e.g. checks page shows version date in section label). */
+  hideDate?: boolean;
 };
 
 const serviceDataFromRun = (run: TimelineCheckServiceRunRow): unknown =>
@@ -41,8 +43,9 @@ export function CheckServiceRunTimelineItem({
   basePath,
   defaultExpanded,
   fallbackDetailsHref,
+  hideDate = false,
 }: CheckServiceRunTimelineItemProps) {
-  const date = (
+  const date = hideDate ? null : (
     <DateWithPopover
       date={run.date_modified}
       dateCreated={run.date_created}

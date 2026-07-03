@@ -144,9 +144,11 @@ export function TimelineItemExpandable({
           <div className="flex flex-1 items-center min-w-0 text-sm leading-none text-foreground">
             {message}
           </div>
-          <div className="flex items-center text-xs leading-none shrink-0 text-muted-foreground">
-            {date}
-          </div>
+          {date != null ? (
+            <div className="flex items-center text-xs leading-none shrink-0 text-muted-foreground">
+              {date}
+            </div>
+          ) : null}
         </div>
         {trailing != null && (
           <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
