@@ -83,7 +83,7 @@ $fn$;
     IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'cron-tick') THEN
       PERFORM cron.schedule(
         'cron-tick',
-        '1 minute',
+        '* * * * *',
         $cron$SELECT public.cron_tick()$cron$
       );
     END IF;
