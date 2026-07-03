@@ -1,3 +1,9 @@
+/** Strip trailing slashes and any trailing `/v1` suffix from an API base, then append `path`. */
+export function resolveApiPath(apiUrl: string, path: string): string {
+  const base = apiUrl.replace(/\/+$/, '').replace(/(?:\/v1)+$/, '');
+  return `${base}${path}`;
+}
+
 export function sortSignedUrlQuery(url: string) {
   let query = new URL(url).search.slice(1);
   const searchParams = new URLSearchParams(query);

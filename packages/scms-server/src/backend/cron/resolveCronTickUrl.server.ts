@@ -1,3 +1,5 @@
+import { resolveApiPath } from '../utils.server.js';
+
 export const CRON_TICK_PATH = '/v1/cron/tick';
 
 type CronTickApiConfig = {
@@ -8,8 +10,7 @@ type CronTickApiConfig = {
 
 /** Resolve POST /v1/cron/tick from an API base (origin or /v1 suffix). */
 export function resolveCronTickUrl(apiUrl: string): string {
-  const base = apiUrl.replace(/\/+$/, '').replace(/(?:\/v1)+$/, '');
-  return `${base}${CRON_TICK_PATH}`;
+  return resolveApiPath(apiUrl, CRON_TICK_PATH);
 }
 
 /** URL Postgres should call — prefers tasksCallbackUrl for Docker dev setups. */
