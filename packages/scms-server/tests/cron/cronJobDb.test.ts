@@ -25,7 +25,9 @@ vi.mock('../../src/backend/prisma.server.js', () => ({
   })),
 }));
 
-const { dbCreateCronJob, dbUpdateCronJob } = await import('../../src/backend/cron/cronJobDb.server.js');
+const { dbCreateCronJob, dbUpdateCronJob, dbSeedBuiltinCronJob } = await import(
+  '../../src/backend/cron/cronJobDb.server.js'
+);
 
 describe('cronJobDb target_url validation', () => {
   beforeEach(() => {
@@ -91,5 +93,63 @@ describe('cronJobDb target_url validation', () => {
     ).rejects.toThrow(/host must match our own API host/);
 
     expect(mockCronJobUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('dbSeedBuiltinCronJob', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCronJobCreate.mockResolvedValue({ id: 'builtin-1' });
+  });
+
+  it('is a no-op when a row with this id already exists', async () => {
+    mockCronJobFindUnique.mockResolvedValue({ id: 'builtin-1' });
+
+    await dbSeedBuiltinCronJob('builtin-1', {
+      name: 'sweep',
+      schedule: '* * * * *',
+      target_type: CronJobTargetType.HTTP,
+      target_url: 'http://localhost:3031/v1/hooks/text-integrity/retry-sweep',
+      target_auth: CronJobTargetAuth.HANDSHAKE,
+      target_scope: 'text-integrity-retry-sweep',
+    });
+
+    expect(mockCronJobCreate).not.toHaveBeenCalled();
+  });
+
+  it('delegates to dbCreateCronJob (including target_url validation) when missing', async () => {
+    mockCronJobFindUnique.mockResolvedValue(null);
+
+    await expect(
+      dbSeedBuiltinCronJob('builtin-1', {
+        name: 'bad-host',
+        schedule: '* * * * *',
+        target_type: CronJobTargetType.HTTP,
+        target_url: 'https://evil.example/v1/hooks/sweep',
+        target_auth: CronJobTargetAuth.HANDSHAKE,
+        target_scope: 'text-integrity-retry-sweep',
+      }),
+    ).rejects.toThrow(/host must match our own API host/);
+    expect(mockCronJobCreate).not.toHaveBeenCalled();
+  });
+
+  it('honors an explicit next_run_at override instead of computing one', async () => {
+    mockCronJobFindUnique.mockResolvedValue(null);
+
+    await dbSeedBuiltinCronJob('builtin-1', {
+      name: 'sweep',
+      schedule: '* * * * *',
+      target_type: CronJobTargetType.HTTP,
+      target_url: 'http://localhost:3031/v1/hooks/text-integrity/retry-sweep',
+      target_auth: CronJobTargetAuth.HANDSHAKE,
+      target_scope: 'text-integrity-retry-sweep',
+      next_run_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(mockCronJobCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ next_run_at: '2026-01-01T00:00:00.000Z' }),
+      }),
+    );
   });
 });

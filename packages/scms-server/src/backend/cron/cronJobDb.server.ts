@@ -26,6 +26,8 @@ export type CronJobInput = {
   job_type?: string | null;
   job_payload?: Prisma.InputJsonValue | null;
   created_by?: string | null;
+  /** Explicit initial next_run_at (e.g. seeding a builtin job); computed from schedule when omitted. */
+  next_run_at?: string;
 };
 
 async function validateCronJobTargetUrl(
@@ -55,7 +57,7 @@ export async function dbCreateCronJob(id: string, data: CronJobInput): Promise<C
   const prisma = await getPrismaClient();
   const nowIso = new Date().toISOString();
   const timezone = data.timezone ?? 'UTC';
-  const nextRunAt = computeInitialNextRunAt(data.schedule, timezone);
+  const nextRunAt = data.next_run_at ?? computeInitialNextRunAt(data.schedule, timezone);
 
   return prisma.cronJob.create({
     data: {
@@ -130,42 +132,13 @@ export async function dbSetCronJobEnabled(id: string, enabled: boolean): Promise
   return dbUpdateCronJob(id, { enabled });
 }
 
-export async function dbSeedBuiltinCronJob(
-  id: string,
-  data: CronJobInput & { next_run_at?: string },
-): Promise<void> {
+/** Idempotent seed for a builtin CronJob: no-op if a row with this id already exists. */
+export async function dbSeedBuiltinCronJob(id: string, data: CronJobInput): Promise<void> {
   const prisma = await getPrismaClient();
   const existing = await prisma.cronJob.findUnique({ where: { id } });
   if (existing) return;
 
-  await validateCronJobTargetUrl(data.target_type, data.target_url ?? null);
-
-  const nowIso = new Date().toISOString();
-  const timezone = data.timezone ?? 'UTC';
-  await prisma.cronJob.create({
-    data: {
-      id,
-      name: data.name,
-      description: data.description ?? null,
-      schedule: data.schedule,
-      timezone,
-      enabled: data.enabled ?? true,
-      target_type: data.target_type,
-      target_url: data.target_url ?? null,
-      http_method: data.http_method ?? 'POST',
-      target_auth: data.target_auth ?? CronJobTargetAuth.HANDSHAKE,
-      target_scope: data.target_scope ?? null,
-      headers: data.headers ?? undefined,
-      payload: data.payload ?? undefined,
-      job_type: data.job_type ?? null,
-      job_payload: data.job_payload ?? undefined,
-      next_run_at: data.next_run_at ?? computeInitialNextRunAt(data.schedule, timezone),
-      last_status: null,
-      created_by: data.created_by ?? null,
-      date_created: nowIso,
-      date_modified: nowIso,
-    },
-  });
+  await dbCreateCronJob(id, data);
 }
 
 export { CronJobLastStatus, CronJobTargetAuth, CronJobTargetType };
