@@ -17,11 +17,11 @@ export function loader() {
 
 /** POST /v1/jobs/promote-scheduled — promote due SCHEDULED jobs to QUEUED and dispatch. */
 export async function action(args: Route.ActionArgs) {
-  const config = await getConfig();
+  const appConfig = await getConfig();
   try {
     verifyEndpointScopedHandshake(
       args.request.headers.get('Authorization'),
-      config,
+      appConfig,
       CronEndpointScopes.PROMOTE_SCHEDULED,
     );
   } catch {

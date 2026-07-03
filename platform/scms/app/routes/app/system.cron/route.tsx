@@ -17,19 +17,16 @@ import {
   CronJobTargetType,
   CronJobTargetAuth,
   cronEndpointScope,
-  CronEndpointScopes,
   type CronTickStatus,
   type PgCronHealth,
 } from '@curvenote/scms-server';
-import { PageFrame, ui } from '@curvenote/scms-core';
+import { CronEndpointScopes, PageFrame, ui } from '@curvenote/scms-core';
 import type { CronJob } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
 import {
   Clock,
   KeyRound,
-  Link2,
   PlayCircle,
-  RefreshCw,
   Trash2,
   CheckCircle,
   XCircle,
@@ -326,7 +323,10 @@ export default function SystemCronPage({ loaderData }: Route.ComponentProps) {
       <ui.Tabs
         value={tab}
         onValueChange={(v) =>
-          setSearchParams(v === 'jobs' ? {} : { tab: v }, { replace: true, preventScrollReset: true })
+          setSearchParams(v === 'jobs' ? {} : { tab: v }, {
+            replace: true,
+            preventScrollReset: true,
+          })
         }
       >
         <ui.TabsList>

@@ -25,17 +25,13 @@ function unauthorized(): Response {
 function isAuthorizedDrainRequest(
   authHeader: string | null,
   queueSecret: string,
-  config: Awaited<ReturnType<typeof getConfig>>,
+  appConfig: Awaited<ReturnType<typeof getConfig>>,
 ): boolean {
   if (queueSecret && verifyBearerSecret(authHeader, queueSecret)) {
     return true;
   }
   try {
-    verifyEndpointScopedHandshake(
-      authHeader,
-      config,
-      CronEndpointScopes.JOB_QUEUE_DRAIN,
-    );
+    verifyEndpointScopedHandshake(authHeader, appConfig, CronEndpointScopes.JOB_QUEUE_DRAIN);
     return true;
   } catch {
     return false;
