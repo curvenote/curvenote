@@ -145,39 +145,26 @@ async function recordCronRun(
 }
 
 export async function runDueCronJobs(limit = DEFAULT_CLAIM_LIMIT): Promise<RunDueCronJobsResult> {
-  const prisma = await getPrismaClient();
-  const lock = await prisma.$queryRaw<{ locked: boolean }[]>(
-    Prisma.sql`SELECT pg_try_advisory_lock(${CRON_TICK_ADVISORY_LOCK_KEY}) AS locked`,
-  );
-  if (!lock[0]?.locked) {
-    console.log('[runDueCronJobs] skip — another tick is running');
-    return { claimed: 0, succeeded: 0, failed: 0 };
-  }
+  const nowIso = new Date().toISOString();
+  const due = await claimDueCronJobs(nowIso, limit);
+  let succeeded = 0;
+  let failed = 0;
 
-  try {
-    const nowIso = new Date().toISOString();
-    const due = await claimDueCronJobs(nowIso, limit);
-    let succeeded = 0;
-    let failed = 0;
-
-    for (const job of due) {
-      const started = Date.now();
-      try {
-        await executeCronJob(job);
-        await recordCronRun(job, { ok: true, durationMs: Date.now() - started });
-        succeeded += 1;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Cron execution failed';
-        console.error('[runDueCronJobs] job failed', { name: job.name, error: message });
-        await recordCronRun(job, { ok: false, error: message, durationMs: Date.now() - started });
-        failed += 1;
-      }
+  for (const job of due) {
+    const started = Date.now();
+    try {
+      await executeCronJob(job);
+      await recordCronRun(job, { ok: true, durationMs: Date.now() - started });
+      succeeded += 1;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Cron execution failed';
+      console.error('[runDueCronJobs] job failed', { name: job.name, error: message });
+      await recordCronRun(job, { ok: false, error: message, durationMs: Date.now() - started });
+      failed += 1;
     }
-
-    return { claimed: due.length, succeeded, failed };
-  } finally {
-    await prisma.$executeRaw(Prisma.sql`SELECT pg_advisory_unlock(${CRON_TICK_ADVISORY_LOCK_KEY})`);
   }
+
+  return { claimed: due.length, succeeded, failed };
 }
 
 /** Run a single cron immediately (admin Run-now), regardless of next_run_at. */

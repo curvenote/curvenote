@@ -1,7 +1,7 @@
 import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../prisma.server.js';
 import { getConfig } from '../../app-config.server.js';
-import { resolveStoredCronTickUrl } from './resolveCronTickUrl.server.js';
+import { resolveStoredCronTickUrl, assertAllowedCronTickUrl } from './resolveCronTickUrl.server.js';
 
 export type CronTickStatus = {
   configured: boolean;
@@ -59,23 +59,9 @@ export async function getCronTickStatus(): Promise<CronTickStatus> {
   };
 }
 
-function assertValidTickUrl(url: string): string {
-  const trimmed = url.trim();
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmed);
-  } catch {
-    throw new Error('Tick url must be a valid absolute URL');
-  }
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error('Tick url must use http or https');
-  }
-  return trimmed;
-}
-
 export async function setCronTickUrl(url: string): Promise<void> {
-  const validUrl = assertValidTickUrl(url);
   const config = await getConfig();
+  const validUrl = assertAllowedCronTickUrl(url, config.api);
   const appSecret = config.api.cron?.secret ?? '';
   const prisma = await getPrismaClient();
   await prisma.$executeRaw(
@@ -93,7 +79,7 @@ export async function pushCronTickSecretFromConfig(): Promise<void> {
   if (!appSecret) {
     throw new Error('app-config api.cron.secret is empty — nothing to push');
   }
-  const defaultUrl = resolveStoredCronTickUrl(config.api);
+  const defaultUrl = assertAllowedCronTickUrl(resolveStoredCronTickUrl(config.api), config.api);
 
   const prisma = await getPrismaClient();
   await prisma.$executeRaw(
