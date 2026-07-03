@@ -118,9 +118,9 @@ export function WorkCheckSummaries({
             >
               <Link
                 to={`${workId}/checks`}
-                className="inline-flex min-h-7 items-center gap-2 px-2 py-1 max-w-full text-xs rounded-sm border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-300"
+                className="inline-flex h-7 items-center gap-2 overflow-hidden px-2 max-w-full text-xs rounded-sm border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-300"
               >
-                <span className="inline-flex min-w-0 items-center gap-1.5">
+                <span className="inline-flex h-5 min-w-0 items-center gap-1.5">
                   <WorkCheckSummaryContent service={service} entry={entry} />
                 </span>
               </Link>
