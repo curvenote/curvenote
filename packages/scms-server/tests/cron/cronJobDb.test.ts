@@ -25,7 +25,7 @@ vi.mock('../../src/backend/prisma.server.js', () => ({
   })),
 }));
 
-const { dbCreateCronJob, dbUpdateCronJob, dbSeedBuiltinCronJob } =
+const { dbCreateCronJob, dbUpdateCronJob, dbSeedBuiltinCronJob, dbSetCronJobEnabled } =
   await import('../../src/backend/cron/cronJobDb.server.js');
 
 describe('cronJobDb target_url validation', () => {
@@ -222,6 +222,32 @@ describe('dbSeedBuiltinCronJob', () => {
       }),
     ).rejects.toThrow(/host must match our own API host/);
     expect(mockCronJobCreate).not.toHaveBeenCalled();
+  });
+
+  it('recomputes next_run_at when re-enabling a job cleared by invalid-schedule disable', async () => {
+    mockCronJobFindUnique.mockResolvedValue({
+      id: 'cron-1',
+      schedule: '0 * * * *',
+      timezone: 'UTC',
+      enabled: false,
+      next_run_at: null,
+      target_type: CronJobTargetType.JOB,
+      target_url: null,
+      http_method: 'POST',
+      target_auth: CronJobTargetAuth.HANDSHAKE,
+      target_scope: null,
+    });
+
+    await dbSetCronJobEnabled('cron-1', true);
+
+    expect(mockCronJobUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          enabled: true,
+          next_run_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+        }),
+      }),
+    );
   });
 
   it('honors an explicit next_run_at override instead of computing one', async () => {

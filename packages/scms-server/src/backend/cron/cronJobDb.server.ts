@@ -132,6 +132,8 @@ export async function dbUpdateCronJob(id: string, data: Partial<CronJobInput>): 
   const schedule = data.schedule ?? existing.schedule;
   const timezone = data.timezone ?? existing.timezone;
   const scheduleChanged = data.schedule != null || data.timezone != null;
+  const enabling = data.enabled === true && !existing.enabled;
+  const recomputeNextRunAt = scheduleChanged || (enabling && existing.next_run_at == null);
   const targetAuth = data.target_auth ?? existing.target_auth;
   const httpMethod = data.http_method ?? existing.http_method;
   const targetFieldsChanged =
@@ -168,7 +170,7 @@ export async function dbUpdateCronJob(id: string, data: Partial<CronJobInput>): 
       job_type: data.job_type === undefined ? undefined : data.job_type,
       job_payload:
         data.job_payload === undefined ? undefined : (data.job_payload ?? Prisma.JsonNull),
-      next_run_at: scheduleChanged ? computeNextRunAt(schedule, timezone) : undefined,
+      next_run_at: recomputeNextRunAt ? computeNextRunAt(schedule, timezone) : undefined,
       date_modified: nowIso,
     },
   });

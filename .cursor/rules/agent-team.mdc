@@ -1,0 +1,18 @@
+---
+description: Multi-agent team workflow (architect → coder → reviewer) for Multitask Mode and non-trivial tasks. Load .cursor/skills/agent-team/SKILL.md when coordinating subagents.
+alwaysApply: false
+---
+
+# Agent team (Curvenote)
+
+For non-trivial work in **Multitask Mode**, use the three-agent workflow defined in `.cursor/skills/agent-team/SKILL.md`:
+
+| Phase | Subagent | Model |
+|-------|----------|-------|
+| Plan | `architect` | Claude Opus 4.8 |
+| Implement | `coder` | Composer 2 |
+| Review | `reviewer` | GPT 5.5 |
+
+Subagent prompts live in `.cursor/agents/`. Parent agent orchestrates; subagents do not share conversation context — pass full task text inline.
+
+Skip the team for trivial single-file fixes. Triage before dispatching.
