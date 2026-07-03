@@ -33,19 +33,33 @@ export async function promoteAndDispatchJob(jobId: string): Promise<void> {
     data: { status: JobStatus.QUEUED },
   });
 
-  const handshake = createHandshakeToken(
-    job.id,
-    job.job_type,
-    config.api.handshakeIssuer,
-    config.api.handshakeSigningSecret,
-    Math.floor(Date.now() / 1000) + HANDSHAKE_EXPIRY_SECONDS,
-  );
+  try {
+    const handshake = createHandshakeToken(
+      job.id,
+      job.job_type,
+      config.api.handshakeIssuer,
+      config.api.handshakeSigningSecret,
+      Math.floor(Date.now() / 1000) + HANDSHAKE_EXPIRY_SECONDS,
+    );
 
-  await dispatchJob({
-    job_id: job.id,
-    job_type: job.job_type,
-    handshake,
-  });
+    await dispatchJob({
+      job_id: job.id,
+      job_type: job.job_type,
+      handshake,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[promoteAndDispatchJob] dispatch failed; reverting to BLOCKED', {
+      job_id: jobId,
+      job_type: job.job_type,
+      error: message,
+    });
+    await prisma.job.updateMany({
+      where: { id: jobId, status: JobStatus.QUEUED },
+      data: { status: JobStatus.BLOCKED },
+    });
+    return;
+  }
 
   console.log('[promoteAndDispatchJob] promoted and dispatched', {
     job_id: jobId,
