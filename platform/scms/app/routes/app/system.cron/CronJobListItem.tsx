@@ -69,11 +69,12 @@ export function CronJobListItem({ job }: { job: CronJobListRow }) {
     }
   }, [runFetcher.state, toggleFetcher.state, deleteFetcher.state, revalidator]);
 
-  const isRunning = runFetcher.state === 'submitting' && runFetcher.formData?.get('id') === job.id;
-  const isToggling =
-    toggleFetcher.state === 'submitting' && toggleFetcher.formData?.get('id') === job.id;
-  const isDeleting =
-    deleteFetcher.state === 'submitting' && deleteFetcher.formData?.get('id') === job.id;
+  const isRunBusy =
+    runFetcher.state !== 'idle' && runFetcher.formData?.get('id') === job.id;
+  const isToggleBusy =
+    toggleFetcher.state !== 'idle' && toggleFetcher.formData?.get('id') === job.id;
+  const isDeleteBusy =
+    deleteFetcher.state !== 'idle' && deleteFetcher.formData?.get('id') === job.id;
 
   return (
     <div className="flex flex-col w-full gap-3 lg:flex-row lg:gap-6">
@@ -143,42 +144,45 @@ export function CronJobListItem({ job }: { job: CronJobListRow }) {
         <runFetcher.Form method="post">
           <input type="hidden" name="intent" value="run-now" />
           <input type="hidden" name="id" value={job.id} />
-          <ui.Button
+          <ui.StatefulButton
             type="submit"
             variant="outline"
             size="xs"
-            disabled={isRunning}
+            busy={isRunBusy}
+            overlayBusy
             className="text-xs"
           >
-            {isRunning ? 'Running…' : 'Run now'}
-          </ui.Button>
+            Run now
+          </ui.StatefulButton>
         </runFetcher.Form>
         <toggleFetcher.Form method="post">
           <input type="hidden" name="intent" value="toggle" />
           <input type="hidden" name="id" value={job.id} />
           <input type="hidden" name="enabled" value={String(!job.enabled)} />
-          <ui.Button
+          <ui.StatefulButton
             type="submit"
             variant="outline"
             size="xs"
-            disabled={isToggling}
+            busy={isToggleBusy}
+            overlayBusy
             className="text-xs"
           >
-            {isToggling ? 'Saving…' : job.enabled ? 'Disable' : 'Enable'}
-          </ui.Button>
+            {job.enabled ? 'Disable' : 'Enable'}
+          </ui.StatefulButton>
         </toggleFetcher.Form>
         <deleteFetcher.Form method="post">
           <input type="hidden" name="intent" value="delete" />
           <input type="hidden" name="id" value={job.id} />
-          <ui.Button
+          <ui.StatefulButton
             type="submit"
             variant="outline"
             size="xs"
-            disabled={isDeleting}
+            busy={isDeleteBusy}
+            overlayBusy
             className="text-xs"
           >
-            {isDeleting ? 'Deleting…' : 'Delete'}
-          </ui.Button>
+            Delete
+          </ui.StatefulButton>
         </deleteFetcher.Form>
       </div>
     </div>
