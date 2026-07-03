@@ -39,7 +39,6 @@ function makeJob(overrides: Partial<Job> = {}): Job {
     activity_type: null,
     depends_on_job_id: null,
     trigger_on: null,
-    follow_on: null,
     ...overrides,
   } as Job;
 }

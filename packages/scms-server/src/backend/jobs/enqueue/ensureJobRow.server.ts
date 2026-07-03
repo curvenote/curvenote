@@ -1,6 +1,6 @@
 import { JobTriggerOn, Prisma } from '@curvenote/scms-db';
 import type { JobStatus, PrismaClient } from '@curvenote/scms-db';
-import type { FollowOnEnvelope, JobTriggerOn as JobTriggerOnType } from '@curvenote/scms-core';
+import type { JobTriggerOn as JobTriggerOnType } from '@curvenote/scms-core';
 import { formatDate } from '@curvenote/common';
 import { getPrismaClient } from '../../prisma.server.js';
 
@@ -10,10 +10,10 @@ export type EnsureJobRowParams = {
   payload: Record<string, unknown>;
   invoked_by_id?: string;
   activity_type?: string;
-  follow_on?: FollowOnEnvelope;
   depends_on_job_id?: string;
   trigger_on?: JobTriggerOnType;
   results?: Record<string, unknown>;
+  scheduled_at?: string;
 };
 
 function toPrismaTriggerOn(triggerOn?: JobTriggerOnType): JobTriggerOn | undefined {
@@ -24,7 +24,7 @@ function toPrismaTriggerOn(triggerOn?: JobTriggerOnType): JobTriggerOn | undefin
 
 export async function ensureJobRow(
   params: EnsureJobRowParams,
-  status: Extract<JobStatus, 'QUEUED' | 'BLOCKED'>,
+  status: Extract<JobStatus, 'QUEUED' | 'BLOCKED' | 'SCHEDULED'>,
   prismaClient?: PrismaClient | Prisma.TransactionClient,
 ) {
   const prisma = prismaClient ?? (await getPrismaClient());
@@ -50,12 +50,11 @@ export async function ensureJobRow(
         ? Prisma.JsonNull
         : params.payload) as Prisma.InputJsonValue,
       results: params.results == null ? Prisma.JsonNull : (params.results as Prisma.InputJsonValue),
-      follow_on:
-        params.follow_on == null ? Prisma.JsonNull : (params.follow_on as Prisma.InputJsonValue),
       invoked_by_id: params.invoked_by_id ?? undefined,
       activity_type: params.activity_type ?? undefined,
       depends_on_job_id: params.depends_on_job_id ?? undefined,
       trigger_on: toPrismaTriggerOn(params.trigger_on),
+      scheduled_at: params.scheduled_at ?? undefined,
     },
   });
 }

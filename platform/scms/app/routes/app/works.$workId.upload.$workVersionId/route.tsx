@@ -211,8 +211,7 @@ async function dispatchEnabledChecksAfterUpload({
           }`,
         );
       }
-      // Check-start activities are created when jobs are invoked (invoke.server.ts),
-      // including for follow-on jobs, so we do not create them here.
+      // Check-start activities are created at job enqueue/run time, so we do not create them here.
     }),
   );
   const failures = results.filter((result) => result.status === 'rejected');

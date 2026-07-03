@@ -1,10 +1,6 @@
 import { JobStatus } from '@curvenote/scms-db';
-import { getConfig } from '../../../app-config.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
-import { createHandshakeToken } from '../../sign.handshake.server.js';
-import { dispatchJob } from './dispatchJob.server.js';
-
-const HANDSHAKE_EXPIRY_SECONDS = 4 * 60 * 60;
+import { dispatchJobWithHandshake } from './dispatchJob.server.js';
 
 /**
  * Promote a BLOCKED dependent job to QUEUED and dispatch it.
@@ -12,7 +8,6 @@ const HANDSHAKE_EXPIRY_SECONDS = 4 * 60 * 60;
  */
 export async function promoteAndDispatchJob(jobId: string): Promise<void> {
   const prisma = await getPrismaClient();
-  const config = await getConfig();
   const job = await prisma.job.findUnique({ where: { id: jobId } });
 
   if (!job) {
@@ -33,19 +28,21 @@ export async function promoteAndDispatchJob(jobId: string): Promise<void> {
     data: { status: JobStatus.QUEUED },
   });
 
-  const handshake = createHandshakeToken(
-    job.id,
-    job.job_type,
-    config.api.handshakeIssuer,
-    config.api.handshakeSigningSecret,
-    Math.floor(Date.now() / 1000) + HANDSHAKE_EXPIRY_SECONDS,
-  );
-
-  await dispatchJob({
-    job_id: job.id,
-    job_type: job.job_type,
-    handshake,
-  });
+  try {
+    await dispatchJobWithHandshake(job);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[promoteAndDispatchJob] dispatch failed; reverting to BLOCKED', {
+      job_id: jobId,
+      job_type: job.job_type,
+      error: message,
+    });
+    await prisma.job.updateMany({
+      where: { id: jobId, status: JobStatus.QUEUED },
+      data: { status: JobStatus.BLOCKED },
+    });
+    return;
+  }
 
   console.log('[promoteAndDispatchJob] promoted and dispatched', {
     job_id: jobId,

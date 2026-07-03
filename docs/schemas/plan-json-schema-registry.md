@@ -98,7 +98,7 @@ AJV compiles JSON Schema into optimised validator functions at startup:
 
 ### Schema IDs use URN format
 
-Following the pattern already established in `FOLLOW_ON_JSON_SCHEMA`:
+Following the inline `$schema` convention used elsewhere in SCMS (e.g. message schemas):
 
 ```
 urn:curvenote:scms:<scope>:<semver>

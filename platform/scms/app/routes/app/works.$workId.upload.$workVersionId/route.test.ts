@@ -173,10 +173,12 @@ describe('work upload confirm-work action', () => {
       params: { workId: 'work-1', workVersionId: 'wv-1' },
     } as never);
 
-    expect(response.init.status).toBe(403);
-    expect(response.data).toMatchObject({
-      error: {
-        message: 'You do not have permission to dispatch checks for this work',
+    expect(response).toMatchObject({
+      init: { status: 403 },
+      data: {
+        error: {
+          message: 'You do not have permission to dispatch checks for this work',
+        },
       },
     });
     expect(safeWorkVersionJsonUpdate).not.toHaveBeenCalled();

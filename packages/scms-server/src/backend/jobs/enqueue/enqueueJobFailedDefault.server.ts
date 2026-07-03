@@ -1,4 +1,5 @@
 import { KnownJobTypes } from '@curvenote/scms-core';
+import { JobStatus } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../../prisma.server.js';
 import type { HandleTransportFailureParams } from '../run/transportFailureTypes.server.js';
@@ -14,7 +15,14 @@ export async function enqueueJobFailedDefault(
   const prisma = await getPrismaClient();
   const existing = await prisma.job.findUnique({ where: { id: jobId } });
 
-  if (params.source !== 'dead_letter' || existing?.job_type === KnownJobTypes.JOB_FAILED_DEFAULT) {
+  if (
+    params.source !== 'dead_letter' ||
+    existing?.job_type === KnownJobTypes.JOB_FAILED_DEFAULT ||
+    existing?.status === JobStatus.COMPLETED
+  ) {
+    // A job that already COMPLETED has nothing to clean up — dead-lettering
+    // here means something *after* completion failed (e.g. a dependent's
+    // dispatch), not the job itself, so a failure-cleanup job would be spurious.
     return;
   }
 

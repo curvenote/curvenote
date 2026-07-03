@@ -13,7 +13,20 @@ export type CheckServiceRunRow = {
   date_modified: string;
   data: unknown;
   created_by_id: string | null;
+  retried?: boolean;
+  successor_id?: string | null;
 };
+
+/** True when a failed run was superseded by a retry and should not appear in work timelines. */
+export function isCheckServiceRunSupersededByRetry(
+  run: Pick<CheckServiceRunRow, 'retried' | 'successor_id'>,
+): boolean {
+  return run.retried === true || Boolean(run.successor_id?.trim());
+}
+
+export function filterVisibleCheckServiceRuns(runs: CheckServiceRunRow[]): CheckServiceRunRow[] {
+  return runs.filter((run) => !isCheckServiceRunSupersededByRetry(run));
+}
 
 /** Check service runs grouped by work_version_id (for work details timeline). */
 export async function dbGetCheckServiceRunsByWorkVersionIds(
@@ -32,12 +45,13 @@ export async function dbGetCheckServiceRunsByWorkVersionIds(
       data: true,
       work_version_id: true,
       created_by_id: true,
+      retried: true,
+      successor_id: true,
     },
   });
   const map: Record<string, CheckServiceRunRow[]> = {};
   for (const row of rows) {
-    const list = map[row.work_version_id] ?? [];
-    list.push({
+    const run: CheckServiceRunRow = {
       id: row.id,
       work_version_id: row.work_version_id,
       kind: row.kind,
@@ -45,7 +59,12 @@ export async function dbGetCheckServiceRunsByWorkVersionIds(
       date_modified: row.date_modified,
       data: row.data,
       created_by_id: row.created_by_id,
-    });
+      retried: row.retried,
+      successor_id: row.successor_id,
+    };
+    if (isCheckServiceRunSupersededByRetry(run)) continue;
+    const list = map[row.work_version_id] ?? [];
+    list.push(run);
     map[row.work_version_id] = list;
   }
   return map;

@@ -12,6 +12,10 @@ const { consumeJobQueueMessage, drainOneJob } = vi.hoisted(() => ({
   }),
 }));
 
+const { isJobQueueDrainPaused } = vi.hoisted(() => ({
+  isJobQueueDrainPaused: vi.fn(async () => false),
+}));
+
 vi.mock('../../../lib/job-queue-consumer.server', () => ({
   consumeJobQueueMessage,
 }));
@@ -21,6 +25,7 @@ vi.mock('@curvenote/scms-server', async (importOriginal) => {
   return {
     ...(actual as object),
     drainOneJob,
+    isJobQueueDrainPaused,
     getConfig: vi.fn(async () => ({
       api: { queueConsumerSecret: 'test-secret' },
     })),
@@ -44,6 +49,7 @@ function createRequest(auth?: string): Request {
 describe('push-to-drain action', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isJobQueueDrainPaused.mockResolvedValue(false);
     drainOneJob.mockImplementation(async (consume) => {
       await consume(
         { job_id: 'job-1', job_type: 'LOOPBACK', handshake: 'token' } satisfies JobQueueMessage,
@@ -58,6 +64,16 @@ describe('push-to-drain action', () => {
     expect(response.status).toBe(202);
     await expect(response.json()).resolves.toEqual({ status: 'accepted' });
     expect(drainOneJob).toHaveBeenCalledWith(consumeJobQueueMessage);
+  });
+
+  it('returns 202 without draining when the queue is paused', async () => {
+    isJobQueueDrainPaused.mockResolvedValue(true);
+
+    const response = await action({ request: createRequest('Bearer test-secret') } as never);
+
+    expect(response.status).toBe(202);
+    await expect(response.json()).resolves.toEqual({ status: 'accepted', paused: true });
+    expect(drainOneJob).not.toHaveBeenCalled();
   });
 
   it('returns 401 when Authorization is missing or wrong', async () => {

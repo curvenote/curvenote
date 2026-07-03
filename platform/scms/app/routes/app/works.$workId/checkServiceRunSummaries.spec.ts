@@ -1,6 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import type { CheckServiceRunRow } from './db.server';
+import { isCheckServiceRunSupersededByRetry } from './db.server';
 import { getCheckRunSummaryByKind } from './checkServiceRunSummaries';
 
 function run(
@@ -8,6 +9,7 @@ function run(
   kind: string,
   workVersionId: string,
   dateCreated: string,
+  overrides: Partial<CheckServiceRunRow> = {},
 ): CheckServiceRunRow {
   return {
     id,
@@ -17,8 +19,17 @@ function run(
     date_modified: dateCreated,
     data: { serviceData: { id } },
     created_by_id: null,
+    ...overrides,
   };
 }
+
+describe('isCheckServiceRunSupersededByRetry', () => {
+  it('returns true when retried or successor_id is set', () => {
+    expect(isCheckServiceRunSupersededByRetry({ retried: true })).toBe(true);
+    expect(isCheckServiceRunSupersededByRetry({ successor_id: 'run-2' })).toBe(true);
+    expect(isCheckServiceRunSupersededByRetry({ retried: false, successor_id: null })).toBe(false);
+  });
+});
 
 describe('getCheckRunSummaryByKind', () => {
   it('selects the latest run per kind across non-draft versions', () => {
@@ -64,5 +75,41 @@ describe('getCheckRunSummaryByKind', () => {
     expect(summary.previousRunsByServiceKind['service-a'].map((entry) => entry.run.id)).toEqual([
       'older-version',
     ]);
+  });
+
+  it('excludes superseded runs from latest and previous summaries', () => {
+    const summary = getCheckRunSummaryByKind(
+      [{ id: 'wv-1', date_created: '2026-01-01T00:00:00.000Z' }],
+      {
+        'wv-1': [
+          run('retry-successor', 'service-a', 'wv-1', '2026-01-03T00:00:00.000Z'),
+          run('superseded-failure', 'service-a', 'wv-1', '2026-01-02T00:00:00.000Z', {
+            retried: true,
+            successor_id: 'retry-successor',
+          }),
+        ],
+      },
+    );
+
+    expect(summary.latestRunByServiceKind['service-a'].run.id).toBe('retry-successor');
+    expect(summary.previousRunsByServiceKind['service-a']).toEqual([]);
+  });
+
+  it('promotes an older non-superseded run when the newest same-kind run was retried', () => {
+    const summary = getCheckRunSummaryByKind(
+      [{ id: 'wv-1', date_created: '2026-01-01T00:00:00.000Z' }],
+      {
+        'wv-1': [
+          run('superseded-only', 'service-a', 'wv-1', '2026-01-03T00:00:00.000Z', {
+            retried: true,
+            successor_id: 'missing-successor',
+          }),
+          run('active-failure', 'service-a', 'wv-1', '2026-01-02T00:00:00.000Z'),
+        ],
+      },
+    );
+
+    expect(summary.latestRunByServiceKind['service-a'].run.id).toBe('active-failure');
+    expect(summary.previousRunsByServiceKind['service-a']).toEqual([]);
   });
 });

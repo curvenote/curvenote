@@ -1,9 +1,13 @@
 import { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../prisma.server.js';
 import { getConfig } from '../../../app-config.server.js';
+import { collectAllowedCronTickHosts } from '../../cron/resolveCronTickUrl.server.js';
+import { buildSecretUrlConfigStatus } from '../../utils.server.js';
 import { resolveStoredQueueDrainUrl } from './notifyQueueConsumer.server.js';
 import { getJobQueueDepth, peekJobQueue } from './pgmq/jobQueue.server.js';
 import type { QueuePeekEntry } from './pgmq/types.js';
+
+const DRAIN_URL_PATH = '/v1/jobs/push-to-drain';
 
 /**
  * Admin helpers for the pgmq job queue: read/update the `_JobQueueDrainConfig`
@@ -29,17 +33,20 @@ export type JobQueueDrainStatus = {
   appConfigSecretLength: number;
   /** True when the stored secret equals the app-config secret. */
   secretMatchesAppConfig: boolean;
+  /** True when queue drain wakes should no-op and leave pgmq messages queued. */
+  paused: boolean;
 };
 
 type DrainConfigRow = {
   drain_url: string;
   drain_secret: string;
+  paused: boolean;
 };
 
 async function readDrainConfigRow(): Promise<DrainConfigRow | null> {
   const prisma = await getPrismaClient();
   const rows = await prisma.$queryRaw<DrainConfigRow[]>(
-    Prisma.sql`SELECT drain_url, drain_secret FROM "_JobQueueDrainConfig" WHERE id = 1`,
+    Prisma.sql`SELECT drain_url, drain_secret, paused FROM "_JobQueueDrainConfig" WHERE id = 1`,
   );
   return rows[0] ?? null;
 }
@@ -55,21 +62,35 @@ export async function getJobQueueDrainStatus(): Promise<JobQueueDrainStatus> {
   const defaultDrainUrl = resolveStoredQueueDrainUrl(config.api);
 
   const row = await readDrainConfigRow();
-  const drainUrl = row?.drain_url ?? null;
-  const storedSecret = row?.drain_secret ?? '';
-
-  return {
-    configured: Boolean(drainUrl && storedSecret),
-    drainUrl,
+  const { url, defaultUrl, ...status } = buildSecretUrlConfigStatus(
+    row ? { url: row.drain_url, secret: row.drain_secret } : null,
     defaultDrainUrl,
-    hasSecret: storedSecret.length > 0,
-    secretLength: storedSecret.length,
-    appConfigSecretLength: appSecret.length,
-    secretMatchesAppConfig: storedSecret.length > 0 && storedSecret === appSecret,
-  };
+    appSecret,
+  );
+
+  return { ...status, drainUrl: url, defaultDrainUrl: defaultUrl, paused: row?.paused ?? false };
 }
 
-function assertValidDrainUrl(url: string): string {
+export async function isJobQueueDrainPaused(): Promise<boolean> {
+  return (await readDrainConfigRow())?.paused ?? false;
+}
+
+function normalizeDrainPathname(pathname: string): string {
+  const trimmed = pathname.replace(/\/+$/, '') || '/';
+  return trimmed === '' ? '/' : trimmed;
+}
+
+/**
+ * Validate a drain url before storing in `_JobQueueDrainConfig`. Restricts
+ * host to app-config API bases and path to `/v1/jobs/push-to-drain` — the
+ * SECURITY DEFINER `job_queue_cron_drain()` function sends a live bearer
+ * secret to this url on every pg_cron tick, so an unrestricted host would
+ * let anyone able to set it exfiltrate that secret to an arbitrary host.
+ */
+export function assertValidDrainUrl(
+  url: string,
+  api: Parameters<typeof collectAllowedCronTickHosts>[0],
+): string {
   const trimmed = url.trim();
   let parsed: URL;
   try {
@@ -80,6 +101,15 @@ function assertValidDrainUrl(url: string): string {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('Drain url must use http or https');
   }
+  if (normalizeDrainPathname(parsed.pathname) !== DRAIN_URL_PATH) {
+    throw new Error(`Drain url path must be ${DRAIN_URL_PATH}`);
+  }
+  const allowedHosts = collectAllowedCronTickHosts(api);
+  if (!allowedHosts.has(parsed.host)) {
+    throw new Error(
+      `Drain url host must match app-config API host (${[...allowedHosts].join(', ')})`,
+    );
+  }
   return trimmed;
 }
 
@@ -89,8 +119,8 @@ function assertValidDrainUrl(url: string): string {
  * satisfied (equivalent to also pushing the secret).
  */
 export async function setJobQueueDrainUrl(url: string): Promise<void> {
-  const validUrl = assertValidDrainUrl(url);
   const config = await getConfig();
+  const validUrl = assertValidDrainUrl(url, config.api);
   const appSecret = config.api.queueConsumerSecret ?? '';
 
   const prisma = await getPrismaClient();
@@ -121,6 +151,24 @@ export async function pushJobQueueDrainSecretFromConfig(): Promise<void> {
       INSERT INTO "_JobQueueDrainConfig" (id, drain_url, drain_secret)
       VALUES (1, ${defaultUrl}, ${appSecret})
       ON CONFLICT (id) DO UPDATE SET drain_secret = EXCLUDED.drain_secret
+    `,
+  );
+}
+
+export async function setJobQueueDrainPaused(paused: boolean): Promise<void> {
+  const config = await getConfig();
+  const defaultUrl = resolveStoredQueueDrainUrl(config.api);
+  const appSecret = config.api.queueConsumerSecret ?? '';
+  if (!appSecret) {
+    throw new Error('app-config api.queueConsumerSecret is empty — cannot seed drain config');
+  }
+
+  const prisma = await getPrismaClient();
+  await prisma.$executeRaw(
+    Prisma.sql`
+      INSERT INTO "_JobQueueDrainConfig" (id, drain_url, drain_secret, paused)
+      VALUES (1, ${defaultUrl}, ${appSecret}, ${paused})
+      ON CONFLICT (id) DO UPDATE SET paused = EXCLUDED.paused
     `,
   );
 }
