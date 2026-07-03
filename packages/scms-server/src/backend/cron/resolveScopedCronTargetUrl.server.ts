@@ -12,14 +12,15 @@ function parseCronEndpointScopePath(scope: string): string | null {
 
 /**
  * Resolve an HTTP cron target from `target_scope` ({METHOD}:{path}) when
- * `target_url` is unset. Uses the same API base preference as stored queue
- * drain URLs (`tasksCallbackUrl` for Docker dev, else `api.url`).
+ * `target_url` is unset. Uses `api.url` because cron HTTP jobs run from the
+ * app process calling its own endpoints (same as notifyQueueConsumer chain-wake).
+ * Do not use `tasksCallbackUrl` here — that base is for pg_net/pg_cron inside
+ * Docker calling back to the host (see resolveStoredQueueDrainUrl).
  */
 export function resolveScopedCronTargetUrl(scope: string, api: CronTargetApiConfig): string {
   const path = parseCronEndpointScopePath(scope);
   if (!path) {
     throw new Error('HTTP cron missing target_url');
   }
-  const apiBase = api.tasksCallbackUrl ?? api.url;
-  return assertAllowedCronTargetUrl(resolveApiPath(apiBase, path), api);
+  return assertAllowedCronTargetUrl(resolveApiPath(api.url, path), api);
 }

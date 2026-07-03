@@ -8,31 +8,25 @@ const api = {
 };
 
 describe('resolveScopedCronTargetUrl', () => {
-  it('resolves built-in job-queue-drain scope from api.url when tasksCallbackUrl is unset', () => {
-    expect(
-      resolveScopedCronTargetUrl(
-        CronEndpointScopes.JOB_QUEUE_DRAIN,
-        { url: api.url },
-      ),
-    ).toBe('http://localhost:3031/v1/jobs/push-to-drain');
-  });
-
-  it('prefers tasksCallbackUrl for Docker dev setups', () => {
+  it('resolves scopes from api.url, not tasksCallbackUrl (app calls itself)', () => {
     expect(resolveScopedCronTargetUrl(CronEndpointScopes.JOB_QUEUE_DRAIN, api)).toBe(
-      'http://host.docker.internal:3031/v1/jobs/push-to-drain',
+      'http://localhost:3031/v1/jobs/push-to-drain',
+    );
+    expect(resolveScopedCronTargetUrl(CronEndpointScopes.JOB_QUEUE_DRAIN, { url: api.url })).toBe(
+      'http://localhost:3031/v1/jobs/push-to-drain',
     );
   });
 
-  it('resolves promote-scheduled scope', () => {
+  it('resolves promote-scheduled scope from api.url', () => {
     expect(resolveScopedCronTargetUrl(CronEndpointScopes.PROMOTE_SCHEDULED, api)).toBe(
-      'http://host.docker.internal:3031/v1/jobs/promote-scheduled',
+      'http://localhost:3031/v1/jobs/promote-scheduled',
     );
   });
 
   it('resolves extension hook scopes from the path in target_scope', () => {
     expect(
       resolveScopedCronTargetUrl('POST:/v1/hooks/text-integrity/retry-sweep', api),
-    ).toBe('http://host.docker.internal:3031/v1/hooks/text-integrity/retry-sweep');
+    ).toBe('http://localhost:3031/v1/hooks/text-integrity/retry-sweep');
   });
 
   it('throws for malformed scope strings', () => {
