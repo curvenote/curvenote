@@ -378,11 +378,12 @@ function QueueInfoPanel({
         <p className="text-gray-600">
           Internal jobs call{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">enqueueAndDispatchJob()</code>,
-          which inserts a QUEUED row and publishes to the Supabase pgmq{' '}
+          which inserts a QUEUED row and publishes to the pgmq{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.queueName}</code> queue.
-          A pg_net trigger on enqueue (pg_cron backup) wakes the consumer at{' '}
-          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.consumerRoute}</code>,
-          which runs the handler via{' '}
+          A pg_net trigger on each enqueue wakes the consumer at{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.consumerRoute}</code>;
+          the builtin <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">job-queue-drain</code>{' '}
+          cron job (via cron tick) is the backup if a wake is missed. The handler runs via{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">processJobMessage</code>.
         </p>
 
@@ -439,9 +440,13 @@ function DrainConfigPanel({ status }: { status: JobQueueDrainStatus }) {
       <div className="p-4 space-y-5 text-sm">
         <p className="text-gray-600">
           The <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">_JobQueueDrainConfig</code>{' '}
-          row tells the Postgres enqueue trigger (pg_net) and the pg_cron backup where to wake the
-          consumer and which secret to send. It must be populated for jobs to drain promptly under
-          the <span className="font-medium">supabase</span> provider.
+          row is read by the pg_net enqueue trigger inside Postgres — it supplies the push-to-drain
+          URL and bearer secret for wakes fired on insert. Populate it so jobs drain promptly; backup
+          draining is handled by the{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">job-queue-drain</code> cron job
+          (System → Cron). In local dev the URL should use{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">host.docker.internal</code> so
+          Postgres in Docker can reach the dev server on the host.
         </p>
 
         {/* Endpoint */}
