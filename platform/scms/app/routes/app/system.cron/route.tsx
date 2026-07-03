@@ -17,21 +17,32 @@ import {
   CronJobTargetType,
   CronJobTargetAuth,
   cronEndpointScope,
+  resolveScopedCronTargetUrl,
+  getConfig,
   type CronTickStatus,
   type PgCronHealth,
 } from '@curvenote/scms-server';
 import { CronEndpointScopes, PageFrame, ui } from '@curvenote/scms-core';
 import type { CronJob } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
-import {
-  Clock,
-  KeyRound,
-  PlayCircle,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-} from 'lucide-react';
+import { Clock, KeyRound, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { CronJobListItem } from './CronJobListItem';
+import type { CronJobListRow } from './types';
+
+async function enrichCronJobsForList(jobs: CronJob[]): Promise<CronJobListRow[]> {
+  const config = await getConfig();
+  return jobs.map((job) => {
+    let resolvedTargetUrl: string | null = job.target_url;
+    if (!resolvedTargetUrl && job.target_scope) {
+      try {
+        resolvedTargetUrl = resolveScopedCronTargetUrl(job.target_scope, config.api);
+      } catch {
+        resolvedTargetUrl = null;
+      }
+    }
+    return { ...job, resolvedTargetUrl };
+  });
+}
 
 export const meta: Route.MetaFunction = () => [
   { title: 'Cron - System Admin' },
@@ -45,7 +56,7 @@ export async function loader(args: Route.LoaderArgs) {
     getCronTickStatus(),
     getPgCronHealth(),
   ]);
-  return { jobs, tickStatus, pgCronHealth };
+  return { jobs: await enrichCronJobsForList(jobs), tickStatus, pgCronHealth };
 }
 
 export async function action(args: Route.ActionArgs) {
@@ -229,70 +240,29 @@ function ConfigTab({
   );
 }
 
-function JobsTab({ jobs }: { jobs: CronJob[] }) {
-  const runFetcher = useFetcher();
-  const toggleFetcher = useFetcher();
-  const deleteFetcher = useFetcher();
+function JobsTab({ jobs }: { jobs: CronJobListRow[] }) {
   const createFetcher = useFetcher();
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden bg-white rounded-lg border">
-        <div className="px-4 py-3 bg-gray-50 border-b">
+      <section className="overflow-hidden bg-white rounded-lg border dark:bg-gray-900 dark:border-gray-700">
+        <div className="px-4 py-3 bg-gray-50 border-b dark:bg-gray-800 dark:border-gray-700">
           <h2 className="text-lg font-semibold">Cron jobs</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm divide-y">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-2 text-left">Name</th>
-                <th className="px-3 py-2 text-left">Schedule</th>
-                <th className="px-3 py-2 text-left">Next run</th>
-                <th className="px-3 py-2 text-left">Last</th>
-                <th className="px-3 py-2 text-left">Scope</th>
-                <th className="px-3 py-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {jobs.map((job) => (
-                <tr key={job.id}>
-                  <td className="px-3 py-2 font-mono">{job.name}</td>
-                  <td className="px-3 py-2">{job.schedule}</td>
-                  <td className="px-3 py-2 text-xs">{job.next_run_at ?? '—'}</td>
-                  <td className="px-3 py-2 text-xs">
-                    {job.last_status ?? '—'}
-                    {job.last_error ? ` (${job.last_error.slice(0, 40)})` : ''}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">{job.target_scope ?? '—'}</td>
-                  <td className="px-3 py-2 text-right space-x-1">
-                    <runFetcher.Form method="post" className="inline">
-                      <input type="hidden" name="intent" value="run-now" />
-                      <input type="hidden" name="id" value={job.id} />
-                      <ui.Button type="submit" size="sm" variant="outline">
-                        <PlayCircle className="w-3.5 h-3.5" />
-                      </ui.Button>
-                    </runFetcher.Form>
-                    <toggleFetcher.Form method="post" className="inline">
-                      <input type="hidden" name="intent" value="toggle" />
-                      <input type="hidden" name="id" value={job.id} />
-                      <input type="hidden" name="enabled" value={String(!job.enabled)} />
-                      <ui.Button type="submit" size="sm" variant="ghost">
-                        {job.enabled ? 'Disable' : 'Enable'}
-                      </ui.Button>
-                    </toggleFetcher.Form>
-                    <deleteFetcher.Form method="post" className="inline">
-                      <input type="hidden" name="intent" value="delete" />
-                      <input type="hidden" name="id" value={job.id} />
-                      <ui.Button type="submit" size="sm" variant="ghost">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </ui.Button>
-                    </deleteFetcher.Form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {jobs.length === 0 ? (
+          <p className="px-4 py-8 text-sm text-center text-gray-500">No cron jobs configured.</p>
+        ) : (
+          <div>
+            {jobs.map((job) => (
+              <div
+                key={job.id}
+                className="flex flex-col gap-2 p-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+              >
+                <CronJobListItem job={job} />
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="p-4 bg-white rounded-lg border">
