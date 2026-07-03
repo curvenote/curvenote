@@ -382,8 +382,9 @@ function QueueInfoPanel({
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.queueName}</code> queue.
           A pg_net trigger on each enqueue wakes the consumer at{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{queue.consumerRoute}</code>;
-          the builtin <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">job-queue-drain</code>{' '}
-          cron job (via cron tick) is the backup if a wake is missed. The handler runs via{' '}
+          the builtin{' '}
+          <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">job-queue-drain</code> cron job
+          (via cron tick) is the backup if a wake is missed. The handler runs via{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">processJobMessage</code>.
         </p>
 
@@ -441,8 +442,8 @@ function DrainConfigPanel({ status }: { status: JobQueueDrainStatus }) {
         <p className="text-gray-600">
           The <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">_JobQueueDrainConfig</code>{' '}
           row is read by the pg_net enqueue trigger inside Postgres — it supplies the push-to-drain
-          URL and bearer secret for wakes fired on insert. Populate it so jobs drain promptly; backup
-          draining is handled by the{' '}
+          URL and bearer secret for wakes fired on insert. Populate it so jobs drain promptly;
+          backup draining is handled by the{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">job-queue-drain</code> cron job
           (System → Cron). In local dev the URL should use{' '}
           <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">host.docker.internal</code> so
