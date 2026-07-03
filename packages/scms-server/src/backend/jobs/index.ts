@@ -8,7 +8,6 @@ export * from './enqueue/ensureJobRow.server.js';
 export * from './enqueue/enqueueAndDispatchJob.server.js';
 export * from './enqueue/promoteAndDispatchJob.server.js';
 export * from './enqueue/promoteScheduledJobs.server.js';
-export * from './enqueue/followOnFromEnvelope.server.js';
 export * from './enqueue/pgmq/index.js';
 export * from './run/processJobMessage.server.js';
 export * from './run/runHandler.server.js';

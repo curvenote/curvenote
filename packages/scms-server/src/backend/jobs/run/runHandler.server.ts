@@ -143,7 +143,6 @@ export async function runHandler(jobId: string, options: RunHandlerOptions) {
         id: job.id,
         job_type: job.job_type,
         payload,
-        follow_on: job.follow_on as any,
         invoked_by_id: job.invoked_by_id ?? undefined,
         activity_type: job.activity_type ?? undefined,
       },

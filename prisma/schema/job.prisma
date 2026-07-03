@@ -23,7 +23,6 @@ model Job {
   scheduled_at      String?
   results           Json?
   messages          String[]
-  follow_on         Json?
   invoked_by_id     String?
   activity_type     String?
   depends_on_job_id String?

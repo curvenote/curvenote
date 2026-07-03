@@ -6,7 +6,6 @@ import { getPrismaClient } from '../../prisma.server.js';
 import { createHandshakeToken } from '../../sign.handshake.server.js';
 import { dispatchJob } from './dispatchJob.server.js';
 import { ensureJobRow } from './ensureJobRow.server.js';
-import { followOnFromEnvelope } from './followOnFromEnvelope.server.js';
 import { validateEnqueuePublishingScopes } from './validateEnqueuePublishingScopes.server.js';
 
 const HANDSHAKE_EXPIRY_SECONDS = 4 * 60 * 60;
@@ -28,8 +27,7 @@ export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<E
     };
   }
 
-  const dependents =
-    params.dependents ?? (params.follow_on ? followOnFromEnvelope(params.follow_on) : []);
+  const dependents = params.dependents ?? [];
 
   console.log('[enqueue] enqueueAndDispatchJob: start', {
     job_id: params.job_id,
@@ -51,7 +49,6 @@ export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<E
         payload: params.payload,
         invoked_by_id: params.invoked_by_id,
         activity_type: params.activity_type,
-        follow_on: params.follow_on,
         results: params.results,
         scheduled_at: isFutureScheduled ? params.scheduled_at : undefined,
       },

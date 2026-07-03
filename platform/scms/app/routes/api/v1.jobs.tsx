@@ -1,7 +1,7 @@
 import type { Route } from './+types/v1.jobs';
 import { z } from 'zod';
 import type { ClientExtension, ServerExtension } from '@curvenote/scms-core';
-import { error401, error405, createFollowOnSchemas, KnownJobTypes } from '@curvenote/scms-core';
+import { error401, error405, KnownJobTypes } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
 import {
   ensureJsonBodyFromMethod,
@@ -27,7 +27,6 @@ async function getJobTypes(exts: ServerExtension[]): Promise<readonly string[]> 
 
 async function createJobPostBodySchema(exts: ClientExtension[]) {
   const JOB_TYPES = await getJobTypes(exts);
-  const { FollowOnSchema } = createFollowOnSchemas(JOB_TYPES);
   return z.object({
     id: z.uuid().optional(),
     job_type: z
@@ -43,7 +42,6 @@ async function createJobPostBodySchema(exts: ClientExtension[]) {
         error: (issue) => (issue.code === 'invalid_type' ? 'results must be an object' : undefined),
       })
       .optional(),
-    follow_on: FollowOnSchema.optional(),
     activity_type: z.string().optional(),
     activity_data: z.record(z.string().min(0), z.any()).optional(),
   });
@@ -71,10 +69,7 @@ export async function action(args: Route.ActionArgs) {
   if (!ctx.user) throw error401('Unauthorized - jobs must be created on behalf of a user');
   const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
   const schema = await createJobPostBodySchema(extensions);
-  const { id, job_type, payload, follow_on, activity_type, activity_data, results } = validate(
-    schema,
-    body,
-  );
+  const { id, job_type, payload, activity_type, activity_data, results } = validate(schema, body);
 
   const jobId = id ?? uuidv7();
   const result = await enqueueAndDispatchJob({
@@ -84,7 +79,6 @@ export async function action(args: Route.ActionArgs) {
     invoked_by_id: ctx.user?.id,
     activity_type,
     activity_data,
-    follow_on,
     results,
   });
 

@@ -14,7 +14,6 @@ export async function dbCreateJob({
   status,
   results,
   message,
-  follow_on,
   invoked_by_id,
   activity_type,
 }: CreateJob) {
@@ -30,7 +29,6 @@ export async function dbCreateJob({
       payload: payload === null ? Prisma.JsonNull : payload,
       results: results == null ? Prisma.JsonNull : results,
       messages: message ? [message] : [],
-      follow_on: follow_on == null ? Prisma.JsonNull : (follow_on as Prisma.InputJsonValue),
       invoked_by_id: invoked_by_id ?? undefined,
       activity_type: activity_type ?? undefined,
     },
