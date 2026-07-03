@@ -8,6 +8,7 @@ import {
   type ChecksMetadataSection,
 } from '@curvenote/scms-server';
 import type { FileMetadataSection } from '@curvenote/scms-core';
+import { GitBranch } from 'lucide-react';
 import {
   PageFrame,
   getBrandingFromMetaMatches,
@@ -210,7 +211,10 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     return () => window.clearInterval(interval);
   }, [showDispatchingState, revalidator]);
 
-  const renderWorkVersionDate = (entry: ServiceRunEntry) => {
+  const renderWorkVersionDate = (
+    entry: ServiceRunEntry,
+    { showBranchIcon = false }: { showBranchIcon?: boolean } = {},
+  ) => {
     const versionDate = formatDateWithRecentTime(entry.versionDateCreated);
     return (
       <ui.SimpleTooltip
@@ -219,7 +223,8 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
         sideOffset={6}
         delayDuration={1000}
       >
-        <span className="inline-flex items-center text-xs cursor-default text-muted-foreground">
+        <span className="inline-flex gap-1.5 items-center text-xs cursor-default text-muted-foreground">
+          {showBranchIcon ? <GitBranch className="size-3.5 shrink-0" aria-hidden /> : null}
           {versionDate}
         </span>
       </ui.SimpleTooltip>
@@ -321,7 +326,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                   </ui.CardContent>
                   {latest ? (
                     <div className="flex justify-start py-1.5 pr-6 pl-3 border-t border-border">
-                      {renderWorkVersionDate(latest)}
+                      {renderWorkVersionDate(latest, { showBranchIcon: true })}
                     </div>
                   ) : null}
                 </ui.Card>
