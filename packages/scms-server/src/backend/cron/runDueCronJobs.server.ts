@@ -10,7 +10,7 @@ import { CronEndpointScopes } from './scopes.js';
 import { getPrismaClient } from '../prisma.server.js';
 import { enqueueAndDispatchJob } from '../jobs/enqueue/enqueueAndDispatchJob.server.js';
 import { createScopedHandshakeToken } from '../sign.handshake.server.js';
-import { computeNextRunAt } from './computeNextRunAt.server.js';
+import { computeNextRunAt, resolveRecordedNextRunAt } from './computeNextRunAt.server.js';
 import type { DueCronJobRow } from './computeNextRunAt.server.js';
 
 const CRON_TICK_ADVISORY_LOCK_KEY = 734827601;
@@ -25,24 +25,34 @@ export type RunDueCronJobsResult = {
 
 async function claimDueCronJobs(nowIso: string, limit: number): Promise<DueCronJobRow[]> {
   const prisma = await getPrismaClient();
+  const claimTime = new Date(nowIso);
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(${CRON_TICK_ADVISORY_LOCK_KEY})`);
-    return tx.$queryRaw<DueCronJobRow[]>(
+    const due = await tx.$queryRaw<DueCronJobRow[]>(
       Prisma.sql`
-        UPDATE "CronJob"
-        SET date_modified = ${nowIso}
-        WHERE id IN (
-          SELECT id FROM "CronJob"
-          WHERE enabled = true
-            AND next_run_at IS NOT NULL
-            AND next_run_at <= ${nowIso}
-          ORDER BY next_run_at
-          LIMIT ${limit}
-          FOR UPDATE SKIP LOCKED
-        )
-        RETURNING *
+        SELECT * FROM "CronJob"
+        WHERE enabled = true
+          AND next_run_at IS NOT NULL
+          AND next_run_at <= ${nowIso}
+        ORDER BY next_run_at
+        LIMIT ${limit}
+        FOR UPDATE SKIP LOCKED
       `,
     );
+
+    const claimed: DueCronJobRow[] = [];
+    for (const job of due) {
+      const nextRunAt = computeNextRunAt(job.schedule, job.timezone, claimTime);
+      const updated = await tx.cronJob.update({
+        where: { id: job.id },
+        data: {
+          next_run_at: nextRunAt,
+          date_modified: nowIso,
+        },
+      });
+      claimed.push(updated);
+    }
+    return claimed;
   });
 }
 
@@ -129,7 +139,12 @@ async function recordCronRun(
 ): Promise<void> {
   const prisma = await getPrismaClient();
   const nowIso = new Date().toISOString();
-  const nextRunAt = computeNextRunAt(job.schedule, job.timezone, new Date(nowIso));
+  const nextRunAt = resolveRecordedNextRunAt(
+    job.schedule,
+    job.timezone,
+    new Date(nowIso),
+    job.next_run_at,
+  );
 
   await prisma.cronJob.update({
     where: { id: job.id },

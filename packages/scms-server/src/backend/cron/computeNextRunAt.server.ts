@@ -18,4 +18,18 @@ export function computeInitialNextRunAt(schedule: string, timezone: string): str
   return computeNextRunAt(schedule, timezone);
 }
 
+/** Next run after completion, never before the slot reserved at claim time. */
+export function resolveRecordedNextRunAt(
+  schedule: string,
+  timezone: string,
+  completionTime: Date,
+  claimedNextRunAt: string | null | undefined,
+): string {
+  const computed = computeNextRunAt(schedule, timezone, completionTime);
+  if (!claimedNextRunAt) {
+    return computed;
+  }
+  return claimedNextRunAt > computed ? claimedNextRunAt : computed;
+}
+
 export type DueCronJobRow = CronJob;
