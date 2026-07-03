@@ -5,7 +5,9 @@ import {
   Prisma,
   type CronJob,
 } from '@curvenote/scms-db';
+import { getConfig } from '../../app-config.server.js';
 import { getPrismaClient } from '../prisma.server.js';
+import { assertAllowedCronTargetUrl } from './assertAllowedCronTargetUrl.server.js';
 import { computeInitialNextRunAt, computeNextRunAt } from './computeNextRunAt.server.js';
 
 export type CronJobInput = {
@@ -26,6 +28,17 @@ export type CronJobInput = {
   created_by?: string | null;
 };
 
+async function validateCronJobTargetUrl(
+  targetType: CronJobTargetType,
+  targetUrl: string | null | undefined,
+): Promise<void> {
+  if (targetType !== CronJobTargetType.HTTP || !targetUrl) {
+    return;
+  }
+  const config = await getConfig();
+  assertAllowedCronTargetUrl(targetUrl, config.api);
+}
+
 export async function dbListCronJobs(): Promise<CronJob[]> {
   const prisma = await getPrismaClient();
   return prisma.cronJob.findMany({ orderBy: [{ enabled: 'desc' }, { name: 'asc' }] });
@@ -37,6 +50,8 @@ export async function dbGetCronJob(id: string): Promise<CronJob | null> {
 }
 
 export async function dbCreateCronJob(id: string, data: CronJobInput): Promise<CronJob> {
+  await validateCronJobTargetUrl(data.target_type, data.target_url);
+
   const prisma = await getPrismaClient();
   const nowIso = new Date().toISOString();
   const timezone = data.timezone ?? 'UTC';
@@ -73,6 +88,10 @@ export async function dbUpdateCronJob(id: string, data: Partial<CronJobInput>): 
   if (!existing) {
     throw new Error('Cron job not found');
   }
+  const targetType = data.target_type ?? existing.target_type;
+  const targetUrl = data.target_url === undefined ? existing.target_url : data.target_url;
+  await validateCronJobTargetUrl(targetType, targetUrl);
+
   const nowIso = new Date().toISOString();
   const schedule = data.schedule ?? existing.schedule;
   const timezone = data.timezone ?? existing.timezone;
@@ -118,6 +137,8 @@ export async function dbSeedBuiltinCronJob(
   const prisma = await getPrismaClient();
   const existing = await prisma.cronJob.findUnique({ where: { id } });
   if (existing) return;
+
+  await validateCronJobTargetUrl(data.target_type, data.target_url ?? null);
 
   const nowIso = new Date().toISOString();
   const timezone = data.timezone ?? 'UTC';
