@@ -2,6 +2,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CronJobTargetType } from '@curvenote/scms-db';
 
+function sqlText(arg: unknown): string {
+  const candidate = arg as { sql?: string; strings?: string[] };
+  if (typeof candidate?.sql === 'string') return candidate.sql;
+  if (Array.isArray(candidate?.strings)) return candidate.strings.join(' ');
+  return String(arg);
+}
+
 const mockTxSelectQueryRaw = vi.fn();
 const mockTxExecuteRaw = vi.fn();
 const mockTxCronJobUpdate = vi.fn();
@@ -79,27 +86,33 @@ describe('runDueCronJobs claim', () => {
     mockCronJobUpdate.mockResolvedValue({});
   });
 
-  it('sets running_since when claiming a due job at tick time', async () => {
+  it('sets running_since via a single bulk UPDATE when claiming due jobs at tick time', async () => {
     const due = jobRow();
-    mockTxSelectQueryRaw.mockResolvedValue([due]);
-    mockTxCronJobUpdate.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
-      ...due,
-      ...data,
-    }));
+    mockTxSelectQueryRaw
+      .mockResolvedValueOnce([due]) // SELECT ... FOR UPDATE SKIP LOCKED
+      .mockResolvedValueOnce([{ ...due, running_since: '2026-07-03T12:00:00.000Z' }]); // bulk UPDATE ... RETURNING
 
     const result = await runDueCronJobs(10);
 
     expect(result.claimed).toBe(1);
-    expect(mockTxCronJobUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'cron-1' },
-        data: expect.objectContaining({ running_since: expect.any(String) }),
-      }),
-    );
+    expect(mockTxSelectQueryRaw).toHaveBeenCalledTimes(2);
+    expect(mockTxCronJobUpdate).not.toHaveBeenCalled();
+    const bulkUpdateSql = sqlText(mockTxSelectQueryRaw.mock.calls[1]![0]);
+    expect(bulkUpdateSql).toContain('UPDATE "CronJob"');
+    expect(bulkUpdateSql).toContain('FROM (VALUES');
     // recordCronRun clears the lease again after execution.
     expect(mockCronJobUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ running_since: null }) }),
     );
+  });
+
+  it('does not issue a bulk UPDATE when nothing is due', async () => {
+    mockTxSelectQueryRaw.mockResolvedValueOnce([]);
+
+    const result = await runDueCronJobs(10);
+
+    expect(result.claimed).toBe(0);
+    expect(mockTxSelectQueryRaw).toHaveBeenCalledTimes(1);
   });
 });
 

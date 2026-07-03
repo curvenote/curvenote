@@ -49,20 +49,27 @@ async function claimDueCronJobs(nowIso: string, limit: number): Promise<DueCronJ
       `,
     );
 
-    const claimed: DueCronJobRow[] = [];
-    for (const job of due) {
-      const nextRunAt = computeNextRunAt(job.schedule, job.timezone, claimTime);
-      const updated = await tx.cronJob.update({
-        where: { id: job.id },
-        data: {
-          next_run_at: nextRunAt,
-          running_since: nowIso,
-          date_modified: nowIso,
-        },
-      });
-      claimed.push(updated);
+    if (due.length === 0) {
+      return [];
     }
-    return claimed;
+
+    // Each row's next_run_at is computed from its own schedule/timezone, so this
+    // is a single bulk UPDATE keyed by a VALUES list rather than N per-row UPDATEs.
+    const values = Prisma.join(
+      due.map(
+        (job) =>
+          Prisma.sql`(${job.id}::text, ${computeNextRunAt(job.schedule, job.timezone, claimTime)}::text)`,
+      ),
+    );
+    return tx.$queryRaw<DueCronJobRow[]>(
+      Prisma.sql`
+        UPDATE "CronJob" AS c
+        SET next_run_at = v.next_run_at, running_since = ${nowIso}, date_modified = ${nowIso}
+        FROM (VALUES ${values}) AS v(id, next_run_at)
+        WHERE c.id = v.id
+        RETURNING c.*
+      `,
+    );
   });
 }
 
