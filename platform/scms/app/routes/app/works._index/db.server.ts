@@ -135,10 +135,10 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
 
   return visibleWorks.map((work) => {
     const nonDraftVersions = work.versions.filter((version) => !version.draft);
-    const { latestRunByServiceKind } = getCheckRunSummaryByKind(nonDraftVersions, runsByVersionId);
+    const checkRunSummary = getCheckRunSummaryByKind(nonDraftVersions, runsByVersionId);
     return {
       ...work,
-      latestCheckRunsByServiceKind: latestRunByServiceKind,
+      checkRunSummary,
     };
   });
 }

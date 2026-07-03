@@ -1,3 +1,4 @@
+import { getCheckServiceRunServiceData } from '@curvenote/scms-core';
 import type { CheckServiceRunRow } from './db.server';
 import { isCheckServiceRunSupersededByRetry } from './db.server';
 
@@ -74,4 +75,27 @@ export function getCheckRunSummaryByKind(
   }
 
   return { latestRunByServiceKind, previousRunsByServiceKind };
+}
+
+/**
+ * For work-list summaries, pick the newest run per check kind that passes the visibility
+ * predicate (e.g. latest non-error run when error runs are hidden from the listing).
+ */
+export function selectWorkListVisibleRunsByServiceKind(
+  summary: CheckRunSummaryByKind,
+  isVisible: (kind: string, metadata: unknown) => boolean,
+): Record<string, ServiceRunEntry> {
+  const visibleRuns: Record<string, ServiceRunEntry> = {};
+
+  for (const [kind, latest] of Object.entries(summary.latestRunByServiceKind)) {
+    const candidates = [latest, ...(summary.previousRunsByServiceKind[kind] ?? [])];
+    const match = candidates.find((entry) =>
+      isVisible(kind, getCheckServiceRunServiceData(entry.run)),
+    );
+    if (match) {
+      visibleRuns[kind] = match;
+    }
+  }
+
+  return visibleRuns;
 }

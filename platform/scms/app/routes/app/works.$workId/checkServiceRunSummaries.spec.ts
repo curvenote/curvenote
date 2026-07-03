@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CheckServiceRunRow } from './db.server';
 import { isCheckServiceRunSupersededByRetry } from './db.server';
-import { getCheckRunSummaryByKind } from './checkServiceRunSummaries';
+import { getCheckRunSummaryByKind, selectWorkListVisibleRunsByServiceKind } from './checkServiceRunSummaries';
 
 function run(
   id: string,
@@ -111,5 +111,58 @@ describe('getCheckRunSummaryByKind', () => {
 
     expect(summary.latestRunByServiceKind['service-a'].run.id).toBe('active-failure');
     expect(summary.previousRunsByServiceKind['service-a']).toEqual([]);
+  });
+});
+
+describe('selectWorkListVisibleRunsByServiceKind', () => {
+  it('falls back to the latest non-hidden run when the newest run is hidden', () => {
+    const summary = getCheckRunSummaryByKind(
+      [
+        { id: 'wv-2', date_created: '2026-01-02T00:00:00.000Z' },
+        { id: 'wv-1', date_created: '2026-01-01T00:00:00.000Z' },
+      ],
+      {
+        'wv-2': [
+          run('proofig-error', 'proofig', 'wv-2', '2026-01-03T00:00:00.000Z', {
+            data: { serviceData: { error: true } },
+          }),
+        ],
+        'wv-1': [
+          run('proofig-ok', 'proofig', 'wv-1', '2026-01-02T00:00:00.000Z', {
+            data: { serviceData: { error: false } },
+          }),
+        ],
+      },
+    );
+
+    const visible = selectWorkListVisibleRunsByServiceKind(summary, (_kind, metadata) => {
+      return metadata != null && typeof metadata === 'object' && 'error' in metadata
+        ? !(metadata as { error?: boolean }).error
+        : true;
+    });
+
+    expect(visible.proofig.run.id).toBe('proofig-ok');
+    expect(visible.proofig.workVersionId).toBe('wv-1');
+  });
+
+  it('returns no entry when every run for a kind is hidden', () => {
+    const summary = getCheckRunSummaryByKind(
+      [{ id: 'wv-1', date_created: '2026-01-01T00:00:00.000Z' }],
+      {
+        'wv-1': [
+          run('proofig-error', 'proofig', 'wv-1', '2026-01-03T00:00:00.000Z', {
+            data: { serviceData: { error: true } },
+          }),
+        ],
+      },
+    );
+
+    const visible = selectWorkListVisibleRunsByServiceKind(summary, (_kind, metadata) => {
+      return metadata != null && typeof metadata === 'object' && 'error' in metadata
+        ? !(metadata as { error?: boolean }).error
+        : true;
+    });
+
+    expect(visible.proofig).toBeUndefined();
   });
 });

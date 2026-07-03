@@ -7,7 +7,11 @@ import {
   isCheckWorkListSummaryVisible,
   ui,
 } from '@curvenote/scms-core';
-import type { ServiceRunEntry } from '../works.$workId/checkServiceRunSummaries';
+import type {
+  CheckRunSummaryByKind,
+  ServiceRunEntry,
+} from '../works.$workId/checkServiceRunSummaries';
+import { selectWorkListVisibleRunsByServiceKind } from '../works.$workId/checkServiceRunSummaries';
 
 type WorkListSummaryComponentProps = {
   metadata: any;
@@ -26,7 +30,7 @@ export type WorkListCheckService = ClientExtensionCheckService & {
 
 type WorkCheckSummariesProps = {
   workId: string;
-  latestCheckRunsByServiceKind?: Record<string, ServiceRunEntry>;
+  checkRunSummary?: CheckRunSummaryByKind;
   checkServices: WorkListCheckService[];
 };
 
@@ -72,15 +76,27 @@ function WorkCheckSummaryContent({
 
 export function WorkCheckSummaries({
   workId,
-  latestCheckRunsByServiceKind,
+  checkRunSummary,
   checkServices,
 }: WorkCheckSummariesProps) {
-  if (!latestCheckRunsByServiceKind || Object.keys(latestCheckRunsByServiceKind).length === 0) {
+  if (!checkRunSummary || Object.keys(checkRunSummary.latestRunByServiceKind).length === 0) {
     return null;
   }
 
   const serviceById = new Map(checkServices.map((service) => [service.id, service]));
-  const summaries = Object.values(latestCheckRunsByServiceKind)
+  const visibleRunsByServiceKind = selectWorkListVisibleRunsByServiceKind(
+    checkRunSummary,
+    (kind, metadata) => {
+      const service = serviceById.get(kind);
+      return service != null && isCheckWorkListSummaryVisible(service, metadata);
+    },
+  );
+
+  if (Object.keys(visibleRunsByServiceKind).length === 0) {
+    return null;
+  }
+
+  const summaries = Object.values(visibleRunsByServiceKind)
     .map((entry) => {
       const service = serviceById.get(entry.run.kind);
       return { entry, service, metadata: getCheckServiceRunServiceData(entry.run) };
@@ -92,8 +108,7 @@ export function WorkCheckSummaries({
         entry: ServiceRunEntry;
         service: WorkListCheckService;
         metadata: unknown;
-      } =>
-        summary.service != null && isCheckWorkListSummaryVisible(summary.service, summary.metadata),
+      } => summary.service != null,
     )
     .sort((a, b) =>
       a.entry.run.date_created > b.entry.run.date_created
