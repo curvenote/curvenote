@@ -107,6 +107,8 @@ model CheckServiceRun {
   retry_of_id     String?
   successor_id    String?
   failed_at       String?
+  /// When true, platform cron / auto-retry sweeps must not retry this run (manual retry unaffected).
+  no_auto_retry   Boolean     @default(false)
   work_version    WorkVersion @relation(fields: [work_version_id], references: [id], onDelete: Cascade)
   work_version_id String
   occ             Int         @default(0)
@@ -121,5 +123,5 @@ model CheckServiceRun {
   @@index([kind])
   @@index([date_created])
   @@index([created_by_id])
-  @@index([kind, status, retried, failed_at])
+  @@index([kind, status, retried, no_auto_retry, failed_at])
 }
