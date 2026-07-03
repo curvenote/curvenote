@@ -29,10 +29,10 @@ describe('resolveScopedCronTargetUrl', () => {
     );
   });
 
-  it('resolves text-integrity retry sweep scope', () => {
-    expect(resolveScopedCronTargetUrl(CronEndpointScopes.TEXT_INTEGRITY_RETRY_SWEEP, api)).toBe(
-      'http://host.docker.internal:3031/v1/hooks/text-integrity/retry-sweep',
-    );
+  it('resolves extension hook scopes from the path in target_scope', () => {
+    expect(
+      resolveScopedCronTargetUrl('POST:/v1/hooks/text-integrity/retry-sweep', api),
+    ).toBe('http://host.docker.internal:3031/v1/hooks/text-integrity/retry-sweep');
   });
 
   it('throws for malformed scope strings', () => {

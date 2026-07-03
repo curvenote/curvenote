@@ -1,7 +1,8 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CronEndpointScopes } from '@curvenote/scms-core';
 import { CronJobTargetAuth, CronJobTargetType } from '@curvenote/scms-db';
+
+const TEXT_INTEGRITY_RETRY_SWEEP_SCOPE = 'POST:/v1/hooks/text-integrity/retry-sweep';
 
 function sqlText(arg: unknown): string {
   const candidate = arg as { sql?: string; strings?: string[] };
@@ -151,7 +152,7 @@ describe('runDueCronJobs execution', () => {
       target_type: CronJobTargetType.HTTP,
       target_url: null,
       target_auth: CronJobTargetAuth.HANDSHAKE,
-      target_scope: CronEndpointScopes.TEXT_INTEGRITY_RETRY_SWEEP,
+      target_scope: TEXT_INTEGRITY_RETRY_SWEEP_SCOPE,
       job_type: null,
       job_payload: null,
     });

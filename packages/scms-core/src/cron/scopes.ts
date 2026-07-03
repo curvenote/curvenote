@@ -1,8 +1,7 @@
-/** Built-in cron callback endpoint scopes ({METHOD}:{path}). */
+/** Platform cron callback endpoint scopes ({METHOD}:{path}). */
 export const CronEndpointScopes = {
   JOB_QUEUE_DRAIN: 'POST:/v1/jobs/push-to-drain',
   PROMOTE_SCHEDULED: 'POST:/v1/jobs/promote-scheduled',
-  TEXT_INTEGRITY_RETRY_SWEEP: 'POST:/v1/hooks/text-integrity/retry-sweep',
 } as const;
 
 export type CronEndpointScope = (typeof CronEndpointScopes)[keyof typeof CronEndpointScopes];
