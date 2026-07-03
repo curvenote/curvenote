@@ -44,24 +44,31 @@ export async function promoteScheduledJobs(limit = DEFAULT_PROMOTE_LIMIT): Promi
     return rows;
   });
 
-  let dispatched = 0;
-  let dispatchFailed = 0;
-
-  for (const row of promoted) {
-    try {
-      await dispatchJobWithHandshake(row);
-      dispatched += 1;
-    } catch (err) {
-      dispatchFailed += 1;
-      const message = err instanceof Error ? err.message : String(err);
-      console.error('[promoteScheduledJobs] dispatch failed; reverting to SCHEDULED', {
-        job_id: row.id,
-        job_type: row.job_type,
-        error: message,
-      });
-      await revertPromotedJobToScheduled(row.id, nowIso);
-    }
-  }
+  // Each row is an independent job with its own pgmq idempotency key, so
+  // dispatch concurrently rather than one at a time; a failure only reverts
+  // its own row and never affects the others. allSettled (not all): the
+  // per-row handler already catches dispatch failures, but a fulfilled/
+  // rejected split still protects the aggregation below if the revert
+  // itself ever throws unexpectedly.
+  const results = await Promise.allSettled(
+    promoted.map(async (row) => {
+      try {
+        await dispatchJobWithHandshake(row);
+        return true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error('[promoteScheduledJobs] dispatch failed; reverting to SCHEDULED', {
+          job_id: row.id,
+          job_type: row.job_type,
+          error: message,
+        });
+        await revertPromotedJobToScheduled(row.id, nowIso);
+        return false;
+      }
+    }),
+  );
+  const dispatched = results.filter((r) => r.status === 'fulfilled' && r.value).length;
+  const dispatchFailed = results.length - dispatched;
 
   console.log('[promoteScheduledJobs] done', {
     claimed: promoted.length,
