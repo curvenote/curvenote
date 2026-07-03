@@ -1,5 +1,4 @@
-import { formatDatetime, ui } from '@curvenote/scms-core';
-import { CronJobTargetType } from '@curvenote/scms-server';
+import { CronJobTargetType, formatDatetime, ui } from '@curvenote/scms-core';
 import { useEffect, useRef } from 'react';
 import { useFetcher, useRevalidator } from 'react-router';
 import type { CronJobListRow } from './types';
@@ -69,8 +68,7 @@ export function CronJobListItem({ job }: { job: CronJobListRow }) {
     }
   }, [runFetcher.state, toggleFetcher.state, deleteFetcher.state, revalidator]);
 
-  const isRunBusy =
-    runFetcher.state !== 'idle' && runFetcher.formData?.get('id') === job.id;
+  const isRunBusy = runFetcher.state !== 'idle' && runFetcher.formData?.get('id') === job.id;
   const isToggleBusy =
     toggleFetcher.state !== 'idle' && toggleFetcher.formData?.get('id') === job.id;
   const isDeleteBusy =
