@@ -1,6 +1,6 @@
 import type { Route } from './+types/route';
-import { data, useFetcher, useSearchParams } from 'react-router';
-import { useState } from 'react';
+import { data, useFetcher, useRevalidator, useSearchParams } from 'react-router';
+import { useState, type FormEvent } from 'react';
 import {
   withAppAdminContext,
   dbListCronJobs,
@@ -25,7 +25,7 @@ import {
 import { CronEndpointScopes, PageFrame, ui } from '@curvenote/scms-core';
 import type { CronJob } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
-import { Clock, KeyRound, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Clock, KeyRound, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { CronJobListItem } from './CronJobListItem';
 import type { CronJobListRow } from './types';
 
@@ -163,9 +163,22 @@ function ConfigTab({
   pgCronHealth: PgCronHealth;
 }) {
   const [url, setUrl] = useState(tickStatus.tickUrl ?? tickStatus.defaultTickUrl);
-  const urlFetcher = useFetcher();
-  const secretFetcher = useFetcher();
-  const cutoverFetcher = useFetcher();
+  const urlFetcher = useFetcher<{ ok: boolean; intent?: string; error?: string }>();
+  const secretFetcher = useFetcher<{ ok: boolean; intent?: string; error?: string }>();
+  const unscheduleFetcher = useFetcher<{ ok: boolean; intent?: string; error?: string }>();
+  const restoreFetcher = useFetcher<{ ok: boolean; intent?: string; error?: string }>();
+  const urlBusy = urlFetcher.state !== 'idle';
+  const secretBusy = secretFetcher.state !== 'idle';
+  const unscheduleBusy = unscheduleFetcher.state !== 'idle';
+  const restoreBusy = restoreFetcher.state !== 'idle';
+  const drainBackupScheduled = pgCronHealth.drainBackupScheduled;
+
+  const handleSaveUrl = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    urlFetcher.submit({ intent: 'update-endpoint', url: trimmed }, { method: 'post' });
+  };
 
   return (
     <div className="space-y-6">
@@ -175,30 +188,50 @@ function ConfigTab({
           <h2 className="text-lg font-semibold">Tick config</h2>
         </div>
         <div className="p-4 space-y-4 text-sm">
-          <urlFetcher.Form method="post" className="space-y-2">
-            <input type="hidden" name="intent" value="update-endpoint" />
+          <urlFetcher.Form method="post" className="space-y-2" onSubmit={handleSaveUrl}>
             <ui.Label htmlFor="tick-url">Tick endpoint</ui.Label>
             <div className="flex gap-2">
               <ui.Input
                 id="tick-url"
-                name="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
+                placeholder={tickStatus.defaultTickUrl}
                 className="font-mono text-xs max-w-xl"
               />
-              <ui.Button type="submit">Save</ui.Button>
+              <ui.Button type="submit" disabled={urlBusy || !url.trim()}>
+                {urlBusy ? 'Saving…' : 'Save'}
+              </ui.Button>
             </div>
-            <p className="text-xs text-gray-500">Default: {tickStatus.defaultTickUrl}</p>
+            <p className="text-xs text-gray-500">
+              Default:{' '}
+              <code className="bg-gray-100 px-1 rounded dark:bg-gray-800">
+                {tickStatus.defaultTickUrl}
+              </code>
+              . Path must be{' '}
+              <code className="bg-gray-100 px-1 rounded dark:bg-gray-800">/v1/cron/tick</code>.
+            </p>
+            {urlFetcher.data && !urlFetcher.data.ok && (
+              <p className="text-xs text-red-600">{urlFetcher.data.error}</p>
+            )}
+            {urlFetcher.data?.ok && urlFetcher.data.intent === 'update-endpoint' && (
+              <p className="text-xs text-green-600">Endpoint saved.</p>
+            )}
           </urlFetcher.Form>
           <div className="flex gap-2 items-center pt-2 border-t">
             <SecretStatus status={tickStatus} />
             <secretFetcher.Form method="post">
               <input type="hidden" name="intent" value="push-secret" />
-              <ui.Button type="submit" variant="outline" size="sm">
-                Push secret from app-config
+              <ui.Button type="submit" variant="outline" size="sm" disabled={secretBusy}>
+                {secretBusy ? 'Pushing…' : 'Push secret from app-config'}
               </ui.Button>
             </secretFetcher.Form>
           </div>
+          {secretFetcher.data && !secretFetcher.data.ok && (
+            <p className="text-xs text-red-600">{secretFetcher.data.error}</p>
+          )}
+          {secretFetcher.data?.ok && secretFetcher.data.intent === 'push-secret' && (
+            <p className="text-xs text-green-600">Secret pushed from app-config.</p>
+          )}
         </div>
       </section>
 
@@ -221,18 +254,32 @@ function ConfigTab({
             </ul>
           )}
           <div className="flex gap-2 pt-2">
-            <cutoverFetcher.Form method="post">
+            <unscheduleFetcher.Form method="post">
               <input type="hidden" name="intent" value="cutover-drain-backup" />
-              <ui.Button type="submit" variant="outline" size="sm">
+              <ui.Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                disabled={
+                  unscheduleBusy || restoreBusy || !pgCronHealth.available || !drainBackupScheduled
+                }
+              >
                 Unschedule drain backup
               </ui.Button>
-            </cutoverFetcher.Form>
-            <cutoverFetcher.Form method="post">
+            </unscheduleFetcher.Form>
+            <restoreFetcher.Form method="post">
               <input type="hidden" name="intent" value="restore-drain-backup" />
-              <ui.Button type="submit" variant="ghost" size="sm">
+              <ui.Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                disabled={
+                  unscheduleBusy || restoreBusy || !pgCronHealth.available || drainBackupScheduled
+                }
+              >
                 Restore drain backup
               </ui.Button>
-            </cutoverFetcher.Form>
+            </restoreFetcher.Form>
           </div>
         </div>
       </section>
@@ -278,7 +325,9 @@ function JobsTab({ jobs }: { jobs: CronJobListRow[] }) {
               required
               className="mt-1"
             />
-            <p className="mt-1 text-sm text-muted-foreground">Unique identifier for this cron job</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Unique identifier for this cron job
+            </p>
           </div>
           <div>
             <ui.Label htmlFor="cron-schedule">Schedule *</ui.Label>
@@ -334,6 +383,8 @@ function JobsTab({ jobs }: { jobs: CronJobListRow[] }) {
 
 export default function SystemCronPage({ loaderData }: Route.ComponentProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const revalidator = useRevalidator();
+  const refreshing = revalidator.state !== 'idle';
   const tab = searchParams.get('tab') === 'config' ? 'config' : 'jobs';
 
   return (
@@ -347,15 +398,32 @@ export default function SystemCronPage({ loaderData }: Route.ComponentProps) {
           })
         }
       >
-        <ui.TabsList>
-          <ui.TabsTrigger value="jobs">Cron jobs</ui.TabsTrigger>
-          <ui.TabsTrigger value="config">Config</ui.TabsTrigger>
-        </ui.TabsList>
+        <div className="flex flex-wrap gap-3 justify-between items-center">
+          <ui.TabsList>
+            <ui.TabsTrigger value="jobs">Cron jobs</ui.TabsTrigger>
+            <ui.TabsTrigger value="config">Config</ui.TabsTrigger>
+          </ui.TabsList>
+          <div className="flex gap-2 items-center">
+            <span className="text-xs text-muted-foreground">Page does not update automatically</span>
+            <ui.Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => revalidator.revalidate()}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </ui.Button>
+          </div>
+        </div>
         <ui.TabsContent value="jobs" className="mt-4">
-          <JobsTab jobs={loaderData.jobs} />
+          {tab === 'jobs' ? <JobsTab jobs={loaderData.jobs} /> : null}
         </ui.TabsContent>
         <ui.TabsContent value="config" className="mt-4">
-          <ConfigTab tickStatus={loaderData.tickStatus} pgCronHealth={loaderData.pgCronHealth} />
+          {tab === 'config' ? (
+            <ConfigTab tickStatus={loaderData.tickStatus} pgCronHealth={loaderData.pgCronHealth} />
+          ) : null}
         </ui.TabsContent>
       </ui.Tabs>
     </PageFrame>
