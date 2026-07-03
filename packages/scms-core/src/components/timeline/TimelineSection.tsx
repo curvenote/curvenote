@@ -67,9 +67,20 @@ export function TimelineSection({
 
   if (stacked && hasChildren) {
     return (
-      <div className={cn('space-y-2', className)}>
-        {header}
-        {content}
+      <div className={cn('grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-2 items-center', className)}>
+        <div className="relative z-10 -ml-[8px] p-1 shrink-0 self-start">
+          {icon ?? <GitBranch className="w-5 h-5 bg-background text-foreground/60" />}
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm text-foreground">{label}</span>
+        </div>
+        <div
+          className={cn(
+            'col-start-2 min-w-0 overflow-hidden rounded-lg border divide-y shadow-sm bg-card text-card-foreground divide-border border-border',
+          )}
+        >
+          {children}
+        </div>
       </div>
     );
   }
