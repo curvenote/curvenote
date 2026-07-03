@@ -7,6 +7,7 @@ import {
 import { getConfig } from '../../app-config.server.js';
 import { resolveStoredQueueDrainUrl } from '../jobs/enqueue/notifyQueueConsumer.server.js';
 import { CronEndpointScopes } from './scopes.js';
+import { assertAllowedCronTargetUrl } from './assertAllowedCronTargetUrl.server.js';
 import { getPrismaClient } from '../prisma.server.js';
 import { enqueueAndDispatchJob } from '../jobs/enqueue/enqueueAndDispatchJob.server.js';
 import { createScopedHandshakeToken } from '../sign.handshake.server.js';
@@ -57,10 +58,10 @@ async function claimDueCronJobs(nowIso: string, limit: number): Promise<DueCronJ
 }
 
 async function resolveHttpTargetUrl(job: DueCronJobRow): Promise<string> {
-  if (job.target_url) {
-    return job.target_url;
-  }
   const config = await getConfig();
+  if (job.target_url) {
+    return assertAllowedCronTargetUrl(job.target_url, config.api);
+  }
   const drainBase = resolveStoredQueueDrainUrl(config.api);
   if (job.target_scope === CronEndpointScopes.JOB_QUEUE_DRAIN) {
     return drainBase;
