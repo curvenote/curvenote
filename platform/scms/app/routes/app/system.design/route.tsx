@@ -4,10 +4,12 @@ import { PageFrame, SystemAdminBadge, ui, primitives, FrameHeader } from '@curve
 import type { Workflow } from '@curvenote/scms-core';
 import { Palette, ExternalLink } from 'lucide-react';
 import { extensions as clientExtensions } from '../../../extensions/client';
+import { resolveTextIntegrityDesignManifest } from '../works.$workId.upload.$workVersionId/textIntegrityLogo.server';
 
 export async function loader(args: Route.LoaderArgs) {
-  await withAppAdminContext(args);
-  return null;
+  const ctx = await withAppAdminContext(args);
+  const textIntegrityDesignManifest = await resolveTextIntegrityDesignManifest(ctx);
+  return { textIntegrityDesignManifest };
 }
 
 export const meta: Route.MetaFunction = () => {
