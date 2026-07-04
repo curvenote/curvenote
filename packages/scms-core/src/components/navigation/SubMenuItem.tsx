@@ -1,4 +1,4 @@
-import { ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { NavLink, useLocation } from 'react-router';
 import { useEffect, useState } from 'react';
 import { cn } from '../../utils/cn.js';
@@ -31,13 +31,15 @@ export function SubMenuItem({
   const [isOpenSubMenu, setIsOpenSubMenu] = useState(false);
   const [isShownMinSubMenu, setIsShownMinSubMenu] = useState<null | boolean>(false);
 
-  const isChildrenActive = subMenus && subMenus?.some((item) => item.url === pathname);
+  const isChildrenActive =
+    subMenus?.some((item) => pathname === item.url || pathname.startsWith(`${item.url}/`)) ??
+    false;
 
   useEffect(() => {
     if (isChildrenActive) {
       setIsOpenSubMenu(true);
     }
-  }, []);
+  }, [isChildrenActive]);
 
   return (
     <div
@@ -55,17 +57,19 @@ export function SubMenuItem({
       >
         <span className="flex justify-between w-full">
           <span className="flex items-center">
-            <span className="inline-flex items-center justify-center ml-4">
+            <span className="inline-flex items-center justify-center ml-2">
               {icon && icon}
               {!icon && name && <MenuIcon name={name} extensions={extensions} />}
             </span>
             {open && <span className="ml-4 text-sm tracking-wide truncate">{label}</span>}
           </span>
           {open && (
-            <span
-              className={cn('mr-4 transition-transform duration-200', isOpenSubMenu && 'rotate-90')}
-            >
-              <ChevronRightIcon className="w-4 h-4" />
+            <span className="mr-4">
+              {isOpenSubMenu ? (
+                <ChevronUpIcon className="w-4 h-4" />
+              ) : (
+                <ChevronDownIcon className="w-4 h-4" />
+              )}
             </span>
           )}
         </span>

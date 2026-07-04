@@ -79,6 +79,8 @@ export function MenuIcon({
     case 'work.checks':
     case 'shield-check':
       return <ShieldCheck className={classNameWithDefaults} />;
+    case 'work.submissions':
+      return <Send className={classNameWithDefaults} />;
     case 'files':
       return <Files className={classNameWithDefaults} />;
     case 'zap':

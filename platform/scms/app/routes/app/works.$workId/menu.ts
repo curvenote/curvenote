@@ -37,17 +37,25 @@ export function buildMenu(
     });
   }
 
-  // Add menu items for each submission
-  submissions.forEach((submission) => {
-    // Use the latest submission version ID (versions are sorted newest first)
+  const submissionMenus = submissions.flatMap((submission) => {
     const latestVersionId = submission.versions[0]?.id;
-    if (!latestVersionId) return;
-    menus.push({
-      name: submission.site.name,
-      label: `${submission.site.title}`,
-      url: `${baseUrl}/site/${submission.site.name}/submission/${latestVersionId}`,
-    });
+    if (!latestVersionId) return [];
+    return [
+      {
+        label: submission.site.title,
+        url: `${baseUrl}/site/${submission.site.name}/submission/${latestVersionId}`,
+      },
+    ];
   });
+
+  if (submissionMenus.length > 0) {
+    menus.push({
+      name: 'work.submissions',
+      label: 'Submissions',
+      url: submissionMenus[0].url,
+      subMenus: submissionMenus,
+    });
+  }
 
   return contents;
 }

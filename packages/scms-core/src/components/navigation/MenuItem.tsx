@@ -31,6 +31,7 @@ export function MenuItem({ open, menus, onMobileSidebarOpened, extensions }: Men
               icon={icon}
               open={open}
               label={label}
+              name={name}
               subMenus={subMenus}
               onMobileSidebarOpened={onMobileSidebarOpened}
               extensions={extensions}

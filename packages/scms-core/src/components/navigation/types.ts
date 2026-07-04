@@ -10,6 +10,11 @@ export type ServerSideMenuContents = {
   }[];
 }[];
 
+export type MenuSubItem = {
+  label: string;
+  url: string;
+};
+
 export type MenuContents = {
   sectionName?: string;
   menus: {
@@ -19,5 +24,6 @@ export type MenuContents = {
     label: string;
     url: string;
     end?: boolean;
+    subMenus?: MenuSubItem[];
   }[];
 }[];
