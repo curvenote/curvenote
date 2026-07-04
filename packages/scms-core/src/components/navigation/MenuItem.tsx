@@ -5,7 +5,6 @@ import { MenuIcon } from './MenuIcon.js';
 import type { ClientExtension } from '../../modules/index.js';
 
 type MenuItemProps = {
-  open: boolean;
   onMobileSidebarOpened?: () => void;
   extensions?: ClientExtension[];
   menus: {
@@ -21,7 +20,7 @@ type MenuItemProps = {
   }[];
 };
 
-export function MenuItem({ open, menus, onMobileSidebarOpened, extensions }: MenuItemProps) {
+export function MenuItem({ menus, onMobileSidebarOpened, extensions }: MenuItemProps) {
   return (
     <li className="flex flex-col">
       {menus.map(({ label, icon, url, name, end, subMenus }) => (
@@ -29,7 +28,6 @@ export function MenuItem({ open, menus, onMobileSidebarOpened, extensions }: Men
           {subMenus ? (
             <SubMenuItem
               icon={icon}
-              open={open}
               label={label}
               name={name}
               subMenus={subMenus}
