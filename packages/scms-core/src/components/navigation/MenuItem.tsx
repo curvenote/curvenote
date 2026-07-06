@@ -2,6 +2,7 @@ import { NavLink } from 'react-router';
 import React from 'react';
 import { SubMenuItem } from './SubMenuItem.js';
 import { MenuIcon } from './MenuIcon.js';
+import type { MenuSubItem } from './types.js';
 import type { ClientExtension } from '../../modules/index.js';
 
 type MenuItemProps = {
@@ -13,10 +14,7 @@ type MenuItemProps = {
     name?: string;
     url: string;
     end?: boolean;
-    subMenus?: {
-      label: string;
-      url: string;
-    }[];
+    subMenus?: MenuSubItem[];
   }[];
 };
 

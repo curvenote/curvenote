@@ -4,9 +4,14 @@ import { scopes } from '@curvenote/scms-core';
 
 const baseUrl = '/app/works/work-1';
 
-function makeSubmission(siteName: string, siteTitle: string, versionId: string) {
+function makeSubmission(
+  siteName: string,
+  siteTitle: string,
+  versionId: string,
+  logo?: string,
+) {
   return {
-    site: { name: siteName, title: siteTitle },
+    site: { name: siteName, title: siteTitle, metadata: logo ? { logo } : {} },
     versions: [{ id: versionId }],
   } as Parameters<typeof buildMenu>[2][number];
 }
@@ -17,7 +22,7 @@ describe('buildMenu', () => {
       baseUrl,
       false,
       [
-        makeSubmission('biorxiv', 'BioRxiv', 'sv-1'),
+        makeSubmission('biorxiv', 'BioRxiv', 'sv-1', 'https://example.com/biorxiv.png'),
         makeSubmission('pmc', 'PMC', 'sv-2'),
       ],
       [scopes.app.works.checks.feature],
@@ -33,10 +38,13 @@ describe('buildMenu', () => {
         {
           label: 'BioRxiv',
           url: `${baseUrl}/site/biorxiv/submission/sv-1`,
+          logo: 'https://example.com/biorxiv.png',
+          siteName: 'biorxiv',
         },
         {
           label: 'PMC',
           url: `${baseUrl}/site/pmc/submission/sv-2`,
+          siteName: 'pmc',
         },
       ],
     });

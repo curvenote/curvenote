@@ -13,6 +13,8 @@ export type ServerSideMenuContents = {
 export type MenuSubItem = {
   label: string;
   url: string;
+  logo?: string;
+  siteName?: string;
 };
 
 export type MenuContents = {
