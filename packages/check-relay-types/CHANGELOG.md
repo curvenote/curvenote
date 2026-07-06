@@ -1,5 +1,11 @@
 # @curvenote/check-relay-types
 
+## 0.2.1
+
+### Patch Changes
+
+- [#976](https://github.com/curvenote/curvenote/pull/976) [`532ba32`](https://github.com/curvenote/curvenote/commit/532ba327d086c8b85976b986283d052f58a262ff) Thanks [@github-actions](https://github.com/apps/github-actions)! - Extend status payload with recovery hint
+
 ## 0.2.0
 
 ### Minor Changes

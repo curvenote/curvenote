@@ -1,5 +1,14 @@
 # @curvenote/scms-sites-ext
 
+## 0.23.0
+
+### Patch Changes
+
+- Updated dependencies [[`c815443`](https://github.com/curvenote/curvenote/commit/c815443cda6ec2f0f6e9d2547f3c257d709b56ce), [`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f), [`9848bab`](https://github.com/curvenote/curvenote/commit/9848bab45b66aeb61599c019e25803f504cb75d2), [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240)]:
+  - @curvenote/scms-core@0.23.0
+  - @curvenote/scms-server@0.23.0
+  - @curvenote/scms-db@0.23.0
+
 ## 0.22.2
 
 ### Patch Changes

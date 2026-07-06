@@ -1,5 +1,17 @@
 # @curvenote/scms-db
 
+## 0.23.0
+
+### Minor Changes
+
+- [#982](https://github.com/curvenote/curvenote/pull/982) [`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add cron-backed platform automation for scheduled jobs and check retries. This introduces CronJob schema and admin UI, scoped cron callback authentication, scheduled job promotion, cron-driven queue drain, queue pause/resume controls, CheckServiceRun retry columns, and related job-queue hardening for automated execution.
+
+- [#980](https://github.com/curvenote/curvenote/pull/980) [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add `WorkVersion.contains` (`String[]`, default `[]`) and backfill existing rows from parent `Work.contains`.
+
+### Patch Changes
+
+- [#980](https://github.com/curvenote/curvenote/pull/980) [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Enforce one submission per work on a site via a unique `(work_id, site_id)` constraint.
+
 ## 0.22.2
 
 ### Patch Changes
