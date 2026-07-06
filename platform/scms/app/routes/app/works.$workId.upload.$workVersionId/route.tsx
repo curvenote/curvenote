@@ -40,6 +40,7 @@ import {
   getExtensionCheckServicesFromServerConfig,
   hasInvalidEnabledUploadChecks,
   loadCheckMaintenanceByServiceIds,
+  resolveUploadCheckLogoUrls,
   CheckMaintenanceProvider,
   capitalize,
   scopes,
@@ -48,7 +49,6 @@ import {
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { WorkUploadChecksForm } from './WorkUploadChecksForm';
-import { getTextIntegrityLogoUrlFromObjectStore } from './textIntegrityLogo.server';
 import { ContinueForm } from './ContinueForm';
 import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
@@ -348,7 +348,7 @@ export async function loader(args: Route.LoaderArgs) {
     { ignoreSystemAdmin: true },
   );
 
-  const textIntegrityLogoUrl = await getTextIntegrityLogoUrlFromObjectStore();
+  const uploadCheckLogoUrls = await resolveUploadCheckLogoUrls(ctx, ctx.$config, serverExtensions);
 
   const uploadCheckServices = getExtensionCheckServicesFromServerConfig(
     ctx.$config,
@@ -376,7 +376,7 @@ export async function loader(args: Route.LoaderArgs) {
     authorFieldMetadata,
     isExtractionStale,
     hasMetadataExtractScope,
-    textIntegrityLogoUrl,
+    uploadCheckLogoUrls,
     maintenanceByServiceId,
   };
 }
@@ -1169,7 +1169,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               checkServices={checkServices}
               workVersionId={workVersionId!}
               metadata={metadata}
-              textIntegrityLogoUrl={loaderData.textIntegrityLogoUrl}
+              uploadCheckLogoUrls={loaderData.uploadCheckLogoUrls}
             />
           </SectionWithHeading>
           <ContinueForm

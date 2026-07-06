@@ -7,8 +7,11 @@ import {
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
   isCheckWorkListSummaryVisible,
+  resolveExtensionDesignLoaderData,
+  resolveUploadCheckLogoUrls,
 } from './checks.js';
 import type { ClientExtension, ServerExtension } from './types.js';
+import type { Context } from '../../backend/types.js';
 
 /** Minimal React stubs — tests only assert service ids from getChecks(). */
 function noopCheckComponent() {
@@ -81,6 +84,52 @@ describe('extension checks config gates', () => {
       mockCheckExtension as ServerExtension,
     ]);
     expect(services).toEqual([]);
+  });
+});
+
+describe('extension loader helpers', () => {
+  const ctx = { $config: { app: { extensions: {} } } } as Context;
+
+  it('resolveUploadCheckLogoUrls collects logos from services that implement the hook', async () => {
+    const ext = {
+      ...mockCheckExtension,
+      getChecks: () => [
+        {
+          id: 'with-logo',
+          name: 'With Logo',
+          description: 'Test',
+          sectionHeaderComponent: noopCheckComponent,
+          sectionActivityComponent: noopCheckComponent,
+          resolveUploadLogoUrl: async () => 'https://logo.example/a.svg',
+        },
+        {
+          id: 'without-hook',
+          name: 'Without Hook',
+          description: 'Test',
+          sectionHeaderComponent: noopCheckComponent,
+          sectionActivityComponent: noopCheckComponent,
+        },
+      ],
+    } as ServerExtension;
+
+    const serverConfig = {
+      app: { extensions: { 'mock-checks': { checks: true } } },
+    } as AppConfig;
+
+    await expect(resolveUploadCheckLogoUrls(ctx, serverConfig, [ext])).resolves.toEqual({
+      'with-logo': 'https://logo.example/a.svg',
+    });
+  });
+
+  it('resolveExtensionDesignLoaderData collects data from extensions with getDesignLoaderData', async () => {
+    const ext = {
+      ...mockCheckExtension,
+      getDesignLoaderData: async () => ({ designManifest: { logo: 'https://logo.example/b.svg' } }),
+    } as ServerExtension;
+
+    await expect(resolveExtensionDesignLoaderData(ctx, [ext])).resolves.toEqual({
+      'mock-checks': { designManifest: { logo: 'https://logo.example/b.svg' } },
+    });
   });
 });
 

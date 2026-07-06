@@ -117,10 +117,6 @@ vi.mock('./updateChecks.server', () => ({
   toggleWorkVersionCheck: vi.fn(),
 }));
 
-vi.mock('./textIntegrityLogo.server', () => ({
-  getTextIntegrityLogoUrlFromObjectStore: vi.fn(),
-}));
-
 vi.mock('./loaderAnalytics.server.js', () => ({
   shouldTrackWorkViewedOnLoader: vi.fn(),
 }));

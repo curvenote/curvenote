@@ -1,15 +1,22 @@
 import type { Route } from './+types/route';
 import { withAppAdminContext } from '@curvenote/scms-server';
-import { PageFrame, SystemAdminBadge, ui, primitives, FrameHeader } from '@curvenote/scms-core';
+import {
+  PageFrame,
+  SystemAdminBadge,
+  ui,
+  primitives,
+  FrameHeader,
+  resolveExtensionDesignLoaderData,
+} from '@curvenote/scms-core';
 import type { Workflow } from '@curvenote/scms-core';
 import { Palette, ExternalLink } from 'lucide-react';
 import { extensions as clientExtensions } from '../../../extensions/client';
-import { resolveTextIntegrityDesignManifest } from '../works.$workId.upload.$workVersionId/textIntegrityLogo.server';
+import { extensions as serverExtensions } from '../../../extensions/server';
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withAppAdminContext(args);
-  const textIntegrityDesignManifest = await resolveTextIntegrityDesignManifest(ctx);
-  return { textIntegrityDesignManifest };
+  const extensionDesignLoaderData = await resolveExtensionDesignLoaderData(ctx, serverExtensions);
+  return { extensionDesignLoaderData };
 }
 
 export const meta: Route.MetaFunction = () => {
