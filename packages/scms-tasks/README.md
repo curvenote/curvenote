@@ -14,7 +14,7 @@ SCMS tasks library for cloud runners: unified SCMS client and shared helpers use
 - **uploadSingleFileToCdn**, **stageUploadRequest**, **commitUploads** – upload API (also exposed via `client.uploads`)
 - **removeFolder**, **pubsubError** – utilities for Pub/Sub handlers and temp cleanup
 - **withPubSubHandler** – wraps POST handler with validation, temp folder, and **SCMSClient** in context
-- **scripts/pubsub.sh** – script to set up GCP Pub/Sub. See script header and `scripts/.env.sample`.
+- GCP Pub/Sub setup for task-converter lives in `services/task-converter/pubsub/` (see `pubsub.sh` and `.env.sample` there).
 
 This package is not published to the public registry. From the repo root, the workspace resolves it when you run `npm install`.
 
