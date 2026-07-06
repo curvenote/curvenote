@@ -4,12 +4,7 @@ import { scopes } from '@curvenote/scms-core';
 
 const baseUrl = '/app/works/work-1';
 
-function makeSubmission(
-  siteName: string,
-  siteTitle: string,
-  versionId: string,
-  logo?: string,
-) {
+function makeSubmission(siteName: string, siteTitle: string, versionId: string, logo?: string) {
   return {
     site: { name: siteName, title: siteTitle, metadata: logo ? { logo } : {} },
     versions: [{ id: versionId }],

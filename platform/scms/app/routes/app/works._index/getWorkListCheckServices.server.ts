@@ -14,7 +14,9 @@ export type WorkListCheckVisibilityService = Pick<
 /** Enabled check services with work-list visibility predicates (from client extension defs). */
 export function getWorkListCheckServices(config: AppConfig): WorkListCheckVisibilityService[] {
   const enabledIds = new Set(
-    getExtensionCheckServicesFromServerConfig(config, serverExtensions).map((service) => service.id),
+    getExtensionCheckServicesFromServerConfig(config, serverExtensions).map(
+      (service) => service.id,
+    ),
   );
   return clientExtensions
     .flatMap((extension) => extension.getChecks?.() ?? [])

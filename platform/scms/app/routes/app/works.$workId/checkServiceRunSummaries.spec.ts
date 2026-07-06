@@ -2,7 +2,10 @@
 import { describe, expect, it } from 'vitest';
 import type { CheckServiceRunRow } from './db.server';
 import { isCheckServiceRunSupersededByRetry } from './db.server';
-import { getCheckRunSummaryByKind, selectWorkListVisibleRunsByServiceKind } from './checkServiceRunSummaries';
+import {
+  getCheckRunSummaryByKind,
+  selectWorkListVisibleRunsByServiceKind,
+} from './checkServiceRunSummaries';
 
 function run(
   id: string,

@@ -70,10 +70,7 @@ export function WorkCheckSummaries({
   workListCheckRunsByServiceKind,
   checkServices,
 }: WorkCheckSummariesProps) {
-  if (
-    !workListCheckRunsByServiceKind ||
-    Object.keys(workListCheckRunsByServiceKind).length === 0
-  ) {
+  if (!workListCheckRunsByServiceKind || Object.keys(workListCheckRunsByServiceKind).length === 0) {
     return null;
   }
 
