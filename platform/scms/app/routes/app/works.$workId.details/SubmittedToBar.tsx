@@ -14,7 +14,7 @@ import type {
   WorkVersionForDetailsClient,
 } from '../works.$workId/types';
 import type { CheckServiceRunRow } from '../works.$workId/db.server';
-import { Check, ChevronDown, Loader2, Plus } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Send } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 type SubmissionTargetSite = {
@@ -349,7 +349,7 @@ export function SubmittedToBar({
           )}
           aria-label="Submit to a new site"
         >
-          <Plus className="w-4 h-4" />
+          <Send className="w-4 h-4 stroke-[1.5px]" />
         </ui.PopoverTrigger>
         <ui.PopoverContent
           className={cn(
