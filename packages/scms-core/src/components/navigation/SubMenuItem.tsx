@@ -76,27 +76,30 @@ export function SubMenuItem({
         </span>
       </button>
 
-      {isOpenSubMenu &&
-        subMenus?.map(({ label: L, url, logo, siteName }) => (
-          <NavLink
-            key={url}
-            onClick={onMobileSidebarOpened}
-            to={url}
-            className={({ isActive }) =>
-              cn(
-                'relative my-1 flex h-7 flex-row items-center rounded-md pl-6',
-                isActive
-                  ? 'font-medium text-blue-900 hover:text-blue-900 focus:outline-hidden dark:hover:text-blue-900'
-                  : 'font-light text-stone-600 hover:text-blue-900 focus:outline-hidden dark:text-white dark:hover:text-blue-900',
-              )
-            }
-          >
-            <span className="inline-flex items-center justify-center ml-2 shrink-0">
-              <SiteSubMenuMark logo={logo} siteName={siteName} />
-            </span>
-            <span className="ml-4 text-sm tracking-wide truncate">{L}</span>
-          </NavLink>
-        ))}
+      {isOpenSubMenu && subMenus && subMenus.length > 0 ? (
+        <div className="flex flex-col gap-2.5 py-1">
+          {subMenus.map(({ label: L, url, logo, siteName }) => (
+            <NavLink
+              key={url}
+              onClick={onMobileSidebarOpened}
+              to={url}
+              className={({ isActive }) =>
+                cn(
+                  'relative flex h-7 flex-row items-center rounded-md pl-6',
+                  isActive
+                    ? 'font-medium text-blue-900 hover:text-blue-900 focus:outline-hidden dark:hover:text-blue-900'
+                    : 'font-light text-stone-600 hover:text-blue-900 focus:outline-hidden dark:text-white dark:hover:text-blue-900',
+                )
+              }
+            >
+              <span className="inline-flex items-center justify-center ml-2 shrink-0">
+                <SiteSubMenuMark logo={logo} siteName={siteName} />
+              </span>
+              <span className="ml-4 text-sm tracking-wide truncate">{L}</span>
+            </NavLink>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
