@@ -83,9 +83,12 @@ export function SubMenuItem({
             onClick={onMobileSidebarOpened}
             to={url}
             className={({ isActive }) =>
-              isActive
-                ? 'relative my-1 flex h-7 flex-row items-center rounded-md font-medium text-blue-900 hover:text-blue-900 focus:outline-hidden dark:hover:text-blue-900'
-                : 'relative my-1 flex h-7 flex-row items-center rounded font-light text-stone-600 hover:text-blue-900 focus:outline-hidden dark:text-white dark:hover:text-blue-900'
+              cn(
+                'relative my-1 flex h-7 flex-row items-center rounded-md pl-6',
+                isActive
+                  ? 'font-medium text-blue-900 hover:text-blue-900 focus:outline-hidden dark:hover:text-blue-900'
+                  : 'font-light text-stone-600 hover:text-blue-900 focus:outline-hidden dark:text-white dark:hover:text-blue-900',
+              )
             }
           >
             <span className="inline-flex items-center justify-center ml-2 shrink-0">
