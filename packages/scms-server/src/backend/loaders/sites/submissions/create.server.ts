@@ -10,7 +10,7 @@ import { formatSubmissionDTO } from './get.server.js';
 import getSubmissionVersion from './versions/get.server.js';
 import { formatDate, normalizeExplicitTags } from '@curvenote/common';
 import type { UserDBO } from '../../../db.types.js';
-import { ActivityType } from '@curvenote/scms-db';
+import { ActivityType, type Prisma } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 import type { SiteContext } from '../../../context.site.server.js';
 import { SlackEventType } from '../../../services/slack.server.js';
@@ -34,6 +34,7 @@ export async function dbCreateNewSubmission(
   collectionId?: string,
   metadata?: Record<string, any>,
   tags?: string[],
+  txIn?: Prisma.TransactionClient,
 ) {
   // creating a new submission entry as a nested query in a submissionHistory
   // means it will be created in the same transaction
@@ -46,7 +47,7 @@ export async function dbCreateNewSubmission(
     select: { work_id: true },
   });
   const submissionTags = normalizeExplicitTags(tags);
-  return prisma.$transaction(async (tx) => {
+  const run = async (tx: Prisma.TransactionClient) => {
     const sv = await tx.submissionVersion.create({
       data: {
         id: uuid(),
@@ -178,7 +179,9 @@ export async function dbCreateNewSubmission(
     });
 
     return { ...sv.submission, activity: [activity] };
-  });
+  };
+  if (txIn) return run(txIn);
+  return prisma.$transaction(run);
 }
 
 type CreateSubmissionArgs = {
@@ -190,6 +193,7 @@ type CreateSubmissionArgs = {
   collectionId?: string;
   metadata?: Record<string, any>;
   tags?: string[];
+  tx?: Prisma.TransactionClient;
 };
 
 async function createSubmissionRecord({
@@ -201,6 +205,7 @@ async function createSubmissionRecord({
   collectionId,
   metadata,
   tags,
+  tx,
 }: CreateSubmissionArgs) {
   if (!ctx.user) throw error401();
   return dbCreateNewSubmission(
@@ -213,10 +218,11 @@ async function createSubmissionRecord({
     collectionId,
     metadata,
     tags,
+    tx,
   );
 }
 
-async function notifyNewSubmissionCreated(
+export async function notifyNewSubmissionCreated(
   ctx: SiteContext,
   submission: Awaited<ReturnType<typeof dbCreateNewSubmission>>,
   draft: boolean,
@@ -294,6 +300,7 @@ export async function createReturningVersion(
   collectionId?: string,
   metadata?: Record<string, any>,
   tags?: string[],
+  tx?: Prisma.TransactionClient,
 ) {
   const submission = await createSubmissionRecord({
     ctx,
@@ -304,8 +311,14 @@ export async function createReturningVersion(
     collectionId,
     metadata,
     tags,
+    tx,
   });
 
+  const submissionVersionId = submission.versions[0].id;
+  if (tx) {
+    return { id: submissionVersionId, submission };
+  }
+
   await notifyNewSubmissionCreated(ctx, submission, draft);
-  return getSubmissionVersion(ctx, submission.versions[0].id);
+  return getSubmissionVersion(ctx, submissionVersionId);
 }

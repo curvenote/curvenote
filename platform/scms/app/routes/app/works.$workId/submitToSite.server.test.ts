@@ -4,10 +4,10 @@ import {
   canSiteAcceptNewSubmission,
   isAlreadySubmittedVersion,
   isSiteAvailableForWorkSubmit,
-  isSubmissionWorkSiteUniqueViolation,
   resolveOpenCollection,
   resolveSubmissionKind,
   submitWorkVersionToSite,
+  workSiteSubmitLockKey,
 } from './submitToSite.server';
 
 const baseSite = {
@@ -19,6 +19,10 @@ const baseSite = {
 };
 
 describe('submitToSite.server', () => {
+  it('builds a stable work/site advisory lock key', () => {
+    expect(workSiteSubmitLockKey('work-1', 'site-1')).toBe('work-site-submit:work-1:site-1');
+  });
+
   it('resolves default open collection first', () => {
     const collections = [
       { id: 'closed-default', default: true, open: false, kindsInCollection: [] },
@@ -103,6 +107,8 @@ describe('submitToSite.server', () => {
           id: 'submission-1',
           versions: [{ id: 'sv-old', work_version_id: 'wv-1', status: 'PENDING' }],
         }),
+      },
+      {
         createSubmissionVersion,
         createNewSubmissionReturningVersion: vi.fn(),
       },
@@ -119,34 +125,38 @@ describe('submitToSite.server', () => {
     expect(createSubmissionVersion).not.toHaveBeenCalled();
   });
 
-  it('detects submission work/site unique constraint violations', () => {
-    expect(
-      isSubmissionWorkSiteUniqueViolation({
-        code: 'P2002',
-        meta: { target: ['work_id', 'site_id'] },
-      }),
-    ).toBe(true);
-    expect(isSubmissionWorkSiteUniqueViolation({ code: 'P2002', meta: { target: ['id'] } })).toBe(
-      false,
-    );
-  });
-
-  it('retries on a concurrent create by adding a version to the existing submission', async () => {
-    let lookupCount = 0;
+  it('creates a new submission when none exists for the work/site pair', async () => {
     const result = await submitWorkVersionToSite(
       {
-        findExistingSubmission: async () => {
-          lookupCount += 1;
-          if (lookupCount === 1) return null;
-          return {
-            id: 'submission-1',
-            versions: [{ id: 'sv-draft', work_version_id: 'wv-1', status: 'DRAFT' }],
-          };
-        },
-        createSubmissionVersion: vi.fn(async () => ({ id: 'sv-pending' })),
-        createNewSubmissionReturningVersion: vi.fn(async () => {
-          throw { code: 'P2002', meta: { target: ['work_id', 'site_id'] } };
+        findExistingSubmission: async () => null,
+      },
+      {
+        createSubmissionVersion: vi.fn(),
+        createNewSubmissionReturningVersion: vi.fn(async () => ({ id: 'sv-new' })),
+      },
+      'wv-1',
+      'public-site',
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      siteName: 'public-site',
+      submissionVersionId: 'sv-new',
+    });
+  });
+
+  it('adds a version when an existing submission has only a draft for the work version', async () => {
+    const createSubmissionVersion = vi.fn(async () => ({ id: 'sv-pending' }));
+    const result = await submitWorkVersionToSite(
+      {
+        findExistingSubmission: async () => ({
+          id: 'submission-1',
+          versions: [{ id: 'sv-draft', work_version_id: 'wv-1', status: 'DRAFT' }],
         }),
+      },
+      {
+        createSubmissionVersion,
+        createNewSubmissionReturningVersion: vi.fn(),
       },
       'wv-1',
       'public-site',
@@ -157,6 +167,6 @@ describe('submitToSite.server', () => {
       siteName: 'public-site',
       submissionVersionId: 'sv-pending',
     });
-    expect(lookupCount).toBe(2);
+    expect(createSubmissionVersion).toHaveBeenCalledWith('submission-1');
   });
 });

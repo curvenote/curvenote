@@ -15,6 +15,8 @@ const {
   findManySites,
   findUniqueSite,
   loadCheckMaintenanceByServiceIds,
+  notifyNewSubmissionCreated,
+  notifySubmissionVersionCreated,
   userHasScope,
   withSecureWorkContext,
 } = vi.hoisted(() => ({
@@ -31,6 +33,8 @@ const {
   findManySites: vi.fn(),
   findUniqueSite: vi.fn(),
   loadCheckMaintenanceByServiceIds: vi.fn(),
+  notifyNewSubmissionCreated: vi.fn(async () => undefined),
+  notifySubmissionVersionCreated: vi.fn(async () => undefined),
   userHasScope: vi.fn(),
   withSecureWorkContext: vi.fn(),
 }));
@@ -41,6 +45,14 @@ vi.mock('@curvenote/scms-server', () => ({
   metadataForNewDraftFileWorkVersion: vi.fn(),
   userHasScope,
   getPrismaClient: vi.fn(async () => ({
+    $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn({
+        $executeRaw: vi.fn(),
+        submission: {
+          findFirst: findFirstSubmission,
+        },
+      }),
+    ),
     site: {
       findMany: findManySites,
       findUnique: findUniqueSite,
@@ -58,8 +70,10 @@ vi.mock('@curvenote/scms-server', () => ({
   sites: {
     submissions: {
       createReturningVersion,
+      notifyNewSubmissionCreated,
       versions: {
         create: createSubmissionVersion,
+        notifySubmissionVersionCreated,
       },
     },
   },
@@ -231,8 +245,11 @@ describe('work submit-to-site route', () => {
     });
     findFirstSubmission.mockResolvedValue(null);
     findFirstWorkVersion.mockResolvedValue({ id: 'wv-1' });
-    createReturningVersion.mockResolvedValue({ id: 'sv-1' });
-    createSubmissionVersion.mockResolvedValue({ id: 'sv-2' });
+    createReturningVersion.mockResolvedValue({
+      id: 'sv-1',
+      submission: { versions: [{ id: 'sv-1' }] },
+    });
+    createSubmissionVersion.mockResolvedValue({ id: 'sv-2', dbo: { id: 'sv-2' } });
     dbAttachMetadataToWorkVersions.mockImplementation(async (versions) => versions);
     dbGetWorkOwnerName.mockResolvedValue('Owner');
     dbGetWorkActivities.mockResolvedValue([]);
@@ -549,6 +566,10 @@ describe('work submit-to-site route', () => {
       expect.any(Array),
       'submission-1',
       'wv-2',
+      undefined,
+      undefined,
+      undefined,
+      expect.objectContaining({ submission: expect.any(Object) }),
     );
     expect(createReturningVersion).not.toHaveBeenCalled();
   });
@@ -576,7 +597,7 @@ describe('work submit-to-site route', () => {
       id: 'submission-1',
       versions: [{ id: 'sv-draft', work_version_id: 'wv-1', status: 'DRAFT' }],
     });
-    createSubmissionVersion.mockResolvedValue({ id: 'sv-pending' });
+    createSubmissionVersion.mockResolvedValue({ id: 'sv-pending', dbo: { id: 'sv-pending' } });
 
     const response = await action({
       request: createSubmitToSiteRequest('public-site', 'wv-1'),
@@ -595,6 +616,10 @@ describe('work submit-to-site route', () => {
       expect.any(Array),
       'submission-1',
       'wv-1',
+      undefined,
+      undefined,
+      undefined,
+      expect.objectContaining({ submission: expect.any(Object) }),
     );
     expect(createReturningVersion).not.toHaveBeenCalled();
   });

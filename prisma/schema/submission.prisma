@@ -184,7 +184,6 @@ model Submission {
   /// work with an in-progress draft has `is_listed = FALSE` but must still be
   /// listed).
   @@index([site_id, date_published(sort: Desc), date_created(sort: Desc)])
-  @@unique([work_id, site_id])
 }
 
 model Slug {

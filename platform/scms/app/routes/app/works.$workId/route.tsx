@@ -18,6 +18,7 @@ import {
   SiteContextWithUser,
   sites as siteLoaders,
 } from '@curvenote/scms-server';
+import { Prisma } from '@curvenote/scms-db';
 import {
   MainWrapper,
   SecondaryNav,
@@ -67,6 +68,7 @@ import {
   resolveSubmissionKind,
   SubmitToSiteConfigError,
   submitWorkVersionToSite,
+  workSiteSubmitLockKey,
 } from './submitToSite.server';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
@@ -306,52 +308,92 @@ export async function action(args: ActionFunctionArgs) {
       }
 
       const siteCtx = new SiteContextWithUser(ctx, site);
-      const findExistingSubmission = () =>
-        prisma.submission.findFirst({
-          where: { work_id: ctx.work.id, site_id: site.id },
-          include: {
-            versions: {
-              where: { work_version_id: selectedVersion.id },
-              orderBy: { date_created: 'desc' },
-              take: 1,
-              select: { id: true, work_version_id: true, status: true },
+      const lockKey = workSiteSubmitLockKey(ctx.work.id, site.id);
+      const pendingNotifications: Array<() => Promise<void>> = [];
+
+      const result = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+
+        return submitWorkVersionToSite(
+          {
+            findExistingSubmission: () =>
+              tx.submission.findFirst({
+                where: { work_id: ctx.work.id, site_id: site.id },
+                include: {
+                  versions: {
+                    where: { work_version_id: selectedVersion.id },
+                    orderBy: { date_created: 'desc' },
+                    take: 1,
+                    select: { id: true, work_version_id: true, status: true },
+                  },
+                },
+              }),
+          },
+          {
+            createSubmissionVersion: async (submissionId) => {
+              const created = await siteLoaders.submissions.versions.create(
+                siteCtx,
+                serverExtensions,
+                submissionId,
+                selectedVersion.id,
+                undefined,
+                undefined,
+                undefined,
+                tx,
+              );
+              if ('dbo' in created && created.dbo) {
+                pendingNotifications.push(() =>
+                  siteLoaders.submissions.versions.notifySubmissionVersionCreated(
+                    siteCtx,
+                    created.dbo,
+                  ),
+                );
+              }
+              return { id: created.id };
+            },
+            createNewSubmissionReturningVersion: async () => {
+              const collection = resolveOpenCollection(site.collections);
+              if (!collection) {
+                throw new SubmitToSiteConfigError('Selected site has no open collection');
+              }
+              const kind = resolveSubmissionKind(collection, site.submissionKinds);
+              if (!kind) {
+                throw new SubmitToSiteConfigError('Selected site has no submission kind');
+              }
+              const created = await siteLoaders.submissions.createReturningVersion(
+                siteCtx,
+                serverExtensions,
+                selectedVersion.id,
+                kind.id,
+                false,
+                undefined,
+                collection.id,
+                undefined,
+                undefined,
+                tx,
+              );
+              if ('submission' in created && created.submission) {
+                pendingNotifications.push(() =>
+                  siteLoaders.submissions.notifyNewSubmissionCreated(
+                    siteCtx,
+                    created.submission,
+                    false,
+                  ),
+                );
+              }
+              return { id: created.id };
             },
           },
-        });
+          selectedVersion.id,
+          siteName,
+        );
+      });
 
-      return submitWorkVersionToSite(
-        {
-          findExistingSubmission,
-          createSubmissionVersion: (submissionId) =>
-            siteLoaders.submissions.versions.create(
-              siteCtx,
-              serverExtensions,
-              submissionId,
-              selectedVersion.id,
-            ),
-          createNewSubmissionReturningVersion: async () => {
-            const collection = resolveOpenCollection(site.collections);
-            if (!collection) {
-              throw new SubmitToSiteConfigError('Selected site has no open collection');
-            }
-            const kind = resolveSubmissionKind(collection, site.submissionKinds);
-            if (!kind) {
-              throw new SubmitToSiteConfigError('Selected site has no submission kind');
-            }
-            return siteLoaders.submissions.createReturningVersion(
-              siteCtx,
-              serverExtensions,
-              selectedVersion.id,
-              kind.id,
-              false,
-              undefined,
-              collection.id,
-            );
-          },
-        },
-        selectedVersion.id,
-        siteName,
-      );
+      for (const notify of pendingNotifications) {
+        await notify();
+      }
+
+      return result;
     } catch (error) {
       if (error instanceof SubmitToSiteConfigError) {
         return data({ success: false, intent, error: error.message }, { status: 400 });
