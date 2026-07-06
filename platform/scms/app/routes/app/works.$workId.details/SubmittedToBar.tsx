@@ -7,6 +7,7 @@ import {
   RequestHelpDialog,
   useDeploymentConfig,
   useMyUser,
+  truncate,
 } from '@curvenote/scms-core';
 import type { ClientExtensionCheckService, Workflow } from '@curvenote/scms-core';
 import type {
@@ -335,7 +336,9 @@ export function SubmittedToBar({
                 {abbr}
               </span>
             )}
-            <span className="font-medium truncate">{siteTitle}</span>
+            <span className="font-medium shrink-0" title={siteTitle}>
+              {truncate(siteTitle, 14)}
+            </span>
             <span className={cn('w-2 h-2 rounded-full shrink-0', dotClass)} aria-hidden />
             <span className="text-muted-foreground shrink-0">{label}</span>
           </Link>
