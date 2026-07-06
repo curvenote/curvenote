@@ -335,7 +335,7 @@ export function SubmittedToBar({
                 {abbr}
               </span>
             )}
-            <span className="font-medium truncate">{abbr}</span>
+            <span className="font-medium truncate">{siteTitle}</span>
             <span className={cn('w-2 h-2 rounded-full shrink-0', dotClass)} aria-hidden />
             <span className="text-muted-foreground shrink-0">{label}</span>
           </Link>
