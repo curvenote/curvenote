@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, it, expect } from 'vitest';
-import { formatDate } from './formatDate.js';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { formatDate, formatDateWithRecentTime } from './formatDate.js';
 
 describe('formatDate', () => {
   describe('with date string in YYYY-M-D format', () => {
@@ -104,5 +104,24 @@ describe('formatDate', () => {
       const result = formatDate('2023-02-29');
       expect(result).toBe('');
     });
+  });
+});
+
+describe('formatDateWithRecentTime', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('includes time when the timestamp is within the last day', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-03T18:00:00Z'));
+    const result = formatDateWithRecentTime('2026-07-03T15:39:00Z');
+    expect(result).toMatch(/^Jul 03, 2026 \d{2}:\d{2}$/);
+  });
+
+  it('omits time when the timestamp is more than one day ago', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-03T18:00:00Z'));
+    expect(formatDateWithRecentTime('2026-07-01T15:39:00Z')).toBe('Jul 01, 2026');
   });
 });

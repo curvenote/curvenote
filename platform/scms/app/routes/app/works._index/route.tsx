@@ -47,7 +47,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const ctx = await withAppScopedContext(args, [scopes.work.list], { redirect: true }); // app:works:feature
   try {
     // Create promise for deferred loading
-    const worksPromise = dbGetWorksAndSubmissionVersions(ctx.user.id).then((items) => {
+    const worksPromise = dbGetWorksAndSubmissionVersions(ctx.user.id, ctx.$config).then((items) => {
       const nonDraftItems = items.filter((item) => {
         const allVersionsAreDraft = item.versions.every((v) => v.draft);
         return !allVersionsAreDraft;

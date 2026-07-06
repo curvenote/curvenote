@@ -13,8 +13,8 @@ interface WorkUploadChecksFormProps extends ChecksObject {
   workVersionId: string;
   /** Signed work version metadata (files + checks) for upload eligibility. */
   metadata: unknown;
-  /** Manifest logo URL for text integrity (from Object store), when configured. */
-  textIntegrityLogoUrl?: string;
+  /** Manifest logo URLs keyed by check service id (from extension `resolveUploadLogoUrl`). */
+  uploadCheckLogoUrls?: Record<string, string | undefined>;
 }
 
 function UploadCheckServiceCard({
@@ -22,13 +22,13 @@ function UploadCheckServiceCard({
   workVersionId,
   enabled,
   metadata,
-  textIntegrityLogoUrl,
+  uploadCheckLogoUrls,
 }: {
   service: ExtensionCheckService;
   workVersionId: string;
   enabled: boolean;
   metadata: unknown;
-  textIntegrityLogoUrl?: string;
+  uploadCheckLogoUrls?: Record<string, string | undefined>;
 }) {
   const { blocked: underMaintenance, message: maintenanceMessage } = useCheckMaintenanceBlocked(
     service.id,
@@ -48,7 +48,7 @@ function UploadCheckServiceCard({
       disabled={disabled}
       invalid={invalid}
       maintenanceMessage={underMaintenance ? maintenanceMessage : undefined}
-      logoUrl={service.id === 'checks-text-integrity' ? textIntegrityLogoUrl : undefined}
+      logoUrl={uploadCheckLogoUrls?.[service.id]}
     />
   );
 }
@@ -58,7 +58,7 @@ export function WorkUploadChecksForm({
   checkServices,
   workVersionId,
   metadata,
-  textIntegrityLogoUrl,
+  uploadCheckLogoUrls,
 }: WorkUploadChecksFormProps) {
   return (
     <div className={UPLOAD_CHECKS_GRID_CLASS}>
@@ -69,7 +69,7 @@ export function WorkUploadChecksForm({
           workVersionId={workVersionId}
           enabled={enabled.includes(service.id as (typeof enabled)[number])}
           metadata={metadata}
-          textIntegrityLogoUrl={textIntegrityLogoUrl}
+          uploadCheckLogoUrls={uploadCheckLogoUrls}
         />
       ))}
 

@@ -23,6 +23,10 @@ type CheckServiceRunTimelineItemProps = {
   defaultExpanded?: boolean;
   /** Optional route for fallback detail copy; defaults to `${basePath}/work-integrity`. */
   fallbackDetailsHref?: string;
+  /** When true, omit the relative run timestamp on the row (e.g. checks page shows version date in section label). */
+  hideDate?: boolean;
+  /** When true, omit the leading shield icon so the check summary can use the full row width. */
+  hideIcon?: boolean;
 };
 
 const serviceDataFromRun = (run: TimelineCheckServiceRunRow): unknown =>
@@ -41,8 +45,10 @@ export function CheckServiceRunTimelineItem({
   basePath,
   defaultExpanded,
   fallbackDetailsHref,
+  hideDate = false,
+  hideIcon = false,
 }: CheckServiceRunTimelineItemProps) {
-  const date = (
+  const date = hideDate ? null : (
     <DateWithPopover
       date={run.date_modified}
       dateCreated={run.date_created}
@@ -51,6 +57,7 @@ export function CheckServiceRunTimelineItem({
   );
   const serviceData = serviceDataFromRun(run);
   const checksActionPath = checkService?.checksActionPath ?? `${basePath}/checks`;
+  const rowIcon = hideIcon ? null : <ShieldCheck className="w-4 h-4" aria-hidden />;
 
   if (checkService) {
     const SummaryTitleComponent = checkService.sectionSummaryTitleComponent;
@@ -101,7 +108,7 @@ export function CheckServiceRunTimelineItem({
           />
         ) : null}
         <TimelineItemExpandable
-          icon={<ShieldCheck className="w-4 h-4" aria-hidden />}
+          icon={rowIcon}
           message={message}
           date={date}
           pill={pill}
@@ -129,7 +136,7 @@ export function CheckServiceRunTimelineItem({
 
   return (
     <TimelineItemExpandable
-      icon={<ShieldCheck className="w-4 h-4" aria-hidden />}
+      icon={rowIcon}
       message={message}
       date={date}
       pill={<TimelineItemPill label="No details" variant="default" />}

@@ -1,12 +1,7 @@
 import { Link } from 'react-router';
 import type { ComponentType } from 'react';
 import type { ClientExtensionCheckService } from '@curvenote/scms-core';
-import {
-  formatDate,
-  getCheckServiceRunServiceData,
-  isCheckWorkListSummaryVisible,
-  ui,
-} from '@curvenote/scms-core';
+import { formatDate, getCheckServiceRunServiceData, ui } from '@curvenote/scms-core';
 import type { ServiceRunEntry } from '../works.$workId/checkServiceRunSummaries';
 
 type WorkListSummaryComponentProps = {
@@ -26,7 +21,7 @@ export type WorkListCheckService = ClientExtensionCheckService & {
 
 type WorkCheckSummariesProps = {
   workId: string;
-  latestCheckRunsByServiceKind?: Record<string, ServiceRunEntry>;
+  workListCheckRunsByServiceKind?: Record<string, ServiceRunEntry>;
   checkServices: WorkListCheckService[];
 };
 
@@ -72,18 +67,18 @@ function WorkCheckSummaryContent({
 
 export function WorkCheckSummaries({
   workId,
-  latestCheckRunsByServiceKind,
+  workListCheckRunsByServiceKind,
   checkServices,
 }: WorkCheckSummariesProps) {
-  if (!latestCheckRunsByServiceKind || Object.keys(latestCheckRunsByServiceKind).length === 0) {
+  if (!workListCheckRunsByServiceKind || Object.keys(workListCheckRunsByServiceKind).length === 0) {
     return null;
   }
 
   const serviceById = new Map(checkServices.map((service) => [service.id, service]));
-  const summaries = Object.values(latestCheckRunsByServiceKind)
+  const summaries = Object.values(workListCheckRunsByServiceKind)
     .map((entry) => {
       const service = serviceById.get(entry.run.kind);
-      return { entry, service, metadata: getCheckServiceRunServiceData(entry.run) };
+      return { entry, service };
     })
     .filter(
       (
@@ -91,9 +86,7 @@ export function WorkCheckSummaries({
       ): summary is {
         entry: ServiceRunEntry;
         service: WorkListCheckService;
-        metadata: unknown;
-      } =>
-        summary.service != null && isCheckWorkListSummaryVisible(summary.service, summary.metadata),
+      } => summary.service != null,
     )
     .sort((a, b) =>
       a.entry.run.date_created > b.entry.run.date_created
@@ -122,9 +115,9 @@ export function WorkCheckSummaries({
             >
               <Link
                 to={`${workId}/checks`}
-                className="inline-flex gap-2 items-center h-7 px-2 max-w-full text-xs rounded-sm border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-300"
+                className="inline-flex h-7 items-center gap-2 overflow-hidden px-2 max-w-full text-xs rounded-sm border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-300"
               >
-                <span className="inline-flex gap-1.5 items-center h-5 min-w-0">
+                <span className="inline-flex h-5 min-w-0 items-center gap-1.5">
                   <WorkCheckSummaryContent service={service} entry={entry} />
                 </span>
               </Link>

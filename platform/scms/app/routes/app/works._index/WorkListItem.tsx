@@ -148,6 +148,7 @@ export function WorkListItem({
                         showSite
                         showLink={false}
                         variant="outline"
+                        className="border-gray-200 dark:border-gray-700"
                       />
                     </SubmissionVersionTimelineHoverCard>
                   );
@@ -157,7 +158,7 @@ export function WorkListItem({
           )}
           <WorkCheckSummaries
             workId={work.id}
-            latestCheckRunsByServiceKind={work.latestCheckRunsByServiceKind}
+            workListCheckRunsByServiceKind={work.workListCheckRunsByServiceKind}
             checkServices={checkServices}
           />
         </div>

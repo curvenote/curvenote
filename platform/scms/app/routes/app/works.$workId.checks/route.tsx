@@ -16,12 +16,12 @@ import {
   httpError,
   scopes,
   getExtensionCheckServicesFromServerConfig,
-  DateWithPopover,
-  formatDate,
+  formatDateWithRecentTime,
   formatDatetime,
   Timeline,
   TimelineSection,
   CheckServiceRunTimelineItem,
+  DateWithPopover,
   useDeploymentConfig,
   ui,
 } from '@curvenote/scms-core';
@@ -212,23 +212,43 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     return () => window.clearInterval(interval);
   }, [showDispatchingState, revalidator]);
 
-  const renderWorkVersionDate = (entry: ServiceRunEntry) => {
-    const versionDate = formatDate(entry.versionDateCreated, 'MMM dd, y HH:mm');
+  const renderWorkVersionDate = (
+    entry: ServiceRunEntry,
+    { showBranchIcon = false }: { showBranchIcon?: boolean } = {},
+  ) => {
+    const versionDate = formatDateWithRecentTime(entry.versionDateCreated);
     return (
-      <span
-        className="inline-flex gap-1.5 items-center text-xs text-muted-foreground"
-        title={formatDatetime(entry.versionDateCreated)}
+      <ui.SimpleTooltip
+        title={`Created at: ${formatDatetime(entry.versionDateCreated)}`}
+        side="top"
+        sideOffset={6}
+        delayDuration={1000}
       >
-        <GitBranch className="size-3.5 shrink-0" aria-hidden />
-        <span>{versionDate}</span>
-      </span>
+        <span className="inline-flex gap-1.5 items-center text-xs cursor-default text-muted-foreground">
+          {showBranchIcon ? <GitBranch className="size-3.5 shrink-0" aria-hidden /> : null}
+          {versionDate}
+        </span>
+      </ui.SimpleTooltip>
     );
   };
+
+  const renderTimelineVersionLabel = (entry: ServiceRunEntry) => (
+    <span className="inline-flex flex-wrap gap-x-2 gap-y-1 items-center">
+      {renderWorkVersionDate(entry)}
+      <DateWithPopover
+        date={entry.run.date_modified}
+        dateCreated={entry.run.date_created}
+        dateModified={entry.run.date_modified}
+        className="text-xs text-muted-foreground"
+      />
+    </span>
+  );
 
   return (
     <PageFrame
       title="Checks"
       description="Results of all check services run on the work are shown below. Each type of check is shown in a separate section and the most recent run is shown at the top. Where checks have been run on mulitple versions use the timeline to explore the history."
+      className="max-w-none"
     >
       {showDispatchingState ? (
         <ui.Card className="mt-4 border-primary/30 bg-primary/5">
@@ -320,32 +340,24 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                   </ui.CardContent>
                   {latest ? (
                     <div className="flex justify-start py-1.5 pr-6 pl-3 border-t border-border">
-                      {renderWorkVersionDate(latest)}
+                      {renderWorkVersionDate(latest, { showBranchIcon: true })}
                     </div>
                   ) : null}
                 </ui.Card>
                 {previous.length > 0 && (
-                  <Timeline className="ml-3" nested>
+                  <Timeline className="ml-3" nested lineBottomClassName="-bottom-2">
                     {previous.map((entry) => (
                       <TimelineSection
                         key={entry.workVersionId}
-                        label={
-                          <span className="inline-flex gap-2 items-center">
-                            {renderWorkVersionDate(entry)}
-                            <DateWithPopover
-                              date={entry.run.date_modified}
-                              dateCreated={entry.run.date_created}
-                              dateModified={entry.run.date_modified}
-                              className="text-xs text-muted-foreground"
-                            />
-                          </span>
-                        }
-                        nested
+                        label={renderTimelineVersionLabel(entry)}
+                        stacked
                       >
                         <CheckServiceRunTimelineItem
                           run={entry.run}
                           checkService={service}
                           basePath={basePath}
+                          hideDate
+                          hideIcon
                         />
                       </TimelineSection>
                     ))}

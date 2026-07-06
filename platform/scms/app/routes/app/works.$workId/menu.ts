@@ -2,6 +2,14 @@ import type { MenuContents } from '@curvenote/scms-core';
 import type { SubmissionWithVersionsAndSite } from './types';
 import { scopes } from '@curvenote/scms-core';
 
+function siteLogoFromMetadata(metadata: unknown): string | undefined {
+  if (!metadata || typeof metadata !== 'object' || !('logo' in metadata)) {
+    return undefined;
+  }
+  const logo = (metadata as { logo?: unknown }).logo;
+  return typeof logo === 'string' ? logo : undefined;
+}
+
 export function buildMenu(
   baseUrl: string,
   drafting: boolean,
@@ -37,17 +45,27 @@ export function buildMenu(
     });
   }
 
-  // Add menu items for each submission
-  submissions.forEach((submission) => {
-    // Use the latest submission version ID (versions are sorted newest first)
+  const submissionMenus = submissions.flatMap((submission) => {
     const latestVersionId = submission.versions[0]?.id;
-    if (!latestVersionId) return;
-    menus.push({
-      name: submission.site.name,
-      label: `${submission.site.title}`,
-      url: `${baseUrl}/site/${submission.site.name}/submission/${latestVersionId}`,
-    });
+    if (!latestVersionId) return [];
+    return [
+      {
+        label: submission.site.title,
+        url: `${baseUrl}/site/${submission.site.name}/submission/${latestVersionId}`,
+        logo: siteLogoFromMetadata(submission.site.metadata),
+        siteName: submission.site.name,
+      },
+    ];
   });
+
+  if (submissionMenus.length > 0) {
+    menus.push({
+      name: 'work.submissions',
+      label: 'Submissions',
+      url: submissionMenus[0].url,
+      subMenus: submissionMenus,
+    });
+  }
 
   return contents;
 }

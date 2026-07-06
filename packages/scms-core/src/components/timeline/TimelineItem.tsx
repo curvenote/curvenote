@@ -137,16 +137,20 @@ export function TimelineItemExpandable({
           className,
         )}
       >
-        <div className="flex size-4 shrink-0 items-center justify-center text-foreground [&>svg]:size-4">
-          {icon}
-        </div>
+        {icon != null ? (
+          <div className="flex size-4 shrink-0 items-center justify-center text-foreground [&>svg]:size-4">
+            {icon}
+          </div>
+        ) : null}
         <div className="flex flex-1 gap-2 items-center min-w-0">
           <div className="flex flex-1 items-center min-w-0 text-sm leading-none text-foreground">
             {message}
           </div>
-          <div className="flex items-center text-xs leading-none shrink-0 text-muted-foreground">
-            {date}
-          </div>
+          {date != null ? (
+            <div className="flex items-center text-xs leading-none shrink-0 text-muted-foreground">
+              {date}
+            </div>
+          ) : null}
         </div>
         {trailing != null && (
           <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>

@@ -1,3 +1,4 @@
+import type { Context } from '../../backend/types.js';
 import type { ClientDeploymentConfig } from '../../providers/DeploymentProvider.js';
 import type {
   ClientExtensionCheckService,
@@ -87,4 +88,36 @@ export function getExtensionCheckServiceFromServerConfig(
 ): ExtensionCheckService | undefined {
   const services = getExtensionCheckServicesFromServerConfig(serverConfig, extensions);
   return services.find((service) => service.id === checkServiceId);
+}
+
+/**
+ * Resolve upload-page logo URLs from check services that implement `resolveUploadLogoUrl`.
+ */
+export async function resolveUploadCheckLogoUrls(
+  ctx: Context,
+  serverConfig: AppConfig,
+  extensions: ServerExtension[],
+): Promise<Record<string, string | undefined>> {
+  const services = getExtensionCheckServicesFromServerConfig(serverConfig, extensions);
+  const out: Record<string, string | undefined> = {};
+  for (const service of services) {
+    if (!service.resolveUploadLogoUrl) continue;
+    out[service.id] = await service.resolveUploadLogoUrl(ctx);
+  }
+  return out;
+}
+
+/**
+ * Collect optional Design-page loader data from extensions that implement `getDesignLoaderData`.
+ */
+export async function resolveExtensionDesignLoaderData(
+  ctx: Context,
+  extensions: ServerExtension[],
+): Promise<Record<string, Record<string, unknown>>> {
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const ext of extensions) {
+    if (!ext.getDesignLoaderData) continue;
+    out[ext.id] = await ext.getDesignLoaderData(ctx);
+  }
+  return out;
 }

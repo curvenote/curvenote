@@ -303,11 +303,16 @@ export interface ExtensionCheckService {
   ) => Promise<ExtensionCheckHandleActionResult>;
   /** Get current status of a check run. */
   handleStatus?: (args: ExtensionCheckStatusArgs) => Promise<Response>;
+  /**
+   * Resolve manifest logo URL for the upload-page check card.
+   * When omitted, the platform does not supply a `logoUrl` for this service.
+   */
+  resolveUploadLogoUrl?: (ctx: Context) => Promise<string | undefined>;
 }
 
 export type ClientExtensionCheckService = Omit<
   ExtensionCheckService,
-  'handleAction' | 'handleStatus'
+  'handleAction' | 'handleStatus' | 'resolveUploadLogoUrl'
 >;
 
 /** Props for the optional extension admin card component (platform extensions page). Aligned with ExtensionAdminCardFallback. */
@@ -384,6 +389,13 @@ export interface ServerExtension extends ClientExtension {
    * specific extension identifiers.
    */
   getScopes?: () => ScopeTree;
+  /**
+   * Optional loader data for this extension's tab on the system Design page.
+   * Exposed as `extensionDesignLoaderData[extension.id]` on that route's loader and
+   * provided to the tab via `ExtensionDesignTabLoaderDataProvider` (read with
+   * `useExtensionDesignLoaderData()` inside extension design components).
+   */
+  getDesignLoaderData?: (ctx: Context) => Promise<Record<string, unknown>>;
 }
 
 export type RouteRegistration = {
