@@ -84,21 +84,80 @@ FROM dupes d
 JOIN keepers k ON k.work_id = d.work_id AND k.site_id = d.site_id
 WHERE ss.submission_id = d.duplicate_id;
 
-DELETE FROM "Slug"
-WHERE submission_id IN (
-  SELECT duplicate_id
-  FROM (
-    SELECT
-      id AS duplicate_id,
-      ROW_NUMBER() OVER (
-        PARTITION BY work_id, site_id
-        ORDER BY date_created ASC, id ASC
-      ) AS rn
-    FROM "Submission"
-    WHERE work_id IS NOT NULL
-  ) ranked
+WITH ranked AS (
+  SELECT
+    id,
+    work_id,
+    site_id,
+    ROW_NUMBER() OVER (
+      PARTITION BY work_id, site_id
+      ORDER BY date_created ASC, id ASC
+    ) AS rn
+  FROM "Submission"
+  WHERE work_id IS NOT NULL
+),
+dupes AS (
+  SELECT id AS duplicate_id, work_id, site_id
+  FROM ranked
   WHERE rn > 1
-);
+),
+keepers AS (
+  SELECT id AS keep_id, work_id, site_id
+  FROM ranked
+  WHERE rn = 1
+)
+UPDATE "Slug" slug
+SET
+  submission_id = k.keep_id,
+  "primary" = CASE
+    WHEN slug."primary" = true
+      AND EXISTS (
+        SELECT 1
+        FROM "Slug" keeper_slug
+        WHERE keeper_slug.submission_id = k.keep_id
+          AND keeper_slug."primary" = true
+      )
+    THEN false
+    ELSE slug."primary"
+  END
+FROM dupes d
+JOIN keepers k ON k.work_id = d.work_id AND k.site_id = d.site_id
+WHERE slug.submission_id = d.duplicate_id;
+
+-- At most one primary slug per submission after merge (keeper may inherit several).
+WITH ranked AS (
+  SELECT
+    id,
+    work_id,
+    site_id,
+    ROW_NUMBER() OVER (
+      PARTITION BY work_id, site_id
+      ORDER BY date_created ASC, id ASC
+    ) AS rn
+  FROM "Submission"
+  WHERE work_id IS NOT NULL
+),
+keepers AS (
+  SELECT id AS keep_id
+  FROM ranked
+  WHERE rn = 1
+),
+primary_ranked AS (
+  SELECT
+    slug.id,
+    ROW_NUMBER() OVER (
+      PARTITION BY slug.submission_id
+      ORDER BY slug.date_created ASC, slug.id ASC
+    ) AS rn
+  FROM "Slug" slug
+  WHERE slug.submission_id IN (SELECT keep_id FROM keepers)
+    AND slug."primary" = true
+)
+UPDATE "Slug" slug
+SET "primary" = false
+FROM primary_ranked pr
+WHERE slug.id = pr.id
+  AND pr.rn > 1;
 
 DELETE FROM "Submission"
 WHERE id IN (
