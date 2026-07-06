@@ -9,17 +9,22 @@ function makeCtx(options?: { tasksCallbackUrl?: string; apiUrl?: string }): Cont
     $config: {
       api: {
         tasksCallbackUrl: options?.tasksCallbackUrl,
-        url: options?.apiUrl,
+        url: options?.apiUrl ?? 'https://scms.example.com/v1',
       },
     },
   } as unknown as Context;
 }
 
 describe('workerJobUrl', () => {
-  it('uses request-derived URL when tasksCallbackUrl is unset', () => {
-    const ctx = makeCtx();
-    expect(workerJobUrl(ctx, '/jobs/abc')).toBe('http://localhost/v1/jobs/abc');
-    expect(ctx.asApiUrl).toHaveBeenCalledWith('/jobs/abc');
+  it('uses api.url when tasksCallbackUrl is unset', () => {
+    const ctx = makeCtx({ apiUrl: 'https://scms.example.com/v1' });
+    expect(workerJobUrl(ctx, '/jobs/abc')).toBe('https://scms.example.com/v1/jobs/abc');
+    expect(ctx.asApiUrl).not.toHaveBeenCalled();
+  });
+
+  it('uses api.url from synthetic queue context instead of localhost request origin', () => {
+    const ctx = makeCtx({ apiUrl: 'https://staging.scms.example.com/v1' });
+    expect(workerJobUrl(ctx, '/jobs/abc')).toBe('https://staging.scms.example.com/v1/jobs/abc');
   });
 
   it('uses tasksCallbackUrl when configured', () => {

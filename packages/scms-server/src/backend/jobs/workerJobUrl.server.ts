@@ -1,21 +1,19 @@
 import { httpError } from '@curvenote/scms-core';
-import type { Context } from '../context.server.js';
+import type { Context } from '@curvenote/scms-core';
 
 /**
- * Job URL passed to async workers (Pub/Sub attributes).
+ * Absolute v1 API URL for async worker callbacks (Pub/Sub attributes).
  *
- * Defaults to the incoming request origin via `ctx.asApiUrl`. When
- * `api.tasksCallbackUrl` is set (local dev with workers in Docker), uses that
- * base instead so PATCH callbacks reach the host (e.g. host.docker.internal).
+ * Prefers `api.tasksCallbackUrl` (local dev with workers in Docker, e.g.
+ * host.docker.internal). Otherwise uses `api.url` from app-config — not the
+ * incoming request origin, because queue handlers run under a synthetic
+ * `http://localhost/internal/jobs/run` context.
  */
 export function workerJobUrl(ctx: Context, jobPath: string): string {
-  const configured = ctx.$config.api.tasksCallbackUrl;
-  if (configured) {
-    const base = configured.replace(/\/$/, '');
-    const path = jobPath.startsWith('/') ? jobPath : `/${jobPath}`;
-    return `${base}${path}`;
-  }
-  return ctx.asApiUrl(jobPath);
+  const path = jobPath.startsWith('/') ? jobPath : `/${jobPath}`;
+  const configured = ctx.$config.api.tasksCallbackUrl ?? ctx.$config.api.url;
+  const base = configured.replace(/\/$/, '');
+  return `${base}${path}`;
 }
 
 /**
