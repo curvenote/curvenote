@@ -391,7 +391,9 @@ export interface ServerExtension extends ClientExtension {
   getScopes?: () => ScopeTree;
   /**
    * Optional loader data for this extension's tab on the system Design page.
-   * Exposed as `extensionDesignLoaderData[extension.id]` on that route's loader.
+   * Exposed as `extensionDesignLoaderData[extension.id]` on that route's loader and
+   * provided to the tab via `ExtensionDesignTabLoaderDataProvider` (read with
+   * `useExtensionDesignLoaderData()` inside extension design components).
    */
   getDesignLoaderData?: (ctx: Context) => Promise<Record<string, unknown>>;
 }

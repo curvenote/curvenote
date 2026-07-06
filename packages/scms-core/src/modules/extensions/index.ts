@@ -2,6 +2,7 @@ export * from './analytics.js';
 export * from './ExtensionAdminCard.js';
 export * from './ServiceLogo.js';
 export * from './checks.js';
+export * from './ExtensionDesignLoaderData.js';
 export * from './check-maintenance.js';
 export * from './CheckMaintenanceAdminPanel.js';
 export * from './email-templates.js';
