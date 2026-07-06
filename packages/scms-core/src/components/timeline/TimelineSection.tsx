@@ -58,7 +58,7 @@ export function TimelineSection({
     <div
       className={cn(
         'overflow-hidden rounded-lg border divide-y shadow-sm bg-card text-card-foreground divide-border border-border',
-        stacked ? 'min-w-0' : nested ? 'flex-1 min-w-0' : 'ml-5',
+        stacked ? 'col-start-2 min-w-0' : nested ? 'flex-1 min-w-0' : 'ml-5',
       )}
     >
       {children}
@@ -71,16 +71,13 @@ export function TimelineSection({
         <div className="relative z-10 -ml-[8px] p-1 shrink-0 self-start">
           {icon ?? <GitBranch className="w-5 h-5 bg-background text-foreground/60" />}
         </div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-sm text-foreground">{label}</span>
+        <div className="flex gap-1.5 items-center min-w-0">
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="text-sm text-foreground">{label}</span>
+          </div>
+          {trailing != null && <div className="ml-auto shrink-0">{trailing}</div>}
         </div>
-        <div
-          className={cn(
-            'col-start-2 min-w-0 overflow-hidden rounded-lg border divide-y shadow-sm bg-card text-card-foreground divide-border border-border',
-          )}
-        >
-          {children}
-        </div>
+        {content}
       </div>
     );
   }
