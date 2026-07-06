@@ -1,5 +1,28 @@
 # @curvenote/scms-core
 
+## 0.23.0
+
+### Minor Changes
+
+- [#978](https://github.com/curvenote/curvenote/pull/978) [`c815443`](https://github.com/curvenote/curvenote/commit/c815443cda6ec2f0f6e9d2547f3c257d709b56ce) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a create-work flow registry with `WorkCreateOption`, metadata resolution, and a `CreateWorkDropdown` on My Works. Route create-new-version via extension handlers based on work metadata, and skip the upload redirect for draft PMC deposit routes in the works layout.
+
+- [#982](https://github.com/curvenote/curvenote/pull/982) [`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add cron-backed platform automation for scheduled jobs and check retries. This introduces CronJob schema and admin UI, scoped cron callback authentication, scheduled job promotion, cron-driven queue drain, queue pause/resume controls, CheckServiceRun retry columns, and related job-queue hardening for automated execution.
+
+- [#980](https://github.com/curvenote/curvenote/pull/980) [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add scope-gated submit-to-site from the work details page. Users with `app:works:submit-to-site` can pick a work version and submit to an available SCMS site from the Submitted to bar; others see guidance with a link to contact support for early access.
+
+- [#980](https://github.com/curvenote/curvenote/pull/980) [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Document extension `createWorkVersion` contains contract. Manual POST `/v1/works` defaults omitted `contains` to `["myst"]` on work and first version; site form versions store explicit `[]`.
+
+### Patch Changes
+
+- [#977](https://github.com/curvenote/curvenote/pull/977) [`9848bab`](https://github.com/curvenote/curvenote/commit/9848bab45b66aeb61599c019e25803f504cb75d2) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Show latest check run summaries on the My Works listing and Work Timeline popover, and add an extension slot for compact work list check summary content.
+
+- [#984](https://github.com/curvenote/curvenote/pull/984) [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Items relating to site submissions wiihtin the work item secondary navigation are not nested under a submissions expandable mentu item
+
+- [#984](https://github.com/curvenote/curvenote/pull/984) [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Polish My Works check and submission badges: align work-list chip sizing, lighten site submission badge borders, tighten stacked checks timeline layout, and load the text-integrity design manifest from configured service status.
+
+- Updated dependencies [[`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240)]:
+  - @curvenote/scms-db@0.23.0
+
 ## 0.22.2
 
 ### Patch Changes
