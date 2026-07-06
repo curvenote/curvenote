@@ -7,5 +7,9 @@ export { default as get } from './get.server.js';
 export * from './get.server.js';
 export { default as list } from './list.server.js';
 export * from './list.server.js';
-export { default as create, createReturningVersion } from './create.server.js';
+export {
+  default as create,
+  createReturningVersion,
+  notifyNewSubmissionCreated,
+} from './create.server.js';
 export * from './slugs.server.js';

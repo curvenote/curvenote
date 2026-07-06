@@ -42,8 +42,11 @@ type ExistingSubmissionForSubmit = {
   versions: ExistingSubmissionVersionForSubmit[];
 };
 
-type SubmitWorkVersionToSiteDeps = {
+export type SubmitWorkVersionToSiteContext = {
   findExistingSubmission: () => Promise<ExistingSubmissionForSubmit | null>;
+};
+
+type SubmitWorkVersionToSiteDeps = {
   createSubmissionVersion: (submissionId: string) => Promise<{ id: string }>;
   createNewSubmissionReturningVersion: () => Promise<{ id: string }>;
 };
@@ -53,6 +56,11 @@ export class SubmitToSiteConfigError extends Error {
     super(message);
     this.name = 'SubmitToSiteConfigError';
   }
+}
+
+/** Stable advisory-lock key for one work submitting to one site. */
+export function workSiteSubmitLockKey(workId: string, siteId: string): string {
+  return `work-site-submit:${workId}:${siteId}`;
 }
 
 /** Pick the submission version for a work version, if any. */
@@ -72,20 +80,6 @@ export function isAlreadySubmittedVersion(
     return false;
   }
   return existingVersion.status !== 'DRAFT';
-}
-
-export function isSubmissionWorkSiteUniqueViolation(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null || !('code' in error)) {
-    return false;
-  }
-  if ((error as { code?: string }).code !== 'P2002') {
-    return false;
-  }
-  const target = (error as { meta?: { target?: unknown } }).meta?.target;
-  if (Array.isArray(target)) {
-    return target.includes('work_id') && target.includes('site_id');
-  }
-  return typeof target === 'string' && target.includes('work_id') && target.includes('site_id');
 }
 
 async function finishSubmitOnExistingSubmission(
@@ -116,13 +110,17 @@ async function finishSubmitOnExistingSubmission(
   };
 }
 
-/** Idempotent submit: reuse an existing submission or create one, with race-safe retry. */
+/**
+ * Idempotent submit: reuse an existing submission or create one.
+ * Call inside a transaction that holds `pg_advisory_xact_lock` for the work/site pair.
+ */
 export async function submitWorkVersionToSite(
+  submitCtx: SubmitWorkVersionToSiteContext,
   deps: SubmitWorkVersionToSiteDeps,
   selectedWorkVersionId: string,
   siteName: string,
 ): Promise<SubmitToSiteActionResult> {
-  const existingSubmission = await deps.findExistingSubmission();
+  const existingSubmission = await submitCtx.findExistingSubmission();
   if (existingSubmission) {
     return finishSubmitOnExistingSubmission(
       existingSubmission,
@@ -132,29 +130,13 @@ export async function submitWorkVersionToSite(
     );
   }
 
-  try {
-    const submissionVersion = await deps.createNewSubmissionReturningVersion();
-    return {
-      success: true,
-      intent: 'submit-to-site',
-      siteName,
-      submissionVersionId: submissionVersion.id,
-    };
-  } catch (error) {
-    if (!isSubmissionWorkSiteUniqueViolation(error)) {
-      throw error;
-    }
-    const racedSubmission = await deps.findExistingSubmission();
-    if (!racedSubmission) {
-      throw error;
-    }
-    return finishSubmitOnExistingSubmission(
-      racedSubmission,
-      selectedWorkVersionId,
-      siteName,
-      deps.createSubmissionVersion,
-    );
-  }
+  const submissionVersion = await deps.createNewSubmissionReturningVersion();
+  return {
+    success: true,
+    intent: 'submit-to-site',
+    siteName,
+    submissionVersionId: submissionVersion.id,
+  };
 }
 
 export function canUserSubmitToSite(user: UserWithScopes, site: SubmitTargetSite): boolean {
