@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import { buildMenu } from './menu';
 import { scopes } from '@curvenote/scms-core';
@@ -60,7 +61,7 @@ describe('buildMenu', () => {
         {
           site: { name: 'biorxiv', title: 'BioRxiv' },
           versions: [],
-        } as Parameters<typeof buildMenu>[2][number],
+        } as unknown as Parameters<typeof buildMenu>[2][number],
       ],
       [],
     );
