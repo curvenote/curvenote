@@ -19,7 +19,7 @@ import {
   type CronTickStatus,
   type PgCronHealth,
 } from '@curvenote/scms-server';
-import { PageFrame, ui } from '@curvenote/scms-core';
+import { PageFrame, SectionWithHeading, ui } from '@curvenote/scms-core';
 import type { CronJob } from '@curvenote/scms-db';
 import { Clock, KeyRound, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { CronJobListItem } from './CronJobListItem';
@@ -272,9 +272,10 @@ function ConfigTab({
 
 function JobsTab({ jobs, allowedHosts }: { jobs: CronJobListRow[]; allowedHosts: string[] }) {
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="mb-4 text-lg font-semibold">Cron jobs</h2>
+    <div className="space-y-2">
+      <CreateCronJobForm allowedHosts={allowedHosts} />
+
+      <SectionWithHeading heading="Cron jobs" icon={Clock}>
         {jobs.length === 0 ? (
           <p className="text-sm text-muted-foreground">No cron jobs configured.</p>
         ) : (
@@ -286,9 +287,7 @@ function JobsTab({ jobs, allowedHosts }: { jobs: CronJobListRow[]; allowedHosts:
             ))}
           </div>
         )}
-      </div>
-
-      <CreateCronJobForm allowedHosts={allowedHosts} />
+      </SectionWithHeading>
     </div>
   );
 }

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { useFetcher, useRevalidator } from 'react-router';
-import { CronEndpointScopes, ui } from '@curvenote/scms-core';
-import { Plus } from 'lucide-react';
+import { Plus, PlusCircle } from 'lucide-react';
+import { CronEndpointScopes, cn, primitives, ui, useExpandableForm } from '@curvenote/scms-core';
 
 type CreateActionData = {
   success?: boolean;
@@ -12,28 +12,22 @@ type CreateActionData = {
 export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) {
   const fetcher = useFetcher<CreateActionData>();
   const revalidator = useRevalidator();
-  const prevFetcherState = useRef(fetcher.state);
-  const [formKey, setFormKey] = useState(0);
 
-  const isSubmitting = fetcher.state !== 'idle';
+  const { isExpanded, isExiting, expand, handleCancel, formRef, onSubmit } = useExpandableForm(
+    fetcher,
+    { animationDuration: 200 },
+  );
+
+  const isSubmitting = fetcher.state === 'submitting';
 
   useEffect(() => {
-    const wasBusy = prevFetcherState.current !== 'idle';
-    prevFetcherState.current = fetcher.state;
-
-    if (!wasBusy || fetcher.state !== 'idle' || !fetcher.data) {
-      return;
-    }
-
-    if (fetcher.data.error) {
-      ui.toastError(fetcher.data.error.message);
-      return;
-    }
-
-    if (fetcher.data.success) {
-      ui.toastSuccess(fetcher.data.message ?? 'Cron job created successfully');
-      setFormKey((k) => k + 1);
-      revalidator.revalidate();
+    if (fetcher.state === 'idle' && fetcher.data) {
+      if (fetcher.data.error) {
+        ui.toastError(fetcher.data.error.message);
+      } else if (fetcher.data.success) {
+        ui.toastSuccess(fetcher.data.message ?? 'Cron job created successfully');
+        revalidator.revalidate();
+      }
     }
   }, [fetcher.state, fetcher.data, revalidator]);
 
@@ -41,105 +35,133 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
     allowedHosts.length > 0 ? allowedHosts.join(', ') : 'configured API hosts from app-config';
 
   return (
-    <div>
-      <h3 className="mb-4 text-lg font-semibold">Create HTTP cron (HANDSHAKE)</h3>
-      <fetcher.Form key={formKey} method="post" className="grid gap-4 max-w-xl">
-        <input type="hidden" name="intent" value="create" />
-
-        <div>
-          <ui.Label htmlFor="cron-name">Name *</ui.Label>
-          <ui.Input
-            id="cron-name"
-            name="name"
-            placeholder="My New Cron"
-            required
-            disabled={isSubmitting}
-            className="mt-1"
-          />
-          <p className="mt-1 text-sm text-muted-foreground">
-            Unique name shown in the cron job list
-          </p>
+    <div className="space-y-0">
+      {!isExpanded && (
+        <div className="flex justify-end">
+          <ui.Button onClick={expand} variant="default" disabled={isSubmitting}>
+            <PlusCircle className="mr-2 w-4 h-4" />
+            Add Cron Job
+          </ui.Button>
         </div>
+      )}
 
-        <div>
-          <ui.Label htmlFor="cron-description">Description</ui.Label>
-          <ui.Input
-            id="cron-description"
-            name="description"
-            placeholder="Runs the nightly sweep for stale jobs"
-            disabled={isSubmitting}
-            className="mt-1"
-          />
-          <p className="mt-1 text-sm text-muted-foreground">
-            Optional details shown below the name in the list
-          </p>
-        </div>
+      {isExpanded && (
+        <primitives.Card className="p-6 bg-white dark:bg-white">
+          <fetcher.Form
+            ref={formRef}
+            onSubmit={onSubmit}
+            method="post"
+            className={cn('space-y-4', isExiting && 'animate-out fade-out duration-200')}
+          >
+            <input type="hidden" name="intent" value="create" />
 
-        <div>
-          <ui.Label htmlFor="cron-schedule">Schedule *</ui.Label>
-          <ui.Input
-            id="cron-schedule"
-            name="schedule"
-            placeholder="* * * * *"
-            required
-            disabled={isSubmitting}
-            className="mt-1 font-mono"
-          />
-          <p className="mt-1 text-sm text-muted-foreground">Standard cron expression (UTC)</p>
-        </div>
+            <div className="text-lg font-semibold">Add Cron Job</div>
 
-        <div>
-          <ui.Label htmlFor="cron-http-method">HTTP method</ui.Label>
-          <ui.Input
-            id="cron-http-method"
-            name="http_method"
-            defaultValue="POST"
-            disabled={isSubmitting}
-            className="mt-1 font-mono"
-          />
-        </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <ui.Label htmlFor="cron-name">Name *</ui.Label>
+                <ui.Input
+                  id="cron-name"
+                  name="name"
+                  placeholder="My New Cron"
+                  required
+                  autoFocus
+                  disabled={isSubmitting}
+                  className="mt-1"
+                />
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Unique name shown in the cron job list
+                </p>
+              </div>
 
-        <div>
-          <ui.Label htmlFor="cron-target-url">Target URL *</ui.Label>
-          <ui.Input
-            id="cron-target-url"
-            name="target_url"
-            placeholder="http://localhost:3031/v1/..."
-            required
-            disabled={isSubmitting}
-            className="mt-1 font-mono text-xs"
-          />
-          <p className="mt-1 text-sm text-muted-foreground">
-            Must use an allowed API host:{' '}
-            <code className="text-xs bg-muted px-1 rounded">{allowedHostsHint}</code>
-          </p>
-        </div>
+              <div>
+                <ui.Label htmlFor="cron-description">Description</ui.Label>
+                <ui.Input
+                  id="cron-description"
+                  name="description"
+                  placeholder="Runs the nightly sweep for stale jobs"
+                  disabled={isSubmitting}
+                  className="mt-1"
+                />
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Optional details shown below the name in the list
+                </p>
+              </div>
+            </div>
 
-        <div>
-          <ui.Label htmlFor="cron-target-scope">Scope</ui.Label>
-          <ui.Input
-            id="cron-target-scope"
-            name="target_scope"
-            placeholder={CronEndpointScopes.JOB_QUEUE_DRAIN}
-            disabled={isSubmitting}
-            className="mt-1 font-mono text-xs"
-          />
-          <p className="mt-1 text-sm text-muted-foreground">
-            Optional. Derived from the target URL when left blank.
-          </p>
-        </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <ui.Label htmlFor="cron-schedule">Schedule *</ui.Label>
+                <ui.Input
+                  id="cron-schedule"
+                  name="schedule"
+                  placeholder="* * * * *"
+                  required
+                  disabled={isSubmitting}
+                  className="mt-1 font-mono"
+                />
+                <p className="mt-1 text-sm text-muted-foreground">Standard cron expression (UTC)</p>
+              </div>
 
-        <ui.StatefulButton
-          type="submit"
-          className="w-fit"
-          overlayBusy
-          busy={isSubmitting}
-          disabled={isSubmitting}
-        >
-          <Plus className="mr-2 w-4 h-4" />
-          Create
-        </ui.StatefulButton>
-      </fetcher.Form>
+              <div>
+                <ui.Label htmlFor="cron-http-method">HTTP method</ui.Label>
+                <ui.Input
+                  id="cron-http-method"
+                  name="http_method"
+                  defaultValue="POST"
+                  disabled={isSubmitting}
+                  className="mt-1 font-mono"
+                />
+              </div>
+            </div>
+
+            <div>
+              <ui.Label htmlFor="cron-target-url">Target URL *</ui.Label>
+              <ui.Input
+                id="cron-target-url"
+                name="target_url"
+                placeholder="http://localhost:3031/v1/..."
+                required
+                disabled={isSubmitting}
+                className="mt-1 font-mono text-xs"
+              />
+              <p className="mt-1 text-sm text-muted-foreground">
+                Must use an allowed API host:{' '}
+                <code className="text-xs bg-muted px-1 rounded">{allowedHostsHint}</code>
+              </p>
+            </div>
+
+            <div>
+              <ui.Label htmlFor="cron-target-scope">Scope</ui.Label>
+              <ui.Input
+                id="cron-target-scope"
+                name="target_scope"
+                placeholder={CronEndpointScopes.JOB_QUEUE_DRAIN}
+                disabled={isSubmitting}
+                className="mt-1 font-mono text-xs"
+              />
+              <p className="mt-1 text-sm text-muted-foreground">
+                Optional. Derived from the target URL when left blank.
+              </p>
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <ui.Button type="button" variant="ghost" onClick={handleCancel}>
+                Cancel
+              </ui.Button>
+              <ui.StatefulButton
+                type="submit"
+                overlayBusy
+                busy={isSubmitting}
+                disabled={isSubmitting}
+              >
+                <Plus className="mr-2 w-4 h-4" />
+                Create Cron Job
+              </ui.StatefulButton>
+            </div>
+          </fetcher.Form>
+        </primitives.Card>
+      )}
     </div>
   );
 }
