@@ -48,6 +48,7 @@ import {
   computeManuscriptSourceSignature,
   UPLOAD_ANALYSIS_METADATA_KEY,
   uploadFactPresenceFromValue,
+  clearUploadAnalysisMetadataFacts,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -781,7 +782,7 @@ export async function action(args: Route.ActionArgs) {
           const next = { ...meta };
           delete next['frontmatter.myst'];
           delete next[METADATA_EXTRACT_SOURCE_KEY];
-          return next as Prisma.JsonObject;
+          return clearUploadAnalysisMetadataFacts(next) as Prisma.JsonObject;
         });
         const prisma = await getPrismaClient();
         await prisma.workVersion.update({

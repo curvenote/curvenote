@@ -4,6 +4,7 @@ import type { UploadCheckEligibilityContext } from '../modules/extensions/types.
 import {
   WORK_VERSION_DOCX_MIME,
   UPLOAD_ANALYSIS_METADATA_KEY,
+  clearUploadAnalysisMetadataFacts,
   computeManuscriptSourceSignature,
   getFilesForSlot,
   getUploadCheckEligibilityContext,
@@ -145,6 +146,52 @@ describe('workVersionMetadata', () => {
     expect(getUploadCheckEligibilityContext(metadata)).toEqual({
       document: { images: 'absent' },
       metadata: { title: 'present', authors: 'absent', affiliations: 'unknown' },
+    });
+  });
+
+  it('clearUploadAnalysisMetadataFacts drops metadata facts but keeps document facts', () => {
+    const metadata = {
+      files: {
+        a: {
+          slot: 'manuscript',
+          path: 'a.pdf',
+          type: 'application/pdf',
+          md5: 'source-a',
+        },
+      },
+      'frontmatter.myst': { title: 'Cached title' },
+      [UPLOAD_ANALYSIS_METADATA_KEY]: {
+        sourceSignature: 'source-a',
+        document: { images: 'present' },
+        metadata: { title: 'present', authors: 'absent', affiliations: 'unknown' },
+      },
+    };
+
+    const cleared = clearUploadAnalysisMetadataFacts(metadata);
+    expect(cleared['frontmatter.myst']).toEqual({ title: 'Cached title' });
+    expect(cleared[UPLOAD_ANALYSIS_METADATA_KEY]).toEqual({
+      sourceSignature: 'source-a',
+      document: { images: 'present' },
+    });
+    expect(getUploadCheckEligibilityContext(cleared)).toEqual({
+      document: { images: 'present' },
+      metadata: { title: 'unknown', authors: 'unknown', affiliations: 'unknown' },
+    });
+  });
+
+  it('clearUploadAnalysisMetadataFacts removes upload analysis when only metadata facts exist', () => {
+    const metadata = {
+      [UPLOAD_ANALYSIS_METADATA_KEY]: {
+        sourceSignature: 'source-a',
+        metadata: { title: 'present', authors: 'present', affiliations: 'absent' },
+      },
+    };
+
+    const cleared = clearUploadAnalysisMetadataFacts(metadata);
+    expect(cleared[UPLOAD_ANALYSIS_METADATA_KEY]).toBeUndefined();
+    expect(getUploadCheckEligibilityContext(cleared)).toEqual({
+      document: { images: 'unknown' },
+      metadata: { title: 'unknown', authors: 'unknown', affiliations: 'unknown' },
     });
   });
 

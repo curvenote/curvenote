@@ -102,6 +102,29 @@ export function computeManuscriptSourceSignature(metadata: unknown): string {
  * Missing, malformed, or stale analysis is treated as unknown so checks keep their
  * existing behavior unless analysis confidently proves a fact.
  */
+/**
+ * Removes metadata-extraction upload analysis facts (title, authors, affiliations).
+ * Document-level facts from preview generation (e.g. image presence) are preserved.
+ */
+export function clearUploadAnalysisMetadataFacts(
+  metadata: Record<string, unknown>,
+): Record<string, unknown> {
+  const analysis = readUploadAnalysisMetadata(metadata);
+  if (!analysis?.metadata) return { ...metadata };
+
+  const next = { ...metadata };
+  const analysisWithoutMetadata: UploadAnalysisMetadata = { ...analysis };
+  delete analysisWithoutMetadata.metadata;
+  const hasDocumentImages = isUploadFactPresence(analysisWithoutMetadata.document?.images);
+
+  if (hasDocumentImages) {
+    next[UPLOAD_ANALYSIS_METADATA_KEY] = analysisWithoutMetadata;
+  } else {
+    delete next[UPLOAD_ANALYSIS_METADATA_KEY];
+  }
+  return next;
+}
+
 export function getUploadCheckEligibilityContext(metadata: unknown): UploadCheckEligibilityContext {
   const analysis = readUploadAnalysisMetadata(metadata);
   if (!analysis) return UNKNOWN_UPLOAD_CHECK_ELIGIBILITY_CONTEXT;
