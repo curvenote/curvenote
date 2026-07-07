@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useFetcher, useRevalidator } from 'react-router';
 import { Plus, PlusCircle } from 'lucide-react';
 import { CronEndpointScopes, cn, primitives, ui, useExpandableForm } from '@curvenote/scms-core';
+import { CRON_HTTP_METHODS, type CronHttpMethod } from './constants';
 
 type CreateActionData = {
   success?: boolean;
@@ -19,6 +20,13 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
   );
 
   const isSubmitting = fetcher.state === 'submitting';
+  const [httpMethod, setHttpMethod] = useState<CronHttpMethod>('POST');
+
+  useEffect(() => {
+    if (!isExpanded) {
+      setHttpMethod('POST');
+    }
+  }, [isExpanded]);
 
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
@@ -105,13 +113,23 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
 
               <div>
                 <ui.Label htmlFor="cron-http-method">HTTP method</ui.Label>
-                <ui.Input
-                  id="cron-http-method"
-                  name="http_method"
-                  defaultValue="POST"
+                <input type="hidden" name="http_method" value={httpMethod} />
+                <ui.Select
+                  value={httpMethod}
+                  onValueChange={(value) => setHttpMethod(value as CronHttpMethod)}
                   disabled={isSubmitting}
-                  className="mt-1 font-mono"
-                />
+                >
+                  <ui.SelectTrigger id="cron-http-method" className="mt-1 font-mono">
+                    <ui.SelectValue placeholder="Select method" />
+                  </ui.SelectTrigger>
+                  <ui.SelectContent>
+                    {CRON_HTTP_METHODS.map((method) => (
+                      <ui.SelectItem key={method} value={method}>
+                        {method}
+                      </ui.SelectItem>
+                    ))}
+                  </ui.SelectContent>
+                </ui.Select>
               </div>
             </div>
 

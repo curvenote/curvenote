@@ -10,13 +10,20 @@ import {
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 } from 'uuidv7';
+import { CRON_HTTP_METHODS } from './constants.js';
+
+export { CRON_HTTP_METHODS } from './constants.js';
 
 export const CreateCronJobSchema = zfd.formData({
   intent: z.literal('create'),
   name: zfd.text(z.string().trim().min(1, 'Name is required')),
   description: zfd.text(z.string().trim().optional()),
   schedule: zfd.text(z.string().trim().min(1, 'Schedule is required')),
-  http_method: zfd.text(z.string().trim().min(1).default('POST')),
+  http_method: zfd.text(
+    z.enum(CRON_HTTP_METHODS, {
+      errorMap: () => ({ message: 'HTTP method must be GET, POST, PUT, PATCH, or DELETE' }),
+    }),
+  ),
   target_url: zfd.text(z.string().trim().url('Target URL must be a valid absolute URL')),
   target_scope: zfd.text(z.string().trim().optional()),
 });
