@@ -80,10 +80,10 @@ export function CronJobListItem({ job }: { job: CronJobListRow }) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
             <h3 className="text-lg font-medium text-gray-900 truncate dark:text-gray-100">
-              {job.description ?? job.name}
+              {job.name}
             </h3>
             {job.description ? (
-              <p className="font-mono text-xs text-muted-foreground truncate">{job.name}</p>
+              <p className="text-sm text-muted-foreground truncate">{job.description}</p>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-1">

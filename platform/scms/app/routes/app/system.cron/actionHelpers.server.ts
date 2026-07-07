@@ -11,21 +11,10 @@ import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 } from 'uuidv7';
 
-const CRON_NAME_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
 export const CreateCronJobSchema = zfd.formData({
   intent: z.literal('create'),
-  name: zfd.text(
-    z
-      .string()
-      .trim()
-      .min(1, 'Identifier is required')
-      .regex(
-        CRON_NAME_REGEX,
-        'Identifier must use lowercase letters, numbers, and hyphens only (e.g. my-new-cron)',
-      ),
-  ),
-  description: zfd.text(z.string().trim().min(1, 'Display name is required')),
+  name: zfd.text(z.string().trim().min(1, 'Name is required')),
+  description: zfd.text(z.string().trim().optional()),
   schedule: zfd.text(z.string().trim().min(1, 'Schedule is required')),
   http_method: zfd.text(z.string().trim().min(1).default('POST')),
   target_url: zfd.text(z.string().trim().url('Target URL must be a valid absolute URL')),
@@ -51,7 +40,7 @@ export async function handleCreateCronJob(ctx: SecureContext, formData: FormData
 
     await dbCreateCronJob(uuidv7(), {
       name: payload.name,
-      description: payload.description,
+      description: payload.description || null,
       schedule: payload.schedule,
       target_type: CronJobTargetType.HTTP,
       target_url: targetUrl,

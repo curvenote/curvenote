@@ -9,32 +9,13 @@ type CreateActionData = {
   error?: { message: string };
 };
 
-function slugifyDisplayName(displayName: string): string {
-  return displayName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
 export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) {
   const fetcher = useFetcher<CreateActionData>();
   const revalidator = useRevalidator();
   const prevFetcherState = useRef(fetcher.state);
   const [formKey, setFormKey] = useState(0);
 
-  const [displayName, setDisplayName] = useState('');
-  const [name, setName] = useState('');
-  const [isNameManuallyEdited, setIsNameManuallyEdited] = useState(false);
-
   const isSubmitting = fetcher.state !== 'idle';
-
-  useEffect(() => {
-    if (!isNameManuallyEdited) {
-      setName(slugifyDisplayName(displayName));
-    }
-  }, [displayName, isNameManuallyEdited]);
 
   useEffect(() => {
     const wasBusy = prevFetcherState.current !== 'idle';
@@ -51,9 +32,6 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
 
     if (fetcher.data.success) {
       ui.toastSuccess(fetcher.data.message ?? 'Cron job created successfully');
-      setDisplayName('');
-      setName('');
-      setIsNameManuallyEdited(false);
       setFormKey((k) => k + 1);
       revalidator.revalidate();
     }
@@ -69,40 +47,31 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
         <input type="hidden" name="intent" value="create" />
 
         <div>
-          <ui.Label htmlFor="cron-display-name">Display name *</ui.Label>
+          <ui.Label htmlFor="cron-name">Name *</ui.Label>
           <ui.Input
-            id="cron-display-name"
-            name="description"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            id="cron-name"
+            name="name"
             placeholder="My New Cron"
             required
             disabled={isSubmitting}
             className="mt-1"
           />
           <p className="mt-1 text-sm text-muted-foreground">
-            Human-readable label shown in the list
+            Unique name shown in the cron job list
           </p>
         </div>
 
         <div>
-          <ui.Label htmlFor="cron-name">Identifier *</ui.Label>
+          <ui.Label htmlFor="cron-description">Description</ui.Label>
           <ui.Input
-            id="cron-name"
-            name="name"
-            value={name}
-            onChange={(e) => {
-              setIsNameManuallyEdited(true);
-              setName(e.target.value);
-            }}
-            placeholder="my-new-cron"
-            required
+            id="cron-description"
+            name="description"
+            placeholder="Runs the nightly sweep for stale jobs"
             disabled={isSubmitting}
-            className="mt-1 font-mono"
-            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+            className="mt-1"
           />
           <p className="mt-1 text-sm text-muted-foreground">
-            Unique ID: lowercase letters, numbers, and hyphens only (no spaces)
+            Optional details shown below the name in the list
           </p>
         </div>
 
