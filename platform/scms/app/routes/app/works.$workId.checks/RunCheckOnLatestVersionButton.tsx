@@ -1,5 +1,5 @@
 import { useFetcher } from 'react-router';
-import { GitBranch } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { ui, useCheckMaintenanceBlocked } from '@curvenote/scms-core';
 
 type RunCheckOnLatestVersionButtonProps = {
@@ -38,7 +38,7 @@ export function RunCheckOnLatestVersionButton({
           disabled={blocked}
         >
           <span className="flex gap-1 items-center">
-            <GitBranch className="w-3 h-3" aria-hidden />
+            <ShieldCheck className="w-3 h-3" aria-hidden />
             Check Latest Version
           </span>
         </ui.StatefulButton>
