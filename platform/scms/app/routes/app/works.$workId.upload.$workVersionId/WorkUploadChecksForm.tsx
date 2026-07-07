@@ -1,4 +1,4 @@
-import type { ExtensionCheckService } from '@curvenote/scms-core';
+import type { ExtensionCheckService, UploadCheckEligibilityContext } from '@curvenote/scms-core';
 import {
   UploadCheckOptionCard,
   UPLOAD_CHECKS_GRID_CLASS,
@@ -23,18 +23,19 @@ function UploadCheckServiceCard({
   workVersionId,
   enabled,
   metadata,
+  eligibilityContext,
   uploadCheckLogoUrls,
 }: {
   service: ExtensionCheckService;
   workVersionId: string;
   enabled: boolean;
   metadata: unknown;
+  eligibilityContext: UploadCheckEligibilityContext;
   uploadCheckLogoUrls?: Record<string, string | undefined>;
 }) {
   const { blocked: underMaintenance, message: maintenanceMessage } = useCheckMaintenanceBlocked(
     service.id,
   );
-  const eligibilityContext = getUploadCheckEligibilityContext(metadata);
   const eligible = service.isUploadEligible?.(metadata, eligibilityContext) ?? true;
   const { disabled, invalid } = resolveUploadCheckCardState({
     eligible,
@@ -62,6 +63,8 @@ export function WorkUploadChecksForm({
   metadata,
   uploadCheckLogoUrls,
 }: WorkUploadChecksFormProps) {
+  const eligibilityContext = getUploadCheckEligibilityContext(metadata);
+
   return (
     <div className={UPLOAD_CHECKS_GRID_CLASS}>
       {checkServices.map((service) => (
@@ -71,6 +74,7 @@ export function WorkUploadChecksForm({
           workVersionId={workVersionId}
           enabled={enabled.includes(service.id as (typeof enabled)[number])}
           metadata={metadata}
+          eligibilityContext={eligibilityContext}
           uploadCheckLogoUrls={uploadCheckLogoUrls}
         />
       ))}
