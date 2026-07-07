@@ -1,7 +1,11 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import type { OfficeContentNode, OfficeParserAST } from 'officeparser';
-import { astContentToPlainText, truncateAstToFirstPage } from './fetchPreviews.server';
+import {
+  astContentToPlainText,
+  resolvePreviewImagePresence,
+  truncateAstToFirstPage,
+} from './fetchPreviews.server';
 
 function textNode(text: string): OfficeContentNode {
   return { type: 'text', text } as OfficeContentNode;
@@ -61,5 +65,31 @@ describe('fetch preview truncation', () => {
 
     expect(result.content).toHaveLength(10);
     expect(result.wasTruncated).toBe(true);
+  });
+});
+
+describe('resolvePreviewImagePresence', () => {
+  it('returns present when any reliable preview has figures', () => {
+    expect(
+      resolvePreviewImagePresence(
+        ['a.pdf'],
+        [{ path: 'a.pdf', figures: [{ key: 'figure.webp' }] }],
+      ),
+    ).toBe('present');
+  });
+
+  it('returns absent when all preview candidates were reliably parsed with no figures', () => {
+    expect(resolvePreviewImagePresence(['a.pdf'], [{ path: 'a.pdf', figures: [] }])).toBe('absent');
+  });
+
+  it('returns unknown when preview generation is incomplete or unavailable', () => {
+    expect(resolvePreviewImagePresence([], [])).toBe('unknown');
+    expect(resolvePreviewImagePresence(['a.pdf'], [])).toBe('unknown');
+    expect(
+      resolvePreviewImagePresence(
+        ['a.pdf'],
+        [{ path: 'a.pdf', figures: [], previewUnavailable: true }],
+      ),
+    ).toBe('unknown');
   });
 });

@@ -29,7 +29,12 @@ import {
   safeWorkVersionJsonUpdate,
   signFilesInMetadata,
 } from '@curvenote/scms-server';
-import type { FileMetadataSectionItem } from '@curvenote/scms-core';
+import {
+  computeManuscriptSourceSignature,
+  UPLOAD_ANALYSIS_METADATA_KEY,
+  type FileMetadataSectionItem,
+  type UploadFactPresence,
+} from '@curvenote/scms-core';
 import type { Context } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import { formatDate } from '@curvenote/common';
@@ -134,6 +139,58 @@ interface CachedPreview {
   ast: PreviewAstData;
   figures: PreviewFigure[];
   previewUnavailable?: boolean;
+}
+
+export function resolvePreviewImagePresence(
+  previewCandidatePaths: string[],
+  previews: Pick<DocumentPreviewItem, 'path' | 'figures' | 'previewUnavailable'>[],
+): UploadFactPresence {
+  if (previewCandidatePaths.length === 0) return 'unknown';
+  const previewPaths = new Set(previews.map((preview) => preview.path));
+  const hasMissingPreview = previewCandidatePaths.some((path) => !previewPaths.has(path));
+  if (hasMissingPreview || previews.some((preview) => preview.previewUnavailable === true)) {
+    return 'unknown';
+  }
+  return previews.some((preview) => preview.figures.length > 0) ? 'present' : 'absent';
+}
+
+async function persistPreviewUploadAnalysis({
+  workVersionId,
+  rawMetadata,
+  previewCandidatePaths,
+  previews,
+}: {
+  workVersionId: string;
+  rawMetadata: Record<string, unknown>;
+  previewCandidatePaths: string[];
+  previews: DocumentPreviewItem[];
+}): Promise<void> {
+  const sourceSignature = computeManuscriptSourceSignature(rawMetadata);
+  if (!sourceSignature) return;
+  const images = resolvePreviewImagePresence(previewCandidatePaths, previews);
+  await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
+    const meta = (current as Record<string, unknown>) ?? {};
+    const existingAnalysis = meta[UPLOAD_ANALYSIS_METADATA_KEY];
+    const baseAnalysis =
+      existingAnalysis &&
+      typeof existingAnalysis === 'object' &&
+      !Array.isArray(existingAnalysis) &&
+      (existingAnalysis as { sourceSignature?: unknown }).sourceSignature === sourceSignature
+        ? (existingAnalysis as Record<string, unknown>)
+        : {};
+    return {
+      ...meta,
+      [UPLOAD_ANALYSIS_METADATA_KEY]: {
+        ...baseAnalysis,
+        source: 'metadata-preview',
+        sourceSignature,
+        document: {
+          ...((baseAnalysis.document as Record<string, unknown> | undefined) ?? {}),
+          images,
+        },
+      },
+    } as unknown as Prisma.JsonObject;
+  });
 }
 
 function isCachedPreview(data: unknown): data is CachedPreview {
@@ -447,7 +504,15 @@ export async function fetchDocumentPreviews(
     });
   }
 
-  return { previews: sortPreviewsByOrder(previews) };
+  const sortedPreviews = sortPreviewsByOrder(previews);
+  await persistPreviewUploadAnalysis({
+    workVersionId,
+    rawMetadata,
+    previewCandidatePaths: previewEntries.map(([path]) => path),
+    previews: sortedPreviews,
+  });
+
+  return { previews: sortedPreviews };
 }
 
 /**

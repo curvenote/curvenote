@@ -1,6 +1,13 @@
+import type {
+  UploadCheckEligibilityContext,
+  UploadFactPresence,
+} from '../modules/extensions/types.js';
+
 /** MIME type for `.docx` as stored on work version `metadata.files` entries. */
 export const WORK_VERSION_DOCX_MIME =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+export const UPLOAD_ANALYSIS_METADATA_KEY = 'upload.analysis';
 
 export type WorkVersionFileEntry = {
   name?: string;
@@ -8,9 +15,43 @@ export type WorkVersionFileEntry = {
   type?: string;
   path?: string;
   slot?: string;
+  md5?: string;
 };
 
 type FileEntryLike = WorkVersionFileEntry;
+
+export interface UploadAnalysisMetadata {
+  source?: 'metadata-preview' | string;
+  sourceSignature?: string;
+  document?: {
+    images?: UploadFactPresence;
+  };
+  metadata?: {
+    title?: UploadFactPresence;
+    authors?: UploadFactPresence;
+    affiliations?: UploadFactPresence;
+  };
+}
+
+const UNKNOWN_UPLOAD_CHECK_ELIGIBILITY_CONTEXT: UploadCheckEligibilityContext = {
+  document: { images: 'unknown' },
+  metadata: {
+    title: 'unknown',
+    authors: 'unknown',
+    affiliations: 'unknown',
+  },
+};
+
+function isUploadFactPresence(value: unknown): value is UploadFactPresence {
+  return value === 'present' || value === 'absent' || value === 'unknown';
+}
+
+function readUploadAnalysisMetadata(metadata: unknown): UploadAnalysisMetadata | undefined {
+  if (!metadata || typeof metadata !== 'object') return undefined;
+  const analysis = (metadata as Record<string, unknown>)[UPLOAD_ANALYSIS_METADATA_KEY];
+  if (!analysis || typeof analysis !== 'object' || Array.isArray(analysis)) return undefined;
+  return analysis as UploadAnalysisMetadata;
+}
 
 /**
  * Files in `metadata.files` for a given upload slot.
@@ -24,6 +65,62 @@ export function getFilesForSlot(metadata: unknown, slot: string): WorkVersionFil
     (f): f is WorkVersionFileEntry =>
       f != null && typeof f === 'object' && (f as WorkVersionFileEntry).slot === slot,
   );
+}
+
+/**
+ * Stable source signature for manuscript files that feed upload analysis.
+ */
+export function computeManuscriptSourceSignature(metadata: unknown): string {
+  return getFilesForSlot(metadata, 'manuscript')
+    .map((f) => (typeof f.md5 === 'string' && f.md5 ? f.md5 : f.path))
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .sort()
+    .join(',');
+}
+
+/**
+ * Upload check eligibility facts derived from persisted upload analysis metadata.
+ *
+ * Missing, malformed, or stale analysis is treated as unknown so checks keep their
+ * existing behavior unless analysis confidently proves a fact.
+ */
+export function getUploadCheckEligibilityContext(metadata: unknown): UploadCheckEligibilityContext {
+  const analysis = readUploadAnalysisMetadata(metadata);
+  if (!analysis) return UNKNOWN_UPLOAD_CHECK_ELIGIBILITY_CONTEXT;
+
+  const currentSignature = computeManuscriptSourceSignature(metadata);
+  if (
+    !analysis.sourceSignature ||
+    !currentSignature ||
+    analysis.sourceSignature !== currentSignature
+  ) {
+    return UNKNOWN_UPLOAD_CHECK_ELIGIBILITY_CONTEXT;
+  }
+
+  return {
+    document: {
+      images: isUploadFactPresence(analysis.document?.images)
+        ? analysis.document.images
+        : 'unknown',
+    },
+    metadata: {
+      title: isUploadFactPresence(analysis.metadata?.title) ? analysis.metadata.title : 'unknown',
+      authors: isUploadFactPresence(analysis.metadata?.authors)
+        ? analysis.metadata.authors
+        : 'unknown',
+      affiliations: isUploadFactPresence(analysis.metadata?.affiliations)
+        ? analysis.metadata.affiliations
+        : 'unknown',
+    },
+  };
+}
+
+export function uploadFactPresenceFromValue(value: unknown): UploadFactPresence {
+  if (typeof value === 'string') return value.trim() ? 'present' : 'absent';
+  if (Array.isArray(value)) return value.length > 0 ? 'present' : 'absent';
+  if (value == null) return 'absent';
+  if (typeof value === 'object') return Object.keys(value).length > 0 ? 'present' : 'absent';
+  return 'present';
 }
 
 /**
@@ -67,7 +164,7 @@ export function resolveUploadCheckCardState({
 
 type UploadEligibilityService = {
   id: string;
-  isUploadEligible?: (metadata: unknown) => boolean;
+  isUploadEligible?: (metadata: unknown, context?: UploadCheckEligibilityContext) => boolean;
 };
 
 /** True when any enabled check fails its upload eligibility predicate. */
@@ -75,10 +172,11 @@ export function hasInvalidEnabledUploadChecks(
   metadata: unknown,
   enabledCheckIds: string[],
   services: UploadEligibilityService[],
+  context: UploadCheckEligibilityContext = getUploadCheckEligibilityContext(metadata),
 ): boolean {
   for (const id of enabledCheckIds) {
     const service = services.find((s) => s.id === id);
-    if (service?.isUploadEligible && !service.isUploadEligible(metadata)) {
+    if (service?.isUploadEligible && !service.isUploadEligible(metadata, context)) {
       return true;
     }
   }

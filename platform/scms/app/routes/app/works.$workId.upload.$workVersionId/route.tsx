@@ -45,6 +45,9 @@ import {
   capitalize,
   scopes,
   isValidOrcid,
+  computeManuscriptSourceSignature,
+  UPLOAD_ANALYSIS_METADATA_KEY,
+  uploadFactPresenceFromValue,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -155,23 +158,6 @@ function parseAuthorFieldMetadata(raw: string | undefined): AuthorFieldMetadata 
   } catch {
     return null;
   }
-}
-
-/**
- * Stable signature of the manuscript file(s) that feed metadata extraction.
- * Built from each preview-candidate file's md5 (falling back to its path), sorted
- * and joined, so it changes whenever a manuscript file is added, removed, or
- * replaced. Used to detect when a cached extraction is stale and must be regenerated.
- */
-function computeManuscriptSourceSignature(
-  files: Record<string, { path?: string; name?: string; type?: string; md5?: string }>,
-): string {
-  return Object.entries(files)
-    .filter(([, f]) => isPreviewCandidate(f))
-    .map(([path, f]) => (typeof f?.md5 === 'string' && f.md5 ? f.md5 : path))
-    .filter(Boolean)
-    .sort()
-    .join(',');
 }
 
 /** Metadata key holding the source signature of the cached `frontmatter.myst` extraction. */
@@ -324,12 +310,7 @@ export async function loader(args: Route.LoaderArgs) {
   // The cached extraction is stale when the current manuscript file(s) no longer
   // match the source that produced it (e.g. the author replaced the document). In
   // that case the UI should re-trigger extraction rather than show stale metadata.
-  const manuscriptSourceSignature = computeManuscriptSourceSignature(
-    ((rawMetadata as Record<string, unknown>)?.files ?? {}) as Record<
-      string,
-      { path?: string; name?: string; type?: string; md5?: string }
-    >,
-  );
+  const manuscriptSourceSignature = computeManuscriptSourceSignature(rawMetadata);
   const storedExtractionSource = (rawMetadata as Record<string, unknown>)?.[
     METADATA_EXTRACT_SOURCE_KEY
   ];
@@ -848,12 +829,7 @@ export async function action(args: Route.ActionArgs) {
         }
         const currentMeta = (work.metadata as Record<string, unknown>) ?? {};
         const hasMystFrontmatter = currentMeta['frontmatter.myst'] != null;
-        const currentSourceSignature = computeManuscriptSourceSignature(
-          (currentMeta.files ?? {}) as Record<
-            string,
-            { path?: string; name?: string; type?: string; md5?: string }
-          >,
-        );
+        const currentSourceSignature = computeManuscriptSourceSignature(currentMeta);
         const cachedSourceSignature = currentMeta[METADATA_EXTRACT_SOURCE_KEY];
         // `force` is set by the manual "re-run extraction" control and always
         // re-extracts. Otherwise skip when a cached result exists with no source
@@ -883,12 +859,32 @@ export async function action(args: Route.ActionArgs) {
           if (extracted != null) {
             await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
               const m = (current as Record<string, unknown>) || {};
+              const existingAnalysis = m[UPLOAD_ANALYSIS_METADATA_KEY];
+              const baseAnalysis =
+                existingAnalysis &&
+                typeof existingAnalysis === 'object' &&
+                !Array.isArray(existingAnalysis) &&
+                (existingAnalysis as { sourceSignature?: unknown }).sourceSignature ===
+                  currentSourceSignature
+                  ? (existingAnalysis as Record<string, unknown>)
+                  : {};
               // Align with the ETL register-work endpoint: store at metadata["frontmatter.myst"].
               // Record the source signature so we can detect when this cache goes stale.
               return {
                 ...m,
                 'frontmatter.myst': extracted,
                 [METADATA_EXTRACT_SOURCE_KEY]: currentSourceSignature,
+                [UPLOAD_ANALYSIS_METADATA_KEY]: {
+                  ...baseAnalysis,
+                  source: 'metadata-preview',
+                  sourceSignature: currentSourceSignature,
+                  metadata: {
+                    ...((baseAnalysis.metadata as Record<string, unknown> | undefined) ?? {}),
+                    title: uploadFactPresenceFromValue(extracted.title),
+                    authors: uploadFactPresenceFromValue(extracted.authors),
+                    affiliations: uploadFactPresenceFromValue(extracted.affiliations),
+                  },
+                },
               } as Prisma.JsonObject;
             });
 

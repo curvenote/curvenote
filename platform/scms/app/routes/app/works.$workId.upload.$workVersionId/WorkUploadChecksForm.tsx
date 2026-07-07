@@ -2,6 +2,7 @@ import type { ExtensionCheckService } from '@curvenote/scms-core';
 import {
   UploadCheckOptionCard,
   UPLOAD_CHECKS_GRID_CLASS,
+  getUploadCheckEligibilityContext,
   resolveUploadCheckCardState,
   useCheckMaintenanceBlocked,
 } from '@curvenote/scms-core';
@@ -33,7 +34,8 @@ function UploadCheckServiceCard({
   const { blocked: underMaintenance, message: maintenanceMessage } = useCheckMaintenanceBlocked(
     service.id,
   );
-  const eligible = service.isUploadEligible?.(metadata) ?? true;
+  const eligibilityContext = getUploadCheckEligibilityContext(metadata);
+  const eligible = service.isUploadEligible?.(metadata, eligibilityContext) ?? true;
   const { disabled, invalid } = resolveUploadCheckCardState({
     eligible,
     enabled,

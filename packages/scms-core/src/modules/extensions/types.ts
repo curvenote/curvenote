@@ -231,6 +231,19 @@ export interface UploadCheckOptionProps {
   toggleBusy?: boolean;
 }
 
+export type UploadFactPresence = 'present' | 'absent' | 'unknown';
+
+export interface UploadCheckEligibilityContext {
+  document: {
+    images: UploadFactPresence;
+  };
+  metadata: {
+    title: UploadFactPresence;
+    authors: UploadFactPresence;
+    affiliations: UploadFactPresence;
+  };
+}
+
 export interface ExtensionCheckService {
   id: string; // e.g., 'curvenote-structure'
   name: string; // Display name
@@ -296,7 +309,7 @@ export interface ExtensionCheckService {
    * True when current work-version metadata satisfies this check's upload file requirements.
    * Used on the upload page to enable, disable, or mark check cards invalid.
    */
-  isUploadEligible?: (metadata: unknown) => boolean;
+  isUploadEligible?: (metadata: unknown, context?: UploadCheckEligibilityContext) => boolean;
   /** Server-side action handler. Used from upload flow (intent `execute` + job enqueue). */
   handleAction?: (
     args: ExtensionCheckHandleActionArgs,
