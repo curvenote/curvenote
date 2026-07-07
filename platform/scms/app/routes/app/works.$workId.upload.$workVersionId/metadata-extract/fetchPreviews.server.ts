@@ -128,6 +128,8 @@ export interface DocumentPreviewItem {
   figures: PreviewFigure[];
   /** True when preview generation was skipped (e.g. source too large). */
   previewUnavailable?: boolean;
+  /** True when figure extraction did not run (e.g. no thumbnail bucket or cache id). */
+  figuresExtractionSkipped?: boolean;
 }
 
 export interface FetchPreviewsResult {
@@ -139,11 +141,15 @@ interface CachedPreview {
   ast: PreviewAstData;
   figures: PreviewFigure[];
   previewUnavailable?: boolean;
+  figuresExtractionSkipped?: boolean;
 }
 
 export function resolvePreviewImagePresence(
   previewCandidatePaths: string[],
-  previews: Pick<DocumentPreviewItem, 'path' | 'figures' | 'previewUnavailable'>[],
+  previews: Pick<
+    DocumentPreviewItem,
+    'path' | 'figures' | 'previewUnavailable' | 'figuresExtractionSkipped'
+  >[],
 ): UploadFactPresence {
   if (previewCandidatePaths.length === 0) return 'unknown';
   const previewPaths = new Set(previews.map((preview) => preview.path));
@@ -151,7 +157,16 @@ export function resolvePreviewImagePresence(
   if (hasMissingPreview || previews.some((preview) => preview.previewUnavailable === true)) {
     return 'unknown';
   }
-  return previews.some((preview) => preview.figures.length > 0) ? 'present' : 'absent';
+  if (previews.some((preview) => preview.figures.length > 0)) {
+    return 'present';
+  }
+  if (previews.some((preview) => preview.figuresExtractionSkipped === true)) {
+    return 'unknown';
+  }
+  const allConfidentlyAbsent = previews.every(
+    (preview) => preview.figuresExtractionSkipped === false && preview.figures.length === 0,
+  );
+  return allConfidentlyAbsent && previews.length > 0 ? 'absent' : 'unknown';
 }
 
 async function persistPreviewUploadAnalysis({
@@ -455,16 +470,16 @@ export async function fetchDocumentPreviews(
             newlineDelimiter: '\n',
           });
           const ast = truncateAstToFirstPage(fullAst);
-          const figures =
-            figureBucket && cacheId
-              ? await extractAndStoreFigures(fullAst.attachments ?? [], {
-                  sourcePath: path,
-                  md5: md5 as string,
-                  backend,
-                  bucket: figureBucket,
-                })
-              : [];
-          cached = { ast, figures, previewUnavailable: false };
+          const figuresExtractionSkipped = !(figureBucket && cacheId);
+          const figures = figuresExtractionSkipped
+            ? []
+            : await extractAndStoreFigures(fullAst.attachments ?? [], {
+                sourcePath: path,
+                md5: md5 as string,
+                backend,
+                bucket: figureBucket,
+              });
+          cached = { ast, figures, previewUnavailable: false, figuresExtractionSkipped };
         } catch (err) {
           console.warn('fetchDocumentPreviews: parse failed', path, err);
           continue;
@@ -501,6 +516,7 @@ export async function fetchDocumentPreviews(
       ast: cached.ast,
       figures: cached.figures,
       previewUnavailable: cached.previewUnavailable,
+      figuresExtractionSkipped: cached.figuresExtractionSkipped,
     });
   }
 
@@ -572,6 +588,7 @@ export async function readDocumentPreviewsFromObjectTable(
       ast: row.data.ast,
       figures: row.data.figures,
       previewUnavailable: row.data.previewUnavailable,
+      figuresExtractionSkipped: row.data.figuresExtractionSkipped,
     });
   }
   return sortPreviewsByOrder(previews);

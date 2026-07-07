@@ -78,8 +78,13 @@ describe('resolvePreviewImagePresence', () => {
     ).toBe('present');
   });
 
-  it('returns absent when all preview candidates were reliably parsed with no figures', () => {
-    expect(resolvePreviewImagePresence(['a.pdf'], [{ path: 'a.pdf', figures: [] }])).toBe('absent');
+  it('returns absent when all preview candidates had figure extraction with no figures', () => {
+    expect(
+      resolvePreviewImagePresence(
+        ['a.pdf'],
+        [{ path: 'a.pdf', figures: [], figuresExtractionSkipped: false }],
+      ),
+    ).toBe('absent');
   });
 
   it('returns unknown when preview generation is incomplete or unavailable', () => {
@@ -91,5 +96,20 @@ describe('resolvePreviewImagePresence', () => {
         [{ path: 'a.pdf', figures: [], previewUnavailable: true }],
       ),
     ).toBe('unknown');
+  });
+
+  it('returns unknown when figure extraction was skipped', () => {
+    expect(
+      resolvePreviewImagePresence(
+        ['a.pdf'],
+        [{ path: 'a.pdf', figures: [], figuresExtractionSkipped: true }],
+      ),
+    ).toBe('unknown');
+  });
+
+  it('returns unknown for legacy cached previews with empty figures and no extraction flag', () => {
+    expect(resolvePreviewImagePresence(['a.pdf'], [{ path: 'a.pdf', figures: [] }])).toBe(
+      'unknown',
+    );
   });
 });
