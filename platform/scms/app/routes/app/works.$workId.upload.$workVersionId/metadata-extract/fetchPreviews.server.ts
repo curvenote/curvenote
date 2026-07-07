@@ -505,12 +505,16 @@ export async function fetchDocumentPreviews(
   }
 
   const sortedPreviews = sortPreviewsByOrder(previews);
-  await persistPreviewUploadAnalysis({
-    workVersionId,
-    rawMetadata,
-    previewCandidatePaths: previewEntries.map(([path]) => path),
-    previews: sortedPreviews,
-  });
+  try {
+    await persistPreviewUploadAnalysis({
+      workVersionId,
+      rawMetadata,
+      previewCandidatePaths: previewEntries.map(([path]) => path),
+      previews: sortedPreviews,
+    });
+  } catch (err) {
+    console.warn('fetchDocumentPreviews: failed to persist upload analysis', workVersionId, err);
+  }
 
   return { previews: sortedPreviews };
 }
