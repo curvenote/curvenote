@@ -3,20 +3,21 @@
 # Set up GCP Pub/Sub for the task-converter Cloud Run service.
 #
 # This script:
-#   1. Creates a dedicated service account for invoking the Cloud Run service and publishing to Pub/Sub (or uses existing)
+#   1. Uses the shared workspace SA (default: workspace-storage-checks) — must already exist
 #   2. Grants that account roles/run.invoker on the Cloud Run service
 #   3. Grants that account roles/pubsub.publisher on the project
 #   4. Grants the GCP Pub/Sub service agent roles/iam.serviceAccountTokenCreator (required for push + auth)
 #   5. Creates a Pub/Sub topic and a push subscription that delivers to your Cloud Run URL (or uses existing)
-#   6. Sets the subscription expiration policy to 'never' so it does not auto-delete
-#      after 31 days of inactivity (GCP Pub/Sub default). Applied on every run, so
-#      existing subscriptions created without this flag are also fixed.
+#   6. Updates push endpoint + push auth on existing subscriptions (idempotent re-run after redeploy)
+#   7. Sets the subscription expiration policy to 'never' so it does not auto-delete
+#      after 31 days of inactivity (GCP Pub/Sub default).
 #
-# Idempotent: safe to re-run; uses existing service account, topic, and subscription if present.
+# Idempotent: safe to re-run; uses existing topic and subscription if present.
 #
 # Prerequisites:
 #   - gcloud CLI installed and authenticated (gcloud auth login)
 #   - Application default credentials or a service account with sufficient IAM (see below)
+#   - workspace-storage-checks (or SERVICE_ACCOUNT_NAME) must already exist in the project
 #   - The Cloud Run service must already be deployed (you need its URL for the push endpoint)
 #   - Cloud Run and Pub/Sub APIs enabled on the project
 #
@@ -30,11 +31,13 @@
 #   SUBSCRIPTION_NAME - Push subscription (e.g. scmsTaskConverterSub)
 #
 # Optional (defaults shown):
-#   SERVICE_ACCOUNT_NAME   - Name for the invoker SA (default: scms-tasks-invoker)
+#   SERVICE_ACCOUNT_NAME   - Shared workspace SA (default: workspace-storage-checks)
 #   ACK_DEADLINE          - Subscription ack deadline in seconds (default: 600)
 #
-# The script does NOT create the project or the Cloud Run service. It assumes they exist.
+# The script does NOT create the project, the Cloud Run service, or the service account.
 # Run from services/task-converter/pubsub/: ./pubsub.sh
+#
+# To fix a mistaken storage-pubsub setup, run ./migrate-to-workspace-storage-checks.sh first.
 #
 set -euo pipefail
 
@@ -54,7 +57,7 @@ SERVICE_NAME="${SERVICE_NAME:-}"
 PUSH_ENDPOINT="${PUSH_ENDPOINT:-}"
 TOPIC_NAME="${TOPIC_NAME:-}"
 SUBSCRIPTION_NAME="${SUBSCRIPTION_NAME:-}"
-SERVICE_ACCOUNT_NAME="${SERVICE_ACCOUNT_NAME:-check-pubsub-invoker}"
+SERVICE_ACCOUNT_NAME="${SERVICE_ACCOUNT_NAME:-workspace-storage-checks}"
 ACK_DEADLINE="${ACK_DEADLINE:-600}"
 
 missing=()
@@ -84,20 +87,13 @@ fi
 SA_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 PUBSUB_SA_EMAIL="service-${PROJECT_NUMBER}@gcp-sa-pubsub.iam.gserviceaccount.com"
 
-if gcloud iam service-accounts describe "${SA_EMAIL}" --project "${PROJECT_ID}" &>/dev/null; then
-  echo "Using existing service account: ${SERVICE_ACCOUNT_NAME}"
-else
-  echo "Creating service account: ${SERVICE_ACCOUNT_NAME}"
-  if ! gcloud iam service-accounts create "${SERVICE_ACCOUNT_NAME}" \
-    --display-name "SCMS Tasks Pub/Sub Invoker" \
-    --project "${PROJECT_ID}" 2>&1; then
-    if gcloud iam service-accounts describe "${SA_EMAIL}" --project "${PROJECT_ID}" &>/dev/null; then
-      echo "Service account already exists (created elsewhere), continuing."
-    else
-      exit 1
-    fi
-  fi
+if ! gcloud iam service-accounts describe "${SA_EMAIL}" --project "${PROJECT_ID}" &>/dev/null; then
+  echo "Error: service account ${SA_EMAIL} not found."
+  echo "Create it in GCP or set SERVICE_ACCOUNT_NAME to an existing shared workspace SA."
+  echo "This script does not create service accounts (use migrate-to-workspace-storage-checks.sh to fix a bad setup)."
+  exit 1
 fi
+echo "Using service account: ${SERVICE_ACCOUNT_NAME}"
 
 echo "Granting run.invoker on Cloud Run service: ${SERVICE_NAME}"
 gcloud run services add-iam-policy-binding "${SERVICE_NAME}" \
@@ -124,7 +120,14 @@ else
 fi
 
 if gcloud pubsub subscriptions describe "${SUBSCRIPTION_NAME}" --project "${PROJECT_ID}" &>/dev/null; then
-  echo "Using existing push subscription: ${SUBSCRIPTION_NAME}"
+  echo "Updating existing push subscription: ${SUBSCRIPTION_NAME}"
+  gcloud pubsub subscriptions update "${SUBSCRIPTION_NAME}" \
+    --topic "${TOPIC_NAME}" \
+    --ack-deadline="${ACK_DEADLINE}" \
+    --expiration-period=never \
+    --push-endpoint="${PUSH_ENDPOINT}" \
+    --push-auth-service-account="${SA_EMAIL}" \
+    --project "${PROJECT_ID}"
 else
   echo "Creating push subscription: ${SUBSCRIPTION_NAME}"
   gcloud pubsub subscriptions create "${SUBSCRIPTION_NAME}" \
@@ -136,20 +139,11 @@ else
     --project "${PROJECT_ID}"
 fi
 
-# Ensure existing or freshly created subscription never expires (idempotent).
-# GCP Pub/Sub subscriptions default to 31-day inactivity expiry; without this they
-# can silently disappear and traffic stops arriving at Cloud Run.
-echo "Ensuring subscription expiration policy is 'never': ${SUBSCRIPTION_NAME}"
-gcloud pubsub subscriptions update "${SUBSCRIPTION_NAME}" \
-  --expiration-period=never \
-  --project "${PROJECT_ID}"
-
 echo ""
-echo "Done. Add to your app config:"
-echo "  topic: ${TOPIC_NAME}"
-echo "  projectId: ${PROJECT_ID}"
-echo "  pushEndpoint: ${PUSH_ENDPOINT}"
-echo "  secretKeyfile: (key for ${SA_EMAIL} if publishing from outside GCP)"
+echo "Done. Add to your app config (same SA key for check, converter, and storage):"
+echo "  pubsubProjectId: ${PROJECT_ID}"
+echo "  converterTopic: projects/${PROJECT_ID}/topics/${TOPIC_NAME}"
+echo "  checkSASecretKeyfile / converterSASecretKeyfile / storageSASecretKeyfile: key for ${SA_EMAIL}"
 echo ""
 echo "Test publish (optional):"
 echo "  gcloud pubsub topics publish ${TOPIC_NAME} --project ${PROJECT_ID} --attribute 'jobUrl=...,statusUrl=...,handshake=...,successState=...,failureState=...,userId=...' --message '\$(echo '{\"taskId\":\"test\"}' | base64)'"

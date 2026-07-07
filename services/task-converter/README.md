@@ -69,9 +69,11 @@ cp .env.sample .env
 ./pubsub.sh
 ```
 
-Then configure SCMS for that environment: `converterTopic`, `converterSASecretKeyfile`, and `pubsubProjectId` (see script output and `.app-config.schema.yml`).
+Then configure SCMS for that environment: `converterTopic`, `converterSASecretKeyfile`, and `pubsubProjectId` (see script output and `.app-config.schema.yml`). Use the same `workspace-storage-checks` key for `checkSASecretKeyfile`, `converterSASecretKeyfile`, and `storageSASecretKeyfile`.
 
 The script is idempotent — safe to re-run after redeploys if the Cloud Run URL changes.
+
+If Pub/Sub was set up with a stray invoker SA (e.g. `storage-pubsub`), run `./migrate-to-workspace-storage-checks.sh` (dry-run first, then `CONFIRM=1`).
 
 ## Environment variables
 
