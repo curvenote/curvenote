@@ -1,7 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createScopedHandshakeToken } from '@curvenote/scms-server';
-import { CronEndpointScopes } from '@curvenote/scms-core';
+import { CronEndpointScopes, cronEndpointScope } from '@curvenote/scms-core';
 
 const ISSUER = 'https://scms.test/handshake';
 const KEY = 'test-signing-secret';
@@ -19,23 +19,23 @@ vi.mock('@curvenote/scms-server', async (importOriginal) => {
   };
 });
 
-const { action } = await import('./route');
+const { action, loader } = await import('./route');
 
-function createRequest(auth?: string): Request {
+function createRequest(method: string, auth?: string): Request {
   return new Request('http://localhost/v1/loopback', {
-    method: 'POST',
+    method,
     headers: auth ? { Authorization: auth } : {},
   });
 }
 
-describe('loopback action', () => {
+describe('loopback route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('returns loopback JSON when scoped handshake is valid', async () => {
+  it('returns loopback JSON for POST when scoped handshake is valid', async () => {
     const token = createScopedHandshakeToken(CronEndpointScopes.LOOPBACK, ISSUER, KEY);
-    const response = await action({ request: createRequest(`Bearer ${token}`) } as never);
+    const response = await action({ request: createRequest('POST', `Bearer ${token}`) } as never);
 
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -44,11 +44,22 @@ describe('loopback action', () => {
     expect(body.version).toBeTruthy();
   });
 
+  it('returns loopback JSON for GET when scoped handshake is valid', async () => {
+    const scope = cronEndpointScope('GET', '/v1/loopback');
+    const token = createScopedHandshakeToken(scope, ISSUER, KEY);
+    const response = await loader({ request: createRequest('GET', `Bearer ${token}`) } as never);
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.message).toContain('loopback');
+    expect(body.endpoint_scope).toBe(scope);
+  });
+
   it('returns 401 when Authorization is missing or invalid', async () => {
-    const missing = await action({ request: createRequest() } as never);
+    const missing = await action({ request: createRequest('POST') } as never);
     expect(missing.status).toBe(401);
 
-    const wrong = await action({ request: createRequest('Bearer not-a-token') } as never);
+    const wrong = await action({ request: createRequest('POST', 'Bearer not-a-token') } as never);
     expect(wrong.status).toBe(401);
   });
 });
