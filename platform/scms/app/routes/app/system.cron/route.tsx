@@ -276,17 +276,22 @@ function JobsTab({ jobs, allowedHosts }: { jobs: CronJobListRow[]; allowedHosts:
       <CreateCronJobForm allowedHosts={allowedHosts} />
 
       <SectionWithHeading heading="Cron jobs" icon={Clock}>
-        {jobs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No cron jobs configured.</p>
-        ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {jobs.map((job) => (
-              <div key={job.id} className="py-4 first:pt-0">
+        <div className="overflow-hidden bg-white rounded-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-700">
+          {jobs.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-gray-500 dark:text-gray-400">No cron jobs configured.</p>
+            </div>
+          ) : (
+            jobs.map((job) => (
+              <div
+                key={job.id}
+                className="flex flex-col gap-2 p-6 border-b border-gray-200 md:items-center md:flex-row md:gap-6 dark:border-gray-700 last:border-b-0"
+              >
                 <CronJobListItem job={job} />
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </SectionWithHeading>
     </div>
   );
