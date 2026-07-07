@@ -1,7 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
-import { OCTET_STREAM_MIME } from '../manuscriptFormats';
-import { isPreviewCandidate } from './previewGuards';
+import { OCTET_STREAM_MIME, isPreviewCandidate } from './manuscriptFormats.js';
 
 describe('preview candidate guards', () => {
   it.each([

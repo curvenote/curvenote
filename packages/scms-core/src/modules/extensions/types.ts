@@ -215,6 +215,14 @@ export type ExtensionCheckWorkListSummaryProps = {
   compact?: boolean;
 };
 
+export type UploadCheckEligibilityStatus = 'eligible' | 'warning' | 'ineligible';
+
+export interface UploadCheckEligibilityResult {
+  status: UploadCheckEligibilityStatus;
+  /** Advisory or hard-fail copy from the extension. */
+  message?: string;
+}
+
 /** Props for per-check upload option cards on the work upload page. */
 export interface UploadCheckOptionProps {
   workVersionId: string;
@@ -223,12 +231,31 @@ export interface UploadCheckOptionProps {
   disabled?: boolean;
   /** Check is selected but uploaded files no longer meet requirements. */
   invalid?: boolean;
+  /** Advisory state: card renders with warning chrome but does not block submission. */
+  warning?: boolean;
+  /** Message shown when `warning` is true (from extension eligibility evaluation). */
+  warningMessage?: string;
+  /** Facts derived from upload preview/analysis; extensions may use for custom copy. */
+  eligibilityContext?: UploadCheckEligibilityContext;
   /** Service manifest logo URL when available. */
   logoUrl?: string;
   /** Platform persists selection via `toggle-check` on the upload route. */
   setEnabled: (enabled: boolean) => Promise<void>;
   /** True while this check's `toggle-check` action is in flight. */
   toggleBusy?: boolean;
+}
+
+export type UploadFactPresence = 'present' | 'absent' | 'unknown';
+
+export interface UploadCheckEligibilityContext {
+  document: {
+    images: UploadFactPresence;
+  };
+  metadata: {
+    title: UploadFactPresence;
+    authors: UploadFactPresence;
+    affiliations: UploadFactPresence;
+  };
 }
 
 export interface ExtensionCheckService {
@@ -293,10 +320,18 @@ export interface ExtensionCheckService {
    */
   uploadCheckOptionComponent?: React.ComponentType<UploadCheckOptionProps>;
   /**
-   * True when current work-version metadata satisfies this check's upload file requirements.
-   * Used on the upload page to enable, disable, or mark check cards invalid.
+   * Full upload eligibility evaluation including advisory warnings.
+   * When set, takes precedence over `isUploadEligible`.
    */
-  isUploadEligible?: (metadata: unknown) => boolean;
+  resolveUploadEligibility?: (
+    metadata: unknown,
+    context?: UploadCheckEligibilityContext,
+  ) => UploadCheckEligibilityResult;
+  /**
+   * True when current work-version metadata satisfies this check's hard upload requirements.
+   * Used when `resolveUploadEligibility` is not set. Warnings require `resolveUploadEligibility`.
+   */
+  isUploadEligible?: (metadata: unknown, context?: UploadCheckEligibilityContext) => boolean;
   /** Server-side action handler. Used from upload flow (intent `execute` + job enqueue). */
   handleAction?: (
     args: ExtensionCheckHandleActionArgs,

@@ -1,7 +1,9 @@
-import type { ExtensionCheckService } from '@curvenote/scms-core';
+import type { ExtensionCheckService, UploadCheckEligibilityContext } from '@curvenote/scms-core';
 import {
   UploadCheckOptionCard,
   UPLOAD_CHECKS_GRID_CLASS,
+  getUploadCheckEligibilityContext,
+  resolveExtensionUploadEligibility,
   resolveUploadCheckCardState,
   useCheckMaintenanceBlocked,
 } from '@curvenote/scms-core';
@@ -22,20 +24,22 @@ function UploadCheckServiceCard({
   workVersionId,
   enabled,
   metadata,
+  eligibilityContext,
   uploadCheckLogoUrls,
 }: {
   service: ExtensionCheckService;
   workVersionId: string;
   enabled: boolean;
   metadata: unknown;
+  eligibilityContext: UploadCheckEligibilityContext;
   uploadCheckLogoUrls?: Record<string, string | undefined>;
 }) {
   const { blocked: underMaintenance, message: maintenanceMessage } = useCheckMaintenanceBlocked(
     service.id,
   );
-  const eligible = service.isUploadEligible?.(metadata) ?? true;
-  const { disabled, invalid } = resolveUploadCheckCardState({
-    eligible,
+  const eligibility = resolveExtensionUploadEligibility(service, metadata, eligibilityContext);
+  const { disabled, invalid, warning } = resolveUploadCheckCardState({
+    status: eligibility.status,
     enabled,
     underMaintenance,
   });
@@ -47,6 +51,9 @@ function UploadCheckServiceCard({
       enabled={enabled}
       disabled={disabled}
       invalid={invalid}
+      warning={warning}
+      warningMessage={eligibility.message}
+      eligibilityContext={eligibilityContext}
       maintenanceMessage={underMaintenance ? maintenanceMessage : undefined}
       logoUrl={uploadCheckLogoUrls?.[service.id]}
     />
@@ -60,6 +67,8 @@ export function WorkUploadChecksForm({
   metadata,
   uploadCheckLogoUrls,
 }: WorkUploadChecksFormProps) {
+  const eligibilityContext = getUploadCheckEligibilityContext(metadata);
+
   return (
     <div className={UPLOAD_CHECKS_GRID_CLASS}>
       {checkServices.map((service) => (
@@ -69,6 +78,7 @@ export function WorkUploadChecksForm({
           workVersionId={workVersionId}
           enabled={enabled.includes(service.id as (typeof enabled)[number])}
           metadata={metadata}
+          eligibilityContext={eligibilityContext}
           uploadCheckLogoUrls={uploadCheckLogoUrls}
         />
       ))}

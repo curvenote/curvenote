@@ -18,6 +18,19 @@ import { uuidv7 } from 'uuidv7';
 import type { Config } from '@/types/app-config';
 import { extensions } from '../../../app/extensions/server';
 
+type CreatedSubmissionVersion = {
+  id: string;
+  status: string;
+  submission_id: string;
+};
+
+function expectCreatedSubmissionVersion(value: unknown): CreatedSubmissionVersion {
+  expect(value).toHaveProperty('id');
+  expect(value).toHaveProperty('status');
+  expect(value).toHaveProperty('submission_id');
+  return value as CreatedSubmissionVersion;
+}
+
 describe('Workflow Transitions Integration', () => {
   let testData: TestData;
   let config: Config;
@@ -58,22 +71,26 @@ describe('Workflow Transitions Integration', () => {
     });
 
     test('New submission versions get the correct initial state', async () => {
-      const submission = await sites.submissions.versions.create(
-        testData.context,
-        [],
-        testData.submissionId,
-        testData.workVersionId,
+      const submission = expectCreatedSubmissionVersion(
+        await sites.submissions.versions.create(
+          testData.context,
+          [],
+          testData.submissionId,
+          testData.workVersionId,
+        ),
       );
       const simpleWorkflow = workflows['SIMPLE'];
       expect(submission.status).toBe(simpleWorkflow.initialState);
     });
 
     test('Invalid Transition - PENDING => DRAFT', async () => {
-      const dto = await sites.submissions.versions.create(
-        testData.context,
-        [],
-        testData.submissionId,
-        testData.workVersionId,
+      const dto = expectCreatedSubmissionVersion(
+        await sites.submissions.versions.create(
+          testData.context,
+          [],
+          testData.submissionId,
+          testData.workVersionId,
+        ),
       );
 
       const submissionVersion =
@@ -100,11 +117,13 @@ describe('Workflow Transitions Integration', () => {
     });
 
     test('Immediate Transition - PENDING => REJECTED', async () => {
-      const dto = await sites.submissions.versions.create(
-        testData.context,
-        [],
-        testData.submissionId,
-        testData.workVersionId,
+      const dto = expectCreatedSubmissionVersion(
+        await sites.submissions.versions.create(
+          testData.context,
+          [],
+          testData.submissionId,
+          testData.workVersionId,
+        ),
       );
 
       const submissionVersion =
@@ -128,11 +147,13 @@ describe('Workflow Transitions Integration', () => {
     });
 
     test('Start Job Based Transition - PENDING => PUBLISHED', async () => {
-      const dto = await sites.submissions.versions.create(
-        testData.context,
-        [],
-        testData.submissionId,
-        testData.workVersionId,
+      const dto = expectCreatedSubmissionVersion(
+        await sites.submissions.versions.create(
+          testData.context,
+          [],
+          testData.submissionId,
+          testData.workVersionId,
+        ),
       );
 
       expect(dto.status).toEqual('PENDING');
@@ -167,11 +188,13 @@ describe('Workflow Transitions Integration', () => {
 
     test('successful publish job updates the submission version status to PUBLISHED and clears the transition', async () => {
       // Create initial submission version
-      const dto = await sites.submissions.versions.create(
-        testData.context,
-        [],
-        testData.submissionId,
-        testData.workVersionId,
+      const dto = expectCreatedSubmissionVersion(
+        await sites.submissions.versions.create(
+          testData.context,
+          [],
+          testData.submissionId,
+          testData.workVersionId,
+        ),
       );
       expect(dto.status).toEqual('PENDING');
 
@@ -257,11 +280,13 @@ describe('Workflow Transitions Integration', () => {
 
     test('successful unpublish job updates the submission version status to UNPUBLISHED and clears the transition', async () => {
       // Create initial submission version
-      const dto = await sites.submissions.versions.create(
-        testData.context,
-        [],
-        testData.submissionId,
-        testData.workVersionId,
+      const dto = expectCreatedSubmissionVersion(
+        await sites.submissions.versions.create(
+          testData.context,
+          [],
+          testData.submissionId,
+          testData.workVersionId,
+        ),
       );
       expect(dto.status).toEqual('PENDING');
 

@@ -252,7 +252,7 @@ export function SubmittedToBar({
     });
   const fallbackCheckRows = selectedCheckRuns
     .filter((run) => !checkServices.some((service) => service.id === run.kind))
-    .map((run) => ({ id: run.kind, name: run.kind, run }));
+    .map((run) => ({ id: run.kind, name: run.kind, run, service: undefined }));
   const checkRows = [
     ...checkServices.map((service) => ({
       id: service.id,

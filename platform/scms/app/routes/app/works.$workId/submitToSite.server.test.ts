@@ -18,6 +18,14 @@ const baseSite = {
   restricted: false,
 };
 
+const userWithoutSubmitScopes = {
+  system_scopes: [],
+  site_roles: [],
+  roles: [],
+  linkedAccounts: [],
+  work_roles: [],
+} as unknown as Parameters<typeof isSiteAvailableForWorkSubmit>[0];
+
 describe('submitToSite.server', () => {
   it('builds a stable work/site advisory lock key', () => {
     expect(workSiteSubmitLockKey('work-1', 'site-1')).toBe('work-site-submit:work-1:site-1');
@@ -80,16 +88,10 @@ describe('submitToSite.server', () => {
       collections: [{ id: 'collection-1', default: true, open: false, kindsInCollection: [] }],
       submissionKinds: [],
     };
-    expect(
-      isSiteAvailableForWorkSubmit({ system_scopes: [], site_roles: [] }, site, new Set()),
-    ).toBe(false);
-    expect(
-      isSiteAvailableForWorkSubmit(
-        { system_scopes: [], site_roles: [] },
-        site,
-        new Set(['site-1']),
-      ),
-    ).toBe(true);
+    expect(isSiteAvailableForWorkSubmit(userWithoutSubmitScopes, site, new Set())).toBe(false);
+    expect(isSiteAvailableForWorkSubmit(userWithoutSubmitScopes, site, new Set(['site-1']))).toBe(
+      true,
+    );
   });
 
   it('treats only non-draft submission versions as already submitted', () => {

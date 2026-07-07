@@ -92,7 +92,7 @@ async function finishSubmitOnExistingSubmission(
     existingSubmission.versions,
     selectedWorkVersionId,
   );
-  if (isAlreadySubmittedVersion(existingVersion, selectedWorkVersionId)) {
+  if (existingVersion && isAlreadySubmittedVersion(existingVersion, selectedWorkVersionId)) {
     return {
       success: true,
       intent: 'submit-to-site',
