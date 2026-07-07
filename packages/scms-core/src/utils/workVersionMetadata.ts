@@ -1,5 +1,8 @@
 import type {
+  ExtensionCheckService,
   UploadCheckEligibilityContext,
+  UploadCheckEligibilityResult,
+  UploadCheckEligibilityStatus,
   UploadFactPresence,
 } from '../modules/extensions/types.js';
 import { isPreviewCandidate } from './manuscriptFormats.js';
@@ -97,12 +100,6 @@ export function computeManuscriptSourceSignature(metadata: unknown): string {
 }
 
 /**
- * Upload check eligibility facts derived from persisted upload analysis metadata.
- *
- * Missing, malformed, or stale analysis is treated as unknown so checks keep their
- * existing behavior unless analysis confidently proves a fact.
- */
-/**
  * Removes metadata-extraction upload analysis facts (title, authors, affiliations).
  * Document-level facts from preview generation (e.g. image presence) are preserved.
  */
@@ -125,6 +122,12 @@ export function clearUploadAnalysisMetadataFacts(
   return next;
 }
 
+/**
+ * Upload check eligibility facts derived from persisted upload analysis metadata.
+ *
+ * Missing, malformed, or stale analysis is treated as unknown so checks keep their
+ * existing behavior unless analysis confidently proves a fact.
+ */
 export function getUploadCheckEligibilityContext(metadata: unknown): UploadCheckEligibilityContext {
   const analysis = readUploadAnalysisMetadata(metadata);
   if (!analysis) return UNKNOWN_UPLOAD_CHECK_ELIGIBILITY_CONTEXT;
@@ -178,37 +181,53 @@ export function isDocxOrPdfFile(entry: FileEntryLike): boolean {
   return false;
 }
 
+export function resolveExtensionUploadEligibility(
+  service: Pick<ExtensionCheckService, 'resolveUploadEligibility' | 'isUploadEligible'>,
+  metadata: unknown,
+  context?: UploadCheckEligibilityContext,
+): UploadCheckEligibilityResult {
+  if (service.resolveUploadEligibility) {
+    return service.resolveUploadEligibility(metadata, context);
+  }
+  const eligible = service.isUploadEligible?.(metadata, context) ?? true;
+  return eligible ? { status: 'eligible' } : { status: 'ineligible' };
+}
+
 /**
  * Upload check card interaction state from eligibility and selection.
  * Ineligible checks stay selectable; only a selected ineligible check is shown as invalid.
+ * Warnings are advisory and never block submission.
  */
 export function resolveUploadCheckCardState({
-  eligible,
+  status,
   enabled,
   underMaintenance = false,
 }: {
-  eligible: boolean;
+  status: UploadCheckEligibilityStatus;
   enabled: boolean;
   underMaintenance?: boolean;
-}): { disabled: boolean; invalid: boolean } {
+}): { disabled: boolean; invalid: boolean; warning: boolean } {
   if (underMaintenance) {
-    return { disabled: true, invalid: false };
+    return { disabled: true, invalid: false, warning: false };
   }
-  if (eligible) {
-    return { disabled: false, invalid: false };
+  if (status === 'eligible') {
+    return { disabled: false, invalid: false, warning: false };
+  }
+  if (status === 'warning') {
+    return { disabled: false, invalid: false, warning: true };
   }
   if (enabled) {
-    return { disabled: false, invalid: true };
+    return { disabled: false, invalid: true, warning: false };
   }
-  return { disabled: false, invalid: false };
+  return { disabled: false, invalid: false, warning: false };
 }
 
-type UploadEligibilityService = {
-  id: string;
-  isUploadEligible?: (metadata: unknown, context?: UploadCheckEligibilityContext) => boolean;
-};
+type UploadEligibilityService = Pick<
+  ExtensionCheckService,
+  'id' | 'resolveUploadEligibility' | 'isUploadEligible'
+>;
 
-/** True when any enabled check fails its upload eligibility predicate. */
+/** True when any enabled check has a hard ineligible upload state. Warnings do not block. */
 export function hasInvalidEnabledUploadChecks(
   metadata: unknown,
   enabledCheckIds: string[],
@@ -217,9 +236,9 @@ export function hasInvalidEnabledUploadChecks(
 ): boolean {
   for (const id of enabledCheckIds) {
     const service = services.find((s) => s.id === id);
-    if (service?.isUploadEligible && !service.isUploadEligible(metadata, context)) {
-      return true;
-    }
+    if (!service) continue;
+    const { status } = resolveExtensionUploadEligibility(service, metadata, context);
+    if (status === 'ineligible') return true;
   }
   return false;
 }

@@ -6,7 +6,10 @@ import { cn } from '../../utils/cn.js';
 import { Card } from '../primitives/Card.js';
 import { toastError } from '../ui/toast.js';
 import { MaintenanceTooltip } from '../ui/checks/index.js';
-import type { ClientExtensionCheckService } from '../../modules/extensions/types.js';
+import type {
+  ClientExtensionCheckService,
+  UploadCheckEligibilityContext,
+} from '../../modules/extensions/types.js';
 import { DefaultUploadCheckOptionContent } from './DefaultUploadCheckOptionContent.js';
 import { uploadCheckCardClassName } from './uploadCheckCardStyles.js';
 
@@ -16,6 +19,9 @@ export interface UploadCheckOptionCardProps {
   enabled: boolean;
   disabled?: boolean;
   invalid?: boolean;
+  warning?: boolean;
+  warningMessage?: string;
+  eligibilityContext?: UploadCheckEligibilityContext;
   /** When set, the card is wrapped in a maintenance tooltip. */
   maintenanceMessage?: string;
   /** Optional service logo URL (e.g. text integrity manifest from Object store). */
@@ -28,6 +34,9 @@ export function UploadCheckOptionCard({
   enabled,
   disabled = false,
   invalid = false,
+  warning = false,
+  warningMessage,
+  eligibilityContext,
   maintenanceMessage,
   logoUrl,
 }: UploadCheckOptionCardProps) {
@@ -61,7 +70,7 @@ export function UploadCheckOptionCard({
         lift
         className={cn(
           'h-full',
-          uploadCheckCardClassName({ enabled, disabled, invalid, busy: isBusy }),
+          uploadCheckCardClassName({ enabled, disabled, invalid, warning, busy: isBusy }),
         )}
         onClick={() => {
           if (maintenanceMessage) return;
@@ -75,6 +84,9 @@ export function UploadCheckOptionCard({
           enabled={enabled}
           disabled={disabled}
           invalid={invalid}
+          warning={warning}
+          warningMessage={warningMessage}
+          eligibilityContext={eligibilityContext}
           setEnabled={setEnabled}
           toggleBusy={isBusy}
           name={service.name}

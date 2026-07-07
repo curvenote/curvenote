@@ -3,6 +3,7 @@ import {
   UploadCheckOptionCard,
   UPLOAD_CHECKS_GRID_CLASS,
   getUploadCheckEligibilityContext,
+  resolveExtensionUploadEligibility,
   resolveUploadCheckCardState,
   useCheckMaintenanceBlocked,
 } from '@curvenote/scms-core';
@@ -36,9 +37,9 @@ function UploadCheckServiceCard({
   const { blocked: underMaintenance, message: maintenanceMessage } = useCheckMaintenanceBlocked(
     service.id,
   );
-  const eligible = service.isUploadEligible?.(metadata, eligibilityContext) ?? true;
-  const { disabled, invalid } = resolveUploadCheckCardState({
-    eligible,
+  const eligibility = resolveExtensionUploadEligibility(service, metadata, eligibilityContext);
+  const { disabled, invalid, warning } = resolveUploadCheckCardState({
+    status: eligibility.status,
     enabled,
     underMaintenance,
   });
@@ -50,6 +51,9 @@ function UploadCheckServiceCard({
       enabled={enabled}
       disabled={disabled}
       invalid={invalid}
+      warning={warning}
+      warningMessage={eligibility.message}
+      eligibilityContext={eligibilityContext}
       maintenanceMessage={underMaintenance ? maintenanceMessage : undefined}
       logoUrl={uploadCheckLogoUrls?.[service.id]}
     />

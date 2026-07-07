@@ -12,6 +12,7 @@ import {
   hasInvalidEnabledUploadChecks,
   hasPdfInMetadata,
   isDocxOrPdfFile,
+  resolveExtensionUploadEligibility,
   resolveUploadCheckCardState,
   hasMaintenanceEnabledUploadChecks,
   uploadFactPresenceFromValue,
@@ -125,6 +126,29 @@ describe('workVersionMetadata', () => {
     ).toBe(false);
   });
 
+  it('hasInvalidEnabledUploadChecks ignores warning status', () => {
+    const services = [
+      {
+        id: 'proofig',
+        resolveUploadEligibility: () => ({
+          status: 'warning' as const,
+          message: 'No figures detected.',
+        }),
+      },
+    ];
+    expect(
+      hasInvalidEnabledUploadChecks(
+        {
+          files: {
+            a: { slot: 'manuscript', type: 'application/pdf', size: 1 },
+          },
+        },
+        ['proofig'],
+        services,
+      ),
+    ).toBe(false);
+  });
+
   it('derives upload check context from current upload analysis metadata', () => {
     const metadata = {
       files: {
@@ -223,12 +247,14 @@ describe('workVersionMetadata', () => {
     });
   });
 
-  it('passes upload check context into eligibility predicates', () => {
+  it('passes upload check context into resolveUploadEligibility', () => {
     const services = [
       {
         id: 'proofig',
-        isUploadEligible: (_metadata: unknown, context?: UploadCheckEligibilityContext) =>
-          context?.document.images !== 'absent',
+        resolveUploadEligibility: (_metadata: unknown, context?: UploadCheckEligibilityContext) =>
+          context?.document.images === 'absent'
+            ? { status: 'warning' as const, message: 'No figures.' }
+            : { status: 'eligible' as const },
       },
     ];
     const metadata = {
@@ -246,7 +272,17 @@ describe('workVersionMetadata', () => {
         document: { images: 'absent' },
       },
     };
-    expect(hasInvalidEnabledUploadChecks(metadata, ['proofig'], services)).toBe(true);
+    expect(hasInvalidEnabledUploadChecks(metadata, ['proofig'], services)).toBe(false);
+    expect(
+      resolveExtensionUploadEligibility(
+        services[0],
+        metadata,
+        getUploadCheckEligibilityContext(metadata),
+      ),
+    ).toEqual({
+      status: 'warning',
+      message: 'No figures.',
+    });
   });
 
   it('maps extracted values to upload fact presence', () => {
@@ -257,28 +293,43 @@ describe('workVersionMetadata', () => {
     expect(uploadFactPresenceFromValue(undefined)).toBe('absent');
   });
 
-  it('resolveUploadCheckCardState maps eligible + enabled to card modes', () => {
-    expect(resolveUploadCheckCardState({ eligible: true, enabled: false })).toEqual({
+  it('resolveUploadCheckCardState maps eligibility status to card modes', () => {
+    expect(resolveUploadCheckCardState({ status: 'eligible', enabled: false })).toEqual({
       disabled: false,
       invalid: false,
+      warning: false,
     });
-    expect(resolveUploadCheckCardState({ eligible: true, enabled: true })).toEqual({
+    expect(resolveUploadCheckCardState({ status: 'eligible', enabled: true })).toEqual({
       disabled: false,
       invalid: false,
+      warning: false,
     });
-    expect(resolveUploadCheckCardState({ eligible: false, enabled: false })).toEqual({
+    expect(resolveUploadCheckCardState({ status: 'warning', enabled: false })).toEqual({
       disabled: false,
       invalid: false,
+      warning: true,
     });
-    expect(resolveUploadCheckCardState({ eligible: false, enabled: true })).toEqual({
+    expect(resolveUploadCheckCardState({ status: 'warning', enabled: true })).toEqual({
+      disabled: false,
+      invalid: false,
+      warning: true,
+    });
+    expect(resolveUploadCheckCardState({ status: 'ineligible', enabled: false })).toEqual({
+      disabled: false,
+      invalid: false,
+      warning: false,
+    });
+    expect(resolveUploadCheckCardState({ status: 'ineligible', enabled: true })).toEqual({
       disabled: false,
       invalid: true,
+      warning: false,
     });
     expect(
-      resolveUploadCheckCardState({ eligible: true, enabled: false, underMaintenance: true }),
+      resolveUploadCheckCardState({ status: 'eligible', enabled: false, underMaintenance: true }),
     ).toEqual({
       disabled: true,
       invalid: false,
+      warning: false,
     });
   });
 
