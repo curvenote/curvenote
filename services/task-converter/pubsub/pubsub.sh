@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Set up GCP Pub/Sub for an SCMS Cloud Run service that uses @curvenote/scms-tasks.
+# Set up GCP Pub/Sub for the task-converter Cloud Run service.
 #
 # This script:
 #   1. Creates a dedicated service account for invoking the Cloud Run service and publishing to Pub/Sub (or uses existing)
@@ -20,7 +20,7 @@
 #   - The Cloud Run service must already be deployed (you need its URL for the push endpoint)
 #   - Cloud Run and Pub/Sub APIs enabled on the project
 #
-# Required environment variables (or set in .env in this scripts/ dir and source before running):
+# Required environment variables (or set in .env in this pubsub/ dir):
 #   PROJECT_ID       - GCP project ID (e.g. my-project)
 #   PROJECT_NUMBER   - GCP project number (numeric; find in Console or: gcloud projects describe PROJECT_ID --format='value(projectNumber)')
 #   REGION           - Cloud Run region (e.g. us-central1)
@@ -34,12 +34,12 @@
 #   ACK_DEADLINE          - Subscription ack deadline in seconds (default: 600)
 #
 # The script does NOT create the project or the Cloud Run service. It assumes they exist.
-# Run from package root: ./scripts/pubsub.sh  (or from scripts/: ./pubsub.sh)
+# Run from services/task-converter/pubsub/: ./pubsub.sh
 #
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Load .env from scripts dir if present
+# Load .env from pubsub dir if present
 if [[ -f "${SCRIPT_DIR}/.env" ]]; then
   set -a
   # shellcheck source=/dev/null
@@ -77,7 +77,7 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   echo "  export PUSH_ENDPOINT=https://task-converter-xxxxx-uc.a.run.app"
   echo "  export TOPIC_NAME=scmsTaskConverterTopic"
   echo "  export SUBSCRIPTION_NAME=scmsTaskConverterSub"
-  echo "  ./scripts/pubsub.sh"
+  echo "  ./pubsub.sh"
   exit 1
 fi
 

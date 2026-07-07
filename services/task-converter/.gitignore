@@ -1,3 +1,5 @@
 .env
+.env.*
+!.env.sample
 dist
 typst-plain

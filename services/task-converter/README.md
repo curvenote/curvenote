@@ -56,6 +56,23 @@ cp .env.sample .env
 
 **Deploy:** From this directory, run `npm run build` (build:service + remote build), then `npm run deploy` (or `./deploy.sh`).
 
+**First-time Pub/Sub setup** (after the Cloud Run service exists): see the `pubsub/` section below.
+
+## Pub/Sub setup (`pubsub/`)
+
+For a new GCP project, wire Pub/Sub push delivery to the deployed Cloud Run service:
+
+```bash
+cd pubsub
+cp .env.sample .env
+# Set PROJECT_ID, PROJECT_NUMBER, PUSH_ENDPOINT (Cloud Run URL), etc.
+./pubsub.sh
+```
+
+Then configure SCMS for that environment: `converterTopic`, `converterSASecretKeyfile`, and `pubsubProjectId` (see script output and `.app-config.schema.yml`).
+
+The script is idempotent — safe to re-run after redeploys if the Cloud Run URL changes.
+
 ## Environment variables
 
 | Variable      | Description             | Default                     |
