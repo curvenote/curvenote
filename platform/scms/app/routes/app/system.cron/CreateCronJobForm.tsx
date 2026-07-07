@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useFetcher, useRevalidator } from 'react-router';
 import { Plus, PlusCircle } from 'lucide-react';
 import { cn, cronEndpointScope, primitives, ui, useExpandableForm } from '@curvenote/scms-core';
 import { CRON_HTTP_METHODS, type CronHttpMethod } from './constants';
+import { previewCronSchedule } from './previewCronSchedule';
 
 type CreateActionData = {
   success?: boolean;
@@ -21,13 +22,16 @@ export function CreateCronJobForm() {
 
   const isSubmitting = fetcher.state === 'submitting';
   const [httpMethod, setHttpMethod] = useState<CronHttpMethod>('POST');
+  const [schedule, setSchedule] = useState('');
   const [targetPath, setTargetPath] = useState('');
   const [targetScope, setTargetScope] = useState('');
   const [isScopeManuallyEdited, setIsScopeManuallyEdited] = useState(false);
+  const schedulePreview = useMemo(() => previewCronSchedule(schedule), [schedule]);
 
   useEffect(() => {
     if (!isExpanded) {
       setHttpMethod('POST');
+      setSchedule('');
       setTargetPath('');
       setTargetScope('');
       setIsScopeManuallyEdited(false);
@@ -117,12 +121,26 @@ export function CreateCronJobForm() {
                 <ui.Input
                   id="cron-schedule"
                   name="schedule"
+                  value={schedule}
+                  onChange={(e) => setSchedule(e.target.value)}
                   placeholder="* * * * *"
                   required
                   disabled={isSubmitting}
                   className="mt-1 font-mono"
                 />
-                <p className="mt-1 text-sm text-muted-foreground">Standard cron expression (UTC)</p>
+                {schedulePreview?.valid === false ? (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {schedulePreview.error}
+                  </p>
+                ) : schedulePreview?.valid === true ? (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {schedulePreview.description}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Standard cron expression (UTC)
+                  </p>
+                )}
               </div>
 
               <div>
