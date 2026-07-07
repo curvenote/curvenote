@@ -181,6 +181,13 @@ vi.mock('./actionHelpers.server', () => ({
 const { action, loader } = await import('./route');
 const { getUniqueSubmissions } = await import('./utils.server');
 
+type WorkRouteLoaderData = Exclude<Awaited<ReturnType<typeof loader>>, Response>;
+
+function expectLoaderData(result: Awaited<ReturnType<typeof loader>>): WorkRouteLoaderData {
+  expect(result).not.toBeInstanceOf(Response);
+  return result as WorkRouteLoaderData;
+}
+
 function submitReadySiteFields() {
   return {
     submissionKinds: [{ id: 'kind-1', default: true }],
@@ -381,10 +388,12 @@ describe('work submit-to-site route', () => {
       },
     ]);
 
-    const result = await loader({
-      request: new Request('http://localhost/app/works/work-1/details'),
-      params: { workId: 'work-1' },
-    } as never);
+    const result = expectLoaderData(
+      await loader({
+        request: new Request('http://localhost/app/works/work-1/details'),
+        params: { workId: 'work-1' },
+      } as never),
+    );
 
     expect(findManySites).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -427,10 +436,12 @@ describe('work submit-to-site route', () => {
       },
     ]);
 
-    const result = await loader({
-      request: new Request('http://localhost/app/works/work-1/details'),
-      params: { workId: 'work-1' },
-    } as never);
+    const result = expectLoaderData(
+      await loader({
+        request: new Request('http://localhost/app/works/work-1/details'),
+        params: { workId: 'work-1' },
+      } as never),
+    );
 
     expect(result.availableSites.map((site) => site.name)).toEqual(['existing-site']);
   });
