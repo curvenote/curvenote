@@ -272,26 +272,21 @@ function ConfigTab({
 
 function JobsTab({ jobs, allowedHosts }: { jobs: CronJobListRow[]; allowedHosts: string[] }) {
   return (
-    <div className="space-y-6">
-      <section className="overflow-hidden bg-white rounded-lg border dark:bg-gray-900 dark:border-gray-700">
-        <div className="px-4 py-3 bg-gray-50 border-b dark:bg-gray-800 dark:border-gray-700">
-          <h2 className="text-lg font-semibold">Cron jobs</h2>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h2 className="mb-4 text-lg font-semibold">Cron jobs</h2>
         {jobs.length === 0 ? (
-          <p className="px-4 py-8 text-sm text-center text-gray-500">No cron jobs configured.</p>
+          <p className="text-sm text-muted-foreground">No cron jobs configured.</p>
         ) : (
-          <div>
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {jobs.map((job) => (
-              <div
-                key={job.id}
-                className="flex flex-col gap-2 p-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
-              >
+              <div key={job.id} className="py-4 first:pt-0">
                 <CronJobListItem job={job} />
               </div>
             ))}
           </div>
         )}
-      </section>
+      </div>
 
       <CreateCronJobForm allowedHosts={allowedHosts} />
     </div>

@@ -41,8 +41,8 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
     allowedHosts.length > 0 ? allowedHosts.join(', ') : 'configured API hosts from app-config';
 
   return (
-    <section className="p-4 bg-white rounded-lg border dark:bg-gray-900 dark:border-gray-700">
-      <h3 className="mb-3 font-semibold">Create HTTP cron (HANDSHAKE)</h3>
+    <div>
+      <h3 className="mb-4 text-lg font-semibold">Create HTTP cron (HANDSHAKE)</h3>
       <fetcher.Form key={formKey} method="post" className="grid gap-4 max-w-xl">
         <input type="hidden" name="intent" value="create" />
 
@@ -140,6 +140,6 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
           Create
         </ui.StatefulButton>
       </fetcher.Form>
-    </section>
+    </div>
   );
 }
