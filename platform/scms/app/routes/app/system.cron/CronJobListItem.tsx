@@ -78,9 +78,14 @@ export function CronJobListItem({ job }: { job: CronJobListRow }) {
     <div className="flex flex-col w-full gap-3 lg:flex-row lg:gap-6">
       <div className="flex-1 min-w-0 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-lg font-medium text-gray-900 truncate dark:text-gray-100">
-            {job.name}
-          </h3>
+          <div className="min-w-0">
+            <h3 className="text-lg font-medium text-gray-900 truncate dark:text-gray-100">
+              {job.description ?? job.name}
+            </h3>
+            {job.description ? (
+              <p className="font-mono text-xs text-muted-foreground truncate">{job.name}</p>
+            ) : null}
+          </div>
           <div className="flex flex-wrap gap-1">
             {job.enabled ? (
               <ui.Badge variant="default">Enabled</ui.Badge>

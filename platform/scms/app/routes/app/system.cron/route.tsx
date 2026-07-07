@@ -4,7 +4,6 @@ import { useState, type FormEvent } from 'react';
 import {
   withAppAdminContext,
   dbListCronJobs,
-  dbCreateCronJob,
   dbDeleteCronJob,
   dbSetCronJobEnabled,
   runCronJobNow,
@@ -14,19 +13,18 @@ import {
   pushCronTickSecretFromConfig,
   unscheduleJobQueueDrainBackup,
   rescheduleJobQueueDrainBackup,
-  CronJobTargetType,
-  CronJobTargetAuth,
-  cronEndpointScope,
   resolveScopedCronTargetUrl,
+  collectAllowedCronTickHosts,
   getConfig,
   type CronTickStatus,
   type PgCronHealth,
 } from '@curvenote/scms-server';
-import { CronEndpointScopes, PageFrame, ui } from '@curvenote/scms-core';
+import { PageFrame, ui } from '@curvenote/scms-core';
 import type { CronJob } from '@curvenote/scms-db';
-import { uuidv7 } from 'uuidv7';
 import { Clock, KeyRound, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { CronJobListItem } from './CronJobListItem';
+import { CreateCronJobForm } from './CreateCronJobForm';
+import { handleCreateCronJob } from './actionHelpers.server';
 import type { CronJobListRow } from './types';
 
 async function enrichCronJobsForList(jobs: CronJob[]): Promise<CronJobListRow[]> {
@@ -51,12 +49,14 @@ export const meta: Route.MetaFunction = () => [
 
 export async function loader(args: Route.LoaderArgs) {
   await withAppAdminContext(args);
+  const config = await getConfig();
   const [jobs, tickStatus, pgCronHealth] = await Promise.all([
     dbListCronJobs(),
     getCronTickStatus(),
     getPgCronHealth(),
   ]);
-  return { jobs: await enrichCronJobsForList(jobs), tickStatus, pgCronHealth };
+  const allowedHosts = [...collectAllowedCronTickHosts(config.api)].sort();
+  return { jobs: await enrichCronJobsForList(jobs), tickStatus, pgCronHealth, allowedHosts };
 }
 
 export async function action(args: Route.ActionArgs) {
@@ -66,24 +66,7 @@ export async function action(args: Route.ActionArgs) {
 
   try {
     if (intent === 'create') {
-      const name = String(form.get('name') ?? '').trim();
-      const schedule = String(form.get('schedule') ?? '').trim();
-      const targetUrl = String(form.get('target_url') ?? '').trim();
-      const httpMethod = String(form.get('http_method') ?? 'POST').trim();
-      const targetScope =
-        String(form.get('target_scope') ?? '').trim() ||
-        (targetUrl ? cronEndpointScope(httpMethod, new URL(targetUrl).pathname) : '');
-      await dbCreateCronJob(uuidv7(), {
-        name,
-        schedule,
-        target_type: CronJobTargetType.HTTP,
-        target_url: targetUrl || null,
-        http_method: httpMethod,
-        target_auth: CronJobTargetAuth.HANDSHAKE,
-        target_scope: targetScope,
-        created_by: ctx.user?.id,
-      });
-      return data({ ok: true, intent });
+      return handleCreateCronJob(ctx, form);
     }
 
     if (intent === 'toggle') {
@@ -287,9 +270,7 @@ function ConfigTab({
   );
 }
 
-function JobsTab({ jobs }: { jobs: CronJobListRow[] }) {
-  const createFetcher = useFetcher();
-
+function JobsTab({ jobs, allowedHosts }: { jobs: CronJobListRow[]; allowedHosts: string[] }) {
   return (
     <div className="space-y-6">
       <section className="overflow-hidden bg-white rounded-lg border dark:bg-gray-900 dark:border-gray-700">
@@ -312,71 +293,7 @@ function JobsTab({ jobs }: { jobs: CronJobListRow[] }) {
         )}
       </section>
 
-      <section className="p-4 bg-white rounded-lg border dark:bg-gray-900 dark:border-gray-700">
-        <h3 className="mb-3 font-semibold">Create HTTP cron (HANDSHAKE)</h3>
-        <createFetcher.Form method="post" className="grid gap-4 max-w-xl">
-          <input type="hidden" name="intent" value="create" />
-          <div>
-            <ui.Label htmlFor="cron-name">Name *</ui.Label>
-            <ui.Input
-              id="cron-name"
-              name="name"
-              placeholder="my-cron-job"
-              required
-              className="mt-1"
-            />
-            <p className="mt-1 text-sm text-muted-foreground">
-              Unique identifier for this cron job
-            </p>
-          </div>
-          <div>
-            <ui.Label htmlFor="cron-schedule">Schedule *</ui.Label>
-            <ui.Input
-              id="cron-schedule"
-              name="schedule"
-              placeholder="* * * * *"
-              required
-              className="mt-1 font-mono"
-            />
-            <p className="mt-1 text-sm text-muted-foreground">Standard cron expression</p>
-          </div>
-          <div>
-            <ui.Label htmlFor="cron-http-method">HTTP method</ui.Label>
-            <ui.Input
-              id="cron-http-method"
-              name="http_method"
-              defaultValue="POST"
-              className="mt-1 font-mono"
-            />
-          </div>
-          <div>
-            <ui.Label htmlFor="cron-target-url">Target URL *</ui.Label>
-            <ui.Input
-              id="cron-target-url"
-              name="target_url"
-              placeholder="https://host/v1/..."
-              required
-              className="mt-1 font-mono text-xs"
-            />
-          </div>
-          <div>
-            <ui.Label htmlFor="cron-target-scope">Scope</ui.Label>
-            <ui.Input
-              id="cron-target-scope"
-              name="target_scope"
-              placeholder={CronEndpointScopes.JOB_QUEUE_DRAIN}
-              className="mt-1 font-mono text-xs"
-            />
-            <p className="mt-1 text-sm text-muted-foreground">
-              Optional. Defaults to {CronEndpointScopes.JOB_QUEUE_DRAIN} when left blank and a
-              target URL is provided.
-            </p>
-          </div>
-          <ui.Button type="submit" className="w-fit">
-            Create
-          </ui.Button>
-        </createFetcher.Form>
-      </section>
+      <CreateCronJobForm allowedHosts={allowedHosts} />
     </div>
   );
 }
@@ -420,7 +337,9 @@ export default function SystemCronPage({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
         <ui.TabsContent value="jobs" className="mt-4">
-          {tab === 'jobs' ? <JobsTab jobs={loaderData.jobs} /> : null}
+          {tab === 'jobs' ? (
+            <JobsTab jobs={loaderData.jobs} allowedHosts={loaderData.allowedHosts} />
+          ) : null}
         </ui.TabsContent>
         <ui.TabsContent value="config" className="mt-4">
           {tab === 'config' ? (
