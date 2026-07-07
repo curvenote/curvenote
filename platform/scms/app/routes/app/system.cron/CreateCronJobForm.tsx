@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useFetcher, useRevalidator } from 'react-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useFetcher } from 'react-router';
 import { Plus, PlusCircle } from 'lucide-react';
 import { cn, cronEndpointScope, primitives, ui, useExpandableForm } from '@curvenote/scms-core';
 import { CRON_HTTP_METHODS, type CronHttpMethod } from './constants';
@@ -13,7 +13,7 @@ type CreateActionData = {
 
 export function CreateCronJobForm() {
   const fetcher = useFetcher<CreateActionData>();
-  const revalidator = useRevalidator();
+  const prevFetcherState = useRef(fetcher.state);
 
   const { isExpanded, isExiting, expand, handleCancel, formRef, onSubmit } = useExpandableForm(
     fetcher,
@@ -45,15 +45,19 @@ export function CreateCronJobForm() {
   }, [httpMethod, targetPath, isScopeManuallyEdited]);
 
   useEffect(() => {
-    if (fetcher.state === 'idle' && fetcher.data) {
-      if (fetcher.data.error) {
-        ui.toastError(fetcher.data.error.message);
-      } else if (fetcher.data.success) {
-        ui.toastSuccess(fetcher.data.message ?? 'Cron job created successfully');
-        revalidator.revalidate();
-      }
+    const wasBusy = prevFetcherState.current !== 'idle';
+    prevFetcherState.current = fetcher.state;
+
+    if (!wasBusy || fetcher.state !== 'idle' || !fetcher.data) {
+      return;
     }
-  }, [fetcher.state, fetcher.data, revalidator]);
+
+    if (fetcher.data.error) {
+      ui.toastError(fetcher.data.error.message);
+    } else if (fetcher.data.success) {
+      ui.toastSuccess(fetcher.data.message ?? 'Cron job created successfully');
+    }
+  }, [fetcher.state, fetcher.data]);
 
   return (
     <div className="space-y-0">
