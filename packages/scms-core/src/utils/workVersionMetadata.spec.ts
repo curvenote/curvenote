@@ -69,16 +69,32 @@ describe('workVersionMetadata', () => {
     expect(getFilesForSlot(undefined, 'manuscript')).toEqual([]);
   });
 
-  it('computes manuscript source signatures from md5 or path', () => {
+  it('computes manuscript source signatures from preview candidates using md5 or path', () => {
     expect(
       computeManuscriptSourceSignature({
         files: {
-          b: { slot: 'manuscript', path: 'b.pdf' },
-          a: { slot: 'manuscript', md5: 'aaa', path: 'a.pdf' },
-          c: { slot: 'figures', md5: 'ccc', path: 'c.png' },
+          b: { slot: 'manuscript', path: 'b.pdf', type: 'application/pdf' },
+          a: { slot: 'manuscript', md5: 'aaa', path: 'a.pdf', type: 'application/pdf' },
+          c: { slot: 'figures', md5: 'ccc', path: 'c.png', type: 'image/png' },
         },
       }),
     ).toBe('aaa,b.pdf');
+  });
+
+  it('includes preview candidates regardless of upload slot', () => {
+    expect(
+      computeManuscriptSourceSignature({
+        files: {
+          supp: {
+            slot: 'supplementary',
+            md5: 'supp-md5',
+            path: 'supp.pdf',
+            type: 'application/pdf',
+          },
+          fig: { slot: 'figures', md5: 'fig-md5', path: 'fig.png', type: 'image/png' },
+        },
+      }),
+    ).toBe('supp-md5');
   });
 
   it('isDocxOrPdfFile accepts pdf and docx by type or extension', () => {
@@ -111,7 +127,13 @@ describe('workVersionMetadata', () => {
   it('derives upload check context from current upload analysis metadata', () => {
     const metadata = {
       files: {
-        a: { slot: 'manuscript', type: 'application/pdf', size: 1, md5: 'source-a' },
+        a: {
+          slot: 'manuscript',
+          path: 'a.pdf',
+          type: 'application/pdf',
+          size: 1,
+          md5: 'source-a',
+        },
       },
       [UPLOAD_ANALYSIS_METADATA_KEY]: {
         source: 'metadata-preview',
@@ -134,7 +156,13 @@ describe('workVersionMetadata', () => {
     expect(
       getUploadCheckEligibilityContext({
         files: {
-          a: { slot: 'manuscript', type: 'application/pdf', size: 1, md5: 'source-a' },
+          a: {
+            slot: 'manuscript',
+            path: 'a.pdf',
+            type: 'application/pdf',
+            size: 1,
+            md5: 'source-a',
+          },
         },
         [UPLOAD_ANALYSIS_METADATA_KEY]: {
           sourceSignature: 'old-source',
@@ -158,7 +186,13 @@ describe('workVersionMetadata', () => {
     ];
     const metadata = {
       files: {
-        a: { slot: 'manuscript', type: 'application/pdf', size: 1, md5: 'source-a' },
+        a: {
+          slot: 'manuscript',
+          path: 'a.pdf',
+          type: 'application/pdf',
+          size: 1,
+          md5: 'source-a',
+        },
       },
       [UPLOAD_ANALYSIS_METADATA_KEY]: {
         sourceSignature: 'source-a',

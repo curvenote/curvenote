@@ -2,6 +2,7 @@ import type {
   UploadCheckEligibilityContext,
   UploadFactPresence,
 } from '../modules/extensions/types.js';
+import { isPreviewCandidate } from './manuscriptFormats.js';
 
 /** MIME type for `.docx` as stored on work version `metadata.files` entries. */
 export const WORK_VERSION_DOCX_MIME =
@@ -68,11 +69,28 @@ export function getFilesForSlot(metadata: unknown, slot: string): WorkVersionFil
 }
 
 /**
- * Stable source signature for manuscript files that feed upload analysis.
+ * Stable source signature for files that feed upload preview/analysis.
+ * Uses the same `isPreviewCandidate` predicate as the preview/extraction pipeline.
  */
 export function computeManuscriptSourceSignature(metadata: unknown): string {
-  return getFilesForSlot(metadata, 'manuscript')
-    .map((f) => (typeof f.md5 === 'string' && f.md5 ? f.md5 : f.path))
+  if (!metadata || typeof metadata !== 'object') return '';
+  const meta = metadata as Record<string, unknown>;
+  const files = meta.files;
+  if (!files || typeof files !== 'object' || Array.isArray(files)) return '';
+  return Object.entries(files)
+    .filter(([, f]) => {
+      if (f == null || typeof f !== 'object') return false;
+      const entry = f as WorkVersionFileEntry;
+      return isPreviewCandidate({
+        path: entry.path,
+        name: entry.name,
+        type: entry.type,
+      });
+    })
+    .map(([, f]) => {
+      const entry = f as WorkVersionFileEntry;
+      return typeof entry.md5 === 'string' && entry.md5 ? entry.md5 : entry.path;
+    })
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
     .sort()
     .join(',');
