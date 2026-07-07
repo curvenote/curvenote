@@ -14,7 +14,6 @@ import {
   unscheduleJobQueueDrainBackup,
   rescheduleJobQueueDrainBackup,
   resolveScopedCronTargetUrl,
-  collectAllowedCronTickHosts,
   getConfig,
   type CronTickStatus,
   type PgCronHealth,
@@ -49,14 +48,12 @@ export const meta: Route.MetaFunction = () => [
 
 export async function loader(args: Route.LoaderArgs) {
   await withAppAdminContext(args);
-  const config = await getConfig();
   const [jobs, tickStatus, pgCronHealth] = await Promise.all([
     dbListCronJobs(),
     getCronTickStatus(),
     getPgCronHealth(),
   ]);
-  const allowedHosts = [...collectAllowedCronTickHosts(config.api)].sort();
-  return { jobs: await enrichCronJobsForList(jobs), tickStatus, pgCronHealth, allowedHosts };
+  return { jobs: await enrichCronJobsForList(jobs), tickStatus, pgCronHealth };
 }
 
 export async function action(args: Route.ActionArgs) {
@@ -270,10 +267,10 @@ function ConfigTab({
   );
 }
 
-function JobsTab({ jobs, allowedHosts }: { jobs: CronJobListRow[]; allowedHosts: string[] }) {
+function JobsTab({ jobs }: { jobs: CronJobListRow[] }) {
   return (
     <div className="space-y-2">
-      <CreateCronJobForm allowedHosts={allowedHosts} />
+      <CreateCronJobForm />
 
       <SectionWithHeading heading="Cron jobs" icon={Clock}>
         <div className="overflow-hidden bg-white rounded-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-700">
@@ -336,9 +333,7 @@ export default function SystemCronPage({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
         <ui.TabsContent value="jobs" className="mt-4">
-          {tab === 'jobs' ? (
-            <JobsTab jobs={loaderData.jobs} allowedHosts={loaderData.allowedHosts} />
-          ) : null}
+          {tab === 'jobs' ? <JobsTab jobs={loaderData.jobs} /> : null}
         </ui.TabsContent>
         <ui.TabsContent value="config" className="mt-4">
           {tab === 'config' ? (

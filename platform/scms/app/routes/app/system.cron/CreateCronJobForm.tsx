@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useFetcher, useRevalidator } from 'react-router';
 import { Plus, PlusCircle } from 'lucide-react';
-import { CronEndpointScopes, cn, primitives, ui, useExpandableForm } from '@curvenote/scms-core';
+import { cn, cronEndpointScope, primitives, ui, useExpandableForm } from '@curvenote/scms-core';
 import { CRON_HTTP_METHODS, type CronHttpMethod } from './constants';
 
 type CreateActionData = {
@@ -10,7 +10,7 @@ type CreateActionData = {
   error?: { message: string };
 };
 
-export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) {
+export function CreateCronJobForm() {
   const fetcher = useFetcher<CreateActionData>();
   const revalidator = useRevalidator();
 
@@ -21,12 +21,24 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
 
   const isSubmitting = fetcher.state === 'submitting';
   const [httpMethod, setHttpMethod] = useState<CronHttpMethod>('POST');
+  const [targetPath, setTargetPath] = useState('');
+  const [targetScope, setTargetScope] = useState('');
+  const [isScopeManuallyEdited, setIsScopeManuallyEdited] = useState(false);
 
   useEffect(() => {
     if (!isExpanded) {
       setHttpMethod('POST');
+      setTargetPath('');
+      setTargetScope('');
+      setIsScopeManuallyEdited(false);
     }
   }, [isExpanded]);
+
+  useEffect(() => {
+    if (!isScopeManuallyEdited) {
+      setTargetScope(targetPath.trim() ? cronEndpointScope(httpMethod, targetPath) : '');
+    }
+  }, [httpMethod, targetPath, isScopeManuallyEdited]);
 
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
@@ -38,9 +50,6 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
       }
     }
   }, [fetcher.state, fetcher.data, revalidator]);
-
-  const allowedHostsHint =
-    allowedHosts.length > 0 ? allowedHosts.join(', ') : 'configured API hosts from app-config';
 
   return (
     <div className="space-y-0">
@@ -63,7 +72,12 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
           >
             <input type="hidden" name="intent" value="create" />
 
-            <div className="text-lg font-semibold">Add Cron Job</div>
+            <div className="space-y-1">
+              <div className="text-lg font-semibold">Add Cron Job</div>
+              <p className="text-sm text-muted-foreground">
+                Cron jobs are internal only and secured by scoped handshake tokens
+              </p>
+            </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
@@ -133,34 +147,38 @@ export function CreateCronJobForm({ allowedHosts }: { allowedHosts: string[] }) 
               </div>
             </div>
 
-            <div>
-              <ui.Label htmlFor="cron-target-url">Target URL *</ui.Label>
-              <ui.Input
-                id="cron-target-url"
-                name="target_url"
-                placeholder="http://localhost:3031/v1/..."
-                required
-                disabled={isSubmitting}
-                className="mt-1 font-mono text-xs"
-              />
-              <p className="mt-1 text-sm text-muted-foreground">
-                Must use an allowed API host:{' '}
-                <code className="text-xs bg-muted px-1 rounded">{allowedHostsHint}</code>
-              </p>
-            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <ui.Label htmlFor="cron-target-path">Target path *</ui.Label>
+                <ui.Input
+                  id="cron-target-path"
+                  name="target_path"
+                  value={targetPath}
+                  onChange={(e) => setTargetPath(e.target.value)}
+                  placeholder="/v1/jobs/push-to-drain"
+                  required
+                  disabled={isSubmitting}
+                  className="mt-1 font-mono text-xs"
+                  pattern="\/[^\s]+"
+                />
+              </div>
 
-            <div>
-              <ui.Label htmlFor="cron-target-scope">Scope</ui.Label>
-              <ui.Input
-                id="cron-target-scope"
-                name="target_scope"
-                placeholder={CronEndpointScopes.JOB_QUEUE_DRAIN}
-                disabled={isSubmitting}
-                className="mt-1 font-mono text-xs"
-              />
-              <p className="mt-1 text-sm text-muted-foreground">
-                Optional. Derived from the target URL when left blank.
-              </p>
+              <div>
+                <ui.Label htmlFor="cron-target-scope">Scope *</ui.Label>
+                <ui.Input
+                  id="cron-target-scope"
+                  name="target_scope"
+                  value={targetScope}
+                  onChange={(e) => {
+                    setIsScopeManuallyEdited(true);
+                    setTargetScope(e.target.value);
+                  }}
+                  placeholder="POST:/v1/jobs/push-to-drain"
+                  required
+                  disabled={isSubmitting}
+                  className="mt-1 font-mono text-xs"
+                />
+              </div>
             </div>
 
             <div className="flex gap-2 justify-end">

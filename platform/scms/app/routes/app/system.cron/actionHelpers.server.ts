@@ -3,8 +3,9 @@ import {
   dbCreateCronJob,
   CronJobTargetType,
   CronJobTargetAuth,
-  cronEndpointScope,
   computeInitialNextRunAt,
+  getConfig,
+  resolveApiPath,
   type SecureContext,
 } from '@curvenote/scms-server';
 import { z } from 'zod';
@@ -13,6 +14,8 @@ import { uuidv7 } from 'uuidv7';
 import { CRON_HTTP_METHODS } from './constants.js';
 
 export { CRON_HTTP_METHODS } from './constants.js';
+
+const RELATIVE_TARGET_PATH = /^\/[^\s]+$/;
 
 export const CreateCronJobSchema = zfd.formData({
   intent: z.literal('create'),
@@ -24,8 +27,14 @@ export const CreateCronJobSchema = zfd.formData({
       errorMap: () => ({ message: 'HTTP method must be GET, POST, PUT, PATCH, or DELETE' }),
     }),
   ),
-  target_url: zfd.text(z.string().trim().url('Target URL must be a valid absolute URL')),
-  target_scope: zfd.text(z.string().trim().optional()),
+  target_path: zfd.text(
+    z
+      .string()
+      .trim()
+      .min(1, 'Target path is required')
+      .regex(RELATIVE_TARGET_PATH, 'Target path must start with / (e.g. /v1/jobs/push-to-drain)'),
+  ),
+  target_scope: zfd.text(z.string().trim().min(1, 'Scope is required')),
 });
 
 function assertValidCronSchedule(schedule: string): void {
@@ -40,10 +49,11 @@ export async function handleCreateCronJob(ctx: SecureContext, formData: FormData
   return withValidFormData(CreateCronJobSchema, formData, async (payload) => {
     assertValidCronSchedule(payload.schedule);
 
+    const config = await getConfig();
     const httpMethod = payload.http_method || 'POST';
-    const targetUrl = payload.target_url.trim();
-    const targetScope =
-      payload.target_scope?.trim() || cronEndpointScope(httpMethod, new URL(targetUrl).pathname);
+    const targetPath = payload.target_path.trim();
+    const targetUrl = resolveApiPath(config.api.url, targetPath);
+    const targetScope = payload.target_scope.trim();
 
     await dbCreateCronJob(uuidv7(), {
       name: payload.name,
