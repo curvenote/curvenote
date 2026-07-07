@@ -87,18 +87,24 @@ discover_extension_repos() {
   done
 }
 
-mapfile -t SRC_REPOS < <(discover_extension_repos "$EXTENSIONS_SRC")
-
-if [[ ${#SRC_REPOS[@]} -eq 0 ]]; then
+repo_list="$(discover_extension_repos "$EXTENSIONS_SRC")"
+if [[ -z "$repo_list" ]]; then
   echo "→ No git repos under extensions/ or extensions/plugins/; skipping"
   exit 0
 fi
 
-echo "→ Cloning ${#SRC_REPOS[@]} extension repo(s) from source checkout into worktree"
+count=0
+while IFS= read -r src_repo; do
+  [[ -n "$src_repo" ]] || continue
+  count=$((count + 1))
+done <<< "$repo_list"
 
-for src_repo in "${SRC_REPOS[@]}"; do
+echo "→ Cloning ${count} extension repo(s) from source checkout into worktree"
+
+while IFS= read -r src_repo; do
+  [[ -n "$src_repo" ]] || continue
   rel="${src_repo#"${SOURCE_ROOT}/"}"
   clone_or_update "$src_repo" "${DEST_ROOT}/${rel}" "$rel"
-done
+done <<< "$repo_list"
 
-echo "✅ Extension repos ready in worktree"
+echo "✅ Extension repos ready in worktree (${count} repo(s))"
