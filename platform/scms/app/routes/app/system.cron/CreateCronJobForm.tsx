@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { Plus, PlusCircle } from 'lucide-react';
-import { cn, cronEndpointScope, primitives, ui, useExpandableForm } from '@curvenote/scms-core';
+import {
+  cn,
+  cronEndpointScope,
+  CronEndpointScopes,
+  primitives,
+  ui,
+  useExpandableForm,
+} from '@curvenote/scms-core';
 import { CRON_HTTP_METHODS, type CronHttpMethod } from './constants';
 import { previewCronSchedule } from './previewCronSchedule';
 
@@ -177,7 +184,7 @@ export function CreateCronJobForm() {
                   name="target_path"
                   value={targetPath}
                   onChange={(e) => setTargetPath(e.target.value)}
-                  placeholder="/v1/jobs/push-to-drain"
+                  placeholder="/v1/loopback"
                   required
                   disabled={isSubmitting}
                   className="mt-1 font-mono text-xs"
@@ -195,7 +202,7 @@ export function CreateCronJobForm() {
                     setIsScopeManuallyEdited(true);
                     setTargetScope(e.target.value);
                   }}
-                  placeholder="POST:/v1/jobs/push-to-drain"
+                  placeholder={CronEndpointScopes.LOOPBACK}
                   required
                   disabled={isSubmitting}
                   className="mt-1 font-mono text-xs"
