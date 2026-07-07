@@ -18,6 +18,7 @@
     "wt:create": "bash scripts/wt-add.sh",
     "wt:existing": "bash scripts/wt-add.sh --existing",
     "wt:remove": "bash scripts/wt-remove.sh",
+    "cloud:setup": "bash scripts/cloud-setup.sh",
     "generate:extensions": "node platform/scms/scripts/generate-extensions.js",
     "generate:relay-plugins": "node platform/relay/scripts/generate-plugin-loader.js",
     "prisma:generate": "npx prisma generate --config=./prisma.config.ts",

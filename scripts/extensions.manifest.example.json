@@ -1,0 +1,8 @@
+{
+  "environments": {
+    "default": {
+      "description": "Monorepo only — no gitignored extension clones.",
+      "extensions": []
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "SCMS",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "install": "CLOUD_ENV=default bash scripts/cloud-setup.sh",
+  "start": "sudo service docker start",
+  "terminals": [
+    {
+      "name": "scms",
+      "command": "cd platform/scms && npm run dev",
+      "description": "SCMS dev server (http://localhost:3031)."
+    }
+  ],
+  "ports": [
+    { "name": "scms", "port": 3031 },
+    { "name": "postgres", "port": 5432 }
+  ]
+}

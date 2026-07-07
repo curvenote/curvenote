@@ -31,6 +31,9 @@ Also:
     into the same relative locations in the worktree
     (warns if any are missing and continues)
 
+  Optional extension clones (requires local scripts/extensions.manifest.json):
+    WORKTREE_EXTENSIONS=<env-key> npm run wt:create -- <name>
+
 EOF
 }
 
@@ -93,6 +96,11 @@ post_worktree_setup() {
   copy_or_warn "${ROOT}/platform/scms/.app-config.secrets.development.yml" "${wt_dir}/platform/scms/.app-config.secrets.development.yml"
   copy_or_warn "${ROOT}/platform/scms/.env" "${wt_dir}/platform/scms/.env"
   copy_or_warn "${ROOT}/.env" "${wt_dir}/.env"
+
+  if [[ -n "${WORKTREE_EXTENSIONS:-}" ]]; then
+    echo "→ Cloning extensions (WORKTREE_EXTENSIONS=${WORKTREE_EXTENSIONS})"
+    CLOUD_ENV="${WORKTREE_EXTENSIONS}" ROOT="${wt_dir}" bash "${ROOT}/scripts/cloud/lib/clone-extensions.sh"
+  fi
 
   echo "✅ Worktree ready: ${wt_dir}"
   echo

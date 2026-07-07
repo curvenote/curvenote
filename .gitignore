@@ -57,3 +57,13 @@ types/app-config.d.ts
 
 # roborev snapshots
 /.roborev/
+
+# Cursor cloud agent local markers (not committed; may exist in VM snapshots)
+.cloud/
+
+# Private Cursor Cloud / team dev overlay (use *.example files as templates)
+.cursor/environment.json
+.cursor/Dockerfile
+.cursor/environments/
+scripts/extensions.manifest.json
+scripts/cloud/secrets.manifest.json
