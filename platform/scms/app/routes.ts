@@ -293,6 +293,7 @@ export default [
     route('jobs/push-to-drain', 'routes/api/v1.jobs.push-to-drain/route.tsx'),
     route('jobs/promote-scheduled', 'routes/api/v1.jobs.promote-scheduled/route.tsx'),
     route('cron/tick', 'routes/api/v1.cron.tick/route.tsx'),
+    route('loopback', 'routes/api/v1.loopback/route.tsx'),
     route('jobs/:jobId', 'routes/api/v1.jobs.$jobId.tsx'),
 
     route('keys', 'routes/api/v1.keys.tsx'),

@@ -144,6 +144,8 @@
     "@vercel/react-router": "^1.2.3",
     "bmp-js": "^0.1.0",
     "classnames": "^2.5.1",
+    "cron-parser": "^5.6.1",
+    "cronstrue": "^3.24.0",
     "date-fns": "3.6.0",
     "officeparser": "^6.0.4",
     "fuse.js": "^7.1.0",

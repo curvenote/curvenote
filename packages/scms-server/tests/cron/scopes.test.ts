@@ -18,6 +18,7 @@ describe('cronEndpointScope', () => {
     expect(cronEndpointScope('post', '/v1/jobs/push-to-drain')).toBe(
       CronEndpointScopes.JOB_QUEUE_DRAIN,
     );
+    expect(cronEndpointScope('post', '/v1/loopback')).toBe(CronEndpointScopes.LOOPBACK);
     expect(cronEndpointScope('GET', 'v1/cron/tick')).toBe('GET:/v1/cron/tick');
   });
 });
