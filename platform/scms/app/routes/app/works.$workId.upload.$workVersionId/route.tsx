@@ -1063,6 +1063,15 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     }
   }, [fetchPreviewsFetcher.state, fetchPreviewsFetcher.data]);
 
+  // Re-kick preview generation after the user retries a skipped preview. The
+  // auto-fetch effect above will not fire again on its own once it has run, so
+  // resubmit here (only when idle) to restart the generation + busy state.
+  const handleRetryPreview = useCallback(() => {
+    if (fetchPreviewsFetcher.state !== 'idle') return;
+    hasTriggeredFetchPreviews.current = true;
+    fetchPreviewsFetcher.submit({ intent: 'fetch-previews' }, { method: 'POST' });
+  }, [fetchPreviewsFetcher]);
+
   const isGeneratingPreviews =
     fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
   const isPreviewsLoading = revalidator.state === 'loading' || isGeneratingPreviews;
@@ -1123,6 +1132,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
                 authorMetadata={authorMetadata}
                 onAuthorMetadataChange={setAuthorMetadata}
                 manuscriptFileCount={previewFilePaths.length}
+                onRetryPreview={handleRetryPreview}
               />
             </React.Suspense>
           ) : (

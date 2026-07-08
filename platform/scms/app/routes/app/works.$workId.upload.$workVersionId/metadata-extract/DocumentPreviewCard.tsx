@@ -1,4 +1,4 @@
-import { AlertTriangle, FileText, Search } from 'lucide-react';
+import { AlertTriangle, FileText, RotateCcw, Search } from 'lucide-react';
 import { LoadingSpinner } from '@curvenote/scms-core';
 import { DocumentPreviewer, PREVIEW_SURFACE_CLASS } from './DocumentPreviewer';
 import type { DocumentPreviewItem } from './fetchPreviews.server';
@@ -20,6 +20,10 @@ export interface DocumentPreviewCardProps {
    * calls this to abandon preview generation and let the user proceed manually.
    */
   onSkipPreview?: () => void;
+  /** True when the user skipped preview generation; renders the skipped state. */
+  wasSkipped?: boolean;
+  /** Restart preview generation from the skipped state. */
+  onRetryPreview?: () => void;
 }
 
 const STATE_WRAPPER_CLASS =
@@ -52,6 +56,36 @@ function PreviewEmptyState() {
         <p className="text-sm font-medium text-stone-600">No preview yet</p>
         <p className="text-sm text-stone-500">
           Upload a manuscript file to see a preview of its contents here.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PreviewSkippedState({ onRetry }: { onRetry?: () => void }) {
+  return (
+    <div className={STATE_WRAPPER_CLASS}>
+      <div className="relative flex items-center justify-center text-stone-400">
+        <FileText className="h-14 w-14" strokeWidth={1.25} />
+        <RotateCcw className="absolute -bottom-1 -right-1 h-6 w-6 opacity-80" strokeWidth={2} />
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-stone-600">Preview skipped</p>
+        <p className="max-w-sm text-sm text-stone-500">
+          Enter the details manually below
+          {onRetry ? (
+            <>
+              , or{' '}
+              <button
+                type="button"
+                onClick={onRetry}
+                className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+              >
+                retry preview
+              </button>
+            </>
+          ) : null}
+          .
         </p>
       </div>
     </div>
@@ -96,6 +130,8 @@ export function DocumentPreviewCard({
   activeTab,
   onActiveTabChange,
   onSkipPreview,
+  wasSkipped = false,
+  onRetryPreview,
 }: DocumentPreviewCardProps) {
   const hasPreviews = previews.length > 0;
   // Only reveal the escape hatch during the initial unpack (no previews yet);
@@ -116,6 +152,8 @@ export function DocumentPreviewCard({
             showSkipHatch={showSkipHatch}
             onSkipPreview={onSkipPreview}
           />
+        ) : wasSkipped ? (
+          <PreviewSkippedState onRetry={onRetryPreview} />
         ) : previewError ? (
           <PreviewErrorState message={previewError} />
         ) : (

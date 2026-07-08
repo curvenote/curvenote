@@ -31,6 +31,8 @@ export interface MetadataExtractSectionProps {
    * preview/extraction busy state immediately.
    */
   manuscriptFileCount: number;
+  /** Restart preview generation after the user skipped it. */
+  onRetryPreview?: () => void;
 }
 
 export function MetadataExtractSection({
@@ -43,6 +45,7 @@ export function MetadataExtractSection({
   authorMetadata,
   onAuthorMetadataChange,
   manuscriptFileCount,
+  onRetryPreview,
 }: MetadataExtractSectionProps) {
   const extractMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
   const clearMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
@@ -272,6 +275,13 @@ export function MetadataExtractSection({
     setIsAutoExtractPending(false);
   };
 
+  // Recover from a skipped preview: clear the skip and re-kick generation so the
+  // busy state (and follow-on auto-extraction) resume as if it were never skipped.
+  const handleRetryPreview = () => {
+    setHasSkippedPreview(false);
+    onRetryPreview?.();
+  };
+
   const handleClearExtraction = () => {
     setHasLocallyClearedExtraction(true);
     onAuthorMetadataChange(EMPTY_AUTHOR_METADATA);
@@ -293,6 +303,8 @@ export function MetadataExtractSection({
           activeTab={activeTab}
           onActiveTabChange={setActiveTab}
           onSkipPreview={handleSkipPreview}
+          wasSkipped={hasSkippedPreview && hasManuscriptFiles}
+          onRetryPreview={handleRetryPreview}
         />
       </SectionWithHeading>
       <SectionWithHeading
