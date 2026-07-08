@@ -80,6 +80,7 @@ export function AuthorMetadataForm({ value, onChange }: AuthorMetadataFormProps)
         affiliationList={affiliations}
         onAffiliationListChange={updateAffiliations}
         autoSave={false}
+        simple
       />
       {fetcher.state !== 'idle' ? (
         <p className="text-xs text-muted-foreground" aria-live="polite">
