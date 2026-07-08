@@ -66,7 +66,11 @@ export function MetadataFormCard({
   );
   const displayTitle = (title?.trim() ? title : extractedMetadata?.title) ?? '';
   const canReRunExtraction = Boolean(reRunFileName) && onReRunExtraction != null;
-  const canClearExtraction = extractedMetadata != null && onClearExtraction != null;
+  // Offer "clear" whenever the form holds any content — a title or authors — no
+  // matter whether it came from extraction, manual entry, or a skipped preview.
+  const hasMetadataContent =
+    Boolean(displayTitle.trim()) || (authorMetadata.authors?.length ?? 0) > 0;
+  const canClearExtraction = hasMetadataContent && onClearExtraction != null;
   const hasControls = canReRunExtraction || canClearExtraction;
   const reRunLabel =
     previewFileCount <= 1 || !reRunFileName
