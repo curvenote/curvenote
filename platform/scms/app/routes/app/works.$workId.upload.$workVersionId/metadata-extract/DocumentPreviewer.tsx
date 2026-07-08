@@ -345,7 +345,7 @@ function AllFiguresView({ figures }: { figures: DocumentFigure[] }) {
   if (figures.length === 0) {
     return (
       <div className={PREVIEW_CONTENT_CLASS}>
-        <p className="text-sm text-muted-foreground">No figures in documents.</p>
+        <p className="text-sm text-muted-foreground">no figures found</p>
       </div>
     );
   }
