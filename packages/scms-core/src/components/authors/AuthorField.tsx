@@ -680,13 +680,13 @@ export function AuthorField({
         {simple && (
           <ui.Button
             type="button"
-            variant="outline"
+            variant="link"
             size="sm"
             onClick={() => setIsEditing(false)}
-            className="cursor-pointer shrink-0"
+            className="h-auto text-muted-foreground cursor-pointer hover:text-foreground shrink-0"
           >
             <Check className="mr-1 w-3.5 h-3.5 shrink-0" aria-hidden />
-            Done
+            done editing
           </ui.Button>
         )}
       </div>
