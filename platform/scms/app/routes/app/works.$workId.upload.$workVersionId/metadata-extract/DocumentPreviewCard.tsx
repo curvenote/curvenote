@@ -86,7 +86,8 @@ function PreviewSkippedState({ onRetry }: { onRetry?: () => void }) {
       <div className="space-y-1">
         <p className="text-sm font-medium text-stone-600">Preview skipped</p>
         <p className="max-w-sm text-sm text-stone-500">
-          Enter the details manually below
+          The file is still processing in the background, and we&apos;ll update the preview if we
+          can. In the meantime, enter the details manually below
           {onRetry ? (
             <>
               , or{' '}
