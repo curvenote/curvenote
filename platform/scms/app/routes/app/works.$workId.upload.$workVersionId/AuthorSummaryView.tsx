@@ -24,11 +24,7 @@ function orcidHref(orcid: string): string {
  * `AuthorMetadataForm` when it is not in editing mode. The enclosing form owns the
  * label and the Edit affordance that switches to the full `AuthorField` editor.
  */
-export function AuthorSummaryView({
-  authors,
-  affiliationList,
-  onAddNow,
-}: AuthorSummaryViewProps) {
+export function AuthorSummaryView({ authors, affiliationList, onAddNow }: AuthorSummaryViewProps) {
   if (authors.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
