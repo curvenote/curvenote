@@ -93,9 +93,17 @@ The following events are currently implemented and available:
 - **`SUBMISSION_VERSION_CREATED`**: Triggered when a new submission version is created
 - **`SUBMISSION_STATUS_CHANGED`**: Triggered when a submission's status changes
 
+### Check Events
+
+- **`CHECK_RUN_STARTED`**: Triggered when a check run is created and submission is enqueued
+- **`CHECK_RUN_MILESTONE`**: Triggered on meaningful check workflow milestones (provider webhooks, PDF stored, etc.)
+- **`CHECK_RUN_ERROR`**: Triggered when a check run enters an error state or a handler fails
+- **`CHECK_RUN_RETRY`**: Triggered on manual retry or cron auto-retry sweep summary (when retries occurred)
+- **`CHECK_EULA_ACCEPTED`**: Triggered when a user accepts the Turnitin/iThenticate EULA for text integrity checks
+
 Slack notifications enable `mrkdwn_in: ['fields']`, so any metadata field value that is a full `http://` or `https://` URL will be rendered as a clickable link by Slack.
 
-Callers are responsible for putting the actual URLs into `metadata` (typically using `@curvenote/scms-core` URL helpers like `asSiteSubmissionUrl` / `asPlatformMessageUrl`).
+Callers are responsible for putting the actual URLs into `metadata` (typically using `@curvenote/scms-core` URL helpers like `asSiteSubmissionUrl`, `asPlatformMessageUrl`, `asWorkIntegrityUrl`, or `asTextIntegrityPdfDownloadUrl`).
 
 ## Adding New Events
 
