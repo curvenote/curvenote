@@ -272,7 +272,7 @@ function SingleFileView({
         onClick={onToggleAst}
         title={showAst ? 'Show preview' : 'Show AST'}
       >
-        <CodeXml className="w-4 h-4" />
+        <CodeXml className="w-3 h-3 text-muted-foreground" strokeWidth={1.5} />
       </ui.Button>
       <div className="pt-8">
         {showAst ? (
