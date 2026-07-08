@@ -1007,7 +1007,6 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     previews = [],
     extractedMetadata,
     authorFieldMetadata,
-    isExtractionStale,
     maintenanceByServiceId,
     hasMetadataExtractScope,
   } = loaderData;
@@ -1135,7 +1134,6 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
                 previewOverlayMessage={previewOverlayMessage}
                 previewError={previewError}
                 extractedMetadata={extractedMetadata}
-                isExtractionStale={isExtractionStale}
                 title={title}
                 authorMetadata={authorMetadata}
                 onAuthorMetadataChange={setAuthorMetadata}

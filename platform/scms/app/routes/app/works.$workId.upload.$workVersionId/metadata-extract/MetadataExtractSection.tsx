@@ -22,8 +22,6 @@ export interface MetadataExtractSectionProps {
   /** Message describing why previews could not be generated; renders the error state. */
   previewError?: string | null;
   extractedMetadata: ExtractedMetadata | null;
-  /** True when the cached extraction no longer matches the current manuscript file(s). */
-  isExtractionStale: boolean;
   title: string;
   authorMetadata: AuthorFieldMetadata;
   onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
@@ -35,7 +33,6 @@ export function MetadataExtractSection({
   previewOverlayMessage,
   previewError,
   extractedMetadata,
-  isExtractionStale,
   title,
   authorMetadata,
   onAuthorMetadataChange,
@@ -44,10 +41,10 @@ export function MetadataExtractSection({
   const clearMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
   const hasTriggeredExtractMetadata = useRef(false);
   const [activeTab, setActiveTab] = useState('0');
-  const [autoExtractionSuppressedFor, setAutoExtractionSuppressedFor] = useState<string | null>(
-    null,
-  );
   const [hasLocallyClearedExtraction, setHasLocallyClearedExtraction] = useState(false);
+  // Tracks a bridged busy state for auto-extraction: true from the moment a fresh
+  // upload starts unpacking until the AI extraction request resolves.
+  const [isAutoExtractPending, setIsAutoExtractPending] = useState(false);
 
   const hasPreviews = previewList.length > 0;
   const previewSourceKey = previewList.map((preview) => preview.path).join('|');
@@ -89,31 +86,68 @@ export function MetadataExtractSection({
   const visibleAuthorMetadata = hasLocallyClearedExtraction
     ? EMPTY_AUTHOR_METADATA
     : authorMetadata;
-  // Extract when there is no cached metadata yet, or when the cache is stale
-  // because the manuscript file(s) changed since the last extraction.
-  const needsExtraction = !visibleExtractedMetadata || isExtractionStale;
-  const shouldExtractMetadata =
-    needsExtraction &&
-    hasPreviews &&
-    autoExtractionSuppressedFor !== previewSourceKey &&
-    extractMetadataFetcher.state === 'idle';
+  // Auto-extraction only fires when the manuscript file set transitions from empty
+  // to non-empty (the first upload, or a fresh upload after every file was removed)
+  // AND the user has not already provided a title or authors. Adding/replacing files
+  // when metadata already exists, page reloads, or clearing extracted metadata do NOT
+  // re-trigger extraction — that is left to the user via the manual re-extract action.
+  const metadataIsEmpty = !title?.trim() && (authorMetadata.authors?.length ?? 0) === 0;
+  const prevFileCountRef = useRef(previewList.length);
 
   useEffect(() => {
-    if (!shouldExtractMetadata) {
-      if (!needsExtraction) hasTriggeredExtractMetadata.current = false;
+    const prevCount = prevFileCountRef.current;
+    const currentCount = previewList.length;
+
+    if (currentCount === 0) {
+      // No files: allow a future upload to auto-extract again. While a brand-new
+      // upload is unpacking (previously empty, metadata empty), keep the card busy so
+      // it bridges continuously from unpacking into the AI extraction.
+      hasTriggeredExtractMetadata.current = false;
+      if (prevCount === 0 && isPreviewsLoading && metadataIsEmpty) {
+        setIsAutoExtractPending(true);
+      } else if (!isPreviewsLoading) {
+        setIsAutoExtractPending(false);
+      }
+      prevFileCountRef.current = currentCount;
       return;
     }
-    if (hasTriggeredExtractMetadata.current || extractMetadataFetcher.state !== 'idle') return;
-    hasTriggeredExtractMetadata.current = true;
-    extractMetadataFetcher.submit({ intent: 'extract-metadata' }, { method: 'POST' });
+
+    // Files just arrived from an empty set: this is a first/fresh upload.
+    if (prevCount === 0) {
+      if (
+        metadataIsEmpty &&
+        !hasTriggeredExtractMetadata.current &&
+        extractMetadataFetcher.state === 'idle'
+      ) {
+        hasTriggeredExtractMetadata.current = true;
+        setIsAutoExtractPending(true);
+        extractMetadataFetcher.submit({ intent: 'extract-metadata' }, { method: 'POST' });
+      } else if (!metadataIsEmpty) {
+        setIsAutoExtractPending(false);
+      }
+    }
+
+    prevFileCountRef.current = currentCount;
   }, [
-    shouldExtractMetadata,
-    needsExtraction,
-    autoExtractionSuppressedFor,
     previewSourceKey,
+    isPreviewsLoading,
+    metadataIsEmpty,
     extractMetadataFetcher.state,
     extractMetadataFetcher,
   ]);
+
+  // Drop the bridged busy state once an extraction request has actually completed.
+  const autoExtractInFlightRef = useRef(false);
+  useEffect(() => {
+    const inFlight =
+      extractMetadataFetcher.state === 'loading' || extractMetadataFetcher.state === 'submitting';
+    if (inFlight) {
+      autoExtractInFlightRef.current = true;
+    } else if (autoExtractInFlightRef.current) {
+      autoExtractInFlightRef.current = false;
+      setIsAutoExtractPending(false);
+    }
+  }, [extractMetadataFetcher.state]);
 
   useEffect(() => {
     const result = extractMetadataFetcher.data as { error?: { message: string } } | undefined;
@@ -131,21 +165,14 @@ export function MetadataExtractSection({
 
   const isExtractionInFlight =
     extractMetadataFetcher.state === 'loading' || extractMetadataFetcher.state === 'submitting';
-  // Bridge the busy state across the whole "until results are in" window rather than only
-  // while the AI request is in flight: show it while previews are still being generated
-  // (extraction can't start yet) and while extraction is pending/about to fire. This keeps
-  // the metadata card busy continuously from preview processing through the AI call,
-  // avoiding an idle flash in the gap between previews finishing and extraction starting.
-  const isAwaitingExtraction =
-    needsExtraction &&
-    autoExtractionSuppressedFor !== previewSourceKey &&
-    (isPreviewsLoading || shouldExtractMetadata);
-  const isExtractingMetadata = isExtractionInFlight || isAwaitingExtraction;
+  // `isAutoExtractPending` bridges the busy state from the moment a fresh upload starts
+  // unpacking until the AI request resolves, so the metadata card stays busy continuously
+  // and avoids an idle flash between previews finishing and extraction starting.
+  const isExtractingMetadata = isExtractionInFlight || isAutoExtractPending;
   const extractingMetadataMessage = (() => {
     if (extractMetadataFetcher.state === 'submitting') return EXTRACTING_WORK_DETAILS_MESSAGE;
     if (extractMetadataFetcher.state === 'loading') return FINALIZING_EXTRACTION_MESSAGE;
-    if (hasTriggeredExtractMetadata.current && needsExtraction)
-      return FINALIZING_EXTRACTION_MESSAGE;
+    if (hasTriggeredExtractMetadata.current) return FINALIZING_EXTRACTION_MESSAGE;
     return WAITING_FOR_UNPACK_MESSAGE;
   })();
   const isClearingExtraction =
@@ -166,7 +193,6 @@ export function MetadataExtractSection({
 
   const handleReRunExtraction = () => {
     if (!activeFilePath) return;
-    setAutoExtractionSuppressedFor(null);
     setHasLocallyClearedExtraction(false);
     extractMetadataFetcher.submit(
       { intent: 'extract-metadata', force: 'true', path: activeFilePath },
@@ -175,7 +201,6 @@ export function MetadataExtractSection({
   };
 
   const handleClearExtraction = () => {
-    setAutoExtractionSuppressedFor(previewSourceKey);
     setHasLocallyClearedExtraction(true);
     onAuthorMetadataChange(EMPTY_AUTHOR_METADATA);
     clearMetadataFetcher.submit({ intent: 'clear-extracted-metadata' }, { method: 'POST' });
