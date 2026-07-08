@@ -972,6 +972,9 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const fetchPreviewsFetcher = useFetcher();
   const autoTitleFromFilenameFetcher = useFetcher();
   const hasTriggeredFetchPreviews = useRef(false);
+  // Tracks preview paths we've already observed, so a background preview that
+  // resolves after its file was removed only raises its toast once.
+  const seenPreviewPathsRef = useRef<Set<string> | null>(null);
 
   const suggestArticleTitleFromSelectedFiles = useCallback(
     (files: File[]) => {
@@ -1019,6 +1022,31 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const missingPreviewPaths = previewFilePaths.filter((p) => !previewPaths.has(p));
   const shouldFetchPreviews =
     hasMetadataExtractScope && previewFilePaths.length > 0 && missingPreviewPaths.length > 0;
+
+  // When a background preview finishes after its file was removed from the dropzone,
+  // tell the user it was cached for a future upload of the same file.
+  useEffect(() => {
+    if (!hasMetadataExtractScope) return;
+
+    const currentUploadPaths = new Set(previewFilePaths);
+    const seen = seenPreviewPathsRef.current;
+    if (seen === null) {
+      seenPreviewPathsRef.current = new Set(rawPreviews.map((p) => p.path));
+      return;
+    }
+
+    for (const preview of rawPreviews) {
+      if (seen.has(preview.path)) continue;
+      seen.add(preview.path);
+
+      if (currentUploadPaths.has(preview.path)) continue;
+
+      const fileName = preview.data?.name?.trim() || preview.path;
+      ui.toastInfo(
+        `The preview of ${fileName} completed in the background and was cached for next time you upload this file.`,
+      );
+    }
+  }, [hasMetadataExtractScope, rawPreviews, previewFilePaths]);
 
   useEffect(() => {
     if (!shouldFetchPreviews) {
