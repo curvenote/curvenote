@@ -9,6 +9,7 @@ import { MetadataFormCard } from './MetadataFormCard';
 import type { DocumentPreviewItem } from './fetchPreviews.server';
 import type { ExtractedMetadata } from './anthropic.server';
 import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
+import { stepAutoExtractOnPreviewChange } from './autoExtractOnPreviewChange';
 
 const EMPTY_AUTHOR_METADATA: AuthorFieldMetadata = { authors: [], affiliations: [] };
 const WAITING_FOR_UNPACK_MESSAGE = 'Waiting for document to unpack...';
@@ -149,51 +150,34 @@ export function MetadataExtractSection({
   // still counts as empty even before the clear action revalidates the loader props.
   const metadataIsEmpty =
     !visibleTitle?.trim() && (visibleAuthorMetadata.authors?.length ?? 0) === 0;
+  // See stepAutoExtractOnPreviewChange: hasTriggered and prevFileCount must stay in lockstep.
   const prevFileCountRef = useRef(previewList.length);
 
   useEffect(() => {
-    const prevCount = prevFileCountRef.current;
-    const currentCount = previewList.length;
+    const { refs, effects } = stepAutoExtractOnPreviewChange(
+      {
+        prevFileCount: prevFileCountRef.current,
+        hasTriggered: hasTriggeredExtractMetadata.current,
+      },
+      {
+        previewCount: previewList.length,
+        metadataIsEmpty,
+        effectiveIsPreviewsLoading,
+        hasSkippedPreview,
+        hasSkippedExtraction,
+        extractFetcherState: extractMetadataFetcher.state,
+      },
+    );
 
-    if (currentCount === 0) {
-      // No files: allow a future upload to auto-extract again. While a brand-new
-      // upload is unpacking (previously empty, metadata empty), keep the card busy so
-      // it bridges continuously from unpacking into the AI extraction — unless the
-      // user skipped the preview, in which case we drop straight to manual entry.
-      hasTriggeredExtractMetadata.current = false;
-      if (prevCount === 0 && effectiveIsPreviewsLoading && metadataIsEmpty) {
-        setIsAutoExtractPending(true);
-      } else if (!effectiveIsPreviewsLoading) {
-        setIsAutoExtractPending(false);
-      }
-      prevFileCountRef.current = currentCount;
-      return;
+    prevFileCountRef.current = refs.prevFileCount;
+    hasTriggeredExtractMetadata.current = refs.hasTriggered;
+
+    if (effects.autoExtractPending !== undefined) {
+      setIsAutoExtractPending(effects.autoExtractPending);
     }
-
-    // Files just arrived from an empty set: this is a first/fresh upload.
-    if (prevCount === 0) {
-      // A skipped preview or skipped extraction opts out of the follow-on auto call.
-      if (
-        metadataIsEmpty &&
-        !hasTriggeredExtractMetadata.current &&
-        !hasSkippedPreview &&
-        !hasSkippedExtraction
-      ) {
-        if (extractMetadataFetcher.state === 'idle') {
-          hasTriggeredExtractMetadata.current = true;
-          setIsAutoExtractPending(true);
-          extractMetadataFetcher.submit({ intent: 'extract-metadata' }, { method: 'POST' });
-          prevFileCountRef.current = currentCount;
-        }
-        // Fetcher busy: keep ref at 0 so we retry when it becomes idle.
-      } else if (!metadataIsEmpty || hasSkippedPreview || hasSkippedExtraction) {
-        setIsAutoExtractPending(false);
-        prevFileCountRef.current = currentCount;
-      }
-      return;
+    if (effects.submitExtractMetadata) {
+      extractMetadataFetcher.submit({ intent: 'extract-metadata' }, { method: 'POST' });
     }
-
-    prevFileCountRef.current = currentCount;
   }, [
     previewSourceKey,
     effectiveIsPreviewsLoading,
