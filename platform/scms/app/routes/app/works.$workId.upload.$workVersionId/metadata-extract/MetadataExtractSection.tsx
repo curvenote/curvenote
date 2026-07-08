@@ -123,11 +123,12 @@ export function MetadataExtractSection({
     if (currentCount === 0) {
       // No files: allow a future upload to auto-extract again. While a brand-new
       // upload is unpacking (previously empty, metadata empty), keep the card busy so
-      // it bridges continuously from unpacking into the AI extraction.
+      // it bridges continuously from unpacking into the AI extraction — unless the
+      // user skipped the preview, in which case we drop straight to manual entry.
       hasTriggeredExtractMetadata.current = false;
-      if (prevCount === 0 && isPreviewsLoading && metadataIsEmpty) {
+      if (prevCount === 0 && effectiveIsPreviewsLoading && metadataIsEmpty) {
         setIsAutoExtractPending(true);
-      } else if (!isPreviewsLoading) {
+      } else if (!effectiveIsPreviewsLoading) {
         setIsAutoExtractPending(false);
       }
       prevFileCountRef.current = currentCount;
@@ -136,7 +137,13 @@ export function MetadataExtractSection({
 
     // Files just arrived from an empty set: this is a first/fresh upload.
     if (prevCount === 0) {
-      if (metadataIsEmpty && !hasTriggeredExtractMetadata.current) {
+      // A skipped preview or skipped extraction opts out of the follow-on auto call.
+      if (
+        metadataIsEmpty &&
+        !hasTriggeredExtractMetadata.current &&
+        !hasSkippedPreview &&
+        !hasSkippedExtraction
+      ) {
         if (extractMetadataFetcher.state === 'idle') {
           hasTriggeredExtractMetadata.current = true;
           setIsAutoExtractPending(true);
@@ -144,7 +151,7 @@ export function MetadataExtractSection({
           prevFileCountRef.current = currentCount;
         }
         // Fetcher busy: keep ref at 0 so we retry when it becomes idle.
-      } else if (!metadataIsEmpty) {
+      } else if (!metadataIsEmpty || hasSkippedPreview || hasSkippedExtraction) {
         setIsAutoExtractPending(false);
         prevFileCountRef.current = currentCount;
       }
@@ -154,8 +161,10 @@ export function MetadataExtractSection({
     prevFileCountRef.current = currentCount;
   }, [
     previewSourceKey,
-    isPreviewsLoading,
+    effectiveIsPreviewsLoading,
     metadataIsEmpty,
+    hasSkippedPreview,
+    hasSkippedExtraction,
     extractMetadataFetcher.state,
     extractMetadataFetcher,
   ]);
@@ -192,7 +201,9 @@ export function MetadataExtractSection({
   // `isAutoExtractPending` bridges the busy state from the moment a fresh upload starts
   // unpacking until the AI request resolves, so the metadata card stays busy continuously
   // and avoids an idle flash between previews finishing and extraction starting.
-  const isExtractingMetadata = isExtractionInFlight || isAutoExtractPending;
+  // Skipping extraction drops the overlay immediately so the user can type.
+  const isExtractingMetadata =
+    (isExtractionInFlight || isAutoExtractPending) && !hasSkippedExtraction;
   const extractingMetadataMessage = (() => {
     if (extractMetadataFetcher.state === 'submitting') return EXTRACTING_WORK_DETAILS_MESSAGE;
     if (extractMetadataFetcher.state === 'loading') return FINALIZING_EXTRACTION_MESSAGE;
@@ -218,10 +229,28 @@ export function MetadataExtractSection({
   const handleReRunExtraction = () => {
     if (!activeFilePath) return;
     setHasLocallyClearedExtraction(false);
+    // An explicit re-run overrides an earlier skip decision.
+    setHasSkippedExtraction(false);
     extractMetadataFetcher.submit(
       { intent: 'extract-metadata', force: 'true', path: activeFilePath },
       { method: 'POST' },
     );
+  };
+
+  // Abandon a slow preview generation: hide the busy overlay and skip the
+  // follow-on auto-extraction so the user can fill the form manually. The
+  // in-flight server request cannot be aborted; late-arriving previews simply
+  // render without re-triggering extraction.
+  const handleSkipPreview = () => {
+    setHasSkippedPreview(true);
+    setIsAutoExtractPending(false);
+  };
+
+  // Abandon a slow AI extraction: hide the busy overlay for manual entry. The
+  // in-flight request cannot be aborted, but the overlay clears immediately.
+  const handleSkipExtraction = () => {
+    setHasSkippedExtraction(true);
+    setIsAutoExtractPending(false);
   };
 
   const handleClearExtraction = () => {
@@ -239,11 +268,12 @@ export function MetadataExtractSection({
       >
         <DocumentPreviewCard
           previews={previewList}
-          isPreviewsLoading={isPreviewsLoading}
+          isPreviewsLoading={effectiveIsPreviewsLoading}
           previewOverlayMessage={previewOverlayMessage}
           previewError={previewError}
           activeTab={activeTab}
           onActiveTabChange={setActiveTab}
+          onSkipPreview={handleSkipPreview}
         />
       </SectionWithHeading>
       <SectionWithHeading
@@ -268,6 +298,7 @@ export function MetadataExtractSection({
           onReRunExtraction={handleReRunExtraction}
           onClearExtraction={handleClearExtraction}
           isClearingExtraction={isClearingExtraction}
+          onSkipExtraction={handleSkipExtraction}
         />
       </SectionWithHeading>
     </div>
