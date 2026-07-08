@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
-import { Eye, NotebookText } from 'lucide-react';
+import { Eye, List } from 'lucide-react';
 import { SectionWithHeading, ui } from '@curvenote/scms-core';
 import type { Route } from '../+types/route';
 import { ALL_FIGURES_TAB } from './DocumentPreviewer';
@@ -166,7 +166,7 @@ export function MetadataExtractSection({
       </SectionWithHeading>
       <SectionWithHeading
         heading="Add Some Details About This Work"
-        icon={<NotebookText className="w-5 h-5" />}
+        icon={<List className="w-5 h-5" />}
         className="space-y-4"
       >
         <MetadataFormCard
