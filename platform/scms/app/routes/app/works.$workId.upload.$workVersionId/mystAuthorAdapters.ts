@@ -1,4 +1,4 @@
-import type { Affiliation, Author } from '@curvenote/scms-core';
+import { extractOrcidId, type Affiliation, type Author } from '@curvenote/scms-core';
 
 type MystRecord = Record<string, unknown>;
 
@@ -18,6 +18,12 @@ function isRecord(value: unknown): value is MystRecord {
 
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function normalizeOrcid(value: unknown): string | undefined {
+  const raw = asString(value);
+  if (!raw) return undefined;
+  return extractOrcidId(raw) ?? raw;
 }
 
 function generatedAuthorId(index: number): string {
@@ -145,7 +151,7 @@ export function mystFrontmatterToAuthorField(
         name,
         email: asString(rawAuthor.email),
         corresponding: rawAuthor.corresponding === true,
-        orcid: asString(rawAuthor.orcid),
+        orcid: normalizeOrcid(rawAuthor.orcid),
         affiliationIds,
       };
     })
@@ -161,7 +167,8 @@ function mergeMystAuthor(existing: MystRecord | undefined, author: Author): Myst
     name: author.name,
     affiliations: author.affiliationIds,
   };
-  if (author.orcid) next.orcid = author.orcid;
+  const orcid = normalizeOrcid(author.orcid);
+  if (orcid) next.orcid = orcid;
   else delete next.orcid;
   if (author.email) next.email = author.email;
   else delete next.email;
