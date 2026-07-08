@@ -1,7 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFetcher } from 'react-router';
 import { uuidv7 as uuid } from 'uuidv7';
-import { Check, CornerDownLeft, GripVertical, Mail, Minus, Plus, Trash2 } from 'lucide-react';
+import {
+  Check,
+  CornerDownLeft,
+  GripVertical,
+  Mail,
+  Minus,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { OrcidIcon } from '@scienceicons/react/24/solid';
 import {
   DndContext,
@@ -632,19 +641,27 @@ export function AuthorField({
   if (simple && !isEditing) {
     return (
       <div className="space-y-4">
-        <ui.FormLabel
-          htmlFor={schema.name}
-          required={schema.required}
-          valid={isValid}
-          defined={value.length > 0}
-        >
-          {schema.title}
-        </ui.FormLabel>
-        <AuthorSummaryList
-          authors={value}
-          affiliationList={affiliationList}
-          onEdit={() => setIsEditing(true)}
-        />
+        <div className="flex gap-2 justify-between items-center">
+          <ui.FormLabel
+            htmlFor={schema.name}
+            required={schema.required}
+            valid={isValid}
+            defined={value.length > 0}
+          >
+            {schema.title}
+          </ui.FormLabel>
+          <ui.Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditing(true)}
+            className="cursor-pointer shrink-0"
+          >
+            <Pencil className="mr-1 w-3.5 h-3.5 shrink-0" aria-hidden />
+            Edit
+          </ui.Button>
+        </div>
+        <AuthorSummaryList authors={value} affiliationList={affiliationList} />
       </div>
     );
   }

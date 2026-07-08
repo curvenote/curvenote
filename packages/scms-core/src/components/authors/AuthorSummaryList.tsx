@@ -1,6 +1,5 @@
-import { Building2, Mail, Pencil } from 'lucide-react';
+import { Building2, Mail } from 'lucide-react';
 import { OrcidIcon } from '@scienceicons/react/24/solid';
-import * as ui from '../ui/index.js';
 import type { Affiliation, Author } from './types.js';
 import { getAffiliationName } from './affiliationHelpers.js';
 import { isValidOrcid } from './validation.js';
@@ -8,9 +7,6 @@ import { isValidOrcid } from './validation.js';
 export type AuthorSummaryListProps = {
   authors: Author[];
   affiliationList: Affiliation[];
-  onEdit: () => void;
-  /** Label for the edit affordance; defaults to 'Edit'. */
-  editLabel?: string;
 };
 
 function orcidHref(orcid: string): string {
@@ -20,29 +16,12 @@ function orcidHref(orcid: string): string {
 
 /**
  * Read-only, text-first summary of the authors and their affiliations. Rendered
- * as the default view when `AuthorField` is in `simple` mode; an Edit button
- * flips the field to the full editing form.
+ * as the default view when `AuthorField` is in `simple` mode; the enclosing
+ * field provides the Edit affordance that flips to the full editing form.
  */
-export function AuthorSummaryList({
-  authors,
-  affiliationList,
-  onEdit,
-  editLabel = 'Edit',
-}: AuthorSummaryListProps) {
+export function AuthorSummaryList({ authors, affiliationList }: AuthorSummaryListProps) {
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <ui.Button
-          type="button"
-          variant="link"
-          size="sm"
-          onClick={onEdit}
-          className="h-auto text-muted-foreground cursor-pointer hover:text-foreground"
-        >
-          <Pencil className="mr-1 w-3.5 h-3.5 shrink-0" aria-hidden />
-          {editLabel}
-        </ui.Button>
-      </div>
       {authors.length === 0 ? (
         <p className="text-sm text-muted-foreground">No authors added yet.</p>
       ) : (
