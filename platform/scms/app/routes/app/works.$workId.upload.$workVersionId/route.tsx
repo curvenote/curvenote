@@ -965,7 +965,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     hasMetadataExtractScope,
   } = loaderData;
   const { workVersionId } = useParams();
-  const previewList: DocumentPreviewItem[] = Array.isArray(previews) ? previews : [];
+  const rawPreviews: DocumentPreviewItem[] = Array.isArray(previews) ? previews : [];
   const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
   const [authorMetadata, setAuthorMetadata] = useState<AuthorFieldMetadata>(authorFieldMetadata);
   const revalidator = useRevalidator();
@@ -1010,6 +1010,11 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const previewFilePaths = Object.entries(files)
     .filter(([, f]) => isPreviewCandidate(f))
     .map(([path]) => path);
+  // A preview generated in the background can resolve after its source file was
+  // removed or replaced in the upload area. Only surface previews whose file is
+  // still in the current upload list so stale results are never shown.
+  const previewFilePathSet = new Set(previewFilePaths);
+  const previewList = rawPreviews.filter((p) => previewFilePathSet.has(p.path));
   const previewPaths = new Set(previewList.map((p) => p.path));
   const missingPreviewPaths = previewFilePaths.filter((p) => !previewPaths.has(p));
   const shouldFetchPreviews =
