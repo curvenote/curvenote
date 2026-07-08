@@ -95,11 +95,13 @@ The following events are currently implemented and available:
 
 ### Check Events
 
-- **`CHECK_RUN_STARTED`**: Triggered when a check run is created and submission is enqueued
-- **`CHECK_RUN_MILESTONE`**: Triggered on meaningful check workflow milestones (provider webhooks, PDF stored, etc.)
+- **`CHECK_RUN_STARTED`**: Triggered when a check run is created and its work is enqueued
+- **`CHECK_RUN_MILESTONE`**: Triggered on meaningful check workflow milestones (e.g. provider webhooks, artifacts persisted)
 - **`CHECK_RUN_ERROR`**: Triggered when a check run enters an error state or a handler fails
-- **`CHECK_RUN_RETRY`**: Triggered on manual retry or cron auto-retry sweep summary (when retries occurred)
-- **`CHECK_EULA_ACCEPTED`**: Triggered when a user accepts the Turnitin/iThenticate EULA for text integrity checks
+- **`CHECK_RUN_RETRY`**: Triggered on manual retry or an auto-retry sweep summary (when retries occurred)
+- **`CHECK_EULA_ACCEPTED`**: Triggered when a user accepts a provider EULA required by a check
+
+These are generic check lifecycle events; the specific check kinds and providers that emit them live in their own feature modules, not in core.
 
 Slack notifications enable `mrkdwn_in: ['fields']`, so any metadata field value that is a full `http://` or `https://` URL will be rendered as a clickable link by Slack.
 
