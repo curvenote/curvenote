@@ -62,15 +62,12 @@ export function AuthorSummaryList({ authors, affiliationList }: AuthorSummaryLis
                   )}
                 </div>
                 {affiliations.length > 0 && (
-                  <div className="space-y-1">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 items-center text-sm text-muted-foreground">
                     {affiliations.map((affiliation) => (
-                      <div
-                        key={affiliation.id}
-                        className="flex gap-1.5 items-start text-sm text-muted-foreground"
-                      >
-                        <Building2 className="mt-0.5 w-3.5 h-3.5 shrink-0" aria-hidden />
-                        <span>{affiliation.name}</span>
-                      </div>
+                      <span key={affiliation.id} className="inline-flex gap-1 items-center">
+                        <Building2 className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                        {affiliation.name}
+                      </span>
                     ))}
                   </div>
                 )}
