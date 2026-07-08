@@ -91,7 +91,10 @@ export function MetadataExtractSection({
   // AND the user has not already provided a title or authors. Adding/replacing files
   // when metadata already exists, page reloads, or clearing extracted metadata do NOT
   // re-trigger extraction — that is left to the user via the manual re-extract action.
-  const metadataIsEmpty = !title?.trim() && (authorMetadata.authors?.length ?? 0) === 0;
+  // Use the locally-cleared (visible) values so a fresh upload right after clearing
+  // still counts as empty even before the clear action revalidates the loader props.
+  const metadataIsEmpty =
+    !visibleTitle?.trim() && (visibleAuthorMetadata.authors?.length ?? 0) === 0;
   const prevFileCountRef = useRef(previewList.length);
 
   useEffect(() => {
