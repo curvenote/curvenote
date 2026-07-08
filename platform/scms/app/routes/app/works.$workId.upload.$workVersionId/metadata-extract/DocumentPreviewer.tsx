@@ -409,7 +409,11 @@ export const DocumentPreviewer = ({
         </ui.TabsTrigger>
       </ui.TabsList>
       {previews.map((item, index) => (
-        <ui.TabsContent key={item.path} value={String(index)} className="mt-4">
+        <ui.TabsContent
+          key={item.path}
+          value={String(index)}
+          className="mt-4 rounded-none border-0 bg-transparent p-0"
+        >
           <div className={PREVIEW_CONTENT_SURFACE_CLASS}>
             <SingleFileView
               item={item}
@@ -419,7 +423,10 @@ export const DocumentPreviewer = ({
           </div>
         </ui.TabsContent>
       ))}
-      <ui.TabsContent value={ALL_FIGURES_TAB} className="mt-4">
+      <ui.TabsContent
+        value={ALL_FIGURES_TAB}
+        className="mt-4 rounded-none border-0 bg-transparent p-0"
+      >
         <div className={PREVIEW_CONTENT_SURFACE_CLASS}>
           <AllFiguresView figures={allFigures} />
         </div>
