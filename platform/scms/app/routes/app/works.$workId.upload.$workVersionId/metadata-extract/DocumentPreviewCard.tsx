@@ -10,7 +10,7 @@ const PREVIEW_SLOW_MESSAGE_DELAY_MS = 12000;
  * After the slow message, wait until this point before offering the skip option, so
  * users get a chance to keep waiting before we surface the escape hatch.
  */
-const PREVIEW_SKIP_HATCH_DELAY_MS = 20000;
+const PREVIEW_SKIP_HATCH_DELAY_MS = 28000;
 
 export interface DocumentPreviewCardProps {
   previews: DocumentPreviewItem[];
