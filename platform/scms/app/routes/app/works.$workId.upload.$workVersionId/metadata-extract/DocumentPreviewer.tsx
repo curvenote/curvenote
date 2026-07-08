@@ -215,6 +215,12 @@ const PREVIEW_CONTENT_CLASS = 'docx-preview-content text-stone-900';
 export const PREVIEW_SURFACE_CLASS =
   'rounded-lg border border-stone-200 bg-white p-4 text-stone-900 shadow-sm dark:border-stone-700 dark:bg-white';
 
+/**
+ * Tab content surface: capped at double the empty-state height (280px → 560px)
+ * with vertical scrolling when the preview overflows.
+ */
+const PREVIEW_CONTENT_SURFACE_CLASS = `${PREVIEW_SURFACE_CLASS} max-h-[560px] overflow-y-auto`;
+
 function OfficeAstRenderer({ ast, figureUrlByName }: OfficeAstRendererProps): React.ReactElement {
   const content = ast.content ?? [];
   const grouped = groupContentNodes(content);
@@ -404,7 +410,7 @@ export const DocumentPreviewer = ({
       </ui.TabsList>
       {previews.map((item, index) => (
         <ui.TabsContent key={item.path} value={String(index)} className="mt-4">
-          <div className={PREVIEW_SURFACE_CLASS}>
+          <div className={PREVIEW_CONTENT_SURFACE_CLASS}>
             <SingleFileView
               item={item}
               showAst={showAst}
@@ -414,7 +420,7 @@ export const DocumentPreviewer = ({
         </ui.TabsContent>
       ))}
       <ui.TabsContent value={ALL_FIGURES_TAB} className="mt-4">
-        <div className={PREVIEW_SURFACE_CLASS}>
+        <div className={PREVIEW_CONTENT_SURFACE_CLASS}>
           <AllFiguresView figures={allFigures} />
         </div>
       </ui.TabsContent>
