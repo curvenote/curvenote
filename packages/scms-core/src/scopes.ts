@@ -86,7 +86,7 @@ export const work = {
       },
     },
     users: {
-      read: 'work:users',
+      read: 'work:users:read',
       update: 'work:users:update',
     },
     checks: {

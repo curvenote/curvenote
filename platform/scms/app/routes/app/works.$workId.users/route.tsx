@@ -61,9 +61,11 @@ export default function Users({ loaderData }: Route.ComponentProps) {
   return (
     <PageFrame title="Users" subtitle="Who can access this work?" className="max-w-none">
       <div className="flex flex-col space-y-5">
-        <div>
-          <WorkRolesForm />
-        </div>
+        {canUpdateUsers ? (
+          <div>
+            <WorkRolesForm />
+          </div>
+        ) : null}
         <SectionWithHeading heading="Current Users" icon={User}>
           <div className="overflow-hidden rounded-sm border bg-background">
             {users.map((u) => (
