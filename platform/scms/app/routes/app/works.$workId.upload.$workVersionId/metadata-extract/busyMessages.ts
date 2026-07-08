@@ -13,4 +13,4 @@ export const PREVIEW_BUSY_MESSAGES = [
 ] as const;
 
 /** Interval (ms) between rotating busy messages. */
-export const BUSY_MESSAGE_INTERVAL_MS = 3000;
+export const BUSY_MESSAGE_INTERVAL_MS = 4800;
