@@ -21,6 +21,8 @@ export interface MetadataFormCardProps {
   onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
   /** Name of the file the re-run control targets; hides the control when undefined. */
   reRunFileName?: string;
+  /** Number of previewable files; when 1, the re-run label omits the file name. */
+  previewFileCount?: number;
   onReRunExtraction?: () => void;
   onClearExtraction?: () => void;
   isClearingExtraction?: boolean;
@@ -34,6 +36,7 @@ export function MetadataFormCard({
   authorMetadata,
   onAuthorMetadataChange,
   reRunFileName,
+  previewFileCount = 0,
   onReRunExtraction,
   onClearExtraction,
   isClearingExtraction = false,
@@ -42,6 +45,10 @@ export function MetadataFormCard({
   const canReRunExtraction = Boolean(reRunFileName) && onReRunExtraction != null;
   const canClearExtraction = extractedMetadata != null && onClearExtraction != null;
   const hasControls = canReRunExtraction || canClearExtraction;
+  const reRunLabel =
+    previewFileCount <= 1 ? 're-run extraction' : `re-run on ${shortenFileName(reRunFileName!)}`;
+  const reRunTitle =
+    previewFileCount <= 1 ? 'Re-run extraction' : `Re-run extraction on ${reRunFileName}`;
 
   const controlsRow = hasControls ? (
     <div className="flex gap-3 justify-end items-center">
@@ -53,10 +60,10 @@ export function MetadataFormCard({
           className="p-0 h-auto text-xs"
           onClick={onReRunExtraction}
           disabled={isExtractingMetadata || isClearingExtraction}
-          title={`Re-run extraction on ${reRunFileName}`}
+          title={reRunTitle}
         >
           <RefreshCw className="mr-px w-3.5 h-3.5" />
-          {`re-run on ${shortenFileName(reRunFileName!)}`}
+          {reRunLabel}
         </ui.Button>
       ) : null}
       {canClearExtraction ? (

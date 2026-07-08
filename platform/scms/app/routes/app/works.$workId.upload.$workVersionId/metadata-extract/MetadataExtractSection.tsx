@@ -240,6 +240,7 @@ export function MetadataExtractSection({
           authorMetadata={visibleAuthorMetadata}
           onAuthorMetadataChange={onAuthorMetadataChange}
           reRunFileName={activeFile && activeFilePath ? activeFileName : undefined}
+          previewFileCount={previewList.length}
           onReRunExtraction={handleReRunExtraction}
           onClearExtraction={handleClearExtraction}
           isClearingExtraction={isClearingExtraction}
