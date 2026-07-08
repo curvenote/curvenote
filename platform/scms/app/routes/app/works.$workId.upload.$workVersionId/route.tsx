@@ -1133,7 +1133,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
                 title={title}
                 authorMetadata={authorMetadata}
                 onAuthorMetadataChange={setAuthorMetadata}
-                manuscriptFileCount={previewFilePaths.length}
+                previewCandidateFileCount={previewFilePaths.length}
                 onRetryPreview={handleRetryPreview}
               />
             </React.Suspense>

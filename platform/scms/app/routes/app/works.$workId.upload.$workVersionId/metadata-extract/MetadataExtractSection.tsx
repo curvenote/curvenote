@@ -10,6 +10,10 @@ import type { DocumentPreviewItem } from './fetchPreviews.server';
 import type { ExtractedMetadata } from './anthropic.server';
 import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
 import { stepAutoExtractOnPreviewChange } from './autoExtractOnPreviewChange';
+import {
+  computeMetadataExtractBusyFlags,
+  stepPreviewCandidateCountChange,
+} from './previewCandidateFileCount';
 
 const EMPTY_AUTHOR_METADATA: AuthorFieldMetadata = { authors: [], affiliations: [] };
 const WAITING_FOR_UNPACK_MESSAGE = 'Waiting for document to unpack...';
@@ -27,11 +31,12 @@ export interface MetadataExtractSectionProps {
   authorMetadata: AuthorFieldMetadata;
   onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
   /**
-   * Number of previewable manuscript files currently in the upload area. Drops to
-   * 0 as soon as the user removes the last document, which stops any in-flight
-   * preview/extraction busy state immediately.
+   * Count of `isPreviewCandidate` files in upload metadata (`previewFilePaths.length`
+   * in the route). Differs from `previewList.length`, which only includes files with
+   * cached previews. Used for busy-state gating and upload lifecycle — not for
+   * "previews ready to render."
    */
-  manuscriptFileCount: number;
+  previewCandidateFileCount: number;
   /** Restart preview generation after the user skipped it. */
   onRetryPreview?: () => void;
 }
@@ -45,7 +50,7 @@ export function MetadataExtractSection({
   title,
   authorMetadata,
   onAuthorMetadataChange,
-  manuscriptFileCount,
+  previewCandidateFileCount,
   onRetryPreview,
 }: MetadataExtractSectionProps) {
   const extractMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
@@ -74,32 +79,39 @@ export function MetadataExtractSection({
     }
   }, [isPreviewsLoading]);
 
-  // Removing the last document from the upload area is an immediate stop signal:
-  // there is nothing left to unpack or extract, so both busy states must clear
-  // even while their server requests are still in flight (and cannot be aborted).
-  const hasManuscriptFiles = manuscriptFileCount > 0;
+  const prevPreviewCandidateFileCountRef = useRef(previewCandidateFileCount);
   useEffect(() => {
-    if (!hasManuscriptFiles) {
+    const { refs, effects } = stepPreviewCandidateCountChange(
+      { prevCount: prevPreviewCandidateFileCountRef.current },
+      { count: previewCandidateFileCount, hasSkippedPreview },
+    );
+    prevPreviewCandidateFileCountRef.current = refs.prevCount;
+
+    if (effects.clearAutoExtractPending) {
       setIsAutoExtractPending(false);
+    }
+    if (effects.resetHasTriggered) {
       hasTriggeredExtractMetadata.current = false;
     }
-  }, [hasManuscriptFiles]);
-
-  // Uploading an additional manuscript file while a preview was skipped resumes the
-  // normal flow: clear the skip and re-kick generation so the new file(s) get a
-  // preview instead of remaining stuck in the skipped state.
-  const prevManuscriptFileCountRef = useRef(manuscriptFileCount);
-  useEffect(() => {
-    const prevCount = prevManuscriptFileCountRef.current;
-    prevManuscriptFileCountRef.current = manuscriptFileCount;
-    if (manuscriptFileCount > prevCount && hasSkippedPreview) {
+    if (effects.clearSkipFlags) {
       setHasSkippedPreview(false);
       setHasSkippedExtraction(false);
+    }
+    if (effects.retryPreview) {
       onRetryPreview?.();
     }
-  }, [manuscriptFileCount, hasSkippedPreview, onRetryPreview]);
+  }, [previewCandidateFileCount, hasSkippedPreview, onRetryPreview]);
 
-  const effectiveIsPreviewsLoading = isPreviewsLoading && !hasSkippedPreview && hasManuscriptFiles;
+  const { hasPreviewCandidateFiles, effectiveIsPreviewsLoading, isExtractingMetadata } =
+    computeMetadataExtractBusyFlags({
+      previewCandidateFileCount,
+      isPreviewsLoading,
+      hasSkippedPreview,
+      isExtractionInFlight:
+        extractMetadataFetcher.state === 'loading' || extractMetadataFetcher.state === 'submitting',
+      isAutoExtractPending,
+      hasSkippedExtraction,
+    });
 
   const hasPreviews = previewList.length > 0;
   const previewSourceKey = previewList.map((preview) => preview.path).join('|');
@@ -215,15 +227,6 @@ export function MetadataExtractSection({
     }
   }, [clearMetadataFetcher.state, clearMetadataFetcher.data]);
 
-  const isExtractionInFlight =
-    extractMetadataFetcher.state === 'loading' || extractMetadataFetcher.state === 'submitting';
-  // `isAutoExtractPending` bridges the busy state from the moment a fresh upload starts
-  // unpacking until the AI request resolves, so the metadata card stays busy continuously
-  // and avoids an idle flash between previews finishing and extraction starting.
-  // Skipping extraction drops the overlay immediately so the user can type, as does
-  // removing the manuscript file(s) that were being extracted.
-  const isExtractingMetadata =
-    (isExtractionInFlight || isAutoExtractPending) && !hasSkippedExtraction && hasManuscriptFiles;
   const extractingMetadataMessage = (() => {
     if (extractMetadataFetcher.state === 'submitting') return EXTRACTING_WORK_DETAILS_MESSAGE;
     if (extractMetadataFetcher.state === 'loading') return FINALIZING_EXTRACTION_MESSAGE;
@@ -301,7 +304,7 @@ export function MetadataExtractSection({
           activeTab={activeTab}
           onActiveTabChange={setActiveTab}
           onSkipPreview={handleSkipPreview}
-          wasSkipped={hasSkippedPreview && hasManuscriptFiles}
+          wasSkipped={hasSkippedPreview && hasPreviewCandidateFiles}
           onRetryPreview={handleRetryPreview}
         />
       </SectionWithHeading>
