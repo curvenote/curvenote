@@ -403,14 +403,14 @@ export const DocumentPreviewer = ({
           const fileName = item.data.name ?? item.path;
           const tabTitle = shortenPreviewTabTitle(fileName);
           return (
-          <ui.TabsTrigger
-            key={item.path}
-            value={String(index)}
-            title={tabTitle !== fileName ? fileName : undefined}
-            className="rounded-none border-b-2 border-stone-300 dark:border-stone-600 text-stone-500 dark:text-stone-400 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent shadow-none"
-          >
-            {tabTitle}
-          </ui.TabsTrigger>
+            <ui.TabsTrigger
+              key={item.path}
+              value={String(index)}
+              title={tabTitle !== fileName ? fileName : undefined}
+              className="rounded-none border-b-2 border-stone-300 dark:border-stone-600 text-stone-500 dark:text-stone-400 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent shadow-none"
+            >
+              {tabTitle}
+            </ui.TabsTrigger>
           );
         })}
         <ui.TabsTrigger

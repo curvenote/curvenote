@@ -51,6 +51,39 @@ export function MetadataExtractSection({
 
   const hasPreviews = previewList.length > 0;
   const previewSourceKey = previewList.map((preview) => preview.path).join('|');
+  const prevPreviewPathsRef = useRef<string[]>(previewList.map((preview) => preview.path));
+
+  // Keep the active file tab valid as the preview list changes. Tabs are keyed by
+  // positional index, so a removed/reordered file would otherwise leave the preview
+  // on a stale index (or a different file). Track the active file by path: if it was
+  // removed, fall through to the next available file at that position; if it merely
+  // shifted, follow it to its new index.
+  useEffect(() => {
+    const prevPaths = prevPreviewPathsRef.current;
+    const nextPaths = previewList.map((preview) => preview.path);
+    prevPreviewPathsRef.current = nextPaths;
+
+    if (activeTab === ALL_FIGURES_TAB) return;
+    const currentIndex = Number(activeTab);
+    if (!Number.isInteger(currentIndex)) return;
+
+    const activePath = prevPaths[currentIndex];
+    if (activePath == null) {
+      if (nextPaths.length > 0 && currentIndex > nextPaths.length - 1) {
+        setActiveTab(String(nextPaths.length - 1));
+      }
+      return;
+    }
+
+    const nextIndex = nextPaths.indexOf(activePath);
+    if (nextIndex === -1) {
+      if (nextPaths.length > 0) {
+        setActiveTab(String(Math.min(currentIndex, nextPaths.length - 1)));
+      }
+    } else if (nextIndex !== currentIndex) {
+      setActiveTab(String(nextIndex));
+    }
+  }, [previewSourceKey, previewList, activeTab]);
   const visibleExtractedMetadata = hasLocallyClearedExtraction ? null : extractedMetadata;
   const visibleTitle = hasLocallyClearedExtraction ? '' : title;
   const visibleAuthorMetadata = hasLocallyClearedExtraction
@@ -167,8 +200,13 @@ export function MetadataExtractSection({
       <SectionWithHeading
         heading="Add Some Details About This Work"
         icon={<List className="w-5 h-5" />}
-        className="space-y-4"
+        className="space-y-4 max-w-3xl"
       >
+        <p className="text-sm text-muted-foreground">
+          Once you upload files, we will try to extract the title and author information
+          automatically, if this is not possible please add it manually below. Note: only a title is
+          strictly required.
+        </p>
         <MetadataFormCard
           extractedMetadata={visibleExtractedMetadata}
           isExtractingMetadata={isExtractingMetadata}
