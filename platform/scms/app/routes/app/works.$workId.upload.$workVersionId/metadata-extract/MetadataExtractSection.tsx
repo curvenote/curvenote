@@ -25,6 +25,12 @@ export interface MetadataExtractSectionProps {
   title: string;
   authorMetadata: AuthorFieldMetadata;
   onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
+  /**
+   * Number of previewable manuscript files currently in the upload area. Drops to
+   * 0 as soon as the user removes the last document, which stops any in-flight
+   * preview/extraction busy state immediately.
+   */
+  manuscriptFileCount: number;
 }
 
 export function MetadataExtractSection({
@@ -36,6 +42,7 @@ export function MetadataExtractSection({
   title,
   authorMetadata,
   onAuthorMetadataChange,
+  manuscriptFileCount,
 }: MetadataExtractSectionProps) {
   const extractMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
   const clearMetadataFetcher = useFetcher<Route.ComponentProps['actionData']>();
@@ -63,7 +70,18 @@ export function MetadataExtractSection({
     }
   }, [isPreviewsLoading]);
 
-  const effectiveIsPreviewsLoading = isPreviewsLoading && !hasSkippedPreview;
+  // Removing the last document from the upload area is an immediate stop signal:
+  // there is nothing left to unpack or extract, so both busy states must clear
+  // even while their server requests are still in flight (and cannot be aborted).
+  const hasManuscriptFiles = manuscriptFileCount > 0;
+  useEffect(() => {
+    if (!hasManuscriptFiles) {
+      setIsAutoExtractPending(false);
+      hasTriggeredExtractMetadata.current = false;
+    }
+  }, [hasManuscriptFiles]);
+
+  const effectiveIsPreviewsLoading = isPreviewsLoading && !hasSkippedPreview && hasManuscriptFiles;
 
   const hasPreviews = previewList.length > 0;
   const previewSourceKey = previewList.map((preview) => preview.path).join('|');
@@ -201,9 +219,10 @@ export function MetadataExtractSection({
   // `isAutoExtractPending` bridges the busy state from the moment a fresh upload starts
   // unpacking until the AI request resolves, so the metadata card stays busy continuously
   // and avoids an idle flash between previews finishing and extraction starting.
-  // Skipping extraction drops the overlay immediately so the user can type.
+  // Skipping extraction drops the overlay immediately so the user can type, as does
+  // removing the manuscript file(s) that were being extracted.
   const isExtractingMetadata =
-    (isExtractionInFlight || isAutoExtractPending) && !hasSkippedExtraction;
+    (isExtractionInFlight || isAutoExtractPending) && !hasSkippedExtraction && hasManuscriptFiles;
   const extractingMetadataMessage = (() => {
     if (extractMetadataFetcher.state === 'submitting') return EXTRACTING_WORK_DETAILS_MESSAGE;
     if (extractMetadataFetcher.state === 'loading') return FINALIZING_EXTRACTION_MESSAGE;
