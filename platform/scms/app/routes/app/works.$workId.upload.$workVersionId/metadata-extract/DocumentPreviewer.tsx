@@ -306,6 +306,13 @@ function SingleFileView({
 
 export const ALL_FIGURES_TAB = 'all-figures';
 
+const PREVIEW_TAB_TITLE_MAX = 20;
+
+function shortenPreviewTabTitle(name: string, max = PREVIEW_TAB_TITLE_MAX): string {
+  if (name.length <= max) return name;
+  return `${name.slice(0, max - 1).trimEnd()}…`;
+}
+
 /**
  * A single candidate figure with the file it came from.
  *
@@ -392,15 +399,20 @@ export const DocumentPreviewer = ({
   return (
     <ui.Tabs value={fileTab} onValueChange={setFileTab} className="w-full">
       <ui.TabsList className="justify-start p-0 w-full h-auto bg-transparent rounded-none border-0 border-b-2 shadow-none">
-        {previews.map((item, index) => (
+        {previews.map((item, index) => {
+          const fileName = item.data.name ?? item.path;
+          const tabTitle = shortenPreviewTabTitle(fileName);
+          return (
           <ui.TabsTrigger
             key={item.path}
             value={String(index)}
+            title={tabTitle !== fileName ? fileName : undefined}
             className="rounded-none border-b-2 border-stone-300 dark:border-stone-600 text-stone-500 dark:text-stone-400 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent shadow-none"
           >
-            {item.data.name}
+            {tabTitle}
           </ui.TabsTrigger>
-        ))}
+          );
+        })}
         <ui.TabsTrigger
           value={ALL_FIGURES_TAB}
           className="rounded-none border-b-2 border-stone-300 dark:border-stone-600 text-stone-500 dark:text-stone-400 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent shadow-none"
