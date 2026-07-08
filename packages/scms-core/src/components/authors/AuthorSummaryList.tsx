@@ -34,10 +34,10 @@ export function AuthorSummaryList({
       <div className="flex justify-end">
         <ui.Button
           type="button"
-          variant="outline"
+          variant="link"
           size="sm"
           onClick={onEdit}
-          className="cursor-pointer"
+          className="h-auto text-muted-foreground cursor-pointer hover:text-foreground"
         >
           <Pencil className="mr-1 w-3.5 h-3.5 shrink-0" aria-hidden />
           {editLabel}
