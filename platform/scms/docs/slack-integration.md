@@ -93,9 +93,19 @@ The following events are currently implemented and available:
 - **`SUBMISSION_VERSION_CREATED`**: Triggered when a new submission version is created
 - **`SUBMISSION_STATUS_CHANGED`**: Triggered when a submission's status changes
 
+### Check Events
+
+- **`CHECK_RUN_STARTED`**: Triggered when a check run is created and its work is enqueued
+- **`CHECK_RUN_MILESTONE`**: Triggered on meaningful check workflow milestones (e.g. provider webhooks, artifacts persisted)
+- **`CHECK_RUN_ERROR`**: Triggered when a check run enters an error state or a handler fails
+- **`CHECK_RUN_RETRY`**: Triggered on manual retry or an auto-retry sweep summary (when retries occurred)
+- **`CHECK_EULA_ACCEPTED`**: Triggered when a user accepts a provider EULA required by a check
+
+These are generic check lifecycle events; the specific check kinds and providers that emit them live in their own feature modules, not in core.
+
 Slack notifications enable `mrkdwn_in: ['fields']`, so any metadata field value that is a full `http://` or `https://` URL will be rendered as a clickable link by Slack.
 
-Callers are responsible for putting the actual URLs into `metadata` (typically using `@curvenote/scms-core` URL helpers like `asSiteSubmissionUrl` / `asPlatformMessageUrl`).
+Callers are responsible for putting the actual URLs into `metadata`. Use `@curvenote/scms-core` helpers for platform-wide routes (e.g. `asSiteSubmissionUrl`, `asPlatformMessageUrl`). Check-specific deep links belong in extension packages — for HHMI checks, see `@hhmi/checks-notify` (`packages/checks-notify/src/urls.ts` in the `hhmi-checks` extension), not in core.
 
 ## Adding New Events
 
