@@ -105,7 +105,7 @@ These are generic check lifecycle events; the specific check kinds and providers
 
 Slack notifications enable `mrkdwn_in: ['fields']`, so any metadata field value that is a full `http://` or `https://` URL will be rendered as a clickable link by Slack.
 
-Callers are responsible for putting the actual URLs into `metadata` (typically using `@curvenote/scms-core` URL helpers like `asSiteSubmissionUrl` or `asPlatformMessageUrl`). Feature-specific deep links (e.g. work-integrity or text-integrity check pages) are built by helpers that live in those feature modules, not in core.
+Callers are responsible for putting the actual URLs into `metadata`. Use `@curvenote/scms-core` helpers for platform-wide routes (e.g. `asSiteSubmissionUrl`, `asPlatformMessageUrl`). Check-specific deep links belong in extension packages — for HHMI checks, see `@hhmi/checks-notify` (`packages/checks-notify/src/urls.ts` in the `hhmi-checks` extension), not in core.
 
 ## Adding New Events
 
