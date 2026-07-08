@@ -1086,6 +1086,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const previewOverlayMessage = isGeneratingPreviews
     ? rotatingPreviewMessage
     : 'Refreshing previews…';
+  const previewError = fetchPreviewsFetcher.data?.error?.message ?? null;
   const thumbnailLocators = useMemo(
     () => collectAllFigures(previewList).map(({ figure }) => encodeFigureLocator(figure.key)),
     [previewList],
@@ -1132,6 +1133,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
                 previewList={previewList}
                 isPreviewsLoading={isPreviewsLoading}
                 previewOverlayMessage={previewOverlayMessage}
+                previewError={previewError}
                 extractedMetadata={extractedMetadata}
                 isExtractionStale={isExtractionStale}
                 title={title}

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
-import { Eye } from 'lucide-react';
-import { SectionWithHeading, ui, LoadingSpinner } from '@curvenote/scms-core';
+import { Eye, NotebookText } from 'lucide-react';
+import { SectionWithHeading, ui } from '@curvenote/scms-core';
 import type { Route } from '../+types/route';
-import { DocumentPreviewer, ALL_FIGURES_TAB } from './DocumentPreviewer';
+import { ALL_FIGURES_TAB } from './DocumentPreviewer';
+import { DocumentPreviewCard } from './DocumentPreviewCard';
 import { MetadataFormCard } from './MetadataFormCard';
 import type { DocumentPreviewItem } from './fetchPreviews.server';
 import type { ExtractedMetadata } from './anthropic.server';
@@ -18,6 +19,8 @@ export interface MetadataExtractSectionProps {
   previewList: DocumentPreviewItem[];
   isPreviewsLoading: boolean;
   previewOverlayMessage: string;
+  /** Message describing why previews could not be generated; renders the error state. */
+  previewError?: string | null;
   extractedMetadata: ExtractedMetadata | null;
   /** True when the cached extraction no longer matches the current manuscript file(s). */
   isExtractionStale: boolean;
@@ -30,6 +33,7 @@ export function MetadataExtractSection({
   previewList,
   isPreviewsLoading,
   previewOverlayMessage,
+  previewError,
   extractedMetadata,
   isExtractionStale,
   title,
@@ -145,43 +149,26 @@ export function MetadataExtractSection({
   };
 
   return (
-    <SectionWithHeading
-      heading="Add Some Details About This Work"
-      icon={<Eye className="w-5 h-5" />}
-      className="space-y-4"
-    >
-      <div
-        className={
-          previewList.length > 0
-            ? 'grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr] lg:items-stretch'
-            : 'flex gap-6 max-w-5xl'
-        }
+    <div className="space-y-12">
+      <SectionWithHeading
+        heading="Unpacking your manuscript"
+        icon={<Eye className="w-5 h-5" />}
+        className="space-y-4"
       >
-        <ui.Card
-          className={
-            previewList.length > 0
-              ? 'overflow-hidden p-0 min-h-0 flex flex-col'
-              : 'overflow-hidden p-0 min-h-0 flex flex-col max-w-xl'
-          }
-        >
-          <div className="min-h-[200px] flex-1 flex flex-col p-4 relative">
-            {isPreviewsLoading && (
-              <div
-                className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-md bg-background/80 backdrop-blur-[1px]"
-                aria-busy="true"
-                aria-live="polite"
-              >
-                <LoadingSpinner size={32} />
-                <p className="text-sm text-muted-foreground">{previewOverlayMessage}</p>
-              </div>
-            )}
-            <DocumentPreviewer
-              previews={previewList}
-              activeTab={activeTab}
-              onActiveTabChange={setActiveTab}
-            />
-          </div>
-        </ui.Card>
+        <DocumentPreviewCard
+          previews={previewList}
+          isPreviewsLoading={isPreviewsLoading}
+          previewOverlayMessage={previewOverlayMessage}
+          previewError={previewError}
+          activeTab={activeTab}
+          onActiveTabChange={setActiveTab}
+        />
+      </SectionWithHeading>
+      <SectionWithHeading
+        heading="Add Some Details About This Work"
+        icon={<NotebookText className="w-5 h-5" />}
+        className="space-y-4"
+      >
         <MetadataFormCard
           extractedMetadata={visibleExtractedMetadata}
           isExtractingMetadata={isExtractingMetadata}
@@ -194,7 +181,7 @@ export function MetadataExtractSection({
           onClearExtraction={handleClearExtraction}
           isClearingExtraction={isClearingExtraction}
         />
-      </div>
-    </SectionWithHeading>
+      </SectionWithHeading>
+    </div>
   );
 }

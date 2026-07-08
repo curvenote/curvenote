@@ -1,0 +1,31 @@
+{
+  "name": "HHMI Workspace",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "install": "CLOUD_ENV=hhmi-workspace bash scripts/cloud-setup.sh",
+  "start": "sudo service docker start",
+  "repositoryDependencies": [
+    "github.com/curvenote/hhmi-checks",
+    "github.com/curvenote/hhmi-os-ext",
+    "github.com/curvenote/check-service-plugin-ithenticate"
+  ],
+  "terminals": [
+    {
+      "name": "relay",
+      "command": "cd platform/relay && npm run dev",
+      "description": "Checks relay API (http://localhost:4041)."
+    },
+    {
+      "name": "scms",
+      "command": "cd platform/scms && npm run dev",
+      "description": "SCMS dev server (http://localhost:3031)."
+    }
+  ],
+  "ports": [
+    { "name": "scms", "port": 3031 },
+    { "name": "relay", "port": 4041 },
+    { "name": "postgres", "port": 5432 }
+  ]
+}
