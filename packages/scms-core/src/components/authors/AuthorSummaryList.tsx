@@ -51,9 +51,11 @@ export function AuthorSummaryList({
             const name = author.name?.trim();
             const orcid = author.orcid?.trim();
             const showOrcid = orcid && isValidOrcid(orcid);
-            const affiliationNames = (author.affiliationIds ?? [])
-              .map((id) => getAffiliationName(affiliationList, id))
-              .filter(Boolean);
+            const affiliations = (author.affiliationIds ?? [])
+              .map((id) => ({ id, name: getAffiliationName(affiliationList, id) }))
+              .filter((affiliation): affiliation is { id: string; name: string } =>
+                Boolean(affiliation.name),
+              );
             return (
               <li key={author.id} className="space-y-1">
                 <div className="flex flex-wrap gap-2 items-center">
@@ -80,10 +82,17 @@ export function AuthorSummaryList({
                     />
                   )}
                 </div>
-                {affiliationNames.length > 0 && (
-                  <div className="flex gap-1.5 items-start text-sm text-muted-foreground">
-                    <Building2 className="mt-0.5 w-3.5 h-3.5 shrink-0" aria-hidden />
-                    <span>{affiliationNames.join('; ')}</span>
+                {affiliations.length > 0 && (
+                  <div className="space-y-1">
+                    {affiliations.map((affiliation) => (
+                      <div
+                        key={affiliation.id}
+                        className="flex gap-1.5 items-start text-sm text-muted-foreground"
+                      >
+                        <Building2 className="mt-0.5 w-3.5 h-3.5 shrink-0" aria-hidden />
+                        <span>{affiliation.name}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </li>
