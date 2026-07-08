@@ -10,6 +10,8 @@ import {
 export type AuthorSummaryViewProps = {
   authors: Author[];
   affiliationList: Affiliation[];
+  /** Opens the author editor — same behaviour as the Edit control on the form. */
+  onAddNow?: () => void;
 };
 
 function orcidHref(orcid: string): string {
@@ -22,9 +24,33 @@ function orcidHref(orcid: string): string {
  * `AuthorMetadataForm` when it is not in editing mode. The enclosing form owns the
  * label and the Edit affordance that switches to the full `AuthorField` editor.
  */
-export function AuthorSummaryView({ authors, affiliationList }: AuthorSummaryViewProps) {
+export function AuthorSummaryView({
+  authors,
+  affiliationList,
+  onAddNow,
+}: AuthorSummaryViewProps) {
   if (authors.length === 0) {
-    return <p className="text-sm text-muted-foreground">No authors added yet.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        No authors added yet
+        {onAddNow ? (
+          <>
+            {' '}
+            -{' '}
+            <button
+              type="button"
+              onClick={onAddNow}
+              className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+            >
+              add now
+            </button>
+            .
+          </>
+        ) : (
+          '.'
+        )}
+      </p>
+    );
   }
 
   return (

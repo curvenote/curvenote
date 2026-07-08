@@ -101,7 +101,11 @@ export function AuthorMetadataForm({ value, onChange }: AuthorMetadataFormProps)
             Edit
           </ui.Button>
         </div>
-        <AuthorSummaryView authors={authors} affiliationList={affiliations} />
+        <AuthorSummaryView
+          authors={authors}
+          affiliationList={affiliations}
+          onAddNow={() => setIsEditing(true)}
+        />
         {savingIndicator}
       </div>
     );
