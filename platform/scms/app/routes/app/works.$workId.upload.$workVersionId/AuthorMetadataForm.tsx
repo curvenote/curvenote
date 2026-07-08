@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Check, Pencil } from 'lucide-react';
 import { AuthorField, type Affiliation, type Author, ui } from '@curvenote/scms-core';
 import { useFetcher } from 'react-router';
 import type { Route } from './+types/route';
 import type { AuthorFieldMetadata } from './mystAuthorAdapters';
+import { AuthorSummaryView } from './AuthorSummaryView';
 
 const SAVE_DEBOUNCE_MS = 400;
+const AUTHORS_FIELD_NAME = 'authors';
+const AUTHORS_FIELD_TITLE = 'Authors';
 
 export type AuthorMetadataFormProps = {
   value: AuthorFieldMetadata;
@@ -13,6 +17,7 @@ export type AuthorMetadataFormProps = {
 
 export function AuthorMetadataForm({ value, onChange }: AuthorMetadataFormProps) {
   const fetcher = useFetcher<Route.ComponentProps['actionData']>();
+  const [isEditing, setIsEditing] = useState(false);
   const [authors, setAuthors] = useState<Author[]>(value.authors);
   const [affiliations, setAffiliations] = useState<Affiliation[]>(value.affiliations);
   const authorsRef = useRef<Author[]>(value.authors);
@@ -71,22 +76,58 @@ export function AuthorMetadataForm({ value, onChange }: AuthorMetadataFormProps)
     [update],
   );
 
+  const savingIndicator =
+    fetcher.state !== 'idle' ? (
+      <p className="text-xs text-muted-foreground" aria-live="polite">
+        Saving author metadata...
+      </p>
+    ) : null;
+
+  if (!isEditing) {
+    return (
+      <div className="space-y-4">
+        <div className="flex gap-2 justify-between items-center">
+          <ui.FormLabel htmlFor={AUTHORS_FIELD_NAME} defined={authors.length > 0}>
+            {AUTHORS_FIELD_TITLE}
+          </ui.FormLabel>
+          <ui.Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={() => setIsEditing(true)}
+            className="h-auto cursor-pointer shrink-0"
+          >
+            <Pencil className="mr-1 w-3.5 h-3.5 shrink-0" aria-hidden />
+            Edit
+          </ui.Button>
+        </div>
+        <AuthorSummaryView authors={authors} affiliationList={affiliations} />
+        {savingIndicator}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="relative space-y-2">
+      <ui.Button
+        type="button"
+        variant="link"
+        size="sm"
+        onClick={() => setIsEditing(false)}
+        className="absolute top-0 right-0 z-10 h-auto cursor-pointer shrink-0"
+      >
+        <Check className="mr-1 w-3.5 h-3.5 shrink-0" aria-hidden />
+        done editing
+      </ui.Button>
       <AuthorField
-        schema={{ name: 'authors', title: 'Authors', required: false }}
+        schema={{ name: AUTHORS_FIELD_NAME, title: AUTHORS_FIELD_TITLE, required: false }}
         value={authors}
         onChange={updateAuthors}
         affiliationList={affiliations}
         onAffiliationListChange={updateAffiliations}
         autoSave={false}
-        simple
       />
-      {fetcher.state !== 'idle' ? (
-        <p className="text-xs text-muted-foreground" aria-live="polite">
-          Saving author metadata...
-        </p>
-      ) : null}
+      {savingIndicator}
     </div>
   );
 }

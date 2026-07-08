@@ -1,16 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFetcher } from 'react-router';
 import { uuidv7 as uuid } from 'uuidv7';
-import {
-  Check,
-  CornerDownLeft,
-  GripVertical,
-  Mail,
-  Minus,
-  Pencil,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { CornerDownLeft, GripVertical, Mail, Minus, Plus, Trash2 } from 'lucide-react';
 import { OrcidIcon } from '@scienceicons/react/24/solid';
 import {
   DndContext,
@@ -46,7 +37,6 @@ import {
 import { AuthorCard } from './AuthorCard.js';
 import { AddAuthorPlaceholderCard } from './AddAuthorPlaceholderCard.js';
 import { AffiliationListItem } from './AffiliationListItem.js';
-import { AuthorSummaryList } from './AuthorSummaryList.js';
 
 export type ContactDetailsForAuthor = {
   name: string;
@@ -71,13 +61,6 @@ export type AuthorFieldProps = {
   onSaveFetcherStateChange?: (id: string, state: string) => void;
   autoSave?: boolean;
   saveFieldOptions?: SaveFieldOptions;
-  /**
-   * When true, the field defaults to a read-only summary of authors with an Edit
-   * button. Pressing Edit reveals the full editing form (including advanced
-   * options); a Done button returns to the summary. The editing/summary toggle is
-   * purely presentational and does not affect any parent form's submit-ready state.
-   */
-  simple?: boolean;
 };
 
 type OrcidFetcherData = {
@@ -163,9 +146,7 @@ export function AuthorField({
   onSaveFetcherStateChange,
   autoSave = true,
   saveFieldOptions,
-  simple = false,
 }: AuthorFieldProps) {
-  const [isEditing, setIsEditing] = useState(false);
   const [addAuthorSearchValue, setAddAuthorSearchValue] = useState('');
   const lastOrcidResultsRef = useRef<OrcidSearchHit[]>([]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -638,58 +619,16 @@ export function AuthorField({
       </div>
     ) : null;
 
-  if (simple && !isEditing) {
-    return (
-      <div className="space-y-4">
-        <div className="flex gap-2 justify-between items-center">
-          <ui.FormLabel
-            htmlFor={schema.name}
-            required={schema.required}
-            valid={isValid}
-            defined={value.length > 0}
-          >
-            {schema.title}
-          </ui.FormLabel>
-          <ui.Button
-            type="button"
-            variant="link"
-            size="sm"
-            onClick={() => setIsEditing(true)}
-            className="h-auto cursor-pointer shrink-0"
-          >
-            <Pencil className="mr-1 w-3.5 h-3.5 shrink-0" aria-hidden />
-            Edit
-          </ui.Button>
-        </div>
-        <AuthorSummaryList authors={value} affiliationList={affiliationList} />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 justify-between items-center">
-        <ui.FormLabel
-          htmlFor={schema.name}
-          required={schema.required}
-          valid={isValid}
-          defined={value.length > 0}
-        >
-          {schema.title}
-        </ui.FormLabel>
-        {simple && (
-          <ui.Button
-            type="button"
-            variant="link"
-            size="sm"
-            onClick={() => setIsEditing(false)}
-            className="h-auto cursor-pointer shrink-0"
-          >
-            <Check className="mr-1 w-3.5 h-3.5 shrink-0" aria-hidden />
-            done editing
-          </ui.Button>
-        )}
-      </div>
+      <ui.FormLabel
+        htmlFor={schema.name}
+        required={schema.required}
+        valid={isValid}
+        defined={value.length > 0}
+      >
+        {schema.title}
+      </ui.FormLabel>
 
       <div className="space-y-2">
         <DndContext
