@@ -1,9 +1,13 @@
-import { Bot, RefreshCw, X } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
 import { ui, LoadingSpinner } from '@curvenote/scms-core';
 import type { ExtractedMetadata } from './anthropic.server';
 import { WorkTitleForm } from '../WorkTitleForm';
 import { AuthorMetadataForm } from '../AuthorMetadataForm';
 import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
+import { useDelayedFlag } from './useDelayedFlag';
+
+/** Reveal the "skip AI extraction" escape hatch after this long in the busy state. */
+const EXTRACTION_SKIP_HATCH_DELAY_MS = 15000;
 
 /** Shorten a file name for the re-run label. */
 function shortenFileName(name: string, max = 32): string {
@@ -21,9 +25,22 @@ export interface MetadataFormCardProps {
   onAuthorMetadataChange: (value: AuthorFieldMetadata) => void;
   /** Name of the file the re-run control targets; hides the control when undefined. */
   reRunFileName?: string;
+  /** Number of previewable files; when 1, the re-run label omits the file name. */
+  previewFileCount?: number;
   onReRunExtraction?: () => void;
   onClearExtraction?: () => void;
   isClearingExtraction?: boolean;
+  /**
+   * When provided, a long-running extraction (>15s) reveals an escape hatch that
+   * calls this to abandon the AI call and let the user fill the form manually.
+   */
+  onSkipExtraction?: () => void;
+  /**
+   * True while the manuscript preview is still unpacking. The skip-extraction
+   * countdown does not even start until this is false, so the 15s window only
+   * measures the actual AI phase, not the preceding preview generation.
+   */
+  isPreviewBusy?: boolean;
 }
 
 export function MetadataFormCard({
@@ -34,15 +51,71 @@ export function MetadataFormCard({
   authorMetadata,
   onAuthorMetadataChange,
   reRunFileName,
+  previewFileCount = 0,
   onReRunExtraction,
   onClearExtraction,
   isClearingExtraction = false,
+  onSkipExtraction,
+  isPreviewBusy = false,
 }: MetadataFormCardProps) {
+  // Only count the 15s once the preview has finished unpacking, so the bridged
+  // busy state during preview generation never contributes to the countdown.
+  const showSkipHatch = useDelayedFlag(
+    isExtractingMetadata && !isPreviewBusy,
+    EXTRACTION_SKIP_HATCH_DELAY_MS,
+  );
   const displayTitle = (title?.trim() ? title : extractedMetadata?.title) ?? '';
-  const canClearExtraction = extractedMetadata != null && onClearExtraction != null;
+  const canReRunExtraction = Boolean(reRunFileName) && onReRunExtraction != null;
+  // Offer "clear" whenever the form holds any content — a title or authors — no
+  // matter whether it came from extraction, manual entry, or a skipped preview.
+  const hasMetadataContent =
+    Boolean(displayTitle.trim()) || (authorMetadata.authors?.length ?? 0) > 0;
+  const canClearExtraction = hasMetadataContent && onClearExtraction != null;
+  const hasControls = canReRunExtraction || canClearExtraction;
+  const reRunLabel =
+    previewFileCount <= 1 || !reRunFileName
+      ? 're-run extraction'
+      : `re-run on ${shortenFileName(reRunFileName)}`;
+  const reRunTitle =
+    previewFileCount <= 1 || !reRunFileName
+      ? 'Re-run extraction'
+      : `Re-run extraction on ${reRunFileName}`;
+
+  const controlsRow = hasControls ? (
+    <div className="flex gap-3 justify-end items-center">
+      {canReRunExtraction ? (
+        <ui.Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="p-0 h-auto text-xs"
+          onClick={onReRunExtraction}
+          disabled={isExtractingMetadata || isClearingExtraction}
+          title={reRunTitle}
+        >
+          <RefreshCw className="mr-px w-3.5 h-3.5" />
+          {reRunLabel}
+        </ui.Button>
+      ) : null}
+      {canClearExtraction ? (
+        <ui.Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="gap-px p-0 h-auto text-xs"
+          onClick={onClearExtraction}
+          disabled={isExtractingMetadata || isClearingExtraction}
+          title="Clear extracted metadata"
+        >
+          <X className="w-3.5 h-3.5" />
+          {isClearingExtraction ? 'clearing...' : 'clear'}
+        </ui.Button>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
-    <ui.Card className="relative px-6 pt-4 pb-6 space-y-4 h-fit min-w-lg">
+    <ui.Card className="relative px-6 pt-4 pb-6 space-y-4 h-fit max-w-3xl">
       {isExtractingMetadata && (
         <div
           className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-md bg-background/80 backdrop-blur-[1px]"
@@ -51,46 +124,25 @@ export function MetadataFormCard({
         >
           <LoadingSpinner size={32} />
           <p className="text-sm text-muted-foreground">{extractingMetadataMessage}</p>
+          {showSkipHatch && onSkipExtraction ? (
+            <p className="max-w-sm text-xs text-center text-muted-foreground">
+              This is taking longer than usual. You can{' '}
+              <button
+                type="button"
+                onClick={onSkipExtraction}
+                className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+              >
+                skip AI extraction
+              </button>{' '}
+              and enter the details manually.
+            </p>
+          ) : null}
         </div>
       )}
-      <div className="flex gap-3 justify-between items-center">
-        <div className="flex gap-2 items-center">
-          <Bot className="w-5 h-5 text-muted-foreground" />
-          <h3 className="text-base font-semibold">Work Details</h3>
-        </div>
-        {canClearExtraction ? (
-          <ui.Button
-            type="button"
-            variant="link"
-            size="sm"
-            className="p-0 h-auto text-xs"
-            onClick={onClearExtraction}
-            disabled={isExtractingMetadata || isClearingExtraction}
-            title="Clear extracted metadata"
-          >
-            <X className="mr-px w-3.5 h-3.5" />
-            {isClearingExtraction ? 'clearing...' : 'clear'}
-          </ui.Button>
-        ) : null}
-      </div>
+      {controlsRow}
       <WorkTitleForm title={displayTitle} />
       <AuthorMetadataForm value={authorMetadata} onChange={onAuthorMetadataChange} />
-      {reRunFileName && onReRunExtraction ? (
-        <div className="flex justify-end">
-          <ui.Button
-            type="button"
-            variant="link"
-            size="sm"
-            className="p-0 h-auto text-xs"
-            onClick={onReRunExtraction}
-            disabled={isExtractingMetadata || isClearingExtraction}
-            title={`Re-run extraction on ${reRunFileName}`}
-          >
-            <RefreshCw className="mr-px w-3.5 h-3.5" />
-            {`re-run on ${shortenFileName(reRunFileName)}`}
-          </ui.Button>
-        </div>
-      ) : null}
+      {controlsRow}
     </ui.Card>
   );
 }

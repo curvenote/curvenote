@@ -200,4 +200,63 @@ describe('myst author adapters', () => {
       { id: 'a1', name: 'Department of Biology and Biochemistry' },
     ]);
   });
+
+  it('normalizes ORCID URLs from frontmatter to canonical ids', () => {
+    const result = mystFrontmatterToAuthorField({
+      authors: [
+        {
+          name: 'Jane Doe',
+          orcid: 'https://orcid.org/0000-0002-1825-0097',
+        },
+        {
+          name: 'John Smith',
+          orcid: '0000-0001-2345-6789',
+        },
+      ],
+    });
+
+    expect(result.authors).toEqual([
+      {
+        id: 'contributors-generated-uid-0',
+        name: 'Jane Doe',
+        corresponding: false,
+        orcid: '0000-0002-1825-0097',
+        affiliationIds: [],
+      },
+      {
+        id: 'contributors-generated-uid-1',
+        name: 'John Smith',
+        corresponding: false,
+        orcid: '0000-0001-2345-6789',
+        affiliationIds: [],
+      },
+    ]);
+  });
+
+  it('round-trips normalized ORCID ids when saving author metadata', () => {
+    const updated = authorFieldToMystFrontmatter(
+      {
+        authors: [
+          {
+            id: 'contributors-generated-uid-0',
+            name: 'Jane Doe',
+            orcid: 'https://orcid.org/0000-0002-1825-0097',
+            affiliationIds: [],
+          },
+        ],
+        affiliations: [],
+      },
+      {
+        authors: [
+          {
+            id: 'contributors-generated-uid-0',
+            name: 'Jane Doe',
+            orcid: 'https://orcid.org/0000-0002-1825-0097',
+          },
+        ],
+      },
+    );
+
+    expect(updated.authors?.[0]?.orcid).toBe('0000-0002-1825-0097');
+  });
 });

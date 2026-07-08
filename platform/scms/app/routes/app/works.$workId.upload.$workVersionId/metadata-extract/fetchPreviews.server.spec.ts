@@ -58,12 +58,46 @@ describe('fetch preview truncation', () => {
     expect(astContentToPlainText(result.content)).toHaveLength(820);
   });
 
-  it('falls back to top-level node truncation when the AST has no page nodes', () => {
-    const content = Array.from({ length: 12 }, (_, index) => paragraph(`Paragraph ${index}`));
+  it('collects non-paged content up to the character budget, including the crossing node', () => {
+    // 5 × 1000-char paragraphs; the 4th crosses the 4000-char budget.
+    const content = Array.from({ length: 5 }, () => paragraph('A'.repeat(1000)));
 
     const result = truncateAstToFirstPage(ast(content));
 
-    expect(result.content).toHaveLength(10);
+    expect(result.content).toHaveLength(4);
+    expect(result.wasTruncated).toBe(true);
+  });
+
+  it('keeps all non-paged content when it is under the character budget', () => {
+    const content = Array.from({ length: 6 }, () => paragraph('A'.repeat(100)));
+
+    const result = truncateAstToFirstPage(ast(content));
+
+    expect(result.content).toHaveLength(6);
+    expect(result.wasTruncated).toBe(false);
+  });
+
+  it('does not let empty nodes consume the character budget', () => {
+    // Many blank paragraphs before the real content: they add no text, so the content
+    // node is still reached and included rather than being truncated away.
+    const emptyLead = Array.from({ length: 12 }, () => paragraph(''));
+    const content = [...emptyLead, paragraph('A'.repeat(4000))];
+
+    const result = truncateAstToFirstPage(ast(content));
+
+    expect(result.content).toHaveLength(content.length);
+    expect(result.wasTruncated).toBe(false);
+    expect(astContentToPlainText(result.content)).toHaveLength(4000);
+  });
+
+  it('caps non-paged content at the node ceiling when the budget is never reached', () => {
+    // 50 tiny single-char paragraphs never reach the 4000-char budget, so the 40-node
+    // ceiling bounds the slice.
+    const content = Array.from({ length: 50 }, () => paragraph('A'));
+
+    const result = truncateAstToFirstPage(ast(content));
+
+    expect(result.content).toHaveLength(40);
     expect(result.wasTruncated).toBe(true);
   });
 });

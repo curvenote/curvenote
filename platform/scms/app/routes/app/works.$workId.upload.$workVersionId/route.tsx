@@ -80,6 +80,8 @@ import { Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
+import { PREVIEW_BUSY_MESSAGES } from './metadata-extract/busyMessages';
+import { useRotatingMessage } from './metadata-extract/useRotatingMessage';
 import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
 import { collectAllFigures } from './metadata-extract/DocumentPreviewer';
 import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
@@ -308,20 +310,6 @@ export async function loader(args: Route.LoaderArgs) {
       ? (mystFrontmatter as ExtractedMetadata)
       : null;
   const authorFieldMetadata = mystFrontmatterToAuthorField(extractedMetadata, work.authors ?? []);
-  // The cached extraction is stale when the current manuscript file(s) no longer
-  // match the source that produced it (e.g. the author replaced the document). In
-  // that case the UI should re-trigger extraction rather than show stale metadata.
-  const manuscriptSourceSignature = computeManuscriptSourceSignature(rawMetadata);
-  const storedExtractionSource = (rawMetadata as Record<string, unknown>)?.[
-    METADATA_EXTRACT_SOURCE_KEY
-  ];
-  const hasStoredExtractionSource =
-    typeof storedExtractionSource === 'string' && storedExtractionSource !== '';
-  const isExtractionStale =
-    extractedMetadata != null &&
-    manuscriptSourceSignature !== '' &&
-    hasStoredExtractionSource &&
-    storedExtractionSource !== manuscriptSourceSignature;
 
   const hasMetadataExtractScope = userHasScope(
     ctx.user,
@@ -356,7 +344,6 @@ export async function loader(args: Route.LoaderArgs) {
     previews,
     extractedMetadata,
     authorFieldMetadata,
-    isExtractionStale,
     hasMetadataExtractScope,
     uploadCheckLogoUrls,
     maintenanceByServiceId,
@@ -963,39 +950,6 @@ export async function action(args: Route.ActionArgs) {
   );
 }
 
-/** Rotating busy messages shown while previews are being generated. */
-const PREVIEW_BUSY_MESSAGES = [
-  'Extracting document contents…',
-  'Building structured data…',
-  'Generating thumbnails…',
-] as const;
-
-/** Interval (ms) between rotating busy messages. */
-const PREVIEW_BUSY_MESSAGE_INTERVAL_MS = 3000;
-
-/**
- * Cycle through `messages` on a fixed cadence while `active`, resetting to the first
- * message whenever it becomes inactive. Returns the message to display now.
- */
-function useRotatingMessage(
-  messages: readonly string[],
-  active: boolean,
-  intervalMs = PREVIEW_BUSY_MESSAGE_INTERVAL_MS,
-): string {
-  const [index, setIndex] = useState(0);
-  useEffect(() => {
-    if (!active) {
-      setIndex(0);
-      return;
-    }
-    const id = setInterval(() => {
-      setIndex((curr) => (curr + 1) % messages.length);
-    }, intervalMs);
-    return () => clearInterval(id);
-  }, [active, intervalMs, messages.length]);
-  return messages[index] ?? messages[0];
-}
-
 export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const {
     cdnKey,
@@ -1007,18 +961,20 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     previews = [],
     extractedMetadata,
     authorFieldMetadata,
-    isExtractionStale,
     maintenanceByServiceId,
     hasMetadataExtractScope,
   } = loaderData;
   const { workVersionId } = useParams();
-  const previewList: DocumentPreviewItem[] = Array.isArray(previews) ? previews : [];
+  const rawPreviews: DocumentPreviewItem[] = Array.isArray(previews) ? previews : [];
   const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
   const [authorMetadata, setAuthorMetadata] = useState<AuthorFieldMetadata>(authorFieldMetadata);
   const revalidator = useRevalidator();
   const fetchPreviewsFetcher = useFetcher();
   const autoTitleFromFilenameFetcher = useFetcher();
   const hasTriggeredFetchPreviews = useRef(false);
+  // Tracks preview paths we've already observed, so a background preview that
+  // resolves after its file was removed only raises its toast once.
+  const seenPreviewPathsRef = useRef<Set<string> | null>(null);
 
   const suggestArticleTitleFromSelectedFiles = useCallback(
     (files: File[]) => {
@@ -1057,10 +1013,40 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const previewFilePaths = Object.entries(files)
     .filter(([, f]) => isPreviewCandidate(f))
     .map(([path]) => path);
+  // A preview generated in the background can resolve after its source file was
+  // removed or replaced in the upload area. Only surface previews whose file is
+  // still in the current upload list so stale results are never shown.
+  const previewFilePathSet = new Set(previewFilePaths);
+  const previewList = rawPreviews.filter((p) => previewFilePathSet.has(p.path));
   const previewPaths = new Set(previewList.map((p) => p.path));
   const missingPreviewPaths = previewFilePaths.filter((p) => !previewPaths.has(p));
   const shouldFetchPreviews =
     hasMetadataExtractScope && previewFilePaths.length > 0 && missingPreviewPaths.length > 0;
+
+  // When a background preview finishes after its file was removed from the dropzone,
+  // tell the user it was cached for a future upload of the same file.
+  useEffect(() => {
+    if (!hasMetadataExtractScope) return;
+
+    const currentUploadPaths = new Set(previewFilePaths);
+    const seen = seenPreviewPathsRef.current;
+    if (seen === null) {
+      seenPreviewPathsRef.current = new Set(rawPreviews.map((p) => p.path));
+      return;
+    }
+
+    for (const preview of rawPreviews) {
+      if (seen.has(preview.path)) continue;
+      seen.add(preview.path);
+
+      if (currentUploadPaths.has(preview.path)) continue;
+
+      const fileName = preview.data?.name?.trim() || preview.path;
+      ui.toastInfo(
+        `The preview of ${fileName} completed in the background and was cached for next time you upload this file.`,
+      );
+    }
+  }, [hasMetadataExtractScope, rawPreviews, previewFilePaths]);
 
   useEffect(() => {
     if (!shouldFetchPreviews) {
@@ -1079,6 +1065,15 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     }
   }, [fetchPreviewsFetcher.state, fetchPreviewsFetcher.data]);
 
+  // Re-kick preview generation after the user retries a skipped preview. The
+  // auto-fetch effect above will not fire again on its own once it has run, so
+  // resubmit here (only when idle) to restart the generation + busy state.
+  const handleRetryPreview = useCallback(() => {
+    if (fetchPreviewsFetcher.state !== 'idle') return;
+    hasTriggeredFetchPreviews.current = true;
+    fetchPreviewsFetcher.submit({ intent: 'fetch-previews' }, { method: 'POST' });
+  }, [fetchPreviewsFetcher]);
+
   const isGeneratingPreviews =
     fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
   const isPreviewsLoading = revalidator.state === 'loading' || isGeneratingPreviews;
@@ -1086,6 +1081,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const previewOverlayMessage = isGeneratingPreviews
     ? rotatingPreviewMessage
     : 'Refreshing previews…';
+  const previewError = fetchPreviewsFetcher.data?.error?.message ?? null;
   const thumbnailLocators = useMemo(
     () => collectAllFigures(previewList).map(({ figure }) => encodeFigureLocator(figure.key)),
     [previewList],
@@ -1132,11 +1128,13 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
                 previewList={previewList}
                 isPreviewsLoading={isPreviewsLoading}
                 previewOverlayMessage={previewOverlayMessage}
+                previewError={previewError}
                 extractedMetadata={extractedMetadata}
-                isExtractionStale={isExtractionStale}
                 title={title}
                 authorMetadata={authorMetadata}
                 onAuthorMetadataChange={setAuthorMetadata}
+                previewCandidateFileCount={previewFilePaths.length}
+                onRetryPreview={handleRetryPreview}
               />
             </React.Suspense>
           ) : (

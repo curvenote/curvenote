@@ -47,14 +47,25 @@ import {
   previewCacheObjectIds,
 } from './previewCache';
 
-/** Number of top-level content nodes to include for "first page" preview */
-const FIRST_PAGE_CONTENT_LIMIT = 10;
-
 /** A first page with this much text is enough for metadata extraction on its own. */
 const FIRST_PAGE_MIN_TEXT_LENGTH = 500;
 
 /** Page two must be this much larger than a sparse first page before we include it. */
 const SECOND_PAGE_SIGNIFICANTLY_LARGER_RATIO = 1.5;
+
+/**
+ * Target amount of extractable text (chars) to collect for non-paged ASTs (e.g. DOCX),
+ * where there are no page nodes to bound "the first page". Roughly one dense page of
+ * front matter — enough to reach the title/author block without pulling the whole body.
+ */
+const FIRST_PAGE_TARGET_TEXT_LENGTH = 4000;
+
+/**
+ * Hard ceiling on the number of top-level nodes collected for non-paged ASTs. Guards
+ * pathological documents made of many tiny/empty nodes from being walked unbounded when
+ * the character budget is never reached.
+ */
+const FIRST_PAGE_MAX_CONTENT_NODES = 40;
 
 /** Longest edge (px) of a downscaled candidate figure thumbnail. */
 const PREVIEW_FIGURE_MAX_EDGE = 384;
@@ -263,24 +274,48 @@ function shouldIncludeSecondPage(
 }
 
 /**
- * Truncate AST content to the first page when officeparser exposes page nodes.
+ * Select "first page" content for non-paged ASTs (e.g. DOCX) using a hybrid budget:
+ * walk top-level nodes in order and accumulate until we have roughly a page of
+ * extractable text ({@link FIRST_PAGE_TARGET_TEXT_LENGTH}). Empty nodes (blank
+ * paragraphs, image-only blocks) are included for preview fidelity but contribute no
+ * text, so they never consume the budget. A node ceiling
+ * ({@link FIRST_PAGE_MAX_CONTENT_NODES}) bounds documents made of many tiny nodes where
+ * the character budget would otherwise never be reached.
+ */
+function selectFirstPageContentByBudget(fullContent: OfficeContentNode[]): OfficeContentNode[] {
+  let textLength = 0;
+  let count = 0;
+  for (; count < fullContent.length; count += 1) {
+    if (count >= FIRST_PAGE_MAX_CONTENT_NODES) break;
+    textLength += extractableTextLength([fullContent[count]]);
+    if (textLength >= FIRST_PAGE_TARGET_TEXT_LENGTH) {
+      count += 1; // include the node that crossed the budget
+      break;
+    }
+  }
+  return fullContent.slice(0, count);
+}
+
+/**
+ * Truncate AST content to the first page of content — no base64 attachments.
  *
- * Some formats (notably PDF) parse into page nodes, where a single top-level
- * node can contain a full page. Others (notably DOCX) parse into paragraph-like
- * nodes, so we keep the historical node-count fallback for non-paged ASTs.
- * Returns a serializable object containing content text only — no base64 attachments.
+ * Two strategies, chosen by AST shape:
+ * - Paged (notably PDF): officeparser emits `page` nodes, so we keep page one (and
+ *   page two when page one is sparse; see {@link shouldIncludeSecondPage}).
+ * - Non-paged (notably DOCX): no page nodes exist, so we use a character budget over
+ *   top-level nodes (see {@link selectFirstPageContentByBudget}) to gather roughly a
+ *   page of text without stopping early on empty paragraphs or image blocks.
  */
 export function truncateAstToFirstPage(ast: OfficeParserAST): PreviewAstData {
   const fullContent = ast.content ?? [];
   const pageNodes = fullContent.filter(isPageNode);
-  const content =
-    pageNodes.length > 0
-      ? pageNodes.slice(0, shouldIncludeSecondPage(pageNodes[0], pageNodes[1]) ? 2 : 1)
-      : fullContent.slice(0, FIRST_PAGE_CONTENT_LIMIT);
-  const wasTruncated =
-    pageNodes.length > 0
-      ? content.length < pageNodes.length
-      : fullContent.length > FIRST_PAGE_CONTENT_LIMIT;
+  const usePages = pageNodes.length > 0;
+  const content = usePages
+    ? pageNodes.slice(0, shouldIncludeSecondPage(pageNodes[0], pageNodes[1]) ? 2 : 1)
+    : selectFirstPageContentByBudget(fullContent);
+  const wasTruncated = usePages
+    ? content.length < pageNodes.length
+    : content.length < fullContent.length;
   return {
     type: ast.type,
     metadata: ast.metadata,
@@ -489,23 +524,27 @@ export async function fetchDocumentPreviews(
       if (cacheId) {
         const now = formatDate();
         try {
-          await prisma.object.create({
-            data: {
-              id: cacheId,
-              type: cacheId,
-              date_created: now,
-              date_modified: now,
-              data: cached as object,
-              occ: 0,
-              ...(ctx.user?.id ? { created_by_id: ctx.user.id } : {}),
-            },
-            select: { id: true },
+          // Concurrent fetch-previews requests can race to cache the same
+          // (workVersionId, md5) preview. createMany with skipDuplicates compiles to
+          // INSERT ... ON CONFLICT DO NOTHING, so the loser of the race silently
+          // no-ops instead of throwing a unique-constraint violation that Prisma
+          // logs as `prisma:error` even when the exception is caught.
+          await prisma.object.createMany({
+            data: [
+              {
+                id: cacheId,
+                type: cacheId,
+                date_created: now,
+                date_modified: now,
+                data: cached as object,
+                occ: 0,
+                ...(ctx.user?.id ? { created_by_id: ctx.user.id } : {}),
+              },
+            ],
+            skipDuplicates: true,
           });
         } catch (createErr: unknown) {
-          const code = (createErr as { code?: string })?.code;
-          if (code !== 'P2002') {
-            console.warn('fetchDocumentPreviews: failed to cache preview', path, createErr);
-          }
+          console.warn('fetchDocumentPreviews: failed to cache preview', path, createErr);
         }
       }
     }

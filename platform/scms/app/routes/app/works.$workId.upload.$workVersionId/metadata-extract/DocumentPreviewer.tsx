@@ -7,7 +7,7 @@ import type {
   ImageMetadata,
   TextFormatting,
 } from 'officeparser';
-import { CodeXml, FileText, Search } from 'lucide-react';
+import { CodeXml } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
 import type { DocumentPreviewItem, PreviewFigure } from './fetchPreviews.server';
 
@@ -205,8 +205,21 @@ interface OfficeAstRendererProps {
   figureUrlByName: FigureUrlByName;
 }
 
-const PREVIEW_CONTENT_CLASS =
-  'docx-preview-content bg-white dark:bg-white text-stone-900 rounded p-4';
+const PREVIEW_CONTENT_CLASS = 'docx-preview-content text-stone-900';
+
+/**
+ * White "paper" surface that bounds tab content (and the empty/busy/error states)
+ * so it reads as lifted off the page. Forced white in dark mode to match the
+ * document-preview aesthetic (dark text on paper).
+ */
+export const PREVIEW_SURFACE_CLASS =
+  'rounded-lg border border-stone-200 bg-white p-4 text-stone-900 shadow-sm dark:border-stone-700 dark:bg-white';
+
+/**
+ * Tab content surface: capped at double the empty-state height (280px → 560px)
+ * with vertical scrolling when the preview overflows.
+ */
+const PREVIEW_CONTENT_SURFACE_CLASS = `${PREVIEW_SURFACE_CLASS} max-h-[560px] overflow-y-auto`;
 
 function OfficeAstRenderer({ ast, figureUrlByName }: OfficeAstRendererProps): React.ReactElement {
   const content = ast.content ?? [];
@@ -259,7 +272,7 @@ function SingleFileView({
         onClick={onToggleAst}
         title={showAst ? 'Show preview' : 'Show AST'}
       >
-        <CodeXml className="w-4 h-4" />
+        <CodeXml className="w-3 h-3 text-muted-foreground" strokeWidth={1.5} />
       </ui.Button>
       <div className="pt-8">
         {showAst ? (
@@ -293,6 +306,18 @@ function SingleFileView({
 
 export const ALL_FIGURES_TAB = 'all-figures';
 
+const PREVIEW_TAB_TITLE_MAX = 20;
+
+function shortenPreviewTabTitle(name: string, max = PREVIEW_TAB_TITLE_MAX): string {
+  const chars = [...name];
+  if (chars.length <= max) return name;
+  const truncated = chars
+    .slice(0, max - 1)
+    .join('')
+    .trimEnd();
+  return `${truncated}…`;
+}
+
 /**
  * A single candidate figure with the file it came from.
  *
@@ -325,7 +350,7 @@ function AllFiguresView({ figures }: { figures: DocumentFigure[] }) {
   if (figures.length === 0) {
     return (
       <div className={PREVIEW_CONTENT_CLASS}>
-        <p className="text-sm text-muted-foreground">No figures in documents.</p>
+        <p className="text-sm text-muted-foreground">no figures found</p>
       </div>
     );
   }
@@ -374,53 +399,55 @@ export const DocumentPreviewer = ({
   const fileTab = activeTab ?? internalTab;
   const setFileTab = onActiveTabChange ?? setInternalTab;
 
-  if (previews.length === 0) {
-    return (
-      <div className="w-full aspect-square min-h-[280px] rounded-md bg-white dark:bg-white flex flex-col items-center justify-center gap-3 text-muted-foreground">
-        <div className="flex relative justify-center items-center">
-          <FileText className="w-14 h-14" strokeWidth={1.25} />
-          <Search className="absolute -right-1 -bottom-1 w-6 h-6 opacity-80" strokeWidth={2} />
-        </div>
-      </div>
-    );
-  }
-
   const allFigures = collectAllFigures(previews);
-  const containerClass = 'rounded-md p-4 min-h-[100px] bg-white dark:bg-white';
 
   return (
-    <div className={containerClass}>
-      <ui.Tabs value={fileTab} onValueChange={setFileTab} className="w-full">
-        <ui.TabsList className="justify-start p-0 w-full h-auto bg-transparent rounded-none border-0 border-b-2 shadow-none">
-          {previews.map((item, index) => (
+    <ui.Tabs value={fileTab} onValueChange={setFileTab} className="w-full">
+      <ui.TabsList className="justify-start p-0 w-full h-auto bg-transparent rounded-none border-0 border-b-2 shadow-none">
+        {previews.map((item, index) => {
+          const fileName = item.data.name ?? item.path;
+          const tabTitle = shortenPreviewTabTitle(fileName);
+          return (
             <ui.TabsTrigger
               key={item.path}
               value={String(index)}
+              title={tabTitle !== fileName ? fileName : undefined}
               className="rounded-none border-b-2 border-stone-300 dark:border-stone-600 text-stone-500 dark:text-stone-400 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent shadow-none"
             >
-              {item.data.name}
+              {tabTitle}
             </ui.TabsTrigger>
-          ))}
-          <ui.TabsTrigger
-            value={ALL_FIGURES_TAB}
-            className="rounded-none border-b-2 border-stone-300 dark:border-stone-600 text-stone-500 dark:text-stone-400 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent shadow-none"
-          >
-            All Figures
-          </ui.TabsTrigger>
-        </ui.TabsList>
-        {previews.map((item, index) => (
-          <ui.TabsContent key={item.path} value={String(index)} className="mt-4">
+          );
+        })}
+        <ui.TabsTrigger
+          value={ALL_FIGURES_TAB}
+          className="rounded-none border-b-2 border-stone-300 dark:border-stone-600 text-stone-500 dark:text-stone-400 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent shadow-none"
+        >
+          All Figures
+        </ui.TabsTrigger>
+      </ui.TabsList>
+      {previews.map((item, index) => (
+        <ui.TabsContent
+          key={item.path}
+          value={String(index)}
+          className="mt-4 rounded-none border-0 bg-transparent p-0"
+        >
+          <div className={PREVIEW_CONTENT_SURFACE_CLASS}>
             <SingleFileView
               item={item}
               showAst={showAst}
               onToggleAst={() => setShowAst((v) => !v)}
             />
-          </ui.TabsContent>
-        ))}
-        <ui.TabsContent value={ALL_FIGURES_TAB} className="mt-4">
-          <AllFiguresView figures={allFigures} />
+          </div>
         </ui.TabsContent>
-      </ui.Tabs>
-    </div>
+      ))}
+      <ui.TabsContent
+        value={ALL_FIGURES_TAB}
+        className="mt-4 rounded-none border-0 bg-transparent p-0"
+      >
+        <div className={PREVIEW_CONTENT_SURFACE_CLASS}>
+          <AllFiguresView figures={allFigures} />
+        </div>
+      </ui.TabsContent>
+    </ui.Tabs>
   );
 };
