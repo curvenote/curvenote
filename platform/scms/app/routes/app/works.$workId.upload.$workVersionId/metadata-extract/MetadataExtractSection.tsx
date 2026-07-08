@@ -68,7 +68,10 @@ export function MetadataExtractSection({
   const [hasSkippedExtraction, setHasSkippedExtraction] = useState(false);
 
   // A fresh preview generation (idle→loading) clears any prior skip so a new
-  // upload gets the normal preview + auto-extract flow again.
+  // upload gets the normal preview + auto-extract flow again. It also clears the
+  // local "cleared extraction" mask: by the time a new generation starts the clear
+  // action has already revalidated the loader to empty, so dropping the mask lets
+  // freshly auto-extracted metadata display instead of staying hidden.
   const prevIsPreviewsLoadingRef = useRef(isPreviewsLoading);
   useEffect(() => {
     const wasLoading = prevIsPreviewsLoadingRef.current;
@@ -76,6 +79,7 @@ export function MetadataExtractSection({
     if (!wasLoading && isPreviewsLoading) {
       setHasSkippedPreview(false);
       setHasSkippedExtraction(false);
+      setHasLocallyClearedExtraction(false);
     }
   }, [isPreviewsLoading]);
 
