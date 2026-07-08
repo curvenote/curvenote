@@ -38,7 +38,7 @@ const STATE_WRAPPER_CLASS =
 function PreviewSlowMessage() {
   return (
     <p className="max-w-sm text-xs text-stone-500">
-      This is taking longer than expected, but the preview is still running…
+      This is taking longer than expected, but the process is still running…
     </p>
   );
 }
