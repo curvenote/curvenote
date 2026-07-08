@@ -46,9 +46,13 @@ export function MetadataFormCard({
   const canClearExtraction = extractedMetadata != null && onClearExtraction != null;
   const hasControls = canReRunExtraction || canClearExtraction;
   const reRunLabel =
-    previewFileCount <= 1 ? 're-run extraction' : `re-run on ${shortenFileName(reRunFileName!)}`;
+    previewFileCount <= 1 || !reRunFileName
+      ? 're-run extraction'
+      : `re-run on ${shortenFileName(reRunFileName)}`;
   const reRunTitle =
-    previewFileCount <= 1 ? 'Re-run extraction' : `Re-run extraction on ${reRunFileName}`;
+    previewFileCount <= 1 || !reRunFileName
+      ? 'Re-run extraction'
+      : `Re-run extraction on ${reRunFileName}`;
 
   const controlsRow = hasControls ? (
     <div className="flex gap-3 justify-end items-center">
