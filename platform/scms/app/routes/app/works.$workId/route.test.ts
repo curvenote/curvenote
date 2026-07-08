@@ -18,6 +18,7 @@ const {
   notifyNewSubmissionCreated,
   notifySubmissionVersionCreated,
   userHasScope,
+  userHasWorkScope,
   withSecureWorkContext,
 } = vi.hoisted(() => ({
   createReturningVersion: vi.fn(),
@@ -36,6 +37,7 @@ const {
   notifyNewSubmissionCreated: vi.fn(async () => undefined),
   notifySubmissionVersionCreated: vi.fn(async () => undefined),
   userHasScope: vi.fn(),
+  userHasWorkScope: vi.fn(),
   withSecureWorkContext: vi.fn(),
 }));
 
@@ -44,6 +46,7 @@ vi.mock('@curvenote/scms-server', () => ({
   dbCreateDraftWorkVersion: vi.fn(),
   metadataForNewDraftFileWorkVersion: vi.fn(),
   userHasScope,
+  userHasWorkScope,
   getPrismaClient: vi.fn(async () => ({
     $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
       fn({
@@ -114,6 +117,9 @@ vi.mock('@curvenote/scms-core', () => ({
     work: {
       id: {
         read: 'work:id:read',
+        users: {
+          read: 'work:users:read',
+        },
       },
     },
   },
