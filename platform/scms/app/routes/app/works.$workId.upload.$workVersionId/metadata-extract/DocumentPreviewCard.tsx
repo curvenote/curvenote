@@ -5,12 +5,12 @@ import type { DocumentPreviewItem } from './fetchPreviews.server';
 import { useDelayedFlag } from './useDelayedFlag';
 
 /** After this long in the busy state, reassure that the preview is still running. */
-const PREVIEW_SLOW_MESSAGE_DELAY_MS = 30000;
+const PREVIEW_SLOW_MESSAGE_DELAY_MS = 12000;
 /**
- * After the slow message, wait this much longer before offering the skip option, so
+ * After the slow message, wait until this point before offering the skip option, so
  * users get a chance to keep waiting before we surface the escape hatch.
  */
-const PREVIEW_SKIP_HATCH_DELAY_MS = PREVIEW_SLOW_MESSAGE_DELAY_MS + 10000;
+const PREVIEW_SKIP_HATCH_DELAY_MS = 20000;
 
 export interface DocumentPreviewCardProps {
   previews: DocumentPreviewItem[];
