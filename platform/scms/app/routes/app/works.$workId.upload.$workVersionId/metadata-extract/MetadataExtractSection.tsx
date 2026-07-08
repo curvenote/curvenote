@@ -84,6 +84,20 @@ export function MetadataExtractSection({
     }
   }, [hasManuscriptFiles]);
 
+  // Uploading an additional manuscript file while a preview was skipped resumes the
+  // normal flow: clear the skip and re-kick generation so the new file(s) get a
+  // preview instead of remaining stuck in the skipped state.
+  const prevManuscriptFileCountRef = useRef(manuscriptFileCount);
+  useEffect(() => {
+    const prevCount = prevManuscriptFileCountRef.current;
+    prevManuscriptFileCountRef.current = manuscriptFileCount;
+    if (manuscriptFileCount > prevCount && hasSkippedPreview) {
+      setHasSkippedPreview(false);
+      setHasSkippedExtraction(false);
+      onRetryPreview?.();
+    }
+  }, [manuscriptFileCount, hasSkippedPreview, onRetryPreview]);
+
   const effectiveIsPreviewsLoading = isPreviewsLoading && !hasSkippedPreview && hasManuscriptFiles;
 
   const hasPreviews = previewList.length > 0;
