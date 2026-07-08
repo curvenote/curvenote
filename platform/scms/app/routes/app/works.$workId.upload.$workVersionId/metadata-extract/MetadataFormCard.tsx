@@ -71,12 +71,12 @@ export function MetadataFormCard({
           type="button"
           variant="link"
           size="sm"
-          className="p-0 h-auto text-xs"
+          className="gap-px p-0 h-auto text-xs"
           onClick={onClearExtraction}
           disabled={isExtractingMetadata || isClearingExtraction}
           title="Clear extracted metadata"
         >
-          <X className="mr-px w-3.5 h-3.5" />
+          <X className="w-3.5 h-3.5" />
           {isClearingExtraction ? 'clearing...' : 'clear'}
         </ui.Button>
       ) : null}
