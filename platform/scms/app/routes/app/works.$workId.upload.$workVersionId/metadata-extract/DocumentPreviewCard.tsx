@@ -2,6 +2,10 @@ import { AlertTriangle, FileText, Search } from 'lucide-react';
 import { LoadingSpinner } from '@curvenote/scms-core';
 import { DocumentPreviewer, PREVIEW_SURFACE_CLASS } from './DocumentPreviewer';
 import type { DocumentPreviewItem } from './fetchPreviews.server';
+import { useDelayedFlag } from './useDelayedFlag';
+
+/** Reveal the "skip the preview" escape hatch after this long in the busy state. */
+const PREVIEW_SKIP_HATCH_DELAY_MS = 20000;
 
 export interface DocumentPreviewCardProps {
   previews: DocumentPreviewItem[];
@@ -11,10 +15,31 @@ export interface DocumentPreviewCardProps {
   previewError?: string | null;
   activeTab: string;
   onActiveTabChange: (tab: string) => void;
+  /**
+   * When provided, a long-running busy state (>20s) reveals an escape hatch that
+   * calls this to abandon preview generation and let the user proceed manually.
+   */
+  onSkipPreview?: () => void;
 }
 
 const STATE_WRAPPER_CLASS =
   'flex min-h-[280px] w-full flex-col items-center justify-center gap-3 text-center';
+
+function SkipPreviewHatch({ onSkip }: { onSkip: () => void }) {
+  return (
+    <p className="max-w-sm text-xs text-stone-500">
+      Large documents may take longer to unpack. If this is taking too long you can{' '}
+      <button
+        type="button"
+        onClick={onSkip}
+        className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+      >
+        skip the preview
+      </button>{' '}
+      and proceed manually.
+    </p>
+  );
+}
 
 function PreviewEmptyState() {
   return (
@@ -33,11 +58,20 @@ function PreviewEmptyState() {
   );
 }
 
-function PreviewBusyState({ message }: { message: string }) {
+function PreviewBusyState({
+  message,
+  showSkipHatch,
+  onSkipPreview,
+}: {
+  message: string;
+  showSkipHatch: boolean;
+  onSkipPreview?: () => void;
+}) {
   return (
     <div className={STATE_WRAPPER_CLASS} aria-busy="true" aria-live="polite">
       <LoadingSpinner size={32} />
       <p className="text-sm text-stone-500">{message}</p>
+      {showSkipHatch && onSkipPreview ? <SkipPreviewHatch onSkip={onSkipPreview} /> : null}
     </div>
   );
 }
@@ -61,8 +95,15 @@ export function DocumentPreviewCard({
   previewError,
   activeTab,
   onActiveTabChange,
+  onSkipPreview,
 }: DocumentPreviewCardProps) {
   const hasPreviews = previews.length > 0;
+  // Only reveal the escape hatch during the initial unpack (no previews yet);
+  // an overlay refresh over existing previews is not worth abandoning.
+  const showSkipHatch = useDelayedFlag(
+    isPreviewsLoading && !hasPreviews,
+    PREVIEW_SKIP_HATCH_DELAY_MS,
+  );
 
   // Empty / busy / error states share the same "paper" surface that tab content
   // uses, so the region reads consistently before any previews are available.
@@ -70,7 +111,11 @@ export function DocumentPreviewCard({
     return (
       <div className={PREVIEW_SURFACE_CLASS}>
         {isPreviewsLoading ? (
-          <PreviewBusyState message={previewOverlayMessage} />
+          <PreviewBusyState
+            message={previewOverlayMessage}
+            showSkipHatch={showSkipHatch}
+            onSkipPreview={onSkipPreview}
+          />
         ) : previewError ? (
           <PreviewErrorState message={previewError} />
         ) : (

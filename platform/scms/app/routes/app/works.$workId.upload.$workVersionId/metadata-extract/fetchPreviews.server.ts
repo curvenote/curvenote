@@ -524,23 +524,27 @@ export async function fetchDocumentPreviews(
       if (cacheId) {
         const now = formatDate();
         try {
-          await prisma.object.create({
-            data: {
-              id: cacheId,
-              type: cacheId,
-              date_created: now,
-              date_modified: now,
-              data: cached as object,
-              occ: 0,
-              ...(ctx.user?.id ? { created_by_id: ctx.user.id } : {}),
-            },
-            select: { id: true },
+          // Concurrent fetch-previews requests can race to cache the same
+          // (workVersionId, md5) preview. createMany with skipDuplicates compiles to
+          // INSERT ... ON CONFLICT DO NOTHING, so the loser of the race silently
+          // no-ops instead of throwing a unique-constraint violation that Prisma
+          // logs as `prisma:error` even when the exception is caught.
+          await prisma.object.createMany({
+            data: [
+              {
+                id: cacheId,
+                type: cacheId,
+                date_created: now,
+                date_modified: now,
+                data: cached as object,
+                occ: 0,
+                ...(ctx.user?.id ? { created_by_id: ctx.user.id } : {}),
+              },
+            ],
+            skipDuplicates: true,
           });
         } catch (createErr: unknown) {
-          const code = (createErr as { code?: string })?.code;
-          if (code !== 'P2002') {
-            console.warn('fetchDocumentPreviews: failed to cache preview', path, createErr);
-          }
+          console.warn('fetchDocumentPreviews: failed to cache preview', path, createErr);
         }
       }
     }

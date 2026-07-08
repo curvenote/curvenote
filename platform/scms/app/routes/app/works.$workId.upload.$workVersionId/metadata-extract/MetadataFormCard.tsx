@@ -4,6 +4,10 @@ import type { ExtractedMetadata } from './anthropic.server';
 import { WorkTitleForm } from '../WorkTitleForm';
 import { AuthorMetadataForm } from '../AuthorMetadataForm';
 import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
+import { useDelayedFlag } from './useDelayedFlag';
+
+/** Reveal the "skip AI extraction" escape hatch after this long in the busy state. */
+const EXTRACTION_SKIP_HATCH_DELAY_MS = 15000;
 
 /** Shorten a file name for the re-run label. */
 function shortenFileName(name: string, max = 32): string {
@@ -26,6 +30,11 @@ export interface MetadataFormCardProps {
   onReRunExtraction?: () => void;
   onClearExtraction?: () => void;
   isClearingExtraction?: boolean;
+  /**
+   * When provided, a long-running extraction (>15s) reveals an escape hatch that
+   * calls this to abandon the AI call and let the user fill the form manually.
+   */
+  onSkipExtraction?: () => void;
 }
 
 export function MetadataFormCard({
@@ -40,7 +49,9 @@ export function MetadataFormCard({
   onReRunExtraction,
   onClearExtraction,
   isClearingExtraction = false,
+  onSkipExtraction,
 }: MetadataFormCardProps) {
+  const showSkipHatch = useDelayedFlag(isExtractingMetadata, EXTRACTION_SKIP_HATCH_DELAY_MS);
   const displayTitle = (title?.trim() ? title : extractedMetadata?.title) ?? '';
   const canReRunExtraction = Boolean(reRunFileName) && onReRunExtraction != null;
   const canClearExtraction = extractedMetadata != null && onClearExtraction != null;
@@ -97,6 +108,19 @@ export function MetadataFormCard({
         >
           <LoadingSpinner size={32} />
           <p className="text-sm text-muted-foreground">{extractingMetadataMessage}</p>
+          {showSkipHatch && onSkipExtraction ? (
+            <p className="max-w-sm text-xs text-center text-muted-foreground">
+              This is taking longer than usual. You can{' '}
+              <button
+                type="button"
+                onClick={onSkipExtraction}
+                className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+              >
+                skip AI extraction
+              </button>{' '}
+              and enter the details manually.
+            </p>
+          ) : null}
         </div>
       )}
       {controlsRow}

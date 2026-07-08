@@ -45,6 +45,25 @@ export function MetadataExtractSection({
   // Tracks a bridged busy state for auto-extraction: true from the moment a fresh
   // upload starts unpacking until the AI extraction request resolves.
   const [isAutoExtractPending, setIsAutoExtractPending] = useState(false);
+  // Escape-hatch state: the user chose to abandon a slow preview generation or a
+  // slow AI extraction and proceed manually. Both suppress their busy overlay and
+  // prevent the (follow-on) auto-extraction from firing for the current attempt.
+  const [hasSkippedPreview, setHasSkippedPreview] = useState(false);
+  const [hasSkippedExtraction, setHasSkippedExtraction] = useState(false);
+
+  // A fresh preview generation (idle→loading) clears any prior skip so a new
+  // upload gets the normal preview + auto-extract flow again.
+  const prevIsPreviewsLoadingRef = useRef(isPreviewsLoading);
+  useEffect(() => {
+    const wasLoading = prevIsPreviewsLoadingRef.current;
+    prevIsPreviewsLoadingRef.current = isPreviewsLoading;
+    if (!wasLoading && isPreviewsLoading) {
+      setHasSkippedPreview(false);
+      setHasSkippedExtraction(false);
+    }
+  }, [isPreviewsLoading]);
+
+  const effectiveIsPreviewsLoading = isPreviewsLoading && !hasSkippedPreview;
 
   const hasPreviews = previewList.length > 0;
   const previewSourceKey = previewList.map((preview) => preview.path).join('|');
