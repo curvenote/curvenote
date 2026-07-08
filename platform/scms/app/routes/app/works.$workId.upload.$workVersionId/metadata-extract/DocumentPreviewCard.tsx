@@ -4,8 +4,13 @@ import { DocumentPreviewer, PREVIEW_SURFACE_CLASS } from './DocumentPreviewer';
 import type { DocumentPreviewItem } from './fetchPreviews.server';
 import { useDelayedFlag } from './useDelayedFlag';
 
-/** Reveal the "skip the preview" escape hatch after this long in the busy state. */
-const PREVIEW_SKIP_HATCH_DELAY_MS = 20000;
+/** After this long in the busy state, reassure that the preview is still running. */
+const PREVIEW_SLOW_MESSAGE_DELAY_MS = 30000;
+/**
+ * After the slow message, wait this much longer before offering the skip option, so
+ * users get a chance to keep waiting before we surface the escape hatch.
+ */
+const PREVIEW_SKIP_HATCH_DELAY_MS = PREVIEW_SLOW_MESSAGE_DELAY_MS + 10000;
 
 export interface DocumentPreviewCardProps {
   previews: DocumentPreviewItem[];
@@ -16,8 +21,9 @@ export interface DocumentPreviewCardProps {
   activeTab: string;
   onActiveTabChange: (tab: string) => void;
   /**
-   * When provided, a long-running busy state (>20s) reveals an escape hatch that
-   * calls this to abandon preview generation and let the user proceed manually.
+   * When provided, a long-running busy state reveals an escape hatch (after a slow
+   * message and a further delay) that calls this to abandon preview generation and
+   * let the user proceed manually.
    */
   onSkipPreview?: () => void;
   /** True when the user skipped preview generation; renders the skipped state. */
@@ -28,6 +34,14 @@ export interface DocumentPreviewCardProps {
 
 const STATE_WRAPPER_CLASS =
   'flex min-h-[280px] w-full flex-col items-center justify-center gap-3 text-center';
+
+function PreviewSlowMessage() {
+  return (
+    <p className="max-w-sm text-xs text-stone-500">
+      This is taking some time, but the preview is still running…
+    </p>
+  );
+}
 
 function SkipPreviewHatch({ onSkip }: { onSkip: () => void }) {
   return (
@@ -94,10 +108,12 @@ function PreviewSkippedState({ onRetry }: { onRetry?: () => void }) {
 
 function PreviewBusyState({
   message,
+  showSlowMessage,
   showSkipHatch,
   onSkipPreview,
 }: {
   message: string;
+  showSlowMessage: boolean;
   showSkipHatch: boolean;
   onSkipPreview?: () => void;
 }) {
@@ -105,7 +121,11 @@ function PreviewBusyState({
     <div className={STATE_WRAPPER_CLASS} aria-busy="true" aria-live="polite">
       <LoadingSpinner size={32} />
       <p className="text-sm text-stone-500">{message}</p>
-      {showSkipHatch && onSkipPreview ? <SkipPreviewHatch onSkip={onSkipPreview} /> : null}
+      {showSkipHatch && onSkipPreview ? (
+        <SkipPreviewHatch onSkip={onSkipPreview} />
+      ) : showSlowMessage ? (
+        <PreviewSlowMessage />
+      ) : null}
     </div>
   );
 }
@@ -134,12 +154,11 @@ export function DocumentPreviewCard({
   onRetryPreview,
 }: DocumentPreviewCardProps) {
   const hasPreviews = previews.length > 0;
-  // Only reveal the escape hatch during the initial unpack (no previews yet);
-  // an overlay refresh over existing previews is not worth abandoning.
-  const showSkipHatch = useDelayedFlag(
-    isPreviewsLoading && !hasPreviews,
-    PREVIEW_SKIP_HATCH_DELAY_MS,
-  );
+  // Only reveal the reassurance/escape hatch during the initial unpack (no previews
+  // yet); an overlay refresh over existing previews is not worth abandoning.
+  const isInitialUnpack = isPreviewsLoading && !hasPreviews;
+  const showSlowMessage = useDelayedFlag(isInitialUnpack, PREVIEW_SLOW_MESSAGE_DELAY_MS);
+  const showSkipHatch = useDelayedFlag(isInitialUnpack, PREVIEW_SKIP_HATCH_DELAY_MS);
 
   // Empty / busy / error states share the same "paper" surface that tab content
   // uses, so the region reads consistently before any previews are available.
@@ -149,6 +168,7 @@ export function DocumentPreviewCard({
         {isPreviewsLoading ? (
           <PreviewBusyState
             message={previewOverlayMessage}
+            showSlowMessage={showSlowMessage}
             showSkipHatch={showSkipHatch}
             onSkipPreview={onSkipPreview}
           />
