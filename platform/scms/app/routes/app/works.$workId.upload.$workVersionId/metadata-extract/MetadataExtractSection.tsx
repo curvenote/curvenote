@@ -114,17 +114,19 @@ export function MetadataExtractSection({
 
     // Files just arrived from an empty set: this is a first/fresh upload.
     if (prevCount === 0) {
-      if (
-        metadataIsEmpty &&
-        !hasTriggeredExtractMetadata.current &&
-        extractMetadataFetcher.state === 'idle'
-      ) {
-        hasTriggeredExtractMetadata.current = true;
-        setIsAutoExtractPending(true);
-        extractMetadataFetcher.submit({ intent: 'extract-metadata' }, { method: 'POST' });
+      if (metadataIsEmpty && !hasTriggeredExtractMetadata.current) {
+        if (extractMetadataFetcher.state === 'idle') {
+          hasTriggeredExtractMetadata.current = true;
+          setIsAutoExtractPending(true);
+          extractMetadataFetcher.submit({ intent: 'extract-metadata' }, { method: 'POST' });
+          prevFileCountRef.current = currentCount;
+        }
+        // Fetcher busy: keep ref at 0 so we retry when it becomes idle.
       } else if (!metadataIsEmpty) {
         setIsAutoExtractPending(false);
+        prevFileCountRef.current = currentCount;
       }
+      return;
     }
 
     prevFileCountRef.current = currentCount;
