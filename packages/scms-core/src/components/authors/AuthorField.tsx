@@ -652,10 +652,10 @@ export function AuthorField({
           </ui.FormLabel>
           <ui.Button
             type="button"
-            variant="outline"
+            variant="link"
             size="sm"
             onClick={() => setIsEditing(true)}
-            className="cursor-pointer shrink-0"
+            className="h-auto cursor-pointer shrink-0"
           >
             <Pencil className="mr-1 w-3.5 h-3.5 shrink-0" aria-hidden />
             Edit
@@ -683,7 +683,7 @@ export function AuthorField({
             variant="link"
             size="sm"
             onClick={() => setIsEditing(false)}
-            className="h-auto text-muted-foreground cursor-pointer hover:text-foreground shrink-0"
+            className="h-auto cursor-pointer shrink-0"
           >
             <Check className="mr-1 w-3.5 h-3.5 shrink-0" aria-hidden />
             done editing
