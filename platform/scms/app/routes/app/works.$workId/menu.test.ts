@@ -22,6 +22,7 @@ describe('buildMenu', () => {
         makeSubmission('pmc', 'PMC', 'sv-2'),
       ],
       [scopes.app.works.checks.feature],
+      true,
     );
 
     const items = menu[0].menus;
@@ -48,9 +49,21 @@ describe('buildMenu', () => {
   });
 
   it('omits Submissions when there are no submission versions', () => {
-    const menu = buildMenu(baseUrl, false, [], []);
+    const menu = buildMenu(baseUrl, false, [], [], true);
 
     expect(menu[0].menus.some((item) => item.name === 'work.submissions')).toBe(false);
+  });
+
+  it('includes the users item when the user can read work users', () => {
+    const menu = buildMenu(baseUrl, false, [], [], true);
+
+    expect(menu[0].menus.some((item) => item.name === 'work.users')).toBe(true);
+  });
+
+  it('omits the users item when the user cannot read work users', () => {
+    const menu = buildMenu(baseUrl, false, [], [], false);
+
+    expect(menu[0].menus.some((item) => item.name === 'work.users')).toBe(false);
   });
 
   it('skips submissions without a latest version id', () => {
@@ -64,6 +77,7 @@ describe('buildMenu', () => {
         } as unknown as Parameters<typeof buildMenu>[2][number],
       ],
       [],
+      true,
     );
 
     expect(menu[0].menus.some((item) => item.name === 'work.submissions')).toBe(false);

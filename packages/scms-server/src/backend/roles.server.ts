@@ -157,7 +157,7 @@ const WORK_ROLES: Record<WorkRole, Set<string>> = {
     work.id.users.read,
     work.id.checks.read,
   ]),
-  [WorkRole.VIEWER]: new Set([work.id.read]),
+  [WorkRole.VIEWER]: new Set([work.id.read, work.id.users.read]),
 };
 
 export function hasDefaultScopeViaSystemRole(

@@ -44,6 +44,8 @@ describe('work role scope mapping', () => {
     expect(hasWorkScope(WorkRole.OWNER, work.id.users.update)).toBe(true);
     expect(hasWorkScope(WorkRole.CONTRIBUTOR, work.id.users.update)).toBe(false);
     expect(hasWorkScope(WorkRole.CONTRIBUTOR, work.id.users.read)).toBe(true);
+    expect(hasWorkScope(WorkRole.VIEWER, work.id.users.read)).toBe(true);
+    expect(hasWorkScope(WorkRole.VIEWER, work.id.users.update)).toBe(false);
   });
 });
 

@@ -12,6 +12,7 @@ import {
   dbCreateDraftWorkVersion,
   metadataForNewDraftFileWorkVersion,
   userHasScope,
+  userHasWorkScope,
   works,
   getUserScopesSet,
   getPrismaClient,
@@ -571,6 +572,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   return {
     userScopes: ctx.scopes,
+    canReadUsers: userHasWorkScope(ctx.user, scopes.work.id.users.read, ctx.work.id),
     workflows,
     work,
     versions: versionsForClient,
@@ -612,12 +614,25 @@ export function shouldRevalidate({
 }
 
 export default function WorkLayout({ loaderData }: Route.ComponentProps) {
-  const { work, versions, submissions, userScopes, isOnUploadRoute, maintenanceByServiceId } =
-    loaderData;
+  const {
+    work,
+    versions,
+    submissions,
+    userScopes,
+    canReadUsers,
+    isOnUploadRoute,
+    maintenanceByServiceId,
+  } = loaderData;
 
   const isDrafting = versions.length > 0 && versions.every((v) => v.draft);
   const showSecondaryNav = !isDrafting && !isOnUploadRoute;
-  const menu = buildMenu(`/app/works/${work.id}`, isDrafting, submissions, userScopes);
+  const menu = buildMenu(
+    `/app/works/${work.id}`,
+    isDrafting,
+    submissions,
+    userScopes,
+    canReadUsers,
+  );
 
   return (
     <CheckMaintenanceProvider maintenanceByServiceId={maintenanceByServiceId}>

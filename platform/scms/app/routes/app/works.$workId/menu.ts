@@ -15,6 +15,7 @@ export function buildMenu(
   drafting: boolean,
   submissions: SubmissionWithVersionsAndSite[],
   userScopes: string[],
+  canReadUsers: boolean,
 ) {
   const contents: MenuContents = [
     {
@@ -38,11 +39,13 @@ export function buildMenu(
         url: `${baseUrl}/checks`,
       });
     }
-    menus.push({
-      name: 'work.users',
-      label: 'Who can access this?',
-      url: `${baseUrl}/users`,
-    });
+    if (canReadUsers) {
+      menus.push({
+        name: 'work.users',
+        label: 'Who can access this?',
+        url: `${baseUrl}/users`,
+      });
+    }
   }
 
   const submissionMenus = submissions.flatMap((submission) => {

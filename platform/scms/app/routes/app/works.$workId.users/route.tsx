@@ -1,5 +1,5 @@
 import type { Route } from './+types/route';
-import { withSecureWorkContext } from '@curvenote/scms-server';
+import { withSecureWorkContext, userHasWorkScope } from '@curvenote/scms-server';
 import {
   PageFrame,
   UserCard,
@@ -17,10 +17,12 @@ import { actionGrantUserRole, actionRevokeUserRole } from './actionHelpers.serve
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureWorkContext(args, [scopes.work.id.users.read]);
+  const canUpdateUsers = userHasWorkScope(ctx.user, scopes.work.id.users.update, ctx.work.id);
   const dbo = await dbGetWorkUsers(ctx.work.id);
-  if (!dbo) return { work: ctx.workDTO, error: 'Failed to get work users', users: [] };
+  if (!dbo)
+    return { work: ctx.workDTO, error: 'Failed to get work users', users: [], canUpdateUsers };
   const users = dtoWorkUsers(dbo);
-  return { work: ctx.workDTO, users };
+  return { work: ctx.workDTO, users, canUpdateUsers };
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {
@@ -54,21 +56,23 @@ export async function action(args: Route.ActionArgs) {
 }
 
 export default function Users({ loaderData }: Route.ComponentProps) {
-  const { users } = loaderData;
+  const { users, canUpdateUsers } = loaderData;
 
   return (
     <PageFrame title="Users" subtitle="Who can access this work?" className="max-w-none">
       <div className="flex flex-col space-y-5">
-        <div>
-          <WorkRolesForm />
-        </div>
+        {canUpdateUsers ? (
+          <div>
+            <WorkRolesForm />
+          </div>
+        ) : null}
         <SectionWithHeading heading="Current Users" icon={User}>
           <div className="overflow-hidden rounded-sm border bg-background">
             {users.map((u) => (
               <UserCard
                 key={u.id}
                 name={u.display_name}
-                roles={u.work_roles.map((role) => ({ role, canRemove: false }))}
+                roles={u.work_roles.map((role) => ({ role, canRemove: canUpdateUsers }))}
                 email={u.email}
                 userId={u.id}
               />
