@@ -42,7 +42,7 @@ export function MetadataFormCard({
   const canClearExtraction = extractedMetadata != null && onClearExtraction != null;
 
   return (
-    <ui.Card className="relative px-6 pt-4 pb-6 space-y-4 h-fit min-w-lg">
+    <ui.Card className="relative px-6 pt-4 pb-6 space-y-4 h-fit max-w-3xl">
       {isExtractingMetadata && (
         <div
           className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-md bg-background/80 backdrop-blur-[1px]"
