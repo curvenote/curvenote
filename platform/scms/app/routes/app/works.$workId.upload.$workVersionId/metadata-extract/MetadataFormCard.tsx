@@ -35,6 +35,12 @@ export interface MetadataFormCardProps {
    * calls this to abandon the AI call and let the user fill the form manually.
    */
   onSkipExtraction?: () => void;
+  /**
+   * True while the manuscript preview is still unpacking. The skip-extraction
+   * countdown does not even start until this is false, so the 15s window only
+   * measures the actual AI phase, not the preceding preview generation.
+   */
+  isPreviewBusy?: boolean;
 }
 
 export function MetadataFormCard({
@@ -50,8 +56,14 @@ export function MetadataFormCard({
   onClearExtraction,
   isClearingExtraction = false,
   onSkipExtraction,
+  isPreviewBusy = false,
 }: MetadataFormCardProps) {
-  const showSkipHatch = useDelayedFlag(isExtractingMetadata, EXTRACTION_SKIP_HATCH_DELAY_MS);
+  // Only count the 15s once the preview has finished unpacking, so the bridged
+  // busy state during preview generation never contributes to the countdown.
+  const showSkipHatch = useDelayedFlag(
+    isExtractingMetadata && !isPreviewBusy,
+    EXTRACTION_SKIP_HATCH_DELAY_MS,
+  );
   const displayTitle = (title?.trim() ? title : extractedMetadata?.title) ?? '';
   const canReRunExtraction = Boolean(reRunFileName) && onReRunExtraction != null;
   const canClearExtraction = extractedMetadata != null && onClearExtraction != null;

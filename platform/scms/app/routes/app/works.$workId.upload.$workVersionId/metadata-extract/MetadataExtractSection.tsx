@@ -330,6 +330,7 @@ export function MetadataExtractSection({
           onClearExtraction={handleClearExtraction}
           isClearingExtraction={isClearingExtraction}
           onSkipExtraction={handleSkipExtraction}
+          isPreviewBusy={effectiveIsPreviewsLoading}
         />
       </SectionWithHeading>
     </div>
