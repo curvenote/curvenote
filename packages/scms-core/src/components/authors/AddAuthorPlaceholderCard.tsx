@@ -29,7 +29,7 @@ export function AddAuthorPlaceholderCard({
   isEmpty,
 }: AddAuthorPlaceholderCardProps) {
   return (
-    <div className="flex gap-3 items-start p-4 rounded-sm border border-dashed border-border bg-background">
+    <div className="flex gap-3 items-start">
       <div className="flex-1 space-y-2 min-w-0">
         {isEmpty && showAddMeAsAuthor && (
           <div className="flex flex-wrap gap-2 items-center">
