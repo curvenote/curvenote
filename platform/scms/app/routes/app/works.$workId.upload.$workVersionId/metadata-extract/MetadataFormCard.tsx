@@ -39,7 +39,42 @@ export function MetadataFormCard({
   isClearingExtraction = false,
 }: MetadataFormCardProps) {
   const displayTitle = (title?.trim() ? title : extractedMetadata?.title) ?? '';
+  const canReRunExtraction = Boolean(reRunFileName) && onReRunExtraction != null;
   const canClearExtraction = extractedMetadata != null && onClearExtraction != null;
+  const hasControls = canReRunExtraction || canClearExtraction;
+
+  const controlsRow = hasControls ? (
+    <div className="flex gap-3 justify-end items-center">
+      {canReRunExtraction ? (
+        <ui.Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="p-0 h-auto text-xs"
+          onClick={onReRunExtraction}
+          disabled={isExtractingMetadata || isClearingExtraction}
+          title={`Re-run extraction on ${reRunFileName}`}
+        >
+          <RefreshCw className="mr-px w-3.5 h-3.5" />
+          {`re-run on ${shortenFileName(reRunFileName!)}`}
+        </ui.Button>
+      ) : null}
+      {canClearExtraction ? (
+        <ui.Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="p-0 h-auto text-xs"
+          onClick={onClearExtraction}
+          disabled={isExtractingMetadata || isClearingExtraction}
+          title="Clear extracted metadata"
+        >
+          <X className="mr-px w-3.5 h-3.5" />
+          {isClearingExtraction ? 'clearing...' : 'clear'}
+        </ui.Button>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
     <ui.Card className="relative px-6 pt-4 pb-6 space-y-4 h-fit max-w-3xl">
@@ -53,40 +88,10 @@ export function MetadataFormCard({
           <p className="text-sm text-muted-foreground">{extractingMetadataMessage}</p>
         </div>
       )}
-      {canClearExtraction ? (
-        <div className="flex justify-end">
-          <ui.Button
-            type="button"
-            variant="link"
-            size="sm"
-            className="p-0 h-auto text-xs"
-            onClick={onClearExtraction}
-            disabled={isExtractingMetadata || isClearingExtraction}
-            title="Clear extracted metadata"
-          >
-            <X className="mr-px w-3.5 h-3.5" />
-            {isClearingExtraction ? 'clearing...' : 'clear'}
-          </ui.Button>
-        </div>
-      ) : null}
+      {controlsRow}
       <WorkTitleForm title={displayTitle} />
       <AuthorMetadataForm value={authorMetadata} onChange={onAuthorMetadataChange} />
-      {reRunFileName && onReRunExtraction ? (
-        <div className="flex justify-end">
-          <ui.Button
-            type="button"
-            variant="link"
-            size="sm"
-            className="p-0 h-auto text-xs"
-            onClick={onReRunExtraction}
-            disabled={isExtractingMetadata || isClearingExtraction}
-            title={`Re-run extraction on ${reRunFileName}`}
-          >
-            <RefreshCw className="mr-px w-3.5 h-3.5" />
-            {`re-run on ${shortenFileName(reRunFileName)}`}
-          </ui.Button>
-        </div>
-      ) : null}
+      {controlsRow}
     </ui.Card>
   );
 }
