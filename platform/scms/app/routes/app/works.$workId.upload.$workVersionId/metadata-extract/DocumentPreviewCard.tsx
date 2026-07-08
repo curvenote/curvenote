@@ -46,15 +46,15 @@ function PreviewSlowMessage() {
 function SkipPreviewHatch({ onSkip }: { onSkip: () => void }) {
   return (
     <p className="max-w-sm text-xs text-stone-500">
-      Large documents may take longer to unpack. If this is taking too long you can{' '}
+      If this is taking too long you can{' '}
       <button
         type="button"
         onClick={onSkip}
         className="font-medium text-primary underline underline-offset-2 hover:no-underline"
       >
-        skip the preview
+        skip the unpack step
       </button>{' '}
-      and proceed manually.
+      and continue manually.
     </p>
   );
 }
