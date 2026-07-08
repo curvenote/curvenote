@@ -80,6 +80,8 @@ import { Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
+import { PREVIEW_BUSY_MESSAGES } from './metadata-extract/busyMessages';
+import { useRotatingMessage } from './metadata-extract/useRotatingMessage';
 import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
 import { collectAllFigures } from './metadata-extract/DocumentPreviewer';
 import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
@@ -946,39 +948,6 @@ export async function action(args: Route.ActionArgs) {
       }
     },
   );
-}
-
-/** Rotating busy messages shown while previews are being generated. */
-const PREVIEW_BUSY_MESSAGES = [
-  'Extracting document contents…',
-  'Building structured data…',
-  'Generating thumbnails…',
-] as const;
-
-/** Interval (ms) between rotating busy messages. */
-const PREVIEW_BUSY_MESSAGE_INTERVAL_MS = 3000;
-
-/**
- * Cycle through `messages` on a fixed cadence while `active`, resetting to the first
- * message whenever it becomes inactive. Returns the message to display now.
- */
-function useRotatingMessage(
-  messages: readonly string[],
-  active: boolean,
-  intervalMs = PREVIEW_BUSY_MESSAGE_INTERVAL_MS,
-): string {
-  const [index, setIndex] = useState(0);
-  useEffect(() => {
-    if (!active) {
-      setIndex(0);
-      return;
-    }
-    const id = setInterval(() => {
-      setIndex((curr) => (curr + 1) % messages.length);
-    }, intervalMs);
-    return () => clearInterval(id);
-  }, [active, intervalMs, messages.length]);
-  return messages[index] ?? messages[0];
 }
 
 export default function WorksUpload({ loaderData }: Route.ComponentProps) {

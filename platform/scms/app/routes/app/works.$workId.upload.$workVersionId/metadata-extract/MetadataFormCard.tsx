@@ -5,6 +5,8 @@ import { WorkTitleForm } from '../WorkTitleForm';
 import { AuthorMetadataForm } from '../AuthorMetadataForm';
 import type { AuthorFieldMetadata } from '../mystAuthorAdapters';
 import { useDelayedFlag } from './useDelayedFlag';
+import { UPLOAD_FORMAT_BUSY_TIPS } from './busyMessages';
+import { useRotatingMessage } from './useRotatingMessage';
 
 /** Reveal the "skip AI extraction" escape hatch after this long in the busy state. */
 const EXTRACTION_SKIP_HATCH_DELAY_MS = 15000;
@@ -64,6 +66,7 @@ export function MetadataFormCard({
     isExtractingMetadata && !isPreviewBusy,
     EXTRACTION_SKIP_HATCH_DELAY_MS,
   );
+  const formatBusyTip = useRotatingMessage(UPLOAD_FORMAT_BUSY_TIPS, isExtractingMetadata);
   const displayTitle = (title?.trim() ? title : extractedMetadata?.title) ?? '';
   const canReRunExtraction = Boolean(reRunFileName) && onReRunExtraction != null;
   const canClearExtraction = extractedMetadata != null && onClearExtraction != null;
@@ -120,6 +123,7 @@ export function MetadataFormCard({
         >
           <LoadingSpinner size={32} />
           <p className="text-sm text-muted-foreground">{extractingMetadataMessage}</p>
+          <p className="max-w-sm text-xs text-center text-muted-foreground">{formatBusyTip}</p>
           {showSkipHatch && onSkipExtraction ? (
             <p className="max-w-sm text-xs text-center text-muted-foreground">
               This is taking longer than usual. You can{' '}
