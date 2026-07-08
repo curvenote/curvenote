@@ -61,12 +61,6 @@ export type AuthorFieldProps = {
   onSaveFetcherStateChange?: (id: string, state: string) => void;
   autoSave?: boolean;
   saveFieldOptions?: SaveFieldOptions;
-  /**
-   * Optional className applied to the scrollable author-card list wrapper (e.g.
-   * `'max-h-[400px] overflow-y-auto'`). The add-author form stays outside this
-   * wrapper so it is not affected by any height cap/scroll. Defaults to no cap.
-   */
-  authorsListClassName?: string;
 };
 
 type OrcidFetcherData = {
@@ -152,7 +146,6 @@ export function AuthorField({
   onSaveFetcherStateChange,
   autoSave = true,
   saveFieldOptions,
-  authorsListClassName,
 }: AuthorFieldProps) {
   const [addAuthorSearchValue, setAddAuthorSearchValue] = useState('');
   const lastOrcidResultsRef = useRef<OrcidSearchHit[]>([]);
@@ -645,35 +638,33 @@ export function AuthorField({
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={authorOrder} strategy={verticalListSortingStrategy}>
-            <div className={authorsListClassName ? `space-y-2 ${authorsListClassName}` : undefined}>
-              {authorOrder.map((id, orderIndex) => {
-                const author = value.find((a) => a.id === id);
-                if (!author) return null;
-                const index = value.findIndex((a) => a.id === id);
-                return (
-                  <AuthorCard
-                    key={author.id}
-                    value={author}
-                    index={index}
-                    open={openIndex === index}
-                    onOpenChange={(open) => setOpenIndex(open ? index : null)}
-                    onChange={(updatedAuthor) => handleAuthorChange(index, updatedAuthor)}
-                    onDelete={() => handleDelete(index)}
-                    affiliationList={affiliationList}
-                    onEnsureAffiliationInList={handleEnsureAffiliationInList}
-                    onRenameAffiliation={handleRenameAffiliation}
-                    onUpdateAffiliation={handleUpdateAffiliation}
-                    affiliationInputRef={
-                      index === value.length - 1 ? lastCardAffiliationInputRef : undefined
-                    }
-                    onMoveUp={() => handleMoveAuthorOrderItem(author.id, 'up')}
-                    onMoveDown={() => handleMoveAuthorOrderItem(author.id, 'down')}
-                    canMoveUp={orderIndex > 0}
-                    canMoveDown={orderIndex < authorOrder.length - 1}
-                  />
-                );
-              })}
-            </div>
+            {authorOrder.map((id, orderIndex) => {
+              const author = value.find((a) => a.id === id);
+              if (!author) return null;
+              const index = value.findIndex((a) => a.id === id);
+              return (
+                <AuthorCard
+                  key={author.id}
+                  value={author}
+                  index={index}
+                  open={openIndex === index}
+                  onOpenChange={(open) => setOpenIndex(open ? index : null)}
+                  onChange={(updatedAuthor) => handleAuthorChange(index, updatedAuthor)}
+                  onDelete={() => handleDelete(index)}
+                  affiliationList={affiliationList}
+                  onEnsureAffiliationInList={handleEnsureAffiliationInList}
+                  onRenameAffiliation={handleRenameAffiliation}
+                  onUpdateAffiliation={handleUpdateAffiliation}
+                  affiliationInputRef={
+                    index === value.length - 1 ? lastCardAffiliationInputRef : undefined
+                  }
+                  onMoveUp={() => handleMoveAuthorOrderItem(author.id, 'up')}
+                  onMoveDown={() => handleMoveAuthorOrderItem(author.id, 'down')}
+                  canMoveUp={orderIndex > 0}
+                  canMoveDown={orderIndex < authorOrder.length - 1}
+                />
+              );
+            })}
           </SortableContext>
           <AddAuthorPlaceholderCard
             orcidSearchExternalOptions={orcidSearchOptions ?? []}
