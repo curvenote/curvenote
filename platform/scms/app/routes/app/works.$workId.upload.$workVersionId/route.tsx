@@ -308,20 +308,6 @@ export async function loader(args: Route.LoaderArgs) {
       ? (mystFrontmatter as ExtractedMetadata)
       : null;
   const authorFieldMetadata = mystFrontmatterToAuthorField(extractedMetadata, work.authors ?? []);
-  // The cached extraction is stale when the current manuscript file(s) no longer
-  // match the source that produced it (e.g. the author replaced the document). In
-  // that case the UI should re-trigger extraction rather than show stale metadata.
-  const manuscriptSourceSignature = computeManuscriptSourceSignature(rawMetadata);
-  const storedExtractionSource = (rawMetadata as Record<string, unknown>)?.[
-    METADATA_EXTRACT_SOURCE_KEY
-  ];
-  const hasStoredExtractionSource =
-    typeof storedExtractionSource === 'string' && storedExtractionSource !== '';
-  const isExtractionStale =
-    extractedMetadata != null &&
-    manuscriptSourceSignature !== '' &&
-    hasStoredExtractionSource &&
-    storedExtractionSource !== manuscriptSourceSignature;
 
   const hasMetadataExtractScope = userHasScope(
     ctx.user,
@@ -356,7 +342,6 @@ export async function loader(args: Route.LoaderArgs) {
     previews,
     extractedMetadata,
     authorFieldMetadata,
-    isExtractionStale,
     hasMetadataExtractScope,
     uploadCheckLogoUrls,
     maintenanceByServiceId,
