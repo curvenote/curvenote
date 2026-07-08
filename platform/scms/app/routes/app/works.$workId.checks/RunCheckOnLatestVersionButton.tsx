@@ -28,6 +28,7 @@ export function RunCheckOnLatestVersionButton({
     <ui.MaintenanceTooltip enabled={blocked} message={message}>
       <fetcher.Form method="post" action={actionPath}>
         <input type="hidden" name="workVersionId" value={workVersionId} />
+        <input type="hidden" name="checkServiceId" value={checkServiceId} />
         <ui.StatefulButton
           type="submit"
           variant="default"

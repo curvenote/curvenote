@@ -573,6 +573,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
   return {
     userScopes: ctx.scopes,
     canReadUsers: userHasWorkScope(ctx.user, scopes.work.id.users.read, ctx.work.id),
+    canDispatchChecks: userHasWorkScope(ctx.user, scopes.work.id.checks.dispatch, ctx.work.id),
     workflows,
     work,
     versions: versionsForClient,

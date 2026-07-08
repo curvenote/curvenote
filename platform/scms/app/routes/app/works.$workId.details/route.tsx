@@ -40,6 +40,7 @@ type SubmissionTargetSite = {
 
 type LoaderData = {
   userScopes: string[];
+  canDispatchChecks: boolean;
   workflows: Record<string, Workflow>;
   work: WorkDTO;
   versions: WorkVersionForDetailsClient[];
@@ -65,6 +66,7 @@ export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
 export default function WorkDetailRoute() {
   const {
     userScopes,
+    canDispatchChecks,
     workflows,
     work,
     versions,
@@ -139,6 +141,7 @@ export default function WorkDetailRoute() {
             workOwnerName={workOwnerName}
             basePath={basePath}
             userScopes={userScopes}
+            canDispatchChecks={canDispatchChecks}
             linkedJobsByWorkVersionId={linkedJobsByWorkVersionId}
             activities={activities}
             checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}

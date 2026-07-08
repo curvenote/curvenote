@@ -130,6 +130,7 @@ type WorkVersionTimelineProps = {
   workOwnerName?: string | null;
   basePath: string;
   userScopes: string[];
+  canDispatchChecks?: boolean;
   linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
   /** Activities for this work (already filtered to work). Shown per version by work_version_id. */
   activities: WorkActivityRow[];
@@ -158,6 +159,7 @@ function WorkVersionTimelineInner({
   workOwnerName,
   basePath,
   userScopes,
+  canDispatchChecks = false,
   linkedJobsByWorkVersionId,
   activities,
   checkServiceRunsByWorkVersionId,
@@ -244,6 +246,7 @@ function WorkVersionTimelineInner({
                     run={entry.run}
                     checkService={service}
                     basePath={basePath}
+                    canDispatchChecks={canDispatchChecks}
                     defaultExpanded={shouldExpandByDefault(
                       entry.run,
                       checkServiceRunsByWorkVersionId,

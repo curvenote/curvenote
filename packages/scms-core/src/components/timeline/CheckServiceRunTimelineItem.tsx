@@ -21,6 +21,8 @@ type CheckServiceRunTimelineItemProps = {
   basePath: string;
   /** Controls default expanded state of this timeline row. */
   defaultExpanded?: boolean;
+  /** When false, extension activity UI must not offer run/retry controls. */
+  canDispatchChecks?: boolean;
   /** Optional route for fallback detail copy; defaults to `${basePath}/work-integrity`. */
   fallbackDetailsHref?: string;
   /** When true, omit the relative run timestamp on the row (e.g. checks page shows version date in section label). */
@@ -43,6 +45,7 @@ export function CheckServiceRunTimelineItem({
   run,
   checkService,
   basePath,
+  canDispatchChecks = false,
   defaultExpanded,
   fallbackDetailsHref,
   hideDate = false,
@@ -85,7 +88,8 @@ export function CheckServiceRunTimelineItem({
           metadata={serviceData}
           workVersionId={run.work_version_id}
           checkRunId={run.id}
-          remoteStatusActionPath={checksActionPath}
+          canDispatchChecks={canDispatchChecks}
+          remoteStatusActionPath={canDispatchChecks ? checksActionPath : undefined}
           checkRunDateModified={run.date_modified}
         />
       </div>
@@ -103,7 +107,8 @@ export function CheckServiceRunTimelineItem({
             workVersionId={run.work_version_id}
             checkKind={run.kind}
             metadata={serviceData}
-            remoteStatusActionPath={checksActionPath}
+            canDispatchChecks={canDispatchChecks}
+            remoteStatusActionPath={canDispatchChecks ? checksActionPath : undefined}
             defaultExpanded={defaultExpanded}
           />
         ) : null}
