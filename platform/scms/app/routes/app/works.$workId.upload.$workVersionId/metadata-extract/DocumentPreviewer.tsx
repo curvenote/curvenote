@@ -309,8 +309,13 @@ export const ALL_FIGURES_TAB = 'all-figures';
 const PREVIEW_TAB_TITLE_MAX = 20;
 
 function shortenPreviewTabTitle(name: string, max = PREVIEW_TAB_TITLE_MAX): string {
-  if (name.length <= max) return name;
-  return `${name.slice(0, max - 1).trimEnd()}…`;
+  const chars = [...name];
+  if (chars.length <= max) return name;
+  const truncated = chars
+    .slice(0, max - 1)
+    .join('')
+    .trimEnd();
+  return `${truncated}…`;
 }
 
 /**
