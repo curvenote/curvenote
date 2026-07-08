@@ -6,7 +6,7 @@ import { BUILTIN_TASK_IDS } from './ids.js';
  * Keep in sync with task definitions in `registry.tsx`.
  */
 export const BUILTIN_TASK_META: ReadonlyArray<{ id: string; scopes?: string[] }> = [
-  { id: BUILTIN_TASK_IDS.automatedChecks },
+  { id: BUILTIN_TASK_IDS.automatedChecks, scopes: [scopes.app.works.checks.feature] },
 ];
 
 function taskVisibleForScopes(taskScopes: string[] | undefined, userScopes: string[]): boolean {

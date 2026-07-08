@@ -4,6 +4,8 @@ import { useLocation, useRevalidator } from 'react-router';
 import {
   withSecureWorkContext,
   makeDefaultWorkVersionMetadata,
+  userHasWorkScope,
+  userHasScope,
   type WorkVersionMetadata,
   type ChecksMetadataSection,
 } from '@curvenote/scms-server';
@@ -39,6 +41,10 @@ const DISPATCHING_SKELETON_MS = 1500;
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureWorkContext(args, [scopes.work.id.checks.read]);
+
+  if (!userHasScope(ctx.user, scopes.app.works.checks.feature)) {
+    throw httpError(404, 'Checks are not available');
+  }
 
   if (!ctx.work.versions || ctx.work.versions.length === 0) {
     throw httpError(404, 'No work version found');
@@ -118,6 +124,7 @@ export async function loader(args: Route.LoaderArgs) {
 
   return {
     work: ctx.workDTO,
+    canDispatchChecks: userHasWorkScope(ctx.user, scopes.work.id.checks.dispatch, ctx.work.id),
     latestNonDraftWorkVersion,
     metadata,
     latestRunByServiceKind,
@@ -134,6 +141,7 @@ export const meta: Route.MetaFunction = ({ matches }) => {
 export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   const {
     work,
+    canDispatchChecks,
     latestNonDraftWorkVersion,
     metadata,
     latestRunByServiceKind,
@@ -312,7 +320,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
           const isLatestRunOnLatestVersion =
             latest != null && latest.workVersionId === latestNonDraftWorkVersion.id;
           const headerAction =
-            latest != null && !isLatestRunOnLatestVersion ? (
+            canDispatchChecks && latest != null && !isLatestRunOnLatestVersion ? (
               <RunCheckOnLatestVersionButton
                 actionPath={service.checksActionPath ?? `${basePath}/checks`}
                 workVersionId={latestNonDraftWorkVersion.id}

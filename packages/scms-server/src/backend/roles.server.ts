@@ -145,6 +145,7 @@ const WORK_ROLES: Record<WorkRole, Set<string>> = {
     work.id.users.read,
     work.id.users.update,
     work.id.checks.read,
+    work.id.checks.dispatch,
   ]),
   [WorkRole.CONTRIBUTOR]: new Set([
     work.id.read,
@@ -156,8 +157,9 @@ const WORK_ROLES: Record<WorkRole, Set<string>> = {
     work.id.submissions.versions.create,
     work.id.users.read,
     work.id.checks.read,
+    work.id.checks.dispatch,
   ]),
-  [WorkRole.VIEWER]: new Set([work.id.read, work.id.users.read]),
+  [WorkRole.VIEWER]: new Set([work.id.read, work.id.users.read, work.id.checks.read]),
 };
 
 export function hasDefaultScopeViaSystemRole(

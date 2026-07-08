@@ -7,6 +7,8 @@ const {
   update,
   safeWorkVersionJsonUpdate,
   userHasScope,
+  userHasWorkScope,
+  dbGetUserWorkRoles,
   waitUntil,
   loadCheckMaintenanceByServiceIds,
   hasInvalidEnabledUploadChecks,
@@ -15,6 +17,8 @@ const {
   update: vi.fn(),
   safeWorkVersionJsonUpdate: vi.fn(),
   userHasScope: vi.fn(),
+  userHasWorkScope: vi.fn(),
+  dbGetUserWorkRoles: vi.fn(),
   waitUntil: vi.fn(),
   loadCheckMaintenanceByServiceIds: vi.fn(),
   hasInvalidEnabledUploadChecks: vi.fn(),
@@ -26,6 +30,8 @@ vi.mock('@curvenote/scms-server', async () => ({
     $config: {},
   })),
   userHasScope,
+  userHasWorkScope,
+  dbGetUserWorkRoles,
   findWorkByVersion: vi.fn(),
   workVersionUploadsStage: vi.fn(),
   workVersionUploadsComplete: vi.fn(),
@@ -73,16 +79,22 @@ vi.mock('@curvenote/scms-core', async () => ({
   loadCheckMaintenanceByServiceIds,
   CheckMaintenanceProvider: vi.fn(),
   capitalize: vi.fn((value: string) => value),
+  MANUSCRIPT_UPLOAD_ACCEPT: '.pdf,.docx',
+  MANUSCRIPT_UPLOAD_MIME_TYPES: ['application/pdf'],
   scopes: {
     app: {
-      works: {
-        upload: 'app:works:upload',
-        metadataExtract: 'app:works:metadataExtract',
-        checks: {
-          dispatch: 'app:works:checks:dispatch',
-        },
+    works: {
+      upload: 'app:works:upload',
+      metadataExtract: 'app:works:metadataExtract',
+    },
+  },
+  work: {
+    id: {
+      checks: {
+        dispatch: 'work:checks:dispatch',
       },
     },
+  },
   },
   isValidOrcid: vi.fn(),
 }));
@@ -154,6 +166,8 @@ describe('work upload confirm-work action', () => {
       },
     });
     userHasScope.mockReturnValue(false);
+    userHasWorkScope.mockReturnValue(false);
+    dbGetUserWorkRoles.mockResolvedValue([]);
     loadCheckMaintenanceByServiceIds.mockResolvedValue({});
     hasInvalidEnabledUploadChecks.mockReturnValue(false);
     safeWorkVersionJsonUpdate.mockResolvedValue(undefined);

@@ -8,6 +8,8 @@ import type {
 import {
   withAppScopedContext,
   userHasScope,
+  userHasWorkScope,
+  dbGetUserWorkRoles,
   findWorkByVersion,
   workVersionUploadsStage,
   workVersionUploadsComplete,
@@ -330,6 +332,15 @@ export async function loader(args: Route.LoaderArgs) {
     uploadCheckServices.map((service) => service.id),
   );
 
+  const workRoles = await dbGetUserWorkRoles(ctx.user.id, workId);
+  const userWithWorkRoles = { ...ctx.user, work_roles: workRoles };
+  const hasChecksFeature = userHasScope(ctx.user, scopes.app.works.checks.feature);
+  const canDispatchChecks = userHasWorkScope(
+    userWithWorkRoles,
+    scopes.work.id.checks.dispatch,
+    workId,
+  );
+
   return {
     workVersionId: work.version_id,
     cdnKey: work.cdn_key!,
@@ -345,6 +356,8 @@ export async function loader(args: Route.LoaderArgs) {
     extractedMetadata,
     authorFieldMetadata,
     hasMetadataExtractScope,
+    hasChecksFeature,
+    canDispatchChecks,
     uploadCheckLogoUrls,
     maintenanceByServiceId,
   };
@@ -361,6 +374,20 @@ export async function action(args: Route.ActionArgs) {
       { status: 400 },
     );
   }
+
+  const workRoles = await dbGetUserWorkRoles(baseCtx.user.id, workId);
+  const userWithWorkRoles = { ...baseCtx.user, work_roles: workRoles };
+
+  const rejectCheckDispatch = () =>
+    data(
+      {
+        error: {
+          type: 'general',
+          message: 'You do not have permission to dispatch checks for this work',
+        },
+      },
+      { status: 403 },
+    );
 
   try {
     const payload = WorkUploadActionSchema.parse(formData);
@@ -499,6 +526,12 @@ export async function action(args: Route.ActionArgs) {
 
         const isChecked = checked === 'true';
 
+        if (
+          !userHasWorkScope(userWithWorkRoles, scopes.work.id.checks.dispatch, workId)
+        ) {
+          return rejectCheckDispatch();
+        }
+
         if (isChecked) {
           const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
             baseCtx,
@@ -588,17 +621,9 @@ export async function action(args: Route.ActionArgs) {
         // a failed dispatch gate could still leave the work version confirmed.
         if (
           dispatchableChecks.length > 0 &&
-          !userHasScope(baseCtx.user, scopes.app.works.checks.dispatch)
+          !userHasWorkScope(userWithWorkRoles, scopes.work.id.checks.dispatch, workId)
         ) {
-          return data(
-            {
-              error: {
-                type: 'general',
-                message: 'You do not have permission to dispatch checks for this work',
-              },
-            },
-            { status: 403 },
-          );
+          return rejectCheckDispatch();
         }
 
         if (submittedAuthorMetadata) {
@@ -963,6 +988,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     authorFieldMetadata,
     maintenanceByServiceId,
     hasMetadataExtractScope,
+    hasChecksFeature,
+    canDispatchChecks,
   } = loaderData;
   const { workVersionId } = useParams();
   const rawPreviews: DocumentPreviewItem[] = Array.isArray(previews) ? previews : [];
@@ -1151,22 +1178,24 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               onChange={setSelectedThumbnail}
             />
           ) : null}
-          <SectionWithHeading
-            heading="Select Checks to Run"
-            icon={<CheckSquare className="w-5 h-5" />}
-            className="space-y-4 max-w-5xl"
-          >
-            <p className="text-muted-foreground">
-              Choose which checks you'd like to run on your work.
-            </p>
-            <WorkUploadChecksForm
-              enabled={metadata.checks?.enabled || []}
-              checkServices={checkServices}
-              workVersionId={workVersionId!}
-              metadata={metadata}
-              uploadCheckLogoUrls={loaderData.uploadCheckLogoUrls}
-            />
-          </SectionWithHeading>
+          {hasChecksFeature && canDispatchChecks ? (
+            <SectionWithHeading
+              heading="Select Checks to Run"
+              icon={<CheckSquare className="w-5 h-5" />}
+              className="space-y-4 max-w-5xl"
+            >
+              <p className="text-muted-foreground">
+                Choose which checks you'd like to run on your work.
+              </p>
+              <WorkUploadChecksForm
+                enabled={metadata.checks?.enabled || []}
+                checkServices={checkServices}
+                workVersionId={workVersionId!}
+                metadata={metadata}
+                uploadCheckLogoUrls={loaderData.uploadCheckLogoUrls}
+              />
+            </SectionWithHeading>
+          ) : null}
           <ContinueForm
             title={title}
             authorMetadata={authorMetadata}

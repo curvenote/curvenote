@@ -167,6 +167,7 @@ function WorkVersionTimelineInner({
   const [searchParams] = useSearchParams();
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
+  const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
   const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
 
   // Order sections by date_created descending (most recently created first)
@@ -201,9 +202,10 @@ function WorkVersionTimelineInner({
           activitiesForVersion,
           checkRunsForVersion,
         );
-        const visibleEntries = showActivities
+        const visibleEntries = (showActivities
           ? sortedEntries
-          : sortedEntries.filter((e) => e.kind !== 'activity');
+          : sortedEntries.filter((e) => e.kind !== 'activity')
+        ).filter((e) => hasChecksFeature || e.kind !== 'check-service-run');
 
         if (visibleEntries.length === 0) return null;
 

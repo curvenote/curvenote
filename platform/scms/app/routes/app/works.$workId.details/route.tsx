@@ -4,6 +4,7 @@ import {
   joinPageTitle,
   getExtensionCheckServicesFromServerConfig,
   useDeploymentConfig,
+  scopes,
 } from '@curvenote/scms-core';
 import type { MetaFunction } from 'react-router';
 import type { WorkDTO } from '@curvenote/common';
@@ -99,6 +100,7 @@ export default function WorkDetailRoute() {
 
   const workBasePath = `/app/works/${work.id}`;
   const basePath = `/app/works/${work.id}`;
+  const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
 
   return (
     <div
@@ -127,6 +129,7 @@ export default function WorkDetailRoute() {
             versions={versions}
             checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
             checkServices={checkServices}
+            hasChecksFeature={hasChecksFeature}
           />
         </div>
         <div>

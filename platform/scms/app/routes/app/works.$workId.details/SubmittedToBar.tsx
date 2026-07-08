@@ -200,6 +200,7 @@ export function SubmittedToBar({
   versions,
   checkServiceRunsByWorkVersionId,
   checkServices,
+  hasChecksFeature = false,
 }: {
   submissions: SubmissionWithVersionsAndSite[];
   workflows: Record<string, Workflow>;
@@ -209,6 +210,7 @@ export function SubmittedToBar({
   versions: WorkVersionForDetailsClient[];
   checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>;
   checkServices: ClientExtensionCheckService[];
+  hasChecksFeature?: boolean;
 }) {
   const navigate = useNavigate();
   const fetcher = useFetcher<SubmitToSiteFetcherData>();
@@ -454,76 +456,74 @@ export function SubmittedToBar({
                     </p>
                   )}
 
-                  {selectedVersion ? (
-                    <>
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                          Checks
-                        </p>
-                        <div className="space-y-1.5">
-                          {checkRows.length > 0 ? (
-                            checkRows.map((row) => {
-                              const SummaryTitleComponent =
-                                row.service?.sectionSummaryTitleComponent;
-                              const SummaryBadgeComponent =
-                                row.service?.sectionSummaryBadgeComponent;
-                              const metadata = serviceDataFromRun(row.run);
-                              const fallbackScore = row.run ? getCheckScore(row.run) : null;
-                              return (
-                                <div
-                                  key={row.id}
-                                  className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
-                                >
-                                  <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto">
-                                    {SummaryTitleComponent && row.run ? (
-                                      <SummaryTitleComponent metadata={metadata} />
-                                    ) : (
-                                      <span className="text-xs font-medium truncate">
-                                        {row.name}
-                                      </span>
-                                    )}
-                                  </span>
-                                  {row.run ? (
-                                    SummaryBadgeComponent ? (
-                                      <SummaryBadgeComponent metadata={metadata} />
-                                    ) : (
-                                      <ui.Badge variant="success">
-                                        {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
-                                      </ui.Badge>
-                                    )
+                  {selectedVersion && hasChecksFeature ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+                        Checks
+                      </p>
+                      <div className="space-y-1.5">
+                        {checkRows.length > 0 ? (
+                          checkRows.map((row) => {
+                            const SummaryTitleComponent = row.service?.sectionSummaryTitleComponent;
+                            const SummaryBadgeComponent = row.service?.sectionSummaryBadgeComponent;
+                            const metadata = serviceDataFromRun(row.run);
+                            const fallbackScore = row.run ? getCheckScore(row.run) : null;
+                            return (
+                              <div
+                                key={row.id}
+                                className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
+                              >
+                                <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto">
+                                  {SummaryTitleComponent && row.run ? (
+                                    <SummaryTitleComponent metadata={metadata} />
                                   ) : (
-                                    <ui.Badge variant="outline-muted">Not run</ui.Badge>
+                                    <span className="text-xs font-medium truncate">
+                                      {row.name}
+                                    </span>
                                   )}
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <p className="text-xs text-muted-foreground">
-                              No check services available.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                          Files
-                        </p>
-                        {fileLabels.length > 0 ? (
-                          <ul className="space-y-1 text-[11px] leading-4 text-muted-foreground">
-                            {Object.entries(selectedFiles).map(([key, value]) => (
-                              <li key={key} className="truncate">
-                                {getFileLabel(key, value)}
-                              </li>
-                            ))}
-                          </ul>
+                                </span>
+                                {row.run ? (
+                                  SummaryBadgeComponent ? (
+                                    <SummaryBadgeComponent metadata={metadata} />
+                                  ) : (
+                                    <ui.Badge variant="success">
+                                      {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
+                                    </ui.Badge>
+                                  )
+                                ) : (
+                                  <ui.Badge variant="outline-muted">Not run</ui.Badge>
+                                )}
+                              </div>
+                            );
+                          })
                         ) : (
-                          <p className="text-[11px] leading-4 text-muted-foreground">
-                            No files are available for this version.
+                          <p className="text-xs text-muted-foreground">
+                            No check services available.
                           </p>
                         )}
                       </div>
-                    </>
+                    </div>
+                  ) : null}
+
+                  {selectedVersion ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+                        Files
+                      </p>
+                      {fileLabels.length > 0 ? (
+                        <ul className="space-y-1 text-[11px] leading-4 text-muted-foreground">
+                          {Object.entries(selectedFiles).map(([key, value]) => (
+                            <li key={key} className="truncate">
+                              {getFileLabel(key, value)}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-[11px] leading-4 text-muted-foreground">
+                          No files are available for this version.
+                        </p>
+                      )}
+                    </div>
                   ) : null}
                 </div>
 

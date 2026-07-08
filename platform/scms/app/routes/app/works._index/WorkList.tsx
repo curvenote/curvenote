@@ -17,14 +17,21 @@ export function WorkList({
   items,
   workflows,
   checkServices,
+  hasChecksFeature,
 }: {
   items: Promise<WorkWithRole[]>;
   workflows: Record<string, any>;
   checkServices: WorkListCheckService[];
+  hasChecksFeature: boolean;
 }) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderItem = (work: WorkWithRole, _globalIndex: number, _localIndex?: number) => (
-    <WorkListItem work={work} workflows={workflows} checkServices={checkServices} />
+    <WorkListItem
+      work={work}
+      workflows={workflows}
+      checkServices={checkServices}
+      hasChecksFeature={hasChecksFeature}
+    />
   );
 
   const renderGroup = (

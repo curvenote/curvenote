@@ -60,6 +60,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
     const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
     const userScopes = Array.from(getUserScopesSet(ctx.user));
+    const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
     const extensionConfigs = Object.fromEntries(
       Object.entries(ctx.$config?.app?.extensions ?? {}).map(([key, value]) => [
         key,
@@ -74,6 +75,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
       items: worksPromise,
       workflows,
       canUpload,
+      hasChecksFeature,
       createWorkOptions,
       stringReplacements,
     };
@@ -228,7 +230,8 @@ export function shouldRevalidate({
 }
 
 export default function MyWorks({ loaderData }: Route.ComponentProps) {
-  const { items, workflows, error, canUpload, createWorkOptions, stringReplacements } = loaderData;
+  const { items, workflows, error, canUpload, hasChecksFeature, createWorkOptions, stringReplacements } =
+    loaderData;
   const hydratedCreateWorkOptions = hydrateWorkCreateOptions(createWorkOptions ?? [], extensions);
   const deploymentConfig = useDeploymentConfig();
   const checkServices = getExtensionCheckServicesFromClientConfig(
@@ -243,7 +246,14 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
     <div className="max-w-[900px]">
       {/* Works List Section without title when no tasks */}
       {error && <div className="p-2 my-2 text-red-600 bg-red-50">{error}</div>}
-      {items && <WorkList items={items} workflows={workflows} checkServices={checkServices} />}
+      {items && (
+        <WorkList
+          items={items}
+          workflows={workflows}
+          checkServices={checkServices}
+          hasChecksFeature={hasChecksFeature ?? false}
+        />
+      )}
     </div>
   );
 
