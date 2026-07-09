@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { GitBranch } from 'lucide-react';
 import { Link } from 'react-router';
 import type {
   VersionTimelineEntry,
@@ -14,6 +15,7 @@ import { formatDate, formatDatetime } from '../utils/formatDate.js';
 import { getStatusDotClasses, getStatusRingClasses } from '../utils/status.js';
 import { cn } from '../utils/cn.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.js';
+import { VersionTagBadge } from './ui/VersionTagBadge.js';
 import { SubmissionVersionSiteChip } from './SubmissionVersionSiteChip.js';
 
 export function VersionTimelineRowShell({
@@ -160,6 +162,7 @@ export function WorkVersionTimelineRow({
   return (
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
       <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
+        <VersionTagBadge tag={`v${entry.versionNumber}`} titlePrefix="Version" icon={GitBranch} />
         <CreatedDate dateCreated={entry.date_created} />
         {submissionVersions.map((submissionVersion) => (
           <SubmissionVersionSiteChip

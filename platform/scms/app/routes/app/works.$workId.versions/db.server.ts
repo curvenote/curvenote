@@ -115,11 +115,12 @@ export async function dbLoadWorkVersionsTimeline(
   const workVersionIds = rows.map((row) => row.id);
   const runsByVersionId = await dbGetCheckServiceRunsByWorkVersionIds(workVersionIds);
 
-  return rows.map((row) => ({
+  return rows.map((row, index) => ({
     id: row.id,
     date_created: row.date_created,
     date_modified: row.date_modified,
     draft: row.draft,
+    versionNumber: rows.length - index,
     submissionVersions: mapSubmissionVersions(row.submissionVersions, workflows),
     checkRuns: latestCheckRunsByKind(runsByVersionId[row.id]),
   }));

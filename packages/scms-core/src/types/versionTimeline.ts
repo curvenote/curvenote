@@ -41,6 +41,8 @@ export type WorkVersionTimelineEntry = {
   date_created: string;
   date_modified: string;
   draft: boolean;
+  /** Display index from reverse-chronological order (v1 = oldest). */
+  versionNumber: number;
   submissionVersions?: WorkVersionTimelineSubmissionVersion[];
   checkRuns?: WorkVersionTimelineCheckRun[];
 };
