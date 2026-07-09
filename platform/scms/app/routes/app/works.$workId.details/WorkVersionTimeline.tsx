@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import {
   formatDate,
@@ -172,6 +173,18 @@ function WorkVersionTimelineInner({
   const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
   const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
 
+  const versionNumberByVersionId = useMemo(() => {
+    const map: Record<string, number> = {};
+    [...versions]
+      .sort((a, b) =>
+        a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
+      )
+      .forEach((version, index) => {
+        map[version.id] = versions.length - index;
+      });
+    return map;
+  }, [versions]);
+
   // Order sections by date_created descending (most recently created first)
   const versionsByCreated = [...versions].sort((a, b) =>
     a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
@@ -190,9 +203,11 @@ function WorkVersionTimelineInner({
           : v.submissionVersions.filter((sv) => sv.status !== 'DRAFT');
         const activitiesForVersion = activities.filter((a) => a.work_version_id === v.id);
         const checkRunsForVersion = checkServiceRunsByWorkVersionId[v.id] ?? [];
+        const versionLabel = `v${versionNumberByVersionId[v.id] ?? 0}`;
         const label = (
           <span className="flex gap-2 items-center">
             <ui.TagChips tags={v.tags} titlePrefix="Work version tag" />
+            <ui.VersionTagBadge tag={versionLabel} titlePrefix="Version" hideIcon />
             <span className="text-sm text-muted-foreground">
               {formatDate(v.date_created, 'MMM d, yyyy HH:mm')}
             </span>
