@@ -62,9 +62,9 @@ export function WorkListItem({
     <div className="px-6 py-4">
       <div className="flex flex-col gap-1 items-start md:gap-6 md:flex-row">
         {/* Column 1: Title, Authors, DOI Links */}
-        <div className="flex flex-col flex-grow gap-1">
-          <div className="flex flex-wrap gap-2 items-start">
-            <h3 className="font-normal leading-tight transition-colors line-clamp-2">
+        <div className="flex flex-col flex-grow gap-1 min-w-0">
+          <div className="flex flex-col gap-1 w-full sm:flex-row sm:items-end sm:gap-4">
+            <h3 className="min-w-0 flex-1 font-normal leading-tight transition-colors line-clamp-2">
               <Link
                 to={`${work.id}`}
                 className="text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -72,6 +72,15 @@ export function WorkListItem({
                 {latestVersion?.title || latestWorkVersion?.title || 'Untitled Work'}
               </Link>
             </h3>
+            {publishedDate ? (
+              <div className="shrink-0 text-xs text-gray-600 dark:text-gray-400">
+                Published: {formatDate(publishedDate)}
+              </div>
+            ) : latestVersion ? (
+              <div className="shrink-0 text-xs text-gray-600 dark:text-gray-400">
+                Created: {formatDate(latestVersion.date_created)}
+              </div>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap gap-1 text-sm text-gray-600 dark:text-gray-400">
@@ -167,8 +176,8 @@ export function WorkListItem({
           ) : null}
         </div>
 
-        {/* Column 2: Activity and Date */}
-        <div className="flex flex-col flex-shrink-0 items-start self-stretch w-48 pt-[1px]">
+        {/* Column 2: Activity and timeline */}
+        <div className="flex flex-col flex-shrink-0 items-start self-stretch w-48">
           <div className="flex flex-wrap gap-2 justify-start mb-2 w-full">
             {activityTime && (
               <primitives.Chip
@@ -179,17 +188,6 @@ export function WorkListItem({
               </primitives.Chip>
             )}
           </div>
-
-          {publishedDate && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Published: {formatDate(publishedDate)}
-            </div>
-          )}
-          {!publishedDate && latestVersion && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Created: {formatDate(latestVersion.date_created)}
-            </div>
-          )}
 
           {work.versions.length > 1 ? (
             <WorkVersionTimelineHoverCard
