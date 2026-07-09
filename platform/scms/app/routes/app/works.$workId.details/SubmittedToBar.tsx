@@ -15,6 +15,7 @@ import type {
   WorkVersionForDetailsClient,
 } from '../works.$workId/types';
 import type { CheckServiceRunRow } from '../works.$workId/db.server';
+import { getCheckRunSummaryByKind } from '../works.$workId/checkServiceRunSummaries';
 import { Check, ChevronDown, Loader2, Send } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -166,7 +167,7 @@ function SubmitToSiteEarlyAccessMessage() {
         <ui.Button
           type="button"
           variant="link"
-          className="inline p-0 h-auto align-baseline"
+          className="inline h-auto p-0 align-baseline"
           onClick={() => setSupportOpen(true)}
         >
           contact support
@@ -215,51 +216,55 @@ export function SubmittedToBar({
   const navigate = useNavigate();
   const fetcher = useFetcher<SubmitToSiteFetcherData>();
   const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
-  const versionOptions = useMemo(() => {
-    const completedVersions = versions.filter((version) => !version.draft);
-    const sorted = [...completedVersions].sort((a, b) =>
-      a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
-    );
-    const versionNumberByVersionId: Record<string, number> = {};
+  const versionNumberByVersionId = useMemo(() => {
+    const map: Record<string, number> = {};
     [...versions]
       .sort((a, b) =>
         a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
       )
       .forEach((version, index) => {
-        versionNumberByVersionId[version.id] = versions.length - index;
+        map[version.id] = versions.length - index;
       });
+    return map;
+  }, [versions]);
+  const versionOptions = useMemo(() => {
+    const completedVersions = versions.filter((version) => !version.draft);
+    const sorted = [...completedVersions].sort((a, b) =>
+      a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
+    );
     return sorted.map((version) => ({
       version,
       label: `v${versionNumberByVersionId[version.id] ?? 0}`,
     }));
-  }, [versions]);
+  }, [versions, versionNumberByVersionId]);
   const [selectedVersionId, setSelectedVersionId] = useState(versionOptions[0]?.version.id ?? '');
   const selectedVersion =
     versionOptions.find((option) => option.version.id === selectedVersionId)?.version ??
     versionOptions[0]?.version;
   const selectedVersionLabel =
     versionOptions.find((option) => option.version.id === selectedVersion?.id)?.label ?? 'version';
-  const selectedCheckRuns = selectedVersion
-    ? (checkServiceRunsByWorkVersionId[selectedVersion.id] ?? [])
-    : [];
   const selectedFiles = selectedVersion ? getVersionFiles(selectedVersion) : {};
   const fileLabels = Object.entries(selectedFiles).map(([key, value]) => getFileLabel(key, value));
-  const selectedCheckRunByKind = new Map<string, CheckServiceRunRow>();
-  [...selectedCheckRuns]
-    .sort((a, b) =>
-      a.date_modified > b.date_modified ? -1 : a.date_modified < b.date_modified ? 1 : 0,
-    )
-    .forEach((run) => {
-      if (!selectedCheckRunByKind.has(run.kind)) selectedCheckRunByKind.set(run.kind, run);
-    });
-  const fallbackCheckRows = selectedCheckRuns
-    .filter((run) => !checkServices.some((service) => service.id === run.kind))
-    .map((run) => ({ id: run.kind, name: run.kind, run, service: undefined }));
+  // Checks surface the most recent run of each kind across all non-draft versions,
+  // not just the selected version, so a check run on an earlier version still shows
+  // its result (with a version badge) instead of "Not run".
+  const latestRunByServiceKind = useMemo(() => {
+    const nonDraftVersions = [...versions]
+      .filter((version) => !version.draft)
+      .sort((a, b) =>
+        a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
+      );
+    return getCheckRunSummaryByKind(nonDraftVersions, checkServiceRunsByWorkVersionId)
+      .latestRunByServiceKind;
+  }, [versions, checkServiceRunsByWorkVersionId]);
+  const fallbackCheckRows = Object.values(latestRunByServiceKind)
+    .filter((entry) => !checkServices.some((service) => service.id === entry.run.kind))
+    .map((entry) => ({ id: entry.run.kind, name: entry.run.kind, entry, service: undefined }));
   const checkRows = [
     ...checkServices.map((service) => ({
       id: service.id,
       name: service.name,
-      run: selectedCheckRunByKind.get(service.id),
+      entry: latestRunByServiceKind[service.id],
       service,
     })),
     ...fallbackCheckRows,
@@ -388,13 +393,13 @@ export function SubmittedToBar({
                           id="submit-version-select"
                           type="button"
                           className={cn(
-                            'flex gap-3 justify-between items-center px-3 py-2 w-full h-16 text-left bg-white rounded-md border transition-colors border-input shadow-xs',
+                            'flex h-16 w-full items-center justify-between gap-3 rounded-md border border-input bg-white px-3 py-2 text-left shadow-xs transition-colors',
                             'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                           )}
                         >
                           {selectedVersion ? (
-                            <span className="flex flex-col items-start min-w-0">
-                              <span className="font-medium truncate">
+                            <span className="flex min-w-0 flex-col items-start">
+                              <span className="truncate font-medium">
                                 Version {selectedVersionLabel}
                               </span>
                               <span className="text-xs text-muted-foreground">
@@ -432,8 +437,8 @@ export function SubmittedToBar({
                                   setVersionDropdownOpen(false);
                                 }}
                               >
-                                <span className="flex flex-col items-start min-w-0">
-                                  <span className="font-medium truncate">Version {label}</span>
+                                <span className="flex min-w-0 flex-col items-start">
+                                  <span className="truncate font-medium">Version {label}</span>
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(
                                       version.date_modified ?? version.date_created,
@@ -450,7 +455,7 @@ export function SubmittedToBar({
                       </ui.PopoverContent>
                     </ui.Popover>
                   ) : (
-                    <p className="px-3 py-4 text-xs leading-relaxed rounded-md border border-dashed border-muted-foreground/40 bg-background text-muted-foreground">
+                    <p className="rounded-md border border-dashed border-muted-foreground/40 bg-background px-3 py-4 text-xs leading-relaxed text-muted-foreground">
                       No completed version is available to submit. Finish creating a version before
                       submitting to a site.
                     </p>
@@ -466,28 +471,50 @@ export function SubmittedToBar({
                           checkRows.map((row) => {
                             const SummaryTitleComponent = row.service?.sectionSummaryTitleComponent;
                             const SummaryBadgeComponent = row.service?.sectionSummaryBadgeComponent;
-                            const metadata = serviceDataFromRun(row.run);
-                            const fallbackScore = row.run ? getCheckScore(row.run) : null;
+                            const run = row.entry?.run;
+                            const metadata = serviceDataFromRun(run);
+                            const fallbackScore = run ? getCheckScore(run) : null;
+                            const runVersionNumber = row.entry
+                              ? versionNumberByVersionId[row.entry.workVersionId]
+                              : undefined;
+                            const isFromOtherVersion =
+                              row.entry != null && row.entry.workVersionId !== selectedVersion?.id;
                             return (
                               <div
                                 key={row.id}
                                 className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
                               >
                                 <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto">
-                                  {SummaryTitleComponent && row.run ? (
+                                  {SummaryTitleComponent && run ? (
                                     <SummaryTitleComponent metadata={metadata} />
                                   ) : (
                                     <span className="text-xs font-medium truncate">{row.name}</span>
                                   )}
                                 </span>
-                                {row.run ? (
-                                  SummaryBadgeComponent ? (
-                                    <SummaryBadgeComponent metadata={metadata} />
-                                  ) : (
-                                    <ui.Badge variant="success">
-                                      {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
-                                    </ui.Badge>
-                                  )
+                                {run ? (
+                                  <span className="flex gap-1.5 items-center shrink-0">
+                                    {isFromOtherVersion && runVersionNumber != null ? (
+                                      <ui.SimpleTooltip
+                                        title={`Latest run was on version v${runVersionNumber}`}
+                                        side="top"
+                                        sideOffset={6}
+                                      >
+                                        <ui.Badge
+                                          variant="outline-muted"
+                                          className="px-1.5 text-[10px] font-medium"
+                                        >
+                                          v{runVersionNumber}
+                                        </ui.Badge>
+                                      </ui.SimpleTooltip>
+                                    ) : null}
+                                    {SummaryBadgeComponent ? (
+                                      <SummaryBadgeComponent metadata={metadata} />
+                                    ) : (
+                                      <ui.Badge variant="success">
+                                        {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
+                                      </ui.Badge>
+                                    )}
+                                  </span>
                                 ) : (
                                   <ui.Badge variant="outline-muted">Not run</ui.Badge>
                                 )}
@@ -575,7 +602,7 @@ export function SubmittedToBar({
                                 </span>
                               )}
                             </span>
-                            <span className="flex-1 min-w-0">
+                            <span className="min-w-0 flex-1">
                               <span className="flex gap-2 items-center">
                                 {metadata?.favicon ? (
                                   <img
