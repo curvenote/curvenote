@@ -48,9 +48,9 @@ describe('work role scope mapping', () => {
     expect(hasWorkScope(WorkRole.VIEWER, work.id.users.update)).toBe(false);
   });
 
-  test('OWNER and CONTRIBUTOR may dispatch checks; all roles may read', () => {
+  test('only OWNER may dispatch checks; all roles may read', () => {
     expect(hasWorkScope(WorkRole.OWNER, work.id.checks.dispatch)).toBe(true);
-    expect(hasWorkScope(WorkRole.CONTRIBUTOR, work.id.checks.dispatch)).toBe(true);
+    expect(hasWorkScope(WorkRole.CONTRIBUTOR, work.id.checks.dispatch)).toBe(false);
     expect(hasWorkScope(WorkRole.VIEWER, work.id.checks.dispatch)).toBe(false);
     expect(hasWorkScope(WorkRole.VIEWER, work.id.checks.read)).toBe(true);
     expect(hasWorkScope(WorkRole.CONTRIBUTOR, work.id.checks.read)).toBe(true);
