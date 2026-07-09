@@ -159,7 +159,9 @@ export function WorkVersionTimelineRow({
         summary.service != null && isCheckWorkListSummaryVisible(summary.service, summary.metadata),
     );
 
-  const hasMetadataBadges = submissionVersions.length > 0 || checkRuns.length > 0;
+  const renderableCheckRuns = checkRuns.filter(({ service }) => service.workListSummaryComponent);
+
+  const hasMetadataBadges = submissionVersions.length > 0 || renderableCheckRuns.length > 0;
 
   return (
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
@@ -184,7 +186,7 @@ export function WorkVersionTimelineRow({
               workId={workId}
             />
           ))}
-          {checkRuns.map(({ run, service, metadata }) => {
+          {renderableCheckRuns.map(({ run, service, metadata }) => {
             const SummaryComponent = service.workListSummaryComponent;
             if (!SummaryComponent) return null;
             const chip = (

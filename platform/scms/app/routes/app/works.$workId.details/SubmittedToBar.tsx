@@ -8,6 +8,8 @@ import {
   useDeploymentConfig,
   useMyUser,
   truncate,
+  buildWorkVersionNumberByIdMap,
+  compareWorkVersionsByDateCreatedDesc,
 } from '@curvenote/scms-core';
 import type { ClientExtensionCheckService, Workflow } from '@curvenote/scms-core';
 import type {
@@ -256,17 +258,10 @@ export function SubmittedToBar({
   const navigate = useNavigate();
   const fetcher = useFetcher<SubmitToSiteFetcherData>();
   const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
-  const versionNumberByVersionId = useMemo(() => {
-    const map: Record<string, number> = {};
-    [...versions]
-      .sort((a, b) =>
-        a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
-      )
-      .forEach((version, index) => {
-        map[version.id] = versions.length - index;
-      });
-    return map;
-  }, [versions]);
+  const versionNumberByVersionId = useMemo(
+    () => buildWorkVersionNumberByIdMap(versions),
+    [versions],
+  );
   const versionOptions = useMemo(() => {
     const completedVersions = versions.filter((version) => !version.draft);
     const sorted = [...completedVersions].sort((a, b) =>

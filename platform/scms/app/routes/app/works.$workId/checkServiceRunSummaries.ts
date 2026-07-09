@@ -1,4 +1,4 @@
-import { getCheckServiceRunServiceData } from '@curvenote/scms-core';
+import { getCheckServiceRunServiceData, buildWorkVersionNumberByIdMap } from '@curvenote/scms-core';
 import type { CheckServiceRunRow } from './checkServiceRun.shared';
 import { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
 
@@ -26,14 +26,7 @@ export function getCheckRunSummaryByKind(
   nonDraftVersions: WorkVersionForCheckRunSummary[],
   runsByVersionId: Record<string, CheckServiceRunRow[]>,
 ): CheckRunSummaryByKind {
-  // Version numbering: v1 = oldest (by date_created).
-  // Callers pass versions newest-first, so the highest number is first.
-  const versionNumberByWorkVersionId: Record<string, number> = {};
-  nonDraftVersions.forEach((version, index) => {
-    versionNumberByWorkVersionId[version.id] = nonDraftVersions.length - index;
-  });
-
-  // For each version, keep only that version's latest run per kind, then sort
+  const versionNumberByWorkVersionId = buildWorkVersionNumberByIdMap(nonDraftVersions);
   // each kind by run date so the newest run across all versions is first.
   const entriesByKind: Record<string, ServiceRunEntry[]> = {};
   for (const version of nonDraftVersions) {
