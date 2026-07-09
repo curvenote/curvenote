@@ -369,11 +369,11 @@ export function SubmittedToBar({
       <ui.Popover>
         <ui.PopoverTrigger asChild>
           <ui.Button
-            variant="default"
-            className="rounded-none rounded-r-lg px-3 py-2.5 h-auto shrink-0"
+            variant="ghost"
+            className="rounded-none px-3 py-2.5 h-auto shrink-0 bg-background hover:bg-accent/50"
             aria-label="Submit to a new site"
           >
-            <Send className="w-4 h-4 stroke-[1.5px]" />
+            <Send className="w-4 h-4 stroke-[1.5px] text-primary" />
           </ui.Button>
         </ui.PopoverTrigger>
         <ui.PopoverContent
