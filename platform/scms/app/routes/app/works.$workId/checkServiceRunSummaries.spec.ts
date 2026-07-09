@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
-import type { CheckServiceRunRow } from './db.server';
-import { isCheckServiceRunSupersededByRetry } from './db.server';
+import type { CheckServiceRunRow } from './checkServiceRun.shared';
+import { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
 import {
   getCheckRunSummaryByKind,
   selectWorkListVisibleRunsByServiceKind,

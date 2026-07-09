@@ -14,7 +14,7 @@ import type {
   SubmissionWithVersionsAndSite,
   WorkVersionForDetailsClient,
 } from '../works.$workId/types';
-import type { CheckServiceRunRow } from '../works.$workId/db.server';
+import type { CheckServiceRunRow } from '../works.$workId/checkServiceRun.shared';
 import { getCheckRunSummaryByKind } from '../works.$workId/checkServiceRunSummaries';
 import { Check, ChevronDown, Loader2, Send } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';

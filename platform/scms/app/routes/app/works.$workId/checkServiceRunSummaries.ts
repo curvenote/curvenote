@@ -1,6 +1,6 @@
 import { getCheckServiceRunServiceData } from '@curvenote/scms-core';
-import type { CheckServiceRunRow } from './db.server';
-import { isCheckServiceRunSupersededByRetry } from './db.server';
+import type { CheckServiceRunRow } from './checkServiceRun.shared';
+import { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
 
 export type WorkVersionForCheckRunSummary = {
   id: string;
