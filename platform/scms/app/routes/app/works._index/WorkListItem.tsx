@@ -168,29 +168,28 @@ export function WorkListItem({
           ) : null}
         </div>
 
-        {/* Column 2: Activity and date */}
+        {/* Column 2: Date, activity, timeline */}
         <div className="flex flex-col flex-shrink-0 items-start self-stretch w-48 pt-[1px]">
-          <div className="flex flex-wrap gap-2 justify-start mb-2 w-full">
-            {activityTime && (
+          {publishedDate ? (
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              Published: {formatDate(publishedDate)}
+            </div>
+          ) : latestVersion ? (
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              Created: {formatDate(latestVersion.date_created)}
+            </div>
+          ) : null}
+
+          {activityTime ? (
+            <div className="mt-2 flex flex-wrap gap-2 justify-start w-full">
               <primitives.Chip
                 className="text-gray-500 border-[1px] border-gray-200 dark:border-gray-500 dark:text-gray-500"
                 title={`Last activity was ${activityTime}`}
               >
                 Activity {activityTime}
               </primitives.Chip>
-            )}
-          </div>
-
-          {publishedDate && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Published: {formatDate(publishedDate)}
             </div>
-          )}
-          {!publishedDate && latestVersion && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Created: {formatDate(latestVersion.date_created)}
-            </div>
-          )}
+          ) : null}
 
           {work.versions.length > 1 ? (
             <WorkVersionTimelineHoverCard
