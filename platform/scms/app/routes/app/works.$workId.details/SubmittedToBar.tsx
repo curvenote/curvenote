@@ -365,14 +365,14 @@ export function SubmittedToBar({
         );
       })}
       <ui.Popover>
-        <ui.PopoverTrigger
-          className={cn(
-            'inline-flex items-center justify-center p-2.5 border-dashed border-muted-foreground/40',
-            'cursor-pointer bg-muted/30 text-muted-foreground shrink-0 hover:bg-muted/50 hover:text-foreground transition-colors rounded-r-lg',
-          )}
-          aria-label="Submit to a new site"
-        >
-          <Send className="w-4 h-4 stroke-[1.5px]" />
+        <ui.PopoverTrigger asChild>
+          <ui.Button
+            variant="default"
+            className="rounded-none rounded-r-lg px-3 py-2.5 h-auto shrink-0"
+            aria-label="Submit to a new site"
+          >
+            <Send className="w-4 h-4 stroke-[1.5px]" />
+          </ui.Button>
         </ui.PopoverTrigger>
         <ui.PopoverContent
           className={cn(
