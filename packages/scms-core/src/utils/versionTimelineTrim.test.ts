@@ -24,6 +24,7 @@ function workVersion(
   id: string,
   options: {
     submissionVersions?: WorkVersionTimelineEntry['submissionVersions'];
+    versionNumber?: number;
   } = {},
 ): WorkVersionTimelineEntry {
   return {
@@ -31,6 +32,7 @@ function workVersion(
     date_created: id,
     date_modified: id,
     draft: false,
+    versionNumber: options.versionNumber ?? 1,
     submissionVersions: options.submissionVersions,
   };
 }

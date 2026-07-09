@@ -1,28 +1,13 @@
 import { getPrismaClient, StorageBackend, KnownBuckets, Folder } from '@curvenote/scms-server';
 import type { SecureContext } from '@curvenote/scms-server';
 import type { Prisma, WorkVersion } from '@curvenote/scms-db';
+import type { CheckServiceRunRow } from './checkServiceRun.shared';
+import { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
 
 export type LinkedJobWithStatus = { id: string; status: string };
 
-/** Check service run row for timeline (id, work_version_id, kind, dates, data, created_by_id). */
-export type CheckServiceRunRow = {
-  id: string;
-  work_version_id: string;
-  kind: string;
-  date_created: string;
-  date_modified: string;
-  data: unknown;
-  created_by_id: string | null;
-  retried?: boolean;
-  successor_id?: string | null;
-};
-
-/** True when a failed run was superseded by a retry and should not appear in work timelines. */
-export function isCheckServiceRunSupersededByRetry(
-  run: Pick<CheckServiceRunRow, 'retried' | 'successor_id'>,
-): boolean {
-  return run.retried === true || Boolean(run.successor_id?.trim());
-}
+export type { CheckServiceRunRow } from './checkServiceRun.shared';
+export { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
 
 export function filterVisibleCheckServiceRuns(runs: CheckServiceRunRow[]): CheckServiceRunRow[] {
   return runs.filter((run) => !isCheckServiceRunSupersededByRetry(run));

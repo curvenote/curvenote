@@ -27,10 +27,11 @@ export function WorkListItem({
   checkServices: WorkListCheckService[];
   hasChecksFeature: boolean;
 }) {
-  const lastActivity = work.submissions
-    .map((submission) => submission.activity?.[0])
-    .filter((activity) => !!activity)
-    .slice()
+  const lastActivity = [
+    work.activity?.[0],
+    ...work.submissions.map((submission) => submission.activity?.[0]),
+  ]
+    .filter((activity): activity is NonNullable<typeof activity> => !!activity)
     .sort((a, b) => Date.parse(b.date_created) - Date.parse(a.date_created))[0];
 
   const activityTime = lastActivity
@@ -60,7 +61,7 @@ export function WorkListItem({
 
   return (
     <div className="px-6 py-4">
-      <div className="flex flex-col gap-1 items-start md:gap-6 md:flex-row">
+      <div className="flex flex-col gap-1 items-start md:items-baseline md:gap-6 md:flex-row">
         {/* Column 1: Title, Authors, DOI Links */}
         <div className="flex flex-col flex-grow gap-1">
           <div className="flex flex-wrap gap-2 items-start">
@@ -167,46 +168,47 @@ export function WorkListItem({
           ) : null}
         </div>
 
-        {/* Column 2: Activity and Date */}
-        <div className="flex flex-col flex-shrink-0 items-start self-stretch w-48 pt-[1px]">
-          <div className="flex flex-wrap gap-2 justify-start mb-2 w-full">
-            {activityTime && (
+        {/* Column 2: Date, activity, timeline */}
+        <div className="flex flex-col flex-shrink-0 items-center w-48">
+          {publishedDate ? (
+            <div className="text-xs text-center text-gray-600 dark:text-gray-400">
+              Published: {formatDate(publishedDate)}
+            </div>
+          ) : latestVersion ? (
+            <div className="text-xs text-center text-gray-600 dark:text-gray-400">
+              Created: {formatDate(latestVersion.date_created)}
+            </div>
+          ) : null}
+
+          {activityTime ? (
+            <div className="mt-2 flex flex-wrap gap-2 justify-center w-full">
               <primitives.Chip
                 className="text-gray-500 border-[1px] border-gray-200 dark:border-gray-500 dark:text-gray-500"
                 title={`Last activity was ${activityTime}`}
               >
                 Activity {activityTime}
               </primitives.Chip>
-            )}
-          </div>
-
-          {publishedDate && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Published: {formatDate(publishedDate)}
             </div>
-          )}
-          {!publishedDate && latestVersion && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              Created: {formatDate(latestVersion.date_created)}
-            </div>
-          )}
+          ) : null}
 
-          <WorkVersionTimelineHoverCard
-            versionsUrl={workVersionsUrl}
-            workId={work.id}
-            checkServices={hasChecksFeature ? checkServices : []}
-            align="end"
-            side="left"
-            title="Work Timeline"
-          >
-            <button
-              type="button"
-              className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"
+          {work.versions.length > 1 ? (
+            <WorkVersionTimelineHoverCard
+              versionsUrl={workVersionsUrl}
+              workId={work.id}
+              checkServices={hasChecksFeature ? checkServices : []}
+              align="end"
+              side="left"
+              title="Work Timeline"
             >
-              <Timeline className="size-3.5 shrink-0" aria-hidden />
-              Timeline
-            </button>
-          </WorkVersionTimelineHoverCard>
+              <button
+                type="button"
+                className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"
+              >
+                <Timeline className="size-3.5 shrink-0" aria-hidden />
+                Timeline
+              </button>
+            </WorkVersionTimelineHoverCard>
+          ) : null}
         </div>
       </div>
     </div>

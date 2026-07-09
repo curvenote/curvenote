@@ -8,15 +8,17 @@ import {
   useDeploymentConfig,
   useMyUser,
   truncate,
+  buildWorkVersionNumberByIdMap,
 } from '@curvenote/scms-core';
 import type { ClientExtensionCheckService, Workflow } from '@curvenote/scms-core';
 import type {
   SubmissionWithVersionsAndSite,
   WorkVersionForDetailsClient,
 } from '../works.$workId/types';
-import type { CheckServiceRunRow } from '../works.$workId/db.server';
-import { Check, ChevronDown, Loader2, Send } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import type { CheckServiceRunRow } from '../works.$workId/checkServiceRun.shared';
+import { getCheckRunSummaryByKind } from '../works.$workId/checkServiceRunSummaries';
+import { Check, ChevronDown, GitBranch, Loader2, Send } from 'lucide-react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 type SubmissionTargetSite = {
   id: string;
@@ -144,6 +146,46 @@ function getSubmittedSiteNamesForWorkVersion(version: WorkVersionForDetailsClien
   );
 }
 
+function SubmitVersionLabel({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 min-w-0">
+      <span className="text-sm font-medium shrink-0">Version</span>
+      <ui.VersionTagBadge tag={label} titlePrefix="Version" icon={GitBranch} />
+    </span>
+  );
+}
+
+function SubmitCheckSummaryBadgeSlot({ children }: { children: ReactNode }) {
+  const slotRef = useRef<HTMLSpanElement>(null);
+  const [fullLabel, setFullLabel] = useState<string | undefined>();
+
+  useLayoutEffect(() => {
+    const text = slotRef.current?.textContent?.replace(/\s+/g, ' ').trim();
+    setFullLabel(text || undefined);
+  });
+
+  const slot = (
+    <span
+      ref={slotRef}
+      className={cn(
+        'inline-flex min-w-0 max-w-[9rem] overflow-hidden',
+        '[&_[data-slot=badge]]:max-w-full [&_[data-slot=badge]]:w-full [&_[data-slot=badge]]:!min-w-0',
+        '[&_[data-slot=badge]]:shrink [&_[data-slot=badge]]:truncate [&_[data-slot=badge]]:justify-start',
+      )}
+    >
+      {children}
+    </span>
+  );
+
+  if (!fullLabel) return slot;
+
+  return (
+    <ui.SimpleTooltip title={fullLabel} side="top" sideOffset={6}>
+      {slot}
+    </ui.SimpleTooltip>
+  );
+}
+
 function SubmitToSiteEarlyAccessMessage() {
   const [supportOpen, setSupportOpen] = useState(false);
   const location = useLocation();
@@ -215,51 +257,54 @@ export function SubmittedToBar({
   const navigate = useNavigate();
   const fetcher = useFetcher<SubmitToSiteFetcherData>();
   const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
+  const versionNumberByVersionId = useMemo(
+    () => buildWorkVersionNumberByIdMap(versions),
+    [versions],
+  );
   const versionOptions = useMemo(() => {
     const completedVersions = versions.filter((version) => !version.draft);
     const sorted = [...completedVersions].sort((a, b) =>
       a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
     );
-    const versionNumberByVersionId: Record<string, number> = {};
-    [...versions]
-      .sort((a, b) =>
-        a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
-      )
-      .forEach((version, index) => {
-        versionNumberByVersionId[version.id] = versions.length - index;
-      });
     return sorted.map((version) => ({
       version,
       label: `v${versionNumberByVersionId[version.id] ?? 0}`,
     }));
-  }, [versions]);
+  }, [versions, versionNumberByVersionId]);
   const [selectedVersionId, setSelectedVersionId] = useState(versionOptions[0]?.version.id ?? '');
   const selectedVersion =
     versionOptions.find((option) => option.version.id === selectedVersionId)?.version ??
     versionOptions[0]?.version;
   const selectedVersionLabel =
     versionOptions.find((option) => option.version.id === selectedVersion?.id)?.label ?? 'version';
-  const selectedCheckRuns = selectedVersion
-    ? (checkServiceRunsByWorkVersionId[selectedVersion.id] ?? [])
-    : [];
   const selectedFiles = selectedVersion ? getVersionFiles(selectedVersion) : {};
   const fileLabels = Object.entries(selectedFiles).map(([key, value]) => getFileLabel(key, value));
-  const selectedCheckRunByKind = new Map<string, CheckServiceRunRow>();
-  [...selectedCheckRuns]
-    .sort((a, b) =>
-      a.date_modified > b.date_modified ? -1 : a.date_modified < b.date_modified ? 1 : 0,
-    )
-    .forEach((run) => {
-      if (!selectedCheckRunByKind.has(run.kind)) selectedCheckRunByKind.set(run.kind, run);
-    });
-  const fallbackCheckRows = selectedCheckRuns
-    .filter((run) => !checkServices.some((service) => service.id === run.kind))
-    .map((run) => ({ id: run.kind, name: run.kind, run, service: undefined }));
+  // Checks surface the most recent run of each kind on the selected version and
+  // any older versions — not on versions newer than the one chosen for submit.
+  const latestRunByServiceKind = useMemo(() => {
+    const selectedCreatedAt = selectedVersion?.date_created;
+    const nonDraftVersions = [...versions]
+      .filter((version) => !version.draft)
+      .filter((version) => selectedCreatedAt == null || version.date_created <= selectedCreatedAt)
+      .sort((a, b) =>
+        a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
+      );
+    return getCheckRunSummaryByKind(nonDraftVersions, checkServiceRunsByWorkVersionId)
+      .latestRunByServiceKind;
+  }, [
+    versions,
+    checkServiceRunsByWorkVersionId,
+    selectedVersion?.date_created,
+    selectedVersion?.id,
+  ]);
+  const fallbackCheckRows = Object.values(latestRunByServiceKind)
+    .filter((entry) => !checkServices.some((service) => service.id === entry.run.kind))
+    .map((entry) => ({ id: entry.run.kind, name: entry.run.kind, entry, service: undefined }));
   const checkRows = [
     ...checkServices.map((service) => ({
       id: service.id,
       name: service.name,
-      run: selectedCheckRunByKind.get(service.id),
+      entry: latestRunByServiceKind[service.id],
       service,
     })),
     ...fallbackCheckRows,
@@ -347,14 +392,14 @@ export function SubmittedToBar({
         );
       })}
       <ui.Popover>
-        <ui.PopoverTrigger
-          className={cn(
-            'inline-flex items-center justify-center p-2.5 border-dashed border-muted-foreground/40',
-            'cursor-pointer bg-muted/30 text-muted-foreground shrink-0 hover:bg-muted/50 hover:text-foreground transition-colors rounded-r-lg',
-          )}
-          aria-label="Submit to a new site"
-        >
-          <Send className="w-4 h-4 stroke-[1.5px]" />
+        <ui.PopoverTrigger asChild>
+          <ui.Button
+            variant="ghost"
+            className="rounded-none px-3 py-2.5 h-auto shrink-0 bg-background hover:bg-accent/50"
+            aria-label="Submit to a new site"
+          >
+            <Send className="w-4 h-4 stroke-[1.5px] text-primary" />
+          </ui.Button>
         </ui.PopoverTrigger>
         <ui.PopoverContent
           className={cn(
@@ -393,10 +438,8 @@ export function SubmittedToBar({
                           )}
                         >
                           {selectedVersion ? (
-                            <span className="flex flex-col items-start min-w-0">
-                              <span className="font-medium truncate">
-                                Version {selectedVersionLabel}
-                              </span>
+                            <span className="flex flex-col gap-1 items-start min-w-0">
+                              <SubmitVersionLabel label={selectedVersionLabel} />
                               <span className="text-xs text-muted-foreground">
                                 {new Date(
                                   selectedVersion.date_modified ?? selectedVersion.date_created,
@@ -432,8 +475,8 @@ export function SubmittedToBar({
                                   setVersionDropdownOpen(false);
                                 }}
                               >
-                                <span className="flex flex-col items-start min-w-0">
-                                  <span className="font-medium truncate">Version {label}</span>
+                                <span className="flex flex-col gap-1 items-start min-w-0">
+                                  <SubmitVersionLabel label={label} />
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(
                                       version.date_modified ?? version.date_created,
@@ -456,72 +499,105 @@ export function SubmittedToBar({
                     </p>
                   )}
 
-                  {selectedVersion && hasChecksFeature ? (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                        Checks
-                      </p>
-                      <div className="space-y-1.5">
-                        {checkRows.length > 0 ? (
-                          checkRows.map((row) => {
-                            const SummaryTitleComponent = row.service?.sectionSummaryTitleComponent;
-                            const SummaryBadgeComponent = row.service?.sectionSummaryBadgeComponent;
-                            const metadata = serviceDataFromRun(row.run);
-                            const fallbackScore = row.run ? getCheckScore(row.run) : null;
-                            return (
-                              <div
-                                key={row.id}
-                                className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
-                              >
-                                <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto">
-                                  {SummaryTitleComponent && row.run ? (
-                                    <SummaryTitleComponent metadata={metadata} />
-                                  ) : (
-                                    <span className="text-xs font-medium truncate">{row.name}</span>
-                                  )}
-                                </span>
-                                {row.run ? (
-                                  SummaryBadgeComponent ? (
-                                    <SummaryBadgeComponent metadata={metadata} />
-                                  ) : (
-                                    <ui.Badge variant="success">
-                                      {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
-                                    </ui.Badge>
-                                  )
-                                ) : (
-                                  <ui.Badge variant="outline-muted">Not run</ui.Badge>
-                                )}
-                              </div>
-                            );
-                          })
+                  {selectedVersion ? (
+                    <>
+                      {hasChecksFeature ? (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+                            Checks
+                          </p>
+                          <div className="space-y-1.5">
+                            {checkRows.length > 0 ? (
+                              checkRows.map((row) => {
+                                const SummaryTitleComponent =
+                                  row.service?.sectionSummaryTitleComponent;
+                                const SummaryBadgeComponent =
+                                  row.service?.sectionSummaryBadgeComponent;
+                                const run = row.entry?.run;
+                                const metadata = serviceDataFromRun(run);
+                                const fallbackScore = run ? getCheckScore(run) : null;
+                                const runVersionNumber = row.entry
+                                  ? versionNumberByVersionId[row.entry.workVersionId]
+                                  : undefined;
+                                const isFromOtherVersion =
+                                  row.entry != null &&
+                                  row.entry.workVersionId !== selectedVersion?.id;
+                                return (
+                                  <div
+                                    key={row.id}
+                                    className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
+                                  >
+                                    <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto [&_*]:truncate">
+                                      {SummaryTitleComponent && run ? (
+                                        <SummaryTitleComponent metadata={metadata} />
+                                      ) : (
+                                        <span className="text-xs font-medium truncate">
+                                          {row.name}
+                                        </span>
+                                      )}
+                                    </span>
+                                    {run ? (
+                                      <span className="flex gap-1.5 items-center min-w-0 shrink">
+                                        {isFromOtherVersion && runVersionNumber != null ? (
+                                          <ui.SimpleTooltip
+                                            title={`Latest run was on version v${runVersionNumber}`}
+                                            side="top"
+                                            sideOffset={6}
+                                          >
+                                            <span className="inline-flex shrink-0">
+                                              <ui.VersionTagBadge
+                                                tag={`v${runVersionNumber}`}
+                                                titlePrefix="Version"
+                                                icon={GitBranch}
+                                                disableTooltip
+                                              />
+                                            </span>
+                                          </ui.SimpleTooltip>
+                                        ) : null}
+                                        <SubmitCheckSummaryBadgeSlot>
+                                          {SummaryBadgeComponent ? (
+                                            <SummaryBadgeComponent metadata={metadata} />
+                                          ) : (
+                                            <ui.Badge variant="success">
+                                              {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
+                                            </ui.Badge>
+                                          )}
+                                        </SubmitCheckSummaryBadgeSlot>
+                                      </span>
+                                    ) : (
+                                      <ui.Badge variant="outline-muted">Not run</ui.Badge>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                No check services available.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+                          Files
+                        </p>
+                        {fileLabels.length > 0 ? (
+                          <ul className="space-y-1 text-[11px] leading-4 text-muted-foreground">
+                            {Object.entries(selectedFiles).map(([key, value]) => (
+                              <li key={key} className="truncate">
+                                {getFileLabel(key, value)}
+                              </li>
+                            ))}
+                          </ul>
                         ) : (
-                          <p className="text-xs text-muted-foreground">
-                            No check services available.
+                          <p className="text-[11px] leading-4 text-muted-foreground">
+                            No files are available for this version.
                           </p>
                         )}
                       </div>
-                    </div>
-                  ) : null}
-
-                  {selectedVersion ? (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                        Files
-                      </p>
-                      {fileLabels.length > 0 ? (
-                        <ul className="space-y-1 text-[11px] leading-4 text-muted-foreground">
-                          {Object.entries(selectedFiles).map(([key, value]) => (
-                            <li key={key} className="truncate">
-                              {getFileLabel(key, value)}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-[11px] leading-4 text-muted-foreground">
-                          No files are available for this version.
-                        </p>
-                      )}
-                    </div>
+                    </>
                   ) : null}
                 </div>
 

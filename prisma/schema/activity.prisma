@@ -84,4 +84,7 @@ model Activity {
   /// Powers the submissions-index listing "last activity" lookup:
   ///   `activity: { take: 1, orderBy: { date_created: 'desc' } }` per submission row.
   @@index([submission_id, date_created(sort: Desc)])
+  /// Powers the works-index listing "last activity" lookup:
+  ///   `activity: { take: 1, orderBy: { date_created: 'desc' } }` per work row.
+  @@index([work_id, date_created(sort: Desc)])
 }

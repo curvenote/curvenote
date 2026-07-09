@@ -24,6 +24,7 @@ export * from './versionTimelineUrls.js';
 export * from './versionTimelineTrim.js';
 export * from './manuscriptFormats.js';
 export * from './workVersionMetadata.js';
+export * from './workVersionNumbers.js';
 
 export const version = 'v1';
 
