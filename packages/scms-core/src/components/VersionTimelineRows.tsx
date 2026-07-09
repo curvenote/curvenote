@@ -159,6 +159,8 @@ export function WorkVersionTimelineRow({
         summary.service != null && isCheckWorkListSummaryVisible(summary.service, summary.metadata),
     );
 
+  const hasMetadataBadges = submissionVersions.length > 0 || checkRuns.length > 0;
+
   return (
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
       <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
@@ -169,59 +171,63 @@ export function WorkVersionTimelineRow({
           compact
         />
         <CreatedDate dateCreated={entry.date_created} />
-        {submissionVersions.map((submissionVersion) => (
-          <SubmissionVersionSiteChip
-            key={submissionVersion.id}
-            submissionVersion={submissionVersion}
-            workId={workId}
-          />
-        ))}
-        {checkRuns.map(({ run, service, metadata }) => {
-          const SummaryComponent = service.workListSummaryComponent;
-          if (!SummaryComponent) return null;
-          const chip = (
-            <span className="inline-flex h-5 max-w-full shrink-0 items-center gap-1 rounded-md border border-border bg-background px-1.5 text-[10px] text-foreground">
-              <SummaryComponent
-                compact
-                metadata={metadata}
-                checkRunId={run.id}
-                workVersionId={run.work_version_id}
-                checkServiceId={service.id}
-                checkServiceName={service.name}
-                checkRunDateModified={run.date_modified}
-              />
-            </span>
-          );
-          return (
-            <Tooltip key={run.id}>
-              <TooltipTrigger asChild>
-                {workId ? (
-                  <Link
-                    to={`/app/works/${workId}/checks`}
-                    className="inline-flex min-w-0 items-center transition-opacity hover:opacity-80"
-                    aria-label={`${service.name} check summary`}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {chip}
-                  </Link>
-                ) : (
-                  <span className="inline-flex min-w-0 items-center cursor-default">{chip}</span>
-                )}
-              </TooltipTrigger>
-              <TooltipContent sideOffset={4}>
-                <span className="font-medium">{service.name}</span>
-                <span className="text-muted-foreground">
-                  {' '}
-                  · Check run · {formatDatetime(run.date_created)}
-                </span>
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
       </div>
       <p className="text-[11px] text-muted-foreground" title={formatDatetime(entry.date_modified)}>
         Modified: {formatDate(entry.date_modified)}
       </p>
+      {hasMetadataBadges ? (
+        <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center pt-0.5">
+          {submissionVersions.map((submissionVersion) => (
+            <SubmissionVersionSiteChip
+              key={submissionVersion.id}
+              submissionVersion={submissionVersion}
+              workId={workId}
+            />
+          ))}
+          {checkRuns.map(({ run, service, metadata }) => {
+            const SummaryComponent = service.workListSummaryComponent;
+            if (!SummaryComponent) return null;
+            const chip = (
+              <span className="inline-flex h-5 max-w-full shrink-0 items-center gap-1 rounded-md border border-border bg-background px-1.5 text-[10px] text-foreground">
+                <SummaryComponent
+                  compact
+                  metadata={metadata}
+                  checkRunId={run.id}
+                  workVersionId={run.work_version_id}
+                  checkServiceId={service.id}
+                  checkServiceName={service.name}
+                  checkRunDateModified={run.date_modified}
+                />
+              </span>
+            );
+            return (
+              <Tooltip key={run.id}>
+                <TooltipTrigger asChild>
+                  {workId ? (
+                    <Link
+                      to={`/app/works/${workId}/checks`}
+                      className="inline-flex min-w-0 items-center transition-opacity hover:opacity-80"
+                      aria-label={`${service.name} check summary`}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {chip}
+                    </Link>
+                  ) : (
+                    <span className="inline-flex min-w-0 items-center cursor-default">{chip}</span>
+                  )}
+                </TooltipTrigger>
+                <TooltipContent sideOffset={4}>
+                  <span className="font-medium">{service.name}</span>
+                  <span className="text-muted-foreground">
+                    {' '}
+                    · Check run · {formatDatetime(run.date_created)}
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+      ) : null}
     </VersionTimelineRowShell>
   );
 }

@@ -240,7 +240,7 @@ export function WorkVersionTimelineHoverCard({
       align={align}
       side={side}
       title={title}
-      contentClassName="w-fit max-w-[min(32rem,calc(100vw-2rem))]"
+      contentClassName="w-fit max-w-[min(24rem,calc(100vw-2rem))]"
       renderRow={(entry) => (
         <WorkVersionTimelineRow entry={entry} workId={workId} checkServices={checkServices} />
       )}
