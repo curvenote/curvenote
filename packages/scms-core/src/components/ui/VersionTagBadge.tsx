@@ -69,9 +69,7 @@ export function VersionTagBadge({
         )}
         title={label}
       >
-        {!hideIcon ? (
-          <Icon className={compact ? 'size-2.5' : 'size-3'} aria-hidden />
-        ) : null}
+        {!hideIcon ? <Icon className={compact ? 'size-2.5' : 'size-3'} aria-hidden /> : null}
         {tag}
       </Badge>
     );
