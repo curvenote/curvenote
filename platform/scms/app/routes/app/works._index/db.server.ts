@@ -37,6 +37,12 @@ export async function dbGetWorksAndSubmissionVersions(userId: string, config: Ap
           role: true,
         },
       },
+      activity: {
+        orderBy: {
+          date_created: 'desc',
+        },
+        take: 1,
+      },
       submissions: {
         include: {
           site: true,

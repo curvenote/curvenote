@@ -27,10 +27,11 @@ export function WorkListItem({
   checkServices: WorkListCheckService[];
   hasChecksFeature: boolean;
 }) {
-  const lastActivity = work.submissions
-    .map((submission) => submission.activity?.[0])
-    .filter((activity) => !!activity)
-    .slice()
+  const lastActivity = [
+    work.activity?.[0],
+    ...work.submissions.map((submission) => submission.activity?.[0]),
+  ]
+    .filter((activity): activity is NonNullable<typeof activity> => !!activity)
     .sort((a, b) => Date.parse(b.date_created) - Date.parse(a.date_created))[0];
 
   const activityTime = lastActivity
