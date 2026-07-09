@@ -34,7 +34,7 @@ export function VersionTimelineRowShell({
         )}
         aria-hidden
       />
-      <div className="flex-1 space-y-1 min-w-0 pt-px">{children}</div>
+      <div className="min-w-0 space-y-1 pt-px">{children}</div>
     </div>
   );
 }
