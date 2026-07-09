@@ -54,7 +54,6 @@ import { getUniqueSubmissions } from './utils.server';
 import {
   computeCanResumeDraftUpload,
   getLicenseDisplayFromMetadata,
-  isDraftVersionValidForReuse,
   resolveResumeDraftUploadPath,
   resolveWorkVersionDoi,
   signVersionFilesForClient,
@@ -106,8 +105,7 @@ export async function action(args: ActionFunctionArgs) {
 
   if (intent === 'get-drafts-for-work') {
     const latest = await dbGetLatestWorkVersionForWork(ctx.work.id);
-    const drafts =
-      latest?.draft && isDraftVersionValidForReuse(latest.metadata)
+    const drafts = latest?.draft
         ? [
             {
               workId: ctx.work.id,
@@ -503,11 +501,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const latestVersion = workVersionsWithMetadata[0];
   const latestNonDraftWithMetadata = workVersionsWithMetadata.find((v) => !v.draft);
 
-  const canResumeDraft = computeCanResumeDraftUpload(
-    canUpload,
-    latestVersion,
-    latestVersion?.metadata,
-  );
+  const canResumeDraft = computeCanResumeDraftUpload(canUpload, latestVersion);
   const resumeDraftVersionId = canResumeDraft ? latestVersion?.id : undefined;
 
   let resumeDraftUploadPath: string | undefined;

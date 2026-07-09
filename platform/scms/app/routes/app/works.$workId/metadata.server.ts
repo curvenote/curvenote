@@ -2,12 +2,6 @@ import { signFilesInMetadata, type Context } from '@curvenote/scms-server';
 
 export type LicenseDisplay = { text: string; tooltip?: string };
 
-/** Draft version is valid for resume when it is still a draft (checks key not required). */
-export function isDraftVersionValidForReuse(metadata: unknown): boolean {
-  void metadata;
-  return true;
-}
-
 export function isPmcWorkVersionMetadata(metadata: unknown): boolean {
   const meta = metadata as Record<string, unknown> | null;
   return Boolean(meta && meta.pmc != null && typeof meta.pmc === 'object' && !Array.isArray(meta.pmc));
@@ -57,13 +51,8 @@ export function getLicenseDisplayFromMetadata(metadata: unknown): LicenseDisplay
 export function computeCanResumeDraftUpload(
   canUpload: boolean,
   latestVersion: { draft: boolean } | undefined,
-  latestMetadata: unknown,
 ): boolean {
-  return (
-    canUpload === true &&
-    latestVersion?.draft === true &&
-    isDraftVersionValidForReuse(latestMetadata)
-  );
+  return canUpload === true && latestVersion?.draft === true;
 }
 
 /** Signed file entries only — omit myst/checks/license from the client payload. */

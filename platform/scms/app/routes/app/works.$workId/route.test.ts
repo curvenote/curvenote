@@ -187,7 +187,6 @@ vi.mock('./utils.server', () => ({
 vi.mock('./metadata.server', () => ({
   computeCanResumeDraftUpload: vi.fn(() => false),
   getLicenseDisplayFromMetadata: vi.fn(() => null),
-  isDraftVersionValidForReuse: vi.fn(() => false),
   resolveResumeDraftUploadPath: vi.fn(
     ({ workId, workVersionId }: { workId: string; workVersionId: string }) =>
       `/app/works/${workId}/upload/${workVersionId}?from=details`,

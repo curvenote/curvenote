@@ -2,19 +2,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeCanResumeDraftUpload,
-  isDraftVersionValidForReuse,
   isPmcWorkVersionMetadata,
   resolveResumeDraftUploadPath,
   resolveWorkVersionDoi,
 } from './metadata.server';
-
-describe('isDraftVersionValidForReuse', () => {
-  it('returns true for any draft metadata shape', () => {
-    expect(isDraftVersionValidForReuse(null)).toBe(true);
-    expect(isDraftVersionValidForReuse({ checks: { enabled: [] } })).toBe(true);
-    expect(isDraftVersionValidForReuse({})).toBe(true);
-  });
-});
 
 describe('isPmcWorkVersionMetadata', () => {
   it('detects pmc object metadata', () => {
@@ -59,11 +50,15 @@ describe('resolveResumeDraftUploadPath', () => {
 
 describe('computeCanResumeDraftUpload', () => {
   it('allows resume when user can upload and latest version is draft', () => {
-    expect(computeCanResumeDraftUpload(true, { draft: true }, {})).toBe(true);
+    expect(computeCanResumeDraftUpload(true, { draft: true })).toBe(true);
   });
 
   it('denies resume when latest version is not draft', () => {
-    expect(computeCanResumeDraftUpload(true, { draft: false }, {})).toBe(false);
+    expect(computeCanResumeDraftUpload(true, { draft: false })).toBe(false);
+  });
+
+  it('denies resume when user cannot upload', () => {
+    expect(computeCanResumeDraftUpload(false, { draft: true })).toBe(false);
   });
 });
 
