@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { GitBranch } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import {
   formatDate,
@@ -207,7 +208,7 @@ function WorkVersionTimelineInner({
         const label = (
           <span className="flex gap-2 items-center">
             <ui.TagChips tags={v.tags} titlePrefix="Work version tag" />
-            <ui.VersionTagBadge tag={versionLabel} titlePrefix="Version" hideIcon />
+            <ui.VersionTagBadge tag={versionLabel} titlePrefix="Version" icon={GitBranch} />
             <span className="text-sm text-muted-foreground">
               {formatDate(v.date_created, 'MMM d, yyyy HH:mm')}
             </span>
