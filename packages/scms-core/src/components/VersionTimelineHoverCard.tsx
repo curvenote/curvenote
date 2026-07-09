@@ -167,10 +167,7 @@ export function VersionTimelineHoverCard<T extends { id: string }>({
         align={align}
         side={side}
         sideOffset={8}
-        className={cn(
-          contentClassName ?? 'w-fit max-w-[min(20rem,calc(100vw-2rem))]',
-          'p-3',
-        )}
+        className={cn(contentClassName ?? 'w-fit max-w-[min(20rem,calc(100vw-2rem))]', 'p-3')}
       >
         <div className="mb-2 flex items-center gap-1.5 border-b border-border pb-2 text-xs font-semibold text-foreground">
           <Timeline className="size-3.5 shrink-0" aria-hidden />
