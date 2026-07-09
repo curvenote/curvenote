@@ -17,7 +17,7 @@ import type {
 import type { CheckServiceRunRow } from '../works.$workId/checkServiceRun.shared';
 import { getCheckRunSummaryByKind } from '../works.$workId/checkServiceRunSummaries';
 import { Check, ChevronDown, GitBranch, Loader2, Send } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 type SubmissionTargetSite = {
   id: string;
@@ -154,6 +154,37 @@ function SubmitVersionLabel({ label }: { label: string }) {
   );
 }
 
+function SubmitCheckSummaryBadgeSlot({ children }: { children: ReactNode }) {
+  const slotRef = useRef<HTMLSpanElement>(null);
+  const [fullLabel, setFullLabel] = useState<string | undefined>();
+
+  useLayoutEffect(() => {
+    const text = slotRef.current?.textContent?.replace(/\s+/g, ' ').trim();
+    setFullLabel(text || undefined);
+  });
+
+  const slot = (
+    <span
+      ref={slotRef}
+      className={cn(
+        'inline-flex min-w-0 max-w-[9rem] overflow-hidden',
+        '[&_[data-slot=badge]]:max-w-full [&_[data-slot=badge]]:w-full [&_[data-slot=badge]]:!min-w-0',
+        '[&_[data-slot=badge]]:shrink [&_[data-slot=badge]]:truncate [&_[data-slot=badge]]:justify-start',
+      )}
+    >
+      {children}
+    </span>
+  );
+
+  if (!fullLabel) return slot;
+
+  return (
+    <ui.SimpleTooltip title={fullLabel} side="top" sideOffset={6}>
+      {slot}
+    </ui.SimpleTooltip>
+  );
+}
+
 function SubmitToSiteEarlyAccessMessage() {
   const [supportOpen, setSupportOpen] = useState(false);
   const location = useLocation();
@@ -176,7 +207,7 @@ function SubmitToSiteEarlyAccessMessage() {
         <ui.Button
           type="button"
           variant="link"
-          className="inline h-auto p-0 align-baseline"
+          className="inline p-0 h-auto align-baseline"
           onClick={() => setSupportOpen(true)}
         >
           contact support
@@ -408,12 +439,12 @@ export function SubmittedToBar({
                           id="submit-version-select"
                           type="button"
                           className={cn(
-                            'flex h-16 w-full items-center justify-between gap-3 rounded-md border border-input bg-white px-3 py-2 text-left shadow-xs transition-colors',
+                            'flex gap-3 justify-between items-center px-3 py-2 w-full h-16 text-left bg-white rounded-md border transition-colors border-input shadow-xs',
                             'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                           )}
                         >
                           {selectedVersion ? (
-                            <span className="flex min-w-0 flex-col items-start gap-1">
+                            <span className="flex flex-col gap-1 items-start min-w-0">
                               <SubmitVersionLabel label={selectedVersionLabel} />
                               <span className="text-xs text-muted-foreground">
                                 {new Date(
@@ -450,7 +481,7 @@ export function SubmittedToBar({
                                   setVersionDropdownOpen(false);
                                 }}
                               >
-                                <span className="flex min-w-0 flex-col items-start gap-1">
+                                <span className="flex flex-col gap-1 items-start min-w-0">
                                   <SubmitVersionLabel label={label} />
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(
@@ -468,102 +499,111 @@ export function SubmittedToBar({
                       </ui.PopoverContent>
                     </ui.Popover>
                   ) : (
-                    <p className="rounded-md border border-dashed border-muted-foreground/40 bg-background px-3 py-4 text-xs leading-relaxed text-muted-foreground">
+                    <p className="px-3 py-4 text-xs leading-relaxed rounded-md border border-dashed border-muted-foreground/40 bg-background text-muted-foreground">
                       No completed version is available to submit. Finish creating a version before
                       submitting to a site.
                     </p>
                   )}
 
-                  {selectedVersion && hasChecksFeature ? (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                        Checks
-                      </p>
-                      <div className="space-y-1.5">
-                        {checkRows.length > 0 ? (
-                          checkRows.map((row) => {
-                            const SummaryTitleComponent = row.service?.sectionSummaryTitleComponent;
-                            const SummaryBadgeComponent = row.service?.sectionSummaryBadgeComponent;
-                            const run = row.entry?.run;
-                            const metadata = serviceDataFromRun(run);
-                            const fallbackScore = run ? getCheckScore(run) : null;
-                            const runVersionNumber = row.entry
-                              ? versionNumberByVersionId[row.entry.workVersionId]
-                              : undefined;
-                            const isFromOtherVersion =
-                              row.entry != null && row.entry.workVersionId !== selectedVersion?.id;
-                            return (
-                              <div
-                                key={row.id}
-                                className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
-                              >
-                                <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto">
-                                  {SummaryTitleComponent && run ? (
-                                    <SummaryTitleComponent metadata={metadata} />
-                                  ) : (
-                                    <span className="text-xs font-medium truncate">{row.name}</span>
-                                  )}
-                                </span>
-                                {run ? (
-                                  <span className="flex gap-1.5 items-center shrink-0">
-                                    {isFromOtherVersion && runVersionNumber != null ? (
-                                      <ui.SimpleTooltip
-                                        title={`Latest run was on version v${runVersionNumber}`}
-                                        side="top"
-                                        sideOffset={6}
-                                      >
-                                        <span className="inline-flex">
-                                          <ui.VersionTagBadge
-                                            tag={`v${runVersionNumber}`}
-                                            titlePrefix="Version"
-                                            icon={GitBranch}
-                                            disableTooltip
-                                          />
+                  {selectedVersion ? (
+                    <>
+                      {hasChecksFeature ? (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+                            Checks
+                          </p>
+                          <div className="space-y-1.5">
+                            {checkRows.length > 0 ? (
+                              checkRows.map((row) => {
+                                const SummaryTitleComponent =
+                                  row.service?.sectionSummaryTitleComponent;
+                                const SummaryBadgeComponent =
+                                  row.service?.sectionSummaryBadgeComponent;
+                                const run = row.entry?.run;
+                                const metadata = serviceDataFromRun(run);
+                                const fallbackScore = run ? getCheckScore(run) : null;
+                                const runVersionNumber = row.entry
+                                  ? versionNumberByVersionId[row.entry.workVersionId]
+                                  : undefined;
+                                const isFromOtherVersion =
+                                  row.entry != null &&
+                                  row.entry.workVersionId !== selectedVersion?.id;
+                                return (
+                                  <div
+                                    key={row.id}
+                                    className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
+                                  >
+                                    <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto [&_*]:truncate">
+                                      {SummaryTitleComponent && run ? (
+                                        <SummaryTitleComponent metadata={metadata} />
+                                      ) : (
+                                        <span className="text-xs font-medium truncate">
+                                          {row.name}
                                         </span>
-                                      </ui.SimpleTooltip>
-                                    ) : null}
-                                    {SummaryBadgeComponent ? (
-                                      <SummaryBadgeComponent metadata={metadata} />
+                                      )}
+                                    </span>
+                                    {run ? (
+                                      <span className="flex gap-1.5 items-center min-w-0 shrink">
+                                        {isFromOtherVersion && runVersionNumber != null ? (
+                                          <ui.SimpleTooltip
+                                            title={`Latest run was on version v${runVersionNumber}`}
+                                            side="top"
+                                            sideOffset={6}
+                                          >
+                                            <span className="inline-flex shrink-0">
+                                              <ui.VersionTagBadge
+                                                tag={`v${runVersionNumber}`}
+                                                titlePrefix="Version"
+                                                icon={GitBranch}
+                                                disableTooltip
+                                              />
+                                            </span>
+                                          </ui.SimpleTooltip>
+                                        ) : null}
+                                        <SubmitCheckSummaryBadgeSlot>
+                                          {SummaryBadgeComponent ? (
+                                            <SummaryBadgeComponent metadata={metadata} />
+                                          ) : (
+                                            <ui.Badge variant="success">
+                                              {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
+                                            </ui.Badge>
+                                          )}
+                                        </SubmitCheckSummaryBadgeSlot>
+                                      </span>
                                     ) : (
-                                      <ui.Badge variant="success">
-                                        {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
-                                      </ui.Badge>
+                                      <ui.Badge variant="outline-muted">Not run</ui.Badge>
                                     )}
-                                  </span>
-                                ) : (
-                                  <ui.Badge variant="outline-muted">Not run</ui.Badge>
-                                )}
-                              </div>
-                            );
-                          })
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                No check services available.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+                          Files
+                        </p>
+                        {fileLabels.length > 0 ? (
+                          <ul className="space-y-1 text-[11px] leading-4 text-muted-foreground">
+                            {Object.entries(selectedFiles).map(([key, value]) => (
+                              <li key={key} className="truncate">
+                                {getFileLabel(key, value)}
+                              </li>
+                            ))}
+                          </ul>
                         ) : (
-                          <p className="text-xs text-muted-foreground">
-                            No check services available.
+                          <p className="text-[11px] leading-4 text-muted-foreground">
+                            No files are available for this version.
                           </p>
                         )}
                       </div>
-                    </div>
-                  ) : null}
-
-                  {selectedVersion ? (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-                        Files
-                      </p>
-                      {fileLabels.length > 0 ? (
-                        <ul className="space-y-1 text-[11px] leading-4 text-muted-foreground">
-                          {Object.entries(selectedFiles).map(([key, value]) => (
-                            <li key={key} className="truncate">
-                              {getFileLabel(key, value)}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-[11px] leading-4 text-muted-foreground">
-                          No files are available for this version.
-                        </p>
-                      )}
-                    </div>
+                    </>
                   ) : null}
                 </div>
 
@@ -617,7 +657,7 @@ export function SubmittedToBar({
                                 </span>
                               )}
                             </span>
-                            <span className="min-w-0 flex-1">
+                            <span className="flex-1 min-w-0">
                               <span className="flex gap-2 items-center">
                                 {metadata?.favicon ? (
                                   <img
