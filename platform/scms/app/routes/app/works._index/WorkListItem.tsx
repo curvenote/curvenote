@@ -191,22 +191,24 @@ export function WorkListItem({
             </div>
           )}
 
-          <WorkVersionTimelineHoverCard
-            versionsUrl={workVersionsUrl}
-            workId={work.id}
-            checkServices={hasChecksFeature ? checkServices : []}
-            align="end"
-            side="left"
-            title="Work Timeline"
-          >
-            <button
-              type="button"
-              className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"
+          {work.versions.length > 1 ? (
+            <WorkVersionTimelineHoverCard
+              versionsUrl={workVersionsUrl}
+              workId={work.id}
+              checkServices={hasChecksFeature ? checkServices : []}
+              align="end"
+              side="left"
+              title="Work Timeline"
             >
-              <Timeline className="size-3.5 shrink-0" aria-hidden />
-              Timeline
-            </button>
-          </WorkVersionTimelineHoverCard>
+              <button
+                type="button"
+                className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"
+              >
+                <Timeline className="size-3.5 shrink-0" aria-hidden />
+                Timeline
+              </button>
+            </WorkVersionTimelineHoverCard>
+          ) : null}
         </div>
       </div>
     </div>
