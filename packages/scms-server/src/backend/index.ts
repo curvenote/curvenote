@@ -37,6 +37,7 @@ export * from './workDraftChecksMetadata.server.js';
 export * from './work-version-subject.server.js';
 export * from './work-version-affiliations.server.js';
 export * from './loaders/works/contains.server.js';
+export * from './works/versions/cloneDraftWorkVersion.server.js';
 
 export * from './etl/index.js';
 export * from './loaders/index.js';

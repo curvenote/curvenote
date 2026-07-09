@@ -26,6 +26,10 @@ import {
   searchOrcid,
   searchOrcidById,
   searchRor,
+  File,
+  StorageBackend,
+  KnownBuckets,
+  resolveThumbnailBucket,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type { ExtensionCheckHandleActionArgs, FileMetadataSection } from '@curvenote/scms-core';
@@ -283,8 +287,8 @@ export async function loader(args: Route.LoaderArgs) {
         };
       case 'details':
         return {
-          title: 'Upload a New Version',
-          subtitle: `Add a new version of this ${workLabel} by uploading your files`,
+          title: 'Review and Update',
+          subtitle: `Review inherited files and metadata, then update this ${workLabel} version as needed`,
         };
       case 'drafts':
         return {
@@ -312,6 +316,20 @@ export async function loader(args: Route.LoaderArgs) {
       ? (mystFrontmatter as ExtractedMetadata)
       : null;
   const authorFieldMetadata = mystFrontmatterToAuthorField(extractedMetadata, work.authors ?? []);
+
+  let inheritedThumbnail: { key: string; signedUrl: string } | undefined;
+  const inheritedThumbnailKey =
+    typeof work.thumbnail === 'string' && work.thumbnail.trim() ? work.thumbnail.trim() : null;
+  if (inheritedThumbnailKey && work.cdn) {
+    try {
+      const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
+      const bucket = resolveThumbnailBucket(ctx, backend, work.cdn);
+      const signedUrl = await new File(backend, inheritedThumbnailKey, bucket).url();
+      inheritedThumbnail = { key: inheritedThumbnailKey, signedUrl };
+    } catch (err) {
+      console.warn('[work-upload] failed to sign inherited thumbnail', inheritedThumbnailKey, err);
+    }
+  }
 
   const hasMetadataExtractScope = userHasScope(
     ctx.user,
@@ -355,6 +373,7 @@ export async function loader(args: Route.LoaderArgs) {
     previews,
     extractedMetadata,
     authorFieldMetadata,
+    inheritedThumbnail,
     hasMetadataExtractScope,
     hasChecksFeature,
     canDispatchChecks,
@@ -984,6 +1003,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     previews = [],
     extractedMetadata,
     authorFieldMetadata,
+    inheritedThumbnail,
     maintenanceByServiceId,
     hasMetadataExtractScope,
     hasChecksFeature,
@@ -991,7 +1011,9 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   } = loaderData;
   const { workVersionId } = useParams();
   const rawPreviews: DocumentPreviewItem[] = Array.isArray(previews) ? previews : [];
-  const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
+  const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(() =>
+    inheritedThumbnail?.key ? encodeFigureLocator(inheritedThumbnail.key) : null,
+  );
   const [authorMetadata, setAuthorMetadata] = useState<AuthorFieldMetadata>(authorFieldMetadata);
   const revalidator = useRevalidator();
   const fetchPreviewsFetcher = useFetcher();
@@ -1174,6 +1196,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               previewList={previewList}
               value={effectiveSelectedThumbnail}
               onChange={setSelectedThumbnail}
+              pinnedThumbnail={inheritedThumbnail ?? null}
             />
           ) : null}
           {hasChecksFeature && canDispatchChecks ? (

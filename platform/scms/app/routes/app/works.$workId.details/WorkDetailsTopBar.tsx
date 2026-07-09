@@ -13,9 +13,9 @@ type WorkUser = {
 export type WorkDetailsUploadProps = {
   canUpload: boolean;
   workBasePath: string;
-  /** Computed on the server from latest draft metadata.checks. */
   canResumeDraft: boolean;
   resumeDraftVersionId?: string;
+  resumeDraftUploadPath?: string;
 };
 
 function getInitials(displayName: string | null): string {
@@ -36,10 +36,10 @@ export function WorkDetailsTopBar({
 }: {
   workId: string;
   users: WorkUser[];
-  /** When provided, the top bar owns the upload button and resume vs create-new-version logic. */
   uploadProps: WorkDetailsUploadProps;
 }) {
-  const { canUpload, workBasePath, canResumeDraft, resumeDraftVersionId } = uploadProps;
+  const { canUpload, workBasePath, canResumeDraft, resumeDraftVersionId, resumeDraftUploadPath } =
+    uploadProps;
   const navigate = useNavigate();
   const fetcher = useFetcher<{
     intent?: string;
@@ -54,7 +54,10 @@ export function WorkDetailsTopBar({
   const handleUploadAction = () => {
     if (!canUpload) return;
     if (canResumeDraft && resumeDraftVersionId) {
-      navigate(`${workBasePath}/upload/${resumeDraftVersionId}?from=details`);
+      navigate(
+        resumeDraftUploadPath ??
+          `${workBasePath}/upload/${resumeDraftVersionId}?from=details`,
+      );
       return;
     }
     const formData = new FormData();

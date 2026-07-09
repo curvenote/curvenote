@@ -2,10 +2,28 @@ import { signFilesInMetadata, type Context } from '@curvenote/scms-server';
 
 export type LicenseDisplay = { text: string; tooltip?: string };
 
-/** Draft version is valid for resume if it has the checks field in metadata (same as My Works). */
+/** Draft version is valid for resume when it is still a draft (checks key not required). */
 export function isDraftVersionValidForReuse(metadata: unknown): boolean {
+  void metadata;
+  return true;
+}
+
+export function isPmcWorkVersionMetadata(metadata: unknown): boolean {
   const meta = metadata as Record<string, unknown> | null;
-  return Boolean(meta && 'checks' in meta);
+  return Boolean(meta && meta.pmc != null && typeof meta.pmc === 'object' && !Array.isArray(meta.pmc));
+}
+
+/** Resume path for a draft work version (PMC deposit vs article upload). */
+export function resolveResumeDraftUploadPath(args: {
+  workId: string;
+  workVersionId: string;
+  metadata: unknown;
+  pmcSubmissionVersionId?: string | null;
+}): string {
+  if (isPmcWorkVersionMetadata(args.metadata) && args.pmcSubmissionVersionId) {
+    return `/app/works/${args.workId}/site/pmc/deposit/${args.pmcSubmissionVersionId}`;
+  }
+  return `/app/works/${args.workId}/upload/${args.workVersionId}?from=details`;
 }
 
 /** Prefer version DOI when non-empty after trim; otherwise work-level DOI. */

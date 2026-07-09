@@ -9,6 +9,7 @@ import {
 import { Outlet } from 'react-router';
 import {
   withSecureWorkContext,
+  cloneDraftWorkVersionFromSource,
   dbCreateDraftWorkVersion,
   metadataForNewDraftFileWorkVersion,
   userHasScope,
@@ -54,6 +55,7 @@ import {
   computeCanResumeDraftUpload,
   getLicenseDisplayFromMetadata,
   isDraftVersionValidForReuse,
+  resolveResumeDraftUploadPath,
   resolveWorkVersionDoi,
   signVersionFilesForClient,
 } from './metadata.server';
@@ -200,6 +202,20 @@ export async function action(args: ActionFunctionArgs) {
           },
           { status: 500 },
         );
+      }
+
+      if (latestNonDraft) {
+        const result = await cloneDraftWorkVersionFromSource(ctx, {
+          workId: ctx.work.id,
+          sourceWorkVersionId: latestNonDraft.id,
+          source: 'work-details',
+        });
+        return {
+          success: true,
+          intent: 'create-new-version',
+          workId: result.workId,
+          workVersionId: result.workVersionId,
+        };
       }
 
       const result = await dbCreateDraftWorkVersion(
@@ -494,6 +510,30 @@ export const loader = async (args: LoaderFunctionArgs) => {
   );
   const resumeDraftVersionId = canResumeDraft ? latestVersion?.id : undefined;
 
+  let resumeDraftUploadPath: string | undefined;
+  if (canResumeDraft && resumeDraftVersionId) {
+    let pmcSubmissionVersionId: string | null = null;
+    if (latestVersion?.metadata) {
+      const prisma = await getPrismaClient();
+      const draftSubmissionVersion = await prisma.submissionVersion.findFirst({
+        where: {
+          work_version_id: resumeDraftVersionId,
+          submission: { site: { name: 'pmc' } },
+          status: 'DRAFT',
+        },
+        orderBy: { date_created: 'desc' },
+        select: { id: true },
+      });
+      pmcSubmissionVersionId = draftSubmissionVersion?.id ?? null;
+    }
+    resumeDraftUploadPath = resolveResumeDraftUploadPath({
+      workId: ctx.work.id,
+      workVersionId: resumeDraftVersionId,
+      metadata: latestVersion?.metadata,
+      pmcSubmissionVersionId,
+    });
+  }
+
   const latestNonDraftContentCard: WorkVersionContentCardData | null = latestNonDraftWithMetadata
     ? {
         title: latestNonDraftWithMetadata.title,
@@ -585,6 +625,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     canUpload,
     canResumeDraft,
     resumeDraftVersionId,
+    resumeDraftUploadPath,
     latestNonDraftContentCard,
     users,
     canSubmitToSite,

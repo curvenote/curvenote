@@ -105,6 +105,7 @@ function flattenWorkAndVersion(work: WorkDBO, version: WorkVersionDBO) {
     canonical,
     draft,
     metadata,
+    thumbnail,
   } = version;
   return {
     ...work,
@@ -120,6 +121,7 @@ function flattenWorkAndVersion(work: WorkDBO, version: WorkVersionDBO) {
     canonical,
     draft,
     metadata,
+    thumbnail,
   };
 }
 
