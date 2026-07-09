@@ -169,19 +169,19 @@ export function WorkListItem({
         </div>
 
         {/* Column 2: Date, activity, timeline */}
-        <div className="flex flex-col flex-shrink-0 items-start w-48">
+        <div className="flex flex-col flex-shrink-0 items-center w-48">
           {publishedDate ? (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
+            <div className="text-xs text-center text-gray-600 dark:text-gray-400">
               Published: {formatDate(publishedDate)}
             </div>
           ) : latestVersion ? (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
+            <div className="text-xs text-center text-gray-600 dark:text-gray-400">
               Created: {formatDate(latestVersion.date_created)}
             </div>
           ) : null}
 
           {activityTime ? (
-            <div className="mt-2 flex flex-wrap gap-2 justify-start w-full">
+            <div className="mt-2 flex flex-wrap gap-2 justify-center w-full">
               <primitives.Chip
                 className="text-gray-500 border-[1px] border-gray-200 dark:border-gray-500 dark:text-gray-500"
                 title={`Last activity was ${activityTime}`}
