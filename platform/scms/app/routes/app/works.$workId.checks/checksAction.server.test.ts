@@ -1,5 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type * as ScmsCore from '@curvenote/scms-core';
 import { isCheckDispatchIntent, handleChecksRouteAction } from './checksAction.server';
 
 vi.mock('@curvenote/scms-server', () => ({
@@ -8,7 +9,7 @@ vi.mock('@curvenote/scms-server', () => ({
 }));
 
 vi.mock('@curvenote/scms-core', async () => {
-  const actual = await vi.importActual<typeof import('@curvenote/scms-core')>('@curvenote/scms-core');
+  const actual = await vi.importActual<typeof ScmsCore>('@curvenote/scms-core');
   return {
     ...actual,
     getExtensionCheckServicesFromServerConfig: vi.fn(() => [

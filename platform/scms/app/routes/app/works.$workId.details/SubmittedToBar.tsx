@@ -166,7 +166,7 @@ function SubmitToSiteEarlyAccessMessage() {
         <ui.Button
           type="button"
           variant="link"
-          className="inline h-auto p-0 align-baseline"
+          className="inline p-0 h-auto align-baseline"
           onClick={() => setSupportOpen(true)}
         >
           contact support
@@ -388,13 +388,13 @@ export function SubmittedToBar({
                           id="submit-version-select"
                           type="button"
                           className={cn(
-                            'flex h-16 w-full items-center justify-between gap-3 rounded-md border border-input bg-white px-3 py-2 text-left shadow-xs transition-colors',
+                            'flex gap-3 justify-between items-center px-3 py-2 w-full h-16 text-left bg-white rounded-md border transition-colors border-input shadow-xs',
                             'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                           )}
                         >
                           {selectedVersion ? (
-                            <span className="flex min-w-0 flex-col items-start">
-                              <span className="truncate font-medium">
+                            <span className="flex flex-col items-start min-w-0">
+                              <span className="font-medium truncate">
                                 Version {selectedVersionLabel}
                               </span>
                               <span className="text-xs text-muted-foreground">
@@ -432,8 +432,8 @@ export function SubmittedToBar({
                                   setVersionDropdownOpen(false);
                                 }}
                               >
-                                <span className="flex min-w-0 flex-col items-start">
-                                  <span className="truncate font-medium">Version {label}</span>
+                                <span className="flex flex-col items-start min-w-0">
+                                  <span className="font-medium truncate">Version {label}</span>
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(
                                       version.date_modified ?? version.date_created,
@@ -450,7 +450,7 @@ export function SubmittedToBar({
                       </ui.PopoverContent>
                     </ui.Popover>
                   ) : (
-                    <p className="rounded-md border border-dashed border-muted-foreground/40 bg-background px-3 py-4 text-xs leading-relaxed text-muted-foreground">
+                    <p className="px-3 py-4 text-xs leading-relaxed rounded-md border border-dashed border-muted-foreground/40 bg-background text-muted-foreground">
                       No completed version is available to submit. Finish creating a version before
                       submitting to a site.
                     </p>
@@ -477,9 +477,7 @@ export function SubmittedToBar({
                                   {SummaryTitleComponent && row.run ? (
                                     <SummaryTitleComponent metadata={metadata} />
                                   ) : (
-                                    <span className="text-xs font-medium truncate">
-                                      {row.name}
-                                    </span>
+                                    <span className="text-xs font-medium truncate">{row.name}</span>
                                   )}
                                 </span>
                                 {row.run ? (
@@ -577,7 +575,7 @@ export function SubmittedToBar({
                                 </span>
                               )}
                             </span>
-                            <span className="min-w-0 flex-1">
+                            <span className="flex-1 min-w-0">
                               <span className="flex gap-2 items-center">
                                 {metadata?.favicon ? (
                                   <img
