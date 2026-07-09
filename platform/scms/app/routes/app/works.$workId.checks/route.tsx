@@ -324,10 +324,10 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
             (fallbackManifest ? ({ manifest: fallbackManifest } as any) : undefined);
 
           const workVersionIdForActivity = latest?.workVersionId ?? latestNonDraftWorkVersion.id;
-          const isLatestRunOnLatestVersion =
-            latest != null && latest.workVersionId === latestNonDraftWorkVersion.id;
+          const isLatestRunOnOlderVersion =
+            latest != null && latest.workVersionId !== latestNonDraftWorkVersion.id;
           const headerAction =
-            canDispatchChecks && !isLatestRunOnLatestVersion ? (
+            canDispatchChecks && isLatestRunOnOlderVersion ? (
               <RunCheckOnLatestVersionButton
                 actionPath={service.checksActionPath ?? `${basePath}/checks`}
                 workVersionId={latestNonDraftWorkVersion.id}
