@@ -16,7 +16,7 @@ import type {
 } from '../works.$workId/types';
 import type { CheckServiceRunRow } from '../works.$workId/checkServiceRun.shared';
 import { getCheckRunSummaryByKind } from '../works.$workId/checkServiceRunSummaries';
-import { Check, ChevronDown, Loader2, Send } from 'lucide-react';
+import { Check, ChevronDown, GitBranch, Loader2, Send } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 type SubmissionTargetSite = {
@@ -149,7 +149,7 @@ function SubmitVersionLabel({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 min-w-0">
       <span className="text-sm font-medium shrink-0">Version</span>
-      <ui.VersionTagBadge tag={label} titlePrefix="Version" hideIcon />
+      <ui.VersionTagBadge tag={label} titlePrefix="Version" icon={GitBranch} />
     </span>
   );
 }
@@ -260,16 +260,18 @@ export function SubmittedToBar({
     const selectedCreatedAt = selectedVersion?.date_created;
     const nonDraftVersions = [...versions]
       .filter((version) => !version.draft)
-      .filter(
-        (version) =>
-          selectedCreatedAt == null || version.date_created <= selectedCreatedAt,
-      )
+      .filter((version) => selectedCreatedAt == null || version.date_created <= selectedCreatedAt)
       .sort((a, b) =>
         a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
       );
     return getCheckRunSummaryByKind(nonDraftVersions, checkServiceRunsByWorkVersionId)
       .latestRunByServiceKind;
-  }, [versions, checkServiceRunsByWorkVersionId, selectedVersion?.date_created, selectedVersion?.id]);
+  }, [
+    versions,
+    checkServiceRunsByWorkVersionId,
+    selectedVersion?.date_created,
+    selectedVersion?.id,
+  ]);
   const fallbackCheckRows = Object.values(latestRunByServiceKind)
     .filter((entry) => !checkServices.some((service) => service.id === entry.run.kind))
     .map((entry) => ({ id: entry.run.kind, name: entry.run.kind, entry, service: undefined }));
@@ -510,12 +512,14 @@ export function SubmittedToBar({
                                         side="top"
                                         sideOffset={6}
                                       >
-                                        <ui.Badge
-                                          variant="outline-muted"
-                                          className="px-1.5 text-[10px] font-medium"
-                                        >
-                                          v{runVersionNumber}
-                                        </ui.Badge>
+                                        <span className="inline-flex">
+                                          <ui.VersionTagBadge
+                                            tag={`v${runVersionNumber}`}
+                                            titlePrefix="Version"
+                                            icon={GitBranch}
+                                            disableTooltip
+                                          />
+                                        </span>
                                       </ui.SimpleTooltip>
                                     ) : null}
                                     {SummaryBadgeComponent ? (
