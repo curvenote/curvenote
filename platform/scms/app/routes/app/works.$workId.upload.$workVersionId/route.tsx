@@ -526,9 +526,7 @@ export async function action(args: Route.ActionArgs) {
 
         const isChecked = checked === 'true';
 
-        if (
-          !userHasWorkScope(userWithWorkRoles, scopes.work.id.checks.dispatch, workId)
-        ) {
+        if (!userHasWorkScope(userWithWorkRoles, scopes.work.id.checks.dispatch, workId)) {
           return rejectCheckDispatch();
         }
 

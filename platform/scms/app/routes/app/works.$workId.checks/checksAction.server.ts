@@ -1,9 +1,5 @@
 import { data } from 'react-router';
-import {
-  userHasScope,
-  userHasWorkScope,
-  type WorkContext,
-} from '@curvenote/scms-server';
+import { userHasScope, userHasWorkScope, type WorkContext } from '@curvenote/scms-server';
 import {
   getExtensionCheckServicesFromServerConfig,
   loadCheckMaintenanceByServiceId,
@@ -12,7 +8,14 @@ import {
   type ServerExtension,
 } from '@curvenote/scms-core';
 
-const CHECK_DISPATCH_INTENTS = new Set(['execute', 'retry', 'rerun', 'run', 'accept-eula', 'start']);
+const CHECK_DISPATCH_INTENTS = new Set([
+  'execute',
+  'retry',
+  'rerun',
+  'run',
+  'accept-eula',
+  'start',
+]);
 
 export function isCheckDispatchIntent(intent: string): boolean {
   const normalized = intent.trim().toLowerCase();
@@ -65,11 +68,7 @@ export async function handleChecksRouteAction({
     return data({ error: { type: 'general', message: 'Intent is required' } }, { status: 400 });
   }
 
-  const canDispatchChecks = userHasWorkScope(
-    ctx.user,
-    scopes.work.id.checks.dispatch,
-    ctx.work.id,
-  );
+  const canDispatchChecks = userHasWorkScope(ctx.user, scopes.work.id.checks.dispatch, ctx.work.id);
   if (isCheckDispatchIntent(intent) && !canDispatchChecks) {
     return rejectCheckDispatch();
   }
@@ -92,11 +91,7 @@ export async function handleChecksRouteAction({
   }
 
   if (isCheckDispatchIntent(intent)) {
-    const maintenance = await loadCheckMaintenanceByServiceId(
-      ctx,
-      serverExtensions,
-      service.id,
-    );
+    const maintenance = await loadCheckMaintenanceByServiceId(ctx, serverExtensions, service.id);
     if (maintenance?.underMaintenance) {
       return data(
         {

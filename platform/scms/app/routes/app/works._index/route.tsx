@@ -230,8 +230,15 @@ export function shouldRevalidate({
 }
 
 export default function MyWorks({ loaderData }: Route.ComponentProps) {
-  const { items, workflows, error, canUpload, hasChecksFeature, createWorkOptions, stringReplacements } =
-    loaderData;
+  const {
+    items,
+    workflows,
+    error,
+    canUpload,
+    hasChecksFeature,
+    createWorkOptions,
+    stringReplacements,
+  } = loaderData;
   const hydratedCreateWorkOptions = hydrateWorkCreateOptions(createWorkOptions ?? [], extensions);
   const deploymentConfig = useDeploymentConfig();
   const checkServices = getExtensionCheckServicesFromClientConfig(

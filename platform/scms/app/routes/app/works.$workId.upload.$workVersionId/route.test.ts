@@ -83,18 +83,18 @@ vi.mock('@curvenote/scms-core', async () => ({
   MANUSCRIPT_UPLOAD_MIME_TYPES: ['application/pdf'],
   scopes: {
     app: {
-    works: {
-      upload: 'app:works:upload',
-      metadataExtract: 'app:works:metadataExtract',
-    },
-  },
-  work: {
-    id: {
-      checks: {
-        dispatch: 'work:checks:dispatch',
+      works: {
+        upload: 'app:works:upload',
+        metadataExtract: 'app:works:metadataExtract',
       },
     },
-  },
+    work: {
+      id: {
+        checks: {
+          dispatch: 'work:checks:dispatch',
+        },
+      },
+    },
   },
   isValidOrcid: vi.fn(),
 }));

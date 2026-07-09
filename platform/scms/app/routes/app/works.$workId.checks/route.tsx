@@ -248,7 +248,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   };
 
   const renderTimelineVersionLabel = (entry: ServiceRunEntry) => (
-    <span className="inline-flex flex-wrap gap-x-2 gap-y-1 items-center">
+    <span className="inline-flex flex-wrap gap-y-1 gap-x-2 items-center">
       {renderWorkVersionDate(entry)}
       <DateWithPopover
         date={entry.run.date_modified}

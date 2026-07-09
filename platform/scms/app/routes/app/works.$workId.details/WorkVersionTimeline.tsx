@@ -204,9 +204,8 @@ function WorkVersionTimelineInner({
           activitiesForVersion,
           checkRunsForVersion,
         );
-        const visibleEntries = (showActivities
-          ? sortedEntries
-          : sortedEntries.filter((e) => e.kind !== 'activity')
+        const visibleEntries = (
+          showActivities ? sortedEntries : sortedEntries.filter((e) => e.kind !== 'activity')
         ).filter((e) => hasChecksFeature || e.kind !== 'check-service-run');
 
         if (visibleEntries.length === 0) return null;
