@@ -145,6 +145,15 @@ function getSubmittedSiteNamesForWorkVersion(version: WorkVersionForDetailsClien
   );
 }
 
+function SubmitVersionLabel({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 min-w-0">
+      <span className="text-sm font-medium shrink-0">Version</span>
+      <ui.VersionTagBadge tag={label} titlePrefix="Version" hideIcon />
+    </span>
+  );
+}
+
 function SubmitToSiteEarlyAccessMessage() {
   const [supportOpen, setSupportOpen] = useState(false);
   const location = useLocation();
@@ -402,10 +411,8 @@ export function SubmittedToBar({
                           )}
                         >
                           {selectedVersion ? (
-                            <span className="flex min-w-0 flex-col items-start">
-                              <span className="truncate font-medium">
-                                Version {selectedVersionLabel}
-                              </span>
+                            <span className="flex min-w-0 flex-col items-start gap-1">
+                              <SubmitVersionLabel label={selectedVersionLabel} />
                               <span className="text-xs text-muted-foreground">
                                 {new Date(
                                   selectedVersion.date_modified ?? selectedVersion.date_created,
@@ -441,8 +448,8 @@ export function SubmittedToBar({
                                   setVersionDropdownOpen(false);
                                 }}
                               >
-                                <span className="flex min-w-0 flex-col items-start">
-                                  <span className="truncate font-medium">Version {label}</span>
+                                <span className="flex min-w-0 flex-col items-start gap-1">
+                                  <SubmitVersionLabel label={label} />
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(
                                       version.date_modified ?? version.date_created,
