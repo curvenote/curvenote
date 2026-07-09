@@ -61,7 +61,7 @@ export function WorkListItem({
 
   return (
     <div className="px-6 py-4">
-      <div className="flex flex-col gap-1 items-start md:gap-6 md:flex-row">
+      <div className="flex flex-col gap-1 items-start md:items-baseline md:gap-6 md:flex-row">
         {/* Column 1: Title, Authors, DOI Links */}
         <div className="flex flex-col flex-grow gap-1">
           <div className="flex flex-wrap gap-2 items-start">
@@ -169,7 +169,7 @@ export function WorkListItem({
         </div>
 
         {/* Column 2: Date, activity, timeline */}
-        <div className="flex flex-col flex-shrink-0 items-start self-stretch w-48 pt-[1px]">
+        <div className="flex flex-col flex-shrink-0 items-start w-48">
           {publishedDate ? (
             <div className="text-xs text-gray-600 dark:text-gray-400">
               Published: {formatDate(publishedDate)}
