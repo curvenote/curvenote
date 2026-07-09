@@ -4,6 +4,7 @@ import {
   joinPageTitle,
   getExtensionCheckServicesFromServerConfig,
   useDeploymentConfig,
+  scopes,
 } from '@curvenote/scms-core';
 import type { MetaFunction } from 'react-router';
 import type { WorkDTO } from '@curvenote/common';
@@ -39,6 +40,7 @@ type SubmissionTargetSite = {
 
 type LoaderData = {
   userScopes: string[];
+  canDispatchChecks: boolean;
   workflows: Record<string, Workflow>;
   work: WorkDTO;
   versions: WorkVersionForDetailsClient[];
@@ -64,6 +66,7 @@ export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
 export default function WorkDetailRoute() {
   const {
     userScopes,
+    canDispatchChecks,
     workflows,
     work,
     versions,
@@ -99,6 +102,7 @@ export default function WorkDetailRoute() {
 
   const workBasePath = `/app/works/${work.id}`;
   const basePath = `/app/works/${work.id}`;
+  const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
 
   return (
     <div
@@ -127,6 +131,7 @@ export default function WorkDetailRoute() {
             versions={versions}
             checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
             checkServices={checkServices}
+            hasChecksFeature={hasChecksFeature}
           />
         </div>
         <div>
@@ -136,6 +141,7 @@ export default function WorkDetailRoute() {
             workOwnerName={workOwnerName}
             basePath={basePath}
             userScopes={userScopes}
+            canDispatchChecks={canDispatchChecks}
             linkedJobsByWorkVersionId={linkedJobsByWorkVersionId}
             activities={activities}
             checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}

@@ -20,10 +20,12 @@ export function WorkListItem({
   work,
   workflows,
   checkServices,
+  hasChecksFeature,
 }: {
   work: WorkCardDBO;
   workflows: Record<string, any>;
   checkServices: WorkListCheckService[];
+  hasChecksFeature: boolean;
 }) {
   const lastActivity = work.submissions
     .map((submission) => submission.activity?.[0])
@@ -156,11 +158,13 @@ export function WorkListItem({
               )}
             </div>
           )}
-          <WorkCheckSummaries
-            workId={work.id}
-            workListCheckRunsByServiceKind={work.workListCheckRunsByServiceKind}
-            checkServices={checkServices}
-          />
+          {hasChecksFeature ? (
+            <WorkCheckSummaries
+              workId={work.id}
+              workListCheckRunsByServiceKind={work.workListCheckRunsByServiceKind}
+              checkServices={checkServices}
+            />
+          ) : null}
         </div>
 
         {/* Column 2: Activity and Date */}
@@ -190,7 +194,7 @@ export function WorkListItem({
           <WorkVersionTimelineHoverCard
             versionsUrl={workVersionsUrl}
             workId={work.id}
-            checkServices={checkServices}
+            checkServices={hasChecksFeature ? checkServices : []}
             align="end"
             side="left"
             title="Work Timeline"

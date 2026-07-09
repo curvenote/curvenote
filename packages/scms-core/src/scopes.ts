@@ -91,6 +91,7 @@ export const work = {
     },
     checks: {
       read: 'work:checks:read',
+      dispatch: 'work:checks:dispatch',
     },
   },
 };
@@ -131,7 +132,6 @@ export const app = {
     submitToSite: 'app:works:submit-to-site',
     checks: {
       feature: 'app:works:checks:feature',
-      dispatch: 'app:works:checks:dispatch',
     },
     export: 'app:works:export',
     metadataExtract: 'app:works:metadata-extract',

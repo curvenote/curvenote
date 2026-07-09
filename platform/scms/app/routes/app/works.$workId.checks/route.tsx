@@ -4,6 +4,8 @@ import { useLocation, useRevalidator } from 'react-router';
 import {
   withSecureWorkContext,
   makeDefaultWorkVersionMetadata,
+  userHasWorkScope,
+  userHasScope,
   type WorkVersionMetadata,
   type ChecksMetadataSection,
 } from '@curvenote/scms-server';
@@ -34,11 +36,16 @@ import {
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { RunCheckOnLatestVersionButton } from './RunCheckOnLatestVersionButton';
+import { handleChecksRouteAction } from './checksAction.server';
 
 const DISPATCHING_SKELETON_MS = 1500;
 
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureWorkContext(args, [scopes.work.id.checks.read]);
+
+  if (!userHasScope(ctx.user, scopes.app.works.checks.feature)) {
+    throw httpError(404, 'Checks are not available');
+  }
 
   if (!ctx.work.versions || ctx.work.versions.length === 0) {
     throw httpError(404, 'No work version found');
@@ -118,12 +125,19 @@ export async function loader(args: Route.LoaderArgs) {
 
   return {
     work: ctx.workDTO,
+    canDispatchChecks: userHasWorkScope(ctx.user, scopes.work.id.checks.dispatch, ctx.work.id),
     latestNonDraftWorkVersion,
     metadata,
     latestRunByServiceKind,
     previousRunsByServiceKind,
     manifestByServiceKind,
   };
+}
+
+export async function action(args: Route.ActionArgs) {
+  const ctx = await withSecureWorkContext(args, [scopes.work.id.checks.read]);
+  const formData = await args.request.formData();
+  return handleChecksRouteAction({ ctx, formData, serverExtensions });
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {
@@ -134,6 +148,7 @@ export const meta: Route.MetaFunction = ({ matches }) => {
 export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   const {
     work,
+    canDispatchChecks,
     latestNonDraftWorkVersion,
     metadata,
     latestRunByServiceKind,
@@ -233,7 +248,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   };
 
   const renderTimelineVersionLabel = (entry: ServiceRunEntry) => (
-    <span className="inline-flex flex-wrap gap-x-2 gap-y-1 items-center">
+    <span className="inline-flex flex-wrap gap-y-1 gap-x-2 items-center">
       {renderWorkVersionDate(entry)}
       <DateWithPopover
         date={entry.run.date_modified}
@@ -309,10 +324,10 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
             (fallbackManifest ? ({ manifest: fallbackManifest } as any) : undefined);
 
           const workVersionIdForActivity = latest?.workVersionId ?? latestNonDraftWorkVersion.id;
-          const isLatestRunOnLatestVersion =
-            latest != null && latest.workVersionId === latestNonDraftWorkVersion.id;
+          const isLatestRunOnOlderVersion =
+            latest != null && latest.workVersionId !== latestNonDraftWorkVersion.id;
           const headerAction =
-            latest != null && !isLatestRunOnLatestVersion ? (
+            canDispatchChecks && isLatestRunOnOlderVersion ? (
               <RunCheckOnLatestVersionButton
                 actionPath={service.checksActionPath ?? `${basePath}/checks`}
                 workVersionId={latestNonDraftWorkVersion.id}
@@ -334,7 +349,12 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                       }
                       workVersionId={workVersionIdForActivity}
                       checkRunId={latest?.run.id}
-                      remoteStatusActionPath={service.checksActionPath ?? `${basePath}/checks`}
+                      canDispatchChecks={canDispatchChecks}
+                      remoteStatusActionPath={
+                        canDispatchChecks
+                          ? (service.checksActionPath ?? `${basePath}/checks`)
+                          : undefined
+                      }
                       checkRunDateModified={latest?.run.date_modified}
                     />
                   </ui.CardContent>
@@ -356,6 +376,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                           run={entry.run}
                           checkService={service}
                           basePath={basePath}
+                          canDispatchChecks={canDispatchChecks}
                           hideDate
                           hideIcon
                         />

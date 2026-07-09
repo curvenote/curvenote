@@ -130,6 +130,7 @@ type WorkVersionTimelineProps = {
   workOwnerName?: string | null;
   basePath: string;
   userScopes: string[];
+  canDispatchChecks?: boolean;
   linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
   /** Activities for this work (already filtered to work). Shown per version by work_version_id. */
   activities: WorkActivityRow[];
@@ -158,6 +159,7 @@ function WorkVersionTimelineInner({
   workOwnerName,
   basePath,
   userScopes,
+  canDispatchChecks = false,
   linkedJobsByWorkVersionId,
   activities,
   checkServiceRunsByWorkVersionId,
@@ -167,6 +169,7 @@ function WorkVersionTimelineInner({
   const [searchParams] = useSearchParams();
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
+  const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
   const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
 
   // Order sections by date_created descending (most recently created first)
@@ -201,9 +204,9 @@ function WorkVersionTimelineInner({
           activitiesForVersion,
           checkRunsForVersion,
         );
-        const visibleEntries = showActivities
-          ? sortedEntries
-          : sortedEntries.filter((e) => e.kind !== 'activity');
+        const visibleEntries = (
+          showActivities ? sortedEntries : sortedEntries.filter((e) => e.kind !== 'activity')
+        ).filter((e) => hasChecksFeature || e.kind !== 'check-service-run');
 
         if (visibleEntries.length === 0) return null;
 
@@ -242,6 +245,7 @@ function WorkVersionTimelineInner({
                     run={entry.run}
                     checkService={service}
                     basePath={basePath}
+                    canDispatchChecks={canDispatchChecks}
                     defaultExpanded={shouldExpandByDefault(
                       entry.run,
                       checkServiceRunsByWorkVersionId,

@@ -152,6 +152,11 @@ export type ExtensionCheckSectionActivityProps = {
   checkRunId?: string;
   workVersionId?: string;
   metadata: any;
+  /**
+   * When false, extensions must hide dispatch controls (run, retry, accept EULA, etc.).
+   * The platform also omits `remoteStatusActionPath` so fetcher forms cannot post.
+   */
+  canDispatchChecks?: boolean;
   /** POST target for check UI mutations (extension-owned route or legacy work checks path). */
   remoteStatusActionPath?: string;
   /**
@@ -179,8 +184,10 @@ export type ExtensionCheckRunTimelineMountProps = {
   /** Check service id from the run row. */
   checkKind: string;
   metadata: unknown;
-  /** POST target for check UI mutations. */
-  remoteStatusActionPath: string;
+  /** POST target for check UI mutations. Omitted when the user cannot dispatch checks. */
+  remoteStatusActionPath?: string;
+  /** When false, mount-only sync must not enqueue or retry checks. */
+  canDispatchChecks?: boolean;
   /** See `ExtensionCheckSectionActivityProps.defaultExpanded`. */
   defaultExpanded?: boolean;
 };
