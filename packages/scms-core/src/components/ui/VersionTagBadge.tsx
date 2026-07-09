@@ -23,6 +23,8 @@ export type VersionTagBadgeProps = {
    * `solid` / `latest` / `previous` — filled badges for version emphasis (e.g. checks timeline).
    */
   emphasis?: VersionTagBadgeEmphasis;
+  /** Tighter sizing for dense timeline rows (e.g. work timeline hover popover). */
+  compact?: boolean;
   className?: string;
 };
 
@@ -50,6 +52,7 @@ export function VersionTagBadge({
   icon: Icon = Tag,
   disableTooltip = false,
   emphasis = 'outline',
+  compact = false,
   className,
 }: VersionTagBadgeProps) {
   const label = disableTooltip ? undefined : versionTagTitle(tag, title, titlePrefix);
@@ -59,10 +62,16 @@ export function VersionTagBadge({
       <Badge
         variant="outline-muted"
         size="xs"
-        className={cn('font-normal px-1 py-0.5 font-mono', className)}
+        className={cn(
+          'font-normal font-mono leading-none',
+          compact ? 'h-4 gap-0.5 px-1 py-0' : 'px-1 py-0.5',
+          className,
+        )}
         title={label}
       >
-        {!hideIcon ? <Icon className="size-3" aria-hidden /> : null}
+        {!hideIcon ? (
+          <Icon className={compact ? 'size-2.5' : 'size-3'} aria-hidden />
+        ) : null}
         {tag}
       </Badge>
     );
@@ -71,13 +80,16 @@ export function VersionTagBadge({
   return (
     <span
       className={cn(
-        'inline-flex gap-1 items-center py-1 text-xs px-[6px] rounded-xs',
+        'inline-flex gap-1 items-center rounded-xs',
+        compact ? 'h-4 py-0 text-[10px] px-1' : 'py-1 text-xs px-[6px]',
         filledEmphasisClassName[emphasis],
         className,
       )}
       title={label}
     >
-      {!hideIcon ? <Icon className="size-3 shrink-0" aria-hidden /> : null}
+      {!hideIcon ? (
+        <Icon className={cn('shrink-0', compact ? 'size-2.5' : 'size-3')} aria-hidden />
+      ) : null}
       {tag}
     </span>
   );

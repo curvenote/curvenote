@@ -162,7 +162,12 @@ export function WorkVersionTimelineRow({
   return (
     <VersionTimelineRowShell dotStatus={entry.draft ? 'DRAFT' : 'PUBLISHED'}>
       <div className="flex flex-wrap gap-x-1.5 gap-y-1 items-center min-h-4">
-        <VersionTagBadge tag={`v${entry.versionNumber}`} titlePrefix="Version" icon={GitBranch} />
+        <VersionTagBadge
+          tag={`v${entry.versionNumber}`}
+          titlePrefix="Version"
+          icon={GitBranch}
+          compact
+        />
         <CreatedDate dateCreated={entry.date_created} />
         {submissionVersions.map((submissionVersion) => (
           <SubmissionVersionSiteChip
