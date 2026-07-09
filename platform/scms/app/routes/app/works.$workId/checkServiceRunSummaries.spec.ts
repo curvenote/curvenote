@@ -59,6 +59,19 @@ describe('getCheckRunSummaryByKind', () => {
     expect(summary.previousRunsByServiceKind['service-a']).toHaveLength(1);
   });
 
+  it('excludes runs from versions outside the scoped version list (submit cap)', () => {
+    const summary = getCheckRunSummaryByKind(
+      [{ id: 'wv-1', date_created: '2026-01-01T00:00:00.000Z' }],
+      {
+        'wv-1': [run('proofig-v1', 'proofig', 'wv-1', '2026-01-02T00:00:00.000Z')],
+        'wv-2': [run('text-int-v2', 'text-integrity', 'wv-2', '2026-01-05T00:00:00.000Z')],
+      },
+    );
+
+    expect(summary.latestRunByServiceKind.proofig?.run.id).toBe('proofig-v1');
+    expect(summary.latestRunByServiceKind['text-integrity']).toBeUndefined();
+  });
+
   it('dedupes multiple same-kind runs on a version to the first row supplied', () => {
     const summary = getCheckRunSummaryByKind(
       [

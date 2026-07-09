@@ -245,18 +245,22 @@ export function SubmittedToBar({
     versionOptions.find((option) => option.version.id === selectedVersion?.id)?.label ?? 'version';
   const selectedFiles = selectedVersion ? getVersionFiles(selectedVersion) : {};
   const fileLabels = Object.entries(selectedFiles).map(([key, value]) => getFileLabel(key, value));
-  // Checks surface the most recent run of each kind across all non-draft versions,
-  // not just the selected version, so a check run on an earlier version still shows
-  // its result (with a version badge) instead of "Not run".
+  // Checks surface the most recent run of each kind on the selected version and
+  // any older versions — not on versions newer than the one chosen for submit.
   const latestRunByServiceKind = useMemo(() => {
+    const selectedCreatedAt = selectedVersion?.date_created;
     const nonDraftVersions = [...versions]
       .filter((version) => !version.draft)
+      .filter(
+        (version) =>
+          selectedCreatedAt == null || version.date_created <= selectedCreatedAt,
+      )
       .sort((a, b) =>
         a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
       );
     return getCheckRunSummaryByKind(nonDraftVersions, checkServiceRunsByWorkVersionId)
       .latestRunByServiceKind;
-  }, [versions, checkServiceRunsByWorkVersionId]);
+  }, [versions, checkServiceRunsByWorkVersionId, selectedVersion?.date_created, selectedVersion?.id]);
   const fallbackCheckRows = Object.values(latestRunByServiceKind)
     .filter((entry) => !checkServices.some((service) => service.id === entry.run.kind))
     .map((entry) => ({ id: entry.run.kind, name: entry.run.kind, entry, service: undefined }));
