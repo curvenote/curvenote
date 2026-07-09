@@ -9,7 +9,6 @@ import {
   useMyUser,
   truncate,
   buildWorkVersionNumberByIdMap,
-  compareWorkVersionsByDateCreatedDesc,
 } from '@curvenote/scms-core';
 import type { ClientExtensionCheckService, Workflow } from '@curvenote/scms-core';
 import type {
