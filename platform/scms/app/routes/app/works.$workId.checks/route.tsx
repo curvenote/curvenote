@@ -355,7 +355,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
               <HeaderComponent tag={null} action={headerAction} metadata={serviceMetadata} />
               <div className="space-y-0">
                 <ui.Card>
-                  <ui.CardContent className="pt-6">
+                  <ui.CardContent className="py-4">
                     <ActivityComponent
                       metadata={
                         serviceMetadata as WorkVersionMetadata &
