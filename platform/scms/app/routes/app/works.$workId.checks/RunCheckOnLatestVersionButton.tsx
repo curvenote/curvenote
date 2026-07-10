@@ -1,5 +1,5 @@
 import { useFetcher } from 'react-router';
-import { ShieldCheck } from 'lucide-react';
+import { GitBranch } from 'lucide-react';
 import { ui, useCheckMaintenanceBlocked } from '@curvenote/scms-core';
 
 type RunCheckOnLatestVersionButtonProps = {
@@ -8,6 +8,8 @@ type RunCheckOnLatestVersionButtonProps = {
   /** Latest non-draft work version id to run the check against. */
   workVersionId: string;
   checkServiceId: string;
+  /** 1-based version number for the target work version (shown in the button). */
+  versionNumber: number;
 };
 
 /**
@@ -19,6 +21,7 @@ export function RunCheckOnLatestVersionButton({
   actionPath,
   workVersionId,
   checkServiceId,
+  versionNumber,
 }: RunCheckOnLatestVersionButtonProps) {
   const fetcher = useFetcher();
   const isSubmitting = fetcher.state === 'submitting';
@@ -38,8 +41,13 @@ export function RunCheckOnLatestVersionButton({
           busy={isSubmitting}
           disabled={blocked}
         >
-          <span className="flex gap-1 items-center">
-            <ShieldCheck className="w-3 h-3" aria-hidden />
+          <span className="flex gap-1.5 items-center">
+            <ui.VersionTagBadge
+              tag={`v${versionNumber}`}
+              titlePrefix="Version"
+              icon={GitBranch}
+              compact
+            />
             Check Latest Version
           </span>
         </ui.StatefulButton>

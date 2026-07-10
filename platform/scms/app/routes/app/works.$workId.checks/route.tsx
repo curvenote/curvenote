@@ -20,6 +20,7 @@ import {
   getExtensionCheckServicesFromServerConfig,
   formatDateWithRecentTime,
   formatDatetime,
+  buildWorkVersionNumberByIdMap,
   Timeline,
   TimelineSection,
   CheckServiceRunTimelineItem,
@@ -197,6 +198,9 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     .map(({ service }) => service);
 
   const basePath = `/app/works/${work.id}`;
+  const nonDraftVersions = (work.versions ?? []).filter((version) => !version.draft);
+  const latestVersionNumber =
+    buildWorkVersionNumberByIdMap(nonDraftVersions)[latestNonDraftWorkVersion.id] ?? 0;
   const enabledCheckKinds = metadata.checks?.enabled ?? [];
   const enabledCheckKindSet = new Set<string>(enabledCheckKinds);
   const hasPendingLatestRun = enabledCheckKinds.some(
@@ -227,10 +231,20 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     return () => window.clearInterval(interval);
   }, [showDispatchingState, revalidator]);
 
-  const renderWorkVersionDate = (
+  const renderVersionBadge = (
     entry: ServiceRunEntry,
-    { showBranchIcon = false }: { showBranchIcon?: boolean } = {},
-  ) => {
+    { compact = false }: { compact?: boolean } = {},
+  ) => (
+    <ui.VersionTagBadge
+      tag={`v${entry.versionNumber}`}
+      title={`Created at: ${formatDatetime(entry.versionDateCreated)}`}
+      titlePrefix="Version"
+      icon={GitBranch}
+      compact={compact}
+    />
+  );
+
+  const renderWorkVersionDate = (entry: ServiceRunEntry) => {
     const versionDate = formatDateWithRecentTime(entry.versionDateCreated);
     return (
       <ui.SimpleTooltip
@@ -240,7 +254,6 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
         delayDuration={1000}
       >
         <span className="inline-flex gap-1.5 items-center text-xs cursor-default text-muted-foreground">
-          {showBranchIcon ? <GitBranch className="size-3.5 shrink-0" aria-hidden /> : null}
           {versionDate}
         </span>
       </ui.SimpleTooltip>
@@ -249,6 +262,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
 
   const renderTimelineVersionLabel = (entry: ServiceRunEntry) => (
     <span className="inline-flex flex-wrap gap-y-1 gap-x-2 items-center">
+      {renderVersionBadge(entry)}
       {renderWorkVersionDate(entry)}
       <DateWithPopover
         date={entry.run.date_modified}
@@ -332,6 +346,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                 actionPath={service.checksActionPath ?? `${basePath}/checks`}
                 workVersionId={latestNonDraftWorkVersion.id}
                 checkServiceId={service.id}
+                versionNumber={latestVersionNumber}
               />
             ) : null;
 
@@ -359,8 +374,9 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                     />
                   </ui.CardContent>
                   {latest ? (
-                    <div className="flex justify-start py-1.5 pr-6 pl-3 border-t border-border">
-                      {renderWorkVersionDate(latest, { showBranchIcon: true })}
+                    <div className="flex gap-2 justify-start items-center py-1.5 pr-6 pl-3 border-t border-border">
+                      {renderVersionBadge(latest, { compact: true })}
+                      {renderWorkVersionDate(latest)}
                     </div>
                   ) : null}
                 </ui.Card>
@@ -370,6 +386,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                       <TimelineSection
                         key={entry.workVersionId}
                         label={renderTimelineVersionLabel(entry)}
+                        icon={<span className="block size-5 shrink-0" aria-hidden />}
                         stacked
                       >
                         <CheckServiceRunTimelineItem
