@@ -18,8 +18,10 @@ import {
   httpError,
   scopes,
   getExtensionCheckServicesFromServerConfig,
+  sortExtensionCheckServicesByExtensionName,
   formatDateWithRecentTime,
   formatDatetime,
+  buildWorkVersionNumberByIdMap,
   Timeline,
   TimelineSection,
   CheckServiceRunTimelineItem,
@@ -74,6 +76,8 @@ export async function loader(args: Route.LoaderArgs) {
     nonDraftVersions,
     runsByVersionId,
   );
+  const latestVersionNumber =
+    buildWorkVersionNumberByIdMap(nonDraftVersions)[latestNonDraftWorkVersion.id] ?? 0;
 
   // -------------------------------------------------------------------------
   // TEMPORARY (stepping-stone): service-manifest fallback for kinds with no run.
@@ -131,6 +135,7 @@ export async function loader(args: Route.LoaderArgs) {
     latestRunByServiceKind,
     previousRunsByServiceKind,
     manifestByServiceKind,
+    latestVersionNumber,
   };
 }
 
@@ -154,6 +159,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     latestRunByServiceKind,
     previousRunsByServiceKind,
     manifestByServiceKind,
+    latestVersionNumber,
   } = loaderData;
   const location = useLocation();
   const revalidator = useRevalidator();
@@ -173,28 +179,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     { app: { extensions: extensionsConfig } } as unknown as AppConfig,
     extensions,
   );
-
-  // Order services: those with any run first (desc by latest run date_created),
-  // then services with no runs in original config order.
-  const sortedCheckServices = checkServices
-    .map((service, index) => ({
-      service,
-      index,
-      latestRunDateCreated: latestRunByServiceKind[service.id]?.run.date_created ?? null,
-    }))
-    .sort((a, b) => {
-      if (a.latestRunDateCreated != null && b.latestRunDateCreated != null) {
-        return a.latestRunDateCreated > b.latestRunDateCreated
-          ? -1
-          : a.latestRunDateCreated < b.latestRunDateCreated
-            ? 1
-            : 0;
-      }
-      if (a.latestRunDateCreated != null) return -1;
-      if (b.latestRunDateCreated != null) return 1;
-      return a.index - b.index;
-    })
-    .map(({ service }) => service);
+  const sortedCheckServices = sortExtensionCheckServicesByExtensionName(checkServices, extensions);
 
   const basePath = `/app/works/${work.id}`;
   const enabledCheckKinds = metadata.checks?.enabled ?? [];
@@ -227,10 +212,20 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     return () => window.clearInterval(interval);
   }, [showDispatchingState, revalidator]);
 
-  const renderWorkVersionDate = (
+  const renderVersionBadge = (
     entry: ServiceRunEntry,
-    { showBranchIcon = false }: { showBranchIcon?: boolean } = {},
-  ) => {
+    { compact = false }: { compact?: boolean } = {},
+  ) => (
+    <ui.VersionTagBadge
+      tag={`v${entry.versionNumber}`}
+      title={`Created at: ${formatDatetime(entry.versionDateCreated)}`}
+      titlePrefix="Version"
+      icon={GitBranch}
+      compact={compact}
+    />
+  );
+
+  const renderWorkVersionDate = (entry: ServiceRunEntry) => {
     const versionDate = formatDateWithRecentTime(entry.versionDateCreated);
     return (
       <ui.SimpleTooltip
@@ -240,7 +235,6 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
         delayDuration={1000}
       >
         <span className="inline-flex gap-1.5 items-center text-xs cursor-default text-muted-foreground">
-          {showBranchIcon ? <GitBranch className="size-3.5 shrink-0" aria-hidden /> : null}
           {versionDate}
         </span>
       </ui.SimpleTooltip>
@@ -249,6 +243,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
 
   const renderTimelineVersionLabel = (entry: ServiceRunEntry) => (
     <span className="inline-flex flex-wrap gap-y-1 gap-x-2 items-center">
+      {renderVersionBadge(entry)}
       {renderWorkVersionDate(entry)}
       <DateWithPopover
         date={entry.run.date_modified}
@@ -332,6 +327,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                 actionPath={service.checksActionPath ?? `${basePath}/checks`}
                 workVersionId={latestNonDraftWorkVersion.id}
                 checkServiceId={service.id}
+                versionNumber={latestVersionNumber}
               />
             ) : null;
 
@@ -340,7 +336,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
               <HeaderComponent tag={null} action={headerAction} metadata={serviceMetadata} />
               <div className="space-y-0">
                 <ui.Card>
-                  <ui.CardContent className="pt-6">
+                  <ui.CardContent className="py-4">
                     <ActivityComponent
                       metadata={
                         serviceMetadata as WorkVersionMetadata &
@@ -359,8 +355,9 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                     />
                   </ui.CardContent>
                   {latest ? (
-                    <div className="flex justify-start py-1.5 pr-6 pl-3 border-t border-border">
-                      {renderWorkVersionDate(latest, { showBranchIcon: true })}
+                    <div className="flex gap-2 justify-start items-center py-1.5 pr-6 pl-3 border-t border-border">
+                      {renderVersionBadge(latest, { compact: true })}
+                      {renderWorkVersionDate(latest)}
                     </div>
                   ) : null}
                 </ui.Card>
@@ -370,6 +367,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                       <TimelineSection
                         key={entry.workVersionId}
                         label={renderTimelineVersionLabel(entry)}
+                        icon={<span className="block size-5 shrink-0" aria-hidden />}
                         stacked
                       >
                         <CheckServiceRunTimelineItem

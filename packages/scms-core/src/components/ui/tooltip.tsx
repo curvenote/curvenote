@@ -4,8 +4,11 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { cn } from '../../utils/cn.js';
 import { InfoIcon } from 'lucide-react';
 
+/** Default hover delay before Radix tooltips open (ms). */
+export const DEFAULT_TOOLTIP_DELAY_MS = 800;
+
 function TooltipProvider({
-  delayDuration = 0,
+  delayDuration = DEFAULT_TOOLTIP_DELAY_MS,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
   return (
@@ -17,7 +20,10 @@ function TooltipProvider({
   );
 }
 
-function Tooltip({ delayDuration, ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+function Tooltip({
+  delayDuration = DEFAULT_TOOLTIP_DELAY_MS,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
   return (
     <TooltipProvider delayDuration={delayDuration}>
       <TooltipPrimitive.Root data-slot="tooltip" {...props} />
@@ -74,7 +80,7 @@ function SimpleTooltip({
   title,
   side,
   sideOffset,
-  delayDuration = 100,
+  delayDuration = DEFAULT_TOOLTIP_DELAY_MS,
   children,
   asChild = true,
   className,
@@ -103,7 +109,7 @@ function SimpleTooltipWithIcon({
   title,
   side,
   sideOffset,
-  delayDuration = 100,
+  delayDuration = DEFAULT_TOOLTIP_DELAY_MS,
 }: {
   title: string;
   side?: React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>['side'];

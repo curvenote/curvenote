@@ -78,6 +78,35 @@ export function getExtensionCheckServicesFromServerConfig(
   return services;
 }
 
+type ExtensionWithCheckServices = Pick<ClientExtension, 'id' | 'name' | 'getChecks'>;
+
+/**
+ * Stable display order for check sections — alphabetical by owning extension name,
+ * then by check service display name when one extension registers multiple services.
+ */
+export function sortExtensionCheckServicesByExtensionName(
+  services: ExtensionCheckService[],
+  extensions: ExtensionWithCheckServices[],
+): ExtensionCheckService[] {
+  const extensionNameByServiceId = new Map<string, string>();
+  for (const ext of extensions) {
+    if (!ext.getChecks) continue;
+    for (const service of ext.getChecks()) {
+      extensionNameByServiceId.set(service.id, ext.name);
+    }
+  }
+
+  return [...services].sort((a, b) => {
+    const extensionNameA = extensionNameByServiceId.get(a.id) ?? a.name;
+    const extensionNameB = extensionNameByServiceId.get(b.id) ?? b.name;
+    const byExtension = extensionNameA.localeCompare(extensionNameB, undefined, {
+      sensitivity: 'base',
+    });
+    if (byExtension !== 0) return byExtension;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+}
+
 /**
  * Get a specific check service by ID from enabled extensions.
  */

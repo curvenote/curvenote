@@ -9,6 +9,7 @@ import {
   isCheckWorkListSummaryVisible,
   resolveExtensionDesignLoaderData,
   resolveUploadCheckLogoUrls,
+  sortExtensionCheckServicesByExtensionName,
 } from './checks.js';
 import type { ClientExtension, ServerExtension } from './types.js';
 import type { Context } from '../../backend/types.js';
@@ -84,6 +85,65 @@ describe('extension checks config gates', () => {
       mockCheckExtension as ServerExtension,
     ]);
     expect(services).toEqual([]);
+  });
+});
+
+describe('sortExtensionCheckServicesByExtensionName', () => {
+  const zebraExtension = {
+    id: 'zebra-checks',
+    name: 'Zebra Checks',
+    description: 'Test',
+    registerNavigation: () => [],
+    getChecks: () => [
+      {
+        id: 'zebra-service',
+        name: 'Zebra Service',
+        description: 'Runs zebra checks',
+        sectionHeaderComponent: noopCheckComponent,
+        sectionActivityComponent: noopCheckComponent,
+      },
+    ],
+  } satisfies ClientExtension;
+
+  const alphaExtension = {
+    id: 'alpha-checks',
+    name: 'Alpha Checks',
+    description: 'Test',
+    registerNavigation: () => [],
+    getChecks: () => [
+      {
+        id: 'alpha-service',
+        name: 'Alpha Service',
+        description: 'Runs alpha checks',
+        sectionHeaderComponent: noopCheckComponent,
+        sectionActivityComponent: noopCheckComponent,
+      },
+    ],
+  } satisfies ClientExtension;
+
+  it('orders check services alphabetically by extension name', () => {
+    const services = [
+      {
+        id: 'zebra-service',
+        name: 'Zebra Service',
+        description: 'Runs zebra checks',
+        sectionHeaderComponent: noopCheckComponent,
+        sectionActivityComponent: noopCheckComponent,
+      },
+      {
+        id: 'alpha-service',
+        name: 'Alpha Service',
+        description: 'Runs alpha checks',
+        sectionHeaderComponent: noopCheckComponent,
+        sectionActivityComponent: noopCheckComponent,
+      },
+    ];
+
+    expect(
+      sortExtensionCheckServicesByExtensionName(services, [zebraExtension, alphaExtension]).map(
+        (service) => service.id,
+      ),
+    ).toEqual(['alpha-service', 'zebra-service']);
   });
 });
 

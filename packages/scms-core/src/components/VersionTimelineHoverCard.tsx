@@ -157,7 +157,7 @@ export function VersionTimelineHoverCard<T extends { id: string }>({
   const { data, loading, error } = useVersionTimeline<T>(versionsUrl, { open });
 
   return (
-    <HoverCard open={open} onOpenChange={setOpen} openDelay={400} closeDelay={100}>
+    <HoverCard open={open} onOpenChange={setOpen} closeDelay={100}>
       <HoverCardTrigger asChild>
         <span className="inline-flex cursor-default transition-[filter] duration-150 hover:brightness-[0.97] dark:hover:brightness-[1.06]">
           {children}
