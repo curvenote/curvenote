@@ -34,7 +34,7 @@ function CurrentLabel({ visible }: { visible: boolean }) {
   return (
     <p
       className={cn(
-        'text-xs font-medium text-center leading-none min-h-[1rem]',
+        'text-xs font-medium text-left leading-none min-h-[1rem]',
         visible ? 'text-blue-600 dark:text-blue-400' : 'invisible',
       )}
       aria-hidden={!visible}
