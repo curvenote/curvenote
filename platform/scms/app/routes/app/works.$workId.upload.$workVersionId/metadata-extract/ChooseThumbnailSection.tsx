@@ -26,8 +26,12 @@ export interface ChooseThumbnailSectionProps {
 
 type ThumbnailGalleryLayout = 'row' | 'grid';
 
+/** Match grid column widths at each breakpoint so aspect-square tiles stay the same height. */
+const rowTileWidthClassName =
+  'shrink-0 w-[calc((100%-1rem)/2)] sm:w-[calc((100%-2rem)/3)] md:w-[calc((100%-3rem)/4)] lg:w-[calc((100%-4rem)/5)]';
+
 const galleryLayoutToggleItemClassName =
-  'px-1.5 bg-transparent text-muted-foreground/35 hover:bg-transparent hover:text-muted-foreground/50 data-[state=on]:bg-transparent data-[state=on]:text-foreground/90';
+  'px-1 bg-transparent text-muted-foreground/35 hover:bg-transparent hover:text-muted-foreground/50 data-[state=on]:bg-transparent data-[state=on]:text-foreground/70';
 
 function GalleryLayoutToggle({
   value,
@@ -54,7 +58,7 @@ function GalleryLayoutToggle({
         title="Single row"
         className={galleryLayoutToggleItemClassName}
       >
-        <Columns4 className="w-4 h-4" />
+        <Columns4 className="w-5 h-5" />
       </ui.ToggleGroupItem>
       <ui.ToggleGroupItem
         value="grid"
@@ -62,7 +66,7 @@ function GalleryLayoutToggle({
         title="Grid"
         className={galleryLayoutToggleItemClassName}
       >
-        <LayoutGrid className="w-4 h-4" />
+        <LayoutGrid className="w-5 h-5" />
       </ui.ToggleGroupItem>
     </ui.ToggleGroup>
   );
@@ -109,7 +113,7 @@ function ThumbnailTile({
     <div
       className={cn(
         'flex flex-col gap-[1px] justify-center items-stretch h-full',
-        layout === 'row' ? 'shrink-0 w-36' : 'w-full min-w-0',
+        layout === 'row' ? rowTileWidthClassName : 'w-full min-w-0',
       )}
     >
       <CurrentLabel visible={Boolean(isCurrent)} />
@@ -215,9 +219,9 @@ export function ChooseThumbnailSection({
           </div>
           <div
             className={cn(
-              'items-center py-1 pr-14',
+              'items-center py-1 pt-2',
               layout === 'row'
-                ? 'flex overflow-x-auto overscroll-x-contain gap-4 px-1 pb-2'
+                ? 'flex overflow-x-auto overflow-y-hidden overscroll-x-contain gap-4 px-1 pr-14 [scrollbar-gutter:stable]'
                 : 'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
             )}
           >
