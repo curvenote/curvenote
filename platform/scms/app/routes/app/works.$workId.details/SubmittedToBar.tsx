@@ -622,8 +622,11 @@ export function SubmittedToBar({
                         const alreadySubmitted = submittedSiteNamesForSelectedVersion.has(
                           site.name,
                         );
+                        const isBusy = isCurrentSiteSubmitting;
                         const isDisabled =
-                          !hasCompletedVersions || isSubmitting || alreadySubmitted;
+                          !hasCompletedVersions ||
+                          alreadySubmitted ||
+                          (isSubmitting && !isCurrentSiteSubmitting);
                         return (
                           <button
                             key={site.id}
@@ -631,12 +634,13 @@ export function SubmittedToBar({
                             name="siteName"
                             value={site.name}
                             disabled={isDisabled}
+                            aria-busy={isBusy || undefined}
                             className={cn(
                               'flex gap-3 items-start p-2 w-full text-left rounded-md transition-colors',
                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                               'disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent',
-                              !isDisabled && 'hover:bg-accent',
-                              isSubmitting && 'opacity-70',
+                              isBusy && 'cursor-wait opacity-70 pointer-events-none',
+                              !isDisabled && !isBusy && 'hover:bg-accent',
                             )}
                           >
                             <span className="flex overflow-hidden justify-center items-center w-9 h-9 rounded border bg-muted shrink-0 border-border">
