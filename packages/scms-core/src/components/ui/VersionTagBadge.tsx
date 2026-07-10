@@ -64,7 +64,7 @@ export function VersionTagBadge({
         size="xs"
         className={cn(
           'font-normal font-mono leading-none',
-          compact ? 'h-[18px] gap-0.5 px-1 py-0.5' : 'px-1 py-0.5',
+          compact ? 'h-[20px] gap-0.5 px-1 py-1' : 'px-1 py-1',
           className,
         )}
         title={label}
@@ -79,7 +79,7 @@ export function VersionTagBadge({
     <span
       className={cn(
         'inline-flex gap-1 items-center rounded-xs',
-        compact ? 'h-[18px] py-0.5 text-[10px] px-1' : 'py-1 text-xs px-[6px]',
+        compact ? 'h-[20px] py-1 text-[10px] px-1' : 'py-1.5 text-xs px-[6px]',
         filledEmphasisClassName[emphasis],
         className,
       )}
