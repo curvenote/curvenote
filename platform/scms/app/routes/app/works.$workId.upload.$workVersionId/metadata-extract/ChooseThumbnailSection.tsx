@@ -2,7 +2,11 @@ import { useMemo } from 'react';
 import { Image as ImageIcon, Check } from 'lucide-react';
 import { SectionWithHeading, cn } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocumentPreviewer';
-import { encodeFigureLocator, resolveThumbnailSelection } from './thumbnailSelection';
+import {
+  buildThumbnailCandidateLocators,
+  encodeFigureLocator,
+  resolveThumbnailSelection,
+} from './thumbnailSelection';
 import type { DocumentPreviewItem } from './fetchPreviews.server';
 
 export type PinnedThumbnail = {
@@ -126,8 +130,8 @@ export function ChooseThumbnailSection({
     [figures],
   );
   const allLocators = useMemo(
-    () => (pinnedLocator ? [pinnedLocator, ...figureLocators] : figureLocators),
-    [pinnedLocator, figureLocators],
+    () => buildThumbnailCandidateLocators(figureLocators, pinnedThumbnail?.key),
+    [figureLocators, pinnedThumbnail?.key],
   );
   const selectedLocator = resolveThumbnailSelection(allLocators, value);
 

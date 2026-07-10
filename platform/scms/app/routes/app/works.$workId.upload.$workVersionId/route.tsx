@@ -92,6 +92,7 @@ import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSectio
 import { collectAllFigures } from './metadata-extract/DocumentPreviewer';
 import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
 import {
+  buildThumbnailCandidateLocators,
   encodeFigureLocator,
   resolveThumbnailSelection,
 } from './metadata-extract/thumbnailSelection';
@@ -1130,8 +1131,12 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     : 'Refreshing previews…';
   const previewError = fetchPreviewsFetcher.data?.error?.message ?? null;
   const thumbnailLocators = useMemo(
-    () => collectAllFigures(previewList).map(({ figure }) => encodeFigureLocator(figure.key)),
-    [previewList],
+    () =>
+      buildThumbnailCandidateLocators(
+        collectAllFigures(previewList).map(({ figure }) => encodeFigureLocator(figure.key)),
+        inheritedThumbnail?.key,
+      ),
+    [previewList, inheritedThumbnail?.key],
   );
   const effectiveSelectedThumbnail = useMemo(
     () => resolveThumbnailSelection(thumbnailLocators, selectedThumbnail),
