@@ -26,3 +26,14 @@ export function resolveThumbnailSelection(
   if (selectedLocator && locators.includes(selectedLocator)) return selectedLocator;
   return locators[0];
 }
+
+/** Preview-figure locators with an inherited thumbnail prepended for picker resolution. */
+export function buildThumbnailCandidateLocators(
+  figureLocators: string[],
+  pinnedStorageKey: string | null | undefined,
+): string[] {
+  if (!pinnedStorageKey) return figureLocators;
+  const pinnedLocator = encodeFigureLocator(pinnedStorageKey);
+  const withoutPinned = figureLocators.filter((locator) => locator !== pinnedLocator);
+  return [pinnedLocator, ...withoutPinned];
+}

@@ -12,6 +12,7 @@ const {
   dbGetWorkUsers,
   findFirstSubmission,
   findFirstWorkVersion,
+  findFirstSubmissionVersion,
   findManySites,
   findUniqueSite,
   loadCheckMaintenanceByServiceIds,
@@ -20,6 +21,8 @@ const {
   userHasScope,
   userHasWorkScope,
   withSecureWorkContext,
+  cloneDraftWorkVersionFromSource,
+  getUserScopesSet,
 } = vi.hoisted(() => ({
   createReturningVersion: vi.fn(),
   createSubmissionVersion: vi.fn(),
@@ -31,6 +34,7 @@ const {
   dbGetWorkUsers: vi.fn(),
   findFirstSubmission: vi.fn(),
   findFirstWorkVersion: vi.fn(),
+  findFirstSubmissionVersion: vi.fn(),
   findManySites: vi.fn(),
   findUniqueSite: vi.fn(),
   loadCheckMaintenanceByServiceIds: vi.fn(),
@@ -39,12 +43,16 @@ const {
   userHasScope: vi.fn(),
   userHasWorkScope: vi.fn(),
   withSecureWorkContext: vi.fn(),
+  cloneDraftWorkVersionFromSource: vi.fn(),
+  getUserScopesSet: vi.fn(() => new Set(['app:works:upload'])),
 }));
 
 vi.mock('@curvenote/scms-server', () => ({
   withSecureWorkContext,
   dbCreateDraftWorkVersion: vi.fn(),
   metadataForNewDraftFileWorkVersion: vi.fn(),
+  cloneDraftWorkVersionFromSource,
+  getUserScopesSet,
   userHasScope,
   userHasWorkScope,
   getPrismaClient: vi.fn(async () => ({
@@ -65,6 +73,9 @@ vi.mock('@curvenote/scms-server', () => ({
     },
     workVersion: {
       findFirst: findFirstWorkVersion,
+    },
+    submissionVersion: {
+      findFirst: findFirstSubmissionVersion,
     },
   })),
   SiteContextWithUser: vi.fn(function SiteContextWithUser(ctx, site) {
@@ -120,9 +131,18 @@ vi.mock('@curvenote/scms-core', () => ({
         users: {
           read: 'work:users:read',
         },
+        checks: {
+          dispatch: 'work:id:checks:dispatch',
+        },
       },
     },
   },
+  BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID: 'article',
+  resolveCreateNewVersionOption: vi.fn(() => ({
+    ok: true,
+    option: { id: 'article', extensionId: undefined },
+  })),
+  invokeExtensionCreateWorkVersion: vi.fn(),
 }));
 
 vi.mock('./menu', () => ({
@@ -167,7 +187,10 @@ vi.mock('./utils.server', () => ({
 vi.mock('./metadata.server', () => ({
   computeCanResumeDraftUpload: vi.fn(() => false),
   getLicenseDisplayFromMetadata: vi.fn(() => null),
-  isDraftVersionValidForReuse: vi.fn(() => false),
+  resolveResumeDraftUploadPath: vi.fn(
+    ({ workId, workVersionId }: { workId: string; workVersionId: string }) =>
+      `/app/works/${workId}/upload/${workVersionId}?from=details`,
+  ),
   resolveWorkVersionDoi: vi.fn((versionDoi: string | null | undefined) => versionDoi ?? null),
   signVersionFilesForClient: vi.fn(async () => undefined),
 }));
@@ -258,6 +281,7 @@ describe('work submit-to-site route', () => {
     });
     findFirstSubmission.mockResolvedValue(null);
     findFirstWorkVersion.mockResolvedValue({ id: 'wv-1' });
+    findFirstSubmissionVersion.mockResolvedValue(null);
     createReturningVersion.mockResolvedValue({
       id: 'sv-1',
       submission: { versions: [{ id: 'sv-1' }] },
@@ -639,5 +663,62 @@ describe('work submit-to-site route', () => {
       expect.objectContaining({ submission: expect.any(Object) }),
     );
     expect(createReturningVersion).not.toHaveBeenCalled();
+  });
+});
+
+describe('work create-new-version route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    withSecureWorkContext.mockResolvedValue({
+      user: {
+        id: 'user-1',
+        system_scopes: ['app:works:upload'],
+        site_roles: [],
+      },
+      work: {
+        id: 'work-1',
+        versions: [{ id: 'wv-1', draft: false, title: 'Version 1' }],
+      },
+      workDTO: { title: 'Work 1' },
+      $config: { app: { extensions: {} } },
+      trackEvent: vi.fn(),
+      analytics: { flush: vi.fn() },
+    });
+    userHasScope.mockImplementation((_user, scope) => scope === 'app:works:upload');
+    dbAttachMetadataToWorkVersions.mockImplementation(async (versions) =>
+      versions.map((v: { id: string }) => ({ ...v, metadata: { checks: { enabled: [] } } })),
+    );
+    cloneDraftWorkVersionFromSource.mockResolvedValue({
+      workId: 'work-1',
+      workVersionId: 'wv-draft-cloned',
+    });
+  });
+
+  it('clones from the latest non-draft version for article create-new-version', async () => {
+    const formData = new FormData();
+    formData.set('intent', 'create-new-version');
+
+    const response = await action({
+      request: new Request('http://localhost/app/works/work-1', {
+        method: 'POST',
+        body: formData,
+      }),
+      params: { workId: 'work-1' },
+    } as never);
+
+    expect(response).toMatchObject({
+      success: true,
+      intent: 'create-new-version',
+      workId: 'work-1',
+      workVersionId: 'wv-draft-cloned',
+    });
+    expect(cloneDraftWorkVersionFromSource).toHaveBeenCalledWith(
+      expect.objectContaining({ work: expect.objectContaining({ id: 'work-1' }) }),
+      {
+        workId: 'work-1',
+        sourceWorkVersionId: 'wv-1',
+        source: 'work-details',
+      },
+    );
   });
 });

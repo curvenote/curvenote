@@ -52,6 +52,7 @@ type LoaderData = {
   canUpload: boolean;
   canResumeDraft: boolean;
   resumeDraftVersionId?: string;
+  resumeDraftUploadPath?: string;
   latestNonDraftContentCard: WorkVersionContentCardData | null;
   users: WorkUser[];
   canSubmitToSite: boolean;
@@ -78,6 +79,7 @@ export default function WorkDetailRoute() {
     canUpload,
     canResumeDraft,
     resumeDraftVersionId,
+    resumeDraftUploadPath,
     latestNonDraftContentCard,
     users,
     canSubmitToSite,
@@ -118,6 +120,7 @@ export default function WorkDetailRoute() {
             workBasePath,
             canResumeDraft,
             resumeDraftVersionId,
+            resumeDraftUploadPath,
           }}
         />
         <div className="space-y-1">

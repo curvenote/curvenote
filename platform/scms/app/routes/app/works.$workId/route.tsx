@@ -9,6 +9,7 @@ import {
 import { Outlet } from 'react-router';
 import {
   withSecureWorkContext,
+  cloneDraftWorkVersionFromSource,
   dbCreateDraftWorkVersion,
   metadataForNewDraftFileWorkVersion,
   userHasScope,
@@ -35,6 +36,7 @@ import {
   resolveCreateNewVersionOption,
   invokeExtensionCreateWorkVersion,
   BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
+  buildWorkVersionNumberByIdMap,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
 import {
@@ -53,7 +55,7 @@ import { getUniqueSubmissions } from './utils.server';
 import {
   computeCanResumeDraftUpload,
   getLicenseDisplayFromMetadata,
-  isDraftVersionValidForReuse,
+  resolveResumeDraftUploadPath,
   resolveWorkVersionDoi,
   signVersionFilesForClient,
 } from './metadata.server';
@@ -104,18 +106,19 @@ export async function action(args: ActionFunctionArgs) {
 
   if (intent === 'get-drafts-for-work') {
     const latest = await dbGetLatestWorkVersionForWork(ctx.work.id);
-    const drafts =
-      latest?.draft && isDraftVersionValidForReuse(latest.metadata)
-        ? [
-            {
-              workId: ctx.work.id,
-              workVersionId: latest.id,
-              workTitle: latest.title || 'Untitled Work',
-              dateModified: latest.date_modified,
-              dateCreated: latest.date_created,
-            },
-          ]
-        : [];
+    const versionNumberById = buildWorkVersionNumberByIdMap(ctx.work.versions ?? []);
+    const drafts = latest?.draft
+      ? [
+          {
+            workId: ctx.work.id,
+            workVersionId: latest.id,
+            workTitle: latest.title || 'Untitled Work',
+            dateModified: latest.date_modified,
+            dateCreated: latest.date_created,
+            versionNumber: versionNumberById[latest.id],
+          },
+        ]
+      : [];
     return { success: true, intent, drafts };
   }
 
@@ -200,6 +203,20 @@ export async function action(args: ActionFunctionArgs) {
           },
           { status: 500 },
         );
+      }
+
+      if (latestNonDraft) {
+        const result = await cloneDraftWorkVersionFromSource(ctx, {
+          workId: ctx.work.id,
+          sourceWorkVersionId: latestNonDraft.id,
+          source: 'work-details',
+        });
+        return {
+          success: true,
+          intent: 'create-new-version',
+          workId: result.workId,
+          workVersionId: result.workVersionId,
+        };
       }
 
       const result = await dbCreateDraftWorkVersion(
@@ -487,12 +504,32 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const latestVersion = workVersionsWithMetadata[0];
   const latestNonDraftWithMetadata = workVersionsWithMetadata.find((v) => !v.draft);
 
-  const canResumeDraft = computeCanResumeDraftUpload(
-    canUpload,
-    latestVersion,
-    latestVersion?.metadata,
-  );
+  const canResumeDraft = computeCanResumeDraftUpload(canUpload, latestVersion);
   const resumeDraftVersionId = canResumeDraft ? latestVersion?.id : undefined;
+
+  let resumeDraftUploadPath: string | undefined;
+  if (canResumeDraft && resumeDraftVersionId) {
+    let pmcSubmissionVersionId: string | null = null;
+    if (latestVersion?.metadata) {
+      const prisma = await getPrismaClient();
+      const draftSubmissionVersion = await prisma.submissionVersion.findFirst({
+        where: {
+          work_version_id: resumeDraftVersionId,
+          submission: { site: { name: 'pmc' } },
+          status: 'DRAFT',
+        },
+        orderBy: { date_created: 'desc' },
+        select: { id: true },
+      });
+      pmcSubmissionVersionId = draftSubmissionVersion?.id ?? null;
+    }
+    resumeDraftUploadPath = resolveResumeDraftUploadPath({
+      workId: ctx.work.id,
+      workVersionId: resumeDraftVersionId,
+      metadata: latestVersion?.metadata,
+      pmcSubmissionVersionId,
+    });
+  }
 
   const latestNonDraftContentCard: WorkVersionContentCardData | null = latestNonDraftWithMetadata
     ? {
@@ -585,6 +622,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     canUpload,
     canResumeDraft,
     resumeDraftVersionId,
+    resumeDraftUploadPath,
     latestNonDraftContentCard,
     users,
     canSubmitToSite,

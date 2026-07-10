@@ -2,10 +2,24 @@ import { signFilesInMetadata, type Context } from '@curvenote/scms-server';
 
 export type LicenseDisplay = { text: string; tooltip?: string };
 
-/** Draft version is valid for resume if it has the checks field in metadata (same as My Works). */
-export function isDraftVersionValidForReuse(metadata: unknown): boolean {
+export function isPmcWorkVersionMetadata(metadata: unknown): boolean {
   const meta = metadata as Record<string, unknown> | null;
-  return Boolean(meta && 'checks' in meta);
+  return Boolean(
+    meta && meta.pmc != null && typeof meta.pmc === 'object' && !Array.isArray(meta.pmc),
+  );
+}
+
+/** Resume path for a draft work version (PMC deposit vs article upload). */
+export function resolveResumeDraftUploadPath(args: {
+  workId: string;
+  workVersionId: string;
+  metadata: unknown;
+  pmcSubmissionVersionId?: string | null;
+}): string {
+  if (isPmcWorkVersionMetadata(args.metadata) && args.pmcSubmissionVersionId) {
+    return `/app/works/${args.workId}/site/pmc/deposit/${args.pmcSubmissionVersionId}`;
+  }
+  return `/app/works/${args.workId}/upload/${args.workVersionId}?from=details`;
 }
 
 /** Prefer version DOI when non-empty after trim; otherwise work-level DOI. */
@@ -39,13 +53,8 @@ export function getLicenseDisplayFromMetadata(metadata: unknown): LicenseDisplay
 export function computeCanResumeDraftUpload(
   canUpload: boolean,
   latestVersion: { draft: boolean } | undefined,
-  latestMetadata: unknown,
 ): boolean {
-  return (
-    canUpload === true &&
-    latestVersion?.draft === true &&
-    isDraftVersionValidForReuse(latestMetadata)
-  );
+  return canUpload === true && latestVersion?.draft === true;
 }
 
 /** Signed file entries only — omit myst/checks/license from the client payload. */
