@@ -18,6 +18,7 @@ import {
   httpError,
   scopes,
   getExtensionCheckServicesFromServerConfig,
+  sortExtensionCheckServicesByExtensionName,
   formatDateWithRecentTime,
   formatDatetime,
   buildWorkVersionNumberByIdMap,
@@ -174,28 +175,10 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     { app: { extensions: extensionsConfig } } as unknown as AppConfig,
     extensions,
   );
-
-  // Order services: those with any run first (desc by latest run date_created),
-  // then services with no runs in original config order.
-  const sortedCheckServices = checkServices
-    .map((service, index) => ({
-      service,
-      index,
-      latestRunDateCreated: latestRunByServiceKind[service.id]?.run.date_created ?? null,
-    }))
-    .sort((a, b) => {
-      if (a.latestRunDateCreated != null && b.latestRunDateCreated != null) {
-        return a.latestRunDateCreated > b.latestRunDateCreated
-          ? -1
-          : a.latestRunDateCreated < b.latestRunDateCreated
-            ? 1
-            : 0;
-      }
-      if (a.latestRunDateCreated != null) return -1;
-      if (b.latestRunDateCreated != null) return 1;
-      return a.index - b.index;
-    })
-    .map(({ service }) => service);
+  const sortedCheckServices = sortExtensionCheckServicesByExtensionName(
+    checkServices,
+    extensions,
+  );
 
   const basePath = `/app/works/${work.id}`;
   const nonDraftVersions = (work.versions ?? []).filter((version) => !version.draft);
