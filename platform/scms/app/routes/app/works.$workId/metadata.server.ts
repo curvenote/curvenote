@@ -4,7 +4,9 @@ export type LicenseDisplay = { text: string; tooltip?: string };
 
 export function isPmcWorkVersionMetadata(metadata: unknown): boolean {
   const meta = metadata as Record<string, unknown> | null;
-  return Boolean(meta && meta.pmc != null && typeof meta.pmc === 'object' && !Array.isArray(meta.pmc));
+  return Boolean(
+    meta && meta.pmc != null && typeof meta.pmc === 'object' && !Array.isArray(meta.pmc),
+  );
 }
 
 /** Resume path for a draft work version (PMC deposit vs article upload). */

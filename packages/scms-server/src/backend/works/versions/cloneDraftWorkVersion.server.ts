@@ -1,5 +1,4 @@
-import { error404 } from '@curvenote/scms-core';
-import { documentPreviewCacheId, previewCandidateMd5s } from '@curvenote/scms-core';
+import { error404, documentPreviewCacheId, previewCandidateMd5s } from '@curvenote/scms-core';
 import type { ActivityType, Prisma } from '@curvenote/scms-db';
 import { formatDate } from '@curvenote/common';
 import { uuidv7 } from 'uuidv7';

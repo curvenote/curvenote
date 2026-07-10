@@ -55,8 +55,7 @@ export function WorkDetailsTopBar({
     if (!canUpload) return;
     if (canResumeDraft && resumeDraftVersionId) {
       navigate(
-        resumeDraftUploadPath ??
-          `${workBasePath}/upload/${resumeDraftVersionId}?from=details`,
+        resumeDraftUploadPath ?? `${workBasePath}/upload/${resumeDraftVersionId}?from=details`,
       );
       return;
     }

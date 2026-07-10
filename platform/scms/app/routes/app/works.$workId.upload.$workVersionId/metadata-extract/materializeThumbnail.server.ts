@@ -6,7 +6,10 @@ import { findWorkByVersion } from '@curvenote/scms-server';
 import { decodeFigureLocator } from './thumbnailSelection';
 import { METADATA_THUMBNAILS_KEY, readPreviewFigureKeysForVersion } from './fetchPreviews.server';
 
-function collectStoredThumbnailKeys(metadata: unknown, versionThumbnail: string | null): Set<string> {
+function collectStoredThumbnailKeys(
+  metadata: unknown,
+  versionThumbnail: string | null,
+): Set<string> {
   const keys = new Set<string>();
   if (versionThumbnail) keys.add(versionThumbnail);
 
