@@ -60,7 +60,7 @@ function ThumbnailTile({
   onSelect: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-[1px] justify-center items-stretch h-full">
+    <div className="flex flex-col gap-[1px] justify-center items-stretch h-full shrink-0 w-36">
       <CurrentLabel visible={Boolean(isCurrent)} />
       <button
         type="button"
@@ -146,7 +146,7 @@ export function ChooseThumbnailSection({
     <SectionWithHeading
       heading="Choose a Thumbnail"
       icon={<ImageIcon className="w-5 h-5" />}
-      className={cn('space-y-4', !hasTiles ? 'max-w-3xl' : 'max-w-5xl')}
+      className={cn('space-y-4', !hasTiles ? 'max-w-3xl' : 'max-w-none')}
     >
       <p className="text-muted-foreground">
         Select an image from your document to use as the thumbnail.
@@ -157,7 +157,7 @@ export function ChooseThumbnailSection({
         </div>
       ) : null}
       {hasTiles ? (
-        <div className="grid grid-cols-2 gap-4 items-center sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="flex gap-4 items-center py-1 overflow-x-auto overscroll-x-contain">
           {pinnedThumbnail && pinnedLocator ? (
             <ThumbnailTile
               key={pinnedLocator}
