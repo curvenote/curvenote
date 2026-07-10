@@ -12,9 +12,10 @@ import {
 import { Button } from '../button.js';
 import { LoadingSpinner } from '../../LoadingSpinner.js';
 import { formatDistanceToNow } from 'date-fns';
-import { Trash2 } from 'lucide-react';
+import { GitBranch, Trash2 } from 'lucide-react';
 import { plural } from '../../../utils/plural.js';
 import type { DraftWork } from './types.js';
+import { VersionTagBadge } from '../../VersionTagBadge.js';
 
 /**
  * Props for the ResumeDraftWorkDialog component
@@ -185,8 +186,16 @@ function DraftWorkItem<T extends DraftWork>({
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
-          <div className="flex justify-between items-center mb-1">
+          <div className="flex gap-2 items-center mb-1 min-w-0">
             <h3 className="text-base font-medium text-gray-900 truncate">{draft.workTitle}</h3>
+            {draft.versionNumber != null && draft.versionNumber > 0 ? (
+              <VersionTagBadge
+                tag={`v${draft.versionNumber}`}
+                titlePrefix="Version"
+                icon={GitBranch}
+                className="shrink-0"
+              />
+            ) : null}
           </div>
           {renderDetails && (
             <div className="mb-1 text-sm text-muted-foreground">{renderDetails(draft)}</div>

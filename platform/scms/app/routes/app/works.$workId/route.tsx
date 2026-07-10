@@ -36,6 +36,7 @@ import {
   resolveCreateNewVersionOption,
   invokeExtensionCreateWorkVersion,
   BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
+  buildWorkVersionNumberByIdMap,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
 import {
@@ -105,17 +106,19 @@ export async function action(args: ActionFunctionArgs) {
 
   if (intent === 'get-drafts-for-work') {
     const latest = await dbGetLatestWorkVersionForWork(ctx.work.id);
+    const versionNumberById = buildWorkVersionNumberByIdMap(ctx.work.versions ?? []);
     const drafts = latest?.draft
-        ? [
-            {
-              workId: ctx.work.id,
-              workVersionId: latest.id,
-              workTitle: latest.title || 'Untitled Work',
-              dateModified: latest.date_modified,
-              dateCreated: latest.date_created,
-            },
-          ]
-        : [];
+      ? [
+          {
+            workId: ctx.work.id,
+            workVersionId: latest.id,
+            workTitle: latest.title || 'Untitled Work',
+            dateModified: latest.date_modified,
+            dateCreated: latest.date_created,
+            versionNumber: versionNumberById[latest.id],
+          },
+        ]
+      : [];
     return { success: true, intent, drafts };
   }
 
