@@ -15,7 +15,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { GitBranch, Trash2 } from 'lucide-react';
 import { plural } from '../../../utils/plural.js';
 import type { DraftWork } from './types.js';
-import { VersionTagBadge } from '../../VersionTagBadge.js';
+import { VersionTagBadge } from '../VersionTagBadge.js';
 
 /**
  * Props for the ResumeDraftWorkDialog component
