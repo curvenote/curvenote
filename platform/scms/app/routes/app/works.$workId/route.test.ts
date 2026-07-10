@@ -23,6 +23,7 @@ const {
   withSecureWorkContext,
   cloneDraftWorkVersionFromSource,
   getUserScopesSet,
+  mockServerExtensions,
 } = vi.hoisted(() => ({
   createReturningVersion: vi.fn(),
   createSubmissionVersion: vi.fn(),
@@ -45,6 +46,11 @@ const {
   withSecureWorkContext: vi.fn(),
   cloneDraftWorkVersionFromSource: vi.fn(),
   getUserScopesSet: vi.fn(() => new Set(['app:works:upload'])),
+  mockServerExtensions: [] as Array<{
+    id: string;
+    getOperatedSites?: () => string[];
+    submitToSite?: (...args: unknown[]) => Promise<unknown>;
+  }>,
 }));
 
 vi.mock('@curvenote/scms-server', () => ({
@@ -143,6 +149,17 @@ vi.mock('@curvenote/scms-core', () => ({
     option: { id: 'article', extensionId: undefined },
   })),
   invokeExtensionCreateWorkVersion: vi.fn(),
+  resolveSubmitToSiteExtension: (
+    extensions: Array<{
+      getOperatedSites?: () => string[];
+      submitToSite?: (...args: unknown[]) => Promise<unknown>;
+    }>,
+    siteName: string,
+  ) =>
+    extensions.find(
+      (extension) =>
+        !!extension.submitToSite && !!extension.getOperatedSites?.().includes(siteName),
+    ),
 }));
 
 vi.mock('./menu', () => ({
@@ -200,7 +217,9 @@ vi.mock('../../../extensions/client', () => ({
 }));
 
 vi.mock('../../../extensions/server', () => ({
-  extensions: [],
+  get extensions() {
+    return mockServerExtensions;
+  },
 }));
 
 vi.mock('./actionHelpers.server', () => ({
@@ -245,6 +264,7 @@ function createSubmitToSiteRequest(siteName = 'private-site', workVersionId = 'w
 describe('work submit-to-site route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockServerExtensions.length = 0;
     withSecureWorkContext.mockResolvedValue({
       user: {
         id: 'user-1',
@@ -663,6 +683,154 @@ describe('work submit-to-site route', () => {
       expect.objectContaining({ submission: expect.any(Object) }),
     );
     expect(createReturningVersion).not.toHaveBeenCalled();
+  });
+
+  it('delegates to an extension that operates the site and declares submitToSite', async () => {
+    const submitToSite = vi.fn().mockResolvedValue({
+      success: true,
+      submissionVersionId: 'sv-ext',
+      redirectPath: '/app/works/work-1/site/pmc/deposit/sv-ext',
+    });
+    mockServerExtensions.push({
+      id: 'pmc',
+      getOperatedSites: () => ['pmc'],
+      submitToSite,
+    });
+    findUniqueSite.mockResolvedValue({
+      id: 'site-pmc',
+      name: 'pmc',
+      title: 'PMC',
+      private: true,
+      restricted: false,
+      external: true,
+      domains: [],
+      submissionKinds: [{ id: 'kind-1', default: true }],
+      collections: [
+        {
+          id: 'collection-1',
+          default: true,
+          open: true,
+          kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+        },
+      ],
+    });
+    userHasScope.mockImplementation((_user, scope, siteName) => {
+      if (scope === 'app:works:submit-to-site') return true;
+      return scope === 'site:submissions:create' && siteName === 'pmc';
+    });
+
+    const response = await action({
+      request: createSubmitToSiteRequest('pmc', 'wv-1'),
+      params: { workId: 'work-1' },
+    } as never);
+
+    expect(response).toMatchObject({
+      success: true,
+      intent: 'submit-to-site',
+      siteName: 'pmc',
+      submissionVersionId: 'sv-ext',
+      redirectPath: '/app/works/work-1/site/pmc/deposit/sv-ext',
+    });
+    expect(submitToSite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workId: 'work-1',
+        workVersionId: 'wv-1',
+        siteName: 'pmc',
+      }),
+    );
+    expect(createReturningVersion).not.toHaveBeenCalled();
+    expect(createSubmissionVersion).not.toHaveBeenCalled();
+  });
+
+  it('fails when an extension submit handler returns an error without falling back to the central route', async () => {
+    mockServerExtensions.push({
+      id: 'pmc',
+      getOperatedSites: () => ['pmc'],
+      submitToSite: vi.fn().mockResolvedValue({
+        success: false,
+        error: 'Extension submission failed',
+      }),
+    });
+    findUniqueSite.mockResolvedValue({
+      id: 'site-pmc',
+      name: 'pmc',
+      title: 'PMC',
+      private: true,
+      restricted: false,
+      external: true,
+      domains: [],
+      submissionKinds: [{ id: 'kind-1', default: true }],
+      collections: [
+        {
+          id: 'collection-1',
+          default: true,
+          open: true,
+          kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+        },
+      ],
+    });
+    userHasScope.mockImplementation((_user, scope, siteName) => {
+      if (scope === 'app:works:submit-to-site') return true;
+      return scope === 'site:submissions:create' && siteName === 'pmc';
+    });
+
+    const response = await action({
+      request: createSubmitToSiteRequest('pmc', 'wv-1'),
+      params: { workId: 'work-1' },
+    } as never);
+    const status = 'init' in response ? response.init?.status : 200;
+    const body = 'data' in response ? response.data : response;
+
+    expect(status).toBe(500);
+    expect(body).toMatchObject({
+      success: false,
+      intent: 'submit-to-site',
+      error: 'Extension submission failed',
+    });
+    expect(createReturningVersion).not.toHaveBeenCalled();
+    expect(createSubmissionVersion).not.toHaveBeenCalled();
+  });
+
+  it('uses the central route when an extension operates the site but declares no submit handler', async () => {
+    mockServerExtensions.push({
+      id: 'pmc',
+      getOperatedSites: () => ['pmc'],
+    });
+    findUniqueSite.mockResolvedValue({
+      id: 'site-pmc',
+      name: 'pmc',
+      title: 'PMC',
+      private: true,
+      restricted: false,
+      external: true,
+      domains: [],
+      submissionKinds: [{ id: 'kind-1', default: true }],
+      collections: [
+        {
+          id: 'collection-1',
+          default: true,
+          open: true,
+          kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+        },
+      ],
+    });
+    userHasScope.mockImplementation((_user, scope, siteName) => {
+      if (scope === 'app:works:submit-to-site') return true;
+      return scope === 'site:submissions:create' && siteName === 'pmc';
+    });
+
+    const response = await action({
+      request: createSubmitToSiteRequest('pmc', 'wv-1'),
+      params: { workId: 'work-1' },
+    } as never);
+
+    expect(response).toMatchObject({
+      success: true,
+      intent: 'submit-to-site',
+      siteName: 'pmc',
+      submissionVersionId: 'sv-1',
+    });
+    expect(createReturningVersion).toHaveBeenCalled();
   });
 });
 

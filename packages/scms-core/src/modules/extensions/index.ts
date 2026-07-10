@@ -9,6 +9,7 @@ export * from './email-templates.js';
 export * from './icons.js';
 export * from './navigation.js';
 export * from './sanitize-admin-config.js';
+export * from './submitToSite.js';
 export * from './tasks.js';
 export * from './types.js';
 export * from './utils.js';

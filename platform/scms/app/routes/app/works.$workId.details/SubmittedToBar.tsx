@@ -40,6 +40,7 @@ type SubmitToSiteFetcherData = {
   intent?: string;
   siteName?: string;
   submissionVersionId?: string;
+  redirectPath?: string;
   alreadySubmitted?: boolean;
   error?: string | { message?: string };
 };
@@ -325,9 +326,10 @@ export function SubmittedToBar({
       return;
     }
     if (fetcher.data.success && fetcher.data.siteName && fetcher.data.submissionVersionId) {
-      navigate(
-        `${basePath}/site/${fetcher.data.siteName}/submission/${fetcher.data.submissionVersionId}`,
-      );
+      const redirectPath =
+        fetcher.data.redirectPath ??
+        `${basePath}/site/${fetcher.data.siteName}/submission/${fetcher.data.submissionVersionId}`;
+      navigate(redirectPath);
     }
   }, [basePath, fetcher.data, fetcher.state, navigate]);
 

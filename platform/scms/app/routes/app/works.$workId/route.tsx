@@ -35,6 +35,7 @@ import {
   scopes,
   resolveCreateNewVersionOption,
   invokeExtensionCreateWorkVersion,
+  resolveSubmitToSiteExtension,
   BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
   buildWorkVersionNumberByIdMap,
 } from '@curvenote/scms-core';
@@ -323,6 +324,33 @@ export async function action(args: ActionFunctionArgs) {
           { success: false, intent, error: 'No completed work version is available to submit' },
           { status: 400 },
         );
+      }
+
+      const submitExt = resolveSubmitToSiteExtension(serverExtensions, siteName);
+      if (submitExt) {
+        const extResult = await submitExt.submitToSite!({
+          ctx,
+          workId: ctx.work.id,
+          workVersionId: selectedVersion.id,
+          siteName,
+        });
+        if (!extResult?.success) {
+          return data(
+            {
+              success: false,
+              intent,
+              error: extResult?.error ?? 'Extension failed to create submission',
+            },
+            { status: 500 },
+          );
+        }
+        return {
+          success: true,
+          intent: 'submit-to-site',
+          siteName,
+          submissionVersionId: extResult.submissionVersionId,
+          redirectPath: extResult.redirectPath,
+        };
       }
 
       const siteCtx = new SiteContextWithUser(ctx, site);
