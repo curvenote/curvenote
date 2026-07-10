@@ -34,7 +34,7 @@ function CurrentLabel({ visible }: { visible: boolean }) {
   return (
     <p
       className={cn(
-        'text-xs font-medium text-left leading-none min-h-[1rem]',
+        'text-xs font-medium leading-none text-left min-h-[1rem]',
         visible ? 'text-blue-600 dark:text-blue-400' : 'invisible',
       )}
       aria-hidden={!visible}
@@ -60,7 +60,7 @@ function ThumbnailTile({
   onSelect: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-1 justify-center items-stretch h-full">
+    <div className="flex flex-col gap-[1px] justify-center items-stretch h-full">
       <CurrentLabel visible={Boolean(isCurrent)} />
       <button
         type="button"
