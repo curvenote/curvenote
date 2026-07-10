@@ -37,10 +37,10 @@ function GalleryLayoutToggle({
     <ui.ToggleGroup
       type="single"
       value={value}
-      variant="outline"
+      variant="default"
       size="sm"
       aria-label="Thumbnail gallery layout"
-      className="p-0.5 rounded-md bg-stone-100 dark:bg-stone-800"
+      className="gap-0"
       onValueChange={(next) => {
         if (next === 'row' || next === 'grid') onChange(next);
       }}
@@ -49,7 +49,7 @@ function GalleryLayoutToggle({
         value="row"
         aria-label="Single row"
         title="Single row"
-        className="px-2 data-[state=on]:bg-white data-[state=on]:shadow-sm dark:data-[state=on]:bg-stone-900"
+        className="px-1.5 bg-transparent text-muted-foreground hover:bg-transparent data-[state=on]:bg-transparent data-[state=on]:text-foreground"
       >
         <Columns4 className="w-4 h-4" />
       </ui.ToggleGroupItem>
@@ -57,7 +57,7 @@ function GalleryLayoutToggle({
         value="grid"
         aria-label="Grid"
         title="Grid"
-        className="px-2 data-[state=on]:bg-white data-[state=on]:shadow-sm dark:data-[state=on]:bg-stone-900"
+        className="px-1.5 bg-transparent text-muted-foreground hover:bg-transparent data-[state=on]:bg-transparent data-[state=on]:text-foreground"
       >
         <LayoutGrid className="w-4 h-4" />
       </ui.ToggleGroupItem>
@@ -206,8 +206,8 @@ export function ChooseThumbnailSection({
         </div>
       ) : null}
       {hasTiles ? (
-        <div className="space-y-2">
-          <div className="flex justify-end">
+        <div className="relative pt-10">
+          <div className="absolute top-0 right-0 z-10">
             <GalleryLayoutToggle value={layout} onChange={setLayout} />
           </div>
           <div
