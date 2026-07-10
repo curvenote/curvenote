@@ -209,13 +209,13 @@ export function ChooseThumbnailSection({
         </div>
       ) : null}
       {hasTiles ? (
-        <div className="relative pt-10">
-          <div className="absolute top-0 right-0 z-10">
+        <div className="relative">
+          <div className="absolute top-0 right-1 z-10">
             <GalleryLayoutToggle value={layout} onChange={setLayout} />
           </div>
           <div
             className={cn(
-              'items-center py-1',
+              'items-center py-1 pr-14',
               layout === 'row'
                 ? 'flex overflow-x-auto overscroll-x-contain gap-4 px-1 pb-2'
                 : 'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
