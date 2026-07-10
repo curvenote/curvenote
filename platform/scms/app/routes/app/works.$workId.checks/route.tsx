@@ -76,6 +76,8 @@ export async function loader(args: Route.LoaderArgs) {
     nonDraftVersions,
     runsByVersionId,
   );
+  const latestVersionNumber =
+    buildWorkVersionNumberByIdMap(nonDraftVersions)[latestNonDraftWorkVersion.id] ?? 0;
 
   // -------------------------------------------------------------------------
   // TEMPORARY (stepping-stone): service-manifest fallback for kinds with no run.
@@ -133,6 +135,7 @@ export async function loader(args: Route.LoaderArgs) {
     latestRunByServiceKind,
     previousRunsByServiceKind,
     manifestByServiceKind,
+    latestVersionNumber,
   };
 }
 
@@ -156,6 +159,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     latestRunByServiceKind,
     previousRunsByServiceKind,
     manifestByServiceKind,
+    latestVersionNumber,
   } = loaderData;
   const location = useLocation();
   const revalidator = useRevalidator();
@@ -175,15 +179,9 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     { app: { extensions: extensionsConfig } } as unknown as AppConfig,
     extensions,
   );
-  const sortedCheckServices = sortExtensionCheckServicesByExtensionName(
-    checkServices,
-    extensions,
-  );
+  const sortedCheckServices = sortExtensionCheckServicesByExtensionName(checkServices, extensions);
 
   const basePath = `/app/works/${work.id}`;
-  const nonDraftVersions = (work.versions ?? []).filter((version) => !version.draft);
-  const latestVersionNumber =
-    buildWorkVersionNumberByIdMap(nonDraftVersions)[latestNonDraftWorkVersion.id] ?? 0;
   const enabledCheckKinds = metadata.checks?.enabled ?? [];
   const enabledCheckKindSet = new Set<string>(enabledCheckKinds);
   const hasPendingLatestRun = enabledCheckKinds.some(
