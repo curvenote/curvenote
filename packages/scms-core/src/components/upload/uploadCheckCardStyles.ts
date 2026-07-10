@@ -1,7 +1,7 @@
 import { cn } from '../../utils/cn.js';
 
-/** Upload checks section: two columns at all breakpoints (section is wide; avoids md: SSR flash). */
-export const UPLOAD_CHECKS_GRID_CLASS = 'grid grid-cols-2 items-stretch gap-4';
+/** Upload checks section: one column on narrow viewports, two from `sm` up. */
+export const UPLOAD_CHECKS_GRID_CLASS = 'grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2';
 
 /** Selected / unselected card chrome aligned with wizard option cards. */
 export function uploadCheckCardClassName({
