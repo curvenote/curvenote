@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
-import { Image as ImageIcon, Check } from 'lucide-react';
-import { SectionWithHeading, cn } from '@curvenote/scms-core';
+import { useMemo, useState } from 'react';
+import { Columns4, Image as ImageIcon, Check, LayoutGrid } from 'lucide-react';
+import { SectionWithHeading, cn, ui } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocumentPreviewer';
 import {
   buildThumbnailCandidateLocators,
@@ -22,6 +22,47 @@ export interface ChooseThumbnailSectionProps {
   onChange: (locator: string | null) => void;
   /** Inherited thumbnail from a prior version — always rendered first when present. */
   pinnedThumbnail?: PinnedThumbnail | null;
+}
+
+type ThumbnailGalleryLayout = 'row' | 'grid';
+
+function GalleryLayoutToggle({
+  value,
+  onChange,
+}: {
+  value: ThumbnailGalleryLayout;
+  onChange: (layout: ThumbnailGalleryLayout) => void;
+}) {
+  return (
+    <ui.ToggleGroup
+      type="single"
+      value={value}
+      variant="outline"
+      size="sm"
+      aria-label="Thumbnail gallery layout"
+      className="p-0.5 rounded-md bg-stone-100 dark:bg-stone-800"
+      onValueChange={(next) => {
+        if (next === 'row' || next === 'grid') onChange(next);
+      }}
+    >
+      <ui.ToggleGroupItem
+        value="row"
+        aria-label="Single row"
+        title="Single row"
+        className="px-2 data-[state=on]:bg-white data-[state=on]:shadow-sm dark:data-[state=on]:bg-stone-900"
+      >
+        <Columns4 className="w-4 h-4" />
+      </ui.ToggleGroupItem>
+      <ui.ToggleGroupItem
+        value="grid"
+        aria-label="Grid"
+        title="Grid"
+        className="px-2 data-[state=on]:bg-white data-[state=on]:shadow-sm dark:data-[state=on]:bg-stone-900"
+      >
+        <LayoutGrid className="w-4 h-4" />
+      </ui.ToggleGroupItem>
+    </ui.ToggleGroup>
+  );
 }
 
 function figureLabelFromKey(key: string): string {
@@ -51,6 +92,7 @@ function ThumbnailTile({
   isSelected,
   isCurrent,
   onSelect,
+  layout,
 }: {
   label: string;
   imageSrc: string | undefined;
@@ -58,9 +100,15 @@ function ThumbnailTile({
   isSelected: boolean;
   isCurrent?: boolean;
   onSelect: () => void;
+  layout: ThumbnailGalleryLayout;
 }) {
   return (
-    <div className="flex flex-col gap-[1px] justify-center items-stretch h-full shrink-0 w-36">
+    <div
+      className={cn(
+        'flex flex-col gap-[1px] justify-center items-stretch h-full',
+        layout === 'row' ? 'shrink-0 w-36' : 'w-full min-w-0',
+      )}
+    >
       <CurrentLabel visible={Boolean(isCurrent)} />
       <button
         type="button"
@@ -107,6 +155,7 @@ export function ChooseThumbnailSection({
   onChange,
   pinnedThumbnail = null,
 }: ChooseThumbnailSectionProps) {
+  const [layout, setLayout] = useState<ThumbnailGalleryLayout>('row');
   const allFigures = useMemo(() => collectAllFigures(previewList), [previewList]);
 
   const pinnedFigure = useMemo(() => {
@@ -157,32 +206,46 @@ export function ChooseThumbnailSection({
         </div>
       ) : null}
       {hasTiles ? (
-        <div className="flex gap-4 items-center py-1 overflow-x-auto overscroll-x-contain">
-          {pinnedThumbnail && pinnedLocator ? (
-            <ThumbnailTile
-              key={pinnedLocator}
-              label={pinnedLabel}
-              imageSrc={pinnedThumbnail.signedUrl}
-              imageAlt={pinnedLabel}
-              isSelected={pinnedLocator === selectedLocator}
-              isCurrent
-              onSelect={() => onChange(pinnedLocator)}
-            />
-          ) : null}
-          {figures.map(({ figure }, index) => {
-            const locator = figureLocators[index];
-            const label = figure.altText ?? figure.name ?? 'Figure';
-            return (
+        <div className="space-y-2">
+          <div className="flex justify-end">
+            <GalleryLayoutToggle value={layout} onChange={setLayout} />
+          </div>
+          <div
+            className={cn(
+              'items-center py-1',
+              layout === 'row'
+                ? 'flex overflow-x-auto overscroll-x-contain gap-4 px-1 pb-2'
+                : 'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
+            )}
+          >
+            {pinnedThumbnail && pinnedLocator ? (
               <ThumbnailTile
-                key={locator}
-                label={label}
-                imageSrc={figure.signedUrl}
-                imageAlt={label}
-                isSelected={locator === selectedLocator}
-                onSelect={() => onChange(locator)}
+                key={pinnedLocator}
+                layout={layout}
+                label={pinnedLabel}
+                imageSrc={pinnedThumbnail.signedUrl}
+                imageAlt={pinnedLabel}
+                isSelected={pinnedLocator === selectedLocator}
+                isCurrent
+                onSelect={() => onChange(pinnedLocator)}
               />
-            );
-          })}
+            ) : null}
+            {figures.map(({ figure }, index) => {
+              const locator = figureLocators[index];
+              const label = figure.altText ?? figure.name ?? 'Figure';
+              return (
+                <ThumbnailTile
+                  key={locator}
+                  layout={layout}
+                  label={label}
+                  imageSrc={figure.signedUrl}
+                  imageAlt={label}
+                  isSelected={locator === selectedLocator}
+                  onSelect={() => onChange(locator)}
+                />
+              );
+            })}
+          </div>
         </div>
       ) : null}
     </SectionWithHeading>
