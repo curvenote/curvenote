@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Columns4, Image as ImageIcon, Check, LayoutGrid } from 'lucide-react';
 import { SectionWithHeading, cn, ui } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocumentPreviewer';
@@ -32,6 +32,52 @@ const rowTileWidthClassName =
 
 const galleryLayoutToggleItemClassName =
   'px-1 bg-transparent text-muted-foreground/35 hover:bg-transparent hover:text-muted-foreground/50 data-[state=on]:bg-transparent data-[state=on]:text-foreground/70';
+
+/** Visible tile columns in row layout at each breakpoint (matches rowTileWidthClassName). */
+function rowGalleryColumnCount(containerWidth: number): number {
+  if (containerWidth >= 1024) return 5;
+  if (containerWidth >= 768) return 4;
+  if (containerWidth >= 640) return 3;
+  return 2;
+}
+
+function useRowGalleryOverflow({
+  tileCount,
+  layout,
+}: {
+  tileCount: number;
+  layout: ThumbnailGalleryLayout;
+}) {
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const [overflows, setOverflows] = useState(false);
+
+  const measureOverflow = useCallback(() => {
+    const el = galleryRef.current;
+    if (!el || tileCount === 0) {
+      setOverflows(false);
+      return;
+    }
+
+    if (layout === 'row') {
+      setOverflows(el.scrollWidth > el.clientWidth + 1);
+      return;
+    }
+
+    setOverflows(tileCount > rowGalleryColumnCount(el.clientWidth));
+  }, [layout, tileCount]);
+
+  useLayoutEffect(() => {
+    measureOverflow();
+    const el = galleryRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(measureOverflow);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measureOverflow]);
+
+  return { galleryRef, overflows };
+}
 
 function GalleryLayoutToggle({
   value,
@@ -197,6 +243,17 @@ export function ChooseThumbnailSection({
       : 'No figures were found in the current document previews.';
 
   const hasTiles = Boolean(pinnedThumbnail) || figures.length > 0;
+  const tileCount = (pinnedThumbnail ? 1 : 0) + figures.length;
+  const { galleryRef, overflows: rowGalleryOverflows } = useRowGalleryOverflow({
+    tileCount,
+    layout,
+  });
+
+  useLayoutEffect(() => {
+    if (!rowGalleryOverflows && layout === 'grid') {
+      setLayout('row');
+    }
+  }, [rowGalleryOverflows, layout]);
 
   return (
     <SectionWithHeading
@@ -214,14 +271,20 @@ export function ChooseThumbnailSection({
       ) : null}
       {hasTiles ? (
         <div className="relative">
-          <div className="absolute top-0 right-1 z-10">
-            <GalleryLayoutToggle value={layout} onChange={setLayout} />
-          </div>
+          {rowGalleryOverflows ? (
+            <div className="absolute top-0 right-1 z-10">
+              <GalleryLayoutToggle value={layout} onChange={setLayout} />
+            </div>
+          ) : null}
           <div
+            ref={galleryRef}
             className={cn(
               'items-center py-1 pt-2',
               layout === 'row'
-                ? 'flex overflow-x-auto overflow-y-hidden overscroll-x-contain gap-4 px-1 pr-14 [scrollbar-gutter:stable]'
+                ? cn(
+                    'flex overflow-x-auto overflow-y-hidden overscroll-x-contain gap-4 px-1 [scrollbar-gutter:stable]',
+                    rowGalleryOverflows && 'pr-14',
+                  )
                 : 'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
             )}
           >
