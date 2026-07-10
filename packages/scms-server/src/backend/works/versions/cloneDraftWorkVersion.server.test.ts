@@ -208,13 +208,21 @@ describe('seedDraftMetadataFromSource', () => {
 
   it('resets pmc preview flags when pmc is present', () => {
     const result = seedDraftMetadataFromSource({
-      pmc: { previewed: true, confirmed: true, journal: 'x' },
+      pmc: {
+        previewed: true,
+        confirmed: true,
+        journalName: 'Nature Methods',
+        doiSuccess: true,
+        title: 'Example article',
+      },
     });
 
     expect(result.pmc).toEqual({
       previewed: false,
       confirmed: false,
-      journal: 'x',
+      journalName: 'Nature Methods',
+      doiSuccess: true,
+      title: 'Example article',
     });
   });
 
