@@ -26,6 +26,9 @@ export interface ChooseThumbnailSectionProps {
 
 type ThumbnailGalleryLayout = 'row' | 'grid';
 
+const galleryLayoutToggleItemClassName =
+  'px-1.5 bg-transparent text-muted-foreground/35 hover:bg-transparent hover:text-muted-foreground/50 data-[state=on]:bg-transparent data-[state=on]:text-foreground/90';
+
 function GalleryLayoutToggle({
   value,
   onChange,
@@ -49,7 +52,7 @@ function GalleryLayoutToggle({
         value="row"
         aria-label="Single row"
         title="Single row"
-        className="px-1.5 bg-transparent text-muted-foreground hover:bg-transparent data-[state=on]:bg-transparent data-[state=on]:text-foreground"
+        className={galleryLayoutToggleItemClassName}
       >
         <Columns4 className="w-4 h-4" />
       </ui.ToggleGroupItem>
@@ -57,7 +60,7 @@ function GalleryLayoutToggle({
         value="grid"
         aria-label="Grid"
         title="Grid"
-        className="px-1.5 bg-transparent text-muted-foreground hover:bg-transparent data-[state=on]:bg-transparent data-[state=on]:text-foreground"
+        className={galleryLayoutToggleItemClassName}
       >
         <LayoutGrid className="w-4 h-4" />
       </ui.ToggleGroupItem>
