@@ -1,5 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as ScmsCore from '@curvenote/scms-core';
 
 const {
   createReturningVersion,
@@ -106,61 +107,58 @@ vi.mock('@curvenote/scms-server', () => ({
   },
 }));
 
-vi.mock('@curvenote/scms-core', () => ({
-  MainWrapper: vi.fn(),
-  SecondaryNav: vi.fn(),
-  getBrandingFromMetaMatches: vi.fn(() => ({ title: 'SCMS' })),
-  joinPageTitle: vi.fn((title: string | undefined, suffix: string) => `${title ?? ''} ${suffix}`),
-  TrackEvent: {
-    WORK_VIEWED: 'WORK_VIEWED',
-  },
-  getWorkflows: vi.fn(() => ({ SIMPLE: {} })),
-  registerExtensionWorkflows: vi.fn(() => ({})),
-  getExtensionCheckServicesFromServerConfig: vi.fn(() => []),
-  loadCheckMaintenanceByServiceIds,
-  CheckMaintenanceProvider: vi.fn(({ children }) => children),
-  scopes: {
-    app: {
-      works: {
-        upload: 'app:works:upload',
-        submitToSite: 'app:works:submit-to-site',
-      },
+vi.mock('@curvenote/scms-core', async () => {
+  // Pull the real resolver through instead of hand-copying its body, so these route
+  // tests exercise the actual routing logic and catch regressions if it changes. The
+  // function is pure, so only it is un-mocked while the rest of the module stays stubbed.
+  const { resolveSubmitToSiteExtension } =
+    await vi.importActual<typeof ScmsCore>('@curvenote/scms-core');
+  return {
+    MainWrapper: vi.fn(),
+    SecondaryNav: vi.fn(),
+    getBrandingFromMetaMatches: vi.fn(() => ({ title: 'SCMS' })),
+    joinPageTitle: vi.fn((title: string | undefined, suffix: string) => `${title ?? ''} ${suffix}`),
+    TrackEvent: {
+      WORK_VIEWED: 'WORK_VIEWED',
     },
-    site: {
-      submissions: {
-        create: 'site:submissions:create',
-      },
-    },
-    work: {
-      id: {
-        read: 'work:id:read',
-        users: {
-          read: 'work:users:read',
-        },
-        checks: {
-          dispatch: 'work:id:checks:dispatch',
+    getWorkflows: vi.fn(() => ({ SIMPLE: {} })),
+    registerExtensionWorkflows: vi.fn(() => ({})),
+    getExtensionCheckServicesFromServerConfig: vi.fn(() => []),
+    loadCheckMaintenanceByServiceIds,
+    CheckMaintenanceProvider: vi.fn(({ children }) => children),
+    scopes: {
+      app: {
+        works: {
+          upload: 'app:works:upload',
+          submitToSite: 'app:works:submit-to-site',
         },
       },
+      site: {
+        submissions: {
+          create: 'site:submissions:create',
+        },
+      },
+      work: {
+        id: {
+          read: 'work:id:read',
+          users: {
+            read: 'work:users:read',
+          },
+          checks: {
+            dispatch: 'work:id:checks:dispatch',
+          },
+        },
+      },
     },
-  },
-  BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID: 'article',
-  resolveCreateNewVersionOption: vi.fn(() => ({
-    ok: true,
-    option: { id: 'article', extensionId: undefined },
-  })),
-  invokeExtensionCreateWorkVersion: vi.fn(),
-  resolveSubmitToSiteExtension: (
-    extensions: Array<{
-      getOperatedSites?: () => string[];
-      submitToSite?: (...args: unknown[]) => Promise<unknown>;
-    }>,
-    siteName: string,
-  ) =>
-    extensions.find(
-      (extension) =>
-        !!extension.submitToSite && !!extension.getOperatedSites?.().includes(siteName),
-    ),
-}));
+    BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID: 'article',
+    resolveCreateNewVersionOption: vi.fn(() => ({
+      ok: true,
+      option: { id: 'article', extensionId: undefined },
+    })),
+    invokeExtensionCreateWorkVersion: vi.fn(),
+    resolveSubmitToSiteExtension,
+  };
+});
 
 vi.mock('./menu', () => ({
   buildMenu: vi.fn(() => []),
