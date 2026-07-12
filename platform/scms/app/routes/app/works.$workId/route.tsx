@@ -328,12 +328,24 @@ export async function action(args: ActionFunctionArgs) {
 
       const submitExt = resolveSubmitToSiteExtension(serverExtensions, siteName);
       if (submitExt) {
-        const extResult = await submitExt.submitToSite!({
-          ctx,
-          workId: ctx.work.id,
-          workVersionId: selectedVersion.id,
-          siteName,
-        });
+        // Serialize concurrent delegated submits with the same advisory lock the
+        // central path uses, so a double submit can't race the extension's own
+        // existing-submission dedup (e.g. two DRAFT submissions for one work+site).
+        // The lock is held for the extension call and released when the wrapping
+        // transaction settles.
+        const extLockKey = workSiteSubmitLockKey(ctx.work.id, site.id);
+        const extResult = await prisma.$transaction(
+          async (tx) => {
+            await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${extLockKey}))`);
+            return submitExt.submitToSite!({
+              ctx,
+              workId: ctx.work.id,
+              workVersionId: selectedVersion.id,
+              siteName,
+            });
+          },
+          { timeout: 20_000 },
+        );
         if (!extResult?.success) {
           return data(
             {

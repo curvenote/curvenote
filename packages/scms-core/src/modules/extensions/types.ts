@@ -433,6 +433,10 @@ export interface ServerExtension extends ClientExtension {
   /**
    * Optional opt-in: when present together with `getOperatedSites`, this extension owns submit-to-site
    * for those sites. Must resolve success/failure; never returns null to fall back to core.
+   *
+   * Core serializes concurrent invocations for the same work+site with an advisory lock, so a
+   * double submit will not run two handlers at once. Implementations should still be idempotent
+   * (re-check for an existing submission/version and reuse it) rather than unconditionally creating.
    */
   submitToSite?: (args: ExtensionSubmitToSiteArgs) => Promise<ExtensionSubmitToSiteResult>;
   getJobs?: () => JobRegistration[];
