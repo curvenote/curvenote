@@ -24,6 +24,7 @@ const {
   withSecureWorkContext,
   cloneDraftWorkVersionFromSource,
   getUserScopesSet,
+  executeRaw,
   mockServerExtensions,
 } = vi.hoisted(() => ({
   createReturningVersion: vi.fn(),
@@ -47,6 +48,7 @@ const {
   withSecureWorkContext: vi.fn(),
   cloneDraftWorkVersionFromSource: vi.fn(),
   getUserScopesSet: vi.fn(() => new Set(['app:works:upload'])),
+  executeRaw: vi.fn(),
   mockServerExtensions: [] as Array<{
     id: string;
     getOperatedSites?: () => string[];
@@ -65,7 +67,7 @@ vi.mock('@curvenote/scms-server', () => ({
   getPrismaClient: vi.fn(async () => ({
     $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
       fn({
-        $executeRaw: vi.fn(),
+        $executeRaw: executeRaw,
         submission: {
           findFirst: findFirstSubmission,
         },
@@ -736,6 +738,59 @@ describe('work submit-to-site route', () => {
         siteName: 'pmc',
       }),
     );
+    // The advisory lock is acquired inside the transaction before the extension
+    // handler runs, so concurrent delegated submits serialize.
+    const lockSql = executeRaw.mock.calls[0][0] as { values: unknown[] };
+    expect(lockSql.values).toContain('work-site-submit:work-1:site-pmc');
+    expect(executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      submitToSite.mock.invocationCallOrder[0],
+    );
+    expect(createReturningVersion).not.toHaveBeenCalled();
+    expect(createSubmissionVersion).not.toHaveBeenCalled();
+  });
+
+  it('fails when an extension submit handler rejects without falling back to the central route', async () => {
+    mockServerExtensions.push({
+      id: 'pmc',
+      getOperatedSites: () => ['pmc'],
+      submitToSite: vi.fn().mockRejectedValue(new Error('PMC deposit service unavailable')),
+    });
+    findUniqueSite.mockResolvedValue({
+      id: 'site-pmc',
+      name: 'pmc',
+      title: 'PMC',
+      private: true,
+      restricted: false,
+      external: true,
+      domains: [],
+      submissionKinds: [{ id: 'kind-1', default: true }],
+      collections: [
+        {
+          id: 'collection-1',
+          default: true,
+          open: true,
+          kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+        },
+      ],
+    });
+    userHasScope.mockImplementation((_user, scope, siteName) => {
+      if (scope === 'app:works:submit-to-site') return true;
+      return scope === 'site:submissions:create' && siteName === 'pmc';
+    });
+
+    const response = await action({
+      request: createSubmitToSiteRequest('pmc', 'wv-1'),
+      params: { workId: 'work-1' },
+    } as never);
+    const status = 'init' in response ? response.init?.status : 200;
+    const body = 'data' in response ? response.data : response;
+
+    expect(status).toBe(500);
+    expect(body).toMatchObject({
+      success: false,
+      intent: 'submit-to-site',
+      error: 'PMC deposit service unavailable',
+    });
     expect(createReturningVersion).not.toHaveBeenCalled();
     expect(createSubmissionVersion).not.toHaveBeenCalled();
   });

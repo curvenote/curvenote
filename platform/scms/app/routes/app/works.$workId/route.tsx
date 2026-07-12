@@ -332,7 +332,8 @@ export async function action(args: ActionFunctionArgs) {
         // central path uses, so a double submit can't race the extension's own
         // existing-submission dedup (e.g. two DRAFT submissions for one work+site).
         // The lock is held for the extension call and released when the wrapping
-        // transaction settles.
+        // transaction settles. The timeout is generous because a timeout releases
+        // the lock while the un-cancellable extension call keeps running.
         const extLockKey = workSiteSubmitLockKey(ctx.work.id, site.id);
         const extResult = await prisma.$transaction(
           async (tx) => {
@@ -344,7 +345,7 @@ export async function action(args: ActionFunctionArgs) {
               siteName,
             });
           },
-          { timeout: 20_000 },
+          { timeout: 60_000 },
         );
         if (!extResult?.success) {
           return data(
@@ -455,6 +456,21 @@ export async function action(args: ActionFunctionArgs) {
     } catch (error) {
       if (error instanceof SubmitToSiteConfigError) {
         return data({ success: false, intent, error: error.message }, { status: 400 });
+      }
+      // P2028: the wrapping transaction timed out. The advisory lock is released but
+      // the underlying submit (e.g. an extension call) may still complete, so warn
+      // the user against blindly retrying instead of returning a generic failure.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2028') {
+        console.error('Submit work to site transaction timed out:', error);
+        return data(
+          {
+            success: false,
+            intent,
+            error:
+              'The submission timed out but may still be processing. Check the site for a new submission before retrying.',
+          },
+          { status: 500 },
+        );
       }
       console.error('Failed to submit work to site:', error);
       return data(

@@ -17,6 +17,7 @@ import type {
 } from '../works.$workId/types';
 import type { CheckServiceRunRow } from '../works.$workId/checkServiceRun.shared';
 import { getCheckRunSummaryByKind } from '../works.$workId/checkServiceRunSummaries';
+import { resolveSubmitRedirectTarget } from './submitToSiteRedirect';
 import { Check, ChevronDown, GitBranch, Loader2, Send } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
@@ -321,25 +322,23 @@ export function SubmittedToBar({
   );
 
   useEffect(() => {
-    if (fetcher.state !== 'idle' || fetcher.data?.intent !== 'submit-to-site') return;
-    // Settled: release the click guard so a failed submit can be retried.
+    if (fetcher.state !== 'idle' || !fetcher.data) return;
+    // Settled: release the click guard on any response (even one without an intent,
+    // e.g. an invalid-form-data error) so a failed submit can be retried.
     submitLockRef.current = false;
+    if (fetcher.data.intent !== 'submit-to-site') return;
     const errorMessage = getErrorMessage(fetcher.data);
     if (errorMessage) {
       ui.toastError(errorMessage);
       return;
     }
     if (fetcher.data.success) {
-      const { redirectPath, siteName, submissionVersionId } = fetcher.data;
-      const target =
-        redirectPath ??
-        (siteName && submissionVersionId
-          ? `${basePath}/site/${siteName}/submission/${submissionVersionId}`
-          : undefined);
+      const target = resolveSubmitRedirectTarget(fetcher.data, basePath);
       if (target) {
         navigate(target);
       } else {
-        ui.toastError('Submission succeeded but no destination was provided');
+        // The submission succeeded server-side; some extensions return no destination.
+        ui.toastSuccess('Submitted successfully');
       }
     }
   }, [basePath, fetcher.data, fetcher.state, navigate]);
@@ -656,8 +655,8 @@ export function SubmittedToBar({
                               'flex gap-3 items-start p-2 w-full text-left rounded-md transition-colors',
                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                               'disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent',
-                              isCurrentSiteSubmitting &&
-                                'cursor-wait opacity-70 pointer-events-none',
+                              // twMerge lets this displace disabled:cursor-not-allowed above.
+                              isCurrentSiteSubmitting && 'disabled:cursor-wait',
                               !isDisabled && !isCurrentSiteSubmitting && 'hover:bg-accent',
                             )}
                           >
