@@ -326,12 +326,14 @@ export function SubmittedToBar({
     // Settled: release the click guard on any response (even one without an intent,
     // e.g. an invalid-form-data error) so a failed submit can be retried.
     submitLockRef.current = false;
-    if (fetcher.data.intent !== 'submit-to-site') return;
+    // The fetcher only posts submit-to-site, so an error response belongs to this
+    // submit even when it carries no intent (e.g. invalid form data).
     const errorMessage = getErrorMessage(fetcher.data);
     if (errorMessage) {
       ui.toastError(errorMessage);
       return;
     }
+    if (fetcher.data.intent !== 'submit-to-site') return;
     if (fetcher.data.success) {
       const target = resolveSubmitRedirectTarget(fetcher.data, basePath);
       if (target) {
