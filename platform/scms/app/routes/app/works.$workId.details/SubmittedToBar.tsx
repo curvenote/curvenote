@@ -633,7 +633,6 @@ export function SubmittedToBar({
                         const alreadySubmitted = submittedSiteNamesForSelectedVersion.has(
                           site.name,
                         );
-                        const isBusy = isCurrentSiteSubmitting;
                         // Disable every site button (including the one just clicked) while any
                         // submit is in flight so a double-click cannot trigger a second submission.
                         const isDisabled =
@@ -645,7 +644,7 @@ export function SubmittedToBar({
                             name="siteName"
                             value={site.name}
                             disabled={isDisabled}
-                            aria-busy={isBusy || undefined}
+                            aria-busy={isCurrentSiteSubmitting || undefined}
                             onClick={(event) => {
                               if (submitLockRef.current) {
                                 event.preventDefault();
@@ -657,8 +656,9 @@ export function SubmittedToBar({
                               'flex gap-3 items-start p-2 w-full text-left rounded-md transition-colors',
                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                               'disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent',
-                              isBusy && 'cursor-wait opacity-70 pointer-events-none',
-                              !isDisabled && !isBusy && 'hover:bg-accent',
+                              isCurrentSiteSubmitting &&
+                                'cursor-wait opacity-70 pointer-events-none',
+                              !isDisabled && !isCurrentSiteSubmitting && 'hover:bg-accent',
                             )}
                           >
                             <span className="flex overflow-hidden justify-center items-center w-9 h-9 rounded border bg-muted shrink-0 border-border">
