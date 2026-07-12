@@ -257,6 +257,8 @@ export function SubmittedToBar({
 }) {
   const navigate = useNavigate();
   const fetcher = useFetcher<SubmitToSiteFetcherData>();
+  // Synchronous guard closing the double-click window before `disabled` re-renders.
+  const submitLockRef = useRef(false);
   const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
   const versionNumberByVersionId = useMemo(
     () => buildWorkVersionNumberByIdMap(versions),
@@ -320,6 +322,8 @@ export function SubmittedToBar({
 
   useEffect(() => {
     if (fetcher.state !== 'idle' || fetcher.data?.intent !== 'submit-to-site') return;
+    // Settled: release the click guard so a failed submit can be retried.
+    submitLockRef.current = false;
     const errorMessage = getErrorMessage(fetcher.data);
     if (errorMessage) {
       ui.toastError(errorMessage);
@@ -630,10 +634,10 @@ export function SubmittedToBar({
                           site.name,
                         );
                         const isBusy = isCurrentSiteSubmitting;
+                        // Disable every site button (including the one just clicked) while any
+                        // submit is in flight so a double-click cannot trigger a second submission.
                         const isDisabled =
-                          !hasCompletedVersions ||
-                          alreadySubmitted ||
-                          (isSubmitting && !isCurrentSiteSubmitting);
+                          !hasCompletedVersions || alreadySubmitted || isSubmitting;
                         return (
                           <button
                             key={site.id}
@@ -642,6 +646,13 @@ export function SubmittedToBar({
                             value={site.name}
                             disabled={isDisabled}
                             aria-busy={isBusy || undefined}
+                            onClick={(event) => {
+                              if (submitLockRef.current) {
+                                event.preventDefault();
+                                return;
+                              }
+                              submitLockRef.current = true;
+                            }}
                             className={cn(
                               'flex gap-3 items-start p-2 w-full text-left rounded-md transition-colors',
                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
