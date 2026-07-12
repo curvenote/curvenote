@@ -325,11 +325,18 @@ export function SubmittedToBar({
       ui.toastError(errorMessage);
       return;
     }
-    if (fetcher.data.success && fetcher.data.siteName && fetcher.data.submissionVersionId) {
-      const redirectPath =
-        fetcher.data.redirectPath ??
-        `${basePath}/site/${fetcher.data.siteName}/submission/${fetcher.data.submissionVersionId}`;
-      navigate(redirectPath);
+    if (fetcher.data.success) {
+      const { redirectPath, siteName, submissionVersionId } = fetcher.data;
+      const target =
+        redirectPath ??
+        (siteName && submissionVersionId
+          ? `${basePath}/site/${siteName}/submission/${submissionVersionId}`
+          : undefined);
+      if (target) {
+        navigate(target);
+      } else {
+        ui.toastError('Submission succeeded but no destination was provided');
+      }
     }
   }, [basePath, fetcher.data, fetcher.state, navigate]);
 
