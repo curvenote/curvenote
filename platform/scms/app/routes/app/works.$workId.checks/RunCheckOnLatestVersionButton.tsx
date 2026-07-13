@@ -40,16 +40,16 @@ export function RunCheckOnLatestVersionButton({
           value="execute"
           busy={isSubmitting}
           disabled={blocked}
+          className="gap-1.5"
         >
-          <span className="flex gap-1.5 items-center">
-            <ui.VersionTagBadge
-              tag={`v${versionNumber}`}
-              titlePrefix="Version"
-              icon={GitBranch}
-              compact
-            />
-            Check Latest Version
-          </span>
+          <span className="whitespace-nowrap">Check Latest Version</span>
+          <ui.VersionTagBadge
+            tag={`v${versionNumber}`}
+            titlePrefix="Version"
+            icon={GitBranch}
+            compact
+            emphasis="on-primary"
+          />
         </ui.StatefulButton>
       </fetcher.Form>
     </ui.MaintenanceTooltip>
