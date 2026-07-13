@@ -89,7 +89,8 @@
     "@prisma/client": "^7.2.0",
     "@scienceicons/react": "^0.0.13",
     "dotenv": "^17.2.3",
-    "eslint-plugin-import": "^2.32.0"
+    "eslint-plugin-import": "^2.32.0",
+    "lint": "^1.2.2"
   },
   "overrides": {
     "@jupyterlab/services": "7.5.8",

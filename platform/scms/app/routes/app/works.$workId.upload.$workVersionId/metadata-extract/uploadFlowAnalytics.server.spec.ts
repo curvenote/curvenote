@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import type { FileMetadataSectionItem } from '@curvenote/scms-core';
 import {

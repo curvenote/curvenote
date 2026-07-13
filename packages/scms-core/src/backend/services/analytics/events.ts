@@ -136,7 +136,8 @@ export const TrackEventDescriptions: Record<TrackEvent, string> = {
   [TrackEvent.FILES_STAGED]: 'Files staged for upload',
   [TrackEvent.FILE_REMOVED]: 'File removed from a work',
 
-  [TrackEvent.DOCUMENT_PREVIEW_STARTED]: 'Document preview generation was requested in the upload flow',
+  [TrackEvent.DOCUMENT_PREVIEW_STARTED]:
+    'Document preview generation was requested in the upload flow',
   [TrackEvent.DOCUMENT_PREVIEW_COMPLETED]:
     'Document preview generation finished with at least one usable preview',
   [TrackEvent.DOCUMENT_PREVIEW_FAILED]: 'Document preview generation failed for all candidates',

@@ -88,8 +88,7 @@ export function filterCheckServiceIdsWithExtensionAnalyticsEvent(
 ): string[] {
   return checkServiceIds.filter(
     (checkServiceId) =>
-      resolveCheckServiceAnalyticsEventName(serviceIdToExtension, checkServiceId, eventKey) !=
-      null,
+      resolveCheckServiceAnalyticsEventName(serviceIdToExtension, checkServiceId, eventKey) != null,
   );
 }
 

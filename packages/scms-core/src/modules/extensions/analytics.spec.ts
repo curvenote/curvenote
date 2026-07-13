@@ -56,11 +56,7 @@ describe('extension checks analytics helpers', () => {
   const extA = extensionWithChecks('ext-a', 'service-a', sharedEvents);
   const extB = extensionWithChecks('ext-b', 'service-b', sharedEvents);
   const extWithoutAnalytics = extensionWithChecks('ext-plain', 'plain-service');
-  const serviceMap = buildCheckServiceIdToExtensionMap([
-    extA,
-    extB,
-    extWithoutAnalytics,
-  ]);
+  const serviceMap = buildCheckServiceIdToExtensionMap([extA, extB, extWithoutAnalytics]);
 
   it('maps check service ids to owning extensions', () => {
     expect(serviceMap.get('service-a')?.id).toBe('ext-a');

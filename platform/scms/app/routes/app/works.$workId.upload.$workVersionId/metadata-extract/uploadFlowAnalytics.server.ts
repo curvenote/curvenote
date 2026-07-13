@@ -11,11 +11,7 @@ export function normalizeUploadFlowTrigger(
   value: string | undefined,
   fallback: UploadFlowTrigger = 'auto',
 ): UploadFlowTrigger {
-  if (
-    value === 'auto' ||
-    value === 'manual_preview_retry' ||
-    value === 'manual_extract_rerun'
-  ) {
+  if (value === 'auto' || value === 'manual_preview_retry' || value === 'manual_extract_rerun') {
     return value;
   }
   return fallback;
@@ -152,11 +148,7 @@ export async function trackUploadFlowEvent(
     path = undefined;
   }
 
-  await ctx.trackEvent(
-    event,
-    path ? { ...properties, path } : properties,
-    { ignoreAdmin: true },
-  );
+  await ctx.trackEvent(event, path ? { ...properties, path } : properties, { ignoreAdmin: true });
   if (typeof ctx.analytics?.flush === 'function') {
     await ctx.analytics.flush();
   }
@@ -219,8 +211,7 @@ export async function trackDocumentPreviewAnalytics(
     ...(outcome === 'failed'
       ? {
           failureReason:
-            args.failureReason ??
-            previewFailureReason(args.previewCandidateCount, args.previews),
+            args.failureReason ?? previewFailureReason(args.previewCandidateCount, args.previews),
         }
       : {}),
   });
