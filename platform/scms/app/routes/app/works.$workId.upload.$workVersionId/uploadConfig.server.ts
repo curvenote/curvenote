@@ -6,9 +6,10 @@ export const WORK_UPLOAD_CONFIGURATION: Record<string, FileUploadConfig> = {
     slot: 'manuscript',
     label: 'Manuscript',
     icon: 'file',
-    description: 'Upload one or more manuscript files (.docx or .pdf), up to 100 MB total',
+    description: 'Upload a manuscript file (.docx or .pdf), up to 100 MB',
     optional: false,
-    multiple: true,
+    multiple: false,
+    maxFiles: 1,
     accept: MANUSCRIPT_UPLOAD_ACCEPT,
     mimeTypes: [...MANUSCRIPT_UPLOAD_MIME_TYPES],
     maxTotalSize: 100 * 1024 * 1024, // 100 MB total across slot

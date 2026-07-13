@@ -1162,8 +1162,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
             className="space-y-4 max-w-3xl"
           >
             <p className="text-md text-muted-foreground">
-              Upload one or more manuscript files (DOCX or PDF), up to 100 MB total. Individual
-              check services may have stricter limits.
+              Upload a single manuscript file (DOCX or PDF), up to 100 MB. Individual check services
+              may have stricter limits.
             </p>
             <WorkFileUpload
               cdnKey={cdnKey}
