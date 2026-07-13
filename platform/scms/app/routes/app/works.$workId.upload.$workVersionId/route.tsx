@@ -32,7 +32,7 @@ import {
   resolveThumbnailBucket,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
-import type { ExtensionCheckHandleActionArgs, FileMetadataSection } from '@curvenote/scms-core';
+import type { ExtensionCheckHandleActionArgs, FileMetadataSection, FileMetadataSectionItem } from '@curvenote/scms-core';
 import {
   MainWrapper,
   PageFrame,
@@ -102,6 +102,12 @@ import {
 } from './metadata-extract/thumbnailSelection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isPreviewCandidate } from './metadata-extract/previewGuards';
+import {
+  summarizePreviewCandidateFiles,
+  sanitizeUploadFlowFailureReason,
+  trackDocumentPreviewAnalytics,
+  trackMetadataExtractionAnalytics,
+} from './metadata-extract/uploadFlowAnalytics.server';
 import type { AuthorFieldMetadata } from './mystAuthorAdapters';
 import { mystFrontmatterToAuthorField } from './mystAuthorAdapters';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -810,8 +816,39 @@ export async function action(args: Route.ActionArgs) {
             { status: 403 },
           );
         }
-        const { previews } = await handleFetchPreviewsIntent(workVersionId, baseCtx);
-        return data({ ok: true, previewsGenerated: previews.length });
+        try {
+          const work = await findWorkByVersion(workVersionId);
+          const files = (work?.metadata as Record<string, unknown> | undefined)?.files as
+            | Record<string, FileMetadataSectionItem>
+            | undefined;
+          const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
+          const { previews } = await handleFetchPreviewsIntent(workVersionId, baseCtx);
+          await trackDocumentPreviewAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            ...candidateSummary,
+            previews,
+          });
+          return data({ ok: true, previewsGenerated: previews.length });
+        } catch (err) {
+          const work = await findWorkByVersion(workVersionId);
+          const files = (work?.metadata as Record<string, unknown> | undefined)?.files as
+            | Record<string, FileMetadataSectionItem>
+            | undefined;
+          const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
+          await trackDocumentPreviewAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            ...candidateSummary,
+            previews: [],
+            failureReason: sanitizeUploadFlowFailureReason(
+              err instanceof Error ? err.message : 'preview_generation_failed',
+            ),
+          });
+          const message =
+            err instanceof Error ? err.message : 'Failed to generate document previews';
+          return data({ error: { type: 'general', message } }, { status: 500 });
+        }
       }
 
       if (uploadIntent === 'clear-extracted-metadata') {
@@ -911,7 +948,18 @@ export async function action(args: Route.ActionArgs) {
           baseCtx,
         );
         const previews = await readDocumentPreviewsFromObjectTable(workVersionId, signedMetadata);
+        const selectedPreview =
+          (targetPath && previews.find((preview) => preview.path === targetPath)) ||
+          previews[0];
         if (previews.length === 0) {
+          await trackMetadataExtractionAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            success: false,
+            forceReextract,
+            previewCount: 0,
+            failureReason: 'no_previews',
+          });
           return data({ ok: true });
         }
         try {
@@ -963,9 +1011,39 @@ export async function action(args: Route.ActionArgs) {
             ) {
               await updateWorkVersionAuthorMetadata(workVersionId, extractedAuthorMetadata);
             }
+            await trackMetadataExtractionAnalytics(baseCtx, {
+              workId,
+              workVersionId,
+              success: true,
+              forceReextract,
+              previewCount: previews.length,
+              selectedPreview,
+              extracted,
+            });
+          } else {
+            await trackMetadataExtractionAnalytics(baseCtx, {
+              workId,
+              workVersionId,
+              success: false,
+              forceReextract,
+              previewCount: previews.length,
+              selectedPreview,
+              failureReason: 'empty_result',
+            });
           }
           return data({ ok: true });
         } catch (err) {
+          await trackMetadataExtractionAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            success: false,
+            forceReextract,
+            previewCount: previews.length,
+            selectedPreview,
+            failureReason: sanitizeUploadFlowFailureReason(
+              err instanceof Error ? err.message : 'metadata_extraction_failed',
+            ),
+          });
           const message =
             err instanceof Error ? err.message : 'Failed to extract metadata from document';
           return data({ error: { type: 'general', message } }, { status: 500 });
