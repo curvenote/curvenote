@@ -1277,6 +1277,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
       { intent: 'fetch-previews', uploadFlowTrigger: 'manual_preview_retry' },
       { method: 'POST' },
     );
+  }, [fetchPreviewsFetcher]);
 
   const isGeneratingPreviews =
     fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
@@ -1389,4 +1390,5 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
       </MainWrapper>
     </CheckMaintenanceProvider>
   );
+}
 }
