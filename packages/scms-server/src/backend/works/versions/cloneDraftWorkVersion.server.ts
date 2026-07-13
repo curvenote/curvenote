@@ -17,27 +17,19 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
 }
 
+export type SeedDraftMetadataFromSource = (sourceMetadata: unknown) => Record<string, unknown>;
+
 /**
- * Sanitize source work version metadata for a new draft clone.
- * Shallow-copies all top-level keys, then resets version-specific workflow state.
+ * Default metadata seed for a new draft clone: shallow copy with checks reset.
+ * Callers may pass a flow-specific seeder via {@link CloneDraftWorkVersionFromSourceArgs.seedMetadataFromSource}.
  */
-export function seedDraftMetadataFromSource(sourceMetadata: unknown): Record<string, unknown> {
+export function baseSeedDraftMetadataFromSource(sourceMetadata: unknown): Record<string, unknown> {
   const source = isPlainObject(sourceMetadata) ? { ...sourceMetadata } : {};
-
-  const next: Record<string, unknown> = { ...source };
-
-  next.checks = { enabled: [] };
-
-  if (isPlainObject(source.pmc)) {
-    next.pmc = {
-      ...source.pmc,
-      previewed: false,
-      confirmed: false,
-    };
-  }
-
-  return next;
+  return { ...source, checks: { enabled: [] } };
 }
+
+/** Alias of {@link baseSeedDraftMetadataFromSource}. */
+export const seedDraftMetadataFromSource = baseSeedDraftMetadataFromSource;
 
 export type SeedDocumentPreviewCacheArgs = {
   sourceWorkVersionId: string;
@@ -96,6 +88,8 @@ export type CloneDraftWorkVersionFromSourceArgs = {
   sourceWorkVersionId: string;
   source?: string;
   activityType?: ActivityType;
+  /** Override metadata seeding; defaults to {@link baseSeedDraftMetadataFromSource}. */
+  seedMetadataFromSource?: SeedDraftMetadataFromSource;
 };
 
 export type CloneDraftWorkVersionFromSourceResult = {
@@ -140,7 +134,8 @@ export async function cloneDraftWorkVersionFromSource(
     const previousVersionContains = existing.versions[0]?.contains ?? source.contains ?? [];
     const versionContains = draftUploadVersionContains(previousVersionContains);
     const workContains = mergeWorkContains(existing.contains, versionContains);
-    const versionMetadata = seedDraftMetadataFromSource(source.metadata);
+    const seedMetadata = args.seedMetadataFromSource ?? baseSeedDraftMetadataFromSource;
+    const versionMetadata = seedMetadata(source.metadata);
 
     await tx.work.update({
       where: { id: args.workId },
