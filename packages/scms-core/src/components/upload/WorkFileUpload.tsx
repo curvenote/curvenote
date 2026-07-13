@@ -545,7 +545,9 @@ export function WorkFileUpload({
                     Browse your computer
                   </span>
                   <span className="text-stone-400">
-                    {multiple ? ' or drag and drop your files here' : ' or drag and drop your file here'}
+                    {multiple
+                      ? ' or drag and drop your files here'
+                      : ' or drag and drop your file here'}
                   </span>
                 </>
               )}
