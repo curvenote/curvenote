@@ -659,15 +659,16 @@ export async function action(args: Route.ActionArgs) {
           return rejectCheckDispatch();
         }
 
-        if (enabledChecks.length > 0) {
+        const dispatchedHhmiChecks = dispatchableChecks.filter((name) =>
+          HHMI_UPLOAD_CHECK_KINDS.has(name as ChecksKind),
+        );
+
+        if (dispatchedHhmiChecks.length > 0) {
           await baseCtx.trackEvent(HHMIChecksTrackEvent.CHECKS_UPLOAD_CONFIRMED, {
             workId,
             workVersionId,
-            enabledChecks,
-            dispatchedChecks: dispatchableChecks,
-            skippedMaintenanceChecks: enabledChecks.filter(
-              (name) => maintenanceByServiceId[name]?.underMaintenance,
-            ),
+            enabledChecks: dispatchedHhmiChecks,
+            dispatchedChecks: dispatchedHhmiChecks,
           });
           await baseCtx.analytics.flush();
         }
