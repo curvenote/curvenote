@@ -140,6 +140,8 @@ export interface ExtensionCheckHandleActionArgs {
   ctx?: Context;
   /** Check run id when invoked from upload flow (execute). */
   checkRunId?: string;
+  /** Analytics trigger source when not provided via form `trigger` field. */
+  analyticsTrigger?: string;
 }
 
 /** Result of handleAction: success with optional status, or error (message string or object with type/message). */

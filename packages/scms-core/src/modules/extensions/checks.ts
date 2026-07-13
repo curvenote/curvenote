@@ -78,6 +78,17 @@ export function getExtensionCheckServicesFromServerConfig(
   return services;
 }
 
+export function filterExtensionsWithChecksEnabled(
+  serverConfig: AppConfig,
+  extensions: ClientExtension[],
+): ClientExtension[] {
+  return extensions.filter((ext) => {
+    if (!ext.getChecks) return false;
+    const extCfg = getExtensionConfig(serverConfig, ext.id);
+    return extensionChecksEnabledFromServerConfig(extCfg);
+  });
+}
+
 type ExtensionWithCheckServices = Pick<ClientExtension, 'id' | 'name' | 'getChecks'>;
 
 /**

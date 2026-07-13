@@ -32,7 +32,11 @@ import {
   resolveThumbnailBucket,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
-import type { ExtensionCheckHandleActionArgs, FileMetadataSection } from '@curvenote/scms-core';
+import type {
+  ExtensionCheckHandleActionArgs,
+  FileMetadataSection,
+  FileMetadataSectionItem,
+} from '@curvenote/scms-core';
 import {
   MainWrapper,
   PageFrame,
@@ -55,6 +59,9 @@ import {
   UPLOAD_ANALYSIS_METADATA_KEY,
   uploadFactPresenceFromValue,
   clearUploadAnalysisMetadataFacts,
+  ExtensionChecksAnalyticsEventKey,
+  buildCheckServiceIdToExtensionMap,
+  groupCheckServiceIdsByExtensionAnalyticsEvent,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -98,6 +105,16 @@ import {
 } from './metadata-extract/thumbnailSelection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isPreviewCandidate } from './metadata-extract/previewGuards';
+import {
+  summarizePreviewCandidateFiles,
+  sanitizeUploadFlowFailureReason,
+  normalizeUploadFlowTrigger,
+  resolveMetadataExtractionTrigger,
+  trackDocumentPreviewStarted,
+  trackDocumentPreviewAnalytics,
+  trackMetadataExtractionStarted,
+  trackMetadataExtractionAnalytics,
+} from './metadata-extract/uploadFlowAnalytics.server';
 import type { AuthorFieldMetadata } from './mystAuthorAdapters';
 import { mystFrontmatterToAuthorField } from './mystAuthorAdapters';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -129,6 +146,9 @@ const WorkUploadActionSchema = zfd.formData({
   completedFiles: zfd.text(z.string()).optional(), // Used by 'complete' intent
   path: zfd.text(z.string()).optional(), // Used by 'remove' and 'extract-metadata' (target file) intents
   force: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'extract-metadata' to bypass the cache
+  uploadFlowTrigger: zfd
+    .text(z.enum(['auto', 'manual_preview_retry', 'manual_extract_rerun']))
+    .optional(),
   title: zfd.text(z.string().default('')), // Used by 'update-title' intent - allows empty strings
   authors: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent
   authorMetadata: zfd.text(z.string()).optional(), // Used by 'update-author-metadata' intent
@@ -198,6 +218,7 @@ async function dispatchEnabledChecksAfterUpload({
         workVersionId,
         ctx,
         serverExtensions,
+        analyticsTrigger: 'upload',
       };
       const { success, error, status } = await service.handleAction(actionArgs);
       if (!success || error) {
@@ -433,6 +454,7 @@ export async function action(args: Route.ActionArgs) {
         checked,
         path: targetPath,
         force,
+        uploadFlowTrigger,
         q,
         orcid,
       } = payload;
@@ -644,6 +666,24 @@ export async function action(args: Route.ActionArgs) {
           return rejectCheckDispatch();
         }
 
+        const checkServiceExtensionMap = buildCheckServiceIdToExtensionMap(serverExtensions);
+        const uploadConfirmedGroups = groupCheckServiceIdsByExtensionAnalyticsEvent(
+          dispatchableChecks,
+          checkServiceExtensionMap,
+          ExtensionChecksAnalyticsEventKey.UPLOAD_CONFIRMED,
+        );
+        for (const [eventName, confirmedChecks] of uploadConfirmedGroups) {
+          await baseCtx.trackEvent(eventName, {
+            workId,
+            workVersionId,
+            enabledChecks: confirmedChecks,
+            dispatchedChecks: confirmedChecks,
+          });
+        }
+        if (uploadConfirmedGroups.size > 0) {
+          await baseCtx.analytics.flush();
+        }
+
         if (submittedAuthorMetadata) {
           const result = await updateWorkVersionAuthorMetadata(
             workVersionId,
@@ -781,8 +821,49 @@ export async function action(args: Route.ActionArgs) {
             { status: 403 },
           );
         }
-        const { previews } = await handleFetchPreviewsIntent(workVersionId, baseCtx);
-        return data({ ok: true, previewsGenerated: previews.length });
+        try {
+          const work = await findWorkByVersion(workVersionId);
+          const files = (work?.metadata as Record<string, unknown> | undefined)?.files as
+            | Record<string, FileMetadataSectionItem>
+            | undefined;
+          const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
+          const previewTrigger = normalizeUploadFlowTrigger(uploadFlowTrigger);
+          await trackDocumentPreviewStarted(baseCtx, {
+            workId,
+            workVersionId,
+            uploadFlowTrigger: previewTrigger,
+            ...candidateSummary,
+          });
+          const { previews } = await handleFetchPreviewsIntent(workVersionId, baseCtx);
+          await trackDocumentPreviewAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            uploadFlowTrigger: previewTrigger,
+            ...candidateSummary,
+            previews,
+          });
+          return data({ ok: true, previewsGenerated: previews.length });
+        } catch (err) {
+          const work = await findWorkByVersion(workVersionId);
+          const files = (work?.metadata as Record<string, unknown> | undefined)?.files as
+            | Record<string, FileMetadataSectionItem>
+            | undefined;
+          const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
+          const previewTrigger = normalizeUploadFlowTrigger(uploadFlowTrigger);
+          await trackDocumentPreviewAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            uploadFlowTrigger: previewTrigger,
+            ...candidateSummary,
+            previews: [],
+            failureReason: sanitizeUploadFlowFailureReason(
+              err instanceof Error ? err.message : 'preview_generation_failed',
+            ),
+          });
+          const message =
+            err instanceof Error ? err.message : 'Failed to generate document previews';
+          return data({ error: { type: 'general', message } }, { status: 500 });
+        }
       }
 
       if (uploadIntent === 'clear-extracted-metadata') {
@@ -867,6 +948,10 @@ export async function action(args: Route.ActionArgs) {
         // marker (legacy/ETL metadata), or when the marker matches the current
         // manuscript file(s); a changed/replaced document invalidates the cache.
         const forceReextract = force === 'true';
+        const extractionTrigger = resolveMetadataExtractionTrigger(
+          uploadFlowTrigger,
+          forceReextract,
+        );
         const hasCachedSourceSignature =
           typeof cachedSourceSignature === 'string' && cachedSourceSignature !== '';
         if (
@@ -882,7 +967,26 @@ export async function action(args: Route.ActionArgs) {
           baseCtx,
         );
         const previews = await readDocumentPreviewsFromObjectTable(workVersionId, signedMetadata);
+        const selectedPreview =
+          (targetPath && previews.find((preview) => preview.path === targetPath)) || previews[0];
+        await trackMetadataExtractionStarted(baseCtx, {
+          workId,
+          workVersionId,
+          uploadFlowTrigger: extractionTrigger,
+          forceReextract,
+          previewCount: previews.length,
+          selectedPreview,
+        });
         if (previews.length === 0) {
+          await trackMetadataExtractionAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            success: false,
+            uploadFlowTrigger: extractionTrigger,
+            forceReextract,
+            previewCount: 0,
+            failureReason: 'no_previews',
+          });
           return data({ ok: true });
         }
         try {
@@ -934,9 +1038,42 @@ export async function action(args: Route.ActionArgs) {
             ) {
               await updateWorkVersionAuthorMetadata(workVersionId, extractedAuthorMetadata);
             }
+            await trackMetadataExtractionAnalytics(baseCtx, {
+              workId,
+              workVersionId,
+              success: true,
+              uploadFlowTrigger: extractionTrigger,
+              forceReextract,
+              previewCount: previews.length,
+              selectedPreview,
+              extracted,
+            });
+          } else {
+            await trackMetadataExtractionAnalytics(baseCtx, {
+              workId,
+              workVersionId,
+              success: false,
+              uploadFlowTrigger: extractionTrigger,
+              forceReextract,
+              previewCount: previews.length,
+              selectedPreview,
+              failureReason: 'empty_result',
+            });
           }
           return data({ ok: true });
         } catch (err) {
+          await trackMetadataExtractionAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            success: false,
+            uploadFlowTrigger: extractionTrigger,
+            forceReextract,
+            previewCount: previews.length,
+            selectedPreview,
+            failureReason: sanitizeUploadFlowFailureReason(
+              err instanceof Error ? err.message : 'metadata_extraction_failed',
+            ),
+          });
           const message =
             err instanceof Error ? err.message : 'Failed to extract metadata from document';
           return data({ error: { type: 'general', message } }, { status: 500 });
@@ -1103,7 +1240,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     }
     if (hasTriggeredFetchPreviews.current || fetchPreviewsFetcher.state !== 'idle') return;
     hasTriggeredFetchPreviews.current = true;
-    fetchPreviewsFetcher.submit({ intent: 'fetch-previews' }, { method: 'POST' });
+    fetchPreviewsFetcher.submit(
+      { intent: 'fetch-previews', uploadFlowTrigger: 'auto' },
+      { method: 'POST' },
+    );
   }, [shouldFetchPreviews, fetchPreviewsFetcher.state, fetchPreviewsFetcher]);
 
   // Show toast when fetch-previews action returns an error
@@ -1119,7 +1259,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const handleRetryPreview = useCallback(() => {
     if (fetchPreviewsFetcher.state !== 'idle') return;
     hasTriggeredFetchPreviews.current = true;
-    fetchPreviewsFetcher.submit({ intent: 'fetch-previews' }, { method: 'POST' });
+    fetchPreviewsFetcher.submit(
+      { intent: 'fetch-previews', uploadFlowTrigger: 'manual_preview_retry' },
+      { method: 'POST' },
+    );
   }, [fetchPreviewsFetcher]);
 
   const isGeneratingPreviews =

@@ -32,6 +32,7 @@ export function RunCheckOnLatestVersionButton({
       <fetcher.Form method="post" action={actionPath}>
         <input type="hidden" name="workVersionId" value={workVersionId} />
         <input type="hidden" name="checkServiceId" value={checkServiceId} />
+        <input type="hidden" name="trigger" value="latest_version" />
         <ui.StatefulButton
           type="submit"
           variant="default"

@@ -6,6 +6,8 @@ export type CheckServiceRunRow = {
   date_created: string;
   date_modified: string;
   data: unknown;
+  /** Coarse run status (e.g. healthy, error, unknown). */
+  status?: string | null;
   created_by_id: string | null;
   retried?: boolean;
   successor_id?: string | null;

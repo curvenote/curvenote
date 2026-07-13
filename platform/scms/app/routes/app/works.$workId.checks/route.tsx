@@ -28,6 +28,9 @@ import {
   DateWithPopover,
   useDeploymentConfig,
   ui,
+  ExtensionChecksAnalyticsEventKey,
+  collectUniqueExtensionAnalyticsEventNames,
+  filterExtensionsWithChecksEnabled,
 } from '@curvenote/scms-core';
 import { dbGetLatestNonDraftWorkVersion, formatWorkVersionDTO } from './db.server';
 import { dbGetCheckServiceRunsByWorkVersionIds } from '../works.$workId/db.server';
@@ -39,6 +42,7 @@ import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { RunCheckOnLatestVersionButton } from './RunCheckOnLatestVersionButton';
 import { handleChecksRouteAction } from './checksAction.server';
+import { shouldTrackWorkViewedOnLoader } from '../works.$workId.upload.$workVersionId/loaderAnalytics.server.js';
 
 const DISPATCHING_SKELETON_MS = 1500;
 
@@ -126,6 +130,35 @@ export async function loader(args: Route.LoaderArgs) {
     }
   }
   // ------------------------------- END TEMPORARY ---------------------------
+
+  const enabledCheckKinds = metadata.checks?.enabled ?? [];
+  const latestRunStatuses = Object.fromEntries(
+    enabledCheckKinds.map((kind) => {
+      const entry = latestRunByServiceKind[kind];
+      return [kind, entry ? (entry.run.status ?? 'unknown') : 'none'];
+    }),
+  );
+  const dispatching = new URL(args.request.url).searchParams.get('dispatching') === '1';
+
+  if (shouldTrackWorkViewedOnLoader(args.request)) {
+    const checksExtensions = filterExtensionsWithChecksEnabled(ctx.$config, serverExtensions);
+    const pageViewEvents = collectUniqueExtensionAnalyticsEventNames(
+      checksExtensions,
+      ExtensionChecksAnalyticsEventKey.PAGE_VIEWED,
+    );
+    for (const eventName of pageViewEvents) {
+      await ctx.trackEvent(eventName, {
+        workId: ctx.work.id,
+        workVersionId: latestNonDraftWorkVersion.id,
+        enabledCheckKinds,
+        latestRunStatuses,
+        dispatching,
+      });
+    }
+    if (pageViewEvents.length > 0) {
+      await ctx.analytics.flush();
+    }
+  }
 
   return {
     work: ctx.workDTO,
