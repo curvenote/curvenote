@@ -1,0 +1,94 @@
+name: Publish CLI Image
+
+# Manual rebuild of ghcr.io/curvenote/cli from an existing npm release.
+# Useful for updating typst or other releases independent of the CLI.
+#
+# Separate from this action, the release action will automatically
+# publish an image on new CLI release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Curvenote CLI version on npm (empty = latest)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Build and push CLI images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Resolve version
+        id: curvenote
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ -z "${VERSION}" ]; then
+            VERSION="$(npm view curvenote version)"
+          fi
+          if [ -z "${VERSION}" ]; then
+            echo "Failed to resolve curvenote version" >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "minor=$(echo "${VERSION}" | cut -d. -f1-2)" >> "$GITHUB_OUTPUT"
+          echo "major=$(echo "${VERSION}" | cut -d. -f1)" >> "$GITHUB_OUTPUT"
+          echo "Using curvenote@${VERSION}"
+      - name: Wait for curvenote on npm
+        run: |
+          VERSION="${{ steps.curvenote.outputs.version }}"
+          for i in 1 2 3 4 5 6 7 8; do
+            if npm view "curvenote@${VERSION}" version; then
+              exit 0
+            fi
+            echo "curvenote@${VERSION} not visible yet (attempt ${i}); retrying..."
+            sleep $((i * 5))
+          done
+          echo "curvenote@${VERSION} not available on npm" >&2
+          exit 1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push full CLI image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker/cli
+          file: ./docker/cli/Dockerfile
+          target: full
+          push: true
+          build-args: |
+            CURVENOTE_VERSION=${{ steps.curvenote.outputs.version }}
+          tags: |
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.version }}
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.minor }}
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.major }}
+            ghcr.io/curvenote/cli:latest
+      - name: Build and push slim CLI image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker/cli
+          file: ./docker/cli/Dockerfile
+          target: slim
+          push: true
+          build-args: |
+            CURVENOTE_VERSION=${{ steps.curvenote.outputs.version }}
+          tags: |
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.version }}-slim
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.minor }}-slim
+            ghcr.io/curvenote/cli:${{ steps.curvenote.outputs.major }}-slim
+            ghcr.io/curvenote/cli:latest-slim
