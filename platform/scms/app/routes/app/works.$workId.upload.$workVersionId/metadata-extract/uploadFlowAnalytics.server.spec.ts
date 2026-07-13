@@ -8,6 +8,7 @@ import {
   summarizeExtractedMetadata,
   summarizePreviewCandidateFiles,
   summarizePreviewResults,
+  extractedImageCountWhenAvailable,
 } from './uploadFlowAnalytics.server.js';
 import type { DocumentPreviewItem } from './fetchPreviews.server.js';
 
@@ -64,6 +65,27 @@ describe('uploadFlowAnalytics', () => {
     expect(summary.previewsGeneratedCount).toBe(2);
     expect(summary.previewsMissingCount).toBe(1);
     expect(summary.totalFigureCount).toBe(2);
+  });
+
+  it('counts extracted images only when extraction ran', () => {
+    expect(
+      extractedImageCountWhenAvailable([
+        previewItem({ figures: [{ key: 'k1' }, { key: 'k2' }], figuresExtractionSkipped: false }),
+      ]),
+    ).toBe(2);
+    expect(
+      extractedImageCountWhenAvailable([
+        previewItem({ figures: [], figuresExtractionSkipped: false }),
+      ]),
+    ).toBe(0);
+    expect(
+      extractedImageCountWhenAvailable([
+        previewItem({ figures: [], figuresExtractionSkipped: true }),
+      ]),
+    ).toBeUndefined();
+    expect(
+      extractedImageCountWhenAvailable([previewItem({ previewUnavailable: true, figures: [] })]),
+    ).toBeUndefined();
   });
 
   it('summarizes extracted metadata without PII', () => {

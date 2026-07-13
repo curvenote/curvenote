@@ -80,6 +80,17 @@ export function summarizePreviewResults(
   };
 }
 
+/** Sum extracted figure thumbnails when extraction ran; omit when skipped or unknown. */
+export function extractedImageCountWhenAvailable(
+  previews: DocumentPreviewItem[],
+): number | undefined {
+  const withExtraction = previews.filter(
+    (preview) => !preview.previewUnavailable && preview.figuresExtractionSkipped !== true,
+  );
+  if (withExtraction.length === 0) return undefined;
+  return withExtraction.reduce((sum, preview) => sum + preview.figures.length, 0);
+}
+
 export function classifyPreviewOutcome(
   previewCandidateCount: number,
   previews: DocumentPreviewItem[],
@@ -193,13 +204,18 @@ export async function trackDocumentPreviewAnalytics(
       ? TrackEvent.DOCUMENT_PREVIEW_COMPLETED
       : TrackEvent.DOCUMENT_PREVIEW_FAILED;
 
+  const previewSummary = summarizePreviewResults(args.previews, args.previewCandidateCount);
+  const extractedImageCount =
+    outcome === 'completed' ? extractedImageCountWhenAvailable(args.previews) : undefined;
+
   await trackUploadFlowEvent(ctx, event, {
     workId: args.workId,
     workVersionId: args.workVersionId,
     uploadFlowTrigger: args.uploadFlowTrigger,
     fileTypes: args.fileTypes,
     totalFileSizeBytes: args.totalFileSizeBytes,
-    ...summarizePreviewResults(args.previews, args.previewCandidateCount),
+    ...previewSummary,
+    ...(extractedImageCount !== undefined ? { extractedImageCount } : {}),
     ...(outcome === 'failed'
       ? {
           failureReason:
