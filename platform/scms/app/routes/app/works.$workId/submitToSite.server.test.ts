@@ -2,10 +2,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   canSiteAcceptNewSubmission,
+  getSubmitToSiteLatestVersionPolicyError,
   isAlreadySubmittedVersion,
   isSiteAvailableForWorkSubmit,
   resolveOpenCollection,
   resolveSubmissionKind,
+  SUBMIT_TO_SITE_LATEST_VERSION_ONLY_ERROR,
   submitWorkVersionToSite,
   workSiteSubmitLockKey,
 } from './submitToSite.server';
@@ -29,6 +31,20 @@ const userWithoutSubmitScopes = {
 describe('submitToSite.server', () => {
   it('builds a stable work/site advisory lock key', () => {
     expect(workSiteSubmitLockKey('work-1', 'site-1')).toBe('work-site-submit:work-1:site-1');
+  });
+
+  it('allows submit when no work version is requested explicitly', () => {
+    expect(getSubmitToSiteLatestVersionPolicyError(undefined, 'wv-latest')).toBeNull();
+  });
+
+  it('allows submit when the requested work version is the latest non-draft', () => {
+    expect(getSubmitToSiteLatestVersionPolicyError('wv-latest', 'wv-latest')).toBeNull();
+  });
+
+  it('rejects submit when an older non-draft work version is requested', () => {
+    expect(getSubmitToSiteLatestVersionPolicyError('wv-old', 'wv-latest')).toBe(
+      SUBMIT_TO_SITE_LATEST_VERSION_ONLY_ERROR,
+    );
   });
 
   it('resolves default open collection first', () => {

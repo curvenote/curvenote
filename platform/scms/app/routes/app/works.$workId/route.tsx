@@ -67,6 +67,7 @@ import { WORK_ROUTE_CONTENT_CLASS } from './workRouteLayout';
 import { exportToPdfAction } from './actionHelpers.server';
 import {
   canUserSubmitToSite,
+  getSubmitToSiteLatestVersionPolicyError,
   isSiteAvailableForWorkSubmit,
   resolveOpenCollection,
   resolveSubmissionKind,
@@ -309,22 +310,26 @@ export async function action(args: ActionFunctionArgs) {
         );
       }
 
-      const selectedVersion = workVersionId
-        ? await prisma.workVersion.findFirst({
-            where: { id: workVersionId, work_id: ctx.work.id, draft: false },
-            select: { id: true },
-          })
-        : await prisma.workVersion.findFirst({
-            where: { work_id: ctx.work.id, draft: false },
-            orderBy: { date_created: 'desc' },
-            select: { id: true },
-          });
-      if (!selectedVersion) {
+      // TEMPORARY(submit-to-site): Only the latest non-draft version may be submitted.
+      const latestNonDraftVersion = await prisma.workVersion.findFirst({
+        where: { work_id: ctx.work.id, draft: false },
+        orderBy: { date_created: 'desc' },
+        select: { id: true },
+      });
+      if (!latestNonDraftVersion) {
         return data(
           { success: false, intent, error: 'No completed work version is available to submit' },
           { status: 400 },
         );
       }
+      const latestVersionPolicyError = getSubmitToSiteLatestVersionPolicyError(
+        workVersionId,
+        latestNonDraftVersion.id,
+      );
+      if (latestVersionPolicyError) {
+        return data({ success: false, intent, error: latestVersionPolicyError }, { status: 400 });
+      }
+      const selectedVersion = latestNonDraftVersion;
 
       const submitExt = resolveSubmitToSiteExtension(serverExtensions, siteName);
       if (submitExt) {

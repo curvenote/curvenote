@@ -58,6 +58,21 @@ export class SubmitToSiteConfigError extends Error {
   }
 }
 
+// TEMPORARY(submit-to-site): Remove when per-version submit is supported end-to-end.
+export const SUBMIT_TO_SITE_LATEST_VERSION_ONLY_ERROR =
+  'Only the latest completed version can be submitted right now. Please contact support if you need to submit an earlier version.';
+
+/** Rejects explicit requests to submit a non-latest completed work version. */
+export function getSubmitToSiteLatestVersionPolicyError(
+  requestedWorkVersionId: string | undefined,
+  latestNonDraftWorkVersionId: string,
+): string | null {
+  if (!requestedWorkVersionId || requestedWorkVersionId === latestNonDraftWorkVersionId) {
+    return null;
+  }
+  return SUBMIT_TO_SITE_LATEST_VERSION_ONLY_ERROR;
+}
+
 /** Stable advisory-lock key for one work submitting to one site. */
 export function workSiteSubmitLockKey(workId: string, siteId: string): string {
   return `work-site-submit:${workId}:${siteId}`;

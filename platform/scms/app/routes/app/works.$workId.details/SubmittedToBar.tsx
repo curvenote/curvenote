@@ -18,8 +18,12 @@ import type {
 import type { CheckServiceRunRow } from '../works.$workId/checkServiceRun.shared';
 import { getCheckRunSummaryByKind } from '../works.$workId/checkServiceRunSummaries';
 import { resolveSubmitRedirectTarget } from './submitToSiteRedirect';
-import { Check, ChevronDown, GitBranch, Loader2, Send } from 'lucide-react';
+import { GitBranch, Loader2, Send } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+
+// TEMPORARY(submit-to-site): Remove when per-version submit is supported end-to-end.
+const SUBMIT_LATEST_VERSION_ONLY_TOOLTIP =
+  'At this time, only the latest completed version can be submitted to a site. If you would like to submit an earlier version, please contact support.';
 
 type SubmissionTargetSite = {
   id: string;
@@ -260,7 +264,6 @@ export function SubmittedToBar({
   const fetcher = useFetcher<SubmitToSiteFetcherData>();
   // Synchronous guard closing the double-click window before `disabled` re-renders.
   const submitLockRef = useRef(false);
-  const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
   const versionNumberByVersionId = useMemo(
     () => buildWorkVersionNumberByIdMap(versions),
     [versions],
@@ -275,12 +278,9 @@ export function SubmittedToBar({
       label: `v${versionNumberByVersionId[version.id] ?? 0}`,
     }));
   }, [versions, versionNumberByVersionId]);
-  const [selectedVersionId, setSelectedVersionId] = useState(versionOptions[0]?.version.id ?? '');
-  const selectedVersion =
-    versionOptions.find((option) => option.version.id === selectedVersionId)?.version ??
-    versionOptions[0]?.version;
-  const selectedVersionLabel =
-    versionOptions.find((option) => option.version.id === selectedVersion?.id)?.label ?? 'version';
+  // TEMPORARY(submit-to-site): Lock to the latest completed version until per-version submit ships.
+  const selectedVersion = versionOptions[0]?.version;
+  const selectedVersionLabel = versionOptions[0]?.label ?? 'version';
   const selectedFiles = selectedVersion ? getVersionFiles(selectedVersion) : {};
   const fileLabels = Object.entries(selectedFiles).map(([key, value]) => getFileLabel(key, value));
   // Checks surface the most recent run of each kind on the selected version and
@@ -344,11 +344,6 @@ export function SubmittedToBar({
       }
     }
   }, [basePath, fetcher.data, fetcher.state, navigate]);
-
-  useEffect(() => {
-    if (selectedVersionId || !versionOptions[0]) return;
-    setSelectedVersionId(versionOptions[0].version.id);
-  }, [selectedVersionId, versionOptions]);
 
   return (
     <primitives.Card
@@ -434,78 +429,40 @@ export function SubmittedToBar({
                 <input type="hidden" name="workVersionId" value={selectedVersion?.id ?? ''} />
                 <div className="p-4 space-y-4 border-r border-border bg-muted/20">
                   <div>
-                    <p className="text-sm font-medium">Choose the version to submit</p>
+                    <p className="text-sm font-medium">Version to submit</p>
                     <p className="text-xs text-muted-foreground">
                       Review available files, metadata, and checks before choosing a venue.
                     </p>
                   </div>
 
                   {hasCompletedVersions ? (
-                    <ui.Popover open={versionDropdownOpen} onOpenChange={setVersionDropdownOpen}>
-                      <ui.PopoverTrigger asChild>
-                        <button
-                          id="submit-version-select"
-                          type="button"
-                          className={cn(
-                            'flex gap-3 justify-between items-center px-3 py-2 w-full h-16 text-left bg-white rounded-md border transition-colors border-input shadow-xs',
-                            'hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-                          )}
-                        >
-                          {selectedVersion ? (
-                            <span className="flex flex-col gap-1 items-start min-w-0">
-                              <SubmitVersionLabel label={selectedVersionLabel} />
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(
-                                  selectedVersion.date_modified ?? selectedVersion.date_created,
-                                ).toLocaleDateString()}
-                              </span>
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">Select a version</span>
-                          )}
-                          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-                        </button>
-                      </ui.PopoverTrigger>
-                      <ui.PopoverContent
-                        align="start"
-                        side="bottom"
-                        sideOffset={6}
-                        className="p-1 w-[268px]"
+                    <ui.SimpleTooltip
+                      title={SUBMIT_LATEST_VERSION_ONLY_TOOLTIP}
+                      side="top"
+                      sideOffset={6}
+                    >
+                      <div
+                        id="submit-version-select"
+                        aria-disabled="true"
+                        className={cn(
+                          'flex gap-3 justify-between items-center px-3 py-2 w-full h-16 text-left bg-white rounded-md border border-input shadow-xs',
+                          'cursor-not-allowed opacity-80',
+                        )}
                       >
-                        <div className="space-y-1">
-                          {versionOptions.map(({ version, label }) => {
-                            const selected = version.id === selectedVersionId;
-                            return (
-                              <button
-                                key={version.id}
-                                type="button"
-                                className={cn(
-                                  'flex w-full items-center justify-between gap-3 rounded-sm px-3 py-2 text-left transition-colors',
-                                  'hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                                  selected && 'bg-accent',
-                                )}
-                                onClick={() => {
-                                  setSelectedVersionId(version.id);
-                                  setVersionDropdownOpen(false);
-                                }}
-                              >
-                                <span className="flex flex-col gap-1 items-start min-w-0">
-                                  <SubmitVersionLabel label={label} />
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(
-                                      version.date_modified ?? version.date_created,
-                                    ).toLocaleDateString()}
-                                  </span>
-                                </span>
-                                {selected ? (
-                                  <Check className="w-4 h-4 text-primary shrink-0" />
-                                ) : null}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </ui.PopoverContent>
-                    </ui.Popover>
+                        {selectedVersion ? (
+                          <span className="flex flex-col gap-1 items-start min-w-0">
+                            <SubmitVersionLabel label={selectedVersionLabel} />
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(
+                                selectedVersion.date_modified ?? selectedVersion.date_created,
+                              ).toLocaleDateString()}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Select a version</span>
+                        )}
+                      </div>
+                    </ui.SimpleTooltip>
                   ) : (
                     <p className="px-3 py-4 text-xs leading-relaxed rounded-md border border-dashed border-muted-foreground/40 bg-background text-muted-foreground">
                       No completed version is available to submit. Finish creating a version before

@@ -536,7 +536,7 @@ describe('work submit-to-site route', () => {
     expect(createReturningVersion).not.toHaveBeenCalled();
   });
 
-  it('returns the existing submission version when resubmitting an older work version after a newer one', async () => {
+  it('rejects submit-to-site when an older completed work version is requested', async () => {
     findUniqueSite.mockResolvedValue({
       id: 'site-public',
       name: 'public-site',
@@ -555,32 +555,22 @@ describe('work submit-to-site route', () => {
         },
       ],
     });
-    findFirstSubmission.mockResolvedValue({
-      id: 'submission-1',
-      versions: [{ id: 'sv-1', work_version_id: 'wv-1', status: 'PENDING' }],
-    });
+    findFirstWorkVersion.mockResolvedValue({ id: 'wv-2' });
 
     const response = await action({
       request: createSubmitToSiteRequest('public-site', 'wv-1'),
       params: { workId: 'work-1' },
     } as never);
 
-    expect(response).toMatchObject({
-      success: true,
+    const status = 'init' in response ? response.init?.status : 200;
+    const body = 'data' in response ? response.data : response;
+
+    expect(status).toBe(400);
+    expect(body).toMatchObject({
+      success: false,
       intent: 'submit-to-site',
-      siteName: 'public-site',
-      submissionVersionId: 'sv-1',
-      alreadySubmitted: true,
+      error: expect.stringContaining('Only the latest completed version'),
     });
-    expect(findFirstSubmission).toHaveBeenCalledWith(
-      expect.objectContaining({
-        include: {
-          versions: expect.objectContaining({
-            where: { work_version_id: 'wv-1' },
-          }),
-        },
-      }),
-    );
     expect(createSubmissionVersion).not.toHaveBeenCalled();
     expect(createReturningVersion).not.toHaveBeenCalled();
   });
