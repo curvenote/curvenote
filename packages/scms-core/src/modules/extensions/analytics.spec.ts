@@ -48,7 +48,6 @@ function extensionWithChecks(
 
 describe('extension checks analytics helpers', () => {
   const sharedEvents = {
-    [ExtensionChecksAnalyticsEventKey.UPLOAD_OPTION_TOGGLED]: 'Checks Upload Option Toggled',
     [ExtensionChecksAnalyticsEventKey.UPLOAD_CONFIRMED]: 'Checks Upload Confirmed',
     [ExtensionChecksAnalyticsEventKey.PAGE_VIEWED]: 'Checks Page Viewed',
   };
@@ -68,9 +67,9 @@ describe('extension checks analytics helpers', () => {
       resolveCheckServiceAnalyticsEventName(
         serviceMap,
         'service-a',
-        ExtensionChecksAnalyticsEventKey.UPLOAD_OPTION_TOGGLED,
+        ExtensionChecksAnalyticsEventKey.UPLOAD_CONFIRMED,
       ),
-    ).toBe('Checks Upload Option Toggled');
+    ).toBe('Checks Upload Confirmed');
     expect(
       resolveCheckServiceAnalyticsEventName(serviceMap, 'plain-service', 'CHECKS_PAGE_VIEWED'),
     ).toBeUndefined();

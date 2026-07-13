@@ -15,7 +15,6 @@ export interface ExtensionAnalyticsData {
  * check upload and checks-page instrumentation.
  */
 export const ExtensionChecksAnalyticsEventKey = {
-  UPLOAD_OPTION_TOGGLED: 'CHECKS_UPLOAD_OPTION_TOGGLED',
   UPLOAD_CONFIRMED: 'CHECKS_UPLOAD_CONFIRMED',
   PAGE_VIEWED: 'CHECKS_PAGE_VIEWED',
 } as const;

@@ -62,7 +62,6 @@ import {
   ExtensionChecksAnalyticsEventKey,
   buildCheckServiceIdToExtensionMap,
   groupCheckServiceIdsByExtensionAnalyticsEvent,
-  resolveCheckServiceAnalyticsEventName,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -591,22 +590,6 @@ export async function action(args: Route.ActionArgs) {
               { status: 503 },
             );
           }
-        }
-
-        const checkServiceExtensionMap = buildCheckServiceIdToExtensionMap(serverExtensions);
-        const uploadToggleEvent = resolveCheckServiceAnalyticsEventName(
-          checkServiceExtensionMap,
-          checkName,
-          ExtensionChecksAnalyticsEventKey.UPLOAD_OPTION_TOGGLED,
-        );
-        if (uploadToggleEvent) {
-          await baseCtx.trackEvent(uploadToggleEvent, {
-            checkKind: checkName,
-            workId,
-            workVersionId,
-            enabled: isChecked,
-          });
-          await baseCtx.analytics.flush();
         }
 
         return toggleWorkVersionCheck(workVersionId, checkName, isChecked);
