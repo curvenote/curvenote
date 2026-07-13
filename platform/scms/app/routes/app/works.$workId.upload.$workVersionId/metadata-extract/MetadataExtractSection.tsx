@@ -192,7 +192,10 @@ export function MetadataExtractSection({
       setIsAutoExtractPending(effects.autoExtractPending);
     }
     if (effects.submitExtractMetadata) {
-      extractMetadataFetcher.submit({ intent: 'extract-metadata' }, { method: 'POST' });
+      extractMetadataFetcher.submit(
+        { intent: 'extract-metadata', uploadFlowTrigger: 'auto' },
+        { method: 'POST' },
+      );
     }
   }, [
     previewSourceKey,
@@ -259,7 +262,12 @@ export function MetadataExtractSection({
     // An explicit re-run overrides an earlier skip decision.
     setHasSkippedExtraction(false);
     extractMetadataFetcher.submit(
-      { intent: 'extract-metadata', force: 'true', path: activeFilePath },
+      {
+        intent: 'extract-metadata',
+        force: 'true',
+        path: activeFilePath,
+        uploadFlowTrigger: 'manual_extract_rerun',
+      },
       { method: 'POST' },
     );
   };

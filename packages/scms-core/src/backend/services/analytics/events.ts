@@ -43,8 +43,10 @@ export enum TrackEvent {
   FILE_REMOVED = 'File Removed',
 
   // Work upload: document preview and metadata extraction
+  DOCUMENT_PREVIEW_STARTED = 'Document Preview Started',
   DOCUMENT_PREVIEW_COMPLETED = 'Document Preview Completed',
   DOCUMENT_PREVIEW_FAILED = 'Document Preview Failed',
+  METADATA_EXTRACTION_STARTED = 'Metadata Extraction Started',
   METADATA_EXTRACTION_COMPLETED = 'Metadata Extraction Completed',
   METADATA_EXTRACTION_FAILED = 'Metadata Extraction Failed',
 
@@ -134,9 +136,12 @@ export const TrackEventDescriptions: Record<TrackEvent, string> = {
   [TrackEvent.FILES_STAGED]: 'Files staged for upload',
   [TrackEvent.FILE_REMOVED]: 'File removed from a work',
 
+  [TrackEvent.DOCUMENT_PREVIEW_STARTED]: 'Document preview generation was requested in the upload flow',
   [TrackEvent.DOCUMENT_PREVIEW_COMPLETED]:
     'Document preview generation finished with at least one usable preview',
   [TrackEvent.DOCUMENT_PREVIEW_FAILED]: 'Document preview generation failed for all candidates',
+  [TrackEvent.METADATA_EXTRACTION_STARTED]:
+    'Metadata extraction from a document preview was requested in the upload flow',
   [TrackEvent.METADATA_EXTRACTION_COMPLETED]:
     'Metadata was extracted from a document preview via the upload flow',
   [TrackEvent.METADATA_EXTRACTION_FAILED]:

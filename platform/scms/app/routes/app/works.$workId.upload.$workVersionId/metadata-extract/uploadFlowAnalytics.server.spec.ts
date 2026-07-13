@@ -3,6 +3,8 @@ import type { FileMetadataSectionItem } from '@curvenote/scms-core';
 import {
   classifyPreviewOutcome,
   previewFailureReason,
+  normalizeUploadFlowTrigger,
+  resolveMetadataExtractionTrigger,
   summarizeExtractedMetadata,
   summarizePreviewCandidateFiles,
   summarizePreviewResults,
@@ -77,5 +79,19 @@ describe('uploadFlowAnalytics', () => {
       hasTitle: true,
       hasDoi: true,
     });
+  });
+
+  it('normalizes upload flow triggers', () => {
+    expect(normalizeUploadFlowTrigger('manual_preview_retry')).toBe('manual_preview_retry');
+    expect(normalizeUploadFlowTrigger(undefined)).toBe('auto');
+    expect(normalizeUploadFlowTrigger('invalid')).toBe('auto');
+  });
+
+  it('resolves metadata extraction trigger from force flag', () => {
+    expect(resolveMetadataExtractionTrigger(undefined, true)).toBe('manual_extract_rerun');
+    expect(resolveMetadataExtractionTrigger('manual_extract_rerun', true)).toBe(
+      'manual_extract_rerun',
+    );
+    expect(resolveMetadataExtractionTrigger(undefined, false)).toBe('auto');
   });
 });

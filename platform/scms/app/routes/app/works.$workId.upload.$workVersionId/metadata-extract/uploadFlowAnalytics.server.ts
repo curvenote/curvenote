@@ -5,6 +5,31 @@ import type { ExtractedMetadata } from './anthropic.server.js';
 
 export type PreviewAnalyticsOutcome = 'completed' | 'failed' | 'skipped';
 
+export type UploadFlowTrigger = 'auto' | 'manual_preview_retry' | 'manual_extract_rerun';
+
+export function normalizeUploadFlowTrigger(
+  value: string | undefined,
+  fallback: UploadFlowTrigger = 'auto',
+): UploadFlowTrigger {
+  if (
+    value === 'auto' ||
+    value === 'manual_preview_retry' ||
+    value === 'manual_extract_rerun'
+  ) {
+    return value;
+  }
+  return fallback;
+}
+
+export function resolveMetadataExtractionTrigger(
+  uploadFlowTrigger: string | undefined,
+  forceReextract: boolean,
+): UploadFlowTrigger {
+  const normalized = normalizeUploadFlowTrigger(uploadFlowTrigger);
+  if (normalized !== 'auto') return normalized;
+  return forceReextract ? 'manual_extract_rerun' : 'auto';
+}
+
 export function sanitizeUploadFlowFailureReason(message: string, maxLength = 200): string {
   const trimmed = message.trim();
   if (trimmed.length <= maxLength) return trimmed;
@@ -126,11 +151,33 @@ export async function trackUploadFlowEvent(
   }
 }
 
+export async function trackDocumentPreviewStarted(
+  ctx: UploadFlowTrackContext,
+  args: {
+    workId: string;
+    workVersionId: string;
+    uploadFlowTrigger: UploadFlowTrigger;
+    previewCandidateCount: number;
+    fileTypes: string[];
+    totalFileSizeBytes: number;
+  },
+): Promise<void> {
+  await trackUploadFlowEvent(ctx, TrackEvent.DOCUMENT_PREVIEW_STARTED, {
+    workId: args.workId,
+    workVersionId: args.workVersionId,
+    uploadFlowTrigger: args.uploadFlowTrigger,
+    previewCandidateCount: args.previewCandidateCount,
+    fileTypes: args.fileTypes,
+    totalFileSizeBytes: args.totalFileSizeBytes,
+  });
+}
+
 export async function trackDocumentPreviewAnalytics(
   ctx: UploadFlowTrackContext,
   args: {
     workId: string;
     workVersionId: string;
+    uploadFlowTrigger: UploadFlowTrigger;
     previewCandidateCount: number;
     fileTypes: string[];
     totalFileSizeBytes: number;
@@ -149,6 +196,7 @@ export async function trackDocumentPreviewAnalytics(
   await trackUploadFlowEvent(ctx, event, {
     workId: args.workId,
     workVersionId: args.workVersionId,
+    uploadFlowTrigger: args.uploadFlowTrigger,
     fileTypes: args.fileTypes,
     totalFileSizeBytes: args.totalFileSizeBytes,
     ...summarizePreviewResults(args.previews, args.previewCandidateCount),
@@ -162,12 +210,34 @@ export async function trackDocumentPreviewAnalytics(
   });
 }
 
+export async function trackMetadataExtractionStarted(
+  ctx: UploadFlowTrackContext,
+  args: {
+    workId: string;
+    workVersionId: string;
+    uploadFlowTrigger: UploadFlowTrigger;
+    forceReextract: boolean;
+    previewCount: number;
+    selectedPreview?: DocumentPreviewItem;
+  },
+): Promise<void> {
+  await trackUploadFlowEvent(ctx, TrackEvent.METADATA_EXTRACTION_STARTED, {
+    workId: args.workId,
+    workVersionId: args.workVersionId,
+    uploadFlowTrigger: args.uploadFlowTrigger,
+    forceReextract: args.forceReextract,
+    previewCount: args.previewCount,
+    ...summarizePreviewFile(args.selectedPreview),
+  });
+}
+
 export async function trackMetadataExtractionAnalytics(
   ctx: UploadFlowTrackContext,
   args: {
     workId: string;
     workVersionId: string;
     success: boolean;
+    uploadFlowTrigger: UploadFlowTrigger;
     forceReextract: boolean;
     previewCount: number;
     selectedPreview?: DocumentPreviewItem;
@@ -182,6 +252,7 @@ export async function trackMetadataExtractionAnalytics(
   const payload: Record<string, unknown> = {
     workId: args.workId,
     workVersionId: args.workVersionId,
+    uploadFlowTrigger: args.uploadFlowTrigger,
     forceReextract: args.forceReextract,
     previewCount: args.previewCount,
     ...summarizePreviewFile(args.selectedPreview),

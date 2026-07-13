@@ -105,7 +105,11 @@ import { isPreviewCandidate } from './metadata-extract/previewGuards';
 import {
   summarizePreviewCandidateFiles,
   sanitizeUploadFlowFailureReason,
+  normalizeUploadFlowTrigger,
+  resolveMetadataExtractionTrigger,
+  trackDocumentPreviewStarted,
   trackDocumentPreviewAnalytics,
+  trackMetadataExtractionStarted,
   trackMetadataExtractionAnalytics,
 } from './metadata-extract/uploadFlowAnalytics.server';
 import type { AuthorFieldMetadata } from './mystAuthorAdapters';
@@ -139,6 +143,9 @@ const WorkUploadActionSchema = zfd.formData({
   completedFiles: zfd.text(z.string()).optional(), // Used by 'complete' intent
   path: zfd.text(z.string()).optional(), // Used by 'remove' and 'extract-metadata' (target file) intents
   force: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'extract-metadata' to bypass the cache
+  uploadFlowTrigger: zfd
+    .text(z.enum(['auto', 'manual_preview_retry', 'manual_extract_rerun']))
+    .optional(),
   title: zfd.text(z.string().default('')), // Used by 'update-title' intent - allows empty strings
   authors: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent
   authorMetadata: zfd.text(z.string()).optional(), // Used by 'update-author-metadata' intent
@@ -444,6 +451,7 @@ export async function action(args: Route.ActionArgs) {
         checked,
         path: targetPath,
         force,
+        uploadFlowTrigger,
         q,
         orcid,
       } = payload;
@@ -822,10 +830,18 @@ export async function action(args: Route.ActionArgs) {
             | Record<string, FileMetadataSectionItem>
             | undefined;
           const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
+          const previewTrigger = normalizeUploadFlowTrigger(uploadFlowTrigger);
+          await trackDocumentPreviewStarted(baseCtx, {
+            workId,
+            workVersionId,
+            uploadFlowTrigger: previewTrigger,
+            ...candidateSummary,
+          });
           const { previews } = await handleFetchPreviewsIntent(workVersionId, baseCtx);
           await trackDocumentPreviewAnalytics(baseCtx, {
             workId,
             workVersionId,
+            uploadFlowTrigger: previewTrigger,
             ...candidateSummary,
             previews,
           });
@@ -836,9 +852,11 @@ export async function action(args: Route.ActionArgs) {
             | Record<string, FileMetadataSectionItem>
             | undefined;
           const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
+          const previewTrigger = normalizeUploadFlowTrigger(uploadFlowTrigger);
           await trackDocumentPreviewAnalytics(baseCtx, {
             workId,
             workVersionId,
+            uploadFlowTrigger: previewTrigger,
             ...candidateSummary,
             previews: [],
             failureReason: sanitizeUploadFlowFailureReason(
@@ -933,6 +951,10 @@ export async function action(args: Route.ActionArgs) {
         // marker (legacy/ETL metadata), or when the marker matches the current
         // manuscript file(s); a changed/replaced document invalidates the cache.
         const forceReextract = force === 'true';
+        const extractionTrigger = resolveMetadataExtractionTrigger(
+          uploadFlowTrigger,
+          forceReextract,
+        );
         const hasCachedSourceSignature =
           typeof cachedSourceSignature === 'string' && cachedSourceSignature !== '';
         if (
@@ -951,11 +973,20 @@ export async function action(args: Route.ActionArgs) {
         const selectedPreview =
           (targetPath && previews.find((preview) => preview.path === targetPath)) ||
           previews[0];
+        await trackMetadataExtractionStarted(baseCtx, {
+          workId,
+          workVersionId,
+          uploadFlowTrigger: extractionTrigger,
+          forceReextract,
+          previewCount: previews.length,
+          selectedPreview,
+        });
         if (previews.length === 0) {
           await trackMetadataExtractionAnalytics(baseCtx, {
             workId,
             workVersionId,
             success: false,
+            uploadFlowTrigger: extractionTrigger,
             forceReextract,
             previewCount: 0,
             failureReason: 'no_previews',
@@ -1015,6 +1046,7 @@ export async function action(args: Route.ActionArgs) {
               workId,
               workVersionId,
               success: true,
+              uploadFlowTrigger: extractionTrigger,
               forceReextract,
               previewCount: previews.length,
               selectedPreview,
@@ -1025,6 +1057,7 @@ export async function action(args: Route.ActionArgs) {
               workId,
               workVersionId,
               success: false,
+              uploadFlowTrigger: extractionTrigger,
               forceReextract,
               previewCount: previews.length,
               selectedPreview,
@@ -1037,6 +1070,7 @@ export async function action(args: Route.ActionArgs) {
             workId,
             workVersionId,
             success: false,
+            uploadFlowTrigger: extractionTrigger,
             forceReextract,
             previewCount: previews.length,
             selectedPreview,
@@ -1210,7 +1244,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     }
     if (hasTriggeredFetchPreviews.current || fetchPreviewsFetcher.state !== 'idle') return;
     hasTriggeredFetchPreviews.current = true;
-    fetchPreviewsFetcher.submit({ intent: 'fetch-previews' }, { method: 'POST' });
+    fetchPreviewsFetcher.submit(
+      { intent: 'fetch-previews', uploadFlowTrigger: 'auto' },
+      { method: 'POST' },
+    );
   }, [shouldFetchPreviews, fetchPreviewsFetcher.state, fetchPreviewsFetcher]);
 
   // Show toast when fetch-previews action returns an error
@@ -1226,8 +1263,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const handleRetryPreview = useCallback(() => {
     if (fetchPreviewsFetcher.state !== 'idle') return;
     hasTriggeredFetchPreviews.current = true;
-    fetchPreviewsFetcher.submit({ intent: 'fetch-previews' }, { method: 'POST' });
-  }, [fetchPreviewsFetcher]);
+    fetchPreviewsFetcher.submit(
+      { intent: 'fetch-previews', uploadFlowTrigger: 'manual_preview_retry' },
+      { method: 'POST' },
+    );
 
   const isGeneratingPreviews =
     fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
