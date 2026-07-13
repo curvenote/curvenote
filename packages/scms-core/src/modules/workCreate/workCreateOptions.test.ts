@@ -76,17 +76,24 @@ describe('getAvailableWorkCreateOptions', () => {
 
   it('merges Article with enabled extension options', () => {
     const options = getAvailableWorkCreateOptions({ pmc: { routes: true } }, mockExtensions, []);
-    expect(options.map((o) => o.id)).toEqual(['article', 'pmc-deposit']);
+    expect(options.map((o) => o.id)).toEqual(['pmc-deposit', 'article']);
   });
 
   it('includes Check My Work when checks feature scope is present', () => {
     const options = getAvailableWorkCreateOptions({}, [], ['app:works:checks:feature']);
-    expect(options.map((o) => o.id)).toEqual(['article', 'check']);
+    expect(options.map((o) => o.id)).toEqual(['check', 'article']);
   });
 
   it('omits Check My Work without checks feature scope', () => {
     const options = getAvailableWorkCreateOptions({}, [], ['app:works:upload']);
     expect(options.map((o) => o.id)).toEqual(['article']);
+  });
+
+  it('sorts sortLast options after extension and other built-in options', () => {
+    const options = getAvailableWorkCreateOptions({ pmc: { routes: true } }, mockExtensions, [
+      'app:works:checks:feature',
+    ]);
+    expect(options.map((o) => o.id)).toEqual(['check', 'pmc-deposit', 'article']);
   });
 });
 

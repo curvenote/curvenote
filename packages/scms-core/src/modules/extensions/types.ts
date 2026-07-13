@@ -41,7 +41,10 @@ export interface WorkCreateOption {
   scopes?: string[];
   /** Present when the option is supplied by an extension. */
   extensionId?: string;
+  /** Lower values appear earlier among non-`sortLast` options (default 100). */
   order?: number;
+  /** When true, this option is listed after all other options (then by label). */
+  sortLast?: boolean;
 }
 
 /** @deprecated Use WorkCreateOption */
