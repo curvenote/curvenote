@@ -322,10 +322,11 @@ export function SubmittedToBar({
   );
 
   useEffect(() => {
-    if (fetcher.state !== 'idle' || !fetcher.data) return;
-    // Settled: release the click guard on any response (even one without an intent,
-    // e.g. an invalid-form-data error) so a failed submit can be retried.
+    if (fetcher.state !== 'idle') return;
+    // Settled: release the click guard even when there is no response body (e.g. network
+    // error on first attempt) so a failed submit can be retried.
     submitLockRef.current = false;
+    if (!fetcher.data) return;
     // The fetcher only posts submit-to-site, so an error response belongs to this
     // submit even when it carries no intent (e.g. invalid form data).
     const errorMessage = getErrorMessage(fetcher.data);
