@@ -32,7 +32,11 @@ import {
   resolveThumbnailBucket,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
-import type { ExtensionCheckHandleActionArgs, FileMetadataSection, FileMetadataSectionItem } from '@curvenote/scms-core';
+import type {
+  ExtensionCheckHandleActionArgs,
+  FileMetadataSection,
+  FileMetadataSectionItem,
+} from '@curvenote/scms-core';
 import {
   MainWrapper,
   PageFrame,
@@ -981,8 +985,7 @@ export async function action(args: Route.ActionArgs) {
         );
         const previews = await readDocumentPreviewsFromObjectTable(workVersionId, signedMetadata);
         const selectedPreview =
-          (targetPath && previews.find((preview) => preview.path === targetPath)) ||
-          previews[0];
+          (targetPath && previews.find((preview) => preview.path === targetPath)) || previews[0];
         await trackMetadataExtractionStarted(baseCtx, {
           workId,
           workVersionId,
@@ -1390,5 +1393,4 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
       </MainWrapper>
     </CheckMaintenanceProvider>
   );
-}
 }
