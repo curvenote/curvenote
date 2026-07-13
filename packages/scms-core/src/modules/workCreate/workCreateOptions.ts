@@ -62,9 +62,12 @@ export function hydrateWorkCreateOptions(
 }
 
 function sortWorkCreateOptions(options: WorkCreateOption[]): WorkCreateOption[] {
-  return options.sort(
-    (a, b) => (a.order ?? 100) - (b.order ?? 100) || a.label.localeCompare(b.label),
-  );
+  return [...options].sort((a, b) => {
+    const aLast = a.sortLast === true ? 1 : 0;
+    const bLast = b.sortLast === true ? 1 : 0;
+    if (aLast !== bLast) return aLast - bLast;
+    return (a.order ?? 100) - (b.order ?? 100) || a.label.localeCompare(b.label);
+  });
 }
 
 function userHasAllScopes(userScopes: string[], requiredScopes: string[]): boolean {

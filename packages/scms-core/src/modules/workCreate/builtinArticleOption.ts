@@ -12,5 +12,5 @@ export const BUILTIN_ARTICLE_WORK_CREATE_OPTION: WorkCreateOption = {
   metadataKey: 'frontmatter.myst',
   startPath: '/app/works/new',
   mode: 'composite',
-  order: 0,
+  sortLast: true,
 };
