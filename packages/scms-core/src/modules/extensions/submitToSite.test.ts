@@ -48,6 +48,56 @@ describe('resolveSubmitToSiteExtension', () => {
     expect(resolveSubmitToSiteExtension(extensions, 'pmc')).toBe(pmc);
   });
 
+  it('returns undefined when submitToSite is declared without getOperatedSites', () => {
+    const extensions = [
+      extension({
+        id: 'pmc',
+        submitToSite: async () => ({ success: true }),
+      }),
+    ];
+
+    expect(resolveSubmitToSiteExtension(extensions, 'pmc')).toBeUndefined();
+  });
+
+  it('returns undefined when getOperatedSites returns null or undefined', () => {
+    const extensions = [
+      extension({
+        id: 'null-sites',
+        getOperatedSites: () => null as unknown as string[],
+        submitToSite: async () => ({ success: true }),
+      }),
+      extension({
+        id: 'undefined-sites',
+        getOperatedSites: () => undefined as unknown as string[],
+        submitToSite: async () => ({ success: true }),
+      }),
+    ];
+
+    expect(resolveSubmitToSiteExtension(extensions, 'pmc')).toBeUndefined();
+  });
+
+  it('does not throw when scanning extensions with missing or empty operated sites', () => {
+    const extensions = [
+      extension({
+        id: 'no-operated-sites',
+        submitToSite: async () => ({ success: true }),
+      }),
+      extension({
+        id: 'empty-operated-sites',
+        getOperatedSites: () => [],
+        submitToSite: async () => ({ success: true }),
+      }),
+      extension({
+        id: 'pmc',
+        getOperatedSites: () => ['pmc'],
+        submitToSite: async () => ({ success: true, submissionVersionId: 'sv-1' }),
+      }),
+    ];
+
+    expect(() => resolveSubmitToSiteExtension(extensions, 'pmc')).not.toThrow();
+    expect(resolveSubmitToSiteExtension(extensions, 'pmc')?.id).toBe('pmc');
+  });
+
   it('returns the first matching extension when multiple declare the same site', () => {
     const first = extension({
       id: 'first',

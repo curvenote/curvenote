@@ -10,6 +10,6 @@ export function resolveSubmitToSiteExtension(
   siteName: string,
 ): ServerExtension | undefined {
   return extensions.find(
-    (extension) => !!extension.submitToSite && !!extension.getOperatedSites?.().includes(siteName),
+    (extension) => !!extension.submitToSite && !!extension.getOperatedSites?.()?.includes(siteName),
   );
 }
