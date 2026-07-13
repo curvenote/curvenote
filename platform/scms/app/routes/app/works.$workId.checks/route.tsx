@@ -133,10 +133,10 @@ export async function loader(args: Route.LoaderArgs) {
 
   const enabledCheckKinds = metadata.checks?.enabled ?? [];
   const latestRunStatuses = Object.fromEntries(
-    enabledCheckKinds.map((kind) => [
-      kind,
-      latestRunByServiceKind[kind]?.run.id ?? 'none',
-    ]),
+    enabledCheckKinds.map((kind) => {
+      const entry = latestRunByServiceKind[kind];
+      return [kind, entry ? (entry.run.status ?? 'unknown') : 'none'];
+    }),
   );
   const dispatching = new URL(args.request.url).searchParams.get('dispatching') === '1';
 
