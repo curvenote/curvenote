@@ -14,3 +14,10 @@ export * from './run/runHandler.server.js';
 export * from './run/onJobTerminal.server.js';
 export * from './run/handleTransportFailure.server.js';
 export * from './workerJobUrl.server.js';
+export {
+  sendJobPubSubMessage,
+  withJobIdInAttributes,
+  type PubSubTarget,
+  type PubSubMessageArgs,
+  type DevLocalPush,
+} from './pubsub.server.js';
