@@ -165,6 +165,8 @@ export async function trackDocumentPreviewStarted(
     totalFileSizeBytes: number;
   },
 ): Promise<void> {
+  if (args.previewCandidateCount === 0) return;
+
   await trackUploadFlowEvent(ctx, TrackEvent.DOCUMENT_PREVIEW_STARTED, {
     workId: args.workId,
     workVersionId: args.workVersionId,

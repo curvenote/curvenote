@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, expect, it } from 'vitest';
-import type { FileMetadataSectionItem } from '@curvenote/scms-core';
+import { describe, expect, it, vi } from 'vitest';
+import { TrackEvent, type FileMetadataSectionItem } from '@curvenote/scms-core';
 import {
   classifyPreviewOutcome,
   previewFailureReason,
@@ -10,6 +10,7 @@ import {
   summarizePreviewCandidateFiles,
   summarizePreviewResults,
   extractedImageCountWhenAvailable,
+  trackDocumentPreviewStarted,
 } from './uploadFlowAnalytics.server.js';
 import type { DocumentPreviewItem } from './fetchPreviews.server.js';
 
@@ -49,6 +50,50 @@ describe('uploadFlowAnalytics', () => {
     expect(classifyPreviewOutcome(1, [])).toBe('failed');
     expect(classifyPreviewOutcome(1, [previewItem({ previewUnavailable: true })])).toBe('failed');
     expect(classifyPreviewOutcome(1, [previewItem()])).toBe('completed');
+  });
+
+  it('skips document preview started when there are no preview candidates', async () => {
+    const trackEvent = vi.fn();
+    const ctx = {
+      trackEvent,
+      analytics: undefined,
+      request: new Request('http://localhost/app/works/w1/upload/wv1'),
+    };
+    await trackDocumentPreviewStarted(ctx, {
+      workId: 'w1',
+      workVersionId: 'wv1',
+      uploadFlowTrigger: 'auto',
+      previewCandidateCount: 0,
+      fileTypes: [],
+      totalFileSizeBytes: 0,
+    });
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  it('emits document preview started when there are preview candidates', async () => {
+    const trackEvent = vi.fn();
+    const ctx = {
+      trackEvent,
+      analytics: undefined,
+      request: new Request('http://localhost/app/works/w1/upload/wv1'),
+    };
+    await trackDocumentPreviewStarted(ctx, {
+      workId: 'w1',
+      workVersionId: 'wv1',
+      uploadFlowTrigger: 'auto',
+      previewCandidateCount: 1,
+      fileTypes: ['application/pdf'],
+      totalFileSizeBytes: 1000,
+    });
+    expect(trackEvent).toHaveBeenCalledWith(
+      TrackEvent.DOCUMENT_PREVIEW_STARTED,
+      expect.objectContaining({
+        workId: 'w1',
+        workVersionId: 'wv1',
+        previewCandidateCount: 1,
+      }),
+      { ignoreAdmin: true },
+    );
   });
 
   it('derives preview failure reasons', () => {
