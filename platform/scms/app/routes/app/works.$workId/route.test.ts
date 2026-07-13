@@ -1,5 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as ScmsCore from '@curvenote/scms-core';
 
 const {
   createReturningVersion,
@@ -23,6 +24,8 @@ const {
   withSecureWorkContext,
   cloneDraftWorkVersionFromSource,
   getUserScopesSet,
+  executeRaw,
+  mockServerExtensions,
 } = vi.hoisted(() => ({
   createReturningVersion: vi.fn(),
   createSubmissionVersion: vi.fn(),
@@ -45,6 +48,12 @@ const {
   withSecureWorkContext: vi.fn(),
   cloneDraftWorkVersionFromSource: vi.fn(),
   getUserScopesSet: vi.fn(() => new Set(['app:works:upload'])),
+  executeRaw: vi.fn(),
+  mockServerExtensions: [] as Array<{
+    id: string;
+    getOperatedSites?: () => string[];
+    submitToSite?: (...args: unknown[]) => Promise<unknown>;
+  }>,
 }));
 
 vi.mock('@curvenote/scms-server', () => ({
@@ -58,7 +67,7 @@ vi.mock('@curvenote/scms-server', () => ({
   getPrismaClient: vi.fn(async () => ({
     $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
       fn({
-        $executeRaw: vi.fn(),
+        $executeRaw: executeRaw,
         submission: {
           findFirst: findFirstSubmission,
         },
@@ -100,50 +109,58 @@ vi.mock('@curvenote/scms-server', () => ({
   },
 }));
 
-vi.mock('@curvenote/scms-core', () => ({
-  MainWrapper: vi.fn(),
-  SecondaryNav: vi.fn(),
-  getBrandingFromMetaMatches: vi.fn(() => ({ title: 'SCMS' })),
-  joinPageTitle: vi.fn((title: string | undefined, suffix: string) => `${title ?? ''} ${suffix}`),
-  TrackEvent: {
-    WORK_VIEWED: 'WORK_VIEWED',
-  },
-  getWorkflows: vi.fn(() => ({ SIMPLE: {} })),
-  registerExtensionWorkflows: vi.fn(() => ({})),
-  getExtensionCheckServicesFromServerConfig: vi.fn(() => []),
-  loadCheckMaintenanceByServiceIds,
-  CheckMaintenanceProvider: vi.fn(({ children }) => children),
-  scopes: {
-    app: {
-      works: {
-        upload: 'app:works:upload',
-        submitToSite: 'app:works:submit-to-site',
-      },
+vi.mock('@curvenote/scms-core', async () => {
+  // Pull the real resolver through instead of hand-copying its body, so these route
+  // tests exercise the actual routing logic and catch regressions if it changes. The
+  // function is pure, so only it is un-mocked while the rest of the module stays stubbed.
+  const { resolveSubmitToSiteExtension } =
+    await vi.importActual<typeof ScmsCore>('@curvenote/scms-core');
+  return {
+    MainWrapper: vi.fn(),
+    SecondaryNav: vi.fn(),
+    getBrandingFromMetaMatches: vi.fn(() => ({ title: 'SCMS' })),
+    joinPageTitle: vi.fn((title: string | undefined, suffix: string) => `${title ?? ''} ${suffix}`),
+    TrackEvent: {
+      WORK_VIEWED: 'WORK_VIEWED',
     },
-    site: {
-      submissions: {
-        create: 'site:submissions:create',
-      },
-    },
-    work: {
-      id: {
-        read: 'work:id:read',
-        users: {
-          read: 'work:users:read',
-        },
-        checks: {
-          dispatch: 'work:id:checks:dispatch',
+    getWorkflows: vi.fn(() => ({ SIMPLE: {} })),
+    registerExtensionWorkflows: vi.fn(() => ({})),
+    getExtensionCheckServicesFromServerConfig: vi.fn(() => []),
+    loadCheckMaintenanceByServiceIds,
+    CheckMaintenanceProvider: vi.fn(({ children }) => children),
+    scopes: {
+      app: {
+        works: {
+          upload: 'app:works:upload',
+          submitToSite: 'app:works:submit-to-site',
         },
       },
+      site: {
+        submissions: {
+          create: 'site:submissions:create',
+        },
+      },
+      work: {
+        id: {
+          read: 'work:id:read',
+          users: {
+            read: 'work:users:read',
+          },
+          checks: {
+            dispatch: 'work:id:checks:dispatch',
+          },
+        },
+      },
     },
-  },
-  BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID: 'article',
-  resolveCreateNewVersionOption: vi.fn(() => ({
-    ok: true,
-    option: { id: 'article', extensionId: undefined },
-  })),
-  invokeExtensionCreateWorkVersion: vi.fn(),
-}));
+    BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID: 'article',
+    resolveCreateNewVersionOption: vi.fn(() => ({
+      ok: true,
+      option: { id: 'article', extensionId: undefined },
+    })),
+    invokeExtensionCreateWorkVersion: vi.fn(),
+    resolveSubmitToSiteExtension,
+  };
+});
 
 vi.mock('./menu', () => ({
   buildMenu: vi.fn(() => []),
@@ -200,7 +217,9 @@ vi.mock('../../../extensions/client', () => ({
 }));
 
 vi.mock('../../../extensions/server', () => ({
-  extensions: [],
+  get extensions() {
+    return mockServerExtensions;
+  },
 }));
 
 vi.mock('./actionHelpers.server', () => ({
@@ -245,6 +264,7 @@ function createSubmitToSiteRequest(siteName = 'private-site', workVersionId = 'w
 describe('work submit-to-site route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockServerExtensions.length = 0;
     withSecureWorkContext.mockResolvedValue({
       user: {
         id: 'user-1',
@@ -516,7 +536,7 @@ describe('work submit-to-site route', () => {
     expect(createReturningVersion).not.toHaveBeenCalled();
   });
 
-  it('returns the existing submission version when resubmitting an older work version after a newer one', async () => {
+  it('rejects submit-to-site when an older completed work version is requested', async () => {
     findUniqueSite.mockResolvedValue({
       id: 'site-public',
       name: 'public-site',
@@ -535,32 +555,22 @@ describe('work submit-to-site route', () => {
         },
       ],
     });
-    findFirstSubmission.mockResolvedValue({
-      id: 'submission-1',
-      versions: [{ id: 'sv-1', work_version_id: 'wv-1', status: 'PENDING' }],
-    });
+    findFirstWorkVersion.mockResolvedValue({ id: 'wv-2' });
 
     const response = await action({
       request: createSubmitToSiteRequest('public-site', 'wv-1'),
       params: { workId: 'work-1' },
     } as never);
 
-    expect(response).toMatchObject({
-      success: true,
+    const status = 'init' in response ? response.init?.status : 200;
+    const body = 'data' in response ? response.data : response;
+
+    expect(status).toBe(400);
+    expect(body).toMatchObject({
+      success: false,
       intent: 'submit-to-site',
-      siteName: 'public-site',
-      submissionVersionId: 'sv-1',
-      alreadySubmitted: true,
+      error: expect.stringContaining('Only the latest completed version'),
     });
-    expect(findFirstSubmission).toHaveBeenCalledWith(
-      expect.objectContaining({
-        include: {
-          versions: expect.objectContaining({
-            where: { work_version_id: 'wv-1' },
-          }),
-        },
-      }),
-    );
     expect(createSubmissionVersion).not.toHaveBeenCalled();
     expect(createReturningVersion).not.toHaveBeenCalled();
   });
@@ -663,6 +673,207 @@ describe('work submit-to-site route', () => {
       expect.objectContaining({ submission: expect.any(Object) }),
     );
     expect(createReturningVersion).not.toHaveBeenCalled();
+  });
+
+  it('delegates to an extension that operates the site and declares submitToSite', async () => {
+    const submitToSite = vi.fn().mockResolvedValue({
+      success: true,
+      submissionVersionId: 'sv-ext',
+      redirectPath: '/app/works/work-1/site/pmc/deposit/sv-ext',
+    });
+    mockServerExtensions.push({
+      id: 'pmc',
+      getOperatedSites: () => ['pmc'],
+      submitToSite,
+    });
+    findUniqueSite.mockResolvedValue({
+      id: 'site-pmc',
+      name: 'pmc',
+      title: 'PMC',
+      private: true,
+      restricted: false,
+      external: true,
+      domains: [],
+      submissionKinds: [{ id: 'kind-1', default: true }],
+      collections: [
+        {
+          id: 'collection-1',
+          default: true,
+          open: true,
+          kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+        },
+      ],
+    });
+    userHasScope.mockImplementation((_user, scope, siteName) => {
+      if (scope === 'app:works:submit-to-site') return true;
+      return scope === 'site:submissions:create' && siteName === 'pmc';
+    });
+
+    const response = await action({
+      request: createSubmitToSiteRequest('pmc', 'wv-1'),
+      params: { workId: 'work-1' },
+    } as never);
+
+    expect(response).toMatchObject({
+      success: true,
+      intent: 'submit-to-site',
+      siteName: 'pmc',
+      submissionVersionId: 'sv-ext',
+      redirectPath: '/app/works/work-1/site/pmc/deposit/sv-ext',
+    });
+    expect(submitToSite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workId: 'work-1',
+        workVersionId: 'wv-1',
+        siteName: 'pmc',
+      }),
+    );
+    // The advisory lock is acquired inside the transaction before the extension
+    // handler runs, so concurrent delegated submits serialize.
+    const lockSql = executeRaw.mock.calls[0][0] as { values: unknown[] };
+    expect(lockSql.values).toContain('work-site-submit:work-1:site-pmc');
+    expect(executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      submitToSite.mock.invocationCallOrder[0],
+    );
+    expect(createReturningVersion).not.toHaveBeenCalled();
+    expect(createSubmissionVersion).not.toHaveBeenCalled();
+  });
+
+  it('fails when an extension submit handler rejects without falling back to the central route', async () => {
+    mockServerExtensions.push({
+      id: 'pmc',
+      getOperatedSites: () => ['pmc'],
+      submitToSite: vi.fn().mockRejectedValue(new Error('PMC deposit service unavailable')),
+    });
+    findUniqueSite.mockResolvedValue({
+      id: 'site-pmc',
+      name: 'pmc',
+      title: 'PMC',
+      private: true,
+      restricted: false,
+      external: true,
+      domains: [],
+      submissionKinds: [{ id: 'kind-1', default: true }],
+      collections: [
+        {
+          id: 'collection-1',
+          default: true,
+          open: true,
+          kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+        },
+      ],
+    });
+    userHasScope.mockImplementation((_user, scope, siteName) => {
+      if (scope === 'app:works:submit-to-site') return true;
+      return scope === 'site:submissions:create' && siteName === 'pmc';
+    });
+
+    const response = await action({
+      request: createSubmitToSiteRequest('pmc', 'wv-1'),
+      params: { workId: 'work-1' },
+    } as never);
+    const status = 'init' in response ? response.init?.status : 200;
+    const body = 'data' in response ? response.data : response;
+
+    expect(status).toBe(500);
+    expect(body).toMatchObject({
+      success: false,
+      intent: 'submit-to-site',
+      error: 'PMC deposit service unavailable',
+    });
+    expect(createReturningVersion).not.toHaveBeenCalled();
+    expect(createSubmissionVersion).not.toHaveBeenCalled();
+  });
+
+  it('fails when an extension submit handler returns an error without falling back to the central route', async () => {
+    mockServerExtensions.push({
+      id: 'pmc',
+      getOperatedSites: () => ['pmc'],
+      submitToSite: vi.fn().mockResolvedValue({
+        success: false,
+        error: 'Extension submission failed',
+      }),
+    });
+    findUniqueSite.mockResolvedValue({
+      id: 'site-pmc',
+      name: 'pmc',
+      title: 'PMC',
+      private: true,
+      restricted: false,
+      external: true,
+      domains: [],
+      submissionKinds: [{ id: 'kind-1', default: true }],
+      collections: [
+        {
+          id: 'collection-1',
+          default: true,
+          open: true,
+          kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+        },
+      ],
+    });
+    userHasScope.mockImplementation((_user, scope, siteName) => {
+      if (scope === 'app:works:submit-to-site') return true;
+      return scope === 'site:submissions:create' && siteName === 'pmc';
+    });
+
+    const response = await action({
+      request: createSubmitToSiteRequest('pmc', 'wv-1'),
+      params: { workId: 'work-1' },
+    } as never);
+    const status = 'init' in response ? response.init?.status : 200;
+    const body = 'data' in response ? response.data : response;
+
+    expect(status).toBe(500);
+    expect(body).toMatchObject({
+      success: false,
+      intent: 'submit-to-site',
+      error: 'Extension submission failed',
+    });
+    expect(createReturningVersion).not.toHaveBeenCalled();
+    expect(createSubmissionVersion).not.toHaveBeenCalled();
+  });
+
+  it('uses the central route when an extension operates the site but declares no submit handler', async () => {
+    mockServerExtensions.push({
+      id: 'pmc',
+      getOperatedSites: () => ['pmc'],
+    });
+    findUniqueSite.mockResolvedValue({
+      id: 'site-pmc',
+      name: 'pmc',
+      title: 'PMC',
+      private: true,
+      restricted: false,
+      external: true,
+      domains: [],
+      submissionKinds: [{ id: 'kind-1', default: true }],
+      collections: [
+        {
+          id: 'collection-1',
+          default: true,
+          open: true,
+          kindsInCollection: [{ kind: { id: 'kind-1', default: true } }],
+        },
+      ],
+    });
+    userHasScope.mockImplementation((_user, scope, siteName) => {
+      if (scope === 'app:works:submit-to-site') return true;
+      return scope === 'site:submissions:create' && siteName === 'pmc';
+    });
+
+    const response = await action({
+      request: createSubmitToSiteRequest('pmc', 'wv-1'),
+      params: { workId: 'work-1' },
+    } as never);
+
+    expect(response).toMatchObject({
+      success: true,
+      intent: 'submit-to-site',
+      siteName: 'pmc',
+      submissionVersionId: 'sv-1',
+    });
+    expect(createReturningVersion).toHaveBeenCalled();
   });
 });
 

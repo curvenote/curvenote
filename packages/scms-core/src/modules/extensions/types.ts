@@ -68,6 +68,22 @@ export interface ExtensionCreateWorkVersionResult {
   error?: string;
 }
 
+export interface ExtensionSubmitToSiteArgs {
+  ctx: Context;
+  workId: string;
+  /** Current finalized work version being submitted — never cloned. */
+  workVersionId: string;
+  siteName: string;
+}
+
+export interface ExtensionSubmitToSiteResult {
+  success: boolean;
+  submissionVersionId?: string;
+  /** Where to send the user for extension-specific intake/confirm. */
+  redirectPath?: string;
+  error?: string;
+}
+
 export interface ExtensionIcon {
   id: string;
   component: IconComponent;
@@ -409,6 +425,20 @@ export interface ServerExtension extends ClientExtension {
   createWorkVersion?: (
     args: ExtensionCreateWorkVersionArgs,
   ) => Promise<ExtensionCreateWorkVersionResult | null>;
+  /**
+   * Site names this extension operates (routes, config, UI). Operating a site does not imply a
+   * custom submission flow — omit `submitToSite` to use the central submit-to-site route.
+   */
+  getOperatedSites?: () => string[];
+  /**
+   * Optional opt-in: when present together with `getOperatedSites`, this extension owns submit-to-site
+   * for those sites. Must resolve success/failure; never returns null to fall back to core.
+   *
+   * Core serializes concurrent invocations for the same work+site with an advisory lock, so a
+   * double submit will not run two handlers at once. Implementations should still be idempotent
+   * (re-check for an existing submission/version and reuse it) rather than unconditionally creating.
+   */
+  submitToSite?: (args: ExtensionSubmitToSiteArgs) => Promise<ExtensionSubmitToSiteResult>;
   getJobs?: () => JobRegistration[];
   /**
    * Returns the effective configuration for this extension.

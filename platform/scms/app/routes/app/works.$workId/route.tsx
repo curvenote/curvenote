@@ -35,6 +35,7 @@ import {
   scopes,
   resolveCreateNewVersionOption,
   invokeExtensionCreateWorkVersion,
+  resolveSubmitToSiteExtension,
   BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
   buildWorkVersionNumberByIdMap,
 } from '@curvenote/scms-core';
@@ -66,6 +67,7 @@ import { WORK_ROUTE_CONTENT_CLASS } from './workRouteLayout';
 import { exportToPdfAction } from './actionHelpers.server';
 import {
   canUserSubmitToSite,
+  getSubmitToSiteLatestVersionPolicyError,
   isSiteAvailableForWorkSubmit,
   resolveOpenCollection,
   resolveSubmissionKind,
@@ -308,21 +310,65 @@ export async function action(args: ActionFunctionArgs) {
         );
       }
 
-      const selectedVersion = workVersionId
-        ? await prisma.workVersion.findFirst({
-            where: { id: workVersionId, work_id: ctx.work.id, draft: false },
-            select: { id: true },
-          })
-        : await prisma.workVersion.findFirst({
-            where: { work_id: ctx.work.id, draft: false },
-            orderBy: { date_created: 'desc' },
-            select: { id: true },
-          });
-      if (!selectedVersion) {
+      // TEMPORARY(submit-to-site): Only the latest non-draft version may be submitted.
+      const latestNonDraftVersion = await prisma.workVersion.findFirst({
+        where: { work_id: ctx.work.id, draft: false },
+        orderBy: { date_created: 'desc' },
+        select: { id: true },
+      });
+      if (!latestNonDraftVersion) {
         return data(
           { success: false, intent, error: 'No completed work version is available to submit' },
           { status: 400 },
         );
+      }
+      const latestVersionPolicyError = getSubmitToSiteLatestVersionPolicyError(
+        workVersionId,
+        latestNonDraftVersion.id,
+      );
+      if (latestVersionPolicyError) {
+        return data({ success: false, intent, error: latestVersionPolicyError }, { status: 400 });
+      }
+      const selectedVersion = latestNonDraftVersion;
+
+      const submitExt = resolveSubmitToSiteExtension(serverExtensions, siteName);
+      if (submitExt) {
+        // Serialize concurrent delegated submits with the same advisory lock the
+        // central path uses, so a double submit can't race the extension's own
+        // existing-submission dedup (e.g. two DRAFT submissions for one work+site).
+        // The lock is held for the extension call and released when the wrapping
+        // transaction settles. The timeout is generous because a timeout releases
+        // the lock while the un-cancellable extension call keeps running.
+        const extLockKey = workSiteSubmitLockKey(ctx.work.id, site.id);
+        const extResult = await prisma.$transaction(
+          async (tx) => {
+            await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${extLockKey}))`);
+            return submitExt.submitToSite!({
+              ctx,
+              workId: ctx.work.id,
+              workVersionId: selectedVersion.id,
+              siteName,
+            });
+          },
+          { timeout: 60_000 },
+        );
+        if (!extResult?.success) {
+          return data(
+            {
+              success: false,
+              intent,
+              error: extResult?.error ?? 'Extension failed to create submission',
+            },
+            { status: 500 },
+          );
+        }
+        return {
+          success: true,
+          intent: 'submit-to-site',
+          siteName,
+          submissionVersionId: extResult.submissionVersionId,
+          redirectPath: extResult.redirectPath,
+        };
       }
 
       const siteCtx = new SiteContextWithUser(ctx, site);
@@ -415,6 +461,21 @@ export async function action(args: ActionFunctionArgs) {
     } catch (error) {
       if (error instanceof SubmitToSiteConfigError) {
         return data({ success: false, intent, error: error.message }, { status: 400 });
+      }
+      // P2028: the wrapping transaction timed out. The advisory lock is released but
+      // the underlying submit (e.g. an extension call) may still complete, so warn
+      // the user against blindly retrying instead of returning a generic failure.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2028') {
+        console.error('Submit work to site transaction timed out:', error);
+        return data(
+          {
+            success: false,
+            intent,
+            error:
+              'The submission timed out but may still be processing. Check the site for a new submission before retrying.',
+          },
+          { status: 500 },
+        );
       }
       console.error('Failed to submit work to site:', error);
       return data(
