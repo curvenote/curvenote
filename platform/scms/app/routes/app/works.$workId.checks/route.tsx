@@ -28,6 +28,9 @@ import {
   DateWithPopover,
   useDeploymentConfig,
   ui,
+  ExtensionChecksAnalyticsEventKey,
+  collectUniqueExtensionAnalyticsEventNames,
+  filterExtensionsWithChecksEnabled,
 } from '@curvenote/scms-core';
 import { dbGetLatestNonDraftWorkVersion, formatWorkVersionDTO } from './db.server';
 import { dbGetCheckServiceRunsByWorkVersionIds } from '../works.$workId/db.server';
@@ -40,7 +43,6 @@ import { extensions as serverExtensions } from '../../../extensions/server';
 import { RunCheckOnLatestVersionButton } from './RunCheckOnLatestVersionButton';
 import { handleChecksRouteAction } from './checksAction.server';
 import { shouldTrackWorkViewedOnLoader } from '../works.$workId.upload.$workVersionId/loaderAnalytics.server.js';
-import { HHMIChecksTrackEvent } from '@hhmi/checks-shared/analytics/events';
 
 const DISPATCHING_SKELETON_MS = 1500;
 
@@ -139,14 +141,23 @@ export async function loader(args: Route.LoaderArgs) {
   const dispatching = new URL(args.request.url).searchParams.get('dispatching') === '1';
 
   if (shouldTrackWorkViewedOnLoader(args.request)) {
-    await ctx.trackEvent(HHMIChecksTrackEvent.CHECKS_PAGE_VIEWED, {
-      workId: ctx.work.id,
-      workVersionId: latestNonDraftWorkVersion.id,
-      enabledCheckKinds,
-      latestRunStatuses,
-      dispatching,
-    });
-    await ctx.analytics.flush();
+    const checksExtensions = filterExtensionsWithChecksEnabled(ctx.$config, serverExtensions);
+    const pageViewEvents = collectUniqueExtensionAnalyticsEventNames(
+      checksExtensions,
+      ExtensionChecksAnalyticsEventKey.PAGE_VIEWED,
+    );
+    for (const eventName of pageViewEvents) {
+      await ctx.trackEvent(eventName, {
+        workId: ctx.work.id,
+        workVersionId: latestNonDraftWorkVersion.id,
+        enabledCheckKinds,
+        latestRunStatuses,
+        dispatching,
+      });
+    }
+    if (pageViewEvents.length > 0) {
+      await ctx.analytics.flush();
+    }
   }
 
   return {

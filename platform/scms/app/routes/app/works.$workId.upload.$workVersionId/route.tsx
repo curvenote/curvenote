@@ -55,6 +55,10 @@ import {
   UPLOAD_ANALYSIS_METADATA_KEY,
   uploadFactPresenceFromValue,
   clearUploadAnalysisMetadataFacts,
+  ExtensionChecksAnalyticsEventKey,
+  buildCheckServiceIdToExtensionMap,
+  groupCheckServiceIdsByExtensionAnalyticsEvent,
+  resolveCheckServiceAnalyticsEventName,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -91,10 +95,6 @@ import { useRotatingMessage } from './metadata-extract/useRotatingMessage';
 import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
 import { collectAllFigures } from './metadata-extract/DocumentPreviewer';
 import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
-import { HHMIChecksTrackEvent } from '@hhmi/checks-shared/analytics/events';
-import type { ChecksKind } from '@hhmi/checks-shared/analytics/properties';
-
-const HHMI_UPLOAD_CHECK_KINDS = new Set<ChecksKind>(['checks-text-integrity', 'proofig']);
 import {
   buildThumbnailCandidateLocators,
   encodeFigureLocator,
@@ -589,8 +589,14 @@ export async function action(args: Route.ActionArgs) {
           }
         }
 
-        if (HHMI_UPLOAD_CHECK_KINDS.has(checkName as ChecksKind)) {
-          await baseCtx.trackEvent(HHMIChecksTrackEvent.CHECKS_UPLOAD_OPTION_TOGGLED, {
+        const checkServiceExtensionMap = buildCheckServiceIdToExtensionMap(serverExtensions);
+        const uploadToggleEvent = resolveCheckServiceAnalyticsEventName(
+          checkServiceExtensionMap,
+          checkName,
+          ExtensionChecksAnalyticsEventKey.UPLOAD_OPTION_TOGGLED,
+        );
+        if (uploadToggleEvent) {
+          await baseCtx.trackEvent(uploadToggleEvent, {
             checkKind: checkName,
             workId,
             workVersionId,
@@ -673,17 +679,21 @@ export async function action(args: Route.ActionArgs) {
           return rejectCheckDispatch();
         }
 
-        const dispatchedHhmiChecks = dispatchableChecks.filter((name) =>
-          HHMI_UPLOAD_CHECK_KINDS.has(name as ChecksKind),
+        const checkServiceExtensionMap = buildCheckServiceIdToExtensionMap(serverExtensions);
+        const uploadConfirmedGroups = groupCheckServiceIdsByExtensionAnalyticsEvent(
+          dispatchableChecks,
+          checkServiceExtensionMap,
+          ExtensionChecksAnalyticsEventKey.UPLOAD_CONFIRMED,
         );
-
-        if (dispatchedHhmiChecks.length > 0) {
-          await baseCtx.trackEvent(HHMIChecksTrackEvent.CHECKS_UPLOAD_CONFIRMED, {
+        for (const [eventName, confirmedChecks] of uploadConfirmedGroups) {
+          await baseCtx.trackEvent(eventName, {
             workId,
             workVersionId,
-            enabledChecks: dispatchedHhmiChecks,
-            dispatchedChecks: dispatchedHhmiChecks,
+            enabledChecks: confirmedChecks,
+            dispatchedChecks: confirmedChecks,
           });
+        }
+        if (uploadConfirmedGroups.size > 0) {
           await baseCtx.analytics.flush();
         }
 
