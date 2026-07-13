@@ -39,6 +39,8 @@ import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { RunCheckOnLatestVersionButton } from './RunCheckOnLatestVersionButton';
 import { handleChecksRouteAction } from './checksAction.server';
+import { shouldTrackWorkViewedOnLoader } from '../works.$workId.upload.$workVersionId/loaderAnalytics.server.js';
+import { HHMIChecksTrackEvent } from '@hhmi/checks-shared/analytics/events';
 
 const DISPATCHING_SKELETON_MS = 1500;
 
@@ -126,6 +128,26 @@ export async function loader(args: Route.LoaderArgs) {
     }
   }
   // ------------------------------- END TEMPORARY ---------------------------
+
+  const enabledCheckKinds = metadata.checks?.enabled ?? [];
+  const latestRunStatuses = Object.fromEntries(
+    enabledCheckKinds.map((kind) => [
+      kind,
+      latestRunByServiceKind[kind]?.run.id ?? 'none',
+    ]),
+  );
+  const dispatching = new URL(args.request.url).searchParams.get('dispatching') === '1';
+
+  if (shouldTrackWorkViewedOnLoader(args.request)) {
+    await ctx.trackEvent(HHMIChecksTrackEvent.CHECKS_PAGE_VIEWED, {
+      workId: ctx.work.id,
+      workVersionId: latestNonDraftWorkVersion.id,
+      enabledCheckKinds,
+      latestRunStatuses,
+      dispatching,
+    });
+    await ctx.analytics.flush();
+  }
 
   return {
     work: ctx.workDTO,

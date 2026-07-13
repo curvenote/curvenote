@@ -91,6 +91,10 @@ import { useRotatingMessage } from './metadata-extract/useRotatingMessage';
 import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
 import { collectAllFigures } from './metadata-extract/DocumentPreviewer';
 import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
+import { HHMIChecksTrackEvent } from '@hhmi/checks-shared/analytics/events';
+import type { ChecksKind } from '@hhmi/checks-shared/analytics/properties';
+
+const HHMI_UPLOAD_CHECK_KINDS = new Set<ChecksKind>(['checks-text-integrity', 'proofig']);
 import {
   buildThumbnailCandidateLocators,
   encodeFigureLocator,
@@ -198,6 +202,7 @@ async function dispatchEnabledChecksAfterUpload({
         workVersionId,
         ctx,
         serverExtensions,
+        analyticsTrigger: 'upload',
       };
       const { success, error, status } = await service.handleAction(actionArgs);
       if (!success || error) {
@@ -570,6 +575,16 @@ export async function action(args: Route.ActionArgs) {
           }
         }
 
+        if (HHMI_UPLOAD_CHECK_KINDS.has(checkName as ChecksKind)) {
+          await baseCtx.trackEvent(HHMIChecksTrackEvent.CHECKS_UPLOAD_OPTION_TOGGLED, {
+            checkKind: checkName,
+            workId,
+            workVersionId,
+            enabled: isChecked,
+          });
+          await baseCtx.analytics.flush();
+        }
+
         return toggleWorkVersionCheck(workVersionId, checkName, isChecked);
       }
 
@@ -642,6 +657,19 @@ export async function action(args: Route.ActionArgs) {
           !userHasWorkScope(userWithWorkRoles, scopes.work.id.checks.dispatch, workId)
         ) {
           return rejectCheckDispatch();
+        }
+
+        if (enabledChecks.length > 0) {
+          await baseCtx.trackEvent(HHMIChecksTrackEvent.CHECKS_UPLOAD_CONFIRMED, {
+            workId,
+            workVersionId,
+            enabledChecks,
+            dispatchedChecks: dispatchableChecks,
+            skippedMaintenanceChecks: enabledChecks.filter(
+              (name) => maintenanceByServiceId[name]?.underMaintenance,
+            ),
+          });
+          await baseCtx.analytics.flush();
         }
 
         if (submittedAuthorMetadata) {
