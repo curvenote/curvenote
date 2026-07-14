@@ -3,13 +3,13 @@
  * Avoids a full-document officeparser pass for phase-A text preview.
  */
 
-import { createRequire } from 'node:module';
 import type { OfficeContentNode } from 'officeparser';
 import {
   astContentToPlainText,
   shouldIncludeSecondPage,
   type PreviewAstData,
 } from './previewAstUtils.server';
+import { loadPdfJs } from './pdfJsUtils.server';
 
 /** Minimum extractable text before falling back to officeparser for scanned/image PDFs. */
 export const PDF_FAST_PATH_MIN_TEXT_LENGTH = 50;
@@ -24,17 +24,6 @@ function pageFromText(text: string, pageNumber: number): OfficeContentNode {
     children: text ? [paragraphFromText(text)] : [],
     metadata: { pageNumber },
   } as OfficeContentNode;
-}
-
-async function loadPdfJs() {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  try {
-    const require = createRequire(import.meta.url);
-    pdfjs.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
-  } catch {
-    // Worker auto-resolution is best-effort; pdfjs may still load in some environments.
-  }
-  return pdfjs;
 }
 
 async function extractPageText(

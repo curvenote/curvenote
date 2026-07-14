@@ -6,7 +6,7 @@
  * - Phase B (fetch-preview-figures): deferred attachment extraction + thumbnail storage.
  *
  * PDF phase A uses a pdfjs first-page fast path; DOCX uses officeparser without attachments.
- * Phase B re-parses with officeparser + extractAttachments (v1 tradeoff).
+ * PDF phase B uses a capped pdfjs image scan; other formats use officeparser + extractAttachments.
  */
 
 import {
@@ -332,6 +332,23 @@ async function extractAndStoreFigures(
   return results.filter((fig): fig is PreviewFigure => fig != null);
 }
 
+async function extractFigureAttachmentsFromBuffer(
+  path: string,
+  file: FileMetadataSectionItem,
+  arrayBuffer: ArrayBuffer,
+): Promise<OfficeAttachment[]> {
+  if (isPdfFile(path, file)) {
+    const { extractPdfFigureAttachments } = await import('./pdfFigureExtraction.server');
+    return extractPdfFigureAttachments(arrayBuffer, MAX_PREVIEW_FIGURES);
+  }
+  const { parseOfficeFromBuffer } = await import('./parseOfficeFromBuffer.server');
+  const fullAst = await parseOfficeFromBuffer(arrayBuffer, path, {
+    extractAttachments: true,
+    newlineDelimiter: '\n',
+  });
+  return fullAst.attachments ?? [];
+}
+
 async function loadPreviewWorkContext(
   workVersionId: string,
   ctx: Context,
@@ -563,17 +580,32 @@ export async function fetchDocumentPreviewFigures(
         continue;
       }
 
-      const { parseOfficeFromBuffer } = await import('./parseOfficeFromBuffer.server');
-      const fullAst = await parseOfficeFromBuffer(arrayBuffer, path, {
-        extractAttachments: true,
-        newlineDelimiter: '\n',
-      });
-      const figures = await extractAndStoreFigures(fullAst.attachments ?? [], {
+      const startedAt = Date.now();
+      const usePdfFastPath = isPdfFile(path, file);
+      console.info(
+        'fetchDocumentPreviewFigures: extracting',
+        path,
+        usePdfFastPath ? 'pdf-fast-path' : 'officeparser',
+      );
+
+      const attachments = await extractFigureAttachmentsFromBuffer(path, file, arrayBuffer);
+      const figures = await extractAndStoreFigures(attachments, {
         sourcePath: path,
         md5: md5 as string,
         backend,
         bucket: figureBucket,
       });
+
+      console.info(
+        'fetchDocumentPreviewFigures: done',
+        path,
+        usePdfFastPath ? 'pdf-fast-path' : 'officeparser',
+        {
+          attachmentCount: attachments.length,
+          storedFigureCount: figures.length,
+          durationMs: Date.now() - startedAt,
+        },
+      );
 
       const updated: CachedPreview = {
         ...cached,

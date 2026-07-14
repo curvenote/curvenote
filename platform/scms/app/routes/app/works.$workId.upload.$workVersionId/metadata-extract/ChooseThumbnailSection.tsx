@@ -16,6 +16,7 @@ import {
   resolveThumbnailSelection,
 } from './thumbnailSelection';
 import type { DocumentPreviewItem } from './fetchPreviews.server';
+import { figuresBusyMessageForPreviews } from './previewFigureMessages';
 import { useDelayedFlag } from './useDelayedFlag';
 
 /** Reveal the skip escape hatch after this long in the figures busy state. */
@@ -387,7 +388,7 @@ export function ChooseThumbnailSection({
       ? 'No images yet'
       : 'No figures were found in the current document previews.';
 
-  const figuresBusyMessage = 'Generating thumbnail options…';
+  const figuresBusyMessage = figuresBusyMessageForPreviews(previewList, isFiguresLoading);
   const hasPinnedThumbnail = Boolean(pinnedThumbnail);
   const hasExtractedFigures = figures.length > 0;
   const hasGalleryTiles = hasPinnedThumbnail || hasExtractedFigures;
