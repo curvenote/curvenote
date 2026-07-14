@@ -23,7 +23,6 @@ import {
   computeManuscriptSourceSignature,
   UPLOAD_ANALYSIS_METADATA_KEY,
   type FileMetadataSectionItem,
-  type UploadFactPresence,
 } from '@curvenote/scms-core';
 import type { Context } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
@@ -42,6 +41,9 @@ import {
   truncateAstToFirstPage,
   type PreviewAstData,
 } from './previewAstUtils.server';
+import { resolvePreviewImagePresence } from './previewImagePresence';
+
+export { resolvePreviewImagePresence } from './previewImagePresence';
 
 /** Longest edge (px) of a downscaled candidate figure thumbnail. */
 const PREVIEW_FIGURE_MAX_EDGE = 384;
@@ -116,34 +118,6 @@ interface PreviewWorkContext {
   backend: StorageBackend;
   figureBucket: KnownBuckets | null;
   prisma: Awaited<ReturnType<typeof getPrismaClient>>;
-}
-
-export function resolvePreviewImagePresence(
-  previewCandidatePaths: string[],
-  previews: Pick<
-    DocumentPreviewItem,
-    'path' | 'figures' | 'previewUnavailable' | 'figuresExtractionSkipped' | 'figuresPending'
-  >[],
-): UploadFactPresence {
-  if (previewCandidatePaths.length === 0) return 'unknown';
-  const previewPaths = new Set(previews.map((preview) => preview.path));
-  const hasMissingPreview = previewCandidatePaths.some((path) => !previewPaths.has(path));
-  if (hasMissingPreview || previews.some((preview) => preview.previewUnavailable === true)) {
-    return 'unknown';
-  }
-  if (previews.some((preview) => preview.figuresPending === true)) {
-    return 'unknown';
-  }
-  if (previews.some((preview) => preview.figures.length > 0)) {
-    return 'present';
-  }
-  if (previews.some((preview) => preview.figuresExtractionSkipped === true)) {
-    return 'unknown';
-  }
-  const allConfidentlyAbsent = previews.every(
-    (preview) => preview.figuresExtractionSkipped === false && preview.figures.length === 0,
-  );
-  return allConfidentlyAbsent && previews.length > 0 ? 'absent' : 'unknown';
 }
 
 async function persistPreviewUploadAnalysis({

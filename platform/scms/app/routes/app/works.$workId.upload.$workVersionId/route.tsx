@@ -83,12 +83,12 @@ import {
   deletePreviewArtifactsForVersion,
   persistThumbnailListingForVersion,
   signPreviewFigures,
-  resolvePreviewImagePresence,
 } from './metadata-extract/fetchPreviews.server';
 import {
   readDocumentPreviewsFromObjectTable,
   type DocumentPreviewItem,
 } from './metadata-extract/fetchPreviews.server';
+import { resolvePreviewImagePresence } from './metadata-extract/previewImagePresence';
 import { extractMetadataFromPreviews } from './metadata-extract/anthropic.server';
 import type { ExtractedMetadata } from './metadata-extract/anthropic.server';
 import { Upload, CheckSquare } from 'lucide-react';

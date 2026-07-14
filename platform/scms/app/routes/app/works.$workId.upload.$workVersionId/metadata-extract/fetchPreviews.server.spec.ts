@@ -1,11 +1,8 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import type { OfficeContentNode, OfficeParserAST } from 'officeparser';
-import {
-  astContentToPlainText,
-  resolvePreviewImagePresence,
-  truncateAstToFirstPage,
-} from './fetchPreviews.server';
+import { astContentToPlainText, truncateAstToFirstPage } from './fetchPreviews.server';
+import { resolvePreviewImagePresence } from './previewImagePresence';
 
 function textNode(text: string): OfficeContentNode {
   return { type: 'text', text } as OfficeContentNode;
