@@ -77,7 +77,12 @@ export default defineConfig(async ({ mode }) => {
       ],
     },
     ssr: {
-      external: ['crypto', ...SERVER_WORKSPACE_PACKAGES],
+      external: [
+        'crypto',
+        ...SERVER_WORKSPACE_PACKAGES,
+        '@napi-rs/canvas',
+        'pdfjs-dist',
+      ],
       noExternal: [
         ...WORKSPACE_UI_PATTERNS,
         'lucide-react',
