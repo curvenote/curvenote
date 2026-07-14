@@ -148,6 +148,7 @@
     "cronstrue": "^3.24.0",
     "date-fns": "3.6.0",
     "officeparser": "^6.0.4",
+    "pdfjs-dist": "5.6.205",
     "fuse.js": "^7.1.0",
     "isbot": "^5",
     "js-yaml": "^4.1.1",

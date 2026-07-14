@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Columns4, Image as ImageIcon, Check, LayoutGrid } from 'lucide-react';
-import { SectionWithHeading, cn, ui } from '@curvenote/scms-core';
+import { LoadingSpinner, SectionWithHeading, cn, ui } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocumentPreviewer';
 import {
   buildThumbnailCandidateLocators,
@@ -22,6 +22,8 @@ export interface ChooseThumbnailSectionProps {
   onChange: (locator: string | null) => void;
   /** Inherited thumbnail from a prior version — always rendered first when present. */
   pinnedThumbnail?: PinnedThumbnail | null;
+  /** True while phase-B figure extraction is in progress. */
+  isFiguresLoading?: boolean;
 }
 
 type ThumbnailGalleryLayout = 'row' | 'grid';
@@ -207,6 +209,7 @@ export function ChooseThumbnailSection({
   value,
   onChange,
   pinnedThumbnail = null,
+  isFiguresLoading = false,
 }: ChooseThumbnailSectionProps) {
   const [layout, setLayout] = useState<ThumbnailGalleryLayout>('row');
   const allFigures = useMemo(() => collectAllFigures(previewList), [previewList]);
@@ -240,9 +243,12 @@ export function ChooseThumbnailSection({
   const emptyMessage =
     previewList.length === 0 && !pinnedThumbnail
       ? 'No images yet'
-      : 'No figures were found in the current document previews.';
+      : isFiguresLoading
+        ? 'Generating thumbnail candidates…'
+        : 'No figures were found in the current document previews.';
 
   const hasTiles = Boolean(pinnedThumbnail) || figures.length > 0;
+  const showFiguresLoading = isFiguresLoading && !hasTiles;
   const tileCount = (pinnedThumbnail ? 1 : 0) + figures.length;
   const { galleryRef, overflows: rowGalleryOverflows } = useRowGalleryOverflow({
     tileCount,
@@ -266,7 +272,14 @@ export function ChooseThumbnailSection({
       </p>
       {!hasTiles ? (
         <div className="flex justify-center items-center px-6 py-8 text-center bg-white rounded-md border border-dashed min-h-36 border-stone-300 dark:border-stone-600 dark:bg-stone-900">
-          <p className="max-w-sm text-sm text-muted-foreground">{emptyMessage}</p>
+          {showFiguresLoading ? (
+            <div className="flex flex-col gap-3 items-center">
+              <LoadingSpinner size="sm" />
+              <p className="max-w-sm text-sm text-muted-foreground">{emptyMessage}</p>
+            </div>
+          ) : (
+            <p className="max-w-sm text-sm text-muted-foreground">{emptyMessage}</p>
+          )}
         </div>
       ) : null}
       {hasTiles ? (

@@ -1,22 +1,12 @@
 /**
  * Server-side document preview fetching for a work version.
  *
- * For the given work version: finds preview-candidate files in metadata.files
- * (the intersection of officeparser-supported formats and the manuscript dropzone
- * MIME types — see isPreviewCandidate; today {docx, pdf}), downloads each via
- * signed URL, parses with officeparser, and returns the first "page" of content
- * (truncated AST) per file.
+ * Two-phase pipeline:
+ * - Phase A (fetch-previews): fast first-page text AST cached without figures.
+ * - Phase B (fetch-preview-figures): deferred attachment extraction + thumbnail storage.
  *
- * Extracted figures are NOT kept as base64. Each candidate figure is downscaled to a
- * compact webp at parse time and written to object storage under the work version's
- * `thumbnails/` subpath; the cached preview stores only the storage keys. The picker
- * references signed URLs (see signPreviewFigures), so base64 image bytes never hit the
- * Object table, the loader payload, or client memory.
- *
- * Parsed previews are cached in the Object table keyed per work version AND source-file
- * md5 (see documentPreviewCacheId in ./previewCache) so repeated loads skip re-parsing
- * while each version's cache stays isolated. The prefix is versioned: bumping it
- * invalidates older cache shapes.
+ * PDF phase A uses a pdfjs first-page fast path; DOCX uses officeparser without attachments.
+ * Phase B re-parses with officeparser + extractAttachments (v1 tradeoff).
  */
 
 import {
@@ -38,7 +28,8 @@ import {
 import type { Context } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import { formatDate } from '@curvenote/common';
-import type { OfficeParserAST, OfficeContentNode, OfficeAttachment } from 'officeparser';
+import type { OfficeAttachment } from 'officeparser';
+import pLimit from 'p-limit';
 import { isPreviewCandidate } from './previewGuards';
 import { downscaleToWebp, isRenderableFigureMime } from './imagePipeline.server';
 import {
@@ -46,26 +37,11 @@ import {
   legacyPreviewCacheIds,
   previewCacheObjectIds,
 } from './previewCache';
-
-/** A first page with this much text is enough for metadata extraction on its own. */
-const FIRST_PAGE_MIN_TEXT_LENGTH = 500;
-
-/** Page two must be this much larger than a sparse first page before we include it. */
-const SECOND_PAGE_SIGNIFICANTLY_LARGER_RATIO = 1.5;
-
-/**
- * Target amount of extractable text (chars) to collect for non-paged ASTs (e.g. DOCX),
- * where there are no page nodes to bound "the first page". Roughly one dense page of
- * front matter — enough to reach the title/author block without pulling the whole body.
- */
-const FIRST_PAGE_TARGET_TEXT_LENGTH = 4000;
-
-/**
- * Hard ceiling on the number of top-level nodes collected for non-paged ASTs. Guards
- * pathological documents made of many tiny/empty nodes from being walked unbounded when
- * the character budget is never reached.
- */
-const FIRST_PAGE_MAX_CONTENT_NODES = 40;
+import {
+  emptyPreviewAst,
+  truncateAstToFirstPage,
+  type PreviewAstData,
+} from './previewAstUtils.server';
 
 /** Longest edge (px) of a downscaled candidate figure thumbnail. */
 const PREVIEW_FIGURE_MAX_EDGE = 384;
@@ -75,6 +51,9 @@ const PREVIEW_FIGURE_WEBP_QUALITY = 70;
 
 /** Maximum number of candidate figures to extract/store per document. */
 const MAX_PREVIEW_FIGURES = 24;
+
+/** Parallel figure downscale + storage writes during phase B. */
+const FIGURE_EXTRACTION_CONCURRENCY = 4;
 
 /** Skip preview generation for source files larger than this (protects against OOM). */
 const MAX_PREVIEW_SOURCE_BYTES = 100 * 1024 * 1024;
@@ -89,83 +68,70 @@ function thumbnailKeyForFigure(sourcePath: string, md5: string, index: number): 
 
 /** A candidate thumbnail figure, referenced by storage key (never base64). */
 export interface PreviewFigure {
-  /** Storage key (path) of the downscaled webp candidate thumbnail. */
   key: string;
-  /** Original attachment name, used to resolve inline image nodes in the text preview. */
   name?: string;
   altText?: string;
-  /** Signed read URL — populated at loader time (see signPreviewFigures), never persisted. */
   signedUrl?: string;
 }
 
-/** Top-level WorkVersion.metadata key holding the durable thumbnail listing. */
 export const METADATA_THUMBNAILS_KEY = 'thumbnails';
 
-/**
- * A thumbnail generated during preview extraction and retained in storage for the work
- * version's lifetime. Persisted under metadata.thumbnails on confirm-work so the full
- * set of generated thumbnails can be discovered later (the cached preview rows that also
- * hold these keys are cleaned up on confirm; this listing is the durable record).
- */
 export interface StoredThumbnail {
-  /** Storage key (path) of the downscaled webp thumbnail. */
   key: string;
-  /** Source file path (key in metadata.files) the thumbnail was extracted from. */
   sourcePath: string;
-  /** md5 of the source file, correlating the thumbnail with its source in metadata.files. */
   md5: string;
-  /** Original attachment name, if available. */
   name?: string;
-  /** Original attachment alt text, if available. */
   altText?: string;
 }
 
-/** First-page AST (text/content only — no base64 attachments). */
-export interface PreviewAstData {
-  type: OfficeParserAST['type'];
-  metadata: OfficeParserAST['metadata'];
-  content: OfficeContentNode[];
-  wasTruncated: boolean;
-}
+export type { PreviewAstData };
 
 export interface DocumentPreviewItem {
-  /** File path (key in metadata.files) */
   path: string;
-  /** File metadata (name, size, type, path, etc.) */
   data: FileMetadataSectionItem;
-  /** First-page AST (type, metadata, content only) */
   ast: PreviewAstData;
-  /** Candidate thumbnail figures (storage keys; signedUrl added at loader time). */
   figures: PreviewFigure[];
-  /** True when preview generation was skipped (e.g. source too large). */
   previewUnavailable?: boolean;
-  /** True when figure extraction did not run (e.g. no thumbnail bucket or cache id). */
   figuresExtractionSkipped?: boolean;
+  /** True when phase-B figure extraction is still pending for this preview. */
+  figuresPending?: boolean;
 }
 
 export interface FetchPreviewsResult {
   previews: DocumentPreviewItem[];
 }
 
-/** Shape persisted in Object.data for a cached preview. */
 interface CachedPreview {
   ast: PreviewAstData;
   figures: PreviewFigure[];
   previewUnavailable?: boolean;
   figuresExtractionSkipped?: boolean;
+  figuresPending?: boolean;
+}
+
+interface PreviewWorkContext {
+  workVersionId: string;
+  rawMetadata: Record<string, unknown>;
+  previewEntries: [string, FileMetadataSectionItem & { signedUrl?: string }][];
+  backend: StorageBackend;
+  figureBucket: KnownBuckets | null;
+  prisma: Awaited<ReturnType<typeof getPrismaClient>>;
 }
 
 export function resolvePreviewImagePresence(
   previewCandidatePaths: string[],
   previews: Pick<
     DocumentPreviewItem,
-    'path' | 'figures' | 'previewUnavailable' | 'figuresExtractionSkipped'
+    'path' | 'figures' | 'previewUnavailable' | 'figuresExtractionSkipped' | 'figuresPending'
   >[],
 ): UploadFactPresence {
   if (previewCandidatePaths.length === 0) return 'unknown';
   const previewPaths = new Set(previews.map((preview) => preview.path));
   const hasMissingPreview = previewCandidatePaths.some((path) => !previewPaths.has(path));
   if (hasMissingPreview || previews.some((preview) => preview.previewUnavailable === true)) {
+    return 'unknown';
+  }
+  if (previews.some((preview) => preview.figuresPending === true)) {
     return 'unknown';
   }
   if (previews.some((preview) => preview.figures.length > 0)) {
@@ -231,185 +197,6 @@ function isCachedPreview(data: unknown): data is CachedPreview {
   );
 }
 
-/**
- * Recursively extract plain text from AST content nodes for sending to LLM.
- * Skips image/attachment content (no binary); uses placeholder for images.
- */
-function nodeToPlainText(node: OfficeContentNode): string {
-  if (node.type === 'text') {
-    return (node as { text?: string }).text ?? '';
-  }
-  if (node.type === 'image' || node.type === 'chart' || node.type === 'drawing') {
-    return '';
-  }
-  const children = (node as { children?: OfficeContentNode[] }).children;
-  if (!children?.length) {
-    const direct = (node as { text?: string }).text;
-    return direct != null ? String(direct) : '';
-  }
-  return children.map(nodeToPlainText).join('');
-}
-
-function extractableTextLength(nodes: OfficeContentNode[]): number {
-  return astContentToPlainText(nodes).length;
-}
-
-function isPageNode(node: OfficeContentNode): boolean {
-  return node.type === 'page';
-}
-
-function shouldIncludeSecondPage(
-  firstPage: OfficeContentNode,
-  secondPage?: OfficeContentNode,
-): boolean {
-  if (!secondPage) return false;
-  const firstPageLength = extractableTextLength([firstPage]);
-  if (firstPageLength >= FIRST_PAGE_MIN_TEXT_LENGTH) return false;
-  const secondPageLength = extractableTextLength([secondPage]);
-  if (secondPageLength === 0) return false;
-  return (
-    secondPageLength >=
-    Math.max(FIRST_PAGE_MIN_TEXT_LENGTH, firstPageLength * SECOND_PAGE_SIGNIFICANTLY_LARGER_RATIO)
-  );
-}
-
-/**
- * Select "first page" content for non-paged ASTs (e.g. DOCX) using a hybrid budget:
- * walk top-level nodes in order and accumulate until we have roughly a page of
- * extractable text ({@link FIRST_PAGE_TARGET_TEXT_LENGTH}). Empty nodes (blank
- * paragraphs, image-only blocks) are included for preview fidelity but contribute no
- * text, so they never consume the budget. A node ceiling
- * ({@link FIRST_PAGE_MAX_CONTENT_NODES}) bounds documents made of many tiny nodes where
- * the character budget would otherwise never be reached.
- */
-function selectFirstPageContentByBudget(fullContent: OfficeContentNode[]): OfficeContentNode[] {
-  let textLength = 0;
-  let count = 0;
-  for (; count < fullContent.length; count += 1) {
-    if (count >= FIRST_PAGE_MAX_CONTENT_NODES) break;
-    textLength += extractableTextLength([fullContent[count]]);
-    if (textLength >= FIRST_PAGE_TARGET_TEXT_LENGTH) {
-      count += 1; // include the node that crossed the budget
-      break;
-    }
-  }
-  return fullContent.slice(0, count);
-}
-
-/**
- * Truncate AST content to the first page of content — no base64 attachments.
- *
- * Two strategies, chosen by AST shape:
- * - Paged (notably PDF): officeparser emits `page` nodes, so we keep page one (and
- *   page two when page one is sparse; see {@link shouldIncludeSecondPage}).
- * - Non-paged (notably DOCX): no page nodes exist, so we use a character budget over
- *   top-level nodes (see {@link selectFirstPageContentByBudget}) to gather roughly a
- *   page of text without stopping early on empty paragraphs or image blocks.
- */
-export function truncateAstToFirstPage(ast: OfficeParserAST): PreviewAstData {
-  const fullContent = ast.content ?? [];
-  const pageNodes = fullContent.filter(isPageNode);
-  const usePages = pageNodes.length > 0;
-  const content = usePages
-    ? pageNodes.slice(0, shouldIncludeSecondPage(pageNodes[0], pageNodes[1]) ? 2 : 1)
-    : selectFirstPageContentByBudget(fullContent);
-  const wasTruncated = usePages
-    ? content.length < pageNodes.length
-    : content.length < fullContent.length;
-  return {
-    type: ast.type,
-    metadata: ast.metadata,
-    content,
-    wasTruncated,
-  };
-}
-
-/**
- * Downscale each image attachment to a compact webp and write it to storage under the
- * source file's thumbnails/ subpath. Returns the candidate figures (storage keys only).
- * Best-effort per image: a single failure is skipped rather than aborting the document.
- */
-async function extractAndStoreFigures(
-  attachments: OfficeAttachment[],
-  opts: { sourcePath: string; md5: string; backend: StorageBackend; bucket: KnownBuckets },
-): Promise<PreviewFigure[]> {
-  const images = attachments
-    .filter(
-      (att) =>
-        att.type === 'image' &&
-        typeof att.data === 'string' &&
-        att.data.length > 0 &&
-        // Skip EMF/WMF/PICT metafiles up front: sharp can't decode them, so attempting
-        // would throw and also waste a slot against MAX_PREVIEW_FIGURES.
-        isRenderableFigureMime(att.mimeType),
-    )
-    .slice(0, MAX_PREVIEW_FIGURES);
-
-  const figures: PreviewFigure[] = [];
-  let index = 0;
-  for (const att of images) {
-    try {
-      const source = Buffer.from(att.data, 'base64');
-      const webp = await downscaleToWebp(source, att.mimeType, {
-        maxEdge: PREVIEW_FIGURE_MAX_EDGE,
-        quality: PREVIEW_FIGURE_WEBP_QUALITY,
-      });
-      const key = thumbnailKeyForFigure(opts.sourcePath, opts.md5, index);
-      const file = new File(opts.backend, key, opts.bucket);
-      await file.writeArrayBuffer(
-        webp.buffer.slice(webp.byteOffset, webp.byteOffset + webp.byteLength) as ArrayBuffer,
-        'image/webp',
-      );
-      figures.push({ key, name: att.name, altText: att.altText });
-      index += 1;
-    } catch (err) {
-      // Best-effort: a single undecodable figure shouldn't abort the document. Log the
-      // message (not the full stack) plus the mime type so noisy formats are diagnosable.
-      const message = err instanceof Error ? err.message : String(err);
-      console.warn(
-        'extractAndStoreFigures: skipped figure (decode failed)',
-        opts.sourcePath,
-        att.mimeType,
-        message,
-      );
-    }
-  }
-  return figures;
-}
-
-/**
- * Convert first-page AST content to a single plain text string (no attachments).
- * Used as the document body for the Anthropic fast-find-metadata call.
- */
-export function astContentToPlainText(content: OfficeContentNode[]): string {
-  const parts = content.map((node) => {
-    const text = nodeToPlainText(node);
-    if (node.type === 'paragraph' || node.type === 'heading' || node.type === 'list') {
-      return text ? `${text}\n` : '\n';
-    }
-    if (node.type === 'table') {
-      const children = (node as { children?: OfficeContentNode[] }).children ?? [];
-      const rowTexts = children
-        .filter((c) => (c as { type?: string }).type === 'row')
-        .map((row) => {
-          const cells = (row as { children?: OfficeContentNode[] }).children ?? [];
-          return cells
-            .map((c) => nodeToPlainText(c as OfficeContentNode))
-            .filter(Boolean)
-            .join('\t');
-        });
-      return rowTexts.join('\n') + '\n';
-    }
-    return text;
-  });
-  return parts.join('').trim();
-}
-
-function emptyPreviewAst(sourcePath: string): PreviewAstData {
-  const type: OfficeParserAST['type'] = sourcePath.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx';
-  return { type, metadata: {} as OfficeParserAST['metadata'], content: [], wasTruncated: false };
-}
-
 function stripSignedUrl(file: FileMetadataSectionItem & { signedUrl?: string }) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { signedUrl: _drop, ...fileMeta } = file;
@@ -424,26 +211,138 @@ function sortPreviewsByOrder(previews: DocumentPreviewItem[]): DocumentPreviewIt
   });
 }
 
-/**
- * Fetch previews for all preview-candidate files in the work version's metadata
- * (see isPreviewCandidate). Downloads each file via signed URL, parses with
- * officeparser, downscales+stores candidate figures, and returns file metadata plus
- * truncated AST (first page of content) and figure storage keys.
- */
-export async function fetchDocumentPreviews(
+function cachedToDocumentPreviewItem(
+  path: string,
+  file: FileMetadataSectionItem & { signedUrl?: string },
+  cached: CachedPreview,
+): DocumentPreviewItem {
+  return {
+    path,
+    data: stripSignedUrl(file),
+    ast: cached.ast,
+    figures: cached.figures,
+    previewUnavailable: cached.previewUnavailable,
+    figuresExtractionSkipped: cached.figuresExtractionSkipped,
+    figuresPending: cached.figuresPending,
+  };
+}
+
+function isPdfFile(path: string, file: FileMetadataSectionItem): boolean {
+  if (path.toLowerCase().endsWith('.pdf')) return true;
+  return file.type?.toLowerCase() === 'application/pdf';
+}
+
+function isDocxFile(path: string, file: FileMetadataSectionItem): boolean {
+  const lower = path.toLowerCase();
+  if (lower.endsWith('.docx') || lower.endsWith('.docm')) return true;
+  const type = file.type?.toLowerCase() ?? '';
+  return (
+    type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    type === 'application/vnd.ms-word.document.macroenabled.12'
+  );
+}
+
+async function downloadPreviewSource(signedUrl: string): Promise<ArrayBuffer | null> {
+  const response = await fetch(signedUrl);
+  if (!response.ok) return null;
+  return response.arrayBuffer();
+}
+
+async function parseOfficeTextOnly(
+  arrayBuffer: ArrayBuffer,
+  fileType: 'pdf' | 'docx',
+): Promise<PreviewAstData> {
+  const { parseOffice } = await import('officeparser');
+  const fullAst = await parseOffice(arrayBuffer, {
+    extractAttachments: false,
+    fileType,
+    newlineDelimiter: '\n',
+  });
+  return truncateAstToFirstPage(fullAst);
+}
+
+async function generatePhaseATextAst(
+  path: string,
+  file: FileMetadataSectionItem,
+  arrayBuffer: ArrayBuffer,
+): Promise<PreviewAstData> {
+  if (isPdfFile(path, file)) {
+    const { parsePdfFirstPagePreview, isPdfFastPathTextSufficient } =
+      await import('./pdfFirstPagePreview.server');
+    const fastAst = await parsePdfFirstPagePreview(arrayBuffer);
+    if (isPdfFastPathTextSufficient(fastAst)) {
+      return fastAst;
+    }
+    return parseOfficeTextOnly(arrayBuffer, 'pdf');
+  }
+  if (isDocxFile(path, file)) {
+    return parseOfficeTextOnly(arrayBuffer, 'docx');
+  }
+  const { parseOffice } = await import('officeparser');
+  const fullAst = await parseOffice(arrayBuffer, {
+    extractAttachments: false,
+    newlineDelimiter: '\n',
+  });
+  return truncateAstToFirstPage(fullAst);
+}
+
+async function extractAndStoreFigures(
+  attachments: OfficeAttachment[],
+  opts: { sourcePath: string; md5: string; backend: StorageBackend; bucket: KnownBuckets },
+): Promise<PreviewFigure[]> {
+  const images = attachments
+    .filter(
+      (att) =>
+        att.type === 'image' &&
+        typeof att.data === 'string' &&
+        att.data.length > 0 &&
+        isRenderableFigureMime(att.mimeType),
+    )
+    .slice(0, MAX_PREVIEW_FIGURES);
+
+  const limit = pLimit(FIGURE_EXTRACTION_CONCURRENCY);
+  const results = await Promise.all(
+    images.map((att, index) =>
+      limit(async (): Promise<PreviewFigure | null> => {
+        try {
+          const source = Buffer.from(att.data, 'base64');
+          const webp = await downscaleToWebp(source, att.mimeType, {
+            maxEdge: PREVIEW_FIGURE_MAX_EDGE,
+            quality: PREVIEW_FIGURE_WEBP_QUALITY,
+          });
+          const key = thumbnailKeyForFigure(opts.sourcePath, opts.md5, index);
+          const file = new File(opts.backend, key, opts.bucket);
+          await file.writeArrayBuffer(
+            webp.buffer.slice(webp.byteOffset, webp.byteOffset + webp.byteLength) as ArrayBuffer,
+            'image/webp',
+          );
+          return { key, name: att.name, altText: att.altText };
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.warn(
+            'extractAndStoreFigures: skipped figure (decode failed)',
+            opts.sourcePath,
+            att.mimeType,
+            message,
+          );
+          return null;
+        }
+      }),
+    ),
+  );
+  return results.filter((fig): fig is PreviewFigure => fig != null);
+}
+
+async function loadPreviewWorkContext(
   workVersionId: string,
   ctx: Context,
-): Promise<FetchPreviewsResult> {
+): Promise<PreviewWorkContext | null> {
   const work = await findWorkByVersion(workVersionId);
-  if (!work?.metadata) {
-    return { previews: [] };
-  }
+  if (!work?.metadata) return null;
 
   const rawMetadata = work.metadata as Record<string, unknown>;
   const files = rawMetadata?.files as Record<string, FileMetadataSectionItem> | undefined;
-  if (!files || typeof files !== 'object') {
-    return { previews: [] };
-  }
+  if (!files || typeof files !== 'object') return null;
 
   const cdn = work.cdn ?? '';
   const signedMetadata = await signFilesInMetadata(
@@ -452,111 +351,149 @@ export async function fetchDocumentPreviews(
     ctx,
   );
   const signedFiles = signedMetadata.files ?? {};
-  const previewEntries = Object.entries(signedFiles).filter(([, file]) => isPreviewCandidate(file));
+  const previewEntries = Object.entries(signedFiles).filter(([, file]) =>
+    isPreviewCandidate(file),
+  ) as [string, FileMetadataSectionItem & { signedUrl?: string }][];
 
   const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
   const figureBucket = cdn ? resolveThumbnailBucket(ctx, backend, cdn) : null;
-
-  const previews: DocumentPreviewItem[] = [];
   const prisma = await getPrismaClient();
+
+  return {
+    workVersionId,
+    rawMetadata,
+    previewEntries,
+    backend,
+    figureBucket,
+    prisma,
+  };
+}
+
+async function readCachedPreview(
+  prisma: Awaited<ReturnType<typeof getPrismaClient>>,
+  cacheId: string | null,
+): Promise<CachedPreview | null> {
+  if (!cacheId) return null;
+  const row = await prisma.object.findUnique({
+    where: { id: cacheId },
+    select: { data: true },
+  });
+  if (row?.data != null && isCachedPreview(row.data)) {
+    return row.data;
+  }
+  return null;
+}
+
+async function writePhaseACache(
+  ctx: Context,
+  prisma: Awaited<ReturnType<typeof getPrismaClient>>,
+  cacheId: string,
+  cached: CachedPreview,
+): Promise<void> {
+  const now = formatDate();
+  try {
+    await prisma.object.createMany({
+      data: [
+        {
+          id: cacheId,
+          type: cacheId,
+          date_created: now,
+          date_modified: now,
+          data: cached as object,
+          occ: 0,
+          ...(ctx.user?.id ? { created_by_id: ctx.user.id } : {}),
+        },
+      ],
+      skipDuplicates: true,
+    });
+  } catch (createErr: unknown) {
+    console.warn('fetchDocumentPreviewText: failed to cache preview', cacheId, createErr);
+  }
+}
+
+async function updatePhaseBCache(
+  prisma: Awaited<ReturnType<typeof getPrismaClient>>,
+  cacheId: string,
+  cached: CachedPreview,
+): Promise<void> {
+  const now = formatDate();
+  try {
+    await prisma.object.update({
+      where: { id: cacheId },
+      data: {
+        date_modified: now,
+        data: cached as object,
+      },
+    });
+  } catch (updateErr: unknown) {
+    console.warn('fetchDocumentPreviewFigures: failed to update preview cache', cacheId, updateErr);
+  }
+}
+
+/**
+ * Phase A: cache first-page text AST without figure extraction.
+ */
+export async function fetchDocumentPreviewText(
+  workVersionId: string,
+  ctx: Context,
+): Promise<FetchPreviewsResult> {
+  const previewCtx = await loadPreviewWorkContext(workVersionId, ctx);
+  if (!previewCtx) return { previews: [] };
+
+  const { rawMetadata, previewEntries, figureBucket, prisma } = previewCtx;
+  const previews: DocumentPreviewItem[] = [];
 
   for (const [path, file] of previewEntries) {
     const md5 = file.md5;
     const cacheId =
       typeof md5 === 'string' && md5 ? documentPreviewCacheId(workVersionId, md5) : null;
 
-    let cached: CachedPreview | null = null;
-
-    if (cacheId) {
-      const row = await prisma.object.findUnique({
-        where: { id: cacheId },
-        select: { data: true },
-      });
-      if (row?.data != null && isCachedPreview(row.data)) {
-        cached = row.data;
-      }
-    }
+    let cached = await readCachedPreview(prisma, cacheId);
 
     if (!cached) {
-      // Guard oversized sources to avoid loading/parsing huge documents into memory.
       const size = typeof file.size === 'number' ? file.size : 0;
       if (size > MAX_PREVIEW_SOURCE_BYTES) {
-        console.warn('fetchDocumentPreviews: source too large, skipping preview', path, size);
-        cached = { ast: emptyPreviewAst(path), figures: [], previewUnavailable: true };
+        console.warn('fetchDocumentPreviewText: source too large, skipping preview', path, size);
+        cached = {
+          ast: emptyPreviewAst(path),
+          figures: [],
+          previewUnavailable: true,
+          figuresExtractionSkipped: true,
+          figuresPending: false,
+        };
       } else {
         const signedUrl = file.signedUrl;
         if (!signedUrl || typeof signedUrl !== 'string') {
-          console.warn('fetchDocumentPreviews: no signedUrl for preview candidate', path);
+          console.warn('fetchDocumentPreviewText: no signedUrl for preview candidate', path);
           continue;
         }
         try {
-          const response = await fetch(signedUrl);
-          if (!response.ok) {
-            console.warn('fetchDocumentPreviews: download failed', path, response.status);
+          const arrayBuffer = await downloadPreviewSource(signedUrl);
+          if (!arrayBuffer) {
+            console.warn('fetchDocumentPreviewText: download failed', path);
             continue;
           }
-          const arrayBuffer = await response.arrayBuffer();
-          // Defer loading officeparser (and its heavy transitive deps: tesseract.js,
-          // pdfjs-dist) until a document actually needs parsing, keeping the route's
-          // server module light on cold start.
-          const { parseOffice } = await import('officeparser');
-          const fullAst = await parseOffice(arrayBuffer, {
-            extractAttachments: true,
-            newlineDelimiter: '\n',
-          });
-          const ast = truncateAstToFirstPage(fullAst);
-          const figuresExtractionSkipped = !(figureBucket && cacheId);
-          const figures = figuresExtractionSkipped
-            ? []
-            : await extractAndStoreFigures(fullAst.attachments ?? [], {
-                sourcePath: path,
-                md5: md5 as string,
-                backend,
-                bucket: figureBucket,
-              });
-          cached = { ast, figures, previewUnavailable: false, figuresExtractionSkipped };
+          const ast = await generatePhaseATextAst(path, file, arrayBuffer);
+          const canExtractFigures = Boolean(figureBucket && cacheId);
+          cached = {
+            ast,
+            figures: [],
+            previewUnavailable: false,
+            figuresExtractionSkipped: !canExtractFigures,
+            figuresPending: canExtractFigures,
+          };
         } catch (err) {
-          console.warn('fetchDocumentPreviews: parse failed', path, err);
+          console.warn('fetchDocumentPreviewText: parse failed', path, err);
           continue;
         }
       }
 
       if (cacheId) {
-        const now = formatDate();
-        try {
-          // Concurrent fetch-previews requests can race to cache the same
-          // (workVersionId, md5) preview. createMany with skipDuplicates compiles to
-          // INSERT ... ON CONFLICT DO NOTHING, so the loser of the race silently
-          // no-ops instead of throwing a unique-constraint violation that Prisma
-          // logs as `prisma:error` even when the exception is caught.
-          await prisma.object.createMany({
-            data: [
-              {
-                id: cacheId,
-                type: cacheId,
-                date_created: now,
-                date_modified: now,
-                data: cached as object,
-                occ: 0,
-                ...(ctx.user?.id ? { created_by_id: ctx.user.id } : {}),
-              },
-            ],
-            skipDuplicates: true,
-          });
-        } catch (createErr: unknown) {
-          console.warn('fetchDocumentPreviews: failed to cache preview', path, createErr);
-        }
+        await writePhaseACache(ctx, prisma, cacheId, cached);
       }
     }
 
-    previews.push({
-      path,
-      data: stripSignedUrl(file),
-      ast: cached.ast,
-      figures: cached.figures,
-      previewUnavailable: cached.previewUnavailable,
-      figuresExtractionSkipped: cached.figuresExtractionSkipped,
-    });
+    previews.push(cachedToDocumentPreviewItem(path, file, cached));
   }
 
   const sortedPreviews = sortPreviewsByOrder(previews);
@@ -568,17 +505,125 @@ export async function fetchDocumentPreviews(
       previews: sortedPreviews,
     });
   } catch (err) {
-    console.warn('fetchDocumentPreviews: failed to persist upload analysis', workVersionId, err);
+    console.warn('fetchDocumentPreviewText: failed to persist upload analysis', workVersionId, err);
   }
 
   return { previews: sortedPreviews };
 }
 
 /**
- * Single entry point for the fetch-previews intent (action).
- * Generates previews (and writes to Object table), returns previews.
- * Throws if workVersionId is missing (caller can map to 400).
+ * Phase B: extract and store candidate figures for previews marked figuresPending.
  */
+export async function fetchDocumentPreviewFigures(
+  workVersionId: string,
+  ctx: Context,
+): Promise<FetchPreviewsResult> {
+  const previewCtx = await loadPreviewWorkContext(workVersionId, ctx);
+  if (!previewCtx) return { previews: [] };
+
+  const { rawMetadata, previewEntries, backend, figureBucket, prisma } = previewCtx;
+  const previews: DocumentPreviewItem[] = [];
+  let anyFiguresUpdated = false;
+
+  for (const [path, file] of previewEntries) {
+    const md5 = file.md5;
+    const cacheId =
+      typeof md5 === 'string' && md5 ? documentPreviewCacheId(workVersionId, md5) : null;
+
+    const cached = await readCachedPreview(prisma, cacheId);
+    if (!cached) continue;
+
+    if (cached.figuresPending !== true) {
+      previews.push(cachedToDocumentPreviewItem(path, file, cached));
+      continue;
+    }
+
+    if (!figureBucket || !cacheId) {
+      cached.figuresPending = false;
+      cached.figuresExtractionSkipped = true;
+      if (cacheId) {
+        await updatePhaseBCache(prisma, cacheId, cached);
+      }
+      previews.push(cachedToDocumentPreviewItem(path, file, cached));
+      continue;
+    }
+
+    const signedUrl = file.signedUrl;
+    if (!signedUrl || typeof signedUrl !== 'string') {
+      console.warn('fetchDocumentPreviewFigures: no signedUrl', path);
+      previews.push(cachedToDocumentPreviewItem(path, file, cached));
+      continue;
+    }
+
+    try {
+      const arrayBuffer = await downloadPreviewSource(signedUrl);
+      if (!arrayBuffer) {
+        console.warn('fetchDocumentPreviewFigures: download failed', path);
+        previews.push(cachedToDocumentPreviewItem(path, file, cached));
+        continue;
+      }
+
+      const fileType = isPdfFile(path, file) ? 'pdf' : isDocxFile(path, file) ? 'docx' : undefined;
+      const { parseOffice } = await import('officeparser');
+      const fullAst = await parseOffice(arrayBuffer, {
+        extractAttachments: true,
+        ...(fileType ? { fileType } : {}),
+        newlineDelimiter: '\n',
+      });
+      const figures = await extractAndStoreFigures(fullAst.attachments ?? [], {
+        sourcePath: path,
+        md5: md5 as string,
+        backend,
+        bucket: figureBucket,
+      });
+
+      const updated: CachedPreview = {
+        ...cached,
+        figures,
+        figuresPending: false,
+        figuresExtractionSkipped: false,
+      };
+      await updatePhaseBCache(prisma, cacheId, updated);
+      anyFiguresUpdated = true;
+      previews.push(cachedToDocumentPreviewItem(path, file, updated));
+    } catch (err) {
+      console.warn('fetchDocumentPreviewFigures: figure extraction failed', path, err);
+      previews.push(cachedToDocumentPreviewItem(path, file, cached));
+    }
+  }
+
+  if (anyFiguresUpdated) {
+    const allPreviews = await readDocumentPreviewsFromObjectTable(workVersionId, {
+      files: Object.fromEntries(previewEntries.map(([path, f]) => [path, stripSignedUrl(f)])),
+    });
+    try {
+      await persistPreviewUploadAnalysis({
+        workVersionId,
+        rawMetadata,
+        previewCandidatePaths: previewEntries.map(([path]) => path),
+        previews: allPreviews,
+      });
+    } catch (err) {
+      console.warn(
+        'fetchDocumentPreviewFigures: failed to persist upload analysis',
+        workVersionId,
+        err,
+      );
+    }
+    return { previews: allPreviews };
+  }
+
+  return { previews: sortPreviewsByOrder(previews) };
+}
+
+/** @deprecated Use fetchDocumentPreviewText. Kept for internal callers/tests. */
+export async function fetchDocumentPreviews(
+  workVersionId: string,
+  ctx: Context,
+): Promise<FetchPreviewsResult> {
+  return fetchDocumentPreviewText(workVersionId, ctx);
+}
+
 export async function handleFetchPreviewsIntent(
   workVersionId: string | undefined,
   ctx: Context,
@@ -586,18 +631,21 @@ export async function handleFetchPreviewsIntent(
   if (!workVersionId) {
     throw new Error('Work version ID is required');
   }
-  const result = await fetchDocumentPreviews(workVersionId, ctx);
+  const result = await fetchDocumentPreviewText(workVersionId, ctx);
   return { previews: result.previews };
 }
 
-/**
- * Read document previews from the Object table only (no download/parse).
- * Used by the loader to return whatever previews are already cached.
- * Caller must pass the work version id (cache rows are version-scoped) and metadata that
- * includes .files (e.g. signed metadata).
- *
- * Figures are returned without signedUrl; call signPreviewFigures to add them.
- */
+export async function handleFetchPreviewFiguresIntent(
+  workVersionId: string | undefined,
+  ctx: Context,
+): Promise<{ previews: DocumentPreviewItem[] }> {
+  if (!workVersionId) {
+    throw new Error('Work version ID is required');
+  }
+  const result = await fetchDocumentPreviewFigures(workVersionId, ctx);
+  return { previews: result.previews };
+}
+
 export async function readDocumentPreviewsFromObjectTable(
   workVersionId: string,
   metadata: {
@@ -621,23 +669,11 @@ export async function readDocumentPreviewsFromObjectTable(
       select: { data: true },
     });
     if (row?.data == null || !isCachedPreview(row.data)) continue;
-    previews.push({
-      path,
-      data: stripSignedUrl(file),
-      ast: row.data.ast,
-      figures: row.data.figures,
-      previewUnavailable: row.data.previewUnavailable,
-      figuresExtractionSkipped: row.data.figuresExtractionSkipped,
-    });
+    previews.push(cachedToDocumentPreviewItem(path, file, row.data));
   }
   return sortPreviewsByOrder(previews);
 }
 
-/**
- * Attach a signed read URL to each candidate figure so the client can render the
- * thumbnail without the bytes ever entering the loader payload. Best-effort per
- * figure: a signing failure leaves that figure without a URL.
- */
 export async function signPreviewFigures(
   previews: DocumentPreviewItem[],
   cdn: string,
@@ -665,10 +701,6 @@ export async function signPreviewFigures(
   );
 }
 
-/**
- * Read the set of valid candidate figure storage keys for a work version (from cache).
- * Used to validate a submitted thumbnail locator before persisting it.
- */
 export async function readPreviewFigureKeysForVersion(workVersionId: string): Promise<Set<string>> {
   const keys = new Set<string>();
   const work = await findWorkByVersion(workVersionId);
@@ -696,11 +728,6 @@ export async function readPreviewFigureKeysForVersion(workVersionId: string): Pr
   return keys;
 }
 
-/**
- * Collect the full set of generated thumbnails for a work version from the cached
- * preview rows, as rich {@link StoredThumbnail} entries (storage key + source
- * correlation + names). De-duplicated by storage key.
- */
 export async function collectStoredThumbnailsForVersion(
   workVersionId: string,
 ): Promise<StoredThumbnail[]> {
@@ -709,8 +736,6 @@ export async function collectStoredThumbnailsForVersion(
   const files = rawMetadata?.files as Record<string, FileMetadataSectionItem> | undefined;
   if (!files || typeof files !== 'object') return [];
 
-  // Map each candidate file's cache id back to its md5 + source path so every cached
-  // figure can record where it came from.
   const metaByCacheId = new Map<string, { md5: string; sourcePath: string }>();
   for (const [sourcePath, file] of Object.entries(files)) {
     if (!isPreviewCandidate(file)) continue;
@@ -748,14 +773,6 @@ export async function collectStoredThumbnailsForVersion(
   return thumbnails;
 }
 
-/**
- * Persist the full thumbnail listing to metadata.thumbnails (union by storage key with
- * any existing entries). Called on confirm-work so generated thumbnails remain
- * discoverable after the preview cache rows are cleaned up.
- *
- * Throws on collection or metadata-write failure so callers can preserve the preview
- * cache rows rather than deleting the only remaining thumbnail listing source.
- */
 export async function persistThumbnailListingForVersion(
   workVersionId: string,
 ): Promise<StoredThumbnail[]> {
@@ -776,19 +793,6 @@ export async function persistThumbnailListingForVersion(
   return thumbnails;
 }
 
-/**
- * Remove the cached preview rows for a work version from the Object table after a
- * successful `confirm-work`. Deletes this version's scoped rows plus any legacy md5-only
- * rows for the same files (the latter predate version scoping and may be shared across
- * works — that's the documented, accepted trade-off here; they regenerate on demand).
- *
- * The generated thumbnail webp files are intentionally retained in storage — they are
- * recorded under metadata.thumbnails (see {@link persistThumbnailListingForVersion}) so
- * they stay discoverable for the work version's lifetime. Only the regenerable parse
- * cache rows are dropped here.
- *
- * Best-effort: never throws.
- */
 export async function deletePreviewArtifactsForVersion(
   workVersionId: string,
 ): Promise<{ rows: number }> {
@@ -811,3 +815,10 @@ export async function deletePreviewArtifactsForVersion(
     return { rows: 0 };
   }
 }
+
+// Re-export AST helpers used by anthropic.server and tests.
+export {
+  astContentToPlainText,
+  truncateAstToFirstPage,
+  shouldIncludeSecondPage,
+} from './previewAstUtils.server';
