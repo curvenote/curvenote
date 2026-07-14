@@ -96,16 +96,16 @@ The following events are currently implemented and available:
 ### Check Events
 
 - **`CHECK_RUN_STARTED`**: Triggered when a check run is created and its work is enqueued (including inline pre-submit validation failures, styled as danger)
-- **`CHECK_RUN_MILESTONE`**: Triggered when a check run reaches a **terminal** outcome (report complete/failed, final provider state). HHMI checks extensions do not emit intermediate progress milestones.
+- **`CHECK_RUN_MILESTONE`**: Triggered when a check run reaches a **terminal** outcome (report complete/failed, final provider state). Check extensions such as text-integrity and proofig do not emit intermediate progress milestones.
 - **`CHECK_RUN_ERROR`**: Triggered when a check run enters an error state or a handler fails
-- **`CHECK_RUN_RETRY`**: Defined in core for extension use; HHMI checks extensions no longer emit retry or auto-retry sweep summaries (a retried run surfaces via `CHECK_RUN_STARTED` on the new attempt)
+- **`CHECK_RUN_RETRY`**: Defined in core for extension use; text-integrity and proofig no longer emit retry or auto-retry sweep summaries (a retried run surfaces via `CHECK_RUN_STARTED` on the new attempt)
 - **`CHECK_EULA_ACCEPTED`**: Triggered when a user accepts a provider EULA required by a check
 
 These are generic check lifecycle events; the specific check kinds and providers that emit them live in their own feature modules, not in core.
 
 Slack notifications enable `mrkdwn_in: ['fields']`, so any metadata field value that is a full `http://` or `https://` URL will be rendered as a clickable link by Slack.
 
-Callers are responsible for putting the actual URLs into `metadata`. Use `@curvenote/scms-core` helpers for platform-wide routes (e.g. `asSiteSubmissionUrl`, `asPlatformMessageUrl`). Check-specific deep links belong in extension packages — for HHMI checks, see `@hhmi/checks-notify` (`packages/checks-notify/src/urls.ts` in the `hhmi-checks` extension), not in core.
+Callers are responsible for putting the actual URLs into `metadata`. Use `@curvenote/scms-core` helpers for platform-wide routes (e.g. `asSiteSubmissionUrl`, `asPlatformMessageUrl`). Check-specific deep links belong in extension packages (e.g. text-integrity and proofig), not in core.
 
 ## Adding New Events
 
