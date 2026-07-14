@@ -388,10 +388,8 @@ export function ChooseThumbnailSection({
   const hasExtractedFigures = figures.length > 0;
   const hasGalleryTiles = hasPinnedThumbnail || hasExtractedFigures;
   const showStandaloneEmpty = !hasGalleryTiles;
-  const showGalleryRow = hasGalleryTiles || (hasPinnedThumbnail && isFiguresLoading);
   const showPinnedLoadingPlaceholder =
     hasPinnedThumbnail && isFiguresLoading && !hasExtractedFigures;
-  const showStandaloneFiguresBusy = isFiguresLoading && showStandaloneEmpty;
   const tileCount =
     (hasPinnedThumbnail ? 1 : 0) + figures.length + (showPinnedLoadingPlaceholder ? 1 : 0);
   const { galleryRef, overflows: rowGalleryOverflows } = useRowGalleryOverflow({
@@ -446,14 +444,14 @@ export function ChooseThumbnailSection({
             </div>
           ) : null}
           <StandaloneEmptyGallery
-            showBusy={showStandaloneFiguresBusy}
+            showBusy={isFiguresLoading}
             emptyMessage={emptyMessage}
             busyMessage={figuresBusyMessage}
             onSkipFigures={onSkipFigures}
           />
         </div>
       ) : null}
-      {showGalleryRow ? (
+      {hasGalleryTiles ? (
         <div className="relative">
           {showGalleryToolbar ? (
             <div className="absolute top-0 right-1 z-10 flex gap-2 items-center">
