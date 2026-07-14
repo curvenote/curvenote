@@ -109,6 +109,21 @@ export function isPdfFigureWithinMaterializationLimits(width: number, height: nu
   return width * height <= PDF_FIGURE_MAX_PIXELS;
 }
 
+async function waitForPdfObject<T>(
+  objs: {
+    get: (name: string, callback: (value: T) => void) => void;
+  },
+  name: string,
+): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => resolve(undefined), PDF_IMAGE_RESOLVE_TIMEOUT_MS);
+    objs.get(name, (value) => {
+      clearTimeout(timeout);
+      resolve(value);
+    });
+  });
+}
+
 async function resolvePdfImageObject(
   page: {
     objs: {
@@ -122,26 +137,16 @@ async function resolvePdfImageObject(
   },
   imgName: string,
 ): Promise<PdfImageObject | undefined> {
-  const targetObjs =
-    page.objs.has(imgName) || !page.commonObjs.has(imgName) ? page.objs : page.commonObjs;
-  return resolvePdfObject<PdfImageObject>(targetObjs, imgName);
-}
-
-async function resolvePdfObject<T>(
-  objs: {
-    has: (name: string) => boolean;
-    get: (name: string, callback: (value: T) => void) => void;
-  },
-  name: string,
-): Promise<T | undefined> {
-  if (!objs.has(name)) return undefined;
-  return new Promise((resolve) => {
-    const timeout = setTimeout(() => resolve(undefined), PDF_IMAGE_RESOLVE_TIMEOUT_MS);
-    objs.get(name, (value) => {
-      clearTimeout(timeout);
-      resolve(value);
-    });
-  });
+  if (page.objs.has(imgName)) {
+    return waitForPdfObject<PdfImageObject>(page.objs, imgName);
+  }
+  if (page.commonObjs.has(imgName)) {
+    return waitForPdfObject<PdfImageObject>(page.commonObjs, imgName);
+  }
+  // Image may still be loading; wait per-name instead of pre-resolving all OPS.dependency entries.
+  const fromObjs = await waitForPdfObject<PdfImageObject>(page.objs, imgName);
+  if (fromObjs) return fromObjs;
+  return waitForPdfObject<PdfImageObject>(page.commonObjs, imgName);
 }
 
 async function extractImagesFromPage(
