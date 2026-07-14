@@ -3,7 +3,6 @@ import { useFetcher } from 'react-router';
 import { Eye, List } from 'lucide-react';
 import { SectionWithHeading, ui } from '@curvenote/scms-core';
 import type { Route } from '../+types/route';
-import { ALL_FIGURES_TAB } from './DocumentPreviewer';
 import { DocumentPreviewCard } from './DocumentPreviewCard';
 import { MetadataFormCard } from './MetadataFormCard';
 import type { DocumentPreviewItem } from './fetchPreviews.server';
@@ -131,9 +130,11 @@ export function MetadataExtractSection({
     const nextPaths = previewList.map((preview) => preview.path);
     prevPreviewPathsRef.current = nextPaths;
 
-    if (activeTab === ALL_FIGURES_TAB) return;
     const currentIndex = Number(activeTab);
-    if (!Number.isInteger(currentIndex)) return;
+    if (!Number.isInteger(currentIndex)) {
+      if (nextPaths.length > 0) setActiveTab('0');
+      return;
+    }
 
     const activePath = prevPaths[currentIndex];
     if (activePath == null) {
@@ -243,11 +244,9 @@ export function MetadataExtractSection({
   const isClearingExtraction =
     clearMetadataFetcher.state === 'loading' || clearMetadataFetcher.state === 'submitting';
 
-  // Resolve the file backing the active tab; non-file tabs (e.g. All Figures)
-  // fall back to the first file.
+  // Resolve the file backing the active tab; invalid values fall back to the first file.
   const activeFile = (() => {
     if (!hasPreviews) return undefined;
-    if (activeTab === ALL_FIGURES_TAB) return previewList[0];
     const index = Number(activeTab);
     return Number.isInteger(index) && index >= 0 && index < previewList.length
       ? previewList[index]

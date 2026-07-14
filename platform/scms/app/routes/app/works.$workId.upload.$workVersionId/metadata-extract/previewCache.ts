@@ -7,8 +7,12 @@
 export {
   DOCUMENT_PREVIEW_CACHE_PREFIX,
   LEGACY_PREVIEW_CACHE_PREFIXES,
+  LEGACY_VERSION_SCOPED_PREVIEW_CACHE_PREFIXES,
   documentPreviewCacheId,
+  documentPreviewCacheSourceLookupIds,
   legacyPreviewCacheIds,
+  legacyVersionScopedPreviewCacheIds,
+  allPreviewCacheObjectIdsForCleanup,
   previewCacheObjectIds,
   previewCandidateMd5s,
 } from '@curvenote/scms-core';

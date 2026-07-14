@@ -7,7 +7,7 @@ import {
 } from '@curvenote/scms-server';
 import type { WorkRole, WorkVersion } from '@curvenote/scms-db';
 import type { SecureContext } from '@curvenote/scms-server';
-import { previewCacheObjectIds } from '../works.$workId.upload.$workVersionId/metadata-extract/previewCache';
+import { allPreviewCacheObjectIdsForCleanup } from '../works.$workId.upload.$workVersionId/metadata-extract/previewCache';
 import { dbGetCheckServiceRunsByWorkVersionIds } from '../works.$workId/db.server';
 import {
   getCheckRunSummaryByKind,
@@ -294,7 +294,11 @@ export async function dangerouslyDeleteDraftWork(
   // belonging to another work/version (e.g. a byte-identical file in someone else's
   // still-open upload screen).
   const previewCacheIds = Array.from(
-    new Set(workVersions.flatMap((version) => previewCacheObjectIds(version.id, version.metadata))),
+    new Set(
+      workVersions.flatMap((version) =>
+        allPreviewCacheObjectIdsForCleanup(version.id, version.metadata),
+      ),
+    ),
   );
 
   // Delete in the correct order to handle foreign key constraints

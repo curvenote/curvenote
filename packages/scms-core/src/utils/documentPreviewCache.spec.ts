@@ -2,13 +2,25 @@
 import { describe, expect, it } from 'vitest';
 import {
   documentPreviewCacheId,
+  documentPreviewCacheSourceLookupIds,
   previewCandidateMd5s,
   previewCacheObjectIds,
+  legacyVersionScopedPreviewCacheIds,
+  allPreviewCacheObjectIdsForCleanup,
 } from './documentPreviewCache.js';
 
 describe('documentPreviewCacheId', () => {
   it('scopes cache id by work version and md5', () => {
-    expect(documentPreviewCacheId('wv-1', 'abc123')).toBe('docx:preview:v3:wv-1:abc123');
+    expect(documentPreviewCacheId('wv-1', 'abc123')).toBe('upload:preview:wv-1:abc123');
+  });
+});
+
+describe('documentPreviewCacheSourceLookupIds', () => {
+  it('includes current and version-scoped legacy ids', () => {
+    expect(documentPreviewCacheSourceLookupIds('wv-1', 'abc123')).toEqual([
+      'upload:preview:wv-1:abc123',
+      'docx:preview:v3:wv-1:abc123',
+    ]);
   });
 });
 
@@ -69,6 +81,35 @@ describe('previewCacheObjectIds', () => {
           a: { path: 'a.pdf', type: 'application/pdf', md5: 'm1' },
         },
       }),
+    ).toEqual(['upload:preview:wv-2:m1']);
+  });
+});
+
+describe('legacyVersionScopedPreviewCacheIds', () => {
+  it('maps md5s to legacy version-scoped object ids', () => {
+    expect(
+      legacyVersionScopedPreviewCacheIds('wv-2', {
+        files: {
+          a: { path: 'a.pdf', type: 'application/pdf', md5: 'm1' },
+        },
+      }),
     ).toEqual(['docx:preview:v3:wv-2:m1']);
+  });
+});
+
+describe('allPreviewCacheObjectIdsForCleanup', () => {
+  it('includes current and legacy cache ids', () => {
+    expect(
+      allPreviewCacheObjectIdsForCleanup('wv-2', {
+        files: {
+          a: { path: 'a.pdf', type: 'application/pdf', md5: 'm1' },
+        },
+      }),
+    ).toEqual([
+      'upload:preview:wv-2:m1',
+      'docx:preview:v3:wv-2:m1',
+      'docx:preview:v2:m1',
+      'docx:preview:m1',
+    ]);
   });
 });

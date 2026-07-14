@@ -88,6 +88,7 @@ import {
   readDocumentPreviewsFromObjectTable,
   type DocumentPreviewItem,
 } from './metadata-extract/fetchPreviews.server';
+import { resolvePreviewImagePresence } from './metadata-extract/previewImagePresence';
 import { extractMetadataFromPreviews } from './metadata-extract/anthropic.server';
 import type { ExtractedMetadata } from './metadata-extract/anthropic.server';
 import { Upload, CheckSquare } from 'lucide-react';
@@ -901,7 +902,9 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         try {
-          const { previews } = await handleFetchPreviewFiguresIntent(workVersionId, baseCtx);
+          const { previews } = await handleFetchPreviewFiguresIntent(workVersionId, baseCtx, {
+            forceRetry: force === 'true',
+          });
           return data({ ok: true, previewFiguresGenerated: previews.length });
         } catch (err) {
           const message =
@@ -1389,7 +1392,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     if (!shouldManualRetryFigures(fetchPreviewFiguresFetcher.state)) return;
     setHasSkippedFigures(false);
     setFiguresFetchFinished(false);
-    fetchPreviewFiguresFetcher.submit({ intent: 'fetch-preview-figures' }, { method: 'POST' });
+    fetchPreviewFiguresFetcher.submit(
+      { intent: 'fetch-preview-figures', force: 'true' },
+      { method: 'POST' },
+    );
   }, [fetchPreviewFiguresFetcher]);
 
   const handleSkipFigures = useCallback(() => {
@@ -1422,6 +1428,9 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     () => resolveThumbnailSelection(thumbnailLocators, selectedThumbnail),
     [thumbnailLocators, selectedThumbnail],
   );
+  const figuresExtractionSucceededWithNoFigures =
+    previewFilePaths.length > 0 &&
+    resolvePreviewImagePresence(previewFilePaths, previewList) === 'absent';
 
   useEffect(() => {
     setAuthorMetadata(authorFieldMetadata);
@@ -1486,6 +1495,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               showFiguresRetry={shouldShowFiguresRetry({
                 figuresFetchFinished,
                 isGeneratingFigures,
+                figuresExtractionSucceededWithNoFigures,
               })}
               onRetryFigures={handleRetryFigures}
               onSkipFigures={handleSkipFigures}

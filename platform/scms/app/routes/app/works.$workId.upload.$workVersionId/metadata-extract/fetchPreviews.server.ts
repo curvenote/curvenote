@@ -6,7 +6,7 @@
  * - Phase B (fetch-preview-figures): deferred attachment extraction + thumbnail storage.
  *
  * PDF phase A uses a pdfjs first-page fast path; DOCX uses officeparser without attachments.
- * Phase B re-parses with officeparser + extractAttachments (v1 tradeoff).
+ * PDF phase B uses a capped pdfjs image scan; other formats use officeparser + extractAttachments.
  */
 
 import {
@@ -23,7 +23,6 @@ import {
   computeManuscriptSourceSignature,
   UPLOAD_ANALYSIS_METADATA_KEY,
   type FileMetadataSectionItem,
-  type UploadFactPresence,
 } from '@curvenote/scms-core';
 import type { Context } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
@@ -32,16 +31,15 @@ import type { OfficeAttachment } from 'officeparser';
 import pLimit from 'p-limit';
 import { isPreviewCandidate } from './previewGuards';
 import { downscaleToWebp, isRenderableFigureMime } from './imagePipeline.server';
-import {
-  documentPreviewCacheId,
-  legacyPreviewCacheIds,
-  previewCacheObjectIds,
-} from './previewCache';
+import { documentPreviewCacheId, allPreviewCacheObjectIdsForCleanup } from './previewCache';
 import {
   emptyPreviewAst,
   truncateAstToFirstPage,
   type PreviewAstData,
 } from './previewAstUtils.server';
+import { resolvePreviewImagePresence } from './previewImagePresence';
+
+export { resolvePreviewImagePresence } from './previewImagePresence';
 
 /** Longest edge (px) of a downscaled candidate figure thumbnail. */
 const PREVIEW_FIGURE_MAX_EDGE = 384;
@@ -116,34 +114,6 @@ interface PreviewWorkContext {
   backend: StorageBackend;
   figureBucket: KnownBuckets | null;
   prisma: Awaited<ReturnType<typeof getPrismaClient>>;
-}
-
-export function resolvePreviewImagePresence(
-  previewCandidatePaths: string[],
-  previews: Pick<
-    DocumentPreviewItem,
-    'path' | 'figures' | 'previewUnavailable' | 'figuresExtractionSkipped' | 'figuresPending'
-  >[],
-): UploadFactPresence {
-  if (previewCandidatePaths.length === 0) return 'unknown';
-  const previewPaths = new Set(previews.map((preview) => preview.path));
-  const hasMissingPreview = previewCandidatePaths.some((path) => !previewPaths.has(path));
-  if (hasMissingPreview || previews.some((preview) => preview.previewUnavailable === true)) {
-    return 'unknown';
-  }
-  if (previews.some((preview) => preview.figuresPending === true)) {
-    return 'unknown';
-  }
-  if (previews.some((preview) => preview.figures.length > 0)) {
-    return 'present';
-  }
-  if (previews.some((preview) => preview.figuresExtractionSkipped === true)) {
-    return 'unknown';
-  }
-  const allConfidentlyAbsent = previews.every(
-    (preview) => preview.figuresExtractionSkipped === false && preview.figures.length === 0,
-  );
-  return allConfidentlyAbsent && previews.length > 0 ? 'absent' : 'unknown';
 }
 
 async function persistPreviewUploadAnalysis({
@@ -332,6 +302,23 @@ async function extractAndStoreFigures(
   return results.filter((fig): fig is PreviewFigure => fig != null);
 }
 
+async function extractFigureAttachmentsFromBuffer(
+  path: string,
+  file: FileMetadataSectionItem,
+  arrayBuffer: ArrayBuffer,
+): Promise<OfficeAttachment[]> {
+  if (isPdfFile(path, file)) {
+    const { extractPdfFigureAttachments } = await import('./pdfFigureExtraction.server');
+    return extractPdfFigureAttachments(arrayBuffer, MAX_PREVIEW_FIGURES);
+  }
+  const { parseOfficeFromBuffer } = await import('./parseOfficeFromBuffer.server');
+  const fullAst = await parseOfficeFromBuffer(arrayBuffer, path, {
+    extractAttachments: true,
+    newlineDelimiter: '\n',
+  });
+  return fullAst.attachments ?? [];
+}
+
 async function loadPreviewWorkContext(
   workVersionId: string,
   ctx: Context,
@@ -510,12 +497,32 @@ export async function fetchDocumentPreviewText(
   return { previews: sortedPreviews };
 }
 
+/** Whether phase B should run figure extraction for a cached preview row. */
+export function shouldExtractPreviewFigures(
+  cached: {
+    figuresPending?: boolean;
+    figuresExtractionSkipped?: boolean;
+    previewUnavailable?: boolean;
+    figures?: readonly unknown[];
+  },
+  options: { forceRetry?: boolean } = {},
+): boolean {
+  if (cached.figuresPending === true) return true;
+  if (!options.forceRetry) return false;
+  if (cached.previewUnavailable === true || cached.figuresExtractionSkipped === true) {
+    return false;
+  }
+  return (cached.figures?.length ?? 0) === 0;
+}
+
 /**
  * Phase B: extract and store candidate figures for previews marked figuresPending.
+ * Manual retries pass forceRetry so zero-figure completions can be re-extracted.
  */
 export async function fetchDocumentPreviewFigures(
   workVersionId: string,
   ctx: Context,
+  options: { forceRetry?: boolean } = {},
 ): Promise<FetchPreviewsResult> {
   const previewCtx = await loadPreviewWorkContext(workVersionId, ctx);
   if (!previewCtx) return { previews: [] };
@@ -532,7 +539,7 @@ export async function fetchDocumentPreviewFigures(
     const cached = await readCachedPreview(prisma, cacheId);
     if (!cached) continue;
 
-    if (cached.figuresPending !== true) {
+    if (!shouldExtractPreviewFigures(cached, options)) {
       previews.push(cachedToDocumentPreviewItem(path, file, cached));
       continue;
     }
@@ -563,17 +570,32 @@ export async function fetchDocumentPreviewFigures(
         continue;
       }
 
-      const { parseOfficeFromBuffer } = await import('./parseOfficeFromBuffer.server');
-      const fullAst = await parseOfficeFromBuffer(arrayBuffer, path, {
-        extractAttachments: true,
-        newlineDelimiter: '\n',
-      });
-      const figures = await extractAndStoreFigures(fullAst.attachments ?? [], {
+      const startedAt = Date.now();
+      const usePdfFastPath = isPdfFile(path, file);
+      console.info(
+        'fetchDocumentPreviewFigures: extracting',
+        path,
+        usePdfFastPath ? 'pdf-fast-path' : 'officeparser',
+      );
+
+      const attachments = await extractFigureAttachmentsFromBuffer(path, file, arrayBuffer);
+      const figures = await extractAndStoreFigures(attachments, {
         sourcePath: path,
         md5: md5 as string,
         backend,
         bucket: figureBucket,
       });
+
+      console.info(
+        'fetchDocumentPreviewFigures: done',
+        path,
+        usePdfFastPath ? 'pdf-fast-path' : 'officeparser',
+        {
+          attachmentCount: attachments.length,
+          storedFigureCount: figures.length,
+          durationMs: Date.now() - startedAt,
+        },
+      );
 
       const updated: CachedPreview = {
         ...cached,
@@ -636,11 +658,12 @@ export async function handleFetchPreviewsIntent(
 export async function handleFetchPreviewFiguresIntent(
   workVersionId: string | undefined,
   ctx: Context,
+  options: { forceRetry?: boolean } = {},
 ): Promise<{ previews: DocumentPreviewItem[] }> {
   if (!workVersionId) {
     throw new Error('Work version ID is required');
   }
-  const result = await fetchDocumentPreviewFigures(workVersionId, ctx);
+  const result = await fetchDocumentPreviewFigures(workVersionId, ctx, options);
   return { previews: result.previews };
 }
 
@@ -797,12 +820,7 @@ export async function deletePreviewArtifactsForVersion(
   try {
     const work = await findWorkByVersion(workVersionId);
     const metadata = work?.metadata as Record<string, unknown> | undefined;
-    const cacheIds = Array.from(
-      new Set([
-        ...previewCacheObjectIds(workVersionId, metadata),
-        ...legacyPreviewCacheIds(metadata),
-      ]),
-    );
+    const cacheIds = allPreviewCacheObjectIdsForCleanup(workVersionId, metadata);
     if (cacheIds.length === 0) return { rows: 0 };
 
     const prisma = await getPrismaClient();
