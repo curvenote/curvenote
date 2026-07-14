@@ -23,7 +23,7 @@ vi.mock('../../storage/index.js', () => ({
 
 import {
   cloneDraftWorkVersionFromSource,
-  seedDraftMetadataFromSource,
+  baseSeedDraftMetadataFromSource,
   seedDocumentPreviewCacheFromSource,
 } from './cloneDraftWorkVersion.server.js';
 
@@ -121,7 +121,7 @@ describe('cloneDraftWorkVersionFromSource', () => {
                 doi: null,
                 title: 'Source title',
                 thumbnail: 'thumb-key',
-                metadata: seedDraftMetadataFromSource(sourceVersion.metadata),
+                metadata: baseSeedDraftMetadataFromSource(sourceVersion.metadata),
               }),
             ],
           },
@@ -137,6 +137,35 @@ describe('cloneDraftWorkVersionFromSource', () => {
       }),
       select: { id: true },
     });
+  });
+
+  it('uses a custom metadata seeder when provided', async () => {
+    const customSeed = vi.fn(() => ({ checks: { enabled: [] }, custom: true }));
+    const { tx, workUpdate } = createTransactionClient();
+    mockGetPrismaClient.mockResolvedValue({
+      $transaction: vi.fn(async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx)),
+    });
+
+    await cloneDraftWorkVersionFromSource(ctx, {
+      workId: 'work-1',
+      sourceWorkVersionId: 'wv-source',
+      seedMetadataFromSource: customSeed,
+    });
+
+    expect(customSeed).toHaveBeenCalledWith(sourceVersion.metadata);
+    expect(workUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          versions: {
+            create: [
+              expect.objectContaining({
+                metadata: { checks: { enabled: [] }, custom: true },
+              }),
+            ],
+          },
+        }),
+      }),
+    );
   });
 
   it('uses a custom activity type when provided', async () => {
@@ -188,14 +217,15 @@ describe('cloneDraftWorkVersionFromSource', () => {
   });
 });
 
-describe('seedDraftMetadataFromSource', () => {
+describe('baseSeedDraftMetadataFromSource', () => {
   it('shallow-copies metadata and resets checks', () => {
-    const result = seedDraftMetadataFromSource({
+    const result = baseSeedDraftMetadataFromSource({
       files: { a: { path: 'k/a.pdf' } },
       license: 'CC-BY',
       'frontmatter.myst': { title: 'T' },
       'frontmatter.myst.source': 'md5-a',
       'upload.analysis': { sourceSignature: 'md5-a' },
+      pmc: { previewed: true, confirmed: true, journalName: 'Nature Methods' },
     });
 
     expect(result.files).toEqual({ a: { path: 'k/a.pdf' } });
@@ -203,37 +233,18 @@ describe('seedDraftMetadataFromSource', () => {
     expect(result['frontmatter.myst']).toEqual({ title: 'T' });
     expect(result['frontmatter.myst.source']).toBe('md5-a');
     expect(result['upload.analysis']).toEqual({ sourceSignature: 'md5-a' });
+    expect(result.pmc).toEqual({
+      previewed: true,
+      confirmed: true,
+      journalName: 'Nature Methods',
+    });
     expect(result.checks).toEqual({ enabled: [] });
   });
 
-  it('resets pmc preview flags when pmc is present', () => {
-    const result = seedDraftMetadataFromSource({
-      pmc: {
-        previewed: true,
-        confirmed: true,
-        journalName: 'Nature Methods',
-        doiSuccess: true,
-        title: 'Example article',
-      },
-    });
-
-    expect(result.pmc).toEqual({
-      previewed: false,
-      confirmed: false,
-      journalName: 'Nature Methods',
-      doiSuccess: true,
-      title: 'Example article',
-    });
-  });
-
   it('handles absent optional keys', () => {
-    expect(seedDraftMetadataFromSource(null)).toEqual({ checks: { enabled: [] } });
-    expect(seedDraftMetadataFromSource(undefined)).toEqual({ checks: { enabled: [] } });
-    expect(seedDraftMetadataFromSource('bad')).toEqual({ checks: { enabled: [] } });
-  });
-
-  it('does not add pmc when source has no pmc object', () => {
-    expect(seedDraftMetadataFromSource({ title: 'x' })).not.toHaveProperty('pmc');
+    expect(baseSeedDraftMetadataFromSource(null)).toEqual({ checks: { enabled: [] } });
+    expect(baseSeedDraftMetadataFromSource(undefined)).toEqual({ checks: { enabled: [] } });
+    expect(baseSeedDraftMetadataFromSource('bad')).toEqual({ checks: { enabled: [] } });
   });
 });
 

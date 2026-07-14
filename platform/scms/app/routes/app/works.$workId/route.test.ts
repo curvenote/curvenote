@@ -925,11 +925,12 @@ describe('work create-new-version route', () => {
     });
     expect(cloneDraftWorkVersionFromSource).toHaveBeenCalledWith(
       expect.objectContaining({ work: expect.objectContaining({ id: 'work-1' }) }),
-      {
+      expect.objectContaining({
         workId: 'work-1',
         sourceWorkVersionId: 'wv-1',
         source: 'work-details',
-      },
+        seedMetadataFromSource: expect.any(Function),
+      }),
     );
   });
 });

@@ -20,6 +20,7 @@ import {
   SiteContextWithUser,
   sites as siteLoaders,
 } from '@curvenote/scms-server';
+import { seedArticleDraftMetadataFromSource } from './seedArticleDraftMetadata.server';
 import { Prisma } from '@curvenote/scms-db';
 import {
   MainWrapper,
@@ -212,6 +213,7 @@ export async function action(args: ActionFunctionArgs) {
           workId: ctx.work.id,
           sourceWorkVersionId: latestNonDraft.id,
           source: 'work-details',
+          seedMetadataFromSource: seedArticleDraftMetadataFromSource,
         });
         return {
           success: true,
