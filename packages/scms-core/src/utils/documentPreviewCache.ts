@@ -23,6 +23,18 @@ export function documentPreviewCacheId(workVersionId: string, md5: string): stri
   return `${DOCUMENT_PREVIEW_CACHE_PREFIX}${workVersionId}:${md5}`;
 }
 
+/** Object-table ids to try when reading a cached preview (current, then version-scoped legacy). */
+export function documentPreviewCacheSourceLookupIds(workVersionId: string, md5: string): string[] {
+  return Array.from(
+    new Set([
+      documentPreviewCacheId(workVersionId, md5),
+      ...LEGACY_VERSION_SCOPED_PREVIEW_CACHE_PREFIXES.map(
+        (prefix) => `${prefix}${workVersionId}:${md5}`,
+      ),
+    ]),
+  );
+}
+
 /** Distinct md5s of the preview-candidate files in a work version's metadata.files. */
 export function previewCandidateMd5s(metadata: unknown): string[] {
   const files = (metadata as FilesMetadata | null | undefined)?.files;

@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   documentPreviewCacheId,
+  documentPreviewCacheSourceLookupIds,
   previewCandidateMd5s,
   previewCacheObjectIds,
   legacyVersionScopedPreviewCacheIds,
@@ -11,6 +12,15 @@ import {
 describe('documentPreviewCacheId', () => {
   it('scopes cache id by work version and md5', () => {
     expect(documentPreviewCacheId('wv-1', 'abc123')).toBe('upload:preview:wv-1:abc123');
+  });
+});
+
+describe('documentPreviewCacheSourceLookupIds', () => {
+  it('includes current and version-scoped legacy ids', () => {
+    expect(documentPreviewCacheSourceLookupIds('wv-1', 'abc123')).toEqual([
+      'upload:preview:wv-1:abc123',
+      'docx:preview:v3:wv-1:abc123',
+    ]);
   });
 });
 

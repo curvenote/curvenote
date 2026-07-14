@@ -1,4 +1,9 @@
-import { error404, documentPreviewCacheId, previewCandidateMd5s } from '@curvenote/scms-core';
+import {
+  error404,
+  documentPreviewCacheId,
+  documentPreviewCacheSourceLookupIds,
+  previewCandidateMd5s,
+} from '@curvenote/scms-core';
 import type { ActivityType, Prisma } from '@curvenote/scms-db';
 import { formatDate } from '@curvenote/common';
 import { uuidv7 } from 'uuidv7';
@@ -53,21 +58,27 @@ export async function seedDocumentPreviewCacheFromSource(
   const rows: Prisma.ObjectCreateManyInput[] = [];
 
   for (const md5 of md5s) {
-    const sourceId = documentPreviewCacheId(args.sourceWorkVersionId, md5);
     const targetId = documentPreviewCacheId(args.targetWorkVersionId, md5);
 
-    const sourceRow = await tx.object.findUnique({
-      where: { id: sourceId },
-      select: { data: true },
-    });
-    if (sourceRow?.data == null) continue;
+    let sourceData: Prisma.InputJsonValue | null = null;
+    for (const sourceId of documentPreviewCacheSourceLookupIds(args.sourceWorkVersionId, md5)) {
+      const sourceRow = await tx.object.findUnique({
+        where: { id: sourceId },
+        select: { data: true },
+      });
+      if (sourceRow?.data != null) {
+        sourceData = sourceRow.data as Prisma.InputJsonValue;
+        break;
+      }
+    }
+    if (sourceData == null) continue;
 
     rows.push({
       id: targetId,
       type: targetId,
       date_created: now,
       date_modified: now,
-      data: sourceRow.data as Prisma.InputJsonValue,
+      data: sourceData,
       occ: 0,
       ...(args.createdById ? { created_by_id: args.createdById } : {}),
     });

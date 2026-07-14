@@ -303,6 +303,51 @@ describe('seedDocumentPreviewCacheFromSource', () => {
     });
   });
 
+  it('falls back to legacy version-scoped source cache rows', async () => {
+    const previewData = { ast: {}, figures: [] };
+    const tx = {
+      object: {
+        findUnique: vi.fn(async ({ where }: { where: { id: string } }) => {
+          if (where.id === 'docx:preview:v3:src:md5-a') {
+            return { data: previewData };
+          }
+          return null;
+        }),
+        createMany: vi.fn(async () => ({ count: 1 })),
+      },
+    } as any;
+
+    const count = await seedDocumentPreviewCacheFromSource(tx, {
+      sourceWorkVersionId: 'src',
+      targetWorkVersionId: 'tgt',
+      metadata: {
+        files: {
+          a: { path: 'a.pdf', type: 'application/pdf', md5: 'md5-a' },
+        },
+      },
+      createdById: 'user-1',
+    });
+
+    expect(count).toBe(1);
+    expect(tx.object.findUnique).toHaveBeenCalledWith({
+      where: { id: 'upload:preview:src:md5-a' },
+      select: { data: true },
+    });
+    expect(tx.object.findUnique).toHaveBeenCalledWith({
+      where: { id: 'docx:preview:v3:src:md5-a' },
+      select: { data: true },
+    });
+    expect(tx.object.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          id: 'upload:preview:tgt:md5-a',
+          data: previewData,
+        }),
+      ],
+      skipDuplicates: true,
+    });
+  });
+
   it('skips when source cache row is missing', async () => {
     const tx = {
       object: {
