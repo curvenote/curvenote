@@ -1192,8 +1192,11 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const fetchPreviewFiguresFetcher = useFetcher();
   const autoTitleFromFilenameFetcher = useFetcher();
   const hasTriggeredFetchPreviews = useRef(false);
-  const hasTriggeredFetchPreviewFigures = useRef(false);
+  /** Auto phase-B attempts per pending cycle; manual retry bypasses this cap. */
+  const figuresAutoAttempts = useRef(0);
   const [hasSkippedFigures, setHasSkippedFigures] = useState(false);
+  const [figuresFetchFinished, setFiguresFetchFinished] = useState(false);
+  const figuresFetchWasInFlight = useRef(false);
   // Tracks preview paths we've already observed, so a background preview that
   // resolves after its file was removed only raises its toast once.
   const seenPreviewPathsRef = useRef<Set<string> | null>(null);
@@ -1274,9 +1277,13 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     }
   }, [hasMetadataExtractScope, rawPreviews, previewFilePaths]);
 
+  const MAX_FIGURES_AUTO_ATTEMPTS = 2;
+
   useEffect(() => {
     if (shouldFetchPreviews) {
       setHasSkippedFigures(false);
+      figuresAutoAttempts.current = 0;
+      setFiguresFetchFinished(false);
     }
   }, [shouldFetchPreviews]);
 
@@ -1295,15 +1302,25 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
 
   useEffect(() => {
     if (!shouldFetchPreviewFigures) {
-      hasTriggeredFetchPreviewFigures.current = false;
+      figuresAutoAttempts.current = 0;
       return;
     }
-    if (hasTriggeredFetchPreviewFigures.current || fetchPreviewFiguresFetcher.state !== 'idle') {
-      return;
-    }
-    hasTriggeredFetchPreviewFigures.current = true;
+    if (fetchPreviewFiguresFetcher.state !== 'idle') return;
+    if (figuresAutoAttempts.current >= MAX_FIGURES_AUTO_ATTEMPTS) return;
+    figuresAutoAttempts.current += 1;
     fetchPreviewFiguresFetcher.submit({ intent: 'fetch-preview-figures' }, { method: 'POST' });
   }, [shouldFetchPreviewFigures, fetchPreviewFiguresFetcher.state, fetchPreviewFiguresFetcher]);
+
+  useEffect(() => {
+    if (fetchPreviewFiguresFetcher.state !== 'idle') {
+      figuresFetchWasInFlight.current = true;
+      return;
+    }
+    if (figuresFetchWasInFlight.current) {
+      figuresFetchWasInFlight.current = false;
+      setFiguresFetchFinished(true);
+    }
+  }, [fetchPreviewFiguresFetcher.state]);
 
   // Show toast when fetch-previews action returns an error
   useEffect(() => {
@@ -1324,13 +1341,21 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const handleRetryPreview = useCallback(() => {
     if (fetchPreviewsFetcher.state !== 'idle') return;
     hasTriggeredFetchPreviews.current = true;
-    hasTriggeredFetchPreviewFigures.current = false;
+    figuresAutoAttempts.current = 0;
+    setFiguresFetchFinished(false);
     setHasSkippedFigures(false);
     fetchPreviewsFetcher.submit(
       { intent: 'fetch-previews', uploadFlowTrigger: 'manual_preview_retry' },
       { method: 'POST' },
     );
   }, [fetchPreviewsFetcher]);
+
+  const handleRetryFigures = useCallback(() => {
+    if (fetchPreviewFiguresFetcher.state !== 'idle') return;
+    setHasSkippedFigures(false);
+    setFiguresFetchFinished(false);
+    fetchPreviewFiguresFetcher.submit({ intent: 'fetch-preview-figures' }, { method: 'POST' });
+  }, [fetchPreviewFiguresFetcher]);
 
   const handleSkipFigures = useCallback(() => {
     setHasSkippedFigures(true);
@@ -1423,6 +1448,8 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               onChange={setSelectedThumbnail}
               pinnedThumbnail={inheritedThumbnail ?? null}
               isFiguresLoading={isGeneratingFigures}
+              showFiguresRetry={figuresFetchFinished && !isGeneratingFigures}
+              onRetryFigures={handleRetryFigures}
               onSkipFigures={handleSkipFigures}
             />
           ) : null}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Columns4, Image as ImageIcon, Check, LayoutGrid } from 'lucide-react';
+import { Columns4, Image as ImageIcon, Check, LayoutGrid, RefreshCw } from 'lucide-react';
 import { LoadingSpinner, SectionWithHeading, cn, ui } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocumentPreviewer';
 import {
@@ -31,6 +31,9 @@ export interface ChooseThumbnailSectionProps {
   pinnedThumbnail?: PinnedThumbnail | null;
   /** True while phase-B figure extraction is in progress. */
   isFiguresLoading?: boolean;
+  /** Show a manual re-try control after the latest figures fetch has finished. */
+  showFiguresRetry?: boolean;
+  onRetryFigures?: () => void;
   /**
    * When provided, a long-running figures busy state (>15s) reveals an escape hatch
    * that calls this to abandon thumbnail generation and continue without candidates.
@@ -129,6 +132,23 @@ function GalleryLayoutToggle({
         <LayoutGrid className="w-5 h-5" />
       </ui.ToggleGroupItem>
     </ui.ToggleGroup>
+  );
+}
+
+function FiguresRetryButton({ onRetry, disabled }: { onRetry: () => void; disabled?: boolean }) {
+  return (
+    <ui.Button
+      type="button"
+      variant="link"
+      size="sm"
+      className="p-0 h-auto text-xs"
+      onClick={onRetry}
+      disabled={disabled}
+      title="Re-try thumbnail extraction"
+    >
+      <RefreshCw className="mr-px w-3.5 h-3.5" />
+      re-try
+    </ui.Button>
   );
 }
 
@@ -325,6 +345,8 @@ export function ChooseThumbnailSection({
   onChange,
   pinnedThumbnail = null,
   isFiguresLoading = false,
+  showFiguresRetry = false,
+  onRetryFigures,
   onSkipFigures,
 }: ChooseThumbnailSectionProps) {
   const [layout, setLayout] = useState<ThumbnailGalleryLayout>('row');
@@ -404,6 +426,9 @@ export function ChooseThumbnailSection({
     }
   }, [rowGalleryOverflows, layout]);
 
+  const showFiguresRetryControl = showFiguresRetry && onRetryFigures != null;
+  const showGalleryToolbar = showFiguresRetryControl || rowGalleryOverflows;
+
   return (
     <SectionWithHeading
       heading="Choose a Thumbnail"
@@ -414,18 +439,30 @@ export function ChooseThumbnailSection({
         Select an image from your document to use as the thumbnail.
       </p>
       {showStandaloneEmpty ? (
-        <StandaloneEmptyGallery
-          showBusy={showStandaloneFiguresBusy}
-          emptyMessage={emptyMessage}
-          busyMessage={figuresBusyMessage}
-          onSkipFigures={onSkipFigures}
-        />
+        <div className="space-y-2">
+          {showFiguresRetryControl ? (
+            <div className="flex justify-end">
+              <FiguresRetryButton onRetry={onRetryFigures} disabled={isFiguresLoading} />
+            </div>
+          ) : null}
+          <StandaloneEmptyGallery
+            showBusy={showStandaloneFiguresBusy}
+            emptyMessage={emptyMessage}
+            busyMessage={figuresBusyMessage}
+            onSkipFigures={onSkipFigures}
+          />
+        </div>
       ) : null}
       {showGalleryRow ? (
         <div className="relative">
-          {rowGalleryOverflows ? (
-            <div className="absolute top-0 right-1 z-10">
-              <GalleryLayoutToggle value={layout} onChange={setLayout} />
+          {showGalleryToolbar ? (
+            <div className="absolute top-0 right-1 z-10 flex gap-2 items-center">
+              {showFiguresRetryControl ? (
+                <FiguresRetryButton onRetry={onRetryFigures} disabled={isFiguresLoading} />
+              ) : null}
+              {rowGalleryOverflows ? (
+                <GalleryLayoutToggle value={layout} onChange={setLayout} />
+              ) : null}
             </div>
           ) : null}
           <div
@@ -435,7 +472,7 @@ export function ChooseThumbnailSection({
               layout === 'row'
                 ? cn(
                     'flex items-stretch overflow-x-auto overflow-y-hidden overscroll-x-contain gap-4 px-1 [scrollbar-gutter:stable]',
-                    rowGalleryOverflows && 'pr-14',
+                    showGalleryToolbar && 'pr-14',
                   )
                 : 'grid grid-cols-2 items-stretch gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
             )}
