@@ -107,6 +107,15 @@ import {
 import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isPreviewCandidate } from './metadata-extract/previewGuards';
 import {
+  applyFiguresFetcherStateTransition,
+  nextAutoFiguresAttempts,
+  pendingFigurePathsKey,
+  shouldAutoSubmitFiguresFetch,
+  shouldManualRetryFigures,
+  shouldResetFiguresAutoAttemptsForPendingKey,
+  shouldShowFiguresRetry,
+} from './metadata-extract/figuresAutoRetry';
+import {
   summarizePreviewCandidateFiles,
   sanitizeUploadFlowFailureReason,
   normalizeUploadFlowTrigger,
@@ -1192,8 +1201,9 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const fetchPreviewFiguresFetcher = useFetcher();
   const autoTitleFromFilenameFetcher = useFetcher();
   const hasTriggeredFetchPreviews = useRef(false);
-  /** Auto phase-B attempts per pending cycle; manual retry bypasses this cap. */
+  /** Auto phase-B attempts per pending path set; manual retry bypasses this cap. */
   const figuresAutoAttempts = useRef(0);
+  const lastPendingFigurePathsKeyRef = useRef('');
   const [hasSkippedFigures, setHasSkippedFigures] = useState(false);
   const [figuresFetchFinished, setFiguresFetchFinished] = useState(false);
   const figuresFetchWasInFlight = useRef(false);
@@ -1251,6 +1261,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     hasMetadataExtractScope &&
     previewList.some((p) => p.figuresPending === true) &&
     !hasSkippedFigures;
+  const pendingFigurePathsSignature = useMemo(
+    () => pendingFigurePathsKey(previewList),
+    [previewList],
+  );
 
   // When a background preview finishes after its file was removed from the dropzone,
   // tell the user it was cached for a future upload of the same file.
@@ -1277,15 +1291,28 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     }
   }, [hasMetadataExtractScope, rawPreviews, previewFilePaths]);
 
-  const MAX_FIGURES_AUTO_ATTEMPTS = 2;
-
   useEffect(() => {
     if (shouldFetchPreviews) {
       setHasSkippedFigures(false);
       figuresAutoAttempts.current = 0;
+      lastPendingFigurePathsKeyRef.current = pendingFigurePathsSignature;
       setFiguresFetchFinished(false);
     }
-  }, [shouldFetchPreviews]);
+  }, [shouldFetchPreviews, pendingFigurePathsSignature]);
+
+  useEffect(() => {
+    if (
+      !shouldResetFiguresAutoAttemptsForPendingKey({
+        previousKey: lastPendingFigurePathsKeyRef.current,
+        nextKey: pendingFigurePathsSignature,
+      })
+    ) {
+      return;
+    }
+    lastPendingFigurePathsKeyRef.current = pendingFigurePathsSignature;
+    figuresAutoAttempts.current = 0;
+    setFiguresFetchFinished(false);
+  }, [pendingFigurePathsSignature]);
 
   useEffect(() => {
     if (!shouldFetchPreviews) {
@@ -1305,19 +1332,26 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
       figuresAutoAttempts.current = 0;
       return;
     }
-    if (fetchPreviewFiguresFetcher.state !== 'idle') return;
-    if (figuresAutoAttempts.current >= MAX_FIGURES_AUTO_ATTEMPTS) return;
-    figuresAutoAttempts.current += 1;
+    if (
+      !shouldAutoSubmitFiguresFetch({
+        shouldFetchPreviewFigures,
+        fetcherState: fetchPreviewFiguresFetcher.state,
+        autoAttempts: figuresAutoAttempts.current,
+      })
+    ) {
+      return;
+    }
+    figuresAutoAttempts.current = nextAutoFiguresAttempts(figuresAutoAttempts.current);
     fetchPreviewFiguresFetcher.submit({ intent: 'fetch-preview-figures' }, { method: 'POST' });
   }, [shouldFetchPreviewFigures, fetchPreviewFiguresFetcher.state, fetchPreviewFiguresFetcher]);
 
   useEffect(() => {
-    if (fetchPreviewFiguresFetcher.state !== 'idle') {
-      figuresFetchWasInFlight.current = true;
-      return;
-    }
-    if (figuresFetchWasInFlight.current) {
-      figuresFetchWasInFlight.current = false;
+    const transition = applyFiguresFetcherStateTransition({
+      fetcherState: fetchPreviewFiguresFetcher.state,
+      wasInFlight: figuresFetchWasInFlight.current,
+    });
+    figuresFetchWasInFlight.current = transition.wasInFlight;
+    if (transition.fetchFinished) {
       setFiguresFetchFinished(true);
     }
   }, [fetchPreviewFiguresFetcher.state]);
@@ -1351,7 +1385,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   }, [fetchPreviewsFetcher]);
 
   const handleRetryFigures = useCallback(() => {
-    if (fetchPreviewFiguresFetcher.state !== 'idle') return;
+    if (!shouldManualRetryFigures(fetchPreviewFiguresFetcher.state)) return;
     setHasSkippedFigures(false);
     setFiguresFetchFinished(false);
     fetchPreviewFiguresFetcher.submit({ intent: 'fetch-preview-figures' }, { method: 'POST' });
@@ -1448,7 +1482,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               onChange={setSelectedThumbnail}
               pinnedThumbnail={inheritedThumbnail ?? null}
               isFiguresLoading={isGeneratingFigures}
-              showFiguresRetry={figuresFetchFinished && !isGeneratingFigures}
+              showFiguresRetry={shouldShowFiguresRetry({
+                figuresFetchFinished,
+                isGeneratingFigures,
+              })}
               onRetryFigures={handleRetryFigures}
               onSkipFigures={handleSkipFigures}
             />

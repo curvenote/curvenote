@@ -143,7 +143,7 @@ function GalleryLayoutToggle({
   );
 }
 
-function FiguresRetryButton({ onRetry, disabled }: { onRetry: () => void; disabled?: boolean }) {
+function FiguresRetryButton({ onRetry }: { onRetry: () => void }) {
   return (
     <ui.Button
       type="button"
@@ -151,7 +151,6 @@ function FiguresRetryButton({ onRetry, disabled }: { onRetry: () => void; disabl
       size="sm"
       className="p-0 h-auto text-xs"
       onClick={onRetry}
-      disabled={disabled}
       title="Re-try thumbnail extraction"
     >
       <RefreshCw className="mr-px w-3.5 h-3.5" />
@@ -443,7 +442,7 @@ export function ChooseThumbnailSection({
         <div className="space-y-2">
           {showFiguresRetryControl ? (
             <div className="flex justify-end">
-              <FiguresRetryButton onRetry={onRetryFigures} disabled={isFiguresLoading} />
+              <FiguresRetryButton onRetry={onRetryFigures} />
             </div>
           ) : null}
           <StandaloneEmptyGallery
@@ -458,9 +457,7 @@ export function ChooseThumbnailSection({
         <div className="relative">
           {showGalleryToolbar ? (
             <div className="absolute top-0 right-1 z-10 flex gap-2 items-center">
-              {showFiguresRetryControl ? (
-                <FiguresRetryButton onRetry={onRetryFigures} disabled={isFiguresLoading} />
-              ) : null}
+              {showFiguresRetryControl ? <FiguresRetryButton onRetry={onRetryFigures} /> : null}
               {rowGalleryOverflows ? (
                 <GalleryLayoutToggle value={layout} onChange={setLayout} />
               ) : null}
