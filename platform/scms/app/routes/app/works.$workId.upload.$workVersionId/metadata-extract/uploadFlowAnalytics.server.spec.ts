@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it, vi } from 'vitest';
-import { TrackEvent, type FileMetadataSectionItem } from '@curvenote/scms-core';
+import { TrackEvent, isPreviewCandidate, type FileMetadataSectionItem } from '@curvenote/scms-core';
 import {
   classifyPreviewOutcome,
   previewFailureReason,
@@ -43,6 +43,11 @@ describe('uploadFlowAnalytics', () => {
     expect(summary.previewCandidateCount).toBe(2);
     expect(summary.totalFileSizeBytes).toBe(3000);
     expect(summary.fileTypes).toHaveLength(1);
+  });
+
+  it('summarizes preview candidates with isPreviewCandidate without filter index errors', () => {
+    const summary = summarizePreviewCandidateFiles({ a: docxFile(1000) }, isPreviewCandidate);
+    expect(summary.previewCandidateCount).toBe(1);
   });
 
   it('classifies preview outcomes', () => {

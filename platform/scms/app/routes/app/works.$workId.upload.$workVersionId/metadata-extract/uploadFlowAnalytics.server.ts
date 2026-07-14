@@ -43,7 +43,7 @@ export function summarizePreviewCandidateFiles(
   if (!files || typeof files !== 'object') {
     return { previewCandidateCount: 0, fileTypes: [], totalFileSizeBytes: 0 };
   }
-  const candidates = Object.values(files).filter(isCandidate);
+  const candidates = Object.values(files).filter((file) => isCandidate(file));
   const fileTypes = [...new Set(candidates.map((file) => file.type).filter(Boolean))];
   const totalFileSizeBytes = candidates.reduce(
     (sum, file) => sum + (typeof file.size === 'number' ? file.size : 0),

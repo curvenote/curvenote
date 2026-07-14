@@ -113,7 +113,12 @@ export function isPreviewCandidate(
   const format = officeParserFormatForPath(pathOrName);
   if (!format) return false;
 
-  const allowed = new Set(allowedMimeTypes.map((mime) => mime.toLowerCase().trim()));
+  // Guard against `.filter(isPreviewCandidate)` — Array.prototype.filter passes index as
+  // the second callback argument, which would otherwise be mistaken for MIME types.
+  const mimeTypes = Array.isArray(allowedMimeTypes)
+    ? allowedMimeTypes
+    : MANUSCRIPT_UPLOAD_MIME_TYPES;
+  const allowed = new Set(mimeTypes.map((mime) => mime.toLowerCase().trim()));
   // Per-format intersection of officeparser MIME types (A) and dropzone MIME types (B).
   const allowedForFormat = format.mimeTypes.filter((mime) => allowed.has(mime));
   if (allowedForFormat.length === 0) return false;

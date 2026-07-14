@@ -31,4 +31,13 @@ describe('preview candidate guards', () => {
   ])('rejects %s', (_name, file) => {
     expect(isPreviewCandidate(file)).toBe(false);
   });
+
+  it('treats a non-array second argument as default MIME types (Array.filter index)', () => {
+    expect(
+      isPreviewCandidate(
+        { path: 'uploads/manuscript.pdf', type: 'application/pdf' },
+        0 as unknown as readonly string[],
+      ),
+    ).toBe(true);
+  });
 });
