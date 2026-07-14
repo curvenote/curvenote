@@ -56,7 +56,9 @@ describe('figuresBusyMessageForPreviews', () => {
         [{ path: 'manuscript/paper.pdf', data: { type: 'application/pdf', name: 'paper.pdf' } }],
         true,
       ),
-    ).toBe('PDF extraction is slow and may not return all figures in this preview.');
+    ).toBe(
+      'Extracting thumbnails from PDF can take longer. This is a preview and if not all images are shown this does not mean they are missing from your document.',
+    );
   });
 
   it('keeps the default message for non-PDF previews', () => {
