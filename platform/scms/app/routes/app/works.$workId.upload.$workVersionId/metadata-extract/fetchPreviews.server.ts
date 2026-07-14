@@ -497,12 +497,32 @@ export async function fetchDocumentPreviewText(
   return { previews: sortedPreviews };
 }
 
+/** Whether phase B should run figure extraction for a cached preview row. */
+export function shouldExtractPreviewFigures(
+  cached: {
+    figuresPending?: boolean;
+    figuresExtractionSkipped?: boolean;
+    previewUnavailable?: boolean;
+    figures?: readonly unknown[];
+  },
+  options: { forceRetry?: boolean } = {},
+): boolean {
+  if (cached.figuresPending === true) return true;
+  if (!options.forceRetry) return false;
+  if (cached.previewUnavailable === true || cached.figuresExtractionSkipped === true) {
+    return false;
+  }
+  return (cached.figures?.length ?? 0) === 0;
+}
+
 /**
  * Phase B: extract and store candidate figures for previews marked figuresPending.
+ * Manual retries pass forceRetry so zero-figure completions can be re-extracted.
  */
 export async function fetchDocumentPreviewFigures(
   workVersionId: string,
   ctx: Context,
+  options: { forceRetry?: boolean } = {},
 ): Promise<FetchPreviewsResult> {
   const previewCtx = await loadPreviewWorkContext(workVersionId, ctx);
   if (!previewCtx) return { previews: [] };
@@ -519,7 +539,7 @@ export async function fetchDocumentPreviewFigures(
     const cached = await readCachedPreview(prisma, cacheId);
     if (!cached) continue;
 
-    if (cached.figuresPending !== true) {
+    if (!shouldExtractPreviewFigures(cached, options)) {
       previews.push(cachedToDocumentPreviewItem(path, file, cached));
       continue;
     }
@@ -638,11 +658,12 @@ export async function handleFetchPreviewsIntent(
 export async function handleFetchPreviewFiguresIntent(
   workVersionId: string | undefined,
   ctx: Context,
+  options: { forceRetry?: boolean } = {},
 ): Promise<{ previews: DocumentPreviewItem[] }> {
   if (!workVersionId) {
     throw new Error('Work version ID is required');
   }
-  const result = await fetchDocumentPreviewFigures(workVersionId, ctx);
+  const result = await fetchDocumentPreviewFigures(workVersionId, ctx, options);
   return { previews: result.previews };
 }
 

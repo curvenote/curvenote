@@ -902,7 +902,9 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         try {
-          const { previews } = await handleFetchPreviewFiguresIntent(workVersionId, baseCtx);
+          const { previews } = await handleFetchPreviewFiguresIntent(workVersionId, baseCtx, {
+            forceRetry: force === 'true',
+          });
           return data({ ok: true, previewFiguresGenerated: previews.length });
         } catch (err) {
           const message =
@@ -1390,7 +1392,10 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     if (!shouldManualRetryFigures(fetchPreviewFiguresFetcher.state)) return;
     setHasSkippedFigures(false);
     setFiguresFetchFinished(false);
-    fetchPreviewFiguresFetcher.submit({ intent: 'fetch-preview-figures' }, { method: 'POST' });
+    fetchPreviewFiguresFetcher.submit(
+      { intent: 'fetch-preview-figures', force: 'true' },
+      { method: 'POST' },
+    );
   }, [fetchPreviewFiguresFetcher]);
 
   const handleSkipFigures = useCallback(() => {

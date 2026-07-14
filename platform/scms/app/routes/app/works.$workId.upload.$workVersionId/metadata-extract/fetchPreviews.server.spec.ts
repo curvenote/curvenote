@@ -1,7 +1,11 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import type { OfficeContentNode, OfficeParserAST } from 'officeparser';
-import { astContentToPlainText, truncateAstToFirstPage } from './fetchPreviews.server';
+import {
+  astContentToPlainText,
+  shouldExtractPreviewFigures,
+  truncateAstToFirstPage,
+} from './fetchPreviews.server';
 import { resolvePreviewImagePresence } from './previewImagePresence';
 
 function textNode(text: string): OfficeContentNode {
@@ -96,6 +100,63 @@ describe('fetch preview truncation', () => {
 
     expect(result.content).toHaveLength(40);
     expect(result.wasTruncated).toBe(true);
+  });
+});
+
+describe('shouldExtractPreviewFigures', () => {
+  it('extracts when figures are still pending', () => {
+    expect(shouldExtractPreviewFigures({ figuresPending: true, figures: [] })).toBe(true);
+  });
+
+  it('skips completed previews unless force retry is requested', () => {
+    expect(
+      shouldExtractPreviewFigures({
+        figuresPending: false,
+        figuresExtractionSkipped: false,
+        figures: [],
+      }),
+    ).toBe(false);
+  });
+
+  it('force retry re-runs confident zero-figure completions', () => {
+    expect(
+      shouldExtractPreviewFigures(
+        {
+          figuresPending: false,
+          figuresExtractionSkipped: false,
+          figures: [],
+        },
+        { forceRetry: true },
+      ),
+    ).toBe(true);
+  });
+
+  it('force retry does not re-run skipped or unavailable previews', () => {
+    expect(
+      shouldExtractPreviewFigures(
+        { figuresPending: false, figuresExtractionSkipped: true, figures: [] },
+        { forceRetry: true },
+      ),
+    ).toBe(false);
+    expect(
+      shouldExtractPreviewFigures(
+        { figuresPending: false, previewUnavailable: true, figures: [] },
+        { forceRetry: true },
+      ),
+    ).toBe(false);
+  });
+
+  it('force retry does not re-run previews that already have figures', () => {
+    expect(
+      shouldExtractPreviewFigures(
+        {
+          figuresPending: false,
+          figuresExtractionSkipped: false,
+          figures: [{ key: 'figure.webp' }],
+        },
+        { forceRetry: true },
+      ),
+    ).toBe(false);
   });
 });
 
