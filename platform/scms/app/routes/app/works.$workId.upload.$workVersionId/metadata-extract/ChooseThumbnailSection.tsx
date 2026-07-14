@@ -141,20 +141,23 @@ function figureLabelFromKey(key: string): string {
 function FiguresBusyOverlay({
   message,
   onSkipFigures,
+  compact = false,
 }: {
   message: string;
   onSkipFigures?: () => void;
+  /** Smaller spinner when the overlay sits inside a gallery tile slot. */
+  compact?: boolean;
 }) {
   const showSkipHatch = useDelayedFlag(true, FIGURES_SKIP_HATCH_DELAY_MS);
 
   return (
     <div
-      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-md bg-background/80 px-6 text-center backdrop-blur-[1px]"
+      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-md bg-background/80 px-4 text-center backdrop-blur-[1px]"
       aria-busy="true"
       aria-live="polite"
     >
-      <LoadingSpinner size={32} />
-      <p className="text-sm text-stone-500">{message}</p>
+      <LoadingSpinner size={compact ? 24 : 32} />
+      <p className={cn('text-stone-500', compact ? 'text-xs' : 'text-sm')}>{message}</p>
       {showSkipHatch && onSkipFigures ? (
         <p className="max-w-sm text-xs text-stone-500">
           This is taking longer than usual. You can{' '}
@@ -168,6 +171,65 @@ function FiguresBusyOverlay({
           and continue without a document image.
         </p>
       ) : null}
+    </div>
+  );
+}
+
+function StandaloneEmptyGallery({
+  showBusy,
+  emptyMessage,
+  busyMessage,
+  onSkipFigures,
+}: {
+  showBusy: boolean;
+  emptyMessage: string;
+  busyMessage: string;
+  onSkipFigures?: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        'relative rounded-md border border-dashed border-stone-300 bg-white dark:border-stone-600 dark:bg-stone-900',
+        EMPTY_GALLERY_HEIGHT_CLASS,
+      )}
+    >
+      {showBusy ? (
+        <FiguresBusyOverlay message={busyMessage} onSkipFigures={onSkipFigures} />
+      ) : (
+        <div className="flex h-full items-center justify-center px-6 text-center">
+          <p className="max-w-sm text-sm text-muted-foreground">{emptyMessage}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Occupies remaining gallery width beside a pinned tile while figure extraction runs. */
+function FiguresLoadingPlaceholder({
+  layout,
+  message,
+  onSkipFigures,
+}: {
+  layout: ThumbnailGalleryLayout;
+  message: string;
+  onSkipFigures?: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-[1px] justify-center items-stretch h-full min-w-0',
+        layout === 'row' ? 'flex-1 shrink' : 'w-full',
+      )}
+    >
+      <CurrentLabel visible={false} />
+      <div className="relative flex flex-col flex-1 gap-1 min-h-0 rounded-md border border-dashed border-stone-300 bg-white px-2 py-1 dark:border-stone-600 dark:bg-stone-900">
+        <p className="pr-6 text-xs invisible truncate min-h-[1rem]" aria-hidden>
+          &nbsp;
+        </p>
+        <div className="relative flex-1 min-h-0 rounded aspect-square bg-stone-50 dark:bg-stone-800/50">
+          <FiguresBusyOverlay message={message} onSkipFigures={onSkipFigures} compact />
+        </div>
+      </div>
     </div>
   );
 }
@@ -293,9 +355,16 @@ export function ChooseThumbnailSection({
       : 'No figures were found in the current document previews.';
 
   const figuresBusyMessage = 'Generating thumbnail options…';
-  const hasTiles = Boolean(pinnedThumbnail) || figures.length > 0;
-  const showFiguresBusy = isFiguresLoading && !hasTiles;
-  const tileCount = (pinnedThumbnail ? 1 : 0) + figures.length;
+  const hasPinnedThumbnail = Boolean(pinnedThumbnail);
+  const hasExtractedFigures = figures.length > 0;
+  const hasGalleryTiles = hasPinnedThumbnail || hasExtractedFigures;
+  const showStandaloneEmpty = !hasGalleryTiles;
+  const showGalleryRow = hasGalleryTiles || (hasPinnedThumbnail && isFiguresLoading);
+  const showPinnedLoadingPlaceholder =
+    hasPinnedThumbnail && isFiguresLoading && !hasExtractedFigures;
+  const showStandaloneFiguresBusy = isFiguresLoading && showStandaloneEmpty;
+  const tileCount =
+    (hasPinnedThumbnail ? 1 : 0) + figures.length + (showPinnedLoadingPlaceholder ? 1 : 0);
   const { galleryRef, overflows: rowGalleryOverflows } = useRowGalleryOverflow({
     tileCount,
     layout,
@@ -311,28 +380,20 @@ export function ChooseThumbnailSection({
     <SectionWithHeading
       heading="Choose a Thumbnail"
       icon={<ImageIcon className="w-5 h-5" />}
-      className={cn('space-y-4', !hasTiles ? 'max-w-3xl' : 'max-w-none')}
+      className={cn('space-y-4', showStandaloneEmpty ? 'max-w-3xl' : 'max-w-none')}
     >
       <p className="text-muted-foreground">
         Select an image from your document to use as the thumbnail.
       </p>
-      {!hasTiles ? (
-        <div
-          className={cn(
-            'relative rounded-md border border-dashed border-stone-300 bg-white dark:border-stone-600 dark:bg-stone-900',
-            EMPTY_GALLERY_HEIGHT_CLASS,
-          )}
-        >
-          {showFiguresBusy ? (
-            <FiguresBusyOverlay message={figuresBusyMessage} onSkipFigures={onSkipFigures} />
-          ) : (
-            <div className="flex h-full items-center justify-center px-6 text-center">
-              <p className="max-w-sm text-sm text-muted-foreground">{emptyMessage}</p>
-            </div>
-          )}
-        </div>
+      {showStandaloneEmpty ? (
+        <StandaloneEmptyGallery
+          showBusy={showStandaloneFiguresBusy}
+          emptyMessage={emptyMessage}
+          busyMessage={figuresBusyMessage}
+          onSkipFigures={onSkipFigures}
+        />
       ) : null}
-      {hasTiles ? (
+      {showGalleryRow ? (
         <div className="relative">
           {rowGalleryOverflows ? (
             <div className="absolute top-0 right-1 z-10">
@@ -378,6 +439,13 @@ export function ChooseThumbnailSection({
                 />
               );
             })}
+            {showPinnedLoadingPlaceholder ? (
+              <FiguresLoadingPlaceholder
+                layout={layout}
+                message={figuresBusyMessage}
+                onSkipFigures={onSkipFigures}
+              />
+            ) : null}
           </div>
         </div>
       ) : null}
