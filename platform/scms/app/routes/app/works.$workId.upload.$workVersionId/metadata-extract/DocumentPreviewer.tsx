@@ -56,7 +56,7 @@ function resolveFormatting(
 
 interface DocumentPreviewerProps {
   previews: DocumentPreviewItem[];
-  /** Controlled active tab value (file index as string, or ALL_FIGURES_TAB). */
+  /** Controlled active tab value (file index as string). */
   activeTab?: string;
   onActiveTabChange?: (tab: string) => void;
 }
@@ -304,8 +304,6 @@ function SingleFileView({
   );
 }
 
-export const ALL_FIGURES_TAB = 'all-figures';
-
 const PREVIEW_TAB_TITLE_MAX = 20;
 
 function shortenPreviewTabTitle(name: string, max = PREVIEW_TAB_TITLE_MAX): string {
@@ -346,49 +344,6 @@ export function collectAllFigures(previews: DocumentPreviewItem[]): DocumentFigu
   return out;
 }
 
-function AllFiguresView({ figures }: { figures: DocumentFigure[] }) {
-  if (figures.length === 0) {
-    return (
-      <div className={PREVIEW_CONTENT_CLASS}>
-        <p className="text-sm text-muted-foreground">no figures found</p>
-      </div>
-    );
-  }
-  return (
-    <div className={PREVIEW_CONTENT_CLASS}>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-        {figures.map(({ figure, sourceName }) => {
-          const label = figure.altText ?? figure.name ?? 'Figure';
-          return (
-            <figure key={figure.key} className="flex flex-col gap-1">
-              <div className="flex overflow-hidden justify-center items-center min-h-0 rounded aspect-square bg-stone-100 dark:bg-stone-800">
-                {figure.signedUrl ? (
-                  <img
-                    src={figure.signedUrl}
-                    alt={label}
-                    className="object-contain w-full h-full"
-                  />
-                ) : (
-                  <span className="text-xs text-muted-foreground">[No data]</span>
-                )}
-              </div>
-              <figcaption
-                className="text-xs truncate text-muted-foreground"
-                title={figure.altText ?? figure.name}
-              >
-                {label}
-              </figcaption>
-              <p className="text-xs truncate text-muted-foreground/80" title={sourceName}>
-                {sourceName}
-              </p>
-            </figure>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 export const DocumentPreviewer = ({
   previews,
   activeTab,
@@ -398,8 +353,6 @@ export const DocumentPreviewer = ({
   const [internalTab, setInternalTab] = useState('0');
   const fileTab = activeTab ?? internalTab;
   const setFileTab = onActiveTabChange ?? setInternalTab;
-
-  const allFigures = collectAllFigures(previews);
 
   return (
     <ui.Tabs value={fileTab} onValueChange={setFileTab} className="w-full">
@@ -418,12 +371,6 @@ export const DocumentPreviewer = ({
             </ui.TabsTrigger>
           );
         })}
-        <ui.TabsTrigger
-          value={ALL_FIGURES_TAB}
-          className="rounded-none border-b-2 border-stone-300 dark:border-stone-600 text-stone-500 dark:text-stone-400 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent shadow-none"
-        >
-          All Figures
-        </ui.TabsTrigger>
       </ui.TabsList>
       {previews.map((item, index) => (
         <ui.TabsContent
@@ -440,14 +387,6 @@ export const DocumentPreviewer = ({
           </div>
         </ui.TabsContent>
       ))}
-      <ui.TabsContent
-        value={ALL_FIGURES_TAB}
-        className="mt-4 rounded-none border-0 bg-transparent p-0"
-      >
-        <div className={PREVIEW_CONTENT_SURFACE_CLASS}>
-          <AllFiguresView figures={allFigures} />
-        </div>
-      </ui.TabsContent>
     </ui.Tabs>
   );
 };
