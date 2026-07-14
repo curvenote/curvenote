@@ -57,7 +57,7 @@ describe('figuresBusyMessageForPreviews', () => {
         true,
       ),
     ).toBe(
-      'Extracting thumbnails from PDF can take longer. This is a preview and if not all images are shown this does not mean they are missing from your document.',
+      "PDF thumbnails can take longer. Missing images in this preview doesn't mean they're missing from your document.",
     );
   });
 

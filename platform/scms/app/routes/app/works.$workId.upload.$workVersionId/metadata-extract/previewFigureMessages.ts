@@ -18,7 +18,7 @@ export function figuresBusyMessageForPreviews(
     isFiguresLoading &&
     previews.some((preview) => isPdfManuscriptPreview({ ...preview.data, path: preview.path }))
   ) {
-    return 'Extracting thumbnails from PDF can take longer. This is a preview and if not all images are shown this does not mean they are missing from your document.';
+    return "PDF thumbnails can take longer. Missing images in this preview doesn't mean they're missing from your document.";
   }
   return 'Generating thumbnail options…';
 }
