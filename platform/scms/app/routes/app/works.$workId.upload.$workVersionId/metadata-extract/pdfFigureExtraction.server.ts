@@ -14,6 +14,11 @@ export const PDF_FIGURE_MAX_PAGES = 32;
 /** Skip tiny raster objects (icons, bullets, decoration). */
 export const PDF_FIGURE_MIN_EDGE_PX = 32;
 
+/** Skip oversized rasters before RGBA/BMP materialization (downscale happens later). */
+export const PDF_FIGURE_MAX_EDGE_PX = 2048;
+
+export const PDF_FIGURE_MAX_PIXELS = PDF_FIGURE_MAX_EDGE_PX * PDF_FIGURE_MAX_EDGE_PX;
+
 const PDF_IMAGE_RESOLVE_TIMEOUT_MS = 500;
 
 interface PdfImageObject {
@@ -97,6 +102,31 @@ export function isPdfFigureLargeEnough(width: number, height: number): boolean {
   return width >= PDF_FIGURE_MIN_EDGE_PX && height >= PDF_FIGURE_MIN_EDGE_PX;
 }
 
+/** Guard against materializing huge page scans into RGBA/BMP before downscale. */
+export function isPdfFigureWithinMaterializationLimits(width: number, height: number): boolean {
+  if (!isPdfFigureLargeEnough(width, height)) return false;
+  if (width > PDF_FIGURE_MAX_EDGE_PX || height > PDF_FIGURE_MAX_EDGE_PX) return false;
+  return width * height <= PDF_FIGURE_MAX_PIXELS;
+}
+
+async function resolvePdfImageObject(
+  page: {
+    objs: {
+      has: (name: string) => boolean;
+      get: (name: string, callback: (value: PdfImageObject) => void) => void;
+    };
+    commonObjs: {
+      has: (name: string) => boolean;
+      get: (name: string, callback: (value: PdfImageObject) => void) => void;
+    };
+  },
+  imgName: string,
+): Promise<PdfImageObject | undefined> {
+  const targetObjs =
+    page.objs.has(imgName) || !page.commonObjs.has(imgName) ? page.objs : page.commonObjs;
+  return resolvePdfObject<PdfImageObject>(targetObjs, imgName);
+}
+
 async function resolvePdfObject<T>(
   objs: {
     has: (name: string) => boolean;
@@ -129,6 +159,7 @@ async function extractImagesFromPage(
   },
   pageNumber: number,
   imageCounterStart: number,
+  seenImageNames: Set<string>,
 ): Promise<{ attachments: OfficeAttachment[]; nextCounter: number }> {
   const attachments: OfficeAttachment[] = [];
   let imageCounter = imageCounterStart;
@@ -138,36 +169,17 @@ async function extractImagesFromPage(
 
   for (let j = 0; j < fnArray.length; j += 1) {
     const fn = fnArray[j];
-    if (fn === pdfjs.OPS.dependency) {
-      const deps = argsArray[j] as string[];
-      for (const dep of deps) {
-        try {
-          if (page.objs.has(dep)) continue;
-          await new Promise<void>((resolve) => {
-            const timeout = setTimeout(() => resolve(), PDF_IMAGE_RESOLVE_TIMEOUT_MS);
-            page.objs.get(dep, () => {
-              clearTimeout(timeout);
-              resolve();
-            });
-          });
-        } catch {
-          // Best-effort dependency resolution.
-        }
-      }
-    }
-
     if (fn !== pdfjs.OPS.paintImageXObject && fn !== pdfjs.OPS.paintXObject) continue;
 
     const imgName = (argsArray[j] as [string])[0];
-    try {
-      let targetObjs = page.objs;
-      if (!page.objs.has(imgName) && page.commonObjs.has(imgName)) {
-        targetObjs = page.commonObjs;
-      }
-      const imgObj = await resolvePdfObject<PdfImageObject>(targetObjs, imgName);
-      if (!imgObj?.data || imgObj.width <= 0 || imgObj.height <= 0) continue;
-      if (!isPdfFigureLargeEnough(imgObj.width, imgObj.height)) continue;
+    if (seenImageNames.has(imgName)) continue;
 
+    try {
+      const imgObj = await resolvePdfImageObject(page, imgName);
+      if (!imgObj?.data || imgObj.width <= 0 || imgObj.height <= 0) continue;
+      if (!isPdfFigureWithinMaterializationLimits(imgObj.width, imgObj.height)) continue;
+
+      seenImageNames.add(imgName);
       imageCounter += 1;
       const rgba = convertToRgbaBuffer(imgObj.data, imgObj.width, imgObj.height, imgObj.kind);
       const bmpBuffer = encodeRgbaAsBmp(imgObj.width, imgObj.height, rgba);
@@ -201,6 +213,7 @@ export async function extractPdfFigureAttachments(
   });
   const pdfDocument = await loadingTask.promise;
   const attachments: OfficeAttachment[] = [];
+  const seenImageNames = new Set<string>();
   let imageCounter = 0;
 
   try {
@@ -208,7 +221,13 @@ export async function extractPdfFigureAttachments(
     for (let pageNumber = 1; pageNumber <= pagesToScan; pageNumber += 1) {
       if (attachments.length >= maxFigures) break;
       const page = await pdfDocument.getPage(pageNumber);
-      const result = await extractImagesFromPage(pdfjs, page, pageNumber, imageCounter);
+      const result = await extractImagesFromPage(
+        pdfjs,
+        page,
+        pageNumber,
+        imageCounter,
+        seenImageNames,
+      );
       imageCounter = result.nextCounter;
       for (const attachment of result.attachments) {
         attachments.push(attachment);

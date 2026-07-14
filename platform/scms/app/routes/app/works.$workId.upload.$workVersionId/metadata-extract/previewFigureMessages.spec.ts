@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   encodeRgbaAsBmp,
   isPdfFigureLargeEnough,
+  isPdfFigureWithinMaterializationLimits,
+  PDF_FIGURE_MAX_EDGE_PX,
   PDF_FIGURE_MIN_EDGE_PX,
 } from './pdfFigureExtraction.server';
 import { figuresBusyMessageForPreviews, isPdfManuscriptPreview } from './previewFigureMessages';
@@ -16,6 +18,21 @@ describe('isPdfFigureLargeEnough', () => {
   it('rejects tiny decorative images', () => {
     expect(isPdfFigureLargeEnough(PDF_FIGURE_MIN_EDGE_PX - 1, 64)).toBe(false);
     expect(isPdfFigureLargeEnough(64, PDF_FIGURE_MIN_EDGE_PX - 1)).toBe(false);
+  });
+});
+
+describe('isPdfFigureWithinMaterializationLimits', () => {
+  it('accepts typical figure dimensions', () => {
+    expect(isPdfFigureWithinMaterializationLimits(400, 300)).toBe(true);
+    expect(isPdfFigureWithinMaterializationLimits(PDF_FIGURE_MAX_EDGE_PX, 100)).toBe(true);
+  });
+
+  it('rejects oversized rasters before materialization', () => {
+    expect(isPdfFigureWithinMaterializationLimits(PDF_FIGURE_MAX_EDGE_PX + 1, 100)).toBe(false);
+    expect(isPdfFigureWithinMaterializationLimits(100, PDF_FIGURE_MAX_EDGE_PX + 1)).toBe(false);
+    expect(
+      isPdfFigureWithinMaterializationLimits(PDF_FIGURE_MAX_EDGE_PX, PDF_FIGURE_MAX_EDGE_PX + 1),
+    ).toBe(false);
   });
 });
 
