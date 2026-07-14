@@ -24,6 +24,8 @@ const FIGURES_SKIP_HATCH_DELAY_MS = 15000;
 /** Fixed height for the empty gallery placeholder — busy overlay must not expand it. */
 const EMPTY_GALLERY_HEIGHT_CLASS = 'h-36';
 
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
 export type PinnedThumbnail = {
   key: string;
   signedUrl: string;
@@ -401,7 +403,7 @@ export function ChooseThumbnailSection({
   const pinnedTileRef = useRef<HTMLDivElement>(null);
   const [pinnedTileHeight, setPinnedTileHeight] = useState<number | undefined>(undefined);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!showPinnedLoadingPlaceholder) {
       setPinnedTileHeight(undefined);
       return;
