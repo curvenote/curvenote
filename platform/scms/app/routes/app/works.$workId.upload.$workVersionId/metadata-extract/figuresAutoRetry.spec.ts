@@ -152,9 +152,29 @@ describe('shouldShowFiguresRetry', () => {
     );
   });
 
+  it('shows retry when extraction succeeded with no figures even before a client fetch finished', () => {
+    expect(
+      shouldShowFiguresRetry({
+        figuresFetchFinished: false,
+        isGeneratingFigures: false,
+        figuresExtractionSucceededWithNoFigures: true,
+      }),
+    ).toBe(true);
+  });
+
   it('hides retry while generation is in progress', () => {
     expect(shouldShowFiguresRetry({ figuresFetchFinished: true, isGeneratingFigures: true })).toBe(
       false,
     );
+  });
+
+  it('hides retry while generation is in progress even when extraction reported no figures', () => {
+    expect(
+      shouldShowFiguresRetry({
+        figuresFetchFinished: false,
+        isGeneratingFigures: true,
+        figuresExtractionSucceededWithNoFigures: true,
+      }),
+    ).toBe(false);
   });
 });

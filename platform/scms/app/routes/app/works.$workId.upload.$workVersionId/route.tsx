@@ -83,6 +83,7 @@ import {
   deletePreviewArtifactsForVersion,
   persistThumbnailListingForVersion,
   signPreviewFigures,
+  resolvePreviewImagePresence,
 } from './metadata-extract/fetchPreviews.server';
 import {
   readDocumentPreviewsFromObjectTable,
@@ -1422,6 +1423,9 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     () => resolveThumbnailSelection(thumbnailLocators, selectedThumbnail),
     [thumbnailLocators, selectedThumbnail],
   );
+  const figuresExtractionSucceededWithNoFigures =
+    previewFilePaths.length > 0 &&
+    resolvePreviewImagePresence(previewFilePaths, previewList) === 'absent';
 
   useEffect(() => {
     setAuthorMetadata(authorFieldMetadata);
@@ -1486,6 +1490,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               showFiguresRetry={shouldShowFiguresRetry({
                 figuresFetchFinished,
                 isGeneratingFigures,
+                figuresExtractionSucceededWithNoFigures,
               })}
               onRetryFigures={handleRetryFigures}
               onSkipFigures={handleSkipFigures}

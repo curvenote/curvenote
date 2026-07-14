@@ -63,6 +63,9 @@ export function shouldManualRetryFigures(fetcherState: FiguresFetcherState): boo
 export function shouldShowFiguresRetry(args: {
   figuresFetchFinished: boolean;
   isGeneratingFigures: boolean;
+  /** True when figure extraction finished confidently with zero figures (see resolvePreviewImagePresence). */
+  figuresExtractionSucceededWithNoFigures?: boolean;
 }): boolean {
-  return args.figuresFetchFinished && !args.isGeneratingFigures;
+  if (args.isGeneratingFigures) return false;
+  return args.figuresFetchFinished || args.figuresExtractionSucceededWithNoFigures === true;
 }
