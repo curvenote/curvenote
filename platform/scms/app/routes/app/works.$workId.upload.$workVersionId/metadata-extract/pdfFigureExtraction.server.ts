@@ -1,15 +1,15 @@
 /**
  * Fast PDF figure extraction for phase-B thumbnail candidates.
  *
- * Scans a capped page range with pdfjs directly (no full officeparser pass).
- * Intended as a first pass — may miss figures on later pages or exotic encodings.
+ * Scans up to {@link PDF_FIGURE_MAX_PAGES} pages with pdfjs (no full officeparser pass).
+ * Extraction stops at `maxFigures`; may miss exotic encodings (Form XObjects, etc.).
  */
 
 import type { OfficeAttachment } from 'officeparser';
 import { loadPdfJs } from './pdfJsUtils.server';
 
-/** First-pass page scan limit for PDF figure extraction. */
-export const PDF_FIGURE_MAX_PAGES = 32;
+/** Page scan limit for PDF figure extraction (pdfjs fast path). */
+export const PDF_FIGURE_MAX_PAGES = 99;
 
 /** Skip tiny raster objects (icons, bullets, decoration). */
 export const PDF_FIGURE_MIN_EDGE_PX = 32;
