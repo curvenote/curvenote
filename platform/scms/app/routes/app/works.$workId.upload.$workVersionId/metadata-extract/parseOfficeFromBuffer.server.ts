@@ -17,6 +17,39 @@ type ParserFn = (buffer: Buffer, config: OfficeParserConfig) => Promise<OfficePa
 const require = createRequire(import.meta.url);
 const officeparserRoot = join(dirname(require.resolve('officeparser')), '..');
 
+/** Mirrors officeparser's public `parseOffice` default config (see dist/officeparser.browser.mjs). */
+const OFFICEPARSER_DEFAULT_CONFIG = {
+  ignoreNotes: false,
+  newlineDelimiter: '\n',
+  putNotesAtLast: false,
+  outputErrorToConsole: false,
+  extractAttachments: false,
+  ocr: false,
+  ocrLanguage: 'eng',
+  includeRawContent: false,
+  serializeRawContent: true,
+  preserveXmlWhitespace: false,
+  pdfWorkerSrc: '',
+  ocrConfig: {},
+  includeBreakNodes: false,
+} satisfies OfficeParserConfig;
+
+const PARSER_MODULES: Record<string, { modulePath: string; exportName: string }> = {
+  docx: { modulePath: 'dist/parsers/WordParser.js', exportName: 'parseWord' },
+  docm: { modulePath: 'dist/parsers/WordParser.js', exportName: 'parseWord' },
+  dotx: { modulePath: 'dist/parsers/WordParser.js', exportName: 'parseWord' },
+  dotm: { modulePath: 'dist/parsers/WordParser.js', exportName: 'parseWord' },
+  pptx: { modulePath: 'dist/parsers/PowerPointParser.js', exportName: 'parsePowerPoint' },
+  xlsx: { modulePath: 'dist/parsers/ExcelParser.js', exportName: 'parseExcel' },
+  odt: { modulePath: 'dist/parsers/OpenOfficeParser.js', exportName: 'parseOpenOffice' },
+  odp: { modulePath: 'dist/parsers/OpenOfficeParser.js', exportName: 'parseOpenOffice' },
+  ods: { modulePath: 'dist/parsers/OpenOfficeParser.js', exportName: 'parseOpenOffice' },
+  pdf: { modulePath: 'dist/parsers/PdfParser.js', exportName: 'parsePdf' },
+  rtf: { modulePath: 'dist/parsers/RtfParser.js', exportName: 'parseRtf' },
+};
+
+const parserByExtension = new Map<string, ParserFn>();
+
 function loadParser(modulePath: string, exportName: string): ParserFn {
   const mod = require(join(officeparserRoot, modulePath)) as Record<string, ParserFn>;
   const fn = mod[exportName];
@@ -26,32 +59,25 @@ function loadParser(modulePath: string, exportName: string): ParserFn {
   return fn;
 }
 
-let parsersByExtension: Record<string, ParserFn> | null = null;
+function normalizeOfficeParserConfig(config: OfficeParserConfig): OfficeParserConfig {
+  return { ...OFFICEPARSER_DEFAULT_CONFIG, ...config };
+}
 
-function getParsersByExtension(): Record<string, ParserFn> {
-  if (!parsersByExtension) {
-    const parseWord = loadParser('dist/parsers/WordParser.js', 'parseWord');
-    const parsePowerPoint = loadParser('dist/parsers/PowerPointParser.js', 'parsePowerPoint');
-    const parseExcel = loadParser('dist/parsers/ExcelParser.js', 'parseExcel');
-    const parseOpenOffice = loadParser('dist/parsers/OpenOfficeParser.js', 'parseOpenOffice');
-    const parsePdf = loadParser('dist/parsers/PdfParser.js', 'parsePdf');
-    const parseRtf = loadParser('dist/parsers/RtfParser.js', 'parseRtf');
+function getParserForExtension(ext: string): ParserFn | undefined {
+  const spec = PARSER_MODULES[ext];
+  if (!spec) return undefined;
 
-    parsersByExtension = {
-      docx: parseWord,
-      docm: parseWord,
-      dotx: parseWord,
-      dotm: parseWord,
-      pptx: parsePowerPoint,
-      xlsx: parseExcel,
-      odt: parseOpenOffice,
-      odp: parseOpenOffice,
-      ods: parseOpenOffice,
-      pdf: parsePdf,
-      rtf: parseRtf,
-    };
+  const cached = parserByExtension.get(ext);
+  if (cached) return cached;
+
+  try {
+    const parser = loadParser(spec.modulePath, spec.exportName);
+    parserByExtension.set(ext, parser);
+    return parser;
+  } catch (err) {
+    console.warn('parseOfficeFromBuffer: failed to load internal parser', ext, err);
+    return undefined;
   }
-  return parsersByExtension;
 }
 
 /** Resolve the officeparser routing extension (without dot) from a storage path or name. */
@@ -70,14 +96,24 @@ export async function parseOfficeFromBuffer(
   config: OfficeParserConfig = {},
 ): Promise<OfficeParserAST> {
   const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input);
+  const normalizedConfig = normalizeOfficeParserConfig(config);
   const ext = resolveOfficeParserExtension(sourcePath);
+
   if (ext) {
-    const parser = getParsersByExtension()[ext];
+    const parser = getParserForExtension(ext);
     if (parser) {
-      return parser(buffer, config);
+      try {
+        return await parser(buffer, normalizedConfig);
+      } catch (err) {
+        console.warn(
+          'parseOfficeFromBuffer: internal parser failed, falling back to parseOffice',
+          ext,
+          err,
+        );
+      }
     }
   }
 
   const { parseOffice } = await import('officeparser');
-  return parseOffice(buffer, config);
+  return parseOffice(buffer, normalizedConfig);
 }

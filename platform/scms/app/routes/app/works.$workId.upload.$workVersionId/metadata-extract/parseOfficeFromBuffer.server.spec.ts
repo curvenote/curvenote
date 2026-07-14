@@ -1,6 +1,5 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { createRequire } from 'node:module';
-import { existsSync, readFileSync } from 'node:fs';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import {
@@ -9,11 +8,11 @@ import {
 } from './parseOfficeFromBuffer.server';
 
 const require = createRequire(import.meta.url);
-const { zipSync, strToU8 } = require('fflate') as typeof import('fflate');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const { zipSync, strToU8 } = require('fflate');
 
-const LARGE_MANUSCRIPT_FIXTURE =
-  process.env.DOCX_PREVIEW_FIXTURE ??
-  '/Users/stevejpurves/dev/hhmi/examples/PMC Papers/Dimensionality reduction simplifies synaptic partner matching in an olfactory circuit/manuscript combined.docx';
+/** Minimum uncompressed size that makes file-type skip [Content_Types].xml (>1 MiB). */
+const UNPARSEABLE_CONTENT_TYPES_BYTES = 1024 * 1024 + 128;
 
 function createMinimalDocx(): Buffer {
   const files: Record<string, Uint8Array> = {
@@ -33,6 +32,32 @@ function createMinimalDocx(): Buffer {
 </w:document>`),
   };
   return Buffer.from(zipSync(files));
+}
+
+/**
+ * DOCX whose [Content_Types].xml exceeds file-type's 1 MiB entry read limit (stored,
+ * not deflated). Magic-byte detection returns generic zip; extension routing still parses.
+ */
+function createZipMisidentifiedDocx(): Buffer {
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <!--${'x'.repeat(UNPARSEABLE_CONTENT_TYPES_BYTES)}-->
+</Types>`;
+
+  const files: Record<string, Uint8Array> = {
+    '[Content_Types].xml': strToU8(contentTypes),
+    '_rels/.rels': strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`),
+    'word/document.xml': strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body><w:p><w:r><w:t>Late content types test</w:t></w:r></w:p></w:body>
+</w:document>`),
+  };
+
+  return Buffer.from(zipSync(files, { level: 0 }));
 }
 
 describe('resolveOfficeParserExtension', () => {
@@ -64,12 +89,8 @@ describe('parseOfficeFromBuffer', () => {
     expect(ast.toText()).toContain('Hello preview');
   });
 
-  it('parses large manuscripts when file-type misidentifies the buffer as zip', async () => {
-    if (!existsSync(LARGE_MANUSCRIPT_FIXTURE)) {
-      return;
-    }
-
-    const buffer = readFileSync(LARGE_MANUSCRIPT_FIXTURE);
+  it('parses DOCX when file-type misidentifies the buffer as zip', async () => {
+    const buffer = createZipMisidentifiedDocx();
     const { fileTypeFromBuffer } = await import('file-type');
     const detected = await fileTypeFromBuffer(buffer);
     expect(detected?.ext).toBe('zip');
@@ -86,5 +107,6 @@ describe('parseOfficeFromBuffer', () => {
 
     expect(ast.type).toBe('docx');
     expect(ast.content.length).toBeGreaterThan(0);
+    expect(ast.toText()).toContain('Late content types test');
   });
 });

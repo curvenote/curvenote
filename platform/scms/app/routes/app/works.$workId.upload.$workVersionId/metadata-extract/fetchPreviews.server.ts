@@ -543,6 +543,7 @@ export async function fetchDocumentPreviewFigures(
       if (cacheId) {
         await updatePhaseBCache(prisma, cacheId, cached);
       }
+      anyFiguresUpdated = true;
       previews.push(cachedToDocumentPreviewItem(path, file, cached));
       continue;
     }
