@@ -226,7 +226,7 @@ function FiguresLoadingPlaceholder({
         <p className="pr-6 text-xs invisible truncate min-h-[1rem]" aria-hidden>
           &nbsp;
         </p>
-        <div className="relative flex-1 min-h-0 rounded aspect-square bg-stone-50 dark:bg-stone-800/50">
+        <div className="relative min-h-0 flex-1 w-full overflow-hidden rounded bg-stone-50 dark:bg-stone-800/50">
           <FiguresBusyOverlay message={message} onSkipFigures={onSkipFigures} compact />
         </div>
       </div>
@@ -403,13 +403,13 @@ export function ChooseThumbnailSection({
           <div
             ref={galleryRef}
             className={cn(
-              'items-center py-1 pt-2',
+              'py-1 pt-2',
               layout === 'row'
                 ? cn(
-                    'flex overflow-x-auto overflow-y-hidden overscroll-x-contain gap-4 px-1 [scrollbar-gutter:stable]',
+                    'flex items-stretch overflow-x-auto overflow-y-hidden overscroll-x-contain gap-4 px-1 [scrollbar-gutter:stable]',
                     rowGalleryOverflows && 'pr-14',
                   )
-                : 'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
+                : 'grid grid-cols-2 items-stretch gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5',
             )}
           >
             {pinnedThumbnail && pinnedLocator ? (
