@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { afterEach, describe, expect, it } from 'vitest';
-import { installPdfJsNodeGlobals } from './pdfJsUtils.server';
+import { installPdfJsNodeGlobals, installPdfJsWorkerGlobal } from './pdfJsUtils.server';
 
 describe('installPdfJsNodeGlobals', () => {
   const saved = {
@@ -26,5 +26,18 @@ describe('installPdfJsNodeGlobals', () => {
     expect(globalThis.ImageData).toBeDefined();
     expect(globalThis.Path2D).toBeDefined();
     expect(new globalThis.DOMMatrix()).toBeInstanceOf(globalThis.DOMMatrix);
+  });
+});
+
+describe('installPdfJsWorkerGlobal', () => {
+  it('exposes WorkerMessageHandler for pdfjs fake-worker mode', () => {
+    const previous = globalThis.pdfjsWorker;
+    globalThis.pdfjsWorker = undefined;
+
+    installPdfJsWorkerGlobal();
+
+    expect(globalThis.pdfjsWorker?.WorkerMessageHandler).toBeTypeOf('function');
+
+    globalThis.pdfjsWorker = previous;
   });
 });

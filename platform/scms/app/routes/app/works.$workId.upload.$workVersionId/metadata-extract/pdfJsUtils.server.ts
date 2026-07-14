@@ -4,9 +4,21 @@
  * pdfjs-dist evaluates `new DOMMatrix()` at module load time in Node. We install
  * @napi-rs/canvas polyfills before the first import and keep a direct require so
  * Vercel file tracing includes the native addon in serverless bundles.
+ *
+ * In Node, pdfjs uses a "fake worker" that dynamically imports pdf.worker.mjs.
+ * Statically import the worker here and expose it on globalThis.pdfjsWorker so
+ * bundlers trace the worker file and pdfjs does not resolve it from node_modules
+ * at runtime (which fails on Vercel when the worker is not copied).
  */
 
 import { createRequire } from 'node:module';
+import * as pdfjsWorkerModule from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
+
+declare global {
+  // pdfjs-dist reads this in Node to avoid dynamic worker import.
+  // eslint-disable-next-line no-var
+  var pdfjsWorker: typeof pdfjsWorkerModule | undefined;
+}
 
 let pdfJsModulePromise: ReturnType<typeof importPdfJsModule> | null = null;
 
@@ -57,19 +69,18 @@ export function installPdfJsNodeGlobals(): void {
   }
 }
 
+/** Register the worker handler for pdfjs Node fake-worker mode. */
+export function installPdfJsWorkerGlobal(): void {
+  if (globalThis.pdfjsWorker?.WorkerMessageHandler) return;
+  globalThis.pdfjsWorker = pdfjsWorkerModule;
+}
+
 export async function loadPdfJs() {
   installPdfJsNodeGlobals();
+  installPdfJsWorkerGlobal();
 
   if (!pdfJsModulePromise) {
     pdfJsModulePromise = importPdfJsModule();
   }
-  const pdfjs = await pdfJsModulePromise;
-
-  try {
-    const require = createRequire(import.meta.url);
-    pdfjs.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
-  } catch {
-    // Worker auto-resolution is best-effort; pdfjs may still load in some environments.
-  }
-  return pdfjs;
+  return pdfJsModulePromise;
 }
