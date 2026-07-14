@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Columns4, Image as ImageIcon, Check, LayoutGrid } from 'lucide-react';
 import { LoadingSpinner, SectionWithHeading, cn, ui } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocumentPreviewer';
@@ -80,7 +80,7 @@ function useRowGalleryOverflow({
     setOverflows(tileCount > rowGalleryColumnCount(el.clientWidth));
   }, [layout, tileCount]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     measureOverflow();
     const el = galleryRef.current;
     if (!el) return;
@@ -301,7 +301,7 @@ export function ChooseThumbnailSection({
     layout,
   });
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!rowGalleryOverflows && layout === 'grid') {
       setLayout('row');
     }
