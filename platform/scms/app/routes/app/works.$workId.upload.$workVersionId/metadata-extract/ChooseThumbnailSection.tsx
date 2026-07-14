@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Columns4, Image as ImageIcon, Check, LayoutGrid, RefreshCw } from 'lucide-react';
 import { LoadingSpinner, SectionWithHeading, cn, ui } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocumentPreviewer';
@@ -272,16 +280,7 @@ function CurrentLabel({ visible }: { visible: boolean }) {
   );
 }
 
-function ThumbnailTile({
-  label,
-  imageSrc,
-  imageAlt,
-  isSelected,
-  isCurrent,
-  onSelect,
-  layout,
-  ref,
-}: {
+type ThumbnailTileProps = {
   label: string;
   imageSrc: string | undefined;
   imageAlt: string;
@@ -289,8 +288,12 @@ function ThumbnailTile({
   isCurrent?: boolean;
   onSelect: () => void;
   layout: ThumbnailGalleryLayout;
-  ref?: React.Ref<HTMLDivElement>;
-}) {
+};
+
+const ThumbnailTile = forwardRef<HTMLDivElement, ThumbnailTileProps>(function ThumbnailTile(
+  { label, imageSrc, imageAlt, isSelected, isCurrent, onSelect, layout },
+  ref,
+) {
   return (
     <div
       ref={ref}
@@ -337,7 +340,7 @@ function ThumbnailTile({
       </button>
     </div>
   );
-}
+});
 
 export function ChooseThumbnailSection({
   previewList,
