@@ -1193,6 +1193,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const autoTitleFromFilenameFetcher = useFetcher();
   const hasTriggeredFetchPreviews = useRef(false);
   const hasTriggeredFetchPreviewFigures = useRef(false);
+  const [hasSkippedFigures, setHasSkippedFigures] = useState(false);
   // Tracks preview paths we've already observed, so a background preview that
   // resolves after its file was removed only raises its toast once.
   const seenPreviewPathsRef = useRef<Set<string> | null>(null);
@@ -1244,7 +1245,9 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const shouldFetchPreviews =
     hasMetadataExtractScope && previewFilePaths.length > 0 && missingPreviewPaths.length > 0;
   const shouldFetchPreviewFigures =
-    hasMetadataExtractScope && previewList.some((p) => p.figuresPending === true);
+    hasMetadataExtractScope &&
+    previewList.some((p) => p.figuresPending === true) &&
+    !hasSkippedFigures;
 
   // When a background preview finishes after its file was removed from the dropzone,
   // tell the user it was cached for a future upload of the same file.
@@ -1270,6 +1273,12 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
       );
     }
   }, [hasMetadataExtractScope, rawPreviews, previewFilePaths]);
+
+  useEffect(() => {
+    if (shouldFetchPreviews) {
+      setHasSkippedFigures(false);
+    }
+  }, [shouldFetchPreviews]);
 
   useEffect(() => {
     if (!shouldFetchPreviews) {
@@ -1316,17 +1325,23 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     if (fetchPreviewsFetcher.state !== 'idle') return;
     hasTriggeredFetchPreviews.current = true;
     hasTriggeredFetchPreviewFigures.current = false;
+    setHasSkippedFigures(false);
     fetchPreviewsFetcher.submit(
       { intent: 'fetch-previews', uploadFlowTrigger: 'manual_preview_retry' },
       { method: 'POST' },
     );
   }, [fetchPreviewsFetcher]);
 
+  const handleSkipFigures = useCallback(() => {
+    setHasSkippedFigures(true);
+  }, []);
+
   const isGeneratingPreviews =
     fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
   const isGeneratingFigures =
-    fetchPreviewFiguresFetcher.state === 'loading' ||
-    fetchPreviewFiguresFetcher.state === 'submitting';
+    !hasSkippedFigures &&
+    (fetchPreviewFiguresFetcher.state === 'loading' ||
+      fetchPreviewFiguresFetcher.state === 'submitting');
   const isPreviewsLoading =
     isGeneratingPreviews ||
     (revalidator.state === 'loading' && !isGeneratingFigures && !shouldFetchPreviewFigures);
@@ -1408,6 +1423,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               onChange={setSelectedThumbnail}
               pinnedThumbnail={inheritedThumbnail ?? null}
               isFiguresLoading={isGeneratingFigures}
+              onSkipFigures={handleSkipFigures}
             />
           ) : null}
           {hasChecksFeature && canDispatchChecks ? (

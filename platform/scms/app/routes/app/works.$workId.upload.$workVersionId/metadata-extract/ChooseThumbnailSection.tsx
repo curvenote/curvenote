@@ -8,6 +8,13 @@ import {
   resolveThumbnailSelection,
 } from './thumbnailSelection';
 import type { DocumentPreviewItem } from './fetchPreviews.server';
+import { useDelayedFlag } from './useDelayedFlag';
+
+/** Reveal the skip escape hatch after this long in the figures busy state. */
+const FIGURES_SKIP_HATCH_DELAY_MS = 15000;
+
+/** Fixed height for the empty gallery placeholder — busy overlay must not expand it. */
+const EMPTY_GALLERY_HEIGHT_CLASS = 'h-36';
 
 export type PinnedThumbnail = {
   key: string;
@@ -24,6 +31,11 @@ export interface ChooseThumbnailSectionProps {
   pinnedThumbnail?: PinnedThumbnail | null;
   /** True while phase-B figure extraction is in progress. */
   isFiguresLoading?: boolean;
+  /**
+   * When provided, a long-running figures busy state (>15s) reveals an escape hatch
+   * that calls this to abandon thumbnail generation and continue without candidates.
+   */
+  onSkipFigures?: () => void;
 }
 
 type ThumbnailGalleryLayout = 'row' | 'grid';
@@ -126,6 +138,40 @@ function figureLabelFromKey(key: string): string {
   return withoutExt || 'Figure';
 }
 
+function FiguresBusyOverlay({
+  message,
+  onSkipFigures,
+}: {
+  message: string;
+  onSkipFigures?: () => void;
+}) {
+  const showSkipHatch = useDelayedFlag(true, FIGURES_SKIP_HATCH_DELAY_MS);
+
+  return (
+    <div
+      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-md bg-background/80 px-6 text-center backdrop-blur-[1px]"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <LoadingSpinner size={32} />
+      <p className="text-sm text-stone-500">{message}</p>
+      {showSkipHatch && onSkipFigures ? (
+        <p className="max-w-sm text-xs text-stone-500">
+          This is taking longer than usual. You can{' '}
+          <button
+            type="button"
+            onClick={onSkipFigures}
+            className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+          >
+            skip generating thumbnails
+          </button>{' '}
+          and continue without a document image.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function CurrentLabel({ visible }: { visible: boolean }) {
   return (
     <p
@@ -210,6 +256,7 @@ export function ChooseThumbnailSection({
   onChange,
   pinnedThumbnail = null,
   isFiguresLoading = false,
+  onSkipFigures,
 }: ChooseThumbnailSectionProps) {
   const [layout, setLayout] = useState<ThumbnailGalleryLayout>('row');
   const allFigures = useMemo(() => collectAllFigures(previewList), [previewList]);
@@ -243,12 +290,11 @@ export function ChooseThumbnailSection({
   const emptyMessage =
     previewList.length === 0 && !pinnedThumbnail
       ? 'No images yet'
-      : isFiguresLoading
-        ? 'Generating thumbnail candidates…'
-        : 'No figures were found in the current document previews.';
+      : 'No figures were found in the current document previews.';
 
+  const figuresBusyMessage = 'Generating thumbnail options…';
   const hasTiles = Boolean(pinnedThumbnail) || figures.length > 0;
-  const showFiguresLoading = isFiguresLoading && !hasTiles;
+  const showFiguresBusy = isFiguresLoading && !hasTiles;
   const tileCount = (pinnedThumbnail ? 1 : 0) + figures.length;
   const { galleryRef, overflows: rowGalleryOverflows } = useRowGalleryOverflow({
     tileCount,
@@ -271,14 +317,18 @@ export function ChooseThumbnailSection({
         Select an image from your document to use as the thumbnail.
       </p>
       {!hasTiles ? (
-        <div className="flex justify-center items-center px-6 py-8 text-center bg-white rounded-md border border-dashed min-h-36 border-stone-300 dark:border-stone-600 dark:bg-stone-900">
-          {showFiguresLoading ? (
-            <div className="flex flex-col gap-3 items-center">
-              <LoadingSpinner size="sm" />
+        <div
+          className={cn(
+            'relative rounded-md border border-dashed border-stone-300 bg-white dark:border-stone-600 dark:bg-stone-900',
+            EMPTY_GALLERY_HEIGHT_CLASS,
+          )}
+        >
+          {showFiguresBusy ? (
+            <FiguresBusyOverlay message={figuresBusyMessage} onSkipFigures={onSkipFigures} />
+          ) : (
+            <div className="flex h-full items-center justify-center px-6 text-center">
               <p className="max-w-sm text-sm text-muted-foreground">{emptyMessage}</p>
             </div>
-          ) : (
-            <p className="max-w-sm text-sm text-muted-foreground">{emptyMessage}</p>
           )}
         </div>
       ) : null}
