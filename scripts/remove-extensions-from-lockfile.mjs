@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 
-// Script to remove extension-related package entries from package-lock.json files
+// Script to remove gitignored local workspace entries from package-lock.json files
 //
 // This script processes both:
 // - Root package-lock.json
 // - platform/scms/package-lock.json
 //
 // For each lockfile, it:
-// 1. Removes all package entries in the "packages" object that start with "extensions/"
-// 2. Removes any node_modules entries that have "resolved" pointing to extensions/
+// 1. Removes package entries in the "packages" object for gitignored extension clones
+//    (extensions/...) and the optional platform/mcp clone
+// 2. Removes any node_modules entries that have "resolved" pointing at those paths
 // Note: The workspaces array in packages is NOT modified
 //
 // Usage:
@@ -71,9 +72,15 @@ function extractPackageName(key, pkg) {
   return null;
 }
 
-function isExtensionFolderPath(pathValue) {
+function isGitignoredLocalWorkspacePath(pathValue) {
   if (typeof pathValue !== 'string') return false;
-  return pathValue.startsWith('extensions/') || pathValue.includes('/extensions/');
+  return (
+    pathValue.startsWith('extensions/') ||
+    pathValue.includes('/extensions/') ||
+    pathValue === 'platform/mcp' ||
+    pathValue.startsWith('platform/mcp/') ||
+    pathValue.includes('/platform/mcp/')
+  );
 }
 
 function removeExtensionsFromLockfile(lockfilePath) {
@@ -107,7 +114,7 @@ function removeExtensionsFromLockfile(lockfilePath) {
     // - "../../extensions/..." (relative paths to extensions)
     // - Any path containing "/extensions/" that's not an npm package name
     // Exclude: "@scope/extensions" or "node_modules/@scope/extensions" (npm packages)
-    if (isExtensionFolderPath(key) && !key.match(/node_modules\/@[^/]+\/extensions$/)) {
+    if (isGitignoredLocalWorkspacePath(key) && !key.match(/node_modules\/@[^/]+\/extensions$/)) {
       packagesToRemove.push(key);
       if (pkgName) {
         packageNames.add(pkgName);
@@ -123,7 +130,7 @@ function removeExtensionsFromLockfile(lockfilePath) {
       // Match resolved paths that point to extensions/ folder (not npm packages)
       // Match: "extensions/..." or "../../extensions/..." or any path ending with "/extensions/..."
       if (
-        isExtensionFolderPath(pkg.resolved) &&
+        isGitignoredLocalWorkspacePath(pkg.resolved) &&
         // Exclude npm registry URLs that happen to contain "extensions"
         !pkg.resolved.startsWith('https://') &&
         !pkg.resolved.startsWith('http://')
@@ -278,7 +285,7 @@ function main() {
     const filesModified = results.filter(
       (r) => r.removedCount > 0 || (r.dependencyRemovals?.length || 0) > 0,
     ).length;
-    let msg = `✓ Removed ${totalRemoved} extension-related package entries from ${filesModified} lockfile(s)`;
+    let msg = `✓ Removed ${totalRemoved} gitignored local workspace entries from ${filesModified} lockfile(s)`;
     if (totalDependencyRemovals > 0) {
       msg += `, removed ${totalDependencyRemovals} dependency reference(s)`;
     }
@@ -292,7 +299,7 @@ function main() {
       console.log(msg);
     } else {
       console.log(
-        `\n✓ Processed ${results.length} lockfile(s), no extension-related packages found`,
+        `\n✓ Processed ${results.length} lockfile(s), no gitignored local workspace packages found`,
       );
     }
   }

@@ -179,6 +179,8 @@ export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind' | 'date_published'
       thumbnail?: string;
       social?: string;
       doi?: string;
+      /** Canonical article URL on the site's primary domain. */
+      html?: string;
     };
   };
 
