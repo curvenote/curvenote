@@ -31,10 +31,7 @@ import type { OfficeAttachment } from 'officeparser';
 import pLimit from 'p-limit';
 import { isPreviewCandidate } from './previewGuards';
 import { downscaleToWebp, isRenderableFigureMime } from './imagePipeline.server';
-import {
-  documentPreviewCacheId,
-  allPreviewCacheObjectIdsForCleanup,
-} from './previewCache';
+import { documentPreviewCacheId, allPreviewCacheObjectIdsForCleanup } from './previewCache';
 import {
   emptyPreviewAst,
   truncateAstToFirstPage,
