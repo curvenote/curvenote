@@ -95,10 +95,10 @@ The following events are currently implemented and available:
 
 ### Check Events
 
-- **`CHECK_RUN_STARTED`**: Triggered when a check run is created and its work is enqueued
-- **`CHECK_RUN_MILESTONE`**: Triggered on meaningful check workflow milestones (e.g. provider webhooks, artifacts persisted)
+- **`CHECK_RUN_STARTED`**: Triggered when a check run is created and its work is enqueued (including inline pre-submit validation failures, styled as danger)
+- **`CHECK_RUN_MILESTONE`**: Triggered when a check run reaches a **terminal** outcome (report complete/failed, final provider state). HHMI checks extensions do not emit intermediate progress milestones.
 - **`CHECK_RUN_ERROR`**: Triggered when a check run enters an error state or a handler fails
-- **`CHECK_RUN_RETRY`**: Triggered on manual retry or an auto-retry sweep summary (when retries occurred)
+- **`CHECK_RUN_RETRY`**: Defined in core for extension use; HHMI checks extensions no longer emit retry or auto-retry sweep summaries (a retried run surfaces via `CHECK_RUN_STARTED` on the new attempt)
 - **`CHECK_EULA_ACCEPTED`**: Triggered when a user accepts a provider EULA required by a check
 
 These are generic check lifecycle events; the specific check kinds and providers that emit them live in their own feature modules, not in core.
