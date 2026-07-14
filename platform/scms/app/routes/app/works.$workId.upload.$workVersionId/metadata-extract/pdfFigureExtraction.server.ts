@@ -182,9 +182,9 @@ async function extractImagesFromPage(
     try {
       const imgObj = await resolvePdfImageObject(page, imgName);
       if (!imgObj?.data || imgObj.width <= 0 || imgObj.height <= 0) continue;
+      seenImageNames.add(imgName);
       if (!isPdfFigureWithinMaterializationLimits(imgObj.width, imgObj.height)) continue;
 
-      seenImageNames.add(imgName);
       imageCounter += 1;
       const rgba = convertToRgbaBuffer(imgObj.data, imgObj.width, imgObj.height, imgObj.kind);
       const bmpBuffer = encodeRgbaAsBmp(imgObj.width, imgObj.height, rgba);
