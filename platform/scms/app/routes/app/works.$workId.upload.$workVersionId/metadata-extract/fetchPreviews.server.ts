@@ -33,8 +33,7 @@ import { isPreviewCandidate } from './previewGuards';
 import { downscaleToWebp, isRenderableFigureMime } from './imagePipeline.server';
 import {
   documentPreviewCacheId,
-  legacyPreviewCacheIds,
-  previewCacheObjectIds,
+  allPreviewCacheObjectIdsForCleanup,
 } from './previewCache';
 import {
   emptyPreviewAst,
@@ -803,12 +802,7 @@ export async function deletePreviewArtifactsForVersion(
   try {
     const work = await findWorkByVersion(workVersionId);
     const metadata = work?.metadata as Record<string, unknown> | undefined;
-    const cacheIds = Array.from(
-      new Set([
-        ...previewCacheObjectIds(workVersionId, metadata),
-        ...legacyPreviewCacheIds(metadata),
-      ]),
-    );
+    const cacheIds = allPreviewCacheObjectIdsForCleanup(workVersionId, metadata);
     if (cacheIds.length === 0) return { rows: 0 };
 
     const prisma = await getPrismaClient();

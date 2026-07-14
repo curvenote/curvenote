@@ -1,13 +1,18 @@
 import { isPreviewCandidate } from './manuscriptFormats.js';
 
-/** Object table type/id prefix for cached document preview entries (versioned). */
-export const DOCUMENT_PREVIEW_CACHE_PREFIX = 'docx:preview:v3:';
+/** Object table type/id prefix for cached upload document preview entries. */
+export const DOCUMENT_PREVIEW_CACHE_PREFIX = 'upload:preview:';
 
 /**
  * Older cache prefixes whose rows are keyed by md5 only (no work version). Still removed
  * during confirm-work cleanup so legacy rows don't linger after the scheme change.
  */
 export const LEGACY_PREVIEW_CACHE_PREFIXES = ['docx:preview:v2:', 'docx:preview:'] as const;
+
+/**
+ * Version-scoped legacy prefixes (same `{workVersionId}:{md5}` suffix as the current scheme).
+ */
+export const LEGACY_VERSION_SCOPED_PREVIEW_CACHE_PREFIXES = ['docx:preview:v3:'] as const;
 
 type FilesMetadata = {
   files?: Record<string, { path?: string; name?: string; type?: string; md5?: string }>;
@@ -49,5 +54,33 @@ export function legacyPreviewCacheIds(metadata: unknown): string[] {
     new Set(
       md5s.flatMap((md5) => LEGACY_PREVIEW_CACHE_PREFIXES.map((prefix) => `${prefix}${md5}`)),
     ),
+  );
+}
+
+/**
+ * Legacy version-scoped cache ids (e.g. docx:preview:v3) for cleanup after prefix changes.
+ */
+export function legacyVersionScopedPreviewCacheIds(
+  workVersionId: string,
+  metadata: unknown,
+): string[] {
+  return previewCandidateMd5s(metadata).flatMap((md5) =>
+    LEGACY_VERSION_SCOPED_PREVIEW_CACHE_PREFIXES.map(
+      (prefix) => `${prefix}${workVersionId}:${md5}`,
+    ),
+  );
+}
+
+/** Current and legacy Object-table ids to delete for a work version's preview cache. */
+export function allPreviewCacheObjectIdsForCleanup(
+  workVersionId: string,
+  metadata: unknown,
+): string[] {
+  return Array.from(
+    new Set([
+      ...previewCacheObjectIds(workVersionId, metadata),
+      ...legacyVersionScopedPreviewCacheIds(workVersionId, metadata),
+      ...legacyPreviewCacheIds(metadata),
+    ]),
   );
 }

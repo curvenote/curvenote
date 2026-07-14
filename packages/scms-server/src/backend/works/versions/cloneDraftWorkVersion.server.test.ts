@@ -269,7 +269,7 @@ describe('seedDocumentPreviewCacheFromSource', () => {
     const tx = {
       object: {
         findUnique: vi.fn(async ({ where }: { where: { id: string } }) => {
-          if (where.id === 'docx:preview:v3:src:md5-a') {
+          if (where.id === 'upload:preview:src:md5-a') {
             return { data: previewData };
           }
           return null;
@@ -293,8 +293,8 @@ describe('seedDocumentPreviewCacheFromSource', () => {
     expect(tx.object.createMany).toHaveBeenCalledWith({
       data: [
         expect.objectContaining({
-          id: 'docx:preview:v3:tgt:md5-a',
-          type: 'docx:preview:v3:tgt:md5-a',
+          id: 'upload:preview:tgt:md5-a',
+          type: 'upload:preview:tgt:md5-a',
           data: previewData,
           created_by_id: 'user-1',
         }),
