@@ -250,12 +250,11 @@ async function downloadPreviewSource(signedUrl: string): Promise<ArrayBuffer | n
 
 async function parseOfficeTextOnly(
   arrayBuffer: ArrayBuffer,
-  fileType: 'pdf' | 'docx',
+  sourcePath: string,
 ): Promise<PreviewAstData> {
-  const { parseOffice } = await import('officeparser');
-  const fullAst = await parseOffice(arrayBuffer, {
+  const { parseOfficeFromBuffer } = await import('./parseOfficeFromBuffer.server');
+  const fullAst = await parseOfficeFromBuffer(arrayBuffer, sourcePath, {
     extractAttachments: false,
-    fileType,
     newlineDelimiter: '\n',
   });
   return truncateAstToFirstPage(fullAst);
@@ -273,13 +272,13 @@ async function generatePhaseATextAst(
     if (isPdfFastPathTextSufficient(fastAst)) {
       return fastAst;
     }
-    return parseOfficeTextOnly(arrayBuffer, 'pdf');
+    return parseOfficeTextOnly(arrayBuffer, path);
   }
   if (isDocxFile(path, file)) {
-    return parseOfficeTextOnly(arrayBuffer, 'docx');
+    return parseOfficeTextOnly(arrayBuffer, path);
   }
-  const { parseOffice } = await import('officeparser');
-  const fullAst = await parseOffice(arrayBuffer, {
+  const { parseOfficeFromBuffer } = await import('./parseOfficeFromBuffer.server');
+  const fullAst = await parseOfficeFromBuffer(arrayBuffer, path, {
     extractAttachments: false,
     newlineDelimiter: '\n',
   });
@@ -563,11 +562,9 @@ export async function fetchDocumentPreviewFigures(
         continue;
       }
 
-      const fileType = isPdfFile(path, file) ? 'pdf' : isDocxFile(path, file) ? 'docx' : undefined;
-      const { parseOffice } = await import('officeparser');
-      const fullAst = await parseOffice(arrayBuffer, {
+      const { parseOfficeFromBuffer } = await import('./parseOfficeFromBuffer.server');
+      const fullAst = await parseOfficeFromBuffer(arrayBuffer, path, {
         extractAttachments: true,
-        ...(fileType ? { fileType } : {}),
         newlineDelimiter: '\n',
       });
       const figures = await extractAndStoreFigures(fullAst.attachments ?? [], {
