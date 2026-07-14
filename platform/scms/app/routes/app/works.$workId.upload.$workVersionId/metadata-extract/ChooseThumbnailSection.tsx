@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Columns4, Image as ImageIcon, Check, LayoutGrid } from 'lucide-react';
 import { LoadingSpinner, SectionWithHeading, cn, ui } from '@curvenote/scms-core';
 import { collectAllFigures } from './DocumentPreviewer';
@@ -209,20 +209,24 @@ function FiguresLoadingPlaceholder({
   layout,
   message,
   onSkipFigures,
+  tileHeight,
 }: {
   layout: ThumbnailGalleryLayout;
   message: string;
   onSkipFigures?: () => void;
+  /** Matched to the pinned thumbnail column so the row stays one height. */
+  tileHeight?: number;
 }) {
   return (
     <div
+      style={tileHeight != null ? { height: tileHeight } : undefined}
       className={cn(
-        'flex flex-col gap-[1px] justify-center items-stretch h-full min-w-0',
-        layout === 'row' ? 'flex-1 shrink' : 'w-full',
+        'flex min-h-0 flex-col gap-[1px] items-stretch self-stretch',
+        layout === 'row' ? 'min-w-0 flex-1 shrink' : 'w-full',
       )}
     >
       <CurrentLabel visible={false} />
-      <div className="relative flex flex-col flex-1 gap-1 min-h-0 rounded-md border border-dashed border-stone-300 bg-white px-2 py-1 dark:border-stone-600 dark:bg-stone-900">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-1 rounded-md border border-dashed border-stone-300 bg-white px-2 py-1 dark:border-stone-600 dark:bg-stone-900">
         <p className="pr-6 text-xs invisible truncate min-h-[1rem]" aria-hidden>
           &nbsp;
         </p>
@@ -256,6 +260,7 @@ function ThumbnailTile({
   isCurrent,
   onSelect,
   layout,
+  ref,
 }: {
   label: string;
   imageSrc: string | undefined;
@@ -264,11 +269,13 @@ function ThumbnailTile({
   isCurrent?: boolean;
   onSelect: () => void;
   layout: ThumbnailGalleryLayout;
+  ref?: React.Ref<HTMLDivElement>;
 }) {
   return (
     <div
+      ref={ref}
       className={cn(
-        'flex flex-col gap-[1px] justify-center items-stretch h-full',
+        'flex flex-col gap-[1px] items-stretch self-stretch',
         layout === 'row' ? rowTileWidthClassName : 'w-full min-w-0',
       )}
     >
@@ -369,6 +376,27 @@ export function ChooseThumbnailSection({
     tileCount,
     layout,
   });
+  const pinnedTileRef = useRef<HTMLDivElement>(null);
+  const [pinnedTileHeight, setPinnedTileHeight] = useState<number | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    if (!showPinnedLoadingPlaceholder) {
+      setPinnedTileHeight(undefined);
+      return;
+    }
+
+    const el = pinnedTileRef.current;
+    if (!el) return;
+
+    const syncHeight = () => {
+      setPinnedTileHeight(el.getBoundingClientRect().height);
+    };
+
+    syncHeight();
+    const observer = new ResizeObserver(syncHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [showPinnedLoadingPlaceholder, pinnedLabel, pinnedThumbnail?.signedUrl, layout]);
 
   useEffect(() => {
     if (!rowGalleryOverflows && layout === 'grid') {
@@ -415,6 +443,7 @@ export function ChooseThumbnailSection({
             {pinnedThumbnail && pinnedLocator ? (
               <ThumbnailTile
                 key={pinnedLocator}
+                ref={showPinnedLoadingPlaceholder ? pinnedTileRef : undefined}
                 layout={layout}
                 label={pinnedLabel}
                 imageSrc={pinnedThumbnail.signedUrl}
@@ -444,6 +473,7 @@ export function ChooseThumbnailSection({
                 layout={layout}
                 message={figuresBusyMessage}
                 onSkipFigures={onSkipFigures}
+                tileHeight={pinnedTileHeight}
               />
             ) : null}
           </div>
