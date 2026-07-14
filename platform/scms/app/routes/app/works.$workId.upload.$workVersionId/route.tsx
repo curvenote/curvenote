@@ -111,6 +111,7 @@ import {
   nextAutoFiguresAttempts,
   pendingFigurePathsKey,
   shouldAutoSubmitFiguresFetch,
+  shouldClearFiguresFetchFinishedForPendingKey,
   shouldManualRetryFigures,
   shouldResetFiguresAutoAttemptsForPendingKey,
   shouldShowFiguresRetry,
@@ -1292,13 +1293,11 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   }, [hasMetadataExtractScope, rawPreviews, previewFilePaths]);
 
   useEffect(() => {
-    if (shouldFetchPreviews) {
-      setHasSkippedFigures(false);
-      figuresAutoAttempts.current = 0;
-      lastPendingFigurePathsKeyRef.current = pendingFigurePathsSignature;
-      setFiguresFetchFinished(false);
-    }
-  }, [shouldFetchPreviews, pendingFigurePathsSignature]);
+    if (!shouldFetchPreviews) return;
+    setHasSkippedFigures(false);
+    figuresAutoAttempts.current = 0;
+    setFiguresFetchFinished(false);
+  }, [shouldFetchPreviews]);
 
   useEffect(() => {
     if (
@@ -1311,7 +1310,9 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     }
     lastPendingFigurePathsKeyRef.current = pendingFigurePathsSignature;
     figuresAutoAttempts.current = 0;
-    setFiguresFetchFinished(false);
+    if (shouldClearFiguresFetchFinishedForPendingKey({ nextKey: pendingFigurePathsSignature })) {
+      setFiguresFetchFinished(false);
+    }
   }, [pendingFigurePathsSignature]);
 
   useEffect(() => {

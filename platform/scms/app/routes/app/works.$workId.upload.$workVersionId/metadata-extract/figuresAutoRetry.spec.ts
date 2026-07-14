@@ -8,6 +8,7 @@ import {
   shouldAutoSubmitFiguresFetch,
   shouldManualRetryFigures,
   shouldResetFiguresAutoAttemptsForPendingKey,
+  shouldClearFiguresFetchFinishedForPendingKey,
   shouldShowFiguresRetry,
 } from './figuresAutoRetry';
 
@@ -37,6 +38,16 @@ describe('shouldResetFiguresAutoAttemptsForPendingKey', () => {
     expect(
       shouldResetFiguresAutoAttemptsForPendingKey({ previousKey: 'a.docx', nextKey: 'a.docx' }),
     ).toBe(false);
+  });
+});
+
+describe('shouldClearFiguresFetchFinishedForPendingKey', () => {
+  it('clears the finished latch when pending paths remain', () => {
+    expect(shouldClearFiguresFetchFinishedForPendingKey({ nextKey: 'a.docx' })).toBe(true);
+  });
+
+  it('does not clear the finished latch when the pending set is empty', () => {
+    expect(shouldClearFiguresFetchFinishedForPendingKey({ nextKey: '' })).toBe(false);
   });
 });
 

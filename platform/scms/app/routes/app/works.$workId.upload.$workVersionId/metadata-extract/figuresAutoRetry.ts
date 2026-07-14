@@ -24,6 +24,11 @@ export function shouldResetFiguresAutoAttemptsForPendingKey(args: {
   return args.previousKey !== args.nextKey;
 }
 
+/** Only clear the finished latch while pending work remains; success clears the set to "". */
+export function shouldClearFiguresFetchFinishedForPendingKey(args: { nextKey: string }): boolean {
+  return args.nextKey !== '';
+}
+
 export function shouldAutoSubmitFiguresFetch(args: {
   shouldFetchPreviewFigures: boolean;
   fetcherState: FiguresFetcherState;
