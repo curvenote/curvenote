@@ -79,6 +79,7 @@ import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
 import {
   handleFetchPreviewsIntent,
+  handleFetchPreviewFiguresIntent,
   deletePreviewArtifactsForVersion,
   persistThumbnailListingForVersion,
   signPreviewFigures,
@@ -105,6 +106,15 @@ import {
 } from './metadata-extract/thumbnailSelection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
 import { isPreviewCandidate } from './metadata-extract/previewGuards';
+import {
+  applyFiguresFetcherStateTransition,
+  nextAutoFiguresAttempts,
+  pendingFigurePathsKey,
+  shouldAutoSubmitFiguresFetch,
+  shouldManualRetryFigures,
+  shouldResetFiguresAutoAttemptsForPendingKey,
+  shouldShowFiguresRetry,
+} from './metadata-extract/figuresAutoRetry';
 import {
   summarizePreviewCandidateFiles,
   sanitizeUploadFlowFailureReason,
@@ -138,6 +148,7 @@ const WorkUploadActionSchema = zfd.formData({
     'toggle-check',
     'confirm-work',
     'fetch-previews',
+    'fetch-preview-figures',
     'extract-metadata',
     'clear-extracted-metadata',
   ]),
@@ -866,6 +877,38 @@ export async function action(args: Route.ActionArgs) {
         }
       }
 
+      if (uploadIntent === 'fetch-preview-figures') {
+        if (!workVersionId) {
+          return data(
+            { error: { type: 'general', message: 'Work version ID is required' } },
+            { status: 400 },
+          );
+        }
+        if (
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
+            ignoreSystemAdmin: true,
+          })
+        ) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'You do not have permission to generate document preview figures',
+              },
+            },
+            { status: 403 },
+          );
+        }
+        try {
+          const { previews } = await handleFetchPreviewFiguresIntent(workVersionId, baseCtx);
+          return data({ ok: true, previewFiguresGenerated: previews.length });
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : 'Failed to generate document preview figures';
+          return data({ error: { type: 'general', message } }, { status: 500 });
+        }
+      }
+
       if (uploadIntent === 'clear-extracted-metadata') {
         if (!workVersionId) {
           return data(
@@ -1155,8 +1198,15 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const [authorMetadata, setAuthorMetadata] = useState<AuthorFieldMetadata>(authorFieldMetadata);
   const revalidator = useRevalidator();
   const fetchPreviewsFetcher = useFetcher();
+  const fetchPreviewFiguresFetcher = useFetcher();
   const autoTitleFromFilenameFetcher = useFetcher();
   const hasTriggeredFetchPreviews = useRef(false);
+  /** Auto phase-B attempts per pending path set; manual retry bypasses this cap. */
+  const figuresAutoAttempts = useRef(0);
+  const lastPendingFigurePathsKeyRef = useRef('');
+  const [hasSkippedFigures, setHasSkippedFigures] = useState(false);
+  const [figuresFetchFinished, setFiguresFetchFinished] = useState(false);
+  const figuresFetchWasInFlight = useRef(false);
   // Tracks preview paths we've already observed, so a background preview that
   // resolves after its file was removed only raises its toast once.
   const seenPreviewPathsRef = useRef<Set<string> | null>(null);
@@ -1207,6 +1257,14 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   const missingPreviewPaths = previewFilePaths.filter((p) => !previewPaths.has(p));
   const shouldFetchPreviews =
     hasMetadataExtractScope && previewFilePaths.length > 0 && missingPreviewPaths.length > 0;
+  const shouldFetchPreviewFigures =
+    hasMetadataExtractScope &&
+    previewList.some((p) => p.figuresPending === true) &&
+    !hasSkippedFigures;
+  const pendingFigurePathsSignature = useMemo(
+    () => pendingFigurePathsKey(previewList),
+    [previewList],
+  );
 
   // When a background preview finishes after its file was removed from the dropzone,
   // tell the user it was cached for a future upload of the same file.
@@ -1234,6 +1292,29 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
   }, [hasMetadataExtractScope, rawPreviews, previewFilePaths]);
 
   useEffect(() => {
+    if (shouldFetchPreviews) {
+      setHasSkippedFigures(false);
+      figuresAutoAttempts.current = 0;
+      lastPendingFigurePathsKeyRef.current = pendingFigurePathsSignature;
+      setFiguresFetchFinished(false);
+    }
+  }, [shouldFetchPreviews, pendingFigurePathsSignature]);
+
+  useEffect(() => {
+    if (
+      !shouldResetFiguresAutoAttemptsForPendingKey({
+        previousKey: lastPendingFigurePathsKeyRef.current,
+        nextKey: pendingFigurePathsSignature,
+      })
+    ) {
+      return;
+    }
+    lastPendingFigurePathsKeyRef.current = pendingFigurePathsSignature;
+    figuresAutoAttempts.current = 0;
+    setFiguresFetchFinished(false);
+  }, [pendingFigurePathsSignature]);
+
+  useEffect(() => {
     if (!shouldFetchPreviews) {
       hasTriggeredFetchPreviews.current = false;
       return;
@@ -1246,6 +1327,35 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     );
   }, [shouldFetchPreviews, fetchPreviewsFetcher.state, fetchPreviewsFetcher]);
 
+  useEffect(() => {
+    if (!shouldFetchPreviewFigures) {
+      figuresAutoAttempts.current = 0;
+      return;
+    }
+    if (
+      !shouldAutoSubmitFiguresFetch({
+        shouldFetchPreviewFigures,
+        fetcherState: fetchPreviewFiguresFetcher.state,
+        autoAttempts: figuresAutoAttempts.current,
+      })
+    ) {
+      return;
+    }
+    figuresAutoAttempts.current = nextAutoFiguresAttempts(figuresAutoAttempts.current);
+    fetchPreviewFiguresFetcher.submit({ intent: 'fetch-preview-figures' }, { method: 'POST' });
+  }, [shouldFetchPreviewFigures, fetchPreviewFiguresFetcher.state, fetchPreviewFiguresFetcher]);
+
+  useEffect(() => {
+    const transition = applyFiguresFetcherStateTransition({
+      fetcherState: fetchPreviewFiguresFetcher.state,
+      wasInFlight: figuresFetchWasInFlight.current,
+    });
+    figuresFetchWasInFlight.current = transition.wasInFlight;
+    if (transition.fetchFinished) {
+      setFiguresFetchFinished(true);
+    }
+  }, [fetchPreviewFiguresFetcher.state]);
+
   // Show toast when fetch-previews action returns an error
   useEffect(() => {
     if (fetchPreviewsFetcher.state === 'idle' && fetchPreviewsFetcher.data?.error) {
@@ -1253,21 +1363,47 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     }
   }, [fetchPreviewsFetcher.state, fetchPreviewsFetcher.data]);
 
+  useEffect(() => {
+    if (fetchPreviewFiguresFetcher.state === 'idle' && fetchPreviewFiguresFetcher.data?.error) {
+      ui.toastError(fetchPreviewFiguresFetcher.data.error.message);
+    }
+  }, [fetchPreviewFiguresFetcher.state, fetchPreviewFiguresFetcher.data]);
+
   // Re-kick preview generation after the user retries a skipped preview. The
   // auto-fetch effect above will not fire again on its own once it has run, so
   // resubmit here (only when idle) to restart the generation + busy state.
   const handleRetryPreview = useCallback(() => {
     if (fetchPreviewsFetcher.state !== 'idle') return;
     hasTriggeredFetchPreviews.current = true;
+    figuresAutoAttempts.current = 0;
+    setFiguresFetchFinished(false);
+    setHasSkippedFigures(false);
     fetchPreviewsFetcher.submit(
       { intent: 'fetch-previews', uploadFlowTrigger: 'manual_preview_retry' },
       { method: 'POST' },
     );
   }, [fetchPreviewsFetcher]);
 
+  const handleRetryFigures = useCallback(() => {
+    if (!shouldManualRetryFigures(fetchPreviewFiguresFetcher.state)) return;
+    setHasSkippedFigures(false);
+    setFiguresFetchFinished(false);
+    fetchPreviewFiguresFetcher.submit({ intent: 'fetch-preview-figures' }, { method: 'POST' });
+  }, [fetchPreviewFiguresFetcher]);
+
+  const handleSkipFigures = useCallback(() => {
+    setHasSkippedFigures(true);
+  }, []);
+
   const isGeneratingPreviews =
     fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
-  const isPreviewsLoading = revalidator.state === 'loading' || isGeneratingPreviews;
+  const isGeneratingFigures =
+    !hasSkippedFigures &&
+    (fetchPreviewFiguresFetcher.state === 'loading' ||
+      fetchPreviewFiguresFetcher.state === 'submitting');
+  const isPreviewsLoading =
+    isGeneratingPreviews ||
+    (revalidator.state === 'loading' && !isGeneratingFigures && !shouldFetchPreviewFigures);
   const rotatingPreviewMessage = useRotatingMessage(PREVIEW_BUSY_MESSAGES, isGeneratingPreviews);
   const previewOverlayMessage = isGeneratingPreviews
     ? rotatingPreviewMessage
@@ -1345,6 +1481,13 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
               value={effectiveSelectedThumbnail}
               onChange={setSelectedThumbnail}
               pinnedThumbnail={inheritedThumbnail ?? null}
+              isFiguresLoading={isGeneratingFigures}
+              showFiguresRetry={shouldShowFiguresRetry({
+                figuresFetchFinished,
+                isGeneratingFigures,
+              })}
+              onRetryFigures={handleRetryFigures}
+              onSkipFigures={handleSkipFigures}
             />
           ) : null}
           {hasChecksFeature && canDispatchChecks ? (

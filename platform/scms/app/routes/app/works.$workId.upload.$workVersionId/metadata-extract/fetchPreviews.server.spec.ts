@@ -141,6 +141,15 @@ describe('resolvePreviewImagePresence', () => {
     ).toBe('unknown');
   });
 
+  it('returns unknown while figure extraction is still pending', () => {
+    expect(
+      resolvePreviewImagePresence(
+        ['a.pdf'],
+        [{ path: 'a.pdf', figures: [], figuresPending: true, figuresExtractionSkipped: false }],
+      ),
+    ).toBe('unknown');
+  });
+
   it('returns unknown for legacy cached previews with empty figures and no extraction flag', () => {
     expect(resolvePreviewImagePresence(['a.pdf'], [{ path: 'a.pdf', figures: [] }])).toBe(
       'unknown',
