@@ -32,7 +32,7 @@ export function AutomatedChecksTaskCard() {
           <div className="flex-1 text-left">
             <h3 className="flex gap-1 items-center text-lg font-normal">
               Check My Work{' '}
-              <span className="rounded-md bg-green-600 px-1.5 py-1 text-[10px] font-medium leading-none text-white dark:bg-green-600">
+              <span className="rounded-md bg-green-600 px-1.5 py-1 mb-1 text-[10px] font-medium leading-none text-white dark:bg-green-600">
                 NEW
               </span>
             </h3>
