@@ -24,7 +24,7 @@ export function RunCheckOnLatestVersionButton({
   versionNumber,
 }: RunCheckOnLatestVersionButtonProps) {
   const fetcher = useFetcher();
-  const isSubmitting = fetcher.state === 'submitting';
+  const isBusy = fetcher.state !== 'idle';
   const { blocked, message } = useCheckMaintenanceBlocked(checkServiceId);
 
   return (
@@ -39,18 +39,21 @@ export function RunCheckOnLatestVersionButton({
           size="sm"
           name="intent"
           value="execute"
-          busy={isSubmitting}
+          busy={isBusy}
+          overlayBusy
           disabled={blocked}
           className="gap-1.5"
         >
-          <span className="whitespace-nowrap">Check Latest Version</span>
-          <ui.VersionTagBadge
-            tag={`v${versionNumber}`}
-            titlePrefix="Version"
-            icon={GitBranch}
-            compact
-            emphasis="on-primary"
-          />
+          <span className="inline-flex gap-1.5 items-center">
+            <span>Check Latest Version</span>
+            <ui.VersionTagBadge
+              tag={`v${versionNumber}`}
+              titlePrefix="Version"
+              icon={GitBranch}
+              compact
+              emphasis="on-primary"
+            />
+          </span>
         </ui.StatefulButton>
       </fetcher.Form>
     </ui.MaintenanceTooltip>
