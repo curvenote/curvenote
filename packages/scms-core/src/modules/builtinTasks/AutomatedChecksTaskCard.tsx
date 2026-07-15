@@ -30,7 +30,12 @@ export function AutomatedChecksTaskCard() {
             />
           </div>
           <div className="flex-1 text-left">
-            <h3 className="text-lg font-normal">Check My Work</h3>
+            <h3 className="flex gap-1 items-center text-lg font-normal">
+              Check My Work{' '}
+              <span className="rounded-md bg-green-600 px-1.5 py-1 text-[10px] font-medium leading-none text-white dark:bg-green-600">
+                NEW
+              </span>
+            </h3>
             <p className="text-sm text-muted-foreground">
               Upload a draft and get automatic checks on its structure, text and figures.
             </p>
