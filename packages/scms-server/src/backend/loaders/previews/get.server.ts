@@ -23,7 +23,7 @@ const submissionVersionForPreviewSelect = {
     },
   },
 } satisfies Prisma.SubmissionVersionSelect;
-import type { SubmissionVersionDTO } from '@curvenote/common';
+import type { SubmissionVersionDTO, WorkDTO } from '@curvenote/common';
 import type { Context } from '../../context.server.js';
 import { error401, error404, scopes } from '@curvenote/scms-core';
 import { userHasScope } from '../../scopes.helpers.server.js';
@@ -39,6 +39,16 @@ import {
 } from '../../sign.previews.server.js';
 import getWorkVersionPreview from './get.work-version.server.js';
 
+export type SubmissionPreviewDTO = Omit<SubmissionVersionDTO, 'site_work'> & {
+  site_work: ModifiedSiteWorkDTO;
+};
+
+/** `/v1/previews/:id` — work-version tokens return WorkDTO; otherwise submission preview. */
+export type PreviewDTO = WorkDTO | SubmissionPreviewDTO;
+
+/** Alias kept for existing submission-version listing imports. */
+export type ModifiedSubmissionVersionDTO = SubmissionPreviewDTO;
+
 export async function dbGetSubmissionVersion(id: string) {
   const prisma = await getPrismaClient();
   return prisma.submissionVersion.findUnique({
@@ -51,15 +61,11 @@ type PreviewDBO = Prisma.SubmissionVersionGetPayload<{
   select: typeof submissionVersionForPreviewSelect;
 }>;
 
-export type ModifiedSubmissionVersionDTO = Omit<SubmissionVersionDTO, 'site_work'> & {
-  site_work: ModifiedSiteWorkDTO;
-};
-
 function formatPreviewDTO(
   ctx: Context,
   dbo: PreviewDBO,
   opts?: { subject?: string },
-): ModifiedSubmissionVersionDTO {
+): SubmissionPreviewDTO {
   return {
     id: dbo.id,
     date_created: dbo.date_created,
@@ -87,13 +93,10 @@ function formatPreviewDTO(
 /**
  * Preview loader for `/previews/:id`.
  *
- * - Work-version tokens (`scope: work_version`) load CDN-backed MyST for that work version.
- * - Otherwise treats `:id` as a submissionVersionId (submission-scoped token or site user).
+ * - Work-version tokens (`scope: work_version`) return a WorkDTO (CDN host for MyST).
+ * - Otherwise treats `:id` as a submissionVersionId and returns SubmissionPreviewDTO.
  */
-export default async function (
-  ctx: Context,
-  previewId: string,
-): Promise<Omit<SubmissionVersionDTO, 'site_work'> & { site_work: ModifiedSiteWorkDTO }> {
+export default async function (ctx: Context, previewId: string): Promise<PreviewDTO> {
   if (ctx.claims.preview?.scope === WORK_VERSION_PREVIEW_SCOPE) {
     const claims = ctx.claims.preview;
     if (
@@ -102,7 +105,7 @@ export default async function (
       claims.aud !== WORK_VERSION_PREVIEW_AUDIENCE ||
       claims.scopeId !== previewId
     ) {
-      throw error401('bad work version preview scope');
+      throw error401('Token is not valid for this work version');
     }
     return getWorkVersionPreview(ctx, previewId);
   }
