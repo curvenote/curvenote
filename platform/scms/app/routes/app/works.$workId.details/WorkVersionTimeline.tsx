@@ -14,6 +14,7 @@ import {
   useTimelineActivitiesVisibility,
   buildWorkVersionNumberByIdMap,
   compareWorkVersionsByDateCreatedDesc,
+  WorkContents,
 } from '@curvenote/scms-core';
 import type { WorkVersionForDetailsClient } from '../works.$workId/types';
 import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
@@ -21,6 +22,7 @@ import type { Workflow, ClientExtensionCheckService } from '@curvenote/scms-core
 import type { LinkedJobsByWorkVersionId } from './types';
 import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineItem';
 import { SubmissionTimelineItem } from './timeline/SubmissionTimelineItem';
+import { WebVersionCreatedTimelineItem } from './timeline/WebVersionCreatedTimelineItem';
 
 type SubmissionVersionRow = WorkVersionForDetailsClient['submissionVersions'][number];
 
@@ -28,6 +30,12 @@ type SubmissionVersionRow = WorkVersionForDetailsClient['submissionVersions'][nu
 type TimelineEntry =
   | {
       kind: 'work-version';
+      date: string;
+      key: string;
+      version: WorkVersionForDetailsClient;
+    }
+  | {
+      kind: 'web-version';
       date: string;
       key: string;
       version: WorkVersionForDetailsClient;
@@ -51,6 +59,15 @@ type TimelineEntry =
       run: CheckServiceRunRow;
       version: WorkVersionForDetailsClient;
     };
+
+function isWebVersionAvailable(version: WorkVersionForDetailsClient): boolean {
+  return (
+    Boolean(version.cdn?.trim()) &&
+    Boolean(version.cdn_key?.trim()) &&
+    Array.isArray(version.contains) &&
+    version.contains.includes(WorkContents.MYST)
+  );
+}
 
 /** Single entrypoint for timeline auto-expand behavior (easy to A/B later). */
 function shouldExpandByDefault(
@@ -87,6 +104,17 @@ function getSortedSectionEntries(
             kind: 'work-version' as const,
             date: version.date_created,
             key: `work-version-${version.id}`,
+            version,
+          },
+        ]),
+    // MyST web build available on this version (cdn + contains includes myst)
+    ...(version.draft || !isWebVersionAvailable(version)
+      ? []
+      : [
+          {
+            kind: 'web-version' as const,
+            date: version.date_modified || version.date_created,
+            key: `web-version-${version.id}`,
             version,
           },
         ]),
@@ -234,13 +262,21 @@ function WorkVersionTimelineInner({
                     dateModified={version.date_modified}
                     ownerName={workOwnerName}
                     metadata={version.metadata}
-                    contains={version.contains}
-                    cdn={version.cdn}
-                    cdnKey={version.cdn_key}
                     workVersionId={version.id}
                     basePath={basePath}
                     canExport={canExport}
                     linkedJobsByWorkVersionIdPromise={linkedJobsByWorkVersionId}
+                  />
+                );
+              }
+              if (entry.kind === 'web-version') {
+                const { version } = entry;
+                return (
+                  <WebVersionCreatedTimelineItem
+                    key={entry.key}
+                    dateCreated={version.date_modified || version.date_created}
+                    dateModified={version.date_modified}
+                    workVersionId={version.id}
                   />
                 );
               }

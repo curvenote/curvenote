@@ -5,7 +5,6 @@ import {
   DateWithPopover,
   TimelineItemExpandable,
   TimelineItemPlain,
-  WorkContents,
   ui,
 } from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from '../types';
@@ -48,10 +47,6 @@ type VersionCreatedTimelineItemProps = {
    * - File list tray when `metadata.files` is present.
    */
   metadata?: unknown;
-  /** WorkVersion.contains — used to detect MyST site availability. */
-  contains?: string[] | null;
-  cdn?: string | null;
-  cdnKey?: string | null;
   /** Tags on the work version (first-class column). */
   tags?: string[];
   workVersionId?: string;
@@ -63,16 +58,13 @@ type VersionCreatedTimelineItemProps = {
 /**
  * Timeline row for "Work version created by {owner}" – the work version anchor for this section.
  * If metadata.files exists, the row is expandable and shows a list of downloadable files (signed links).
- * When a MyST site is available (`contains` includes myst + cdn/cdn_key), shows a text indicator.
+ * MyST web availability is a separate timeline row (`WebVersionCreatedTimelineItem`).
  */
 export function VersionCreatedTimelineItem({
   dateCreated,
   dateModified,
   ownerName,
   metadata,
-  contains,
-  cdn,
-  cdnKey,
   tags = [],
   workVersionId,
   basePath,
@@ -105,11 +97,6 @@ export function VersionCreatedTimelineItem({
   const hasFiles = files != null && typeof files === 'object' && Object.keys(files).length > 0;
   const hasDocx = hasFiles && Object.values(files!).some(isDocxFile);
   const hasPdf = hasFiles && Object.values(files!).some(isPdfFile);
-  const siteAvailable =
-    Boolean(cdn?.trim()) &&
-    Boolean(cdnKey?.trim()) &&
-    Array.isArray(contains) &&
-    contains.includes(WorkContents.MYST);
   const showGeneratePdf =
     false && // TODO: temporarily disabled here pending async dispatching
     canExport &&
@@ -154,63 +141,50 @@ export function VersionCreatedTimelineItem({
     </Suspense>
   ) : null;
 
-  const siteAvailableRow = siteAvailable ? (
-    <div className="flex flex-col gap-2">
-      <span className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-        Site
-      </span>
-      <p className="text-sm text-muted-foreground m-0">MyST site available</p>
+  const fileListTray = hasFiles ? (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+          Files
+        </span>
+        <ul className="list-none p-0 m-0 flex flex-col gap-1.5">
+          {Object.entries(files!).map(([, file]) => {
+            const name = file?.name ?? file?.label ?? 'Download';
+            const sizeStr = formatFileSize(file?.size);
+            const label = sizeStr ? `${name} (${sizeStr})` : name;
+            const href = file?.signedUrl;
+            if (!href) {
+              return (
+                <li key={file?.path ?? name} className="text-sm text-muted-foreground">
+                  {label}
+                </li>
+              );
+            }
+            return (
+              <li key={file?.path ?? name}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline"
+                >
+                  {label}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      {generatePdfButton}
     </div>
   ) : null;
-
-  const fileListTray =
-    hasFiles || siteAvailable ? (
-      <div className="flex flex-col gap-3">
-        {hasFiles ? (
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
-              Files
-            </span>
-            <ul className="list-none p-0 m-0 flex flex-col gap-1.5">
-              {Object.entries(files!).map(([, file]) => {
-                const name = file?.name ?? file?.label ?? 'Download';
-                const sizeStr = formatFileSize(file?.size);
-                const label = sizeStr ? `${name} (${sizeStr})` : name;
-                const href = file?.signedUrl;
-                if (!href) {
-                  return (
-                    <li key={file?.path ?? name} className="text-sm text-muted-foreground">
-                      {label}
-                    </li>
-                  );
-                }
-                return (
-                  <li key={file?.path ?? name}>
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline"
-                    >
-                      {label}
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ) : null}
-        {siteAvailableRow}
-        {generatePdfButton}
-      </div>
-    ) : null;
 
   const trailing: ReactNode | undefined =
     tagList.length > 0 ? (
       <ui.TagChips tags={tagList} limit={4} titlePrefix="Work version tag" />
     ) : undefined;
 
-  if (hasFiles || siteAvailable) {
+  if (hasFiles) {
     return (
       <TimelineItemExpandable
         icon={<FilePlus aria-hidden />}

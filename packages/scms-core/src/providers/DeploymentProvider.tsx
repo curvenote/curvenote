@@ -100,6 +100,8 @@ export type ClientDeploymentConfig = {
   name: string;
   editorApiUrl: string;
   renderServiceUrl: string | undefined;
+  /** Base URL for work web-version previews (e.g. preview-theme on :3810). */
+  webVersionPreviewUrl: string | undefined;
   authProviders: ClientSideSafeAuthOptions[];
   signupConfig?: ClientSigninSignupConfig;
   navigation: {

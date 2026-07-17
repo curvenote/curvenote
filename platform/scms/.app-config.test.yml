@@ -47,6 +47,7 @@ app:
   adminUrl: http://qwerty.com
   editorUrl: http://qwerty.com
   renderServiceUrl: 'http://qwerty.com'
+  webVersionPreviewUrl: 'http://localhost:3810'
   checks:
     relayBaseUrl: http://localhost:9999
   branding:

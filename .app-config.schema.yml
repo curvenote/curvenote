@@ -616,6 +616,12 @@ properties:
                         pattern: '^[a-z0-9][a-z0-9 _-]*$'
       renderServiceUrl:
         type: string
+      webVersionPreviewUrl:
+        type: string
+        description: >
+          Base URL of the work web-version preview theme (distinct from submission
+          renderServiceUrl). Timeline "Open" links use
+          {webVersionPreviewUrl}/works/{workVersionId}.
       statusBar:
         type: object
         description: Configuration for the status bar at the bottom of the application
