@@ -218,8 +218,8 @@ function isServiceAccountAction(value: unknown): value is ServiceAccountAction {
 
 const ServiceAccountCreateSchema = zfd.formData({
   formAction: z.literal('create-service-account'),
-  // Only ADMIN or SUBMITTER are valid roles for a service account.
-  role: zfd.text(z.union([z.literal('ADMIN'), z.literal('SUBMITTER')])),
+  // ADMIN, SUBMITTER, or FEED are valid roles for a service account.
+  role: zfd.text(z.union([z.literal('ADMIN'), z.literal('SUBMITTER'), z.literal('FEED')])),
 });
 
 const ServiceTokenCreateSchema = zfd.formData({

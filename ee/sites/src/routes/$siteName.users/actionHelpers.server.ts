@@ -25,7 +25,9 @@ export const ActionFormDataSchema = zfd
     // Accept either email or userId for backward compatibility and new search functionality
     email: zfd.text(z.email({ message: 'invalid email address' }).optional().or(z.literal(''))),
     userId: zfd.text(z.string().min(1).optional().or(z.literal(''))),
-    role: zfd.text(z.union([z.literal('ADMIN'), z.literal('SUBMITTER'), z.literal('MEMBER')])),
+    role: zfd.text(
+      z.union([z.literal('ADMIN'), z.literal('SUBMITTER'), z.literal('MEMBER'), z.literal('FEED')]),
+    ),
   })
   .refine(
     (item) => {
@@ -50,7 +52,7 @@ export const ActionFormDataSchema = zfd
 export type ParsedFormData = {
   email?: string;
   userId?: string;
-  role: 'ADMIN' | 'SUBMITTER' | 'MEMBER';
+  role: 'ADMIN' | 'SUBMITTER' | 'MEMBER' | 'FEED';
 };
 
 function isErrorResponse<T>(value: T | ReturnType<typeof data>): value is ReturnType<typeof data> {

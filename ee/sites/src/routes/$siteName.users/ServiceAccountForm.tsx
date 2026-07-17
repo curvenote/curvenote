@@ -4,16 +4,18 @@ import { useFetcher, useRevalidator } from 'react-router';
 import { formatDate, primitives, ui } from '@curvenote/scms-core';
 import { formatDistanceToNow } from 'date-fns';
 
-export type ServiceAccountRole = 'ADMIN' | 'SUBMITTER';
+export type ServiceAccountRole = 'ADMIN' | 'SUBMITTER' | 'FEED';
 
 const ROLE_LABELS: Record<ServiceAccountRole, string> = {
   ADMIN: 'Admin',
   SUBMITTER: 'Submitter',
+  FEED: 'Feed',
 };
 
 const ROLE_DESCRIPTIONS: Record<ServiceAccountRole, string> = {
   ADMIN: 'Full site access: manage settings, submissions, and publishing on behalf of the site.',
   SUBMITTER: 'Submit only: can create and update submissions but cannot manage other site data.',
+  FEED: 'Feed only: can read published submission history for ETL/feed consumers.',
 };
 
 export interface ServiceAccountTokenDTO {
@@ -174,6 +176,7 @@ function CreateServiceAccountForm({
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value as ServiceAccountRole)}
             >
+              <option value="FEED">Feed</option>
               <option value="SUBMITTER">Submitter</option>
               <option value="ADMIN">Admin</option>
             </select>

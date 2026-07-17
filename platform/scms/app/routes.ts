@@ -272,7 +272,13 @@ export default [
     ]),
 
     // ETL API Routes
-    route('etl/register-work', 'routes/api/v1.etl.register-work.tsx'),
+    ...prefix('etl', [
+      route('register-work', 'routes/api/v1.etl.register-work.tsx'),
+      route('history', 'routes/api/v1.etl.history.tsx'),
+    ]),
+
+    // Extension-owned v1 API routes (each extension supplies its own path prefix)
+    ...getRoutesForMountPoint('v1'),
 
     // Works API Routes
     route('works', 'routes/api/v1.works.tsx', [

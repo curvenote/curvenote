@@ -2,6 +2,7 @@ enum SiteRole {
   ADMIN
   SUBMITTER
   MEMBER
+  FEED // Read-only ETL history / feed access (site:history)
   PUBLIC // Role granted to all users for public sites
   UNRESTRICTED // Role granted to all users for sites without restricted submissions
 }

@@ -2,7 +2,7 @@ import { useFetcher } from 'react-router';
 import { ui, type GeneralError } from '@curvenote/scms-core';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
-type GrantSiteRole = 'ADMIN' | 'MEMBER' | 'SUBMITTER';
+type GrantSiteRole = 'ADMIN' | 'MEMBER' | 'SUBMITTER' | 'FEED';
 
 const ROLE_DESCRIPTIONS: Record<GrantSiteRole, string> = {
   ADMIN: 'Full access: manage site settings, users, submissions and publishing.',
@@ -10,6 +10,7 @@ const ROLE_DESCRIPTIONS: Record<GrantSiteRole, string> = {
     'Site/Lab Member: Can browse the site, kinds, collections, and submissions, and create new and update existig submissions. Members cannot publish submissions.',
   SUBMITTER:
     'Submit only: Can start new and update existing submissions on sites with restricted submissions. People with this role cannot list or view submissions or other site settings.',
+  FEED: 'Feed only: Can read published submission history for ETL/feed consumers. Cannot manage the site or create submissions.',
 };
 
 export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolean }) {
@@ -133,6 +134,7 @@ export function SiteRolesForm({ canGrantAdminRole }: { canGrantAdminRole: boolea
             {canGrantAdminRole && <option value="ADMIN">Admin</option>}
             <option value="MEMBER">Member</option>
             <option value="SUBMITTER">Submitter</option>
+            <option value="FEED">Feed</option>
           </select>
         </div>
 

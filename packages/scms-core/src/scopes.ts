@@ -6,6 +6,8 @@ export const site = {
   read: 'site:read',
   update: 'site:update',
   details: 'site:details', // App only scope
+  /** ETL published-history / feed consumers (SiteRole.FEED and other site roles). */
+  history: 'site:history',
   domains: {
     list: 'site:domains:list',
     create: 'site:domains:create',

@@ -1,14 +1,13 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from 'vitest';
-import { system, work } from '@curvenote/scms-core';
+import { site, work } from '@curvenote/scms-core';
 import { SystemRole, WorkRole } from '@curvenote/scms-db';
 import {
-  DEFAULT_SYSTEM_ROLE_SCOPES,
   getSystemRoleScopes,
   hasDefaultScopeViaSystemRole,
+  hasSiteScope,
   hasWorkScope,
   isSystemRole,
-  MACHINE_SYSTEM_ROLES,
   SYSTEM_ROLES,
 } from './roles.server.js';
 import { userHasScope } from './scopes.helpers.server.js';
@@ -59,24 +58,17 @@ describe('work role scope mapping', () => {
   });
 });
 
-describe('DEFAULT_SYSTEM_ROLE_SCOPES', () => {
-  test('SERVICE grants work.list and work.create only, not system.admin', () => {
-    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.SERVICE]).toEqual([work.list, work.create]);
-    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.SERVICE]).not.toContain(system.admin);
+describe('site role history scope', () => {
+  test('FEED grants only site:history', () => {
+    expect(hasSiteScope(SiteRole.FEED, site.history)).toBe(true);
+    expect(hasSiteScope(SiteRole.FEED, site.read)).toBe(false);
+    expect(hasSiteScope(SiteRole.FEED, site.submissions.create)).toBe(false);
   });
 
-  test('SYSTEM_SERVICE grants system.admin only', () => {
-    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.SYSTEM_SERVICE]).toEqual([system.admin]);
-  });
-
-  test('ADMIN retains system.admin', () => {
-    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.ADMIN]).toEqual([system.admin]);
-  });
-});
-
-describe('MACHINE_SYSTEM_ROLES', () => {
-  test('includes site and platform machine roles', () => {
-    expect(MACHINE_SYSTEM_ROLES).toEqual([SystemRole.SERVICE, SystemRole.SYSTEM_SERVICE]);
+  test('other site roles also grant site:history', () => {
+    for (const role of Object.values(SiteRole)) {
+      expect(hasSiteScope(role, site.history)).toBe(true);
+    }
   });
 });
 
