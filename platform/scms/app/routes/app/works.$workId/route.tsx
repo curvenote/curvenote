@@ -19,6 +19,7 @@ import {
   getPrismaClient,
   SiteContextWithUser,
   sites as siteLoaders,
+  createWorkVersionPreviewToken,
 } from '@curvenote/scms-server';
 import { seedArticleDraftMetadataFromSource } from './seedArticleDraftMetadata.server';
 import { Prisma } from '@curvenote/scms-db';
@@ -39,6 +40,7 @@ import {
   resolveSubmitToSiteExtension,
   BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
   buildWorkVersionNumberByIdMap,
+  WorkContents,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
 import {
@@ -613,6 +615,21 @@ export const loader = async (args: LoaderFunctionArgs) => {
     }),
   );
 
+  const webVersionPreviewSignatures: Record<string, string> = {};
+  for (const version of versionsForClient) {
+    const hasMystWeb =
+      Boolean(version.cdn?.trim()) &&
+      Boolean(version.cdn_key?.trim()) &&
+      Array.isArray(version.contains) &&
+      version.contains.includes(WorkContents.MYST);
+    if (!hasMystWeb) continue;
+    webVersionPreviewSignatures[version.id] = createWorkVersionPreviewToken(
+      version.id,
+      ctx.$config.api.previewIssuer,
+      ctx.$config.api.previewSigningSecret,
+    );
+  }
+
   const workOwnerName = await dbGetWorkOwnerName(ctx.work.id);
   const activities = await dbGetWorkActivities(ctx.work.id);
   const checkServiceRunsByWorkVersionId = await dbGetCheckServiceRunsByWorkVersionIds(versionIds);
@@ -677,6 +694,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     workflows,
     work,
     versions: versionsForClient,
+    webVersionPreviewSignatures,
     submissions: submissions ?? [],
     linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
     workOwnerName,

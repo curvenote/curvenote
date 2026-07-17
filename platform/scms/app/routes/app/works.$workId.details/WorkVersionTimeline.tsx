@@ -157,6 +157,8 @@ function getSortedSectionEntries(
 
 type WorkVersionTimelineProps = {
   versions: WorkVersionForDetailsClient[];
+  /** Preview JWTs keyed by workVersionId for MyST web Open links. */
+  webVersionPreviewSignatures: Record<string, string>;
   workflows: Record<string, Workflow>;
   /** Work owner display name; used for "Work version created by" */
   workOwnerName?: string | null;
@@ -188,6 +190,7 @@ export function WorkVersionTimeline(props: WorkVersionTimelineProps) {
 
 function WorkVersionTimelineInner({
   versions,
+  webVersionPreviewSignatures,
   workOwnerName,
   basePath,
   userScopes,
@@ -271,12 +274,15 @@ function WorkVersionTimelineInner({
               }
               if (entry.kind === 'web-version') {
                 const { version } = entry;
+                const previewSignature = webVersionPreviewSignatures[version.id];
+                if (!previewSignature) return null;
                 return (
                   <WebVersionCreatedTimelineItem
                     key={entry.key}
                     dateCreated={version.date_modified || version.date_created}
                     dateModified={version.date_modified}
                     workVersionId={version.id}
+                    previewSignature={previewSignature}
                   />
                 );
               }

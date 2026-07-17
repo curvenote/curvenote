@@ -1,38 +1,45 @@
-import { ArrowRight, Globe } from 'lucide-react';
+import { ExternalLink, Globe } from 'lucide-react';
 import { DateWithPopover, TimelineItemPlain, useDeploymentConfig, ui } from '@curvenote/scms-core';
 
 type WebVersionCreatedTimelineItemProps = {
   dateCreated: string;
   dateModified: string;
   workVersionId: string;
+  /** Preview JWT minted server-side for this work version. */
+  previewSignature: string;
 };
 
-function buildWebVersionPreviewHref(baseUrl: string, workVersionId: string): string {
+function buildWebVersionPreviewHref(
+  baseUrl: string,
+  workVersionId: string,
+  previewSignature: string,
+): string {
   const trimmed = baseUrl.replace(/\/$/, '');
-  return `${trimmed}/works/${workVersionId}`;
+  return `${trimmed}/previews/${workVersionId}?preview=${encodeURIComponent(previewSignature)}`;
 }
 
 /**
  * Timeline row when a work version has a MyST web build available.
- * Distinct from submission previews — opens the work web-version preview theme.
+ * Opens the work web-version preview theme with a signed preview token.
  */
 export function WebVersionCreatedTimelineItem({
   dateCreated,
   dateModified,
   workVersionId,
+  previewSignature,
 }: WebVersionCreatedTimelineItemProps) {
   const { webVersionPreviewUrl } = useDeploymentConfig();
-  const href = buildWebVersionPreviewHref(webVersionPreviewUrl, workVersionId);
+  const href = buildWebVersionPreviewHref(webVersionPreviewUrl, workVersionId, previewSignature);
 
   const date = (
     <DateWithPopover date={dateCreated} dateCreated={dateCreated} dateModified={dateModified} />
   );
 
   const trailing = (
-    <ui.Button variant="outline" size="sm" className="gap-1.5" asChild>
+    <ui.Button variant="link" asChild className="h-auto gap-1 p-0">
       <a href={href} target="_blank" rel="noopener noreferrer">
         Open
-        <ArrowRight className="size-3.5" aria-hidden />
+        <ExternalLink className="size-3.5" aria-hidden />
       </a>
     </ui.Button>
   );

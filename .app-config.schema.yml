@@ -622,7 +622,7 @@ properties:
         description: >
           Base URL of the work web-version preview theme (distinct from submission
           renderServiceUrl). Timeline "Open" links use
-          {webVersionPreviewUrl}/works/{workVersionId}.
+          {webVersionPreviewUrl}/previews/{workVersionId}?preview={token}.
       statusBar:
         type: object
         description: Configuration for the status bar at the bottom of the application

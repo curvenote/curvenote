@@ -33,6 +33,8 @@ import { SiteContext } from '../../context.site.server.js';
 import { formatSubmissionKindSummaryDTO } from '../sites/kinds/get.server.js';
 import { formatCollectionSummaryDTO } from '../sites/get.server.js';
 import { fetchWorkVersionSubjects } from '../../work-version-subject.server.js';
+import { WORK_VERSION_PREVIEW_SCOPE } from '../../sign.previews.server.js';
+import getWorkVersionPreview from './get.work-version.server.js';
 
 export async function dbGetSubmissionVersion(id: string) {
   const prisma = await getPrismaClient();
@@ -80,19 +82,21 @@ function formatPreviewDTO(
 }
 
 /**
- * This handler is not scoped to a site, so submissions are always assumed private
- * and signed
+ * Preview loader for `/previews/:id`.
  *
- * @param ctx
- * @param submissionVersionId
- * @returns
+ * - Work-version tokens (`scope: work_version`) load CDN-backed MyST for that work version.
+ * - Otherwise treats `:id` as a submissionVersionId (submission-scoped token or site user).
  */
 export default async function (
   ctx: Context,
-  submissionVersionId: string,
+  previewId: string,
 ): Promise<Omit<SubmissionVersionDTO, 'site_work'> & { site_work: ModifiedSiteWorkDTO }> {
+  if (ctx.claims.preview?.scope === WORK_VERSION_PREVIEW_SCOPE) {
+    return getWorkVersionPreview(ctx, previewId);
+  }
+
   if (!ctx.authorized.preview && !ctx.user) throw error401(); // TODO user scopes for this site, admin permissions etc...
-  const dbo = await dbGetSubmissionVersion(submissionVersionId);
+  const dbo = await dbGetSubmissionVersion(previewId);
   if (!dbo) throw error404();
 
   const previewSignatureHasCorrectScopeId =
