@@ -4,7 +4,7 @@ import path from 'node:path';
 import { loadAllJsonFilesFromDir, seedBySites, seedCronTickConfig, seedJobQueueDrainConfig } from './seed.utils.mjs';
 import idPool from './ids.json';
 import { uuidv7 } from 'uuidv7';
-import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/systemRoleDefaults.js';
+import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/roles.server.js';
 
 const QUIET = true; // Set to true to suppress console output
 
@@ -25,14 +25,19 @@ async function main() {
   const dateTwo = new Date(2023, 1, 2);
   const dateTwoString = dateTwo.toISOString();
 
-  await prisma.user.create({
-    data: {
+  await prisma.user.upsert({
+    where: { id: '018b9034-d660-7a20-9135-5794c1eb0bfb' },
+    create: {
       date_created: dateOneString,
       date_modified: dateOneString,
       id: '018b9034-d660-7a20-9135-5794c1eb0bfb',
       email: 'submissions@curvenote.com',
       display_name: 'Curvenote Submissions',
-      system_role: SystemRole.SERVICE,
+      system_role: SystemRole.SYSTEM_SERVICE,
+    },
+    update: {
+      system_role: SystemRole.SYSTEM_SERVICE,
+      date_modified: dateOneString,
     },
   });
 

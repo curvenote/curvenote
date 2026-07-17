@@ -1,4 +1,4 @@
-import { getPrismaClient } from '@curvenote/scms-server';
+import { getPrismaClient, MACHINE_SYSTEM_ROLES } from '@curvenote/scms-server';
 import Fuse from 'fuse.js';
 
 /**
@@ -6,7 +6,7 @@ import Fuse from 'fuse.js';
  * 1. Pre-filters candidates using database ILIKE for performance
  * 2. Uses Fuse.js for sophisticated fuzzy ranking and typo tolerance
  * Searches over display_name, username, and email fields with partial matching
- * Excludes: disabled accounts, users without email, and SERVICE system role accounts
+ * Excludes: disabled accounts, users without email, and machine system role accounts
  */
 export async function dbSearchUsers(
   query: string,
@@ -34,7 +34,7 @@ export async function dbSearchUsers(
       AND: [
         { disabled: false },
         { email: { not: null } },
-        { system_role: { not: 'SERVICE' } }, // Exclude service accounts
+        { system_role: { notIn: [...MACHINE_SYSTEM_ROLES] } }, // Exclude machine accounts
         {
           OR: [
             { display_name: { contains: searchQuery, mode: 'insensitive' } },

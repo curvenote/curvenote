@@ -1,7 +1,6 @@
 import { SiteRole, SystemRole, WorkRole } from '@curvenote/scms-db';
-import { site, work } from '@curvenote/scms-core';
+import { app, system, site, work } from '@curvenote/scms-core';
 import { getPrismaClient } from './prisma.server.js';
-import { DEFAULT_SYSTEM_ROLE_SCOPES } from './systemRoleDefaults.js';
 
 export const SCOPE_FORMAT_REGEX = /^[a-z]+(?::[a-z0-9-]+)+$/;
 
@@ -19,6 +18,35 @@ export function isSystemRole(value: string): value is SystemRole {
 export const SYSTEM_ROLES: readonly SystemRole[] = Object.freeze(
   Object.values(SystemRole) as SystemRole[],
 );
+
+/** Machine users excluded from people search and similar human-facing listings. */
+export const MACHINE_SYSTEM_ROLES: readonly SystemRole[] = [
+  SystemRole.SERVICE,
+  SystemRole.SYSTEM_SERVICE,
+];
+
+export const DEFAULT_SYSTEM_ROLE_SCOPES: Record<SystemRole, string[]> = {
+  [SystemRole.SYSTEM_SERVICE]: [system.admin],
+  [SystemRole.ADMIN]: [system.admin],
+  [SystemRole.SERVICE]: [work.list, work.create],
+  [SystemRole.USER]: [
+    work.list,
+    app.works.feature,
+    app.sites.feature,
+    app.sites.request,
+    app.dashboard.feature,
+    app.settings.feature,
+    app.settings.linkedAccounts.read,
+    app.settings.linkedAccounts.manage,
+    app.settings.tokens.read,
+    app.settings.tokens.manage,
+    app.settings.emails.read,
+    app.settings.emails.update,
+    app.settings.account.read,
+    app.settings.account.update,
+  ],
+  [SystemRole.ANON]: [],
+};
 
 export function processScopes(scopes: unknown): string[] {
   if (!Array.isArray(scopes)) return [];

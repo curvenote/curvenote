@@ -325,7 +325,7 @@ interface SystemRoleScopesEditorProps {
 }
 
 export function SystemRoleScopesEditor({ roles, extensionScopes }: SystemRoleScopesEditorProps) {
-  const roleOrder = useMemo(() => ['ANON', 'USER', 'ADMIN', 'SERVICE'], []);
+  const roleOrder = useMemo(() => ['ANON', 'USER', 'ADMIN', 'SERVICE', 'SYSTEM_SERVICE'], []);
   const orderedRoles = useMemo(() => {
     const rank = new Map<string, number>(roleOrder.map((role, index) => [role, index]));
     return [...roles].sort((a, b) => {

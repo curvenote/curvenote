@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { loadAllJsonFilesFromDir, seedBySites, seedCronTickConfig, seedJobQueueDrainConfig } from './seed.utils.mjs';
 import { uuidv7 } from 'uuidv7';
-import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/systemRoleDefaults.js';
+import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/roles.server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +35,25 @@ async function main() {
   const startDateString = startDate.toISOString();
 
   console.log('👥 Creating users...');
+
+  // Migration 20231102145516 inserts this platform SA as SERVICE; promote for local dev.
+  const submissionsSa = await prisma.user.upsert({
+    where: { id: '018b9034-d660-7a20-9135-5794c1eb0bfb' },
+    create: {
+      date_created: startDateString,
+      date_modified: startDateString,
+      id: '018b9034-d660-7a20-9135-5794c1eb0bfb',
+      email: 'submissions@curvenote.com',
+      display_name: 'Curvenote Submissions',
+      system_role: SystemRole.SYSTEM_SERVICE,
+    },
+    update: {
+      system_role: SystemRole.SYSTEM_SERVICE,
+      date_modified: startDateString,
+    },
+  });
+  summary.users++;
+  console.log(`   ✓ Ensured user: ${submissionsSa.display_name} (${submissionsSa.email}) [SYSTEM_SERVICE]`);
 
   const rowanStaging = await prisma.user.create({
     data: {

@@ -1,5 +1,6 @@
 enum SystemRole {
   SERVICE
+  SYSTEM_SERVICE
   ADMIN
   USER
   ANON
