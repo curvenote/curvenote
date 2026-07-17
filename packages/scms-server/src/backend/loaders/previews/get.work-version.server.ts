@@ -36,7 +36,7 @@ type WorkVersionPreviewDBO = Prisma.WorkVersionGetPayload<{
 
 /**
  * Load a work version for token-gated MyST web preview (no submission required).
- * Auth is preview-token only: aud `scms-work-preview`, scope `work`,
+ * Auth is preview-token only: aud `scms-work-preview`, scope `work_version`,
  * scopeId === workVersionId.
  */
 export default async function getWorkVersionPreview(

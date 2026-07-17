@@ -14,7 +14,7 @@ describe('work version preview tokens', () => {
   const key = 'test-signing-secret';
   const workVersionId = '11111111-1111-1111-1111-111111111111';
 
-  it('mints a token with work scope and scms-work-preview audience', () => {
+  it('mints a token with work_version scope and scms-work-preview audience', () => {
     const token = createWorkVersionPreviewToken(workVersionId, issuer, key);
     const claims = verifyPreviewToken(token, issuer, key);
     expect(claims.aud).toBe(WORK_VERSION_PREVIEW_AUDIENCE);

@@ -8,7 +8,7 @@ export const SUBMISSION_PREVIEW_AUDIENCE = 'scms-preview';
 export const WORK_VERSION_PREVIEW_AUDIENCE = 'scms-work-preview';
 
 /** Preview JWT scope for a work version (path id === scopeId). */
-export const WORK_VERSION_PREVIEW_SCOPE = 'work';
+export const WORK_VERSION_PREVIEW_SCOPE = 'work_version';
 
 /** Preview JWT scope for a submission (scopeId === submissionId; path is submissionVersionId). */
 export const SUBMISSION_PREVIEW_SCOPE = 'submission';
