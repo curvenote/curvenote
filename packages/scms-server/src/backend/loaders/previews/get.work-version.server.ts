@@ -103,6 +103,7 @@ function formatWorkVersionAsSiteWorkDTO(
   let social: string | undefined;
   let config: string | undefined;
   let cdn_query: string | undefined;
+  let resolvedCdn = cdn ?? undefined;
   if (cdn_key && cdn) {
     const signed = signPrivateUrls(
       ctx,
@@ -114,13 +115,14 @@ function formatWorkVersionAsSiteWorkDTO(
     social = signed.social;
     config = signed.config;
     cdn_query = signed.host.query;
+    resolvedCdn = signed.host.cdn;
   }
 
   return {
     id: work_id,
     version_id,
     submission_version_id: version_id,
-    cdn: cdn ?? undefined,
+    cdn: resolvedCdn,
     cdn_key: cdn_key ?? undefined,
     doi: doi ?? undefined,
     key: dbo.work.key ?? undefined,

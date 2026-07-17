@@ -1,4 +1,5 @@
 import type { HostSpec } from '@curvenote/common';
+import { ensureTrailingSlash } from '@curvenote/scms-core';
 import { createHmac } from 'crypto';
 import type { DBO as SiteDBO } from './loaders/sites/get.server.js';
 import NodeCache from 'node-cache';
@@ -51,7 +52,9 @@ export function getSignedCDNQuery(ctx: Context, baseUrl: string) {
 const cache = new NodeCache({ stdTTL: 60 * 60 * 12, checkperiod: 60, maxKeys: 1000 });
 
 /**
- * Will automatically sign urls for known private CDNs
+ * Will automatically sign urls for known private CDNs.
+ * Normalizes CDN base with a trailing slash so lookups match `privateCdnUrls()`
+ * and path joins do not drop the slash before `cdn_key`.
  *
  * @param host
  * @param thumbnail
@@ -59,15 +62,17 @@ const cache = new NodeCache({ stdTTL: 60 * 60 * 12, checkperiod: 60, maxKeys: 10
  * @returns
  */
 export function signPrivateUrls(ctx: Context, host: HostSpec, thumbnail: string, social: string) {
-  const { cdn, key } = host;
+  const cdn = ensureTrailingSlash(host.cdn);
+  const { key } = host;
   const cdnBaseUrl = `${cdn}${key.replace(/\./g, '/')}/`;
+  const normalizedHost = { ...host, cdn };
 
   let query;
   if (cache.has(cdnBaseUrl)) {
     query = cache.get(cdnBaseUrl);
   } else {
-    if (!ctx.privateCdnUrls().has(host.cdn))
-      return { host, thumbnail, social, config: `${cdnBaseUrl}config.json` };
+    if (!ctx.privateCdnUrls().has(cdn))
+      return { host: normalizedHost, thumbnail, social, config: `${cdnBaseUrl}config.json` };
 
     query = getSignedCDNQuery(ctx, cdnBaseUrl);
     cache.set(cdnBaseUrl, query);
