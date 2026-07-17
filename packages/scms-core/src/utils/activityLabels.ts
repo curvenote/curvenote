@@ -51,8 +51,8 @@ export function formatCheckKind(checkKind: string): string {
  * Resolve an activity type (and optional data/transition payload) to a display label.
  * Use this in activity feeds and timelines so labels stay in one place.
  * CHECK_STARTED: use options.data?.check?.kind for check kind.
- * CONVERTER_TASK_STARTED: use options.data?.converter?.target and options.data?.converter?.type.
- * CONVERTER_TASK_COMPLETED / CONVERTER_TASK_FAILED: same converter fields; FAILED may include data.error.
+ * CONVERTER_TASK_*: use options.data?.converter?.target (pdf|web); conversion type is internal only.
+ * CONVERTER_TASK_FAILED may include data.error.
  */
 export function getActivityTypeLabel(
   activityType: string,
@@ -79,15 +79,13 @@ export function getActivityTypeLabel(
     converter
   ) {
     const target = converter.target ?? 'document';
-    const type = converter.type ?? '';
-    const suffix = type ? ` (${type})` : '';
     if (activityType === 'CONVERTER_TASK_STARTED') {
-      return `${target} conversion${suffix} started`;
+      return `${target} conversion started`;
     }
     if (activityType === 'CONVERTER_TASK_COMPLETED') {
-      return `${target} conversion${suffix} completed`;
+      return `${target} conversion completed`;
     }
-    return `${target} conversion${suffix} failed`;
+    return `${target} conversion failed`;
   }
   if (options?.data?.transition_cancelled === true) {
     const jobType = options.data.job_type;
