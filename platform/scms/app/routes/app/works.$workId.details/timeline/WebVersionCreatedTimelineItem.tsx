@@ -22,22 +22,20 @@ export function WebVersionCreatedTimelineItem({
   workVersionId,
 }: WebVersionCreatedTimelineItemProps) {
   const { webVersionPreviewUrl } = useDeploymentConfig();
-  const href = webVersionPreviewUrl
-    ? buildWebVersionPreviewHref(webVersionPreviewUrl, workVersionId)
-    : undefined;
+  const href = buildWebVersionPreviewHref(webVersionPreviewUrl, workVersionId);
 
   const date = (
     <DateWithPopover date={dateCreated} dateCreated={dateCreated} dateModified={dateModified} />
   );
 
-  const trailing = href ? (
+  const trailing = (
     <ui.Button variant="outline" size="sm" className="gap-1.5" asChild>
       <a href={href} target="_blank" rel="noopener noreferrer">
         Open
         <ArrowRight className="size-3.5" aria-hidden />
       </a>
     </ui.Button>
-  ) : undefined;
+  );
 
   return (
     <TimelineItemPlain

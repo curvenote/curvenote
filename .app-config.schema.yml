@@ -496,6 +496,7 @@ properties:
       - adminUrl
       - editorUrl
       - navigation
+      - webVersionPreviewUrl
     properties:
       supportEmail:
         type: string
