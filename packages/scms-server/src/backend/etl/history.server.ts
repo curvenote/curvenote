@@ -103,7 +103,10 @@ export async function etlHistoryFromRequest(request: Request): Promise<Response>
     status: 'PUBLISHED' as const,
     date_created: { gte: since },
     submission: { site_id: authorizedSite.id },
-    work_version: { doi: { not: null } },
+    // Keep count/take aligned with items (loop also skips blank DOIs after trim).
+    work_version: {
+      AND: [{ doi: { not: null } }, { doi: { not: '' } }],
+    },
   };
 
   const [rows, total] = await Promise.all([
