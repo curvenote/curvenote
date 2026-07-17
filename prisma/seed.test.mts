@@ -32,7 +32,7 @@ async function main() {
       id: '018b9034-d660-7a20-9135-5794c1eb0bfb',
       email: 'submissions@curvenote.com',
       display_name: 'Curvenote Submissions',
-      system_role: SystemRole.SERVICE,
+      system_role: SystemRole.SYSTEM_SERVICE,
     },
   });
 
