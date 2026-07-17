@@ -111,7 +111,8 @@ export async function etlHistoryFromRequest(request: Request): Promise<Response>
     status: 'PUBLISHED' as const,
     date_created: { gte: since },
     submission: { site_id: authorizedSite.id },
-    // Keep count/take aligned with items (loop also skips blank DOIs after trim).
+    // Exclude null/empty DOIs so count, take, and items stay aligned.
+    // Writers (e.g. ETL register-work) trim before save; whitespace-only DOIs are not expected.
     work_version: {
       AND: [{ doi: { not: null } }, { doi: { not: '' } }],
     },
@@ -132,18 +133,16 @@ export async function etlHistoryFromRequest(request: Request): Promise<Response>
     prisma.submissionVersion.count({ where }),
   ]);
 
-  const items: EtlHistoryItem[] = [];
-  for (const row of rows) {
-    const doi = row.work_version.doi?.trim();
-    if (!doi) continue;
+  const items: EtlHistoryItem[] = rows.map((row) => {
     const item: EtlHistoryItem = {
-      doi,
+      // Non-null/non-empty from `where`; trim only for response normalization.
+      doi: row.work_version.doi!.trim(),
       date_created: row.date_created,
     };
     const version = pickEtlHistoryVersion(row.tags);
     if (version) item.version = version;
-    items.push(item);
-  }
+    return item;
+  });
 
   const dto: EtlHistoryListingDTO = {
     items,
