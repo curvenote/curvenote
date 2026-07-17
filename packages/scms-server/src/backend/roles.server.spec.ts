@@ -1,12 +1,14 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from 'vitest';
-import { work } from '@curvenote/scms-core';
+import { system, work } from '@curvenote/scms-core';
 import { SystemRole, WorkRole } from '@curvenote/scms-db';
 import {
+  DEFAULT_SYSTEM_ROLE_SCOPES,
   getSystemRoleScopes,
   hasDefaultScopeViaSystemRole,
   hasWorkScope,
   isSystemRole,
+  MACHINE_SYSTEM_ROLES,
   SYSTEM_ROLES,
 } from './roles.server.js';
 import { userHasScope } from './scopes.helpers.server.js';
@@ -54,6 +56,27 @@ describe('work role scope mapping', () => {
     expect(hasWorkScope(WorkRole.VIEWER, work.id.checks.dispatch)).toBe(false);
     expect(hasWorkScope(WorkRole.VIEWER, work.id.checks.read)).toBe(true);
     expect(hasWorkScope(WorkRole.CONTRIBUTOR, work.id.checks.read)).toBe(true);
+  });
+});
+
+describe('DEFAULT_SYSTEM_ROLE_SCOPES', () => {
+  test('SERVICE grants work.list and work.create only, not system.admin', () => {
+    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.SERVICE]).toEqual([work.list, work.create]);
+    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.SERVICE]).not.toContain(system.admin);
+  });
+
+  test('SYSTEM_SERVICE grants system.admin only', () => {
+    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.SYSTEM_SERVICE]).toEqual([system.admin]);
+  });
+
+  test('ADMIN retains system.admin', () => {
+    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.ADMIN]).toEqual([system.admin]);
+  });
+});
+
+describe('MACHINE_SYSTEM_ROLES', () => {
+  test('includes site and platform machine roles', () => {
+    expect(MACHINE_SYSTEM_ROLES).toEqual([SystemRole.SERVICE, SystemRole.SYSTEM_SERVICE]);
   });
 });
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { loadAllJsonFilesFromDir, seedBySites, seedCronTickConfig, seedJobQueueDrainConfig } from './seed.utils.mjs';
 import idPool from './ids.json';
 import { uuidv7 } from 'uuidv7';
-import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/systemRoleDefaults.js';
+import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/roles.server.js';
 
 const QUIET = true; // Set to true to suppress console output
 
