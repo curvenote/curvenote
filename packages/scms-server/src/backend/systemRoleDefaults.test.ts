@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from 'vitest';
 import { SystemRole } from '@curvenote/scms-db';
 import { system } from '@curvenote/scms-core';

@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from 'vitest';
 import {
   ETL_HISTORY_DEFAULT_SINCE_HOURS,
