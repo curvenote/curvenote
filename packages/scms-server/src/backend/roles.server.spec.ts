@@ -60,6 +60,8 @@ describe('work role scope mapping', () => {
 describe('default system role scope mapping', () => {
   test('uses default hardcoded mapping by default', () => {
     expect(hasDefaultScopeViaSystemRole(SystemRole.ADMIN, 'system:admin')).toBe(true);
+    expect(hasDefaultScopeViaSystemRole(SystemRole.SYSTEM_SERVICE, 'system:admin')).toBe(true);
+    expect(hasDefaultScopeViaSystemRole(SystemRole.SERVICE, 'system:admin')).toBe(false);
     expect(hasDefaultScopeViaSystemRole(SystemRole.ADMIN, 'app:settings:read')).toBe(false);
   });
 
