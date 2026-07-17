@@ -2,8 +2,6 @@
 name: Curvenote Platform
 api:
   previewIssuer: http://localhost:3031
-  previewAudience: scms-preview
-  workPreviewAudience: scms-work-preview
   handshakeIssuer: http://localhost:3031
   databaseUrl: 'postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0'
   pubsubProjectId: project-1

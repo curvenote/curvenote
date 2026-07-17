@@ -627,7 +627,6 @@ export const loader = async (args: LoaderFunctionArgs) => {
       version.id,
       ctx.$config.api.previewIssuer,
       ctx.$config.api.previewSigningSecret,
-      ctx.$config.api.workPreviewAudience,
     );
   }
 

@@ -9,20 +9,20 @@ import type { Context } from '../../context.server.js';
 import { formatAuthorDTO } from '../../format.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
 import { siteWorkWorkVersionWithWorkSelect } from '../../prisma.selects.server.js';
-import { WORK_VERSION_PREVIEW_SCOPE } from '../../sign.previews.server.js';
+import { WORK_VERSION_PREVIEW_AUDIENCE, WORK_VERSION_PREVIEW_SCOPE } from '../../sign.previews.server.js';
 import { signPrivateUrls } from '../../sign.private.server.js';
 import { fetchWorkVersionSubjects } from '../../work-version-subject.server.js';
 import type { ModifiedSiteWorkDTO } from '../sites/submissions/published/get.server.js';
 
 const WORK_VERSION_PREVIEW_KIND: SubmissionKindSummaryDTO = {
-  id: 'scms-work-preview',
+  id: WORK_VERSION_PREVIEW_AUDIENCE,
   name: 'Article',
   content: {},
   default: true,
 };
 
 const WORK_VERSION_PREVIEW_COLLECTION = {
-  id: 'scms-work-preview',
+  id: WORK_VERSION_PREVIEW_AUDIENCE,
   name: 'preview',
   slug: 'preview',
   content: {},
@@ -36,7 +36,7 @@ type WorkVersionPreviewDBO = Prisma.WorkVersionGetPayload<{
 
 /**
  * Load a work version for token-gated MyST web preview (no submission required).
- * Auth is preview-token only: aud `api.workPreviewAudience`, scope `work_version`,
+ * Auth is preview-token only: aud `scms-work-preview`, scope `work`,
  * scopeId === workVersionId.
  */
 export default async function getWorkVersionPreview(
@@ -48,7 +48,7 @@ export default async function getWorkVersionPreview(
   const claims = ctx.claims.preview;
   if (
     !claims ||
-    claims.aud !== ctx.$config.api.workPreviewAudience ||
+    claims.aud !== WORK_VERSION_PREVIEW_AUDIENCE ||
     claims.scope !== WORK_VERSION_PREVIEW_SCOPE ||
     claims.scopeId !== workVersionId
   ) {

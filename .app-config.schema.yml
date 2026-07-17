@@ -214,8 +214,6 @@ properties:
       - propertyPublicKey
       - databaseUrl
       - previewIssuer
-      - previewAudience
-      - workPreviewAudience
       - handshakeIssuer
       - userTokenAudience
       - sessionTokenAudience
@@ -345,16 +343,6 @@ properties:
       previewIssuer:
         type: string
         description: Issuer (`iss`) claim on preview JWTs.
-      previewAudience:
-        type: string
-        description: >
-          Audience (`aud`) for submission-version preview JWTs minted from site
-          UIs and other submission preview call sites.
-      workPreviewAudience:
-        type: string
-        description: >
-          Audience (`aud`) for work-version preview JWTs minted from work details
-          UIs (dedicated work preview theme).
       handshakeIssuer:
         type: string
       userTokenAudience:

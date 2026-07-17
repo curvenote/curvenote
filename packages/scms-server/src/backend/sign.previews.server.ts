@@ -1,8 +1,14 @@
 import jwt from 'jsonwebtoken';
 import { isPast } from 'date-fns';
 
+/** Audience for submission-version preview JWTs (site UIs / render theme). */
+export const SUBMISSION_PREVIEW_AUDIENCE = 'scms-preview';
+
+/** Audience for work-version preview JWTs (dedicated work preview theme). */
+export const WORK_VERSION_PREVIEW_AUDIENCE = 'scms-work-preview';
+
 /** Preview JWT scope for a work version (path id === scopeId). */
-export const WORK_VERSION_PREVIEW_SCOPE = 'work_version';
+export const WORK_VERSION_PREVIEW_SCOPE = 'work';
 
 /** Preview JWT scope for a submission (scopeId === submissionId; path is submissionVersionId). */
 export const SUBMISSION_PREVIEW_SCOPE = 'submission';
@@ -17,18 +23,13 @@ export interface PreviewSignatureClaims {
 
 /**
  * Mint a preview JWT for a submission-version MyST site.
- * Audience should be `api.previewAudience`.
+ * Claims: aud `scms-preview`, scope `submission`, scopeId = submissionId.
  */
-export function createPreviewToken(
-  audience: string,
-  submissionId: string,
-  issuer: string,
-  key: string,
-) {
+export function createPreviewToken(submissionId: string, issuer: string, key: string) {
   const claims: PreviewSignatureClaims = {
     iss: issuer,
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 5, // 5 days until we get magic links - 24 hours
-    aud: audience,
+    aud: SUBMISSION_PREVIEW_AUDIENCE,
     scope: SUBMISSION_PREVIEW_SCOPE,
     scopeId: submissionId,
   };
@@ -40,18 +41,13 @@ export function createPreviewToken(
 
 /**
  * Mint a preview JWT for a work-version MyST site (no submission/site required).
- * Path: `/previews/{workVersionId}?preview={token}` with aud from `api.workPreviewAudience`.
+ * Path: `/previews/{workVersionId}?preview={token}` with aud `scms-work-preview`.
  */
-export function createWorkVersionPreviewToken(
-  workVersionId: string,
-  issuer: string,
-  key: string,
-  audience: string,
-) {
+export function createWorkVersionPreviewToken(workVersionId: string, issuer: string, key: string) {
   const claims: PreviewSignatureClaims = {
     iss: issuer,
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 5,
-    aud: audience,
+    aud: WORK_VERSION_PREVIEW_AUDIENCE,
     scope: WORK_VERSION_PREVIEW_SCOPE,
     scopeId: workVersionId,
   };

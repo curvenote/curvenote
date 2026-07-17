@@ -11,7 +11,6 @@ describe('previews.get', () => {
     const submissionId = '012a7a68-9040-4309-953d-14df979085c7';
     // const submissionVersionId = '1f099950-976f-4f85-96fe-55db50d69d6b';
     previewSignature = createPreviewToken(
-      'scms-preview',
       submissionId,
       'http://localhost:3031',
       'qwerty',

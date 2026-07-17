@@ -18,8 +18,6 @@ export function createMockConfig() {
       privateCDNSigningInfo: {},
       privateSiteClaimSubject: 'test-subject',
       previewIssuer: 'test-issuer',
-      previewAudience: 'scms-preview',
-      workPreviewAudience: 'scms-work-preview',
       previewSigningSecret: 'test-secret',
       handshakeIssuer: 'test-issuer',
       handshakeSigningSecret: 'test-secret',
