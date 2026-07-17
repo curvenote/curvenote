@@ -272,7 +272,10 @@ export default [
     ]),
 
     // ETL API Routes
-    route('etl/register-work', 'routes/api/v1.etl.register-work.tsx'),
+    ...prefix('etl', [
+      route('register-work', 'routes/api/v1.etl.register-work.tsx'),
+      route('history', 'routes/api/v1.etl.history.tsx'),
+    ]),
 
     // Works API Routes
     route('works', 'routes/api/v1.works.tsx', [
