@@ -133,17 +133,11 @@ export async function cloneDraftWorkVersionFromSource(
       where: { id: args.workId },
       select: {
         contains: true,
-        versions: {
-          orderBy: { date_created: 'desc' },
-          take: 1,
-          select: { contains: true },
-        },
       },
     });
     if (!existing) throw error404();
 
-    const previousVersionContains = existing.versions[0]?.contains ?? source.contains ?? [];
-    const versionContains = draftUploadVersionContains(previousVersionContains);
+    const versionContains = draftUploadVersionContains();
     const workContains = mergeWorkContains(existing.contains, versionContains);
     const seedMetadata = args.seedMetadataFromSource ?? baseSeedDraftMetadataFromSource;
     const versionMetadata = seedMetadata(source.metadata);

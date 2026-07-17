@@ -9,13 +9,13 @@ export function resolveVersionContains(
   return Array.from(new Set(requested));
 }
 
-/** Upload-new-version draft: carry forward the prior version labels and mark FILES. */
-export function draftUploadVersionContains(previousVersionContains: string[]): string[] {
-  const labels = [...previousVersionContains];
-  if (!labels.includes(WorkContents.FILES)) {
-    labels.push(WorkContents.FILES);
-  }
-  return Array.from(new Set(labels));
+/**
+ * UI-driven draft upload / create-new-version: do not inherit prior version labels
+ * (especially `myst`). New drafts start as files-only; converter merges `myst` later.
+ * CLI register/push use {@link resolveVersionContains} / explicit `['myst']` instead.
+ */
+export function draftUploadVersionContains(): string[] {
+  return [WorkContents.FILES];
 }
 
 export function mergeWorkContains(
