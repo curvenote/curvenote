@@ -277,6 +277,9 @@ export default [
       route('history', 'routes/api/v1.etl.history.tsx'),
     ]),
 
+    // Extension-owned v1 API routes (each extension supplies its own path prefix)
+    ...getRoutesForMountPoint('v1'),
+
     // Works API Routes
     route('works', 'routes/api/v1.works.tsx', [
       route('key/:keyName', 'routes/api/v1.works.key.$keyName.tsx'),
