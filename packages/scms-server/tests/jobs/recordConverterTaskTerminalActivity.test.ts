@@ -29,7 +29,7 @@ function makeJob(overrides: Partial<Job> = {}): Job {
     payload: {
       work_version_id: 'wv-1',
       target: 'pdf',
-      conversion_type: 'docx-pandoc-myst-pdf',
+      conversion_type: 'docx-pd-curvenote-pdf',
     },
     results: null,
     messages: [],
@@ -81,7 +81,7 @@ describe('recordConverterTaskTerminalActivity', () => {
       activityById: 'user-1',
       activityType: 'CONVERTER_TASK_COMPLETED',
       data: {
-        converter: { target: 'pdf', type: 'docx-pandoc-myst-pdf' },
+        converter: { target: 'pdf', type: 'docx-pd-curvenote-pdf' },
         job_id: 'job-1',
       },
     });

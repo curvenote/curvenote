@@ -1,7 +1,7 @@
 import { coerceToObject } from '@curvenote/scms-core';
 
 export const DEFAULT_CONVERTER_TARGET = 'pdf';
-export const DEFAULT_CONVERSION_TYPE = 'docx-pandoc-myst-pdf';
+export const DEFAULT_CONVERSION_TYPE = 'docx-pd-curvenote-pdf';
 
 export type ConverterActivityData = {
   target: string;

@@ -1,5 +1,5 @@
 /**
- * Run `curvenote build` to produce `_build/site` (MyST web site).
+ * Run `curvenote build` to produce `_build/site` (web article).
  */
 
 import fs from 'node:fs/promises';

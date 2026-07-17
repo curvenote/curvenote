@@ -9,7 +9,7 @@ import { signPrivateUrls } from '../../sign.private.server.js';
 import { formatWorkDTO } from '../works/get.server.js';
 
 /**
- * Load a work version for MyST web preview (no submission/site).
+ * Load a work version for web article preview (no submission/site).
  * Caller must validate preview token claims (aud, scope, scopeId === workVersionId).
  */
 export default async function getWorkVersionPreview(

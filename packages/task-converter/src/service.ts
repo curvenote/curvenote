@@ -3,8 +3,8 @@
  *
  * Node.js server for the SCMS converter (Cloud Run style). Validates incoming
  * POST payload (target, conversionType, workVersion, optional filename), routes
- * to the appropriate HAT conversion handler (e.g. docx-pandoc-myst-pdf,
- * docx-lowriter-pdf, or docx-pandoc-myst-web), then uploads outputs and updates
+ * to the appropriate HAT conversion handler (e.g. docx-pd-curvenote-pdf,
+ * docx-lowriter-pdf, or docx-pd-curvenote-web), then uploads outputs and updates
  * work version state. Handlers return an export/site path; the service signals
  * job completed.
  */
@@ -45,7 +45,7 @@ export function createService() {
 
         if (!validatePayload(payload)) {
           throw new Error(
-            'Invalid payload: required workVersion (object with id, work_id, title, authors), target matching conversionType (pdf|web), conversionType one of (docx-pandoc-myst-pdf, docx-lowriter-pdf, docx-pandoc-myst-web), and metadata as object',
+            'Invalid payload: required workVersion (object with id, work_id, title, authors), target matching conversionType (pdf|web), conversionType one of (docx-pd-curvenote-pdf, docx-lowriter-pdf, docx-pd-curvenote-web; legacy aliases docx-pandoc-myst-pdf, docx-pandoc-myst-web also accepted), and metadata as object',
           );
         }
 
@@ -57,7 +57,9 @@ export function createService() {
         const exportPath = await handler(ctx);
 
         const completedMessage =
-          payload.target === 'web' ? 'MyST site conversion completed' : 'PDF conversion completed';
+          payload.target === 'web'
+            ? 'Web article conversion completed'
+            : 'PDF conversion completed';
         await client.jobs.completed(res, completedMessage, {
           taskId,
           workVersionId: workVersion.id,

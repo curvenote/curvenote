@@ -1,7 +1,8 @@
 /**
- * HAT conversion handler: docx-pandoc-myst-web
+ * HAT conversion handler: docx-pd-curvenote-web
+ * (legacy alias: docx-pandoc-myst-web)
  *
- * Word → Pandoc (→ Markdown) → MyST site build → upload `_build/site` under existing cdn_key
+ * Word → Pandoc (→ Markdown) → web article build → upload `_build/site` under existing cdn_key
  * (CLI-compatible layout: config.json, content/, public/, source/) → merge `myst` into contains.
  */
 
@@ -28,7 +29,7 @@ export const runDocxPandocMystWeb: ConversionHandler = async (ctx) => {
   const docxBasename = safeDocxBasename(fileEntry);
 
   if (!workVersion.cdn?.trim() || !workVersion.cdn_key?.trim()) {
-    throw new Error('Work version is missing cdn/cdn_key; cannot upload MyST site to storage');
+    throw new Error('Work version is missing cdn/cdn_key; cannot upload web article to storage');
   }
 
   await client.jobs.running(res, 'Downloading Word file...');
@@ -37,10 +38,10 @@ export const runDocxPandocMystWeb: ConversionHandler = async (ctx) => {
   await client.jobs.running(res, 'Converting Word to Markdown (Pandoc)...');
   await runPandoc(workDir, docxBasename);
 
-  await client.jobs.running(res, 'Preparing MyST project files...');
+  await client.jobs.running(res, 'Preparing Curvenote project files...');
   await writeSiteProjectFiles(workVersion, workDir);
 
-  await client.jobs.running(res, 'Building MyST site...');
+  await client.jobs.running(res, 'Building web article...');
   const sitePath = await runSiteBuild(workDir);
 
   await client.jobs.running(res, 'Bundling source materials into site...');
@@ -53,14 +54,14 @@ export const runDocxPandocMystWeb: ConversionHandler = async (ctx) => {
     throw new Error('Site build did not produce _build/site/config.json');
   }
 
-  await client.jobs.running(res, 'Uploading MyST site to CDN...');
+  await client.jobs.running(res, 'Uploading web article to CDN...');
   const uploadResult = await client.uploads.uploadFolderToCdn({
     cdn: workVersion.cdn,
     cdnKey: workVersion.cdn_key,
     localFolder: sitePath,
   });
 
-  await client.jobs.running(res, 'Updating work contains (myst)...');
+  await client.jobs.running(res, 'Updating work contains...');
   await client.works.mergeContainsIntoWorkAndVersion(workVersion.work_id, workVersion.id, [
     WorkContents.MYST,
   ]);

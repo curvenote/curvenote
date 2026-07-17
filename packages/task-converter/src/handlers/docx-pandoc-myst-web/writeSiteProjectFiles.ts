@@ -1,5 +1,5 @@
 /**
- * Prepare a MyST project for web site build (no Typst PDF export front matter).
+ * Prepare a Curvenote project for web article build (no Typst PDF export front matter).
  */
 
 import fs from 'node:fs/promises';

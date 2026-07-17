@@ -817,7 +817,7 @@ export async function action(args: Route.ActionArgs) {
                 payload: {
                   work_version_id: workVersionId,
                   target: 'web',
-                  conversion_type: 'docx-pandoc-myst-web',
+                  conversion_type: 'docx-pd-curvenote-web',
                 },
                 invoked_by_id: baseCtx.user?.id,
               });

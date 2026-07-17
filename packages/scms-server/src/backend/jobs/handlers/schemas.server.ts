@@ -1,5 +1,6 @@
 /* eslint-disable import/no-named-as-default-member */
 import { z } from 'zod';
+import { CONVERSION_TYPES } from '@curvenote/common';
 import { KnownBuckets } from '../../storage/constants.server.js';
 
 /*
@@ -66,8 +67,8 @@ export const CreateConverterTaskPayloadSchema = z.object({
   work_version_id: z.uuid('work_version_id is required'),
   target: z.enum(['pdf', 'web']).default('pdf'),
   conversion_type: z
-    .enum(['docx-pandoc-myst-pdf', 'docx-lowriter-pdf', 'docx-pandoc-myst-web'])
-    .default('docx-pandoc-myst-pdf'),
+    .enum(CONVERSION_TYPES as unknown as [string, ...string[]])
+    .default('docx-pd-curvenote-pdf'),
 });
 
 export type CreateConverterTaskPayload = z.infer<typeof CreateConverterTaskPayloadSchema>;

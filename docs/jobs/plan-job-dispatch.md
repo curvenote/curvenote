@@ -229,7 +229,7 @@ After:
 const result = await dispatchJob(dispatchConverterTask({
   work_version_id: workVersionId,
   target: 'pdf',
-  conversion_type: 'docx-pandoc-myst-pdf',
+  conversion_type: 'docx-pd-curvenote-pdf',
   invoked_by_id: ctx.user?.id,
 }));
 return data({ success: true, jobId: result.job_id });

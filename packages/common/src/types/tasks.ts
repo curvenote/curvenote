@@ -33,17 +33,25 @@ export type WorkVersionPayload = {
 
 /**
  * Supported HAT conversion types (doc → PDF / web pipelines).
- * - docx-pandoc-myst-pdf: Word → Pandoc → MyST/Typst → PDF
+ * Prefer the Curvenote names; legacy `docx-pandoc-myst-*` values are accepted as aliases.
+ * - docx-pd-curvenote-pdf (alias: docx-pandoc-myst-pdf): Word → Pandoc → Curvenote/Typst → PDF
  * - docx-lowriter-pdf: Word → LibreOffice Writer → PDF
- * - docx-pandoc-myst-web: Word → Pandoc → MyST site → CDN
+ * - docx-pd-curvenote-web (alias: docx-pandoc-myst-web): Word → Pandoc → web article → CDN
  */
-export type ConversionType = 'docx-pandoc-myst-pdf' | 'docx-lowriter-pdf' | 'docx-pandoc-myst-web';
+export type ConversionType =
+  | 'docx-pd-curvenote-pdf'
+  | 'docx-pandoc-myst-pdf'
+  | 'docx-lowriter-pdf'
+  | 'docx-pd-curvenote-web'
+  | 'docx-pandoc-myst-web';
 
 export type ConverterTarget = 'pdf' | 'web';
 
 export const CONVERSION_TYPES: readonly ConversionType[] = [
+  'docx-pd-curvenote-pdf',
   'docx-pandoc-myst-pdf',
   'docx-lowriter-pdf',
+  'docx-pd-curvenote-web',
   'docx-pandoc-myst-web',
 ] as const;
 
@@ -51,8 +59,10 @@ export const CONVERTER_TARGETS: readonly ConverterTarget[] = ['pdf', 'web'] as c
 
 /** Expected payload target for each conversion type. */
 export const CONVERSION_TYPE_TARGET: Record<ConversionType, ConverterTarget> = {
+  'docx-pd-curvenote-pdf': 'pdf',
   'docx-pandoc-myst-pdf': 'pdf',
   'docx-lowriter-pdf': 'pdf',
+  'docx-pd-curvenote-web': 'web',
   'docx-pandoc-myst-web': 'web',
 };
 

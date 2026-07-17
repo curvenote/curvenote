@@ -93,7 +93,7 @@ function formatPreviewDTO(
 /**
  * Preview loader for `/previews/:id`.
  *
- * - Work-version tokens (`scope: work_version`) return a WorkDTO (CDN host for MyST).
+ * - Work-version tokens (`scope: work_version`) return a WorkDTO (CDN host for web article).
  * - Otherwise treats `:id` as a submissionVersionId and returns SubmissionPreviewDTO.
  */
 export default async function (ctx: Context, previewId: string): Promise<PreviewDTO> {

@@ -22,7 +22,7 @@ export interface PreviewSignatureClaims {
 }
 
 /**
- * Mint a preview JWT for a submission-version MyST site.
+ * Mint a preview JWT for a submission-version web article.
  * Claims: aud `scms-preview`, scope `submission`, scopeId = submissionId.
  */
 export function createPreviewToken(submissionId: string, issuer: string, key: string) {
@@ -40,7 +40,7 @@ export function createPreviewToken(submissionId: string, issuer: string, key: st
 }
 
 /**
- * Mint a preview JWT for a work-version MyST site (no submission/site required).
+ * Mint a preview JWT for a work-version web article (no submission/site required).
  * Path: `/previews/{workVersionId}?preview={token}` with aud `scms-work-preview`.
  */
 export function createWorkVersionPreviewToken(workVersionId: string, issuer: string, key: string) {

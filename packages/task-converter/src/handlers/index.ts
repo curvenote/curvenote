@@ -1,6 +1,7 @@
 /**
  * HAT conversion handler registry.
  * Maps conversionType to the handler that produces the PDF/site for that pipeline.
+ * Legacy `docx-pandoc-myst-*` names alias to the Curvenote handlers.
  */
 
 import type { ConversionType } from '../payload.js';
@@ -12,8 +13,10 @@ import { runDocxPandocMystWeb } from './docx-pandoc-myst-web/index.js';
 export type { ConversionHandler, ConversionHandlerContext } from './types.js';
 
 export const HANDLERS: Record<ConversionType, ConversionHandler> = {
+  'docx-pd-curvenote-pdf': runDocxPandocMystPdf,
   'docx-pandoc-myst-pdf': runDocxPandocMystPdf,
   'docx-lowriter-pdf': runDocxLowriterPdf,
+  'docx-pd-curvenote-web': runDocxPandocMystWeb,
   'docx-pandoc-myst-web': runDocxPandocMystWeb,
 };
 

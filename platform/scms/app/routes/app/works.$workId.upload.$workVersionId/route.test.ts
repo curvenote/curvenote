@@ -246,7 +246,7 @@ describe('work upload confirm-work action', () => {
         payload: expect.objectContaining({
           work_version_id: 'wv-1',
           target: 'web',
-          conversion_type: 'docx-pandoc-myst-web',
+          conversion_type: 'docx-pd-curvenote-web',
         }),
       }),
     );

@@ -61,7 +61,7 @@ export async function exportToPdfAction(ctx: WorkContext, formData: FormData) {
       payload: {
         work_version_id: workVersionId,
         target: 'pdf',
-        conversion_type: 'docx-pandoc-myst-pdf',
+        conversion_type: 'docx-pd-curvenote-pdf',
       },
       invoked_by_id: ctx.user?.id,
     });
