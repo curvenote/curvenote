@@ -3,6 +3,7 @@ import {
   type SubmissionKindSummaryDTO,
   type SubmissionVersionDTO,
 } from '@curvenote/common';
+import type { Prisma } from '@curvenote/scms-db';
 import { error401, error404 } from '@curvenote/scms-core';
 import type { Context } from '../../context.server.js';
 import { formatAuthorDTO } from '../../format.server.js';
@@ -31,6 +32,10 @@ const WORK_VERSION_PREVIEW_COLLECTION = {
   open: false,
   workflow: '',
 };
+
+type WorkVersionPreviewDBO = Prisma.WorkVersionGetPayload<{
+  select: typeof siteWorkWorkVersionWithWorkSelect;
+}>;
 
 /**
  * Load a work version for token-gated MyST web preview (no submission required).
@@ -86,21 +91,7 @@ export default async function getWorkVersionPreview(
 
 function formatWorkVersionAsSiteWorkDTO(
   ctx: Context,
-  dbo: {
-    id: string;
-    work_id: string;
-    cdn: string | null;
-    cdn_key: string | null;
-    title: string | null;
-    description: string | null;
-    authors: string[];
-    tags: string[];
-    doi: string | null;
-    canonical: boolean | null;
-    date_created: Date;
-    date: Date | null;
-    work: { id: string; doi: string | null; key: string | null };
-  },
+  dbo: WorkVersionPreviewDBO,
   opts?: { subject?: string },
 ): ModifiedSiteWorkDTO {
   const { cdn_key, cdn, title, description, canonical, authors, date_created } = dbo;
