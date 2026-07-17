@@ -47,7 +47,8 @@ export default async function getWorkVersionPreview(
 
   const claims = ctx.claims.preview;
   if (
-    claims?.aud !== ctx.$config.api.workPreviewAudience ||
+    !claims ||
+    claims.aud !== ctx.$config.api.workPreviewAudience ||
     claims.scope !== WORK_VERSION_PREVIEW_SCOPE ||
     claims.scopeId !== workVersionId
   ) {
