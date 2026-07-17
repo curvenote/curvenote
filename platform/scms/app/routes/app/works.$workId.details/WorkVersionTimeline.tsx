@@ -234,6 +234,9 @@ function WorkVersionTimelineInner({
                     dateModified={version.date_modified}
                     ownerName={workOwnerName}
                     metadata={version.metadata}
+                    contains={version.contains}
+                    cdn={version.cdn}
+                    cdnKey={version.cdn_key}
                     workVersionId={version.id}
                     basePath={basePath}
                     canExport={canExport}

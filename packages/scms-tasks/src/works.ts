@@ -73,3 +73,37 @@ export async function addFilesToWorkVersion(
     );
   }
 }
+
+/**
+ * Merge content labels into Work.contains and WorkVersion.contains via SCMS Works API.
+ * PATCH ${baseUrl}/works/${workId}/versions/${workVersionId}/contains with body { contains }.
+ */
+export async function mergeContainsIntoWorkAndVersion(
+  workId: string,
+  workVersionId: string,
+  contains: string[],
+  handshake: string,
+  baseUrl: string,
+  fetchFn: typeof fetch = fetch,
+  loggingOnlyMode = false,
+): Promise<void> {
+  if (contains.length === 0) return;
+  const url = `${baseUrl.replace(/\/$/, '')}/works/${workId}/versions/${workVersionId}/contains`;
+  if (loggingOnlyMode) {
+    console.log('[loggingOnlyMode] Skipping PATCH merge contains', url, contains);
+    return;
+  }
+  const response = await fetchFn(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(handshake ? { Authorization: `Bearer ${handshake}` } : {}),
+    },
+    body: JSON.stringify({ contains }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to merge contains on work version: ${response.status} ${response.statusText}`,
+    );
+  }
+}

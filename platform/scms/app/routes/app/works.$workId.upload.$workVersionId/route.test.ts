@@ -12,6 +12,8 @@ const {
   waitUntil,
   loadCheckMaintenanceByServiceIds,
   hasInvalidEnabledUploadChecks,
+  enqueueAndDispatchJob,
+  hasDocxInMetadata,
 } = vi.hoisted(() => ({
   findUnique: vi.fn(),
   update: vi.fn(),
@@ -22,6 +24,8 @@ const {
   waitUntil: vi.fn(),
   loadCheckMaintenanceByServiceIds: vi.fn(),
   hasInvalidEnabledUploadChecks: vi.fn(),
+  enqueueAndDispatchJob: vi.fn(),
+  hasDocxInMetadata: vi.fn(),
 }));
 
 vi.mock('@curvenote/scms-server', async () => ({
@@ -58,6 +62,7 @@ vi.mock('@curvenote/scms-server', async () => ({
   searchOrcid: vi.fn(),
   searchOrcidById: vi.fn(),
   searchRor: vi.fn(),
+  enqueueAndDispatchJob,
 }));
 
 vi.mock('@curvenote/scms-core', async () => ({
@@ -97,6 +102,7 @@ vi.mock('@curvenote/scms-core', async () => ({
     },
   },
   isValidOrcid: vi.fn(),
+  hasDocxInMetadata,
 }));
 
 vi.mock('@vercel/functions', () => ({
@@ -170,6 +176,8 @@ describe('work upload confirm-work action', () => {
     dbGetUserWorkRoles.mockResolvedValue([]);
     loadCheckMaintenanceByServiceIds.mockResolvedValue({});
     hasInvalidEnabledUploadChecks.mockReturnValue(false);
+    hasDocxInMetadata.mockReturnValue(false);
+    enqueueAndDispatchJob.mockResolvedValue({ job_id: 'job-1' });
     safeWorkVersionJsonUpdate.mockResolvedValue(undefined);
     update.mockResolvedValue({
       id: 'wv-1',

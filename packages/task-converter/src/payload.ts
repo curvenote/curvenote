@@ -2,32 +2,37 @@
  * Payload types from @curvenote/common; file metadata from scms-core for pickWordFile.
  */
 
-import type { ConverterPayload, WorkVersionPayload } from '@curvenote/common';
-import { CONVERSION_TYPES } from '@curvenote/common';
+import type { ConverterPayload, ConversionType, WorkVersionPayload } from '@curvenote/common';
+import { CONVERSION_TYPES, CONVERSION_TYPE_TARGET, CONVERTER_TARGETS } from '@curvenote/common';
 import type { FileMetadataSectionItem } from '@curvenote/scms-core';
 
 export type {
   WorkVersionMetadataPayload,
   WorkVersionPayload,
   ConversionType,
+  ConverterTarget,
   ConverterPayload,
 } from '@curvenote/common';
-export { CONVERSION_TYPES } from '@curvenote/common';
+export { CONVERSION_TYPES, CONVERSION_TYPE_TARGET, CONVERTER_TARGETS } from '@curvenote/common';
 export type { FileMetadataSectionItem, FileMetadataSection } from '@curvenote/scms-core';
 
 const WORD_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const DOCX_EXT = '.docx';
 
 /**
- * Validates payload: workVersion (object), target === 'pdf', conversionType one of CONVERSION_TYPES,
- * required workVersion fields, and metadata as non-null object (for metadata.files).
+ * Validates payload: workVersion (object), target one of CONVERTER_TARGETS matching conversionType,
+ * conversionType one of CONVERSION_TYPES, required workVersion fields, and metadata as non-null object.
  */
 export function validatePayload(payload: unknown): payload is ConverterPayload {
   if (!payload || typeof payload !== 'object') return false;
   const p = payload as Record<string, unknown>;
-  if (p.target !== 'pdf') return false;
+  const target = p.target;
+  if (typeof target !== 'string' || !(CONVERTER_TARGETS as readonly string[]).includes(target)) {
+    return false;
+  }
   const ct = p.conversionType;
   if (typeof ct !== 'string' || !(CONVERSION_TYPES as readonly string[]).includes(ct)) return false;
+  if (CONVERSION_TYPE_TARGET[ct as ConversionType] !== target) return false;
   const wv = p.workVersion;
   if (!wv || typeof wv !== 'object') return false;
   const w = wv as Record<string, unknown>;

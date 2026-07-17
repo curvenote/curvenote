@@ -284,6 +284,10 @@ export default [
             ':workVersionId/files',
             'routes/api/v1.works.$workId.versions.$workVersionId.files.tsx',
           ),
+          route(
+            ':workVersionId/contains',
+            'routes/api/v1.works.$workId.versions.$workVersionId.contains.tsx',
+          ),
         ]),
       ]),
     ]),

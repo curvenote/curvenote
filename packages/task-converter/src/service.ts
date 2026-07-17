@@ -3,10 +3,10 @@
  *
  * Node.js server for the SCMS converter (Cloud Run style). Validates incoming
  * POST payload (target, conversionType, workVersion, optional filename), routes
- * to the appropriate HAT conversion handler (e.g. docx-pandoc-myst-pdf or
- * docx-lowriter-pdf), then uploads PDF and updates work version metadata via
- * Handlers produce the PDF, upload to CDN and update work version metadata (when cdn/cdn_key
- * present), and return the export path; the service then signals job completed.
+ * to the appropriate HAT conversion handler (e.g. docx-pandoc-myst-pdf,
+ * docx-lowriter-pdf, or docx-pandoc-myst-web), then uploads outputs and updates
+ * work version state. Handlers return an export/site path; the service signals
+ * job completed.
  */
 
 import express from 'express';
@@ -32,11 +32,10 @@ export function createService() {
   /**
    * Main endpoint for converter jobs.
    *
-   * Validates payload (target === 'pdf', conversionType in supported HAT handlers, workVersion).
-   * Export filename comes from payload.filename, default 'document.pdf'.
-   * Routes to the handler for the given conversionType. The handler produces the PDF,
-   * uploads and updates work version metadata (when cdn/cdn_key present), and returns
-   * the export path. Service then signals job completed.
+   * Validates payload (target pdf|web, conversionType in supported HAT handlers, workVersion).
+   * Routes to the handler for the given conversionType. The handler produces the output,
+   * uploads and updates work version state when configured, and returns the export/site path.
+   * Service then signals job completed.
    */
   app.post(
     '/',
@@ -46,7 +45,7 @@ export function createService() {
 
         if (!validatePayload(payload)) {
           throw new Error(
-            'Invalid payload: required workVersion (object with id, work_id, title, authors), target = "pdf", conversionType one of (docx-pandoc-myst-pdf, docx-lowriter-pdf), and metadata as object',
+            'Invalid payload: required workVersion (object with id, work_id, title, authors), target matching conversionType (pdf|web), conversionType one of (docx-pandoc-myst-pdf, docx-lowriter-pdf, docx-pandoc-myst-web), and metadata as object',
           );
         }
 
@@ -57,11 +56,15 @@ export function createService() {
         const handler = getHandler(payload.conversionType);
         const exportPath = await handler(ctx);
 
-        await client.jobs.completed(res, 'PDF conversion completed', {
+        const completedMessage =
+          payload.target === 'web' ? 'MyST site conversion completed' : 'PDF conversion completed';
+        await client.jobs.completed(res, completedMessage, {
           taskId,
           workVersionId: workVersion.id,
           workId: workVersion.work_id,
           exportPath,
+          target: payload.target,
+          conversionType: payload.conversionType,
         });
       },
       {
