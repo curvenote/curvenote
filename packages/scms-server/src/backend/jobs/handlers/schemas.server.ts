@@ -66,9 +66,7 @@ export type CreateStorageRemoveJobPayload = z.infer<typeof CreateStorageRemoveJo
 export const CreateConverterTaskPayloadSchema = z.object({
   work_version_id: z.uuid('work_version_id is required'),
   target: z.enum(['pdf', 'web']).default('pdf'),
-  conversion_type: z
-    .enum(CONVERSION_TYPES as unknown as [ConversionType, ...ConversionType[]])
-    .default('docx-pd-curvenote-pdf'),
+  conversion_type: z.enum(CONVERSION_TYPES).default('docx-pd-curvenote-pdf'),
 });
 
 export type CreateConverterTaskPayload = z.infer<typeof CreateConverterTaskPayloadSchema>;
