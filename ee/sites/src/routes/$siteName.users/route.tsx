@@ -46,6 +46,12 @@ import {
   dbListTokensForUser,
   formatDefaultServiceAccountDisplayName,
 } from './serviceAccount.server.js';
+import {
+  notifySiteServiceAccountCreated,
+  notifySiteServiceAccountDeleted,
+  notifySiteServiceAccountTokenCreated,
+  notifySiteServiceAccountTokenDeleted,
+} from './serviceAccountNotify.server.js';
 import type {
   ServiceAccountData,
   ServiceAccountPermissions,
@@ -277,14 +283,16 @@ async function handleServiceAccountAction(
     }
     const existing = await dbGetSiteServiceAccount(ctx.site.id);
     if (existing) return data({ error: 'Service account already exists' }, { status: 400 });
+    const role = createPayload.role as SiteRole;
     const user = await dbCreateSiteServiceAccount(
       {
         id: ctx.site.id,
         name: ctx.site.name,
         title: ctx.site.title,
       },
-      createPayload.role as SiteRole,
+      role,
     );
+    await notifySiteServiceAccountCreated(ctx, { serviceUserId: user.id, role });
     return data({ ok: true, userId: user.id });
   }
 
@@ -295,6 +303,7 @@ async function handleServiceAccountAction(
     const serviceUser = await dbGetSiteServiceAccount(ctx.site.id);
     if (!serviceUser) return data({ error: 'Service account not found' }, { status: 404 });
     await dbDeleteSiteServiceAccount(ctx.site.id, serviceUser.id);
+    await notifySiteServiceAccountDeleted(ctx, { serviceUserId: serviceUser.id });
     return data({ ok: true });
   }
 
@@ -323,6 +332,13 @@ async function handleServiceAccountAction(
       ctx.$config.api.jwtSigningSecret,
       timestampExpires ? timestampExpires / 1000 : undefined,
     );
+    await notifySiteServiceAccountTokenCreated(ctx, {
+      serviceUserId: serviceUser.id,
+      tokenId: token.id,
+      description: tokenPayload.description,
+      expiry: tokenPayload.expiry,
+      expiresAt: dateExpires,
+    });
     const dto = dtoUserToken(token);
     return data({ token: signedToken, ...dto });
   }
@@ -336,6 +352,12 @@ async function handleServiceAccountAction(
     const tokenId = formData.get('tokenId');
     if (typeof tokenId !== 'string') return data({ error: 'Invalid token id' }, { status: 400 });
     const result = await dbDeleteTokenForUser(serviceUser.id, tokenId);
+    if (result.count > 0) {
+      await notifySiteServiceAccountTokenDeleted(ctx, {
+        serviceUserId: serviceUser.id,
+        tokenId,
+      });
+    }
     return data(result);
   }
 

@@ -27,12 +27,12 @@ api:
 
 ### Configuration Options
 
-| Option | Type | Required | Default | Description |
-|--------|------|----------|---------|-------------|
-| `disabled` | boolean | No | `false` | Whether Slack notifications are disabled |
-| `webhookUrl` | string | Yes* | - | Slack web hook URL for sending notifications |
+| Option       | Type    | Required | Default | Description                                  |
+| ------------ | ------- | -------- | ------- | -------------------------------------------- |
+| `disabled`   | boolean | No       | `false` | Whether Slack notifications are disabled     |
+| `webhookUrl` | string  | Yes\*    | -       | Slack web hook URL for sending notifications |
 
-*Required when `disabled` is `false`
+\*Required when `disabled` is `false`
 
 ## Usage
 
@@ -61,14 +61,15 @@ await ctx.sendSlackNotification({
 
 ```typescript
 interface SlackMessage {
-  eventType: SlackEventType;           // Event identifier from the enum
-  message: string;                     // Human-readable message
-  user?: {                             // Optional user information
+  eventType: SlackEventType; // Event identifier from the enum
+  message: string; // Human-readable message
+  user?: {
+    // Optional user information
     id?: string;
     email?: string | null;
   };
   color?: 'good' | 'warning' | 'danger'; // Optional color for the notification
-  metadata?: Record<string, any>;      // Optional structured data
+  metadata?: Record<string, any>; // Optional structured data
 }
 ```
 
@@ -87,6 +88,10 @@ The following events are currently implemented and available:
 - **`SITE_CREATED`**: Triggered when a new site is created
 - **`SITE_ROLE_GRANTED`**: Triggered when a role is granted to a user on a site
 - **`SITE_ROLE_REVOKED`**: Triggered when a role is revoked from a user on a site
+- **`SITE_SERVICE_ACCOUNT_CREATED`**: Triggered when a site admin creates a site service account
+- **`SITE_SERVICE_ACCOUNT_DELETED`**: Triggered when a site admin deletes a site service account
+- **`SITE_SERVICE_ACCOUNT_TOKEN_CREATED`**: Triggered when a site admin creates a token for a site service account
+- **`SITE_SERVICE_ACCOUNT_TOKEN_DELETED`**: Triggered when a site admin deletes a token for a site service account
 
 ### Submission Events
 
@@ -185,6 +190,7 @@ The Slack integration includes robust error handling:
 ### Debugging
 
 Enable debug logging by checking the console output for:
+
 - "Slack web hook URL not configured"
 - "Slack notifications disabled"
 - "Slack notification sent successfully"
