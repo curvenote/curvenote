@@ -472,11 +472,12 @@ export async function uploadFolderToCdn(
   };
   const staged = await stageUploadRequest(baseUrl, getAuthHeaders, stageRequest, fetchFn);
 
-  const byMd5 = new Map(prepared.map((f) => [f.md5, f]));
+  // Key by path: duplicate content (same md5) at different paths must not collide.
+  const byPath = new Map(prepared.map((f) => [f.to, f]));
   await mapWithConcurrency(staged.upload_items, concurrency, async (uploadItem) => {
-    const local = byMd5.get(uploadItem.md5);
+    const local = byPath.get(uploadItem.path);
     if (!local) {
-      throw new Error(`uploadFolderToCdn: staged md5 not found locally: ${uploadItem.md5}`);
+      throw new Error(`uploadFolderToCdn: staged path not found locally: ${uploadItem.path}`);
     }
     const protocol = uploadItem.upload?.protocol ?? 'gcs-resumable';
     if (protocol === 'gcs-resumable') {

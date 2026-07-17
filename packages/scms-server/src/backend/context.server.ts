@@ -272,12 +272,6 @@ export class Context implements ContextType {
         this.user = undefined;
         throw err;
       }
-    } else {
-      console.log('Not a Curvenote token or non-conforming issuer', {
-        issuer: payload?.iss,
-        issuerConforms: payload?.iss?.endsWith('/tokens/session') ?? false,
-        signatureVerified: !!claims,
-      });
     }
   }
 
@@ -490,6 +484,7 @@ export async function withContext<T extends LoaderFunctionArgs | ActionFunctionA
   const token = args.request.headers.get('Authorization');
   if (!opts?.noTokens && token) {
     await ctx.verifyHandshakeToken(token);
+    if (ctx.authorized.handshake) return ctx;
     await ctx.verifyCurvenoteSessionToken(token);
     // if this is a curvenote token, this request came from the CLI, we're done
     if (ctx.authorized.curvenote) return ctx;
