@@ -36,6 +36,25 @@ async function main() {
 
   console.log('👥 Creating users...');
 
+  // Migration 20231102145516 inserts this platform SA as SERVICE; promote for local dev.
+  const submissionsSa = await prisma.user.upsert({
+    where: { id: '018b9034-d660-7a20-9135-5794c1eb0bfb' },
+    create: {
+      date_created: startDateString,
+      date_modified: startDateString,
+      id: '018b9034-d660-7a20-9135-5794c1eb0bfb',
+      email: 'submissions@curvenote.com',
+      display_name: 'Curvenote Submissions',
+      system_role: SystemRole.SYSTEM_SERVICE,
+    },
+    update: {
+      system_role: SystemRole.SYSTEM_SERVICE,
+      date_modified: startDateString,
+    },
+  });
+  summary.users++;
+  console.log(`   ✓ Ensured user: ${submissionsSa.display_name} (${submissionsSa.email}) [SYSTEM_SERVICE]`);
+
   const rowanStaging = await prisma.user.create({
     data: {
       date_created: startDateString,
