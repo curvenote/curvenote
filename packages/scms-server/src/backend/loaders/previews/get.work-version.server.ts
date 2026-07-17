@@ -4,12 +4,12 @@ import {
   type SubmissionVersionDTO,
 } from '@curvenote/common';
 import type { Prisma } from '@curvenote/scms-db';
-import { error401, error404 } from '@curvenote/scms-core';
+import { error404 } from '@curvenote/scms-core';
 import type { Context } from '../../context.server.js';
 import { formatAuthorDTO } from '../../format.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
 import { siteWorkWorkVersionWithWorkSelect } from '../../prisma.selects.server.js';
-import { WORK_VERSION_PREVIEW_AUDIENCE, WORK_VERSION_PREVIEW_SCOPE } from '../../sign.previews.server.js';
+import { WORK_VERSION_PREVIEW_AUDIENCE } from '../../sign.previews.server.js';
 import { signPrivateUrls } from '../../sign.private.server.js';
 import { fetchWorkVersionSubjects } from '../../work-version-subject.server.js';
 import type { ModifiedSiteWorkDTO } from '../sites/submissions/published/get.server.js';
@@ -35,26 +35,13 @@ type WorkVersionPreviewDBO = Prisma.WorkVersionGetPayload<{
 }>;
 
 /**
- * Load a work version for token-gated MyST web preview (no submission required).
- * Auth is preview-token only: aud `scms-work-preview`, scope `work_version`,
- * scopeId === workVersionId.
+ * Load a work version for MyST web preview (no submission required).
+ * Caller must validate preview token claims (aud, scope, scopeId === workVersionId).
  */
 export default async function getWorkVersionPreview(
   ctx: Context,
   workVersionId: string,
 ): Promise<Omit<SubmissionVersionDTO, 'site_work'> & { site_work: ModifiedSiteWorkDTO }> {
-  if (!ctx.authorized.preview) throw error401('preview token required');
-
-  const claims = ctx.claims.preview;
-  if (
-    !claims ||
-    claims.aud !== WORK_VERSION_PREVIEW_AUDIENCE ||
-    claims.scope !== WORK_VERSION_PREVIEW_SCOPE ||
-    claims.scopeId !== workVersionId
-  ) {
-    throw error401('bad work version preview scope');
-  }
-
   const prisma = await getPrismaClient();
   const dbo = await prisma.workVersion.findUnique({
     where: { id: workVersionId },

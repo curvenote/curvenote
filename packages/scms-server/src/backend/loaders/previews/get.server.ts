@@ -33,7 +33,10 @@ import { SiteContext } from '../../context.site.server.js';
 import { formatSubmissionKindSummaryDTO } from '../sites/kinds/get.server.js';
 import { formatCollectionSummaryDTO } from '../sites/get.server.js';
 import { fetchWorkVersionSubjects } from '../../work-version-subject.server.js';
-import { WORK_VERSION_PREVIEW_SCOPE } from '../../sign.previews.server.js';
+import {
+  WORK_VERSION_PREVIEW_AUDIENCE,
+  WORK_VERSION_PREVIEW_SCOPE,
+} from '../../sign.previews.server.js';
 import getWorkVersionPreview from './get.work-version.server.js';
 
 export async function dbGetSubmissionVersion(id: string) {
@@ -92,6 +95,15 @@ export default async function (
   previewId: string,
 ): Promise<Omit<SubmissionVersionDTO, 'site_work'> & { site_work: ModifiedSiteWorkDTO }> {
   if (ctx.claims.preview?.scope === WORK_VERSION_PREVIEW_SCOPE) {
+    const claims = ctx.claims.preview;
+    if (
+      !ctx.authorized.preview ||
+      !claims ||
+      claims.aud !== WORK_VERSION_PREVIEW_AUDIENCE ||
+      claims.scopeId !== previewId
+    ) {
+      throw error401('bad work version preview scope');
+    }
     return getWorkVersionPreview(ctx, previewId);
   }
 
