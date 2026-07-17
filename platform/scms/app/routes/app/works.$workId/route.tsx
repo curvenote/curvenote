@@ -615,19 +615,27 @@ export const loader = async (args: LoaderFunctionArgs) => {
     }),
   );
 
+  const hasWebArticleGeneration = userHasScope(
+    ctx.user,
+    scopes.app.works.webArticleGeneration,
+    undefined,
+    { ignoreSystemAdmin: true },
+  );
   const webVersionPreviewSignatures: Record<string, string> = {};
-  for (const version of versionsForClient) {
-    const hasMystWeb =
-      Boolean(version.cdn?.trim()) &&
-      Boolean(version.cdn_key?.trim()) &&
-      Array.isArray(version.contains) &&
-      version.contains.includes(WorkContents.MYST);
-    if (!hasMystWeb) continue;
-    webVersionPreviewSignatures[version.id] = createWorkVersionPreviewToken(
-      version.id,
-      ctx.$config.api.previewIssuer,
-      ctx.$config.api.previewSigningSecret,
-    );
+  if (hasWebArticleGeneration) {
+    for (const version of versionsForClient) {
+      const hasMystWeb =
+        Boolean(version.cdn?.trim()) &&
+        Boolean(version.cdn_key?.trim()) &&
+        Array.isArray(version.contains) &&
+        version.contains.includes(WorkContents.MYST);
+      if (!hasMystWeb) continue;
+      webVersionPreviewSignatures[version.id] = createWorkVersionPreviewToken(
+        version.id,
+        ctx.$config.api.previewIssuer,
+        ctx.$config.api.previewSigningSecret,
+      );
+    }
   }
 
   const workOwnerName = await dbGetWorkOwnerName(ctx.work.id);

@@ -205,6 +205,7 @@ function WorkVersionTimelineInner({
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
   const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
+  const hasWebArticleGeneration = userScopes.includes(scopes.app.works.webArticleGeneration);
   const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
 
   const versionNumberByVersionId = useMemo(
@@ -249,7 +250,9 @@ function WorkVersionTimelineInner({
         );
         const visibleEntries = (
           showActivities ? sortedEntries : sortedEntries.filter((e) => e.kind !== 'activity')
-        ).filter((e) => hasChecksFeature || e.kind !== 'check-service-run');
+        )
+          .filter((e) => hasChecksFeature || e.kind !== 'check-service-run')
+          .filter((e) => hasWebArticleGeneration || e.kind !== 'web-version');
 
         if (visibleEntries.length === 0) return null;
 
