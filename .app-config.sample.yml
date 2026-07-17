@@ -2,6 +2,8 @@
 name: Curvenote Platform
 api:
   previewIssuer: http://localhost:3031
+  previewAudience: scms-preview
+  workPreviewAudience: scms-work-preview
   handshakeIssuer: http://localhost:3031
   databaseUrl: 'postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0'
   pubsubProjectId: project-1
@@ -60,8 +62,8 @@ api:
     id: qwerty-123456-zxcvbn-987654
 app:
   renderServiceUrl: 'http://localhost:3000'
-  # Work web-version preview theme (not submission previews)
-  webVersionPreviewUrl: 'http://localhost:3810'
+  # Work-version preview theme (not submission previews)
+  workVersionPreviewUrl: 'http://localhost:3810'
   # checks:
   #   relayBaseUrl: https://checks-relay.example.com
   #   relayApiKey: <set in secrets file>

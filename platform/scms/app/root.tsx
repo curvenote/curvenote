@@ -285,7 +285,7 @@ export const loader = async (args: Route.LoaderArgs) => {
     name: ctx.$config.name ?? 'Unknown',
     editorApiUrl: ctx.$config.api?.editorApiUrl,
     renderServiceUrl: ctx.$config.app?.renderServiceUrl,
-    webVersionPreviewUrl: ctx.$config.app.webVersionPreviewUrl,
+    workVersionPreviewUrl: ctx.$config.app.workVersionPreviewUrl,
     fbClientConfig: ctx.$config.auth?.firebase?.clientConfig ?? undefined,
     authProviders,
     signupConfig: {
@@ -352,7 +352,7 @@ export const loader = async (args: Route.LoaderArgs) => {
     'name',
     'editorApiUrl',
     'renderServiceUrl',
-    'webVersionPreviewUrl',
+    'workVersionPreviewUrl',
     'fbClientConfig',
     'authProviders',
     'authProviders.*.provider',

@@ -101,7 +101,7 @@ export type ClientDeploymentConfig = {
   editorApiUrl: string;
   renderServiceUrl: string | undefined;
   /** Base URL for work web-version previews (e.g. preview-theme on :3810). */
-  webVersionPreviewUrl: string;
+  workVersionPreviewUrl: string;
   authProviders: ClientSideSafeAuthOptions[];
   signupConfig?: ClientSigninSignupConfig;
   navigation: {

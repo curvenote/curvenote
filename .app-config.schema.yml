@@ -214,6 +214,8 @@ properties:
       - propertyPublicKey
       - databaseUrl
       - previewIssuer
+      - previewAudience
+      - workPreviewAudience
       - handshakeIssuer
       - userTokenAudience
       - sessionTokenAudience
@@ -342,6 +344,17 @@ properties:
         description: Optional CA certificate string for SSL database connections
       previewIssuer:
         type: string
+        description: Issuer (`iss`) claim on preview JWTs.
+      previewAudience:
+        type: string
+        description: >
+          Audience (`aud`) for submission-version preview JWTs minted from site
+          UIs and other submission preview call sites.
+      workPreviewAudience:
+        type: string
+        description: >
+          Audience (`aud`) for work-version preview JWTs minted from work details
+          UIs (dedicated work preview theme).
       handshakeIssuer:
         type: string
       userTokenAudience:
@@ -496,7 +509,7 @@ properties:
       - adminUrl
       - editorUrl
       - navigation
-      - webVersionPreviewUrl
+      - workVersionPreviewUrl
     properties:
       supportEmail:
         type: string
@@ -617,12 +630,12 @@ properties:
                         pattern: '^[a-z0-9][a-z0-9 _-]*$'
       renderServiceUrl:
         type: string
-      webVersionPreviewUrl:
+      workVersionPreviewUrl:
         type: string
         description: >
-          Base URL of the work web-version preview theme (distinct from submission
+          Base URL of the work-version preview theme (distinct from submission
           renderServiceUrl). Timeline "Open" links use
-          {webVersionPreviewUrl}/previews/{workVersionId}?preview={token}.
+          {workVersionPreviewUrl}/previews/{workVersionId}?preview={token}.
       statusBar:
         type: object
         description: Configuration for the status bar at the bottom of the application

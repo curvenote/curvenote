@@ -10,6 +10,8 @@ api:
   url: http://localhost:3031/v1
   editorApiUrl: http://localhost:8083
   previewIssuer: http://localhost:3031
+  previewAudience: scms-preview
+  workPreviewAudience: scms-work-preview
   handshakeIssuer: http://localhost:3031
   userTokenAudience: http://localhost:3031/v1/login
   userTokenIssuer: http://localhost:3031/v1/tokens/user
@@ -47,7 +49,7 @@ app:
   adminUrl: http://qwerty.com
   editorUrl: http://qwerty.com
   renderServiceUrl: 'http://qwerty.com'
-  webVersionPreviewUrl: 'http://localhost:3810'
+  workVersionPreviewUrl: 'http://localhost:3810'
   checks:
     relayBaseUrl: http://localhost:9999
   branding:

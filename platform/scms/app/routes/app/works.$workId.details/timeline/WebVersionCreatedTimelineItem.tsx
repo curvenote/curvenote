@@ -9,7 +9,7 @@ type WebVersionCreatedTimelineItemProps = {
   previewSignature: string;
 };
 
-function buildWebVersionPreviewHref(
+function buildWorkVersionPreviewHref(
   baseUrl: string,
   workVersionId: string,
   previewSignature: string,
@@ -20,7 +20,7 @@ function buildWebVersionPreviewHref(
 
 /**
  * Timeline row when a work version has a MyST web build available.
- * Opens the work web-version preview theme with a signed preview token.
+ * Opens the work-version preview theme with a signed preview token.
  */
 export function WebVersionCreatedTimelineItem({
   dateCreated,
@@ -28,8 +28,8 @@ export function WebVersionCreatedTimelineItem({
   workVersionId,
   previewSignature,
 }: WebVersionCreatedTimelineItemProps) {
-  const { webVersionPreviewUrl } = useDeploymentConfig();
-  const href = buildWebVersionPreviewHref(webVersionPreviewUrl, workVersionId, previewSignature);
+  const { workVersionPreviewUrl } = useDeploymentConfig();
+  const href = buildWorkVersionPreviewHref(workVersionPreviewUrl, workVersionId, previewSignature);
 
   const date = (
     <DateWithPopover date={dateCreated} dateCreated={dateCreated} dateModified={dateModified} />

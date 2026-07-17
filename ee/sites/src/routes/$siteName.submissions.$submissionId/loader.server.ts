@@ -63,7 +63,7 @@ export async function loadSubmissionDetailPage(
   const collections = formatSubmissionEditorCollections(loaded.collections);
 
   const signature = createPreviewToken(
-    siteName,
+    ctx.$config.api.previewAudience,
     submissionId,
     ctx.$config.api.previewIssuer,
     ctx.$config.api.previewSigningSecret,

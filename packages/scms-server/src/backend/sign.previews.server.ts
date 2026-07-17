@@ -1,9 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { isPast } from 'date-fns';
 
-/** Audience for work-version (SCMS upload) MyST web previews. */
-export const WORK_VERSION_PREVIEW_AUDIENCE = 'scms-work-preview';
-
 /** Preview JWT scope for a work version (path id === scopeId). */
 export const WORK_VERSION_PREVIEW_SCOPE = 'work_version';
 
@@ -18,8 +15,12 @@ export interface PreviewSignatureClaims {
   scopeId: string;
 }
 
+/**
+ * Mint a preview JWT for a submission-version MyST site.
+ * Audience should be `api.previewAudience`.
+ */
 export function createPreviewToken(
-  siteName: string,
+  audience: string,
   submissionId: string,
   issuer: string,
   key: string,
@@ -27,7 +28,7 @@ export function createPreviewToken(
   const claims: PreviewSignatureClaims = {
     iss: issuer,
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 5, // 5 days until we get magic links - 24 hours
-    aud: siteName,
+    aud: audience,
     scope: SUBMISSION_PREVIEW_SCOPE,
     scopeId: submissionId,
   };
@@ -39,13 +40,18 @@ export function createPreviewToken(
 
 /**
  * Mint a preview JWT for a work-version MyST site (no submission/site required).
- * Path: `/previews/{workVersionId}?preview={token}` with aud `scms-work-preview`.
+ * Path: `/previews/{workVersionId}?preview={token}` with aud from `api.workPreviewAudience`.
  */
-export function createWorkVersionPreviewToken(workVersionId: string, issuer: string, key: string) {
+export function createWorkVersionPreviewToken(
+  workVersionId: string,
+  issuer: string,
+  key: string,
+  audience: string,
+) {
   const claims: PreviewSignatureClaims = {
     iss: issuer,
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 5,
-    aud: WORK_VERSION_PREVIEW_AUDIENCE,
+    aud: audience,
     scope: WORK_VERSION_PREVIEW_SCOPE,
     scopeId: workVersionId,
   };

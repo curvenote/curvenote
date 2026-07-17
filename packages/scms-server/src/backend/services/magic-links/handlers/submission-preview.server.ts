@@ -66,7 +66,7 @@ export const submissionPreviewHandler: MagicLinkHandler = {
 
     // Generate preview token
     const signature = createPreviewToken(
-      siteName,
+      context.$config.api.previewAudience,
       submissionId,
       context.$config.api.previewIssuer,
       context.$config.api.previewSigningSecret,

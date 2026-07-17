@@ -61,7 +61,7 @@ describe('extension checks config gates', () => {
       name: 'test',
       editorApiUrl: 'https://example.com',
       renderServiceUrl: undefined,
-      webVersionPreviewUrl: 'http://localhost:3810',
+      workVersionPreviewUrl: 'http://localhost:3810',
       authProviders: [],
       navigation: { items: [] },
       extensions: { 'mock-checks': { name: 'mock-checks', capabilities: ['checks'] } },
