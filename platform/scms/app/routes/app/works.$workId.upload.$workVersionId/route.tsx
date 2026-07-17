@@ -800,8 +800,14 @@ export async function action(args: Route.ActionArgs) {
           );
         }
 
-        // When a Word manuscript is present, enqueue MyST web conversion (best-effort).
-        if (hasDocxInMetadata(wv.metadata)) {
+        // When a Word manuscript is present and the user has the web-article-generation
+        // feature scope, enqueue MyST web conversion (best-effort).
+        if (
+          hasDocxInMetadata(wv.metadata) &&
+          userHasScope(baseCtx.user, scopes.app.works.webArticleGeneration, undefined, {
+            ignoreSystemAdmin: true,
+          })
+        ) {
           waitUntil(
             (async () => {
               const jobId = uuidv7();

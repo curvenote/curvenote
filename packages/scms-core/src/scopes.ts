@@ -135,6 +135,8 @@ export const app = {
     },
     export: 'app:works:export',
     metadataExtract: 'app:works:metadata-extract',
+    webArticleGeneration: 'app:works:web-article-generation',
+    componentExtract: 'app:works:component-extract',
   },
 };
 
