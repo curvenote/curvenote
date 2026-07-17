@@ -25,14 +25,19 @@ async function main() {
   const dateTwo = new Date(2023, 1, 2);
   const dateTwoString = dateTwo.toISOString();
 
-  await prisma.user.create({
-    data: {
+  await prisma.user.upsert({
+    where: { id: '018b9034-d660-7a20-9135-5794c1eb0bfb' },
+    create: {
       date_created: dateOneString,
       date_modified: dateOneString,
       id: '018b9034-d660-7a20-9135-5794c1eb0bfb',
       email: 'submissions@curvenote.com',
       display_name: 'Curvenote Submissions',
-      system_role: SystemRole.SERVICE,
+      system_role: SystemRole.SYSTEM_SERVICE,
+    },
+    update: {
+      system_role: SystemRole.SYSTEM_SERVICE,
+      date_modified: dateOneString,
     },
   });
 

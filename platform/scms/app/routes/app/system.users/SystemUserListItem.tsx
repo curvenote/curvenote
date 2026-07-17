@@ -72,7 +72,7 @@ type ActionResponse = {
   user?: SystemUserDTO;
 };
 
-const ROLES_REQUIRING_CONFIRMATION: SystemRole[] = ['ADMIN', 'SERVICE'];
+const ROLES_REQUIRING_CONFIRMATION: SystemRole[] = ['ADMIN', 'SERVICE', 'SYSTEM_SERVICE'];
 
 export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps) {
   const fetcher = useFetcher<ActionResponse>();
@@ -96,6 +96,8 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
         return 'Admin';
       case 'SERVICE':
         return 'Service';
+      case 'SYSTEM_SERVICE':
+        return 'System service';
       case 'ANON':
         return 'Guest';
       default:
@@ -209,6 +211,7 @@ export function SystemUserListItem({ user, currentUserId }: SystemUserCardProps)
                     <ui.SelectItem value="USER">User</ui.SelectItem>
                     <ui.SelectItem value="ADMIN">Admin</ui.SelectItem>
                     <ui.SelectItem value="SERVICE">Service</ui.SelectItem>
+                    <ui.SelectItem value="SYSTEM_SERVICE">System service</ui.SelectItem>
                     <ui.SelectItem value="ANON">Anonymous</ui.SelectItem>
                   </ui.SelectContent>
                 </ui.Select>
