@@ -1,6 +1,6 @@
 /**
  * Run pandoc on the given docx file (absolute path) and write index.md in the same folder.
- * Uses -t gfm (GitHub-Flavored Markdown) so image links have no {width=... height=...} attributes (MyST doesn't support those).
+ * Uses -t gfm (GitHub-Flavored Markdown) so image links have no {width=... height=...} attributes (MyST Markdown doesn't support those).
  * Uses --extract-media=. so embedded images are extracted to ./media and markdown uses relative paths (e.g. media/image1.png).
  * We run with cwd: workDir so extraction is in workDir/media/.
  * tmpFolder must be an absolute path; inputDocxBasename is the file name under tmpFolder.

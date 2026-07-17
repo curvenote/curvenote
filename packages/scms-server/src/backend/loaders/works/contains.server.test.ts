@@ -26,16 +26,8 @@ describe('resolveVersionContains', () => {
 });
 
 describe('draftUploadVersionContains', () => {
-  it('inherits prior version labels and adds files when missing', () => {
-    expect(draftUploadVersionContains(['myst'])).toEqual(['myst', 'files']);
-  });
-
-  it('does not duplicate files when already present', () => {
-    expect(draftUploadVersionContains(['myst', 'files'])).toEqual(['myst', 'files']);
-  });
-
-  it('adds files to an empty prior version', () => {
-    expect(draftUploadVersionContains([])).toEqual(['files']);
+  it('starts UI draft versions with files only (does not inherit prior labels)', () => {
+    expect(draftUploadVersionContains()).toEqual(['files']);
   });
 });
 

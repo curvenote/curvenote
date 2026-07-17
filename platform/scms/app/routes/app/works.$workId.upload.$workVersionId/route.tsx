@@ -30,6 +30,7 @@ import {
   StorageBackend,
   KnownBuckets,
   resolveThumbnailBucket,
+  enqueueAndDispatchJob,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
@@ -62,6 +63,7 @@ import {
   ExtensionChecksAnalyticsEventKey,
   buildCheckServiceIdToExtensionMap,
   groupCheckServiceIdsByExtensionAnalyticsEvent,
+  hasDocxInMetadata,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -131,6 +133,7 @@ import type { AuthorFieldMetadata } from './mystAuthorAdapters';
 import { mystFrontmatterToAuthorField } from './mystAuthorAdapters';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { waitUntil } from '@vercel/functions';
+import { uuidv7 } from 'uuidv7';
 
 /**
  * Zod schema for work upload form validation
@@ -791,6 +794,37 @@ export async function action(args: Route.ActionArgs) {
                 workId,
                 workVersionId,
                 enabledChecks: dispatchableChecks,
+                error,
+              });
+            }),
+          );
+        }
+
+        // When a Word manuscript is present and the user has the web-article-generation
+        // feature scope, enqueue MyST web conversion (best-effort).
+        if (
+          hasDocxInMetadata(wv.metadata) &&
+          userHasScope(baseCtx.user, scopes.app.works.webArticleGeneration, undefined, {
+            ignoreSystemAdmin: true,
+          })
+        ) {
+          waitUntil(
+            (async () => {
+              const jobId = uuidv7();
+              await enqueueAndDispatchJob({
+                job_id: jobId,
+                job_type: 'CONVERTER_TASK',
+                payload: {
+                  work_version_id: workVersionId,
+                  target: 'web',
+                  conversion_type: 'docx-pd-curvenote-web',
+                },
+                invoked_by_id: baseCtx.user?.id,
+              });
+            })().catch((error) => {
+              console.error('[work-upload] web converter dispatch failed', {
+                workId,
+                workVersionId,
                 error,
               });
             }),

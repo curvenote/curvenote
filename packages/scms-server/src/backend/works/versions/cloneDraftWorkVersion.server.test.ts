@@ -48,7 +48,7 @@ const sourceVersion = {
 
 function createTransactionClient(overrides?: {
   source?: typeof sourceVersion | null;
-  work?: { contains: string[]; versions: { contains: string[] }[] } | null;
+  work?: { contains: string[] } | null;
 }) {
   const workUpdate = vi.fn().mockResolvedValue({});
   const activityCreate = vi.fn().mockResolvedValue({ id: 'activity-1' });
@@ -65,7 +65,6 @@ function createTransactionClient(overrides?: {
         if (overrides && 'work' in overrides) return overrides.work;
         return {
           contains: ['article'],
-          versions: [{ contains: ['files'] }],
         };
       }),
       update: workUpdate,
@@ -112,6 +111,7 @@ describe('cloneDraftWorkVersionFromSource', () => {
       expect.objectContaining({
         where: { id: 'work-1' },
         data: expect.objectContaining({
+          contains: { set: ['article', 'files'] },
           versions: {
             create: [
               expect.objectContaining({
@@ -121,6 +121,7 @@ describe('cloneDraftWorkVersionFromSource', () => {
                 doi: null,
                 title: 'Source title',
                 thumbnail: 'thumb-key',
+                contains: ['files'],
                 metadata: baseSeedDraftMetadataFromSource(sourceVersion.metadata),
               }),
             ],
@@ -137,6 +138,36 @@ describe('cloneDraftWorkVersionFromSource', () => {
       }),
       select: { id: true },
     });
+  });
+
+  it('does not inherit myst from a prior version onto the new draft', async () => {
+    const { tx, workUpdate } = createTransactionClient({
+      work: { contains: ['myst', 'files'] },
+      source: { ...sourceVersion, contains: ['myst', 'files'] },
+    });
+    mockGetPrismaClient.mockResolvedValue({
+      $transaction: vi.fn(async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx)),
+    });
+
+    await cloneDraftWorkVersionFromSource(ctx, {
+      workId: 'work-1',
+      sourceWorkVersionId: 'wv-source',
+    });
+
+    expect(workUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          contains: { set: ['myst', 'files'] },
+          versions: {
+            create: [
+              expect.objectContaining({
+                contains: ['files'],
+              }),
+            ],
+          },
+        }),
+      }),
+    );
   });
 
   it('uses a custom metadata seeder when provided', async () => {

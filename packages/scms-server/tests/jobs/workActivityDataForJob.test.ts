@@ -8,16 +8,16 @@ describe('workActivityDataForJob', () => {
       workActivityDataForJob('CONVERTER_TASK_STARTED', {
         work_version_id: 'wv-1',
         target: 'pdf',
-        conversion_type: 'docx-pandoc-myst-pdf',
+        conversion_type: 'docx-pd-curvenote-pdf',
       }),
     ).toEqual({
-      converter: { target: 'pdf', type: 'docx-pandoc-myst-pdf' },
+      converter: { target: 'pdf', type: 'docx-pd-curvenote-pdf' },
     });
   });
 
   test('uses converter defaults when target and conversion_type are absent', () => {
     expect(workActivityDataForJob('CONVERTER_TASK_STARTED', { work_version_id: 'wv-1' })).toEqual({
-      converter: { target: 'pdf', type: 'docx-pandoc-myst-pdf' },
+      converter: { target: 'pdf', type: 'docx-pd-curvenote-pdf' },
     });
   });
 
@@ -29,7 +29,7 @@ describe('workActivityDataForJob', () => {
         conversion_type: null,
       }),
     ).toEqual({
-      converter: { target: 'pdf', type: 'docx-pandoc-myst-pdf' },
+      converter: { target: 'pdf', type: 'docx-pd-curvenote-pdf' },
     });
   });
 

@@ -173,11 +173,14 @@ export async function converterTaskHandler(ctx: Context, data: CreateJob) {
     workVersionPayload.metadata = signedMetadata as WorkVersionMetadataPayload;
   }
 
-  const filename = deriveExportFilenameFromMetadata(workVersionPayload.metadata);
+  const filename =
+    payload.target === 'pdf'
+      ? deriveExportFilenameFromMetadata(workVersionPayload.metadata)
+      : undefined;
 
   const converterPayload: ConverterPayload = {
     taskId: job.id,
-    target: 'pdf',
+    target: payload.target,
     conversionType: payload.conversion_type,
     workVersion: workVersionPayload,
     ...(filename ? { filename } : {}),

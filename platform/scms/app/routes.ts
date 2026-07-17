@@ -187,7 +187,7 @@ export default [
 
   // API V1 Routes
   route('v1', 'routes/api/v1.tsx', [
-    route('previews/:submissionVersionId', 'routes/api/v1.previews.$submissionVersionId.tsx'),
+    route('previews/:id', 'routes/api/v1.previews.$id.tsx'),
 
     // My Routes
     route('my/submissions', 'routes/api/v1.my.submissions.tsx', [
@@ -283,6 +283,10 @@ export default [
           route(
             ':workVersionId/files',
             'routes/api/v1.works.$workId.versions.$workVersionId.files.tsx',
+          ),
+          route(
+            ':workVersionId/contains',
+            'routes/api/v1.works.$workId.versions.$workVersionId.contains.tsx',
           ),
         ]),
       ]),

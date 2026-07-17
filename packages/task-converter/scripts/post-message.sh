@@ -22,7 +22,7 @@ PAYLOAD_JSON=$(cat <<'PAYLOAD_EOF'
 {
   "taskId": "test-converter-1",
   "target": "pdf",
-  "conversionType_1": "docx-pandoc-myst-pdf",
+  "conversionType_1": "docx-pd-curvenote-pdf",
   "conversionType": "docx-lowriter-pdf",
   "filename": "paper.pdf",
   "workVersion": {

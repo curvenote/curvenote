@@ -209,8 +209,8 @@ export class Context implements ContextType {
         this.$config.api.previewSigningSecret,
       );
       this.$verifiedPreviewToken = token;
-      const { scope, scopeId } = claims;
-      this.$previewClaims = { scope, scopeId };
+      const { scope, scopeId, aud } = claims;
+      this.$previewClaims = { scope, scopeId, aud };
     } catch (err: any) {
       console.error('Invalid preview token', err);
       this.$verifiedPreviewToken = undefined;

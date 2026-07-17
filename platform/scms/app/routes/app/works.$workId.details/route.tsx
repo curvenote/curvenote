@@ -44,6 +44,7 @@ type LoaderData = {
   workflows: Record<string, Workflow>;
   work: WorkDTO;
   versions: WorkVersionForDetailsClient[];
+  webVersionPreviewSignatures: Record<string, string>;
   submissions: SubmissionWithVersionsAndSite[];
   linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
   workOwnerName: string | null;
@@ -71,6 +72,7 @@ export default function WorkDetailRoute() {
     workflows,
     work,
     versions,
+    webVersionPreviewSignatures,
     submissions,
     linkedJobsByWorkVersionId,
     workOwnerName,
@@ -140,6 +142,7 @@ export default function WorkDetailRoute() {
         <div>
           <WorkVersionTimeline
             versions={versions}
+            webVersionPreviewSignatures={webVersionPreviewSignatures}
             workflows={workflows}
             workOwnerName={workOwnerName}
             basePath={basePath}

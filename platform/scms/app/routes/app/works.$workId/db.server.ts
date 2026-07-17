@@ -158,6 +158,7 @@ export type WorkVersionWithSubmissionVersions = Prisma.WorkVersionGetPayload<{
     occ: true;
     date_modified: true;
     author_details: true;
+    contains: true;
     submissionVersions: {
       select: typeof workDetailsSubmissionVersionSelect;
     };
@@ -191,6 +192,7 @@ export async function dbGetWorkVersionsWithSubmissionVersions(
       occ: true,
       date_modified: true,
       author_details: true,
+      contains: true,
       submissionVersions: {
         select: workDetailsSubmissionVersionSelect,
         orderBy: {

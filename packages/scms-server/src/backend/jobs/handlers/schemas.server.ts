@@ -1,5 +1,6 @@
 /* eslint-disable import/no-named-as-default-member */
 import { z } from 'zod';
+import { CONVERSION_TYPES, type ConversionType } from '@curvenote/common';
 import { KnownBuckets } from '../../storage/constants.server.js';
 
 /*
@@ -64,10 +65,8 @@ export type CreateStorageRemoveJobPayload = z.infer<typeof CreateStorageRemoveJo
 /** Payload for CONVERTER_TASK job. work_version_id required; target and conversion_type have defaults. */
 export const CreateConverterTaskPayloadSchema = z.object({
   work_version_id: z.uuid('work_version_id is required'),
-  target: z.enum(['pdf']).default('pdf'),
-  conversion_type: z
-    .enum(['docx-pandoc-myst-pdf', 'docx-lowriter-pdf'])
-    .default('docx-pandoc-myst-pdf'),
+  target: z.enum(['pdf', 'web']).default('pdf'),
+  conversion_type: z.enum(CONVERSION_TYPES).default('docx-pd-curvenote-pdf'),
 });
 
 export type CreateConverterTaskPayload = z.infer<typeof CreateConverterTaskPayloadSchema>;

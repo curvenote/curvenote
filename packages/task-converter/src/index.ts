@@ -5,10 +5,11 @@ export type {
   WorkVersionPayload,
   WorkVersionMetadataPayload,
   ConversionType,
+  ConverterTarget,
   FileMetadataSectionItem,
   FileMetadataSection,
 } from './payload.js';
-export { CONVERSION_TYPES } from './payload.js';
+export { CONVERSION_TYPES, CONVERSION_TYPE_TARGET, CONVERTER_TARGETS } from './payload.js';
 
 const service = createService();
 

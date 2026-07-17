@@ -14,6 +14,7 @@ import {
   useTimelineActivitiesVisibility,
   buildWorkVersionNumberByIdMap,
   compareWorkVersionsByDateCreatedDesc,
+  WorkContents,
 } from '@curvenote/scms-core';
 import type { WorkVersionForDetailsClient } from '../works.$workId/types';
 import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
@@ -21,6 +22,7 @@ import type { Workflow, ClientExtensionCheckService } from '@curvenote/scms-core
 import type { LinkedJobsByWorkVersionId } from './types';
 import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineItem';
 import { SubmissionTimelineItem } from './timeline/SubmissionTimelineItem';
+import { WebVersionCreatedTimelineItem } from './timeline/WebVersionCreatedTimelineItem';
 
 type SubmissionVersionRow = WorkVersionForDetailsClient['submissionVersions'][number];
 
@@ -28,6 +30,12 @@ type SubmissionVersionRow = WorkVersionForDetailsClient['submissionVersions'][nu
 type TimelineEntry =
   | {
       kind: 'work-version';
+      date: string;
+      key: string;
+      version: WorkVersionForDetailsClient;
+    }
+  | {
+      kind: 'web-version';
       date: string;
       key: string;
       version: WorkVersionForDetailsClient;
@@ -51,6 +59,15 @@ type TimelineEntry =
       run: CheckServiceRunRow;
       version: WorkVersionForDetailsClient;
     };
+
+function isWebVersionAvailable(version: WorkVersionForDetailsClient): boolean {
+  return (
+    Boolean(version.cdn?.trim()) &&
+    Boolean(version.cdn_key?.trim()) &&
+    Array.isArray(version.contains) &&
+    version.contains.includes(WorkContents.MYST)
+  );
+}
 
 /** Single entrypoint for timeline auto-expand behavior (easy to A/B later). */
 function shouldExpandByDefault(
@@ -87,6 +104,17 @@ function getSortedSectionEntries(
             kind: 'work-version' as const,
             date: version.date_created,
             key: `work-version-${version.id}`,
+            version,
+          },
+        ]),
+    // MyST web build available on this version (cdn + contains includes myst)
+    ...(version.draft || !isWebVersionAvailable(version)
+      ? []
+      : [
+          {
+            kind: 'web-version' as const,
+            date: version.date_modified || version.date_created,
+            key: `web-version-${version.id}`,
             version,
           },
         ]),
@@ -129,6 +157,8 @@ function getSortedSectionEntries(
 
 type WorkVersionTimelineProps = {
   versions: WorkVersionForDetailsClient[];
+  /** Preview JWTs keyed by workVersionId for MyST web Open links. */
+  webVersionPreviewSignatures: Record<string, string>;
   workflows: Record<string, Workflow>;
   /** Work owner display name; used for "Work version created by" */
   workOwnerName?: string | null;
@@ -160,6 +190,7 @@ export function WorkVersionTimeline(props: WorkVersionTimelineProps) {
 
 function WorkVersionTimelineInner({
   versions,
+  webVersionPreviewSignatures,
   workOwnerName,
   basePath,
   userScopes,
@@ -174,6 +205,7 @@ function WorkVersionTimelineInner({
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
   const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
+  const hasWebArticleGeneration = userScopes.includes(scopes.app.works.webArticleGeneration);
   const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
 
   const versionNumberByVersionId = useMemo(
@@ -218,7 +250,9 @@ function WorkVersionTimelineInner({
         );
         const visibleEntries = (
           showActivities ? sortedEntries : sortedEntries.filter((e) => e.kind !== 'activity')
-        ).filter((e) => hasChecksFeature || e.kind !== 'check-service-run');
+        )
+          .filter((e) => hasChecksFeature || e.kind !== 'check-service-run')
+          .filter((e) => hasWebArticleGeneration || e.kind !== 'web-version');
 
         if (visibleEntries.length === 0) return null;
 
@@ -238,6 +272,20 @@ function WorkVersionTimelineInner({
                     basePath={basePath}
                     canExport={canExport}
                     linkedJobsByWorkVersionIdPromise={linkedJobsByWorkVersionId}
+                  />
+                );
+              }
+              if (entry.kind === 'web-version') {
+                const { version } = entry;
+                const previewSignature = webVersionPreviewSignatures[version.id];
+                if (!previewSignature) return null;
+                return (
+                  <WebVersionCreatedTimelineItem
+                    key={entry.key}
+                    dateCreated={version.date_modified || version.date_created}
+                    dateModified={version.date_modified}
+                    workVersionId={version.id}
+                    previewSignature={previewSignature}
                   />
                 );
               }

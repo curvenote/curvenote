@@ -60,6 +60,8 @@ api:
     id: qwerty-123456-zxcvbn-987654
 app:
   renderServiceUrl: 'http://localhost:3000'
+  # Work-version preview theme (not submission previews)
+  workVersionPreviewUrl: 'http://localhost:3810'
   # checks:
   #   relayBaseUrl: https://checks-relay.example.com
   #   relayApiKey: <set in secrets file>

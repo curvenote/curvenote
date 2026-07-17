@@ -12,6 +12,8 @@ const {
   waitUntil,
   loadCheckMaintenanceByServiceIds,
   hasInvalidEnabledUploadChecks,
+  enqueueAndDispatchJob,
+  hasDocxInMetadata,
 } = vi.hoisted(() => ({
   findUnique: vi.fn(),
   update: vi.fn(),
@@ -22,12 +24,16 @@ const {
   waitUntil: vi.fn(),
   loadCheckMaintenanceByServiceIds: vi.fn(),
   hasInvalidEnabledUploadChecks: vi.fn(),
+  enqueueAndDispatchJob: vi.fn(),
+  hasDocxInMetadata: vi.fn(),
 }));
 
 vi.mock('@curvenote/scms-server', async () => ({
   withAppScopedContext: vi.fn(async () => ({
     user: { id: 'user-1' },
     $config: {},
+    trackEvent: vi.fn(async () => undefined),
+    analytics: { flush: vi.fn(async () => undefined) },
   })),
   userHasScope,
   userHasWorkScope,
@@ -58,6 +64,7 @@ vi.mock('@curvenote/scms-server', async () => ({
   searchOrcid: vi.fn(),
   searchOrcidById: vi.fn(),
   searchRor: vi.fn(),
+  enqueueAndDispatchJob,
 }));
 
 vi.mock('@curvenote/scms-core', async () => ({
@@ -81,11 +88,17 @@ vi.mock('@curvenote/scms-core', async () => ({
   capitalize: vi.fn((value: string) => value),
   MANUSCRIPT_UPLOAD_ACCEPT: '.pdf,.docx',
   MANUSCRIPT_UPLOAD_MIME_TYPES: ['application/pdf'],
+  ExtensionChecksAnalyticsEventKey: {
+    UPLOAD_CONFIRMED: 'upload_confirmed',
+  },
+  buildCheckServiceIdToExtensionMap: vi.fn(() => ({})),
+  groupCheckServiceIdsByExtensionAnalyticsEvent: vi.fn(() => new Map()),
   scopes: {
     app: {
       works: {
         upload: 'app:works:upload',
         metadataExtract: 'app:works:metadataExtract',
+        webArticleGeneration: 'app:works:web-article-generation',
       },
     },
     work: {
@@ -97,6 +110,7 @@ vi.mock('@curvenote/scms-core', async () => ({
     },
   },
   isValidOrcid: vi.fn(),
+  hasDocxInMetadata,
 }));
 
 vi.mock('@vercel/functions', () => ({
@@ -170,6 +184,8 @@ describe('work upload confirm-work action', () => {
     dbGetUserWorkRoles.mockResolvedValue([]);
     loadCheckMaintenanceByServiceIds.mockResolvedValue({});
     hasInvalidEnabledUploadChecks.mockReturnValue(false);
+    hasDocxInMetadata.mockReturnValue(false);
+    enqueueAndDispatchJob.mockResolvedValue({ job_id: 'job-1' });
     safeWorkVersionJsonUpdate.mockResolvedValue(undefined);
     update.mockResolvedValue({
       id: 'wv-1',
@@ -194,5 +210,73 @@ describe('work upload confirm-work action', () => {
     expect(safeWorkVersionJsonUpdate).not.toHaveBeenCalled();
     expect(update).not.toHaveBeenCalled();
     expect(waitUntil).not.toHaveBeenCalled();
+  });
+
+  it('enqueues web converter only when docx is present and user has web-article-generation scope', async () => {
+    const backgroundWork: Promise<unknown>[] = [];
+    waitUntil.mockImplementation((promise: Promise<unknown>) => {
+      backgroundWork.push(promise);
+    });
+    userHasWorkScope.mockReturnValue(true);
+    hasDocxInMetadata.mockReturnValue(true);
+    userHasScope.mockImplementation(
+      (_user: unknown, scope: string) => scope === 'app:works:web-article-generation',
+    );
+    findUnique.mockResolvedValue({
+      id: 'wv-1',
+      cdn: 'cdn-1',
+      metadata: { checks: { enabled: [] } },
+    });
+    update.mockResolvedValue({
+      id: 'wv-1',
+      cdn: 'cdn-1',
+      metadata: { checks: { enabled: [] } },
+    });
+
+    const response = await action({
+      request: createConfirmWorkRequest(),
+      params: { workId: 'work-1', workVersionId: 'wv-1' },
+    } as never);
+    await Promise.all(backgroundWork);
+
+    expect(response).toMatchObject({ data: { success: true } });
+    expect(enqueueAndDispatchJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        job_type: 'CONVERTER_TASK',
+        payload: expect.objectContaining({
+          work_version_id: 'wv-1',
+          target: 'web',
+          conversion_type: 'docx-pd-curvenote-web',
+        }),
+      }),
+    );
+  });
+
+  it('does not enqueue web converter without web-article-generation scope', async () => {
+    const backgroundWork: Promise<unknown>[] = [];
+    waitUntil.mockImplementation((promise: Promise<unknown>) => {
+      backgroundWork.push(promise);
+    });
+    userHasWorkScope.mockReturnValue(true);
+    hasDocxInMetadata.mockReturnValue(true);
+    userHasScope.mockReturnValue(false);
+    findUnique.mockResolvedValue({
+      id: 'wv-1',
+      cdn: 'cdn-1',
+      metadata: { checks: { enabled: [] } },
+    });
+    update.mockResolvedValue({
+      id: 'wv-1',
+      cdn: 'cdn-1',
+      metadata: { checks: { enabled: [] } },
+    });
+
+    await action({
+      request: createConfirmWorkRequest(),
+      params: { workId: 'work-1', workVersionId: 'wv-1' },
+    } as never);
+    await Promise.all(backgroundWork);
+
+    expect(enqueueAndDispatchJob).not.toHaveBeenCalled();
   });
 });

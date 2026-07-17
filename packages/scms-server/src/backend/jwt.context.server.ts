@@ -7,6 +7,7 @@ import { error401 } from '@curvenote/scms-core';
 export type PreviewTokenClaims = {
   scope: string;
   scopeId: string;
+  aud?: string;
 };
 
 export type HandshakeTokenClaims = {
