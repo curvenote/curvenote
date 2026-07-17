@@ -58,10 +58,18 @@ export function resolveEtlHistorySince(
   return parsed.toISOString();
 }
 
-/** First submission-version tag (ETL `version_tag`) when present. */
+const VERSION_TAG_RE = /^v(\d+)$/i;
+
+/**
+ * First `v{n}` tag on the submission version (ETL `version_tag`), normalized to `v{n}`.
+ * Non-version tags are ignored; multiple `v{n}` tags are not expected — first wins.
+ */
 export function pickEtlHistoryVersion(tags: string[]): string | undefined {
-  const tag = tags.find((value) => value.trim().length > 0)?.trim();
-  return tag || undefined;
+  for (const raw of tags) {
+    const m = VERSION_TAG_RE.exec(raw.trim());
+    if (m) return `v${m[1]}`;
+  }
+  return undefined;
 }
 
 function buildHistoryLinks(

@@ -43,11 +43,16 @@ describe('resolveEtlHistorySince', () => {
 });
 
 describe('pickEtlHistoryVersion', () => {
-  test('returns the first non-empty tag', () => {
-    expect(pickEtlHistoryVersion(['v2', 'preprint'])).toBe('v2');
+  test('returns the first vN tag and ignores non-version tags', () => {
+    expect(pickEtlHistoryVersion(['preprint', 'v2', 'v3'])).toBe('v2');
   });
 
-  test('returns undefined when no tags are present', () => {
+  test('normalizes case to v{n}', () => {
+    expect(pickEtlHistoryVersion(['V1'])).toBe('v1');
+  });
+
+  test('returns undefined when no vN tag is present', () => {
+    expect(pickEtlHistoryVersion(['preprint', '  '])).toBeUndefined();
     expect(pickEtlHistoryVersion([])).toBeUndefined();
   });
 });
