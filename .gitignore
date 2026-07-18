@@ -36,6 +36,8 @@ yarn-error.log*
 
 # Turborepo task overrides for gitignored extension packages (see scripts/turbo-run.mjs, generate-extensions.js)
 turbo.extensions.generated.json
+# Optional gitignored platform/mcp clone (see scripts/generate-mcp-workspace.js)
+turbo.mcp.generated.json
 
 _build
 
@@ -45,6 +47,11 @@ yalc.lock
 /extensions/
 !/extensions/README.md
 !/extensions/plugins/README.md
+
+platform/*
+!platform/scms
+!platform/relay
+!platform/MCP.md
 
 .app-config.*
 !.app-config.meta.yml

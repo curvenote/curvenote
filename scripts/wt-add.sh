@@ -33,6 +33,7 @@ Also:
   - clones git repos from extensions/ and extensions/plugins/ in the source
     checkout into the same paths in the worktree (URLs/branches inferred locally;
     nothing committed to the monorepo). Set WT_SKIP_EXTENSIONS=1 to skip.
+  - clones platform/mcp when the source checkout has that git repo. Set WT_SKIP_MCP=1 to skip.
 
 EOF
 }
@@ -101,6 +102,12 @@ post_worktree_setup() {
     bash "${ROOT}/scripts/wt-clone-extensions.sh" "${ROOT}" "${wt_dir}"
   else
     echo "→ Skipping extension clones (WT_SKIP_EXTENSIONS=1)"
+  fi
+
+  if [[ "${WT_SKIP_MCP:-}" != "1" ]]; then
+    bash "${ROOT}/scripts/wt-clone-mcp.sh" "${ROOT}" "${wt_dir}"
+  else
+    echo "→ Skipping MCP clone (WT_SKIP_MCP=1)"
   fi
 
   echo "✅ Worktree ready: ${wt_dir}"

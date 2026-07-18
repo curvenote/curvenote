@@ -8,19 +8,19 @@
     "ee/*",
     "extensions/*/packages/*",
     "extensions/plugins/*",
-    "platform/scms",
-    "platform/relay"
+    "platform/*"
   ],
   "scripts": {
     "prepare": "husky",
-    "preinstall": "rm -f ./platform/scms/package.json ./platform/relay/package.json ./turbo.extensions.generated.json",
-    "postinstall": "npm run generate:extensions && npm run generate:relay-plugins",
+    "preinstall": "rm -f ./platform/scms/package.json ./platform/relay/package.json ./turbo.extensions.generated.json ./turbo.mcp.generated.json",
+    "postinstall": "npm run generate:extensions && npm run generate:relay-plugins && npm run generate:mcp-workspace",
     "wt:create": "bash scripts/wt-add.sh",
     "wt:go": "npm install; npm run build; cd platform/scms; npm install; npm run type-check; cd ../..",
     "wt:existing": "bash scripts/wt-add.sh --existing",
     "wt:remove": "bash scripts/wt-remove.sh",
     "generate:extensions": "node platform/scms/scripts/generate-extensions.js",
     "generate:relay-plugins": "node platform/relay/scripts/generate-plugin-loader.js",
+    "generate:mcp-workspace": "node scripts/generate-mcp-workspace.js",
     "prisma:generate": "npx prisma generate --config=./prisma.config.ts",
     "prisma:format": "npx prisma format --config=./prisma.config.ts",
     "db:up": "docker compose up -d --wait postgres",

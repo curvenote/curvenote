@@ -33,6 +33,26 @@ services:
       retries: 10
       start_period: 10s
 
+  postgrest:
+    # The SCMS Data API: the same engine as the Supabase Data API (PostgREST),
+    # pinned to Supabase's current major version. Exposes the curated `api`
+    # schema (see prisma/schema/migrations/20260711120000_add_data_api_schema).
+    image: postgrest/postgrest:v13.0.4
+    container_name: scms-postgrest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '3010:3000'
+    environment:
+      PGRST_DB_URI: postgres://authenticator:curvenote@postgres:5432/journals
+      PGRST_DB_SCHEMAS: api
+      PGRST_DB_ANON_ROLE: anon
+      # Local-dev secret only (matches the Supabase CLI demo secret). Mint
+      # matching service_role/anon JWTs with: node scripts/mint-dev-jwt.mjs
+      PGRST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters
+
 volumes:
   scms_postgres_data:
     name: scms_postgres_data
