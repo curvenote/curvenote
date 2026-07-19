@@ -1,5 +1,13 @@
 # @curvenote/scms-db
 
+## 0.24.0
+
+### Patch Changes
+
+- [#988](https://github.com/curvenote/curvenote/pull/988) [`86ba389`](https://github.com/curvenote/curvenote/commit/86ba3890e1921bfaa0eb39963d6c607f0358a90c) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove the `(work_id, site_id)` unique constraint migration and Prisma `@@unique`. Submit-to-site now serializes concurrent first-time submits with a PostgreSQL advisory transaction lock instead of relying on a database unique index.
+
+- [#1010](https://github.com/curvenote/curvenote/pull/1010) [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improve My Works listing metadata and timeline affordances. Broaden the activity pill to the latest work- or submission-level event, reorder the right column to date then activity then timeline (baseline-aligned and centered), show the timeline link only when a work has multiple versions, and add `v{n}` badges to the work-details version timeline headers. Includes an Activity `(work_id, date_created)` index for efficient listing queries.
+
 ## 0.23.0
 
 ### Minor Changes
