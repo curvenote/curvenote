@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, differenceInHours } from 'date-fns';
 
 export function formatToNow(date: string, { addSuffix = false } = {}) {
   const dateObj = new Date(date);
@@ -74,6 +74,30 @@ export function formatDate(str: string, fmt = 'MMM dd, y') {
   }
 
   return format(date, fmt);
+}
+
+/**
+ * Format a date for display; include time only when the timestamp is within the last day.
+ */
+export function formatDateWithRecentTime(
+  str: string,
+  {
+    dateFmt = 'MMM dd, y',
+    dateTimeFmt = 'MMM dd, y HH:mm',
+    recentWithinHours = 24,
+  }: {
+    dateFmt?: string;
+    dateTimeFmt?: string;
+    recentWithinHours?: number;
+  } = {},
+) {
+  const date = new Date(str);
+  if (isNaN(date.getTime())) {
+    return formatDate(str, dateFmt);
+  }
+
+  const includeTime = differenceInHours(new Date(), date) <= recentWithinHours;
+  return formatDate(str, includeTime ? dateTimeFmt : dateFmt);
 }
 
 export function formatTime(str: string, fmt = 'HH:mm:ss') {

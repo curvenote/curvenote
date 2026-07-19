@@ -4,7 +4,9 @@ import { firstVersionTag } from '../$siteName.submissions._index/index.versions.
 import type { VersionTimelineEntry } from '@curvenote/scms-core';
 
 /**
- * All submission versions for the version-timeline hover card (newest first).
+ * Non-draft submission versions for the version-timeline hover card (newest first).
+ * Draft versions are excluded so listing badges and hover popovers stay consistent
+ * with the My Works rule of not surfacing draft submission state.
  *
  * Single Prisma call:
  *   - Submission lookup is tenancy-scoped (`id` + `site_id`) — PK lookup with a
@@ -28,6 +30,7 @@ export async function dbLoadSubmissionVersionsTimeline(
     select: {
       collection: { select: { workflow: true } },
       versions: {
+        where: { status: { not: 'DRAFT' } },
         orderBy: { date_created: 'desc' },
         select: {
           id: true,

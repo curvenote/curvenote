@@ -1,5 +1,5 @@
 /**
- * Constants for the docx-pandoc-myst-pdf pipeline.
+ * Constants for the docx-pd-curvenote-pdf pipeline.
  */
 
 export const INDEX_MD = 'index.md';

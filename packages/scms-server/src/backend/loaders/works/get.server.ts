@@ -10,6 +10,7 @@ import { signPrivateUrls } from '../../sign.private.server.js';
 import type { WorkRole } from '@curvenote/scms-db';
 import { userHasSiteScope } from '../../scopes.helpers.server.js';
 import { siteWorkWorkVersionSelect } from '../../prisma.selects.server.js';
+import { hasResolvableThumbnail } from '../../thumbnail.server.js';
 
 export type WorkAndVersionsDBO = WorkDBO & { versions?: WorkVersionDBO[] };
 export type WorkUserDBO = { work_id: string; user_id: string; role: WorkRole };
@@ -35,7 +36,8 @@ export function formatWorkDTO(
   }
 
   let thumbnail: string | undefined;
-  if (version.cdn && version.cdn_key) {
+  const canResolveThumbnail = hasResolvableThumbnail(version);
+  if (canResolveThumbnail && version.cdn && version.cdn_key) {
     const { thumbnail: thumbnailUrl } = signPrivateUrls(
       ctx,
       { cdn: version.cdn, key: version.cdn_key },
@@ -43,6 +45,10 @@ export function formatWorkDTO(
       'no-social',
     );
     thumbnail = thumbnailUrl;
+  } else if (canResolveThumbnail && version.thumbnail && version.cdn) {
+    // Draft / pre-publish: preferred thumbnail column is set but no manifest yet.
+    // The thumbnail endpoint resolves the column directly (signs storage itself).
+    thumbnail = ctx.asApiUrl(`/works/${work.id}/thumbnail`);
   }
   return {
     id: work.id,

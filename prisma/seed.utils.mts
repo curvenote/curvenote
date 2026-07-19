@@ -2,12 +2,25 @@ import type { Prisma } from '@curvenote/scms-db';
 import { getLowLevelPrismaClient, SiteRole, ActivityType, WorkRole } from '@curvenote/scms-db';
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
 import { uuidv7 as uuid } from 'uuidv7';
+import { getConfig } from '../packages/scms-server/src/app-config.server.js';
+import { resolveStoredQueueDrainUrl } from '../packages/scms-server/src/backend/jobs/enqueue/notifyQueueConsumer.server.js';
+import { resolveStoredCronTickUrl } from '../packages/scms-server/src/backend/cron/resolveCronTickUrl.server.js';
 
 const DEFAULT_CHECKS: string[] = [];
 const QUIET = true; // Set to true to suppress console output
 
 const prisma = await getLowLevelPrismaClient();
+
+function looksLikeUUID(maybeUuid: string) {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(maybeUuid);
+}
+
+function isSafeSlug(slug: string) {
+  return /^[a-zA-Z0-9-_.]+$/.test(slug);
+}
 
 /** Seeded RNG (mulberry32) for deterministic version dates and submission indices. */
 function createSeededRng(seed: string): () => number {
@@ -91,7 +104,10 @@ function generateWorkVersions(
   const doubleIdx = shuffled[0];
   const draftOnlyIndices = [shuffled[1], shuffled[2], shuffled[3]];
   const publishedOnlyIdx = shuffled[4];
-  const submissionVersionEntries: Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }> = [
+  const submissionVersionEntries: Array<{
+    workVersionIndex: number;
+    status: 'DRAFT' | 'PUBLISHED';
+  }> = [
     { workVersionIndex: doubleIdx, status: 'DRAFT' },
     { workVersionIndex: doubleIdx, status: 'PUBLISHED' },
     { workVersionIndex: draftOnlyIndices[0], status: 'DRAFT' },
@@ -180,6 +196,17 @@ export async function seedBySites(
       console.log(
         `   📄 Creating work ${workCount}/${item.works.length}: ${work.title || work.id}`,
       );
+      if (!looksLikeUUID(work.id)) {
+        throw new Error(`Seed work "${work.title || work.id}" must use a UUID id`);
+      }
+      if (work.slug !== undefined) {
+        if (looksLikeUUID(work.slug)) {
+          throw new Error(`Seed work "${work.id}" has UUID-looking slug "${work.slug}"`);
+        }
+        if (!isSafeSlug(work.slug)) {
+          throw new Error(`Seed work "${work.id}" has invalid slug "${work.slug}"`);
+        }
+      }
 
       let submissionVersionEntries:
         | Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }>
@@ -274,7 +301,7 @@ export async function seedBySites(
           workIndex,
           id: uuid(),
           date_created: version.date_created,
-          date_published: status === 'PUBLISHED' ? (version.date || version.date_created) : undefined,
+          date_published: status === 'PUBLISHED' ? version.date || version.date_created : undefined,
           status,
           submitted_by: {
             connect: { id: users.support.id },
@@ -292,7 +319,7 @@ export async function seedBySites(
               },
               date_created: version.date_created,
               date_published:
-                status === 'PUBLISHED' ? (version.date || version.date_created) : undefined,
+                status === 'PUBLISHED' ? version.date || version.date_created : undefined,
               kind: work.kind,
               site: {
                 connect: {
@@ -533,9 +560,8 @@ export async function seedBySites(
                   collection: {
                     connect: {
                       id:
-                        collections.find(
-                          (c) => c.name === item.works[sv.workIndex]?.collection,
-                        )?.id ?? collections[0].id,
+                        collections.find((c) => c.name === item.works[sv.workIndex]?.collection)
+                          ?.id ?? collections[0].id,
                     },
                   },
                   kind: {
@@ -571,6 +597,28 @@ export async function seedBySites(
       });
       if (isFirstForWork) {
         submissionIdsByWorkIndex[sv.workIndex] = subVersion.submission_id;
+        const slug = item.works[sv.workIndex]?.slug;
+        if (slug) {
+          await prisma.slug.create({
+            data: {
+              id: uuid(),
+              date_created: sv.date_created,
+              date_modified: sv.date_created,
+              slug,
+              primary: true,
+              site: {
+                connect: {
+                  id: siteData.id,
+                },
+              },
+              submission: {
+                connect: {
+                  id: subVersion.submission_id,
+                },
+              },
+            },
+          });
+        }
       }
       subData.push(subVersion);
 
@@ -618,4 +666,115 @@ export async function seedBySites(
   }
 
   return summary;
+}
+
+const seedUtilsDir = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Seed/refresh the `_JobQueueDrainConfig` row from app-config so local + test
+ * environments don't need a manual trip to System → Jobs → Queues after every
+ * database reset. The drain url and secret are taken from the resolved
+ * app-config for the given environment; on conflict the secret is realigned
+ * with app-config while preserving any custom drain url.
+ *
+ * Only meaningful for the supabase provider (pg_net trigger + pg_cron backup);
+ * harmless when the mock provider is active, which ignores this row. Failures
+ * (e.g. missing config or table) are logged and skipped so seeding continues.
+ */
+export async function seedJobQueueDrainConfig(
+  environmentOverride: 'development' | 'test',
+): Promise<void> {
+  let api: Awaited<ReturnType<typeof getConfig>>['api'] | undefined;
+  try {
+    const config = await getConfig(
+      { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
+      { directory: path.resolve(seedUtilsDir, '..') },
+    );
+    api = config.api;
+  } catch (err) {
+    console.warn(
+      `   ⚠️  Skipped _JobQueueDrainConfig seed: could not load app-config (${(err as Error).message})`,
+    );
+    return;
+  }
+
+  if (!api?.url) {
+    console.warn(
+      '   ⚠️  Skipped _JobQueueDrainConfig seed: api section missing/incomplete in app-config',
+    );
+    return;
+  }
+
+  const secret = api.queueConsumerSecret ?? '';
+  if (!secret) {
+    console.warn('   ⚠️  Skipped _JobQueueDrainConfig seed: api.queueConsumerSecret is empty');
+    return;
+  }
+
+  // pg_net fires the wake from inside the Postgres container, so the drain url
+  // must be reachable from there. resolveStoredQueueDrainUrl prefers
+  // api.tasksCallbackUrl (host.docker.internal, already includes /v1) for the
+  // "worker in Docker → host" case and falls back to api.url otherwise. Shared
+  // with the System → Jobs → Queues admin helpers so seed + UI stay in lockstep.
+  const drainUrl = resolveStoredQueueDrainUrl(api);
+
+  try {
+    await prisma.$executeRaw`
+      INSERT INTO "_JobQueueDrainConfig" (id, drain_url, drain_secret)
+      VALUES (1, ${drainUrl}, ${secret})
+      ON CONFLICT (id) DO UPDATE SET drain_secret = EXCLUDED.drain_secret
+    `;
+    console.log(`   ✓ Seeded _JobQueueDrainConfig (drain_url=${drainUrl}, secret from app-config)`);
+  } catch (err) {
+    console.warn(`   ⚠️  Skipped _JobQueueDrainConfig seed: ${(err as Error).message}`);
+  }
+}
+
+/**
+ * Seed/refresh the `_CronTickConfig` row from app-config so local + test
+ * environments don't need a manual trip to System → Cron → Config after every
+ * database reset. pg_cron's cron_tick() no-ops until this row exists.
+ */
+export async function seedCronTickConfig(
+  environmentOverride: 'development' | 'test',
+): Promise<void> {
+  let api: Awaited<ReturnType<typeof getConfig>>['api'] | undefined;
+  try {
+    const config = await getConfig(
+      { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
+      { directory: path.resolve(seedUtilsDir, '..') },
+    );
+    api = config.api;
+  } catch (err) {
+    console.warn(
+      `   ⚠️  Skipped _CronTickConfig seed: could not load app-config (${(err as Error).message})`,
+    );
+    return;
+  }
+
+  if (!api?.url) {
+    console.warn(
+      '   ⚠️  Skipped _CronTickConfig seed: api section missing/incomplete in app-config',
+    );
+    return;
+  }
+
+  const secret = api.cron?.secret ?? '';
+  if (!secret) {
+    console.warn('   ⚠️  Skipped _CronTickConfig seed: api.cron.secret is empty');
+    return;
+  }
+
+  const tickUrl = resolveStoredCronTickUrl(api);
+
+  try {
+    await prisma.$executeRaw`
+      INSERT INTO "_CronTickConfig" (id, tick_url, tick_secret)
+      VALUES (1, ${tickUrl}, ${secret})
+      ON CONFLICT (id) DO UPDATE SET tick_secret = EXCLUDED.tick_secret
+    `;
+    console.log(`   ✓ Seeded _CronTickConfig (tick_url=${tickUrl}, secret from app-config)`);
+  } catch (err) {
+    console.warn(`   ⚠️  Skipped _CronTickConfig seed: ${(err as Error).message}`);
+  }
 }

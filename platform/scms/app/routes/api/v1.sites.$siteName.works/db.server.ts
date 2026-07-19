@@ -1,5 +1,5 @@
 import {
-  getPrismaClient,
+  getWorksListingPrismaClient,
   fetchWorkVersionSubjects,
   fetchSubmissionIdsBySubject,
   isAffiliationSearchEnabled,
@@ -44,6 +44,12 @@ type ListingExtras = {
   to?: string;
   ids?: string[];
 };
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  if (signal.reason instanceof Error) throw signal.reason;
+  throw new DOMException('Request aborted', 'AbortError');
+}
 
 /**
  * Escape only the ILIKE escape character itself (`\`) so a user-supplied
@@ -141,30 +147,66 @@ function buildListingWhere(
 }
 
 /**
- * Resolve submission ids matching a free-text `q` by ILIKE-substring across
- * work-version title / authors / DOI, work-level DOI, and (when
- * {@link isAffiliationSearchEnabled} allows) affiliation names in metadata.
+ * Whether the works search resolves ids via the `SubmissionSearch` projection
+ * or the legacy global UNION/ILIKE path.
  *
- * Roots at `WorkVersion` via a UNION of single-predicate branches so each arm
- * can use its pg_trgm GIN index (`20260526223800`,
- * `20260610120000_add_work_version_affiliations_trgm_index`), then joins back
- * through `SubmissionVersion` to `Submission` scoped by `site_id`. Only
- * submission versions in the listing's requested `status` are considered (same
- * as {@link fetchSubmissionIdsBySubject} and {@link buildListingWhere}), which
- * avoids join fan-out on draft/unpublished history and keeps search aligned with
- * the version shown in results.
+ * Defaults ON: the projection is the shipped, tested, production path. The
+ * `WORKS_SEARCH_PROJECTION_DISABLED` env var is a kill-switch - set it to
+ * `true` / `1` / `on` to fall back to the legacy UNION/ILIKE search instantly
+ * (no redeploy) if the projection path misbehaves in a given environment.
+ */
+function useSearchProjection(): boolean {
+  const flag = process.env.WORKS_SEARCH_PROJECTION_DISABLED?.toLowerCase();
+  const disabled = flag === 'true' || flag === '1' || flag === 'on';
+  return !disabled;
+}
+
+/**
+ * Resolve submission ids matching a free-text `q`.
  *
- * `immutable_array_to_string(authors, ' ')` and
- * `work_version_affiliations_search_text(metadata)` MUST match their expression
- * indexes exactly for the planner to use them.
+ * Default path queries the `SubmissionSearch` projection (migration
+ * `20260625120000`), which co-locates `site_id` + `status` + `submission_id`
+ * with `unaccent`-normalised searchable text. The scoped filter is applied
+ * first, then matching is full-text (`@@`, token / word-gap correct, handles
+ * "alice schmeul" -> "alice n. schmeul") OR pg_trgm word_similarity (`<%`, typo
+ * tolerance). The query term is normalised with the same `immutable_unaccent`
+ * wrapper used to build the stored columns so accents match symmetrically.
+ *
+ * Legacy path (behind {@link useSearchProjection}) roots at `WorkVersion` via a
+ * UNION of single-predicate ILIKE branches, each using its pg_trgm GIN index
+ * (`20260526223800`, `20260610120000`), then joins back through
+ * `SubmissionVersion` to `Submission` scoped by `site_id`.
+ *
+ * Either way only submission versions in the requested `status` are considered
+ * (same as {@link fetchSubmissionIdsBySubject} and {@link buildListingWhere}),
+ * keeping search aligned with the version shown in results.
  */
 async function dbSearchSubmissionIds(
   siteId: string,
   status: string,
   q: string,
   tx?: Prisma.TransactionClient,
+  signal?: AbortSignal,
 ): Promise<string[]> {
-  const prisma = await getPrismaClient();
+  throwIfAborted(signal);
+  const prisma = await getWorksListingPrismaClient();
+  throwIfAborted(signal);
+
+  if (useSearchProjection()) {
+    const rows = await (tx ?? prisma).$queryRaw<{ submission_id: string }[]>`
+      SELECT DISTINCT submission_id
+      FROM "SubmissionSearch"
+      WHERE site_id = ${siteId}
+        AND status = ${status}
+        AND (
+          search_tsv @@ websearch_to_tsquery('simple', immutable_unaccent(${q}))
+          OR immutable_unaccent(${q}) <% search_text
+        )
+    `;
+    throwIfAborted(signal);
+    return rows.map((r) => r.submission_id);
+  }
+
   const pattern = `%${escapeIlikePattern(q)}%`;
   const matchingWorkVersionBranches: Prisma.Sql[] = [
     Prisma.sql`SELECT wv.id FROM "WorkVersion" wv WHERE wv.title ILIKE ${pattern}`,
@@ -195,6 +237,7 @@ async function dbSearchSubmissionIds(
      AND sv.status = ${status}
     INNER JOIN "Submission" s ON s.id = sv.submission_id AND s.site_id = ${siteId}
   `;
+  throwIfAborted(signal);
   return rows.map((r) => r.id);
 }
 
@@ -214,8 +257,11 @@ async function dbCountSubmissions(
   kind?: string,
   extras?: ListingExtras,
   tx?: Prisma.TransactionClient,
+  signal?: AbortSignal,
 ): Promise<number> {
-  const prisma = await getPrismaClient();
+  throwIfAborted(signal);
+  const prisma = await getWorksListingPrismaClient();
+  throwIfAborted(signal);
   const joins: Prisma.Sql[] = [
     Prisma.sql`
       INNER JOIN "SubmissionVersion" sv
@@ -251,6 +297,41 @@ async function dbCountSubmissions(
     ${Prisma.join(joins, ' ')}
     WHERE ${Prisma.join(conditions, ' AND ')}
   `;
+  throwIfAborted(signal);
+  return Number(count);
+}
+
+/**
+ * Count listed submissions for a site/status directly from the
+ * `SubmissionSearch` projection.
+ *
+ * The projection holds one row per listed (PUBLISHED / IN_REVIEW) submission
+ * version with `(site_id, status, submission_id)` co-located, so
+ * `COUNT(DISTINCT submission_id)` over the narrow, pre-scoped table (served by
+ * the `SubmissionSearch_site_status_submission_idx` btree) equals the
+ * `COUNT(DISTINCT s.id)` that {@link dbCountSubmissions} computes over the
+ * `Submission` ⋈ `SubmissionVersion` join — without the join or the heap reads.
+ *
+ * Only valid for the unfiltered browse count (no collection / kind / date /
+ * search filters, which the projection does not carry) and only when the
+ * projection is the active search source ({@link useSearchProjection}).
+ */
+async function dbCountListedFromProjection(
+  siteId: string,
+  status: string,
+  tx?: Prisma.TransactionClient,
+  signal?: AbortSignal,
+): Promise<number> {
+  throwIfAborted(signal);
+  const prisma = await getWorksListingPrismaClient();
+  throwIfAborted(signal);
+  const [{ count }] = await (tx ?? prisma).$queryRaw<[{ count: bigint }]>`
+    SELECT COUNT(DISTINCT submission_id) AS count
+    FROM "SubmissionSearch"
+    WHERE site_id = ${siteId}
+      AND status = ${status}
+  `;
+  throwIfAborted(signal);
   return Number(count);
 }
 
@@ -272,11 +353,14 @@ async function dbQuerySubmissions(
   kind?: string,
   opts?: { page?: number; limit?: number; sort?: WorksSort; extras?: ListingExtras },
   tx?: Prisma.TransactionClient,
+  signal?: AbortSignal,
 ): Promise<RowDBO[]> {
+  throwIfAborted(signal);
   const skip = opts?.limit ? (opts?.page ?? 0) * opts?.limit : undefined;
   const take = opts?.limit;
   const { submissionInnerSelect, submissionVersionSelect } = getListingSelects();
-  const prisma = await getPrismaClient();
+  const prisma = await getWorksListingPrismaClient();
+  throwIfAborted(signal);
   const submissions = await (tx ?? prisma).submission.findMany({
     skip,
     take,
@@ -292,6 +376,7 @@ async function dbQuerySubmissions(
       },
     },
   });
+  throwIfAborted(signal);
 
   return submissions
     .filter((s) => s.versions.length > 0)
@@ -314,7 +399,9 @@ export async function dbListLatestPublishedSubmissions(
     to?: string;
   },
   opts?: { page?: number; limit?: number; sort?: WorksSort },
+  signal?: AbortSignal,
 ): Promise<ListDBO | undefined> {
+  throwIfAborted(signal);
   // only allow lookup on status if collection is also provided
   // and limit to allowed statuses for now
   const status: string = where?.status === 'in-review' ? 'IN_REVIEW' : 'PUBLISHED';
@@ -330,12 +417,17 @@ export async function dbListLatestPublishedSubmissions(
   // short-circuits.
   let searchIds: string[] | undefined;
   if (where?.q) {
-    searchIds = await dbSearchSubmissionIds(ctx.site.id, status, where.q);
+    searchIds = await dbSearchSubmissionIds(ctx.site.id, status, where.q, undefined, signal);
   }
+  throwIfAborted(signal);
   let subjectIds: string[] | undefined;
   if (where?.subject) {
-    subjectIds = await fetchSubmissionIdsBySubject(ctx.site.id, where.subject, status);
+    // Route the shared subject lookup through this endpoint's dedicated pool too,
+    // so the whole request path stays isolated from the default pool.
+    const worksClient = await getWorksListingPrismaClient();
+    subjectIds = await fetchSubmissionIdsBySubject(ctx.site.id, where.subject, status, worksClient);
   }
+  throwIfAborted(signal);
   const filteredIds = intersectSubmissionIds(searchIds, subjectIds);
   if (filteredIds?.length === 0) {
     return { items: [], total: 0 };
@@ -348,13 +440,16 @@ export async function dbListLatestPublishedSubmissions(
   if (where?.collection) {
     // when filtering on collection, we need to first check if the workflow
     // on the collection is visible for the state[status] being queried
-    const prisma = await getPrismaClient();
+    throwIfAborted(signal);
+    const prisma = await getWorksListingPrismaClient();
+    throwIfAborted(signal);
     const collection = await prisma.collection.findFirst({
       where: {
         name: where.collection,
         site: { name: ctx.site.name },
       },
     });
+    throwIfAborted(signal);
 
     if (!collection) {
       return { items: [], total: 0 };
@@ -369,10 +464,46 @@ export async function dbListLatestPublishedSubmissions(
   }
 
   if (isOffsetPaginationRequested(opts ?? {})) {
+    throwIfAborted(signal);
+    // Pick the cheapest correct count strategy and run it alongside the page
+    // query (collection / kind / date are the only filters not already encoded
+    // in `filteredIds` or the projection, so their presence forces the join
+    // count):
+    //  1. result set already fully resolved (search / subject, no other filter)
+    //     -> the id-set size is the count, no DB round-trip.
+    //  2. unfiltered browse with the projection active -> count the narrow
+    //     `SubmissionSearch` table instead of the Submission/version join.
+    //  3. otherwise -> the join count with the same filters as the page query.
+    const hasJoinOnlyFilter = Boolean(where?.collection || where?.kind || where?.from || where?.to);
+    let countPromise: Promise<number>;
+    if (filteredIds != null && !hasJoinOnlyFilter) {
+      countPromise = Promise.resolve(filteredIds.length);
+    } else if (filteredIds == null && !hasJoinOnlyFilter && useSearchProjection()) {
+      countPromise = dbCountListedFromProjection(ctx.site.id, status, undefined, signal);
+    } else {
+      countPromise = dbCountSubmissions(
+        ctx.site.id,
+        collectionName,
+        status,
+        where?.kind,
+        extras,
+        undefined,
+        signal,
+      );
+    }
     const [items, total] = await Promise.all([
-      dbQuerySubmissions(ctx.site.id, collectionName, status, where?.kind, queryOpts),
-      dbCountSubmissions(ctx.site.id, collectionName, status, where?.kind, extras),
+      dbQuerySubmissions(
+        ctx.site.id,
+        collectionName,
+        status,
+        where?.kind,
+        queryOpts,
+        undefined,
+        signal,
+      ),
+      countPromise,
     ]);
+    throwIfAborted(signal);
     return { items, total };
   }
 
@@ -380,13 +511,17 @@ export async function dbListLatestPublishedSubmissions(
   // we can still limit, but in this branch we avoid
   // the extra count query
   if (opts?.page === undefined) {
+    throwIfAborted(signal);
     const items = await dbQuerySubmissions(
       ctx.site.id,
       collectionName,
       status,
       where?.kind,
       queryOpts,
+      undefined,
+      signal,
     );
+    throwIfAborted(signal);
     return { items, total: items.length };
   }
 
@@ -411,9 +546,18 @@ export async function listPublishedWorks(
     to?: string;
   },
   opts?: { page?: number; limit?: number; sort?: WorksSort },
+  signal?: AbortSignal,
 ) {
-  const dbo = await dbListLatestPublishedSubmissions(ctx, extensions, where, opts);
+  throwIfAborted(signal);
+  const dbo = await dbListLatestPublishedSubmissions(ctx, extensions, where, opts, signal);
+  throwIfAborted(signal);
   if (!dbo) throw error404();
-  const subjects = await fetchWorkVersionSubjects(dbo.items.map((row) => row.work_version.id));
+  throwIfAborted(signal);
+  const worksClient = await getWorksListingPrismaClient();
+  const subjects = await fetchWorkVersionSubjects(
+    dbo.items.map((row) => row.work_version.id),
+    worksClient,
+  );
+  throwIfAborted(signal);
   return formatSiteWorkDTOFromSubmissions(ctx, dbo, where, { ...opts, subjects });
 }

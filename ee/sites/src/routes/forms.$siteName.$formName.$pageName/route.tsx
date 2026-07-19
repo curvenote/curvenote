@@ -12,6 +12,10 @@ import {
   withAppSiteContext,
   withInsecureSiteContext,
   dbUpsertPendingLinkedAccount,
+  fetchOrcidPerson,
+  searchOrcid,
+  searchOrcidById,
+  searchRor,
 } from '@curvenote/scms-server';
 import { dbGetForm } from '../$siteName.forms.$formName/db.server.js';
 import {
@@ -26,8 +30,6 @@ import {
   clearDraftCookie,
 } from './cookies.server.js';
 import { submitForm } from './actionHelpers.server.js';
-import { fetchOrcidPerson, searchOrcid, searchOrcidById } from './orcidLookup.server.js';
-import { searchRor } from './rorLookup.server.js';
 import { isPageComplete, getFieldErrors, isValidOrcid } from './validationUtils.js';
 import { FormArea } from './FormArea.js';
 import { FormBody } from './FormBody.js';

@@ -1,4 +1,5 @@
 export * from './ClientOnly.js';
+export * from './CreateWorkDropdown.js';
 export * from './EmptyMessage.js';
 export * from './FrameHeader.js';
 export * from './GlobalErrorBoundary.js';
@@ -19,8 +20,10 @@ export * from './SystemAdminBadge.js';
 export * from './ThemeSwitcher.js';
 export * from './UserCard.js';
 export * from './VersionsListing.js';
+export * from './authors/index.js';
 export * from './layout/index.js';
 export * from './navigation/index.js';
+export * from './timeline/index.js';
 export * from './upload/index.js';
 export * from './wizard/index.js';
 

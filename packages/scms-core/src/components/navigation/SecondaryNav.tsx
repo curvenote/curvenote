@@ -98,7 +98,6 @@ export function SecondaryNav({
               )}
               <MenuItem
                 menus={menus}
-                open={open}
                 onMobileSidebarOpened={() => setMobileOpen(false)}
                 extensions={extensions}
               />

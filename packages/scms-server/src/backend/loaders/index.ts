@@ -9,3 +9,14 @@ export * as previews from './previews/index.js';
 export * from './messages/index.js';
 export * from './roles.server.js';
 export * from './userRoles.server.js';
+export {
+  dbGetUserWorkRoles,
+  dbGetWork,
+  dbGetWorkForUser,
+  formatWorkDTO,
+  getCanonicalOrLatestVersion,
+  getWorkFromSubmission,
+  type WorkAndVersionsDBO,
+  type WorkUserDBO,
+  type UserWithWorkRolesDBO,
+} from './works/get.server.js';

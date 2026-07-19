@@ -10,6 +10,8 @@ enum ActivityType {
   WORK_VERSION_ADDED
   DRAFT_WORK_VERSION_STARTED
   CONVERTER_TASK_STARTED
+  CONVERTER_TASK_COMPLETED
+  CONVERTER_TASK_FAILED
   CHECK_STARTED
   KIND_DELETED
   KIND_CREATED
@@ -82,4 +84,7 @@ model Activity {
   /// Powers the submissions-index listing "last activity" lookup:
   ///   `activity: { take: 1, orderBy: { date_created: 'desc' } }` per submission row.
   @@index([submission_id, date_created(sort: Desc)])
+  /// Powers the works-index listing "last activity" lookup:
+  ///   `activity: { take: 1, orderBy: { date_created: 'desc' } }` per work row.
+  @@index([work_id, date_created(sort: Desc)])
 }

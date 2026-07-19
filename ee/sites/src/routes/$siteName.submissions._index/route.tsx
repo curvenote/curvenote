@@ -9,9 +9,8 @@ import {
 import { z } from 'zod';
 import { dbCountSubmissionsForIndex, dbListSubmissionsForIndex } from './db.server.js';
 import { formatSubmissionsIndexItems } from './format.server.js';
-import { formatSubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
-import type { SubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
-import { ClassicSubmissionsRedirect } from './ClassicSubmissionsRedirect.js';
+import { formatSubmissionListingSiteContext } from './site-context.format.server.js';
+import type { SubmissionListingSiteContext } from './site-context.format.server.js';
 import { SubmissionsListingToolbar } from './SubmissionsListingToolbar.js';
 import { SubmissionsList } from './SubmissionsList.js';
 import {
@@ -29,6 +28,7 @@ import {
   type ListingQuery,
   type ListingSort,
 } from './listingParams.js';
+import { SiteTrackEvent } from '../../analytics/events.js';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -180,6 +180,27 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
       default: collection.default,
     }),
   );
+  const userSiteRole =
+    ctx.user?.site_roles.find((siteRole) => siteRole.site_id === ctx.site.id)?.role || 'none';
+  const collectionNameById = new Map(
+    availableCollections.map((collection) => [collection.id, collection.name]),
+  );
+  const collectionFilter =
+    query.collectionIds.length > 0
+      ? query.collectionIds
+          .map((collectionId) => collectionNameById.get(collectionId) ?? collectionId)
+          .join(',')
+      : 'all';
+
+  await ctx.trackEvent(SiteTrackEvent.SITE_VIEWED, {
+    siteName: ctx.site.name,
+    siteType: ctx.site.private ? 'private' : 'public',
+    userRole: userSiteRole,
+    pageType: 'submissions_list',
+    collectionFilter,
+  });
+
+  await ctx.analytics.flush();
 
   return {
     site: formatSubmissionListingSiteContext(ctx),
@@ -246,7 +267,6 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
           total={submissions.total}
         />
       </div>
-      <ClassicSubmissionsRedirect siteName={site.name} />
     </PageFrame>
   );
 }

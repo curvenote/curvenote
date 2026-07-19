@@ -141,6 +141,7 @@ export async function dbCreateWorkAndSubmission(
               description: data.workDescription || null,
               draft: false,
               authors: data.authors,
+              contains: [],
               metadata: {
                 fields: {
                   ...(data.formMetadata ?? {}),

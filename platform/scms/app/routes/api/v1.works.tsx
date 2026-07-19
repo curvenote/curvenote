@@ -7,6 +7,7 @@ import {
   withAPISecureContext,
   works,
   getPrismaClient,
+  resolveVersionContains,
 } from '@curvenote/scms-server';
 import { formatDate, normalizeExplicitTags } from '@curvenote/common';
 import { ActivityType, WorkRole } from '@curvenote/scms-db';
@@ -90,8 +91,9 @@ async function dbCreateManualWorkAndVersion(
     tags?: string[];
   },
   key?: string,
-  contains: string[] = [],
+  contains?: string[],
 ) {
+  const resolvedContains = resolveVersionContains(contains);
   const date_created = formatDate();
   const workId = uuid();
   const workVersionId = uuid();
@@ -104,7 +106,7 @@ async function dbCreateManualWorkAndVersion(
         key,
         date_created,
         date_modified: date_created,
-        contains,
+        contains: resolvedContains,
         doi: data.doi ?? null,
         created_by: { connect: { id: userId } },
         versions: {
@@ -123,6 +125,7 @@ async function dbCreateManualWorkAndVersion(
               cdn: data.cdn ?? null,
               cdn_key: data.cdn_key ?? null,
               tags: versionTags,
+              contains: resolvedContains,
               metadata: data.metadata ?? undefined,
             },
           ],

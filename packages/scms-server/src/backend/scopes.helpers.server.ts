@@ -62,7 +62,7 @@ export function userHasSiteScopes(
  * Otherwise returns false.
  */
 export function userHasScope(
-  user: UserWithRolesDBO | undefined,
+  user: UserWithRolesDBO | null | undefined,
   scope: string,
   siteName?: string,
   opts: {
@@ -117,7 +117,7 @@ export function userHasScope(
  * as an override for the site parsed from each `site:*` scope string.
  */
 export function userHasScopes(
-  user: UserWithRolesDBO | undefined,
+  user: UserWithRolesDBO | null | undefined,
   scopes: string[],
   siteName?: string,
 ): boolean {

@@ -206,6 +206,7 @@ properties:
       - sessionSecret
       - analyticsSecret
       - handshakeSigningSecret
+      - queueConsumerSecret
       - previewSigningSecret
       - jwtSigningSecret
       - checkSASecretKeyfile
@@ -243,6 +244,28 @@ properties:
       handshakeSigningSecret:
         type: string
         secret: true
+      queueConsumerSecret:
+        type: string
+        secret: true
+        description: >-
+          Bearer token secret for POST /v1/jobs/push-to-drain. The app sends this
+          when waking the queue drain handler after enqueue; the route rejects
+          requests without a matching Authorization header.
+      cron:
+        type: object
+        description: Cron tick configuration (Postgres pg_cron → POST /v1/cron/tick).
+        properties:
+          secret:
+            type: string
+            secret: true
+            description: >-
+              Bearer token secret for POST /v1/cron/tick only. Postgres sends this
+              via public.cron_tick(); the endpoint verifies against this value.
+          tickUrl:
+            type: string
+            description: >-
+              Optional override URL for Postgres to call for cron ticks. When unset,
+              derived from tasksCallbackUrl or api.url.
       previewSigningSecret:
         type: string
         secret: true
@@ -319,6 +342,7 @@ properties:
         description: Optional CA certificate string for SSL database connections
       previewIssuer:
         type: string
+        description: Issuer (`iss`) claim on preview JWTs.
       handshakeIssuer:
         type: string
       userTokenAudience:
@@ -346,22 +370,20 @@ properties:
         type: string
       pubsubProjectId:
         type: string
-        description: GCP project ID used for all Pub/Sub clients (checks, converter, dispatch).
+        description: GCP project ID used for Pub/Sub clients (checks, converter).
       checkTopic:
         type: string
       converterTopic:
         type: string
         description: Pub/Sub topic for converter jobs — topic ID or full resource name (projects/PROJECT_ID/topics/TOPIC_NAME).
+      tasksCallbackUrl:
+        type: string
+        description: >-
+          Optional v1 API base for async worker callbacks (e.g. http://host.docker.internal:3031/v1).
+          Use when workers run in Docker and SCMS runs on the host; overrides request-derived jobUrl in Pub/Sub attributes.
       converterSASecretKeyfile:
         type: string
         secret: true
-      dispatchTopic:
-        type: string
-        description: Pub/Sub topic name for centralized job dispatch (e.g. scmsJobDispatch)
-      dispatchSASecretKeyfile:
-        type: string
-        secret: true
-        description: JSON service account key with pubsub.publisher on the dispatch topic
       knownBucketInfoMap:
         type: object
         properties:
@@ -475,6 +497,7 @@ properties:
       - adminUrl
       - editorUrl
       - navigation
+      - workVersionPreviewUrl
     properties:
       supportEmail:
         type: string
@@ -595,6 +618,12 @@ properties:
                         pattern: '^[a-z0-9][a-z0-9 _-]*$'
       renderServiceUrl:
         type: string
+      workVersionPreviewUrl:
+        type: string
+        description: >
+          Base URL of the work-version preview theme (distinct from submission
+          renderServiceUrl). Timeline "Open" links use
+          {workVersionPreviewUrl}/previews/{workVersionId}?preview={token}.
       statusBar:
         type: object
         description: Configuration for the status bar at the bottom of the application
@@ -666,13 +695,6 @@ properties:
             type: string
             secret: true
             description: API key sent as Authorization Bearer when SCMS calls checks-relay /api/v1/services/*
-          eulaCronSecret:
-            type: string
-            secret: true
-            description: >-
-              Optional shared Bearer token for text-integrity EULA cache cron webhook
-              (POST/GET /v1/hooks/text-integrity/eula-cache/refresh). Prefer
-              app.extensions.checks-text-integrity.eulaCronSecret when set.
       extensions:
         type: object
         description: Per-extension configuration; unknown extension keys are allowed for forward compatibility

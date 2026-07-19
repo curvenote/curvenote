@@ -44,6 +44,7 @@ yalc.lock
 
 /extensions/
 !/extensions/README.md
+!/extensions/plugins/README.md
 
 .app-config.*
 !.app-config.meta.yml
@@ -54,8 +55,5 @@ types/app-config.d.ts
 
 .claude/worktrees
 
-# local Pub/Sub emulator (docs/jobs/scripts/start-pubsub-emulator.sh)
-docs/jobs/scripts/.pubsub-emulator.pid
-docs/jobs/scripts/.pubsub-emulator.log
 # roborev snapshots
 /.roborev/

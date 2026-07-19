@@ -1,5 +1,7 @@
+import type { Context } from '../../backend/types.js';
 import type { ClientDeploymentConfig } from '../../providers/DeploymentProvider.js';
 import type {
+  ClientExtensionCheckService,
   ClientExtension,
   ExtensionCheckService,
   ExtensionConfig,
@@ -43,6 +45,23 @@ export function getExtensionCheckServicesFromClientConfig(
   return services;
 }
 
+export type CheckRunWithServiceData = {
+  data?: unknown | null;
+};
+
+export function getCheckServiceRunServiceData(run: CheckRunWithServiceData): unknown {
+  return run.data != null && typeof run.data === 'object' && 'serviceData' in run.data
+    ? (run.data as { serviceData?: unknown }).serviceData
+    : undefined;
+}
+
+export function isCheckWorkListSummaryVisible(
+  service: Pick<ClientExtensionCheckService, 'isWorkListSummaryVisible'>,
+  metadata: unknown,
+): boolean {
+  return service.isWorkListSummaryVisible?.(metadata) ?? true;
+}
+
 /**
  * Get all check services from enabled extensions from an AppConfig, used server-side.
  */
@@ -59,6 +78,46 @@ export function getExtensionCheckServicesFromServerConfig(
   return services;
 }
 
+export function filterExtensionsWithChecksEnabled(
+  serverConfig: AppConfig,
+  extensions: ClientExtension[],
+): ClientExtension[] {
+  return extensions.filter((ext) => {
+    if (!ext.getChecks) return false;
+    const extCfg = getExtensionConfig(serverConfig, ext.id);
+    return extensionChecksEnabledFromServerConfig(extCfg);
+  });
+}
+
+type ExtensionWithCheckServices = Pick<ClientExtension, 'id' | 'name' | 'getChecks'>;
+
+/**
+ * Stable display order for check sections — alphabetical by owning extension name,
+ * then by check service display name when one extension registers multiple services.
+ */
+export function sortExtensionCheckServicesByExtensionName(
+  services: ExtensionCheckService[],
+  extensions: ExtensionWithCheckServices[],
+): ExtensionCheckService[] {
+  const extensionNameByServiceId = new Map<string, string>();
+  for (const ext of extensions) {
+    if (!ext.getChecks) continue;
+    for (const service of ext.getChecks()) {
+      extensionNameByServiceId.set(service.id, ext.name);
+    }
+  }
+
+  return [...services].sort((a, b) => {
+    const extensionNameA = extensionNameByServiceId.get(a.id) ?? a.name;
+    const extensionNameB = extensionNameByServiceId.get(b.id) ?? b.name;
+    const byExtension = extensionNameA.localeCompare(extensionNameB, undefined, {
+      sensitivity: 'base',
+    });
+    if (byExtension !== 0) return byExtension;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+}
+
 /**
  * Get a specific check service by ID from enabled extensions.
  */
@@ -69,4 +128,36 @@ export function getExtensionCheckServiceFromServerConfig(
 ): ExtensionCheckService | undefined {
   const services = getExtensionCheckServicesFromServerConfig(serverConfig, extensions);
   return services.find((service) => service.id === checkServiceId);
+}
+
+/**
+ * Resolve upload-page logo URLs from check services that implement `resolveUploadLogoUrl`.
+ */
+export async function resolveUploadCheckLogoUrls(
+  ctx: Context,
+  serverConfig: AppConfig,
+  extensions: ServerExtension[],
+): Promise<Record<string, string | undefined>> {
+  const services = getExtensionCheckServicesFromServerConfig(serverConfig, extensions);
+  const out: Record<string, string | undefined> = {};
+  for (const service of services) {
+    if (!service.resolveUploadLogoUrl) continue;
+    out[service.id] = await service.resolveUploadLogoUrl(ctx);
+  }
+  return out;
+}
+
+/**
+ * Collect optional Design-page loader data from extensions that implement `getDesignLoaderData`.
+ */
+export async function resolveExtensionDesignLoaderData(
+  ctx: Context,
+  extensions: ServerExtension[],
+): Promise<Record<string, Record<string, unknown>>> {
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const ext of extensions) {
+    if (!ext.getDesignLoaderData) continue;
+    out[ext.id] = await ext.getDesignLoaderData(ctx);
+  }
+  return out;
 }

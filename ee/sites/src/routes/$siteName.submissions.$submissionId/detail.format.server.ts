@@ -3,7 +3,7 @@ import type { SiteContext } from '@curvenote/scms-server';
 import { signPrivateUrls } from '@curvenote/scms-server';
 import { coerceToObject, type WorkflowTransition } from '@curvenote/scms-core';
 import { formatSiteLayoutSite } from '../$siteName/layout.format.server.js';
-import { findImportantVersions } from '../$siteName.submissions-classic/listing.utils.server.js';
+import { findImportantVersions } from '../$siteName.submissions._index/listing.utils.server.js';
 import type {
   SubmissionDetailActivity,
   SubmissionDetailSiteContext,
@@ -66,6 +66,7 @@ function formatDetailVersion(
     date_created: formatDate(version.date_created),
     date_published: version.date_published ?? undefined,
     status: version.status,
+    tags: [...version.tags],
     transition: version.transition == null ? undefined : (version.transition as WorkflowTransition),
     submitted_by: {
       id: version.submitted_by.id,
@@ -77,8 +78,21 @@ function formatDetailVersion(
 }
 
 function formatDetailActivity(
+  ctx: SiteContext,
   activity: SubmissionDetailRow['activity'][number],
 ): SubmissionDetailActivity {
+  const data = coerceToObject(activity.data);
+  const jobFailure =
+    data?.transition_cancelled === true && typeof data.error === 'string'
+      ? {
+          error: data.error,
+          job_id: typeof data.job_id === 'string' ? data.job_id : undefined,
+          job_type: typeof data.job_type === 'string' ? data.job_type : undefined,
+          build_url:
+            typeof data.job_id === 'string' ? ctx.asBaseUrl(`/build/${data.job_id}`) : undefined,
+        }
+      : undefined;
+
   return {
     id: activity.id,
     date_created: formatDate(activity.date_created),
@@ -92,7 +106,14 @@ function formatDetailActivity(
           date_created: formatDate(activity.submission_version.date_created),
         }
       : undefined,
+    work_version: activity.work_version
+      ? {
+          id: activity.work_version.id,
+          date_created: formatDate(activity.work_version.date_created),
+        }
+      : undefined,
     date_published: activity.date_published ?? undefined,
+    job_failure: jobFailure,
   };
 }
 
@@ -132,7 +153,7 @@ export function formatSubmissionDetailSubmission(
     active_version_id: activeVersion?.id,
     published_version_id: publishedVersion?.id,
     retracted_version_id: retractedVersion?.id,
-    activity: row.activity.map(formatDetailActivity),
+    activity: row.activity.map((activity) => formatDetailActivity(ctx, activity)),
   };
 
   const versions = row.versions.map((v) => formatDetailVersion(ctx, v, row));

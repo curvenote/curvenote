@@ -1,6 +1,15 @@
-import type { Response } from 'express';
-import { getWorksApiBase, addFilesToWorkVersion, type WorkVersionFileEntry } from './works.js';
-import { uploadSingleFileToCdn, type UploadResult } from './uploads.js';
+import {
+  getWorksApiBase,
+  addFilesToWorkVersion,
+  mergeContainsIntoWorkAndVersion,
+  type WorkVersionFileEntry,
+} from './works.js';
+import {
+  uploadSingleFileToCdn,
+  uploadFolderToCdn,
+  type UploadResult,
+  type UploadFolderResult,
+} from './uploads.js';
 import { createJobsHandler, type JobsHandler } from './jobs.js';
 import { createSubmissionsHandler, type SubmissionsHandler } from './submissions.js';
 
@@ -18,8 +27,8 @@ export type SCMSClientOptions = {
  *
  * - jobs: update job status (completed, failed, running)
  * - submissions: put submission status (putStatus)
- * - works: get base URL, add files to work version metadata
- * - uploads: upload single file to CDN (stage → upload → commit)
+ * - works: get base URL, add files to work version metadata, merge contains
+ * - uploads: upload single file or folder to CDN (stage → upload → commit)
  *
  * Use client.jobs.*, client.submissions.*, client.works.*, client.uploads.* only.
  */
@@ -40,6 +49,11 @@ export class SCMSClient {
       workVersionId: string,
       files: WorkVersionFileEntry[],
     ) => Promise<void>;
+    mergeContainsIntoWorkAndVersion: (
+      workId: string,
+      workVersionId: string,
+      contains: string[],
+    ) => Promise<void>;
   };
 
   readonly uploads: {
@@ -50,6 +64,13 @@ export class SCMSClient {
       storagePath: string;
       resume?: boolean;
     }) => Promise<UploadResult>;
+    uploadFolderToCdn: (opts: {
+      cdn: string;
+      cdnKey: string;
+      localFolder: string;
+      resume?: boolean;
+      concurrency?: number;
+    }) => Promise<UploadFolderResult>;
   };
 
   constructor(jobUrl: string, statusUrl: string, handshake: string, options?: SCMSClientOptions) {
@@ -82,6 +103,20 @@ export class SCMSClient {
           fetch,
           this.loggingOnlyMode,
         ),
+      mergeContainsIntoWorkAndVersion: (
+        workId: string,
+        workVersionId: string,
+        contains: string[],
+      ) =>
+        mergeContainsIntoWorkAndVersion(
+          workId,
+          workVersionId,
+          contains,
+          this.handshake,
+          this.baseUrl,
+          fetch,
+          this.loggingOnlyMode,
+        ),
     };
 
     const getAuthHeaders = (): Promise<Record<string, string>> =>
@@ -94,6 +129,11 @@ export class SCMSClient {
     this.uploads = {
       uploadSingleFileToCdn: (opts) =>
         uploadSingleFileToCdn(this.baseUrl, getAuthHeaders, {
+          ...opts,
+          loggingOnlyMode: this.loggingOnlyMode,
+        }),
+      uploadFolderToCdn: (opts) =>
+        uploadFolderToCdn(this.baseUrl, getAuthHeaders, {
           ...opts,
           loggingOnlyMode: this.loggingOnlyMode,
         }),

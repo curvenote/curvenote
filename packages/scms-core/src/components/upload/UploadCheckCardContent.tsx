@@ -31,6 +31,8 @@ export interface UploadCheckCardContentProps {
   enabled: boolean;
   disabled?: boolean;
   invalid?: boolean;
+  warning?: boolean;
+  warningMessage?: string;
   busy?: boolean;
   /** When true and `busy`, show a corner spinner instead of the checkbox (e.g. EULA status fetch). */
   spinnerWhenBusy?: boolean;
@@ -48,11 +50,14 @@ export function UploadCheckCardContent({
   enabled,
   disabled = false,
   invalid = false,
+  warning = false,
+  warningMessage,
   busy = false,
   spinnerWhenBusy = false,
   onRequestEnable,
 }: UploadCheckCardContentProps) {
-  const showFooter = Boolean(infoLine || logo);
+  const footerText = warning && warningMessage ? warningMessage : infoLine;
+  const showFooter = Boolean(footerText || logo);
   const showCornerSpinner = busy && spinnerWhenBusy;
 
   const cornerControl = showCornerSpinner ? (
@@ -73,7 +78,12 @@ export function UploadCheckCardContent({
         CORNER_CONTROL_CLASS,
         enabled &&
           !invalid &&
+          !warning &&
           'border-green-400 bg-green-50 data-[state=checked]:border-green-500 data-[state=checked]:bg-green-500 dark:data-[state=checked]:border-green-600 dark:data-[state=checked]:bg-green-600',
+        enabled &&
+          warning &&
+          !invalid &&
+          'border-amber-400 bg-amber-50 data-[state=checked]:border-amber-500 data-[state=checked]:bg-amber-500 dark:data-[state=checked]:border-amber-600 dark:data-[state=checked]:bg-amber-600',
         enabled &&
           invalid &&
           'border-red-400 bg-red-50 data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500 dark:data-[state=checked]:border-red-600 dark:data-[state=checked]:bg-red-600',
@@ -98,18 +108,22 @@ export function UploadCheckCardContent({
           className={cn(
             'mt-2 flex shrink-0 gap-3 items-end',
             FOOTER_MIN_HEIGHT_CLASS,
-            infoLine ? 'justify-between' : 'justify-end',
+            footerText ? 'justify-between' : 'justify-end',
           )}
         >
-          {infoLine ? (
+          {footerText ? (
             <p
               className={cn(
                 'flex flex-1 min-w-0 items-end self-stretch text-xs leading-snug',
                 TEXT_BLOCK_CLASS,
-                invalid ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground',
+                invalid
+                  ? 'text-red-600 dark:text-red-400'
+                  : warning
+                    ? 'text-amber-700 dark:text-amber-400'
+                    : 'text-muted-foreground',
               )}
             >
-              {infoLine}
+              {footerText}
             </p>
           ) : (
             <span className="flex-1 min-w-0" aria-hidden />

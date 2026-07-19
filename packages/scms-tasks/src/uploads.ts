@@ -3,12 +3,7 @@
  * Uses types from @curvenote/common; implements resume/retry behavior aligned with CLI.
  */
 
-import type {
-  FileUploadResponse,
-  SignedUploadInfo,
-  UploadFileInfo,
-  UploadStagingDTO,
-} from '@curvenote/common';
+import type { FileUploadResponse, UploadFileInfo, UploadStagingDTO } from '@curvenote/common';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -37,11 +32,71 @@ export type UploadResult = {
 const EXT_TO_MIME: Record<string, string> = {
   '.pdf': 'application/pdf',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.json': 'application/json',
+  '.js': 'application/javascript',
+  '.mjs': 'application/javascript',
+  '.css': 'text/css',
+  '.html': 'text/html',
+  '.htm': 'text/html',
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
+  '.xml': 'application/xml',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.inv': 'text/plain',
+  '.map': 'application/json',
 };
 
 function getContentType(localPath: string): string {
   const ext = path.extname(localPath).toLowerCase();
   return EXT_TO_MIME[ext] ?? 'application/octet-stream';
+}
+
+/** Relative file paths under a folder (recursive), POSIX-style (`a/b/c.json`). */
+export function listFolderRelativePaths(
+  from: string,
+  to = '',
+): { localPath: string; to: string }[] {
+  const directory = fs.readdirSync(from);
+  const files: string[] = [];
+  const folders: string[] = [];
+  for (const name of directory) {
+    if (fs.statSync(path.join(from, name)).isDirectory()) folders.push(name);
+    else files.push(name);
+  }
+  const outputFiles = files.map((f) => ({
+    localPath: path.join(from, f),
+    to: to ? `${to}/${f}` : f,
+  }));
+  const outputFolders = folders.flatMap((f) =>
+    listFolderRelativePaths(path.join(from, f), to ? `${to}/${f}` : f),
+  );
+  return [...outputFiles, ...outputFolders];
+}
+
+async function mapWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  let index = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (index < items.length) {
+      const current = index;
+      index += 1;
+      await fn(items[current]);
+    }
+  });
+  await Promise.all(workers);
 }
 
 /** File-derived metadata only (no paths). Caller supplies storage path when building the stage request. */
@@ -352,4 +407,109 @@ export async function uploadSingleFileToCdn(
   await commitUploads(baseUrl, getAuthHeaders, { cdn, cdnKey, files }, fetchFn);
   const pathResult = `${cdnKey}/${storagePath}`;
   return { path: pathResult };
+}
+
+export type UploadFolderResult = {
+  /** CDN key root used for commit (existing work version key). */
+  cdnKey: string;
+  /** Number of files committed under the key. */
+  fileCount: number;
+};
+
+/**
+ * Recursively upload a local folder to storage at {cdnKey}/{relativePath}.
+ * Uses the same stage → upload → commit protocol as CLI site upload, but commits
+ * into the caller-supplied existing cdnKey (does not mint a new key).
+ */
+export async function uploadFolderToCdn(
+  baseUrl: string,
+  getAuthHeaders: () => Promise<Record<string, string>>,
+  opts: {
+    cdn: string;
+    cdnKey: string;
+    localFolder: string;
+    resume?: boolean;
+    loggingOnlyMode?: boolean;
+    concurrency?: number;
+  },
+  fetchFn: typeof fetch = fetch,
+): Promise<UploadFolderResult> {
+  const {
+    cdn,
+    cdnKey,
+    localFolder,
+    loggingOnlyMode = false,
+    resume = false,
+    concurrency = 10,
+  } = opts;
+  if (!cdn?.trim() || !cdnKey?.trim()) {
+    throw new Error('uploadFolderToCdn: cdn and cdnKey are required');
+  }
+  const entries = listFolderRelativePaths(localFolder);
+  if (entries.length === 0) {
+    throw new Error(`uploadFolderToCdn: no files found in ${localFolder}`);
+  }
+  if (loggingOnlyMode) {
+    console.log('[loggingOnlyMode] Skipping uploadFolderToCdn', {
+      localFolder,
+      fileCount: entries.length,
+      cdnKey,
+    });
+    return { cdnKey, fileCount: entries.length };
+  }
+
+  const prepared = entries.map(({ localPath, to }) => {
+    const { md5, size, contentType } = makeFileInfo(localPath);
+    return { localPath, to, md5, size, contentType };
+  });
+  const stageRequest: StageRequest = {
+    files: prepared.map(({ to, md5, size, contentType }) => ({
+      path: to,
+      content_type: contentType,
+      md5,
+      size,
+    })),
+  };
+  const staged = await stageUploadRequest(baseUrl, getAuthHeaders, stageRequest, fetchFn);
+
+  // Key by path: duplicate content (same md5) at different paths must not collide.
+  const byPath = new Map(prepared.map((f) => [f.to, f]));
+  await mapWithConcurrency(staged.upload_items, concurrency, async (uploadItem) => {
+    const local = byPath.get(uploadItem.path);
+    if (!local) {
+      throw new Error(`uploadFolderToCdn: staged path not found locally: ${uploadItem.path}`);
+    }
+    const protocol = uploadItem.upload?.protocol ?? 'gcs-resumable';
+    if (protocol === 'gcs-resumable') {
+      await performResumableUpload(
+        uploadItem.signed_url,
+        local.localPath,
+        local.contentType,
+        local.size,
+        getAuthHeaders,
+        fetchFn,
+        resume,
+      );
+    } else {
+      await performSimplePutUpload(
+        uploadItem.upload?.url ?? uploadItem.signed_url,
+        local.localPath,
+        local.contentType,
+        local.size,
+        fetchFn,
+        uploadItem.upload?.headers,
+      );
+    }
+  });
+
+  const files: UploadFileInfo[] = [
+    ...staged.cached_items,
+    ...staged.upload_items.map((f) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omit signed_url for commit payload
+      const { signed_url, upload: _upload, ...rest } = f;
+      return rest;
+    }),
+  ];
+  await commitUploads(baseUrl, getAuthHeaders, { cdn, cdnKey, files }, fetchFn);
+  return { cdnKey, fileCount: files.length };
 }

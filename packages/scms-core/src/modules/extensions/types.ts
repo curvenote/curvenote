@@ -24,6 +24,69 @@ export interface ExtensionTask {
   scopes?: string[]; // Optional list of scopes that the task is allowed to be accessed under
 }
 
+export type WorkCreateFormMode = 'standalone' | 'composite';
+
+/** Declarative create-work entry registered by the platform or an extension. */
+export interface WorkCreateOption {
+  id: string;
+  label: string;
+  description?: string;
+  /** Optional icon shown in create-work dropdown menu items. */
+  icon?: IconComponent;
+  /** Top-level workVersion.metadata key that identifies this flow on existing works. */
+  metadataKey: string;
+  /** App-absolute path that starts the create flow (e.g. `/app/works/new`). */
+  startPath: string;
+  mode?: WorkCreateFormMode;
+  scopes?: string[];
+  /** Present when the option is supplied by an extension. */
+  extensionId?: string;
+  /** Lower values appear earlier among non-`sortLast` options (default 100). */
+  order?: number;
+  /** When true, this option is listed after all other options (then by label). */
+  sortLast?: boolean;
+}
+
+/** @deprecated Use WorkCreateOption */
+export type ExtensionWorkCreateOption = WorkCreateOption;
+
+export interface ExtensionCreateWorkVersionArgs {
+  ctx: Context;
+  workId: string;
+  sourceVersionMetadata: Record<string, unknown>;
+  defaultTitle: string;
+}
+
+/**
+ * Result of an extension-owned "create new work version" flow.
+ *
+ * When `createWorkVersion` creates a `WorkVersion` directly (via Prisma or a server helper),
+ * it must set `WorkVersion.contains` for that version and merge those labels into `Work.contains`.
+ * Use `resolveVersionContains` and `mergeWorkContains` from `@curvenote/scms-server`.
+ */
+export interface ExtensionCreateWorkVersionResult {
+  success: boolean;
+  redirectPath?: string;
+  workVersionId?: string;
+  error?: string;
+}
+
+export interface ExtensionSubmitToSiteArgs {
+  ctx: Context;
+  workId: string;
+  /** Current finalized work version being submitted — never cloned. */
+  workVersionId: string;
+  siteName: string;
+}
+
+export interface ExtensionSubmitToSiteResult {
+  success: boolean;
+  submissionVersionId?: string;
+  /** Where to send the user for extension-specific intake/confirm. */
+  redirectPath?: string;
+  error?: string;
+}
+
 export interface ExtensionIcon {
   id: string;
   component: IconComponent;
@@ -51,7 +114,8 @@ export interface ExtensionCheckExecuteResult {
 }
 
 export type CheckServiceRunData<T extends object> = {
-  status: string;
+  /** @deprecated Use CheckServiceRun.status column. */
+  status?: string;
   serviceData?: T;
   serviceDataSchema?: Record<string, any>;
 };
@@ -76,11 +140,8 @@ export interface ExtensionCheckHandleActionArgs {
   ctx?: Context;
   /** Check run id when invoked from upload flow (execute). */
   checkRunId?: string;
-  /**
-   * Optional transport / submit mode for checks that support multiple backends
-   * (e.g. 'service' for external container, 'stream' for in-process streaming job).
-   */
-  submitMode?: 'service' | 'stream';
+  /** Analytics trigger source when not provided via form `trigger` field. */
+  analyticsTrigger?: string;
 }
 
 /** Result of handleAction: success with optional status, or error (message string or object with type/message). */
@@ -92,7 +153,9 @@ export type ExtensionCheckHandleActionResult = {
     status?: number;
   };
   status?: number;
-  /** EULA gating (e.g. text integrity `eula-status` / `execute`). */
+  /** True when a hydrate/sync intent mutated check run data (skip revalidation when false). */
+  updated?: boolean;
+  /** Optional acceptance gating for check execution flows. */
   requireEula?: boolean;
   requiresEula?: boolean;
   accepted?: boolean;
@@ -110,6 +173,11 @@ export type ExtensionCheckSectionActivityProps = {
   checkRunId?: string;
   workVersionId?: string;
   metadata: any;
+  /**
+   * When false, extensions must hide dispatch controls (run, retry, accept EULA, etc.).
+   * The platform also omits `remoteStatusActionPath` so fetcher forms cannot post.
+   */
+  canDispatchChecks?: boolean;
   /** POST target for check UI mutations (extension-owned route or legacy work checks path). */
   remoteStatusActionPath?: string;
   /**
@@ -134,11 +202,13 @@ export type ExtensionCheckSectionActivityProps = {
 export type ExtensionCheckRunTimelineMountProps = {
   checkRunId: string;
   workVersionId: string;
-  /** Check service id from the run row (e.g. `proofig`). */
+  /** Check service id from the run row. */
   checkKind: string;
   metadata: unknown;
-  /** POST target for check UI mutations. */
-  remoteStatusActionPath: string;
+  /** POST target for check UI mutations. Omitted when the user cannot dispatch checks. */
+  remoteStatusActionPath?: string;
+  /** When false, mount-only sync must not enqueue or retry checks. */
+  canDispatchChecks?: boolean;
   /** See `ExtensionCheckSectionActivityProps.defaultExpanded`. */
   defaultExpanded?: boolean;
 };
@@ -153,6 +223,34 @@ export type ExtensionCheckSectionSummaryTitleProps = {
   metadata: any;
 };
 
+/**
+ * Props for compact check summary content rendered inside platform-owned work-list rows.
+ * Extensions should render only the service-specific content (logo, score, status text/chip).
+ * The platform owns row layout, link behaviour, spacing, and version tags.
+ */
+export type ExtensionCheckWorkListSummaryProps = {
+  /** Check run `serviceData` (extension-defined shape). */
+  metadata: any;
+  checkRunId: string;
+  workVersionId: string;
+  /** Check service id from the run row. */
+  checkServiceId: string;
+  /** Display name from the registered check service. */
+  checkServiceName: string;
+  /** ISO timestamp from **check_service_run.date_modified**. */
+  checkRunDateModified: string;
+  /** Render a smaller version for compact contexts like timeline popovers. */
+  compact?: boolean;
+};
+
+export type UploadCheckEligibilityStatus = 'eligible' | 'warning' | 'ineligible';
+
+export interface UploadCheckEligibilityResult {
+  status: UploadCheckEligibilityStatus;
+  /** Advisory or hard-fail copy from the extension. */
+  message?: string;
+}
+
 /** Props for per-check upload option cards on the work upload page. */
 export interface UploadCheckOptionProps {
   workVersionId: string;
@@ -161,7 +259,13 @@ export interface UploadCheckOptionProps {
   disabled?: boolean;
   /** Check is selected but uploaded files no longer meet requirements. */
   invalid?: boolean;
-  /** Service manifest logo URL when available (e.g. text integrity Object config). */
+  /** Advisory state: card renders with warning chrome but does not block submission. */
+  warning?: boolean;
+  /** Message shown when `warning` is true (from extension eligibility evaluation). */
+  warningMessage?: string;
+  /** Facts derived from upload preview/analysis; extensions may use for custom copy. */
+  eligibilityContext?: UploadCheckEligibilityContext;
+  /** Service manifest logo URL when available. */
   logoUrl?: string;
   /** Platform persists selection via `toggle-check` on the upload route. */
   setEnabled: (enabled: boolean) => Promise<void>;
@@ -169,12 +273,25 @@ export interface UploadCheckOptionProps {
   toggleBusy?: boolean;
 }
 
+export type UploadFactPresence = 'present' | 'absent' | 'unknown';
+
+export interface UploadCheckEligibilityContext {
+  document: {
+    images: UploadFactPresence;
+  };
+  metadata: {
+    title: UploadFactPresence;
+    authors: UploadFactPresence;
+    affiliations: UploadFactPresence;
+  };
+}
+
 export interface ExtensionCheckService {
   id: string; // e.g., 'curvenote-structure'
   name: string; // Display name
   description: string; // Display description
   /**
-   * App-absolute path for extension-owned check actions (e.g. `/app/extensions/proofig/actions`).
+   * App-absolute path for extension-owned check actions.
    * When set, the platform uses this for `remoteStatusActionPath` on the checks page and work timeline.
    */
   checksActionPath?: string;
@@ -204,6 +321,16 @@ export interface ExtensionCheckService {
    */
   sectionSummaryTitleComponent?: React.ComponentType<ExtensionCheckSectionSummaryTitleProps>;
   /**
+   * Optional compact content for My Works list rows. Platform supplies the containing row,
+   * right-alignment, link target, and version tag; extensions supply only the inner content.
+   */
+  workListSummaryComponent?: React.ComponentType<ExtensionCheckWorkListSummaryProps>;
+  /**
+   * Optional visibility predicate for My Works list summaries. Return false for states that
+   * should not appear in the listing, such as failed/error runs.
+   */
+  isWorkListSummaryVisible?: (metadata: any) => boolean;
+  /**
    * Optional component mounted for each matching check run row on the work timeline even when the
    * tray is collapsed. Use for extension-specific side effects keyed off loader data.
    *
@@ -221,21 +348,34 @@ export interface ExtensionCheckService {
    */
   uploadCheckOptionComponent?: React.ComponentType<UploadCheckOptionProps>;
   /**
-   * True when current work-version metadata satisfies this check's upload file requirements.
-   * Used on the upload page to enable, disable, or mark check cards invalid.
+   * Full upload eligibility evaluation including advisory warnings.
+   * When set, takes precedence over `isUploadEligible`.
    */
-  isUploadEligible?: (metadata: unknown) => boolean;
+  resolveUploadEligibility?: (
+    metadata: unknown,
+    context?: UploadCheckEligibilityContext,
+  ) => UploadCheckEligibilityResult;
+  /**
+   * True when current work-version metadata satisfies this check's hard upload requirements.
+   * Used when `resolveUploadEligibility` is not set. Warnings require `resolveUploadEligibility`.
+   */
+  isUploadEligible?: (metadata: unknown, context?: UploadCheckEligibilityContext) => boolean;
   /** Server-side action handler. Used from upload flow (intent `execute` + job enqueue). */
   handleAction?: (
     args: ExtensionCheckHandleActionArgs,
   ) => Promise<ExtensionCheckHandleActionResult>;
   /** Get current status of a check run. */
   handleStatus?: (args: ExtensionCheckStatusArgs) => Promise<Response>;
+  /**
+   * Resolve manifest logo URL for the upload-page check card.
+   * When omitted, the platform does not supply a `logoUrl` for this service.
+   */
+  resolveUploadLogoUrl?: (ctx: Context) => Promise<string | undefined>;
 }
 
 export type ClientExtensionCheckService = Omit<
   ExtensionCheckService,
-  'handleAction' | 'handleStatus'
+  'handleAction' | 'handleStatus' | 'resolveUploadLogoUrl'
 >;
 
 /** Props for the optional extension admin card component (platform extensions page). Aligned with ExtensionAdminCardFallback. */
@@ -255,6 +395,8 @@ export interface ClientExtension {
   name: string;
   description: string;
   getTasks?: () => ExtensionTask[];
+  /** Optional create-work menu entries keyed by work-version metadata. */
+  getWorkCreateOptions?: () => WorkCreateOption[];
   getIcons?: () => ExtensionIcon[];
   getAnalyticsEvents?: () => ExtensionAnalyticsEvents;
   getEmailTemplates?: () => ExtensionEmailTemplate[];
@@ -279,6 +421,29 @@ export interface ExtensionAdminActionHandler {
 
 export interface ServerExtension extends ClientExtension {
   registerRoutes?: (appConfig: AppConfig) => Promise<RouteRegistration[]>;
+  /**
+   * Create a new draft work version for an existing work when the resolved create option
+   * belongs to this extension. Return null when this extension does not handle the request.
+   * Implementations must set `WorkVersion.contains` and merge into `Work.contains` (see
+   * `ExtensionCreateWorkVersionResult`).
+   */
+  createWorkVersion?: (
+    args: ExtensionCreateWorkVersionArgs,
+  ) => Promise<ExtensionCreateWorkVersionResult | null>;
+  /**
+   * Site names this extension operates (routes, config, UI). Operating a site does not imply a
+   * custom submission flow — omit `submitToSite` to use the central submit-to-site route.
+   */
+  getOperatedSites?: () => string[];
+  /**
+   * Optional opt-in: when present together with `getOperatedSites`, this extension owns submit-to-site
+   * for those sites. Must resolve success/failure; never returns null to fall back to core.
+   *
+   * Core serializes concurrent invocations for the same work+site with an advisory lock, so a
+   * double submit will not run two handlers at once. Implementations should still be idempotent
+   * (re-check for an existing submission/version and reuse it) rather than unconditionally creating.
+   */
+  submitToSite?: (args: ExtensionSubmitToSiteArgs) => Promise<ExtensionSubmitToSiteResult>;
   getJobs?: () => JobRegistration[];
   /**
    * Returns the effective configuration for this extension.
@@ -301,6 +466,13 @@ export interface ServerExtension extends ClientExtension {
    * specific extension identifiers.
    */
   getScopes?: () => ScopeTree;
+  /**
+   * Optional loader data for this extension's tab on the system Design page.
+   * Exposed as `extensionDesignLoaderData[extension.id]` on that route's loader and
+   * provided to the tab via `ExtensionDesignTabLoaderDataProvider` (read with
+   * `useExtensionDesignLoaderData()` inside extension design components).
+   */
+  getDesignLoaderData?: (ctx: Context) => Promise<Record<string, unknown>>;
 }
 
 export type RouteRegistration = {

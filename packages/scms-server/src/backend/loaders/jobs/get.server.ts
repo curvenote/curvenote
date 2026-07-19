@@ -25,7 +25,6 @@ export function formatJobDTO(ctx: Context, job: DBO): JobDTO {
     results?.submissionId
   ) {
     signature = createPreviewToken(
-      payload.journal,
       results.submissionId,
       ctx.$config.api.previewIssuer,
       ctx.$config.api.previewSigningSecret,

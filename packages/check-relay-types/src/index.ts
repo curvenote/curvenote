@@ -26,4 +26,4 @@ export type {
   UploadPendingPayload,
 } from "./notify.js";
 
-export type { RelayCheckStatusResponse } from "./status.js";
+export type { RelayCheckStatusResponse, RelayRecoveryHint } from "./status.js";

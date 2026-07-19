@@ -4,6 +4,7 @@
 
 docker run \
   -p 8080:8080 \
+  --add-host=host.docker.internal:host-gateway \
   --name task-converter-local \
   --rm \
   task-converter-local

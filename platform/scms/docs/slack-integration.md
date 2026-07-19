@@ -27,12 +27,12 @@ api:
 
 ### Configuration Options
 
-| Option | Type | Required | Default | Description |
-|--------|------|----------|---------|-------------|
-| `disabled` | boolean | No | `false` | Whether Slack notifications are disabled |
-| `webhookUrl` | string | Yes* | - | Slack web hook URL for sending notifications |
+| Option       | Type    | Required | Default | Description                                  |
+| ------------ | ------- | -------- | ------- | -------------------------------------------- |
+| `disabled`   | boolean | No       | `false` | Whether Slack notifications are disabled     |
+| `webhookUrl` | string  | Yes\*    | -       | Slack web hook URL for sending notifications |
 
-*Required when `disabled` is `false`
+\*Required when `disabled` is `false`
 
 ## Usage
 
@@ -61,14 +61,15 @@ await ctx.sendSlackNotification({
 
 ```typescript
 interface SlackMessage {
-  eventType: SlackEventType;           // Event identifier from the enum
-  message: string;                     // Human-readable message
-  user?: {                             // Optional user information
+  eventType: SlackEventType; // Event identifier from the enum
+  message: string; // Human-readable message
+  user?: {
+    // Optional user information
     id?: string;
     email?: string | null;
   };
   color?: 'good' | 'warning' | 'danger'; // Optional color for the notification
-  metadata?: Record<string, any>;      // Optional structured data
+  metadata?: Record<string, any>; // Optional structured data
 }
 ```
 
@@ -87,15 +88,29 @@ The following events are currently implemented and available:
 - **`SITE_CREATED`**: Triggered when a new site is created
 - **`SITE_ROLE_GRANTED`**: Triggered when a role is granted to a user on a site
 - **`SITE_ROLE_REVOKED`**: Triggered when a role is revoked from a user on a site
+- **`SITE_SERVICE_ACCOUNT_CREATED`**: Triggered when a site admin creates a site service account
+- **`SITE_SERVICE_ACCOUNT_DELETED`**: Triggered when a site admin deletes a site service account
+- **`SITE_SERVICE_ACCOUNT_TOKEN_CREATED`**: Triggered when a site admin creates a token for a site service account
+- **`SITE_SERVICE_ACCOUNT_TOKEN_DELETED`**: Triggered when a site admin deletes a token for a site service account
 
 ### Submission Events
 
 - **`SUBMISSION_VERSION_CREATED`**: Triggered when a new submission version is created
 - **`SUBMISSION_STATUS_CHANGED`**: Triggered when a submission's status changes
 
+### Check Events
+
+- **`CHECK_RUN_STARTED`**: Triggered when a check run is created and its work is enqueued (including inline pre-submit validation failures, styled as danger)
+- **`CHECK_RUN_MILESTONE`**: Triggered when a check run reaches a **terminal** outcome (report complete/failed, final provider state). Check extensions such as text-integrity and proofig do not emit intermediate progress milestones.
+- **`CHECK_RUN_ERROR`**: Triggered when a check run enters an error state or a handler fails
+- **`CHECK_RUN_RETRY`**: Defined in core for extension use; text-integrity and proofig no longer emit retry or auto-retry sweep summaries (a retried run surfaces via `CHECK_RUN_STARTED` on the new attempt)
+- **`CHECK_EULA_ACCEPTED`**: Triggered when a user accepts a provider EULA required by a check
+
+These are generic check lifecycle events; the specific check kinds and providers that emit them live in their own feature modules, not in core.
+
 Slack notifications enable `mrkdwn_in: ['fields']`, so any metadata field value that is a full `http://` or `https://` URL will be rendered as a clickable link by Slack.
 
-Callers are responsible for putting the actual URLs into `metadata` (typically using `@curvenote/scms-core` URL helpers like `asSiteSubmissionUrl` / `asPlatformMessageUrl`).
+Callers are responsible for putting the actual URLs into `metadata`. Use `@curvenote/scms-core` helpers for platform-wide routes (e.g. `asSiteSubmissionUrl`, `asPlatformMessageUrl`). Check-specific deep links belong in extension packages (e.g. text-integrity and proofig), not in core.
 
 ## Adding New Events
 
@@ -175,6 +190,7 @@ The Slack integration includes robust error handling:
 ### Debugging
 
 Enable debug logging by checking the console output for:
+
 - "Slack web hook URL not configured"
 - "Slack notifications disabled"
 - "Slack notification sent successfully"

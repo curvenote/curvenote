@@ -13,7 +13,7 @@ import { dbLoadSubmissionVersionsTimeline } from './db.server.js';
  *
  * JSON-only, no default export. Contract:
  *   GET /app/sites/:siteName/submissions/:submissionId/versions
- *     200 -> TrimmedVersionTimeline<VersionTimelineEntry>   (newest first, max 8 visible)
+ *     200 -> TrimmedVersionTimeline<VersionTimelineEntry>   (non-draft, newest first, max 8 visible)
  *     400 -> { error }                              (missing route param)
  *     401/403 -> auth/scope failure (NOT a redirect — see below)
  *     404 -> { error: 'Submission not found' }      (cross-site or unknown id)

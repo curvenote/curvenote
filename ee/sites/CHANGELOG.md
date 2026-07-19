@@ -1,5 +1,67 @@
 # @curvenote/scms-sites-ext
 
+## 0.24.0
+
+### Patch Changes
+
+- [#985](https://github.com/curvenote/curvenote/pull/985) [`7c6db18`](https://github.com/curvenote/curvenote/commit/7c6db185b58ac0df272116169eb78b645e822136) Thanks [@github-actions](https://github.com/apps/github-actions)! - Add Slack (and Segment) notifications when site admins create or delete a site service account, and when they create or delete tokens for that account. Shared event types live in scms-server; site-specific message/metadata helpers live in the sites extension.
+
+- [#1012](https://github.com/curvenote/curvenote/pull/1012) [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Exclude DRAFT submission versions from the submission version timeline hover card API so My Works and site submission listings no longer show draft entries in the site submission popover.
+
+- [#1027](https://github.com/curvenote/curvenote/pull/1027) [`32875f9`](https://github.com/curvenote/curvenote/commit/32875f964b4e3ce32c4a843ac062717777c2c67e) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add separate SYSTEM_SERVICE system role
+
+- Updated dependencies [[`4a74c9e`](https://github.com/curvenote/curvenote/commit/4a74c9e3d116940fe5b277ca9c0c00c3985556d3), [`c5799cd`](https://github.com/curvenote/curvenote/commit/c5799cda9792c53edc7fed1945f6d833d186b3d1), [`dbd46ba`](https://github.com/curvenote/curvenote/commit/dbd46bad59784b91ce706f74bd6d16be9b26dda5), [`ddffbe1`](https://github.com/curvenote/curvenote/commit/ddffbe181b85720bed153a87d7a943243f355a99), [`8fc27ba`](https://github.com/curvenote/curvenote/commit/8fc27ba2bb0f5af582e6a5aa79d592d833b15f78), [`b3f163e`](https://github.com/curvenote/curvenote/commit/b3f163e48e63f1da68a028387c84c345bc99fa1b), [`9b252f7`](https://github.com/curvenote/curvenote/commit/9b252f7246b13ccd6f39dd22e0e16da475c8272e), [`dbd46ba`](https://github.com/curvenote/curvenote/commit/dbd46bad59784b91ce706f74bd6d16be9b26dda5), [`86ba389`](https://github.com/curvenote/curvenote/commit/86ba3890e1921bfaa0eb39963d6c607f0358a90c), [`7c6db18`](https://github.com/curvenote/curvenote/commit/7c6db185b58ac0df272116169eb78b645e822136), [`24ddd4c`](https://github.com/curvenote/curvenote/commit/24ddd4c32ced773475965e60086e204b08b05395), [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0), [`4d4cdf9`](https://github.com/curvenote/curvenote/commit/4d4cdf9ba432cea9f5d8f6efc32dca4b1dde68fd), [`d9bdaf3`](https://github.com/curvenote/curvenote/commit/d9bdaf35369c330ae230f32301670e569f7229f7), [`4d4cdf9`](https://github.com/curvenote/curvenote/commit/4d4cdf9ba432cea9f5d8f6efc32dca4b1dde68fd), [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0), [`fa99ddf`](https://github.com/curvenote/curvenote/commit/fa99ddf09b0ccee30ffcf64191865aace53731ad), [`29275c0`](https://github.com/curvenote/curvenote/commit/29275c06b14df346ed903143f2dd8853e1a22256), [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912), [`a8a5f25`](https://github.com/curvenote/curvenote/commit/a8a5f2572865c1416fa7ab43e816d0f9fbe6f247), [`ddffbe1`](https://github.com/curvenote/curvenote/commit/ddffbe181b85720bed153a87d7a943243f355a99), [`99c891c`](https://github.com/curvenote/curvenote/commit/99c891ca8f404c800595fa0a0ccc2149a873bb46), [`60d36e0`](https://github.com/curvenote/curvenote/commit/60d36e0cc769196b785ffea41f4e453f16a0a602), [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0), [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912), [`32875f9`](https://github.com/curvenote/curvenote/commit/32875f964b4e3ce32c4a843ac062717777c2c67e)]:
+  - @curvenote/scms-server@0.24.0
+  - @curvenote/scms-core@0.24.0
+  - @curvenote/scms-db@0.24.0
+
+## 0.23.0
+
+### Patch Changes
+
+- Updated dependencies [[`c815443`](https://github.com/curvenote/curvenote/commit/c815443cda6ec2f0f6e9d2547f3c257d709b56ce), [`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f), [`9848bab`](https://github.com/curvenote/curvenote/commit/9848bab45b66aeb61599c019e25803f504cb75d2), [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240)]:
+  - @curvenote/scms-core@0.23.0
+  - @curvenote/scms-server@0.23.0
+  - @curvenote/scms-db@0.23.0
+
+## 0.22.2
+
+### Patch Changes
+
+- Updated dependencies [[`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc), [`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc)]:
+  - @curvenote/scms-db@0.22.2
+  - @curvenote/scms-server@0.22.2
+  - @curvenote/scms-core@0.22.2
+
+## 0.22.1
+
+### Patch Changes
+
+- [#971](https://github.com/curvenote/curvenote/pull/971) [`30620e8`](https://github.com/curvenote/curvenote/commit/30620e8d66a2c77d0792ca9dab3eeaebc1f226fc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Switch to the version timeline in place of the versions table and activities listing
+
+- [#968](https://github.com/curvenote/curvenote/pull/968) [`ea5d68d`](https://github.com/curvenote/curvenote/commit/ea5d68df2ff79898db2e0feaea6c82788cf0bacb) Thanks [@github-actions](https://github.com/apps/github-actions)! - Submission version in the timeline only show version badges based on tags
+
+- [#970](https://github.com/curvenote/curvenote/pull/970) [`8aede38`](https://github.com/curvenote/curvenote/commit/8aede38e3193b1b1664f402cdf8c4400e76ed944) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Show submission version tags as badges on submission detail version rows.
+
+- [#967](https://github.com/curvenote/curvenote/pull/967) [`c58eaef`](https://github.com/curvenote/curvenote/commit/c58eaefad764aa995aaf46736241e6c46dc91d74) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Removing the submissions-classic route
+
+- Updated dependencies [[`30620e8`](https://github.com/curvenote/curvenote/commit/30620e8d66a2c77d0792ca9dab3eeaebc1f226fc), [`2faf9f0`](https://github.com/curvenote/curvenote/commit/2faf9f02ef08f2e21542f7e88b1af2c4da8084a7), [`0e03393`](https://github.com/curvenote/curvenote/commit/0e03393d823fd60a244023c24f4f557e85a00b82)]:
+  - @curvenote/scms-core@0.22.1
+  - @curvenote/scms-db@0.22.1
+  - @curvenote/scms-server@0.22.1
+
+## 0.22.0
+
+### Patch Changes
+
+- [#962](https://github.com/curvenote/curvenote/pull/962) [`30c5a87`](https://github.com/curvenote/curvenote/commit/30c5a87dc709d388ade8c01ecb6a5733076b4a6e) Thanks [@rowanc1](https://github.com/rowanc1)! - Fix navigation into a kind with the same slug as its site
+
+- Updated dependencies [[`5bf11b9`](https://github.com/curvenote/curvenote/commit/5bf11b9b65b9b623675994a73571b03fa2eeb945), [`1ca8aa0`](https://github.com/curvenote/curvenote/commit/1ca8aa083aad3aca0ac922c75dbaa994f2f4fbc9), [`e8c6279`](https://github.com/curvenote/curvenote/commit/e8c6279b4fd9e194223ffae53b807efade98798d), [`b344f8b`](https://github.com/curvenote/curvenote/commit/b344f8b6ac8c9ea88fc48906f0774a5b4b979937)]:
+  - @curvenote/scms-core@0.22.0
+  - @curvenote/scms-server@0.22.0
+  - @curvenote/check-definitions@0.16.5
+  - @curvenote/scms-db@0.22.0
+
 ## 0.21.0
 
 ### Minor Changes

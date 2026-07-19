@@ -28,6 +28,7 @@ type SubmissionVersionBadgeProps = {
   showSite?: boolean;
   showLink?: boolean;
   variant?: 'outline' | 'default';
+  className?: string;
 };
 
 export function SubmissionVersionBadge({
@@ -38,6 +39,7 @@ export function SubmissionVersionBadge({
   showSite = false,
   showLink = false,
   variant = 'default',
+  className,
 }: SubmissionVersionBadgeProps) {
   // If showSite is true, showLink should also be true
   // Otherwise, use the explicit showLink value or default to true
@@ -105,7 +107,7 @@ export function SubmissionVersionBadge({
     <Badge
       variant={variant === 'default' ? getDefaultBadgeVariant() : 'outline'}
       key={`badge-${workVersionId}-${sv.id}`}
-      className={cn('transition-colors gap-[2px]', {
+      className={cn('transition-colors gap-[2px]', className, {
         [getOutlineStatusClasses()]: variant === 'outline',
         'cursor-pointer': shouldShowLink,
       })}

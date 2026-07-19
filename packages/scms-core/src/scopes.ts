@@ -86,11 +86,12 @@ export const work = {
       },
     },
     users: {
-      read: 'work:users',
+      read: 'work:users:read',
       update: 'work:users:update',
     },
     checks: {
       read: 'work:checks:read',
+      dispatch: 'work:checks:dispatch',
     },
   },
 };
@@ -128,12 +129,14 @@ export const app = {
   works: {
     feature: 'app:works:feature', // UI level feature flag
     upload: 'app:works:upload',
+    submitToSite: 'app:works:submit-to-site',
     checks: {
       feature: 'app:works:checks:feature',
-      dispatch: 'app:works:checks:dispatch',
     },
     export: 'app:works:export',
-    metadataPreview: 'app:works:metadatapreview',
+    metadataExtract: 'app:works:metadata-extract',
+    webArticleGeneration: 'app:works:web-article-generation',
+    componentExtract: 'app:works:component-extract',
   },
 };
 

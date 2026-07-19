@@ -209,8 +209,8 @@ export class Context implements ContextType {
         this.$config.api.previewSigningSecret,
       );
       this.$verifiedPreviewToken = token;
-      const { scope, scopeId } = claims;
-      this.$previewClaims = { scope, scopeId };
+      const { scope, scopeId, aud } = claims;
+      this.$previewClaims = { scope, scopeId, aud };
     } catch (err: any) {
       console.error('Invalid preview token', err);
       this.$verifiedPreviewToken = undefined;
@@ -272,12 +272,6 @@ export class Context implements ContextType {
         this.user = undefined;
         throw err;
       }
-    } else {
-      console.log('Not a Curvenote token or non-conforming issuer', {
-        issuer: payload?.iss,
-        issuerConforms: payload?.iss?.endsWith('/tokens/session') ?? false,
-        signatureVerified: !!claims,
-      });
     }
   }
 
@@ -490,6 +484,7 @@ export async function withContext<T extends LoaderFunctionArgs | ActionFunctionA
   const token = args.request.headers.get('Authorization');
   if (!opts?.noTokens && token) {
     await ctx.verifyHandshakeToken(token);
+    if (ctx.authorized.handshake) return ctx;
     await ctx.verifyCurvenoteSessionToken(token);
     // if this is a curvenote token, this request came from the CLI, we're done
     if (ctx.authorized.curvenote) return ctx;

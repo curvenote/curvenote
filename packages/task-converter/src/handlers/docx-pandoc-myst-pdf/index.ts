@@ -1,7 +1,8 @@
 /**
- * HAT conversion handler: docx-pandoc-myst-pdf
+ * HAT conversion handler: docx-pd-curvenote-pdf
+ * (legacy alias: docx-pandoc-myst-pdf)
  *
- * Word → Pandoc (→ Markdown) → MyST + Typst → PDF.
+ * Word → Pandoc (→ Markdown) → Curvenote + Typst → PDF.
  * Picks Word from work version, downloads, runs pandoc, writes curvenote.yml + index.md
  * front matter, then curvenote build --typst. Returns path to the built PDF.
  */

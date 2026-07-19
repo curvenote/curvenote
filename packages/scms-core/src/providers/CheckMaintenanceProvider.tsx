@@ -1,0 +1,67 @@
+'use client';
+
+import { createContext, useContext, useMemo } from 'react';
+import {
+  DEFAULT_CHECK_MAINTENANCE_MESSAGE,
+  type CheckMaintenanceState,
+} from '../modules/extensions/check-maintenance.js';
+
+export type CheckMaintenanceByServiceId = Record<string, CheckMaintenanceState>;
+
+const CheckMaintenanceContext = createContext<CheckMaintenanceByServiceId | undefined>(undefined);
+
+export function CheckMaintenanceProvider({
+  maintenanceByServiceId,
+  children,
+}: {
+  maintenanceByServiceId: CheckMaintenanceByServiceId;
+  children: React.ReactNode;
+}) {
+  const value = useMemo(() => maintenanceByServiceId, [maintenanceByServiceId]);
+  return (
+    <CheckMaintenanceContext.Provider value={value}>{children}</CheckMaintenanceContext.Provider>
+  );
+}
+
+export function useCheckMaintenance(checkServiceId: string): CheckMaintenanceState | undefined {
+  const context = useContext(CheckMaintenanceContext);
+  return context?.[checkServiceId];
+}
+
+export function useCheckMaintenanceBlocked(checkServiceId: string): {
+  blocked: boolean;
+  message: string;
+} {
+  const state = useCheckMaintenance(checkServiceId);
+  return {
+    blocked: state?.underMaintenance === true,
+    message: state?.message ?? DEFAULT_CHECK_MAINTENANCE_MESSAGE,
+  };
+}
+
+export function useAnyCheckMaintenanceBlocked(checkServiceIds: string[]): {
+  blocked: boolean;
+  message: string;
+} {
+  const context = useContext(CheckMaintenanceContext);
+  for (const id of checkServiceIds) {
+    const state = context?.[id];
+    if (state?.underMaintenance) {
+      return { blocked: true, message: state.message };
+    }
+  }
+  return { blocked: false, message: DEFAULT_CHECK_MAINTENANCE_MESSAGE };
+}
+
+/**
+ * Filter a list of check service ids down to those that are not under
+ * maintenance. Mirrors the server's `dispatchableChecks`: checks under
+ * maintenance are dropped (not initiated) rather than blocking submission.
+ */
+export function useChecksNotUnderMaintenance(checkServiceIds: string[]): string[] {
+  const context = useContext(CheckMaintenanceContext);
+  return useMemo(
+    () => checkServiceIds.filter((id) => context?.[id]?.underMaintenance !== true),
+    [checkServiceIds, context],
+  );
+}

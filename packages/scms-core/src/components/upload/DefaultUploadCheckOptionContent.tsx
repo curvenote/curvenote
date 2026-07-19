@@ -12,6 +12,8 @@ export function DefaultUploadCheckOptionContent({
   enabled,
   disabled,
   invalid,
+  warning,
+  warningMessage,
   setEnabled,
   toggleBusy = false,
   name,
@@ -24,6 +26,8 @@ export function DefaultUploadCheckOptionContent({
       enabled={enabled}
       disabled={disabled}
       invalid={invalid}
+      warning={warning}
+      warningMessage={warningMessage}
       busy={toggleBusy}
       spinnerWhenBusy
       onRequestEnable={() => {

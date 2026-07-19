@@ -10,6 +10,7 @@ export type DraftListItem = {
   dateModified: string;
   dateCreated: string;
   metadata: unknown;
+  versionNumber: number;
 };
 
 /**
@@ -41,5 +42,6 @@ export async function getValidDraftWorksForUser(userId: string): Promise<DraftLi
     dateModified: work.date_modified,
     dateCreated: work.date_created,
     metadata: work.versions[0].metadata,
+    versionNumber: 1,
   }));
 }

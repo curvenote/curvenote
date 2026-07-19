@@ -1,9 +1,12 @@
 import { Suspense, useEffect, type ReactNode } from 'react';
 import { Await, useFetcher } from 'react-router';
 import { FilePlus, Loader2 } from 'lucide-react';
-import { ui } from '@curvenote/scms-core';
-import { TimelineItemPlain, TimelineItemExpandable } from './TimelineItem';
-import { DateWithPopover } from './DateWithPopover';
+import {
+  DateWithPopover,
+  TimelineItemExpandable,
+  TimelineItemPlain,
+  ui,
+} from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from '../types';
 
 /** File entry in work version metadata.files (may include signedUrl when loaded for details). */
@@ -55,7 +58,7 @@ type VersionCreatedTimelineItemProps = {
 /**
  * Timeline row for "Work version created by {owner}" – the work version anchor for this section.
  * If metadata.files exists, the row is expandable and shows a list of downloadable files (signed links).
- * When there is a Word doc but no PDF and user can export, the tray shows a "Generate PDF" button.
+ * MyST web availability is a separate timeline row (`WebVersionCreatedTimelineItem`).
  */
 export function VersionCreatedTimelineItem({
   dateCreated,

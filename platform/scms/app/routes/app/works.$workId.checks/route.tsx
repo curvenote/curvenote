@@ -4,10 +4,13 @@ import { useLocation, useRevalidator } from 'react-router';
 import {
   withSecureWorkContext,
   makeDefaultWorkVersionMetadata,
+  userHasWorkScope,
+  userHasScope,
   type WorkVersionMetadata,
   type ChecksMetadataSection,
 } from '@curvenote/scms-server';
 import type { FileMetadataSection } from '@curvenote/scms-core';
+import { GitBranch } from 'lucide-react';
 import {
   PageFrame,
   getBrandingFromMetaMatches,
@@ -15,36 +18,40 @@ import {
   httpError,
   scopes,
   getExtensionCheckServicesFromServerConfig,
+  sortExtensionCheckServicesByExtensionName,
+  formatDateWithRecentTime,
+  formatDatetime,
+  buildWorkVersionNumberByIdMap,
+  Timeline,
+  TimelineSection,
+  CheckServiceRunTimelineItem,
+  DateWithPopover,
   useDeploymentConfig,
   ui,
+  ExtensionChecksAnalyticsEventKey,
+  collectUniqueExtensionAnalyticsEventNames,
+  filterExtensionsWithChecksEnabled,
 } from '@curvenote/scms-core';
 import { dbGetLatestNonDraftWorkVersion, formatWorkVersionDTO } from './db.server';
+import { dbGetCheckServiceRunsByWorkVersionIds } from '../works.$workId/db.server';
 import {
-  dbGetCheckServiceRunsByWorkVersionIds,
-  type CheckServiceRunRow,
-} from '../works.$workId/db.server';
+  getCheckRunSummaryByKind,
+  type ServiceRunEntry,
+} from '../works.$workId/checkServiceRunSummaries';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { RunCheckOnLatestVersionButton } from './RunCheckOnLatestVersionButton';
-import { Timeline } from '../works.$workId.details/timeline/Timeline';
-import { TimelineSection } from '../works.$workId.details/timeline/TimelineSection';
-import { CheckServiceRunTimelineItem } from '../works.$workId.details/timeline/CheckServiceRunTimelineItem';
-import { DateWithPopover } from '../works.$workId.details/timeline/DateWithPopover';
+import { handleChecksRouteAction } from './checksAction.server';
+import { shouldTrackWorkViewedOnLoader } from '../works.$workId.upload.$workVersionId/loaderAnalytics.server.js';
 
 const DISPATCHING_SKELETON_MS = 1500;
 
-/** A check service run paired with the version context needed for display. */
-export type ServiceRunEntry = {
-  run: CheckServiceRunRow;
-  workVersionId: string;
-  /** Version number by date_created order (v1 = oldest). */
-  versionNumber: number;
-  /** ISO date for the work version (used for tooltip on the version tag). */
-  versionDateCreated: string;
-};
-
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withSecureWorkContext(args, [scopes.work.id.checks.read]);
+
+  if (!userHasScope(ctx.user, scopes.app.works.checks.feature)) {
+    throw httpError(404, 'Checks are not available');
+  }
 
   if (!ctx.work.versions || ctx.work.versions.length === 0) {
     throw httpError(404, 'No work version found');
@@ -69,50 +76,12 @@ export async function loader(args: Route.LoaderArgs) {
 
   const nonDraftVersionIds = nonDraftVersions.map((v) => v.id);
   const runsByVersionId = await dbGetCheckServiceRunsByWorkVersionIds(nonDraftVersionIds);
-
-  // Version numbering: v1 = oldest (by date_created).
-  // `nonDraftVersions` is ordered desc by date_created (latest first), so the highest number is first.
-  const versionNumberByWorkVersionId: Record<string, number> = {};
-  nonDraftVersions.forEach((v, i) => {
-    versionNumberByWorkVersionId[v.id] = nonDraftVersions.length - i;
-  });
-
-  // Build per-kind entries: for each version (newest → oldest) dedupe to that version's latest run
-  // of that kind, then sort each kind's list desc by run.date_created.
-  const entriesByKind: Record<string, ServiceRunEntry[]> = {};
-  for (const version of nonDraftVersions) {
-    const runs = runsByVersionId[version.id] ?? [];
-    const seenKind = new Set<string>();
-    for (const run of runs) {
-      if (seenKind.has(run.kind)) continue;
-      seenKind.add(run.kind);
-      const list = entriesByKind[run.kind] ?? [];
-      list.push({
-        run,
-        workVersionId: version.id,
-        versionNumber: versionNumberByWorkVersionId[version.id] ?? 0,
-        versionDateCreated: version.date_created,
-      });
-      entriesByKind[run.kind] = list;
-    }
-  }
-  for (const kind of Object.keys(entriesByKind)) {
-    entriesByKind[kind].sort((a, b) =>
-      a.run.date_created > b.run.date_created
-        ? -1
-        : a.run.date_created < b.run.date_created
-          ? 1
-          : 0,
-    );
-  }
-
-  const latestRunByServiceKind: Record<string, ServiceRunEntry> = {};
-  const previousRunsByServiceKind: Record<string, ServiceRunEntry[]> = {};
-  for (const [kind, list] of Object.entries(entriesByKind)) {
-    const [head, ...rest] = list;
-    latestRunByServiceKind[kind] = head;
-    previousRunsByServiceKind[kind] = rest;
-  }
+  const { latestRunByServiceKind, previousRunsByServiceKind } = getCheckRunSummaryByKind(
+    nonDraftVersions,
+    runsByVersionId,
+  );
+  const latestVersionNumber =
+    buildWorkVersionNumberByIdMap(nonDraftVersions)[latestNonDraftWorkVersion.id] ?? 0;
 
   // -------------------------------------------------------------------------
   // TEMPORARY (stepping-stone): service-manifest fallback for kinds with no run.
@@ -162,14 +131,51 @@ export async function loader(args: Route.LoaderArgs) {
   }
   // ------------------------------- END TEMPORARY ---------------------------
 
+  const enabledCheckKinds = metadata.checks?.enabled ?? [];
+  const latestRunStatuses = Object.fromEntries(
+    enabledCheckKinds.map((kind) => {
+      const entry = latestRunByServiceKind[kind];
+      return [kind, entry ? (entry.run.status ?? 'unknown') : 'none'];
+    }),
+  );
+  const dispatching = new URL(args.request.url).searchParams.get('dispatching') === '1';
+
+  if (shouldTrackWorkViewedOnLoader(args.request)) {
+    const checksExtensions = filterExtensionsWithChecksEnabled(ctx.$config, serverExtensions);
+    const pageViewEvents = collectUniqueExtensionAnalyticsEventNames(
+      checksExtensions,
+      ExtensionChecksAnalyticsEventKey.PAGE_VIEWED,
+    );
+    for (const eventName of pageViewEvents) {
+      await ctx.trackEvent(eventName, {
+        workId: ctx.work.id,
+        workVersionId: latestNonDraftWorkVersion.id,
+        enabledCheckKinds,
+        latestRunStatuses,
+        dispatching,
+      });
+    }
+    if (pageViewEvents.length > 0) {
+      await ctx.analytics.flush();
+    }
+  }
+
   return {
     work: ctx.workDTO,
+    canDispatchChecks: userHasWorkScope(ctx.user, scopes.work.id.checks.dispatch, ctx.work.id),
     latestNonDraftWorkVersion,
     metadata,
     latestRunByServiceKind,
     previousRunsByServiceKind,
     manifestByServiceKind,
+    latestVersionNumber,
   };
+}
+
+export async function action(args: Route.ActionArgs) {
+  const ctx = await withSecureWorkContext(args, [scopes.work.id.checks.read]);
+  const formData = await args.request.formData();
+  return handleChecksRouteAction({ ctx, formData, serverExtensions });
 }
 
 export const meta: Route.MetaFunction = ({ matches }) => {
@@ -180,11 +186,13 @@ export const meta: Route.MetaFunction = ({ matches }) => {
 export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
   const {
     work,
+    canDispatchChecks,
     latestNonDraftWorkVersion,
     metadata,
     latestRunByServiceKind,
     previousRunsByServiceKind,
     manifestByServiceKind,
+    latestVersionNumber,
   } = loaderData;
   const location = useLocation();
   const revalidator = useRevalidator();
@@ -204,28 +212,7 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     { app: { extensions: extensionsConfig } } as unknown as AppConfig,
     extensions,
   );
-
-  // Order services: those with any run first (desc by latest run date_created),
-  // then services with no runs in original config order.
-  const sortedCheckServices = checkServices
-    .map((service, index) => ({
-      service,
-      index,
-      latestRunDateCreated: latestRunByServiceKind[service.id]?.run.date_created ?? null,
-    }))
-    .sort((a, b) => {
-      if (a.latestRunDateCreated != null && b.latestRunDateCreated != null) {
-        return a.latestRunDateCreated > b.latestRunDateCreated
-          ? -1
-          : a.latestRunDateCreated < b.latestRunDateCreated
-            ? 1
-            : 0;
-      }
-      if (a.latestRunDateCreated != null) return -1;
-      if (b.latestRunDateCreated != null) return 1;
-      return a.index - b.index;
-    })
-    .map(({ service }) => service);
+  const sortedCheckServices = sortExtensionCheckServicesByExtensionName(checkServices, extensions);
 
   const basePath = `/app/works/${work.id}`;
   const enabledCheckKinds = metadata.checks?.enabled ?? [];
@@ -258,25 +245,53 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
     return () => window.clearInterval(interval);
   }, [showDispatchingState, revalidator]);
 
-  const renderVersionTag = (entry: ServiceRunEntry) => {
-    const emphasis = entry.workVersionId === latestNonDraftWorkVersion.id ? 'latest' : 'previous';
+  const renderVersionBadge = (
+    entry: ServiceRunEntry,
+    { compact = false }: { compact?: boolean } = {},
+  ) => (
+    <ui.VersionTagBadge
+      tag={`v${entry.versionNumber}`}
+      title={`Created at: ${formatDatetime(entry.versionDateCreated)}`}
+      titlePrefix="Version"
+      icon={GitBranch}
+      compact={compact}
+    />
+  );
+
+  const renderWorkVersionDate = (entry: ServiceRunEntry) => {
+    const versionDate = formatDateWithRecentTime(entry.versionDateCreated);
     return (
-      <span className="inline-flex gap-2 items-center">
-        <ui.VersionTagBadge tag={`v${entry.versionNumber}`} emphasis={emphasis} />
-        <DateWithPopover
-          date={entry.run.date_modified}
-          dateCreated={entry.run.date_created}
-          dateModified={entry.run.date_modified}
-          className="text-xs text-muted-foreground"
-        />
-      </span>
+      <ui.SimpleTooltip
+        title={`Created at: ${formatDatetime(entry.versionDateCreated)}`}
+        side="top"
+        sideOffset={6}
+        delayDuration={1000}
+      >
+        <span className="inline-flex gap-1.5 items-center text-xs cursor-default text-muted-foreground">
+          {versionDate}
+        </span>
+      </ui.SimpleTooltip>
     );
   };
+
+  const renderTimelineVersionLabel = (entry: ServiceRunEntry) => (
+    <span className="inline-flex flex-wrap gap-y-1 gap-x-2 items-center">
+      {renderVersionBadge(entry)}
+      {renderWorkVersionDate(entry)}
+      <DateWithPopover
+        date={entry.run.date_modified}
+        dateCreated={entry.run.date_created}
+        dateModified={entry.run.date_modified}
+        className="text-xs text-muted-foreground"
+      />
+    </span>
+  );
 
   return (
     <PageFrame
       title="Checks"
       description="Results of all check services run on the work are shown below. Each type of check is shown in a separate section and the most recent run is shown at the top. Where checks have been run on mulitple versions use the timeline to explore the history."
+      className="max-w-none"
     >
       {showDispatchingState ? (
         <ui.Card className="mt-4 border-primary/30 bg-primary/5">
@@ -337,23 +352,24 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
             (fallbackManifest ? ({ manifest: fallbackManifest } as any) : undefined);
 
           const workVersionIdForActivity = latest?.workVersionId ?? latestNonDraftWorkVersion.id;
-          const tag = latest ? renderVersionTag(latest) : null;
-          const isLatestRunOnLatestVersion =
-            latest != null && latest.workVersionId === latestNonDraftWorkVersion.id;
+          const isLatestRunOnOlderVersion =
+            latest != null && latest.workVersionId !== latestNonDraftWorkVersion.id;
           const headerAction =
-            latest != null && !isLatestRunOnLatestVersion ? (
+            canDispatchChecks && isLatestRunOnOlderVersion ? (
               <RunCheckOnLatestVersionButton
                 actionPath={service.checksActionPath ?? `${basePath}/checks`}
                 workVersionId={latestNonDraftWorkVersion.id}
+                checkServiceId={service.id}
+                versionNumber={latestVersionNumber}
               />
             ) : null;
 
           return (
             <div key={service.id} className="space-y-4">
-              <HeaderComponent tag={tag} action={headerAction} metadata={serviceMetadata} />
+              <HeaderComponent tag={null} action={headerAction} metadata={serviceMetadata} />
               <div className="space-y-0">
                 <ui.Card>
-                  <ui.CardContent className="pt-6">
+                  <ui.CardContent className="py-4">
                     <ActivityComponent
                       metadata={
                         serviceMetadata as WorkVersionMetadata &
@@ -362,23 +378,38 @@ export default function CheckMyWorkPage({ loaderData }: Route.ComponentProps) {
                       }
                       workVersionId={workVersionIdForActivity}
                       checkRunId={latest?.run.id}
-                      remoteStatusActionPath={service.checksActionPath ?? `${basePath}/checks`}
+                      canDispatchChecks={canDispatchChecks}
+                      remoteStatusActionPath={
+                        canDispatchChecks
+                          ? (service.checksActionPath ?? `${basePath}/checks`)
+                          : undefined
+                      }
                       checkRunDateModified={latest?.run.date_modified}
                     />
                   </ui.CardContent>
+                  {latest ? (
+                    <div className="flex gap-2 justify-start items-center py-1.5 pr-6 pl-3 border-t border-border">
+                      {renderVersionBadge(latest, { compact: true })}
+                      {renderWorkVersionDate(latest)}
+                    </div>
+                  ) : null}
                 </ui.Card>
                 {previous.length > 0 && (
-                  <Timeline className="ml-3" nested>
+                  <Timeline className="ml-3" nested lineBottomClassName="-bottom-2">
                     {previous.map((entry) => (
                       <TimelineSection
                         key={entry.workVersionId}
-                        label={renderVersionTag(entry)}
-                        nested
+                        label={renderTimelineVersionLabel(entry)}
+                        icon={<span className="block size-5 shrink-0" aria-hidden />}
+                        stacked
                       >
                         <CheckServiceRunTimelineItem
                           run={entry.run}
                           checkService={service}
                           basePath={basePath}
+                          canDispatchChecks={canDispatchChecks}
+                          hideDate
+                          hideIcon
                         />
                       </TimelineSection>
                     ))}

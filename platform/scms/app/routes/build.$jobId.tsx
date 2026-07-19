@@ -66,7 +66,6 @@ type DBO = Exclude<Awaited<ReturnType<typeof dbGetSubmissionVersion>>, null>;
 function formatSubmissionVersionDTO(ctx: Context, dbo: DBO) {
   const site = sites.formatSiteDTO(ctx, dbo.submission.site);
   const signature = createPreviewToken(
-    dbo.submission.site.name,
     dbo.submission_id,
     ctx.$config.api.previewIssuer,
     ctx.$config.api.previewSigningSecret,

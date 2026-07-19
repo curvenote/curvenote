@@ -1,8 +1,54 @@
-import { Link } from 'react-router';
-import { primitives, SiteLogo, cn, ui } from '@curvenote/scms-core';
-import type { Workflow } from '@curvenote/scms-core';
-import type { SubmissionWithVersionsAndSite } from '../works.$workId/types';
-import { Plus } from 'lucide-react';
+import { Link, useFetcher, useLocation, useNavigate } from 'react-router';
+import {
+  primitives,
+  SiteLogo,
+  cn,
+  ui,
+  RequestHelpDialog,
+  useDeploymentConfig,
+  useMyUser,
+  truncate,
+  buildWorkVersionNumberByIdMap,
+} from '@curvenote/scms-core';
+import type { ClientExtensionCheckService, Workflow } from '@curvenote/scms-core';
+import type {
+  SubmissionWithVersionsAndSite,
+  WorkVersionForDetailsClient,
+} from '../works.$workId/types';
+import type { CheckServiceRunRow } from '../works.$workId/checkServiceRun.shared';
+import { getCheckRunSummaryByKind } from '../works.$workId/checkServiceRunSummaries';
+import { resolveSubmitRedirectTarget } from './submitToSiteRedirect';
+import { GitBranch, Loader2, Send } from 'lucide-react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+
+// TEMPORARY(submit-to-site): Remove when per-version submit is supported end-to-end.
+const SUBMIT_LATEST_VERSION_ONLY_TOOLTIP =
+  'At this time, only the latest completed version can be submitted to a site. If you would like to submit an earlier version, please contact support.';
+
+type SubmissionTargetSite = {
+  id: string;
+  name: string;
+  title: string;
+  description: string | null;
+  metadata: unknown;
+  external: boolean;
+};
+
+type SiteVisualMetadata = {
+  favicon?: string;
+  logo?: string;
+  logo_dark?: string;
+};
+
+type SubmitToSiteFetcherData = {
+  success?: boolean;
+  intent?: string;
+  siteName?: string;
+  submissionVersionId?: string;
+  redirectPath?: string;
+  alreadySubmitted?: boolean;
+  error?: string | { message?: string };
+};
 
 function getStatusLabelAndDot(
   workflows: Record<string, Workflow>,
@@ -34,15 +80,272 @@ function abbreviateTitle(title: string): string {
     .toUpperCase();
 }
 
+function getErrorMessage(data: SubmitToSiteFetcherData | undefined): string | null {
+  if (!data?.error) return null;
+  if (typeof data.error === 'string') return data.error;
+  return data.error.message ?? 'Could not submit to site';
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value != null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function getNestedRecord(
+  record: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | null {
+  return asRecord(record[key]);
+}
+
+function formatScore(value: unknown): string | null {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return null;
+    return value > 0 && value <= 1 ? `${Math.round(value * 100)}%` : String(Math.round(value));
+  }
+  if (typeof value === 'string' && value.trim() !== '') return value;
+  return null;
+}
+
+function getCheckScore(run: CheckServiceRunRow): string | null {
+  const data = asRecord(run.data);
+  if (!data) return null;
+  const serviceData = getNestedRecord(data, 'serviceData') ?? data;
+  const summary = getNestedRecord(serviceData, 'summary');
+  const result = getNestedRecord(serviceData, 'result');
+  const checks = getNestedRecord(serviceData, 'checks');
+  const checksSummary = checks ? getNestedRecord(checks, 'summary') : null;
+  return (
+    formatScore(serviceData.score) ??
+    formatScore(summary?.score) ??
+    formatScore(result?.score) ??
+    formatScore(checksSummary?.score)
+  );
+}
+
+function serviceDataFromRun(run: CheckServiceRunRow | undefined): unknown {
+  if (!run) return undefined;
+  const data = asRecord(run.data);
+  return data?.serviceData ?? undefined;
+}
+
+function getVersionFiles(version: WorkVersionForDetailsClient): Record<string, unknown> {
+  return asRecord(version.metadata?.files) ?? {};
+}
+
+function getFileLabel(key: string, value: unknown): string {
+  const file = asRecord(value);
+  return (
+    (typeof file?.filename === 'string' && file.filename) ||
+    (typeof file?.name === 'string' && file.name) ||
+    key
+  );
+}
+
+function getSubmittedSiteNamesForWorkVersion(version: WorkVersionForDetailsClient | undefined) {
+  if (!version) return new Set<string>();
+  return new Set(
+    version.submissionVersions
+      .filter((submissionVersion) => submissionVersion.status !== 'DRAFT')
+      .map((submissionVersion) => submissionVersion.submission.site.name),
+  );
+}
+
+function SubmitVersionLabel({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 min-w-0">
+      <span className="text-sm font-medium shrink-0">Version</span>
+      <ui.VersionTagBadge tag={label} titlePrefix="Version" icon={GitBranch} />
+    </span>
+  );
+}
+
+function SubmitCheckSummaryBadgeSlot({ children }: { children: ReactNode }) {
+  const slotRef = useRef<HTMLSpanElement>(null);
+  const [fullLabel, setFullLabel] = useState<string | undefined>();
+
+  useLayoutEffect(() => {
+    const text = slotRef.current?.textContent?.replace(/\s+/g, ' ').trim();
+    setFullLabel(text || undefined);
+  });
+
+  const slot = (
+    <span
+      ref={slotRef}
+      className={cn(
+        'inline-flex min-w-0 max-w-[9rem] overflow-hidden',
+        '[&_[data-slot=badge]]:max-w-full [&_[data-slot=badge]]:w-full [&_[data-slot=badge]]:!min-w-0',
+        '[&_[data-slot=badge]]:shrink [&_[data-slot=badge]]:truncate [&_[data-slot=badge]]:justify-start',
+      )}
+    >
+      {children}
+    </span>
+  );
+
+  if (!fullLabel) return slot;
+
+  return (
+    <ui.SimpleTooltip title={fullLabel} side="top" sideOffset={6}>
+      {slot}
+    </ui.SimpleTooltip>
+  );
+}
+
+function SubmitToSiteEarlyAccessMessage() {
+  const [supportOpen, setSupportOpen] = useState(false);
+  const location = useLocation();
+  const user = useMyUser();
+  const config = useDeploymentConfig();
+  const helpConfig = config.statusBar?.items?.find((item) => item.type === 'request-help');
+  const helpProps = helpConfig?.type === 'request-help' ? helpConfig.properties : undefined;
+
+  const orcidAccount = user?.linkedAccounts?.find(
+    (account) => account.provider === 'orcid' && !account.pending,
+  );
+  const orcid = orcidAccount?.idAtProvider || 'unknown';
+  const currentPage = `${location.pathname}${location.search}${location.hash}`;
+
+  return (
+    <>
+      <p className="leading-relaxed">
+        To submit new works at the moment, use the Curvenote CLI or GitHub integrations. If you are
+        interested in early access to the direct submission feature, please{' '}
+        <ui.Button
+          type="button"
+          variant="link"
+          className="inline p-0 h-auto align-baseline"
+          onClick={() => setSupportOpen(true)}
+        >
+          contact support
+        </ui.Button>
+        .
+      </p>
+      <RequestHelpDialog
+        orcid={orcid}
+        open={supportOpen}
+        onOpenChange={setSupportOpen}
+        prompt={
+          helpProps?.prompt ??
+          'I am interested in early access to the direct submission feature from the work details page.'
+        }
+        title={helpProps?.title ?? helpProps?.label ?? 'Request help from the support team'}
+        description={helpProps?.description}
+        actionUrl="/app/request-help"
+        successMessage={helpProps?.successMessage}
+        currentPage={currentPage}
+      />
+    </>
+  );
+}
+
 export function SubmittedToBar({
   submissions,
   workflows,
   basePath,
+  canSubmitToSite,
+  availableSites,
+  versions,
+  checkServiceRunsByWorkVersionId,
+  checkServices,
+  hasChecksFeature = false,
 }: {
   submissions: SubmissionWithVersionsAndSite[];
   workflows: Record<string, Workflow>;
   basePath: string;
+  canSubmitToSite: boolean;
+  availableSites: SubmissionTargetSite[];
+  versions: WorkVersionForDetailsClient[];
+  checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>;
+  checkServices: ClientExtensionCheckService[];
+  hasChecksFeature?: boolean;
 }) {
+  const navigate = useNavigate();
+  const fetcher = useFetcher<SubmitToSiteFetcherData>();
+  // Synchronous guard closing the double-click window before `disabled` re-renders.
+  const submitLockRef = useRef(false);
+  const versionNumberByVersionId = useMemo(
+    () => buildWorkVersionNumberByIdMap(versions),
+    [versions],
+  );
+  const versionOptions = useMemo(() => {
+    const completedVersions = versions.filter((version) => !version.draft);
+    const sorted = [...completedVersions].sort((a, b) =>
+      a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
+    );
+    return sorted.map((version) => ({
+      version,
+      label: `v${versionNumberByVersionId[version.id] ?? 0}`,
+    }));
+  }, [versions, versionNumberByVersionId]);
+  // TEMPORARY(submit-to-site): Lock to the latest completed version until per-version submit ships.
+  const selectedVersion = versionOptions[0]?.version;
+  const selectedVersionLabel = versionOptions[0]?.label ?? 'version';
+  const selectedFiles = selectedVersion ? getVersionFiles(selectedVersion) : {};
+  const fileLabels = Object.entries(selectedFiles).map(([key, value]) => getFileLabel(key, value));
+  // Checks surface the most recent run of each kind on the selected version and
+  // any older versions — not on versions newer than the one chosen for submit.
+  const latestRunByServiceKind = useMemo(() => {
+    const selectedCreatedAt = selectedVersion?.date_created;
+    const nonDraftVersions = [...versions]
+      .filter((version) => !version.draft)
+      .filter((version) => selectedCreatedAt == null || version.date_created <= selectedCreatedAt)
+      .sort((a, b) =>
+        a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
+      );
+    return getCheckRunSummaryByKind(nonDraftVersions, checkServiceRunsByWorkVersionId)
+      .latestRunByServiceKind;
+  }, [
+    versions,
+    checkServiceRunsByWorkVersionId,
+    selectedVersion?.date_created,
+    selectedVersion?.id,
+  ]);
+  const fallbackCheckRows = Object.values(latestRunByServiceKind)
+    .filter((entry) => !checkServices.some((service) => service.id === entry.run.kind))
+    .map((entry) => ({ id: entry.run.kind, name: entry.run.kind, entry, service: undefined }));
+  const checkRows = [
+    ...checkServices.map((service) => ({
+      id: service.id,
+      name: service.name,
+      entry: latestRunByServiceKind[service.id],
+      service,
+    })),
+    ...fallbackCheckRows,
+  ];
+  const hasCompletedVersions = versionOptions.length > 0;
+  const submittingSiteName = fetcher.formData?.get('siteName');
+  const isSubmitting = fetcher.state !== 'idle';
+  const submittedSiteNamesForSelectedVersion = useMemo(
+    () => getSubmittedSiteNamesForWorkVersion(selectedVersion),
+    [selectedVersion],
+  );
+
+  useEffect(() => {
+    if (fetcher.state !== 'idle') return;
+    // Settled: release the click guard even when there is no response body (e.g. network
+    // error on first attempt) so a failed submit can be retried.
+    submitLockRef.current = false;
+    if (!fetcher.data) return;
+    // The fetcher only posts submit-to-site, so an error response belongs to this
+    // submit even when it carries no intent (e.g. invalid form data).
+    const errorMessage = getErrorMessage(fetcher.data);
+    if (errorMessage) {
+      ui.toastError(errorMessage);
+      return;
+    }
+    if (fetcher.data.intent !== 'submit-to-site') return;
+    if (fetcher.data.success) {
+      const target = resolveSubmitRedirectTarget(fetcher.data, basePath);
+      if (target) {
+        navigate(target);
+      } else {
+        // The submission succeeded server-side; some extensions return no destination.
+        ui.toastSuccess('Submitted successfully');
+      }
+    }
+  }, [basePath, fetcher.data, fetcher.state, navigate]);
+
   return (
     <primitives.Card
       lift
@@ -90,31 +393,285 @@ export function SubmittedToBar({
                 {abbr}
               </span>
             )}
-            <span className="font-medium truncate">{abbr}</span>
+            <span className="font-medium shrink-0" title={siteTitle}>
+              {truncate(siteTitle, 14)}
+            </span>
             <span className={cn('w-2 h-2 rounded-full shrink-0', dotClass)} aria-hidden />
             <span className="text-muted-foreground shrink-0">{label}</span>
           </Link>
         );
       })}
       <ui.Popover>
-        <ui.PopoverTrigger
-          className={cn(
-            'inline-flex items-center justify-center p-2.5 border-dashed border-muted-foreground/40',
-            'cursor-pointer bg-muted/30 text-muted-foreground shrink-0 hover:bg-muted/50 hover:text-foreground transition-colors rounded-r-lg',
-          )}
-          aria-label="Submit to a new site"
-        >
-          <Plus className="w-4 h-4" />
+        <ui.PopoverTrigger asChild>
+          <ui.Button
+            variant="ghost"
+            className="rounded-none px-3 py-2.5 h-auto shrink-0 bg-background hover:bg-accent/50"
+            aria-label="Submit to a new site"
+          >
+            <Send className="w-4 h-4 stroke-[1.5px] text-primary" />
+          </ui.Button>
         </ui.PopoverTrigger>
         <ui.PopoverContent
-          className="p-4 w-80 text-sm border shadow-lg bg-background text-foreground border-border"
-          align="end"
+          className={cn(
+            'text-sm border shadow-lg bg-background text-foreground border-border',
+            canSubmitToSite
+              ? 'p-0 w-[min(760px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]'
+              : 'p-4 w-80 max-w-[calc(100vw-2rem)]',
+          )}
           side="bottom"
+          align="center"
+          sideOffset={8}
+          collisionPadding={16}
         >
-          <p className="leading-relaxed">
-            Coming soon. To submit new works at the moment, use the Curvenote CLI or GitHub
-            integrations.
-          </p>
+          {canSubmitToSite ? (
+            <>
+              <ui.PopoverArrow className="fill-background stroke-border stroke-[1px]" />
+              <fetcher.Form method="post" action={basePath} className="grid grid-cols-[300px_1fr]">
+                <input type="hidden" name="workVersionId" value={selectedVersion?.id ?? ''} />
+                <div className="p-4 space-y-4 border-r border-border bg-muted/20">
+                  <div>
+                    <p className="text-sm font-medium">Version to submit</p>
+                    <p className="text-xs text-muted-foreground">
+                      Review available files, metadata, and checks before choosing a venue.
+                    </p>
+                  </div>
+
+                  {hasCompletedVersions ? (
+                    <ui.SimpleTooltip
+                      title={SUBMIT_LATEST_VERSION_ONLY_TOOLTIP}
+                      side="top"
+                      sideOffset={6}
+                    >
+                      <div
+                        id="submit-version-select"
+                        aria-disabled="true"
+                        className={cn(
+                          'flex gap-3 justify-between items-center px-3 py-2 w-full h-16 text-left bg-white rounded-md border border-input shadow-xs',
+                          'cursor-not-allowed opacity-80',
+                        )}
+                      >
+                        {selectedVersion ? (
+                          <span className="flex flex-col gap-1 items-start min-w-0">
+                            <SubmitVersionLabel label={selectedVersionLabel} />
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(
+                                selectedVersion.date_modified ?? selectedVersion.date_created,
+                              ).toLocaleDateString()}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Select a version</span>
+                        )}
+                      </div>
+                    </ui.SimpleTooltip>
+                  ) : (
+                    <p className="px-3 py-4 text-xs leading-relaxed rounded-md border border-dashed border-muted-foreground/40 bg-background text-muted-foreground">
+                      No completed version is available to submit. Finish creating a version before
+                      submitting to a site.
+                    </p>
+                  )}
+
+                  {selectedVersion ? (
+                    <>
+                      {hasChecksFeature ? (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+                            Checks
+                          </p>
+                          <div className="space-y-1.5">
+                            {checkRows.length > 0 ? (
+                              checkRows.map((row) => {
+                                const SummaryTitleComponent =
+                                  row.service?.sectionSummaryTitleComponent;
+                                const SummaryBadgeComponent =
+                                  row.service?.sectionSummaryBadgeComponent;
+                                const run = row.entry?.run;
+                                const metadata = serviceDataFromRun(run);
+                                const fallbackScore = run ? getCheckScore(run) : null;
+                                const runVersionNumber = row.entry
+                                  ? versionNumberByVersionId[row.entry.workVersionId]
+                                  : undefined;
+                                const isFromOtherVersion =
+                                  row.entry != null &&
+                                  row.entry.workVersionId !== selectedVersion?.id;
+                                return (
+                                  <div
+                                    key={row.id}
+                                    className="flex gap-2 justify-between items-center p-2 rounded-md border bg-background border-border"
+                                  >
+                                    <span className="flex min-w-0 flex-1 items-center overflow-hidden [&_img]:max-h-5 [&_img]:w-auto [&_img]:object-contain [&_svg]:max-h-5 [&_svg]:w-auto [&_*]:truncate">
+                                      {SummaryTitleComponent && run ? (
+                                        <SummaryTitleComponent metadata={metadata} />
+                                      ) : (
+                                        <span className="text-xs font-medium truncate">
+                                          {row.name}
+                                        </span>
+                                      )}
+                                    </span>
+                                    {run ? (
+                                      <span className="flex gap-1.5 items-center min-w-0 shrink">
+                                        {isFromOtherVersion && runVersionNumber != null ? (
+                                          <ui.SimpleTooltip
+                                            title={`Latest run was on version v${runVersionNumber}`}
+                                            side="top"
+                                            sideOffset={6}
+                                          >
+                                            <span className="inline-flex shrink-0">
+                                              <ui.VersionTagBadge
+                                                tag={`v${runVersionNumber}`}
+                                                titlePrefix="Version"
+                                                icon={GitBranch}
+                                                disableTooltip
+                                              />
+                                            </span>
+                                          </ui.SimpleTooltip>
+                                        ) : null}
+                                        <SubmitCheckSummaryBadgeSlot>
+                                          {SummaryBadgeComponent ? (
+                                            <SummaryBadgeComponent metadata={metadata} />
+                                          ) : (
+                                            <ui.Badge variant="success">
+                                              {fallbackScore ? `Score ${fallbackScore}` : 'Run'}
+                                            </ui.Badge>
+                                          )}
+                                        </SubmitCheckSummaryBadgeSlot>
+                                      </span>
+                                    ) : (
+                                      <ui.Badge variant="outline-muted">Not run</ui.Badge>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                No check services available.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+                          Files
+                        </p>
+                        {fileLabels.length > 0 ? (
+                          <ul className="space-y-1 text-[11px] leading-4 text-muted-foreground">
+                            {Object.entries(selectedFiles).map(([key, value]) => (
+                              <li key={key} className="truncate">
+                                {getFileLabel(key, value)}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-[11px] leading-4 text-muted-foreground">
+                            No files are available for this version.
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+
+                <div className="p-2 space-y-2">
+                  <div className="px-2 py-1">
+                    <p className="text-sm font-medium">Submit to site</p>
+                    <p className="text-xs text-muted-foreground">
+                      Choose an SCMS site to receive this work. External sites are listed first.
+                    </p>
+                  </div>
+                  {availableSites.length > 0 ? (
+                    <div className="space-y-1">
+                      <input type="hidden" name="intent" value="submit-to-site" />
+                      {availableSites.map((site) => {
+                        const siteTitle = site.title ?? site.name;
+                        const abbr =
+                          abbreviateTitle(siteTitle) || siteTitle.charAt(0).toUpperCase();
+                        const metadata = site.metadata as SiteVisualMetadata | undefined;
+                        const isCurrentSiteSubmitting = submittingSiteName === site.name;
+                        const alreadySubmitted = submittedSiteNamesForSelectedVersion.has(
+                          site.name,
+                        );
+                        // Disable every site button (including the one just clicked) while any
+                        // submit is in flight so a double-click cannot trigger a second submission.
+                        const isDisabled =
+                          !hasCompletedVersions || alreadySubmitted || isSubmitting;
+                        return (
+                          <button
+                            key={site.id}
+                            type="submit"
+                            name="siteName"
+                            value={site.name}
+                            disabled={isDisabled}
+                            aria-busy={isCurrentSiteSubmitting || undefined}
+                            onClick={(event) => {
+                              if (submitLockRef.current) {
+                                event.preventDefault();
+                                return;
+                              }
+                              submitLockRef.current = true;
+                            }}
+                            className={cn(
+                              'flex gap-3 items-start p-2 w-full text-left rounded-md transition-colors',
+                              'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                              'disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent',
+                              // twMerge lets this displace disabled:cursor-not-allowed above.
+                              isCurrentSiteSubmitting && 'disabled:cursor-wait',
+                              !isDisabled && !isCurrentSiteSubmitting && 'hover:bg-accent',
+                            )}
+                          >
+                            <span className="flex overflow-hidden justify-center items-center w-9 h-9 rounded border bg-muted shrink-0 border-border">
+                              {metadata?.logo != null || metadata?.logo_dark != null ? (
+                                <SiteLogo
+                                  className="object-contain w-8 h-8"
+                                  alt={siteTitle}
+                                  logo={metadata?.logo}
+                                  logo_dark={metadata?.logo_dark}
+                                />
+                              ) : (
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {abbr}
+                                </span>
+                              )}
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className="flex gap-2 items-center">
+                                {metadata?.favicon ? (
+                                  <img
+                                    src={metadata.favicon}
+                                    alt=""
+                                    className="object-contain w-4 h-4 shrink-0"
+                                  />
+                                ) : null}
+                                <span className="font-medium truncate">{siteTitle}</span>
+                              </span>
+                              <span className="block text-xs leading-snug whitespace-normal text-muted-foreground">
+                                {site.description ?? site.name}
+                              </span>
+                            </span>
+                            <span className="flex gap-2 items-center shrink-0">
+                              {alreadySubmitted ? (
+                                <ui.Badge variant="secondary">Submitted</ui.Badge>
+                              ) : null}
+                              {isCurrentSiteSubmitting ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                              ) : null}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="px-2 py-3 text-sm text-muted-foreground">
+                      No SCMS sites are available for submission.
+                    </p>
+                  )}
+                </div>
+              </fetcher.Form>
+            </>
+          ) : (
+            <SubmitToSiteEarlyAccessMessage />
+          )}
         </ui.PopoverContent>
       </ui.Popover>
     </primitives.Card>

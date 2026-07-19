@@ -1,17 +1,31 @@
 import { useEffect } from 'react';
 import { useFetcher, useFetchers, Link, useParams, useLocation } from 'react-router';
-import { ui, hasInvalidEnabledUploadChecks } from '@curvenote/scms-core';
+import {
+  ui,
+  hasInvalidEnabledUploadChecks,
+  useAnyCheckMaintenanceBlocked,
+  useChecksNotUnderMaintenance,
+} from '@curvenote/scms-core';
 import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata, ChecksMetadataSection } from '@curvenote/scms-server';
+import type { AuthorFieldMetadata } from './mystAuthorAdapters';
 
 interface ContinueFormProps {
   title: string;
-  authors: string;
+  authorMetadata: AuthorFieldMetadata;
   metadata: WorkVersionMetadata & FileMetadataSection & ChecksMetadataSection;
   checkServices: ExtensionCheckService[];
+  /** Selected thumbnail locator (see thumbnailSelection.ts); materialised on submit. */
+  selectedThumbnail?: string | null;
 }
 
-export function ContinueForm({ title, authors, metadata, checkServices }: ContinueFormProps) {
+export function ContinueForm({
+  title,
+  authorMetadata,
+  metadata,
+  checkServices,
+  selectedThumbnail,
+}: ContinueFormProps) {
   const fetcher = useFetcher();
   const fetchers = useFetchers();
   const { workId } = useParams();
@@ -37,40 +51,65 @@ export function ContinueForm({ title, authors, metadata, checkServices }: Contin
     Object.keys(metadata.files).length > 0;
 
   const enabledChecks = metadata.checks?.enabled ?? [];
+  // Mirror the server's `confirm-work`: checks under maintenance are dropped
+  // (not initiated), so only validate compatibility for the dispatchable ones.
+  // A check that is both incompatible and under maintenance must not block
+  // submission, since the server would drop it and accept the work.
+  const dispatchableChecks = useChecksNotUnderMaintenance(enabledChecks);
   const hasInvalidSelectedChecks = hasInvalidEnabledUploadChecks(
     metadata,
-    enabledChecks,
+    dispatchableChecks,
     checkServices,
   );
+  const { blocked: maintenanceBlocked } = useAnyCheckMaintenanceBlocked(enabledChecks);
 
   const hasPendingToggleCheck = fetchers.some(
     (f) => f.state !== 'idle' && f.formData?.get('intent') === 'toggle-check',
   );
+  const hasPendingAuthorMetadata = fetchers.some(
+    (f) => f.state !== 'idle' && f.formData?.get('intent') === 'update-author-metadata',
+  );
 
-  const disabled = !hasTitle || !hasFiles || hasPendingToggleCheck || hasInvalidSelectedChecks;
+  // A selected check whose service is under maintenance does not block submission;
+  // it is simply skipped (not initiated) and the work is created without it.
+  const disabled =
+    !hasTitle ||
+    !hasFiles ||
+    hasPendingToggleCheck ||
+    hasPendingAuthorMetadata ||
+    hasInvalidSelectedChecks;
 
   const handleContinue = () => {
     const formData = new FormData();
     formData.append('intent', 'confirm-work');
-    if (authors?.trim()) {
-      formData.append('authors', authors);
+    formData.append('authorMetadata', JSON.stringify(authorMetadata));
+    if (selectedThumbnail) {
+      formData.append('thumbnail', selectedThumbnail);
     }
     fetcher.submit(formData, { method: 'post' });
   };
 
   return (
-    <div className="flex gap-4 items-center mt-6">
-      <ui.StatefulButton
-        type="button"
-        busy={fetcher.state !== 'idle'}
-        disabled={disabled}
-        onClick={handleContinue}
-      >
-        Continue
-      </ui.StatefulButton>
-      <ui.Button variant="link" asChild>
-        <Link to={finishLaterHref}>Come back and finish this later</Link>
-      </ui.Button>
+    <div className="mt-6 space-y-2">
+      <div className="flex gap-4 items-center">
+        <ui.StatefulButton
+          type="button"
+          busy={fetcher.state !== 'idle'}
+          disabled={disabled}
+          onClick={handleContinue}
+        >
+          Continue
+        </ui.StatefulButton>
+        <ui.Button variant="link" asChild>
+          <Link to={finishLaterHref}>Come back and finish this later</Link>
+        </ui.Button>
+      </div>
+      {maintenanceBlocked ? (
+        <p className="text-sm text-muted-foreground">
+          At least one service is temporarily down for maintenance. The affected check will be
+          skipped and can be run later.
+        </p>
+      ) : null}
     </div>
   );
 }

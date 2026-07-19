@@ -1,0 +1,55 @@
+import type { ReactNode } from 'react';
+import { cn } from '../../utils/cn.js';
+
+type TimelineProps = {
+  /** Optional title (e.g. "Timeline") */
+  title?: ReactNode;
+  /** Merged onto the title wrapper (e.g. size, casing, tracking). */
+  titleClassName?: string;
+  /** Optional slot for header actions (e.g. filter dropdown) */
+  headerAction?: ReactNode;
+  /** When true, the vertical line extends to the top of the timeline (e.g. to touch the card above). */
+  nested?: boolean;
+  /** Bottom inset/offset for the vertical line (default `bottom-1`). Use e.g. `-bottom-2` to extend past the last item. */
+  lineBottomClassName?: string;
+  children: ReactNode;
+  className?: string;
+};
+
+/**
+ * Root timeline component: vertical stem (line) and list of sections.
+ * Completely generic; no awareness of work versions or events.
+ */
+export function Timeline({
+  title,
+  titleClassName,
+  headerAction,
+  nested = false,
+  lineBottomClassName,
+  children,
+  className,
+}: TimelineProps) {
+  const lineTop = nested ? 'top-0' : 'top-2';
+  const lineBottom = lineBottomClassName ?? 'bottom-1';
+  return (
+    <div className={cn('', className)}>
+      {(title != null || headerAction != null) && (
+        <div className="flex justify-between items-center mb-3">
+          {title != null && (
+            <span className={cn('text-sm font-normal text-muted-foreground', titleClassName)}>
+              {title}
+            </span>
+          )}
+          {headerAction != null && <div>{headerAction}</div>}
+        </div>
+      )}
+      <div className="relative">
+        <div
+          className={cn('absolute left-0 w-[2px] bg-foreground/20', lineTop, lineBottom)}
+          aria-hidden
+        />
+        <div className={cn('space-y-6', nested && 'pt-5')}>{children}</div>
+      </div>
+    </div>
+  );
+}

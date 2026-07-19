@@ -5,29 +5,35 @@ import {
   withAppScopedContext,
   userHasScope,
   withValidFormData,
+  getUserScopesSet,
 } from '@curvenote/scms-server';
 import {
   MainWrapper,
   PageFrame,
   FrameHeader,
+  CreateWorkDropdown,
   getBrandingFromMetaMatches,
   joinPageTitle,
   getWorkflows,
   registerExtensionWorkflows,
+  getExtensionCheckServicesFromClientConfig,
+  useDeploymentConfig,
+  getAvailableWorkCreateOptions,
+  hydrateWorkCreateOptions,
+  toSerializableWorkCreateOptions,
   scopes,
   capitalize,
   plural,
 } from '@curvenote/scms-core';
 import type { LoaderFunctionArgs, ShouldRevalidateFunctionArgs } from 'react-router';
-import { useNavigate, data } from 'react-router';
-import { PlusCircle } from 'lucide-react';
+import { data } from 'react-router';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { WorkList } from './WorkList';
+import type { WorkListCheckService } from './WorkCheckSummaries';
 import { dbGetWorksAndSubmissionVersions, dangerouslyDeleteDraftWork } from './db.server';
 import { getValidDraftWorksForUser } from './getDrafts.server';
 import { extensions } from '../../../extensions/client';
-import { extensions as serverExtensions } from '../../../extensions/server';
 
 // Action schema for handling draft work intents
 const WorksActionSchema = zfd.formData({
@@ -41,7 +47,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const ctx = await withAppScopedContext(args, [scopes.work.list], { redirect: true }); // app:works:feature
   try {
     // Create promise for deferred loading
-    const worksPromise = dbGetWorksAndSubmissionVersions(ctx.user.id).then((items) => {
+    const worksPromise = dbGetWorksAndSubmissionVersions(ctx.user.id, ctx.$config).then((items) => {
       const nonDraftItems = items.filter((item) => {
         const allVersionsAreDraft = item.versions.every((v) => v.draft);
         return !allVersionsAreDraft;
@@ -53,11 +59,24 @@ export const loader = async (args: LoaderFunctionArgs) => {
     const workflows = getWorkflows(ctx.$config, registerExtensionWorkflows(extensions));
 
     const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
+    const userScopes = Array.from(getUserScopesSet(ctx.user));
+    const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
+    const extensionConfigs = Object.fromEntries(
+      Object.entries(ctx.$config?.app?.extensions ?? {}).map(([key, value]) => [
+        key,
+        { routes: value?.routes ?? false },
+      ]),
+    );
+    const createWorkOptions = toSerializableWorkCreateOptions(
+      getAvailableWorkCreateOptions(extensionConfigs, extensions, userScopes),
+    );
 
     return {
       items: worksPromise,
       workflows,
       canUpload,
+      hasChecksFeature,
+      createWorkOptions,
       stringReplacements,
     };
   } catch {
@@ -211,8 +230,21 @@ export function shouldRevalidate({
 }
 
 export default function MyWorks({ loaderData }: Route.ComponentProps) {
-  const { items, workflows, error, canUpload, stringReplacements } = loaderData;
-  const navigate = useNavigate();
+  const {
+    items,
+    workflows,
+    error,
+    canUpload,
+    hasChecksFeature,
+    createWorkOptions,
+    stringReplacements,
+  } = loaderData;
+  const hydratedCreateWorkOptions = hydrateWorkCreateOptions(createWorkOptions ?? [], extensions);
+  const deploymentConfig = useDeploymentConfig();
+  const checkServices = getExtensionCheckServicesFromClientConfig(
+    deploymentConfig,
+    extensions,
+  ) as WorkListCheckService[];
   const workLabel = stringReplacements.work;
   const worksLabel = plural(`${workLabel}(s)`, 2);
   const worksTitle = capitalize(worksLabel);
@@ -221,7 +253,14 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
     <div className="max-w-[900px]">
       {/* Works List Section without title when no tasks */}
       {error && <div className="p-2 my-2 text-red-600 bg-red-50">{error}</div>}
-      {items && <WorkList items={items} workflows={workflows} />}
+      {items && (
+        <WorkList
+          items={items}
+          workflows={workflows}
+          checkServices={checkServices}
+          hasChecksFeature={hasChecksFeature ?? false}
+        />
+      )}
     </div>
   );
 
@@ -235,12 +274,15 @@ export default function MyWorks({ loaderData }: Route.ComponentProps) {
               actionAlign="right"
               title={`My ${worksTitle}`}
               subtitle={`Manage your ${worksLabel}`}
-              actionLabel={`Create new ${workLabel}`}
-              actionIcon={<PlusCircle className="w-4 h-4" />}
-              onAction={
-                canUpload
-                  ? () => navigate('/app/works/new')
-                  : () => alert('For early access to upload features, please contact support')
+              action={
+                <CreateWorkDropdown
+                  options={hydratedCreateWorkOptions}
+                  triggerLabel={`Create new ${workLabel}`}
+                  disabled={!canUpload}
+                  onDisabledClick={() =>
+                    alert('For early access to upload features, please contact support')
+                  }
+                />
               }
             />
           }

@@ -1,0 +1,170 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { describe, expect, it, vi } from 'vitest';
+import { TrackEvent, isPreviewCandidate, type FileMetadataSectionItem } from '@curvenote/scms-core';
+import {
+  classifyPreviewOutcome,
+  previewFailureReason,
+  normalizeUploadFlowTrigger,
+  resolveMetadataExtractionTrigger,
+  summarizeExtractedMetadata,
+  summarizePreviewCandidateFiles,
+  summarizePreviewResults,
+  extractedImageCountWhenAvailable,
+  trackDocumentPreviewStarted,
+} from './uploadFlowAnalytics.server.js';
+import type { DocumentPreviewItem } from './fetchPreviews.server.js';
+
+const docxFile = (size: number): FileMetadataSectionItem => ({
+  name: 'paper.docx',
+  type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  path: 'uploads/wv/paper.docx',
+  size,
+  md5: 'abc',
+  slot: 'manuscript',
+  uploadDate: '2026-01-01',
+});
+
+function previewItem(overrides: Partial<DocumentPreviewItem> = {}): DocumentPreviewItem {
+  return {
+    path: 'uploads/wv/paper.docx',
+    data: docxFile(1000),
+    ast: { type: 'docx', metadata: {}, content: [], wasTruncated: false },
+    figures: [],
+    ...overrides,
+  };
+}
+
+describe('uploadFlowAnalytics', () => {
+  it('summarizes preview candidate files', () => {
+    const summary = summarizePreviewCandidateFiles(
+      { a: docxFile(1000), b: docxFile(2000) },
+      () => true,
+    );
+    expect(summary.previewCandidateCount).toBe(2);
+    expect(summary.totalFileSizeBytes).toBe(3000);
+    expect(summary.fileTypes).toHaveLength(1);
+  });
+
+  it('summarizes preview candidates with isPreviewCandidate without filter index errors', () => {
+    const summary = summarizePreviewCandidateFiles({ a: docxFile(1000) }, isPreviewCandidate);
+    expect(summary.previewCandidateCount).toBe(1);
+  });
+
+  it('classifies preview outcomes', () => {
+    expect(classifyPreviewOutcome(0, [])).toBe('skipped');
+    expect(classifyPreviewOutcome(1, [])).toBe('failed');
+    expect(classifyPreviewOutcome(1, [previewItem({ previewUnavailable: true })])).toBe('failed');
+    expect(classifyPreviewOutcome(1, [previewItem()])).toBe('completed');
+  });
+
+  it('skips document preview started when there are no preview candidates', async () => {
+    const trackEvent = vi.fn();
+    const ctx = {
+      trackEvent,
+      analytics: undefined,
+      request: new Request('http://localhost/app/works/w1/upload/wv1'),
+    };
+    await trackDocumentPreviewStarted(ctx, {
+      workId: 'w1',
+      workVersionId: 'wv1',
+      uploadFlowTrigger: 'auto',
+      previewCandidateCount: 0,
+      fileTypes: [],
+      totalFileSizeBytes: 0,
+    });
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  it('emits document preview started when there are preview candidates', async () => {
+    const trackEvent = vi.fn();
+    const ctx = {
+      trackEvent,
+      analytics: undefined,
+      request: new Request('http://localhost/app/works/w1/upload/wv1'),
+    };
+    await trackDocumentPreviewStarted(ctx, {
+      workId: 'w1',
+      workVersionId: 'wv1',
+      uploadFlowTrigger: 'auto',
+      previewCandidateCount: 1,
+      fileTypes: ['application/pdf'],
+      totalFileSizeBytes: 1000,
+    });
+    expect(trackEvent).toHaveBeenCalledWith(
+      TrackEvent.DOCUMENT_PREVIEW_STARTED,
+      expect.objectContaining({
+        workId: 'w1',
+        workVersionId: 'wv1',
+        previewCandidateCount: 1,
+      }),
+      { ignoreAdmin: true },
+    );
+  });
+
+  it('derives preview failure reasons', () => {
+    expect(previewFailureReason(1, [])).toBe('no_previews_generated');
+    expect(previewFailureReason(2, [previewItem({ previewUnavailable: true })])).toBe(
+      'all_unavailable',
+    );
+  });
+
+  it('summarizes preview results counts', () => {
+    const summary = summarizePreviewResults(
+      [previewItem({ figures: [{ key: 'k1' }, { key: 'k2' }] }), previewItem()],
+      3,
+    );
+    expect(summary.previewsGeneratedCount).toBe(2);
+    expect(summary.previewsMissingCount).toBe(1);
+    expect(summary.totalFigureCount).toBe(2);
+  });
+
+  it('counts extracted images only when extraction ran', () => {
+    expect(
+      extractedImageCountWhenAvailable([
+        previewItem({ figures: [{ key: 'k1' }, { key: 'k2' }], figuresExtractionSkipped: false }),
+      ]),
+    ).toBe(2);
+    expect(
+      extractedImageCountWhenAvailable([
+        previewItem({ figures: [], figuresExtractionSkipped: false }),
+      ]),
+    ).toBe(0);
+    expect(
+      extractedImageCountWhenAvailable([
+        previewItem({ figures: [], figuresExtractionSkipped: true }),
+      ]),
+    ).toBeUndefined();
+    expect(
+      extractedImageCountWhenAvailable([previewItem({ previewUnavailable: true, figures: [] })]),
+    ).toBeUndefined();
+  });
+
+  it('summarizes extracted metadata without PII', () => {
+    const summary = summarizeExtractedMetadata({
+      title: 'Secret title',
+      doi: '10.1234/example',
+      authors: [{ name: 'Ada Lovelace' }, { name: 'Alan Turing' }],
+      affiliations: [{ name: 'Example Lab' }],
+    });
+    expect(summary).toEqual({
+      authorCount: 2,
+      affiliationCount: 1,
+      hasTitle: true,
+      hasDoi: true,
+    });
+  });
+
+  it('normalizes upload flow triggers', () => {
+    expect(normalizeUploadFlowTrigger('manual_preview_retry')).toBe('manual_preview_retry');
+    expect(normalizeUploadFlowTrigger(undefined)).toBe('auto');
+    expect(normalizeUploadFlowTrigger('invalid')).toBe('auto');
+  });
+
+  it('resolves metadata extraction trigger from force flag', () => {
+    expect(resolveMetadataExtractionTrigger(undefined, true)).toBe('manual_extract_rerun');
+    expect(resolveMetadataExtractionTrigger('manual_extract_rerun', true)).toBe(
+      'manual_extract_rerun',
+    );
+    expect(resolveMetadataExtractionTrigger(undefined, false)).toBe('auto');
+  });
+});

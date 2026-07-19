@@ -6,8 +6,8 @@ import {
   site as siteScopes,
 } from '@curvenote/scms-core';
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
-import { formatSubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
-import type { SubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
+import { formatSubmissionListingSiteContext } from '../$siteName.submissions._index/site-context.format.server.js';
+import type { SubmissionListingSiteContext } from '../$siteName.submissions._index/site-context.format.server.js';
 import { InboxComingSoon } from './InboxComingSoon.js';
 
 interface LoaderData {

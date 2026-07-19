@@ -95,6 +95,37 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
     ]);
   });
 
+  it('excludes DRAFT submission versions from the timeline payload', async () => {
+    const { dbLoadSubmissionVersionsTimeline } = await import('./db.server.js');
+    mockPrisma.submission.findFirst.mockResolvedValue({
+      collection: { workflow: 'SIMPLE' },
+      versions: [
+        {
+          id: 'v-failed',
+          date_created: '2026-07-10T00:00:00.000Z',
+          date_modified: '2026-07-10T00:00:00.000Z',
+          date_published: null,
+          status: 'DEPOSIT_FAILED',
+          tags: [],
+        },
+      ],
+    });
+
+    const result = await dbLoadSubmissionVersionsTimeline(ctx, 'sub-1');
+
+    expect(result).toHaveLength(1);
+    expect(result?.[0]?.id).toBe('v-failed');
+    expect(mockPrisma.submission.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          versions: expect.objectContaining({
+            where: { status: { not: 'DRAFT' } },
+          }),
+        }),
+      }),
+    );
+  });
+
   it('issues a single tenancy-scoped query with nested versions ordered desc', async () => {
     const { dbLoadSubmissionVersionsTimeline } = await import('./db.server.js');
     mockPrisma.submission.findFirst.mockResolvedValue({
@@ -110,6 +141,7 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
       select: {
         collection: { select: { workflow: true } },
         versions: {
+          where: { status: { not: 'DRAFT' } },
           orderBy: { date_created: 'desc' },
           select: {
             id: true,

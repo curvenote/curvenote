@@ -1,12 +1,15 @@
 import { useFetcher } from 'react-router';
 import { GitBranch } from 'lucide-react';
-import { ui } from '@curvenote/scms-core';
+import { ui, useCheckMaintenanceBlocked } from '@curvenote/scms-core';
 
 type RunCheckOnLatestVersionButtonProps = {
   /** POST target (extension checksActionPath or platform fallback). */
   actionPath: string;
   /** Latest non-draft work version id to run the check against. */
   workVersionId: string;
+  checkServiceId: string;
+  /** 1-based version number for the target work version (shown in the button). */
+  versionNumber: number;
 };
 
 /**
@@ -17,25 +20,42 @@ type RunCheckOnLatestVersionButtonProps = {
 export function RunCheckOnLatestVersionButton({
   actionPath,
   workVersionId,
+  checkServiceId,
+  versionNumber,
 }: RunCheckOnLatestVersionButtonProps) {
   const fetcher = useFetcher();
-  const isSubmitting = fetcher.state === 'submitting';
+  const isBusy = fetcher.state !== 'idle';
+  const { blocked, message } = useCheckMaintenanceBlocked(checkServiceId);
+
   return (
-    <fetcher.Form method="post" action={actionPath}>
-      <input type="hidden" name="workVersionId" value={workVersionId} />
-      <ui.StatefulButton
-        type="submit"
-        variant="default"
-        size="sm"
-        name="intent"
-        value="execute"
-        busy={isSubmitting}
-      >
-        <span className="flex gap-1 items-center">
-          <GitBranch className="w-3 h-3" aria-hidden />
-          Check Latest Version
-        </span>
-      </ui.StatefulButton>
-    </fetcher.Form>
+    <ui.MaintenanceTooltip enabled={blocked} message={message}>
+      <fetcher.Form method="post" action={actionPath}>
+        <input type="hidden" name="workVersionId" value={workVersionId} />
+        <input type="hidden" name="checkServiceId" value={checkServiceId} />
+        <input type="hidden" name="trigger" value="latest_version" />
+        <ui.StatefulButton
+          type="submit"
+          variant="default"
+          size="sm"
+          name="intent"
+          value="execute"
+          busy={isBusy}
+          overlayBusy
+          disabled={blocked}
+          className="gap-1.5"
+        >
+          <span className="inline-flex gap-1.5 items-center">
+            <span>Check Latest Version</span>
+            <ui.VersionTagBadge
+              tag={`v${versionNumber}`}
+              titlePrefix="Version"
+              icon={GitBranch}
+              compact
+              emphasis="on-primary"
+            />
+          </span>
+        </ui.StatefulButton>
+      </fetcher.Form>
+    </ui.MaintenanceTooltip>
   );
 }

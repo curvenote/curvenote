@@ -1,7 +1,7 @@
 import type { Route } from './+types/route';
 import { redirect, useFetcher } from 'react-router';
 import { useState } from 'react';
-import { withAppContext, withAppScopedContext, unsubscribe } from '@curvenote/scms-server';
+import { withAppScopedContext, unsubscribe } from '@curvenote/scms-server';
 import {
   PageFrame,
   primitives,

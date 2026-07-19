@@ -106,7 +106,13 @@ export async function loader(args: Route.LoaderArgs) {
     page: params.has('page') ? parseInt(params.get('page')!, 10) : undefined,
   });
 
-  const dto = await listPublishedWorks(ctx, extensions, where, { page, limit, sort });
+  const dto = await listPublishedWorks(
+    ctx,
+    extensions,
+    where,
+    { page, limit, sort },
+    ctx.request.signal,
+  );
   const headers = vercelCacheHeaders(
     ctx.site.private ? PRIVATE_CACHE_OPTIONS : SEMI_STATIC_BURST_PROTECTION,
   );

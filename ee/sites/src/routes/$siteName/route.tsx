@@ -25,8 +25,8 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData | Res
     redirect: true,
   });
 
-  const pathname = new URL(args.request.url).pathname;
-  if (pathname.endsWith(ctx.site.name)) {
+  const pathname = new URL(args.request.url).pathname.replace(/\/$/, '');
+  if (pathname === `/app/sites/${ctx.site.name}`) {
     return redirect(`/app/sites/${ctx.site.name}/inbox`);
   }
 

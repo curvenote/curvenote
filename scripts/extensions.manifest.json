@@ -1,0 +1,33 @@
+{
+  "environments": {
+    "scms": {
+      "description": "Curvenote monorepo only — ee/sites extension, no gitignored extension clones.",
+      "extensions": []
+    },
+    "hhmi-workspace": {
+      "description": "Full HHMI workspace stack: SCMS + relay + HHMI extension packages.",
+      "extensions": [
+        {
+          "repo": "github.com/curvenote/hhmi-checks",
+          "path": "extensions/hhmi-checks",
+          "branch": "main"
+        },
+        {
+          "repo": "github.com/curvenote/hhmi-os-ext",
+          "path": "extensions/hhmi-os-ext",
+          "branch": "main"
+        },
+        {
+          "repo": "github.com/curvenote/check-service-plugin-ithenticate",
+          "path": "extensions/plugins/check-relay-plugin-ithenticate",
+          "branch": "main"
+        }
+      ],
+      "repositoryDependencies": [
+        "github.com/curvenote/hhmi-checks",
+        "github.com/curvenote/hhmi-os-ext",
+        "github.com/curvenote/check-service-plugin-ithenticate"
+      ]
+    }
+  }
+}

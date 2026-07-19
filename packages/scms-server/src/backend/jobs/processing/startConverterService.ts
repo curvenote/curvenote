@@ -15,8 +15,7 @@ export type ConverterMessageAttributes = {
  *
  * Routing (handled by sendJobPubSubMessage):
  *  - test → fake ID, no publish
- *  - PUBSUB_EMULATOR_HOST set → publishes to emulator
- *  - development (no emulator) → HTTP stub POST to localhost:8080
+ *  - development → HTTP stub POST to localhost:8080
  *  - production → real GCP Pub/Sub
  */
 export async function startConverterService(

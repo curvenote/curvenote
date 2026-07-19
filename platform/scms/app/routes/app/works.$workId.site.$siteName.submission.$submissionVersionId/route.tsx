@@ -206,7 +206,7 @@ export default function WorkSubmissionDetailRoute({ loaderData }: Route.Componen
       : undefined;
 
   return (
-    <PageFrame title={`Submission Details`} breadcrumbs={breadcrumbs} className="max-w-4xl">
+    <PageFrame title={`Submission Details`} breadcrumbs={breadcrumbs} className="max-w-none">
       <div className="mt-4 space-y-6 md:space-y-12">
         <SectionWithHeading heading="Submitted to" icon={Globe}>
           <primitives.Card lift className="p-6">

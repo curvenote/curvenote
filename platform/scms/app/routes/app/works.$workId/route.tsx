@@ -9,11 +9,20 @@ import {
 import { Outlet } from 'react-router';
 import {
   withSecureWorkContext,
+  cloneDraftWorkVersionFromSource,
   dbCreateDraftWorkVersion,
   metadataForNewDraftFileWorkVersion,
   userHasScope,
-  works as worksLoaders,
+  userHasWorkScope,
+  works,
+  getUserScopesSet,
+  getPrismaClient,
+  SiteContextWithUser,
+  sites as siteLoaders,
+  createWorkVersionPreviewToken,
 } from '@curvenote/scms-server';
+import { seedArticleDraftMetadataFromSource } from './seedArticleDraftMetadata.server';
+import { Prisma } from '@curvenote/scms-db';
 import {
   MainWrapper,
   SecondaryNav,
@@ -22,7 +31,16 @@ import {
   TrackEvent,
   getWorkflows,
   registerExtensionWorkflows,
+  getExtensionCheckServicesFromServerConfig,
+  loadCheckMaintenanceByServiceIds,
+  CheckMaintenanceProvider,
   scopes,
+  resolveCreateNewVersionOption,
+  invokeExtensionCreateWorkVersion,
+  resolveSubmitToSiteExtension,
+  BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
+  buildWorkVersionNumberByIdMap,
+  WorkContents,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
 import {
@@ -41,21 +59,41 @@ import { getUniqueSubmissions } from './utils.server';
 import {
   computeCanResumeDraftUpload,
   getLicenseDisplayFromMetadata,
-  isDraftVersionValidForReuse,
+  resolveResumeDraftUploadPath,
+  resolveWorkVersionDoi,
   signVersionFilesForClient,
 } from './metadata.server';
 import type { WorkVersionContentCardData, WorkVersionForDetailsClient } from './types';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
+import { WORK_ROUTE_CONTENT_CLASS } from './workRouteLayout';
 import { exportToPdfAction } from './actionHelpers.server';
+import {
+  canUserSubmitToSite,
+  getSubmitToSiteLatestVersionPolicyError,
+  isSiteAvailableForWorkSubmit,
+  resolveOpenCollection,
+  resolveSubmissionKind,
+  SubmitToSiteConfigError,
+  submitWorkVersionToSite,
+  workSiteSubmitLockKey,
+} from './submitToSite.server';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 
 const WorkActionIntentSchema = zfd.formData({
   intent: zfd.text(
-    z.enum(['export-to-pdf', 'get-drafts-for-work', 'create-new-version', 'delete-draft']),
+    z.enum([
+      'export-to-pdf',
+      'get-drafts-for-work',
+      'create-new-version',
+      'delete-draft',
+      'submit-to-site',
+    ]),
   ),
   workId: zfd.text(z.string().optional()),
+  siteName: zfd.text(z.string().optional()),
+  workVersionId: zfd.text(z.string().optional()),
 });
 
 export async function action(args: ActionFunctionArgs) {
@@ -68,23 +106,24 @@ export async function action(args: ActionFunctionArgs) {
     );
   }
 
-  const { intent, workId: formWorkId } = parsed.data;
+  const { intent, workId: formWorkId, siteName, workVersionId } = parsed.data;
   const ctx = await withSecureWorkContext(args, [scopes.work.id.read]);
 
   if (intent === 'get-drafts-for-work') {
     const latest = await dbGetLatestWorkVersionForWork(ctx.work.id);
-    const drafts =
-      latest?.draft && isDraftVersionValidForReuse(latest.metadata)
-        ? [
-            {
-              workId: ctx.work.id,
-              workVersionId: latest.id,
-              workTitle: latest.title || 'Untitled Work',
-              dateModified: latest.date_modified,
-              dateCreated: latest.date_created,
-            },
-          ]
-        : [];
+    const versionNumberById = buildWorkVersionNumberByIdMap(ctx.work.versions ?? []);
+    const drafts = latest?.draft
+      ? [
+          {
+            workId: ctx.work.id,
+            workVersionId: latest.id,
+            workTitle: latest.title || 'Untitled Work',
+            dateModified: latest.date_modified,
+            dateCreated: latest.date_created,
+            versionNumber: versionNumberById[latest.id],
+          },
+        ]
+      : [];
     return { success: true, intent, drafts };
   }
 
@@ -94,7 +133,98 @@ export async function action(args: ActionFunctionArgs) {
     }
     try {
       const latestNonDraft = ctx.work.versions?.find((v) => !v.draft);
+      const [latestNonDraftWithMetadata] = latestNonDraft
+        ? await dbAttachMetadataToWorkVersions([latestNonDraft])
+        : [];
       const workTitle = latestNonDraft?.title ?? ctx.workDTO?.title ?? '';
+      const sourceMetadata = (latestNonDraftWithMetadata?.metadata ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const userScopes = Array.from(getUserScopesSet(ctx.user));
+      const extensionConfigs = Object.fromEntries(
+        Object.entries(ctx.$config?.app?.extensions ?? {}).map(([key, value]) => [
+          key,
+          { routes: value?.routes ?? false },
+        ]),
+      );
+      const resolved = resolveCreateNewVersionOption(
+        sourceMetadata,
+        extensionConfigs,
+        serverExtensions,
+        userScopes,
+      );
+      if (!resolved.ok) {
+        return data({ success: false, intent, error: resolved.error }, { status: resolved.status });
+      }
+      const resolvedOption = resolved.option;
+
+      if (resolvedOption.extensionId) {
+        const extResult = await invokeExtensionCreateWorkVersion(
+          serverExtensions,
+          resolvedOption.extensionId,
+          {
+            ctx,
+            workId: ctx.work.id,
+            sourceVersionMetadata: sourceMetadata,
+            defaultTitle: workTitle,
+          },
+        );
+        if (!extResult) {
+          return data(
+            {
+              success: false,
+              intent,
+              error: `No handler registered for create option "${resolvedOption.id}"`,
+            },
+            { status: 500 },
+          );
+        }
+        if (!extResult.success) {
+          return data(
+            {
+              success: false,
+              intent,
+              error: extResult.error ?? 'Failed to create new version',
+            },
+            { status: 500 },
+          );
+        }
+        return {
+          success: true,
+          intent: 'create-new-version',
+          workId: ctx.work.id,
+          workVersionId: extResult.workVersionId,
+          redirectPath: extResult.redirectPath,
+        };
+      }
+
+      if (resolvedOption.id !== BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID) {
+        return data(
+          {
+            success: false,
+            intent,
+            error: `Unsupported create option "${resolvedOption.id}"`,
+          },
+          { status: 500 },
+        );
+      }
+
+      if (latestNonDraft) {
+        const result = await cloneDraftWorkVersionFromSource(ctx, {
+          workId: ctx.work.id,
+          sourceWorkVersionId: latestNonDraft.id,
+          source: 'work-details',
+          seedMetadataFromSource: seedArticleDraftMetadataFromSource,
+        });
+        return {
+          success: true,
+          intent: 'create-new-version',
+          workId: result.workId,
+          workVersionId: result.workVersionId,
+        };
+      }
+
       const result = await dbCreateDraftWorkVersion(
         ctx,
         ctx.work.id,
@@ -147,6 +277,222 @@ export async function action(args: ActionFunctionArgs) {
     }
   }
 
+  if (intent === 'submit-to-site') {
+    if (!userHasScope(ctx.user, scopes.app.works.submitToSite)) {
+      return data(
+        { success: false, intent, error: 'Submit to site scope required' },
+        { status: 403 },
+      );
+    }
+    if (!siteName) {
+      return data({ success: false, intent, error: 'Site is required' }, { status: 400 });
+    }
+
+    try {
+      const prisma = await getPrismaClient();
+      const site = await prisma.site.findUnique({
+        where: { name: siteName },
+        include: {
+          domains: true,
+          submissionKinds: true,
+          collections: {
+            orderBy: [{ default: 'desc' }, { date_created: 'desc' }],
+            include: { kindsInCollection: { include: { kind: true } } },
+          },
+        },
+      });
+      if (!site) {
+        return data(
+          { success: false, intent, error: 'Selected site does not exist' },
+          { status: 400 },
+        );
+      }
+      if (!canUserSubmitToSite(ctx.user, site)) {
+        return data(
+          { success: false, intent, error: 'You do not have permission to submit to this site' },
+          { status: 403 },
+        );
+      }
+
+      // TEMPORARY(submit-to-site): Only the latest non-draft version may be submitted.
+      const latestNonDraftVersion = await prisma.workVersion.findFirst({
+        where: { work_id: ctx.work.id, draft: false },
+        orderBy: { date_created: 'desc' },
+        select: { id: true },
+      });
+      if (!latestNonDraftVersion) {
+        return data(
+          { success: false, intent, error: 'No completed work version is available to submit' },
+          { status: 400 },
+        );
+      }
+      const latestVersionPolicyError = getSubmitToSiteLatestVersionPolicyError(
+        workVersionId,
+        latestNonDraftVersion.id,
+      );
+      if (latestVersionPolicyError) {
+        return data({ success: false, intent, error: latestVersionPolicyError }, { status: 400 });
+      }
+      const selectedVersion = latestNonDraftVersion;
+
+      const submitExt = resolveSubmitToSiteExtension(serverExtensions, siteName);
+      if (submitExt) {
+        // Serialize concurrent delegated submits with the same advisory lock the
+        // central path uses, so a double submit can't race the extension's own
+        // existing-submission dedup (e.g. two DRAFT submissions for one work+site).
+        // The lock is held for the extension call and released when the wrapping
+        // transaction settles. The timeout is generous because a timeout releases
+        // the lock while the un-cancellable extension call keeps running.
+        const extLockKey = workSiteSubmitLockKey(ctx.work.id, site.id);
+        const extResult = await prisma.$transaction(
+          async (tx) => {
+            await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${extLockKey}))`);
+            return submitExt.submitToSite!({
+              ctx,
+              workId: ctx.work.id,
+              workVersionId: selectedVersion.id,
+              siteName,
+            });
+          },
+          { timeout: 60_000 },
+        );
+        if (!extResult?.success) {
+          return data(
+            {
+              success: false,
+              intent,
+              error: extResult?.error ?? 'Extension failed to create submission',
+            },
+            { status: 500 },
+          );
+        }
+        return {
+          success: true,
+          intent: 'submit-to-site',
+          siteName,
+          submissionVersionId: extResult.submissionVersionId,
+          redirectPath: extResult.redirectPath,
+        };
+      }
+
+      const siteCtx = new SiteContextWithUser(ctx, site);
+      const lockKey = workSiteSubmitLockKey(ctx.work.id, site.id);
+      const pendingNotifications: Array<() => Promise<void>> = [];
+
+      const result = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+
+        return submitWorkVersionToSite(
+          {
+            findExistingSubmission: () =>
+              tx.submission.findFirst({
+                where: { work_id: ctx.work.id, site_id: site.id },
+                include: {
+                  versions: {
+                    where: { work_version_id: selectedVersion.id },
+                    orderBy: { date_created: 'desc' },
+                    take: 1,
+                    select: { id: true, work_version_id: true, status: true },
+                  },
+                },
+              }),
+          },
+          {
+            createSubmissionVersion: async (submissionId) => {
+              const created = await siteLoaders.submissions.versions.create(
+                siteCtx,
+                serverExtensions,
+                submissionId,
+                selectedVersion.id,
+                undefined,
+                undefined,
+                undefined,
+                tx,
+              );
+              if ('dbo' in created && created.dbo) {
+                pendingNotifications.push(() =>
+                  siteLoaders.submissions.versions.notifySubmissionVersionCreated(
+                    siteCtx,
+                    created.dbo,
+                  ),
+                );
+              }
+              return { id: created.id };
+            },
+            createNewSubmissionReturningVersion: async () => {
+              const collection = resolveOpenCollection(site.collections);
+              if (!collection) {
+                throw new SubmitToSiteConfigError('Selected site has no open collection');
+              }
+              const kind = resolveSubmissionKind(collection, site.submissionKinds);
+              if (!kind) {
+                throw new SubmitToSiteConfigError('Selected site has no submission kind');
+              }
+              const created = await siteLoaders.submissions.createReturningVersion(
+                siteCtx,
+                serverExtensions,
+                selectedVersion.id,
+                kind.id,
+                false,
+                undefined,
+                collection.id,
+                undefined,
+                undefined,
+                tx,
+              );
+              if ('submission' in created && created.submission) {
+                pendingNotifications.push(() =>
+                  siteLoaders.submissions.notifyNewSubmissionCreated(
+                    siteCtx,
+                    created.submission,
+                    false,
+                  ),
+                );
+              }
+              return { id: created.id };
+            },
+          },
+          selectedVersion.id,
+          siteName,
+        );
+      });
+
+      for (const notify of pendingNotifications) {
+        await notify();
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof SubmitToSiteConfigError) {
+        return data({ success: false, intent, error: error.message }, { status: 400 });
+      }
+      // P2028: the wrapping transaction timed out. The advisory lock is released but
+      // the underlying submit (e.g. an extension call) may still complete, so warn
+      // the user against blindly retrying instead of returning a generic failure.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2028') {
+        console.error('Submit work to site transaction timed out:', error);
+        return data(
+          {
+            success: false,
+            intent,
+            error:
+              'The submission timed out but may still be processing. Check the site for a new submission before retrying.',
+          },
+          { status: 500 },
+        );
+      }
+      console.error('Failed to submit work to site:', error);
+      return data(
+        {
+          success: false,
+          intent,
+          error: error instanceof Error ? error.message : 'Failed to submit work to site',
+        },
+        { status: 500 },
+      );
+    }
+  }
+
   if (intent === 'export-to-pdf') {
     return exportToPdfAction(ctx, formData);
   }
@@ -175,6 +521,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   // Draft-only works should route users into the upload flow, not the details pages.
   if (isDraftOnlyWork) {
+    const isPmcDepositPath = pathname.startsWith(`/app/works/${workId}/site/pmc/`);
     const isDetailsLikePath =
       pathname === `/app/works/${workId}` ||
       pathname === `/app/works/${workId}/` ||
@@ -183,7 +530,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
       pathname.startsWith(`/app/works/${workId}/work-integrity`) ||
       pathname.startsWith(`/app/works/${workId}/site/`);
 
-    if (!isOnUploadRoute && isDetailsLikePath) {
+    if (!isOnUploadRoute && isDetailsLikePath && !isPmcDepositPath) {
       throw redirect(`/app/works/${workId}/upload/${workVersionsWithMetadata[0].id}`);
     }
   }
@@ -217,23 +564,44 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   const versionIds = workVersionsWithMetadata.map((v) => v.id);
   const canUpload = userHasScope(ctx.user, scopes.app.works.upload);
+  const canSubmitToSite = userHasScope(ctx.user, scopes.app.works.submitToSite);
 
   const latestVersion = workVersionsWithMetadata[0];
   const latestNonDraftWithMetadata = workVersionsWithMetadata.find((v) => !v.draft);
 
-  const canResumeDraft = computeCanResumeDraftUpload(
-    canUpload,
-    latestVersion,
-    latestVersion?.metadata,
-  );
+  const canResumeDraft = computeCanResumeDraftUpload(canUpload, latestVersion);
   const resumeDraftVersionId = canResumeDraft ? latestVersion?.id : undefined;
+
+  let resumeDraftUploadPath: string | undefined;
+  if (canResumeDraft && resumeDraftVersionId) {
+    let pmcSubmissionVersionId: string | null = null;
+    if (latestVersion?.metadata) {
+      const prisma = await getPrismaClient();
+      const draftSubmissionVersion = await prisma.submissionVersion.findFirst({
+        where: {
+          work_version_id: resumeDraftVersionId,
+          submission: { site: { name: 'pmc' } },
+          status: 'DRAFT',
+        },
+        orderBy: { date_created: 'desc' },
+        select: { id: true },
+      });
+      pmcSubmissionVersionId = draftSubmissionVersion?.id ?? null;
+    }
+    resumeDraftUploadPath = resolveResumeDraftUploadPath({
+      workId: ctx.work.id,
+      workVersionId: resumeDraftVersionId,
+      metadata: latestVersion?.metadata,
+      pmcSubmissionVersionId,
+    });
+  }
 
   const latestNonDraftContentCard: WorkVersionContentCardData | null = latestNonDraftWithMetadata
     ? {
         title: latestNonDraftWithMetadata.title,
         authors: latestNonDraftWithMetadata.authors,
         author_details: latestNonDraftWithMetadata.author_details,
-        doi: latestNonDraftWithMetadata.doi,
+        doi: resolveWorkVersionDoi(latestNonDraftWithMetadata.doi, ctx.work.doi),
         license: getLicenseDisplayFromMetadata(latestNonDraftWithMetadata.metadata),
       }
     : null;
@@ -247,22 +615,94 @@ export const loader = async (args: LoaderFunctionArgs) => {
     }),
   );
 
+  const hasWebArticleGeneration = userHasScope(
+    ctx.user,
+    scopes.app.works.webArticleGeneration,
+    undefined,
+    { ignoreSystemAdmin: true },
+  );
+  const webVersionPreviewSignatures: Record<string, string> = {};
+  if (hasWebArticleGeneration) {
+    for (const version of versionsForClient) {
+      const hasMystWeb =
+        Boolean(version.cdn?.trim()) &&
+        Boolean(version.cdn_key?.trim()) &&
+        Array.isArray(version.contains) &&
+        version.contains.includes(WorkContents.MYST);
+      if (!hasMystWeb) continue;
+      webVersionPreviewSignatures[version.id] = createWorkVersionPreviewToken(
+        version.id,
+        ctx.$config.api.previewIssuer,
+        ctx.$config.api.previewSigningSecret,
+      );
+    }
+  }
+
   const workOwnerName = await dbGetWorkOwnerName(ctx.work.id);
   const activities = await dbGetWorkActivities(ctx.work.id);
   const checkServiceRunsByWorkVersionId = await dbGetCheckServiceRunsByWorkVersionIds(versionIds);
 
-  const latestNonDraftVersion = versionsForClient.find((v) => !v.draft);
   const work = latestNonDraftWithMetadata
-    ? worksLoaders.formatWorkDTO(ctx, ctx.work, latestNonDraftWithMetadata)
+    ? works.formatWorkDTO(ctx, ctx.work, latestNonDraftWithMetadata)
     : ctx.workDTO;
   const usersDbo = await dbGetWorkUsers(ctx.work.id);
   const users = usersDbo ? dtoWorkUsers(usersDbo) : [];
 
+  const checkServices = getExtensionCheckServicesFromServerConfig(ctx.$config, serverExtensions);
+  const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
+    ctx,
+    serverExtensions,
+    checkServices.map((service) => service.id),
+  );
+  const workSubmittedSiteIds = new Set(submissions.map((submission) => submission.site_id));
+  const availableSites = canSubmitToSite
+    ? (
+        await (
+          await getPrismaClient()
+        ).site.findMany({
+          orderBy: [{ external: 'desc' }, { title: 'asc' }, { name: 'asc' }],
+          select: {
+            id: true,
+            name: true,
+            title: true,
+            description: true,
+            metadata: true,
+            external: true,
+            private: true,
+            restricted: true,
+            submissionKinds: { select: { id: true, default: true } },
+            collections: {
+              select: {
+                id: true,
+                default: true,
+                open: true,
+                kindsInCollection: {
+                  select: { kind: { select: { id: true, default: true } } },
+                },
+              },
+            },
+          },
+        })
+      )
+        .filter((site) => isSiteAvailableForWorkSubmit(ctx.user, site, workSubmittedSiteIds))
+        .map((site) => ({
+          id: site.id,
+          name: site.name,
+          title: site.title,
+          description: site.description,
+          metadata: site.metadata,
+          external: site.external,
+        }))
+    : [];
+
   return {
     userScopes: ctx.scopes,
+    canReadUsers: userHasWorkScope(ctx.user, scopes.work.id.users.read, ctx.work.id),
+    canDispatchChecks: userHasWorkScope(ctx.user, scopes.work.id.checks.dispatch, ctx.work.id),
     workflows,
     work,
     versions: versionsForClient,
+    webVersionPreviewSignatures,
     submissions: submissions ?? [],
     linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
     workOwnerName,
@@ -271,9 +711,13 @@ export const loader = async (args: LoaderFunctionArgs) => {
     canUpload,
     canResumeDraft,
     resumeDraftVersionId,
+    resumeDraftUploadPath,
     latestNonDraftContentCard,
     users,
+    canSubmitToSite,
+    availableSites,
     isOnUploadRoute,
+    maintenanceByServiceId,
   };
 };
 
@@ -298,33 +742,51 @@ export function shouldRevalidate({
 }
 
 export default function WorkLayout({ loaderData }: Route.ComponentProps) {
-  const { work, versions, submissions, userScopes, isOnUploadRoute } = loaderData;
+  const {
+    work,
+    versions,
+    submissions,
+    userScopes,
+    canReadUsers,
+    isOnUploadRoute,
+    maintenanceByServiceId,
+  } = loaderData;
 
   const isDrafting = versions.length > 0 && versions.every((v) => v.draft);
   const showSecondaryNav = !isDrafting && !isOnUploadRoute;
-  const menu = buildMenu(`/app/works/${work.id}`, isDrafting, submissions, userScopes);
+  const menu = buildMenu(
+    `/app/works/${work.id}`,
+    isDrafting,
+    submissions,
+    userScopes,
+    canReadUsers,
+  );
 
   return (
-    <>
-      {showSecondaryNav && (
-        <SecondaryNav
-          contents={menu}
-          title={isDrafting ? 'Work Details' : undefined}
-          extensions={extensions}
-          detailsCard={
-            !isDrafting ? (
-              <WorkDetailsCard
-                title={work.title ?? ''}
-                authors={work.authors}
-                thumbnail={work.links.thumbnail}
-              />
-            ) : undefined
-          }
-        />
-      )}
-      <MainWrapper hasSecondaryNav={showSecondaryNav}>
-        <Outlet />
-      </MainWrapper>
-    </>
+    <CheckMaintenanceProvider maintenanceByServiceId={maintenanceByServiceId}>
+      <>
+        {showSecondaryNav && (
+          <SecondaryNav
+            contents={menu}
+            title={isDrafting ? 'Work Details' : undefined}
+            extensions={extensions}
+            detailsCard={
+              !isDrafting ? (
+                <WorkDetailsCard
+                  title={work.title ?? ''}
+                  authors={work.authors}
+                  thumbnail={work.links.thumbnail}
+                />
+              ) : undefined
+            }
+          />
+        )}
+        <MainWrapper hasSecondaryNav={showSecondaryNav}>
+          <div className={WORK_ROUTE_CONTENT_CLASS}>
+            <Outlet />
+          </div>
+        </MainWrapper>
+      </>
+    </CheckMaintenanceProvider>
   );
 }

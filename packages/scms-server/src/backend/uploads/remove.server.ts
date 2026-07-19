@@ -11,6 +11,7 @@ import { File } from '../storage/file.server.js';
 import { KnownBuckets } from '../storage/constants.server.js';
 import type { WorkContext } from '../context.work.server.js';
 import { getPrismaClient } from '../prisma.server.js';
+import { shouldDeleteUploadedFileFromStorage } from './shouldDeleteUploadedFileFromStorage.js';
 
 export async function workVersionUploadRemove(
   ctx: WorkContext,
@@ -67,31 +68,25 @@ export async function workVersionUploadRemove(
   });
   const workVersionMetadata = versionWithMetadata?.metadata as FileMetadataSection | null;
   const fileMetadata = workVersionMetadata?.files?.[path];
+  const hasFileMetadata = Boolean(fileMetadata);
   if (!fileMetadata) {
     console.warn(`File ${path} not found in metadata, skipping storage deletion`);
   }
 
-  // Determine if we should delete from permanent storage
-  let shouldDeleteFromStorage = false;
-  let storageDeletionReason = '';
+  const shouldDeleteFromStorage = shouldDeleteUploadedFileFromStorage({
+    isLatestVersion,
+    filePath: path,
+    workVersionCdnKey: currentWorkVersion.cdn_key,
+    hasFileMetadata,
+  });
 
-  if (isLatestVersion && fileMetadata) {
-    // Check if the first segment of the file path matches the work version's CDN key
-    const filePathSegments = path.split('/');
-    const firstSegment = filePathSegments[0];
-    const workVersionCdnKey = currentWorkVersion.cdn_key;
-
-    if (firstSegment === workVersionCdnKey) {
-      shouldDeleteFromStorage = true;
-      storageDeletionReason = 'Latest work version with matching CDN key';
-    } else {
-      storageDeletionReason = `CDN key mismatch: file path starts with '${firstSegment}', work version CDN key is '${workVersionCdnKey}'`;
-    }
-  } else if (!isLatestVersion) {
-    storageDeletionReason = 'Not the latest work version';
-  } else {
-    storageDeletionReason = 'File metadata not found';
-  }
+  const storageDeletionReason = shouldDeleteFromStorage
+    ? 'Latest work version with matching CDN key'
+    : !isLatestVersion
+      ? 'Not the latest work version'
+      : !hasFileMetadata
+        ? 'File metadata not found'
+        : `CDN key mismatch: file path starts with '${path.split('/')[0]}', work version CDN key is '${currentWorkVersion.cdn_key}'`;
 
   console.log(
     `File deletion analysis for ${path}: ` +

@@ -190,7 +190,7 @@ function RemoveButton({
       onSubmit={removeFile}
       className="absolute -top-2 -right-2"
     >
-      <SimpleTooltip title="Delete file" side="right" sideOffset={10} delayDuration={250}>
+      <SimpleTooltip title="Delete file" side="right" sideOffset={10}>
         <button
           type="submit"
           className="p-1.5 bg-stone-100 border border-stone-400 dark:bg-stone-600 dark:border-stone-600 rounded-full hover:bg-stone-50 dark:hover:bg-stone-500 shadow-sm z-20 cursor-pointer"

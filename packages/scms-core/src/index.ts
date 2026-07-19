@@ -1,4 +1,5 @@
 export * from './scopes.js';
+export * from './cron/index.js';
 export * from './backend/index.js';
 export * from './components/index.js';
 export * from './hooks/index.js';

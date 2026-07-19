@@ -1,5 +1,29 @@
 # @curvenote/task-converter
 
+## 0.3.8
+
+### Patch Changes
+
+- Updated dependencies [[`dbd46ba`](https://github.com/curvenote/curvenote/commit/dbd46bad59784b91ce706f74bd6d16be9b26dda5), [`b3f163e`](https://github.com/curvenote/curvenote/commit/b3f163e48e63f1da68a028387c84c345bc99fa1b), [`9b252f7`](https://github.com/curvenote/curvenote/commit/9b252f7246b13ccd6f39dd22e0e16da475c8272e), [`dbd46ba`](https://github.com/curvenote/curvenote/commit/dbd46bad59784b91ce706f74bd6d16be9b26dda5), [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0), [`4d4cdf9`](https://github.com/curvenote/curvenote/commit/4d4cdf9ba432cea9f5d8f6efc32dca4b1dde68fd), [`d9bdaf3`](https://github.com/curvenote/curvenote/commit/d9bdaf35369c330ae230f32301670e569f7229f7), [`4d4cdf9`](https://github.com/curvenote/curvenote/commit/4d4cdf9ba432cea9f5d8f6efc32dca4b1dde68fd), [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0), [`fa99ddf`](https://github.com/curvenote/curvenote/commit/fa99ddf09b0ccee30ffcf64191865aace53731ad), [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912), [`a8a5f25`](https://github.com/curvenote/curvenote/commit/a8a5f2572865c1416fa7ab43e816d0f9fbe6f247), [`ddffbe1`](https://github.com/curvenote/curvenote/commit/ddffbe181b85720bed153a87d7a943243f355a99), [`99c891c`](https://github.com/curvenote/curvenote/commit/99c891ca8f404c800595fa0a0ccc2149a873bb46), [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0)]:
+  - @curvenote/scms-core@0.24.0
+  - @curvenote/scms-tasks@0.24.0
+
+## 0.3.7
+
+### Patch Changes
+
+- Updated dependencies [[`c815443`](https://github.com/curvenote/curvenote/commit/c815443cda6ec2f0f6e9d2547f3c257d709b56ce), [`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f), [`9848bab`](https://github.com/curvenote/curvenote/commit/9848bab45b66aeb61599c019e25803f504cb75d2), [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240)]:
+  - @curvenote/scms-core@0.23.0
+  - @curvenote/scms-tasks@0.23.0
+
+## 0.3.6
+
+### Patch Changes
+
+- Updated dependencies [[`5bf11b9`](https://github.com/curvenote/curvenote/commit/5bf11b9b65b9b623675994a73571b03fa2eeb945)]:
+  - @curvenote/scms-core@0.22.0
+  - @curvenote/scms-tasks@0.22.0
+
 ## 0.3.5
 
 ### Patch Changes

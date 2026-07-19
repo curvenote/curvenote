@@ -1,5 +1,8 @@
 import { getPrismaClient } from '@curvenote/scms-server';
 import { data } from 'react-router';
+import type { Prisma } from '@curvenote/scms-db';
+import type { AuthorFieldMetadata, MystFrontmatterWithAuthors } from './mystAuthorAdapters';
+import { authorFieldToMystFrontmatter, deriveWorkVersionAuthors } from './mystAuthorAdapters';
 
 /**
  * Update the work version title field directly
@@ -62,6 +65,63 @@ export async function updateWorkVersionAuthors(workVersionId: string, authorsTex
         error: {
           type: 'general',
           message: 'Failed to update authors',
+          details: { workVersionId, error: message },
+        },
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * Update structured MyST author/affiliation metadata and keep WorkVersion projections in sync.
+ */
+export async function updateWorkVersionAuthorMetadata(
+  workVersionId: string,
+  authorMetadata: AuthorFieldMetadata,
+) {
+  try {
+    const prisma = await getPrismaClient();
+    const current = await prisma.workVersion.findUnique({
+      where: { id: workVersionId },
+      select: { metadata: true },
+    });
+    const metadata =
+      current?.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
+        ? (current.metadata as Record<string, unknown>)
+        : {};
+    const existingFrontmatter = metadata['frontmatter.myst'];
+    const frontmatter = authorFieldToMystFrontmatter(authorMetadata, existingFrontmatter);
+    const authors = deriveWorkVersionAuthors(frontmatter.authors ?? []);
+
+    await prisma.workVersion.update({
+      where: { id: workVersionId },
+      data: {
+        authors,
+        author_details: (frontmatter.authors ?? []) as Prisma.InputJsonValue[],
+        metadata: {
+          ...metadata,
+          'frontmatter.myst': frontmatter,
+        } as Prisma.InputJsonValue,
+        date_modified: new Date().toISOString(),
+      },
+      select: { id: true },
+    });
+
+    return {
+      success: true,
+      authors,
+      author_details: frontmatter.authors,
+      frontmatter: frontmatter as MystFrontmatterWithAuthors,
+    };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to update work version author metadata:', error);
+    return data(
+      {
+        error: {
+          type: 'general',
+          message: 'Failed to update author metadata',
           details: { workVersionId, error: message },
         },
       },

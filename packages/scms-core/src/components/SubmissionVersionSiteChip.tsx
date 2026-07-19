@@ -51,7 +51,7 @@ export function SubmissionVersionSiteChip({
   const chip = (
     <span
       className={cn(
-        'inline-flex h-4 shrink-0 items-center justify-center gap-0.5 rounded-md ring-2 px-1',
+        'inline-flex h-5 shrink-0 items-center justify-center gap-1 rounded-md ring-1 px-1.5',
         getStatusRingClasses(submissionVersion.statusTags),
         href && 'transition-opacity hover:opacity-80',
       )}

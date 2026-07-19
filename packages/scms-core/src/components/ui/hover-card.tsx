@@ -3,10 +3,18 @@ import * as HoverCardPrimitive from '@radix-ui/react-hover-card';
 
 import { cn } from '../../utils/cn.js';
 
+/** Default hover delay before hover cards open (ms). */
+export const DEFAULT_HOVER_CARD_OPEN_DELAY_MS = 800;
+
 const floatingPanelShadowClass =
   'shadow-[0_1px_3px_rgba(27,31,36,0.08),0_8px_24px_rgba(140,149,159,0.2)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.5)]';
 
-const HoverCard = HoverCardPrimitive.Root;
+function HoverCard({
+  openDelay = DEFAULT_HOVER_CARD_OPEN_DELAY_MS,
+  ...props
+}: React.ComponentProps<typeof HoverCardPrimitive.Root>) {
+  return <HoverCardPrimitive.Root openDelay={openDelay} {...props} />;
+}
 
 const HoverCardTrigger = HoverCardPrimitive.Trigger;
 

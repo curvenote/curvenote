@@ -1,20 +1,28 @@
+import { useMemo } from 'react';
+import { GitBranch } from 'lucide-react';
 import { useSearchParams } from 'react-router';
-import { formatDate, scopes, ui } from '@curvenote/scms-core';
+import {
+  formatDate,
+  scopes,
+  ui,
+  Timeline,
+  TimelineActivitiesToggle,
+  TimelineActivitiesVisibilityProvider,
+  ActivityTimelineItem,
+  CheckServiceRunTimelineItem,
+  TimelineSection,
+  useTimelineActivitiesVisibility,
+  buildWorkVersionNumberByIdMap,
+  compareWorkVersionsByDateCreatedDesc,
+  WorkContents,
+} from '@curvenote/scms-core';
 import type { WorkVersionForDetailsClient } from '../works.$workId/types';
 import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
 import type { Workflow, ClientExtensionCheckService } from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from './types';
-import { Timeline } from './timeline/Timeline';
-import { TimelineSection } from './timeline/TimelineSection';
 import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineItem';
 import { SubmissionTimelineItem } from './timeline/SubmissionTimelineItem';
-import { ActivityTimelineItem } from './timeline/ActivityTimelineItem';
-import { CheckServiceRunTimelineItem } from './timeline/CheckServiceRunTimelineItem';
-import {
-  TimelineActivitiesToggle,
-  TimelineActivitiesVisibilityProvider,
-  useTimelineActivitiesVisibility,
-} from './timeline/TimelineActivitiesVisibility';
+import { WebVersionCreatedTimelineItem } from './timeline/WebVersionCreatedTimelineItem';
 
 type SubmissionVersionRow = WorkVersionForDetailsClient['submissionVersions'][number];
 
@@ -22,6 +30,12 @@ type SubmissionVersionRow = WorkVersionForDetailsClient['submissionVersions'][nu
 type TimelineEntry =
   | {
       kind: 'work-version';
+      date: string;
+      key: string;
+      version: WorkVersionForDetailsClient;
+    }
+  | {
+      kind: 'web-version';
       date: string;
       key: string;
       version: WorkVersionForDetailsClient;
@@ -46,20 +60,13 @@ type TimelineEntry =
       version: WorkVersionForDetailsClient;
     };
 
-/** Latest run id for each check `kind` across all versions (by `date_created`). */
-function getLatestCheckRunIdByKind(
-  checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>,
-): Record<string, string> {
-  const latestRunByKind: Record<string, CheckServiceRunRow> = {};
-  for (const runs of Object.values(checkServiceRunsByWorkVersionId)) {
-    for (const run of runs) {
-      const currentBest = latestRunByKind[run.kind];
-      if (!currentBest || run.date_created > currentBest.date_created) {
-        latestRunByKind[run.kind] = run;
-      }
-    }
-  }
-  return Object.fromEntries(Object.entries(latestRunByKind).map(([kind, run]) => [kind, run.id]));
+function isWebVersionAvailable(version: WorkVersionForDetailsClient): boolean {
+  return (
+    Boolean(version.cdn?.trim()) &&
+    Boolean(version.cdn_key?.trim()) &&
+    Array.isArray(version.contains) &&
+    version.contains.includes(WorkContents.MYST)
+  );
 }
 
 /** Single entrypoint for timeline auto-expand behavior (easy to A/B later). */
@@ -97,6 +104,17 @@ function getSortedSectionEntries(
             kind: 'work-version' as const,
             date: version.date_created,
             key: `work-version-${version.id}`,
+            version,
+          },
+        ]),
+    // MyST web build available on this version (cdn + contains includes myst)
+    ...(version.draft || !isWebVersionAvailable(version)
+      ? []
+      : [
+          {
+            kind: 'web-version' as const,
+            date: version.date_modified || version.date_created,
+            key: `web-version-${version.id}`,
             version,
           },
         ]),
@@ -139,11 +157,14 @@ function getSortedSectionEntries(
 
 type WorkVersionTimelineProps = {
   versions: WorkVersionForDetailsClient[];
+  /** Preview JWTs keyed by workVersionId for MyST web Open links. */
+  webVersionPreviewSignatures: Record<string, string>;
   workflows: Record<string, Workflow>;
   /** Work owner display name; used for "Work version created by" */
   workOwnerName?: string | null;
   basePath: string;
   userScopes: string[];
+  canDispatchChecks?: boolean;
   linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
   /** Activities for this work (already filtered to work). Shown per version by work_version_id. */
   activities: WorkActivityRow[];
@@ -169,9 +190,11 @@ export function WorkVersionTimeline(props: WorkVersionTimelineProps) {
 
 function WorkVersionTimelineInner({
   versions,
+  webVersionPreviewSignatures,
   workOwnerName,
   basePath,
   userScopes,
+  canDispatchChecks = false,
   linkedJobsByWorkVersionId,
   activities,
   checkServiceRunsByWorkVersionId,
@@ -181,20 +204,20 @@ function WorkVersionTimelineInner({
   const [searchParams] = useSearchParams();
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
+  const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
+  const hasWebArticleGeneration = userScopes.includes(scopes.app.works.webArticleGeneration);
   const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
 
-  // Order sections by date_created descending (most recently created first)
-  const versionsByCreated = [...versions].sort((a, b) =>
-    a.date_created > b.date_created ? -1 : a.date_created < b.date_created ? 1 : 0,
+  const versionNumberByVersionId = useMemo(
+    () => buildWorkVersionNumberByIdMap(versions),
+    [versions],
   );
 
-  const versionsByCreatedAsc = [...versions].sort((a, b) =>
-    a.date_created < b.date_created ? -1 : a.date_created > b.date_created ? 1 : 0,
+  // Order sections by date_created descending (most recently created first)
+  const versionsByCreated = useMemo(
+    () => [...versions].sort(compareWorkVersionsByDateCreatedDesc),
+    [versions],
   );
-  const versionNumberByVersionId: Record<string, number> = {};
-  versionsByCreatedAsc.forEach((ver, i) => {
-    versionNumberByVersionId[ver.id] = i + 1;
-  });
 
   // Show all versions; draft versions display only their activities (and submissions), not the "Version created" row
   return (
@@ -209,19 +232,11 @@ function WorkVersionTimelineInner({
           : v.submissionVersions.filter((sv) => sv.status !== 'DRAFT');
         const activitiesForVersion = activities.filter((a) => a.work_version_id === v.id);
         const checkRunsForVersion = checkServiceRunsByWorkVersionId[v.id] ?? [];
-        const versionNumber = versionNumberByVersionId[v.id] ?? 0;
+        const versionLabel = `v${versionNumberByVersionId[v.id] ?? 0}`;
         const label = (
           <span className="flex gap-2 items-center">
-            <ui.TooltipProvider delayDuration={1000}>
-              <ui.Tooltip delayDuration={1000}>
-                <ui.TooltipTrigger asChild>
-                  <span className="cursor-default">r{versionNumber}</span>
-                </ui.TooltipTrigger>
-                <ui.TooltipContent side="top" className="text-sm">
-                  Revision {versionNumber}
-                </ui.TooltipContent>
-              </ui.Tooltip>
-            </ui.TooltipProvider>
+            <ui.TagChips tags={v.tags} titlePrefix="Work version tag" />
+            <ui.VersionTagBadge tag={versionLabel} titlePrefix="Version" icon={GitBranch} />
             <span className="text-sm text-muted-foreground">
               {formatDate(v.date_created, 'MMM d, yyyy HH:mm')}
             </span>
@@ -233,9 +248,11 @@ function WorkVersionTimelineInner({
           activitiesForVersion,
           checkRunsForVersion,
         );
-        const visibleEntries = showActivities
-          ? sortedEntries
-          : sortedEntries.filter((e) => e.kind !== 'activity');
+        const visibleEntries = (
+          showActivities ? sortedEntries : sortedEntries.filter((e) => e.kind !== 'activity')
+        )
+          .filter((e) => hasChecksFeature || e.kind !== 'check-service-run')
+          .filter((e) => hasWebArticleGeneration || e.kind !== 'web-version');
 
         if (visibleEntries.length === 0) return null;
 
@@ -251,11 +268,24 @@ function WorkVersionTimelineInner({
                     dateModified={version.date_modified}
                     ownerName={workOwnerName}
                     metadata={version.metadata}
-                    tags={version.tags}
                     workVersionId={version.id}
                     basePath={basePath}
                     canExport={canExport}
                     linkedJobsByWorkVersionIdPromise={linkedJobsByWorkVersionId}
+                  />
+                );
+              }
+              if (entry.kind === 'web-version') {
+                const { version } = entry;
+                const previewSignature = webVersionPreviewSignatures[version.id];
+                if (!previewSignature) return null;
+                return (
+                  <WebVersionCreatedTimelineItem
+                    key={entry.key}
+                    dateCreated={version.date_modified || version.date_created}
+                    dateModified={version.date_modified}
+                    workVersionId={version.id}
+                    previewSignature={previewSignature}
                   />
                 );
               }
@@ -275,6 +305,7 @@ function WorkVersionTimelineInner({
                     run={entry.run}
                     checkService={service}
                     basePath={basePath}
+                    canDispatchChecks={canDispatchChecks}
                     defaultExpanded={shouldExpandByDefault(
                       entry.run,
                       checkServiceRunsByWorkVersionId,

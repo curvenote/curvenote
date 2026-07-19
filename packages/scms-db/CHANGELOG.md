@@ -1,5 +1,76 @@
 # @curvenote/scms-db
 
+## 0.24.0
+
+### Patch Changes
+
+- [#988](https://github.com/curvenote/curvenote/pull/988) [`86ba389`](https://github.com/curvenote/curvenote/commit/86ba3890e1921bfaa0eb39963d6c607f0358a90c) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove the `(work_id, site_id)` unique constraint migration and Prisma `@@unique`. Submit-to-site now serializes concurrent first-time submits with a PostgreSQL advisory transaction lock instead of relying on a database unique index.
+
+- [#1010](https://github.com/curvenote/curvenote/pull/1010) [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improve My Works listing metadata and timeline affordances. Broaden the activity pill to the latest work- or submission-level event, reorder the right column to date then activity then timeline (baseline-aligned and centered), show the timeline link only when a work has multiple versions, and add `v{n}` badges to the work-details version timeline headers. Includes an Activity `(work_id, date_created)` index for efficient listing queries.
+
+## 0.23.0
+
+### Minor Changes
+
+- [#982](https://github.com/curvenote/curvenote/pull/982) [`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add cron-backed platform automation for scheduled jobs and check retries. This introduces CronJob schema and admin UI, scoped cron callback authentication, scheduled job promotion, cron-driven queue drain, queue pause/resume controls, CheckServiceRun retry columns, and related job-queue hardening for automated execution.
+
+- [#980](https://github.com/curvenote/curvenote/pull/980) [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add `WorkVersion.contains` (`String[]`, default `[]`) and backfill existing rows from parent `Work.contains`.
+
+### Patch Changes
+
+- [#980](https://github.com/curvenote/curvenote/pull/980) [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Enforce one submission per work on a site via a unique `(work_id, site_id)` constraint.
+
+## 0.22.2
+
+### Patch Changes
+
+- [#975](https://github.com/curvenote/curvenote/pull/975) [`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Give the public works listing/search endpoint (`/api/v1/sites/:siteName/works`)
+  its own dedicated database connection pool so its heavy listing/search/count
+  queries draw from a separate connection budget and cannot exhaust the shared
+  app-wide pool (and vice versa). `scms-db` now exposes
+  `getNamedLowLevelPrismaClient(name, …)` for per-name isolated clients/pools, and
+  `scms-server` adds `getWorksListingPrismaClient()` which uses the same database
+  and identical per-pool tuning as the default client. The whole endpoint path,
+  including the shared subject lookups, is routed through the dedicated pool.
+
+  Note: each named pool adds up to its own `max` connections to the backend, so
+  the total connection budget is now the sum across pools — size accordingly
+  against the database / pooler limits.
+
+- [#975](https://github.com/curvenote/curvenote/pull/975) [`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a site/status-scoped `SubmissionSearch` projection for the public works
+  listing free-text search. Searchable text (title, authors, DOI, affiliations)
+  is `unaccent`-normalised and matched with Postgres full-text search plus a
+  pg_trgm fuzzy fallback, scoped by `site_id`/`status` first so the expensive
+  match runs only within a single site. Trigger-maintained from
+  `SubmissionVersion`/`WorkVersion`/`Work`. The projection is the default search
+  path; set `WORKS_SEARCH_PROJECTION_DISABLED=true` as a kill-switch to fall back
+  to the legacy ILIKE path instantly without a redeploy.
+
+  The rollout is split across three migrations so each step holds only a short
+  lock: DDL (`…120000`), a separate idempotent backfill of existing rows
+  (`…120050`), then the `CONCURRENTLY` GIN/btree indexes (`…120100`). If the
+  backfill migration times out it can be completed manually via psql using the
+  resumable, batched `prisma/scripts/backfill-submission-search.sql`, after which
+  `prisma migrate resolve --applied …120050` lets the deploy continue to the
+  indexes.
+
+  The listing total now avoids the `Submission`/`SubmissionVersion` join count
+  where possible: when search/subject already resolves an id set (and no
+  collection/kind/date filter applies) the count is the id-set size, and an
+  unfiltered browse count is served directly from the projection
+  (`COUNT(DISTINCT submission_id)` via a new `(site_id, status, submission_id)`
+  btree).
+
+## 0.22.1
+
+### Patch Changes
+
+- [#973](https://github.com/curvenote/curvenote/pull/973) [`2faf9f0`](https://github.com/curvenote/curvenote/commit/2faf9f02ef08f2e21542f7e88b1af2c4da8084a7) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Tune the Prisma PostgreSQL pool for Vercel function concurrency.
+
+- [#968](https://github.com/curvenote/curvenote/pull/968) [`0e03393`](https://github.com/curvenote/curvenote/commit/0e03393d823fd60a244023c24f4f557e85a00b82) Thanks [@github-actions](https://github.com/apps/github-actions)! - Log PostgreSQL pool errors for production database monitoring.
+
+## 0.22.0
+
 ## 0.21.0
 
 ## 0.20.2

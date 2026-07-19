@@ -2,7 +2,7 @@ import type { SiteContext } from '../../../../context.site.server.js';
 import { error401, error404 } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import { cdnWorkVersionSelect } from '../../../../prisma.selects.server.js';
-import * as cdnlib from '@curvenote/cdn';
+import { resolveWorkVersionThumbnail } from '../../../../thumbnail.server.js';
 
 async function dbGetWorkVersion(siteName: string, versionId: string) {
   const prisma = await getPrismaClient();
@@ -25,7 +25,7 @@ export default async function loadSiteWorkVersionThumbnail(
     throw error404('Thumbnail - no work found');
   }
 
-  if (!dbo.cdn || !dbo.cdn_key) return;
+  if (!dbo.cdn || (!dbo.cdn_key && !dbo.thumbnail)) return;
   if (ctx.site.private && !ctx.privateCdnUrls().has(dbo.cdn)) {
     console.error(
       'Private site, but public work - possible db issue, not serving thumbnail',
@@ -34,11 +34,5 @@ export default async function loadSiteWorkVersionThumbnail(
     );
     throw error401('Thumbnail - private, not allowed');
   }
-  const { cdn, cdn_key } = dbo;
-  const location = await cdnlib.getCdnLocation({ cdn, key: cdn_key });
-  const thumbnail = await cdnlib.getThumbnailBuffer({
-    ...location,
-    query,
-  });
-  return thumbnail;
+  return resolveWorkVersionThumbnail(ctx, dbo, { query });
 }

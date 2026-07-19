@@ -8,4 +8,6 @@ export interface DraftWork {
   dateModified: string;
   dateCreated: string;
   metadata?: any;
+  /** 1-based version index for resume dialogs (work versions or submission versions). */
+  versionNumber?: number;
 }

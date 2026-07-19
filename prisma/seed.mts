@@ -1,14 +1,15 @@
 import { SystemRole, getLowLevelPrismaClient } from '@curvenote/scms-db';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadAllJsonFilesFromDir, seedBySites } from './seed.utils.mjs';
+import { loadAllJsonFilesFromDir, seedBySites, seedCronTickConfig, seedJobQueueDrainConfig } from './seed.utils.mjs';
 import { uuidv7 } from 'uuidv7';
-import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/systemRoleDefaults.js';
+import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/roles.server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const prisma = await getLowLevelPrismaClient();
+const isDevelopmentSeed = process.env.NODE_ENV !== 'production';
 
 // Track what we've created for the summary
 const summary = {
@@ -34,6 +35,25 @@ async function main() {
   const startDateString = startDate.toISOString();
 
   console.log('👥 Creating users...');
+
+  // Migration 20231102145516 inserts this platform SA as SERVICE; promote for local dev.
+  const submissionsSa = await prisma.user.upsert({
+    where: { id: '018b9034-d660-7a20-9135-5794c1eb0bfb' },
+    create: {
+      date_created: startDateString,
+      date_modified: startDateString,
+      id: '018b9034-d660-7a20-9135-5794c1eb0bfb',
+      email: 'submissions@curvenote.com',
+      display_name: 'Curvenote Submissions',
+      system_role: SystemRole.SYSTEM_SERVICE,
+    },
+    update: {
+      system_role: SystemRole.SYSTEM_SERVICE,
+      date_modified: startDateString,
+    },
+  });
+  summary.users++;
+  console.log(`   ✓ Ensured user: ${submissionsSa.display_name} (${submissionsSa.email}) [SYSTEM_SERVICE]`);
 
   const rowanStaging = await prisma.user.create({
     data: {
@@ -161,6 +181,75 @@ async function main() {
   console.log(
     `   ✓ Created/updated role: ${myWorksPreviewRole.title} (${myWorksPreviewRole.name})`,
   );
+
+  const checksPreviewScopes = ['app:works:checks:feature'];
+  const checksPreviewRole = await prisma.role.upsert({
+    where: { name: 'checks-preview' },
+    create: {
+      id: 'checks-preview-role',
+      name: 'checks-preview',
+      title: 'Checks Preview',
+      description: 'Access to preview the Checks feature for works',
+      scopes: checksPreviewScopes,
+      createdBy: franklin.id,
+      date_created: startDateString,
+      date_modified: startDateString,
+    },
+    update: {
+      scopes: checksPreviewScopes,
+      date_modified: startDateString,
+    },
+  });
+  summary.roles++;
+  console.log(
+    `   ✓ Created/updated role: ${checksPreviewRole.title} (${checksPreviewRole.name})`,
+  );
+
+  const extractMetadataScopes = ['app:works:metadata-extract'];
+  const extractMetadataRole = await prisma.role.upsert({
+    where: { name: 'extract-metadata' },
+    create: {
+      id: 'extract-metadata-role',
+      name: 'extract-metadata',
+      title: 'Extract Metadata',
+      description: 'Access to document preview metadata extraction during work upload',
+      scopes: extractMetadataScopes,
+      createdBy: franklin.id,
+      date_created: startDateString,
+      date_modified: startDateString,
+    },
+    update: {
+      scopes: extractMetadataScopes,
+      date_modified: startDateString,
+    },
+  });
+  summary.roles++;
+  console.log(
+    `   ✓ Created/updated role: ${extractMetadataRole.title} (${extractMetadataRole.name})`,
+  );
+
+  const submitToSiteScopes = ['app:works:submit-to-site'];
+  const submitToSiteRole = await prisma.role.upsert({
+    where: { name: 'submit-to-site' },
+    create: {
+      id: 'submit-to-site-role',
+      name: 'submit-to-site',
+      title: 'Submit to Site',
+      description: 'Submit works to SCMS sites directly from the work details page',
+      scopes: submitToSiteScopes,
+      createdBy: franklin.id,
+      date_created: startDateString,
+      date_modified: startDateString,
+    },
+    update: {
+      scopes: submitToSiteScopes,
+      date_modified: startDateString,
+    },
+  });
+  summary.roles++;
+  console.log(
+    `   ✓ Created/updated role: ${submitToSiteRole.title} (${submitToSiteRole.name})`,
+  );
   console.log(`   Total roles created: ${summary.roles}\n`);
 
   console.log('🔗 Assigning roles to users...');
@@ -197,6 +286,53 @@ async function main() {
     summary.userRoles++;
     console.log(`   ✓ Assigned ${myWorksPreviewRole.title} to ${user.display_name}`);
   }
+
+  if (isDevelopmentSeed) {
+    // Make the checks UI visible for all seeded users in local development.
+    for (const user of allUsers) {
+      await prisma.userRole.create({
+        data: {
+          id: uuidv7(),
+          user_id: user.id,
+          role_id: checksPreviewRole.id,
+          date_created: startDateString,
+          date_modified: startDateString,
+        },
+      });
+      summary.userRoles++;
+      console.log(`   ✓ Assigned ${checksPreviewRole.title} to ${user.display_name}`);
+    }
+
+    // Enable direct submit-to-site from work details for local development.
+    for (const user of allUsers) {
+      await prisma.userRole.create({
+        data: {
+          id: uuidv7(),
+          user_id: user.id,
+          role_id: submitToSiteRole.id,
+          date_created: startDateString,
+          date_modified: startDateString,
+        },
+      });
+      summary.userRoles++;
+      console.log(`   ✓ Assigned ${submitToSiteRole.title} to ${user.display_name}`);
+    }
+  }
+
+  // Assign Extract Metadata role to ALL users including support
+  for (const user of allUsers) {
+    await prisma.userRole.create({
+      data: {
+        id: uuidv7(),
+        user_id: user.id,
+        role_id: extractMetadataRole.id,
+        date_created: startDateString,
+        date_modified: startDateString,
+      },
+    });
+    summary.userRoles++;
+    console.log(`   ✓ Assigned ${extractMetadataRole.title} to ${user.display_name}`);
+  }
   console.log(`   Total role assignments: ${summary.userRoles}\n`);
 
   console.log('🏗️  Seeding sites, works, and submissions...\n');
@@ -210,6 +346,12 @@ async function main() {
   summary.works += siteSummary.works;
   summary.submissions += siteSummary.submissions;
   summary.collections += siteSummary.collections;
+
+  console.log('\n📮 Seeding job queue drain config...');
+  await seedJobQueueDrainConfig('development');
+
+  console.log('\n⏱️  Seeding cron tick config...');
+  await seedCronTickConfig('development');
 }
 
 main()

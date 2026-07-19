@@ -14,7 +14,6 @@ export async function dbCreateJob({
   status,
   results,
   message,
-  follow_on,
   invoked_by_id,
   activity_type,
 }: CreateJob) {
@@ -30,11 +29,22 @@ export async function dbCreateJob({
       payload: payload === null ? Prisma.JsonNull : payload,
       results: results == null ? Prisma.JsonNull : results,
       messages: message ? [message] : [],
-      follow_on: follow_on == null ? Prisma.JsonNull : (follow_on as Prisma.InputJsonValue),
       invoked_by_id: invoked_by_id ?? undefined,
       activity_type: activity_type ?? undefined,
     },
   });
+}
+
+/**
+ * Mark a job RUNNING. Updates an existing row (async enqueue / runHandler) or creates one (legacy invoke).
+ */
+export async function dbStartJob(data: CreateJob, status = JobStatus.RUNNING) {
+  const prisma = await getPrismaClient();
+  const existing = await prisma.job.findUnique({ where: { id: data.id } });
+  if (existing) {
+    return dbUpdateJob(data.id, { status });
+  }
+  return dbCreateJob({ ...data, status });
 }
 
 /**
@@ -52,9 +62,7 @@ export async function dbUpdateJob(id: string, data: UpdateJob) {
       date_modified: formatDate(),
       status: data.status ?? undefined,
       results: data.results ?? undefined,
-      messages: {
-        push: data.message ?? [],
-      },
+      messages: data.message ? { push: data.message } : undefined,
     },
   });
 }

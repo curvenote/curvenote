@@ -1,5 +1,191 @@
 # @curvenote/scms
 
+## 0.24.0
+
+### Minor Changes
+
+- [#1014](https://github.com/curvenote/curvenote/pull/1014) [`b3f163e`](https://github.com/curvenote/curvenote/commit/b3f163e48e63f1da68a028387c84c345bc99fa1b) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add extension-owned submit-to-site delegation. Extensions may declare operated sites and an optional `submitToSite` handler; core routes by declaration (delegate or fail, no fallback).
+
+- [#1011](https://github.com/curvenote/curvenote/pull/1011) [`60d36e0`](https://github.com/curvenote/curvenote/commit/60d36e0cc769196b785ffea41f4e453f16a0a602) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add platform work-version cloning for new draft versions. Introduce `cloneDraftWorkVersionFromSource` with an injectable `seedMetadataFromSource` hook (flow-agnostic base seeder in core), reference-copied files, and best-effort document preview cache seeding; lift preview cache helpers into `@curvenote/scms-core`. Article create-new-version clones from the latest non-draft predecessor and uses an article seeder that keeps frontmatter while dropping inherited files, upload analysis, and preview thumbnail listings (selected thumbnail still inherits via `workVersion.thumbnail`). Draft resume is relaxed and routes PMC drafts to deposit vs article upload. Upload UI shows inherited thumbnails with a pinned Current tile and accepts stored thumbnail keys on confirm. Extract `shouldDeleteUploadedFileFromStorage` as the single policy for multi-version file removal, with unit and handler tests. Resume-draft dialogs show `v{n}` version tags on list items; tune `VersionTagBadge` padding for readability.
+
+### Patch Changes
+
+- [#1018](https://github.com/curvenote/curvenote/pull/1018) [`c9236d0`](https://github.com/curvenote/curvenote/commit/c9236d0b14397c909672b0245d42c01c31cb76c1) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Decoupling first page preview from thumbnail extraction
+
+- [#1003](https://github.com/curvenote/curvenote/pull/1003) [`9b252f7`](https://github.com/curvenote/curvenote/commit/9b252f7246b13ccd6f39dd22e0e16da475c8272e) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add an expandable system cron create form with Zod validation, live schedule preview, relative target paths, auto-derived scoped-handshake scopes, and submit toasts. Add `/v1/loopback` as a scoped-handshake test endpoint for cron jobs.
+
+- [#985](https://github.com/curvenote/curvenote/pull/985) [`41c2b80`](https://github.com/curvenote/curvenote/commit/41c2b80a6c0c39d12f79a91a8a116e1097d2500d) Thanks [@github-actions](https://github.com/apps/github-actions)! - Fixed jumpy check next version button
+
+- [#1016](https://github.com/curvenote/curvenote/pull/1016) [`dbd46ba`](https://github.com/curvenote/curvenote/commit/dbd46bad59784b91ce706f74bd6d16be9b26dda5) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Limit work upload manuscript slot to a single file until multi-file handling improves: set `multiple: false` and `maxFiles: 1`, update upload page copy, and use singular dropzone helper text when multi-upload is disabled.
+
+- [#1021](https://github.com/curvenote/curvenote/pull/1021) [`fa99ddf`](https://github.com/curvenote/curvenote/commit/fa99ddf09b0ccee30ffcf64191865aace53731ad) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a fast pdfjs path for PDF figure extraction during upload phase B (thumbnail gallery), with a 99-page scan cap and existing 24-figure limit. Skip tiny/oversized rasters before BMP materialization, dedupe repeated XObject paints, and show a PDF-specific gallery busy message. Remove the redundant All Figures preview tab, move `resolvePreviewImagePresence` to a client-safe module, and retry thumbnail extraction when phase B returns no figures.
+
+- [#1002](https://github.com/curvenote/curvenote/pull/1002) [`4d4cdf9`](https://github.com/curvenote/curvenote/commit/4d4cdf9ba432cea9f5d8f6efc32dca4b1dde68fd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Persist upload analysis facts during manuscript preview and metadata extraction. Record image presence from document previews and title/author/affiliation presence from extracted frontmatter under `metadata.upload.analysis`, keyed by a manuscript source signature. Wire the derived eligibility context into upload check cards so extensions can enable or disable checks based on confident upload facts.
+
+- [#1020](https://github.com/curvenote/curvenote/pull/1020) [`36359b6`](https://github.com/curvenote/curvenote/commit/36359b62152b3d37591e6c0ab71faafc44d14dda) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Document reduced check-extension Slack event coverage: terminal-only milestones, no retry sweep pings.
+
+- [#992](https://github.com/curvenote/curvenote/pull/992) [`2bf2f63`](https://github.com/curvenote/curvenote/commit/2bf2f63147d4d173c8e4971f296af438834dceb1) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove `app.checks.eulaCronSecret` from core app-config schema so text-integrity EULA cron configuration stays in the extension.
+
+- [#988](https://github.com/curvenote/curvenote/pull/988) [`86ba389`](https://github.com/curvenote/curvenote/commit/86ba3890e1921bfaa0eb39963d6c607f0358a90c) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove the `(work_id, site_id)` unique constraint migration and Prisma `@@unique`. Submit-to-site now serializes concurrent first-time submits with a PostgreSQL advisory transaction lock instead of relying on a database unique index.
+
+- [#985](https://github.com/curvenote/curvenote/pull/985) [`7c6db18`](https://github.com/curvenote/curvenote/commit/7c6db185b58ac0df272116169eb78b645e822136) Thanks [@github-actions](https://github.com/apps/github-actions)! - Add Slack (and Segment) notifications when site admins create or delete a site service account, and when they create or delete tokens for that account. Shared event types live in scms-server; site-specific message/metadata helpers live in the sites extension.
+
+- [#1017](https://github.com/curvenote/curvenote/pull/1017) [`24ddd4c`](https://github.com/curvenote/curvenote/commit/24ddd4c32ced773475965e60086e204b08b05395) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Updates work version clone function to allow for different seeing patterns
+
+- [#1010](https://github.com/curvenote/curvenote/pull/1010) [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improve the submit-to-site popover check review panel. Surface the latest run of each check kind on the selected version and any older versions (not newer ones), show a `v{n}` badge when that run came from a different version, use `VersionTagBadge` in the version picker, truncate long status labels with a tooltip while keeping the left column width fixed, and style the send trigger as a ghost button with a primary icon.
+
+- [#1006](https://github.com/curvenote/curvenote/pull/1006) [`d9bdaf3`](https://github.com/curvenote/curvenote/commit/d9bdaf35369c330ae230f32301670e569f7229f7) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a route-local author metadata summary for the upload flow. `AuthorMetadataForm` defaults to a read-only `AuthorSummaryView` (names, affiliations, ORCID, corresponding icon) with an Edit toggle into the shared `AuthorField` editor. Normalize ORCID URLs from extracted MyST frontmatter to canonical ids so summary badges render reliably. Tidy the add-author ORCID placeholder input by removing the dashed card wrapper and boxed combo trigger.
+
+- [#1006](https://github.com/curvenote/curvenote/pull/1006) [`d9bdaf3`](https://github.com/curvenote/curvenote/commit/d9bdaf35369c330ae230f32301670e569f7229f7) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add escape hatches to the upload metadata-extract busy states. After 20s of preview generation, the document preview offers a "skip the preview" link that abandons the unpack and suppresses the follow-on auto-extraction so the user can proceed manually. After 15s of AI extraction, the metadata form offers a "skip AI extraction" link that clears the overlay for manual entry. Both reset when a fresh upload starts a new preview generation, and an explicit re-run overrides a prior skip. Removing the last manuscript file from the upload area now also stops any in-flight preview and extraction busy state immediately. A skipped preview shows a dedicated "Preview skipped" state with a "retry preview" link that restarts generation and the follow-on auto-extraction.
+
+- [#1015](https://github.com/curvenote/curvenote/pull/1015) [`a2b616d`](https://github.com/curvenote/curvenote/commit/a2b616dcc9a9e058ae4abfa3ce8fda099c2f504a) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add Segment analytics for the upload metadata flow and extension check platform glue. Track document preview and metadata extraction lifecycle events (started, completed, failed) with `uploadFlowTrigger` for auto vs manual retry/rerun, plus `extractedImageCount` on successful previews when figure extraction ran. On upload confirm, emit checks analytics only for check services whose extensions register upload-confirmed events. Wire checks page viewed and `analyticsTrigger` passthrough for extension check actions via generic extension analytics catalogs.
+
+- [#1006](https://github.com/curvenote/curvenote/pull/1006) [`d9bdaf3`](https://github.com/curvenote/curvenote/commit/d9bdaf35369c330ae230f32301670e569f7229f7) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Rework the upload metadata-extract document preview. Surface manuscript files in a dedicated preview card with scroll-capped content, code-point-safe tab title truncation, and explicit loading, error, and empty states. Use a hybrid character-budget first-page truncation for non-paged ASTs (notably DOCX) so previews gather enough front matter without walking unbounded tiny nodes.
+
+- [#1012](https://github.com/curvenote/curvenote/pull/1012) [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Upload form polish: lay out upload check option cards in a single column below the `sm` breakpoint, and show the thumbnail row/grid layout toggle only when the gallery overflows in row mode.
+
+- [#1006](https://github.com/curvenote/curvenote/pull/1006) [`d9bdaf3`](https://github.com/curvenote/curvenote/commit/d9bdaf35369c330ae230f32301670e569f7229f7) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improve the upload metadata-extract workflow. Auto-trigger extraction on a fresh 0→N manuscript upload when work details are still empty, retry when the fetcher returns idle after upload, and expose re-run and clear controls on the metadata form. Keep the active preview tab aligned as files are added or removed, and streamline the metadata form card layout for the upload route.
+
+- [#1021](https://github.com/curvenote/curvenote/pull/1021) [`fa99ddf`](https://github.com/curvenote/curvenote/commit/fa99ddf09b0ccee30ffcf64191865aace53731ad) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Rename version-scoped document preview cache Object ids from `docx:preview:v3:` to `upload:preview:` (PDF and DOCX alike). Delete legacy `docx:preview:v3`, `docx:preview:v2`, and md5-only rows on confirm-work cleanup, draft work deletion, and preview artifact removal. When cloning a draft version, seed preview cache from legacy source rows when the new-prefix row is absent.
+
+- [#1025](https://github.com/curvenote/curvenote/pull/1025) [`ddffbe1`](https://github.com/curvenote/curvenote/commit/ddffbe181b85720bed153a87d7a943243f355a99) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Gate the "Web Version Created" work timeline item (and its preview JWT) on `app:works:web-article-generation`, matching the scope that controls web converter dispatch.
+
+- [#1009](https://github.com/curvenote/curvenote/pull/1009) [`a8a5f25`](https://github.com/curvenote/curvenote/commit/a8a5f2572865c1416fa7ab43e816d0f9fbe6f247) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Move checks dispatch from global `app:works:checks:dispatch` to per-work `work:checks:dispatch` for owners and contributors, grant all work roles `work:checks:read`, and gate checks UI visibility on `app:works:checks:feature`. Viewers can see check results and timelines but cannot run checks, retry failed runs, or trigger third-party report flows; platform routes reject dispatch intents without the work scope. Extension activity mounts receive `canDispatchChecks` and omit action paths for read-only users.
+
+- [#1025](https://github.com/curvenote/curvenote/pull/1025) [`ddffbe1`](https://github.com/curvenote/curvenote/commit/ddffbe181b85720bed153a87d7a943243f355a99) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Rename `app.webVersionPreviewUrl` to `app.workVersionPreviewUrl`. Hardcode preview JWT audiences (`scms-preview` for submissions, `scms-work-preview` for work versions) beside the existing scope constants in preview token minting.
+
+- [#1008](https://github.com/curvenote/curvenote/pull/1008) [`99c891c`](https://github.com/curvenote/curvenote/commit/99c891ca8f404c800595fa0a0ccc2149a873bb46) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improve work user access controls and scope consistency. Rename the work users read scope to `work:users:read`, grant viewers read access to the work users list, and gate the "Who can access this?" menu item on that scope. On the work users page, show role removal controls and the add-user form only for users with `work:users:update` (owners and system admins); contributors and viewers can still read the list to identify owners.
+
+- [#1012](https://github.com/curvenote/curvenote/pull/1012) [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improve the work checks page. Show `v{n}` version badges on timeline headers, latest-run card footers, and the Check Latest Version button; order check sections alphabetically by extension name; compute the latest version number in the loader so the CTA no longer falls back to `v0`; and tighten activity card padding. Add `sortExtensionCheckServicesByExtensionName` in core for stable section ordering.
+
+- [#1010](https://github.com/curvenote/curvenote/pull/1010) [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improve My Works listing metadata and timeline affordances. Broaden the activity pill to the latest work- or submission-level event, reorder the right column to date then activity then timeline (baseline-aligned and centered), show the timeline link only when a work has multiple versions, and add `v{n}` badges to the work-details version timeline headers. Includes an Activity `(work_id, date_created)` index for efficient listing queries.
+
+- [#1027](https://github.com/curvenote/curvenote/pull/1027) [`32875f9`](https://github.com/curvenote/curvenote/commit/32875f964b4e3ce32c4a843ac062717777c2c67e) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add separate SYSTEM_SERVICE system role
+
+- Updated dependencies [[`4a74c9e`](https://github.com/curvenote/curvenote/commit/4a74c9e3d116940fe5b277ca9c0c00c3985556d3), [`c5799cd`](https://github.com/curvenote/curvenote/commit/c5799cda9792c53edc7fed1945f6d833d186b3d1), [`dbd46ba`](https://github.com/curvenote/curvenote/commit/dbd46bad59784b91ce706f74bd6d16be9b26dda5), [`ddffbe1`](https://github.com/curvenote/curvenote/commit/ddffbe181b85720bed153a87d7a943243f355a99), [`8fc27ba`](https://github.com/curvenote/curvenote/commit/8fc27ba2bb0f5af582e6a5aa79d592d833b15f78), [`b3f163e`](https://github.com/curvenote/curvenote/commit/b3f163e48e63f1da68a028387c84c345bc99fa1b), [`9b252f7`](https://github.com/curvenote/curvenote/commit/9b252f7246b13ccd6f39dd22e0e16da475c8272e), [`dbd46ba`](https://github.com/curvenote/curvenote/commit/dbd46bad59784b91ce706f74bd6d16be9b26dda5), [`86ba389`](https://github.com/curvenote/curvenote/commit/86ba3890e1921bfaa0eb39963d6c607f0358a90c), [`7c6db18`](https://github.com/curvenote/curvenote/commit/7c6db185b58ac0df272116169eb78b645e822136), [`24ddd4c`](https://github.com/curvenote/curvenote/commit/24ddd4c32ced773475965e60086e204b08b05395), [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0), [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0), [`4d4cdf9`](https://github.com/curvenote/curvenote/commit/4d4cdf9ba432cea9f5d8f6efc32dca4b1dde68fd), [`d9bdaf3`](https://github.com/curvenote/curvenote/commit/d9bdaf35369c330ae230f32301670e569f7229f7), [`4d4cdf9`](https://github.com/curvenote/curvenote/commit/4d4cdf9ba432cea9f5d8f6efc32dca4b1dde68fd), [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0), [`fa99ddf`](https://github.com/curvenote/curvenote/commit/fa99ddf09b0ccee30ffcf64191865aace53731ad), [`29275c0`](https://github.com/curvenote/curvenote/commit/29275c06b14df346ed903143f2dd8853e1a22256), [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912), [`a8a5f25`](https://github.com/curvenote/curvenote/commit/a8a5f2572865c1416fa7ab43e816d0f9fbe6f247), [`ddffbe1`](https://github.com/curvenote/curvenote/commit/ddffbe181b85720bed153a87d7a943243f355a99), [`99c891c`](https://github.com/curvenote/curvenote/commit/99c891ca8f404c800595fa0a0ccc2149a873bb46), [`60d36e0`](https://github.com/curvenote/curvenote/commit/60d36e0cc769196b785ffea41f4e453f16a0a602), [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0), [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912), [`32875f9`](https://github.com/curvenote/curvenote/commit/32875f964b4e3ce32c4a843ac062717777c2c67e)]:
+  - @curvenote/scms-server@0.24.0
+  - @curvenote/scms-core@0.24.0
+  - @curvenote/scms-db@0.24.0
+  - @curvenote/scms-sites-ext@0.24.0
+
+## 0.23.0
+
+### Minor Changes
+
+- [#978](https://github.com/curvenote/curvenote/pull/978) [`c815443`](https://github.com/curvenote/curvenote/commit/c815443cda6ec2f0f6e9d2547f3c257d709b56ce) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a create-work flow registry with `WorkCreateOption`, metadata resolution, and a `CreateWorkDropdown` on My Works. Route create-new-version via extension handlers based on work metadata, and skip the upload redirect for draft PMC deposit routes in the works layout.
+
+- [#982](https://github.com/curvenote/curvenote/pull/982) [`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add cron-backed platform automation for scheduled jobs and check retries. This introduces CronJob schema and admin UI, scoped cron callback authentication, scheduled job promotion, cron-driven queue drain, queue pause/resume controls, CheckServiceRun retry columns, and related job-queue hardening for automated execution.
+
+- [#980](https://github.com/curvenote/curvenote/pull/980) [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add scope-gated submit-to-site from the work details page. Users with `app:works:submit-to-site` can pick a work version and submit to an available SCMS site from the Submitted to bar; others see guidance with a link to contact support for early access.
+
+- [#980](https://github.com/curvenote/curvenote/pull/980) [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Document extension `createWorkVersion` contains contract. Manual POST `/v1/works` defaults omitted `contains` to `["myst"]` on work and first version; site form versions store explicit `[]`.
+
+### Patch Changes
+
+- [#979](https://github.com/curvenote/curvenote/pull/979) [`cde3654`](https://github.com/curvenote/curvenote/commit/cde365407f69643c19c05e8b95078350f9abb4c5) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Hide DOI field in work details when unset (resolved from version or work-level DOI)
+
+- [#977](https://github.com/curvenote/curvenote/pull/977) [`9848bab`](https://github.com/curvenote/curvenote/commit/9848bab45b66aeb61599c019e25803f504cb75d2) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Show latest check run summaries on the My Works listing and Work Timeline popover, and add an extension slot for compact work list check summary content.
+
+- [#979](https://github.com/curvenote/curvenote/pull/979) [`cde3654`](https://github.com/curvenote/curvenote/commit/cde365407f69643c19c05e8b95078350f9abb4c5) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Hide license field in work details when undefined
+
+- [#984](https://github.com/curvenote/curvenote/pull/984) [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Items relating to site submissions wiihtin the work item secondary navigation are not nested under a submissions expandable mentu item
+
+- [#984](https://github.com/curvenote/curvenote/pull/984) [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Polish My Works check and submission badges: align work-list chip sizing, lighten site submission badge borders, tighten stacked checks timeline layout, and load the text-integrity design manifest from configured service status.
+
+- Updated dependencies [[`c815443`](https://github.com/curvenote/curvenote/commit/c815443cda6ec2f0f6e9d2547f3c257d709b56ce), [`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f), [`9848bab`](https://github.com/curvenote/curvenote/commit/9848bab45b66aeb61599c019e25803f504cb75d2), [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240)]:
+  - @curvenote/scms-core@0.23.0
+  - @curvenote/scms-server@0.23.0
+  - @curvenote/scms-db@0.23.0
+  - @curvenote/scms-sites-ext@0.23.0
+
+## 0.22.2
+
+### Patch Changes
+
+- [#974](https://github.com/curvenote/curvenote/pull/974) [`7c1c787`](https://github.com/curvenote/curvenote/commit/7c1c78731d99f739dc0dda7bedeaea57eca1f2d2) Thanks [@github-actions](https://github.com/apps/github-actions)! - Show persisted work-version tags in the work details timeline instead of automatic sequential version badges.
+
+- [#975](https://github.com/curvenote/curvenote/pull/975) [`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Give the public works listing/search endpoint (`/api/v1/sites/:siteName/works`)
+  its own dedicated database connection pool so its heavy listing/search/count
+  queries draw from a separate connection budget and cannot exhaust the shared
+  app-wide pool (and vice versa). `scms-db` now exposes
+  `getNamedLowLevelPrismaClient(name, …)` for per-name isolated clients/pools, and
+  `scms-server` adds `getWorksListingPrismaClient()` which uses the same database
+  and identical per-pool tuning as the default client. The whole endpoint path,
+  including the shared subject lookups, is routed through the dedicated pool.
+
+  Note: each named pool adds up to its own `max` connections to the backend, so
+  the total connection budget is now the sum across pools — size accordingly
+  against the database / pooler limits.
+
+- [#975](https://github.com/curvenote/curvenote/pull/975) [`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a site/status-scoped `SubmissionSearch` projection for the public works
+  listing free-text search. Searchable text (title, authors, DOI, affiliations)
+  is `unaccent`-normalised and matched with Postgres full-text search plus a
+  pg_trgm fuzzy fallback, scoped by `site_id`/`status` first so the expensive
+  match runs only within a single site. Trigger-maintained from
+  `SubmissionVersion`/`WorkVersion`/`Work`. The projection is the default search
+  path; set `WORKS_SEARCH_PROJECTION_DISABLED=true` as a kill-switch to fall back
+  to the legacy ILIKE path instantly without a redeploy.
+
+  The rollout is split across three migrations so each step holds only a short
+  lock: DDL (`…120000`), a separate idempotent backfill of existing rows
+  (`…120050`), then the `CONCURRENTLY` GIN/btree indexes (`…120100`). If the
+  backfill migration times out it can be completed manually via psql using the
+  resumable, batched `prisma/scripts/backfill-submission-search.sql`, after which
+  `prisma migrate resolve --applied …120050` lets the deploy continue to the
+  indexes.
+
+  The listing total now avoids the `Submission`/`SubmissionVersion` join count
+  where possible: when search/subject already resolves an id set (and no
+  collection/kind/date filter applies) the count is the id-set size, and an
+  unfiltered browse count is served directly from the projection
+  (`COUNT(DISTINCT submission_id)` via a new `(site_id, status, submission_id)`
+  btree).
+
+- Updated dependencies [[`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc), [`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc)]:
+  - @curvenote/scms-db@0.22.2
+  - @curvenote/scms-server@0.22.2
+  - @curvenote/scms-sites-ext@0.22.2
+  - @curvenote/scms-core@0.22.2
+
+## 0.22.1
+
+### Patch Changes
+
+- [#971](https://github.com/curvenote/curvenote/pull/971) [`30620e8`](https://github.com/curvenote/curvenote/commit/30620e8d66a2c77d0792ca9dab3eeaebc1f226fc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Switch to the version timeline in place of the versions table and activities listing
+
+- [#969](https://github.com/curvenote/curvenote/pull/969) [`a6c0f96`](https://github.com/curvenote/curvenote/commit/a6c0f961c9df73d5135a14293b893d7bd812f673) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Added version chip to Version Timeline
+
+- Updated dependencies [[`30620e8`](https://github.com/curvenote/curvenote/commit/30620e8d66a2c77d0792ca9dab3eeaebc1f226fc), [`ea5d68d`](https://github.com/curvenote/curvenote/commit/ea5d68df2ff79898db2e0feaea6c82788cf0bacb), [`8aede38`](https://github.com/curvenote/curvenote/commit/8aede38e3193b1b1664f402cdf8c4400e76ed944), [`2faf9f0`](https://github.com/curvenote/curvenote/commit/2faf9f02ef08f2e21542f7e88b1af2c4da8084a7), [`0e03393`](https://github.com/curvenote/curvenote/commit/0e03393d823fd60a244023c24f4f557e85a00b82), [`c58eaef`](https://github.com/curvenote/curvenote/commit/c58eaefad764aa995aaf46736241e6c46dc91d74)]:
+  - @curvenote/scms-core@0.22.1
+  - @curvenote/scms-sites-ext@0.22.1
+  - @curvenote/scms-db@0.22.1
+  - @curvenote/scms-server@0.22.1
+
+## 0.22.0
+
+### Patch Changes
+
+- [#960](https://github.com/curvenote/curvenote/pull/960) [`b344f8b`](https://github.com/curvenote/curvenote/commit/b344f8b6ac8c9ea88fc48906f0774a5b4b979937) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Replace the internal job dispatch transport with **Supabase pgmq** as the single queue (no provider abstraction / mock queue): enqueue via `pgmq.send`, drain via `POST /v1/jobs/push-to-drain`. The enqueue wake is fired by Postgres itself — a `pg_net` `AFTER INSERT` trigger on `pgmq.q_job` calls push-to-drain — so the app does not self-call push-to-drain after enqueue; `pg_cron` remains the 30-second backup. Because the wake comes from the database, `"_JobQueueDrainConfig"` must be populated for jobs to drain promptly.
+
+  Add pgmq **dead-lettering**: when a message's `read_ct` exceeds `MAX_JOB_QUEUE_DELIVERY_ATTEMPTS`, the drain archives it to `pgmq.a_job`, handles the terminal transport failure (including `JOB_FAILED_DEFAULT` cleanup when appropriate), and stops redelivering it, so a poison message can never block the queue.
+
+  Add a **Queues** tab to the **System → Jobs** admin page (`/app/system/jobs?tab=queues`) to manage the drain config without raw SQL: save the drain endpoint, push `api.queueConsumerSecret` into `"_JobQueueDrainConfig"`, see whether the stored secret matches app-config, and view a live tail of pending/in-flight pgmq messages. Backed by `peekJobQueue()` and server helpers (`getJobQueueDrainStatus`, `setJobQueueDrainUrl`, `pushJobQueueDrainSecretFromConfig`, `getJobQueueTail`). The tab also gains a **Drain now** button that processes up to 10 messages in-process (bypassing the `pg_net`/HTTP wake) for manual backlog recovery and testing.
+
+  The local-dev and test database seeds auto-populate `"_JobQueueDrainConfig"` from app-config (`api.url` + `api.queueConsumerSecret`), so `npm run dev:db:reset` / `npm run test:db:reset` no longer require a manual trip to the Queues tab after each reset. The seed realigns the stored secret with app-config while preserving any custom drain url.
+
+  Local development runs the same pgmq + `pg_net` stack as staging/prod. The local Docker Postgres is built from `docker/postgres/Dockerfile` (postgres:16 + pgmq + pg_net + pg_cron), and the dev seed targets `api.tasksCallbackUrl` (`host.docker.internal`) so the `pg_net` enqueue-wake fired inside the container reaches the dev server on the host. The image binds the `pg_net` and `pg_cron` background workers to the `journals` db (`pg_net.database_name` / `cron.database_name`) — without this the workers attach to the default `postgres` db and silently never drain the `journals` queue. **Requires a one-time local rebuild:** `npm run db:rebuild` then `npm run dev:db:reset`.
+
+  `send` honors the dispatch `idempotencyKey` (the `job_id`). Because pgmq has no native idempotency, it skips the enqueue when a message for the same job is already pending or in-flight in `pgmq.q_job`, serialized by a transaction-scoped advisory lock keyed on the job id. This prevents a retried enqueue (e.g. a client retry of `POST /v1/jobs` with the same `id`, where `ensureJobRow` already skipped the insert) from adding a second pgmq message and letting two drains run the same job concurrently.
+
+- [#961](https://github.com/curvenote/curvenote/pull/961) [`30ddb2d`](https://github.com/curvenote/curvenote/commit/30ddb2defdf7cfc0075f764a954c41e17c7e1fc0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Preserve upload preview cache rows when persisting the durable thumbnail listing fails during confirm-work finalisation.
+
+- Updated dependencies [[`5bf11b9`](https://github.com/curvenote/curvenote/commit/5bf11b9b65b9b623675994a73571b03fa2eeb945), [`1ca8aa0`](https://github.com/curvenote/curvenote/commit/1ca8aa083aad3aca0ac922c75dbaa994f2f4fbc9), [`30c5a87`](https://github.com/curvenote/curvenote/commit/30c5a87dc709d388ade8c01ecb6a5733076b4a6e), [`e8c6279`](https://github.com/curvenote/curvenote/commit/e8c6279b4fd9e194223ffae53b807efade98798d), [`b344f8b`](https://github.com/curvenote/curvenote/commit/b344f8b6ac8c9ea88fc48906f0774a5b4b979937)]:
+  - @curvenote/scms-core@0.22.0
+  - @curvenote/scms-server@0.22.0
+  - @curvenote/scms-sites-ext@0.22.0
+  - @curvenote/check-definitions@0.16.5
+  - @curvenote/scms-db@0.22.0
+
 ## 0.21.0
 
 ### Minor Changes

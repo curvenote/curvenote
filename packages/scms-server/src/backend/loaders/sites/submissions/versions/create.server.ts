@@ -3,7 +3,7 @@ import { error401, TrackEvent, asSiteSubmissionUrl, asSiteWorkUrl } from '@curve
 import { getPrismaClient } from '../../../../prisma.server.js';
 import { formatSubmissionVersionDTO } from './get.server.js';
 import { formatDate, normalizeExplicitTags } from '@curvenote/common';
-import { ActivityType } from '@curvenote/scms-db';
+import { ActivityType, type Prisma } from '@curvenote/scms-db';
 import { uuidv7 as uuid } from 'uuidv7';
 import type { SiteContext } from '../../../../context.site.server.js';
 import { dbGetWorkflowForSubmission } from '../../../../../workflow/utils.server.js';
@@ -26,6 +26,7 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
   jobId?: string,
   metadata?: Record<string, any>,
   tags?: string[],
+  txIn?: Prisma.TransactionClient,
 ) {
   if (!ctx.user) throw error401();
   const user = ctx.user;
@@ -37,7 +38,7 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
   const workflow = await dbGetWorkflowForSubmission(ctx, submissionId, extensions);
   const submissionTags = normalizeExplicitTags(tags);
 
-  return prisma.$transaction(async (tx) => {
+  const run = async (tx: Prisma.TransactionClient) => {
     const sv = await tx.submissionVersion.create({
       data: {
         id: uuid(),
@@ -113,29 +114,15 @@ export async function dbCreateNewSubmissionVersionOnExistingSubmission(
     });
 
     return sv;
-  });
+  };
+  if (txIn) return run(txIn);
+  return prisma.$transaction(run);
 }
 
-export default async function (
+export async function notifySubmissionVersionCreated(
   ctx: SiteContext,
-  extensions: ClientExtension[],
-  submissionId: string,
-  workVersionId: string,
-  jobId?: string,
-  metadata?: Record<string, any>,
-  tags?: string[],
+  dbo: Awaited<ReturnType<typeof dbCreateNewSubmissionVersionOnExistingSubmission>>,
 ) {
-  if (!ctx.user) throw error401();
-  const dbo = await dbCreateNewSubmissionVersionOnExistingSubmission(
-    ctx,
-    extensions,
-    submissionId,
-    workVersionId,
-    jobId,
-    metadata,
-    tags,
-  );
-
   await ctx.trackEvent(TrackEvent.SUBMISSION_VERSION_CREATED, {
     submissionId: dbo.submission_id,
     submissionVersionId: dbo.id,
@@ -166,5 +153,34 @@ export default async function (
       workUrl: asSiteWorkUrl(ctx.asBaseUrl, ctx.site.name, dbo.work_version.work_id),
     },
   });
+}
+
+export default async function (
+  ctx: SiteContext,
+  extensions: ClientExtension[],
+  submissionId: string,
+  workVersionId: string,
+  jobId?: string,
+  metadata?: Record<string, any>,
+  tags?: string[],
+  tx?: Prisma.TransactionClient,
+) {
+  if (!ctx.user) throw error401();
+  const dbo = await dbCreateNewSubmissionVersionOnExistingSubmission(
+    ctx,
+    extensions,
+    submissionId,
+    workVersionId,
+    jobId,
+    metadata,
+    tags,
+    tx,
+  );
+
+  if (tx) {
+    return { id: dbo.id, dbo };
+  }
+
+  await notifySubmissionVersionCreated(ctx, dbo);
   return formatSubmissionVersionDTO(ctx, dbo);
 }

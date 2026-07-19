@@ -149,6 +149,7 @@ export type WorkVersionDBO = Prisma.WorkVersionGetPayload<{
     draft: true;
     cdn: true;
     cdn_key: true;
+    thumbnail: true;
     title: true;
     description: true;
     authors: true;

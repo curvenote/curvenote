@@ -45,12 +45,18 @@
         "kind": "twitter",
         "url": "https://twitter.com/EarthCube"
       },
-      { "kind": "github", "url": "https://github.com/earthcube" },
+      {
+        "kind": "github",
+        "url": "https://github.com/earthcube"
+      },
       {
         "kind": "youtube",
         "url": "https://www.youtube.com/user/EarthCubeNSF"
       },
-      { "kind": "email", "url": "mailto:ec-info@earthcube.org" }
+      {
+        "kind": "email",
+        "url": "mailto:ec-info@earthcube.org"
+      }
     ],
     "kinds": [
       {
@@ -65,10 +71,12 @@
   },
   "works": [
     {
-      "id": "EC220001",
+      "id": "17e33abe-61f0-496a-a0ef-67ea9be0c333",
       "title": "Data Cleaning with Pandas and Jupyter Notebooks",
       "description": "This project demonstrates how the Extending Ocean Drilling Pursuits project uses Jupyter Notebooks to clean and standardize 50 years of sedimentary description and microfossil data.",
-      "authors": ["Wai-Yin Kwan"],
+      "authors": [
+        "Wai-Yin Kwan"
+      ],
       "date": "2022-06-30T00:00:00.000Z",
       "kind": "original",
       "doi": "10.5281/zenodo.5634114",
@@ -80,10 +88,11 @@
           "date_created": "2022-06-30T00:00:00.000Z",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220001"
     },
     {
-      "id": "EC220002",
+      "id": "b1d2e789-583c-438f-a898-4137996a6cc7",
       "title": "Magnetic Polarity Inversion Line Detection and Analysis Tool",
       "description": "Magnetic polarity inversion lines detected from solar active regions with features engineered from them are recognized as one of the essential keys for predicting the characteristics of explosive and eruptive instabilities such as solar flares and coronal mass ejections.",
       "authors": [
@@ -106,13 +115,18 @@
           "date_created": "2022-06-30",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220002"
     },
     {
-      "id": "EC220003",
+      "id": "3b720040-d819-4423-9bdd-60381f3418b7",
       "title": "Predicting Solar Flares with Machine Learning",
       "description": "We present a machine learning-based system (FlareML) for solar flare prediction. FlareML employs three existing machine learning algorithms, namely random forests, multilayer perceptrons, extreme learning machines, and an ensemble algorithm that combines the three machine learning algorithms.",
-      "authors": ["Yasser Abduallah", "Jason T. L. Wang", "Haimin Wang"],
+      "authors": [
+        "Yasser Abduallah",
+        "Jason T. L. Wang",
+        "Haimin Wang"
+      ],
       "date": "2021-10-31",
       "kind": "original",
       "doi": "10.5281/zenodo.5634114",
@@ -124,13 +138,19 @@
           "date_created": "2021-10-31",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220003"
     },
     {
-      "id": "EC220004",
+      "id": "4bddcedd-a19e-4d47-b6be-9d105a482dcd",
       "title": "PaleoHack: Putting EarthCube tools in the hands of paleogeoscientists",
       "description": "PaleoHack aims to train a new generation of paleogeoscientists to use emerging standards and tools developed through EarthCube, namely the Linked Paleo Data Format (LiPD) and Pyleoclim.",
-      "authors": ["Deborah Khider", "Julien Emile-Geay", "Alexander James", "Feng Zhu"],
+      "authors": [
+        "Deborah Khider",
+        "Julien Emile-Geay",
+        "Alexander James",
+        "Feng Zhu"
+      ],
       "date": "2022-06-30T00:00:00.000Z",
       "kind": "original",
       "doi": "10.5281/zenodo.5634114",
@@ -142,13 +162,17 @@
           "date_created": "2022-06-30T00:00:00.000Z",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220004"
     },
     {
-      "id": "EC220005",
+      "id": "9125391c-407e-462a-bce2-205cf4b9840a",
       "title": "Visualizing Ice Core Datasets in Python Using a Jupyter Notebook Template",
       "description": "We demonstrate the utility of the notebook as a template for ice core researchers engaging in open science by recreating multiple figures published by Schupbach et al. in Nature Communications, 16 April 2018. This notebook provides a step-by-step guide to systematically recreate two figures using Schupbach's original data.",
-      "authors": ["L. Markowsky", "Jessica Scheick"],
+      "authors": [
+        "L. Markowsky",
+        "Jessica Scheick"
+      ],
       "date": "2022-06-30T00:00:00.000Z",
       "kind": "original",
       "doi": "10.5281/zenodo.5634114",
@@ -160,13 +184,19 @@
           "date_created": "2022-06-30T00:00:00.000Z",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220005"
     },
     {
-      "id": "EC220007",
+      "id": "bea3b84c-842d-40e3-af95-5cc48512e14b",
       "title": "Intro to Argovis' API",
       "description": "The Argovis project (argovis.colorado.edu) is upgrading its API, with a new design that better supports expressive, targeted search across multiple data sources, including Argo floats, GO-SHIP profiles, and more.",
-      "authors": ["William Mills", "Donata Giglio", "Megan Scanderbeg", "Tyler Tucker"],
+      "authors": [
+        "William Mills",
+        "Donata Giglio",
+        "Megan Scanderbeg",
+        "Tyler Tucker"
+      ],
       "date": "2022-09-16T00:00:00.000Z",
       "kind": "original",
       "doi": "10.5281/zenodo.5634114",
@@ -178,13 +208,18 @@
           "date_created": "2022-09-16T00:00:00.000Z",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220007"
     },
     {
-      "id": "EC220008",
+      "id": "0741c3b6-8f9d-4fa3-89bc-f6457659c989",
       "title": "AMGeO 2.0: Crafting an API for Geospace Data Scientists",
       "description": "The Assimilative Mapping of Geospace Observations (AMGeO) is a data science tool for the geospace science community that automates labor-intensive data acquisition and processing, combining observations from various sensors into assimilative maps of the high-latitude ionosphere.",
-      "authors": ["Willem Mirkovich", "Tomoko Matsuo", "Liam Kilcommons"],
+      "authors": [
+        "Willem Mirkovich",
+        "Tomoko Matsuo",
+        "Liam Kilcommons"
+      ],
       "date": "2022-06-30T00:00:00.000Z",
       "kind": "original",
       "doi": "10.5281/zenodo.5634114",
@@ -196,13 +231,19 @@
           "date_created": "2022-06-30T00:00:00.000Z",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220008"
     },
     {
-      "id": "EC220009",
+      "id": "81d23d3b-ece7-452f-92ac-b88fa4faf9aa",
       "title": "Accelerating Lagrangian analyses of oceanic data: benchmarking typical workflows",
       "description": "This notebook consists of systematic evaluations and comparisons of workflows for Lagrangian data, using as a basis the velocity and sea surface temperature datasets emanating from the drifting buoys of the Global Drifter Program (GDP).",
-      "authors": ["Miron, Philippe", "Elipot, Shane", "Lumpkin, Rick", "Dano, Bertrand"],
+      "authors": [
+        "Miron, Philippe",
+        "Elipot, Shane",
+        "Lumpkin, Rick",
+        "Dano, Bertrand"
+      ],
       "date": "2022-06-30T00:00:00.000Z",
       "kind": "original",
       "doi": "10.5281/zenodo.5634114",
@@ -214,10 +255,11 @@
           "date_created": "2022-06-30T00:00:00.000Z",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220009"
     },
     {
-      "id": "EC220010",
+      "id": "6edd0694-1c25-4a93-b48c-67003eb97cd5",
       "title": "Handling Highly Imbalanced Data in Machine Learning Applications",
       "description": "In this work, we develop a database and analyze the application of various class-imbalance treatment techniques (oversampling, undersampling, class weight assignment) to build balanced classifiers for the prediction of whether the solar flare results in an SPE event, with the goal of developing an unbiased solution.",
       "authors": [
@@ -241,10 +283,11 @@
           "date_created": "2022-06-30T00:00:00.000Z",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220010"
     },
     {
-      "id": "EC220011",
+      "id": "e04aecdf-1835-4ba4-b90c-92027766df37",
       "title": "EC SEP Visualization",
       "description": "",
       "authors": [
@@ -265,10 +308,11 @@
           "date_created": "2022-06-30T00:00:00.000Z",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220011"
     },
     {
-      "id": "EC220012",
+      "id": "3ce86318-1ae5-43e8-8083-f3b828bc7ff6",
       "title": "Jupyter Notebooks as a bridge to the MagIC Database and Open Science",
       "description": "The MagIC database (Magnetics Information Consortium) is a database that allows magnetic measurement data of rocks and archaeological artifacts to be Findable, Accessible, Interoperable and Re-usable.",
       "authors": [
@@ -289,13 +333,19 @@
           "date_created": "2022-06-30T00:00:00.000Z",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220012"
     },
     {
-      "id": "EC220013",
+      "id": "12e87ba1-0f15-413e-9dcd-03b13a370511",
       "title": "ICESpark in Action",
       "description": "The Arctic climate system is undergoing rapid change with rising air and sea surface temperatures, accompanied by declines in Arctic glacial ice and sea ice as well as loss of snow cover on land. The combined increase in global air temperature and ice-sheet mass loss is driving sea level rise around the globe.",
-      "authors": ["Jia Yu", "Yiqun Xie", "Kyle Duncan", "Sinead Louise Farrell"],
+      "authors": [
+        "Jia Yu",
+        "Yiqun Xie",
+        "Kyle Duncan",
+        "Sinead Louise Farrell"
+      ],
       "date": "2022-06-30T00:00:00.000Z",
       "kind": "original",
       "doi": "10.5281/zenodo.5634114",
@@ -307,7 +357,8 @@
           "date_created": "2022-06-30T00:00:00.000Z",
           "canonical": true
         }
-      ]
+      ],
+      "slug": "EC220013"
     }
   ]
 }

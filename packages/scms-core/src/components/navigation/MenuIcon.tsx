@@ -42,6 +42,7 @@ import {
   ClipboardList,
   Network,
   UserKey,
+  Clock,
 } from 'lucide-react';
 import { cn } from '../../utils/index.js';
 import type { ClientExtension } from '../../modules/extensions/types.js';
@@ -78,6 +79,8 @@ export function MenuIcon({
     case 'work.checks':
     case 'shield-check':
       return <ShieldCheck className={classNameWithDefaults} />;
+    case 'work.submissions':
+      return <Send className={classNameWithDefaults} />;
     case 'files':
       return <Files className={classNameWithDefaults} />;
     case 'zap':
@@ -185,6 +188,9 @@ export function MenuIcon({
     case 'admin.jobs':
     case 'square-play':
       return <SquarePlay className={classNameWithDefaults} />;
+    case 'admin.cron':
+    case 'clock':
+      return <Clock className={classNameWithDefaults} />;
     case 'share':
       return <Share2 className={classNameWithDefaults} />;
     case 'graduation-cap':

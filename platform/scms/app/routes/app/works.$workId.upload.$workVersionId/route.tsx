@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Route } from './+types/route';
 import type {
   WorkVersionCheckName,
@@ -8,6 +8,8 @@ import type {
 import {
   withAppScopedContext,
   userHasScope,
+  userHasWorkScope,
+  dbGetUserWorkRoles,
   findWorkByVersion,
   workVersionUploadsStage,
   workVersionUploadsComplete,
@@ -20,9 +22,22 @@ import {
   workVersionCheckNameSchema,
   ChecksMetadataSchema,
   makeDefaultWorkVersionMetadata,
+  fetchOrcidPerson,
+  searchOrcid,
+  searchOrcidById,
+  searchRor,
+  File,
+  StorageBackend,
+  KnownBuckets,
+  resolveThumbnailBucket,
+  enqueueAndDispatchJob,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
-import type { ExtensionCheckHandleActionArgs, FileMetadataSection } from '@curvenote/scms-core';
+import type {
+  ExtensionCheckHandleActionArgs,
+  FileMetadataSection,
+  FileMetadataSectionItem,
+} from '@curvenote/scms-core';
 import {
   MainWrapper,
   PageFrame,
@@ -35,32 +50,90 @@ import {
   getExtensionCheckServicesFromClientConfig,
   getExtensionCheckServicesFromServerConfig,
   hasInvalidEnabledUploadChecks,
+  loadCheckMaintenanceByServiceIds,
+  resolveUploadCheckLogoUrls,
+  CheckMaintenanceProvider,
   capitalize,
   scopes,
+  isValidOrcid,
+  computeManuscriptSourceSignature,
+  UPLOAD_ANALYSIS_METADATA_KEY,
+  uploadFactPresenceFromValue,
+  clearUploadAnalysisMetadataFacts,
+  ExtensionChecksAnalyticsEventKey,
+  buildCheckServiceIdToExtensionMap,
+  groupCheckServiceIdsByExtensionAnalyticsEvent,
+  hasDocxInMetadata,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { WorkUploadChecksForm } from './WorkUploadChecksForm';
-import { getTextIntegrityLogoUrlFromObjectStore } from './textIntegrityLogo.server';
 import { ContinueForm } from './ContinueForm';
 import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
-import { updateWorkVersionTitle, updateWorkVersionAuthors } from './updateMetadata.server';
+import {
+  updateWorkVersionTitle,
+  updateWorkVersionAuthors,
+  updateWorkVersionAuthorMetadata,
+} from './updateMetadata.server';
 import { toggleWorkVersionCheck } from './updateChecks.server';
 import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
-import { handleFetchPreviewsIntent } from './fetchPreviews.server';
-import { readDocxPreviewsFromObjectTable, type DocxPreviewItem } from './fetchPreviews.server';
-import { extractMetadataFromPreviews } from './anthropic.server';
-import type { ExtractedMetadata } from './anthropic.server';
+import {
+  handleFetchPreviewsIntent,
+  handleFetchPreviewFiguresIntent,
+  deletePreviewArtifactsForVersion,
+  persistThumbnailListingForVersion,
+  signPreviewFigures,
+} from './metadata-extract/fetchPreviews.server';
+import {
+  readDocumentPreviewsFromObjectTable,
+  type DocumentPreviewItem,
+} from './metadata-extract/fetchPreviews.server';
+import { resolvePreviewImagePresence } from './metadata-extract/previewImagePresence';
+import { extractMetadataFromPreviews } from './metadata-extract/anthropic.server';
+import type { ExtractedMetadata } from './metadata-extract/anthropic.server';
 import { Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { MetadataPreviewSection } from './MetadataPreviewSection';
+import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
+import { PREVIEW_BUSY_MESSAGES } from './metadata-extract/busyMessages';
+import { useRotatingMessage } from './metadata-extract/useRotatingMessage';
+import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
+import { collectAllFigures } from './metadata-extract/DocumentPreviewer';
+import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
+import {
+  buildThumbnailCandidateLocators,
+  encodeFigureLocator,
+  resolveThumbnailSelection,
+} from './metadata-extract/thumbnailSelection';
 import { CaptureMetadataSection } from './CaptureMetadataSection';
-import { isDocxPreviewCandidate } from './docxPreviewGuards';
+import { isPreviewCandidate } from './metadata-extract/previewGuards';
+import {
+  applyFiguresFetcherStateTransition,
+  nextAutoFiguresAttempts,
+  pendingFigurePathsKey,
+  shouldAutoSubmitFiguresFetch,
+  shouldClearFiguresFetchFinishedForPendingKey,
+  shouldManualRetryFigures,
+  shouldResetFiguresAutoAttemptsForPendingKey,
+  shouldShowFiguresRetry,
+} from './metadata-extract/figuresAutoRetry';
+import {
+  summarizePreviewCandidateFiles,
+  sanitizeUploadFlowFailureReason,
+  normalizeUploadFlowTrigger,
+  resolveMetadataExtractionTrigger,
+  trackDocumentPreviewStarted,
+  trackDocumentPreviewAnalytics,
+  trackMetadataExtractionStarted,
+  trackMetadataExtractionAnalytics,
+} from './metadata-extract/uploadFlowAnalytics.server';
+import type { AuthorFieldMetadata } from './mystAuthorAdapters';
+import { mystFrontmatterToAuthorField } from './mystAuthorAdapters';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { waitUntil } from '@vercel/functions';
+import { uuidv7 } from 'uuidv7';
 
 /**
  * Zod schema for work upload form validation
@@ -72,17 +145,32 @@ const WorkUploadActionSchema = zfd.formData({
     'remove',
     'update-title',
     'update-authors',
+    'update-author-metadata',
+    'search-orcid',
+    'search-orcid-by-id',
+    'fetch-orcid',
+    'search-ror',
     'toggle-check',
     'confirm-work',
     'fetch-previews',
+    'fetch-preview-figures',
     'extract-metadata',
+    'clear-extracted-metadata',
   ]),
   slot: zfd.text(z.string().min(1)).optional(),
   // Optional fields used by specific intents
   completedFiles: zfd.text(z.string()).optional(), // Used by 'complete' intent
-  path: zfd.text(z.string()).optional(), // Used by 'remove' intent
+  path: zfd.text(z.string()).optional(), // Used by 'remove' and 'extract-metadata' (target file) intents
+  force: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'extract-metadata' to bypass the cache
+  uploadFlowTrigger: zfd
+    .text(z.enum(['auto', 'manual_preview_retry', 'manual_extract_rerun']))
+    .optional(),
   title: zfd.text(z.string().default('')), // Used by 'update-title' intent - allows empty strings
   authors: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent
+  authorMetadata: zfd.text(z.string()).optional(), // Used by 'update-author-metadata' intent
+  q: zfd.text(z.string()).optional(), // Used by search intents
+  orcid: zfd.text(z.string()).optional(), // Used by ORCID lookup intents
+  thumbnail: zfd.text(z.string()).optional(), // Used by 'confirm-work' intent - selected thumbnail locator
   redirect: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'confirm-work' intent; default true
   checkName: zfd.text(workVersionCheckNameSchema).optional(), // Used by 'toggle-check' intent
   checked: zfd.text(z.enum(['true', 'false'])).optional(), // Used by 'toggle-check' intent
@@ -104,6 +192,22 @@ function parseAuthorsList(authorsText: string): string[] {
     .map((a) => a.trim())
     .filter((a) => a.length > 0);
 }
+
+function parseAuthorFieldMetadata(raw: string | undefined): AuthorFieldMetadata | null {
+  if (!raw?.trim()) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<AuthorFieldMetadata>;
+    return {
+      authors: Array.isArray(parsed.authors) ? parsed.authors : [],
+      affiliations: Array.isArray(parsed.affiliations) ? parsed.affiliations : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Metadata key holding the source signature of the cached `frontmatter.myst` extraction. */
+const METADATA_EXTRACT_SOURCE_KEY = 'frontmatter.myst.source';
 
 // NOTE: Check service run schema is now defined and managed by each check
 // extension when they create checkServiceRun rows.
@@ -130,6 +234,7 @@ async function dispatchEnabledChecksAfterUpload({
         workVersionId,
         ctx,
         serverExtensions,
+        analyticsTrigger: 'upload',
       };
       const { success, error, status } = await service.handleAction(actionArgs);
       if (!success || error) {
@@ -139,8 +244,7 @@ async function dispatchEnabledChecksAfterUpload({
           }`,
         );
       }
-      // Check-start activities are created when jobs are invoked (invoke.server.ts),
-      // including for follow-on jobs, so we do not create them here.
+      // Check-start activities are created at job enqueue/run time, so we do not create them here.
     }),
   );
   const failures = results.filter((result) => result.status === 'rejected');
@@ -221,8 +325,8 @@ export async function loader(args: Route.LoaderArgs) {
         };
       case 'details':
         return {
-          title: 'Upload a New Version',
-          subtitle: `Add a new version of this ${workLabel} by uploading your files`,
+          title: 'Review and Update',
+          subtitle: `Review inherited files and metadata, then update this ${workLabel} version as needed`,
         };
       case 'drafts':
         return {
@@ -237,23 +341,61 @@ export async function loader(args: Route.LoaderArgs) {
     }
   })();
 
-  // Read only cached DOCX previews from Object table (no generation in loader)
-
-  const previews = await readDocxPreviewsFromObjectTable(signedMetadata);
-  const myst = (rawMetadata as Record<string, unknown>)?.myst;
+  // Read only cached document previews from Object table (no generation in loader),
+  // then attach signed URLs to candidate figures so the picker never ships base64.
+  const cachedPreviews = await readDocumentPreviewsFromObjectTable(workVersionId, signedMetadata);
+  const previews = await signPreviewFigures(cachedPreviews, work.cdn ?? '', ctx);
+  // Stored under the same key as the ETL register-work endpoint: metadata["frontmatter.myst"].
+  const mystFrontmatter = (rawMetadata as Record<string, unknown>)?.['frontmatter.myst'];
   const extractedMetadata: ExtractedMetadata | null =
-    myst != null && typeof myst === 'object' && 'frontmatter' in myst
-      ? ((myst as { frontmatter: ExtractedMetadata }).frontmatter as ExtractedMetadata)
+    mystFrontmatter != null &&
+    typeof mystFrontmatter === 'object' &&
+    !Array.isArray(mystFrontmatter)
+      ? (mystFrontmatter as ExtractedMetadata)
       : null;
+  const authorFieldMetadata = mystFrontmatterToAuthorField(extractedMetadata, work.authors ?? []);
 
-  const hasMetadataPreviewScope = userHasScope(
+  let inheritedThumbnail: { key: string; signedUrl: string } | undefined;
+  const inheritedThumbnailKey =
+    typeof work.thumbnail === 'string' && work.thumbnail.trim() ? work.thumbnail.trim() : null;
+  if (inheritedThumbnailKey && work.cdn) {
+    try {
+      const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
+      const bucket = resolveThumbnailBucket(ctx, backend, work.cdn);
+      const signedUrl = await new File(backend, inheritedThumbnailKey, bucket).url();
+      inheritedThumbnail = { key: inheritedThumbnailKey, signedUrl };
+    } catch (err) {
+      console.warn('[work-upload] failed to sign inherited thumbnail', inheritedThumbnailKey, err);
+    }
+  }
+
+  const hasMetadataExtractScope = userHasScope(
     ctx.user,
-    scopes.app.works.metadataPreview,
+    scopes.app.works.metadataExtract,
     undefined,
     { ignoreSystemAdmin: true },
   );
 
-  const textIntegrityLogoUrl = await getTextIntegrityLogoUrlFromObjectStore();
+  const uploadCheckLogoUrls = await resolveUploadCheckLogoUrls(ctx, ctx.$config, serverExtensions);
+
+  const uploadCheckServices = getExtensionCheckServicesFromServerConfig(
+    ctx.$config,
+    serverExtensions,
+  );
+  const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
+    ctx,
+    serverExtensions,
+    uploadCheckServices.map((service) => service.id),
+  );
+
+  const workRoles = await dbGetUserWorkRoles(ctx.user.id, workId);
+  const userWithWorkRoles = { ...ctx.user, work_roles: workRoles };
+  const hasChecksFeature = userHasScope(ctx.user, scopes.app.works.checks.feature);
+  const canDispatchChecks = userHasWorkScope(
+    userWithWorkRoles,
+    scopes.work.id.checks.dispatch,
+    workId,
+  );
 
   return {
     workVersionId: work.version_id,
@@ -268,8 +410,13 @@ export async function loader(args: Route.LoaderArgs) {
     stringReplacements,
     previews,
     extractedMetadata,
-    hasMetadataPreviewScope,
-    textIntegrityLogoUrl,
+    authorFieldMetadata,
+    inheritedThumbnail,
+    hasMetadataExtractScope,
+    hasChecksFeature,
+    canDispatchChecks,
+    uploadCheckLogoUrls,
+    maintenanceByServiceId,
   };
 }
 
@@ -284,6 +431,20 @@ export async function action(args: Route.ActionArgs) {
       { status: 400 },
     );
   }
+
+  const workRoles = await dbGetUserWorkRoles(baseCtx.user.id, workId);
+  const userWithWorkRoles = { ...baseCtx.user, work_roles: workRoles };
+
+  const rejectCheckDispatch = () =>
+    data(
+      {
+        error: {
+          type: 'general',
+          message: 'You do not have permission to dispatch checks for this work',
+        },
+      },
+      { status: 403 },
+    );
 
   try {
     const payload = WorkUploadActionSchema.parse(formData);
@@ -302,10 +463,64 @@ export async function action(args: Route.ActionArgs) {
         slot,
         title,
         authors,
+        authorMetadata,
+        thumbnail: thumbnailLocator,
         redirect: redirectParam,
         checkName,
         checked,
+        path: targetPath,
+        force,
+        uploadFlowTrigger,
+        q,
+        orcid,
       } = payload;
+
+      if (uploadIntent === 'fetch-orcid') {
+        const orcidValue = (orcid ?? '').trim();
+        if (!isValidOrcid(orcidValue)) {
+          return data(
+            { error: { type: 'general', message: 'Invalid ORCID format.' } },
+            { status: 400 },
+          );
+        }
+        const person = await fetchOrcidPerson(orcidValue);
+        if (!person) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'Could not find this ORCID or fetch public record.',
+              },
+            },
+            { status: 404 },
+          );
+        }
+        return data({
+          name: person.name,
+          orcid: person.orcid,
+          ...(person.email && { email: person.email }),
+          affiliations: person.affiliations ?? [],
+        });
+      }
+
+      if (uploadIntent === 'search-orcid') {
+        return data({ results: await searchOrcid((q ?? '').trim()) });
+      }
+
+      if (uploadIntent === 'search-orcid-by-id') {
+        const orcidValue = (orcid ?? '').trim();
+        if (!isValidOrcid(orcidValue)) {
+          return data(
+            { error: { type: 'general', message: 'Invalid ORCID format.' } },
+            { status: 400 },
+          );
+        }
+        return data({ results: await searchOrcidById(orcidValue) });
+      }
+
+      if (uploadIntent === 'search-ror') {
+        return data({ results: await searchRor((q ?? '').trim()) });
+      }
 
       // Handle title update intent (updates title field)
       if (uploadIntent === 'update-title') {
@@ -334,6 +549,23 @@ export async function action(args: Route.ActionArgs) {
         return updateWorkVersionAuthors(workVersionId, authorsValue);
       }
 
+      if (uploadIntent === 'update-author-metadata') {
+        if (!workVersionId) {
+          return data(
+            { error: { type: 'general', message: 'Work version ID is required' } },
+            { status: 400 },
+          );
+        }
+        const parsed = parseAuthorFieldMetadata(authorMetadata);
+        if (!parsed) {
+          return data(
+            { error: { type: 'general', message: 'Invalid author metadata payload' } },
+            { status: 400 },
+          );
+        }
+        return updateWorkVersionAuthorMetadata(workVersionId, parsed);
+      }
+
       // Handle check toggle intent (toggles a single check in metadata)
       if (uploadIntent === 'toggle-check') {
         if (!workVersionId) {
@@ -351,6 +583,31 @@ export async function action(args: Route.ActionArgs) {
         }
 
         const isChecked = checked === 'true';
+
+        if (!userHasWorkScope(userWithWorkRoles, scopes.work.id.checks.dispatch, workId)) {
+          return rejectCheckDispatch();
+        }
+
+        if (isChecked) {
+          const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
+            baseCtx,
+            serverExtensions,
+            [checkName],
+          );
+          const maintenance = maintenanceByServiceId[checkName];
+          if (maintenance?.underMaintenance) {
+            return data(
+              {
+                error: {
+                  type: 'maintenance',
+                  message: maintenance.message,
+                },
+              },
+              { status: 503 },
+            );
+          }
+        }
+
         return toggleWorkVersionCheck(workVersionId, checkName, isChecked);
       }
 
@@ -366,7 +623,14 @@ export async function action(args: Route.ActionArgs) {
         const prisma = await getPrismaClient();
         const timestamp = new Date().toISOString();
 
-        const authorsText = (authors ?? '').trim();
+        const submittedAuthorMetadata = parseAuthorFieldMetadata(authorMetadata);
+        if (authorMetadata && !submittedAuthorMetadata) {
+          return data(
+            { error: { type: 'general', message: 'Invalid author metadata payload' } },
+            { status: 400 },
+          );
+        }
+        const authorsText = !submittedAuthorMetadata ? (authors ?? '').trim() : '';
         const authorsList = authorsText ? parseAuthorsList(authorsText) : [];
 
         // Get current metadata to access enabled checks
@@ -381,7 +645,22 @@ export async function action(args: Route.ActionArgs) {
           baseCtx.$config,
           serverExtensions,
         );
-        if (hasInvalidEnabledUploadChecks(currentMetadata, enabledChecks, uploadCheckServices)) {
+
+        // Checks whose service is under maintenance are not initiated. The work is
+        // created as though those checks were never selected; they can be run later
+        // once the service is back online.
+        const maintenanceByServiceId = await loadCheckMaintenanceByServiceIds(
+          baseCtx,
+          serverExtensions,
+          enabledChecks,
+        );
+        const dispatchableChecks = enabledChecks.filter(
+          (name) => !maintenanceByServiceId[name]?.underMaintenance,
+        );
+
+        if (
+          hasInvalidEnabledUploadChecks(currentMetadata, dispatchableChecks, uploadCheckServices)
+        ) {
           return data(
             {
               error: {
@@ -394,19 +673,54 @@ export async function action(args: Route.ActionArgs) {
           );
         }
 
-        // Create check status objects for each enabled check
+        // Require dispatch permission before any confirm-work mutations. Otherwise
+        // a failed dispatch gate could still leave the work version confirmed.
+        if (
+          dispatchableChecks.length > 0 &&
+          !userHasWorkScope(userWithWorkRoles, scopes.work.id.checks.dispatch, workId)
+        ) {
+          return rejectCheckDispatch();
+        }
+
+        const checkServiceExtensionMap = buildCheckServiceIdToExtensionMap(serverExtensions);
+        const uploadConfirmedGroups = groupCheckServiceIdsByExtensionAnalyticsEvent(
+          dispatchableChecks,
+          checkServiceExtensionMap,
+          ExtensionChecksAnalyticsEventKey.UPLOAD_CONFIRMED,
+        );
+        for (const [eventName, confirmedChecks] of uploadConfirmedGroups) {
+          await baseCtx.trackEvent(eventName, {
+            workId,
+            workVersionId,
+            enabledChecks: confirmedChecks,
+            dispatchedChecks: confirmedChecks,
+          });
+        }
+        if (uploadConfirmedGroups.size > 0) {
+          await baseCtx.analytics.flush();
+        }
+
+        if (submittedAuthorMetadata) {
+          const result = await updateWorkVersionAuthorMetadata(
+            workVersionId,
+            submittedAuthorMetadata,
+          );
+          if (!('success' in result)) return result;
+        }
+
+        // Create check status objects for each dispatchable check
         const checkStatuses: Record<string, any> = {};
-        enabledChecks.forEach((name) => {
+        dispatchableChecks.forEach((name) => {
           checkStatuses[name] = {};
         });
 
-        // Update metadata with check statuses
+        // Update metadata with check statuses (maintenance checks are dropped)
         await safeWorkVersionJsonUpdate(workVersionId, (metadata?: Prisma.JsonValue) => {
           const meta = (metadata as Record<string, any>) || makeDefaultWorkVersionMetadata();
           return {
             ...meta,
             checks: {
-              enabled: enabledChecks,
+              enabled: dispatchableChecks,
               ...checkStatuses,
             },
           } as Prisma.JsonObject;
@@ -422,31 +736,95 @@ export async function action(args: Route.ActionArgs) {
           },
         });
 
+        // Materialise the selected thumbnail (best-effort: never blocks submission).
+        // The locator is the candidate figure's storage key; materialisation validates
+        // it and we point the thumbnail column straight at that already-stored webp.
+        let materializedThumbnailKey: string | null = null;
+        if (thumbnailLocator && wv.cdn) {
+          try {
+            materializedThumbnailKey = await materializeSelectedThumbnail({
+              ctx: baseCtx,
+              workVersionId,
+              cdn: wv.cdn,
+              locator: thumbnailLocator,
+            });
+            if (materializedThumbnailKey) {
+              await prisma.workVersion.update({
+                where: { id: workVersionId },
+                data: { thumbnail: materializedThumbnailKey },
+              });
+            }
+          } catch (error) {
+            console.error('[work-upload] thumbnail materialization failed', {
+              workId,
+              workVersionId,
+              error,
+            });
+          }
+        }
+
+        // Finalise preview artifacts now that they have served their purpose: first record
+        // every generated thumbnail under metadata.thumbnails (the durable listing — the
+        // thumbnail files themselves are retained in storage), then drop the regenerable
+        // cached preview rows. Order matters: the listing is collected from those rows
+        // before they are deleted. Runs after the response so it never delays submission;
+        // best-effort and self-regenerating.
+        waitUntil(
+          persistThumbnailListingForVersion(workVersionId)
+            .then(() => deletePreviewArtifactsForVersion(workVersionId))
+            .catch((error) => {
+              console.warn('[work-upload] preview artifact finalisation failed', {
+                workId,
+                workVersionId,
+                error,
+              });
+            }),
+        );
+
         // Schedule each enabled check via its extension. Each check service is
         // responsible for creating its own checkServiceRun rows and jobs.
-        // Require work:checks:dispatch scope before dispatching (same as work-integrity action).
-        if (enabledChecks.length > 0) {
-          if (!userHasScope(baseCtx.user, scopes.app.works.checks.dispatch)) {
-            return data(
-              {
-                error: {
-                  type: 'general',
-                  message: 'You do not have permission to dispatch checks for this work',
-                },
-              },
-              { status: 403 },
-            );
-          }
+        if (dispatchableChecks.length > 0) {
           waitUntil(
             dispatchEnabledChecksAfterUpload({
-              enabledChecks,
+              enabledChecks: dispatchableChecks,
               workVersionId,
               ctx: baseCtx,
             }).catch((error) => {
               console.error('[work-upload] background check dispatch failed', {
                 workId,
                 workVersionId,
-                enabledChecks,
+                enabledChecks: dispatchableChecks,
+                error,
+              });
+            }),
+          );
+        }
+
+        // When a Word manuscript is present and the user has the web-article-generation
+        // feature scope, enqueue MyST web conversion (best-effort).
+        if (
+          hasDocxInMetadata(wv.metadata) &&
+          userHasScope(baseCtx.user, scopes.app.works.webArticleGeneration, undefined, {
+            ignoreSystemAdmin: true,
+          })
+        ) {
+          waitUntil(
+            (async () => {
+              const jobId = uuidv7();
+              await enqueueAndDispatchJob({
+                job_id: jobId,
+                job_type: 'CONVERTER_TASK',
+                payload: {
+                  work_version_id: workVersionId,
+                  target: 'web',
+                  conversion_type: 'docx-pd-curvenote-web',
+                },
+                invoked_by_id: baseCtx.user?.id,
+              });
+            })().catch((error) => {
+              console.error('[work-upload] web converter dispatch failed', {
+                workId,
+                workVersionId,
                 error,
               });
             }),
@@ -459,7 +837,7 @@ export async function action(args: Route.ActionArgs) {
         const shouldRedirect = redirectParam !== 'false';
         if (shouldRedirect) {
           const target =
-            enabledChecks.length > 0
+            dispatchableChecks.length > 0
               ? `/app/works/${workId}/checks?dispatching=1`
               : `/app/works/${workId}/details`;
           return redirect(target);
@@ -467,7 +845,7 @@ export async function action(args: Route.ActionArgs) {
         return data({ success: true });
       }
 
-      // Fetch DOCX previews (generate + write to Object table only)
+      // Fetch document previews (generate + write to Object table only)
       if (uploadIntent === 'fetch-previews') {
         if (!workVersionId) {
           return data(
@@ -476,7 +854,7 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         if (
-          !userHasScope(baseCtx.user, scopes.app.works.metadataPreview, undefined, {
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
             ignoreSystemAdmin: true,
           })
         ) {
@@ -490,11 +868,129 @@ export async function action(args: Route.ActionArgs) {
             { status: 403 },
           );
         }
-        const { previews } = await handleFetchPreviewsIntent(workVersionId, baseCtx);
-        return data({ ok: true, previewsGenerated: previews.length });
+        try {
+          const work = await findWorkByVersion(workVersionId);
+          const files = (work?.metadata as Record<string, unknown> | undefined)?.files as
+            | Record<string, FileMetadataSectionItem>
+            | undefined;
+          const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
+          const previewTrigger = normalizeUploadFlowTrigger(uploadFlowTrigger);
+          await trackDocumentPreviewStarted(baseCtx, {
+            workId,
+            workVersionId,
+            uploadFlowTrigger: previewTrigger,
+            ...candidateSummary,
+          });
+          const { previews } = await handleFetchPreviewsIntent(workVersionId, baseCtx);
+          await trackDocumentPreviewAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            uploadFlowTrigger: previewTrigger,
+            ...candidateSummary,
+            previews,
+          });
+          return data({ ok: true, previewsGenerated: previews.length });
+        } catch (err) {
+          const work = await findWorkByVersion(workVersionId);
+          const files = (work?.metadata as Record<string, unknown> | undefined)?.files as
+            | Record<string, FileMetadataSectionItem>
+            | undefined;
+          const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
+          const previewTrigger = normalizeUploadFlowTrigger(uploadFlowTrigger);
+          await trackDocumentPreviewAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            uploadFlowTrigger: previewTrigger,
+            ...candidateSummary,
+            previews: [],
+            failureReason: sanitizeUploadFlowFailureReason(
+              err instanceof Error ? err.message : 'preview_generation_failed',
+            ),
+          });
+          const message =
+            err instanceof Error ? err.message : 'Failed to generate document previews';
+          return data({ error: { type: 'general', message } }, { status: 500 });
+        }
       }
 
-      // Extract metadata from first DOCX via Claude (only when no frontmatter and we have previews)
+      if (uploadIntent === 'fetch-preview-figures') {
+        if (!workVersionId) {
+          return data(
+            { error: { type: 'general', message: 'Work version ID is required' } },
+            { status: 400 },
+          );
+        }
+        if (
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
+            ignoreSystemAdmin: true,
+          })
+        ) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'You do not have permission to generate document preview figures',
+              },
+            },
+            { status: 403 },
+          );
+        }
+        try {
+          const { previews } = await handleFetchPreviewFiguresIntent(workVersionId, baseCtx, {
+            forceRetry: force === 'true',
+          });
+          return data({ ok: true, previewFiguresGenerated: previews.length });
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : 'Failed to generate document preview figures';
+          return data({ error: { type: 'general', message } }, { status: 500 });
+        }
+      }
+
+      if (uploadIntent === 'clear-extracted-metadata') {
+        if (!workVersionId) {
+          return data(
+            { error: { type: 'general', message: 'Work version ID is required' } },
+            { status: 400 },
+          );
+        }
+        if (
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
+            ignoreSystemAdmin: true,
+          })
+        ) {
+          return data(
+            {
+              error: {
+                type: 'general',
+                message: 'You do not have permission to clear extracted metadata',
+              },
+            },
+            { status: 403 },
+          );
+        }
+        await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
+          const meta = (current as Record<string, unknown>) || {};
+          const next = { ...meta };
+          delete next['frontmatter.myst'];
+          delete next[METADATA_EXTRACT_SOURCE_KEY];
+          return clearUploadAnalysisMetadataFacts(next) as Prisma.JsonObject;
+        });
+        const prisma = await getPrismaClient();
+        await prisma.workVersion.update({
+          where: { id: workVersionId },
+          data: {
+            title: '',
+            authors: [],
+            author_details: [],
+            date_modified: new Date().toISOString(),
+          },
+          select: { id: true },
+        });
+        return data({ ok: true });
+      }
+
+      // Extract metadata from first document preview via Claude (only when no frontmatter and we have previews)
       if (uploadIntent === 'extract-metadata') {
         if (!workVersionId) {
           return data(
@@ -503,7 +999,7 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         if (
-          !userHasScope(baseCtx.user, scopes.app.works.metadataPreview, undefined, {
+          !userHasScope(baseCtx.user, scopes.app.works.metadataExtract, undefined, {
             ignoreSystemAdmin: true,
           })
         ) {
@@ -525,11 +1021,25 @@ export async function action(args: Route.ActionArgs) {
           );
         }
         const currentMeta = (work.metadata as Record<string, unknown>) ?? {};
-        const hasMystFrontmatter =
-          currentMeta.myst != null &&
-          typeof currentMeta.myst === 'object' &&
-          (currentMeta.myst as Record<string, unknown>).frontmatter != null;
-        if (hasMystFrontmatter) {
+        const hasMystFrontmatter = currentMeta['frontmatter.myst'] != null;
+        const currentSourceSignature = computeManuscriptSourceSignature(currentMeta);
+        const cachedSourceSignature = currentMeta[METADATA_EXTRACT_SOURCE_KEY];
+        // `force` is set by the manual "re-run extraction" control and always
+        // re-extracts. Otherwise skip when a cached result exists with no source
+        // marker (legacy/ETL metadata), or when the marker matches the current
+        // manuscript file(s); a changed/replaced document invalidates the cache.
+        const forceReextract = force === 'true';
+        const extractionTrigger = resolveMetadataExtractionTrigger(
+          uploadFlowTrigger,
+          forceReextract,
+        );
+        const hasCachedSourceSignature =
+          typeof cachedSourceSignature === 'string' && cachedSourceSignature !== '';
+        if (
+          !forceReextract &&
+          hasMystFrontmatter &&
+          (!hasCachedSourceSignature || cachedSourceSignature === currentSourceSignature)
+        ) {
           return data({ ok: true });
         }
         const signedMetadata = await signFilesInMetadata(
@@ -537,24 +1047,114 @@ export async function action(args: Route.ActionArgs) {
           work.cdn ?? '',
           baseCtx,
         );
-        const previews = await readDocxPreviewsFromObjectTable(signedMetadata);
+        const previews = await readDocumentPreviewsFromObjectTable(workVersionId, signedMetadata);
+        const selectedPreview =
+          (targetPath && previews.find((preview) => preview.path === targetPath)) || previews[0];
+        await trackMetadataExtractionStarted(baseCtx, {
+          workId,
+          workVersionId,
+          uploadFlowTrigger: extractionTrigger,
+          forceReextract,
+          previewCount: previews.length,
+          selectedPreview,
+        });
         if (previews.length === 0) {
+          await trackMetadataExtractionAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            success: false,
+            uploadFlowTrigger: extractionTrigger,
+            forceReextract,
+            previewCount: 0,
+            failureReason: 'no_previews',
+          });
           return data({ ok: true });
         }
         try {
-          const extracted = await extractMetadataFromPreviews({ previews }, baseCtx);
+          const extracted = await extractMetadataFromPreviews({ previews }, baseCtx, targetPath);
           if (extracted != null) {
             await safeWorkVersionJsonUpdate(workVersionId, (current?: Prisma.JsonValue) => {
               const m = (current as Record<string, unknown>) || {};
-              const existingMyst = (m.myst as Record<string, unknown>) || {};
+              const existingAnalysis = m[UPLOAD_ANALYSIS_METADATA_KEY];
+              const baseAnalysis =
+                existingAnalysis &&
+                typeof existingAnalysis === 'object' &&
+                !Array.isArray(existingAnalysis) &&
+                (existingAnalysis as { sourceSignature?: unknown }).sourceSignature ===
+                  currentSourceSignature
+                  ? (existingAnalysis as Record<string, unknown>)
+                  : {};
+              // Align with the ETL register-work endpoint: store at metadata["frontmatter.myst"].
+              // Record the source signature so we can detect when this cache goes stale.
               return {
                 ...m,
-                myst: { ...existingMyst, frontmatter: extracted },
+                'frontmatter.myst': extracted,
+                [METADATA_EXTRACT_SOURCE_KEY]: currentSourceSignature,
+                [UPLOAD_ANALYSIS_METADATA_KEY]: {
+                  ...baseAnalysis,
+                  source: 'metadata-preview',
+                  sourceSignature: currentSourceSignature,
+                  metadata: {
+                    ...((baseAnalysis.metadata as Record<string, unknown> | undefined) ?? {}),
+                    title: uploadFactPresenceFromValue(extracted.title),
+                    authors: uploadFactPresenceFromValue(extracted.authors),
+                    affiliations: uploadFactPresenceFromValue(extracted.affiliations),
+                  },
+                },
               } as Prisma.JsonObject;
+            });
+
+            // Seed the work version title/authors from the extracted metadata. On an
+            // automatic extraction we only fill empty fields (so we never clobber an
+            // author's edits, and the Continue button gets a title). A manual re-run
+            // is an explicit request to refresh, so it overwrites title/authors.
+            const extractedTitle = extracted.title?.trim() ?? '';
+            if (extractedTitle && (forceReextract || !work.title?.trim())) {
+              await updateWorkVersionTitle(workVersionId, extractedTitle);
+            }
+            const extractedAuthorMetadata = mystFrontmatterToAuthorField(extracted);
+            if (
+              extractedAuthorMetadata.authors.length > 0 &&
+              (forceReextract || !work.authors?.length)
+            ) {
+              await updateWorkVersionAuthorMetadata(workVersionId, extractedAuthorMetadata);
+            }
+            await trackMetadataExtractionAnalytics(baseCtx, {
+              workId,
+              workVersionId,
+              success: true,
+              uploadFlowTrigger: extractionTrigger,
+              forceReextract,
+              previewCount: previews.length,
+              selectedPreview,
+              extracted,
+            });
+          } else {
+            await trackMetadataExtractionAnalytics(baseCtx, {
+              workId,
+              workVersionId,
+              success: false,
+              uploadFlowTrigger: extractionTrigger,
+              forceReextract,
+              previewCount: previews.length,
+              selectedPreview,
+              failureReason: 'empty_result',
             });
           }
           return data({ ok: true });
         } catch (err) {
+          await trackMetadataExtractionAnalytics(baseCtx, {
+            workId,
+            workVersionId,
+            success: false,
+            uploadFlowTrigger: extractionTrigger,
+            forceReextract,
+            previewCount: previews.length,
+            selectedPreview,
+            failureReason: sanitizeUploadFlowFailureReason(
+              err instanceof Error ? err.message : 'metadata_extraction_failed',
+            ),
+          });
           const message =
             err instanceof Error ? err.message : 'Failed to extract metadata from document';
           return data({ error: { type: 'general', message } }, { status: 500 });
@@ -617,22 +1217,44 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     uploadConfig,
     metadata,
     title,
-    authors,
     pageTitle,
     pageSubtitle,
     previews = [],
     extractedMetadata,
-    hasMetadataPreviewScope,
+    authorFieldMetadata,
+    inheritedThumbnail,
+    maintenanceByServiceId,
+    hasMetadataExtractScope,
+    hasChecksFeature,
+    canDispatchChecks,
   } = loaderData;
   const { workVersionId } = useParams();
-  const previewList: DocxPreviewItem[] = Array.isArray(previews) ? previews : [];
+  const rawPreviews: DocumentPreviewItem[] = Array.isArray(previews) ? previews : [];
+  const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(() =>
+    inheritedThumbnail?.key ? encodeFigureLocator(inheritedThumbnail.key) : null,
+  );
+  const [authorMetadata, setAuthorMetadata] = useState<AuthorFieldMetadata>(authorFieldMetadata);
   const revalidator = useRevalidator();
   const fetchPreviewsFetcher = useFetcher();
+  const fetchPreviewFiguresFetcher = useFetcher();
   const autoTitleFromFilenameFetcher = useFetcher();
   const hasTriggeredFetchPreviews = useRef(false);
+  /** Auto phase-B attempts per pending path set; manual retry bypasses this cap. */
+  const figuresAutoAttempts = useRef(0);
+  const lastPendingFigurePathsKeyRef = useRef('');
+  const [hasSkippedFigures, setHasSkippedFigures] = useState(false);
+  const [figuresFetchFinished, setFiguresFetchFinished] = useState(false);
+  const figuresFetchWasInFlight = useRef(false);
+  // Tracks preview paths we've already observed, so a background preview that
+  // resolves after its file was removed only raises its toast once.
+  const seenPreviewPathsRef = useRef<Set<string> | null>(null);
 
   const suggestArticleTitleFromSelectedFiles = useCallback(
     (files: File[]) => {
+      // When the metadata-extract feature is enabled the title is sourced from
+      // the extracted document metadata, so don't fall back to the file name.
+      if (hasMetadataExtractScope) return;
+
       const first = files[0];
       if (!first?.name) return;
 
@@ -648,7 +1270,7 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
         { method: 'post' },
       );
     },
-    [title, extractedMetadata, autoTitleFromFilenameFetcher.submit],
+    [title, extractedMetadata, hasMetadataExtractScope, autoTitleFromFilenameFetcher.submit],
   );
 
   const deploymentConfig = useDeploymentConfig();
@@ -661,13 +1283,74 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     string,
     { path?: string; name?: string; type?: string }
   >;
-  const docxFilePaths = Object.entries(files)
-    .filter(([, f]) => isDocxPreviewCandidate(f))
+  const previewFilePaths = Object.entries(files)
+    .filter(([, f]) => isPreviewCandidate(f))
     .map(([path]) => path);
+  // A preview generated in the background can resolve after its source file was
+  // removed or replaced in the upload area. Only surface previews whose file is
+  // still in the current upload list so stale results are never shown.
+  const previewFilePathSet = new Set(previewFilePaths);
+  const previewList = rawPreviews.filter((p) => previewFilePathSet.has(p.path));
   const previewPaths = new Set(previewList.map((p) => p.path));
-  const missingPreviewPaths = docxFilePaths.filter((p) => !previewPaths.has(p));
+  const missingPreviewPaths = previewFilePaths.filter((p) => !previewPaths.has(p));
   const shouldFetchPreviews =
-    hasMetadataPreviewScope && docxFilePaths.length > 0 && missingPreviewPaths.length > 0;
+    hasMetadataExtractScope && previewFilePaths.length > 0 && missingPreviewPaths.length > 0;
+  const shouldFetchPreviewFigures =
+    hasMetadataExtractScope &&
+    previewList.some((p) => p.figuresPending === true) &&
+    !hasSkippedFigures;
+  const pendingFigurePathsSignature = useMemo(
+    () => pendingFigurePathsKey(previewList),
+    [previewList],
+  );
+
+  // When a background preview finishes after its file was removed from the dropzone,
+  // tell the user it was cached for a future upload of the same file.
+  useEffect(() => {
+    if (!hasMetadataExtractScope) return;
+
+    const currentUploadPaths = new Set(previewFilePaths);
+    const seen = seenPreviewPathsRef.current;
+    if (seen === null) {
+      seenPreviewPathsRef.current = new Set(rawPreviews.map((p) => p.path));
+      return;
+    }
+
+    for (const preview of rawPreviews) {
+      if (seen.has(preview.path)) continue;
+      seen.add(preview.path);
+
+      if (currentUploadPaths.has(preview.path)) continue;
+
+      const fileName = preview.data?.name?.trim() || preview.path;
+      ui.toastInfo(
+        `The preview of ${fileName} completed in the background and was cached for next time you upload this file.`,
+      );
+    }
+  }, [hasMetadataExtractScope, rawPreviews, previewFilePaths]);
+
+  useEffect(() => {
+    if (!shouldFetchPreviews) return;
+    setHasSkippedFigures(false);
+    figuresAutoAttempts.current = 0;
+    setFiguresFetchFinished(false);
+  }, [shouldFetchPreviews]);
+
+  useEffect(() => {
+    if (
+      !shouldResetFiguresAutoAttemptsForPendingKey({
+        previousKey: lastPendingFigurePathsKeyRef.current,
+        nextKey: pendingFigurePathsSignature,
+      })
+    ) {
+      return;
+    }
+    lastPendingFigurePathsKeyRef.current = pendingFigurePathsSignature;
+    figuresAutoAttempts.current = 0;
+    if (shouldClearFiguresFetchFinishedForPendingKey({ nextKey: pendingFigurePathsSignature })) {
+      setFiguresFetchFinished(false);
+    }
+  }, [pendingFigurePathsSignature]);
 
   useEffect(() => {
     if (!shouldFetchPreviews) {
@@ -676,8 +1359,40 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     }
     if (hasTriggeredFetchPreviews.current || fetchPreviewsFetcher.state !== 'idle') return;
     hasTriggeredFetchPreviews.current = true;
-    fetchPreviewsFetcher.submit({ intent: 'fetch-previews' }, { method: 'POST' });
+    fetchPreviewsFetcher.submit(
+      { intent: 'fetch-previews', uploadFlowTrigger: 'auto' },
+      { method: 'POST' },
+    );
   }, [shouldFetchPreviews, fetchPreviewsFetcher.state, fetchPreviewsFetcher]);
+
+  useEffect(() => {
+    if (!shouldFetchPreviewFigures) {
+      figuresAutoAttempts.current = 0;
+      return;
+    }
+    if (
+      !shouldAutoSubmitFiguresFetch({
+        shouldFetchPreviewFigures,
+        fetcherState: fetchPreviewFiguresFetcher.state,
+        autoAttempts: figuresAutoAttempts.current,
+      })
+    ) {
+      return;
+    }
+    figuresAutoAttempts.current = nextAutoFiguresAttempts(figuresAutoAttempts.current);
+    fetchPreviewFiguresFetcher.submit({ intent: 'fetch-preview-figures' }, { method: 'POST' });
+  }, [shouldFetchPreviewFigures, fetchPreviewFiguresFetcher.state, fetchPreviewFiguresFetcher]);
+
+  useEffect(() => {
+    const transition = applyFiguresFetcherStateTransition({
+      fetcherState: fetchPreviewFiguresFetcher.state,
+      wasInFlight: figuresFetchWasInFlight.current,
+    });
+    figuresFetchWasInFlight.current = transition.wasInFlight;
+    if (transition.fetchFinished) {
+      setFiguresFetchFinished(true);
+    }
+  }, [fetchPreviewFiguresFetcher.state]);
 
   // Show toast when fetch-previews action returns an error
   useEffect(() => {
@@ -686,76 +1401,168 @@ export default function WorksUpload({ loaderData }: Route.ComponentProps) {
     }
   }, [fetchPreviewsFetcher.state, fetchPreviewsFetcher.data]);
 
+  useEffect(() => {
+    if (fetchPreviewFiguresFetcher.state === 'idle' && fetchPreviewFiguresFetcher.data?.error) {
+      ui.toastError(fetchPreviewFiguresFetcher.data.error.message);
+    }
+  }, [fetchPreviewFiguresFetcher.state, fetchPreviewFiguresFetcher.data]);
+
+  // Re-kick preview generation after the user retries a skipped preview. The
+  // auto-fetch effect above will not fire again on its own once it has run, so
+  // resubmit here (only when idle) to restart the generation + busy state.
+  const handleRetryPreview = useCallback(() => {
+    if (fetchPreviewsFetcher.state !== 'idle') return;
+    hasTriggeredFetchPreviews.current = true;
+    figuresAutoAttempts.current = 0;
+    setFiguresFetchFinished(false);
+    setHasSkippedFigures(false);
+    fetchPreviewsFetcher.submit(
+      { intent: 'fetch-previews', uploadFlowTrigger: 'manual_preview_retry' },
+      { method: 'POST' },
+    );
+  }, [fetchPreviewsFetcher]);
+
+  const handleRetryFigures = useCallback(() => {
+    if (!shouldManualRetryFigures(fetchPreviewFiguresFetcher.state)) return;
+    setHasSkippedFigures(false);
+    setFiguresFetchFinished(false);
+    fetchPreviewFiguresFetcher.submit(
+      { intent: 'fetch-preview-figures', force: 'true' },
+      { method: 'POST' },
+    );
+  }, [fetchPreviewFiguresFetcher]);
+
+  const handleSkipFigures = useCallback(() => {
+    setHasSkippedFigures(true);
+  }, []);
+
   const isGeneratingPreviews =
     fetchPreviewsFetcher.state === 'loading' || fetchPreviewsFetcher.state === 'submitting';
-  const isPreviewsLoading = revalidator.state === 'loading' || isGeneratingPreviews;
+  const isGeneratingFigures =
+    !hasSkippedFigures &&
+    (fetchPreviewFiguresFetcher.state === 'loading' ||
+      fetchPreviewFiguresFetcher.state === 'submitting');
+  const isPreviewsLoading =
+    isGeneratingPreviews ||
+    (revalidator.state === 'loading' && !isGeneratingFigures && !shouldFetchPreviewFigures);
+  const rotatingPreviewMessage = useRotatingMessage(PREVIEW_BUSY_MESSAGES, isGeneratingPreviews);
   const previewOverlayMessage = isGeneratingPreviews
-    ? 'Generating previews…'
+    ? rotatingPreviewMessage
     : 'Refreshing previews…';
+  const previewError = fetchPreviewsFetcher.data?.error?.message ?? null;
+  const thumbnailLocators = useMemo(
+    () =>
+      buildThumbnailCandidateLocators(
+        collectAllFigures(previewList).map(({ figure }) => encodeFigureLocator(figure.key)),
+        inheritedThumbnail?.key,
+      ),
+    [previewList, inheritedThumbnail?.key],
+  );
+  const effectiveSelectedThumbnail = useMemo(
+    () => resolveThumbnailSelection(thumbnailLocators, selectedThumbnail),
+    [thumbnailLocators, selectedThumbnail],
+  );
+  const figuresExtractionSucceededWithNoFigures =
+    previewFilePaths.length > 0 &&
+    resolvePreviewImagePresence(previewFilePaths, previewList) === 'absent';
+
+  useEffect(() => {
+    setAuthorMetadata(authorFieldMetadata);
+  }, [authorFieldMetadata]);
 
   return (
-    <MainWrapper>
-      <PageFrame
-        title={pageTitle}
-        subtitle={pageSubtitle}
-        hasSecondaryNav={false}
-        className="space-y-16 max-w-none text-left"
-      >
-        <SectionWithHeading
-          heading="Upload your manuscript"
-          icon={<Upload className="w-5 h-5" />}
-          className="space-y-4 max-w-3xl"
+    <CheckMaintenanceProvider maintenanceByServiceId={maintenanceByServiceId}>
+      <MainWrapper>
+        <PageFrame
+          title={pageTitle}
+          subtitle={pageSubtitle}
+          hasSecondaryNav={false}
+          className="space-y-16 max-w-none text-left"
         >
-          <p className="text-md text-muted-foreground">
-            Upload one or more manuscript files (DOCX or PDF), up to 100 MB total. Individual check
-            services may have stricter limits.
-          </p>
-          <WorkFileUpload
-            cdnKey={cdnKey}
-            config={uploadConfig['manuscript']}
-            loadedFileMetadata={metadata as any}
-            onFilesSelected={suggestArticleTitleFromSelectedFiles}
-          />
-        </SectionWithHeading>
-        {hasMetadataPreviewScope ? (
-          <React.Suspense
-            fallback={<p className="text-sm text-muted-foreground">Loading DOCX previews…</p>}
+          <SectionWithHeading
+            heading="Upload your manuscript"
+            icon={<Upload className="w-5 h-5" />}
+            className="space-y-4 max-w-3xl"
           >
-            <MetadataPreviewSection
-              previewList={previewList}
-              isPreviewsLoading={isPreviewsLoading}
-              previewOverlayMessage={previewOverlayMessage}
-              extractedMetadata={extractedMetadata}
-              title={title}
-              authors={authors}
+            <p className="text-md text-muted-foreground">
+              Preferably MS Word (.docx) of up to 100 MB (although PDF files will also be accepted).
+              See messages on individual check services below for any stricter limits they may
+              impose.
+            </p>
+            <WorkFileUpload
+              cdnKey={cdnKey}
+              config={uploadConfig['manuscript']}
+              loadedFileMetadata={metadata as any}
+              onFilesSelected={suggestArticleTitleFromSelectedFiles}
             />
-          </React.Suspense>
-        ) : (
-          <CaptureMetadataSection title={title} authors={authors} />
-        )}
-        <SectionWithHeading
-          heading="Select Checks to Run"
-          icon={<CheckSquare className="w-5 h-5" />}
-          className="space-y-4 max-w-5xl"
-        >
-          <p className="text-muted-foreground">
-            Choose which checks you'd like to run on your work.
-          </p>
-          <WorkUploadChecksForm
-            enabled={metadata.checks?.enabled || []}
-            checkServices={checkServices}
-            workVersionId={workVersionId!}
+          </SectionWithHeading>
+          {hasMetadataExtractScope ? (
+            <React.Suspense
+              fallback={<p className="text-sm text-muted-foreground">Loading document previews…</p>}
+            >
+              <MetadataExtractSection
+                previewList={previewList}
+                isPreviewsLoading={isPreviewsLoading}
+                previewOverlayMessage={previewOverlayMessage}
+                previewError={previewError}
+                extractedMetadata={extractedMetadata}
+                title={title}
+                authorMetadata={authorMetadata}
+                onAuthorMetadataChange={setAuthorMetadata}
+                previewCandidateFileCount={previewFilePaths.length}
+                onRetryPreview={handleRetryPreview}
+              />
+            </React.Suspense>
+          ) : (
+            <CaptureMetadataSection
+              title={title}
+              authorMetadata={authorMetadata}
+              onAuthorMetadataChange={setAuthorMetadata}
+            />
+          )}
+          {hasMetadataExtractScope ? (
+            <ChooseThumbnailSection
+              previewList={previewList}
+              value={effectiveSelectedThumbnail}
+              onChange={setSelectedThumbnail}
+              pinnedThumbnail={inheritedThumbnail ?? null}
+              isFiguresLoading={isGeneratingFigures}
+              showFiguresRetry={shouldShowFiguresRetry({
+                figuresFetchFinished,
+                isGeneratingFigures,
+                figuresExtractionSucceededWithNoFigures,
+              })}
+              onRetryFigures={handleRetryFigures}
+              onSkipFigures={handleSkipFigures}
+            />
+          ) : null}
+          {hasChecksFeature && canDispatchChecks ? (
+            <SectionWithHeading
+              heading="Select Checks to Run"
+              icon={<CheckSquare className="w-5 h-5" />}
+              className="space-y-4 max-w-5xl"
+            >
+              <p className="text-muted-foreground">
+                Choose which checks you'd like to run on your work.
+              </p>
+              <WorkUploadChecksForm
+                enabled={metadata.checks?.enabled || []}
+                checkServices={checkServices}
+                workVersionId={workVersionId!}
+                metadata={metadata}
+                uploadCheckLogoUrls={loaderData.uploadCheckLogoUrls}
+              />
+            </SectionWithHeading>
+          ) : null}
+          <ContinueForm
+            title={title}
+            authorMetadata={authorMetadata}
             metadata={metadata}
-            textIntegrityLogoUrl={loaderData.textIntegrityLogoUrl}
+            checkServices={checkServices}
+            selectedThumbnail={effectiveSelectedThumbnail}
           />
-        </SectionWithHeading>
-        <ContinueForm
-          title={title}
-          authors={authors}
-          metadata={metadata}
-          checkServices={checkServices}
-        />
-      </PageFrame>
-    </MainWrapper>
+        </PageFrame>
+      </MainWrapper>
+    </CheckMaintenanceProvider>
   );
 }

@@ -1,20 +1,20 @@
 import type { Route } from './+types/route';
 import { withAppPlatformAdminContext, getPrismaClient } from '@curvenote/scms-server';
 import {
-  ui,
-  primitives,
   PageFrame,
-  SectionWithHeading,
+  ui,
   useDeploymentConfig,
-  getExtensionIcon,
   sanitizeExtensionAdminConfig,
-  ExtensionAdminCardFallback,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { data } from 'react-router';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
+import { ExtensionAdminTabContent } from './ExtensionAdminTabContent';
+import { ExternalSitesTab } from './ExternalSitesTab';
+
+const EXTERNAL_SITES_TAB = 'external-sites';
 
 const extensionActionSchema = zfd.formData({
   intent: zfd.text(z.string().min(1, 'Intent is required')),
@@ -79,120 +79,50 @@ export async function action(args: Route.ActionArgs) {
   return data({ error: { type: 'general', message: 'Unknown intent' } }, { status: 400 });
 }
 
+function getExtensionTabLabel(extensionId: string): string {
+  const clientExt = extensions.find((e) => e.id.toLowerCase() === extensionId.toLowerCase());
+  return clientExt?.name ?? extensionId;
+}
+
 export default function ExtensionsPage({ loaderData }: Route.ComponentProps) {
   const { sites, extensionAdminConfigs } = loaderData;
 
   const deploymentConfig = useDeploymentConfig();
   const extensionsConfig = deploymentConfig.extensions ?? {};
+  const extensionEntries = Object.entries(extensionsConfig);
+  const defaultTab = extensionEntries[0]?.[0] ?? EXTERNAL_SITES_TAB;
 
   return (
-    <PageFrame title="Extensions">
-      <SectionWithHeading heading="Configured Extensions">
-        <div className="flex flex-col gap-4">
-          {Object.entries(extensionsConfig ?? {}).map(([name, extension]) => {
-            const ExtensionIcon = getExtensionIcon(extensions, name);
-            const clientExt = extensions.find((e) => e.id.toLowerCase() === name.toLowerCase());
-            const AdminCardComponent = clientExt?.getExtensionAdminCard?.();
-            const safeConfig = extensionAdminConfigs?.[name];
-
-            return (
-              <primitives.Card key={name} lift>
-                <div className="p-4">
-                  {safeConfig !== undefined && !AdminCardComponent && (
-                    <ExtensionAdminCardFallback
-                      name={name}
-                      extension={extension}
-                      record={safeConfig}
-                      ExtensionIcon={ExtensionIcon}
-                    />
-                  )}
-                  {safeConfig !== undefined && AdminCardComponent && (
-                    <AdminCardComponent
-                      name={name}
-                      extension={extension}
-                      record={safeConfig}
-                      ExtensionIcon={ExtensionIcon}
-                    />
-                  )}
-                </div>
-              </primitives.Card>
-            );
-          })}
-        </div>
-      </SectionWithHeading>
-      <SectionWithHeading heading="External Sites">
-        <div className="space-y-4">
-          {sites.map((site) => (
-            <primitives.Card key={site.id} lift>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h2 className="text-xl font-semibold">{site.title}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">{site.description}</p>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {site.private ? 'Private' : 'Public'} •{' '}
-                    {site.restricted ? 'Restricted' : 'Open'} Access
-                  </div>
-                </div>
-
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div>
-                    <h3 className="mb-2 text-sm font-medium">Domains</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {site.domains.map((domain) => (
-                        <ui.Badge key={domain.id} variant="default">
-                          {domain.hostname}
-                        </ui.Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="mb-2 text-sm font-medium">Default Workflow</h3>
-                    <p className="text-sm text-muted-foreground">{site.default_workflow}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="mb-2 text-sm font-medium">Submission Kinds</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {site.submissionKinds.map((kind) => {
-                        const content = kind.content as { title?: string };
-                        return (
-                          <ui.Badge key={kind.id} variant="default">
-                            {content?.title || kind.name}
-                          </ui.Badge>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="mb-2 text-sm font-medium">Collections</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {site.collections.map((collection) => {
-                        const content = collection.content as { title?: string };
-                        return (
-                          <ui.Badge key={collection.id} variant="default">
-                            {content?.title || collection.name}
-                          </ui.Badge>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <details className="mt-6">
-                  <summary className="text-sm font-medium cursor-pointer">Site Metadata</summary>
-                  <pre className="overflow-auto p-4 mt-2 text-sm rounded-md bg-muted">
-                    {JSON.stringify(site.metadata, null, 2)}
-                  </pre>
-                </details>
-              </div>
-            </primitives.Card>
+    <PageFrame
+      title="Extensions"
+      subtitle="Manage extension configuration and external publishing sites"
+      className="mx-auto max-w-screen-lg"
+    >
+      <ui.Tabs defaultValue={defaultTab} className="space-y-2">
+        <ui.TabsList>
+          {extensionEntries.map(([extensionId]) => (
+            <ui.TabsTrigger key={extensionId} value={extensionId}>
+              {getExtensionTabLabel(extensionId)}
+            </ui.TabsTrigger>
           ))}
-        </div>
-      </SectionWithHeading>
+          <ui.TabsTrigger value={EXTERNAL_SITES_TAB}>External Sites</ui.TabsTrigger>
+        </ui.TabsList>
+
+        {extensionEntries.map(([extensionId, extension]) => (
+          <ui.TabsContent key={extensionId} value={extensionId} className="space-y-2">
+            <ExtensionAdminTabContent
+              extensionId={extensionId}
+              extension={extension}
+              safeConfig={extensionAdminConfigs?.[extensionId]}
+              clientExtensions={extensions}
+            />
+          </ui.TabsContent>
+        ))}
+
+        <ui.TabsContent value={EXTERNAL_SITES_TAB} className="space-y-2">
+          <ExternalSitesTab sites={sites} />
+        </ui.TabsContent>
+      </ui.Tabs>
     </PageFrame>
   );
 }

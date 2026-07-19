@@ -1,5 +1,97 @@
 # @curvenote/scms-core
 
+## 0.24.0
+
+### Minor Changes
+
+- [#1014](https://github.com/curvenote/curvenote/pull/1014) [`b3f163e`](https://github.com/curvenote/curvenote/commit/b3f163e48e63f1da68a028387c84c345bc99fa1b) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add extension-owned submit-to-site delegation. Extensions may declare operated sites and an optional `submitToSite` handler; core routes by declaration (delegate or fail, no fallback).
+
+### Patch Changes
+
+- [#1016](https://github.com/curvenote/curvenote/pull/1016) [`dbd46ba`](https://github.com/curvenote/curvenote/commit/dbd46bad59784b91ce706f74bd6d16be9b26dda5) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add `sortLast` to work create options so entries like Article can be listed after extension flows in the My Works create dropdown; extension options still sort by `order` (default 100).
+
+- [#1003](https://github.com/curvenote/curvenote/pull/1003) [`9b252f7`](https://github.com/curvenote/curvenote/commit/9b252f7246b13ccd6f39dd22e0e16da475c8272e) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add an expandable system cron create form with Zod validation, live schedule preview, relative target paths, auto-derived scoped-handshake scopes, and submit toasts. Add `/v1/loopback` as a scoped-handshake test endpoint for cron jobs.
+
+- [#1016](https://github.com/curvenote/curvenote/pull/1016) [`dbd46ba`](https://github.com/curvenote/curvenote/commit/dbd46bad59784b91ce706f74bd6d16be9b26dda5) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Limit work upload manuscript slot to a single file until multi-file handling improves: set `multiple: false` and `maxFiles: 1`, update upload page copy, and use singular dropzone helper text when multi-upload is disabled.
+
+- [#1012](https://github.com/curvenote/curvenote/pull/1012) [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Raise default tooltip and hover-card open delays to 800ms so works-area hover hints and timeline popovers are less sensitive.
+
+- [#1002](https://github.com/curvenote/curvenote/pull/1002) [`4d4cdf9`](https://github.com/curvenote/curvenote/commit/4d4cdf9ba432cea9f5d8f6efc32dca4b1dde68fd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add shared manuscript format helpers and upload analysis utilities for check eligibility. Hoist `isPreviewCandidate` and manuscript MIME configuration into scms-core, persistable `upload.analysis` metadata keys, source-signature helpers, and `UploadCheckEligibilityContext` / `UploadFactPresence` types. Extend `ExtensionCheckService.isUploadEligible` with an optional eligibility context so checks can gate on document and metadata facts without re-parsing uploads.
+
+- [#1006](https://github.com/curvenote/curvenote/pull/1006) [`d9bdaf3`](https://github.com/curvenote/curvenote/commit/d9bdaf35369c330ae230f32301670e569f7229f7) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a route-local author metadata summary for the upload flow. `AuthorMetadataForm` defaults to a read-only `AuthorSummaryView` (names, affiliations, ORCID, corresponding icon) with an Edit toggle into the shared `AuthorField` editor. Normalize ORCID URLs from extracted MyST frontmatter to canonical ids so summary badges render reliably. Tidy the add-author ORCID placeholder input by removing the dashed card wrapper and boxed combo trigger.
+
+- [#1002](https://github.com/curvenote/curvenote/pull/1002) [`4d4cdf9`](https://github.com/curvenote/curvenote/commit/4d4cdf9ba432cea9f5d8f6efc32dca4b1dde68fd) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add upload check warning eligibility state. Extensions can return `eligible`, `warning`, or `ineligible` from `resolveUploadEligibility`; the platform renders warning cards with amber chrome and advisory messages without blocking submission.
+
+- [#1012](https://github.com/curvenote/curvenote/pull/1012) [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Upload form polish: lay out upload check option cards in a single column below the `sm` breakpoint, and show the thumbnail row/grid layout toggle only when the gallery overflows in row mode.
+
+- [#1021](https://github.com/curvenote/curvenote/pull/1021) [`fa99ddf`](https://github.com/curvenote/curvenote/commit/fa99ddf09b0ccee30ffcf64191865aace53731ad) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Rename version-scoped document preview cache Object ids from `docx:preview:v3:` to `upload:preview:` (PDF and DOCX alike). Delete legacy `docx:preview:v3`, `docx:preview:v2`, and md5-only rows on confirm-work cleanup, draft work deletion, and preview artifact removal. When cloning a draft version, seed preview cache from legacy source rows when the new-prefix row is absent.
+
+- [#1010](https://github.com/curvenote/curvenote/pull/1010) [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Refresh shared work and submission version timeline hover cards. Add compact `v{n}` badges with a GitBranch icon, stack created/modified dates and site/check badges for clearer scanning, soften submission site chip rings, and size the popover to its content with a modest minimum width.
+
+- [#1009](https://github.com/curvenote/curvenote/pull/1009) [`a8a5f25`](https://github.com/curvenote/curvenote/commit/a8a5f2572865c1416fa7ab43e816d0f9fbe6f247) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Move checks dispatch from global `app:works:checks:dispatch` to per-work `work:checks:dispatch` for owners and contributors, grant all work roles `work:checks:read`, and gate checks UI visibility on `app:works:checks:feature`. Viewers can see check results and timelines but cannot run checks, retry failed runs, or trigger third-party report flows; platform routes reject dispatch intents without the work scope. Extension activity mounts receive `canDispatchChecks` and omit action paths for read-only users.
+
+- [#1025](https://github.com/curvenote/curvenote/pull/1025) [`ddffbe1`](https://github.com/curvenote/curvenote/commit/ddffbe181b85720bed153a87d7a943243f355a99) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Rename `app.webVersionPreviewUrl` to `app.workVersionPreviewUrl`. Hardcode preview JWT audiences (`scms-preview` for submissions, `scms-work-preview` for work versions) beside the existing scope constants in preview token minting.
+
+- [#1008](https://github.com/curvenote/curvenote/pull/1008) [`99c891c`](https://github.com/curvenote/curvenote/commit/99c891ca8f404c800595fa0a0ccc2149a873bb46) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improve work user access controls and scope consistency. Rename the work users read scope to `work:users:read`, grant viewers read access to the work users list, and gate the "Who can access this?" menu item on that scope. On the work users page, show role removal controls and the add-user form only for users with `work:users:update` (owners and system admins); contributors and viewers can still read the list to identify owners.
+
+- [#1012](https://github.com/curvenote/curvenote/pull/1012) [`8809f35`](https://github.com/curvenote/curvenote/commit/8809f35c186077f79a2f1cc4e435dd271709c2d0) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Improve the work checks page. Show `v{n}` version badges on timeline headers, latest-run card footers, and the Check Latest Version button; order check sections alphabetically by extension name; compute the latest version number in the loader so the CTA no longer falls back to `v0`; and tighten activity card padding. Add `sortExtensionCheckServicesByExtensionName` in core for stable section ordering.
+
+- Updated dependencies [[`86ba389`](https://github.com/curvenote/curvenote/commit/86ba3890e1921bfaa0eb39963d6c607f0358a90c), [`296f7ee`](https://github.com/curvenote/curvenote/commit/296f7ee2664f475efcb8082680d0adfdb3a8b912)]:
+  - @curvenote/scms-db@0.24.0
+
+## 0.23.0
+
+### Minor Changes
+
+- [#978](https://github.com/curvenote/curvenote/pull/978) [`c815443`](https://github.com/curvenote/curvenote/commit/c815443cda6ec2f0f6e9d2547f3c257d709b56ce) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a create-work flow registry with `WorkCreateOption`, metadata resolution, and a `CreateWorkDropdown` on My Works. Route create-new-version via extension handlers based on work metadata, and skip the upload redirect for draft PMC deposit routes in the works layout.
+
+- [#982](https://github.com/curvenote/curvenote/pull/982) [`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add cron-backed platform automation for scheduled jobs and check retries. This introduces CronJob schema and admin UI, scoped cron callback authentication, scheduled job promotion, cron-driven queue drain, queue pause/resume controls, CheckServiceRun retry columns, and related job-queue hardening for automated execution.
+
+- [#980](https://github.com/curvenote/curvenote/pull/980) [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add scope-gated submit-to-site from the work details page. Users with `app:works:submit-to-site` can pick a work version and submit to an available SCMS site from the Submitted to bar; others see guidance with a link to contact support for early access.
+
+- [#980](https://github.com/curvenote/curvenote/pull/980) [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Document extension `createWorkVersion` contains contract. Manual POST `/v1/works` defaults omitted `contains` to `["myst"]` on work and first version; site form versions store explicit `[]`.
+
+### Patch Changes
+
+- [#977](https://github.com/curvenote/curvenote/pull/977) [`9848bab`](https://github.com/curvenote/curvenote/commit/9848bab45b66aeb61599c019e25803f504cb75d2) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Show latest check run summaries on the My Works listing and Work Timeline popover, and add an extension slot for compact work list check summary content.
+
+- [#984](https://github.com/curvenote/curvenote/pull/984) [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Items relating to site submissions wiihtin the work item secondary navigation are not nested under a submissions expandable mentu item
+
+- [#984](https://github.com/curvenote/curvenote/pull/984) [`66f929c`](https://github.com/curvenote/curvenote/commit/66f929cd87d97ee248a12ee0a826d7345449efcf) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Polish My Works check and submission badges: align work-list chip sizing, lighten site submission badge borders, tighten stacked checks timeline layout, and load the text-integrity design manifest from configured service status.
+
+- Updated dependencies [[`a01a2b6`](https://github.com/curvenote/curvenote/commit/a01a2b6b6063a494cd6e017290c02f5560ee8f8f), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240), [`b73c4d6`](https://github.com/curvenote/curvenote/commit/b73c4d6b5ead5cfa1d9fba5c1febfd152d693240)]:
+  - @curvenote/scms-db@0.23.0
+
+## 0.22.2
+
+### Patch Changes
+
+- Updated dependencies [[`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc), [`8532017`](https://github.com/curvenote/curvenote/commit/85320170f6160eae9933609085439eaddfb411bc)]:
+  - @curvenote/scms-db@0.22.2
+
+## 0.22.1
+
+### Patch Changes
+
+- [#971](https://github.com/curvenote/curvenote/pull/971) [`30620e8`](https://github.com/curvenote/curvenote/commit/30620e8d66a2c77d0792ca9dab3eeaebc1f226fc) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Switch to the version timeline in place of the versions table and activities listing
+
+- Updated dependencies [[`2faf9f0`](https://github.com/curvenote/curvenote/commit/2faf9f02ef08f2e21542f7e88b1af2c4da8084a7), [`0e03393`](https://github.com/curvenote/curvenote/commit/0e03393d823fd60a244023c24f4f557e85a00b82)]:
+  - @curvenote/scms-db@0.22.1
+
+## 0.22.0
+
+### Minor Changes
+
+- [#959](https://github.com/curvenote/curvenote/pull/959) [`5bf11b9`](https://github.com/curvenote/curvenote/commit/5bf11b9b65b9b623675994a73571b03fa2eeb945) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add check service maintenance mode. Admins can toggle a per-service maintenance state (stored on the extension config Object row) that blocks outbound check actions and new job starts while leaving webhooks and in-flight jobs running. Provides shared building blocks: maintenance types/parsers, server guards, a `CheckMaintenanceProvider` with `useCheckMaintenanceBlocked`/`useAnyCheckMaintenanceBlocked` hooks, a `CheckMaintenanceAdminPanel`, and a `MaintenanceTooltip` that surfaces over disabled controls.
+
+  On the work upload flow, a selected check whose service is under maintenance no longer blocks submission: it is skipped (not initiated) and the work is created as though it was never selected, with an informational note shown next to Continue.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/check-definitions@0.16.5
+  - @curvenote/scms-db@0.22.0
+
 ## 0.21.0
 
 ### Minor Changes

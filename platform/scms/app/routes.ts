@@ -122,6 +122,7 @@ export default [
       route('email-test', 'routes/app/system.email-test/route.tsx'),
       route('services', 'routes/app/system.services/route.tsx'),
       route('jobs', 'routes/app/system.jobs/route.tsx'),
+      route('cron', 'routes/app/system.cron/route.tsx'),
       route('design', 'routes/app/system.design/route.tsx'),
       route('users', 'routes/app/system.users/route.tsx'),
       route('analytics-dashboards', 'routes/app/system.analytics-dashboards/route.tsx'),
@@ -186,7 +187,7 @@ export default [
 
   // API V1 Routes
   route('v1', 'routes/api/v1.tsx', [
-    route('previews/:submissionVersionId', 'routes/api/v1.previews.$submissionVersionId.tsx'),
+    route('previews/:id', 'routes/api/v1.previews.$id.tsx'),
 
     // My Routes
     route('my/submissions', 'routes/api/v1.my.submissions.tsx', [
@@ -283,14 +284,20 @@ export default [
             ':workVersionId/files',
             'routes/api/v1.works.$workId.versions.$workVersionId.files.tsx',
           ),
+          route(
+            ':workVersionId/contains',
+            'routes/api/v1.works.$workId.versions.$workVersionId.contains.tsx',
+          ),
         ]),
       ]),
     ]),
 
-    // Jobs API Routes (static paths before jobs/:jobId so "dispatch" is not a job id)
+    // Jobs API Routes (static paths before jobs/:jobId so push-to-drain is not a job id)
     route('jobs', 'routes/api/v1.jobs.tsx'),
-    route('jobs/dispatch', 'routes/api/v1.jobs.dispatch/route.tsx'),
-    route('jobs/dispatch/dlq', 'routes/api/v1.jobs.dispatch/dlq.route.tsx'),
+    route('jobs/push-to-drain', 'routes/api/v1.jobs.push-to-drain/route.tsx'),
+    route('jobs/promote-scheduled', 'routes/api/v1.jobs.promote-scheduled/route.tsx'),
+    route('cron/tick', 'routes/api/v1.cron.tick/route.tsx'),
+    route('loopback', 'routes/api/v1.loopback/route.tsx'),
     route('jobs/:jobId', 'routes/api/v1.jobs.$jobId.tsx'),
 
     route('keys', 'routes/api/v1.keys.tsx'),

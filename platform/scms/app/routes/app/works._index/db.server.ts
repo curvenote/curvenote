@@ -7,8 +7,18 @@ import {
 } from '@curvenote/scms-server';
 import type { WorkRole, WorkVersion } from '@curvenote/scms-db';
 import type { SecureContext } from '@curvenote/scms-server';
+import { allPreviewCacheObjectIdsForCleanup } from '../works.$workId.upload.$workVersionId/metadata-extract/previewCache';
+import { dbGetCheckServiceRunsByWorkVersionIds } from '../works.$workId/db.server';
+import {
+  getCheckRunSummaryByKind,
+  selectWorkListVisibleRunsByServiceKind,
+} from '../works.$workId/checkServiceRunSummaries';
+import {
+  getWorkListCheckServices,
+  isWorkListCheckRunVisible,
+} from './getWorkListCheckServices.server';
 
-export async function dbGetWorksAndSubmissionVersions(userId: string) {
+export async function dbGetWorksAndSubmissionVersions(userId: string, config: AppConfig) {
   const prisma = await getPrismaClient();
   const works = await prisma.work.findMany({
     where: {
@@ -26,6 +36,12 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
         select: {
           role: true,
         },
+      },
+      activity: {
+        orderBy: {
+          date_created: 'desc',
+        },
+        take: 1,
       },
       submissions: {
         include: {
@@ -117,9 +133,32 @@ export async function dbGetWorksAndSubmissionVersions(userId: string) {
   });
 
   // Drop works that are single-version + single DRAFT-only submission (no visible submissions)
-  return mapped
+  const visibleWorks = mapped
     .filter((w) => !w.excludeAsSingleDraftSubmissionWork)
-    .map(({ excludeAsSingleDraftSubmissionWork: _dropped, ...w }) => w);
+    .map((work) => {
+      const { excludeAsSingleDraftSubmissionWork, ...visibleWork } = work;
+      void excludeAsSingleDraftSubmissionWork;
+      return visibleWork;
+    });
+
+  const nonDraftVersionIds = visibleWorks.flatMap((work) =>
+    work.versions.filter((version) => !version.draft).map((version) => version.id),
+  );
+  const runsByVersionId = await dbGetCheckServiceRunsByWorkVersionIds(nonDraftVersionIds);
+  const workListCheckServices = getWorkListCheckServices(config);
+
+  return visibleWorks.map((work) => {
+    const nonDraftVersions = work.versions.filter((version) => !version.draft);
+    const checkRunSummary = getCheckRunSummaryByKind(nonDraftVersions, runsByVersionId);
+    const workListCheckRunsByServiceKind = selectWorkListVisibleRunsByServiceKind(
+      checkRunSummary,
+      (kind, metadata) => isWorkListCheckRunVisible(workListCheckServices, kind, metadata),
+    );
+    return {
+      ...work,
+      workListCheckRunsByServiceKind,
+    };
+  });
 }
 
 /**
@@ -248,6 +287,20 @@ export async function dangerouslyDeleteDraftWork(
   // Store versions for file deletion after transaction
   const workVersions = work.versions;
 
+  // Version-scoped document-preview cache rows (Object table) for these versions. These
+  // aren't reachable via foreign keys (they're keyed by work-version id + file md5), so
+  // they must be cleaned up explicitly or they leak when a draft is deleted before
+  // confirm-work would have reclaimed them. Strictly version-scoped: never touches rows
+  // belonging to another work/version (e.g. a byte-identical file in someone else's
+  // still-open upload screen).
+  const previewCacheIds = Array.from(
+    new Set(
+      workVersions.flatMap((version) =>
+        allPreviewCacheObjectIdsForCleanup(version.id, version.metadata),
+      ),
+    ),
+  );
+
   // Delete in the correct order to handle foreign key constraints
   await prisma.$transaction(async (tx) => {
     // Delete all work versions
@@ -259,6 +312,13 @@ export async function dangerouslyDeleteDraftWork(
     await tx.workUser.deleteMany({
       where: { work_id: workId },
     });
+
+    // Delete the version-scoped preview cache rows.
+    if (previewCacheIds.length > 0) {
+      await tx.object.deleteMany({
+        where: { id: { in: previewCacheIds } },
+      });
+    }
 
     // Delete the work itself
     await tx.work.delete({

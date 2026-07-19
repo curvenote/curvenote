@@ -13,10 +13,12 @@ import type {
   SiteWithAppData,
   SubmissionDetailSlugRow,
 } from './types.js';
+import type { TimelineCheckServiceRunRow } from '@curvenote/scms-core';
 
 const submissionDetailVersionSelect = {
   id: true,
   status: true,
+  tags: true,
   date_created: true,
   date_published: true,
   job_id: true,
@@ -42,6 +44,7 @@ export type SubmissionDetailRow = {
   versions: {
     id: string;
     status: string;
+    tags: string[];
     date_created: string;
     date_published: string | null;
     job_id: string | null;
@@ -65,6 +68,7 @@ export type SubmissionDetailRow = {
     activity_type: string;
     status: string | null;
     date_published: string | null;
+    data: Prisma.JsonValue;
     activity_by: { id: string; display_name: string | null };
     kind: { name: string } | null;
     submission_version: { id: string; date_created: string } | null;
@@ -119,6 +123,7 @@ export async function dbLoadSubmissionDetail(
             activity_type: true,
             status: true,
             date_published: true,
+            data: true,
             activity_by: { select: { id: true, display_name: true } },
             kind: { select: { name: true } },
             submission_version: { select: activitySubmissionVersionRefSelect },
@@ -149,6 +154,42 @@ export async function dbLoadSubmissionDetail(
   }
 
   return { submission, collections };
+}
+
+/** Check service runs grouped by work_version_id for submission detail timeline display. */
+export async function dbGetSubmissionCheckServiceRunsByWorkVersionIds(
+  workVersionIds: string[],
+): Promise<Record<string, TimelineCheckServiceRunRow[]>> {
+  if (workVersionIds.length === 0) return {};
+  const prisma = await getPrismaClient();
+  const rows = await prisma.checkServiceRun.findMany({
+    where: { work_version_id: { in: workVersionIds } },
+    orderBy: { date_created: 'desc' },
+    select: {
+      id: true,
+      kind: true,
+      date_created: true,
+      date_modified: true,
+      data: true,
+      work_version_id: true,
+      created_by_id: true,
+    },
+  });
+  const map: Record<string, TimelineCheckServiceRunRow[]> = {};
+  for (const row of rows) {
+    const list = map[row.work_version_id] ?? [];
+    list.push({
+      id: row.id,
+      work_version_id: row.work_version_id,
+      kind: row.kind,
+      date_created: row.date_created,
+      date_modified: row.date_modified,
+      data: row.data,
+      created_by_id: row.created_by_id,
+    });
+    map[row.work_version_id] = list;
+  }
+  return map;
 }
 
 export async function dbListSubmissionSlugRows(

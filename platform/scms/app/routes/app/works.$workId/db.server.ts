@@ -1,19 +1,17 @@
 import { getPrismaClient, StorageBackend, KnownBuckets, Folder } from '@curvenote/scms-server';
 import type { SecureContext } from '@curvenote/scms-server';
 import type { Prisma, WorkVersion } from '@curvenote/scms-db';
+import type { CheckServiceRunRow } from './checkServiceRun.shared';
+import { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
 
 export type LinkedJobWithStatus = { id: string; status: string };
 
-/** Check service run row for timeline (id, work_version_id, kind, dates, data, created_by_id). */
-export type CheckServiceRunRow = {
-  id: string;
-  work_version_id: string;
-  kind: string;
-  date_created: string;
-  date_modified: string;
-  data: unknown;
-  created_by_id: string | null;
-};
+export type { CheckServiceRunRow } from './checkServiceRun.shared';
+export { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
+
+export function filterVisibleCheckServiceRuns(runs: CheckServiceRunRow[]): CheckServiceRunRow[] {
+  return runs.filter((run) => !isCheckServiceRunSupersededByRetry(run));
+}
 
 /** Check service runs grouped by work_version_id (for work details timeline). */
 export async function dbGetCheckServiceRunsByWorkVersionIds(
@@ -30,22 +28,30 @@ export async function dbGetCheckServiceRunsByWorkVersionIds(
       date_created: true,
       date_modified: true,
       data: true,
+      status: true,
       work_version_id: true,
       created_by_id: true,
+      retried: true,
+      successor_id: true,
     },
   });
   const map: Record<string, CheckServiceRunRow[]> = {};
   for (const row of rows) {
-    const list = map[row.work_version_id] ?? [];
-    list.push({
+    const run: CheckServiceRunRow = {
       id: row.id,
       work_version_id: row.work_version_id,
       kind: row.kind,
       date_created: row.date_created,
       date_modified: row.date_modified,
       data: row.data,
+      status: row.status,
       created_by_id: row.created_by_id,
-    });
+      retried: row.retried,
+      successor_id: row.successor_id,
+    };
+    if (isCheckServiceRunSupersededByRetry(run)) continue;
+    const list = map[row.work_version_id] ?? [];
+    list.push(run);
     map[row.work_version_id] = list;
   }
   return map;
@@ -139,6 +145,7 @@ export type WorkVersionWithSubmissionVersions = Prisma.WorkVersionGetPayload<{
     work_id: true;
     cdn: true;
     cdn_key: true;
+    thumbnail: true;
     title: true;
     description: true;
     authors: true;
@@ -151,6 +158,7 @@ export type WorkVersionWithSubmissionVersions = Prisma.WorkVersionGetPayload<{
     occ: true;
     date_modified: true;
     author_details: true;
+    contains: true;
     submissionVersions: {
       select: typeof workDetailsSubmissionVersionSelect;
     };
@@ -171,6 +179,7 @@ export async function dbGetWorkVersionsWithSubmissionVersions(
       work_id: true,
       cdn: true,
       cdn_key: true,
+      thumbnail: true,
       title: true,
       description: true,
       authors: true,
@@ -183,6 +192,7 @@ export async function dbGetWorkVersionsWithSubmissionVersions(
       occ: true,
       date_modified: true,
       author_details: true,
+      contains: true,
       submissionVersions: {
         select: workDetailsSubmissionVersionSelect,
         orderBy: {

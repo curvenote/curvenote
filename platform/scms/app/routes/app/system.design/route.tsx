@@ -1,13 +1,24 @@
 import type { Route } from './+types/route';
 import { withAppAdminContext } from '@curvenote/scms-server';
-import { PageFrame, SystemAdminBadge, ui, primitives, FrameHeader } from '@curvenote/scms-core';
+import {
+  PageFrame,
+  SystemAdminBadge,
+  ui,
+  primitives,
+  FrameHeader,
+  resolveExtensionDesignLoaderData,
+  ExtensionDesignTabLoaderDataProvider,
+} from '@curvenote/scms-core';
 import type { Workflow } from '@curvenote/scms-core';
 import { Palette, ExternalLink } from 'lucide-react';
+import { useLoaderData } from 'react-router';
 import { extensions as clientExtensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
 
 export async function loader(args: Route.LoaderArgs) {
-  await withAppAdminContext(args);
-  return null;
+  const ctx = await withAppAdminContext(args);
+  const extensionDesignLoaderData = await resolveExtensionDesignLoaderData(ctx, serverExtensions);
+  return { extensionDesignLoaderData };
 }
 
 export const meta: Route.MetaFunction = () => {
@@ -213,6 +224,7 @@ function getExtensionDesignTabs(): ExtensionDesignTab[] {
 }
 
 export default function SystemDesign() {
+  const { extensionDesignLoaderData } = useLoaderData<typeof loader>();
   const extensionTabs = getExtensionDesignTabs();
 
   return (
@@ -236,7 +248,9 @@ export default function SystemDesign() {
         </ui.TabsContent>
         {extensionTabs.map((tab) => (
           <ui.TabsContent key={tab.id} value={tab.id} className="mt-6">
-            <tab.Component />
+            <ExtensionDesignTabLoaderDataProvider loaderData={extensionDesignLoaderData?.[tab.id]}>
+              <tab.Component />
+            </ExtensionDesignTabLoaderDataProvider>
           </ui.TabsContent>
         ))}
       </ui.Tabs>

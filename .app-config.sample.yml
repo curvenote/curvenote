@@ -6,6 +6,8 @@ api:
   databaseUrl: 'postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0'
   pubsubProjectId: project-1
   checkTopic: projects/project-1/topics/checks
+  # Workers in Docker cannot reach http://localhost on the host; use host.docker.internal.
+  tasksCallbackUrl: http://host.docker.internal:3031/v1
   # Storage provider configuration (choose one):
   #
   # Option 1: GCS (new style)
@@ -58,11 +60,11 @@ api:
     id: qwerty-123456-zxcvbn-987654
 app:
   renderServiceUrl: 'http://localhost:3000'
+  # Work-version preview theme (not submission previews)
+  workVersionPreviewUrl: 'http://localhost:3810'
   # checks:
   #   relayBaseUrl: https://checks-relay.example.com
   #   relayApiKey: <set in secrets file>
-  #   # Optional: Bearer for cron EULA cache refresh (or use extensions.checks-text-integrity.eulaCronSecret)
-  #   eulaCronSecret: <set in secrets file>
   navigation:
     defaultRoute: works
     items:

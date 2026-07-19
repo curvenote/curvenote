@@ -1,0 +1,116 @@
+import type { EnqueueJobParams, EnqueueJobResult } from '@curvenote/scms-core';
+import { KnownJobTypes } from '@curvenote/scms-core';
+import { JobStatus } from '@curvenote/scms-db';
+import { getPrismaClient } from '../../prisma.server.js';
+import { dispatchJobWithHandshake } from './dispatchJob.server.js';
+import { ensureJobRow } from './ensureJobRow.server.js';
+import { validateEnqueuePublishingScopes } from './validateEnqueuePublishingScopes.server.js';
+
+/** CLI drives lifecycle via PATCH with API token; no queue consumer work. */
+const CLI_TRACKED_JOB_TYPES: ReadonlySet<string> = new Set([KnownJobTypes.CLI_CHECK]);
+
+/**
+ * Insert parent (QUEUED) + optional BLOCKED dependents, mint handshake, dispatch parent only.
+ */
+export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<EnqueueJobResult> {
+  const prisma = await getPrismaClient();
+
+  if (params.job_type === KnownJobTypes.CONVERTER_TASK && !params.activity_type) {
+    params = {
+      ...params,
+      activity_type: 'CONVERTER_TASK_STARTED',
+    };
+  }
+
+  const dependents = params.dependents ?? [];
+
+  console.log('[enqueue] enqueueAndDispatchJob: start', {
+    job_id: params.job_id,
+    job_type: params.job_type,
+    dependent_count: dependents.length,
+  });
+
+  await validateEnqueuePublishingScopes(params);
+
+  const nowIso = new Date().toISOString();
+  const isFutureScheduled = Boolean(params.scheduled_at && params.scheduled_at > nowIso);
+  const parentStatus = isFutureScheduled ? JobStatus.SCHEDULED : JobStatus.QUEUED;
+
+  await prisma.$transaction(async (tx) => {
+    await ensureJobRow(
+      {
+        job_id: params.job_id,
+        job_type: params.job_type,
+        payload: params.payload,
+        invoked_by_id: params.invoked_by_id,
+        activity_type: params.activity_type,
+        results: params.results,
+        scheduled_at: isFutureScheduled ? params.scheduled_at : undefined,
+      },
+      parentStatus,
+      tx,
+    );
+
+    for (const dep of dependents) {
+      await ensureJobRow(
+        {
+          job_id: dep.job_id,
+          job_type: dep.job_type,
+          payload: dep.payload,
+          invoked_by_id: params.invoked_by_id,
+          activity_type: dep.activity_type,
+          depends_on_job_id: params.job_id,
+          trigger_on: dep.trigger_on,
+        },
+        JobStatus.BLOCKED,
+        tx,
+      );
+    }
+  });
+
+  if (CLI_TRACKED_JOB_TYPES.has(params.job_type)) {
+    console.log('[enqueue] enqueueAndDispatchJob: CLI-tracked job — row only, no dispatch', {
+      job_id: params.job_id,
+      job_type: params.job_type,
+    });
+    return {
+      job_id: params.job_id,
+      job_type: params.job_type,
+      status: isFutureScheduled ? 'SCHEDULED' : 'DISPATCHED',
+      dependent_job_ids: dependents.length > 0 ? dependents.map((d) => d.job_id) : undefined,
+    };
+  }
+
+  if (isFutureScheduled) {
+    console.log('[enqueue] enqueueAndDispatchJob: scheduled for future — row only, no dispatch', {
+      job_id: params.job_id,
+      job_type: params.job_type,
+      scheduled_at: params.scheduled_at,
+    });
+    return {
+      job_id: params.job_id,
+      job_type: params.job_type,
+      status: 'SCHEDULED',
+      dependent_job_ids: dependents.length > 0 ? dependents.map((d) => d.job_id) : undefined,
+    };
+  }
+
+  const { messageId } = await dispatchJobWithHandshake({
+    id: params.job_id,
+    job_type: params.job_type,
+  });
+
+  console.log('[enqueue] enqueueAndDispatchJob: dispatched', {
+    job_id: params.job_id,
+    job_type: params.job_type,
+    messageId,
+    dependent_job_ids: dependents.map((d) => d.job_id),
+  });
+
+  return {
+    job_id: params.job_id,
+    job_type: params.job_type,
+    status: 'DISPATCHED',
+    dependent_job_ids: dependents.length > 0 ? dependents.map((d) => d.job_id) : undefined,
+  };
+}

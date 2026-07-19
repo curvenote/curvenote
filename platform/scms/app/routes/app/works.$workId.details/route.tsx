@@ -4,6 +4,7 @@ import {
   joinPageTitle,
   getExtensionCheckServicesFromServerConfig,
   useDeploymentConfig,
+  scopes,
 } from '@curvenote/scms-core';
 import type { MetaFunction } from 'react-router';
 import type { WorkDTO } from '@curvenote/common';
@@ -28,11 +29,22 @@ type WorkUser = {
   work_roles: string[];
 };
 
+type SubmissionTargetSite = {
+  id: string;
+  name: string;
+  title: string;
+  description: string | null;
+  metadata: unknown;
+  external: boolean;
+};
+
 type LoaderData = {
   userScopes: string[];
+  canDispatchChecks: boolean;
   workflows: Record<string, Workflow>;
   work: WorkDTO;
   versions: WorkVersionForDetailsClient[];
+  webVersionPreviewSignatures: Record<string, string>;
   submissions: SubmissionWithVersionsAndSite[];
   linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
   workOwnerName: string | null;
@@ -41,8 +53,11 @@ type LoaderData = {
   canUpload: boolean;
   canResumeDraft: boolean;
   resumeDraftVersionId?: string;
+  resumeDraftUploadPath?: string;
   latestNonDraftContentCard: WorkVersionContentCardData | null;
   users: WorkUser[];
+  canSubmitToSite: boolean;
+  availableSites: SubmissionTargetSite[];
 };
 
 export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
@@ -53,9 +68,11 @@ export const meta: MetaFunction<() => LoaderData> = ({ matches, data }) => {
 export default function WorkDetailRoute() {
   const {
     userScopes,
+    canDispatchChecks,
     workflows,
     work,
     versions,
+    webVersionPreviewSignatures,
     submissions,
     linkedJobsByWorkVersionId,
     workOwnerName,
@@ -64,8 +81,11 @@ export default function WorkDetailRoute() {
     canUpload,
     canResumeDraft,
     resumeDraftVersionId,
+    resumeDraftUploadPath,
     latestNonDraftContentCard,
     users,
+    canSubmitToSite,
+    availableSites,
   } = useRouteLoaderData('routes/app/works.$workId/route') as LoaderData;
 
   const deploymentConfig = useDeploymentConfig();
@@ -86,10 +106,11 @@ export default function WorkDetailRoute() {
 
   const workBasePath = `/app/works/${work.id}`;
   const basePath = `/app/works/${work.id}`;
+  const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
 
   return (
     <div
-      className="relative w-full py-16 pr-4 xl:mt-0 xl:py-[56px] xl:pr-8 2xl:pr-16 xl:pl-10 2xl:pl-16 max-w-[1400px]"
+      className="relative w-full py-16 pr-4 xl:mt-0 xl:py-[56px] xl:pr-8 2xl:pr-16 xl:pl-10 2xl:pl-16"
       data-name="page-frame"
     >
       <div className="space-y-12">
@@ -101,19 +122,32 @@ export default function WorkDetailRoute() {
             workBasePath,
             canResumeDraft,
             resumeDraftVersionId,
+            resumeDraftUploadPath,
           }}
         />
         <div className="space-y-1">
           <WorkDetailsContentCard version={latestNonDraftContentCard} />
-          <SubmittedToBar submissions={submissions} workflows={workflows} basePath={basePath} />
+          <SubmittedToBar
+            submissions={submissions}
+            workflows={workflows}
+            basePath={basePath}
+            canSubmitToSite={canSubmitToSite}
+            availableSites={availableSites}
+            versions={versions}
+            checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
+            checkServices={checkServices}
+            hasChecksFeature={hasChecksFeature}
+          />
         </div>
         <div>
           <WorkVersionTimeline
             versions={versions}
+            webVersionPreviewSignatures={webVersionPreviewSignatures}
             workflows={workflows}
             workOwnerName={workOwnerName}
             basePath={basePath}
             userScopes={userScopes}
+            canDispatchChecks={canDispatchChecks}
             linkedJobsByWorkVersionId={linkedJobsByWorkVersionId}
             activities={activities}
             checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
