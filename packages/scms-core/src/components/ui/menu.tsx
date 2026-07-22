@@ -30,6 +30,7 @@ export const MenuItem = React.forwardRef<
     ref={ref}
     className={cn(
       'px-4 py-2 text-sm font-normal rounded transition-colors cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-800 focus:bg-stone-100 dark:focus:bg-stone-800 active:bg-stone-200 dark:active:bg-stone-700',
+      'data-[disabled]:pointer-events-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[disabled]:hover:bg-transparent data-[disabled]:focus:bg-transparent data-[disabled]:active:bg-transparent',
       className,
     )}
     {...props}
