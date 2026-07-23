@@ -99,7 +99,6 @@
     "ws": "^8.18.1",
     "@types/ws": "^8.18.1",
     "rollup": "npm:@rollup/wasm-node",
-    "zod": "^4.1.12",
     "eslint": "^8.57.1"
   }
 }
