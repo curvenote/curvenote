@@ -229,18 +229,18 @@ The package provides the following exports:
 ### Prerequisites
 
 - Node.js >= 14
-- npm >= 7
+- Bun >= 1.3
 
 ### Setup
 
 ```bash
-npm install
+bun install
 ```
 
 ### Build
 
 ```bash
-npm run build
+bun run build
 ```
 
 This will:
@@ -250,19 +250,19 @@ This will:
 ### Type Checking
 
 ```bash
-npm run compile
+bun run compile
 ```
 
 ### Testing
 
 ```bash
-npm test
+bun test
 ```
 
 Or in watch mode:
 
 ```bash
-npm run test:watch
+bun run test:watch
 ```
 
 ### Project Structure

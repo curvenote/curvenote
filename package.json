@@ -69,7 +69,6 @@
     "husky": "^9.1.7",
     "js-yaml": "^4.1.1",
     "madge": "^8.0.0",
-    "npm-run-all": "^4.1.5",
     "npm-upgrade": "^3.3.0",
     "npm-upgrade-monorepo": "^1.2.6",
     "prettier": "latest",
