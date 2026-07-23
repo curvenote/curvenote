@@ -160,13 +160,14 @@ To build all packages, run the following command:
 
 ```
 cd curvenote
-npm install
-npm run build
+bun install
+bun run build
 
 cd platform/scms
-npm install
-npm run build
+bun run build
 ```
+
+> **Note:** This repo uses [Bun](https://bun.sh) (`bun@1.3.10`) for install, build, and test. Release/publish and some Docker images still use npm.
 
 ### Develop the Curvenote CLI
 
@@ -174,8 +175,8 @@ To develop all apps and packages, run the following command:
 
 ```
 cd curvenote
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 ### Develop the Curvenote SCMS
@@ -184,13 +185,12 @@ To develop all apps and packages, run the following command:
 
 ```
 cd curvenote
-npm install
-npm run build
+bun install
+bun run build
 
 cd platform/scms
 
-npm run dev:db:reset
+bun run dev:db:reset
 
-npm install
-npm run dev
+bun run dev
 ```

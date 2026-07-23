@@ -14,15 +14,15 @@
   "scripts": {
     "prepare": "husky",
     "preinstall": "rm -f ./platform/scms/package.json ./platform/relay/package.json ./turbo.extensions.generated.json",
-    "postinstall": "npm run generate:extensions && npm run generate:relay-plugins",
+    "postinstall": "bun run generate:extensions && bun run generate:relay-plugins",
     "wt:create": "bash scripts/wt-add.sh",
-    "wt:go": "npm install; npm run build; cd platform/scms; npm install; npm run type-check; cd ../..",
+    "wt:go": "bun install && bun run build && bun --cwd platform/scms run check-types",
     "wt:existing": "bash scripts/wt-add.sh --existing",
     "wt:remove": "bash scripts/wt-remove.sh",
     "generate:extensions": "node platform/scms/scripts/generate-extensions.js",
     "generate:relay-plugins": "node platform/relay/scripts/generate-plugin-loader.js",
-    "prisma:generate": "npx prisma generate --config=./prisma.config.ts",
-    "prisma:format": "npx prisma format --config=./prisma.config.ts",
+    "prisma:generate": "bunx prisma generate --config=./prisma.config.ts",
+    "prisma:format": "bunx prisma format --config=./prisma.config.ts",
     "db:up": "docker compose up -d --wait postgres",
     "db:build": "docker compose build postgres",
     "db:rebuild": "docker compose down -v && docker compose build postgres && docker compose up -d --wait postgres",
@@ -30,14 +30,14 @@
     "db:down:clean": "docker compose down -v",
     "db:logs": "docker compose logs -f postgres",
     "db:studio": "prisma studio --config=./prisma.config.ts",
-    "dev:db:reset": "npx prisma migrate reset --config=./prisma.config.ts && npm run dev:db:seed",
-    "dev:db:seed": "npx prisma db seed --config=./prisma.config.ts",
-    "dev:db:migrate": "npx prisma migrate dev --config=./prisma.config.ts",
-    "test:db:reset": "dotenv -e .env.test -- npx prisma migrate reset --force --config=./prisma.test.config.ts",
-    "config": "npx @app-config/cli@2 generate",
-    "build": "npm run config && node scripts/turbo-run.mjs run build --filter='!@curvenote/scms'",
+    "dev:db:reset": "bunx prisma migrate reset --config=./prisma.config.ts && bun run dev:db:seed",
+    "dev:db:seed": "bunx prisma db seed --config=./prisma.config.ts",
+    "dev:db:migrate": "bunx prisma migrate dev --config=./prisma.config.ts",
+    "test:db:reset": "dotenv -e .env.test -- bunx prisma migrate reset --force --config=./prisma.test.config.ts",
+    "config": "bunx --bun @app-config/cli generate",
+    "build": "bun run config && node scripts/turbo-run.mjs run build --filter='!@curvenote/scms'",
     "build:relay": "node scripts/turbo-run.mjs run build --filter='@curvenote/check-plugin-types' --filter='@curvenote/check-relay-types' --filter='@curvenote/check-relay-plugin-echo' --filter='@curvenote/check-relay'",
-    "build:scms": "cd platform/scms && npm run build",
+    "build:scms": "bun --cwd platform/scms run build",
     "build:web": "node scripts/turbo-run.mjs run build --filter=@curvespace/default",
     "build:cli": "node scripts/turbo-run.mjs run build --filter=curvenote",
     "dev:all": "node scripts/turbo-run.mjs run dev --parallel",
@@ -48,17 +48,18 @@
     "lint:format:fix": "node scripts/turbo-run.mjs run lint:format:fix --filter='@curvenote/*' --filter='curvenote'",
     "lint:circular": "madge -c packages/*/src/* ee/*/src/*",
     "test": "node scripts/turbo-run.mjs run test --filter='curvenote' --filter='@curvenote/*' --filter='!@curvenote/scms'",
-    "test:scms": "cd platform/scms && npm run test:unit",
+    "test:scms": "bun --cwd platform/scms run test:unit",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
-    "version": "npm install && changeset version && npx tsx scripts/sync-scms-template-version.ts && npm install",
-    "publish": "npm run clean && npm run build -- --force && changeset publish && git push --follow-tags",
-    "publish:ci": "npm run build && changeset publish && git push --follow-tags",
+    "version": "bun install && changeset version && bunx tsx scripts/sync-scms-template-version.ts && bun install",
+    "publish": "bun run clean && bun run build -- --force && changeset publish && git push --follow-tags",
+    "publish:ci": "bun run build && changeset publish && git push --follow-tags",
     "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'",
     "nmnuke": "node scripts/remove-node-modules.mjs",
-    "link:cli": "cd packages/curvenote; npm run unlink; npm link"
+    "link:cli": "cd packages/curvenote; bun run unlink; bun link"
   },
   "devDependencies": {
+    "@app-config/cli": "^2.8.7",
     "@changesets/cli": "^2.23.2",
     "@types/node": "^24.6.2",
     "@types/pg": "^8.16.0",
@@ -80,10 +81,10 @@
     "vitest": "^2.1.2"
   },
   "engines": {
-    "npm": ">=7.0.0",
-    "node": ">=14.0.0"
+    "node": ">=20.0.0",
+    "bun": ">=1.3.10"
   },
-  "packageManager": "npm@8.10.0",
+  "packageManager": "bun@1.3.10",
   "dependencies": {
     "@changesets/changelog-github": "^0.5.1",
     "@prisma/client": "^7.2.0",
@@ -96,14 +97,8 @@
     "@types/node": "^24.6.2",
     "ws": "^8.18.1",
     "@types/ws": "^8.18.1",
-    "vite": {
-      "rollup": "npm:@rollup/wasm-node"
-    },
-    "@curvenote/scms-core": {
-      "zod-form-data": {
-        "zod": "^4.1.12"
-      }
-    },
+    "rollup": "npm:@rollup/wasm-node",
+    "zod": "^4.1.12",
     "eslint": "^8.57.1"
   }
 }
