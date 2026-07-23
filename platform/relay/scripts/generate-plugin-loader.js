@@ -5,7 +5,7 @@
  * - Writes app/plugins/load-plugins.ts from load-plugins.tpl.ts
  * - Writes platform/relay/package.json from package.template.json with those packages as "*" deps
  *
- * Run via npm run generate:relay-plugins (root postinstall), matching the SCMS extension flow.
+ * Run via bun run generate:relay-plugins (root postinstall), matching the SCMS extension flow.
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';

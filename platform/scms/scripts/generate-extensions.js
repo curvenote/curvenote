@@ -10,7 +10,7 @@
  * It also scans extensions/.../packages/... and extensions/plugins/... for packages with a
  * `build` script and writes turbo.extensions.generated.json (gitignored) so Turborepo hashes
  * gitignored extension / relay-plugin sources.
- * Run via npm run generate:extensions (postinstall). Use scripts/turbo-run.mjs to merge that
+ * Run via bun run generate:extensions (postinstall). Use scripts/turbo-run.mjs to merge that
  * fragment with turbo.json when invoking the turbo CLI.
  *
  * Extension packages with a "./client" export should also declare "development" conditions

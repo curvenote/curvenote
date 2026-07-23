@@ -9,7 +9,7 @@
  * Usage:
  *   node scripts/generate-jwk-keys.mjs
  *   # or
- *   npm run generate:jwk-keys
+ *   bun run generate:jwk-keys
  */
 
 import { generateKeyPair, exportJWK } from 'jose';

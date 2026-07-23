@@ -20,7 +20,7 @@ cp .app-config.secrets.sample.yml .app-config.secrets.development.yml
 # then edit with your actual keys
 ```
 
-The environment is selected via `APP_CONFIG_ENV`, `NODE_ENV`, or `ENV`. The `npm run dev` script sets `NODE_ENV=development`.
+The environment is selected via `APP_CONFIG_ENV`, `NODE_ENV`, or `ENV`. The `bun run dev` script sets `NODE_ENV=development`.
 
 ## Configuration Reference
 

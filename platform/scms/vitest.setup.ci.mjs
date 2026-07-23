@@ -45,10 +45,10 @@ function stopServer(server, callback) {
 }
 
 export default async function () {
-  execSync('npm run test:db:reset', { stdio: 'inherit' });
+  execSync('bun run test:db:reset', { stdio: 'inherit' });
 
   console.log('Starting test server...');
-  const server = startSomeProcess('npm', ['run', 'test:start-server']);
+  const server = startSomeProcess('bun', ['run', 'test:start-server']);
   
   // Give the process a moment to start or fail
   await new Promise(resolve => setTimeout(resolve, 1000));

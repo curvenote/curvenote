@@ -36,12 +36,12 @@ Ask clarifying questions before starting when:
 
 Prefer scoped workspace commands for package-only edits:
 
-- `npm run lint --workspace <package>`
-- `npm run lint:format:fix --workspace <package>` then `npm run lint:format --workspace <package>`
+- `bun run lint --filter <package>`
+- `bun run lint:format:fix --filter <package>` then `bun run lint:format --filter <package>`
 
-Run top-level `npm run lint`, `npm run lint:format:fix`, and `npm run lint:format` when changes touch root/shared files, multiple packages, or before final handoff.
+Run top-level `bun run lint`, `bun run lint:format:fix`, and `bun run lint:format` when changes touch root/shared files, multiple packages, or before final handoff.
 
-For feature work on a new branch, create a worktree with `npm run wt:create <branch-name>` from `dev` unless already on the correct branch.
+For feature work on a new branch, create a worktree with `bun run wt:create <branch-name>` from `dev` unless already on the correct branch.
 
 ## Status reporting
 
