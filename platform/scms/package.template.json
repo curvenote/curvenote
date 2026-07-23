@@ -95,6 +95,7 @@
     "glob": "^11.1.0",
     "madge": "^8.0.0",
     "npm-upgrade-monorepo": "^1.2.6",
+    "npm-upgrade": "^3.3.0",
     "prettier": "^3.5.3",
     "prettier-eslint": "^16.3.0",
     "rimraf": "^3.0.2",
