@@ -89,7 +89,7 @@ All dependencies for `curvenote` are included in this repository (a monorepo!).
 
 ## What's inside?
 
-`curvenote` uses [npm](https://www.npmjs.com/) as a package manager. It includes the following packages/apps:
+`curvenote` uses [Bun](https://bun.sh) as a package manager. It includes the following packages/apps:
 
 **Apps:**
 
@@ -110,7 +110,7 @@ Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
 
 ### Versioning & Publishing
 
-Curvenote uses [changesets](https://github.com/changesets/changesets) to document changes to this monorepo, call `npx changeset` and follow the prompts. Later, `npm run version` will be called and then `npm run publish`.
+Curvenote uses [changesets](https://github.com/changesets/changesets) to document changes to this monorepo, call `bunx changeset` and follow the prompts. Later, `bun run version` will be called and then `bun run publish`. CI uses Bun for install/build/test; `changeset publish` still shells out to `npm publish` so npm OIDC trusted publishing keeps working.
 
 ### Utilities
 
@@ -167,7 +167,7 @@ cd platform/scms
 bun run build
 ```
 
-> **Note:** This repo uses [Bun](https://bun.sh) (`bun@1.3.10`) for install, build, and test. Release/publish and some Docker images still use npm.
+> **Note:** This repo uses [Bun](https://bun.sh) (`bun@1.3.10`) for install, build, and test. Releases use Bun for those steps too, but the registry publish itself still goes through `npm publish` (OIDC trusted publishing). Some Docker images still use npm.
 
 ### Develop the Curvenote CLI
 

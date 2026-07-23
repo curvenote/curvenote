@@ -8,7 +8,7 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
-  id-token: write # Required for OIDC
+  id-token: write # Required for npm OIDC trusted publishing
   pull-requests: write
   contents: write
   packages: write
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
           submodules: recursive
@@ -27,6 +27,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libxml2-utils
+      # Bun for install / build / test / changeset scripts
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+      # Node + npm for OIDC trusted publishing (changeset publish shells out to npm publish)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -34,23 +40,24 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - name: Ensure npm 11.5.1+ for trusted publishing
         run: npm install -g npm@^11.5.1
-      - name: Install node deps
-        run: npm install
+      - name: Install dependencies
+        run: bun install
       - name: Run build
-        run: npm run build
+        run: bun run build
       - name: Run tests
-        run: npm run test
+        run: bun run test
       - name: Version bump and create pull request OR publish to npm
         id: changesets
         uses: changesets/action@v1
         with:
-          version: npm run version
-          publish: npm run publish:ci
+          version: bun run version
+          publish: bun run publish:ci
           commit: 🚀 Version Packages
           title: 🚀 Version Packages
           createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Fallback token auth; preferred path is OIDC via id-token + npm ≥11.5.1
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Check if curvenote CLI was published
         id: curvenote
