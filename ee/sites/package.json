@@ -33,22 +33,22 @@
     "url": "git+https://github.com/curvenote/curvenote.git"
   },
   "scripts": {
-    "prepush": "npm run lint:format:fix; npm run lint:circular; npm run lint; npm run compile; npm run test:ci; npm run test:unit; npm run test:integration",
-    "pp": "npm run prepush",
+    "prepush": "bun run lint:format:fix; bun run lint:circular; bun run lint; bun run compile; bun run test:ci; bun run test:unit; bun run test:integration",
+    "pp": "bun run prepush",
     "clean": "rimraf dist _build api && find . -name '.turbo' -type d -prune -exec rm -rf '{}' +",
-    "lint": "npx eslint -c .eslintrc.cjs \"src/**/*.{ts,tsx}\"",
+    "lint": "bunx eslint -c .eslintrc.cjs \"src/**/*.{ts,tsx}\"",
     "lint:format": "prettier --check \"src/**/*.{ts,tsx}\"",
     "lint:format:fix": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "lint:circular": "npx madge --circular --extensions ts,tsx src",
-    "config": "npx @app-config/cli@2 generate",
-    "build": "npm run build:server && npm run build:client",
+    "lint:circular": "bunx madge --circular --extensions ts,tsx src",
+    "config": "bunx @app-config/cli@2 generate",
+    "build": "bun run build:server && bun run build:client",
     "build:server": "tsc --project tsconfig.json",
     "build:client": "tsup",
     "dev": "tsc -w",
     "compile": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
-    "version": "changeset version && npm install"
+    "version": "changeset version && bun install"
   },
   "bugs": {
     "url": "https://github.com/curvenote/curvenote/issues"

@@ -7,9 +7,9 @@ Usage:
   wt-add.sh <name> [base-branch]
   wt-add.sh --existing <branch> [worktree-name]
 
-npm (from repo root):
-  npm run wt:create -- <name> [base-branch]
-  npm run wt:existing -- <branch> [worktree-name]
+bun (from repo root):
+  bun run wt:create -- <name> [base-branch]
+  bun run wt:existing -- <branch> [worktree-name]
 
 Creates a git worktree under ../trees/ (next to the repo root).
 
@@ -182,12 +182,12 @@ fi
 # Refuse to proceed if the target branch already exists (local or remote).
 if git show-ref --verify --quiet "refs/heads/${BRANCH}"; then
   echo "❌ Branch already exists locally: ${BRANCH}" >&2
-  echo "   Use: npm run wt:create -- --existing ${BRANCH}" >&2
+  echo "   Use: bun run wt:create -- --existing ${BRANCH}" >&2
   exit 1
 fi
 if git show-ref --verify --quiet "refs/remotes/origin/${BRANCH}"; then
   echo "❌ Branch already exists on origin: ${BRANCH}" >&2
-  echo "   Use: npm run wt:create -- --existing ${BRANCH}" >&2
+  echo "   Use: bun run wt:create -- --existing ${BRANCH}" >&2
   exit 1
 fi
 

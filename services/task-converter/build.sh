@@ -23,7 +23,7 @@ echo "Project: $GCP_PROJECT"
 echo "Region: ${GCP_REGION:-us-central1}"
 
 echo "Running build:service (packages/task-converter build → dist/; typst-plain from github.com/curvenote-themes/typst-plain)..."
-npm run build:service
+bun run build:service
 
 gcloud builds submit \
   --project "$GCP_PROJECT" \

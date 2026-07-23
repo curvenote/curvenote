@@ -29,7 +29,7 @@
     "url": "git+https://github.com/curvenote/curvenote.git"
   },
   "scripts": {
-    "build": "npm run generate; tsc",
+    "build": "bun run generate; tsc",
     "generate": "prisma generate --schema=../../prisma/schema",
     "format": "prisma format --schema=../../prisma/schema"
   },

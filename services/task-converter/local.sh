@@ -12,8 +12,8 @@ cd "$SCRIPT_DIR"
 
 echo "Building task-converter package..."
 cd "$PACKAGE_DIR"
-npm install
-npm run build
+bun install
+bun run build
 
 echo "Copying dist into services/task-converter and checking out typst-plain from GitHub..."
 rm -rf "$SCRIPT_DIR/dist"

@@ -22,10 +22,10 @@
     "build:esm": "tsc --project ./tsconfig.json --module es2015   --outDir dist/esm",
     "build:cjs": "tsc --project ./tsconfig.json --module commonjs --outDir dist/cjs",
     "declarations": "tsc --project ./tsconfig.json --declaration --emitDeclarationOnly --outDir dist/types",
-    "build": "npm-run-all -l clean -p build:cjs build:esm declarations",
+    "build": "bun run clean && (bun run build:cjs & bun run build:esm & bun run declarations & wait)",
     "lint": "eslint \"src/**/!(*.spec).ts\" -c ./.eslintrc.js",
-    "lint:format": "npx prettier --check \"src/**/*.ts\"",
-    "lint:format:fix": "npx prettier --write \"src/**/*.ts\"",
+    "lint:format": "bunx prettier --check \"src/**/*.ts\"",
+    "lint:format:fix": "bunx prettier --write \"src/**/*.ts\"",
     "test": "vitest run",
     "test:watch": "vitest watch"
   },
