@@ -1,5 +1,7 @@
 [install]
 # Match npm workspace hoisting so undeclared sibling deps (e.g. myst-spec →
 # @jupyterlab/nbformat via myst-cli) resolve during builds, same as before.
-# linker = "hoisted"
+# Also required so mystmd package scripts can find shared bins (npm-run-all, tsc, rimraf)
+# that are declared on the workspace root / mystmd root, not on each package.
+linker = "hoisted"
 lockfile = "bun.lock"
