@@ -533,7 +533,11 @@ export class Session implements ISession {
         }
       }
 
-      const serverSettings = ServerConnection.makeSettings(partialServerSettings);
+      // Cast: myst-cli / myst-execute resolve @jupyterlab/services via a different
+      // symlink path than this package under Bun isolated installs + preserveSymlinks.
+      const serverSettings = ServerConnection.makeSettings(
+        partialServerSettings as unknown as Parameters<typeof ServerConnection.makeSettings>[0],
+      );
       const kernelManager = new KernelManager({ serverSettings });
       const manager = new SessionManager({ kernelManager, serverSettings });
 
@@ -542,7 +546,7 @@ export class Session implements ISession {
         kernelManager.dispose();
         partialServerSettings?.dispose?.();
       });
-      return manager as JupyterSessionManager;
+      return manager as unknown as JupyterSessionManager;
     } catch (err) {
       this.log.error('Unable to instantiate connection to Jupyter Server', err);
       return undefined;
