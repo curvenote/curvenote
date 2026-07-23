@@ -9,7 +9,7 @@ export function responseNoSite(): Response {
   });
 }
 
-export function responseNoArticle() {
+export function responseNoArticle(): Response {
   // note: error boundary logic is dependent on the string sent here
   return new Response(ErrorStatus.noArticle, {
     status: 404,
