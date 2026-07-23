@@ -373,7 +373,8 @@ export class Session implements ISession {
         redirect: 'manual',
       };
       if (this.proxyAgent && !LOCALHOSTS.includes(urlOnly.hostname)) {
-        fetchInit.agent = this.proxyAgent;
+        // Cast: https-proxy-agent Agent vs node-fetch Agent types diverge under isolated installs
+        fetchInit.agent = this.proxyAgent as unknown as RequestInit['agent'];
         this.log.debug(`Using HTTPS proxy: ${this.proxyAgent.proxy}`);
       }
       const logData = { url: currentUrl, done: false };

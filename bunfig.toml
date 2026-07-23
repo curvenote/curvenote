@@ -1,5 +1,5 @@
 [install]
 # Match npm workspace hoisting so undeclared sibling deps (e.g. myst-spec →
 # @jupyterlab/nbformat via myst-cli) resolve during builds, same as before.
-linker = "hoisted"
+# linker = "hoisted"
 lockfile = "bun.lock"
