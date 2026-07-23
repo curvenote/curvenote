@@ -29,9 +29,9 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "tsc --project ./tsconfig.json --outDir dist --declaration -w --preserveWatchOutput --outDir dist -p .",
-    "lint": "eslint \"src/**/!(*.spec).ts*\" -c ./.eslintrc.cjs",
-    "lint:format": "prettier --check \"src/**/*.ts*\"",
-    "lint:format:fix": "prettier --write \"src/**/*.ts*\"",
+    "lint": "bunx eslint \"src/**/!(*.spec).ts*\" -c ./.eslintrc.cjs",
+    "lint:format": "bunx prettier --check \"src/**/*.ts*\"",
+    "lint:format:fix": "bunx prettier --write \"src/**/*.ts*\"",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "build:esm": "tsc --project ./tsconfig.json --outDir dist --declaration",

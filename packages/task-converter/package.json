@@ -16,7 +16,7 @@
     "start": "node ./dist/index.js",
     "ensure-typst-plain": "bash scripts/ensure-typst-plain.sh",
     "dev": "bun run ensure-typst-plain && bun run clean && bun run build && NODE_ENV=development concurrently \"bun run build:watch\" \"nodemon\"",
-    "lint": "eslint \"src/**/*.ts\" -c ./.eslintrc.cjs",
+    "lint": "bunx eslint \"src/**/*.ts\" -c ./.eslintrc.cjs",
     "lint:format": "bunx prettier --check \"src/**/*.ts\"",
     "lint:format:fix": "bunx prettier --write \"src/**/*.ts\""
   },

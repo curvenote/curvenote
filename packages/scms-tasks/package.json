@@ -27,9 +27,9 @@
     "build": "bun run clean && bun run build:esm",
     "dev:esm": "tsc --outDir dist --watch",
     "dev": "bun run dev:esm",
-    "lint": "eslint \"src/**/*.ts\" -c ./.eslintrc.cjs",
-    "lint:format": "prettier --check \"src/**/*.ts\"",
-    "lint:format:fix": "prettier --write \"src/**/*.ts\"",
+    "lint": "bunx eslint \"src/**/*.ts\" -c ./.eslintrc.cjs",
+    "lint:format": "bunx prettier --check \"src/**/*.ts\"",
+    "lint:format:fix": "bunx prettier --write \"src/**/*.ts\"",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "check-types": "tsc --noEmit"

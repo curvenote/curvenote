@@ -23,7 +23,7 @@
     "build:cjs": "tsc --project ./tsconfig.json --module commonjs --outDir dist/cjs",
     "declarations": "tsc --project ./tsconfig.json --declaration --emitDeclarationOnly --outDir dist/types",
     "build": "bun run clean && (bun run build:cjs & bun run build:esm & bun run declarations & wait)",
-    "lint": "eslint \"src/**/!(*.spec).ts\" -c ./.eslintrc.js",
+    "lint": "bunx eslint \"src/**/!(*.spec).ts\" -c ./.eslintrc.js",
     "lint:format": "bunx prettier --check \"src/**/*.ts\"",
     "lint:format:fix": "bunx prettier --write \"src/**/*.ts\"",
     "test": "vitest run",

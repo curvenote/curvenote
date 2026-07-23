@@ -16,9 +16,9 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "lint": "eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
-    "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\"",
-    "lint:format:fix": "prettier --write \"src/**/*.{ts,tsx,md}\"",
+    "lint": "bunx eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
+    "lint:format": "bunx prettier --check \"src/**/*.{ts,tsx,md}\"",
+    "lint:format:fix": "bunx prettier --write \"src/**/*.{ts,tsx,md}\"",
     "build:esm": "tsc --outDir dist",
     "build": "bun run clean && bun run build:esm"
   },

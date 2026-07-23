@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "clean": "rm -rf dist",
     "build": "bun run clean && bun run copy-plugin-assets && bun run typecheck && node esbuild.prod.mjs",
-    "lint": "eslint \"app/**/*.{ts,tsx}\" \"api/**/*.{ts,tsx}\" -c ./.eslintrc.cjs",
+    "lint": "bunx eslint \"app/**/*.{ts,tsx}\" \"api/**/*.{ts,tsx}\" -c ./.eslintrc.cjs",
     "typecheck": "tsc --noEmit",
     "test": "bun run copy-plugin-assets && vitest run",
     "app-config:vars": "app-config vars"

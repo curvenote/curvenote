@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "lint": "eslint \"src/**/*.ts\" -c ./.eslintrc.cjs"
+    "lint": "bunx eslint \"src/**/*.ts\" -c ./.eslintrc.cjs"
   },
   "dependencies": {
     "@curvenote/check-plugin-types": "*",
