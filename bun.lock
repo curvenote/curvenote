@@ -1535,6 +1535,7 @@
         "jsonwebtoken": "^9.0.2",
         "node-cache": "^5.1.2",
         "p-limit": "^3.1.0",
+        "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-router": "7.9.5",
         "remix-auth": "^4.0.0",
