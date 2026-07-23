@@ -1,0 +1,7 @@
+{
+  "name": "@types/bson",
+  "version": "4.2.4",
+  "description": "Local stub so TS typeRoots auto-include succeeds; bson ships its own types.",
+  "types": "index.d.ts",
+  "license": "MIT"
+}

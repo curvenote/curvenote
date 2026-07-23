@@ -94,6 +94,7 @@
   },
   "overrides": {
     "@jupyterlab/services": "7.5.8",
+    "@types/bson": "file:./scripts/stubs/types-bson",
     "@types/node": "^24.6.2",
     "ws": "^8.18.1",
     "@types/ws": "^8.18.1",
