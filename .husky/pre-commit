@@ -1,5 +1,46 @@
 #!/usr/bin/env sh
 
+# Strip private extensions/* details from bun.lock when it is staged.
+# Extension packages are gitignored; local `bun install` can still record them
+# in the lockfile via workspace globs / generated scms dependencies.
+STAGED_FILES=$(git diff --cached --name-only)
+LOCKFILE_STAGED=$(echo "$STAGED_FILES" | grep -q "^bun.lock$" && echo "yes" || echo "no")
+STAGED_NON_LOCKFILES=$(echo "$STAGED_FILES" | grep -v "^bun.lock$" | grep -v "^$" | wc -l | tr -d ' ')
+
+if [ "$LOCKFILE_STAGED" = "yes" ]; then
+  CLEANUP_OUTPUT=$(node scripts/remove-extensions-from-lockfile.mjs --quiet 2>&1)
+
+  LOCKFILE_DIFFERS_FROM_HEAD="no"
+  if ! git diff --quiet HEAD -- bun.lock 2>/dev/null; then
+    LOCKFILE_DIFFERS_FROM_HEAD="yes"
+  fi
+
+  # Keep bun.lock staged if it still differs from HEAD after scrubbing,
+  # or if other files are part of this commit.
+  if [ "$LOCKFILE_DIFFERS_FROM_HEAD" = "yes" ] || [ "$STAGED_NON_LOCKFILES" -gt 0 ]; then
+    git add bun.lock
+  else
+    git restore --staged bun.lock
+  fi
+
+  REMAINING_STAGED=$(git diff --cached --name-only | grep -v "^$" | wc -l | tr -d ' ')
+
+  if [ "$REMAINING_STAGED" -eq 0 ]; then
+    echo ""
+    echo "❌ Commit aborted: bun.lock was cleaned of extension entries, and now there are no changes to commit."
+    echo "   The lockfile matches HEAD after removing extension-related packages."
+    echo ""
+    if [ -n "$CLEANUP_OUTPUT" ]; then
+      echo "$CLEANUP_OUTPUT"
+    fi
+    echo ""
+    exit 1
+  fi
+
+  if [ -n "$CLEANUP_OUTPUT" ]; then
+    echo "$CLEANUP_OUTPUT"
+  fi
+fi
+
 # Validate extensions in app-config schema
-# (npm package-lock extension stripping removed — Bun uses bun.lock)
 node .husky/validate-extensions.mjs
