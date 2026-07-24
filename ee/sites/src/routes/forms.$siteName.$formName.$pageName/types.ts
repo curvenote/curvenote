@@ -73,11 +73,7 @@ export type KeywordsOption = BaseInput<'keywords'> & {
 };
 
 export type FieldSchema =
-  | StringOption
-  | ParagraphOption
-  | RadioOption
-  | AuthorOption
-  | KeywordsOption;
+  StringOption | ParagraphOption | RadioOption | AuthorOption | KeywordsOption;
 
 export type FormDefinition = {
   title: string;

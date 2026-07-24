@@ -39,9 +39,7 @@ export interface ServiceAccountPermissions {
 }
 
 type TokenResponse =
-  | { error: string }
-  | ({ token: string } & ServiceAccountTokenDTO)
-  | { count: number };
+  { error: string } | ({ token: string } & ServiceAccountTokenDTO) | { count: number };
 
 function isTokenSuccess(resp: TokenResponse): resp is { token: string } & ServiceAccountTokenDTO {
   return typeof resp === 'object' && resp != null && 'token' in resp;
@@ -358,14 +356,14 @@ function ServiceAccountTokens({
             createFetcher.state === 'idle' &&
             createFetcher.data &&
             isTokenSuccess(createFetcher.data) && (
-              <div className="p-4 space-y-4 text-green-900 bg-green-100 border border-green-600 rounded-md dark:bg-green-950 dark:text-green-200">
+              <div className="p-4 space-y-4 text-green-900 bg-green-100 rounded-md border border-green-600 dark:bg-green-950 dark:text-green-200">
                 <h4 className="font-bold">Copy Token Now</h4>
                 <p className="mb-2">
                   Make sure to copy your <strong>"{createFetcher.data.description}"</strong> token
                   now. You won't be able to see it again.
                 </p>
                 <pre
-                  className="p-4 font-mono break-words border border-green-900 dark:border-green-100 text-wrap rounded-sm"
+                  className="p-4 font-mono break-words rounded-sm border border-green-900 dark:border-green-100 text-wrap"
                   ref={preRef}
                   onClick={handleSelectText}
                 >
