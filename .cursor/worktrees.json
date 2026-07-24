@@ -2,11 +2,13 @@
   "setup-worktree-unix": [
     "bun install",
     "bun run build",
+    "bun --cwd platform/scms install",
     "bun --cwd platform/scms run build"
   ],
   "setup-worktree": [
     "bun install",
     "bun run build",
+    "bun --cwd platform/scms install",
     "bun --cwd platform/scms run build"
   ]
 }
