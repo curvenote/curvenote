@@ -36,8 +36,10 @@ Ask clarifying questions before starting when:
 
 Prefer scoped workspace commands for package-only edits:
 
-- `bun run lint --filter <package>`
-- `bun run lint:format:fix --filter <package>` then `bun run lint:format --filter <package>`
+- `bun run --filter <package> lint`
+- `bun run --filter <package> lint:format:fix` then `bun run --filter <package> lint:format`
+
+Do not use `bun run lint --filter <package>` — that invokes the root Turbo lint script (broad `@curvenote/*` scope) and only appends `--filter` to Turbo.
 
 Run top-level `bun run lint`, `bun run lint:format:fix`, and `bun run lint:format` when changes touch root/shared files, multiple packages, or before final handoff.
 
