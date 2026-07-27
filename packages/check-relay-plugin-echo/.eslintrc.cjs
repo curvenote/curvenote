@@ -1,7 +1,11 @@
 module.exports = {
   root: true,
-  extends: ["curvenote"],
+  extends: ['curvenote'],
+  ignorePatterns: ['**/*.d.ts'],
   rules: {
-    "prettier/prettier": "off",
+    // Allow React.forwardRef(function ComponentName ...) which shadows the outer const.
+    '@typescript-eslint/no-shadow': 'off',
+    'prettier/prettier': 'off',
   },
 };
+

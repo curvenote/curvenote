@@ -7,3 +7,4 @@ module.exports = {
     '@typescript-eslint/no-shadow': 'off',
   },
 };
+
