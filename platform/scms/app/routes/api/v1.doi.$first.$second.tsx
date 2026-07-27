@@ -8,20 +8,16 @@ import {
 } from 'app/lib/vercel-cache';
 
 /**
- * `GET …/doi/:first/:second` → DOI `:first/:second` (e.g. `10.1101` / `711317`), resolved
- * **without a site name** across all public sites. This is the site-agnostic sibling of
- * `…/sites/:siteName/doi/:first/:second`, used by site-less consumers (e.g. the openrxiv
- * `/content/*` routes) that must resolve a DOI to a work version without knowing which venue
- * it belongs to. When a DOI is published on more than one public site, the latest published
- * version wins. Optional query `tag` — same JSON shape, resolves to the latest *published*
- * submission version whose `tags` array contains that string.
+ * `GET …/doi/:first/:second` — resolve a DOI (e.g. `10.1101` / `711317`) to a published work
+ * **without a site name**, for site-less consumers like the openrxiv `/content/*` routes.
+ * Site-agnostic sibling of `…/sites/:siteName/doi/:first/:second`; resolution lives in
+ * `doi.resolve`. Optional `tag` query narrows to the version carrying that tag.
  *
  * Responses are edge-cached: a DOI→work mapping is stable and identical for every caller, and
- * DOI resolvers attract heavy scanner traffic probing unknown DOIs. Successful lookups use the
- * semi-static preset; not-found responses use the burst-protection 404 preset so junk-DOI
- * scans are absorbed by the CDN rather than hitting the origin/DB. Resolution is restricted to
- * public, non-external sites, so there is no private-cache branch. The freshness cost: a newly
- * published DOI may 404 (or a stale version may resolve) at the edge until the TTL lapses.
+ * these resolvers attract heavy scanner traffic. Hits use the semi-static preset; 404s use the
+ * burst-protection preset so junk-DOI scans are absorbed by the CDN. Resolution is public-only,
+ * so there is no private-cache branch. Freshness cost: a newly published DOI may 404 (or a
+ * stale version resolve) at the edge until the TTL lapses.
  */
 export async function loader(args: Route.LoaderArgs) {
   const ctx = await withContext(args);

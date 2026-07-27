@@ -19,17 +19,14 @@ export type DoiResolveOptions = {
 /**
  * Resolve the latest *published* submission version for a DOI **across all public sites**.
  *
- * This is the site-agnostic sibling of `fetchPublishedSubmissionVersionIdByDoi` in
- * `../sites/doi.server.ts`: it reuses the same btree-backed DOI equality CTE (migration
- * `20260529130000`) and the `SubmissionVersion` published hot-path partial index (migration
- * `20260610150000`), but drops the single-site `Submission.site_id` predicate and instead
- * joins `Site` filtered to **public, non-external** sites (`private = false AND external = false`).
- * The `Site` join is by primary key against a tiny table, so it does not change the plan root.
+ * Mirrors the single-site resolver (`fetchPublishedSubmissionVersionIdByDoi` in
+ * `../sites/doi.server.ts`) — same DOI-index-backed work-version CTE and published hot-path
+ * index — but drops the `Submission.site_id` predicate and instead joins `Site` filtered to
+ * public, non-external venues (`private = false AND external = false`).
  *
- * When a DOI is published on more than one public site, the tie-break is the same as the
- * single-site resolver — latest published version wins (`date_created DESC LIMIT 1`). The
- * resolved site's `name` is returned alongside the submission-version id so the caller can
- * build a `SiteContext` for the *found* site.
+ * When a DOI is published on more than one public site, latest published version wins
+ * (`date_created DESC LIMIT 1`). Returns the found site's `name` so the caller can build a
+ * `SiteContext` for it.
  */
 async function fetchPublishedSubmissionVersionAcrossPublicSites(
   doiNormalized: string,
@@ -37,9 +34,9 @@ async function fetchPublishedSubmissionVersionAcrossPublicSites(
 ): Promise<{ id: string; siteName: string } | null> {
   const prisma = await getPrismaClient();
 
-  // Same doi → work-version id set as the single-site resolver: probe the DOI btree
-  // indexes on WorkVersion.doi and Work.doi (via WorkVersion.work_id) rather than joining
-  // Work → WorkVersion, so Postgres can short-circuit at the DOI index under load.
+  // Build the DOI → work-version id set first, using `work_id IN (SELECT …)` rather than a
+  // Work → WorkVersion join so Postgres short-circuits at the DOI index instead of scanning
+  // WorkVersion.
   const doiWorkVersions = Prisma.sql`
     SELECT wv.id AS work_version_id
     FROM "WorkVersion" wv
