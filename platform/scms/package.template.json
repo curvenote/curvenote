@@ -41,6 +41,7 @@
     "bump:myst": "npm-upgrade-monorepo -w 'packages/*' 'myst-* @myst-theme/* @curvenote/*'",
     "data-migration:default-submission-kind": "dotenv -e .env -- tsx ../../prisma/migrations/20240123221351_default_submission_kind/data-migration.ts",
     "check-types": "NODE_ENV=development react-router typegen; tsc --noEmit",
+    "typecheck": "NODE_ENV=development react-router typegen; tsc --noEmit",
     "compile:ci": "NODE_ENV=test react-router typegen; tsc --noEmit",
     "prepush": "bun run lint:format:fix; bun run lint:circular; bun run lint; bun run compile; bun run test:ci; bun run test:unit",
     "pp": "bun run prepush",

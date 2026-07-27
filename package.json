@@ -49,6 +49,7 @@
     "lint:format": "node scripts/turbo-run.mjs run lint:format --filter='@curvenote/*' --filter='curvenote'",
     "lint:format:fix": "node scripts/turbo-run.mjs run lint:format:fix --filter='@curvenote/*' --filter='curvenote'",
     "lint:circular": "madge -c packages/*/src/* ee/*/src/*",
+    "typecheck": "node scripts/turbo-run.mjs run typecheck --filter='@curvenote/scms' --filter='@curvenote/check-relay' --filter='./extensions/*/packages/*' --filter='./extensions/plugins/*'",
     "test": "node scripts/turbo-run.mjs run test --filter='curvenote' --filter='@curvenote/*' --filter='!@curvenote/scms'",
     "test:scms": "bun --cwd platform/scms run test:unit",
     "format": "bunx prettier --write \"**/*.{ts,tsx,md}\"",
