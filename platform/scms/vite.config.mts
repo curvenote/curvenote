@@ -63,6 +63,9 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     optimizeDeps: {
+      // Do not prebundle firebase client SDK: Vite otherwise emits separate
+      // firebase_app / firebase_auth deps that each embed @firebase/app, so
+      // getAuth() throws "Component auth has not been registered yet".
       exclude: [
         ...getWorkspacePackageNames(),
         '@google-cloud/storage',
@@ -72,6 +75,11 @@ export default defineConfig(async ({ mode }) => {
         'gtoken',
         'google-gax',
         'google-auth-library',
+        'firebase',
+        'firebase/app',
+        'firebase/auth',
+        '@firebase/app',
+        '@firebase/auth',
         'firebase-admin',
         'crypto',
       ],
@@ -133,7 +141,15 @@ export default defineConfig(async ({ mode }) => {
         mode === 'development'
           ? ['development', 'import', 'module', 'default']
           : ['import', 'module', 'default'],
-      dedupe: ['react', 'react-dom', 'react-router', '@curvenote/scms-core'],
+      dedupe: [
+        'react',
+        'react-dom',
+        'react-router',
+        '@curvenote/scms-core',
+        'firebase',
+        '@firebase/app',
+        '@firebase/auth',
+      ],
     },
   };
   return userConfig;
