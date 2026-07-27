@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "copy-plugin-assets": "node scripts/copy-plugin-assets.mjs",
-    "dev": "npm run copy-plugin-assets && NODE_OPTIONS='--conditions=development' NODE_ENV=development tsx watch app/server.ts",
+    "dev": "bun run copy-plugin-assets && NODE_OPTIONS='--conditions=development' NODE_ENV=development tsx watch app/server.ts",
     "start": "node dist/server.js",
     "clean": "rm -rf dist",
-    "build": "npm run clean && npm run copy-plugin-assets && npm run typecheck && node esbuild.prod.mjs",
-    "lint": "eslint \"app/**/*.{ts,tsx}\" \"api/**/*.{ts,tsx}\" -c ./.eslintrc.cjs",
+    "build": "bun run clean && bun run copy-plugin-assets && bun run typecheck && node esbuild.prod.mjs",
+    "lint": "bunx eslint \"app/**/*.{ts,tsx}\" \"api/**/*.{ts,tsx}\" -c ./.eslintrc.cjs",
     "typecheck": "tsc --noEmit",
-    "test": "npm run copy-plugin-assets && vitest run",
+    "test": "bun run copy-plugin-assets && vitest run",
     "app-config:vars": "app-config vars"
   },
   "dependencies": {

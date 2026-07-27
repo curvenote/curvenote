@@ -47,7 +47,7 @@ End every handoff with:
 
 ## Curvenote conventions
 
-- Feature branches: use `npm run wt:create <branch-name>` from `dev` (see `.cursor/rules/creating-worktrees.mdc`)
+- Feature branches: use `bun run wt:create <branch-name>` from `dev` (see `.cursor/rules/creating-worktrees.mdc`)
 - Monorepo layout: `packages/`, `platform/`, `prisma/`, `extensions/`
 - Flag Prisma schema/migration tasks for explicit human approval before the coder runs them
 

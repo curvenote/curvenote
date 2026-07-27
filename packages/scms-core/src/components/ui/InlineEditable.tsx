@@ -5,7 +5,7 @@ import { Textarea } from './textarea.js';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn.js';
 
-export const InlineEditable = forwardRef(function InlineEditable(
+export const InlineEditable = forwardRef(function (
   {
     intent,
     defaultValue = '',
@@ -182,7 +182,7 @@ export const InlineEditable = forwardRef(function InlineEditable(
       )}
       {error && <div className="mt-1 text-xs text-red-500">{error}</div>}
       {fetcher.state === 'submitting' && (
-        <Loader2 className="inline w-4 h-4 ml-2 align-middle animate-spin text-muted-foreground" />
+        <Loader2 className="inline ml-2 w-4 h-4 align-middle animate-spin text-muted-foreground" />
       )}
     </fetcher.Form>
   ) : (
@@ -199,7 +199,7 @@ export const InlineEditable = forwardRef(function InlineEditable(
         ? renderDisplay(value)
         : value || <span className="text-stone-400">{placeholder}</span>}
       {fetcher.state === 'submitting' && (
-        <Loader2 className="inline w-4 h-4 ml-2 align-middle animate-spin text-muted-foreground" />
+        <Loader2 className="inline ml-2 w-4 h-4 align-middle animate-spin text-muted-foreground" />
       )}
     </span>
   );

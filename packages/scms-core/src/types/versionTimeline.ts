@@ -48,8 +48,7 @@ export type WorkVersionTimelineEntry = {
 };
 
 export type VersionTimelineDisplayItem<T> =
-  | { type: 'version'; version: T }
-  | { type: 'gap'; hiddenCount: number };
+  { type: 'version'; version: T } | { type: 'gap'; hiddenCount: number };
 
 /** Compact lazy-load payload for version timeline hover cards (trimmed server-side). */
 export type TrimmedVersionTimeline<T = VersionTimelineEntry> = {

@@ -36,25 +36,25 @@ cp .env.sample .env
 | Script        | Description                                                                                       |
 | ------------- | ------------------------------------------------------------------------------------------------- |
 | `./local.sh`  | Build package, copy assets here, build Docker image, then run container (uses `.env` if present). |
-| `./build.sh`  | Remote Docker build on GCP (requires assets already copied; run `npm run build:service` first).   |
+| `./build.sh`  | Remote Docker build on GCP (requires assets already copied; run `bun run build:service` first).  |
 | `./deploy.sh` | Deploy current image to Cloud Run (uses `.env`).                                                  |
 | `./run.sh`    | Run the local image `task-converter-local` (port 8080).                                           |
 
-## npm scripts (run from this directory)
+## Scripts (run from this directory)
 
 | Command                 | Description                                                                                                                  |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `npm run build:service` | Build `task-converter`, copy `dist/` here, clone `typst-plain/` from GitHub (never overwrites local `package.json` or `package-lock.json`). |
-| `npm run build`         | `build:service` then `./build.sh` (full remote image build).                                                                 |
-| `npm run deploy`        | `./deploy.sh`                                                                                                                |
-| `npm run build:local`   | `build:service` then `docker build -t task-converter-local .`                                                                |
-| `npm run dev`           | `build:local` then `./run.sh`                                                                                                |
+| `bun run build:service` | Build `task-converter`, copy `dist/` here, clone `typst-plain/` from GitHub (never overwrites local `package.json` or `package-lock.json`). |
+| `bun run build`         | `build:service` then `./build.sh` (full remote image build).                                                                 |
+| `bun run deploy`        | `./deploy.sh`                                                                                                                |
+| `bun run build:local`   | `build:service` then `docker build -t task-converter-local .`                                                                |
+| `bun run dev`           | `build:local` then `./run.sh`                                                                                                |
 
 ## Workflow
 
-**Local:** `./local.sh` or `npm run dev` → build package, copy assets, build image, run container.
+**Local:** `./local.sh` or `bun run dev` → build package, copy assets, build image, run container.
 
-**Deploy:** From this directory, run `npm run build` (build:service + remote build), then `npm run deploy` (or `./deploy.sh`).
+**Deploy:** From this directory, run `bun run build` (build:service + remote build), then `bun run deploy` (or `./deploy.sh`).
 
 **First-time Pub/Sub setup** (after the Cloud Run service exists): see the `pubsub/` section below.
 
@@ -87,7 +87,7 @@ Cloud Run sets `PORT` at runtime; no need to pass it in deploy.
 
 ## Local dev: SCMS callbacks from Docker
 
-When SCMS runs on the host (`npm run dev` on port 3031) and the converter runs in Docker, Pub/Sub job attributes must use a host-reachable API URL — not `http://localhost`, which inside the container refers to the container itself.
+When SCMS runs on the host (`bun run dev` on port 3031) and the converter runs in Docker, Pub/Sub job attributes must use a host-reachable API URL — not `http://localhost`, which inside the container refers to the container itself.
 
 1. In `platform/scms/.app-config.development.yml`, set `api.tasksCallbackUrl` to `http://host.docker.internal:3031/v1` (see `.app-config.sample.yml` for the field; required for Docker callbacks — without it SCMS falls back to request-derived `localhost` URLs).
 2. Run the container with host gateway mapping ( `./local.sh` adds `--add-host=host.docker.internal:host-gateway` ).
@@ -99,7 +99,7 @@ SCMS dev server must allow the `host.docker.internal` Host header (`platform/scm
 
 ## package-lock.json
 
-This directory has its own `package-lock.json` for reproducible installs in the container (`npm ci`). To regenerate it after changing `package.json`:
+The Docker image still uses npm (`npm ci` + `package-lock.json`) for a minimal runtime install. Host-side build/dev scripts use Bun. To regenerate the lockfile after changing this directory’s `package.json`:
 
 ```bash
 npm install

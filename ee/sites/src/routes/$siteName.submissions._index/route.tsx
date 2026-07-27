@@ -116,9 +116,8 @@ const ListingQuerySchema = z.object({
     .enum(LISTING_SORTS)
     .catch(LISTING_SORT_DEFAULT)
     .default(LISTING_SORT_DEFAULT)
-    .transform(
-      (value): ListingSort =>
-        LISTING_SORTS_AWAITING_DENORMALISATION.has(value) ? LISTING_SORT_DEFAULT : value,
+    .transform((value): ListingSort =>
+      LISTING_SORTS_AWAITING_DENORMALISATION.has(value) ? LISTING_SORT_DEFAULT : value,
     ),
   kindIds: csvIds,
   collectionIds: csvIds,

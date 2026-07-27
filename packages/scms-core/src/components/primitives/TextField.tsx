@@ -17,7 +17,7 @@ export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   status?: string | null | undefined;
 }
 
-export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(function TextField(
+export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(function (
   {
     id,
     name,
@@ -53,17 +53,17 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(func
           required={required}
           placeholder={placeholder}
           className={cn(
-            'block w-full rounded-lg border px-3 py-2 text-sm text-stone-600 transition-colors duration-200 placeholder:font-light dark:bg-transparent dark:text-white',
+            'block px-3 py-2 w-full text-sm rounded-lg border transition-colors duration-200 text-stone-600 placeholder:font-light dark:bg-transparent dark:text-white',
             error
-              ? 'border-red-700 focus:border-red-700 focus:ring-red-700 dark:border-red-700  dark:focus:border-red-700 dark:focus:ring-red-700'
-              : 'border-blue-100 focus:border-theme-blue-900 focus:ring-theme-blue-900 dark:border-blue-100/20  dark:focus:border-theme-blue-900 dark:focus:ring-theme-blue-900',
+              ? 'border-red-700 focus:border-red-700 focus:ring-red-700 dark:border-red-700 dark:focus:border-red-700 dark:focus:ring-red-700'
+              : 'border-blue-100 focus:border-theme-blue-900 focus:ring-theme-blue-900 dark:border-blue-100/20 dark:focus:border-theme-blue-900 dark:focus:ring-theme-blue-900',
             className,
           )}
           {...rest}
         />
         {status && !error ? (
           <div
-            className="absolute text-xs text-gray-300 dark:text-gray-700 top-1/3 right-4"
+            className="absolute right-4 top-1/3 text-xs text-gray-300 dark:text-gray-700"
             id={id}
           >
             {status}

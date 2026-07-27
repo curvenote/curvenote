@@ -44,11 +44,11 @@ The generated client is output to `./src/generated/` and is gitignored.
 Generate the Prisma client:
 
 ```bash
-npm run generate
+bun run generate
 ```
 
 Format the Prisma schema:
 
 ```bash
-npm run format
+bun run format
 ```

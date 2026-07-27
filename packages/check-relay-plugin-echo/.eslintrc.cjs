@@ -1,7 +1,8 @@
 module.exports = {
   root: true,
-  extends: ["curvenote"],
+  extends: ['curvenote'],
+  ignorePatterns: ['**/*.d.ts'],
   rules: {
-    "prettier/prettier": "off",
+    'prettier/prettier': 'off',
   },
 };

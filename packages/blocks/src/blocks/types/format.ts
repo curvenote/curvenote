@@ -87,6 +87,4 @@ export type FormatTypes =
   | ReferenceFormatTypes;
 
 export type ExportableFormatTypes =
-  | ArticleFormatTypes.tex
-  | ArticleFormatTypes.pdf
-  | ArticleFormatTypes.docx;
+  ArticleFormatTypes.tex | ArticleFormatTypes.pdf | ArticleFormatTypes.docx;

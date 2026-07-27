@@ -83,11 +83,7 @@ export type ALL_CONTENT_KEYS =
   | keyof PartialBlocks.Navigation;
 
 export type ALL_BLOCKS =
-  | ALL_CONTAINER_BLOCKS
-  | ALL_CONTENT_BLOCKS
-  | Blocks.Image
-  | Blocks.Output
-  | Blocks.Navigation;
+  ALL_CONTAINER_BLOCKS | ALL_CONTENT_BLOCKS | Blocks.Image | Blocks.Output | Blocks.Navigation;
 export type ALL_PARTIAL_BLOCKS_INTERNAL = ALL_CONTAINER_PARTIAL_BLOCKS | ALL_CONTENT_PARTIAL_BLOCKS;
 export type ALL_PARTIAL_BLOCKS = ALL_PARTIAL_BLOCKS_INTERNAL & BasePartialVersion;
 export type ALL_KEYS = ALL_CONTAINER_KEYS | ALL_CONTENT_KEYS;

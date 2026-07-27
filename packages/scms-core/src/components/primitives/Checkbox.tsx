@@ -12,7 +12,7 @@ interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
   required?: boolean;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
-export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox(
+export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(function (
   { id, name, required = false, className, label, onChange, disabled, ...rest },
   ref,
 ) {
@@ -26,7 +26,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(functi
         required={required}
         onChange={onChange}
         className={cn(
-          'w-5 h-5 bg-theme-blue rounded shadow-xs',
+          'w-5 h-5 rounded bg-theme-blue shadow-xs',
           'hover:cursor-pointer border-slate-400',
           'focus:ring-theme-blue-600 focus:border-theme-blue-600 focus:ring-theme-blue-900/50 focus:ring-offset-0',
           { 'text-gray-400! cursor-not-allowed!': disabled },

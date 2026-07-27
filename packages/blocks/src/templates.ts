@@ -68,11 +68,11 @@ export interface TaggedBlockDefinition {
 
 // NOTE: values here must match template schema option types exactly
 export enum UserOptionType {
-  'Boolean' = 'bool',
-  'String' = 'str',
-  'Choice' = 'choice',
-  'CorrespondingAuthor' = 'corresponding_author',
-  'Keywords' = 'keywords',
+  Boolean = 'bool',
+  String = 'str',
+  Choice = 'choice',
+  CorrespondingAuthor = 'corresponding_author',
+  Keywords = 'keywords',
 }
 
 export interface UserOptionDefinition {

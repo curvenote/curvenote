@@ -8,13 +8,7 @@ import { getFileMD5Hash, handleFileUpload } from './utils.js';
 import { UploadIcon } from 'lucide-react';
 
 type FileStatus =
-  | 'pending'
-  | 'staging'
-  | 'uploading'
-  | 'uploaded'
-  | 'completing'
-  | 'completed'
-  | 'error';
+  'pending' | 'staging' | 'uploading' | 'uploaded' | 'completing' | 'completed' | 'error';
 
 interface UploadState {
   file: File | null;
@@ -259,12 +253,12 @@ export function FileDropzone({
     >
       {/* Fixed-size container to prevent resizing */}
       <div
-        className="relative flex flex-col items-center justify-center w-full"
+        className="flex relative flex-col justify-center items-center w-full"
         style={{ minHeight: height, maxHeight: height }}
       >
         {!showProgress && (
           <>
-            <UploadIcon className="w-8 h-8 mb-2 text-muted-foreground" />
+            <UploadIcon className="mb-2 w-8 h-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Click or drag image to upload</p>
           </>
         )}
@@ -289,7 +283,7 @@ export function FileDropzone({
         {showProgress && uploadState.file && !errorMessage && (
           <div className="w-[90%] px-3 py-2 rounded-md bg-white/95 dark:bg-slate-950/95 pointer-events-auto">
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex justify-between items-center text-xs">
                 <span className="flex-1 mr-2 font-medium truncate w-[60%]">
                   {uploadState.file.name}
                 </span>

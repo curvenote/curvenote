@@ -7,34 +7,34 @@ Node.js server for the task converter, structured for Cloud Run but with **no** 
 Produces a single bundled file: `dist/index.js`.
 
 ```bash
-npm run build
+bun run build
 ```
 
 ## Run
 
 ```bash
-npm run start
+bun run start
 ```
 
-Requires `dist/index.js` (run `npm run build` first).
+Requires `dist/index.js` (run `bun run build` first).
 
 ## Local development
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 Runs `build:watch` and `nodemon` so the server restarts when `dist/index.js` changes.
 
 ## Linking in the monorepo
 
-`@curvenote/scms-tasks` is not published to the public registry. From the repo root, the workspace will resolve it when you run `npm install` at the root. To work from this package only:
+`@curvenote/scms-tasks` is not published to the public registry. From the repo root, the workspace will resolve it when you run `bun install` at the root. To work from this package only:
 
 ```bash
-cd packages/task-converter && npm install && npm run build && npm run start
+cd packages/task-converter && bun install && bun run build && bun run start
 ```
 
-Or use `npm run dev` from `packages/task-converter` after a root install.
+Or use `bun run dev` from `packages/task-converter` after a root install.
 
 ## Environment
 

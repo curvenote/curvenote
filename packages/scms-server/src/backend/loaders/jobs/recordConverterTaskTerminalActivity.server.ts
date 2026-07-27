@@ -6,9 +6,7 @@ import { createWorkActivity } from '../../db.server.js';
 import { getPrismaClient } from '../../prisma.server.js';
 
 type TerminalStatus =
-  | typeof JobStatus.COMPLETED
-  | typeof JobStatus.FAILED
-  | typeof JobStatus.CANCELLED;
+  typeof JobStatus.COMPLETED | typeof JobStatus.FAILED | typeof JobStatus.CANCELLED;
 
 function payloadRecord(payload: unknown): Record<string, unknown> | null {
   const obj = coerceToObject(payload);

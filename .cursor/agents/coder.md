@@ -36,12 +36,14 @@ Ask clarifying questions before starting when:
 
 Prefer scoped workspace commands for package-only edits:
 
-- `npm run lint --workspace <package>`
-- `npm run lint:format:fix --workspace <package>` then `npm run lint:format --workspace <package>`
+- `bun run --filter <package> lint`
+- `bun run --filter <package> lint:format:fix` then `bun run --filter <package> lint:format`
 
-Run top-level `npm run lint`, `npm run lint:format:fix`, and `npm run lint:format` when changes touch root/shared files, multiple packages, or before final handoff.
+Do not use `bun run lint --filter <package>` — that invokes the root Turbo lint script (broad `@curvenote/*` scope) and only appends `--filter` to Turbo.
 
-For feature work on a new branch, create a worktree with `npm run wt:create <branch-name>` from `dev` unless already on the correct branch.
+Run top-level `bun run lint`, `bun run lint:format:fix`, and `bun run lint:format` when changes touch root/shared files, multiple packages, or before final handoff.
+
+For feature work on a new branch, create a worktree with `bun run wt:create <branch-name>` from `dev` unless already on the correct branch.
 
 ## Status reporting
 

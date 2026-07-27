@@ -18,9 +18,7 @@ export type OnJobTerminalOptions = {
 };
 
 type ParentTerminalStatus =
-  | typeof JobStatus.COMPLETED
-  | typeof JobStatus.FAILED
-  | typeof JobStatus.CANCELLED;
+  typeof JobStatus.COMPLETED | typeof JobStatus.FAILED | typeof JobStatus.CANCELLED;
 
 /**
  * When a parent job reaches a terminal status, promote or cancel BLOCKED dependents.

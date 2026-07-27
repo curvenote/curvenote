@@ -1,4 +1,5 @@
 import type { ISession } from '../session/types.js';
+import type { Response as FetchResponse } from 'node-fetch';
 
 type JsonObject = {
   [index: string]: any;
@@ -49,7 +50,7 @@ export async function postToUrl(
   url: string,
   body: JsonObject,
   opts: { method?: 'POST' | 'PATCH' | 'PUT' } = {},
-) {
+): Promise<FetchResponse> {
   session.log.debug(`${opts?.method ?? 'POST'}ing to`, url);
   const method = opts?.method ?? 'POST';
   const headers = await session.getHeaders();
@@ -68,7 +69,7 @@ export async function postToJournals(
   pathname: string,
   body: JsonObject,
   opts: { method?: 'POST' | 'PATCH' } = {},
-) {
+): Promise<FetchResponse> {
   const url = `${session.config?.apiUrl}${pathname}`;
   const resp = await postToUrl(session, url, body, opts);
   return resp;

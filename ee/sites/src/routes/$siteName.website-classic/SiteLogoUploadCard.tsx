@@ -12,13 +12,7 @@ interface SiteLogoUploadCardProps {
 }
 
 type FileStatus =
-  | 'pending'
-  | 'staging'
-  | 'uploading'
-  | 'uploaded'
-  | 'completing'
-  | 'completed'
-  | 'error';
+  'pending' | 'staging' | 'uploading' | 'uploaded' | 'completing' | 'completed' | 'error';
 
 interface UploadState {
   file: File | null;
@@ -231,7 +225,7 @@ export function SiteLogoUploadCard({
       </div>
 
       {generalError && (
-        <div className="p-3 text-sm text-red-600 rounded-md bg-red-50 dark:bg-red-900/20 dark:text-red-400">
+        <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md dark:bg-red-900/20 dark:text-red-400">
           {generalError}
         </div>
       )}
@@ -257,20 +251,20 @@ export function SiteLogoUploadCard({
           )}
 
           {uploadState.status === 'error' && uploadState.error && (
-            <div className="p-3 text-sm text-red-600 rounded-md bg-red-50 dark:bg-red-900/20 dark:text-red-400">
+            <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md dark:bg-red-900/20 dark:text-red-400">
               {uploadState.error}
             </div>
           )}
 
           {showProgress && uploadState.file && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex justify-between items-center text-sm">
                 <span className="font-medium">{uploadState.file.name}</span>
                 <span className="text-muted-foreground">{Math.round(uploadState.progress)}%</span>
               </div>
               <div className="w-full h-2 bg-gray-200 rounded-full dark:bg-gray-700">
                 <div
-                  className="h-2 transition-all duration-300 bg-blue-600 rounded-full"
+                  className="h-2 bg-blue-600 rounded-full transition-all duration-300"
                   style={{ width: `${uploadState.progress}%` }}
                 />
               </div>
@@ -278,7 +272,7 @@ export function SiteLogoUploadCard({
           )}
 
           {showCompleted && uploadState.file && (
-            <div className="p-3 text-sm text-green-600 rounded-md bg-green-50 dark:bg-green-900/20 dark:text-green-400">
+            <div className="p-3 text-sm text-green-600 bg-green-50 rounded-md dark:bg-green-900/20 dark:text-green-400">
               ✓ {uploadState.file.name} uploaded successfully
             </div>
           )}

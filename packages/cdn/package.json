@@ -18,14 +18,14 @@
   "sideEffects": false,
   "scripts": {
     "clean": "rimraf dist",
-    "lint": "eslint \"src/**/!(*.spec).ts*\" -c ./.eslintrc.cjs",
-    "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\"",
-    "lint:format:fix": "prettier --write \"src/**/*.{ts,tsx,md}\"",
+    "lint": "bunx eslint \"src/**/!(*.spec).ts*\" -c ./.eslintrc.cjs",
+    "lint:format": "bunx prettier --check \"src/**/*.{ts,tsx,md}\"",
+    "lint:format:fix": "bunx prettier --write \"src/**/*.{ts,tsx,md}\"",
     "test": "vitest run",
     "test:watch": "vitest watch",
-    "dev": "npm-run-all --parallel \"build:* -- --watch\"",
+    "dev": "bun run build:esm -- --watch",
     "build:esm": "tsc",
-    "build": "npm-run-all -l clean -p build:esm"
+    "build": "bun run clean && bun run build:esm"
   },
   "dependencies": {
     "@curvenote/common": "^0.6.1",
@@ -35,6 +35,7 @@
     "myst-config": "^1.10.0",
     "myst-frontmatter": "^1.10.0",
     "myst-migrate": "^1.10.1",
+    "myst-spec": "^0.0.5",
     "myst-spec-ext": "^1.10.0",
     "nbtx": "^0.2.3",
     "node-cache": "^5.1.2",

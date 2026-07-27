@@ -3,7 +3,7 @@
 #   - pg_net (async http for wakes) built from supabase/pg_net
 #   - pg_cron (backup wake cron)    from the PGDG apt package
 #
-# This mirrors the supabase provider locally so `npm run dev` exercises the real
+# This mirrors the supabase provider locally so `bun run dev` exercises the real
 # pgmq + pg_net enqueue-wake path instead of the in-memory mock queue.
 FROM postgres:16-bookworm
 

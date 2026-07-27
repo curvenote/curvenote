@@ -1,14 +1,14 @@
 {
   "setup-worktree-unix": [
-    "npm install",
-    "npm run build",
-    "cd platform/scms && npm install",
-    "cd platform/scms && npm run build"
+    "bun install",
+    "bun run build",
+    "bun --cwd platform/scms install",
+    "bun --cwd platform/scms run build"
   ],
   "setup-worktree": [
-    "npm install",
-    "npm run build",
-    "cd platform/scms && npm install",
-    "cd platform/scms && npm run build"
+    "bun install",
+    "bun run build",
+    "bun --cwd platform/scms install",
+    "bun --cwd platform/scms run build"
   ]
 }

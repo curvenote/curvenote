@@ -19,6 +19,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# Bun 1.3.10 (matches package.json packageManager / CI; terminals + install use bun)
+COPY --from=oven/bun:1.3.10 /usr/local/bin/bun /usr/local/bin/bun
+
 # Docker CE (for local Postgres via docker compose)
 RUN install -m 0755 -d /etc/apt/keyrings \
     && curl --retry 3 --retry-delay 5 -fsSL https://download.docker.com/linux/ubuntu/gpg \
