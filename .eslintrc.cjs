@@ -2,6 +2,8 @@ module.exports = {
   root: true,
   // This tells ESLint to load the config from the package `eslint-config-curvenote`
   extends: ['curvenote'],
+  // Ignore patterns for the monorepo
+  // Each package/app has its own .eslintrc.cjs that will handle its specific files
   ignorePatterns: [
     'node_modules/',
     'dist/',
@@ -12,8 +14,4 @@ module.exports = {
     '*.config.mjs',
     '**/*.d.ts',
   ],
-  rules: {
-    // Allow React.forwardRef(function ComponentName ...) which shadows the outer const.
-    '@typescript-eslint/no-shadow': 'off',
-  },
 };
