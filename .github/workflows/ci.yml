@@ -46,6 +46,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: bun install
+      - run: bun run install:workspace
       - run: bun run build
       - run: bun run test
