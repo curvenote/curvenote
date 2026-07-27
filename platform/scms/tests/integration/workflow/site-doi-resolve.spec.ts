@@ -1,7 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, test, expect, beforeEach } from 'vitest';
 import type { SiteRole } from '@curvenote/scms-db';
-import { getPrismaClient, sites } from '@curvenote/scms-server';
+import { getPrismaClient, sites, doi } from '@curvenote/scms-server';
 import { doi as doiUtil } from 'doi-utils';
 import { uuidv7 } from 'uuidv7';
 import { createTestData, type TestData } from '../helpers/mocks';
@@ -242,6 +242,103 @@ describe('sites.submissions.published.get — delivered package', () => {
   });
 });
 
+/**
+ * Guards the site-less public DOI resolver (`GET /v1/doi/:first/:second` → `doi.resolve`).
+ *
+ * The security-relevant contract is the SQL filter `private = false AND external = false`:
+ * this endpoint is unauthenticated and edge-cached, so a weakened predicate would expose
+ * private/external-site works platform-wide. Tag narrowing is covered so a future rewrite
+ * of the shared DOI CTE cannot silently drop it.
+ */
+describe('cross-site doi resolve — public-only security', () => {
+  let testData: TestData;
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+    await attachDefaultDomain(testData);
+  });
+
+  test('resolves a DOI published on a public site', async () => {
+    const seed = await seedPublishedWorkWithDoi(testData, {});
+    const dto = await doi.resolve(testData.context, seed.rawDoi);
+
+    expect(dto.id).toBe(seed.workId);
+    expect(dto.submission_version_id).toBe(seed.svId);
+    expect(dto.doi).toBe(seed.normDoi);
+    expect(dto.links.site).toContain(`/sites/${testData.siteName}`);
+  });
+
+  test('does not resolve a DOI published only on a private site', async () => {
+    const privateSiteId = await createBareSite({ private: true });
+    const seed = await seedPublishedWorkWithDoi(testData, { siteId: privateSiteId });
+
+    await expectRejects404(
+      doi.resolve(testData.context, seed.rawDoi),
+      'Not Found - No work with that DOI exists in database',
+    );
+  });
+
+  test('does not resolve a DOI published only on an external site', async () => {
+    const externalSiteId = await createBareSite({ external: true });
+    const seed = await seedPublishedWorkWithDoi(testData, { siteId: externalSiteId });
+
+    await expectRejects404(
+      doi.resolve(testData.context, seed.rawDoi),
+      'Not Found - No work with that DOI exists in database',
+    );
+  });
+
+  test('prefers a public-site publication when the same work is also on a private site', async () => {
+    const seed = await seedPublishedWorkWithDoi(testData, {
+      datePublished: '2024-01-01',
+      svTags: ['public'],
+    });
+    const privateSiteId = await createBareSite({ private: true });
+    // Newer private publication of the same work — must not win over the public one.
+    await addPublishedVersionOnSite(testData, seed, {
+      siteId: privateSiteId,
+      datePublished: '2024-06-01',
+      svTags: ['private'],
+    });
+
+    const dto = await doi.resolve(testData.context, seed.rawDoi);
+    expect(dto.submission_version_id).toBe(seed.svId);
+    expect(dto.links.site).toContain(`/sites/${testData.siteName}`);
+  });
+
+  test('tag path resolves the tagged public version; an absent tag is a 404', async () => {
+    const seed = await seedPublishedWorkWithDoi(testData, {
+      datePublished: '2024-01-01',
+      svTags: ['hhmi'],
+    });
+    await addPublishedVersion(testData, seed, {
+      datePublished: '2024-06-01',
+      svTags: ['v2'],
+    });
+
+    const dto = await doi.resolve(testData.context, seed.rawDoi, { tag: 'hhmi' });
+    expect(dto.submission_version_id).toBe(seed.svId);
+
+    await expectRejects404(
+      doi.resolve(testData.context, seed.rawDoi, { tag: 'nope' }),
+      'Not Found - No published submission version with that tag for this DOI on any public site',
+    );
+  });
+
+  test('tag path does not resolve a tagged version that exists only on a private site', async () => {
+    const privateSiteId = await createBareSite({ private: true });
+    const seed = await seedPublishedWorkWithDoi(testData, {
+      siteId: privateSiteId,
+      svTags: ['hhmi'],
+    });
+
+    await expectRejects404(
+      doi.resolve(testData.context, seed.rawDoi, { tag: 'hhmi' }),
+      'Not Found - No published submission version with that tag for this DOI on any public site',
+    );
+  });
+});
+
 /* ---------------------------------------------------------------------------
  * Helpers
  * ------------------------------------------------------------------------ */
@@ -287,7 +384,7 @@ async function attachDefaultDomain(testData: TestData): Promise<string> {
   return hostname;
 }
 
-async function createBareSite(): Promise<string> {
+async function createBareSite(opts?: { private?: boolean; external?: boolean }): Promise<string> {
   const prisma = await getPrismaClient();
   const siteId = uuidv7();
   const now = new Date().toISOString();
@@ -296,11 +393,11 @@ async function createBareSite(): Promise<string> {
       id: siteId,
       name: `other-site-${siteId}`,
       title: 'Other Site',
-      private: false,
+      private: opts?.private ?? false,
       date_created: now,
       date_modified: now,
       metadata: {},
-      external: false,
+      external: opts?.external ?? false,
       restricted: true,
       default_workflow: 'SIMPLE',
       slug_strategy: 'NONE',
@@ -308,6 +405,66 @@ async function createBareSite(): Promise<string> {
     },
   });
   return siteId;
+}
+
+/**
+ * Publish another submission of an existing work on a different site (same DOI / work).
+ * Used to assert that a newer private publication cannot beat a public one in `doi.resolve`.
+ */
+async function addPublishedVersionOnSite(
+  testData: TestData,
+  seed: DoiSeed,
+  opts: { siteId: string; datePublished: string; svTags?: string[] },
+): Promise<{ svId: string; workVersionId: string; submissionId: string }> {
+  const prisma = await getPrismaClient();
+  const now = new Date().toISOString();
+  const workVersionId = uuidv7();
+  const submissionId = uuidv7();
+  const svId = uuidv7();
+
+  await prisma.workVersion.create({
+    data: {
+      id: workVersionId,
+      date_created: now,
+      date_modified: now,
+      title: seed.title,
+      doi: seed.normDoi,
+      authors: seed.authors,
+      canonical: true,
+      tags: [],
+      cdn: 'https://test-cdn.com',
+      cdn_key: `cdn-key-${workVersionId}`,
+      work: { connect: { id: seed.workId } },
+    },
+  });
+  await prisma.submission.create({
+    data: {
+      id: submissionId,
+      date_created: now,
+      date_modified: now,
+      date_published: opts.datePublished,
+      site: { connect: { id: opts.siteId } },
+      work: { connect: { id: seed.workId } },
+      kind: { connect: { id: testData.kindId } },
+      collection: { connect: { id: testData.collectionId } },
+      submitted_by: { connect: { id: testData.userId } },
+    },
+  });
+  await prisma.submissionVersion.create({
+    data: {
+      id: svId,
+      date_created: now,
+      date_modified: now,
+      date_published: opts.datePublished,
+      status: 'PUBLISHED',
+      tags: opts.svTags ?? [],
+      submission: { connect: { id: submissionId } },
+      work_version: { connect: { id: workVersionId } },
+      submitted_by: { connect: { id: testData.userId } },
+    },
+  });
+
+  return { svId, workVersionId, submissionId };
 }
 
 interface DoiSeed {
