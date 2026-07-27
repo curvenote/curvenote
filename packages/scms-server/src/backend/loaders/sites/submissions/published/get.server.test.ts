@@ -82,6 +82,9 @@ describe('formatSiteWorkDTO', () => {
 
     const result = formatSiteWorkDTO(ctx, dbo as any);
 
+    // Should carry the resolving site slug
+    expect(result.site).toBe('test-site');
+
     // Should include HTML link using domain
     expect(result.links.html).toBe('https://journal.com/articles/work-123');
 

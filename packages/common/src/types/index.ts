@@ -163,6 +163,8 @@ export type SiteWorkDTO = Pick<SubmissionDTO, 'slug' | 'kind' | 'date_published'
     subject?: string;
     submission_version_id: string;
     submission_id: string;
+    /** Slug of the site this work resolved on (e.g. `biorxiv`, `medrxiv`). */
+    site: string;
     /**
      * Published version summaries for this work, newest first. Populated by the DOI
      * and published-work endpoints so clients can render version navigation without a

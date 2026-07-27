@@ -1,4 +1,5 @@
 export * as sites from './sites/index.js';
+export * as doi from './doi/index.js';
 export * as submissions from './previews/index.js';
 export * as my from './my/index.js';
 export * as jobs from './jobs/index.js';

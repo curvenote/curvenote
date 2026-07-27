@@ -162,6 +162,7 @@ export function formatSiteWorkDTO(
         ? formatCollectionSummaryDTO(dbo.submission.collection)
         : undefined,
     submission_id: dbo.submission.id,
+    site: ctx.site.name,
     links: {
       // TODO canonical access should work if PUBLISHED - this endpoint simply doesn't exist yet
       self: ctx.asApiUrl(`/sites/${ctx.site.name}/works/${work_id}/versions/${version_id}`),
