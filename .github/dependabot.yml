@@ -1,14 +1,7 @@
 version: 2
 updates:
-  - package-ecosystem: "bun"
-    directory: "/"
+  - package-ecosystem: 'bun'
+    directory: '/'
     schedule:
-      interval: "weekly"
-    target-branch: "dev"
-
-  # Docker runtime image still installs with npm ci + package-lock.json
-  - package-ecosystem: "npm"
-    directory: "/services/task-converter"
-    schedule:
-      interval: "weekly"
-    target-branch: "dev"
+      interval: 'weekly'
+    target-branch: 'dev'
