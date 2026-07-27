@@ -13,9 +13,10 @@ export function formatFooterLinks(footer_links?: FooterLink[][]): FooterLink[][]
 }
 
 export function formatSocialLinks(social_links?: SocialLink[]): SocialLink[] | undefined {
-  const formatted = social_links?.map(
-    (link: SocialLink): SocialLink => ({ kind: link.kind, url: link.url }),
-  );
+  const formatted = social_links?.map((link: SocialLink): SocialLink => ({
+    kind: link.kind,
+    url: link.url,
+  }));
   if (!formatted || formatted.length === 0) return undefined;
   return formatted;
 }

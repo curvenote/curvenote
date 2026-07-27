@@ -441,11 +441,9 @@ export async function checkAccountsLinkedStatus(ctx: Context) {
     const userData = (ctx.user.data ?? {}) as UserData;
     const signupData = userData.signup ?? {};
     const linkProvidersStepData = signupData.steps?.['link-providers'] as
-      | LinkProvidersStepData
-      | undefined;
+      LinkProvidersStepData | undefined;
     const dataCollectionStepData = signupData.steps?.['data-collection'] as
-      | DataCollectionStepData
-      | undefined;
+      DataCollectionStepData | undefined;
 
     const isCurrentlyCompleted = linkProvidersStepData?.completed ?? false;
 

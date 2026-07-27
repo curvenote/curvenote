@@ -5,7 +5,7 @@ declare module 'react-router' {
   // and doesn't currently use args.context directly, this interface is defined as empty.
   // If you start using args.context in loaders/actions, add the context properties here.
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface AppLoadContext {
+  interface AppLoadContext extends object {
     // Add context properties here if needed in the future
     // Example:
     // db: Database;

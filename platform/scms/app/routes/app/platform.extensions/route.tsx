@@ -35,8 +35,7 @@ export async function loader(args: Route.LoaderArgs) {
 
   const extensionAdminConfigs: Record<string, Record<string, unknown> | undefined> = {};
   const rawExtensions = ctx.$config.app?.extensions as
-    | Record<string, Record<string, unknown>>
-    | undefined;
+    Record<string, Record<string, unknown>> | undefined;
   if (rawExtensions) {
     for (const [id, config] of Object.entries(rawExtensions)) {
       if (!config || typeof config !== 'object') continue;

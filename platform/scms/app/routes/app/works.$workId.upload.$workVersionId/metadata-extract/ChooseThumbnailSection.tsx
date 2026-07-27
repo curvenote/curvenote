@@ -194,7 +194,7 @@ function FiguresBusyOverlay({
           <button
             type="button"
             onClick={onSkipFigures}
-            className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+            className="font-medium underline text-primary underline-offset-2 hover:no-underline"
           >
             skip generating thumbnails
           </button>{' '}
@@ -219,14 +219,14 @@ function StandaloneEmptyGallery({
   return (
     <div
       className={cn(
-        'relative rounded-md border border-dashed border-stone-300 bg-white dark:border-stone-600 dark:bg-stone-900',
+        'relative bg-white rounded-md border border-dashed border-stone-300 dark:border-stone-600 dark:bg-stone-900',
         EMPTY_GALLERY_HEIGHT_CLASS,
       )}
     >
       {showBusy ? (
         <FiguresBusyOverlay message={busyMessage} onSkipFigures={onSkipFigures} />
       ) : (
-        <div className="flex h-full items-center justify-center px-6 text-center">
+        <div className="flex justify-center items-center px-6 h-full text-center">
           <p className="max-w-sm text-sm text-muted-foreground">{emptyMessage}</p>
         </div>
       )}
@@ -256,11 +256,11 @@ function FiguresLoadingPlaceholder({
       )}
     >
       <CurrentLabel visible={false} />
-      <div className="relative flex min-h-0 flex-1 flex-col gap-1 rounded-md border border-dashed border-stone-300 bg-white px-2 py-1 dark:border-stone-600 dark:bg-stone-900">
+      <div className="flex relative flex-col flex-1 gap-1 px-2 py-1 min-h-0 bg-white rounded-md border border-dashed border-stone-300 dark:border-stone-600 dark:bg-stone-900">
         <p className="pr-6 text-xs invisible truncate min-h-[1rem]" aria-hidden>
           &nbsp;
         </p>
-        <div className="relative min-h-0 flex-1 w-full overflow-hidden rounded bg-stone-50 dark:bg-stone-800/50">
+        <div className="overflow-hidden relative flex-1 w-full min-h-0 rounded bg-stone-50 dark:bg-stone-800/50">
           <FiguresBusyOverlay message={message} onSkipFigures={onSkipFigures} compact />
         </div>
       </div>
@@ -292,7 +292,7 @@ type ThumbnailTileProps = {
   layout: ThumbnailGalleryLayout;
 };
 
-const ThumbnailTile = forwardRef<HTMLDivElement, ThumbnailTileProps>(function ThumbnailTile(
+const ThumbnailTile = forwardRef<HTMLDivElement, ThumbnailTileProps>(function (
   { label, imageSrc, imageAlt, isSelected, isCurrent, onSelect, layout },
   ref,
 ) {
@@ -459,7 +459,7 @@ export function ChooseThumbnailSection({
       {hasGalleryTiles ? (
         <div className="relative">
           {showGalleryToolbar ? (
-            <div className="absolute top-0 right-1 z-10 flex gap-2 items-center">
+            <div className="flex absolute top-0 right-1 z-10 gap-2 items-center">
               {showFiguresRetryControl ? <FiguresRetryButton onRetry={onRetryFigures} /> : null}
               {rowGalleryOverflows ? (
                 <GalleryLayoutToggle value={layout} onChange={setLayout} />

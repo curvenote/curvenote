@@ -871,8 +871,7 @@ export async function action(args: Route.ActionArgs) {
         try {
           const work = await findWorkByVersion(workVersionId);
           const files = (work?.metadata as Record<string, unknown> | undefined)?.files as
-            | Record<string, FileMetadataSectionItem>
-            | undefined;
+            Record<string, FileMetadataSectionItem> | undefined;
           const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
           const previewTrigger = normalizeUploadFlowTrigger(uploadFlowTrigger);
           await trackDocumentPreviewStarted(baseCtx, {
@@ -893,8 +892,7 @@ export async function action(args: Route.ActionArgs) {
         } catch (err) {
           const work = await findWorkByVersion(workVersionId);
           const files = (work?.metadata as Record<string, unknown> | undefined)?.files as
-            | Record<string, FileMetadataSectionItem>
-            | undefined;
+            Record<string, FileMetadataSectionItem> | undefined;
           const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
           const previewTrigger = normalizeUploadFlowTrigger(uploadFlowTrigger);
           await trackDocumentPreviewAnalytics(baseCtx, {

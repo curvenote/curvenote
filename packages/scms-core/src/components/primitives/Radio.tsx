@@ -11,7 +11,7 @@ interface RadioProps extends InputHTMLAttributes<HTMLInputElement> {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: string | null;
 }
-export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(function Radio(
+export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(function (
   { id, name, label, required = false, className, onChange, error, ...rest },
   ref,
 ) {
@@ -25,17 +25,17 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(function Rad
         value={label}
         onChange={onChange}
         className={cn(
-          'focus:ring-theme-blue-600 h-5 w-5 border-blue-100 bg-transparent text-theme-blue-900 shadow-xs focus:border-theme-blue-700 focus:ring-theme-blue-900/50 focus:ring-offset-0',
+          'w-5 h-5 bg-transparent border-blue-100 focus:ring-theme-blue-600 text-theme-blue-900 shadow-xs focus:border-theme-blue-700 focus:ring-theme-blue-900/50 focus:ring-offset-0',
           error
-            ? 'border-red-700 focus:border-red-700 focus:ring-red-700 dark:border-red-700  dark:focus:border-red-700 dark:focus:ring-red-700'
-            : 'border-blue-100 focus:border-theme-blue-900 focus:ring-theme-blue-900 dark:border-blue-100/20  dark:focus:border-theme-blue-900 dark:focus:ring-theme-blue-900',
+            ? 'border-red-700 focus:border-red-700 focus:ring-red-700 dark:border-red-700 dark:focus:border-red-700 dark:focus:ring-red-700'
+            : 'border-blue-100 focus:border-theme-blue-900 focus:ring-theme-blue-900 dark:border-blue-100/20 dark:focus:border-theme-blue-900 dark:focus:ring-theme-blue-900',
         )}
         {...rest}
       />
       <label
         htmlFor={id}
         className={cn(
-          'mb-2 text-sm tracking-wide ',
+          'mb-2 text-sm tracking-wide',
           error ? 'text-red-700' : 'text-stone-800 dark:text-stone-100',
         )}
       >

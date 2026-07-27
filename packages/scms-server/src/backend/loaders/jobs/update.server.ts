@@ -9,9 +9,7 @@ import { getPrismaClient } from '../../prisma.server.js';
 import { recordConverterTaskTerminalActivity } from './recordConverterTaskTerminalActivity.server.js';
 
 type TerminalStatus =
-  | typeof JobStatus.COMPLETED
-  | typeof JobStatus.FAILED
-  | typeof JobStatus.CANCELLED;
+  typeof JobStatus.COMPLETED | typeof JobStatus.FAILED | typeof JobStatus.CANCELLED;
 
 function isTerminalStatus(status: string): status is TerminalStatus {
   return (

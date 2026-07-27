@@ -39,9 +39,9 @@ export const DEFAULT_REFERENCE_LABEL_MAP: ReferenceLabelMap = {
 export type ProjectId = string;
 
 export enum ProjectVisibility {
-  'public' = 'public',
-  'manifest' = 'manifest',
-  'private' = 'private',
+  public = 'public',
+  manifest = 'manifest',
+  private = 'private',
 }
 
 export interface Project extends PartialProject {

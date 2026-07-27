@@ -1,9 +1,9 @@
 import type { FormatTypes } from './format.js';
 
 export enum ArtifactStatus {
-  'processing' = 'processing',
-  'complete' = 'complete',
-  'failed' = 'failed',
+  processing = 'processing',
+  complete = 'complete',
+  failed = 'failed',
 }
 
 export enum ArtifactProcessingStage {

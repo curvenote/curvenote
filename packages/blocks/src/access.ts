@@ -3,8 +3,8 @@ import type { JsonObject, BaseLinks } from './types.js';
 import type { ROLES } from './roles.js';
 
 export enum ACLType {
-  'Project' = 'Project',
-  'Team' = 'Team',
+  Project = 'Project',
+  Team = 'Team',
 }
 
 export interface ProjectAccessLinks extends BaseLinks {
@@ -17,8 +17,8 @@ export interface TeamAccessLinks extends BaseLinks {
 }
 
 export enum AccessKinds {
-  'user' = 'user',
-  'manifest' = 'manifest',
+  user = 'user',
+  manifest = 'manifest',
 }
 
 export type TeamAccessId = {

@@ -41,7 +41,7 @@ jobs:
       - name: Ensure npm 11.5.1+ for trusted publishing
         run: npm install -g npm@^11.5.1
       - name: Install dependencies
-        run: bun install
+        run: bun run install:workspace
       - name: Run build
         run: bun run build
       - name: Run tests

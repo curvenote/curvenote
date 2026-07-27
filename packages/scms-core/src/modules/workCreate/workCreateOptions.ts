@@ -144,8 +144,7 @@ export function getAllRegisteredWorkCreateOptions(
 }
 
 export type ResolveCreateNewVersionOptionResult =
-  | { ok: true; option: WorkCreateOption }
-  | { ok: false; error: string; status: 403 };
+  { ok: true; option: WorkCreateOption } | { ok: false; error: string; status: 403 };
 
 /**
  * Resolve which create flow to use for an existing work, failing clearly when metadata implies

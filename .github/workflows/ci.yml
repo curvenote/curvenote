@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24.x
-      - run: bun install
+      - run: bun run install:workspace
       - run: bun run lint:format
       - run: bun run lint
       - run: bun run lint:circular
