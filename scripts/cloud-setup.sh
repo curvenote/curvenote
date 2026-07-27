@@ -45,6 +45,9 @@ git submodule update --init --recursive
 echo "→ bun run install:workspace"
 bun run install:workspace
 
+echo "→ bun run build:scms (SCMS workspace deps only; skips CLI / full mystmd)"
+bun run build:scms
+
 # Postgres: docker-compose.yml builds/starts the local SCMS Postgres image (pgmq + pg_net + pg_cron).
 echo "→ Starting Postgres (docker compose — see docker-compose.yml)"
 bun run db:up
