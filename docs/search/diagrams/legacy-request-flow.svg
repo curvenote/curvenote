@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" role="img" aria-labelledby="title desc">
+  <title id="title">Legacy works search request flow</title>
+  <desc id="desc">Flow from GET works with q through kill-switch, ILIKE id resolution, listing query, and response.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .box { fill: #f8fafc; stroke: #334155; stroke-width: 1.5; }
+      .box-hi { fill: #fff7ed; stroke: #c2410c; stroke-width: 1.5; }
+      .box-ok { fill: #f0fdf4; stroke: #15803d; stroke-width: 1.5; }
+      .label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; fill: #0f172a; }
+      .sub { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; fill: #475569; }
+      .title { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 15px; font-weight: 600; fill: #0f172a; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; fill: #334155; }
+    </style>
+  </defs>
+
+  <text x="24" y="28" class="title">Legacy path  request flow (projection off)</text>
+  <text x="24" y="48" class="mono">WORKS_SEARCH_PROJECTION_DISABLED = true | 1 | on</text>
+
+  <rect x="220" y="68" width="320" height="48" rx="8" class="box"/>
+  <text x="240" y="90" class="label">GET /v1/sites/:site/works?q=&</text>
+  <text x="240" y="106" class="sub">q trimmed; length &lt; 3 dropped</text>
+
+  <line x1="380" y1="116" x2="380" y2="148" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="200" y="148" width="360" height="44" rx="8" class="box"/>
+  <text x="220" y="176" class="label">listPublishedWorks ’ dbListLatestPublishedSubmissions</text>
+
+  <line x1="380" y1="192" x2="380" y2="224" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="180" y="224" width="400" height="56" rx="8" class="box-hi"/>
+  <text x="200" y="248" class="label">dbSearchSubmissionIds (legacy branch)</text>
+  <text x="200" y="266" class="sub">UNION ILIKE on WorkVersion ’ join SubmissionVersion / Submission</text>
+
+  <line x1="380" y1="280" x2="380" y2="312" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="210" y="312" width="340" height="44" rx="8" class="box"/>
+  <text x="230" y="340" class="label">submission id[]  (+ optional subject intersect)</text>
+
+  <line x1="380" y1="356" x2="380" y2="388" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="160" y="388" width="440" height="56" rx="8" class="box-ok"/>
+  <text x="180" y="412" class="label">dbQuerySubmissions + count</text>
+  <text x="180" y="430" class="sub">Prisma Submission page (LIMIT/OFFSET); count = id set size when possible</text>
+
+  <line x1="380" y1="444" x2="380" y2="476" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="260" y="476" width="240" height="32" rx="8" class="box"/>
+  <text x="300" y="496" class="label">SiteWorkListingDTO</text>
+</svg>
