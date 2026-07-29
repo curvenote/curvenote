@@ -30,7 +30,7 @@ projection path misbehaves in an environment.
 | Document | Contents |
 |----------|----------|
 | [01-legacy-ilike.md](./01-legacy-ilike.md) | Legacy path: queries, tables, indexes, performance, fuzziness |
-| _TBD_ | Projection path (`SubmissionSearch`) |
+| [02-projection-submission-search.md](./02-projection-submission-search.md) | Default projection path (`SubmissionSearch`) |
 
 ## Shared request contract
 

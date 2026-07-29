@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 420" role="img" aria-labelledby="title desc">
+  <title id="title">Projection performance characteristics</title>
+  <desc id="desc">Site-scoped funnel and remaining cost drivers for SubmissionSearch.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .box { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 1.5; }
+      .narrow { fill: #dcfce7; stroke: #15803d; stroke-width: 1.5; }
+      .warn { fill: #fff7ed; stroke: #c2410c; stroke-width: 1.5; }
+      .label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; fill: #0f172a; }
+      .sub { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; fill: #475569; }
+      .title { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 15px; font-weight: 600; fill: #0f172a; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; fill: #334155; }
+    </style>
+  </defs>
+
+  <text x="24" y="28" class="title">Projection path  performance shape</text>
+
+  <rect x="120" y="56" width="540" height="48" rx="8" class="box"/>
+  <text x="136" y="78" class="label">1. Index scan: (site_id, status) + text match</text>
+  <text x="136" y="94" class="sub">GIN tsv and/or GIN trgm  already tenant-scoped</text>
+
+  <line x1="390" y1="104" x2="390" y2="132" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="180" y="132" width="420" height="48" rx="8" class="narrow"/>
+  <text x="196" y="154" class="label">2. DISTINCT submission_id for this site</text>
+  <text x="196" y="170" class="sub">Still fully materialised  no LIMIT in search SQL</text>
+
+  <line x1="390" y1="180" x2="390" y2="208" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="140" y="208" width="500" height="48" rx="8" class="box"/>
+  <text x="156" y="230" class="label">3. Listing page: Submission WHERE id IN (&) ORDER BY date_published</text>
+  <text x="156" y="246" class="sub">LIMIT/OFFSET here; search count often = id[].length</text>
+
+  <rect x="40" y="290" width="340" height="72" rx="8" class="narrow"/>
+  <text x="56" y="314" class="label">Browse total (no filters)</text>
+  <text x="56" y="332" class="mono">COUNT(DISTINCT submission_id)</text>
+  <text x="56" y="348" class="sub">btree site_status_submission_idx  no SV join</text>
+
+  <rect x="400" y="290" width="340" height="72" rx="8" class="warn"/>
+  <text x="416" y="314" class="label">Remaining costs</text>
+  <text x="416" y="332" class="sub">broad q · fuzzy OR widening · write triggers</text>
+  <text x="416" y="348" class="sub">denormalised storage + dual GIN indexes</text>
+
+  <text x="40" y="396" class="mono">Win vs legacy: no global WorkVersion probe; match volume bounded by one sites listed versions.</text>
+</svg>
