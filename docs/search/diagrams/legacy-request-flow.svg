@@ -1,52 +1,74 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" role="img" aria-labelledby="title desc">
-  <title id="title">Legacy works search request flow</title>
-  <desc id="desc">Flow from GET works with q through kill-switch, ILIKE id resolution, listing query, and response.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 640" role="img" aria-labelledby="title desc">
+  <title id="title">Legacy works search — multi-query request flow</title>
+  <desc id="desc">Shows separate DB round-trips: search ids, optional subject, then parallel page and count.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
     </marker>
     <style>
       .box { fill: #f8fafc; stroke: #334155; stroke-width: 1.5; }
-      .box-hi { fill: #fff7ed; stroke: #c2410c; stroke-width: 1.5; }
-      .box-ok { fill: #f0fdf4; stroke: #15803d; stroke-width: 1.5; }
-      .label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; fill: #0f172a; }
-      .sub { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; fill: #475569; }
+      .db { fill: #fff7ed; stroke: #c2410c; stroke-width: 1.5; }
+      .mem { fill: #f0fdf4; stroke: #15803d; stroke-width: 1.5; }
+      .skip { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.25; stroke-dasharray: 4 3; }
+      .label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; fill: #0f172a; }
+      .sub { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; fill: #475569; }
       .title { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 15px; font-weight: 600; fill: #0f172a; }
-      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; fill: #334155; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; fill: #334155; }
+      .tag { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; font-weight: 600; fill: #c2410c; }
     </style>
   </defs>
 
-  <text x="24" y="28" class="title">Legacy path  request flow (projection off)</text>
-  <text x="24" y="48" class="mono">WORKS_SEARCH_PROJECTION_DISABLED = true | 1 | on</text>
+  <text x="24" y="28" class="title">Legacy path — queries (not “load all submissions”)</text>
+  <text x="24" y="48" class="mono">Orange = DB round-trip · Green = in-memory · Dashed = optional</text>
 
-  <rect x="220" y="68" width="320" height="48" rx="8" class="box"/>
-  <text x="240" y="90" class="label">GET /v1/sites/:site/works?q=&</text>
-  <text x="240" y="106" class="sub">q trimmed; length &lt; 3 dropped</text>
+  <rect x="200" y="64" width="380" height="40" rx="8" class="box"/>
+  <text x="220" y="90" class="label">1. Route validates params ? where + { page, limit, sort }</text>
 
-  <line x1="380" y1="116" x2="380" y2="148" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="390" y1="104" x2="390" y2="132" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="200" y="148" width="360" height="44" rx="8" class="box"/>
-  <text x="220" y="176" class="label">listPublishedWorks ’ dbListLatestPublishedSubmissions</text>
+  <rect x="160" y="132" width="460" height="56" rx="8" class="db"/>
+  <text x="24" y="148" class="tag">Q1</text>
+  <text x="180" y="154" class="label">dbSearchSubmissionIds — raw UNION ILIKE + site join</text>
+  <text x="180" y="172" class="sub">Returns string[] of ALL matching submission ids (no LIMIT)</text>
 
-  <line x1="380" y1="192" x2="380" y2="224" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="390" y1="188" x2="390" y2="216" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="180" y="224" width="400" height="56" rx="8" class="box-hi"/>
-  <text x="200" y="248" class="label">dbSearchSubmissionIds (legacy branch)</text>
-  <text x="200" y="266" class="sub">UNION ILIKE on WorkVersion ’ join SubmissionVersion / Submission</text>
+  <rect x="160" y="216" width="460" height="48" rx="8" class="skip"/>
+  <text x="24" y="232" class="tag">Q2?</text>
+  <text x="180" y="236" class="label">fetchSubmissionIdsBySubject (only if subject=)</text>
+  <text x="180" y="252" class="sub">Returns string[] subject match ids</text>
 
-  <line x1="380" y1="280" x2="380" y2="312" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="390" y1="264" x2="390" y2="292" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="210" y="312" width="340" height="44" rx="8" class="box"/>
-  <text x="230" y="340" class="label">submission id[]  (+ optional subject intersect)</text>
+  <rect x="180" y="292" width="420" height="40" rx="8" class="mem"/>
+  <text x="200" y="318" class="label">intersect ids in memory ? filteredIds (or short-circuit ?)</text>
 
-  <line x1="380" y1="356" x2="380" y2="388" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="390" y1="332" x2="390" y2="360" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <rect x="160" y="388" width="440" height="56" rx="8" class="box-ok"/>
-  <text x="180" y="412" class="label">dbQuerySubmissions + count</text>
-  <text x="180" y="430" class="sub">Prisma Submission page (LIMIT/OFFSET); count = id set size when possible</text>
+  <rect x="80" y="360" width="280" height="72" rx="8" class="db"/>
+  <text x="40" y="376" class="tag">Q3</text>
+  <text x="96" y="384" class="label">dbQuerySubmissions</text>
+  <text x="96" y="402" class="sub">Prisma findMany WHERE id IN (…)</text>
+  <text x="96" y="418" class="sub">+ LIMIT/OFFSET ? page of RowDBO[]</text>
 
-  <line x1="380" y1="444" x2="380" y2="476" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="420" y="360" width="280" height="72" rx="8" class="db"/>
+  <text x="400" y="376" class="tag">Q4?</text>
+  <text x="436" y="384" class="label">count (often free)</text>
+  <text x="436" y="402" class="sub">filteredIds.length in memory, OR</text>
+  <text x="436" y="418" class="sub">dbCountSubmissions if other filters</text>
 
-  <rect x="260" y="476" width="240" height="32" rx="8" class="box"/>
-  <text x="300" y="496" class="label">SiteWorkListingDTO</text>
+  <text x="300" y="350" class="sub">Promise.all ?</text>
+  <line x1="220" y1="332" x2="220" y2="360" stroke="#334155" stroke-width="1.25"/>
+  <line x1="560" y1="332" x2="560" y2="360" stroke="#334155" stroke-width="1.25"/>
+
+  <line x1="390" y1="432" x2="390" y2="468" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="200" y="468" width="380" height="48" rx="8" class="mem"/>
+  <text x="220" y="490" class="label">formatSiteWorkDTOFromSubmissions</text>
+  <text x="220" y="506" class="sub">(+ optional subjects lookup) ? SiteWorkListingDTO JSON</text>
+
+  <text x="40" y="560" class="label">Important</text>
+  <text x="40" y="580" class="sub">We never SELECT * FROM Submission for the whole site up front.</text>
+  <text x="40" y="600" class="sub">Search returns ids only; the page query loads only the current page of rows.</text>
+  <text x="40" y="620" class="sub">Typical with q only: 2 DB round-trips (search + page); count is in-memory.</text>
 </svg>

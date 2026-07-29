@@ -7,12 +7,14 @@ WORKS_SEARCH_PROJECTION_DISABLED=true   # also: 1 | on
 ```
 
 With the kill-switch **off** (default production), this path is not used — see
-the projection doc (TBD). This document describes what happens when the
-projection is **not** on.
+[02-projection-submission-search.md](./02-projection-submission-search.md).
+This document describes what happens when the projection is **not** on.
 
-Source:
-`platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts`
-→ `dbSearchSubmissionIds` (branch where `useSearchProjection()` is false).
+**Primary source:**
+[`db.server.ts`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts)
+→ [`dbSearchSubmissionIds`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts)
+(branch where [`useSearchProjection()`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts)
+is false).
 
 ---
 
@@ -20,24 +22,146 @@ Source:
 
 ![Legacy search request flow](./diagrams/legacy-request-flow.svg)
 
-1. Route validates `q` (trim, min length 3, max 200).
-2. `listPublishedWorks` → `dbListLatestPublishedSubmissions`.
-3. If `q` is set, `dbSearchSubmissionIds` returns matching **submission ids**
-   (raw SQL).
-4. Those ids are intersected with optional subject ids, then passed as
-   `extras.ids` into the normal Prisma page query + count.
-5. Empty id set short-circuits to `{ items: [], total: 0 }`.
+### One query or many?
 
-Search never pages inside the ILIKE query: it materialises **all** matching
-submission ids for the site/status, then `LIMIT`/`OFFSET` apply on the
-subsequent `Submission` listing query.
+**Multiple round-trips.** We do **not** load all site submissions first.
+
+For a typical `?q=…&page=0&limit=10` request (no `subject` / collection / kind /
+date):
+
+| # | Step | DB? | Returns |
+|---|------|-----|---------|
+| 1 | Search id resolution | **Yes — 1 raw SQL** | `string[]` of **all** matching submission ids (unpaged) |
+| 2 | Page load | **Yes — Prisma `findMany`** | Only the **current page** of submission rows (+ nested latest version) |
+| 3 | Total | **No** (in-memory) | `searchIds.length` |
+
+So: **ids for every match**, then **rows for one page**. Never “SELECT every
+submission on the site, then filter in Node.”
+
+With extra filters you may add more queries (subject, collection lookup, join
+count). Details below.
+
+### Step-by-step
+
+#### 1. HTTP route — parse & validate
+
+[`route.tsx` `loader`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/route.tsx)
+
+- Reads query params; Zod schema drops `q` when trimmed length &lt; 3 (max 200).
+- Resolves site context (`withSecureSiteContext`); external sites short-circuit
+  to `{ items: [], total: 0, links: {} }` with **no** listing/search queries.
+- **Returns (in-process):** `where` (`q`, `subject`, dates, …) +
+  `{ page, limit, sort }`.
+- Calls [`listPublishedWorks`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts).
+
+#### 2. Orchestrator — `listPublishedWorks` → `dbListLatestPublishedSubmissions`
+
+[`listPublishedWorks`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts)
+/
+[`dbListLatestPublishedSubmissions`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts)
+
+- Maps API `status` → DB (`published` → `PUBLISHED`, etc.).
+- Coordinates the id-resolution queries, intersection, page query, count, then
+  formatting.
+- **Final return (HTTP body):** `SiteWorkListingDTO`
+  (`{ items, total, links, … }` via
+  [`format.server.ts`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/format.server.ts)).
+
+#### 3. Q1 — search: ids only (not full submissions)
+
+[`dbSearchSubmissionIds`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts)
+(legacy branch)
+
+- **One** `$queryRaw` statement: `UNION` of `WorkVersion` `ILIKE` branches,
+  then join to `SubmissionVersion` + `Submission` for `status` + `site_id`.
+- **Returns:** `Promise<string[]>` — **every** matching `Submission.id` for
+  that site/status. **No `LIMIT` / `OFFSET`.**
+- Does **not** return titles, authors, or version rows — ids only.
+- Does **not** start from “all submissions on the site”; it starts from
+  globally matching work versions, then joins down to this site’s submissions
+  (see [Main query](#main-query)).
+
+If `q` is absent, this step is skipped (`searchIds` stays `undefined`).
+
+#### 4. Q2? — optional subject ids
+
+Only when `subject=` is set:
+[`fetchSubmissionIdsBySubject`](../../packages/scms-server/src/backend/work-version-subject.server.ts)
+
+- **Returns:** another `string[]` of submission ids.
+- Then
+  [`intersectSubmissionIds`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts)
+  intersects search ∩ subject **in memory**.
+- Empty intersection → `{ items: [], total: 0 }` with **no** page query.
+
+#### 5. Optional collection gate
+
+If `collection=` is set: Prisma `collection.findFirst` (visibility check). May
+return empty without running the listing queries.
+
+#### 6. Q3 (+ Q4?) — page of rows + total (parallel)
+
+When offset pagination is requested (`page` / `limit` present — the public
+route always passes them):
+
+```ts
+Promise.all([
+  dbQuerySubmissions(...),  // page
+  countPromise,             // total
+])
+```
+
+**Page — [`dbQuerySubmissions`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts)**
+
+- Prisma `submission.findMany` with
+  [`buildListingWhere`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts):
+  `site_id`, optional collection/kind/date, and **`id: { in: filteredIds }`**
+  when search/subject ran.
+- `orderBy` publication date; `skip` / `take` for the page.
+- Nested `versions: { where: { status }, take: 1, … }` for the latest matching
+  version.
+- **Returns:** `RowDBO[]` — **only this page** (e.g. 10 rows), not the full
+  match set.
+
+**Count**
+
+| Situation | What runs | Returns |
+|-----------|-----------|---------|
+| Search/subject ids resolved, no collection/kind/date | **In-memory** `filteredIds.length` | `number` (no DB) |
+| Otherwise | [`dbCountSubmissions`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts) raw `COUNT(DISTINCT s.id)` with same filters | `number` |
+
+(The projection browse-count shortcut is **not** used on this kill-switch
+path.)
+
+#### 7. Format + subjects for DTO
+
+[`formatSiteWorkDTOFromSubmissions`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/format.server.ts);
+may also call
+[`fetchWorkVersionSubjects`](../../packages/scms-server/src/backend/work-version-subject.server.ts)
+for the page’s work-version ids (another small query) before JSON response.
+
+### Mental model
+
+```text
+q present?
+  └─ Q1: raw SQL → ALL matching submission ids[]     (wide, ids only)
+subject?
+  └─ Q2: raw SQL → subject ids[] → intersect in RAM
+empty ids? → { items: [], total: 0 }
+else:
+  ├─ Q3: Prisma page WHERE id IN (ids) LIMIT/OFFSET  (narrow, full rows)
+  └─ total: len(ids)  or  Q4 count query
+→ format → JSON
+```
 
 ---
 
 ## Main query
 
-Conceptually one statement: a `UNION` of single-predicate `WorkVersion`
-branches, then join inward to site-scoped submissions.
+Conceptually **one** SQL statement per search (Q1): a `UNION` of
+single-predicate `WorkVersion` branches, then join inward to site-scoped
+submissions. (Postgres may execute UNION arms as separate plans; from the app
+it is still a single round-trip.)
 
 ![Legacy query shape](./diagrams/legacy-query-tables.svg)
 
@@ -47,6 +171,10 @@ branches, then join inward to site-scoped submissions.
 const pattern = `%${escapeIlikePattern(q)}%`;
 // escapeIlikePattern only doubles `\`; `%` and `_` in user input remain wildcards
 ```
+
+See
+[`escapeIlikePattern`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts)
+in `db.server.ts`.
 
 ### Branch A–D (always)
 
@@ -72,9 +200,10 @@ WHERE w.doi ILIKE $pattern
 
 ### Branch E (conditional — affiliations)
 
-Appended only when `isAffiliationSearchEnabled(q)` is true (at least one token
-≥ 3 chars that is not an affiliation stopword such as `university`, `school`,
-`department`, …):
+Appended only when
+[`isAffiliationSearchEnabled(q)`](../../packages/scms-server/src/backend/work-version-affiliations.server.ts)
+is true (at least one token ≥ 3 chars that is not an affiliation stopword such
+as `university`, `school`, `department`, …):
 
 ```sql
 SELECT wv.id
@@ -85,7 +214,7 @@ WHERE work_version_affiliations_search_text(wv.metadata) ILIKE $pattern
 `work_version_affiliations_search_text` extracts
 `metadata['frontmatter.myst'].affiliations[*].name` (fallback `institution`)
 into a single searchable string (migration
-`20260610120000_add_work_version_affiliations_trgm_index`).
+[`20260610120000_add_work_version_affiliations_trgm_index`](../../prisma/schema/migrations/20260610120000_add_work_version_affiliations_trgm_index/migration.sql)).
 
 ### Outer join (site + status scope)
 
@@ -118,8 +247,10 @@ INNER JOIN "Submission" s
 
 ## Indexes (pg_trgm GIN)
 
-Migration `20260526223800_add_submission_search_trgm_indexes` (plus affiliations
-in `20260610120000`):
+Migrations
+[`20260526223800_add_submission_search_trgm_indexes`](../../prisma/schema/migrations/20260526223800_add_submission_search_trgm_indexes/migration.sql)
+and
+[`20260610120000_add_work_version_affiliations_trgm_index`](../../prisma/schema/migrations/20260610120000_add_work_version_affiliations_trgm_index/migration.sql):
 
 | Index | Expression / column |
 |-------|---------------------|
@@ -150,7 +281,7 @@ contract as the submissions-index search).
 - Subsequent listing page: `Submission` ordered by `date_published` with
   `id IN (...)`, served by the site listing indexes when the id set is
   moderate.
-- Count after search (no collection/kind/date): **id-set length** — no second
+- Count after search (no collection/kind/date): **id-set length** — no extra
   DB count round-trip.
 
 ### What is expensive / risky
@@ -167,10 +298,10 @@ contract as the submissions-index search).
    `%`-style wildcards in input) can return a very large id array into the
    Node process and into `WHERE id IN (...)`.
 
-3. **Four–five index probes per request**  
+3. **Four–five index probes per search statement**  
    UNION runs each branch separately. Latency is roughly the sum of branch
    costs (Postgres may parallelise somewhat, but it is still multiple probes
-   + a distinct join).
+   + a distinct join) inside **one** client round-trip.
 
 4. **Affiliation branch selectivity**  
    Stopwords avoid probing affiliations for queries like `university` alone.
@@ -186,7 +317,7 @@ contract as the submissions-index search).
    by `ILIKE` only). Accented vs ASCII variants do not match unless the
    stored value happens to contain the typed form.
 
-### Compared to the projection path (preview)
+### Compared to the projection path
 
 | | Legacy ILIKE | Projection (default) |
 |--|--------------|----------------------|
@@ -195,6 +326,9 @@ contract as the submissions-index search).
 | Accents | No | `immutable_unaccent` both sides |
 | Typo tolerance | No (exact substring) | Yes (`<%`) |
 | Intermediate size | All matching WV → site ids | Already site-scoped |
+
+Full projection write-up:
+[02-projection-submission-search.md](./02-projection-submission-search.md).
 
 ---
 
@@ -228,27 +362,12 @@ matching itself is **case-insensitive exact substring** (`ILIKE`).
 
 ### Affiliation stopwords
 
-From `packages/scms-server/src/backend/work-version-affiliations.server.ts`:
-tokens shorter than 3 letters, or in
-`AFFILIATION_SEARCH_STOP_TERMS` (`university`, `college`, `department`,
-`institute`, `hospital`, `medical`, `school`, …), do not alone enable the
-affiliation branch. Title / author / DOI branches still run.
-
----
-
-## Downstream of search ids
-
-After ids are resolved:
-
-```text
-filteredIds = intersect(searchIds, subjectIds?)
-extras = { from?, to?, ids: filteredIds }
-
-dbQuerySubmissions(...)   -- Prisma findMany on Submission, take:1 latest version
-count:
-  filteredIds && !collection/kind/date  →  filteredIds.length
-  else                                  →  dbCountSubmissions (join count)
-```
+From
+[`work-version-affiliations.server.ts`](../../packages/scms-server/src/backend/work-version-affiliations.server.ts):
+tokens shorter than 3 letters, or in `AFFILIATION_SEARCH_STOP_TERMS`
+(`university`, `college`, `department`, `institute`, `hospital`, `medical`,
+`school`, …), do not alone enable the affiliation branch. Title / author / DOI
+branches still run.
 
 ---
 
@@ -260,7 +379,7 @@ export WORKS_SEARCH_PROJECTION_DISABLED=true
 ```
 
 Integration coverage:
-`platform/scms/tests/integration/workflow/site-works-listing.spec.ts`
+[`site-works-listing.spec.ts`](../../platform/scms/tests/integration/workflow/site-works-listing.spec.ts)
 — describe block *“site works listing — legacy search (kill-switch) …”*
 pins the env var and asserts exact substring semantics on title / author /
 DOI (cases that the projection’s fuzzy clause would broaden).
@@ -269,11 +388,14 @@ DOI (cases that the projection’s fuzzy clause would broaden).
 
 ## Related code
 
-| Piece | Location |
-|-------|----------|
-| Route / `q` schema | `…/v1.sites.$siteName.works/route.tsx` |
-| Search + listing | `…/v1.sites.$siteName.works/db.server.ts` |
-| Affiliation gate + SQL fn name | `packages/scms-server/src/backend/work-version-affiliations.server.ts` |
-| Trgm indexes | `prisma/schema/migrations/20260526223800_…` |
-| Affiliation index | `prisma/schema/migrations/20260610120000_…` |
-| Similar ILIKE pattern (sites UI) | `ee/sites/.../$siteName.submissions._index/db.server.ts` |
+| Piece | Link |
+|-------|------|
+| Route / `q` schema | [`route.tsx`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/route.tsx) |
+| Search + listing orchestration | [`db.server.ts`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/db.server.ts) |
+| DTO formatting | [`format.server.ts`](../../platform/scms/app/routes/api/v1.sites.$siteName.works/format.server.ts) |
+| Affiliation gate + SQL fn name | [`work-version-affiliations.server.ts`](../../packages/scms-server/src/backend/work-version-affiliations.server.ts) |
+| Subject id lookup | [`work-version-subject.server.ts`](../../packages/scms-server/src/backend/work-version-subject.server.ts) |
+| Trgm indexes | [`20260526223800_…/migration.sql`](../../prisma/schema/migrations/20260526223800_add_submission_search_trgm_indexes/migration.sql) |
+| Affiliation index | [`20260610120000_…/migration.sql`](../../prisma/schema/migrations/20260610120000_add_work_version_affiliations_trgm_index/migration.sql) |
+| Integration tests | [`site-works-listing.spec.ts`](../../platform/scms/tests/integration/workflow/site-works-listing.spec.ts) |
+| Similar ILIKE pattern (sites UI) | [`ee/sites/…/db.server.ts`](../../ee/sites/src/routes/$siteName.submissions._index/db.server.ts) |
