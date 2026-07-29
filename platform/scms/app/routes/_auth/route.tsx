@@ -55,11 +55,11 @@ export default function Layout() {
       <div className="flex justify-center w-full h-full">
         <div
           data-name="_auth-layout"
-          className="flex justify-center h-full mx-4 overflow-y-auto md:mx-0 grow"
+          className="flex overflow-y-auto justify-center mx-4 h-full md:mx-0 grow"
         >
-          <div className="flex flex-col items-center w-full max-h-screen justify-evenly">
-            <div className="flex flex-col items-center justify-center flex-shrink w-full py-4 md:py-6 lg:py-8">
-              <div className="flex flex-col items-center w-full">
+          <div className="flex flex-col justify-evenly items-center w-full max-h-screen">
+            <div className="flex flex-col flex-shrink justify-center items-center py-4 w-full md:py-6 lg:py-8">
+              <div className="flex flex-col items-center w-full max-w-2xl">
                 {branding?.logo ? (
                   <img src={branding.logo} alt={branding.title ?? 'Platform Logo'} />
                 ) : (
@@ -72,7 +72,7 @@ export default function Layout() {
               <Outlet />
             </div>
             {branding?.poweredBy && (
-              <div className="flex items-center justify-center w-full py-4 min-h-12 xl:min-h-20">
+              <div className="flex justify-center items-center py-4 w-full min-h-12 xl:min-h-20">
                 <PoweredByCurvenoteText />
               </div>
             )}
