@@ -289,6 +289,10 @@ app:
         path: works
         scopes:
           - app:works:feature
+      - name: opensci-compliance
+        label: Open Science
+        icon: opensci-compliance
+        path: open-science
       - name: sites
         label: My Sites
         icon: site

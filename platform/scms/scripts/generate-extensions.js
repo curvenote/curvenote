@@ -309,11 +309,13 @@ function generateClientFile(packages) {
     .map((pkg) => {
       return packageNameToVarName(pkg.name) + 'Client';
     })
-    .join(', ');
+    .join(',\n  ');
 
   return `${imports}
 
-export const extensions = [${exports}];
+export const extensions = [
+  ${exports},
+];
 `;
 }
 
@@ -337,11 +339,13 @@ function generateServerFile(packages) {
     .map((pkg) => {
       return packageNameToVarName(pkg.name);
     })
-    .join(', ');
+    .join(',\n  ');
 
   return `${imports}
 
-export const extensions = [${exports}];
+export const extensions = [
+  ${exports},
+];
 `;
 }
 
@@ -443,10 +447,16 @@ function main() {
   writeTurboExtensionsGenerated(extensionBuildPackages);
   console.log(`Generated ${TURBO_EXT_GEN}`);
   if (extensionBuildPackages.length === 0) {
-    console.log('  (no packages with build scripts under extensions/*/packages or extensions/plugins)');
+    console.log(
+      '  (no packages with build scripts under extensions/*/packages or extensions/plugins)',
+    );
   } else {
     extensionBuildPackages.forEach((p) => console.log(`  - ${p.name}`));
   }
 }
 
-main();
+if (process.argv[1] === __filename) {
+  main();
+}
+
+export { packageNameToVarName };
