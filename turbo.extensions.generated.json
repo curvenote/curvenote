@@ -1,0 +1,67 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "tasks": {
+    "@hhmi/compliance#build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "src/**",
+        "!**/.DS_Store",
+        "package.json",
+        "tsconfig.json",
+        "tsup.config.ts",
+        "extension.schema.yml"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "@hhmi/pmc#build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "src/**",
+        "!**/.DS_Store",
+        "package.json",
+        "tsconfig.json",
+        "tsup.config.ts",
+        "extension.schema.yml"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "@hhmi/pmc-ftp-service#build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "src/**",
+        "!**/.DS_Store",
+        "package.json",
+        "tsconfig.json"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "@opensci-dashboard/compliance#build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "src/**",
+        "!**/.DS_Store",
+        "package.json",
+        "tsconfig.json",
+        "tsup.config.ts",
+        "extension.schema.yml"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    }
+  }
+}
