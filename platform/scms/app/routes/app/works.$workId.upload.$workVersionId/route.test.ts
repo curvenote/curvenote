@@ -145,14 +145,13 @@ vi.mock('@vercel/functions', () => ({
   waitUntil,
 }));
 
-vi.mock('@curvenote/scms-doc-preview', () => ({
+vi.mock('./docPreview.server', () => ({
   handleFetchPreviewsIntent: vi.fn(),
   handleFetchPreviewFiguresIntent: vi.fn(),
   deletePreviewArtifactsForVersion: vi.fn(async () => undefined),
   persistThumbnailListingForVersion: vi.fn(async () => undefined),
   signPreviewFigures: vi.fn(),
   readDocumentPreviewsFromObjectTable: vi.fn(),
-  resolvePreviewImagePresence: vi.fn(),
   extractMetadataFromPreviews: vi.fn(),
   materializeSelectedThumbnail: vi.fn(),
   summarizePreviewCandidateFiles: vi.fn(() => ({ previewCandidateCount: 0, fileTypes: [] })),

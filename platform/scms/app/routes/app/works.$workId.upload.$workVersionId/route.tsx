@@ -86,6 +86,7 @@ import {
   type DocumentPreviewItem,
   type ExtractedMetadata,
   isPreviewCandidate,
+  resolvePreviewImagePresence,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -108,7 +109,6 @@ import {
   persistThumbnailListingForVersion,
   signPreviewFigures,
   readDocumentPreviewsFromObjectTable,
-  resolvePreviewImagePresence,
   extractMetadataFromPreviews,
   materializeSelectedThumbnail,
   summarizePreviewCandidateFiles,
@@ -119,7 +119,7 @@ import {
   trackDocumentPreviewAnalytics,
   trackMetadataExtractionStarted,
   trackMetadataExtractionAnalytics,
-} from '@curvenote/scms-doc-preview';
+} from './docPreview.server';
 import { Upload, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
