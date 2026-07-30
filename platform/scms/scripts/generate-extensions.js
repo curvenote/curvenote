@@ -305,17 +305,12 @@ function generateClientFile(packages) {
     })
     .join('\n');
 
-  const exports = packages
-    .map((pkg) => {
-      return packageNameToVarName(pkg.name) + 'Client';
-    })
-    .join(',\n  ');
+  const exportNames = packages.map((pkg) => packageNameToVarName(pkg.name) + 'Client');
+  const exports = exportNames.length === 1 ? exportNames[0] : `\n  ${exportNames.join(',\n  ')},\n`;
 
   return `${imports}
 
-export const extensions = [
-  ${exports},
-];
+export const extensions = [${exports}];
 `;
 }
 
@@ -335,17 +330,12 @@ function generateServerFile(packages) {
     })
     .join('\n');
 
-  const exports = packages
-    .map((pkg) => {
-      return packageNameToVarName(pkg.name);
-    })
-    .join(',\n  ');
+  const exportNames = packages.map((pkg) => packageNameToVarName(pkg.name));
+  const exports = exportNames.length === 1 ? exportNames[0] : `\n  ${exportNames.join(',\n  ')},\n`;
 
   return `${imports}
 
-export const extensions = [
-  ${exports},
-];
+export const extensions = [${exports}];
 `;
 }
 

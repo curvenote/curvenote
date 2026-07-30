@@ -6,10 +6,7 @@
       "outputs": ["dist/**", ".next/**", "api/**", "public/build/**"]
     },
     "@curvenote/scms-db#build": {
-      "inputs": [
-        "../../prisma/**",
-        "./src"
-      ],
+      "inputs": ["../../prisma/**", "./src"],
       "outputs": ["dist/**"]
     },
     "clean": {
@@ -18,11 +15,23 @@
     "lint": {
       "outputs": []
     },
+    "@curvenote/scms#lint": {
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "app/extensions/client.ts", "app/extensions/server.ts"]
+    },
     "lint:format": {
       "outputs": []
     },
+    "@curvenote/scms#lint:format": {
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "app/extensions/client.ts", "app/extensions/server.ts"]
+    },
     "lint:format:fix": {
       "outputs": []
+    },
+    "@curvenote/scms#lint:format:fix": {
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "app/extensions/client.ts", "app/extensions/server.ts"]
     },
     "typecheck": {
       "dependsOn": ["^build"],
