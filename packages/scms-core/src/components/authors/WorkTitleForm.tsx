@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFetcher } from 'react-router';
 import { cn } from '../../utils/cn.js';
 import * as ui from '../ui/index.js';
-import { useInlineSave } from './useInlineSave.js';
-import { InlineSaveIndicator } from './InlineSaveIndicator.js';
+import { useInlineSave } from '../../hooks/useInlineSave.js';
+import { InlineSaveIndicator } from '../ui/InlineSaveIndicator.js';
 
 interface WorkTitleFormProps {
   title: string;

@@ -11,6 +11,4 @@ export * from './AuthorField.js';
 export * from './AuthorSummaryView.js';
 export * from './AuthorMetadataForm.js';
 export * from './WorkTitleForm.js';
-export * from './InlineSaveIndicator.js';
-export * from './useInlineSave.js';
 export * from './CaptureMetadataSection.js';
