@@ -8,7 +8,7 @@ import {
 } from '@curvenote/scms-core';
 import type { ExtensionCheckService, FileMetadataSection } from '@curvenote/scms-core';
 import type { WorkVersionMetadata, ChecksMetadataSection } from '@curvenote/scms-server';
-import type { AuthorFieldMetadata } from './mystAuthorAdapters';
+import type { AuthorFieldMetadata } from '@curvenote/scms-core';
 
 interface ContinueFormProps {
   title: string;

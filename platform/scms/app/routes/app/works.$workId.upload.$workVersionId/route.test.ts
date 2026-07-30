@@ -65,6 +65,11 @@ vi.mock('@curvenote/scms-server', async () => ({
   searchOrcidById: vi.fn(),
   searchRor: vi.fn(),
   enqueueAndDispatchJob,
+  updateWorkVersionTitle: vi.fn(),
+  updateWorkVersionAuthors: vi.fn(),
+  updateWorkVersionAuthorMetadata: vi.fn(),
+  toggleWorkVersionCheck: vi.fn(),
+  shouldTrackWorkViewedOnLoader: vi.fn(),
 }));
 
 vi.mock('@curvenote/scms-core', async () => ({
@@ -111,40 +116,53 @@ vi.mock('@curvenote/scms-core', async () => ({
   },
   isValidOrcid: vi.fn(),
   hasDocxInMetadata,
+  MetadataExtractSection: vi.fn(),
+  PREVIEW_BUSY_MESSAGES: [],
+  useRotatingMessage: vi.fn(() => ''),
+  ChooseThumbnailSection: vi.fn(),
+  collectAllFigures: vi.fn(() => []),
+  CaptureMetadataSection: vi.fn(),
+  applyFiguresFetcherStateTransition: vi.fn(() => ({ wasInFlight: false, fetchFinished: false })),
+  nextAutoFiguresAttempts: vi.fn((n: number) => n + 1),
+  pendingFigurePathsKey: vi.fn(() => ''),
+  shouldAutoSubmitFiguresFetch: vi.fn(() => false),
+  shouldClearFiguresFetchFinishedForPendingKey: vi.fn(() => false),
+  shouldManualRetryFigures: vi.fn(() => false),
+  shouldResetFiguresAutoAttemptsForPendingKey: vi.fn(() => false),
+  shouldShowFiguresRetry: vi.fn(() => false),
+  buildThumbnailCandidateLocators: vi.fn((locs: string[]) => locs),
+  encodeFigureLocator: vi.fn((key: string) => key),
+  resolveThumbnailSelection: vi.fn(() => null),
+  mystFrontmatterToAuthorField: vi.fn(() => ({ authors: [], affiliations: [] })),
+  computeManuscriptSourceSignature: vi.fn(() => ''),
+  UPLOAD_ANALYSIS_METADATA_KEY: 'upload.analysis',
+  uploadFactPresenceFromValue: vi.fn(),
+  clearUploadAnalysisMetadataFacts: vi.fn(),
+  resolveUploadCheckLogoUrls: vi.fn(async () => ({})),
 }));
 
 vi.mock('@vercel/functions', () => ({
   waitUntil,
 }));
 
-vi.mock('./metadata-extract/fetchPreviews.server', () => ({
+vi.mock('@curvenote/scms-doc-preview', () => ({
   handleFetchPreviewsIntent: vi.fn(),
+  handleFetchPreviewFiguresIntent: vi.fn(),
   deletePreviewArtifactsForVersion: vi.fn(async () => undefined),
   persistThumbnailListingForVersion: vi.fn(async () => undefined),
   signPreviewFigures: vi.fn(),
   readDocumentPreviewsFromObjectTable: vi.fn(),
-}));
-
-vi.mock('./metadata-extract/materializeThumbnail.server', () => ({
-  materializeSelectedThumbnail: vi.fn(),
-}));
-
-vi.mock('./metadata-extract/anthropic.server', () => ({
+  resolvePreviewImagePresence: vi.fn(),
   extractMetadataFromPreviews: vi.fn(),
-}));
-
-vi.mock('./updateMetadata.server', () => ({
-  updateWorkVersionTitle: vi.fn(),
-  updateWorkVersionAuthors: vi.fn(),
-  updateWorkVersionAuthorMetadata: vi.fn(),
-}));
-
-vi.mock('./updateChecks.server', () => ({
-  toggleWorkVersionCheck: vi.fn(),
-}));
-
-vi.mock('./loaderAnalytics.server.js', () => ({
-  shouldTrackWorkViewedOnLoader: vi.fn(),
+  materializeSelectedThumbnail: vi.fn(),
+  summarizePreviewCandidateFiles: vi.fn(() => ({ previewCandidateCount: 0, fileTypes: [] })),
+  sanitizeUploadFlowFailureReason: vi.fn((m: string) => m),
+  normalizeUploadFlowTrigger: vi.fn(() => 'auto'),
+  resolveMetadataExtractionTrigger: vi.fn(() => 'auto'),
+  trackDocumentPreviewStarted: vi.fn(),
+  trackDocumentPreviewAnalytics: vi.fn(),
+  trackMetadataExtractionStarted: vi.fn(),
+  trackMetadataExtractionAnalytics: vi.fn(),
 }));
 
 vi.mock('../../../extensions/client', () => ({

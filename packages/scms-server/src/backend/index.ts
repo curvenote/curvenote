@@ -37,7 +37,8 @@ export * from './workDraftChecksMetadata.server.js';
 export * from './work-version-subject.server.js';
 export * from './work-version-affiliations.server.js';
 export * from './loaders/works/contains.server.js';
-export * from './works/versions/cloneDraftWorkVersion.server.js';
+export * from './works/index.js';
+export * from './analytics/index.js';
 
 export * from './etl/index.js';
 export * from './loaders/index.js';
@@ -45,5 +46,6 @@ export * from './storage/index.js';
 export * from './services/index.js';
 export * from './signup/index.js';
 export * from './uploads/index.js';
+export * from './ai/index.js';
 
 export { CURVENOTE_CLIENT_MINIMUM_VERSION } from './minimumClient.server.js';

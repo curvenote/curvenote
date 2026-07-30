@@ -131,6 +131,7 @@
     "@curvenote/remix-auth-okta": "^3.0.0",
     "@curvenote/scms-core": "*",
     "@curvenote/scms-db": "*",
+    "@curvenote/scms-doc-preview": "*",
     "@curvenote/scms-server": "*",
     "@curvenote/scms-sites-ext": "*",
     "@headlessui/tailwindcss": "^0.2.1",

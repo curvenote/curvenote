@@ -26,7 +26,7 @@ import {
   searchOrcid,
   searchOrcidById,
   searchRor,
-  File,
+  File as StorageFile,
   StorageBackend,
   KnownBuckets,
   resolveThumbnailBucket,
@@ -64,6 +64,28 @@ import {
   buildCheckServiceIdToExtensionMap,
   groupCheckServiceIdsByExtensionAnalyticsEvent,
   hasDocxInMetadata,
+  MetadataExtractSection,
+  PREVIEW_BUSY_MESSAGES,
+  useRotatingMessage,
+  ChooseThumbnailSection,
+  collectAllFigures,
+  CaptureMetadataSection,
+  applyFiguresFetcherStateTransition,
+  nextAutoFiguresAttempts,
+  pendingFigurePathsKey,
+  shouldAutoSubmitFiguresFetch,
+  shouldClearFiguresFetchFinishedForPendingKey,
+  shouldManualRetryFigures,
+  shouldResetFiguresAutoAttemptsForPendingKey,
+  shouldShowFiguresRetry,
+  buildThumbnailCandidateLocators,
+  encodeFigureLocator,
+  resolveThumbnailSelection,
+  type AuthorFieldMetadata,
+  mystFrontmatterToAuthorField,
+  type DocumentPreviewItem,
+  type ExtractedMetadata,
+  isPreviewCandidate,
 } from '@curvenote/scms-core';
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
@@ -75,9 +97,9 @@ import {
   updateWorkVersionTitle,
   updateWorkVersionAuthors,
   updateWorkVersionAuthorMetadata,
-} from './updateMetadata.server';
-import { toggleWorkVersionCheck } from './updateChecks.server';
-import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
+  toggleWorkVersionCheck,
+  shouldTrackWorkViewedOnLoader,
+} from '@curvenote/scms-server';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
 import {
   handleFetchPreviewsIntent,
@@ -85,41 +107,10 @@ import {
   deletePreviewArtifactsForVersion,
   persistThumbnailListingForVersion,
   signPreviewFigures,
-} from './metadata-extract/fetchPreviews.server';
-import {
   readDocumentPreviewsFromObjectTable,
-  type DocumentPreviewItem,
-} from './metadata-extract/fetchPreviews.server';
-import { resolvePreviewImagePresence } from './metadata-extract/previewImagePresence';
-import { extractMetadataFromPreviews } from './metadata-extract/anthropic.server';
-import type { ExtractedMetadata } from './metadata-extract/anthropic.server';
-import { Upload, CheckSquare } from 'lucide-react';
-import { z } from 'zod';
-import { zfd } from 'zod-form-data';
-import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
-import { PREVIEW_BUSY_MESSAGES } from './metadata-extract/busyMessages';
-import { useRotatingMessage } from './metadata-extract/useRotatingMessage';
-import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
-import { collectAllFigures } from './metadata-extract/DocumentPreviewer';
-import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
-import {
-  buildThumbnailCandidateLocators,
-  encodeFigureLocator,
-  resolveThumbnailSelection,
-} from './metadata-extract/thumbnailSelection';
-import { CaptureMetadataSection } from './CaptureMetadataSection';
-import { isPreviewCandidate } from './metadata-extract/previewGuards';
-import {
-  applyFiguresFetcherStateTransition,
-  nextAutoFiguresAttempts,
-  pendingFigurePathsKey,
-  shouldAutoSubmitFiguresFetch,
-  shouldClearFiguresFetchFinishedForPendingKey,
-  shouldManualRetryFigures,
-  shouldResetFiguresAutoAttemptsForPendingKey,
-  shouldShowFiguresRetry,
-} from './metadata-extract/figuresAutoRetry';
-import {
+  resolvePreviewImagePresence,
+  extractMetadataFromPreviews,
+  materializeSelectedThumbnail,
   summarizePreviewCandidateFiles,
   sanitizeUploadFlowFailureReason,
   normalizeUploadFlowTrigger,
@@ -128,9 +119,10 @@ import {
   trackDocumentPreviewAnalytics,
   trackMetadataExtractionStarted,
   trackMetadataExtractionAnalytics,
-} from './metadata-extract/uploadFlowAnalytics.server';
-import type { AuthorFieldMetadata } from './mystAuthorAdapters';
-import { mystFrontmatterToAuthorField } from './mystAuthorAdapters';
+} from '@curvenote/scms-doc-preview';
+import { Upload, CheckSquare } from 'lucide-react';
+import { z } from 'zod';
+import { zfd } from 'zod-form-data';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { waitUntil } from '@vercel/functions';
 import { uuidv7 } from 'uuidv7';
@@ -362,7 +354,7 @@ export async function loader(args: Route.LoaderArgs) {
     try {
       const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
       const bucket = resolveThumbnailBucket(ctx, backend, work.cdn);
-      const signedUrl = await new File(backend, inheritedThumbnailKey, bucket).url();
+      const signedUrl = await new StorageFile(backend, inheritedThumbnailKey, bucket).url();
       inheritedThumbnail = { key: inheritedThumbnailKey, signedUrl };
     } catch (err) {
       console.warn('[work-upload] failed to sign inherited thumbnail', inheritedThumbnailKey, err);
