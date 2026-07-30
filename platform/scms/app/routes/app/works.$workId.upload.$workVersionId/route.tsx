@@ -31,14 +31,17 @@ import {
   KnownBuckets,
   resolveThumbnailBucket,
   enqueueAndDispatchJob,
+  updateWorkVersionTitle,
+  updateWorkVersionAuthors,
+  updateWorkVersionAuthorMetadata,
+  toggleWorkVersionCheck,
+  shouldTrackWorkViewedOnLoader,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
   ExtensionCheckHandleActionArgs,
   FileMetadataSection,
   FileMetadataSectionItem,
-} from '@curvenote/scms-core';
-import {
   MainWrapper,
   PageFrame,
   SectionWithHeading,
@@ -94,13 +97,6 @@ import { WorkUploadChecksForm } from './WorkUploadChecksForm';
 import { ContinueForm } from './ContinueForm';
 import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
 import { validateUploadParams } from './validateUpload.server';
-import {
-  updateWorkVersionTitle,
-  updateWorkVersionAuthors,
-  updateWorkVersionAuthorMetadata,
-  toggleWorkVersionCheck,
-  shouldTrackWorkViewedOnLoader,
-} from '@curvenote/scms-server';
 import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
 import {
   handleFetchPreviewsIntent,
