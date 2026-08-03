@@ -23,6 +23,7 @@ import type { ISession } from '../session/types.js';
 import chalk from 'chalk';
 import { getFromJournals } from '../utils/api.js';
 import { addTransformersToOpts } from '../utils/utils.js';
+import { emitSiteRenderers } from '../utils/siteRenderers.js';
 import type { BaseOpts } from '../logs/types.js';
 
 export const CDN_KEY_RE =
@@ -112,6 +113,7 @@ export async function performCleanRebuild(session: ISession, opts?: BaseOpts) {
 
   // Build the files in the content folder and process them
   await buildSite(session, addTransformersToOpts(session, opts ?? {}));
+  emitSiteRenderers(session);
   // Create source folder from MECA export
   await createSourceFolder(session);
   session.log.info(`✅ Work rebuild complete`);

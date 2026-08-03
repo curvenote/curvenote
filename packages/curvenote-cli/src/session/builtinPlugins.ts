@@ -13,12 +13,23 @@ export function combinePlugins(plugins: CurvenotePlugin[]): ValidatedCurvenotePl
       roles: [...(base.roles ?? []), ...(next.roles ?? [])],
       transforms: [...(base.transforms ?? []), ...(next.transforms ?? [])],
       checks: [...(base.checks ?? []), ...(next.checks ?? [])],
+      renderers: [...(base.renderers ?? []), ...(next.renderers ?? [])],
       paths: [
         ...((base as ValidatedCurvenotePlugin).paths ?? []),
         ...((next as ValidatedCurvenotePlugin).paths ?? []),
       ],
+      checksPaths: [
+        ...((base as ValidatedCurvenotePlugin).checksPaths ?? []),
+        ...((next as ValidatedCurvenotePlugin).checksPaths ?? []),
+      ],
     }),
-    plugins[0],
+    {
+      ...plugins[0],
+      renderers: plugins[0].renderers ?? [],
+      checks: plugins[0].checks ?? [],
+      checksPaths: (plugins[0] as ValidatedCurvenotePlugin).checksPaths ?? [],
+      paths: (plugins[0] as ValidatedCurvenotePlugin).paths ?? [],
+    },
   ) as ValidatedCurvenotePlugin;
 }
 

@@ -1,7 +1,7 @@
 import { selectors, buildSite, clean } from 'myst-cli';
 import { MyUser } from '../models.js';
 import type { ISession } from '../session/types.js';
-import { addTransformersToOpts, confirmOrExit } from '../utils/index.js';
+import { addTransformersToOpts, confirmOrExit, emitSiteRenderers } from '../utils/index.js';
 import { promotePublicContent } from './promote.js';
 import { uploadAndGetCdnKey } from '../works/utils.js';
 
@@ -46,6 +46,7 @@ export async function deploy(
   await clean(session, [], { site: true, yes: true });
   // Build the files in the content folder and process them
   await buildSite(session, addTransformersToOpts(session, opts));
+  emitSiteRenderers(session);
 
   const cdnKey = await uploadAndGetCdnKey(session, session.config.deploymentCdnUrl, opts);
 
