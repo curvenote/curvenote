@@ -3,6 +3,16 @@ import type { GenericParent, References } from 'myst-common';
 import type { SiteAction, SiteExport, SiteManifest } from 'myst-config';
 import type { PageFrontmatter } from 'myst-frontmatter';
 
+export type SiteRenderer = {
+  name: string;
+  url: string;
+};
+
+/** SiteManifest plus Curvenote-emitted fields not yet on myst-config. */
+export type CurvenoteSiteManifest = SiteManifest & {
+  renderers?: SiteRenderer[];
+};
+
 type CacheType = 'routers' | 'journals' | 'config';
 
 export type Cache = {
@@ -32,7 +42,7 @@ export type Heading = {
 
 export type SiteLoader = {
   theme?: Theme;
-  config?: SiteManifest;
+  config?: CurvenoteSiteManifest;
   searchIndex?: MystSearchIndex;
   CONTENT_CDN_PORT?: string | number;
   MODE?: 'app' | 'static';

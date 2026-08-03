@@ -16,7 +16,7 @@ import type {
   SiteWithContentDTO,
 } from '@curvenote/common';
 import { responseError, responseNoArticle, responseNoSite } from './errors.server.js';
-import type { Cache, PageLoader } from './types.js';
+import type { Cache, CurvenoteSiteManifest, PageLoader } from './types.js';
 import { migrate } from 'myst-migrate';
 
 interface CdnRouter {
@@ -201,7 +201,7 @@ function ensureTrailingSlash(url: string): string {
 export async function getConfig(
   host: Host,
   opts?: { cache?: Cache; bypass?: string },
-): Promise<SiteManifest> {
+): Promise<CurvenoteSiteManifest> {
   let response;
   let data;
   if (opts?.bypass) {
@@ -209,7 +209,7 @@ export async function getConfig(
     response = await fetch(`${bypass}config.json`);
     if (response.status === 404) throw responseNoSite();
     if (!response.ok) throw responseError(response);
-    data = (await response.json()) as SiteManifest;
+    data = (await response.json()) as CurvenoteSiteManifest;
     data.id = 'bypass';
     removeSingleNavItems(data);
     updateSiteManifestStaticLinksInplace(data, (url) =>
@@ -220,22 +220,22 @@ export async function getConfig(
     const baseUrl = await getCdnBaseUrl(location);
     if (!location.key) throw responseNoSite();
     const key = location.key;
-    const cached = opts?.cache?.get<SiteManifest>('config', location.key);
+    const cached = opts?.cache?.get<CurvenoteSiteManifest>('config', location.key);
     // Load the data from an in memory cache.
     if (cached) return cached;
     response = await fetch(withBaseUrl(baseUrl, 'config.json', location.query));
     if (response.status === 404) throw responseNoSite();
     if (!response.ok) throw responseError(response);
-    data = (await response.json()) as SiteManifest;
+    data = (await response.json()) as CurvenoteSiteManifest;
     data.id = key;
     removeSingleNavItems(data);
     updateSiteManifestStaticLinksInplace(data, (url) =>
       withPublicFolderUrl(baseUrl, url, location.query),
     );
-    opts?.cache?.set<SiteManifest>('config', key, data);
+    opts?.cache?.set<CurvenoteSiteManifest>('config', key, data);
   }
 
-  return data as SiteManifest;
+  return data;
 }
 
 /**
