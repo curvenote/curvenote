@@ -46,7 +46,7 @@ export async function deploy(
   await clean(session, [], { site: true, yes: true });
   // Build the files in the content folder and process them
   await buildSite(session, addTransformersToOpts(session, opts));
-  emitSiteRenderers(session);
+  await emitSiteRenderers(session);
 
   const cdnKey = await uploadAndGetCdnKey(session, session.config.deploymentCdnUrl, opts);
 

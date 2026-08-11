@@ -6,7 +6,7 @@ import type { ISession } from '../session/types.js';
 
 export const curvenoteBuild = async (session: ISession, files: string[], opts: BuildOpts) => {
   await build(session, files, addTransformersToOpts(session, opts));
-  emitSiteRenderers(session);
+  await emitSiteRenderers(session);
 };
 
 export const curvenoteStart = async (session: ISession, opts: BuildOpts) => {

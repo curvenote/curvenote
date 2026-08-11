@@ -1,38 +1,60 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import chokidar from 'chokidar';
 import { hashAndCopyStaticFile } from 'myst-cli-utils';
 import type { ISession, SiteRenderer, CurvenoteRendererSpec } from '../session/types.js';
+import { bundleRendererSource, needsRendererBundle } from './bundleRenderer.js';
 
 function siteRendererUrl(fileName: string): string {
   return `/${fileName}`;
 }
 
 /**
- * Copy plugin ESM renderer sources into the site public folder and return
- * manifest entries. Does not touch config.json.
+ * Resolve plugin renderer sources to public URLs. TS/TSX/JSX sources are
+ * bundled with esbuild first (React external); plain .mjs/.js are copied.
  */
-export function resolveSiteRenderers(session: ISession): SiteRenderer[] {
+export async function resolveSiteRenderers(session: ISession): Promise<SiteRenderer[]> {
   const renderers = session.plugins?.renderers ?? [];
   const writeFolder = session.publicPath();
-  return renderers
-    .map((renderer: CurvenoteRendererSpec): SiteRenderer | undefined => {
-      if (!fs.existsSync(renderer.source)) {
-        session.log.error(
-          `Cannot find source for renderer "${renderer.name}": ${renderer.source}`,
-        );
-        return undefined;
-      }
-      const fileName = hashAndCopyStaticFile(session, renderer.source, writeFolder, (m: string) => {
-        session.log.error(m);
-      });
-      if (!fileName) return undefined;
-      return {
+  const results: SiteRenderer[] = [];
+
+  for (const renderer of renderers) {
+    const resolved = await resolveOneSiteRenderer(session, renderer, writeFolder);
+    if (resolved) results.push(resolved);
+  }
+  return results;
+}
+
+async function resolveOneSiteRenderer(
+  session: ISession,
+  renderer: CurvenoteRendererSpec,
+  writeFolder: string,
+): Promise<SiteRenderer | undefined> {
+  if (!fs.existsSync(renderer.source)) {
+    session.log.error(`Cannot find source for renderer "${renderer.name}": ${renderer.source}`);
+    return undefined;
+  }
+
+  let fileToCopy = renderer.source;
+  if (needsRendererBundle(renderer.source)) {
+    try {
+      fileToCopy = await bundleRendererSource(session, {
         name: renderer.name,
-        url: siteRendererUrl(fileName),
-      };
-    })
-    .filter((renderer: SiteRenderer | undefined): renderer is SiteRenderer => !!renderer);
+        source: renderer.source,
+      });
+    } catch {
+      return undefined;
+    }
+  }
+
+  const fileName = hashAndCopyStaticFile(session, fileToCopy, writeFolder, (m: string) => {
+    session.log.error(m);
+  });
+  if (!fileName) return undefined;
+  return {
+    name: renderer.name,
+    url: siteRendererUrl(fileName),
+  };
 }
 
 /**
@@ -57,38 +79,74 @@ export function patchSiteManifestRenderers(session: ISession, renderers: SiteRen
 }
 
 /**
- * Copy renderer ESM into public/ and patch config.json.
+ * Bundle/copy renderer ESM into public/ and patch config.json.
  * Safe to call repeatedly (e.g. after myst-cli rewrites the manifest on watch).
  */
-export function emitSiteRenderers(session: ISession): SiteRenderer[] {
-  const renderers = resolveSiteRenderers(session);
+export async function emitSiteRenderers(session: ISession): Promise<SiteRenderer[]> {
+  const renderers = await resolveSiteRenderers(session);
   patchSiteManifestRenderers(session, renderers);
   return renderers;
 }
 
 /**
- * Watch config.json and re-apply renderers whenever myst-cli rewrites it.
- * Returns a disposer.
+ * Watch config.json (myst-cli rewrites) and bundleable renderer sources.
+ * Re-emits site renderers when either changes. Returns a disposer.
  */
 export function watchSiteRenderers(session: ISession): () => void {
   const configPath = path.join(session.sitePath(), 'config.json');
-  let writing = false;
-  const apply = () => {
-    if (writing) return;
-    writing = true;
+  const sources = (session.plugins?.renderers ?? []).map((r) => r.source).filter(Boolean);
+  const bundleableSources = sources.filter((source) => needsRendererBundle(source));
+
+  let running = false;
+  let queued = false;
+
+  const apply = async () => {
+    if (running) {
+      queued = true;
+      return;
+    }
+    running = true;
     try {
-      emitSiteRenderers(session);
+      do {
+        queued = false;
+        await emitSiteRenderers(session);
+      } while (queued);
     } finally {
-      // Allow myst/ourselves to finish before accepting another event
-      setTimeout(() => {
-        writing = false;
-      }, 50);
+      running = false;
     }
   };
-  apply();
-  if (!fs.existsSync(configPath)) {
-    return () => {};
+
+  void apply();
+
+  const watchers: { close: () => void }[] = [];
+
+  if (fs.existsSync(configPath)) {
+    const configWatcher = fs.watch(configPath, () => {
+      void apply();
+    });
+    watchers.push(configWatcher);
   }
-  const watcher = fs.watch(configPath, () => apply());
-  return () => watcher.close();
+
+  if (bundleableSources.length) {
+    const sourceWatcher = chokidar.watch(bundleableSources, {
+      ignoreInitial: true,
+      awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
+    });
+    sourceWatcher.on('change', (file) => {
+      session.log.info(`♻️ Renderer source changed: ${file}`);
+      void apply();
+    });
+    sourceWatcher.on('add', (file) => {
+      session.log.info(`♻️ Renderer source added: ${file}`);
+      void apply();
+    });
+    watchers.push(sourceWatcher);
+    session.log.debug(
+      `Watching ${bundleableSources.length} bundleable renderer source(s) for rebuild`,
+    );
+  }
+
+  return () => {
+    watchers.forEach((watcher) => watcher.close());
+  };
 }

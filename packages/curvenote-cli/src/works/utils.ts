@@ -113,7 +113,7 @@ export async function performCleanRebuild(session: ISession, opts?: BaseOpts) {
 
   // Build the files in the content folder and process them
   await buildSite(session, addTransformersToOpts(session, opts ?? {}));
-  emitSiteRenderers(session);
+  await emitSiteRenderers(session);
   // Create source folder from MECA export
   await createSourceFolder(session);
   session.log.info(`✅ Work rebuild complete`);
