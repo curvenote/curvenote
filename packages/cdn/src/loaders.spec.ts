@@ -195,6 +195,56 @@ describe('CDN Loaders', () => {
       expect(config.id).toBe('bypass');
     });
 
+    it('should rewrite renderers urls with bypass option', async () => {
+      const mockConfig = {
+        version: 1,
+        myst: 'v1',
+        title: 'Test Site',
+        projects: [],
+        renderers: [
+          { name: 'FancyNote', url: '/fancy-note.mjs' },
+          { name: 'Remote', url: 'https://cdn.example.com/remote.mjs' },
+        ],
+      };
+
+      (fetch as any).mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: async () => structuredClone(mockConfig),
+      });
+
+      const config = await getConfig('example.com', { bypass: 'https://bypass.example.com' });
+      expect(config.renderers?.[0].url).toBe('https://bypass.example.com//fancy-note.mjs');
+      expect(config.renderers?.[1].url).toBe('https://cdn.example.com/remote.mjs');
+    });
+
+    it('should rewrite renderers urls against CDN public folder', async () => {
+      const mockConfig = {
+        version: 1,
+        myst: 'v1',
+        title: 'Test Site',
+        projects: [],
+        renderers: [{ name: 'FancyNote', url: '/fancy-note.mjs' }],
+      };
+
+      (fetch as any)
+        .mockResolvedValueOnce({
+          status: 200,
+          json: async () => ({ cdn: 'test.key' }),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: async () => structuredClone(mockConfig),
+        });
+
+      const config = await getConfig('example.com');
+      // DEFAULT_CDN + key path + public + url
+      expect(config.renderers?.[0].url).toContain('/public');
+      expect(config.renderers?.[0].url).toContain('fancy-note.mjs');
+      expect(config.renderers?.[0].url).toMatch(/^https?:\/\//);
+    });
+
     it('should fetch config from CDN', async () => {
       const mockConfig: SiteManifest = {
         version: 1,

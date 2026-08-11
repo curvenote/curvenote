@@ -172,11 +172,10 @@ export function updateSiteManifestStaticLinksInplace(
   if (data.options.logo_dark) data.options.logo_dark = updateUrl(data.options.logo_dark);
   if (data.options.favicon) data.options.favicon = updateUrl(data.options.favicon);
   if (data.options.style) data.options.style = updateUrl(data.options.style);
-  if (data.renderers?.length) {
-    data.renderers = data.renderers.map((renderer) =>
-      renderer.url ? { ...renderer, url: updateUrl(renderer.url) } : renderer,
-    );
-  }
+  data.renderers?.forEach((renderer) => {
+    if (!renderer.url) return;
+    renderer.url = updateUrl(renderer.url);
+  });
   if (data.parts) {
     Object.values(data.parts).forEach(({ mdast }) => {
       updateMdastStaticLinksInplace(mdast, updateUrl);
