@@ -1,14 +1,10 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as esbuild from 'esbuild';
 import type { ISession } from '../session/types.js';
 
-const REACT_EXTERNALS = [
-  'react',
-  'react-dom',
-  'react/jsx-runtime',
-  'react/jsx-dev-runtime',
-];
+const REACT_EXTERNALS = ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'];
 
 export function needsRendererBundle(sourcePath: string): boolean {
   const ext = path.extname(sourcePath).toLowerCase();
@@ -17,9 +13,27 @@ export function needsRendererBundle(sourcePath: string): boolean {
   return false;
 }
 
+/** Content hash of the entry source; used to skip unchanged rebundles. */
+export function hashRendererSource(sourcePath: string): string {
+  const bytes = fs.readFileSync(sourcePath);
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function hashSidecarPath(outfile: string): string {
+  return `${outfile}.hash`;
+}
+
+export function isRendererBundleFresh(outfile: string, sourceHash: string): boolean {
+  if (!fs.existsSync(outfile)) return false;
+  const sidecar = hashSidecarPath(outfile);
+  if (!fs.existsSync(sidecar)) return false;
+  return fs.readFileSync(sidecar, 'utf-8').trim() === sourceHash;
+}
+
 /**
  * Bundle a TS/TSX/JSX renderer into ESM under `_build/renderers/`, with React
- * left external for the theme host import map.
+ * left external for the theme host import map. Skips esbuild when the entry
+ * source hash matches the previous build (avoids config-watch self-rebundles).
  */
 export async function bundleRendererSource(
   session: ISession,
@@ -29,6 +43,12 @@ export async function bundleRendererSource(
   fs.mkdirSync(outDir, { recursive: true });
   const safeName = opts.name.replace(/[^a-zA-Z0-9_-]/g, '-');
   const outfile = path.join(outDir, `${safeName}.mjs`);
+  const sourceHash = hashRendererSource(opts.source);
+
+  if (isRendererBundleFresh(outfile, sourceHash)) {
+    session.log.debug(`♻️ Skipping unchanged renderer bundle "${opts.name}"`);
+    return outfile;
+  }
 
   try {
     await esbuild.build({
@@ -50,6 +70,7 @@ export async function bundleRendererSource(
     throw error;
   }
 
+  fs.writeFileSync(hashSidecarPath(outfile), `${sourceHash}\n`);
   session.log.info(`📦 Bundled renderer "${opts.name}" → ${path.relative(process.cwd(), outfile)}`);
   return outfile;
 }

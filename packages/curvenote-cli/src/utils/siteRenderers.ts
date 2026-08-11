@@ -147,6 +147,8 @@ export function watchSiteRenderers(session: ISession): () => void {
   }
 
   return () => {
-    watchers.forEach((watcher) => watcher.close());
+    watchers.forEach((watcher) => {
+      watcher.close();
+    });
   };
 }

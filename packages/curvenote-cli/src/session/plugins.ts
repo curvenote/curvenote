@@ -66,10 +66,12 @@ export async function loadProjectPlugins(
     const renderers = plugin.renderers || pluginLoader.module.renderers;
     if (renderers?.length) {
       const pluginDir = path.dirname(pluginLoader.path);
-      const resolved: CurvenoteRendererSpec[] = renderers.map((renderer: CurvenoteRendererSpec) => ({
-        ...renderer,
-        source: path.resolve(pluginDir, renderer.source),
-      }));
+      const resolved: CurvenoteRendererSpec[] = renderers.map(
+        (renderer: CurvenoteRendererSpec) => ({
+          ...renderer,
+          source: path.resolve(pluginDir, renderer.source),
+        }),
+      );
       session.log.info(
         `🔌 ${plugin?.name ?? 'Unnamed Plugin'} (${pluginLoader.path}) loaded: ${plural(
           '%s renderer(s)',
