@@ -60,14 +60,16 @@ export type SiteRenderer = {
 export type CurvenotePlugin = MystPlugin & {
   checks?: CheckInterface[];
   renderers?: CurvenoteRendererSpec[];
+  paths?: string[];
+  checksPaths?: string[];
 };
 
 export type ValidatedCurvenotePlugin = Required<
-  Pick<CurvenotePlugin, 'directives' | 'roles' | 'transforms' | 'checks' | 'renderers'>
-> & {
-  paths: string[];
-  checksPaths: string[];
-};
+  Pick<
+    CurvenotePlugin,
+    'directives' | 'roles' | 'transforms' | 'checks' | 'renderers' | 'paths' | 'checksPaths'
+  >
+>;
 
 export type CLIConfigData = {
   apiUrl: string;

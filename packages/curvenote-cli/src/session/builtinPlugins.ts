@@ -6,31 +6,34 @@ import extBlog from '@curvenote/ext-blog';
 import extFooter from '@curvenote/ext-footer';
 import extScienceicons from '@scienceicons/myst';
 
+function toValidated(plugin: CurvenotePlugin): ValidatedCurvenotePlugin {
+  return {
+    directives: plugin.directives ?? [],
+    roles: plugin.roles ?? [],
+    transforms: plugin.transforms ?? [],
+    checks: plugin.checks ?? [],
+    renderers: plugin.renderers ?? [],
+    paths: plugin.paths ?? [],
+    checksPaths: plugin.checksPaths ?? [],
+  };
+}
+
 export function combinePlugins(plugins: CurvenotePlugin[]): ValidatedCurvenotePlugin {
-  return plugins.slice(1).reduce(
+  if (plugins.length === 0) {
+    return toValidated({});
+  }
+  return plugins.slice(1).reduce<ValidatedCurvenotePlugin>(
     (base, next) => ({
-      directives: [...(base.directives ?? []), ...(next.directives ?? [])],
-      roles: [...(base.roles ?? []), ...(next.roles ?? [])],
-      transforms: [...(base.transforms ?? []), ...(next.transforms ?? [])],
-      checks: [...(base.checks ?? []), ...(next.checks ?? [])],
-      renderers: [...(base.renderers ?? []), ...(next.renderers ?? [])],
-      paths: [
-        ...((base as ValidatedCurvenotePlugin).paths ?? []),
-        ...((next as ValidatedCurvenotePlugin).paths ?? []),
-      ],
-      checksPaths: [
-        ...((base as ValidatedCurvenotePlugin).checksPaths ?? []),
-        ...((next as ValidatedCurvenotePlugin).checksPaths ?? []),
-      ],
+      directives: [...base.directives, ...(next.directives ?? [])],
+      roles: [...base.roles, ...(next.roles ?? [])],
+      transforms: [...base.transforms, ...(next.transforms ?? [])],
+      checks: [...base.checks, ...(next.checks ?? [])],
+      renderers: [...base.renderers, ...(next.renderers ?? [])],
+      paths: [...base.paths, ...(next.paths ?? [])],
+      checksPaths: [...base.checksPaths, ...(next.checksPaths ?? [])],
     }),
-    {
-      ...plugins[0],
-      renderers: plugins[0].renderers ?? [],
-      checks: plugins[0].checks ?? [],
-      checksPaths: (plugins[0] as ValidatedCurvenotePlugin).checksPaths ?? [],
-      paths: (plugins[0] as ValidatedCurvenotePlugin).paths ?? [],
-    },
-  ) as ValidatedCurvenotePlugin;
+    toValidated(plugins[0]),
+  );
 }
 
 export function getBuiltInPlugins() {
