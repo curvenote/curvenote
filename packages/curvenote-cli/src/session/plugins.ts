@@ -56,10 +56,10 @@ export async function loadProjectPlugins(
     const plugin: CurvenotePlugin = pluginLoader.module.default || pluginLoader.module.plugin;
     const checks = plugin.checks || pluginLoader.module.checks;
     if (checks) {
-      session.log.debug(
+      session.log.info(
         `🔌 ${plugin?.name ?? 'Unnamed Plugin'} (${
           pluginLoader.path
-        }) also loaded loaded: ${plural('%s check(s)', checks)}`,
+        }) loaded: ${plural('%s check(s)', checks)}`,
       );
       loadedPlugins.checks.push(...checks);
     }
@@ -70,7 +70,7 @@ export async function loadProjectPlugins(
         ...renderer,
         source: path.resolve(pluginDir, renderer.source),
       }));
-      session.log.debug(
+      session.log.info(
         `🔌 ${plugin?.name ?? 'Unnamed Plugin'} (${pluginLoader.path}) loaded: ${plural(
           '%s renderer(s)',
           resolved,
