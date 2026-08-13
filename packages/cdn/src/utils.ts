@@ -3,7 +3,13 @@ import { walkOutputs } from 'nbtx';
 import type { SiteManifest } from 'myst-config';
 import { selectAll } from 'unist-util-select';
 import type { Image as ImageSpec, Link as LinkSpec } from 'myst-spec';
-import type { FooterLinks, Heading, NavigationLink, PageLoader, CurvenoteSiteManifest } from './types.js';
+import type {
+  FooterLinks,
+  Heading,
+  NavigationLink,
+  PageLoader,
+  CurvenoteSiteManifest,
+} from './types.js';
 import { slugToUrl, type GenericParent } from 'myst-common';
 
 type Image = ImageSpec & { urlOptimized?: string };
