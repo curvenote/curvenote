@@ -85,7 +85,27 @@ async function resolveOneSiteRenderer(
 }
 
 /**
+ * Atomically replace `config.json` so a failed write cannot truncate the live file.
+ */
+function writeSiteManifestAtomic(configPath: string, contents: string): void {
+  const tempPath = `${configPath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    fs.writeFileSync(tempPath, contents);
+    fs.renameSync(tempPath, configPath);
+  } catch (error) {
+    try {
+      fs.unlinkSync(tempPath);
+    } catch {
+      // Temp may not exist if write failed before creating it.
+    }
+    throw error;
+  }
+}
+
+/**
  * Patch `_build/site/config.json` with the given renderers list.
+ * Throws on read/parse/write failure so build and deploy fail closed.
+ * Soft-fail belongs in the watch path, which retries on the next change.
  */
 export function patchSiteManifestRenderers(session: ISession, renderers: SiteRenderer[]): void {
   const configPath = path.join(session.sitePath(), 'config.json');
@@ -93,29 +113,21 @@ export function patchSiteManifestRenderers(session: ISession, renderers: SiteRen
     session.log.debug(`No site config.json at ${configPath}; skipping renderer patch`);
     return;
   }
-  try {
-    const raw = fs.readFileSync(configPath, 'utf-8');
-    const manifest = JSON.parse(raw) as Record<string, unknown>;
-    if (!renderers.length && manifest.renderers === undefined) return;
-    if (JSON.stringify(manifest.renderers ?? null) === JSON.stringify(renderers)) return;
-    manifest.renderers = renderers;
-    fs.writeFileSync(configPath, JSON.stringify(manifest));
-    if (renderers.length) {
-      session.log.info(`🎨 Wrote ${renderers.length} site renderer(s) into config.json`);
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    session.log.error(
-      `Unable to update site config.json with renderer metadata: ${message}\n` +
-        `Continuing without changing the manifest; a later rebuild will retry.`,
-    );
+  const raw = fs.readFileSync(configPath, 'utf-8');
+  const manifest = JSON.parse(raw) as Record<string, unknown>;
+  if (!renderers.length && manifest.renderers === undefined) return;
+  if (JSON.stringify(manifest.renderers ?? null) === JSON.stringify(renderers)) return;
+  manifest.renderers = renderers;
+  writeSiteManifestAtomic(configPath, JSON.stringify(manifest));
+  if (renderers.length) {
+    session.log.info(`🎨 Wrote ${renderers.length} site renderer(s) into config.json`);
   }
 }
 
 /**
  * Bundle/copy renderer ESM into public/ and patch config.json.
  * Safe to call repeatedly (e.g. after myst-cli rewrites the manifest on watch).
- * Soft-fails per renderer with error logs; does not throw.
+ * Soft-fails per renderer with error logs; still throws if the site manifest cannot be patched.
  */
 export async function emitSiteRenderers(session: ISession): Promise<EmitSiteRenderersResult> {
   const { renderers, watchPaths } = await resolveSiteRenderers(session);

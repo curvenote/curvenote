@@ -54,13 +54,32 @@ describe('patchSiteManifestRenderers', () => {
     expect(JSON.parse(fs.readFileSync(configPath, 'utf-8')).renderers).toEqual(renderers);
   });
 
-  it('logs malformed config without throwing or overwriting it', () => {
+  it('throws on malformed config without overwriting it', () => {
     const malformed = '{"title":';
     const { configPath, session } = setup(malformed);
 
-    expect(() => patchSiteManifestRenderers(session, [])).not.toThrow();
-    expect(session.log.error).toHaveBeenCalledWith(expect.stringContaining('config.json'));
+    expect(() =>
+      patchSiteManifestRenderers(session, [{ name: 'Panel', url: '/panel.mjs' }]),
+    ).toThrow(/JSON|Unexpected|position/i);
     expect(fs.readFileSync(configPath, 'utf-8')).toBe(malformed);
+  });
+
+  it('throws on write failure without corrupting the existing manifest', () => {
+    const original = JSON.stringify({ title: 'Example' });
+    const { configPath, session } = setup(original);
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation(() => {
+      throw new Error('ENOSPC: no space left on device');
+    });
+
+    expect(() =>
+      patchSiteManifestRenderers(session, [{ name: 'Panel', url: '/panel.mjs' }]),
+    ).toThrow(/ENOSPC/);
+    expect(fs.readFileSync(configPath, 'utf-8')).toBe(original);
+    expect(session.log.error).not.toHaveBeenCalledWith(
+      expect.stringContaining('a later rebuild will retry'),
+    );
+
+    renameSpy.mockRestore();
   });
 
   it('keeps the renderer watcher alive when an apply fails', async () => {
@@ -68,7 +87,9 @@ describe('patchSiteManifestRenderers', () => {
 
     const dispose = watchSiteRenderers(session);
     await vi.waitFor(() => {
-      expect(session.log.error).toHaveBeenCalledWith(expect.stringContaining('config.json'));
+      expect(session.log.error).toHaveBeenCalledWith(
+        expect.stringContaining('Unable to refresh site renderers while watching'),
+      );
     });
 
     dispose();
