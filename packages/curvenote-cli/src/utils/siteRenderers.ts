@@ -93,15 +93,22 @@ export function patchSiteManifestRenderers(session: ISession, renderers: SiteRen
     session.log.debug(`No site config.json at ${configPath}; skipping renderer patch`);
     return;
   }
-  const raw = fs.readFileSync(configPath, 'utf-8');
-  const manifest = JSON.parse(raw) as Record<string, unknown>;
-  if (JSON.stringify(manifest.renderers ?? null) === JSON.stringify(renderers)) {
-    return;
-  }
-  manifest.renderers = renderers;
-  fs.writeFileSync(configPath, JSON.stringify(manifest));
-  if (renderers.length) {
-    session.log.info(`🎨 Wrote ${renderers.length} site renderer(s) into config.json`);
+  try {
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    const manifest = JSON.parse(raw) as Record<string, unknown>;
+    if (!renderers.length && manifest.renderers === undefined) return;
+    if (JSON.stringify(manifest.renderers ?? null) === JSON.stringify(renderers)) return;
+    manifest.renderers = renderers;
+    fs.writeFileSync(configPath, JSON.stringify(manifest));
+    if (renderers.length) {
+      session.log.info(`🎨 Wrote ${renderers.length} site renderer(s) into config.json`);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    session.log.error(
+      `Unable to update site config.json with renderer metadata: ${message}\n` +
+        `Continuing without changing the manifest; a later rebuild will retry.`,
+    );
   }
 }
 
@@ -173,8 +180,16 @@ export function watchSiteRenderers(session: ISession): () => void {
     try {
       do {
         queued = false;
-        const { watchPaths } = await emitSiteRenderers(session);
-        ensureSourceWatcher(watchPaths.length ? watchPaths : initialSources);
+        try {
+          const { watchPaths } = await emitSiteRenderers(session);
+          ensureSourceWatcher(watchPaths.length ? watchPaths : initialSources);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          session.log.error(
+            `Unable to refresh site renderers while watching: ${message}\n` +
+              `The dev server will continue and retry on the next change.`,
+          );
+        }
       } while (queued);
     } finally {
       running = false;

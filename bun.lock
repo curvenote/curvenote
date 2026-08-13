@@ -968,6 +968,9 @@
         "myst-common": "^1.10.0",
         "myst-config": "^1.10.0",
       },
+      "devDependencies": {
+        "vitest": "^2.1.2",
+      },
     },
     "packages/curvenote": {
       "name": "curvenote",

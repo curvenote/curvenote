@@ -45,16 +45,28 @@ export function formatAuthorsAsString(authors: string | Author | string[] | Auth
     .join(', ');
 }
 
+function toValidatedPlugin(plugin: CurvenotePlugin): ValidatedCurvenotePlugin {
+  return {
+    directives: plugin.directives ?? [],
+    roles: plugin.roles ?? [],
+    transforms: plugin.transforms ?? [],
+    checks: plugin.checks ?? [],
+    renderers: plugin.renderers ?? [],
+  };
+}
+
 export function combinePlugins(plugins: CurvenotePlugin[]): ValidatedCurvenotePlugin {
-  return plugins.slice(1).reduce(
+  if (plugins.length === 0) return toValidatedPlugin({});
+  return plugins.slice(1).reduce<ValidatedCurvenotePlugin>(
     (base, next) => ({
-      directives: [...(base.directives ?? []), ...(next.directives ?? [])],
-      roles: [...(base.roles ?? []), ...(next.roles ?? [])],
-      transforms: [...(base.transforms ?? []), ...(next.transforms ?? [])],
-      checks: [...(base.checks ?? []), ...(next.checks ?? [])],
+      directives: [...base.directives, ...(next.directives ?? [])],
+      roles: [...base.roles, ...(next.roles ?? [])],
+      transforms: [...base.transforms, ...(next.transforms ?? [])],
+      checks: [...base.checks, ...(next.checks ?? [])],
+      renderers: [...base.renderers, ...(next.renderers ?? [])],
     }),
-    plugins[0],
-  ) as ValidatedCurvenotePlugin;
+    toValidatedPlugin(plugins[0]),
+  );
 }
 
 /**
