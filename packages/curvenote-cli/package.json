@@ -103,7 +103,8 @@
     "uuidv7": "^1.1.0",
     "vfile": "^5.0.0",
     "which": "^3.0.1",
-    "ws": "^8.9.0"
+    "ws": "^8.9.0",
+    "esbuild": "^0.25.0"
   },
   "overrides": {
     "prosemirror-tables": "^1.1.1"
@@ -134,6 +135,6 @@
     "prosemirror-test-builder": "^1.1.0"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=18"
   }
 }

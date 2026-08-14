@@ -34,7 +34,7 @@
     "copy:version": "echo \"const version = '\"$npm_package_version\"';\nexport default version;\" > src/version.ts",
     "unlink": "bun unlink",
     "link": "bun run unlink; bun link;",
-    "dev": "bun run link && esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --watch",
+    "dev": "bun run link && esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --external:esbuild --watch",
     "lint": "bun run copy:version; bunx eslint \"src/**/!(*.spec).ts\" -c ./.eslintrc.cjs",
     "lint:format": "bun run copy:version; bunx prettier --check \"src/**/*.ts\"",
     "lint:format:fix": "bun run copy:version; bunx prettier --write \"src/**/*.ts\"",
@@ -42,7 +42,7 @@
     "test:vitest": "bun run link; bun run copy:version; vitest run",
     "test": "bun run copy:version && (bun run compile & bun run test:vitest & wait)",
     "test:watch": "bun run link; bun run copy:version; vitest watch",
-    "build:cli": "esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --target=node20",
+    "build:cli": "esbuild src/index.ts --bundle --outfile=dist/curvenote.cjs --platform=node --external:jsdom --external:fsevents --external:esbuild --target=node20",
     "build": "bun run clean && bun run copy:version && bun run build:cli"
   },
   "dependencies": {
@@ -50,6 +50,7 @@
     "chalk": "^5.2.0",
     "commander": "^10.0.1",
     "core-js": "^3.31.1",
+    "esbuild": "^0.25.0",
     "jsdom": "^19.0.0",
     "myst-cli": "^1.10.1",
     "myst-to-tex": "^1.0.46"
