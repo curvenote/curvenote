@@ -1,5 +1,18 @@
 # @curvenote/scms-server
 
+## 0.24.1
+
+### Patch Changes
+
+- [#1033](https://github.com/curvenote/curvenote/pull/1033) [`84849b3`](https://github.com/curvenote/curvenote/commit/84849b3a9aef742acb7e5e297362e871a669c9a7) Thanks [@fwkoch](https://github.com/fwkoch)! - Cross site DOI resolution
+
+- Updated dependencies [[`3bf6a03`](https://github.com/curvenote/curvenote/commit/3bf6a03777af263b2be674c7a6a2ca5e33734022), [`84849b3`](https://github.com/curvenote/curvenote/commit/84849b3a9aef742acb7e5e297362e871a669c9a7)]:
+  - @curvenote/cdn@0.7.0
+  - @curvenote/common@0.7.0
+  - @curvenote/scms-core@0.24.1
+  - @curvenote/check-definitions@0.17.0
+  - @curvenote/scms-db@0.24.1
+
 ## 0.24.0
 
 ### Patch Changes
