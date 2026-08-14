@@ -139,6 +139,9 @@ export async function emitSiteRenderers(session: ISession): Promise<EmitSiteRend
  * Watch config.json (myst-cli rewrites) and renderer sources (including
  * transitive bundle inputs discovered via esbuild metafile).
  * Re-emits site renderers when either changes. Returns a disposer.
+ *
+ * Config is watched via chokidar so atomic rename patches (new inode)
+ * do not leave the watcher stuck on a deleted file.
  */
 export function watchSiteRenderers(session: ISession): () => void {
   const configPath = path.join(session.sitePath(), 'config.json');
@@ -210,19 +213,25 @@ export function watchSiteRenderers(session: ISession): () => void {
 
   void apply();
 
-  const watchers: { close: () => void }[] = [];
-
+  // Watch the path with chokidar (not fs.watch on the file). Atomic
+  // renameSync replaces config.json with a new inode; Linux/macOS
+  // fs.watch stays on the old inode and misses later myst-cli rewrites.
+  let configWatcher: chokidar.FSWatcher | undefined;
   if (fs.existsSync(configPath)) {
-    const configWatcher = fs.watch(configPath, () => {
+    configWatcher = chokidar.watch(configPath, {
+      ignoreInitial: true,
+      awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
+    });
+    configWatcher.on('change', () => {
       void apply();
     });
-    watchers.push(configWatcher);
+    configWatcher.on('add', () => {
+      void apply();
+    });
   }
 
   return () => {
     sourceWatcher?.close();
-    watchers.forEach((watcher) => {
-      watcher.close();
-    });
+    void configWatcher?.close();
   };
 }
