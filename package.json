@@ -119,6 +119,7 @@
     "websocket-driver": "0.7.5",
     "shell-quote": "^1.9.0",
     "@protobufjs/utf8": "^1.1.1",
-    "fast-xml-parser": "^5.7.1"
+    "fast-xml-parser": "^5.7.1",
+    "dompurify": "^3.4.13"
   }
 }
