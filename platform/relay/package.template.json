@@ -22,7 +22,7 @@
     "@curvenote/check-plugin-types": "*",
     "@curvenote/check-relay-types": "*",
     "@hono/node-server": "^1.19.13",
-    "dotenv": "^16.6.1",
+    "dotenv": "^17.2.3",
     "hono": "^4.7.0",
     "tsx": "^4.19.0"
   },
