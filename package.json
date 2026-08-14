@@ -110,6 +110,15 @@
     "ws": "^8.18.1",
     "@types/ws": "^8.18.1",
     "rollup": "npm:@rollup/wasm-node",
-    "eslint": "^8.57.1"
+    "eslint": "^8.57.1",
+    "undici": "^6.28.0",
+    "body-parser": "1.20.6",
+    "fast-uri": "3.1.5",
+    "ip-address": "10.4.0",
+    "morgan": "1.11.0",
+    "websocket-driver": "0.7.5",
+    "shell-quote": "^1.9.0",
+    "@protobufjs/utf8": "^1.1.1",
+    "fast-xml-parser": "^5.7.1"
   }
 }
