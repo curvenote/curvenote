@@ -1,5 +1,16 @@
 # curvenote
 
+## 0.17.0
+
+### Minor Changes
+
+- [#1049](https://github.com/curvenote/curvenote/pull/1049) [`3bf6a03`](https://github.com/curvenote/curvenote/commit/3bf6a03777af263b2be674c7a6a2ca5e33734022) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add plugin-defined site renderers, including dependency-aware TSX bundling, CDN URL rewriting, and safe lazy loading of esbuild.
+
+### Patch Changes
+
+- Updated dependencies [[`3bf6a03`](https://github.com/curvenote/curvenote/commit/3bf6a03777af263b2be674c7a6a2ca5e33734022)]:
+  - @curvenote/cli@0.17.0
+
 ## 0.16.5
 
 ### Patch Changes
