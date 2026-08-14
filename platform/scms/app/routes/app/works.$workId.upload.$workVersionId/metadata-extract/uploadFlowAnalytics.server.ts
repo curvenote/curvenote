@@ -132,7 +132,9 @@ export function summarizePreviewFile(preview: DocumentPreviewItem | undefined): 
   };
 }
 
-type UploadFlowTrackContext = Pick<Context, 'trackEvent' | 'analytics' | 'request'>;
+type UploadFlowTrackContext = Pick<Context, 'trackEvent' | 'request'> & {
+  analytics?: Context['analytics'];
+};
 
 export async function trackUploadFlowEvent(
   ctx: UploadFlowTrackContext,

@@ -15,7 +15,8 @@
     "./types/prisma.d.ts",
     "./types/globals.d.ts",
     "./types/json.d.ts",
-    "./types/svg.d.ts"
+    "./types/svg.d.ts",
+    "./types/pdfjs-worker.d.ts"
   ],
   "compilerOptions": {
     "types": ["vite/client", "@react-router/node", "node", "vitest/globals"],

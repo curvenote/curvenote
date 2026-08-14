@@ -26,7 +26,7 @@ import {
   searchOrcid,
   searchOrcidById,
   searchRor,
-  File,
+  File as StorageFile,
   StorageBackend,
   KnownBuckets,
   resolveThumbnailBucket,
@@ -362,7 +362,7 @@ export async function loader(args: Route.LoaderArgs) {
     try {
       const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
       const bucket = resolveThumbnailBucket(ctx, backend, work.cdn);
-      const signedUrl = await new File(backend, inheritedThumbnailKey, bucket).url();
+      const signedUrl = await new StorageFile(backend, inheritedThumbnailKey, bucket).url();
       inheritedThumbnail = { key: inheritedThumbnailKey, signedUrl };
     } catch (err) {
       console.warn('[work-upload] failed to sign inherited thumbnail', inheritedThumbnailKey, err);
