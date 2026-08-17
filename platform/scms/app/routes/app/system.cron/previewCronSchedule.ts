@@ -2,8 +2,7 @@ import { CronExpressionParser } from 'cron-parser';
 import cronstrue from 'cronstrue';
 
 export type CronSchedulePreview =
-  | { valid: true; description: string }
-  | { valid: false; error: string };
+  { valid: true; description: string } | { valid: false; error: string };
 
 /** Live client preview — uses the same parser as server-side schedule validation. */
 export function previewCronSchedule(

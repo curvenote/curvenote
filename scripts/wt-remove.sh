@@ -86,6 +86,19 @@ if ! git worktree list --porcelain | awk -v wt="$WT_DIR" '
   exit 1
 fi
 
+# Main working tree appears in `git worktree list`, but `git worktree remove`
+# rejects it. Without this guard the fallback would deinit submodules and
+# `rm -rf` the primary checkout (including the shared .git).
+MAIN_WT="$(git worktree list --porcelain | awk '$1=="worktree" { print $2; exit }')"
+if [[ -n "$MAIN_WT" ]]; then
+  MAIN_WT="$(cd "$MAIN_WT" && pwd -P)"
+fi
+if [[ "$WT_DIR" == "$MAIN_WT" ]]; then
+  echo "❌ Refusing to remove: path is the main working tree: ${WT_DIR}" >&2
+  echo "   Only linked worktrees can be removed with this script." >&2
+  exit 1
+fi
+
 worktree_gitdir_for_path() {
   local wt="$1"
   git worktree list --porcelain | awk -v wt="$wt" '
@@ -110,6 +123,13 @@ set -e
 
 if [[ $CODE -ne 0 ]]; then
   echo "$OUT" >&2
+
+  # Never fall through to rm -rf for the main tree (defense in depth).
+  if [[ "$OUT" == *"is a main working tree"* ]]; then
+    echo "❌ Refusing destructive fallback for main working tree: ${WT_DIR}" >&2
+    exit 1
+  fi
+
   echo "→ Git refused to remove; attempting submodule deinit and retry"
 
   # Best effort; don't fail removal if deinit fails.
@@ -124,6 +144,12 @@ if [[ $CODE -ne 0 ]]; then
 
   if [[ $CODE2 -ne 0 ]]; then
     echo "$OUT2" >&2
+
+    if [[ "$OUT2" == *"is a main working tree"* ]]; then
+      echo "❌ Refusing destructive fallback for main working tree: ${WT_DIR}" >&2
+      exit 1
+    fi
+
     echo "→ Still blocked; deleting directory and pruning worktree metadata"
 
     rm -rf "$WT_DIR"

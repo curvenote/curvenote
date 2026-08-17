@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { error401 } from '@curvenote/scms-core';
 import type { Route } from './+types/v1.uploads.stage';
 import {
   ensureJsonBodyFromMethod,
@@ -32,12 +31,11 @@ export async function loader(args: Route.LoaderArgs) {
 }
 
 export async function action(args: Route.ActionArgs) {
+  // Handshake auth is already validated by withAPISecureContext (signature, issuer,
+  // audience present, expiry). Do not gate on specific job audiences here — that would
+  // couple core uploads to known core job types and break extension workers. TODO:
+  // replace with handshake scopes / resource checks when available.
   const ctx = await withAPISecureContext(args);
-  // TODO: handshake scopes
-  if (ctx.authorized.handshake) {
-    const audience = ctx.$handshakeClaims?.audience;
-    if (audience !== 'CONVERTER_TASK') return error401('Invalid handshake audience');
-  }
   const body = await ensureJsonBodyFromMethod(args.request, ['POST']);
   const data = validate(UploadStagePostBodySchema, body);
   assertUserDefined(ctx.user);

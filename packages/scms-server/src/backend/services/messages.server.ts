@@ -3,13 +3,7 @@ import type { Prisma } from '@curvenote/scms-db';
 import { getPrismaClient } from '../prisma.server.js';
 
 export type MessageStatus =
-  | 'PENDING'
-  | 'ACCEPTED'
-  | 'SUCCESS'
-  | 'ERROR'
-  | 'PARTIAL'
-  | 'IGNORED'
-  | 'BOUNCED';
+  'PENDING' | 'ACCEPTED' | 'SUCCESS' | 'ERROR' | 'PARTIAL' | 'IGNORED' | 'BOUNCED';
 
 export interface CreateMessageRecordOptions {
   module: string;

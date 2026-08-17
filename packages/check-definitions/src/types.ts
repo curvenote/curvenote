@@ -2,29 +2,29 @@ import type { TemplateOptionDefinition } from 'myst-templates';
 import type { Position } from 'unist';
 
 export enum CheckTags {
-  'build' = 'build',
-  'block' = 'block',
-  'citation' = 'citation',
-  'code' = 'code',
-  'directive' = 'directive',
-  'export' = 'export',
-  'frontmatter' = 'frontmatter',
-  'content' = 'content',
-  'glossary' = 'glossary',
-  'image' = 'image',
-  'include' = 'include',
-  'link' = 'link',
-  'math' = 'math',
-  'notebook' = 'notebook',
-  'parse' = 'parse',
-  'reference' = 'reference',
-  'role' = 'role',
-  'static' = 'static',
-  'toc' = 'toc',
-  'authors' = 'authors',
-  'abstract' = 'abstract',
-  'keywords' = 'keywords',
-  'dataAvailability' = 'data-availability',
+  build = 'build',
+  block = 'block',
+  citation = 'citation',
+  code = 'code',
+  directive = 'directive',
+  export = 'export',
+  frontmatter = 'frontmatter',
+  content = 'content',
+  glossary = 'glossary',
+  image = 'image',
+  include = 'include',
+  link = 'link',
+  math = 'math',
+  notebook = 'notebook',
+  parse = 'parse',
+  reference = 'reference',
+  role = 'role',
+  static = 'static',
+  toc = 'toc',
+  authors = 'authors',
+  abstract = 'abstract',
+  keywords = 'keywords',
+  dataAvailability = 'data-availability',
 }
 
 export type CheckOptionDefinition = TemplateOptionDefinition;
@@ -44,10 +44,10 @@ export type Check = Partial<Omit<CheckDefinition, 'options'>> & {
 } & Record<string, any>;
 
 export enum CheckStatus {
-  'pass' = 'pass',
-  'fail' = 'fail',
+  pass = 'pass',
+  fail = 'fail',
   /** The check could not be run, if possible list the `cause` in the result. */
-  'error' = 'error',
+  error = 'error',
 }
 
 export type CheckResult = {

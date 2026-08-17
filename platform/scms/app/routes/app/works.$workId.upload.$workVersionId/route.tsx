@@ -26,7 +26,7 @@ import {
   searchOrcid,
   searchOrcidById,
   searchRor,
-  File,
+  File as StorageFile,
   StorageBackend,
   KnownBuckets,
   resolveThumbnailBucket,
@@ -362,7 +362,7 @@ export async function loader(args: Route.LoaderArgs) {
     try {
       const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
       const bucket = resolveThumbnailBucket(ctx, backend, work.cdn);
-      const signedUrl = await new File(backend, inheritedThumbnailKey, bucket).url();
+      const signedUrl = await new StorageFile(backend, inheritedThumbnailKey, bucket).url();
       inheritedThumbnail = { key: inheritedThumbnailKey, signedUrl };
     } catch (err) {
       console.warn('[work-upload] failed to sign inherited thumbnail', inheritedThumbnailKey, err);
@@ -871,8 +871,7 @@ export async function action(args: Route.ActionArgs) {
         try {
           const work = await findWorkByVersion(workVersionId);
           const files = (work?.metadata as Record<string, unknown> | undefined)?.files as
-            | Record<string, FileMetadataSectionItem>
-            | undefined;
+            Record<string, FileMetadataSectionItem> | undefined;
           const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
           const previewTrigger = normalizeUploadFlowTrigger(uploadFlowTrigger);
           await trackDocumentPreviewStarted(baseCtx, {
@@ -893,8 +892,7 @@ export async function action(args: Route.ActionArgs) {
         } catch (err) {
           const work = await findWorkByVersion(workVersionId);
           const files = (work?.metadata as Record<string, unknown> | undefined)?.files as
-            | Record<string, FileMetadataSectionItem>
-            | undefined;
+            Record<string, FileMetadataSectionItem> | undefined;
           const candidateSummary = summarizePreviewCandidateFiles(files, isPreviewCandidate);
           const previewTrigger = normalizeUploadFlowTrigger(uploadFlowTrigger);
           await trackDocumentPreviewAnalytics(baseCtx, {

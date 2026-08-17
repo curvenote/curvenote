@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# run.sh - Run the local task-converter Docker image (after ./local.sh or npm run build:local)
+# run.sh - Run the local task-converter Docker image (after ./local.sh or bun run build:local)
 
 docker run \
   -p 8080:8080 \

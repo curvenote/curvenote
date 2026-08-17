@@ -483,11 +483,18 @@ export type UploadStagingDTO = {
   upload_items: FileUploadResponse[];
 };
 
+export type CurvenoteRendererSpec = {
+  name: string;
+  doc?: string;
+  source: string;
+};
+
 export type CurvenotePlugin = MystPlugin & {
   // TODO CheckInterface
   checks?: any[];
+  renderers?: CurvenoteRendererSpec[];
 };
 
 export type ValidatedCurvenotePlugin = Required<
-  Pick<CurvenotePlugin, 'directives' | 'roles' | 'transforms' | 'checks'>
+  Pick<CurvenotePlugin, 'directives' | 'roles' | 'transforms' | 'checks' | 'renderers'>
 >;

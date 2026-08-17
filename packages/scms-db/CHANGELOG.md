@@ -1,5 +1,19 @@
 # @curvenote/scms-db
 
+## 0.24.2
+
+### Patch Changes
+
+- [#1051](https://github.com/curvenote/curvenote/pull/1051) [`1d7cddc`](https://github.com/curvenote/curvenote/commit/1d7cddc57c4af3acfcc1df1c41163d8599415181) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Coordinate dependency security and alignment updates across SCMS and CLI:
+
+  - Pin transitive security overrides (undici, body-parser, fast-uri, ip-address, and related)
+  - Bump mermaid / DOMPurify and Prisma 7.9.1 (+ Hono node-server floor)
+  - Upgrade CLI `jsonwebtoken` to v9
+  - Unify `react-router` / `@react-router/*` on 7.18.2
+  - Align vitest v4 and dotenv v17 holdouts
+
+## 0.24.1
+
 ## 0.24.0
 
 ### Patch Changes

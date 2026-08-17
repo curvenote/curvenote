@@ -12,19 +12,19 @@ export type IooxaMetadata = {
 };
 
 export enum OutputSummaryKind {
-  'stream' = 'stream',
-  'text' = 'text',
-  'error' = 'error',
-  'image' = 'image',
-  'svg' = 'svg',
-  'html' = 'html',
-  'latex' = 'latex',
-  'json' = 'json',
-  'javascript' = 'javascript',
-  'plotly' = 'plotly',
-  'bokeh' = 'bokeh',
-  'ipywidgets' = 'ipywidgets',
-  'unknown' = 'unknown',
+  stream = 'stream',
+  text = 'text',
+  error = 'error',
+  image = 'image',
+  svg = 'svg',
+  html = 'html',
+  latex = 'latex',
+  json = 'json',
+  javascript = 'javascript',
+  plotly = 'plotly',
+  bokeh = 'bokeh',
+  ipywidgets = 'ipywidgets',
+  unknown = 'unknown',
 }
 
 export interface OutputSummaryEntry {

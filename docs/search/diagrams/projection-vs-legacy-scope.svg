@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 360" role="img" aria-labelledby="title desc">
+  <title id="title">Projection vs legacy scoping</title>
+  <desc id="desc">Legacy searches globally then filters by site; projection filters by site first then matches text.</desc>
+  <defs>
+    <style>
+      .wide { fill: #fee2e2; stroke: #b91c1c; stroke-width: 1.5; }
+      .mid { fill: #ffedd5; stroke: #c2410c; stroke-width: 1.5; }
+      .narrow { fill: #dcfce7; stroke: #15803d; stroke-width: 1.5; }
+      .box { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 1.5; }
+      .label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; fill: #0f172a; }
+      .sub { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; fill: #475569; }
+      .title { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 15px; font-weight: 600; fill: #0f172a; }
+      .head { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; font-weight: 600; fill: #0f172a; }
+    </style>
+  </defs>
+
+  <text x="24" y="28" class="title">Scoping: legacy vs projection</text>
+
+  <text x="40" y="60" class="head">Legacy ILIKE</text>
+  <rect x="40" y="72" width="320" height="40" rx="6" class="wide"/>
+  <text x="56" y="96" class="label">1. Match WorkVersion globally</text>
+  <rect x="80" y="124" width="240" height="36" rx="6" class="mid"/>
+  <text x="96" y="146" class="label">2. Join + site/status filter</text>
+  <rect x="120" y="172" width="160" height="36" rx="6" class="narrow"/>
+  <text x="136" y="194" class="label">3. Site submission ids</text>
+
+  <text x="420" y="60" class="head">Projection (default)</text>
+  <rect x="420" y="72" width="320" height="40" rx="6" class="box"/>
+  <text x="436" y="96" class="label">1. site_id + status on SubmissionSearch</text>
+  <rect x="460" y="124" width="240" height="36" rx="6" class="narrow"/>
+  <text x="476" y="146" class="label">2. FTS @@ or &lt;% within site</text>
+  <rect x="500" y="172" width="160" height="36" rx="6" class="narrow"/>
+  <text x="516" y="194" class="label">3. Site submission ids</text>
+
+  <text x="40" y="250" class="label">Design intent</text>
+  <text x="40" y="272" class="sub">Legacy: selective filter last ’ large intermediate sets on multi-tenant data.</text>
+  <text x="40" y="292" class="sub">Projection: selective keys co-located with text ’ expensive match only inside one site.</text>
+  <text x="40" y="320" class="sub">Text sources are the same (title, authors, DOI, affiliations); matching ops and normalisation differ.</text>
+  <text x="40" y="340" class="sub">Projection also unaccents and adds token-aware FTS + word_similarity fuzzy.</text>
+</svg>

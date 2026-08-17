@@ -10,7 +10,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   validateUsing?: FetcherWithComponents<any>;
 }
 
-export const Card = React.forwardRef<HTMLDivElement, CardProps>(function Card(
+export const Card = React.forwardRef<HTMLDivElement, CardProps>(function (
   { className, lift = false, validateUsing, children, ...rest },
   ref,
 ) {

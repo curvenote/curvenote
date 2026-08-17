@@ -14,7 +14,7 @@ interface TextAreaProps extends InputHTMLAttributes<HTMLTextAreaElement> {
   error?: string | null | undefined;
 }
 
-export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(function TextArea(
+export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(function (
   {
     id,
     name,
@@ -58,10 +58,10 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(fun
         placeholder={placeholder}
         defaultValue={defaultValue}
         className={cn(
-          'w-full rounded-lg border border-blue-100 px-3 py-2 text-sm text-stone-600 transition-colors duration-200 placeholder:font-light focus:border-theme-blue-900 focus:ring-theme-blue-900 dark:border-blue-100/20 dark:bg-transparent dark:text-white dark:focus:ring-theme-blue-900',
+          'px-3 py-2 w-full text-sm rounded-lg border border-blue-100 transition-colors duration-200 text-stone-600 placeholder:font-light focus:border-theme-blue-900 focus:ring-theme-blue-900 dark:border-blue-100/20 dark:bg-transparent dark:text-white dark:focus:ring-theme-blue-900',
           error
-            ? 'border-red-700 focus:border-red-700 focus:ring-red-700 dark:border-red-700  dark:focus:border-red-700 dark:focus:ring-red-700'
-            : 'border-blue-100 focus:border-theme-blue-900 focus:ring-theme-blue-900 dark:border-blue-100/20  dark:focus:border-theme-blue-900 dark:focus:ring-theme-blue-900',
+            ? 'border-red-700 focus:border-red-700 focus:ring-red-700 dark:border-red-700 dark:focus:border-red-700 dark:focus:ring-red-700'
+            : 'border-blue-100 focus:border-theme-blue-900 focus:ring-theme-blue-900 dark:border-blue-100/20 dark:focus:border-theme-blue-900 dark:focus:ring-theme-blue-900',
           className,
         )}
         {...rest}

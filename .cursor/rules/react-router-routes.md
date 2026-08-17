@@ -11,6 +11,6 @@ When **adding or changing routes** in `platform/scms`:
    - `Route.MetaFunction`, `Route.ComponentProps`, `Route.LoaderArgs`, `Route.LoaderData`, etc., as appropriate.
 
 3. **Run typegen after route changes**  
-   From `platform/scms`, run **`npm run compile`** (which runs `react-router typegen` then `tsc --noEmit`). Do this after adding or moving routes so that `./+types/route` exists and TypeScript resolves correctly.
+   From `platform/scms`, run **`bun run compile`** (which runs `react-router typegen` then `tsc --noEmit`). Do this after adding or moving routes so that `./+types/route` exists and TypeScript resolves correctly.
 
 If a route has **no action** but the component uses `useFetcher` to submit to another route, type the fetcher explicitly (e.g. `useFetcher<SomeResponseType>()`) because the generated `Route.ComponentProps['actionData']` will be `never`.

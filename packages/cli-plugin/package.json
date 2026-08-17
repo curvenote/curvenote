@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/cli-plugin",
-  "version": "0.16.5",
+  "version": "0.17.1",
   "description": "MyST Plugins for Curvenote",
   "author": "Steve Purves <steve@curvenote.com>",
   "license": "MIT",
@@ -29,13 +29,13 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "tsc --project ./tsconfig.json --outDir dist --declaration -w --preserveWatchOutput --outDir dist -p .",
-    "lint": "eslint \"src/**/!(*.spec).ts*\" -c ./.eslintrc.cjs",
-    "lint:format": "prettier --check \"src/**/*.ts*\"",
-    "lint:format:fix": "prettier --write \"src/**/*.ts*\"",
-    "test": "npm run link; vitest run",
-    "test:watch": "npm run link; vitest watch",
+    "lint": "bunx eslint \"src/**/!(*.spec).ts*\" -c ./.eslintrc.cjs",
+    "lint:format": "bunx prettier --check \"src/**/*.ts*\"",
+    "lint:format:fix": "bunx prettier --write \"src/**/*.ts*\"",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
     "build:esm": "tsc --project ./tsconfig.json --outDir dist --declaration",
-    "build": "npm-run-all -l clean -p build:esm"
+    "build": "bun run clean && bun run build:esm"
   },
   "dependencies": {
     "@curvenote/any-widget": "^0.2.4",

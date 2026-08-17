@@ -59,9 +59,8 @@ export const summarizeOutputs = (
 
   // process remaining items
   return Promise.all(
-    preprocessed.map(
-      async (item, idx): Promise<OutputSummary> =>
-        summarizeOutput(fileFactory, item, `${basepath}.${idx}`, options),
+    preprocessed.map(async (item, idx): Promise<OutputSummary> =>
+      summarizeOutput(fileFactory, item, `${basepath}.${idx}`, options),
     ),
   );
 };

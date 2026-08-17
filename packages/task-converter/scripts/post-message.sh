@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # POST a Pub/Sub-style message to the local task-converter service.
-# Use when the service is running (e.g. npm run start).
+# Use when the service is running (e.g. bun run start).
 #
 # The body matches what withPubSubHandler expects: message.attributes and
 # message.data (base64-encoded JSON). Payload shape: taskId, target, conversionType,

@@ -67,4 +67,4 @@ The extension's `package.json` should configure the client export:
 ```
 ## Package Management
 
-Any packages added to the extensions folder will be treated as external. The repository includes a pre-commit hook (via Husky) that will prune any entries from the `package-lock.json` file at the repository root related to items in this folder.
+Any packages added to the extensions folder will be treated as external workspace packages. Install and build from the monorepo root with Bun (`bun install`, `bun run build`).

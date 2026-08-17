@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 480" role="img" aria-labelledby="title desc">
+  <title id="title">SubmissionSearch trigger maintenance</title>
+  <desc id="desc">Triggers on SubmissionVersion, WorkVersion, and Work refresh or delete projection rows.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .src { fill: #f8fafc; stroke: #334155; stroke-width: 1.5; }
+      .fn { fill: #fef3c7; stroke: #b45309; stroke-width: 1.5; }
+      .tbl { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 1.5; }
+      .label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; fill: #0f172a; }
+      .sub { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; fill: #475569; }
+      .title { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 15px; font-weight: 600; fill: #0f172a; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; fill: #334155; }
+    </style>
+  </defs>
+
+  <text x="24" y="28" class="title">Write path  keep SubmissionSearch fresh</text>
+
+  <rect x="40" y="60" width="220" height="70" rx="8" class="src"/>
+  <text x="56" y="84" class="label">SubmissionVersion</text>
+  <text x="56" y="102" class="sub">INSERT / DELETE</text>
+  <text x="56" y="118" class="sub">UPDATE status, work_version_id, &</text>
+
+  <rect x="300" y="60" width="220" height="70" rx="8" class="src"/>
+  <text x="316" y="84" class="label">WorkVersion</text>
+  <text x="316" y="102" class="sub">UPDATE title, authors,</text>
+  <text x="316" y="118" class="sub">doi, metadata</text>
+
+  <rect x="560" y="60" width="220" height="70" rx="8" class="src"/>
+  <text x="576" y="84" class="label">Work</text>
+  <text x="576" y="102" class="sub">UPDATE doi</text>
+  <text x="576" y="118" class="sub">(when value changes)</text>
+
+  <line x1="150" y1="130" x2="150" y2="180" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="410" y1="130" x2="410" y2="180" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="670" y1="130" x2="670" y2="180" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="200" y="180" width="420" height="56" rx="8" class="fn"/>
+  <text x="220" y="204" class="label">submission_search_refresh_sv(sv_id)</text>
+  <text x="220" y="222" class="mono">build search_text + search_tsv · upsert or DELETE</text>
+
+  <line x1="410" y1="236" x2="410" y2="276" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="240" y="276" width="340" height="64" rx="8" class="tbl"/>
+  <text x="260" y="300" class="label">SubmissionSearch</text>
+  <text x="260" y="318" class="sub">Only PUBLISHED / IN_REVIEW rows kept</text>
+  <text x="260" y="334" class="mono">PK = submission_version_id</text>
+
+  <text x="40" y="380" class="label">Text builder</text>
+  <text x="40" y="400" class="mono">submission_search_text(wv_id) ’ immutable_unaccent(title  authors  doi  affiliations)</text>
+  <text x="40" y="424" class="sub">search_tsv = to_tsvector('simple', search_text) · maintained in the same upsert</text>
+  <text x="40" y="448" class="sub">Backfill for existing rows: migration &120050 / prisma/scripts/backfill-submission-search.sql</text>
+</svg>

@@ -102,8 +102,8 @@ Separate theme hot path — see theme SCMS optimization backlog.
 ## Verification
 
 ```bash
-npm run lint
-npm run test:integration -- platform/scms/tests/integration/workflow/site-doi-resolve.spec.ts
+bun run lint
+bun run test:integration -- platform/scms/tests/integration/workflow/site-doi-resolve.spec.ts
 ```
 
 Apply migration in staging/production before expecting index-backed plans in

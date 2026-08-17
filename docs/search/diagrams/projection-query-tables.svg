@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 560" role="img" aria-labelledby="title desc">
+  <title id="title">Projection query and SubmissionSearch table</title>
+  <desc id="desc">Site-scoped query against SubmissionSearch with FTS and word-similarity arms.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .box { fill: #f8fafc; stroke: #334155; stroke-width: 1.5; }
+      .tbl { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 1.5; }
+      .arm { fill: #ecfdf5; stroke: #047857; stroke-width: 1.25; }
+      .arm2 { fill: #fef3c7; stroke: #b45309; stroke-width: 1.25; }
+      .label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; fill: #0f172a; }
+      .sub { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; fill: #475569; }
+      .title { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 15px; font-weight: 600; fill: #0f172a; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; fill: #334155; }
+      .caption { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; fill: #64748b; }
+    </style>
+  </defs>
+
+  <text x="24" y="28" class="title">Projection search SQL  SubmissionSearch</text>
+  <text x="24" y="48" class="caption">Scope first, then text match  single table on the hot path</text>
+
+  <rect x="200" y="72" width="420" height="100" rx="10" class="tbl"/>
+  <text x="220" y="98" class="label">SubmissionSearch</text>
+  <text x="220" y="118" class="mono">site_id · status · submission_id</text>
+  <text x="220" y="136" class="mono">search_text (unaccented concat)</text>
+  <text x="220" y="154" class="mono">search_tsv = to_tsvector('simple', search_text)</text>
+
+  <line x1="410" y1="172" x2="410" y2="208" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="240" y="208" width="340" height="44" rx="8" class="box"/>
+  <text x="260" y="228" class="label">WHERE site_id = $siteId</text>
+  <text x="260" y="244" class="mono">AND status = $status</text>
+
+  <line x1="410" y1="252" x2="410" y2="288" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="420" y="276" class="sub">AND ( & OR & )</text>
+
+  <rect x="60" y="288" width="340" height="72" rx="8" class="arm"/>
+  <text x="76" y="312" class="label">FTS arm</text>
+  <text x="76" y="330" class="mono">search_tsv @@ websearch_to_tsquery(</text>
+  <text x="76" y="346" class="mono">'simple', immutable_unaccent($q))</text>
+
+  <rect x="420" y="288" width="340" height="72" rx="8" class="arm2"/>
+  <text x="436" y="312" class="label">Fuzzy arm (pg_trgm)</text>
+  <text x="436" y="330" class="mono">immutable_unaccent($q) &lt;% search_text</text>
+  <text x="436" y="346" class="sub">word_similarity · typo tolerance</text>
+
+  <line x1="230" y1="360" x2="230" y2="400" stroke="#334155" stroke-width="1.5"/>
+  <line x1="590" y1="360" x2="590" y2="400" stroke="#334155" stroke-width="1.5"/>
+  <line x1="230" y1="400" x2="590" y2="400" stroke="#334155" stroke-width="1.5"/>
+  <line x1="410" y1="400" x2="410" y2="428" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="270" y="428" width="280" height="48" rx="8" class="box"/>
+  <text x="290" y="450" class="label">SELECT DISTINCT submission_id</text>
+  <text x="290" y="466" class="sub">’ id[] for listing filter</text>
+
+  <text x="40" y="510" class="label">GIN indexes (site_id, status, &)</text>
+  <text x="40" y="528" class="mono">SubmissionSearch_site_status_tsv_idx · SubmissionSearch_site_status_trgm_idx</text>
+  <text x="40" y="546" class="mono">btree SubmissionSearch_site_status_submission_idx  browse COUNT(DISTINCT)</text>
+</svg>

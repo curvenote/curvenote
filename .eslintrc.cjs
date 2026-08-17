@@ -12,5 +12,6 @@ module.exports = {
     '*.config.js',
     '*.config.cjs',
     '*.config.mjs',
+    '**/*.d.ts',
   ],
 };

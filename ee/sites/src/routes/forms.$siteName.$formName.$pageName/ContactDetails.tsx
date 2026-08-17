@@ -37,8 +37,7 @@ export function ContactDetails({
 }: ContactDetailsProps) {
   const orcidFetcher = useFetcher();
   const linkOrcidResponse = orcidFetcher.data as
-    | { linkOrcid?: boolean; returnTo?: string }
-    | undefined;
+    { linkOrcid?: boolean; returnTo?: string } | undefined;
   const didRedirectRef = useRef(false);
 
   const [name, setName] = useState(user?.name ?? draftContactName ?? '');
@@ -95,11 +94,11 @@ export function ContactDetails({
 
   if (allFromUser) {
     return (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-foreground">
+      <div className="flex flex-wrap gap-y-1 gap-x-3 items-center text-sm text-foreground">
         {name.trim() && <span className="font-medium">{name.trim()}</span>}
         {email.trim() && <span className="text-muted-foreground">{email.trim()}</span>}
         {orcidId.trim() && isValidOrcid(orcidId) && (
-          <span className="text-muted-foreground tabular-nums">{orcidId.trim()}</span>
+          <span className="tabular-nums text-muted-foreground">{orcidId.trim()}</span>
         )}
       </div>
     );

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 420" role="img" aria-labelledby="title desc">
+  <title id="title">Legacy search performance characteristics</title>
+  <desc id="desc">Shows global WorkVersion probes then site filter, and cost drivers.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .wide { fill: #fee2e2; stroke: #b91c1c; stroke-width: 1.5; }
+      .narrow { fill: #dcfce7; stroke: #15803d; stroke-width: 1.5; }
+      .box { fill: #f8fafc; stroke: #334155; stroke-width: 1.5; }
+      .warn { fill: #fff7ed; stroke: #c2410c; stroke-width: 1.5; }
+      .label { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; fill: #0f172a; }
+      .sub { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10px; fill: #475569; }
+      .title { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 15px; font-weight: 600; fill: #0f172a; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; fill: #334155; }
+    </style>
+  </defs>
+
+  <text x="24" y="28" class="title">Legacy path  performance shape</text>
+
+  <!-- Funnel -->
+  <rect x="40" y="56" width="700" height="52" rx="8" class="wide"/>
+  <text x="56" y="78" class="label">1. Global WorkVersion ILIKE (45 GIN probes via UNION)</text>
+  <text x="56" y="96" class="sub">Matches can include every tenants work versions</text>
+
+  <line x1="390" y1="108" x2="390" y2="136" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="120" y="136" width="540" height="48" rx="8" class="warn"/>
+  <text x="136" y="158" class="label">2. Join + filter: SubmissionVersion.status + Submission.site_id</text>
+  <text x="136" y="174" class="sub">Most global hits may be discarded here on large multi-site DBs</text>
+
+  <line x1="390" y1="184" x2="390" y2="212" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="200" y="212" width="380" height="48" rx="8" class="narrow"/>
+  <text x="216" y="234" class="label">3. Distinct submission ids for this site</text>
+  <text x="216" y="250" class="sub">Fully materialised in memory  no LIMIT in search SQL</text>
+
+  <line x1="390" y1="260" x2="390" y2="288" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="160" y="288" width="460" height="48" rx="8" class="box"/>
+  <text x="176" y="310" class="label">4. Listing page: Submission WHERE id IN (&) ORDER BY date_published</text>
+  <text x="176" y="326" class="sub">LIMIT/OFFSET applied here; count often = id[].length</text>
+
+  <!-- Cost notes -->
+  <text x="40" y="370" class="label">Cost drivers</text>
+  <text x="40" y="390" class="mono">broad q · user %/_ wildcards · affiliation branch · large WorkVersion · many cross-site hits</text>
+  <text x="40" y="408" class="mono">Mitigations already in place: min q length 3 · one predicate per UNION arm · affiliation stopwords</text>
+</svg>

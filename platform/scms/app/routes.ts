@@ -271,6 +271,9 @@ export default [
       ]),
     ]),
 
+    // Site-agnostic DOI resolution (no site name) — resolves across all public sites
+    route('doi/:first/:second', 'routes/api/v1.doi.$first.$second.tsx'),
+
     // ETL API Routes
     route('etl/register-work', 'routes/api/v1.etl.register-work.tsx'),
 

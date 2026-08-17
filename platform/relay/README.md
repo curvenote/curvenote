@@ -21,7 +21,7 @@ SCMS  ──REST──▶  relay  ──plugins──▶  external check service
 ## Prerequisites
 
 - **Node.js** ≥ 20
-- Dependencies are linked from the **Curvenote monorepo root** (`npm install` at the repo root so `platform/relay` and `packages/*` workspaces resolve).
+- Dependencies are linked from the **Curvenote monorepo root** (`bun install` at the repo root so `platform/relay` and `packages/*` workspaces resolve).
 
 ## Setup
 
@@ -31,14 +31,14 @@ From the monorepo root:
 
 ```sh
 cd /path/to/curvenote
-npm install
+bun install
 ```
 
 ### App config (development)
 
 Configuration files live in **`platform/relay/`** and use [app-config](https://app-config.dev).
 
-- **`npm run dev`** (from `platform/relay`) sets `NODE_ENV=development`, which loads `.app-config.development.yml` and merges `.app-config.secrets.development.yml` (`apiKey`, per-instance secrets). If you do not have a secrets file yet:
+- **`bun run dev`** (from `platform/relay`) sets `NODE_ENV=development`, which loads `.app-config.development.yml` and merges `.app-config.secrets.development.yml` (`apiKey`, per-instance secrets). If you do not have a secrets file yet:
 
   ```sh
   cd platform/relay
@@ -57,24 +57,24 @@ See **[docs/config.md](docs/config.md)** for configuration fields (`apiKey`, `in
 
 ```sh
 cd platform/relay
-npm run dev
+bun run dev
 ```
 
 Default dev port is **4041** (see `.app-config.development.yml`); open `http://localhost:4041`.
 
-`npm run dev` sets `NODE_OPTIONS='--conditions=development'` so workspace packages resolve to **TypeScript source** where `package.json` `exports.development` is defined—you typically do not need to build those packages first for local dev.
+`bun run dev` sets `NODE_OPTIONS='--conditions=development'` so workspace packages resolve to **TypeScript source** where `package.json` `exports.development` is defined—you typically do not need to build those packages first for local dev.
 
 ### Build and run (local, production-like)
 
-Production output is **`dist/server.js`**: esbuild bundles application code; `npm run build` runs `clean`, `copy-plugin-assets`, typecheck, then the bundle. Dependencies remain in `node_modules` (external in the bundle) so packages such as `@app-config/*` work at runtime.
+Production output is **`dist/server.js`**: esbuild bundles application code; `bun run build` runs `clean`, `copy-plugin-assets`, typecheck, then the bundle. Dependencies remain in `node_modules` (external in the bundle) so packages such as `@app-config/*` work at runtime.
 
 ```sh
 cd platform/relay
-npm run build
-NODE_ENV=production npm start
+bun run build
+NODE_ENV=production bun run start
 ```
 
-`npm run build` runs **`npm run typecheck`** (`tsc --noEmit`) before bundling. The process listens on `port` from app-config. `dist/server.js` loads `dotenv/config` before config, so a local `.env` can supply variables referenced by app-config.
+`bun run build` runs **`bun run typecheck`** (`tsc --noEmit`) before bundling. The process listens on `port` from app-config. `dist/server.js` loads `dotenv/config` before config, so a local `.env` can supply variables referenced by app-config.
 
 ## API reference
 
@@ -92,7 +92,7 @@ Summary:
 
 ```sh
 cd platform/relay
-npm test
+bun test
 ```
 
 Vitest uses `APP_CONFIG_ENV=test`. `app/test-setup.ts` loads config before tests run.
@@ -142,7 +142,7 @@ For plugins that live **outside** `extensions/plugins/` (e.g. **`packages/check-
 
 2. Import it and pass it to **`loadPlugins`** in **`app/plugins/load-plugins.tpl.ts`** (template for the generated **`load-plugins.ts`**).
 
-3. Run **`npm install`** from the **monorepo root** so **`preinstall`** clears generated files and **`postinstall`** regenerates **`platform/relay/package.json`** and the loader.
+3. Run **`bun install`** from the **monorepo root** so **`preinstall`** clears generated files and **`postinstall`** regenerates **`platform/relay/package.json`** and the loader.
 
 ### 3. Configure instances
 

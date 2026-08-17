@@ -10,7 +10,7 @@
  * It also scans extensions/.../packages/... and extensions/plugins/... for packages with a
  * `build` script and writes turbo.extensions.generated.json (gitignored) so Turborepo hashes
  * gitignored extension / relay-plugin sources.
- * Run via npm run generate:extensions (postinstall). Use scripts/turbo-run.mjs to merge that
+ * Run via bun run generate:extensions (postinstall). Use scripts/turbo-run.mjs to merge that
  * fragment with turbo.json when invoking the turbo CLI.
  *
  * Extension packages with a "./client" export should also declare "development" conditions
@@ -51,17 +51,44 @@ const TURBO_OPTIONAL_BUILD_INPUTS = [
 ];
 
 /**
- * Convert folder name to a camelCase variable name
- * @param {string} folderName - e.g. "sites"
- * @returns {string} - e.g. "sites"
+ * Convert an npm package name to a unique camelCase variable name.
+ * Uses the full package name (scope + name) so two packages that share a
+ * folder basename (e.g. @hhmi/compliance and @opensci-dashboard/compliance)
+ * do not collide when generating client.ts / server.ts.
+ * @param {string} packageName - e.g. "@hhmi/compliance"
+ * @returns {string} - e.g. "hhmiCompliance"
  */
-function folderNameToVarName(folderName) {
-  // Split by hyphens and convert to camelCase
-  const parts = folderName.split('-');
-  const firstPart = parts[0];
-  const restParts = parts.slice(1).map((part) => part.charAt(0).toUpperCase() + part.slice(1));
+function packageNameToVarName(packageName) {
+  const withoutAt = packageName.replace(/^@/, '');
+  const parts = withoutAt.split(/[/\-]+/).filter(Boolean);
+  if (parts.length === 0) {
+    throw new Error(`Invalid package name for extension var: ${packageName}`);
+  }
+  return (
+    parts[0] +
+    parts
+      .slice(1)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join('')
+  );
+}
 
-  return firstPart + restParts.join('');
+/**
+ * Ensure generated import aliases are unique across all packages.
+ * @param {Array<{ name: string }>} packages
+ */
+function assertUniqueVarNames(packages) {
+  const seen = new Map();
+  for (const pkg of packages) {
+    const varName = packageNameToVarName(pkg.name);
+    if (seen.has(varName)) {
+      throw new Error(
+        `Duplicate extension import alias "${varName}" for packages "${seen.get(varName)}" and "${pkg.name}". ` +
+          `Rename one of the packages so their npm names produce distinct identifiers.`,
+      );
+    }
+    seen.set(varName, pkg.name);
+  }
 }
 
 /**
@@ -273,14 +300,14 @@ function generateClientFile(packages) {
 
   const imports = packages
     .map((pkg) => {
-      const varName = folderNameToVarName(pkg.folderName) + 'Client';
+      const varName = packageNameToVarName(pkg.name) + 'Client';
       return `import { extension as ${varName} } from '${pkg.name}/client';`;
     })
     .join('\n');
 
   const exports = packages
     .map((pkg) => {
-      return folderNameToVarName(pkg.folderName) + 'Client';
+      return packageNameToVarName(pkg.name) + 'Client';
     })
     .join(', ');
 
@@ -301,14 +328,14 @@ function generateServerFile(packages) {
 
   const imports = packages
     .map((pkg) => {
-      const varName = folderNameToVarName(pkg.folderName);
+      const varName = packageNameToVarName(pkg.name);
       return `import { extension as ${varName} } from '${pkg.name}';`;
     })
     .join('\n');
 
   const exports = packages
     .map((pkg) => {
-      return folderNameToVarName(pkg.folderName);
+      return packageNameToVarName(pkg.name);
     })
     .join(', ');
 
@@ -371,11 +398,15 @@ function main() {
     a.name.localeCompare(b.name),
   );
 
+  assertUniqueVarNames(allPackages);
+
   if (allPackages.length === 0) {
     console.warn('No extension packages found with "./client" export');
   } else {
     console.log(`Found ${allPackages.length} extension package(s):`);
-    allPackages.forEach((pkg) => console.log(`  - ${pkg.name}`));
+    allPackages.forEach((pkg) =>
+      console.log(`  - ${pkg.name} → ${packageNameToVarName(pkg.name)}`),
+    );
   }
 
   // Generate extension files (even if empty)

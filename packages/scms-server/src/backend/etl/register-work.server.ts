@@ -37,13 +37,10 @@ export type EtlRegisterWorkResult = {
 };
 
 export type EtlRegisterSkipReason =
-  | 'cdn_key_already_registered'
-  | 'retagging_not_allowed'
-  | 'article_cdn_prefix_mismatch';
+  'cdn_key_already_registered' | 'retagging_not_allowed' | 'article_cdn_prefix_mismatch';
 
 export type EtlRegisterDecision =
-  | { action: 'skip'; reason: EtlRegisterSkipReason }
-  | { action: 'create' };
+  { action: 'skip'; reason: EtlRegisterSkipReason } | { action: 'create' };
 
 /** Pure skip/create decision for ETL register-work */
 export function resolveEtlRegisterDecision(input: {

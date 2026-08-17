@@ -3,7 +3,13 @@ import { walkOutputs } from 'nbtx';
 import type { SiteManifest } from 'myst-config';
 import { selectAll } from 'unist-util-select';
 import type { Image as ImageSpec, Link as LinkSpec } from 'myst-spec';
-import type { FooterLinks, Heading, NavigationLink, PageLoader } from './types.js';
+import type {
+  FooterLinks,
+  Heading,
+  NavigationLink,
+  PageLoader,
+  CurvenoteSiteManifest,
+} from './types.js';
 import { slugToUrl, type GenericParent } from 'myst-common';
 
 type Image = ImageSpec & { urlOptimized?: string };
@@ -130,9 +136,9 @@ function updateMdastStaticLinksInplace(mdast: GenericParent, updateUrl: UpdateUr
 }
 
 export function updateSiteManifestStaticLinksInplace(
-  data: SiteManifest,
+  data: CurvenoteSiteManifest,
   updateUrl: UpdateUrl,
-): SiteManifest {
+): CurvenoteSiteManifest {
   data.actions?.forEach((action) => {
     if (!action.static) return;
     action.url = updateUrl(action.url);
@@ -172,6 +178,10 @@ export function updateSiteManifestStaticLinksInplace(
   if (data.options.logo_dark) data.options.logo_dark = updateUrl(data.options.logo_dark);
   if (data.options.favicon) data.options.favicon = updateUrl(data.options.favicon);
   if (data.options.style) data.options.style = updateUrl(data.options.style);
+  data.renderers?.forEach((renderer) => {
+    if (!renderer.url) return;
+    renderer.url = updateUrl(renderer.url);
+  });
   if (data.parts) {
     Object.values(data.parts).forEach(({ mdast }) => {
       updateMdastStaticLinksInplace(mdast, updateUrl);

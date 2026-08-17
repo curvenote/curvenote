@@ -46,16 +46,30 @@ export type Response<T extends Record<string, any> = any> = Promise<{
   json: T;
 }>;
 
+export type CurvenoteRendererSpec = {
+  name: string;
+  doc?: string;
+  source: string;
+};
+
+export type SiteRenderer = {
+  name: string;
+  url: string;
+};
+
 export type CurvenotePlugin = MystPlugin & {
   checks?: CheckInterface[];
+  renderers?: CurvenoteRendererSpec[];
+  paths?: string[];
+  checksPaths?: string[];
 };
 
 export type ValidatedCurvenotePlugin = Required<
-  Pick<CurvenotePlugin, 'directives' | 'roles' | 'transforms' | 'checks'>
-> & {
-  paths: string[];
-  checksPaths: string[];
-};
+  Pick<
+    CurvenotePlugin,
+    'directives' | 'roles' | 'transforms' | 'checks' | 'renderers' | 'paths' | 'checksPaths'
+  >
+>;
 
 export type CLIConfigData = {
   apiUrl: string;

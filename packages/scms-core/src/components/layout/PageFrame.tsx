@@ -15,7 +15,7 @@ interface PageFrameProps {
   children: React.ReactNode;
 }
 
-export const PageFrame = forwardRef<HTMLDivElement, PageFrameProps>(function PageFrame(
+export const PageFrame = forwardRef<HTMLDivElement, PageFrameProps>(function (
   {
     title: propTitle,
     subtitle: propSubtitle,

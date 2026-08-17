@@ -1,5 +1,35 @@
 # @curvenote/scms-server
 
+## 0.24.2
+
+### Patch Changes
+
+- [#1051](https://github.com/curvenote/curvenote/pull/1051) [`1d7cddc`](https://github.com/curvenote/curvenote/commit/1d7cddc57c4af3acfcc1df1c41163d8599415181) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Coordinate dependency security and alignment updates across SCMS and CLI:
+
+  - Pin transitive security overrides (undici, body-parser, fast-uri, ip-address, and related)
+  - Bump mermaid / DOMPurify and Prisma 7.9.1 (+ Hono node-server floor)
+  - Upgrade CLI `jsonwebtoken` to v9
+  - Unify `react-router` / `@react-router/*` on 7.18.2
+  - Align vitest v4 and dotenv v17 holdouts
+
+- Updated dependencies [[`1d7cddc`](https://github.com/curvenote/curvenote/commit/1d7cddc57c4af3acfcc1df1c41163d8599415181)]:
+  - @curvenote/scms-core@0.24.2
+  - @curvenote/scms-db@0.24.2
+  - @curvenote/check-definitions@0.17.1
+
+## 0.24.1
+
+### Patch Changes
+
+- [#1033](https://github.com/curvenote/curvenote/pull/1033) [`84849b3`](https://github.com/curvenote/curvenote/commit/84849b3a9aef742acb7e5e297362e871a669c9a7) Thanks [@fwkoch](https://github.com/fwkoch)! - Cross site DOI resolution
+
+- Updated dependencies [[`3bf6a03`](https://github.com/curvenote/curvenote/commit/3bf6a03777af263b2be674c7a6a2ca5e33734022), [`84849b3`](https://github.com/curvenote/curvenote/commit/84849b3a9aef742acb7e5e297362e871a669c9a7)]:
+  - @curvenote/cdn@0.7.0
+  - @curvenote/common@0.7.0
+  - @curvenote/scms-core@0.24.1
+  - @curvenote/check-definitions@0.17.0
+  - @curvenote/scms-db@0.24.1
+
 ## 0.24.0
 
 ### Patch Changes
@@ -95,9 +125,9 @@
 
   Add a **Queues** tab to the **System → Jobs** admin page (`/app/system/jobs?tab=queues`) to manage the drain config without raw SQL: save the drain endpoint, push `api.queueConsumerSecret` into `"_JobQueueDrainConfig"`, see whether the stored secret matches app-config, and view a live tail of pending/in-flight pgmq messages. Backed by `peekJobQueue()` and server helpers (`getJobQueueDrainStatus`, `setJobQueueDrainUrl`, `pushJobQueueDrainSecretFromConfig`, `getJobQueueTail`). The tab also gains a **Drain now** button that processes up to 10 messages in-process (bypassing the `pg_net`/HTTP wake) for manual backlog recovery and testing.
 
-  The local-dev and test database seeds auto-populate `"_JobQueueDrainConfig"` from app-config (`api.url` + `api.queueConsumerSecret`), so `npm run dev:db:reset` / `npm run test:db:reset` no longer require a manual trip to the Queues tab after each reset. The seed realigns the stored secret with app-config while preserving any custom drain url.
+  The local-dev and test database seeds auto-populate `"_JobQueueDrainConfig"` from app-config (`api.url` + `api.queueConsumerSecret`), so `bun run dev:db:reset` / `bun run test:db:reset` no longer require a manual trip to the Queues tab after each reset. The seed realigns the stored secret with app-config while preserving any custom drain url.
 
-  Local development runs the same pgmq + `pg_net` stack as staging/prod. The local Docker Postgres is built from `docker/postgres/Dockerfile` (postgres:16 + pgmq + pg_net + pg_cron), and the dev seed targets `api.tasksCallbackUrl` (`host.docker.internal`) so the `pg_net` enqueue-wake fired inside the container reaches the dev server on the host. The image binds the `pg_net` and `pg_cron` background workers to the `journals` db (`pg_net.database_name` / `cron.database_name`) — without this the workers attach to the default `postgres` db and silently never drain the `journals` queue. **Requires a one-time local rebuild:** `npm run db:rebuild` then `npm run dev:db:reset`.
+  Local development runs the same pgmq + `pg_net` stack as staging/prod. The local Docker Postgres is built from `docker/postgres/Dockerfile` (postgres:16 + pgmq + pg_net + pg_cron), and the dev seed targets `api.tasksCallbackUrl` (`host.docker.internal`) so the `pg_net` enqueue-wake fired inside the container reaches the dev server on the host. The image binds the `pg_net` and `pg_cron` background workers to the `journals` db (`pg_net.database_name` / `cron.database_name`) — without this the workers attach to the default `postgres` db and silently never drain the `journals` queue. **Requires a one-time local rebuild:** `bun run db:rebuild` then `bun run dev:db:reset`.
 
   `send` honors the dispatch `idempotencyKey` (the `job_id`). Because pgmq has no native idempotency, it skips the enqueue when a message for the same job is already pending or in-flight in `pgmq.q_job`, serialized by a transaction-scoped advisory lock keyed on the job id. This prevents a retried enqueue (e.g. a client retry of `POST /v1/jobs` with the same `id`, where `ensureJobRow` already skipped the insert) from adding a second pgmq message and letting two drains run the same job concurrently.
 

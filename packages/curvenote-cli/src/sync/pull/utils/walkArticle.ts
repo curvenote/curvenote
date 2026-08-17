@@ -12,6 +12,7 @@ import {
 } from '@curvenote/blocks';
 import type { Nodes } from '@curvenote/schema';
 import { DEFAULT_IMAGE_WIDTH, nodeNames, ReferenceKind } from '@curvenote/schema';
+import type { Node as ProseMirrorNode } from 'prosemirror-model';
 import { Block, Version } from '../../../models.js';
 import type { ISession } from '../../../session/types.js';
 import { basekey } from './basekey.js';
@@ -188,7 +189,7 @@ export async function walkArticle(
   // Load all images and references
   Object.entries(children).forEach(([, { state }]) => {
     if (!state) return;
-    state.doc.descendants((node) => {
+    state.doc.descendants((node: ProseMirrorNode) => {
       switch (node.type.name) {
         case nodeNames.image: {
           const { src } = node.attrs as Nodes.Image.Attrs;

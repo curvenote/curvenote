@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/common",
   "description": "Common types for curvenote journals",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,18 +16,21 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "lint": "eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
-    "lint:format": "prettier --check \"src/**/*.{ts,tsx,md}\"",
-    "lint:format:fix": "prettier --write \"src/**/*.{ts,tsx,md}\"",
+    "lint": "bunx eslint \"src/**/*.ts*\" -c ./.eslintrc.cjs",
+    "lint:format": "bunx prettier --check \"src/**/*.{ts,tsx,md}\"",
+    "lint:format:fix": "bunx prettier --write \"src/**/*.{ts,tsx,md}\"",
+    "test": "vitest run",
     "build:esm": "tsc --outDir dist",
-    "build": "npm-run-all -l clean -p build:esm"
+    "build": "bun run clean && bun run build:esm"
   },
   "dependencies": {
     "@curvenote/blocks": "^1.6.3",
     "myst-common": "^1.10.0",
     "myst-config": "^1.10.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "vitest": "^4.0.6"
+  },
   "publishConfig": {
     "access": "public"
   }

@@ -1,6 +1,6 @@
 {
   "name": "@curvenote/task-converter",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "Node.js server for the task converter service (Cloud Run style, local build and run)",
   "type": "module",
   "main": "dist/index.js",
@@ -15,16 +15,16 @@
     "build:watch": "esbuild src/index.ts --outfile=dist/index.js --bundle --platform=node --format=esm --watch --external:express --external:fsevents",
     "start": "node ./dist/index.js",
     "ensure-typst-plain": "bash scripts/ensure-typst-plain.sh",
-    "dev": "npm run ensure-typst-plain && npm run clean && npm run build && NODE_ENV=development concurrently \"npm run build:watch\" \"nodemon\"",
-    "lint": "eslint \"src/**/*.ts\" -c ./.eslintrc.cjs",
-    "lint:format": "npx prettier --check \"src/**/*.ts\"",
-    "lint:format:fix": "npx prettier --write \"src/**/*.ts\""
+    "dev": "bun run ensure-typst-plain && bun run clean && bun run build && NODE_ENV=development concurrently \"bun run build:watch\" \"nodemon\"",
+    "lint": "bunx eslint \"src/**/*.ts\" -c ./.eslintrc.cjs",
+    "lint:format": "bunx prettier --check \"src/**/*.ts\"",
+    "lint:format:fix": "bunx prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
-    "@curvenote/common": "^0.6.1",
-    "@curvenote/scms-core": "^0.24.0",
-    "@curvenote/scms-tasks": "^0.24.0",
-    "express": "^4.18.1"
+    "@curvenote/common": "^0.7.0",
+    "@curvenote/scms-core": "^0.24.1",
+    "@curvenote/scms-tasks": "^0.24.1",
+    "express": "^4.22.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",

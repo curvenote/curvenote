@@ -47,7 +47,7 @@ One migration sets this up:
 ```bash
 # From monorepo root, with DATABASE_URL pointing at the Supabase direct connection string
 DATABASE_URL='postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres' \
-  npx prisma migrate deploy --config=./prisma.config.ts
+  bunx prisma migrate deploy --config=./prisma.config.ts
 ```
 
 **Verify migration applied** — in Supabase **SQL Editor**, run:
@@ -126,7 +126,7 @@ This table tells the **database** how to call push-to-drain. It is used by **bot
 
 > **Easiest option: use the admin UI.** Once SCMS is deployed, system admins can open **System → Jobs → Queues tab** (`/app/system/jobs?tab=queues`) and use **Push secret from app-config** (writes `api.queueConsumerSecret` into the row) and **Save endpoint** (sets `drain_url`). That tab also shows whether the stored secret matches app-config and a live tail of pending/in-flight pgmq messages. It also has a **Drain now** button that processes up to 10 queued messages **in-process** (no `pg_net`/HTTP wake required) — handy to flush a backlog or confirm draining when the wake is misconfigured. The SQL below remains available for first-time setup or environments without UI access.
 
-> **Local dev / test:** the database seeds auto-populate this row from app-config, so `npm run dev:db:reset` and `npm run test:db:reset` leave it set (no Queues-tab trip needed after a reset). The dev seed uses `api.tasksCallbackUrl` (`http://host.docker.internal:3031/v1/...`) so the `pg_net` wake fired inside the Postgres container can reach the dev server on the host, and realigns the secret on each run. Local dev runs the same pgmq + pg_net stack, so this row matters by default.
+> **Local dev / test:** the database seeds auto-populate this row from app-config, so `bun run dev:db:reset` and `bun run test:db:reset` leave it set (no Queues-tab trip needed after a reset). The dev seed uses `api.tasksCallbackUrl` (`http://host.docker.internal:3031/v1/...`) so the `pg_net` wake fired inside the Postgres container can reach the dev server on the host, and realigns the secret on each run. Local dev runs the same pgmq + pg_net stack, so this row matters by default.
 
 1. Supabase Dashboard → **SQL Editor** → **New query**.
 2. Replace the placeholders below with **this environment’s** values:
@@ -235,7 +235,7 @@ Primary path is the **database enqueue trigger** (`pg_net`). pg_cron is a safety
 | Jobs stuck QUEUED, no handler logs                                                             | Empty `"_JobQueueDrainConfig"` (Step 4) — the DB trigger/cron can't wake push-to-drain; or trigger missing (check `pg_trigger`), or secret/url wrong                                                                                                             |
 | push-to-drain returns 401                                                                      | `drain_secret` in `"_JobQueueDrainConfig"` ≠ app `queueConsumerSecret`, or app-config not redeployed                                                                                                                                                             |
 | Cron never wakes / trigger never wakes                                                         | Empty `"_JobQueueDrainConfig"` — complete Step 4                                                                                                                                                                                                                 |
-| **Local dev:** jobs stuck, `net.http_request_queue` fills but `net._http_response` stays empty | `pg_net` worker bound to the wrong db. Ensure `pg_net.database_name = 'journals'` is in `docker/postgres/Dockerfile`, then `npm run db:rebuild`. Verify: `SELECT datname FROM pg_stat_activity WHERE application_name ILIKE '%pg_net%';` should show `journals`. |
+| **Local dev:** jobs stuck, `net.http_request_queue` fills but `net._http_response` stays empty | `pg_net` worker bound to the wrong db. Ensure `pg_net.database_name = 'journals'` is in `docker/postgres/Dockerfile`, then `bun run db:rebuild`. Verify: `SELECT datname FROM pg_stat_activity WHERE application_name ILIKE '%pg_net%';` should show `journals`. |
 | Need to flush a backlog manually                                                               | Use **Drain now** on the Queues tab — processes up to 10 messages in-process without the `pg_net`/HTTP wake                                                                                                                                                      |
 | `pgmq.send` error in logs                                                                      | Migration not applied on **this** database, or wrong `databaseUrl`                                                                                                                                                                                               |
 

@@ -231,18 +231,19 @@ fi
 # Copy SCMS dev app-configs into the new worktree (if they exist here)
 copy_scms_app_configs
 
-# Install Node dependencies
+# Install dependencies (Bun). Use install:workspace so ensure:workspaces can
+# generate gitignored platform/scms and platform/relay package.json manifests
+# before bun resolves those literal workspace paths.
 if [[ -f "$WT_DIR/package.json" ]]; then
-  echo "→ Installing Node dependencies in ${WT_DIR}"
-  if [[ -f "$WT_DIR/pnpm-lock.yaml" ]] && command -v pnpm >/dev/null 2>&1; then
-    (cd "$WT_DIR" && pnpm install)
-  elif [[ -f "$WT_DIR/yarn.lock" ]] && command -v yarn >/dev/null 2>&1; then
-    (cd "$WT_DIR" && yarn install)
+  echo "→ Installing dependencies with Bun in ${WT_DIR}"
+  if command -v bun >/dev/null 2>&1; then
+    (cd "$WT_DIR" && bun run install:workspace)
   else
-    (cd "$WT_DIR" && npm install)
+    echo "❌ bun not found; install Bun (https://bun.sh) then re-run." >&2
+    exit 1
   fi
 else
-  echo "ℹ️  No package.json in ${WT_DIR}; skipping Node install."
+  echo "ℹ️  No package.json in ${WT_DIR}; skipping install."
 fi
 
 echo "✅ Worktree ready: ${WT_DIR}"

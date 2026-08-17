@@ -1,14 +1,17 @@
 import type { BuildOpts } from 'myst-cli';
 import { build } from 'myst-cli';
 import { addTransformersToOpts, startServerWithLoggers } from '../utils/utils.js';
+import { emitSiteRenderers, watchSiteRenderers } from '../utils/siteRenderers.js';
 import type { ISession } from '../session/types.js';
 
 export const curvenoteBuild = async (session: ISession, files: string[], opts: BuildOpts) => {
   await build(session, files, addTransformersToOpts(session, opts));
+  await emitSiteRenderers(session);
 };
 
 export const curvenoteStart = async (session: ISession, opts: BuildOpts) => {
   await startServerWithLoggers(session, addTransformersToOpts(session, opts));
+  watchSiteRenderers(session);
 };
 
 export * from './deploy.js';

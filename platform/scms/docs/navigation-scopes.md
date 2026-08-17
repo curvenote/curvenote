@@ -158,7 +158,7 @@ To use site-specific scopes in your navigation:
 The functionality is thoroughly tested in `app/utils.server.spec.ts`. Run tests with:
 
 ```bash
-npm run test:unit -- app/utils.server.spec.ts
+bun run test:unit -- app/utils.server.spec.ts
 ```
 
 ## Notes

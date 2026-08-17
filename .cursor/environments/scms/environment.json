@@ -9,7 +9,7 @@
   "terminals": [
     {
       "name": "scms",
-      "command": "cd platform/scms && npm run dev",
+      "command": "cd platform/scms && bun run dev",
       "description": "SCMS dev server (http://localhost:3031)."
     }
   ],

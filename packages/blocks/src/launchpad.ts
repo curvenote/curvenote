@@ -1,10 +1,10 @@
 export enum LaunchpadStatus {
-  'launching' = 'launching',
-  'cloning' = 'cloning',
-  'initializing' = 'initializing',
-  'deploying' = 'deploying',
-  'completed' = 'completed',
-  'failed' = 'failed',
+  launching = 'launching',
+  cloning = 'cloning',
+  initializing = 'initializing',
+  deploying = 'deploying',
+  completed = 'completed',
+  failed = 'failed',
 }
 
 export interface LaunchpadDTO {

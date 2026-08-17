@@ -272,14 +272,7 @@ export function toExclusiveDateUpperBound(toIsoDate: string): string {
  * -------------------------------------------------------------------------- */
 
 export type ListingParamKey =
-  | 'q'
-  | 'sort'
-  | 'kindIds'
-  | 'collectionIds'
-  | 'statuses'
-  | 'from'
-  | 'to'
-  | 'unpublishedOnly';
+  'q' | 'sort' | 'kindIds' | 'collectionIds' | 'statuses' | 'from' | 'to' | 'unpublishedOnly';
 
 /** Params that the "Clear filters" empty-state action wipes (sort is kept). */
 const CLEARABLE_PARAMS: readonly ListingParamKey[] = [

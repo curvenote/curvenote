@@ -9,7 +9,7 @@ Copy app-config files, .env into `platform/scms` folder. The app-config schema i
 Then at the top level of the monorepo:
 
 ```
-npm install
+bun install
 ```
 
 This installs all the workspace dependencies and the `postinstall` step generates the `platform/scms` package.json with extensions, as well as the `client.ts`/`server.ts` files in the scms extensions source folder.
@@ -17,15 +17,15 @@ This installs all the workspace dependencies and the `postinstall` step generate
 Still at the top level:
 
 ```
-npm run build
+bun run build
 ```
 
 Then in the `platform/scms` folder, to install, build, and run locally:
 
 ```
-npm install
-npm run build
-npm run dev
+bun install
+bun run build
+bun run dev
 ```
 
 ### Job queue local development
@@ -40,7 +40,7 @@ If a backlog gets stuck (e.g. the dev server was down when wakes fired), the **Q
 
 **Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, staging/prod secrets YAML on deployed envs) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
 
-> The local Postgres image is required (it provides pgmq/pg_net/pg_cron). After pulling these changes you must rebuild the container: `npm run db:rebuild` (wipes the volume, rebuilds from the Dockerfile, re-runs init), then `npm run dev:db:reset`.
+> The local Postgres image is required (it provides pgmq/pg_net/pg_cron). After pulling these changes you must rebuild the container: `bun run db:rebuild` (wipes the volume, rebuilds from the Dockerfile, re-runs init), then `bun run dev:db:reset`.
 
 **Staging/prod Supabase setup:** see [`platform/scms/deploy/supabase-job-queue-setup.md`](deploy/supabase-job-queue-setup.md) (pgmq migration, app-config secrets, `_JobQueueDrainConfig`, smoke tests).
 
@@ -53,8 +53,8 @@ Local development uses **Postgres in Docker** (recommended). The container creat
 From the **monorepo root**:
 
 ```bash
-npm run db:up
-npm run dev:db:reset
+bun run db:up
+bun run dev:db:reset
 ```
 
 `db:up` starts Postgres and waits until it is healthy. `dev:db:reset` runs migrations and seeds the dev database.
@@ -63,10 +63,10 @@ Useful commands:
 
 | Command                 | Purpose                           |
 | ----------------------- | --------------------------------- |
-| `npm run db:up`         | Start Postgres container          |
-| `npm run db:down`       | Stop container (keep data volume) |
-| `npm run db:down:clean` | Stop and **delete** all DB data   |
-| `npm run db:logs`       | Follow Postgres logs              |
+| `bun run db:up`         | Start Postgres container          |
+| `bun run db:down`       | Stop container (keep data volume) |
+| `bun run db:down:clean` | Stop and **delete** all DB data   |
+| `bun run db:logs`       | Follow Postgres logs              |
 
 Connection strings (same as before):
 
@@ -140,9 +140,9 @@ netstat -an | grep '\.5432.*LISTEN'
 From the monorepo root:
 
 ```bash
-npm run db:up
-npm run dev:db:reset
-npm run test:db:reset   # optional: reset test DB too
+bun run db:up
+bun run dev:db:reset
+bun run test:db:reset   # optional: reset test DB too
 ```
 
 Your `.env.development` / `.env.test` and app-config database URLs can stay the same (`localhost:5432`, user `journals`, password `curvenote`).
@@ -160,7 +160,7 @@ brew uninstall postgresql@16
 open /Library/PostgreSQL/17/uninstall-postgresql.app
 ```
 
-You do **not** need native `psql` for day-to-day dev; use `npm run db:logs`, Prisma Studio (`npm run db:studio`), or `docker compose exec postgres psql -U journals -d journals`.
+You do **not** need native `psql` for day-to-day dev; use `bun run db:logs`, Prisma Studio (`bun run db:studio`), or `docker compose exec postgres psql -U journals -d journals`.
 
 #### Legacy: native Postgres on macOS
 
@@ -197,14 +197,14 @@ Accepted values are `true`, `1`, or `yes`. Each query is printed with duration, 
 To reset and seed the database for **initial** development work. This needs to be run from the top level.
 
 ```
-npm run dev:db:reset
-npm run dev:db:migrate
+bun run dev:db:reset
+bun run dev:db:migrate
 ```
 
 To only format the schema
 
 ```
-npm run prisma:format
+bun run prisma:format
 ```
 
 ### Development with https
@@ -224,7 +224,7 @@ sudo caddy start
 And in a separate terminal run the dev server:
 
 ```
-npm run dev
+bun run dev
 ```
 
 The platform will now be available at:
@@ -234,9 +234,9 @@ The platform will now be available at:
 
 ### Testing
 
-Tests use the `journals_test` database. This is seeded using a different script (`prisma/seed.test.ts`) and can be reset using `npm run test:db:reset`.
+Tests use the `journals_test` database. This is seeded using a different script (`prisma/seed.test.ts`) and can be reset using `bun run test:db:reset`.
 
-Use `npm run test:start` and `npm run test:local` to ensure that tests are started with the correct environment.
+Use `bun run test:start` and `bun run test:local` to ensure that tests are started with the correct environment.
 
 ## JWT Integration for External Services
 
@@ -299,7 +299,7 @@ To generate new JWK keys for deployment or key rotation, use the provided script
 
 ```bash
 # Generate new JWK keys
-npm run generate:jwk-keys
+bun run generate:jwk-keys
 
 # Or run directly
 node scripts/generate-jwk-keys.mjs
@@ -311,7 +311,7 @@ This script will output properly formatted YAML that you can copy directly into 
 
 To rotate JWT keys:
 
-1. **Generate new keys** using `npm run generate:jwk-keys` (automatically generates new `kid` with current date)
+1. **Generate new keys** using `bun run generate:jwk-keys` (automatically generates new `kid` with current date)
 2. **Update configuration** with the new keys in both config files
 3. **Deploy** the updated configuration
 4. **Monitor** external services to ensure they fetch the new public key from `/v1/keys`
