@@ -47,15 +47,15 @@
     },
     "ee/sites": {
       "name": "@curvenote/scms-sites-ext",
-      "version": "0.24.1",
+      "version": "0.24.2",
       "dependencies": {
         "@codemirror/view": "^6.35.0",
-        "@curvenote/check-definitions": "^0.17.0",
+        "@curvenote/check-definitions": "^0.17.1",
         "@curvenote/common": "^0.7.0",
         "@curvenote/icons": "0.0.4",
-        "@curvenote/scms-core": "0.24.1",
-        "@curvenote/scms-db": "0.24.1",
-        "@curvenote/scms-server": "0.24.1",
+        "@curvenote/scms-core": "0.24.2",
+        "@curvenote/scms-db": "0.24.2",
+        "@curvenote/scms-server": "0.24.2",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
@@ -892,7 +892,7 @@
     },
     "packages/check-definitions": {
       "name": "@curvenote/check-definitions",
-      "version": "0.17.0",
+      "version": "0.17.1",
       "dependencies": {
         "myst-common": "^1.10.0",
         "myst-templates": "^1.0.27",
@@ -903,7 +903,7 @@
     },
     "packages/check-implementations": {
       "name": "@curvenote/check-implementations",
-      "version": "0.17.0",
+      "version": "0.17.1",
       "dependencies": {
         "@curvenote/check-definitions": "^0.17.0",
         "@wordpress/wordcount": "^3.50.0",
@@ -957,7 +957,7 @@
     },
     "packages/cli-plugin": {
       "name": "@curvenote/cli-plugin",
-      "version": "0.17.0",
+      "version": "0.17.1",
       "dependencies": {
         "@curvenote/any-widget": "^0.2.4",
         "myst-common": "^1.10.0",
@@ -979,7 +979,7 @@
     },
     "packages/curvenote": {
       "name": "curvenote",
-      "version": "0.17.0",
+      "version": "0.17.1",
       "bin": {
         "curvenote": "./dist/curvenote.cjs",
         "cn": "./dist/curvenote.cjs",
@@ -1000,7 +1000,7 @@
     },
     "packages/curvenote-cli": {
       "name": "@curvenote/cli",
-      "version": "0.17.0",
+      "version": "0.17.1",
       "dependencies": {
         "@curvenote/blocks": "^1.6.3",
         "@curvenote/check-definitions": "^0.17.0",
@@ -1115,7 +1115,7 @@
     },
     "packages/scms-core": {
       "name": "@curvenote/scms-core",
-      "version": "0.24.1",
+      "version": "0.24.2",
       "dependencies": {
         "@app-config/config": "^2.8.7",
         "@app-config/main": "^2.8.7",
@@ -1130,12 +1130,12 @@
         "@codemirror/state": "^6.4.1",
         "@codemirror/view": "^6.35.0",
         "@curvenote/cdn": "^0.7.0",
-        "@curvenote/check-definitions": "^0.17.0",
+        "@curvenote/check-definitions": "^0.17.1",
         "@curvenote/check-ui": "^1.0.1",
         "@curvenote/common": "^0.7.0",
         "@curvenote/icons": "^0.0.4",
         "@curvenote/remix-auth-okta": "^3.0.0",
-        "@curvenote/scms-db": "0.24.1",
+        "@curvenote/scms-db": "0.24.2",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
@@ -1234,7 +1234,7 @@
     },
     "packages/scms-db": {
       "name": "@curvenote/scms-db",
-      "version": "0.24.1",
+      "version": "0.24.2",
       "dependencies": {
         "@prisma/adapter-pg": "^7.9.1",
         "@prisma/client": "^7.9.1",
@@ -1249,7 +1249,7 @@
     },
     "packages/scms-server": {
       "name": "@curvenote/scms-server",
-      "version": "0.24.1",
+      "version": "0.24.2",
       "dependencies": {
         "@app-config/config": "^2.8.7",
         "@app-config/main": "^2.8.7",
@@ -1263,12 +1263,12 @@
         "@aws-sdk/s3-request-presigner": "^3.1012.0",
         "@azure/storage-blob": "^12.31.0",
         "@curvenote/cdn": "^0.7.0",
-        "@curvenote/check-definitions": "^0.17.0",
+        "@curvenote/check-definitions": "^0.17.1",
         "@curvenote/common": "^0.7.0",
         "@curvenote/remix-auth-google": "^3.0.0",
         "@curvenote/remix-auth-okta": "^3.0.0",
-        "@curvenote/scms-core": "0.24.1",
-        "@curvenote/scms-db": "0.24.1",
+        "@curvenote/scms-core": "0.24.2",
+        "@curvenote/scms-db": "0.24.2",
         "@google-cloud/pubsub": "^5.2.0",
         "@google-cloud/storage": "^7.17.3",
         "@react-email/components": "0.5.7",
@@ -1336,7 +1336,7 @@
     },
     "packages/scms-tasks": {
       "name": "@curvenote/scms-tasks",
-      "version": "0.24.1",
+      "version": "0.24.2",
       "dependencies": {
         "@curvenote/common": "^0.7.0",
       },
@@ -1402,7 +1402,7 @@
     },
     "platform/scms": {
       "name": "@curvenote/scms",
-      "version": "0.24.1",
+      "version": "0.24.2",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.80.0",
         "@app-config/config": "^2.8.7",
@@ -1410,7 +1410,7 @@
         "@app-config/vite": "^2.8.7",
         "@curvenote/blocks": "^1.6.3",
         "@curvenote/cdn": "^0.6.1",
-        "@curvenote/check-definitions": "^0.16.0",
+        "@curvenote/check-definitions": "^0.17.1",
         "@curvenote/check-ui": "^0.6.9",
         "@curvenote/common": "^0.6.1",
         "@curvenote/icons": "^0.0.4",
@@ -6213,8 +6213,6 @@
 
     "@curvenote/scms/@curvenote/cdn": ["@curvenote/cdn@0.6.1", "", { "dependencies": { "@curvenote/common": "^0.6.1", "cache-manager": "^5.2.3", "doi-utils": "^2.0.5", "myst-common": "^1.9.5", "myst-config": "^1.9.5", "myst-frontmatter": "^1.9.5", "myst-migrate": "^1.9.0", "myst-spec-ext": "^1.9.5", "nbtx": "^0.2.3", "node-cache": "^5.1.2", "node-fetch": "^2.7.0", "unist-util-select": "^4.0.3" } }, "sha512-vRXtHwnihOfv+0q4MzMbb9hL3iEAi5KY46/xPsaduwnR27xbAMOlSqXHo8z3vPvuZrYcsFywG7sJAsNuGV+qhA=="],
 
-    "@curvenote/scms/@curvenote/check-definitions": ["@curvenote/check-definitions@0.16.5", "", { "dependencies": { "myst-common": "^1.9.5", "myst-templates": "^1.0.27" } }, "sha512-F7BS34YJ5vtJ6CoiBlzsiYJ34nAjEPjQScZDLfjcdILX9fyA1M2W91QVsg2+L9Gnpj/clco11/y0mUJ4nnl5cg=="],
-
     "@curvenote/scms/@curvenote/common": ["@curvenote/common@0.6.1", "", { "dependencies": { "@curvenote/blocks": "^1.6.3", "myst-common": "^1.9.5", "myst-config": "^1.9.5" } }, "sha512-R3JYvxdtuZgwNG9CQBSKq7y6HtlS4KKtsGU9d/EAzUVxSdO6f7x+3Q/OLsAvEAQRpfMP4MLrDU989suomrFPlg=="],
 
     "@curvenote/scms/@myst-theme/providers": ["@myst-theme/providers@0.17.1", "", { "dependencies": { "@myst-theme/common": "^0.17.1" }, "peerDependencies": { "@types/react": "^16.8 || ^17.0 || ^18.0", "@types/react-dom": "^16.8 || ^17.0 || ^18.0", "myst-common": "^1.8.1", "myst-config": "^1.8.1", "myst-frontmatter": "^1.8.1", "react": "^16.8 || ^17.0 || ^18.0", "react-dom": "^16.8 || ^17.0 || ^18.0" } }, "sha512-dSG6dJy08n5N+OtSyH7ZS1uM0joVWztR4Qxqrp8JFiCG/h/U8oXdX53UgVBV9VVbEzF4LOgq5+D9yxg6YVqDZg=="],
@@ -6225,7 +6223,7 @@
 
     "@curvenote/scms/date-fns": ["date-fns@3.6.0", "", {}, "sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww=="],
 
-    "@curvenote/scms/turbo": ["turbo@2.10.9", "", { "optionalDependencies": { "@turbo/darwin-64": "2.10.9", "@turbo/darwin-arm64": "2.10.9", "@turbo/linux-64": "2.10.9", "@turbo/linux-arm64": "2.10.9", "@turbo/windows-64": "2.10.9", "@turbo/windows-arm64": "2.10.9" }, "bin": { "turbo": "bin/turbo" } }, "sha512-Yl9+ukxH+UmPtKidpDkjn82tvPoEvFNb9UACd9vUomN1Ft0cwl3rx0P8yC1D93W9EOsWRMjllvIDG8y25sFOog=="],
+    "@curvenote/scms/turbo": ["turbo@2.10.10", "", { "optionalDependencies": { "@turbo/darwin-64": "2.10.10", "@turbo/darwin-arm64": "2.10.10", "@turbo/linux-64": "2.10.10", "@turbo/linux-arm64": "2.10.10", "@turbo/windows-64": "2.10.10", "@turbo/windows-arm64": "2.10.10" }, "bin": { "turbo": "bin/turbo" } }, "sha512-/90KTW+USzvYOPmafRZHVKLBsHXQ5810Ao/HdtJYAqguIhZ+XruS6eIUjqJUDtrSxaZYynNFht68qckGKAOWTA=="],
 
     "@curvenote/scms/vite-tsconfig-paths": ["vite-tsconfig-paths@5.1.4", "", { "dependencies": { "debug": "^4.1.1", "globrex": "^0.1.2", "tsconfck": "^3.0.3" }, "peerDependencies": { "vite": "*" }, "optionalPeers": ["vite"] }, "sha512-cYj0LRuLV2c2sMqhqhGpaO3LretdtMn/BVX4cPLanIZuwwrkVl+lK84E/miEXkCHWXuq65rhNN4rXsBcOB3S4w=="],
 
@@ -7379,17 +7377,17 @@
 
     "@curvenote/scms/concurrently/yargs": ["yargs@17.7.2", "", { "dependencies": { "cliui": "^8.0.1", "escalade": "^3.1.1", "get-caller-file": "^2.0.5", "require-directory": "^2.1.1", "string-width": "^4.2.3", "y18n": "^5.0.5", "yargs-parser": "^21.1.1" } }, "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w=="],
 
-    "@curvenote/scms/turbo/@turbo/darwin-64": ["@turbo/darwin-64@2.10.9", "", { "os": "darwin", "cpu": "x64" }, "sha512-Jh+pTGXLNz8+1tkUU13TI/f+ZOI+OvC4YbHi1H+57iSpLt5DR3xgptd+4sA07RdjdRR/RX/01uQQu2OkbzIefA=="],
+    "@curvenote/scms/turbo/@turbo/darwin-64": ["@turbo/darwin-64@2.10.10", "", { "os": "darwin", "cpu": "x64" }, "sha512-gFDD+wRP5hWxBRghGyEbjpbLOY7aIU/wvsnKdMM7odQcp/wHMrnI83p0FyxxMRZnFH9ZD+S59MvcpOC5b+nrCA=="],
 
-    "@curvenote/scms/turbo/@turbo/darwin-arm64": ["@turbo/darwin-arm64@2.10.9", "", { "os": "darwin", "cpu": "arm64" }, "sha512-aqtpPkiIC4IUas8Vv27oJ3aDfTuP1d5wofd01dZ7gfhHRrIKuFdqQb4imvNnVFahcOViF9Jh8Oi7feDoz8/ciA=="],
+    "@curvenote/scms/turbo/@turbo/darwin-arm64": ["@turbo/darwin-arm64@2.10.10", "", { "os": "darwin", "cpu": "arm64" }, "sha512-VZYsxZ6yjyDosUqtiroAVSXPLmx/qBxdHJgIxdMH9RyNmLdOLOWtJnYMnI4qckwCgQMK85G3fu94/xk5+iBCgw=="],
 
-    "@curvenote/scms/turbo/@turbo/linux-64": ["@turbo/linux-64@2.10.9", "", { "os": [ "linux", "android", ], "cpu": "x64" }, "sha512-XyAneUBsS5uNOUOjBSs81zyigMVwwhVUd3u7F2JFMKGQk6F7eNAiOEBASJ+aHLldjYsOEjhfW+5gWIqwziyFFw=="],
+    "@curvenote/scms/turbo/@turbo/linux-64": ["@turbo/linux-64@2.10.10", "", { "os": [ "linux", "android", ], "cpu": "x64" }, "sha512-lAvW+yEnmsCKMEIwNugjozawvYytHKPhU0kfLBizu83MIs8OUb9KobYvkZ56L5akSM6K7+gBFLEIfQkaceh90g=="],
 
-    "@curvenote/scms/turbo/@turbo/linux-arm64": ["@turbo/linux-arm64@2.10.9", "", { "os": [ "linux", "android", ], "cpu": "arm64" }, "sha512-5jAcldLnkuWIjujGhCn2MGIeUwW8IVNOq9Sce4EEzzgLcxmhTasbV0RiW6ZkaRdOjmOCGzeNXPLkDJEOIucOLw=="],
+    "@curvenote/scms/turbo/@turbo/linux-arm64": ["@turbo/linux-arm64@2.10.10", "", { "os": [ "linux", "android", ], "cpu": "arm64" }, "sha512-MSJ+NkRTd79Z9+YEZpUV9VOWVOOigFhE+v/ETNYJEuTJp3r00y9YgFvDXrmM+DP8Kal6tk3U6xSugD2/Ojh+Jg=="],
 
-    "@curvenote/scms/turbo/@turbo/windows-64": ["@turbo/windows-64@2.10.9", "", { "os": "win32", "cpu": "x64" }, "sha512-u1xGpGlefzuhBedbt/VR2nWdftfFVZwPeDg9e5uZl68sV1fL3HNYTNr5VyHkzgtPK2VTYg1x4OKZuGrh1Gvhtg=="],
+    "@curvenote/scms/turbo/@turbo/windows-64": ["@turbo/windows-64@2.10.10", "", { "os": "win32", "cpu": "x64" }, "sha512-ycWpXDkUfnDFDY9d+4Qna/UZotDB0wj+s9agrlmNt0Q7a3XHORhK8GPKJdzgzeutXu9EW5P/jyabTEHlohuDXw=="],
 
-    "@curvenote/scms/turbo/@turbo/windows-arm64": ["@turbo/windows-arm64@2.10.9", "", { "os": "win32", "cpu": "arm64" }, "sha512-W2Ub165Qv0iMFljbYKxxbZN+2dVSngnzEjQNEFXtnz5oJVx9XSypmNmUvMtuYMeZ3kdVC1zI7yd/rtuX+SDnbg=="],
+    "@curvenote/scms/turbo/@turbo/windows-arm64": ["@turbo/windows-arm64@2.10.10", "", { "os": "win32", "cpu": "arm64" }, "sha512-PMk6zQN0csUFklLe+1hz/5G9uU1YmV0cEIey2R/bSeA6o69qcBTlN4A3jOqkgenOO5dOpMHmq2sEUZo8r1+Ssg=="],
 
     "@curvenote/task-converter/concurrently/chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
 
