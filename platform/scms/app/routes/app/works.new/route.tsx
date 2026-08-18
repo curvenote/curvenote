@@ -5,6 +5,7 @@ import {
   PageFrame,
   getBrandingFromMetaMatches,
   joinPageTitle,
+  workCreateOptionsForResume,
   scopes,
   ui,
   LoadingSpinner,
@@ -14,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { LoaderFunctionArgs, ShouldRevalidateFunctionArgs } from 'react-router';
 import { redirect, useNavigate, useFetcher, useNavigation } from 'react-router';
 import { getValidDraftWorksForUser } from '../works._index/getDrafts.server';
+import { extensions } from '../../../extensions/client';
 
 export async function loader(args: LoaderFunctionArgs) {
   const ctx = await withAppScopedContext(args, [scopes.app.works.upload], { redirect: true });
@@ -21,7 +23,10 @@ export async function loader(args: LoaderFunctionArgs) {
   if (!canUpload) {
     throw redirect('/app/works');
   }
-  const drafts = await getValidDraftWorksForUser(ctx.user.id);
+  const drafts = await getValidDraftWorksForUser(
+    ctx.user.id,
+    workCreateOptionsForResume(extensions),
+  );
   return { drafts, canUpload: true };
 }
 

@@ -37,6 +37,13 @@ export interface WorkCreateOption {
   metadataKey: string;
   /** App-absolute path that starts the create flow (e.g. `/app/works/new`). */
   startPath: string;
+  /**
+   * Resume-draft URL template. Tokens: `:workId`, `:workVersionId`.
+   * Optional `from` is appended by `resolveDraftResumePath`.
+   */
+  resumePath?: string;
+  /** Pathname fragment under `/app/works/:workId` that is this flow's form (e.g. `/foundry/`). */
+  formPathIncludes?: string;
   mode?: WorkCreateFormMode;
   scopes?: string[];
   /** Present when the option is supplied by an extension. */
@@ -85,6 +92,13 @@ export interface ExtensionSubmitToSiteResult {
   /** Where to send the user for extension-specific intake/confirm. */
   redirectPath?: string;
   error?: string;
+}
+
+export interface ExtensionResolveResumeDraftPathArgs {
+  ctx: Context;
+  workId: string;
+  workVersionId: string;
+  metadata: unknown;
 }
 
 export interface ExtensionIcon {
@@ -430,6 +444,11 @@ export interface ServerExtension extends ClientExtension {
   createWorkVersion?: (
     args: ExtensionCreateWorkVersionArgs,
   ) => Promise<ExtensionCreateWorkVersionResult | null>;
+  /**
+   * Optional resume URL for a draft of this extension's create flow.
+   * Return a path, or null to fall through to `resumePath` / Article upload.
+   */
+  resolveResumeDraftPath?: (args: ExtensionResolveResumeDraftPathArgs) => Promise<string | null>;
   /**
    * Site names this extension operates (routes, config, UI). Operating a site does not imply a
    * custom submission flow — omit `submitToSite` to use the central submit-to-site route.

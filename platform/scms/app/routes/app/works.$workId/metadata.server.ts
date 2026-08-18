@@ -2,26 +2,6 @@ import { signFilesInMetadata, type Context } from '@curvenote/scms-server';
 
 export type LicenseDisplay = { text: string; tooltip?: string };
 
-export function isPmcWorkVersionMetadata(metadata: unknown): boolean {
-  const meta = metadata as Record<string, unknown> | null;
-  return Boolean(
-    meta && meta.pmc != null && typeof meta.pmc === 'object' && !Array.isArray(meta.pmc),
-  );
-}
-
-/** Resume path for a draft work version (PMC deposit vs article upload). */
-export function resolveResumeDraftUploadPath(args: {
-  workId: string;
-  workVersionId: string;
-  metadata: unknown;
-  pmcSubmissionVersionId?: string | null;
-}): string {
-  if (isPmcWorkVersionMetadata(args.metadata) && args.pmcSubmissionVersionId) {
-    return `/app/works/${args.workId}/site/pmc/deposit/${args.pmcSubmissionVersionId}`;
-  }
-  return `/app/works/${args.workId}/upload/${args.workVersionId}?from=details`;
-}
-
 /** Prefer version DOI when non-empty after trim; otherwise work-level DOI. */
 export function resolveWorkVersionDoi(
   versionDoi: string | null | undefined,
