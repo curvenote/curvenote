@@ -11,6 +11,10 @@
  *   3. Nested package keys for those package names (e.g. `@hhmi/foo/react`)
  *   4. Dependency references to those package names elsewhere in the lockfile
  *
+ * Edits are surgical: Bun's compact packages formatting is preserved.
+ * Do not round-trip the lockfile through JSON.stringify — that pretty-prints
+ * `packages` and has been concatenated onto the original compact section.
+ *
  * Does NOT touch npm packages whose names merely contain "extensions"
  * (e.g. `@app-config/extensions`).
  *
@@ -31,8 +35,11 @@ const LOCKFILE = join(repoRoot, 'bun.lock');
 const DRY_RUN = process.argv.includes('--dry-run');
 const QUIET = process.argv.includes('--quiet') || process.env.CI === 'true';
 
+/** Pretty-printed packages entry: `"key": [` then a newline (Bun compact keeps `[` on the same line). */
+const CONCATENATED_PACKAGES_RE = /\n {2}\}\n {4}"([^"]+)": \[\n/;
+
 /** True for filesystem paths under the private extensions tree (not npm names). */
-function isExtensionFolderPath(pathValue) {
+export function isExtensionFolderPath(pathValue) {
   if (typeof pathValue !== 'string') return false;
   return (
     pathValue === 'extensions' ||
@@ -42,15 +49,137 @@ function isExtensionFolderPath(pathValue) {
 }
 
 /** Parse bun.lock JSONC (trailing commas allowed). */
-function parseBunLock(content) {
+export function parseBunLock(content) {
   const cleaned = content.replace(/,(\s*[}\]])/g, '$1');
   return JSON.parse(cleaned);
 }
 
-/** Serialize with trailing commas to match Bun's lockfile style. */
-function stringifyBunLock(lockfile) {
-  const json = JSON.stringify(lockfile, null, 2);
-  return json.replace(/(?<![{[,])\n(\s*[}\]])/g, ',\n$1') + '\n';
+/**
+ * Recover a lockfile where compact `packages` was closed, then a pretty-printed
+ * duplicate of `packages` was appended before the root close.
+ *
+ * Returns the repaired content, or null if the pattern is not present.
+ */
+export function tryRepairConcatenatedPackages(content) {
+  const match = CONCATENATED_PACKAGES_RE.exec(content);
+  if (!match) return null;
+  const key = match[1];
+  const before = content.slice(0, match.index);
+  if (!before.includes('"packages"')) return null;
+  if (!before.includes(`    "${key}":`)) return null;
+  return `${before}\n  }\n}\n`;
+}
+
+function skipWs(s, i) {
+  while (i < s.length && /\s/.test(s[i])) i += 1;
+  return i;
+}
+
+function parseJsonString(s, i) {
+  if (s[i] !== '"') throw new Error(`Expected string at ${i}`);
+  i += 1;
+  while (i < s.length) {
+    if (s[i] === '\\') {
+      i += 2;
+      continue;
+    }
+    if (s[i] === '"') return i + 1;
+    i += 1;
+  }
+  throw new Error('Unterminated string in bun.lock');
+}
+
+function skipMatched(s, i, open, close) {
+  let depth = 0;
+  let j = i;
+  while (j < s.length) {
+    const c = s[j];
+    if (c === '"') {
+      j = parseJsonString(s, j);
+      continue;
+    }
+    if (c === open) depth += 1;
+    else if (c === close) {
+      depth -= 1;
+      if (depth === 0) return j + 1;
+    }
+    j += 1;
+  }
+  throw new Error(`Unbalanced ${open}${close} in bun.lock`);
+}
+
+function skipValue(s, i) {
+  i = skipWs(s, i);
+  const ch = s[i];
+  if (ch === '"') return parseJsonString(s, i);
+  if (ch === '{') return skipMatched(s, i, '{', '}');
+  if (ch === '[') return skipMatched(s, i, '[', ']');
+  if (ch === 't' || ch === 'f' || ch === 'n') {
+    while (i < s.length && /[a-z]/.test(s[i])) i += 1;
+    return i;
+  }
+  while (i < s.length && /[0-9eE+.\-]/.test(s[i])) i += 1;
+  return i;
+}
+
+function iterObjectProps(s, openBraceIdx) {
+  const closeIdx = skipMatched(s, openBraceIdx, '{', '}') - 1;
+  const props = [];
+  let i = openBraceIdx + 1;
+  while (i < closeIdx) {
+    i = skipWs(s, i);
+    if (i >= closeIdx || s[i] === '}') break;
+    if (s[i] === ',') {
+      i += 1;
+      continue;
+    }
+    if (s[i] !== '"') break;
+    const keyStart = i;
+    const keyEnd = parseJsonString(s, i);
+    const key = JSON.parse(s.slice(keyStart, keyEnd));
+    i = skipWs(s, keyEnd);
+    if (s[i] !== ':') throw new Error(`Expected ':' after key ${key}`);
+    i += 1;
+    const valueStart = skipWs(s, i);
+    const valueEnd = skipValue(s, valueStart);
+    let propEnd = skipWs(s, valueEnd);
+    if (s[propEnd] === ',') propEnd += 1;
+    props.push({ key, keyStart, valueStart, valueEnd, propEnd });
+    i = propEnd;
+  }
+  return { props, closeIdx };
+}
+
+function findRootProp(content, name) {
+  const rootOpen = skipWs(content, 0);
+  if (content[rootOpen] !== '{') throw new Error('bun.lock must be a JSON object');
+  const { props } = iterObjectProps(content, rootOpen);
+  return props.find((p) => p.key === name) ?? null;
+}
+
+function removeObjectKeys(s, openBraceIdx, shouldRemove) {
+  const { props } = iterObjectProps(s, openBraceIdx);
+  const targets = props.filter((p) => shouldRemove(p.key));
+  let result = s;
+  for (const p of targets.sort((a, b) => b.keyStart - a.keyStart)) {
+    result = result.slice(0, p.keyStart) + result.slice(p.propEnd);
+  }
+  return result;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function removeDependencyStringProps(s, names) {
+  let result = s;
+  for (const name of names) {
+    const escaped = escapeRegExp(name);
+    result = result.replace(new RegExp(`\\s*"${escaped}"\\s*:\\s*"[^"]*"\\s*,?`, 'g'), '');
+  }
+  result = result.replace(/\{\s*,/g, '{');
+  result = result.replace(/,\s*,/g, ',');
+  return result;
 }
 
 /**
@@ -77,7 +206,6 @@ function packageNameFromWorkspaceSpec(pkgEntry) {
  * `@hhmi/foo` → `@hhmi/foo`
  * `@hhmi/foo/react` → `@hhmi/foo`
  * `lodash` → `lodash`
- * `lodash/fp` → `lodash` (unscoped nested — uncommon in Bun keys)
  */
 function barePackageNameFromKey(key) {
   if (key.startsWith('@')) {
@@ -97,31 +225,75 @@ function removeDepNames(depMap, packageNames, removed, ownerKey, from) {
   }
 }
 
-function scrubDependencyMaps(lockfile, packageNames) {
-  const removed = [];
-  if (packageNames.length === 0) return { removed };
+function collectExtensionRemovals(lockfile) {
+  const removedKeys = [];
+  const packageNames = new Set();
 
+  for (const key of Object.keys(lockfile.workspaces || {})) {
+    if (!isExtensionFolderPath(key)) continue;
+    const ws = lockfile.workspaces[key];
+    if (ws?.name) packageNames.add(ws.name);
+    removedKeys.push(`workspaces:${key}`);
+  }
+
+  for (const [key, value] of Object.entries(lockfile.packages || {})) {
+    const resolutionPath = workspaceResolutionPath(value);
+    if (!(resolutionPath && isExtensionFolderPath(resolutionPath))) continue;
+
+    const fromSpec = packageNameFromWorkspaceSpec(value);
+    if (fromSpec) packageNames.add(fromSpec);
+    packageNames.add(barePackageNameFromKey(key));
+    removedKeys.push(`packages:${key}`);
+  }
+
+  const names = Array.from(packageNames).filter(Boolean);
+  for (const key of Object.keys(lockfile.packages || {})) {
+    const matchesName = names.some((name) => key === name || key.startsWith(`${name}/`));
+    if (!matchesName) continue;
+    removedKeys.push(`packages:${key}`);
+  }
+
+  const workspaceKeys = [
+    ...new Set(
+      removedKeys
+        .filter((k) => k.startsWith('workspaces:'))
+        .map((k) => k.slice('workspaces:'.length)),
+    ),
+  ];
+  const packageKeys = [
+    ...new Set(
+      removedKeys.filter((k) => k.startsWith('packages:')).map((k) => k.slice('packages:'.length)),
+    ),
+  ];
+
+  const dependencyRemovals = [];
   for (const [wsKey, ws] of Object.entries(lockfile.workspaces || {})) {
     if (!ws || typeof ws !== 'object') continue;
-    removeDepNames(ws.dependencies, packageNames, removed, `workspaces:${wsKey}`, 'dependencies');
+    removeDepNames(
+      ws.dependencies,
+      names,
+      dependencyRemovals,
+      `workspaces:${wsKey}`,
+      'dependencies',
+    );
     removeDepNames(
       ws.devDependencies,
-      packageNames,
-      removed,
+      names,
+      dependencyRemovals,
       `workspaces:${wsKey}`,
       'devDependencies',
     );
     removeDepNames(
       ws.optionalDependencies,
-      packageNames,
-      removed,
+      names,
+      dependencyRemovals,
       `workspaces:${wsKey}`,
       'optionalDependencies',
     );
     removeDepNames(
       ws.peerDependencies,
-      packageNames,
-      removed,
+      names,
+      dependencyRemovals,
       `workspaces:${wsKey}`,
       'peerDependencies',
     );
@@ -131,157 +303,182 @@ function scrubDependencyMaps(lockfile, packageNames) {
     if (!Array.isArray(pkgEntry)) continue;
     const meta = pkgEntry.find((item) => item && typeof item === 'object' && !Array.isArray(item));
     if (!meta) continue;
-    removeDepNames(meta.dependencies, packageNames, removed, pkgKey, 'dependencies');
-    removeDepNames(meta.devDependencies, packageNames, removed, pkgKey, 'devDependencies');
+    removeDepNames(meta.dependencies, names, dependencyRemovals, pkgKey, 'dependencies');
+    removeDepNames(meta.devDependencies, names, dependencyRemovals, pkgKey, 'devDependencies');
     removeDepNames(
       meta.optionalDependencies,
-      packageNames,
-      removed,
+      names,
+      dependencyRemovals,
       pkgKey,
       'optionalDependencies',
     );
-    removeDepNames(meta.peerDependencies, packageNames, removed, pkgKey, 'peerDependencies');
+    removeDepNames(meta.peerDependencies, names, dependencyRemovals, pkgKey, 'peerDependencies');
   }
 
-  return { removed };
+  return {
+    workspaceKeys,
+    packageKeys,
+    packageNames: names,
+    dependencyRemovals,
+    changed: workspaceKeys.length > 0 || packageKeys.length > 0 || dependencyRemovals.length > 0,
+  };
 }
 
-function removeExtensionsFromBunLock(lockfilePath) {
+function applyRemovals(content, removals) {
+  let s = content;
+  const packagesProp = findRootProp(s, 'packages');
+  if (packagesProp && removals.packageKeys.length > 0 && s[packagesProp.valueStart] === '{') {
+    const keys = new Set(removals.packageKeys);
+    const names = removals.packageNames;
+    s = removeObjectKeys(
+      s,
+      packagesProp.valueStart,
+      (key) => keys.has(key) || names.some((name) => key === name || key.startsWith(`${name}/`)),
+    );
+  }
+
+  const workspacesProp = findRootProp(s, 'workspaces');
+  if (workspacesProp && removals.workspaceKeys.length > 0 && s[workspacesProp.valueStart] === '{') {
+    const keys = new Set(removals.workspaceKeys);
+    s = removeObjectKeys(s, workspacesProp.valueStart, (key) => keys.has(key));
+  }
+
+  if (removals.packageNames.length > 0) {
+    s = removeDependencyStringProps(s, removals.packageNames);
+  }
+  return s;
+}
+
+function assertNotConcatenated(content) {
+  if (CONCATENATED_PACKAGES_RE.test(content)) {
+    throw new Error(
+      'bun.lock still has a concatenated packages section (compact close followed by a pretty-printed entry)',
+    );
+  }
+}
+
+export function scrubLockfileContent(content) {
+  let working = content;
+  let repaired = false;
+
+  try {
+    parseBunLock(working);
+  } catch (error) {
+    const next = tryRepairConcatenatedPackages(working);
+    if (!next) {
+      throw new Error(`bun.lock is invalid JSONC and could not be auto-repaired: ${error.message}`);
+    }
+    parseBunLock(next);
+    working = next;
+    repaired = true;
+  }
+
+  const removals = collectExtensionRemovals(parseBunLock(working));
+  if (removals.changed) {
+    working = applyRemovals(working, removals);
+  }
+
+  try {
+    parseBunLock(working);
+  } catch (error) {
+    throw new Error(`Scrubber produced invalid bun.lock: ${error.message}`);
+  }
+  assertNotConcatenated(working);
+
+  return {
+    content: working,
+    changed: repaired || removals.changed,
+    repaired,
+    removedWorkspaceCount: removals.workspaceKeys.length,
+    removedPackageCount: removals.packageKeys.length,
+    packageNames: removals.packageNames,
+    dependencyRemovals: removals.dependencyRemovals,
+  };
+}
+
+export function removeExtensionsFromBunLock(lockfilePath) {
   if (!existsSync(lockfilePath)) {
     if (!QUIET) console.log(`⚠️  Lockfile not found: ${lockfilePath}`);
     return {
       removedWorkspaceCount: 0,
       removedPackageCount: 0,
-      removedKeys: [],
       packageNames: [],
       dependencyRemovals: [],
       changed: false,
+      repaired: false,
     };
   }
 
   if (!QUIET) console.log(`Reading ${lockfilePath}...`);
   const originalContent = readFileSync(lockfilePath, 'utf-8');
-  const lockfile = parseBunLock(originalContent);
-
-  const removedKeys = [];
-  const packageNames = new Set();
-
-  // 1) Remove workspaces under extensions/
-  for (const key of Object.keys(lockfile.workspaces || {})) {
-    if (!isExtensionFolderPath(key)) continue;
-    const ws = lockfile.workspaces[key];
-    if (ws?.name) packageNames.add(ws.name);
-    delete lockfile.workspaces[key];
-    removedKeys.push(`workspaces:${key}`);
-  }
-
-  // 2) Remove packages that resolve into extensions/, collect names
-  for (const [key, value] of Object.entries(lockfile.packages || {})) {
-    const resolutionPath = workspaceResolutionPath(value);
-    if (!(resolutionPath && isExtensionFolderPath(resolutionPath))) continue;
-
-    const fromSpec = packageNameFromWorkspaceSpec(value);
-    if (fromSpec) packageNames.add(fromSpec);
-    packageNames.add(barePackageNameFromKey(key));
-
-    delete lockfile.packages[key];
-    removedKeys.push(`packages:${key}`);
-  }
-
-  // 3) Remove nested keys for discovered package names (@scope/pkg/...)
-  const names = Array.from(packageNames).filter(Boolean);
-  for (const key of Object.keys(lockfile.packages || {})) {
-    const matchesName = names.some((name) => key === name || key.startsWith(`${name}/`));
-    if (!matchesName) continue;
-    delete lockfile.packages[key];
-    removedKeys.push(`packages:${key}`);
-  }
-
-  const dependencyRemovals = scrubDependencyMaps(lockfile, names).removed;
-
-  const removedWorkspaceCount = removedKeys.filter((k) => k.startsWith('workspaces:')).length;
-  // Deduplicate keys in case step 2 and 3 both listed the same package
-  const uniquePackageKeys = [...new Set(removedKeys.filter((k) => k.startsWith('packages:')))];
-  const removedPackageCount = uniquePackageKeys.length;
-  const changed =
-    removedWorkspaceCount > 0 || removedPackageCount > 0 || dependencyRemovals.length > 0;
+  const result = scrubLockfileContent(originalContent);
 
   if (!QUIET) {
     console.log(`\n=== bun.lock ===`);
-    console.log(`Workspaces removed: ${removedWorkspaceCount}`);
-    console.log(`Package entries removed: ${removedPackageCount}`);
-    console.log(`Dependency references removed: ${dependencyRemovals.length}`);
-    if (names.length > 0) {
-      console.log(`Package names scrubbed: ${names.join(', ')}`);
+    if (result.repaired) console.log(`Repaired concatenated packages section`);
+    console.log(`Workspaces removed: ${result.removedWorkspaceCount}`);
+    console.log(`Package entries removed: ${result.removedPackageCount}`);
+    console.log(`Dependency references removed: ${result.dependencyRemovals.length}`);
+    if (result.packageNames.length > 0) {
+      console.log(`Package names scrubbed: ${result.packageNames.join(', ')}`);
     }
   }
 
   if (DRY_RUN) {
-    if (!QUIET && removedKeys.length > 0) {
-      console.log(`\nFirst removed keys:`);
-      [...new Set(removedKeys)].slice(0, 15).forEach((key) => console.log(`  - ${key}`));
-      if (removedKeys.length > 15) {
-        console.log(`  ... and more`);
-      }
-    }
-    return {
-      removedWorkspaceCount,
-      removedPackageCount,
-      removedKeys: [...new Set(removedKeys)],
-      packageNames: names,
-      dependencyRemovals,
-      changed,
-    };
+    return result;
   }
 
-  if (changed) {
+  if (result.changed) {
     if (!QUIET) console.log(`\nWriting updated ${lockfilePath}...`);
-    writeFileSync(lockfilePath, stringifyBunLock(lockfile), 'utf-8');
+    writeFileSync(lockfilePath, result.content, 'utf-8');
   } else if (!QUIET) {
     console.log(`\n✓ No extension-related entries found in bun.lock`);
   }
 
-  return {
-    removedWorkspaceCount,
-    removedPackageCount,
-    removedKeys: [...new Set(removedKeys)],
-    packageNames: names,
-    dependencyRemovals,
-    changed,
-  };
+  return result;
 }
 
 function main() {
   const result = removeExtensionsFromBunLock(LOCKFILE);
-  const totalRemoved = result.removedWorkspaceCount + result.removedPackageCount;
 
   if (DRY_RUN) {
     if (!QUIET) {
       console.log('\n=== DRY RUN MODE - No changes made ===');
-      console.log(`Total entries that would be removed: ${totalRemoved}`);
+      console.log(
+        `Total entries that would be removed: ${result.removedWorkspaceCount + result.removedPackageCount}`,
+      );
       console.log(
         `Dependency references that would be removed: ${result.dependencyRemovals.length}`,
       );
+      if (result.repaired) console.log('Would repair concatenated packages section');
     }
     return;
   }
 
   if (QUIET && result.changed) {
-    let msg = `✓ Removed ${result.removedWorkspaceCount} workspace(s) and ${result.removedPackageCount} package entr${result.removedPackageCount === 1 ? 'y' : 'ies'} from bun.lock`;
-    if (result.dependencyRemovals.length > 0) {
-      msg += `, scrubbed ${result.dependencyRemovals.length} dependency reference(s)`;
+    const parts = [];
+    if (result.repaired) parts.push('repaired concatenated packages');
+    if (result.removedWorkspaceCount > 0 || result.removedPackageCount > 0) {
+      parts.push(
+        `removed ${result.removedWorkspaceCount} workspace(s) and ${result.removedPackageCount} package entr${result.removedPackageCount === 1 ? 'y' : 'ies'}`,
+      );
     }
-    console.log(msg);
+    if (result.dependencyRemovals.length > 0) {
+      parts.push(`scrubbed ${result.dependencyRemovals.length} dependency reference(s)`);
+    }
+    console.log(`✓ bun.lock: ${parts.join('; ')}`);
   } else if (!QUIET && result.changed) {
     console.log(
-      `\n✓ Scrubbed bun.lock (${result.removedWorkspaceCount} workspaces, ${result.removedPackageCount} packages, ${result.dependencyRemovals.length} deps)`,
+      `\n✓ Scrubbed bun.lock (${result.removedWorkspaceCount} workspaces, ${result.removedPackageCount} packages, ${result.dependencyRemovals.length} deps${result.repaired ? ', repaired concatenation' : ''})`,
     );
   }
 }
 
-try {
-  main();
-} catch (error) {
-  console.error('Error:', error.message);
-  process.exit(1);
+if (process.argv[1] === __filename) {
+  try {
+    main();
+  } catch (error) {
+    console.error('Error:', error.message);
+    process.exit(1);
+  }
 }
