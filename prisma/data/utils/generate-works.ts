@@ -1,4 +1,5 @@
 import { uuidv7 } from 'uuidv7';
+import { SEED_PLACEHOLDER_CDN_KEY } from './seed-placeholder';
 
 const topics = [
   'Machine Learning',
@@ -76,8 +77,10 @@ function generateWork(index: number) {
     versions: [
       {
         id: versionId,
-        cdn_key: uuidv7(),
-        cdn: 'https://prv.curvenote.dev/',
+        // All generated works share the committed local placeholder CDN tree (pub/).
+        cdn_key: SEED_PLACEHOLDER_CDN_KEY,
+        // Seed runtime overrides `cdn` from api.knownBucketInfoMap.pub.cdn (published).
+        cdn: 'https://pub.curvenote.dev/',
         date_created: '2024-03-05T16:20:00.814Z',
         canonical: true,
         doi: `99.123/work.${index}.version`,
@@ -99,7 +102,7 @@ function generateWork(index: number) {
         },
       },
       results: {
-        cdnKey: uuidv7(),
+        cdnKey: SEED_PLACEHOLDER_CDN_KEY,
         checks: {
           kind: 'Proceeding',
           venue: 'scipy',

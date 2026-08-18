@@ -1,7 +1,12 @@
 import { SystemRole, getLowLevelPrismaClient } from '@curvenote/scms-db';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadAllJsonFilesFromDir, seedBySites, seedCronTickConfig, seedJobQueueDrainConfig } from './seed.utils.mjs';
+import {
+  loadAllJsonFilesFromDir,
+  seedBySites,
+  seedCronTickConfig,
+  seedJobQueueDrainConfig,
+} from './seed.utils.mjs';
 import { uuidv7 } from 'uuidv7';
 import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/roles.server.js';
 
@@ -53,7 +58,9 @@ async function main() {
     },
   });
   summary.users++;
-  console.log(`   ✓ Ensured user: ${submissionsSa.display_name} (${submissionsSa.email}) [SYSTEM_SERVICE]`);
+  console.log(
+    `   ✓ Ensured user: ${submissionsSa.display_name} (${submissionsSa.email}) [SYSTEM_SERVICE]`,
+  );
 
   const rowanStaging = await prisma.user.create({
     data: {
@@ -201,9 +208,7 @@ async function main() {
     },
   });
   summary.roles++;
-  console.log(
-    `   ✓ Created/updated role: ${checksPreviewRole.title} (${checksPreviewRole.name})`,
-  );
+  console.log(`   ✓ Created/updated role: ${checksPreviewRole.title} (${checksPreviewRole.name})`);
 
   const extractMetadataScopes = ['app:works:metadata-extract'];
   const extractMetadataRole = await prisma.role.upsert({
@@ -247,9 +252,7 @@ async function main() {
     },
   });
   summary.roles++;
-  console.log(
-    `   ✓ Created/updated role: ${submitToSiteRole.title} (${submitToSiteRole.name})`,
-  );
+  console.log(`   ✓ Created/updated role: ${submitToSiteRole.title} (${submitToSiteRole.name})`);
   console.log(`   Total roles created: ${summary.roles}\n`);
 
   console.log('🔗 Assigning roles to users...');
@@ -336,10 +339,15 @@ async function main() {
   console.log(`   Total role assignments: ${summary.userRoles}\n`);
 
   console.log('🏗️  Seeding sites, works, and submissions...\n');
-  const siteSummary = await seedBySites(data, startDateString, {
-    support,
-    others: [franklin, rowanStaging, steveStaging, mikeStaging],
-  });
+  const siteSummary = await seedBySites(
+    data,
+    startDateString,
+    {
+      support,
+      others: [franklin, rowanStaging, steveStaging, mikeStaging],
+    },
+    { environmentOverride: 'development' },
+  );
 
   // Merge site summary into main summary
   summary.sites += siteSummary.sites;

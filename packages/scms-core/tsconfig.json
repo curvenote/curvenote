@@ -1,6 +1,6 @@
 {
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.svg"],
-  "exclude": ["dist", "node_modules", "src/**/*.test.ts"],
+  "exclude": ["dist", "node_modules", "src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts", "src/**/*.spec.tsx"],
   "files": [
     "../../types/app-config.d.ts",
     "../../types/prisma.d.ts",

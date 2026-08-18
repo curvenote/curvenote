@@ -312,11 +312,11 @@ properties:
                 description: Azure Storage connection string (alternative to accountName + accountKey)
           s3:
             type: object
-            description: AWS S3 credentials
+            description: AWS S3 credentials (also used for MinIO / S3-compatible stores)
             properties:
               region:
                 type: string
-                description: AWS region (e.g., us-east-1)
+                description: AWS region (e.g., us-east-1). For MinIO use us-east-1.
               accessKeyId:
                 type: string
                 secret: true
@@ -325,6 +325,15 @@ properties:
                 type: string
                 secret: true
                 description: AWS secret access key
+              endpoint:
+                type: string
+                description: >-
+                  Optional custom S3 API endpoint (e.g. http://127.0.0.1:9000 for local MinIO).
+                  Must be reachable by browsers when signing upload URLs.
+              forcePathStyle:
+                type: boolean
+                description: >-
+                  Use path-style URLs (bucket in path). Required for MinIO; leave unset for AWS S3.
       privateCDNSigningInfo:
         type: object
         patternProperties:

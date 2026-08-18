@@ -4,6 +4,7 @@ export * from './useEditor.js';
 export * from './useExpandableForm.js';
 export * from './useHydrated.js';
 export * from './useInfiniteScroll.js';
+export * from './useInlineSave.js';
 export * from './useMediaQuery.js';
 export * from './useNavigationTracking.js';
 export * from './useOffSetTop.js';

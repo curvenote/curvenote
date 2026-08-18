@@ -57,3 +57,6 @@ types/app-config.d.ts
 
 # roborev snapshots
 /.roborev/
+
+# local caches (rich seed overlay, etc.)
+.cache/

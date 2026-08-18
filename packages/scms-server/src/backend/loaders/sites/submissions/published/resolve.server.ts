@@ -3,6 +3,9 @@ import type { Prisma as PrismaTypes } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import { publishedThumbnailSelect, siteWorkDtoSelect } from '../../../../prisma.selects.server.js';
 
+/** Bound as a query param — `$queryRaw` rewrites `'PUBLISHED'` into `"PUBLISHED"` (a column). */
+const PUBLISHED_STATUS = 'PUBLISHED';
+
 /**
  * Resolve the id of the latest *published* submission version for a work id or
  * slug on a site.
@@ -23,7 +26,7 @@ async function fetchPublishedSubmissionVersionIdByWorkId(
     FROM "WorkVersion" wv
     INNER JOIN "SubmissionVersion" sv
       ON sv.work_version_id = wv.id
-     AND sv.status = 'PUBLISHED'
+     AND sv.status = ${PUBLISHED_STATUS}
     INNER JOIN "Submission" s
       ON s.id = sv.submission_id
      AND s.site_id = ${siteId}
@@ -47,7 +50,7 @@ async function fetchPublishedSubmissionVersionIdBySlug(
      AND s.site_id = ${siteId}
     INNER JOIN "SubmissionVersion" sv
       ON sv.submission_id = s.id
-     AND sv.status = 'PUBLISHED'
+     AND sv.status = ${PUBLISHED_STATUS}
     WHERE slug.slug = ${slug}
       AND slug.site_id = ${siteId}
     ORDER BY sv.date_created DESC

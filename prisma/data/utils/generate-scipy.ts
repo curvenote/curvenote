@@ -16,13 +16,13 @@ export async function generateSciPyJson() {
       default_workflow: 'SIMPLE',
       title: 'SciPy Proceedings',
       description: 'Proceedings of the Python in Science Conferences',
-      favicon: 'https://cdn.curvenote.com/static/site/scipy/favicon.ico',
+      favicon: 'static/site/scipy/favicon.ico',
       tagline: '',
       content: 'scipy-landingstaging.curve.space',
-      logo: 'https://cdn.curvenote.com/static/site/scipy/scipy-logo.svg',
-      logo_dark: 'https://cdn.curvenote.com/static/site/scipy/scipy-logo-lightblue.svg',
-      footer_logo: 'https://cdn.curvenote.com/static/site/scipy/scipy-logo-footer.svg',
-      footer_logo_dark: 'https://cdn.curvenote.com/static/site/scipy/scipy-logo-footer.svg',
+      logo: 'static/site/scipy/scipy-logo.svg',
+      logo_dark: 'static/site/scipy/scipy-logo-lightblue.svg',
+      footer_logo: 'static/site/scipy/scipy-logo-footer.svg',
+      footer_logo_dark: 'static/site/scipy/scipy-logo-footer.svg',
       slug_strategy: 'DOI',
       footer_links: [
         [
@@ -125,7 +125,7 @@ export async function generateSciPyJson() {
             kicker: 'THE PROCEEDINGS',
             description:
               'The SciPy Conference is a cross-disciplinary gathering focused on the use and development of the Python language in scientific research. This event strives to bring together both users and developers of scientific tools, as well as academic research and state of the art industry.',
-            backgroundImage: 'https://cdn.curvenote.com/static/site/scipy/scipy-hero-v2-tilt.webp',
+            backgroundImage: 'static/site/scipy/scipy-hero-v2-tilt.webp',
           },
           listing: 'list',
           listingTitle: '2023 Proceedings',

@@ -31,12 +31,20 @@ import {
   KnownBuckets,
   resolveThumbnailBucket,
   enqueueAndDispatchJob,
+  updateWorkVersionTitle,
+  updateWorkVersionAuthors,
+  updateWorkVersionAuthorMetadata,
+  toggleWorkVersionCheck,
+  shouldTrackWorkViewedOnLoader,
 } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
   ExtensionCheckHandleActionArgs,
   FileMetadataSection,
   FileMetadataSectionItem,
+  AuthorFieldMetadata,
+  DocumentPreviewItem,
+  ExtractedMetadata,
 } from '@curvenote/scms-core';
 import {
   MainWrapper,
@@ -64,52 +72,12 @@ import {
   buildCheckServiceIdToExtensionMap,
   groupCheckServiceIdsByExtensionAnalyticsEvent,
   hasDocxInMetadata,
-} from '@curvenote/scms-core';
-import { extensions } from '../../../extensions/client';
-import { extensions as serverExtensions } from '../../../extensions/server';
-import { WorkUploadChecksForm } from './WorkUploadChecksForm';
-import { ContinueForm } from './ContinueForm';
-import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
-import { validateUploadParams } from './validateUpload.server';
-import {
-  updateWorkVersionTitle,
-  updateWorkVersionAuthors,
-  updateWorkVersionAuthorMetadata,
-} from './updateMetadata.server';
-import { toggleWorkVersionCheck } from './updateChecks.server';
-import { shouldTrackWorkViewedOnLoader } from './loaderAnalytics.server.js';
-import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
-import {
-  handleFetchPreviewsIntent,
-  handleFetchPreviewFiguresIntent,
-  deletePreviewArtifactsForVersion,
-  persistThumbnailListingForVersion,
-  signPreviewFigures,
-} from './metadata-extract/fetchPreviews.server';
-import {
-  readDocumentPreviewsFromObjectTable,
-  type DocumentPreviewItem,
-} from './metadata-extract/fetchPreviews.server';
-import { resolvePreviewImagePresence } from './metadata-extract/previewImagePresence';
-import { extractMetadataFromPreviews } from './metadata-extract/anthropic.server';
-import type { ExtractedMetadata } from './metadata-extract/anthropic.server';
-import { Upload, CheckSquare } from 'lucide-react';
-import { z } from 'zod';
-import { zfd } from 'zod-form-data';
-import { MetadataExtractSection } from './metadata-extract/MetadataExtractSection';
-import { PREVIEW_BUSY_MESSAGES } from './metadata-extract/busyMessages';
-import { useRotatingMessage } from './metadata-extract/useRotatingMessage';
-import { ChooseThumbnailSection } from './metadata-extract/ChooseThumbnailSection';
-import { collectAllFigures } from './metadata-extract/DocumentPreviewer';
-import { materializeSelectedThumbnail } from './metadata-extract/materializeThumbnail.server';
-import {
-  buildThumbnailCandidateLocators,
-  encodeFigureLocator,
-  resolveThumbnailSelection,
-} from './metadata-extract/thumbnailSelection';
-import { CaptureMetadataSection } from './CaptureMetadataSection';
-import { isPreviewCandidate } from './metadata-extract/previewGuards';
-import {
+  MetadataExtractSection,
+  PREVIEW_BUSY_MESSAGES,
+  useRotatingMessage,
+  ChooseThumbnailSection,
+  collectAllFigures,
+  CaptureMetadataSection,
   applyFiguresFetcherStateTransition,
   nextAutoFiguresAttempts,
   pendingFigurePathsKey,
@@ -118,8 +86,29 @@ import {
   shouldManualRetryFigures,
   shouldResetFiguresAutoAttemptsForPendingKey,
   shouldShowFiguresRetry,
-} from './metadata-extract/figuresAutoRetry';
+  buildThumbnailCandidateLocators,
+  encodeFigureLocator,
+  resolveThumbnailSelection,
+  mystFrontmatterToAuthorField,
+  isPreviewCandidate,
+  resolvePreviewImagePresence,
+} from '@curvenote/scms-core';
+import { extensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
+import { WorkUploadChecksForm } from './WorkUploadChecksForm';
+import { ContinueForm } from './ContinueForm';
+import { WORK_UPLOAD_CONFIGURATION } from './uploadConfig.server';
+import { validateUploadParams } from './validateUpload.server';
+import { data, redirect, useFetcher, useParams, useRevalidator } from 'react-router';
 import {
+  handleFetchPreviewsIntent,
+  handleFetchPreviewFiguresIntent,
+  deletePreviewArtifactsForVersion,
+  persistThumbnailListingForVersion,
+  signPreviewFigures,
+  readDocumentPreviewsFromObjectTable,
+  extractMetadataFromPreviews,
+  materializeSelectedThumbnail,
   summarizePreviewCandidateFiles,
   sanitizeUploadFlowFailureReason,
   normalizeUploadFlowTrigger,
@@ -128,9 +117,10 @@ import {
   trackDocumentPreviewAnalytics,
   trackMetadataExtractionStarted,
   trackMetadataExtractionAnalytics,
-} from './metadata-extract/uploadFlowAnalytics.server';
-import type { AuthorFieldMetadata } from './mystAuthorAdapters';
-import { mystFrontmatterToAuthorField } from './mystAuthorAdapters';
+} from './docPreview.server';
+import { Upload, CheckSquare } from 'lucide-react';
+import { z } from 'zod';
+import { zfd } from 'zod-form-data';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { waitUntil } from '@vercel/functions';
 import { uuidv7 } from 'uuidv7';

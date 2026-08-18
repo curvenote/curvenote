@@ -21,6 +21,7 @@ export * from './ThemeSwitcher.js';
 export * from './UserCard.js';
 export * from './VersionsListing.js';
 export * from './authors/index.js';
+export * from './doc-preview/index.js';
 export * from './layout/index.js';
 export * from './navigation/index.js';
 export * from './timeline/index.js';

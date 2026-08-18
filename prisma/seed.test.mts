@@ -1,7 +1,12 @@
 import { getLowLevelPrismaClient, SystemRole, JobStatus } from '@curvenote/scms-db';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadAllJsonFilesFromDir, seedBySites, seedCronTickConfig, seedJobQueueDrainConfig } from './seed.utils.mjs';
+import {
+  loadAllJsonFilesFromDir,
+  seedBySites,
+  seedCronTickConfig,
+  seedJobQueueDrainConfig,
+} from './seed.utils.mjs';
 import idPool from './ids.json';
 import { uuidv7 } from 'uuidv7';
 import { DEFAULT_SYSTEM_ROLE_SCOPES } from '../packages/scms-server/src/backend/roles.server.js';
@@ -122,7 +127,12 @@ async function main() {
     path.join(__dirname, 'data.test'),
   );
 
-  await seedBySites(data, dateOneString, { support, others: [userOne, userTwo], tellus: [] });
+  await seedBySites(
+    data,
+    dateOneString,
+    { support, others: [userOne, userTwo], tellus: [] },
+    { environmentOverride: 'test' },
+  );
 
   // Add a test job
   await prisma.job.create({

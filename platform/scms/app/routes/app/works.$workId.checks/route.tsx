@@ -42,7 +42,7 @@ import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { RunCheckOnLatestVersionButton } from './RunCheckOnLatestVersionButton';
 import { handleChecksRouteAction } from './checksAction.server';
-import { shouldTrackWorkViewedOnLoader } from '../works.$workId.upload.$workVersionId/loaderAnalytics.server.js';
+import { shouldTrackWorkViewedOnLoader } from '@curvenote/scms-server';
 
 const DISPATCHING_SKELETON_MS = 1500;
 

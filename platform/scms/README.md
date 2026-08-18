@@ -4,29 +4,9 @@ This app is at https://sites.curvenote.com
 
 ## Local Development
 
-Copy app-config files, .env into `platform/scms` folder. The app-config schema is committed at the top level of the monorepo, but you will need to edit this to add extensions and fix relative paths, under the `extensions` section (this should just be adding `../..`).
+**Canonical bring-up (install, Docker Postgres + MinIO, seed, `bun run dev`):** [`DEVELOPMENT.md`](../../DEVELOPMENT.md) at the monorepo root.
 
-Then at the top level of the monorepo:
-
-```
-bun install
-```
-
-This installs all the workspace dependencies and the `postinstall` step generates the `platform/scms` package.json with extensions, as well as the `client.ts`/`server.ts` files in the scms extensions source folder.
-
-Still at the top level:
-
-```
-bun run build
-```
-
-Then in the `platform/scms` folder, to install, build, and run locally:
-
-```
-bun install
-bun run build
-bun run dev
-```
+This file covers SCMS-specific follow-ons: job queue, moving off native Postgres, env flags, HTTPS.
 
 ### Job queue local development
 
@@ -46,29 +26,9 @@ If a backlog gets stuck (e.g. the dev server was down when wakes fired), the **Q
 
 ### First-time setup
 
-Local development uses **Postgres in Docker** (recommended). The container creates `journals` and `journals_test` with user `journals` / password `curvenote` on port **5432**.
+See **[`DEVELOPMENT.md`](../../DEVELOPMENT.md)**. Storage profiles and fixtures: [`docs/storage/dx-local.md`](../../docs/storage/dx-local.md).
 
-**Requirements:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose v2).
-
-From the **monorepo root**:
-
-```bash
-bun run db:up
-bun run dev:db:reset
-```
-
-`db:up` starts Postgres and waits until it is healthy. `dev:db:reset` runs migrations and seeds the dev database.
-
-Useful commands:
-
-| Command                 | Purpose                           |
-| ----------------------- | --------------------------------- |
-| `bun run db:up`         | Start Postgres container          |
-| `bun run db:down`       | Stop container (keep data volume) |
-| `bun run db:down:clean` | Stop and **delete** all DB data   |
-| `bun run db:logs`       | Follow Postgres logs              |
-
-Connection strings (same as before):
+Connection strings:
 
 - Dev: `postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0`
 - Test: `postgresql://journals:curvenote@localhost:5432/journals_test?statement_cache_size=0`
@@ -194,11 +154,10 @@ Accepted values are `true`, `1`, or `yes`. Each query is printed with duration, 
 
 ### Seed
 
-To reset and seed the database for **initial** development work. This needs to be run from the top level.
+Reset and seed from the **monorepo root**. See [`DEVELOPMENT.md`](../../DEVELOPMENT.md) for the bare vs overlay seed.
 
 ```
 bun run dev:db:reset
-bun run dev:db:migrate
 ```
 
 To only format the schema

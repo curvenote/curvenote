@@ -23,6 +23,7 @@ export * from './ErrorMessage.js';
 export * from './FormLabel.js';
 export * from './hover-card.js';
 export * from './InlineEditable.js';
+export * from './InlineSaveIndicator.js';
 export * from './input.js';
 export * from './input-with-adornments.js';
 export * from './label.js';

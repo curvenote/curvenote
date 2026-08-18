@@ -1,5 +1,5 @@
 import type { FileUploadConfig } from '@curvenote/scms-core';
-import { MANUSCRIPT_UPLOAD_ACCEPT, MANUSCRIPT_UPLOAD_MIME_TYPES } from './manuscriptFormats';
+import { MANUSCRIPT_UPLOAD_ACCEPT, MANUSCRIPT_UPLOAD_MIME_TYPES } from '@curvenote/scms-core';
 
 export const WORK_UPLOAD_CONFIGURATION: Record<string, FileUploadConfig> = {
   manuscript: {
