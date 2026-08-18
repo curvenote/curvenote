@@ -5,13 +5,22 @@
 
 ## Concept mapping
 
-| SCMS | AWS |
-|------|-----|
-| Logical bucket | S3 bucket name = **`uri`** from `knownBucketInfoMap` |
-| Object key | S3 **Key** |
-| Read | Presigned **GET** (`GetObjectCommand` + `getSignedUrl`) |
-| Upload | Presigned **PUT** (`PutObjectCommand`), **`protocol: 'put'`** |
-| Region | Single **`S3Client`** from **`s3.region`** |
+| SCMS           | AWS                                                           |
+| -------------- | ------------------------------------------------------------- |
+| Logical bucket | S3 bucket name = **`uri`** from `knownBucketInfoMap`          |
+| Object key     | S3 **Key**                                                    |
+| Read           | Presigned **GET** (`GetObjectCommand` + `getSignedUrl`)       |
+| Upload         | Presigned **PUT** (`PutObjectCommand`), **`protocol: 'put'`** |
+| Region         | Single **`S3Client`** from **`s3.region`**                    |
+
+## Local MinIO / custom endpoint
+
+Optional config on **`api.storage.s3`**:
+
+- **`endpoint`** — e.g. local MinIO uses `http://host.docker.internal:9000` so signed URLs work from Compose workers (task-converter); public CDN bases can stay on `http://127.0.0.1:9000/...`
+- **`forcePathStyle: true`** — required for MinIO
+
+See [`docker/minio/`](../../docker/minio/) for the default local stack.
 
 ## SDK
 

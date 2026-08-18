@@ -1,4 +1,4 @@
-import { dbFindSingleVersionDraftFileWorksForUser } from '../works.$workId.upload.$workVersionId/db.server';
+import { dbFindSingleVersionDraftFileWorksForUser } from '@curvenote/scms-server';
 
 /**
  * Draft list item shape returned by getValidDraftWorksForUser (matches DraftWork from scms-core).

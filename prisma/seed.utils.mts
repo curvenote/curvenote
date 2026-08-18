@@ -177,6 +177,7 @@ export async function seedBySites(
     support: Prisma.UserGetPayload<any>;
     others: Prisma.UserGetPayload<any>[];
   },
+  options?: { environmentOverride?: 'development' | 'test' },
 ): Promise<{ sites: number; works: number; submissions: number; collections: number }> {
   const summary = {
     sites: 0,
@@ -185,8 +186,20 @@ export async function seedBySites(
     collections: 0,
   };
 
+  const seedCdnBase = await resolveSeedCdnBase(options?.environmentOverride ?? 'development');
+  if (seedCdnBase) {
+    console.log(`   ✓ Using WorkVersion.cdn from app-config: ${seedCdnBase}`);
+  }
+  const seedStaticCdnBase = await resolveSeedStaticCdnBase(
+    options?.environmentOverride ?? 'development',
+  );
+  if (seedStaticCdnBase) {
+    console.log(`   ✓ Using site static CDN from app-config: ${seedStaticCdnBase}`);
+  }
+
   for (const item of data) {
     item.site.id ??= uuid();
+    absolutizeSiteStaticAssetUrls(item.site, seedStaticCdnBase);
     console.log(`\n📦 Processing site: ${item.site.name || item.site.title || 'Untitled'}`);
     let submissionVersions: any[] = [];
     let workCount = 0;
@@ -209,8 +222,7 @@ export async function seedBySites(
       }
 
       let submissionVersionEntries:
-        | Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }>
-        | undefined;
+        Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }> | undefined;
       const versions: Array<{
         id: string;
         date_created: string;
@@ -246,6 +258,8 @@ export async function seedBySites(
             canonical: version.canonical,
           }));
 
+      const versionsWithCdn = applySeedCdnBase(versions, seedCdnBase);
+
       const workData = await prisma.work.upsert({
         where: {
           id: work.id,
@@ -253,10 +267,10 @@ export async function seedBySites(
         create: {
           id: work.id,
           doi: work.doi,
-          date_created: versions[0].date_created,
-          date_modified: versions[0].date_created,
+          date_created: versionsWithCdn[0].date_created,
+          date_modified: versionsWithCdn[0].date_created,
           versions: {
-            create: versions,
+            create: versionsWithCdn,
           },
           created_by: {
             connect: { id: users.support.id },
@@ -265,8 +279,8 @@ export async function seedBySites(
             create: [
               {
                 id: uuid(),
-                date_created: versions[0].date_created,
-                date_modified: versions[0].date_created,
+                date_created: versionsWithCdn[0].date_created,
+                date_modified: versionsWithCdn[0].date_created,
                 user_id: users.support.id,
                 role: WorkRole.OWNER,
               },
@@ -670,6 +684,103 @@ export async function seedBySites(
 
 const seedUtilsDir = path.dirname(fileURLToPath(import.meta.url));
 
+async function loadScmsAppConfig(environmentOverride: 'development' | 'test') {
+  return getConfig(
+    { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
+    { directory: path.resolve(seedUtilsDir, '..') },
+  );
+}
+
+/**
+ * CDN base for seeded WorkVersions comes from app-config (`knownBucketInfoMap.pub.cdn`)
+ * because seeded submissions are created as PUBLISHED (same end-state as the publish job,
+ * which moves objects to the public bucket and rewrites WorkVersion.cdn to pub).
+ * JSON seed files may still include a `cdn` field for readability; it is ignored when
+ * config provides a value.
+ */
+export async function resolveSeedCdnBase(
+  environmentOverride: 'development' | 'test' = 'development',
+): Promise<string | undefined> {
+  try {
+    const config = await loadScmsAppConfig(environmentOverride);
+    const cdn = config.api?.knownBucketInfoMap?.pub?.cdn;
+    if (typeof cdn === 'string' && cdn.length > 0) {
+      return cdn.endsWith('/') ? cdn : `${cdn}/`;
+    }
+  } catch (err) {
+    console.warn(
+      `   ⚠️  Could not resolve seed CDN from app-config (${(err as Error).message}); using values from seed JSON`,
+    );
+  }
+  return undefined;
+}
+
+/**
+ * CDN base for site logos / favicons (`knownBucketInfoMap.cdn.cdn`).
+ * Relative paths in seed JSON (e.g. `static/site/benchmark/logo.svg`) are resolved against this.
+ */
+export async function resolveSeedStaticCdnBase(
+  environmentOverride: 'development' | 'test' = 'development',
+): Promise<string | undefined> {
+  try {
+    const config = await loadScmsAppConfig(environmentOverride);
+    const cdn = config.api?.knownBucketInfoMap?.cdn?.cdn;
+    if (typeof cdn === 'string' && cdn.length > 0) {
+      return cdn.endsWith('/') ? cdn : `${cdn}/`;
+    }
+  } catch (err) {
+    console.warn(
+      `   ⚠️  Could not resolve static CDN from app-config (${(err as Error).message}); leaving relative site asset URLs as-is`,
+    );
+  }
+  return undefined;
+}
+
+/** Resolve CDN-relative `static/...` paths against `knownBucketInfoMap.cdn.cdn`. Absolute URLs are left unchanged. */
+export function absolutizeSiteStaticAssetUrls(
+  site: Record<string, unknown>,
+  cdnBase: string | undefined,
+): void {
+  if (!cdnBase) return;
+  rewriteStaticAssetPaths(site, cdnBase);
+}
+
+function rewriteStaticAssetPaths(value: unknown, cdnBase: string): void {
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const item = value[i];
+      if (typeof item === 'string') {
+        value[i] = absolutizeStaticAssetPath(item, cdnBase);
+      } else {
+        rewriteStaticAssetPaths(item, cdnBase);
+      }
+    }
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  const record = value as Record<string, unknown>;
+  for (const [key, child] of Object.entries(record)) {
+    if (typeof child === 'string') {
+      record[key] = absolutizeStaticAssetPath(child, cdnBase);
+    } else {
+      rewriteStaticAssetPaths(child, cdnBase);
+    }
+  }
+}
+
+function absolutizeStaticAssetPath(value: string, cdnBase: string): string {
+  if (!value.startsWith('static/') && !value.startsWith('/static/')) return value;
+  return `${cdnBase}${value.replace(/^\//, '')}`;
+}
+
+function applySeedCdnBase<T extends { cdn?: string | undefined }>(
+  versions: T[],
+  cdnBase: string | undefined,
+): T[] {
+  if (!cdnBase) return versions;
+  return versions.map((v) => ({ ...v, cdn: cdnBase }));
+}
+
 /**
  * Seed/refresh the `_JobQueueDrainConfig` row from app-config so local + test
  * environments don't need a manual trip to System → Jobs → Queues after every
@@ -686,10 +797,7 @@ export async function seedJobQueueDrainConfig(
 ): Promise<void> {
   let api: Awaited<ReturnType<typeof getConfig>>['api'] | undefined;
   try {
-    const config = await getConfig(
-      { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
-      { directory: path.resolve(seedUtilsDir, '..') },
-    );
+    const config = await loadScmsAppConfig(environmentOverride);
     api = config.api;
   } catch (err) {
     console.warn(
@@ -740,10 +848,7 @@ export async function seedCronTickConfig(
 ): Promise<void> {
   let api: Awaited<ReturnType<typeof getConfig>>['api'] | undefined;
   try {
-    const config = await getConfig(
-      { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
-      { directory: path.resolve(seedUtilsDir, '..') },
-    );
+    const config = await loadScmsAppConfig(environmentOverride);
     api = config.api;
   } catch (err) {
     console.warn(

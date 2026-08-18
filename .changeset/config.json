@@ -15,6 +15,7 @@
       "@curvenote/scms-core",
       "@curvenote/scms-server",
       "@curvenote/scms-db",
+      "@curvenote/scms-doc-preview",
       "@curvenote/scms-sites-ext",
       "@curvenote/scms-tasks",
       "@curvenote/scms"

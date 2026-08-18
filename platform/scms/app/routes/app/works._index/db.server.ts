@@ -7,7 +7,7 @@ import {
 } from '@curvenote/scms-server';
 import type { WorkRole, WorkVersion } from '@curvenote/scms-db';
 import type { SecureContext } from '@curvenote/scms-server';
-import { allPreviewCacheObjectIdsForCleanup } from '../works.$workId.upload.$workVersionId/metadata-extract/previewCache';
+import { allPreviewCacheObjectIdsForCleanup } from '@curvenote/scms-core';
 import { dbGetCheckServiceRunsByWorkVersionIds } from '../works.$workId/db.server';
 import {
   getCheckRunSummaryByKind,

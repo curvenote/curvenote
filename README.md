@@ -85,6 +85,8 @@ curvenote export pdf https://curvenote.com/@curvenote/blog/version-control-for-s
 
 # Development
 
+**Bring up SCMS (Postgres, MinIO, seed, `bun run dev`):** see **[`DEVELOPMENT.md`](DEVELOPMENT.md)**.
+
 All dependencies for `curvenote` are included in this repository (a monorepo!).
 
 ## What's inside?
@@ -171,26 +173,11 @@ bun run build
 
 ### Develop the Curvenote CLI
 
-To develop all apps and packages, run the following command:
-
 ```
-cd curvenote
 bun install
 bun run dev
 ```
 
 ### Develop the Curvenote SCMS
 
-To develop all apps and packages, run the following command:
-
-```
-cd curvenote
-bun install
-bun run build
-
-cd platform/scms
-
-bun run dev:db:reset
-
-bun run dev
-```
+Follow **[`DEVELOPMENT.md`](DEVELOPMENT.md)** (install, Docker infra, optional seed overlay, `platform/scms` `bun run dev`).

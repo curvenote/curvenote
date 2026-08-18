@@ -45,6 +45,10 @@ export type S3StorageConfig = {
   region: string;
   accessKeyId: string;
   secretAccessKey: string;
+  /** Custom endpoint (e.g. MinIO `http://127.0.0.1:9000`). Omit for AWS S3. */
+  endpoint?: string;
+  /** Required for MinIO and most S3-compatible local stores. */
+  forcePathStyle?: boolean;
 };
 
 export type StorageConfig = {
