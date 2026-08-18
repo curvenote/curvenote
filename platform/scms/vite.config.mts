@@ -75,6 +75,10 @@ export default defineConfig(async ({ mode }) => {
       // getAuth() throws "Component auth has not been registered yet".
       exclude: [
         ...getWorkspacePackageNames(),
+        // Route registrars live in extension server entries imported from root.tsx.
+        // Prebundling this into the client optimizer duplicates react-router.
+        '@react-router/dev',
+        '@react-router/dev/routes',
         '@google-cloud/storage',
         'jwa',
         'jsonwebtoken',
