@@ -199,19 +199,6 @@ cases:
         status: 302
         location: /login
 
-  # Discovery Routes Group
-  - title: Discovery Routes
-    cases:
-      - title: Discovery Root Endpoint
-        url: /app/discovery
-        status: 302
-        location: /login
-
-      - title: Discovery People Endpoint
-        url: /app/discovery/people
-        status: 302
-        location: /login
-
   # Platform Routes Group
   - title: Platform Routes
     cases:

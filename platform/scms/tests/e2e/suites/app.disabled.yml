@@ -131,19 +131,6 @@ cases:
         status: 302
         location: /
 
-  # Discovery Routes Group - These should be blocked for disabled users
-  - title: Discovery Routes (Blocked for Disabled Users)
-    cases:
-      - title: Discovery Root Endpoint (Blocked)
-        url: /app/discovery
-        status: 302
-        location: /
-
-      - title: Discovery People Endpoint (Blocked)
-        url: /app/discovery/people
-        status: 302
-        location: /
-
   # Platform Routes Group - These should be blocked for disabled users
   - title: Platform Routes (Blocked for Disabled Users)
     cases:

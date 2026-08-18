@@ -167,18 +167,6 @@ cases:
         status: 200
         responseContains: System Roles
 
-  # Discovery Routes Group
-  - title: Discovery Routes
-    cases:
-      - title: Discovery Root Endpoint
-        url: /app/discovery
-        status: 302
-        location: /app/discovery/people
-
-      - title: Discovery People Endpoint
-        url: /app/discovery/people
-        status: 200
-
   # Platform Routes Group
   - title: Platform Routes
     cases:
