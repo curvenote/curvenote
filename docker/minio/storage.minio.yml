@@ -10,9 +10,9 @@ api:
     provider: s3
     s3:
       region: us-east-1
-      # host.docker.internal so signed URLs work from Compose workers (task-converter).
-      # Browsers on Docker Desktop can resolve this; public CDN bases below stay on 127.0.0.1.
-      endpoint: http://host.docker.internal:9000
+      # Reachable from the host Node process and the browser (presigned PUT).
+      # host.docker.internal is only resolvable inside Compose (extra_hosts).
+      endpoint: http://127.0.0.1:9000
       forcePathStyle: true
   knownBucketInfoMap:
     cdn:

@@ -8,7 +8,7 @@ Default local SCMS development uses **MinIO** (fully local). You can switch to t
 
 | Profile             | Compose          | App storage                                                            | CDN / private reads                                         | Upload protocol     |
 | ------------------- | ---------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------- |
-| **MinIO** (default) | Postgres + MinIO + task-converter | `api.storage.provider: s3` → `host.docker.internal:9000` (signing)     | Path-style MinIO HTTP URLs; CDN bases stay `127.0.0.1:9000`  | S3 **`put`**        |
+| **MinIO** (default) | Postgres + MinIO + task-converter | `api.storage.provider: s3` → `127.0.0.1:9000` | Path-style MinIO HTTP URLs; CDN bases stay `127.0.0.1:9000`  | S3 **`put`**        |
 | **GCP** (opt-in)    | Postgres only                     | Secrets `storageSASecretKeyfile` (no `api.storage` in development.yml) | Real `*.curvenote.dev` + `privateCDNSigningInfo` URLPrefix  | **`gcs-resumable`** |
 
 Fragments: [`docker/minio/storage.minio.yml`](../../docker/minio/storage.minio.yml), [`docker/minio/storage.gcp.yml`](../../docker/minio/storage.gcp.yml).
@@ -24,8 +24,8 @@ bun run storage:seed               # optional until prisma/data has an overlay
 bun run dev:db:reset
 ```
 
-- S3 API (browser / host tools): http://127.0.0.1:9000
-- S3 signing endpoint (app-config): `http://host.docker.internal:9000` so Compose workers (task-converter) can use signed upload/download URLs
+- S3 API / signing endpoint (host + browser): http://127.0.0.1:9000
+- Compose workers cannot use `127.0.0.1` (that is the container itself). Converter downloads should use the `minio` service hostname or `host.docker.internal:9000` from inside Docker.
 - Console: http://127.0.0.1:9001 (`curvenote` / `curvenote`)
 - Task converter: http://127.0.0.1:8080/ (built on first `db:up` if `task-converter-local` is missing; rebuild with `bun run db:rebuild:converter`)
 - Seeded `WorkVersion.cdn` values come from `api.knownBucketInfoMap.pub.cdn` in app-config (published works live on the public bucket).
@@ -100,7 +100,8 @@ They do **not** start Docker, touch secrets, or move objects. Always `dev:db:res
 | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Works point at wrong host (`prv.curvenote.dev` vs `127.0.0.1:9000`) | Switched profile without `dev:db:reset`                                                  |
 | Uploads fail to MinIO                                               | `db:up` not run, or still on GCP profile                                                 |
-| Converter cannot download/upload (ECONNREFUSED `127.0.0.1:9000`)    | S3 `endpoint` still `127.0.0.1` — use MinIO profile (`host.docker.internal:9000`)         |
+| Uploads fail with `getaddrinfo ENOTFOUND host.docker.internal` | S3 `endpoint` still `host.docker.internal` — the host Node process cannot resolve that name. Use `http://127.0.0.1:9000`. |
+| Converter cannot download/upload (ECONNREFUSED `127.0.0.1:9000`)    | Signed URLs were minted for the host. From Compose, use `minio:9000` or `host.docker.internal:9000`, not `127.0.0.1`. |
 | Empty CDN / 404 after reset                                         | Mirror empty under `prisma/data/assets/pub/` (published) — add trees then `storage:seed` |
 | Private CDN signing in MinIO mode                                   | Expected empty/`cdn_query` no-op; buckets are public-read locally                        |
 
