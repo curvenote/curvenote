@@ -303,7 +303,6 @@ export default [
     route('loopback', 'routes/api/v1.loopback/route.tsx'),
     route('jobs/:jobId', 'routes/api/v1.jobs.$jobId.tsx'),
 
-    route('keys', 'routes/api/v1.keys.tsx'),
     route('config', 'routes/api/v1.config.tsx'),
     route('login', 'routes/api/v1.login.tsx'),
 
