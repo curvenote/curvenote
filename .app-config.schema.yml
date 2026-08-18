@@ -436,28 +436,6 @@ properties:
                 type: string
                 secret: true
                 description: Secret key for securing cron job endpoints
-      integrations:
-        type: object
-        description: JWT integration configuration for external service authentication
-        required:
-          - issuer
-          - publicKey
-          - privateKey
-        properties:
-          issuer:
-            type: string
-            description: JWT token issuer - the endpoint URL for this service
-          tokenExpiryDuration:
-            type: string
-            description: Default expiry duration for integration tokens (e.g., "1m", "30m", "2d")
-            default: '1m'
-          publicKey:
-            $ref: '#/$defs/JWKPublicKey'
-            description: RSA public key in JWK format for token verification
-          privateKey:
-            $ref: '#/$defs/JWKPrivateKey'
-            secret: true
-            description: RSA private key in JWK format for token signing
       slack:
         type: object
         description: Slack integration configuration for notifications
@@ -921,94 +899,6 @@ $defs:
         type: string
       key:
         type: string
-  JWKPublicKey:
-    type: object
-    additionalProperties: false
-    required:
-      - kty
-      - n
-      - e
-      - use
-      - alg
-      - kid
-    properties:
-      kty:
-        type: string
-        enum: ['RSA']
-        description: Key type, must be RSA
-      n:
-        type: string
-        description: RSA public key modulus (base64url encoded)
-      e:
-        type: string
-        description: RSA public key exponent (base64url encoded)
-      use:
-        type: string
-        enum: ['sig']
-        description: Key usage, must be signature
-      alg:
-        type: string
-        enum: ['RS256']
-        description: Algorithm, must be RS256
-      kid:
-        type: string
-        description: Key ID for key rotation and identification
-  JWKPrivateKey:
-    type: object
-    additionalProperties: false
-    required:
-      - kty
-      - n
-      - e
-      - d
-      - p
-      - q
-      - dp
-      - dq
-      - qi
-      - use
-      - alg
-      - kid
-    properties:
-      kty:
-        type: string
-        enum: ['RSA']
-        description: Key type, must be RSA
-      n:
-        type: string
-        description: RSA public key modulus (base64url encoded)
-      e:
-        type: string
-        description: RSA public key exponent (base64url encoded)
-      d:
-        type: string
-        description: RSA private exponent (base64url encoded)
-      p:
-        type: string
-        description: First prime factor (base64url encoded)
-      q:
-        type: string
-        description: Second prime factor (base64url encoded)
-      dp:
-        type: string
-        description: d mod (p-1) (base64url encoded)
-      dq:
-        type: string
-        description: d mod (q-1) (base64url encoded)
-      qi:
-        type: string
-        description: q^-1 mod p (base64url encoded)
-      use:
-        type: string
-        enum: ['sig']
-        description: Key usage, must be signature
-      alg:
-        type: string
-        enum: ['RS256']
-        description: Algorithm, must be RS256
-      kid:
-        type: string
-        description: Key ID for key rotation and identification
   StatusBarItem:
     type: object
     additionalProperties: false

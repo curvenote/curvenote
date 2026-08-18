@@ -67,8 +67,7 @@
     "test:e2e:api:security": "TEST_FILES=api.anon,api.disabled,api.pending dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:e2e:api:auth-tests": "TEST_FILES=api.auth dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
     "test:e2e:api:pending": "TEST_FILES=api.pending dotenv -e .env.test -- vitest run --config vitest.config.ci.mjs tests/e2e/e2e.spec.ts",
-    "test:start-server": "dotenv -e .env.test -- react-router dev",
-    "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs"
+    "test:start-server": "dotenv -e .env.test -- react-router dev"
   },
   "devDependencies": {
     "@app-config/cli": "^2.8.7",
