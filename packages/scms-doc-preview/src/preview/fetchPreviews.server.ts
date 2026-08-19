@@ -15,7 +15,7 @@ import {
   StorageBackend,
   findWorkByVersion,
   getPrismaClient,
-  resolveThumbnailBucket,
+  resolveBucketForCdn,
   safeWorkVersionJsonUpdate,
   signFilesInMetadata,
 } from '@curvenote/scms-server';
@@ -336,7 +336,7 @@ async function loadPreviewWorkContext(
   }
 
   const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
-  const figureBucket = cdn ? resolveThumbnailBucket(ctx, backend, cdn) : null;
+  const figureBucket = cdn ? resolveBucketForCdn(ctx, backend, cdn) : null;
   const prisma = await getPrismaClient();
 
   return {
@@ -698,7 +698,7 @@ export async function signPreviewFigures(
 ): Promise<DocumentPreviewItem[]> {
   if (!cdn) return previews;
   const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
-  const bucket = resolveThumbnailBucket(ctx, backend, cdn);
+  const bucket = resolveBucketForCdn(ctx, backend, cdn);
   return Promise.all(
     previews.map(async (item) => {
       if (item.figures.length === 0) return item;

@@ -1,6 +1,6 @@
-import { ensureTrailingSlash } from '@curvenote/scms-core';
-import * as cdnlib from '@curvenote/cdn';
 import type { Context } from './context.server.js';
+import * as cdnlib from '@curvenote/cdn';
+import { resolveBucketForCdn } from './storage/resolveBucketForCdn.server.js';
 import { File, KnownBuckets, StorageBackend } from './storage/index.js';
 
 /**
@@ -24,17 +24,6 @@ export function hasResolvableThumbnail(wv: ThumbnailSource): boolean {
   return Boolean(wv.thumbnail && wv.cdn) || Boolean(wv.cdn && wv.cdn_key);
 }
 
-export function resolveThumbnailBucket(
-  ctx: Context,
-  backend: StorageBackend,
-  cdn: string,
-): KnownBuckets {
-  return (
-    backend.knownBucketFromCDN(cdn) ??
-    (ctx.privateCdnUrls().has(ensureTrailingSlash(cdn)) ? KnownBuckets.prv : KnownBuckets.pub)
-  );
-}
-
 /**
  * Resolve a work version's thumbnail bytes using the cascade:
  *   1. `workVersion.thumbnail` (column) — read directly from storage (skips the manifest
@@ -53,7 +42,7 @@ export async function resolveWorkVersionThumbnail(
   if (wv.thumbnail && wv.cdn) {
     try {
       const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
-      const bucket = resolveThumbnailBucket(ctx, backend, wv.cdn);
+      const bucket = resolveBucketForCdn(ctx, backend, wv.cdn);
       const file = new File(backend, wv.thumbnail, bucket);
       const buffer = await file.download();
       return buffer.buffer.slice(

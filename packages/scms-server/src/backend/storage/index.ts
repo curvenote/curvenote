@@ -5,3 +5,4 @@ export * from './folder.server.js';
 export * from './constants.server.js';
 export * from './types.js';
 export * from './upload.resumable.server.js';
+export * from './resolveBucketForCdn.server.js';
