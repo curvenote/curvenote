@@ -424,18 +424,6 @@ properties:
         properties:
           id:
             type: string
-      vercel:
-        type: object
-        properties:
-          cron:
-            type: object
-            required:
-              - secret
-            properties:
-              secret:
-                type: string
-                secret: true
-                description: Secret key for securing cron job endpoints
       slack:
         type: object
         description: Slack integration configuration for notifications
