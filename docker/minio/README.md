@@ -7,10 +7,8 @@ SCMS bring-up: **[`DEVELOPMENT.md`](../../DEVELOPMENT.md)**. Storage profiles an
 ## Quick start
 
 ```bash
-bun run db:up
 bun run storage:use-minio    # if needed
-bun run storage:seed         # optional until fixtures exist
-bun run dev:db:reset
+bun run dx:reset
 ```
 
 - S3 API (host / browser CDN bases): http://127.0.0.1:9000

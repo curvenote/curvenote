@@ -18,16 +18,14 @@ Fragments: [`docker/minio/storage.minio.yml`](../../docker/minio/storage.minio.y
 Full SCMS steps (config, install, seed overlay): **[`DEVELOPMENT.md`](../../DEVELOPMENT.md)**.
 
 ```bash
-bun run db:up
 bun run storage:use-minio          # if config is not already on MinIO
-bun run storage:seed               # optional until prisma/data has an overlay
-bun run dev:db:reset
+bun run dx:reset                   # dx:up + storage:seed + migrate/seed
 ```
 
 - S3 API / signing endpoint (host + browser): http://127.0.0.1:9000
 - Compose workers cannot use `127.0.0.1` (that is the container itself). Converter downloads should use the `minio` service hostname or `host.docker.internal:9000` from inside Docker.
 - Console: http://127.0.0.1:9001 (`curvenote` / `curvenote`)
-- Task converter: http://127.0.0.1:8080/ (built on first `db:up` if `task-converter-local` is missing; rebuild with `bun run db:rebuild:converter`)
+- Task converter: http://127.0.0.1:8080/ (built on first `dx:up` if `task-converter-local` is missing; rebuild with `bun run db:rebuild:converter`)
 - Seeded `WorkVersion.cdn` values come from `api.knownBucketInfoMap.pub.cdn` in app-config (published works live on the public bucket).
 
 ## Fixture mirror
@@ -42,12 +40,10 @@ bun run storage:smoke       # optional PUT smoke test
 Daily reset once the mirror has the trees you need:
 
 ```bash
-bun run db:up
-bun run storage:seed
-bun run dev:db:reset
+bun run dx:reset
 ```
 
-Site/work JSON and CDN trees are **not** committed. Copy a richer overlay (e.g. `curvenote-seed` `copy-into.sh`) into the checkout, then `storage:seed` + `dev:db:reset`. See [`DEVELOPMENT.md`](../../DEVELOPMENT.md).
+Site/work JSON and CDN trees are **not** committed. Copy a richer overlay (e.g. `curvenote-seed` `copy-into.sh`) into the checkout, then `bun run dx:reset`. See [`DEVELOPMENT.md`](../../DEVELOPMENT.md).
 
 ## Switch to real GCP
 
@@ -67,9 +63,7 @@ Secrets stay as-is: `storageSASecretKeyfile` and `privateCDNSigningInfo` in `.ap
 
 ```bash
 bun run storage:use-minio
-bun run db:up
-bun run storage:seed
-bun run dev:db:reset           # required — DB CDN bases must match MinIO
+bun run dx:reset                   # required — DB CDN bases must match MinIO
 ```
 
 ## Profile helper
@@ -84,7 +78,7 @@ These edit `platform/scms/.app-config.development.yml` and (for MinIO keys) `.ap
 - **minio** — set non-secret `api.storage` + MinIO `knownBucketInfoMap`; put `accessKeyId` / `secretAccessKey` in secrets
 - **gcp** — remove `api.storage` from development and secrets (legacy `storageSASecretKeyfile` path) + GCP `knownBucketInfoMap`
 
-They do **not** start Docker, touch secrets, or move objects. Always `dev:db:reset` after a flip so seeded CDN hosts match.
+They do **not** start Docker, touch secrets, or move objects. Always `dx:reset` (MinIO) or `dev:db:reset` (GCP) after a flip so seeded CDN hosts match.
 
 ## Reset / wipe
 
@@ -98,8 +92,8 @@ They do **not** start Docker, touch secrets, or move objects. Always `dev:db:res
 
 | Symptom                                                             | Likely cause                                                                             |
 | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Works point at wrong host (`prv.curvenote.dev` vs `127.0.0.1:9000`) | Switched profile without `dev:db:reset`                                                  |
-| Uploads fail to MinIO                                               | `db:up` not run, or still on GCP profile                                                 |
+| Works point at wrong host (`prv.curvenote.dev` vs `127.0.0.1:9000`) | Switched profile without `dx:reset` / `dev:db:reset`                                     |
+| Uploads fail to MinIO                                               | `dx:up` not run, or still on GCP profile                                                 |
 | Uploads fail with `getaddrinfo ENOTFOUND host.docker.internal` | S3 `endpoint` still `host.docker.internal` — the host Node process cannot resolve that name. Use `http://127.0.0.1:9000`. |
 | Converter cannot download/upload (ECONNREFUSED `127.0.0.1:9000`)    | Signed URLs were minted for the host. From Compose, use `minio:9000` or `host.docker.internal:9000`, not `127.0.0.1`. |
 | Empty CDN / 404 after reset                                         | Mirror empty under `prisma/data/assets/pub/` (published) — add trees then `storage:seed` |

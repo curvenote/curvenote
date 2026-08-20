@@ -85,12 +85,12 @@ If Pub/Sub was set up with a stray invoker SA (e.g. `storage-pubsub`), run `./mi
 
 Cloud Run sets `PORT` at runtime; no need to pass it in deploy.
 
-## Local compose (with `db:up`)
+## Local compose (with `dx:up`)
 
 SCMS stack bring-up: **[`DEVELOPMENT.md`](../../DEVELOPMENT.md)**. Default MinIO local DX starts the converter beside Postgres and MinIO:
 
 ```bash
-bun run db:up                 # builds task-converter-local on first run if missing
+bun run dx:up                 # builds task-converter-local on first run if missing
 bun run db:rebuild:converter  # rebuild image + recreate container
 bun run db:logs               # includes task-converter
 ```

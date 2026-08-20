@@ -210,7 +210,7 @@ async function main() {
   console.log(`  secrets     → ${secretsConfigPath}`);
   console.log(`  knownBucketInfoMap.prv.cdn → ${prvCdn}`);
   if (profile === 'minio') {
-    console.log('  Next: bun run db:up && bun run storage:seed && bun run dev:db:reset');
+    console.log('  Next: bun run dx:reset');
   } else {
     console.log('  Next: bun run db:up:gcp && bun run dev:db:reset');
     console.log('  (GCS credentials + privateCDNSigningInfo stay in secrets)');

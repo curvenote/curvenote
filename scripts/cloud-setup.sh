@@ -50,7 +50,7 @@ bun run build:scms
 
 # Postgres: docker-compose.yml builds/starts the local SCMS Postgres image (pgmq + pg_net + pg_cron).
 echo "→ Starting Postgres (docker compose — see docker-compose.yml)"
-bun run db:up
+bun run dx:up
 
 # Migrations + seed: bun run dev:db:reset (same as local first-time setup in platform/scms/README.md).
 # Skip on later agent starts when the VM snapshot already has a seeded database volume.

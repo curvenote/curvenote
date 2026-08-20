@@ -20,7 +20,7 @@ If a backlog gets stuck (e.g. the dev server was down when wakes fired), the **Q
 
 **Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, staging/prod secrets YAML on deployed envs) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
 
-> The local Postgres image is required (it provides pgmq/pg_net/pg_cron). After pulling these changes you must rebuild the container: `bun run db:rebuild` (wipes the volume, rebuilds from the Dockerfile, re-runs init), then `bun run dev:db:reset`.
+> The local Postgres image is required (it provides pgmq/pg_net/pg_cron). After pulling image/Dockerfile changes you must rebuild: `bun run dx:rebuild` (no-cache image rebuild, wipes volumes, migrate + seed).
 
 **Staging/prod Supabase setup:** see [`platform/scms/deploy/supabase-job-queue-setup.md`](deploy/supabase-job-queue-setup.md) (pgmq migration, app-config secrets, `_JobQueueDrainConfig`, smoke tests).
 
@@ -100,8 +100,8 @@ netstat -an | grep '\.5432.*LISTEN'
 From the monorepo root:
 
 ```bash
-bun run db:up
-bun run dev:db:reset
+bun run dx:up
+bun run dx:reset
 bun run test:db:reset   # optional: reset test DB too
 ```
 

@@ -1,5 +1,5 @@
 # Fragment: non-secret fields for platform/scms/.app-config.development.yml
-# Default local DX — MinIO via S3 provider (bun run db:up).
+# Default local DX — MinIO via S3 provider (bun run dx:up).
 #
 # Credentials (accessKeyId / secretAccessKey) are secret:true in the schema —
 # see storage.minio.secrets.yml → .app-config.secrets.development.yml

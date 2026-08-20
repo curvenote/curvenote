@@ -45,12 +45,11 @@ Default object storage is **local MinIO** (not GCP). Postgres creates `journals`
 Stop any native Postgres already bound to 5432 first — see [platform/scms/README.md](platform/scms/README.md#moving-from-local-postgres-to-docker-based-postgres).
 
 ```bash
-bun run db:up
 bun run storage:use-minio   # if development app-config is not already on MinIO
-bun run dev:db:reset
+bun run dx:reset            # starts infra, seeds MinIO overlay (if any), migrate + seed DB
 ```
 
-`db:up` starts Postgres, MinIO, and the task converter, creates buckets, and waits until healthy. `dev:db:reset` migrates and seeds.
+`dx:up` starts Postgres, MinIO, and the task converter, creates buckets, and waits until healthy. `dx:reset` runs `dx:up`, then `storage:seed`, then `dev:db:reset`.
 
 The **committed seed is bare** (users, roles, queue/cron config — **no sites or works**). Site logos and CDN trees are not in git.
 
@@ -65,11 +64,10 @@ The overlay lives in a separate repo (e.g. `curvenote-seed`). From that repo:
 Then here:
 
 ```bash
-bun run storage:seed
-bun run dev:db:reset
+bun run dx:reset
 ```
 
-`storage:seed` copies `prisma/data/` overlay assets into MinIO. Re-run `dev:db:reset` after adding site JSON so the DB matches.
+`storage:seed` (via `dx:reset`) copies `prisma/data/` overlay assets into MinIO. Re-run `dx:reset` after adding site JSON so the DB matches.
 
 ### 5. Run the app
 
@@ -85,7 +83,7 @@ SCMS listens on **http://localhost:3031** (Vite `host: true`). Converter callbac
 ## SCMS — daily
 
 ```bash
-bun run db:up          # if containers are down
+bun run dx:up          # if containers are down
 cd platform/scms
 bun run dev
 ```
@@ -93,8 +91,13 @@ bun run dev
 Reset DB + re-seed MinIO from the local overlay:
 
 ```bash
-bun run storage:seed
-bun run dev:db:reset
+bun run dx:reset
+```
+
+Full infra rebuild (wipe volumes, no-cache rebuild Postgres image with pgmq/pg_net/pg_cron, then reset):
+
+```bash
+bun run dx:rebuild
 ```
 
 ---
@@ -105,13 +108,13 @@ Two profiles. **MinIO is the default** for local work. Switch to **GCP** only wh
 
 | | **MinIO (default)** | **GCP (opt-in)** |
 | --- | --- | --- |
-| Compose | Postgres + MinIO + task-converter (`bun run db:up`) | Postgres only (`bun run db:up:gcp`) |
+| Compose | Postgres + MinIO + task-converter (`bun run dx:up`) | Postgres only (`bun run db:up:gcp`) |
 | App config | `api.storage.provider: s3` → `host.docker.internal:9000` | No `api.storage` in development.yml; GCS via `storageSASecretKeyfile` in secrets |
 | CDN / reads | Path-style `http://127.0.0.1:9000/…` (buckets public-read locally) | Real `*.curvenote.dev` + `privateCDNSigningInfo` URLPrefix |
 | Uploads | S3 **`put`** | **`gcs-resumable`** |
 | Data | Local volumes + `prisma/data` overlay | Shared `cdn-*-dev-1` buckets |
 
-Helpers rewrite `platform/scms/.app-config.development.yml` and (for MinIO keys) `.app-config.secrets.development.yml`. They do **not** start Docker or move objects. **Always** `bun run dev:db:reset` after a flip so seeded `WorkVersion.cdn` hosts match.
+Helpers rewrite `platform/scms/.app-config.development.yml` and (for MinIO keys) `.app-config.secrets.development.yml`. They do **not** start Docker or move objects. **Always** `bun run dx:reset` (MinIO) or `bun run dev:db:reset` (GCP) after a flip so seeded `WorkVersion.cdn` hosts match.
 
 ### Default: MinIO
 
@@ -121,9 +124,7 @@ Confirm / apply the profile, then bring the full stack up:
 
 ```bash
 bun run storage:use-minio
-bun run db:up
-bun run storage:seed          # if you have a prisma/data overlay
-bun run dev:db:reset
+bun run dx:reset              # dx:up + storage:seed + migrate/seed
 ```
 
 MinIO console: http://127.0.0.1:9001 (`curvenote` / `curvenote`). S3 API: http://127.0.0.1:9000. Signing from Docker workers uses `host.docker.internal:9000` (not `127.0.0.1`).
@@ -138,6 +139,7 @@ You still need GCS credentials in `platform/scms/.app-config.secrets.development
 bun run storage:use-gcp
 bun run db:up:gcp             # Postgres only; MinIO not required
 bun run dev:db:reset          # required — CDN bases in the DB must match GCP
+# (prefer this over dx:reset on GCP — dx:reset always starts MinIO + storage:seed)
 ```
 
 **Caveats:** shared buckets (not offline, not disposable). Do not casually delete objects. No per-developer prefixes.
@@ -146,9 +148,7 @@ bun run dev:db:reset          # required — CDN bases in the DB must match GCP
 
 ```bash
 bun run storage:use-minio
-bun run db:up
-bun run storage:seed
-bun run dev:db:reset          # required — CDN bases in the DB must match MinIO
+bun run dx:reset              # required — CDN bases in the DB must match MinIO
 ```
 
 If works still point at `prv.curvenote.dev` after switching to MinIO (or `127.0.0.1:9000` after switching to GCP), the profile flipped but the DB was not reset.
@@ -161,23 +161,25 @@ Full detail: [`docs/storage/dx-local.md`](docs/storage/dx-local.md).
 
 | Command | Purpose |
 | ------- | ------- |
-| `bun run db:up` | Start Postgres + MinIO + task-converter |
+| `bun run dx:up` | Start Postgres + MinIO + task-converter |
+| `bun run dx:reset` | `dx:up` + MinIO seed overlay + migrate/seed the **dev** DB |
+| `bun run dx:rebuild` | No-cache rebuild Postgres image, wipe volumes, bring stack up, then `dx:reset` |
 | `bun run db:up:gcp` | Postgres only (GCP storage profile) |
 | `bun run db:down` | Stop containers (keep volumes) |
 | `bun run db:down:clean` | Stop and **delete** Postgres + MinIO volumes |
 | `bun run db:logs` | Follow Postgres + MinIO + converter logs |
-| `bun run db:rebuild` | Wipe volumes, rebuild Postgres image, bring stack up |
+| `bun run db:rebuild` | Wipe volumes, rebuild Postgres image, bring stack up (no DB seed) |
 | `bun run db:rebuild:converter` | Rebuild task-converter image and recreate container |
 | `bun run db:studio` | Prisma Studio |
 | `bun run storage:use-minio` | Point development + secrets app-config at local MinIO |
 | `bun run storage:use-gcp` | Point development app-config at shared GCP |
 | `bun run storage:seed` | Copy `prisma/data` overlay → MinIO |
 | `bun run storage:smoke` | Optional MinIO PUT smoke test |
-| `bun run dev:db:reset` | Migrate reset + seed the **dev** DB |
+| `bun run dev:db:reset` | Migrate reset + seed the **dev** DB (without starting Docker) |
 | `bun run test:db:reset` | Migrate reset the **test** DB |
 | `bun run wt:create -- <name> [base]` | New git worktree under `../trees/` |
 
-Always `bun run dev:db:reset` after flipping MinIO ↔ GCP so seeded CDN hosts match. See [Object storage](#object-storage).
+Prefer `dx:reset` / `dx:rebuild` for day-to-day MinIO DX. Always reset after flipping MinIO ↔ GCP so seeded CDN hosts match. See [Object storage](#object-storage).
 
 ---
 

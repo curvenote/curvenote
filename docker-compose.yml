@@ -1,5 +1,6 @@
 # Local Postgres + MinIO + task-converter for SCMS development.
-# Start: bun run db:up   Stop: bun run db:down   Wipe data: bun run db:down:clean
+# Start: bun run dx:up   Reset: bun run dx:reset   Full rebuild: bun run dx:rebuild
+# Stop: bun run db:down   Wipe data: bun run db:down:clean
 # Postgres only (GCP storage opt-out): bun run db:up:gcp
 #
 # `name` sets the Compose project name so Docker Desktop groups this stack as
@@ -70,7 +71,7 @@ services:
     restart: 'no'
 
   # Local converter worker. SCMS posts jobs to http://127.0.0.1:8080/ in development.
-  # Image is built on first `bun run db:up` if missing (see scripts/ensure-task-converter-image.sh).
+  # Image is built on first `bun run dx:up` if missing (see scripts/ensure-task-converter-image.sh).
   # Rebuild explicitly: bun run db:rebuild:converter
   task-converter:
     image: task-converter-local
