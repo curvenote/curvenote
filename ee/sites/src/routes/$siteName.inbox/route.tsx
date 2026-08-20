@@ -6,17 +6,11 @@ import {
   site as siteScopes,
 } from '@curvenote/scms-core';
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
-<<<<<<< HEAD
 import { formatSubmissionListingSiteContext } from '../$siteName.submissions._index/site-context.format.server.js';
 import type { SubmissionListingSiteContext } from '../$siteName.submissions._index/site-context.format.server.js';
-import { InboxComingSoon } from './InboxComingSoon.js';
-=======
-import { formatSubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
-import type { SubmissionListingSiteContext } from '../$siteName.submissions-classic/site-context.format.server.js';
 import { dbGetInboxHeadlineStats, dbListInboxActivities } from './db.server.js';
 import { INBOX_ACTIVITY_INITIAL, parseInboxPeriod } from './inboxParams.js';
 import { InboxDashboard } from './InboxDashboard.js';
->>>>>>> d8efdbc3 (📬 Add inbox overview and activity feed with ui.Card sections)
 
 interface LoaderData {
   site: SubmissionListingSiteContext;
