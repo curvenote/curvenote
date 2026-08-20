@@ -22,9 +22,9 @@ function makeCurvenoteStartCLI(program: Command) {
   const command = makeStartCommand().action(
     clirun(web.curvenoteStart, {
       program,
+      anonymous: true,
       requireSiteConfig: true,
       keepAlive: true,
-      hideNoTokenWarning: true,
     }),
   );
   return command;
@@ -34,6 +34,7 @@ function makeBuildCLI(program: Command) {
   const command = makeBuildCommand().action(
     clirun(web.curvenoteBuild, {
       program,
+      anonymous: true,
       requireSiteConfig: true,
       keepAlive: (_, opts) => !!opts.watch,
     }),
