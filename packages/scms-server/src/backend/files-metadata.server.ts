@@ -1,7 +1,7 @@
-import { ensureTrailingSlash } from '@curvenote/scms-core';
 import type { FileMetadataSectionItem } from '@curvenote/scms-core';
 import type { WorkVersionMetadata } from '../schemas/work-version/index.js';
 import type { Context } from './context.server.js';
+import { resolveBucketForCdn } from './storage/resolveBucketForCdn.server.js';
 import { File, KnownBuckets, StorageBackend } from './storage/index.js';
 
 /**
@@ -19,8 +19,8 @@ export async function signFilesInMetadata<
   if (!metadata || typeof metadata !== 'object' || !metadata.files) return metadata;
 
   const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
-  const isPrivateCdn = ctx.privateCdnUrls().has(ensureTrailingSlash(cdn));
-  const bucket = isPrivateCdn ? KnownBuckets.prv : KnownBuckets.pub;
+  const bucket = resolveBucketForCdn(ctx, backend, cdn);
+  const isPrivateCdn = bucket === KnownBuckets.prv;
 
   const filesWithSignedUrls: Record<string, FileMetadataSectionItem> = {};
   await Promise.all(

@@ -11,6 +11,8 @@ export const BUILTIN_ARTICLE_WORK_CREATE_OPTION: WorkCreateOption = {
   icon: FileText,
   metadataKey: 'frontmatter.myst',
   startPath: '/app/works/new',
+  resumePath: '/app/works/:workId/upload/:workVersionId',
+  formPathIncludes: '/upload/',
   mode: 'composite',
   sortLast: true,
 };

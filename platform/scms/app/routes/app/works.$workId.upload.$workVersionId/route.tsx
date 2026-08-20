@@ -29,7 +29,7 @@ import {
   File as StorageFile,
   StorageBackend,
   KnownBuckets,
-  resolveThumbnailBucket,
+  resolveBucketForCdn,
   enqueueAndDispatchJob,
   updateWorkVersionTitle,
   updateWorkVersionAuthors,
@@ -351,7 +351,7 @@ export async function loader(args: Route.LoaderArgs) {
   if (inheritedThumbnailKey && work.cdn) {
     try {
       const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
-      const bucket = resolveThumbnailBucket(ctx, backend, work.cdn);
+      const bucket = resolveBucketForCdn(ctx, backend, work.cdn);
       const signedUrl = await new StorageFile(backend, inheritedThumbnailKey, bucket).url();
       inheritedThumbnail = { key: inheritedThumbnailKey, signedUrl };
     } catch (err) {

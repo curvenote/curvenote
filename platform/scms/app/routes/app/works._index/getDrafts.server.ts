@@ -1,4 +1,5 @@
 import { dbFindSingleVersionDraftFileWorksForUser } from '@curvenote/scms-server';
+import { isArticleReusableDraft, type WorkCreateOption } from '@curvenote/scms-core';
 
 /**
  * Draft list item shape returned by getValidDraftWorksForUser (matches DraftWork from scms-core).
@@ -14,16 +15,18 @@ export type DraftListItem = {
 };
 
 /**
- * Check if a draft work is valid for reuse in the Resume-draft dialog.
+ * Check if a draft work is valid for reuse in the Article Resume-draft dialog.
  * Caller must pass works that already have exactly one version and that version is draft.
- * This only checks that the version has the 'checks' field in metadata (required for upload flow).
+ * Requires `checks` in metadata and a resolved create option of Article (not an extension flow).
  */
-export function isValidDraftForReuse(work: { versions: { metadata: unknown }[] }): boolean {
+export function isValidDraftForReuse(
+  work: { versions: { metadata: unknown }[] },
+  options: WorkCreateOption[],
+): boolean {
   if (work.versions.length !== 1) {
     return false;
   }
-  const metadata = work.versions[0].metadata as Record<string, unknown> | null;
-  return Boolean(metadata && 'checks' in metadata);
+  return isArticleReusableDraft(work.versions[0].metadata, options);
 }
 
 /**
@@ -32,9 +35,12 @@ export function isValidDraftForReuse(work: { versions: { metadata: unknown }[] }
  * (so we don't show "new version" drafts that are managed from Work Details).
  * Also requires the 'checks' field in version metadata.
  */
-export async function getValidDraftWorksForUser(userId: string): Promise<DraftListItem[]> {
+export async function getValidDraftWorksForUser(
+  userId: string,
+  options: WorkCreateOption[],
+): Promise<DraftListItem[]> {
   const draftWorks = await dbFindSingleVersionDraftFileWorksForUser(userId);
-  const validDrafts = draftWorks.filter(isValidDraftForReuse);
+  const validDrafts = draftWorks.filter((work) => isValidDraftForReuse(work, options));
   return validDrafts.map((work) => ({
     workId: work.id,
     workVersionId: work.versions[0].id,

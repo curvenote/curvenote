@@ -267,19 +267,21 @@ Article is **not** selected because `frontmatter.myst` is present. That key is e
 
 `metadata.checks` is **orthogonal** — it does not identify the create flow.
 
+The same resolver is used for **resume** (`resolveDraftResumePath`). Options may declare `resumePath` (`:workId` / `:workVersionId`) and `formPathIncludes`. Extensions that need extra IDs (PMC `submissionVersionId`) implement `ServerExtension.resolveResumeDraftPath`.
+
 ---
 
 ## Work layout guards
 
-Draft-only works are redirected into an upload/deposit flow instead of details pages.
+Draft-only works are redirected into the resolved create-flow form instead of details pages.
 
-The work layout loader (`works.$workId/route.tsx`) redirects draft-only works away from “details-like” paths. **PMC deposit paths are excluded** so navigation to `/site/pmc/deposit/...` is not bounced to article upload:
+The work layout loader (`works.$workId/route.tsx`) treats a path as already on a create form when it matches any registered option’s `formPathIncludes` (Article `/upload/`, Foundry `/foundry/`, PMC `/site/pmc/`, …). Bounce target is `resolveDraftResumePath()` — extension `resolveResumeDraftPath` hook, else `resumePath` template, else Article upload.
 
 ```typescript
-const isPmcDepositPath = pathname.startsWith(`/app/works/${workId}/site/pmc/`);
-// ...
-if (!isOnUploadRoute && isDetailsLikePath && !isPmcDepositPath) {
-  throw redirect(`/app/works/${workId}/upload/...`);
+const resumeOptions = workCreateOptionsForResume(extensions);
+const isOnUploadRoute = isOnCreateFormPath(pathname, workId, resumeOptions);
+if (!isOnUploadRoute && isDetailsLikePath) {
+  throw redirect(await resolveDraftResumePath({ workId, workVersionId, metadata, options: resumeOptions, serverExtensions, ctx }));
 }
 ```
 
@@ -307,6 +309,7 @@ Paths relative to repository root.
 | `WorkCreateOption` type | `packages/scms-core/src/modules/extensions/types.ts` |
 | Registry helpers | `packages/scms-core/src/modules/workCreate/workCreateOptions.ts` |
 | Metadata resolver | `packages/scms-core/src/modules/workCreate/resolveWorkCreateOption.ts` |
+| Resume-draft helpers | `packages/scms-core/src/modules/workCreate/resumeDraft.ts` |
 | Built-in Article option | `packages/scms-core/src/modules/workCreate/builtinArticleOption.ts` |
 | Create dropdown UI | `packages/scms-core/src/components/CreateWorkDropdown.tsx` |
 | Dashboard task filtering | `packages/scms-core/src/modules/extensions/tasks.ts` |
@@ -320,7 +323,7 @@ Paths relative to repository root.
 | Article launcher | `platform/scms/app/routes/app/works.new/route.tsx` |
 | Work layout + create-new-version action | `platform/scms/app/routes/app/works.$workId/route.tsx` |
 | Work details top bar | `platform/scms/app/routes/app/works.$workId.details/WorkDetailsTopBar.tsx` |
-| Resume-draft heuristic (`checks`) | `platform/scms/app/routes/app/works.$workId/metadata.server.ts` |
+| Resume eligibility (`canUpload` + draft) | `platform/scms/app/routes/app/works.$workId/metadata.server.ts` |
 | Dashboard tasks | `platform/scms/app/routes/app/dashboard/route.tsx` |
 | Built-in Check My Work card | `packages/scms-core/src/modules/builtinTasks/AutomatedChecksTaskCard.tsx` |
 
@@ -333,6 +336,7 @@ Paths relative to repository root.
 | PMC launcher action | `extensions/hhmi-os-ext/packages/pmc/src/routes/pmc.tsx` |
 | Create option registration | `extensions/hhmi-os-ext/packages/pmc/src/client.ts` |
 | Create-new-version handler | `extensions/hhmi-os-ext/packages/pmc/src/createWorkVersion.server.ts` |
+| Resume-draft path hook | `extensions/hhmi-os-ext/packages/pmc/src/resolveResumeDraftPath.server.ts` |
 
 ### Action intents (create flows)
 
@@ -347,16 +351,14 @@ Paths relative to repository root.
 
 ## Known gaps
 
-1. **Resume draft on work details** still uses the article heuristic (`checks` in metadata) and always navigates to the upload route — not PMC deposit resume.
-2. **Article create-new-version** does not clone prior `frontmatter.myst` / files metadata (conservative by design).
-3. **Dashboard `task` vs launcher `routes`** can diverge if config enables task without routes; PMC task would redirect away from a disabled launcher.
+1. **Article create-new-version** does not clone prior `frontmatter.myst` / files metadata (conservative by design).
+2. **Dashboard `task` vs launcher `routes`** can diverge if config enables task without routes; PMC task would redirect away from a disabled launcher.
 
 ---
 
 ## Adding a new create flow
 
 1. Register `getWorkCreateOptions()` on the extension (and `createWorkVersion` on the server extension for new-version support).
-2. Add a launcher route (draft check, create action, client navigation to your form).
-3. Optionally add a dashboard task card that navigates to the same launcher `startPath`.
-4. Choose a top-level `metadataKey` for resolution on existing works.
-5. Ensure work layout guards do not redirect your form URL to article upload.
+2. Set `metadataKey` plus `resumePath` and/or `formPathIncludes` so resume and layout guards stay generic. If the resume URL needs extra IDs, implement `resolveResumeDraftPath` on the server extension.
+3. Add a launcher route (draft check, create action, client navigation to your form).
+4. Optionally add a dashboard task card that navigates to the same launcher `startPath`.

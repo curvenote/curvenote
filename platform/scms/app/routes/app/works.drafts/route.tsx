@@ -7,17 +7,43 @@ import {
   FrameHeader,
   getBrandingFromMetaMatches,
   joinPageTitle,
+  resolveDraftResumePath,
+  workCreateOptionsForResume,
 } from '@curvenote/scms-core';
 import type { LoaderFunctionArgs } from 'react-router';
 import { Link } from 'react-router';
 import { dbGetDraftWorks } from './db.server';
 import type { DraftWorkItem } from './db.server';
 import { FileEdit } from 'lucide-react';
+import { extensions } from '../../../extensions/client';
+import { extensions as serverExtensions } from '../../../extensions/server';
+
+const DETAILS_WITH_DRAFTS = '?drafts=true';
 
 export const loader = async (args: LoaderFunctionArgs) => {
   const ctx = await withAppScopedContext(args, [scopes.work.list], { redirect: true });
+  const resumeOptions = workCreateOptionsForResume(extensions);
   try {
-    const items = await dbGetDraftWorks(ctx.user.id);
+    const works = await dbGetDraftWorks(ctx.user.id);
+    const items = await Promise.all(
+      works.map(async (work) => {
+        const version = work.versions[0];
+        const isWorkVersionDraft = work.draftKind === 'work_version_draft';
+        const href =
+          isWorkVersionDraft && version
+            ? await resolveDraftResumePath({
+                workId: work.id,
+                workVersionId: version.id,
+                metadata: version.metadata,
+                options: resumeOptions,
+                serverExtensions,
+                ctx,
+                from: 'drafts',
+              })
+            : `/app/works/${work.id}/details${DETAILS_WITH_DRAFTS}`;
+        return { ...work, href };
+      }),
+    );
     return { items };
   } catch {
     return { items: [] };
@@ -29,16 +55,11 @@ export const meta: Route.MetaFunction = ({ matches }) => {
   return [{ title: joinPageTitle('Draft Works', branding.title) }];
 };
 
-const DETAILS_WITH_DRAFTS = '?drafts=true';
-
-function DraftWorkRow({ work }: { work: DraftWorkItem }) {
+function DraftWorkRow({ work }: { work: DraftWorkItem & { href: string } }) {
   const version = work.versions[0];
   const title = version?.title ?? 'Untitled Work';
   const isWorkVersionDraft = work.draftKind === 'work_version_draft';
-  const href =
-    isWorkVersionDraft && version
-      ? `/app/works/${work.id}/upload/${version.id}?from=drafts`
-      : `/app/works/${work.id}/details${DETAILS_WITH_DRAFTS}`;
+  const { href } = work;
 
   return (
     <div className="flex gap-4 justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
@@ -93,7 +114,7 @@ export default function DraftWorksPage({ loaderData }: Route.ComponentProps) {
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-900">
-            {items.map((work: DraftWorkItem) => (
+            {items.map((work) => (
               <DraftWorkRow key={work.id} work={work} />
             ))}
             <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 dark:border-gray-700 dark:bg-gray-800/50">

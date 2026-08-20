@@ -15,7 +15,7 @@ import {
   StorageBackend,
   findWorkByVersion,
   getPrismaClient,
-  resolveThumbnailBucket,
+  resolveBucketForCdn,
   safeWorkVersionJsonUpdate,
   signFilesInMetadata,
 } from '@curvenote/scms-server';
@@ -312,6 +312,7 @@ async function extractFigureAttachmentsFromBuffer(
 async function loadPreviewWorkContext(
   workVersionId: string,
   ctx: Context,
+  options: { targetPath?: string } = {},
 ): Promise<PreviewWorkContext | null> {
   const work = await findWorkByVersion(workVersionId);
   if (!work?.metadata) return null;
@@ -327,12 +328,15 @@ async function loadPreviewWorkContext(
     ctx,
   );
   const signedFiles = signedMetadata.files ?? {};
-  const previewEntries = Object.entries(signedFiles).filter(([, file]) =>
+  let previewEntries = Object.entries(signedFiles).filter(([, file]) =>
     isPreviewCandidate(file),
   ) as [string, FileMetadataSectionItem & { signedUrl?: string }][];
+  if (options.targetPath) {
+    previewEntries = previewEntries.filter(([path]) => path === options.targetPath);
+  }
 
   const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
-  const figureBucket = cdn ? resolveThumbnailBucket(ctx, backend, cdn) : null;
+  const figureBucket = cdn ? resolveBucketForCdn(ctx, backend, cdn) : null;
   const prisma = await getPrismaClient();
 
   return {
@@ -412,8 +416,9 @@ async function updatePhaseBCache(
 export async function fetchDocumentPreviewText(
   workVersionId: string,
   ctx: Context,
+  options: { targetPath?: string } = {},
 ): Promise<FetchPreviewsResult> {
-  const previewCtx = await loadPreviewWorkContext(workVersionId, ctx);
+  const previewCtx = await loadPreviewWorkContext(workVersionId, ctx, options);
   if (!previewCtx) return { previews: [] };
 
   const { rawMetadata, previewEntries, figureBucket, prisma } = previewCtx;
@@ -512,9 +517,9 @@ export function shouldExtractPreviewFigures(
 export async function fetchDocumentPreviewFigures(
   workVersionId: string,
   ctx: Context,
-  options: { forceRetry?: boolean } = {},
+  options: { forceRetry?: boolean; targetPath?: string } = {},
 ): Promise<FetchPreviewsResult> {
-  const previewCtx = await loadPreviewWorkContext(workVersionId, ctx);
+  const previewCtx = await loadPreviewWorkContext(workVersionId, ctx, options);
   if (!previewCtx) return { previews: [] };
 
   const { rawMetadata, previewEntries, backend, figureBucket, prisma } = previewCtx;
@@ -637,18 +642,19 @@ export async function fetchDocumentPreviews(
 export async function handleFetchPreviewsIntent(
   workVersionId: string | undefined,
   ctx: Context,
+  options: { targetPath?: string } = {},
 ): Promise<{ previews: DocumentPreviewItem[] }> {
   if (!workVersionId) {
     throw new Error('Work version ID is required');
   }
-  const result = await fetchDocumentPreviewText(workVersionId, ctx);
+  const result = await fetchDocumentPreviewText(workVersionId, ctx, options);
   return { previews: result.previews };
 }
 
 export async function handleFetchPreviewFiguresIntent(
   workVersionId: string | undefined,
   ctx: Context,
-  options: { forceRetry?: boolean } = {},
+  options: { forceRetry?: boolean; targetPath?: string } = {},
 ): Promise<{ previews: DocumentPreviewItem[] }> {
   if (!workVersionId) {
     throw new Error('Work version ID is required');
@@ -692,7 +698,7 @@ export async function signPreviewFigures(
 ): Promise<DocumentPreviewItem[]> {
   if (!cdn) return previews;
   const backend = new StorageBackend(ctx, [KnownBuckets.prv, KnownBuckets.pub]);
-  const bucket = resolveThumbnailBucket(ctx, backend, cdn);
+  const bucket = resolveBucketForCdn(ctx, backend, cdn);
   return Promise.all(
     previews.map(async (item) => {
       if (item.figures.length === 0) return item;
