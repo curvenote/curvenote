@@ -37,20 +37,42 @@ export function computeCanResumeDraftUpload(
   return canUpload === true && latestVersion?.draft === true;
 }
 
-/** Signed file entries only — omit myst/checks/license from the client payload. */
+/** Signed file entries and extension marker keys safe for the work-details client payload. */
+export type WorkVersionClientMetadata = {
+  files?: Record<string, unknown>;
+  /** Foundry wizard marker — passthrough for extension timeline visibility only. */
+  foundry?: unknown;
+};
+
+/** Signed file entries plus safe extension markers — omit myst/checks/license from the client payload. */
 export async function signVersionFilesForClient(
   version: { cdn: string | null },
   metadata: unknown,
   ctx: Context,
-): Promise<{ files: Record<string, unknown> } | undefined> {
+): Promise<WorkVersionClientMetadata | undefined> {
   const meta =
     metadata != null && typeof metadata === 'object' ? (metadata as Record<string, unknown>) : null;
-  if (!meta?.files || typeof meta.files !== 'object') return undefined;
-  const signed = await signFilesInMetadata(
-    meta as Parameters<typeof signFilesInMetadata>[0],
-    version.cdn ?? '',
-    ctx,
-  );
-  if (!signed.files || typeof signed.files !== 'object') return undefined;
-  return { files: signed.files as Record<string, unknown> };
+  const out: WorkVersionClientMetadata = {};
+
+  if (meta?.files && typeof meta.files === 'object') {
+    const signed = await signFilesInMetadata(
+      meta as Parameters<typeof signFilesInMetadata>[0],
+      version.cdn ?? '',
+      ctx,
+    );
+    if (signed.files && typeof signed.files === 'object') {
+      out.files = signed.files as Record<string, unknown>;
+    }
+  }
+
+  if (
+    meta?.foundry != null &&
+    typeof meta.foundry === 'object' &&
+    !Array.isArray(meta.foundry)
+  ) {
+    out.foundry = meta.foundry;
+  }
+
+  if (out.files == null && out.foundry == null) return undefined;
+  return out;
 }

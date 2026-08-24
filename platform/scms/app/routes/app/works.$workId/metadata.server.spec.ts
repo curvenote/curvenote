@@ -1,6 +1,18 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
-import { computeCanResumeDraftUpload, resolveWorkVersionDoi } from './metadata.server';
+import { computeCanResumeDraftUpload, resolveWorkVersionDoi, signVersionFilesForClient } from './metadata.server';
+
+describe('signVersionFilesForClient', () => {
+  it('passes through foundry marker without files', async () => {
+    const result = await signVersionFilesForClient(
+      { cdn: 'https://cdn.example' },
+      { foundry: { wizard: { furthest: 'confirm' } } },
+      {} as Parameters<typeof signVersionFilesForClient>[2],
+    );
+
+    expect(result).toEqual({ foundry: { wizard: { furthest: 'confirm' } } });
+  });
+});
 
 describe('computeCanResumeDraftUpload', () => {
   it('allows resume when user can upload and latest version is draft', () => {
