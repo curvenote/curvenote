@@ -3,6 +3,7 @@ import {
   getBrandingFromMetaMatches,
   joinPageTitle,
   getExtensionCheckServicesFromServerConfig,
+  getExtensionTimelineItemsFromClientConfig,
   useDeploymentConfig,
   scopes,
 } from '@curvenote/scms-core';
@@ -103,6 +104,10 @@ export default function WorkDetailRoute() {
     >[0],
     extensions,
   );
+  const registeredTimelineItems = getExtensionTimelineItemsFromClientConfig(
+    deploymentConfig,
+    extensions,
+  );
 
   const workBasePath = `/app/works/${work.id}`;
   const basePath = `/app/works/${work.id}`;
@@ -141,6 +146,7 @@ export default function WorkDetailRoute() {
         </div>
         <div>
           <WorkVersionTimeline
+            workId={work.id}
             versions={versions}
             webVersionPreviewSignatures={webVersionPreviewSignatures}
             workflows={workflows}
@@ -152,6 +158,7 @@ export default function WorkDetailRoute() {
             activities={activities}
             checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
             checkServices={checkServices}
+            registeredTimelineItems={registeredTimelineItems}
           />
         </div>
       </div>

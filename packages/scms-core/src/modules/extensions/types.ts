@@ -392,6 +392,52 @@ export type ClientExtensionCheckService = Omit<
   'handleAction' | 'handleStatus' | 'resolveUploadLogoUrl'
 >;
 
+export type TimelineSurface = 'work-version' | 'submission-version';
+
+/** Context passed to extension timeline item visibility and render components. */
+export type ExtensionTimelineItemContext = {
+  surface: TimelineSurface;
+  workId: string;
+  workVersionId: string;
+  dateCreated: string;
+  dateModified: string;
+  draft: boolean;
+  metadata: unknown;
+  /** Server-resolved payload when {@link ServerExtension.resolveTimelineItems} is implemented. */
+  payload?: unknown;
+};
+
+export type ExtensionTimelineItemProps = ExtensionTimelineItemContext;
+
+export interface ClientExtensionTimelineItem {
+  /** Stable id within the owning extension, e.g. `foundry-processed`. */
+  id: string;
+  surfaces: TimelineSurface[];
+  /** Default 50; lower values sort earlier within the same minute bucket. */
+  sortRank?: number;
+  isVisible: (ctx: ExtensionTimelineItemContext) => boolean;
+  component: React.ComponentType<ExtensionTimelineItemProps>;
+  /**
+   * Optional headless mount for timeline side effects (e.g. fetcher/revalidate).
+   * Same rationale as {@link ExtensionCheckService.checkRunTimelineMountComponent}.
+   */
+  mountComponent?: React.ComponentType<ExtensionTimelineItemProps>;
+}
+
+/** Serializable descriptor for server-resolved timeline items (submission surface, signed URLs). */
+export type ExtensionTimelineItemDescriptor = {
+  extensionId: string;
+  itemId: string;
+  workVersionId: string;
+  sortDate: string;
+  payload?: unknown;
+};
+
+export type RegisteredExtensionTimelineItem = {
+  extensionId: string;
+  item: ClientExtensionTimelineItem;
+};
+
 /** Props for the optional extension admin card component (platform extensions page). Aligned with ExtensionAdminCardFallback. */
 export type ExtensionAdminCardProps = {
   /** Extension display name (e.g. config key). */
@@ -416,6 +462,8 @@ export interface ClientExtension {
   getEmailTemplates?: () => ExtensionEmailTemplate[];
   getWorkflows?: () => WorkflowRegistration;
   getChecks?: () => ClientExtensionCheckService[];
+  /** Optional timeline rows contributed by this extension (see {@link ClientExtensionTimelineItem}). */
+  getTimelineItems?: () => ClientExtensionTimelineItem[];
   registerNavigation: NavigationRegistrationFn;
   /** Optional component to render extension admin card content; receives sanitized config. */
   getExtensionAdminCard?: () => React.ComponentType<ExtensionAdminCardProps>;
@@ -492,6 +540,22 @@ export interface ServerExtension extends ClientExtension {
    * `useExtensionDesignLoaderData()` inside extension design components).
    */
   getDesignLoaderData?: (ctx: Context) => Promise<Record<string, unknown>>;
+  /**
+   * Optional server-side resolution of timeline item payloads (signed URLs, etc.).
+   * Not required for client-only visibility from work-version metadata.
+   */
+  resolveTimelineItems?: (args: {
+    ctx: Context;
+    surface: TimelineSurface;
+    workVersions: Array<{
+      id: string;
+      work_id: string;
+      date_created: string;
+      date_modified: string;
+      draft: boolean;
+      metadata: unknown;
+    }>;
+  }) => Promise<ExtensionTimelineItemDescriptor[]>;
 }
 
 export type RouteRegistration = {

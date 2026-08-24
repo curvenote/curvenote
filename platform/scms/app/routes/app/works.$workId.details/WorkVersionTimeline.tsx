@@ -10,15 +10,23 @@ import {
   TimelineActivitiesVisibilityProvider,
   ActivityTimelineItem,
   CheckServiceRunTimelineItem,
+  ExtensionTimelineItemRenderer,
   TimelineSection,
   useTimelineActivitiesVisibility,
   buildWorkVersionNumberByIdMap,
   compareWorkVersionsByDateCreatedDesc,
   WorkContents,
+  buildExtensionTimelineEntriesForWorkVersion,
 } from '@curvenote/scms-core';
 import type { WorkVersionForDetailsClient } from '../works.$workId/types';
 import type { WorkActivityRow, CheckServiceRunRow } from '../works.$workId/db.server';
-import type { Workflow, ClientExtensionCheckService } from '@curvenote/scms-core';
+import type {
+  Workflow,
+  ClientExtensionCheckService,
+  RegisteredExtensionTimelineItem,
+  ExtensionTimelineItemContext,
+  ClientExtensionTimelineItem,
+} from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from './types';
 import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineItem';
 import { SubmissionTimelineItem } from './timeline/SubmissionTimelineItem';
@@ -58,6 +66,15 @@ type TimelineEntry =
       key: string;
       run: CheckServiceRunRow;
       version: WorkVersionForDetailsClient;
+    }
+  | {
+      kind: 'extension-timeline-item';
+      date: string;
+      key: string;
+      sortRank: number;
+      extensionId: string;
+      item: ClientExtensionTimelineItem;
+      ctx: ExtensionTimelineItemContext;
     };
 
 function isWebVersionAvailable(version: WorkVersionForDetailsClient): boolean {
@@ -90,11 +107,34 @@ function toMinuteKey(dateStr: string): number {
 
 /** Build section entries and sort by date descending (most recent first). */
 function getSortedSectionEntries(
+  workId: string,
   version: WorkVersionForDetailsClient,
   submissionVersionsToShow: SubmissionVersionRow[],
   activitiesForVersion: WorkActivityRow[],
   checkRunsForVersion: CheckServiceRunRow[],
+  registeredTimelineItems: RegisteredExtensionTimelineItem[],
 ): TimelineEntry[] {
+  const extensionEntries = buildExtensionTimelineEntriesForWorkVersion(
+    workId,
+    {
+      id: version.id,
+      work_id: workId,
+      date_created: version.date_created,
+      date_modified: version.date_modified,
+      draft: version.draft,
+      metadata: version.metadata,
+    },
+    registeredTimelineItems,
+  ).map((entry) => ({
+    kind: 'extension-timeline-item' as const,
+    date: entry.date,
+    key: entry.key,
+    sortRank: entry.sortRank,
+    extensionId: entry.extensionId,
+    item: entry.item,
+    ctx: entry.ctx,
+  }));
+
   const entries: TimelineEntry[] = [
     // Only show the "Version created" row for finalized (non-draft) versions
     ...(version.draft
@@ -141,21 +181,30 @@ function getSortedSectionEntries(
       run,
       version,
     })),
+    ...extensionEntries,
   ];
   entries.sort((a, b) => {
     const minA = toMinuteKey(a.date);
     const minB = toMinuteKey(b.date);
     if (minA > minB) return -1;
     if (minA < minB) return 1;
-    // Tie (same minute): check-service-run first; then order rest by full timestamp descending
+    // Tie (same minute): check-service-run first; extension items by sortRank; then timestamp
     if (a.kind === 'check-service-run' && b.kind !== 'check-service-run') return -1;
     if (a.kind !== 'check-service-run' && b.kind === 'check-service-run') return 1;
+    if (a.kind === 'extension-timeline-item' && b.kind === 'extension-timeline-item') {
+      if (a.sortRank !== b.sortRank) return a.sortRank - b.sortRank;
+    } else if (a.kind === 'extension-timeline-item' && b.kind !== 'extension-timeline-item') {
+      return -1;
+    } else if (a.kind !== 'extension-timeline-item' && b.kind === 'extension-timeline-item') {
+      return 1;
+    }
     return a.date > b.date ? -1 : a.date < b.date ? 1 : 0;
   });
   return entries;
 }
 
 type WorkVersionTimelineProps = {
+  workId: string;
   versions: WorkVersionForDetailsClient[];
   /** Preview JWTs keyed by workVersionId for MyST web Open links. */
   webVersionPreviewSignatures: Record<string, string>;
@@ -172,6 +221,8 @@ type WorkVersionTimelineProps = {
   checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>;
   /** Resolved check services from extensions (run.kind maps to service.id). */
   checkServices: ClientExtensionCheckService[];
+  /** Extension timeline items from enabled extensions (`routes: true`). */
+  registeredTimelineItems: RegisteredExtensionTimelineItem[];
 };
 
 /**
@@ -189,6 +240,7 @@ export function WorkVersionTimeline(props: WorkVersionTimelineProps) {
 }
 
 function WorkVersionTimelineInner({
+  workId,
   versions,
   webVersionPreviewSignatures,
   workOwnerName,
@@ -199,6 +251,7 @@ function WorkVersionTimelineInner({
   activities,
   checkServiceRunsByWorkVersionId,
   checkServices,
+  registeredTimelineItems,
 }: WorkVersionTimelineProps) {
   const { showActivities } = useTimelineActivitiesVisibility();
   const [searchParams] = useSearchParams();
@@ -243,10 +296,12 @@ function WorkVersionTimelineInner({
           </span>
         );
         const sortedEntries = getSortedSectionEntries(
+          workId,
           v,
           submissionVersionsToShow,
           activitiesForVersion,
           checkRunsForVersion,
+          registeredTimelineItems,
         );
         const visibleEntries = (
           showActivities ? sortedEntries : sortedEntries.filter((e) => e.kind !== 'activity')
@@ -310,6 +365,15 @@ function WorkVersionTimelineInner({
                       entry.run,
                       checkServiceRunsByWorkVersionId,
                     )}
+                  />
+                );
+              }
+              if (entry.kind === 'extension-timeline-item') {
+                return (
+                  <ExtensionTimelineItemRenderer
+                    key={entry.key}
+                    item={entry.item}
+                    ctx={entry.ctx}
                   />
                 );
               }
