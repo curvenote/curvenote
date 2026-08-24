@@ -7,7 +7,6 @@ SCMS bring-up: **[`DEVELOPMENT.md`](../../DEVELOPMENT.md)**. Storage profiles an
 ## Quick start
 
 ```bash
-bun run storage:use-minio    # if needed
 bun run dx:reset
 ```
 

@@ -126,6 +126,19 @@ async function main() {
   });
   summary.users++;
   console.log(`   ✓ Created user: ${mikeStaging.display_name} (${mikeStaging.email})`);
+
+  const adrian = await prisma.user.create({
+    data: {
+      date_created: startDateString,
+      date_modified: startDateString,
+      id: 'WwYWGuC0ntg9Q72S1W83qKwEW2B2',
+      email: 'ingeneria.aga@gmail.com',
+      display_name: 'Adrián (STAGING ADMIN)',
+      system_role: SystemRole.ADMIN,
+    },
+  });
+  summary.users++;
+  console.log(`   ✓ Created user: ${adrian.display_name} (${adrian.email})`);
   console.log(`   Total users created: ${summary.users}\n`);
 
   const now = new Date().toISOString();
@@ -257,7 +270,7 @@ async function main() {
 
   console.log('🔗 Assigning roles to users...');
   // Assign roles to all users except Support for admin roles
-  const usersToAssignRoles = [franklin, rowanStaging, steveStaging, mikeStaging];
+  const usersToAssignRoles = [franklin, rowanStaging, steveStaging, mikeStaging, adrian];
 
   for (const user of usersToAssignRoles) {
     // Assign Platform Admin role
@@ -275,7 +288,7 @@ async function main() {
   }
 
   // Assign My Works Preview role to ALL users including support
-  const allUsers = [franklin, rowanStaging, steveStaging, mikeStaging, support];
+  const allUsers = [franklin, rowanStaging, steveStaging, mikeStaging, support, adrian];
   for (const user of allUsers) {
     await prisma.userRole.create({
       data: {
@@ -344,7 +357,7 @@ async function main() {
     startDateString,
     {
       support,
-      others: [franklin, rowanStaging, steveStaging, mikeStaging],
+      others: [franklin, rowanStaging, steveStaging, mikeStaging, adrian],
     },
     { environmentOverride: 'development' },
   );

@@ -1,5 +1,5 @@
 # Local Postgres + MinIO + task-converter for SCMS development.
-# Start: bun run dx:up   Reset: bun run dx:reset   Full rebuild: bun run dx:rebuild
+# Start: bun run dx:up   Reset: bun run dx:reset (includes storage:use-minio)   Full rebuild: bun run dx:rebuild
 # Stop: bun run db:down   Wipe data: bun run db:down:clean
 # Postgres only (GCP storage opt-out): bun run db:up:gcp
 #

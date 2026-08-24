@@ -18,8 +18,7 @@ Fragments: [`docker/minio/storage.minio.yml`](../../docker/minio/storage.minio.y
 Full SCMS steps (config, install, seed overlay): **[`DEVELOPMENT.md`](../../DEVELOPMENT.md)**.
 
 ```bash
-bun run storage:use-minio          # if config is not already on MinIO
-bun run dx:reset                   # dx:up + storage:seed + migrate/seed
+bun run dx:reset                   # storage:use-minio + dx:up + storage:seed + migrate/seed
 ```
 
 - S3 API / signing endpoint (host + browser): http://127.0.0.1:9000
@@ -62,8 +61,7 @@ Secrets stay as-is: `storageSASecretKeyfile` and `privateCDNSigningInfo` in `.ap
 ## Switch back to MinIO
 
 ```bash
-bun run storage:use-minio
-bun run dx:reset                   # required — DB CDN bases must match MinIO
+bun run dx:reset                   # storage:use-minio + full reset (CDN bases match MinIO)
 ```
 
 ## Profile helper
@@ -78,7 +76,7 @@ These edit `platform/scms/.app-config.development.yml` and (for MinIO keys) `.ap
 - **minio** — set non-secret `api.storage` + MinIO `knownBucketInfoMap`; put `accessKeyId` / `secretAccessKey` in secrets
 - **gcp** — remove `api.storage` from development and secrets (legacy `storageSASecretKeyfile` path) + GCP `knownBucketInfoMap`
 
-They do **not** start Docker, touch secrets, or move objects. Always `dx:reset` (MinIO) or `dev:db:reset` (GCP) after a flip so seeded CDN hosts match.
+They do **not** start Docker or move objects. `dx:reset` / `dx:rebuild` run `storage:use-minio` automatically. After manually flipping profiles, use `dx:reset` (MinIO) or `dev:db:reset` (GCP) so seeded CDN hosts match.
 
 ## Reset / wipe
 

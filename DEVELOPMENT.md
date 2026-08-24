@@ -45,11 +45,10 @@ Default object storage is **local MinIO** (not GCP). Postgres creates `journals`
 Stop any native Postgres already bound to 5432 first — see [platform/scms/README.md](platform/scms/README.md#moving-from-local-postgres-to-docker-based-postgres).
 
 ```bash
-bun run storage:use-minio   # if development app-config is not already on MinIO
-bun run dx:reset            # starts infra, seeds MinIO overlay (if any), migrate + seed DB
+bun run dx:reset            # storage:use-minio + dx:up + storage:seed + migrate/seed DB
 ```
 
-`dx:up` starts Postgres, MinIO, and the task converter, creates buckets, and waits until healthy. `dx:reset` runs `dx:up`, then `storage:seed`, then `dev:db:reset`.
+`dx:up` starts Postgres, MinIO, and the task converter, creates buckets, and waits until healthy. `dx:reset` applies the MinIO app-config profile, runs `dx:up`, then `storage:seed`, then `dev:db:reset`.
 
 The **committed seed is bare** (users, roles, queue/cron config — **no sites or works**). Site logos and CDN trees are not in git.
 
@@ -123,9 +122,10 @@ Use this for day-to-day SCMS, published-work pages, and converter jobs. Offline,
 Confirm / apply the profile, then bring the full stack up:
 
 ```bash
-bun run storage:use-minio
-bun run dx:reset              # dx:up + storage:seed + migrate/seed
+bun run dx:reset              # storage:use-minio + dx:up + storage:seed + migrate/seed
 ```
+
+(`storage:use-minio` runs automatically inside `dx:reset` / `dx:rebuild`. Run it alone only when switching back from GCP without resetting.)
 
 MinIO console: http://127.0.0.1:9001 (`curvenote` / `curvenote`). S3 API: http://127.0.0.1:9000. Signing from Docker workers uses `host.docker.internal:9000` (not `127.0.0.1`).
 
@@ -148,7 +148,7 @@ bun run dev:db:reset          # required — CDN bases in the DB must match GCP
 
 ```bash
 bun run storage:use-minio
-bun run dx:reset              # required — CDN bases in the DB must match MinIO
+bun run dx:reset              # re-applies MinIO profile + full reset
 ```
 
 If works still point at `prv.curvenote.dev` after switching to MinIO (or `127.0.0.1:9000` after switching to GCP), the profile flipped but the DB was not reset.
@@ -162,8 +162,8 @@ Full detail: [`docs/storage/dx-local.md`](docs/storage/dx-local.md).
 | Command | Purpose |
 | ------- | ------- |
 | `bun run dx:up` | Start Postgres + MinIO + task-converter |
-| `bun run dx:reset` | `dx:up` + MinIO seed overlay + migrate/seed the **dev** DB |
-| `bun run dx:rebuild` | No-cache rebuild Postgres image, wipe volumes, bring stack up, then `dx:reset` |
+| `bun run dx:reset` | MinIO profile + `dx:up` + MinIO seed overlay + migrate/seed the **dev** DB |
+| `bun run dx:rebuild` | No-cache rebuild Postgres image, wipe volumes, bring stack up, MinIO profile, then seed |
 | `bun run db:up:gcp` | Postgres only (GCP storage profile) |
 | `bun run db:down` | Stop containers (keep volumes) |
 | `bun run db:down:clean` | Stop and **delete** Postgres + MinIO volumes |
