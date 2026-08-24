@@ -1,0 +1,17 @@
+{
+  "id": "01a03358-505b-75fc-93f5-1a8f86dec17f",
+  "title": "Welcome to Curvenote",
+  "description": "Basic landing page for local development (from examples/basic-landing).",
+  "authors": ["Curvenote"],
+  "date": "2026-08-24T10:37:00.891Z",
+  "content_only": true,
+  "versions": [
+    {
+      "id": "01a03358-505b-75fc-93f5-1a903e3b616d",
+      "cdn_key": "01a03358-4fdd-764b-9311-9f30bd4e1651",
+      "cdn": "http://127.0.0.1:9000/cdn-pub-curvenote-dev-1/",
+      "date_created": "2026-08-24T10:37:00.891Z",
+      "canonical": true
+    }
+  ]
+}

@@ -197,6 +197,9 @@ export async function seedBySites(
     console.log(`   ✓ Using site static CDN from app-config: ${seedStaticCdnBase}`);
   }
 
+  const landingWorkPath = path.join(seedUtilsDir, 'data/utils/landing-work.json');
+  await seedSharedContentWork(landingWorkPath, startDateString, users, seedCdnBase, summary);
+
   for (const item of data) {
     item.site.id ??= uuid();
     absolutizeSiteStaticAssetUrls(item.site, seedStaticCdnBase);
@@ -356,6 +359,14 @@ export async function seedBySites(
       summary.works++;
       console.log(`      ✓ Created work: ${workData.id} (${workData.versions.length} version(s))`);
 
+      if (work.content_only) {
+        console.log(`      ✓ Skipped submissions for content-only work: ${workData.id}`);
+        if (work.job) {
+          console.warn(`      ⚠️  Ignoring job on content-only work: ${workData.id}`);
+        }
+        continue;
+      }
+
       if (work.job) {
         const job = await prisma.job.create({
           data: {
@@ -411,6 +422,7 @@ export async function seedBySites(
         restricted: item.site.restricted ?? true,
         description: item.site.description,
         slug_strategy: item.site.slug_strategy,
+        content_id: item.site.content_id ?? undefined,
         metadata: item.site,
         submissionKinds: {
           create: item.site.kinds.map((kind: any) => ({
@@ -683,6 +695,81 @@ export async function seedBySites(
 }
 
 const seedUtilsDir = path.dirname(fileURLToPath(import.meta.url));
+
+async function seedSharedContentWork(
+  landingWorkPath: string,
+  startDateString: string,
+  users: {
+    support: Prisma.UserGetPayload<any>;
+  },
+  seedCdnBase: string | undefined,
+  summary: { works: number },
+): Promise<void> {
+  let work: any;
+  try {
+    const raw = await fs.readFile(landingWorkPath, 'utf-8');
+    work = JSON.parse(raw);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
+    throw err;
+  }
+
+  if (!looksLikeUUID(work.id)) {
+    throw new Error(`Shared content work must use a UUID id (got "${work.id}")`);
+  }
+
+  console.log(`\n📄 Seeding shared site content work: ${work.title || work.id}`);
+
+  const versions = work.versions.map((version: any) => ({
+    date_created: new Date(version.date_created).toISOString(),
+    date_modified: new Date(version.date_created).toISOString(),
+    id: version.id,
+    cdn_key: version.cdn_key,
+    cdn: version.cdn,
+    title: work.title,
+    description: work.description,
+    authors: work.authors ?? [],
+    date: work.date,
+    doi: version.doi,
+    canonical: version.canonical,
+  }));
+  const versionsWithCdn = applySeedCdnBase(versions, seedCdnBase);
+
+  const workData = await prisma.work.upsert({
+    where: { id: work.id },
+    create: {
+      id: work.id,
+      doi: work.doi,
+      date_created: versionsWithCdn[0].date_created,
+      date_modified: versionsWithCdn[0].date_created,
+      versions: { create: versionsWithCdn },
+      created_by: { connect: { id: users.support.id } },
+    },
+    update: {
+      created_by: { connect: { id: users.support.id } },
+      date_modified: startDateString,
+    },
+    include: { versions: true },
+  });
+
+  // Reassign ownership to support (covers works created manually before seed).
+  await prisma.workUser.deleteMany({ where: { work_id: work.id } });
+  await prisma.workUser.create({
+    data: {
+      id: uuid(),
+      date_created: startDateString,
+      date_modified: startDateString,
+      user_id: users.support.id,
+      role: WorkRole.OWNER,
+      work_id: work.id,
+    },
+  });
+
+  summary.works++;
+  console.log(
+    `   ✓ Ensured content work: ${workData.id} (${workData.versions.length} version(s), owner: support)`,
+  );
+}
 
 async function loadScmsAppConfig(environmentOverride: 'development' | 'test') {
   return getConfig(
