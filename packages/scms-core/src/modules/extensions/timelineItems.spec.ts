@@ -292,9 +292,12 @@ describe('buildExtensionTimelineEntriesForWorkVersion', () => {
       sortDate: '2026-01-01T00:00:00.000Z',
     };
 
-    const withoutEarlier = buildExtensionTimelineEntriesForWorkVersion('work-1', version, registered, [
-      target,
-    ]);
+    const withoutEarlier = buildExtensionTimelineEntriesForWorkVersion(
+      'work-1',
+      version,
+      registered,
+      [target],
+    );
     const withEarlier = buildExtensionTimelineEntriesForWorkVersion('work-1', version, registered, [
       earlierUnrelated,
       target,
