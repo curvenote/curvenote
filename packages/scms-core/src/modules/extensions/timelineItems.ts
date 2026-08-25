@@ -95,24 +95,33 @@ export type ResolveExtensionTimelineDescriptorsArgs = {
 /**
  * Ask each route-enabled server extension for timeline descriptors for the given versions.
  * Host merges results into loader data; no extension-named metadata keys required.
+ * Extensions are resolved in parallel; failures are logged and skipped so one bad
+ * extension cannot 500 the whole work page.
  */
 export async function resolveExtensionTimelineDescriptors(
   serverConfig: AppConfig,
   extensions: ServerExtension[],
   args: ResolveExtensionTimelineDescriptorsArgs,
 ): Promise<ExtensionTimelineItemDescriptor[]> {
-  const descriptors: ExtensionTimelineItemDescriptor[] = [];
-  for (const ext of extensions) {
-    const extCfg = getExtensionConfig(serverConfig, ext.id);
-    if (!extensionTimelineEnabledFromServerConfig(extCfg) || !ext.resolveTimelineItems) continue;
-    const resolved = await ext.resolveTimelineItems({
-      ctx: args.ctx,
-      surface: args.surface,
-      workVersions: args.workVersions,
-    });
-    descriptors.push(...resolved);
-  }
-  return descriptors;
+  const results = await Promise.all(
+    extensions.map(async (ext) => {
+      const extCfg = getExtensionConfig(serverConfig, ext.id);
+      if (!extensionTimelineEnabledFromServerConfig(extCfg) || !ext.resolveTimelineItems) {
+        return [] as ExtensionTimelineItemDescriptor[];
+      }
+      try {
+        return await ext.resolveTimelineItems({
+          ctx: args.ctx,
+          surface: args.surface,
+          workVersions: args.workVersions,
+        });
+      } catch (error) {
+        console.error(`Failed to resolve timeline items for extension "${ext.id}":`, error);
+        return [] as ExtensionTimelineItemDescriptor[];
+      }
+    }),
+  );
+  return results.flat();
 }
 
 function buildWorkVersionTimelineProps(

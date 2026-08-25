@@ -145,6 +145,66 @@ describe('resolveExtensionTimelineDescriptors', () => {
     );
     expect(noResolver).toEqual([]);
   });
+
+  it('isolates throwing extensions and still merges siblings in parallel', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const otherDescriptor: ExtensionTimelineItemDescriptor = {
+      ...matchingDescriptor,
+      extensionId: 'other-ext',
+      itemId: 'other-item',
+    };
+
+    let releaseFailing!: () => void;
+    let releaseSucceeding!: () => void;
+    const failingStarted = new Promise<void>((resolve) => {
+      releaseFailing = resolve;
+    });
+    const succeedingStarted = new Promise<void>((resolve) => {
+      releaseSucceeding = resolve;
+    });
+
+    const failing = {
+      ...mockTimelineExtension,
+      id: 'failing-ext',
+      resolveTimelineItems: vi.fn(async () => {
+        releaseFailing();
+        await succeedingStarted;
+        throw new Error('extension boom');
+      }),
+    } satisfies ServerExtension;
+    const succeeding = {
+      ...mockTimelineExtension,
+      id: 'other-ext',
+      resolveTimelineItems: vi.fn(async () => {
+        releaseSucceeding();
+        await failingStarted;
+        return [otherDescriptor];
+      }),
+    } satisfies ServerExtension;
+
+    const result = await resolveExtensionTimelineDescriptors(
+      {
+        app: {
+          extensions: {
+            'failing-ext': { routes: true },
+            'other-ext': { routes: true },
+          },
+        },
+      } as AppConfig,
+      [failing, succeeding],
+      {
+        ctx: {} as Parameters<typeof resolveExtensionTimelineDescriptors>[2]['ctx'],
+        surface: 'work-version',
+        workVersions: [version],
+      },
+    );
+
+    expect(result).toEqual([otherDescriptor]);
+    expect(failing.resolveTimelineItems).toHaveBeenCalledOnce();
+    expect(succeeding.resolveTimelineItems).toHaveBeenCalledOnce();
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
 });
 
 describe('buildExtensionTimelineEntriesForWorkVersion', () => {
