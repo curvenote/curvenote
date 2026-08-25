@@ -32,6 +32,7 @@ import type { LinkedJobsByWorkVersionId } from './types';
 import { VersionCreatedTimelineItem } from './timeline/VersionCreatedTimelineItem';
 import { SubmissionTimelineItem } from './timeline/SubmissionTimelineItem';
 import { WebVersionCreatedTimelineItem } from './timeline/WebVersionCreatedTimelineItem';
+import { compareTimelineEntries } from './timelineEntrySort';
 
 type SubmissionVersionRow = WorkVersionForDetailsClient['submissionVersions'][number];
 
@@ -97,13 +98,6 @@ function shouldExpandByDefault(
   return false; // disable for now
   // const latestRunIdByKind = getLatestCheckRunIdByKind(checkServiceRunsByWorkVersionId);
   // return run.id === latestRunIdByKind[run.kind];
-}
-
-/** Truncate to minute resolution for sort comparison (items in same minute are tied). */
-function toMinuteKey(dateStr: string): number {
-  const d = new Date(dateStr);
-  d.setSeconds(0, 0);
-  return d.getTime();
 }
 
 /** Build section entries and sort by date descending (most recent first). */
@@ -186,24 +180,7 @@ function getSortedSectionEntries(
     })),
     ...extensionEntries,
   ];
-  entries.sort((a, b) => {
-    const minA = toMinuteKey(a.date);
-    const minB = toMinuteKey(b.date);
-    if (minA > minB) return -1;
-    if (minA < minB) return 1;
-    // Tie (same minute): check-service-run first; then all extension items (ordered by
-    // sortRank among themselves only); then other kinds by timestamp.
-    if (a.kind === 'check-service-run' && b.kind !== 'check-service-run') return -1;
-    if (a.kind !== 'check-service-run' && b.kind === 'check-service-run') return 1;
-    if (a.kind === 'extension-timeline-item' && b.kind === 'extension-timeline-item') {
-      if (a.sortRank !== b.sortRank) return a.sortRank - b.sortRank;
-    } else if (a.kind === 'extension-timeline-item' && b.kind !== 'extension-timeline-item') {
-      return -1;
-    } else if (a.kind !== 'extension-timeline-item' && b.kind === 'extension-timeline-item') {
-      return 1;
-    }
-    return a.date > b.date ? -1 : a.date < b.date ? 1 : 0;
-  });
+  entries.sort(compareTimelineEntries);
   return entries;
 }
 
