@@ -191,7 +191,8 @@ function getSortedSectionEntries(
     const minB = toMinuteKey(b.date);
     if (minA > minB) return -1;
     if (minA < minB) return 1;
-    // Tie (same minute): check-service-run first; extension items by sortRank; then timestamp
+    // Tie (same minute): check-service-run first; then all extension items (ordered by
+    // sortRank among themselves only); then other kinds by timestamp.
     if (a.kind === 'check-service-run' && b.kind !== 'check-service-run') return -1;
     if (a.kind !== 'check-service-run' && b.kind === 'check-service-run') return 1;
     if (a.kind === 'extension-timeline-item' && b.kind === 'extension-timeline-item') {

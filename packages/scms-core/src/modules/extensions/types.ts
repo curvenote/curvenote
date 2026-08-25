@@ -415,7 +415,11 @@ export interface ClientExtensionTimelineItem {
   /** Stable id within the owning extension, e.g. `processed`. */
   id: string;
   surfaces: TimelineSurface[];
-  /** Default 50; lower values sort earlier within the same minute bucket. */
+  /**
+   * Tie-break among extension timeline items that share the same minute bucket.
+   * Default 50; lower values sort earlier. Does not reorder relative to core kinds
+   * (checks, version created, submissions, activities) — those use fixed kind priority.
+   */
   sortRank?: number;
   /**
    * Optional client-side filter. Prefer {@link ServerExtension.resolveTimelineItems}
