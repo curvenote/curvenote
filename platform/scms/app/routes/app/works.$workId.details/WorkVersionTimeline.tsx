@@ -24,7 +24,8 @@ import type {
   Workflow,
   ClientExtensionCheckService,
   RegisteredExtensionTimelineItem,
-  ExtensionTimelineItemContext,
+  ExtensionTimelineItemDescriptor,
+  ExtensionTimelineItemProps,
   ClientExtensionTimelineItem,
 } from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from './types';
@@ -73,8 +74,8 @@ type TimelineEntry =
       key: string;
       sortRank: number;
       extensionId: string;
-      item: ClientExtensionTimelineItem;
-      ctx: ExtensionTimelineItemContext;
+      definition: ClientExtensionTimelineItem;
+      props: ExtensionTimelineItemProps;
     };
 
 function isWebVersionAvailable(version: WorkVersionForDetailsClient): boolean {
@@ -113,6 +114,7 @@ function getSortedSectionEntries(
   activitiesForVersion: WorkActivityRow[],
   checkRunsForVersion: CheckServiceRunRow[],
   registeredTimelineItems: RegisteredExtensionTimelineItem[],
+  extensionTimelineDescriptors: ExtensionTimelineItemDescriptor[],
 ): TimelineEntry[] {
   const extensionEntries = buildExtensionTimelineEntriesForWorkVersion(
     workId,
@@ -125,14 +127,15 @@ function getSortedSectionEntries(
       metadata: version.metadata,
     },
     registeredTimelineItems,
+    extensionTimelineDescriptors,
   ).map((entry) => ({
     kind: 'extension-timeline-item' as const,
     date: entry.date,
     key: entry.key,
     sortRank: entry.sortRank,
     extensionId: entry.extensionId,
-    item: entry.item,
-    ctx: entry.ctx,
+    definition: entry.definition,
+    props: entry.props,
   }));
 
   const entries: TimelineEntry[] = [
@@ -221,8 +224,10 @@ type WorkVersionTimelineProps = {
   checkServiceRunsByWorkVersionId: Record<string, CheckServiceRunRow[]>;
   /** Resolved check services from extensions (run.kind maps to service.id). */
   checkServices: ClientExtensionCheckService[];
-  /** Extension timeline items from enabled extensions (`routes: true`). */
+  /** Extension timeline item React definitions from enabled extensions (`routes: true`). */
   registeredTimelineItems: RegisteredExtensionTimelineItem[];
+  /** Server-resolved extension timeline descriptors (visibility + payloads). */
+  extensionTimelineDescriptors: ExtensionTimelineItemDescriptor[];
 };
 
 /**
@@ -252,6 +257,7 @@ function WorkVersionTimelineInner({
   checkServiceRunsByWorkVersionId,
   checkServices,
   registeredTimelineItems,
+  extensionTimelineDescriptors,
 }: WorkVersionTimelineProps) {
   const { showActivities } = useTimelineActivitiesVisibility();
   const [searchParams] = useSearchParams();
@@ -302,6 +308,7 @@ function WorkVersionTimelineInner({
           activitiesForVersion,
           checkRunsForVersion,
           registeredTimelineItems,
+          extensionTimelineDescriptors,
         );
         const visibleEntries = (
           showActivities ? sortedEntries : sortedEntries.filter((e) => e.kind !== 'activity')
@@ -372,8 +379,8 @@ function WorkVersionTimelineInner({
                 return (
                   <ExtensionTimelineItemRenderer
                     key={entry.key}
-                    item={entry.item}
-                    ctx={entry.ctx}
+                    definition={entry.definition}
+                    props={entry.props}
                   />
                 );
               }

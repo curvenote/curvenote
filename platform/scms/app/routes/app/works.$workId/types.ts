@@ -7,7 +7,7 @@ export type SubmissionWithSiteAndCollection = NonNullable<
 
 export type { WorkVersionWithSubmissionVersions };
 
-/** Parent loader serializes versions with signed file metadata and safe extension markers. */
+/** Parent loader serializes versions with signed file metadata only (extension markers use timeline descriptors). */
 export type WorkVersionForDetailsClient = WorkVersionWithSubmissionVersions & {
   metadata?: WorkVersionClientMetadata;
 };

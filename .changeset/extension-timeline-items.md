@@ -3,4 +3,4 @@
 '@curvenote/scms': patch
 ---
 
-Add an `ExtensionTimelineItem` API so extensions can register work-version timeline rows, and pass through safe metadata markers (e.g. `foundry`) so client-side visibility checks work
+Resolve extension timeline rows on the server via `resolveTimelineItems` (opaque payloads), drop host Foundry metadata passthrough, and rename timeline item props so they are not confused with platform `Context`

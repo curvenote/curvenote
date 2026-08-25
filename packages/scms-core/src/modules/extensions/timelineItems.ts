@@ -1,9 +1,12 @@
+import type { Context } from '../../backend/types.js';
 import type { ClientDeploymentConfig } from '../../providers/DeploymentProvider.js';
 import type {
   ClientExtension,
   ClientExtensionTimelineItem,
-  ExtensionTimelineItemContext,
+  ExtensionTimelineItemDescriptor,
+  ExtensionTimelineItemProps,
   RegisteredExtensionTimelineItem,
+  ServerExtension,
   TimelineSurface,
 } from './types.js';
 import { getExtensionConfig } from './utils.js';
@@ -24,8 +27,8 @@ export type BuiltExtensionTimelineEntry = {
   date: string;
   sortRank: number;
   extensionId: string;
-  item: ClientExtensionTimelineItem;
-  ctx: ExtensionTimelineItemContext;
+  definition: ClientExtensionTimelineItem;
+  props: ExtensionTimelineItemProps;
 };
 
 /**
@@ -48,7 +51,7 @@ export function extensionTimelineEnabledFromClientConfig(
 }
 
 /**
- * Collect registered timeline items from enabled extensions (client deployment config).
+ * Collect registered timeline item definitions from enabled extensions (client deployment config).
  */
 export function getExtensionTimelineItemsFromClientConfig(
   clientConfig: ClientDeploymentConfig,
@@ -66,7 +69,7 @@ export function getExtensionTimelineItemsFromClientConfig(
 }
 
 /**
- * Collect registered timeline items from enabled extensions (server app config).
+ * Collect registered timeline item definitions from enabled extensions (server app config).
  */
 export function getExtensionTimelineItemsFromServerConfig(
   serverConfig: AppConfig,
@@ -83,11 +86,40 @@ export function getExtensionTimelineItemsFromServerConfig(
   return items;
 }
 
-function buildWorkVersionTimelineContext(
+export type ResolveExtensionTimelineDescriptorsArgs = {
+  ctx: Context;
+  surface: TimelineSurface;
+  workVersions: WorkVersionTimelineSource[];
+};
+
+/**
+ * Ask each route-enabled server extension for timeline descriptors for the given versions.
+ * Host merges results into loader data; no extension-named metadata keys required.
+ */
+export async function resolveExtensionTimelineDescriptors(
+  serverConfig: AppConfig,
+  extensions: ServerExtension[],
+  args: ResolveExtensionTimelineDescriptorsArgs,
+): Promise<ExtensionTimelineItemDescriptor[]> {
+  const descriptors: ExtensionTimelineItemDescriptor[] = [];
+  for (const ext of extensions) {
+    const extCfg = getExtensionConfig(serverConfig, ext.id);
+    if (!extensionTimelineEnabledFromServerConfig(extCfg) || !ext.resolveTimelineItems) continue;
+    const resolved = await ext.resolveTimelineItems({
+      ctx: args.ctx,
+      surface: args.surface,
+      workVersions: args.workVersions,
+    });
+    descriptors.push(...resolved);
+  }
+  return descriptors;
+}
+
+function buildWorkVersionTimelineProps(
   workId: string,
   version: WorkVersionTimelineSource,
   payload?: unknown,
-): ExtensionTimelineItemContext {
+): ExtensionTimelineItemProps {
   return {
     surface: 'work-version',
     workId,
@@ -100,33 +132,45 @@ function buildWorkVersionTimelineContext(
   };
 }
 
+function definitionLookupKey(extensionId: string, itemId: string): string {
+  return `${extensionId}:${itemId}`;
+}
+
 /**
- * Build visible extension timeline entries for one work-version section.
+ * Build timeline entries from server descriptors + client-registered React definitions.
+ * Presence in `descriptors` is the visibility source of truth (does not call `isVisible`).
  */
 export function buildExtensionTimelineEntriesForWorkVersion(
   workId: string,
   version: WorkVersionTimelineSource,
   registeredItems: RegisteredExtensionTimelineItem[],
+  descriptors: ExtensionTimelineItemDescriptor[] = [],
   surface: TimelineSurface = 'work-version',
-  payloadsByKey: Record<string, unknown> = {},
 ): BuiltExtensionTimelineEntry[] {
+  const definitionsByKey = new Map<string, ClientExtensionTimelineItem>();
+  for (const { extensionId, item } of registeredItems) {
+    definitionsByKey.set(definitionLookupKey(extensionId, item.id), item);
+  }
+
   const entries: BuiltExtensionTimelineEntry[] = [];
 
-  for (const { extensionId, item } of registeredItems) {
-    if (!item.surfaces.includes(surface)) continue;
+  for (const descriptor of descriptors) {
+    if (descriptor.workVersionId !== version.id) continue;
 
-    const payloadKey = `${extensionId}:${item.id}:${version.id}`;
-    const ctx = buildWorkVersionTimelineContext(workId, version, payloadsByKey[payloadKey]);
+    const definition = definitionsByKey.get(
+      definitionLookupKey(descriptor.extensionId, descriptor.itemId),
+    );
+    if (!definition || !definition.surfaces.includes(surface)) continue;
 
-    if (!item.isVisible(ctx)) continue;
+    const props = buildWorkVersionTimelineProps(workId, version, descriptor.payload);
 
     entries.push({
-      key: `extension-timeline-${extensionId}-${item.id}-${version.id}`,
-      date: version.date_modified || version.date_created,
-      sortRank: item.sortRank ?? DEFAULT_TIMELINE_ITEM_SORT_RANK,
-      extensionId,
-      item,
-      ctx,
+      key: `extension-timeline-${descriptor.extensionId}-${descriptor.itemId}-${version.id}`,
+      date: descriptor.sortDate || version.date_modified || version.date_created,
+      sortRank: definition.sortRank ?? DEFAULT_TIMELINE_ITEM_SORT_RANK,
+      extensionId: descriptor.extensionId,
+      definition,
+      props,
     });
   }
 

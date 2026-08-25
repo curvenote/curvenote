@@ -37,14 +37,12 @@ export function computeCanResumeDraftUpload(
   return canUpload === true && latestVersion?.draft === true;
 }
 
-/** Signed file entries and extension marker keys safe for the work-details client payload. */
+/** Signed file entries safe for the work-details client payload. */
 export type WorkVersionClientMetadata = {
   files?: Record<string, unknown>;
-  /** Foundry wizard marker — passthrough for extension timeline visibility only. */
-  foundry?: unknown;
 };
 
-/** Signed file entries plus safe extension markers — omit myst/checks/license from the client payload. */
+/** Signed file entries for timeline downloads — omit myst/checks/license/extension blobs. */
 export async function signVersionFilesForClient(
   version: { cdn: string | null },
   metadata: unknown,
@@ -65,14 +63,6 @@ export async function signVersionFilesForClient(
     }
   }
 
-  if (
-    meta?.foundry != null &&
-    typeof meta.foundry === 'object' &&
-    !Array.isArray(meta.foundry)
-  ) {
-    out.foundry = meta.foundry;
-  }
-
-  if (out.files == null && out.foundry == null) return undefined;
+  if (out.files == null) return undefined;
   return out;
 }

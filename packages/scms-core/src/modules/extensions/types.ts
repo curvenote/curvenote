@@ -42,7 +42,7 @@ export interface WorkCreateOption {
    * Optional `from` is appended by `resolveDraftResumePath`.
    */
   resumePath?: string;
-  /** Pathname fragment under `/app/works/:workId` that is this flow's form (e.g. `/foundry/`). */
+  /** Pathname fragment under `/app/works/:workId` that is this flow's form (e.g. `/ext-flow/`). */
   formPathIncludes?: string;
   mode?: WorkCreateFormMode;
   scopes?: string[];
@@ -394,28 +394,34 @@ export type ClientExtensionCheckService = Omit<
 
 export type TimelineSurface = 'work-version' | 'submission-version';
 
-/** Context passed to extension timeline item visibility and render components. */
-export type ExtensionTimelineItemContext = {
+/**
+ * Props for an extension timeline row (visibility helpers and render components).
+ * Not a platform {@link Context} — use `ctx` only for loader/action Context.
+ */
+export type ExtensionTimelineItemProps = {
   surface: TimelineSurface;
   workId: string;
   workVersionId: string;
   dateCreated: string;
   dateModified: string;
   draft: boolean;
+  /** Client-safe work-version metadata slice when present (e.g. signed files). */
   metadata: unknown;
-  /** Server-resolved payload when {@link ServerExtension.resolveTimelineItems} is implemented. */
+  /** Opaque server-prepared render data from {@link ServerExtension.resolveTimelineItems}. */
   payload?: unknown;
 };
 
-export type ExtensionTimelineItemProps = ExtensionTimelineItemContext;
-
 export interface ClientExtensionTimelineItem {
-  /** Stable id within the owning extension, e.g. `foundry-processed`. */
+  /** Stable id within the owning extension, e.g. `processed`. */
   id: string;
   surfaces: TimelineSurface[];
   /** Default 50; lower values sort earlier within the same minute bucket. */
   sortRank?: number;
-  isVisible: (ctx: ExtensionTimelineItemContext) => boolean;
+  /**
+   * Optional client-side filter. Prefer {@link ServerExtension.resolveTimelineItems}
+   * for work-details: presence in the server descriptor list is the visibility source of truth.
+   */
+  isVisible?: (item: ExtensionTimelineItemProps) => boolean;
   component: React.ComponentType<ExtensionTimelineItemProps>;
   /**
    * Optional headless mount for timeline side effects (e.g. fetcher/revalidate).
@@ -424,7 +430,10 @@ export interface ClientExtensionTimelineItem {
   mountComponent?: React.ComponentType<ExtensionTimelineItemProps>;
 }
 
-/** Serializable descriptor for server-resolved timeline items (submission surface, signed URLs). */
+/**
+ * Serializable server-resolved timeline row. Host merges these into loader data;
+ * client looks up the React definition via {@link ClientExtension.getTimelineItems}.
+ */
 export type ExtensionTimelineItemDescriptor = {
   extensionId: string;
   itemId: string;
@@ -541,8 +550,9 @@ export interface ServerExtension extends ClientExtension {
    */
   getDesignLoaderData?: (ctx: Context) => Promise<Record<string, unknown>>;
   /**
-   * Optional server-side resolution of timeline item payloads (signed URLs, etc.).
-   * Not required for client-only visibility from work-version metadata.
+   * Decide which timeline rows to show and prepare opaque `payload`s for render.
+   * Host calls this for enabled extensions; work-details does not use client `isVisible`
+   * or extension-named metadata keys for visibility.
    */
   resolveTimelineItems?: (args: {
     ctx: Context;

@@ -44,6 +44,7 @@ import {
   workCreateOptionsForResume,
   isOnCreateFormPath,
   resolveDraftResumePath,
+  resolveExtensionTimelineDescriptors,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
 import {
@@ -616,6 +617,23 @@ export const loader = async (args: LoaderFunctionArgs) => {
     }),
   );
 
+  const extensionTimelineDescriptors = await resolveExtensionTimelineDescriptors(
+    ctx.$config,
+    serverExtensions,
+    {
+      ctx,
+      surface: 'work-version',
+      workVersions: workVersionsWithMetadata.map((version) => ({
+        id: version.id,
+        work_id: version.work_id,
+        date_created: version.date_created,
+        date_modified: version.date_modified,
+        draft: version.draft,
+        metadata: version.metadata,
+      })),
+    },
+  );
+
   const hasWebArticleGeneration = userHasScope(
     ctx.user,
     scopes.app.works.webArticleGeneration,
@@ -704,6 +722,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     work,
     versions: versionsForClient,
     webVersionPreviewSignatures,
+    extensionTimelineDescriptors,
     submissions: submissions ?? [],
     linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
     workOwnerName,
