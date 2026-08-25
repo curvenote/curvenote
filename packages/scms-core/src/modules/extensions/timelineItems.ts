@@ -118,10 +118,11 @@ export async function resolveExtensionTimelineDescriptors(
 function buildWorkVersionTimelineProps(
   workId: string,
   version: WorkVersionTimelineSource,
+  surface: TimelineSurface,
   payload?: unknown,
 ): ExtensionTimelineItemProps {
   return {
-    surface: 'work-version',
+    surface,
     workId,
     workVersionId: version.id,
     dateCreated: version.date_created,
@@ -162,7 +163,7 @@ export function buildExtensionTimelineEntriesForWorkVersion(
     );
     if (!definition || !definition.surfaces.includes(surface)) continue;
 
-    const props = buildWorkVersionTimelineProps(workId, version, descriptor.payload);
+    const props = buildWorkVersionTimelineProps(workId, version, surface, descriptor.payload);
 
     entries.push({
       key: `extension-timeline-${descriptor.extensionId}-${descriptor.itemId}-${version.id}`,

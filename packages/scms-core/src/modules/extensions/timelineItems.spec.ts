@@ -209,4 +209,21 @@ describe('buildExtensionTimelineEntriesForWorkVersion', () => {
     );
     expect(entries).toHaveLength(0);
   });
+
+  it('passes the requested surface through to entry props', () => {
+    const submissionItem: ClientExtensionTimelineItem = {
+      ...mockTimelineItem,
+      surfaces: ['submission-version'],
+    };
+    const entries = buildExtensionTimelineEntriesForWorkVersion(
+      'work-1',
+      version,
+      [{ extensionId: 'mock-ext', item: submissionItem }],
+      [matchingDescriptor],
+      'submission-version',
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.props.surface).toBe('submission-version');
+  });
 });
