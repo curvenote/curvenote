@@ -147,6 +147,23 @@ function definitionLookupKey(extensionId: string, itemId: string): string {
 }
 
 /**
+ * Stable React key segment when {@link ExtensionTimelineItemDescriptor.id} is omitted.
+ * Scoped to (extensionId, itemId, workVersionId) so other versions/extensions cannot
+ * shift the key, and prefixed so it never collides with an explicit numeric id like `"0"`.
+ */
+function nextAnonymousDescriptorKey(
+  occurrenceByGroup: Map<string, number>,
+  extensionId: string,
+  itemId: string,
+  workVersionId: string,
+): string {
+  const group = `${extensionId}:${itemId}:${workVersionId}`;
+  const occurrence = occurrenceByGroup.get(group) ?? 0;
+  occurrenceByGroup.set(group, occurrence + 1);
+  return `__anon__${occurrence}`;
+}
+
+/**
  * Build timeline entries from server descriptors + client-registered React definitions.
  * Presence in `descriptors` is the visibility source of truth (does not call `isVisible`).
  */
@@ -163,8 +180,9 @@ export function buildExtensionTimelineEntriesForWorkVersion(
   }
 
   const entries: BuiltExtensionTimelineEntry[] = [];
+  const anonymousOccurrenceByGroup = new Map<string, number>();
 
-  for (const [index, descriptor] of descriptors.entries()) {
+  for (const descriptor of descriptors) {
     if (descriptor.workVersionId !== version.id) continue;
 
     const definition = definitionsByKey.get(
@@ -173,7 +191,14 @@ export function buildExtensionTimelineEntriesForWorkVersion(
     if (!definition || !definition.surfaces.includes(surface)) continue;
 
     const props = buildWorkVersionTimelineProps(workId, version, surface, descriptor.payload);
-    const descriptorKey = descriptor.id ?? String(index);
+    const descriptorKey =
+      descriptor.id ??
+      nextAnonymousDescriptorKey(
+        anonymousOccurrenceByGroup,
+        descriptor.extensionId,
+        descriptor.itemId,
+        descriptor.workVersionId,
+      );
 
     entries.push({
       key: `extension-timeline-${descriptor.extensionId}-${descriptor.itemId}-${version.id}-${descriptorKey}`,

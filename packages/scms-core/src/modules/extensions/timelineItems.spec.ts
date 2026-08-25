@@ -217,7 +217,7 @@ describe('buildExtensionTimelineEntriesForWorkVersion', () => {
     );
 
     expect(entries).toHaveLength(1);
-    expect(entries[0]?.key).toBe('extension-timeline-mock-ext-mock-item-wv-1-0');
+    expect(entries[0]?.key).toBe('extension-timeline-mock-ext-mock-item-wv-1-__anon__0');
     expect(entries[0]?.date).toBe('2026-01-02T12:00:00.000Z');
     expect(entries[0]?.sortRank).toBe(10);
     expect(entries[0]?.props.surface).toBe('work-version');
@@ -265,7 +265,7 @@ describe('buildExtensionTimelineEntriesForWorkVersion', () => {
     ]);
   });
 
-  it('falls back to descriptor array index when id is omitted', () => {
+  it('falls back to a namespaced per-group occurrence when id is omitted', () => {
     const entries = buildExtensionTimelineEntriesForWorkVersion(
       'work-1',
       version,
@@ -277,9 +277,49 @@ describe('buildExtensionTimelineEntriesForWorkVersion', () => {
     );
 
     expect(entries.map((e) => e.key)).toEqual([
-      'extension-timeline-mock-ext-mock-item-wv-1-0',
-      'extension-timeline-mock-ext-mock-item-wv-1-1',
+      'extension-timeline-mock-ext-mock-item-wv-1-__anon__0',
+      'extension-timeline-mock-ext-mock-item-wv-1-__anon__1',
     ]);
+  });
+
+  it('keeps anonymous keys stable when earlier unrelated descriptors shift', () => {
+    const registered = [{ extensionId: 'mock-ext', item: mockTimelineItem }];
+    const target = { ...matchingDescriptor, sortDate: '2026-01-02T12:00:00.000Z' };
+    const earlierUnrelated: ExtensionTimelineItemDescriptor = {
+      extensionId: 'other-ext',
+      itemId: 'other-item',
+      workVersionId: 'wv-other',
+      sortDate: '2026-01-01T00:00:00.000Z',
+    };
+
+    const withoutEarlier = buildExtensionTimelineEntriesForWorkVersion('work-1', version, registered, [
+      target,
+    ]);
+    const withEarlier = buildExtensionTimelineEntriesForWorkVersion('work-1', version, registered, [
+      earlierUnrelated,
+      target,
+    ]);
+
+    expect(withoutEarlier[0]?.key).toBe('extension-timeline-mock-ext-mock-item-wv-1-__anon__0');
+    expect(withEarlier[0]?.key).toBe(withoutEarlier[0]?.key);
+  });
+
+  it('does not collide anonymous fallback keys with explicit numeric ids', () => {
+    const entries = buildExtensionTimelineEntriesForWorkVersion(
+      'work-1',
+      version,
+      [{ extensionId: 'mock-ext', item: mockTimelineItem }],
+      [
+        { ...matchingDescriptor, id: '0', sortDate: '2026-01-02T10:00:00.000Z' },
+        { ...matchingDescriptor, sortDate: '2026-01-02T11:00:00.000Z' },
+      ],
+    );
+
+    expect(entries.map((e) => e.key)).toEqual([
+      'extension-timeline-mock-ext-mock-item-wv-1-0',
+      'extension-timeline-mock-ext-mock-item-wv-1-__anon__0',
+    ]);
+    expect(new Set(entries.map((e) => e.key)).size).toBe(2);
   });
 
   it('returns no entries when descriptors are empty even if metadata would match', () => {
