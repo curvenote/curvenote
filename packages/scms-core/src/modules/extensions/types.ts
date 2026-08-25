@@ -42,7 +42,7 @@ export interface WorkCreateOption {
    * Optional `from` is appended by `resolveDraftResumePath`.
    */
   resumePath?: string;
-  /** Pathname fragment under `/app/works/:workId` that is this flow's form (e.g. `/foundry/`). */
+  /** Pathname fragment under `/app/works/:workId` that is this flow's form (e.g. `/ext-flow/`). */
   formPathIncludes?: string;
   mode?: WorkCreateFormMode;
   scopes?: string[];
@@ -392,6 +392,67 @@ export type ClientExtensionCheckService = Omit<
   'handleAction' | 'handleStatus' | 'resolveUploadLogoUrl'
 >;
 
+export type TimelineSurface = 'work-version' | 'submission-version';
+
+/**
+ * Props for an extension timeline row (visibility helpers and render components).
+ * Not a platform {@link Context} — use `ctx` only for loader/action Context.
+ */
+export type ExtensionTimelineItemProps = {
+  surface: TimelineSurface;
+  workId: string;
+  workVersionId: string;
+  dateCreated: string;
+  dateModified: string;
+  draft: boolean;
+  /** Client-safe work-version metadata slice when present (e.g. signed files). */
+  metadata: unknown;
+  /** Opaque server-prepared render data from {@link ServerExtension.resolveTimelineItems}. */
+  payload?: unknown;
+};
+
+export interface ClientExtensionTimelineItem {
+  /** Stable id within the owning extension, e.g. `processed`. */
+  id: string;
+  surfaces: TimelineSurface[];
+  /**
+   * Tie-break among extension timeline items that share the same minute bucket.
+   * Default 50; lower values sort earlier. Does not reorder relative to core kinds
+   * (checks, version created, submissions, activities) — those use fixed kind priority.
+   */
+  sortRank?: number;
+  /**
+   * Optional client-side filter. Prefer {@link ServerExtension.resolveTimelineItems}
+   * for work-details: presence in the server descriptor list is the visibility source of truth.
+   */
+  isVisible?: (item: ExtensionTimelineItemProps) => boolean;
+  component: React.ComponentType<ExtensionTimelineItemProps>;
+  /**
+   * Optional headless mount for timeline side effects (e.g. fetcher/revalidate).
+   * Same rationale as {@link ExtensionCheckService.checkRunTimelineMountComponent}.
+   */
+  mountComponent?: React.ComponentType<ExtensionTimelineItemProps>;
+}
+
+/**
+ * Serializable server-resolved timeline row. Host merges these into loader data;
+ * client looks up the React definition via {@link ClientExtension.getTimelineItems}.
+ */
+export type ExtensionTimelineItemDescriptor = {
+  extensionId: string;
+  itemId: string;
+  workVersionId: string;
+  sortDate: string;
+  /** Optional unique id when an extension returns multiple rows of the same item type for one version. */
+  id?: string;
+  payload?: unknown;
+};
+
+export type RegisteredExtensionTimelineItem = {
+  extensionId: string;
+  item: ClientExtensionTimelineItem;
+};
+
 /** Props for the optional extension admin card component (platform extensions page). Aligned with ExtensionAdminCardFallback. */
 export type ExtensionAdminCardProps = {
   /** Extension display name (e.g. config key). */
@@ -416,6 +477,8 @@ export interface ClientExtension {
   getEmailTemplates?: () => ExtensionEmailTemplate[];
   getWorkflows?: () => WorkflowRegistration;
   getChecks?: () => ClientExtensionCheckService[];
+  /** Optional timeline rows contributed by this extension (see {@link ClientExtensionTimelineItem}). */
+  getTimelineItems?: () => ClientExtensionTimelineItem[];
   registerNavigation: NavigationRegistrationFn;
   /** Optional component to render extension admin card content; receives sanitized config. */
   getExtensionAdminCard?: () => React.ComponentType<ExtensionAdminCardProps>;
@@ -492,6 +555,23 @@ export interface ServerExtension extends ClientExtension {
    * `useExtensionDesignLoaderData()` inside extension design components).
    */
   getDesignLoaderData?: (ctx: Context) => Promise<Record<string, unknown>>;
+  /**
+   * Decide which timeline rows to show and prepare opaque `payload`s for render.
+   * Host calls this for enabled extensions; work-details does not use client `isVisible`
+   * or extension-named metadata keys for visibility.
+   */
+  resolveTimelineItems?: (args: {
+    ctx: Context;
+    surface: TimelineSurface;
+    workVersions: Array<{
+      id: string;
+      work_id: string;
+      date_created: string;
+      date_modified: string;
+      draft: boolean;
+      metadata: unknown;
+    }>;
+  }) => Promise<ExtensionTimelineItemDescriptor[]>;
 }
 
 export type RouteRegistration = {

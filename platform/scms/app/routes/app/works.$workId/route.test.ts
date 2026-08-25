@@ -118,6 +118,7 @@ vi.mock('@curvenote/scms-core', async () => {
     workCreateOptionsForResume,
     isOnCreateFormPath,
     resolveDraftResumePath,
+    resolveExtensionTimelineDescriptors,
     WorkContents,
     buildWorkVersionNumberByIdMap,
   } = await vi.importActual<typeof ScmsCore>('@curvenote/scms-core');
@@ -132,6 +133,7 @@ vi.mock('@curvenote/scms-core', async () => {
     getWorkflows: vi.fn(() => ({ SIMPLE: {} })),
     registerExtensionWorkflows: vi.fn(() => ({})),
     getExtensionCheckServicesFromServerConfig: vi.fn(() => []),
+    resolveExtensionTimelineDescriptors,
     loadCheckMaintenanceByServiceIds,
     CheckMaintenanceProvider: vi.fn(({ children }) => children),
     scopes: {

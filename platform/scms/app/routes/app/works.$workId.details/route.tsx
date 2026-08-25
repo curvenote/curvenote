@@ -3,12 +3,13 @@ import {
   getBrandingFromMetaMatches,
   joinPageTitle,
   getExtensionCheckServicesFromServerConfig,
+  getExtensionTimelineItemsFromClientConfig,
   useDeploymentConfig,
   scopes,
 } from '@curvenote/scms-core';
 import type { MetaFunction } from 'react-router';
 import type { WorkDTO } from '@curvenote/common';
-import type { Workflow } from '@curvenote/scms-core';
+import type { Workflow, ExtensionTimelineItemDescriptor } from '@curvenote/scms-core';
 import { WorkVersionTimeline } from './WorkVersionTimeline';
 import { WorkDetailsTopBar } from './WorkDetailsTopBar';
 import { WorkDetailsContentCard } from './WorkDetailsContentCard';
@@ -45,6 +46,7 @@ type LoaderData = {
   work: WorkDTO;
   versions: WorkVersionForDetailsClient[];
   webVersionPreviewSignatures: Record<string, string>;
+  extensionTimelineDescriptors: ExtensionTimelineItemDescriptor[];
   submissions: SubmissionWithVersionsAndSite[];
   linkedJobsByWorkVersionId: Promise<LinkedJobsByWorkVersionId>;
   workOwnerName: string | null;
@@ -86,6 +88,7 @@ export default function WorkDetailRoute() {
     users,
     canSubmitToSite,
     availableSites,
+    extensionTimelineDescriptors,
   } = useRouteLoaderData('routes/app/works.$workId/route') as LoaderData;
 
   const deploymentConfig = useDeploymentConfig();
@@ -101,6 +104,10 @@ export default function WorkDetailRoute() {
     { app: { extensions: extensionsConfig } } as unknown as Parameters<
       typeof getExtensionCheckServicesFromServerConfig
     >[0],
+    extensions,
+  );
+  const registeredTimelineItems = getExtensionTimelineItemsFromClientConfig(
+    deploymentConfig,
     extensions,
   );
 
@@ -141,6 +148,7 @@ export default function WorkDetailRoute() {
         </div>
         <div>
           <WorkVersionTimeline
+            workId={work.id}
             versions={versions}
             webVersionPreviewSignatures={webVersionPreviewSignatures}
             workflows={workflows}
@@ -152,6 +160,8 @@ export default function WorkDetailRoute() {
             activities={activities}
             checkServiceRunsByWorkVersionId={checkServiceRunsByWorkVersionId}
             checkServices={checkServices}
+            registeredTimelineItems={registeredTimelineItems}
+            extensionTimelineDescriptors={extensionTimelineDescriptors}
           />
         </div>
       </div>

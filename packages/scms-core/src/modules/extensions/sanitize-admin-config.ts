@@ -61,7 +61,8 @@ export function sanitizeExtensionAdminConfig(
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
       out[key] = sanitizeExtensionAdminConfig(value as Record<string, unknown>);
     } else if (isSecretKey(key)) {
-      out[key] = OBFUSCATED_SECRET_PLACEHOLDER;
+      // Empty / missing secrets stay empty so admin UI can show "not set".
+      out[key] = obfuscateSecret(value);
     } else {
       out[key] = value;
     }

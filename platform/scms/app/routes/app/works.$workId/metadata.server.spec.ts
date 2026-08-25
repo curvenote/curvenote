@@ -1,6 +1,40 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { describe, expect, it } from 'vitest';
-import { computeCanResumeDraftUpload, resolveWorkVersionDoi } from './metadata.server';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  computeCanResumeDraftUpload,
+  resolveWorkVersionDoi,
+  signVersionFilesForClient,
+} from './metadata.server';
+
+vi.mock('@curvenote/scms-server', () => ({
+  signFilesInMetadata: vi.fn(async (meta: { files?: Record<string, unknown> }) => meta),
+}));
+
+describe('signVersionFilesForClient', () => {
+  it('returns signed files only and ignores extension metadata keys', async () => {
+    const result = await signVersionFilesForClient(
+      { cdn: 'https://cdn.example' },
+      {
+        foundry: { wizard: { furthest: 'confirm' } },
+        files: { 'a.pdf': { path: 'a.pdf' } },
+      },
+      {} as Parameters<typeof signVersionFilesForClient>[2],
+    );
+
+    expect(result).toEqual({ files: { 'a.pdf': { path: 'a.pdf' } } });
+    expect(result).not.toHaveProperty('foundry');
+  });
+
+  it('returns undefined when there are no files', async () => {
+    const result = await signVersionFilesForClient(
+      { cdn: 'https://cdn.example' },
+      { foundry: { wizard: { furthest: 'confirm' } } },
+      {} as Parameters<typeof signVersionFilesForClient>[2],
+    );
+
+    expect(result).toBeUndefined();
+  });
+});
 
 describe('computeCanResumeDraftUpload', () => {
   it('allows resume when user can upload and latest version is draft', () => {

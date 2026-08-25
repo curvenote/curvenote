@@ -40,6 +40,7 @@
     "storage:use-minio": "tsx ./scripts/storage/use-storage-profile.mts minio",
     "storage:use-gcp": "tsx ./scripts/storage/use-storage-profile.mts gcp",
     "db:studio": "prisma studio --config=./prisma.config.ts",
+    "minio:studio": "open http://127.0.0.1:9001",
     "dev:db:reset": "bunx prisma migrate reset --config=./prisma.config.ts && bun run dev:db:seed",
     "dev:db:seed": "bunx prisma db seed --config=./prisma.config.ts",
     "dev:db:migrate": "bunx prisma migrate dev --config=./prisma.config.ts",
