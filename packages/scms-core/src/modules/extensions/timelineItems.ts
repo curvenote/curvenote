@@ -155,7 +155,7 @@ export function buildExtensionTimelineEntriesForWorkVersion(
 
   const entries: BuiltExtensionTimelineEntry[] = [];
 
-  for (const descriptor of descriptors) {
+  for (const [index, descriptor] of descriptors.entries()) {
     if (descriptor.workVersionId !== version.id) continue;
 
     const definition = definitionsByKey.get(
@@ -164,9 +164,10 @@ export function buildExtensionTimelineEntriesForWorkVersion(
     if (!definition || !definition.surfaces.includes(surface)) continue;
 
     const props = buildWorkVersionTimelineProps(workId, version, surface, descriptor.payload);
+    const descriptorKey = descriptor.id ?? String(index);
 
     entries.push({
-      key: `extension-timeline-${descriptor.extensionId}-${descriptor.itemId}-${version.id}`,
+      key: `extension-timeline-${descriptor.extensionId}-${descriptor.itemId}-${version.id}-${descriptorKey}`,
       date: descriptor.sortDate || version.date_modified || version.date_created,
       sortRank: definition.sortRank ?? DEFAULT_TIMELINE_ITEM_SORT_RANK,
       extensionId: descriptor.extensionId,

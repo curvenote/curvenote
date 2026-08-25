@@ -443,6 +443,8 @@ export type ExtensionTimelineItemDescriptor = {
   itemId: string;
   workVersionId: string;
   sortDate: string;
+  /** Optional unique id when an extension returns multiple rows of the same item type for one version. */
+  id?: string;
   payload?: unknown;
 };
 
