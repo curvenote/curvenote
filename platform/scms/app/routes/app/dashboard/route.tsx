@@ -59,6 +59,62 @@ function sortTasks(tasks: TaskWithComponent[]): TaskWithComponent[] {
   return [...tasks].sort((a, b) => a.id.localeCompare(b.id) || a.name.localeCompare(b.name));
 }
 
+function collectSectionEligibleTasks(
+  categories: string[] | undefined,
+  tasksByCategory: Map<string, TaskWithComponent[]>,
+): TaskWithComponent[] {
+  const eligible: TaskWithComponent[] = [];
+  const seen = new Set<string>();
+
+  for (const rawCategory of categories ?? []) {
+    const normalizedCategory = normalizeCategory(rawCategory);
+    if (!normalizedCategory) continue;
+
+    for (const task of tasksByCategory.get(normalizedCategory) ?? []) {
+      if (seen.has(task.id)) continue;
+      seen.add(task.id);
+      eligible.push(task);
+    }
+  }
+
+  return eligible;
+}
+
+function orderSectionTasks(
+  eligibleTasks: TaskWithComponent[],
+  configuredTaskIds: string[] | undefined,
+): TaskWithComponent[] {
+  if (!configuredTaskIds || configuredTaskIds.length === 0) {
+    return sortTasks(eligibleTasks);
+  }
+
+  const tasksById = new Map(eligibleTasks.map((task) => [task.id, task]));
+  const ordered: TaskWithComponent[] = [];
+  const used = new Set<string>();
+
+  for (const taskId of configuredTaskIds) {
+    const task = tasksById.get(taskId);
+    if (!task || used.has(task.id)) continue;
+    used.add(task.id);
+    ordered.push(task);
+  }
+
+  const unlisted = eligibleTasks.filter((task) => !used.has(task.id));
+  return [...ordered, ...sortTasks(unlisted)];
+}
+
+function appendUniqueSectionTasks(
+  sectionTasks: TaskWithComponent[],
+  tasks: TaskWithComponent[],
+  usedTaskIds: Set<string>,
+): void {
+  for (const task of tasks) {
+    if (usedTaskIds.has(task.id)) continue;
+    usedTaskIds.add(task.id);
+    sectionTasks.push(task);
+  }
+}
+
 function normalizeCategory(value?: string): string | undefined {
   if (!value) return undefined;
   const normalized = value.trim().toLowerCase();
@@ -147,14 +203,21 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   // Render configured sections first, honoring the configured section/category order.
   for (const section of configuredSections) {
     const sectionTasks: TaskWithComponent[] = [];
-    for (const rawCategory of section.categories ?? []) {
-      const normalizedCategory = normalizeCategory(rawCategory);
-      if (!normalizedCategory) continue;
-      const categoryTasks = tasksByCategory.get(normalizedCategory) ?? [];
-      for (const task of categoryTasks) {
-        if (usedTaskIds.has(task.id)) continue;
-        usedTaskIds.add(task.id);
-        sectionTasks.push(task);
+    const configuredTaskIds = section.tasks;
+
+    if (configuredTaskIds && configuredTaskIds.length > 0) {
+      const eligibleTasks = collectSectionEligibleTasks(section.categories, tasksByCategory);
+      appendUniqueSectionTasks(
+        sectionTasks,
+        orderSectionTasks(eligibleTasks, configuredTaskIds),
+        usedTaskIds,
+      );
+    } else {
+      for (const rawCategory of section.categories ?? []) {
+        const normalizedCategory = normalizeCategory(rawCategory);
+        if (!normalizedCategory) continue;
+        const categoryTasks = tasksByCategory.get(normalizedCategory) ?? [];
+        appendUniqueSectionTasks(sectionTasks, categoryTasks, usedTaskIds);
       }
     }
 

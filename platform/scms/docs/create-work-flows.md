@@ -131,12 +131,34 @@ Dashboard tasks and My Works dropdown use **different** flags today. PMC task ca
 
 The dashboard loader builds a map of allowed task ids per extension (`task: true` + scopes) and allowed built-in task ids from `dashboard.tasks.builtins`.
 
-Each task renders `task.component` — the component **owns its own click handler**:
+Section layout is configured under `dashboard.tasks.sections`. Each section may include:
 
-| Task | Component | Navigates to |
-|------|-----------|--------------|
-| Check My Work | `AutomatedChecksTaskCard` | `/app/works/new` |
-| PMC Deposit | `PMCDepositTaskCard` | `/app/works/pmc` |
+| Field | Purpose |
+|-------|---------|
+| `title` | Section heading |
+| `categories` | Membership filter — only tasks in these categories appear in the section |
+| `tasks` | Optional ordered list of task **ids** for explicit card order (cross-category). Unlisted eligible tasks append after, sorted alphabetically by id |
+
+Example:
+
+```yaml
+dashboard:
+  tasks:
+    enabled: true
+    builtins:
+      - automated-checks
+    sections:
+      - title: 'Improve and publish your work'
+        categories: [check, publish]
+        tasks:
+          - my-publish-task
+          - automated-checks
+          - my-format-task
+```
+
+Task ids come from each extension's `getTasks()` return value (and from built-in task ids listed in `dashboard.tasks.builtins`). Use the `id` field on `ExtensionTask`, not the display `name`. When adding a new task card, register it in the extension's `getTasks()` and reference that id in app-config.
+
+Each task renders `task.component` — the component **owns its own click handler** (navigation is hardcoded in the card, not derived from `WorkCreateOption.startPath`).
 
 The dashboard does **not** read `WorkCreateOption` or `startPath`.
 

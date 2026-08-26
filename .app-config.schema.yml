@@ -591,6 +591,14 @@ properties:
                       items:
                         type: string
                         pattern: '^[a-z0-9][a-z0-9 _-]*$'
+                    tasks:
+                      type: array
+                      description: >-
+                        Optional ordered list of task ids for explicit card order within this section
+                        (cross-category). Unlisted tasks that match categories append after, sorted by id.
+                      items:
+                        type: string
+                        minLength: 1
       renderServiceUrl:
         type: string
       workVersionPreviewUrl:

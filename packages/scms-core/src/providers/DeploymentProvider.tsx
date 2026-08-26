@@ -27,10 +27,14 @@ export type WelcomeContent = {
 export type DashboardTaskSection = {
   title: string;
   categories: string[];
+  /** Explicit task card order within this section (cross-category). Unlisted eligible tasks append after, sorted by id. */
+  tasks?: string[];
 };
 
 export type DashboardTasksConfig = {
   enabled?: boolean;
+  /** Built-in dashboard task ids to enable (e.g. automated-checks). */
+  builtins?: string[];
   sections?: DashboardTaskSection[];
 };
 
