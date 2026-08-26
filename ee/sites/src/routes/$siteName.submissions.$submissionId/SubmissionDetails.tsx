@@ -181,7 +181,7 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
         <DetailRow label="Submission Kind">
           <Kinds
             submissionId={submission.id}
-            collection={referenceCollection!}
+            collection={referenceCollection}
             kindId={submission.kind.id}
             kindNameOrTitle={submission.kind.content?.title ?? submission.kind.name}
             canUpdate={canUpdate}
