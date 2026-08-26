@@ -417,6 +417,8 @@ export const loader = async (args: Route.LoaderArgs) => {
     'dashboard.tasks.sections.*.title',
     'dashboard.tasks.sections.*.categories',
     'dashboard.tasks.sections.*.categories.*',
+    'dashboard.tasks.sections.*.tasks',
+    'dashboard.tasks.sections.*.tasks.*',
     'statusBar.reportProblem.email',
     'statusBar.reportProblem.subject',
     'statusBar.items',
