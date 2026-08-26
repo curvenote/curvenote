@@ -1,14 +1,25 @@
 import { useFetcher } from 'react-router';
-import { SquarePen, SquareCheckBig, Trash2, CirclePlus } from 'lucide-react';
+import { SquareCheckBig, Trash2, CirclePlus } from 'lucide-react';
 import classNames from 'classnames';
 import { formatDistanceToNow } from 'date-fns';
 import type { SlugsDTO } from './types.server.js';
 import { primitives } from '@curvenote/scms-core';
+import { DetailFieldEditorShell, DetailFieldEditorTrigger } from './DetailFieldEditor.js';
 
 export function getSlugSuggestion(site: { name: string }, doi?: string) {
   const secondPartOfDoi = doi?.split('/')[1];
   return secondPartOfDoi ?? `${site.name}-`;
 }
+
+type SlugsProps = {
+  siteId: string;
+  submissionId: string;
+  slugs: SlugsDTO;
+  fallback: string;
+  canEdit: boolean;
+  baseUrl: string;
+  suggestion?: string;
+};
 
 export function Slugs({
   siteId,
@@ -18,25 +29,16 @@ export function Slugs({
   canEdit,
   suggestion,
   baseUrl,
-}: {
-  siteId: string;
-  submissionId: string;
-  slugs: SlugsDTO;
-  fallback: string;
-  canEdit: boolean;
-  baseUrl: string;
-  suggestion?: string;
-}) {
+}: SlugsProps) {
   const fetcher = useFetcher<{ error?: string; slugs?: SlugsDTO }>();
   const makeSuggestion = suggestion ? !slugs.find((s) => s.slug === suggestion) : false;
 
-  const handleAddFirstSlug = (e: React.MouseEvent<HTMLDivElement>) => {
-    // only hand directly adding if we have no slugs
+  const handleAddFirstSlug = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (slugs.length > 0) return;
     handleAdd(e);
   };
 
-  const handleAdd = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleAdd = (e: React.MouseEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -176,24 +178,19 @@ export function Slugs({
   );
 
   return (
-    <>
-      <div>Slug</div>
-      <primitives.PopoverWrapper
-        className="min-w-[310px] z-20 p-6 pb-4"
-        skip={slugs.length === 0}
-        content={cardContent}
-      >
-        <div className="flex flex-col items-right">
-          <div
-            className={classNames('text-right', { 'underline cursor-pointer': canEdit })}
-            onClick={handleAddFirstSlug}
+    <div className="w-full min-w-0">
+      <DetailFieldEditorShell value={slug}>
+        {canEdit ? (
+          <primitives.PopoverWrapper
+            className="min-w-[310px] z-20 p-6 pb-4"
+            skip={slugs.length === 0}
+            content={cardContent}
           >
-            {slug}
-            {canEdit && <SquarePen className="inline-block w-4 h-4 ml-[2px] mb-[2px]" />}
-          </div>
-          {fetcher.data?.error && <div className="text-xs text-red-600">{fetcher.data.error}</div>}
-        </div>
-      </primitives.PopoverWrapper>
-    </>
+            <DetailFieldEditorTrigger onClick={handleAddFirstSlug} />
+          </primitives.PopoverWrapper>
+        ) : null}
+      </DetailFieldEditorShell>
+      {fetcher.data?.error && <div className="text-xs text-red-600">{fetcher.data.error}</div>}
+    </div>
   );
 }

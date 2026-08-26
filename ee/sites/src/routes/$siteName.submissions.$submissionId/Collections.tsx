@@ -1,21 +1,24 @@
 import { useFetcher } from 'react-router';
-import { Replace, SquarePen, SquareCheckBig } from 'lucide-react';
+import { Replace, SquareCheckBig } from 'lucide-react';
 import classNames from 'classnames';
 import { primitives } from '@curvenote/scms-core';
 import { useRef } from 'react';
 import type { SubmissionEditorCollection } from './types.js';
+import { DetailFieldEditorShell, DetailFieldEditorTrigger } from './DetailFieldEditor.js';
+
+type CollectionsProps = {
+  submissionId: string;
+  collectionId: string;
+  collections: SubmissionEditorCollection[];
+  canUpdate: boolean;
+};
 
 export function Collections({
   submissionId,
   collectionId,
   collections,
   canUpdate,
-}: {
-  submissionId: string;
-  collectionId: string;
-  collections: SubmissionEditorCollection[];
-  canUpdate: boolean;
-}) {
+}: CollectionsProps) {
   const fetcher = useFetcher<{ error?: string }>();
   const popoverRef = useRef<primitives.PopoverActions>(null);
   const current = collections.find((c) => c.id === collectionId);
@@ -108,21 +111,21 @@ export function Collections({
   );
 
   return (
-    <primitives.PopoverWrapper
-      ref={popoverRef}
-      className="min-w-[310px] z-20 p-6 pb-4"
-      content={cardContent}
-    >
-      <div className="flex flex-col items-right">
-        <div
-          className="text-right underline cursor-pointer"
-          title={`${current?.name ?? 'unknown'} ${current?.id ?? ''}`}
-        >
-          {collectionTitle ?? collectionName ?? 'unknown'}
-          {canUpdate && <SquarePen className="inline-block w-4 h-4 ml-[2px] mb-[2px]" />}
-        </div>
-        {fetcher.data?.error && <div className="text-xs text-red-600">{fetcher.data.error}</div>}
-      </div>
-    </primitives.PopoverWrapper>
+    <div className="w-full min-w-0">
+      <DetailFieldEditorShell value={collectionTitle ?? collectionName ?? 'unknown'}>
+        {canUpdate ? (
+          <primitives.PopoverWrapper
+            ref={popoverRef}
+            className="min-w-[310px] z-20 p-6 pb-4"
+            content={cardContent}
+          >
+            <DetailFieldEditorTrigger
+              title={`${current?.name ?? 'unknown'} ${current?.id ?? ''}`}
+            />
+          </primitives.PopoverWrapper>
+        ) : null}
+      </DetailFieldEditorShell>
+      {fetcher.data?.error && <div className="text-xs text-red-600">{fetcher.data.error}</div>}
+    </div>
   );
 }

@@ -1,9 +1,18 @@
 import { useFetcher } from 'react-router';
-import { SquarePen, SquareCheckBig, Replace } from 'lucide-react';
+import { SquareCheckBig, Replace } from 'lucide-react';
 import classNames from 'classnames';
-import { primitives, cn } from '@curvenote/scms-core';
+import { primitives } from '@curvenote/scms-core';
 import { useRef } from 'react';
 import type { SubmissionEditorCollection } from './types.js';
+import { DetailFieldEditorShell, DetailFieldEditorTrigger } from './DetailFieldEditor.js';
+
+type KindsProps = {
+  submissionId: string;
+  collection: SubmissionEditorCollection;
+  kindId: string;
+  kindNameOrTitle: string;
+  canUpdate: boolean;
+};
 
 export function Kinds({
   submissionId,
@@ -11,13 +20,7 @@ export function Kinds({
   kindId,
   kindNameOrTitle,
   canUpdate,
-}: {
-  submissionId: string;
-  collection: SubmissionEditorCollection;
-  kindId: string;
-  kindNameOrTitle: string;
-  canUpdate: boolean;
-}) {
+}: KindsProps) {
   const fetcher = useFetcher<{ error?: string; kindId: string; kindName: string }>();
   const popoverRef = useRef<primitives.PopoverActions>(null);
   const submissionKindMatch = collection?.kinds?.some((k) => k.id === kindId);
@@ -105,23 +108,22 @@ export function Kinds({
   );
 
   return (
-    <primitives.PopoverWrapper
-      ref={popoverRef}
-      className={cn('z-20 p-6 pb-4 min-w-[310px]')}
-      content={cardContent}
-    >
-      <div className="flex flex-col items-right">
-        <div
-          className={cn('text-right underline cursor-pointer', {
-            'font-semibold text-red-500': !submissionKindMatch,
-          })}
-          title={kindId}
-        >
-          {kindTitle ?? current?.name}
-          {canUpdate && <SquarePen className="inline-block w-4 h-4 ml-[2px] mb-[2px]" />}
-        </div>
-        {fetcher.data?.error && <div className="text-xs text-red-600">{fetcher.data.error}</div>}
-      </div>
-    </primitives.PopoverWrapper>
+    <div className="w-full min-w-0">
+      <DetailFieldEditorShell
+        value={kindTitle ?? current?.name}
+        valueClassName={!submissionKindMatch ? 'font-semibold text-destructive' : undefined}
+      >
+        {canUpdate ? (
+          <primitives.PopoverWrapper
+            ref={popoverRef}
+            className="z-20 p-6 pb-4 min-w-[310px]"
+            content={cardContent}
+          >
+            <DetailFieldEditorTrigger title={kindId} />
+          </primitives.PopoverWrapper>
+        ) : null}
+      </DetailFieldEditorShell>
+      {fetcher.data?.error && <div className="text-xs text-red-600">{fetcher.data.error}</div>}
+    </div>
   );
 }
