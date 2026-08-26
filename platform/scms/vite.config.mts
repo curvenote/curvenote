@@ -157,6 +157,7 @@ export default defineConfig(async ({ mode }) => {
         'react-dom',
         'react-router',
         '@curvenote/scms-core',
+        'lucide-react',
         'firebase',
         '@firebase/app',
         '@firebase/auth',
