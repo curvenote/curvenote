@@ -52,10 +52,7 @@ export function SubmissionSummaryCard({
             <div className="text-xs font-semibold tracking-wide uppercase text-foreground">
               Description
             </div>
-            <p
-              title="submission description"
-              className="text-sm text-muted-foreground line-clamp-5 [mask-image:linear-gradient(to_bottom,black_65%,transparent)]"
-            >
+            <p title="submission description" className="text-sm text-muted-foreground">
               {description}
             </p>
           </div>
