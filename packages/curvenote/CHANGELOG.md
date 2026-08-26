@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.17.2
+
+### Patch Changes
+
+- [#1058](https://github.com/curvenote/curvenote/pull/1058) [`b779bfb`](https://github.com/curvenote/curvenote/commit/b779bfbe80deab6933bd7748e5d0e4c800508b09) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Run `curvenote start` and `curvenote build` without token refresh so local preview and builds work offline and do not fail when a saved token cannot reach the API
+
+- Updated dependencies []:
+  - @curvenote/cli@0.17.2
+
 ## 0.17.1
 
 ### Patch Changes

@@ -1,5 +1,25 @@
 # @curvenote/scms-server
 
+## 0.24.3
+
+### Patch Changes
+
+- [#1054](https://github.com/curvenote/curvenote/pull/1054) [`1d7f83a`](https://github.com/curvenote/curvenote/commit/1d7f83a0f190228d9be7bc9b768b982352bc5e78) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove unused `api.integrations` JWK signing path (`createIntegrationToken` / `verifyIntegrationToken`, `GET /v1/keys`, and related config schema / key-generation scripts)
+
+- [#1059](https://github.com/curvenote/curvenote/pull/1059) [`e9ea434`](https://github.com/curvenote/curvenote/commit/e9ea4348f73dc9eb85ead004b038d63215a81f79) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Fix CDN object signing against local MinIO / path-style private CDN URLs by resolving the storage bucket via `knownBucketFromCDN` with a private-CDN hostname fallback (`resolveBucketForCdn`)
+
+- [#1055](https://github.com/curvenote/curvenote/pull/1055) [`966468b`](https://github.com/curvenote/curvenote/commit/966468b6a5dfae0b5054409bdc6697c54dc257bf) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Extract upload document preview, metadata extraction, and related UI into shared packages
+
+  - Add `@curvenote/scms-doc-preview` for the manuscript preview/extract/thumbnail server pipeline
+  - Add a thin Anthropic client and work-version metadata/checks helpers to `@curvenote/scms-server`
+  - Move reusable upload/preview UI and adapters into `@curvenote/scms-core`
+  - Keep the upload route as a thin loader/action composition shell
+
+- Updated dependencies [[`ad989fe`](https://github.com/curvenote/curvenote/commit/ad989fe262369cfb19425b8d8191500d38718aec), [`e9ea434`](https://github.com/curvenote/curvenote/commit/e9ea4348f73dc9eb85ead004b038d63215a81f79), [`ad989fe`](https://github.com/curvenote/curvenote/commit/ad989fe262369cfb19425b8d8191500d38718aec), [`1d7f83a`](https://github.com/curvenote/curvenote/commit/1d7f83a0f190228d9be7bc9b768b982352bc5e78), [`966468b`](https://github.com/curvenote/curvenote/commit/966468b6a5dfae0b5054409bdc6697c54dc257bf)]:
+  - @curvenote/scms-core@0.24.3
+  - @curvenote/check-definitions@0.17.2
+  - @curvenote/scms-db@0.24.3
+
 ## 0.24.2
 
 ### Patch Changes

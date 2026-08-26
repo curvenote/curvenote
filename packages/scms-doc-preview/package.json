@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms-doc-preview",
   "private": true,
-  "version": "0.24.2",
+  "version": "0.24.3",
   "description": "Document preview, metadata extraction, and thumbnail helpers for Curvenote SCMS",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",
@@ -39,9 +39,9 @@
   },
   "dependencies": {
     "@curvenote/common": "^0.6.1",
-    "@curvenote/scms-core": "^0.24.2",
-    "@curvenote/scms-db": "^0.24.2",
-    "@curvenote/scms-server": "^0.24.2",
+    "@curvenote/scms-core": "^0.24.3",
+    "@curvenote/scms-db": "^0.24.3",
+    "@curvenote/scms-server": "^0.24.3",
     "@napi-rs/canvas": "^0.1.100",
     "bmp-js": "^0.1.0",
     "officeparser": "^6.0.4",
