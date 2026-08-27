@@ -71,6 +71,8 @@ export type SiteListingDTO = {
 export type SiteDTO = SiteConfig & {
   id: string;
   url?: string;
+  /** Editorial tag catalog for the site. Not the version tags on works. */
+  tags: TagDTO[];
   links: {
     self: string;
     html?: string;
