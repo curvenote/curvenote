@@ -83,6 +83,16 @@ export type SiteWithContentDTO = SiteDTO & {
   content: Host;
 };
 
+/**
+ * Editorial tag on a submission. Site scoped. NOT the version tags carried by
+ * `SiteWorkDTO.tags`.
+ */
+export type TagDTO = {
+  id: string;
+  name: string;
+  label: string;
+};
+
 export type CollectionSummaryDTO = {
   id: string;
   name: string;
