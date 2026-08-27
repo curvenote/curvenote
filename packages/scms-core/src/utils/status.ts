@@ -29,6 +29,18 @@ export function getStatusButtonClasses(status: string | undefined) {
   }
 }
 
+/** Semantic banner tone. Pending and published keep accent; other states are muted. */
+export function getStatusBannerTone(status: string | undefined) {
+  const normalized = status?.toUpperCase();
+  if (normalized === 'PENDING') {
+    return 'pending';
+  }
+  if (normalized === 'PUBLISHED') {
+    return 'published';
+  }
+  return 'neutral';
+}
+
 export function getStatusDotClasses(status: JobStatus | string) {
   switch (status) {
     case 'INCOMPLETE':

@@ -3,14 +3,21 @@ import * as Popover from '@radix-ui/react-popover';
 import { X } from 'lucide-react';
 import classNames from 'classnames';
 
-export interface PopoverActions {
+export type PopoverActions = {
   closePopover: () => void;
-}
+};
+
+type PopoverWrapperProps = {
+  className?: string;
+  content: React.ReactNode;
+  skip?: boolean;
+  contentAlign?: 'start' | 'center' | 'end';
+};
 
 export const PopoverWrapper = React.forwardRef<
   PopoverActions,
-  React.PropsWithChildren<{ className?: string; content: React.ReactNode; skip?: boolean }>
->(({ className, content, children, skip }, ref) => {
+  React.PropsWithChildren<PopoverWrapperProps>
+>(({ className, content, children, skip, contentAlign = 'end' }, ref) => {
   const closeRef = useRef<HTMLButtonElement>(null);
   useImperativeHandle(ref, () => ({
     closePopover: () => {
@@ -27,6 +34,7 @@ export const PopoverWrapper = React.forwardRef<
             'rounded bg-white shadow-[0_10px_38px_-10px_hsla(206,22%,7%,.35),0_10px_20px_-15px_hsla(206,22%,7%,.2)] focus:shadow-[0_10px_38px_-10px_hsla(206,22%,7%,.35),0_10px_20px_-15px_hsla(206,22%,7%,.2)] will-change-[transform,opacity] data-[state=open]:data-[side=top]:animate-slideDownAndFade data-[state=open]:data-[side=right]:animate-slideLeftAndFade data-[state=open]:data-[side=bottom]:animate-slideUpAndFade data-[state=open]:data-[side=left]:animate-slideRightAndFade',
             className,
           )}
+          align={contentAlign}
           sideOffset={5}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >

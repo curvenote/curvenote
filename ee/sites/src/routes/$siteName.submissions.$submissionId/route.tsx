@@ -1,14 +1,11 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { data } from 'react-router';
 import {
-  primitives,
   clientCheckSiteScopes,
   error401,
   error404,
-  formatDate,
   PageFrame,
   useRevalidateOnInterval,
-  SectionWithHeading,
   useDeploymentConfig,
   getBrandingFromMetaMatches,
   joinPageTitle,
@@ -16,6 +13,7 @@ import {
   scopes,
 } from '@curvenote/scms-core';
 import { withAppSiteContext, userHasScope, assertUserDefined } from '@curvenote/scms-server';
+import { formatPublicationDate } from '../../publicationDateCalendar.js';
 import { loadSubmissionDetailPage } from './loader.server.js';
 import type { SubmissionDetailPageData } from './loader.server.js';
 import {
@@ -35,7 +33,7 @@ import {
 import { useEffect, useState } from 'react';
 import { SubmissionDetails } from './SubmissionDetails.js';
 import { MagicLinks } from './MagicLinks.js';
-import { Info, MonitorPlay } from 'lucide-react';
+import { SubmissionSummaryCard } from './SubmissionSummaryCard.js';
 import { SubmissionVersionTimeline } from './SubmissionVersionTimeline.js';
 
 export const loader = async (args: LoaderFunctionArgs): Promise<SubmissionDetailPageData> => {
@@ -144,12 +142,11 @@ export default function SubmissionDetailRoute({
     workflow,
     poll,
     activeVersion,
-    activeVersionNumber,
     checkServiceRunsByWorkVersionId,
   } = loaderData;
 
-  const { kind, submitted_by, date_created, date_published } = submission;
-  const { title, description, authors } = activeVersion.site_work;
+  const { date_published } = submission;
+  const { title, description, authors, doi } = activeVersion.site_work;
 
   const [enabled, setEnabled] = useState(poll);
   useRevalidateOnInterval({ enabled, interval: 1000 });
@@ -170,62 +167,20 @@ export default function SubmissionDetailRoute({
     { label: title || submission.id, isCurrentPage: true },
   ];
 
+  const publishedOn = date_published
+    ? `Published on ${formatPublicationDate(date_published)}`
+    : undefined;
+
   return (
-    <PageFrame
-      title={
-        <>
-          Submission: <strong>{title}</strong>
-        </>
-      }
-      subtitle={`Manage the details for the submission to ${site.title}`}
-      breadcrumbs={breadcrumbs}
-    >
+    <PageFrame breadcrumbs={breadcrumbs}>
       <div className="mt-4 space-y-6 md:space-y-12">
-        <SectionWithHeading className="" heading="Social Media Card" icon={MonitorPlay}>
-          <primitives.Card lift className="p-8">
-            <div className="space-y-1">
-              <div className="flex relative flex-col pt-2 space-x-4 space-y-2 md:flex-row md:space-y-0">
-                <div>
-                  <primitives.Thumbnail
-                    className="min-w-[300px] min-h-[220px]"
-                    src={activeVersion.site_work.links.thumbnail}
-                    alt={title ?? ''}
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <div className="font-light small-caps" title="kind">
-                    {kind.content.title ?? kind.name}
-                  </div>
-                  <h3 title="submission title">{title}</h3>
-                  <p title="submission description" className="text-sm">
-                    {description}
-                  </p>
-                  <div className="text-sm font-light pointer-events-none">
-                    {authors?.map((a) => a.name).join(', ') ?? ''}
-                  </div>
-                  <div className="text-sm font-light pointer-events-none">
-                    Publication Date: {date_published ? formatDate(date_published) : 'not set'}
-                  </div>
-                  <div className="grow"></div>
-                  <div className="absolute -top-4 -right-4">
-                    <primitives.HoverCardWrapper
-                      content={
-                        <p className="text-sm font-light text-gray-500">
-                          First submitted by {submitted_by.name} on{' '}
-                          {formatDate(date_created, 'MMMM dd, y')} at{' '}
-                          {formatDate(date_created, 'HH:mm')} - this summary is based on version #
-                          {activeVersionNumber}.
-                        </p>
-                      }
-                    >
-                      <Info className="w-4 h-4 text-gray-400" />
-                    </primitives.HoverCardWrapper>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </primitives.Card>
-        </SectionWithHeading>
+        <SubmissionSummaryCard
+          title={title}
+          description={description}
+          authors={authors}
+          publishedOn={publishedOn}
+          doi={doi}
+        />
         <SubmissionDetails baseUrl={config.renderServiceUrl ?? site.links.html} />
         <MagicLinks />
         <SubmissionVersionTimeline
