@@ -324,7 +324,7 @@ export const TAG_NAME_MIN_LENGTH = 3;
 export function toTagName(label: string): string {
   return label
     .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9_-]+/g, '-')
@@ -598,6 +598,7 @@ describe('assignTagToSubmission', () => {
   });
 
   test('rejects a short label', async () => {
+    // `httpError` rejects with a Response, not an Error, so assert on status.
     await expect(
       sites.tags.assignTagToSubmission({
         siteId: testData.siteId,
@@ -605,7 +606,7 @@ describe('assignTagToSubmission', () => {
         userId: testData.userId,
         input: { label: 'ab' },
       }),
-    ).rejects.toThrow(/tag name/i);
+    ).rejects.toMatchObject({ status: 400 });
   });
 
   test('rejects a tag from another site', async () => {
@@ -624,7 +625,7 @@ describe('assignTagToSubmission', () => {
         userId: testData.userId,
         input: { tagId: foreign.id },
       }),
-    ).rejects.toThrow(/not found/i);
+    ).rejects.toMatchObject({ status: 404 });
   });
 
   test('writes one SUBMISSION_TAGS_CHANGE activity per change', async () => {
@@ -927,17 +928,11 @@ describe('formatSiteDTO tags', () => {
 });
 ```
 
-If `get.server.test.ts` has no `createMockContext` helper for a plain `Context`, add one at the top of the new describe block:
-
-```ts
-const createMockContext = () =>
-  ({
-    asApiUrl: (path: string) => `https://api.example.com/v1${path}`,
-    $config: { api: { knownBucketInfoMap: {} } },
-  }) as never;
-```
-
-Import `formatSiteDTO` from `./get.server.js` at the top of the file.
+The file already imports `formatSiteDTO` and defines `createMockContext`, and
+already mocks `../../domains.server` and `../../format.server`. Reuse them —
+add no new mocks. Copy the `metadata`, `private`, `restricted`, `external`,
+`description` and `default_workflow` fields from the neighbouring test's site
+object into `baseDbo` so the formatter has what it reads.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
