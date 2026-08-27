@@ -2,6 +2,7 @@ import { looksLikeUUID } from '@curvenote/scms-core';
 import type { Prisma as PrismaTypes } from '@curvenote/scms-db';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import { publishedThumbnailSelect, siteWorkDtoSelect } from '../../../../prisma.selects.server.js';
+import { publishedSiteWorkWithTagsSelect } from './select.server.js';
 
 /** Bound as a query param — `$queryRaw` rewrites `'PUBLISHED'` into `"PUBLISHED"` (a column). */
 const PUBLISHED_STATUS = 'PUBLISHED';
@@ -87,6 +88,12 @@ export async function dbGetPublishedSiteWorkDto(siteId: string, workIdOrSlug: st
   const id = await fetchPublishedSubmissionVersionId(siteId, workIdOrSlug);
   if (!id) return null;
   return hydratePublishedSubmissionVersion(id, siteWorkDtoSelect);
+}
+
+export async function dbGetPublishedSiteWorkWithTagsDto(siteId: string, workIdOrSlug: string) {
+  const id = await fetchPublishedSubmissionVersionId(siteId, workIdOrSlug);
+  if (!id) return null;
+  return hydratePublishedSubmissionVersion(id, publishedSiteWorkWithTagsSelect);
 }
 
 export async function dbGetPublishedThumbnailRow(siteId: string, workIdOrSlug: string) {
