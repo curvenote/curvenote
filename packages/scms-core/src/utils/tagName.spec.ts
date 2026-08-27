@@ -9,6 +9,8 @@ describe('toTagName', () => {
     ['R&D / Notes', 'r-d-notes'],
     ['snake_case_ok', 'snake_case_ok'],
     ['--Leading and trailing--', 'leading-and-trailing'],
+    ['a___b', 'a-b'],
+    ['mixed -_- separators', 'mixed-separators'],
     ['', ''],
   ])('%s becomes %s', (label, expected) => {
     expect(toTagName(label)).toBe(expected);
