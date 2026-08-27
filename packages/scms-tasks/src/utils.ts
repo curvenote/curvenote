@@ -19,10 +19,12 @@ export type ScmsRequestOptions = {
 /**
  * Send a JSON PATCH or PUT to the SCMS API.
  * On 200: logs success and returns.
- * On non-200 or throw: calls pubsubError(res, ...) and returns (caller should treat as failure).
+ * On non-200 or network error: throws so callers do not continue (e.g. must not call
+ * jobs.completed after a failed putStatus). Does not write to `res` — the Pub/Sub
+ * wrapper owns the HTTP response lifecycle via onFailure / jobs.failed.
  */
 export async function scmsRequest(options: ScmsRequestOptions): Promise<void> {
-  const { method, url, body, authToken, res, contextLabel, loggingOnlyMode } = options;
+  const { method, url, body, authToken, contextLabel, loggingOnlyMode } = options;
   console.log(`${method} ${url}`, JSON.stringify(body));
   if (loggingOnlyMode) {
     console.log('[loggingOnlyMode] Skipping request');
@@ -41,10 +43,17 @@ export async function scmsRequest(options: ScmsRequestOptions): Promise<void> {
       console.log(`Successfully ${contextLabel}: ${url}`);
       return;
     }
-    pubsubError(`Bad response ${contextLabel}: ${response.status} - ${response.statusText}`, res);
+    const message = `Bad response ${contextLabel}: ${response.status} - ${response.statusText}`;
+    console.error(message);
+    throw new Error(message);
   } catch (error: unknown) {
+    if (error instanceof Error && error.message.startsWith(`Bad response ${contextLabel}:`)) {
+      throw error;
+    }
     const message = error instanceof Error ? error.message : String(error);
-    pubsubError(`Error ${contextLabel}: ${message}`, res);
+    const wrapped = `Error ${contextLabel}: ${message}`;
+    console.error(wrapped);
+    throw new Error(wrapped);
   }
 }
 

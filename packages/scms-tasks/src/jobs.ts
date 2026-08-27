@@ -53,7 +53,7 @@ export function createJobsHandler(
         return alreadySent(res) ? res : send(res, 200);
       }
       await patchJobStatus(jobUrl, handshake, loggingOnlyMode, 'COMPLETED', results, message, res);
-      return send(res, 200);
+      return alreadySent(res) ? res : send(res, 200);
     },
 
     async failed(res, message, results): Promise<Response> {

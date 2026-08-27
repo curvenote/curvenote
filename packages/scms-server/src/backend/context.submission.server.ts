@@ -201,14 +201,44 @@ export async function withAppSubmissionContext<T extends LoaderFunctionArgs | Ac
  *
  * Validates the user is defined and has correctly scoped access to the submission, either
  * via the site or the work.
+ *
+ * When `allowHandshake` is true, a valid job handshake token may act without site scopes
+ * (same pattern as `withAPISiteContext`) so workers can call status callbacks.
  */
 export async function withAPISubmissionContext<T extends LoaderFunctionArgs | ActionFunctionArgs>(
   args: T,
   scopes: string[],
   opts?: { allowHandshake?: boolean },
 ): Promise<SubmissionContext> {
-  const ctx = await withAppSubmissionContext(args, scopes, { redirect: false });
-  const authorizedByHandshake = opts?.allowHandshake && ctx.authorized.handshake;
-  if (!authorizedByHandshake && !ctx.authorized.curvenote) throw error401();
-  return ctx;
+  const ctx = await withContext(args);
+
+  const { siteName, submissionId } = args.params;
+  if (!siteName) throw httpError(400, 'Missing site name');
+  if (!submissionId) throw httpError(400, 'Missing submission ID');
+
+  const site = await dbGetSite(siteName);
+  const submission = await dbGetSubmission({ id: submissionId });
+  if (!site || !site.metadata || !submission) throw error404();
+
+  const workId = submission.work_id ?? submission.versions[0]?.work_version?.work_id;
+  const work = await dbGetWork(workId);
+  if (!work) throw error404();
+
+  if (opts?.allowHandshake && ctx.authorized.handshake) {
+    return new SubmissionContext(ctx, site, work, submission);
+  }
+
+  if (!ctx.user) throw error401();
+  if (!ctx.authorized.curvenote) throw error401();
+
+  let userAccess = false;
+  if (!site.private && !site.restricted) {
+    userAccess = !!scopes.find((scope) => userHasWorkScope(ctx.user, scope, workId));
+  }
+  if (!userAccess) {
+    userAccess = !!scopes.find((scope) => userHasSiteScope(ctx.user, scope, site.id));
+  }
+  if (!userAccess) throw error404();
+
+  return new SubmissionContext(ctx, site, work, submission);
 }
