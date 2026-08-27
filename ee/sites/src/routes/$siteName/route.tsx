@@ -27,7 +27,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData | Res
 
   const pathname = new URL(args.request.url).pathname.replace(/\/$/, '');
   if (pathname === `/app/sites/${ctx.site.name}`) {
-    return redirect(`/app/sites/${ctx.site.name}/inbox`);
+    return redirect(`/app/sites/${ctx.site.name}/submissions`);
   }
 
   const menu = await buildMenu(ctx);
