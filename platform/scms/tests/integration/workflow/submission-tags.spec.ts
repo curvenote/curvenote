@@ -236,3 +236,61 @@ describe('removeTagFromSubmission', () => {
     expect(await sites.tags.dbListSiteTags(testData.siteId)).toEqual([dto]);
   });
 });
+
+describe('HTTP-shaped tag contracts', () => {
+  let testData: TestData;
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+  });
+
+  test('sites.get returns a catalog containing the site tags', async () => {
+    const tag = await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { label: 'Blog Post' },
+    });
+
+    const site = await sites.get(testData.context, testData.siteName);
+    expect(site.tags).toEqual([tag]);
+  });
+
+  test('published.get returns submission_tags and leaves version tags as string[]', async () => {
+    await publishExistingSubmission(testData, ['preprint']);
+    const tag = await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { label: 'Blog Post' },
+    });
+
+    const dto = await sites.submissions.published.get(testData.context, testData.workId);
+    expect(dto).not.toBeNull();
+    expect(dto!.submission_tags).toEqual([tag]);
+    expect(dto!.tags).toEqual(['preprint']);
+    expect(dto!.tags.every((value) => typeof value === 'string')).toBe(true);
+  });
+});
+
+async function publishExistingSubmission(testData: TestData, svTags: string[] = []): Promise<void> {
+  const prisma = await getPrismaClient();
+  const now = new Date().toISOString();
+  await prisma.submissionVersion.create({
+    data: {
+      id: uuidv7(),
+      date_created: now,
+      date_modified: now,
+      date_published: now,
+      status: 'PUBLISHED',
+      tags: svTags,
+      submission: { connect: { id: testData.submissionId } },
+      work_version: { connect: { id: testData.workVersionId } },
+      submitted_by: { connect: { id: testData.userId } },
+    },
+  });
+  await prisma.submission.update({
+    where: { id: testData.submissionId },
+    data: { date_published: now },
+  });
+}
