@@ -15,6 +15,7 @@ import { buildUrl } from 'doi-utils';
 import { useLoaderData } from 'react-router';
 import { Collections } from './Collections.js';
 import { PublicationDate } from './PublicationDate.js';
+import { SubmissionTags } from './SubmissionTags.js';
 import type { SubmissionDetailPageData } from './loader.server.js';
 import {
   emptyDetailValue,
@@ -193,6 +194,14 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
             collection={referenceCollection}
             kindId={submission.kind.id}
             kindNameOrTitle={submission.kind.content?.title ?? submission.kind.name}
+            canUpdate={canUpdate}
+          />
+        </DetailRow>
+
+        <DetailRow label="Tags">
+          <SubmissionTags
+            submissionId={submission.id}
+            tags={submission.tags}
             canUpdate={canUpdate}
           />
         </DetailRow>

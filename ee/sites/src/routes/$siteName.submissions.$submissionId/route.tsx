@@ -24,6 +24,7 @@ import {
   actionSetPrimarySlug,
   actionUpdateDatePublished,
 } from './actionHelpers.server.js';
+import { actionAssignTag, actionRemoveTag } from './tags.server.js';
 import {
   actionCreateMagicLink,
   actionRevokeMagicLink,
@@ -100,6 +101,10 @@ export async function action(args: ActionFunctionArgs) {
     return actionSetCollection(ctx, args, formData);
   } else if (formAction === 'set-date-published') {
     return actionUpdateDatePublished(ctx, args, formData, ctx.user.id);
+  } else if (formAction === 'tag-assign') {
+    return actionAssignTag(ctx, formData);
+  } else if (formAction === 'tag-remove') {
+    return actionRemoveTag(ctx, formData);
   } else if (formAction === 'magic-link-create') {
     return actionCreateMagicLink(ctx, args, formData);
   } else if (formAction === 'magic-link-revoke') {
