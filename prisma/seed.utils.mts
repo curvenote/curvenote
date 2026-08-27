@@ -140,6 +140,44 @@ function generateWorkVersions(
   return { versions, submissionVersionEntries };
 }
 
+type SeedSubmissionVersionStatus = 'DRAFT' | 'PENDING' | 'PUBLISHED';
+
+function resolveExplicitSubmissionVersions(
+  work: {
+    id: string;
+    submit_all_versions?: boolean;
+    versions: Array<{
+      id: string;
+      submit?: boolean;
+      status?: SeedSubmissionVersionStatus;
+      canonical?: boolean;
+    }>;
+  },
+  workData: { versions: Array<{ id: string; date_created: string; date?: string | null }> },
+): Array<{ version: (typeof workData.versions)[number]; status: SeedSubmissionVersionStatus }> {
+  const entries = work.versions
+    .filter((config) => {
+      if (work.submit_all_versions) return true;
+      if (config.submit === true) return true;
+      return !!config.canonical;
+    })
+    .map((config) => {
+      const version = workData.versions.find((candidate) => candidate.id === config.id);
+      if (!version) {
+        throw new Error(`Seed work "${work.id}" references unknown version "${config.id}"`);
+      }
+      return {
+        version,
+        status: (config.status ?? 'PUBLISHED') as SeedSubmissionVersionStatus,
+      };
+    });
+
+  return entries.sort(
+    (a, b) =>
+      new Date(a.version.date_created).getTime() - new Date(b.version.date_created).getTime(),
+  );
+}
+
 function log(...args: any[]) {
   if (!QUIET) {
     console.log(...args);
@@ -281,10 +319,10 @@ export async function seedBySites(
             id: version.id,
             cdn_key: version.cdn_key,
             cdn: version.cdn,
-            title: work.title,
+            title: version.title ?? work.title,
             description: work.description,
             authors: work.authors,
-            date: work.date,
+            date: version.canonical ? work.date : version.date,
             doi: version.doi,
             canonical: version.canonical,
           }));
@@ -316,7 +354,10 @@ export async function seedBySites(
       await assignSeedWorkOwners(workData.id, users, versionsWithCdn[0].date_created);
 
       const workIndex = workCount - 1;
-      const versionsToSubmitWithStatus: Array<{ version: any; status: 'DRAFT' | 'PUBLISHED' }> =
+      const versionsToSubmitWithStatus: Array<{
+        version: any;
+        status: SeedSubmissionVersionStatus;
+      }> =
         work.version_count && submissionVersionEntries
           ? submissionVersionEntries
               .map((entry) => ({
@@ -328,12 +369,10 @@ export async function seedBySites(
                   new Date(a.version.date_created).getTime() -
                   new Date(b.version.date_created).getTime(),
               )
-          : workData.versions
-              .filter(({ canonical }: { canonical: boolean | null }) => !!canonical)
-              .map((version: any) => ({ version, status: 'PUBLISHED' as const }));
+          : resolveExplicitSubmissionVersions(work, workData);
       // First SV (earliest date) will create the Submission, so Submission date_created aligns with first submission version
       const workSubmissionVersions = versionsToSubmitWithStatus.map(
-        ({ version, status }: { version: any; status: 'DRAFT' | 'PUBLISHED' }) => ({
+        ({ version, status }: { version: any; status: SeedSubmissionVersionStatus }) => ({
           workIndex,
           id: uuid(),
           date_created: version.date_created,
