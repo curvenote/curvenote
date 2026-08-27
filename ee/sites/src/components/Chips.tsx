@@ -108,3 +108,14 @@ export function SubmissionAge({ date }: { date: string }) {
     </primitives.Chip>
   );
 }
+
+export function Tag({ label, name }: { label: string; name: string }) {
+  return (
+    <primitives.Chip
+      className="text-violet-700 border-[1px] border-violet-700 dark:border-violet-300 dark:text-violet-300"
+      title={`Tag - ${name}`}
+    >
+      {label}
+    </primitives.Chip>
+  );
+}

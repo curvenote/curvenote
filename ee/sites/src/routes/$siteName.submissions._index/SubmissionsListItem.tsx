@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import {
+  primitives,
   summarizeAuthors,
   ui,
   SubmissionVersionTimelineHoverCard,
@@ -10,6 +11,7 @@ import {
   HasPublishedVersion,
   HasRetractedVersion,
   SubmissionKind,
+  Tag,
 } from '../../components/Chips.js';
 import type { SubmissionsIndexItem } from './types.js';
 import { DoiBadge } from './DoiBadge.js';
@@ -66,6 +68,20 @@ export function SubmissionsListItem({
                 title={(item.kind.content.title ?? item.kind.name) as string}
                 description={item.kind.content.title ?? item.kind.name}
               />
+            ) : null}
+            {item.tags.slice(0, 3).map((tag) => (
+              <Tag key={tag.id} label={tag.label} name={tag.name} />
+            ))}
+            {item.tags.length > 3 ? (
+              <primitives.Chip
+                className="text-violet-700 border-[1px] border-violet-700 dark:border-violet-300 dark:text-violet-300"
+                title={item.tags
+                  .slice(3)
+                  .map((tag) => tag.label)
+                  .join(', ')}
+              >
+                {`+${item.tags.length - 3}`}
+              </primitives.Chip>
             ) : null}
             {item.publishedVersion ? (
               <SubmissionVersionTimelineHoverCard
