@@ -36,7 +36,12 @@ export function Timeline({
       {(title != null || headerAction != null) && (
         <div className="flex justify-between items-center mb-3">
           {title != null && (
-            <span className={cn('text-xs font-medium text-muted-foreground uppercase tracking-wide', titleClassName)}>
+            <span
+              className={cn(
+                'text-xs font-medium text-muted-foreground uppercase tracking-wide',
+                titleClassName,
+              )}
+            >
               {title}
             </span>
           )}
