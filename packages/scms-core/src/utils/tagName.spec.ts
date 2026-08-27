@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, test, expect } from 'vitest';
 import { toTagName, isValidTagName, TAG_NAME_MIN_LENGTH } from './tagName.js';
 

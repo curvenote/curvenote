@@ -120,7 +120,12 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
   if (activity.activity_type === 'SUBMISSION_TAGS_CHANGE' && activity.tag_change) {
     return (
       <ActivityDetailRows
-        rows={[[activity.tag_change.action === 'removed' ? 'Tag removed' : 'Tag added', activity.tag_change.label]]}
+        rows={[
+          [
+            activity.tag_change.action === 'removed' ? 'Tag removed' : 'Tag added',
+            activity.tag_change.label,
+          ],
+        ]}
       />
     );
   }
