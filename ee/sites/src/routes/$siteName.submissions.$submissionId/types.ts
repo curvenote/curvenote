@@ -1,3 +1,4 @@
+import type { TagDTO } from '@curvenote/common';
 import type { WorkflowTransition } from '@curvenote/scms-core';
 import type { SiteLayoutSite } from '../$siteName/layout.format.server.js';
 
@@ -68,6 +69,8 @@ export type SubmissionDetailSubmission = {
   date_created: string;
   date_published?: string;
   slug?: string;
+  /** Editorial tags. Not the version tags on SubmissionDetailVersion.tags. */
+  tags: TagDTO[];
   kind: SubmissionDetailKind;
   collection: SubmissionDetailCollection;
   submitted_by: { id: string; name: string };

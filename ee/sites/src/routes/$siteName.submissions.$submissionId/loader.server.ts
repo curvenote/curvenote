@@ -1,3 +1,4 @@
+import type { TagDTO } from '@curvenote/common';
 import type { Context, TimelineCheckServiceRunRow, Workflow } from '@curvenote/scms-core';
 import {
   createPreviewToken,
@@ -8,6 +9,7 @@ import {
   dbGetSubmissionCheckServiceRunsByWorkVersionIds,
   dbGetSiteAppData,
   dbListMagicLinksForSubmission,
+  dbListSiteTagRows,
   dbListSubmissionSlugRows,
   dbLoadSubmissionDetail,
   dbShouldPollSubmissionVersions,
@@ -43,6 +45,7 @@ export type SubmissionDetailPageData = {
   activeVersionNumber: number;
   magicLinks: MagicLinkWithAccessCount[];
   checkServiceRunsByWorkVersionId: Record<string, TimelineCheckServiceRunRow[]>;
+  siteTags: TagDTO[];
 };
 
 export async function loadSubmissionDetailPage(
@@ -68,7 +71,7 @@ export async function loadSubmissionDetailPage(
     ctx.$config.api.previewSigningSecret,
   );
 
-  const [siteWithAppData, slugs, poll, magicLinks, checkServiceRunsByWorkVersionId] =
+  const [siteWithAppData, slugs, poll, magicLinks, checkServiceRunsByWorkVersionId, siteTags] =
     await Promise.all([
       dbGetSiteAppData(siteName),
       dbListSubmissionSlugRows(submissionId),
@@ -80,6 +83,7 @@ export async function loadSubmissionDetailPage(
       dbGetSubmissionCheckServiceRunsByWorkVersionIds(
         submissionVersions.map((version) => version.site_work.version_id),
       ),
+      dbListSiteTagRows(ctx.site.id),
     ]);
 
   if (!siteWithAppData) {
@@ -115,5 +119,6 @@ export async function loadSubmissionDetailPage(
     activeVersionNumber,
     magicLinks,
     checkServiceRunsByWorkVersionId,
+    siteTags,
   };
 }

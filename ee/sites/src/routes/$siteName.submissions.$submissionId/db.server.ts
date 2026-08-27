@@ -41,6 +41,7 @@ export type SubmissionDetailRow = {
   };
   work: { doi: string | null; key: string | null } | null;
   slugs: { slug: string; primary: boolean }[];
+  tags: { tag: { id: string; name: string; label: string } }[];
   versions: {
     id: string;
     status: string;
@@ -112,6 +113,10 @@ export async function dbLoadSubmissionDetail(
         },
         work: { select: { doi: true, key: true } },
         slugs: { select: { slug: true, primary: true } },
+        tags: {
+          select: { tag: { select: { id: true, name: true, label: true } } },
+          orderBy: { tag: { label: 'asc' } },
+        },
         versions: {
           select: submissionDetailVersionSelect,
           orderBy: { date_created: 'desc' },
@@ -304,4 +309,14 @@ export async function dbListMagicLinksForSubmission(
     ...link,
     access_count: countByLinkId.get(link.id) ?? 0,
   }));
+}
+
+/** Every tag defined on the site, for the tag picker. */
+export async function dbListSiteTagRows(siteId: string) {
+  const prisma = await getPrismaClient();
+  return prisma.tag.findMany({
+    where: { site_id: siteId },
+    select: { id: true, name: true, label: true },
+    orderBy: { label: 'asc' },
+  });
 }
