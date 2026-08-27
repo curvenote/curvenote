@@ -146,6 +146,34 @@ function log(...args: any[]) {
   }
 }
 
+type SeedUsers = {
+  support: Prisma.UserGetPayload<any>;
+  others: Prisma.UserGetPayload<any>[];
+};
+
+function getAllSeedUsers(users: SeedUsers): Prisma.UserGetPayload<any>[] {
+  return [users.support, ...users.others];
+}
+
+async function assignSeedWorkOwners(
+  workId: string,
+  users: SeedUsers,
+  dateCreated: string,
+): Promise<void> {
+  const owners = getAllSeedUsers(users);
+  await prisma.workUser.deleteMany({ where: { work_id: workId } });
+  await prisma.workUser.createMany({
+    data: owners.map((user) => ({
+      id: uuid(),
+      date_created: dateCreated,
+      date_modified: dateCreated,
+      user_id: user.id,
+      role: WorkRole.OWNER,
+      work_id: workId,
+    })),
+  });
+}
+
 export async function loadAllJsonFilesFromDir(directoryPath: string): Promise<any[]> {
   try {
     // Read the directory to get all filenames
@@ -278,23 +306,14 @@ export async function seedBySites(
           created_by: {
             connect: { id: users.support.id },
           },
-          work_users: {
-            create: [
-              {
-                id: uuid(),
-                date_created: versionsWithCdn[0].date_created,
-                date_modified: versionsWithCdn[0].date_created,
-                user_id: users.support.id,
-                role: WorkRole.OWNER,
-              },
-            ],
-          },
         },
         update: {},
         include: {
           versions: true,
         },
       });
+
+      await assignSeedWorkOwners(workData.id, users, versionsWithCdn[0].date_created);
 
       const workIndex = workCount - 1;
       const versionsToSubmitWithStatus: Array<{ version: any; status: 'DRAFT' | 'PUBLISHED' }> =
@@ -699,9 +718,7 @@ const seedUtilsDir = path.dirname(fileURLToPath(import.meta.url));
 async function seedSharedContentWork(
   landingWorkPath: string,
   startDateString: string,
-  users: {
-    support: Prisma.UserGetPayload<any>;
-  },
+  users: SeedUsers,
   seedCdnBase: string | undefined,
   summary: { works: number },
 ): Promise<void> {
@@ -752,22 +769,12 @@ async function seedSharedContentWork(
     include: { versions: true },
   });
 
-  // Reassign ownership to support (covers works created manually before seed).
-  await prisma.workUser.deleteMany({ where: { work_id: work.id } });
-  await prisma.workUser.create({
-    data: {
-      id: uuid(),
-      date_created: startDateString,
-      date_modified: startDateString,
-      user_id: users.support.id,
-      role: WorkRole.OWNER,
-      work_id: work.id,
-    },
-  });
+  // Reassign ownership to all seed users (covers works created manually before seed).
+  await assignSeedWorkOwners(work.id, users, versionsWithCdn[0].date_created);
 
   summary.works++;
   console.log(
-    `   ✓ Ensured content work: ${workData.id} (${workData.versions.length} version(s), owner: support)`,
+    `   ✓ Ensured content work: ${workData.id} (${workData.versions.length} version(s), ${getAllSeedUsers(users).length} owner(s))`,
   );
 }
 
