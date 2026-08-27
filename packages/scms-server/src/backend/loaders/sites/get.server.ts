@@ -36,9 +36,15 @@ export async function dbGetSite(name: string) {
 }
 
 // `tags` is typed as optional here (rather than inherited as-is from `dbGetSite`'s
-// literal `include`) because other queries across the codebase build objects of this
-// same `DBO` shape without selecting the tag catalog. `formatSiteDTO` treats a missing
-// `tags` field as an empty catalog.
+// literal `include`) because `dbListMany` (see `list.server.ts`) accepts a
+// caller-supplied `include` that may omit the tag catalog, and other queries
+// across the codebase (e.g. `my/sites.server.ts`) build objects of this same
+// `DBO` shape too. `formatSiteDTO` guards this with `dbo.tags ?? []`.
+//
+// Trade-off: this removes the compile-time tripwire a required field would give.
+// Any new query whose result feeds `formatSiteDTO` MUST add a `tags` include
+// (see `dbGetSite` above for the shape) or it will silently report an empty
+// tag catalog instead of failing to compile.
 export type DBO = Omit<NonNullable<Awaited<ReturnType<typeof dbGetSite>>>, 'tags'> & {
   tags?: TagRow[];
 };
