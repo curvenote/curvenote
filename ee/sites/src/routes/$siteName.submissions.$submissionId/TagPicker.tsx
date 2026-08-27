@@ -33,6 +33,20 @@ export function TagPicker({
     }
   };
 
+  const handleToggle = (tag: TagDTO) => {
+    if (disabled) {
+      return;
+    }
+    onToggle(tag);
+  };
+
+  const handleCreate = (label: string) => {
+    if (disabled) {
+      return;
+    }
+    onCreate(label);
+  };
+
   return (
     <ui.Popover open={open} onOpenChange={handleOpenChange}>
       <ui.PopoverTrigger asChild disabled={disabled}>
@@ -52,7 +66,7 @@ export function TagPicker({
             ) : null}
             <ui.CommandGroup>
               {options.map((tag) => (
-                <ui.CommandItem key={tag.id} value={tag.id} onSelect={() => onToggle(tag)}>
+                <ui.CommandItem key={tag.id} value={tag.id} onSelect={() => handleToggle(tag)}>
                   <Check
                     className={
                       assignedIds.includes(tag.id)
@@ -67,7 +81,7 @@ export function TagPicker({
               {createOption ? (
                 <ui.CommandItem
                   value={`create-${createOption.name}`}
-                  onSelect={() => onCreate(createOption.label)}
+                  onSelect={() => handleCreate(createOption.label)}
                 >
                   <Plus className="mr-2 w-4 h-4" aria-hidden />
                   {`Create "${createOption.label}"`}
