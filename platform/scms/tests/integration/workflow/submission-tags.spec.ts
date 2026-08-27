@@ -59,6 +59,35 @@ describe('Submission tags schema', () => {
       code: 'P2002',
     });
   });
+
+  test('the same name can be used on two different sites', async () => {
+    const prisma = await getPrismaClient();
+    const other = await createTestData('ADMIN' as SiteRole);
+    const now = new Date().toISOString();
+
+    const first = await prisma.tag.create({
+      data: {
+        id: uuidv7(),
+        name: 'blog-post',
+        label: 'Blog Post',
+        date_created: now,
+        site: { connect: { id: testData.siteId } },
+      },
+    });
+
+    const second = await prisma.tag.create({
+      data: {
+        id: uuidv7(),
+        name: 'blog-post',
+        label: 'Blog Post',
+        date_created: now,
+        site: { connect: { id: other.siteId } },
+      },
+    });
+
+    expect(second.id).not.toBe(first.id);
+    expect(second.name).toBe(first.name);
+  });
 });
 
 describe('assignTagToSubmission', () => {
@@ -167,7 +196,11 @@ describe('assignTagToSubmission', () => {
 
     const activity = await prisma.activity.findMany({
       where: { submission_id: testData.submissionId, activity_type: 'SUBMISSION_TAGS_CHANGE' },
-      orderBy: { date_created: 'asc' },
+      // `date_created` is a millisecond-precision string; the add and the remove
+      // above can land in the same millisecond, which leaves no deterministic
+      // tiebreaker. `id` is a uuidv7, whose string form sorts lexically in
+      // creation order, so order by `id` instead.
+      orderBy: { id: 'asc' },
       select: { data: true },
     });
 
