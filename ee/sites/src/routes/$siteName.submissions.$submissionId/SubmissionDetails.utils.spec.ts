@@ -122,6 +122,7 @@ describe('getStatusBanners', () => {
       {
         kind: 'preview',
         dateCreated: '2022-05-20T14:00:00.000Z',
+        status: 'IN_REVIEW',
         statusLabel: 'In Review',
         href: 'https://example.com/previews/version-active?preview=sig-123',
       },
@@ -148,6 +149,7 @@ describe('getStatusBanners', () => {
       {
         kind: 'preview',
         dateCreated: '2022-05-20T14:00:00.000Z',
+        status: 'IN_REVIEW',
         statusLabel: 'In Review',
         href: 'https://example.com/previews/version-active?preview=sig-123',
       },

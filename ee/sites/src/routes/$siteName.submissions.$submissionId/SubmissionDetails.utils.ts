@@ -29,6 +29,7 @@ export type StatusBanner =
   | {
       kind: 'preview';
       dateCreated: string;
+      status: string;
       statusLabel: string;
       href: string;
     };
@@ -102,6 +103,7 @@ export function getStatusBanners({
     banners.push({
       kind: 'preview',
       dateCreated: activeVersion.date_created,
+      status: activeVersion.status,
       statusLabel: activeStatusLabel,
       href: `${baseUrl}/previews/${activeVersion.id}?preview=${signature}`,
     });

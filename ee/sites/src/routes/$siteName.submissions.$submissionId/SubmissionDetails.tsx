@@ -1,5 +1,12 @@
-import { primitives, clientCheckSiteScopes, formatDate, scopes, cn } from '@curvenote/scms-core';
-import { SquareCheckBig, ExternalLink, Eye } from 'lucide-react';
+import {
+  primitives,
+  clientCheckSiteScopes,
+  formatDate,
+  scopes,
+  cn,
+  getStatusBannerTone,
+} from '@curvenote/scms-core';
+import { SquareCheckBig, ExternalLink } from 'lucide-react';
 import classNames from 'classnames';
 import type { ReactNode } from 'react';
 import { Slugs, getSlugSuggestion } from './Slugs.js';
@@ -53,7 +60,7 @@ function StatusBannerRow({ banner }: StatusBannerRowProps) {
           className="inline-block w-4 h-4 stroke-[3px] stroke-success shrink-0 align-text-bottom"
           aria-hidden
         />
-        <span className="break-words">
+        <span className="wrap-break-word">
           Version created {formatDate(banner.dateCreated, 'MMMM dd, y HH:ss')} is{' '}
           <strong>Published</strong>
         </span>
@@ -70,15 +77,16 @@ function StatusBannerRow({ banner }: StatusBannerRowProps) {
     );
   }
 
+  const tone = getStatusBannerTone(banner.status);
+
   return (
     <div
-      className="flex flex-wrap gap-x-2 gap-y-1 items-center px-4 py-3 text-sm border-b bg-warning/10 border-border text-foreground md:px-6"
+      className={cn(
+        'flex flex-wrap gap-x-2 gap-y-1 items-center px-4 py-3 text-sm border-b border-border text-foreground md:px-6',
+        tone === 'pending' ? 'bg-warning/10' : 'bg-muted/40',
+      )}
       title={`open preview for version ${formatDate(banner.dateCreated, 'MMMM dd, y HH:ss')}`}
     >
-      <Eye
-        className="inline-block w-4 h-4 stroke-[2px] stroke-warning shrink-0 align-text-bottom"
-        aria-hidden
-      />
       <span className="wrap-break-word">
         {formatDate(banner.dateCreated, 'MMMM dd, y HH:ss')} version is{' '}
         <strong className="capitalize">{banner.statusLabel}</strong>
