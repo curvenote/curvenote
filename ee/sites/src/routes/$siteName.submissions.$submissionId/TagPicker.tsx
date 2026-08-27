@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { TagDTO } from '@curvenote/common';
-import { ui, primitives } from '@curvenote/scms-core';
+import { ui } from '@curvenote/scms-core';
 import { Check, Plus } from 'lucide-react';
 import { filterTagOptions, getCreateTagOption } from './TagPicker.utils.js';
 
@@ -10,7 +10,7 @@ type TagPickerProps = {
   disabled?: boolean;
   onToggle: (tag: TagDTO) => void;
   onCreate: (label: string) => void;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 export function TagPicker({
@@ -21,18 +21,31 @@ export function TagPicker({
   onCreate,
   children,
 }: TagPickerProps) {
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const options = filterTagOptions(catalog, query);
   const createOption = getCreateTagOption(catalog, query);
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setQuery('');
+    }
+  };
+
   return (
-    <primitives.PopoverWrapper
-      skip={disabled}
-      contentAlign="start"
-      className="w-72 p-0"
-      content={
+    <ui.Popover open={open} onOpenChange={handleOpenChange}>
+      <ui.PopoverTrigger asChild disabled={disabled}>
+        {children}
+      </ui.PopoverTrigger>
+      <ui.PopoverContent align="start" className="p-0 w-72">
         <ui.Command shouldFilter={false}>
-          <ui.CommandInput placeholder="Search or create a tag…" onValueChange={setQuery} />
+          <ui.CommandInput
+            boxed
+            placeholder="Search or create a tag…"
+            value={query}
+            onValueChange={setQuery}
+          />
           <ui.CommandList>
             {options.length === 0 && !createOption ? (
               <ui.CommandEmpty>No tags found.</ui.CommandEmpty>
@@ -63,9 +76,7 @@ export function TagPicker({
             </ui.CommandGroup>
           </ui.CommandList>
         </ui.Command>
-      }
-    >
-      {children}
-    </primitives.PopoverWrapper>
+      </ui.PopoverContent>
+    </ui.Popover>
   );
 }

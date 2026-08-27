@@ -50,7 +50,13 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
 
   return (
     <div className="flex flex-wrap gap-2 items-center w-full min-w-0">
-      <TagPicker catalog={siteTags} assignedIds={assignedIds} onToggle={toggle} onCreate={create}>
+      <TagPicker
+        catalog={siteTags}
+        assignedIds={assignedIds}
+        disabled={fetcher.state !== 'idle'}
+        onToggle={toggle}
+        onCreate={create}
+      >
         <button
           type="button"
           className="flex flex-wrap gap-1 items-center text-left"
