@@ -62,6 +62,7 @@ export type SubmissionDetailActivity = {
   work_version?: { id: string; date_created: string };
   date_published?: string;
   job_failure?: SubmissionDetailJobFailure;
+  tag_change?: { label: string; action: 'added' | 'removed' };
 };
 
 export type SubmissionDetailSubmission = {

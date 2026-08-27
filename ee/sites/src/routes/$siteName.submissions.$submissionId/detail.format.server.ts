@@ -93,6 +93,15 @@ function formatDetailActivity(
         }
       : undefined;
 
+  const tagDetail = data?.tag as { label?: string } | undefined;
+  const tagChange =
+    activity.activity_type === 'SUBMISSION_TAGS_CHANGE' && typeof tagDetail?.label === 'string'
+      ? {
+          label: tagDetail.label,
+          action: data?.action === 'removed' ? ('removed' as const) : ('added' as const),
+        }
+      : undefined;
+
   return {
     id: activity.id,
     date_created: formatDate(activity.date_created),
@@ -114,6 +123,7 @@ function formatDetailActivity(
       : undefined,
     date_published: activity.date_published ?? undefined,
     job_failure: jobFailure,
+    tag_change: tagChange,
   };
 }
 
