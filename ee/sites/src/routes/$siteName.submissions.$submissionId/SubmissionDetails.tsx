@@ -15,6 +15,7 @@ import {
   versionCountLabel,
   type StatusBanner,
 } from './SubmissionDetails.utils.js';
+import { formatPublicationDate } from '../../publicationDateCalendar.js';
 
 type DetailRowProps = {
   label: string;
@@ -78,7 +79,7 @@ function StatusBannerRow({ banner }: StatusBannerRowProps) {
         className="inline-block w-4 h-4 stroke-[2px] stroke-warning shrink-0 align-text-bottom"
         aria-hidden
       />
-      <span className="break-words">
+      <span className="wrap-break-word">
         {formatDate(banner.dateCreated, 'MMMM dd, y HH:ss')} version is{' '}
         <strong className="capitalize">{banner.statusLabel}</strong>
       </span>
@@ -143,7 +144,7 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
   return (
     <div>
       <div className="flex justify-between items-center mb-3">
-        <span className="text-xs tracking-wider uppercase text-muted-foreground">
+        <span className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
           SUBMISSION DETAILS
         </span>
         <span className="text-sm text-muted-foreground">
@@ -159,7 +160,7 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
         <DetailRow label="Publication Date">
           <PublicationDate
             submissionId={submission.id}
-            datePublished={datePublished}
+            datePublished={datePublished ? formatPublicationDate(datePublished) : undefined}
             canUpdate={canUpdate}
           />
         </DetailRow>

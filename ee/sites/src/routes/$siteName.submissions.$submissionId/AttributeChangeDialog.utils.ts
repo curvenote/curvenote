@@ -12,10 +12,12 @@ type AttributeChangeItem = {
 };
 
 export function buildAttributeChangeOptions(items: AttributeChangeItem[]): AttributeChangeOption[] {
-  return items.map((item) => ({
-    id: item.id,
-    label: item.content?.title ?? item.name,
-  }));
+  return items
+    .map((item) => ({
+      id: item.id,
+      label: item.content?.title ?? item.name,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 }
 
 export function getOptimisticNameOrTitle(

@@ -58,21 +58,24 @@ export function SubmissionSummaryCard({
           </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-x-4 gap-y-1 items-center text-sm text-foreground">
-          {doi && doiHref ? (
-            <a
-              href={doiHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex gap-1 items-center hover:text-foreground hover:underline"
-            >
-              DOI {doi}
-              <ExternalLink className="w-3.5 h-3.5 shrink-0" aria-hidden />
-            </a>
-          ) : null}
-          {publishedOn ? (
+        <div className="flex flex-wrap gap-x-2 gap-y-1 items-baseline text-sm">
+          {doi && doiHref && (
+            <>
+              <span className="text-xs text-muted-foreground">DOI</span>
+              <a
+                href={doiHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs inline-flex gap-1 items-center font-mono text-muted-foreground hover:text-foreground hover:underline"
+              >
+                {doi}
+                <ExternalLink className="w-3 h-3 shrink-0" aria-hidden />
+              </a>
+            </>
+          )}
+          {publishedOn && (
             <div className="ml-auto text-xs text-muted-foreground">{publishedOn}</div>
-          ) : null}
+          )}
         </div>
       </div>
     </primitives.Card>

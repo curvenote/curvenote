@@ -16,8 +16,22 @@ describe('buildAttributeChangeOptions', () => {
         { id: '2', name: 'articles' },
       ]),
     ).toEqual([
-      { id: '1', label: 'Blog Posts' },
       { id: '2', label: 'articles' },
+      { id: '1', label: 'Blog Posts' },
+    ]);
+  });
+
+  it('sorts options alphabetically by displayed label', () => {
+    expect(
+      buildAttributeChangeOptions([
+        { id: '1', name: 'blog' },
+        { id: '2', name: 'papers', content: { title: 'Articles' } },
+        { id: '3', name: 'notes', content: { title: 'zeta' } },
+      ]),
+    ).toEqual([
+      { id: '2', label: 'Articles' },
+      { id: '1', label: 'blog' },
+      { id: '3', label: 'zeta' },
     ]);
   });
 });

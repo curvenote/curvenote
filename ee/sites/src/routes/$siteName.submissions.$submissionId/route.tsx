@@ -4,7 +4,6 @@ import {
   clientCheckSiteScopes,
   error401,
   error404,
-  formatDate,
   PageFrame,
   useRevalidateOnInterval,
   useDeploymentConfig,
@@ -14,6 +13,7 @@ import {
   scopes,
 } from '@curvenote/scms-core';
 import { withAppSiteContext, userHasScope, assertUserDefined } from '@curvenote/scms-server';
+import { formatPublicationDate } from '../../publicationDateCalendar.js';
 import { loadSubmissionDetailPage } from './loader.server.js';
 import type { SubmissionDetailPageData } from './loader.server.js';
 import {
@@ -168,7 +168,7 @@ export default function SubmissionDetailRoute({
   ];
 
   const publishedOn = date_published
-    ? `Published on ${formatDate(date_published, 'd MMMM yyyy')}`
+    ? `Published on ${formatPublicationDate(date_published)}`
     : undefined;
 
   return (

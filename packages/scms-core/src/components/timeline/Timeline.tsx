@@ -36,7 +36,7 @@ export function Timeline({
       {(title != null || headerAction != null) && (
         <div className="flex justify-between items-center mb-3">
           {title != null && (
-            <span className={cn('text-sm font-normal text-muted-foreground', titleClassName)}>
+            <span className={cn('text-xs font-medium text-muted-foreground uppercase tracking-wide', titleClassName)}>
               {title}
             </span>
           )}
@@ -45,7 +45,7 @@ export function Timeline({
       )}
       <div className="relative">
         <div
-          className={cn('absolute left-0 w-[2px] bg-foreground/20', lineTop, lineBottom)}
+          className={cn('absolute left-0 w-0.5 bg-foreground/20', lineTop, lineBottom)}
           aria-hidden
         />
         <div className={cn('space-y-6', nested && 'pt-5')}>{children}</div>

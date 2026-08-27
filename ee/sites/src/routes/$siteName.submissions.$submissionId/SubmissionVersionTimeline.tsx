@@ -275,11 +275,7 @@ function SubmissionVersionTimelineInner({
   }
 
   return (
-    <Timeline
-      title="TIMELINE"
-      titleClassName="text-sm font-medium uppercase tracking-wide"
-      headerAction={<TimelineActivitiesToggle />}
-    >
+    <Timeline title="TIMELINE" headerAction={<TimelineActivitiesToggle />}>
       {timelineSections.map((section) => {
         if (section.kind === 'submission-activity') {
           return (

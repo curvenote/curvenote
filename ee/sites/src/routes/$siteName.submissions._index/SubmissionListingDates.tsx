@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Calendar, Clock, Send } from 'lucide-react';
 import { formatDate, formatDatetime, formatToNow } from '@curvenote/scms-core';
+import { formatPublicationDate } from '../../publicationDateCalendar.js';
 
 function DateMetaSeparator() {
   return (
@@ -45,7 +46,7 @@ export function SubmissionListingDates({
       <DateMetaItem
         icon={<Calendar className="size-3.5" aria-hidden />}
         label="Publication Date:"
-        value={datePublished ? formatDate(datePublished) : 'n/a'}
+        value={datePublished ? formatPublicationDate(datePublished) : 'n/a'}
       />
       <DateMetaSeparator />
       <DateMetaItem

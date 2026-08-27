@@ -1,5 +1,14 @@
+import { formatDate } from '@curvenote/scms-core';
+
 /** Earliest publication year offered in publication-date calendar dropdowns. */
 export const PUBLICATION_DATE_CALENDAR_FROM_YEAR = 1990;
+
+const PUBLICATION_DATE_DISPLAY_FORMAT = 'd MMMM yyyy';
+
+/** Formats a publication date for the summary card and listing. */
+export function formatPublicationDate(date: string): string {
+  return formatDate(date, PUBLICATION_DATE_DISPLAY_FORMAT);
+}
 
 /** Local calendar midnight — avoids timezone/`toISOString` day shifts in matchers. */
 function startOfLocalDay(date: Date): Date {
