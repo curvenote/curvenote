@@ -593,6 +593,23 @@ export type JobRegistration = {
   jobType: string;
   handler: (ctx: Context, data: CreateJob, storageBackend?: StorageBackend) => Promise<any>;
   requiresStorageBackend?: boolean;
+  /**
+   * Optional hook invoked after a successful `PATCH /api/v1/jobs/:jobId` for this job type.
+   * Used by external workers (e.g. Foundry) to drive extension metadata from job updates.
+   */
+  onJobPatch?: (args: {
+    ctx: Context;
+    job: {
+      id: string;
+      job_type: string;
+      status: string;
+      payload: unknown;
+      results: unknown;
+      messages: unknown;
+    };
+    priorStatus: string;
+    update: { status: string; message?: string; results?: Record<string, any> };
+  }) => Promise<void>;
 };
 
 export interface InboundEmail {
