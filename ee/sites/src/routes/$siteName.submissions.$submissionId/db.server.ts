@@ -310,13 +310,3 @@ export async function dbListMagicLinksForSubmission(
     access_count: countByLinkId.get(link.id) ?? 0,
   }));
 }
-
-/** Every tag defined on the site, for the tag picker. */
-export async function dbListSiteTagRows(siteId: string) {
-  const prisma = await getPrismaClient();
-  return prisma.tag.findMany({
-    where: { site_id: siteId },
-    select: { id: true, name: true, label: true },
-    orderBy: { label: 'asc' },
-  });
-}

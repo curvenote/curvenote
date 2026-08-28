@@ -3,13 +3,13 @@ import type { Context, TimelineCheckServiceRunRow, Workflow } from '@curvenote/s
 import {
   createPreviewToken,
   getConfiguredWorkflow,
+  sites,
   type SiteContext,
 } from '@curvenote/scms-server';
 import {
   dbGetSubmissionCheckServiceRunsByWorkVersionIds,
   dbGetSiteAppData,
   dbListMagicLinksForSubmission,
-  dbListSiteTagRows,
   dbListSubmissionSlugRows,
   dbLoadSubmissionDetail,
   dbShouldPollSubmissionVersions,
@@ -83,7 +83,7 @@ export async function loadSubmissionDetailPage(
       dbGetSubmissionCheckServiceRunsByWorkVersionIds(
         submissionVersions.map((version) => version.site_work.version_id),
       ),
-      dbListSiteTagRows(ctx.site.id),
+      sites.tags.dbListSiteTags(ctx.site.id),
     ]);
 
   if (!siteWithAppData) {
