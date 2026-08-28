@@ -2,7 +2,7 @@ import { error401, error403, error404, httpError } from '@curvenote/scms-core';
 import { throwRedirectOr404 } from '../utils.server.js';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import type { Context } from './context.server.js';
-import { withContext } from './context.server.js';
+import { withAppContext, withContext } from './context.server.js';
 import type { WorkAndVersionsDBO } from './loaders/works/get.server.js';
 import {
   dbGetUserWorkRoles,
@@ -169,6 +169,8 @@ async function loadSiteAndSubmission(
   const site = await dbGetSite(siteName);
   const submission = await dbGetSubmission({ id: submissionId });
   if (!site || !site.metadata || !submission) onNotFound();
+  // URL site must own the submission — prevents cross-site IDOR via site-scoped auth
+  if (submission.site_id !== site.id) onNotFound();
   const workId = submission.work_id ?? submission.versions[0]?.work_version?.work_id;
   return { site, submission, workId };
 }
@@ -223,9 +225,9 @@ export async function withAppSubmissionContext<T extends LoaderFunctionArgs | Ac
   scopes: string[],
   opts: { redirectTo?: string; redirect?: boolean } = { redirectTo: '/app' },
 ): Promise<SubmissionContext> {
-  const ctx = await withContext(args);
+  // Match withAppSiteContext: login redirect, disabled/pending session handling
+  const ctx = await withAppContext(args, { redirect: opts.redirect });
   const { siteName, submissionId } = requireSubmissionParams(args);
-  if (!ctx.user) throw error401();
 
   const onNotFound: SubmissionNotFound = () => {
     throw throwRedirectOr404(opts);
@@ -247,8 +249,9 @@ export async function withAppSubmissionContext<T extends LoaderFunctionArgs | Ac
  * Validates the user is defined and has correctly scoped access to the submission, either
  * via the site or the work.
  *
- * When `allowHandshake` is true, a valid job handshake token may act without site scopes
- * (same pattern as `withAPISiteContext`) so workers can call status callbacks.
+ * When `allowHandshake` is true, a valid *job* handshake token (audience + unexpired)
+ * may act without site scopes (aligned with `withAPISecureContext`) so workers can call
+ * status callbacks. Cron/scoped tokens without `audience` are not accepted.
  *
  * For the non-handshake path, auth (user / curvenote / disabled) is checked before DB
  * lookups so unauthenticated callers cannot distinguish missing vs existing submissions.
@@ -265,7 +268,13 @@ export async function withAPISubmissionContext<T extends LoaderFunctionArgs | Ac
     throw error404();
   };
 
-  if (opts?.allowHandshake && ctx.authorized.handshake) {
+  // Job handshakes only (aud + unexpired) — exclude cron/scoped tokens (endpoint_scope only)
+  const jobHandshake =
+    ctx.authorized.handshake &&
+    ctx.$handshakeClaims?.audience != null &&
+    ctx.$handshakeClaims.expiry > Math.floor(Date.now() / 1000);
+
+  if (opts?.allowHandshake && jobHandshake) {
     const { site, submission, workId } = await loadSiteAndSubmission(
       siteName,
       submissionId,

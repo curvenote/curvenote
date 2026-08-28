@@ -8,9 +8,11 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { SiteRole, WorkRole } from '@curvenote/scms-db';
 import { site, work } from '@curvenote/scms-core';
+import { redirect } from 'react-router';
 import { Context } from './context.server.js';
 
 const withContext = vi.fn();
+const withAppContext = vi.fn();
 const dbGetSite = vi.fn();
 const dbGetSubmission = vi.fn();
 const dbGetWork = vi.fn();
@@ -20,6 +22,7 @@ vi.mock('./context.server.js', async (importOriginal) => {
   return {
     ...actual,
     withContext: (...args: unknown[]) => withContext(...args),
+    withAppContext: (...args: unknown[]) => withAppContext(...args),
   };
 });
 
@@ -46,6 +49,32 @@ vi.mock('./loaders/sites/submissions/versions/get.server.js', () => ({
 
 import { withAPISubmissionContext, withAppSubmissionContext } from './context.submission.server.js';
 
+/**
+ * Mirrors withAppContext auth gates (login / disabled / pending) without loading app-config.
+ * withAppContext always sets redirectTo, so unauthenticated/disabled callers redirect.
+ */
+withAppContext.mockImplementation(async (args: unknown, opts?: { redirect?: boolean }) => {
+  const ctx = await withContext(args, opts);
+  if (!ctx.user) {
+    throw redirect('/login');
+  }
+  if (ctx.user.disabled) {
+    const session = await ctx.$sessionStorage.getSession(ctx.request.headers.get('Cookie'));
+    throw redirect('/', {
+      headers: {
+        'Set-Cookie': await ctx.$sessionStorage.destroySession(session),
+      },
+    });
+  }
+  if (ctx.user.ready_for_approval) {
+    throw redirect('/awaiting-approval');
+  }
+  if (ctx.user.pending) {
+    throw redirect('/new-account/pending');
+  }
+  return ctx;
+});
+
 const siteRow = {
   id: 'site-1',
   name: 'pmc',
@@ -64,6 +93,7 @@ const publicSiteRow = {
 
 const submissionRow = {
   id: 'sub-1',
+  site_id: 'site-1',
   work_id: 'work-1',
   versions: [],
 };
@@ -80,15 +110,28 @@ function makeArgs(siteName = 'pmc', submissionId = 'sub-1') {
   } as any;
 }
 
+function mockSessionStorage() {
+  return {
+    getSession: vi.fn().mockResolvedValue({}),
+    destroySession: vi.fn().mockResolvedValue('destroyed-cookie'),
+  };
+}
+
 function makeContext(
   request: Request,
   opts: {
     handshake?: boolean;
+    handshakeClaims?: { audience?: string; expiry?: number; jobId?: string };
     curvenote?: boolean;
     user?: Record<string, unknown> | null;
   } = {},
 ) {
-  const ctx = new Context({ api: {}, app: {} } as any, {} as any, {} as any, request);
+  const ctx = new Context(
+    { api: {}, app: {} } as any,
+    {} as any,
+    mockSessionStorage() as any,
+    request,
+  );
   if (opts.user === null) {
     ctx.user = undefined;
   } else if (opts.user !== undefined) {
@@ -99,12 +142,15 @@ function makeContext(
       system_role: null,
       site_roles: [],
       work_roles: [],
+      roles: [],
       disabled: false,
+      pending: false,
+      ready_for_approval: false,
     } as any;
   }
   if (opts.handshake) {
     (ctx as any).$verifiedHandshakeToken = 'handshake-token';
-    (ctx as any).$handshakeClaims = {
+    (ctx as any).$handshakeClaims = opts.handshakeClaims ?? {
       audience: 'jobs',
       expiry: Math.floor(Date.now() / 1000) + 3600,
       jobId: 'job-1',
@@ -124,6 +170,8 @@ function userWithSiteAdmin(siteId = 'site-1', overrides: Record<string, unknown>
     work_roles: [],
     roles: [],
     disabled: false,
+    pending: false,
+    ready_for_approval: false,
     ...overrides,
   };
 }
@@ -155,6 +203,48 @@ describe('withAPISubmissionContext handshake', () => {
     await expect(withAPISubmissionContext(args, [site.submissions.update])).rejects.toMatchObject({
       status: 401,
     });
+  });
+
+  test('rejects audience-less (cron/scoped) handshake tokens', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(
+      makeContext(args.request, {
+        handshake: true,
+        handshakeClaims: {
+          // createScopedHandshakeToken shape — no aud
+          expiry: Math.floor(Date.now() / 1000) + 3600,
+        },
+        user: null,
+      }),
+    );
+
+    await expect(
+      withAPISubmissionContext(args, [site.submissions.update], {
+        allowHandshake: true,
+      }),
+    ).rejects.toMatchObject({ status: 401 });
+    expect(dbGetSite).not.toHaveBeenCalled();
+  });
+
+  test('rejects expired job handshake tokens', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(
+      makeContext(args.request, {
+        handshake: true,
+        handshakeClaims: {
+          audience: 'jobs',
+          expiry: Math.floor(Date.now() / 1000) - 60,
+          jobId: 'job-1',
+        },
+        user: null,
+      }),
+    );
+
+    await expect(
+      withAPISubmissionContext(args, [site.submissions.update], {
+        allowHandshake: true,
+      }),
+    ).rejects.toMatchObject({ status: 401 });
   });
 
   test('still 404s when submission is missing even with handshake', async () => {
@@ -202,6 +292,18 @@ describe('withAPISubmissionContext handshake', () => {
     const args = makeArgs();
     withContext.mockResolvedValue(makeContext(args.request, { handshake: true }));
     dbGetWork.mockResolvedValue(null);
+
+    await expect(
+      withAPISubmissionContext(args, [site.submissions.update], {
+        allowHandshake: true,
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  test('404s when submission belongs to a different site (handshake)', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(makeContext(args.request, { handshake: true }));
+    dbGetSubmission.mockResolvedValue({ ...submissionRow, site_id: 'other-site' });
 
     await expect(
       withAPISubmissionContext(args, [site.submissions.update], {
@@ -283,6 +385,8 @@ describe('withAPISubmissionContext user auth', () => {
           work_roles: [],
           roles: [],
           disabled: false,
+          pending: false,
+          ready_for_approval: false,
         },
       }),
     );
@@ -292,9 +396,25 @@ describe('withAPISubmissionContext user auth', () => {
     });
   });
 
+  test('404 when submission belongs to a different site (cross-site IDOR)', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(
+      makeContext(args.request, {
+        curvenote: true,
+        user: userWithSiteAdmin(),
+      }),
+    );
+    dbGetSubmission.mockResolvedValue({ ...submissionRow, site_id: 'other-site' });
+
+    await expect(withAPISubmissionContext(args, [site.submissions.update])).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
   test('succeeds via work scope on a public unrestricted site', async () => {
     const args = makeArgs('open');
     dbGetSite.mockResolvedValue(publicSiteRow);
+    dbGetSubmission.mockResolvedValue({ ...submissionRow, site_id: 'site-public' });
     withContext.mockResolvedValue(
       makeContext(args.request, {
         curvenote: true,
@@ -305,6 +425,8 @@ describe('withAPISubmissionContext user auth', () => {
           work_roles: [{ work_id: 'work-1', user_id: 'user-1', role: WorkRole.OWNER }],
           roles: [],
           disabled: false,
+          pending: false,
+          ready_for_approval: false,
         },
       }),
     );
@@ -359,13 +481,43 @@ describe('withAppSubmissionContext', () => {
     dbGetWork.mockResolvedValue(workRow);
   });
 
-  test('401 when unauthenticated', async () => {
+  test('redirects to login when unauthenticated', async () => {
     const args = makeArgs();
     withContext.mockResolvedValue(makeContext(args.request, { user: null }));
 
-    await expect(
-      withAppSubmissionContext(args, [site.submissions.update], { redirect: false }),
-    ).rejects.toMatchObject({ status: 401 });
+    const err = await withAppSubmissionContext(args, [site.submissions.update]).catch((e) => e);
+
+    expect(err).toMatchObject({ status: 302 });
+    expect(err.headers.get('Location')).toBe('/login');
+    expect(dbGetSite).not.toHaveBeenCalled();
+  });
+
+  test('still redirects to login when redirect:false (withAppContext sets redirectTo)', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(makeContext(args.request, { user: null }));
+
+    // withAppContext always sets redirectTo:/login, so redirect:false alone does not
+    // suppress the login redirect — assert that behaviour stays explicit.
+    const err = await withAppSubmissionContext(args, [site.submissions.update], {
+      redirect: false,
+    }).catch((e) => e);
+
+    expect(err).toMatchObject({ status: 302 });
+    expect(err.headers.get('Location')).toBe('/login');
+  });
+
+  test('redirects disabled users and destroys the session', async () => {
+    const args = makeArgs();
+    const mockCtx = makeContext(args.request, {
+      user: userWithSiteAdmin('site-1', { disabled: true }),
+    });
+    withContext.mockResolvedValue(mockCtx);
+
+    const err = await withAppSubmissionContext(args, [site.submissions.update]).catch((e) => e);
+
+    expect(err).toMatchObject({ status: 302 });
+    expect(err.headers.get('Location')).toBe('/');
+    expect(mockCtx.$sessionStorage.destroySession).toHaveBeenCalled();
     expect(dbGetSite).not.toHaveBeenCalled();
   });
 
@@ -380,6 +532,8 @@ describe('withAppSubmissionContext', () => {
           work_roles: [],
           roles: [],
           disabled: false,
+          pending: false,
+          ready_for_approval: false,
         },
       }),
     );
@@ -410,6 +564,8 @@ describe('withAppSubmissionContext', () => {
           work_roles: [],
           roles: [],
           disabled: false,
+          pending: false,
+          ready_for_approval: false,
         },
       }),
     );
@@ -437,6 +593,16 @@ describe('withAppSubmissionContext', () => {
     const args = makeArgs();
     withContext.mockResolvedValue(makeContext(args.request, { user: userWithSiteAdmin() }));
     dbGetWork.mockResolvedValue(null);
+
+    await expect(
+      withAppSubmissionContext(args, [site.submissions.update], { redirect: false }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  test('404 when submission belongs to a different site (redirect disabled)', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(makeContext(args.request, { user: userWithSiteAdmin() }));
+    dbGetSubmission.mockResolvedValue({ ...submissionRow, site_id: 'other-site' });
 
     await expect(
       withAppSubmissionContext(args, [site.submissions.update], { redirect: false }),

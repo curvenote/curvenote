@@ -64,7 +64,7 @@ describe('withPubSubHandler', () => {
       async () => {
         throw new Error('converter blew up');
       },
-      { onFailure, preserveTmpFolder: true },
+      { onFailure },
     );
 
     await handler(pubSubReq(), res);
@@ -84,12 +84,9 @@ describe('withPubSubHandler', () => {
     });
     const res = mockRes();
 
-    const handler = withPubSubHandler(
-      async () => {
-        throw new Error('converter blew up');
-      },
-      { preserveTmpFolder: true },
-    );
+    const handler = withPubSubHandler(async () => {
+      throw new Error('converter blew up');
+    });
 
     await handler(pubSubReq(), res);
 
