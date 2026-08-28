@@ -1,5 +1,18 @@
 # @curvenote/scms-core
 
+## 0.25.0
+
+### Minor Changes
+
+- [#1065](https://github.com/curvenote/curvenote/pull/1065) [`959bcf4`](https://github.com/curvenote/curvenote/commit/959bcf4de568bb924974cd11949f08601105217a) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add configurable dashboard task section ordering via deploy config, export shared `TaskCardNewBadge` for task cards, and align Check My Work NEW badge positioning.
+
+### Patch Changes
+
+- [#1063](https://github.com/curvenote/curvenote/pull/1063) [`320c3fb`](https://github.com/curvenote/curvenote/commit/320c3fbc2d16b651bca684cb363f0b642cd29649) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Refresh the site-admin submission details page with a summary card and dialog-based editors for collection, kind, and slugs
+
+- Updated dependencies []:
+  - @curvenote/scms-db@0.25.0
+
 ## 0.24.3
 
 ### Patch Changes
