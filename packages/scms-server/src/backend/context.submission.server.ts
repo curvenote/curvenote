@@ -210,22 +210,27 @@ export async function withAPISubmissionContext<T extends LoaderFunctionArgs | Ac
   scopes: string[],
   opts?: { allowHandshake?: boolean },
 ): Promise<SubmissionContext> {
-  const ctx = await withContext(args);
+  // Only resolve context here when the handshake shortcut is possible — otherwise
+  // withAppSubmissionContext would call withContext a second time (JWT + DB + provision).
+  if (opts?.allowHandshake) {
+    const ctx = await withContext(args);
+    if (ctx.authorized.handshake) {
+      const { siteName, submissionId } = args.params;
+      if (!siteName) throw httpError(400, 'Missing site name');
+      if (!submissionId) throw httpError(400, 'Missing submission ID');
 
-  if (opts?.allowHandshake && ctx.authorized.handshake) {
-    const { siteName, submissionId } = args.params;
-    if (!siteName) throw httpError(400, 'Missing site name');
-    if (!submissionId) throw httpError(400, 'Missing submission ID');
+      const site = await dbGetSite(siteName);
+      const submission = await dbGetSubmission({ id: submissionId });
+      if (!site || !site.metadata || !submission) throw error404();
+      // URL site must own the submission — prevents cross-site context via handshake
+      if (submission.site_id !== site.id) throw error404();
 
-    const site = await dbGetSite(siteName);
-    const submission = await dbGetSubmission({ id: submissionId });
-    if (!site || !site.metadata || !submission) throw error404();
+      const workId = submission.work_id ?? submission.versions[0]?.work_version?.work_id;
+      const work = await dbGetWork(workId);
+      if (!work) throw error404();
 
-    const workId = submission.work_id ?? submission.versions[0]?.work_version?.work_id;
-    const work = await dbGetWork(workId);
-    if (!work) throw error404();
-
-    return new SubmissionContext(ctx, site, work, submission);
+      return new SubmissionContext(ctx, site, work, submission);
+    }
   }
 
   const submissionCtx = await withAppSubmissionContext(args, scopes, { redirect: false });
