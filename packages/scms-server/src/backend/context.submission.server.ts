@@ -156,6 +156,62 @@ export async function withCurvenoteSubmissionContext<
   return ctx;
 }
 
+type SubmissionNotFound = () => never;
+
+/**
+ * Load site + submission (and derived workId). Shared by app and API wrappers.
+ */
+async function loadSiteAndSubmission(
+  siteName: string,
+  submissionId: string,
+  onNotFound: SubmissionNotFound,
+): Promise<{ site: SiteDBO; submission: SubmissionAndVersionsDBO; workId: string }> {
+  const site = await dbGetSite(siteName);
+  const submission = await dbGetSubmission({ id: submissionId });
+  if (!site || !site.metadata || !submission) onNotFound();
+  const workId = submission.work_id ?? submission.versions[0]?.work_version?.work_id;
+  return { site, submission, workId };
+}
+
+async function loadWork(
+  workId: string,
+  onNotFound: SubmissionNotFound,
+): Promise<WorkAndVersionsDBO> {
+  const work = await dbGetWork(workId);
+  if (!work) onNotFound();
+  return work;
+}
+
+/**
+ * Site-scope access, or work-scope access on public unrestricted sites.
+ */
+function userHasSubmissionAccess(
+  user: NonNullable<Context['user']>,
+  site: SiteDBO,
+  workId: string,
+  scopes: string[],
+): boolean {
+  let userAccess = false;
+  // Work-scope access is only possible for public, unrestricted sites.
+  if (!site.private && !site.restricted) {
+    userAccess = !!scopes.find((scope) => userHasWorkScope(user, scope, workId));
+  }
+  if (!userAccess) {
+    userAccess = !!scopes.find((scope) => userHasSiteScope(user, scope, site.id));
+  }
+  return userAccess;
+}
+
+function requireSubmissionParams(args: { params: { siteName?: string; submissionId?: string } }): {
+  siteName: string;
+  submissionId: string;
+} {
+  const { siteName, submissionId } = args.params;
+  if (!siteName) throw httpError(400, 'Missing site name');
+  if (!submissionId) throw httpError(400, 'Missing submission ID');
+  return { siteName, submissionId };
+}
+
 /**
  * Context wrapper for /app/sites/{siteName}/submissions endpoints in the Remix app
  *
@@ -168,32 +224,21 @@ export async function withAppSubmissionContext<T extends LoaderFunctionArgs | Ac
   opts: { redirectTo?: string; redirect?: boolean } = { redirectTo: '/app' },
 ): Promise<SubmissionContext> {
   const ctx = await withContext(args);
-
-  const { siteName, submissionId } = args.params;
-  if (!siteName) throw httpError(400, 'Missing site name');
-  if (!submissionId) throw httpError(400, 'Missing submission ID');
+  const { siteName, submissionId } = requireSubmissionParams(args);
   if (!ctx.user) throw error401();
-  const site = await dbGetSite(siteName);
-  const submission = await dbGetSubmission({ id: submissionId });
-  if (!site || !site.metadata || !submission) throw throwRedirectOr404(opts);
-  const workId = submission.work_id ?? submission.versions[0]?.work_version?.work_id;
-  let userAccess = false;
-  // Determine if user has access to the submission from the work.
-  // This is only possible for public, unrestricted sites.
-  if (!site.private && !site.restricted) {
-    userAccess = !!scopes.find((scope) => userHasWorkScope(ctx.user, scope, workId));
-  }
-  // Determine if user has access to the submission from the site.
-  if (!userAccess) {
-    userAccess = !!scopes.find((scope) => userHasSiteScope(ctx.user, scope, site.id));
-  }
-  if (!userAccess) throw throwRedirectOr404(opts);
-  const work = await dbGetWork(workId);
-  // Work does not exist
-  if (!work) throw throwRedirectOr404(opts);
-  const submissionCtx = new SubmissionContext(ctx, site, work, submission);
 
-  return submissionCtx;
+  const onNotFound: SubmissionNotFound = () => {
+    throw throwRedirectOr404(opts);
+  };
+  const { site, submission, workId } = await loadSiteAndSubmission(
+    siteName,
+    submissionId,
+    onNotFound,
+  );
+  if (!userHasSubmissionAccess(ctx.user, site, workId, scopes)) onNotFound();
+  const work = await loadWork(workId, onNotFound);
+
+  return new SubmissionContext(ctx, site, work, submission);
 }
 
 /**
@@ -204,6 +249,9 @@ export async function withAppSubmissionContext<T extends LoaderFunctionArgs | Ac
  *
  * When `allowHandshake` is true, a valid job handshake token may act without site scopes
  * (same pattern as `withAPISiteContext`) so workers can call status callbacks.
+ *
+ * For the non-handshake path, auth (user / curvenote / disabled) is checked before DB
+ * lookups so unauthenticated callers cannot distinguish missing vs existing submissions.
  */
 export async function withAPISubmissionContext<T extends LoaderFunctionArgs | ActionFunctionArgs>(
   args: T,
@@ -211,34 +259,33 @@ export async function withAPISubmissionContext<T extends LoaderFunctionArgs | Ac
   opts?: { allowHandshake?: boolean },
 ): Promise<SubmissionContext> {
   const ctx = await withContext(args);
+  const { siteName, submissionId } = requireSubmissionParams(args);
 
-  const { siteName, submissionId } = args.params;
-  if (!siteName) throw httpError(400, 'Missing site name');
-  if (!submissionId) throw httpError(400, 'Missing submission ID');
-
-  const site = await dbGetSite(siteName);
-  const submission = await dbGetSubmission({ id: submissionId });
-  if (!site || !site.metadata || !submission) throw error404();
-
-  const workId = submission.work_id ?? submission.versions[0]?.work_version?.work_id;
-  const work = await dbGetWork(workId);
-  if (!work) throw error404();
+  const onNotFound: SubmissionNotFound = () => {
+    throw error404();
+  };
 
   if (opts?.allowHandshake && ctx.authorized.handshake) {
+    const { site, submission, workId } = await loadSiteAndSubmission(
+      siteName,
+      submissionId,
+      onNotFound,
+    );
+    const work = await loadWork(workId, onNotFound);
     return new SubmissionContext(ctx, site, work, submission);
   }
 
   if (!ctx.user) throw error401();
   if (!ctx.authorized.curvenote) throw error401();
+  if (ctx.user.disabled) throw error401();
 
-  let userAccess = false;
-  if (!site.private && !site.restricted) {
-    userAccess = !!scopes.find((scope) => userHasWorkScope(ctx.user, scope, workId));
-  }
-  if (!userAccess) {
-    userAccess = !!scopes.find((scope) => userHasSiteScope(ctx.user, scope, site.id));
-  }
-  if (!userAccess) throw error404();
+  const { site, submission, workId } = await loadSiteAndSubmission(
+    siteName,
+    submissionId,
+    onNotFound,
+  );
+  if (!userHasSubmissionAccess(ctx.user, site, workId, scopes)) onNotFound();
+  const work = await loadWork(workId, onNotFound);
 
   return new SubmissionContext(ctx, site, work, submission);
 }

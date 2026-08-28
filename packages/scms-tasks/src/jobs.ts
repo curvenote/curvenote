@@ -23,7 +23,6 @@ function patchJobStatus(
   status: string,
   results: Record<string, unknown> | undefined,
   message: string,
-  res: Response,
 ): Promise<void> {
   const body: Record<string, unknown> = { status, message };
   if (results) body.results = results;
@@ -32,7 +31,6 @@ function patchJobStatus(
     url: jobUrl,
     body,
     authToken: handshake,
-    res,
     contextLabel: 'patching job',
     loggingOnlyMode,
   });
@@ -52,7 +50,7 @@ export function createJobsHandler(
         console.log('[loggingOnlyMode] Skipping COMPLETED request');
         return alreadySent(res) ? res : send(res, 200);
       }
-      await patchJobStatus(jobUrl, handshake, loggingOnlyMode, 'COMPLETED', results, message, res);
+      await patchJobStatus(jobUrl, handshake, loggingOnlyMode, 'COMPLETED', results, message);
       return alreadySent(res) ? res : send(res, 200);
     },
 
@@ -61,7 +59,7 @@ export function createJobsHandler(
         console.log('[loggingOnlyMode] Skipping FAILED request');
         return alreadySent(res) ? res : send(res, 200);
       }
-      await patchJobStatus(jobUrl, handshake, loggingOnlyMode, 'FAILED', results, message, res);
+      await patchJobStatus(jobUrl, handshake, loggingOnlyMode, 'FAILED', results, message);
       return alreadySent(res) ? res : send(res, 200);
     },
 
@@ -70,7 +68,7 @@ export function createJobsHandler(
         console.log('[loggingOnlyMode] Skipping RUNNING request');
         return;
       }
-      await patchJobStatus(jobUrl, handshake, loggingOnlyMode, 'RUNNING', results, message, res);
+      await patchJobStatus(jobUrl, handshake, loggingOnlyMode, 'RUNNING', results, message);
     },
   };
 }

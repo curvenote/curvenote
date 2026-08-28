@@ -13,7 +13,7 @@ import type { Request, Response } from 'express';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { removeFolder, pubsubError } from './utils.js';
+import { alreadySent, removeFolder, pubsubError } from './utils.js';
 import { getWorksApiBase } from './works.js';
 import { SCMSClient } from './client.js';
 
@@ -189,21 +189,27 @@ export function withPubSubHandler<TPayload = unknown>(
       if (!preserveTmpFolder) {
         await removeFolder(tmpFolder);
       }
-      try {
-        if (client) {
-          const { failureState, userId } = validatedAttributes;
-          if (onFailure && failureState != null && userId != null) {
+      if (client) {
+        const { failureState, userId } = validatedAttributes;
+        if (onFailure && failureState != null && userId != null) {
+          try {
             await onFailure(client, failureState, userId, res);
+          } catch (failureErr: unknown) {
+            console.error('onFailure failed:', failureErr);
           }
+        }
+        try {
           await client.jobs.failed(res, `Converter failed: ${errMessage}`, {
             error: errMessage,
             taskId,
           });
-        } else {
-          pubsubError('Unable to process converter job', res);
+        } catch (failedErr: unknown) {
+          console.error('jobs.failed failed:', failedErr);
         }
-      } catch {
-        // Response may already be sent; ignore secondary errors
+      }
+      // Guarantee a Pub/Sub ack even when onFailure / jobs.failed throw (e.g. SCMS down)
+      if (!alreadySent(res)) {
+        pubsubError(`Converter failed: ${errMessage}`, res);
       }
     }
   };
