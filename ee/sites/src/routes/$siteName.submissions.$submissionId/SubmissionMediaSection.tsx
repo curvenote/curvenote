@@ -11,8 +11,7 @@ const tileWidthClassName =
   'w-[calc((100%-1rem)/2)] sm:w-[calc((100%-2rem)/3)] md:w-[calc((100%-3rem)/4)] lg:w-[calc((100%-4rem)/5)]';
 
 export function SubmissionMediaSection({ thumbnailUrl, title }: SubmissionMediaSectionProps) {
-  // Signed thumbnail links are often emitted whenever a CDN key exists, even when the
-  // thumbnail route 404s (no column + no manifest thumbnail). Treat load failure as empty.
+  // Belt-and-suspenders: loader should only pass URLs that resolve, but CDN can still 404.
   const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {

@@ -144,6 +144,7 @@ export default function SubmissionDetailRoute({
     poll,
     activeVersion,
     checkServiceRunsByWorkVersionId,
+    mediaThumbnailUrl,
   } = loaderData;
 
   const { date_published } = submission;
@@ -182,10 +183,7 @@ export default function SubmissionDetailRoute({
           publishedOn={publishedOn}
           doi={doi}
         />
-        <SubmissionMediaSection
-          thumbnailUrl={activeVersion.site_work.links.thumbnail}
-          title={title}
-        />
+        <SubmissionMediaSection thumbnailUrl={mediaThumbnailUrl} title={title} />
         <SubmissionDetails baseUrl={config.renderServiceUrl ?? site.links.html} />
         <MagicLinks />
         <SubmissionVersionTimeline

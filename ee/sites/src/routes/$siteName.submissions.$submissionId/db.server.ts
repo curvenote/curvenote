@@ -55,6 +55,7 @@ export type SubmissionDetailRow = {
       work_id: string;
       cdn: string | null;
       cdn_key: string | null;
+      thumbnail: string | null;
       title: string;
       description: string | null;
       authors: string[];
