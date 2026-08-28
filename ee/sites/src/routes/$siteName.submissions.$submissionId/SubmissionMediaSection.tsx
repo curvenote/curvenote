@@ -31,11 +31,11 @@ export function SubmissionMediaSection({ thumbnailUrl, title }: SubmissionMediaS
       <div className={cn('flex flex-col gap-1 items-stretch', tileWidthClassName)}>
         <div
           className={cn(
-            'flex flex-col gap-1 rounded-md border px-2 py-1',
+            'flex flex-col gap-0.5 rounded-md border p-2',
             'border-stone-200 bg-white dark:border-stone-500 dark:bg-stone-900',
           )}
         >
-          <p className="text-xs truncate text-muted-foreground/80">Thumbnail</p>
+          <p className="text-xs leading-none truncate text-muted-foreground/80">Thumbnail</p>
           <div className="flex overflow-hidden justify-center items-center min-h-0 rounded aspect-square bg-stone-100 dark:bg-stone-800">
             {showImage ? (
               <img
