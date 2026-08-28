@@ -5,9 +5,9 @@ import { cdnManifestHasThumbnail } from './activeVersionCdn.server.js';
 
 describe('cdnManifestHasThumbnail', () => {
   it('detects a site-level thumbnail', () => {
-    expect(
-      cdnManifestHasThumbnail({ thumbnail: '/thumb.webp' } as CurvenoteSiteManifest),
-    ).toBe(true);
+    expect(cdnManifestHasThumbnail({ thumbnail: '/thumb.webp' } as CurvenoteSiteManifest)).toBe(
+      true,
+    );
   });
 
   it('detects a project-level thumbnail', () => {
