@@ -44,15 +44,23 @@ export const loader = async (args: LoaderFunctionArgs): Promise<SubmissionDetail
   });
 
   const { siteName, submissionId } = args.params;
-  if (!siteName) throw new Error('Missing siteName');
-  if (!submissionId) throw new Error('Missing submissionId');
-  if (!ctx.user) throw error401();
+  if (!siteName) {
+    throw new Error('Missing siteName');
+  }
+  if (!submissionId) {
+    throw new Error('Missing submissionId');
+  }
+  if (!ctx.user) {
+    throw error401();
+  }
   if (!clientCheckSiteScopes(ctx.scopes, [scopes.site.submissions.read], siteName)) {
     throw error401();
   }
 
   const page = await loadSubmissionDetailPage(ctx, siteName, submissionId);
-  if (page == null) throw error404();
+  if (page == null) {
+    throw error404();
+  }
 
   const { submission, submissionVersions, activeVersion } = page;
 

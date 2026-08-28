@@ -165,7 +165,9 @@ export async function dbLoadSubmissionDetail(
 export async function dbGetSubmissionCheckServiceRunsByWorkVersionIds(
   workVersionIds: string[],
 ): Promise<Record<string, TimelineCheckServiceRunRow[]>> {
-  if (workVersionIds.length === 0) return {};
+  if (workVersionIds.length === 0) {
+    return {};
+  }
   const prisma = await getPrismaClient();
   const rows = await prisma.checkServiceRun.findMany({
     where: { work_version_id: { in: workVersionIds } },

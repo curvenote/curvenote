@@ -90,9 +90,15 @@ export function getActivityTypeLabel(
   }
   if (options?.data?.transition_cancelled === true) {
     const jobType = options.data.job_type;
-    if (jobType === 'PUBLISH') return 'Publish failed';
-    if (jobType === 'UNPUBLISH') return 'Unpublish failed';
-    if (typeof jobType === 'string') return `${jobType.replace(/_/g, ' ').toLowerCase()} failed`;
+    if (jobType === 'PUBLISH') {
+      return 'Publish failed';
+    }
+    if (jobType === 'UNPUBLISH') {
+      return 'Unpublish failed';
+    }
+    if (typeof jobType === 'string') {
+      return `${jobType.replace(/_/g, ' ').toLowerCase()} failed`;
+    }
     return 'Background job failed';
   }
   return ACTIVITY_TYPE_LABELS[activityType] ?? activityType.replace(/_/g, ' ').toLowerCase();

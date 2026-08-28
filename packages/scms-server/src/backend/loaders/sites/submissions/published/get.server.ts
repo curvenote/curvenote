@@ -194,7 +194,9 @@ export default async function (
   workIdOrSlug: string,
 ): Promise<PublishedSiteWorkWithTagsDTO | null> {
   const dbo = await dbGetPublishedSiteWorkWithTagsDto(ctx.site.id, workIdOrSlug);
-  if (!dbo) return null;
+  if (!dbo) {
+    return null;
+  }
   const siteWork = await formatPublishedSiteWorkWithVersions(ctx, dbo);
   return { ...siteWork, submission_tags: formatPublishedSubmissionTags(dbo) };
 }

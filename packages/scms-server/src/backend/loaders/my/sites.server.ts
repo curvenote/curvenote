@@ -96,7 +96,9 @@ function formatMySitesDTO(ctx: Context, sites: UserSiteDBO[]): UserSitesDTO {
 }
 
 export default async function (ctx: Context) {
-  if (!ctx.user) throw error401();
+  if (!ctx.user) {
+    throw error401();
+  }
   const dbo = await dbListSitesForUser(ctx.user);
   return formatMySitesDTO(ctx, dbo);
 }
