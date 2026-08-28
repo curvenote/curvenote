@@ -28,6 +28,8 @@ const badgeVariants = cva(
           'border-transparent bg-black text-white dark:bg-white dark:text-black [a&]:hover:bg-black/90 dark:[a&]:hover:bg-white/90',
         'mono-light':
           'border-transparent bg-white text-black dark:bg-black dark:text-white [a&]:hover:bg-white/90 dark:[a&]:hover:bg-black/90',
+        neutral:
+          'border-transparent bg-gray-100 text-gray-800 dark:bg-stone-700 dark:text-stone-100 [a&]:hover:bg-gray-200 dark:[a&]:hover:bg-stone-600',
       },
       size: {
         xs: 'text-[0.625rem]', // 10px - extra small
