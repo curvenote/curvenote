@@ -1,5 +1,14 @@
 # @curvenote/scms-doc-preview
 
+## 0.25.0
+
+### Patch Changes
+
+- Updated dependencies [[`959bcf4`](https://github.com/curvenote/curvenote/commit/959bcf4de568bb924974cd11949f08601105217a), [`7ceaaf4`](https://github.com/curvenote/curvenote/commit/7ceaaf4d7dea7fcfa168977d179ad085ea7952e4), [`320c3fb`](https://github.com/curvenote/curvenote/commit/320c3fbc2d16b651bca684cb363f0b642cd29649), [`e48a7d8`](https://github.com/curvenote/curvenote/commit/e48a7d870f62dbc572e1471b9f41b97b9ee25749)]:
+  - @curvenote/scms-core@0.25.0
+  - @curvenote/scms-server@0.25.0
+  - @curvenote/scms-db@0.25.0
+
 ## 0.24.3
 
 ### Patch Changes

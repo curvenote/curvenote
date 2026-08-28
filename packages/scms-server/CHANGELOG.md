@@ -1,5 +1,17 @@
 # @curvenote/scms-server
 
+## 0.25.0
+
+### Patch Changes
+
+- [#1070](https://github.com/curvenote/curvenote/pull/1070) [`7ceaaf4`](https://github.com/curvenote/curvenote/commit/7ceaaf4d7dea7fcfa168977d179ad085ea7952e4) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Allow job handshake tokens to call submission status APIs without site scopes (fixes PMC deposit status callbacks).
+
+- [#1072](https://github.com/curvenote/curvenote/pull/1072) [`e48a7d8`](https://github.com/curvenote/curvenote/commit/e48a7d870f62dbc572e1471b9f41b97b9ee25749) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a MEDIA section on the site-admin submission details page that shows the active work version thumbnail (or a No Thumbnail placeholder), resolving presence via CDN config in the page loader for correct SSR.
+
+- Updated dependencies [[`959bcf4`](https://github.com/curvenote/curvenote/commit/959bcf4de568bb924974cd11949f08601105217a), [`320c3fb`](https://github.com/curvenote/curvenote/commit/320c3fbc2d16b651bca684cb363f0b642cd29649)]:
+  - @curvenote/scms-core@0.25.0
+  - @curvenote/scms-db@0.25.0
+
 ## 0.24.3
 
 ### Patch Changes
