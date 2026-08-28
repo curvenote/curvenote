@@ -34,6 +34,7 @@ import { useEffect, useState } from 'react';
 import { SubmissionDetails } from './SubmissionDetails.js';
 import { MagicLinks } from './MagicLinks.js';
 import { SubmissionSummaryCard } from './SubmissionSummaryCard.js';
+import { SubmissionMediaSection } from './SubmissionMediaSection.js';
 import { SubmissionVersionTimeline } from './SubmissionVersionTimeline.js';
 
 export const loader = async (args: LoaderFunctionArgs): Promise<SubmissionDetailPageData> => {
@@ -143,6 +144,7 @@ export default function SubmissionDetailRoute({
     poll,
     activeVersion,
     checkServiceRunsByWorkVersionId,
+    mediaThumbnailUrl,
   } = loaderData;
 
   const { date_published } = submission;
@@ -173,7 +175,7 @@ export default function SubmissionDetailRoute({
 
   return (
     <PageFrame breadcrumbs={breadcrumbs}>
-      <div className="mt-4 space-y-6 md:space-y-12">
+      <div className="mt-4 space-y-6 md:space-y-10">
         <SubmissionSummaryCard
           title={title}
           description={description}
@@ -181,6 +183,7 @@ export default function SubmissionDetailRoute({
           publishedOn={publishedOn}
           doi={doi}
         />
+        <SubmissionMediaSection thumbnailUrl={mediaThumbnailUrl} title={title} />
         <SubmissionDetails baseUrl={config.renderServiceUrl ?? site.links.html} />
         <MagicLinks />
         <SubmissionVersionTimeline

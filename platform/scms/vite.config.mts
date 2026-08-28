@@ -13,7 +13,7 @@ const WORKSPACE_ROOT = path.resolve(process.cwd(), '../..');
 
 /** Workspace UI packages resolve to source in dev via package.json "development" exports. */
 const WORKSPACE_UI_PATTERNS = [
-  /^@curvenote\/(?!scms-server$|scms-db$|scms-doc-preview$)/,
+  /^@curvenote\/(?!scms-server$|scms-db$|scms-doc-preview$|cdn$)/,
   /^@hhmi\//,
 ];
 
@@ -21,6 +21,7 @@ const SERVER_WORKSPACE_PACKAGES = [
   '@curvenote/scms-server',
   '@curvenote/scms-db',
   '@curvenote/scms-doc-preview',
+  '@curvenote/cdn',
 ];
 
 /** optimizeDeps.exclude requires exact package name strings, not RegExp. */
@@ -93,6 +94,8 @@ export default defineConfig(async ({ mode }) => {
         '@firebase/auth',
         'firebase-admin',
         'crypto',
+        '@curvenote/cdn',
+        'node-fetch',
       ],
     },
     ssr: {
