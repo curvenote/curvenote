@@ -95,6 +95,16 @@ export type TagDTO = {
   label: string;
 };
 
+/**
+ * A tag as referenced from published content. `name` is unique per site and
+ * URL-safe, so it is the key external consumers filter on; the catalog `id` is
+ * an internal write key and is deliberately not exposed here.
+ */
+export type TagRefDTO = {
+  name: string;
+  label: string;
+};
+
 export type CollectionSummaryDTO = {
   id: string;
   name: string;

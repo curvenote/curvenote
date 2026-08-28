@@ -14,7 +14,8 @@ export const publishedSiteWorkWithTagsSelect = {
     select: {
       ...siteWorkSubmissionSelect,
       tags: {
-        select: { tag: { select: { id: true, name: true, label: true } } },
+        // No `id`: external consumers key on the site-unique, URL-safe `name`.
+        select: { tag: { select: { name: true, label: true } } },
         orderBy: { tag: { label: 'asc' } },
       },
     },
