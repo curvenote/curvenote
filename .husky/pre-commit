@@ -8,7 +8,13 @@ LOCKFILE_STAGED=$(echo "$STAGED_FILES" | grep -q "^bun.lock$" && echo "yes" || e
 STAGED_NON_LOCKFILES=$(echo "$STAGED_FILES" | grep -v "^bun.lock$" | grep -v "^$" | wc -l | tr -d ' ')
 
 if [ "$LOCKFILE_STAGED" = "yes" ]; then
-  CLEANUP_OUTPUT=$(node scripts/remove-extensions-from-lockfile.mjs --quiet 2>&1)
+  if ! CLEANUP_OUTPUT=$(node scripts/remove-extensions-from-lockfile.mjs --quiet 2>&1); then
+    echo ""
+    echo "❌ Pre-commit: bun.lock scrubber failed."
+    echo "$CLEANUP_OUTPUT"
+    echo ""
+    exit 1
+  fi
 
   LOCKFILE_DIFFERS_FROM_HEAD="no"
   if ! git diff --quiet HEAD -- bun.lock 2>/dev/null; then

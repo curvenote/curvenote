@@ -1,5 +1,7 @@
-# Local Postgres for SCMS development (journals + journals_test).
-# Start: bun run db:up   Stop: bun run db:down   Wipe data: bun run db:down:clean
+# Local Postgres + MinIO + task-converter for SCMS development.
+# Start: bun run dx:up   Reset: bun run dx:reset (includes storage:use-minio)   Full rebuild: bun run dx:rebuild
+# Stop: bun run db:down   Wipe data: bun run db:down:clean
+# Postgres only (GCP storage opt-out): bun run db:up:gcp
 #
 # `name` sets the Compose project name so Docker Desktop groups this stack as
 # "scms-dev" instead of defaulting to the working-directory name ("dev").
@@ -33,6 +35,64 @@ services:
       retries: 10
       start_period: 10s
 
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: scms-minio
+    restart: unless-stopped
+    command: server /data --console-address ':9001'
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ROOT_USER: curvenote
+      MINIO_ROOT_PASSWORD: curvenote
+      # Browser PUTs from the SCMS app (and other local origins)
+      MINIO_API_CORS_ALLOW_ORIGIN: '*'
+      # Lets `mc ready local` healthcheck work without a prior alias set
+      MC_HOST_local: http://curvenote:curvenote@127.0.0.1:9000
+    volumes:
+      - scms_minio_data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    container_name: scms-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./docker/minio/init-buckets.sh:/init-buckets.sh:ro
+    entrypoint: ['/bin/sh', '/init-buckets.sh']
+    restart: 'no'
+
+  # Local converter worker. SCMS posts jobs to http://127.0.0.1:8080/ in development.
+  # Image is built on first `bun run dx:up` if missing (see scripts/ensure-task-converter-image.sh).
+  # Rebuild explicitly: bun run db:rebuild:converter
+  task-converter:
+    image: task-converter-local
+    container_name: scms-task-converter
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    environment:
+      PORT: '8080'
+    # Callbacks to SCMS on the host (jobUrl / statusUrl use tasksCallbackUrl).
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8080/']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
 volumes:
   scms_postgres_data:
     name: scms_postgres_data
+  scms_minio_data:
+    name: scms_minio_data

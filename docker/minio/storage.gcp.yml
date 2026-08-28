@@ -1,0 +1,28 @@
+# Fragment: paste/merge into platform/scms/.app-config.development.yml for GCP opt-out.
+# Use with: bun run db:up:gcp  (Postgres only) + existing storageSASecretKeyfile in secrets.
+#
+# Keep privateCDNSigningInfo in .app-config.secrets.development.yml for prv/tmp CDNs.
+
+api:
+  # Prefer explicit provider; or omit storage and rely on legacy storageSASecretKeyfile in secrets.
+  # storage:
+  #   provider: gcs
+  #   gcs:
+  #     secretKeyfile: '...'   # usually lives in secrets file instead
+  knownBucketInfoMap:
+    cdn:
+      uri: cdn-curvenote-dev-1
+      cdn: https://cdn.curvenote.dev
+    pub:
+      uri: cdn-pub-curvenote-dev-1
+      cdn: https://pub.curvenote.dev
+    prv:
+      uri: cdn-private-curvenote-dev-1
+      cdn: https://prv.curvenote.dev
+    tmp:
+      uri: cdn-tmp-curvenote-dev-1
+      cdn: https://tmp.curvenote.dev
+    hashstore:
+      uri: hashstore-curvenote-dev-1
+    staging:
+      uri: staging-curvenote-dev-1

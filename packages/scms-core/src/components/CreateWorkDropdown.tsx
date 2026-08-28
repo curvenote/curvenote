@@ -15,6 +15,25 @@ export interface CreateWorkDropdownProps {
   onDisabledClick?: () => void;
 }
 
+function CreateWorkOptionDescription({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((part, index) => {
+        const bold = /^\*\*([^*]+)\*\*$/.exec(part);
+        if (bold) {
+          return (
+            <strong key={index} className="font-semibold">
+              {bold[1]}
+            </strong>
+          );
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 export function CreateWorkDropdown({
   options,
   triggerLabel,
@@ -92,7 +111,9 @@ export function CreateWorkDropdown({
               <div className="flex flex-col gap-0.5 items-start min-w-0">
                 <span className="font-medium">{option.label}</span>
                 {option.description ? (
-                  <span className="text-xs text-muted-foreground">{option.description}</span>
+                  <span className="text-xs text-muted-foreground">
+                    <CreateWorkOptionDescription text={option.description} />
+                  </span>
                 ) : null}
               </div>
             </MenuItem>

@@ -29,6 +29,8 @@ export class S3StorageProvider implements IStorageProvider {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
       },
+      ...(config.endpoint ? { endpoint: config.endpoint } : {}),
+      ...(config.forcePathStyle != null ? { forcePathStyle: config.forcePathStyle } : {}),
     });
   }
 

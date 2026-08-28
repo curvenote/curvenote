@@ -1,0 +1,3 @@
+# Overlay from curvenote-seed (copy-into.sh). Do not commit fixture JSON or generators.
+*
+!.gitignore

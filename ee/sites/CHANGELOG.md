@@ -1,5 +1,30 @@
 # @curvenote/scms-sites-ext
 
+## 0.25.0
+
+### Patch Changes
+
+- [#1063](https://github.com/curvenote/curvenote/pull/1063) [`320c3fb`](https://github.com/curvenote/curvenote/commit/320c3fbc2d16b651bca684cb363f0b642cd29649) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Refresh the site-admin submission details page with a summary card and dialog-based editors for collection, kind, and slugs
+
+- [#1067](https://github.com/curvenote/curvenote/pull/1067) [`b26572c`](https://github.com/curvenote/curvenote/commit/b26572c059c817872da8363e8edf266ff4be29d8) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Default site landing redirect now sends users to the submissions listing instead of the inbox placeholder.
+
+- [#1072](https://github.com/curvenote/curvenote/pull/1072) [`e48a7d8`](https://github.com/curvenote/curvenote/commit/e48a7d870f62dbc572e1471b9f41b97b9ee25749) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a MEDIA section on the site-admin submission details page that shows the active work version thumbnail (or a No Thumbnail placeholder), resolving presence via CDN config in the page loader for correct SSR.
+
+- Updated dependencies [[`959bcf4`](https://github.com/curvenote/curvenote/commit/959bcf4de568bb924974cd11949f08601105217a), [`7ceaaf4`](https://github.com/curvenote/curvenote/commit/7ceaaf4d7dea7fcfa168977d179ad085ea7952e4), [`320c3fb`](https://github.com/curvenote/curvenote/commit/320c3fbc2d16b651bca684cb363f0b642cd29649), [`e48a7d8`](https://github.com/curvenote/curvenote/commit/e48a7d870f62dbc572e1471b9f41b97b9ee25749)]:
+  - @curvenote/scms-core@0.25.0
+  - @curvenote/scms-server@0.25.0
+  - @curvenote/scms-db@0.25.0
+
+## 0.24.3
+
+### Patch Changes
+
+- Updated dependencies [[`ad989fe`](https://github.com/curvenote/curvenote/commit/ad989fe262369cfb19425b8d8191500d38718aec), [`e9ea434`](https://github.com/curvenote/curvenote/commit/e9ea4348f73dc9eb85ead004b038d63215a81f79), [`ad989fe`](https://github.com/curvenote/curvenote/commit/ad989fe262369cfb19425b8d8191500d38718aec), [`1d7f83a`](https://github.com/curvenote/curvenote/commit/1d7f83a0f190228d9be7bc9b768b982352bc5e78), [`e9ea434`](https://github.com/curvenote/curvenote/commit/e9ea4348f73dc9eb85ead004b038d63215a81f79), [`966468b`](https://github.com/curvenote/curvenote/commit/966468b6a5dfae0b5054409bdc6697c54dc257bf)]:
+  - @curvenote/scms-core@0.24.3
+  - @curvenote/scms-server@0.24.3
+  - @curvenote/check-definitions@0.17.2
+  - @curvenote/scms-db@0.24.3
+
 ## 0.24.2
 
 ### Patch Changes

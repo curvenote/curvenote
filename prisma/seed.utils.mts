@@ -140,10 +140,76 @@ function generateWorkVersions(
   return { versions, submissionVersionEntries };
 }
 
+type SeedSubmissionVersionStatus = 'DRAFT' | 'PENDING' | 'PUBLISHED';
+
+function resolveExplicitSubmissionVersions(
+  work: {
+    id: string;
+    submit_all_versions?: boolean;
+    versions: Array<{
+      id: string;
+      submit?: boolean;
+      status?: SeedSubmissionVersionStatus;
+      canonical?: boolean;
+    }>;
+  },
+  workData: { versions: Array<{ id: string; date_created: string; date?: string | null }> },
+): Array<{ version: (typeof workData.versions)[number]; status: SeedSubmissionVersionStatus }> {
+  const entries = work.versions
+    .filter((config) => {
+      if (work.submit_all_versions) return true;
+      if (config.submit === true) return true;
+      return !!config.canonical;
+    })
+    .map((config) => {
+      const version = workData.versions.find((candidate) => candidate.id === config.id);
+      if (!version) {
+        throw new Error(`Seed work "${work.id}" references unknown version "${config.id}"`);
+      }
+      return {
+        version,
+        status: (config.status ?? 'PUBLISHED') as SeedSubmissionVersionStatus,
+      };
+    });
+
+  return entries.sort(
+    (a, b) =>
+      new Date(a.version.date_created).getTime() - new Date(b.version.date_created).getTime(),
+  );
+}
+
 function log(...args: any[]) {
   if (!QUIET) {
     console.log(...args);
   }
+}
+
+type SeedUsers = {
+  support: Prisma.UserGetPayload<any>;
+  others: Prisma.UserGetPayload<any>[];
+};
+
+function getAllSeedUsers(users: SeedUsers): Prisma.UserGetPayload<any>[] {
+  return [users.support, ...users.others];
+}
+
+async function assignSeedWorkOwners(
+  workId: string,
+  users: SeedUsers,
+  dateCreated: string,
+): Promise<void> {
+  const owners = getAllSeedUsers(users);
+  await prisma.workUser.deleteMany({ where: { work_id: workId } });
+  await prisma.workUser.createMany({
+    data: owners.map((user) => ({
+      id: uuid(),
+      date_created: dateCreated,
+      date_modified: dateCreated,
+      user_id: user.id,
+      role: WorkRole.OWNER,
+      work_id: workId,
+    })),
+  });
 }
 
 export async function loadAllJsonFilesFromDir(directoryPath: string): Promise<any[]> {
@@ -177,6 +243,7 @@ export async function seedBySites(
     support: Prisma.UserGetPayload<any>;
     others: Prisma.UserGetPayload<any>[];
   },
+  options?: { environmentOverride?: 'development' | 'test' },
 ): Promise<{ sites: number; works: number; submissions: number; collections: number }> {
   const summary = {
     sites: 0,
@@ -185,8 +252,23 @@ export async function seedBySites(
     collections: 0,
   };
 
+  const seedCdnBase = await resolveSeedCdnBase(options?.environmentOverride ?? 'development');
+  if (seedCdnBase) {
+    console.log(`   ✓ Using WorkVersion.cdn from app-config: ${seedCdnBase}`);
+  }
+  const seedStaticCdnBase = await resolveSeedStaticCdnBase(
+    options?.environmentOverride ?? 'development',
+  );
+  if (seedStaticCdnBase) {
+    console.log(`   ✓ Using site static CDN from app-config: ${seedStaticCdnBase}`);
+  }
+
+  const landingWorkPath = path.join(seedUtilsDir, 'data/utils/landing-work.json');
+  await seedSharedContentWork(landingWorkPath, startDateString, users, seedCdnBase, summary);
+
   for (const item of data) {
     item.site.id ??= uuid();
+    absolutizeSiteStaticAssetUrls(item.site, seedStaticCdnBase);
     console.log(`\n📦 Processing site: ${item.site.name || item.site.title || 'Untitled'}`);
     let submissionVersions: any[] = [];
     let workCount = 0;
@@ -209,8 +291,7 @@ export async function seedBySites(
       }
 
       let submissionVersionEntries:
-        | Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }>
-        | undefined;
+        Array<{ workVersionIndex: number; status: 'DRAFT' | 'PUBLISHED' }> | undefined;
       const versions: Array<{
         id: string;
         date_created: string;
@@ -238,13 +319,15 @@ export async function seedBySites(
             id: version.id,
             cdn_key: version.cdn_key,
             cdn: version.cdn,
-            title: work.title,
+            title: version.title ?? work.title,
             description: work.description,
             authors: work.authors,
-            date: work.date,
+            date: version.canonical ? work.date : version.date,
             doi: version.doi,
             canonical: version.canonical,
           }));
+
+      const versionsWithCdn = applySeedCdnBase(versions, seedCdnBase);
 
       const workData = await prisma.work.upsert({
         where: {
@@ -253,24 +336,13 @@ export async function seedBySites(
         create: {
           id: work.id,
           doi: work.doi,
-          date_created: versions[0].date_created,
-          date_modified: versions[0].date_created,
+          date_created: versionsWithCdn[0].date_created,
+          date_modified: versionsWithCdn[0].date_created,
           versions: {
-            create: versions,
+            create: versionsWithCdn,
           },
           created_by: {
             connect: { id: users.support.id },
-          },
-          work_users: {
-            create: [
-              {
-                id: uuid(),
-                date_created: versions[0].date_created,
-                date_modified: versions[0].date_created,
-                user_id: users.support.id,
-                role: WorkRole.OWNER,
-              },
-            ],
           },
         },
         update: {},
@@ -279,8 +351,13 @@ export async function seedBySites(
         },
       });
 
+      await assignSeedWorkOwners(workData.id, users, versionsWithCdn[0].date_created);
+
       const workIndex = workCount - 1;
-      const versionsToSubmitWithStatus: Array<{ version: any; status: 'DRAFT' | 'PUBLISHED' }> =
+      const versionsToSubmitWithStatus: Array<{
+        version: any;
+        status: SeedSubmissionVersionStatus;
+      }> =
         work.version_count && submissionVersionEntries
           ? submissionVersionEntries
               .map((entry) => ({
@@ -292,12 +369,10 @@ export async function seedBySites(
                   new Date(a.version.date_created).getTime() -
                   new Date(b.version.date_created).getTime(),
               )
-          : workData.versions
-              .filter(({ canonical }: { canonical: boolean | null }) => !!canonical)
-              .map((version: any) => ({ version, status: 'PUBLISHED' as const }));
+          : resolveExplicitSubmissionVersions(work, workData);
       // First SV (earliest date) will create the Submission, so Submission date_created aligns with first submission version
       const workSubmissionVersions = versionsToSubmitWithStatus.map(
-        ({ version, status }: { version: any; status: 'DRAFT' | 'PUBLISHED' }) => ({
+        ({ version, status }: { version: any; status: SeedSubmissionVersionStatus }) => ({
           workIndex,
           id: uuid(),
           date_created: version.date_created,
@@ -341,6 +416,14 @@ export async function seedBySites(
 
       summary.works++;
       console.log(`      ✓ Created work: ${workData.id} (${workData.versions.length} version(s))`);
+
+      if (work.content_only) {
+        console.log(`      ✓ Skipped submissions for content-only work: ${workData.id}`);
+        if (work.job) {
+          console.warn(`      ⚠️  Ignoring job on content-only work: ${workData.id}`);
+        }
+        continue;
+      }
 
       if (work.job) {
         const job = await prisma.job.create({
@@ -397,6 +480,7 @@ export async function seedBySites(
         restricted: item.site.restricted ?? true,
         description: item.site.description,
         slug_strategy: item.site.slug_strategy,
+        content_id: item.site.content_id ?? undefined,
         metadata: item.site,
         submissionKinds: {
           create: item.site.kinds.map((kind: any) => ({
@@ -670,6 +754,166 @@ export async function seedBySites(
 
 const seedUtilsDir = path.dirname(fileURLToPath(import.meta.url));
 
+async function seedSharedContentWork(
+  landingWorkPath: string,
+  startDateString: string,
+  users: SeedUsers,
+  seedCdnBase: string | undefined,
+  summary: { works: number },
+): Promise<void> {
+  let work: any;
+  try {
+    const raw = await fs.readFile(landingWorkPath, 'utf-8');
+    work = JSON.parse(raw);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
+    throw err;
+  }
+
+  if (!looksLikeUUID(work.id)) {
+    throw new Error(`Shared content work must use a UUID id (got "${work.id}")`);
+  }
+
+  console.log(`\n📄 Seeding shared site content work: ${work.title || work.id}`);
+
+  const versions = work.versions.map((version: any) => ({
+    date_created: new Date(version.date_created).toISOString(),
+    date_modified: new Date(version.date_created).toISOString(),
+    id: version.id,
+    cdn_key: version.cdn_key,
+    cdn: version.cdn,
+    title: work.title,
+    description: work.description,
+    authors: work.authors ?? [],
+    date: work.date,
+    doi: version.doi,
+    canonical: version.canonical,
+  }));
+  const versionsWithCdn = applySeedCdnBase(versions, seedCdnBase);
+
+  const workData = await prisma.work.upsert({
+    where: { id: work.id },
+    create: {
+      id: work.id,
+      doi: work.doi,
+      date_created: versionsWithCdn[0].date_created,
+      date_modified: versionsWithCdn[0].date_created,
+      versions: { create: versionsWithCdn },
+      created_by: { connect: { id: users.support.id } },
+    },
+    update: {
+      created_by: { connect: { id: users.support.id } },
+      date_modified: startDateString,
+    },
+    include: { versions: true },
+  });
+
+  // Reassign ownership to all seed users (covers works created manually before seed).
+  await assignSeedWorkOwners(work.id, users, versionsWithCdn[0].date_created);
+
+  summary.works++;
+  console.log(
+    `   ✓ Ensured content work: ${workData.id} (${workData.versions.length} version(s), ${getAllSeedUsers(users).length} owner(s))`,
+  );
+}
+
+async function loadScmsAppConfig(environmentOverride: 'development' | 'test') {
+  return getConfig(
+    { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
+    { directory: path.resolve(seedUtilsDir, '..') },
+  );
+}
+
+/**
+ * CDN base for seeded WorkVersions comes from app-config (`knownBucketInfoMap.pub.cdn`)
+ * because seeded submissions are created as PUBLISHED (same end-state as the publish job,
+ * which moves objects to the public bucket and rewrites WorkVersion.cdn to pub).
+ * JSON seed files may still include a `cdn` field for readability; it is ignored when
+ * config provides a value.
+ */
+export async function resolveSeedCdnBase(
+  environmentOverride: 'development' | 'test' = 'development',
+): Promise<string | undefined> {
+  try {
+    const config = await loadScmsAppConfig(environmentOverride);
+    const cdn = config.api?.knownBucketInfoMap?.pub?.cdn;
+    if (typeof cdn === 'string' && cdn.length > 0) {
+      return cdn.endsWith('/') ? cdn : `${cdn}/`;
+    }
+  } catch (err) {
+    console.warn(
+      `   ⚠️  Could not resolve seed CDN from app-config (${(err as Error).message}); using values from seed JSON`,
+    );
+  }
+  return undefined;
+}
+
+/**
+ * CDN base for site logos / favicons (`knownBucketInfoMap.cdn.cdn`).
+ * Relative paths in seed JSON (e.g. `static/site/benchmark/logo.svg`) are resolved against this.
+ */
+export async function resolveSeedStaticCdnBase(
+  environmentOverride: 'development' | 'test' = 'development',
+): Promise<string | undefined> {
+  try {
+    const config = await loadScmsAppConfig(environmentOverride);
+    const cdn = config.api?.knownBucketInfoMap?.cdn?.cdn;
+    if (typeof cdn === 'string' && cdn.length > 0) {
+      return cdn.endsWith('/') ? cdn : `${cdn}/`;
+    }
+  } catch (err) {
+    console.warn(
+      `   ⚠️  Could not resolve static CDN from app-config (${(err as Error).message}); leaving relative site asset URLs as-is`,
+    );
+  }
+  return undefined;
+}
+
+/** Resolve CDN-relative `static/...` paths against `knownBucketInfoMap.cdn.cdn`. Absolute URLs are left unchanged. */
+export function absolutizeSiteStaticAssetUrls(
+  site: Record<string, unknown>,
+  cdnBase: string | undefined,
+): void {
+  if (!cdnBase) return;
+  rewriteStaticAssetPaths(site, cdnBase);
+}
+
+function rewriteStaticAssetPaths(value: unknown, cdnBase: string): void {
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const item = value[i];
+      if (typeof item === 'string') {
+        value[i] = absolutizeStaticAssetPath(item, cdnBase);
+      } else {
+        rewriteStaticAssetPaths(item, cdnBase);
+      }
+    }
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  const record = value as Record<string, unknown>;
+  for (const [key, child] of Object.entries(record)) {
+    if (typeof child === 'string') {
+      record[key] = absolutizeStaticAssetPath(child, cdnBase);
+    } else {
+      rewriteStaticAssetPaths(child, cdnBase);
+    }
+  }
+}
+
+function absolutizeStaticAssetPath(value: string, cdnBase: string): string {
+  if (!value.startsWith('static/') && !value.startsWith('/static/')) return value;
+  return `${cdnBase}${value.replace(/^\//, '')}`;
+}
+
+function applySeedCdnBase<T extends { cdn?: string | undefined }>(
+  versions: T[],
+  cdnBase: string | undefined,
+): T[] {
+  if (!cdnBase) return versions;
+  return versions.map((v) => ({ ...v, cdn: cdnBase }));
+}
+
 /**
  * Seed/refresh the `_JobQueueDrainConfig` row from app-config so local + test
  * environments don't need a manual trip to System → Jobs → Queues after every
@@ -686,10 +930,7 @@ export async function seedJobQueueDrainConfig(
 ): Promise<void> {
   let api: Awaited<ReturnType<typeof getConfig>>['api'] | undefined;
   try {
-    const config = await getConfig(
-      { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
-      { directory: path.resolve(seedUtilsDir, '..') },
-    );
+    const config = await loadScmsAppConfig(environmentOverride);
     api = config.api;
   } catch (err) {
     console.warn(
@@ -740,10 +981,7 @@ export async function seedCronTickConfig(
 ): Promise<void> {
   let api: Awaited<ReturnType<typeof getConfig>>['api'] | undefined;
   try {
-    const config = await getConfig(
-      { environmentOverride, directory: path.resolve(seedUtilsDir, '../platform/scms') },
-      { directory: path.resolve(seedUtilsDir, '..') },
-    );
+    const config = await loadScmsAppConfig(environmentOverride);
     api = config.api;
   } catch (err) {
     console.warn(

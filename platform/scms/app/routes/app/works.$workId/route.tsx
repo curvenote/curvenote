@@ -41,6 +41,10 @@ import {
   BUILTIN_ARTICLE_WORK_CREATE_OPTION_ID,
   buildWorkVersionNumberByIdMap,
   WorkContents,
+  workCreateOptionsForResume,
+  isOnCreateFormPath,
+  resolveDraftResumePath,
+  resolveExtensionTimelineDescriptors,
 } from '@curvenote/scms-core';
 import { buildMenu } from './menu';
 import {
@@ -59,7 +63,6 @@ import { getUniqueSubmissions } from './utils.server';
 import {
   computeCanResumeDraftUpload,
   getLicenseDisplayFromMetadata,
-  resolveResumeDraftUploadPath,
   resolveWorkVersionDoi,
   signVersionFilesForClient,
 } from './metadata.server';
@@ -516,12 +519,12 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   const url = new URL(args.request.url);
   const pathname = url.pathname;
-  const isOnUploadRoute = pathname.includes(`/app/works/${workId}/upload/`);
+  const resumeOptions = workCreateOptionsForResume(extensions);
+  const isOnUploadRoute = isOnCreateFormPath(pathname, workId, resumeOptions);
   const includeDraftSubmissions = url.searchParams.get('drafts') === 'true';
 
   // Draft-only works should route users into the upload flow, not the details pages.
   if (isDraftOnlyWork) {
-    const isPmcDepositPath = pathname.startsWith(`/app/works/${workId}/site/pmc/`);
     const isDetailsLikePath =
       pathname === `/app/works/${workId}` ||
       pathname === `/app/works/${workId}/` ||
@@ -530,8 +533,18 @@ export const loader = async (args: LoaderFunctionArgs) => {
       pathname.startsWith(`/app/works/${workId}/work-integrity`) ||
       pathname.startsWith(`/app/works/${workId}/site/`);
 
-    if (!isOnUploadRoute && isDetailsLikePath && !isPmcDepositPath) {
-      throw redirect(`/app/works/${workId}/upload/${workVersionsWithMetadata[0].id}`);
+    if (!isOnUploadRoute && isDetailsLikePath) {
+      const firstVersion = workVersionsWithMetadata[0];
+      throw redirect(
+        await resolveDraftResumePath({
+          workId,
+          workVersionId: firstVersion.id,
+          metadata: firstVersion.metadata,
+          options: resumeOptions,
+          serverExtensions,
+          ctx,
+        }),
+      );
     }
   }
 
@@ -574,25 +587,14 @@ export const loader = async (args: LoaderFunctionArgs) => {
 
   let resumeDraftUploadPath: string | undefined;
   if (canResumeDraft && resumeDraftVersionId) {
-    let pmcSubmissionVersionId: string | null = null;
-    if (latestVersion?.metadata) {
-      const prisma = await getPrismaClient();
-      const draftSubmissionVersion = await prisma.submissionVersion.findFirst({
-        where: {
-          work_version_id: resumeDraftVersionId,
-          submission: { site: { name: 'pmc' } },
-          status: 'DRAFT',
-        },
-        orderBy: { date_created: 'desc' },
-        select: { id: true },
-      });
-      pmcSubmissionVersionId = draftSubmissionVersion?.id ?? null;
-    }
-    resumeDraftUploadPath = resolveResumeDraftUploadPath({
+    resumeDraftUploadPath = await resolveDraftResumePath({
       workId: ctx.work.id,
       workVersionId: resumeDraftVersionId,
       metadata: latestVersion?.metadata,
-      pmcSubmissionVersionId,
+      options: resumeOptions,
+      serverExtensions,
+      ctx,
+      from: 'details',
     });
   }
 
@@ -613,6 +615,23 @@ export const loader = async (args: LoaderFunctionArgs) => {
       const fileMetadata = await signVersionFilesForClient(version, metadata, ctx);
       return fileMetadata ? { ...rest, metadata: fileMetadata } : rest;
     }),
+  );
+
+  const extensionTimelineDescriptors = await resolveExtensionTimelineDescriptors(
+    ctx.$config,
+    serverExtensions,
+    {
+      ctx,
+      surface: 'work-version',
+      workVersions: workVersionsWithMetadata.map((version) => ({
+        id: version.id,
+        work_id: version.work_id,
+        date_created: version.date_created,
+        date_modified: version.date_modified,
+        draft: version.draft,
+        metadata: version.metadata,
+      })),
+    },
   );
 
   const hasWebArticleGeneration = userHasScope(
@@ -703,6 +722,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     work,
     versions: versionsForClient,
     webVersionPreviewSignatures,
+    extensionTimelineDescriptors,
     submissions: submissions ?? [],
     linkedJobsByWorkVersionId: dbGetLinkedJobsByWorkVersionIds(versionIds),
     workOwnerName,

@@ -2,7 +2,9 @@ import type { Context, TimelineCheckServiceRunRow, Workflow } from '@curvenote/s
 import {
   createPreviewToken,
   getConfiguredWorkflow,
+  resolveWorkVersionCdnMedia,
   type SiteContext,
+  type WorkVersionCdnMedia,
 } from '@curvenote/scms-server';
 import {
   dbGetSubmissionCheckServiceRunsByWorkVersionIds,
@@ -43,6 +45,10 @@ export type SubmissionDetailPageData = {
   activeVersionNumber: number;
   magicLinks: MagicLinkWithAccessCount[];
   checkServiceRunsByWorkVersionId: Record<string, TimelineCheckServiceRunRow[]>;
+  /** SSR-safe thumbnail URL for MEDIA (resolved via column or CDN config). */
+  mediaThumbnailUrl: string | undefined;
+  /** Active work version CDN config.json (null when no CDN); for MEDIA and upcoming sections. */
+  activeVersionCdnConfig: WorkVersionCdnMedia['cdnConfig'];
 };
 
 export async function loadSubmissionDetailPage(
@@ -95,6 +101,15 @@ export async function loadSubmissionDetailPage(
   const activeVersionNumber = submissionVersions.length - activeVersionIndex;
   const activeVersion = submissionVersions[activeVersionIndex];
 
+  const rawActiveVersion =
+    loaded.submission.versions.find((version) => version.id === activeVersion.id) ??
+    loaded.submission.versions[0];
+  const { mediaThumbnailUrl, cdnConfig: activeVersionCdnConfig } = await resolveWorkVersionCdnMedia(
+    ctx,
+    siteName,
+    rawActiveVersion.work_version,
+  );
+
   if (!ctx.user) {
     return null;
   }
@@ -115,5 +130,7 @@ export async function loadSubmissionDetailPage(
     activeVersionNumber,
     magicLinks,
     checkServiceRunsByWorkVersionId,
+    mediaThumbnailUrl,
+    activeVersionCdnConfig,
   };
 }

@@ -1,0 +1,33 @@
+# Fragment: non-secret fields for platform/scms/.app-config.development.yml
+# Default local DX — MinIO via S3 provider (bun run dx:up).
+#
+# Credentials (accessKeyId / secretAccessKey) are secret:true in the schema —
+# see storage.minio.secrets.yml → .app-config.secrets.development.yml
+# Applied by: bun run storage:use-minio
+
+api:
+  storage:
+    provider: s3
+    s3:
+      region: us-east-1
+      # Reachable from the host Node process and the browser (presigned PUT).
+      # host.docker.internal is only resolvable inside Compose (extra_hosts).
+      endpoint: http://127.0.0.1:9000
+      forcePathStyle: true
+  knownBucketInfoMap:
+    cdn:
+      uri: cdn-curvenote-dev-1
+      cdn: http://127.0.0.1:9000/cdn-curvenote-dev-1/
+    pub:
+      uri: cdn-pub-curvenote-dev-1
+      cdn: http://127.0.0.1:9000/cdn-pub-curvenote-dev-1/
+    prv:
+      uri: cdn-private-curvenote-dev-1
+      cdn: http://127.0.0.1:9000/cdn-private-curvenote-dev-1/
+    tmp:
+      uri: cdn-tmp-curvenote-dev-1
+      cdn: http://127.0.0.1:9000/cdn-tmp-curvenote-dev-1/
+    hashstore:
+      uri: hashstore-curvenote-dev-1
+    staging:
+      uri: staging-curvenote-dev-1

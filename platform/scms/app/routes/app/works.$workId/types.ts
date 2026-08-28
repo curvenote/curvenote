@@ -1,5 +1,5 @@
 import type { dbGetSubmission, WorkVersionWithSubmissionVersions } from './db.server';
-import type { LicenseDisplay } from './metadata.server';
+import type { LicenseDisplay, WorkVersionClientMetadata } from './metadata.server';
 
 export type SubmissionWithSiteAndCollection = NonNullable<
   Awaited<ReturnType<typeof dbGetSubmission>>
@@ -7,9 +7,9 @@ export type SubmissionWithSiteAndCollection = NonNullable<
 
 export type { WorkVersionWithSubmissionVersions };
 
-/** Parent loader serializes versions with signed file metadata only (no myst/checks/license). */
+/** Parent loader serializes versions with signed file metadata only (extension markers use timeline descriptors). */
 export type WorkVersionForDetailsClient = WorkVersionWithSubmissionVersions & {
-  metadata?: { files?: Record<string, unknown> };
+  metadata?: WorkVersionClientMetadata;
 };
 
 export type WorkVersionContentCardData = {

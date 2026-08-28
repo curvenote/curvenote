@@ -305,11 +305,8 @@ function generateClientFile(packages) {
     })
     .join('\n');
 
-  const exports = packages
-    .map((pkg) => {
-      return packageNameToVarName(pkg.name) + 'Client';
-    })
-    .join(', ');
+  const exportNames = packages.map((pkg) => packageNameToVarName(pkg.name) + 'Client');
+  const exports = exportNames.length === 1 ? exportNames[0] : `\n  ${exportNames.join(',\n  ')},\n`;
 
   return `${imports}
 
@@ -333,11 +330,8 @@ function generateServerFile(packages) {
     })
     .join('\n');
 
-  const exports = packages
-    .map((pkg) => {
-      return packageNameToVarName(pkg.name);
-    })
-    .join(', ');
+  const exportNames = packages.map((pkg) => packageNameToVarName(pkg.name));
+  const exports = exportNames.length === 1 ? exportNames[0] : `\n  ${exportNames.join(',\n  ')},\n`;
 
   return `${imports}
 
@@ -443,10 +437,16 @@ function main() {
   writeTurboExtensionsGenerated(extensionBuildPackages);
   console.log(`Generated ${TURBO_EXT_GEN}`);
   if (extensionBuildPackages.length === 0) {
-    console.log('  (no packages with build scripts under extensions/*/packages or extensions/plugins)');
+    console.log(
+      '  (no packages with build scripts under extensions/*/packages or extensions/plugins)',
+    );
   } else {
     extensionBuildPackages.forEach((p) => console.log(`  - ${p.name}`));
   }
 }
 
-main();
+if (process.argv[1] === __filename) {
+  main();
+}
+
+export { packageNameToVarName };

@@ -1,5 +1,57 @@
 # @curvenote/scms
 
+## 0.25.0
+
+### Minor Changes
+
+- [#1065](https://github.com/curvenote/curvenote/pull/1065) [`959bcf4`](https://github.com/curvenote/curvenote/commit/959bcf4de568bb924974cd11949f08601105217a) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add configurable dashboard task section ordering via deploy config, export shared `TaskCardNewBadge` for task cards, and align Check My Work NEW badge positioning.
+
+### Patch Changes
+
+- [#1067](https://github.com/curvenote/curvenote/pull/1067) [`b26572c`](https://github.com/curvenote/curvenote/commit/b26572c059c817872da8363e8edf266ff4be29d8) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Default site landing redirect now sends users to the submissions listing instead of the inbox placeholder.
+
+- [#1072](https://github.com/curvenote/curvenote/pull/1072) [`e48a7d8`](https://github.com/curvenote/curvenote/commit/e48a7d870f62dbc572e1471b9f41b97b9ee25749) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add a MEDIA section on the site-admin submission details page that shows the active work version thumbnail (or a No Thumbnail placeholder), resolving presence via CDN config in the page loader for correct SSR.
+
+- Updated dependencies [[`959bcf4`](https://github.com/curvenote/curvenote/commit/959bcf4de568bb924974cd11949f08601105217a), [`7ceaaf4`](https://github.com/curvenote/curvenote/commit/7ceaaf4d7dea7fcfa168977d179ad085ea7952e4), [`320c3fb`](https://github.com/curvenote/curvenote/commit/320c3fbc2d16b651bca684cb363f0b642cd29649), [`b26572c`](https://github.com/curvenote/curvenote/commit/b26572c059c817872da8363e8edf266ff4be29d8), [`e48a7d8`](https://github.com/curvenote/curvenote/commit/e48a7d870f62dbc572e1471b9f41b97b9ee25749)]:
+  - @curvenote/scms-core@0.25.0
+  - @curvenote/scms-server@0.25.0
+  - @curvenote/scms-sites-ext@0.25.0
+  - @curvenote/scms-doc-preview@0.25.0
+  - @curvenote/scms-db@0.25.0
+
+## 0.24.3
+
+### Patch Changes
+
+- [#1059](https://github.com/curvenote/curvenote/pull/1059) [`e9ea434`](https://github.com/curvenote/curvenote/commit/e9ea4348f73dc9eb85ead004b038d63215a81f79) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Route draft resume and create-new-version flows through extension `resumePath` / `formPathIncludes`, and render markdown descriptions in the create-work dropdown
+
+- [#1062](https://github.com/curvenote/curvenote/pull/1062) [`ad989fe`](https://github.com/curvenote/curvenote/commit/ad989fe262369cfb19425b8d8191500d38718aec) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Resolve extension timeline rows on the server via `resolveTimelineItems` (opaque payloads), drop host Foundry metadata passthrough, and rename timeline item props so they are not confused with platform `Context`
+
+- [#1059](https://github.com/curvenote/curvenote/pull/1059) [`e9ea434`](https://github.com/curvenote/curvenote/commit/e9ea4348f73dc9eb85ead004b038d63215a81f79) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Allow document preview fetch handlers to scope phase A/B work to an optional `targetPath` (main manuscript) instead of always processing every preview candidate
+
+- [#1057](https://github.com/curvenote/curvenote/pull/1057) [`b89fd1a`](https://github.com/curvenote/curvenote/commit/b89fd1ae33328e29d21030d6255937a53bbe0cf6) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove the unused `/app/discovery` people-listing route and its e2e coverage
+
+- [#1054](https://github.com/curvenote/curvenote/pull/1054) [`1d7f83a`](https://github.com/curvenote/curvenote/commit/1d7f83a0f190228d9be7bc9b768b982352bc5e78) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove unused `api.integrations` JWK signing path (`createIntegrationToken` / `verifyIntegrationToken`, `GET /v1/keys`, and related config schema / key-generation scripts)
+
+- [#1060](https://github.com/curvenote/curvenote/pull/1060) [`bc854e8`](https://github.com/curvenote/curvenote/commit/bc854e882c9a973074a474f255251beb4fd68cd4) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Remove unused `api.vercel.cron` app-config setting
+
+- [#1059](https://github.com/curvenote/curvenote/pull/1059) [`e9ea434`](https://github.com/curvenote/curvenote/commit/e9ea4348f73dc9eb85ead004b038d63215a81f79) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Fix CDN object signing against local MinIO / path-style private CDN URLs by resolving the storage bucket via `knownBucketFromCDN` with a private-CDN hostname fallback (`resolveBucketForCdn`)
+
+- [#1055](https://github.com/curvenote/curvenote/pull/1055) [`966468b`](https://github.com/curvenote/curvenote/commit/966468b6a5dfae0b5054409bdc6697c54dc257bf) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Extract upload document preview, metadata extraction, and related UI into shared packages
+
+  - Add `@curvenote/scms-doc-preview` for the manuscript preview/extract/thumbnail server pipeline
+  - Add a thin Anthropic client and work-version metadata/checks helpers to `@curvenote/scms-server`
+  - Move reusable upload/preview UI and adapters into `@curvenote/scms-core`
+  - Keep the upload route as a thin loader/action composition shell
+
+- Updated dependencies [[`ad989fe`](https://github.com/curvenote/curvenote/commit/ad989fe262369cfb19425b8d8191500d38718aec), [`e9ea434`](https://github.com/curvenote/curvenote/commit/e9ea4348f73dc9eb85ead004b038d63215a81f79), [`ad989fe`](https://github.com/curvenote/curvenote/commit/ad989fe262369cfb19425b8d8191500d38718aec), [`e9ea434`](https://github.com/curvenote/curvenote/commit/e9ea4348f73dc9eb85ead004b038d63215a81f79), [`1d7f83a`](https://github.com/curvenote/curvenote/commit/1d7f83a0f190228d9be7bc9b768b982352bc5e78), [`e9ea434`](https://github.com/curvenote/curvenote/commit/e9ea4348f73dc9eb85ead004b038d63215a81f79), [`966468b`](https://github.com/curvenote/curvenote/commit/966468b6a5dfae0b5054409bdc6697c54dc257bf)]:
+  - @curvenote/scms-core@0.24.3
+  - @curvenote/scms-doc-preview@0.24.3
+  - @curvenote/scms-server@0.24.3
+  - @curvenote/scms-sites-ext@0.24.3
+  - @curvenote/check-definitions@0.17.2
+  - @curvenote/scms-db@0.24.3
+
 ## 0.24.2
 
 ### Patch Changes

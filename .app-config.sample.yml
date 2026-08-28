@@ -31,7 +31,18 @@ api:
   #     accessKeyId: AKIA...
   #     secretAccessKey: wJalr...
   #
-  # Option 4: GCS (legacy style - still supported)
+  # Option 4: Local MinIO (default local DX — see docker/minio/)
+  # Non-secret fields in development.yml; accessKeyId / secretAccessKey in secrets:
+  # storage:
+  #   provider: s3
+  #   s3:
+  #     region: us-east-1
+  #     endpoint: http://host.docker.internal:9000  # signed URLs reachable from Compose workers
+  #     forcePathStyle: true
+  # # secrets: api.storage.s3.accessKeyId / secretAccessKey (e.g. curvenote / curvenote)
+  # # knownBucketInfoMap.*.cdn can stay http://127.0.0.1:9000/... for browser CDN reads
+  #
+  # Option 5: GCS (legacy style - still supported)
   # storageSASecretKeyfile: '{"type":"service_account",...}'
   #
   knownBucketInfoMap:

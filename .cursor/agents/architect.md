@@ -24,7 +24,7 @@ You are the **Architect** on a three-agent development team (Architect → Coder
    - Bite-sized tasks with exact file paths
    - Acceptance criteria per task
    - Test expectations
-5. Save plans to `docs/superpowers/plans/` in-repo, or the sibling `plans/` workspace when the user prefers external plans
+5. Save plans to the dx workspace `plans/` folder (`../plans/` from this repo root, i.e. `/Users/stevejpurves/dev/dx/plans/YYYY-MM-DD-<feature-name>.md`). Do **not** write plans to `docs/superpowers/plans/` in-repo.
 
 ## Output format
 

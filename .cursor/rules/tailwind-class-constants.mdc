@@ -1,0 +1,24 @@
+---
+description: Wrap Tailwind class constants in cn() so class linters can see them
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Tailwind Class Constants
+
+When Tailwind classes live in a constant (or any variable, not a JSX `className` literal), wrap them with `cn()` from `@curvenote/scms-core`.
+
+A future Tailwind class linter can inspect `cn()` (and JSX `className`) but will miss a plain string constant.
+
+```tsx
+// ❌ BAD — linter cannot see these classes
+const DESTRUCTIVE_SOFT_BUTTON_CLASS =
+  'bg-destructive/10 text-red-800 shadow-xs hover:bg-destructive/15';
+
+// ✅ GOOD
+const DESTRUCTIVE_SOFT_BUTTON_CLASS = cn(
+  'bg-destructive/10 text-red-800 shadow-xs hover:bg-destructive/15',
+);
+```
+
+Inline `className="..."` and `className={cn(...)}` in JSX are already visible to the linter; do not extract them only to wrap `cn()`. Extract + `cn()` when the class list is reused or too long for the JSX.

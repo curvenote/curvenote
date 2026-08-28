@@ -125,18 +125,6 @@ cases:
         url: /app/settings/emails
         status: 200
 
-  # Discovery Routes Group (Platform Admin Access)
-  - title: Discovery Routes (Unauthorized)
-    cases:
-      - title: Discovery Root Endpoint
-        url: /app/discovery
-        status: 302
-        location: /app
-
-      - title: Discovery People Endpoint
-        url: /app/discovery/people
-        status: 302
-
   # Platform Routes Group (platformAdminRole Access)
   - title: Platform Routes (platformAdminRole Access)
     cases:

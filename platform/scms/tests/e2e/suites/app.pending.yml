@@ -128,19 +128,6 @@ cases:
         status: 302
         location: /new-account/pending
 
-  # Discovery Routes Group (Blocked for Pending Users)
-  - title: Discovery Routes (Blocked)
-    cases:
-      - title: Discovery Root Endpoint (Blocked)
-        url: /app/discovery
-        status: 302
-        location: /new-account/pending
-
-      - title: Discovery People Endpoint (Blocked)
-        url: /app/discovery/people
-        status: 302
-        location: /new-account/pending
-
   # Platform Routes Group (Blocked for Pending Users)
   - title: Platform Routes (Blocked)
     cases:

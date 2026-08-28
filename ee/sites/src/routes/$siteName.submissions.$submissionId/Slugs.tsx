@@ -1,14 +1,34 @@
 import { useFetcher } from 'react-router';
-import { SquarePen, SquareCheckBig, Trash2, CirclePlus } from 'lucide-react';
-import classNames from 'classnames';
-import { formatDistanceToNow } from 'date-fns';
+import { useState } from 'react';
 import type { SlugsDTO } from './types.server.js';
-import { primitives } from '@curvenote/scms-core';
+import { DetailFieldEditorShell, DetailFieldEditorTrigger } from './DetailFieldEditor.js';
+import { SlugManagerDialog } from './SlugManagerDialog.js';
+import { ConfirmSlugActionDialog } from './ConfirmSlugActionDialog.js';
+import {
+  getDisplaySlug,
+  getSlugAddFieldError,
+  getSlugConfirmDialogError,
+  getSuggestedSlugDraft,
+  resolveSlugMutationOutcome,
+  validateSlugForAdd,
+  type SlugConfirmTarget,
+} from './SlugManagerDialog.utils.js';
+import { SUBMISSION_DETAIL_FORM_ACTIONS } from './SubmissionDetails.utils.js';
 
 export function getSlugSuggestion(site: { name: string }, doi?: string) {
   const secondPartOfDoi = doi?.split('/')[1];
   return secondPartOfDoi ?? `${site.name}-`;
 }
+
+type SlugsProps = {
+  siteId: string;
+  submissionId: string;
+  slugs: SlugsDTO;
+  fallback: string;
+  canEdit: boolean;
+  baseUrl: string;
+  suggestion?: string;
+};
 
 export function Slugs({
   siteId,
@@ -18,182 +38,165 @@ export function Slugs({
   canEdit,
   suggestion,
   baseUrl,
-}: {
-  siteId: string;
-  submissionId: string;
-  slugs: SlugsDTO;
-  fallback: string;
-  canEdit: boolean;
-  baseUrl: string;
-  suggestion?: string;
-}) {
+}: SlugsProps) {
   const fetcher = useFetcher<{ error?: string; slugs?: SlugsDTO }>();
-  const makeSuggestion = suggestion ? !slugs.find((s) => s.slug === suggestion) : false;
+  const [managerOpen, setManagerOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<SlugConfirmTarget | null>(null);
+  const [draftSlug, setDraftSlug] = useState('');
+  const [localError, setLocalError] = useState<string | undefined>();
+  const [awaitingResult, setAwaitingResult] = useState(false);
+  const [prevFetcherState, setPrevFetcherState] = useState(fetcher.state);
 
-  const handleAddFirstSlug = (e: React.MouseEvent<HTMLDivElement>) => {
-    // only hand directly adding if we have no slugs
-    if (slugs.length > 0) return;
-    handleAdd(e);
+  if (fetcher.state !== prevFetcherState) {
+    const outcome = resolveSlugMutationOutcome(fetcher.data);
+    if (awaitingResult && prevFetcherState !== 'idle' && fetcher.state === 'idle') {
+      if (outcome === 'success') {
+        const updatedSlugs = fetcher.data?.slugs ?? slugs;
+        setConfirmTarget(null);
+        setDraftSlug(getSuggestedSlugDraft(suggestion, updatedSlugs) ?? '');
+        setLocalError(undefined);
+        setAwaitingResult(false);
+      } else if (outcome === 'error') {
+        setAwaitingResult(false);
+      }
+    }
+    setPrevFetcherState(fetcher.state);
+  }
+
+  const displaySlug = getDisplaySlug(slugs, fallback);
+  const isSubmitting = fetcher.state !== 'idle';
+  const addSlugError = managerOpen
+    ? getSlugAddFieldError({
+        localError,
+        fetcherFormData: fetcher.formData,
+        fetcherError: fetcher.data?.error,
+      })
+    : undefined;
+  const confirmError = getSlugConfirmDialogError({
+    confirmTarget,
+    fetcherFormData: fetcher.formData,
+    fetcherError: fetcher.data?.error,
+  });
+
+  const handleDraftSlugChange = (value: string) => {
+    setDraftSlug(value);
+    if (localError) {
+      setLocalError(undefined);
+    }
   };
 
-  const handleAdd = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleManagerOpenChange = (nextOpen: boolean) => {
+    setManagerOpen(nextOpen);
+    if (!nextOpen) {
+      setConfirmTarget(null);
+      setDraftSlug('');
+      setLocalError(undefined);
+      setAwaitingResult(false);
+    }
+  };
 
-    if (!canEdit) return;
+  const handleConfirmOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setConfirmTarget(null);
+    }
+  };
 
-    const newSlug = prompt('Enter new slug (6 < 64 chars)', makeSuggestion ? suggestion : '');
-    if (!newSlug) return;
+  const handleOpenManager = () => {
+    setDraftSlug(getSuggestedSlugDraft(suggestion, slugs) ?? '');
+    setLocalError(undefined);
+    setManagerOpen(true);
+  };
 
-    const exists = slugs.find((s) => s.slug === newSlug);
-    if (exists) {
-      alert('slug already exists');
+  const handleAdd = () => {
+    const validationError = validateSlugForAdd(draftSlug, slugs);
+    if (validationError) {
+      setLocalError(validationError);
       return;
     }
 
+    setLocalError(undefined);
+    setAwaitingResult(true);
     fetcher.submit(
-      { slug: newSlug, formAction: 'slug-add', submission_id: submissionId, site_id: siteId },
+      {
+        slug: draftSlug.trim(),
+        formAction: SUBMISSION_DETAIL_FORM_ACTIONS.slugAdd,
+        submission_id: submissionId,
+        site_id: siteId,
+      },
       { method: 'POST' },
     );
   };
 
-  const handleRemove = (e: React.FormEvent<HTMLFormElement>, slug_id: string, slug: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (
-      confirm(
-        `Are you sure you want to remove "${slug}"? this break existing external links to the submission that use this slug.`,
-      ) === false
-    )
+  const handleConfirmAction = () => {
+    if (!confirmTarget) {
       return;
+    }
 
-    fetcher.submit({ slug_id, formAction: 'slug-remove' }, { method: 'POST' });
+    setLocalError(undefined);
+    setAwaitingResult(true);
+
+    if (confirmTarget.action === 'remove') {
+      fetcher.submit(
+        {
+          slug_id: confirmTarget.slugId,
+          formAction: SUBMISSION_DETAIL_FORM_ACTIONS.slugRemove,
+        },
+        { method: 'POST' },
+      );
+      return;
+    }
+
+    fetcher.submit(
+      {
+        slug_id: confirmTarget.slugId,
+        formAction: SUBMISSION_DETAIL_FORM_ACTIONS.slugSetPrimary,
+      },
+      { method: 'POST' },
+    );
   };
 
-  const handleSetPrimary = (e: React.FormEvent<HTMLFormElement>, slug_id: string, slug: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (
-      confirm(
-        `Are you sure you want to set "${slug}" as the primary slug? this will redirect all other slugs to here.`,
-      ) === false
-    )
-      return;
-
-    fetcher.submit({ slug_id, formAction: 'slug-set-primary' }, { method: 'POST' });
+  const handleRequestRemove = (slugId: string, slug: string) => {
+    setConfirmTarget({ action: 'remove', slugId, slug });
   };
 
-  const slug = slugs.find((s) => s.primary)?.slug ?? slugs[0]?.slug ?? fallback;
-
-  const tick = <SquareCheckBig className="inline-block w-4 h-4 mb-[2px] stroke-green-600" />;
-  const cardContent = (
-    <div className="text-md">
-      <table>
-        <thead>
-          <tr className="border-b-[1px] border-gray-500 bg-gray-100">
-            <th className="px-3 py-1 text-left">primary</th>
-            <th className="px-3 py-1 text-left">slug</th>
-            <th className="px-3 py-1 text-left">updated</th>
-            <th className="px-3 py-1 text-left align-text-bottom" title="set as primary">
-              <SquareCheckBig className="inline-block w-4 h-4" />
-            </th>
-            <th className="px-3 py-1 text-left align-text-bottom" title="remove slug">
-              <Trash2 className="inline-block w-4 h-4 opacity-80 hover:opacity-100" />
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {slugs.map((s) => {
-            const deleting =
-              fetcher.state === 'submitting' &&
-              fetcher.formData?.get('formAction') === 'slug-remove' &&
-              fetcher.formData?.get('slug_id') === s.id;
-            return (
-              <tr
-                key={s.id}
-                className={classNames('even:bg-gray-50', {
-                  'text-gray-500 line-through': deleting,
-                })}
-              >
-                <td className="px-3 py-1 text-center pointer-events-none">
-                  {s.primary && <>{tick}</>}
-                </td>
-                <td className="px-3 py-1 text-left">
-                  <a
-                    className="underline cursor-pointer"
-                    href={`${baseUrl}${s.slug}`}
-                    target="_blank"
-                    rel="noopener noreferer"
-                  >
-                    {s.slug}
-                  </a>
-                </td>
-                <td className="px-3 py-1 text-left pointer-events-none">
-                  {formatDistanceToNow(new Date(s.date_modified))} ago
-                </td>
-                <td className="px-3 py-1 text-center">
-                  <fetcher.Form onSubmit={(e) => handleSetPrimary(e, s.id, s.slug)}>
-                    <button className="align-text-bottom" type="submit" title="set as primary">
-                      <SquareCheckBig className="inline-block w-4 h-4 opacity-80 hover:opacity-100" />
-                    </button>
-                  </fetcher.Form>
-                </td>
-                <td className="px-3 py-1 text-center">
-                  <fetcher.Form onSubmit={(e) => handleRemove(e, s.id, s.slug)}>
-                    <button className="align-text-bottom" type="submit" title="remove slug">
-                      <Trash2 className="inline-block w-4 h-4 opacity-80 hover:opacity-100" />
-                    </button>
-                  </fetcher.Form>
-                </td>
-              </tr>
-            );
-          })}
-          <tr className="even:bg-gray-50">
-            <td className="px-3 py-1 text-center">{slugs.length === 0 && <>{tick}</>}</td>
-            <td className="px-3 py-1 text-left underline">
-              <a
-                className="underline cursor-pointer"
-                href={`${baseUrl}${fallback}`}
-                target="_blank"
-                rel="noopener noreferer"
-              >
-                {fallback}
-              </a>
-            </td>
-            <td className="px-3 py-1 text-left text-gray-400">default</td>
-            <td></td>
-            <td></td>
-          </tr>
-        </tbody>
-      </table>
-      <div className="pt-2 text-right *:align-middle cursor-pointer" onClick={handleAdd}>
-        <CirclePlus className="inline-block w-4 h-4 mr-1" />
-        <span className="underline">Add A Slug</span>
-      </div>
-    </div>
-  );
+  const handleRequestSetPrimary = (slugId: string, slug: string) => {
+    setConfirmTarget({ action: 'primary', slugId, slug });
+  };
 
   return (
-    <>
-      <div>Slug</div>
-      <primitives.PopoverWrapper
-        className="min-w-[310px] z-20 p-6 pb-4"
-        skip={slugs.length === 0}
-        content={cardContent}
-      >
-        <div className="flex flex-col items-right">
-          <div
-            className={classNames('text-right', { 'underline cursor-pointer': canEdit })}
-            onClick={handleAddFirstSlug}
-          >
-            {slug}
-            {canEdit && <SquarePen className="inline-block w-4 h-4 ml-[2px] mb-[2px]" />}
-          </div>
-          {fetcher.data?.error && <div className="text-xs text-red-600">{fetcher.data.error}</div>}
-        </div>
-      </primitives.PopoverWrapper>
-    </>
+    <div className="w-full min-w-0">
+      <DetailFieldEditorShell value={displaySlug}>
+        {canEdit && <DetailFieldEditorTrigger title="Manage slugs" onClick={handleOpenManager} />}
+      </DetailFieldEditorShell>
+      {canEdit && (
+        <>
+          <SlugManagerDialog
+            open={managerOpen}
+            onOpenChange={handleManagerOpenChange}
+            slugs={slugs}
+            fallback={fallback}
+            baseUrl={baseUrl}
+            draftSlug={draftSlug}
+            onDraftSlugChange={handleDraftSlugChange}
+            addSlugError={addSlugError}
+            isSubmitting={isSubmitting}
+            onAdd={handleAdd}
+            onRequestRemove={handleRequestRemove}
+            onRequestSetPrimary={handleRequestSetPrimary}
+          />
+          {confirmTarget && (
+            <ConfirmSlugActionDialog
+              open
+              onOpenChange={handleConfirmOpenChange}
+              action={confirmTarget.action}
+              slug={confirmTarget.slug}
+              isSubmitting={isSubmitting}
+              error={confirmError}
+              onConfirm={handleConfirmAction}
+            />
+          )}
+        </>
+      )}
+    </div>
   );
 }

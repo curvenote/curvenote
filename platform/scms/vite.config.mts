@@ -12,9 +12,17 @@ import tailwindcss from '@tailwindcss/vite';
 const WORKSPACE_ROOT = path.resolve(process.cwd(), '../..');
 
 /** Workspace UI packages resolve to source in dev via package.json "development" exports. */
-const WORKSPACE_UI_PATTERNS = [/^@curvenote\//, /^@hhmi\//];
+const WORKSPACE_UI_PATTERNS = [
+  /^@curvenote\/(?!scms-server$|scms-db$|scms-doc-preview$|cdn$)/,
+  /^@hhmi\//,
+];
 
-const SERVER_WORKSPACE_PACKAGES = ['@curvenote/scms-server', '@curvenote/scms-db'];
+const SERVER_WORKSPACE_PACKAGES = [
+  '@curvenote/scms-server',
+  '@curvenote/scms-db',
+  '@curvenote/scms-doc-preview',
+  '@curvenote/cdn',
+];
 
 /** optimizeDeps.exclude requires exact package name strings, not RegExp. */
 function getWorkspacePackageNames(): string[] {
@@ -68,6 +76,10 @@ export default defineConfig(async ({ mode }) => {
       // getAuth() throws "Component auth has not been registered yet".
       exclude: [
         ...getWorkspacePackageNames(),
+        // Route registrars live in extension server entries imported from root.tsx.
+        // Prebundling this into the client optimizer duplicates react-router.
+        '@react-router/dev',
+        '@react-router/dev/routes',
         '@google-cloud/storage',
         'jwa',
         'jsonwebtoken',
@@ -82,6 +94,8 @@ export default defineConfig(async ({ mode }) => {
         '@firebase/auth',
         'firebase-admin',
         'crypto',
+        '@curvenote/cdn',
+        'node-fetch',
       ],
     },
     ssr: {
@@ -146,6 +160,7 @@ export default defineConfig(async ({ mode }) => {
         'react-dom',
         'react-router',
         '@curvenote/scms-core',
+        'lucide-react',
         'firebase',
         '@firebase/app',
         '@firebase/auth',

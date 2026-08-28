@@ -1,0 +1,3 @@
+# Optional rich site/work overlay (copied from .cache/seed or seed:pull).
+# Committed seed is users/roles only — no sites or works.
+/*.json

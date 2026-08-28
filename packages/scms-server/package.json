@@ -1,7 +1,7 @@
 {
   "name": "@curvenote/scms-server",
   "private": true,
-  "version": "0.24.2",
+  "version": "0.25.0",
   "description": "Server-side library for Curvenote SCMS applications",
   "author": "Rowan Cockett <rowan@curvenote.com>",
   "homepage": "https://github.com/curvenote/curvenote",
@@ -37,7 +37,6 @@
     "build": "tsup && bunx tsc --emitDeclarationOnly --declarationMap --project tsconfig.json",
     "dev": "tsc -w",
     "format": "bunx prettier --write \"**/*.{ts,tsx,md}\"",
-    "generate:jwk-keys": "node scripts/generate-jwk-keys.mjs",
     "test": "vitest run",
     "changeset": "changeset",
     "version": "changeset version && bun install"
@@ -46,6 +45,7 @@
     "url": "https://github.com/curvenote/curvenote/issues"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@app-config/config": "^2.8.7",
     "@app-config/main": "^2.8.7",
     "@app-config/vite": "^2.8.7",
@@ -58,12 +58,12 @@
     "@aws-sdk/s3-request-presigner": "^3.1012.0",
     "@azure/storage-blob": "^12.31.0",
     "@curvenote/cdn": "^0.7.0",
-    "@curvenote/check-definitions": "^0.17.1",
+    "@curvenote/check-definitions": "^0.17.2",
     "@curvenote/common": "^0.7.0",
     "@curvenote/remix-auth-google": "^3.0.0",
     "@curvenote/remix-auth-okta": "^3.0.0",
-    "@curvenote/scms-core": "0.24.2",
-    "@curvenote/scms-db": "0.24.2",
+    "@curvenote/scms-core": "0.25.0",
+    "@curvenote/scms-db": "0.25.0",
     "@google-cloud/pubsub": "^5.2.0",
     "@google-cloud/storage": "^7.17.3",
     "@react-email/components": "0.5.7",

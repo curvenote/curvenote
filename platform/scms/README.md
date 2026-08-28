@@ -4,29 +4,9 @@ This app is at https://sites.curvenote.com
 
 ## Local Development
 
-Copy app-config files, .env into `platform/scms` folder. The app-config schema is committed at the top level of the monorepo, but you will need to edit this to add extensions and fix relative paths, under the `extensions` section (this should just be adding `../..`).
+**Canonical bring-up (install, Docker Postgres + MinIO, seed, `bun run dev`):** [`DEVELOPMENT.md`](../../DEVELOPMENT.md) at the monorepo root.
 
-Then at the top level of the monorepo:
-
-```
-bun install
-```
-
-This installs all the workspace dependencies and the `postinstall` step generates the `platform/scms` package.json with extensions, as well as the `client.ts`/`server.ts` files in the scms extensions source folder.
-
-Still at the top level:
-
-```
-bun run build
-```
-
-Then in the `platform/scms` folder, to install, build, and run locally:
-
-```
-bun install
-bun run build
-bun run dev
-```
+This file covers SCMS-specific follow-ons: job queue, moving off native Postgres, env flags, HTTPS.
 
 ### Job queue local development
 
@@ -40,35 +20,15 @@ If a backlog gets stuck (e.g. the dev server was down when wakes fired), the **Q
 
 **Queue drain auth:** `api.queueConsumerSecret` in app-config (e.g. `.app-config.secrets.development.yml` locally, staging/prod secrets YAML on deployed envs) secures **`POST /v1/jobs/push-to-drain`**. Job execution still uses the **handshake JWT** inside the queue message.
 
-> The local Postgres image is required (it provides pgmq/pg_net/pg_cron). After pulling these changes you must rebuild the container: `bun run db:rebuild` (wipes the volume, rebuilds from the Dockerfile, re-runs init), then `bun run dev:db:reset`.
+> The local Postgres image is required (it provides pgmq/pg_net/pg_cron). After pulling image/Dockerfile changes you must rebuild: `bun run dx:rebuild` (no-cache image rebuild, wipes volumes, migrate + seed).
 
 **Staging/prod Supabase setup:** see [`platform/scms/deploy/supabase-job-queue-setup.md`](deploy/supabase-job-queue-setup.md) (pgmq migration, app-config secrets, `_JobQueueDrainConfig`, smoke tests).
 
 ### First-time setup
 
-Local development uses **Postgres in Docker** (recommended). The container creates `journals` and `journals_test` with user `journals` / password `curvenote` on port **5432**.
+See **[`DEVELOPMENT.md`](../../DEVELOPMENT.md)**. Storage profiles and fixtures: [`docs/storage/dx-local.md`](../../docs/storage/dx-local.md).
 
-**Requirements:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose v2).
-
-From the **monorepo root**:
-
-```bash
-bun run db:up
-bun run dev:db:reset
-```
-
-`db:up` starts Postgres and waits until it is healthy. `dev:db:reset` runs migrations and seeds the dev database.
-
-Useful commands:
-
-| Command                 | Purpose                           |
-| ----------------------- | --------------------------------- |
-| `bun run db:up`         | Start Postgres container          |
-| `bun run db:down`       | Stop container (keep data volume) |
-| `bun run db:down:clean` | Stop and **delete** all DB data   |
-| `bun run db:logs`       | Follow Postgres logs              |
-
-Connection strings (same as before):
+Connection strings:
 
 - Dev: `postgresql://journals:curvenote@localhost:5432/journals?statement_cache_size=0`
 - Test: `postgresql://journals:curvenote@localhost:5432/journals_test?statement_cache_size=0`
@@ -140,8 +100,8 @@ netstat -an | grep '\.5432.*LISTEN'
 From the monorepo root:
 
 ```bash
-bun run db:up
-bun run dev:db:reset
+bun run dx:up
+bun run dx:reset
 bun run test:db:reset   # optional: reset test DB too
 ```
 
@@ -194,11 +154,10 @@ Accepted values are `true`, `1`, or `yes`. Each query is printed with duration, 
 
 ### Seed
 
-To reset and seed the database for **initial** development work. This needs to be run from the top level.
+Reset and seed from the **monorepo root**. See [`DEVELOPMENT.md`](../../DEVELOPMENT.md) for the bare vs overlay seed.
 
 ```
 bun run dev:db:reset
-bun run dev:db:migrate
 ```
 
 To only format the schema
@@ -237,136 +196,3 @@ The platform will now be available at:
 Tests use the `journals_test` database. This is seeded using a different script (`prisma/seed.test.ts`) and can be reset using `bun run test:db:reset`.
 
 Use `bun run test:start` and `bun run test:local` to ensure that tests are started with the correct environment.
-
-## JWT Integration for External Services
-
-The platform provides JWT-based authentication for external service integration. This allows remote services to verify signed tokens issued by our API and enables secure web-hook callbacks and API integrations.
-
-### Overview
-
-- **Algorithm**: RS256 (RSA with SHA-256)
-- **Key Format**: JSON Web Key (JWK) per RFC 7517
-- **Public Endpoint**: `/v1/keys` serves JWKS for token verification
-- **Key Rotation**: Supported via `kid` (Key ID) field
-
-### Configuration Requirements
-
-The JWT integration requires configuration in both the main config and secrets files:
-
-#### Main Config (`.app-config.yml`)
-
-Add to the `api` section:
-
-```yaml
-api:
-  integrations:
-    issuer: https://your-domain.com/v1
-    tokenExpiryDuration: 1m
-    publicKey:
-      kty: RSA
-      n: <public key modulus>
-      e: AQAB
-      use: sig
-      alg: RS256
-      kid: integration-key-2025-01
-```
-
-#### Secrets Config (`.app-config.secrets.yml`)
-
-Add to the `api` section:
-
-```yaml
-api:
-  integrations:
-    privateKey:
-      kty: RSA
-      n: <same public key modulus>
-      e: AQAB
-      d: <private key>
-      p: <prime factor p>
-      q: <prime factor q>
-      dp: <d mod (p-1)>
-      dq: <d mod (q-1)>
-      qi: <q^-1 mod p>
-      use: sig
-      alg: RS256
-      kid: integration-key-2025-01
-```
-
-### Generating JWK Keys
-
-To generate new JWK keys for deployment or key rotation, use the provided script:
-
-```bash
-# Generate new JWK keys
-bun run generate:jwk-keys
-
-# Or run directly
-node scripts/generate-jwk-keys.mjs
-```
-
-This script will output properly formatted YAML that you can copy directly into your configuration files. The script generates secure 2048-bit RSA keys and includes all necessary JWK fields with a date-based key ID.
-
-### Key Rotation
-
-To rotate JWT keys:
-
-1. **Generate new keys** using `bun run generate:jwk-keys` (automatically generates new `kid` with current date)
-2. **Update configuration** with the new keys in both config files
-3. **Deploy** the updated configuration
-4. **Monitor** external services to ensure they fetch the new public key from `/v1/keys`
-5. **Verify** that old tokens are properly rejected after expiry
-
-**Important**: The `kid` field must match between the public and private keys. The generation script automatically creates date-based key IDs (e.g., `integration-key-2025-08-05`).
-
-### External Service Integration
-
-External services can retrieve the public key and verify JWTs using:
-
-```bash
-# Fetch public keys
-curl https://your-domain.com/v1/keys
-
-# Response format (JWKS):
-{
-  "keys": [
-    {
-      "kty": "RSA",
-      "n": "...",
-      "e": "AQAB",
-      "use": "sig",
-      "alg": "RS256",
-      "kid": "integration-key-2025-01"
-    }
-  ]
-}
-```
-
-### Usage Example
-
-```typescript
-// Create a token for a specific external service
-const token = await createIntegrationToken(
-  ctx,
-  'external-service-id',
-  'https://partner-service.com/api/webhook',
-  {
-    customClaims: {
-      permissions: ['read', 'write'],
-      service_type: 'webhook',
-    },
-    expiryOverride: '5m',
-  },
-);
-
-// Verify a token (optionally checking audience)
-const claims = await verifyIntegrationToken(ctx, token, 'expected-audience');
-```
-
-### Security Notes
-
-- **Never commit private keys** to version control
-- **Use different keys** for different environments (dev/staging/production)
-- **Rotate keys regularly** (recommended: every 90 days)
-- **Monitor the `/v1/keys` endpoint** for unusual access patterns
-- **Update issuer URLs** to match your production domain

@@ -6,6 +6,8 @@ export * from './coerceToList.js';
 export * from './coerceToObject.js';
 export * from './date.js';
 export * from './delay.js';
+export * from './documentPreviewTypes.js';
+export * from './extractedMetadata.js';
 export * from './formatDate.js';
 export * from './formatNumber.js';
 export * from './getFetcherField.js';
@@ -24,6 +26,8 @@ export * from './versionTimelineUrls.js';
 export * from './versionTimelineTrim.js';
 export * from './manuscriptFormats.js';
 export * from './documentPreviewCache.js';
+export * from './thumbnailSelection.js';
+export * from './previewImagePresence.js';
 export * from './workVersionMetadata.js';
 export * from './workVersionNumbers.js';
 

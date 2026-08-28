@@ -1,0 +1,69 @@
+{
+  "name": "@curvenote/scms-doc-preview",
+  "private": true,
+  "version": "0.25.0",
+  "description": "Document preview, metadata extraction, and thumbnail helpers for Curvenote SCMS",
+  "author": "Rowan Cockett <rowan@curvenote.com>",
+  "homepage": "https://github.com/curvenote/curvenote",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "browser": false,
+  "exports": {
+    ".": {
+      "node": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/curvenote/curvenote.git"
+  },
+  "scripts": {
+    "clean": "rimraf dist _build && find . -name '.turbo' -type d -prune -exec rm -rf '{}' +",
+    "lint": "bunx eslint -c .eslintrc.cjs \"src/**/*.{ts,tsx}\"",
+    "lint:format": "bunx prettier --check \"src/**/*.{ts,tsx}\"",
+    "lint:format:fix": "bunx prettier --write \"src/**/*.{ts,tsx}\"",
+    "build": "tsup && bunx tsc --emitDeclarationOnly --declarationMap --project tsconfig.json",
+    "dev": "tsc -w",
+    "test": "vitest run"
+  },
+  "bugs": {
+    "url": "https://github.com/curvenote/curvenote/issues"
+  },
+  "dependencies": {
+    "@curvenote/common": "^0.6.1",
+    "@curvenote/scms-core": "^0.25.0",
+    "@curvenote/scms-db": "^0.25.0",
+    "@curvenote/scms-server": "^0.25.0",
+    "@napi-rs/canvas": "^0.1.100",
+    "bmp-js": "^0.1.0",
+    "officeparser": "^6.0.4",
+    "p-limit": "^3.1.0",
+    "pdfjs-dist": "5.6.205",
+    "sharp": "^0.35.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "eslint-config-curvenote": "^0.0.4",
+    "prettier": "^3.5.3",
+    "rimraf": "^3.0.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.6.3",
+    "vitest": "^4.0.6"
+  },
+  "engines": {
+    "node": ">=18",
+    "bun": ">=1.3.10"
+  },
+  "packageManager": "bun@1.3.10"
+}

@@ -1,5 +1,9 @@
 # @curvenote/scms-tasks
 
+## 0.25.0
+
+## 0.24.3
+
 ## 0.24.2
 
 ### Patch Changes

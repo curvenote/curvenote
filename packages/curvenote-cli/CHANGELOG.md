@@ -1,5 +1,14 @@
 # curvenote
 
+## 0.17.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/cli-plugin@0.17.2
+  - @curvenote/check-definitions@0.17.2
+  - @curvenote/check-implementations@0.17.2
+
 ## 0.17.1
 
 ### Patch Changes

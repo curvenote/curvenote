@@ -108,11 +108,6 @@ export default [
       route('emails', 'routes/app/settings.emails/route.tsx'),
     ]),
 
-    // Discovery Routes
-    route('discovery', 'routes/app/discovery/route.tsx', [
-      route('people', 'routes/app/discovery.people/route.tsx'),
-    ]),
-
     // System Routes
     route('system', 'routes/app/system/route.tsx', [
       route('submissions', 'routes/app/system.submissions/route.tsx'),
@@ -303,7 +298,6 @@ export default [
     route('loopback', 'routes/api/v1.loopback/route.tsx'),
     route('jobs/:jobId', 'routes/api/v1.jobs.$jobId.tsx'),
 
-    route('keys', 'routes/api/v1.keys.tsx'),
     route('config', 'routes/api/v1.config.tsx'),
     route('login', 'routes/api/v1.login.tsx'),
 

@@ -21,6 +21,7 @@ import {
   getAvailableWorkCreateOptions,
   hydrateWorkCreateOptions,
   toSerializableWorkCreateOptions,
+  workCreateOptionsForResume,
   scopes,
   capitalize,
   plural,
@@ -96,9 +97,11 @@ export async function action(args: Route.ActionArgs) {
   return withValidFormData(WorksActionSchema, formData, async (payload: WorksActionPayload) => {
     const { intent, workId } = payload;
 
+    const resumeOptions = workCreateOptionsForResume(extensions);
+
     // Handle get-drafts intent
     if (intent === 'get-drafts') {
-      const drafts = await getValidDraftWorksForUser(ctx.user.id);
+      const drafts = await getValidDraftWorksForUser(ctx.user.id, resumeOptions);
       return { success: true, intent, drafts };
     }
 
@@ -134,7 +137,7 @@ export async function action(args: Route.ActionArgs) {
       //   return data({ error: 'You do not have permission to delete drafts' }, { status: 403 });
       // }
       try {
-        const validDrafts = await getValidDraftWorksForUser(ctx.user.id);
+        const validDrafts = await getValidDraftWorksForUser(ctx.user.id, resumeOptions);
 
         // Delete each draft work
         const deleteResults = await Promise.allSettled(

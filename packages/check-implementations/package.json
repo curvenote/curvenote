@@ -2,7 +2,7 @@
   "name": "@curvenote/check-implementations",
   "description": "Implementations for Curvenote checks",
   "author": "Franklin Koch <franklin@curvenote.com>",
-  "version": "0.17.1",
+  "version": "0.17.2",
   "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,7 +26,7 @@
     "test:watch": "vitest watch"
   },
   "dependencies": {
-    "@curvenote/check-definitions": "^0.17.1",
+    "@curvenote/check-definitions": "^0.17.2",
     "@wordpress/wordcount": "^3.50.0",
     "credit-roles": "^2.1.0",
     "doi-utils": "^2.0.5",

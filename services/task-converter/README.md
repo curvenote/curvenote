@@ -85,7 +85,19 @@ If Pub/Sub was set up with a stray invoker SA (e.g. `storage-pubsub`), run `./mi
 
 Cloud Run sets `PORT` at runtime; no need to pass it in deploy.
 
-## Local dev: SCMS callbacks from Docker
+## Local compose (with `dx:up`)
+
+SCMS stack bring-up: **[`DEVELOPMENT.md`](../../DEVELOPMENT.md)**. Default MinIO local DX starts the converter beside Postgres and MinIO:
+
+```bash
+bun run dx:up                 # builds task-converter-local on first run if missing
+bun run db:rebuild:converter  # rebuild image + recreate container
+bun run db:logs               # includes task-converter
+```
+
+SCMS development already POSTs converter jobs to `http://127.0.0.1:8080/`. Keep `api.tasksCallbackUrl` set to `http://host.docker.internal:3031/v1` so the container can PATCH job status on the host.
+
+## Local: one-off container (without compose)
 
 When SCMS runs on the host (`bun run dev` on port 3031) and the converter runs in Docker, Pub/Sub job attributes must use a host-reachable API URL — not `http://localhost`, which inside the container refers to the container itself.
 

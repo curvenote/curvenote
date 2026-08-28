@@ -55,7 +55,7 @@ async function fetchPublishedSubmissionVersionIdByDoi(
         FROM (${doiWorkVersions}) doi_wv
         INNER JOIN "SubmissionVersion" sv
           ON sv.work_version_id = doi_wv.work_version_id
-         AND sv.status = 'PUBLISHED'
+         AND sv.status = ${'PUBLISHED'}
          AND sv.tags @> ARRAY[${tag}]::text[]
         INNER JOIN "Submission" s
           ON s.id = sv.submission_id
@@ -68,7 +68,7 @@ async function fetchPublishedSubmissionVersionIdByDoi(
         FROM (${doiWorkVersions}) doi_wv
         INNER JOIN "SubmissionVersion" sv
           ON sv.work_version_id = doi_wv.work_version_id
-         AND sv.status = 'PUBLISHED'
+         AND sv.status = ${'PUBLISHED'}
         INNER JOIN "Submission" s
           ON s.id = sv.submission_id
          AND s.site_id = ${siteId}

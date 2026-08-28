@@ -113,8 +113,15 @@ vi.mock('@curvenote/scms-core', async () => {
   // Pull the real resolver through instead of hand-copying its body, so these route
   // tests exercise the actual routing logic and catch regressions if it changes. The
   // function is pure, so only it is un-mocked while the rest of the module stays stubbed.
-  const { resolveSubmitToSiteExtension } =
-    await vi.importActual<typeof ScmsCore>('@curvenote/scms-core');
+  const {
+    resolveSubmitToSiteExtension,
+    workCreateOptionsForResume,
+    isOnCreateFormPath,
+    resolveDraftResumePath,
+    resolveExtensionTimelineDescriptors,
+    WorkContents,
+    buildWorkVersionNumberByIdMap,
+  } = await vi.importActual<typeof ScmsCore>('@curvenote/scms-core');
   return {
     MainWrapper: vi.fn(),
     SecondaryNav: vi.fn(),
@@ -126,6 +133,7 @@ vi.mock('@curvenote/scms-core', async () => {
     getWorkflows: vi.fn(() => ({ SIMPLE: {} })),
     registerExtensionWorkflows: vi.fn(() => ({})),
     getExtensionCheckServicesFromServerConfig: vi.fn(() => []),
+    resolveExtensionTimelineDescriptors,
     loadCheckMaintenanceByServiceIds,
     CheckMaintenanceProvider: vi.fn(({ children }) => children),
     scopes: {
@@ -159,6 +167,11 @@ vi.mock('@curvenote/scms-core', async () => {
     })),
     invokeExtensionCreateWorkVersion: vi.fn(),
     resolveSubmitToSiteExtension,
+    workCreateOptionsForResume,
+    isOnCreateFormPath,
+    resolveDraftResumePath,
+    WorkContents,
+    buildWorkVersionNumberByIdMap,
   };
 });
 
@@ -204,10 +217,6 @@ vi.mock('./utils.server', () => ({
 vi.mock('./metadata.server', () => ({
   computeCanResumeDraftUpload: vi.fn(() => false),
   getLicenseDisplayFromMetadata: vi.fn(() => null),
-  resolveResumeDraftUploadPath: vi.fn(
-    ({ workId, workVersionId }: { workId: string; workVersionId: string }) =>
-      `/app/works/${workId}/upload/${workVersionId}?from=details`,
-  ),
   resolveWorkVersionDoi: vi.fn((versionDoi: string | null | undefined) => versionDoi ?? null),
   signVersionFilesForClient: vi.fn(async () => undefined),
 }));
