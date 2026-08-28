@@ -30,7 +30,7 @@ export function SubmissionMediaSection({ thumbnailUrl, title }: SubmissionMediaS
       <div className={cn('flex flex-col gap-1 items-stretch', tileWidthClassName)}>
         <div
           className={cn(
-            'flex flex-col gap-0.5 rounded-md border px-2 pt-2 pb-2',
+            'flex flex-col gap-2 rounded-md border px-2 pt-2 pb-2',
             'border-stone-200 bg-white dark:border-stone-500 dark:bg-stone-900',
           )}
         >
