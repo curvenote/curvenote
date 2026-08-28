@@ -50,7 +50,6 @@
       "version": "0.24.3",
       "dependencies": {
         "@codemirror/view": "^6.35.0",
-        "@curvenote/cdn": "^0.7.0",
         "@curvenote/check-definitions": "^0.17.2",
         "@curvenote/common": "^0.7.0",
         "@curvenote/icons": "0.0.4",

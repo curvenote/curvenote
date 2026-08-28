@@ -1,7 +1,6 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import type { CurvenoteSiteManifest } from '@curvenote/cdn';
-import { cdnManifestHasThumbnail } from './activeVersionCdn.server.js';
+import { cdnManifestHasThumbnail } from './resolveWorkVersionCdnMedia.server.js';
 
 describe('cdnManifestHasThumbnail', () => {
   it('detects a site-level thumbnail', () => {

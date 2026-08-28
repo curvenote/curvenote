@@ -1,9 +1,10 @@
 import { getCdnBaseUrl, getCdnLocation, getConfig } from '@curvenote/cdn';
 import type { CurvenoteSiteManifest } from '@curvenote/cdn';
 import { ensureTrailingSlash } from '@curvenote/scms-core';
-import { getSignedCDNQuery, signPrivateUrls, type SiteContext } from '@curvenote/scms-server';
+import type { SiteContext } from './context.site.server.js';
+import { getSignedCDNQuery, signPrivateUrls } from './sign.private.server.js';
 
-export type ActiveWorkVersionCdnSource = {
+export type WorkVersionCdnSource = {
   id: string;
   work_id: string;
   cdn: string | null;
@@ -11,22 +12,22 @@ export type ActiveWorkVersionCdnSource = {
   thumbnail: string | null;
 };
 
-export type ActiveVersionCdnMedia = {
+export type WorkVersionCdnMedia = {
   /** Signed thumbnail API URL when a thumb is known to exist; omit from SSR otherwise. */
   mediaThumbnailUrl: string | undefined;
   /**
-   * CDN site manifest for the active work version (when cdn+cdn_key exist).
-   * Fetched once for MEDIA now; reuse for figures/equations/etc. next.
+   * CDN site manifest for the work version (when cdn+cdn_key exist).
+   * Fetched once so callers can reuse for figures/equations/etc.
    */
-  activeVersionCdnConfig: CurvenoteSiteManifest | null;
+  cdnConfig: CurvenoteSiteManifest | null;
 };
 
 /** Same lookup order as `@curvenote/cdn` `getThumbnailBuffer`. */
 export function cdnManifestHasThumbnail(config: CurvenoteSiteManifest): boolean {
   return Boolean(
     config.thumbnail ??
-    config.projects?.[0]?.thumbnail ??
-    config.projects?.[0]?.pages?.find((page) => page.thumbnail)?.thumbnail,
+      config.projects?.[0]?.thumbnail ??
+      config.projects?.[0]?.pages?.find((page) => page.thumbnail)?.thumbnail,
   );
 }
 
@@ -44,16 +45,12 @@ async function loadWorkVersionCdnConfig(
     }
     return await getConfig({ ...location, query });
   } catch (err) {
-    console.warn('[submission-detail] failed to load active version CDN config', {
-      cdn,
-      cdnKey,
-      err,
-    });
+    console.warn('[cdn-media] failed to load work version CDN config', { cdn, cdnKey, err });
     return null;
   }
 }
 
-function signedThumbnailUrl(
+function signedSiteWorkVersionThumbnailUrl(
   ctx: SiteContext,
   siteName: string,
   workId: string,
@@ -71,28 +68,35 @@ function signedThumbnailUrl(
 }
 
 /**
- * Details-page-only: decide whether MEDIA should render a thumbnail on SSR.
- * Does not change shared `links.thumbnail` emission on APIs.
+ * Resolve whether a work version has a thumbnail for SSR-safe UI (e.g. site-admin MEDIA).
+ * Does not change shared `links.thumbnail` emission on APIs — callers opt in.
  */
-export async function resolveActiveVersionCdnMedia(
+export async function resolveWorkVersionCdnMedia(
   ctx: SiteContext,
   siteName: string,
-  wv: ActiveWorkVersionCdnSource,
-): Promise<ActiveVersionCdnMedia> {
+  wv: WorkVersionCdnSource,
+): Promise<WorkVersionCdnMedia> {
   if (!wv.cdn || !wv.cdn_key) {
-    return { mediaThumbnailUrl: undefined, activeVersionCdnConfig: null };
+    return { mediaThumbnailUrl: undefined, cdnConfig: null };
   }
 
-  const activeVersionCdnConfig = await loadWorkVersionCdnConfig(ctx, wv.cdn, wv.cdn_key);
-  const url = signedThumbnailUrl(ctx, siteName, wv.work_id, wv.id, wv.cdn, wv.cdn_key);
+  const cdnConfig = await loadWorkVersionCdnConfig(ctx, wv.cdn, wv.cdn_key);
+  const url = signedSiteWorkVersionThumbnailUrl(
+    ctx,
+    siteName,
+    wv.work_id,
+    wv.id,
+    wv.cdn,
+    wv.cdn_key,
+  );
 
   if (wv.thumbnail) {
-    return { mediaThumbnailUrl: url, activeVersionCdnConfig };
+    return { mediaThumbnailUrl: url, cdnConfig };
   }
 
-  if (activeVersionCdnConfig && cdnManifestHasThumbnail(activeVersionCdnConfig)) {
-    return { mediaThumbnailUrl: url, activeVersionCdnConfig };
+  if (cdnConfig && cdnManifestHasThumbnail(cdnConfig)) {
+    return { mediaThumbnailUrl: url, cdnConfig };
   }
 
-  return { mediaThumbnailUrl: undefined, activeVersionCdnConfig };
+  return { mediaThumbnailUrl: undefined, cdnConfig };
 }

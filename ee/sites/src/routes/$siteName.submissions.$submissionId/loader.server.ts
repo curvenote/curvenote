@@ -1,9 +1,10 @@
 import type { Context, TimelineCheckServiceRunRow, Workflow } from '@curvenote/scms-core';
-import type { CurvenoteSiteManifest } from '@curvenote/cdn';
 import {
   createPreviewToken,
   getConfiguredWorkflow,
+  resolveWorkVersionCdnMedia,
   type SiteContext,
+  type WorkVersionCdnMedia,
 } from '@curvenote/scms-server';
 import {
   dbGetSubmissionCheckServiceRunsByWorkVersionIds,
@@ -18,7 +19,6 @@ import {
   formatSubmissionDetailSubmission,
   formatSubmissionEditorCollections,
 } from './detail.format.server.js';
-import { resolveActiveVersionCdnMedia } from './activeVersionCdn.server.js';
 import type {
   MagicLinkWithAccessCount,
   SiteWithAppData,
@@ -48,7 +48,7 @@ export type SubmissionDetailPageData = {
   /** SSR-safe thumbnail URL for MEDIA (resolved via column or CDN config). */
   mediaThumbnailUrl: string | undefined;
   /** Active work version CDN config.json (null when no CDN); for MEDIA and upcoming sections. */
-  activeVersionCdnConfig: CurvenoteSiteManifest | null;
+  activeVersionCdnConfig: WorkVersionCdnMedia['cdnConfig'];
 };
 
 export async function loadSubmissionDetailPage(
@@ -104,7 +104,7 @@ export async function loadSubmissionDetailPage(
   const rawActiveVersion =
     loaded.submission.versions.find((version) => version.id === activeVersion.id) ??
     loaded.submission.versions[0];
-  const { mediaThumbnailUrl, activeVersionCdnConfig } = await resolveActiveVersionCdnMedia(
+  const { mediaThumbnailUrl, cdnConfig: activeVersionCdnConfig } = await resolveWorkVersionCdnMedia(
     ctx,
     siteName,
     rawActiveVersion.work_version,
