@@ -7,6 +7,7 @@ const exec = util.promisify(execWithCb);
 describe('CLI Smoke Tests', () => {
   test(
     'curvenote -v',
+    { timeout: 15000 },
     async () => {
       expect.assertions(0);
       try {
@@ -17,6 +18,5 @@ describe('CLI Smoke Tests', () => {
         expect(error).not.toBeNull();
       }
     },
-    { timeout: 15000 },
   );
 });
