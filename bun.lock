@@ -1432,7 +1432,7 @@
     },
     "platform/scms": {
       "name": "@curvenote/scms",
-      "version": "0.25.0",
+      "version": "0.24.3",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.80.0",
         "@app-config/config": "^2.8.7",

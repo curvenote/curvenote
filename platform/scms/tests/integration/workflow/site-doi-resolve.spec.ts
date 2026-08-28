@@ -194,13 +194,14 @@ describe('sites.submissions.published.get — delivered package', () => {
     await attachDefaultDomain(testData);
   });
 
-  test('returns the same DTO shape as doi resolve, including a versions array', async () => {
+  test('returns the DOI key set plus submission_tags', async () => {
     const seed = await seedPublishedWorkWithDoi(testData, {});
     const dto = await sites.submissions.published.get(testData.context, seed.workId);
 
     expect(dto).not.toBeNull();
-    expect(Object.keys(dto!).sort()).toEqual([...ITEM_KEYS].sort());
+    expect(Object.keys(dto!).sort()).toEqual([...ITEM_KEYS, 'submission_tags'].sort());
     expect(Array.isArray(dto!.versions)).toBe(true);
+    expect(Array.isArray(dto!.submission_tags)).toBe(true);
     expect(dto!.versions).toHaveLength(1);
     expect(Object.keys(dto!.versions[0]).sort()).toEqual([...VERSION_KEYS].sort());
   });

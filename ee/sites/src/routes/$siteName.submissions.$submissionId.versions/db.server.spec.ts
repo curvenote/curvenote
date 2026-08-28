@@ -1,21 +1,20 @@
-/* eslint-disable @typescript-eslint/consistent-type-imports */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { SiteContext } from '@curvenote/scms-server';
 
-vi.mock('@curvenote/scms-server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@curvenote/scms-server')>();
-  return {
-    ...actual,
-    getPrismaClient: vi.fn(),
-    getConfiguredWorkflow: vi.fn(() => ({
-      states: {
-        PUBLISHED: { label: 'Published', tags: ['end'] },
-        IN_REVIEW: { label: 'In review' },
-      },
-    })),
-  };
-});
+// The module under test and its one transitive import need exactly these two
+// exports, so the factory replaces the module outright. Spreading
+// `importOriginal()` here would load the whole server package — seconds inside
+// a hook — for exports nothing reads.
+vi.mock('@curvenote/scms-server', () => ({
+  getPrismaClient: vi.fn(),
+  getConfiguredWorkflow: vi.fn(() => ({
+    states: {
+      PUBLISHED: { label: 'Published', tags: ['end'] },
+      IN_REVIEW: { label: 'In review' },
+    },
+  })),
+}));
 
 const ctx = {
   site: { id: 'site-a' },

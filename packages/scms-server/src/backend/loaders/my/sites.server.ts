@@ -30,6 +30,7 @@ async function dbListSitesForUser(user: MyUserDBO) {
         submissionKinds: true,
         collections: { orderBy: { date_created: 'desc' } },
         domains: true,
+        tags: { orderBy: { label: 'asc' } },
       },
       orderBy: { name: 'asc' },
     });
@@ -60,6 +61,7 @@ async function dbListSitesForUser(user: MyUserDBO) {
             submissionKinds: true,
             collections: { orderBy: { date_created: 'desc' } },
             domains: true,
+            tags: { orderBy: { label: 'asc' } },
           },
         },
       },

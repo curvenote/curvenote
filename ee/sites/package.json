@@ -40,6 +40,7 @@
     "lint:format": "bunx prettier --check \"src/**/*.{ts,tsx}\"",
     "lint:format:fix": "bunx prettier --write \"src/**/*.{ts,tsx}\"",
     "lint:circular": "bunx madge --circular --extensions ts,tsx src",
+    "test": "vitest run",
     "config": "bunx @app-config/cli@2 generate",
     "build": "bun run build:server && bun run build:client",
     "build:server": "tsc --project tsconfig.json",

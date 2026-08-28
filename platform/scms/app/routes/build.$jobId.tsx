@@ -51,6 +51,9 @@ async function dbGetSubmissionVersion(submissionVersionId: string) {
       submission: {
         include: {
           kind: true,
+          // No `tags` include: the DTO built from this row never leaves the
+          // loader — only `name` and `links.html` are read — so it does not
+          // need the site tag catalog. See `formatSiteDTO`.
           site: { include: { submissionKinds: true, collections: true, domains: true } },
         },
       },

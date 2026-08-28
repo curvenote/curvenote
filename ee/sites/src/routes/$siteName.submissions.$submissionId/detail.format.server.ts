@@ -1,4 +1,4 @@
-import { formatDate } from '@curvenote/common';
+import { formatDate, type TagDTO } from '@curvenote/common';
 import type { SiteContext } from '@curvenote/scms-server';
 import { signPrivateUrls } from '@curvenote/scms-server';
 import { coerceToObject, type WorkflowTransition } from '@curvenote/scms-core';
@@ -93,6 +93,15 @@ function formatDetailActivity(
         }
       : undefined;
 
+  const tagDetail = data?.tag as { label?: string } | undefined;
+  const tagChange =
+    activity.activity_type === 'SUBMISSION_TAGS_CHANGE' && typeof tagDetail?.label === 'string'
+      ? {
+          label: tagDetail.label,
+          action: data?.action === 'removed' ? ('removed' as const) : ('added' as const),
+        }
+      : undefined;
+
   return {
     id: activity.id,
     date_created: formatDate(activity.date_created),
@@ -114,7 +123,13 @@ function formatDetailActivity(
       : undefined,
     date_published: activity.date_published ?? undefined,
     job_failure: jobFailure,
+    tag_change: tagChange,
   };
+}
+
+/** Editorial tags assigned to the submission, ready for the loader payload. */
+export function formatSubmissionDetailTags(rows: SubmissionDetailRow['tags']): TagDTO[] {
+  return rows.map((row) => ({ id: row.tag.id, name: row.tag.name, label: row.tag.label }));
 }
 
 export function formatSubmissionDetailSubmission(
@@ -135,6 +150,7 @@ export function formatSubmissionDetailSubmission(
     date_created: formatDate(row.date_created),
     date_published: row.date_published ?? undefined,
     slug,
+    tags: formatSubmissionDetailTags(row.tags),
     kind: {
       id: row.kind.id,
       name: row.kind.name,

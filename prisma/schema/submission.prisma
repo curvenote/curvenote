@@ -79,24 +79,24 @@ model SubmissionForm {
 }
 
 model SubmissionVersion {
-  id                  String      @id
+  id                  String            @id
   date_created        String
   date_modified       String
   date_published      String?
-  status              String      @default("PENDING")
+  status              String            @default("PENDING")
   transition          Json? // Stores the active transition object
-  work_version        WorkVersion @relation(fields: [work_version_id], references: [id])
+  work_version        WorkVersion       @relation(fields: [work_version_id], references: [id])
   work_version_id     String
-  submitted_by        User        @relation(fields: [submitted_by_id], references: [id])
+  submitted_by        User              @relation(fields: [submitted_by_id], references: [id])
   submitted_by_id     String
-  submission          Submission  @relation(fields: [submission_id], references: [id])
+  submission          Submission        @relation(fields: [submission_id], references: [id])
   submission_id       String
   submission_activity Activity[]
-  job                 Job?        @relation(fields: [job_id], references: [id])
-  job_id              String?     @unique
+  job                 Job?              @relation(fields: [job_id], references: [id])
+  job_id              String?           @unique
   metadata            Json? // JSON metadata field for extensible data
-  tags                String[]    @default([])
-  occ                 Int         @default(0) // Optimistic concurrency control
+  tags                String[]          @default([])
+  occ                 Int               @default(0) // Optimistic concurrency control
   searchProjection    SubmissionSearch?
 
   @@index([tags], type: Gin)
@@ -168,6 +168,7 @@ model Submission {
   /// `cached_title`, `active_status`, `last_activity_at`) can be added by
   /// extending the same function rather than introducing new triggers.
   is_listed       Boolean             @default(false)
+  tags            TagsInSubmissions[]
 
   @@index([site_id])
   /// Backs lookups and deletes keyed by work (`Submission.work_id` FK has no
@@ -198,4 +199,36 @@ model Slug {
   primary       Boolean    @default(false)
 
   @@unique([slug, site_id])
+}
+
+/// Editorial tag on a submission. Site scoped, created from the site-admin
+/// submission details page. NOT the version tags on `SubmissionVersion.tags`.
+model Tag {
+  id           String              @id
+  /// URL-safe, lowercase, 3 to 32 characters. Derived from `label`. Bounded by
+  /// `isValidTagName`, not by the column type.
+  name         String
+  /// Human display string, e.g. "Blog Post". 1 to 32 characters, bounded by
+  /// `isValidTagLabel`, not by the column type.
+  label        String
+  date_created String
+  site         Site                @relation(fields: [site_id], references: [id])
+  site_id      String
+  submissions  TagsInSubmissions[]
+
+  @@unique([name, site_id])
+}
+
+/// Join row between a submission and an editorial tag. Created or deleted,
+/// never updated, so it carries no `date_modified`.
+model TagsInSubmissions {
+  id            String     @id
+  date_created  String
+  tag           Tag        @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+  tag_id        String
+  submission    Submission @relation(fields: [submission_id], references: [id], onDelete: Cascade)
+  submission_id String
+
+  @@unique([submission_id, tag_id])
+  @@index([tag_id])
 }

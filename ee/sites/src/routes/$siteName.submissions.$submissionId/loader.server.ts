@@ -1,8 +1,10 @@
+import type { TagDTO } from '@curvenote/common';
 import type { Context, TimelineCheckServiceRunRow, Workflow } from '@curvenote/scms-core';
 import {
   createPreviewToken,
   getConfiguredWorkflow,
   resolveWorkVersionCdnMedia,
+  sites,
   type SiteContext,
   type WorkVersionCdnMedia,
 } from '@curvenote/scms-server';
@@ -45,6 +47,7 @@ export type SubmissionDetailPageData = {
   activeVersionNumber: number;
   magicLinks: MagicLinkWithAccessCount[];
   checkServiceRunsByWorkVersionId: Record<string, TimelineCheckServiceRunRow[]>;
+  siteTags: TagDTO[];
   /** SSR-safe thumbnail URL for MEDIA (resolved via column or CDN config). */
   mediaThumbnailUrl: string | undefined;
   /** Active work version CDN config.json (null when no CDN); for MEDIA and upcoming sections. */
@@ -74,7 +77,7 @@ export async function loadSubmissionDetailPage(
     ctx.$config.api.previewSigningSecret,
   );
 
-  const [siteWithAppData, slugs, poll, magicLinks, checkServiceRunsByWorkVersionId] =
+  const [siteWithAppData, slugs, poll, magicLinks, checkServiceRunsByWorkVersionId, siteTags] =
     await Promise.all([
       dbGetSiteAppData(siteName),
       dbListSubmissionSlugRows(submissionId),
@@ -86,6 +89,7 @@ export async function loadSubmissionDetailPage(
       dbGetSubmissionCheckServiceRunsByWorkVersionIds(
         submissionVersions.map((version) => version.site_work.version_id),
       ),
+      sites.tags.dbListSiteTags(ctx.site.id),
     ]);
 
   if (!siteWithAppData) {
@@ -130,6 +134,7 @@ export async function loadSubmissionDetailPage(
     activeVersionNumber,
     magicLinks,
     checkServiceRunsByWorkVersionId,
+    siteTags,
     mediaThumbnailUrl,
     activeVersionCdnConfig,
   };

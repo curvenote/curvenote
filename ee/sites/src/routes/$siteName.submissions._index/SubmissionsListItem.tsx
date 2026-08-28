@@ -14,6 +14,7 @@ import {
 import type { SubmissionsIndexItem } from './types.js';
 import { DoiBadge } from './DoiBadge.js';
 import { SubmissionListingDates } from './SubmissionListingDates.js';
+import { SubmissionListingTags } from './SubmissionListingTags.js';
 import { SubmissionStatusBadge } from './SubmissionStatusBadge.js';
 
 const AUTHORS_MAX_DISPLAY = 5;
@@ -109,6 +110,7 @@ export function SubmissionsListItem({
         dateFirstSubmitted={item.dateFirstSubmitted}
         dateLastUpdated={item.dateLastUpdated}
       />
+      <SubmissionListingTags tags={item.tags} />
     </div>
   );
 }
