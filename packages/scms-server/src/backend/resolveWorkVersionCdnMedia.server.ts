@@ -26,8 +26,8 @@ export type WorkVersionCdnMedia = {
 export function cdnManifestHasThumbnail(config: CurvenoteSiteManifest): boolean {
   return Boolean(
     config.thumbnail ??
-      config.projects?.[0]?.thumbnail ??
-      config.projects?.[0]?.pages?.find((page) => page.thumbnail)?.thumbnail,
+    config.projects?.[0]?.thumbnail ??
+    config.projects?.[0]?.pages?.find((page) => page.thumbnail)?.thumbnail,
   );
 }
 
