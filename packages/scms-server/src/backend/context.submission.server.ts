@@ -2,7 +2,7 @@ import { error401, error403, error404, httpError } from '@curvenote/scms-core';
 import { throwRedirectOr404 } from '../utils.server.js';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import type { Context } from './context.server.js';
-import { withContext } from './context.server.js';
+import { withAppContext, withContext } from './context.server.js';
 import type { WorkAndVersionsDBO } from './loaders/works/get.server.js';
 import {
   dbGetUserWorkRoles,
@@ -156,6 +156,64 @@ export async function withCurvenoteSubmissionContext<
   return ctx;
 }
 
+type SubmissionNotFound = () => never;
+
+/**
+ * Load site + submission (and derived workId). Shared by app and API wrappers.
+ */
+async function loadSiteAndSubmission(
+  siteName: string,
+  submissionId: string,
+  onNotFound: SubmissionNotFound,
+): Promise<{ site: SiteDBO; submission: SubmissionAndVersionsDBO; workId: string }> {
+  const site = await dbGetSite(siteName);
+  const submission = await dbGetSubmission({ id: submissionId });
+  if (!site || !site.metadata || !submission) onNotFound();
+  // URL site must own the submission — prevents cross-site IDOR via site-scoped auth
+  if (submission.site_id !== site.id) onNotFound();
+  const workId = submission.work_id ?? submission.versions[0]?.work_version?.work_id;
+  return { site, submission, workId };
+}
+
+async function loadWork(
+  workId: string,
+  onNotFound: SubmissionNotFound,
+): Promise<WorkAndVersionsDBO> {
+  const work = await dbGetWork(workId);
+  if (!work) onNotFound();
+  return work;
+}
+
+/**
+ * Site-scope access, or work-scope access on public unrestricted sites.
+ */
+function userHasSubmissionAccess(
+  user: NonNullable<Context['user']>,
+  site: SiteDBO,
+  workId: string,
+  scopes: string[],
+): boolean {
+  let userAccess = false;
+  // Work-scope access is only possible for public, unrestricted sites.
+  if (!site.private && !site.restricted) {
+    userAccess = !!scopes.find((scope) => userHasWorkScope(user, scope, workId));
+  }
+  if (!userAccess) {
+    userAccess = !!scopes.find((scope) => userHasSiteScope(user, scope, site.id));
+  }
+  return userAccess;
+}
+
+function requireSubmissionParams(args: { params: { siteName?: string; submissionId?: string } }): {
+  siteName: string;
+  submissionId: string;
+} {
+  const { siteName, submissionId } = args.params;
+  if (!siteName) throw httpError(400, 'Missing site name');
+  if (!submissionId) throw httpError(400, 'Missing submission ID');
+  return { siteName, submissionId };
+}
+
 /**
  * Context wrapper for /app/sites/{siteName}/submissions endpoints in the Remix app
  *
@@ -167,33 +225,22 @@ export async function withAppSubmissionContext<T extends LoaderFunctionArgs | Ac
   scopes: string[],
   opts: { redirectTo?: string; redirect?: boolean } = { redirectTo: '/app' },
 ): Promise<SubmissionContext> {
-  const ctx = await withContext(args);
+  // Match withAppSiteContext: login redirect, disabled/pending session handling
+  const ctx = await withAppContext(args, { redirect: opts.redirect });
+  const { siteName, submissionId } = requireSubmissionParams(args);
 
-  const { siteName, submissionId } = args.params;
-  if (!siteName) throw httpError(400, 'Missing site name');
-  if (!submissionId) throw httpError(400, 'Missing submission ID');
-  if (!ctx.user) throw error401();
-  const site = await dbGetSite(siteName);
-  const submission = await dbGetSubmission({ id: submissionId });
-  if (!site || !site.metadata || !submission) throw throwRedirectOr404(opts);
-  const workId = submission.work_id ?? submission.versions[0]?.work_version?.work_id;
-  let userAccess = false;
-  // Determine if user has access to the submission from the work.
-  // This is only possible for public, unrestricted sites.
-  if (!site.private && !site.restricted) {
-    userAccess = !!scopes.find((scope) => userHasWorkScope(ctx.user, scope, workId));
-  }
-  // Determine if user has access to the submission from the site.
-  if (!userAccess) {
-    userAccess = !!scopes.find((scope) => userHasSiteScope(ctx.user, scope, site.id));
-  }
-  if (!userAccess) throw throwRedirectOr404(opts);
-  const work = await dbGetWork(workId);
-  // Work does not exist
-  if (!work) throw throwRedirectOr404(opts);
-  const submissionCtx = new SubmissionContext(ctx, site, work, submission);
+  const onNotFound: SubmissionNotFound = () => {
+    throw throwRedirectOr404(opts);
+  };
+  const { site, submission, workId } = await loadSiteAndSubmission(
+    siteName,
+    submissionId,
+    onNotFound,
+  );
+  if (!userHasSubmissionAccess(ctx.user, site, workId, scopes)) onNotFound();
+  const work = await loadWork(workId, onNotFound);
 
-  return submissionCtx;
+  return new SubmissionContext(ctx, site, work, submission);
 }
 
 /**
@@ -201,14 +248,53 @@ export async function withAppSubmissionContext<T extends LoaderFunctionArgs | Ac
  *
  * Validates the user is defined and has correctly scoped access to the submission, either
  * via the site or the work.
+ *
+ * When `allowHandshake` is true, a valid *job* handshake token (audience + unexpired)
+ * may act without site scopes (aligned with `withAPISecureContext`) so workers can call
+ * status callbacks. Cron/scoped tokens without `audience` are not accepted.
+ *
+ * For the non-handshake path, auth (user / curvenote / disabled) is checked before DB
+ * lookups so unauthenticated callers cannot distinguish missing vs existing submissions.
  */
 export async function withAPISubmissionContext<T extends LoaderFunctionArgs | ActionFunctionArgs>(
   args: T,
   scopes: string[],
   opts?: { allowHandshake?: boolean },
 ): Promise<SubmissionContext> {
-  const ctx = await withAppSubmissionContext(args, scopes, { redirect: false });
-  const authorizedByHandshake = opts?.allowHandshake && ctx.authorized.handshake;
-  if (!authorizedByHandshake && !ctx.authorized.curvenote) throw error401();
-  return ctx;
+  const ctx = await withContext(args);
+  const { siteName, submissionId } = requireSubmissionParams(args);
+
+  const onNotFound: SubmissionNotFound = () => {
+    throw error404();
+  };
+
+  // Job handshakes only (aud + unexpired) — exclude cron/scoped tokens (endpoint_scope only)
+  const jobHandshake =
+    ctx.authorized.handshake &&
+    ctx.$handshakeClaims?.audience != null &&
+    ctx.$handshakeClaims.expiry > Math.floor(Date.now() / 1000);
+
+  if (opts?.allowHandshake && jobHandshake) {
+    const { site, submission, workId } = await loadSiteAndSubmission(
+      siteName,
+      submissionId,
+      onNotFound,
+    );
+    const work = await loadWork(workId, onNotFound);
+    return new SubmissionContext(ctx, site, work, submission);
+  }
+
+  if (!ctx.user) throw error401();
+  if (!ctx.authorized.curvenote) throw error401();
+  if (ctx.user.disabled) throw error401();
+
+  const { site, submission, workId } = await loadSiteAndSubmission(
+    siteName,
+    submissionId,
+    onNotFound,
+  );
+  if (!userHasSubmissionAccess(ctx.user, site, workId, scopes)) onNotFound();
+  const work = await loadWork(workId, onNotFound);
+
+  return new SubmissionContext(ctx, site, work, submission);
 }

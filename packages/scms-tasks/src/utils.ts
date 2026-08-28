@@ -3,14 +3,14 @@ import fs from 'node:fs';
 
 /**
  * Options for a single JSON request to the SCMS API (PATCH or PUT).
- * Used to DRY fetch, status check, and pubsub error handling.
+ * Used to DRY fetch and status check. Does not write to the Express response —
+ * the Pub/Sub wrapper owns the HTTP response lifecycle.
  */
 export type ScmsRequestOptions = {
   method: 'PATCH' | 'PUT';
   url: string;
   body: Record<string, unknown>;
   authToken: string;
-  res: Response;
   /** Short label for logs and errors, e.g. "patching job" / "putting status" */
   contextLabel: string;
   loggingOnlyMode?: boolean;
@@ -19,17 +19,22 @@ export type ScmsRequestOptions = {
 /**
  * Send a JSON PATCH or PUT to the SCMS API.
  * On 200: logs success and returns.
- * On non-200 or throw: calls pubsubError(res, ...) and returns (caller should treat as failure).
+ * On non-200 or network error: throws so callers do not continue (e.g. must not call
+ * jobs.completed after a failed putStatus). Does not write to `res` — the Pub/Sub
+ * wrapper owns the HTTP response lifecycle via onFailure / jobs.failed, and always
+ * acks even when those secondary calls fail.
  */
 export async function scmsRequest(options: ScmsRequestOptions): Promise<void> {
-  const { method, url, body, authToken, res, contextLabel, loggingOnlyMode } = options;
+  const { method, url, body, authToken, contextLabel, loggingOnlyMode } = options;
   console.log(`${method} ${url}`, JSON.stringify(body));
   if (loggingOnlyMode) {
     console.log('[loggingOnlyMode] Skipping request');
     return;
   }
+
+  let response: globalThis.Response;
   try {
-    const response = await fetch(url, {
+    response = await fetch(url, {
       method,
       body: JSON.stringify(body),
       headers: {
@@ -37,15 +42,21 @@ export async function scmsRequest(options: ScmsRequestOptions): Promise<void> {
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       },
     });
-    if (response.status === 200) {
-      console.log(`Successfully ${contextLabel}: ${url}`);
-      return;
-    }
-    pubsubError(`Bad response ${contextLabel}: ${response.status} - ${response.statusText}`, res);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    pubsubError(`Error ${contextLabel}: ${message}`, res);
+    const wrapped = `Error ${contextLabel}: ${message}`;
+    console.error(wrapped);
+    throw new Error(wrapped);
   }
+
+  if (response.status === 200) {
+    console.log(`Successfully ${contextLabel}: ${url}`);
+    return;
+  }
+
+  const message = `Bad response ${contextLabel}: ${response.status} - ${response.statusText}`;
+  console.error(message);
+  throw new Error(message);
 }
 
 /**
