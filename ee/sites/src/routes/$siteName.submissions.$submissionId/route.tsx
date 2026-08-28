@@ -175,7 +175,7 @@ export default function SubmissionDetailRoute({
 
   return (
     <PageFrame breadcrumbs={breadcrumbs}>
-      <div className="mt-4 space-y-6 md:space-y-12">
+      <div className="mt-4 space-y-6 md:space-y-10">
         <SubmissionSummaryCard
           title={title}
           description={description}
