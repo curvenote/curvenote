@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-27
 **Linear:** [CN-2451](https://linear.app/curvenote/issue/CN-2451) (parent [CN-2415](https://linear.app/curvenote/issue/CN-2415))
-**Status:** Approved, not implemented
+**Status:** Implemented
 
 ## Problem
 
@@ -42,7 +42,17 @@ The published payload therefore exposes editorial tags as `submission_tags`.
    that `name` exists on the site, the server reuses that tag.
 7. **Activity is recorded** with a new `ActivityType.SUBMISSION_TAGS_CHANGE`.
 8. **One popover controls assignment and removal.** Chips have no remove
-   button.
+   button. Unassign from the catalog list inside the popover.
+9. **Listing is display-only.** No picker, no add button, no remove `x` on
+   listing chips. Create, assign and remove stay on the details page.
+10. **Listing tags get their own row** under the dates, not mixed with
+    collection / kind / published / DOI. No tags means no row.
+11. **Empty details never say `Not assigned`.** The empty state is always
+    the `+ Add Tags` control: enabled with update permission, disabled
+    without it.
+12. **The compact `+` is only for editors.** Without update permission it
+    does not render, even when tags are assigned.
+13. **Copy is English `Tags` / `Add Tags`.** No Spanish UI strings.
 
 ## Data
 
@@ -204,14 +214,26 @@ Route folder `ee/sites/src/routes/$siteName.submissions.$submissionId/`.
   and adds both to `SubmissionDetailPageData`.
 - `SubmissionDetails.tsx` gets a `DetailRow label="Tags"` between "Submission
   Kind" and "Slug".
-- `SubmissionTags.tsx` renders the assigned tags as chips. With no tags it
-  renders the empty-state trigger, as the other detail fields do.
+- `SubmissionTags.tsx` renders assigned tags as chips and chooses the add
+  control (`add-tags` / `plus` / `none`) in `SubmissionTags.utils.ts`.
+- `emptyDetailValue()` (`Not assigned`) is not used for tags.
 - `TagPicker.tsx` renders the popover: `ui.Command` inside `PopoverWrapper`.
+  Its trigger is the child passed in.
+
+| Permission | Assigned tags | What renders |
+| --- | --- | --- |
+| Update | None | Enabled `+ Add Tags`. It is the `TagPicker` trigger. |
+| Update | One or more | Assigned chips, then an enabled compact `+` to the right. Chips and `+` open the same `TagPicker`. |
+| No update | None | The same `+ Add Tags` button, **disabled**. No popover. |
+| No update | One or more | Assigned chips, read-only. **No `+`.** Chips do not open the picker. |
+
+The add control sits in the same wrap row as the chips. With update
+permission it is also disabled while the fetcher is not idle.
 
 Popover behaviour:
 
-- A click on any assigned chip opens the popover. A click on the "Add tags"
-  trigger opens the same popover.
+- With update permission, a click on any assigned chip or on the add
+  control opens the same popover.
 - The list shows the site catalog ordered by `label`, with a check mark on the
   assigned tags.
 - A click on a row toggles it. A checked row unassigns. An unchecked row
@@ -220,8 +242,6 @@ Popover behaviour:
 - When the typed text matches no tag exactly, the last row offers
   `Create "<typed text>"`. That row is hidden when the derived name fails
   `isValidTagName`.
-- Without `site:submissions:update` the chips render read-only and no trigger
-  appears.
 
 Mutations use a `fetcher` with optimistic state, as `useAttributeChangeDialog`
 does for kind and collection. New `tags.server.ts` in the route folder holds
@@ -241,9 +261,17 @@ Route folder `ee/sites/src/routes/$siteName.submissions._index/`.
   are version tags, which feed `pickVersionTag` and `versionTag`, and the new
   submission-level `tags` are the editorial tags. Comment both lines at the
   select, because `format.server.ts` is where the two can get mixed up.
-- Add a `Tag` chip to `ee/sites/src/components/Chips.tsx`. `SubmissionsListItem`
-  renders up to 3 chips and a `+N` chip for the rest, beside the collection and
-  kind chips.
+- Add `Tag` and `TagOverflow` chips to `ee/sites/src/components/Chips.tsx`,
+  muted grey outline so they do not look like collection / kind chips. Put
+  the classes on the chip component. Do not return class names from a helper.
+- `SubmissionsListItem` does not render editorial tags in the collection /
+  kind / published / DOI row.
+- When `item.tags.length > 0`, `SubmissionListingTags` renders a row below
+  `SubmissionListingDates`: a tag icon, up to 3 pills (`label`, `title` =
+  `name`), and a `+N` pill when there are more than 3, with overflow labels
+  in `title`.
+- When `item.tags.length === 0`, render nothing. Do not show `Add Tags` or
+  `Not assigned` on the listing.
 
 ### Timeline and analytics
 
@@ -287,8 +315,13 @@ Run with each package's own `vitest run`.
   and on `name`, when the `Create "…"` row appears, and that it stays hidden for
   an invalid derived name. UI logic goes in `*.utils.ts` so it is testable, as
   `SlugManagerDialog.utils.ts` already does.
+- `ee/sites/.../$submissionId/SubmissionTags.utils.spec.ts` — which add
+  control to show (`add-tags` / `plus` / `none`) for each permission ×
+  empty/assigned combination.
 - `ee/sites/.../_index/format.server.spec.ts` — the listing item carries
   editorial tags and keeps `versionTag` from the version tags.
+- `ee/sites/.../_index/SubmissionListingTags.utils.spec.ts` — split visible
+  vs overflow tags and the overflow `title` string.
 
 ### Layer 2 — published payload (mocked prisma)
 
@@ -328,6 +361,8 @@ Add tags to the seed fixtures in `prisma/data.test/science.json`, then:
 The repo has no React component test setup (`@testing-library/react` is absent).
 The popover interaction itself is checked by hand in the app. Everything in it
 that can be a pure function is a pure function, and Layer 1 covers those.
+Also check by hand: listing with and without tags; details empty (`Add Tags`
+enabled vs disabled); details with tags (`+` present vs hidden).
 
 ### Close out
 
@@ -337,6 +372,7 @@ that can be a pure function is a pure function, and Layer 1 covers those.
 
 ## Out of scope
 
+- Assign or remove from the listing.
 - Filtering by tag, in the admin listing or in Theme Services (phase 2).
 - A tags management page, usage counts, rename and delete of catalog entries.
 - Author-facing submission details (CN-2418).
