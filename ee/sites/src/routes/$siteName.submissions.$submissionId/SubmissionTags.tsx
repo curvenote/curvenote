@@ -39,16 +39,47 @@ const TagAddButton = forwardRef<HTMLButtonElement, TagAddButtonProps>(function T
   );
 });
 
+type TagChipProps = {
+  tag: TagDTO;
+} & Omit<ComponentPropsWithoutRef<'button'>, 'children' | 'type'>;
+
+/** Forwards its ref to the button so the popover can anchor to the clicked chip. */
+const TagChipButton = forwardRef<HTMLButtonElement, TagChipProps>(function TagChipTrigger(
+  { tag, ...props },
+  ref,
+) {
+  return (
+    <ui.Badge
+      variant="neutral"
+      size="xs"
+      title={tag.name}
+      className="hover:bg-gray-200 dark:hover:bg-stone-600"
+      asChild
+    >
+      <button ref={ref} type="button" {...props}>
+        {tag.label}
+      </button>
+    </ui.Badge>
+  );
+});
+
 export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTagsProps) {
   const { siteTags } = useLoaderData<SubmissionDetailPageData>();
   const fetcher = useFetcher<{ error?: string; tag?: TagDTO }>();
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Which chip the popover is anchored to; `null` anchors it to the add control.
+  const [anchorTagId, setAnchorTagId] = useState<string | null>(null);
   const assignedIds = tags.map((tag) => tag.id);
   const pickerBusy = fetcher.state !== 'idle';
 
   const toggle = (tag: TagDTO) => {
     if (pickerBusy) {
       return;
+    }
+    if (tag.id === anchorTagId) {
+      // Only an assigned tag can be the anchor, so this toggle removes its chip. Drop the
+      // anchor now, or re-assigning the tag would drag the open popover back to it.
+      setAnchorTagId(null);
     }
     fetcher.submit(
       {
@@ -70,10 +101,11 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
     );
   };
 
-  const openPicker = () => {
+  const openPickerAt = (tagId: string) => {
     if (pickerBusy) {
       return;
     }
+    setAnchorTagId(tagId);
     setPickerOpen(true);
   };
 
@@ -94,35 +126,36 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
   const addKind = getTagAddControlKind({ permission: 'update', assignedCount: tags.length });
 
   return (
-    <div className="flex flex-wrap gap-1 items-center w-full min-w-0">
-      {tags.map((tag) => (
-        <ui.Badge
-          key={tag.id}
-          variant="neutral"
-          size="xs"
-          title={tag.name}
-          className="hover:bg-gray-200 dark:hover:bg-stone-600"
-          asChild
-        >
-          <button type="button" onClick={openPicker}>
-            {tag.label}
-          </button>
-        </ui.Badge>
-      ))}
-      <TagPicker
-        catalog={siteTags}
-        assignedIds={assignedIds}
-        disabled={pickerBusy}
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        onToggle={toggle}
-        onCreate={create}
-      >
-        <TagAddButton kind={addKind} disabled={pickerBusy} />
-      </TagPicker>
-      {fetcher.data?.error ? (
-        <span className="text-sm text-destructive">{fetcher.data.error}</span>
-      ) : null}
-    </div>
+    <ui.Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+      <div className="flex flex-wrap gap-1 items-center w-full min-w-0">
+        {tags.map((tag) => {
+          const chip = (
+            <TagChipButton key={tag.id} tag={tag} onClick={() => openPickerAt(tag.id)} />
+          );
+          // Anchoring the active chip overrides the trigger; if that chip is removed the
+          // anchor unmounts and the popover falls back to the add control.
+          return tag.id === anchorTagId ? (
+            <ui.PopoverAnchor key={tag.id} asChild>
+              {chip}
+            </ui.PopoverAnchor>
+          ) : (
+            chip
+          );
+        })}
+        <ui.PopoverTrigger asChild disabled={pickerBusy}>
+          <TagAddButton kind={addKind} onClick={() => setAnchorTagId(null)} />
+        </ui.PopoverTrigger>
+        <TagPicker
+          catalog={siteTags}
+          assignedIds={assignedIds}
+          disabled={pickerBusy}
+          onToggle={toggle}
+          onCreate={create}
+        />
+        {fetcher.data?.error ? (
+          <span className="text-sm text-destructive">{fetcher.data.error}</span>
+        ) : null}
+      </div>
+    </ui.Popover>
   );
 }
