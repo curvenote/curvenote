@@ -120,9 +120,7 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
   let activeVersionIndex = submissionVersions.findIndex(
     (version) => version.id === submission.active_version_id,
   );
-  if (activeVersionIndex === -1) {
-    activeVersionIndex = 0;
-  }
+  if (activeVersionIndex === -1) activeVersionIndex = 0;
   const activeVersion = submissionVersions[activeVersionIndex];
   const currentState = workflow.states[activeVersion.status];
   const hasActiveNotPublished = !currentState?.published;

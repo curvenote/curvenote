@@ -45,9 +45,7 @@ export function HasRetractedVersion({
 }
 
 export function Slug({ slug }: { slug?: string }) {
-  if (!slug) {
-    return null;
-  }
+  if (!slug) return null;
   return (
     <primitives.Chip
       className="text-white bg-sky-600 border-[1px] border-sky-600 dark:border-sky-600 dark:bg-sky-600"
@@ -65,9 +63,7 @@ export function Collection({
   className?: string;
   collection: SubmissionsListItemDTO['collection'];
 }) {
-  if (!collection) {
-    return null;
-  }
+  if (!collection) return null;
   const title = collection.content?.title ?? collection.slug;
   return (
     <primitives.Chip

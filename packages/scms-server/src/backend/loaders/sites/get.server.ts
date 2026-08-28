@@ -50,9 +50,7 @@ export type DBO = Omit<NonNullable<Awaited<ReturnType<typeof dbGetSite>>>, 'tags
 };
 
 export async function dbGetSiteContent(site: DBO) {
-  if (!site.content_id) {
-    return;
-  }
+  if (!site.content_id) return;
   const prisma = await getPrismaClient();
   const work = await prisma.work.findUnique({
     where: { id: site.content_id },
@@ -156,8 +154,6 @@ export function formatSiteWithContentDTO(
 
 export default async function (ctx: Context, siteName: string) {
   const dbo = await dbGetSite(siteName);
-  if (!dbo || !dbo.metadata) {
-    throw error404();
-  }
+  if (!dbo || !dbo.metadata) throw error404();
   return formatSiteDTO(ctx, dbo);
 }

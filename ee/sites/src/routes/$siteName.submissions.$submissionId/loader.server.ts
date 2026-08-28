@@ -95,9 +95,7 @@ export async function loadSubmissionDetailPage(
   let activeVersionIndex = submissionVersions.findIndex(
     (version) => version.id === submission.active_version_id,
   );
-  if (activeVersionIndex === -1) {
-    activeVersionIndex = 0;
-  }
+  if (activeVersionIndex === -1) activeVersionIndex = 0;
   const activeVersionNumber = submissionVersions.length - activeVersionIndex;
   const activeVersion = submissionVersions[activeVersionIndex];
 
