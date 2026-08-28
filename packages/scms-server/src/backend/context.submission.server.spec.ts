@@ -168,6 +168,47 @@ describe('withAPISubmissionContext handshake', () => {
       }),
     ).rejects.toMatchObject({ status: 404 });
   });
+
+  test('rejects handshake when user is missing (SubmissionContext requires a user)', async () => {
+    // Real verifyHandshakeToken always attaches the submissions service account.
+    // If that invariant is broken, SiteContextWithUser still 401s — do not allow a
+    // user-less SubmissionContext through the handshake short-circuit.
+    const args = makeArgs();
+    const mockCtx = makeContext(args.request, { handshake: true, user: null });
+    expect(mockCtx.authorized.handshake).toBe(true);
+    expect(mockCtx.user).toBeUndefined();
+    withContext.mockResolvedValue(mockCtx);
+
+    await expect(
+      withAPISubmissionContext(args, [site.submissions.update], {
+        allowHandshake: true,
+      }),
+    ).rejects.toMatchObject({ status: 401 });
+  });
+
+  test('404s when site is missing even with handshake', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(makeContext(args.request, { handshake: true }));
+    dbGetSite.mockResolvedValue(null);
+
+    await expect(
+      withAPISubmissionContext(args, [site.submissions.update], {
+        allowHandshake: true,
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  test('404s when work is missing even with handshake', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(makeContext(args.request, { handshake: true }));
+    dbGetWork.mockResolvedValue(null);
+
+    await expect(
+      withAPISubmissionContext(args, [site.submissions.update], {
+        allowHandshake: true,
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
 });
 
 describe('withAPISubmissionContext user auth', () => {
@@ -272,6 +313,42 @@ describe('withAPISubmissionContext user auth', () => {
     expect(ctx.submission.id).toBe('sub-1');
     expect(ctx.site.id).toBe('site-public');
   });
+
+  test('404 when site is missing', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(
+      makeContext(args.request, { curvenote: true, user: userWithSiteAdmin() }),
+    );
+    dbGetSite.mockResolvedValue(null);
+
+    await expect(withAPISubmissionContext(args, [site.submissions.update])).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  test('404 when site has no metadata', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(
+      makeContext(args.request, { curvenote: true, user: userWithSiteAdmin() }),
+    );
+    dbGetSite.mockResolvedValue({ ...siteRow, metadata: null });
+
+    await expect(withAPISubmissionContext(args, [site.submissions.update])).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  test('404 when work is missing', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(
+      makeContext(args.request, { curvenote: true, user: userWithSiteAdmin() }),
+    );
+    dbGetWork.mockResolvedValue(null);
+
+    await expect(withAPISubmissionContext(args, [site.submissions.update])).rejects.toMatchObject({
+      status: 404,
+    });
+  });
 });
 
 describe('withAppSubmissionContext', () => {
@@ -320,5 +397,49 @@ describe('withAppSubmissionContext', () => {
       redirect: false,
     });
     expect(ctx.submission.id).toBe('sub-1');
+  });
+
+  test('redirects when user lacks scope (default redirectTo)', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(
+      makeContext(args.request, {
+        user: {
+          id: 'user-1',
+          system_role: null,
+          site_roles: [],
+          work_roles: [],
+          roles: [],
+          disabled: false,
+        },
+      }),
+    );
+
+    await expect(withAppSubmissionContext(args, [site.submissions.update])).rejects.toMatchObject({
+      status: 302,
+      headers: expect.any(Headers),
+    });
+  });
+
+  test('redirects to redirectTo when site is missing', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(makeContext(args.request, { user: userWithSiteAdmin() }));
+    dbGetSite.mockResolvedValue(null);
+
+    const err = await withAppSubmissionContext(args, [site.submissions.update], {
+      redirectTo: '/app/sites',
+    }).catch((e) => e);
+
+    expect(err).toMatchObject({ status: 302 });
+    expect(err.headers.get('Location')).toBe('/app/sites');
+  });
+
+  test('404 when work is missing (redirect disabled)', async () => {
+    const args = makeArgs();
+    withContext.mockResolvedValue(makeContext(args.request, { user: userWithSiteAdmin() }));
+    dbGetWork.mockResolvedValue(null);
+
+    await expect(
+      withAppSubmissionContext(args, [site.submissions.update], { redirect: false }),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });
