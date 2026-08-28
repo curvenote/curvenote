@@ -4,7 +4,7 @@ import { cn, ui, TAG_LABEL_MAX_LENGTH } from '@curvenote/scms-core';
 import { Check, Plus } from 'lucide-react';
 import { filterTagOptions, getCreateTagOption } from './TagPicker.utils.js';
 
-type TagPickerProps = {
+type TagPickerCommandProps = {
   catalog: TagDTO[];
   assignedIds: string[];
   disabled?: boolean;
@@ -12,20 +12,33 @@ type TagPickerProps = {
   onCreate: (label: string) => void;
 };
 
+type TagPickerProps = TagPickerCommandProps & {
+  onCloseAutoFocus?: (event: Event) => void;
+};
+
 /**
- * Popover content only. The `ui.Popover` root lives in the consumer so the dropdown can
- * anchor to whichever control opened it.
+ * Popover content only. The `ui.Popover` roots live in the consumer so the dropdown can
+ * anchor to the chip row or to the add control.
  */
-export function TagPicker(props: TagPickerProps) {
+export function TagPicker({ onCloseAutoFocus, ...command }: TagPickerProps) {
   return (
-    <ui.PopoverContent align="start" className="p-0 w-72">
-      <TagPickerCommand {...props} />
+    <ui.PopoverContent align="start" className="p-0 w-72" onCloseAutoFocus={onCloseAutoFocus}>
+      <TagPickerCommand {...command} />
     </ui.PopoverContent>
   );
 }
 
-/** Mounted only while the popover is open, so the search query resets on close. */
-function TagPickerCommand({ catalog, assignedIds, disabled, onToggle, onCreate }: TagPickerProps) {
+/**
+ * Holds the search query. The consumer remounts `TagPicker` on every open, so the query
+ * resets even when the popover's exit animation kept the previous instance alive.
+ */
+function TagPickerCommand({
+  catalog,
+  assignedIds,
+  disabled,
+  onToggle,
+  onCreate,
+}: TagPickerCommandProps) {
   const [query, setQuery] = useState('');
   const options = filterTagOptions(catalog, query);
   const createOption = getCreateTagOption(catalog, query);

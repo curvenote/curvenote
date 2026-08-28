@@ -1,4 +1,4 @@
-import { forwardRef, useState, type ComponentPropsWithoutRef } from 'react';
+import { forwardRef, useRef, useState, type ComponentPropsWithoutRef } from 'react';
 import { useFetcher, useLoaderData } from 'react-router';
 import type { TagDTO } from '@curvenote/common';
 import { ui } from '@curvenote/scms-core';
@@ -12,6 +12,9 @@ type SubmissionTagsProps = {
   tags: TagDTO[];
   canUpdate: boolean;
 };
+
+/** Which control the open popover belongs to. `row` is anchored to the whole chip row. */
+type PickerMode = 'none' | 'row' | 'plus';
 
 type TagAddButtonProps = {
   kind: 'add-tags' | 'plus';
@@ -43,11 +46,7 @@ type TagChipProps = {
   tag: TagDTO;
 } & Omit<ComponentPropsWithoutRef<'button'>, 'children' | 'type'>;
 
-/** Forwards its ref to the button so the popover can anchor to the clicked chip. */
-const TagChipButton = forwardRef<HTMLButtonElement, TagChipProps>(function TagChipTrigger(
-  { tag, ...props },
-  ref,
-) {
+function TagChipButton({ tag, ...props }: TagChipProps) {
   return (
     <ui.Badge
       variant="neutral"
@@ -56,30 +55,28 @@ const TagChipButton = forwardRef<HTMLButtonElement, TagChipProps>(function TagCh
       className="hover:bg-gray-200 dark:hover:bg-stone-600"
       asChild
     >
-      <button ref={ref} type="button" {...props}>
+      <button type="button" {...props}>
         {tag.label}
       </button>
     </ui.Badge>
   );
-});
+}
 
 export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTagsProps) {
   const { siteTags } = useLoaderData<SubmissionDetailPageData>();
   const fetcher = useFetcher<{ error?: string; tag?: TagDTO }>();
-  const [pickerOpen, setPickerOpen] = useState(false);
-  // Which chip the popover is anchored to; `null` anchors it to the add control.
-  const [anchorTagId, setAnchorTagId] = useState<string | null>(null);
+  const [mode, setMode] = useState<PickerMode>('none');
+  // Bumped on every closed → open transition so the command remounts and the query resets,
+  // even when the exit animation kept the previous instance alive.
+  const [session, setSession] = useState(0);
+  const lastOpenerRef = useRef<HTMLButtonElement | null>(null);
+  const plusRef = useRef<HTMLButtonElement>(null);
   const assignedIds = tags.map((tag) => tag.id);
   const pickerBusy = fetcher.state !== 'idle';
 
   const toggle = (tag: TagDTO) => {
     if (pickerBusy) {
       return;
-    }
-    if (tag.id === anchorTagId) {
-      // Only an assigned tag can be the anchor, so this toggle removes its chip. Drop the
-      // anchor now, or re-assigning the tag would drag the open popover back to it.
-      setAnchorTagId(null);
     }
     fetcher.submit(
       {
@@ -101,21 +98,39 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
     );
   };
 
-  // Escape and outside clicks close the popover without going through a chip, so drop the
-  // anchor here rather than leaving it pointing at the chip that opened the last one.
-  const handleOpenChange = (nextOpen: boolean) => {
-    setPickerOpen(nextOpen);
-    if (!nextOpen) {
-      setAnchorTagId(null);
-    }
-  };
-
-  const openPickerAt = (tagId: string) => {
+  const openPicker = (next: 'row' | 'plus', opener: HTMLButtonElement | null) => {
     if (pickerBusy) {
       return;
     }
-    setAnchorTagId(tagId);
-    setPickerOpen(true);
+    lastOpenerRef.current = opener;
+    setSession((previous) => previous + 1);
+    setMode(next);
+  };
+
+  // Dismissing a popover and opening the other one happen in the same batch: the outside
+  // pointerdown closes first, then the click opens. Close only from the mode that is
+  // actually open so the order of the two updates cannot matter.
+  const handleRowOpenChange = (open: boolean) => {
+    if (!open) {
+      setMode((current) => (current === 'row' ? 'none' : current));
+    }
+  };
+
+  const handlePlusOpenChange = (open: boolean) => {
+    if (open) {
+      openPicker('plus', plusRef.current);
+      return;
+    }
+    setMode((current) => (current === 'plus' ? 'none' : current));
+  };
+
+  // Radix always sends focus back to the trigger, and the row popover has none. Send it to
+  // whatever opened the picker, falling back to the add control when that chip is gone.
+  const handleCloseAutoFocus = (event: Event) => {
+    event.preventDefault();
+    const opener = lastOpenerRef.current;
+    const target = opener?.isConnected && !opener.disabled ? opener : plusRef.current;
+    target?.focus();
   };
 
   if (!canUpdate) {
@@ -134,37 +149,46 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
 
   const addKind = getTagAddControlKind({ permission: 'update', assignedCount: tags.length });
 
+  const picker = (
+    <TagPicker
+      key={session}
+      catalog={siteTags}
+      assignedIds={assignedIds}
+      disabled={pickerBusy}
+      onToggle={toggle}
+      onCreate={create}
+      onCloseAutoFocus={handleCloseAutoFocus}
+    />
+  );
+
+  // Two popover roots so neither ever mounts or unmounts an anchor: the row root is
+  // permanently anchored to the chip row, the add root permanently anchored to its trigger.
+  // Radix reads `hasCustomAnchor` from state set in an effect, so a topology that changes on
+  // click would position the first frame against the wrong element.
   return (
-    <ui.Popover open={pickerOpen} onOpenChange={handleOpenChange}>
-      <div className="flex flex-wrap gap-1 items-center w-full min-w-0">
-        {tags.map((tag) => {
-          const chip = (
-            <TagChipButton key={tag.id} tag={tag} onClick={() => openPickerAt(tag.id)} />
-          );
-          // Anchoring the active chip overrides the trigger; if that chip is removed the
-          // anchor unmounts and the popover falls back to the add control.
-          return tag.id === anchorTagId ? (
-            <ui.PopoverAnchor key={tag.id} asChild>
-              {chip}
-            </ui.PopoverAnchor>
-          ) : (
-            chip
-          );
-        })}
-        <ui.PopoverTrigger asChild disabled={pickerBusy}>
-          <TagAddButton kind={addKind} onClick={() => setAnchorTagId(null)} />
-        </ui.PopoverTrigger>
-        <TagPicker
-          catalog={siteTags}
-          assignedIds={assignedIds}
-          disabled={pickerBusy}
-          onToggle={toggle}
-          onCreate={create}
-        />
-        {fetcher.data?.error ? (
-          <span className="text-sm text-destructive">{fetcher.data.error}</span>
-        ) : null}
-      </div>
+    <ui.Popover open={mode === 'row'} onOpenChange={handleRowOpenChange}>
+      <ui.PopoverAnchor asChild>
+        <div className="flex flex-wrap gap-1 items-center w-full min-w-0">
+          {tags.map((tag) => (
+            <TagChipButton
+              key={tag.id}
+              tag={tag}
+              aria-haspopup="dialog"
+              onClick={(event) => openPicker('row', event.currentTarget)}
+            />
+          ))}
+          <ui.Popover open={mode === 'plus'} onOpenChange={handlePlusOpenChange}>
+            <ui.PopoverTrigger asChild disabled={pickerBusy}>
+              <TagAddButton ref={plusRef} kind={addKind} />
+            </ui.PopoverTrigger>
+            {picker}
+          </ui.Popover>
+          {fetcher.data?.error ? (
+            <span className="text-sm text-destructive">{fetcher.data.error}</span>
+          ) : null}
+        </div>
+      </ui.PopoverAnchor>
+      {picker}
     </ui.Popover>
   );
 }
