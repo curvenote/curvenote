@@ -8,10 +8,14 @@ import {
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { formatSubmissionListingSiteContext } from '../$siteName.submissions._index/site-context.format.server.js';
 import type { SubmissionListingSiteContext } from '../$siteName.submissions._index/site-context.format.server.js';
-import { InboxComingSoon } from './InboxComingSoon.js';
+import { dbGetInboxHeadlineStats, dbListInboxActivities } from './db.server.js';
+import { INBOX_ACTIVITY_INITIAL, parseInboxPeriod } from './inboxParams.js';
+import { InboxDashboard } from './InboxDashboard.js';
 
 interface LoaderData {
   site: SubmissionListingSiteContext;
+  headlineStats: Awaited<ReturnType<typeof dbGetInboxHeadlineStats>>;
+  activityPage: Awaited<ReturnType<typeof dbListInboxActivities>>;
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -20,8 +24,18 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     redirect: true,
   });
 
+  const url = new URL(args.request.url);
+  const period = parseInboxPeriod(url.searchParams.get('period'));
+
+  const [headlineStats, activityPage] = await Promise.all([
+    dbGetInboxHeadlineStats(ctx, period),
+    dbListInboxActivities(ctx, { offset: 0, limit: INBOX_ACTIVITY_INITIAL }),
+  ]);
+
   return {
     site: formatSubmissionListingSiteContext(ctx),
+    headlineStats,
+    activityPage,
   };
 }
 
@@ -31,7 +45,7 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 };
 
 export default function Inbox({ loaderData }: { loaderData: LoaderData }) {
-  const { site } = loaderData;
+  const { site, headlineStats, activityPage } = loaderData;
 
   const breadcrumbs = [
     { label: 'Sites', href: '/app/sites' },
@@ -44,7 +58,11 @@ export default function Inbox({ loaderData }: { loaderData: LoaderData }) {
       subtitle={`Manage the submissions inbox for ${site.title}`}
       breadcrumbs={breadcrumbs}
     >
-      <InboxComingSoon siteName={site.name} />
+      <InboxDashboard
+        siteName={site.name}
+        headlineStats={headlineStats}
+        activityPage={activityPage}
+      />
     </PageFrame>
   );
 }
