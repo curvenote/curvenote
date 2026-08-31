@@ -62,7 +62,7 @@ types/app-config.d.ts
 .cache/
 
 # Local agent harness links (bun run agents:setup)
-.cursor/skills/
-.codex/skills/
-.claude/skills/
+.cursor/skills
+.codex/skills
+.claude/skills
 CLAUDE.md
