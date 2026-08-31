@@ -83,3 +83,32 @@ export async function updateTag(ctx: SiteContextWithUser, formData: FormData) {
     return data({ error: message }, { status });
   }
 }
+
+const DeleteTagSchema = zfd.formData({
+  tagId: zfd.text(z.uuid()),
+});
+
+export async function deleteTag(ctx: SiteContextWithUser, formData: FormData) {
+  if (!userHasSiteScope(ctx.user, scopes.site.tags.delete, ctx.site.id)) {
+    return data({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  let payload;
+  try {
+    payload = DeleteTagSchema.parse(formData);
+  } catch (e: any) {
+    return data({ error: formatZodError(e) }, { status: 400 });
+  }
+
+  try {
+    await sites.tags.deleteSiteTag({
+      siteId: ctx.site.id,
+      tagId: payload.tagId,
+    });
+    return { deleted: true };
+  } catch (e: any) {
+    const status = errorStatus(e, 500);
+    const message = errorMessage(e, 'could not delete tag');
+    return data({ error: message }, { status });
+  }
+}
