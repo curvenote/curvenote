@@ -35,6 +35,14 @@ export function getTagLabelValidationError(label: string): string | undefined {
   return undefined;
 }
 
+export function getTagEditLabelError(label: string): string | undefined {
+  const trimmed = label.trim();
+  if (!isValidTagLabel(trimmed)) {
+    return `tag label must be 1 to ${TAG_LABEL_MAX_LENGTH} characters`;
+  }
+  return undefined;
+}
+
 export type CreateTagDuplicateErrorInput = {
   label: string;
   existingNames: string[];

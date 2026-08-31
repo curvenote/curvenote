@@ -7,7 +7,7 @@ import {
   getTagDialogAlertError,
   getTagDialogIdleAction,
   getTagFormFieldError,
-  getTagLabelValidationError,
+  getTagEditLabelError,
   resolveTagCatalogOutcome,
   type TagCatalogFetcherData,
 } from './tags.utils.js';
@@ -74,7 +74,7 @@ export function EditTagDialog({ open, onOpenChange, tag }: EditTagDialogProps) {
     if (!tag) {
       return;
     }
-    const nextError = getTagLabelValidationError(label);
+    const nextError = getTagEditLabelError(label);
     if (nextError) {
       setLocalError(nextError);
       return;

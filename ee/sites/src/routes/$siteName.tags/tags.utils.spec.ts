@@ -8,6 +8,7 @@ import {
   getTagDialogAlertError,
   getTagDialogIdleAction,
   getTagFormFieldError,
+  getTagEditLabelError,
   getTagLabelValidationError,
   getTagNamePreview,
   resolveTagCatalogOutcome,
@@ -24,6 +25,28 @@ describe('getTagNamePreview', () => {
 
   test('marks a too-short derived name invalid', () => {
     expect(getTagNamePreview('ab')).toEqual({ name: 'ab', status: 'invalid' });
+  });
+});
+
+describe('getTagEditLabelError', () => {
+  test('rejects an empty or whitespace label', () => {
+    expect(getTagEditLabelError('  ')).toBe(
+      `tag label must be 1 to ${TAG_LABEL_MAX_LENGTH} characters`,
+    );
+  });
+
+  test('accepts a short label whose derived name would be invalid on create', () => {
+    expect(getTagEditLabelError('AI')).toBeUndefined();
+  });
+
+  test('accepts a valid label', () => {
+    expect(getTagEditLabelError('Blog Post')).toBeUndefined();
+  });
+
+  test('rejects a label that exceeds the max length', () => {
+    expect(getTagEditLabelError('a'.repeat(TAG_LABEL_MAX_LENGTH + 1))).toBe(
+      `tag label must be 1 to ${TAG_LABEL_MAX_LENGTH} characters`,
+    );
   });
 });
 
