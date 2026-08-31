@@ -147,11 +147,9 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
         onOpenChange={handleEditOpenChange}
         tag={dialog.kind === 'edit' ? dialog.tag : null}
       />
-      <DeleteTagDialog
-        open={dialog.kind === 'delete'}
-        onOpenChange={handleDeleteOpenChange}
-        tag={dialog.kind === 'delete' ? dialog.tag : null}
-      />
+      {dialog.kind === 'delete' ? (
+        <DeleteTagDialog open onOpenChange={handleDeleteOpenChange} tag={dialog.tag} />
+      ) : null}
     </PageFrame>
   );
 }
