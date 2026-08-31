@@ -23,10 +23,7 @@ interface LoaderData {
   tags: TagCatalogRow[];
 }
 
-type TagsDialog =
-  | { kind: 'none' }
-  | { kind: 'create' }
-  | { kind: 'edit'; tag: TagCatalogRow };
+type TagsDialog = { kind: 'none' } | { kind: 'create' } | { kind: 'edit'; tag: TagCatalogRow };
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   const ctx = await withAppSiteContext(args, [scopes.site.tags.list]);
