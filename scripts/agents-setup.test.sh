@@ -79,8 +79,22 @@ mv "$TMP/.agents/skills.bak" "$TMP/.agents/skills"
 
 assert_exit 0 "claude first run" bash "$SETUP" claude
 assert_symlink "$TMP/.claude/skills" "../.agents/skills" "claude skills symlink"
-assert_symlink "$TMP/CLAUDE.md" "AGENTS.md" "CLAUDE.md symlink"
+assert_symlink "$TMP/.claude/CLAUDE.md" "../AGENTS.md" "CLAUDE.md symlink under .claude"
+if [[ -e "$TMP/CLAUDE.md" || -L "$TMP/CLAUDE.md" ]]; then
+  fail "claude must not create CLAUDE.md at repo root"
+else
+  pass "claude does not create root CLAUDE.md"
+fi
 assert_exit 0 "claude second run (idempotent)" bash "$SETUP" claude
+
+ln -s AGENTS.md "$TMP/CLAUDE.md"
+assert_exit 0 "migrates legacy root CLAUDE.md" bash "$SETUP" claude
+if [[ -e "$TMP/CLAUDE.md" || -L "$TMP/CLAUDE.md" ]]; then
+  fail "legacy root CLAUDE.md symlink should be removed"
+else
+  pass "legacy root CLAUDE.md symlink removed"
+fi
+assert_symlink "$TMP/.claude/CLAUDE.md" "../AGENTS.md" "CLAUDE.md stays under .claude after migration"
 
 rm -rf "$TMP/.claude"
 mkdir -p "$TMP/.claude/skills"

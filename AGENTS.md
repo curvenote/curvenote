@@ -16,7 +16,7 @@ If you use Claude Code:
 bun run agents:setup claude
 ```
 
-That creates `.claude/skills` → `.agents/skills` and `CLAUDE.md` → `AGENTS.md` (local, not committed). Cursor and Codex already read `.agents/skills` without this step.
+That creates `.claude/skills` → `.agents/skills` and `.claude/CLAUDE.md` → `../AGENTS.md` (local, not committed). Cursor and Codex already read `.agents/skills` without this step.
 
 ## Lint And Format Checks
 

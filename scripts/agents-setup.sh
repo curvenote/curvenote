@@ -93,9 +93,25 @@ ensure_file_symlink() {
   ln -s "$rel" "$dest"
 }
 
+remove_legacy_root_claude_md() {
+  local dest="$ROOT/CLAUDE.md"
+  if [[ ! -L "$dest" ]]; then
+    return 0
+  fi
+  local canonical
+  canonical="$(canonical_dir "$(dirname "$ROOT/AGENTS.md")")/AGENTS.md"
+  local resolved=""
+  if resolved="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$dest" 2>/dev/null)"; then
+    if [[ "$resolved" == "$canonical" ]]; then
+      rm "$dest"
+    fi
+  fi
+}
+
 setup_claude() {
   ensure_dir_symlink "$ROOT/.claude/skills" "../.agents/skills" "$ROOT/.claude"
-  ensure_file_symlink "$ROOT/CLAUDE.md" "AGENTS.md"
+  ensure_file_symlink "$ROOT/.claude/CLAUDE.md" "../AGENTS.md"
+  remove_legacy_root_claude_md
 }
 
 setup_claude

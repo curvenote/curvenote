@@ -65,4 +65,5 @@ types/app-config.d.ts
 .cursor/skills
 .codex/skills
 .claude/skills
+.claude/CLAUDE.md
 CLAUDE.md
