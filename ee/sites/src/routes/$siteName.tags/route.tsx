@@ -137,16 +137,16 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
           )}
         </TagsTable>
       </div>
-      <CreateTagDialog
-        open={dialog.kind === 'create'}
-        onOpenChange={handleCreateOpenChange}
-        existingNames={tags.map((tag) => tag.name)}
-      />
-      <EditTagDialog
-        open={dialog.kind === 'edit'}
-        onOpenChange={handleEditOpenChange}
-        tag={dialog.kind === 'edit' ? dialog.tag : null}
-      />
+      {dialog.kind === 'create' ? (
+        <CreateTagDialog
+          open
+          onOpenChange={handleCreateOpenChange}
+          existingNames={tags.map((tag) => tag.name)}
+        />
+      ) : null}
+      {dialog.kind === 'edit' ? (
+        <EditTagDialog open onOpenChange={handleEditOpenChange} tag={dialog.tag} />
+      ) : null}
       {dialog.kind === 'delete' ? (
         <DeleteTagDialog open onOpenChange={handleDeleteOpenChange} tag={dialog.tag} />
       ) : null}
