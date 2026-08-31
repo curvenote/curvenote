@@ -427,12 +427,16 @@ describe('createSiteTag', () => {
 
   test('writes no SUBMISSION_TAGS_CHANGE activity', async () => {
     const prisma = await getPrismaClient();
-    await sites.tags.createSiteTag({ siteId: testData.siteId, label: 'Blog Post' });
-
-    const activity = await prisma.activity.count({
+    const before = await prisma.activity.count({
       where: { activity_type: 'SUBMISSION_TAGS_CHANGE' },
     });
-    expect(activity).toBe(0);
+
+    await sites.tags.createSiteTag({ siteId: testData.siteId, label: 'Blog Post' });
+
+    const after = await prisma.activity.count({
+      where: { activity_type: 'SUBMISSION_TAGS_CHANGE' },
+    });
+    expect(after).toBe(before);
   });
 });
 
