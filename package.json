@@ -21,6 +21,8 @@
     "wt:go": "bun run install:workspace && bun run build:scms && bun --cwd platform/scms run check-types",
     "wt:existing": "bash scripts/wt-add.sh --existing",
     "wt:remove": "bash scripts/wt-remove.sh",
+    "agents:setup": "bash scripts/agents-setup.sh",
+    "agents:setup:test": "bash scripts/agents-setup.test.sh",
     "generate:extensions": "node platform/scms/scripts/generate-extensions.js",
     "generate:relay-plugins": "node platform/relay/scripts/generate-plugin-loader.js",
     "prisma:generate": "bunx prisma generate --config=./prisma.config.ts",
