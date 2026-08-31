@@ -337,6 +337,42 @@ describe('HTTP-shaped tag contracts', () => {
   });
 });
 
+describe('dbListSiteTagsForCatalog', () => {
+  let testData: TestData;
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+  });
+
+  test('includes date_created and still sorts by label', async () => {
+    await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { label: 'Zebra' },
+    });
+    await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { label: 'Apple' },
+    });
+
+    const catalog = await sites.tags.dbListSiteTagsForCatalog(testData.siteId);
+    expect(catalog.map((row) => row.label)).toEqual(['Apple', 'Zebra']);
+    expect(catalog[0]?.date_created).toEqual(expect.any(String));
+    expect(catalog[0]?.date_created.length).toBeGreaterThan(0);
+
+    const picker = await sites.tags.dbListSiteTags(testData.siteId);
+    expect(picker[0]).toEqual({
+      id: catalog[0]?.id,
+      name: catalog[0]?.name,
+      label: catalog[0]?.label,
+    });
+    expect(picker[0]).not.toHaveProperty('date_created');
+  });
+});
+
 async function publishExistingSubmission(testData: TestData, svTags: string[] = []): Promise<void> {
   const prisma = await getPrismaClient();
   const now = new Date().toISOString();
