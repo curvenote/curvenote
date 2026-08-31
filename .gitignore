@@ -60,3 +60,6 @@ types/app-config.d.ts
 
 # local caches (rich seed overlay, etc.)
 .cache/
+
+# brainstorming mockups (root session dir, not docs/superpowers/)
+/.superpowers/
