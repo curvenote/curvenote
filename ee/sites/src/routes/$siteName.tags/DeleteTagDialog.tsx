@@ -3,6 +3,7 @@ import { useFetcher } from 'react-router';
 import { cn, ui } from '@curvenote/scms-core';
 import type { TagCatalogRow } from './types.js';
 import {
+  getDeleteDialogAlertError,
   getFetcherErrorParts,
   getTagDeleteCopy,
   getTagDialogIdleAction,
@@ -21,16 +22,22 @@ type DeleteTagDialogProps = {
 };
 
 export function DeleteTagDialog({ open, onOpenChange, tag }: DeleteTagDialogProps) {
-  const fetcher = useFetcher<TagCatalogFetcherData>();
+  const fetcher = useFetcher<TagCatalogFetcherData>({ key: `delete-tag:${tag?.id ?? 'none'}` });
   const [awaitingResult, setAwaitingResult] = useState(false);
+  const [submittedThisOpen, setSubmittedThisOpen] = useState(false);
   const prevFetcherState = useRef(fetcher.state);
   const copy = getTagDeleteCopy(tag?.label ?? '');
-  const alertError = getFetcherErrorParts(fetcher.data).message;
   const isSubmitting = fetcher.state !== 'idle';
+  const alertError = getDeleteDialogAlertError({
+    submittedThisOpen,
+    isSubmitting,
+    fetcherMessage: getFetcherErrorParts(fetcher.data).message,
+  });
 
   useEffect(() => {
     if (open) {
       setAwaitingResult(false);
+      setSubmittedThisOpen(false);
     }
   }, [open]);
 
@@ -57,6 +64,7 @@ export function DeleteTagDialog({ open, onOpenChange, tag }: DeleteTagDialogProp
     if (!tag) {
       return;
     }
+    setSubmittedThisOpen(true);
     setAwaitingResult(true);
     const formData = new FormData();
     formData.set('intent', 'delete-tag');

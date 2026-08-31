@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { TAG_LABEL_MAX_LENGTH } from '@curvenote/scms-core';
 import {
   getCreateTagDuplicateError,
+  getDeleteDialogAlertError,
   getFetcherErrorParts,
   getTagDeleteCopy,
   getTagDialogAlertError,
@@ -171,6 +172,48 @@ describe('getTagDialogIdleAction', () => {
         outcome: 'success',
       }),
     ).toBeNull();
+  });
+});
+
+describe('getDeleteDialogAlertError', () => {
+  test('returns undefined when not submitted this open', () => {
+    expect(
+      getDeleteDialogAlertError({
+        submittedThisOpen: false,
+        isSubmitting: false,
+        fetcherMessage: 'Forbidden',
+      }),
+    ).toBeUndefined();
+  });
+
+  test('returns undefined while submitting', () => {
+    expect(
+      getDeleteDialogAlertError({
+        submittedThisOpen: true,
+        isSubmitting: true,
+        fetcherMessage: 'Forbidden',
+      }),
+    ).toBeUndefined();
+  });
+
+  test('returns the fetcher message when submitted and idle', () => {
+    expect(
+      getDeleteDialogAlertError({
+        submittedThisOpen: true,
+        isSubmitting: false,
+        fetcherMessage: 'Forbidden',
+      }),
+    ).toBe('Forbidden');
+  });
+
+  test('returns undefined when submitted and idle with no message', () => {
+    expect(
+      getDeleteDialogAlertError({
+        submittedThisOpen: true,
+        isSubmitting: false,
+        fetcherMessage: undefined,
+      }),
+    ).toBeUndefined();
   });
 });
 
