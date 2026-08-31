@@ -440,6 +440,82 @@ describe('createSiteTag', () => {
   });
 });
 
+describe('updateSiteTagLabel', () => {
+  let testData: TestData;
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+  });
+
+  test('changes label and leaves name unchanged', async () => {
+    const created = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Blog Post',
+    });
+
+    const updated = await sites.tags.updateSiteTagLabel({
+      siteId: testData.siteId,
+      tagId: created.id,
+      label: 'Featured Post',
+    });
+
+    expect(updated).toEqual({ id: created.id, name: 'blog-post', label: 'Featured Post' });
+  });
+
+  test('allows two tags to share a display label', async () => {
+    const first = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Blog Post',
+    });
+    const second = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Case Study',
+    });
+
+    const updated = await sites.tags.updateSiteTagLabel({
+      siteId: testData.siteId,
+      tagId: second.id,
+      label: 'Blog Post',
+    });
+
+    expect(updated.label).toBe('Blog Post');
+    expect(updated.name).toBe('case-study');
+    expect(first.label).toBe('Blog Post');
+    expect(first.name).toBe('blog-post');
+  });
+
+  test('rejects a tag from another site', async () => {
+    const other = await createTestData('ADMIN' as SiteRole);
+    const foreign = await sites.tags.createSiteTag({
+      siteId: other.siteId,
+      label: 'Blog Post',
+    });
+
+    await expect(
+      sites.tags.updateSiteTagLabel({
+        siteId: testData.siteId,
+        tagId: foreign.id,
+        label: 'Featured Post',
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  test('rejects an empty label', async () => {
+    const created = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Blog Post',
+    });
+
+    await expect(
+      sites.tags.updateSiteTagLabel({
+        siteId: testData.siteId,
+        tagId: created.id,
+        label: '',
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
 async function publishExistingSubmission(testData: TestData, svTags: string[] = []): Promise<void> {
   const prisma = await getPrismaClient();
   const now = new Date().toISOString();
