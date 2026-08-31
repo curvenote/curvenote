@@ -10,8 +10,9 @@ import {
 } from '@curvenote/scms-core';
 import { withAppSiteContext, sites } from '@curvenote/scms-server';
 import { PlusCircle } from 'lucide-react';
-import { createTag } from './actionHelpers.server.js';
+import { createTag, updateTag } from './actionHelpers.server.js';
 import { CreateTagDialog } from './CreateTagDialog.js';
+import { EditTagDialog } from './EditTagDialog.js';
 import { TagRow } from './TagRow.js';
 import { TagsTable } from './TagsTable.js';
 import type { TagCatalogRow } from './types.js';
@@ -22,7 +23,10 @@ interface LoaderData {
   tags: TagCatalogRow[];
 }
 
-type TagsDialog = { kind: 'none' } | { kind: 'create' };
+type TagsDialog =
+  | { kind: 'none' }
+  | { kind: 'create' }
+  | { kind: 'edit'; tag: TagCatalogRow };
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   const ctx = await withAppSiteContext(args, [scopes.site.tags.list]);
@@ -44,6 +48,9 @@ export async function action(args: ActionFunctionArgs) {
   const intent = formData.get('intent');
   if (intent === 'create-tag') {
     return createTag(ctx, formData);
+  }
+  if (intent === 'update-tag') {
+    return updateTag(ctx, formData);
   }
   return data({ error: `Invalid intent ${intent}` }, { status: 400 });
 }
@@ -76,6 +83,15 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
     }
     closeDialog();
   };
+  const handleEdit = (tag: TagCatalogRow) => {
+    setDialog({ kind: 'edit', tag });
+  };
+  const handleEditOpenChange = (open: boolean) => {
+    if (open) {
+      return;
+    }
+    closeDialog();
+  };
 
   return (
     <PageFrame
@@ -101,7 +117,7 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
               </td>
             </tr>
           ) : (
-            tags.map((tag) => <TagRow key={tag.id} tag={tag} />)
+            tags.map((tag) => <TagRow key={tag.id} tag={tag} onEdit={handleEdit} />)
           )}
         </TagsTable>
       </div>
@@ -109,6 +125,11 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
         open={dialog.kind === 'create'}
         onOpenChange={handleCreateOpenChange}
         existingNames={tags.map((tag) => tag.name)}
+      />
+      <EditTagDialog
+        open={dialog.kind === 'edit'}
+        onOpenChange={handleEditOpenChange}
+        tag={dialog.kind === 'edit' ? dialog.tag : null}
       />
     </PageFrame>
   );
