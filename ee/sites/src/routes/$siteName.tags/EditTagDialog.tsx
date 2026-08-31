@@ -92,6 +92,9 @@ export function EditTagDialog({ open, onOpenChange, tag }: EditTagDialogProps) {
       <ui.DialogContent>
         <ui.DialogHeader>
           <ui.DialogTitle>Edit tag</ui.DialogTitle>
+          <ui.DialogDescription>
+            Only the label can be changed; the name stays the same.
+          </ui.DialogDescription>
         </ui.DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           {alertError ? <ui.SimpleAlert type="error" message={alertError} size="compact" /> : null}

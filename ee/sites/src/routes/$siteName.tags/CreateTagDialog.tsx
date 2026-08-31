@@ -91,6 +91,9 @@ export function CreateTagDialog({ open, onOpenChange, existingNames }: CreateTag
       <ui.DialogContent>
         <ui.DialogHeader>
           <ui.DialogTitle>New tag</ui.DialogTitle>
+          <ui.DialogDescription>
+            The label is the display name; the name is derived from it.
+          </ui.DialogDescription>
         </ui.DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           {alertError ? <ui.SimpleAlert type="error" message={alertError} size="compact" /> : null}
