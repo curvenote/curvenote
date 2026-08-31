@@ -49,3 +49,37 @@ export async function createTag(ctx: SiteContextWithUser, formData: FormData) {
     return data({ error: message }, { status });
   }
 }
+
+const UpdateTagSchema = zfd.formData({
+  tagId: zfd.text(z.uuid()),
+  label: zfd.text(z.string().min(1).max(TAG_LABEL_MAX_LENGTH)),
+});
+
+export async function updateTag(ctx: SiteContextWithUser, formData: FormData) {
+  if (!userHasSiteScope(ctx.user, scopes.site.tags.update, ctx.site.id)) {
+    return data({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  let payload;
+  try {
+    payload = UpdateTagSchema.parse(formData);
+  } catch (e: any) {
+    return data({ error: { field: 'label', message: formatZodError(e) } }, { status: 400 });
+  }
+
+  try {
+    const tag = await sites.tags.updateSiteTagLabel({
+      siteId: ctx.site.id,
+      tagId: payload.tagId,
+      label: payload.label,
+    });
+    return { tag };
+  } catch (e: any) {
+    const status = errorStatus(e, 500);
+    const message = errorMessage(e, 'could not update tag');
+    if (status === 400) {
+      return data({ error: { field: 'label', message } }, { status });
+    }
+    return data({ error: message }, { status });
+  }
+}
