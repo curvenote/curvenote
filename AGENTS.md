@@ -10,18 +10,16 @@ Cursor and Codex read `.agents/skills/` without extra setup. Claude Code does no
 
 ## Agent setup
 
-If you use Claude Code, Cursor, or Codex:
+If you use Claude Code:
 
 ```bash
-bun run agents:setup <claude|cursor|codex|all>
+bun run agents:setup <claude|all>
 ```
 
 - `claude` — `.claude/skills` → `.agents/skills` and `CLAUDE.md` → `AGENTS.md` (local, not committed)
-- `cursor` — `.cursor/skills` → `.agents/skills`
-- `codex` — `.codex/skills` → `.agents/skills`
-- `all` — cursor, then codex, then claude
+- `all` — same as `claude`
 
-A Cursor-only user can skip setup and still get skills plus the norms below.
+Cursor already reads `.agents/skills` without this step.
 
 ## Lint And Format Checks
 

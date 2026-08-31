@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-USAGE="Usage: bun run agents:setup <claude|cursor|codex|all>"
+USAGE="Usage: bun run agents:setup <claude|all>"
 
 usage_exit() {
   echo "$USAGE" >&2
@@ -16,7 +16,7 @@ fi
 AGENT="$1"
 
 case "$AGENT" in
-  claude | cursor | codex | all) ;;
+  claude | all) ;;
   *) usage_exit ;;
 esac
 
@@ -35,7 +35,7 @@ canonical_dir() {
 }
 
 # dest_path relative_from_parent parent_dir
-# Example: ensure_dir_symlink "$ROOT/.cursor/skills" "../.agents/skills" "$ROOT/.cursor"
+# Example: ensure_dir_symlink "$ROOT/.claude/skills" "../.agents/skills" "$ROOT/.claude"
 ensure_dir_symlink() {
   local dest="$1"
   local rel="$2"
@@ -93,26 +93,11 @@ ensure_file_symlink() {
   ln -s "$rel" "$dest"
 }
 
-setup_cursor() {
-  ensure_dir_symlink "$ROOT/.cursor/skills" "../.agents/skills" "$ROOT/.cursor"
-}
-
-setup_codex() {
-  ensure_dir_symlink "$ROOT/.codex/skills" "../.agents/skills" "$ROOT/.codex"
-}
-
 setup_claude() {
   ensure_dir_symlink "$ROOT/.claude/skills" "../.agents/skills" "$ROOT/.claude"
   ensure_file_symlink "$ROOT/CLAUDE.md" "AGENTS.md"
 }
 
 case "$AGENT" in
-  cursor) setup_cursor ;;
-  codex) setup_codex ;;
-  claude) setup_claude ;;
-  all)
-    setup_cursor
-    setup_codex
-    setup_claude
-    ;;
+  claude | all) setup_claude ;;
 esac
