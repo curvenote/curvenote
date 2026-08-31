@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-USAGE="Usage: bun run agents:setup <claude|all>"
+USAGE="Usage: bun run agents:setup claude"
 
 usage_exit() {
   echo "$USAGE" >&2
@@ -16,7 +16,7 @@ fi
 AGENT="$1"
 
 case "$AGENT" in
-  claude | all) ;;
+  claude) ;;
   *) usage_exit ;;
 esac
 
@@ -98,6 +98,4 @@ setup_claude() {
   ensure_file_symlink "$ROOT/CLAUDE.md" "AGENTS.md"
 }
 
-case "$AGENT" in
-  claude | all) setup_claude ;;
-esac
+setup_claude

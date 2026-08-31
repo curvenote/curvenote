@@ -13,13 +13,10 @@ Cursor and Codex read `.agents/skills/` without extra setup. Claude Code does no
 If you use Claude Code:
 
 ```bash
-bun run agents:setup <claude|all>
+bun run agents:setup claude
 ```
 
-- `claude` — `.claude/skills` → `.agents/skills` and `CLAUDE.md` → `AGENTS.md` (local, not committed)
-- `all` — same as `claude`
-
-Cursor already reads `.agents/skills` without this step.
+That creates `.claude/skills` → `.agents/skills` and `CLAUDE.md` → `AGENTS.md` (local, not committed). Cursor and Codex already read `.agents/skills` without this step.
 
 ## Lint And Format Checks
 

@@ -67,6 +67,7 @@ assert_exit 1 "no argument" bash "$SETUP"
 assert_exit 1 "unknown argument" bash "$SETUP" nope
 assert_exit 1 "cursor argument rejected" bash "$SETUP" cursor
 assert_exit 1 "codex argument rejected" bash "$SETUP" codex
+assert_exit 1 "all argument rejected" bash "$SETUP" all
 
 mv "$TMP/AGENTS.md" "$TMP/AGENTS.md.bak"
 assert_exit 1 "missing AGENTS.md" bash "$SETUP" claude
@@ -80,16 +81,6 @@ assert_exit 0 "claude first run" bash "$SETUP" claude
 assert_symlink "$TMP/.claude/skills" "../.agents/skills" "claude skills symlink"
 assert_symlink "$TMP/CLAUDE.md" "AGENTS.md" "CLAUDE.md symlink"
 assert_exit 0 "claude second run (idempotent)" bash "$SETUP" claude
-
-rm -rf "$TMP/.claude" "$TMP/CLAUDE.md" "$TMP/.cursor" "$TMP/.codex"
-assert_exit 0 "all first run" bash "$SETUP" all
-assert_symlink "$TMP/.claude/skills" "../.agents/skills" "all creates claude skills symlink"
-assert_symlink "$TMP/CLAUDE.md" "AGENTS.md" "all creates CLAUDE.md symlink"
-if [[ -e "$TMP/.cursor/skills" || -e "$TMP/.codex/skills" ]]; then
-  fail "all must not create .cursor/skills or .codex/skills"
-else
-  pass "all does not create cursor or codex skills dirs"
-fi
 
 rm -rf "$TMP/.claude"
 mkdir -p "$TMP/.claude/skills"
