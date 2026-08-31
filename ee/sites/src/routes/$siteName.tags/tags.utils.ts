@@ -105,6 +105,19 @@ export function getTagDialogAlertError(input: TagDialogAlertErrorInput): string 
   return undefined;
 }
 
+export type DeleteDialogAlertErrorInput = {
+  submittedThisOpen: boolean;
+  isSubmitting: boolean;
+  fetcherMessage: string | undefined;
+};
+
+export function getDeleteDialogAlertError(input: DeleteDialogAlertErrorInput): string | undefined {
+  if (!input.submittedThisOpen || input.isSubmitting) {
+    return undefined;
+  }
+  return input.fetcherMessage;
+}
+
 export function resolveTagCatalogOutcome(
   data: TagCatalogFetcherData | undefined,
 ): 'pending' | 'success' | 'error' {
