@@ -60,3 +60,9 @@ types/app-config.d.ts
 
 # local caches (rich seed overlay, etc.)
 .cache/
+
+# Local agent harness links (bun run agents:setup)
+.cursor/skills/
+.codex/skills/
+.claude/skills/
+CLAUDE.md

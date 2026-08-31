@@ -1,11 +1,11 @@
 ---
-description: Multi-agent team workflow (architect → coder → reviewer) for Multitask Mode and non-trivial tasks. Load .cursor/skills/agent-team/SKILL.md when coordinating subagents.
+description: Multi-agent team workflow (architect → coder → reviewer) for Multitask Mode and non-trivial tasks. Load .agents/skills/agent-team/SKILL.md when coordinating subagents.
 alwaysApply: false
 ---
 
 # Agent team (Curvenote)
 
-For non-trivial work in **Multitask Mode**, use the three-agent workflow defined in `.cursor/skills/agent-team/SKILL.md`:
+For non-trivial work in **Multitask Mode**, use the three-agent workflow defined in `.agents/skills/agent-team/SKILL.md`:
 
 | Phase | Subagent | Model |
 |-------|----------|-------|
