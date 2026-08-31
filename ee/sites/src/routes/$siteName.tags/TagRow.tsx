@@ -31,7 +31,7 @@ export function TagRow({ tag, onEdit, onDelete }: TagRowProps) {
         <div className="flex items-center justify-end gap-2">
           {onEdit ? (
             <ui.Button
-              variant="action"
+              variant="ghost"
               size="icon-sm"
               type="button"
               onClick={handleEdit}
@@ -43,7 +43,7 @@ export function TagRow({ tag, onEdit, onDelete }: TagRowProps) {
           ) : null}
           {onDelete ? (
             <ui.Button
-              variant="action"
+              variant="ghost"
               size="icon-sm"
               type="button"
               onClick={handleDelete}
