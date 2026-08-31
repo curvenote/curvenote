@@ -67,3 +67,5 @@ types/app-config.d.ts
 .claude/skills
 .claude/CLAUDE.md
 CLAUDE.md
+# brainstorming mockups (root session dir, not docs/superpowers/)
+/.superpowers/
