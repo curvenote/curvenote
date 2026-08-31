@@ -373,6 +373,69 @@ describe('dbListSiteTagsForCatalog', () => {
   });
 });
 
+describe('createSiteTag', () => {
+  let testData: TestData;
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+  });
+
+  test('derives name from the label and does not assign it', async () => {
+    const tag = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Blog Post',
+    });
+
+    expect(tag).toMatchObject({ name: 'blog-post', label: 'Blog Post' });
+    expect(await sites.tags.dbListSiteTags(testData.siteId)).toEqual([tag]);
+    expect(await sites.tags.dbListTagsForSubmission(testData.submissionId)).toEqual([]);
+  });
+
+  test('rejects a duplicate derived name instead of reusing the row', async () => {
+    const first = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Blog Post',
+    });
+
+    await expect(
+      sites.tags.createSiteTag({ siteId: testData.siteId, label: 'blog post' }),
+    ).rejects.toMatchObject({ status: 400, statusText: 'a tag with this name already exists' });
+
+    expect(await sites.tags.dbListSiteTags(testData.siteId)).toEqual([first]);
+  });
+
+  test('rejects an empty label', async () => {
+    await expect(
+      sites.tags.createSiteTag({ siteId: testData.siteId, label: '   ' }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  test('rejects a label over the maximum length', async () => {
+    await expect(
+      sites.tags.createSiteTag({
+        siteId: testData.siteId,
+        label: 'a'.repeat(TAG_LABEL_MAX_LENGTH + 1),
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  test('rejects a label whose derived name is too short', async () => {
+    await expect(
+      sites.tags.createSiteTag({ siteId: testData.siteId, label: 'ab' }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  test('writes no SUBMISSION_TAGS_CHANGE activity', async () => {
+    const prisma = await getPrismaClient();
+    await sites.tags.createSiteTag({ siteId: testData.siteId, label: 'Blog Post' });
+
+    const activity = await prisma.activity.count({
+      where: { activity_type: 'SUBMISSION_TAGS_CHANGE' },
+    });
+    expect(activity).toBe(0);
+  });
+});
+
 async function publishExistingSubmission(testData: TestData, svTags: string[] = []): Promise<void> {
   const prisma = await getPrismaClient();
   const now = new Date().toISOString();
