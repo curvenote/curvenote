@@ -21,7 +21,8 @@ import type { ListingQuery } from '../../../../../ee/sites/src/routes/$siteName.
  *  - title / author / DOI substring matches, case-insensitive
  *  - special-character safety (`%`, `_` typed by the user are matched literally)
  *  - pagination interaction (page bounds, perPage)
- *  - kindIds, collectionIds, date-range filters (strict on `date_published`)
+ *  - kindIds, collectionIds, tagIds (OR within tagIds, AND with other facets;
+ *    both listing paths), date-range filters (strict on `date_published`)
  *  - `unpublishedOnly` mode (rows where `date_published IS NULL`); mutually
  *    exclusive with the range filter
  *  - sort=recent_published vs recent_created
@@ -40,6 +41,7 @@ const DEFAULT_QUERY: ListingQuery = {
   sort: 'recent_published',
   kindIds: [],
   collectionIds: [],
+  tagIds: [],
   statuses: [],
   unpublishedOnly: false,
 };
@@ -63,6 +65,8 @@ describe('submissions index — search and filters', () => {
   let seed: {
     altKindId: string;
     altCollectionId: string;
+    blogPostTagId: string;
+    essayTagId: string;
     submissions: Record<string, SeedSubmission>;
   };
 
@@ -107,6 +111,72 @@ describe('submissions index — search and filters', () => {
       .filter((s) => s.collectionId === seed.altCollectionId)
       .map((s) => s.id);
     expect(rows.map((r) => r.id).sort()).toEqual(expected.sort());
+  });
+
+  test('tagIds with one id returns only submissions that have that tag', async () => {
+    const query: ListingQuery = { ...DEFAULT_QUERY, tagIds: [seed.blogPostTagId] };
+    const rows = await dbListSubmissionsForIndex(testData.context, query);
+    const total = await dbCountSubmissionsForIndex(testData.context, query);
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain(seed.submissions.photoSynthesis.id);
+    expect(ids).toContain(seed.submissions.weatherRadar.id);
+    expect(ids).not.toContain(seed.submissions.brontePoetry.id);
+    expect(total).toBe(ids.length);
+  });
+
+  test('tagIds with two ids is the union (OR), not the intersection', async () => {
+    const query: ListingQuery = {
+      ...DEFAULT_QUERY,
+      tagIds: [seed.blogPostTagId, seed.essayTagId],
+    };
+    const rows = await dbListSubmissionsForIndex(testData.context, query);
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain(seed.submissions.photoSynthesis.id);
+    expect(ids).toContain(seed.submissions.brontePoetry.id);
+    expect(ids).toContain(seed.submissions.weatherRadar.id);
+    // weatherRadar has both tags; OR must not require both.
+    expect(ids.filter((id) => id === seed.submissions.weatherRadar.id)).toHaveLength(1);
+  });
+
+  test('tagIds AND kindIds narrows further', async () => {
+    const query: ListingQuery = {
+      ...DEFAULT_QUERY,
+      tagIds: [seed.blogPostTagId],
+      kindIds: [testData.kindId],
+    };
+    const rows = await dbListSubmissionsForIndex(testData.context, query);
+    const ids = rows.map((r) => r.id);
+    expect(ids).toEqual([seed.submissions.photoSynthesis.id]);
+  });
+
+  test('unknown tagIds match no extra rows and do not throw', async () => {
+    const query: ListingQuery = { ...DEFAULT_QUERY, tagIds: [uuidv7()] };
+    const rows = await dbListSubmissionsForIndex(testData.context, query);
+    const total = await dbCountSubmissionsForIndex(testData.context, query);
+    expect(rows).toEqual([]);
+    expect(total).toBe(0);
+  });
+
+  test('tagIds without q or statuses still returns the tagged set (Prisma fast path)', async () => {
+    // No `q`, empty `statuses` → needsRawSqlPath is false. This is the
+    // assertion that tagIds did not get wired only into the raw SQL builder.
+    const query: ListingQuery = { ...DEFAULT_QUERY, tagIds: [seed.essayTagId] };
+    const rows = await dbListSubmissionsForIndex(testData.context, query);
+    const ids = rows.map((r) => r.id);
+    expect(ids).toContain(seed.submissions.brontePoetry.id);
+    expect(ids).toContain(seed.submissions.weatherRadar.id);
+    expect(ids).not.toContain(seed.submissions.photoSynthesis.id);
+  });
+
+  test('combined q + tagIds returns the intersection (raw SQL path)', async () => {
+    const query: ListingQuery = {
+      ...DEFAULT_QUERY,
+      q: 'photo',
+      tagIds: [seed.blogPostTagId],
+    };
+    const rows = await dbListSubmissionsForIndex(testData.context, query);
+    const ids = rows.map((r) => r.id);
+    expect(ids).toEqual([seed.submissions.photoSynthesis.id]);
   });
 
   test('respects date range on date_published', async () => {
@@ -474,6 +544,12 @@ interface CreateListedSubmissionParams {
   status?: string;
 }
 
+type CreateSiteTagInput = {
+  siteId: string;
+  name: string;
+  label: string;
+};
+
 /**
  * Creates a Work + WorkVersion + Submission + SubmissionVersion (status
  * "APPROVED" by default) so the trigger marks the Submission as
@@ -542,6 +618,34 @@ async function createListedSubmission(
   });
 
   return submissionId;
+}
+
+async function createSiteTag(input: CreateSiteTagInput): Promise<string> {
+  const prisma = await getPrismaClient();
+  const id = uuidv7();
+  const now = new Date().toISOString();
+  await prisma.tag.create({
+    data: {
+      id,
+      name: input.name,
+      label: input.label,
+      date_created: now,
+      site: { connect: { id: input.siteId } },
+    },
+  });
+  return id;
+}
+
+async function assignTag(submissionId: string, tagId: string): Promise<void> {
+  const prisma = await getPrismaClient();
+  await prisma.tagsInSubmissions.create({
+    data: {
+      id: uuidv7(),
+      date_created: new Date().toISOString(),
+      tag: { connect: { id: tagId } },
+      submission: { connect: { id: submissionId } },
+    },
+  });
 }
 
 async function seedSubmissions(testData: TestData) {
@@ -691,9 +795,26 @@ async function seedSubmissions(testData: TestData) {
     status: 'PUBLISHED',
   });
 
+  const blogPostTagId = await createSiteTag({
+    siteId: testData.siteId,
+    name: 'blog-post',
+    label: 'Blog Post',
+  });
+  const essayTagId = await createSiteTag({
+    siteId: testData.siteId,
+    name: 'essay',
+    label: 'Essay',
+  });
+  await assignTag(photoSynthesis, blogPostTagId);
+  await assignTag(weatherRadar, blogPostTagId);
+  await assignTag(brontePoetry, essayTagId);
+  await assignTag(weatherRadar, essayTagId);
+
   return {
     altKindId,
     altCollectionId,
+    blogPostTagId,
+    essayTagId,
     submissions: {
       photoSynthesis: {
         id: photoSynthesis,
