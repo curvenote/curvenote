@@ -60,3 +60,8 @@ types/app-config.d.ts
 
 # local caches (rich seed overlay, etc.)
 .cache/
+
+# Superpowers session dir and local design docs
+/.superpowers/
+docs/superpowers/plans/
+docs/superpowers/specs/2026-08-31-submission-tags-catalog-crud-design.md

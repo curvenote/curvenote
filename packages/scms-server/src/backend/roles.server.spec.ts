@@ -1,11 +1,12 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from 'vitest';
-import { system, work } from '@curvenote/scms-core';
-import { SystemRole, WorkRole } from '@curvenote/scms-db';
+import { site, system, work } from '@curvenote/scms-core';
+import { SiteRole, SystemRole, WorkRole } from '@curvenote/scms-db';
 import {
   DEFAULT_SYSTEM_ROLE_SCOPES,
   getSystemRoleScopes,
   hasDefaultScopeViaSystemRole,
+  hasSiteScope,
   hasWorkScope,
   isSystemRole,
   MACHINE_SYSTEM_ROLES,
@@ -99,5 +100,35 @@ describe('default system role scope mapping', () => {
 
     expect(userHasScope(user, 'app:dashboard:read')).toBe(true);
     expect(userHasScope(user, 'app:platform:admin')).toBe(false);
+  });
+});
+
+describe('site tags scopes', () => {
+  const tagScopes = [
+    site.tags.list,
+    site.tags.read,
+    site.tags.create,
+    site.tags.update,
+    site.tags.delete,
+  ];
+
+  test('ADMIN has the full site:tags.* family', () => {
+    for (const scope of tagScopes) {
+      expect(hasSiteScope(SiteRole.ADMIN, scope)).toBe(true);
+    }
+  });
+
+  test.each([SiteRole.MEMBER, SiteRole.SUBMITTER, SiteRole.PUBLIC, SiteRole.UNRESTRICTED])(
+    '%s has no site:tags.* scopes',
+    (role) => {
+      for (const scope of tagScopes) {
+        expect(hasSiteScope(role, scope)).toBe(false);
+      }
+    },
+  );
+
+  test('MEMBER still has kinds.list and still lacks tags.list', () => {
+    expect(hasSiteScope(SiteRole.MEMBER, site.kinds.list)).toBe(true);
+    expect(hasSiteScope(SiteRole.MEMBER, site.tags.list)).toBe(false);
   });
 });
