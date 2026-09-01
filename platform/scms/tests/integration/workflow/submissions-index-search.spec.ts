@@ -40,6 +40,7 @@ const DEFAULT_QUERY: ListingQuery = {
   sort: 'recent_published',
   kindIds: [],
   collectionIds: [],
+  tagIds: [],
   statuses: [],
   unpublishedOnly: false,
 };

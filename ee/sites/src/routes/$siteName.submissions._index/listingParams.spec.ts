@@ -86,12 +86,13 @@ describe('listingParams: URL helpers', () => {
 
   it('clearListingFilters wipes only the filter / search params and page', () => {
     const before = new URLSearchParams(
-      'q=foo&kindIds=a&collectionIds=b&statuses=PENDING&from=2024-01-01&to=2024-01-31&unpublishedOnly=1&page=4&sort=recent_created&perPage=30',
+      'q=foo&kindIds=a&collectionIds=b&tagIds=t&statuses=PENDING&from=2024-01-01&to=2024-01-31&unpublishedOnly=1&page=4&sort=recent_created&perPage=30',
     );
     const after = clearListingFilters(before);
     expect(after.get('q')).toBeNull();
     expect(after.get('kindIds')).toBeNull();
     expect(after.get('collectionIds')).toBeNull();
+    expect(after.get('tagIds')).toBeNull();
     expect(after.get('statuses')).toBeNull();
     expect(after.get('from')).toBeNull();
     expect(after.get('to')).toBeNull();
@@ -108,6 +109,7 @@ describe('listingParams: URL helpers', () => {
     expect(hasActiveListingFilters(new URLSearchParams('q=foo'))).toBe(true);
     expect(hasActiveListingFilters(new URLSearchParams('kindIds=a'))).toBe(true);
     expect(hasActiveListingFilters(new URLSearchParams('collectionIds=b'))).toBe(true);
+    expect(hasActiveListingFilters(new URLSearchParams('tagIds=t'))).toBe(true);
     expect(hasActiveListingFilters(new URLSearchParams('statuses=PENDING'))).toBe(true);
     expect(hasActiveListingFilters(new URLSearchParams('from=2024-01-01'))).toBe(true);
     expect(hasActiveListingFilters(new URLSearchParams('to=2024-01-31'))).toBe(true);
@@ -121,14 +123,28 @@ describe('listingParams: URL helpers', () => {
       sort: 'recent_published' as const,
       kindIds: [] as string[],
       collectionIds: [] as string[],
+      tagIds: [] as string[],
       statuses: [] as string[],
       unpublishedOnly: false,
     };
     expect(hasActiveListingFiltersInQuery(base)).toBe(false);
     expect(hasActiveListingFiltersInQuery({ ...base, kindIds: ['k'] })).toBe(true);
+    expect(hasActiveListingFiltersInQuery({ ...base, tagIds: ['t'] })).toBe(true);
     expect(hasActiveListingFiltersInQuery({ ...base, statuses: ['PENDING'] })).toBe(true);
     expect(hasActiveListingFiltersInQuery({ ...base, q: 'photo' })).toBe(true);
     expect(hasActiveListingFiltersInQuery({ ...base, unpublishedOnly: true })).toBe(true);
+  });
+
+  it('treats tagIds as a CSV param key like kindIds', () => {
+    const sp = new URLSearchParams('tagIds=a,,b,');
+    expect(readListingCsvParam(sp, 'tagIds')).toEqual(['a', 'b']);
+
+    const populated = setListingCsvParam(new URLSearchParams('page=2'), 'tagIds', ['a', 'b']);
+    expect(populated.get('tagIds')).toBe('a,b');
+    expect(populated.get('page')).toBeNull();
+
+    const toggled = toggleListingCsvParam(new URLSearchParams('tagIds=a'), 'tagIds', 'b');
+    expect(toggled.get('tagIds')).toBe('a,b');
   });
 
   it('toggleListingCsvParam works for the statuses key (same shape as other CSVs)', () => {
