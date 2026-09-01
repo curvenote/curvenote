@@ -35,13 +35,6 @@ export function DeleteTagDialog({ open, onOpenChange, tag }: DeleteTagDialogProp
   });
 
   useEffect(() => {
-    if (open) {
-      setAwaitingResult(false);
-      setSubmittedThisOpen(false);
-    }
-  }, [open]);
-
-  useEffect(() => {
     const action = getTagDialogIdleAction({
       awaitingResult,
       prevFetcherState: prevFetcherState.current,

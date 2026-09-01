@@ -40,14 +40,6 @@ export function CreateTagDialog({ open, onOpenChange, existingNames }: CreateTag
   const isSubmitting = fetcher.state !== 'idle';
 
   useEffect(() => {
-    if (open) {
-      setLabel('');
-      setLocalError(undefined);
-      setAwaitingResult(false);
-    }
-  }, [open]);
-
-  useEffect(() => {
     const action = getTagDialogIdleAction({
       awaitingResult,
       prevFetcherState: prevFetcherState.current,
