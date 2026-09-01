@@ -14,6 +14,9 @@ export default {
   presets: [preset],
   theme: {
     extend: {
+      screens: {
+        xs: '30rem',
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

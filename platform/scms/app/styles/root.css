@@ -10,6 +10,10 @@ layer(base);
 
 @config '../../tailwind.config.js';
 
+@theme {
+  --breakpoint-xs: 30rem;
+}
+
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
