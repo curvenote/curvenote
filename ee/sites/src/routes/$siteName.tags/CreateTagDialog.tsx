@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
-import { TAG_LABEL_MAX_LENGTH, ui } from '@curvenote/scms-core';
+import { TAG_LABEL_MAX_LENGTH, toTagName, ui } from '@curvenote/scms-core';
 import {
   getCreateTagDuplicateError,
   getFetcherErrorParts,
@@ -8,7 +8,6 @@ import {
   getTagDialogIdleAction,
   getTagFormFieldError,
   getTagLabelValidationError,
-  getTagNamePreview,
   resolveTagCatalogOutcome,
   type TagCatalogFetcherData,
 } from './tags.utils.js';
@@ -26,7 +25,8 @@ export function CreateTagDialog({ open, onOpenChange, existingNames }: CreateTag
   const [awaitingResult, setAwaitingResult] = useState(false);
   const prevFetcherState = useRef(fetcher.state);
 
-  const preview = getTagNamePreview(label);
+  const trimmedLabel = label.trim();
+  const namePreview = trimmedLabel ? toTagName(trimmedLabel) : 'Name';
   const parts = getFetcherErrorParts(fetcher.data);
   const fieldError = getTagFormFieldError({
     localError,
@@ -100,9 +100,7 @@ export function CreateTagDialog({ open, onOpenChange, existingNames }: CreateTag
             disabled={isSubmitting}
             autoFocus
           />
-          <p className="font-mono text-sm text-stone-500 dark:text-stone-400">
-            {preview.status === 'empty' ? 'Name' : preview.name}
-          </p>
+          <p className="font-mono text-sm text-stone-500 dark:text-stone-400">{namePreview}</p>
           <ui.DialogFooter>
             <ui.DialogClose asChild>
               <ui.Button type="button" variant="outline" disabled={isSubmitting}>

@@ -1,5 +1,4 @@
 import { primitives, cn } from '@curvenote/scms-core';
-import { getTagsTableColumnPin } from './tags.utils.js';
 
 type TagsTableProps = {
   children: React.ReactNode;
@@ -17,52 +16,16 @@ const STICKY_END_CLASS = cn(
 );
 
 export function TagsTable({ children, className }: TagsTableProps) {
-  const labelPin = getTagsTableColumnPin('label');
-  const namePin = getTagsTableColumnPin('name');
-  const createdPin = getTagsTableColumnPin('created');
-  const actionsPin = getTagsTableColumnPin('actions');
-
   return (
     <primitives.Card lift className={cn(className)}>
       <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tags catalog">
         <table className="w-full min-w-[36rem] border-separate border-spacing-0">
           <thead>
             <tr>
-              <th
-                className={cn(
-                  HEADER_CELL_CLASS,
-                  labelPin === 'start' && STICKY_START_CLASS,
-                  labelPin === 'end' && STICKY_END_CLASS,
-                )}
-              >
-                Label
-              </th>
-              <th
-                className={cn(
-                  HEADER_CELL_CLASS,
-                  namePin === 'start' && STICKY_START_CLASS,
-                  namePin === 'end' && STICKY_END_CLASS,
-                )}
-              >
-                Name
-              </th>
-              <th
-                className={cn(
-                  HEADER_CELL_CLASS,
-                  createdPin === 'start' && STICKY_START_CLASS,
-                  createdPin === 'end' && STICKY_END_CLASS,
-                )}
-              >
-                Created
-              </th>
-              <th
-                className={cn(
-                  HEADER_CELL_CLASS,
-                  'w-24 min-w-24 text-right',
-                  actionsPin === 'start' && STICKY_START_CLASS,
-                  actionsPin === 'end' && STICKY_END_CLASS,
-                )}
-              >
+              <th className={cn(HEADER_CELL_CLASS, STICKY_START_CLASS)}>Label</th>
+              <th className={HEADER_CELL_CLASS}>Name</th>
+              <th className={HEADER_CELL_CLASS}>Created</th>
+              <th className={cn(HEADER_CELL_CLASS, STICKY_END_CLASS, 'w-24 min-w-24 text-right')}>
                 Actions
               </th>
             </tr>

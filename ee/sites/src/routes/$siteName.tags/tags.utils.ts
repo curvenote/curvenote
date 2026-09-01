@@ -5,25 +5,6 @@ import {
   toTagName,
 } from '@curvenote/scms-core';
 
-export type TagNamePreviewStatus = 'empty' | 'valid' | 'invalid';
-
-export type TagNamePreview = {
-  name: string;
-  status: TagNamePreviewStatus;
-};
-
-export function getTagNamePreview(label: string): TagNamePreview {
-  const trimmed = label.trim();
-  if (!trimmed) {
-    return { name: '', status: 'empty' };
-  }
-  const name = toTagName(trimmed);
-  if (!isValidTagName(name)) {
-    return { name, status: 'invalid' };
-  }
-  return { name, status: 'valid' };
-}
-
 export function getTagLabelValidationError(label: string): string | undefined {
   const trimmed = label.trim();
   if (!isValidTagLabel(trimmed)) {
@@ -41,6 +22,19 @@ export function getTagEditLabelError(label: string): string | undefined {
     return `tag label must be 1 to ${TAG_LABEL_MAX_LENGTH} characters`;
   }
   return undefined;
+}
+
+export type TagLabelDivergedFromNameInput = {
+  label: string;
+  name: string;
+};
+
+export function isTagLabelDivergedFromName(input: TagLabelDivergedFromNameInput): boolean {
+  const trimmed = input.label.trim();
+  if (!trimmed) {
+    return false;
+  }
+  return toTagName(trimmed) !== input.name;
 }
 
 export type CreateTagDuplicateErrorInput = {
@@ -162,27 +156,4 @@ export function getTagDialogIdleAction(
     return { closeDialog: false, clearAwaiting: true };
   }
   return null;
-}
-
-export type TagsTableColumn = 'label' | 'name' | 'created' | 'actions';
-
-export type TagsTableColumnPin = 'start' | 'end' | 'none';
-
-export function getTagsTableColumnPin(column: TagsTableColumn): TagsTableColumnPin {
-  if (column === 'label') {
-    return 'start';
-  }
-  if (column === 'actions') {
-    return 'end';
-  }
-  return 'none';
-}
-
-export function getTagDeleteCopy(label: string) {
-  return {
-    title: 'Delete tag',
-    description: `This removes "${label}" from the catalog. It is removed from every submission that had it. This cannot be undone.`,
-    confirmLabel: 'Delete tag',
-    submittingLabel: 'Deleting...',
-  };
 }
