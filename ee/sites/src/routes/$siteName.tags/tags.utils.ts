@@ -164,6 +164,20 @@ export function getTagDialogIdleAction(
   return null;
 }
 
+export type TagsTableColumn = 'label' | 'name' | 'created' | 'actions';
+
+export type TagsTableColumnPin = 'start' | 'end' | 'none';
+
+export function getTagsTableColumnPin(column: TagsTableColumn): TagsTableColumnPin {
+  if (column === 'label') {
+    return 'start';
+  }
+  if (column === 'actions') {
+    return 'end';
+  }
+  return 'none';
+}
+
 export function getTagDeleteCopy(label: string) {
   return {
     title: 'Delete tag',

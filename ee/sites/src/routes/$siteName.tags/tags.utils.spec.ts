@@ -12,6 +12,7 @@ import {
   getTagEditLabelError,
   getTagLabelValidationError,
   getTagNamePreview,
+  getTagsTableColumnPin,
   resolveTagCatalogOutcome,
 } from './tags.utils.js';
 
@@ -214,6 +215,18 @@ describe('getDeleteDialogAlertError', () => {
         fetcherMessage: undefined,
       }),
     ).toBeUndefined();
+  });
+});
+
+describe('getTagsTableColumnPin', () => {
+  test('pins the label to the start and actions to the end', () => {
+    expect(getTagsTableColumnPin('label')).toBe('start');
+    expect(getTagsTableColumnPin('actions')).toBe('end');
+  });
+
+  test('lets name and created scroll with the table', () => {
+    expect(getTagsTableColumnPin('name')).toBe('none');
+    expect(getTagsTableColumnPin('created')).toBe('none');
   });
 });
 
