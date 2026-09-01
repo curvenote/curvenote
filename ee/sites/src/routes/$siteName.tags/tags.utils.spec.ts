@@ -5,28 +5,34 @@ import {
   getCreateTagDuplicateError,
   getDeleteDialogAlertError,
   getFetcherErrorParts,
-  getTagDeleteCopy,
   getTagDialogAlertError,
   getTagDialogIdleAction,
   getTagFormFieldError,
   getTagEditLabelError,
   getTagLabelValidationError,
-  getTagNamePreview,
-  getTagsTableColumnPin,
+  isTagLabelDivergedFromName,
   resolveTagCatalogOutcome,
 } from './tags.utils.js';
 
-describe('getTagNamePreview', () => {
-  test('is empty when the label is blank', () => {
-    expect(getTagNamePreview('   ')).toEqual({ name: '', status: 'empty' });
+describe('isTagLabelDivergedFromName', () => {
+  test('treats a label as aligned when it slugifies to the stored name', () => {
+    expect(isTagLabelDivergedFromName({ label: 'Blog Post', name: 'blog-post' })).toBe(false);
   });
 
-  test('derives a valid name', () => {
-    expect(getTagNamePreview('Blog Post')).toEqual({ name: 'blog-post', status: 'valid' });
+  test('treats a label as aligned when it already matches the stored name', () => {
+    expect(isTagLabelDivergedFromName({ label: 'blog-post', name: 'blog-post' })).toBe(false);
   });
 
-  test('marks a too-short derived name invalid', () => {
-    expect(getTagNamePreview('ab')).toEqual({ name: 'ab', status: 'invalid' });
+  test('treats a label as diverged when it would derive a different name', () => {
+    expect(isTagLabelDivergedFromName({ label: 'Article', name: 'blog-post' })).toBe(true);
+  });
+
+  test('ignores surrounding whitespace when comparing', () => {
+    expect(isTagLabelDivergedFromName({ label: '  Blog Post  ', name: 'blog-post' })).toBe(false);
+  });
+
+  test('keeps an empty label aligned so the description does not flash', () => {
+    expect(isTagLabelDivergedFromName({ label: '   ', name: 'blog-post' })).toBe(false);
   });
 });
 
@@ -215,29 +221,5 @@ describe('getDeleteDialogAlertError', () => {
         fetcherMessage: undefined,
       }),
     ).toBeUndefined();
-  });
-});
-
-describe('getTagsTableColumnPin', () => {
-  test('pins the label to the start and actions to the end', () => {
-    expect(getTagsTableColumnPin('label')).toBe('start');
-    expect(getTagsTableColumnPin('actions')).toBe('end');
-  });
-
-  test('lets name and created scroll with the table', () => {
-    expect(getTagsTableColumnPin('name')).toBe('none');
-    expect(getTagsTableColumnPin('created')).toBe('none');
-  });
-});
-
-describe('getTagDeleteCopy', () => {
-  test('says the tag leaves the catalog, leaves every submission, and cannot be undone', () => {
-    const copy = getTagDeleteCopy('Blog Post');
-    expect(copy.title).toBe('Delete tag');
-    expect(copy.description).toContain('catalog');
-    expect(copy.description).toContain('every submission');
-    expect(copy.description).toContain('cannot be undone');
-    expect(copy.confirmLabel).toBe('Delete tag');
-    expect(copy.submittingLabel).toBe('Deleting...');
   });
 });

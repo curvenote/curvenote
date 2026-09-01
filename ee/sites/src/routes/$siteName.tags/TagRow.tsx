@@ -1,7 +1,6 @@
 import { formatDate, ui, cn } from '@curvenote/scms-core';
 import { Pencil, Trash2 } from 'lucide-react';
 import type { TagCatalogRow } from './types.js';
-import { getTagsTableColumnPin } from './tags.utils.js';
 
 type TagRowProps = {
   tag: TagCatalogRow;
@@ -23,49 +22,21 @@ export function TagRow({ tag, onEdit, onDelete }: TagRowProps) {
   const handleDelete = () => {
     onDelete(tag);
   };
-  const labelPin = getTagsTableColumnPin('label');
-  const namePin = getTagsTableColumnPin('name');
-  const createdPin = getTagsTableColumnPin('created');
-  const actionsPin = getTagsTableColumnPin('actions');
 
   return (
     <tr className="group hover:bg-stone-50 dark:hover:bg-stone-800/50">
-      <td
-        className={cn(
-          'px-4 py-3 whitespace-nowrap',
-          labelPin === 'start' && STICKY_START_CLASS,
-          labelPin === 'end' && STICKY_END_CLASS,
-        )}
-      >
+      <td className={cn('px-4 py-3 whitespace-nowrap', STICKY_START_CLASS)}>
         <ui.Badge variant="neutral" size="xs" title={tag.name}>
           {tag.label}
         </ui.Badge>
       </td>
-      <td
-        className={cn(
-          'px-4 py-3 font-mono text-sm text-stone-600 dark:text-stone-300 whitespace-nowrap',
-          namePin === 'start' && STICKY_START_CLASS,
-          namePin === 'end' && STICKY_END_CLASS,
-        )}
-      >
+      <td className="px-4 py-3 font-mono text-sm text-stone-600 dark:text-stone-300 whitespace-nowrap">
         {tag.name}
       </td>
-      <td
-        className={cn(
-          'px-4 py-3 text-sm text-stone-500 dark:text-stone-400 whitespace-nowrap',
-          createdPin === 'start' && STICKY_START_CLASS,
-          createdPin === 'end' && STICKY_END_CLASS,
-        )}
-      >
+      <td className="px-4 py-3 text-sm text-stone-500 dark:text-stone-400 whitespace-nowrap">
         {formatDate(tag.date_created)}
       </td>
-      <td
-        className={cn(
-          'px-4 py-3 whitespace-nowrap min-w-24',
-          actionsPin === 'start' && STICKY_START_CLASS,
-          actionsPin === 'end' && STICKY_END_CLASS,
-        )}
-      >
+      <td className={cn('px-4 py-3 whitespace-nowrap min-w-24', STICKY_END_CLASS)}>
         <div className="flex items-center justify-end gap-2">
           <ui.Button
             variant="ghost"

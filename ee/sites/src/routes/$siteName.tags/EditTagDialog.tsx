@@ -8,6 +8,7 @@ import {
   getTagDialogIdleAction,
   getTagFormFieldError,
   getTagEditLabelError,
+  isTagLabelDivergedFromName,
   resolveTagCatalogOutcome,
   type TagCatalogFetcherData,
 } from './tags.utils.js';
@@ -15,12 +16,21 @@ import {
 type EditTagDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tag: TagCatalogRow | null;
+  tag: TagCatalogRow;
 };
+
+function TagNameDivergenceMessage({ name }: { name: string }) {
+  return (
+    <>
+      This tag will keep the name <span className="font-mono">{name}</span>. To use a different
+      name, create a new tag.
+    </>
+  );
+}
 
 export function EditTagDialog({ open, onOpenChange, tag }: EditTagDialogProps) {
   const fetcher = useFetcher<TagCatalogFetcherData>();
-  const [label, setLabel] = useState(tag?.label ?? '');
+  const [label, setLabel] = useState(tag.label);
   const [localError, setLocalError] = useState<string | undefined>(undefined);
   const [awaitingResult, setAwaitingResult] = useState(false);
   const prevFetcherState = useRef(fetcher.state);
@@ -35,6 +45,7 @@ export function EditTagDialog({ open, onOpenChange, tag }: EditTagDialogProps) {
     fetcherError: parts.message,
     fetcherField: parts.field,
   });
+  const labelDivergedFromName = isTagLabelDivergedFromName({ label, name: tag.name });
   const isSubmitting = fetcher.state !== 'idle';
 
   useEffect(() => {
@@ -63,9 +74,6 @@ export function EditTagDialog({ open, onOpenChange, tag }: EditTagDialogProps) {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!tag) {
-      return;
-    }
     const nextError = getTagEditLabelError(label);
     if (nextError) {
       setLocalError(nextError);
@@ -84,11 +92,24 @@ export function EditTagDialog({ open, onOpenChange, tag }: EditTagDialogProps) {
       <ui.DialogContent>
         <ui.DialogHeader>
           <ui.DialogTitle>Edit tag</ui.DialogTitle>
-          <ui.DialogDescription>
-            Only the label can be changed; the name stays the same.
-          </ui.DialogDescription>
+          {labelDivergedFromName ? (
+            <ui.DialogDescription className="sr-only">
+              <TagNameDivergenceMessage name={tag.name} />
+            </ui.DialogDescription>
+          ) : (
+            <ui.DialogDescription>
+              Only the label can be changed; the name stays the same.
+            </ui.DialogDescription>
+          )}
         </ui.DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          {labelDivergedFromName ? (
+            <ui.SimpleAlert
+              type="info"
+              message={<TagNameDivergenceMessage name={tag.name} />}
+              size="compact"
+            />
+          ) : null}
           {alertError ? <ui.SimpleAlert type="error" message={alertError} size="compact" /> : null}
           <ui.TextField
             id="edit-tag-label"
@@ -103,7 +124,7 @@ export function EditTagDialog({ open, onOpenChange, tag }: EditTagDialogProps) {
           />
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium">Name</p>
-            <p className="font-mono text-sm text-stone-500 dark:text-stone-400">{tag?.name}</p>
+            <p className="font-mono text-sm text-stone-500 dark:text-stone-400">{tag.name}</p>
           </div>
           <ui.DialogFooter>
             <ui.DialogClose asChild>

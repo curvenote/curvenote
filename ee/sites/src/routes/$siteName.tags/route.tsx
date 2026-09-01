@@ -78,33 +78,16 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
   const openCreate = () => {
     setDialog({ kind: 'create' });
   };
-  const closeDialog = () => {
-    setDialog({ kind: 'none' });
-  };
-  const handleCreateOpenChange = (open: boolean) => {
-    if (open) {
-      setDialog({ kind: 'create' });
-      return;
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setDialog({ kind: 'none' });
     }
-    closeDialog();
   };
   const handleEdit = (tag: TagCatalogRow) => {
     setDialog({ kind: 'edit', tag });
   };
-  const handleEditOpenChange = (open: boolean) => {
-    if (open) {
-      return;
-    }
-    closeDialog();
-  };
   const handleDelete = (tag: TagCatalogRow) => {
     setDialog({ kind: 'delete', tag });
-  };
-  const handleDeleteOpenChange = (open: boolean) => {
-    if (open) {
-      return;
-    }
-    closeDialog();
   };
 
   return (
@@ -140,7 +123,7 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
       {dialog.kind === 'create' ? (
         <CreateTagDialog
           open
-          onOpenChange={handleCreateOpenChange}
+          onOpenChange={handleDialogOpenChange}
           existingNames={tags.map((tag) => tag.name)}
         />
       ) : null}
@@ -148,7 +131,7 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
         <EditTagDialog
           key={dialog.tag.id}
           open
-          onOpenChange={handleEditOpenChange}
+          onOpenChange={handleDialogOpenChange}
           tag={dialog.tag}
         />
       ) : null}
@@ -156,7 +139,7 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
         <DeleteTagDialog
           key={dialog.tag.id}
           open
-          onOpenChange={handleDeleteOpenChange}
+          onOpenChange={handleDialogOpenChange}
           tag={dialog.tag}
         />
       ) : null}

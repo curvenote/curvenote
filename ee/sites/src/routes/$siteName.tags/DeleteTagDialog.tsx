@@ -5,7 +5,6 @@ import type { TagCatalogRow } from './types.js';
 import {
   getDeleteDialogAlertError,
   getFetcherErrorParts,
-  getTagDeleteCopy,
   getTagDialogIdleAction,
   resolveTagCatalogOutcome,
   type TagCatalogFetcherData,
@@ -18,15 +17,14 @@ const DESTRUCTIVE_SOFT_BUTTON_CLASS = cn(
 type DeleteTagDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tag: TagCatalogRow | null;
+  tag: TagCatalogRow;
 };
 
 export function DeleteTagDialog({ open, onOpenChange, tag }: DeleteTagDialogProps) {
-  const fetcher = useFetcher<TagCatalogFetcherData>({ key: `delete-tag:${tag?.id ?? 'none'}` });
+  const fetcher = useFetcher<TagCatalogFetcherData>({ key: `delete-tag:${tag.id}` });
   const [awaitingResult, setAwaitingResult] = useState(false);
   const [submittedThisOpen, setSubmittedThisOpen] = useState(false);
   const prevFetcherState = useRef(fetcher.state);
-  const copy = getTagDeleteCopy(tag?.label ?? '');
   const isSubmitting = fetcher.state !== 'idle';
   const alertError = getDeleteDialogAlertError({
     submittedThisOpen,
@@ -54,9 +52,6 @@ export function DeleteTagDialog({ open, onOpenChange, tag }: DeleteTagDialogProp
   }, [awaitingResult, fetcher.data, fetcher.state, onOpenChange]);
 
   const handleConfirm = () => {
-    if (!tag) {
-      return;
-    }
     setSubmittedThisOpen(true);
     setAwaitingResult(true);
     const formData = new FormData();
@@ -69,8 +64,11 @@ export function DeleteTagDialog({ open, onOpenChange, tag }: DeleteTagDialogProp
     <ui.Dialog open={open} onOpenChange={onOpenChange}>
       <ui.DialogContent>
         <ui.DialogHeader>
-          <ui.DialogTitle>{copy.title}</ui.DialogTitle>
-          <ui.DialogDescription>{copy.description}</ui.DialogDescription>
+          <ui.DialogTitle>Delete tag</ui.DialogTitle>
+          <ui.DialogDescription>
+            This removes "{tag.label}" from the catalog. It is removed from every submission that
+            had it. This cannot be undone.
+          </ui.DialogDescription>
         </ui.DialogHeader>
         {alertError ? <ui.SimpleAlert type="error" message={alertError} size="compact" /> : null}
         <ui.DialogFooter>
@@ -86,7 +84,7 @@ export function DeleteTagDialog({ open, onOpenChange, tag }: DeleteTagDialogProp
             onClick={handleConfirm}
             disabled={isSubmitting}
           >
-            {isSubmitting ? copy.submittingLabel : copy.confirmLabel}
+            {isSubmitting ? 'Deleting...' : 'Delete tag'}
           </ui.Button>
         </ui.DialogFooter>
       </ui.DialogContent>
