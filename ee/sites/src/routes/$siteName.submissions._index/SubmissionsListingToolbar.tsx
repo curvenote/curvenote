@@ -1,7 +1,8 @@
 import { useSearchParams } from 'react-router';
 import { cn } from '@curvenote/scms-core';
 import { clearListingFilters, hasActiveListingFilters } from './listingParams.js';
-import type { ToolbarCollectionOption, ToolbarKindOption, ToolbarTagOption } from './route.js';
+import type { ListingMultiSelectOption } from './ListingMultiSelectChip.js';
+import type { ToolbarCollectionOption, ToolbarKindOption } from './route.js';
 import { SubmissionsSearchInput } from './SubmissionsSearchInput.js';
 import { SubmissionsSearchHelp } from './SubmissionsSearchHelp.js';
 import { SubmissionsSortButton } from './SubmissionsSortButton.js';
@@ -17,7 +18,7 @@ interface SubmissionsListingToolbarProps {
   /** Collections the user can filter by. Empty -> collection chip hidden. */
   availableCollections: ToolbarCollectionOption[];
   /** Editorial tags the user can filter by. Always shown, even when empty. */
-  availableTags: ToolbarTagOption[];
+  availableTags: ListingMultiSelectOption[];
   /** Loader-provided total after applying current filters/search. */
   totalResults: number;
   className?: string;
