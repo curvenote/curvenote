@@ -90,6 +90,8 @@ const csvStatusIds = z.preprocess(
  *                    to the default until the denormalisation slice lands
  *   kindIds        — CSV of SubmissionKind ids (multi-select chip)
  *   collectionIds  — CSV of Collection ids (multi-select chip)
+ *   tagIds         — CSV of editorial Tag ids (multi-select chip). Unknown
+ *                    ids are kept and match no extra rows.
  *   statuses       — CSV of newest-version statuses (LISTING_STATUS_OPTIONS).
  *                    Unknown ids are dropped silently so links survive enum
  *                    additions/removals.
@@ -121,6 +123,7 @@ const ListingQuerySchema = z.object({
     ),
   kindIds: csvIds,
   collectionIds: csvIds,
+  tagIds: csvIds,
   statuses: csvStatusIds,
   from: optionalDateString,
   to: optionalDateString,
