@@ -68,4 +68,7 @@ types/app-config.d.ts
 .claude/CLAUDE.md
 CLAUDE.md
 # brainstorming mockups (root session dir, not docs/superpowers/)
+# Superpowers session dir and local design docs
 /.superpowers/
+docs/superpowers/plans/
+docs/superpowers/specs/2026-08-31-submission-tags-catalog-crud-design.md
