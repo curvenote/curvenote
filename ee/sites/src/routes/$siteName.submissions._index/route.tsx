@@ -11,6 +11,7 @@ import { dbCountSubmissionsForIndex, dbListSubmissionsForIndex } from './db.serv
 import { formatSubmissionsIndexItems } from './format.server.js';
 import { formatSubmissionListingSiteContext } from './site-context.format.server.js';
 import type { SubmissionListingSiteContext } from './site-context.format.server.js';
+import type { ListingMultiSelectOption } from './ListingMultiSelectChip.js';
 import { SubmissionsListingToolbar } from './SubmissionsListingToolbar.js';
 import { SubmissionsList } from './SubmissionsList.js';
 import {
@@ -148,12 +149,6 @@ export interface ToolbarCollectionOption {
   default: boolean;
 }
 
-export interface ToolbarTagOption {
-  id: string;
-  /** Display label (`Tag.label`), stored in the chip option `name` field. */
-  name: string;
-}
-
 interface LoaderData {
   site: SubmissionListingSiteContext;
   submissions: SubmissionsIndexPage;
@@ -161,7 +156,7 @@ interface LoaderData {
   singleKindOnly: boolean;
   availableKinds: ToolbarKindOption[];
   availableCollections: ToolbarCollectionOption[];
-  availableTags: ToolbarTagOption[];
+  availableTags: ListingMultiSelectOption[];
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -189,8 +184,9 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
       default: collection.default,
     }),
   );
-  const availableTags: ToolbarTagOption[] = (ctx.site.tags ?? []).map((tag) => ({
+  const availableTags: ListingMultiSelectOption[] = (ctx.site.tags ?? []).map((tag) => ({
     id: tag.id,
+    // Chip `name` is the popover label. Tag.name is the URL-safe slug.
     name: tag.label,
   }));
   const userSiteRole =
