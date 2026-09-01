@@ -148,6 +148,12 @@ export interface ToolbarCollectionOption {
   default: boolean;
 }
 
+export interface ToolbarTagOption {
+  id: string;
+  /** Display label (`Tag.label`), stored in the chip option `name` field. */
+  name: string;
+}
+
 interface LoaderData {
   site: SubmissionListingSiteContext;
   submissions: SubmissionsIndexPage;
@@ -155,6 +161,7 @@ interface LoaderData {
   singleKindOnly: boolean;
   availableKinds: ToolbarKindOption[];
   availableCollections: ToolbarCollectionOption[];
+  availableTags: ToolbarTagOption[];
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -182,6 +189,10 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
       default: collection.default,
     }),
   );
+  const availableTags: ToolbarTagOption[] = (ctx.site.tags ?? []).map((tag) => ({
+    id: tag.id,
+    name: tag.label,
+  }));
   const userSiteRole =
     ctx.user?.site_roles.find((siteRole) => siteRole.site_id === ctx.site.id)?.role || 'none';
   const collectionNameById = new Map(
@@ -216,6 +227,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     singleKindOnly: availableKinds.length === 1,
     availableKinds,
     availableCollections,
+    availableTags,
   };
 }
 
@@ -232,6 +244,7 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
     singleKindOnly,
     availableKinds,
     availableCollections,
+    availableTags,
   } = loaderData;
 
   const breadcrumbs = [
@@ -249,6 +262,7 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
         className="mb-5"
         availableKinds={singleKindOnly ? [] : availableKinds}
         availableCollections={defaultCollectionOnly ? [] : availableCollections}
+        availableTags={availableTags}
         totalResults={submissions.total}
       />
       <div className="flex flex-col gap-2">
