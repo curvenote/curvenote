@@ -544,6 +544,12 @@ interface CreateListedSubmissionParams {
   status?: string;
 }
 
+type CreateSiteTagInput = {
+  siteId: string;
+  name: string;
+  label: string;
+};
+
 /**
  * Creates a Work + WorkVersion + Submission + SubmissionVersion (status
  * "APPROVED" by default) so the trigger marks the Submission as
@@ -614,21 +620,17 @@ async function createListedSubmission(
   return submissionId;
 }
 
-async function createSiteTag(
-  siteId: string,
-  name: string,
-  label: string,
-): Promise<string> {
+async function createSiteTag(input: CreateSiteTagInput): Promise<string> {
   const prisma = await getPrismaClient();
   const id = uuidv7();
   const now = new Date().toISOString();
   await prisma.tag.create({
     data: {
       id,
-      name,
-      label,
+      name: input.name,
+      label: input.label,
       date_created: now,
-      site: { connect: { id: siteId } },
+      site: { connect: { id: input.siteId } },
     },
   });
   return id;
@@ -793,8 +795,16 @@ async function seedSubmissions(testData: TestData) {
     status: 'PUBLISHED',
   });
 
-  const blogPostTagId = await createSiteTag(testData.siteId, 'blog-post', 'Blog Post');
-  const essayTagId = await createSiteTag(testData.siteId, 'essay', 'Essay');
+  const blogPostTagId = await createSiteTag({
+    siteId: testData.siteId,
+    name: 'blog-post',
+    label: 'Blog Post',
+  });
+  const essayTagId = await createSiteTag({
+    siteId: testData.siteId,
+    name: 'essay',
+    label: 'Essay',
+  });
   await assignTag(photoSynthesis, blogPostTagId);
   await assignTag(weatherRadar, blogPostTagId);
   await assignTag(brontePoetry, essayTagId);
