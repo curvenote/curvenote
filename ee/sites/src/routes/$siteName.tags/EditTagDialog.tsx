@@ -38,14 +38,6 @@ export function EditTagDialog({ open, onOpenChange, tag }: EditTagDialogProps) {
   const isSubmitting = fetcher.state !== 'idle';
 
   useEffect(() => {
-    if (open && tag) {
-      setLabel(tag.label);
-      setLocalError(undefined);
-      setAwaitingResult(false);
-    }
-  }, [open, tag]);
-
-  useEffect(() => {
     const action = getTagDialogIdleAction({
       awaitingResult,
       prevFetcherState: prevFetcherState.current,

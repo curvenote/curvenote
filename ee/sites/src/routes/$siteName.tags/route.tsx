@@ -145,10 +145,20 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
         />
       ) : null}
       {dialog.kind === 'edit' ? (
-        <EditTagDialog open onOpenChange={handleEditOpenChange} tag={dialog.tag} />
+        <EditTagDialog
+          key={dialog.tag.id}
+          open
+          onOpenChange={handleEditOpenChange}
+          tag={dialog.tag}
+        />
       ) : null}
       {dialog.kind === 'delete' ? (
-        <DeleteTagDialog open onOpenChange={handleDeleteOpenChange} tag={dialog.tag} />
+        <DeleteTagDialog
+          key={dialog.tag.id}
+          open
+          onOpenChange={handleDeleteOpenChange}
+          tag={dialog.tag}
+        />
       ) : null}
     </PageFrame>
   );
