@@ -83,6 +83,21 @@ export async function action(args: ActionFunctionArgs) {
   return null;
 }
 
+/** Hex colors round-trip through the picker in upper case, so compare case-insensitively. */
+function sameColor(a: string, b: string) {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+function UnsavedDot() {
+  return (
+    <ui.SimpleTooltip title="Unsaved changes">
+      <span role="status" aria-label="Unsaved changes" className="flex">
+        <ui.Dot className="bg-amber-500" />
+      </span>
+    </ui.SimpleTooltip>
+  );
+}
+
 export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderData }) {
   const { scopes, site, themeConfig, logoUrl, logoDarkUrl, publicCdn } = loaderData;
   const fetcher = useFetcher();
@@ -101,7 +116,6 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const [currentColorSecondary, setCurrentColorSecondary] = useState(
     themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
   );
-  const [dirty, setDirty] = useState(false);
   // Use a reset key to force ColorPicker remounting on cancel
   const [resetKey, setResetKey] = useState(0);
 
@@ -110,6 +124,20 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const secondaryColorTimeoutRef = useRef<NodeJS.Timeout>();
 
   const canEdit = clientCheckSiteScopes(scopes, [siteScopes.update], site.name);
+
+  // Which accordion sections differ from what is saved, compared against the same
+  // defaults the state is initialized with so an untouched page shows no indicators
+  const basicsChanged =
+    currentTitle !== site.title || currentDescription !== (site.description || '');
+  const logosChanged = currentLogoUrl !== logoUrl || currentLogoDarkUrl !== logoDarkUrl;
+  const colorsChanged =
+    !sameColor(currentColorPrimary, themeConfig?.colors?.primary || '#3b82f6') ||
+    !sameColor(
+      currentColorSecondary,
+      themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
+    );
+  // Derived rather than latched, so editing a value and putting it back is not dirty
+  const dirty = basicsChanged || logosChanged || colorsChanged;
 
   // Reset state from loader data
   const resetFromLoaderData = () => {
@@ -129,7 +157,6 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     setCurrentColorSecondary(
       themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
     );
-    setDirty(false);
     // Force ColorPicker to remount with original values
     setResetKey((prev) => prev + 1);
   };
@@ -157,10 +184,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     }
 
     fetcher.submit(formData, { method: 'POST' });
-    setDirty(false);
   };
 
-  const handleCancel = () => {
+  const handleReset = () => {
     resetFromLoaderData();
   };
 
@@ -183,10 +209,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
 
           // Debounce the state update to prevent race conditions
           timeoutRef.current = setTimeout(() => {
-            // Only set dirty if the color actually changed
             if (hexColor !== currentColor) {
               setColor(hexColor);
-              setDirty(true);
             }
           }, 16); // ~60fps update rate
         }
@@ -219,7 +243,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                 <div className="flex items-start flex-1 gap-3">
                   <Pencil className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <div className="flex-1 text-left">
-                    <div className="font-semibold">Basics</div>
+                    <div className="flex items-center gap-2 font-semibold">
+                      Basics
+                      {basicsChanged && <UnsavedDot />}
+                    </div>
                   </div>
                 </div>
               </ui.AccordionTrigger>
@@ -232,7 +259,6 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                       value={currentTitle}
                       onChange={(e) => {
                         setCurrentTitle(e.target.value);
-                        setDirty(true);
                       }}
                       placeholder="Enter site title"
                       disabled={!canEdit}
@@ -245,7 +271,6 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                       value={currentDescription}
                       onChange={(e) => {
                         setCurrentDescription(e.target.value);
-                        setDirty(true);
                       }}
                       placeholder="Enter site description"
                       disabled={!canEdit}
@@ -260,7 +285,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                 <div className="flex items-start flex-1 gap-3">
                   <ImageIcon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <div className="flex-1 text-left">
-                    <div className="font-semibold">Logos</div>
+                    <div className="flex items-center gap-2 font-semibold">
+                      Logos
+                      {logosChanged && <UnsavedDot />}
+                    </div>
                   </div>
                 </div>
               </ui.AccordionTrigger>
@@ -292,7 +320,6 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         height="80px"
                         onUploadComplete={(uploadedPath) => {
                           setCurrentLogoUrl(toPublicAssetUrl(uploadedPath));
-                          setDirty(true);
                         }}
                       />
                     </div>
@@ -324,7 +351,6 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         height="80px"
                         onUploadComplete={(uploadedPath) => {
                           setCurrentLogoDarkUrl(toPublicAssetUrl(uploadedPath));
-                          setDirty(true);
                         }}
                       />
                     </div>
@@ -338,7 +364,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                 <div className="flex items-start flex-1 gap-3">
                   <PaletteIcon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <div className="flex-1 text-left">
-                    <div className="font-semibold">Colors</div>
+                    <div className="flex items-center gap-2 font-semibold">
+                      Colors
+                      {colorsChanged && <UnsavedDot />}
+                    </div>
                   </div>
                 </div>
               </ui.AccordionTrigger>
@@ -405,11 +434,11 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
           </ui.Accordion>
         </div>
 
-        {/* Save/Cancel Buttons */}
+        {/* Save/Reset Buttons */}
         <div className="p-4 bg-white border-t dark:bg-slate-950">
           <div className="flex justify-end gap-2">
-            <ui.Button variant="outline" onClick={handleCancel} disabled={!dirty || !canEdit}>
-              Cancel
+            <ui.Button variant="outline" onClick={handleReset} disabled={!dirty || !canEdit}>
+              Reset
             </ui.Button>
             <ui.Button onClick={handleSave} disabled={!dirty || !canEdit}>
               Save Changes
@@ -425,8 +454,6 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
         description="You have unsaved changes to this site's design. Would you like to save them before leaving this page?"
         onSave={handleSave}
         onDiscard={resetFromLoaderData}
-        // handleSave clears the dirty flag optimistically; put it back if the save failed
-        onSaveError={() => setDirty(true)}
       />
     </div>
   );
