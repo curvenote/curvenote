@@ -15,7 +15,7 @@ import { useFetcher } from 'react-router';
 import type { JournalThemeConfig, SiteDTO } from '@curvenote/common';
 import { SiteSkeleton } from './SiteSkeleton.js';
 import { UnsavedChangesGuard } from './UnsavedChangesGuard.js';
-import { ImageIcon, PaletteIcon, Pencil } from 'lucide-react';
+import { ImageIcon, PaletteIcon, TypeIcon } from 'lucide-react';
 import { useState, useRef, useCallback } from 'react';
 import Color from 'color';
 import { ColorSwatch } from './ColorSwatch.js';
@@ -240,8 +240,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
           <ui.Accordion type="single" collapsible defaultValue="item-title" className="w-full">
             <ui.AccordionItem value="item-title">
               <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
-                <div className="flex items-start flex-1 gap-3">
-                  <Pencil className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex items-center flex-1 gap-3">
+                  <TypeIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2 font-semibold">
                       Basics
@@ -282,8 +282,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
 
             <ui.AccordionItem value="item-logos">
               <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
-                <div className="flex items-start flex-1 gap-3">
-                  <ImageIcon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex items-center flex-1 gap-3">
+                  <ImageIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2 font-semibold">
                       Logos
@@ -361,8 +361,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
 
             <ui.AccordionItem value="item-colors">
               <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
-                <div className="flex items-start flex-1 gap-3">
-                  <PaletteIcon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex items-center flex-1 gap-3">
+                  <PaletteIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2 font-semibold">
                       Colors
@@ -416,8 +416,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
 
             {/* <AccordionItem value="item-navigation">
               <AccordionTrigger className="justify-between px-4 hover:no-underline">
-                <div className="flex items-start flex-1 gap-3">
-                  <LinkIcon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex items-center flex-1 gap-3">
+                  <LinkIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 text-left">
                     <div className="font-semibold">Navigation Links</div>
                   </div>
