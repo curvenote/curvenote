@@ -28,8 +28,27 @@ interface LoaderData {
   themeConfig: JournalThemeConfig | undefined;
   logoUrl: string | undefined;
   logoDarkUrl: string | undefined;
+  faviconUrl: string | undefined;
   publicCdn?: string;
 }
+
+const faviconUploadConfig: FileUploadConfig = {
+  slot: 'favicon',
+  label: 'Favicon',
+  description: 'Upload a favicon for your site',
+  optional: true,
+  multiple: false,
+  ignoreDuplicates: true,
+  accept: 'image/png,image/x-icon,image/svg+xml',
+  mimeTypes: [
+    'image/png',
+    'image/x-icon',
+    'image/vnd.microsoft.icon',
+    'image/svg+xml',
+    'image/webp',
+  ],
+  maxSize: 1 * 1024 * 1024,
+};
 
 const logoUploadConfig: FileUploadConfig = {
   slot: 'logo',
@@ -53,6 +72,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   const themeConfig = metadata?.theme_config as JournalThemeConfig | undefined;
   const logoUrl = metadata?.logo as string | undefined;
   const logoDarkUrl = metadata?.logo_dark as string | undefined;
+  const faviconUrl = metadata?.favicon as string | undefined;
 
   return {
     scopes: ctx.scopes,
@@ -60,6 +80,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     themeConfig,
     logoUrl,
     logoDarkUrl,
+    faviconUrl,
     publicCdn: ctx.$config.api.knownBucketInfoMap.pub.cdn,
   };
 }
@@ -74,7 +95,9 @@ export async function action(args: ActionFunctionArgs) {
   const formData = await args.request.formData();
   const intent = formData.get('intent') as string;
   if (intent === FILE_UPLOAD_INTENTS.uploadStage) {
-    return siteUploadsStage(ctx, logoUploadConfig, formData);
+    const uploadConfig =
+      formData.get('slot') === faviconUploadConfig.slot ? faviconUploadConfig : logoUploadConfig;
+    return siteUploadsStage(ctx, uploadConfig, formData);
   } else if (intent === FILE_UPLOAD_INTENTS.uploadComplete) {
     return siteUploadsComplete(ctx, formData);
   } else if (intent === 'site.update') {
@@ -99,7 +122,7 @@ function UnsavedDot() {
 }
 
 export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderData }) {
-  const { scopes, site, themeConfig, logoUrl, logoDarkUrl, publicCdn } = loaderData;
+  const { scopes, site, themeConfig, logoUrl, logoDarkUrl, faviconUrl, publicCdn } = loaderData;
   const fetcher = useFetcher();
   const toPublicAssetUrl = (uploadedPath: string) => {
     if (!publicCdn) return uploadedPath;
@@ -110,6 +133,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const [currentDescription, setCurrentDescription] = useState(site.description || '');
   const [currentLogoUrl, setCurrentLogoUrl] = useState(logoUrl);
   const [currentLogoDarkUrl, setCurrentLogoDarkUrl] = useState(logoDarkUrl);
+  const [currentFaviconUrl, setCurrentFaviconUrl] = useState(faviconUrl);
   const [currentColorPrimary, setCurrentColorPrimary] = useState(
     themeConfig?.colors?.primary || '#3b82f6',
   );
@@ -129,7 +153,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   // defaults the state is initialized with so an untouched page shows no indicators
   const basicsChanged =
     currentTitle !== site.title || currentDescription !== (site.description || '');
-  const logosChanged = currentLogoUrl !== logoUrl || currentLogoDarkUrl !== logoDarkUrl;
+  const logosChanged =
+    currentLogoUrl !== logoUrl ||
+    currentLogoDarkUrl !== logoDarkUrl ||
+    currentFaviconUrl !== faviconUrl;
   const colorsChanged =
     !sameColor(currentColorPrimary, themeConfig?.colors?.primary || '#3b82f6') ||
     !sameColor(
@@ -153,6 +180,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     setCurrentDescription(site.description || '');
     setCurrentLogoUrl(logoUrl);
     setCurrentLogoDarkUrl(logoDarkUrl);
+    setCurrentFaviconUrl(faviconUrl);
     setCurrentColorPrimary(themeConfig?.colors?.primary || '#3b82f6');
     setCurrentColorSecondary(
       themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
@@ -175,6 +203,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     }
     if (currentLogoDarkUrl && currentLogoDarkUrl !== logoDarkUrl) {
       formData.append('logoDarkUrl', currentLogoDarkUrl);
+    }
+    if (currentFaviconUrl && currentFaviconUrl !== faviconUrl) {
+      formData.append('faviconUrl', currentFaviconUrl);
     }
     if (currentColorPrimary !== themeConfig?.colors?.primary) {
       formData.append('colorPrimary', currentColorPrimary);
@@ -227,6 +258,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
             site={{ ...site, title: currentTitle }}
             logoUrl={currentLogoUrl}
             logoDarkUrl={currentLogoDarkUrl}
+            faviconUrl={currentFaviconUrl}
             themeColorPrimary={currentColorPrimary}
             themeColorSecondary={currentColorSecondary}
           />
@@ -351,6 +383,38 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         height="80px"
                         onUploadComplete={(uploadedPath) => {
                           setCurrentLogoDarkUrl(toPublicAssetUrl(uploadedPath));
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Favicon */}
+                  <div className="flex items-start gap-4">
+                    <div className="flex flex-col items-start gap-2">
+                      <h3 className="text-sm font-medium">Favicon</h3>
+                      <div className="flex items-center justify-center flex-shrink-0 w-20 h-20">
+                        {currentFaviconUrl ? (
+                          <img
+                            src={currentFaviconUrl}
+                            alt="Favicon"
+                            className="object-contain w-8 h-8 rounded"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-20 h-20 border rounded bg-muted">
+                            <span className="text-xs text-muted-foreground">No favicon</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <FileDropzone
+                        folder={`static/site/${site.name}`}
+                        slot="favicon"
+                        readonly={!canEdit}
+                        height="80px"
+                        accept={{ 'image/png': [], 'image/x-icon': [], 'image/svg+xml': [] }}
+                        onUploadComplete={(uploadedPath) => {
+                          setCurrentFaviconUrl(toPublicAssetUrl(uploadedPath));
                         }}
                       />
                     </div>

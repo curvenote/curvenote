@@ -10,6 +10,7 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
   const description = formData.get('description') as string;
   const logoUrl = formData.get('logoUrl') as string;
   const logoDarkUrl = formData.get('logoDarkUrl') as string;
+  const faviconUrl = formData.get('faviconUrl') as string;
   const colorPrimary = formData.get('colorPrimary') as string;
   const colorSecondary = formData.get('colorSecondary') as string;
 
@@ -20,7 +21,7 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
   ) {
     return dataResponse({ error: 'Invalid color format' }, { status: 400 });
   }
-  if (colorPrimary || colorSecondary || logoUrl || logoDarkUrl) {
+  if (colorPrimary || colorSecondary || logoUrl || logoDarkUrl || faviconUrl) {
     await safeSiteMetadataUpdate(ctx.site.id, (metadata) => {
       const updatedMetadata = coerceToObject(metadata);
       const updatedThemeConfig = (updatedMetadata.theme_config as JournalThemeConfig) || {};
@@ -39,6 +40,7 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
       updatedMetadata.theme_config = updatedThemeConfig;
       if (logoUrl) updatedMetadata.logo = logoUrl;
       if (logoDarkUrl) updatedMetadata.logo_dark = logoDarkUrl;
+      if (faviconUrl) updatedMetadata.favicon = faviconUrl;
 
       return updatedMetadata;
     });
@@ -57,6 +59,7 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
     description,
     logoUrl,
     logoDarkUrl,
+    faviconUrl,
     colorPrimary,
     colorSecondary,
   });
