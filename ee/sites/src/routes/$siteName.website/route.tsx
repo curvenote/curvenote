@@ -15,7 +15,6 @@ import { useFetcher } from 'react-router';
 import type { JournalThemeConfig, SiteDTO } from '@curvenote/common';
 import { SiteSkeleton } from './SiteSkeleton.js';
 import { ImageIcon, PaletteIcon, Pencil } from 'lucide-react';
-import { ClassicDesignRedirect } from './ClassicWebsiteRedirect.js';
 import { useState, useRef, useCallback } from 'react';
 import Color from 'color';
 import { ColorSwatch } from './ColorSwatch.js';
@@ -206,14 +205,13 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
             themeColorPrimary={currentColorPrimary}
             themeColorSecondary={currentColorSecondary}
           />
-          <ClassicDesignRedirect siteName={site.name} />
         </div>
       </PageFrame>
 
-      <div className="flex flex-col h-full bg-white shadow-sm dark:bg-slate-950">
-        <h2 className="m-6 text-xl font-semibold">Website & Design</h2>
+      <div className="flex flex-col h-full bg-white shadow-sm dark:bg-slate-950 lg:sticky lg:top-0 lg:h-[calc(100vh-1.75rem)]">
+        <h2 className="m-6 text-xl font-semibold shrink-0">Website & Design</h2>
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 min-h-0 overflow-auto">
           <ui.Accordion type="single" collapsible defaultValue="item-title" className="w-full">
             <ui.AccordionItem value="item-title">
               <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
