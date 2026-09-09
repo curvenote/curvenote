@@ -285,7 +285,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
               <ui.AccordionContent>
                 <div className="px-4 space-y-4">
                   <div className="space-y-2">
-                    <ui.Label htmlFor="site-title">Title</ui.Label>
+                    <div className="flex items-center gap-1.5">
+                      <ui.Label htmlFor="site-title">Title</ui.Label>
+                      <ui.SimpleTooltipWithIcon title="The name of your site, shown in the site header and the browser tab." />
+                    </div>
                     <ui.Input
                       id="site-title"
                       value={currentTitle}
@@ -297,7 +300,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                     />
                   </div>
                   <div className="space-y-2">
-                    <ui.Label htmlFor="site-description">Description</ui.Label>
+                    <div className="flex items-center gap-1.5">
+                      <ui.Label htmlFor="site-description">Description</ui.Label>
+                      <ui.SimpleTooltipWithIcon title="A short summary of the site, used by search engines and link previews." />
+                    </div>
                     <ui.Input
                       id="site-description"
                       value={currentDescription}
@@ -327,9 +333,12 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
               <ui.AccordionContent>
                 <div className="px-4 space-y-4">
                   {/* Light Mode Logo */}
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col items-start gap-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
                       <h3 className="text-sm font-medium">Light Mode</h3>
+                      <ui.SimpleTooltipWithIcon title="Logo shown in the site header on light backgrounds." />
+                    </div>
+                    <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center flex-shrink-0 w-20 h-20">
                         {currentLogoUrl ? (
                           <img
@@ -343,24 +352,30 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                           </div>
                         )}
                       </div>
-                    </div>
-                    <div className="flex-1">
-                      <FileDropzone
-                        folder={`static/site/${site.name}`}
-                        slot="logo"
-                        readonly={!canEdit}
-                        height="80px"
-                        onUploadComplete={(uploadedPath) => {
-                          setCurrentLogoUrl(toPublicAssetUrl(uploadedPath));
-                        }}
-                      />
+                      <div className="flex-1">
+                        <FileDropzone
+                          folder={`static/site/${site.name}`}
+                          slot="logo"
+                          readonly={!canEdit}
+                          height="56px"
+                          className="p-3"
+                          inline
+                          label="Upload logo"
+                          onUploadComplete={(uploadedPath) => {
+                            setCurrentLogoUrl(toPublicAssetUrl(uploadedPath));
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {/* Dark Mode Logo */}
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col items-start gap-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
                       <h3 className="text-sm font-medium">Dark Mode</h3>
+                      <ui.SimpleTooltipWithIcon title="Logo shown in the site header when a visitor is using dark mode." />
+                    </div>
+                    <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center flex-shrink-0 w-20 h-20 rounded bg-slate-900">
                         {currentLogoDarkUrl ? (
                           <img
@@ -374,24 +389,30 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                           </div>
                         )}
                       </div>
-                    </div>
-                    <div className="flex-1">
-                      <FileDropzone
-                        folder={`static/site/${site.name}`}
-                        slot="logo"
-                        readonly={!canEdit}
-                        height="80px"
-                        onUploadComplete={(uploadedPath) => {
-                          setCurrentLogoDarkUrl(toPublicAssetUrl(uploadedPath));
-                        }}
-                      />
+                      <div className="flex-1">
+                        <FileDropzone
+                          folder={`static/site/${site.name}`}
+                          slot="logo"
+                          readonly={!canEdit}
+                          height="56px"
+                          className="p-3"
+                          inline
+                          label="Upload dark logo"
+                          onUploadComplete={(uploadedPath) => {
+                            setCurrentLogoDarkUrl(toPublicAssetUrl(uploadedPath));
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {/* Favicon */}
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col items-start gap-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
                       <h3 className="text-sm font-medium">Favicon</h3>
+                      <ui.SimpleTooltipWithIcon title="Small icon shown in the browser tab and in bookmarks." />
+                    </div>
+                    <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center flex-shrink-0 w-20 h-20">
                         {currentFaviconUrl ? (
                           <img
@@ -405,18 +426,21 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                           </div>
                         )}
                       </div>
-                    </div>
-                    <div className="flex-1">
-                      <FileDropzone
-                        folder={`static/site/${site.name}`}
-                        slot="favicon"
-                        readonly={!canEdit}
-                        height="80px"
-                        accept={{ 'image/png': [], 'image/x-icon': [], 'image/svg+xml': [] }}
-                        onUploadComplete={(uploadedPath) => {
-                          setCurrentFaviconUrl(toPublicAssetUrl(uploadedPath));
-                        }}
-                      />
+                      <div className="flex-1">
+                        <FileDropzone
+                          folder={`static/site/${site.name}`}
+                          slot="favicon"
+                          readonly={!canEdit}
+                          height="56px"
+                          className="p-3"
+                          inline
+                          label="Upload favicon"
+                          accept={{ 'image/png': [], 'image/x-icon': [], 'image/svg+xml': [] }}
+                          onUploadComplete={(uploadedPath) => {
+                            setCurrentFaviconUrl(toPublicAssetUrl(uploadedPath));
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -438,7 +462,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
               <ui.AccordionContent>
                 <div className="px-4 space-y-6">
                   <div className="space-y-2">
-                    <ui.Label>Primary Color</ui.Label>
+                    <div className="flex items-center gap-1.5">
+                      <ui.Label>Primary Color</ui.Label>
+                      <ui.SimpleTooltipWithIcon title="Your main brand color, used for the site banner and footer." />
+                    </div>
                     <ui.ColorPicker
                       key={`primary-${resetKey}`}
                       defaultValue={currentColorPrimary}
@@ -457,7 +484,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                   </div>
 
                   <div className="space-y-2">
-                    <ui.Label>Secondary Color</ui.Label>
+                    <div className="flex items-center gap-1.5">
+                      <ui.Label>Secondary Color</ui.Label>
+                      <ui.SimpleTooltipWithIcon title="Accent color, used for buttons and highlights on the site." />
+                    </div>
                     <ui.ColorPicker
                       key={`secondary-${resetKey}`}
                       defaultValue={currentColorSecondary}

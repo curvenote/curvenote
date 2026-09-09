@@ -116,9 +116,11 @@ function SimpleTooltipWithIcon({
   sideOffset?: number;
   delayDuration?: number;
 }) {
-  <SimpleTooltip title={title} side={side} sideOffset={sideOffset} delayDuration={delayDuration}>
-    <InfoIcon className="inline-block w-[1.25em] h-[1.25em] -translate-y-[1px] text-muted-foreground" />
-  </SimpleTooltip>;
+  return (
+    <SimpleTooltip title={title} side={side} sideOffset={sideOffset} delayDuration={delayDuration}>
+      <InfoIcon className="inline-block w-[1.25em] h-[1.25em] -translate-y-[1px] text-muted-foreground" />
+    </SimpleTooltip>
+  );
 }
 
 export {
