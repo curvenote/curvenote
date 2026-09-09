@@ -1,4 +1,4 @@
-import type { SiteDTO } from '@curvenote/common';
+import type { SiteDTO, SocialLink } from '@curvenote/common';
 import { SkeletonFooter } from './SkeletonFooter.js';
 import { GlobeIcon, MicroscopeIcon, MoonIcon, SunIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -11,6 +11,7 @@ type SiteSkeletonProps = {
   footerLogoUrl?: string;
   footerLogoDarkUrl?: string;
   tagline?: string;
+  social?: SocialLink[];
   themeColorPrimary?: string;
   themeColorSecondary?: string;
 };
@@ -23,6 +24,7 @@ export function SiteSkeleton({
   footerLogoUrl,
   footerLogoDarkUrl,
   tagline,
+  social,
   themeColorPrimary = '#3b82f6',
   themeColorSecondary = '#64748b',
 }: SiteSkeletonProps) {
@@ -164,7 +166,7 @@ export function SiteSkeleton({
           logoUrl={footerLogoUrl || logoUrl}
           logoDarkUrl={footerLogoDarkUrl || (footerLogoUrl ? undefined : logoDarkUrl)}
           tagline={tagline}
-          social={site.social_links}
+          social={social ?? site.social_links}
           links={site.footer_links}
           isDark={isDark}
         />

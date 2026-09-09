@@ -1,32 +1,6 @@
 import type { FooterLink, SocialLink } from '@curvenote/common';
-import {
-  BlueskyIcon,
-  CurvenoteIcon,
-  DiscordIcon,
-  DiscourseIcon,
-  EmailIcon,
-  GithubIcon,
-  LinkedinIcon,
-  MastodonIcon,
-  SlackIcon,
-  TwitterIcon,
-  WebsiteIcon,
-  YoutubeIcon,
-} from '@scienceicons/react/24/solid';
-
-const SOCIAL_ICONS = {
-  bluesky: BlueskyIcon,
-  twitter: TwitterIcon,
-  mastodon: MastodonIcon,
-  linkedin: LinkedinIcon,
-  github: GithubIcon,
-  slack: SlackIcon,
-  email: EmailIcon,
-  discord: DiscordIcon,
-  website: WebsiteIcon,
-  youtube: YoutubeIcon,
-  discourse: DiscourseIcon,
-} as const;
+import { CurvenoteIcon } from '@scienceicons/react/24/solid';
+import { SocialIcon } from './SocialLinksField.js';
 
 type SkeletonFooterProps = {
   title: string;
@@ -77,16 +51,14 @@ export function SkeletonFooter({
             )}
             {social && social.length > 0 && (
               <div className="flex items-center gap-2 mt-3 opacity-70">
-                {social.map((link) => {
-                  const Icon = SOCIAL_ICONS[link.kind as keyof typeof SOCIAL_ICONS] ?? WebsiteIcon;
-                  return (
-                    <Icon
-                      key={`${link.kind}-${link.url}`}
-                      className="w-4 h-4"
-                      style={{ color: textColor }}
-                    />
-                  );
-                })}
+                {social.map((link) => (
+                  <SocialIcon
+                    key={`${link.kind}-${link.url}`}
+                    kind={link.kind}
+                    className="w-4 h-4"
+                    style={{ color: textColor }}
+                  />
+                ))}
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { data as dataResponse } from 'react-router';
 import type { SiteContext } from '@curvenote/scms-server';
-import type { JournalThemeConfig } from '@curvenote/common';
+import type { JournalThemeConfig, SocialLink } from '@curvenote/common';
 import { coerceToObject, TrackEvent } from '@curvenote/scms-core';
 import { getPrismaClient, safeSiteMetadataUpdate } from '@curvenote/scms-server';
 import type { Prisma } from '@curvenote/scms-db';
@@ -14,6 +14,7 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
   const footerLogoUrl = formData.get('footerLogoUrl') as string;
   const footerLogoDarkUrl = formData.get('footerLogoDarkUrl') as string;
   const tagline = formData.get('tagline') as string | null;
+  const socialLinks = formData.get('socialLinks') as string | null;
   const colorPrimary = formData.get('colorPrimary') as string;
   const colorSecondary = formData.get('colorSecondary') as string;
 
@@ -32,7 +33,8 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
     faviconUrl ||
     footerLogoUrl ||
     footerLogoDarkUrl ||
-    tagline !== null
+    tagline !== null ||
+    socialLinks !== null
   ) {
     await safeSiteMetadataUpdate(ctx.site.id, (metadata) => {
       const updatedMetadata = coerceToObject(metadata);
@@ -57,6 +59,11 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
       if (footerLogoDarkUrl) updatedMetadata.footer_logo_dark = footerLogoDarkUrl;
       // Checked against null so an empty tagline clears it
       if (tagline !== null) updatedMetadata.tagline = tagline;
+      if (socialLinks !== null) {
+        updatedMetadata.social_links = (JSON.parse(socialLinks) as SocialLink[]).map(
+          ({ kind, url }) => ({ kind, url }),
+        );
+      }
 
       return updatedMetadata;
     });
@@ -79,6 +86,7 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
     footerLogoUrl,
     footerLogoDarkUrl,
     tagline,
+    socialLinks,
     colorPrimary,
     colorSecondary,
   });

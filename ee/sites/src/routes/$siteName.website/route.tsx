@@ -15,6 +15,7 @@ import { useFetcher } from 'react-router';
 import type { JournalThemeConfig, SiteDTO } from '@curvenote/common';
 import { SiteSkeleton } from './SiteSkeleton.js';
 import { UnsavedChangesGuard } from './UnsavedChangesGuard.js';
+import { SocialLinksField } from './SocialLinksField.js';
 import { ImageIcon, PaletteIcon, PanelBottomIcon, TypeIcon } from 'lucide-react';
 import { useState, useRef, useCallback } from 'react';
 import Color from 'color';
@@ -157,6 +158,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const [currentFooterLogoUrl, setCurrentFooterLogoUrl] = useState(footerLogoUrl);
   const [currentFooterLogoDarkUrl, setCurrentFooterLogoDarkUrl] = useState(footerLogoDarkUrl);
   const [currentTagline, setCurrentTagline] = useState(tagline || '');
+  const [currentSocialLinks, setCurrentSocialLinks] = useState(site.social_links ?? []);
   const [currentColorPrimary, setCurrentColorPrimary] = useState(
     themeConfig?.colors?.primary || '#3b82f6',
   );
@@ -190,7 +192,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const footerChanged =
     currentFooterLogoUrl !== footerLogoUrl ||
     currentFooterLogoDarkUrl !== footerLogoDarkUrl ||
-    currentTagline !== (tagline || '');
+    currentTagline !== (tagline || '') ||
+    JSON.stringify(currentSocialLinks) !== JSON.stringify(site.social_links ?? []);
   const dirty = basicsChanged || logosChanged || colorsChanged || footerChanged;
 
   // Reset state from loader data
@@ -211,6 +214,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     setCurrentFooterLogoUrl(footerLogoUrl);
     setCurrentFooterLogoDarkUrl(footerLogoDarkUrl);
     setCurrentTagline(tagline || '');
+    setCurrentSocialLinks(site.social_links ?? []);
     setCurrentColorPrimary(themeConfig?.colors?.primary || '#3b82f6');
     setCurrentColorSecondary(
       themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
@@ -245,6 +249,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     }
     if (currentTagline !== (tagline || '')) {
       formData.append('tagline', currentTagline);
+    }
+    if (JSON.stringify(currentSocialLinks) !== JSON.stringify(site.social_links ?? [])) {
+      formData.append('socialLinks', JSON.stringify(currentSocialLinks));
     }
     if (currentColorPrimary !== themeConfig?.colors?.primary) {
       formData.append('colorPrimary', currentColorPrimary);
@@ -301,6 +308,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
             footerLogoUrl={currentFooterLogoUrl}
             footerLogoDarkUrl={currentFooterLogoDarkUrl}
             tagline={currentTagline}
+            social={currentSocialLinks}
             themeColorPrimary={currentColorPrimary}
             themeColorSecondary={currentColorSecondary}
           />
@@ -639,7 +647,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                   </div>
 
                   {/* Footer Tagline */}
-                  <div className="space-y-2">
+                  <div className="pt-4 space-y-2">
                     <div className="flex items-center gap-1.5">
                       <ui.Label htmlFor="site-tagline">Tagline</ui.Label>
                       <ui.SimpleTooltipWithIcon title="A short line shown under the logo in the site footer." />
@@ -649,6 +657,18 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                       value={currentTagline}
                       onChange={(e) => setCurrentTagline(e.target.value)}
                       placeholder="Enter site tagline"
+                      disabled={!canEdit}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <ui.Label>Social Links</ui.Label>
+                      <ui.SimpleTooltipWithIcon title="Links shown as icons in the site footer; the icon is worked out from the link. Drag to reorder." />
+                    </div>
+                    <SocialLinksField
+                      links={currentSocialLinks}
+                      onChange={setCurrentSocialLinks}
                       disabled={!canEdit}
                     />
                   </div>
