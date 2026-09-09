@@ -11,6 +11,9 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
   const logoUrl = formData.get('logoUrl') as string;
   const logoDarkUrl = formData.get('logoDarkUrl') as string;
   const faviconUrl = formData.get('faviconUrl') as string;
+  const footerLogoUrl = formData.get('footerLogoUrl') as string;
+  const footerLogoDarkUrl = formData.get('footerLogoDarkUrl') as string;
+  const tagline = formData.get('tagline') as string | null;
   const colorPrimary = formData.get('colorPrimary') as string;
   const colorSecondary = formData.get('colorSecondary') as string;
 
@@ -21,7 +24,16 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
   ) {
     return dataResponse({ error: 'Invalid color format' }, { status: 400 });
   }
-  if (colorPrimary || colorSecondary || logoUrl || logoDarkUrl || faviconUrl) {
+  if (
+    colorPrimary ||
+    colorSecondary ||
+    logoUrl ||
+    logoDarkUrl ||
+    faviconUrl ||
+    footerLogoUrl ||
+    footerLogoDarkUrl ||
+    tagline !== null
+  ) {
     await safeSiteMetadataUpdate(ctx.site.id, (metadata) => {
       const updatedMetadata = coerceToObject(metadata);
       const updatedThemeConfig = (updatedMetadata.theme_config as JournalThemeConfig) || {};
@@ -41,6 +53,10 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
       if (logoUrl) updatedMetadata.logo = logoUrl;
       if (logoDarkUrl) updatedMetadata.logo_dark = logoDarkUrl;
       if (faviconUrl) updatedMetadata.favicon = faviconUrl;
+      if (footerLogoUrl) updatedMetadata.footer_logo = footerLogoUrl;
+      if (footerLogoDarkUrl) updatedMetadata.footer_logo_dark = footerLogoDarkUrl;
+      // Checked against null so an empty tagline clears it
+      if (tagline !== null) updatedMetadata.tagline = tagline;
 
       return updatedMetadata;
     });
@@ -60,6 +76,9 @@ export async function $actionUpdateSiteDesign(ctx: SiteContext, formData: FormDa
     logoUrl,
     logoDarkUrl,
     faviconUrl,
+    footerLogoUrl,
+    footerLogoDarkUrl,
+    tagline,
     colorPrimary,
     colorSecondary,
   });

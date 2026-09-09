@@ -15,7 +15,7 @@ import { useFetcher } from 'react-router';
 import type { JournalThemeConfig, SiteDTO } from '@curvenote/common';
 import { SiteSkeleton } from './SiteSkeleton.js';
 import { UnsavedChangesGuard } from './UnsavedChangesGuard.js';
-import { ImageIcon, PaletteIcon, TypeIcon } from 'lucide-react';
+import { ImageIcon, PaletteIcon, PanelBottomIcon, TypeIcon } from 'lucide-react';
 import { useState, useRef, useCallback } from 'react';
 import Color from 'color';
 import { ColorSwatch } from './ColorSwatch.js';
@@ -29,6 +29,9 @@ interface LoaderData {
   logoUrl: string | undefined;
   logoDarkUrl: string | undefined;
   faviconUrl: string | undefined;
+  footerLogoUrl: string | undefined;
+  footerLogoDarkUrl: string | undefined;
+  tagline: string | undefined;
   publicCdn?: string;
 }
 
@@ -73,6 +76,9 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   const logoUrl = metadata?.logo as string | undefined;
   const logoDarkUrl = metadata?.logo_dark as string | undefined;
   const faviconUrl = metadata?.favicon as string | undefined;
+  const footerLogoUrl = metadata?.footer_logo as string | undefined;
+  const footerLogoDarkUrl = metadata?.footer_logo_dark as string | undefined;
+  const tagline = metadata?.tagline as string | undefined;
 
   return {
     scopes: ctx.scopes,
@@ -81,6 +87,9 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     logoUrl,
     logoDarkUrl,
     faviconUrl,
+    footerLogoUrl,
+    footerLogoDarkUrl,
+    tagline,
     publicCdn: ctx.$config.api.knownBucketInfoMap.pub.cdn,
   };
 }
@@ -122,7 +131,18 @@ function UnsavedDot() {
 }
 
 export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderData }) {
-  const { scopes, site, themeConfig, logoUrl, logoDarkUrl, faviconUrl, publicCdn } = loaderData;
+  const {
+    scopes,
+    site,
+    themeConfig,
+    logoUrl,
+    logoDarkUrl,
+    faviconUrl,
+    footerLogoUrl,
+    footerLogoDarkUrl,
+    tagline,
+    publicCdn,
+  } = loaderData;
   const fetcher = useFetcher();
   const toPublicAssetUrl = (uploadedPath: string) => {
     if (!publicCdn) return uploadedPath;
@@ -134,6 +154,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const [currentLogoUrl, setCurrentLogoUrl] = useState(logoUrl);
   const [currentLogoDarkUrl, setCurrentLogoDarkUrl] = useState(logoDarkUrl);
   const [currentFaviconUrl, setCurrentFaviconUrl] = useState(faviconUrl);
+  const [currentFooterLogoUrl, setCurrentFooterLogoUrl] = useState(footerLogoUrl);
+  const [currentFooterLogoDarkUrl, setCurrentFooterLogoDarkUrl] = useState(footerLogoDarkUrl);
+  const [currentTagline, setCurrentTagline] = useState(tagline || '');
   const [currentColorPrimary, setCurrentColorPrimary] = useState(
     themeConfig?.colors?.primary || '#3b82f6',
   );
@@ -164,7 +187,11 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
       themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
     );
   // Derived rather than latched, so editing a value and putting it back is not dirty
-  const dirty = basicsChanged || logosChanged || colorsChanged;
+  const footerChanged =
+    currentFooterLogoUrl !== footerLogoUrl ||
+    currentFooterLogoDarkUrl !== footerLogoDarkUrl ||
+    currentTagline !== (tagline || '');
+  const dirty = basicsChanged || logosChanged || colorsChanged || footerChanged;
 
   // Reset state from loader data
   const resetFromLoaderData = () => {
@@ -181,6 +208,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     setCurrentLogoUrl(logoUrl);
     setCurrentLogoDarkUrl(logoDarkUrl);
     setCurrentFaviconUrl(faviconUrl);
+    setCurrentFooterLogoUrl(footerLogoUrl);
+    setCurrentFooterLogoDarkUrl(footerLogoDarkUrl);
+    setCurrentTagline(tagline || '');
     setCurrentColorPrimary(themeConfig?.colors?.primary || '#3b82f6');
     setCurrentColorSecondary(
       themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
@@ -206,6 +236,15 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     }
     if (currentFaviconUrl && currentFaviconUrl !== faviconUrl) {
       formData.append('faviconUrl', currentFaviconUrl);
+    }
+    if (currentFooterLogoUrl && currentFooterLogoUrl !== footerLogoUrl) {
+      formData.append('footerLogoUrl', currentFooterLogoUrl);
+    }
+    if (currentFooterLogoDarkUrl && currentFooterLogoDarkUrl !== footerLogoDarkUrl) {
+      formData.append('footerLogoDarkUrl', currentFooterLogoDarkUrl);
+    }
+    if (currentTagline !== (tagline || '')) {
+      formData.append('tagline', currentTagline);
     }
     if (currentColorPrimary !== themeConfig?.colors?.primary) {
       formData.append('colorPrimary', currentColorPrimary);
@@ -259,6 +298,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
             logoUrl={currentLogoUrl}
             logoDarkUrl={currentLogoDarkUrl}
             faviconUrl={currentFaviconUrl}
+            footerLogoUrl={currentFooterLogoUrl}
+            footerLogoDarkUrl={currentFooterLogoDarkUrl}
+            tagline={currentTagline}
             themeColorPrimary={currentColorPrimary}
             themeColorSecondary={currentColorSecondary}
           />
@@ -503,6 +545,112 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         <ui.ColorPickerOutput />
                       </div>
                     </ui.ColorPicker>
+                  </div>
+                </div>
+              </ui.AccordionContent>
+            </ui.AccordionItem>
+
+            <ui.AccordionItem value="item-footer">
+              <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
+                <div className="flex items-center flex-1 gap-3">
+                  <PanelBottomIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2 font-semibold">
+                      Footer
+                      {footerChanged && <UnsavedDot />}
+                    </div>
+                  </div>
+                </div>
+              </ui.AccordionTrigger>
+              <ui.AccordionContent>
+                <div className="px-4 space-y-4">
+                  {/* Footer Logo */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-sm font-medium">Light Mode</h3>
+                      <ui.SimpleTooltipWithIcon title="Logo shown in the site footer on light backgrounds." />
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="flex items-center justify-center flex-shrink-0 w-20 h-20">
+                        {currentFooterLogoUrl ? (
+                          <img
+                            src={currentFooterLogoUrl}
+                            alt="Footer logo"
+                            className="object-contain w-20 h-20 rounded"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-20 h-20 border rounded bg-muted">
+                            <span className="text-xs text-muted-foreground">No logo</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <FileDropzone
+                          folder={`static/site/${site.name}`}
+                          slot="logo"
+                          readonly={!canEdit}
+                          height="56px"
+                          className="p-3"
+                          inline
+                          label="Upload logo"
+                          onUploadComplete={(uploadedPath) => {
+                            setCurrentFooterLogoUrl(toPublicAssetUrl(uploadedPath));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Logo - Dark Mode */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-sm font-medium">Dark Mode</h3>
+                      <ui.SimpleTooltipWithIcon title="Logo shown in the site footer when a visitor is using dark mode." />
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="flex items-center justify-center flex-shrink-0 w-20 h-20 rounded bg-slate-900">
+                        {currentFooterLogoDarkUrl ? (
+                          <img
+                            src={currentFooterLogoDarkUrl}
+                            alt="Footer logo dark mode"
+                            className="object-contain w-20 h-20 rounded"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-20 h-20">
+                            <span className="text-xs text-slate-400">No logo</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <FileDropzone
+                          folder={`static/site/${site.name}`}
+                          slot="logo"
+                          readonly={!canEdit}
+                          height="56px"
+                          className="p-3"
+                          inline
+                          label="Upload dark logo"
+                          onUploadComplete={(uploadedPath) => {
+                            setCurrentFooterLogoDarkUrl(toPublicAssetUrl(uploadedPath));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Tagline */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <ui.Label htmlFor="site-tagline">Tagline</ui.Label>
+                      <ui.SimpleTooltipWithIcon title="A short line shown under the logo in the site footer." />
+                    </div>
+                    <ui.Input
+                      id="site-tagline"
+                      value={currentTagline}
+                      onChange={(e) => setCurrentTagline(e.target.value)}
+                      placeholder="Enter site tagline"
+                      disabled={!canEdit}
+                    />
                   </div>
                 </div>
               </ui.AccordionContent>

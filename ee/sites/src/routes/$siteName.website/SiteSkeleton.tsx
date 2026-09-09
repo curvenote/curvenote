@@ -1,4 +1,5 @@
 import type { SiteDTO } from '@curvenote/common';
+import { SkeletonFooter } from './SkeletonFooter.js';
 import { GlobeIcon, MicroscopeIcon, MoonIcon, SunIcon } from 'lucide-react';
 import { useState } from 'react';
 
@@ -7,6 +8,9 @@ type SiteSkeletonProps = {
   logoUrl?: string;
   logoDarkUrl?: string;
   faviconUrl?: string;
+  footerLogoUrl?: string;
+  footerLogoDarkUrl?: string;
+  tagline?: string;
   themeColorPrimary?: string;
   themeColorSecondary?: string;
 };
@@ -16,6 +20,9 @@ export function SiteSkeleton({
   logoUrl,
   logoDarkUrl,
   faviconUrl,
+  footerLogoUrl,
+  footerLogoDarkUrl,
+  tagline,
   themeColorPrimary = '#3b82f6',
   themeColorSecondary = '#64748b',
 }: SiteSkeletonProps) {
@@ -151,21 +158,16 @@ export function SiteSkeleton({
           </div>
         </div>
 
-        {/* Footer */}
-        <div
-          className="flex items-center justify-between px-6 py-4 border-t"
-          style={{
-            backgroundColor: themeColorPrimary,
-            borderColor: isDark ? '#1e293b' : '#e2e8f0',
-          }}
-        >
-          <div className="w-32 h-8 rounded bg-white/20" />
-          <div className="flex items-center gap-2">
-            <div className="w-16 h-6 rounded bg-white/20" />
-            <div className="w-16 h-6 rounded bg-white/20" />
-            <div className="w-16 h-6 rounded bg-white/20" />
-          </div>
-        </div>
+        {/* Footer — falls back to the header logo the same way the theme does */}
+        <SkeletonFooter
+          title={site.title}
+          logoUrl={footerLogoUrl || logoUrl}
+          logoDarkUrl={footerLogoDarkUrl || (footerLogoUrl ? undefined : logoDarkUrl)}
+          tagline={tagline}
+          social={site.social_links}
+          links={site.footer_links}
+          isDark={isDark}
+        />
       </div>
     </div>
   );
