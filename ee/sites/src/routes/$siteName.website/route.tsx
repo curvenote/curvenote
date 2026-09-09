@@ -14,6 +14,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react
 import { useFetcher } from 'react-router';
 import type { JournalThemeConfig, SiteDTO } from '@curvenote/common';
 import { SiteSkeleton } from './SiteSkeleton.js';
+import { UnsavedChangesGuard } from './UnsavedChangesGuard.js';
 import { ImageIcon, PaletteIcon, Pencil } from 'lucide-react';
 import { useState, useRef, useCallback } from 'react';
 import Color from 'color';
@@ -416,6 +417,17 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
           </div>
         </div>
       </div>
+
+      <UnsavedChangesGuard
+        dirty={dirty}
+        fetcher={fetcher}
+        canSave={canEdit}
+        description="You have unsaved changes to this site's design. Would you like to save them before leaving this page?"
+        onSave={handleSave}
+        onDiscard={resetFromLoaderData}
+        // handleSave clears the dirty flag optimistically; put it back if the save failed
+        onSaveError={() => setDirty(true)}
+      />
     </div>
   );
 }
