@@ -98,10 +98,6 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
                 'website',
                 resolveRoutePath(import.meta.url, 'routes/$siteName.website/route.tsx'),
               ),
-              route(
-                'website-classic',
-                resolveRoutePath(import.meta.url, 'routes/$siteName.website-classic/route.tsx'),
-              ),
             ]),
           ]),
         ] satisfies RouteConfigEntry[],
