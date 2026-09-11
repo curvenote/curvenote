@@ -1,6 +1,7 @@
 import type { FooterLink, SocialLink } from '@curvenote/common';
 import { CurvenoteIcon } from '@scienceicons/react/24/solid';
 import { SocialIcon } from './SocialLinksField.js';
+import { Hotspot, type OnSelectTarget } from './designTargets.js';
 
 type SkeletonFooterProps = {
   title: string;
@@ -10,6 +11,7 @@ type SkeletonFooterProps = {
   social?: SocialLink[];
   links?: FooterLink[][];
   isDark: boolean;
+  onSelect?: OnSelectTarget;
 };
 
 /**
@@ -25,6 +27,7 @@ export function SkeletonFooter({
   social,
   links,
   isDark,
+  onSelect,
 }: SkeletonFooterProps) {
   const displayLogo = isDark && logoDarkUrl ? logoDarkUrl : logoUrl;
   const textColor = isDark ? '#f5f5f4' : '#1c1917';
@@ -34,23 +37,40 @@ export function SkeletonFooter({
     <>
       <div className="px-6 py-6" style={{ backgroundColor: isDark ? '#1c1917' : '#f5f5f4' }}>
         <div className="flex flex-col gap-6 sm:flex-row">
-          <div className="flex-shrink-0">
-            {displayLogo ? (
-              <img
-                src={displayLogo}
-                alt={title}
-                className="object-contain w-auto h-12 max-w-[200px]"
-              />
-            ) : (
-              <div className="w-32 h-12 rounded" style={{ backgroundColor: placeholderColor }} />
-            )}
-            {tagline && (
-              <div className="mt-2 text-xs font-light" style={{ color: textColor }}>
-                {tagline}
-              </div>
+          <div className="flex flex-col items-start flex-shrink-0">
+            <Hotspot
+              target={isDark ? 'footer.logoDark' : 'footer.logo'}
+              label={isDark ? 'Edit dark mode footer logo' : 'Edit footer logo'}
+              onSelect={onSelect}
+            >
+              {displayLogo ? (
+                <img
+                  src={displayLogo}
+                  alt={title}
+                  className="object-contain w-auto h-12 max-w-[200px]"
+                />
+              ) : (
+                <div className="w-32 h-12 rounded" style={{ backgroundColor: placeholderColor }} />
+              )}
+            </Hotspot>
+            {(tagline || onSelect) && (
+              <Hotspot
+                target="footer.tagline"
+                label="Edit tagline"
+                onSelect={onSelect}
+                className="mt-2 text-xs font-light"
+                style={{ color: textColor }}
+              >
+                {tagline || <span className="italic opacity-50">Add a tagline</span>}
+              </Hotspot>
             )}
             {social && social.length > 0 && (
-              <div className="flex items-center gap-2 mt-3 opacity-70">
+              <Hotspot
+                target="footer.social"
+                label="Edit social links"
+                onSelect={onSelect}
+                className="flex items-center gap-2 mt-3 opacity-70"
+              >
                 {social.map((link) => (
                   <SocialIcon
                     key={`${link.kind}-${link.url}`}
@@ -59,11 +79,16 @@ export function SkeletonFooter({
                     style={{ color: textColor }}
                   />
                 ))}
-              </div>
+              </Hotspot>
             )}
           </div>
 
-          <div className="flex flex-row gap-6 grow sm:justify-end">
+          <Hotspot
+            target="footer.links"
+            label="Edit footer links"
+            onSelect={onSelect}
+            className="flex flex-row gap-6 grow sm:justify-end"
+          >
             {links?.map((column, i) => (
               <ul key={i} className="text-xs leading-loose" style={{ color: textColor }}>
                 {column.map((link) => (
@@ -71,7 +96,7 @@ export function SkeletonFooter({
                 ))}
               </ul>
             ))}
-          </div>
+          </Hotspot>
         </div>
       </div>
 

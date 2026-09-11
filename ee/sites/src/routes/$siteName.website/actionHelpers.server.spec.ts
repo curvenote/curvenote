@@ -1,16 +1,16 @@
-/* eslint-disable @typescript-eslint/consistent-type-imports */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { SiteContext } from '@curvenote/scms-server';
+import { getPrismaClient, safeSiteMetadataUpdate } from '@curvenote/scms-server';
+import { $actionUpdateSiteDesign } from './actionHelpers.server.js';
 
-vi.mock('@curvenote/scms-server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@curvenote/scms-server')>();
-  return {
-    ...actual,
-    getPrismaClient: vi.fn(),
-    safeSiteMetadataUpdate: vi.fn(),
-  };
-});
+// The action only needs these two from the server package. Mocking the module outright,
+// rather than spreading the real one, keeps the whole server (prisma, config) out of the
+// test — importing it took longer than vitest's hook timeout on CI.
+vi.mock('@curvenote/scms-server', () => ({
+  getPrismaClient: vi.fn(),
+  safeSiteMetadataUpdate: vi.fn(),
+}));
 
 const ctx = {
   site: { id: 'site-a' },
@@ -21,20 +21,19 @@ const ctx = {
 type Rejection = { data: { error: string }; init: { status: number } };
 
 /** Submit the given fields to the action as a browser form post would. */
-async function run(fields: Record<string, string | object>) {
+function run(fields: Record<string, string | object>) {
   const formData = new FormData();
   formData.append('intent', 'site.update');
   Object.entries(fields).forEach(([key, value]) => {
     formData.append(key, typeof value === 'string' ? value : JSON.stringify(value));
   });
-  const { $actionUpdateSiteDesign } = await import('./actionHelpers.server.js');
   return $actionUpdateSiteDesign(ctx, formData);
 }
 
 const rejection = (result: unknown) => result as Rejection;
 
 describe('$actionUpdateSiteDesign', () => {
-  let metadataUpdate: ReturnType<typeof vi.fn>;
+  const metadataUpdate = vi.mocked(safeSiteMetadataUpdate);
   let siteUpdate: ReturnType<typeof vi.fn>;
   /** Runs the updater the action passed in against a seed, to see what it would write. */
   const appliedMetadata = (seed: Record<string, unknown> = {}) => {
@@ -44,14 +43,11 @@ describe('$actionUpdateSiteDesign', () => {
     return updater(seed);
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    const server = await import('@curvenote/scms-server');
-    metadataUpdate = vi.mocked(server.safeSiteMetadataUpdate).mockResolvedValue(undefined as never);
+    metadataUpdate.mockResolvedValue(undefined as never);
     siteUpdate = vi.fn();
-    vi.mocked(server.getPrismaClient).mockResolvedValue({
-      site: { update: siteUpdate },
-    } as never);
+    vi.mocked(getPrismaClient).mockResolvedValue({ site: { update: siteUpdate } } as never);
   });
 
   describe('colors', () => {

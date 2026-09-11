@@ -7,6 +7,7 @@ import {
   getBrandingFromMetaMatches,
   joinPageTitle,
   ui,
+  cn,
   FILE_UPLOAD_INTENTS,
   FileDropzone,
 } from '@curvenote/scms-core';
@@ -17,6 +18,7 @@ import { SiteSkeleton } from './SiteSkeleton.js';
 import { ERROR_TOOLTIP_CLASS, UnsavedChangesGuard } from './UnsavedChangesGuard.js';
 import { SocialLinksField, socialLinksError } from './SocialLinksField.js';
 import { FooterLinksField, footerLinksError } from './FooterLinksField.js';
+import { DESIGN_TARGETS, type DesignTarget } from './designTargets.js';
 import { ImageIcon, PaletteIcon, PanelBottomIcon, TriangleAlert, TypeIcon } from 'lucide-react';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Color from 'color';
@@ -140,6 +142,33 @@ function SectionDot({ error }: { error?: string }) {
 }
 
 /** A field label with its info tooltip, kept on one centred line. */
+/** A field's wrapper: carries the id a preview hotspot jumps to, and flashes when it lands. */
+function Field({
+  id,
+  highlighted,
+  className,
+  children,
+}: {
+  id: string;
+  highlighted?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      id={id}
+      className={cn(
+        'rounded-xs transition-shadow duration-500',
+        highlighted === id &&
+          'ring-2 ring-sky-500/70 ring-offset-4 ring-offset-white dark:ring-offset-slate-950',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 function FieldLabel({
   htmlFor,
   title,
@@ -323,6 +352,38 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     resetFromLoaderData();
   };
 
+  // Clicking a region of the preview opens its section, then scrolls to and flashes its field
+  const [openSection, setOpenSection] = useState('item-title');
+  const [pendingTarget, setPendingTarget] = useState<DesignTarget>();
+  const [highlighted, setHighlighted] = useState<string>();
+
+  const jumpTo = (target: DesignTarget) => {
+    setOpenSection(DESIGN_TARGETS[target].section);
+    setPendingTarget(target);
+  };
+
+  useEffect(() => {
+    if (!pendingTarget) return;
+    const { fieldId } = DESIGN_TARGETS[pendingTarget];
+    const field = document.getElementById(fieldId);
+    // The section's content mounts on the render after it opens; try again then
+    if (!field) return;
+    // Let the accordion finish expanding before measuring where to scroll
+    const timer = setTimeout(() => {
+      field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      field.querySelector<HTMLElement>('input:not([type="file"])')?.focus({ preventScroll: true });
+      setHighlighted(fieldId);
+      setPendingTarget(undefined);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [pendingTarget, openSection]);
+
+  useEffect(() => {
+    if (!highlighted) return;
+    const timer = setTimeout(() => setHighlighted(undefined), 1500);
+    return () => clearTimeout(timer);
+  }, [highlighted]);
+
   // Report how the save went
   useEffect(() => {
     if (fetcher.state !== 'idle' || !fetcher.data) return;
@@ -376,6 +437,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
             footerLinks={currentFooterLinks}
             themeColorPrimary={currentColorPrimary}
             themeColorSecondary={currentColorSecondary}
+            onSelect={jumpTo}
           />
         </div>
       </PageFrame>
@@ -384,7 +446,13 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
         <h2 className="p-6 text-xl font-semibold border-b shrink-0">Website & Design</h2>
 
         <div className="flex-1 min-h-0 overflow-auto">
-          <ui.Accordion type="single" collapsible defaultValue="item-title" className="w-full">
+          <ui.Accordion
+            type="single"
+            collapsible
+            value={openSection}
+            onValueChange={setOpenSection}
+            className="w-full"
+          >
             <ui.AccordionItem value="item-title">
               <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
                 <div className="flex items-center flex-1 gap-3">
@@ -398,8 +466,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                 </div>
               </ui.AccordionTrigger>
               <ui.AccordionContent>
-                <div className="px-4 space-y-4">
-                  <div className="space-y-2">
+                <div className="px-4 pt-2 space-y-4">
+                  <Field id="field-title" highlighted={highlighted} className="space-y-2">
                     <FieldLabel
                       htmlFor="site-title"
                       title="The name of your site, shown in the site header and the browser tab."
@@ -415,7 +483,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                       placeholder="Enter site title"
                       disabled={!canEdit}
                     />
-                  </div>
+                  </Field>
                   <div className="space-y-2">
                     <FieldLabel
                       htmlFor="site-description"
@@ -450,9 +518,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                 </div>
               </ui.AccordionTrigger>
               <ui.AccordionContent>
-                <div className="px-4 space-y-4">
+                <div className="px-4 pt-2 space-y-4">
                   {/* Light Mode Logo */}
-                  <div className="space-y-2">
+                  <Field id="field-logo" highlighted={highlighted} className="space-y-2">
                     <FieldLabel title="Logo shown in the site header on light backgrounds.">
                       Light Mode
                     </FieldLabel>
@@ -485,10 +553,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         />
                       </div>
                     </div>
-                  </div>
+                  </Field>
 
                   {/* Dark Mode Logo */}
-                  <div className="space-y-2">
+                  <Field id="field-logo-dark" highlighted={highlighted} className="space-y-2">
                     <FieldLabel title="Logo shown in the site header when a visitor is using dark mode.">
                       Dark Mode
                     </FieldLabel>
@@ -521,10 +589,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         />
                       </div>
                     </div>
-                  </div>
+                  </Field>
 
                   {/* Favicon */}
-                  <div className="space-y-2">
+                  <Field id="field-favicon" highlighted={highlighted} className="space-y-2">
                     <FieldLabel title="Small icon shown in the browser tab and in bookmarks.">
                       Favicon
                     </FieldLabel>
@@ -558,7 +626,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         />
                       </div>
                     </div>
-                  </div>
+                  </Field>
                 </div>
               </ui.AccordionContent>
             </ui.AccordionItem>
@@ -576,8 +644,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                 </div>
               </ui.AccordionTrigger>
               <ui.AccordionContent>
-                <div className="px-4 space-y-6">
-                  <div className="space-y-2">
+                <div className="px-4 pt-2 space-y-6">
+                  <Field id="field-color-primary" highlighted={highlighted} className="space-y-2">
                     <FieldLabel title="Your main brand color, used for the site banner and footer.">
                       Primary Color
                     </FieldLabel>
@@ -596,9 +664,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         <ui.ColorPickerOutput />
                       </div>
                     </ui.ColorPicker>
-                  </div>
+                  </Field>
 
-                  <div className="space-y-2">
+                  <Field id="field-color-secondary" highlighted={highlighted} className="space-y-2">
                     <FieldLabel title="Accent color, used for buttons and highlights on the site.">
                       Secondary Color
                     </FieldLabel>
@@ -617,7 +685,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         <ui.ColorPickerOutput />
                       </div>
                     </ui.ColorPicker>
-                  </div>
+                  </Field>
                 </div>
               </ui.AccordionContent>
             </ui.AccordionItem>
@@ -637,9 +705,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                 </div>
               </ui.AccordionTrigger>
               <ui.AccordionContent>
-                <div className="px-4 space-y-4">
+                <div className="px-4 pt-2 space-y-4">
                   {/* Footer Logo */}
-                  <div className="space-y-2">
+                  <Field id="field-footer-logo" highlighted={highlighted} className="space-y-2">
                     <FieldLabel title="Logo shown in the site footer on light backgrounds.">
                       Light Mode
                     </FieldLabel>
@@ -672,10 +740,14 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         />
                       </div>
                     </div>
-                  </div>
+                  </Field>
 
                   {/* Footer Logo - Dark Mode */}
-                  <div className="space-y-2">
+                  <Field
+                    id="field-footer-logo-dark"
+                    highlighted={highlighted}
+                    className="space-y-2"
+                  >
                     <FieldLabel title="Logo shown in the site footer when a visitor is using dark mode.">
                       Dark Mode
                     </FieldLabel>
@@ -708,10 +780,10 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         />
                       </div>
                     </div>
-                  </div>
+                  </Field>
 
                   {/* Footer Tagline */}
-                  <div className="pt-4 space-y-2">
+                  <Field id="field-tagline" highlighted={highlighted} className="pt-4 space-y-2">
                     <FieldLabel
                       htmlFor="site-tagline"
                       title="A short line shown under the logo in the site footer."
@@ -725,9 +797,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                       placeholder="Enter site tagline"
                       disabled={!canEdit}
                     />
-                  </div>
+                  </Field>
 
-                  <div className="space-y-2">
+                  <Field id="field-social-links" highlighted={highlighted} className="space-y-2">
                     <FieldLabel
                       title="Links shown as icons in the site footer; the icon is worked out from the link. Drag to reorder."
                       error={socialLinksProblem}
@@ -740,9 +812,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                       onChange={setCurrentSocialLinks}
                       disabled={!canEdit}
                     />
-                  </div>
+                  </Field>
 
-                  <div className="space-y-2">
+                  <Field id="field-footer-links" highlighted={highlighted} className="space-y-2">
                     <FieldLabel
                       title="Link columns shown in the site footer. Drag links to reorder them or move them between columns."
                       error={footerLinksProblem}
@@ -755,7 +827,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                       onChange={setCurrentFooterLinks}
                       disabled={!canEdit}
                     />
-                  </div>
+                  </Field>
                 </div>
               </ui.AccordionContent>
             </ui.AccordionItem>
