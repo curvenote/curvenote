@@ -381,7 +381,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
       </PageFrame>
 
       <div className="flex flex-col h-full bg-white shadow-sm dark:bg-slate-950 lg:sticky lg:top-0 lg:h-[calc(100vh-1.75rem)]">
-        <h2 className="m-6 text-xl font-semibold shrink-0">Website & Design</h2>
+        <h2 className="p-6 text-xl font-semibold border-b shrink-0">Website & Design</h2>
 
         <div className="flex-1 min-h-0 overflow-auto">
           <ui.Accordion type="single" collapsible defaultValue="item-title" className="w-full">
