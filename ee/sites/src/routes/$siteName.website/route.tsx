@@ -14,10 +14,11 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react
 import { useFetcher } from 'react-router';
 import type { JournalThemeConfig, SiteDTO } from '@curvenote/common';
 import { SiteSkeleton } from './SiteSkeleton.js';
-import { UnsavedChangesGuard } from './UnsavedChangesGuard.js';
-import { SocialLinksField } from './SocialLinksField.js';
-import { ImageIcon, PaletteIcon, PanelBottomIcon, TypeIcon } from 'lucide-react';
-import { useState, useRef, useCallback } from 'react';
+import { ERROR_TOOLTIP_CLASS, UnsavedChangesGuard } from './UnsavedChangesGuard.js';
+import { SocialLinksField, socialLinksError } from './SocialLinksField.js';
+import { FooterLinksField, footerLinksError } from './FooterLinksField.js';
+import { ImageIcon, PaletteIcon, PanelBottomIcon, TriangleAlert, TypeIcon } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Color from 'color';
 import { ColorSwatch } from './ColorSwatch.js';
 import { $actionUpdateSiteDesign } from './actionHelpers.server.js';
@@ -121,13 +122,48 @@ function sameColor(a: string, b: string) {
   return a.toLowerCase() === b.toLowerCase();
 }
 
-function UnsavedDot() {
+/** Lower the first letter, so a standalone message can be continued mid-sentence. */
+function lowerFirst(text: string) {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+/** Section indicator: amber for unsaved edits, red when something needs fixing. */
+function SectionDot({ error }: { error?: string }) {
+  const label = error ?? 'Unsaved changes';
   return (
-    <ui.SimpleTooltip title="Unsaved changes">
-      <span role="status" aria-label="Unsaved changes" className="flex">
-        <ui.Dot className="bg-amber-500" />
+    <ui.SimpleTooltip title={label} className="max-w-xs text-left">
+      <span role="status" aria-label={label} className="flex">
+        <ui.Dot className={error ? 'bg-red-500' : 'bg-amber-500'} />
       </span>
     </ui.SimpleTooltip>
+  );
+}
+
+/** A field label with its info tooltip, kept on one centred line. */
+function FieldLabel({
+  htmlFor,
+  title,
+  error,
+  children,
+}: {
+  htmlFor?: string;
+  title: string;
+  /** Shown as a red warning beside the label when the field needs fixing. */
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <ui.Label htmlFor={htmlFor}>{children}</ui.Label>
+      <ui.SimpleTooltipWithIcon title={title} />
+      {error && (
+        <ui.SimpleTooltip title={error} className="max-w-xs text-left">
+          <span className="flex" role="img" aria-label={error}>
+            <TriangleAlert className="w-4 h-4 text-red-600" />
+          </span>
+        </ui.SimpleTooltip>
+      )}
+    </div>
   );
 }
 
@@ -159,6 +195,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const [currentFooterLogoDarkUrl, setCurrentFooterLogoDarkUrl] = useState(footerLogoDarkUrl);
   const [currentTagline, setCurrentTagline] = useState(tagline || '');
   const [currentSocialLinks, setCurrentSocialLinks] = useState(site.social_links ?? []);
+  const [currentFooterLinks, setCurrentFooterLinks] = useState(site.footer_links ?? []);
   const [currentColorPrimary, setCurrentColorPrimary] = useState(
     themeConfig?.colors?.primary || '#3b82f6',
   );
@@ -193,8 +230,23 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     currentFooterLogoUrl !== footerLogoUrl ||
     currentFooterLogoDarkUrl !== footerLogoDarkUrl ||
     currentTagline !== (tagline || '') ||
-    JSON.stringify(currentSocialLinks) !== JSON.stringify(site.social_links ?? []);
+    JSON.stringify(currentSocialLinks) !== JSON.stringify(site.social_links ?? []) ||
+    JSON.stringify(currentFooterLinks) !== JSON.stringify(site.footer_links ?? []);
   const dirty = basicsChanged || logosChanged || colorsChanged || footerChanged;
+  const footerLinksProblem = footerLinksError(currentFooterLinks);
+  const socialLinksProblem = socialLinksError(currentSocialLinks);
+  // Field messages stand alone, so name the field they came from when they travel
+  const footerSectionError =
+    [
+      socialLinksProblem && `In Social Links, ${lowerFirst(socialLinksProblem)}`,
+      footerLinksProblem && `In Footer Links, ${lowerFirst(footerLinksProblem)}`,
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined;
+  const saveError = footerSectionError
+    ? `Form has errors that need to be fixed before saving. ${footerSectionError}`
+    : undefined;
+  const canSave = canEdit && !saveError;
 
   // Reset state from loader data
   const resetFromLoaderData = () => {
@@ -215,6 +267,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     setCurrentFooterLogoDarkUrl(footerLogoDarkUrl);
     setCurrentTagline(tagline || '');
     setCurrentSocialLinks(site.social_links ?? []);
+    setCurrentFooterLinks(site.footer_links ?? []);
     setCurrentColorPrimary(themeConfig?.colors?.primary || '#3b82f6');
     setCurrentColorSecondary(
       themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
@@ -253,6 +306,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     if (JSON.stringify(currentSocialLinks) !== JSON.stringify(site.social_links ?? [])) {
       formData.append('socialLinks', JSON.stringify(currentSocialLinks));
     }
+    if (JSON.stringify(currentFooterLinks) !== JSON.stringify(site.footer_links ?? [])) {
+      formData.append('footerLinks', JSON.stringify(currentFooterLinks));
+    }
     if (currentColorPrimary !== themeConfig?.colors?.primary) {
       formData.append('colorPrimary', currentColorPrimary);
     }
@@ -266,6 +322,14 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const handleReset = () => {
     resetFromLoaderData();
   };
+
+  // Report how the save went
+  useEffect(() => {
+    if (fetcher.state !== 'idle' || !fetcher.data) return;
+    const data = fetcher.data as { success?: boolean; error?: string };
+    if (data.error) ui.toastError(data.error);
+    else if (data.success) ui.toastSuccess('Site design saved');
+  }, [fetcher.state, fetcher.data]);
 
   // Generic debounced color change handler to prevent race conditions
   const colorChangeHandler = useCallback(
@@ -309,6 +373,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
             footerLogoDarkUrl={currentFooterLogoDarkUrl}
             tagline={currentTagline}
             social={currentSocialLinks}
+            footerLinks={currentFooterLinks}
             themeColorPrimary={currentColorPrimary}
             themeColorSecondary={currentColorSecondary}
           />
@@ -327,7 +392,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2 font-semibold">
                       Basics
-                      {basicsChanged && <UnsavedDot />}
+                      {basicsChanged && <SectionDot />}
                     </div>
                   </div>
                 </div>
@@ -335,10 +400,12 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
               <ui.AccordionContent>
                 <div className="px-4 space-y-4">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <ui.Label htmlFor="site-title">Title</ui.Label>
-                      <ui.SimpleTooltipWithIcon title="The name of your site, shown in the site header and the browser tab." />
-                    </div>
+                    <FieldLabel
+                      htmlFor="site-title"
+                      title="The name of your site, shown in the site header and the browser tab."
+                    >
+                      Title
+                    </FieldLabel>
                     <ui.Input
                       id="site-title"
                       value={currentTitle}
@@ -350,10 +417,12 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                     />
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <ui.Label htmlFor="site-description">Description</ui.Label>
-                      <ui.SimpleTooltipWithIcon title="A short summary of the site, used by search engines and link previews." />
-                    </div>
+                    <FieldLabel
+                      htmlFor="site-description"
+                      title="A short summary of the site, used by search engines and link previews."
+                    >
+                      Description
+                    </FieldLabel>
                     <ui.Input
                       id="site-description"
                       value={currentDescription}
@@ -375,7 +444,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2 font-semibold">
                       Logos
-                      {logosChanged && <UnsavedDot />}
+                      {logosChanged && <SectionDot />}
                     </div>
                   </div>
                 </div>
@@ -384,10 +453,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                 <div className="px-4 space-y-4">
                   {/* Light Mode Logo */}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-sm font-medium">Light Mode</h3>
-                      <ui.SimpleTooltipWithIcon title="Logo shown in the site header on light backgrounds." />
-                    </div>
+                    <FieldLabel title="Logo shown in the site header on light backgrounds.">
+                      Light Mode
+                    </FieldLabel>
                     <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center flex-shrink-0 w-20 h-20">
                         {currentLogoUrl ? (
@@ -421,10 +489,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
 
                   {/* Dark Mode Logo */}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-sm font-medium">Dark Mode</h3>
-                      <ui.SimpleTooltipWithIcon title="Logo shown in the site header when a visitor is using dark mode." />
-                    </div>
+                    <FieldLabel title="Logo shown in the site header when a visitor is using dark mode.">
+                      Dark Mode
+                    </FieldLabel>
                     <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center flex-shrink-0 w-20 h-20 rounded bg-slate-900">
                         {currentLogoDarkUrl ? (
@@ -458,10 +525,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
 
                   {/* Favicon */}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-sm font-medium">Favicon</h3>
-                      <ui.SimpleTooltipWithIcon title="Small icon shown in the browser tab and in bookmarks." />
-                    </div>
+                    <FieldLabel title="Small icon shown in the browser tab and in bookmarks.">
+                      Favicon
+                    </FieldLabel>
                     <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center flex-shrink-0 w-20 h-20">
                         {currentFaviconUrl ? (
@@ -504,7 +570,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2 font-semibold">
                       Colors
-                      {colorsChanged && <UnsavedDot />}
+                      {colorsChanged && <SectionDot />}
                     </div>
                   </div>
                 </div>
@@ -512,10 +578,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
               <ui.AccordionContent>
                 <div className="px-4 space-y-6">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <ui.Label>Primary Color</ui.Label>
-                      <ui.SimpleTooltipWithIcon title="Your main brand color, used for the site banner and footer." />
-                    </div>
+                    <FieldLabel title="Your main brand color, used for the site banner and footer.">
+                      Primary Color
+                    </FieldLabel>
                     <ui.ColorPicker
                       key={`primary-${resetKey}`}
                       defaultValue={currentColorPrimary}
@@ -534,10 +599,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <ui.Label>Secondary Color</ui.Label>
-                      <ui.SimpleTooltipWithIcon title="Accent color, used for buttons and highlights on the site." />
-                    </div>
+                    <FieldLabel title="Accent color, used for buttons and highlights on the site.">
+                      Secondary Color
+                    </FieldLabel>
                     <ui.ColorPicker
                       key={`secondary-${resetKey}`}
                       defaultValue={currentColorSecondary}
@@ -565,7 +629,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-2 font-semibold">
                       Footer
-                      {footerChanged && <UnsavedDot />}
+                      {(footerChanged || footerSectionError) && (
+                        <SectionDot error={footerSectionError} />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -574,10 +640,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                 <div className="px-4 space-y-4">
                   {/* Footer Logo */}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-sm font-medium">Light Mode</h3>
-                      <ui.SimpleTooltipWithIcon title="Logo shown in the site footer on light backgrounds." />
-                    </div>
+                    <FieldLabel title="Logo shown in the site footer on light backgrounds.">
+                      Light Mode
+                    </FieldLabel>
                     <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center flex-shrink-0 w-20 h-20">
                         {currentFooterLogoUrl ? (
@@ -611,10 +676,9 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
 
                   {/* Footer Logo - Dark Mode */}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-sm font-medium">Dark Mode</h3>
-                      <ui.SimpleTooltipWithIcon title="Logo shown in the site footer when a visitor is using dark mode." />
-                    </div>
+                    <FieldLabel title="Logo shown in the site footer when a visitor is using dark mode.">
+                      Dark Mode
+                    </FieldLabel>
                     <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center flex-shrink-0 w-20 h-20 rounded bg-slate-900">
                         {currentFooterLogoDarkUrl ? (
@@ -648,10 +712,12 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
 
                   {/* Footer Tagline */}
                   <div className="pt-4 space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <ui.Label htmlFor="site-tagline">Tagline</ui.Label>
-                      <ui.SimpleTooltipWithIcon title="A short line shown under the logo in the site footer." />
-                    </div>
+                    <FieldLabel
+                      htmlFor="site-tagline"
+                      title="A short line shown under the logo in the site footer."
+                    >
+                      Tagline
+                    </FieldLabel>
                     <ui.Input
                       id="site-tagline"
                       value={currentTagline}
@@ -662,13 +728,31 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <ui.Label>Social Links</ui.Label>
-                      <ui.SimpleTooltipWithIcon title="Links shown as icons in the site footer; the icon is worked out from the link. Drag to reorder." />
-                    </div>
+                    <FieldLabel
+                      title="Links shown as icons in the site footer; the icon is worked out from the link. Drag to reorder."
+                      error={socialLinksProblem}
+                    >
+                      Social Links
+                    </FieldLabel>
                     <SocialLinksField
+                      key={`social-${resetKey}`}
                       links={currentSocialLinks}
                       onChange={setCurrentSocialLinks}
+                      disabled={!canEdit}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <FieldLabel
+                      title="Link columns shown in the site footer. Drag links to reorder them or move them between columns."
+                      error={footerLinksProblem}
+                    >
+                      Footer Links
+                    </FieldLabel>
+                    <FooterLinksField
+                      key={`footer-links-${resetKey}`}
+                      links={currentFooterLinks}
+                      onChange={setCurrentFooterLinks}
                       disabled={!canEdit}
                     />
                   </div>
@@ -702,9 +786,18 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
             <ui.Button variant="outline" onClick={handleReset} disabled={!dirty || !canEdit}>
               Reset
             </ui.Button>
-            <ui.Button onClick={handleSave} disabled={!dirty || !canEdit}>
-              Save Changes
-            </ui.Button>
+            {saveError ? (
+              <ui.SimpleTooltip title={saveError} className={ERROR_TOOLTIP_CLASS}>
+                {/* A disabled button fires no pointer events, so the span carries the tooltip */}
+                <span className="inline-flex">
+                  <ui.Button disabled>Save changes</ui.Button>
+                </span>
+              </ui.SimpleTooltip>
+            ) : (
+              <ui.Button onClick={handleSave} disabled={!dirty || !canSave}>
+                Save changes
+              </ui.Button>
+            )}
           </div>
         </div>
       </div>
@@ -712,7 +805,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
       <UnsavedChangesGuard
         dirty={dirty}
         fetcher={fetcher}
-        canSave={canEdit}
+        canSave={canSave}
+        saveError={saveError}
         description="You have unsaved changes to this site's design. Would you like to save them before leaving this page?"
         onSave={handleSave}
         onDiscard={resetFromLoaderData}

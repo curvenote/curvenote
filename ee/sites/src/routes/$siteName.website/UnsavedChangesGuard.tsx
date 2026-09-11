@@ -4,6 +4,9 @@ import type { BlockerFunction } from 'react-router';
 import { useBlocker } from 'react-router';
 import { ui } from '@curvenote/scms-core';
 
+/** Tooltip styling for messages that explain why something cannot be saved. */
+export const ERROR_TOOLTIP_CLASS = 'max-w-xs text-left text-red-600';
+
 /** Minimal shape of the fetcher used to run the save, so any `useFetcher()` fits. */
 interface GuardFetcher {
   state: 'idle' | 'loading' | 'submitting';
@@ -21,6 +24,8 @@ interface UnsavedChangesGuardProps {
   onSaveError?: (error: string) => void;
   /** Set false when the user cannot save, e.g. lacking scopes; they can still discard. */
   canSave?: boolean;
+  /** Why saving is unavailable, shown in the dialog when `canSave` is false. */
+  saveError?: string;
   /** Dialog copy, to name what is unsaved; defaults to generic wording. */
   description?: ReactNode;
 }
@@ -45,6 +50,7 @@ interface UnsavedChangesGuardProps {
  */
 export function UnsavedChangesGuard({
   canSave = true,
+  saveError,
   description = 'You have unsaved changes. Would you like to save them before leaving this page?',
   ...options
 }: UnsavedChangesGuardProps) {
@@ -58,15 +64,28 @@ export function UnsavedChangesGuard({
       }}
       title="Unsaved changes"
       description={description}
-      footerButtons={[
-        { label: 'Stay on page', onClick: cancel, variant: 'ghost', disabled: saving },
-        { label: 'Discard changes', onClick: discard, variant: 'outline', disabled: saving },
-        {
-          label: saving ? 'Saving…' : 'Save changes',
-          onClick: save,
-          disabled: saving || !canSave,
-        },
-      ]}
+      footer={
+        <>
+          <ui.Button variant="ghost" onClick={cancel} disabled={saving}>
+            Keep editing
+          </ui.Button>
+          <ui.Button variant="outline" onClick={discard} disabled={saving}>
+            Discard changes
+          </ui.Button>
+          {saveError ? (
+            <ui.SimpleTooltip title={saveError} className={ERROR_TOOLTIP_CLASS}>
+              {/* A disabled button fires no pointer events, so the span carries the tooltip */}
+              <span className="inline-flex">
+                <ui.Button disabled>Save changes</ui.Button>
+              </span>
+            </ui.SimpleTooltip>
+          ) : (
+            <ui.Button onClick={save} disabled={saving || !canSave}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </ui.Button>
+          )}
+        </>
+      }
     >
       {error && <ui.ErrorMessage error={error} />}
     </ui.SimpleDialog>
@@ -98,7 +117,7 @@ export function useUnsavedChangesGuard({
   onSave,
   onDiscard,
   onSaveError,
-}: Omit<UnsavedChangesGuardProps, 'canSave' | 'description'>): UnsavedChanges {
+}: Omit<UnsavedChangesGuardProps, 'canSave' | 'saveError' | 'description'>): UnsavedChanges {
   const [pendingSave, setPendingSave] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const previousFetcherState = useRef(fetcher.state);

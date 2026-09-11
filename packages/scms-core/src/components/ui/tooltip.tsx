@@ -110,15 +110,20 @@ function SimpleTooltipWithIcon({
   side,
   sideOffset,
   delayDuration = DEFAULT_TOOLTIP_DELAY_MS,
+  className,
 }: {
   title: string;
   side?: React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>['side'];
   sideOffset?: number;
   delayDuration?: number;
+  /** Classes for the icon, e.g. to size it against the text it sits beside. */
+  className?: string;
 }) {
   return (
     <SimpleTooltip title={title} side={side} sideOffset={sideOffset} delayDuration={delayDuration}>
-      <InfoIcon className="inline-block w-[1.25em] h-[1.25em] -translate-y-[1px] text-muted-foreground" />
+      <InfoIcon
+        className={cn('block w-[1.25em] h-[1.25em] shrink-0 text-muted-foreground', className)}
+      />
     </SimpleTooltip>
   );
 }

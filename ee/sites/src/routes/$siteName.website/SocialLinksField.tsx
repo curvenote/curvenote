@@ -1,4 +1,5 @@
 import type { SocialLink, SocialSite } from '@curvenote/common';
+import { summarizeIssues } from './FooterLinksField.js';
 import { ui } from '@curvenote/scms-core';
 import {
   DndContext,
@@ -123,11 +124,17 @@ type Row = { id: string; url: string };
 
 const toRows = (links: SocialLink[]) => links.map((link) => ({ id: uuidv7(), url: link.url }));
 
-/** Rows with a URL become links; the kind is derived, unknown links fall back to a globe. */
+/** Every row is emitted, blanks included, so they can be flagged rather than dropped. */
 const toLinks = (rows: Row[]): SocialLink[] =>
-  rows
-    .filter((row) => row.url.trim())
-    .map((row) => ({ kind: detectSocialKind(row.url) ?? 'website', url: row.url.trim() }));
+  rows.map((row) => ({ kind: detectSocialKind(row.url) ?? 'website', url: row.url.trim() }));
+
+/** What is wrong with the social links, phrased for the reader; undefined when fine. */
+export function socialLinksError(links: SocialLink[]): string | undefined {
+  const issues = links
+    .map((link, index) => (link.url.trim() ? null : `Social link ${index + 1} needs a link`))
+    .filter((issue): issue is string => !!issue);
+  return summarizeIssues(issues);
+}
 
 export function SocialLinksField({
   links,
@@ -139,6 +146,7 @@ export function SocialLinksField({
   disabled?: boolean;
 }) {
   const [rows, setRows] = useState<Row[]>(() => toRows(links));
+  const [newRowId, setNewRowId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -148,10 +156,7 @@ export function SocialLinksField({
   const signature = links.map((link) => link.url).join('\n');
   useEffect(() => {
     setRows((current) => {
-      const currentSignature = current
-        .map((row) => row.url.trim())
-        .filter(Boolean)
-        .join('\n');
+      const currentSignature = current.map((row) => row.url.trim()).join('\n');
       return currentSignature === signature ? current : toRows(links);
     });
     // Keyed on the signature: edits from this component already match it, so only an
@@ -188,6 +193,7 @@ export function SocialLinksField({
                 key={row.id}
                 row={row}
                 disabled={disabled}
+                autoFocus={row.id === newRowId}
                 onChange={(url) =>
                   applyRows(rows.map((r) => (r.id === row.id ? { ...r, url } : r)))
                 }
@@ -204,7 +210,11 @@ export function SocialLinksField({
           variant="outline"
           size="sm"
           disabled={disabled}
-          onClick={() => setRows([...rows, { id: uuidv7(), url: '' }])}
+          onClick={() => {
+            const id = uuidv7();
+            applyRows([...rows, { id, url: '' }]);
+            setNewRowId(id);
+          }}
         >
           <Plus className="w-3 h-3" />
           Add link
@@ -217,17 +227,23 @@ export function SocialLinksField({
 function SocialLinkRow({
   row,
   disabled,
+  autoFocus,
   onChange,
   onRemove,
 }: {
   row: Row;
   disabled?: boolean;
+  autoFocus?: boolean;
   onChange: (url: string) => void;
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({ id: row.id });
+  // A row added in this session stays quiet until it has been left alone once
+  const [touched, setTouched] = useState(!autoFocus);
   const kind = detectSocialKind(row.url);
-  const unknown = !!row.url.trim() && !kind;
+  const empty = !row.url.trim();
+  const unknown = !empty && !kind;
+  const showEmpty = touched && empty;
 
   return (
     <div
@@ -250,7 +266,11 @@ function SocialLinkRow({
             title={UNRECOGNIZED_SOCIAL_MESSAGE(SUPPORTED_SOCIAL_TEXT)}
             className="max-w-xs text-left"
           >
-            <span className="flex shrink-0" role="img" aria-label="Unrecognized link">
+            <span
+              className="flex shrink-0"
+              role="img"
+              aria-label={showEmpty ? 'Missing link' : 'Unrecognized link'}
+            >
               <SocialIcon kind="website" className="w-4 h-4 text-red-500" />
             </span>
           </ui.SimpleTooltip>
@@ -259,11 +279,13 @@ function SocialLinkRow({
         )}
         <ui.Input
           value={row.url}
+          autoFocus={autoFocus}
+          onBlur={() => setTouched(true)}
           onChange={(e) => onChange(e.target.value)}
           placeholder="https://github.com/your-org"
           disabled={disabled}
           className="flex-1 min-w-0"
-          aria-invalid={unknown}
+          aria-invalid={showEmpty}
         />
         <ui.SimpleTooltip title="Remove Link">
           <ui.Button
