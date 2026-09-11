@@ -1,21 +1,21 @@
-/* eslint-disable @typescript-eslint/consistent-type-imports */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { SiteContext } from '@curvenote/scms-server';
+import { getPrismaClient } from '@curvenote/scms-server';
+import { dbLoadSubmissionVersionsTimeline } from './db.server.js';
 
-vi.mock('@curvenote/scms-server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@curvenote/scms-server')>();
-  return {
-    ...actual,
-    getPrismaClient: vi.fn(),
-    getConfiguredWorkflow: vi.fn(() => ({
-      states: {
-        PUBLISHED: { label: 'Published', tags: ['end'] },
-        IN_REVIEW: { label: 'In review' },
-      },
-    })),
-  };
-});
+// db.server only needs these two from the server package. Mocking the module outright,
+// rather than spreading the real one, keeps the whole server (prisma, config) out of the
+// test — importing it took longer than vitest's hook timeout on CI.
+vi.mock('@curvenote/scms-server', () => ({
+  getPrismaClient: vi.fn(),
+  getConfiguredWorkflow: vi.fn(() => ({
+    states: {
+      PUBLISHED: { label: 'Published', tags: ['end'] },
+      IN_REVIEW: { label: 'In review' },
+    },
+  })),
+}));
 
 const ctx = {
   site: { id: 'site-a' },
@@ -27,17 +27,15 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
     submission: { findFirst: ReturnType<typeof vi.fn> };
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     mockPrisma = {
       submission: { findFirst: vi.fn() },
     };
-    const { getPrismaClient } = await import('@curvenote/scms-server');
     vi.mocked(getPrismaClient).mockResolvedValue(mockPrisma as never);
   });
 
   it('returns null when the submission is not on the site', async () => {
-    const { dbLoadSubmissionVersionsTimeline } = await import('./db.server.js');
     mockPrisma.submission.findFirst.mockResolvedValue(null);
 
     const result = await dbLoadSubmissionVersionsTimeline(ctx, 'sub-missing');
@@ -46,7 +44,6 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
   });
 
   it('returns versions newest-first with tag and status labels', async () => {
-    const { dbLoadSubmissionVersionsTimeline } = await import('./db.server.js');
     mockPrisma.submission.findFirst.mockResolvedValue({
       collection: { workflow: 'SIMPLE' },
       versions: [
@@ -96,7 +93,6 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
   });
 
   it('excludes DRAFT submission versions from the timeline payload', async () => {
-    const { dbLoadSubmissionVersionsTimeline } = await import('./db.server.js');
     mockPrisma.submission.findFirst.mockResolvedValue({
       collection: { workflow: 'SIMPLE' },
       versions: [
@@ -127,7 +123,6 @@ describe('dbLoadSubmissionVersionsTimeline', () => {
   });
 
   it('issues a single tenancy-scoped query with nested versions ordered desc', async () => {
-    const { dbLoadSubmissionVersionsTimeline } = await import('./db.server.js');
     mockPrisma.submission.findFirst.mockResolvedValue({
       collection: { workflow: 'SIMPLE' },
       versions: [],
