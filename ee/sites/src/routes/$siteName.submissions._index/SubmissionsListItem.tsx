@@ -1,6 +1,5 @@
 import { Link } from 'react-router';
 import {
-  primitives,
   summarizeAuthors,
   ui,
   SubmissionVersionTimelineHoverCard,
@@ -11,11 +10,11 @@ import {
   HasPublishedVersion,
   HasRetractedVersion,
   SubmissionKind,
-  Tag,
 } from '../../components/Chips.js';
 import type { SubmissionsIndexItem } from './types.js';
 import { DoiBadge } from './DoiBadge.js';
 import { SubmissionListingDates } from './SubmissionListingDates.js';
+import { SubmissionListingTags } from './SubmissionListingTags.js';
 import { SubmissionStatusBadge } from './SubmissionStatusBadge.js';
 
 const AUTHORS_MAX_DISPLAY = 5;
@@ -69,20 +68,6 @@ export function SubmissionsListItem({
                 description={item.kind.content.title ?? item.kind.name}
               />
             ) : null}
-            {item.tags.slice(0, 3).map((tag) => (
-              <Tag key={tag.id} label={tag.label} name={tag.name} />
-            ))}
-            {item.tags.length > 3 ? (
-              <primitives.Chip
-                className="text-violet-700 border-[1px] border-violet-700 dark:border-violet-300 dark:text-violet-300"
-                title={item.tags
-                  .slice(3)
-                  .map((tag) => tag.label)
-                  .join(', ')}
-              >
-                {`+${item.tags.length - 3}`}
-              </primitives.Chip>
-            ) : null}
             {item.publishedVersion ? (
               <SubmissionVersionTimelineHoverCard
                 versionsUrl={versionsUrl}
@@ -125,6 +110,7 @@ export function SubmissionsListItem({
         dateFirstSubmitted={item.dateFirstSubmitted}
         dateLastUpdated={item.dateLastUpdated}
       />
+      <SubmissionListingTags tags={item.tags} />
     </div>
   );
 }

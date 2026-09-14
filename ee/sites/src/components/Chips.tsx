@@ -1,4 +1,4 @@
-import { formatDate, formatToNow, primitives } from '@curvenote/scms-core';
+import { cn, formatDate, formatToNow, primitives } from '@curvenote/scms-core';
 import type { SubmissionsListItemDTO } from '@curvenote/common';
 import { LockOpen, Lock, History } from 'lucide-react';
 
@@ -109,13 +109,22 @@ export function SubmissionAge({ date }: { date: string }) {
   );
 }
 
+const TAG_CHIP_CLASS = cn(
+  'text-gray-700 border-[1px] border-gray-300 dark:border-gray-500 dark:text-gray-300',
+);
+
 export function Tag({ label, name }: { label: string; name: string }) {
   return (
-    <primitives.Chip
-      className="text-violet-700 border-[1px] border-violet-700 dark:border-violet-300 dark:text-violet-300"
-      title={`Tag - ${name}`}
-    >
+    <primitives.Chip className={TAG_CHIP_CLASS} title={name}>
       {label}
+    </primitives.Chip>
+  );
+}
+
+export function TagOverflow({ count, title }: { count: number; title: string }) {
+  return (
+    <primitives.Chip className={TAG_CHIP_CLASS} title={title}>
+      {`+${count}`}
     </primitives.Chip>
   );
 }
