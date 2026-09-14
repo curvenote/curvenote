@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, test, expect } from 'vitest';
 import { ACTIVITY_TYPE_LABELS } from './activityLabels.js';
 
