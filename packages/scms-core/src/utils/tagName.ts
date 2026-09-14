@@ -10,11 +10,11 @@ export const TAG_NAME_MIN_LENGTH = 3;
 export function toTagName(label: string): string {
   return label
     .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9_-]+/g, '-')
-    .replace(/-{2,}/g, '-')
+    .replace(/[-_]{2,}/g, '-')
     .replace(/^[-_]+|[-_]+$/g, '');
 }
 
