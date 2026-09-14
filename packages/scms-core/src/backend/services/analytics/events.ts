@@ -158,7 +158,7 @@ export const TrackEventDescriptions: Record<TrackEvent, string> = {
   [TrackEvent.SUBMISSION_SLUG_DELETED]: 'Submission slug deleted',
   [TrackEvent.SUBMISSION_SLUG_ADDED]: 'New slug added to submission',
   [TrackEvent.SUBMISSION_KIND_CHANGED]: 'Submission kind/type changed',
-  [TrackEvent.SUBMISSION_TAGS_CHANGED]: 'Submission editorial tags added or removed',
+  [TrackEvent.SUBMISSION_TAGS_CHANGED]: 'Submission tags added or removed',
   [TrackEvent.SUBMISSION_COLLECTION_CHANGED]: 'Submission moved to different collection',
   [TrackEvent.SUBMISSION_DATE_PUBLISHED_CHANGED]: 'Submission published date updated',
 
