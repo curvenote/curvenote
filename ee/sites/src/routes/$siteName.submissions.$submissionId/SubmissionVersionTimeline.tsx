@@ -76,12 +76,8 @@ function getPreviewUrl(baseUrl: string, versionId: string, signature: string) {
 
 export function sortEntriesNewestFirst(entries: TimelineEntry[]) {
   return [...entries].sort((a, b) => {
-    if (a.date > b.date) {
-      return -1;
-    }
-    if (a.date < b.date) {
-      return 1;
-    }
+    if (a.date > b.date) return -1;
+    if (a.date < b.date) return 1;
     return TIMELINE_ENTRY_KIND_RANK[a.kind] - TIMELINE_ENTRY_KIND_RANK[b.kind];
   });
 }
@@ -162,9 +158,7 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
 
 function ActivityDetailRows({ rows }: { rows: [string, ReactNode | undefined][] }) {
   const visibleRows = rows.filter(([, value]) => value != null && value !== '');
-  if (visibleRows.length === 0) {
-    return null;
-  }
+  if (visibleRows.length === 0) return null;
   return (
     <div className="space-y-2 text-sm">
       {visibleRows.map(([label, value]) => (
@@ -281,9 +275,7 @@ function SubmissionVersionTimelineInner({
   );
 
   function handleUpdateStatusSubmit(version: SubmissionDetailVersion, nextStatus: string) {
-    if (!canUpdateStatus) {
-      return;
-    }
+    if (!canUpdateStatus) return;
 
     setTimeout(() => {
       if (confirm(`Updating status from "${version.status}" to "${nextStatus}", are you sure?`)) {
