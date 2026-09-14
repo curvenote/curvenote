@@ -4,6 +4,7 @@ import {
   createPreviewToken,
   getConfiguredWorkflow,
   resolveWorkVersionCdnMedia,
+  sites,
   type SiteContext,
   type WorkVersionCdnMedia,
 } from '@curvenote/scms-server';
@@ -11,7 +12,6 @@ import {
   dbGetSubmissionCheckServiceRunsByWorkVersionIds,
   dbGetSiteAppData,
   dbListMagicLinksForSubmission,
-  dbListSiteTagRows,
   dbListSubmissionSlugRows,
   dbLoadSubmissionDetail,
   dbShouldPollSubmissionVersions,
@@ -89,7 +89,7 @@ export async function loadSubmissionDetailPage(
       dbGetSubmissionCheckServiceRunsByWorkVersionIds(
         submissionVersions.map((version) => version.site_work.version_id),
       ),
-      dbListSiteTagRows(ctx.site.id),
+      sites.tags.dbListSiteTags(ctx.site.id),
     ]);
 
   if (!siteWithAppData) {
