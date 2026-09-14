@@ -82,7 +82,7 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
     return (
       <div className="flex flex-wrap gap-1 items-center">
         {tags.map((tag) => (
-          <ui.Badge key={tag.id} variant="outline-muted" size="xs" title={tag.name}>
+          <ui.Badge key={tag.id} variant="neutral" size="xs" title={tag.name}>
             {tag.label}
           </ui.Badge>
         ))}
@@ -96,7 +96,14 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
   return (
     <div className="flex flex-wrap gap-1 items-center w-full min-w-0">
       {tags.map((tag) => (
-        <ui.Badge key={tag.id} variant="outline-muted" size="xs" title={tag.name} asChild>
+        <ui.Badge
+          key={tag.id}
+          variant="neutral"
+          size="xs"
+          title={tag.name}
+          className="hover:bg-gray-200 dark:hover:bg-stone-600"
+          asChild
+        >
           <button type="button" onClick={openPicker}>
             {tag.label}
           </button>

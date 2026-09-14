@@ -111,7 +111,7 @@ export function SubmissionAge({ date }: { date: string }) {
 
 export function Tag({ label, name }: { label: string; name: string }) {
   return (
-    <ui.Badge variant="outline-muted" size="xs" title={name}>
+    <ui.Badge variant="neutral" size="xs" title={name}>
       {label}
     </ui.Badge>
   );
@@ -119,7 +119,7 @@ export function Tag({ label, name }: { label: string; name: string }) {
 
 export function TagOverflow({ count, title }: { count: number; title: string }) {
   return (
-    <ui.Badge variant="outline-muted" size="xs" title={title}>
+    <ui.Badge variant="neutral" size="xs" title={title}>
       {`+${count}`}
     </ui.Badge>
   );
