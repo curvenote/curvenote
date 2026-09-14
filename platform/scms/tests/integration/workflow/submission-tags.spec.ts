@@ -1,5 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, test, expect, beforeEach } from 'vitest';
+import { TAG_LABEL_MAX_LENGTH } from '@curvenote/scms-core';
 import type { SiteRole } from '@curvenote/scms-db';
 import { getPrismaClient, sites } from '@curvenote/scms-server';
 import { createTestData, type TestData } from '../helpers/mocks';
@@ -98,17 +99,18 @@ describe('assignTagToSubmission', () => {
   });
 
   test('creates the tag from a label and assigns it', async () => {
-    const dto = await sites.tags.assignTagToSubmission({
+    const { tag, changed } = await sites.tags.assignTagToSubmission({
       siteId: testData.siteId,
       submissionId: testData.submissionId,
       userId: testData.userId,
       input: { label: 'Blog Post' },
     });
 
-    expect(dto).toMatchObject({ name: 'blog-post', label: 'Blog Post' });
+    expect(tag).toMatchObject({ name: 'blog-post', label: 'Blog Post' });
+    expect(changed).toBe(true);
 
     const assigned = await sites.tags.dbListTagsForSubmission(testData.submissionId);
-    expect(assigned).toEqual([dto]);
+    expect(assigned).toEqual([tag]);
   });
 
   test('reuses an existing tag with the same derived name', async () => {
@@ -125,25 +127,27 @@ describe('assignTagToSubmission', () => {
       input: { label: 'blog post' },
     });
 
-    expect(second.id).toBe(first.id);
+    expect(second.tag.id).toBe(first.tag.id);
     const catalog = await sites.tags.dbListSiteTags(testData.siteId);
     expect(catalog).toHaveLength(1);
   });
 
   test('a repeated assignment does not duplicate the join row', async () => {
-    const dto = await sites.tags.assignTagToSubmission({
+    const { tag } = await sites.tags.assignTagToSubmission({
       siteId: testData.siteId,
       submissionId: testData.submissionId,
       userId: testData.userId,
       input: { label: 'Blog Post' },
     });
-    await sites.tags.assignTagToSubmission({
+    const repeat = await sites.tags.assignTagToSubmission({
       siteId: testData.siteId,
       submissionId: testData.submissionId,
       userId: testData.userId,
-      input: { tagId: dto.id },
+      input: { tagId: tag.id },
     });
 
+    // The repeat is a no-op: callers key their side effects off `changed`.
+    expect(repeat.changed).toBe(false);
     const assigned = await sites.tags.dbListTagsForSubmission(testData.submissionId);
     expect(assigned).toHaveLength(1);
   });
@@ -174,14 +178,14 @@ describe('assignTagToSubmission', () => {
         siteId: testData.siteId,
         submissionId: testData.submissionId,
         userId: testData.userId,
-        input: { tagId: foreign.id },
+        input: { tagId: foreign.tag.id },
       }),
     ).rejects.toMatchObject({ status: 404 });
   });
 
   test('writes one SUBMISSION_TAGS_CHANGE activity per change', async () => {
     const prisma = await getPrismaClient();
-    const dto = await sites.tags.assignTagToSubmission({
+    const { tag } = await sites.tags.assignTagToSubmission({
       siteId: testData.siteId,
       submissionId: testData.submissionId,
       userId: testData.userId,
@@ -191,7 +195,7 @@ describe('assignTagToSubmission', () => {
       siteId: testData.siteId,
       submissionId: testData.submissionId,
       userId: testData.userId,
-      tagId: dto.id,
+      tagId: tag.id,
     });
 
     const activity = await prisma.activity.findMany({
@@ -218,22 +222,82 @@ describe('removeTagFromSubmission', () => {
   });
 
   test('removes the assignment and keeps the tag in the catalog', async () => {
-    const dto = await sites.tags.assignTagToSubmission({
+    const { tag } = await sites.tags.assignTagToSubmission({
       siteId: testData.siteId,
       submissionId: testData.submissionId,
       userId: testData.userId,
       input: { label: 'Blog Post' },
     });
 
-    await sites.tags.removeTagFromSubmission({
+    const removed = await sites.tags.removeTagFromSubmission({
       siteId: testData.siteId,
       submissionId: testData.submissionId,
       userId: testData.userId,
-      tagId: dto.id,
+      tagId: tag.id,
     });
 
+    expect(removed.changed).toBe(true);
     expect(await sites.tags.dbListTagsForSubmission(testData.submissionId)).toEqual([]);
-    expect(await sites.tags.dbListSiteTags(testData.siteId)).toEqual([dto]);
+    expect(await sites.tags.dbListSiteTags(testData.siteId)).toEqual([tag]);
+  });
+
+  test('a redundant remove reports changed false and writes no activity', async () => {
+    const prisma = await getPrismaClient();
+    const { tag } = await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { label: 'Blog Post' },
+    });
+    const params = {
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      tagId: tag.id,
+    };
+
+    await sites.tags.removeTagFromSubmission(params);
+    const second = await sites.tags.removeTagFromSubmission(params);
+
+    expect(second.changed).toBe(false);
+    expect(second.tag).toEqual(tag);
+    const activity = await prisma.activity.count({
+      where: { submission_id: testData.submissionId, activity_type: 'SUBMISSION_TAGS_CHANGE' },
+    });
+    expect(activity).toBe(2);
+  });
+
+  test('a change bumps Submission.date_modified', async () => {
+    const prisma = await getPrismaClient();
+    const before = await prisma.submission.findUniqueOrThrow({
+      where: { id: testData.submissionId },
+      select: { date_modified: true },
+    });
+
+    const { tag } = await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { label: 'Blog Post' },
+    });
+
+    const after = await prisma.submission.findUniqueOrThrow({
+      where: { id: testData.submissionId },
+      select: { date_modified: true },
+    });
+    expect(after.date_modified > before.date_modified).toBe(true);
+    expect(tag.name).toBe('blog-post');
+  });
+
+  test('rejects a label over the maximum length', async () => {
+    await expect(
+      sites.tags.assignTagToSubmission({
+        siteId: testData.siteId,
+        submissionId: testData.submissionId,
+        userId: testData.userId,
+        input: { label: 'a'.repeat(TAG_LABEL_MAX_LENGTH + 1) },
+      }),
+    ).rejects.toMatchObject({ status: 400 });
   });
 });
 
@@ -245,7 +309,7 @@ describe('HTTP-shaped tag contracts', () => {
   });
 
   test('sites.get returns a catalog containing the site tags', async () => {
-    const tag = await sites.tags.assignTagToSubmission({
+    const { tag } = await sites.tags.assignTagToSubmission({
       siteId: testData.siteId,
       submissionId: testData.submissionId,
       userId: testData.userId,
@@ -258,7 +322,7 @@ describe('HTTP-shaped tag contracts', () => {
 
   test('published.get returns submission_tags and leaves version tags as string[]', async () => {
     await publishExistingSubmission(testData, ['preprint']);
-    const tag = await sites.tags.assignTagToSubmission({
+    const { tag } = await sites.tags.assignTagToSubmission({
       siteId: testData.siteId,
       submissionId: testData.submissionId,
       userId: testData.userId,
@@ -269,7 +333,7 @@ describe('HTTP-shaped tag contracts', () => {
     expect(dto).not.toBeNull();
     expect(dto!.submission_tags).toEqual([tag]);
     expect(dto!.tags).toEqual(['preprint']);
-    expect(dto!.tags.every((value) => typeof value === 'string')).toBe(true);
+    expect(dto!.tags!.every((value) => typeof value === 'string')).toBe(true);
   });
 });
 
