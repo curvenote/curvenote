@@ -1,6 +1,7 @@
 import type { TagDTO } from '@curvenote/common';
 import { isValidTagName, toTagName, httpError } from '@curvenote/scms-core';
 import { ActivityType } from '@curvenote/scms-db';
+import type { Prisma } from '@curvenote/scms-db';
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../../../prisma.server.js';
 import { formatTagDTO, type TagRow } from './format.server.js';
@@ -77,14 +78,14 @@ async function resolveTag(siteId: string, input: AssignTagInput): Promise<TagRow
 }
 
 async function recordTagActivity(
+  tx: Prisma.TransactionClient,
   submissionId: string,
   userId: string,
   tag: TagRow,
   action: 'added' | 'removed',
 ) {
-  const prisma = await getPrismaClient();
   const timestamp = new Date().toISOString();
-  await prisma.activity.create({
+  await tx.activity.create({
     data: {
       id: uuidv7(),
       date_created: timestamp,
@@ -98,50 +99,72 @@ async function recordTagActivity(
   });
 }
 
-/** Assign an existing tag, or create one from a label and assign it. */
+/**
+ * Assign an existing tag, or create one from a label and assign it.
+ *
+ * The tag is resolved (found-or-created) before the transaction opens: its own
+ * P2002 recovery reads the winning row, and that recovery cannot live inside the
+ * transaction below, because a P2002 there would abort it.
+ *
+ * The join-row write and the activity write happen together in one transaction,
+ * so a crash between them can never leave one without the other. The join
+ * create is itself guarded against P2002: two concurrent assigns of the same
+ * tag to the same submission both pass validation, but only one create can win
+ * the compound-unique `[submission_id, tag_id]`; the loser's transaction is
+ * rolled back and treated as "already assigned" rather than as a failure, and
+ * it does not write a second activity.
+ */
 export async function assignTagToSubmission(params: AssignTagParams): Promise<TagDTO> {
   const { siteId, submissionId, userId, input } = params;
   await assertSubmissionOnSite(siteId, submissionId);
 
   const tag = await resolveTag(siteId, input);
-
   const prisma = await getPrismaClient();
-  const existing = await prisma.tagsInSubmissions.findUnique({
-    where: { submission_id_tag_id: { submission_id: submissionId, tag_id: tag.id } },
-    select: { id: true },
-  });
 
-  if (!existing) {
-    await prisma.tagsInSubmissions.create({
-      data: {
-        id: uuidv7(),
-        date_created: new Date().toISOString(),
-        tag: { connect: { id: tag.id } },
-        submission: { connect: { id: submissionId } },
-      },
-      select: { id: true },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.tagsInSubmissions.create({
+        data: {
+          id: uuidv7(),
+          date_created: new Date().toISOString(),
+          tag: { connect: { id: tag.id } },
+          submission: { connect: { id: submissionId } },
+        },
+        select: { id: true },
+      });
+      await recordTagActivity(tx, submissionId, userId, tag, 'added');
     });
-    await recordTagActivity(submissionId, userId, tag, 'added');
+  } catch (e: any) {
+    if (e?.code !== 'P2002') throw e;
+    // Already assigned by a concurrent call: nothing to create, no activity to add.
   }
 
   return formatTagDTO(tag);
 }
 
-/** Remove one tag from a submission. The tag stays in the site catalog. */
+/**
+ * Remove one tag from a submission. The tag stays in the site catalog.
+ *
+ * The join-row delete and the activity write happen together in one
+ * transaction. The activity is written only when a join row was actually
+ * deleted, so a redundant remove (already removed by a concurrent call)
+ * writes no activity.
+ */
 export async function removeTagFromSubmission(params: RemoveTagParams): Promise<TagDTO> {
   const { siteId, submissionId, userId, tagId } = params;
   await assertSubmissionOnSite(siteId, submissionId);
 
   const tag = await resolveTag(siteId, { tagId });
-
   const prisma = await getPrismaClient();
-  const deleted = await prisma.tagsInSubmissions.deleteMany({
-    where: { submission_id: submissionId, tag_id: tagId },
-  });
 
-  if (deleted.count > 0) {
-    await recordTagActivity(submissionId, userId, tag, 'removed');
-  }
+  await prisma.$transaction(async (tx) => {
+    const deleted = await tx.tagsInSubmissions.deleteMany({
+      where: { submission_id: submissionId, tag_id: tagId },
+    });
+    if (deleted.count > 0) {
+      await recordTagActivity(tx, submissionId, userId, tag, 'removed');
+    }
+  });
 
   return formatTagDTO(tag);
 }
