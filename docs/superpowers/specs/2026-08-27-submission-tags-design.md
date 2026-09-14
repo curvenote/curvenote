@@ -254,27 +254,86 @@ Route folder `ee/sites/src/routes/$siteName.submissions._index/`.
   `packages/scms-core/src/backend/services/analytics/events.ts`, sent from the
   route action.
 
-## Tests
+## Testing
 
-Unit:
+Every slice is written test-first: a failing test, then the code that makes it
+pass, then the clean-up. The slices are data, server helpers, API, and UI.
 
-- `toTagName` and `isValidTagName`: spaces, accents, symbols, short input.
-- `formatTagDTO` and `formatSiteDTO`: the catalog is present and ordered.
-- Picker utils: filtering, and when the create row appears.
-- `assign.server`: reuses an existing name, is idempotent on repeated
-  assignment, recovers from a `P2002` on `Tag`, leaves the tag in the catalog
-  after removal, and rejects a tag from another site.
+### Before the first test
 
-Server:
+This worktree has no `node_modules`. Run `bun run install:workspace` and
+`bun run build:scms` once. Integration and e2e tests need the local database:
+`bun run dx:up`, then `bun --cwd platform/scms run test:db:reset`.
 
-- Extend `loaders/sites/submissions/published/get.server.test.ts` for
-  `submission_tags`, and assert that `SiteWorkDTO.tags` still holds version tags
+`ee/sites` (`@curvenote/scms-sites-ext`) has `vitest` as a dependency but no
+`test` script, so CI (`bun run test` → turbo) never runs the `.spec.ts` files
+that already live there. Add `"test": "vitest run"` to that package and confirm
+the existing specs pass. Without that step, the UI-side specs below are dead
+code.
+
+### Layer 1 — pure units (colocated `*.spec.ts`)
+
+Run with each package's own `vitest run`.
+
+- `packages/scms-core/src/utils/tagName.spec.ts` — `toTagName` for spaces,
+  accents, symbols, mixed case, repeated separators; `isValidTagName` for input
+  under 3 characters and for a leading separator.
+- `packages/scms-server/.../tags/format.server.spec.ts` — `formatTagDTO` returns
+  `{ id, name, label }` and nothing else.
+- `packages/scms-server/.../sites/get.server.test.ts` — `formatSiteDTO` maps the
+  catalog, orders it by `label`, and returns `[]` when the caller `include`
+  omits `tags`.
+- `ee/sites/.../$submissionId/TagPicker.utils.spec.ts` — filtering on `label`
+  and on `name`, when the `Create "…"` row appears, and that it stays hidden for
+  an invalid derived name. UI logic goes in `*.utils.ts` so it is testable, as
+  `SlugManagerDialog.utils.ts` already does.
+- `ee/sites/.../_index/format.server.spec.ts` — the listing item carries
+  editorial tags and keeps `versionTag` from the version tags.
+
+### Layer 2 — published payload (mocked prisma)
+
+- Extend `loaders/sites/submissions/published/get.server.test.ts`:
+  `submission_tags` is present, and `SiteWorkDTO.tags` still holds version tags
   only.
-- Assert that the DOI path keeps its payload: `formatPublishedSiteWorkWithVersions`
+- Assert the DOI path keeps its payload: `formatPublishedSiteWorkWithVersions`
   returns no `submission_tags`.
 
-Close out with `bun run lint`, `bun --cwd platform/scms run check-types`, the
-affected vitest suites, and a changeset.
+### Layer 3 — integration, real database
+
+New `platform/scms/tests/integration/workflow/submission-tags.spec.ts`, built on
+`createTestData` as `submission-actions.spec.ts` does. Mocked prisma cannot
+prove a unique constraint or a transaction, so these cases belong here:
+
+- Creating from a label derives the name and writes one `Tag` row.
+- A second create with the same derived name reuses the row; it does not
+  duplicate.
+- A `P2002` on `Tag` is recovered, not raised.
+- A repeated assignment is a no-op, not a duplicate join row.
+- Removal deletes the join row and leaves the tag in the catalog.
+- A tag from another site is rejected.
+- Each mutation writes one `SUBMISSION_TAGS_CHANGE` activity with the tag in
+  `data`.
+
+### Layer 4 — API end to end
+
+Add tags to the seed fixtures in `prisma/data.test/science.json`, then:
+
+- `tests/e2e/sites.public.spec.ts` — `GET sites/science` returns the catalog.
+- A new `tests/e2e/sites.tags.spec.ts` — `GET sites/science/works/CRV0001/published`
+  returns `submission_tags`, and `tags` still holds version tags.
+- `tests/e2e/sites.doi.spec.ts` — the DOI response has no `submission_tags`.
+
+### Not covered by tests
+
+The repo has no React component test setup (`@testing-library/react` is absent).
+The popover interaction itself is checked by hand in the app. Everything in it
+that can be a pure function is a pure function, and Layer 1 covers those.
+
+### Close out
+
+`bun run lint`, `bun --cwd platform/scms run check-types`,
+`bun run test`, `bun --cwd platform/scms run test:unit`,
+`bun --cwd platform/scms run test:integration`, and a changeset.
 
 ## Out of scope
 
