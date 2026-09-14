@@ -205,9 +205,11 @@ model Slug {
 /// submission details page. NOT the version tags on `SubmissionVersion.tags`.
 model Tag {
   id           String              @id
-  /// URL-safe, lowercase, 3 characters or more. Derived from `label`.
+  /// URL-safe, lowercase, 3 to 32 characters. Derived from `label`. Bounded by
+  /// `isValidTagName`, not by the column type.
   name         String
-  /// Human display string, e.g. "Blog Post".
+  /// Human display string, e.g. "Blog Post". 1 to 32 characters, bounded by
+  /// `isValidTagLabel`, not by the column type.
   label        String
   date_created String
   site         Site                @relation(fields: [site_id], references: [id])
