@@ -337,6 +337,261 @@ describe('HTTP-shaped tag contracts', () => {
   });
 });
 
+describe('dbListSiteTagsForCatalog', () => {
+  let testData: TestData;
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+  });
+
+  test('includes date_created and still sorts by label', async () => {
+    await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { label: 'Zebra' },
+    });
+    await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { label: 'Apple' },
+    });
+
+    const catalog = await sites.tags.dbListSiteTagsForCatalog(testData.siteId);
+    expect(catalog.map((row) => row.label)).toEqual(['Apple', 'Zebra']);
+    expect(catalog[0]?.date_created).toEqual(expect.any(String));
+    expect(catalog[0]?.date_created.length).toBeGreaterThan(0);
+
+    const picker = await sites.tags.dbListSiteTags(testData.siteId);
+    expect(picker[0]).toEqual({
+      id: catalog[0]?.id,
+      name: catalog[0]?.name,
+      label: catalog[0]?.label,
+    });
+    expect(picker[0]).not.toHaveProperty('date_created');
+  });
+});
+
+describe('createSiteTag', () => {
+  let testData: TestData;
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+  });
+
+  test('derives name from the label and does not assign it', async () => {
+    const tag = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Blog Post',
+    });
+
+    expect(tag).toMatchObject({ name: 'blog-post', label: 'Blog Post' });
+    expect(await sites.tags.dbListSiteTags(testData.siteId)).toEqual([tag]);
+    expect(await sites.tags.dbListTagsForSubmission(testData.submissionId)).toEqual([]);
+  });
+
+  test('rejects a duplicate derived name instead of reusing the row', async () => {
+    const first = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Blog Post',
+    });
+
+    await expect(
+      sites.tags.createSiteTag({ siteId: testData.siteId, label: 'blog post' }),
+    ).rejects.toMatchObject({ status: 400, statusText: 'a tag with this name already exists' });
+
+    expect(await sites.tags.dbListSiteTags(testData.siteId)).toEqual([first]);
+  });
+
+  test('rejects an empty label', async () => {
+    await expect(
+      sites.tags.createSiteTag({ siteId: testData.siteId, label: '   ' }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  test('rejects a label over the maximum length', async () => {
+    await expect(
+      sites.tags.createSiteTag({
+        siteId: testData.siteId,
+        label: 'a'.repeat(TAG_LABEL_MAX_LENGTH + 1),
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  test('rejects a label whose derived name is too short', async () => {
+    await expect(
+      sites.tags.createSiteTag({ siteId: testData.siteId, label: 'ab' }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  test('writes no SUBMISSION_TAGS_CHANGE activity', async () => {
+    const prisma = await getPrismaClient();
+    const before = await prisma.activity.count({
+      where: { activity_type: 'SUBMISSION_TAGS_CHANGE' },
+    });
+
+    await sites.tags.createSiteTag({ siteId: testData.siteId, label: 'Blog Post' });
+
+    const after = await prisma.activity.count({
+      where: { activity_type: 'SUBMISSION_TAGS_CHANGE' },
+    });
+    expect(after).toBe(before);
+  });
+});
+
+describe('updateSiteTagLabel', () => {
+  let testData: TestData;
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+  });
+
+  test('changes label and leaves name unchanged', async () => {
+    const created = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Blog Post',
+    });
+
+    const updated = await sites.tags.updateSiteTagLabel({
+      siteId: testData.siteId,
+      tagId: created.id,
+      label: 'Featured Post',
+    });
+
+    expect(updated).toEqual({ id: created.id, name: 'blog-post', label: 'Featured Post' });
+  });
+
+  test('allows two tags to share a display label', async () => {
+    const first = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Blog Post',
+    });
+    const second = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Case Study',
+    });
+
+    const updated = await sites.tags.updateSiteTagLabel({
+      siteId: testData.siteId,
+      tagId: second.id,
+      label: 'Blog Post',
+    });
+
+    expect(updated.label).toBe('Blog Post');
+    expect(updated.name).toBe('case-study');
+    expect(first.label).toBe('Blog Post');
+    expect(first.name).toBe('blog-post');
+  });
+
+  test('rejects a tag from another site', async () => {
+    const other = await createTestData('ADMIN' as SiteRole);
+    const foreign = await sites.tags.createSiteTag({
+      siteId: other.siteId,
+      label: 'Blog Post',
+    });
+
+    await expect(
+      sites.tags.updateSiteTagLabel({
+        siteId: testData.siteId,
+        tagId: foreign.id,
+        label: 'Featured Post',
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  test('rejects an empty label', async () => {
+    const created = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Blog Post',
+    });
+
+    await expect(
+      sites.tags.updateSiteTagLabel({
+        siteId: testData.siteId,
+        tagId: created.id,
+        label: '',
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe('deleteSiteTag', () => {
+  let testData: TestData;
+
+  beforeEach(async () => {
+    testData = await createTestData('ADMIN' as SiteRole);
+  });
+
+  test('removes the tag and its join rows; other tags on the submission remain', async () => {
+    const prisma = await getPrismaClient();
+    const keep = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Keep Me',
+    });
+    const drop = await sites.tags.createSiteTag({
+      siteId: testData.siteId,
+      label: 'Drop Me',
+    });
+    await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { tagId: keep.id },
+    });
+    await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { tagId: drop.id },
+    });
+
+    const before = await prisma.submission.findUniqueOrThrow({
+      where: { id: testData.submissionId },
+      select: { date_modified: true },
+    });
+    const activityBefore = await prisma.activity.count({
+      where: {
+        submission_id: testData.submissionId,
+        activity_type: 'SUBMISSION_TAGS_CHANGE',
+      },
+    });
+
+    await sites.tags.deleteSiteTag({ siteId: testData.siteId, tagId: drop.id });
+
+    expect(await sites.tags.dbListSiteTags(testData.siteId)).toEqual([keep]);
+    expect(await sites.tags.dbListTagsForSubmission(testData.submissionId)).toEqual([keep]);
+
+    const after = await prisma.submission.findUniqueOrThrow({
+      where: { id: testData.submissionId },
+      select: { date_modified: true },
+    });
+    expect(after.date_modified).toBe(before.date_modified);
+
+    const activityAfter = await prisma.activity.count({
+      where: {
+        submission_id: testData.submissionId,
+        activity_type: 'SUBMISSION_TAGS_CHANGE',
+      },
+    });
+    expect(activityAfter).toBe(activityBefore);
+  });
+
+  test('rejects a tag from another site', async () => {
+    const other = await createTestData('ADMIN' as SiteRole);
+    const foreign = await sites.tags.createSiteTag({
+      siteId: other.siteId,
+      label: 'Blog Post',
+    });
+
+    await expect(
+      sites.tags.deleteSiteTag({ siteId: testData.siteId, tagId: foreign.id }),
+    ).rejects.toMatchObject({ status: 404 });
+
+    expect(await sites.tags.dbListSiteTags(other.siteId)).toEqual([foreign]);
+  });
+});
+
 async function publishExistingSubmission(testData: TestData, svTags: string[] = []): Promise<void> {
   const prisma = await getPrismaClient();
   const now = new Date().toISOString();

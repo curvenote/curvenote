@@ -3,6 +3,9 @@ import type { TagDTO, TagRefDTO } from '@curvenote/common';
 /** Fields read by {@link formatTagDTO}. */
 export type TagRow = { id: string; name: string; label: string };
 
+/** Catalog page row. Not a DTO — `date_created` must not leak onto `SiteDTO.tags`. */
+export type TagCatalogRow = TagRow & { date_created: string };
+
 export function formatTagDTO(row: TagRow): TagDTO {
   return { id: row.id, name: row.name, label: row.label };
 }

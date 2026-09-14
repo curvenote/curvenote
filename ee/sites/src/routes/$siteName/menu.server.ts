@@ -3,12 +3,73 @@ import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { registerExtensionNavigation, scopes } from '@curvenote/scms-core';
 import { userHasSiteScope } from '@curvenote/scms-server';
 
+export function administrationMenus(baseUrl: string) {
+  return [
+    {
+      name: 'admin.kinds',
+      label: 'Submission Kinds',
+      url: `${baseUrl}/kinds`,
+      scope: scopes.site.kinds.list,
+    },
+    {
+      name: 'admin.collections',
+      label: 'Collections',
+      url: `${baseUrl}/collections`,
+      scope: scopes.site.collections.list,
+    },
+    {
+      name: 'admin.tags',
+      label: 'Tags',
+      url: `${baseUrl}/tags`,
+      scope: scopes.site.tags.list,
+    },
+    {
+      name: 'admin.forms',
+      label: 'Submission Forms',
+      url: `${baseUrl}/forms`,
+      scope: scopes.site.forms.list,
+    },
+    {
+      name: 'admin.users',
+      label: 'Users & Access',
+      url: `${baseUrl}/users`,
+      scope: scopes.site.users.list,
+    },
+    {
+      name: 'admin.website',
+      label: 'Website & Design',
+      url: `${baseUrl}/website`,
+      scope: scopes.site.update,
+    },
+    {
+      name: 'admin.domains',
+      label: 'Domains',
+      url: `${baseUrl}/domains`,
+      scope: scopes.site.domains.list,
+    },
+    {
+      name: 'admin.advanced',
+      label: 'Advanced',
+      url: `${baseUrl}/advanced`,
+      scope: scopes.system.admin,
+    },
+    {
+      name: 'admin.analytics',
+      label: 'Analytics',
+      url: `${baseUrl}/analytics`,
+      scope: scopes.site.analytics.list,
+    },
+  ];
+}
+
 export async function buildMenu(ctx: SiteContextWithUser): Promise<MenuContents> {
   const mountPoint = `app/sites/${ctx.site.name}`;
   const baseUrl = `/${mountPoint}`;
 
   const fromExtensions = await registerExtensionNavigation(ctx.$config, mountPoint, baseUrl);
-  if (fromExtensions.replace) return fromExtensions.menu;
+  if (fromExtensions.replace) {
+    return fromExtensions.menu;
+  }
 
   const allMenuItems = [
     {
@@ -30,67 +91,19 @@ export async function buildMenu(ctx: SiteContextWithUser): Promise<MenuContents>
     },
     {
       sectionName: 'Administration',
-      menus: [
-        {
-          name: 'admin.kinds',
-          label: 'Submission Kinds',
-          url: `${baseUrl}/kinds`,
-          scope: scopes.site.kinds.list,
-        },
-        {
-          name: 'admin.collections',
-          label: 'Collections',
-          url: `${baseUrl}/collections`,
-          scope: scopes.site.collections.list,
-        },
-        {
-          name: 'admin.forms',
-          label: 'Submission Forms',
-          url: `${baseUrl}/forms`,
-          scope: scopes.site.forms.list,
-        },
-        {
-          name: 'admin.users',
-          label: 'Users & Access',
-          url: `${baseUrl}/users`,
-          scope: scopes.site.users.list,
-        },
-        {
-          name: 'admin.website',
-          label: 'Website & Design',
-          url: `${baseUrl}/website`,
-          scope: scopes.site.update,
-        },
-        {
-          name: 'admin.domains',
-          label: 'Domains',
-          url: `${baseUrl}/domains`,
-          scope: scopes.site.domains.list,
-        },
-        {
-          name: 'admin.advanced',
-          label: 'Advanced',
-          url: `${baseUrl}/advanced`,
-          scope: scopes.system.admin,
-        },
-        {
-          name: 'admin.analytics',
-          label: 'Analytics',
-          url: `${baseUrl}/analytics`,
-          scope: scopes.site.analytics.list,
-        },
-      ],
+      menus: administrationMenus(baseUrl),
     },
   ];
 
-  // Filter menu items based on user scopes
   return allMenuItems
     .map((section) => ({
       ...section,
       menus: section.menus.filter((menu) => {
-        if (!menu.scope) return true; // Show if no scope required
+        if (!menu.scope) {
+          return true;
+        }
         return userHasSiteScope(ctx.user, menu.scope, ctx.site.id);
       }),
     }))
-    .filter((section) => section.menus.length > 0); // Remove empty sections
+    .filter((section) => section.menus.length > 0);
 }
