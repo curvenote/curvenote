@@ -17,6 +17,9 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
   const assignedIds = tags.map((tag) => tag.id);
 
   const toggle = (tag: TagDTO) => {
+    if (fetcher.state !== 'idle') {
+      return;
+    }
     fetcher.submit(
       {
         submission_id: submissionId,
@@ -28,6 +31,9 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
   };
 
   const create = (label: string) => {
+    if (fetcher.state !== 'idle') {
+      return;
+    }
     fetcher.submit(
       { submission_id: submissionId, label, formAction: 'tag-assign' },
       { method: 'POST' },
