@@ -1,4 +1,4 @@
-import { formatDate } from '@curvenote/common';
+import { formatDate, type TagDTO } from '@curvenote/common';
 import type { SiteContext } from '@curvenote/scms-server';
 import { signPrivateUrls } from '@curvenote/scms-server';
 import { coerceToObject, type WorkflowTransition } from '@curvenote/scms-core';
@@ -117,6 +117,11 @@ function formatDetailActivity(
   };
 }
 
+/** Editorial tags assigned to the submission, ready for the loader payload. */
+export function formatSubmissionDetailTags(rows: SubmissionDetailRow['tags']): TagDTO[] {
+  return rows.map((row) => ({ id: row.tag.id, name: row.tag.name, label: row.tag.label }));
+}
+
 export function formatSubmissionDetailSubmission(
   ctx: SiteContext,
   row: SubmissionDetailRow,
@@ -135,6 +140,7 @@ export function formatSubmissionDetailSubmission(
     date_created: formatDate(row.date_created),
     date_published: row.date_published ?? undefined,
     slug,
+    tags: formatSubmissionDetailTags(row.tags),
     kind: {
       id: row.kind.id,
       name: row.kind.name,
