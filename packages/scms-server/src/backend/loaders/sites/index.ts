@@ -3,6 +3,7 @@ export * as submissions from './submissions/index.js';
 export * as collections from './collections/index.js';
 export * as access from './access/index.js';
 export * as kinds from './kinds/index.js';
+export * as tags from './tags/index.js';
 export { default as list } from './list.server.js';
 export * from './list.server.js';
 export { default as get } from './get.server.js';
