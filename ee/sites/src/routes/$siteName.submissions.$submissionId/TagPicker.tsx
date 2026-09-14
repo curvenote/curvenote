@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { TagDTO } from '@curvenote/common';
-import { ui } from '@curvenote/scms-core';
+import { cn, ui } from '@curvenote/scms-core';
 import { Check, Plus } from 'lucide-react';
 import { filterTagOptions, getCreateTagOption } from './TagPicker.utils.js';
 
@@ -8,6 +8,8 @@ type TagPickerProps = {
   catalog: TagDTO[];
   assignedIds: string[];
   disabled?: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onToggle: (tag: TagDTO) => void;
   onCreate: (label: string) => void;
   children: ReactNode;
@@ -17,17 +19,18 @@ export function TagPicker({
   catalog,
   assignedIds,
   disabled,
+  open,
+  onOpenChange,
   onToggle,
   onCreate,
   children,
 }: TagPickerProps) {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const options = filterTagOptions(catalog, query);
   const createOption = getCreateTagOption(catalog, query);
 
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
+    onOpenChange(nextOpen);
     if (!nextOpen) {
       setQuery('');
     }
@@ -68,11 +71,10 @@ export function TagPicker({
               {options.map((tag) => (
                 <ui.CommandItem key={tag.id} value={tag.id} onSelect={() => handleToggle(tag)}>
                   <Check
-                    className={
-                      assignedIds.includes(tag.id)
-                        ? 'mr-2 h-4 w-4 opacity-100'
-                        : 'mr-2 h-4 w-4 opacity-0'
-                    }
+                    className={cn(
+                      'mr-2 h-4 w-4',
+                      assignedIds.includes(tag.id) ? 'opacity-100' : 'opacity-0',
+                    )}
                     aria-hidden
                   />
                   {tag.label}

@@ -1,6 +1,7 @@
+import { forwardRef, useState, type ComponentPropsWithoutRef } from 'react';
 import { useFetcher, useLoaderData } from 'react-router';
 import type { TagDTO } from '@curvenote/common';
-import { cn, ui } from '@curvenote/scms-core';
+import { ui } from '@curvenote/scms-core';
 import { Plus } from 'lucide-react';
 import type { SubmissionDetailPageData } from './loader.server.js';
 import { TagPicker } from './TagPicker.js';
@@ -12,23 +13,36 @@ type SubmissionTagsProps = {
   canUpdate: boolean;
 };
 
-const TAG_ADD_CONTROL_CLASS = cn(
-  'inline-flex items-center gap-1 rounded-md border border-dashed border-gray-300 px-2 py-0.5 text-xs text-gray-600',
-  'dark:border-gray-600 dark:text-gray-400',
-);
+type TagAddButtonProps = {
+  kind: 'add-tags' | 'plus';
+} & Omit<ComponentPropsWithoutRef<typeof ui.Button>, 'children' | 'value'>;
 
-function TagAddControl({ kind }: { kind: 'add-tags' | 'plus' }) {
+const TagAddButton = forwardRef<HTMLButtonElement, TagAddButtonProps>(function TagAddButtonTrigger(
+  { kind, ...props },
+  ref,
+) {
+  const label = getTagAddTriggerLabel(kind);
+  const compact = kind === 'plus';
   return (
-    <span className={TAG_ADD_CONTROL_CLASS}>
-      <Plus className="size-3" aria-hidden />
-      {kind === 'add-tags' ? 'Add Tags' : null}
-    </span>
+    <ui.Button
+      ref={ref}
+      type="button"
+      variant="ghost"
+      size={compact ? 'icon-xs' : 'xs'}
+      title={label}
+      aria-label={label}
+      {...props}
+    >
+      <Plus aria-hidden />
+      {compact ? null : label}
+    </ui.Button>
   );
-}
+});
 
 export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTagsProps) {
   const { siteTags } = useLoaderData<SubmissionDetailPageData>();
   const fetcher = useFetcher<{ error?: string; tag?: TagDTO }>();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const assignedIds = tags.map((tag) => tag.id);
   const pickerBusy = fetcher.state !== 'idle';
 
@@ -56,27 +70,23 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
     );
   };
 
-  const chips = tags.map((tag) => (
-    <ui.Badge key={tag.id} variant="outline-muted" size="xs" title={tag.name}>
-      {tag.label}
-    </ui.Badge>
-  ));
+  const openPicker = () => {
+    if (pickerBusy) {
+      return;
+    }
+    setPickerOpen(true);
+  };
 
   if (!canUpdate) {
     const addKind = getTagAddControlKind({ permission: 'read', assignedCount: tags.length });
     return (
       <div className="flex flex-wrap gap-1 items-center">
-        {chips}
-        {addKind === 'add-tags' ? (
-          <button
-            type="button"
-            className="text-left disabled:cursor-not-allowed disabled:opacity-50"
-            disabled
-            aria-label="Add Tags"
-          >
-            <TagAddControl kind="add-tags" />
-          </button>
-        ) : null}
+        {tags.map((tag) => (
+          <ui.Badge key={tag.id} variant="outline-muted" size="xs" title={tag.name}>
+            {tag.label}
+          </ui.Badge>
+        ))}
+        {addKind === 'add-tags' ? <TagAddButton kind="add-tags" disabled /> : null}
       </div>
     );
   }
@@ -84,24 +94,24 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
   const addKind = getTagAddControlKind({ permission: 'update', assignedCount: tags.length });
 
   return (
-    <div className="flex flex-wrap gap-2 items-center w-full min-w-0">
+    <div className="flex flex-wrap gap-1 items-center w-full min-w-0">
+      {tags.map((tag) => (
+        <ui.Badge key={tag.id} variant="outline-muted" size="xs" title={tag.name} asChild>
+          <button type="button" onClick={openPicker}>
+            {tag.label}
+          </button>
+        </ui.Badge>
+      ))}
       <TagPicker
         catalog={siteTags}
         assignedIds={assignedIds}
         disabled={pickerBusy}
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
         onToggle={toggle}
         onCreate={create}
       >
-        <button
-          type="button"
-          className="flex flex-wrap gap-1 items-center text-left disabled:cursor-not-allowed disabled:opacity-50"
-          title={getTagAddTriggerLabel(addKind)}
-          aria-label={getTagAddTriggerLabel(addKind)}
-          disabled={pickerBusy}
-        >
-          {chips}
-          <TagAddControl kind={addKind} />
-        </button>
+        <TagAddButton kind={addKind} disabled={pickerBusy} />
       </TagPicker>
       {fetcher.data?.error ? (
         <span className="text-sm text-destructive">{fetcher.data.error}</span>

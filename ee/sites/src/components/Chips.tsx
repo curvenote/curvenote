@@ -1,4 +1,4 @@
-import { cn, formatDate, formatToNow, primitives } from '@curvenote/scms-core';
+import { formatDate, formatToNow, primitives, ui } from '@curvenote/scms-core';
 import type { SubmissionsListItemDTO } from '@curvenote/common';
 import { LockOpen, Lock, History } from 'lucide-react';
 
@@ -45,7 +45,9 @@ export function HasRetractedVersion({
 }
 
 export function Slug({ slug }: { slug?: string }) {
-  if (!slug) return null;
+  if (!slug) {
+    return null;
+  }
   return (
     <primitives.Chip
       className="text-white bg-sky-600 border-[1px] border-sky-600 dark:border-sky-600 dark:bg-sky-600"
@@ -63,7 +65,9 @@ export function Collection({
   className?: string;
   collection: SubmissionsListItemDTO['collection'];
 }) {
-  if (!collection) return null;
+  if (!collection) {
+    return null;
+  }
   const title = collection.content?.title ?? collection.slug;
   return (
     <primitives.Chip
@@ -109,22 +113,18 @@ export function SubmissionAge({ date }: { date: string }) {
   );
 }
 
-const TAG_CHIP_CLASS = cn(
-  'text-gray-700 border-[1px] border-gray-300 dark:border-gray-500 dark:text-gray-300',
-);
-
 export function Tag({ label, name }: { label: string; name: string }) {
   return (
-    <primitives.Chip className={TAG_CHIP_CLASS} title={name}>
+    <ui.Badge variant="outline-muted" size="xs" title={name}>
       {label}
-    </primitives.Chip>
+    </ui.Badge>
   );
 }
 
 export function TagOverflow({ count, title }: { count: number; title: string }) {
   return (
-    <primitives.Chip className={TAG_CHIP_CLASS} title={title}>
+    <ui.Badge variant="outline-muted" size="xs" title={title}>
       {`+${count}`}
-    </primitives.Chip>
+    </ui.Badge>
   );
 }

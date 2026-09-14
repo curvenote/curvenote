@@ -20,6 +20,8 @@ export function toTagName(label: string): string {
 
 /** True when `name` is safe to store as `Tag.name`. */
 export function isValidTagName(name: string): boolean {
-  if (name.length < TAG_NAME_MIN_LENGTH) return false;
+  if (name.length < TAG_NAME_MIN_LENGTH) {
+    return false;
+  }
   return /^[a-z0-9][a-z0-9_-]*$/.test(name);
 }

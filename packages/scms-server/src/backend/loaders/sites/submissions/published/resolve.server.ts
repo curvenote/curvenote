@@ -66,11 +66,15 @@ export async function fetchPublishedSubmissionVersionId(
 ): Promise<string | null> {
   if (looksLikeUUID(workIdOrSlug)) {
     const id = await fetchPublishedSubmissionVersionIdByWorkId(siteId, workIdOrSlug);
-    if (id) return id;
+    if (id) {
+      return id;
+    }
     return fetchPublishedSubmissionVersionIdBySlug(siteId, workIdOrSlug);
   }
   const id = await fetchPublishedSubmissionVersionIdBySlug(siteId, workIdOrSlug);
-  if (id) return id;
+  if (id) {
+    return id;
+  }
   return fetchPublishedSubmissionVersionIdByWorkId(siteId, workIdOrSlug);
 }
 
@@ -86,19 +90,25 @@ export async function hydratePublishedSubmissionVersion<
 
 export async function dbGetPublishedSiteWorkDto(siteId: string, workIdOrSlug: string) {
   const id = await fetchPublishedSubmissionVersionId(siteId, workIdOrSlug);
-  if (!id) return null;
+  if (!id) {
+    return null;
+  }
   return hydratePublishedSubmissionVersion(id, siteWorkDtoSelect);
 }
 
 export async function dbGetPublishedSiteWorkWithTagsDto(siteId: string, workIdOrSlug: string) {
   const id = await fetchPublishedSubmissionVersionId(siteId, workIdOrSlug);
-  if (!id) return null;
+  if (!id) {
+    return null;
+  }
   return hydratePublishedSubmissionVersion(id, publishedSiteWorkWithTagsSelect);
 }
 
 export async function dbGetPublishedThumbnailRow(siteId: string, workIdOrSlug: string) {
   const id = await fetchPublishedSubmissionVersionId(siteId, workIdOrSlug);
-  if (!id) return null;
+  if (!id) {
+    return null;
+  }
   return hydratePublishedSubmissionVersion(id, publishedThumbnailSelect);
 }
 

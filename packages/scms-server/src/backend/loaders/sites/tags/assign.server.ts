@@ -30,7 +30,9 @@ async function assertSubmissionOnSite(siteId: string, submissionId: string) {
     where: { id: submissionId, site_id: siteId },
     select: { id: true },
   });
-  if (!submission) throw httpError(404, 'submission not found on this site');
+  if (!submission) {
+    throw httpError(404, 'submission not found on this site');
+  }
 }
 
 /**
@@ -47,7 +49,9 @@ async function resolveTag(siteId: string, input: AssignTagInput): Promise<TagRow
       where: { id: input.tagId, site_id: siteId },
       select: TAG_SELECT,
     });
-    if (!tag) throw httpError(404, 'tag not found on this site');
+    if (!tag) {
+      throw httpError(404, 'tag not found on this site');
+    }
     return tag;
   }
 
@@ -69,7 +73,9 @@ async function resolveTag(siteId: string, input: AssignTagInput): Promise<TagRow
       select: TAG_SELECT,
     });
   } catch (e: any) {
-    if (e?.code !== 'P2002') throw e;
+    if (e?.code !== 'P2002') {
+      throw e;
+    }
     return prisma.tag.findFirstOrThrow({
       where: { name, site_id: siteId },
       select: TAG_SELECT,
@@ -135,7 +141,9 @@ export async function assignTagToSubmission(params: AssignTagParams): Promise<Ta
       await recordTagActivity(tx, submissionId, userId, tag, 'added');
     });
   } catch (e: any) {
-    if (e?.code !== 'P2002') throw e;
+    if (e?.code !== 'P2002') {
+      throw e;
+    }
     // Already assigned by a concurrent call: nothing to create, no activity to add.
   }
 
