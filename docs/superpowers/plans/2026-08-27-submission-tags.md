@@ -31,7 +31,7 @@
 
 **Interfaces:**
 - Consumes: nothing
-- Produces: `bun --cwd ee/sites run test` runs the ee/sites specs; `bun run test` picks them up through turbo.
+- Produces: `cd ee/sites && bun run test` runs the ee/sites specs; `bun run test` picks them up through turbo.
 
 - [ ] **Step 1: Install and build the workspace**
 
@@ -46,7 +46,7 @@ bun run build:scms
 
 ```bash
 bun run dx:up
-bun --cwd platform/scms run test:db:reset
+cd platform/scms && bun run test:db:reset
 ```
 
 - [ ] **Step 3: Confirm ee/sites specs do not run today**
@@ -68,7 +68,7 @@ In `ee/sites/package.json`, inside `"scripts"`:
 - [ ] **Step 5: Run the ee/sites specs**
 
 ```bash
-bun --cwd ee/sites run test
+cd ee/sites && bun run test
 ```
 
 Expected: PASS. If a spec fails on module resolution, re-run `bun run build:scms` first — the specs import built workspace packages.
@@ -167,7 +167,7 @@ describe('Submission tags schema', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-bun --cwd platform/scms run test:integration 2>&1 | tail -30
+cd platform/scms && bun run test:integration 2>&1 | tail -30
 ```
 
 Expected: FAIL — `prisma.tag` is undefined.
@@ -238,8 +238,8 @@ Check the generated `migration.sql`: it must create both tables, both unique ind
 - [ ] **Step 5: Reset the test database and run the test**
 
 ```bash
-bun --cwd platform/scms run test:db:reset
-bun --cwd platform/scms run test:integration 2>&1 | tail -30
+cd platform/scms && bun run test:db:reset
+cd platform/scms && bun run test:integration 2>&1 | tail -30
 ```
 
 Expected: PASS.
@@ -302,7 +302,7 @@ describe('isValidTagName', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-bun --cwd packages/scms-core run test src/utils/tagName.spec.ts
+cd packages/scms-core && bun run test src/utils/tagName.spec.ts
 ```
 
 Expected: FAIL — cannot resolve `./tagName.js`.
@@ -350,7 +350,7 @@ export * from './tagName.js';
 - [ ] **Step 5: Run the test to verify it passes**
 
 ```bash
-bun --cwd packages/scms-core run test src/utils/tagName.spec.ts
+cd packages/scms-core && bun run test src/utils/tagName.spec.ts
 ```
 
 Expected: PASS.
@@ -411,7 +411,7 @@ describe('formatTagDTO', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-bun --cwd packages/scms-server run test src/backend/loaders/sites/tags/format.server.spec.ts
+cd packages/scms-server && bun run test src/backend/loaders/sites/tags/format.server.spec.ts
 ```
 
 Expected: FAIL — cannot resolve `./format.server.js`.
@@ -450,7 +450,7 @@ export function formatTagDTO(row: TagRow): TagDTO {
 - [ ] **Step 5: Run the test to verify it passes**
 
 ```bash
-bun --cwd packages/scms-server run test src/backend/loaders/sites/tags/format.server.spec.ts
+cd packages/scms-server && bun run test src/backend/loaders/sites/tags/format.server.spec.ts
 ```
 
 Expected: PASS.
@@ -505,7 +505,7 @@ export * as tags from './tags/index.js';
 - [ ] **Step 8: Check types**
 
 ```bash
-bun --cwd packages/scms-server run compile
+cd packages/scms-server && bun run compile
 ```
 
 Expected: no errors.
@@ -692,7 +692,7 @@ import { getPrismaClient, sites } from '@curvenote/scms-server';
 - [ ] **Step 2: Run the tests to verify they fail**
 
 ```bash
-bun --cwd platform/scms run test:integration 2>&1 | tail -30
+cd platform/scms && bun run test:integration 2>&1 | tail -30
 ```
 
 Expected: FAIL — `sites.tags.assignTagToSubmission is not a function`.
@@ -863,7 +863,7 @@ export * from './assign.server.js';
 
 ```bash
 bun run build:scms
-bun --cwd platform/scms run test:integration 2>&1 | tail -30
+cd platform/scms && bun run test:integration 2>&1 | tail -30
 ```
 
 Expected: PASS.
@@ -937,7 +937,7 @@ object into `baseDbo` so the formatter has what it reads.
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-bun --cwd packages/scms-server run test src/backend/loaders/sites/get.server.test.ts
+cd packages/scms-server && bun run test src/backend/loaders/sites/get.server.test.ts
 ```
 
 Expected: FAIL — `dto.tags` is undefined.
@@ -991,8 +991,8 @@ In `packages/scms-server/src/backend/loaders/sites/list.server.ts`, in the defau
 - [ ] **Step 6: Run the test to verify it passes**
 
 ```bash
-bun --cwd packages/scms-server run test src/backend/loaders/sites/get.server.test.ts
-bun --cwd packages/scms-server run compile
+cd packages/scms-server && bun run test src/backend/loaders/sites/get.server.test.ts
+cd packages/scms-server && bun run compile
 ```
 
 Expected: PASS, no type errors.
@@ -1080,7 +1080,7 @@ Import `formatPublishedSubmissionTags` from `./get.server.js` at the top of the 
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-bun --cwd packages/scms-server run test src/backend/loaders/sites/submissions/published/get.server.test.ts
+cd packages/scms-server && bun run test src/backend/loaders/sites/submissions/published/get.server.test.ts
 ```
 
 Expected: FAIL — `formatPublishedSubmissionTags` is not exported.
@@ -1176,8 +1176,8 @@ import type { PublishedSiteWorkWithTagsRow } from './select.server.js';
 - [ ] **Step 6: Run the tests to verify they pass**
 
 ```bash
-bun --cwd packages/scms-server run test src/backend/loaders/sites/submissions/published/get.server.test.ts
-bun --cwd packages/scms-server run compile
+cd packages/scms-server && bun run test src/backend/loaders/sites/submissions/published/get.server.test.ts
+cd packages/scms-server && bun run compile
 ```
 
 Expected: PASS, no type errors.
@@ -1235,7 +1235,7 @@ describe('formatSubmissionDetailTags', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-bun --cwd ee/sites run test src/routes/'$siteName.submissions.$submissionId'/detail.format.tags.spec.ts
+cd ee/sites && bun run test src/routes/'$siteName.submissions.$submissionId'/detail.format.tags.spec.ts
 ```
 
 Expected: FAIL — `formatSubmissionDetailTags` is not exported.
@@ -1316,8 +1316,8 @@ Destructure it as `siteTags` and return it in the payload object.
 - [ ] **Step 6: Run the test and the type check**
 
 ```bash
-bun --cwd ee/sites run test src/routes/'$siteName.submissions.$submissionId'/detail.format.tags.spec.ts
-bun --cwd ee/sites run compile
+cd ee/sites && bun run test src/routes/'$siteName.submissions.$submissionId'/detail.format.tags.spec.ts
+cd ee/sites && bun run compile
 ```
 
 Expected: PASS, no type errors.
@@ -1402,7 +1402,7 @@ describe('getCreateTagOption', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-bun --cwd ee/sites run test src/routes/'$siteName.submissions.$submissionId'/TagPicker.utils.spec.ts
+cd ee/sites && bun run test src/routes/'$siteName.submissions.$submissionId'/TagPicker.utils.spec.ts
 ```
 
 Expected: FAIL — cannot resolve `./TagPicker.utils.js`.
@@ -1444,7 +1444,7 @@ export function getCreateTagOption(
 - [ ] **Step 4: Run the test to verify it passes**
 
 ```bash
-bun --cwd ee/sites run test src/routes/'$siteName.submissions.$submissionId'/TagPicker.utils.spec.ts
+cd ee/sites && bun run test src/routes/'$siteName.submissions.$submissionId'/TagPicker.utils.spec.ts
 ```
 
 Expected: PASS.
@@ -1728,8 +1728,8 @@ In `SubmissionDetails.tsx`, import `SubmissionTags` and add a row between "Submi
 - [ ] **Step 10: Check types and lint**
 
 ```bash
-bun --cwd ee/sites run compile
-bun --cwd ee/sites run lint
+cd ee/sites && bun run compile
+cd ee/sites && bun run lint
 ```
 
 Expected: no errors. If `ui.Badge` rejects `size="xs"`, check `packages/scms-core/src/components/ui/badge.tsx` for the accepted variants and use the ones the listing chips already use.
@@ -1782,7 +1782,7 @@ describe('formatIndexItemTags', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-bun --cwd ee/sites run test src/routes/'$siteName.submissions._index'/format.tags.spec.ts
+cd ee/sites && bun run test src/routes/'$siteName.submissions._index'/format.tags.spec.ts
 ```
 
 Expected: FAIL — `formatIndexItemTags` is not exported.
@@ -1844,7 +1844,7 @@ Import `TagDTO` from `@curvenote/common` at the top of `types.ts`.
 - [ ] **Step 5: Run the test to verify it passes**
 
 ```bash
-bun --cwd ee/sites run test src/routes/'$siteName.submissions._index'/format.tags.spec.ts
+cd ee/sites && bun run test src/routes/'$siteName.submissions._index'/format.tags.spec.ts
 ```
 
 Expected: PASS.
@@ -1892,8 +1892,8 @@ Import `primitives` from `@curvenote/scms-core` in that file if it is not import
 - [ ] **Step 8: Check types and lint**
 
 ```bash
-bun --cwd ee/sites run compile
-bun --cwd ee/sites run lint
+cd ee/sites && bun run compile
+cd ee/sites && bun run lint
 ```
 
 Expected: no errors.
@@ -1919,7 +1919,7 @@ git commit -m "✨ Show submission tags on the submissions listing"
 - Consumes: `ActivityType.SUBMISSION_TAGS_CHANGE`
 - Produces: `ACTIVITY_TYPE_LABELS.SUBMISSION_TAGS_CHANGE`, `TrackEvent.SUBMISSION_TAGS_CHANGED` (used by Task 8)
 
-If Task 8 runs first, `TrackEvent.SUBMISSION_TAGS_CHANGED` will not exist yet and `bun --cwd ee/sites run compile` fails. Do this task before Task 8, or add the enum value as the first step of Task 8.
+If Task 8 runs first, `TrackEvent.SUBMISSION_TAGS_CHANGED` will not exist yet and `cd ee/sites && bun run compile` fails. Do this task before Task 8, or add the enum value as the first step of Task 8.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1939,7 +1939,7 @@ describe('ACTIVITY_TYPE_LABELS', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-bun --cwd packages/scms-core run test src/utils/activityLabels.spec.ts
+cd packages/scms-core && bun run test src/utils/activityLabels.spec.ts
 ```
 
 Expected: FAIL — the value is undefined.
@@ -2016,9 +2016,9 @@ shape the neighbours use:
 - [ ] **Step 7: Run the test to verify it passes**
 
 ```bash
-bun --cwd packages/scms-core run test src/utils/activityLabels.spec.ts
-bun --cwd packages/scms-core run compile
-bun --cwd ee/sites run compile
+cd packages/scms-core && bun run test src/utils/activityLabels.spec.ts
+cd packages/scms-core && bun run compile
+cd ee/sites && bun run compile
 ```
 
 Expected: PASS, no type errors.
@@ -2049,7 +2049,7 @@ Also stage `types.ts` and `detail.format.server.ts` from the same route folder.
 - [ ] **Step 1: Confirm the test seed runs today**
 
 ```bash
-bun --cwd platform/scms run test:db:reset 2>&1 | tail -20
+cd platform/scms && bun run test:db:reset 2>&1 | tail -20
 ```
 
 If the seed rejects the non-UUID work ids in `prisma/data.test/*.json`, stop and report it. That is a pre-existing seeding problem, not part of this work — Tasks 1 to 10 do not depend on it.
@@ -2092,7 +2092,7 @@ describe('sites.tags', () => {
 - [ ] **Step 3: Run the test to verify it fails**
 
 ```bash
-bun --cwd platform/scms run test:e2e 2>&1 | tail -30
+cd platform/scms && bun run test:e2e 2>&1 | tail -30
 ```
 
 Expected: FAIL — `site.tags` is `[]` and `submission_tags` is `[]`, because nothing is seeded yet.
@@ -2157,8 +2157,8 @@ In the `isFirstForWork` branch, beside the slug creation:
 - [ ] **Step 6: Reseed and run the tests**
 
 ```bash
-bun --cwd platform/scms run test:db:reset
-bun --cwd platform/scms run test:e2e 2>&1 | tail -30
+cd platform/scms && bun run test:db:reset
+cd platform/scms && bun run test:e2e 2>&1 | tail -30
 ```
 
 Expected: PASS.
@@ -2180,7 +2180,7 @@ That is the DOI the passing test at line 17 of the same file already resolves.
 - [ ] **Step 8: Run the e2e suite**
 
 ```bash
-bun --cwd platform/scms run test:e2e 2>&1 | tail -30
+cd platform/scms && bun run test:e2e 2>&1 | tail -30
 ```
 
 Expected: PASS.
@@ -2223,10 +2223,10 @@ Check the package names against each `package.json` before committing.
 
 ```bash
 bun run lint
-bun --cwd platform/scms run check-types
+cd platform/scms && bun run check-types
 bun run test
-bun --cwd platform/scms run test:unit
-bun --cwd platform/scms run test:integration
+cd platform/scms && bun run test:unit
+cd platform/scms && bun run test:integration
 ```
 
 Expected: all pass. Report any failure with its output; do not claim success without it.
@@ -2247,6 +2247,13 @@ git commit -m "📝 Add changeset for submission tags phase 1"
 ```
 
 ---
+
+## Commands
+
+`bun --cwd <dir> run <script>` is a no-op on the installed bun 1.4.0: it prints
+the script list and exits 0. Every per-package command below is written as
+`cd <dir> && bun run <script>`. Run each in its own shell, or return to the
+repository root afterwards.
 
 ## Notes for the executor
 
