@@ -7,6 +7,10 @@ import { dbLoadSubmissionVersionsTimeline } from './db.server.js';
 // db.server only needs these two from the server package. Mocking the module outright,
 // rather than spreading the real one, keeps the whole server (prisma, config) out of the
 // test — importing it took longer than vitest's hook timeout on CI.
+// The module under test and its one transitive import need exactly these two
+// exports, so the factory replaces the module outright. Spreading
+// `importOriginal()` here would load the whole server package — seconds inside
+// a hook — for exports nothing reads.
 vi.mock('@curvenote/scms-server', () => ({
   getPrismaClient: vi.fn(),
   getConfiguredWorkflow: vi.fn(() => ({

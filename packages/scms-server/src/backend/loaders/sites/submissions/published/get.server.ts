@@ -1,5 +1,5 @@
 import type { SiteContext } from '../../../../context.site.server.js';
-import type { HostSpec, SiteWorkDTO, SiteWorkVersionDTO } from '@curvenote/common';
+import type { HostSpec, SiteWorkDTO, SiteWorkVersionDTO, TagRefDTO } from '@curvenote/common';
 import { formatDate, concatSiteWorkTags, pickVersionTag } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import type { Prisma } from '@curvenote/scms-db';
@@ -12,7 +12,9 @@ import { formatCollectionSummaryDTO } from '../../get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../../kinds/get.server.js';
 import { createArticleUrl } from '../../../../domains.server.js';
 import { fetchWorkVersionSubjects } from '../../../../work-version-subject.server.js';
-import { dbGetPublishedSiteWorkDto } from './resolve.server.js';
+import { formatTagRefDTO } from '../../tags/format.server.js';
+import { dbGetPublishedSiteWorkDto, dbGetPublishedSiteWorkWithTagsDto } from './resolve.server.js';
+import type { PublishedSiteWorkWithTagsRow } from './select.server.js';
 
 /** @deprecated Prefer `dbGetPublishedSiteWorkDto(siteId, …)` — kept for callers expecting the old name. */
 export async function dbGetLatestPublishedSubmissionVersion(siteId: string, workIdOrSlug: string) {
@@ -47,6 +49,10 @@ export type ModifiedSiteWorkDTO = Omit<SiteWorkDTO, 'links' | 'cdn' | 'cdn_key'>
 };
 
 export type PublishedSiteWorkDTO = ModifiedSiteWorkDTO & { versions: SiteWorkVersionDTO[] };
+
+export type PublishedSiteWorkWithTagsDTO = PublishedSiteWorkDTO & {
+  submission_tags: TagRefDTO[];
+};
 
 /**
  * All *published* submission versions for a submission, newest first. Used to build the
@@ -178,11 +184,17 @@ export function formatSiteWorkDTO(
   };
 }
 
+/** Editorial tags of the submission behind a published site work. */
+export function formatPublishedSubmissionTags(row: PublishedSiteWorkWithTagsRow): TagRefDTO[] {
+  return row.submission.tags.map((join) => formatTagRefDTO(join.tag));
+}
+
 export default async function (
   ctx: SiteContext,
   workIdOrSlug: string,
-): Promise<PublishedSiteWorkDTO | null> {
-  const dbo = await dbGetPublishedSiteWorkDto(ctx.site.id, workIdOrSlug);
+): Promise<PublishedSiteWorkWithTagsDTO | null> {
+  const dbo = await dbGetPublishedSiteWorkWithTagsDto(ctx.site.id, workIdOrSlug);
   if (!dbo) return null;
-  return formatPublishedSiteWorkWithVersions(ctx, dbo);
+  const siteWork = await formatPublishedSiteWorkWithVersions(ctx, dbo);
+  return { ...siteWork, submission_tags: formatPublishedSubmissionTags(dbo) };
 }

@@ -1,3 +1,4 @@
+import type { TagDTO } from '@curvenote/common';
 import type { jobs } from '@curvenote/scms-server';
 import type { getWorkflow, WorkflowTransition } from '@curvenote/scms-core';
 
@@ -88,6 +89,8 @@ export type SubmissionsIndexItem = {
   retractedVersion?: { date_created: string };
   kind: SubmissionListingKind;
   collection: SubmissionListingCollection;
+  /** Editorial tags. Not the version tags behind `versionTag`. */
+  tags: TagDTO[];
 };
 
 export type SubmissionsIndexPage = {

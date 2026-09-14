@@ -9,6 +9,7 @@ export async function dbListMany(where?: Prisma.SiteWhereInput, include?: Prisma
     submissionKinds: true,
     collections: { orderBy: { date_created: 'desc' } },
     domains: true,
+    tags: { orderBy: { label: 'asc' } },
   };
 
   const prisma = await getPrismaClient();

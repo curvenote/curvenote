@@ -12,6 +12,7 @@ import type { Collection, SiteRole } from '@curvenote/scms-db';
 import type { Context } from '../../context.server.js';
 import type { UserDBO } from '../../db.types.js';
 import { createSiteRootUrl } from '../../domains.server.js';
+import { formatTagDTO, type TagRow } from './tags/format.server.js';
 
 export type SiteUserDBO = { site_id: string; user_id: string; role: SiteRole };
 export type UserWithSiteRolesDBO = UserDBO & { site_roles: SiteUserDBO[] };
@@ -26,11 +27,27 @@ export async function dbGetSite(name: string) {
         orderBy: { date_created: 'desc' },
       },
       domains: true,
+      tags: {
+        select: { id: true, name: true, label: true },
+        orderBy: { label: 'asc' },
+      },
     },
   });
 }
 
-export type DBO = NonNullable<Awaited<ReturnType<typeof dbGetSite>>>;
+// `tags` is typed as optional here (rather than inherited as-is from `dbGetSite`'s
+// literal `include`) because `dbListMany` (see `list.server.ts`) accepts a
+// caller-supplied `include` that may omit the tag catalog, and other queries
+// across the codebase (e.g. `my/sites.server.ts`) build objects of this same
+// `DBO` shape too. `formatSiteDTO` guards this with `dbo.tags ?? []`.
+//
+// Trade-off: this removes the compile-time tripwire a required field would give.
+// Any new query whose result feeds `formatSiteDTO` MUST add a `tags` include
+// (see `dbGetSite` above for the shape) or it will silently report an empty
+// tag catalog instead of failing to compile.
+export type DBO = Omit<NonNullable<Awaited<ReturnType<typeof dbGetSite>>>, 'tags'> & {
+  tags?: TagRow[];
+};
 
 export async function dbGetSiteContent(site: DBO) {
   if (!site.content_id) return;
@@ -110,6 +127,7 @@ export function formatSiteDTO(ctx: Context, dbo: DBO): SiteDTO {
     social_links: formatSocialLinks(site.social_links),
     theme_config: site.theme_config || undefined,
     collections: dbo.collections.map((c) => formatCollectionSummaryDTO(c)),
+    tags: (dbo.tags ?? []).map((t) => formatTagDTO(t)),
     links: {
       self: ctx.asApiUrl(`/sites/${dbo.name}`),
       html: siteRootUrl,

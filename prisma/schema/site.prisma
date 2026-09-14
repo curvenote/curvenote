@@ -48,6 +48,7 @@ model Site {
   slugs               Slug[]
   slug_strategy       SlugStrategy         @default(NONE)
   collections         Collection[]
+  tags                Tag[]
   ApiEvent            ApiEvent[]
   analyticsDashboards AnalyticsDashboard[]
   access              Access[]
