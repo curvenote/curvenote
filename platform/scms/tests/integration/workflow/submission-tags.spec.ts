@@ -331,7 +331,7 @@ describe('HTTP-shaped tag contracts', () => {
 
     const dto = await sites.submissions.published.get(testData.context, testData.workId);
     expect(dto).not.toBeNull();
-    expect(dto!.submission_tags).toEqual([tag]);
+    expect(dto!.submission_tags).toEqual([{ name: tag.name, label: tag.label }]);
     expect(dto!.tags).toEqual(['preprint']);
     expect(dto!.tags!.every((value) => typeof value === 'string')).toBe(true);
   });

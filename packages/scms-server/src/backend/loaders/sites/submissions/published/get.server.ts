@@ -1,5 +1,5 @@
 import type { SiteContext } from '../../../../context.site.server.js';
-import type { HostSpec, SiteWorkDTO, SiteWorkVersionDTO, TagDTO } from '@curvenote/common';
+import type { HostSpec, SiteWorkDTO, SiteWorkVersionDTO, TagRefDTO } from '@curvenote/common';
 import { formatDate, concatSiteWorkTags, pickVersionTag } from '@curvenote/common';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import type { Prisma } from '@curvenote/scms-db';
@@ -12,7 +12,7 @@ import { formatCollectionSummaryDTO } from '../../get.server.js';
 import { formatSubmissionKindSummaryDTO } from '../../kinds/get.server.js';
 import { createArticleUrl } from '../../../../domains.server.js';
 import { fetchWorkVersionSubjects } from '../../../../work-version-subject.server.js';
-import { formatTagDTO } from '../../tags/format.server.js';
+import { formatTagRefDTO } from '../../tags/format.server.js';
 import { dbGetPublishedSiteWorkDto, dbGetPublishedSiteWorkWithTagsDto } from './resolve.server.js';
 import type { PublishedSiteWorkWithTagsRow } from './select.server.js';
 
@@ -51,7 +51,7 @@ export type ModifiedSiteWorkDTO = Omit<SiteWorkDTO, 'links' | 'cdn' | 'cdn_key'>
 export type PublishedSiteWorkDTO = ModifiedSiteWorkDTO & { versions: SiteWorkVersionDTO[] };
 
 export type PublishedSiteWorkWithTagsDTO = PublishedSiteWorkDTO & {
-  submission_tags: TagDTO[];
+  submission_tags: TagRefDTO[];
 };
 
 /**
@@ -185,8 +185,8 @@ export function formatSiteWorkDTO(
 }
 
 /** Editorial tags of the submission behind a published site work. */
-export function formatPublishedSubmissionTags(row: PublishedSiteWorkWithTagsRow): TagDTO[] {
-  return row.submission.tags.map((join) => formatTagDTO(join.tag));
+export function formatPublishedSubmissionTags(row: PublishedSiteWorkWithTagsRow): TagRefDTO[] {
+  return row.submission.tags.map((join) => formatTagRefDTO(join.tag));
 }
 
 export default async function (

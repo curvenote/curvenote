@@ -242,19 +242,19 @@ describe('formatSiteWorkDTO', () => {
 });
 
 describe('formatPublishedSubmissionTags', () => {
-  test('maps the join rows to TagDTOs', () => {
+  test('maps the join rows to name and label, without the catalog id', () => {
     const tags = formatPublishedSubmissionTags({
       submission: {
         tags: [
-          { tag: { id: 'tag1', name: 'blog-post', label: 'Blog Post' } },
-          { tag: { id: 'tag2', name: 'editors-pick', label: 'Editors Pick' } },
+          { tag: { name: 'blog-post', label: 'Blog Post' } },
+          { tag: { name: 'editors-pick', label: 'Editors Pick' } },
         ],
       },
     } as never);
 
     expect(tags).toEqual([
-      { id: 'tag1', name: 'blog-post', label: 'Blog Post' },
-      { id: 'tag2', name: 'editors-pick', label: 'Editors Pick' },
+      { name: 'blog-post', label: 'Blog Post' },
+      { name: 'editors-pick', label: 'Editors Pick' },
     ]);
   });
 
@@ -276,7 +276,7 @@ describe('formatPublishedSubmissionTags', () => {
         slugs: [],
         kind: { id: 'kind1', name: 'Article' },
         collection: { id: 'collection1', name: 'Articles' },
-        tags: [{ tag: { id: 'tag1', name: 'blog-post', label: 'Blog Post' } }],
+        tags: [{ tag: { name: 'blog-post', label: 'Blog Post' } }],
       },
     };
 
