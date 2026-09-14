@@ -121,6 +121,11 @@ transaction:
    `submission_id`, `activity_by_id`, and
    `data: { tag: { id, name, label }, action: 'added' | 'removed' }`.
 
+Two admins can type the same new label at the same time. The `upsert` in step 1
+then raises `P2002` for the slower request. `assignTagToSubmission` catches
+`P2002` on `Tag`, reads the tag by `name` and `site_id`, and continues. Without
+that catch, decision 6 hides a 500.
+
 `removeTagFromSubmission` deletes the join row and writes the same activity
 with `action: 'removed'`. It leaves the `Tag` row in place.
 
@@ -146,22 +151,48 @@ assigned or not.
 `include` of `dbListMany` as well. `dbListMany` accepts a caller `include`, so
 `formatSiteDTO` reads `dbo.tags ?? []`.
 
-**`GET /v1/sites/:siteName/works/:workIdOrSlug/published`** —
-`formatPublishedSiteWorkWithVersions` adds `submission_tags: TagDTO[]` with one
-extra query keyed on `submission_id`, in the same way as `versions`:
+**`GET /v1/sites/:siteName/works/:workIdOrSlug/published`** — only this endpoint
+gains the field:
 
 ```ts
-export type PublishedSiteWorkDTO = ModifiedSiteWorkDTO & {
-  versions: SiteWorkVersionDTO[];
+export type PublishedSiteWorkWithTagsDTO = PublishedSiteWorkDTO & {
   submission_tags: TagDTO[];
 };
 ```
 
-`formatSiteWorkDTO` and `siteWorkDtoSelect` do not change, so the listing
-endpoints and every other consumer of `SiteWorkDTO` keep their current payload.
-`SiteWorkDTO.tags` keeps carrying version tags.
+`formatPublishedSiteWorkWithVersions` must **not** change. The DOI endpoints
+(`loaders/sites/doi.server.ts` and `loaders/doi/resolve.server.ts`) call it, and
+`docs/planning/site-doi-resolve-performance.md` tunes that path. A new query
+there would cost a round trip on the DOI path and widen its payload beyond this
+issue.
 
-Cache headers do not change.
+Instead, add a published-only select and map the field in the default export of
+`published/get.server.ts`, which only the `/published` route calls:
+
+```ts
+export const publishedSiteWorkWithTagsSelect = {
+  ...siteWorkDtoSelect,
+  submission: {
+    select: {
+      ...siteWorkSubmissionSelect,
+      tags: { select: { tag: { select: { id: true, name: true, label: true } } } },
+    },
+  },
+} satisfies Prisma.SubmissionVersionSelect;
+```
+
+The row is a structural superset of `SiteWorkDtoInput`, so
+`formatPublishedSiteWorkWithVersions` still accepts it. There is no second round
+trip.
+
+`formatSiteWorkDTO`, `siteWorkDtoSelect` and `siteWorkSubmissionSelect` do not
+change, so the listing endpoints, the DOI endpoints and every other consumer of
+`SiteWorkDTO` keep their current payload. `SiteWorkDTO.tags` keeps carrying
+version tags.
+
+Cache headers do not change. `SEMI_STATIC_BURST_PROTECTION` is 10 s in the
+browser and 60 s on the CDN, so a new tag shows up within a minute. No purge
+step is needed.
 
 ## Admin UI
 
@@ -206,6 +237,10 @@ Route folder `ee/sites/src/routes/$siteName.submissions._index/`.
   that constant, so both rows keep the same shape.
 - Add `tags: TagDTO[]` to `IndexListingRow` and to `SubmissionsIndexItem`, and
   map them in `format.server.ts`.
+- `INDEX_LISTING_SELECT` then holds both meanings of the word: `versions[].tags`
+  are version tags, which feed `pickVersionTag` and `versionTag`, and the new
+  submission-level `tags` are the editorial tags. Comment both lines at the
+  select, because `format.server.ts` is where the two can get mixed up.
 - Add a `Tag` chip to `ee/sites/src/components/Chips.tsx`. `SubmissionsListItem`
   renders up to 3 chips and a `+N` chip for the rest, beside the collection and
   kind chips.
@@ -227,14 +262,16 @@ Unit:
 - `formatTagDTO` and `formatSiteDTO`: the catalog is present and ordered.
 - Picker utils: filtering, and when the create row appears.
 - `assign.server`: reuses an existing name, is idempotent on repeated
-  assignment, leaves the tag in the catalog after removal, and rejects a tag
-  from another site.
+  assignment, recovers from a `P2002` on `Tag`, leaves the tag in the catalog
+  after removal, and rejects a tag from another site.
 
 Server:
 
 - Extend `loaders/sites/submissions/published/get.server.test.ts` for
   `submission_tags`, and assert that `SiteWorkDTO.tags` still holds version tags
   only.
+- Assert that the DOI path keeps its payload: `formatPublishedSiteWorkWithVersions`
+  returns no `submission_tags`.
 
 Close out with `bun run lint`, `bun --cwd platform/scms run check-types`, the
 affected vitest suites, and a changeset.
