@@ -101,6 +101,15 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
     );
   };
 
+  // Escape and outside clicks close the popover without going through a chip, so drop the
+  // anchor here rather than leaving it pointing at the chip that opened the last one.
+  const handleOpenChange = (nextOpen: boolean) => {
+    setPickerOpen(nextOpen);
+    if (!nextOpen) {
+      setAnchorTagId(null);
+    }
+  };
+
   const openPickerAt = (tagId: string) => {
     if (pickerBusy) {
       return;
@@ -126,7 +135,7 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
   const addKind = getTagAddControlKind({ permission: 'update', assignedCount: tags.length });
 
   return (
-    <ui.Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+    <ui.Popover open={pickerOpen} onOpenChange={handleOpenChange}>
       <div className="flex flex-wrap gap-1 items-center w-full min-w-0">
         {tags.map((tag) => {
           const chip = (
