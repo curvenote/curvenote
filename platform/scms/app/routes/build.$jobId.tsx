@@ -51,7 +51,14 @@ async function dbGetSubmissionVersion(submissionVersionId: string) {
       submission: {
         include: {
           kind: true,
-          site: { include: { submissionKinds: true, collections: true, domains: true } },
+          site: {
+            include: {
+              submissionKinds: true,
+              collections: true,
+              domains: true,
+              tags: { orderBy: { label: 'asc' } },
+            },
+          },
         },
       },
       work_version: {
