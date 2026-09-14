@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { TagDTO } from '@curvenote/common';
-import { cn, ui } from '@curvenote/scms-core';
+import { cn, ui, TAG_LABEL_MAX_LENGTH } from '@curvenote/scms-core';
 import { Check, Plus } from 'lucide-react';
 import { filterTagOptions, getCreateTagOption } from './TagPicker.utils.js';
 
@@ -60,6 +60,7 @@ export function TagPicker({
           <ui.CommandInput
             boxed
             placeholder="Search or create a tag…"
+            maxLength={TAG_LABEL_MAX_LENGTH}
             value={query}
             onValueChange={setQuery}
           />
