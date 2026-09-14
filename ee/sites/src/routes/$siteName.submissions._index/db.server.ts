@@ -90,6 +90,7 @@ export type IndexListingRow = {
     content: Prisma.JsonValue;
     workflow: string;
   };
+  tags: { tag: { id: string; name: string; label: string } }[];
   versions: {
     status: string;
     tags: string[];
@@ -123,11 +124,20 @@ const INDEX_LISTING_SELECT = {
       workflow: true,
     },
   },
+  /**
+   * Editorial tags of the submission. Not to be confused with
+   * `versions[].tags`, which are the version tags feeding `versionTag`.
+   */
+  tags: {
+    select: { tag: { select: { id: true, name: true, label: true } } },
+    orderBy: { tag: { label: 'asc' } },
+  },
   versions: {
     take: 1,
     orderBy: { date_created: 'desc' },
     select: {
       status: true,
+      /** Version tags (`v1`, `preprint`), read by `pickVersionTag`. */
       tags: true,
       work_version: { select: { title: true, authors: true, doi: true } },
     },
