@@ -1,6 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { describe, test, expect, vi } from 'vitest';
-import { formatSiteWorkDTO } from './get.server.js';
+import { formatPublishedSubmissionTags, formatSiteWorkDTO } from './get.server.js';
 import type { SiteContext } from '../../../../context.site.server.js';
 
 // Mock the dependencies
@@ -238,5 +238,50 @@ describe('formatSiteWorkDTO', () => {
     const result = formatSiteWorkDTO(ctx, dbo as any);
 
     expect(result.tags).toEqual(['a', 'c', 'b']);
+  });
+});
+
+describe('formatPublishedSubmissionTags', () => {
+  test('maps the join rows to TagDTOs', () => {
+    const tags = formatPublishedSubmissionTags({
+      submission: {
+        tags: [
+          { tag: { id: 'tag1', name: 'blog-post', label: 'Blog Post' } },
+          { tag: { id: 'tag2', name: 'editors-pick', label: 'Editors Pick' } },
+        ],
+      },
+    } as never);
+
+    expect(tags).toEqual([
+      { id: 'tag1', name: 'blog-post', label: 'Blog Post' },
+      { id: 'tag2', name: 'editors-pick', label: 'Editors Pick' },
+    ]);
+  });
+
+  test('version tags are untouched by the editorial tags', () => {
+    const ctx = createMockSiteContext();
+    const dbo = {
+      id: 'version1',
+      tags: ['v2'],
+      work_version: {
+        id: 'wv1',
+        work_id: 'work1',
+        title: 'A title',
+        authors: [],
+        tags: ['preprint'],
+        date_created: '2026-08-27T00:00:00.000Z',
+      },
+      submission: {
+        id: 'sub1',
+        slugs: [],
+        kind: { id: 'kind1', name: 'Article' },
+        collection: { id: 'collection1', name: 'Articles' },
+        tags: [{ tag: { id: 'tag1', name: 'blog-post', label: 'Blog Post' } }],
+      },
+    };
+
+    const siteWork = formatSiteWorkDTO(ctx, dbo as never);
+    expect(siteWork.tags).toEqual(['v2', 'preprint']);
+    expect((siteWork as Record<string, unknown>).submission_tags).toBeUndefined();
   });
 });
