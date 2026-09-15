@@ -351,12 +351,12 @@ export const ColorPickerOutput = ({ ...props }: ColorPickerOutputProps) => {
 
   return (
     <Select onValueChange={setMode} value={mode}>
-      <SelectTrigger className="w-20 h-8 text-xs shrink-0" {...props}>
+      <SelectTrigger className="w-20 h-8 text-xs cursor-pointer shrink-0" {...props}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {formats.map((format) => (
-          <SelectItem className="text-xs" key={format} value={format}>
+          <SelectItem className="text-xs cursor-pointer" key={format} value={format}>
             {format.toUpperCase()}
           </SelectItem>
         ))}

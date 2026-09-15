@@ -8,6 +8,7 @@ import {
   toggleListingCsvParam,
   type ListingParamKey,
 } from './listingParams.js';
+import { listingMultiSelectEmptyCopy } from './ListingMultiSelectChip.utils.js';
 
 export interface ListingMultiSelectOption {
   id: string;
@@ -29,6 +30,8 @@ interface ListingMultiSelectChipProps {
   searchPlaceholder?: string;
   /** Empty-state copy when no options match the search query (only when `searchable`). */
   noResultsLabel?: string;
+  /** Copy when `options` is empty (distinct from `noResultsLabel`). */
+  emptyCatalogLabel?: string;
   /**
    * Value shown when nothing is selected (e.g. `"All"`). When set, the trigger
    * reads `{label}: {defaultValueLabel}` and an option to clear is offered.
@@ -52,6 +55,7 @@ export function ListingMultiSelectChip({
   searchable = true,
   searchPlaceholder = 'Search...',
   noResultsLabel = 'No matches.',
+  emptyCatalogLabel,
   defaultValueLabel,
   options,
   className,
@@ -77,6 +81,12 @@ export function ListingMultiSelectChip({
 
   const summary = formatSelectionSummary(label, options, selected, defaultValueLabel);
   const hasSelection = selected.length > 0;
+  const emptyCopy = listingMultiSelectEmptyCopy({
+    optionsLength: options.length,
+    noResultsLabel,
+    emptyCatalogLabel,
+  });
+  const showSearch = searchable && options.length > 0;
   const ariaLabel =
     summary.kind === 'label-only' ? summary.text : `${summary.prefix}: ${summary.value}`;
 
@@ -129,9 +139,11 @@ export function ListingMultiSelectChip({
       </ui.PopoverTrigger>
       <ui.PopoverContent align="start" className="w-64 p-0">
         <ui.Command>
-          {searchable ? <ui.CommandInput placeholder={searchPlaceholder} boxed /> : null}
+          {showSearch ? <ui.CommandInput placeholder={searchPlaceholder} boxed /> : null}
           <ui.CommandList>
-            {searchable ? <ui.CommandEmpty>{noResultsLabel}</ui.CommandEmpty> : null}
+            {showSearch || options.length === 0 ? (
+              <ui.CommandEmpty>{emptyCopy}</ui.CommandEmpty>
+            ) : null}
             <ui.CommandGroup>
               {defaultValueLabel ? (
                 <ui.CommandItem value={`${defaultValueLabel} all`} onSelect={handleClear}>

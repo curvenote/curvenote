@@ -1,3 +1,4 @@
+import type { TagDTO } from '@curvenote/common';
 import { coerceToObject } from '@curvenote/scms-core';
 import { doi as doiUtils } from 'doi-utils';
 import { getConfiguredWorkflow, type SiteContext } from '@curvenote/scms-server';
@@ -14,6 +15,12 @@ import type { SubmissionsIndexItem } from './types.js';
  * last PUBLISHED version (which is what the classic listing did). For the
  * common case the two listings agree.
  */
+
+/** Editorial tags on a listing row. */
+export function formatIndexItemTags(rows: IndexListingRow['tags']): TagDTO[] {
+  return rows.map((row) => ({ id: row.tag.id, name: row.tag.name, label: row.tag.label }));
+}
+
 export function formatSubmissionsIndexItems(
   ctx: SiteContext,
   rows: IndexListingRow[],
@@ -53,6 +60,7 @@ export function formatSubmissionsIndexItems(
         open: row.collection.open,
         content: collectionContent,
       },
+      tags: formatIndexItemTags(row.tags),
     };
   });
 }

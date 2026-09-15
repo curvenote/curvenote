@@ -548,6 +548,13 @@ function CoreDesigns() {
         />
 
         <ComponentCard
+          component={<ui.Badge variant="neutral">Neutral Badge</ui.Badge>}
+          title="Neutral"
+          metadata="variant='neutral'"
+          sourceUrl="https://github.com/curvenote/curvenote/blob/dev/packages/scms-core/src/components/ui/badge.tsx#L31-L32"
+        />
+
+        <ComponentCard
           component={<ui.Badge variant="warning">Warning Badge</ui.Badge>}
           title="Warning"
           metadata="variant='warning'"

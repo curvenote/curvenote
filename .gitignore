@@ -60,3 +60,16 @@ types/app-config.d.ts
 
 # local caches (rich seed overlay, etc.)
 .cache/
+
+# Local agent harness links (bun run agents:setup)
+.cursor/skills
+.codex/skills
+.claude/skills
+.claude/CLAUDE.md
+CLAUDE.md
+# brainstorming mockups (root session dir, not docs/superpowers/)
+# Superpowers session dir and local design docs
+/.superpowers/
+docs/superpowers/plans/
+docs/superpowers/specs/2026-08-31-submission-tags-catalog-crud-design.md
+docs/superpowers/specs/2026-09-01-submission-tags-filtering-design.md

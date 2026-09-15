@@ -41,6 +41,7 @@ export type SubmissionDetailRow = {
   };
   work: { doi: string | null; key: string | null } | null;
   slugs: { slug: string; primary: boolean }[];
+  tags: { tag: { id: string; name: string; label: string } }[];
   versions: {
     id: string;
     status: string;
@@ -113,6 +114,10 @@ export async function dbLoadSubmissionDetail(
         },
         work: { select: { doi: true, key: true } },
         slugs: { select: { slug: true, primary: true } },
+        tags: {
+          select: { tag: { select: { id: true, name: true, label: true } } },
+          orderBy: { tag: { label: 'asc' } },
+        },
         versions: {
           select: submissionDetailVersionSelect,
           orderBy: { date_created: 'desc' },

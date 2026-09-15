@@ -1,4 +1,4 @@
-import { formatDate, formatToNow, primitives } from '@curvenote/scms-core';
+import { formatDate, formatToNow, primitives, ui } from '@curvenote/scms-core';
 import type { SubmissionsListItemDTO } from '@curvenote/common';
 import { LockOpen, Lock, History } from 'lucide-react';
 
@@ -106,5 +106,21 @@ export function SubmissionAge({ date }: { date: string }) {
       <History className="inline-block mr-1 h-[14px] w-[14px] stroke-black dark:stroke-white" />
       <span>{date ? `${formatToNow(date)} old` : 'Unknown age'}</span>
     </primitives.Chip>
+  );
+}
+
+export function Tag({ label, name }: { label: string; name: string }) {
+  return (
+    <ui.Badge variant="neutral" size="xs" title={name}>
+      {label}
+    </ui.Badge>
+  );
+}
+
+export function TagOverflow({ count, title }: { count: number; title: string }) {
+  return (
+    <ui.Badge variant="neutral" size="xs" title={title}>
+      {`+${count}`}
+    </ui.Badge>
   );
 }

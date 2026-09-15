@@ -7,6 +7,7 @@ import {
   getBrandingFromMetaMatches,
   joinPageTitle,
   ui,
+  cn,
   FILE_UPLOAD_INTENTS,
   FileDropzone,
 } from '@curvenote/scms-core';
@@ -14,9 +15,12 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react
 import { useFetcher } from 'react-router';
 import type { JournalThemeConfig, SiteDTO } from '@curvenote/common';
 import { SiteSkeleton } from './SiteSkeleton.js';
-import { ImageIcon, PaletteIcon, Pencil } from 'lucide-react';
-import { ClassicDesignRedirect } from './ClassicWebsiteRedirect.js';
-import { useState, useRef, useCallback } from 'react';
+import { ERROR_TOOLTIP_CLASS, UnsavedChangesGuard } from './UnsavedChangesGuard.js';
+import { SocialLinksField, socialLinksError } from './SocialLinksField.js';
+import { FooterLinksField, footerLinksError } from './FooterLinksField.js';
+import { DESIGN_TARGETS, type DesignTarget } from './designTargets.js';
+import { ImageIcon, PaletteIcon, PanelBottomIcon, TriangleAlert, TypeIcon } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Color from 'color';
 import { ColorSwatch } from './ColorSwatch.js';
 import { $actionUpdateSiteDesign } from './actionHelpers.server.js';
@@ -28,8 +32,30 @@ interface LoaderData {
   themeConfig: JournalThemeConfig | undefined;
   logoUrl: string | undefined;
   logoDarkUrl: string | undefined;
+  faviconUrl: string | undefined;
+  footerLogoUrl: string | undefined;
+  footerLogoDarkUrl: string | undefined;
+  tagline: string | undefined;
   publicCdn?: string;
 }
+
+const faviconUploadConfig: FileUploadConfig = {
+  slot: 'favicon',
+  label: 'Favicon',
+  description: 'Upload a favicon for your site',
+  optional: true,
+  multiple: false,
+  ignoreDuplicates: true,
+  accept: 'image/png,image/x-icon,image/svg+xml',
+  mimeTypes: [
+    'image/png',
+    'image/x-icon',
+    'image/vnd.microsoft.icon',
+    'image/svg+xml',
+    'image/webp',
+  ],
+  maxSize: 1 * 1024 * 1024,
+};
 
 const logoUploadConfig: FileUploadConfig = {
   slot: 'logo',
@@ -53,6 +79,10 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   const themeConfig = metadata?.theme_config as JournalThemeConfig | undefined;
   const logoUrl = metadata?.logo as string | undefined;
   const logoDarkUrl = metadata?.logo_dark as string | undefined;
+  const faviconUrl = metadata?.favicon as string | undefined;
+  const footerLogoUrl = metadata?.footer_logo as string | undefined;
+  const footerLogoDarkUrl = metadata?.footer_logo_dark as string | undefined;
+  const tagline = metadata?.tagline as string | undefined;
 
   return {
     scopes: ctx.scopes,
@@ -60,6 +90,10 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     themeConfig,
     logoUrl,
     logoDarkUrl,
+    faviconUrl,
+    footerLogoUrl,
+    footerLogoDarkUrl,
+    tagline,
     publicCdn: ctx.$config.api.knownBucketInfoMap.pub.cdn,
   };
 }
@@ -74,7 +108,9 @@ export async function action(args: ActionFunctionArgs) {
   const formData = await args.request.formData();
   const intent = formData.get('intent') as string;
   if (intent === FILE_UPLOAD_INTENTS.uploadStage) {
-    return siteUploadsStage(ctx, logoUploadConfig, formData);
+    const uploadConfig =
+      formData.get('slot') === faviconUploadConfig.slot ? faviconUploadConfig : logoUploadConfig;
+    return siteUploadsStage(ctx, uploadConfig, formData);
   } else if (intent === FILE_UPLOAD_INTENTS.uploadComplete) {
     return siteUploadsComplete(ctx, formData);
   } else if (intent === 'site.update') {
@@ -83,8 +119,96 @@ export async function action(args: ActionFunctionArgs) {
   return null;
 }
 
+/** Hex colors round-trip through the picker in upper case, so compare case-insensitively. */
+function sameColor(a: string, b: string) {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+/** Lower the first letter, so a standalone message can be continued mid-sentence. */
+function lowerFirst(text: string) {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+/** Section indicator: amber for unsaved edits, red when something needs fixing. */
+function SectionDot({ error }: { error?: string }) {
+  const label = error ?? 'Unsaved changes';
+  return (
+    <ui.SimpleTooltip title={label} className="max-w-xs text-left">
+      <span role="status" aria-label={label} className="flex">
+        <ui.Dot className={error ? 'bg-red-500' : 'bg-amber-500'} />
+      </span>
+    </ui.SimpleTooltip>
+  );
+}
+
+/** A field label with its info tooltip, kept on one centred line. */
+/** A field's wrapper: carries the id a preview hotspot jumps to, and flashes when it lands. */
+function Field({
+  id,
+  highlighted,
+  className,
+  children,
+}: {
+  id: string;
+  highlighted?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      id={id}
+      className={cn(
+        'rounded-xs transition-shadow duration-500',
+        highlighted === id &&
+          'ring-2 ring-sky-500/70 ring-offset-4 ring-offset-white dark:ring-offset-slate-950',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function FieldLabel({
+  htmlFor,
+  title,
+  error,
+  children,
+}: {
+  htmlFor?: string;
+  title: string;
+  /** Shown as a red warning beside the label when the field needs fixing. */
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <ui.Label htmlFor={htmlFor}>{children}</ui.Label>
+      <ui.SimpleTooltipWithIcon title={title} />
+      {error && (
+        <ui.SimpleTooltip title={error} className="max-w-xs text-left">
+          <span className="flex" role="img" aria-label={error}>
+            <TriangleAlert className="w-4 h-4 text-red-600" />
+          </span>
+        </ui.SimpleTooltip>
+      )}
+    </div>
+  );
+}
+
 export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderData }) {
-  const { scopes, site, themeConfig, logoUrl, logoDarkUrl, publicCdn } = loaderData;
+  const {
+    scopes,
+    site,
+    themeConfig,
+    logoUrl,
+    logoDarkUrl,
+    faviconUrl,
+    footerLogoUrl,
+    footerLogoDarkUrl,
+    tagline,
+    publicCdn,
+  } = loaderData;
   const fetcher = useFetcher();
   const toPublicAssetUrl = (uploadedPath: string) => {
     if (!publicCdn) return uploadedPath;
@@ -95,13 +219,18 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const [currentDescription, setCurrentDescription] = useState(site.description || '');
   const [currentLogoUrl, setCurrentLogoUrl] = useState(logoUrl);
   const [currentLogoDarkUrl, setCurrentLogoDarkUrl] = useState(logoDarkUrl);
+  const [currentFaviconUrl, setCurrentFaviconUrl] = useState(faviconUrl);
+  const [currentFooterLogoUrl, setCurrentFooterLogoUrl] = useState(footerLogoUrl);
+  const [currentFooterLogoDarkUrl, setCurrentFooterLogoDarkUrl] = useState(footerLogoDarkUrl);
+  const [currentTagline, setCurrentTagline] = useState(tagline || '');
+  const [currentSocialLinks, setCurrentSocialLinks] = useState(site.social_links ?? []);
+  const [currentFooterLinks, setCurrentFooterLinks] = useState(site.footer_links ?? []);
   const [currentColorPrimary, setCurrentColorPrimary] = useState(
     themeConfig?.colors?.primary || '#3b82f6',
   );
   const [currentColorSecondary, setCurrentColorSecondary] = useState(
     themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
   );
-  const [dirty, setDirty] = useState(false);
   // Use a reset key to force ColorPicker remounting on cancel
   const [resetKey, setResetKey] = useState(0);
 
@@ -110,6 +239,43 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const secondaryColorTimeoutRef = useRef<NodeJS.Timeout>();
 
   const canEdit = clientCheckSiteScopes(scopes, [siteScopes.update], site.name);
+
+  // Which accordion sections differ from what is saved, compared against the same
+  // defaults the state is initialized with so an untouched page shows no indicators
+  const basicsChanged =
+    currentTitle !== site.title || currentDescription !== (site.description || '');
+  const logosChanged =
+    currentLogoUrl !== logoUrl ||
+    currentLogoDarkUrl !== logoDarkUrl ||
+    currentFaviconUrl !== faviconUrl;
+  const colorsChanged =
+    !sameColor(currentColorPrimary, themeConfig?.colors?.primary || '#3b82f6') ||
+    !sameColor(
+      currentColorSecondary,
+      themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
+    );
+  // Derived rather than latched, so editing a value and putting it back is not dirty
+  const footerChanged =
+    currentFooterLogoUrl !== footerLogoUrl ||
+    currentFooterLogoDarkUrl !== footerLogoDarkUrl ||
+    currentTagline !== (tagline || '') ||
+    JSON.stringify(currentSocialLinks) !== JSON.stringify(site.social_links ?? []) ||
+    JSON.stringify(currentFooterLinks) !== JSON.stringify(site.footer_links ?? []);
+  const dirty = basicsChanged || logosChanged || colorsChanged || footerChanged;
+  const footerLinksProblem = footerLinksError(currentFooterLinks);
+  const socialLinksProblem = socialLinksError(currentSocialLinks);
+  // Field messages stand alone, so name the field they came from when they travel
+  const footerSectionError =
+    [
+      socialLinksProblem && `In Social Links, ${lowerFirst(socialLinksProblem)}`,
+      footerLinksProblem && `In Footer Links, ${lowerFirst(footerLinksProblem)}`,
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined;
+  const saveError = footerSectionError
+    ? `Form has errors that need to be fixed before saving. ${footerSectionError}`
+    : undefined;
+  const canSave = canEdit && !saveError;
 
   // Reset state from loader data
   const resetFromLoaderData = () => {
@@ -125,11 +291,16 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     setCurrentDescription(site.description || '');
     setCurrentLogoUrl(logoUrl);
     setCurrentLogoDarkUrl(logoDarkUrl);
+    setCurrentFaviconUrl(faviconUrl);
+    setCurrentFooterLogoUrl(footerLogoUrl);
+    setCurrentFooterLogoDarkUrl(footerLogoDarkUrl);
+    setCurrentTagline(tagline || '');
+    setCurrentSocialLinks(site.social_links ?? []);
+    setCurrentFooterLinks(site.footer_links ?? []);
     setCurrentColorPrimary(themeConfig?.colors?.primary || '#3b82f6');
     setCurrentColorSecondary(
       themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
     );
-    setDirty(false);
     // Force ColorPicker to remount with original values
     setResetKey((prev) => prev + 1);
   };
@@ -149,6 +320,24 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     if (currentLogoDarkUrl && currentLogoDarkUrl !== logoDarkUrl) {
       formData.append('logoDarkUrl', currentLogoDarkUrl);
     }
+    if (currentFaviconUrl && currentFaviconUrl !== faviconUrl) {
+      formData.append('faviconUrl', currentFaviconUrl);
+    }
+    if (currentFooterLogoUrl && currentFooterLogoUrl !== footerLogoUrl) {
+      formData.append('footerLogoUrl', currentFooterLogoUrl);
+    }
+    if (currentFooterLogoDarkUrl && currentFooterLogoDarkUrl !== footerLogoDarkUrl) {
+      formData.append('footerLogoDarkUrl', currentFooterLogoDarkUrl);
+    }
+    if (currentTagline !== (tagline || '')) {
+      formData.append('tagline', currentTagline);
+    }
+    if (JSON.stringify(currentSocialLinks) !== JSON.stringify(site.social_links ?? [])) {
+      formData.append('socialLinks', JSON.stringify(currentSocialLinks));
+    }
+    if (JSON.stringify(currentFooterLinks) !== JSON.stringify(site.footer_links ?? [])) {
+      formData.append('footerLinks', JSON.stringify(currentFooterLinks));
+    }
     if (currentColorPrimary !== themeConfig?.colors?.primary) {
       formData.append('colorPrimary', currentColorPrimary);
     }
@@ -157,12 +346,51 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     }
 
     fetcher.submit(formData, { method: 'POST' });
-    setDirty(false);
   };
 
-  const handleCancel = () => {
+  const handleReset = () => {
     resetFromLoaderData();
   };
+
+  // Clicking a region of the preview opens its section, then scrolls to and flashes its field
+  const [openSection, setOpenSection] = useState('item-title');
+  const [pendingTarget, setPendingTarget] = useState<DesignTarget>();
+  const [highlighted, setHighlighted] = useState<string>();
+
+  const jumpTo = (target: DesignTarget) => {
+    setOpenSection(DESIGN_TARGETS[target].section);
+    setPendingTarget(target);
+  };
+
+  useEffect(() => {
+    if (!pendingTarget) return;
+    const { fieldId } = DESIGN_TARGETS[pendingTarget];
+    const field = document.getElementById(fieldId);
+    // The section's content mounts on the render after it opens; try again then
+    if (!field) return;
+    // Let the accordion finish expanding before measuring where to scroll
+    const timer = setTimeout(() => {
+      field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      field.querySelector<HTMLElement>('input:not([type="file"])')?.focus({ preventScroll: true });
+      setHighlighted(fieldId);
+      setPendingTarget(undefined);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [pendingTarget, openSection]);
+
+  useEffect(() => {
+    if (!highlighted) return;
+    const timer = setTimeout(() => setHighlighted(undefined), 1500);
+    return () => clearTimeout(timer);
+  }, [highlighted]);
+
+  // Report how the save went
+  useEffect(() => {
+    if (fetcher.state !== 'idle' || !fetcher.data) return;
+    const data = fetcher.data as { success?: boolean; error?: string };
+    if (data.error) ui.toastError(data.error);
+    else if (data.success) ui.toastSuccess('Site design saved');
+  }, [fetcher.state, fetcher.data]);
 
   // Generic debounced color change handler to prevent race conditions
   const colorChangeHandler = useCallback(
@@ -183,10 +411,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
 
           // Debounce the state update to prevent race conditions
           timeoutRef.current = setTimeout(() => {
-            // Only set dirty if the color actually changed
             if (hexColor !== currentColor) {
               setColor(hexColor);
-              setDirty(true);
             }
           }, 16); // ~60fps update rate
         }
@@ -203,50 +429,73 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
             site={{ ...site, title: currentTitle }}
             logoUrl={currentLogoUrl}
             logoDarkUrl={currentLogoDarkUrl}
+            faviconUrl={currentFaviconUrl}
+            footerLogoUrl={currentFooterLogoUrl}
+            footerLogoDarkUrl={currentFooterLogoDarkUrl}
+            tagline={currentTagline}
+            social={currentSocialLinks}
+            footerLinks={currentFooterLinks}
             themeColorPrimary={currentColorPrimary}
             themeColorSecondary={currentColorSecondary}
+            onSelect={jumpTo}
           />
-          <ClassicDesignRedirect siteName={site.name} />
         </div>
       </PageFrame>
 
-      <div className="flex flex-col h-full bg-white shadow-sm dark:bg-slate-950">
-        <h2 className="m-6 text-xl font-semibold">Website & Design</h2>
+      <div className="flex flex-col h-full bg-white shadow-sm dark:bg-slate-950 lg:sticky lg:top-0 lg:h-[calc(100vh-1.75rem)]">
+        <h2 className="p-6 text-xl font-semibold border-b shrink-0">Website & Design</h2>
 
-        <div className="flex-1 overflow-auto">
-          <ui.Accordion type="single" collapsible defaultValue="item-title" className="w-full">
+        <div className="flex-1 min-h-0 overflow-auto">
+          <ui.Accordion
+            type="single"
+            collapsible
+            value={openSection}
+            onValueChange={setOpenSection}
+            className="w-full"
+          >
             <ui.AccordionItem value="item-title">
               <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
-                <div className="flex items-start flex-1 gap-3">
-                  <Pencil className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex items-center flex-1 gap-3">
+                  <TypeIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 text-left">
-                    <div className="font-semibold">Basics</div>
+                    <div className="flex items-center gap-2 font-semibold">
+                      Basics
+                      {basicsChanged && <SectionDot />}
+                    </div>
                   </div>
                 </div>
               </ui.AccordionTrigger>
               <ui.AccordionContent>
-                <div className="px-4 space-y-4">
-                  <div className="space-y-2">
-                    <ui.Label htmlFor="site-title">Title</ui.Label>
+                <div className="px-4 pt-2 space-y-4">
+                  <Field id="field-title" highlighted={highlighted} className="space-y-2">
+                    <FieldLabel
+                      htmlFor="site-title"
+                      title="The name of your site, shown in the site header and the browser tab."
+                    >
+                      Title
+                    </FieldLabel>
                     <ui.Input
                       id="site-title"
                       value={currentTitle}
                       onChange={(e) => {
                         setCurrentTitle(e.target.value);
-                        setDirty(true);
                       }}
                       placeholder="Enter site title"
                       disabled={!canEdit}
                     />
-                  </div>
+                  </Field>
                   <div className="space-y-2">
-                    <ui.Label htmlFor="site-description">Description</ui.Label>
+                    <FieldLabel
+                      htmlFor="site-description"
+                      title="A short summary of the site, used by search engines and link previews."
+                    >
+                      Description
+                    </FieldLabel>
                     <ui.Input
                       id="site-description"
                       value={currentDescription}
                       onChange={(e) => {
                         setCurrentDescription(e.target.value);
-                        setDirty(true);
                       }}
                       placeholder="Enter site description"
                       disabled={!canEdit}
@@ -258,19 +507,24 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
 
             <ui.AccordionItem value="item-logos">
               <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
-                <div className="flex items-start flex-1 gap-3">
-                  <ImageIcon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex items-center flex-1 gap-3">
+                  <ImageIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 text-left">
-                    <div className="font-semibold">Logos</div>
+                    <div className="flex items-center gap-2 font-semibold">
+                      Logos
+                      {logosChanged && <SectionDot />}
+                    </div>
                   </div>
                 </div>
               </ui.AccordionTrigger>
               <ui.AccordionContent>
-                <div className="px-4 space-y-4">
+                <div className="px-4 pt-2 space-y-4">
                   {/* Light Mode Logo */}
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col items-start gap-2">
-                      <h3 className="text-sm font-medium">Light Mode</h3>
+                  <Field id="field-logo" highlighted={highlighted} className="space-y-2">
+                    <FieldLabel title="Logo shown in the site header on light backgrounds.">
+                      Light Mode
+                    </FieldLabel>
+                    <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center flex-shrink-0 w-20 h-20">
                         {currentLogoUrl ? (
                           <img
@@ -284,25 +538,29 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                           </div>
                         )}
                       </div>
+                      <div className="flex-1">
+                        <FileDropzone
+                          folder={`static/site/${site.name}`}
+                          slot="logo"
+                          readonly={!canEdit}
+                          height="56px"
+                          className="p-3"
+                          inline
+                          label="Upload logo"
+                          onUploadComplete={(uploadedPath) => {
+                            setCurrentLogoUrl(toPublicAssetUrl(uploadedPath));
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <FileDropzone
-                        folder={`static/site/${site.name}`}
-                        slot="logo"
-                        readonly={!canEdit}
-                        height="80px"
-                        onUploadComplete={(uploadedPath) => {
-                          setCurrentLogoUrl(toPublicAssetUrl(uploadedPath));
-                          setDirty(true);
-                        }}
-                      />
-                    </div>
-                  </div>
+                  </Field>
 
                   {/* Dark Mode Logo */}
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col items-start gap-2">
-                      <h3 className="text-sm font-medium">Dark Mode</h3>
+                  <Field id="field-logo-dark" highlighted={highlighted} className="space-y-2">
+                    <FieldLabel title="Logo shown in the site header when a visitor is using dark mode.">
+                      Dark Mode
+                    </FieldLabel>
+                    <div className="flex items-start gap-4">
                       <div className="flex items-center justify-center flex-shrink-0 w-20 h-20 rounded bg-slate-900">
                         {currentLogoDarkUrl ? (
                           <img
@@ -316,37 +574,81 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                           </div>
                         )}
                       </div>
+                      <div className="flex-1">
+                        <FileDropzone
+                          folder={`static/site/${site.name}`}
+                          slot="logo"
+                          readonly={!canEdit}
+                          height="56px"
+                          className="p-3"
+                          inline
+                          label="Upload dark logo"
+                          onUploadComplete={(uploadedPath) => {
+                            setCurrentLogoDarkUrl(toPublicAssetUrl(uploadedPath));
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <FileDropzone
-                        folder={`static/site/${site.name}`}
-                        slot="logo"
-                        readonly={!canEdit}
-                        height="80px"
-                        onUploadComplete={(uploadedPath) => {
-                          setCurrentLogoDarkUrl(toPublicAssetUrl(uploadedPath));
-                          setDirty(true);
-                        }}
-                      />
+                  </Field>
+
+                  {/* Favicon */}
+                  <Field id="field-favicon" highlighted={highlighted} className="space-y-2">
+                    <FieldLabel title="Small icon shown in the browser tab and in bookmarks.">
+                      Favicon
+                    </FieldLabel>
+                    <div className="flex items-start gap-4">
+                      <div className="flex items-center justify-center flex-shrink-0 w-20 h-20">
+                        {currentFaviconUrl ? (
+                          <img
+                            src={currentFaviconUrl}
+                            alt="Favicon"
+                            className="object-contain w-8 h-8 rounded"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-20 h-20 border rounded bg-muted">
+                            <span className="text-xs text-muted-foreground">No favicon</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <FileDropzone
+                          folder={`static/site/${site.name}`}
+                          slot="favicon"
+                          readonly={!canEdit}
+                          height="56px"
+                          className="p-3"
+                          inline
+                          label="Upload favicon"
+                          accept={{ 'image/png': [], 'image/x-icon': [], 'image/svg+xml': [] }}
+                          onUploadComplete={(uploadedPath) => {
+                            setCurrentFaviconUrl(toPublicAssetUrl(uploadedPath));
+                          }}
+                        />
+                      </div>
                     </div>
-                  </div>
+                  </Field>
                 </div>
               </ui.AccordionContent>
             </ui.AccordionItem>
 
             <ui.AccordionItem value="item-colors">
               <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
-                <div className="flex items-start flex-1 gap-3">
-                  <PaletteIcon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex items-center flex-1 gap-3">
+                  <PaletteIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 text-left">
-                    <div className="font-semibold">Colors</div>
+                    <div className="flex items-center gap-2 font-semibold">
+                      Colors
+                      {colorsChanged && <SectionDot />}
+                    </div>
                   </div>
                 </div>
               </ui.AccordionTrigger>
               <ui.AccordionContent>
-                <div className="px-4 space-y-6">
-                  <div className="space-y-2">
-                    <ui.Label>Primary Color</ui.Label>
+                <div className="px-4 pt-2 space-y-6">
+                  <Field id="field-color-primary" highlighted={highlighted} className="space-y-2">
+                    <FieldLabel title="Your main brand color, used for the site banner and footer.">
+                      Primary Color
+                    </FieldLabel>
                     <ui.ColorPicker
                       key={`primary-${resetKey}`}
                       defaultValue={currentColorPrimary}
@@ -362,10 +664,12 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         <ui.ColorPickerOutput />
                       </div>
                     </ui.ColorPicker>
-                  </div>
+                  </Field>
 
-                  <div className="space-y-2">
-                    <ui.Label>Secondary Color</ui.Label>
+                  <Field id="field-color-secondary" highlighted={highlighted} className="space-y-2">
+                    <FieldLabel title="Accent color, used for buttons and highlights on the site.">
+                      Secondary Color
+                    </FieldLabel>
                     <ui.ColorPicker
                       key={`secondary-${resetKey}`}
                       defaultValue={currentColorSecondary}
@@ -381,15 +685,157 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         <ui.ColorPickerOutput />
                       </div>
                     </ui.ColorPicker>
+                  </Field>
+                </div>
+              </ui.AccordionContent>
+            </ui.AccordionItem>
+
+            <ui.AccordionItem value="item-footer">
+              <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
+                <div className="flex items-center flex-1 gap-3">
+                  <PanelBottomIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2 font-semibold">
+                      Footer
+                      {(footerChanged || footerSectionError) && (
+                        <SectionDot error={footerSectionError} />
+                      )}
+                    </div>
                   </div>
+                </div>
+              </ui.AccordionTrigger>
+              <ui.AccordionContent>
+                <div className="px-4 pt-2 space-y-4">
+                  {/* Footer Logo */}
+                  <Field id="field-footer-logo" highlighted={highlighted} className="space-y-2">
+                    <FieldLabel title="Logo shown in the site footer on light backgrounds.">
+                      Light Mode
+                    </FieldLabel>
+                    <div className="flex items-start gap-4">
+                      <div className="flex items-center justify-center flex-shrink-0 w-20 h-20">
+                        {currentFooterLogoUrl ? (
+                          <img
+                            src={currentFooterLogoUrl}
+                            alt="Footer logo"
+                            className="object-contain w-20 h-20 rounded"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-20 h-20 border rounded bg-muted">
+                            <span className="text-xs text-muted-foreground">No logo</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <FileDropzone
+                          folder={`static/site/${site.name}`}
+                          slot="logo"
+                          readonly={!canEdit}
+                          height="56px"
+                          className="p-3"
+                          inline
+                          label="Upload logo"
+                          onUploadComplete={(uploadedPath) => {
+                            setCurrentFooterLogoUrl(toPublicAssetUrl(uploadedPath));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </Field>
+
+                  {/* Footer Logo - Dark Mode */}
+                  <Field
+                    id="field-footer-logo-dark"
+                    highlighted={highlighted}
+                    className="space-y-2"
+                  >
+                    <FieldLabel title="Logo shown in the site footer when a visitor is using dark mode.">
+                      Dark Mode
+                    </FieldLabel>
+                    <div className="flex items-start gap-4">
+                      <div className="flex items-center justify-center flex-shrink-0 w-20 h-20 rounded bg-slate-900">
+                        {currentFooterLogoDarkUrl ? (
+                          <img
+                            src={currentFooterLogoDarkUrl}
+                            alt="Footer logo dark mode"
+                            className="object-contain w-20 h-20 rounded"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-20 h-20">
+                            <span className="text-xs text-slate-400">No logo</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <FileDropzone
+                          folder={`static/site/${site.name}`}
+                          slot="logo"
+                          readonly={!canEdit}
+                          height="56px"
+                          className="p-3"
+                          inline
+                          label="Upload dark logo"
+                          onUploadComplete={(uploadedPath) => {
+                            setCurrentFooterLogoDarkUrl(toPublicAssetUrl(uploadedPath));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </Field>
+
+                  {/* Footer Tagline */}
+                  <Field id="field-tagline" highlighted={highlighted} className="pt-4 space-y-2">
+                    <FieldLabel
+                      htmlFor="site-tagline"
+                      title="A short line shown under the logo in the site footer."
+                    >
+                      Tagline
+                    </FieldLabel>
+                    <ui.Input
+                      id="site-tagline"
+                      value={currentTagline}
+                      onChange={(e) => setCurrentTagline(e.target.value)}
+                      placeholder="Enter site tagline"
+                      disabled={!canEdit}
+                    />
+                  </Field>
+
+                  <Field id="field-social-links" highlighted={highlighted} className="space-y-2">
+                    <FieldLabel
+                      title="Links shown as icons in the site footer; the icon is worked out from the link. Drag to reorder."
+                      error={socialLinksProblem}
+                    >
+                      Social Links
+                    </FieldLabel>
+                    <SocialLinksField
+                      key={`social-${resetKey}`}
+                      links={currentSocialLinks}
+                      onChange={setCurrentSocialLinks}
+                      disabled={!canEdit}
+                    />
+                  </Field>
+
+                  <Field id="field-footer-links" highlighted={highlighted} className="space-y-2">
+                    <FieldLabel
+                      title="Link columns shown in the site footer. Drag links to reorder them or move them between columns."
+                      error={footerLinksProblem}
+                    >
+                      Footer Links
+                    </FieldLabel>
+                    <FooterLinksField
+                      key={`footer-links-${resetKey}`}
+                      links={currentFooterLinks}
+                      onChange={setCurrentFooterLinks}
+                      disabled={!canEdit}
+                    />
+                  </Field>
                 </div>
               </ui.AccordionContent>
             </ui.AccordionItem>
 
             {/* <AccordionItem value="item-navigation">
               <AccordionTrigger className="justify-between px-4 hover:no-underline">
-                <div className="flex items-start flex-1 gap-3">
-                  <LinkIcon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex items-center flex-1 gap-3">
+                  <LinkIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 text-left">
                     <div className="font-semibold">Navigation Links</div>
                   </div>
@@ -406,18 +852,37 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
           </ui.Accordion>
         </div>
 
-        {/* Save/Cancel Buttons */}
+        {/* Save/Reset Buttons */}
         <div className="p-4 bg-white border-t dark:bg-slate-950">
           <div className="flex justify-end gap-2">
-            <ui.Button variant="outline" onClick={handleCancel} disabled={!dirty || !canEdit}>
-              Cancel
+            <ui.Button variant="outline" onClick={handleReset} disabled={!dirty || !canEdit}>
+              Reset
             </ui.Button>
-            <ui.Button onClick={handleSave} disabled={!dirty || !canEdit}>
-              Save Changes
-            </ui.Button>
+            {saveError ? (
+              <ui.SimpleTooltip title={saveError} className={ERROR_TOOLTIP_CLASS}>
+                {/* A disabled button fires no pointer events, so the span carries the tooltip */}
+                <span className="inline-flex">
+                  <ui.Button disabled>Save changes</ui.Button>
+                </span>
+              </ui.SimpleTooltip>
+            ) : (
+              <ui.Button onClick={handleSave} disabled={!dirty || !canSave}>
+                Save changes
+              </ui.Button>
+            )}
           </div>
         </div>
       </div>
+
+      <UnsavedChangesGuard
+        dirty={dirty}
+        fetcher={fetcher}
+        canSave={canSave}
+        saveError={saveError}
+        description="You have unsaved changes to this site's design. Would you like to save them before leaving this page?"
+        onSave={handleSave}
+        onDiscard={resetFromLoaderData}
+      />
     </div>
   );
 }

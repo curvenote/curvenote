@@ -50,6 +50,7 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
                   'routes/$siteName.collections.$collectionName/route.tsx',
                 ),
               ),
+              route('tags', resolveRoutePath(import.meta.url, 'routes/$siteName.tags/route.tsx')),
               route('forms', resolveRoutePath(import.meta.url, 'routes/$siteName.forms/route.tsx')),
               route(
                 'forms/:formName',
@@ -97,10 +98,6 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
               route(
                 'website',
                 resolveRoutePath(import.meta.url, 'routes/$siteName.website/route.tsx'),
-              ),
-              route(
-                'website-classic',
-                resolveRoutePath(import.meta.url, 'routes/$siteName.website-classic/route.tsx'),
               ),
             ]),
           ]),

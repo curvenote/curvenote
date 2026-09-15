@@ -41,6 +41,13 @@ export const site = {
     update: 'site:collections:update',
     delete: 'site:collections:delete',
   },
+  tags: {
+    list: 'site:tags:list',
+    read: 'site:tags:read',
+    create: 'site:tags:create',
+    update: 'site:tags:update',
+    delete: 'site:tags:delete',
+  },
   forms: {
     list: 'site:forms:list',
     read: 'site:forms:read',

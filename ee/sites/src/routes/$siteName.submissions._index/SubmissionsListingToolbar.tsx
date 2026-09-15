@@ -1,12 +1,14 @@
 import { useSearchParams } from 'react-router';
 import { cn } from '@curvenote/scms-core';
 import { clearListingFilters, hasActiveListingFilters } from './listingParams.js';
+import type { ListingMultiSelectOption } from './ListingMultiSelectChip.js';
 import type { ToolbarCollectionOption, ToolbarKindOption } from './route.js';
 import { SubmissionsSearchInput } from './SubmissionsSearchInput.js';
 import { SubmissionsSearchHelp } from './SubmissionsSearchHelp.js';
 import { SubmissionsSortButton } from './SubmissionsSortButton.js';
 import { SubmissionsKindFilter } from './SubmissionsKindFilter.js';
 import { SubmissionsCollectionFilter } from './SubmissionsCollectionFilter.js';
+import { SubmissionsTagFilter } from './SubmissionsTagFilter.js';
 import { SubmissionsDateFilter } from './SubmissionsDateFilter.js';
 import { SubmissionsStatusFilter } from './SubmissionsStatusFilter.js';
 
@@ -15,6 +17,8 @@ interface SubmissionsListingToolbarProps {
   availableKinds: ToolbarKindOption[];
   /** Collections the user can filter by. Empty -> collection chip hidden. */
   availableCollections: ToolbarCollectionOption[];
+  /** Editorial tags the user can filter by. Always shown, even when empty. */
+  availableTags: ListingMultiSelectOption[];
   /** Loader-provided total after applying current filters/search. */
   totalResults: number;
   className?: string;
@@ -25,7 +29,7 @@ interface SubmissionsListingToolbarProps {
  *
  *   ┌─ Search input ──────────────────────────────────────── (i) ┐
  *   ├────────────────────────────────────────────────────────────┤
- *   │  [Kind ▾] [Collection ▾] [Status ▾] [Published ▾]   Sort ▾ │
+ *   │  [Kind ▾] [Collection ▾] [Tags ▾] [Status ▾] [Published ▾]   Sort ▾ │
  *   └────────────────────────────────────────────────────────────┘
  *   "12 results matching 'photo'  ·  Clear filters"
  *
@@ -40,6 +44,7 @@ interface SubmissionsListingToolbarProps {
 export function SubmissionsListingToolbar({
   availableKinds,
   availableCollections,
+  availableTags,
   totalResults,
   className,
 }: SubmissionsListingToolbarProps) {
@@ -69,6 +74,7 @@ export function SubmissionsListingToolbar({
       <div className="flex min-h-11 flex-wrap items-center gap-2 px-3 py-2">
         <SubmissionsKindFilter kinds={availableKinds} />
         <SubmissionsCollectionFilter collections={availableCollections} />
+        <SubmissionsTagFilter tags={availableTags} />
         <SubmissionsStatusFilter />
         <SubmissionsDateFilter />
         <SubmissionsSortButton className="ml-auto" />

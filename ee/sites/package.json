@@ -46,6 +46,7 @@
     "build:client": "tsup",
     "dev": "tsc -w",
     "compile": "tsc --noEmit",
+    "test": "vitest run",
     "format": "bunx prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
     "version": "changeset version && bun install"

@@ -130,3 +130,41 @@ describe('formatSiteDTO', () => {
     expect(result.links.works).toBe('https://api.example.com/v1/sites/test-site/works');
   });
 });
+
+describe('formatSiteDTO tags', () => {
+  const baseDbo = {
+    id: 'site1',
+    name: 'science',
+    title: 'Science',
+    private: false,
+    restricted: true,
+    external: false,
+    description: 'Test description',
+    default_workflow: 'SIMPLE',
+    metadata: {},
+    collections: [],
+    domains: [],
+  };
+
+  test('maps the tag catalog', () => {
+    const ctx = createMockContext();
+    const dto = formatSiteDTO(ctx, {
+      ...baseDbo,
+      tags: [
+        { id: 'tag2', name: 'blog-post', label: 'Blog Post' },
+        { id: 'tag1', name: 'editors-pick', label: 'Editors Pick' },
+      ],
+    } as never);
+
+    expect(dto.tags).toEqual([
+      { id: 'tag2', name: 'blog-post', label: 'Blog Post' },
+      { id: 'tag1', name: 'editors-pick', label: 'Editors Pick' },
+    ]);
+  });
+
+  test('returns an empty catalog when the caller include omits tags', () => {
+    const ctx = createMockContext();
+    const dto = formatSiteDTO(ctx, baseDbo as never);
+    expect(dto.tags).toEqual([]);
+  });
+});

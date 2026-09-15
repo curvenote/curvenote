@@ -33,9 +33,11 @@ import { toExclusiveDateUpperBound, type ListingQuery } from './listingParams.js
  *    select shape is identical to the fast path. Order is re-applied client
  *    side to preserve the raw query's ORDER BY.
  *
- * Filters (kindIds, collectionIds, statuses, date range, unpublishedOnly)
+ * Filters (kindIds, collectionIds, tagIds, statuses, date range, unpublishedOnly)
  * and sort (recent_published, recent_created) flow through the four
- * composable builders below and apply to both paths.
+ * composable builders below and apply to both paths. Only `q` and `statuses`
+ * force the raw SQL path; `tagIds` stays on the Prisma fast path when those
+ * are absent.
  *
  * Date filter semantics: the `from` / `to` window applies strictly to
  * `Submission.date_published`. Rows with NULL `date_published` are excluded
@@ -90,6 +92,7 @@ export type IndexListingRow = {
     content: Prisma.JsonValue;
     workflow: string;
   };
+  tags: { tag: { id: string; name: string; label: string } }[];
   versions: {
     status: string;
     tags: string[];
@@ -123,11 +126,20 @@ const INDEX_LISTING_SELECT = {
       workflow: true,
     },
   },
+  /**
+   * Editorial tags of the submission. Not to be confused with
+   * `versions[].tags`, which are the version tags feeding `versionTag`.
+   */
+  tags: {
+    select: { tag: { select: { id: true, name: true, label: true } } },
+    orderBy: { tag: { label: 'asc' } },
+  },
   versions: {
     take: 1,
     orderBy: { date_created: 'desc' },
     select: {
       status: true,
+      /** Version tags (`v1`, `preprint`), read by `pickVersionTag`. */
       tags: true,
       work_version: { select: { title: true, authors: true, doi: true } },
     },
@@ -166,6 +178,9 @@ function buildListingPrismaWhere(siteId: string, query: ListingQuery): Prisma.Su
   }
   if (query.collectionIds.length) {
     where.collection_id = { in: query.collectionIds };
+  }
+  if (query.tagIds.length) {
+    where.tags = { some: { tag_id: { in: query.tagIds } } };
   }
   if (query.unpublishedOnly) {
     // `date_published IS NULL` filter — `from` / `to` are intentionally
@@ -221,6 +236,13 @@ function buildListingRawSqlWhere(siteId: string, query: ListingQuery): Prisma.Sq
   }
   if (query.collectionIds.length) {
     conds.push(Prisma.sql`s.collection_id IN (${Prisma.join(query.collectionIds)})`);
+  }
+  if (query.tagIds.length) {
+    conds.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM "TagsInSubmissions" tis
+      WHERE tis.submission_id = s.id
+        AND tis.tag_id IN (${Prisma.join(query.tagIds)})
+    )`);
   }
   if (query.unpublishedOnly) {
     conds.push(Prisma.sql`s.date_published IS NULL`);
