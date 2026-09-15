@@ -1,5 +1,15 @@
 # curvenote
 
+## 0.17.3
+
+### Patch Changes
+
+- Updated dependencies [[`1a86b7b`](https://github.com/curvenote/curvenote/commit/1a86b7b1afd7ac75a8e888790cf3c217105bca57)]:
+  - @curvenote/common@0.8.0
+  - @curvenote/cli-plugin@0.17.3
+  - @curvenote/check-definitions@0.17.3
+  - @curvenote/check-implementations@0.17.3
+
 ## 0.17.2
 
 ### Patch Changes

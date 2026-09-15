@@ -1,5 +1,14 @@
 # @curvenote/common
 
+## 0.8.0
+
+### Minor Changes
+
+- [#1069](https://github.com/curvenote/curvenote/pull/1069) [`1a86b7b`](https://github.com/curvenote/curvenote/commit/1a86b7b1afd7ac75a8e888790cf3c217105bca57) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Add editorial tags on submissions: a site-scoped catalog, add and remove from
+  the site-admin submission details page, display on the submissions listing, the
+  catalog on `GET /v1/sites/:siteName`, and `submission_tags` on the published
+  work payload.
+
 ## 0.7.0
 
 ### Minor Changes
