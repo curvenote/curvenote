@@ -1,5 +1,32 @@
 # @curvenote/scms-sites-ext
 
+## 0.26.0
+
+### Minor Changes
+
+- [#1075](https://github.com/curvenote/curvenote/pull/1075) [`93e3133`](https://github.com/curvenote/curvenote/commit/93e3133b9102a5e4a831f24b1bbcf2808930402a) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Add a site-admin Tags catalog: list, create, rename the display label, and
+  delete editorial tags. Catalog writes stay on the admin page; `name` is
+  immutable after create; delete cascades assignments.
+
+- [#1076](https://github.com/curvenote/curvenote/pull/1076) [`9122852`](https://github.com/curvenote/curvenote/commit/912285217372d9faa14ffb45785fc1a0938360c8) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Filter the site-admin submissions listing by editorial tags via a Tags
+  multi-select chip (`tagIds` CSV of catalog ids).
+
+- [#1069](https://github.com/curvenote/curvenote/pull/1069) [`1a86b7b`](https://github.com/curvenote/curvenote/commit/1a86b7b1afd7ac75a8e888790cf3c217105bca57) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Add editorial tags on submissions: a site-scoped catalog, add and remove from
+  the site-admin submission details page, display on the submissions listing, the
+  catalog on `GET /v1/sites/:siteName`, and `submission_tags` on the published
+  work payload.
+
+### Patch Changes
+
+- [#1077](https://github.com/curvenote/curvenote/pull/1077) [`e0184b9`](https://github.com/curvenote/curvenote/commit/e0184b9bafd53feadea8f5ed4db98fa87adcb6c6) Thanks [@rowanc1](https://github.com/rowanc1)! - Rework the site Website & Design page: the settings panel is now full height and scrolls on its own, unsaved changes block navigation with a save/discard/keep-editing dialog and are flagged per accordion section, the dirty state is derived from the values so reverting an edit clears it, and a toast confirms each save. Adds a favicon upload and a Footer section holding light and dark footer logo uploads, a tagline, drag-and-drop social links that work out their own icon from the URL, and up to three drag-and-drop footer link columns whose links can be reordered and moved between columns. Empty links, empty columns and blank social links are flagged on the field, the section and the Save button with a message naming what is wrong, and block saving; the same rules are enforced server-side. The preview sits in a browser frame, its regions can be clicked to jump to the matching field in the panel, and it renders a real footer — logo, tagline, social icons, footer link columns and the Curvenote brand bar — mirroring the theme's `JournalFooter`, and info tooltips describe how each field is used. The legacy classic design page and its route are removed. In `scms-core`, `FileDropzone` gains `inline` and `label` props for short dropzones, and `SimpleTooltipWithIcon` renders again (it was missing a return).
+
+- Updated dependencies [[`e0184b9`](https://github.com/curvenote/curvenote/commit/e0184b9bafd53feadea8f5ed4db98fa87adcb6c6), [`93e3133`](https://github.com/curvenote/curvenote/commit/93e3133b9102a5e4a831f24b1bbcf2808930402a), [`1a86b7b`](https://github.com/curvenote/curvenote/commit/1a86b7b1afd7ac75a8e888790cf3c217105bca57)]:
+  - @curvenote/scms-core@0.26.0
+  - @curvenote/scms-server@0.26.0
+  - @curvenote/common@0.8.0
+  - @curvenote/check-definitions@0.17.3
+  - @curvenote/scms-db@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes

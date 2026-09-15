@@ -1,5 +1,14 @@
 # @curvenote/task-converter
 
+## 0.3.11
+
+### Patch Changes
+
+- Updated dependencies [[`e0184b9`](https://github.com/curvenote/curvenote/commit/e0184b9bafd53feadea8f5ed4db98fa87adcb6c6), [`93e3133`](https://github.com/curvenote/curvenote/commit/93e3133b9102a5e4a831f24b1bbcf2808930402a), [`1a86b7b`](https://github.com/curvenote/curvenote/commit/1a86b7b1afd7ac75a8e888790cf3c217105bca57)]:
+  - @curvenote/scms-core@0.26.0
+  - @curvenote/common@0.8.0
+  - @curvenote/scms-tasks@0.26.0
+
 ## 0.3.10
 
 ### Patch Changes
