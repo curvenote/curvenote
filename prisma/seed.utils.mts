@@ -335,6 +335,7 @@ export async function seedBySites(
         },
         create: {
           id: work.id,
+          key: work.key ?? null,
           doi: work.doi,
           date_created: versionsWithCdn[0].date_created,
           date_modified: versionsWithCdn[0].date_created,
@@ -345,7 +346,9 @@ export async function seedBySites(
             connect: { id: users.support.id },
           },
         },
-        update: {},
+        update: {
+          key: work.key ?? null,
+        },
         include: {
           versions: true,
         },
@@ -795,6 +798,7 @@ async function seedSharedContentWork(
     where: { id: work.id },
     create: {
       id: work.id,
+      key: work.key ?? null,
       doi: work.doi,
       date_created: versionsWithCdn[0].date_created,
       date_modified: versionsWithCdn[0].date_created,
@@ -802,6 +806,7 @@ async function seedSharedContentWork(
       created_by: { connect: { id: users.support.id } },
     },
     update: {
+      key: work.key ?? null,
       created_by: { connect: { id: users.support.id } },
       date_modified: startDateString,
     },
