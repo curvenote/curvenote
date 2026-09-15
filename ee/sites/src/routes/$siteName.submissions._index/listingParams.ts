@@ -108,6 +108,7 @@ export interface ListingQuery {
   sort: ListingSort;
   kindIds: string[];
   collectionIds: string[];
+  tagIds: string[];
   statuses: string[];
   from?: string;
   to?: string;
@@ -124,6 +125,7 @@ export function hasActiveListingFiltersInQuery(query: ListingQuery): boolean {
     query.q ||
     query.kindIds.length ||
     query.collectionIds.length ||
+    query.tagIds.length ||
     query.statuses.length ||
     query.from ||
     query.to ||
@@ -272,13 +274,22 @@ export function toExclusiveDateUpperBound(toIsoDate: string): string {
  * -------------------------------------------------------------------------- */
 
 export type ListingParamKey =
-  'q' | 'sort' | 'kindIds' | 'collectionIds' | 'statuses' | 'from' | 'to' | 'unpublishedOnly';
+  | 'q'
+  | 'sort'
+  | 'kindIds'
+  | 'collectionIds'
+  | 'tagIds'
+  | 'statuses'
+  | 'from'
+  | 'to'
+  | 'unpublishedOnly';
 
 /** Params that the "Clear filters" empty-state action wipes (sort is kept). */
 const CLEARABLE_PARAMS: readonly ListingParamKey[] = [
   'q',
   'kindIds',
   'collectionIds',
+  'tagIds',
   'statuses',
   'from',
   'to',
