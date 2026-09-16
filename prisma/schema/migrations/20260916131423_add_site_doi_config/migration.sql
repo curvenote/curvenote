@@ -7,6 +7,7 @@ CREATE TABLE "SiteDoiConfig" (
     "date_created" TEXT NOT NULL,
     "date_modified" TEXT NOT NULL,
     "site_id" TEXT NOT NULL,
+    "mode" TEXT NOT NULL,
     "prefix" TEXT NOT NULL,
     "prefix_owner" TEXT,
     "role" TEXT,
@@ -20,8 +21,13 @@ CREATE TABLE "SiteDoiConfig" (
 -- CreateIndex
 CREATE UNIQUE INDEX "SiteDoiConfig_site_id_key" ON "SiteDoiConfig"("site_id");
 
--- CreateIndex
-CREATE UNIQUE INDEX "SiteDoiConfig_prefix_role_key" ON "SiteDoiConfig"("prefix", "role");
+-- Partial unique index, raw SQL only (Prisma cannot express it; documented on the model).
+-- A CUSTOM prefix/role pair belongs to one site. CURVENOTE sites all share Curvenote's
+-- prefix and role, so they are excluded. NULL roles never collide, so several CUSTOM
+-- sites may wait on the same prefix before a role is bound.
+CREATE UNIQUE INDEX "SiteDoiConfig_custom_prefix_role_key"
+  ON "SiteDoiConfig"("prefix", "role")
+  WHERE "mode" = 'CUSTOM';
 
 -- AddForeignKey
 ALTER TABLE "SiteDoiConfig" ADD CONSTRAINT "SiteDoiConfig_site_id_fkey" FOREIGN KEY ("site_id") REFERENCES "Site"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

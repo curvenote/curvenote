@@ -1,11 +1,18 @@
 /// Per-site DOI settings. A row exists for sites on Curvenote's prefix too,
 /// so there is one code path and "no row" simply means "not configured yet".
+///
+/// A CUSTOM prefix/role pair belongs to one site, enforced by the partial unique index
+/// `SiteDoiConfig_custom_prefix_role_key` (migration `20260916131423`), raw SQL only
+/// because Prisma cannot express partial indexes. CURVENOTE sites all share Curvenote's
+/// prefix and role, so they are excluded from it.
 model SiteDoiConfig {
   id               String  @id
   date_created     String
   date_modified    String
   site             Site    @relation(fields: [site_id], references: [id])
   site_id          String  @unique
+  /// CURVENOTE | CUSTOM (constants in scms-core)
+  mode             String
   /// e.g. "10.62329".
   prefix           String
   /// Owner name from the public Crossref prefixes API, stored at entry time
@@ -19,9 +26,4 @@ model SiteDoiConfig {
   /// Crossref's message when a deposit is rejected for this site (set in phase 2).
   attention_reason String?
   occ              Int     @default(0)
-
-  /// A prefix/role pair belongs to one site; NULL roles do not collide so
-  /// several sites may wait on the same prefix; only one site can be bound to a given
-  /// prefix and role.
-  @@unique([prefix, role])
 }
