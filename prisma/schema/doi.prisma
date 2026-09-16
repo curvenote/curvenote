@@ -20,7 +20,8 @@ model SiteDoiConfig {
   attention_reason String?
   occ              Int     @default(0)
 
-  /// A prefix/role pair belongs to one site. NULL roles do not collide, so
-  /// several sites may wait on the same prefix; only one can be bound to it.
+  /// A prefix/role pair belongs to one site; NULL roles do not collide so
+  /// several sites may wait on the same prefix; only one site can be bound to a given
+  /// prefix and role.
   @@unique([prefix, role])
 }

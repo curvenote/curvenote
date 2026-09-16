@@ -39,6 +39,10 @@ function unexpected(what: string, status: number): CrossrefError {
   );
 }
 
+function unexpectedBody(what: string, status: number): CrossrefError {
+  return new CrossrefError(`Crossref ${what} returned an unexpected body`, false, status);
+}
+
 export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
   const resp = await request(
     `${PREFIXES_API}/${encodeURIComponent(prefix)}`,
@@ -51,18 +55,10 @@ export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
   try {
     body = await resp.json();
   } catch {
-    throw new CrossrefError(
-      'Crossref prefix lookup returned an unexpected body',
-      false,
-      resp.status,
-    );
+    throw unexpectedBody('prefix lookup', resp.status);
   }
   if (!body.message?.name || !body.message.member) {
-    throw new CrossrefError(
-      'Crossref prefix lookup returned an unexpected body',
-      false,
-      resp.status,
-    );
+    throw unexpectedBody('prefix lookup', resp.status);
   }
   return { prefix, ownerName: body.message.name, memberUrl: body.message.member };
 }
@@ -81,9 +77,14 @@ export async function checkRole(creds: CrossrefCredentials, role: string, opts?:
   );
   if (resp.status === 401) return { authenticated: false };
   if (!resp.ok) throw unexpected('role check', resp.status);
-  const body = await resp.text();
+  let body: string;
+  try {
+    body = await resp.text();
+  } catch {
+    throw new CrossrefError('Crossref role check returned an unreadable body', true, resp.status);
+  }
   if (!body.includes('doi_batch_diagnostic')) {
-    throw new CrossrefError('Crossref role check returned an unexpected body', false, resp.status);
+    throw unexpectedBody('role check', resp.status);
   }
   return { authenticated: true };
 }

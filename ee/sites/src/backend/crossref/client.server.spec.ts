@@ -103,6 +103,17 @@ describe('checkRole', () => {
       retryable: false,
     });
   });
+
+  test('throws a retryable error when response.text() rejects', async () => {
+    const badTextFetch = vi.fn(async () => {
+      const r = new Response('', { status: 200 });
+      r.text = () => Promise.reject(new TypeError('body error'));
+      return r;
+    }) as unknown as typeof fetch;
+    const err = await checkRole(creds, 'curv', { fetch: badTextFetch }).catch((e) => e);
+    expect(err).toBeInstanceOf(CrossrefError);
+    expect(err).toMatchObject({ retryable: true, status: 200 });
+  });
 });
 
 describe('crossrefCredentialsFromConfig', () => {
