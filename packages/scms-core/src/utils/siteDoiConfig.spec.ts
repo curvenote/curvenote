@@ -4,7 +4,7 @@ import { SITE_DOI_CONFIG_MODE, SITE_DOI_CONFIG_STATUS } from './siteDoiConfig.js
 
 describe('SiteDoiConfig constants', () => {
   test('mode matches the values documented on SiteDoiConfig.mode', () => {
-    expect(Object.values(SITE_DOI_CONFIG_MODE)).toEqual(['CURVENOTE', 'CUSTOM']);
+    expect(Object.values(SITE_DOI_CONFIG_MODE)).toEqual(['CURVENOTE', 'CUSTOM_PREFIX']);
   });
 
   test('status matches the values documented on SiteDoiConfig.status', () => {

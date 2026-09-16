@@ -1,7 +1,7 @@
 /** Values of `SiteDoiConfig.mode`. CURVENOTE sites share Curvenote's prefix and role. */
 export const SITE_DOI_CONFIG_MODE = {
   CURVENOTE: 'CURVENOTE',
-  CUSTOM: 'CUSTOM',
+  CUSTOM_PREFIX: 'CUSTOM_PREFIX',
 } as const;
 
 export type SiteDoiConfigMode = (typeof SITE_DOI_CONFIG_MODE)[keyof typeof SITE_DOI_CONFIG_MODE];
