@@ -1,5 +1,27 @@
 # @curvenote/scms-server
 
+## 0.26.0
+
+### Minor Changes
+
+- [#1075](https://github.com/curvenote/curvenote/pull/1075) [`93e3133`](https://github.com/curvenote/curvenote/commit/93e3133b9102a5e4a831f24b1bbcf2808930402a) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Add a site-admin Tags catalog: list, create, rename the display label, and
+  delete editorial tags. Catalog writes stay on the admin page; `name` is
+  immutable after create; delete cascades assignments.
+
+- [#1069](https://github.com/curvenote/curvenote/pull/1069) [`1a86b7b`](https://github.com/curvenote/curvenote/commit/1a86b7b1afd7ac75a8e888790cf3c217105bca57) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Add editorial tags on submissions: a site-scoped catalog, add and remove from
+  the site-admin submission details page, display on the submissions listing, the
+  catalog on `GET /v1/sites/:siteName`, and `submission_tags` on the published
+  work payload.
+
+### Patch Changes
+
+- Updated dependencies [[`e0184b9`](https://github.com/curvenote/curvenote/commit/e0184b9bafd53feadea8f5ed4db98fa87adcb6c6), [`93e3133`](https://github.com/curvenote/curvenote/commit/93e3133b9102a5e4a831f24b1bbcf2808930402a), [`1a86b7b`](https://github.com/curvenote/curvenote/commit/1a86b7b1afd7ac75a8e888790cf3c217105bca57)]:
+  - @curvenote/scms-core@0.26.0
+  - @curvenote/common@0.8.0
+  - @curvenote/cdn@0.8.0
+  - @curvenote/check-definitions@0.17.3
+  - @curvenote/scms-db@0.26.0
+
 ## 0.25.0
 
 ### Patch Changes
