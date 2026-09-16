@@ -11,10 +11,10 @@ const ROLE_CHECK_FILE_NAME = 'curvenote-role-check.xml';
 export type CrossrefCredentials = { host: string; depositorEmail: string; password: string };
 type FetchOpts = { fetch?: typeof fetch };
 
+/** `status` is undefined when no response arrived (timeout or network failure). */
 export class CrossrefError extends Error {
   constructor(
     message: string,
-    readonly retryable: boolean,
     readonly status?: number,
   ) {
     super(message);
@@ -27,20 +27,16 @@ async function request(url: string, what: string, opts?: FetchOpts): Promise<Res
   try {
     return await doFetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   } catch (e: any) {
-    throw new CrossrefError(`Crossref ${what} request failed: ${e?.name ?? 'network error'}`, true);
+    throw new CrossrefError(`Crossref ${what} request failed: ${e?.name ?? 'network error'}`);
   }
 }
 
 function unexpected(what: string, status: number): CrossrefError {
-  return new CrossrefError(
-    `Crossref ${what} answered ${status}`,
-    status === 429 || status >= 500,
-    status,
-  );
+  return new CrossrefError(`Crossref ${what} answered ${status}`, status);
 }
 
 function unexpectedBody(what: string, status: number): CrossrefError {
-  return new CrossrefError(`Crossref ${what} returned an unexpected body`, false, status);
+  return new CrossrefError(`Crossref ${what} returned an unexpected body`, status);
 }
 
 export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
@@ -89,7 +85,7 @@ export async function checkRole(creds: CrossrefCredentials, role: string, opts?:
   try {
     body = await resp.text();
   } catch {
-    throw new CrossrefError('Crossref role check returned an unreadable body', true, resp.status);
+    throw new CrossrefError('Crossref role check returned an unreadable body', resp.status);
   }
   if (!body.includes('doi_batch_diagnostic')) {
     throw unexpectedBody('role check', resp.status);

@@ -40,24 +40,24 @@ describe('lookupPrefix', () => {
     ).toBeNull();
   });
 
-  test('throws a retryable error on 5xx', async () => {
+  test('throws with the status on 5xx', async () => {
     await expect(lookupPrefix('10.62329', { fetch: fakeFetch(503, 'down') })).rejects.toMatchObject(
-      { retryable: true, status: 503 },
+      { status: 503 },
     );
   });
 
-  test('throws a retryable error on 429', async () => {
+  test('throws with the status on 429', async () => {
     await expect(
       lookupPrefix('10.62329', { fetch: fakeFetch(429, 'slow down') }),
-    ).rejects.toMatchObject({ retryable: true, status: 429 });
+    ).rejects.toMatchObject({ status: 429 });
   });
 
-  test('throws a non-retryable error on a 200 with a non-JSON body', async () => {
+  test('throws on a 200 with a non-JSON body', async () => {
     const err = await lookupPrefix('10.62329', {
       fetch: fakeFetch(200, '<html>maintenance</html>'),
     }).catch((e) => e);
     expect(err).toBeInstanceOf(CrossrefError);
-    expect(err).toMatchObject({ retryable: false, status: 200 });
+    expect(err).toMatchObject({ status: 200 });
   });
 });
 
@@ -80,31 +80,31 @@ describe('checkRole', () => {
     expect(url.searchParams.get('usr')).toBe('doi@curvenote.com/nope');
   });
 
-  test('throws a retryable error on 503 without leaking the password', async () => {
+  test('throws with the status on 503 without leaking the password', async () => {
     const err = await checkRole(creds, 'curv', { fetch: fakeFetch(503, 'maintenance') }).catch(
       (e) => e,
     );
     expect(err).toBeInstanceOf(CrossrefError);
-    expect(err.retryable).toBe(true);
+    expect(err.status).toBe(503);
     expect(String(err.message)).not.toContain('s3cret');
   });
 
-  test('throws a retryable error on a network failure without leaking the password', async () => {
+  test('throws without a status on a network failure without leaking the password', async () => {
     const err = await checkRole(creds, 'curv', {
       fetch: rejectingFetch(new TypeError('fetch failed')),
     }).catch((e) => e);
     expect(err).toBeInstanceOf(CrossrefError);
-    expect(err.retryable).toBe(true);
+    expect(err.status).toBeUndefined();
     expect(String(err.message)).not.toContain('s3cret');
   });
 
-  test('throws a non-retryable error on a 200 that is not a diagnostic', async () => {
+  test('throws on a 200 that is not a diagnostic', async () => {
     await expect(checkRole(creds, 'curv', { fetch: fakeFetch(200, '') })).rejects.toMatchObject({
-      retryable: false,
+      status: 200,
     });
   });
 
-  test('throws a retryable error when response.text() rejects', async () => {
+  test('throws when response.text() rejects', async () => {
     const badTextFetch = vi.fn(async () => {
       const r = new Response('', { status: 200 });
       r.text = () => Promise.reject(new TypeError('body error'));
@@ -112,7 +112,7 @@ describe('checkRole', () => {
     }) as unknown as typeof fetch;
     const err = await checkRole(creds, 'curv', { fetch: badTextFetch }).catch((e) => e);
     expect(err).toBeInstanceOf(CrossrefError);
-    expect(err).toMatchObject({ retryable: true, status: 200 });
+    expect(err).toMatchObject({ status: 200, message: expect.stringContaining('unreadable') });
   });
 });
 
