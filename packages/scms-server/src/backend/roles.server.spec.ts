@@ -9,6 +9,7 @@ import {
   hasSiteScope,
   hasWorkScope,
   isSystemRole,
+  isValidScopeFormat,
   MACHINE_SYSTEM_ROLES,
   SYSTEM_ROLES,
 } from './roles.server.js';
@@ -130,5 +131,34 @@ describe('site tags scopes', () => {
   test('MEMBER still has kinds.list and still lacks tags.list', () => {
     expect(hasSiteScope(SiteRole.MEMBER, site.kinds.list)).toBe(true);
     expect(hasSiteScope(SiteRole.MEMBER, site.tags.list)).toBe(false);
+  });
+});
+
+describe('site doi scopes', () => {
+  test('ADMIN has read, register and configure', () => {
+    for (const scope of [site.doi.read, site.doi.register, site.doi.configure]) {
+      expect(hasSiteScope(SiteRole.ADMIN, scope)).toBe(true);
+    }
+  });
+
+  test('MEMBER has read and register but not configure', () => {
+    expect(hasSiteScope(SiteRole.MEMBER, site.doi.read)).toBe(true);
+    expect(hasSiteScope(SiteRole.MEMBER, site.doi.register)).toBe(true);
+    expect(hasSiteScope(SiteRole.MEMBER, site.doi.configure)).toBe(false);
+  });
+
+  test.each([SiteRole.SUBMITTER, SiteRole.PUBLIC, SiteRole.UNRESTRICTED])(
+    '%s has no doi scopes',
+    (role) => {
+      for (const scope of [site.doi.read, site.doi.register, site.doi.configure]) {
+        expect(hasSiteScope(role, scope)).toBe(false);
+      }
+    },
+  );
+
+  test('doi scopes match the scope format', () => {
+    for (const scope of [site.doi.read, site.doi.register, site.doi.configure]) {
+      expect(isValidScopeFormat(scope)).toBe(true);
+    }
   });
 });

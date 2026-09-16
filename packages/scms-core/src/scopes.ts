@@ -48,6 +48,11 @@ export const site = {
     update: 'site:tags:update',
     delete: 'site:tags:delete',
   },
+  doi: {
+    read: 'site:doi:read',
+    register: 'site:doi:register',
+    configure: 'site:doi:configure',
+  },
   forms: {
     list: 'site:forms:list',
     read: 'site:forms:read',
