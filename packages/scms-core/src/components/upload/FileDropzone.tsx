@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import type { UploadFileInfo } from '@curvenote/common';
 import { getFileMD5Hash, handleFileUpload } from './utils.js';
 import { UploadIcon } from 'lucide-react';
+import { cn } from '../../utils/cn.js';
 
 type FileStatus =
   'pending' | 'staging' | 'uploading' | 'uploaded' | 'completing' | 'completed' | 'error';
@@ -32,6 +33,10 @@ interface FileDropzoneProps {
   accept?: DropzoneProps['accept'];
   className?: string;
   height?: string;
+  /** Put the upload icon on the same line as the prompt, for short dropzones. */
+  inline?: boolean;
+  /** Prompt shown in the dropzone; set something specific at the call site. */
+  label?: string;
 }
 
 export function FileDropzone({
@@ -43,6 +48,8 @@ export function FileDropzone({
   accept = { 'image/*': [] },
   className,
   height = '120px',
+  inline = false,
+  label = 'Upload',
 }: FileDropzoneProps) {
   const [uploadState, setUploadState] = useState<UploadState>({
     file: null,
@@ -257,10 +264,12 @@ export function FileDropzone({
         style={{ minHeight: height, maxHeight: height }}
       >
         {!showProgress && (
-          <>
-            <UploadIcon className="mb-2 w-8 h-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Click or drag image to upload</p>
-          </>
+          <div className={cn('flex items-center', inline ? 'gap-2' : 'flex-col')}>
+            <UploadIcon
+              className={cn('text-muted-foreground', inline ? 'w-5 h-5' : 'mb-2 w-8 h-8')}
+            />
+            <p className="text-sm text-muted-foreground">{label}</p>
+          </div>
         )}
         {!errorMessage && !showCompleted && !showProgress && (
           <p className="mt-1 text-xs text-muted-foreground">

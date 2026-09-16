@@ -11,6 +11,7 @@ import { dbCountSubmissionsForIndex, dbListSubmissionsForIndex } from './db.serv
 import { formatSubmissionsIndexItems } from './format.server.js';
 import { formatSubmissionListingSiteContext } from './site-context.format.server.js';
 import type { SubmissionListingSiteContext } from './site-context.format.server.js';
+import type { ListingMultiSelectOption } from './ListingMultiSelectChip.js';
 import { SubmissionsListingToolbar } from './SubmissionsListingToolbar.js';
 import { SubmissionsList } from './SubmissionsList.js';
 import {
@@ -90,6 +91,8 @@ const csvStatusIds = z.preprocess(
  *                    to the default until the denormalisation slice lands
  *   kindIds        — CSV of SubmissionKind ids (multi-select chip)
  *   collectionIds  — CSV of Collection ids (multi-select chip)
+ *   tagIds         — CSV of editorial Tag ids (multi-select chip). Unknown
+ *                    ids are kept and match no extra rows.
  *   statuses       — CSV of newest-version statuses (LISTING_STATUS_OPTIONS).
  *                    Unknown ids are dropped silently so links survive enum
  *                    additions/removals.
@@ -121,6 +124,7 @@ const ListingQuerySchema = z.object({
     ),
   kindIds: csvIds,
   collectionIds: csvIds,
+  tagIds: csvIds,
   statuses: csvStatusIds,
   from: optionalDateString,
   to: optionalDateString,
@@ -152,6 +156,7 @@ interface LoaderData {
   singleKindOnly: boolean;
   availableKinds: ToolbarKindOption[];
   availableCollections: ToolbarCollectionOption[];
+  availableTags: ListingMultiSelectOption[];
 }
 
 export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
@@ -179,6 +184,11 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
       default: collection.default,
     }),
   );
+  const availableTags: ListingMultiSelectOption[] = (ctx.site.tags ?? []).map((tag) => ({
+    id: tag.id,
+    // Chip `name` is the popover label. Tag.name is the URL-safe slug.
+    name: tag.label,
+  }));
   const userSiteRole =
     ctx.user?.site_roles.find((siteRole) => siteRole.site_id === ctx.site.id)?.role || 'none';
   const collectionNameById = new Map(
@@ -213,6 +223,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     singleKindOnly: availableKinds.length === 1,
     availableKinds,
     availableCollections,
+    availableTags,
   };
 }
 
@@ -229,6 +240,7 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
     singleKindOnly,
     availableKinds,
     availableCollections,
+    availableTags,
   } = loaderData;
 
   const breadcrumbs = [
@@ -246,6 +258,7 @@ export default function Submissions({ loaderData }: { loaderData: LoaderData }) 
         className="mb-5"
         availableKinds={singleKindOnly ? [] : availableKinds}
         availableCollections={defaultCollectionOnly ? [] : availableCollections}
+        availableTags={availableTags}
         totalResults={submissions.total}
       />
       <div className="flex flex-col gap-2">
