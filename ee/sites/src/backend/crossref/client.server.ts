@@ -31,14 +31,6 @@ async function request(url: string, what: string, opts?: FetchOpts): Promise<Res
   }
 }
 
-function unexpected(what: string, status: number): CrossrefError {
-  return new CrossrefError(`Crossref ${what} answered ${status}`, status);
-}
-
-function unexpectedBody(what: string, status: number): CrossrefError {
-  return new CrossrefError(`Crossref ${what} returned an unexpected body`, status);
-}
-
 export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
   const resp = await request(
     `${PREFIXES_API}/${encodeURIComponent(prefix)}`,
@@ -49,16 +41,16 @@ export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
     return null;
   }
   if (!resp.ok) {
-    throw unexpected('prefix lookup', resp.status);
+    throw new CrossrefError(`Crossref prefix lookup answered ${resp.status}`, resp.status);
   }
   let body: { message?: { name?: string; member?: string } };
   try {
     body = await resp.json();
   } catch {
-    throw unexpectedBody('prefix lookup', resp.status);
+    throw new CrossrefError('Crossref prefix lookup returned an unexpected body', resp.status);
   }
   if (!body.message?.name || !body.message.member) {
-    throw unexpectedBody('prefix lookup', resp.status);
+    throw new CrossrefError('Crossref prefix lookup returned an unexpected body', resp.status);
   }
   return { prefix, ownerName: body.message.name, memberUrl: body.message.member };
 }
@@ -79,7 +71,7 @@ export async function checkRole(creds: CrossrefCredentials, role: string, opts?:
     return { authenticated: false };
   }
   if (!resp.ok) {
-    throw unexpected('role check', resp.status);
+    throw new CrossrefError(`Crossref role check answered ${resp.status}`, resp.status);
   }
   let body: string;
   try {
@@ -88,7 +80,7 @@ export async function checkRole(creds: CrossrefCredentials, role: string, opts?:
     throw new CrossrefError('Crossref role check returned an unreadable body', resp.status);
   }
   if (!body.includes('doi_batch_diagnostic')) {
-    throw unexpectedBody('role check', resp.status);
+    throw new CrossrefError('Crossref role check returned an unexpected body', resp.status);
   }
   return { authenticated: true };
 }
