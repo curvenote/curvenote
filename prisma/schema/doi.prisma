@@ -3,7 +3,7 @@
 ///
 /// On CUSTOM_PREFIX sites a prefix/role pair belongs to one site, enforced by the partial unique index
 /// `SiteDoiConfig_custom_prefix_role_key` (migration `20260916131423`), raw SQL only
-/// because Prisma cannot express partial indexes. CURVENOTE sites all share Curvenote's
+/// because Prisma cannot express partial indexes. CURVENOTE_PREFIX sites all share Curvenote's
 /// prefix and role, so they are excluded from it.
 model SiteDoiConfig {
   id               String  @id
@@ -11,7 +11,7 @@ model SiteDoiConfig {
   date_modified    String
   site             Site    @relation(fields: [site_id], references: [id])
   site_id          String  @unique
-  /// CURVENOTE | CUSTOM_PREFIX (constants in scms-core)
+  /// CURVENOTE_PREFIX | CUSTOM_PREFIX (constants in scms-core)
   mode             String
   /// e.g. "10.62329".
   prefix           String

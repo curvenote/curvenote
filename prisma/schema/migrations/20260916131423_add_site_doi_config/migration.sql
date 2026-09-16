@@ -22,7 +22,7 @@ CREATE TABLE "SiteDoiConfig" (
 CREATE UNIQUE INDEX "SiteDoiConfig_site_id_key" ON "SiteDoiConfig"("site_id");
 
 -- Partial unique index, raw SQL only (Prisma cannot express it; documented on the model).
--- On CUSTOM_PREFIX sites a prefix/role pair belongs to one site. CURVENOTE sites all share Curvenote's
+-- On CUSTOM_PREFIX sites a prefix/role pair belongs to one site. CURVENOTE_PREFIX sites all share Curvenote's
 -- prefix and role, so they are excluded. NULL roles never collide, so several CUSTOM_PREFIX
 -- sites may wait on the same prefix before a role is bound.
 CREATE UNIQUE INDEX "SiteDoiConfig_custom_prefix_role_key"
