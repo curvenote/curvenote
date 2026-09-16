@@ -18,6 +18,8 @@ enum ActivityType {
   KIND_CREATED
   KIND_UPDATED
   SITE_CONTENT_UPDATED
+  /// Any change to a site's `SiteDoiConfig`; `activity_by_id` is who, `data` holds before/after.
+  SITE_DOI_CONFIG_UPDATED
   COLLECTION_DELETED
   COLLECTION_CREATED
   COLLECTION_UPDATED

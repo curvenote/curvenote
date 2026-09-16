@@ -1,0 +1,26 @@
+/// Per-site DOI settings. A row exists for sites on Curvenote's prefix too,
+/// so there is one code path and "no row" simply means "not configured yet".
+model SiteDoiConfig {
+  id               String  @id
+  date_created     String
+  date_modified    String
+  site             Site    @relation(fields: [site_id], references: [id])
+  site_id          String  @unique
+  /// e.g. "10.62329".
+  prefix           String
+  /// Owner name from the public Crossref prefixes API, stored at entry time
+  /// and refreshed when the role is bound.
+  prefix_owner     String?
+  /// Crossref role that deposits under `prefix`; login is `<depositor email>/<role>`.
+  /// Never entered by the customer: set by a system admin from the Crossref email.
+  role             String?
+  /// PENDING_ROLE | ACTIVE | NEEDS_ATTENTION (constants in scms-core)
+  status           String  @default("PENDING_ROLE")
+  /// Crossref's message when a deposit is rejected for this site (set in phase 2).
+  attention_reason String?
+  occ              Int     @default(0)
+
+  /// A prefix/role pair belongs to one site. NULL roles do not collide, so
+  /// several sites may wait on the same prefix; only one can be bound to it.
+  @@unique([prefix, role])
+}
