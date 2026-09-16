@@ -12,7 +12,9 @@ import {
 const fixture = (name: string) =>
   readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
 const fakeFetch = (status: number, body: string) =>
-  vi.fn(async (_url: string | URL) => new Response(body, { status })) as unknown as typeof fetch;
+  vi.fn(async () => new Response(body, { status })) as unknown as typeof fetch;
+const rejectingFetch = (error: Error) =>
+  vi.fn(() => Promise.reject(error)) as unknown as typeof fetch;
 const creds = {
   host: 'https://test.crossref.org',
   depositorEmail: 'doi@curvenote.com',
@@ -43,6 +45,20 @@ describe('lookupPrefix', () => {
       { retryable: true, status: 503 },
     );
   });
+
+  test('throws a retryable error on 429', async () => {
+    await expect(
+      lookupPrefix('10.62329', { fetch: fakeFetch(429, 'slow down') }),
+    ).rejects.toMatchObject({ retryable: true, status: 429 });
+  });
+
+  test('throws a non-retryable error on a 200 with a non-JSON body', async () => {
+    const err = await lookupPrefix('10.62329', {
+      fetch: fakeFetch(200, '<html>maintenance</html>'),
+    }).catch((e) => e);
+    expect(err).toBeInstanceOf(CrossrefError);
+    expect(err).toMatchObject({ retryable: false, status: 200 });
+  });
 });
 
 describe('checkRole', () => {
@@ -52,18 +68,31 @@ describe('checkRole', () => {
     const url = new URL(String((f as any).mock.calls[0][0]));
     expect(url.origin + url.pathname).toBe('https://test.crossref.org/servlet/submissionDownload');
     expect(url.searchParams.get('usr')).toBe('doi@curvenote.com/curv');
+    expect(url.searchParams.get('pwd')).toBe('s3cret');
+    expect(url.searchParams.get('file_name')).toBeTruthy();
     expect(url.searchParams.get('type')).toBe('result');
   });
 
   test('not authenticated on 401', async () => {
     const f = fakeFetch(401, fixture('submissionDownload.401-wrong-credentials.txt'));
     expect(await checkRole(creds, 'nope', { fetch: f })).toEqual({ authenticated: false });
+    const url = new URL(String((f as any).mock.calls[0][0]));
+    expect(url.searchParams.get('usr')).toBe('doi@curvenote.com/nope');
   });
 
   test('throws a retryable error on 503 without leaking the password', async () => {
     const err = await checkRole(creds, 'curv', { fetch: fakeFetch(503, 'maintenance') }).catch(
       (e) => e,
     );
+    expect(err).toBeInstanceOf(CrossrefError);
+    expect(err.retryable).toBe(true);
+    expect(String(err.message)).not.toContain('s3cret');
+  });
+
+  test('throws a retryable error on a network failure without leaking the password', async () => {
+    const err = await checkRole(creds, 'curv', {
+      fetch: rejectingFetch(new TypeError('fetch failed')),
+    }).catch((e) => e);
     expect(err).toBeInstanceOf(CrossrefError);
     expect(err.retryable).toBe(true);
     expect(String(err.message)).not.toContain('s3cret');

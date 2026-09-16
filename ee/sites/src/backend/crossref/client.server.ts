@@ -32,7 +32,11 @@ async function request(url: string, what: string, opts?: FetchOpts): Promise<Res
 }
 
 function unexpected(what: string, status: number): CrossrefError {
-  return new CrossrefError(`Crossref ${what} answered ${status}`, status >= 500, status);
+  return new CrossrefError(
+    `Crossref ${what} answered ${status}`,
+    status === 429 || status >= 500,
+    status,
+  );
 }
 
 export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
@@ -43,7 +47,16 @@ export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
   );
   if (resp.status === 404) return null;
   if (!resp.ok) throw unexpected('prefix lookup', resp.status);
-  const body = (await resp.json()) as { message?: { name?: string; member?: string } };
+  let body: { message?: { name?: string; member?: string } };
+  try {
+    body = await resp.json();
+  } catch {
+    throw new CrossrefError(
+      'Crossref prefix lookup returned an unexpected body',
+      false,
+      resp.status,
+    );
+  }
   if (!body.message?.name || !body.message.member) {
     throw new CrossrefError(
       'Crossref prefix lookup returned an unexpected body',
