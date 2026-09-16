@@ -157,7 +157,6 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.submissions.create,
     site.submissions.versions.create,
     site.doi.read,
-    site.doi.register,
   ]),
   [SiteRole.PUBLIC]: new Set([site.read]),
   [SiteRole.UNRESTRICTED]: new Set([

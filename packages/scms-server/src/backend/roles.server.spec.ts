@@ -141,9 +141,9 @@ describe('site doi scopes', () => {
     }
   });
 
-  test('MEMBER has read and register but not configure', () => {
+  test('MEMBER has read but not register or configure', () => {
     expect(hasSiteScope(SiteRole.MEMBER, site.doi.read)).toBe(true);
-    expect(hasSiteScope(SiteRole.MEMBER, site.doi.register)).toBe(true);
+    expect(hasSiteScope(SiteRole.MEMBER, site.doi.register)).toBe(false);
     expect(hasSiteScope(SiteRole.MEMBER, site.doi.configure)).toBe(false);
   });
 
