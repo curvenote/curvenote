@@ -49,8 +49,12 @@ export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
     'prefix lookup',
     opts,
   );
-  if (resp.status === 404) return null;
-  if (!resp.ok) throw unexpected('prefix lookup', resp.status);
+  if (resp.status === 404) {
+    return null;
+  }
+  if (!resp.ok) {
+    throw unexpected('prefix lookup', resp.status);
+  }
   let body: { message?: { name?: string; member?: string } };
   try {
     body = await resp.json();
@@ -75,8 +79,12 @@ export async function checkRole(creds: CrossrefCredentials, role: string, opts?:
     'role check',
     opts,
   );
-  if (resp.status === 401) return { authenticated: false };
-  if (!resp.ok) throw unexpected('role check', resp.status);
+  if (resp.status === 401) {
+    return { authenticated: false };
+  }
+  if (!resp.ok) {
+    throw unexpected('role check', resp.status);
+  }
   let body: string;
   try {
     body = await resp.text();
