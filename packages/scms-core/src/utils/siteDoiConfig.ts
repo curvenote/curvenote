@@ -7,9 +7,3 @@ export const SITE_DOI_CONFIG_STATUS = {
 
 export type SiteDoiConfigStatus =
   (typeof SITE_DOI_CONFIG_STATUS)[keyof typeof SITE_DOI_CONFIG_STATUS];
-
-const STATUSES = new Set<string>(Object.values(SITE_DOI_CONFIG_STATUS));
-
-export function isSiteDoiConfigStatus(value: unknown): value is SiteDoiConfigStatus {
-  return typeof value === 'string' && STATUSES.has(value);
-}
