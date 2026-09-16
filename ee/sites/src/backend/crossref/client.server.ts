@@ -3,12 +3,24 @@
  * Behaviour: Linear "Crossref integration facts". Never log or persist response
  * headers, and never put credentials in error messages.
  */
+import { z } from 'zod';
+
 const PREFIXES_API = 'https://api.crossref.org/prefixes';
 const TIMEOUT_MS = 10_000;
 /** A file name that never exists, so submissionDownload only proves the login. */
 const ROLE_CHECK_FILE_NAME = 'curvenote-role-check.xml';
 
-export type CrossrefCredentials = { host: string; depositorEmail: string; password: string };
+const CredentialsSchema = z.object({
+  host: z.httpUrl().transform((host) => host.replace(/\/$/, '')),
+  depositorEmail: z.email(),
+  password: z.string().min(1),
+});
+
+const PrefixResponseSchema = z.object({
+  message: z.object({ name: z.string().min(1), member: z.string().min(1) }),
+});
+
+export type CrossrefCredentials = z.output<typeof CredentialsSchema>;
 type FetchOpts = { fetch?: typeof fetch };
 
 /** `status` is undefined when no response arrived (timeout or network failure). */
@@ -43,16 +55,18 @@ export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
   if (!resp.ok) {
     throw new CrossrefError(`Crossref prefix lookup answered ${resp.status}`, resp.status);
   }
-  let body: { message?: { name?: string; member?: string } };
+  let json: unknown;
   try {
-    body = await resp.json();
+    json = await resp.json();
   } catch {
     throw new CrossrefError('Crossref prefix lookup returned an unexpected body', resp.status);
   }
-  if (!body.message?.name || !body.message.member) {
+  const parsed = PrefixResponseSchema.safeParse(json);
+  if (!parsed.success) {
     throw new CrossrefError('Crossref prefix lookup returned an unexpected body', resp.status);
   }
-  return { prefix, ownerName: body.message.name, memberUrl: body.message.member };
+  const { name, member } = parsed.data.message;
+  return { prefix, ownerName: name, memberUrl: member };
 }
 
 export async function checkRole(creds: CrossrefCredentials, role: string, opts?: FetchOpts) {
@@ -85,14 +99,12 @@ export async function checkRole(creds: CrossrefCredentials, role: string, opts?:
   return { authenticated: true };
 }
 
+/** Errors name the invalid fields only; zod issues never carry the input, so no password leaks. */
 export function crossrefCredentialsFromConfig(config: AppConfig): CrossrefCredentials {
-  const c = config.api?.crossref;
-  if (!c?.host || !c.depositorEmail || !c.password) {
-    throw new Error('Crossref requires api.crossref.host, depositorEmail and password in config');
+  const parsed = CredentialsSchema.safeParse(config.api?.crossref);
+  if (!parsed.success) {
+    const fields = parsed.error.issues.map((i) => ['api.crossref', ...i.path].join('.'));
+    throw new Error(`Crossref config is missing or invalid: ${fields.join(', ')}`);
   }
-  return {
-    host: c.host.replace(/\/$/, ''),
-    depositorEmail: c.depositorEmail,
-    password: c.password,
-  };
+  return parsed.data;
 }

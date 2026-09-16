@@ -59,6 +59,14 @@ describe('lookupPrefix', () => {
     expect(err).toBeInstanceOf(CrossrefError);
     expect(err).toMatchObject({ status: 200 });
   });
+
+  test('throws on a JSON body without the owner fields', async () => {
+    await expect(
+      lookupPrefix('10.62329', {
+        fetch: fakeFetch(200, JSON.stringify({ message: { name: 'Curvenote Inc.' } })),
+      }),
+    ).rejects.toMatchObject({ status: 200, message: expect.stringContaining('unexpected body') });
+  });
 });
 
 describe('checkRole', () => {
@@ -126,5 +134,20 @@ describe('crossrefCredentialsFromConfig', () => {
       api: { crossref: { ...creds, host: 'https://test.crossref.org/' } },
     } as AppConfig;
     expect(crossrefCredentialsFromConfig(config).host).toBe('https://test.crossref.org');
+  });
+
+  test('names invalid fields without leaking the password', () => {
+    const config = {
+      api: { crossref: { ...creds, host: 'test.crossref.org', depositorEmail: 'nope' } },
+    } as AppConfig;
+    let message = '';
+    try {
+      crossrefCredentialsFromConfig(config);
+    } catch (e: any) {
+      message = e.message;
+    }
+    expect(message).toContain('api.crossref.host');
+    expect(message).toContain('api.crossref.depositorEmail');
+    expect(message).not.toContain('s3cret');
   });
 });
