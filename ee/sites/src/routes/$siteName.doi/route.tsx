@@ -95,9 +95,11 @@ export default function DoiRegistration({ loaderData }: { loaderData: LoaderData
               customPrefixEnabled={doiCustomPrefixEnabled}
             />
             {isSystemAdmin && config.mode === SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX && (
-              <DoiRoleAdminCard config={config} roleBoundBy={roleBoundBy} />
+              <>
+                <DoiRoleAdminCard config={config} roleBoundBy={roleBoundBy} />
+                <DoiAdvancedActionsCard config={config} siteTitle={site.title} />
+              </>
             )}
-            {isSystemAdmin && <DoiAdvancedActionsCard config={config} siteTitle={site.title} />}
           </>
         )}
       </div>
