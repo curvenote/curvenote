@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useFetcher } from 'react-router';
+import { useFetcher, useSearchParams } from 'react-router';
 import { primitives, ui } from '@curvenote/scms-core';
 import { CROSSREF_MEMBERSHIP_URL } from './doi.utils.js';
 import type { DoiActionData } from './doi.utils.js';
@@ -7,7 +7,21 @@ import { EnterpriseDialog } from './EnterpriseDialog.js';
 import { RegistrationMethodPicker } from './RegistrationMethodPicker.js';
 import type { RegistrationMethod } from './RegistrationMethodPicker.js';
 
-type Step = 'intro' | 'choose' | 'custom-form';
+type Step = 'intro' | 'choose' | 'custom';
+
+/**
+ * The step lives in `?step=` so the sidebar link (no params) returns to the intro and the
+ * browser's back button moves between steps. An unknown or unavailable step falls back.
+ */
+function stepFromSearch(value: string | null, customPrefixEnabled: boolean): Step {
+  if (value === 'choose') {
+    return 'choose';
+  }
+  if (value === 'custom') {
+    return customPrefixEnabled ? 'custom' : 'choose';
+  }
+  return 'intro';
+}
 
 type DoiSetupProps = {
   siteTitle: string;
@@ -16,7 +30,9 @@ type DoiSetupProps = {
 
 export function DoiSetup({ siteTitle, customPrefixEnabled }: DoiSetupProps) {
   const fetcher = useFetcher<DoiActionData>();
-  const [step, setStep] = useState<Step>('intro');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const step = stepFromSearch(searchParams.get('step'), customPrefixEnabled);
+  const goTo = (next: Exclude<Step, 'intro'>) => setSearchParams({ step: next });
   const [method, setMethod] = useState<RegistrationMethod>('curvenote');
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const busy = fetcher.state !== 'idle';
@@ -30,7 +46,7 @@ export function DoiSetup({ siteTitle, customPrefixEnabled }: DoiSetupProps) {
           Connect this Site to a DOI registration service before registering DOIs for published
           content.
         </p>
-        <ui.Button onClick={() => setStep('choose')}>Set up DOI</ui.Button>
+        <ui.Button onClick={() => goTo('choose')}>Set up DOI</ui.Button>
       </primitives.Card>
     );
   }
@@ -38,7 +54,7 @@ export function DoiSetup({ siteTitle, customPrefixEnabled }: DoiSetupProps) {
   if (step === 'choose') {
     const onContinue = () => {
       if (method === 'custom') {
-        setStep('custom-form');
+        goTo('custom');
         return;
       }
       fetcher.submit({ intent: 'configure-curvenote' }, { method: 'POST' });
@@ -114,7 +130,7 @@ export function DoiSetup({ siteTitle, customPrefixEnabled }: DoiSetupProps) {
             type="button"
             variant="secondary"
             disabled={busy}
-            onClick={() => setStep('choose')}
+            onClick={() => goTo('choose')}
           >
             Back
           </ui.Button>
