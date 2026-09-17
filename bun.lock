@@ -47,15 +47,15 @@
     },
     "ee/sites": {
       "name": "@curvenote/scms-sites-ext",
-      "version": "0.26.0",
+      "version": "0.26.1",
       "dependencies": {
         "@codemirror/view": "^6.35.0",
         "@curvenote/check-definitions": "^0.17.3",
         "@curvenote/common": "^0.8.0",
         "@curvenote/icons": "0.0.4",
-        "@curvenote/scms-core": "0.26.0",
-        "@curvenote/scms-db": "0.26.0",
-        "@curvenote/scms-server": "0.26.0",
+        "@curvenote/scms-core": "0.26.1",
+        "@curvenote/scms-db": "0.26.1",
+        "@curvenote/scms-server": "0.26.1",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
@@ -1115,7 +1115,7 @@
     },
     "packages/scms-core": {
       "name": "@curvenote/scms-core",
-      "version": "0.26.0",
+      "version": "0.26.1",
       "dependencies": {
         "@app-config/config": "^2.8.7",
         "@app-config/main": "^2.8.7",
@@ -1135,7 +1135,7 @@
         "@curvenote/common": "^0.8.0",
         "@curvenote/icons": "^0.0.4",
         "@curvenote/remix-auth-okta": "^3.0.0",
-        "@curvenote/scms-db": "0.26.0",
+        "@curvenote/scms-db": "0.26.1",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
@@ -1235,7 +1235,7 @@
     },
     "packages/scms-db": {
       "name": "@curvenote/scms-db",
-      "version": "0.26.0",
+      "version": "0.26.1",
       "dependencies": {
         "@prisma/adapter-pg": "^7.9.1",
         "@prisma/client": "^7.9.1",
@@ -1250,12 +1250,12 @@
     },
     "packages/scms-doc-preview": {
       "name": "@curvenote/scms-doc-preview",
-      "version": "0.26.0",
+      "version": "0.26.1",
       "dependencies": {
         "@curvenote/common": "^0.8.0",
-        "@curvenote/scms-core": "^0.26.0",
-        "@curvenote/scms-db": "^0.26.0",
-        "@curvenote/scms-server": "^0.26.0",
+        "@curvenote/scms-core": "^0.26.1",
+        "@curvenote/scms-db": "^0.26.1",
+        "@curvenote/scms-server": "^0.26.1",
         "@napi-rs/canvas": "^0.1.100",
         "bmp-js": "^0.1.0",
         "officeparser": "^6.0.4",
@@ -1278,7 +1278,7 @@
     },
     "packages/scms-server": {
       "name": "@curvenote/scms-server",
-      "version": "0.26.0",
+      "version": "0.26.1",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.80.0",
         "@app-config/config": "^2.8.7",
@@ -1297,8 +1297,8 @@
         "@curvenote/common": "^0.8.0",
         "@curvenote/remix-auth-google": "^3.0.0",
         "@curvenote/remix-auth-okta": "^3.0.0",
-        "@curvenote/scms-core": "0.26.0",
-        "@curvenote/scms-db": "0.26.0",
+        "@curvenote/scms-core": "0.26.1",
+        "@curvenote/scms-db": "0.26.1",
         "@google-cloud/pubsub": "^5.2.0",
         "@google-cloud/storage": "^7.17.3",
         "@react-email/components": "0.5.7",
@@ -1366,7 +1366,7 @@
     },
     "packages/scms-tasks": {
       "name": "@curvenote/scms-tasks",
-      "version": "0.26.0",
+      "version": "0.26.1",
       "dependencies": {
         "@curvenote/common": "^0.7.0",
       },
@@ -1432,17 +1432,17 @@
     },
     "platform/scms": {
       "name": "@curvenote/scms",
-      "version": "0.26.0",
+      "version": "0.26.1",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.80.0",
         "@app-config/config": "^2.8.7",
         "@app-config/main": "^2.8.7",
         "@app-config/vite": "^2.8.7",
         "@curvenote/blocks": "^1.6.3",
-        "@curvenote/cdn": "^0.8.0",
-        "@curvenote/check-definitions": "^0.17.3",
+        "@curvenote/cdn": "^0.6.1",
+        "@curvenote/check-definitions": "^0.16.0",
         "@curvenote/check-ui": "^0.6.9",
-        "@curvenote/common": "^0.8.0",
+        "@curvenote/common": "^0.6.1",
         "@curvenote/icons": "^0.0.4",
         "@curvenote/remix-auth-okta": "^3.0.0",
         "@curvenote/scms-core": "*",
@@ -6251,6 +6251,12 @@
     "@curvenote/schema/markdown-it": ["markdown-it@12.3.2", "", { "dependencies": { "argparse": "^2.0.1", "entities": "~2.1.0", "linkify-it": "^3.0.1", "mdurl": "^1.0.1", "uc.micro": "^1.0.5" }, "bin": { "markdown-it": "bin/markdown-it.js" } }, "sha512-TchMembfxfNVpHkbtriWltGWc+m3xszaRD0CZup7GFFhzIgQqxIfn3eGj1yZpfuflzPvfkt611B2Q/Bsk1YnGg=="],
 
     "@curvenote/schema/myst-spec": ["myst-spec@0.0.4", "", {}, "sha512-1j7184Wmg5lhgSXt6AXtG82E0PFJ7ULFPplfshQDzb4nIOLKruYFD0CYWheRPMM/eVqNbNZUzc/LLrhyubsK0Q=="],
+
+    "@curvenote/scms/@curvenote/cdn": ["@curvenote/cdn@0.6.1", "", { "dependencies": { "@curvenote/common": "^0.6.1", "cache-manager": "^5.2.3", "doi-utils": "^2.0.5", "myst-common": "^1.9.5", "myst-config": "^1.9.5", "myst-frontmatter": "^1.9.5", "myst-migrate": "^1.9.0", "myst-spec-ext": "^1.9.5", "nbtx": "^0.2.3", "node-cache": "^5.1.2", "node-fetch": "^2.7.0", "unist-util-select": "^4.0.3" } }, "sha512-vRXtHwnihOfv+0q4MzMbb9hL3iEAi5KY46/xPsaduwnR27xbAMOlSqXHo8z3vPvuZrYcsFywG7sJAsNuGV+qhA=="],
+
+    "@curvenote/scms/@curvenote/check-definitions": ["@curvenote/check-definitions@0.16.5", "", { "dependencies": { "myst-common": "^1.9.5", "myst-templates": "^1.0.27" } }, "sha512-F7BS34YJ5vtJ6CoiBlzsiYJ34nAjEPjQScZDLfjcdILX9fyA1M2W91QVsg2+L9Gnpj/clco11/y0mUJ4nnl5cg=="],
+
+    "@curvenote/scms/@curvenote/common": ["@curvenote/common@0.6.1", "", { "dependencies": { "@curvenote/blocks": "^1.6.3", "myst-common": "^1.9.5", "myst-config": "^1.9.5" } }, "sha512-R3JYvxdtuZgwNG9CQBSKq7y6HtlS4KKtsGU9d/EAzUVxSdO6f7x+3Q/OLsAvEAQRpfMP4MLrDU989suomrFPlg=="],
 
     "@curvenote/scms/@myst-theme/providers": ["@myst-theme/providers@0.17.1", "", { "dependencies": { "@myst-theme/common": "^0.17.1" }, "peerDependencies": { "@types/react": "^16.8 || ^17.0 || ^18.0", "@types/react-dom": "^16.8 || ^17.0 || ^18.0", "myst-common": "^1.8.1", "myst-config": "^1.8.1", "myst-frontmatter": "^1.8.1", "react": "^16.8 || ^17.0 || ^18.0", "react-dom": "^16.8 || ^17.0 || ^18.0" } }, "sha512-dSG6dJy08n5N+OtSyH7ZS1uM0joVWztR4Qxqrp8JFiCG/h/U8oXdX53UgVBV9VVbEzF4LOgq5+D9yxg6YVqDZg=="],
 
