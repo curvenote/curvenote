@@ -30,6 +30,13 @@ export function administrationMenus(baseUrl: string) {
       scope: scopes.site.forms.list,
     },
     {
+      name: 'admin.doi',
+      label: 'DOI Registration',
+      url: `${baseUrl}/doi`,
+      // Members hold site:doi:read; only admins hold configure, and only they see the screen.
+      scope: scopes.site.doi.configure,
+    },
+    {
       name: 'admin.users',
       label: 'Users & Access',
       url: `${baseUrl}/users`,
