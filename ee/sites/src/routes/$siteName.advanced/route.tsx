@@ -17,6 +17,8 @@ import {
   actionUpdateSiteByJson,
   actionUpdateSiteSettings,
 } from './actionHelper.server.js';
+import { actionSetDoiCustomPrefixEnabled } from './doiFlag.server.js';
+import { DoiCustomPrefixForm } from './DoiCustomPrefixForm.js';
 import { SubmissionSettingsForm } from './SubmissionSettingsForm.js';
 import { SiteMetadataForm } from './SiteMetadataForm.js';
 import { SiteSettingsForm } from './SiteSettingsForm.js';
@@ -62,7 +64,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
 }
 
 const FormActionSchema = zfd.formData({
-  formAction: z.enum(['update-site', 'restrict', 'update-site-settings']),
+  formAction: z.enum(['update-site', 'restrict', 'update-site-settings', 'set-doi-custom-prefix']),
 });
 
 export async function action(args: ActionFunctionArgs) {
@@ -86,6 +88,8 @@ export async function action(args: ActionFunctionArgs) {
     return actionSaveSiteRestriction(ctx, formData);
   } else if (formAction === 'update-site-settings') {
     return actionUpdateSiteSettings(ctx, formData);
+  } else if (formAction === 'set-doi-custom-prefix') {
+    return actionSetDoiCustomPrefixEnabled(ctx, formData);
   }
 
   return data({ error: 'Invalid form action' }, { status: 400 });
@@ -118,6 +122,7 @@ export default function Settings({ loaderData }: { loaderData: LoaderData }) {
           </div>
         </primitives.Card>
         <SiteSettingsForm site={site} siteWithAppData={siteWithAppData} />
+        <DoiCustomPrefixForm siteWithAppData={siteWithAppData} />
         <SubmissionSettingsForm site={site} />
         <SiteMetadataForm site={site} metadata={metadata} />
       </div>
