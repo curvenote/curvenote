@@ -17,6 +17,8 @@ import { runDoiIntent } from './actionHelper.server.js';
 import { DoiStatusCard } from './DoiStatusCard.js';
 import { DoiAccountCard } from './DoiAccountCard.js';
 import { DoiSetup } from './DoiSetup.js';
+import { DoiRoleAdminCard } from './DoiRoleAdminCard.js';
+import { DoiAdvancedActionsCard } from './DoiAdvancedActionsCard.js';
 
 export interface LoaderData {
   site: SiteDTO;
@@ -70,7 +72,8 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 };
 
 export default function DoiRegistration({ loaderData }: { loaderData: LoaderData }) {
-  const { site, config, doiCustomPrefixEnabled, curvenotePrefix } = loaderData;
+  const { site, config, doiCustomPrefixEnabled, isSystemAdmin, curvenotePrefix, roleBoundBy } =
+    loaderData;
   return (
     <PageFrame title="DOI Registration" subtitle="Configure how this Site registers DOIs.">
       <div className="flex flex-col max-w-4xl space-y-5">
@@ -91,6 +94,10 @@ export default function DoiRegistration({ loaderData }: { loaderData: LoaderData
               siteTitle={site.title}
               customPrefixEnabled={doiCustomPrefixEnabled}
             />
+            {isSystemAdmin && config.mode === SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX && (
+              <DoiRoleAdminCard config={config} roleBoundBy={roleBoundBy} />
+            )}
+            {isSystemAdmin && <DoiAdvancedActionsCard config={config} siteTitle={site.title} />}
           </>
         )}
       </div>
