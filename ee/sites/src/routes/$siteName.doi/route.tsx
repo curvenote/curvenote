@@ -16,6 +16,7 @@ import type { SiteDoiConfigDTO } from '../../backend/doi/types.js';
 import { runDoiIntent } from './actionHelper.server.js';
 import { DoiStatusCard } from './DoiStatusCard.js';
 import { DoiAccountCard } from './DoiAccountCard.js';
+import { DoiSetup } from './DoiSetup.js';
 
 export interface LoaderData {
   site: SiteDTO;
@@ -78,6 +79,9 @@ export default function DoiRegistration({ loaderData }: { loaderData: LoaderData
             type="error"
             message="DOI registration is not configured on this deployment. Ask a Curvenote engineer to set api.crossref."
           />
+        )}
+        {curvenotePrefix && !config && (
+          <DoiSetup siteTitle={site.title} customPrefixEnabled={doiCustomPrefixEnabled} />
         )}
         {curvenotePrefix && config && (
           <>
