@@ -1,8 +1,9 @@
-import type { TagDTO } from '@curvenote/common';
 import { isValidTagName, toTagName } from '@curvenote/scms-core';
 
+type TagOption = { name: string; label: string };
+
 /** Catalog entries matching the typed query on label or name. */
-export function filterTagOptions(catalog: TagDTO[], query: string): TagDTO[] {
+export function filterTagOptions<T extends TagOption>(catalog: T[], query: string): T[] {
   const needle = query.trim().toLowerCase();
   if (!needle) {
     return catalog;
@@ -17,7 +18,7 @@ export function filterTagOptions(catalog: TagDTO[], query: string): TagDTO[] {
  * invalid name, or matches a tag that already exists.
  */
 export function getCreateTagOption(
-  catalog: TagDTO[],
+  catalog: TagOption[],
   query: string,
 ): { label: string; name: string } | undefined {
   const label = query.trim();

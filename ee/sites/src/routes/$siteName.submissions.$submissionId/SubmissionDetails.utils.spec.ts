@@ -61,6 +61,8 @@ describe('SUBMISSION_DETAIL_FORM_ACTIONS', () => {
       slugAdd: 'slug-add',
       slugRemove: 'slug-remove',
       slugSetPrimary: 'slug-set-primary',
+      tagAssign: 'tag-assign',
+      tagRemove: 'tag-remove',
     });
   });
 });

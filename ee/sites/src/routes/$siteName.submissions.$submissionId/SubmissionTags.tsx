@@ -1,10 +1,13 @@
 import { forwardRef, useRef, useState, type ComponentPropsWithoutRef } from 'react';
-import { useFetcher, useLoaderData } from 'react-router';
+import { useLoaderData } from 'react-router';
 import type { TagDTO } from '@curvenote/common';
 import { ui } from '@curvenote/scms-core';
 import { Plus } from 'lucide-react';
 import type { SubmissionDetailPageData } from './loader.server.js';
+import type { SubmissionTagView } from './pendingTagChanges.js';
+import { TagChangeErrorToast } from './TagChangeErrorToast.js';
 import { TagPicker } from './TagPicker.js';
+import { useSubmissionTagChanges } from './useSubmissionTagChanges.js';
 import { getTagAddControlKind, getTagAddTriggerLabel } from './SubmissionTags.utils.js';
 
 type SubmissionTagsProps = {
@@ -43,7 +46,7 @@ const TagAddButton = forwardRef<HTMLButtonElement, TagAddButtonProps>(function T
 });
 
 type TagChipProps = {
-  tag: TagDTO;
+  tag: SubmissionTagView;
 } & Omit<ComponentPropsWithoutRef<'button'>, 'children' | 'type'>;
 
 function TagChipButton({ tag, ...props }: TagChipProps) {
@@ -64,44 +67,15 @@ function TagChipButton({ tag, ...props }: TagChipProps) {
 
 export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTagsProps) {
   const { siteTags } = useLoaderData<SubmissionDetailPageData>();
-  const fetcher = useFetcher<{ error?: string; tag?: TagDTO }>();
+  const changes = useSubmissionTagChanges({ submissionId, tags, catalog: siteTags });
   const [mode, setMode] = useState<PickerMode>('none');
   // Bumped on every closed → open transition so the command remounts and the query resets,
   // even when the exit animation kept the previous instance alive.
   const [session, setSession] = useState(0);
   const lastOpenerRef = useRef<HTMLButtonElement | null>(null);
   const plusRef = useRef<HTMLButtonElement>(null);
-  const assignedIds = tags.map((tag) => tag.id);
-  const pickerBusy = fetcher.state !== 'idle';
-
-  const toggle = (tag: TagDTO) => {
-    if (pickerBusy) {
-      return;
-    }
-    fetcher.submit(
-      {
-        submission_id: submissionId,
-        tag_id: tag.id,
-        formAction: assignedIds.includes(tag.id) ? 'tag-remove' : 'tag-assign',
-      },
-      { method: 'POST' },
-    );
-  };
-
-  const create = (label: string) => {
-    if (pickerBusy) {
-      return;
-    }
-    fetcher.submit(
-      { submission_id: submissionId, label, formAction: 'tag-assign' },
-      { method: 'POST' },
-    );
-  };
 
   const openPicker = (next: 'row' | 'plus', opener: HTMLButtonElement | null) => {
-    if (pickerBusy) {
-      return;
-    }
     lastOpenerRef.current = opener;
     setSession((previous) => previous + 1);
     setMode(next);
@@ -147,16 +121,19 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
     );
   }
 
-  const addKind = getTagAddControlKind({ permission: 'update', assignedCount: tags.length });
+  const addKind = getTagAddControlKind({
+    permission: 'update',
+    assignedCount: changes.tags.length,
+  });
 
   const picker = (
     <TagPicker
       key={session}
-      catalog={siteTags}
-      assignedIds={assignedIds}
-      disabled={pickerBusy}
-      onToggle={toggle}
-      onCreate={create}
+      catalog={changes.catalog}
+      assignedNames={changes.tags.map((tag) => tag.name)}
+      isBusy={changes.isBusy}
+      onToggle={changes.toggle}
+      onCreate={changes.create}
       onCloseAutoFocus={handleCloseAutoFocus}
     />
   );
@@ -169,23 +146,23 @@ export function SubmissionTags({ submissionId, tags, canUpdate }: SubmissionTags
     <ui.Popover open={mode === 'row'} onOpenChange={handleRowOpenChange}>
       <ui.PopoverAnchor asChild>
         <div className="flex flex-wrap gap-1 items-center w-full min-w-0">
-          {tags.map((tag) => (
+          {changes.tags.map((tag) => (
             <TagChipButton
-              key={tag.id}
+              key={tag.name}
               tag={tag}
               aria-haspopup="dialog"
               onClick={(event) => openPicker('row', event.currentTarget)}
             />
           ))}
           <ui.Popover open={mode === 'plus'} onOpenChange={handlePlusOpenChange}>
-            <ui.PopoverTrigger asChild disabled={pickerBusy}>
+            <ui.PopoverTrigger asChild>
               <TagAddButton ref={plusRef} kind={addKind} />
             </ui.PopoverTrigger>
             {picker}
           </ui.Popover>
-          {fetcher.data?.error ? (
-            <span className="text-sm text-destructive">{fetcher.data.error}</span>
-          ) : null}
+          {changes.fetcherKeys.map((key) => (
+            <TagChangeErrorToast key={key} fetcherKey={key} />
+          ))}
         </div>
       </ui.PopoverAnchor>
       {picker}
