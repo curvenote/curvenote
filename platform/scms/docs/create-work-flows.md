@@ -297,7 +297,9 @@ The same resolver is used for **resume** (`resolveDraftResumePath`). Options may
 
 Draft-only works are redirected into the resolved create-flow form instead of details pages.
 
-The work layout loader (`works.$workId/route.tsx`) treats a path as already on a create form when it matches any registered option’s `formPathIncludes` (Article `/upload/`, Foundry `/foundry/`, PMC `/site/pmc/`, …). Bounce target is `resolveDraftResumePath()` — extension `resolveResumeDraftPath` hook, else `resumePath` template, else Article upload.
+The work layout loader (`works.$workId/route.tsx`) treats a path as already on a create form when it matches any registered option’s `formPathIncludes` (Article `/upload/`, Foundry `/foundry/`, PMC `/site/pmc/deposit` + `/site/pmc/confirm`, …). `formPathIncludes` takes a single fragment or a list; multi-step forms **must** list every step, or the guard bounces the later steps back to the resume target and the flow cannot be completed. Bounce target is `resolveDraftResumePath()` — extension `resolveResumeDraftPath` hook, else `resumePath` template, else Article upload.
+
+The same flag drives `showSecondaryNav` (`!isDrafting && !isOnUploadRoute`), so a path listed here also hides the work secondary nav.
 
 ```typescript
 const resumeOptions = workCreateOptionsForResume(extensions);
@@ -381,6 +383,6 @@ Paths relative to repository root.
 ## Adding a new create flow
 
 1. Register `getWorkCreateOptions()` on the extension (and `createWorkVersion` on the server extension for new-version support).
-2. Set `metadataKey` plus `resumePath` and/or `formPathIncludes` so resume and layout guards stay generic. If the resume URL needs extra IDs, implement `resolveResumeDraftPath` on the server extension.
+2. Set `metadataKey` plus `resumePath` and/or `formPathIncludes` so resume and layout guards stay generic. List every step of a multi-step form in `formPathIncludes`. If the resume URL needs extra IDs, implement `resolveResumeDraftPath` on the server extension.
 3. Add a launcher route (draft check, create action, client navigation to your form).
 4. Optionally add a dashboard task card that navigates to the same launcher `startPath`.
