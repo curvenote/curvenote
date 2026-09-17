@@ -44,9 +44,11 @@ export function isOnCreateFormPath(
 ): boolean {
   const workPrefix = `/app/works/${workId}`;
   return options.some((option) => {
-    const fragment = option.formPathIncludes;
-    if (!fragment) return false;
-    return pathname.includes(`${workPrefix}${fragment}`);
+    const fragments =
+      typeof option.formPathIncludes === 'string'
+        ? [option.formPathIncludes]
+        : (option.formPathIncludes ?? []);
+    return fragments.some((fragment) => fragment && pathname.includes(`${workPrefix}${fragment}`));
   });
 }
 
