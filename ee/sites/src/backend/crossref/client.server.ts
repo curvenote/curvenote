@@ -34,21 +34,16 @@ export class CrossrefError extends Error {
   }
 }
 
-async function request(url: string, what: string, opts?: FetchOpts): Promise<Response> {
-  const doFetch = opts?.fetch ?? fetch;
-  try {
-    return await doFetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-  } catch (e: any) {
-    throw new CrossrefError(`Crossref ${what} request failed: ${e?.name ?? 'network error'}`);
-  }
-}
-
 export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
-  const resp = await request(
-    `${PREFIXES_API}/${encodeURIComponent(prefix)}`,
-    'prefix lookup',
-    opts,
-  );
+  const doFetch = opts?.fetch ?? fetch;
+  let resp: Response;
+  try {
+    resp = await doFetch(`${PREFIXES_API}/${encodeURIComponent(prefix)}`, {
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (e: any) {
+    throw new CrossrefError(`Crossref prefix lookup request failed: ${e?.name ?? 'network error'}`);
+  }
   if (resp.status === 404) {
     return null;
   }
@@ -76,11 +71,16 @@ export async function checkRole(creds: CrossrefCredentials, role: string, opts?:
     file_name: ROLE_CHECK_FILE_NAME,
     type: 'result',
   });
-  const resp = await request(
-    `${creds.host}/servlet/submissionDownload?${params}`,
-    'role check',
-    opts,
-  );
+  const doFetch = opts?.fetch ?? fetch;
+  let resp: Response;
+  try {
+    resp = await doFetch(`${creds.host}/servlet/submissionDownload?${params}`, {
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (e: any) {
+    // Only the error name: the URL holds the password, so the original message is never forwarded.
+    throw new CrossrefError(`Crossref role check request failed: ${e?.name ?? 'network error'}`);
+  }
   if (resp.status === 401) {
     return { authenticated: false };
   }

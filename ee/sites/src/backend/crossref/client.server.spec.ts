@@ -52,6 +52,14 @@ describe('lookupPrefix', () => {
     ).rejects.toMatchObject({ status: 429 });
   });
 
+  test('throws without a status on a network failure', async () => {
+    const err = await lookupPrefix('10.62329', {
+      fetch: rejectingFetch(new TypeError('fetch failed')),
+    }).catch((e) => e);
+    expect(err).toBeInstanceOf(CrossrefError);
+    expect(err.status).toBeUndefined();
+  });
+
   test('throws on a 200 with a non-JSON body', async () => {
     const err = await lookupPrefix('10.62329', {
       fetch: fakeFetch(200, '<html>maintenance</html>'),
