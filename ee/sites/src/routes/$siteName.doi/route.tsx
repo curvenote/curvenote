@@ -14,6 +14,8 @@ import { getSiteWithAppData } from '../../backend/db.server.js';
 import { dbGetDoiConfig, dbGetRoleBoundBy, toDTO } from '../../backend/doi/db.server.js';
 import type { SiteDoiConfigDTO } from '../../backend/doi/types.js';
 import { runDoiIntent } from './actionHelper.server.js';
+import { DoiStatusCard } from './DoiStatusCard.js';
+import { DoiAccountCard } from './DoiAccountCard.js';
 
 export interface LoaderData {
   site: SiteDTO;
@@ -67,7 +69,7 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 };
 
 export default function DoiRegistration({ loaderData }: { loaderData: LoaderData }) {
-  const { curvenotePrefix } = loaderData;
+  const { site, config, doiCustomPrefixEnabled, curvenotePrefix } = loaderData;
   return (
     <PageFrame title="DOI Registration" subtitle="Configure how this Site registers DOIs.">
       <div className="flex flex-col max-w-4xl space-y-5">
@@ -76,6 +78,16 @@ export default function DoiRegistration({ loaderData }: { loaderData: LoaderData
             type="error"
             message="DOI registration is not configured on this deployment. Ask a Curvenote engineer to set api.crossref."
           />
+        )}
+        {curvenotePrefix && config && (
+          <>
+            <DoiStatusCard config={config} />
+            <DoiAccountCard
+              config={config}
+              siteTitle={site.title}
+              customPrefixEnabled={doiCustomPrefixEnabled}
+            />
+          </>
         )}
       </div>
     </PageFrame>
