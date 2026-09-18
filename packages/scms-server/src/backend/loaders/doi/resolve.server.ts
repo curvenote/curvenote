@@ -17,7 +17,37 @@ export type DoiResolveOptions = {
 };
 
 /**
- * Resolve the latest *published* submission version for a DOI **across all public sites**.
+ * DOIs registered through Curvenote live on `Submission.doi` (btree `Submission_doi_idx`).
+ * Probe that first across public, non-external sites; latest published version wins.
+ */
+async function fetchPublishedSubmissionVersionBySubmissionDoi(
+  doiNormalized: string,
+  tag?: string,
+): Promise<{ id: string; siteName: string } | null> {
+  const prisma = await getPrismaClient();
+  const tagFilter = tag ? Prisma.sql`AND sv.tags @> ARRAY[${tag}]::text[]` : Prisma.empty;
+  const rows = await prisma.$queryRaw<{ id: string; site_name: string }[]>`
+    SELECT sv.id, si.name AS site_name
+    FROM "Submission" s
+    INNER JOIN "Site" si
+      ON si.id = s.site_id
+     AND si.private = false
+     AND si.external = false
+    INNER JOIN "SubmissionVersion" sv
+      ON sv.submission_id = s.id
+     AND sv.status = ${'PUBLISHED'}
+     ${tagFilter}
+    WHERE s.doi = ${doiNormalized}
+    ORDER BY sv.date_created DESC
+    LIMIT 1
+  `;
+  const row = rows[0];
+  return row ? { id: row.id, siteName: row.site_name } : null;
+}
+
+/**
+ * Fallback for DOIs a work arrived with (`WorkVersion.doi` / `Work.doi`), used when no
+ * submission owns the DOI.
  *
  * Mirrors the single-site resolver (`fetchPublishedSubmissionVersionIdByDoi` in
  * `../sites/doi.server.ts`) — same DOI-index-backed work-version CTE and published hot-path
@@ -102,7 +132,9 @@ export default async function (
   if (!doiNormalized) throw error404('Not Found - Invalid DOI');
 
   const tag = opts?.tag?.trim();
-  const match = await fetchPublishedSubmissionVersionAcrossPublicSites(doiNormalized, tag);
+  const match =
+    (await fetchPublishedSubmissionVersionBySubmissionDoi(doiNormalized, tag)) ??
+    (await fetchPublishedSubmissionVersionAcrossPublicSites(doiNormalized, tag));
   if (!match) {
     throw error404(
       tag

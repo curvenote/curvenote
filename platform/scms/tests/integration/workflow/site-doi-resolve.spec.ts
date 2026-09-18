@@ -184,6 +184,30 @@ describe('site doi resolve — delivered package', () => {
       'Not Found - No work with that DOI exists in database',
     );
   });
+
+  test('resolves a registered DOI stored on the submission', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    const seed = await seedPublishedWorkWithDoi(testData, {
+      workDoi: false,
+      submissionDoi: registered,
+    });
+    const dto = await sites.doi(testData.context, registered);
+    expect(dto.submission_version_id).toBe(seed.svId);
+  });
+
+  test('a submission DOI wins over the same DOI on another work', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    const owner = await seedPublishedWorkWithDoi(testData, {
+      workDoi: false,
+      submissionDoi: registered,
+      datePublished: '2024-01-01',
+    });
+    const other = await seedPublishedWorkWithDoi(testData, { datePublished: '2025-01-01' });
+    const prisma = await getPrismaClient();
+    await prisma.work.update({ where: { id: other.workId }, data: { doi: registered } });
+    const dto = await sites.doi(testData.context, registered);
+    expect(dto.submission_version_id).toBe(owner.svId);
+  });
 });
 
 describe('sites.submissions.published.get — delivered package', () => {
@@ -338,6 +362,31 @@ describe('cross-site doi resolve — public-only security', () => {
       'Not Found - No published submission version with that tag for this DOI on any public site',
     );
   });
+
+  test('resolves a registered DOI stored on a public-site submission', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    const seed = await seedPublishedWorkWithDoi(testData, {
+      workDoi: false,
+      submissionDoi: registered,
+    });
+    const dto = await doi.resolve(testData.context, registered);
+    expect(dto.submission_version_id).toBe(seed.svId);
+  });
+
+  test('does not resolve a registered DOI stored only on a private-site submission', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    const privateSiteId = await createBareSite({ private: true });
+    await seedPublishedWorkWithDoi(testData, {
+      siteId: privateSiteId,
+      workDoi: false,
+      submissionDoi: registered,
+    });
+
+    await expectRejects404(
+      doi.resolve(testData.context, registered),
+      'Not Found - No work with that DOI exists in database',
+    );
+  });
 });
 
 /* ---------------------------------------------------------------------------
@@ -483,18 +532,25 @@ interface DoiSeed {
   slug: string;
 }
 
+type SeedPublishedWorkWithDoiOptions = {
+  authors?: string[];
+  datePublished?: string;
+  wvTags?: string[];
+  svTags?: string[];
+  siteId?: string;
+  /** DOI to register on `Submission.doi` (the new, indexed registered-DOI path). */
+  submissionDoi?: string;
+  /** Whether to set the legacy work-DOI (`Work.doi` / `WorkVersion.doi`). Defaults to true. */
+  workDoi?: boolean;
+};
+
 async function seedPublishedWorkWithDoi(
   testData: TestData,
-  opts: {
-    authors?: string[];
-    datePublished?: string;
-    wvTags?: string[];
-    svTags?: string[];
-    siteId?: string;
-  },
+  opts: SeedPublishedWorkWithDoiOptions,
 ): Promise<DoiSeed> {
   const prisma = await getPrismaClient();
   const siteId = opts.siteId ?? testData.siteId;
+  const workDoi = opts.workDoi ?? true;
   const workId = uuidv7();
   const workVersionId = uuidv7();
   const submissionId = uuidv7();
@@ -522,7 +578,7 @@ async function seedPublishedWorkWithDoi(
       id: seed.workId,
       date_created: now,
       date_modified: now,
-      doi: seed.normDoi,
+      doi: workDoi ? seed.normDoi : undefined,
       key: seed.workKey,
       created_by: { connect: { id: testData.userId } },
     },
@@ -534,7 +590,7 @@ async function seedPublishedWorkWithDoi(
       date_modified: now,
       title: seed.title,
       description: seed.description,
-      doi: seed.normDoi,
+      doi: workDoi ? seed.normDoi : undefined,
       authors: seed.authors,
       canonical: true,
       tags: opts.wvTags ?? [],
@@ -549,6 +605,7 @@ async function seedPublishedWorkWithDoi(
       date_created: now,
       date_modified: now,
       date_published: seed.datePublished,
+      doi: opts.submissionDoi,
       site: { connect: { id: siteId } },
       work: { connect: { id: seed.workId } },
       kind: { connect: { id: testData.kindId } },

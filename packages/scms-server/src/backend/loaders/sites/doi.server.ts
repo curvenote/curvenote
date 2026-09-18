@@ -15,7 +15,34 @@ export type SiteDoiResolveOptions = {
 };
 
 /**
- * Resolve the id of the latest *published* submission version for a DOI on a site.
+ * DOIs registered through Curvenote live on `Submission.doi` (btree `Submission_doi_idx`).
+ * Probe that first: submission → its latest *published* version, scoped to the site.
+ */
+async function fetchPublishedSubmissionVersionIdBySubmissionDoi(
+  siteId: string,
+  doiNormalized: string,
+  tag?: string,
+): Promise<string | null> {
+  const prisma = await getPrismaClient();
+  const tagFilter = tag ? Prisma.sql`AND sv.tags @> ARRAY[${tag}]::text[]` : Prisma.empty;
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT sv.id
+    FROM "Submission" s
+    INNER JOIN "SubmissionVersion" sv
+      ON sv.submission_id = s.id
+     AND sv.status = ${'PUBLISHED'}
+     ${tagFilter}
+    WHERE s.doi = ${doiNormalized}
+      AND s.site_id = ${siteId}
+    ORDER BY sv.date_created DESC
+    LIMIT 1
+  `;
+  return rows[0]?.id ?? null;
+}
+
+/**
+ * Fallback for DOIs a work arrived with (`WorkVersion.doi` / `Work.doi`), used when no
+ * submission owns the DOI.
  *
  * Starts from btree-backed DOI equality on `WorkVersion` / `Work` (migration
  * `20260529130000`), unions the matching work-version ids, then joins to
@@ -80,7 +107,9 @@ async function fetchPublishedSubmissionVersionIdByDoi(
 }
 
 async function dbGetPublishedSiteWorkByDoi(siteId: string, doiNormalized: string, tag?: string) {
-  const id = await fetchPublishedSubmissionVersionIdByDoi(siteId, doiNormalized, tag);
+  const id =
+    (await fetchPublishedSubmissionVersionIdBySubmissionDoi(siteId, doiNormalized, tag)) ??
+    (await fetchPublishedSubmissionVersionIdByDoi(siteId, doiNormalized, tag));
   if (!id) return null;
 
   const prisma = await getPrismaClient();
