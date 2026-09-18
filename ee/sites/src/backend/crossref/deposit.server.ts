@@ -55,7 +55,7 @@ export async function deposit(
     throw new CrossrefError('Crossref deposit returned an unreadable body', resp.status);
   }
   // An empty or malformed POST also gets a 200, with a blank body.
-  if (!body.includes('SUCCESS')) {
+  if (!/\bSUCCESS\b/.test(body)) {
     throw new CrossrefError('Crossref deposit was not received', resp.status);
   }
   return { received: true };

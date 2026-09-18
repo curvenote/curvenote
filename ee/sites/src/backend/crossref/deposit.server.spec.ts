@@ -55,6 +55,16 @@ describe('deposit', () => {
     expect(err).toMatchObject({ status: 200 });
   });
 
+  test('throws on a 200 whose body contains UNSUCCESSFUL, not a whole-word SUCCESS', async () => {
+    const body =
+      '<html><head><title>FAILURE</title></head><body><h2>UNSUCCESSFUL</h2></body></html>';
+    const err = await deposit(creds, input, {
+      fetch: fakeFetch(200, body) as unknown as typeof fetch,
+    }).catch((e) => e);
+    expect(err).toBeInstanceOf(CrossrefError);
+    expect(err).toMatchObject({ status: 200 });
+  });
+
   test('throws with the status on 503', async () => {
     await expect(
       deposit(creds, input, {
