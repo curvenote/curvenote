@@ -1,5 +1,17 @@
 # @curvenote/scms-core
 
+## 0.27.0
+
+### Patch Changes
+
+- [#1092](https://github.com/curvenote/curvenote/pull/1092) [`dd67dab`](https://github.com/curvenote/curvenote/commit/dd67daba6879da9bc245828fd93df298e769009b) Thanks [@fwkoch](https://github.com/fwkoch)! - Hash an extension package's `prisma/**` into its generated Turborepo build task, and treat `src/generated/**` as an output, so editing a schema reruns `prisma generate` instead of replaying a client built from an earlier one
+
+- Updated dependencies [[`b2adb3e`](https://github.com/curvenote/curvenote/commit/b2adb3e78e5a2f4c860eeea0cb50bf5098d79bdb)]:
+  - @curvenote/common@0.9.0
+  - @curvenote/cdn@0.9.0
+  - @curvenote/check-definitions@0.17.4
+  - @curvenote/scms-db@0.27.0
+
 ## 0.26.1
 
 ### Patch Changes

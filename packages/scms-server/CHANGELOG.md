@@ -1,5 +1,23 @@
 # @curvenote/scms-server
 
+## 0.27.0
+
+### Minor Changes
+
+- [#1091](https://github.com/curvenote/curvenote/pull/1091) [`b2adb3e`](https://github.com/curvenote/curvenote/commit/b2adb3e78e5a2f4c860eeea0cb50bf5098d79bdb) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - **Breaking:** `SiteDTO.tags` no longer includes the internal catalog `id`. Each tag is
+  now `{ name, label }` (`TagRefDTO`); key on `name`, which is unique per site and
+  URL-safe. This affects every payload built by `formatSiteDTO`: `GET /v1/sites/:siteName`,
+  the sites listing, `my/sites`, and the site update response.
+
+### Patch Changes
+
+- Updated dependencies [[`dd67dab`](https://github.com/curvenote/curvenote/commit/dd67daba6879da9bc245828fd93df298e769009b), [`b2adb3e`](https://github.com/curvenote/curvenote/commit/b2adb3e78e5a2f4c860eeea0cb50bf5098d79bdb)]:
+  - @curvenote/scms-core@0.27.0
+  - @curvenote/common@0.9.0
+  - @curvenote/cdn@0.9.0
+  - @curvenote/check-definitions@0.17.4
+  - @curvenote/scms-db@0.27.0
+
 ## 0.26.1
 
 ### Patch Changes

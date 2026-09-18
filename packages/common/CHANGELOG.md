@@ -1,5 +1,14 @@
 # @curvenote/common
 
+## 0.9.0
+
+### Minor Changes
+
+- [#1091](https://github.com/curvenote/curvenote/pull/1091) [`b2adb3e`](https://github.com/curvenote/curvenote/commit/b2adb3e78e5a2f4c860eeea0cb50bf5098d79bdb) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - **Breaking:** `SiteDTO.tags` no longer includes the internal catalog `id`. Each tag is
+  now `{ name, label }` (`TagRefDTO`); key on `name`, which is unique per site and
+  URL-safe. This affects every payload built by `formatSiteDTO`: `GET /v1/sites/:siteName`,
+  the sites listing, `my/sites`, and the site update response.
+
 ## 0.8.0
 
 ### Minor Changes
