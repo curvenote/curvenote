@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { useFetcher } from 'react-router';
 import { Lock } from 'lucide-react';
-import { SITE_DOI_CONFIG_MODE, SITE_DOI_CONFIG_STATUS, primitives, ui } from '@curvenote/scms-core';
+import { SITE_DOI_CONFIG_MODE, SITE_DOI_CONFIG_STATUS, ui } from '@curvenote/scms-core';
 import type { SiteDoiConfigDTO } from '../../backend/doi/types.js';
 import { DoiConfirmAction } from './DoiConfirmAction.js';
 import { DoiPrefixForm } from './DoiPrefixForm.js';
@@ -48,6 +49,15 @@ export function DoiAccountCard({
   roleBoundBy,
 }: DoiAccountCardProps) {
   const fetcher = useFetcher<DoiActionData>();
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data) {
+      if (fetcher.data.error) {
+        ui.toastError(fetcher.data.error);
+      } else if (fetcher.data.info) {
+        ui.toastSuccess(fetcher.data.info);
+      }
+    }
+  }, [fetcher.state, fetcher.data]);
   const isCustom = config.mode === SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX;
   const isPending = config.status === SITE_DOI_CONFIG_STATUS.PENDING_ROLE;
   const editable = isCustom && isPending && customPrefixEnabled;
@@ -60,7 +70,7 @@ export function DoiAccountCard({
   const canStartOver = !isSystemAdmin && !(isCustom && config.role);
 
   return (
-    <primitives.Card lift className="px-6 py-4 space-y-4" validateUsing={fetcher}>
+    <ui.Card className="px-6 py-4 space-y-4">
       <h2>Registration account</h2>
       <p className="text-sm font-light">
         {isCustom
@@ -139,6 +149,6 @@ export function DoiAccountCard({
           />
         </div>
       )}
-    </primitives.Card>
+    </ui.Card>
   );
 }

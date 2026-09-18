@@ -1,4 +1,4 @@
-import { primitives, ui } from '@curvenote/scms-core';
+import { ui } from '@curvenote/scms-core';
 import type { SiteDoiConfigDTO } from '../../backend/doi/types.js';
 import { methodLabel, statusPresentation } from './doi.utils.js';
 
@@ -18,7 +18,7 @@ type DoiStatusCardProps = {
 export function DoiStatusCard({ config }: DoiStatusCardProps) {
   const status = statusPresentation(config.status);
   return (
-    <primitives.Card lift className="px-6 py-4 space-y-4">
+    <ui.Card className="px-6 py-4 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <h2>DOI registration status</h2>
         <ui.Badge variant={status.variant}>{status.label}</ui.Badge>
@@ -40,6 +40,6 @@ export function DoiStatusCard({ config }: DoiStatusCardProps) {
         <Fact label="Registration method" value={methodLabel(config.mode)} />
         <Fact label="Registration agency" value="Crossref" />
       </div>
-    </primitives.Card>
+    </ui.Card>
   );
 }

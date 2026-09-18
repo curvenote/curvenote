@@ -1,9 +1,10 @@
+import { useEffect } from 'react';
 import { useFetcher } from 'react-router';
 import {
   SITE_DOI_CONFIG_MODE,
   SITE_DOI_CONFIG_STATUS,
   SystemAdminBadge,
-  primitives,
+  ui,
 } from '@curvenote/scms-core';
 import type { SiteDoiConfigDTO } from '../../backend/doi/types.js';
 import { DoiConfirmAction } from './DoiConfirmAction.js';
@@ -16,12 +17,21 @@ type DoiAdvancedActionsCardProps = {
 
 export function DoiAdvancedActionsCard({ config, siteTitle }: DoiAdvancedActionsCardProps) {
   const fetcher = useFetcher<DoiActionData>();
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data) {
+      if (fetcher.data.error) {
+        ui.toastError(fetcher.data.error);
+      } else if (fetcher.data.info) {
+        ui.toastSuccess(fetcher.data.info);
+      }
+    }
+  }, [fetcher.state, fetcher.data]);
   const canUnlink =
     config.mode === SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX &&
     config.status === SITE_DOI_CONFIG_STATUS.ACTIVE;
 
   return (
-    <primitives.Card lift className="px-6 py-4 space-y-4" validateUsing={fetcher}>
+    <ui.Card className="px-6 py-4 space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2>Advanced actions</h2>
         <SystemAdminBadge />
@@ -52,6 +62,6 @@ export function DoiAdvancedActionsCard({ config, siteTitle }: DoiAdvancedActions
           fetcher={fetcher}
         />
       </div>
-    </primitives.Card>
+    </ui.Card>
   );
 }
