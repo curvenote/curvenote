@@ -144,8 +144,10 @@ export default async function (
   }
 
   // The site load and the full submission-version row both depend only on the
-  // match above and not on each other, so run them concurrently to keep the
-  // resolve to two serial round-trips (the DOI match, then this pair).
+  // match above and not on each other, so run them concurrently: a registered
+  // DOI costs two serial round-trips (the submission-DOI probe, then this
+  // pair); a work DOI or a miss costs three (submission-DOI probe, work-DOI
+  // query, then this pair).
   const prisma = await getPrismaClient();
   const [site, sv] = await Promise.all([
     dbGetSite(match.siteName),
