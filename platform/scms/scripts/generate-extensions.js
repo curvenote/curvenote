@@ -268,16 +268,6 @@ function buildTurboBuildTaskForExtensionPackage(packageRoot) {
   /*
    * A package with a Prisma schema generates its client during `build`, so the
    * schema is an input and the client is an output.
-   *
-   * Without the input, editing a model does not change the cache key: Turbo
-   * restores the previous `dist` and never runs `prisma generate`, so code
-   * calling a renamed model meets a client that has never heard of it. Without
-   * the output, a cache hit on a fresh checkout leaves no generated client at
-   * all. The generated client is excluded from the inputs for the usual reason
-   * an output should not be one — it would hash the last build into this one.
-   *
-   * The root config does the same for the platform's own client; this is the
-   * equivalent for extensions, whose paths Turbo cannot hash through git.
    */
   if (existsSync(join(packageRoot, 'prisma'))) {
     inputs.push('prisma/**', '!src/generated/**');
