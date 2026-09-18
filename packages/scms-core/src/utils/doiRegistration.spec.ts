@@ -13,11 +13,6 @@ describe('DOI registration constants', () => {
   });
 
   test('deposit status matches the values documented on DoiDeposit.status', () => {
-    expect(Object.values(DOI_DEPOSIT_STATUS)).toEqual([
-      'PENDING',
-      'QUEUED',
-      'SUCCEEDED',
-      'FAILED',
-    ]);
+    expect(Object.values(DOI_DEPOSIT_STATUS)).toEqual(['PENDING', 'QUEUED', 'SUCCEEDED', 'FAILED']);
   });
 });
