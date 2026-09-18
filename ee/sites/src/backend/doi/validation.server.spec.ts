@@ -23,7 +23,6 @@ describe('resolveCustomPrefix', () => {
       ok: false,
       status: 400,
       error: DOI_ERRORS.prefixFormat,
-      field: 'prefix',
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -33,7 +32,6 @@ describe('resolveCustomPrefix', () => {
     expect(await resolveCustomPrefix(deps, '10.62329')).toMatchObject({
       status: 400,
       error: DOI_ERRORS.prefixIsCurvenote,
-      field: 'prefix',
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -43,7 +41,6 @@ describe('resolveCustomPrefix', () => {
     expect(await resolveCustomPrefix(deps, '10.5555')).toMatchObject({
       status: 400,
       error: DOI_ERRORS.prefixNotFound,
-      field: 'prefix',
     });
   });
 
@@ -80,7 +77,6 @@ describe('validateRole', () => {
     expect(await validateRole(deps, 'elms')).toMatchObject({
       status: 400,
       error: DOI_ERRORS.roleRejected,
-      field: 'role',
     });
     expect(String(fetchMock.mock.calls[1][0])).toContain('usr=doi%40curvenote.com%2Fcurv');
   });
@@ -110,7 +106,6 @@ describe('validateRole', () => {
       expect(await validateRole(deps, role)).toMatchObject({
         status: 400,
         error: DOI_ERRORS.roleFormat,
-        field: 'role',
       });
       expect(fetchMock).not.toHaveBeenCalled();
     },

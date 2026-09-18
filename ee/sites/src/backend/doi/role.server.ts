@@ -1,29 +1,17 @@
 import { SITE_DOI_CONFIG_MODE, SITE_DOI_CONFIG_STATUS } from '@curvenote/scms-core';
-import { writeSiteDoiConfigActivity } from './activity.server.js';
 import {
   commitDoiWrite,
   dbDeleteDoiConfig,
   dbGetDoiConfig,
+  isExpectedRow,
   dbUpdateDoiConfig,
-  toSnapshot,
 } from './db.server.js';
-import { DOI_ERRORS } from './errors.js';
+import { DOI_ERRORS, STALE } from './errors.js';
 import type { DoiActor, DoiDeps, DoiFailure, DoiResult } from './types.js';
 import { ROLE_RE, lookupOwner, validateRole } from './validation.server.js';
 
-const STALE: DoiFailure = { ok: false, status: 409, error: DOI_ERRORS.stale };
 const FORBIDDEN: DoiFailure = { ok: false, status: 403, error: DOI_ERRORS.forbidden };
 const PAIR_TAKEN: DoiFailure = { ok: false, status: 409, error: DOI_ERRORS.pairTaken };
-
-/**
- * Unlinking a role or resetting the setup is allowed only while the site has no registered DOIs.
- * Phase 1 has no DoiRegistration model, so nothing can be registered and this always passes.
- * CN-2518 adds the model and fills this in. Do not delete it as dead code.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function assertNoRegisteredDois(deps: DoiDeps, siteId: string): Promise<DoiFailure | null> {
-  return null;
-}
 
 export type BindRoleInput = {
   siteId: string;
@@ -43,17 +31,18 @@ export async function bindRole(deps: DoiDeps, input: BindRoleInput): Promise<Doi
   }
   const existing = await dbGetDoiConfig(deps.prisma, input.siteId);
   if (
-    !existing ||
-    existing.mode !== SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX ||
-    existing.status !== SITE_DOI_CONFIG_STATUS.PENDING_ROLE ||
-    existing.occ !== input.occ
+    !isExpectedRow(existing, {
+      occ: input.occ,
+      mode: SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX,
+      status: SITE_DOI_CONFIG_STATUS.PENDING_ROLE,
+    })
   ) {
     return STALE;
   }
   const role = input.role.trim();
   // Format first so a typo costs no Crossref call; validateRole checks it again as its own guard.
   if (!ROLE_RE.test(role)) {
-    return { ok: false, status: 400, error: DOI_ERRORS.roleFormat, field: 'role' };
+    return { ok: false, status: 400, error: DOI_ERRORS.roleFormat };
   }
   const owner = await lookupOwner(deps, existing.prefix);
   if (!owner.ok) {
@@ -64,20 +53,16 @@ export async function bindRole(deps: DoiDeps, input: BindRoleInput): Promise<Doi
     return valid;
   }
   // The only unique constraint this update can hit is the custom prefix/role pair.
-  return commitDoiWrite(deps, PAIR_TAKEN, async (tx) => {
-    const updated = await dbUpdateDoiConfig(tx, existing, {
-      role,
-      prefix_owner: owner.ownerName,
-      status: SITE_DOI_CONFIG_STATUS.ACTIVE,
-    });
-    await writeSiteDoiConfigActivity(tx, {
-      siteId: input.siteId,
-      userId: input.actor.userId,
-      action: 'bind-role',
-      config: toSnapshot(updated),
-    });
-    return updated;
-  });
+  return commitDoiWrite(
+    deps,
+    { siteId: input.siteId, actor: input.actor, action: 'bind-role', onUnique: PAIR_TAKEN },
+    (tx) =>
+      dbUpdateDoiConfig(tx, existing, {
+        role,
+        prefix_owner: owner.ownerName,
+        status: SITE_DOI_CONFIG_STATUS.ACTIVE,
+      }),
+  );
 }
 
 export type UnlinkRoleInput = {
@@ -92,30 +77,23 @@ export async function unlinkRole(deps: DoiDeps, input: UnlinkRoleInput): Promise
   }
   const existing = await dbGetDoiConfig(deps.prisma, input.siteId);
   if (
-    !existing ||
-    existing.mode !== SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX ||
-    existing.status !== SITE_DOI_CONFIG_STATUS.ACTIVE ||
-    existing.occ !== input.occ
+    !isExpectedRow(existing, {
+      occ: input.occ,
+      mode: SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX,
+      status: SITE_DOI_CONFIG_STATUS.ACTIVE,
+    })
   ) {
     return STALE;
   }
-  const blocked = await assertNoRegisteredDois(deps, input.siteId);
-  if (blocked) {
-    return blocked;
-  }
-  return commitDoiWrite(deps, STALE, async (tx) => {
-    const updated = await dbUpdateDoiConfig(tx, existing, {
-      role: null,
-      status: SITE_DOI_CONFIG_STATUS.PENDING_ROLE,
-    });
-    await writeSiteDoiConfigActivity(tx, {
-      siteId: input.siteId,
-      userId: input.actor.userId,
-      action: 'unlink-role',
-      config: toSnapshot(updated),
-    });
-    return updated;
-  });
+  return commitDoiWrite(
+    deps,
+    { siteId: input.siteId, actor: input.actor, action: 'unlink-role', onUnique: STALE },
+    (tx) =>
+      dbUpdateDoiConfig(tx, existing, {
+        role: null,
+        status: SITE_DOI_CONFIG_STATUS.PENDING_ROLE,
+      }),
+  );
 }
 
 export type ResetConfigInput = {
@@ -124,27 +102,30 @@ export type ResetConfigInput = {
   occ: number;
 };
 
-/** Back to "not configured". The only way to change mode or an ACTIVE prefix. */
+/**
+ * Back to "not configured". The only way to change mode or an ACTIVE prefix, so it is also how a
+ * site admin undoes their own setup: the prefix they typed, or the method they picked.
+ *
+ * It stops being theirs once a Curvenote system admin has validated and linked a Crossref role:
+ * that binding is our work and frees the prefix/role pair for other Sites, so only a system admin
+ * can throw it away. Registered DOIs block it for everyone, which CN-2518 adds with the model.
+ */
 export async function resetConfig(deps: DoiDeps, input: ResetConfigInput): Promise<DoiResult> {
-  if (!input.actor.isSystemAdmin) {
-    return FORBIDDEN;
-  }
   const existing = await dbGetDoiConfig(deps.prisma, input.siteId);
-  if (!existing || existing.occ !== input.occ) {
+  if (!isExpectedRow(existing, { occ: input.occ })) {
     return STALE;
   }
-  const blocked = await assertNoRegisteredDois(deps, input.siteId);
-  if (blocked) {
-    return blocked;
+  const roleLinkedByCurvenote =
+    existing.mode === SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX && existing.role !== null;
+  if (roleLinkedByCurvenote && !input.actor.isSystemAdmin) {
+    return FORBIDDEN;
   }
-  return commitDoiWrite(deps, STALE, async (tx) => {
-    await dbDeleteDoiConfig(tx, existing);
-    await writeSiteDoiConfigActivity(tx, {
-      siteId: input.siteId,
-      userId: input.actor.userId,
-      action: 'reset',
-      config: null,
-    });
-    return null;
-  });
+  return commitDoiWrite(
+    deps,
+    { siteId: input.siteId, actor: input.actor, action: 'reset', onUnique: STALE },
+    async (tx) => {
+      await dbDeleteDoiConfig(tx, existing);
+      return null;
+    },
+  );
 }

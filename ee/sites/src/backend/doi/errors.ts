@@ -1,3 +1,5 @@
+import type { DoiFailure } from './types.js';
+
 export const DOI_ERRORS = {
   stale: 'Configuration changed, reload the page.',
   forbidden: 'Only a Curvenote system admin can do this.',
@@ -11,3 +13,6 @@ export const DOI_ERRORS = {
   systemCredentials: "Curvenote's Crossref credentials failed. Nothing was saved.",
   pairTaken: 'This prefix and role are already linked to another Site. Nothing was saved.',
 } as const;
+
+/** Another request changed or removed the row since the page loaded. */
+export const STALE: DoiFailure = { ok: false, status: 409, error: DOI_ERRORS.stale };

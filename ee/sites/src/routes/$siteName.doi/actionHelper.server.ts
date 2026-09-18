@@ -24,14 +24,18 @@ const PrefixOccSchema = zfd.formData({ prefix: Text, occ: Occ });
 const RoleOccSchema = zfd.formData({ role: Text, occ: Occ });
 const OccSchema = zfd.formData({ occ: Occ });
 
-const INFO: Record<DoiIntent, string> = {
-  'configure-curvenote': 'DOI registration is set up with Curvenote-managed registration.',
-  'configure-custom': 'Prefix saved. Curvenote will link your Crossref role.',
+// Setup and reset swap the card that submitted them, so the new page is the confirmation: a
+// success message there would only flash before the card unmounts.
+const INFO: Partial<Record<DoiIntent, string>> = {
   'update-prefix': 'Prefix updated.',
   'bind-role': 'Role validated and linked. This Site can now register DOIs.',
   'unlink-role': 'Role unlinked. The Site is waiting for a role again.',
-  reset: 'DOI setup was reset.',
 };
+
+async function isCustomPrefixEnabled(ctx: SiteContextWithUser) {
+  const site = await getSiteWithAppData(ctx.site.name);
+  return site?.data?.doiCustomPrefixEnabled ?? false;
+}
 
 const badRequest = (error: any) =>
   data({ error: error?.message ?? 'Invalid form data' }, { status: 400 });
@@ -48,28 +52,35 @@ async function dispatch(
     userId: ctx.user.id,
     isSystemAdmin: userHasScope(ctx.user, scopes.system.admin),
   };
-  if (intent === 'configure-curvenote') {
-    return configureCurvenote(deps, { siteId, actor });
-  }
-  if (intent === 'configure-custom' || intent === 'update-prefix') {
-    const site = await getSiteWithAppData(ctx.site.name);
-    const customPrefixEnabled = site?.data?.doiCustomPrefixEnabled ?? false;
-    if (intent === 'configure-custom') {
+  switch (intent) {
+    case 'configure-curvenote':
+      return configureCurvenote(deps, { siteId, actor });
+    case 'configure-custom': {
       const { prefix } = validateFormData(PrefixSchema, formData);
+      const customPrefixEnabled = await isCustomPrefixEnabled(ctx);
       return configureCustom(deps, { siteId, actor, customPrefixEnabled, prefix: prefix ?? '' });
     }
-    const { prefix, occ } = validateFormData(PrefixOccSchema, formData);
-    return updatePrefix(deps, { siteId, actor, customPrefixEnabled, prefix: prefix ?? '', occ });
+    case 'update-prefix': {
+      const { prefix, occ } = validateFormData(PrefixOccSchema, formData);
+      const customPrefixEnabled = await isCustomPrefixEnabled(ctx);
+      return updatePrefix(deps, { siteId, actor, customPrefixEnabled, prefix: prefix ?? '', occ });
+    }
+    case 'bind-role': {
+      const { role, occ } = validateFormData(RoleOccSchema, formData);
+      return bindRole(deps, { siteId, actor, role: role ?? '', occ });
+    }
+    case 'unlink-role': {
+      const { occ } = validateFormData(OccSchema, formData);
+      return unlinkRole(deps, { siteId, actor, occ });
+    }
+    case 'reset': {
+      const { occ } = validateFormData(OccSchema, formData);
+      return resetConfig(deps, { siteId, actor, occ });
+    }
+    default:
+      // A new intent must get its own case: never fall through to a destructive one.
+      throw new Error(`Unhandled DOI intent: ${intent satisfies never}`);
   }
-  if (intent === 'bind-role') {
-    const { role, occ } = validateFormData(RoleOccSchema, formData);
-    return bindRole(deps, { siteId, actor, role: role ?? '', occ });
-  }
-  const { occ } = validateFormData(OccSchema, formData);
-  if (intent === 'unlink-role') {
-    return unlinkRole(deps, { siteId, actor, occ });
-  }
-  return resetConfig(deps, { siteId, actor, occ });
 }
 
 export async function runDoiIntent(ctx: SiteContextWithUser, formData: FormData) {
@@ -103,10 +114,8 @@ export async function runDoiIntent(ctx: SiteContextWithUser, formData: FormData)
     throw error;
   }
   if (!result.ok) {
-    return data(
-      { error: result.error, ...(result.field ? { field: result.field } : {}) },
-      { status: result.status },
-    );
+    return data({ error: result.error }, { status: result.status });
   }
-  return { info: INFO[intent] };
+  const info = INFO[intent];
+  return info ? { info } : {};
 }

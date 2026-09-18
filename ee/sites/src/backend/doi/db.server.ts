@@ -1,10 +1,16 @@
 import { uuidv7 } from 'uuidv7';
 import type { Prisma } from '@curvenote/scms-db';
-import { DOI_ERRORS } from './errors.js';
+import { ActivityType } from '@curvenote/scms-db';
+import type { SiteDoiConfigMode, SiteDoiConfigStatus } from '@curvenote/scms-core';
+import { writeSiteDoiConfigActivity } from './activity.server.js';
+import { STALE } from './errors.js';
 import type {
+  DoiActor,
+  DoiConfigRowData,
   DoiConfigSnapshot,
   DoiDeps,
   DoiFailure,
+  DoiIntent,
   DoiResult,
   DoiTx,
   SiteDoiConfigDTO,
@@ -38,13 +44,28 @@ export function dbGetDoiConfig(client: Reader, siteId: string) {
   return client.siteDoiConfig.findUnique({ where: { site_id: siteId }, select: SELECT });
 }
 
+type ExpectedRow = { occ: number; mode?: SiteDoiConfigMode; status?: SiteDoiConfigStatus };
+
+/** The row an intent may act on: it exists, the tab saw its current occ, and mode and status match. */
+export function isExpectedRow(
+  row: DoiConfigRow | null,
+  expected: ExpectedRow,
+): row is DoiConfigRow {
+  return (
+    row !== null &&
+    row.occ === expected.occ &&
+    (expected.mode === undefined || row.mode === expected.mode) &&
+    (expected.status === undefined || row.status === expected.status)
+  );
+}
+
 type CreateDoiConfigInput = {
   siteId: string;
-  mode: string;
+  mode: SiteDoiConfigMode;
   prefix: string;
   prefixOwner: string | null;
   role: string | null;
-  status: string;
+  status: SiteDoiConfigStatus;
 };
 
 export function dbCreateDoiConfig(tx: DoiTx, input: CreateDoiConfigInput) {
@@ -69,7 +90,7 @@ export function dbCreateDoiConfig(tx: DoiTx, input: CreateDoiConfigInput) {
 export function dbUpdateDoiConfig(
   tx: DoiTx,
   row: { id: string; occ: number },
-  data: Partial<Pick<DoiConfigRow, 'prefix' | 'prefix_owner' | 'role' | 'status'>>,
+  data: DoiConfigRowData,
 ) {
   return tx.siteDoiConfig.update({
     where: { id: row.id, occ: row.occ },
@@ -87,7 +108,7 @@ export async function dbGetRoleBoundBy(client: DoiDeps['prisma'], siteId: string
   const activity = await client.activity.findFirst({
     where: {
       site_id: siteId,
-      activity_type: 'SITE_DOI_CONFIG_UPDATED',
+      activity_type: ActivityType.SITE_DOI_CONFIG_UPDATED,
       data: { path: ['action'], equals: 'bind-role' },
     },
     orderBy: { date_created: 'desc' },
@@ -103,27 +124,47 @@ export async function dbGetRoleBoundBy(client: DoiDeps['prisma'], siteId: string
   return { name: display_name ?? username ?? 'Unknown user', date: activity.date_created };
 }
 
+type DoiWrite = {
+  siteId: string;
+  actor: DoiActor;
+  action: DoiIntent;
+  /** What a P2002 means for this write; see below. */
+  onUnique: DoiFailure;
+};
+
 /**
- * Run a write in a transaction and turn the two expected Prisma errors into results.
- * P2002 (unique violation) is mapped by the caller, which knows the only unique constraint its
- * write can hit: `site_id` on create, the custom prefix/role pair on bind. We do not read
- * `meta.target`, because the pair index is raw SQL that Prisma's schema does not know.
- * P2025 (no row matched `id` + `occ`) means another request changed or removed the row.
+ * Run a write and its SITE_DOI_CONFIG_UPDATED activity in one transaction, so every change is
+ * logged with who made it. `fn` returns the row after the write, or null when it deleted it.
+ *
+ * The two expected Prisma errors become results. P2002 (unique violation) is mapped by the caller,
+ * which knows the only unique constraint its write can hit: `site_id` on create, the custom
+ * prefix/role pair on bind. We do not read `meta.target`, because the pair index is raw SQL that
+ * Prisma's schema does not know. P2025 (no row matched `id` + `occ`) means another request changed
+ * or removed the row.
  */
 export async function commitDoiWrite(
   deps: DoiDeps,
-  onUnique: DoiFailure,
+  write: DoiWrite,
   fn: (tx: DoiTx) => Promise<DoiConfigRow | null>,
 ): Promise<DoiResult> {
   try {
-    const row = await deps.prisma.$transaction(fn);
+    const row = await deps.prisma.$transaction(async (tx) => {
+      const written = await fn(tx);
+      await writeSiteDoiConfigActivity(tx, {
+        siteId: write.siteId,
+        userId: write.actor.userId,
+        action: write.action,
+        config: written ? toSnapshot(written) : null,
+      });
+      return written;
+    });
     return { ok: true, config: row ? toDTO(row) : null };
   } catch (e: any) {
     if (e?.code === 'P2002') {
-      return onUnique;
+      return write.onUnique;
     }
     if (e?.code === 'P2025') {
-      return { ok: false, status: 409, error: DOI_ERRORS.stale };
+      return STALE;
     }
     throw e;
   }
