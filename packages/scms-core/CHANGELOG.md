@@ -1,5 +1,14 @@
 # @curvenote/scms-core
 
+## 0.26.1
+
+### Patch Changes
+
+- [#1085](https://github.com/curvenote/curvenote/pull/1085) [`abe82ca`](https://github.com/curvenote/curvenote/commit/abe82cae178600ef6b256cce0c6bb5e115df83d6) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Allow `WorkCreateOption.formPathIncludes` to list several pathname fragments so multi-step create forms are not bounced back to their first step by the draft-only work layout guard
+
+- Updated dependencies []:
+  - @curvenote/scms-db@0.26.1
+
 ## 0.26.0
 
 ### Minor Changes
