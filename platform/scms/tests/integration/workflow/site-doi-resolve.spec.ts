@@ -193,6 +193,8 @@ describe('site doi resolve — delivered package', () => {
     });
     const dto = await sites.doi(testData.context, registered);
     expect(dto.submission_version_id).toBe(seed.svId);
+    expect(dto.doi).toBe(registered);
+    expect(dto.links.doi).toBe(`https://doi.org/${registered}`);
   });
 
   test('a submission DOI wins over the same DOI on another work', async () => {

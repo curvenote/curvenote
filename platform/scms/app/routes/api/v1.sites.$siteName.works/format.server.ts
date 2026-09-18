@@ -43,6 +43,7 @@ export const siteWorkListingSelect = {
     select: {
       id: true,
       date_published: true,
+      doi: true,
       kind: { select: { id: true, name: true, content: true, default: true } },
       collection: {
         select: { id: true, name: true, slug: true, workflow: true, content: true, open: true },
@@ -111,7 +112,8 @@ export function formatSiteWorkDTO(
   const submission_version_id = dbo.id;
   const version_id = dbo.work_version.id;
   const work_id = dbo.work_version.work_id;
-  const doi = dbo.work_version.doi ?? dbo.submission.work?.doi;
+  // A DOI registered through Curvenote lives on the submission and wins over the one the work arrived with.
+  const doi = dbo.submission.doi ?? dbo.work_version.doi ?? dbo.submission.work?.doi;
   const slug = dbo.submission.slugs.reduce(
     (primarySlug, next) => (primarySlug ? primarySlug : next.primary ? next.slug : undefined),
     undefined as string | undefined,

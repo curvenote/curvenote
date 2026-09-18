@@ -315,6 +315,20 @@ describe('site works listing — delivered package (limit=10)', () => {
   });
 });
 
+describe('site works listing — submission DOI', () => {
+  test('a registered DOI on the submission wins when the work has none', async () => {
+    const testData = await createTestData('ADMIN' as SiteRole);
+    const registered = `10.62329/cn-${uuidv7()}`;
+    const seed = await seedPublishedWorkWithSubmissionDoi(testData, registered);
+
+    const dto = await listPublishedWorks(testData.context, [], {}, { page: 0, limit: 10 });
+
+    const item = dto.items.find((i) => i.id === seed.workId);
+    expect(item).toBeTruthy();
+    expect(item?.doi).toBe(registered);
+  });
+});
+
 /**
  * Legacy UNION/ILIKE search path, pinned on via the
  * `WORKS_SEARCH_PROJECTION_DISABLED` kill-switch.
@@ -988,6 +1002,79 @@ async function seedPublishedWorks(testData: TestData, count: number): Promise<Se
   }
 
   return seeds;
+}
+
+interface SeedWorkWithSubmissionDoi {
+  workId: string;
+}
+
+/**
+ * A single published work whose `Submission.doi` is set and whose `Work` /
+ * `WorkVersion` carry no DOI at all — the registered-DOI-only case for
+ * `formatSiteWorkDTO`'s `submission.doi ?? work_version.doi ?? submission.work?.doi`.
+ */
+async function seedPublishedWorkWithSubmissionDoi(
+  testData: TestData,
+  submissionDoi: string,
+): Promise<SeedWorkWithSubmissionDoi> {
+  const prisma = await getPrismaClient();
+  const now = new Date().toISOString();
+  const workId = uuidv7();
+  const workVersionId = uuidv7();
+  const submissionId = uuidv7();
+
+  await prisma.work.create({
+    data: {
+      id: workId,
+      date_created: now,
+      date_modified: now,
+      created_by: { connect: { id: testData.userId } },
+    },
+  });
+  await prisma.workVersion.create({
+    data: {
+      id: workVersionId,
+      date_created: now,
+      date_modified: now,
+      title: 'Work with a registered DOI',
+      description: 'Has no work-level DOI; only Submission.doi is set.',
+      authors: ['Author Registered'],
+      canonical: true,
+      tags: [],
+      cdn: 'https://test-cdn.com',
+      cdn_key: `cdn-key-${workId}`,
+      work: { connect: { id: workId } },
+    },
+  });
+  await prisma.submission.create({
+    data: {
+      id: submissionId,
+      date_created: now,
+      date_modified: now,
+      date_published: '2024-06-01',
+      doi: submissionDoi,
+      site: { connect: { id: testData.siteId } },
+      work: { connect: { id: workId } },
+      kind: { connect: { id: testData.kindId } },
+      collection: { connect: { id: testData.collectionId } },
+      submitted_by: { connect: { id: testData.userId } },
+    },
+  });
+  await prisma.submissionVersion.create({
+    data: {
+      id: uuidv7(),
+      date_created: now,
+      date_modified: now,
+      date_published: '2024-06-01',
+      status: 'PUBLISHED',
+      tags: [],
+      submission: { connect: { id: submissionId } },
+      work_version: { connect: { id: workVersionId } },
+      submitted_by: { connect: { id: testData.userId } },
+    },
+  });
+
+  return { workId };
 }
 
 async function seedDraftWorks(testData: TestData, count: number): Promise<void> {

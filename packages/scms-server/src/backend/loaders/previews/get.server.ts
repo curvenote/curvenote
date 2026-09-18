@@ -9,6 +9,7 @@ const submissionVersionForPreviewSelect = {
     select: {
       id: true,
       date_published: true,
+      doi: true,
       kind: true,
       collection: true,
       slugs: true,
