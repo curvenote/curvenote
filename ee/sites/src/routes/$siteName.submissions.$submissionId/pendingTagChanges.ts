@@ -3,8 +3,13 @@ import { SUBMISSION_DETAIL_FORM_ACTIONS } from './SubmissionDetails.utils.js';
 
 const TAG_FETCHER_PREFIX = 'submission-tag';
 
-/** A tag as the chips and the picker render it. `id` is undefined while the tag is being created. */
-export type SubmissionTagView = { id: string | undefined; name: string; label: string };
+/**
+ * A tag as the chips and the picker render it: a {@link TagDTO} whose `id` may
+ * still be missing. A tag being created is known by `name` and `label` before
+ * the server responds, but gets its `id` only once it is stored, and the
+ * optional `id` is what stops it being submitted in the meantime.
+ */
+export type SubmissionTagView = Omit<TagDTO, 'id'> & { id: string | undefined };
 
 /** An in-flight tag submission. Keyed by `name`, which is unique per site and known before the server responds. */
 export type PendingTagChange =
