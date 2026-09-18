@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doi_batch_diagnostic status="completed" sp="cs-test-ds-01">
+   <submission_id>1735620924</submission_id>
+   <batch_id>c90fdec5-f76d-42fc-9ca0-8f124ec2f74c</batch_id>
+   <record_diagnostic status="Failure">
+      <doi />
+      <msg>Error validating schema crossref5.3.1.xsd : Error: cvc-complex-type.2.4.a: Invalid content was found starting with element '{"http://www.crossref.org/schema/5.3.1":posted_date}'. One of '{"http://www.crossref.org/schema/5.3.1":titles}' is expected.
+</msg>
+   </record_diagnostic>
+   <batch_data>
+      <record_count>1</record_count>
+      <success_count>0</success_count>
+      <warning_count>0</warning_count>
+      <failure_count>1</failure_count>
+   </batch_data>
+</doi_batch_diagnostic>
+
