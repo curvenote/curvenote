@@ -46,15 +46,27 @@ jobs:
           echo "Using curvenote@${VERSION}"
       - name: Wait for curvenote on npm
         run: |
+          # Metadata for the top-level package can appear before scoped deps
+          # (e.g. @curvenote/check-definitions) finish replicating. Wait until
+          # a dry-run install resolves the full tree before building the image.
           VERSION="${{ steps.curvenote.outputs.version }}"
-          for i in 1 2 3 4 5 6 7 8; do
-            if npm view "curvenote@${VERSION}" version; then
+          TMPDIR="$(mktemp -d)"
+          cleanup() { rm -rf "${TMPDIR}"; }
+          trap cleanup EXIT
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            if npm install "curvenote@${VERSION}" \
+              --prefix "${TMPDIR}" \
+              --dry-run \
+              --ignore-scripts \
+              --no-audit \
+              --no-fund; then
+              echo "curvenote@${VERSION} and dependencies are resolvable on npm"
               exit 0
             fi
-            echo "curvenote@${VERSION} not visible yet (attempt ${i}); retrying..."
+            echo "curvenote@${VERSION} (or deps) not fully visible yet (attempt ${i}); retrying..."
             sleep $((i * 5))
           done
-          echo "curvenote@${VERSION} not available on npm" >&2
+          echo "curvenote@${VERSION} install tree not available on npm" >&2
           exit 1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
