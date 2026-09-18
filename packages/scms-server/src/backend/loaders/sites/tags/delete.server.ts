@@ -17,7 +17,7 @@ export async function deleteSiteTag(params: DeleteSiteTagParams): Promise<void> 
     select: { id: true },
   });
   if (!existing) {
-    throw httpError(404, 'tag not found on this site');
+    throw httpError(404, 'This tag no longer exists');
   }
 
   await prisma.tag.delete({
