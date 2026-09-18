@@ -19,6 +19,10 @@ enum ActivityType {
   KIND_UPDATED
   SITE_CONTENT_UPDATED
   SITE_DOI_CONFIG_UPDATED
+  /// DOI registration activities hang off `submission_id` / `submission_version_id`; detail in `data`.
+  DOI_REGISTRATION_STARTED
+  DOI_REGISTRATION_COMPLETED
+  DOI_REGISTRATION_FAILED
   COLLECTION_DELETED
   COLLECTION_CREATED
   COLLECTION_UPDATED

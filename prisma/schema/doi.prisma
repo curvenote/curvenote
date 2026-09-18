@@ -27,3 +27,59 @@ model SiteDoiConfig {
   attention_reason String?
   occ              Int     @default(0)
 }
+
+/// The DOI a submission owns. One per submission: it survives new versions and retries.
+model DoiRegistration {
+  id            String       @id
+  date_created  String
+  date_modified String
+  submission    Submission   @relation(fields: [submission_id], references: [id])
+  submission_id String       @unique
+  site_id       String
+  /// Stored as generated: lowercase suffix, no URL. The resolver matches by equality
+  /// and doi-utils does not fold case, so generation is where case is fixed.
+  doi           String       @unique
+  prefix        String
+  /// DRAFT | SUBMITTING | REGISTERED | FAILED (constants in scms-core)
+  status        String       @default("DRAFT")
+  registered_at String?
+  created_by_id String
+  attempts      DoiDeposit[]
+  occ           Int          @default(0)
+
+  @@index([site_id])
+}
+
+/// One deposit attempt, i.e. one HTTP POST. A retry is a new row with a new
+/// file name and batch id; the DOI comes from the registration.
+model DoiDeposit {
+  id                     String            @id
+  date_created           String
+  date_modified          String
+  registration           DoiRegistration   @relation(fields: [registration_id], references: [id])
+  registration_id        String
+  /// Which version's metadata went out.
+  submission_version     SubmissionVersion @relation(fields: [submission_version_id], references: [id])
+  submission_version_id  String
+  /// Tracking key for submissionDownload. Crossref keeps it verbatim.
+  file_name              String            @unique
+  /// <doi_batch_id> in the XML; arrives back as CROSSREF-EXTERNAL-ID on callbacks.
+  doi_batch_id           String            @unique
+  /// Crossref's own <submission_id>, known once the deposit is queued.
+  crossref_submission_id String?
+  /// Storage key of the deposited XML. Bucket and path convention are still open
+  /// (a single location for all deposits, see CN-2518) and are fixed before CN-2509 writes it.
+  xml_path               String
+  /// PENDING | QUEUED | SUCCEEDED | FAILED (constants in scms-core)
+  status                 String            @default("PENDING")
+  /// Raw submissionDownload result, kept for the timeline and for debugging.
+  result_xml_path        String?
+  result                 Json?
+  error                  String?
+  job_id                 String?
+  completed_at           String?
+
+  /// Powers the attempts timeline on the DOI page.
+  @@index([registration_id, date_created(sort: Desc)])
+  @@index([submission_version_id])
+}
