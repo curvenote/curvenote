@@ -45,6 +45,18 @@ function TagPickerCommand({
   const options = filterTagOptions(catalog, query);
   const createOption = getCreateTagOption(catalog, query);
 
+  // Clearing the query after a pick leaves the input ready for the next tag and
+  // brings the rest of the catalog back into view, including the tag just picked.
+  const handleToggle = (tag: DisplayTagDTO) => {
+    onToggle(tag);
+    setQuery('');
+  };
+
+  const handleCreate = (label: string) => {
+    onCreate(label);
+    setQuery('');
+  };
+
   return (
     <ui.Command shouldFilter={false}>
       <ui.CommandInput
@@ -64,7 +76,7 @@ function TagPickerCommand({
               key={tag.name}
               value={tag.name}
               disabled={isBusy(tag.name)}
-              onSelect={() => onToggle(tag)}
+              onSelect={() => handleToggle(tag)}
             >
               <Check
                 className={cn(
@@ -80,7 +92,7 @@ function TagPickerCommand({
             <ui.CommandItem
               value={`create-${createOption.name}`}
               disabled={isBusy(createOption.name)}
-              onSelect={() => onCreate(createOption.label)}
+              onSelect={() => handleCreate(createOption.label)}
             >
               <Plus className="mr-2 w-4 h-4" aria-hidden />
               {`Create "${createOption.label}"`}
