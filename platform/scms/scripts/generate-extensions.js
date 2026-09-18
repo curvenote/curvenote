@@ -263,6 +263,17 @@ function buildTurboBuildTaskForExtensionPackage(packageRoot) {
       inputs.push(f);
     }
   }
+
+  const outputs = ['dist/**'];
+  /*
+   * A package with a Prisma schema generates its client during `build`, so the
+   * schema is an input and the client is an output.
+   */
+  if (existsSync(join(packageRoot, 'prisma'))) {
+    inputs.push('prisma/**', '!src/generated/**');
+    outputs.push('src/generated/**');
+  }
+
   return {
     // Package-scoped tasks from this file merge with the root `build` task. Without an explicit
     // `dependsOn`, Turbo can resolve `dependsOn` to [] for extension packages, so their `tsc` runs
@@ -270,7 +281,7 @@ function buildTurboBuildTaskForExtensionPackage(packageRoot) {
     // `dist/*.d.ts` and bogus errors like "has no exported member" / `ui` as `{}`.
     dependsOn: ['^build'],
     inputs,
-    outputs: ['dist/**'],
+    outputs,
   };
 }
 

@@ -101,6 +101,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
         date_created: '2026-05-02T00:00:00.000Z',
         date_modified: '2026-05-02T12:00:00.000Z',
         draft: false,
+        versionNumber: 2,
         submissionVersions: [
           {
             id: 'sv-2',
@@ -133,6 +134,7 @@ describe('dbLoadWorkVersionsTimeline', () => {
         date_created: '2026-05-01T00:00:00.000Z',
         date_modified: '2026-05-01T00:00:00.000Z',
         draft: false,
+        versionNumber: 1,
         submissionVersions: [],
         checkRuns: [
           {

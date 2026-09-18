@@ -44,7 +44,7 @@ async function assertSubmissionOnSite(siteId: string, submissionId: string) {
     select: { id: true },
   });
   if (!submission) {
-    throw httpError(404, 'submission not found on this site');
+    throw httpError(404, 'This submission no longer exists');
   }
 }
 
@@ -63,7 +63,7 @@ async function resolveTag(siteId: string, input: AssignTagInput): Promise<TagRow
       select: TAG_SELECT,
     });
     if (!tag) {
-      throw httpError(404, 'tag not found on this site');
+      throw httpError(404, 'This tag no longer exists');
     }
     return tag;
   }

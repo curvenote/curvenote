@@ -317,7 +317,7 @@ describe('HTTP-shaped tag contracts', () => {
     });
 
     const site = await sites.get(testData.context, testData.siteName);
-    expect(site.tags).toEqual([tag]);
+    expect(site.tags).toEqual([{ name: tag.name, label: tag.label }]);
   });
 
   test('published.get returns submission_tags and leaves version tags as string[]', async () => {

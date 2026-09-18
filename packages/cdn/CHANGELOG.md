@@ -1,5 +1,12 @@
 # @curvenote/cdn
 
+## 0.9.0
+
+### Patch Changes
+
+- Updated dependencies [[`b2adb3e`](https://github.com/curvenote/curvenote/commit/b2adb3e78e5a2f4c860eeea0cb50bf5098d79bdb)]:
+  - @curvenote/common@0.9.0
+
 ## 0.8.0
 
 ### Patch Changes

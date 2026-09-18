@@ -1,4 +1,9 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react-router';
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MetaFunction,
+  ShouldRevalidateFunctionArgs,
+} from 'react-router';
 import { data } from 'react-router';
 import {
   clientCheckSiteScopes,
@@ -25,6 +30,7 @@ import {
   actionUpdateDatePublished,
 } from './actionHelpers.server.js';
 import { actionAssignTag, actionRemoveTag } from './tags.server.js';
+import { SUBMISSION_DETAIL_FORM_ACTIONS } from './SubmissionDetails.utils.js';
 import {
   actionCreateMagicLink,
   actionRevokeMagicLink,
@@ -117,6 +123,26 @@ export async function action(args: ActionFunctionArgs) {
   }
 
   return null;
+}
+
+/**
+ * A failed tag change still reloads the page data. By default React Router skips
+ * revalidation after a 4xx/5xx action, which leaves the optimistic tag UI on stale
+ * data: a tag deleted from the catalog in another tab stays on screen and every
+ * retry fails the same way.
+ */
+export function shouldRevalidate({
+  formData,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  const formAction = formData?.get('formAction');
+  if (
+    formAction === SUBMISSION_DETAIL_FORM_ACTIONS.tagAssign ||
+    formAction === SUBMISSION_DETAIL_FORM_ACTIONS.tagRemove
+  ) {
+    return true;
+  }
+  return defaultShouldRevalidate;
 }
 
 export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {

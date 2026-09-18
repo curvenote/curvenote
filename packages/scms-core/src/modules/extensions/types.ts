@@ -42,8 +42,12 @@ export interface WorkCreateOption {
    * Optional `from` is appended by `resolveDraftResumePath`.
    */
   resumePath?: string;
-  /** Pathname fragment under `/app/works/:workId` that is this flow's form (e.g. `/ext-flow/`). */
-  formPathIncludes?: string;
+  /**
+   * Pathname fragment(s) under `/app/works/:workId` that belong to this flow's form
+   * (e.g. `/ext-flow/`). Pass a list when the form spans several paths, so that
+   * multi-step flows are not bounced back to the first step by the draft-only guard.
+   */
+  formPathIncludes?: string | string[];
   mode?: WorkCreateFormMode;
   scopes?: string[];
   /** Present when the option is supplied by an extension. */
