@@ -51,6 +51,7 @@ export function makeDeps(fetchMock: ReturnType<typeof fakeFetch> = fakeFetch()) 
       update: vi.fn(),
       delete: vi.fn(),
     },
+    doiRegistration: { findFirst: vi.fn().mockResolvedValue(null) },
     activity: { create: vi.fn() },
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
   };
