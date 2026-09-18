@@ -9,18 +9,23 @@ type TagChangeErrorToastProps = {
 /**
  * Renders nothing. `useFetchers()` does not expose fetcher data, so each tag
  * fetcher is observed by key to toast its action error. The effect is a side
- * effect (a toast), not derived state. `error` is undefined while the fetcher
- * is busy, so a retry that fails with the same message toasts again.
+ * effect (a toast), not derived state.
+ *
+ * It keys on the `data` object rather than waiting for an `idle` state: a failed
+ * change still revalidates (see the route's `shouldRevalidate`), and the router
+ * drops the fetcher when that revalidation lands, so the error is only ever
+ * observed while the fetcher is still `loading`. Each submit produces a new
+ * `data` object, so a repeated failure toasts again.
  */
 export function TagChangeErrorToast({ fetcherKey }: TagChangeErrorToastProps) {
   const fetcher = useFetcher<{ error?: string }>({ key: fetcherKey });
-  const error = fetcher.state === 'idle' ? fetcher.data?.error : undefined;
+  const { data } = fetcher;
 
   useEffect(() => {
-    if (error) {
-      ui.toastError(error);
+    if (data?.error) {
+      ui.toastError(data.error);
     }
-  }, [error]);
+  }, [data]);
 
   return null;
 }
