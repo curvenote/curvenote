@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { useFetcher } from 'react-router';
-import { SITE_DOI_CONFIG_STATUS, SystemAdminBadge, primitives, ui } from '@curvenote/scms-core';
+import { SITE_DOI_CONFIG_STATUS, SystemAdminBadge, ui } from '@curvenote/scms-core';
 import type { SiteDoiConfigDTO } from '../../backend/doi/types.js';
 import type { DoiActionData } from './doi.utils.js';
 
@@ -14,12 +15,21 @@ type DoiRoleAdminCardProps = {
 export function DoiRoleAdminCard({ config }: DoiRoleAdminCardProps) {
   const fetcher = useFetcher<DoiActionData>();
   const busy = fetcher.state !== 'idle';
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data) {
+      if (fetcher.data.error) {
+        ui.toastError(fetcher.data.error);
+      } else if (fetcher.data.info) {
+        ui.toastSuccess(fetcher.data.info);
+      }
+    }
+  }, [fetcher.state, fetcher.data]);
 
   if (config.status !== SITE_DOI_CONFIG_STATUS.PENDING_ROLE) {
     return null;
   }
   return (
-    <primitives.Card lift className="px-6 py-4 space-y-4" validateUsing={fetcher}>
+    <ui.Card className="px-6 py-4 space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2>Link the Crossref role</h2>
         <SystemAdminBadge />
@@ -60,6 +70,6 @@ export function DoiRoleAdminCard({ config }: DoiRoleAdminCardProps) {
           </ui.StatefulButton>
         </div>
       </fetcher.Form>
-    </primitives.Card>
+    </ui.Card>
   );
 }

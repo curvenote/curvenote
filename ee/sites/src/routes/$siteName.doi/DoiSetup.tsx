@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { useFetcher } from 'react-router';
-import { primitives, ui } from '@curvenote/scms-core';
+import { ui } from '@curvenote/scms-core';
 import { CROSSREF_MEMBERSHIP_URL } from './doi.utils.js';
 import type { DoiActionData } from './doi.utils.js';
 import { normalizePrefix } from '../../backend/crossref/prefix.js';
@@ -17,13 +18,22 @@ type DoiSetupProps = {
 export function DoiSetup({ siteTitle, customPrefixEnabled }: DoiSetupProps) {
   const fetcher = useFetcher<DoiActionData>();
   const busy = fetcher.state !== 'idle';
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data) {
+      if (fetcher.data.error) {
+        ui.toastError(fetcher.data.error);
+      } else if (fetcher.data.info) {
+        ui.toastSuccess(fetcher.data.info);
+      }
+    }
+  }, [fetcher.state, fetcher.data]);
 
   if (!customPrefixEnabled) {
     const onContinue = () => {
       fetcher.submit({ intent: 'configure-curvenote' }, { method: 'POST' });
     };
     return (
-      <primitives.Card lift className="px-6 py-4 space-y-4" validateUsing={fetcher}>
+      <ui.Card className="px-6 py-4 space-y-4">
         <ui.Badge variant="outline-muted">Not configured</ui.Badge>
         <h2>Set up DOI registration</h2>
         <p className="text-sm font-light">
@@ -35,12 +45,12 @@ export function DoiSetup({ siteTitle, customPrefixEnabled }: DoiSetupProps) {
             Continue
           </ui.StatefulButton>
         </div>
-      </primitives.Card>
+      </ui.Card>
     );
   }
 
   return (
-    <primitives.Card lift className="px-6 py-4 space-y-4" validateUsing={fetcher}>
+    <ui.Card className="px-6 py-4 space-y-4">
       <ui.Badge variant="outline-muted">Not configured</ui.Badge>
       <h2>Connect your organization&apos;s Crossref account</h2>
       <p className="text-sm font-light">
@@ -89,6 +99,6 @@ export function DoiSetup({ siteTitle, customPrefixEnabled }: DoiSetupProps) {
           </ui.StatefulButton>
         </div>
       </fetcher.Form>
-    </primitives.Card>
+    </ui.Card>
   );
 }

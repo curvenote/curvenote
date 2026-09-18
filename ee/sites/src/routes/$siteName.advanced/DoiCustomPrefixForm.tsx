@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { useFetcher } from 'react-router';
 import { InfoIcon } from 'lucide-react';
-import { primitives, ui } from '@curvenote/scms-core';
+import { ui } from '@curvenote/scms-core';
 import type { SiteWithAppData } from '../../backend/db.server.js';
 
 type DoiCustomPrefixFormProps = {
@@ -11,9 +12,18 @@ export function DoiCustomPrefixForm({ siteWithAppData }: DoiCustomPrefixFormProp
   const fetcher = useFetcher<{ error?: string; info?: string }>();
   const enabled = siteWithAppData.data?.doiCustomPrefixEnabled ?? false;
   const busy = fetcher.state !== 'idle';
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data) {
+      if (fetcher.data.error) {
+        ui.toastError(fetcher.data.error);
+      } else if (fetcher.data.info) {
+        ui.toastSuccess(fetcher.data.info);
+      }
+    }
+  }, [fetcher.state, fetcher.data]);
 
   return (
-    <primitives.Card lift className="max-w-4xl px-6 py-4 space-y-4" validateUsing={fetcher}>
+    <ui.Card className="max-w-4xl px-6 py-4 space-y-4">
       <h2>DOI Registration</h2>
       <p className="text-sm font-light">
         Every Site can register DOIs under Curvenote&apos;s prefix. Registering under the
@@ -54,6 +64,6 @@ export function DoiCustomPrefixForm({ siteWithAppData }: DoiCustomPrefixFormProp
           </ui.StatefulButton>
         </div>
       </fetcher.Form>
-    </primitives.Card>
+    </ui.Card>
   );
 }

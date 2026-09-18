@@ -5,7 +5,6 @@ import type { Prisma } from '@curvenote/scms-db';
 import {
   SystemAdminBadge,
   PageFrame,
-  primitives,
   ui,
   site as siteScopes,
   getBrandingFromMetaMatches,
@@ -107,7 +106,7 @@ export default function Settings({ loaderData }: { loaderData: LoaderData }) {
     <PageFrame title="Site Settings" subtitle={`Manage the settings for ${site.title}`}>
       <div className="flex flex-col space-y-5">
         <SystemAdminBadge />
-        <primitives.Card lift className="px-6 py-4 space-y-4 max-w-4xl">
+        <ui.Card className="px-6 py-4 space-y-4 max-w-4xl">
           <h2>Site Information</h2>
           <p className="text-sm font-light">These fields cannot be changed.</p>
           <div className="space-y-4">
@@ -120,7 +119,7 @@ export default function Settings({ loaderData }: { loaderData: LoaderData }) {
               <ui.Input className="max-w-sm" disabled value={site.name} />
             </div>
           </div>
-        </primitives.Card>
+        </ui.Card>
         <SiteSettingsForm site={site} siteWithAppData={siteWithAppData} />
         <DoiCustomPrefixForm siteWithAppData={siteWithAppData} />
         <SubmissionSettingsForm site={site} />
