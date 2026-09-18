@@ -375,6 +375,20 @@ describe('cross-site doi resolve — public-only security', () => {
     expect(dto.submission_version_id).toBe(seed.svId);
   });
 
+  test('a submission DOI wins over the same DOI on another work', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    const owner = await seedPublishedWorkWithDoi(testData, {
+      workDoi: false,
+      submissionDoi: registered,
+      datePublished: '2024-01-01',
+    });
+    const other = await seedPublishedWorkWithDoi(testData, { datePublished: '2025-01-01' });
+    const prisma = await getPrismaClient();
+    await prisma.work.update({ where: { id: other.workId }, data: { doi: registered } });
+    const dto = await doi.resolve(testData.context, registered);
+    expect(dto.submission_version_id).toBe(owner.svId);
+  });
+
   test('does not resolve a registered DOI stored only on a private-site submission', async () => {
     const registered = `10.62329/cn-${uuidv7()}`;
     const privateSiteId = await createBareSite({ private: true });

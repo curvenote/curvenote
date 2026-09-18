@@ -207,6 +207,41 @@ describe('formatSiteWorkDTO', () => {
     expect(result.links.html).toBe('https://journal.com/articles/work-123');
   });
 
+  test('a submission DOI wins over the work version DOI', () => {
+    const ctx = createMockSiteContext([{ id: 'domain1', hostname: 'journal.com', default: true }]);
+
+    const dbo = {
+      id: 'version1',
+      tags: [] as string[],
+      work_version: {
+        id: 'work-version-1',
+        work_id: 'work-123',
+        title: 'Test Article',
+        description: 'Test description',
+        authors: [{ name: 'John Doe' }],
+        date_created: '2024-01-01',
+        canonical: true,
+        cdn: null,
+        cdn_key: null,
+        doi: '10.5555/work-a',
+        tags: [] as string[],
+      },
+      submission: {
+        kind: { id: 'kind1', name: 'Article' },
+        collection: { id: 'collection1', name: 'Articles' },
+        slugs: [],
+        work: { key: null, doi: null },
+        date_published: '2024-01-01',
+        doi: '10.62329/cn-a',
+      },
+    };
+
+    const result = formatSiteWorkDTO(ctx, dbo as any);
+
+    expect(result.doi).toBe('10.62329/cn-a');
+    expect(result.links.doi).toBe('https://doi.org/10.62329/cn-a');
+  });
+
   test('should concatenate submission tags before work version tags, deduped', () => {
     const ctx = createMockSiteContext([{ id: 'domain1', hostname: 'journal.com', default: true }]);
 
