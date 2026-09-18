@@ -18,6 +18,14 @@ bun run agents:setup claude
 
 That creates `.claude/skills` → `.agents/skills` and `.claude/CLAUDE.md` → `../AGENTS.md` (local, not committed). Cursor and Codex already read `.agents/skills` without this step.
 
+## UI Components
+
+`packages/scms-core/src/components/ui` (the `ui` namespace, e.g. `ui.Card`) is the current component library. `packages/scms-core/src/components/primitives` (the `primitives` namespace, e.g. `primitives.Card`) is deprecated: do not add new `primitives.*` usages, even where a component (like `Card`) exists in both namespaces.
+
+If `ui` has no equivalent for what `primitives` provides (e.g. `primitives.Card`'s `validateUsing` inline success/error banner), don't extend `ui` to recreate it and don't fall back to `primitives`. Use the toast pattern instead (`ui.toastError` / `ui.toastSuccess`, fired from a `useEffect` watching `fetcher.state`/`fetcher.data`), which is already the established feedback pattern across the app.
+
+Existing `primitives.*` usages migrate to `ui.*` in their own PR, not folded into unrelated work.
+
 ## Lint And Format Checks
 
 - After edits, run the narrowest relevant package/workspace checks first, including lint, format fix/check, compile, and focused tests where available.
