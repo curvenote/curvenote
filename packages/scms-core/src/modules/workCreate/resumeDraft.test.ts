@@ -27,7 +27,7 @@ const pmcOption: WorkCreateOption = {
   metadataKey: 'pmc',
   startPath: '/app/works/pmc',
   extensionId: 'pmc',
-  formPathIncludes: '/site/pmc/',
+  formPathIncludes: ['/site/pmc/deposit', '/site/pmc/confirm'],
 };
 
 const options = [article, foundryOption, pmcOption];
@@ -63,6 +63,21 @@ describe('isOnCreateFormPath', () => {
       true,
     );
     expect(isOnCreateFormPath('/app/works/work-1/details', 'work-1', options)).toBe(false);
+  });
+
+  it('matches every fragment of a multi-step form', () => {
+    expect(isOnCreateFormPath('/app/works/work-1/site/pmc/confirm/sv-1', 'work-1', options)).toBe(
+      true,
+    );
+    expect(
+      isOnCreateFormPath('/app/works/work-1/site/pmc/submission/sv-1', 'work-1', options),
+    ).toBe(false);
+  });
+
+  it('ignores fragments belonging to a different work', () => {
+    expect(isOnCreateFormPath('/app/works/work-2/site/pmc/deposit/sv-1', 'work-1', options)).toBe(
+      false,
+    );
   });
 });
 
