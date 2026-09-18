@@ -33,7 +33,7 @@ const ctx = {
   user: { id: 'user-1' },
   $config: {},
 } as unknown as SiteContextWithUser;
-type Rejection = { data: { error: string; field?: string }; init: { status: number } };
+type Rejection = { data: { error: string }; init: { status: number } };
 
 function form(fields: Record<string, string>) {
   const formData = new FormData();
@@ -70,7 +70,7 @@ describe('runDoiIntent', () => {
   it('passes the feature flag from site.data and the prefix to configureCustom', async () => {
     vi.mocked(configureCustom).mockResolvedValue({ ok: true, config: null });
     const result = await runDoiIntent(ctx, form({ intent: 'configure-custom', prefix: '10.5555' }));
-    expect(result).toEqual({ info: 'Prefix saved. Curvenote will link your Crossref role.' });
+    expect(result).toEqual({});
     expect(vi.mocked(configureCustom).mock.calls[0][1]).toEqual({
       siteId: 'site-a',
       actor: { userId: 'user-1', isSystemAdmin: false },
@@ -97,19 +97,18 @@ describe('runDoiIntent', () => {
     expect(result.init.status).toBe(403);
   });
 
-  it('maps a service failure to its status, error and field', async () => {
+  it('maps a service failure to its status and error', async () => {
     vi.mocked(configureCustom).mockResolvedValue({
       ok: false,
       status: 400,
       error: 'Prefix not found at Crossref.',
-      field: 'prefix',
     });
     const result = (await runDoiIntent(
       ctx,
       form({ intent: 'configure-custom', prefix: '10.5555' }),
     )) as Rejection;
     expect(result.init.status).toBe(400);
-    expect(result.data).toEqual({ error: 'Prefix not found at Crossref.', field: 'prefix' });
+    expect(result.data).toEqual({ error: 'Prefix not found at Crossref.' });
   });
 
   it('answers 400 when occ is missing on an intent that needs it', async () => {

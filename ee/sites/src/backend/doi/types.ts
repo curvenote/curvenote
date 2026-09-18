@@ -28,12 +28,17 @@ export type SiteDoiConfigDTO = DoiConfigSnapshot & {
   occ: number;
 };
 
+/** The columns a DOI write may change. */
+export type DoiConfigRowData = Partial<
+  Pick<DoiConfigSnapshot, 'prefix' | 'prefix_owner' | 'role' | 'status'>
+>;
+
 export type DoiFailure = {
   ok: false;
   status: 400 | 403 | 409 | 502;
   error: string;
-  field?: 'prefix' | 'role';
 };
+
 export type DoiResult = { ok: true; config: SiteDoiConfigDTO | null } | DoiFailure;
 
 export type DoiDeps = {

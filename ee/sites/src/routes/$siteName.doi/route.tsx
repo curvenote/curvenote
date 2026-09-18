@@ -25,8 +25,11 @@ export interface LoaderData {
   config: SiteDoiConfigDTO | null;
   doiCustomPrefixEnabled: boolean;
   isSystemAdmin: boolean;
-  /** null when api.crossref is missing from the deployment's config. */
-  curvenotePrefix: string | null;
+  /**
+   * The public half of api.crossref (never the password): Curvenote's prefix and the depositor
+   * a customer grants access to. null when api.crossref is missing from the deployment's config.
+   */
+  crossref: { prefix: string; depositorEmail: string } | null;
   roleBoundBy?: { name: string; date: string };
 }
 
@@ -43,10 +46,11 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     getSiteWithAppData(ctx.site.name),
     dbGetDoiConfig(prisma, ctx.site.id),
   ]);
-  // The loader never calls Crossref: it only needs Curvenote's prefix, which is config.
-  let curvenotePrefix: string | null = null;
+  // The loader never calls Crossref: it only needs values from config.
+  let crossref: LoaderData['crossref'] = null;
   try {
-    curvenotePrefix = crossrefCredentialsFromConfig(ctx.$config).prefix;
+    const { prefix, depositorEmail } = crossrefCredentialsFromConfig(ctx.$config);
+    crossref = { prefix, depositorEmail };
   } catch (error: any) {
     console.error('[doi]', error?.message);
   }
@@ -56,7 +60,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     config: row ? toDTO(row) : null,
     doiCustomPrefixEnabled: siteWithAppData?.data?.doiCustomPrefixEnabled ?? false,
     isSystemAdmin: userHasScope(ctx.user, scopes.system.admin),
-    curvenotePrefix,
+    crossref,
     roleBoundBy: hasBoundRole ? await dbGetRoleBoundBy(prisma, ctx.site.id) : undefined,
   };
 }
@@ -72,34 +76,34 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 };
 
 export default function DoiRegistration({ loaderData }: { loaderData: LoaderData }) {
-  const { site, config, doiCustomPrefixEnabled, isSystemAdmin, curvenotePrefix, roleBoundBy } =
-    loaderData;
+  const { site, config, doiCustomPrefixEnabled, isSystemAdmin, crossref, roleBoundBy } = loaderData;
   return (
     <PageFrame title="DOI Registration" subtitle="Configure how this Site registers DOIs.">
       <div className="flex flex-col max-w-4xl space-y-5">
-        {!curvenotePrefix && (
+        {!crossref && (
           <ui.SimpleAlert
             type="error"
             message="DOI registration is not configured on this deployment. Ask a Curvenote engineer to set api.crossref."
           />
         )}
-        {curvenotePrefix && !config && (
+        {crossref && !config && (
           <DoiSetup siteTitle={site.title} customPrefixEnabled={doiCustomPrefixEnabled} />
         )}
-        {curvenotePrefix && config && (
+        {crossref && config && (
           <>
             <DoiStatusCard config={config} />
             <DoiAccountCard
               config={config}
               siteTitle={site.title}
               customPrefixEnabled={doiCustomPrefixEnabled}
+              depositorEmail={crossref.depositorEmail}
+              isSystemAdmin={isSystemAdmin}
+              roleBoundBy={roleBoundBy}
             />
             {isSystemAdmin && config.mode === SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX && (
-              <>
-                <DoiRoleAdminCard config={config} roleBoundBy={roleBoundBy} />
-                <DoiAdvancedActionsCard config={config} siteTitle={site.title} />
-              </>
+              <DoiRoleAdminCard config={config} />
             )}
+            {isSystemAdmin && <DoiAdvancedActionsCard config={config} siteTitle={site.title} />}
           </>
         )}
       </div>

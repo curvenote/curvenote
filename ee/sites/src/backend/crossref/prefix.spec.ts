@@ -14,6 +14,8 @@ describe('normalizePrefix', () => {
     ['http://dx.doi.org/10.5555', '10.5555'],
     ['doi.org/10.5555', '10.5555'],
     ['10.123456789', '10.123456789'],
+    ['5555', '10.5555'],
+    [' 123456789 ', '10.123456789'],
   ])('accepts %s', (raw, expected) => {
     expect(normalizePrefix(raw)).toBe(expected);
   });
@@ -26,6 +28,9 @@ describe('normalizePrefix', () => {
     ['10.1234567890'],
     ['https://example.org/10.5555'],
     ['ten.5555'],
+    ['123'],
+    ['1234567890'],
+    ['.5555'],
   ])('rejects %s', (raw) => {
     expect(normalizePrefix(raw)).toBeNull();
   });

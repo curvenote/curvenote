@@ -16,7 +16,7 @@ export async function lookupOwner(
       contactEmail: deps.creds.depositorEmail,
     });
     if (!found) {
-      return { ok: false, status: 400, error: DOI_ERRORS.prefixNotFound, field: 'prefix' };
+      return { ok: false, status: 400, error: DOI_ERRORS.prefixNotFound };
     }
     return { ok: true, ownerName: found.ownerName };
   } catch (e) {
@@ -34,10 +34,10 @@ export async function resolveCustomPrefix(
 ): Promise<{ ok: true; prefix: string; ownerName: string } | DoiFailure> {
   const prefix = normalizePrefix(raw);
   if (!prefix) {
-    return { ok: false, status: 400, error: DOI_ERRORS.prefixFormat, field: 'prefix' };
+    return { ok: false, status: 400, error: DOI_ERRORS.prefixFormat };
   }
   if (prefix === deps.creds.prefix) {
-    return { ok: false, status: 400, error: DOI_ERRORS.prefixIsCurvenote, field: 'prefix' };
+    return { ok: false, status: 400, error: DOI_ERRORS.prefixIsCurvenote };
   }
   const owner = await lookupOwner(deps, prefix);
   if (!owner.ok) {
@@ -56,7 +56,7 @@ export async function validateRole(
   role: string,
 ): Promise<{ ok: true } | DoiFailure> {
   if (!ROLE_RE.test(role)) {
-    return { ok: false, status: 400, error: DOI_ERRORS.roleFormat, field: 'role' };
+    return { ok: false, status: 400, error: DOI_ERRORS.roleFormat };
   }
   try {
     const candidate = await checkRole(deps.creds, role, { fetch: deps.fetch });
@@ -65,7 +65,7 @@ export async function validateRole(
     }
     const control = await checkRole(deps.creds, deps.creds.role, { fetch: deps.fetch });
     if (control.authenticated) {
-      return { ok: false, status: 400, error: DOI_ERRORS.roleRejected, field: 'role' };
+      return { ok: false, status: 400, error: DOI_ERRORS.roleRejected };
     }
     console.error('[doi] Crossref rejected the control login: check api.crossref.password');
     return { ok: false, status: 502, error: DOI_ERRORS.systemCredentials };

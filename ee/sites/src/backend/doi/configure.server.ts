@@ -1,17 +1,14 @@
 import { SITE_DOI_CONFIG_MODE, SITE_DOI_CONFIG_STATUS } from '@curvenote/scms-core';
-import { writeSiteDoiConfigActivity } from './activity.server.js';
 import {
   commitDoiWrite,
   dbCreateDoiConfig,
   dbGetDoiConfig,
+  isExpectedRow,
   dbUpdateDoiConfig,
-  toSnapshot,
 } from './db.server.js';
-import { DOI_ERRORS } from './errors.js';
-import type { DoiActor, DoiDeps, DoiFailure, DoiResult } from './types.js';
+import { DOI_ERRORS, STALE } from './errors.js';
+import type { DoiActor, DoiDeps, DoiResult } from './types.js';
 import { resolveCustomPrefix } from './validation.server.js';
-
-const STALE: DoiFailure = { ok: false, status: 409, error: DOI_ERRORS.stale };
 
 export type ConfigureCurvenoteInput = {
   siteId: string;
@@ -27,23 +24,19 @@ export async function configureCurvenote(
     return STALE;
   }
   // The only unique constraint a create can hit is site_id: another tab configured first.
-  return commitDoiWrite(deps, STALE, async (tx) => {
-    const created = await dbCreateDoiConfig(tx, {
-      siteId: input.siteId,
-      mode: SITE_DOI_CONFIG_MODE.CURVENOTE_PREFIX,
-      prefix: deps.creds.prefix,
-      prefixOwner: null,
-      role: deps.creds.role,
-      status: SITE_DOI_CONFIG_STATUS.ACTIVE,
-    });
-    await writeSiteDoiConfigActivity(tx, {
-      siteId: input.siteId,
-      userId: input.actor.userId,
-      action: 'configure-curvenote',
-      config: toSnapshot(created),
-    });
-    return created;
-  });
+  return commitDoiWrite(
+    deps,
+    { siteId: input.siteId, actor: input.actor, action: 'configure-curvenote', onUnique: STALE },
+    (tx) =>
+      dbCreateDoiConfig(tx, {
+        siteId: input.siteId,
+        mode: SITE_DOI_CONFIG_MODE.CURVENOTE_PREFIX,
+        prefix: deps.creds.prefix,
+        prefixOwner: null,
+        role: deps.creds.role,
+        status: SITE_DOI_CONFIG_STATUS.ACTIVE,
+      }),
+  );
 }
 
 export type ConfigureCustomInput = {
@@ -68,23 +61,19 @@ export async function configureCustom(
   if (!resolved.ok) {
     return resolved;
   }
-  return commitDoiWrite(deps, STALE, async (tx) => {
-    const created = await dbCreateDoiConfig(tx, {
-      siteId: input.siteId,
-      mode: SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX,
-      prefix: resolved.prefix,
-      prefixOwner: resolved.ownerName,
-      role: null,
-      status: SITE_DOI_CONFIG_STATUS.PENDING_ROLE,
-    });
-    await writeSiteDoiConfigActivity(tx, {
-      siteId: input.siteId,
-      userId: input.actor.userId,
-      action: 'configure-custom',
-      config: toSnapshot(created),
-    });
-    return created;
-  });
+  return commitDoiWrite(
+    deps,
+    { siteId: input.siteId, actor: input.actor, action: 'configure-custom', onUnique: STALE },
+    (tx) =>
+      dbCreateDoiConfig(tx, {
+        siteId: input.siteId,
+        mode: SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX,
+        prefix: resolved.prefix,
+        prefixOwner: resolved.ownerName,
+        role: null,
+        status: SITE_DOI_CONFIG_STATUS.PENDING_ROLE,
+      }),
+  );
 }
 
 export type UpdatePrefixInput = {
@@ -102,10 +91,11 @@ export async function updatePrefix(deps: DoiDeps, input: UpdatePrefixInput): Pro
   }
   const existing = await dbGetDoiConfig(deps.prisma, input.siteId);
   if (
-    !existing ||
-    existing.mode !== SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX ||
-    existing.status !== SITE_DOI_CONFIG_STATUS.PENDING_ROLE ||
-    existing.occ !== input.occ
+    !isExpectedRow(existing, {
+      occ: input.occ,
+      mode: SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX,
+      status: SITE_DOI_CONFIG_STATUS.PENDING_ROLE,
+    })
   ) {
     return STALE;
   }
@@ -114,17 +104,13 @@ export async function updatePrefix(deps: DoiDeps, input: UpdatePrefixInput): Pro
     return resolved;
   }
   // role is null here, and NULLs never collide in the pair index, so a P2002 is not expected.
-  return commitDoiWrite(deps, STALE, async (tx) => {
-    const updated = await dbUpdateDoiConfig(tx, existing, {
-      prefix: resolved.prefix,
-      prefix_owner: resolved.ownerName,
-    });
-    await writeSiteDoiConfigActivity(tx, {
-      siteId: input.siteId,
-      userId: input.actor.userId,
-      action: 'update-prefix',
-      config: toSnapshot(updated),
-    });
-    return updated;
-  });
+  return commitDoiWrite(
+    deps,
+    { siteId: input.siteId, actor: input.actor, action: 'update-prefix', onUnique: STALE },
+    (tx) =>
+      dbUpdateDoiConfig(tx, existing, {
+        prefix: resolved.prefix,
+        prefix_owner: resolved.ownerName,
+      }),
+  );
 }

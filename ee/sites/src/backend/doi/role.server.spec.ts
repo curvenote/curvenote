@@ -166,9 +166,33 @@ describe('resetConfig', () => {
     });
   });
 
-  test('refuses a site admin', async () => {
-    const { deps } = makeDeps();
-    expect(await resetConfig(deps, { ...input, actor: siteAdmin })).toMatchObject({ status: 403 });
+  test.each([
+    ['their own unfinished own-prefix setup', row()],
+    [
+      'a Curvenote-managed setup they picked',
+      row({ mode: 'CURVENOTE_PREFIX', status: 'ACTIVE', role: 'curv' }),
+    ],
+  ])('lets a site admin start over from %s', async (_name, existing) => {
+    const { deps, prisma } = makeDeps();
+    prisma.siteDoiConfig.findUnique.mockResolvedValue(existing);
+    prisma.siteDoiConfig.delete.mockResolvedValue({ id: 'cfg-1' });
+    expect(await resetConfig(deps, { ...input, actor: siteAdmin })).toEqual({
+      ok: true,
+      config: null,
+    });
+    expect(prisma.activity.create.mock.calls[0][0].data.activity_by).toEqual({
+      connect: { id: 'user-1' },
+    });
+  });
+
+  test('refuses a site admin once Curvenote linked the role', async () => {
+    const { deps, prisma } = makeDeps();
+    prisma.siteDoiConfig.findUnique.mockResolvedValue(row({ status: 'ACTIVE', role: 'elms' }));
+    expect(await resetConfig(deps, { ...input, actor: siteAdmin })).toMatchObject({
+      status: 403,
+      error: DOI_ERRORS.forbidden,
+    });
+    expect(wroteNothing(prisma)).toBe(true);
   });
 
   test.each([
