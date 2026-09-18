@@ -4,12 +4,12 @@ import { SUBMISSION_DETAIL_FORM_ACTIONS } from './SubmissionDetails.utils.js';
 const TAG_FETCHER_PREFIX = 'submission-tag';
 
 /**
- * A tag as the chips and the picker render it: a {@link TagDTO} whose `id` may
- * still be missing. A tag being created is known by `name` and `label` before
- * the server responds, but gets its `id` only once it is stored, and the
+ * A {@link TagDTO} as the chips and the picker render it. `id` is missing while
+ * the tag is being created: the client derives `name` and `label` from the typed
+ * label, but the id only exists once the server has stored the tag, and the
  * optional `id` is what stops it being submitted in the meantime.
  */
-export type SubmissionTagView = Omit<TagDTO, 'id'> & { id: string | undefined };
+export type DisplayTagDTO = Omit<TagDTO, 'id'> & { id: string | undefined };
 
 /** An in-flight tag submission. Keyed by `name`, which is unique per site and known before the server responds. */
 export type PendingTagChange =
@@ -76,12 +76,12 @@ export type ApplyPendingTagChangesInput = {
 };
 
 export type SubmissionTagsView = {
-  tags: SubmissionTagView[];
-  catalog: SubmissionTagView[];
+  tags: DisplayTagDTO[];
+  catalog: DisplayTagDTO[];
   busyNames: string[];
 };
 
-function byLabel(a: SubmissionTagView, b: SubmissionTagView): number {
+function byLabel(a: DisplayTagDTO, b: DisplayTagDTO): number {
   return a.label.localeCompare(b.label);
 }
 
@@ -94,8 +94,8 @@ export function applyPendingTagChanges({
   catalog,
   pending,
 }: ApplyPendingTagChangesInput): SubmissionTagsView {
-  const catalogByName = new Map<string, SubmissionTagView>(catalog.map((tag) => [tag.name, tag]));
-  const assignedByName = new Map<string, SubmissionTagView>(tags.map((tag) => [tag.name, tag]));
+  const catalogByName = new Map<string, DisplayTagDTO>(catalog.map((tag) => [tag.name, tag]));
+  const assignedByName = new Map<string, DisplayTagDTO>(tags.map((tag) => [tag.name, tag]));
 
   for (const change of pending) {
     if (change.kind === 'remove') {

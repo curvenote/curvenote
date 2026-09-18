@@ -1,8 +1,8 @@
 import { isValidTagName, toTagName } from '@curvenote/scms-core';
-import type { SubmissionTagView } from './pendingTagChanges.js';
+import type { DisplayTagDTO } from './pendingTagChanges.js';
 
 /** Catalog entries matching the typed query on label or name. */
-export function filterTagOptions(catalog: SubmissionTagView[], query: string): SubmissionTagView[] {
+export function filterTagOptions(catalog: DisplayTagDTO[], query: string): DisplayTagDTO[] {
   const needle = query.trim().toLowerCase();
   if (!needle) {
     return catalog;
@@ -17,7 +17,7 @@ export function filterTagOptions(catalog: SubmissionTagView[], query: string): S
  * invalid name, or matches a tag that already exists.
  */
 export function getCreateTagOption(
-  catalog: SubmissionTagView[],
+  catalog: DisplayTagDTO[],
   query: string,
 ): { label: string; name: string } | undefined {
   const label = query.trim();

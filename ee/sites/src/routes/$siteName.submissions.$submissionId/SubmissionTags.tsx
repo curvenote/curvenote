@@ -4,7 +4,7 @@ import type { TagDTO } from '@curvenote/common';
 import { ui } from '@curvenote/scms-core';
 import { Plus } from 'lucide-react';
 import type { SubmissionDetailPageData } from './loader.server.js';
-import type { SubmissionTagView } from './pendingTagChanges.js';
+import type { DisplayTagDTO } from './pendingTagChanges.js';
 import { TagChangeErrorToast } from './TagChangeErrorToast.js';
 import { TagPicker } from './TagPicker.js';
 import { useSubmissionTagChanges } from './useSubmissionTagChanges.js';
@@ -46,7 +46,7 @@ const TagAddButton = forwardRef<HTMLButtonElement, TagAddButtonProps>(function T
 });
 
 type TagChipProps = {
-  tag: SubmissionTagView;
+  tag: DisplayTagDTO;
 } & Omit<ComponentPropsWithoutRef<'button'>, 'children' | 'type'>;
 
 function TagChipButton({ tag, ...props }: TagChipProps) {

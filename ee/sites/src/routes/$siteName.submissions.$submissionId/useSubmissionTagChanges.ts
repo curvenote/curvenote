@@ -7,7 +7,7 @@ import {
   isTagFetcherKey,
   readPendingTagChanges,
   tagFetcherKey,
-  type SubmissionTagView,
+  type DisplayTagDTO,
 } from './pendingTagChanges.js';
 
 type UseSubmissionTagChangesParams = {
@@ -49,7 +49,7 @@ export function useSubmissionTagChanges({
     );
   };
 
-  const toggle = (tag: SubmissionTagView) => {
+  const toggle = (tag: DisplayTagDTO) => {
     if (!tag.id || isBusy(tag.name)) {
       return;
     }

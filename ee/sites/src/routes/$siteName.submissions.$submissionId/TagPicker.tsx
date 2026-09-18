@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { cn, ui, TAG_LABEL_MAX_LENGTH } from '@curvenote/scms-core';
 import { Check, Plus } from 'lucide-react';
-import type { SubmissionTagView } from './pendingTagChanges.js';
+import type { DisplayTagDTO } from './pendingTagChanges.js';
 import { filterTagOptions, getCreateTagOption } from './TagPicker.utils.js';
 
 type TagPickerCommandProps = {
-  catalog: SubmissionTagView[];
+  catalog: DisplayTagDTO[];
   assignedNames: string[];
   isBusy: (name: string) => boolean;
-  onToggle: (tag: SubmissionTagView) => void;
+  onToggle: (tag: DisplayTagDTO) => void;
   onCreate: (label: string) => void;
 };
 
