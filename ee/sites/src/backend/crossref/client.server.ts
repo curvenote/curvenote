@@ -40,6 +40,14 @@ export class CrossrefError extends Error {
   }
 }
 
+/** Worth another attempt later: no response (timeout, network), rate limited, or a Crossref outage. */
+export function isRetryableCrossrefError(e: unknown): boolean {
+  if (!(e instanceof CrossrefError)) {
+    return false;
+  }
+  return e.status === undefined || e.status === 429 || e.status >= 500;
+}
+
 export async function lookupPrefix(prefix: string, opts?: LookupOpts) {
   const doFetch = opts?.fetch ?? fetch;
   let resp: Response;
