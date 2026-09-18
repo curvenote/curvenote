@@ -71,8 +71,11 @@ export type SiteListingDTO = {
 export type SiteDTO = SiteConfig & {
   id: string;
   url?: string;
-  /** Editorial tag catalog for the site. Not the version tags on works. */
-  tags: TagDTO[];
+  /**
+   * Tag catalog for the site, without the internal catalog `id`.
+   * Not the version tags on works.
+   */
+  tags: TagRefDTO[];
   links: {
     self: string;
     html?: string;
@@ -96,7 +99,8 @@ export type TagDTO = {
 };
 
 /**
- * A tag as referenced from published content. `name` is unique per site and
+ * A tag as exposed on public payloads: the site tag catalog and the tags on
+ * published content. `name` is unique per site and
  * URL-safe, so it is the key external consumers filter on; the catalog `id` is
  * an internal write key and is deliberately not exposed here.
  */

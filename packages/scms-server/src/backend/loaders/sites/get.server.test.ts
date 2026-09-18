@@ -157,8 +157,8 @@ describe('formatSiteDTO tags', () => {
     } as never);
 
     expect(dto.tags).toEqual([
-      { id: 'tag2', name: 'blog-post', label: 'Blog Post' },
-      { id: 'tag1', name: 'editors-pick', label: 'Editors Pick' },
+      { name: 'blog-post', label: 'Blog Post' },
+      { name: 'editors-pick', label: 'Editors Pick' },
     ]);
   });
 

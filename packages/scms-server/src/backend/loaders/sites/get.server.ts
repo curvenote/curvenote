@@ -12,7 +12,7 @@ import type { Collection, SiteRole } from '@curvenote/scms-db';
 import type { Context } from '../../context.server.js';
 import type { UserDBO } from '../../db.types.js';
 import { createSiteRootUrl } from '../../domains.server.js';
-import { formatTagDTO, type TagRow } from './tags/format.server.js';
+import { formatTagRefDTO, type TagRow } from './tags/format.server.js';
 
 export type SiteUserDBO = { site_id: string; user_id: string; role: SiteRole };
 export type UserWithSiteRolesDBO = UserDBO & { site_roles: SiteUserDBO[] };
@@ -127,7 +127,7 @@ export function formatSiteDTO(ctx: Context, dbo: DBO): SiteDTO {
     social_links: formatSocialLinks(site.social_links),
     theme_config: site.theme_config || undefined,
     collections: dbo.collections.map((c) => formatCollectionSummaryDTO(c)),
-    tags: (dbo.tags ?? []).map((t) => formatTagDTO(t)),
+    tags: (dbo.tags ?? []).map((t) => formatTagRefDTO(t)),
     links: {
       self: ctx.asApiUrl(`/sites/${dbo.name}`),
       html: siteRootUrl,
