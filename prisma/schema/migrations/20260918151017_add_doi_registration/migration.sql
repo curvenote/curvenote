@@ -72,9 +72,6 @@ CREATE INDEX "DoiDeposit_registration_id_date_created_idx" ON "DoiDeposit"("regi
 -- CreateIndex
 CREATE INDEX "DoiDeposit_submission_version_id_idx" ON "DoiDeposit"("submission_version_id");
 
--- CreateIndex
-CREATE INDEX "Submission_doi_idx" ON "Submission"("doi");
-
 -- AddForeignKey
 ALTER TABLE "DoiRegistration" ADD CONSTRAINT "DoiRegistration_submission_id_fkey" FOREIGN KEY ("submission_id") REFERENCES "Submission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 

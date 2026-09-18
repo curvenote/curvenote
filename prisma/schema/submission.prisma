@@ -193,6 +193,7 @@ model Submission {
   /// listed).
   @@index([site_id, date_published(sort: Desc), date_created(sort: Desc)])
   /// DOI resolution probes this first (`sites.doi`, `doi.resolve`), then falls back to work DOIs.
+  /// Built CONCURRENTLY in migration 20260918151018_add_submission_doi_index.
   @@index([doi])
 }
 
