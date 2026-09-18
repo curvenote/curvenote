@@ -24,7 +24,7 @@ export async function updateSiteTagLabel(params: UpdateSiteTagLabelParams): Prom
     select: { id: true },
   });
   if (!existing) {
-    throw httpError(404, 'tag not found on this site');
+    throw httpError(404, 'This tag no longer exists');
   }
 
   const row = await prisma.tag.update({
