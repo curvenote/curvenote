@@ -13,7 +13,7 @@ export const DOI_ERRORS = {
   systemCredentials: "Curvenote's Crossref credentials failed. Nothing was saved.",
   pairTaken: 'This prefix and role are already linked to another Site. Nothing was saved.',
   hasRegistrations:
-    'This Site has DOIs registered or being registered, so this cannot be undone. Nothing was saved.',
+    'This Site has DOIs registered or being registered, so its DOI setup cannot be unlinked or reset. Nothing was saved.',
 } as const;
 
 /** Another request changed or removed the row since the page loaded. */
