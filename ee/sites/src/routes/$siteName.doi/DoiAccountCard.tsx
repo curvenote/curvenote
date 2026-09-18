@@ -103,8 +103,9 @@ export function DoiAccountCard({
                 <span className="font-medium">Need to grant access?</span> In your Crossref account,
                 add {depositorEmail} as a depositor for prefix {config.prefix}. Crossref emails us
                 and we complete the link.{' '}
+                {/* The alert is `prose`, which colours links for light mode only. */}
                 <a
-                  className="underline"
+                  className="underline text-inherit"
                   href={CROSSREF_MEMBERSHIP_URL}
                   target="_blank"
                   rel="noopener noreferrer"

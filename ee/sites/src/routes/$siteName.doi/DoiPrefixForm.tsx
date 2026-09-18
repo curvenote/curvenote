@@ -22,6 +22,8 @@ export function DoiPrefixForm({ config, editable, owner, fetcher, children }: Do
   const isPending = config.status === SITE_DOI_CONFIG_STATUS.PENDING_ROLE;
   const dirty = prefix.trim() !== config.prefix;
   const busy = fetcher.state !== 'idle';
+  // Crossref returns names like "Curvenote Inc.", which already carry the full stop.
+  const ownerName = owner ?? 'Unknown';
 
   return (
     <fetcher.Form method="POST" className="m-0 space-y-4">
@@ -45,7 +47,8 @@ export function DoiPrefixForm({ config, editable, owner, fetcher, children }: Do
           disabled={!editable || busy}
         />
         <p className="text-xs text-muted-foreground">
-          Owner at Crossref: <span className="font-medium">{owner ?? 'Unknown'}</span>.
+          Owner at Crossref: <span className="font-medium">{ownerName}</span>
+          {ownerName.endsWith('.') ? '' : '.'}
           {editable && ' Editable until the role is linked.'}
           {isCustom && !isPending && ' Contact Curvenote to change the prefix.'}
         </p>
