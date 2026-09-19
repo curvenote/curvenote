@@ -373,6 +373,21 @@ properties:
             type: string
             secret: true
             description: Anthropic API key for Claude
+      crossref:
+        type: object
+        description: Crossref deposit system. Host is doi.crossref.org in production, test.crossref.org elsewhere.
+        required: [host, depositorEmail, password]
+        properties:
+          host:
+            type: string
+            description: Base URL, e.g. https://test.crossref.org
+          depositorEmail:
+            type: string
+            description: Account email; the login is <depositorEmail>/<role>, e.g. doi@curvenote.com
+          password:
+            type: string
+            secret: true
+            description: Password for depositorEmail on this host
       sessionTokenIssuer:
         type: string
       tokenConfigUrl:

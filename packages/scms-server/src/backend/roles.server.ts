@@ -123,6 +123,9 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.tags.create,
     site.tags.update,
     site.tags.delete,
+    site.doi.read,
+    site.doi.register,
+    site.doi.configure,
     site.collections.list,
     site.collections.read,
     site.collections.create,
@@ -153,6 +156,7 @@ const SITE_ROLES: Record<SiteRole, Set<string>> = {
     site.submissions.read,
     site.submissions.create,
     site.submissions.versions.create,
+    site.doi.read,
   ]),
   [SiteRole.PUBLIC]: new Set([site.read]),
   [SiteRole.UNRESTRICTED]: new Set([

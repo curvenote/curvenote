@@ -53,6 +53,7 @@ model Site {
   analyticsDashboards AnalyticsDashboard[]
   access              Access[]
   forms               SubmissionForm[]
+  doiConfig           SiteDoiConfig?
 }
 
 model Domain {

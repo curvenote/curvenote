@@ -22,6 +22,7 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   KIND_DELETED: 'Submission kind deleted',
   KIND_UPDATED: 'Submission kind updated',
   SITE_CONTENT_UPDATED: 'Site landing content updated',
+  SITE_DOI_CONFIG_UPDATED: 'Site DOI configuration updated',
   COLLECTION_CREATED: 'New collection',
   COLLECTION_DELETED: 'Collection deleted',
   COLLECTION_UPDATED: 'Collection updated',
