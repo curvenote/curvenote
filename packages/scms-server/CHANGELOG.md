@@ -1,5 +1,21 @@
 # @curvenote/scms-server
 
+## 0.28.0
+
+### Minor Changes
+
+- [#1084](https://github.com/curvenote/curvenote/pull/1084) [`b37915e`](https://github.com/curvenote/curvenote/commit/b37915e49a5de2bad6016a8b6a07daa8f95651fc) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Add the site DOI configuration foundation: the `SiteDoiConfig` model, `site:doi`
+  scopes for admins and members, Crossref config, and a Crossref client in the sites
+  extension that looks up prefix owners and checks a depositor role.
+
+### Patch Changes
+
+- [#1086](https://github.com/curvenote/curvenote/pull/1086) [`1178a42`](https://github.com/curvenote/curvenote/commit/1178a4293bc80226e0ecda52d02d602351852bc8) Thanks [@"This](https://github.com/"This)! - Reword the tag 404 messages as sentences, so they read well when shown to the
+  tag no longer exists" and "This submission no longer exists".
+- Updated dependencies [[`b37915e`](https://github.com/curvenote/curvenote/commit/b37915e49a5de2bad6016a8b6a07daa8f95651fc)]:
+  - @curvenote/scms-core@0.28.0
+  - @curvenote/scms-db@0.28.0
+
 ## 0.27.0
 
 ### Minor Changes
