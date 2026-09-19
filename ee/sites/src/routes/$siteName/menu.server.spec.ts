@@ -9,6 +9,19 @@ vi.mock('@curvenote/scms-server', () => ({
 import { administrationMenus } from './menu.server.js';
 
 describe('administrationMenus', () => {
+  test('includes DOI Registration for site admins only, after Submission Forms', () => {
+    const menus = administrationMenus('/app/sites/science');
+    const names = menus.map((item) => item.name);
+
+    expect(menus.find((item) => item.name === 'admin.doi')).toEqual({
+      name: 'admin.doi',
+      label: 'DOI Registration',
+      url: '/app/sites/science/doi',
+      scope: scopes.site.doi.configure,
+    });
+    expect(names.indexOf('admin.doi')).toBe(names.indexOf('admin.forms') + 1);
+  });
+
   test('includes Tags gated on site:tags:list, next to kinds and collections', () => {
     const menus = administrationMenus('/app/sites/science');
     const names = menus.map((item) => item.name);

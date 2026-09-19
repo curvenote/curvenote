@@ -376,7 +376,7 @@ properties:
       crossref:
         type: object
         description: Crossref deposit system. Host is doi.crossref.org in production, test.crossref.org elsewhere.
-        required: [host, depositorEmail, password]
+        required: [host, depositorEmail, password, prefix, role]
         properties:
           host:
             type: string
@@ -388,6 +388,12 @@ properties:
             type: string
             secret: true
             description: Password for depositorEmail on this host
+          prefix:
+            type: string
+            description: Curvenote's own DOI prefix, e.g. 10.62329. Used by sites on Curvenote-managed registration.
+          role:
+            type: string
+            description: Curvenote's own Crossref role, e.g. curv. The login is <depositorEmail>/<role>.
       sessionTokenIssuer:
         type: string
       tokenConfigUrl:

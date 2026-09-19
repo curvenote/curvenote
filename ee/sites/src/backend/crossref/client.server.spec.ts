@@ -19,6 +19,8 @@ const creds = {
   host: 'https://test.crossref.org',
   depositorEmail: 'doi@curvenote.com',
   password: 's3cret',
+  prefix: '10.62329',
+  role: 'curv',
 };
 
 describe('lookupPrefix', () => {
@@ -74,6 +76,21 @@ describe('lookupPrefix', () => {
         fetch: fakeFetch(200, JSON.stringify({ message: { name: 'Curvenote Inc.' } })),
       }),
     ).rejects.toMatchObject({ status: 200, message: expect.stringContaining('unexpected body') });
+  });
+
+  test('sends a User-Agent with the contact email when one is given', async () => {
+    const f = fakeFetch(200, fixture('prefixes.200-ok.json'));
+    await lookupPrefix('10.62329', { fetch: f, contactEmail: 'doi@curvenote.com' });
+    const init = (f as any).mock.calls[0][1] as RequestInit;
+    expect(new Headers(init.headers).get('User-Agent')).toBe(
+      'Curvenote-SCMS (mailto:doi@curvenote.com)',
+    );
+  });
+
+  test('sends no custom headers without a contact email', async () => {
+    const f = fakeFetch(200, fixture('prefixes.200-ok.json'));
+    await lookupPrefix('10.62329', { fetch: f });
+    expect(((f as any).mock.calls[0][1] as RequestInit).headers).toBeUndefined();
   });
 });
 
@@ -157,5 +174,25 @@ describe('crossrefCredentialsFromConfig', () => {
     expect(message).toContain('api.crossref.host');
     expect(message).toContain('api.crossref.depositorEmail');
     expect(message).not.toContain('s3cret');
+  });
+
+  test('returns the Curvenote prefix and role', () => {
+    const config = {
+      api: { crossref: { ...creds, host: 'https://test.crossref.org/' } },
+    } as unknown as AppConfig;
+    expect(crossrefCredentialsFromConfig(config)).toMatchObject({
+      prefix: '10.62329',
+      role: 'curv',
+    });
+  });
+
+  test('names the missing prefix and role, never the password', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { prefix: _p, role: _r, ...partial } = creds;
+    const config = { api: { crossref: partial } } as unknown as AppConfig;
+    expect(() => crossrefCredentialsFromConfig(config)).toThrow(
+      /api\.crossref\.prefix.*api\.crossref\.role/,
+    );
+    expect(() => crossrefCredentialsFromConfig(config)).not.toThrow(/s3cret/);
   });
 });

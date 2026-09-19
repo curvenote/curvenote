@@ -4,6 +4,7 @@
  * headers, and never put credentials in error messages.
  */
 import { z } from 'zod';
+import { PREFIX_RE } from './prefix.js';
 
 const PREFIXES_API = 'https://api.crossref.org/prefixes';
 const TIMEOUT_MS = 10_000;
@@ -14,6 +15,10 @@ const CredentialsSchema = z.object({
   host: z.httpUrl().transform((host) => host.replace(/\/$/, '')),
   depositorEmail: z.email(),
   password: z.string().min(1),
+  /** Curvenote's own prefix: used by CURVENOTE_PREFIX sites and refused on CUSTOM_PREFIX ones. */
+  prefix: z.string().regex(PREFIX_RE),
+  /** Curvenote's own role: used by CURVENOTE_PREFIX sites and as the control login on a 401. */
+  role: z.string().min(1),
 });
 
 const PrefixResponseSchema = z.object({
@@ -22,6 +27,7 @@ const PrefixResponseSchema = z.object({
 
 export type CrossrefCredentials = z.output<typeof CredentialsSchema>;
 type FetchOpts = { fetch?: typeof fetch };
+type LookupOpts = FetchOpts & { contactEmail?: string };
 
 /** `status` is undefined when no response arrived (timeout or network failure). */
 export class CrossrefError extends Error {
@@ -34,12 +40,16 @@ export class CrossrefError extends Error {
   }
 }
 
-export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
+export async function lookupPrefix(prefix: string, opts?: LookupOpts) {
   const doFetch = opts?.fetch ?? fetch;
   let resp: Response;
   try {
     resp = await doFetch(`${PREFIXES_API}/${encodeURIComponent(prefix)}`, {
       signal: AbortSignal.timeout(TIMEOUT_MS),
+      // api.crossref.org asks polite clients to identify themselves with a contact address.
+      ...(opts?.contactEmail
+        ? { headers: { 'User-Agent': `Curvenote-SCMS (mailto:${opts.contactEmail})` } }
+        : {}),
     });
   } catch (e: any) {
     throw new CrossrefError(`Crossref prefix lookup request failed: ${e?.name ?? 'network error'}`);
