@@ -1,5 +1,18 @@
 # @curvenote/scms-core
 
+## 0.28.0
+
+### Minor Changes
+
+- [#1084](https://github.com/curvenote/curvenote/pull/1084) [`b37915e`](https://github.com/curvenote/curvenote/commit/b37915e49a5de2bad6016a8b6a07daa8f95651fc) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Add the site DOI configuration foundation: the `SiteDoiConfig` model, `site:doi`
+  scopes for admins and members, Crossref config, and a Crossref client in the sites
+  extension that looks up prefix owners and checks a depositor role.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @curvenote/scms-db@0.28.0
+
 ## 0.27.0
 
 ### Patch Changes

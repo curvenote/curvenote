@@ -47,15 +47,15 @@
     },
     "ee/sites": {
       "name": "@curvenote/scms-sites-ext",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "dependencies": {
         "@codemirror/view": "^6.35.0",
         "@curvenote/check-definitions": "^0.17.4",
         "@curvenote/common": "^0.9.0",
         "@curvenote/icons": "0.0.4",
-        "@curvenote/scms-core": "0.27.0",
-        "@curvenote/scms-db": "0.27.0",
-        "@curvenote/scms-server": "0.27.0",
+        "@curvenote/scms-core": "0.28.0",
+        "@curvenote/scms-db": "0.28.0",
+        "@curvenote/scms-server": "0.28.0",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
@@ -1115,7 +1115,7 @@
     },
     "packages/scms-core": {
       "name": "@curvenote/scms-core",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "dependencies": {
         "@app-config/config": "^2.8.7",
         "@app-config/main": "^2.8.7",
@@ -1135,7 +1135,7 @@
         "@curvenote/common": "^0.9.0",
         "@curvenote/icons": "^0.0.4",
         "@curvenote/remix-auth-okta": "^3.0.0",
-        "@curvenote/scms-db": "0.27.0",
+        "@curvenote/scms-db": "0.28.0",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
@@ -1235,7 +1235,7 @@
     },
     "packages/scms-db": {
       "name": "@curvenote/scms-db",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "dependencies": {
         "@prisma/adapter-pg": "^7.9.1",
         "@prisma/client": "^7.9.1",
@@ -1250,12 +1250,12 @@
     },
     "packages/scms-doc-preview": {
       "name": "@curvenote/scms-doc-preview",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "dependencies": {
         "@curvenote/common": "^0.9.0",
-        "@curvenote/scms-core": "^0.27.0",
-        "@curvenote/scms-db": "^0.27.0",
-        "@curvenote/scms-server": "^0.27.0",
+        "@curvenote/scms-core": "^0.28.0",
+        "@curvenote/scms-db": "^0.28.0",
+        "@curvenote/scms-server": "^0.28.0",
         "@napi-rs/canvas": "^0.1.100",
         "bmp-js": "^0.1.0",
         "officeparser": "^6.0.4",
@@ -1278,7 +1278,7 @@
     },
     "packages/scms-server": {
       "name": "@curvenote/scms-server",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.80.0",
         "@app-config/config": "^2.8.7",
@@ -1297,8 +1297,8 @@
         "@curvenote/common": "^0.9.0",
         "@curvenote/remix-auth-google": "^3.0.0",
         "@curvenote/remix-auth-okta": "^3.0.0",
-        "@curvenote/scms-core": "0.27.0",
-        "@curvenote/scms-db": "0.27.0",
+        "@curvenote/scms-core": "0.28.0",
+        "@curvenote/scms-db": "0.28.0",
         "@google-cloud/pubsub": "^5.2.0",
         "@google-cloud/storage": "^7.17.3",
         "@react-email/components": "0.5.7",
@@ -1366,7 +1366,7 @@
     },
     "packages/scms-tasks": {
       "name": "@curvenote/scms-tasks",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "dependencies": {
         "@curvenote/common": "^0.7.0",
       },
@@ -1385,7 +1385,7 @@
     },
     "packages/task-converter": {
       "name": "@curvenote/task-converter",
-      "version": "0.3.12",
+      "version": "0.3.13",
       "dependencies": {
         "@curvenote/common": "^0.7.0",
         "@curvenote/scms-core": "^0.24.1",
@@ -1432,17 +1432,17 @@
     },
     "platform/scms": {
       "name": "@curvenote/scms",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.80.0",
         "@app-config/config": "^2.8.7",
         "@app-config/main": "^2.8.7",
         "@app-config/vite": "^2.8.7",
         "@curvenote/blocks": "^1.6.3",
-        "@curvenote/cdn": "^0.9.0",
-        "@curvenote/check-definitions": "^0.17.4",
+        "@curvenote/cdn": "^0.6.1",
+        "@curvenote/check-definitions": "^0.16.0",
         "@curvenote/check-ui": "^0.6.9",
-        "@curvenote/common": "^0.9.0",
+        "@curvenote/common": "^0.6.1",
         "@curvenote/icons": "^0.0.4",
         "@curvenote/remix-auth-okta": "^3.0.0",
         "@curvenote/scms-core": "*",
@@ -6252,6 +6252,12 @@
 
     "@curvenote/schema/myst-spec": ["myst-spec@0.0.4", "", {}, "sha512-1j7184Wmg5lhgSXt6AXtG82E0PFJ7ULFPplfshQDzb4nIOLKruYFD0CYWheRPMM/eVqNbNZUzc/LLrhyubsK0Q=="],
 
+    "@curvenote/scms/@curvenote/cdn": ["@curvenote/cdn@0.6.1", "", { "dependencies": { "@curvenote/common": "^0.6.1", "cache-manager": "^5.2.3", "doi-utils": "^2.0.5", "myst-common": "^1.9.5", "myst-config": "^1.9.5", "myst-frontmatter": "^1.9.5", "myst-migrate": "^1.9.0", "myst-spec-ext": "^1.9.5", "nbtx": "^0.2.3", "node-cache": "^5.1.2", "node-fetch": "^2.7.0", "unist-util-select": "^4.0.3" } }, "sha512-vRXtHwnihOfv+0q4MzMbb9hL3iEAi5KY46/xPsaduwnR27xbAMOlSqXHo8z3vPvuZrYcsFywG7sJAsNuGV+qhA=="],
+
+    "@curvenote/scms/@curvenote/check-definitions": ["@curvenote/check-definitions@0.16.5", "", { "dependencies": { "myst-common": "^1.9.5", "myst-templates": "^1.0.27" } }, "sha512-F7BS34YJ5vtJ6CoiBlzsiYJ34nAjEPjQScZDLfjcdILX9fyA1M2W91QVsg2+L9Gnpj/clco11/y0mUJ4nnl5cg=="],
+
+    "@curvenote/scms/@curvenote/common": ["@curvenote/common@0.6.1", "", { "dependencies": { "@curvenote/blocks": "^1.6.3", "myst-common": "^1.9.5", "myst-config": "^1.9.5" } }, "sha512-R3JYvxdtuZgwNG9CQBSKq7y6HtlS4KKtsGU9d/EAzUVxSdO6f7x+3Q/OLsAvEAQRpfMP4MLrDU989suomrFPlg=="],
+
     "@curvenote/scms/@myst-theme/providers": ["@myst-theme/providers@0.17.1", "", { "dependencies": { "@myst-theme/common": "^0.17.1" }, "peerDependencies": { "@types/react": "^16.8 || ^17.0 || ^18.0", "@types/react-dom": "^16.8 || ^17.0 || ^18.0", "myst-common": "^1.8.1", "myst-config": "^1.8.1", "myst-frontmatter": "^1.8.1", "react": "^16.8 || ^17.0 || ^18.0", "react-dom": "^16.8 || ^17.0 || ^18.0" } }, "sha512-dSG6dJy08n5N+OtSyH7ZS1uM0joVWztR4Qxqrp8JFiCG/h/U8oXdX53UgVBV9VVbEzF4LOgq5+D9yxg6YVqDZg=="],
 
     "@curvenote/scms/@types/react": ["@types/react@18.3.27", "", { "dependencies": { "@types/prop-types": "*", "csstype": "^3.2.2" } }, "sha512-cisd7gxkzjBKU2GgdYrTdtQx1SORymWyaAFhaxQPK9bYO9ot3Y5OikQRvY0VYQtvwjeQnizCINJAenh/V7MK2w=="],
@@ -6260,7 +6266,7 @@
 
     "@curvenote/scms/date-fns": ["date-fns@3.6.0", "", {}, "sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww=="],
 
-    "@curvenote/scms/turbo": ["turbo@2.10.13", "", { "optionalDependencies": { "@turbo/darwin-64": "2.10.13", "@turbo/darwin-arm64": "2.10.13", "@turbo/linux-64": "2.10.13", "@turbo/linux-arm64": "2.10.13", "@turbo/windows-64": "2.10.13", "@turbo/windows-arm64": "2.10.13" }, "bin": { "turbo": "bin/turbo" } }, "sha512-69MkPbjk+G8oyC7pC2DeBk0rPdbLz51wuH5eAT0Q4BVJkzq/b1XM4kUUidsARbmDjwIELSJwd1ezITULY9kWNw=="],
+    "@curvenote/scms/turbo": ["turbo@2.11.2", "", { "optionalDependencies": { "@turbo/darwin-64": "2.11.2", "@turbo/darwin-arm64": "2.11.2", "@turbo/linux-64": "2.11.2", "@turbo/linux-arm64": "2.11.2", "@turbo/windows-64": "2.11.2", "@turbo/windows-arm64": "2.11.2" }, "bin": { "turbo": "bin/turbo" } }, "sha512-s0GhnWXlAAN+wb2GRMQxnZgFweRWTAceRWW/4Lk9iHj7QuLZMjDxQQqu+Xoh7Nckuy8UiSim520w6yqP2+ertw=="],
 
     "@curvenote/scms/vite-tsconfig-paths": ["vite-tsconfig-paths@5.1.4", "", { "dependencies": { "debug": "^4.1.1", "globrex": "^0.1.2", "tsconfck": "^3.0.3" }, "peerDependencies": { "vite": "*" }, "optionalPeers": ["vite"] }, "sha512-cYj0LRuLV2c2sMqhqhGpaO3LretdtMn/BVX4cPLanIZuwwrkVl+lK84E/miEXkCHWXuq65rhNN4rXsBcOB3S4w=="],
 
@@ -7472,17 +7478,17 @@
 
     "@curvenote/scms/concurrently/yargs": ["yargs@17.7.2", "", { "dependencies": { "cliui": "^8.0.1", "escalade": "^3.1.1", "get-caller-file": "^2.0.5", "require-directory": "^2.1.1", "string-width": "^4.2.3", "y18n": "^5.0.5", "yargs-parser": "^21.1.1" } }, "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w=="],
 
-    "@curvenote/scms/turbo/@turbo/darwin-64": ["@turbo/darwin-64@2.10.13", "", { "os": "darwin", "cpu": "x64" }, "sha512-m5DBcpkxmcKpEJHHFUfqf9GLUjSmw3cDnBJM9nghPW3kjCNb5OyNKmzG7/yT5x5AwzOO+HMwKN+UI4iVKL87YA=="],
+    "@curvenote/scms/turbo/@turbo/darwin-64": ["@turbo/darwin-64@2.11.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-0pGfE4Lpxrbd+6gUD9z025Tn4z9uMaSNZ3VX0H/hkUPZkjY5xrCa1NfTqocs09NM5NiYE3wEVcoYBadrhayRCA=="],
 
-    "@curvenote/scms/turbo/@turbo/darwin-arm64": ["@turbo/darwin-arm64@2.10.13", "", { "os": "darwin", "cpu": "arm64" }, "sha512-vfKPvSuoY8BJGj8M8yN+a7aq1g+CejbEacDSDlJLDkSbPN3J/U1DbYAmPG8Ype5XvImI0SgfvUhIorNnFj67zw=="],
+    "@curvenote/scms/turbo/@turbo/darwin-arm64": ["@turbo/darwin-arm64@2.11.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-Ub7hTbu0bPSiW156ciuLCexG5/SfuZM/QWeBBh9o8P4XyKiZwKqubT6Y9DdJjdp4ZY2wS47Prdl06Xxzt0q6zw=="],
 
-    "@curvenote/scms/turbo/@turbo/linux-64": ["@turbo/linux-64@2.10.13", "", { "os": [ "linux", "android", ], "cpu": "x64" }, "sha512-Zp0N5M6j9iEjJtFLTA2L+52TLuYy0VbXT3zLZzfMeqqdKSUJ7pDo2pA1NhqjoQcF2dIsktZ8xZRW3pGI6T81fw=="],
+    "@curvenote/scms/turbo/@turbo/linux-64": ["@turbo/linux-64@2.11.2", "", { "os": [ "linux", "android", ], "cpu": "x64" }, "sha512-8ipdmgmvSomfQ8E9afUsefO+BLO6QMW7srrHqMOCXD3BPX4FlYqqWAJY1GvbQotZMWKzNohdVkevrUYM6ZzYKA=="],
 
-    "@curvenote/scms/turbo/@turbo/linux-arm64": ["@turbo/linux-arm64@2.10.13", "", { "os": [ "linux", "android", ], "cpu": "arm64" }, "sha512-M8XcfWdS2D4EP3wzd5ehUyCANucMIOsRE6gZuV0Mr2NIn+FpsUjXFCh7r9HY7GnNcjXH4tUnT76OsCDg2c0Fng=="],
+    "@curvenote/scms/turbo/@turbo/linux-arm64": ["@turbo/linux-arm64@2.11.2", "", { "os": [ "linux", "android", ], "cpu": "arm64" }, "sha512-tsftYXAzgc+GdosqyRP8+Zzk2evJ8ej7Otal7/DU+6GVekVZ3kqM/z7zlGuF4TSHeetWxX04KN1I64LkmvYzgg=="],
 
-    "@curvenote/scms/turbo/@turbo/windows-64": ["@turbo/windows-64@2.10.13", "", { "os": "win32", "cpu": "x64" }, "sha512-QFd3KBMpBBCc31TbxMnxgdBivie8lxJXV8EqmanH8fg8l2e1BdCLWpZJbxk48VNvcF4LHUnwO0FJOq+veKN1cw=="],
+    "@curvenote/scms/turbo/@turbo/windows-64": ["@turbo/windows-64@2.11.2", "", { "os": "win32", "cpu": "x64" }, "sha512-p5LDVcGmC8W6FCrJPehr1t0ZvYqM8xvG3Va+LkwtDMK3Rl0NhSsJOYbYZVBfMbkm+9RKcCvekFCbSVtQ9Eyuqg=="],
 
-    "@curvenote/scms/turbo/@turbo/windows-arm64": ["@turbo/windows-arm64@2.10.13", "", { "os": "win32", "cpu": "arm64" }, "sha512-rM+cFO1P8iAHXdasOdMyK9nDk0UGII7VEFLIA8+jwv/+rh48pnVBbF2OSjJDBOw57pxNLIOEDA0JyKcarTBcIw=="],
+    "@curvenote/scms/turbo/@turbo/windows-arm64": ["@turbo/windows-arm64@2.11.2", "", { "os": "win32", "cpu": "arm64" }, "sha512-u0M3m1aXo9lpDM/2iQhxlGzgWjHFq/MC4TqHn1YAvxk8g1wGtzRB2QBx/SLqRChhPhC29mzaB8eLcxKh/pcM1g=="],
 
     "@curvenote/social/@curvenote/common/myst-common": ["myst-common@1.10.0", "", { "dependencies": { "mdast": "^3.0.0", "myst-frontmatter": "^1.10.0", "myst-spec": "^0.0.5", "nanoid": "^5.1.6", "unified": "^10.1.2", "unist-util-remove": "^3.1.0", "unist-util-select": "^4.0.3", "unist-util-visit": "^4.1.2", "vfile": "^5.0.0", "vfile-message": "^3.0.0" } }, "sha512-P1XbcfUtICxVWosi58+8rNwKGTeXjma/eF3WgJqqnunCiAky3J0Tz34Lk/HFwppnzpODVgK3padceIDTJqeqGg=="],
 
