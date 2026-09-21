@@ -67,8 +67,8 @@ model DoiDeposit {
   doi_batch_id           String            @unique
   /// Crossref's own <submission_id>, known once the deposit is queued.
   crossref_submission_id String?
-  /// Storage key of the deposited XML. Bucket and path convention are still open
-  /// (a single location for all deposits, see CN-2518) and are fixed before CN-2509 writes it.
+  /// Storage key of the deposited XML, in `KnownBuckets.prv`. The path convention inside
+  /// the bucket is settled in CN-2509, which is also what first writes this column.
   xml_path               String
   /// PENDING | QUEUED | SUCCEEDED | FAILED (constants in scms-core)
   status                 String            @default("PENDING")
