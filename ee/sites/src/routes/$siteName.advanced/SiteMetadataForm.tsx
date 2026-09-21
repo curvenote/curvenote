@@ -117,7 +117,10 @@ export function SiteMetadataForm({
         </a>{' '}
         for available fields
       </p>
-      <p></p>
+      <p className="text-sm font-light">
+        Fonts and redirects have their own editors on <strong>Website &amp; Design</strong> and{' '}
+        <strong>Domains &amp; Redirects</strong>; edits made here are checked the same way on save.
+      </p>
 
       <fetcher.Form method="POST" onSubmit={handleSubmit} className="m-0 space-y-4">
         {controls}

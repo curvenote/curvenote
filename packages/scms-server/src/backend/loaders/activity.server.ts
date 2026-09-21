@@ -1,6 +1,6 @@
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../prisma.server.js';
-import type { ActivityType } from '@curvenote/scms-db';
+import type { ActivityType, Prisma } from '@curvenote/scms-db';
 
 export interface LogActivityData {
   activityBy: string;
@@ -19,6 +19,8 @@ export interface LogActivityData {
   status?: string;
   transition?: any;
   datePublished?: string;
+  /** Free-form payload, e.g. which fields changed; keep it small and free of PII. */
+  data?: Record<string, unknown>;
 }
 
 /**
@@ -49,6 +51,7 @@ export async function logActivity(data: LogActivityData): Promise<void> {
       status: data.status,
       transition: data.transition,
       date_published: data.datePublished,
+      data: data.data as Prisma.InputJsonValue | undefined,
     },
     select: { id: true },
   });
