@@ -36,7 +36,7 @@ export function statusPresentation(status: string): {
       label: 'Needs attention',
       variant: 'destructive',
       description:
-        'Crossref rejected the last deposit under this prefix and role. No DOI was registered. Curvenote has been notified.',
+        'Crossref no longer accepts this role, so deposits cannot go out until it is checked again. Curvenote has been notified.',
     };
   }
   return { label: status, variant: 'neutral', description: '' };
