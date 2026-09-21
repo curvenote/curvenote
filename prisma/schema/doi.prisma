@@ -76,6 +76,10 @@ model DoiDeposit {
   result_xml_path        String?
   result                 Json?
   error                  String?
+  /// The job currently acting on this attempt: the CROSSREF_DEPOSIT job that posts it, then each
+  /// CROSSREF_POLL job as it is enqueued (a reschedule is a new Job row with `scheduled_at`; the
+  /// queue never re-runs a finished job). Updated in the transaction that enqueues the job, so the
+  /// DOI page has a live handle; earlier jobs are found through their payload.
   job_id                 String?
   completed_at           String?
 
