@@ -21,9 +21,12 @@ model SiteDoiConfig {
   /// Crossref role that deposits under `prefix`; login is `<depositor email>/<role>`.
   /// Never entered by the customer: set by a system admin from the Crossref email.
   role             String?
-  /// PENDING_ROLE | ACTIVE | NEEDS_ATTENTION (constants in scms-core)
+  /// PENDING_ROLE | ACTIVE | NEEDS_ATTENTION (constants in scms-core).
+  /// NEEDS_ATTENTION means only "the bound role no longer authenticates": a 401 on a deposit or
+  /// a poll under a role that once validated. A rejected XML is that registration's failure and
+  /// never touches the site. The way back is a successful role check (CN-2509).
   status           String  @default("PENDING_ROLE")
-  /// Crossref's message when a deposit is rejected for this site (set in phase 2).
+  /// Why the site is NEEDS_ATTENTION: Crossref's answer to the 401 that put it there.
   attention_reason String?
   occ              Int     @default(0)
 }
@@ -70,12 +73,16 @@ model DoiDeposit {
   /// Storage key of the deposited XML, in `KnownBuckets.prv`. The path convention inside
   /// the bucket is settled in CN-2509, which is also what first writes this column.
   xml_path               String
-  /// PENDING | QUEUED | SUCCEEDED | FAILED (constants in scms-core)
+  /// PENDING | QUEUED | SUCCEEDED | FAILED (constants in scms-core). A record Crossref
+  /// accepted with a warning is SUCCEEDED with `warning` set.
   status                 String            @default("PENDING")
   /// Raw submissionDownload result, kept for the timeline and for debugging.
   result_xml_path        String?
   result                 Json?
   error                  String?
+  /// Crossref's message when the record went in with a warning. Shown on the DOI page as
+  /// "registered with a warning" (CN-2511); `error` is for FAILED, this is for SUCCEEDED.
+  warning                String?
   /// The job currently acting on this attempt: the CROSSREF_DEPOSIT job that posts it, then each
   /// CROSSREF_POLL job as it is enqueued (a reschedule is a new Job row with `scheduled_at`; the
   /// queue never re-runs a finished job). Updated in the transaction that enqueues the job, so the

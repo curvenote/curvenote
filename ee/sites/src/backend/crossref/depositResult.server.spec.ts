@@ -59,13 +59,13 @@ describe('parseDepositResult', () => {
     expect(record.message).toMatch(/^Error validating schema crossref5\.3\.1\.xsd/);
   });
 
-  test('a Warning record counts as deposited', () => {
+  test('a Warning record counts as deposited, and the batch says so', () => {
     const xml = fixture('submissionDownload.200-completed-success.xml').replace(
       'status="Success"',
       'status="Warning"',
     );
     expect(parseDepositResult(xml)).toMatchObject({
-      outcome: 'success',
+      outcome: 'warning',
       records: [{ status: 'warning' }],
     });
   });

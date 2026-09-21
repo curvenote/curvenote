@@ -33,8 +33,11 @@ export type ParsedDepositResult =
       state: 'completed';
       submissionId: string;
       batchId: string;
-      /** A warning still means the record went in. */
-      outcome: 'success' | 'failure';
+      /**
+       * `warning` still means every record went in, but Crossref flagged at least one of them;
+       * the message is on the record. Product asked for this to be visible, not folded into success.
+       */
+      outcome: 'success' | 'warning' | 'failure';
       records: DepositRecord[];
     };
 
@@ -77,6 +80,13 @@ const DiagnosticSchema = z.discriminatedUnion('@_status', [
   }),
 ]);
 
+function batchOutcome(records: DepositRecord[]): 'success' | 'warning' | 'failure' {
+  if (records.some((r) => r.status === 'failure')) {
+    return 'failure';
+  }
+  return records.some((r) => r.status === 'warning') ? 'warning' : 'success';
+}
+
 export function parseDepositResult(xml: string): ParsedDepositResult {
   let root: unknown;
   try {
@@ -104,7 +114,7 @@ export function parseDepositResult(xml: string): ParsedDepositResult {
         state: 'completed',
         submissionId: diagnostic.submission_id,
         batchId: diagnostic.batch_id,
-        outcome: records.some((r) => r.status === 'failure') ? 'failure' : 'success',
+        outcome: batchOutcome(records),
         records,
       };
     }

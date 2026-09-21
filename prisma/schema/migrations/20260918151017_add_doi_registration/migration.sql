@@ -45,6 +45,7 @@ CREATE TABLE "DoiDeposit" (
     "result_xml_path" TEXT,
     "result" JSONB,
     "error" TEXT,
+    "warning" TEXT,
     "job_id" TEXT,
     "completed_at" TEXT,
 

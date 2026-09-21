@@ -9,7 +9,10 @@ export const DOI_REGISTRATION_STATUS = {
 export type DoiRegistrationStatus =
   (typeof DOI_REGISTRATION_STATUS)[keyof typeof DOI_REGISTRATION_STATUS];
 
-/** Values of `DoiDeposit.status`: one per deposit attempt. */
+/**
+ * Values of `DoiDeposit.status`: one per deposit attempt. A record Crossref accepted with a
+ * warning is SUCCEEDED with `DoiDeposit.warning` set, so "is it registered" stays one check.
+ */
 export const DOI_DEPOSIT_STATUS = {
   PENDING: 'PENDING',
   QUEUED: 'QUEUED',
