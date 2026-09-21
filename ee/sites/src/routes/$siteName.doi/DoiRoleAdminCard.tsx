@@ -35,9 +35,9 @@ export function DoiRoleAdminCard({ config }: DoiRoleAdminCardProps) {
         <SystemAdminBadge />
       </div>
       <p className="text-sm font-light">
-        Enter the role from the Crossref email for this organisation. First check that the prefix
+        Enter the role from the Crossref email for this organization. First check that the prefix
         owner above, <span className="font-medium">{config.prefix_owner ?? 'Unknown'}</span>,
-        matches the organisation named in the email. Linking is the authorisation: it says this
+        matches the organization named in the email. Linking is the authorization: it says this
         prefix and role belong to this Site.
       </p>
       <fetcher.Form method="POST" className="m-0 space-y-4">

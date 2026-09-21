@@ -22,7 +22,7 @@ export type BindRoleInput = {
 
 /**
  * The one manual step: a Curvenote system admin enters the role from the Crossref email.
- * Entering it is the authorisation ("this prefix and role are this site's"), so the caller must
+ * Entering it is the authorization ("this prefix and role are this site's"), so the caller must
  * be a system admin, the role must authenticate, and the pair must be free.
  */
 export async function bindRole(deps: DoiDeps, input: BindRoleInput): Promise<DoiResult> {

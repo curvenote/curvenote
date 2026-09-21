@@ -100,7 +100,7 @@ export function DoiAccountCard({
             <p className="text-xs text-muted-foreground">
               {roleBoundBy && isSystemAdmin
                 ? `Linked by ${roleBoundBy.name} on ${new Date(roleBoundBy.date).toLocaleDateString()}. Unlink it from Advanced actions.`
-                : 'Set by Curvenote from the role your organisation grants at Crossref. You never enter it here.'}
+                : 'Set by Curvenote from the role your organization grants at Crossref. You never enter it here.'}
             </p>
           </div>
         )}
@@ -113,7 +113,7 @@ export function DoiAccountCard({
                 <span className="font-medium">Need to grant access?</span> In your Crossref account,
                 add {depositorEmail} as a depositor for prefix {config.prefix}. Crossref emails us
                 and we complete the link.{' '}
-                {/* The alert is `prose`, which colours links for light mode only. */}
+                {/* The alert is `prose`, which colors links for light mode only. */}
                 <a
                   className="underline text-inherit"
                   href={CROSSREF_MEMBERSHIP_URL}

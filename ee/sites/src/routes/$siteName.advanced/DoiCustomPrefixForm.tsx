@@ -49,7 +49,7 @@ export function DoiCustomPrefixForm({ siteWithAppData }: DoiCustomPrefixFormProp
               </ui.TooltipTrigger>
               <ui.TooltipContent sideOffset={5} className="max-w-sm bg-blue-600">
                 <p className="text-blue-50">
-                  Lets site admins register DOIs under their organisation&apos;s Crossref prefix.
+                  Lets site admins register DOIs under their organization&apos;s Crossref prefix.
                   Turning this off does not change a Site that is already configured; it only hides
                   the option in the setup.
                 </p>

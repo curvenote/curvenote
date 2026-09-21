@@ -21,7 +21,7 @@ export function statusPresentation(status: string): {
       label: 'Waiting for Crossref role',
       variant: 'warning',
       description:
-        'Your prefix is saved. Curvenote will link your Crossref role to this Site once your organisation has granted access. DOIs cannot be registered until then.',
+        'Your prefix is saved. Curvenote will link your Crossref role to this Site once your organization has granted access. DOIs cannot be registered until then.',
     };
   }
   if (status === SITE_DOI_CONFIG_STATUS.ACTIVE) {
