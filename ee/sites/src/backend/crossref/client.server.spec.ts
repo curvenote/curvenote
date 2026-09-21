@@ -98,19 +98,30 @@ describe('checkRole', () => {
   test('authenticated when submissionDownload answers 200 unknown_submission', async () => {
     const f = fakeFetch(200, fixture('submissionDownload.200-unknown_submission.xml'));
     expect(await checkRole(creds, 'curv', { fetch: f })).toEqual({ authenticated: true });
-    const url = new URL(String((f as any).mock.calls[0][0]));
-    expect(url.origin + url.pathname).toBe('https://test.crossref.org/servlet/submissionDownload');
-    expect(url.searchParams.get('usr')).toBe('doi@curvenote.com/curv');
-    expect(url.searchParams.get('pwd')).toBe('s3cret');
-    expect(url.searchParams.get('file_name')).toBeTruthy();
-    expect(url.searchParams.get('type')).toBe('result');
+    const [url, init] = (f as any).mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toBe('https://test.crossref.org/servlet/submissionDownload');
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe(
+      'application/x-www-form-urlencoded',
+    );
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get('usr')).toBe('doi@curvenote.com/curv');
+    expect(body.get('pwd')).toBe('s3cret');
+    expect(body.get('file_name')).toBeTruthy();
+    expect(body.get('type')).toBe('result');
   });
 
   test('not authenticated on 401', async () => {
     const f = fakeFetch(401, fixture('submissionDownload.401-wrong-credentials.txt'));
     expect(await checkRole(creds, 'nope', { fetch: f })).toEqual({ authenticated: false });
-    const url = new URL(String((f as any).mock.calls[0][0]));
-    expect(url.searchParams.get('usr')).toBe('doi@curvenote.com/nope');
+    const init = (f as any).mock.calls[0][1] as RequestInit;
+    expect(new URLSearchParams(String(init.body)).get('usr')).toBe('doi@curvenote.com/nope');
+  });
+
+  test('keeps the password out of the URL', async () => {
+    const f = fakeFetch(200, fixture('submissionDownload.200-unknown_submission.xml'));
+    await checkRole(creds, 'curv', { fetch: f });
+    expect(String((f as any).mock.calls[0][0])).not.toContain('s3cret');
   });
 
   test('throws with the status on 503 without leaking the password', async () => {

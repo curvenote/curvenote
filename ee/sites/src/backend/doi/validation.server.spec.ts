@@ -67,7 +67,9 @@ describe('validateRole', () => {
   test('passes when Crossref authenticates the role', async () => {
     const { deps, fetchMock } = makeDeps(fakeFetch({ status: 200, body: roleOkBody }));
     expect(await validateRole(deps, 'elms')).toEqual({ ok: true });
-    expect(String(fetchMock.mock.calls[0][0])).toContain('usr=doi%40curvenote.com%2Felms');
+    expect(String((fetchMock.mock.calls[0][1] as RequestInit).body)).toContain(
+      'usr=doi%40curvenote.com%2Felms',
+    );
   });
 
   test('blames the role when the control login works', async () => {
@@ -78,7 +80,9 @@ describe('validateRole', () => {
       status: 400,
       error: DOI_ERRORS.roleRejected,
     });
-    expect(String(fetchMock.mock.calls[1][0])).toContain('usr=doi%40curvenote.com%2Fcurv');
+    expect(String((fetchMock.mock.calls[1][1] as RequestInit).body)).toContain(
+      'usr=doi%40curvenote.com%2Fcurv',
+    );
   });
 
   test("blames Curvenote's credentials when the control login fails too", async () => {
