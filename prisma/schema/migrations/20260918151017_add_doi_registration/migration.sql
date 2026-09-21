@@ -43,7 +43,6 @@ CREATE TABLE "DoiDeposit" (
     "xml_path" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "result_xml_path" TEXT,
-    "result" JSONB,
     "error" TEXT,
     "warning" TEXT,
     "job_id" TEXT,
@@ -75,6 +74,12 @@ CREATE INDEX "DoiDeposit_submission_version_id_idx" ON "DoiDeposit"("submission_
 
 -- AddForeignKey
 ALTER TABLE "DoiRegistration" ADD CONSTRAINT "DoiRegistration_submission_id_fkey" FOREIGN KEY ("submission_id") REFERENCES "Submission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DoiRegistration" ADD CONSTRAINT "DoiRegistration_site_id_fkey" FOREIGN KEY ("site_id") REFERENCES "Site"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DoiRegistration" ADD CONSTRAINT "DoiRegistration_created_by_id_fkey" FOREIGN KEY ("created_by_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DoiDeposit" ADD CONSTRAINT "DoiDeposit_registration_id_fkey" FOREIGN KEY ("registration_id") REFERENCES "DoiRegistration"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

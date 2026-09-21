@@ -38,6 +38,7 @@ model DoiRegistration {
   date_modified String
   submission    Submission   @relation(fields: [submission_id], references: [id])
   submission_id String       @unique
+  site          Site         @relation(fields: [site_id], references: [id])
   site_id       String
   /// Stored as generated: lowercase suffix, no URL. The resolver matches by equality
   /// and doi-utils does not fold case, so generation is where case is fixed.
@@ -46,6 +47,7 @@ model DoiRegistration {
   /// DRAFT | SUBMITTING | REGISTERED | FAILED (constants in scms-core)
   status        String       @default("DRAFT")
   registered_at String?
+  created_by    User         @relation(fields: [created_by_id], references: [id])
   created_by_id String
   attempts      DoiDeposit[]
   occ           Int          @default(0)
@@ -78,7 +80,6 @@ model DoiDeposit {
   status                 String            @default("PENDING")
   /// Raw submissionDownload result, kept for the timeline and for debugging.
   result_xml_path        String?
-  result                 Json?
   error                  String?
   /// Crossref's message when the record went in with a warning. Shown on the DOI page as
   /// "registered with a warning" (CN-2511); `error` is for FAILED, this is for SUCCEEDED.

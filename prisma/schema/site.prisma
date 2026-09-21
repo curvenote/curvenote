@@ -54,6 +54,7 @@ model Site {
   access              Access[]
   forms               SubmissionForm[]
   doiConfig           SiteDoiConfig?
+  doiRegistrations    DoiRegistration[]
 }
 
 model Domain {
