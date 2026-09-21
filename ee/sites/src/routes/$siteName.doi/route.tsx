@@ -1,4 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react-router';
+import { redirect } from 'react-router';
 import type { SiteDTO } from '@curvenote/common';
 import {
   PageFrame,
@@ -41,6 +42,12 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     redirectTo: '/app',
     redirect: true,
   });
+  // withAppSiteContext only checks site scopes; app:sites:doi:feature is the per-user preview
+  // flag (granted through a Role, e.g. doi-preview) that actually gates this screen. System
+  // admins pass automatically because userHasScope short-circuits on system:admin.
+  if (!userHasScope(ctx.user, scopes.app.sites.doi.feature)) {
+    throw redirect('/app');
+  }
   const prisma = await getPrismaClient();
   const [siteWithAppData, row] = await Promise.all([
     getSiteWithAppData(ctx.site.name),

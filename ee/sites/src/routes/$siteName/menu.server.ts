@@ -1,9 +1,23 @@
 import type { MenuContents } from '@curvenote/scms-core';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { registerExtensionNavigation, scopes } from '@curvenote/scms-core';
-import { userHasSiteScope } from '@curvenote/scms-server';
+import { userHasScope, userHasSiteScope } from '@curvenote/scms-server';
 
-export function administrationMenus(baseUrl: string) {
+interface AdminMenuItem {
+  name: string;
+  label: string;
+  url: string;
+  scope: string;
+  /** Extra per-user app scope required in addition to `scope`. Checked with `userHasScope`. */
+  appScope?: string;
+}
+
+interface AdminMenuSection {
+  sectionName: string;
+  menus: AdminMenuItem[];
+}
+
+export function administrationMenus(baseUrl: string): AdminMenuItem[] {
   return [
     {
       name: 'admin.kinds',
@@ -35,6 +49,9 @@ export function administrationMenus(baseUrl: string) {
       url: `${baseUrl}/doi`,
       // Members hold site:doi:read; only admins hold configure, and only they see the screen.
       scope: scopes.site.doi.configure,
+      // Per-user preview flag, granted through a Role (e.g. doi-preview), independent of the
+      // Enterprise site.data.doiCustomPrefixEnabled flag on Site > Advanced.
+      appScope: scopes.app.sites.doi.feature,
     },
     {
       name: 'admin.users',
@@ -78,7 +95,7 @@ export async function buildMenu(ctx: SiteContextWithUser): Promise<MenuContents>
     return fromExtensions.menu;
   }
 
-  const allMenuItems = [
+  const allMenuItems: AdminMenuSection[] = [
     {
       sectionName: 'Articles',
       menus: [
@@ -106,10 +123,13 @@ export async function buildMenu(ctx: SiteContextWithUser): Promise<MenuContents>
     .map((section) => ({
       ...section,
       menus: section.menus.filter((menu) => {
-        if (!menu.scope) {
-          return true;
+        if (menu.scope && !userHasSiteScope(ctx.user, menu.scope, ctx.site.id)) {
+          return false;
         }
-        return userHasSiteScope(ctx.user, menu.scope, ctx.site.id);
+        if (menu.appScope && !userHasScope(ctx.user, menu.appScope)) {
+          return false;
+        }
+        return true;
       }),
     }))
     .filter((section) => section.menus.length > 0);

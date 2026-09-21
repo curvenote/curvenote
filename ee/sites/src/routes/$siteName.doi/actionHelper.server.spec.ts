@@ -1,7 +1,8 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
-import { userHasScope } from '@curvenote/scms-server';
+import { getPrismaClient, userHasScope } from '@curvenote/scms-server';
+import { scopes } from '@curvenote/scms-core';
 import { crossrefCredentialsFromConfig } from '../../backend/crossref/client.server.js';
 import { getSiteWithAppData } from '../../backend/db.server.js';
 import { configureCustom } from '../../backend/doi/configure.server.js';
@@ -50,7 +51,19 @@ describe('runDoiIntent', () => {
     vi.mocked(getSiteWithAppData).mockResolvedValue({
       data: { doiCustomPrefixEnabled: true },
     } as never);
+    // The preview feature flag is granted by default; the isSystemAdmin scope stays false, as
+    // every test below already assumes.
+    vi.mocked(userHasScope).mockImplementation(
+      (_user, scope) => scope === scopes.app.sites.doi.feature,
+    );
+  });
+
+  it('answers 403 when the user lacks the app:sites:doi:feature scope, before doing anything else', async () => {
     vi.mocked(userHasScope).mockReturnValue(false);
+    const result = (await runDoiIntent(ctx, form({ intent: 'configure-curvenote' }))) as Rejection;
+    expect(result.init.status).toBe(403);
+    expect(vi.mocked(getPrismaClient)).not.toHaveBeenCalled();
+    expect(vi.mocked(crossrefCredentialsFromConfig)).not.toHaveBeenCalled();
   });
 
   it('answers 400 to an unknown intent', async () => {

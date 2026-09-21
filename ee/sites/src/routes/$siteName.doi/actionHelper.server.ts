@@ -84,6 +84,12 @@ async function dispatch(
 }
 
 export async function runDoiIntent(ctx: SiteContextWithUser, formData: FormData) {
+  // `site:doi:configure` (checked by withAppSiteContext) opens the door to any site admin;
+  // app:sites:doi:feature is the per-user preview flag, granted through a Role (e.g.
+  // doi-preview), that actually gates the screen while it is in preview.
+  if (!userHasScope(ctx.user, scopes.app.sites.doi.feature)) {
+    return data({ error: 'DOI registration is not available for this account.' }, { status: 403 });
+  }
   let intent: DoiIntent;
   try {
     intent = validateFormData(IntentSchema, formData).intent;

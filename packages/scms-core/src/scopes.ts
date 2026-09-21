@@ -136,6 +136,9 @@ export const app = {
     feature: 'app:sites:feature',
     read: 'app:sites:read',
     request: 'app:sites:request',
+    doi: {
+      feature: 'app:sites:doi:feature',
+    },
   },
   platform: { admin: 'app:platform:admin' },
   works: {
