@@ -4,6 +4,7 @@ import { cn, ui } from '@curvenote/scms-core';
 import type { TagCatalogRow } from './types.js';
 import {
   getDeleteDialogAlertError,
+  getDeleteTagDescription,
   getFetcherErrorParts,
   getTagDialogIdleAction,
   resolveTagCatalogOutcome,
@@ -66,8 +67,7 @@ export function DeleteTagDialog({ open, onOpenChange, tag }: DeleteTagDialogProp
         <ui.DialogHeader>
           <ui.DialogTitle>Delete tag</ui.DialogTitle>
           <ui.DialogDescription>
-            This removes "{tag.label}" from the catalog. It is removed from every submission that
-            had it. This cannot be undone.
+            {getDeleteTagDescription({ label: tag.label, submissionCount: tag.submission_count })}
           </ui.DialogDescription>
         </ui.DialogHeader>
         {alertError ? <ui.SimpleAlert type="error" message={alertError} size="compact" /> : null}

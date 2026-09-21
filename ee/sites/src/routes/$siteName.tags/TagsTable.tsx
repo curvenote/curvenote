@@ -14,6 +14,9 @@ const STICKY_START_CLASS = cn(
 const STICKY_END_CLASS = cn(
   'xs:sticky xs:right-0 xs:z-10 xs:bg-white xs:dark:bg-stone-900 xs:border-l xs:border-stone-200 xs:dark:border-stone-700',
 );
+// The "Submissions" header and each row's count share this box, right-anchored in the column, so
+// the numbers render centered under the header word rather than against the column edge.
+export const SUBMISSION_COUNT_BOX_CLASS = 'inline-block w-28 text-center';
 
 export function TagsTable({ children, className }: TagsTableProps) {
   return (
@@ -25,6 +28,9 @@ export function TagsTable({ children, className }: TagsTableProps) {
               <th className={cn(HEADER_CELL_CLASS, STICKY_START_CLASS)}>Label</th>
               <th className={HEADER_CELL_CLASS}>Name</th>
               <th className={HEADER_CELL_CLASS}>Created</th>
+              <th className={cn(HEADER_CELL_CLASS, 'text-right')}>
+                <span className={SUBMISSION_COUNT_BOX_CLASS}>Submissions</span>
+              </th>
               <th className={cn(HEADER_CELL_CLASS, STICKY_END_CLASS, 'w-24 min-w-24 text-right')}>
                 Actions
               </th>

@@ -1,5 +1,6 @@
 import { formatDate, ui, cn } from '@curvenote/scms-core';
 import { Pencil, Trash2 } from 'lucide-react';
+import { SUBMISSION_COUNT_BOX_CLASS } from './TagsTable.js';
 import type { TagCatalogRow } from './types.js';
 
 type TagRowProps = {
@@ -35,6 +36,9 @@ export function TagRow({ tag, onEdit, onDelete }: TagRowProps) {
       </td>
       <td className="px-4 py-3 text-sm text-stone-500 dark:text-stone-400 whitespace-nowrap">
         {formatDate(tag.date_created)}
+      </td>
+      <td className="px-4 py-3 text-sm text-right tabular-nums text-stone-600 dark:text-stone-300 whitespace-nowrap">
+        <span className={SUBMISSION_COUNT_BOX_CLASS}>{tag.submission_count}</span>
       </td>
       <td className={cn('px-4 py-3 whitespace-nowrap min-w-24', STICKY_END_CLASS)}>
         <div className="flex items-center justify-end gap-2">
