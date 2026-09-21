@@ -16,9 +16,12 @@ import {
   actionSaveSiteRestriction,
   actionUpdateSiteByJson,
   actionUpdateSiteSettings,
+  actionSetFontLicenseVerified,
 } from './actionHelper.server.js';
 import { SubmissionSettingsForm } from './SubmissionSettingsForm.js';
 import { SiteMetadataForm } from './SiteMetadataForm.js';
+import { FontLicenseForm } from './FontLicenseForm.js';
+import type { FontLicense, SiteThemeConfig } from '../../themeConfig/types.js';
 import { SiteSettingsForm } from './SiteSettingsForm.js';
 import type { SiteDTO } from '@curvenote/common';
 import { getSiteWithAppData } from '../../backend/db.server.js';
@@ -62,7 +65,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
 }
 
 const FormActionSchema = zfd.formData({
-  formAction: z.enum(['update-site', 'restrict', 'update-site-settings']),
+  formAction: z.enum(['update-site', 'restrict', 'update-site-settings', 'font-license']),
 });
 
 export async function action(args: ActionFunctionArgs) {
@@ -86,6 +89,8 @@ export async function action(args: ActionFunctionArgs) {
     return actionSaveSiteRestriction(ctx, formData);
   } else if (formAction === 'update-site-settings') {
     return actionUpdateSiteSettings(ctx, formData);
+  } else if (formAction === 'font-license') {
+    return actionSetFontLicenseVerified(ctx, formData);
   }
 
   return data({ error: 'Invalid form action' }, { status: 400 });
@@ -119,6 +124,10 @@ export default function Settings({ loaderData }: { loaderData: LoaderData }) {
         </primitives.Card>
         <SiteSettingsForm site={site} siteWithAppData={siteWithAppData} />
         <SubmissionSettingsForm site={site} />
+        <FontLicenseForm
+          license={metadata.font_license as FontLicense | undefined}
+          fonts={(metadata.theme_config as SiteThemeConfig | undefined)?.fonts}
+        />
         <SiteMetadataForm site={site} metadata={metadata} />
       </div>
     </PageFrame>

@@ -77,6 +77,8 @@ export enum TrackEvent {
 
   // Site design events
   SITE_DESIGN_UPDATED = 'Site Design Updated',
+  SITE_FONTS_UPDATED = 'Site Fonts Updated',
+  SITE_REDIRECTS_UPDATED = 'Site Redirects Updated',
 
   // Magic link events
   MAGIC_LINK_CREATED = 'Magic Link Created',
@@ -176,6 +178,8 @@ export const TrackEventDescriptions: Record<TrackEvent, string> = {
 
   // Site design events
   [TrackEvent.SITE_DESIGN_UPDATED]: 'Site design and branding settings updated',
+  [TrackEvent.SITE_FONTS_UPDATED]: 'Site fonts updated',
+  [TrackEvent.SITE_REDIRECTS_UPDATED]: 'Site redirects updated',
 
   // Magic link events
   [TrackEvent.MAGIC_LINK_CREATED]: 'Magic link created',

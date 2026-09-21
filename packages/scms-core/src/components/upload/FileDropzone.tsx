@@ -240,7 +240,6 @@ export function FileDropzone({
 
   // UI state
   const showProgress = ['staging', 'uploading', 'completing'].includes(uploadState.status);
-  const showCompleted = uploadState.status === 'completed';
   const errorMessage = generalError || uploadState.error;
 
   return (
@@ -271,7 +270,7 @@ export function FileDropzone({
             <p className="text-sm text-muted-foreground">{label}</p>
           </div>
         )}
-        {!errorMessage && !showCompleted && !showProgress && (
+        {!errorMessage && !showProgress && (
           <p className="mt-1 text-xs text-muted-foreground">
             Max size: {Math.round(maxSize / (1024 * 1024))}MB
           </p>
@@ -280,12 +279,6 @@ export function FileDropzone({
         {errorMessage && (
           <div className="px-3 py-2 text-xs text-red-600 rounded-md bg-red-50 dark:bg-red-900/20 dark:text-red-400 max-w-[90%] pointer-events-auto">
             {errorMessage}
-          </div>
-        )}
-
-        {showCompleted && uploadState.file && !errorMessage && (
-          <div className="px-3 py-2 text-xs text-green-600 rounded-md bg-green-50 dark:bg-green-900/20 dark:text-green-400 max-w-[90%] pointer-events-auto">
-            ✓ Uploaded successfully
           </div>
         )}
 
