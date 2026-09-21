@@ -7,7 +7,10 @@
  * The credentials travel in the POST body, not the query string, so they never reach URL logs.
  * Crossref documents this servlet as GET with query parameters; observed on 2026-09-21 that it
  * reads the same parameters from a form body (bad credentials answer 401 "Wrong credentials",
- * an empty POST answers 401 "No login info in request").
+ * an empty POST answers 401 "No login info in request"). Checked against test.crossref.org the
+ * same day for `file_name`s that really were deposited, one succeeded and one failed to validate:
+ * both answered byte-identically to the query-string form, so the file lookup behaves the same
+ * once authentication passes.
  */
 import { XMLParser } from 'fast-xml-parser';
 import { z } from 'zod';
