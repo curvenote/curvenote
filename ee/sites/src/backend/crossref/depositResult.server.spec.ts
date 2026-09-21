@@ -149,7 +149,7 @@ describe('fetchDepositResult', () => {
     ).rejects.toMatchObject({ status: 503 });
   });
 
-  test('never forwards the network error message (the URL holds the password)', async () => {
+  test('never forwards the network error message (the request holds the password)', async () => {
     const f = vi.fn(() => Promise.reject(new TypeError('https://x?pwd=s3cret')));
     const err = await fetchDepositResult(creds, input, {
       fetch: f as unknown as typeof fetch,

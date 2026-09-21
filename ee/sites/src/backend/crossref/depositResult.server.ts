@@ -14,9 +14,16 @@
  */
 import { XMLParser } from 'fast-xml-parser';
 import { z } from 'zod';
-import { CrossrefError, type CrossrefCredentials } from './client.server.js';
+import {
+  CrossrefError,
+  crossrefFetch,
+  crossrefText,
+  type CrossrefCredentials,
+  type FetchOpts,
+} from './client.server.js';
 
 const TIMEOUT_MS = 10_000;
+const LABEL = 'Crossref result';
 const RECORD_STATUS = { Success: 'success', Warning: 'warning', Failure: 'failure' } as const;
 
 export type DepositRecord = {
@@ -121,8 +128,6 @@ export function parseDepositResult(xml: string): ParsedDepositResult {
   }
 }
 
-type FetchOpts = { fetch?: typeof fetch };
-
 export async function fetchDepositResult(
   creds: CrossrefCredentials,
   input: DepositResultInput,
@@ -134,31 +139,24 @@ export async function fetchDepositResult(
     file_name: input.fileName,
     type: 'result',
   });
-  const doFetch = opts?.fetch ?? fetch;
-  let resp: Response;
-  try {
-    resp = await doFetch(`${creds.host}/servlet/submissionDownload`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-  } catch (e: any) {
-    // Only the error name: the body holds the password, so the original message is never forwarded.
-    throw new CrossrefError(`Crossref result request failed: ${e?.name ?? 'network error'}`);
-  }
+  const resp = await crossrefFetch(
+    {
+      label: LABEL,
+      url: `${creds.host}/servlet/submissionDownload`,
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      },
+      timeoutMs: TIMEOUT_MS,
+      expect: [401],
+    },
+    opts,
+  );
   if (resp.status === 401) {
     return { state: 'unauthorized' };
   }
-  if (!resp.ok) {
-    throw new CrossrefError(`Crossref result answered ${resp.status}`, resp.status);
-  }
-  let xml: string;
-  try {
-    xml = await resp.text();
-  } catch {
-    throw new CrossrefError('Crossref result returned an unreadable body', resp.status);
-  }
+  const xml = await crossrefText(resp, LABEL);
   return { ...parseDepositResult(xml), xml };
 }
 

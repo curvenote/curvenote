@@ -1,7 +1,7 @@
 /**
- * Crossref HTTP calls for site DOI configuration. HTTP only, no business logic.
- * Behaviour: Linear "Crossref integration facts". Never log or persist response
- * headers, and never put credentials in error messages.
+ * Crossref HTTP plumbing shared by every call, plus the prefix lookup. HTTP only, no business
+ * logic. Behaviour: Linear "Crossref integration facts". Never log or persist response headers,
+ * and never put credentials in error messages.
  */
 import { z } from 'zod';
 import { PREFIX_RE } from './prefix.js';
@@ -24,7 +24,7 @@ const PrefixResponseSchema = z.object({
 });
 
 export type CrossrefCredentials = z.output<typeof CredentialsSchema>;
-type FetchOpts = { fetch?: typeof fetch };
+export type FetchOpts = { fetch?: typeof fetch };
 type LookupOpts = FetchOpts & { contactEmail?: string };
 
 /** `status` is undefined when no response arrived (timeout or network failure). */
@@ -38,25 +38,60 @@ export class CrossrefError extends Error {
   }
 }
 
-export async function lookupPrefix(prefix: string, opts?: LookupOpts) {
+type CrossrefRequest = {
+  /** Names the call in error messages, e.g. "Crossref deposit". */
+  label: string;
+  url: string;
+  init?: RequestInit;
+  timeoutMs: number;
+  /** Non-2xx statuses the caller answers itself; any other one throws. */
+  expect?: number[];
+};
+
+/**
+ * Every Crossref request goes out through here. A request that never got an answer is reported
+ * by the error's name only: the request carries the password, and the original error can repeat
+ * the URL or the body.
+ */
+export async function crossrefFetch(req: CrossrefRequest, opts?: FetchOpts): Promise<Response> {
   const doFetch = opts?.fetch ?? fetch;
   let resp: Response;
   try {
-    resp = await doFetch(`${PREFIXES_API}/${encodeURIComponent(prefix)}`, {
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      // api.crossref.org asks polite clients to identify themselves with a contact address.
-      ...(opts?.contactEmail
-        ? { headers: { 'User-Agent': `Curvenote-SCMS (mailto:${opts.contactEmail})` } }
-        : {}),
-    });
-  } catch (e: any) {
-    throw new CrossrefError(`Crossref prefix lookup request failed: ${e?.name ?? 'network error'}`);
+    resp = await doFetch(req.url, { ...req.init, signal: AbortSignal.timeout(req.timeoutMs) });
+  } catch (e) {
+    const name = e instanceof Error ? e.name : 'network error';
+    throw new CrossrefError(`${req.label} request failed: ${name}`);
   }
+  if (!resp.ok && !req.expect?.includes(resp.status)) {
+    throw new CrossrefError(`${req.label} answered ${resp.status}`, resp.status);
+  }
+  return resp;
+}
+
+export async function crossrefText(resp: Response, label: string): Promise<string> {
+  try {
+    return await resp.text();
+  } catch {
+    throw new CrossrefError(`${label} returned an unreadable body`, resp.status);
+  }
+}
+
+export async function lookupPrefix(prefix: string, opts?: LookupOpts) {
+  const resp = await crossrefFetch(
+    {
+      label: 'Crossref prefix lookup',
+      url: `${PREFIXES_API}/${encodeURIComponent(prefix)}`,
+      // api.crossref.org asks polite clients to identify themselves with a contact address.
+      init: opts?.contactEmail
+        ? { headers: { 'User-Agent': `Curvenote-SCMS (mailto:${opts.contactEmail})` } }
+        : undefined,
+      timeoutMs: TIMEOUT_MS,
+      expect: [404],
+    },
+    opts,
+  );
   if (resp.status === 404) {
     return null;
-  }
-  if (!resp.ok) {
-    throw new CrossrefError(`Crossref prefix lookup answered ${resp.status}`, resp.status);
   }
   let json: unknown;
   try {

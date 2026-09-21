@@ -24,7 +24,7 @@ describe('deposit', () => {
   test('posts the XML as a multipart upload named after file_name', async () => {
     const f = fakeFetch(200, fixture('deposit.200-success.html'));
     expect(await deposit(creds, input, { fetch: f as unknown as typeof fetch })).toEqual({
-      received: true,
+      state: 'received',
     });
     const [url, init] = f.mock.calls[0];
     expect(String(url)).toBe('https://test.crossref.org/servlet/deposit');
@@ -42,8 +42,7 @@ describe('deposit', () => {
   test('reports bad credentials on a 401', async () => {
     const f = fakeFetch(401, fixture('deposit.401-wrong-credentials.html'));
     expect(await deposit(creds, input, { fetch: f as unknown as typeof fetch })).toEqual({
-      received: false,
-      reason: 'unauthorized',
+      state: 'unauthorized',
     });
   });
 
