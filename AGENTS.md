@@ -26,6 +26,10 @@ If `ui` has no equivalent for what `primitives` provides (e.g. `primitives.Card`
 
 Existing `primitives.*` usages migrate to `ui.*` in their own PR, not folded into unrelated work.
 
+## Customer-Facing Copy
+
+Write all customer-facing text (UI copy, emails, error messages, docs, instructions) in American English spelling: `organization`, `authorization`, `color`, `center`, `optimize`.
+
 ## Lint And Format Checks
 
 - After edits, run the narrowest relevant package/workspace checks first, including lint, format fix/check, compile, and focused tests where available.
