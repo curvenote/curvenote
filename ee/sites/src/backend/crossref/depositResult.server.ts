@@ -4,6 +4,7 @@
  * resolves by it). HTTP and parsing only; mapping to DoiDeposit statuses is the caller's.
  */
 import { XMLParser } from 'fast-xml-parser';
+import { z } from 'zod';
 import { CrossrefError, type CrossrefCredentials } from './client.server.js';
 
 const TIMEOUT_MS = 10_000;
@@ -41,52 +42,63 @@ const parser = new XMLParser({
   isArray: (name) => name === 'record_diagnostic',
 });
 
-type RawRecordDiagnostic = {
-  '@_status'?: string;
-  doi?: unknown;
-  msg?: unknown;
-};
-
 const unexpected = () => new CrossrefError('Crossref result has an unexpected body', 200);
-const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
 
-function toRecord(raw: RawRecordDiagnostic): DepositRecord {
-  const status = RECORD_STATUS[raw?.['@_status'] as keyof typeof RECORD_STATUS];
-  if (!status) {
-    throw unexpected();
-  }
-  return { status, doi: text(raw.doi) || null, message: text(raw.msg) };
-}
+/** `<doi />` and `<msg />` parse to `''`; an id that is absent or empty is a malformed answer. */
+const id = z.string().min(1);
+
+const RecordDiagnosticSchema = z.object({
+  '@_status': z.enum(['Success', 'Warning', 'Failure']),
+  doi: z.string().default(''),
+  msg: z.string().default(''),
+});
+
+/**
+ * `doi_batch_diagnostic` keyed on its `status` attribute. Unknown keys (`batch_data`, `@_sp`,
+ * the empty `batch_id` on a queued answer) are dropped; anything else is `unexpected()`.
+ */
+const DiagnosticSchema = z.discriminatedUnion('@_status', [
+  z.object({ '@_status': z.literal('unknown_submission') }),
+  z.object({ '@_status': z.literal('queued'), submission_id: id }),
+  z.object({
+    '@_status': z.literal('completed'),
+    submission_id: id,
+    batch_id: id,
+    record_diagnostic: z.array(RecordDiagnosticSchema).min(1),
+  }),
+]);
 
 export function parseDepositResult(xml: string): ParsedDepositResult {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let root: any;
+  let root: unknown;
   try {
     root = parser.parse(xml)?.doi_batch_diagnostic;
   } catch {
     throw unexpected();
   }
-  switch (root?.['@_status']) {
+  const parsed = DiagnosticSchema.safeParse(root);
+  if (!parsed.success) {
+    throw unexpected();
+  }
+  const diagnostic = parsed.data;
+  switch (diagnostic['@_status']) {
     case 'unknown_submission':
       return { state: 'unknown_submission' };
     case 'queued':
-      return { state: 'queued', submissionId: text(root.submission_id) };
+      return { state: 'queued', submissionId: diagnostic.submission_id };
     case 'completed': {
-      const rawRecords: RawRecordDiagnostic[] = root.record_diagnostic ?? [];
-      const records: DepositRecord[] = rawRecords.map(toRecord);
-      if (records.length === 0) {
-        throw unexpected();
-      }
+      const records: DepositRecord[] = diagnostic.record_diagnostic.map((raw) => ({
+        status: RECORD_STATUS[raw['@_status']],
+        doi: raw.doi || null,
+        message: raw.msg,
+      }));
       return {
         state: 'completed',
-        submissionId: text(root.submission_id),
-        batchId: text(root.batch_id),
+        submissionId: diagnostic.submission_id,
+        batchId: diagnostic.batch_id,
         outcome: records.some((r) => r.status === 'failure') ? 'failure' : 'success',
         records,
       };
     }
-    default:
-      throw unexpected();
   }
 }
 

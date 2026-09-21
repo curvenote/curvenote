@@ -82,6 +82,18 @@ describe('parseDepositResult', () => {
         'status="Maybe"',
       ),
     ],
+    // Would otherwise surface as `submissionId: ''` and be written to DoiDeposit.
+    [
+      'a queued answer with an empty submission id',
+      '<doi_batch_diagnostic status="queued"><submission_id /><batch_id /></doi_batch_diagnostic>',
+    ],
+    [
+      'a completed batch with an empty batch id',
+      fixture('submissionDownload.200-completed-success.xml').replace(
+        '<batch_id>b8d0b4aa-fd3b-4275-8a60-b63721778b36</batch_id>',
+        '<batch_id />',
+      ),
+    ],
   ])('throws on %s', (_name, xml) => {
     expect(() => parseDepositResult(xml)).toThrow(CrossrefError);
   });
