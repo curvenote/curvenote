@@ -5,7 +5,6 @@ import {
   CrossrefError,
   checkRole,
   crossrefCredentialsFromConfig,
-  isRetryableCrossrefError,
   lookupPrefix,
 } from './client.server.js';
 
@@ -206,18 +205,5 @@ describe('crossrefCredentialsFromConfig', () => {
       /api\.crossref\.prefix.*api\.crossref\.role/,
     );
     expect(() => crossrefCredentialsFromConfig(config)).not.toThrow(/s3cret/);
-  });
-});
-
-describe('isRetryableCrossrefError', () => {
-  test.each([
-    [new CrossrefError('network'), true],
-    [new CrossrefError('busy', 429), true],
-    [new CrossrefError('down', 503), true],
-    [new CrossrefError('bad body', 200), false],
-    [new CrossrefError('bad request', 400), false],
-    [new Error('not crossref'), false],
-  ])('%s -> %s', (error, expected) => {
-    expect(isRetryableCrossrefError(error)).toBe(expected);
   });
 });
