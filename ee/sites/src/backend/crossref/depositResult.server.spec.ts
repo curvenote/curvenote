@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test, vi } from 'vitest';
 import { CrossrefError } from './client.server.js';
-import { fetchDepositResult, parseDepositResult } from './depositResult.server.js';
+import { checkRole, fetchDepositResult, parseDepositResult } from './depositResult.server.js';
 
 const fixture = (name: string) =>
   readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
@@ -11,6 +11,8 @@ const fakeFetch = (status: number, body: string) =>
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async (_url: string | URL | Request, _init?: RequestInit) => new Response(body, { status }),
   );
+const rejectingFetch = (error: Error) =>
+  vi.fn(() => Promise.reject(error)) as unknown as typeof fetch;
 const creds = {
   host: 'https://test.crossref.org',
   depositorEmail: 'doi@curvenote.com',
@@ -110,14 +112,24 @@ describe('fetchDepositResult', () => {
         xml: body,
       },
     );
-    const url = new URL(String(f.mock.calls[0][0]));
-    expect(url.origin + url.pathname).toBe('https://test.crossref.org/servlet/submissionDownload');
-    expect(Object.fromEntries(url.searchParams)).toEqual({
+    const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
+    expect(String(url)).toBe('https://test.crossref.org/servlet/submissionDownload');
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe(
+      'application/x-www-form-urlencoded',
+    );
+    expect(Object.fromEntries(new URLSearchParams(String(init.body)))).toEqual({
       usr: 'doi@curvenote.com/elms',
       pwd: 's3cret',
       file_name: 'CN-dep.b8d0b4aa.xml',
       type: 'result',
     });
+  });
+
+  test('keeps the password out of the URL', async () => {
+    const f = fakeFetch(200, fixture('submissionDownload.200-queued.xml'));
+    await fetchDepositResult(creds, input, { fetch: f as unknown as typeof fetch });
+    expect(String(f.mock.calls[0][0])).not.toContain('s3cret');
   });
 
   test('reports bad credentials on a 401 instead of throwing', async () => {
@@ -144,5 +156,77 @@ describe('fetchDepositResult', () => {
     }).catch((e) => e);
     expect(err).toBeInstanceOf(CrossrefError);
     expect(err.message).not.toContain('s3cret');
+  });
+});
+
+describe('checkRole', () => {
+  test('authenticated when submissionDownload answers 200 unknown_submission', async () => {
+    const f = fakeFetch(200, fixture('submissionDownload.200-unknown_submission.xml'));
+    expect(await checkRole(creds, 'curv', { fetch: f as unknown as typeof fetch })).toEqual({
+      authenticated: true,
+    });
+    const [url, init] = (f as any).mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toBe('https://test.crossref.org/servlet/submissionDownload');
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe(
+      'application/x-www-form-urlencoded',
+    );
+    const body = new URLSearchParams(String(init.body));
+    expect(body.get('usr')).toBe('doi@curvenote.com/curv');
+    expect(body.get('pwd')).toBe('s3cret');
+    expect(body.get('file_name')).toBeTruthy();
+    expect(body.get('type')).toBe('result');
+  });
+
+  test('not authenticated on 401', async () => {
+    const f = fakeFetch(401, fixture('submissionDownload.401-wrong-credentials.txt'));
+    expect(await checkRole(creds, 'nope', { fetch: f as unknown as typeof fetch })).toEqual({
+      authenticated: false,
+    });
+    const init = (f as any).mock.calls[0][1] as RequestInit;
+    expect(new URLSearchParams(String(init.body)).get('usr')).toBe('doi@curvenote.com/nope');
+  });
+
+  test('keeps the password out of the URL', async () => {
+    const f = fakeFetch(200, fixture('submissionDownload.200-unknown_submission.xml'));
+    await checkRole(creds, 'curv', { fetch: f as unknown as typeof fetch });
+    expect(String((f as any).mock.calls[0][0])).not.toContain('s3cret');
+  });
+
+  test('throws with the status on 503 without leaking the password', async () => {
+    const err = await checkRole(creds, 'curv', {
+      fetch: fakeFetch(503, 'maintenance') as unknown as typeof fetch,
+    }).catch((e) => e);
+    expect(err).toBeInstanceOf(CrossrefError);
+    expect(err.status).toBe(503);
+    expect(String(err.message)).not.toContain('s3cret');
+  });
+
+  test('throws without a status on a network failure without leaking the password', async () => {
+    const err = await checkRole(creds, 'curv', {
+      fetch: rejectingFetch(new TypeError('fetch failed')),
+    }).catch((e) => e);
+    expect(err).toBeInstanceOf(CrossrefError);
+    expect(err.status).toBeUndefined();
+    expect(String(err.message)).not.toContain('s3cret');
+  });
+
+  test('throws on a 200 that is not a diagnostic', async () => {
+    await expect(
+      checkRole(creds, 'curv', { fetch: fakeFetch(200, '') as unknown as typeof fetch }),
+    ).rejects.toMatchObject({
+      status: 200,
+    });
+  });
+
+  test('throws when response.text() rejects', async () => {
+    const badTextFetch = vi.fn(async () => {
+      const r = new Response('', { status: 200 });
+      r.text = () => Promise.reject(new TypeError('body error'));
+      return r;
+    }) as unknown as typeof fetch;
+    const err = await checkRole(creds, 'curv', { fetch: badTextFetch }).catch((e) => e);
+    expect(err).toBeInstanceOf(CrossrefError);
+    expect(err).toMatchObject({ status: 200, message: expect.stringContaining('unreadable') });
   });
 });

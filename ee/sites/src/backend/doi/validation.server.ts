@@ -1,4 +1,5 @@
-import { CrossrefError, checkRole, lookupPrefix } from '../crossref/client.server.js';
+import { CrossrefError, lookupPrefix } from '../crossref/client.server.js';
+import { checkRole } from '../crossref/depositResult.server.js';
 import { normalizePrefix } from '../crossref/prefix.js';
 import { DOI_ERRORS } from './errors.js';
 import type { DoiDeps, DoiFailure } from './types.js';

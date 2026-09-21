@@ -1,7 +1,13 @@
 /**
- * Crossref submissionDownload, `type=result`: the outcome of one deposit, tracked by `file_name`
- * (Crossref only knows `doi_batch_id` once the file is parsed, so a failed deposit never
- * resolves by it). HTTP and parsing only; mapping to DoiDeposit statuses is the caller's.
+ * Crossref submissionDownload, `type=result`. Owns every call to that servlet: the outcome of one
+ * deposit, tracked by `file_name` (Crossref only knows `doi_batch_id` once the file is parsed, so a
+ * failed deposit never resolves by it), and the login probe behind `checkRole`.
+ * HTTP and parsing only; mapping to DoiDeposit statuses is the caller's.
+ *
+ * The credentials travel in the POST body, not the query string, so they never reach URL logs.
+ * Crossref documents this servlet as GET with query parameters; observed on 2026-09-21 that it
+ * reads the same parameters from a form body (bad credentials answer 401 "Wrong credentials",
+ * an empty POST answers 401 "No login info in request").
  */
 import { XMLParser } from 'fast-xml-parser';
 import { z } from 'zod';
@@ -118,11 +124,14 @@ export async function fetchDepositResult(
   const doFetch = opts?.fetch ?? fetch;
   let resp: Response;
   try {
-    resp = await doFetch(`${creds.host}/servlet/submissionDownload?${params}`, {
+    resp = await doFetch(`${creds.host}/servlet/submissionDownload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (e: any) {
-    // Only the error name: the URL holds the password.
+    // Only the error name: the body holds the password, so the original message is never forwarded.
     throw new CrossrefError(`Crossref result request failed: ${e?.name ?? 'network error'}`);
   }
   if (resp.status === 401) {
@@ -138,4 +147,17 @@ export async function fetchDepositResult(
     throw new CrossrefError('Crossref result returned an unreadable body', resp.status);
   }
   return { ...parseDepositResult(xml), xml };
+}
+
+/** A file name that never exists, so submissionDownload only proves the login. */
+const ROLE_CHECK_FILE_NAME = 'curvenote-role-check.xml';
+
+/**
+ * Does `<depositorEmail>/<role>` authenticate? A role check is a result fetch for a file name that
+ * was never deposited: Crossref answers `unknown_submission` when the login is good and 401 when it
+ * is not, so anything that parses as a diagnostic proves the credentials.
+ */
+export async function checkRole(creds: CrossrefCredentials, role: string, opts?: FetchOpts) {
+  const result = await fetchDepositResult(creds, { role, fileName: ROLE_CHECK_FILE_NAME }, opts);
+  return { authenticated: result.state !== 'unauthorized' };
 }
