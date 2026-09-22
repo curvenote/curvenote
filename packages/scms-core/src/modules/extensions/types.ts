@@ -1,7 +1,8 @@
 import type { RouteConfigEntry } from '@react-router/dev/routes';
 import type { MenuContents } from '../../components/navigation/types.js';
 import type { Context, ExtensionEmailTemplate, StorageBackend } from '../../backend/types.js';
-import type { CreateJob } from '../../backend/loaders/jobs/types.js';
+import type { CreateJob, UpdateJob } from '../../backend/loaders/jobs/types.js';
+import type { JobStatus } from '@curvenote/scms-db';
 import type { WorkflowRegistration } from '../../workflow/types.js';
 import type { ScopeTree } from '../../scopes.js';
 
@@ -597,6 +598,25 @@ export type JobRegistration = {
   jobType: string;
   handler: (ctx: Context, data: CreateJob, storageBackend?: StorageBackend) => Promise<any>;
   requiresStorageBackend?: boolean;
+  /**
+   * Optional hook invoked after a successful `PATCH /api/v1/jobs/:jobId` for this job type,
+   * and after any first-transition terminal handling (`onJobTerminal`, converter activity).
+   * Used by external workers (e.g. Foundry) to drive extension metadata from job updates.
+   * Errors are logged and rethrown so workers can retry the hook.
+   */
+  onJobPatch?: (args: {
+    ctx: Context;
+    job: {
+      id: string;
+      job_type: string;
+      status: JobStatus;
+      payload: unknown;
+      results: unknown;
+      messages: unknown;
+    };
+    priorStatus: JobStatus;
+    update: UpdateJob;
+  }) => Promise<void>;
 };
 
 export interface InboundEmail {
