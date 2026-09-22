@@ -52,7 +52,7 @@ describe('updateJob terminal handling', () => {
   });
 
   test('runs onJobTerminal only on the first transition to a terminal status', async () => {
-    mockFindUnique.mockResolvedValue({ status: JobStatus.FAILED, job_type: 'PUBLISH' });
+    mockFindUnique.mockResolvedValue({ status: JobStatus.FAILED });
     mockDbUpdateJob.mockResolvedValue({
       id: 'job-1',
       status: JobStatus.FAILED,
@@ -66,7 +66,7 @@ describe('updateJob terminal handling', () => {
   });
 
   test('invokes onJobTerminal when status newly becomes terminal', async () => {
-    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING, job_type: 'PUBLISH' });
+    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING });
     const dbo = {
       id: 'job-1',
       status: JobStatus.FAILED,
@@ -82,10 +82,7 @@ describe('updateJob terminal handling', () => {
   });
 
   test('invokes onJobTerminal when status newly becomes CANCELLED', async () => {
-    mockFindUnique.mockResolvedValue({
-      status: JobStatus.RUNNING,
-      job_type: KnownJobTypes.CONVERTER_TASK,
-    });
+    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING });
     const dbo = {
       id: 'job-1',
       status: JobStatus.CANCELLED,
@@ -118,7 +115,7 @@ describe('updateJob onJobPatch', () => {
   });
 
   test('invokes matching extension onJobPatch after db update', async () => {
-    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING, job_type: EXT_JOB });
+    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING });
     const dbo = {
       id: 'job-1',
       job_type: EXT_JOB,
@@ -163,7 +160,7 @@ describe('updateJob onJobPatch', () => {
   });
 
   test('skips onJobPatch when job type has no registration', async () => {
-    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING, job_type: EXT_JOB });
+    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING });
     mockDbUpdateJob.mockResolvedValue({
       id: 'job-1',
       job_type: EXT_JOB,
@@ -181,7 +178,7 @@ describe('updateJob onJobPatch', () => {
   });
 
   test('rethrows when onJobPatch fails', async () => {
-    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING, job_type: EXT_JOB });
+    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING });
     mockDbUpdateJob.mockResolvedValue({
       id: 'job-1',
       job_type: EXT_JOB,
@@ -197,5 +194,30 @@ describe('updateJob onJobPatch', () => {
         { jobType: EXT_JOB, handler: vi.fn() as never, onJobPatch },
       ]),
     ).rejects.toThrow('hook blew up');
+  });
+
+  test('runs onJobTerminal before onJobPatch when transitioning to FAILED, even if the hook throws', async () => {
+    mockFindUnique.mockResolvedValue({ status: JobStatus.RUNNING });
+    const dbo = {
+      id: 'job-1',
+      job_type: EXT_JOB,
+      status: JobStatus.FAILED,
+      payload: {},
+      results: null,
+      messages: [],
+    };
+    mockDbUpdateJob.mockResolvedValue(dbo);
+    onJobPatch.mockRejectedValue(new Error('hook blew up'));
+
+    await expect(
+      updateJob({} as never, 'job-1', { status: JobStatus.FAILED }, [
+        { jobType: EXT_JOB, handler: vi.fn() as never, onJobPatch },
+      ]),
+    ).rejects.toThrow('hook blew up');
+
+    expect(mockOnJobTerminal).toHaveBeenCalledOnce();
+    expect(mockOnJobTerminal).toHaveBeenCalledWith('job-1', JobStatus.FAILED);
+    expect(mockRecordConverterTaskTerminalActivity).toHaveBeenCalledOnce();
+    expect(onJobPatch).toHaveBeenCalledOnce();
   });
 });
