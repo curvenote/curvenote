@@ -66,14 +66,29 @@ export type DepositOptions = {
   depositor: { name: string; email: string };
 };
 
+/** What the Register DOI dialog shows: the same values the preprint is built from, readable. */
+export type DepositSummary = {
+  title: string;
+  subtitle?: string;
+  /** Posted date, ISO. */
+  date: string;
+  authors: { name: string; orcid?: string }[];
+  license?: string;
+  hasAbstract: boolean;
+  citationCount: number;
+};
+
 export type MappedDeposit = {
   preprint?: Preprint;
+  /** Present exactly when `preprint` is. */
+  summary?: DepositSummary;
   batch: DoiBatchOptions;
   issues: DepositIssue[];
 };
 
 export type AssembledDeposit = {
   xml?: string;
+  summary?: DepositSummary;
   issues: DepositIssue[];
   doi: string;
 };

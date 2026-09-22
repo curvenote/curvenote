@@ -33,6 +33,7 @@ describe('assembleDeposit', () => {
     expect(result.xml).toContain(
       '<resource content_version="vor">https://doi.curvenote.com/10.62329/abcd1234</resource>',
     );
+    expect(result.summary?.title).toBe('La Palma Seismicity 2021');
   });
 
   it('still produces XML when only warnings are raised', async () => {
@@ -55,6 +56,7 @@ describe('assembleDeposit', () => {
     source.loadDepositSource.mockResolvedValue(lapalmaSource({ frontmatter: { authors: [] } }));
     const result = await assembleDeposit({} as any, 'sv-lapalma', opts);
     expect(result.xml).toBeUndefined();
+    expect(result.summary).toBeUndefined();
     expect(result.issues.map((i) => i.code)).toContain('missing_title');
   });
 

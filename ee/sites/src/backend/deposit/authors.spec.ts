@@ -6,7 +6,7 @@ import { contributorsFromFrontmatter } from './authors.js';
 
 describe('contributorsFromFrontmatter', () => {
   it('maps nameParsed, ORCID and affiliation records', () => {
-    const { element, issues } = contributorsFromFrontmatter({
+    const { element, authors, issues } = contributorsFromFrontmatter({
       authors: [
         {
           id: 'spurves',
@@ -36,6 +36,10 @@ describe('contributorsFromFrontmatter', () => {
     expect(xml).toContain('<institution_department>Publications Team</institution_department>');
     expect(xml).toContain('<ORCID>https://orcid.org/0000-0002-0760-5497</ORCID>');
     expect(xml).toContain('<person_name sequence="additional" contributor_role="author">');
+    expect(authors).toEqual([
+      { name: 'Steve Purves', orcid: '0000-0002-0760-5497' },
+      { name: 'Ada Lovelace', orcid: undefined },
+    ]);
   });
 
   it('splits a bare name and warns, and turns bare affiliation strings into institutions', () => {
@@ -59,6 +63,7 @@ describe('contributorsFromFrontmatter', () => {
   it('returns no element and a warning when there are no authors', () => {
     expect(contributorsFromFrontmatter({})).toEqual({
       element: undefined,
+      authors: [],
       issues: [{ severity: 'warning', code: 'missing_authors', message: 'No authors found.' }],
     });
   });

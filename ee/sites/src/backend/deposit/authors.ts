@@ -7,6 +7,7 @@ import type {
   DepositAuthor,
   DepositFrontmatter,
   DepositIssue,
+  DepositSummary,
 } from './types.js';
 
 type ParsedName = { literal: string; given: string; family: string };
@@ -65,11 +66,14 @@ function affiliationsFor(
 /** Crossref `<contributors>` from merged frontmatter. Missing pieces become warnings, never throws. */
 export function contributorsFromFrontmatter(fm: DepositFrontmatter): {
   element?: Element;
+  /** The authors that made it into `element`, for the summary. */
+  authors: DepositSummary['authors'];
   issues: DepositIssue[];
 } {
   const issues: DepositIssue[] = [];
   const records = fm.affiliations ?? [];
   const people: Element[] = [];
+  const authors: DepositSummary['authors'] = [];
   (fm.authors ?? []).forEach((author, index) => {
     const nameParsed = parseName(author, index, issues);
     if (!nameParsed) {
@@ -80,6 +84,7 @@ export function contributorsFromFrontmatter(fm: DepositFrontmatter): {
     const orcid = author.orcid
       ? (extractOrcidId(author.orcid)?.toUpperCase() ?? undefined)
       : undefined;
+    authors.push({ name: nameParsed.literal, orcid });
     people.push(
       contributorXml({
         nameParsed,
@@ -92,7 +97,7 @@ export function contributorsFromFrontmatter(fm: DepositFrontmatter): {
   });
   if (people.length === 0) {
     issues.push({ severity: 'warning', code: 'missing_authors', message: 'No authors found.' });
-    return { element: undefined, issues };
+    return { element: undefined, authors, issues };
   }
-  return { element: e('contributors', people), issues };
+  return { element: e('contributors', people), authors, issues };
 }

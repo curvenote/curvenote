@@ -2,7 +2,13 @@ import { abstractFromMdast } from 'crossref-utils-sdk';
 import type { Preprint } from 'crossref-utils-sdk';
 import { SITE_DOI_CONFIG_STATUS } from '@curvenote/scms-core';
 import { contributorsFromFrontmatter } from './authors.js';
-import type { DepositIssue, DepositOptions, DepositSource, MappedDeposit } from './types.js';
+import type {
+  DepositIssue,
+  DepositOptions,
+  DepositSource,
+  DepositSummary,
+  MappedDeposit,
+} from './types.js';
 
 export type DepositType = 'posted_content';
 
@@ -75,7 +81,8 @@ export function toDeposit(source: DepositSource, opts: DepositOptions): MappedDe
     issues.push(warning('missing_abstract', 'No abstract found.'));
   }
   const license = licenseUrl(source, issues);
-  if (issues.some((issue) => issue.severity === 'blocking')) {
+  // `!title || !date` is already a blocking issue; repeated so TypeScript narrows both.
+  if (!title || !date || issues.some((issue) => issue.severity === 'blocking')) {
     return { batch, issues };
   }
   const preprint: Preprint = {
@@ -88,5 +95,14 @@ export function toDeposit(source: DepositSource, opts: DepositOptions): MappedDe
     doi_data: { doi: opts.doi, resource: opts.resourceUrl },
     citations: Object.keys(source.citations).length > 0 ? source.citations : undefined,
   };
-  return { preprint, batch, issues };
+  const summary: DepositSummary = {
+    title,
+    subtitle: preprint.subtitle,
+    date: date.toISOString(),
+    authors: contributors.authors,
+    license,
+    hasAbstract: !!abstract,
+    citationCount: Object.keys(source.citations).length,
+  };
+  return { preprint, summary, batch, issues };
 }

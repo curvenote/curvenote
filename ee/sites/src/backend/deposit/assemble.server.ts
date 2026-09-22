@@ -52,5 +52,5 @@ export async function assembleDeposit(
     return { issues: mapped.issues, doi: opts.doi };
   }
   const xml = new DoiBatch(mapped.batch, preprintXml(mapped.preprint)).toXml();
-  return { xml, issues: mapped.issues, doi: opts.doi };
+  return { xml, summary: mapped.summary, issues: mapped.issues, doi: opts.doi };
 }

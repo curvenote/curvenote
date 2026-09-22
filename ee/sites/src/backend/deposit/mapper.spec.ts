@@ -36,6 +36,24 @@ describe('toDeposit', () => {
     expect(toXml(preprint!.contributors!)).toContain('<surname>Purves</surname>');
   });
 
+  it('summarises the same values the preprint is built from', () => {
+    const { summary } = toDeposit(lapalmaSource(), lapalmaOptions);
+    expect(summary).toEqual({
+      title: 'La Palma Seismicity 2021',
+      subtitle: 'An analysis of earthquake swarms',
+      date: '2022-10-11T00:00:00.000Z',
+      authors: expect.arrayContaining([{ name: 'Steve Purves', orcid: '0000-0002-0760-5497' }]),
+      license: 'https://creativecommons.org/licenses/by-sa/4.0/',
+      hasAbstract: true,
+      citationCount: 1,
+    });
+  });
+
+  it('leaves the summary out when something blocks', () => {
+    const { summary } = toDeposit(lapalmaSource({ frontmatter: { authors: [] } }), lapalmaOptions);
+    expect(summary).toBeUndefined();
+  });
+
   it('uses the first publication as posted date, then WorkVersion.date', () => {
     const withoutSubmission = toDeposit(
       lapalmaSource({ dates: { workVersion: '2021-11-10T00:00:00.000Z' } }),
