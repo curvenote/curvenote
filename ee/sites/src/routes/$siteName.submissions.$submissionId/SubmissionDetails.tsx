@@ -133,6 +133,8 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
   const datePublished = submission.date_published;
 
   const doi = activeVersion.site_work.doi;
+  // Same public URL as the published-version banner.
+  const doiResolvesTo = `${baseUrl}/articles/${submission.slug ?? (published ?? activeVersion).site_work.id}`;
 
   const submissionCollectionMatch = collections.some((c) => c.id === submission.collection.id);
 
@@ -232,7 +234,7 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
               <ExternalLink className="inline-block w-4 h-4 shrink-0" aria-hidden />
             </a>
           ) : doiReadiness ? (
-            <RegisterDoi readiness={doiReadiness} />
+            <RegisterDoi readiness={doiReadiness} resolvesTo={doiResolvesTo} />
           ) : (
             <span className="text-sm text-muted-foreground">{emptyDetailValue()}</span>
           )}
