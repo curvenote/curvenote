@@ -4,6 +4,7 @@
  * headers, and never put credentials in error messages.
  */
 import { z } from 'zod';
+import { PREFIX_RE } from './prefix.js';
 
 const PREFIXES_API = 'https://api.crossref.org/prefixes';
 const TIMEOUT_MS = 10_000;
@@ -14,6 +15,10 @@ const CredentialsSchema = z.object({
   host: z.httpUrl().transform((host) => host.replace(/\/$/, '')),
   depositorEmail: z.email(),
   password: z.string().min(1),
+  /** Curvenote's own prefix: used by CURVENOTE_PREFIX sites and refused on CUSTOM_PREFIX ones. */
+  prefix: z.string().regex(PREFIX_RE),
+  /** Curvenote's own role: used by CURVENOTE_PREFIX sites and as the control login on a 401. */
+  role: z.string().min(1),
 });
 
 const PrefixResponseSchema = z.object({
@@ -22,6 +27,7 @@ const PrefixResponseSchema = z.object({
 
 export type CrossrefCredentials = z.output<typeof CredentialsSchema>;
 type FetchOpts = { fetch?: typeof fetch };
+type LookupOpts = FetchOpts & { contactEmail?: string };
 
 /** `status` is undefined when no response arrived (timeout or network failure). */
 export class CrossrefError extends Error {
@@ -34,12 +40,16 @@ export class CrossrefError extends Error {
   }
 }
 
-export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
+export async function lookupPrefix(prefix: string, opts?: LookupOpts) {
   const doFetch = opts?.fetch ?? fetch;
   let resp: Response;
   try {
     resp = await doFetch(`${PREFIXES_API}/${encodeURIComponent(prefix)}`, {
       signal: AbortSignal.timeout(TIMEOUT_MS),
+      // api.crossref.org asks polite clients to identify themselves with a contact address.
+      ...(opts?.contactEmail
+        ? { headers: { 'User-Agent': `Curvenote-SCMS (mailto:${opts.contactEmail})` } }
+        : {}),
     });
   } catch (e: any) {
     throw new CrossrefError(`Crossref prefix lookup request failed: ${e?.name ?? 'network error'}`);
@@ -64,6 +74,12 @@ export async function lookupPrefix(prefix: string, opts?: FetchOpts) {
   return { prefix, ownerName: name, memberUrl: member };
 }
 
+/**
+ * The credentials travel in the POST body, not the query string, so they never reach URL logs.
+ * Crossref documents this servlet as GET with query parameters; observed on 2026-09-21 that it
+ * reads the same parameters from a form body (bad credentials answer 401 "Wrong credentials",
+ * an empty POST answers 401 "No login info in request").
+ */
 export async function checkRole(creds: CrossrefCredentials, role: string, opts?: FetchOpts) {
   const params = new URLSearchParams({
     usr: `${creds.depositorEmail}/${role}`,
@@ -74,11 +90,14 @@ export async function checkRole(creds: CrossrefCredentials, role: string, opts?:
   const doFetch = opts?.fetch ?? fetch;
   let resp: Response;
   try {
-    resp = await doFetch(`${creds.host}/servlet/submissionDownload?${params}`, {
+    resp = await doFetch(`${creds.host}/servlet/submissionDownload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (e: any) {
-    // Only the error name: the URL holds the password, so the original message is never forwarded.
+    // Only the error name: the body holds the password, so the original message is never forwarded.
     throw new CrossrefError(`Crossref role check request failed: ${e?.name ?? 'network error'}`);
   }
   if (resp.status === 401) {

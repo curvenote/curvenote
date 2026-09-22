@@ -56,6 +56,7 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
                 'forms/:formName',
                 resolveRoutePath(import.meta.url, 'routes/$siteName.forms.$formName/route.tsx'),
               ),
+              route('doi', resolveRoutePath(import.meta.url, 'routes/$siteName.doi/route.tsx')),
               route(
                 'submissions',
                 resolveRoutePath(import.meta.url, 'routes/$siteName.submissions/route.tsx'),

@@ -149,6 +149,7 @@ export function MenuIcon({
     case 'key-round':
     case 'settings.tokens':
       return <KeyRound className={classNameWithDefaults} />;
+    case 'admin.doi':
     case 'settings.linked-accounts':
       return <Link2 className={classNameWithDefaults} />;
     case 'upload':
