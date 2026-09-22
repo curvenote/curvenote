@@ -14,7 +14,7 @@ export type AssembleOptions = {
 
 /**
  * Loader -> mapper -> preprintXml + DoiBatch. The single entry point for the DOI page readiness
- * check (this ticket) and for `startRegistration`, so what the page promises and what gets sent cannot
+ * check (CN-2509) and for `startRegistration`, so what the page promises and what gets sent cannot
  * drift apart. `xml` is present only when nothing blocks.
  *
  * No local XSD validation: Crossref validates the deposit against the same schema on receipt and

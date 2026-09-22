@@ -75,7 +75,8 @@ export async function loadSubmissionDoiPage(
   });
   return {
     site,
-    submission,
+    // The page is titled after the version the deposit is built from, not the newest draft.
+    submission: { ...submission, title: published.work_version.title ?? row.id },
     state: { kind: 'assembled', doi, issues: assembled.issues, xml: assembled.xml },
   };
 }

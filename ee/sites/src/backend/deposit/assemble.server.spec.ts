@@ -35,6 +35,22 @@ describe('assembleDeposit', () => {
     );
   });
 
+  it('still produces XML when only warnings are raised', async () => {
+    source.loadDepositSource.mockResolvedValue(
+      lapalmaSource({
+        abstractMdast: undefined,
+        frontmatter: {
+          ...lapalmaSource().frontmatter,
+          license: { content: { id: 'proprietary', CC: false } },
+        },
+      }),
+    );
+    const result = await assembleDeposit({} as any, 'sv-lapalma', opts);
+    expect(result.xml).toBeDefined();
+    expect(result.xml).toContain('<posted_content>');
+    expect(result.issues.map((i) => i.code)).toEqual(['missing_abstract', 'missing_license']);
+  });
+
   it('returns issues and no xml when the mapper blocks', async () => {
     source.loadDepositSource.mockResolvedValue(lapalmaSource({ frontmatter: { authors: [] } }));
     const result = await assembleDeposit({} as any, 'sv-lapalma', opts);

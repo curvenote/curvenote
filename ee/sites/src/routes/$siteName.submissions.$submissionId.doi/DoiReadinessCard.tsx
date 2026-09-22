@@ -59,9 +59,14 @@ export function DoiReadinessCard({ state }: DoiReadinessCardProps) {
         </ui.Badge>
       </div>
       <p className="text-sm font-light">
-        {ready
-          ? 'Everything Crossref requires is present. Warnings below are sent as-is.'
-          : 'Fix the blocking issues before this submission can be registered.'}
+        {ready ? (
+          <>
+            Everything Crossref requires is present.
+            {issues.length > 0 && ' Warnings below are sent as-is.'}
+          </>
+        ) : (
+          'Fix the blocking issues before this submission can be registered.'
+        )}
       </p>
       {issues.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nothing missing.</p>

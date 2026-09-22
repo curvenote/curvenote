@@ -40,7 +40,7 @@ function licenseUrl(source: DepositSource, issues: DepositIssue[]): string | und
   issues.push(
     warning(
       'missing_license',
-      'No Creative Commons licence found; the deposit carries no licence.',
+      'No Creative Commons license found; the deposit carries no license.',
     ),
   );
   return undefined;

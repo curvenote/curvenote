@@ -69,7 +69,7 @@ describe('loadSubmissionDoiPage', () => {
     server.prisma.submission.findFirst.mockResolvedValue(row());
     const page = await loadSubmissionDoiPage(ctxWith(crossref), 'sub-1');
     expect(page?.site).toEqual({ name: 'lapalma', title: 'La Palma' });
-    expect(page?.submission).toEqual({ id: 'sub-1', title: 'Draft title' });
+    expect(page?.submission).toEqual({ id: 'sub-1', title: 'Published title' });
     expect(deposit.assembleDeposit).toHaveBeenCalledTimes(1);
     const [, versionId, opts] = deposit.assembleDeposit.mock.calls[0];
     expect(versionId).toBe('sv-1');

@@ -28,7 +28,10 @@ export function DoiPreviewCard({ submissionId, doi, xml }: DoiPreviewCardProps) 
           reserved.
         </p>
       </div>
-      <pre className="p-4 overflow-x-auto text-xs rounded-sm border border-border bg-stone-50 dark:bg-stone-900">
+      <pre
+        tabIndex={0}
+        className="p-4 overflow-x-auto text-xs rounded-sm border border-border bg-stone-50 dark:bg-stone-900"
+      >
         {xml}
       </pre>
     </ui.Card>
