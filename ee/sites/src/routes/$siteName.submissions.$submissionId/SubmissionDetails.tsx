@@ -1,20 +1,20 @@
 import {
   primitives,
-  ui,
   clientCheckSiteScopes,
   formatDate,
   scopes,
   cn,
   getStatusBannerTone,
 } from '@curvenote/scms-core';
-import { SquareCheckBig, ExternalLink, Link2 } from 'lucide-react';
+import { SquareCheckBig, ExternalLink } from 'lucide-react';
 import classNames from 'classnames';
 import type { ReactNode } from 'react';
 import { Slugs, getSlugSuggestion } from './Slugs.js';
 import { Kinds } from './Kinds.js';
 import { buildUrl } from 'doi-utils';
-import { Link, useLoaderData } from 'react-router';
+import { useLoaderData } from 'react-router';
 import { Collections } from './Collections.js';
+import { RegisterDoi } from './RegisterDoi.js';
 import { PublicationDate } from './PublicationDate.js';
 import { SubmissionTags } from './SubmissionTags.js';
 import type { SubmissionDetailPageData } from './loader.server.js';
@@ -116,7 +116,7 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
     slugs,
     collections,
     workflow,
-    canPrepareDoi,
+    doiReadiness,
   } = useLoaderData<SubmissionDetailPageData>();
 
   let activeVersionIndex = submissionVersions.findIndex(
@@ -231,13 +231,8 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
               {doi}
               <ExternalLink className="inline-block w-4 h-4 shrink-0" aria-hidden />
             </a>
-          ) : canPrepareDoi ? (
-            <ui.Button variant="secondary" size="sm" asChild>
-              <Link to={`/app/sites/${site.name}/submissions/${submission.id}/doi`}>
-                <Link2 aria-hidden />
-                Register DOI
-              </Link>
-            </ui.Button>
+          ) : doiReadiness ? (
+            <RegisterDoi readiness={doiReadiness} />
           ) : (
             <span className="text-sm text-muted-foreground">{emptyDetailValue()}</span>
           )}

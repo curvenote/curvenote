@@ -11,6 +11,8 @@ import {
   type SiteContext,
   type WorkVersionCdnMedia,
 } from '@curvenote/scms-server';
+import { loadDoiReadiness } from '../../backend/deposit/readiness.server.js';
+import type { DoiReadiness } from '../../backend/deposit/readiness.server.js';
 import {
   dbGetSubmissionCheckServiceRunsByWorkVersionIds,
   dbGetSiteAppData,
@@ -55,8 +57,11 @@ export type SubmissionDetailPageData = {
   /** Active work version CDN config.json (null when no CDN); for MEDIA and upcoming sections. */
   activeVersionCdnConfig: WorkVersionCdnMedia['cdnConfig'];
   siteTags: TagDTO[];
-  /** Viewer passes the Submission > DOI page gate: site:doi:read plus the per-user preview flag. */
-  canPrepareDoi: boolean;
+  /**
+   * Streamed, not awaited: the check reads the CDN. Null when the viewer lacks site:doi:read or
+   * the per-user DOI preview flag, or when the work already has a DOI.
+   */
+  doiReadiness: Promise<DoiReadiness> | null;
 };
 
 export async function loadSubmissionDetailPage(
@@ -142,8 +147,11 @@ export async function loadSubmissionDetailPage(
     mediaThumbnailUrl,
     activeVersionCdnConfig,
     siteTags,
-    canPrepareDoi:
+    doiReadiness:
+      !activeVersion.site_work.doi &&
       userHasSiteScope(ctx.user, scopes.site.doi.read, ctx.site.id) &&
-      userHasScope(ctx.user, scopes.app.sites.doi.feature),
+      userHasScope(ctx.user, scopes.app.sites.doi.feature)
+        ? loadDoiReadiness(ctx, submissionId)
+        : null,
   };
 }
