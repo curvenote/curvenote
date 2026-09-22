@@ -363,7 +363,7 @@ export function ResumeDraftWorkDialog<T extends DraftWork>({
   };
 
   const defaultDescription = (
-    <div>
+    <>
       You already have <span className="font-bold">{drafts.length}</span> draft{' '}
       {plural(`${objectLabel}(s)`, drafts.length)}. {resumeButtonLabel} one of them,{' '}
       <Button className="inline-block py-0 h-auto" variant="link" onClick={handleCreateNew}>
@@ -374,7 +374,7 @@ export function ResumeDraftWorkDialog<T extends DraftWork>({
         delete them all
       </Button>
       .
-    </div>
+    </>
   );
 
   return (
@@ -383,7 +383,9 @@ export function ResumeDraftWorkDialog<T extends DraftWork>({
         <DialogContent variant="wide">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>{description ?? defaultDescription}</DialogDescription>
+            <DialogDescription asChild>
+              <div>{description ?? defaultDescription}</div>
+            </DialogDescription>
           </DialogHeader>
 
           <div className="max-h-96 overflow-y-auto py-4 max-h-[50vh]">
