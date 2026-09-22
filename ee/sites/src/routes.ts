@@ -76,6 +76,13 @@ export async function registerRoutes(appConfig: AppConfig): Promise<RouteRegistr
                     ),
                   ),
                   route(
+                    ':submissionId/doi',
+                    resolveRoutePath(
+                      import.meta.url,
+                      'routes/$siteName.submissions.$submissionId.doi/route.tsx',
+                    ),
+                  ),
+                  route(
                     ':submissionId',
                     resolveRoutePath(
                       import.meta.url,
