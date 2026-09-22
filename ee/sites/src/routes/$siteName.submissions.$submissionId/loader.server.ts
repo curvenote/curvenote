@@ -1,10 +1,13 @@
 import type { TagDTO } from '@curvenote/common';
+import { scopes } from '@curvenote/scms-core';
 import type { Context, TimelineCheckServiceRunRow, Workflow } from '@curvenote/scms-core';
 import {
   createPreviewToken,
   getConfiguredWorkflow,
   resolveWorkVersionCdnMedia,
   sites,
+  userHasScope,
+  userHasSiteScope,
   type SiteContext,
   type WorkVersionCdnMedia,
 } from '@curvenote/scms-server';
@@ -52,6 +55,8 @@ export type SubmissionDetailPageData = {
   /** Active work version CDN config.json (null when no CDN); for MEDIA and upcoming sections. */
   activeVersionCdnConfig: WorkVersionCdnMedia['cdnConfig'];
   siteTags: TagDTO[];
+  /** Viewer passes the Submission > DOI page gate: site:doi:read plus the per-user preview flag. */
+  canPrepareDoi: boolean;
 };
 
 export async function loadSubmissionDetailPage(
@@ -137,5 +142,8 @@ export async function loadSubmissionDetailPage(
     mediaThumbnailUrl,
     activeVersionCdnConfig,
     siteTags,
+    canPrepareDoi:
+      userHasSiteScope(ctx.user, scopes.site.doi.read, ctx.site.id) &&
+      userHasScope(ctx.user, scopes.app.sites.doi.feature),
   };
 }
