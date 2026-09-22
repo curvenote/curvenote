@@ -60,9 +60,13 @@ type RegisterDoiProps = {
 
 /** The DOI row when the work has no DOI yet. The check reads the CDN, so it streams in. */
 export function RegisterDoi({ readiness }: RegisterDoiProps) {
+  const unavailable = (
+    <Note>Could not check the DOI requirements. Reload the page to try again.</Note>
+  );
   return (
     <Suspense fallback={<Note>Checking the DOI requirements…</Note>}>
-      <Await resolve={readiness}>
+      {/* loadDoiReadiness never rejects; this covers the stream being cut off. */}
+      <Await resolve={readiness} errorElement={unavailable}>
         {(resolved: DoiReadiness) => <RegisterDoiState readiness={resolved} />}
       </Await>
     </Suspense>

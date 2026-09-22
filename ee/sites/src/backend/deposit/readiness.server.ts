@@ -37,8 +37,8 @@ async function checkDoiReadiness(ctx: SiteContext, submissionId: string): Promis
     const creds = crossrefCredentialsFromConfig(ctx.$config);
     depositorEmail = creds.depositorEmail;
     deploymentPrefix = creds.prefix;
-  } catch (error: any) {
-    console.error('[doi]', error?.message);
+  } catch {
+    // Most deployments have no api.crossref yet; this runs on every detail page view, so no log.
     return { kind: 'not_configured' };
   }
 
