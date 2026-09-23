@@ -30,6 +30,7 @@ import {
   actionUpdateDatePublished,
 } from './actionHelpers.server.js';
 import { actionAssignTag, actionRemoveTag } from './tags.server.js';
+import { actionRegisterDoi } from './doi.server.js';
 import { SUBMISSION_DETAIL_FORM_ACTIONS } from './SubmissionDetails.utils.js';
 import {
   actionCreateMagicLink,
@@ -120,6 +121,8 @@ export async function action(args: ActionFunctionArgs) {
     return actionReactivateMagicLink(ctx, args, formData);
   } else if (formAction === 'magic-link-delete') {
     return actionDeleteMagicLink(ctx, args, formData);
+  } else if (formAction === 'register-doi') {
+    return actionRegisterDoi(ctx, args.params.submissionId!);
   }
 
   return null;
