@@ -11,10 +11,9 @@ import classNames from 'classnames';
 import type { ReactNode } from 'react';
 import { Slugs, getSlugSuggestion } from './Slugs.js';
 import { Kinds } from './Kinds.js';
-import { buildUrl } from 'doi-utils';
 import { useLoaderData } from 'react-router';
 import { Collections } from './Collections.js';
-import { RegisterDoi } from './RegisterDoi.js';
+import { DoiRow } from './DoiRow.js';
 import { PublicationDate } from './PublicationDate.js';
 import { SubmissionTags } from './SubmissionTags.js';
 import type { SubmissionDetailPageData } from './loader.server.js';
@@ -117,6 +116,8 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
     collections,
     workflow,
     doiReadiness,
+    doiRegistration,
+    canRegisterDoi,
   } = useLoaderData<SubmissionDetailPageData>();
 
   let activeVersionIndex = submissionVersions.findIndex(
@@ -229,25 +230,15 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
         </DetailRow>
 
         <DetailRow label="DOI">
-          {doi ? (
-            <a
-              href={buildUrl(doi)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex gap-1 items-center text-sm break-all text-primary hover:underline"
-            >
-              {doi}
-              <ExternalLink className="inline-block w-4 h-4 shrink-0" aria-hidden />
-            </a>
-          ) : doiReadiness ? (
-            <RegisterDoi
-              readiness={doiReadiness}
-              resolvesTo={doiResolvesTo}
-              setupUrl={doiSetupUrl}
-            />
-          ) : (
-            <span className="text-sm text-muted-foreground">{emptyDetailValue()}</span>
-          )}
+          <DoiRow
+            doi={doi}
+            registration={doiRegistration}
+            readiness={doiReadiness}
+            canRegister={canRegisterDoi}
+            resolvesTo={doiResolvesTo}
+            setupUrl={doiSetupUrl}
+            empty={<span className="text-sm text-muted-foreground">{emptyDetailValue()}</span>}
+          />
         </DetailRow>
       </primitives.Card>
     </div>
