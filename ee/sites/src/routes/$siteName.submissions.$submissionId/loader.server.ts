@@ -162,8 +162,9 @@ export async function loadSubmissionDetailPage(
     userHasScope(ctx.user, scopes.app.sites.doi.feature);
   const canRegisterDoi =
     canSeeDoi && userHasSiteScope(ctx.user, scopes.site.doi.register, ctx.site.id);
-  const doiRegistration =
-    canSeeDoi && !activeVersion.site_work.doi ? await loadDoiRegistrationView(submissionId) : null;
+  const doiRegistration = canSeeDoi
+    ? await loadDoiRegistrationView(ctx.site.id, submissionId)
+    : null;
 
   return {
     user: ctx.user,

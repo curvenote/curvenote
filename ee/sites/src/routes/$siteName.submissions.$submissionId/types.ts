@@ -1,5 +1,6 @@
 import type { TagDTO } from '@curvenote/common';
 import type { WorkflowTransition } from '@curvenote/scms-core';
+import type { DoiFailureReason } from '../../backend/registration/failure.js';
 import type { SiteLayoutSite } from '../$siteName/layout.format.server.js';
 
 /** Site fields for submission detail chrome and preview URLs. */
@@ -121,13 +122,18 @@ export type SiteWithAppData = {
   data: SiteAppData | null;
 };
 
-/** The submission's DOI registration row, shaped for the detail page's DOI row states. */
-export type DoiRegistrationView = {
-  status: 'SUBMITTING' | 'FAILED' | 'REGISTERED';
-  doi: string;
-  /** SUBMITTING after a failed attempt: shown as "Resubmitting…" instead of "Registering…". */
-  retried: boolean;
-};
+/** The submission's DOI registration, shaped for the detail page's DOI row states. */
+export type DoiRegistrationView =
+  | {
+      status: 'SUBMITTING';
+      doi: string;
+      /** `sending`: the deposit is not with Crossref yet. `waiting`: Crossref has it. */
+      phase: 'sending' | 'waiting';
+      /** In progress again after a failed attempt ("Resubmitting…"). */
+      retried: boolean;
+    }
+  | { status: 'FAILED'; doi: string; reason: DoiFailureReason }
+  | { status: 'REGISTERED'; doi: string; warning?: string };
 
 export type MagicLinkWithAccessCount = {
   id: string;

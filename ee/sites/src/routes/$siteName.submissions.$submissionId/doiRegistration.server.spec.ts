@@ -1,79 +1,112 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const server = vi.hoisted(() => ({ prisma: { doiRegistration: { findUnique: vi.fn() } } }));
+const server = vi.hoisted(() => ({ prisma: { doiRegistration: { findFirst: vi.fn() } } }));
 vi.mock('@curvenote/scms-server', () => ({ getPrismaClient: async () => server.prisma }));
 
 import { loadDoiRegistrationView } from './doiRegistration.server.js';
+
+type Attempt = { status: string; error: string | null; warning: string | null };
+
+function registration(status: string, attempts: Attempt[], failedAttempts = 0) {
+  return { status, doi: 'd', attempts, _count: { attempts: failedAttempts } };
+}
+
+const attempt = (status: string, extra: Partial<Attempt> = {}): Attempt => ({
+  status,
+  error: null,
+  warning: null,
+  ...extra,
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe('loadDoiRegistrationView', () => {
-  it('returns null when there is no registration row', async () => {
-    server.prisma.doiRegistration.findUnique.mockResolvedValue(null);
-    expect(await loadDoiRegistrationView('sub-1')).toBeNull();
+  it('looks the registration up within the site', async () => {
+    server.prisma.doiRegistration.findFirst.mockResolvedValue(null);
+    expect(await loadDoiRegistrationView('site-a', 'sub-1')).toBeNull();
+    expect(server.prisma.doiRegistration.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { submission_id: 'sub-1', site_id: 'site-a' } }),
+    );
   });
 
-  it('reports SUBMITTING with no prior failed attempt as not retried', async () => {
-    server.prisma.doiRegistration.findUnique.mockResolvedValue({
+  it('is sending while the latest attempt is PENDING', async () => {
+    server.prisma.doiRegistration.findFirst.mockResolvedValue(
+      registration('SUBMITTING', [attempt('PENDING')]),
+    );
+    expect(await loadDoiRegistrationView('site-a', 'sub-1')).toEqual({
       status: 'SUBMITTING',
       doi: 'd',
-      _count: { attempts: 0 },
-    });
-    expect(await loadDoiRegistrationView('sub-1')).toEqual({
-      status: 'SUBMITTING',
-      doi: 'd',
+      phase: 'sending',
       retried: false,
     });
   });
 
-  it('reports SUBMITTING after a failed attempt as retried', async () => {
-    server.prisma.doiRegistration.findUnique.mockResolvedValue({
+  it('is waiting for Crossref once the latest attempt is QUEUED', async () => {
+    server.prisma.doiRegistration.findFirst.mockResolvedValue(
+      registration('SUBMITTING', [attempt('QUEUED')]),
+    );
+    expect(await loadDoiRegistrationView('site-a', 'sub-1')).toMatchObject({ phase: 'waiting' });
+  });
+
+  it('uses the latest attempt and marks a retry after a failed one', async () => {
+    server.prisma.doiRegistration.findFirst.mockResolvedValue(
+      registration('SUBMITTING', [attempt('PENDING')], 1),
+    );
+    expect(await loadDoiRegistrationView('site-a', 'sub-1')).toEqual({
       status: 'SUBMITTING',
       doi: 'd',
-      _count: { attempts: 1 },
-    });
-    expect(await loadDoiRegistrationView('sub-1')).toEqual({
-      status: 'SUBMITTING',
-      doi: 'd',
+      phase: 'sending',
       retried: true,
     });
+    expect(server.prisma.doiRegistration.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          attempts: expect.objectContaining({ orderBy: { date_created: 'desc' }, take: 1 }),
+        }),
+      }),
+    );
   });
 
-  it('reports FAILED as not retried regardless of the failed-attempt count', async () => {
-    server.prisma.doiRegistration.findUnique.mockResolvedValue({
+  it('describes why a registration failed, from its latest attempt', async () => {
+    server.prisma.doiRegistration.findFirst.mockResolvedValue(
+      registration('FAILED', [attempt('FAILED', { error: 'no_result_after_72h' })], 1),
+    );
+    expect(await loadDoiRegistrationView('site-a', 'sub-1')).toEqual({
       status: 'FAILED',
       doi: 'd',
-      _count: { attempts: 3 },
+      reason: {
+        summary:
+          "Crossref didn't confirm the registration within 72 hours. Retry to submit it again.",
+      },
     });
-    expect(await loadDoiRegistrationView('sub-1')).toEqual({
-      status: 'FAILED',
+  });
+
+  it('carries Crossref warning on a registered DOI', async () => {
+    server.prisma.doiRegistration.findFirst.mockResolvedValue(
+      registration('REGISTERED', [attempt('SUCCEEDED', { warning: 'Added with conflict' })]),
+    );
+    expect(await loadDoiRegistrationView('site-a', 'sub-1')).toEqual({
+      status: 'REGISTERED',
       doi: 'd',
-      retried: false,
+      warning: 'Added with conflict',
+    });
+  });
+
+  it('has no warning on a clean registration', async () => {
+    server.prisma.doiRegistration.findFirst.mockResolvedValue(
+      registration('REGISTERED', [attempt('SUCCEEDED')]),
+    );
+    expect(await loadDoiRegistrationView('site-a', 'sub-1')).toEqual({
+      status: 'REGISTERED',
+      doi: 'd',
     });
   });
 
   it('treats a legacy DRAFT row as no registration', async () => {
-    server.prisma.doiRegistration.findUnique.mockResolvedValue({
-      status: 'DRAFT',
-      doi: 'd',
-      _count: { attempts: 0 },
-    });
-    expect(await loadDoiRegistrationView('sub-1')).toBeNull();
-  });
-
-  it('queries by submission_id, selecting status, doi and the failed-attempt count', async () => {
-    server.prisma.doiRegistration.findUnique.mockResolvedValue(null);
-    await loadDoiRegistrationView('sub-1');
-    expect(server.prisma.doiRegistration.findUnique).toHaveBeenCalledWith({
-      where: { submission_id: 'sub-1' },
-      select: {
-        status: true,
-        doi: true,
-        _count: { select: { attempts: { where: { status: 'FAILED' } } } },
-      },
-    });
+    server.prisma.doiRegistration.findFirst.mockResolvedValue(registration('DRAFT', []));
+    expect(await loadDoiRegistrationView('site-a', 'sub-1')).toBeNull();
   });
 });
