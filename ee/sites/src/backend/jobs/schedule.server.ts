@@ -17,10 +17,7 @@ type InsertJobParams = {
  * together. `enqueueAndDispatchJob` opens its own transaction, so it is not used.
  * An immediate job is dispatched by the caller after commit with `dispatchJob`.
  */
-export async function insertJobRow(
-  tx: DoiTx,
-  params: InsertJobParams,
-): Promise<{ jobId: string; scheduled: boolean }> {
+export async function insertJobRow(tx: DoiTx, params: InsertJobParams): Promise<{ jobId: string }> {
   const jobId = uuidv7();
   const scheduled = Boolean(params.scheduledAt && params.scheduledAt > new Date().toISOString());
   await ensureJobRow(
@@ -34,7 +31,7 @@ export async function insertJobRow(
     scheduled ? 'SCHEDULED' : 'QUEUED',
     tx,
   );
-  return { jobId, scheduled };
+  return { jobId };
 }
 
 export async function dispatchJob(jobId: string, jobType: string): Promise<void> {

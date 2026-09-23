@@ -13,7 +13,6 @@ describe('insertJobRow', () => {
       jobType: 'CROSSREF_DEPOSIT',
       payload: { depositId: 'd', siteId: 's', attempt: 1 },
     });
-    expect(result.scheduled).toBe(false);
     expect(server.ensureJobRow).toHaveBeenCalledWith(
       expect.objectContaining({
         job_id: result.jobId,
@@ -28,12 +27,11 @@ describe('insertJobRow', () => {
   it('inserts a SCHEDULED row with scheduled_at when given a future time', async () => {
     const tx = {} as any;
     const at = new Date(Date.now() + 60_000).toISOString();
-    const result = await insertJobRow(tx, {
+    await insertJobRow(tx, {
       jobType: 'CROSSREF_DEPOSIT',
       payload: { depositId: 'd', siteId: 's', attempt: 2 },
       scheduledAt: at,
     });
-    expect(result.scheduled).toBe(true);
     expect(server.ensureJobRow).toHaveBeenCalledWith(
       expect.objectContaining({ scheduled_at: at }),
       'SCHEDULED',

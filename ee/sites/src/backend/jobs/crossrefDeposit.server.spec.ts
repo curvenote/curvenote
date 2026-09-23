@@ -75,7 +75,7 @@ beforeEach(() => {
   };
   mocks.prisma.$transaction = vi.fn(async (fn: any) => fn(mocks.prisma));
   mocks.readPrivateXml.mockResolvedValue('<doi_batch/>');
-  mocks.insertJobRow.mockResolvedValue({ jobId: 'job-2', scheduled: false });
+  mocks.insertJobRow.mockResolvedValue({ jobId: 'job-2' });
   mocks.failDeposit.mockResolvedValue('applied');
 });
 
@@ -112,7 +112,7 @@ describe('crossrefDepositHandler', () => {
 
   it('reschedules itself on a 5xx and on a timeout without throwing', async () => {
     mocks.deposit.mockRejectedValue(new CrossrefError('Crossref deposit answered 503', 503));
-    mocks.insertJobRow.mockResolvedValue({ jobId: 'job-3', scheduled: true });
+    mocks.insertJobRow.mockResolvedValue({ jobId: 'job-3' });
     const out = await crossrefDepositHandler(ctx, job);
     expect(mocks.insertJobRow).toHaveBeenCalledWith(
       mocks.prisma,

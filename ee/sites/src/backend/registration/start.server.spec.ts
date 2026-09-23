@@ -84,7 +84,7 @@ beforeEach(() => {
   p.doiRegistration.create.mockResolvedValue({ id: 'reg-1' });
   mocks.generateFreeDoi.mockResolvedValue(DOI);
   mocks.assembleDeposit.mockResolvedValue({ xml: '<doi_batch/>', issues: [], doi: DOI });
-  mocks.insertJobRow.mockResolvedValue({ jobId: 'job-1', scheduled: false });
+  mocks.insertJobRow.mockResolvedValue({ jobId: 'job-1' });
 });
 
 const run = () =>
@@ -218,11 +218,10 @@ describe('startRegistration: write', () => {
 
     const result = await run();
 
-    expect(result).toMatchObject({ ok: true, registrationId: 'reg-1', doi: DOI });
-    const depositId = (result as any).depositId;
+    expect(result).toEqual({ ok: true, doi: DOI });
+    const depositId = tx.doiDeposit.create.mock.calls[0][0].data.id;
     expect(depositId).toEqual(expect.any(String));
     const xmlPath = `crossref/deposits/${depositId}.xml`;
-    expect(result).toEqual({ ok: true, registrationId: 'reg-1', depositId, doi: DOI });
 
     // The site's own prefix, never deps.creds.prefix (Curvenote's global prefix).
     expect(mocks.generateFreeDoi).toHaveBeenCalledWith(p, PREFIX);
@@ -327,7 +326,7 @@ describe('startRegistration: write', () => {
   it('FAILED retry reuses its DOI and flips it to SUBMITTING', async () => {
     existing('FAILED');
 
-    expect(await run()).toMatchObject({ ok: true, registrationId: 'reg-1', doi: DOI });
+    expect(await run()).toEqual({ ok: true, doi: DOI });
     expect(mocks.generateFreeDoi).not.toHaveBeenCalled();
     expect(tx.doiRegistration.updateMany).toHaveBeenCalledWith({
       where: { id: 'reg-1', doi: DOI, status: { in: ['FAILED', 'DRAFT'] } },
@@ -340,7 +339,7 @@ describe('startRegistration: write', () => {
   it('FAILED under an old prefix gets a new DOI and writes doi and prefix', async () => {
     existing('FAILED', '10.1111/old', '10.1111');
 
-    expect(await run()).toMatchObject({ ok: true, registrationId: 'reg-1', doi: DOI });
+    expect(await run()).toEqual({ ok: true, doi: DOI });
     expect(mocks.generateFreeDoi).toHaveBeenCalledWith(p, PREFIX);
     expect(mocks.assembleDeposit).toHaveBeenCalledWith(
       {},

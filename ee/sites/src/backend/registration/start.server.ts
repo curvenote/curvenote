@@ -22,8 +22,7 @@ const PUBLISHED = 'PUBLISHED';
 
 type StartRegistrationInput = { siteId: string; submissionId: string; userId: string };
 
-type StartRegistrationResult =
-  { ok: true; registrationId: string; depositId: string; doi: string } | RegistrationFailure;
+type StartRegistrationResult = { ok: true; doi: string } | RegistrationFailure;
 
 async function loadStart(
   deps: DoiDeps,
@@ -184,5 +183,5 @@ export async function startRegistration(
     });
     return errors.NOT_QUEUED;
   }
-  return { ok: true, registrationId: committed.registrationId, depositId, doi: plan.doi };
+  return { ok: true, doi: plan.doi };
 }

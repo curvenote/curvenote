@@ -79,12 +79,7 @@ describe('actionRegisterDoi', () => {
   });
 
   it("starts the registration for the URL's submission on the current site", async () => {
-    vi.mocked(startRegistration).mockResolvedValue({
-      ok: true,
-      registrationId: 'reg-1',
-      depositId: 'dep-1',
-      doi: '10.1/x',
-    });
+    vi.mocked(startRegistration).mockResolvedValue({ ok: true, doi: '10.1/x' });
     const result = (await actionRegisterDoi(ctx, 'sub-1')) as Success;
     expect(vi.mocked(startRegistration).mock.calls[0]).toEqual([
       ctx,
