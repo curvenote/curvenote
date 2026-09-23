@@ -26,7 +26,9 @@ import {
   formatSubmissionDetailSubmission,
   formatSubmissionEditorCollections,
 } from './detail.format.server.js';
+import { loadDoiRegistrationView } from './doiRegistration.server.js';
 import type {
+  DoiRegistrationView,
   MagicLinkWithAccessCount,
   SiteWithAppData,
   SubmissionDetailSiteContext,
@@ -59,27 +61,33 @@ export type SubmissionDetailPageData = {
   siteTags: TagDTO[];
   /**
    * Streamed, not awaited: the check reads the CDN. Null when the viewer lacks site:doi:read or
-   * the per-user DOI preview flag, or when the work already has a DOI.
+   * the per-user DOI preview flag, when the work already has a DOI, or when a registration
+   * already exists (its own state takes over the DOI row).
    */
   doiReadiness: Promise<DoiReadiness> | null;
+  /**
+   * The submission's DOI registration state (in progress / resubmitting / unsuccessful /
+   * registered), when one exists. Null when the viewer can't see DOI registration, the work
+   * already has a DOI, or there is no registration row in a shown state.
+   */
+  doiRegistration: DoiRegistrationView | null;
+  /** Whether the viewer may register or retry a DOI: site.doi.register plus the feature flag. */
+  canRegisterDoi: boolean;
 };
 
 /**
  * Starts the DOI readiness check without awaiting it, so the page streams it in. Null when the
- * work already has a DOI or the viewer can't see DOI registration.
+ * work already has a DOI, a registration already exists, or the viewer can't see DOI
+ * registration.
  */
 function startDoiReadiness(
   ctx: SiteContext,
   submissionId: string,
   activeVersion: SubmissionDetailVersion,
+  canSeeDoi: boolean,
+  doiRegistration: DoiRegistrationView | null,
 ): Promise<DoiReadiness> | null {
-  if (activeVersion.site_work.doi) {
-    return null;
-  }
-  const canSeeDoi =
-    userHasSiteScope(ctx.user, scopes.site.doi.read, ctx.site.id) &&
-    userHasScope(ctx.user, scopes.app.sites.doi.feature);
-  if (!canSeeDoi) {
+  if (!canSeeDoi || activeVersion.site_work.doi || doiRegistration) {
     return null;
   }
   return loadDoiReadiness(ctx, submissionId);
@@ -149,6 +157,14 @@ export async function loadSubmissionDetailPage(
     return null;
   }
 
+  const canSeeDoi =
+    userHasSiteScope(ctx.user, scopes.site.doi.read, ctx.site.id) &&
+    userHasScope(ctx.user, scopes.app.sites.doi.feature);
+  const canRegisterDoi =
+    canSeeDoi && userHasSiteScope(ctx.user, scopes.site.doi.register, ctx.site.id);
+  const doiRegistration =
+    canSeeDoi && !activeVersion.site_work.doi ? await loadDoiRegistrationView(submissionId) : null;
+
   return {
     user: ctx.user,
     userScopes: ctx.scopes,
@@ -168,6 +184,8 @@ export async function loadSubmissionDetailPage(
     mediaThumbnailUrl,
     activeVersionCdnConfig,
     siteTags,
-    doiReadiness: startDoiReadiness(ctx, submissionId, activeVersion),
+    doiReadiness: startDoiReadiness(ctx, submissionId, activeVersion, canSeeDoi, doiRegistration),
+    doiRegistration,
+    canRegisterDoi,
   };
 }

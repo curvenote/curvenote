@@ -120,6 +120,14 @@ export type SiteWithAppData = {
   data: SiteAppData | null;
 };
 
+/** The submission's DOI registration row, shaped for the detail page's DOI row states. */
+export type DoiRegistrationView = {
+  status: 'SUBMITTING' | 'FAILED' | 'REGISTERED';
+  doi: string;
+  /** SUBMITTING after a failed attempt: shown as "Resubmitting…" instead of "Registering…". */
+  retried: boolean;
+};
+
 export type MagicLinkWithAccessCount = {
   id: string;
   date_created: string;
