@@ -86,7 +86,10 @@ type RegisterDoiDialogProps = {
   fetcher: RegisterDoiFetcher;
 };
 
-/** What Crossref will receive, and the Register action. Closes by unmounting once the row shows the registration. */
+/**
+ * What Crossref will receive, and the Register action. Closes by unmounting once the row shows
+ * the registration.
+ */
 export function RegisterDoiDialog({
   prefix,
   summary,

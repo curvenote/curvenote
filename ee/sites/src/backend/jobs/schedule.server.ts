@@ -17,7 +17,7 @@ export type InsertJobParams = {
 
 /**
  * The job row goes into the caller's transaction so `DoiDeposit.job_id` and the row commit
- * together (CN-2518 rule). `enqueueAndDispatchJob` opens its own transaction, so it is not used.
+ * together. `enqueueAndDispatchJob` opens its own transaction, so it is not used.
  * An immediate job is dispatched by the caller after commit with `dispatchJob`.
  */
 export async function insertJobRow(

@@ -15,7 +15,7 @@ export function scheduledAtAfter(now: Date, attempt: number): string {
   return new Date(now.getTime() + pollDelayMinutes(attempt) * 60_000).toISOString();
 }
 
-/** A deposit without a result after this long is failed with a clear error (spec: judgment call). */
+/** A deposit without a result after this long is failed with a clear error. */
 export const POLL_HORIZON_MS = 72 * 60 * 60 * 1000;
 
 /** Shared by CROSSREF_DEPOSIT and CROSSREF_POLL: past this long since the attempt started

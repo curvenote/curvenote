@@ -40,7 +40,7 @@ async function settleDeposit(tx: DoiTx, deposit: DepositRow, data: SettleDeposit
 /**
  * Guarded on SUBMITTING: a registration another attempt already resolved (REGISTERED/FAILED)
  * is left untouched, and the caller uses the returned flag to skip the writes that only make
- * sense on the first transition (Submission.doi, the COMPLETED/FAILED activity).
+ * sense on the first transition.
  */
 async function settleRegistration(tx: DoiTx, deposit: DepositRow, status: string) {
   const now = new Date().toISOString();

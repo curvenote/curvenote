@@ -4,7 +4,7 @@ import { crossrefDepositHandler } from './backend/jobs/crossrefDeposit.server.js
 import { registerRoutes } from './routes.js';
 import { extension as clientExtension } from './client.js';
 
-/** First extension-owned job handler in the repo; CROSSREF_POLL joins in CN-2582. */
+/** First extension-owned job handler in the repo. */
 function getJobs(): JobRegistration[] {
   return [{ jobType: KnownJobTypes.CROSSREF_DEPOSIT, handler: crossrefDepositHandler }];
 }

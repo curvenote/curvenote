@@ -40,8 +40,8 @@ model DoiRegistration {
   /// and doi-utils does not fold case, so generation is where case is fixed.
   doi           String       @unique
   prefix        String
-  /// SUBMITTING | REGISTERED | FAILED (constants in scms-core). Registrations are created
-  /// SUBMITTING (CN-2581); the DRAFT default is unused.
+  /// SUBMITTING | REGISTERED | FAILED (constants in scms-core). Rows are created when a deposit
+  /// starts, so the DRAFT default is legacy and unused.
   status        String       @default("DRAFT")
   registered_at String?
   /// Who started it. Null once that user is deleted: the registration outlives them.

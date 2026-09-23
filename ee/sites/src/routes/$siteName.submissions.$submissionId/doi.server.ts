@@ -14,9 +14,9 @@ export type RegisterDoiActionData = { info?: string; error?: string };
 
 /**
  * Register (and Retry) on the submission detail DOI row. The route action only requires
- * site.submissions.update; registering needs site.doi.register (ADMIN only, D19) and the
- * feature flag. The version is resolved on the server from the URL's submission, never taken
- * from the form.
+ * site.submissions.update; registering also needs site.doi.register, which only the site's
+ * ADMIN role holds, plus the feature flag. The version is resolved on the server from the URL's
+ * submission, never taken from the form.
  */
 export async function actionRegisterDoi(ctx: SiteContextWithUser, submissionId: string) {
   if (!userHasSiteScope(ctx.user, scopes.site.doi.register, ctx.site.id)) {

@@ -15,7 +15,7 @@ async function isTaken(db: DoiReader, doi: string) {
 }
 
 /**
- * A DOI under `prefix` that no registration and no work already uses (D18). Checked outside a
+ * A DOI under `prefix` that no registration and no work already uses. Checked outside a
  * transaction: the unique index on `DoiRegistration.doi` catches a concurrent pick, and work DOIs
  * are not written by this flow. `generateDoi` already emits lowercase suffixes.
  */

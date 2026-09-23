@@ -22,7 +22,7 @@ export type Plan = {
   retry?: { id: string; doi: string };
 };
 
-/** Bumping occ with ACTIVE in the WHERE serialises against unlink-role / reset, which bump it too. */
+/** Bumping occ with ACTIVE in the WHERE serializes against unlink-role / reset, which bump it too. */
 export async function lockActiveSite(tx: DoiTx, siteId: string) {
   const { count } = await tx.siteDoiConfig.updateMany({
     where: { site_id: siteId, status: SITE_DOI_CONFIG_STATUS.ACTIVE },

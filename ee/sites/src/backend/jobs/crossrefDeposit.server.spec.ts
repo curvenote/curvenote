@@ -94,7 +94,7 @@ describe('crossrefDepositHandler', () => {
         data: expect.objectContaining({ status: 'QUEUED' }),
       }),
     );
-    // The poll arrives in CN-2582.
+    // No poll job is inserted.
     expect(mocks.insertJobRow).not.toHaveBeenCalled();
     expect(mocks.dispatchJob).not.toHaveBeenCalled();
     expect(out).toMatchObject({ status: 'COMPLETED' });

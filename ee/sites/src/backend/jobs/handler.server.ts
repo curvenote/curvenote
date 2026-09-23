@@ -4,10 +4,11 @@ import { dbUpdateJob } from '@curvenote/scms-server';
 import type { DoiDeps } from '../doi/types.js';
 import type { CrossrefJobPayload } from './schedule.server.js';
 
-/** Shared by the Crossref job handlers (CROSSREF_POLL arrives in CN-2582): loads the deposit row, parses the job payload, and
- * writes the job row's terminal status. Kept out of each handler so `crossrefDeposit.server.ts`
- * and `crossrefPoll.server.ts` read the same shapes and the same completion helpers. */
-
+/**
+ * Shared by the Crossref job handlers: loads the deposit row, parses the job payload, and writes
+ * the job row's terminal status. Kept out of each handler so every Crossref job handler reads the
+ * same shapes and the same completion helpers.
+ */
 export const depositRowSelect = {
   id: true,
   status: true,

@@ -1,7 +1,7 @@
 import type { Context } from '@curvenote/scms-core';
 import { File, KnownBuckets, StorageBackend } from '@curvenote/scms-server';
 
-/** Deposited XML, kept for inspection (D20). One object per attempt, named by Crossref's file_name. */
+/** Deposited XML, kept for inspection. One object per attempt, named by Crossref's file_name. */
 export function depositXmlKey(fileName: string) {
   return `crossref/deposits/${fileName}`;
 }

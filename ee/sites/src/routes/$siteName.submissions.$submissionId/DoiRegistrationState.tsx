@@ -34,7 +34,7 @@ export function DoiRegistrationState({
   fetcher,
 }: DoiRegistrationStateProps) {
   if (registration.status === 'REGISTERED') {
-    // Reached only after CN-2582 sets it; the work DOI takes over the row then.
+    // Once REGISTERED, the row shows the work's DOI in place of a status badge.
     return <span className="text-sm">{registration.doi}</span>;
   }
   if (registration.status === 'SUBMITTING') {

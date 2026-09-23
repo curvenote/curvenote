@@ -17,14 +17,14 @@ const NO_DEPOSIT = 'no_deposit_after_72h';
 
 /**
  * Crossref could not answer (5xx, maintenance, 429 rate limit) or did not answer (timeout): try
- * again later, same attempt. A throw here would be redelivered by pgmq and eventually FAILED,
- * which the spec forbids (constraints.md) — so these never throw, they reschedule instead.
+ * again later, same attempt. A throw here would be redelivered by pgmq and eventually FAILED
+ * instead of rescheduled, so these never throw — they reschedule instead.
  */
 function isRetryable(error: CrossrefError) {
   return error.status === undefined || error.status === 429 || error.status >= 500;
 }
 
-/** PENDING -> QUEUED. The first poll is enqueued here once CN-2582 lands. */
+/** PENDING -> QUEUED. No poll job is inserted here. */
 async function markQueued(prisma: DoiDeps['prisma'], row: JobDepositRow): Promise<boolean> {
   const { count } = await prisma.doiDeposit.updateMany({
     where: { id: row.id, status: DOI_DEPOSIT_STATUS.PENDING },

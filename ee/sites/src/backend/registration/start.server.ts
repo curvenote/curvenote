@@ -75,7 +75,7 @@ async function loadStart(
   if (!site || site.status !== SITE_DOI_CONFIG_STATUS.ACTIVE) {
     return errors.NOT_ACTIVE;
   }
-  // D21: a retry keeps its DOI. A DOI under an old prefix was never registered, so it is replaced.
+  // A retry keeps its DOI. A DOI under an old prefix was never registered, so it is replaced.
   const keepDoi = existing && existing.prefix === site.prefix;
   const doi = keepDoi ? existing.doi : await generateFreeDoi(deps.prisma, site.prefix);
   return {
@@ -121,7 +121,7 @@ export async function startRegistration(
     );
   } catch (e: any) {
     // A concurrent first start won the submission_id (or doi) unique index. Prisma 7 +
-    // adapter-pg drops meta.target (origin ledger R13), so re-read instead of inspecting it.
+    // adapter-pg drops meta.target, so re-read instead of inspecting it.
     if (e?.code === 'P2002') {
       const winner = await deps.prisma.doiRegistration.findUnique({
         where: { submission_id: plan.submissionId },

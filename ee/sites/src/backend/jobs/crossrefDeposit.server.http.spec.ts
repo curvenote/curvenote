@@ -1,6 +1,6 @@
 // Exercises crossrefDepositHandler through the real `deposit()` HTTP call (client.server.ts's
-// crossrefFetch against a stubbed global fetch), instead of mocking `deposit()` itself, using the
-// CN-2518 fixtures. Kept out of crossrefDeposit.server.spec.ts because that file mocks
+// crossrefFetch against a stubbed global fetch), instead of mocking `deposit()` itself, using
+// the shared HTTP fixtures. Kept out of crossrefDeposit.server.spec.ts because that file mocks
 // '../crossref/deposit.server.js' at module level.
 import { readFileSync } from 'node:fs';
 // eslint-disable-next-line import/no-extraneous-dependencies

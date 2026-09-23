@@ -13,7 +13,7 @@ const TEST_HOST = 'https://test.crossref.org';
 const CredentialsSchema = z
   .object({
     host: z.httpUrl().transform((host) => host.replace(/\/$/, '')),
-    /** Production deployments never set this; the test host is refused without it (D25). */
+    /** Production deployments never set this; the test host is refused without it. */
     allowTestHost: z.boolean().optional(),
     depositorEmail: z.email(),
     password: z.string().min(1),
