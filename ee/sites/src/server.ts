@@ -1,6 +1,13 @@
-import type { ServerExtension } from '@curvenote/scms-core';
+import type { JobRegistration, ServerExtension } from '@curvenote/scms-core';
+import { KnownJobTypes } from '@curvenote/scms-core';
+import { crossrefDepositHandler } from './backend/jobs/crossrefDeposit.server.js';
 import { registerRoutes } from './routes.js';
 import { extension as clientExtension } from './client.js';
+
+/** First extension-owned job handler in the repo; CROSSREF_POLL joins in CN-2582. */
+function getJobs(): JobRegistration[] {
+  return [{ jobType: KnownJobTypes.CROSSREF_DEPOSIT, handler: crossrefDepositHandler }];
+}
 
 function getSafeAdminConfig(config: Record<string, unknown>): Record<string, unknown> {
   const featuredConfig =
@@ -42,4 +49,5 @@ export const extension: ServerExtension = {
   ...clientExtension,
   registerRoutes,
   getSafeAdminConfig,
+  getJobs,
 };
