@@ -7,6 +7,7 @@ import type { DoiReadiness } from '../../backend/deposit/readiness.server.js';
 import type { RegisterDoiActionData } from './doi.server.js';
 import { DoiLink } from './DoiLink.js';
 import { DoiRegistrationState } from './DoiRegistrationState.js';
+import { doiRowRefreshKey, useDoiRowRefresh } from './doiRowRefresh.js';
 import { RegisterDoi } from './RegisterDoi.js';
 import type { DoiRegistrationView } from './types.js';
 
@@ -20,6 +21,8 @@ type DoiRowProps = {
   canRegister: boolean;
   resolvesTo: string;
   setupUrl?: string;
+  /** Polled while a registration is in progress; reloads the page whenever the row would change. */
+  statusUrl: string;
   empty: ReactNode;
 };
 
@@ -34,8 +37,10 @@ export function DoiRow({
   canRegister,
   resolvesTo,
   setupUrl,
+  statusUrl,
   empty,
 }: DoiRowProps) {
+  useDoiRowRefresh(statusUrl, doiRowRefreshKey(registration));
   const fetcher = useFetcher<RegisterDoiActionData>();
   useEffect(() => {
     if (fetcher.state !== 'idle' || !fetcher.data) {

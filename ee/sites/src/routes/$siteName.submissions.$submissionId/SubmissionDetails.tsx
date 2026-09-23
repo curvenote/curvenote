@@ -237,6 +237,7 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
             canRegister={canRegisterDoi}
             resolvesTo={doiResolvesTo}
             setupUrl={doiSetupUrl}
+            statusUrl={`/app/sites/${site.name}/submissions/${submission.id}/doi-status`}
             empty={<span className="text-sm text-muted-foreground">{emptyDetailValue()}</span>}
           />
         </DetailRow>
