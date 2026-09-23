@@ -143,6 +143,10 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
   const slugSuggestion = getSlugSuggestion(site, activeVersion.site_work.doi);
 
   const canUpdate = clientCheckSiteScopes(userScopes, [scopes.site.submissions.update], site.name);
+  // doiReadiness already requires the DOI preview scope; the page itself also needs configure.
+  const doiSetupUrl = clientCheckSiteScopes(userScopes, [scopes.site.doi.configure], site.name)
+    ? `/app/sites/${site.name}/doi`
+    : undefined;
 
   const statusBanners = getStatusBanners({
     baseUrl,
@@ -234,7 +238,11 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
               <ExternalLink className="inline-block w-4 h-4 shrink-0" aria-hidden />
             </a>
           ) : doiReadiness ? (
-            <RegisterDoi readiness={doiReadiness} resolvesTo={doiResolvesTo} />
+            <RegisterDoi
+              readiness={doiReadiness}
+              resolvesTo={doiResolvesTo}
+              setupUrl={doiSetupUrl}
+            />
           ) : (
             <span className="text-sm text-muted-foreground">{emptyDetailValue()}</span>
           )}

@@ -1,104 +1,53 @@
-import { Suspense, useState } from 'react';
+import { Suspense } from 'react';
 import type { ReactNode } from 'react';
-import { Await } from 'react-router';
+import { Await, Link } from 'react-router';
 import { AlertTriangle } from 'lucide-react';
 import type { DoiReadiness } from '../../backend/deposit/readiness.server.js';
 import type { DepositIssue } from '../../backend/deposit/types.js';
 import { RegisterDoiDialog } from './RegisterDoiDialog.js';
-
-type IssueCopy = {
-  title: string;
-  hint: string;
-};
-
-const PUBLISHED_CONTENT_MISSING: IssueCopy = {
-  title: 'Published content not found',
-  hint: 'Publish the submission again to register a DOI.',
-};
-
-/** Row copy per blocking issue code; the mapper's own messages stay for logs. */
-const ISSUE_COPY: Record<string, IssueCopy> = {
-  missing_date: {
-    title: 'Publication date required',
-    hint: 'Add a publication date to register a DOI.',
-  },
-  missing_title: {
-    title: 'Title required',
-    hint: 'Add a title to the article to register a DOI.',
-  },
-  site_not_active: {
-    title: 'DOIs not set up',
-    hint: 'Set up DOIs for this site to register a DOI.',
-  },
-  no_cdn: PUBLISHED_CONTENT_MISSING,
-  no_page: PUBLISHED_CONTENT_MISSING,
-  not_found: PUBLISHED_CONTENT_MISSING,
-};
-
-const NOT_PUBLISHED: IssueCopy = {
-  title: 'Not published',
-  hint: 'Publish this submission to register a DOI.',
-};
-
-function copyForIssue(issue: DepositIssue): IssueCopy {
-  return ISSUE_COPY[issue.code] ?? { title: issue.message, hint: '' };
-}
-
-/** Site setup comes first: until it's done, fixing the submission doesn't unblock anything. */
-const ISSUE_PRIORITY = ['site_not_active', 'missing_title', 'missing_date'];
-
-function issuePriority(issue: DepositIssue): number {
-  const index = ISSUE_PRIORITY.indexOf(issue.code);
-  return index === -1 ? ISSUE_PRIORITY.length : index;
-}
+import { describeDoiBlockers } from './RegisterDoi.utils.js';
 
 type BlockerProps = {
-  copy: IssueCopy;
-  /** Rendered after the title, on the same line. */
-  aside?: ReactNode;
+  children: ReactNode;
 };
 
-function Blocker({ copy, aside }: BlockerProps) {
+function Blocker({ children }: BlockerProps) {
   return (
-    <div>
-      <div className="flex gap-2 items-center">
-        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" aria-hidden />
-        <p className="text-sm">{copy.title}</p>
-        {aside}
-      </div>
-      {copy.hint && <p className="mt-1 text-sm text-muted-foreground">{copy.hint}</p>}
+    <div className="flex gap-2 items-center">
+      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" aria-hidden />
+      <p className="text-sm">{children}</p>
     </div>
   );
 }
 
 type BlockersProps = {
   issues: DepositIssue[];
+  /** DOI Registration page; only for people who can configure it. */
+  setupUrl?: string;
 };
 
-/** The top-priority blocker, with the rest behind a "+N more" toggle beside its title. */
-function Blockers({ issues }: BlockersProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [first, ...rest] = [...issues].sort((a, b) => issuePriority(a) - issuePriority(b));
-  if (!first) {
-    return null;
+function Blockers({ issues, setupUrl }: BlockersProps) {
+  const blockers = describeDoiBlockers(issues);
+  if (blockers.kind === 'site_not_active') {
+    return (
+      <Blocker>
+        DOIs are not set up for this site.
+        {setupUrl && (
+          <>
+            {' '}
+            <Link to={setupUrl} className="text-primary hover:underline">
+              Set up DOIs
+            </Link>
+          </>
+        )}
+      </Blocker>
+    );
   }
-  const toggle = rest.length > 0 && (
-    <button
-      type="button"
-      className="text-sm text-muted-foreground hover:underline"
-      aria-expanded={expanded}
-      onClick={() => setExpanded((value) => !value)}
-    >
-      {expanded ? 'Show less' : `+${rest.length} more ${rest.length === 1 ? 'issue' : 'issues'}`}
-    </button>
-  );
   return (
-    <div className="space-y-3">
-      <Blocker copy={copyForIssue(first)} aside={toggle} />
-      {expanded &&
-        rest.map((issue, index) => (
-          <Blocker key={`${issue.code}-${index}`} copy={copyForIssue(issue)} />
-        ))}
+    <div className="space-y-2">
+      {blockers.sentences.map((sentence) => (
+        <Blocker key={sentence}>{sentence}</Blocker>
+      ))}
     </div>
   );
 }
@@ -114,9 +63,10 @@ function Note({ children }: NoteProps) {
 type RegisterDoiStateProps = {
   readiness: DoiReadiness;
   resolvesTo: string;
+  setupUrl?: string;
 };
 
-function RegisterDoiState({ readiness, resolvesTo }: RegisterDoiStateProps) {
+function RegisterDoiState({ readiness, resolvesTo, setupUrl }: RegisterDoiStateProps) {
   switch (readiness.kind) {
     case 'ready':
       return (
@@ -128,9 +78,9 @@ function RegisterDoiState({ readiness, resolvesTo }: RegisterDoiStateProps) {
         />
       );
     case 'blocked':
-      return <Blockers issues={readiness.issues} />;
+      return <Blockers issues={readiness.issues} setupUrl={setupUrl} />;
     case 'not_published':
-      return <Blocker copy={NOT_PUBLISHED} />;
+      return <Blocker>Publish this submission to register a DOI.</Blocker>;
     case 'not_configured':
       return <Note>DOI registration is not configured on this deployment.</Note>;
     case 'unavailable':
@@ -142,10 +92,12 @@ type RegisterDoiProps = {
   readiness: Promise<DoiReadiness>;
   /** Public URL of the published work, where the DOI will point. */
   resolvesTo: string;
+  /** DOI Registration page, linked when the site isn't set up; omit when the user can't open it. */
+  setupUrl?: string;
 };
 
 /** The DOI row when the work has no DOI yet. The check reads the CDN, so it streams in. */
-export function RegisterDoi({ readiness, resolvesTo }: RegisterDoiProps) {
+export function RegisterDoi({ readiness, resolvesTo, setupUrl }: RegisterDoiProps) {
   const unavailable = (
     <Note>Could not check the DOI requirements. Reload the page to try again.</Note>
   );
@@ -154,7 +106,7 @@ export function RegisterDoi({ readiness, resolvesTo }: RegisterDoiProps) {
       {/* loadDoiReadiness never rejects; this covers the stream being cut off. */}
       <Await resolve={readiness} errorElement={unavailable}>
         {(resolved: DoiReadiness) => (
-          <RegisterDoiState readiness={resolved} resolvesTo={resolvesTo} />
+          <RegisterDoiState readiness={resolved} resolvesTo={resolvesTo} setupUrl={setupUrl} />
         )}
       </Await>
     </Suspense>
