@@ -143,10 +143,12 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
   const slugSuggestion = getSlugSuggestion(site, activeVersion.site_work.doi);
 
   const canUpdate = clientCheckSiteScopes(userScopes, [scopes.site.submissions.update], site.name);
-  // doiReadiness already requires the DOI preview scope; the page itself also needs configure.
-  const doiSetupUrl = clientCheckSiteScopes(userScopes, [scopes.site.doi.configure], site.name)
-    ? `/app/sites/${site.name}/doi`
-    : undefined;
+  // Same gate as the DOI Registration menu item and page. clientCheckSiteScopes matches any
+  // listed scope, so each is checked on its own.
+  const canOpenDoiSetup =
+    clientCheckSiteScopes(userScopes, [scopes.site.doi.configure], site.name) &&
+    clientCheckSiteScopes(userScopes, [scopes.app.sites.doi.feature], site.name);
+  const doiSetupUrl = canOpenDoiSetup ? `/app/sites/${site.name}/doi` : undefined;
 
   const statusBanners = getStatusBanners({
     baseUrl,
