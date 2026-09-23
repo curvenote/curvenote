@@ -11,12 +11,12 @@ const fakeFetch = (status: number, body: string) =>
 const rejectingFetch = (error: Error) =>
   vi.fn(() => Promise.reject(error)) as unknown as typeof fetch;
 const creds = {
-  host: 'https://test.crossref.org',
+  host: 'https://crossref.example.com',
   depositorEmail: 'doi@curvenote.com',
   password: 's3cret',
   prefix: '10.62329',
   role: 'curv',
-  resourceUrlBase: 'https://doi.curvenote.com',
+  resourceUrlBase: 'https://doi.example.com',
 };
 
 describe('lookupPrefix', () => {
@@ -100,19 +100,19 @@ describe('crossrefCredentialsFromConfig', () => {
       api: {
         crossref: {
           ...creds,
-          host: 'https://test.crossref.org/',
-          resourceUrlBase: 'https://doi.curvenote.com/',
+          host: 'https://crossref.example.com/',
+          resourceUrlBase: 'https://doi.example.com/',
         },
       },
     } as AppConfig;
     const parsed = crossrefCredentialsFromConfig(config);
-    expect(parsed.host).toBe('https://test.crossref.org');
-    expect(parsed.resourceUrlBase).toBe('https://doi.curvenote.com');
+    expect(parsed.host).toBe('https://crossref.example.com');
+    expect(parsed.resourceUrlBase).toBe('https://doi.example.com');
   });
 
   test('names invalid fields without leaking the password', () => {
     const config = {
-      api: { crossref: { ...creds, host: 'test.crossref.org', depositorEmail: 'nope' } },
+      api: { crossref: { ...creds, host: 'crossref.example.com', depositorEmail: 'nope' } },
     } as AppConfig;
     let message = '';
     try {
@@ -127,7 +127,7 @@ describe('crossrefCredentialsFromConfig', () => {
 
   test('returns the Curvenote prefix and role', () => {
     const config = {
-      api: { crossref: { ...creds, host: 'https://test.crossref.org/' } },
+      api: { crossref: { ...creds, host: 'https://crossref.example.com/' } },
     } as unknown as AppConfig;
     expect(crossrefCredentialsFromConfig(config)).toMatchObject({
       prefix: '10.62329',

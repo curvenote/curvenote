@@ -28,7 +28,7 @@ describe('toDeposit', () => {
       license: 'https://creativecommons.org/licenses/by-sa/4.0/',
       doi_data: {
         doi: '10.62329/abcd1234',
-        resource: 'https://doi.curvenote.com/10.62329/abcd1234',
+        resource: 'https://doi.example.com/10.62329/abcd1234',
       },
       citations: { Oldenburg_2005: '10.1190/1.9781560801719.ch5' },
     });

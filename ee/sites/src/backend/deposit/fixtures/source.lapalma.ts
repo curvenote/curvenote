@@ -71,6 +71,6 @@ export const lapalmaOptions = {
   doi: '10.62329/abcd1234',
   batchId: '019a-batch',
   timestamp: 1_700_000_000_000,
-  resourceUrl: 'https://doi.curvenote.com/10.62329/abcd1234',
+  resourceUrl: 'https://doi.example.com/10.62329/abcd1234',
   depositor: { name: 'Curvenote', email: 'doi@curvenote.com' },
 };

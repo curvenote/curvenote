@@ -58,12 +58,12 @@ export function makeDeps(fetchMock: ReturnType<typeof fakeFetch> = fakeFetch()) 
     prisma,
     fetch: fetchMock,
     creds: {
-      host: 'https://test.crossref.org',
+      host: 'https://crossref.example.com',
       depositorEmail: 'doi@curvenote.com',
       password: 's3cret',
       prefix: '10.62329',
       role: 'curv',
-      resourceUrlBase: 'https://doi.curvenote.com',
+      resourceUrlBase: 'https://doi.example.com',
     },
   } as unknown as DoiDeps;
   return { deps, prisma, fetchMock };

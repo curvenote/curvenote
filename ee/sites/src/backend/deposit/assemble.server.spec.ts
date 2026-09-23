@@ -19,7 +19,7 @@ const opts = {
   doi: '10.62329/abcd1234',
   batchId: 'batch-1',
   depositorEmail: 'doi@curvenote.com',
-  resourceUrlBase: 'https://doi.curvenote.com',
+  resourceUrlBase: 'https://doi.example.com',
   timestamp: 0,
 };
 
@@ -32,7 +32,7 @@ describe('assembleDeposit', () => {
     expect(result.xml).toContain('<doi_batch_id>batch-1</doi_batch_id>');
     expect(result.xml).toContain('<posted_content>');
     expect(result.xml).toContain(
-      '<resource content_version="vor">https://doi.curvenote.com/10.62329/abcd1234</resource>',
+      '<resource content_version="vor">https://doi.example.com/10.62329/abcd1234</resource>',
     );
     expect(result.summary?.title).toBe('La Palma Seismicity 2021');
   });

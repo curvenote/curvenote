@@ -10,12 +10,12 @@ import { loadDoiReadiness } from './readiness.server.js';
 import type { DepositIssue, DepositSummary } from './types.js';
 
 const crossref = {
-  host: 'https://test.crossref.org',
+  host: 'https://crossref.example.com',
   depositorEmail: 'doi@curvenote.com',
   password: 'secret',
   prefix: '10.62329',
   role: 'curv',
-  resourceUrlBase: 'https://doi.curvenote.com',
+  resourceUrlBase: 'https://doi.example.com',
 };
 
 const summary: DepositSummary = {
@@ -82,7 +82,7 @@ describe('loadDoiReadiness', () => {
     expect(versionId).toBe('sv-1');
     expect(opts.doi).toMatch(/^10\.99999\/[a-z0-9]+$/);
     expect(opts.depositorEmail).toBe('doi@curvenote.com');
-    expect(opts.resourceUrlBase).toBe('https://doi.curvenote.com');
+    expect(opts.resourceUrlBase).toBe('https://doi.example.com');
   });
 
   it('is blocked with only the blocking issues when nothing was assembled', async () => {

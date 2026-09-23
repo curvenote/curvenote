@@ -14,12 +14,12 @@ const fakeFetch = (status: number, body: string) =>
 const rejectingFetch = (error: Error) =>
   vi.fn(() => Promise.reject(error)) as unknown as typeof fetch;
 const creds = {
-  host: 'https://test.crossref.org',
+  host: 'https://crossref.example.com',
   depositorEmail: 'doi@curvenote.com',
   password: 's3cret',
   prefix: '10.62329',
   role: 'curv',
-  resourceUrlBase: 'https://doi.curvenote.com',
+  resourceUrlBase: 'https://doi.example.com',
 };
 const input = { role: 'elms', fileName: 'CN-dep.b8d0b4aa.xml' };
 
@@ -114,7 +114,7 @@ describe('fetchDepositResult', () => {
       },
     );
     const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
-    expect(String(url)).toBe('https://test.crossref.org/servlet/submissionDownload');
+    expect(String(url)).toBe('https://crossref.example.com/servlet/submissionDownload');
     expect(init.method).toBe('POST');
     expect((init.headers as Record<string, string>)['Content-Type']).toBe(
       'application/x-www-form-urlencoded',
@@ -167,7 +167,7 @@ describe('checkRole', () => {
       authenticated: true,
     });
     const [url, init] = (f as any).mock.calls[0] as [string, RequestInit];
-    expect(String(url)).toBe('https://test.crossref.org/servlet/submissionDownload');
+    expect(String(url)).toBe('https://crossref.example.com/servlet/submissionDownload');
     expect(init.method).toBe('POST');
     expect((init.headers as Record<string, string>)['Content-Type']).toBe(
       'application/x-www-form-urlencoded',
