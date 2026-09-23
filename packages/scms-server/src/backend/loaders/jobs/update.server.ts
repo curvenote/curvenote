@@ -21,7 +21,7 @@ export default async function (
   ctx: Context,
   jobId: string,
   data: UpdateJob,
-  _extensionJobs?: JobRegistration[],
+  extensionJobs?: JobRegistration[],
 ) {
   const prisma = await getPrismaClient();
   const prior = await prisma.job.findUnique({
@@ -33,9 +33,37 @@ export default async function (
   const dbo = await dbUpdateJob(jobId, data);
   if (!dbo) throw error404();
 
+  // Core terminal side effects must run before extension hooks so a throwing
+  // onJobPatch cannot permanently skip dependent promotion / converter activity.
   if (isTerminalStatus(dbo.status) && !isTerminalStatus(prior.status)) {
     await onJobTerminal(jobId, dbo.status);
     await recordConverterTaskTerminalActivity(dbo, dbo.status);
+  }
+
+  const registration = (extensionJobs ?? []).find((j) => j.jobType === dbo.job_type);
+  if (registration?.onJobPatch) {
+    try {
+      await registration.onJobPatch({
+        ctx,
+        job: {
+          id: dbo.id,
+          job_type: dbo.job_type,
+          status: dbo.status,
+          payload: dbo.payload,
+          results: dbo.results,
+          messages: dbo.messages,
+        },
+        priorStatus: prior.status,
+        update: data,
+      });
+    } catch (err) {
+      console.error('[jobs.update] onJobPatch failed', {
+        jobId,
+        job_type: dbo.job_type,
+        err,
+      });
+      throw err;
+    }
   }
 
   return formatJobDTO(ctx, dbo);
