@@ -174,4 +174,11 @@ describe('crossrefCredentialsFromConfig', () => {
     } as AppConfig;
     expect(() => crossrefCredentialsFromConfig(config)).toThrow(/allowTestHost/);
   });
+
+  test('refuses the test host regardless of scheme, case or an explicit port', () => {
+    const config = {
+      api: { crossref: { ...creds, host: 'https://TEST.crossref.org:443' } },
+    } as AppConfig;
+    expect(() => crossrefCredentialsFromConfig(config)).toThrow(/allowTestHost/);
+  });
 });

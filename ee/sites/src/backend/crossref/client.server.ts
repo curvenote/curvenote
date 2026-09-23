@@ -9,6 +9,7 @@ import { PREFIX_RE } from './prefix.js';
 const PREFIXES_API = 'https://api.crossref.org/prefixes';
 const TIMEOUT_MS = 10_000;
 const TEST_HOST = 'https://test.crossref.org';
+const TEST_HOSTNAME = new URL(TEST_HOST).hostname;
 
 const CredentialsSchema = z
   .object({
@@ -25,7 +26,15 @@ const CredentialsSchema = z
     resourceUrlBase: z.httpUrl().transform((url) => url.replace(/\/$/, '')),
   })
   .superRefine((value, ctx) => {
-    if (value.host === TEST_HOST && !value.allowTestHost) {
+    // `host` may still be the raw, unparseable input here when it already failed its own
+    // z.httpUrl() check; that failure is reported on its own path, so this check just skips it.
+    let hostname: string;
+    try {
+      hostname = new URL(value.host).hostname;
+    } catch {
+      return;
+    }
+    if (hostname === TEST_HOSTNAME && !value.allowTestHost) {
       ctx.addIssue({
         code: 'custom',
         path: ['host'],
