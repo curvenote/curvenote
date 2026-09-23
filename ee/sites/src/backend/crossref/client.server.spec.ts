@@ -144,4 +144,32 @@ describe('crossrefCredentialsFromConfig', () => {
     );
     expect(() => crossrefCredentialsFromConfig(config)).not.toThrow(/s3cret/);
   });
+
+  test('refuses test.crossref.org unless allowTestHost is set', () => {
+    const config = {
+      api: { crossref: { ...creds, host: 'https://test.crossref.org' } },
+    } as AppConfig;
+    expect(() => crossrefCredentialsFromConfig(config)).toThrow(
+      'api.crossref.host (test.crossref.org needs api.crossref.allowTestHost: true)',
+    );
+  });
+
+  test('accepts test.crossref.org with allowTestHost', () => {
+    const config = {
+      api: { crossref: { ...creds, host: 'https://test.crossref.org/', allowTestHost: true } },
+    } as AppConfig;
+    expect(crossrefCredentialsFromConfig(config).host).toBe('https://test.crossref.org');
+  });
+
+  test('accepts any other host without the flag', () => {
+    const config = { api: { crossref: { ...creds, host: 'https://doi.crossref.org' } } } as AppConfig;
+    expect(crossrefCredentialsFromConfig(config).host).toBe('https://doi.crossref.org');
+  });
+
+  test('refuses test.crossref.org with a trailing slash too', () => {
+    const config = {
+      api: { crossref: { ...creds, host: 'https://test.crossref.org/' } },
+    } as AppConfig;
+    expect(() => crossrefCredentialsFromConfig(config)).toThrow(/allowTestHost/);
+  });
 });
