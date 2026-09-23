@@ -3,7 +3,7 @@ import { ActivityType } from '@curvenote/scms-db';
 import type { DoiTx } from '../doi/types.js';
 
 type RegistrationActivityInput = {
-  type: 'DOI_REGISTRATION_STARTED' | 'DOI_REGISTRATION_FAILED';
+  type: 'DOI_REGISTRATION_STARTED' | 'DOI_REGISTRATION_COMPLETED' | 'DOI_REGISTRATION_FAILED';
   siteId: string;
   submissionId: string;
   submissionVersionId: string;
