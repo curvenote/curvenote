@@ -19,6 +19,7 @@ const creds = {
   password: 's3cret',
   prefix: '10.62329',
   role: 'curv',
+  resourceUrlBase: 'https://doi.curvenote.com',
 };
 const input = { role: 'elms', fileName: 'CN-dep.b8d0b4aa.xml' };
 

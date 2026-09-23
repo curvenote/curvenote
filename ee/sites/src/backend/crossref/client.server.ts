@@ -17,6 +17,8 @@ const CredentialsSchema = z.object({
   prefix: z.string().regex(PREFIX_RE),
   /** Curvenote's own role: used by CURVENOTE_PREFIX sites and as the control login on a 401. */
   role: z.string().min(1),
+  /** Landing page base the deposited DOIs resolve to: `<resourceUrlBase>/<doi>`. */
+  resourceUrlBase: z.httpUrl().transform((url) => url.replace(/\/$/, '')),
 });
 
 const PrefixResponseSchema = z.object({

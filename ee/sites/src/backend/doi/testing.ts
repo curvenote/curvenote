@@ -63,6 +63,7 @@ export function makeDeps(fetchMock: ReturnType<typeof fakeFetch> = fakeFetch()) 
       password: 's3cret',
       prefix: '10.62329',
       role: 'curv',
+      resourceUrlBase: 'https://doi.curvenote.com',
     },
   } as unknown as DoiDeps;
   return { deps, prisma, fetchMock };

@@ -2,13 +2,15 @@ import { DoiBatch, preprintXml } from 'crossref-utils-sdk';
 import type { Context } from '@curvenote/scms-server';
 import { toDeposit } from './mapper.js';
 import { DepositSourceError, loadDepositSource } from './source.server.js';
-import { DEPOSITOR_NAME, RESOURCE_URL_BASE } from './types.js';
+import { DEPOSITOR_NAME } from './types.js';
 import type { AssembledDeposit } from './types.js';
 
 export type AssembleOptions = {
   doi: string;
   batchId: string;
   depositorEmail: string;
+  /** `api.crossref.resourceUrlBase`, no trailing slash. */
+  resourceUrlBase: string;
   timestamp?: number;
 };
 
@@ -45,7 +47,7 @@ export async function assembleDeposit(
     doi: opts.doi,
     batchId: opts.batchId,
     timestamp: opts.timestamp ?? Date.now(),
-    resourceUrl: `${RESOURCE_URL_BASE}${opts.doi}`,
+    resourceUrl: `${opts.resourceUrlBase}/${opts.doi}`,
     depositor: { name: DEPOSITOR_NAME, email: opts.depositorEmail },
   });
   if (!mapped.preprint) {

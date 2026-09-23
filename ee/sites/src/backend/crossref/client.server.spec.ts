@@ -16,6 +16,7 @@ const creds = {
   password: 's3cret',
   prefix: '10.62329',
   role: 'curv',
+  resourceUrlBase: 'https://doi.curvenote.com',
 };
 
 describe('lookupPrefix', () => {
@@ -94,11 +95,19 @@ describe('crossrefCredentialsFromConfig', () => {
     expect(() => crossrefCredentialsFromConfig({ api: {} } as AppConfig)).toThrow(/api\.crossref/);
   });
 
-  test('strips a trailing slash from the host', () => {
+  test('strips a trailing slash from the host and the resource URL base', () => {
     const config = {
-      api: { crossref: { ...creds, host: 'https://test.crossref.org/' } },
+      api: {
+        crossref: {
+          ...creds,
+          host: 'https://test.crossref.org/',
+          resourceUrlBase: 'https://doi.curvenote.com/',
+        },
+      },
     } as AppConfig;
-    expect(crossrefCredentialsFromConfig(config).host).toBe('https://test.crossref.org');
+    const parsed = crossrefCredentialsFromConfig(config);
+    expect(parsed.host).toBe('https://test.crossref.org');
+    expect(parsed.resourceUrlBase).toBe('https://doi.curvenote.com');
   });
 
   test('names invalid fields without leaking the password', () => {

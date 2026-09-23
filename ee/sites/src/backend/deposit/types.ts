@@ -93,5 +93,4 @@ export type AssembledDeposit = {
   doi: string;
 };
 
-export const RESOURCE_URL_BASE = 'https://doi.curvenote.com/';
 export const DEPOSITOR_NAME = 'Curvenote';

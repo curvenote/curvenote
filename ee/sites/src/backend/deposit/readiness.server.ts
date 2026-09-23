@@ -33,10 +33,12 @@ async function dbLoadSubmissionForDoi(siteId: string, submissionId: string) {
 async function checkDoiReadiness(ctx: SiteContext, submissionId: string): Promise<DoiReadiness> {
   let depositorEmail: string;
   let deploymentPrefix: string;
+  let resourceUrlBase: string;
   try {
     const creds = crossrefCredentialsFromConfig(ctx.$config);
     depositorEmail = creds.depositorEmail;
     deploymentPrefix = creds.prefix;
+    resourceUrlBase = creds.resourceUrlBase;
   } catch {
     // Most deployments have no api.crossref yet; this runs on every detail page view, so no log.
     return { kind: 'not_configured' };
@@ -55,6 +57,7 @@ async function checkDoiReadiness(ctx: SiteContext, submissionId: string): Promis
     doi: generateDoi(prefix),
     batchId: uuidv7(),
     depositorEmail,
+    resourceUrlBase,
   });
   if (!assembled.summary) {
     return {

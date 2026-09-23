@@ -15,6 +15,7 @@ const crossref = {
   password: 'secret',
   prefix: '10.62329',
   role: 'curv',
+  resourceUrlBase: 'https://doi.curvenote.com',
 };
 
 const summary: DepositSummary = {
@@ -81,6 +82,7 @@ describe('loadDoiReadiness', () => {
     expect(versionId).toBe('sv-1');
     expect(opts.doi).toMatch(/^10\.99999\/[a-z0-9]+$/);
     expect(opts.depositorEmail).toBe('doi@curvenote.com');
+    expect(opts.resourceUrlBase).toBe('https://doi.curvenote.com');
   });
 
   it('is blocked with only the blocking issues when nothing was assembled', async () => {

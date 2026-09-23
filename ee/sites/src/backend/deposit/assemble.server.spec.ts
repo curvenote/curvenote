@@ -19,6 +19,7 @@ const opts = {
   doi: '10.62329/abcd1234',
   batchId: 'batch-1',
   depositorEmail: 'doi@curvenote.com',
+  resourceUrlBase: 'https://doi.curvenote.com',
   timestamp: 0,
 };
 
