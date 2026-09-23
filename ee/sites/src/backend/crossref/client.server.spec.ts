@@ -162,7 +162,9 @@ describe('crossrefCredentialsFromConfig', () => {
   });
 
   test('accepts any other host without the flag', () => {
-    const config = { api: { crossref: { ...creds, host: 'https://doi.crossref.org' } } } as AppConfig;
+    const config = {
+      api: { crossref: { ...creds, host: 'https://doi.crossref.org' } },
+    } as AppConfig;
     expect(crossrefCredentialsFromConfig(config).host).toBe('https://doi.crossref.org');
   });
 
