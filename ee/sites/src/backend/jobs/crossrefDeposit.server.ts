@@ -16,9 +16,10 @@ import { loadJobSite } from './site.server.js';
 const NO_DEPOSIT = 'no_deposit_after_72h';
 
 /**
- * Crossref could not answer (5xx, maintenance, 429 rate limit) or did not answer (timeout): try
- * again later, same attempt. A throw here would be redelivered by pgmq and eventually FAILED
- * instead of rescheduled, so these never throw — they reschedule instead.
+ * Crossref could not answer (5xx, maintenance, 429 rate limit) or did not answer (timeout): a
+ * transient outage, not a reason to give up on the deposit. Try again later, same attempt. A
+ * throw here would be redelivered by pgmq and eventually FAILED instead of rescheduled, so these
+ * never throw — they reschedule instead.
  */
 function isRetryable(error: CrossrefError) {
   return error.status === undefined || error.status === 429 || error.status >= 500;

@@ -100,6 +100,20 @@ describe('actionRegisterDoi', () => {
     expect(result.data).toEqual({ info: 'DOI registration started for 10.1/x.' });
   });
 
+  it('derives isSystemAdmin from the system:admin scope', async () => {
+    vi.mocked(userHasScope).mockReturnValue(true);
+    vi.mocked(startRegistration).mockResolvedValue({
+      ok: true,
+      registrationId: 'reg-1',
+      depositId: 'dep-1',
+      doi: '10.1/x',
+    });
+    await actionRegisterDoi(ctx, 'sub-1');
+    expect(vi.mocked(startRegistration).mock.calls[0][2]).toMatchObject({
+      actor: { userId: 'user-1', isSystemAdmin: true },
+    });
+  });
+
   it('joins blocking issues into the error', async () => {
     vi.mocked(startRegistration).mockResolvedValue({
       ok: false,
