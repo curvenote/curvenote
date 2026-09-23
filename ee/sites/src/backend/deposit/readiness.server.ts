@@ -16,6 +16,7 @@ export type DoiReadiness =
 
 const PUBLISHED = 'PUBLISHED';
 
+/** Overlaps the detail page's versions on purpose: keeps readiness self-contained for one small query. */
 async function dbLoadSubmissionForDoi(siteId: string, submissionId: string) {
   const prisma = await getPrismaClient();
   return prisma.submission.findFirst({
