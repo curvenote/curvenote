@@ -102,6 +102,11 @@ function formatDetailActivity(
         }
       : undefined;
 
+  const doiRegistration =
+    activity.activity_type.startsWith('DOI_REGISTRATION_') && typeof data?.doi === 'string'
+      ? { doi: data.doi, message: typeof data.message === 'string' ? data.message : undefined }
+      : undefined;
+
   return {
     id: activity.id,
     date_created: formatDate(activity.date_created),
@@ -124,6 +129,7 @@ function formatDetailActivity(
     date_published: activity.date_published ?? undefined,
     job_failure: jobFailure,
     tag_change: tagChange,
+    doi_registration: doiRegistration,
   };
 }
 

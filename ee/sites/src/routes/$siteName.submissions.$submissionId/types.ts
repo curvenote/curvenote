@@ -63,6 +63,7 @@ export type SubmissionDetailActivity = {
   date_published?: string;
   job_failure?: SubmissionDetailJobFailure;
   tag_change?: { label: string; action: 'added' | 'removed' };
+  doi_registration?: { doi: string; message?: string };
 };
 
 export type SubmissionDetailSubmission = {

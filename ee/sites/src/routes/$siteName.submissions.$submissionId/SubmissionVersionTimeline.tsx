@@ -153,6 +153,17 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
     return <ActivityDetailRows rows={[['Version date', versionDateNode]]} />;
   }
 
+  if (activity.doi_registration) {
+    return (
+      <ActivityDetailRows
+        rows={[
+          ['DOI', activity.doi_registration.doi],
+          ['Message', activity.doi_registration.message],
+        ]}
+      />
+    );
+  }
+
   return null;
 }
 
