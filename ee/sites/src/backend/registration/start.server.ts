@@ -9,11 +9,13 @@ import type { Context } from '@curvenote/scms-server';
 import { assembleDeposit } from '../deposit/assemble.server.js';
 import { depositXmlKey, writePrivateXml } from '../deposit/storage.server.js';
 import type { DoiDeps } from '../doi/types.js';
+import { fail } from '../jobs/handler.server.js';
 import { dispatchJob } from '../jobs/schedule.server.js';
 import { commitStart } from './commit.server.js';
 import type { Plan } from './commit.server.js';
 import { generateFreeDoi } from './doi.server.js';
 import * as errors from './errors.js';
+import { failDeposit } from './result.server.js';
 import type { RegistrationFailure } from './errors.js';
 
 const PUBLISHED = 'PUBLISHED';
@@ -88,6 +90,36 @@ async function loadStart(
   };
 }
 
+type FailNotQueuedInput = {
+  prisma: DoiDeps['prisma'];
+  plan: Plan;
+  depositId: string;
+  registrationId: string;
+  jobId: string;
+  userId: string;
+};
+
+async function failNotQueued(input: FailNotQueuedInput) {
+  const { plan } = input;
+  const deposit = {
+    id: input.depositId,
+    submission_version_id: plan.versionId,
+    registration: {
+      id: input.registrationId,
+      doi: plan.doi,
+      submission_id: plan.submissionId,
+      site_id: plan.siteId,
+      created_by_id: input.userId,
+    },
+  };
+  try {
+    await failDeposit(input.prisma, { deposit, error: 'dispatch_failed' });
+    await fail(input.jobId, `deposit ${input.depositId}: dispatch_failed`);
+  } catch (error) {
+    console.error('[doi] could not fail the undispatched attempt', input.depositId, error);
+  }
+}
+
 /**
  * Reads, assembles and stores the XML first (the CDN read must not hold a transaction), then
  * commits everything in one write transaction and dispatches after commit. A blocking issue
@@ -136,6 +168,21 @@ export async function startRegistration(
   if ('ok' in committed) {
     return committed;
   }
-  await dispatchJob(committed.jobId, KnownJobTypes.CROSSREF_DEPOSIT);
+  try {
+    await dispatchJob(committed.jobId, KnownJobTypes.CROSSREF_DEPOSIT);
+  } catch (error) {
+    // The rows are committed but the job may never run, so the registration would stay SUBMITTING
+    // with no Retry. Failing the attempt offers Retry instead.
+    console.error('[doi] could not dispatch', committed.jobId, error);
+    await failNotQueued({
+      plan,
+      depositId,
+      registrationId: committed.registrationId,
+      jobId: committed.jobId,
+      userId: input.userId,
+      prisma: deps.prisma,
+    });
+    return errors.NOT_QUEUED;
+  }
   return { ok: true, registrationId: committed.registrationId, depositId, doi: plan.doi };
 }

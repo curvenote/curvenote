@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   insertJobRow: vi.fn(),
   dispatchJob: vi.fn(),
   writeRegistrationActivity: vi.fn(),
+  failDeposit: vi.fn(),
+  failJob: vi.fn(),
 }));
 vi.mock('../deposit/assemble.server.js', () => ({ assembleDeposit: mocks.assembleDeposit }));
 vi.mock('../deposit/storage.server.js', () => ({
@@ -19,6 +21,8 @@ vi.mock('../jobs/schedule.server.js', () => ({
   insertJobRow: mocks.insertJobRow,
   dispatchJob: mocks.dispatchJob,
 }));
+vi.mock('./result.server.js', () => ({ failDeposit: mocks.failDeposit }));
+vi.mock('../jobs/handler.server.js', () => ({ fail: mocks.failJob }));
 vi.mock('./activity.server.js', () => ({
   writeRegistrationActivity: mocks.writeRegistrationActivity,
 }));
@@ -281,6 +285,43 @@ describe('startRegistration: write', () => {
     expect(mocks.writeRegistrationActivity.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.dispatchJob.mock.invocationCallOrder[0],
     );
+  });
+
+  it('fails the attempt and the job when dispatch throws after the commit, so Retry is offered', async () => {
+    mocks.dispatchJob.mockRejectedValueOnce(
+      new Error('relation "_JobQueueDrainConfig" does not exist'),
+    );
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await run()).toEqual({
+      ok: false,
+      status: 503,
+      error: 'The DOI registration could not be queued. Try again.',
+    });
+    const depositId = tx.doiDeposit.create.mock.calls[0][0].data.id;
+    expect(mocks.failDeposit).toHaveBeenCalledWith(p, {
+      deposit: {
+        id: depositId,
+        submission_version_id: 'sv-1',
+        registration: {
+          id: 'reg-1',
+          doi: DOI,
+          submission_id: 'sub-1',
+          site_id: SITE,
+          created_by_id: 'u1',
+        },
+      },
+      error: 'dispatch_failed',
+    });
+    expect(mocks.failJob).toHaveBeenCalledWith('job-1', expect.stringContaining('dispatch_failed'));
+    error.mockRestore();
+  });
+
+  it('still answers 503 when failing the attempt after a dispatch error also throws', async () => {
+    mocks.dispatchJob.mockRejectedValueOnce(new Error('queue down'));
+    mocks.failDeposit.mockRejectedValueOnce(new Error('db down'));
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await run()).toMatchObject({ ok: false, status: 503 });
+    error.mockRestore();
   });
 
   it('FAILED retry reuses its DOI and flips it to SUBMITTING', async () => {
