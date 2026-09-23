@@ -1,0 +1,141 @@
+import { uuidv7 } from 'uuidv7';
+import {
+  DOI_REGISTRATION_STATUS,
+  KnownJobTypes,
+  SITE_DOI_CONFIG_STATUS,
+  resolveSiteWorkDoi,
+} from '@curvenote/scms-core';
+import type { Context } from '@curvenote/scms-server';
+import { assembleDeposit } from '../deposit/assemble.server.js';
+import { depositXmlKey, writePrivateXml } from '../deposit/storage.server.js';
+import type { DoiActor, DoiDeps } from '../doi/types.js';
+import { dispatchJob } from '../jobs/schedule.server.js';
+import { commitStart } from './commit.server.js';
+import type { Plan } from './commit.server.js';
+import { generateFreeDoi } from './doi.server.js';
+import * as errors from './errors.js';
+import type { RegistrationFailure } from './errors.js';
+
+const PUBLISHED = 'PUBLISHED';
+
+export type StartRegistrationInput = { siteId: string; submissionId: string; actor: DoiActor };
+
+export type StartRegistrationResult =
+  { ok: true; registrationId: string; depositId: string; doi: string } | RegistrationFailure;
+
+async function loadStart(
+  deps: DoiDeps,
+  input: StartRegistrationInput,
+): Promise<Plan | RegistrationFailure> {
+  const submission = await deps.prisma.submission.findFirst({
+    where: { id: input.submissionId, site_id: input.siteId },
+    select: {
+      id: true,
+      doi: true,
+      versions: {
+        where: { status: PUBLISHED },
+        orderBy: { date_created: 'desc' },
+        take: 1,
+        select: {
+          id: true,
+          work_version: { select: { doi: true, work: { select: { doi: true } } } },
+        },
+      },
+    },
+  });
+  if (!submission) {
+    return errors.NOT_FOUND;
+  }
+  const version = submission.versions[0];
+  if (!version) {
+    return errors.NOT_PUBLISHED;
+  }
+  const workDoi = resolveSiteWorkDoi({
+    submission: submission.doi,
+    workVersion: version.work_version.doi,
+    work: version.work_version.work.doi,
+  });
+  if (workDoi) {
+    return errors.HAS_DOI;
+  }
+  const existing = await deps.prisma.doiRegistration.findUnique({
+    where: { submission_id: submission.id },
+    select: { id: true, status: true, doi: true, prefix: true },
+  });
+  if (existing?.status === DOI_REGISTRATION_STATUS.SUBMITTING) {
+    return errors.IN_PROGRESS;
+  }
+  if (existing?.status === DOI_REGISTRATION_STATUS.REGISTERED) {
+    return errors.ALREADY;
+  }
+  const site = await deps.prisma.siteDoiConfig.findUnique({
+    where: { site_id: input.siteId },
+    select: { prefix: true, status: true },
+  });
+  if (!site || site.status !== SITE_DOI_CONFIG_STATUS.ACTIVE) {
+    return errors.NOT_ACTIVE;
+  }
+  // D21: a retry keeps its DOI. A DOI under an old prefix was never registered, so it is replaced.
+  const keepDoi = existing && existing.prefix === site.prefix;
+  const doi = keepDoi ? existing.doi : await generateFreeDoi(deps.prisma, site.prefix);
+  return {
+    siteId: input.siteId,
+    submissionId: submission.id,
+    versionId: version.id,
+    prefix: site.prefix,
+    doi,
+    retry: existing ? { id: existing.id, doi: existing.doi } : undefined,
+  };
+}
+
+/**
+ * Reads, assembles and stores the XML first (the CDN read must not hold a transaction), then
+ * commits everything in one write transaction and dispatches after commit. A blocking issue
+ * writes nothing. A lost race leaves only an orphan XML in `prv`, which nothing reads.
+ */
+export async function startRegistration(
+  ctx: Context,
+  deps: DoiDeps,
+  input: StartRegistrationInput,
+): Promise<StartRegistrationResult> {
+  const plan = await loadStart(deps, input);
+  if ('ok' in plan) {
+    return plan;
+  }
+  const depositId = uuidv7();
+  const assembled = await assembleDeposit(ctx, plan.versionId, {
+    doi: plan.doi,
+    batchId: depositId,
+    depositorEmail: deps.creds.depositorEmail,
+    resourceUrlBase: deps.creds.resourceUrlBase,
+  });
+  if (!assembled.xml) {
+    return { ok: false, status: 400, error: 'The deposit is not ready.', issues: assembled.issues };
+  }
+  const xmlPath = depositXmlKey(`${depositId}.xml`);
+  await writePrivateXml(ctx, xmlPath, assembled.xml);
+  let committed;
+  try {
+    committed = await deps.prisma.$transaction((tx) =>
+      commitStart(tx, { plan, depositId, xmlPath, userId: input.actor.userId }),
+    );
+  } catch (e: any) {
+    // A concurrent first start won the submission_id (or doi) unique index. Prisma 7 +
+    // adapter-pg drops meta.target (origin ledger R13), so re-read instead of inspecting it.
+    if (e?.code === 'P2002') {
+      const winner = await deps.prisma.doiRegistration.findUnique({
+        where: { submission_id: plan.submissionId },
+        select: { id: true },
+      });
+      if (winner) {
+        return errors.IN_PROGRESS;
+      }
+    }
+    throw e;
+  }
+  if ('ok' in committed) {
+    return committed;
+  }
+  await dispatchJob(committed.jobId, KnownJobTypes.CROSSREF_DEPOSIT);
+  return { ok: true, registrationId: committed.registrationId, depositId, doi: plan.doi };
+}
